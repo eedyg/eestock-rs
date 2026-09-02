@@ -1,0 +1,7 @@
+[package]
+name = "providers"
+description = "基础设施：各数据源 HTTP 适配器（空壳，Wave 1 实现）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

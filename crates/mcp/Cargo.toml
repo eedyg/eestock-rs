@@ -1,0 +1,7 @@
+[package]
+name = "mcp"
+description = "Presentation：MCP HTTP/SSE 服务（空壳，Wave 1 实现）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

@@ -1,0 +1,13 @@
+[package]
+name = "domain"
+description = "纯领域层：类型+trait+策略，零基础设施依赖（src 由 design/02-domain/contracts.md tangle 生成）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+anyhow.workspace = true
+rand.workspace = true

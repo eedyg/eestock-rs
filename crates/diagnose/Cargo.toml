@@ -1,0 +1,7 @@
+[package]
+name = "diagnose"
+description = "应用层：健康指标聚合、告警规则引擎（空壳，Wave 1 实现）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

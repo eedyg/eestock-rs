@@ -1,0 +1,12 @@
+# Entangled 2.x 配置（ADR-007：design/ → src 单向 tangle）
+# 手写例外文件：本文件、Cargo.toml workspace 骨架、前端构建配置——不 tangle。
+version = "2.0"
+
+# 事实源仅为 design/ 下的文档树；README/报告等工程文件不参与 tangle
+watch_list = ["design/**/*.md"]
+
+# SQL 不在内置语言表中，注册后才能 tangle migrations/*.sql
+[[languages]]
+name = "SQL"
+identifiers = ["sql", "postgresql"]
+comment = { open = "--" }

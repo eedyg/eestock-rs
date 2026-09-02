@@ -1,0 +1,7 @@
+[package]
+name = "web"
+description = "Presentation：axum REST + WebSocket + SPA 静态托管（空壳，Wave 1 实现）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

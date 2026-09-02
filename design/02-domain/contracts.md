@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// 标的代码，如 518880。市场规则：5/6/9→沪(sh)，0/1/2/3→深(sz)，4/8/920→北交所（暂不支持）。
 /// ⚠️ 审查修正：初版「5→sh 其他→sz」会把 6 开头沪 A 股误判为深市，属硬伤。
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Code(pub String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -192,7 +192,7 @@ pub trait HealthMonitor: Send + Sync {
     async fn report_failure(&self, src: SourceId, err_kind: &str);
     async fn health(&self, src: SourceId) -> Health;
     async fn healthy_minute_sources(&self) -> Vec<SourceId>;
-    /// 熔断口径：连续 3 次失败 → CircuitOpen；403/429 → 5s→10s→30s 退避（ADR-005）
+    // 熔断口径：连续 3 次失败 → CircuitOpen；403/429 → 5s→10s→30s 退避（ADR-005）
 }
 
 /// 交易时段判定（工作日 09:30-11:30 / 13:00-15:00，节假日表后续接入）。

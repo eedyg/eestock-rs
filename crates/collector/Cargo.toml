@@ -1,0 +1,7 @@
+[package]
+name = "collector"
+description = "应用层：采集调度、源选取状态机、缺口回填（空壳，Wave 1 实现）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

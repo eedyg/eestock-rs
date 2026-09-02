@@ -1,0 +1,16 @@
+# Rust 构建产物
+target/
+
+# 前端（Wave 1 起）
+node_modules/
+
+# 本地环境变量
+.env
+.env.*
+
+# entangled 缓存（文件数据库，不入库）
+.entangled/
+
+# 编辑器/系统杂项
+*.swp
+.DS_Store

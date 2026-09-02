@@ -1,0 +1,11 @@
+[package]
+name = "app"
+description = "二进制装配：DI 组装、配置加载、进程入口（空壳）"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "eestock"
+path = "src/main.rs"
+
+[dependencies]
