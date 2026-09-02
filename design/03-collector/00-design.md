@@ -10,7 +10,7 @@ CollectorService
 ├── Scheduler        # 每 code 一个 ticker（interval_secs），对齐分钟边界
 ├── FetchExecutor    # attempt_chain 执行器：随机起点+轮询转移（domain::selector）
 ├── GapBackfiller    # 启动时/周期内当日缺口回填
-├── HeartbeatTask    # 快照池 30-60s 保活
+├── StandbyReserve    # 冷藏备援：平时零请求，降级模式激活（ADR-015）
 ├── CircuitRegistry  # 熔断状态机（内存态 + 事件落库）
 └── EventSink        # source_health_events 写入（诊断数据源）
 ```
@@ -25,7 +25,9 @@ CollectorService
 
 ```
 对 code C：
-  chain = selector.attempt_chain(healthy_minute_sources())   # 随机起点+轮转，剔除熔断
+  chain = selector.attempt_chain(duty_source(), healthy_minute_sources())
+  # ADR-015：时间窗轮换——随机窗长 20-40min 指定当班主源，全部标的先试当班源，
+  # 另一源仅故障转移承接；窗界切换带 0-30s 随机偏移；熔断源始终剔除
   for src in chain:                                          # 单批次内按序转移
       t0 = now
       match provider[src].fetch_m1(C, limit=N):              # N=当日剩余分钟数+少量重叠
@@ -58,11 +60,15 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 - 回填：对每个缺口 code，走正常 attempt_chain 拉 limit=240 的 m1，首写胜出只补缺的部分
 - 只回填**当日**（更早的历史缺口归 tushare 准确层职责，ADR-003）
 
-## 6. 心跳任务（HeartbeatTask）
+## 6. 冷藏备援与降级模式（ADR-015，取代原心跳模式）
 
-- 快照池（TencentQt/SinaHq/ThsCs/Push2delay/Exchange）每 30-60s 随机抖动一轮：取注册集合快照，验证可达性与解析，**只记健康事件不入行情库**
-- 用途：源健康观测 + HalfOpen 探测 + 快照与 1m 价交叉（诊断分歧率输入）
-- Push2delay 单独 15min 低频档（ADR-006）
+- **快照池平时零请求**（无心跳无轮询，standby 状态），仅降级模式激活
+- 降级触发：某标的 attempt_chain 全链失败（Tier 1 双源均败/熔断）→ 该标的进入**降级模式**：
+  - 快照池源顺序**每次随机打乱**后逐个尝试，5-10s（含随机抖动）轮询快照
+  - 本地聚合合成近似 1m bar：`source=*_approx` 标记（OHLC≈快照价序列、volume 差分估算或 0），与真实 bar 物理可区分
+  - Tier 2 源失败：该源本次激活期指数退避冷却，不轰击
+- 恢复：Tier 1 熔断源 HalfOpen 探测成功 → 该标的回切正常；近似 bar 保留待 tushare 准确层覆盖
+- 状态可见：diagnose 对冷藏源显示 `standby`；全局状态灯在任一标的降级时变 🟡
 
 ## 7. 事件模型（写 source_health_events）
 
