@@ -1,2 +1,6 @@
-//! storage —— 基础设施：TimescaleDB 读写（sqlx）（空壳，Wave 1 实现）。
-//! 实现代码将由 design/ 对应文档经 `entangled tangle` 生成（ADR-007）。
+// ~/~ begin <<design/04-storage/02-tushare-sync.md#crates/storage/src/lib.rs>>[init]
+//! storage —— 基础设施：TimescaleDB 读写（sqlx）。
+//! 由 design/04-storage/*.md tangle 生成（ADR-007），禁止手改。
+
+pub mod accurate;
+// ~/~ end

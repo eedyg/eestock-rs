@@ -1,2 +1,8 @@
-//! tushare —— 基础设施：tushare 客户端 + 准确层同步（空壳，Wave 2 实现）。
-//! 实现代码将由 design/ 对应文档经 `entangled tangle` 生成（ADR-007）。
+// ~/~ begin <<design/04-storage/02-tushare-sync.md#crates/tushare/src/lib.rs>>[init]
+//! tushare —— 基础设施：tushare 客户端（HistoricalDataProvider）+ 准确层同步编排。
+//! 由 design/04-storage/02-tushare-sync.md tangle 生成（ADR-007），禁止手改。
+
+pub mod client;
+pub mod parse;
+pub mod sync;
+// ~/~ end

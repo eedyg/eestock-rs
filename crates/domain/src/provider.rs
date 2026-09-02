@@ -4,6 +4,7 @@
 
 use crate::types::*;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc}; // ⚠️ 审查修正（2026-09-03）：HistoricalDataProvider 签名用 DateTime<Utc>，原块漏导入无法编译
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProviderError {

@@ -1,7 +1,20 @@
 [package]
 name = "tushare"
-description = "基础设施：tushare 客户端 + 准确层同步（空壳，Wave 2 实现）"
+description = "基础设施：tushare 客户端 + 准确层同步（src 由 design/04-storage/02-tushare-sync.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
+domain = { path = "../domain" }
+storage = { path = "../storage" }
+reqwest.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sqlx.workspace = true

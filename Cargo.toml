@@ -27,6 +27,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
+# HTTP 客户端（tushare crate 使用，父级裁决批准引入；rustls 与 sqlx tls-rustls 一致）
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
