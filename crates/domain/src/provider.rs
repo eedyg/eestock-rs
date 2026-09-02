@@ -31,4 +31,17 @@ pub trait SnapshotProvider: Send + Sync {
     fn id(&self) -> SourceId;
     async fn fetch_snapshot(&self, codes: &[Code]) -> Result<Vec<Quote>, ProviderError>;
 }
+
+/// ADR-016：历史数据 Provider（tushare 等）。与实时层解耦：
+/// 实时层喂 kline_raw（日内增量），历史层喂 kline_accurate（准确层回填）。
+#[async_trait]
+pub trait HistoricalDataProvider: Send + Sync {
+    fn id(&self) -> SourceId;
+    /// 拉取 [start, end]（闭区间，UTC）内指定周期 K线，按 ts 升序。
+    async fn fetch_history(&self, code: &Code, period: Period,
+                           start: DateTime<Utc>, end: DateTime<Utc>)
+                           -> Result<Vec<Bar>, ProviderError>;
+    /// 该源支持的周期（tushare：M1/M5/M15/H1/D1，视账户档位，启动时探测）
+    fn supported_periods(&self) -> Vec<Period>;
+}
 // ~/~ end

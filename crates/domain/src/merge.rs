@@ -5,12 +5,12 @@ use crate::types::Bar;
 use std::collections::{HashMap, HashSet};
 
 pub fn merge_prefer_accurate(raw: Vec<Bar>, accurate: Vec<Bar>) -> Vec<Bar> {
-    let raw_keys: HashSet<_> = raw.iter().map(|b| (b.code.clone(), b.ts)).collect();
-    let acc: HashMap<_, _> = accurate.into_iter().map(|b| ((b.code.clone(), b.ts), b)).collect();
-    // ⚠️ 审查修正：初版 acc_only 过滤为 O(n²)，改 HashSet O(n)
+    // ⚠️ ADR-016 连带：key 含 period，防止跨粒度误合并
+    let raw_keys: HashSet<_> = raw.iter().map(|b| (b.code.clone(), b.period, b.ts)).collect();
+    let acc: HashMap<_, _> = accurate.into_iter().map(|b| ((b.code.clone(), b.period, b.ts), b)).collect();
     let mut out: Vec<Bar> = raw.into_iter()
-        .map(|b| acc.get(&(b.code.clone(), b.ts)).cloned().unwrap_or(b)).collect();
-    out.extend(acc.into_values().filter(|b| !raw_keys.contains(&(b.code.clone(), b.ts))));
+        .map(|b| acc.get(&(b.code.clone(), b.period, b.ts)).cloned().unwrap_or(b)).collect();
+    out.extend(acc.into_values().filter(|b| !raw_keys.contains(&(b.code.clone(), b.period, b.ts))));
     out.sort_by_key(|b| (b.code.clone(), b.ts));
     out
 }

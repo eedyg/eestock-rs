@@ -42,8 +42,9 @@ impl Code {
     }
 }
 
-/// 采集周期。本系统采集只写 1m（ADR-004），高周期由连续聚合生成。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// 采集周期。本系统采集只写 1m（ADR-004），高周期由连续聚合生成；
+/// 历史层（ADR-016）可为多粒度。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Period { M1, M5, M15, H1, D1 }
 
 /// 一根 K线 bar（真实 OHLCV）。
@@ -52,6 +53,7 @@ pub enum Period { M1, M5, M15, H1, D1 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Bar {
     pub code: Code,
+    pub period: Period,           // ADR-016：实时层恒为 M1；历史层多粒度
     pub ts: DateTime<Utc>,        // bar 起始时刻（交易所分钟边界对齐）
     pub open: f64,
     pub high: f64,
@@ -84,6 +86,7 @@ pub enum SourceId {
     ThsCs,         // 快照池（仅单只）
     Push2delay,    // 快照池，东财系最低频（ADR-006）
     Exchange,      // 交易所官方快照
+    Tushare,       // ADR-016：历史层（准确层来源）
 }
 
 /// 源健康状态。
@@ -125,6 +128,19 @@ pub trait MinuteKlineProvider: Send + Sync {
 pub trait SnapshotProvider: Send + Sync {
     fn id(&self) -> SourceId;
     async fn fetch_snapshot(&self, codes: &[Code]) -> Result<Vec<Quote>, ProviderError>;
+}
+
+/// ADR-016：历史数据 Provider（tushare 等）。与实时层解耦：
+/// 实时层喂 kline_raw（日内增量），历史层喂 kline_accurate（准确层回填）。
+#[async_trait]
+pub trait HistoricalDataProvider: Send + Sync {
+    fn id(&self) -> SourceId;
+    /// 拉取 [start, end]（闭区间，UTC）内指定周期 K线，按 ts 升序。
+    async fn fetch_history(&self, code: &Code, period: Period,
+                           start: DateTime<Utc>, end: DateTime<Utc>)
+                           -> Result<Vec<Bar>, ProviderError>;
+    /// 该源支持的周期（tushare：M1/M5/M15/H1/D1，视账户档位，启动时探测）
+    fn supported_periods(&self) -> Vec<Period>;
 }
 ```
 
@@ -235,12 +251,12 @@ use crate::types::Bar;
 use std::collections::{HashMap, HashSet};
 
 pub fn merge_prefer_accurate(raw: Vec<Bar>, accurate: Vec<Bar>) -> Vec<Bar> {
-    let raw_keys: HashSet<_> = raw.iter().map(|b| (b.code.clone(), b.ts)).collect();
-    let acc: HashMap<_, _> = accurate.into_iter().map(|b| ((b.code.clone(), b.ts), b)).collect();
-    // ⚠️ 审查修正：初版 acc_only 过滤为 O(n²)，改 HashSet O(n)
+    // ⚠️ ADR-016 连带：key 含 period，防止跨粒度误合并
+    let raw_keys: HashSet<_> = raw.iter().map(|b| (b.code.clone(), b.period, b.ts)).collect();
+    let acc: HashMap<_, _> = accurate.into_iter().map(|b| ((b.code.clone(), b.period, b.ts), b)).collect();
     let mut out: Vec<Bar> = raw.into_iter()
-        .map(|b| acc.get(&(b.code.clone(), b.ts)).cloned().unwrap_or(b)).collect();
-    out.extend(acc.into_values().filter(|b| !raw_keys.contains(&(b.code.clone(), b.ts))));
+        .map(|b| acc.get(&(b.code.clone(), b.period, b.ts)).cloned().unwrap_or(b)).collect();
+    out.extend(acc.into_values().filter(|b| !raw_keys.contains(&(b.code.clone(), b.period, b.ts))));
     out.sort_by_key(|b| (b.code.clone(), b.ts));
     out
 }

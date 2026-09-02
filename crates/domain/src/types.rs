@@ -35,8 +35,9 @@ impl Code {
     }
 }
 
-/// 采集周期。本系统采集只写 1m（ADR-004），高周期由连续聚合生成。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// 采集周期。本系统采集只写 1m（ADR-004），高周期由连续聚合生成；
+/// 历史层（ADR-016）可为多粒度。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Period { M1, M5, M15, H1, D1 }
 
 /// 一根 K线 bar（真实 OHLCV）。
@@ -45,6 +46,7 @@ pub enum Period { M1, M5, M15, H1, D1 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Bar {
     pub code: Code,
+    pub period: Period,           // ADR-016：实时层恒为 M1；历史层多粒度
     pub ts: DateTime<Utc>,        // bar 起始时刻（交易所分钟边界对齐）
     pub open: f64,
     pub high: f64,
@@ -77,6 +79,7 @@ pub enum SourceId {
     ThsCs,         // 快照池（仅单只）
     Push2delay,    // 快照池，东财系最低频（ADR-006）
     Exchange,      // 交易所官方快照
+    Tushare,       // ADR-016：历史层（准确层来源）
 }
 
 /// 源健康状态。
