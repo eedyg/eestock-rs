@@ -17,7 +17,7 @@ FROM kline_raw GROUP BY code, time_bucket('15 minutes', ts);
 
 CREATE MATERIALIZED VIEW kline_1d
 WITH (timescaledb.continuous) AS
-SELECT code, time_bucket('1 day', ts) AS ts,
+SELECT code, time_bucket('1 day', ts, 'Asia/Shanghai') AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
 FROM kline_raw GROUP BY code, time_bucket('1 day', ts, 'Asia/Shanghai');

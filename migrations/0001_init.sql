@@ -48,10 +48,14 @@ FROM kline_raw r
 WHERE NOT EXISTS (SELECT 1 FROM kline_accurate a WHERE a.code = r.code AND a.ts = r.ts AND a.period = 'M1');
 
 -- 标注册表（手工注册，ADR：不跟随券商持仓）
+-- settlement：T+0/T+1 交收规则（用户裁决 2026-09-03 必须区分；影响策略/回测撮合规则）
+-- 分类规则：跨境(QDII)/债券/商品(黄金等)/货币 ETF → T0；沪深股票型 ETF → T1；
+-- 规则仅作默认，最终逐只人工确认（symbols 管理页可改）
 CREATE TABLE symbols (
     code          text PRIMARY KEY,
     name          text,
     interval_secs integer NOT NULL DEFAULT 60 CHECK (interval_secs >= 60),
+    settlement    text NOT NULL DEFAULT 'T1' CHECK (settlement IN ('T0','T1')),
     enabled       boolean NOT NULL DEFAULT true,
     created_at    timestamptz NOT NULL DEFAULT now()
 );
