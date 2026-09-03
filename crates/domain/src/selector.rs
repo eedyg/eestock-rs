@@ -8,7 +8,6 @@
 
 use crate::types::*;
 use rand::seq::SliceRandom;
-use rand::Rng;
 
 pub struct SourceSelector {
     /// 注册序即轮转序（东财系恒在最后——ADR-006）

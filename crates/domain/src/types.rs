@@ -20,6 +20,10 @@ pub enum CodeError {
 
 impl Code {
     pub fn market(&self) -> Result<Market, CodeError> {
+        // ⚠️ 920 开头为北交所（契约测试实锤：粗粒度 '9'→沪 会把 920xxx 误判沪市），须先行排除
+        if self.0.starts_with("920") {
+            return Err(CodeError::UnsupportedMarket(self.0.clone()));
+        }
         match self.0.chars().next() {
             Some('5') | Some('6') | Some('9') => Ok(Market::Sh),
             Some('0') | Some('1') | Some('2') | Some('3') => Ok(Market::Sz),
@@ -70,6 +74,8 @@ pub struct Quote {
 }
 
 /// 数据源标识。
+/// `*Approx` 变体：03 §6 降级模式产物标记（快照池合成的近似 1m bar），
+/// 与真实 bar 物理可区分（落库 source 列为 `*_approx` 文本）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourceId {
     TencentIfzq,   // 1m 主力
@@ -80,6 +86,62 @@ pub enum SourceId {
     Push2delay,    // 快照池，东财系最低频（ADR-006）
     Exchange,      // 交易所官方快照
     Tushare,       // ADR-016：历史层（准确层来源）
+    TencentQtApprox,   // 降级模式：腾讯 qt 快照合成
+    SinaHqApprox,      // 降级模式：新浪 hq 快照合成
+    ThsCsApprox,       // 降级模式：同花顺快照合成
+    Push2delayApprox,  // 降级模式：push2delay 快照合成
+    ExchangeApprox,    // 降级模式：交易所快照合成
+}
+
+impl SourceId {
+    /// 落库 source 列文本（单一事实源：storage/诊断共用此口径）。
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SourceId::TencentIfzq => "tencent_ifzq", SourceId::SinaJsonp => "sina_jsonp",
+            SourceId::TencentQt => "tencent_qt", SourceId::SinaHq => "sina_hq",
+            SourceId::ThsCs => "ths_cs", SourceId::Push2delay => "push2delay",
+            SourceId::Exchange => "exchange", SourceId::Tushare => "tushare",
+            SourceId::TencentQtApprox => "tencent_qt_approx",
+            SourceId::SinaHqApprox => "sina_hq_approx",
+            SourceId::ThsCsApprox => "ths_cs_approx",
+            SourceId::Push2delayApprox => "push2delay_approx",
+            SourceId::ExchangeApprox => "exchange_approx",
+        }
+    }
+    /// 是否降级模式近似标记。
+    pub fn is_approx(&self) -> bool { matches!(self,
+        SourceId::TencentQtApprox | SourceId::SinaHqApprox | SourceId::ThsCsApprox
+        | SourceId::Push2delayApprox | SourceId::ExchangeApprox) }
+    /// 快照池源 → 对应近似变体；非快照池源（Tier1/tushare）→ None。
+    pub fn approx(&self) -> Option<SourceId> {
+        match self {
+            SourceId::TencentQt => Some(SourceId::TencentQtApprox),
+            SourceId::SinaHq => Some(SourceId::SinaHqApprox),
+            SourceId::ThsCs => Some(SourceId::ThsCsApprox),
+            SourceId::Push2delay => Some(SourceId::Push2delayApprox),
+            SourceId::Exchange => Some(SourceId::ExchangeApprox),
+            _ => None,
+        }
+    }
+    /// 近似变体 → 原型；非近似变体 → 自身。
+    pub fn base(&self) -> SourceId {
+        match self {
+            SourceId::TencentQtApprox => SourceId::TencentQt,
+            SourceId::SinaHqApprox => SourceId::SinaHq,
+            SourceId::ThsCsApprox => SourceId::ThsCs,
+            SourceId::Push2delayApprox => SourceId::Push2delay,
+            SourceId::ExchangeApprox => SourceId::Exchange,
+            other => *other,
+        }
+    }
+}
+
+/// 生成 Trace ID：32 位 hex（rand 生成）。
+/// 父级裁决（2026-09-03）：不引入 uuid 依赖，每次抓取生成一个贯穿事件/日志。
+pub fn new_trace_id() -> String {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    (0..32).map(|_| format!("{:x}", rng.gen_range(0..16u8))).collect()
 }
 
 /// 源健康状态。

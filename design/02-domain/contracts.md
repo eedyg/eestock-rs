@@ -27,6 +27,10 @@ pub enum CodeError {
 
 impl Code {
     pub fn market(&self) -> Result<Market, CodeError> {
+        // ⚠️ 920 开头为北交所（契约测试实锤：粗粒度 '9'→沪 会把 920xxx 误判沪市），须先行排除
+        if self.0.starts_with("920") {
+            return Err(CodeError::UnsupportedMarket(self.0.clone()));
+        }
         match self.0.chars().next() {
             Some('5') | Some('6') | Some('9') => Ok(Market::Sh),
             Some('0') | Some('1') | Some('2') | Some('3') => Ok(Market::Sz),
@@ -77,6 +81,8 @@ pub struct Quote {
 }
 
 /// 数据源标识。
+/// `*Approx` 变体：03 §6 降级模式产物标记（快照池合成的近似 1m bar），
+/// 与真实 bar 物理可区分（落库 source 列为 `*_approx` 文本）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SourceId {
     TencentIfzq,   // 1m 主力
@@ -87,6 +93,62 @@ pub enum SourceId {
     Push2delay,    // 快照池，东财系最低频（ADR-006）
     Exchange,      // 交易所官方快照
     Tushare,       // ADR-016：历史层（准确层来源）
+    TencentQtApprox,   // 降级模式：腾讯 qt 快照合成
+    SinaHqApprox,      // 降级模式：新浪 hq 快照合成
+    ThsCsApprox,       // 降级模式：同花顺快照合成
+    Push2delayApprox,  // 降级模式：push2delay 快照合成
+    ExchangeApprox,    // 降级模式：交易所快照合成
+}
+
+impl SourceId {
+    /// 落库 source 列文本（单一事实源：storage/诊断共用此口径）。
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SourceId::TencentIfzq => "tencent_ifzq", SourceId::SinaJsonp => "sina_jsonp",
+            SourceId::TencentQt => "tencent_qt", SourceId::SinaHq => "sina_hq",
+            SourceId::ThsCs => "ths_cs", SourceId::Push2delay => "push2delay",
+            SourceId::Exchange => "exchange", SourceId::Tushare => "tushare",
+            SourceId::TencentQtApprox => "tencent_qt_approx",
+            SourceId::SinaHqApprox => "sina_hq_approx",
+            SourceId::ThsCsApprox => "ths_cs_approx",
+            SourceId::Push2delayApprox => "push2delay_approx",
+            SourceId::ExchangeApprox => "exchange_approx",
+        }
+    }
+    /// 是否降级模式近似标记。
+    pub fn is_approx(&self) -> bool { matches!(self,
+        SourceId::TencentQtApprox | SourceId::SinaHqApprox | SourceId::ThsCsApprox
+        | SourceId::Push2delayApprox | SourceId::ExchangeApprox) }
+    /// 快照池源 → 对应近似变体；非快照池源（Tier1/tushare）→ None。
+    pub fn approx(&self) -> Option<SourceId> {
+        match self {
+            SourceId::TencentQt => Some(SourceId::TencentQtApprox),
+            SourceId::SinaHq => Some(SourceId::SinaHqApprox),
+            SourceId::ThsCs => Some(SourceId::ThsCsApprox),
+            SourceId::Push2delay => Some(SourceId::Push2delayApprox),
+            SourceId::Exchange => Some(SourceId::ExchangeApprox),
+            _ => None,
+        }
+    }
+    /// 近似变体 → 原型；非近似变体 → 自身。
+    pub fn base(&self) -> SourceId {
+        match self {
+            SourceId::TencentQtApprox => SourceId::TencentQt,
+            SourceId::SinaHqApprox => SourceId::SinaHq,
+            SourceId::ThsCsApprox => SourceId::ThsCs,
+            SourceId::Push2delayApprox => SourceId::Push2delay,
+            SourceId::ExchangeApprox => SourceId::Exchange,
+            other => *other,
+        }
+    }
+}
+
+/// 生成 Trace ID：32 位 hex（rand 生成）。
+/// 父级裁决（2026-09-03）：不引入 uuid 依赖，每次抓取生成一个贯穿事件/日志。
+pub fn new_trace_id() -> String {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    (0..32).map(|_| format!("{:x}", rng.gen_range(0..16u8))).collect()
 }
 
 /// 源健康状态。
@@ -157,7 +219,6 @@ pub trait HistoricalDataProvider: Send + Sync {
 
 use crate::types::*;
 use rand::seq::SliceRandom;
-use rand::Rng;
 
 pub struct SourceSelector {
     /// 注册序即轮转序（东财系恒在最后——ADR-006）
@@ -207,6 +268,8 @@ impl DutyRoster {
 
 use crate::types::*;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// 标注册表：手工注册的抓取集合（ADR：不跟随券商持仓）。
 #[async_trait]
@@ -233,10 +296,75 @@ pub trait HealthMonitor: Send + Sync {
     // 熔断口径：连续 3 次失败 → CircuitOpen；403/429 → 5s→10s→30s 退避（ADR-005）
 }
 
+/// 事件错误分类（03 §7 事件模型 err_kind 列口径）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ErrKind {
+    Na,             // 非交易时段/无数据（ok=true + err_kind=na，成功率分母排除）
+    Timeout,
+    Http,
+    Parse,
+    RateLimited,    // 403/429
+    CircuitOpen,    // 熔断状态迁移事件
+    CircuitHalfopen,
+    CircuitClosed,
+    ManualReset,
+    AllFailed,      // code 级失败：attempt_chain 全链失败（03 §3；诊断面板缺口率之因）
+}
+
+impl ErrKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ErrKind::Na => "na", ErrKind::Timeout => "timeout", ErrKind::Http => "http",
+            ErrKind::Parse => "parse", ErrKind::RateLimited => "rate_limited",
+            ErrKind::CircuitOpen => "circuit_open", ErrKind::CircuitHalfopen => "circuit_halfopen",
+            ErrKind::CircuitClosed => "circuit_closed", ErrKind::ManualReset => "manual_reset",
+            ErrKind::AllFailed => "all_failed",
+        }
+    }
+}
+
+/// 源健康事件（写 source_health_events，03 §7）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HealthEvent {
+    pub ts: DateTime<Utc>,
+    pub source: SourceId,
+    pub ok: bool,
+    pub latency_ms: Option<u32>,
+    pub err_kind: Option<ErrKind>,
+    pub code: Option<Code>,   // 触发标的（心跳/源级事件为空）
+    pub trace_id: Option<String>,
+}
+
+/// 事件汇：source_health_events 写入端口（storage 实现；diagnose 读库消费，ADR-017 无直连）。
+#[async_trait]
+pub trait EventSink: Send + Sync {
+    async fn emit(&self, ev: HealthEvent) -> anyhow::Result<()>;
+}
+
+/// raw 层已有 bar 读取（GapBackfiller 缺口计算输入；storage 实现）。
+#[async_trait]
+pub trait RawBarReader: Send + Sync {
+    /// 某 code 某日（Asia/Shanghai 口径）kline_raw 已有 bar 的 ts 集合。
+    async fn existing_ts(&self, code: &Code, date: chrono::NaiveDate)
+        -> anyhow::Result<std::collections::HashSet<DateTime<Utc>>>;
+}
+
 /// 交易时段判定（工作日 09:30-11:30 / 13:00-15:00，节假日表后续接入）。
 pub trait TradingCalendar: Send + Sync {
     fn is_trading_now(&self) -> bool;
     fn is_trading_day(&self, date: chrono::NaiveDate) -> bool;
+}
+
+/// 时钟抽象：生产 SystemClock，测试注入 fake clock（不 sleep、确定性）。
+/// 放 domain：collector（调度）与 tushare（日增量定时）跨层共用，避免 infra→app 反向依赖。
+pub trait Clock: Send + Sync {
+    fn now(&self) -> DateTime<Utc>;
+}
+
+pub struct SystemClock;
+
+impl Clock for SystemClock {
+    fn now(&self) -> DateTime<Utc> { Utc::now() }
 }
 ```
 
@@ -244,6 +372,201 @@ pub trait TradingCalendar: Send + Sync {
 
 merge 规则为纯函数，便于 TDD：**accurate 存在的时点取 accurate，否则取 raw**。
 实现为 storage 层 SQL 视图 + domain 层同名纯函数（供回测/分析离线使用），两者语义必须一致（契约测试锁定）。
+
+## 2.6 时区口径（铁律：Asia/Shanghai 解析、UTC 存储）
+
+Asia/Shanghai 无夏令时，固定 +8（避免引入 chrono-tz 依赖）。providers/collector 统一用此模块；
+tushare 有其历史同名实现（保留原样，语义一致）。
+
+``` {.rust file=crates/domain/src/tz.rs}
+//! 交易所时区工具：Asia/Shanghai（固定 +8，无 DST）。
+
+use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
+
+pub const CST_OFFSET_SECS: i32 = 8 * 3600;
+
+pub fn cst() -> FixedOffset {
+    FixedOffset::east_opt(CST_OFFSET_SECS).expect("valid offset")
+}
+
+/// 北京时间 naive → UTC（固定偏移无歧义）。
+pub fn cst_to_utc(naive: NaiveDateTime) -> DateTime<Utc> {
+    cst().from_local_datetime(&naive).single()
+        .expect("CST 固定偏移无歧义").with_timezone(&Utc)
+}
+
+/// UTC → 北京时间 naive。
+pub fn utc_to_cst(ts: DateTime<Utc>) -> NaiveDateTime {
+    ts.with_timezone(&cst()).naive_local()
+}
+```
+
+## 2.7 契约测试规格（TDD：本节测试先行）
+
+测试覆盖：Code 市场前缀（5/6/9→sh、0/1/2/3→sz、4/8 拒绝）、Bar/Quote serde 往返、
+SourceId 字符串口径（含 `*_approx`，03 §6 降级模式标记）、selector 当班优先/轮转/熔断剔除/空池、
+DutyRoster 确定性与窗长范围、merge 准确层优先/补缺/仅准确时点保留/排序、
+ProviderError 错误分类显示（01 §4 口径）、ErrKind 字符串、Trace ID 格式。
+
+``` {.rust file=crates/domain/tests/contracts_test.rs}
+//! domain 契约测试——由 design/02-domain/contracts.md §2.6 tangle 生成，禁止手改。
+
+use chrono::{TimeZone, Utc};
+use domain::merge::merge_prefer_accurate;
+use domain::provider::ProviderError;
+use domain::selector::{DutyRoster, SourceSelector};
+use domain::types::*;
+
+fn bar(code: &str, h: u32, mi: u32, src: SourceId, close: f64) -> Bar {
+    Bar {
+        code: Code(code.into()), period: Period::M1,
+        ts: Utc.with_ymd_and_hms(2026, 9, 3, h, mi, 0).unwrap(),
+        open: close, high: close, low: close, close,
+        volume: 100, amount: 100.0, source: src,
+    }
+}
+
+#[test]
+fn market_prefix_mapping() {
+    for c in ["518880", "600519", "900901"] {
+        assert_eq!(Code(c.into()).market().unwrap(), Market::Sh, "{c} 应判沪");
+    }
+    for c in ["159915", "000001", "200002", "300750"] {
+        assert_eq!(Code(c.into()).market().unwrap(), Market::Sz, "{c} 应判深");
+    }
+    for c in ["430001", "830799", "920001"] {
+        assert!(Code(c.into()).market().is_err(), "{c} 北交所/未知应拒绝");
+    }
+}
+
+#[test]
+fn prefixed_code() {
+    assert_eq!(Code("518880".into()).prefixed().unwrap(), "sh518880");
+    assert_eq!(Code("159915".into()).prefixed().unwrap(), "sz159915");
+}
+
+#[test]
+fn bar_quote_serde_roundtrip() {
+    let b = bar("518880", 1, 30, SourceId::TencentIfzq, 8.9);
+    let s = serde_json::to_string(&b).unwrap();
+    let b2: Bar = serde_json::from_str(&s).unwrap();
+    assert_eq!(b, b2);
+    let q = Quote { code: Code("518880".into()), last: 8.9, prev_close: 8.8,
+                    volume: 1000, amount: 8900.0,
+                    data_ts: Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap(),
+                    source: SourceId::TencentQt };
+    let q2: Quote = serde_json::from_str(&serde_json::to_string(&q).unwrap()).unwrap();
+    assert_eq!(q, q2);
+}
+
+#[test]
+fn source_id_str_and_approx() {
+    assert_eq!(SourceId::TencentIfzq.as_str(), "tencent_ifzq");
+    assert_eq!(SourceId::Tushare.as_str(), "tushare");
+    // 03 §6：降级模式近似 bar 以 *_approx 标记，与真实 bar 物理可区分
+    assert_eq!(SourceId::TencentQtApprox.as_str(), "tencent_qt_approx");
+    assert_eq!(SourceId::SinaHqApprox.as_str(), "sina_hq_approx");
+    assert_eq!(SourceId::ThsCsApprox.as_str(), "ths_cs_approx");
+    assert_eq!(SourceId::Push2delayApprox.as_str(), "push2delay_approx");
+    assert_eq!(SourceId::ExchangeApprox.as_str(), "exchange_approx");
+    assert!(!SourceId::TencentQt.is_approx());
+    assert!(SourceId::TencentQtApprox.is_approx());
+    assert_eq!(SourceId::TencentQt.approx(), Some(SourceId::TencentQtApprox));
+    assert_eq!(SourceId::TencentQtApprox.base(), SourceId::TencentQt);
+    // 非快照池源无近似形态
+    assert_eq!(SourceId::TencentIfzq.approx(), None);
+    assert_eq!(SourceId::Tushare.approx(), None);
+}
+
+#[test]
+fn selector_duty_first_when_healthy() {
+    let sel = SourceSelector::new(vec![SourceId::TencentIfzq, SourceId::SinaJsonp]);
+    let chain = sel.attempt_chain(SourceId::SinaJsonp,
+                                  &[SourceId::TencentIfzq, SourceId::SinaJsonp]);
+    assert_eq!(chain, vec![SourceId::SinaJsonp, SourceId::TencentIfzq],
+               "当班源健康时链首恒为当班源，之后按注册序轮转");
+}
+
+#[test]
+fn selector_excludes_unhealthy() {
+    let sel = SourceSelector::new(vec![SourceId::TencentIfzq, SourceId::SinaJsonp]);
+    let chain = sel.attempt_chain(SourceId::TencentIfzq, &[SourceId::SinaJsonp]);
+    assert_eq!(chain, vec![SourceId::SinaJsonp], "熔断源不出现在序列中");
+}
+
+#[test]
+fn selector_empty_pool() {
+    let sel = SourceSelector::new(vec![SourceId::TencentIfzq, SourceId::SinaJsonp]);
+    assert!(sel.attempt_chain(SourceId::TencentIfzq, &[]).is_empty(), "空池 → 空链");
+}
+
+#[test]
+fn duty_roster_deterministic_and_alternates() {
+    let r = DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]);
+    assert_eq!(r.duty_at(0, 7), r.duty_at(0, 7), "同输入恒同输出");
+    assert_eq!(r.duty_at(0, 7), SourceId::TencentIfzq);
+    // 找到首次换班点 m：窗长必须落在 20-40min（ADR-015）
+    let mut flip = None;
+    for m in 1..=60u64 {
+        if r.duty_at(m, 7) != r.duty_at(0, 7) { flip = Some(m); break; }
+    }
+    let m = flip.expect("60 分钟内必换班");
+    assert!((20..=40).contains(&m), "窗长 {m} 应 ∈ [20,40]");
+    assert_eq!(r.duty_at(m, 7), SourceId::SinaJsonp, "两源交替当班");
+    assert_eq!(r.duty_at(2 * m, 7), SourceId::TencentIfzq, "再交替回切");
+}
+
+#[test]
+fn merge_prefers_accurate_and_fills_and_keeps_accurate_only() {
+    let raw = vec![bar("518880", 1, 30, SourceId::TencentIfzq, 1.0),
+                   bar("518880", 1, 31, SourceId::TencentIfzq, 2.0)];
+    let acc = vec![bar("518880", 1, 31, SourceId::Tushare, 99.0),
+                   bar("518880", 1, 32, SourceId::Tushare, 3.0)];
+    let out = merge_prefer_accurate(raw, acc);
+    assert_eq!(out.len(), 3);
+    assert_eq!(out[0].close, 1.0, "raw 补缺");
+    assert_eq!(out[1].close, 99.0, "accurate 优先");
+    assert_eq!(out[1].source, SourceId::Tushare);
+    assert_eq!(out[2].close, 3.0, "仅 accurate 有的时点保留");
+    // 排序：按 (code, ts) 升序
+    assert!(out.windows(2).all(|w| w[0].ts < w[1].ts));
+}
+
+#[test]
+fn provider_error_classification() {
+    // 01-providers-spec §4 统一口径
+    assert_eq!(ProviderError::RateLimited.to_string(), "rate limited (403/429)");
+    assert_eq!(ProviderError::Timeout.to_string(), "timeout");
+    assert!(ProviderError::Http("x".into()).to_string().starts_with("http: "));
+    assert!(ProviderError::Parse("x".into()).to_string().starts_with("parse: "));
+    assert!(ProviderError::NoData.to_string().contains("no data"));
+}
+
+#[test]
+fn err_kind_str_table() {
+    // 03 §7 事件模型 err_kind 列口径
+    use domain::ports::ErrKind;
+    assert_eq!(ErrKind::Na.as_str(), "na");
+    assert_eq!(ErrKind::Timeout.as_str(), "timeout");
+    assert_eq!(ErrKind::Http.as_str(), "http");
+    assert_eq!(ErrKind::Parse.as_str(), "parse");
+    assert_eq!(ErrKind::RateLimited.as_str(), "rate_limited");
+    assert_eq!(ErrKind::CircuitOpen.as_str(), "circuit_open");
+    assert_eq!(ErrKind::CircuitHalfopen.as_str(), "circuit_halfopen");
+    assert_eq!(ErrKind::CircuitClosed.as_str(), "circuit_closed");
+    assert_eq!(ErrKind::ManualReset.as_str(), "manual_reset");
+    assert_eq!(ErrKind::AllFailed.as_str(), "all_failed");
+}
+
+#[test]
+fn trace_id_format() {
+    let a = new_trace_id();
+    let b = new_trace_id();
+    assert_eq!(a.len(), 32, "32 位 hex（rand 生成，父级裁决：不引 uuid 依赖）");
+    assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
+    assert_ne!(a, b, "两次生成应不同");
+}
+```
 
 ``` {.rust file=crates/domain/src/merge.rs}
 //! 双真值层合并：准确层优先（纯函数版，与 SQL 视图语义一致，契约测试锁定）。
