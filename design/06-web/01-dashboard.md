@@ -2,11 +2,68 @@
 
 > Grill P1 定稿（2026-09-02）。实现时代码块由 coder 按本文档规格以 TDD 填充（文学式单向 tangle）。
 
-## 1. 布局（定稿 1a-C）
+## 1. 布局（定稿 1a-C；三层法表达，规范见 00-shell.md）
 
-- **单图聚焦为主**：左侧标的列表（注册集合，显示 code+名称+最新价+涨跌幅），右侧主图区，点击标的切换
-- **可切换多宫格视图**：工具栏切换「单图 / 2×2 / 2×3」，宫格模式每格一只标的缩略图（仅 K线+MA，无副图），点击格子进入单图聚焦
-- 标的列表支持按 code/名称搜索过滤
+### L1 ASCII 线框
+
+单图聚焦模式（默认）：
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ 顶部状态条 H=40px（shell 级，见 00-shell）                       │
+├────────┬──────────────────┬────────────────────────────────────┤
+│ 导航栏  │ symbol-list      │ main-area (flex-1)                 │
+│ W=200px│ W=240px          │ ┌─ toolbar H=36px ───────────────┐ │
+│ (shell)│ code+名称+最新价  │ │ 周期|K线/分时|指标|宫格|回到最新 │ │
+│        │ +涨跌幅           │ ├─ main-chart (flex-1) ──────────┤ │
+│        │ 顶部搜索过滤 H=32 │ │ K线+MA(5/10/20) / 分时线        │ │
+│        │                  │ ├─ sub-chart H=20% ──────────────┤ │
+│        │                  │ │ 成交量                          │ │
+└────────┴──────────────────┴────────────────────────────────────┘
+min-width: 1280px（桌面优先，不响应式）
+```
+
+宫格模式（toolbar 切换，替代 main-area 内容）：
+
+```
+┌─ grid-view (flex-1) ────────────────────────────┐
+│ grid-cell ×4 (2×2) 或 ×6 (2×3)                   │
+│ 每格：K线缩略图+MA（无副图）+code/名称/涨跌幅表头   │
+└─────────────────────────────────────────────────┘
+```
+
+### L2 区域规格表
+
+| 区域 id | 内容 | 数据源 | loading/空/错误态 | 交互 |
+|---|---|---|---|---|
+| `symbol-list` | 注册集合：code+名称+最新价+涨跌幅 | `GET /api/symbols`（含 latest 快照）+ WS `{type:"quote"}` | 骨架行 / 「未注册标的，去标的管理」引导链 / 顶部错误条+重试 | 点击切主图；搜索框过滤（code/名称模糊） |
+| `toolbar` | 周期(1m/5m/15m/1h/日，默认15m)、K线/分时 Tab、指标勾选(MA默认开；MACD/KDJ/BOLL默认关)、宫格切换、回到最新 | 本地状态 | 不可能空（静态控件）/ — / — | 见 §2/§3 行为 |
+| `main-chart` | K线+MA(5/10/20)；分时 Tab=当日价格线+均价线（1m bar 客户端计算） | `GET /api/kline`（merge 视图）+ WS `{type:"bar"}`；1m 读 raw、高周期读 cagg | 骨架图 / 「该时段无数据」占位 / 错误占位+重试 | 十字光标；缩放/平移（手动后不强拉）；向前翻页 `?before=&limit=` |
+| `sub-chart` | 成交量副图（默认开） | 同 main-chart | 随主图 / 随主图 / 随主图 | 无独立交互 |
+| `grid-view` | 2×2 / 2×3 宫格缩略图 | 同 main-chart，每格独立订阅 | 每格独立骨架/无数据/错误 | 点格进单图聚焦；工具栏切回 |
+
+### L3 布局骨架（tangle 生成；结构+锚点+尺寸类，视觉样式手写）
+
+``` {.tsx file=web/src/layouts/DashboardGrid.tsx}
+// 由 design/06-web/01-dashboard.md L3 代码块 tangle 生成，禁止手改
+// 骨架职责：DOM 结构 + data-region 锚点 + 布局尺寸类；视觉样式在组件内手写
+export function DashboardGrid() {
+  return (
+    <div data-region="dashboard" className="flex min-w-[1280px] flex-1">
+      <aside data-region="symbol-list" className="w-60 border-r" />
+      <main data-region="main-area" className="flex flex-1 flex-col">
+        <div data-region="toolbar" className="h-9 border-b" />
+        {/* 单图模式 */}
+        <div data-region="main-chart" className="flex-1" />
+        <div data-region="sub-chart" className="h-1/5" />
+        {/* 宫格模式（toolbar 切换时替代 main-chart+sub-chart）
+        <div data-region="grid-view" className="grid flex-1 grid-cols-2 grid-rows-2" />
+        */}
+      </main>
+    </div>
+  );
+}
+```
 
 ## 2. 图表（定稿 1b）
 

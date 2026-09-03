@@ -16,3 +16,9 @@ comment = { open = "--" }
 name = "Dockerfile"
 identifiers = ["dockerfile"]
 comment = { open = "#" }
+
+# TSX/TS 不在内置语言表，注册后才能 tangle web/ 前端骨架（L3 布局骨架）
+[[languages]]
+name = "TSX"
+identifiers = ["tsx", "ts", "typescript"]
+comment = { open = "//" }
