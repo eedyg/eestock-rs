@@ -1,6 +1,12 @@
-# Wave 1 任务书 — 数据底座
+# Wave 1 任务书 — 应用面（web/diagnose/MCP/前端 ①②③）
 
 > ⚠️ 2026-09-03 更新：**Wave 0（10-wave-plans/wave-0.md）已新设并先行**——数据面（采集/降级模式/tushare 日增量/容器化部署）全部提前到 Wave 0，按 ADR-017 独立部署。本任务书顺延为应用面：web server / diagnose 查询 API / MCP / 前端，范围相应缩减（后端第 1–5 项已由 Wave 0 交付）。
+>
+> ⚠️ 2026-09-04 实施定稿（用户批准 8 页四层布局文档后开工）：
+> - **部署形态**：ADR-017——新增 `eestock-app` bin 与 compose `app` 服务（应用面容器），与数据面零 API 直连、只读/写库；数据面已有代码一律不动（除 domain 加法扩展需架构师批准）
+> - **布局事实源**：`design/06-web/*.md` 四层布局节（L1/L1.5/L2/L3）已全覆盖 8 页；前端布局以 tangle 生成的 `web/src/layouts/*Grid.tsx` 骨架为准，区域 id 与 `data-region` 一致；样式基调 = 01-dashboard 样机的深色交易终端风
+> - **分阶段实施**：Phase A 后端（web crate REST/WS + diagnose 读库 + eestock-app + 部署）→ Phase B 前端骨架 + 页面① → Phase C 页面②③ → Phase D MCP
+> - 验收标准同步修正：采集/熔断/缺口率项已由 Wave 0 验收闭环（缺口率 0.06%）；本波验收 = 页面①②③可用 + MCP 可查行情与源健康 + `docker compose up -d` 起三容器（db/data/app）
 
 > 目标（用户短期目标原文）：通过新数据源，**稳定地把关心的交易数据获取并存储到数据库**，并**实时关注数据源可用性**（诊断系统）。
 > 本任务书是委派 coder/tester 的输入。全程 TDD（Red-Green-Refactor），文学式单向 tangle。
