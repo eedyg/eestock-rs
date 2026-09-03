@@ -32,6 +32,142 @@ min-width: 1280px（桌面优先，不响应式）
 └─────────────────────────────────────────────────┘
 ```
 
+### L1.5 可视化样机（静态 HTML，tangle 生成，浏览器直接打开看效果）
+
+``` {.html file=design/06-web/preview/01-dashboard.html}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>页面① 行情看板 — 布局样机</title>
+<style>
+  body { margin:0; font:14px/1.5 sans-serif; background:#f3f4f6; color:#111; }
+  .frame { min-width:1280px; margin:16px; background:#fff; border:1px solid #d1d5db; }
+  .frame h2 { margin:0; padding:8px 12px; background:#111827; color:#fff; font-size:14px; }
+  .region { position:relative; box-sizing:border-box; }
+  .tag { position:absolute; top:4px; left:6px; font-size:11px; color:#6b7280; }
+  .topbar { height:40px; display:flex; align-items:center; gap:24px; padding:0 12px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; }
+  .green { background:#10b981; } .yellow { background:#f59e0b; }
+  .body { display:flex; height:560px; }
+  .nav { width:200px; background:#1f2937; color:#d1d5db; padding:8px 0; }
+  .nav div { padding:8px 16px; } .nav .on { background:#374151; color:#fff; }
+  .nav .off { color:#6b7280; }
+  .syms { width:240px; border-right:1px solid #e5e7eb; display:flex; flex-direction:column; }
+  .search { height:32px; margin:6px; border:1px solid #d1d5db; border-radius:4px; padding:0 8px; color:#9ca3af; display:flex; align-items:center; }
+  .sym { display:flex; justify-content:space-between; padding:6px 12px; border-bottom:1px solid #f3f4f6; }
+  .sym .up { color:#dc2626; } .sym .down { color:#16a34a; } /* A股：红涨绿跌 */
+  .main { flex:1; display:flex; flex-direction:column; }
+  .toolbar { height:36px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:8px; padding:0 8px; }
+  .btn { border:1px solid #d1d5db; border-radius:4px; padding:2px 10px; font-size:12px; background:#fff; }
+  .btn.on { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .chart { flex:1; position:relative; background:#fff; }
+  .sub { height:20%; border-top:1px solid #e5e7eb; position:relative; }
+  .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1px; background:#e5e7eb; }
+  .cell { background:#fff; position:relative; }
+  .note { margin:8px 16px; color:#6b7280; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <h2>单图聚焦模式（默认）— min-width 1280px</h2>
+  <!-- 顶部状态条（shell 级，全站共用） -->
+  <div class="topbar region" data-region="topbar">
+    <span><span class="dot green"></span>交易中 10:23</span>
+    <span><span class="dot green"></span>采集正常</span>
+    <span>1m 源健康 2/2（点击→数据源诊断）</span>
+  </div>
+  <div class="body">
+    <!-- 左侧导航（shell 级，8 页） -->
+    <div class="nav region" data-region="nav">
+      <div class="on">① 行情看板</div><div>② 数据源诊断</div><div>③ 标的管理</div>
+      <div class="off">④ 数据质量（W2）</div><div class="off">⑤ 回测（W3）</div>
+      <div class="off">⑥ 交易（W4）</div><div class="off">⑦ 告警（W2）</div><div class="off">⑧ 设置</div>
+    </div>
+    <!-- symbol-list：GET /api/symbols + WS quote -->
+    <div class="syms region" data-region="symbol-list">
+      <span class="tag">symbol-list W=240</span>
+      <div class="search">搜索 code / 名称…</div>
+      <div class="sym"><span><b>518880</b> 黄金ETF</span><span class="up">2.431 +0.62%</span></div>
+      <div class="sym"><span><b>513310</b> 纳指ETF</span><span class="down">1.587 −0.31%</span></div>
+      <div class="sym"><span><b>161226</b> 白银LOF</span><span class="up">0.982 +1.15%</span></div>
+      <div class="sym"><span><b>159776</b> 港股通医药</span><span class="down">0.874 −0.80%</span></div>
+      <div class="sym" style="color:#9ca3af"><span>…共 44 只</span><span></span></div>
+    </div>
+    <!-- main-area -->
+    <div class="main">
+      <!-- toolbar H=36 -->
+      <div class="toolbar region" data-region="toolbar">
+        <span class="tag">toolbar H=36</span>
+        <span class="btn">1m</span><span class="btn">5m</span><span class="btn on">15m</span><span class="btn">1h</span><span class="btn">日</span>
+        <span style="color:#d1d5db">|</span>
+        <span class="btn on">K线</span><span class="btn">分时</span>
+        <span style="color:#d1d5db">|</span>
+        <span class="btn on">MA</span><span class="btn">MACD</span><span class="btn">KDJ</span><span class="btn">BOLL</span>
+        <span style="color:#d1d5db">|</span>
+        <span class="btn">宫格</span>
+        <span style="flex:1"></span>
+        <span class="btn">回到最新</span>
+      </div>
+      <!-- main-chart：GET /api/kline + WS bar -->
+      <div class="chart region" data-region="main-chart">
+        <span class="tag">main-chart（K线+MA(5/10/20)，十字光标/缩放/翻页）</span>
+        <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 600 300">
+          <g>
+            <line x1="40" y1="120" x2="40" y2="200" stroke="#dc2626"/><rect x="35" y="140" width="10" height="40" fill="#dc2626"/>
+            <line x1="70" y1="100" x2="70" y2="170" stroke="#dc2626"/><rect x="65" y="115" width="10" height="35" fill="#dc2626"/>
+            <line x1="100" y1="130" x2="100" y2="210" stroke="#16a34a"/><rect x="95" y="140" width="10" height="50" fill="#16a34a"/>
+            <line x1="130" y1="90" x2="130" y2="160" stroke="#dc2626"/><rect x="125" y="105" width="10" height="35" fill="#dc2626"/>
+            <line x1="160" y1="80" x2="160" y2="150" stroke="#dc2626"/><rect x="155" y="95" width="10" height="35" fill="#dc2626"/>
+            <line x1="190" y1="110" x2="190" y2="190" stroke="#16a34a"/><rect x="185" y="120" width="10" height="50" fill="#16a34a"/>
+            <line x1="220" y1="70" x2="220" y2="140" stroke="#dc2626"/><rect x="215" y="85" width="10" height="35" fill="#dc2626"/>
+            <polyline points="40,170 70,135 100,175 130,125 160,115 190,155 220,105" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+            <polyline points="40,180 70,150 100,180 130,140 160,130 190,165 220,120" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+          </g>
+          <text x="500" y="30" font-size="12" fill="#f59e0b">MA5</text>
+          <text x="540" y="30" font-size="12" fill="#3b82f6">MA10</text>
+        </svg>
+      </div>
+      <!-- sub-chart：成交量 H=20% -->
+      <div class="sub region" data-region="sub-chart">
+        <span class="tag">sub-chart 成交量 H=20%（随主图，无独立交互）</span>
+        <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 600 60">
+          <rect x="35" y="20" width="10" height="40" fill="#dc2626" opacity="0.7"/>
+          <rect x="65" y="10" width="10" height="50" fill="#dc2626" opacity="0.7"/>
+          <rect x="95" y="30" width="10" height="30" fill="#16a34a" opacity="0.7"/>
+          <rect x="125" y="15" width="10" height="45" fill="#dc2626" opacity="0.7"/>
+          <rect x="155" y="25" width="10" height="35" fill="#dc2626" opacity="0.7"/>
+          <rect x="185" y="35" width="10" height="25" fill="#16a34a" opacity="0.7"/>
+          <rect x="215" y="5" width="10" height="55" fill="#dc2626" opacity="0.7"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame">
+  <h2>宫格模式（toolbar 切换，替代主图区；2×2 或 2×3）</h2>
+  <div class="body" style="height:480px">
+    <div class="nav region"><div class="on">① 行情看板</div></div>
+    <div class="syms region"><div class="search">搜索 code / 名称…</div></div>
+    <div class="main">
+      <div class="toolbar region"><span class="btn">单图</span><span class="btn on">2×2</span><span class="btn">2×3</span></div>
+      <div class="grid region" data-region="grid-view">
+        <div class="cell"><span class="tag">518880 黄金ETF <b style="color:#dc2626">+0.62%</b>（K线+MA 缩略，点格进单图）</span></div>
+        <div class="cell"><span class="tag">513310 纳指ETF <b style="color:#16a34a">−0.31%</b></span></div>
+        <div class="cell"><span class="tag">161226 白银LOF <b style="color:#dc2626">+1.15%</b></span></div>
+        <div class="cell"><span class="tag">159776 港股通医药 <b style="color:#16a34a">−0.80%</b></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="note">样机仅表达布局/区域/尺寸与数据源归属（见各区域标签），非视觉设计稿。三态（loading/空/错误）与交互契约见文档 L2 表。</p>
+</body>
+</html>
+```
+
 ### L2 区域规格表
 
 | 区域 id | 内容 | 数据源 | loading/空/错误态 | 交互 |

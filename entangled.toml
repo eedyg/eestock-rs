@@ -22,3 +22,9 @@ comment = { open = "#" }
 name = "TSX"
 identifiers = ["tsx", "ts", "typescript"]
 comment = { open = "//" }
+
+# HTML（L1.5 可视化样机）
+[[languages]]
+name = "HTML"
+identifiers = ["html"]
+comment = { open = "<!--", close = "-->" }
