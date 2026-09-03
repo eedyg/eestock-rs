@@ -41,105 +41,130 @@ min-width: 1280px（桌面优先，不响应式）
 <meta charset="utf-8">
 <title>页面① 行情看板 — 布局样机</title>
 <style>
-  body { margin:0; font:14px/1.5 sans-serif; background:#f3f4f6; color:#111; }
-  .frame { min-width:1280px; margin:16px; background:#fff; border:1px solid #d1d5db; }
-  .frame h2 { margin:0; padding:8px 12px; background:#111827; color:#fff; font-size:14px; }
-  .region { position:relative; box-sizing:border-box; }
-  .tag { position:absolute; top:4px; left:6px; font-size:11px; color:#6b7280; }
-  .topbar { height:40px; display:flex; align-items:center; gap:24px; padding:0 12px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
-  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; }
-  .green { background:#10b981; } .yellow { background:#f59e0b; }
+  :root {
+    --bg:#0b0e17; --panel:#121627; --panel2:#171c33; --line:rgba(255,255,255,.07);
+    --txt:#e5e9f2; --dim:#8b93b0; --up:#ff5c6c; --down:#00e0a4;
+    --acc1:#38bdf8; --acc2:#a78bfa;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:radial-gradient(1200px 600px at 70% -10%, #1a2040 0%, var(--bg) 55%);
+         font:14px/1.6 "Inter","PingFang SC",sans-serif; color:var(--txt); }
+  .frame { min-width:1280px; margin:0 auto 28px; background:rgba(18,22,39,.75); border:1px solid var(--line);
+           border-radius:16px; overflow:hidden; backdrop-filter:blur(6px); box-shadow:0 12px 40px rgba(0,0,0,.45); }
+  .frame h2 { margin:0; padding:12px 18px; font-size:13px; font-weight:600; letter-spacing:.08em; color:var(--dim);
+              background:rgba(255,255,255,.03); border-bottom:1px solid var(--line); }
+  .region { position:relative; }
+  .tag { position:absolute; top:6px; left:10px; font-size:11px; color:var(--dim); opacity:.85; z-index:2; }
+  .num { font-variant-numeric:tabular-nums; font-family:"JetBrains Mono",monospace; }
+  /* 顶部状态条 */
+  .topbar { height:44px; display:flex; align-items:center; gap:14px; padding:0 18px; border-bottom:1px solid var(--line); }
+  .pill { display:flex; align-items:center; gap:7px; padding:4px 12px; border-radius:999px;
+          background:rgba(255,255,255,.04); border:1px solid var(--line); font-size:12px; }
+  .dot { width:8px; height:8px; border-radius:50%; }
+  .live { background:#00e0a4; box-shadow:0 0 8px #00e0a4aa; animation:pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity:.45; } }
+  /* 主体 */
   .body { display:flex; height:560px; }
-  .nav { width:200px; background:#1f2937; color:#d1d5db; padding:8px 0; }
-  .nav div { padding:8px 16px; } .nav .on { background:#374151; color:#fff; }
-  .nav .off { color:#6b7280; }
-  .syms { width:240px; border-right:1px solid #e5e7eb; display:flex; flex-direction:column; }
-  .search { height:32px; margin:6px; border:1px solid #d1d5db; border-radius:4px; padding:0 8px; color:#9ca3af; display:flex; align-items:center; }
-  .sym { display:flex; justify-content:space-between; padding:6px 12px; border-bottom:1px solid #f3f4f6; }
-  .sym .up { color:#dc2626; } .sym .down { color:#16a34a; } /* A股：红涨绿跌 */
+  .nav { width:208px; padding:14px 10px; border-right:1px solid var(--line); }
+  .nav div { padding:9px 14px; margin:2px 0; border-radius:10px; color:var(--dim); font-size:13px; }
+  .nav .on { color:#fff; background:linear-gradient(90deg, rgba(56,189,248,.18), rgba(167,139,250,.14));
+             border-left:3px solid var(--acc1); }
+  .nav .off { opacity:.4; }
+  /* 标的列表 */
+  .syms { width:248px; border-right:1px solid var(--line); padding:12px; }
+  .search { height:34px; border-radius:10px; background:var(--panel2); border:1px solid var(--line);
+            color:var(--dim); display:flex; align-items:center; padding:0 12px; font-size:12px; margin-bottom:10px; }
+  .sym { display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-radius:10px; margin-bottom:4px; }
+  .sym:hover { background:rgba(255,255,255,.04); }
+  .sym.on { background:rgba(56,189,248,.12); outline:1px solid rgba(56,189,248,.35); }
+  .sym b { font-weight:600; } .sym small { color:var(--dim); display:block; font-size:11px; }
+  .up { color:var(--up); } .down { color:var(--down); }
+  /* 主区 */
   .main { flex:1; display:flex; flex-direction:column; }
-  .toolbar { height:36px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:8px; padding:0 8px; }
-  .btn { border:1px solid #d1d5db; border-radius:4px; padding:2px 10px; font-size:12px; background:#fff; }
-  .btn.on { background:#2563eb; color:#fff; border-color:#2563eb; }
-  .chart { flex:1; position:relative; background:#fff; }
-  .sub { height:20%; border-top:1px solid #e5e7eb; position:relative; }
-  .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1px; background:#e5e7eb; }
-  .cell { background:#fff; position:relative; }
-  .note { margin:8px 16px; color:#6b7280; font-size:12px; }
+  .toolbar { height:42px; display:flex; align-items:center; gap:6px; padding:0 14px; border-bottom:1px solid var(--line); }
+  .btn { padding:4px 12px; border-radius:8px; font-size:12px; color:var(--dim); border:1px solid transparent; }
+  .btn.on { color:#fff; background:linear-gradient(135deg, var(--acc1), var(--acc2)); box-shadow:0 2px 10px rgba(56,189,248,.35); }
+  .btn.ghost { border-color:var(--line); }
+  .sep { width:1px; height:16px; background:var(--line); margin:0 6px; }
+  .chart { flex:1; }
+  .sub { height:20%; border-top:1px solid var(--line); }
+  /* 宫格 */
+  .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
+  .cell { background:var(--panel2); border:1px solid var(--line); border-radius:12px; }
+  .note { max-width:1280px; margin:0 auto; color:var(--dim); font-size:12px; }
 </style>
 </head>
 <body>
 
 <div class="frame">
-  <h2>单图聚焦模式（默认）— min-width 1280px</h2>
-  <!-- 顶部状态条（shell 级，全站共用） -->
+  <h2>单图聚焦模式（默认）· min-width 1280</h2>
   <div class="topbar region" data-region="topbar">
-    <span><span class="dot green"></span>交易中 10:23</span>
-    <span><span class="dot green"></span>采集正常</span>
-    <span>1m 源健康 2/2（点击→数据源诊断）</span>
+    <span class="pill"><span class="dot live"></span>交易中 10:23</span>
+    <span class="pill"><span class="dot live"></span>采集正常</span>
+    <span class="pill">1m 源健康 <b class="num">2/2</b> →数据源诊断</span>
   </div>
   <div class="body">
-    <!-- 左侧导航（shell 级，8 页） -->
     <div class="nav region" data-region="nav">
       <div class="on">① 行情看板</div><div>② 数据源诊断</div><div>③ 标的管理</div>
-      <div class="off">④ 数据质量（W2）</div><div class="off">⑤ 回测（W3）</div>
-      <div class="off">⑥ 交易（W4）</div><div class="off">⑦ 告警（W2）</div><div class="off">⑧ 设置</div>
+      <div class="off">④ 数据质量 · W2</div><div class="off">⑤ 回测 · W3</div>
+      <div class="off">⑥ 交易 · W4</div><div class="off">⑦ 告警 · W2</div><div class="off">⑧ 设置</div>
     </div>
-    <!-- symbol-list：GET /api/symbols + WS quote -->
     <div class="syms region" data-region="symbol-list">
-      <span class="tag">symbol-list W=240</span>
-      <div class="search">搜索 code / 名称…</div>
-      <div class="sym"><span><b>518880</b> 黄金ETF</span><span class="up">2.431 +0.62%</span></div>
-      <div class="sym"><span><b>513310</b> 纳指ETF</span><span class="down">1.587 −0.31%</span></div>
-      <div class="sym"><span><b>161226</b> 白银LOF</span><span class="up">0.982 +1.15%</span></div>
-      <div class="sym"><span><b>159776</b> 港股通医药</span><span class="down">0.874 −0.80%</span></div>
-      <div class="sym" style="color:#9ca3af"><span>…共 44 只</span><span></span></div>
+      <span class="tag">symbol-list W=248</span>
+      <div class="search" style="margin-top:14px">⌕ 搜索 code / 名称…</div>
+      <div class="sym on"><span><b class="num">518880</b><small>黄金ETF</small></span><span class="up num">2.431<br>+0.62%</span></div>
+      <div class="sym"><span><b class="num">513310</b><small>纳指ETF</small></span><span class="down num">1.587<br>−0.31%</span></div>
+      <div class="sym"><span><b class="num">161226</b><small>白银LOF</small></span><span class="up num">0.982<br>+1.15%</span></div>
+      <div class="sym"><span><b class="num">159776</b><small>港股通医药</small></span><span class="down num">0.874<br>−0.80%</span></div>
+      <div class="sym" style="color:var(--dim)"><span>… 共 44 只</span></div>
     </div>
-    <!-- main-area -->
     <div class="main">
-      <!-- toolbar H=36 -->
       <div class="toolbar region" data-region="toolbar">
-        <span class="tag">toolbar H=36</span>
-        <span class="btn">1m</span><span class="btn">5m</span><span class="btn on">15m</span><span class="btn">1h</span><span class="btn">日</span>
-        <span style="color:#d1d5db">|</span>
-        <span class="btn on">K线</span><span class="btn">分时</span>
-        <span style="color:#d1d5db">|</span>
-        <span class="btn on">MA</span><span class="btn">MACD</span><span class="btn">KDJ</span><span class="btn">BOLL</span>
-        <span style="color:#d1d5db">|</span>
-        <span class="btn">宫格</span>
+        <span class="btn ghost">1m</span><span class="btn ghost">5m</span><span class="btn on">15m</span><span class="btn ghost">1h</span><span class="btn ghost">日</span>
+        <span class="sep"></span>
+        <span class="btn on">K线</span><span class="btn ghost">分时</span>
+        <span class="sep"></span>
+        <span class="btn on">MA</span><span class="btn ghost">MACD</span><span class="btn ghost">KDJ</span><span class="btn ghost">BOLL</span>
+        <span class="sep"></span>
+        <span class="btn ghost">宫格</span>
         <span style="flex:1"></span>
-        <span class="btn">回到最新</span>
+        <span class="btn ghost">回到最新</span>
       </div>
-      <!-- main-chart：GET /api/kline + WS bar -->
       <div class="chart region" data-region="main-chart">
-        <span class="tag">main-chart（K线+MA(5/10/20)，十字光标/缩放/翻页）</span>
+        <span class="tag">main-chart · K线+MA(5/10/20) · 十字光标/缩放/翻页</span>
         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 600 300">
-          <g>
-            <line x1="40" y1="120" x2="40" y2="200" stroke="#dc2626"/><rect x="35" y="140" width="10" height="40" fill="#dc2626"/>
-            <line x1="70" y1="100" x2="70" y2="170" stroke="#dc2626"/><rect x="65" y="115" width="10" height="35" fill="#dc2626"/>
-            <line x1="100" y1="130" x2="100" y2="210" stroke="#16a34a"/><rect x="95" y="140" width="10" height="50" fill="#16a34a"/>
-            <line x1="130" y1="90" x2="130" y2="160" stroke="#dc2626"/><rect x="125" y="105" width="10" height="35" fill="#dc2626"/>
-            <line x1="160" y1="80" x2="160" y2="150" stroke="#dc2626"/><rect x="155" y="95" width="10" height="35" fill="#dc2626"/>
-            <line x1="190" y1="110" x2="190" y2="190" stroke="#16a34a"/><rect x="185" y="120" width="10" height="50" fill="#16a34a"/>
-            <line x1="220" y1="70" x2="220" y2="140" stroke="#dc2626"/><rect x="215" y="85" width="10" height="35" fill="#dc2626"/>
-            <polyline points="40,170 70,135 100,175 130,125 160,115 190,155 220,105" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
-            <polyline points="40,180 70,150 100,180 130,140 160,130 190,165 220,120" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+          <g opacity="0.25" stroke="#fff" stroke-width="0.5">
+            <line x1="0" y1="60" x2="600" y2="60"/><line x1="0" y1="120" x2="600" y2="120"/>
+            <line x1="0" y1="180" x2="600" y2="180"/><line x1="0" y1="240" x2="600" y2="240"/>
           </g>
-          <text x="500" y="30" font-size="12" fill="#f59e0b">MA5</text>
-          <text x="540" y="30" font-size="12" fill="#3b82f6">MA10</text>
+          <g>
+            <line x1="60" y1="120" x2="60" y2="205" stroke="#ff5c6c"/><rect x="54" y="140" width="12" height="42" rx="2" fill="#ff5c6c"/>
+            <line x1="95" y1="98" x2="95" y2="172" stroke="#ff5c6c"/><rect x="89" y="114" width="12" height="36" rx="2" fill="#ff5c6c"/>
+            <line x1="130" y1="132" x2="130" y2="215" stroke="#00e0a4"/><rect x="124" y="142" width="12" height="52" rx="2" fill="#00e0a4"/>
+            <line x1="165" y1="88" x2="165" y2="162" stroke="#ff5c6c"/><rect x="159" y="104" width="12" height="36" rx="2" fill="#ff5c6c"/>
+            <line x1="200" y1="78" x2="200" y2="152" stroke="#ff5c6c"/><rect x="194" y="94" width="12" height="36" rx="2" fill="#ff5c6c"/>
+            <line x1="235" y1="112" x2="235" y2="195" stroke="#00e0a4"/><rect x="229" y="122" width="12" height="52" rx="2" fill="#00e0a4"/>
+            <line x1="270" y1="66" x2="270" y2="142" stroke="#ff5c6c"/><rect x="264" y="82" width="12" height="38" rx="2" fill="#ff5c6c"/>
+            <line x1="305" y1="58" x2="305" y2="130" stroke="#ff5c6c"/><rect x="299" y="72" width="12" height="36" rx="2" fill="#ff5c6c"/>
+          </g>
+          <polyline points="60,172 95,135 130,180 165,125 200,115 235,158 270,105 305,92" fill="none" stroke="#38bdf8" stroke-width="2"/>
+          <polyline points="60,185 95,150 130,185 165,142 200,132 235,170 270,122 305,108" fill="none" stroke="#a78bfa" stroke-width="2"/>
+          <text x="480" y="34" font-size="12" fill="#38bdf8">MA5</text>
+          <text x="525" y="34" font-size="12" fill="#a78bfa">MA10</text>
+          <text x="24" y="96" font-size="15" fill="#ff5c6c" font-weight="bold">2.431 <tspan font-size="12">+0.62%</tspan></text>
         </svg>
       </div>
-      <!-- sub-chart：成交量 H=20% -->
       <div class="sub region" data-region="sub-chart">
-        <span class="tag">sub-chart 成交量 H=20%（随主图，无独立交互）</span>
+        <span class="tag">sub-chart · 成交量 H=20%（随主图）</span>
         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 600 60">
-          <rect x="35" y="20" width="10" height="40" fill="#dc2626" opacity="0.7"/>
-          <rect x="65" y="10" width="10" height="50" fill="#dc2626" opacity="0.7"/>
-          <rect x="95" y="30" width="10" height="30" fill="#16a34a" opacity="0.7"/>
-          <rect x="125" y="15" width="10" height="45" fill="#dc2626" opacity="0.7"/>
-          <rect x="155" y="25" width="10" height="35" fill="#dc2626" opacity="0.7"/>
-          <rect x="185" y="35" width="10" height="25" fill="#16a34a" opacity="0.7"/>
-          <rect x="215" y="5" width="10" height="55" fill="#dc2626" opacity="0.7"/>
+          <rect x="54" y="18" width="12" height="42" rx="2" fill="#ff5c6c" opacity=".55"/>
+          <rect x="89" y="8" width="12" height="52" rx="2" fill="#ff5c6c" opacity=".55"/>
+          <rect x="124" y="30" width="12" height="30" rx="2" fill="#00e0a4" opacity=".55"/>
+          <rect x="159" y="14" width="12" height="46" rx="2" fill="#ff5c6c" opacity=".55"/>
+          <rect x="194" y="24" width="12" height="36" rx="2" fill="#ff5c6c" opacity=".55"/>
+          <rect x="229" y="34" width="12" height="26" rx="2" fill="#00e0a4" opacity=".55"/>
+          <rect x="264" y="4" width="12" height="56" rx="2" fill="#ff5c6c" opacity=".55"/>
+          <rect x="299" y="12" width="12" height="48" rx="2" fill="#ff5c6c" opacity=".55"/>
         </svg>
       </div>
     </div>
@@ -147,26 +172,27 @@ min-width: 1280px（桌面优先，不响应式）
 </div>
 
 <div class="frame">
-  <h2>宫格模式（toolbar 切换，替代主图区；2×2 或 2×3）</h2>
-  <div class="body" style="height:480px">
+  <h2>宫格模式 · toolbar 切换 · 2×2 / 2×3</h2>
+  <div class="body" style="height:470px">
     <div class="nav region"><div class="on">① 行情看板</div></div>
-    <div class="syms region"><div class="search">搜索 code / 名称…</div></div>
+    <div class="syms region"><div class="search" style="margin-top:14px">⌕ 搜索…</div></div>
     <div class="main">
-      <div class="toolbar region"><span class="btn">单图</span><span class="btn on">2×2</span><span class="btn">2×3</span></div>
+      <div class="toolbar region"><span class="btn ghost">单图</span><span class="btn on">2×2</span><span class="btn ghost">2×3</span></div>
       <div class="grid region" data-region="grid-view">
-        <div class="cell"><span class="tag">518880 黄金ETF <b style="color:#dc2626">+0.62%</b>（K线+MA 缩略，点格进单图）</span></div>
-        <div class="cell"><span class="tag">513310 纳指ETF <b style="color:#16a34a">−0.31%</b></span></div>
-        <div class="cell"><span class="tag">161226 白银LOF <b style="color:#dc2626">+1.15%</b></span></div>
-        <div class="cell"><span class="tag">159776 港股通医药 <b style="color:#16a34a">−0.80%</b></span></div>
+        <div class="cell"><span class="tag"><b class="num">518880</b> 黄金ETF <b class="up num">+0.62%</b> · K线+MA 缩略，点格进单图</span></div>
+        <div class="cell"><span class="tag"><b class="num">513310</b> 纳指ETF <b class="down num">−0.31%</b></span></div>
+        <div class="cell"><span class="tag"><b class="num">161226</b> 白银LOF <b class="up num">+1.15%</b></span></div>
+        <div class="cell"><span class="tag"><b class="num">159776</b> 港股通医药 <b class="down num">−0.80%</b></span></div>
       </div>
     </div>
   </div>
 </div>
 
-<p class="note">样机仅表达布局/区域/尺寸与数据源归属（见各区域标签），非视觉设计稿。三态（loading/空/错误）与交互契约见文档 L2 表。</p>
+<p class="note">样机仅表达布局/区域/尺寸与风格基调（深色交易终端风：霓虹涨跌色 + 玻璃拟态卡片 + 渐变强调色），非最终视觉设计稿。三态与交互契约见 L2 表。</p>
 </body>
 </html>
 ```
+
 
 ### L2 区域规格表
 
