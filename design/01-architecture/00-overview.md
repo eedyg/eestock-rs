@@ -36,6 +36,7 @@ crates/
 ├── mcp/          # Presentation：MCP HTTP/SSE 服务
 ├── web/          # Presentation：axum REST + WebSocket + SPA 静态托管
 └── app/          # 二进制装配：DI 组装、配置加载、进程入口
+                  #   ADR-017 双面分离：bin eestock-data（数据面，Wave 0）/ eestock-app（应用面，Wave 1）
 web/              # 前端 React 工程（Wave 1 起）
 migrations/       # TimescaleDB DDL（由 04-storage/*.md tangle 生成）
 ```
@@ -46,3 +47,4 @@ migrations/       # TimescaleDB DDL（由 04-storage/*.md tangle 生成）
 2. providers/storage/tushare 实现 domain 定义的 trait，禁止反向依赖
 3. 每 crate 一个 design 子目录对应（见 00-vision 文档树）
 4. 可观测性：tracing + Trace ID；metrics 暴露给 diagnose
+5. 部署双面分离（ADR-017）：数据面（eestock-data）与应用面（eestock-app）仅经 TimescaleDB 耦合，禁止 API 直连；控制通道走库（symbols 表等）
