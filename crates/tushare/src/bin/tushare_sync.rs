@@ -3,12 +3,14 @@
 //! 用法：DATABASE_URL=... TUSHARE_TOKEN=... tushare_sync [--only 518880,159776] [--interval-ms 1000]
 
 use chrono::{Datelike, Local, NaiveDate};
+use domain::ports::{ErrKind, EventSink, HealthEvent};
 use domain::provider::ProviderError;
 use domain::types::*;
 use sqlx::PgPool;
 use storage::accurate::{get_checkpoint, set_checkpoint, AccurateWriter};
+use storage::events::PgEventSink;
 use tushare::client::{to_ts_code, TushareClient, WINDOW_DAYS_1MIN};
-use tushare::sync::{full_history_start, plan_windows, resume_from, CORE_CODES};
+use tushare::sync::{checkpoint_through_cap, full_history_start, plan_windows, resume_from, CORE_CODES};
 use tracing::{error, info, warn};
 
 #[tokio::main]
@@ -30,6 +32,7 @@ async fn main() -> anyhow::Result<()> {
         token, tushare::client::API_URL.into(),
         chrono::Duration::milliseconds(interval_ms));
     let writer = AccurateWriter::new(pool.clone());
+    let sink = PgEventSink::new(pool.clone());
 
     // 标序：核心 4 只优先 → 其余代码序
     let mut codes: Vec<String> = match only {
@@ -43,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
     let mut done = 0usize;
     for code in &codes {
         info!(code, "=== sync start ===");
-        match sync_one(&client, &writer, &pool, code, today).await {
+        match sync_one(&client, &writer, &pool, &sink, code, today).await {
             Ok(n) => { done += 1; info!(code, bars = n, "=== sync done ==="); }
             Err(ProviderError::RateLimited) => {
                 error!(code, "quota/rate limited —— checkpoint 已落库，退出待续传");
@@ -57,8 +60,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// 单标的 1m 全历史：首年探测（仅无 checkpoint 时）→ 30 天窗口步进 → 逐窗口落库 + checkpoint。
+/// 缺陷 2 修复（§6.1）：checkpoint 推进经 checkpoint_through_cap 封顶（盘中不封当日）；
+/// 「已最新」零调用跳过落审计事件（ok=true + err_kind=na，禁止静默跳过）。
 async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool,
-                  code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+                  sink: &PgEventSink, code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+    let cap = checkpoint_through_cap(chrono::Utc::now());
     let cp = get_checkpoint(pool, code, "M1").await
         .map_err(|e| ProviderError::Http(e.to_string()))?;
     let start = match cp {
@@ -66,14 +72,25 @@ async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool
         None => match first_data_year(client, code).await? {
             Some(y) => NaiveDate::from_ymd_opt(y, 1, 1).unwrap(),
             None => {
-                set_checkpoint(pool, code, "M1", today).await
+                set_checkpoint(pool, code, "M1", today.min(cap)).await
                     .map_err(|e| ProviderError::Http(e.to_string()))?;
                 info!(code, "no data since {}; mark done", full_history_start());
                 return Ok(0);
             }
         },
     };
-    if start > today { info!(code, "up to date"); return Ok(0); }
+    if start > today {
+        info!(code, "up to date");
+        // 缺陷 2 修复口径 b：零调用跳过落审计事件（ok=true + err_kind=na，附跳过原因）
+        if let Err(e) = sink.emit(HealthEvent {
+            ts: chrono::Utc::now(), source: SourceId::Tushare, ok: true, latency_ms: None,
+            err_kind: Some(ErrKind::Na), code: Some(Code(code.to_string())),
+            trace_id: Some("skip:up_to_date".into()),
+        }).await {
+            warn!(code, error = %e, "skip-audit event emit failed");
+        }
+        return Ok(0);
+    }
 
     let ts_code = to_ts_code(&Code(code.to_string()))?;
     let mut total = 0usize;
@@ -97,7 +114,8 @@ async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool
             }
             break;
         }
-        set_checkpoint(pool, code, "M1", we).await
+        // 缺陷 2 修复口径 a：盘中同步 checkpoint 封顶前一自然日（不封当日）
+        set_checkpoint(pool, code, "M1", we.min(cap)).await
             .map_err(|e2| ProviderError::Http(e2.to_string()))?;
         info!(code, window = %format!("{ws}..{we}"), total, "window synced");
     }

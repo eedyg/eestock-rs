@@ -340,6 +340,15 @@ pub fn plan_windows(from: NaiveDate, to: NaiveDate, window_days: i64) -> Vec<(Na
 pub fn resume_from(checkpoint: Option<NaiveDate>) -> NaiveDate {
     checkpoint.map(|d| d + Duration::days(1)).unwrap_or_else(full_history_start)
 }
+
+/// checkpoint 推进封顶（缺陷 2 修复，父级裁决 2026-09-03，§6.1）：
+/// 盘中（Asia/Shanghai 15:00 收盘前）的同步不得将当日标记为完成 —— 封顶前一自然日；
+/// 收盘后（含 15:00）允许含当日。日增量（daily.rs）与手动全量 bin（tushare_sync）共用此口径。
+pub fn checkpoint_through_cap(now: chrono::DateTime<chrono::Utc>) -> NaiveDate {
+    let cst = domain::tz::utc_to_cst(now);
+    let close = chrono::NaiveTime::from_hms_opt(15, 0, 0).expect("valid hms");
+    if cst.time() < close { cst.date() - Duration::days(1) } else { cst.date() }
+}
 ```
 
 ``` {.rust file=crates/tushare/src/lib.rs}
@@ -459,6 +468,22 @@ fn resume_after_checkpoint_next_day() {
 fn resume_without_checkpoint_full_history() {
     assert_eq!(resume_from(None), full_history_start());
     assert_eq!(full_history_start(), d(2012, 1, 1));
+}
+
+#[test]
+fn checkpoint_cap_intraday_vs_after_close() {
+    // 缺陷 2 修复口径 a：盘中（CST 15:00 收盘前）checkpoint 封顶前一自然日；收盘后允许含当日。
+    use chrono::{TimeZone, Utc};
+    let intraday = Utc.with_ymd_and_hms(2026, 9, 3, 6, 59, 0).unwrap(); // 14:59 CST
+    assert_eq!(checkpoint_through_cap(intraday), d(2026, 9, 2), "收盘前 1 分钟仍盘中");
+    let close = Utc.with_ymd_and_hms(2026, 9, 3, 7, 0, 0).unwrap();    // 15:00 CST
+    assert_eq!(checkpoint_through_cap(close), d(2026, 9, 3), "收盘后允许含当日");
+    let morning = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap(); // 09:30 CST
+    assert_eq!(checkpoint_through_cap(morning), d(2026, 9, 2));
+    let evening = Utc.with_ymd_and_hms(2026, 9, 3, 8, 0, 0).unwrap(); // 16:00 CST 盘后
+    assert_eq!(checkpoint_through_cap(evening), d(2026, 9, 3), "盘后允许含当日");
+    let next_day = Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap(); // 次日 00:00 CST
+    assert_eq!(checkpoint_through_cap(next_day), d(2026, 9, 3), "跨日边界按 CST 日期：次日凌晨仍视为次日的盘中");
 }
 
 #[tokio::test]
@@ -628,12 +653,14 @@ checkpoint 已逐窗口落库，明日续传无副作用。
 //! 用法：DATABASE_URL=... TUSHARE_TOKEN=... tushare_sync [--only 518880,159776] [--interval-ms 1000]
 
 use chrono::{Datelike, Local, NaiveDate};
+use domain::ports::{ErrKind, EventSink, HealthEvent};
 use domain::provider::ProviderError;
 use domain::types::*;
 use sqlx::PgPool;
 use storage::accurate::{get_checkpoint, set_checkpoint, AccurateWriter};
+use storage::events::PgEventSink;
 use tushare::client::{to_ts_code, TushareClient, WINDOW_DAYS_1MIN};
-use tushare::sync::{full_history_start, plan_windows, resume_from, CORE_CODES};
+use tushare::sync::{checkpoint_through_cap, full_history_start, plan_windows, resume_from, CORE_CODES};
 use tracing::{error, info, warn};
 
 #[tokio::main]
@@ -655,6 +682,7 @@ async fn main() -> anyhow::Result<()> {
         token, tushare::client::API_URL.into(),
         chrono::Duration::milliseconds(interval_ms));
     let writer = AccurateWriter::new(pool.clone());
+    let sink = PgEventSink::new(pool.clone());
 
     // 标序：核心 4 只优先 → 其余代码序
     let mut codes: Vec<String> = match only {
@@ -668,7 +696,7 @@ async fn main() -> anyhow::Result<()> {
     let mut done = 0usize;
     for code in &codes {
         info!(code, "=== sync start ===");
-        match sync_one(&client, &writer, &pool, code, today).await {
+        match sync_one(&client, &writer, &pool, &sink, code, today).await {
             Ok(n) => { done += 1; info!(code, bars = n, "=== sync done ==="); }
             Err(ProviderError::RateLimited) => {
                 error!(code, "quota/rate limited —— checkpoint 已落库，退出待续传");
@@ -682,8 +710,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// 单标的 1m 全历史：首年探测（仅无 checkpoint 时）→ 30 天窗口步进 → 逐窗口落库 + checkpoint。
+/// 缺陷 2 修复（§6.1）：checkpoint 推进经 checkpoint_through_cap 封顶（盘中不封当日）；
+/// 「已最新」零调用跳过落审计事件（ok=true + err_kind=na，禁止静默跳过）。
 async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool,
-                  code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+                  sink: &PgEventSink, code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+    let cap = checkpoint_through_cap(chrono::Utc::now());
     let cp = get_checkpoint(pool, code, "M1").await
         .map_err(|e| ProviderError::Http(e.to_string()))?;
     let start = match cp {
@@ -691,14 +722,25 @@ async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool
         None => match first_data_year(client, code).await? {
             Some(y) => NaiveDate::from_ymd_opt(y, 1, 1).unwrap(),
             None => {
-                set_checkpoint(pool, code, "M1", today).await
+                set_checkpoint(pool, code, "M1", today.min(cap)).await
                     .map_err(|e| ProviderError::Http(e.to_string()))?;
                 info!(code, "no data since {}; mark done", full_history_start());
                 return Ok(0);
             }
         },
     };
-    if start > today { info!(code, "up to date"); return Ok(0); }
+    if start > today {
+        info!(code, "up to date");
+        // 缺陷 2 修复口径 b：零调用跳过落审计事件（ok=true + err_kind=na，附跳过原因）
+        if let Err(e) = sink.emit(HealthEvent {
+            ts: chrono::Utc::now(), source: SourceId::Tushare, ok: true, latency_ms: None,
+            err_kind: Some(ErrKind::Na), code: Some(Code(code.to_string())),
+            trace_id: Some("skip:up_to_date".into()),
+        }).await {
+            warn!(code, error = %e, "skip-audit event emit failed");
+        }
+        return Ok(0);
+    }
 
     let ts_code = to_ts_code(&Code(code.to_string()))?;
     let mut total = 0usize;
@@ -722,7 +764,8 @@ async fn sync_one(client: &TushareClient, writer: &AccurateWriter, pool: &PgPool
             }
             break;
         }
-        set_checkpoint(pool, code, "M1", we).await
+        // 缺陷 2 修复口径 a：盘中同步 checkpoint 封顶前一自然日（不封当日）
+        set_checkpoint(pool, code, "M1", we.min(cap)).await
             .map_err(|e2| ProviderError::Http(e2.to_string()))?;
         info!(code, window = %format!("{ws}..{we}"), total, "window synced");
     }
@@ -756,9 +799,35 @@ fn arg_vals(args: &[String], key: &str) -> Option<String> {
 
 ## 6. 日增量定时任务（数据面内置，wave-0 范围）
 
-每交易日 **15:30 Asia/Shanghai** 触发增量同步（复用 sync_checkpoints 断点续传，窗口 = [checkpoint+1日, 今日]）；
+每自然日 **08:00 / 18:00 / 00:00 Asia/Shanghai** 三时点各触发一轮完整增量同步（§6.2，用户决策 2026-09-03；
+复用 sync_checkpoints 断点续传，目标交易日 = 最近一个已收盘工作日）；
 失败指数退避重试 3 次；`RateLimited`（quota）整轮中止（§5 口径）；事件落 source_health_events（source=tushare）。
-既有全量同步 bin `tushare_sync` 保留为手动运维命令，不受影响。
+既有全量同步 bin `tushare_sync` 保留为手动运维命令。
+
+### 6.1 checkpoint 语义修正（缺陷 2 修复，父级裁决 2026-09-03）
+
+背景（tester 004 §8）：手动全量同步盘中将 checkpoint 预置为当日 → 15:30 日增量判「已最新」
+整轮静默跳过（0.048s / 0 API 调用 / 0 事件），当日准确层落空。修正口径（两点）：
+
+- **a. 盘中不封当日**：任何同步（日增量与手动 bin 共用 `sync::checkpoint_through_cap`）在
+  Asia/Shanghai 15:00 收盘前，checkpoint 推进封顶前一自然日；收盘后（含 15:00）允许含当日。
+  同时日增量对**当个交易日强制同步**：拉取起点 = `min(checkpoint+1日, 今日)`，
+  即 checkpoint==今日也重拉当日窗口 —— 准确层 `ON CONFLICT DO UPDATE` 幂等去重，重拉无副作用。
+- **b. 禁止静默跳过**：整轮零调用（无启用标的）必须落审计事件（source=tushare，ok=true，
+  err_kind=na，原因载于 trace_id 形如 `skip:<reason>`）；手动 bin 的「已最新」零调用跳过同理落审计。
+  注：0001 schema 无 detail 列，监控以该 na 事件为信号、原因查日志。
+
+### 6.2 三时点调度（用户决策 2026-09-03）
+
+背景：tushare ETF 历史整理耗时长，收盘后不能立即更新完毕 → 单一 15:30 触发不可靠，
+需多次补全直至收敛。调度改为每自然日 **18:00 / 00:00 / 08:00 CST** 三个触发点：
+
+- 三时点各自独立触发完整增量 `[min(checkpoint+1日, target), target]`（target = `sync_target_date`，
+  最近已收盘工作日：18:00 → 当日；00:00/08:00 → 前一交易日，跨周末回退）；
+  各自独立退避重试 3 次、各自落事件（含 §6.1-b 零调用审计事件）。
+- 与缺陷 2 修正并存：每轮均含目标交易日（强制同步，盘中不封当日的 cap 语义不变）；
+  **前提**：准确层写入为 upsert 覆盖语义（§4 `conflict_updates_row_not_keeps_first` 测试锁定），
+  后次同步覆盖修正前次不完整数据。
 
 ``` {.rust file=crates/tushare/src/daily.rs}
 //! 日增量同步定时任务（数据面内置）。纯逻辑可测（注入 Clock / mock Provider / 内存 Store）。
@@ -771,22 +840,37 @@ use domain::tz::cst_to_utc;
 use domain::tz::utc_to_cst;
 use std::sync::Arc;
 
-pub const RUN_HOUR: u32 = 15;
-pub const RUN_MINUTE: u32 = 30;
 pub const MAX_ATTEMPTS: u32 = 3;
 
-/// 下次触发时刻：严格晚于 now 的最近一个工作日 15:30 CST（Wave 0 日历=仅工作日）。
+/// 三时点调度（用户决策 2026-09-03，§6.2）：每自然日 CST 08:00 / 18:00 / 00:00 各触发一轮完整增量。
+/// tushare ETF 历史整理耗时长、收盘后不能立即更新，多次补全直至收敛
+/// （前提：准确层 upsert 覆盖语义，后次同步修正前次不完整数据，见 §4 accurate_upsert 测试锁定）。
+pub const RUN_TIMES: [(u32, u32); 3] = [(0, 0), (8, 0), (18, 0)];
+
+/// 下次触发时刻：严格晚于 now 的最近一个 CST 08:00/18:00/00:00。
+/// 含周末触发（周末轮次目标交易日回退到周五，多次补全直至收敛）。
 pub fn next_run_after(now: DateTime<Utc>) -> DateTime<Utc> {
     let mut date = utc_to_cst(now).date();
     for _ in 0..10 {
-        let wd = date.weekday();
-        if !matches!(wd, chrono::Weekday::Sat | chrono::Weekday::Sun) {
-            let run = cst_to_utc(date.and_hms_opt(RUN_HOUR, RUN_MINUTE, 0).expect("valid hms"));
+        for &(h, m) in &RUN_TIMES {
+            let run = cst_to_utc(date.and_hms_opt(h, m, 0).expect("valid hms"));
             if run > now { return run; }
         }
         date += Duration::days(1);
     }
-    unreachable!("10 天内必有工作日")
+    unreachable!("10 天内必有触发点")
+}
+
+/// 同步目标交易日（三时点口径）：最近一个已收盘（15:00 CST 已过）的工作日。
+/// 18:00 触发 → 当日；00:00/08:00 触发 → 前一交易日（跨周末回退，Wave 0 日历=仅工作日）。
+pub fn sync_target_date(now: DateTime<Utc>) -> NaiveDate {
+    let cst = utc_to_cst(now);
+    let close = chrono::NaiveTime::from_hms_opt(15, 0, 0).expect("valid hms");
+    let mut d = if cst.time() < close { cst.date() - Duration::days(1) } else { cst.date() };
+    while matches!(d.weekday(), chrono::Weekday::Sat | chrono::Weekday::Sun) {
+        d -= Duration::days(1);
+    }
+    d
 }
 
 /// 退避档：base ×2^n（attempt 0-based），封顶 10min。默认 base 60s。
@@ -841,25 +925,45 @@ impl DailySync {
         }
     }
 
-    /// 单 code 增量：[checkpoint+1日, 今日]（已最新 → 0）。
-    async fn sync_code(&self, code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+    /// 审计事件（缺陷 2 修复口径 b）：整轮跳过/零调用落 source_health_events
+    /// （source=tushare, ok=true, err_kind=na；原因载于 trace_id，形如 "skip:<reason>"）。
+    /// 注：0001 schema 无 detail 列，PgEventSink 持久化 ts/source/ok/latency/err_kind/code；
+    /// 监控以该 na 事件为信号，跳过原因查日志（trace_id 随内存事件/断言可见）。
+    async fn emit_skip_audit(&self, reason: &str) {
+        let ev = HealthEvent {
+            ts: self.clock.now(), source: SourceId::Tushare, ok: true, latency_ms: None,
+            err_kind: Some(ErrKind::Na), code: None, trace_id: Some(format!("skip:{reason}")),
+        };
+        if let Err(e) = self.sink.emit(ev).await {
+            tracing::warn!(error = %e, "tushare daily skip-audit event emit failed");
+        }
+    }
+
+    /// 单 code 增量：拉取窗口 = [min(checkpoint+1日, target), target]
+    /// （target = sync_target_date 最近已收盘工作日，三时点均含目标交易日）。
+    /// 缺陷 2 修复（§6.1）：目标交易日**强制同步**（checkpoint==target 也重拉，
+    /// 准确层 ON CONFLICT DO UPDATE 幂等去重——三时点多次补全方案的前提）；
+    /// checkpoint 推进经 sync::checkpoint_through_cap 封顶（盘中不得标记当日完成）。
+    async fn sync_code(&self, code: &str, target: NaiveDate, now: DateTime<Utc>) -> Result<usize, ProviderError> {
         let cp = self.store.checkpoint(code).await
             .map_err(|e| ProviderError::Http(e.to_string()))?;
-        let start = crate::sync::resume_from(cp);
-        if start > today { return Ok(0); }
+        let start = crate::sync::resume_from(cp).min(target);
         let bars = self.provider.fetch_history(
             &Code(code.to_string()), Period::M1,
             cst_to_utc(start.and_hms_opt(0, 0, 0).expect("valid hms")),
-            cst_to_utc(today.and_hms_opt(15, 0, 0).expect("valid hms"))).await?;
+            cst_to_utc(target.and_hms_opt(15, 0, 0).expect("valid hms"))).await?;
         let n = bars.len();
-        self.store.save(code, &bars, today).await
+        let through = target.min(crate::sync::checkpoint_through_cap(now));
+        self.store.save(code, &bars, through).await
             .map_err(|e| ProviderError::Http(e.to_string()))?;
         Ok(n)
     }
 
-    /// 单轮：逐 code 增量，失败指数退避重试 MAX_ATTEMPTS 次；RateLimited 整轮中止。
+    /// 单轮：逐 code 增量（目标 = 最近已收盘工作日），失败指数退避重试 MAX_ATTEMPTS 次；
+    /// RateLimited 整轮中止。三时点各自独立触发一轮（各自独立重试与审计事件）。
     pub async fn run(&self) -> DailyOutcome {
-        let today = utc_to_cst(self.clock.now()).date();
+        let now = self.clock.now();
+        let target = sync_target_date(now);
         let codes = match self.store.enabled_codes().await {
             Ok(c) => c,
             Err(e) => {
@@ -868,6 +972,12 @@ impl DailySync {
                 return DailyOutcome::Failed;
             }
         };
+        if codes.is_empty() {
+            // 缺陷 2 修复口径 b（禁止静默跳过）：整轮零调用落审计事件
+            tracing::warn!("tushare daily: no enabled codes, round skipped (zero API calls)");
+            self.emit_skip_audit("no_enabled_codes").await;
+            return DailyOutcome::Synced { codes: 0, bars: 0 };
+        }
         let mut total_bars = 0usize;
         let mut done = 0usize;
         let mut failed = false;
@@ -875,7 +985,7 @@ impl DailySync {
             let mut attempt = 0u32;
             loop {
                 let t0 = std::time::Instant::now();
-                match self.sync_code(code, today).await {
+                match self.sync_code(code, target, now).await {
                     Ok(n) => {
                         self.emit(true, Some(t0.elapsed().as_millis() as u32), None, Some(code)).await;
                         total_bars += n;
@@ -1021,9 +1131,10 @@ fn mk_bar(code: &str) -> Bar {
     }
 }
 
-fn setup(results: Vec<Result<Vec<Bar>, ProviderError>>, codes: Vec<&str>, cps: Vec<(&str, NaiveDate)>)
+fn setup_at(results: Vec<Result<Vec<Bar>, ProviderError>>, codes: Vec<&str>,
+            cps: Vec<(&str, NaiveDate)>, now: DateTime<Utc>)
     -> (Arc<DailySync>, Arc<MockHist>, Arc<MemStore>, Arc<MemSink>) {
-    let clock = Arc::new(FakeClock(Mutex::new(Utc.with_ymd_and_hms(2026, 9, 3, 7, 31, 0).unwrap()))); // 15:31 CST
+    let clock = Arc::new(FakeClock(Mutex::new(now)));
     let sink = Arc::new(MemSink::default());
     let store = Arc::new(MemStore {
         codes: codes.into_iter().map(String::from).collect(),
@@ -1036,24 +1147,55 @@ fn setup(results: Vec<Result<Vec<Bar>, ProviderError>>, codes: Vec<&str>, cps: V
     (sync, hist, store, sink)
 }
 
-#[test]
-fn next_run_same_day_before_1530() {
-    // 周四 10:00 CST = 02:00 UTC → 当日 15:30 CST = 07:30 UTC
-    let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap();
-    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap());
+/// 默认收盘后口径：2026-09-03 15:31 CST（07:31 UTC）。
+fn setup(results: Vec<Result<Vec<Bar>, ProviderError>>, codes: Vec<&str>, cps: Vec<(&str, NaiveDate)>)
+    -> (Arc<DailySync>, Arc<MockHist>, Arc<MemStore>, Arc<MemSink>) {
+    setup_at(results, codes, cps, Utc.with_ymd_and_hms(2026, 9, 3, 7, 31, 0).unwrap())
 }
 
 #[test]
-fn next_run_after_1530_rolls_to_next_weekday() {
-    // 周四 16:00 CST → 周五（09-04）15:30 CST
-    let now = Utc.with_ymd_and_hms(2026, 9, 3, 8, 0, 0).unwrap();
-    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 4, 7, 30, 0).unwrap());
-    // 周五 16:00 CST → 下周一（09-07）15:30 CST（跳过周末）
-    let fri = Utc.with_ymd_and_hms(2026, 9, 4, 8, 0, 0).unwrap();
-    assert_eq!(next_run_after(fri), Utc.with_ymd_and_hms(2026, 9, 7, 7, 30, 0).unwrap());
-    // 周六上午 → 下周一
-    let sat = Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap();
-    assert_eq!(next_run_after(sat), Utc.with_ymd_and_hms(2026, 9, 7, 7, 30, 0).unwrap());
+fn next_run_three_triggers_same_day() {
+    // 三时点调度（用户决策 2026-09-03，§6.2）：每日 CST 08:00 / 18:00 / 00:00（严格晚于 now）
+    // 07:00 CST（前日 23:00 UTC）→ 当日 08:00 CST = 00:00 UTC
+    let now = Utc.with_ymd_and_hms(2026, 9, 2, 23, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 0, 0, 0).unwrap());
+    // 10:00 CST（02:00 UTC）→ 当日 18:00 CST = 10:00 UTC
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 10, 0, 0).unwrap());
+    // 20:00 CST（12:00 UTC）→ 次日 00:00 CST = 当日 16:00 UTC
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 12, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap());
+    // 恰在触发点 08:00:00 CST（00:00 UTC）→ 严格晚于 → 当日 18:00
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 0, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 10, 0, 0).unwrap());
+}
+
+#[test]
+fn next_run_cross_midnight_and_weekend() {
+    // 跨午夜：23:59 CST（15:59 UTC）→ 次日 00:00 CST（16:00 UTC）
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 15, 59, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap());
+    // 跨周末不跳过触发：周五 20:00 CST（12:00 UTC）→ 周六 00:00 CST（周五 16:00 UTC）
+    // （周末轮次目标交易日回退到周五，多次补全直至收敛）
+    let fri = Utc.with_ymd_and_hms(2026, 9, 4, 12, 0, 0).unwrap();
+    assert_eq!(next_run_after(fri), Utc.with_ymd_and_hms(2026, 9, 4, 16, 0, 0).unwrap());
+}
+
+#[test]
+fn sync_target_is_latest_closed_weekday() {
+    let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
+    // 18:00 周四（10:00 UTC）→ 当日周四（已收盘）
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 3, 10, 0, 0).unwrap()), d(2026, 9, 3));
+    // 15:00 整收盘 → 当日
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 3, 7, 0, 0).unwrap()), d(2026, 9, 3));
+    // 盘中 10:00 周四 → 前一交易日周三（当日未收盘，不是目标）
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap()), d(2026, 9, 2));
+    // 00:00 周六（周五 16:00 UTC）→ 周五（跨午夜仍补前一交易日）
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 4, 16, 0, 0).unwrap()), d(2026, 9, 4));
+    // 08:00 周一（周一 00:00 UTC）→ 前一交易日周五（跨周末口径）
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 7, 0, 0, 0).unwrap()), d(2026, 9, 4));
+    // 18:00 周六（周六 10:00 UTC）→ 周五（周末触发回退最近已收盘工作日）
+    assert_eq!(sync_target_date(Utc.with_ymd_and_hms(2026, 9, 5, 10, 0, 0).unwrap()), d(2026, 9, 4));
 }
 
 #[test]
@@ -1125,11 +1267,46 @@ async fn rate_limited_aborts_whole_round() {
 }
 
 #[tokio::test]
-async fn up_to_date_code_no_api_call() {
+async fn checkpoint_today_still_fetches_today_after_close() {
+    // 缺陷 2 复现（tester 004 §8）：checkpoint 被盘中手动全量同步预置为今日，
+    // 收盘后 15:30 日增量触发 → 仍必须拉取当日（新口径：当日强制同步，upsert 幂等去重）。
     let today = NaiveDate::from_ymd_opt(2026, 9, 3).unwrap();
-    let (sync, hist, _store, _sink) = setup(vec![], vec!["518880"], vec![("518880", today)]);
+    let (sync, hist, store, sink) = setup(
+        vec![Ok(vec![mk_bar("518880")])], vec!["518880"], vec![("518880", today)]);
     let out = sync.run().await;
-    assert_eq!(out, DailyOutcome::Synced { codes: 1, bars: 0 });
-    assert_eq!(*hist.calls.lock().unwrap(), 0, "已最新不调用 API");
+    assert_eq!(out, DailyOutcome::Synced { codes: 1, bars: 1 });
+    assert_eq!(*hist.calls.lock().unwrap(), 1, "checkpoint==今日不跳过：收盘后仍拉取当日");
+    assert_eq!(store.cps.lock().unwrap()["518880"], today, "收盘后 checkpoint 推进到今日");
+    assert!(sink.events.lock().unwrap().iter().any(|e| e.ok), "成功事件落库");
+}
+
+#[tokio::test]
+async fn intraday_run_does_not_advance_checkpoint_to_today() {
+    // 缺陷 2 修复口径 a：盘中（15:00 CST 前）同步不得将当日标记为完成。
+    let yesterday = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let intraday = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap(); // 10:00 CST 盘中
+    let (sync, hist, store, _sink) = setup_at(
+        vec![Ok(vec![mk_bar("518880")])], vec!["518880"], vec![("518880", yesterday)], intraday);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Synced { codes: 1, bars: 1 });
+    assert_eq!(*hist.calls.lock().unwrap(), 1, "盘中触发仍拉取（目标=前一交易日 09-02）");
+    assert_eq!(store.cps.lock().unwrap()["518880"], yesterday,
+        "盘中 checkpoint 封顶前一自然日，不得标记当日完成");
+}
+
+#[tokio::test]
+async fn zero_call_round_emits_audit_event() {
+    // 缺陷 2 修复口径 b：整轮零调用（无启用标的）不得静默 —— 落 ok=true + err_kind=na 审计事件。
+    let (sync, hist, _store, sink) = setup(vec![], vec![], vec![]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Synced { codes: 0, bars: 0 });
+    assert_eq!(*hist.calls.lock().unwrap(), 0);
+    let events = sink.events.lock().unwrap();
+    assert_eq!(events.len(), 1, "零调用轮必须落一条审计事件（禁止静默跳过）");
+    let e = &events[0];
+    assert!(e.ok && e.source == SourceId::Tushare);
+    assert_eq!(e.err_kind.map(|k| k.as_str()), Some("na"));
+    assert!(e.trace_id.as_deref().unwrap_or("").starts_with("skip:"),
+        "审计事件附跳过原因: {:?}", e.trace_id);
 }
 ```

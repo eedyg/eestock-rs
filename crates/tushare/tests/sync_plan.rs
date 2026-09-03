@@ -40,6 +40,22 @@ fn resume_without_checkpoint_full_history() {
     assert_eq!(full_history_start(), d(2012, 1, 1));
 }
 
+#[test]
+fn checkpoint_cap_intraday_vs_after_close() {
+    // 缺陷 2 修复口径 a：盘中（CST 15:00 收盘前）checkpoint 封顶前一自然日；收盘后允许含当日。
+    use chrono::{TimeZone, Utc};
+    let intraday = Utc.with_ymd_and_hms(2026, 9, 3, 6, 59, 0).unwrap(); // 14:59 CST
+    assert_eq!(checkpoint_through_cap(intraday), d(2026, 9, 2), "收盘前 1 分钟仍盘中");
+    let close = Utc.with_ymd_and_hms(2026, 9, 3, 7, 0, 0).unwrap();    // 15:00 CST
+    assert_eq!(checkpoint_through_cap(close), d(2026, 9, 3), "收盘后允许含当日");
+    let morning = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap(); // 09:30 CST
+    assert_eq!(checkpoint_through_cap(morning), d(2026, 9, 2));
+    let evening = Utc.with_ymd_and_hms(2026, 9, 3, 8, 0, 0).unwrap(); // 16:00 CST 盘后
+    assert_eq!(checkpoint_through_cap(evening), d(2026, 9, 3), "盘后允许含当日");
+    let next_day = Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap(); // 次日 00:00 CST
+    assert_eq!(checkpoint_through_cap(next_day), d(2026, 9, 3), "跨日边界按 CST 日期：次日凌晨仍视为次日的盘中");
+}
+
 #[tokio::test]
 async fn throttle_enforces_interval() {
     let c = tushare::client::TushareClient::with_config(

@@ -47,3 +47,11 @@
 3. **SourceId 扩展 `*Approx` 变体**（contracts.md §2.1）：03 §6 降级模式 `source=*_approx` 标记的载体；
    快照池 5 源各一个近似变体，`as_str()` 为落库文本单一事实源（storage 共用）。
 4. **依赖批准**：encoding_rs（GBK 解码）+ toml（数据面配置）；不引 uuid，Trace ID 用 rand 生成 32 位 hex。
+
+## 调度变更（2026-09-03，用户决策）
+
+5. **tushare 日增量调度：单一 15:30 → 三时点 18:00 / 00:00 / 08:00（Asia/Shanghai）**（design/04-storage/02-tushare-sync.md §6.2）。
+   理由：tushare ETF 历史整理耗时长，收盘后不能立即更新，需多次补全直至收敛。
+   口径：三时点各自独立触发完整增量（目标=最近已收盘工作日）、独立退避重试 3 次、各自落审计事件（含零调用轮）；
+   前提 = 准确层 upsert 覆盖语义（storage accurate_upsert 测试锁定，已验证成立）；
+   与缺陷 2 checkpoint 语义修正（盘中不封当日 / 强制同步目标交易日）并存。

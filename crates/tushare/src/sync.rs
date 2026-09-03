@@ -27,4 +27,13 @@ pub fn plan_windows(from: NaiveDate, to: NaiveDate, window_days: i64) -> Vec<(Na
 pub fn resume_from(checkpoint: Option<NaiveDate>) -> NaiveDate {
     checkpoint.map(|d| d + Duration::days(1)).unwrap_or_else(full_history_start)
 }
+
+/// checkpoint 推进封顶（缺陷 2 修复，父级裁决 2026-09-03，§6.1）：
+/// 盘中（Asia/Shanghai 15:00 收盘前）的同步不得将当日标记为完成 —— 封顶前一自然日；
+/// 收盘后（含 15:00）允许含当日。日增量（daily.rs）与手动全量 bin（tushare_sync）共用此口径。
+pub fn checkpoint_through_cap(now: chrono::DateTime<chrono::Utc>) -> NaiveDate {
+    let cst = domain::tz::utc_to_cst(now);
+    let close = chrono::NaiveTime::from_hms_opt(15, 0, 0).expect("valid hms");
+    if cst.time() < close { cst.date() - Duration::days(1) } else { cst.date() }
+}
 // ~/~ end
