@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 视觉基线：design/06-web/preview/01-dashboard.html（深色交易终端风，见 09-frontend.md §7） */
+:root {
+  --bg: #0b0e17;
+  --panel: #121627;
+  --panel2: #171c33;
+  --line: rgba(255, 255, 255, 0.07);
+  --txt: #e5e9f2;
+  --dim: #8b93b0;
+  --up: #ff5c6c; /* 红涨（A 股惯例） */
+  --down: #00e0a4; /* 绿跌 */
+  --acc1: #38bdf8;
+  --acc2: #a78bfa;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 70% -10%, #1a2040 0%, var(--bg) 55%);
+  font:
+    14px/1.6 'Inter',
+    'PingFang SC',
+    sans-serif;
+  color: var(--txt);
+}
+
+/* 等宽数字 */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* 呼吸状态灯 */
+.dot-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--down);
+  box-shadow: 0 0 8px rgba(0, 224, 164, 0.67);
+  animation: pulse 2s infinite;
+}
+.dot-warn {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f5c451;
+}
+.dot-down {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--up);
+}
+.dot-idle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dim);
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
