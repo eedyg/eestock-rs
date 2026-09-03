@@ -15,14 +15,7 @@ pub fn period_str(p: Period) -> &'static str {
               Period::H1 => "H1", Period::D1 => "D1" }
 }
 
-fn source_str(s: SourceId) -> &'static str {
-    match s {
-        SourceId::TencentIfzq => "tencent_ifzq", SourceId::SinaJsonp => "sina_jsonp",
-        SourceId::TencentQt => "tencent_qt", SourceId::SinaHq => "sina_hq",
-        SourceId::ThsCs => "ths_cs", SourceId::Push2delay => "push2delay",
-        SourceId::Exchange => "exchange", SourceId::Tushare => "tushare",
-    }
-}
+// source 列文本口径单一事实源在 domain（SourceId::as_str，含 *_approx 变体）。
 
 impl AccurateWriter {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
@@ -43,7 +36,7 @@ impl AccurateWriter {
              .push_bind(bar.close)
              .push_bind(bar.volume as i64)
              .push_bind(bar.amount)
-             .push_bind(source_str(bar.source));
+             .push_bind(bar.source.as_str());
         });
         qb.push(" ON CONFLICT (code, ts, period) DO UPDATE SET \
             open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, \
