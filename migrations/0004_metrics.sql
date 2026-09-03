@@ -10,9 +10,9 @@ CREATE TABLE metrics (
     PRIMARY KEY (code, period, ts, metric)
 );
 SELECT create_hypertable('metrics', 'ts');
-ALTER TABLE metrics SET (timescaledb.compress,
-    timescaledb.compress_segmentby = 'code,metric',
-    timescaledb.compress_orderby = 'ts DESC');
+ALTER TABLE metrics SET (timescaledb.enable_columnstore,
+    timescaledb.segmentby = 'code,metric',
+    timescaledb.orderby = 'ts DESC');
 SELECT add_compression_policy('metrics', INTERVAL '7 days');
 
 -- 筹码完整分布（ADR-011/014）：日级，价位→筹码占比

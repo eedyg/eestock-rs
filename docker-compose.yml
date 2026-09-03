@@ -1,7 +1,7 @@
 # eestock-rs 本地开发编排（手写工程基建，不 tangle）
 services:
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.29.2-pg16  # pin 版本（ADR：latest 滚动 tag 导致压缩语法漂移事故 2026-09-03）
     container_name: eestock-timescaledb
     restart: unless-stopped
     ports:

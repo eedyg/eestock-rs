@@ -123,14 +123,16 @@ SELECT add_continuous_aggregate_policy('kline_1d',
 
 ``` {.sql file=migrations/0003_compression.sql}
 -- 0003_compression.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
-ALTER TABLE kline_raw SET (timescaledb.compress,
-    timescaledb.compress_segmentby = 'code',
-    timescaledb.compress_orderby = 'ts DESC');
+-- ⚠️ 语法修正（2026-09-03）：TimescaleDB 2.18+ 启用 columnstore 新 API；
+-- 旧 timescaledb.compress 在 2.29 静默失效（本次实锤踩坑，证据见设计注记 5）
+ALTER TABLE kline_raw SET (timescaledb.enable_columnstore,
+    timescaledb.segmentby = 'code',
+    timescaledb.orderby = 'ts DESC');
 SELECT add_compression_policy('kline_raw', INTERVAL '7 days');
 
-ALTER TABLE source_health_events SET (timescaledb.compress,
-    timescaledb.compress_segmentby = 'source',
-    timescaledb.compress_orderby = 'ts DESC');
+ALTER TABLE source_health_events SET (timescaledb.enable_columnstore,
+    timescaledb.segmentby = 'source',
+    timescaledb.orderby = 'ts DESC');
 SELECT add_compression_policy('source_health_events', INTERVAL '7 days');
 -- 健康事件保留 90 天；K线不删除（ADR-004：1m 历史靠累积）
 SELECT add_retention_policy('source_health_events', INTERVAL '90 days');
@@ -148,9 +150,9 @@ CREATE TABLE metrics (
     PRIMARY KEY (code, period, ts, metric)
 );
 SELECT create_hypertable('metrics', 'ts');
-ALTER TABLE metrics SET (timescaledb.compress,
-    timescaledb.compress_segmentby = 'code,metric',
-    timescaledb.compress_orderby = 'ts DESC');
+ALTER TABLE metrics SET (timescaledb.enable_columnstore,
+    timescaledb.segmentby = 'code,metric',
+    timescaledb.orderby = 'ts DESC');
 SELECT add_compression_policy('metrics', INTERVAL '7 days');
 
 -- 筹码完整分布（ADR-011/014）：日级，价位→筹码占比
@@ -172,9 +174,21 @@ CREATE TABLE share_float (
 );
 ```
 
+``` {.sql file=migrations/0006_accurate_compression.sql}
+-- 0006_accurate_compression.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 审查修正（2026-09-03）：0003 漏了 kline_accurate 的压缩（当时 16M 行 3GB 未压缩）
+ALTER TABLE kline_accurate SET (timescaledb.enable_columnstore,
+    timescaledb.segmentby = 'code,period',
+    timescaledb.orderby = 'ts DESC');
+SELECT add_compression_policy('kline_accurate', INTERVAL '7 days');
+-- 存量压缩（首次部署时手动执行一次，之后策略自动接管）：
+-- SELECT count(compress_chunk(x)) FROM show_chunks('kline_accurate', older_than => INTERVAL '7 days') x;
+```
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）
 2. 缺口判定：某 code 当日交易分钟内 `kline_raw` 缺失的 ts 集合（交易日历 × 分钟序列 LEFT JOIN）
 3. `kline_1d` + 流通股本/份额参考表 `share_float`（0004 已建）= 换手率 → 筹码输入（ADR-011/014）
 4. metrics 框架（ADR-014）：Wave 1 看板指标由 klinecharts 前端内置渲染；服务端 metrics 表 Wave 2 启用，同名指标口径以服务端为准（契约测试锁定）
+5. **压缩事故复盘（2026-09-03，证据修正版）**：真问题是 0003 设计遗漏——kline_accurate 从未配压缩（16M 行 3GB 裸奔）。排查弯路：误判"旧语法静默失效"（reloptions 为空所致）——**2.29 中压缩设置存目录表而非 reloptions，information 视图标志位是可信的**。已用新语法（enable_columnstore/segmentby/orderby，前向兼容）统一四表并实测：kline_accurate 760 chunks 压缩 3044MB→446MB（6.8x）。对策：①compose 镜像 pin 2.29.2-pg16（滚动 latest 仍有 API 漂移风险）；②压缩验收=视图标志位 + compress_chunk 冒烟 + 实测体积
