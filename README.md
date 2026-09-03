@@ -41,11 +41,23 @@ docker compose ps                       # 等待 healthcheck = healthy
 psql postgres://eestock:eestock@localhost:5433/eestock
 ```
 
-- 数据卷：命名卷 `eestock-timescale-data`。
+- 数据卷：bind mount `./data/timescaledb`（用户裁决 2026-09-03，已入 .gitignore）。
 - `migrations/*.sql` 挂载为 initdb 脚本，**仅首次初始化空卷时**自动执行；
-  后续迁移由 sqlx migrate（storage crate，Wave 1）接管。
-- app 服务为占位（`profiles: ["app"]`），Dockerfile 待 Wave 1 创建，
-  需显式 `docker compose --profile app up -d` 才会构建启动。
+  后续增量迁移走 sqlx migrate 运维流程；`data` 服务启动时做 schema 自检（storage::migrate_check）。
+
+## 启动数据面全栈（Wave 0，ADR-017）
+
+```bash
+cp config/data.toml.example config/data.toml   # 首次；已入 .gitignore
+export TUSHARE_TOKEN=...                        # secret 走 env，不落文件
+docker compose up -d                            # timescaledb + data 一条命令
+curl http://localhost:8080/healthz              # 数据面唯一端口（只读存活探测）
+```
+
+- `data` 服务：多阶段 Dockerfile 构建 `eestock-data`（采集/降级模式/缺口回填/tushare 日增量），
+  `depends_on: timescaledb (healthy)`、`restart: unless-stopped`、启动 schema 自检、
+  healthcheck 用二进制自带 `--self-check`（运行时镜像无 curl/wget）。
+- 应用面 `eestock-app`（web/diagnose/MCP）为 Wave 1 边界，本仓暂不包含其 compose 服务。
 
 ## 常用命令
 

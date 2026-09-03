@@ -12,7 +12,8 @@ services:
       POSTGRES_PASSWORD: eestock
       POSTGRES_DB: eestock
     volumes:
-      - timescale_data:/var/lib/postgresql/data
+      # bind mount 到项目目录（用户裁决 2026-09-03：数据文件可见可控；已入 .gitignore）
+      - ./data/timescaledb:/var/lib/postgresql/data
       # migrations/*.sql 由 design/04-storage/schema.md tangle 生成；
       # 仅首次初始化空数据卷时按文件名顺序自动执行
       - ./migrations:/docker-entrypoint-initdb.d:ro
@@ -23,23 +24,31 @@ services:
       retries: 12
       start_period: 10s
 
-  app:
-    # 占位：Wave 1 采集/Web 服务。build 上下文预留，默认不启动：
-    #   docker compose --profile app up -d   # 显式启用
+  # 数据面（ADR-017 基座）：采集 + 降级模式 + 缺口回填 + tushare 日增量 + /healthz
+  data:
     build:
       context: .
-      dockerfile: Dockerfile   # TODO(Wave 1)：多阶段 cargo build，尚未创建
-    container_name: eestock-app
-    profiles: ["app"]
+      dockerfile: Dockerfile   # 多阶段构建（design/03-collector/02-data-plane.md tangle 生成）
+    container_name: eestock-data
+    restart: unless-stopped
     depends_on:
       timescaledb:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://eestock:eestock@timescaledb:5432/eestock
+      # secret 经环境变量注入，不落配置文件（宿主机 export TUSHARE_TOKEN=...）
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN:-}
       RUST_LOG: info
+    volumes:
+      # 本地配置文件（.gitignore；模板 config/data.toml.example 入库）
+      - ./config/data.toml:/etc/eestock/data.toml:ro
     ports:
-      - "8080:8080"
+      - "8080:8080"   # 唯一端口：/healthz 只读存活探测
+    healthcheck:
+      # 运行时镜像无 curl/wget，用二进制自带子命令
+      test: ["CMD", "/usr/local/bin/eestock-data", "--self-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
-volumes:
-  timescale_data:
-    name: eestock-timescale-data

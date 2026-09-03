@@ -14,3 +14,5 @@ node_modules/
 # 编辑器/系统杂项
 *.swp
 .DS_Store
+/data/
+/config/data.toml

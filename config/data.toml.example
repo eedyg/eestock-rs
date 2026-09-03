@@ -1,0 +1,10 @@
+# eestock-data 数据面配置模板（入库）。使用方法：
+#   cp config/data.toml.example config/data.toml
+# config/data.toml 已入 .gitignore（本地配置，可含本地定制）。
+# secret（tushare token）建议用环境变量 TUSHARE_TOKEN 注入，不写进本文件。
+
+database_url = "postgres://eestock:eestock@timescaledb:5432/eestock"
+tushare_enabled = true
+tushare_interval_ms = 1000
+healthz_port = 8080
+# tushare_token = "..."   # 不推荐；用 TUSHARE_TOKEN env
