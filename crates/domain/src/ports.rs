@@ -101,4 +101,71 @@ pub struct SystemClock;
 impl Clock for SystemClock {
     fn now(&self) -> DateTime<Utc> { Utc::now() }
 }
+
+// ── 应用面只读端口（Wave 1 Phase A 审查返工：加法扩展，不改既有契约）──
+// 分层红线：web(Presentation) 不得依赖 storage，diagnose(Application) 不得依赖 sqlx；
+// 与 RawBarReader/SymbolRegistry 同模式——端口在 domain，storage 实现，app bin 装配。
+
+/// K线读模型（应用面查询行）。
+/// 不复用 Bar：读模型无 period、volume 为 i64（cagg numeric 归一）、source 可空（cagg 无来源列）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct KlineBarView {
+    pub code: String,
+    pub ts: DateTime<Utc>,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: i64,             // 股
+    pub amount: f64,             // 元
+    pub source: Option<String>,  // 仅 1m merge 视图带来源
+}
+
+/// 注册标的 + 最新快照（读模型；last/prev_close 供涨跌幅计算）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct SymbolLatestView {
+    pub code: String,
+    pub name: Option<String>,
+    pub interval_secs: i32,
+    pub settlement: String,
+    pub enabled: bool,
+    pub last_ts: Option<DateTime<Utc>>,
+    pub last_close: Option<f64>,
+    pub prev_close: Option<f64>,
+}
+
+/// 健康事件读模型（source_health_events 行；diagnose 窗口聚合输入）。
+/// 与写模型 HealthEvent 分立：读侧 err_kind 为裸文本（容忍库中任意取值），不背 ErrKind 枚举。
+#[derive(Debug, Clone, PartialEq)]
+pub struct HealthEventRow {
+    pub ts: DateTime<Utc>,
+    pub source: String,
+    pub ok: bool,
+    pub latency_ms: Option<i32>,
+    pub err_kind: Option<String>,
+    pub code: Option<String>,    // 触发标的（源级/心跳事件为 None）
+}
+
+/// K线只读端口（web REST/WS 数据源；storage 实现）。
+#[async_trait]
+pub trait KlineRead: Send + Sync {
+    /// 游标分页：ts < before（None=最新起），取 limit 行，**升序**返回（图表口径）。
+    async fn bars(&self, period: Period, code: &str,
+                  before: Option<DateTime<Utc>>, limit: i64)
+        -> anyhow::Result<Vec<KlineBarView>>;
+    /// 最新一根 bar（WS 推送增量判定输入）。默认实现 = bars(.., None, 1) 取尾。
+    async fn latest_bar(&self, period: Period, code: &str)
+        -> anyhow::Result<Option<KlineBarView>> {
+        Ok(self.bars(period, code, None, 1).await?.pop())
+    }
+    /// 注册表 + 最新快照。
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>>;
+}
+
+/// 健康事件只读端口（diagnose 窗口聚合的读输入；storage 实现）。
+#[async_trait]
+pub trait HealthEventsRead: Send + Sync {
+    /// 窗口内全部事件（ts > now() - window_secs）；无序要求（diagnose 聚合时自行归组排序）。
+    async fn window_events(&self, window_secs: i64) -> anyhow::Result<Vec<HealthEventRow>>;
+}
 // ~/~ end
