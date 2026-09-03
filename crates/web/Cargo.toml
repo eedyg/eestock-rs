@@ -1,7 +1,24 @@
 [package]
 name = "web"
-description = "Presentation：axum REST + WebSocket + SPA 静态托管（空壳，Wave 1 实现）"
+description = "Presentation：axum REST + WebSocket + SPA 静态托管（src 由 design/07-app-plane/00-web-api.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
+# 分层红线（Phase A 审查裁决）：web 只依赖 domain 端口 + diagnose 服务，不得依赖 storage/sqlx。
 [dependencies]
+domain = { path = "../domain" }
+diagnose = { path = "../diagnose" }
+# ws 特性：/ws 订阅分发（ADR-008 既定 axum 栈内特性开关，非新依赖）
+axum = { workspace = true, features = ["ws"] }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+
+[dev-dependencies]
+# 集成测试需要具体实现做装配与造数；仅 dev 侧，正常依赖图不含（cargo tree -p web -e normal 验证）
+storage = { path = "../storage" }
+sqlx.workspace = true
+reqwest.workspace = true

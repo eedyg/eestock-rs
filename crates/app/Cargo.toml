@@ -1,6 +1,6 @@
 [package]
 name = "app"
-description = "二进制装配：DI 组装、配置加载、进程入口（src 由 design/03-collector/02-data-plane.md tangle 生成）"
+description = "二进制装配：DI 组装、配置加载、进程入口（src 由 design/03-collector/02-data-plane.md 与 design/07-app-plane/00-web-api.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
@@ -10,6 +10,9 @@ collector = { path = "../collector" }
 providers = { path = "../providers" }
 storage = { path = "../storage" }
 tushare = { path = "../tushare" }
+diagnose = { path = "../diagnose" }
+web = { path = "../web" }
+axum.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

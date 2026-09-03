@@ -1,7 +1,15 @@
 [package]
 name = "diagnose"
-description = "应用层：健康指标聚合、告警规则引擎（空壳，Wave 1 实现）"
+description = "应用层：健康指标聚合（纯函数 + domain 端口注入；不依赖 sqlx）（src 由 design/07-app-plane/00-web-api.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
+domain = { path = "../domain" }
+serde.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+async-trait.workspace = true

@@ -1,0 +1,10 @@
+# eestock-app 应用面配置模板（入库）。使用方法：
+#   cp config/app.toml.example config/app.toml
+# config/app.toml 已入 .gitignore（本地配置）。
+# database_url 可用环境变量 DATABASE_URL 覆盖（容器 secret 注入口径，与数据面一致）。
+
+database_url = "postgres://eestock:eestock@timescaledb:5432/eestock"
+listen = "0.0.0.0:8081"
+static_dir = "/app/dist"      # 容器内路径；本地开发用 ./web/dist
+health_window_secs = 3600     # /api/sources/health 默认统计窗口（页面② SOURCES_DEFAULTS.successRateWindow='1h'）
+ws_poll_ms = 3000             # WS 推送轮询周期（ADR-017：应用面只读库，以轮询取增量；断线退避重连由客户端）

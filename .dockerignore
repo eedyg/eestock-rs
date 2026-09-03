@@ -1,8 +1,9 @@
-# 构建上下文瘦身 + 权限避坑（data/ 为容器内 postgres 所有，daemon 不可读）
-.git/
+# Docker 构建上下文裁剪（Dockerfile / Dockerfile.app 共用；手写工程基建，不 tangle）
+.git
 target/
+**/node_modules/
+**/dist/
 data/
 logs/
-config/data.toml
-coder/
-backup_symbols.sql
+.entangled/
+*.log

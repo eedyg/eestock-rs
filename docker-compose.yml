@@ -52,3 +52,30 @@ services:
       retries: 3
       start_period: 15s
 
+  # 应用面（ADR-017，Wave 1 Phase A）：web REST/WS + diagnose 读库 + SPA 托管
+  # 与数据面零 API 直连，唯一耦合点 = timescaledb；不依赖 data 服务（故障隔离）
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app   # design/07-app-plane/00-web-api.md tangle 生成
+    container_name: eestock-app
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://eestock:eestock@timescaledb:5432/eestock
+      RUST_LOG: info
+    volumes:
+      # 本地配置文件（.gitignore；模板 config/app.toml.example 入库）
+      - ./config/app.toml:/etc/eestock/app.toml:ro
+    ports:
+      - "8081:8081"   # 应用面 REST/WS/SPA（数据面 8080 不动）
+    healthcheck:
+      # 复用二进制自带 --self-check（GET /healthz，axum 路由）
+      test: ["CMD", "/usr/local/bin/eestock-app", "--self-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+

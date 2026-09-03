@@ -57,7 +57,25 @@ curl http://localhost:8080/healthz              # 数据面唯一端口（只读
 - `data` 服务：多阶段 Dockerfile 构建 `eestock-data`（采集/降级模式/缺口回填/tushare 日增量），
   `depends_on: timescaledb (healthy)`、`restart: unless-stopped`、启动 schema 自检、
   healthcheck 用二进制自带 `--self-check`（运行时镜像无 curl/wget）。
-- 应用面 `eestock-app`（web/diagnose/MCP）为 Wave 1 边界，本仓暂不包含其 compose 服务。
+
+## 启动应用面（Wave 1 Phase A，ADR-017）
+
+```bash
+cp config/app.toml.example config/app.toml   # 首次；已入 .gitignore
+docker compose up -d                          # timescaledb + data + app 三容器
+curl http://localhost:8081/healthz            # 应用面存活探测
+curl "http://localhost:8081/api/symbols"      # REST：标列表+latest 快照
+curl "http://localhost:8081/api/kline?code=518880&period=15m&limit=240"
+curl "http://localhost:8081/api/sources/health"   # 源健康（成功率分母排除 na，03 §7）
+```
+
+- `app` 服务：`Dockerfile.app` 构建 `eestock-app`（web REST/WS + diagnose 读库 + SPA 托管），
+  与数据面零 API 直连、只读库耦合，**不依赖 data 服务**（故障隔离）；宿主端口 8081（数据面 8080 不动）。
+- REST/WS/SPA 契约见 `design/07-app-plane/00-web-api.md`；WS `/ws` 订阅分发
+  `{type:"bar"|"quote"|"health"}`，断线退避重连由客户端。
+- SPA：`web/dist` 为 Phase A 占位页；Phase B 前端构建产物同路径覆盖（镜像内 /app/dist）。
+- 本地直跑调试：`cargo run -p app --bin eestock-app -- --config config/app.toml`
+  （本地开发时 config 中 `static_dir = "./web/dist"`）。
 
 ## 常用命令
 
@@ -73,9 +91,9 @@ docker compose up -d timescaledb
 ## 仓库布局
 
 ```
-design/         # 事实源文档树（00-vision / 01-architecture+ADR / 02-domain / 04-storage / ...）
+design/         # 事实源文档树（00-vision / 01-architecture+ADR / 02-domain / ... / 07-app-plane / ...）
 crates/         # domain collector storage providers tushare diagnose mcp web app
 migrations/     # TimescaleDB DDL（tangle 生成）
 scripts/        # 工程脚本（check-tangle.sh 等）
-docker-compose.yml
+docker-compose.yml  Dockerfile（数据面，tangle）  Dockerfile.app（应用面，tangle）
 ```

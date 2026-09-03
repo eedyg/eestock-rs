@@ -1,0 +1,102 @@
+// ~/~ begin <<design/07-app-plane/00-web-api.md#crates/web/tests/ws_poller.rs>>[init]
+//! WS Poller 集成测试（需 TimescaleDB :5433）：库增量 → hub 推送；无增量不重推；新 bar 再推。
+
+use chrono::{DateTime, Duration, TimeZone, Utc};
+use sqlx::PgPool;
+use std::sync::Arc;
+use std::time::Duration as StdDuration;
+use web::state::AppState;
+use web::ws::{Poller, PushMsg, Subscription, SubscriptionRegistry, Topic, WsHub};
+
+const CODE: &str = "996603";
+
+fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+/// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
+/// storage/sqlx 仅出现在 dev-dependencies（正常依赖图不含，cargo tree -e normal 验证）。
+fn state(pool: PgPool) -> Arc<AppState> {
+    Arc::new(AppState {
+        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        health: diagnose::health::HealthService::new(
+            Arc::new(storage::reader::HealthEventReader::new(pool))),
+        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+        health_window_secs: 3600,
+        hub: WsHub::new(),
+        subs: SubscriptionRegistry::default(),
+    })
+}
+
+async fn seed(pool: &PgPool, min: i64, close: f64) {
+    sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+        .bind(CODE).bind(base() + Duration::minutes(min)).bind(close)
+        .execute(pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn poller_publishes_increments_only() {
+    let pool = pool().await;
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO symbols (code) VALUES ($1) ON CONFLICT (code) DO NOTHING")
+        .bind(CODE).execute(&pool).await.unwrap();
+    seed(&pool, 0, 1.0).await;
+
+    let st = state(pool.clone());
+    st.subs.add(Subscription { topic: Topic::Bar,
+        code: Some(CODE.into()), period: Some("1m".into()) });
+    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None });
+    let mut rx = st.hub.subscribe();
+    let mut poller = Poller::new(st.clone(), StdDuration::from_secs(60));
+
+    // 第 1 轮：bar + quote 各一帧（其他标的的 quote 可能有，过滤找本 code）
+    poller.tick().await.unwrap();
+    let mut bar_seen = false;
+    let mut quote_seen = false;
+    while let Ok(m) = rx.try_recv() {
+        match m {
+            PushMsg::Bar { code, period, bar } if code == CODE => {
+                assert_eq!(period, "1m");
+                assert_eq!(bar.close, 1.0);
+                bar_seen = true;
+            }
+            PushMsg::Quote { code, last, .. } if code == CODE => {
+                assert_eq!(last, 1.0);
+                quote_seen = true;
+            }
+            _ => {}
+        }
+    }
+    assert!(bar_seen && quote_seen, "首轮推送 bar 与 quote");
+
+    // 第 2 轮：无增量 → 不重推
+    poller.tick().await.unwrap();
+    let mut resent = false;
+    while let Ok(m) = rx.try_recv() {
+        match m {
+            PushMsg::Bar { code, .. } | PushMsg::Quote { code, .. } if code == CODE => resent = true,
+            _ => {}
+        }
+    }
+    assert!(!resent, "游标推进，无增量不重推");
+
+    // 新 bar → 再推（bar 与 quote 均为最新值）
+    seed(&pool, 1, 2.0).await;
+    poller.tick().await.unwrap();
+    let mut new_close = None;
+    while let Ok(m) = rx.try_recv() {
+        if let PushMsg::Bar { code, bar, .. } = m {
+            if code == CODE { new_close = Some(bar.close); }
+        }
+    }
+    assert_eq!(new_close, Some(2.0));
+
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE).execute(&pool).await.unwrap();
+}
+// ~/~ end
