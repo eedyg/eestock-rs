@@ -1,0 +1,1 @@
+/*golden 出处: 028 §3 — money.finance 旧端点退化形态恒定 null (禁用证据); 新端点空数据同为 null 口径*/var _k=(null);

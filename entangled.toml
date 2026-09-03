@@ -10,3 +10,9 @@ watch_list = ["design/**/*.md"]
 name = "SQL"
 identifiers = ["sql", "postgresql"]
 comment = { open = "--" }
+
+# Dockerfile 不在内置语言表，注册后才能 tangle
+[[languages]]
+name = "Dockerfile"
+identifiers = ["dockerfile"]
+comment = { open = "#" }

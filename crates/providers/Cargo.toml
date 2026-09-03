@@ -1,7 +1,18 @@
 [package]
 name = "providers"
-description = "基础设施：各数据源 HTTP 适配器（空壳，Wave 1 实现）"
+description = "基础设施：各数据源 HTTP 适配器（src 由 design/03-collector/01-providers-spec.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
+domain = { path = "../domain" }
+reqwest.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+rand.workspace = true
+encoding_rs.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

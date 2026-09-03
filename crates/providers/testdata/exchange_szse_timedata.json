@@ -1,0 +1,2 @@
+{"_note":"golden 出处: 重建样本——结构按 golang/coder/scripts/verify_quotes_highintensity.py fetch_exchange 深市分支锁定 (getTimeData: data.now/close/deltaPercent/marketTime, 字符串字段); 数值取 028 冒烟 exchange CSV 2026-09-02 行; 父级裁决 2026-09-03: spec §3 ShowReport 端点修正为此实盘验证端点",
+ "code":"0","data":{"now":"1.925","close":"1.977","deltaPercent":"-2.63","marketTime":"2026-09-02 15:00:00"},"datetime":"2026-09-02 15:30:00"}

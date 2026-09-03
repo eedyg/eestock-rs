@@ -32,5 +32,9 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 rand = "0.8"
+# GBK 解码（providers：腾讯 qt / 新浪 hq 快照响应；父级裁决 2026-09-03 批准）
+encoding_rs = "0.8"
+# TOML 配置（app：数据面配置文件；父级裁决 2026-09-03 批准）
+toml = "0.8"

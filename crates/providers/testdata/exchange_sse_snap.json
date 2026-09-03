@@ -1,0 +1,2 @@
+{"_note":"golden 出处: 重建样本——结构按 golang/coder/scripts/verify_quotes_highintensity.py fetch_exchange 沪市分支锁定 (yunhq snap=[code,name,last,prev_close,...], ts=date+time 拼接); 数值取 028 冒烟 exchange CSV 2026-09-02 行",
+ "code":0,"snap":["518880","黄金ETF华安",8.902,9.118,-2.37],"date":20260902,"time":162906}
