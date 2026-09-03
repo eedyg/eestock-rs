@@ -1,7 +1,18 @@
 [package]
 name = "collector"
-description = "应用层：采集调度、源选取状态机、缺口回填（空壳，Wave 1 实现）"
+description = "应用层：采集调度、熔断状态机、缺口回填、降级模式（src 由 design/03-collector/00-design.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
+domain = { path = "../domain" }
+async-trait.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+rand.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+rand.workspace = true
