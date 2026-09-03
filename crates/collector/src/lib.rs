@@ -7,6 +7,7 @@ pub mod circuit;
 pub mod clock;
 pub mod executor;
 pub mod gapfill;
+pub mod probe;
 pub mod scheduler;
 pub mod service;
 pub mod standby;

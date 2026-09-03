@@ -51,7 +51,11 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 手动复位（诊断面板 POST /sources/{id}/reset）：任意态 → Healthy，记事件
 ```
 
-- 熔断源从 attempt_chain 健康池摘除；心跳任务对熔断源降为低频探测（HalfOpen 的探测走心跳通道，不占交易抓取）
+- 熔断源从 attempt_chain 健康池摘除；独立**低频探测任务**（CircuitProber，§9.10）对 HalfOpen 态 Tier1 源
+  在冷却到期后单发轻量探测（1 只代表标的 m1、limit=1，不占交易抓取通道、不影响当班轮换）：
+  成功（含 NoData=源可达口径，§7）→ `report_success` 闭合熔断（circuit_closed 事件），该源重回健康池，
+  降级标的经 §6 恢复探测（degraded_loop 既有逻辑）回切正常；
+  失败 → `report_failure` 重开熔断、冷却 ×2（封顶 30min，状态机既有语义）
 
 ## 5. 当日缺口回填（GapBackfiller，Q4-B）
 
@@ -85,6 +89,7 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 - Scheduler 相位对齐与热生效（fake clock）
 - FetchExecutor：首源成功不转移；NoData 不计失败；RateLimited 走退避不进熔断；全链失败产出 code 级事件
 - CircuitRegistry 状态机全迁移路径（含冷却翻倍封顶、手动复位）
+- CircuitProber 低频探测（§4）：HalfOpen 冷却到期单发探测闭合 / 失败重开冷却翻倍 / 无 HalfOpen 零调用；装配级全链路（双杀→降级→探测→回切）
 - GapBackfiller：缺口集合计算（含午休边界 11:30/13:00 不误判）；只写缺失 ts
 - 全部用 mock Provider + fake clock，不触网
 
@@ -101,6 +106,7 @@ pub mod circuit;
 pub mod clock;
 pub mod executor;
 pub mod gapfill;
+pub mod probe;
 pub mod scheduler;
 pub mod service;
 pub mod standby;
@@ -295,6 +301,23 @@ impl CircuitRegistry {
         };
         if let Some(kind) = migration { self.emit_migration(src, kind).await; }
         state
+    }
+
+    /// HalfOpen 态 Tier1 源（低频探测任务用，§4；含懒迁移 Open→HalfOpen 及事件）。
+    pub async fn halfopen_sources(&self) -> Vec<SourceId> {
+        let now = self.clock.now();
+        let mut out = Vec::new();
+        let mut migrations = Vec::new();
+        {
+            let mut g = self.entries.lock().await;
+            for src in &self.tier1 {
+                let e = g.entry(*src).or_insert_with(|| Entry::new(now));
+                if let Some(kind) = Self::resolve(e, now) { migrations.push((*src, kind)); }
+                if e.state == CircuitState::HalfOpen { out.push(*src); }
+            }
+        }
+        for (src, kind) in migrations { self.emit_migration(src, kind).await; }
+        out
     }
 }
 
@@ -732,7 +755,9 @@ pub fn fetch_limit(now: DateTime<Utc>) -> usize {
 
 ``` {.rust file=crates/collector/src/service.rs}
 //! 运行时装配：reconcile 循环（60s 重读 symbols 热生效）+ 每 code 抓取循环
-//! + 缺口回填循环（启动即跑 + 每 30min）。降级模式内层循环 5-10s 轮询快照。
+//! + 缺口回填循环（启动即跑 + 每 30min）+ 熔断低频探测任务（§4 HalfOpen 自愈，60s 节拍）。
+//!
+//! 降级模式内层循环 5-10s 轮询快照。
 //!
 //! 注：本模块为薄胶合（tokio 任务编排），行为逻辑均在已单测的组件内。
 //! §2 注记：非交易时段调度静默跳过（不为每分钟每标的刷 NA 事件噪音）；
@@ -742,6 +767,7 @@ use crate::calendar::WeekdayCalendar;
 use crate::clock::Clock;
 use crate::executor::{FetchExecutor, FetchOutcome};
 use crate::gapfill::{GapBackfiller, BACKFILL_INTERVAL};
+use crate::probe::CircuitProber;
 use crate::scheduler::{fetch_limit, next_tick_after};
 use crate::standby::StandbyReserve;
 use domain::ports::{HealthMonitor, KlineWriter, SymbolRegistry, TradingCalendar};
@@ -755,6 +781,7 @@ pub struct CollectorService {
     executor: Arc<FetchExecutor>,
     standby: Arc<StandbyReserve>,
     gapfill: Arc<GapBackfiller>,
+    prober: Arc<CircuitProber>,
     registry: Arc<dyn SymbolRegistry>,
     calendar: Arc<dyn TradingCalendar>,
     writer: Arc<dyn KlineWriter>,
@@ -767,15 +794,16 @@ impl CollectorService {
         executor: Arc<FetchExecutor>,
         standby: Arc<StandbyReserve>,
         gapfill: Arc<GapBackfiller>,
+        prober: Arc<CircuitProber>,
         registry: Arc<dyn SymbolRegistry>,
         writer: Arc<dyn KlineWriter>,
         clock: Arc<dyn Clock>,
     ) -> Self {
         let calendar: Arc<dyn TradingCalendar> = Arc::new(WeekdayCalendar::new(clock.clone()));
-        Self { executor, standby, gapfill, registry, calendar, writer, clock }
+        Self { executor, standby, gapfill, prober, registry, calendar, writer, clock }
     }
 
-    /// 主循环：reconcile（60s）+ 缺口回填（30min）。
+    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）。
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
         // 缺口回填：启动即跑一轮，之后每 30 分钟（§5）
         {
@@ -788,6 +816,11 @@ impl CollectorService {
                     tokio::time::sleep(BACKFILL_INTERVAL).await;
                 }
             });
+        }
+        // 低频探测：HalfOpen Tier1 源冷却到期后单发探测自愈（§4，不占交易抓取通道）
+        {
+            let pb = self.prober.clone();
+            tokio::spawn(async move { crate::probe::run_forever(pb).await });
         }
         let mut tasks: HashMap<Code, JoinHandle<()>> = HashMap::new();
         loop {
@@ -864,7 +897,119 @@ impl CollectorService {
 }
 ```
 
-### 9.10 测试（mock Provider + fake clock，不触网）
+### 9.10 熔断低频探测任务（CircuitProber，§4 规格落码）
+
+缺陷 1 修复（tester 004 §3c，父级裁决 2026-09-03）：HalfOpen 态 Tier1 源此前无运行时探测路径，
+源恢复后不自愈（唯一恢复途径 = 进程重启）。本节落码 §4 承诺：独立探测任务按 60s 节拍扫描
+HalfOpen 源并单发轻量探测；探测不占交易抓取通道（直调 provider，不经 attempt_chain）、
+不影响当班轮换（不写 duty/roster）；探测不写 kline_raw（健康信号专用，数据由恢复后的正常链接管）。
+
+``` {.rust file=crates/collector/src/probe.rs}
+//! 熔断低频探测任务（§4）：对 HalfOpen 态 Tier1 源在冷却到期后单发轻量探测
+//! （1 只代表标的 m1、limit=1，不占交易抓取通道、不影响当班轮换）。
+//! 成功（含 NoData=源可达口径）→ report_success 闭合熔断（circuit_closed 事件）；
+//! 失败 → report_failure 重开熔断、冷却翻倍（封顶 30min，circuit.rs 既有语义）。
+//! 探测闭合后健康池恢复非空，降级标的由 §6 degraded_loop 恢复探测接管回切。
+
+use crate::circuit::CircuitRegistry;
+use crate::clock::Clock;
+use domain::ports::{ErrKind, EventSink, HealthEvent, HealthMonitor, SymbolRegistry};
+use domain::provider::{MinuteKlineProvider, ProviderError};
+use domain::types::*;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+/// 探测轻量口径：单只代表标的、limit=1 根 m1。
+pub const PROBE_LIMIT: usize = 1;
+/// 探测节拍：60s 扫一轮（低频）；重试节奏由熔断冷却翻倍主导（60s→…→30min 封顶）。
+pub const PROBE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(60);
+
+pub struct CircuitProber {
+    providers: HashMap<SourceId, Arc<dyn MinuteKlineProvider>>,
+    circuits: Arc<CircuitRegistry>,
+    registry: Arc<dyn SymbolRegistry>,
+    sink: Arc<dyn EventSink>,
+    clock: Arc<dyn Clock>,
+}
+
+impl CircuitProber {
+    pub fn new(
+        providers: HashMap<SourceId, Arc<dyn MinuteKlineProvider>>,
+        circuits: Arc<CircuitRegistry>,
+        registry: Arc<dyn SymbolRegistry>,
+        sink: Arc<dyn EventSink>,
+        clock: Arc<dyn Clock>,
+    ) -> Self {
+        Self { providers, circuits, registry, sink, clock }
+    }
+
+    async fn emit(&self, src: SourceId, ok: bool, latency_ms: Option<u32>,
+                  err: Option<ErrKind>, code: &Code, trace_id: &str) {
+        let ev = HealthEvent {
+            ts: self.clock.now(), source: src, ok, latency_ms, err_kind: err,
+            code: Some(code.clone()), trace_id: Some(trace_id.to_string()),
+        };
+        if let Err(e) = self.sink.emit(ev).await {
+            tracing::warn!(source = src.as_str(), error = %e, "probe event emit failed");
+        }
+    }
+
+    /// 单轮探测：对每个 HalfOpen Tier1 源单发一次轻量探测（返回探测源数）。
+    /// 无 HalfOpen 源 / 无启用标的 → 整轮零调用（不占交易抓取通道）。
+    pub async fn probe_round(&self) -> usize {
+        let halfopen = self.circuits.halfopen_sources().await;
+        if halfopen.is_empty() { return 0; }
+        let code = match self.registry.enabled_codes().await {
+            Ok(c) if !c.is_empty() => c[0].clone(),
+            Ok(_) => { tracing::warn!("circuit probe: no enabled codes, skip round"); return 0; }
+            Err(e) => { tracing::warn!(error = %e, "circuit probe: read symbols failed"); return 0; }
+        };
+        let mut probed = 0;
+        for src in halfopen {
+            let Some(provider) = self.providers.get(&src) else { continue };
+            probed += 1;
+            let trace_id = new_trace_id();
+            let t0 = std::time::Instant::now();
+            match provider.fetch_m1(&code, PROBE_LIMIT).await {
+                Ok(_) => {
+                    let latency = t0.elapsed().as_millis() as u64;
+                    // HalfOpen 单次成功 → Healthy + circuit_closed（circuit.rs §4）
+                    self.circuits.report_success(src, latency).await;
+                    self.emit(src, true, Some(latency as u32), None, &code, &trace_id).await;
+                    tracing::info!(source = src.as_str(), code = %code.0, trace_id,
+                        "circuit probe ok -> closed");
+                }
+                Err(ProviderError::NoData) => {
+                    // NoData=源应答正常（非交易时段/无数据）：视为可达闭合熔断（§7 na 口径）
+                    self.circuits.report_success(src, 0).await;
+                    self.emit(src, true, None, Some(ErrKind::Na), &code, &trace_id).await;
+                    tracing::info!(source = src.as_str(), code = %code.0, trace_id,
+                        "circuit probe reachable (na) -> closed");
+                }
+                Err(e) => {
+                    let kind = crate::executor::err_kind_of(&e);
+                    self.emit(src, false, None, Some(kind), &code, &trace_id).await;
+                    // HalfOpen 失败 → Open + 冷却 ×2 封顶 30min（circuit.rs 既有语义）
+                    self.circuits.report_failure(src, kind.as_str()).await;
+                    tracing::warn!(source = src.as_str(), code = %code.0, trace_id,
+                        err_kind = kind.as_str(), "circuit probe failed -> reopen, cooldown doubled");
+                }
+            }
+        }
+        probed
+    }
+}
+
+/// 探测任务主循环（薄胶合）：固定节拍扫描 HalfOpen 源，单轮逻辑见 probe_round（已单测）。
+pub async fn run_forever(prober: Arc<CircuitProber>) {
+    loop {
+        tokio::time::sleep(PROBE_INTERVAL).await;
+        prober.probe_round().await;
+    }
+}
+```
+
+### 9.11 测试（mock Provider + fake clock，不触网）
 
 公共测试设施（内存版端口实现）：
 
@@ -1497,6 +1642,178 @@ async fn poll_falls_through_shuffled_pool_to_healthy_source() {
 fn should_probe_recover_only_when_tier1_available() {
     assert!(!StandbyReserve::should_probe_recover(&[]));
     assert!(StandbyReserve::should_probe_recover(&[SourceId::SinaJsonp]));
+}
+```
+
+``` {.rust file=crates/collector/tests/probe_test.rs}
+//! 熔断低频探测任务（CircuitProber）装配级测试 —— tester 004 §3c 实盘复现的 fake-clock 版。
+//! 缺陷 1 修复验收：HalfOpen 源冷却到期后探测自愈回切；探测失败重开熔断冷却翻倍；
+//! 无 HalfOpen 源时整轮零调用（不占交易抓取通道）。
+
+mod common;
+
+use chrono::{Duration, TimeZone, Utc};
+use collector::circuit::{CircuitRegistry, CircuitState};
+use collector::clock::FakeClock;
+use collector::executor::{FetchExecutor, FetchOutcome};
+use collector::probe::CircuitProber;
+use collector::standby::StandbyReserve;
+use common::*;
+use domain::ports::HealthMonitor;
+use domain::provider::ProviderError;
+use domain::selector::{DutyRoster, SourceSelector};
+use domain::types::*;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+const T: SourceId = SourceId::TencentIfzq;
+const S: SourceId = SourceId::SinaJsonp;
+
+type Providers = HashMap<SourceId, Arc<dyn domain::provider::MinuteKlineProvider>>;
+
+struct Rig {
+    prober: Arc<CircuitProber>,
+    circuits: Arc<CircuitRegistry>,
+    clock: Arc<FakeClock>,
+    sink: Arc<MemSink>,
+}
+
+fn rig(t: Arc<MockMinute>, s: Arc<MockMinute>) -> Rig {
+    let clock = Arc::new(FakeClock::new(Utc.with_ymd_and_hms(2026, 9, 3, 1, 35, 0).unwrap()));
+    let sink = Arc::new(MemSink::default());
+    let circuits = Arc::new(CircuitRegistry::new(vec![T, S], clock.clone(), sink.clone()));
+    let registry = Arc::new(MemRegistry {
+        codes: std::sync::Mutex::new(vec![(Code("518880".into()), 60)]) });
+    let mut providers: Providers = HashMap::new();
+    providers.insert(T, t);
+    providers.insert(S, s);
+    let prober = Arc::new(CircuitProber::new(
+        providers, circuits.clone(), registry, sink.clone(), clock.clone()));
+    Rig { prober, circuits, clock, sink }
+}
+
+#[tokio::test]
+async fn halfopen_probe_success_closes_circuit_and_restores_source() {
+    // 复现 tester 004 §3c：双源被杀 → Open → 冷却到期 HalfOpen → 网络恢复 → 探测闭合自愈
+    let t = Arc::new(MockMinute::new(T, vec![Ok(vec![bar("518880", 1, 36, T)])]));
+    let s = Arc::new(MockMinute::new(S, vec![Ok(vec![bar("518880", 1, 36, S)])]));
+    let rig = rig(t.clone(), s.clone());
+    // 双源各 3 连败 → 双 Open（模拟杀源）
+    for _ in 0..3 {
+        rig.circuits.report_failure(T, "timeout").await;
+        rig.circuits.report_failure(S, "timeout").await;
+    }
+    assert!(rig.circuits.healthy_minute_sources().await.is_empty(), "双源熔断后健康池为空");
+    // 冷却 60s 到期 → 懒迁移 HalfOpen（由探测任务触发，迁移事件落库）→ 单发探测
+    rig.clock.advance(Duration::seconds(60));
+    let probed = rig.prober.probe_round().await;
+    assert_eq!(probed, 2, "两个 HalfOpen 源各单发探测一次");
+    assert_eq!(t.calls(), 1, "单发轻量探测（每源一次）");
+    assert_eq!(s.calls(), 1);
+    // 探测成功 → 闭合熔断 + circuit_closed 事件 + 重回健康池（当班轮换恢复容量）
+    assert_eq!(rig.circuits.state(T).await, CircuitState::Healthy);
+    assert_eq!(rig.circuits.state(S).await, CircuitState::Healthy);
+    assert!(rig.sink.kinds().contains(&Some("circuit_halfopen".into())));
+    assert!(rig.sink.kinds().contains(&Some("circuit_closed".into())));
+    let healthy = rig.circuits.healthy_minute_sources().await;
+    assert!(healthy.contains(&T) && healthy.contains(&S));
+    // §6 回切衔接：健康池非空 → degraded_loop 恢复探测口径放行（既有逻辑接管标的回切）
+    assert!(StandbyReserve::should_probe_recover(&healthy));
+}
+
+#[tokio::test]
+async fn probe_failure_reopens_with_doubled_cooldown() {
+    // HalfOpen 探测失败 → 重开 Open、冷却 ×2（沿用既有封顶 30min 语义）
+    let t = Arc::new(MockMinute::new(T, vec![
+        Err(ProviderError::Timeout),              // 第一次探测仍失败（源未恢复）
+        Ok(vec![bar("518880", 1, 38, T)]),      // 第二次探测（冷却翻倍到期后）成功
+    ]));
+    let s = Arc::new(MockMinute::new(S, vec![])); // s 健康，不参与探测
+    let rig = rig(t.clone(), s.clone());
+    for _ in 0..3 { rig.circuits.report_failure(T, "timeout").await; }
+    rig.clock.advance(Duration::seconds(60));
+    assert_eq!(rig.circuits.state(T).await, CircuitState::HalfOpen);
+    // 探测失败 → 重开 Open，冷却 ×2 = 120s
+    assert_eq!(rig.prober.probe_round().await, 1);
+    assert_eq!(rig.circuits.state(T).await, CircuitState::Open);
+    // 119s 内不再探测（冷却未到期 → halfopen_sources 为空 → 整轮零调用）
+    rig.clock.advance(Duration::seconds(119));
+    assert_eq!(rig.prober.probe_round().await, 0, "冷却未到期不探测");
+    assert_eq!(t.calls(), 1, "未到期不再打扰源");
+    // 120s 到期 → HalfOpen → 再探测成功闭合
+    rig.clock.advance(Duration::seconds(1));
+    assert_eq!(rig.prober.probe_round().await, 1);
+    assert_eq!(rig.circuits.state(T).await, CircuitState::Healthy);
+    assert!(rig.sink.kinds().contains(&Some("circuit_closed".into())));
+}
+
+#[tokio::test]
+async fn probe_noop_without_halfopen_sources() {
+    // 全部健康 → 整轮零探测（探测不占交易抓取通道）
+    let t = Arc::new(MockMinute::new(T, vec![]));
+    let s = Arc::new(MockMinute::new(S, vec![]));
+    let rig = rig(t.clone(), s.clone());
+    assert_eq!(rig.prober.probe_round().await, 0, "无 HalfOpen 源 → 整轮零探测");
+    assert_eq!(t.calls(), 0);
+    assert_eq!(s.calls(), 0);
+}
+
+#[tokio::test]
+async fn probe_nodata_means_reachable_closes_circuit() {
+    // NoData = 源应答正常（非交易时段/无数据）→ 视为存活闭合（与 executor na 口径一致）
+    let t = Arc::new(MockMinute::new(T, vec![Err(ProviderError::NoData)]));
+    let s = Arc::new(MockMinute::new(S, vec![]));
+    let rig = rig(t.clone(), s.clone());
+    for _ in 0..3 { rig.circuits.report_failure(T, "http").await; }
+    rig.clock.advance(Duration::seconds(60));
+    assert_eq!(rig.prober.probe_round().await, 1);
+    assert_eq!(rig.circuits.state(T).await, CircuitState::Healthy, "NoData=源可达 → 闭合");
+    assert!(rig.sink.kinds().contains(&Some("na".into())));
+    assert!(rig.sink.kinds().contains(&Some("circuit_closed".into())));
+}
+
+#[tokio::test]
+async fn full_recovery_cycle_degraded_code_returns_to_normal() {
+    // tester 004 §3c 全链路装配级复现：双杀降级 → 恢复 → 探测闭合 → 正常链回切
+    let t = Arc::new(MockMinute::new(T, vec![
+        Err(ProviderError::Timeout), Err(ProviderError::Timeout), Err(ProviderError::Timeout),
+        Ok(vec![bar("518880", 1, 36, T)]),  // 恢复：探测成功
+        Ok(vec![bar("518880", 1, 37, T)]),  // 回切：正常链抓取
+    ]));
+    let s = Arc::new(MockMinute::new(S, vec![
+        Err(ProviderError::Timeout), Err(ProviderError::Timeout), Err(ProviderError::Timeout),
+        Ok(vec![bar("518880", 1, 36, S)]),  // 恢复：探测成功
+        Ok(vec![bar("518880", 1, 37, S)]),  // 回切：正常链抓取
+    ]));
+    let rig = rig(t.clone(), s.clone());
+    let writer = Arc::new(MemWriter::default());
+    let standby = Arc::new(StandbyReserve::new(vec![], rig.clock.clone()));
+    let mut providers: Providers = HashMap::new();
+    providers.insert(T, t);
+    providers.insert(S, s);
+    let executor = Arc::new(FetchExecutor::new(
+        providers,
+        SourceSelector::new(vec![T, S]),
+        DutyRoster::new([T, S]),
+        rig.circuits.clone(), writer.clone(), rig.sink.clone(), rig.clock.clone()));
+    let code = Code("518880".into());
+    // 双杀：3 轮全链失败（装配路径驱动熔断，非直调 report_failure）→ 标的降级
+    for _ in 0..3 {
+        assert_eq!(executor.fetch_one(&code, 10).await, FetchOutcome::AllFailed);
+    }
+    standby.activate(&code);
+    assert!(standby.is_degraded(&code));
+    assert!(rig.circuits.healthy_minute_sources().await.is_empty(), "双源均熔断（HalfOpen 前）");
+    // 网络恢复：冷却到期 → 探测闭合双源
+    rig.clock.advance(Duration::seconds(60));
+    assert_eq!(rig.prober.probe_round().await, 2);
+    // 回切（degraded_loop 既有口径）：健康池非空 → 正常链探测成功 → 标的退出降级
+    let healthy = rig.circuits.healthy_minute_sources().await;
+    assert!(StandbyReserve::should_probe_recover(&healthy));
+    let out = executor.fetch_one(&code, 10).await;
+    assert!(matches!(out, FetchOutcome::Ok { .. }), "回切正常链成功: {out:?}");
+    standby.deactivate(&code);
+    assert!(!standby.is_degraded(&code));
 }
 ```
 

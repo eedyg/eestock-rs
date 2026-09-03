@@ -1,6 +1,8 @@
 // ~/~ begin <<design/03-collector/00-design.md#crates/collector/src/service.rs>>[init]
 //! 运行时装配：reconcile 循环（60s 重读 symbols 热生效）+ 每 code 抓取循环
-//! + 缺口回填循环（启动即跑 + 每 30min）。降级模式内层循环 5-10s 轮询快照。
+//! + 缺口回填循环（启动即跑 + 每 30min）+ 熔断低频探测任务（§4 HalfOpen 自愈，60s 节拍）。
+//!
+//! 降级模式内层循环 5-10s 轮询快照。
 //!
 //! 注：本模块为薄胶合（tokio 任务编排），行为逻辑均在已单测的组件内。
 //! §2 注记：非交易时段调度静默跳过（不为每分钟每标的刷 NA 事件噪音）；
@@ -10,6 +12,7 @@ use crate::calendar::WeekdayCalendar;
 use crate::clock::Clock;
 use crate::executor::{FetchExecutor, FetchOutcome};
 use crate::gapfill::{GapBackfiller, BACKFILL_INTERVAL};
+use crate::probe::CircuitProber;
 use crate::scheduler::{fetch_limit, next_tick_after};
 use crate::standby::StandbyReserve;
 use domain::ports::{HealthMonitor, KlineWriter, SymbolRegistry, TradingCalendar};
@@ -23,6 +26,7 @@ pub struct CollectorService {
     executor: Arc<FetchExecutor>,
     standby: Arc<StandbyReserve>,
     gapfill: Arc<GapBackfiller>,
+    prober: Arc<CircuitProber>,
     registry: Arc<dyn SymbolRegistry>,
     calendar: Arc<dyn TradingCalendar>,
     writer: Arc<dyn KlineWriter>,
@@ -35,15 +39,16 @@ impl CollectorService {
         executor: Arc<FetchExecutor>,
         standby: Arc<StandbyReserve>,
         gapfill: Arc<GapBackfiller>,
+        prober: Arc<CircuitProber>,
         registry: Arc<dyn SymbolRegistry>,
         writer: Arc<dyn KlineWriter>,
         clock: Arc<dyn Clock>,
     ) -> Self {
         let calendar: Arc<dyn TradingCalendar> = Arc::new(WeekdayCalendar::new(clock.clone()));
-        Self { executor, standby, gapfill, registry, calendar, writer, clock }
+        Self { executor, standby, gapfill, prober, registry, calendar, writer, clock }
     }
 
-    /// 主循环：reconcile（60s）+ 缺口回填（30min）。
+    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）。
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
         // 缺口回填：启动即跑一轮，之后每 30 分钟（§5）
         {
@@ -56,6 +61,11 @@ impl CollectorService {
                     tokio::time::sleep(BACKFILL_INTERVAL).await;
                 }
             });
+        }
+        // 低频探测：HalfOpen Tier1 源冷却到期后单发探测自愈（§4，不占交易抓取通道）
+        {
+            let pb = self.prober.clone();
+            tokio::spawn(async move { crate::probe::run_forever(pb).await });
         }
         let mut tasks: HashMap<Code, JoinHandle<()>> = HashMap::new();
         loop {

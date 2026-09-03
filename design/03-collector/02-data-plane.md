@@ -178,17 +178,20 @@ async fn main() -> anyhow::Result<()> {
     let tier1 = vec![SourceId::TencentIfzq, SourceId::SinaJsonp];
     let circuits = Arc::new(CircuitRegistry::new(tier1.clone(), clock.clone(), sink.clone()));
     let executor = Arc::new(FetchExecutor::new(
-        minute_providers,
+        minute_providers.clone(),
         SourceSelector::new(tier1.clone()),
         DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]),
-        circuits, writer.clone(), sink.clone(), clock.clone()));
+        circuits.clone(), writer.clone(), sink.clone(), clock.clone()));
     let standby = Arc::new(StandbyReserve::new(snapshot_pool, clock.clone()));
     let gapfill = Arc::new(GapBackfiller::new(
         executor.clone(), reader, registry.clone(), clock.clone()));
+    // 低频探测任务（§4）：HalfOpen Tier1 源冷却到期后单发轻量探测，熔断自愈
+    let prober = Arc::new(collector::probe::CircuitProber::new(
+        minute_providers, circuits, registry.clone(), sink.clone(), clock.clone()));
     let svc = Arc::new(CollectorService::new(
-        executor, standby, gapfill, registry, writer, clock.clone()));
+        executor, standby, gapfill, prober, registry, writer, clock.clone()));
 
-    // ---- tushare 日增量（交易日 15:30 Asia/Shanghai）----
+    // ---- tushare 日增量（三时点 08:00/18:00/00:00 Asia/Shanghai，04-storage §6.2）----
     if cfg.tushare_enabled {
         match &cfg.tushare_token {
             Some(token) if !token.is_empty() => {

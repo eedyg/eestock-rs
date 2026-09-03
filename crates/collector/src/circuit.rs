@@ -97,6 +97,23 @@ impl CircuitRegistry {
         if let Some(kind) = migration { self.emit_migration(src, kind).await; }
         state
     }
+
+    /// HalfOpen 态 Tier1 源（低频探测任务用，§4；含懒迁移 Open→HalfOpen 及事件）。
+    pub async fn halfopen_sources(&self) -> Vec<SourceId> {
+        let now = self.clock.now();
+        let mut out = Vec::new();
+        let mut migrations = Vec::new();
+        {
+            let mut g = self.entries.lock().await;
+            for src in &self.tier1 {
+                let e = g.entry(*src).or_insert_with(|| Entry::new(now));
+                if let Some(kind) = Self::resolve(e, now) { migrations.push((*src, kind)); }
+                if e.state == CircuitState::HalfOpen { out.push(*src); }
+            }
+        }
+        for (src, kind) in migrations { self.emit_migration(src, kind).await; }
+        out
+    }
 }
 
 #[async_trait]
