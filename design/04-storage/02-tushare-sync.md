@@ -347,6 +347,7 @@ pub fn resume_from(checkpoint: Option<NaiveDate>) -> NaiveDate {
 //! 由 design/04-storage/02-tushare-sync.md tangle 生成（ADR-007），禁止手改。
 
 pub mod client;
+pub mod daily;
 pub mod parse;
 pub mod sync;
 ```
@@ -497,14 +498,7 @@ pub fn period_str(p: Period) -> &'static str {
               Period::H1 => "H1", Period::D1 => "D1" }
 }
 
-fn source_str(s: SourceId) -> &'static str {
-    match s {
-        SourceId::TencentIfzq => "tencent_ifzq", SourceId::SinaJsonp => "sina_jsonp",
-        SourceId::TencentQt => "tencent_qt", SourceId::SinaHq => "sina_hq",
-        SourceId::ThsCs => "ths_cs", SourceId::Push2delay => "push2delay",
-        SourceId::Exchange => "exchange", SourceId::Tushare => "tushare",
-    }
-}
+// source 列文本口径单一事实源在 domain（SourceId::as_str，含 *_approx 变体）。
 
 impl AccurateWriter {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
@@ -525,7 +519,7 @@ impl AccurateWriter {
              .push_bind(bar.close)
              .push_bind(bar.volume as i64)
              .push_bind(bar.amount)
-             .push_bind(source_str(bar.source));
+             .push_bind(bar.source.as_str());
         });
         qb.push(" ON CONFLICT (code, ts, period) DO UPDATE SET \
             open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, \
@@ -560,6 +554,10 @@ pub async fn set_checkpoint(pool: &PgPool, code: &str, period: &str, date: Naive
 //! 由 design/04-storage/*.md tangle 生成（ADR-007），禁止手改。
 
 pub mod accurate;
+pub mod events;
+pub mod kline;
+pub mod migrate_check;
+pub mod symbols;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}
@@ -755,3 +753,383 @@ fn arg_vals(args: &[String], key: &str) -> Option<String> {
 
 > 注：`first_data_year` 返回 bars.last() 的年份而非循环年——`stk_mins` 降序返回，
 > last 即最早一根，防止「年窗口有数据但起始跨年」误判。
+
+## 6. 日增量定时任务（数据面内置，wave-0 范围）
+
+每交易日 **15:30 Asia/Shanghai** 触发增量同步（复用 sync_checkpoints 断点续传，窗口 = [checkpoint+1日, 今日]）；
+失败指数退避重试 3 次；`RateLimited`（quota）整轮中止（§5 口径）；事件落 source_health_events（source=tushare）。
+既有全量同步 bin `tushare_sync` 保留为手动运维命令，不受影响。
+
+``` {.rust file=crates/tushare/src/daily.rs}
+//! 日增量同步定时任务（数据面内置）。纯逻辑可测（注入 Clock / mock Provider / 内存 Store）。
+
+use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
+use domain::ports::{Clock, ErrKind, EventSink, HealthEvent};
+use domain::provider::{HistoricalDataProvider, ProviderError};
+use domain::types::*;
+use domain::tz::cst_to_utc;
+use domain::tz::utc_to_cst;
+use std::sync::Arc;
+
+pub const RUN_HOUR: u32 = 15;
+pub const RUN_MINUTE: u32 = 30;
+pub const MAX_ATTEMPTS: u32 = 3;
+
+/// 下次触发时刻：严格晚于 now 的最近一个工作日 15:30 CST（Wave 0 日历=仅工作日）。
+pub fn next_run_after(now: DateTime<Utc>) -> DateTime<Utc> {
+    let mut date = utc_to_cst(now).date();
+    for _ in 0..10 {
+        let wd = date.weekday();
+        if !matches!(wd, chrono::Weekday::Sat | chrono::Weekday::Sun) {
+            let run = cst_to_utc(date.and_hms_opt(RUN_HOUR, RUN_MINUTE, 0).expect("valid hms"));
+            if run > now { return run; }
+        }
+        date += Duration::days(1);
+    }
+    unreachable!("10 天内必有工作日")
+}
+
+/// 退避档：base ×2^n（attempt 0-based），封顶 10min。默认 base 60s。
+pub fn retry_backoff(base: std::time::Duration, attempt: u32) -> std::time::Duration {
+    (base * 2u32.pow(attempt.min(4))).min(std::time::Duration::from_secs(600))
+}
+
+/// 日增量存储端口（测试可内存实现；生产 = PgDailyStore）。
+#[async_trait::async_trait]
+pub trait DailyStore: Send + Sync {
+    async fn checkpoint(&self, code: &str) -> anyhow::Result<Option<NaiveDate>>;
+    /// 落 accurate + 推进 checkpoint 到 synced_through。返回 upsert 行数。
+    async fn save(&self, code: &str, bars: &[Bar], synced_through: NaiveDate) -> anyhow::Result<u64>;
+    async fn enabled_codes(&self) -> anyhow::Result<Vec<String>>;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DailyOutcome {
+    Synced { codes: usize, bars: usize },
+    /// 任一 code 重试耗尽（其余已续跑）；RateLimited 整轮中止也归此。
+    Failed,
+}
+
+pub struct DailySync {
+    provider: Arc<dyn HistoricalDataProvider>,
+    store: Arc<dyn DailyStore>,
+    sink: Arc<dyn EventSink>,
+    clock: Arc<dyn Clock>,
+    backoff_base: std::time::Duration,
+}
+
+impl DailySync {
+    pub fn new(provider: Arc<dyn HistoricalDataProvider>, store: Arc<dyn DailyStore>,
+               sink: Arc<dyn EventSink>, clock: Arc<dyn Clock>) -> Self {
+        Self::with_backoff(provider, store, sink, clock, std::time::Duration::from_secs(60))
+    }
+
+    /// 测试可注入零退避。
+    pub fn with_backoff(provider: Arc<dyn HistoricalDataProvider>, store: Arc<dyn DailyStore>,
+                        sink: Arc<dyn EventSink>, clock: Arc<dyn Clock>,
+                        backoff_base: std::time::Duration) -> Self {
+        Self { provider, store, sink, clock, backoff_base }
+    }
+
+    async fn emit(&self, ok: bool, latency_ms: Option<u32>, err: Option<ErrKind>, code: Option<&str>) {
+        let ev = HealthEvent {
+            ts: self.clock.now(), source: SourceId::Tushare, ok, latency_ms, err_kind: err,
+            code: code.map(|c| Code(c.to_string())), trace_id: Some(new_trace_id()),
+        };
+        if let Err(e) = self.sink.emit(ev).await {
+            tracing::warn!(error = %e, "tushare daily event emit failed");
+        }
+    }
+
+    /// 单 code 增量：[checkpoint+1日, 今日]（已最新 → 0）。
+    async fn sync_code(&self, code: &str, today: NaiveDate) -> Result<usize, ProviderError> {
+        let cp = self.store.checkpoint(code).await
+            .map_err(|e| ProviderError::Http(e.to_string()))?;
+        let start = crate::sync::resume_from(cp);
+        if start > today { return Ok(0); }
+        let bars = self.provider.fetch_history(
+            &Code(code.to_string()), Period::M1,
+            cst_to_utc(start.and_hms_opt(0, 0, 0).expect("valid hms")),
+            cst_to_utc(today.and_hms_opt(15, 0, 0).expect("valid hms"))).await?;
+        let n = bars.len();
+        self.store.save(code, &bars, today).await
+            .map_err(|e| ProviderError::Http(e.to_string()))?;
+        Ok(n)
+    }
+
+    /// 单轮：逐 code 增量，失败指数退避重试 MAX_ATTEMPTS 次；RateLimited 整轮中止。
+    pub async fn run(&self) -> DailyOutcome {
+        let today = utc_to_cst(self.clock.now()).date();
+        let codes = match self.store.enabled_codes().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(error = %e, "tushare daily: read symbols failed");
+                self.emit(false, None, Some(ErrKind::Http), None).await;
+                return DailyOutcome::Failed;
+            }
+        };
+        let mut total_bars = 0usize;
+        let mut done = 0usize;
+        let mut failed = false;
+        for code in &codes {
+            let mut attempt = 0u32;
+            loop {
+                let t0 = std::time::Instant::now();
+                match self.sync_code(code, today).await {
+                    Ok(n) => {
+                        self.emit(true, Some(t0.elapsed().as_millis() as u32), None, Some(code)).await;
+                        total_bars += n;
+                        done += 1;
+                        break;
+                    }
+                    Err(ProviderError::RateLimited) => {
+                        // quota 感知：整轮中止，checkpoint 已逐 code 落库（§5 口径）
+                        self.emit(false, None, Some(ErrKind::RateLimited), Some(code)).await;
+                        tracing::error!(code, "tushare daily: rate limited, abort round");
+                        return DailyOutcome::Failed;
+                    }
+                    Err(e) => {
+                        attempt += 1;
+                        let kind = match &e {
+                            ProviderError::Timeout => ErrKind::Timeout,
+                            ProviderError::Parse(_) => ErrKind::Parse,
+                            _ => ErrKind::Http,
+                        };
+                        self.emit(false, None, Some(kind), Some(code)).await;
+                        if attempt >= MAX_ATTEMPTS {
+                            tracing::error!(code, attempts = attempt, "tushare daily: retries exhausted, skip code");
+                            failed = true;
+                            break;
+                        }
+                        let wait = retry_backoff(self.backoff_base, attempt - 1);
+                        tracing::warn!(code, attempt, wait_ms = wait.as_millis() as u64,
+                            error = %e, "tushare daily: retry after backoff");
+                        tokio::time::sleep(wait).await;
+                    }
+                }
+            }
+        }
+        if failed { DailyOutcome::Failed } else { DailyOutcome::Synced { codes: done, bars: total_bars } }
+    }
+}
+
+/// 生产 Store：复用 storage 准确层（upsert + sync_checkpoints）与 symbols 表。
+pub struct PgDailyStore {
+    pool: sqlx::PgPool,
+}
+
+impl PgDailyStore {
+    pub fn new(pool: sqlx::PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait::async_trait]
+impl DailyStore for PgDailyStore {
+    async fn checkpoint(&self, code: &str) -> anyhow::Result<Option<NaiveDate>> {
+        storage::accurate::get_checkpoint(&self.pool, code, "M1").await
+    }
+
+    async fn save(&self, code: &str, bars: &[Bar], synced_through: NaiveDate) -> anyhow::Result<u64> {
+        let n = storage::accurate::AccurateWriter::new(self.pool.clone()).upsert_batch(bars).await?;
+        storage::accurate::set_checkpoint(&self.pool, code, "M1", synced_through).await?;
+        Ok(n)
+    }
+
+    async fn enabled_codes(&self) -> anyhow::Result<Vec<String>> {
+        let rows: Vec<(String,)> = sqlx::query_as("SELECT code FROM symbols WHERE enabled ORDER BY code")
+            .fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|r| r.0).collect())
+    }
+}
+
+/// 定时循环（薄胶合）：睡到下一触发点 → 跑一轮 → 循环。
+pub async fn run_forever(sync: Arc<DailySync>, clock: Arc<dyn Clock>) {
+    loop {
+        let next = next_run_after(clock.now());
+        let wait = (next - clock.now()).to_std().unwrap_or(std::time::Duration::ZERO);
+        tracing::info!(next_run = %next, wait_secs = wait.as_secs(), "tushare daily scheduled");
+        tokio::time::sleep(wait).await;
+        let outcome = sync.run().await;
+        tracing::info!(?outcome, "tushare daily round done");
+    }
+}
+```
+
+``` {.rust file=crates/tushare/tests/daily_sync.rs}
+//! 日增量定时任务测试（fake clock + mock provider + 内存 store，不触网）。
+
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use domain::ports::{Clock, EventSink, HealthEvent};
+use domain::provider::{HistoricalDataProvider, ProviderError};
+use domain::types::*;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tushare::daily::*;
+
+struct FakeClock(Mutex<DateTime<Utc>>);
+impl Clock for FakeClock {
+    fn now(&self) -> DateTime<Utc> { *self.0.lock().unwrap() }
+}
+
+#[derive(Default)]
+struct MemSink { events: Mutex<Vec<HealthEvent>> }
+#[async_trait::async_trait]
+impl EventSink for MemSink {
+    async fn emit(&self, ev: HealthEvent) -> anyhow::Result<()> {
+        self.events.lock().unwrap().push(ev);
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct MemStore {
+    cps: Mutex<HashMap<String, NaiveDate>>,
+    saved: Mutex<HashMap<String, usize>>,
+    codes: Vec<String>,
+}
+#[async_trait::async_trait]
+impl DailyStore for MemStore {
+    async fn checkpoint(&self, code: &str) -> anyhow::Result<Option<NaiveDate>> {
+        Ok(self.cps.lock().unwrap().get(code).cloned())
+    }
+    async fn save(&self, code: &str, bars: &[Bar], through: NaiveDate) -> anyhow::Result<u64> {
+        self.cps.lock().unwrap().insert(code.to_string(), through);
+        *self.saved.lock().unwrap().entry(code.to_string()).or_default() += bars.len();
+        Ok(bars.len() as u64)
+    }
+    async fn enabled_codes(&self) -> anyhow::Result<Vec<String>> { Ok(self.codes.clone()) }
+}
+
+struct MockHist { results: Mutex<Vec<Result<Vec<Bar>, ProviderError>>>, calls: Mutex<usize> }
+#[async_trait::async_trait]
+impl HistoricalDataProvider for MockHist {
+    fn id(&self) -> SourceId { SourceId::Tushare }
+    async fn fetch_history(&self, _code: &Code, _period: Period,
+                           _s: DateTime<Utc>, _e: DateTime<Utc>) -> Result<Vec<Bar>, ProviderError> {
+        *self.calls.lock().unwrap() += 1;
+        let mut g = self.results.lock().unwrap();
+        if g.is_empty() { Err(ProviderError::Http("unexpected call".into())) } else { g.remove(0) }
+    }
+    fn supported_periods(&self) -> Vec<Period> { vec![Period::M1] }
+}
+
+fn mk_bar(code: &str) -> Bar {
+    Bar {
+        code: Code(code.into()), period: Period::M1,
+        ts: Utc.with_ymd_and_hms(2026, 9, 3, 7, 0, 0).unwrap(),
+        open: 1.0, high: 1.0, low: 1.0, close: 1.0, volume: 1, amount: 1.0,
+        source: SourceId::Tushare,
+    }
+}
+
+fn setup(results: Vec<Result<Vec<Bar>, ProviderError>>, codes: Vec<&str>, cps: Vec<(&str, NaiveDate)>)
+    -> (Arc<DailySync>, Arc<MockHist>, Arc<MemStore>, Arc<MemSink>) {
+    let clock = Arc::new(FakeClock(Mutex::new(Utc.with_ymd_and_hms(2026, 9, 3, 7, 31, 0).unwrap()))); // 15:31 CST
+    let sink = Arc::new(MemSink::default());
+    let store = Arc::new(MemStore {
+        codes: codes.into_iter().map(String::from).collect(),
+        cps: Mutex::new(cps.into_iter().map(|(c, d)| (c.to_string(), d)).collect()),
+        ..Default::default()
+    });
+    let hist = Arc::new(MockHist { results: Mutex::new(results), calls: Mutex::new(0) });
+    let sync = Arc::new(DailySync::with_backoff(hist.clone(), store.clone(), sink.clone(),
+        clock, std::time::Duration::ZERO));
+    (sync, hist, store, sink)
+}
+
+#[test]
+fn next_run_same_day_before_1530() {
+    // 周四 10:00 CST = 02:00 UTC → 当日 15:30 CST = 07:30 UTC
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap());
+}
+
+#[test]
+fn next_run_after_1530_rolls_to_next_weekday() {
+    // 周四 16:00 CST → 周五（09-04）15:30 CST
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 8, 0, 0).unwrap();
+    assert_eq!(next_run_after(now), Utc.with_ymd_and_hms(2026, 9, 4, 7, 30, 0).unwrap());
+    // 周五 16:00 CST → 下周一（09-07）15:30 CST（跳过周末）
+    let fri = Utc.with_ymd_and_hms(2026, 9, 4, 8, 0, 0).unwrap();
+    assert_eq!(next_run_after(fri), Utc.with_ymd_and_hms(2026, 9, 7, 7, 30, 0).unwrap());
+    // 周六上午 → 下周一
+    let sat = Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap();
+    assert_eq!(next_run_after(sat), Utc.with_ymd_and_hms(2026, 9, 7, 7, 30, 0).unwrap());
+}
+
+#[test]
+fn backoff_doubles_and_caps() {
+    let base = std::time::Duration::from_secs(60);
+    assert_eq!(retry_backoff(base, 0), std::time::Duration::from_secs(60));
+    assert_eq!(retry_backoff(base, 1), std::time::Duration::from_secs(120));
+    assert_eq!(retry_backoff(base, 2), std::time::Duration::from_secs(240));
+    assert_eq!(retry_backoff(base, 9), std::time::Duration::from_secs(600), "封顶 10min");
+}
+
+#[tokio::test]
+async fn incremental_from_checkpoint_and_events() {
+    let cp = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let (sync, hist, store, sink) = setup(
+        vec![Ok(vec![mk_bar("518880")]), Ok(vec![mk_bar("159776")])],
+        vec!["518880", "159776"], vec![("518880", cp), ("159776", cp)]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Synced { codes: 2, bars: 2 });
+    assert_eq!(store.saved.lock().unwrap()["518880"], 1);
+    // checkpoint 推进到今日（2026-09-03）
+    assert_eq!(store.cps.lock().unwrap()["518880"], NaiveDate::from_ymd_opt(2026, 9, 3).unwrap());
+    let events = sink.events.lock().unwrap();
+    assert_eq!(events.len(), 2);
+    assert!(events.iter().all(|e| e.ok && e.source == SourceId::Tushare));
+    assert_eq!(*hist.calls.lock().unwrap(), 2, "每 code 一次增量拉取");
+}
+
+#[tokio::test]
+async fn retry_then_success_emits_failure_events() {
+    let cp = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let (sync, hist, store, sink) = setup(
+        vec![Err(ProviderError::Timeout), Err(ProviderError::Http("x".into())), Ok(vec![mk_bar("518880")])],
+        vec!["518880"], vec![("518880", cp)]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Synced { codes: 1, bars: 1 });
+    assert_eq!(*hist.calls.lock().unwrap(), 3, "失败重试至成功");
+    let kinds: Vec<_> = sink.events.lock().unwrap().iter()
+        .map(|e| (e.ok, e.err_kind.map(|k| k.as_str()))).collect();
+    assert_eq!(kinds, vec![(false, Some("timeout")), (false, Some("http")), (true, None)]);
+    assert_eq!(store.saved.lock().unwrap()["518880"], 1);
+}
+
+#[tokio::test]
+async fn retries_exhausted_skips_code_continues_others() {
+    let cp = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let (sync, _hist, store, sink) = setup(
+        vec![Err(ProviderError::Http("a".into())), Err(ProviderError::Http("b".into())),
+             Err(ProviderError::Http("c".into())), Ok(vec![mk_bar("159776")])],
+        vec!["518880", "159776"], vec![("518880", cp), ("159776", cp)]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Failed, "518880 三次重试耗尽");
+    assert_eq!(store.saved.lock().unwrap().get("518880"), None, "失败 code 不落库");
+    assert_eq!(store.saved.lock().unwrap()["159776"], 1, "后续 code 继续");
+    assert_eq!(sink.events.lock().unwrap().len(), 3 + 1);
+}
+
+#[tokio::test]
+async fn rate_limited_aborts_whole_round() {
+    let cp = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let (sync, hist, _store, sink) = setup(
+        vec![Err(ProviderError::RateLimited)],
+        vec!["518880", "159776"], vec![("518880", cp), ("159776", cp)]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Failed);
+    assert_eq!(*hist.calls.lock().unwrap(), 1, "quota 感知：整轮中止不重试不轰击");
+    assert!(sink.events.lock().unwrap().iter()
+        .any(|e| e.err_kind.map(|k| k.as_str()) == Some("rate_limited")));
+}
+
+#[tokio::test]
+async fn up_to_date_code_no_api_call() {
+    let today = NaiveDate::from_ymd_opt(2026, 9, 3).unwrap();
+    let (sync, hist, _store, _sink) = setup(vec![], vec!["518880"], vec![("518880", today)]);
+    let out = sync.run().await;
+    assert_eq!(out, DailyOutcome::Synced { codes: 1, bars: 0 });
+    assert_eq!(*hist.calls.lock().unwrap(), 0, "已最新不调用 API");
+}
+```

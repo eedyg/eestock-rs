@@ -3,6 +3,7 @@
 //! 由 design/04-storage/02-tushare-sync.md tangle 生成（ADR-007），禁止手改。
 
 pub mod client;
+pub mod daily;
 pub mod parse;
 pub mod sync;
 // ~/~ end
