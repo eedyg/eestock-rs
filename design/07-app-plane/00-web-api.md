@@ -1122,10 +1122,12 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 审查返工后：`KlineReader`/`HealthEventReader` 实现 domain 只读端口（`KlineRead`/`HealthEventsRead`），
 消费方（web/diagnose）不反向依赖本 crate。
 
+- **统一读源（Wave 3，0010，用户定稿 2026-09-04）**：所有周期都走「accurate 优先 + 底层兜底」合并；
+  读取 = `kline_merged_<P>` = `accurate_<P>`（优先，覆盖 2024-01-01→今）UNION ALL
+  `兜底层_<P>`（5m/15m/1d 用 raw-derived cagg；1h 用 kline_15m rollup；1m 用 raw）+ NOT EXISTS 反连接；
 - 1m 读 `kline_merged`（准确层优先语义由视图承载，ADR-003，与 domain merge.rs 契约一致）；
-- 5m/15m/1d 直读对应 cagg（⚠️ cagg `volume` 列为 numeric，`::bigint` 归一；`amount` 恒 double）；
-- 1h 由 `kline_15m` 查询期 rollup（schema 未建 kline_1h cagg；`first/last` 为 timescaledb 聚合，普通查询可用）；
-- 表名只经内部 match 映射常量拼接，不接受外部输入（无注入面）
+- 5m/15m/1h/1d 读 `merged_sql(accurate_<P>, 兜底)`（⚠️ cagg `volume` 列为 numeric，`::bigint` 归一；`amount` 恒 double）；
+- 表名/片段只经内部 match 映射常量拼接，不接受外部输入（无注入面）
 - **Wave 2 Phase A 加法**：`QualityRead`（raw⋈accurate 对照）/ `TushareStatusRead`（sync_checkpoints）
   挂 KlineReader；`HealthEventsRangeRead`（任意区间事件）挂 HealthEventReader；新增 `HolidaysReader`
   （0008 节假日表，collector 与应用面共用）。**D3 结案**：`symbols_with_latest` 重写为双侧索引回溯
@@ -1134,9 +1136,9 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 ``` {.rust file=crates/storage/src/reader.rs}
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
+//! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
 //! - 1m：kline_merged 合并视图（准确层优先，ADR-003）
-//! - 5m/15m/1d：连续聚合直读（ADR-004）
-//! - 1h：kline_15m rollup（schema 未建 kline_1h cagg，查询期聚合语义等价）
+//! - 5m/15m/1h/1d：merged_sql(accurate_<P> UNION ALL 兜底 反连接)（accurate 覆盖 2024-01-01→今）
 //! - symbols + 最新快照（REST /api/symbols latest 字段与 WS quote 推送数据源）
 //! - source_health_events 窗口读取（diagnose 聚合输入）
 
@@ -1161,25 +1163,48 @@ WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
 ORDER BY ts DESC LIMIT $3
 "#;
 
-/// cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。
-/// 表名只经 KlineRead::bars 内部 match 映射常量传入，不接受外部输入（无注入面）。
-fn cagg_sql(table: &str) -> String {
-    format!("
-SELECT code, ts, open, high, low, close, volume::bigint AS volume, amount, NULL::text AS source
-FROM {table}
-WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
-ORDER BY ts DESC LIMIT $3")
+/// 统一读源：accurate(优先) UNION ALL 兜底(反连接剔重)。
+/// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖 2024-01-01→今；
+///   source 记为 'tushare'（与 kline_merged M1 的 accurate 分支一致）。
+/// - 兜底分支：`{fallback}`（表名或 1h rollup 片段），与 accurate 同 ts 的存在时被反连接剔重。
+/// - cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。
+///
+/// 表名/片段只经 KlineRead::bars 内部 match 映射常量传入，不接受外部输入（无注入面）。
+fn merged_sql(accurate: &str, fallback: &str) -> String {
+    format!(r#"
+SELECT code, ts, open, high, low, close, volume, amount, source
+FROM (
+    SELECT code, ts, open, high, low, close, volume::bigint AS volume, amount, 'tushare'::text AS source
+    FROM {accurate}
+    WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
+    UNION ALL
+    SELECT f.code, f.ts, f.open, f.high, f.low, f.close, f.volume::bigint AS volume, f.amount, NULL::text AS source
+    FROM {fallback} f
+    WHERE f.code = $1 AND ($2::timestamptz IS NULL OR f.ts < $2)
+      AND NOT EXISTS (SELECT 1 FROM {accurate} a WHERE a.code = f.code AND a.ts = f.ts)
+) m
+ORDER BY ts DESC LIMIT $3
+"#, accurate = accurate, fallback = fallback)
 }
 
-const ROLLUP_1H_SQL: &str = r#"
-SELECT code, time_bucket('1 hour', ts) AS ts,
-       first(open, ts) AS open, max(high) AS high, min(low) AS low, last(close, ts) AS close,
-       sum(volume)::bigint AS volume, sum(amount) AS amount, NULL::text AS source
-FROM kline_15m
-WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
-GROUP BY code, time_bucket('1 hour', ts)
-ORDER BY ts DESC LIMIT $3
-"#;
+/// 1h 兜底：kline_15m 查询期 rollup（schema 未建 kline_1h cagg；first/last 为 timescaledb 聚合）。
+/// bucket ts = time_bucket 起点；before 过滤在桶级（与 accurate_1h 桶对齐后作反连接剔重）。
+const FALLBACK_1H: &str = r#"
+(SELECT code, time_bucket('1 hour', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
+
+/// 周期 → 统一读源 SQL（1m 走既有 kline_merged；其余按 accurate 表 + 兜底片段）。
+fn period_merged_sql(p: Period) -> String {
+    match p {
+        Period::M1 => MERGED_1M_SQL.to_string(),
+        Period::M5 => merged_sql("kline_accurate_5m", "kline_5m"),
+        Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
+        Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
+        Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
+    }
+}
 
 /// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
 /// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
@@ -1242,13 +1267,7 @@ impl KlineRead for KlineReader {
     /// ts < before（None=最新起），降序取 limit 行后翻转**升序**返回（图表口径）。
     async fn bars(&self, period: Period, code: &str,
                   before: Option<DateTime<Utc>>, limit: i64) -> Result<Vec<KlineBarView>> {
-        let sql = match period {
-            Period::M1 => MERGED_1M_SQL.to_string(),
-            Period::M5 => cagg_sql("kline_5m"),
-            Period::M15 => cagg_sql("kline_15m"),
-            Period::H1 => ROLLUP_1H_SQL.to_string(),
-            Period::D1 => cagg_sql("kline_1d"),
-        };
+        let sql = period_merged_sql(period);
         let rows: Vec<BarTuple> = sqlx::query_as(&sql)
             .bind(code).bind(before).bind(limit)
             .fetch_all(&self.pool).await?;
@@ -1407,6 +1426,7 @@ const CODE_MERGE: &str = "997701";
 const CODE_CAGG: &str = "997711";
 const CODE_SYM: &str = "997721";
 const CODE_SYM_EMPTY: &str = "997722";
+const CODE_DEEP: &str = "997751";
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -1468,25 +1488,77 @@ async fn merged_1m_accurate_first_and_cursor_pagination() {
 }
 
 #[tokio::test]
-async fn cagg_periods_and_1h_rollup() {
+async fn merged_periods_accurate_first_and_1h_rollup() {
     let pool = pool().await;
     clean(&pool, CODE_CAGG).await;
     seed(&pool, CODE_CAGG).await;
-    for v in ["kline_5m", "kline_15m", "kline_1d"] {
-        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', NULL, NULL)"))
+    // 统一读源：所有周期读 merged（accurate 优先）。refres：accurate cagg（窗口覆盖 base() 数据
+    // + D1 桶对齐）与 raw-derived cagg（兜底）。窗口 [09-02, 09-04] UTC 覆盖 base()=09-03 01:30 UTC
+    // 的 M1 种子（01:30-01:34 UTC）与 D1 桶 ts（09-02 16:00 UTC）。
+    for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d",
+              "kline_5m", "kline_15m", "kline_1d"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
     let r = KlineReader::new(pool.clone());
 
+    // 准确层优先：overlap 分钟返回 accurate（close=9.99, vol=777, source=tushare），而非 raw 侧。
     for p in [Period::M5, Period::M15, Period::H1, Period::D1] {
         let bars = r.bars(p, CODE_CAGG, None, 10).await.unwrap();
         assert_eq!(bars.len(), 1, "{p:?} 一个桶");
-        assert_eq!(bars[0].open, 1.0);
-        assert_eq!(bars[0].close, 5.0);
-        assert_eq!(bars[0].volume, 500, "cagg volume numeric → bigint 归一");
-        assert!(bars[0].source.is_none(), "cagg 无来源列");
+        assert_eq!(bars[0].open, 9.99, "{p:?} accurate 优先（ADR-003 推广）");
+        assert_eq!(bars[0].close, 9.99);
+        assert_eq!(bars[0].volume, 777, "{p:?} accurate cagg 数值归一");
+        assert_eq!(bars[0].source.as_deref(), Some("tushare"), "{p:?} accurate 层来源");
     }
     clean(&pool, CODE_CAGG).await;
+}
+
+#[tokio::test]
+async fn unified_read_deep_history_to_2024() {
+    // 修“往前翻几天就没数据”：所有周期能深翻历史。在 2024-01-01 与 2024-01-02 各种子一根 M1
+    // （穿越 5m/15m/1h/1d 桶），before 游标从 2024-01-03 往回翻页应持续推进到 2024-01-01，无重复/缺口。
+    let pool = pool().await;
+    clean(&pool, CODE_DEEP).await;
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2024, 1, 1, 1, 35, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2024, 1, 2, 2, 0, 0).unwrap(), 2.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close")
+            .bind(CODE_DEEP).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // 刷新 accurate cagg（覆盖 2024 窗口：种子在 01-01/01-02。D1 用 Asia/Shanghai 日界，
+    // 2024-01-01 交易日的桶 ts = 2023-12-31 16:00 UTC，故窗口须扩展到其前，否则该桶不被刷新）
+    for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2023-12-31 00:00:00+00', '2024-01-04 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+
+    for p in [Period::M1, Period::M5, Period::M15, Period::H1, Period::D1] {
+        // 翻页（limit=1）从 2024-01-03 往回：cursor 持续前进、无重复、至少覆盖两个 2024 数据点。
+        let mut cursor = Utc.with_ymd_and_hms(2024, 1, 3, 0, 0, 0).unwrap();
+        let mut got: Vec<DateTime<Utc>> = Vec::new();
+        for _ in 0..3 {
+            let page = r.bars(p, CODE_DEEP, Some(cursor), 1).await.unwrap();
+            assert!(page.len() <= 1, "{p:?} 翻页每页 ≤1（limit=1）");
+            if page.is_empty() { break; }
+            let t = page[0].ts;
+            assert!(t < cursor, "{p:?} before 不含该 ts 本身");
+            got.push(t);
+            cursor = t;
+        }
+        assert!(got.len() >= 2, "{p:?} 深翻应覆盖两个 2024 数据点，实际 {got:?}");
+        assert!(got.windows(2).all(|w| w[0] > w[1]), "{p:?} 降序翻页 cursor 严格前进");
+        let distinct: std::collections::HashSet<_> = got.iter().collect();
+        assert_eq!(distinct.len(), got.len(), "{p:?} 无重复数据点");
+    }
+    clean(&pool, CODE_DEEP).await;
 }
 
 #[tokio::test]
@@ -3351,6 +3423,11 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
   → `builder`（rust 编译 eestock-app）→ runtime（debian-slim 非 root，
   dist 从 frontend 阶段 COPY）。构建上下文无需预存 dist；`.dockerignore` 排除 node_modules/target/data 等。
   前端阶段构建前 `rm -rf dist` 清空历史产物（防旧镜像遗留的旧哈希 bundle 被 COPY 到运行时）。
+  **builder 依赖缓存分层**（纯构建提速、零功能改动）：依赖图以各 crate 的 `Cargo.toml` 为层键——
+  先 COPY 锁文件与 10 个 crate 清单（不含源码），`cargo fetch` 仅下载依赖；清单不变则本层与 fetch 层命中缓存，
+  源码变更只触发 `COPY crates` 与 `cargo build` 重编。workspace 特例：`crates/*` 无显式 `[lib]`/`[[bin]]`，
+  cargo 自动发现目标需 src，故先补 10 个空 `src/lib.rs` 使 fetch 可加载依赖图（见 data-plane.md §5 同注记），
+  随后 `COPY crates ./crates` 以真实源码覆盖。
 - compose `app` 服务（docker-compose.yml 手写例外）：`depends_on: timescaledb(healthy)`——
   **不依赖 data 服务**（两面零耦合，库为唯一耦合点）；`8081:8081`（数据面 8080 不动）；
   `./config/app.toml` 只读挂载（.gitignore；模板 config/app.toml.example 入库）；
@@ -3375,7 +3452,23 @@ RUN VITE_API_MOCK=0 npm run build
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build
+# 依赖缓存分层：先 COPY 锁文件与 10 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
+# 清单不变 → 本层及 fetch 层命中 Docker 缓存，源码变更只触发 COPY crates 与 cargo build 重编（依赖已 fetch）。
 COPY Cargo.toml Cargo.lock ./
+COPY crates/alert/Cargo.toml crates/alert/Cargo.toml
+COPY crates/app/Cargo.toml crates/app/Cargo.toml
+COPY crates/collector/Cargo.toml crates/collector/Cargo.toml
+COPY crates/diagnose/Cargo.toml crates/diagnose/Cargo.toml
+COPY crates/domain/Cargo.toml crates/domain/Cargo.toml
+COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
+COPY crates/providers/Cargo.toml crates/providers/Cargo.toml
+COPY crates/storage/Cargo.toml crates/storage/Cargo.toml
+COPY crates/tushare/Cargo.toml crates/tushare/Cargo.toml
+COPY crates/web/Cargo.toml crates/web/Cargo.toml
+# workspace 特例：crates/* 无显式 [lib]/[[bin]]，cargo 自动发现目标需 src。故先补空 src/lib.rs 使
+# 每个 crate 可加载解析依赖图；随后 COPY crates ./crates 以真实源码覆盖（各 crate 均含真实 lib.rs，零残留）。
+RUN for c in alert app collector diagnose domain mcp providers storage tushare web; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
+RUN cargo fetch
 COPY crates ./crates
 RUN cargo build --release --bin eestock-app
 

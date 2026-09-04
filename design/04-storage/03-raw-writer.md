@@ -110,6 +110,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "kline_raw", "kline_accurate", "symbols", "source_health_events",
     "metrics", "chip_distribution", "share_float", "sync_checkpoints",
     "kline_merged", "kline_5m", "kline_15m", "kline_1d", "kline_accurate_1d",
+    // Wave 3 (0010)：统一读源 accurate 连续聚合（5m/15m/1h；D1 复用 kline_accurate_1d）
+    "kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h",
     // Wave 1 Phase C 加法：熔断复位 DB 控制通道表（0007）
     "circuit_reset_requests",
     // Wave 2 Phase A 加法：交易日历节假日表（0008；数据面 collector 日历读 + 应用面质量报告共用）

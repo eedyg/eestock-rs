@@ -1,9 +1,9 @@
 // ~/~ begin <<design/07-app-plane/00-web-api.md#crates/storage/src/reader.rs>>[init]
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
+//! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
 //! - 1m：kline_merged 合并视图（准确层优先，ADR-003）
-//! - 5m/15m/1d：连续聚合直读（ADR-004）
-//! - 1h：kline_15m rollup（schema 未建 kline_1h cagg，查询期聚合语义等价）
+//! - 5m/15m/1h/1d：merged_sql(accurate_<P> UNION ALL 兜底 反连接)（accurate 覆盖 2024-01-01→今）
 //! - symbols + 最新快照（REST /api/symbols latest 字段与 WS quote 推送数据源）
 //! - source_health_events 窗口读取（diagnose 聚合输入）
 
@@ -28,25 +28,48 @@ WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
 ORDER BY ts DESC LIMIT $3
 "#;
 
-/// cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。
-/// 表名只经 KlineRead::bars 内部 match 映射常量传入，不接受外部输入（无注入面）。
-fn cagg_sql(table: &str) -> String {
-    format!("
-SELECT code, ts, open, high, low, close, volume::bigint AS volume, amount, NULL::text AS source
-FROM {table}
-WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
-ORDER BY ts DESC LIMIT $3")
+/// 统一读源：accurate(优先) UNION ALL 兜底(反连接剔重)。
+/// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖 2024-01-01→今；
+///   source 记为 'tushare'（与 kline_merged M1 的 accurate 分支一致）。
+/// - 兜底分支：`{fallback}`（表名或 1h rollup 片段），与 accurate 同 ts 的存在时被反连接剔重。
+/// - cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。
+///
+/// 表名/片段只经 KlineRead::bars 内部 match 映射常量传入，不接受外部输入（无注入面）。
+fn merged_sql(accurate: &str, fallback: &str) -> String {
+    format!(r#"
+SELECT code, ts, open, high, low, close, volume, amount, source
+FROM (
+    SELECT code, ts, open, high, low, close, volume::bigint AS volume, amount, 'tushare'::text AS source
+    FROM {accurate}
+    WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
+    UNION ALL
+    SELECT f.code, f.ts, f.open, f.high, f.low, f.close, f.volume::bigint AS volume, f.amount, NULL::text AS source
+    FROM {fallback} f
+    WHERE f.code = $1 AND ($2::timestamptz IS NULL OR f.ts < $2)
+      AND NOT EXISTS (SELECT 1 FROM {accurate} a WHERE a.code = f.code AND a.ts = f.ts)
+) m
+ORDER BY ts DESC LIMIT $3
+"#, accurate = accurate, fallback = fallback)
 }
 
-const ROLLUP_1H_SQL: &str = r#"
-SELECT code, time_bucket('1 hour', ts) AS ts,
-       first(open, ts) AS open, max(high) AS high, min(low) AS low, last(close, ts) AS close,
-       sum(volume)::bigint AS volume, sum(amount) AS amount, NULL::text AS source
-FROM kline_15m
-WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
-GROUP BY code, time_bucket('1 hour', ts)
-ORDER BY ts DESC LIMIT $3
-"#;
+/// 1h 兜底：kline_15m 查询期 rollup（schema 未建 kline_1h cagg；first/last 为 timescaledb 聚合）。
+/// bucket ts = time_bucket 起点；before 过滤在桶级（与 accurate_1h 桶对齐后作反连接剔重）。
+const FALLBACK_1H: &str = r#"
+(SELECT code, time_bucket('1 hour', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
+
+/// 周期 → 统一读源 SQL（1m 走既有 kline_merged；其余按 accurate 表 + 兜底片段）。
+fn period_merged_sql(p: Period) -> String {
+    match p {
+        Period::M1 => MERGED_1M_SQL.to_string(),
+        Period::M5 => merged_sql("kline_accurate_5m", "kline_5m"),
+        Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
+        Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
+        Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
+    }
+}
 
 /// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
 /// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
@@ -109,13 +132,7 @@ impl KlineRead for KlineReader {
     /// ts < before（None=最新起），降序取 limit 行后翻转**升序**返回（图表口径）。
     async fn bars(&self, period: Period, code: &str,
                   before: Option<DateTime<Utc>>, limit: i64) -> Result<Vec<KlineBarView>> {
-        let sql = match period {
-            Period::M1 => MERGED_1M_SQL.to_string(),
-            Period::M5 => cagg_sql("kline_5m"),
-            Period::M15 => cagg_sql("kline_15m"),
-            Period::H1 => ROLLUP_1H_SQL.to_string(),
-            Period::D1 => cagg_sql("kline_1d"),
-        };
+        let sql = period_merged_sql(period);
         let rows: Vec<BarTuple> = sqlx::query_as(&sql)
             .bind(code).bind(before).bind(limit)
             .fetch_all(&self.pool).await?;

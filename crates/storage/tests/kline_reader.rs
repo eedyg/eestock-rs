@@ -13,6 +13,7 @@ const CODE_MERGE: &str = "997701";
 const CODE_CAGG: &str = "997711";
 const CODE_SYM: &str = "997721";
 const CODE_SYM_EMPTY: &str = "997722";
+const CODE_DEEP: &str = "997751";
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -74,25 +75,77 @@ async fn merged_1m_accurate_first_and_cursor_pagination() {
 }
 
 #[tokio::test]
-async fn cagg_periods_and_1h_rollup() {
+async fn merged_periods_accurate_first_and_1h_rollup() {
     let pool = pool().await;
     clean(&pool, CODE_CAGG).await;
     seed(&pool, CODE_CAGG).await;
-    for v in ["kline_5m", "kline_15m", "kline_1d"] {
-        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', NULL, NULL)"))
+    // 统一读源：所有周期读 merged（accurate 优先）。refres：accurate cagg（窗口覆盖 base() 数据
+    // + D1 桶对齐）与 raw-derived cagg（兜底）。窗口 [09-02, 09-04] UTC 覆盖 base()=09-03 01:30 UTC
+    // 的 M1 种子（01:30-01:34 UTC）与 D1 桶 ts（09-02 16:00 UTC）。
+    for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d",
+              "kline_5m", "kline_15m", "kline_1d"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
     let r = KlineReader::new(pool.clone());
 
+    // 准确层优先：overlap 分钟返回 accurate（close=9.99, vol=777, source=tushare），而非 raw 侧。
     for p in [Period::M5, Period::M15, Period::H1, Period::D1] {
         let bars = r.bars(p, CODE_CAGG, None, 10).await.unwrap();
         assert_eq!(bars.len(), 1, "{p:?} 一个桶");
-        assert_eq!(bars[0].open, 1.0);
-        assert_eq!(bars[0].close, 5.0);
-        assert_eq!(bars[0].volume, 500, "cagg volume numeric → bigint 归一");
-        assert!(bars[0].source.is_none(), "cagg 无来源列");
+        assert_eq!(bars[0].open, 9.99, "{p:?} accurate 优先（ADR-003 推广）");
+        assert_eq!(bars[0].close, 9.99);
+        assert_eq!(bars[0].volume, 777, "{p:?} accurate cagg 数值归一");
+        assert_eq!(bars[0].source.as_deref(), Some("tushare"), "{p:?} accurate 层来源");
     }
     clean(&pool, CODE_CAGG).await;
+}
+
+#[tokio::test]
+async fn unified_read_deep_history_to_2024() {
+    // 修“往前翻几天就没数据”：所有周期能深翻历史。在 2024-01-01 与 2024-01-02 各种子一根 M1
+    // （穿越 5m/15m/1h/1d 桶），before 游标从 2024-01-03 往回翻页应持续推进到 2024-01-01，无重复/缺口。
+    let pool = pool().await;
+    clean(&pool, CODE_DEEP).await;
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2024, 1, 1, 1, 35, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2024, 1, 2, 2, 0, 0).unwrap(), 2.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close")
+            .bind(CODE_DEEP).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // 刷新 accurate cagg（覆盖 2024 窗口：种子在 01-01/01-02。D1 用 Asia/Shanghai 日界，
+    // 2024-01-01 交易日的桶 ts = 2023-12-31 16:00 UTC，故窗口须扩展到其前，否则该桶不被刷新）
+    for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2023-12-31 00:00:00+00', '2024-01-04 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+
+    for p in [Period::M1, Period::M5, Period::M15, Period::H1, Period::D1] {
+        // 翻页（limit=1）从 2024-01-03 往回：cursor 持续前进、无重复、至少覆盖两个 2024 数据点。
+        let mut cursor = Utc.with_ymd_and_hms(2024, 1, 3, 0, 0, 0).unwrap();
+        let mut got: Vec<DateTime<Utc>> = Vec::new();
+        for _ in 0..3 {
+            let page = r.bars(p, CODE_DEEP, Some(cursor), 1).await.unwrap();
+            assert!(page.len() <= 1, "{p:?} 翻页每页 ≤1（limit=1）");
+            if page.is_empty() { break; }
+            let t = page[0].ts;
+            assert!(t < cursor, "{p:?} before 不含该 ts 本身");
+            got.push(t);
+            cursor = t;
+        }
+        assert!(got.len() >= 2, "{p:?} 深翻应覆盖两个 2024 数据点，实际 {got:?}");
+        assert!(got.windows(2).all(|w| w[0] > w[1]), "{p:?} 降序翻页 cursor 严格前进");
+        let distinct: std::collections::HashSet<_> = got.iter().collect();
+        assert_eq!(distinct.len(), got.len(), "{p:?} 无重复数据点");
+    }
+    clean(&pool, CODE_DEEP).await;
 }
 
 #[tokio::test]
