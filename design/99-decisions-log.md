@@ -120,3 +120,9 @@
 - 引入 Playwright E2E（真实浏览器）；运行打真实容器 :8081（a）
 - 视觉回归基线从初始建立（b）；动态区域用 mask 结构化基线防分钟级噪声
 - 截图走查并入页面验收门槛（用户过目才交付）
+
+## O1 结论（2026-09-04 深夜）：非产品缺陷
+- 告警 WS 推送 HEAD 已正确接线（AlertEvaluator→hub→socket），载荷/topic 前后端对齐，双端测试本就存在且绿
+- tester 早期"0 帧"= 探针脚本 break-on-first-timeout 提前断听 + 部署瞬态（app 09:51/09:54Z 重启）
+- 处置：不改码；报告 coder/report/016_o1_alert_ws_push.md 记录证据链 + 正确探针写法
+- 提示：验证"推送类无帧"时，禁止用 break-on-timeout 短听；须持续监听 ≥ 评估节拍窗口
