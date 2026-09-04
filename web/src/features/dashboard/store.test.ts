@@ -4,6 +4,7 @@ import { KlineDataFeed } from './feed';
 import type { ApiClient } from '@/api/client';
 import type { Bar, SymbolSnapshot } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
+import { stubApi } from '@/test/apiStub';
 
 const SYMBOLS: SymbolSnapshot[] = [
   { code: '518880', name: '黄金ETF', last: 2.431, changePct: 0.62 },
@@ -16,12 +17,12 @@ function bar(ts: string, close = 1): Bar {
 }
 
 function fakeApi(overrides?: Partial<ApiClient>): ApiClient {
-  return {
+  return stubApi({
     getSymbols: vi.fn(async () => SYMBOLS),
     getKline: vi.fn(async () => []),
-    getSourcesHealth: vi.fn(async () => ({ collectorRunning: true, sources: [] })),
+    getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
     ...overrides,
-  };
+  });
 }
 
 type WsHandler = (msg: any) => void;

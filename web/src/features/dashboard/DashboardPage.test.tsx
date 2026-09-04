@@ -51,14 +51,16 @@ function fakeWs() {
   } as unknown as WsClient & { emit: (t: string, m: any) => void };
 }
 
+import { stubApi } from '@/test/apiStub';
+
 function fakeApi(): ApiClient {
-  return {
+  return stubApi({
     getSymbols: vi.fn(async () => SYMBOLS),
     getKline: vi.fn(async () => [
       { ts: '2026-09-04T02:00:00Z', open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 100, amount: 105 },
     ]),
-    getSourcesHealth: vi.fn(async () => ({ collectorRunning: true, sources: [] })),
-  };
+    getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
+  });
 }
 
 describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）', () => {
