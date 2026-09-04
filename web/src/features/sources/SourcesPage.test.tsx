@@ -117,14 +117,52 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
     await waitFor(() => expect(screen.queryByText('熔断中')).toBeNull());
   });
 
-  it('缺口卡：>5% 黄、>20% 红；告警预览只读列表', async () => {
+  it('缺口摘要：单标的 GapReportList 渲染 + 标的选择器；告警预览计数头部', async () => {
+    api = stubApi({
+      getSymbols: vi.fn(async () => [
+        { code: '518880', name: '黄金ETF', last: 1, changePct: 0 },
+        { code: '513310', name: '纳指ETF', last: 1, changePct: 0 },
+      ]),
+      getQualityGaps: vi.fn(async (q: { code: string }) => ({
+        code: q.code,
+        from: '2026-08-29',
+        to: '2026-09-04',
+        days: [
+          {
+            date: '2026-09-02', expected_bars: 241, actual_bars: 235, missing_bars: 6,
+            segments: [
+              { start: '10:41', end: '10:45', count: 5, class: 'source_fault' as const },
+            ],
+          },
+        ],
+      })),
+    });
     renderPage(api, ws);
-    await waitFor(() => expect(screen.getByText('26.8%')).toBeInTheDocument());
-    const crit = screen.getByText('26.8%').closest('[data-gap]')!;
-    expect(crit.getAttribute('data-level')).toBe('crit');
-    const warn = screen.getByText('7.8%').closest('[data-gap]')!;
-    expect(warn.getAttribute('data-level')).toBe('warn');
+    // 缺口报告行渲染（复用 page④ GapReportList 形态）
+    await waitFor(() => expect(screen.getByText('09-02')).toBeInTheDocument());
+    expect(screen.getByText('源故障')).toBeInTheDocument();
+    // 标的选择器存在且默认选中第一个
+    const sel = screen.getByTestId('gap-symbol-select') as HTMLSelectElement;
+    expect(sel.value).toBe('518880');
+    // 告警预览计数头部（最近 N 条）
+    expect(screen.getByTestId('alert-preview-count')).toHaveTextContent(/最近.*条告警/);
     expect(screen.getByText(/腾讯qt 连续失败 3 次/)).toBeInTheDocument();
+  });
+
+  it('错误态：缺口加载失败 → GapReportList 错误占位 + 重试恢复', async () => {
+    api = stubApi({
+      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', last: 1, changePct: 0 }]),
+      getQualityGaps: vi.fn()
+        .mockRejectedValueOnce(new Error('HTTP 500'))
+        .mockResolvedValueOnce({
+          code: '518880', from: '2026-08-29', to: '2026-09-04', days: [],
+        }),
+    });
+    const user = userEvent.setup();
+    renderPage(api, ws);
+    await waitFor(() => expect(screen.getByText(/加载失败/)).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /重试/ }));
+    await waitFor(() => expect(screen.getByText('该范围无缺口')).toBeInTheDocument());
   });
 
   it('错误态：健康加载失败 → 错误条 + 重试恢复', async () => {
@@ -136,13 +174,16 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
     await waitFor(() => expect(screen.getByText('腾讯ifzq')).toBeInTheDocument());
   });
 
-  it('空态：今日无缺口占位；暂无告警占位', async () => {
+  it('空态：缺口该范围无缺口占位；暂无告警占位', async () => {
     api = stubApi({
-      getGaps: vi.fn(async () => []),
+      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', last: 1, changePct: 0 }]),
+      getQualityGaps: vi.fn(async () => ({
+        code: '518880', from: '2026-08-29', to: '2026-09-04', days: [],
+      })),
       getAlerts: vi.fn(async () => []),
     });
     renderPage(api, ws);
-    await waitFor(() => expect(screen.getByText('今日无缺口')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('该范围无缺口')).toBeInTheDocument());
     expect(screen.getByText('暂无告警')).toBeInTheDocument();
   });
 

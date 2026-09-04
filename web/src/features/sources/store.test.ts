@@ -49,16 +49,40 @@ describe('SourcesStore（页面②状态机）', () => {
     });
   });
 
-  it('init：三路并发加载（health/gaps/alerts）→ ready；订阅 WS source_health', async () => {
+  it('init：先载符号选定默认标的，再并发加载（health/gaps/alerts）→ ready；订阅 WS source_health', async () => {
     const store = new SourcesStore({ api, ws });
     expect(store.state.health.loading).toBe(true);
     await store.init();
     expect(store.state.health.data?.sources).toHaveLength(2);
     expect(store.state.health.loading).toBe(false);
     expect(store.state.health.error).toBeNull();
-    expect(api.getGaps).toHaveBeenCalled();
+    // 方案 A：缺口摘要走 getQualityGaps（单标的），符号表选定默认标的
+    expect(api.getSymbols).toHaveBeenCalled();
+    expect(store.state.selectedCode).toBeTruthy();
+    expect(api.getQualityGaps).toHaveBeenCalled();
+    expect(store.state.gaps.data?.code).toBe(store.state.selectedCode);
     expect(api.getAlerts).toHaveBeenCalledWith(10);
     expect(ws.subscribe).toHaveBeenCalledWith('source_health', expect.any(Function));
+    store.dispose();
+  });
+
+  it('selectCode：切换标的重查缺口摘要（getQualityGaps 带新 code）', async () => {
+    const store = new SourcesStore({ api, ws });
+    await store.init();
+    const first = store.state.selectedCode;
+    expect(first).toBeTruthy();
+    const before = vi.mocked(api.getQualityGaps).mock.calls.length;
+    // 选下一个标的（mock 符号表至少有 2 个）
+    const code2 = store.state.symbols.data![1]!.code;
+    store.selectCode(code2);
+    await vi.waitFor(() =>
+      expect(vi.mocked(api.getQualityGaps).mock.calls.length).toBeGreaterThan(before),
+    );
+    expect(store.state.selectedCode).toBe(code2);
+    const lastCall = vi.mocked(api.getQualityGaps).mock.calls.at(-1)![0]!;
+    expect(lastCall.code).toBe(code2);
+    expect(lastCall.from).toBeTruthy();
+    expect(lastCall.to).toBeTruthy();
     store.dispose();
   });
 

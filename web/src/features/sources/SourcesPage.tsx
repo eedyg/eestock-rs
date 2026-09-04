@@ -71,7 +71,13 @@ export function SourcesPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCli
         </RegionPortal>
       )}
       <RegionPortal root={rootRef} region="gap-cards">
-        <GapCards gaps={state.gaps.data} loading={state.gaps.loading} error={state.gaps.error} />
+        <GapCards
+          symbols={state.symbols.data ?? []}
+          selectedCode={state.selectedCode}
+          slice={state.gaps}
+          onSelectCode={(c) => store.selectCode(c)}
+          onRetry={() => void store.retryGaps()}
+        />
       </RegionPortal>
       <RegionPortal root={rootRef} region="alert-preview">
         <AlertPreview

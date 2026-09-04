@@ -106,8 +106,8 @@ broadcast lagged 丢帧由客户端重连/REST 重拉兜底。
 ### 1.3 SPA 静态托管
 
 `web/dist` 存在即服务（按扩展名给 Content-Type）；未命中文件回退 `index.html`（history 路由深链）——
-**例外（D6 结案，Wave 2 Phase A）**：`/api/*` 未命中**不回退** index.html，返回 404 JSON `{"error":"not found"}`
-（API 路径回退 HTML 会把路由错误掩盖成前端解析错误）；路径含 `..`/反斜杠/空段 → 400（防目录穿越）；
+**例外（D6 结案，Wave 2 Phase A）**：任何 `/api` 前缀路径（含裸 `/api`）未命中**不回退** index.html，返回 404 JSON `{"error":"not found"}`
+（API 路径回退 HTML 会把路由错误掩盖成前端解析错误，裸 `/api` 亦必须 404 而非回退 SPA 页）；路径含 `..`/反斜杠/空段 → 400（防目录穿越）；
 dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物覆盖）。
 不引 tower-http：手写 ~60 行（ADR-017 最小攻击面同口径；零新增依赖）。
 
@@ -2629,10 +2629,10 @@ use std::sync::Arc;
 
 use crate::state::AppState;
 
-/// 未知路径兜底：/api/* → 404 JSON（D6：API 路径不回退 index.html，§1.3）；
+/// 未知路径兜底：任何 /api 前缀（含裸 /api）→ 404 JSON（D6：API 路径不回退 index.html，§1.3）；
 /// 其余 → 静态文件 → SPA index.html → 503 占位。
 pub async fn spa_fallback(State(st): State<Arc<AppState>>, uri: Uri) -> Response {
-    if uri.path().starts_with("/api/") {
+    if uri.path().starts_with("/api") {
         return (StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "not found" }))).into_response();
     }
@@ -3929,8 +3929,14 @@ async fn quality_endpoints_full_flow() {
     assert_eq!(r.status(), 400, "gaps 缺 code → 400");
 
     // ── D6：/api/* 未命中不回退 index.html → 404 JSON ──
-    let r = http.get(format!("{url}/api/quality/nope")).send().await.unwrap();
-    assert_eq!(r.status(), 404, "D6：/api/* 未匹配 → 404");
+    for p in ["/api", "/api/nonexistent", "/api/quality/nope"] {
+        let r = http.get(format!("{url}{p}")).send().await.unwrap();
+        assert_eq!(r.status(), 404, "D6：{p} 未匹配 → 404");
+        assert_eq!(r.json::<Value>().await.unwrap()["error"], "not found");
+    }
+    // POST 方法同口径：/api/* 未匹配 → 404 JSON（非 index.html）
+    let r = http.post(format!("{url}/api/nonexistent")).send().await.unwrap();
+    assert_eq!(r.status(), 404, "D6：POST /api/* 未匹配 → 404");
     assert_eq!(r.json::<Value>().await.unwrap()["error"], "not found");
     // 对照：非 /api 深链仍回退 index.html（前端 history 路由）
     let body = http.get(format!("{url}/quality")).send().await.unwrap().text().await.unwrap();

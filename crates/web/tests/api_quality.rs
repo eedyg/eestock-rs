@@ -194,8 +194,14 @@ async fn quality_endpoints_full_flow() {
     assert_eq!(r.status(), 400, "gaps 缺 code → 400");
 
     // ── D6：/api/* 未命中不回退 index.html → 404 JSON ──
-    let r = http.get(format!("{url}/api/quality/nope")).send().await.unwrap();
-    assert_eq!(r.status(), 404, "D6：/api/* 未匹配 → 404");
+    for p in ["/api", "/api/nonexistent", "/api/quality/nope"] {
+        let r = http.get(format!("{url}{p}")).send().await.unwrap();
+        assert_eq!(r.status(), 404, "D6：{p} 未匹配 → 404");
+        assert_eq!(r.json::<Value>().await.unwrap()["error"], "not found");
+    }
+    // POST 方法同口径：/api/* 未匹配 → 404 JSON（非 index.html）
+    let r = http.post(format!("{url}/api/nonexistent")).send().await.unwrap();
+    assert_eq!(r.status(), 404, "D6：POST /api/* 未匹配 → 404");
     assert_eq!(r.json::<Value>().await.unwrap()["error"], "not found");
     // 对照：非 /api 深链仍回退 index.html（前端 history 路由）
     let body = http.get(format!("{url}/quality")).send().await.unwrap().text().await.unwrap();

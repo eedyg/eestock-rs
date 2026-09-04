@@ -164,11 +164,9 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(init.method).toBe('POST');
   });
 
-  it('getGaps / getAlerts / getSourceEvents / getSourceMetrics / getSourceDivergence URL 契约', async () => {
+  it('getAlerts / getSourceEvents / getSourceMetrics / getSourceDivergence URL 契约', async () => {
     const f = fetcherReturning([]);
     const api = createHttpClient('', f);
-    await api.getGaps();
-    expect(lastCall(f).url).toBe('/api/collection/gaps?date=today');
     await api.getAlerts(10);
     expect(lastCall(f).url).toBe('/api/alerts?limit=10');
     await api.getSourceEvents('tencent_qt', 50);

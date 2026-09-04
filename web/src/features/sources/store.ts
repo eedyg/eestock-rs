@@ -3,11 +3,12 @@ import type {
   AlertItem,
   DetailRange,
   DivergenceStat,
-  GapStat,
   MetricPoint,
+  QualityGapsResponse,
   RateLimitCounters,
   SourceEventItem,
   SourcesHealth,
+  SymbolSnapshot,
 } from '@/api/types';
 import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
@@ -27,9 +28,27 @@ export interface DetailState {
   rateLimits: AsyncSlice<RateLimitCounters>;
 }
 
+/** Date → CST 日历日 'YYYY-MM-DD'（固定 +8，与浏览器时区无关，04-quality §7 同口径） */
+export function cstDateStr(d: Date): string {
+  return new Date(d.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** 页②缺口摘要窗口：近 7 个自然日（CST），to=今日（00-web-api §1.1 缺口端点跨度钳制 ≤62 天） */
+export function gapRange(now: Date): { from: string; to: string } {
+  const days = SOURCES_DEFAULTS.gapRangeDays - 1;
+  return {
+    from: cstDateStr(new Date(now.getTime() - days * 86_400_000)),
+    to: cstDateStr(now),
+  };
+}
+
 export interface SourcesState {
   health: AsyncSlice<SourcesHealth>;
-  gaps: AsyncSlice<GapStat[]>;
+  /** 标的选择器数据（缺口摘要用；复用页面①/④ symbols 列表） */
+  symbols: AsyncSlice<SymbolSnapshot[]>;
+  /** 缺口摘要所选标的（默认首个，非任意） */
+  selectedCode: string | null;
+  gaps: AsyncSlice<QualityGapsResponse>;
   alerts: AsyncSlice<AlertItem[]>;
   selected: string | null;
   detailRange: DetailRange;
@@ -50,6 +69,8 @@ type WsLike = Pick<WsClient, 'subscribe'>;
 export class SourcesStore {
   private current: SourcesState = {
     health: { data: null, loading: true, error: null },
+    symbols: { data: null, loading: true, error: null },
+    selectedCode: null,
     gaps: idle(),
     alerts: idle(),
     selected: null,
@@ -87,6 +108,8 @@ export class SourcesStore {
     if (this.unsubs.length === 0) {
       this.unsubs.push(this.deps.ws.subscribe('source_health', () => void this.refreshHealth()));
     }
+    // 先载符号表确定默认标的，再载缺口摘要（单标的，方案 A：页②缺口区降级为单标的摘要）
+    await this.loadSymbols();
     await Promise.all([this.refreshHealth(), this.loadGaps(), this.loadAlerts()]);
   }
 
@@ -112,14 +135,43 @@ export class SourcesStore {
     }
   }
 
+  private async loadSymbols(): Promise<void> {
+    this.patch({ symbols: { data: null, loading: true, error: null } });
+    try {
+      const data = await this.deps.api.getSymbols();
+      const code = this.current.selectedCode ?? data[0]?.code ?? null;
+      this.patch({ symbols: { data, loading: false, error: null }, selectedCode: code });
+    } catch (e) {
+      this.patch({ symbols: { data: null, loading: false, error: (e as Error).message } });
+    }
+  }
+
+  /** 单标的缺口摘要（方案 A：GET /api/quality/gaps?code=&from=&to=；目录见 00-web-api §1.1） */
   private async loadGaps(): Promise<void> {
+    const code = this.current.selectedCode;
+    if (!code) {
+      this.patch({ gaps: { data: null, loading: false, error: null } });
+      return;
+    }
     this.patch({ gaps: { data: null, loading: true, error: null } });
     try {
-      const data = await this.deps.api.getGaps();
+      const data = await this.deps.api.getQualityGaps({ code, ...gapRange(new Date()) });
       this.patch({ gaps: { data, loading: false, error: null } });
     } catch (e) {
       this.patch({ gaps: { data: null, loading: false, error: (e as Error).message } });
     }
+  }
+
+  /** 缺口摘要切换标的：更新选择并重查（默认选首个/上一标的，非任意） */
+  selectCode(code: string): void {
+    if (code === this.current.selectedCode) return;
+    this.patch({ selectedCode: code });
+    void this.loadGaps();
+  }
+
+  /** 缺口摘要重试（错误占位+重试，L2 三态） */
+  async retryGaps(): Promise<void> {
+    await this.loadGaps();
   }
 
   private async loadAlerts(): Promise<void> {

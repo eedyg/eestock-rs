@@ -8,7 +8,6 @@ import type {
   Bar,
   DetailRange,
   DivergenceStat,
-  GapStat,
   MetricPoint,
   Period,
   QualityDivergenceResponse,
@@ -240,13 +239,6 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     },
     async resetSource(id: string): Promise<void> {
       resetLog.push(id);
-    },
-    async getGaps(): Promise<GapStat[]> {
-      return [
-        { code: '518880', name: '黄金ETF', expected: 205, actual: 205, gapPct: 0 },
-        { code: '513310', name: '纳指ETF', expected: 205, actual: 189, gapPct: 7.8 },
-        { code: '159776', name: '港股通医药', expected: 205, actual: 150, gapPct: 26.8 },
-      ];
     },
     async getAlerts(limit = 10): Promise<AlertItem[]> {
       // 页面②告警预览语义基线（02-sources §7 样例数据，SourcesPage 测试锁定）；

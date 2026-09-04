@@ -14,10 +14,10 @@ use std::sync::Arc;
 
 use crate::state::AppState;
 
-/// 未知路径兜底：/api/* → 404 JSON（D6：API 路径不回退 index.html，§1.3）；
+/// 未知路径兜底：任何 /api 前缀（含裸 /api）→ 404 JSON（D6：API 路径不回退 index.html，§1.3）；
 /// 其余 → 静态文件 → SPA index.html → 503 占位。
 pub async fn spa_fallback(State(st): State<Arc<AppState>>, uri: Uri) -> Response {
-    if uri.path().starts_with("/api/") {
+    if uri.path().starts_with("/api") {
         return (StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "not found" }))).into_response();
     }

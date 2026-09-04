@@ -88,10 +88,11 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     await expect(api.updateSymbol('000000', { enabled: false })).rejects.toMatchObject({ status: 404 });
   });
 
-  it('页面②补充数据源：gaps/alerts/events/metrics/divergence 契约形状', async () => {
+  it('页面②补充数据源：alerts/events/metrics/divergence 契约形状', async () => {
     const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
-    const gaps = await api.getGaps();
-    expect(gaps.some((g) => g.gapPct > 20)).toBe(true); // 红卡样例
+    // 缺口摘要由 getQualityGaps 提供（单标的，方案 A：页②缺口区不再调 /api/collection/gaps）
+    const gapsResp = await api.getQualityGaps({ code: '518880', from: '2026-08-28', to: '2026-09-03' });
+    expect(gapsResp.code).toBe('518880');
     expect((await api.getAlerts(10)).length).toBeGreaterThan(0);
     const events = await api.getSourceEvents('tencent_qt', 50);
     expect(events[0]).toHaveProperty('traceId');

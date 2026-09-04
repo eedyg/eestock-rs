@@ -18,7 +18,7 @@
 │        │ source-cards（卡片墙 flex-wrap，每卡 W=280 H=140）      │
 │        │ 状态灯+角色+成功率+延迟+错误摘要 [+熔断源复位按钮]      │
 │        ├───────────────────────────────────────────────────────┤
-│        │ gap-cards（flex-wrap，每标的缺口率小卡 W=200 H=88）     │
+│        │ gap-cards（单标的缺口摘要：标的选择器+GapReportList，随窗口滚动）     │
 │        ├───────────────────────────────────────────────────────┤
 │        │ alert-preview H=160px（最近 10 条告警，只读）           │
 └────────┴───────────────────────────────────────────────────────┘
@@ -232,7 +232,7 @@ min-width: 1280px（桌面优先，不响应式）
 | `summary-bar` | 1m 可用源/总数、快照池健康/总数、系统状态灯（任一 1m 源熔断🟡/全部熔断🔴）、采集运行时长、当前交易时段 | `GET /api/sources/health` + WS `{type:"source_health"}`；交易时段为客户端计算（时段写死 09:30-11:30/13:00-15:00） | 骨架条 / 不可能空（采集服务在线即有计数；服务宕机由 shell 状态灯表达）/ 顶部错误条+重试 | 只读展示 |
 | `source-cards` | 每源一卡：状态灯（🟢健康/🟡降级/🔴熔断）、角色标签（1m全速/快照心跳/熔断中）、近 1h 成功率、P50 延迟、最近错误摘要（含时刻）；熔断源附手动复位按钮 | `GET /api/sources/health` + WS `{type:"source_health"}` 推送变更；复位 `POST /api/sources/{id}/reset` | 骨架卡 / 「无数据源配置」占位（内置源编译期注册，正常不可能空）/ 错误占位+重试 | 点卡展开/折叠 detail-panel（选中高亮）；WS 状态变化卡片闪烁+状态迁移动画；复位点击立即摘除熔断、回到轮转序列（操作记录进事件流水） |
 | `detail-panel` | 成功率/延迟时序曲线（ECharts，范围 1h/今日/3日）；事件流水最近 50 条（成功/失败/限流/熔断，带 Trace ID）；分歧率统计（与腾讯锚 >0.5% 记 DIVERGE）；限流计数器组（403/429/连接重置累计） | `GET /api/sources/{id}/metrics?range=` / `GET /api/sources/{id}/events?limit=50` / `GET /api/sources/{id}/divergence?range=` | 骨架图+骨架行 / 「该范围无事件」占位 / 错误占位+重试 | 范围切换重查；Trace ID 点击复制；再次点卡或关闭折叠 |
-| `gap-cards` | 每标的当日 1m 缺口率小卡：应有 bar/实有 bar/缺口率；>5% 标黄、>20% 标红 | `GET /api/collection/gaps?date=today` | 骨架卡 / 「今日无缺口」占位 / 错误占位+重试 | 只读（口径：工作日+交易时段，Wave 1 简化，节假日噪音接受） |
+| 缺口摘要 | 单标的近 7 日缺口日/分钟段（复用页面④ GapReportList 形态；标的选择器默认首个） | `GET /api/quality/gaps?code=&from=&to=`（00-web-api §1.1，单 code） | 骨架行 / 「该范围无缺口」占位 / 错误占位+重试 | 标的选择切换即重查；只读（注：标的级全量缺口归页面④，本页只作单标的信息参考） |
 | `alert-preview` | 最近 10 条告警事件流（只读预览；完整规则配置在页面⑦，Wave 2） | `GET /api/alerts?limit=10`（复用页面⑦接口；⚠️ 本页 §8 API 依赖节未列此端点，见「待裁决」） | 骨架行 / 「暂无告警」占位 / 错误占位+重试 | 只读；点击是否跳页面⑦待裁决 |
 
 ### L3 布局骨架（tangle 生成；结构+锚点+尺寸类，视觉样式手写）
@@ -247,8 +247,7 @@ export const SOURCES_DEFAULTS = {
   detailRange: '1h',              // 详情曲线默认范围：'1h' | 'today' | '3d'
   eventLimit: 50,                 // 事件流水条数
   alertPreviewLimit: 10,          // 告警预览条数（只读）
-  gapWarnPct: 5,                  // 缺口率 >5% 标黄
-  gapCritPct: 20,                 // 缺口率 >20% 标红
+  gapRangeDays: 7,                // 缺口摘要窗口：近 7 个自然日（单标的，方案 A）
   divergenceThresholdPct: 0.5,    // 与腾讯锚分歧 >0.5% 记 DIVERGE
 } as const;
 
@@ -288,10 +287,10 @@ export function SourcesGrid(props: SourcesGridProps) {
         </div>
       )}
 
-      {/* gap-cards：GET /api/collection/gaps?date=today；>5% 黄、>20% 红（SOURCES_DEFAULTS）；
-          三态=骨架卡/「今日无缺口」/错误占位+重试；只读 */}
-      <div data-region="gap-cards" className="flex flex-wrap gap-2 border-b p-2">
-        {/* <GapCard/> ×标的数 */}
+      {/* gap-cards（单标的缺口摘要）：GET /api/quality/gaps?code=&from=&to=（单 code，方案 A 裁决）；
+          标的选择器复用 symbols 列表默认首个；三态=骨架行/「该范围无缺口」/错误占位+重试；只读 */}
+      <div data-region="gap-cards" className="border-b p-2">
+        {/* <GapCards symbols selectedCode slice onSelectCode onRetry/>（复用页面④ GapReportList 形态） */}
       </div>
 
       {/* alert-preview：GET /api/alerts?limit=10（复用页面⑦接口）只读；
@@ -328,10 +327,14 @@ export function SourcesGrid(props: SourcesGridProps) {
 
 - 熔断源显示**手动复位按钮**（点击立即摘除熔断、回到轮转序列；操作记录进事件流水）
 
-## 6. 采集质量区
+## 6. 采集质量区（单标的缺口摘要，方案 A 裁决）
 
-- 每标的当日 **1m 缺口率**小卡片：`应有 bar / 实有 bar / 缺口率`，缺口率 >5% 标黄、>20% 标红
-- 缺口判定口径：工作日 + 09:30-11:30/13:00-15:00（Wave 1 简化，节假日噪音接受）
+- **单标的缺口摘要**：随上方标的选择器所选标的，展示近 7 个自然日（CST）内 `GET /api/quality/gaps?code=&from=&to=` 的单 code 缺口日/分钟段；复用页面④ `GapReportList` 形态（DRY）。
+- **标的选择器**：复用 symbols 列表（页面①/④ 同源），默认选首个/上一标的（非任意）。
+- 三态：骨架行 / 「该范围无缺口」占位 / 错误占位+重试。
+- 缺口判定口径：工作日 + 09:30-11:30/13:00-15:00（Wave 1 简化，节假日噪音接受）；**标的级全量缺口归页面④**（04-quality §5 复盘口径），本页只作该标的信息参考。
+
+> 设计契约修正（2026-09-04 走查修复）：原稿「每标的当日 1m 缺口率小卡墙」为设计稿超纲/错配——`/api/collection/gaps?date=today` 无可落地契约（ADR-014：契约以可实现为准），真实缺口端点仅单 code（00-web-api §1.1）。页②定位源健康诊断，标的级缺口归页面④质量域，故降级为单标的摘要。
 
 ## 7. 告警预览
 
@@ -345,10 +348,10 @@ export function SourcesGrid(props: SourcesGridProps) {
 | 详情曲线/事件 | `GET /api/sources/{id}/metrics?range=` / `GET /api/sources/{id}/events?limit=50` |
 | 分歧率 | `GET /api/sources/{id}/divergence?range=` |
 | 熔断复位 | `POST /api/sources/{id}/reset` |
-| 缺口率 | `GET /api/collection/gaps?date=today` |
+| 缺口摘要（单标的） | `GET /api/quality/gaps?code=&from=&to=`（单 code，00-web-api §1.1；标的级全量缺口归页面④） |
 
 ## 9. 验收（Wave 1）
 
 - [ ] 杀掉腾讯源：卡片 🔴 + 汇总条 🟡 + WS 闪烁，事件流水出现熔断记录（带 Trace ID）
 - [ ] 手动复位后源回到轮转，下周期恢复采集
-- [ ] 缺口率卡片与 DB 实际 bar 数一致（对账测试）
+- [ ] 缺口摘要与 DB 实际 bar 数一致（对账测试；单标的近 7 日窗口）

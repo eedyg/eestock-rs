@@ -7,7 +7,6 @@ import type {
   Bar,
   DetailRange,
   DivergenceStat,
-  GapStat,
   KlineResponse,
   MetricPoint,
   Period,
@@ -60,8 +59,6 @@ export interface ApiClient {
   // ── Phase C：页面② 数据源诊断 ──
   /** 熔断手动复位（202 异步：DB 控制通道，数据面消费后生效） */
   resetSource(id: string): Promise<void>;
-  /** 当日缺口率（后端端点 Phase C 后续；真实模式缺失走错误三态） */
-  getGaps(): Promise<GapStat[]>;
   /** 告警预览（页面②遗留形状；Wave 2 Phase B 起适配自 /api/alerts 新事件线格式） */
   getAlerts(limit?: number): Promise<AlertItem[]>;
   // ── Wave 2 Phase B：页面⑦ 告警中心（07-alerts §6）──
@@ -148,7 +145,6 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     resetSource: async (id) => {
       await request(`/api/sources/${encodeURIComponent(id)}/reset`, { method: 'POST' });
     },
-    getGaps: () => get('/api/collection/gaps?date=today'),
     getAlerts: async (limit = 10) =>
       (await get<AlertEventItem[]>(`/api/alerts?limit=${limit}`)).map(toLegacyAlert),
     // ── Wave 2 Phase B：页面⑦ ──

@@ -94,15 +94,6 @@ export interface SymbolPatchBody {
 // ── 页面②补充数据源（Phase C 前端契约假设；后端端点为 Phase C 后续/Wave 2，
 //    真实模式下缺失端点走错误三态，mock 模式完整可览）──
 
-/** GET /api/collection/gaps?date=today 项（缺口率口径：02-sources §6） */
-export interface GapStat {
-  code: string;
-  name: string | null;
-  expected: number; // 当日应有 bar
-  actual: number; // 实有 bar
-  gapPct: number; // 缺口率 %
-}
-
 /** GET /api/alerts?limit= 项（页面②告警预览遗留形状；Wave 2 Phase B 起由 client/mock 适配层从新事件线格式映射） */
 export interface AlertItem {
   ts: string;

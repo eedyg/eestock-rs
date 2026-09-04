@@ -8,8 +8,7 @@ export const SOURCES_DEFAULTS = {
   detailRange: '1h',              // 详情曲线默认范围：'1h' | 'today' | '3d'
   eventLimit: 50,                 // 事件流水条数
   alertPreviewLimit: 10,          // 告警预览条数（只读）
-  gapWarnPct: 5,                  // 缺口率 >5% 标黄
-  gapCritPct: 20,                 // 缺口率 >20% 标红
+  gapRangeDays: 7,                // 缺口摘要窗口：近 7 个自然日（单标的，方案 A）
   divergenceThresholdPct: 0.5,    // 与腾讯锚分歧 >0.5% 记 DIVERGE
 } as const;
 
@@ -49,10 +48,10 @@ export function SourcesGrid(props: SourcesGridProps) {
         </div>
       )}
 
-      {/* gap-cards：GET /api/collection/gaps?date=today；>5% 黄、>20% 红（SOURCES_DEFAULTS）；
-          三态=骨架卡/「今日无缺口」/错误占位+重试；只读 */}
-      <div data-region="gap-cards" className="flex flex-wrap gap-2 border-b p-2">
-        {/* <GapCard/> ×标的数 */}
+      {/* gap-cards（单标的缺口摘要）：GET /api/quality/gaps?code=&from=&to=（单 code，方案 A 裁决）；
+          标的选择器复用 symbols 列表默认首个；三态=骨架行/「该范围无缺口」/错误占位+重试；只读 */}
+      <div data-region="gap-cards" className="border-b p-2">
+        {/* <GapCards symbols selectedCode slice onSelectCode onRetry/>（复用页面④ GapReportList 形态） */}
       </div>
 
       {/* alert-preview：GET /api/alerts?limit=10（复用页面⑦接口）只读；
