@@ -189,4 +189,80 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(lastCall(f).url).toBe('/api/sources/tencent_qt/rate-limits?range=1h');
     expect(c).toEqual({ http403: 0, http429: 2, connReset: 5 });
   });
+
+  // ── Wave 2 Phase B：页面⑦ 告警中心（02-alerts §5 契约）──
+
+  it('getAlertEvents → GET /api/alerts 过滤参数序列化（level/from/to/source/limit）', async () => {
+    const f = fetcherReturning([]);
+    const api = createHttpClient('', f);
+    await api.getAlertEvents({ level: 'critical', from: '2026-09-06T16:00:00Z', to: '2026-09-07T16:00:00Z', source: 'collector', limit: 50 });
+    const { url } = lastCall(f);
+    expect(url).toContain('/api/alerts?');
+    expect(url).toContain('level=critical');
+    expect(url).toContain('source=collector');
+    expect(url).toContain('limit=50');
+    expect(url).toContain('from=2026-09-06T16%3A00%3A00.000Z');
+    // 空过滤不携带参数
+    const f2 = fetcherReturning([]);
+    const api2 = createHttpClient('', f2);
+    await api2.getAlertEvents({});
+    expect(lastCall(f2).url).toBe('/api/alerts');
+  });
+
+  it('ackAlert → POST /api/alerts/{id}/ack；404 透传 ApiError', async () => {
+    const acked = {
+      id: 7, rule_id: 'collection_stall', level: 'critical', source: 'collector',
+      message: '停摆', status: 'acked', fire_count: 2,
+      first_fired_at: '2026-09-07T02:00:00Z', last_fired_at: '2026-09-07T02:11:00Z',
+      acked_at: '2026-09-07T03:00:00Z', resolved_at: null,
+    };
+    const f = fetcherReturning(acked);
+    const api = createHttpClient('', f);
+    const r = await api.ackAlert(7);
+    expect(lastCall(f).url).toBe('/api/alerts/7/ack');
+    expect(lastCall(f).init.method).toBe('POST');
+    expect(r.status).toBe('acked');
+    expect(r.acked_at).toBe('2026-09-07T03:00:00Z');
+
+    const f404 = fetcherReturning({ error: '告警不存在或不在未确认状态' }, false, 404);
+    await expect(createHttpClient('', f404).ackAlert(999)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('getAlertRules / patchAlertRule → GET/PATCH /api/alert-rules', async () => {
+    const rule = {
+      id: 'symbol_gap_rate', name: '标的当日缺口率超阈', level: 'warning',
+      threshold: 10, duration_minutes: 0, silence_minutes: 45, enabled: true,
+    };
+    const f = fetcherReturning([rule]);
+    const api = createHttpClient('', f);
+    const rules = await api.getAlertRules();
+    expect(lastCall(f).url).toBe('/api/alert-rules');
+    expect(rules[0]).toEqual(rule);
+
+    const f2 = fetcherReturning(rule);
+    const api2 = createHttpClient('', f2);
+    const patched = await api2.patchAlertRule('symbol_gap_rate', { threshold: 10, silence_minutes: 45 });
+    expect(lastCall(f2).url).toBe('/api/alert-rules');
+    expect(lastCall(f2).init.method).toBe('PATCH');
+    expect(JSON.parse(String(lastCall(f2).init.body))).toEqual({
+      id: 'symbol_gap_rate', threshold: 10, silence_minutes: 45,
+    });
+    expect(patched.threshold).toBe(10);
+  });
+
+  it('getAlerts（页面②预览复用）：新事件线格式适配为遗留 AlertItem（level 映射 + 时间/文本）', async () => {
+    const f = fetcherReturning([
+      { id: 1, rule_id: 'collection_stall', level: 'critical', source: 'collector', message: '停摆',
+        status: 'triggered', fire_count: 1, first_fired_at: '2026-09-07T02:00:00Z',
+        last_fired_at: '2026-09-07T02:00:00Z', acked_at: null, resolved_at: null },
+      { id: 2, rule_id: 'symbol_gap_rate', level: 'warning', source: '513310', message: '缺口',
+        status: 'triggered', fire_count: 4, first_fired_at: '2026-09-07T01:00:00Z',
+        last_fired_at: '2026-09-07T01:30:00Z', acked_at: null, resolved_at: null },
+    ]);
+    const api = createHttpClient('', f);
+    const items = await api.getAlerts(10);
+    expect(lastCall(f).url).toBe('/api/alerts?limit=10');
+    expect(items[0]).toEqual({ ts: '2026-09-07T02:00:00Z', level: 'crit', text: '停摆' });
+    expect(items[1]!.level).toBe('warn');
+  });
 });

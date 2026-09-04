@@ -14,6 +14,6 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/quality', label: '④ 数据质量', wave: 'W2', enabled: false },
   { path: '/backtest', label: '⑤ 回测工作台', wave: 'W3', enabled: false },
   { path: '/trading', label: '⑥ 交易面板', wave: 'W4', enabled: false },
-  { path: '/alerts', label: '⑦ 告警中心', wave: 'W2', enabled: false },
+  { path: '/alerts', label: '⑦ 告警中心', enabled: true },  // Wave 2 Phase B 解锁
   { path: '/settings', label: '⑧ 系统设置', enabled: false },
 ];

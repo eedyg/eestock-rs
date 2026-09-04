@@ -37,12 +37,22 @@ function fakeApi(): ApiClient {
 }
 
 function fakeWs() {
+  const handlers = new Map<string, Set<(m: unknown) => void>>();
   return {
     connect: vi.fn(),
     close: vi.fn(),
-    subscribe: vi.fn(() => () => {}),
+    subscribe: vi.fn((topic: string, h: (m: unknown) => void) => {
+      if (!handlers.has(topic)) handlers.set(topic, new Set());
+      handlers.get(topic)!.add(h);
+      return () => {
+        handlers.get(topic)!.delete(h);
+      };
+    }),
+    emit(topic: string, msg: unknown) {
+      handlers.get(topic)?.forEach((h) => h(msg));
+    },
     onStatusChange: vi.fn(() => () => {}),
-  } as unknown as WsClient;
+  } as unknown as WsClient & { emit: (topic: string, msg: unknown) => void };
 }
 
 describe('AppShell（骨架：状态条+导航+页面出口）', () => {
@@ -63,5 +73,29 @@ describe('AppShell（骨架：状态条+导航+页面出口）', () => {
     expect(screen.getByText('采集正常')).toBeInTheDocument();
     expect(ws.connect).toHaveBeenCalled();
     expect(ws.subscribe).toHaveBeenCalledWith('source_health', expect.any(Function));
+  });
+
+  it('critical 告警 WS 推送 → 右上角 toast 强弹；warning 静默（07-alerts §4）', async () => {
+    const ws = fakeWs();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route element={<AppShell api={fakeApi()} ws={ws} />}>
+            <Route path="/" element={<div>页面内容</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('采集正常')).toBeInTheDocument());
+    expect(ws.subscribe).toHaveBeenCalledWith('alert', expect.any(Function));
+    // warning 静默入列表（无 toast）
+    ws.emit('alert', { type: 'alert', id: 1, level: 'warning', status: 'triggered', message: '缺口率超阈' });
+    expect(screen.queryByRole('alert')).toBeNull();
+    // critical triggered → toast 强弹
+    ws.emit('alert', { type: 'alert', id: 2, level: 'critical', status: 'triggered', message: '采集停摆' });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('采集停摆'));
+    // 同条 critical 的恢复帧不再弹（status != triggered）
+    ws.emit('alert', { type: 'alert', id: 2, level: 'critical', status: 'resolved', message: '采集停摆' });
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
   });
 });

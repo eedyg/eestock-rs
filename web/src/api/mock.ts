@@ -1,6 +1,10 @@
 import type { ApiClient, KlineQuery } from './client';
 import type {
+  AlertEventItem,
   AlertItem,
+  AlertQuery,
+  AlertRuleItem,
+  AlertRulePatchBody,
   Bar,
   DetailRange,
   DivergenceStat,
@@ -111,11 +115,55 @@ export interface MockOptions {
   now?: Date; // 测试注入固定时刻，保证可复现
 }
 
+/** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一） */
+function initialAlertEvents(): AlertEventItem[] {
+  return [
+    { id: 3, rule_id: 'collection_stall', level: 'critical', source: 'collector',
+      message: '采集停摆：交易时段连续 3 分钟无任何成功事件', status: 'triggered', fire_count: 1,
+      first_fired_at: '2026-09-07T02:18:00Z', last_fired_at: '2026-09-07T02:18:00Z',
+      acked_at: null, resolved_at: null },
+    { id: 2, rule_id: 'symbol_gap_rate', level: 'warning', source: '513310',
+      message: '513310 当日缺口率 7.8%（>1%）', status: 'triggered', fire_count: 4,
+      first_fired_at: '2026-09-07T02:05:00Z', last_fired_at: '2026-09-07T02:35:00Z',
+      acked_at: null, resolved_at: null },
+    { id: 1, rule_id: 'source_success_rate', level: 'info', source: 'tencent_qt',
+      message: '腾讯qt 恢复，回到轮转序列', status: 'acked', fire_count: 1,
+      first_fired_at: '2026-09-07T01:47:00Z', last_fired_at: '2026-09-07T01:47:00Z',
+      acked_at: '2026-09-07T01:50:00Z', resolved_at: null },
+  ];
+}
+
+/** 内置规则首批种子（与迁移 0009 同口径） */
+function initialAlertRules(): AlertRuleItem[] {
+  return [
+    { id: 'source_success_rate', name: '源成功率低于阈值', level: 'warning', threshold: 0.95, duration_minutes: 10, silence_minutes: 10, enabled: true },
+    { id: 'symbol_gap_rate', name: '标的当日缺口率超阈', level: 'warning', threshold: 1, duration_minutes: 0, silence_minutes: 30, enabled: true },
+    { id: 'collection_stall', name: '采集停摆（交易时段无成功事件）', level: 'critical', threshold: 3, duration_minutes: 0, silence_minutes: 10, enabled: true },
+    { id: 'tushare_daily_sync', name: 'tushare 日增量失败', level: 'warning', threshold: 0, duration_minutes: 0, silence_minutes: 60, enabled: false },
+  ];
+}
+
 export function createMockClient(opts: MockOptions = {}): ApiClient {
   const anchorNow = opts.now?.getTime() ?? Date.now();
   let symbols = initialSymbols();
+  /** 页面⑦ 内部状态：ack/patch 行为可在测试中闭环验证 */
+  const alertEvents = initialAlertEvents();
+  const alertRules = initialAlertRules();
   /** 测试观测口：已收到的复位请求 */
   const resetLog: string[] = [];
+
+  const queryAlerts = async (q: AlertQuery): Promise<AlertEventItem[]> => {
+    const out = alertEvents
+      .filter(
+        (e) =>
+          (q.level == null || e.level === q.level) &&
+          (q.source == null || e.source === q.source) &&
+          (q.from == null || e.last_fired_at >= q.from) &&
+          (q.to == null || e.last_fired_at < q.to),
+      )
+      .sort((a, b) => b.last_fired_at.localeCompare(a.last_fired_at));
+    return out.slice(0, q.limit ?? 200).map((e) => ({ ...e }));
+  };
 
   return {
     async getSymbols(): Promise<SymbolSnapshot[]> {
@@ -194,12 +242,37 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         { code: '159776', name: '港股通医药', expected: 205, actual: 150, gapPct: 26.8 },
       ];
     },
-    async getAlerts(): Promise<AlertItem[]> {
+    async getAlerts(limit = 10): Promise<AlertItem[]> {
+      // 页面②告警预览语义基线（02-sources §7 样例数据，SourcesPage 测试锁定）；
+      // 与页面⑦种子事件解耦：预览展示的是熔断/缺口样例流，不受 ack/patch 影响
+      void limit;
       return [
         { ts: '2026-09-04T02:18:00Z', level: 'crit', text: '腾讯qt 连续失败 3 次，已熔断' },
         { ts: '2026-09-04T02:05:00Z', level: 'warn', text: '159776 当日缺口率 26.8%（>20%）' },
         { ts: '2026-09-04T01:47:00Z', level: 'info', text: '新浪jsonp 恢复，回到轮转序列' },
       ];
+    },
+    // ── Wave 2 Phase B：页面⑦ 告警中心 ──
+    getAlertEvents: queryAlerts,
+    async ackAlert(id: number): Promise<AlertEventItem> {
+      const e = alertEvents.find((x) => x.id === id);
+      if (!e || e.status !== 'triggered') {
+        throw new ApiError(404, 'HTTP 404: 告警不存在或不在未确认状态');
+      }
+      e.status = 'acked';
+      e.acked_at = new Date(anchorNow).toISOString();
+      return { ...e };
+    },
+    async getAlertRules(): Promise<AlertRuleItem[]> {
+      return alertRules.map((r) => ({ ...r }));
+    },
+    async patchAlertRule(id: string, patch: AlertRulePatchBody): Promise<AlertRuleItem> {
+      const r = alertRules.find((x) => x.id === id);
+      if (!r) throw new ApiError(404, 'HTTP 404: 规则不存在（内置规则预置，不可增删）');
+      if (patch.threshold !== undefined) r.threshold = patch.threshold;
+      if (patch.enabled !== undefined) r.enabled = patch.enabled;
+      if (patch.silence_minutes !== undefined) r.silence_minutes = patch.silence_minutes;
+      return { ...r };
     },
     async getSourceEvents(id: string, limit = 50): Promise<SourceEventItem[]> {
       const kinds: SourceEventItem['kind'][] = ['success', 'failure', 'rate_limited', 'circuit'];

@@ -1,5 +1,9 @@
 import type {
+  AlertEventItem,
   AlertItem,
+  AlertQuery,
+  AlertRuleItem,
+  AlertRulePatchBody,
   Bar,
   DetailRange,
   DivergenceStat,
@@ -43,8 +47,17 @@ export interface ApiClient {
   resetSource(id: string): Promise<void>;
   /** 当日缺口率（后端端点 Phase C 后续；真实模式缺失走错误三态） */
   getGaps(): Promise<GapStat[]>;
-  /** 告警预览（页面⑦接口复用，只读） */
+  /** 告警预览（页面②遗留形状；Wave 2 Phase B 起适配自 /api/alerts 新事件线格式） */
   getAlerts(limit?: number): Promise<AlertItem[]>;
+  // ── Wave 2 Phase B：页面⑦ 告警中心（07-alerts §6）──
+  /** 告警列表（过滤 level/from/to/source/limit；last_fired_at 降序） */
+  getAlertEvents(q: AlertQuery): Promise<AlertEventItem[]>;
+  /** 确认（记录确认时刻，持久化）；404=不存在或非未确认态 */
+  ackAlert(id: number): Promise<AlertEventItem>;
+  /** 内置规则列表 */
+  getAlertRules(): Promise<AlertRuleItem[]>;
+  /** 规则调整（仅阈值/开关/静默时长，热生效）；404=未知 id */
+  patchAlertRule(id: string, patch: AlertRulePatchBody): Promise<AlertRuleItem>;
   /** 源事件流水（detail-panel） */
   getSourceEvents(id: string, limit?: number): Promise<SourceEventItem[]>;
   /** 成功率/延迟时序（detail-panel） */
@@ -62,6 +75,15 @@ function dtoToSnapshot(d: SymbolRow): SymbolSnapshot {
     name: d.name ?? d.code,
     last: d.latest?.last ?? 0,
     changePct: d.latest?.change_pct ?? 0,
+  };
+}
+
+/** 页面⑦新事件线格式 → 页面②遗留预览形状（level 映射 + 最近触发时刻/内容） */
+export function toLegacyAlert(e: AlertEventItem): AlertItem {
+  return {
+    ts: e.last_fired_at,
+    level: e.level === 'critical' ? 'crit' : e.level === 'warning' ? 'warn' : 'info',
+    text: e.message,
   };
 }
 
@@ -103,7 +125,23 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       await request(`/api/sources/${encodeURIComponent(id)}/reset`, { method: 'POST' });
     },
     getGaps: () => get('/api/collection/gaps?date=today'),
-    getAlerts: (limit = 10) => get(`/api/alerts?limit=${limit}`),
+    getAlerts: async (limit = 10) =>
+      (await get<AlertEventItem[]>(`/api/alerts?limit=${limit}`)).map(toLegacyAlert),
+    // ── Wave 2 Phase B：页面⑦ ──
+    getAlertEvents: (q) => {
+      const params = new URLSearchParams();
+      if (q.level) params.set('level', q.level);
+      if (q.from) params.set('from', new Date(q.from).toISOString());
+      if (q.to) params.set('to', new Date(q.to).toISOString());
+      if (q.source) params.set('source', q.source);
+      if (q.limit != null) params.set('limit', String(q.limit));
+      const qs = params.toString();
+      return get(`/api/alerts${qs ? `?${qs}` : ''}`);
+    },
+    ackAlert: (id) => request(`/api/alerts/${id}/ack`, { method: 'POST' }),
+    getAlertRules: () => get('/api/alert-rules'),
+    patchAlertRule: (id, patch) =>
+      request('/api/alert-rules', { method: 'PATCH', body: JSON.stringify({ id, ...patch }) }),
     getSourceEvents: (id, limit = 50) =>
       get(`/api/sources/${encodeURIComponent(id)}/events?limit=${limit}`),
     getSourceMetrics: (id, range) =>

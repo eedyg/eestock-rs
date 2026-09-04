@@ -103,11 +103,58 @@ export interface GapStat {
   gapPct: number; // 缺口率 %
 }
 
-/** GET /api/alerts?limit= 项（页面⑦接口复用，只读预览） */
+/** GET /api/alerts?limit= 项（页面②告警预览遗留形状；Wave 2 Phase B 起由 client/mock 适配层从新事件线格式映射） */
 export interface AlertItem {
   ts: string;
   level: 'crit' | 'warn' | 'info';
   text: string;
+}
+
+// ── 页面⑦ 告警中心（Wave 2 Phase B；07-alerts §6 / 02-alerts §5 后端线格式，snake_case 不驼峰转换）──
+
+export type AlertLevelName = 'info' | 'warning' | 'critical';
+export type AlertStatusName = 'triggered' | 'acked' | 'resolved';
+
+/** GET /api/alerts 项 / WS {type:"alert"} 帧载荷（聚合防刷屏：同 rule+source 未恢复一条） */
+export interface AlertEventItem {
+  id: number;
+  rule_id: string;
+  level: AlertLevelName;
+  source: string; // 源ID / 标的 code / 系统组件
+  message: string;
+  status: AlertStatusName;
+  fire_count: number; // 聚合触发计数
+  first_fired_at: string;
+  last_fired_at: string;
+  acked_at: string | null;
+  resolved_at: string | null;
+}
+
+/** GET /api/alert-rules 项（内置规则；仅 threshold/enabled/silence_minutes 可调） */
+export interface AlertRuleItem {
+  id: string;
+  name: string;
+  level: AlertLevelName;
+  threshold: number; // 语义按 id：成功率下限(0-1)/缺口率%/停摆分钟数/未用
+  duration_minutes: number;
+  silence_minutes: number;
+  enabled: boolean;
+}
+
+/** GET /api/alerts 查询参数（缺省不过滤；from/to 为 last_fired_at 口径 RFC3339） */
+export interface AlertQuery {
+  level?: AlertLevelName;
+  from?: string;
+  to?: string;
+  source?: string;
+  limit?: number;
+}
+
+/** PATCH /api/alert-rules 请求体（缺省字段 = 不改） */
+export interface AlertRulePatchBody {
+  threshold?: number;
+  enabled?: boolean;
+  silence_minutes?: number;
 }
 
 /** GET /api/sources/{id}/events 项（事件流水） */

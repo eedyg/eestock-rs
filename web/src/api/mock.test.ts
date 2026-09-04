@@ -102,4 +102,34 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(div.thresholdPct).toBe(0.5);
     await expect(api.resetSource('tencent_qt')).resolves.toBeUndefined();
   });
+
+  it('页面⑦ 告警 mock：列表过滤 / ack 状态翻转 / 规则 patch 闭环', async () => {
+    const api = createMockClient({ now: new Date('2026-09-07T03:00:00Z') });
+    // 列表（默认倒序）+ 过滤
+    const all = await api.getAlertEvents({});
+    expect(all.length).toBeGreaterThan(0);
+    expect(all[0]).toHaveProperty('rule_id');
+    const crit = await api.getAlertEvents({ level: 'critical' });
+    expect(crit.every((e) => e.level === 'critical')).toBe(true);
+    const bySrc = await api.getAlertEvents({ source: 'collector' });
+    expect(bySrc.every((e) => e.source === 'collector')).toBe(true);
+    // ack：triggered → acked（持久化于 mock 内部状态）；重复 ack → 404
+    const target = all.find((e) => e.status === 'triggered')!;
+    const acked = await api.ackAlert(target.id);
+    expect(acked.status).toBe('acked');
+    expect(acked.acked_at).not.toBeNull();
+    await expect(api.ackAlert(target.id)).rejects.toMatchObject({ status: 404 });
+    // 规则：4 条内置规则；patch 阈值/开关闭环
+    const rules = await api.getAlertRules();
+    expect(rules).toHaveLength(4);
+    const patched = await api.patchAlertRule('symbol_gap_rate', { threshold: 10, enabled: false });
+    expect(patched.threshold).toBe(10);
+    expect(patched.enabled).toBe(false);
+    expect(patched.silence_minutes).toBe(30); // 未给字段不改
+    await expect(api.patchAlertRule('no_such', { enabled: true })).rejects.toMatchObject({ status: 404 });
+    // 遗留预览 getAlerts（02-sources §7 样例基线，level ∈ crit/warn/info）
+    const legacy = await api.getAlerts(10);
+    expect(legacy.length).toBeGreaterThan(0);
+    expect(['crit', 'warn', 'info']).toContain(legacy[0]!.level);
+  });
 });
