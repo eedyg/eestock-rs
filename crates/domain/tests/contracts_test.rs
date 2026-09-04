@@ -156,4 +156,19 @@ fn trace_id_format() {
     assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
     assert_ne!(a, b, "两次生成应不同");
 }
+
+#[test]
+fn source_id_parse_roundtrip_and_unknown() {
+    // Phase C 加法：parse 为 as_str 的逆（含 *_approx 全变体）
+    for s in [
+        SourceId::TencentIfzq, SourceId::SinaJsonp, SourceId::TencentQt, SourceId::SinaHq,
+        SourceId::ThsCs, SourceId::Push2delay, SourceId::Exchange, SourceId::Tushare,
+        SourceId::TencentQtApprox, SourceId::SinaHqApprox, SourceId::ThsCsApprox,
+        SourceId::Push2delayApprox, SourceId::ExchangeApprox,
+    ] {
+        assert_eq!(SourceId::parse(s.as_str()), Some(s), "{} 应往返一致", s.as_str());
+    }
+    assert_eq!(SourceId::parse("nonexistent_src"), None, "未知源 → None（消费端跳过不 panic）");
+    assert_eq!(SourceId::parse(""), None);
+}
 // ~/~ end

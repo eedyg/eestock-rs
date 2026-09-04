@@ -8,6 +8,8 @@ pub mod clock;
 pub mod executor;
 pub mod gapfill;
 pub mod probe;
+// reset：熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展，§10；数据面零既有逻辑改动）
+pub mod reset;
 pub mod scheduler;
 pub mod service;
 pub mod standby;

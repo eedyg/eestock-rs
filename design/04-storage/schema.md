@@ -185,6 +185,27 @@ SELECT add_compression_policy('kline_accurate', INTERVAL '7 days');
 -- SELECT count(compress_chunk(x)) FROM show_chunks('kline_accurate', older_than => INTERVAL '7 days') x;
 ```
 
+## 4.3.1 DB 控制通道表（Wave 1 Phase C，ADR-017）
+
+应用面与数据面零 API 直连（ADR-017）：`POST /api/sources/{id}/reset` 手动熔断复位经
+本表传递——应用面插入请求行，数据面 `collector::reset::ResetWatcher` 轮询、原子标记消费，
+再经 `CircuitRegistry.manual_reset` 复位（`manual_reset` 事件仍由数据面单写者发出，
+source_health_events 写路径不变）。非 hypertable（控制面小表，无压缩/分区需求）。
+
+``` {.sql file=migrations/0007_circuit_reset.sql}
+-- 0007_circuit_reset.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- Wave 1 Phase C：熔断复位 DB 控制通道（ADR-017：应用面唯一耦合点 = DB）。
+-- 应用面 POST /api/sources/{id}/reset 插入；数据面 ResetWatcher 轮询消费（consumed_at 标记）。
+CREATE TABLE circuit_reset_requests (
+    id           bigserial PRIMARY KEY,
+    source       text NOT NULL,            -- SourceId::as_str 口径文本
+    requested_at timestamptz NOT NULL DEFAULT now(),
+    consumed_at  timestamptz               -- NULL = 待消费
+);
+-- 消费端轮询（consumed_at IS NULL）部分索引，避免全表扫描
+CREATE INDEX circuit_reset_pending_idx ON circuit_reset_requests (id) WHERE consumed_at IS NULL;
+```
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

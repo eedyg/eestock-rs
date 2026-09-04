@@ -107,6 +107,8 @@ pub mod clock;
 pub mod executor;
 pub mod gapfill;
 pub mod probe;
+// reset：熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展，§10；数据面零既有逻辑改动）
+pub mod reset;
 pub mod scheduler;
 pub mod service;
 pub mod standby;
@@ -1852,5 +1854,140 @@ fn fetch_limit_remaining_plus_overlap() {
     // 盘后 15:30 CST → 0；周六 → 0
     assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap()), 0);
     assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap()), 0);
+}
+```
+
+## 10. 熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展）
+
+> 父级授权口径（Wave 1 Phase C 任务书）：应用面 `POST /api/sources/{id}/reset` 只写 DB
+> （`circuit_reset_requests` 表，0007 迁移），数据面经本模块轮询消费后调
+> `CircuitRegistry::manual_reset` 完成复位——**ADR-017 下无跨进程直连，DB 为唯一耦合点**。
+> 纯加法：circuit.rs / service.rs / 调度与抓取路径一行不动；`manual_reset` 事件仍由数据面
+> 单写者发出（source_health_events 写路径不变），diagnose 聚合自动呈现闭合、WS 推送生效。
+> 未知 source 文本（`SourceId::parse` → None）跳过并 warn，不 panic。
+
+``` {.rust file=crates/collector/src/reset.rs}
+//! 熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展，ADR-017）。
+//! 应用面写 circuit_reset_requests；本任务轮询原子消费 → CircuitRegistry.manual_reset
+//! （复位事件由数据面单写者发出；未知 source 跳过并 warn）。既有采集/熔断逻辑零改动。
+
+use crate::circuit::CircuitRegistry;
+use domain::ports::CircuitResetChannel;
+use domain::types::SourceId;
+use std::sync::Arc;
+use std::time::Duration;
+
+/// 复位轮询周期：复位为低频人工操作，5s 足够敏捷（事件表聚合窗口远宽于此）。
+pub const RESET_POLL_INTERVAL: Duration = Duration::from_secs(5);
+
+pub struct ResetWatcher {
+    channel: Arc<dyn CircuitResetChannel>,
+    circuits: Arc<CircuitRegistry>,
+}
+
+impl ResetWatcher {
+    pub fn new(channel: Arc<dyn CircuitResetChannel>, circuits: Arc<CircuitRegistry>) -> Self {
+        Self { channel, circuits }
+    }
+
+    /// 单轮消费（测试可直调）：取出全部待消费复位请求并逐条执行，返回实际复位数。
+    pub async fn poll_once(&self) -> anyhow::Result<usize> {
+        let reqs = self.channel.take_pending().await?;
+        let mut applied = 0usize;
+        for r in reqs {
+            match SourceId::parse(&r.source) {
+                Some(src) => {
+                    tracing::info!(source = %r.source, request_id = r.id, "circuit manual reset consumed");
+                    self.circuits.manual_reset(src).await;
+                    applied += 1;
+                }
+                None => tracing::warn!(source = %r.source, request_id = r.id,
+                    "reset request for unknown source skipped"),
+            }
+        }
+        Ok(applied)
+    }
+}
+
+/// 常驻任务：按 RESET_POLL_INTERVAL 轮询消费（单轮失败记 warn 下轮重试，不退出）。
+pub async fn run_forever(watcher: Arc<ResetWatcher>) {
+    loop {
+        if let Err(e) = watcher.poll_once().await {
+            tracing::warn!(error = %e, "circuit reset poll failed");
+        }
+        tokio::time::sleep(RESET_POLL_INTERVAL).await;
+    }
+}
+```
+
+测试规格（内存 channel + 既有 fake clock/MemSink 复用，无 DB）：
+
+``` {.rust file=crates/collector/tests/reset_test.rs}
+//! ResetWatcher（§10，Wave 1 Phase C）：DB 控制通道消费 → CircuitRegistry.manual_reset。
+
+mod common;
+
+use chrono::{TimeZone, Utc};
+use collector::circuit::CircuitRegistry;
+use collector::clock::FakeClock;
+use collector::reset::ResetWatcher;
+use common::MemSink;
+use domain::ports::{CircuitResetChannel, HealthMonitor, ResetRequest};
+use domain::types::SourceId;
+use std::sync::{Arc, Mutex};
+
+/// 内存复位通道：take_pending 弹出并清空（模拟原子消费）。
+#[derive(Default)]
+struct MemChannel {
+    pending: Mutex<Vec<ResetRequest>>,
+}
+
+#[async_trait::async_trait]
+impl CircuitResetChannel for MemChannel {
+    async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>> {
+        Ok(std::mem::take(&mut *self.pending.lock().unwrap()))
+    }
+}
+
+fn fixture() -> (Arc<ResetWatcher>, Arc<MemChannel>, Arc<CircuitRegistry>, Arc<MemSink>) {
+    let clock = Arc::new(FakeClock::new(Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap()));
+    let sink = Arc::new(MemSink::default());
+    let circuits = Arc::new(CircuitRegistry::new(
+        vec![SourceId::TencentIfzq, SourceId::SinaJsonp], clock, sink.clone()));
+    let channel = Arc::new(MemChannel::default());
+    let watcher = Arc::new(ResetWatcher::new(channel.clone(), circuits.clone()));
+    (watcher, channel, circuits, sink)
+}
+
+#[tokio::test]
+async fn pending_reset_applied_and_event_emitted() {
+    const S: SourceId = SourceId::TencentIfzq;
+    let (watcher, channel, circuits, sink) = fixture();
+    // 先打到熔断：连续 3 次失败 → Open
+    for _ in 0..3 { circuits.report_failure(S, "http").await; }
+    assert_eq!(circuits.state(S).await, collector::circuit::CircuitState::Open);
+
+    channel.pending.lock().unwrap()
+        .push(ResetRequest { id: 1, source: S.as_str().into() });
+    let applied = watcher.poll_once().await.unwrap();
+    assert_eq!(applied, 1);
+    assert_eq!(circuits.state(S).await, collector::circuit::CircuitState::Healthy,
+        "消费后任意态 → Healthy");
+    assert!(sink.kinds().contains(&Some("manual_reset".into())),
+        "复位事件由数据面单写者发出");
+    assert!(channel.pending.lock().unwrap().is_empty(), "请求已被取走（原子消费）");
+}
+
+#[tokio::test]
+async fn unknown_source_skipped_and_empty_is_noop() {
+    let (watcher, channel, circuits, _sink) = fixture();
+    channel.pending.lock().unwrap()
+        .push(ResetRequest { id: 2, source: "no_such_source".into() });
+    let applied = watcher.poll_once().await.unwrap();
+    assert_eq!(applied, 0, "未知 source 跳过不 panic");
+    // 空队列：0 且不产生任何事件
+    assert_eq!(watcher.poll_once().await.unwrap(), 0);
+    assert_eq!(circuits.state(SourceId::SinaJsonp).await,
+        collector::circuit::CircuitState::Healthy, "未受影响源保持原态");
 }
 ```

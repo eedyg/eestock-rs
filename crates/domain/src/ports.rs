@@ -168,4 +168,74 @@ pub trait HealthEventsRead: Send + Sync {
     /// 窗口内全部事件（ts > now() - window_secs）；无序要求（diagnose 聚合时自行归组排序）。
     async fn window_events(&self, window_secs: i64) -> anyhow::Result<Vec<HealthEventRow>>;
 }
+
+// ── Wave 1 Phase C 加法扩展：DB 控制通道端口（ADR-017：应用面只经 DB 影响数据面）──
+// 与 Phase A 只读端口同模式：端口在 domain，storage 实现，app bin 装配，web/collector 只依赖端口。
+
+/// 标的管理注册输入（POST /api/symbols；字段校验已在 web 层完成——
+/// code 6 位数字+市场前缀、interval_secs≥60、settlement∈{T0,T1}，与 schema CHECK 同口径）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolAdminInput {
+    pub code: String,
+    pub name: Option<String>,     // 服务端不反查行情源（ADR-017 无数据面直连），可空，可后续 PATCH 补
+    pub interval_secs: i32,
+    pub settlement: String,       // "T0" | "T1"
+    pub enabled: bool,
+}
+
+/// 标的编辑补丁（PATCH /api/symbols/{code}；None = 该字段不改）。
+/// code 主键不可改（03-symbols §3：改 code = 停用旧 + 注册新）；无物理删除（仅 enabled=false 停用）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SymbolPatch {
+    pub name: Option<String>,
+    pub interval_secs: Option<i32>,
+    pub settlement: Option<String>,
+    pub enabled: Option<bool>,
+}
+
+/// 标的管理写端口（应用面 POST/PATCH /api/symbols；storage 实现）。
+/// 写 symbols 表即控制通道：数据面 Scheduler 每周期重读热生效，无需任何直连。
+#[async_trait]
+pub trait SymbolAdminWrite: Send + Sync {
+    /// 注册；code 已存在 → Ok(false)（web 层映射 409）。
+    async fn register(&self, input: &SymbolAdminInput) -> anyhow::Result<bool>;
+    /// 编辑；code 不存在 → Ok(false)（web 层映射 404）。间隔修改下一采集周期热生效。
+    async fn update(&self, code: &str, patch: &SymbolPatch) -> anyhow::Result<bool>;
+}
+
+/// 标的当日采集统计读模型（页面③ symbol-table「今日已采 bar 数/最新 bar 时刻」列）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct SymbolStatView {
+    pub code: String,
+    pub today_bars: i64,                   // 当日（Asia/Shanghai 日界）kline_raw 行数
+    pub last_bar_ts: Option<DateTime<Utc>>,
+}
+
+/// 标的采集统计只读端口（GET /api/symbols?with_stats=1；storage 实现）。
+#[async_trait]
+pub trait SymbolStatsRead: Send + Sync {
+    /// 当日（Asia/Shanghai 日界）kline_raw 每 code bar 数与最新 ts；无 bar 的 code 不出现。
+    async fn today_stats(&self) -> anyhow::Result<Vec<SymbolStatView>>;
+}
+
+/// 熔断复位请求（DB 控制通道 circuit_reset_requests 行）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResetRequest {
+    pub id: i64,
+    pub source: String,                    // SourceId::as_str 口径文本；未知源由消费端跳过
+}
+
+/// 熔断复位写端口（应用面 POST /api/sources/{id}/reset；storage 实现）。
+/// 仅插入请求行；实际复位由数据面 ResetWatcher 消费后执行（事件仍由数据面单写者发出）。
+#[async_trait]
+pub trait CircuitResetWrite: Send + Sync {
+    async fn request_reset(&self, source: &str) -> anyhow::Result<()>;
+}
+
+/// 熔断复位消费端口（数据面 collector::reset::ResetWatcher；storage 实现）。
+/// 原子取出并标记消费（UPDATE ... RETURNING），避免多实例/重试重复触发。
+#[async_trait]
+pub trait CircuitResetChannel: Send + Sync {
+    async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>>;
+}
 // ~/~ end

@@ -134,6 +134,22 @@ impl SourceId {
             other => *other,
         }
     }
+    /// 落库文本 → SourceId（Wave 1 Phase C 加法：熔断复位 DB 控制通道反解析用）。
+    /// 未知文本 → None（消费端跳过并告警，不 panic）。
+    pub fn parse(s: &str) -> Option<SourceId> {
+        Some(match s {
+            "tencent_ifzq" => SourceId::TencentIfzq, "sina_jsonp" => SourceId::SinaJsonp,
+            "tencent_qt" => SourceId::TencentQt, "sina_hq" => SourceId::SinaHq,
+            "ths_cs" => SourceId::ThsCs, "push2delay" => SourceId::Push2delay,
+            "exchange" => SourceId::Exchange, "tushare" => SourceId::Tushare,
+            "tencent_qt_approx" => SourceId::TencentQtApprox,
+            "sina_hq_approx" => SourceId::SinaHqApprox,
+            "ths_cs_approx" => SourceId::ThsCsApprox,
+            "push2delay_approx" => SourceId::Push2delayApprox,
+            "exchange_approx" => SourceId::ExchangeApprox,
+            _ => return None,
+        })
+    }
 }
 
 /// 生成 Trace ID：32 位 hex（rand 生成）。

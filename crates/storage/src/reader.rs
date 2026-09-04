@@ -10,7 +10,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use domain::ports::{HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView};
+use domain::ports::{
+    HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView, SymbolStatView,
+    SymbolStatsRead,
+};
 use domain::types::Period;
 use sqlx::PgPool;
 
@@ -67,6 +70,14 @@ WHERE ts > now() - make_interval(secs => $1)
 ORDER BY source, ts
 "#;
 
+/// 当日（Asia/Shanghai 日界）kline_raw 每 code 行数与最新 ts（页面③ with_stats 数据源）。
+const TODAY_STATS_SQL: &str = r#"
+SELECT code, count(*)::bigint AS today_bars, max(ts) AS last_bar_ts
+FROM kline_raw
+WHERE ts >= $1 AND ts < $2
+GROUP BY code
+"#;
+
 /// K线只读端口实现（PgPool）。
 pub struct KlineReader {
     pool: PgPool,
@@ -109,6 +120,23 @@ impl KlineRead for KlineReader {
             SymbolLatestView { code, name, interval_secs, settlement, enabled,
                                last_ts, last_close, prev_close }
         ).collect())
+    }
+}
+
+/// 标的当日采集统计（SymbolStatsRead 实现；页面③ GET /api/symbols?with_stats=1 数据源）。
+/// 当日 = Asia/Shanghai 日界（domain::tz 固定 +8 平移口径，与 RawBarReader::existing_ts 一致）。
+#[async_trait]
+impl SymbolStatsRead for KlineReader {
+    async fn today_stats(&self) -> Result<Vec<SymbolStatView>> {
+        let today_cst = domain::tz::utc_to_cst(Utc::now()).date();
+        let start = domain::tz::cst_to_utc(today_cst.and_hms_opt(0, 0, 0).expect("valid hms"));
+        let end = domain::tz::cst_to_utc((today_cst + chrono::Duration::days(1))
+            .and_hms_opt(0, 0, 0).expect("valid hms"));
+        type Row = (String, i64, Option<DateTime<Utc>>);
+        let rows: Vec<Row> = sqlx::query_as(TODAY_STATS_SQL)
+            .bind(start).bind(end).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(code, today_bars, last_bar_ts)|
+            SymbolStatView { code, today_bars, last_bar_ts }).collect())
     }
 }
 

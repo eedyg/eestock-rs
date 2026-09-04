@@ -105,11 +105,13 @@ impl EventSink for PgEventSink {
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 
-/// 0001–0006 应存在的关系（表/视图/连续聚合）。
+/// 0001–0007 应存在的关系（表/视图/连续聚合）。
 pub const EXPECTED_RELATIONS: &[&str] = &[
     "kline_raw", "kline_accurate", "symbols", "source_health_events",
     "metrics", "chip_distribution", "share_float", "sync_checkpoints",
     "kline_merged", "kline_5m", "kline_15m", "kline_1d", "kline_accurate_1d",
+    // Wave 1 Phase C 加法：熔断复位 DB 控制通道表（0007）
+    "circuit_reset_requests",
 ];
 
 /// 应为 hypertable 的表。
@@ -141,7 +143,7 @@ pub async fn verify_schema(pool: &PgPool) -> Result<()> {
     let miss_hyper = missing_hypertables(pool, EXPECTED_HYPERTABLES).await?;
     if !miss_rel.is_empty() || !miss_hyper.is_empty() {
         return Err(anyhow!(
-            "schema 自检失败：缺失关系 {miss_rel:?}；非 hypertable {miss_hyper:?}（migrations 0001-0006 未落库）"));
+            "schema 自检失败：缺失关系 {miss_rel:?}；非 hypertable {miss_hyper:?}（migrations 0001-0007 未落库）"));
     }
     Ok(())
 }

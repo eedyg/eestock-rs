@@ -585,6 +585,9 @@ pub mod migrate_check;
 // reader：应用面只读加法扩展（Wave 1 Phase A，ADR-017 授权口径；代码块在 design/07-app-plane/00-web-api.md）
 pub mod reader;
 pub mod symbols;
+// admin：应用面写/控制通道加法扩展（Wave 1 Phase C：标的管理写 + 熔断复位 DB 通道；
+// 代码块在 design/07-app-plane/00-web-api.md）
+pub mod admin;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}
