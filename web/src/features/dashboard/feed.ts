@@ -4,6 +4,21 @@ import type { WsClient, WsMessage } from '@/ws/WsClient';
 
 export type FeedStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 
+/** 每个周期 1 个交易日的 bar 数（A股交易时段 4h=240min + 集合竞价/收盘余量；经真数据核对 1m≈241、5m≈49、15m≈17、1h≈5） */
+export const BARS_PER_TRADING_DAY: Record<Period, number> = {
+  '1m': 241,
+  '5m': 49,
+  '15m': 17,
+  '1h': 5,
+  '1d': 1,
+};
+
+/** 默认视口 = 当日 + 前一交易日（定稿 1d / 补定稿）：2 个交易日的 bar 数，避免裸 500 过度加载/缩成一小截 */
+export function defaultPageSizeForPeriod(period: Period): number {
+  return BARS_PER_TRADING_DAY[period] * 2;
+}
+
+
 type WsLike = Pick<WsClient, 'subscribe'>;
 
 export interface KlineDataFeedDeps {
@@ -11,7 +26,7 @@ export interface KlineDataFeedDeps {
   ws: WsLike;
   code: string;
   period: Period;
-  pageSize?: number; // 默认 500（定稿 1d：默认当日+前一交易日，向前按需分页）
+  pageSize?: number; // 默认 = 2 个交易日的 bar 数（defaultPageSizeForPeriod，定稿 1d/补定稿）；宫格缩略图显式传小值
 }
 
 /**
@@ -33,7 +48,7 @@ export class KlineDataFeed {
   private disposed = false;
 
   constructor(private deps: KlineDataFeedDeps) {
-    this.pageSize = deps.pageSize ?? 500;
+    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period);
   }
 
   /** 任意状态变更（加载完成/分页拼接/实时更新） */

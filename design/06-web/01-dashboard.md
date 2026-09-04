@@ -329,3 +329,9 @@ export function DashboardGrid(props: DashboardGridProps) {
 ## 补定稿（2026-09-04，用户追加确认）
 - **默认视口** = 当日 + 前一交易日（定稿 1d 不变）；**向前滚动分页**可达最近 10-20 个交易日（分页加载复用 `?before=&limit=`，feed.pageSize 与视口对齐，避免"缩到一小截"；默认 pageSize 改为与"2 交易日"匹配，滚动再加载后续）
 - **实时 bar 动态效果**（新增）：WS 推送进行中当根 bar（`updateBar`/实时态）时，用**虚线 + 闪烁/跳动**强标记，与已收盘实体直条明确区分，形成每秒跳动更新感；实现遵循 klinecharts 实时 bar 能力，主图 K 线适用，宫格缩略图可简化为仅最新值跳动
+
+### 补定稿落位（2026-09-04 实现记录，供 coder 核对）
+- **pageSize = 2 交易日**：`feed.ts` 新增 `BARS_PER_TRADING_DAY`（1m=241、5m=49、15m=17、1h=5、1d=1，经真数据核对）与 `defaultPageSizeForPeriod(period)`，默认 pageSize 由 500 改为 2×交易日 bar 数（15m=34）；向前分页继续复用 `?before=&limit=`（可达 10-20 交易日）。
+  - ⚠️ 注：设计原记"15m≈192 根"，经 `GET /api/kline?code=159337&period=15m` 实测为 **18 根/交易日**（2 交易日=36），故按"2 交易日"折算取 34，而非 192（192 系按全日 24h 估算，与 A 股 4h 交易时段不符）。
+- **横向铺满修复**：K线蜡烛左侧大片空白死区起因 = klinecharts 默认 barSpace=10 → 可见 bar 数≈容器宽/10（15m 下来约 95 根），而 15m 仅 2 交易日 ≈36 根，不足填满窗口，scrollToRealTime 锚右 → 蜡烛只占右 ~40%、左 ~48% 死区。修复：`KlineChart.tsx` 按容器实际宽度 + 默认视口（2 交易日）设置 `chart.setBarSpace(空间)`（初次 load 后固定，向前分页不再变窄），使蜡烛横向铺满整个图表区、左右无死区（实测 15m leftBlank≈0.4%）。
+- **实时 bar 虚线+闪烁**：klinecharts 无内建"未收盘 bar 虚线"样式，采用轻量 overlay 补充——`KlineChart.tsx` 在实时回调中用 `chart.convertToPixel({timestamp})` 定位最近（进行中）一根 bar 的像素 x，叠加一条 `border-dashed` 竖线 + `animate-pulse` 蓝点 + 实时价标签，每秒跳动更新（见 `[data-realtime-marker]`）。

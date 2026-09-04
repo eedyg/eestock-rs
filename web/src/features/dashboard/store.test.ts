@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DashboardStore } from './store';
-import { KlineDataFeed } from './feed';
+import { KlineDataFeed, defaultPageSizeForPeriod, BARS_PER_TRADING_DAY } from './feed';
 import type { ApiClient } from '@/api/client';
 import type { Bar, SymbolSnapshot } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
@@ -190,6 +190,15 @@ describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/�
     expect(feed.bars).toHaveLength(2);
     expect(feed.status).toBe('ready');
     expect(ws.subscribe).toHaveBeenCalledWith('bar:518880:15m', expect.any(Function));
+    feed.dispose();
+  });
+
+  it('未传 pageSize 时默认 = 2 个交易日 bar 数（补定稿：15m=2×17=34）', async () => {
+    const api = fakeApi({ getKline: vi.fn(async () => []) });
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m' });
+    await feed.loadInitial();
+    expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: defaultPageSizeForPeriod('15m') });
+    expect(defaultPageSizeForPeriod('15m')).toBe(BARS_PER_TRADING_DAY['15m'] * 2);
     feed.dispose();
   });
 

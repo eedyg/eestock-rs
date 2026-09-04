@@ -41,23 +41,27 @@ export function DashboardGrid(props: DashboardGridProps) {
         {/* <SymbolList symbols selected onSelect/> */}
       </aside>
 
-      <main data-region="main-area" className="flex flex-1 flex-col">
+      <main data-region="main-area" className="flex min-h-0 flex-1 flex-col">
 
         {/* toolbar：静态控件无三态；周期/Tab/指标勾选/宫格/回到最新 */}
-        <div data-region="toolbar" className="h-9 border-b">
+        <div data-region="toolbar" className="h-9 shrink-0 border-b">
           {/* <PeriodSwitch/> <ChartTab/> <IndicatorToggles/> <GridSwitch/> <BackToLatest/> */}
         </div>
 
         {props.gridMode === 'single' ? (
           <>
             {/* main-chart：GET /api/kline（merge 视图，1m 读 raw、高周期读 cagg）+ WS {type:"bar"}；
-                三态=骨架图/「该时段无数据」占位/错误占位+重试；手动缩放后不强拉 */}
-            <div data-region="main-chart" className="flex-1">
-              {/* <KlineChart/> 或 <TimeshareChart/>（chartTab 切换） */}
-            </div>
-            {/* sub-chart：成交量，随主图数据/三态，无独立交互 */}
-            <div data-region="sub-chart" className="h-1/5">
-              {/* <VolumeChart/> */}
+                三态=骨架图/「该时段无数据」占位/错误占位+重试；手动缩放后不强拉。
+                klinecharts 单实例（candle + VOL 副图分 pane）容器取 h-full 填满本区域，
+                故本区域用 relative min-h-0 flex-1 承接整段图表区（含底部副图），
+                sub-chart 作为 region 锚点以绝对定位占位（region 契约不变，见 §1 L1/L2）。 */}
+            <div data-region="main-chart" className="relative min-h-0 flex-1">
+              {/* <KlineChart/> 或 <TimeshareChart/>（chartTab 切换；经 RegionPortal 挂入本锚点） */}
+              {/* sub-chart：成交量副图（klinecharts volume pane 经主图容器 h-full 在底部呈现），
+                  随主图数据/三态，无独立交互；绝对定位仅作锚点占位，不占主图布局 */}
+              <div data-region="sub-chart" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t">
+                {/* <VolumeChart/> */}
+              </div>
             </div>
           </>
         ) : (
