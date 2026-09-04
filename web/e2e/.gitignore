@@ -1,0 +1,2 @@
+# Playwright 运行产物（trace / 失败截图 / 测试结果），瞬时，不入库
+artifacts/
