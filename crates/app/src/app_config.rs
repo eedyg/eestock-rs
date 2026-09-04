@@ -19,9 +19,13 @@ pub struct AppConfig {
     /// WS 推送轮询周期（毫秒）
     #[serde(default = "default_ws_poll_ms")]
     pub ws_poll_ms: u64,
+    /// MCP HTTP/SSE 监听地址（Wave 1 Phase D，ADR-009；与 web 同进程、端口独立，仅局域网）
+    #[serde(default = "default_mcp_listen")]
+    pub mcp_listen: String,
 }
 
 fn default_listen() -> String { "0.0.0.0:8081".into() }
+fn default_mcp_listen() -> String { "0.0.0.0:8082".into() }
 fn default_static_dir() -> String { "./web/dist".into() }
 fn default_health_window() -> i64 { 3600 }
 fn default_ws_poll_ms() -> u64 { 3000 }
@@ -34,6 +38,7 @@ pub fn load(path: &str) -> anyhow::Result<AppConfig> {
         .map_err(|e| anyhow::anyhow!("parse config {path}: {e}"))?;
     if let Ok(v) = std::env::var("DATABASE_URL") { cfg.database_url = v; }
     if let Ok(v) = std::env::var("APP_LISTEN") { cfg.listen = v; }
+    if let Ok(v) = std::env::var("MCP_LISTEN") { cfg.mcp_listen = v; }
     Ok(cfg)
 }
 // ~/~ end

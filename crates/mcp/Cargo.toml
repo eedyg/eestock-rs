@@ -1,7 +1,27 @@
 [package]
 name = "mcp"
-description = "Presentation：MCP HTTP/SSE 服务（空壳，Wave 1 实现）"
+description = "Presentation：MCP HTTP/SSE 常驻服务（ADR-009 范围①②；src 由 design/07-app-plane/01-mcp.md tangle 生成）"
 version.workspace = true
 edition.workspace = true
 
+# 分层红线（与 web 同口径）：mcp 只依赖 domain 端口 + diagnose 服务，不得依赖 storage/sqlx。
 [dependencies]
+domain = { path = "../domain" }
+diagnose = { path = "../diagnose" }
+axum.workspace = true
+# tokio-stream：SSE 流包装（父级裁决 2026-09-04 批准；决策注记见 01-mcp.md §0）
+tokio-stream.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+rand.workspace = true
+
+[dev-dependencies]
+# 集成测试需要具体实现做装配与造数；仅 dev 侧，正常依赖图不含（cargo tree -p mcp -e normal 验证）
+storage = { path = "../storage" }
+sqlx.workspace = true
+reqwest.workspace = true
+async-trait.workspace = true

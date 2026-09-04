@@ -22,7 +22,7 @@ COPY --from=builder /build/target/release/eestock-app /usr/local/bin/eestock-app
 # SPA 静态资源来自 frontend 阶段构建产物
 COPY --from=frontend /web/dist /app/dist
 USER eestock
-EXPOSE 8081
+EXPOSE 8081 8082
 ENTRYPOINT ["/usr/local/bin/eestock-app"]
 CMD ["--config", "/etc/eestock/app.toml"]
 # ~/~ end

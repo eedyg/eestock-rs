@@ -37,10 +37,12 @@ async fn main() -> anyhow::Result<()> {
 
     // DI 装配（ADR-017：app 是唯一持有 storage 具体实现的应用面组件；
     // web 只见 domain::ports，diagnose 只见 domain::ports::HealthEventsRead）
+    // Phase D：HealthEventsRead 实现实例 web 与 mcp 共享（同一 Arc）
+    let health_events: Arc<dyn domain::ports::HealthEventsRead> =
+        Arc::new(storage::reader::HealthEventReader::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
-        health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        health: diagnose::health::HealthService::new(health_events.clone()),
         // Phase C：symbols 写端点 / with_stats 当日统计 / 熔断复位 DB 控制通道
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
@@ -51,6 +53,21 @@ async fn main() -> anyhow::Result<()> {
         subs: web::ws::SubscriptionRegistry::default(),
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());
+
+    // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
+    // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
+    let mcp_state = Arc::new(mcp::state::McpState {
+        kline: state.kline.clone(),
+        health: diagnose::health::HealthService::new(health_events),
+        default_window_secs: cfg.health_window_secs,
+        sessions: mcp::state::SessionRegistry::default(),
+    });
+    let mcp_listen = cfg.mcp_listen.clone();
+    tokio::spawn(async move {
+        if let Err(e) = mcp::server::serve(mcp_state, &mcp_listen).await {
+            tracing::error!(error = %e, "mcp server exited");
+        }
+    });
 
     let listener = tokio::net::TcpListener::bind(&cfg.listen).await?;
     tracing::info!(listen = %cfg.listen, static_dir = %cfg.static_dir, "eestock-app serving");

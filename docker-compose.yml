@@ -71,6 +71,7 @@ services:
       - ./config/app.toml:/etc/eestock/app.toml:ro
     ports:
       - "8081:8081"   # 应用面 REST/WS/SPA（数据面 8080 不动）
+      - "8082:8082"   # MCP HTTP/SSE（Wave 1 Phase D，ADR-009；免认证内网 ADR-010，仅局域网）
     healthcheck:
       # 复用二进制自带 --self-check（GET /healthz，axum 路由）
       test: ["CMD", "/usr/local/bin/eestock-app", "--self-check"]

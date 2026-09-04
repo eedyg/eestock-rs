@@ -29,6 +29,12 @@
 > （集成测试装配与造数）。验证：`cargo tree -p web -e normal` 无 storage/sqlx、`-p diagnose` 无 sqlx。
 > ② **Dockerfile.app 自包含**——新增 node:22 frontend 阶段（npm ci → npm run build），dist 由镜像内
 > 构建产出，不再依赖构建上下文预存 dist；前端 dist 产物不入库（web/.gitignore 已含 dist/）。
+>
+> ⚠️ 2026-09-04 Phase D 加法（Wave 1 Phase D 任务书；全部口径见 design/07-app-plane/01-mcp.md）：
+> `app_config.rs` +`mcp_listen`（默认 `0.0.0.0:8082`，env `MCP_LISTEN` 覆盖）、`eestock-app.rs` 装配
+> MCP HTTP/SSE 服务（ADR-009 范围①②，与 web **同进程**、**端口独立** 8082，复用同一
+> KlineRead/HealthEventsRead 端口实现实例）、`Dockerfile.app` `EXPOSE 8081 8082`——均为纯加法，
+> web/diagnose/storage 既有块零改动。
 
 ## 1. 端点契约
 
@@ -1899,9 +1905,13 @@ pub struct AppConfig {
     /// WS 推送轮询周期（毫秒）
     #[serde(default = "default_ws_poll_ms")]
     pub ws_poll_ms: u64,
+    /// MCP HTTP/SSE 监听地址（Wave 1 Phase D，ADR-009；与 web 同进程、端口独立，仅局域网）
+    #[serde(default = "default_mcp_listen")]
+    pub mcp_listen: String,
 }
 
 fn default_listen() -> String { "0.0.0.0:8081".into() }
+fn default_mcp_listen() -> String { "0.0.0.0:8082".into() }
 fn default_static_dir() -> String { "./web/dist".into() }
 fn default_health_window() -> i64 { 3600 }
 fn default_ws_poll_ms() -> u64 { 3000 }
@@ -1914,6 +1924,7 @@ pub fn load(path: &str) -> anyhow::Result<AppConfig> {
         .map_err(|e| anyhow::anyhow!("parse config {path}: {e}"))?;
     if let Ok(v) = std::env::var("DATABASE_URL") { cfg.database_url = v; }
     if let Ok(v) = std::env::var("APP_LISTEN") { cfg.listen = v; }
+    if let Ok(v) = std::env::var("MCP_LISTEN") { cfg.mcp_listen = v; }
     Ok(cfg)
 }
 ```
@@ -1957,10 +1968,12 @@ async fn main() -> anyhow::Result<()> {
 
     // DI 装配（ADR-017：app 是唯一持有 storage 具体实现的应用面组件；
     // web 只见 domain::ports，diagnose 只见 domain::ports::HealthEventsRead）
+    // Phase D：HealthEventsRead 实现实例 web 与 mcp 共享（同一 Arc）
+    let health_events: Arc<dyn domain::ports::HealthEventsRead> =
+        Arc::new(storage::reader::HealthEventReader::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
-        health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        health: diagnose::health::HealthService::new(health_events.clone()),
         // Phase C：symbols 写端点 / with_stats 当日统计 / 熔断复位 DB 控制通道
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
@@ -1971,6 +1984,21 @@ async fn main() -> anyhow::Result<()> {
         subs: web::ws::SubscriptionRegistry::default(),
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());
+
+    // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
+    // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
+    let mcp_state = Arc::new(mcp::state::McpState {
+        kline: state.kline.clone(),
+        health: diagnose::health::HealthService::new(health_events),
+        default_window_secs: cfg.health_window_secs,
+        sessions: mcp::state::SessionRegistry::default(),
+    });
+    let mcp_listen = cfg.mcp_listen.clone();
+    tokio::spawn(async move {
+        if let Err(e) = mcp::server::serve(mcp_state, &mcp_listen).await {
+            tracing::error!(error = %e, "mcp server exited");
+        }
+    });
 
     let listener = tokio::net::TcpListener::bind(&cfg.listen).await?;
     tracing::info!(listen = %cfg.listen, static_dir = %cfg.static_dir, "eestock-app serving");
@@ -1997,8 +2025,10 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
     // env 覆盖测试与解析测试同进程：先暂存并清除真实 env
     let saved_db = std::env::var("DATABASE_URL").ok();
     let saved_listen = std::env::var("APP_LISTEN").ok();
+    let saved_mcp = std::env::var("MCP_LISTEN").ok();
     std::env::remove_var("DATABASE_URL");
     std::env::remove_var("APP_LISTEN");
+    std::env::remove_var("MCP_LISTEN");
 
     let cfg = app_config::load(p.to_str().unwrap()).unwrap();
     assert_eq!(cfg.database_url, "postgres://u:p@db:5432/eestock");
@@ -2006,16 +2036,20 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
     assert_eq!(cfg.static_dir, "./web/dist");
     assert_eq!(cfg.health_window_secs, 3600);
     assert_eq!(cfg.ws_poll_ms, 3000);
+    assert_eq!(cfg.mcp_listen, "0.0.0.0:8082", "Phase D：MCP 缺省端口 8082（独立端口）");
 
     // env 覆盖（容器 secret/地址注入口径）
     std::env::set_var("DATABASE_URL", "postgres://override@h/db");
     std::env::set_var("APP_LISTEN", "127.0.0.1:9999");
+    std::env::set_var("MCP_LISTEN", "127.0.0.1:9998");
     let cfg2 = app_config::load(p.to_str().unwrap()).unwrap();
     assert_eq!(cfg2.database_url, "postgres://override@h/db");
     assert_eq!(cfg2.listen, "127.0.0.1:9999");
+    assert_eq!(cfg2.mcp_listen, "127.0.0.1:9998", "MCP_LISTEN env 覆盖");
 
     match saved_db { Some(v) => std::env::set_var("DATABASE_URL", v), None => std::env::remove_var("DATABASE_URL") }
     match saved_listen { Some(v) => std::env::set_var("APP_LISTEN", v), None => std::env::remove_var("APP_LISTEN") }
+    match saved_mcp { Some(v) => std::env::set_var("MCP_LISTEN", v), None => std::env::remove_var("MCP_LISTEN") }
     std::fs::remove_dir_all(&dir).ok();
 }
 ```
@@ -2055,7 +2089,7 @@ COPY --from=builder /build/target/release/eestock-app /usr/local/bin/eestock-app
 # SPA 静态资源来自 frontend 阶段构建产物
 COPY --from=frontend /web/dist /app/dist
 USER eestock
-EXPOSE 8081
+EXPOSE 8081 8082
 ENTRYPOINT ["/usr/local/bin/eestock-app"]
 CMD ["--config", "/etc/eestock/app.toml"]
 ```

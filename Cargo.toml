@@ -38,3 +38,6 @@ rand = "0.8"
 encoding_rs = "0.8"
 # TOML 配置（app：数据面配置文件；父级裁决 2026-09-03 批准）
 toml = "0.8"
+# SSE 流包装（mcp：ReceiverStream/IntervalStream；父级裁决 2026-09-04 批准——
+# 锁文件零变化：sqlx 传递依赖已在树内；决策注记见 design/07-app-plane/01-mcp.md §0）
+tokio-stream = { version = "0.1", features = ["sync"] }

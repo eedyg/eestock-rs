@@ -12,6 +12,7 @@ storage = { path = "../storage" }
 tushare = { path = "../tushare" }
 diagnose = { path = "../diagnose" }
 web = { path = "../web" }
+mcp = { path = "../mcp" }   # Wave 1 Phase D：MCP HTTP/SSE（ADR-009，与 web 同进程、端口独立 8082）
 axum.workspace = true
 tokio.workspace = true
 tracing.workspace = true
