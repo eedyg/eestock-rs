@@ -43,10 +43,60 @@ impl HealthEventsRead for MockEvents {
     }
 }
 
+// ── Wave 2 Phase A：MCP④ 装配（本文件不涉其行锁，空口径 mock 仅求装配齐全）──
+
+struct MockQuality;
+
+#[async_trait::async_trait]
+impl domain::ports::QualityRead for MockQuality {
+    async fn divergence_rows(&self, _c: Option<&str>, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<domain::ports::DivergenceRow>> { Ok(vec![]) }
+}
+
+struct MockRaw;
+
+#[async_trait::async_trait]
+impl domain::ports::RawBarReader for MockRaw {
+    async fn existing_ts(&self, _c: &domain::types::Code, _d: chrono::NaiveDate)
+        -> anyhow::Result<std::collections::HashSet<DateTime<Utc>>> { Ok(Default::default()) }
+}
+
+struct MockRangeEvents;
+
+#[async_trait::async_trait]
+impl domain::ports::HealthEventsRangeRead for MockRangeEvents {
+    async fn events_between(&self, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>> { Ok(vec![]) }
+}
+
+struct MockHolidays;
+
+#[async_trait::async_trait]
+impl domain::ports::HolidayCalendarRead for MockHolidays {
+    async fn holidays(&self) -> anyhow::Result<std::collections::HashSet<chrono::NaiveDate>> {
+        Ok(Default::default())
+    }
+}
+
+struct MockTushare;
+
+#[async_trait::async_trait]
+impl domain::ports::TushareStatusRead for MockTushare {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<domain::ports::SyncCheckpointView>> {
+        Ok(vec![])
+    }
+}
+
+struct NowClock;
+impl domain::ports::Clock for NowClock { fn now(&self) -> DateTime<Utc> { Utc::now() } }
+
 fn state() -> Arc<McpState> {
     Arc::new(McpState {
         kline: Arc::new(MockKline),
         health: diagnose::health::HealthService::new(Arc::new(MockEvents)),
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(MockQuality), Arc::new(MockRaw), Arc::new(MockRangeEvents),
+            Arc::new(MockHolidays), Arc::new(MockTushare), Arc::new(NowClock)),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
     })
@@ -141,13 +191,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 两个只读工具（ADR-009 范围①②）
+    // 3. tools/list → 三个只读工具（ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 2, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 3, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],

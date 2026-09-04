@@ -110,6 +110,46 @@ pub struct HealthQuery {
     pub window_secs: i64,
 }
 
+// ── Wave 2 Phase A：数据质量（页面④）查询参数与校验纯函数 ──
+
+/// GET /api/quality/divergence 查询参数。
+#[derive(Debug, Deserialize)]
+pub struct DivergenceQuery {
+    pub code: String,
+    pub from: String,
+    pub to: String,
+    pub threshold_pct: Option<f64>,
+}
+
+/// GET /api/quality/source-accuracy 查询参数（全标的，无 code）。
+#[derive(Debug, Deserialize)]
+pub struct SourceAccuracyQuery {
+    pub from: String,
+    pub to: String,
+    pub threshold_pct: Option<f64>,
+}
+
+/// GET /api/quality/gaps 查询参数。
+#[derive(Debug, Deserialize)]
+pub struct GapsQuery {
+    pub code: String,
+    pub from: String,
+    pub to: String,
+}
+
+/// YYYY-MM-DD 解析（前端日期控件口径；严格定长——chrono %Y-%m-%d 容忍未补零）。
+pub fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
+    let b = s.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' { return None; }
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+}
+
+/// 阈值校验（%）：>0 且 ≤100。
+pub fn validate_threshold(t: f64) -> Result<(), String> {
+    if !(t > 0.0 && t <= 100.0) { return Err("threshold_pct 须在 (0, 100]".into()); }
+    Ok(())
+}
+
 // ── Phase C：标的管理写端点与熔断复位 DTO/校验（§8 契约）──
 
 /// GET /api/symbols 查询参数：with_stats=1 追加当日采集统计。
@@ -255,6 +295,23 @@ mod tests {
         assert_eq!(req.settlement, "T1");
         assert!(req.enabled);
         assert!(req.name.is_none());
+    }
+
+    // ── Wave 2 Phase A：质量端点查询参数校验 ──
+
+    #[test]
+    fn parse_date_and_threshold_validation() {
+        assert_eq!(parse_date("2026-09-03").unwrap(),
+            chrono::NaiveDate::from_ymd_opt(2026, 9, 3).unwrap());
+        assert!(parse_date("2026/09/03").is_none());
+        assert!(parse_date("2026-9-3").is_none(), "严格 %Y-%m-%d");
+        assert!(parse_date("").is_none());
+        assert!(validate_threshold(0.5).is_ok());
+        assert!(validate_threshold(0.3).is_ok());
+        assert!(validate_threshold(0.0).is_err());
+        assert!(validate_threshold(-1.0).is_err());
+        assert!(validate_threshold(100.0).is_ok());
+        assert!(validate_threshold(100.1).is_err());
     }
 }
 // ~/~ end

@@ -60,6 +60,18 @@ pub fn tool_list() -> Value {
                         "window_secs": { "type": "integer", "description": "统计窗口秒数，默认 3600，钳制 60..604800" }
                     }
                 }
+            },
+            {
+                "name": "get_data_quality",
+                "description": "单日数据质量卡（ADR-009 范围④）：交易日历判定（trading_day）+ 缺口段（三级分类 source_fault/upstream_no_data/system_gap）+ 当日 raw vs accurate 分歧汇总（阈值 0.5%）。非交易日 gap=null。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "code": { "type": "string", "description": "6 位标的代码，如 518880" },
+                        "date": { "type": "string", "description": "日期 YYYY-MM-DD（Asia/Shanghai 日界）" }
+                    },
+                    "required": ["code", "date"]
+                }
             }
         ]
     })
@@ -77,6 +89,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
     match name {
         "get_kline" => get_kline(st, id, &args).await,
         "get_sources_health" => get_sources_health(st, id, &args).await,
+        "get_data_quality" => get_data_quality(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -152,6 +165,30 @@ async fn get_sources_health(st: &McpState, id: Option<Value>, args: &Value) -> V
     }
 }
 
+/// 严格 YYYY-MM-DD（chrono %Y-%m-%d 容忍未补零——线格式契约要求定长 10 字符）。
+pub fn parse_date_strict(s: &str) -> Option<chrono::NaiveDate> {
+    let b = s.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' { return None; }
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+}
+
+/// get_data_quality(code, date)（Wave 2 Phase A，ADR-009 范围④）：单日质量卡（QualityService）。
+async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
+        return result_err(id, INVALID_PARAMS, "code 必填（非空 string）");
+    };
+    let Some(date_s) = args.get("date").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "date 必填（YYYY-MM-DD）");
+    };
+    let Some(date) = parse_date_strict(date_s) else {
+        return result_err(id, INVALID_PARAMS, "date 须为 YYYY-MM-DD");
+    };
+    match st.quality.daily_quality(code, date).await {
+        Ok(q) => tool_ok(id, &q),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,13 +209,15 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 2, "ADR-009 范围①②，仅两个只读工具");
+        assert_eq!(tools.len(), 3, "ADR-009 范围①②（Wave 1）+ 范围④（Wave 2 Phase A），三个只读工具");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
             json!(["1m", "5m", "15m", "1h", "1d"]));
         assert_eq!(tools[1]["name"], "get_sources_health");
         assert!(tools[1]["inputSchema"]["properties"]["window_secs"].is_object());
+        assert_eq!(tools[2]["name"], "get_data_quality", "MCP④ 数据质量（范围④）");
+        assert_eq!(tools[2]["inputSchema"]["required"], json!(["code", "date"]));
         assert!(!tools.iter().any(|t| t["name"].as_str().unwrap().contains("trade")),
             "交易类工具不做（ADR-009 范围④ Wave 4）");
     }
@@ -271,6 +310,73 @@ mod tests {
         assert_eq!(r["error"]["code"], -32602, "缺 params");
         let r = call_tool(&st, Some(json!(1)), Some(json!({}))).await;
         assert_eq!(r["error"]["code"], -32602, "缺 name");
+    }
+
+    // ── Wave 2 Phase A：MCP④ get_data_quality ──
+
+    fn quality_state(rows: Vec<domain::ports::DivergenceRow>,
+                     raw: std::collections::HashMap<(String, chrono::NaiveDate),
+                         std::collections::HashSet<DateTime<Utc>>>,
+                     holidays: std::collections::HashSet<chrono::NaiveDate>) -> Arc<McpState> {
+        Arc::new(McpState {
+            kline: Arc::new(MockKline::new()),
+            health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
+            quality: crate::mocks::quality_for(rows, raw, holidays),
+            default_window_secs: 3600,
+            sessions: crate::state::SessionRegistry::default(),
+        })
+    }
+
+    #[tokio::test]
+    async fn get_data_quality_happy_path() {
+        let day = chrono::NaiveDate::from_ymd_opt(2026, 9, 3).unwrap(); // 周四交易日
+        // 缺口造数：raw 已有全 241 标签除 10:41；对照行 1 条 +1.0% 分歧
+        let mut raw = std::collections::HashMap::new();
+        let set: std::collections::HashSet<_> = domain::calendar::trading_minute_labels(day)
+            .into_iter()
+            .filter(|l| l.time() != domain::calendar::hm(10, 41))
+            .map(domain::tz::cst_to_utc).collect();
+        raw.insert(("518880".to_string(), day), set);
+        let rows = vec![domain::ports::DivergenceRow {
+            ts: domain::tz::cst_to_utc(day.and_hms_opt(9, 30, 0).unwrap()),
+            code: "518880".into(), raw_close: 10.1, accurate_close: 10.0,
+            raw_source: Some("tencent_ifzq".into()) }];
+        let st = quality_state(rows, raw, std::collections::HashSet::new());
+        let r = call(&st, "get_data_quality", json!({ "code": "518880", "date": "2026-09-03" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["code"], "518880");
+        assert_eq!(p["date"], "2026-09-03");
+        assert_eq!(p["trading_day"], true);
+        assert_eq!(p["gap"]["missing_bars"], 1);
+        assert_eq!(p["gap"]["expected_bars"], 241);
+        assert_eq!(p["gap"]["segments"][0]["class"], "system_gap", "邻近无事件 → 系统缺口");
+        assert!(p["gap"]["segments"][0]["start"].as_str().unwrap().contains("T10:41"));
+        assert_eq!(p["divergence"]["compared_bars"], 1);
+        assert_eq!(p["divergence"]["divergent_bars"], 1, "+1.0% > 0.5% 默认阈值");
+    }
+
+    #[tokio::test]
+    async fn get_data_quality_holiday_and_param_validation() {
+        // 节假日：trading_day=false + gap=null + 零对照
+        let mut hol = std::collections::HashSet::new();
+        hol.insert(chrono::NaiveDate::from_ymd_opt(2026, 10, 1).unwrap()); // 国庆
+        let st = quality_state(vec![], std::collections::HashMap::new(), hol);
+        let r = call(&st, "get_data_quality", json!({ "code": "518880", "date": "2026-10-01" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["trading_day"], false, "国庆非交易日");
+        assert!(p["gap"].is_null());
+        assert_eq!(p["divergence"]["compared_bars"], 0);
+
+        // 参数校验 → -32602
+        let st = test_state(Arc::new(MockKline::new()), Arc::new(MockEvents::new()));
+        for args in [json!({ "date": "2026-09-03" }),                  // 缺 code
+                     json!({ "code": "518880" }),                       // 缺 date
+                     json!({ "code": "", "date": "2026-09-03" }),      // code 空
+                     json!({ "code": "518880", "date": "2026/09/03" }), // 非法日期
+                     json!({ "code": "518880", "date": "2026-9-3" })] {
+            let r = call(&st, "get_data_quality", args.clone()).await;
+            assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
+        }
     }
 }
 // ~/~ end

@@ -41,6 +41,10 @@ MCP Streamable HTTP transport（SSE 在 2025-03-26 spec 已标记 deprecated）�
 eestock-app 既有 DI（KlineRead/HealthEventsRead 同一实现实例），零新增配置面（仅一个监听地址），
 故选**同进程**；端口独立（8082）保证 MCP 面与 web 面可独立封禁/审计。
 
+**Wave 2 Phase A 补记（2026-09-04）**：ADR-009 范围④ 数据质量工具落地为 `get_data_quality(code, date)`
+——单日质量卡（交易日历 + 缺口三级分类 + 分歧汇总），经 `diagnose::quality::QualityService`
+（与 REST /api/quality/* 同服务同口径，web/mcp 共享同一实例 Clone=同 Arc 组）。
+
 ## 1. 协议契约
 
 ### 1.1 传输（MCP SSE transport，spec 2024-11-05）
@@ -60,7 +64,7 @@ eestock-app 既有 DI（KlineRead/HealthEventsRead 同一实现实例），零�
 | `initialize` | `{protocolVersion:"2024-11-05", capabilities:{tools:{listChanged:false}}, serverInfo:{name:"eestock-mcp",version}}` | 协议版本不回读客户端取值，恒返回本服务口径 |
 | `notifications/*`（或无 id 帧） | 无响应（202 照收） | 通知语义 |
 | `ping` | `{}` | 保活 |
-| `tools/list` | `{tools:[...]}`（§1.3） | ADR-009 范围①②，仅两个只读工具 |
+| `tools/list` | `{tools:[...]}`（§1.3） | ADR-009 范围①②（Wave 1）+ 范围④ 数据质量（Wave 2 Phase A），共三个只读工具 |
 | `tools/call` | `{content:[{type:"text",text:<pretty JSON>}], isError?}` | 工具结果以 pretty JSON 文本承载（MCP 惯例） |
 | 其他 | 错误 `-32601 method not found` | — |
 
@@ -78,12 +82,18 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
 - `get_sources_health(window_secs=默认≤604800)`：结果 payload `{"window_secs","sources":[SourceHealth]}`，
   复用 diagnose 聚合口径（成功率分母排除 na / 熔断迁移推导 / 状态灯 95% 边界，05-diagnose §1）；
   window_secs 缺省 = app 配置 `health_window_secs`，钳制 60..604800（与 REST 同口径）。
-- **交易类工具不做**（ADR-009 范围④ Wave 4，独立开关默认关）；数据质量工具（范围③）后续波次。
+- `get_data_quality(code, date)`（**Wave 2 Phase A，ADR-009 范围④落地**）：required=["code","date"]；
+  date 为 YYYY-MM-DD。结果 payload = `diagnose::quality::DailyQuality`（{"code","date","trading_day",
+  "gap":DayGap\|null,"divergence":DivergenceSummary}）——单日缺口卡（交易日历口径：非交易日
+  trading_day=false 且 gap=null）+ 当日 raw vs accurate 分歧汇总（阈值 = 页面④ 定稿 0.5%）。
+  经 `QualityService`（与 REST /api/quality/* 同服务同口径）。
+- **交易类工具不做**（ADR-009 范围④ Wave 4，独立开关默认关）。
 
 ## 2. mcp crate（Presentation 层）
 
 ``` {.rust file=crates/mcp/src/lib.rs}
-//! mcp —— Presentation：MCP HTTP/SSE 常驻服务（ADR-009 范围①②：行情查询 + 源健康）。
+//! mcp —— Presentation：MCP HTTP/SSE 常驻服务（ADR-009 范围①②：行情查询 + 源健康；
+//! Wave 2 Phase A 加法：范围④ 数据质量 get_data_quality）。
 //! 由 design/07-app-plane/01-mcp.md tangle 生成（ADR-007），禁止手改。
 
 pub mod rpc;
@@ -108,6 +118,8 @@ pub struct McpState {
     pub kline: Arc<dyn domain::ports::KlineRead>,
     /// 健康查询服务（diagnose；内部注入 domain::ports::HealthEventsRead）。
     pub health: diagnose::health::HealthService,
+    /// 数据质量服务（Wave 2 Phase A：MCP④ get_data_quality；diagnose::quality，与 web 同实例）。
+    pub quality: diagnose::quality::QualityService,
     /// get_sources_health 缺省统计窗口（秒；与 app 配置 health_window_secs 同源）。
     pub default_window_secs: i64,
     /// SSE 会话登记（sessionId → 消息通道）。
@@ -284,7 +296,7 @@ mod tests {
         let r = dispatch(&st(), &req(Some(json!(2)), "tools/list", None)).await.unwrap();
         let names: Vec<&str> = r["result"]["tools"].as_array().unwrap()
             .iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, ["get_kline", "get_sources_health"]);
+        assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();
@@ -355,6 +367,18 @@ pub fn tool_list() -> Value {
                         "window_secs": { "type": "integer", "description": "统计窗口秒数，默认 3600，钳制 60..604800" }
                     }
                 }
+            },
+            {
+                "name": "get_data_quality",
+                "description": "单日数据质量卡（ADR-009 范围④）：交易日历判定（trading_day）+ 缺口段（三级分类 source_fault/upstream_no_data/system_gap）+ 当日 raw vs accurate 分歧汇总（阈值 0.5%）。非交易日 gap=null。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "code": { "type": "string", "description": "6 位标的代码，如 518880" },
+                        "date": { "type": "string", "description": "日期 YYYY-MM-DD（Asia/Shanghai 日界）" }
+                    },
+                    "required": ["code", "date"]
+                }
             }
         ]
     })
@@ -372,6 +396,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
     match name {
         "get_kline" => get_kline(st, id, &args).await,
         "get_sources_health" => get_sources_health(st, id, &args).await,
+        "get_data_quality" => get_data_quality(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -447,6 +472,30 @@ async fn get_sources_health(st: &McpState, id: Option<Value>, args: &Value) -> V
     }
 }
 
+/// 严格 YYYY-MM-DD（chrono %Y-%m-%d 容忍未补零——线格式契约要求定长 10 字符）。
+pub fn parse_date_strict(s: &str) -> Option<chrono::NaiveDate> {
+    let b = s.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' { return None; }
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+}
+
+/// get_data_quality(code, date)（Wave 2 Phase A，ADR-009 范围④）：单日质量卡（QualityService）。
+async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
+        return result_err(id, INVALID_PARAMS, "code 必填（非空 string）");
+    };
+    let Some(date_s) = args.get("date").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "date 必填（YYYY-MM-DD）");
+    };
+    let Some(date) = parse_date_strict(date_s) else {
+        return result_err(id, INVALID_PARAMS, "date 须为 YYYY-MM-DD");
+    };
+    match st.quality.daily_quality(code, date).await {
+        Ok(q) => tool_ok(id, &q),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -467,13 +516,15 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 2, "ADR-009 范围①②，仅两个只读工具");
+        assert_eq!(tools.len(), 3, "ADR-009 范围①②（Wave 1）+ 范围④（Wave 2 Phase A），三个只读工具");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
             json!(["1m", "5m", "15m", "1h", "1d"]));
         assert_eq!(tools[1]["name"], "get_sources_health");
         assert!(tools[1]["inputSchema"]["properties"]["window_secs"].is_object());
+        assert_eq!(tools[2]["name"], "get_data_quality", "MCP④ 数据质量（范围④）");
+        assert_eq!(tools[2]["inputSchema"]["required"], json!(["code", "date"]));
         assert!(!tools.iter().any(|t| t["name"].as_str().unwrap().contains("trade")),
             "交易类工具不做（ADR-009 范围④ Wave 4）");
     }
@@ -567,6 +618,73 @@ mod tests {
         let r = call_tool(&st, Some(json!(1)), Some(json!({}))).await;
         assert_eq!(r["error"]["code"], -32602, "缺 name");
     }
+
+    // ── Wave 2 Phase A：MCP④ get_data_quality ──
+
+    fn quality_state(rows: Vec<domain::ports::DivergenceRow>,
+                     raw: std::collections::HashMap<(String, chrono::NaiveDate),
+                         std::collections::HashSet<DateTime<Utc>>>,
+                     holidays: std::collections::HashSet<chrono::NaiveDate>) -> Arc<McpState> {
+        Arc::new(McpState {
+            kline: Arc::new(MockKline::new()),
+            health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
+            quality: crate::mocks::quality_for(rows, raw, holidays),
+            default_window_secs: 3600,
+            sessions: crate::state::SessionRegistry::default(),
+        })
+    }
+
+    #[tokio::test]
+    async fn get_data_quality_happy_path() {
+        let day = chrono::NaiveDate::from_ymd_opt(2026, 9, 3).unwrap(); // 周四交易日
+        // 缺口造数：raw 已有全 241 标签除 10:41；对照行 1 条 +1.0% 分歧
+        let mut raw = std::collections::HashMap::new();
+        let set: std::collections::HashSet<_> = domain::calendar::trading_minute_labels(day)
+            .into_iter()
+            .filter(|l| l.time() != domain::calendar::hm(10, 41))
+            .map(domain::tz::cst_to_utc).collect();
+        raw.insert(("518880".to_string(), day), set);
+        let rows = vec![domain::ports::DivergenceRow {
+            ts: domain::tz::cst_to_utc(day.and_hms_opt(9, 30, 0).unwrap()),
+            code: "518880".into(), raw_close: 10.1, accurate_close: 10.0,
+            raw_source: Some("tencent_ifzq".into()) }];
+        let st = quality_state(rows, raw, std::collections::HashSet::new());
+        let r = call(&st, "get_data_quality", json!({ "code": "518880", "date": "2026-09-03" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["code"], "518880");
+        assert_eq!(p["date"], "2026-09-03");
+        assert_eq!(p["trading_day"], true);
+        assert_eq!(p["gap"]["missing_bars"], 1);
+        assert_eq!(p["gap"]["expected_bars"], 241);
+        assert_eq!(p["gap"]["segments"][0]["class"], "system_gap", "邻近无事件 → 系统缺口");
+        assert!(p["gap"]["segments"][0]["start"].as_str().unwrap().contains("T10:41"));
+        assert_eq!(p["divergence"]["compared_bars"], 1);
+        assert_eq!(p["divergence"]["divergent_bars"], 1, "+1.0% > 0.5% 默认阈值");
+    }
+
+    #[tokio::test]
+    async fn get_data_quality_holiday_and_param_validation() {
+        // 节假日：trading_day=false + gap=null + 零对照
+        let mut hol = std::collections::HashSet::new();
+        hol.insert(chrono::NaiveDate::from_ymd_opt(2026, 10, 1).unwrap()); // 国庆
+        let st = quality_state(vec![], std::collections::HashMap::new(), hol);
+        let r = call(&st, "get_data_quality", json!({ "code": "518880", "date": "2026-10-01" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["trading_day"], false, "国庆非交易日");
+        assert!(p["gap"].is_null());
+        assert_eq!(p["divergence"]["compared_bars"], 0);
+
+        // 参数校验 → -32602
+        let st = test_state(Arc::new(MockKline::new()), Arc::new(MockEvents::new()));
+        for args in [json!({ "date": "2026-09-03" }),                  // 缺 code
+                     json!({ "code": "518880" }),                       // 缺 date
+                     json!({ "code": "", "date": "2026-09-03" }),      // code 空
+                     json!({ "code": "518880", "date": "2026/09/03" }), // 非法日期
+                     json!({ "code": "518880", "date": "2026-9-3" })] {
+            let r = call(&st, "get_data_quality", args.clone()).await;
+            assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
+        }
+    }
 }
 ```
 
@@ -574,9 +692,14 @@ mod tests {
 //! 测试替身（仅 #[cfg(test)] 单测用）：mock domain 只读端口装配 McpState——
 //! 证明 mcp 与 storage 解耦（分层红线；真实装配由 tests/mcp_tools_db.rs 经 storage 实现锁定）。
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
-use domain::ports::{HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView};
-use domain::types::Period;
+use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use domain::ports::{
+    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead,
+    HolidayCalendarRead, KlineBarView, KlineRead, QualityRead, RawBarReader, SyncCheckpointView,
+    SymbolLatestView, TushareStatusRead,
+};
+use domain::types::{Code, Period};
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::state::McpState;
@@ -650,11 +773,76 @@ impl HealthEventsRead for MockEvents {
     }
 }
 
-/// 装配测试用 McpState（default_window_secs=3600）。
+// ── Wave 2 Phase A：质量端口 mock（MCP④ get_data_quality 测试）──
+
+struct FixedClock(DateTime<Utc>);
+impl Clock for FixedClock { fn now(&self) -> DateTime<Utc> { self.0 } }
+
+/// mock QualityRead：返回预设对照行（可按 code 过滤）。
+pub struct MockQualityRows(pub Vec<DivergenceRow>);
+
+#[async_trait::async_trait]
+impl QualityRead for MockQualityRows {
+    async fn divergence_rows(&self, code: Option<&str>, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<DivergenceRow>> {
+        Ok(self.0.iter().filter(|r| code.is_none_or(|c| r.code == c)).cloned().collect())
+    }
+}
+
+/// mock RawBarReader：按 (code, date) 返回预设已有 ts 集合。
+pub struct MockRawDays(pub HashMap<(String, NaiveDate), HashSet<DateTime<Utc>>>);
+
+#[async_trait::async_trait]
+impl RawBarReader for MockRawDays {
+    async fn existing_ts(&self, code: &Code, date: NaiveDate)
+        -> anyhow::Result<HashSet<DateTime<Utc>>> {
+        Ok(self.0.get(&(code.0.clone(), date)).cloned().unwrap_or_default())
+    }
+}
+
+/// mock HealthEventsRangeRead：恒空（缺口分类走 SystemGap 路径）。
+pub struct MockRangeEvents;
+
+#[async_trait::async_trait]
+impl HealthEventsRangeRead for MockRangeEvents {
+    async fn events_between(&self, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>> {
+        Ok(vec![])
+    }
+}
+
+/// mock HolidayCalendarRead：预设节假日集合。
+pub struct MockHolidays(pub HashSet<NaiveDate>);
+
+#[async_trait::async_trait]
+impl HolidayCalendarRead for MockHolidays {
+    async fn holidays(&self) -> anyhow::Result<HashSet<NaiveDate>> { Ok(self.0.clone()) }
+}
+
+/// mock TushareStatusRead：恒空检查点。
+pub struct MockTushareStatus;
+
+#[async_trait::async_trait]
+impl TushareStatusRead for MockTushareStatus {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<SyncCheckpointView>> { Ok(vec![]) }
+}
+
+/// 装配质量服务（mock 端口；时钟固定 2026-09-04 12:00 CST = 04:00 UTC——历史日全到期）。
+pub fn quality_for(rows: Vec<DivergenceRow>,
+                   raw: HashMap<(String, NaiveDate), HashSet<DateTime<Utc>>>,
+                   holidays: HashSet<NaiveDate>) -> diagnose::quality::QualityService {
+    diagnose::quality::QualityService::new(
+        Arc::new(MockQualityRows(rows)), Arc::new(MockRawDays(raw)), Arc::new(MockRangeEvents),
+        Arc::new(MockHolidays(holidays)), Arc::new(MockTushareStatus),
+        Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 4, 4, 0, 0).unwrap())))
+}
+
+/// 装配测试用 McpState（default_window_secs=3600；质量服务默认空口径）。
 pub fn test_state(kline: Arc<MockKline>, events: Arc<MockEvents>) -> Arc<McpState> {
     Arc::new(McpState {
         kline,
         health: diagnose::health::HealthService::new(events),
+        quality: quality_for(vec![], HashMap::new(), HashSet::new()),
         default_window_secs: 3600,
         sessions: crate::state::SessionRegistry::default(),
     })
@@ -833,10 +1021,60 @@ impl HealthEventsRead for MockEvents {
     }
 }
 
+// ── Wave 2 Phase A：MCP④ 装配（本文件不涉其行锁，空口径 mock 仅求装配齐全）──
+
+struct MockQuality;
+
+#[async_trait::async_trait]
+impl domain::ports::QualityRead for MockQuality {
+    async fn divergence_rows(&self, _c: Option<&str>, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<domain::ports::DivergenceRow>> { Ok(vec![]) }
+}
+
+struct MockRaw;
+
+#[async_trait::async_trait]
+impl domain::ports::RawBarReader for MockRaw {
+    async fn existing_ts(&self, _c: &domain::types::Code, _d: chrono::NaiveDate)
+        -> anyhow::Result<std::collections::HashSet<DateTime<Utc>>> { Ok(Default::default()) }
+}
+
+struct MockRangeEvents;
+
+#[async_trait::async_trait]
+impl domain::ports::HealthEventsRangeRead for MockRangeEvents {
+    async fn events_between(&self, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>> { Ok(vec![]) }
+}
+
+struct MockHolidays;
+
+#[async_trait::async_trait]
+impl domain::ports::HolidayCalendarRead for MockHolidays {
+    async fn holidays(&self) -> anyhow::Result<std::collections::HashSet<chrono::NaiveDate>> {
+        Ok(Default::default())
+    }
+}
+
+struct MockTushare;
+
+#[async_trait::async_trait]
+impl domain::ports::TushareStatusRead for MockTushare {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<domain::ports::SyncCheckpointView>> {
+        Ok(vec![])
+    }
+}
+
+struct NowClock;
+impl domain::ports::Clock for NowClock { fn now(&self) -> DateTime<Utc> { Utc::now() } }
+
 fn state() -> Arc<McpState> {
     Arc::new(McpState {
         kline: Arc::new(MockKline),
         health: diagnose::health::HealthService::new(Arc::new(MockEvents)),
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(MockQuality), Arc::new(MockRaw), Arc::new(MockRangeEvents),
+            Arc::new(MockHolidays), Arc::new(MockTushare), Arc::new(NowClock)),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
     })
@@ -931,13 +1169,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 两个只读工具（ADR-009 范围①②）
+    // 3. tools/list → 三个只读工具（ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 2, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 3, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -1053,6 +1291,15 @@ fn state(pool: PgPool) -> Arc<McpState> {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
             Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Wave 2 Phase A：MCP④ 质量服务（真实 storage 端口实现）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
     })
@@ -1137,6 +1384,55 @@ async fn get_sources_health_aggregation_via_tool() {
     assert_eq!(h["last_error"]["err_kind"], "timeout");
     clean_health(&pool).await;
 }
+
+#[tokio::test]
+async fn get_data_quality_via_tool() {
+    // MCP④ 端到端：真实库 → QualityService → tools/call payload
+    const QCODE: &str = "995521";
+    let pool = pool().await;
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(QCODE).execute(&pool).await.unwrap();
+    }
+    // 造数：2026-09-02（周三交易日，测试运行时为历史日）raw 全 241 标签除 10:41；
+    // accurate 仅 09:30（close 9.90 vs raw 10.00 → −1.0% 分歧）
+    let day = chrono::NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    for l in domain::calendar::trading_minute_labels(day) {
+        let ts = domain::tz::cst_to_utc(l);
+        let is_930 = l.time() == domain::calendar::hm(9, 30);
+        if l.time() != domain::calendar::hm(10, 41) {
+            sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                         VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'mcpq_src') ON CONFLICT DO NOTHING")
+                .bind(QCODE).bind(ts).bind(if is_930 { 10.0 } else { 1.0 })
+                .execute(&pool).await.unwrap();
+        }
+        if is_930 {
+            sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                         VALUES ($1, $2, 'M1', 9.9, 9.9, 9.9, 9.9, 100, 100.0) ON CONFLICT DO NOTHING")
+                .bind(QCODE).bind(ts).execute(&pool).await.unwrap();
+        }
+    }
+    let st = state(pool.clone());
+    let payload = call_tool(&st, "get_data_quality",
+        json!({ "code": QCODE, "date": "2026-09-02" })).await;
+    assert_eq!(payload["code"], QCODE);
+    assert_eq!(payload["trading_day"], true);
+    assert_eq!(payload["gap"]["missing_bars"], 1);
+    assert_eq!(payload["gap"]["expected_bars"], 241, "交易日历 241 标签口径（13:00 伪缺口结案）");
+    assert_eq!(payload["gap"]["segments"][0]["class"], "system_gap",
+        "邻近无事件 → 系统缺口（D5）");
+    assert_eq!(payload["divergence"]["compared_bars"], 1);
+    assert_eq!(payload["divergence"]["divergent_bars"], 1, "−1.0% 超 0.5% 阈值");
+    // 节假日：国庆 2026-10-01（0008 已落库）
+    let payload = call_tool(&st, "get_data_quality",
+        json!({ "code": QCODE, "date": "2026-10-01" })).await;
+    assert_eq!(payload["trading_day"], false, "国庆非交易日");
+    assert!(payload["gap"].is_null());
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(QCODE).execute(&pool).await.unwrap();
+    }
+}
 ```
 
 ## 4. eestock-app 装配与部署（加法扩展；代码块维护在 00-web-api.md）
@@ -1146,8 +1442,9 @@ tangle 单属主原则：`crates/app/**` 与 `Dockerfile.app` 的代码块属主
 - **app_config.rs**：新增 `mcp_listen: String`（默认 `0.0.0.0:8082`，env `MCP_LISTEN` 覆盖；
   仅监听局域网——容器内 0.0.0.0，宿主机暴露由 compose 控制，免认证 ADR-010）。
 - **eestock-app.rs**：web state 装配后追加——`McpState { kline: state.kline.clone(),
-  health: HealthService::new(health_events), default_window_secs: cfg.health_window_secs, .. }`
-  （与 web **同进程**、复用同一 `KlineRead`/`HealthEventsRead` 端口实现实例；
+  health: HealthService::new(health_events), quality: state.quality.clone()（Wave 2 Phase A）,
+  default_window_secs: cfg.health_window_secs, .. }`
+  （与 web **同进程**、复用同一 `KlineRead`/`HealthEventsRead` 端口实现实例与 `QualityService`；
   **端口独立** 8082），`tokio::spawn(mcp::server::serve(...))`。
 - **Dockerfile.app**：`EXPOSE 8081 8082`。
 - **手写例外**：`docker-compose.yml` app 服务加 `"8082:8082"`；`config/app.toml.example` 加
@@ -1160,9 +1457,11 @@ tangle 单属主原则：`crates/app/**` 与 `Dockerfile.app` 的代码块属主
 - state：会话生命周期（create→sender→remove→404）、32hex 唯一 id。
 - rpc：initialize 三要素（protocolVersion/capabilities.tools/serverInfo）、id echo（string/number）、
   通知无响应、未知方法 -32601、tools/list·tools/call 路由（mock 端口，无 DB）。
-- tools：schema 契约（两工具、required=["code"]、period enum、无交易类工具）；get_kline 缺省
+- tools：schema 契约（三工具、required 与 enum、无交易类工具）；get_kline 缺省
   period=1m/limit=240、limit 封顶 1000、升序、source 透传、参数错误 -32602 矩阵、未知工具 -32602、
-  端口失败 isError=true；get_sources_health 缺省窗口=配置默认、窗口钳制 60、聚合字段、失败 isError=true。
+  端口失败 isError=true；get_sources_health 缺省窗口=配置默认、窗口钳制 60、聚合字段、失败 isError=true；
+  **get_data_quality（Wave 2 Phase A）**：缺口卡 + 分歧汇总 + 节假日 trading_day=false、
+  code/date 参数校验 -32602 矩阵。
 - server/协议级（无 DB）：SSE content-type 与 endpoint 首帧、POST 202 + 响应经 SSE message 帧下发、
   initialize/tools/list/tools/call 全链路、通知 202 无事件、未知方法 -32601 帧、未知会话 404、
   缺 sessionId 400、断连后会话注销（泄漏防护）。

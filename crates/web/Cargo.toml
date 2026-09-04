@@ -8,6 +8,7 @@ edition.workspace = true
 [dependencies]
 domain = { path = "../domain" }
 diagnose = { path = "../diagnose" }
+alert = { path = "../alert" }   # Wave 2 Phase B：页面⑦ 告警引擎（state.alerts + alerts.rs handlers）
 # ws 特性：/ws 订阅分发（ADR-008 既定 axum 栈内特性开关，非新依赖）
 axum = { workspace = true, features = ["ws"] }
 serde.workspace = true

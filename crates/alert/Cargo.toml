@@ -1,0 +1,15 @@
+[package]
+name = "alert"
+description = "应用层：告警引擎（规则评估纯函数 + 生命周期状态机 + domain 端口注入；不依赖 sqlx）（src 由 design/07-app-plane/02-alerts.md tangle 生成）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+domain = { path = "../domain" }
+chrono.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+async-trait.workspace = true

@@ -168,4 +168,98 @@ pub async fn get_sources_health(State(st): State<Arc<AppState>>,
         Err(e) => internal(e),
     }
 }
+
+// ── Wave 2 Phase A：数据质量（页面④，04-quality.md §7）+ tushare 同步状态 ──
+// 范围/阈值校验在 web 层（400）；service 内部同口径防御性复核。
+
+/// 解析 from/to（YYYY-MM-DD）+ 范围校验；失败 → 400 Response。
+/// （Err 载荷为 axum Response 属大类型——handler 短路返回模式既定，allow 之；与 alerts.rs 同口径）
+#[allow(clippy::result_large_err)]
+fn parse_range(from_s: &str, to_s: &str)
+    -> Result<(chrono::NaiveDate, chrono::NaiveDate), Response> {
+    let (Some(from), Some(to)) = (parse_date(from_s), parse_date(to_s)) else {
+        return Err(err(StatusCode::BAD_REQUEST, "from/to 必填且须为 YYYY-MM-DD"));
+    };
+    if let Err(e) = diagnose::quality::validate_range(from, to) {
+        return Err(err(StatusCode::BAD_REQUEST, &e.to_string()));
+    }
+    Ok((from, to))
+}
+
+/// 阈值解析（默认 = 页面④ QUALITY_DEFAULTS.consistencyThresholdPct=0.5）+ 校验。
+#[allow(clippy::result_large_err)]
+fn parse_threshold(q: Option<f64>) -> Result<f64, Response> {
+    let t = q.unwrap_or(diagnose::quality::DEFAULT_THRESHOLD_PCT);
+    if let Err(m) = validate_threshold(t) { return Err(err(StatusCode::BAD_REQUEST, &m)); }
+    Ok(t)
+}
+
+/// GET /api/quality/divergence?code=&from=&to=&threshold_pct=
+pub async fn get_quality_divergence(State(st): State<Arc<AppState>>,
+                                    Query(q): Query<DivergenceQuery>) -> Response {
+    if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    let threshold = match parse_threshold(q.threshold_pct) { Ok(t) => t, Err(r) => return r };
+    match st.quality.divergence(&q.code, from, to, threshold).await {
+        Ok(rep) => Json(serde_json::json!({
+            "code": q.code, "from": q.from, "to": q.to, "threshold_pct": threshold,
+            "summary": rep.summary, "rows": rep.rows,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/quality/source-accuracy?from=&to=&threshold_pct=
+pub async fn get_quality_source_accuracy(State(st): State<Arc<AppState>>,
+                                         Query(q): Query<SourceAccuracyQuery>) -> Response {
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    let threshold = match parse_threshold(q.threshold_pct) { Ok(t) => t, Err(r) => return r };
+    match st.quality.source_accuracy(from, to, threshold).await {
+        Ok(sources) => Json(serde_json::json!({
+            "from": q.from, "to": q.to, "threshold_pct": threshold, "sources": sources,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/quality/gaps?code=&from=&to=
+/// 仅含有缺口的交易日；segments 的 start/end 为 CST "HH:MM"（页面④ 展示口径）。
+pub async fn get_quality_gaps(State(st): State<Arc<AppState>>,
+                              Query(q): Query<GapsQuery>) -> Response {
+    if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    match st.quality.gaps(&q.code, from, to).await {
+        Ok(days) => Json(serde_json::json!({
+            "code": q.code, "from": q.from, "to": q.to,
+            "days": days.iter().map(|d| serde_json::json!({
+                "date": d.date,
+                "expected_bars": d.expected_bars,
+                "actual_bars": d.actual_bars,
+                "missing_bars": d.missing_bars,
+                "segments": d.segments.iter().map(|s| serde_json::json!({
+                    "start": diagnose::quality::hhmm(&s.start),
+                    "end": diagnose::quality::hhmm(&s.end),
+                    "count": s.count,
+                    "class": s.class,
+                })).collect::<Vec<_>>(),
+            })).collect::<Vec<_>>(),
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/tushare/status —— 页面④ sync-panel 状态区。
+/// quota_remaining 恒 null：tushare 积分余额未入库（§1.1 注明，待账户侧可查后单开）。
+pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
+    match st.quality.tushare_status().await {
+        Ok(s) => Json(serde_json::json!({
+            "checkpoints": s.checkpoints,
+            "covered_codes": s.covered_codes,
+            "last_updated_at": s.last_updated_at,
+            "last_event": s.last_event,
+            "quota_remaining": serde_json::Value::Null,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
 // ~/~ end

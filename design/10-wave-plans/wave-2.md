@@ -42,4 +42,4 @@
 - [ ] MCP④ 客户端可查数据质量
 
 ## 明确不做（边界）
-筹码分布（用户定稿留 Wave 3，ADR-011）、回测（Wave 3）、交易（Wave 4）、告警外部通知渠道（webhook 按需单开）、认证/响应式
+筹码分布（用户定稿留 Wave 3，ADR-011）、回测（Wave 3）、交易（Wave 4）、告警外部通知渠道（webhook 按需单开）、认证/响应式、**POST /api/tushare/sync 手动触发（父级裁决 2026-09-04：留后续 Phase 单开工单——手动轮与三时点轮的 checkpoint/退避幂等交互需单独评审；过渡态已定稿：页面④ sync-panel 手动触发按钮置灰，GET /api/tushare/status 可用）**

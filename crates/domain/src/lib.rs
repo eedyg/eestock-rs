@@ -3,6 +3,8 @@
 
 pub mod merge;
 pub mod ports;
+// calendar：交易日历分钟标签口径（Wave 2 Phase A 加法；代码块在 contracts.md §2.8）
+pub mod calendar;
 pub mod provider;
 pub mod selector;
 pub mod types;

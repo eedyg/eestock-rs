@@ -11,6 +11,8 @@ pub struct McpState {
     pub kline: Arc<dyn domain::ports::KlineRead>,
     /// 健康查询服务（diagnose；内部注入 domain::ports::HealthEventsRead）。
     pub health: diagnose::health::HealthService,
+    /// 数据质量服务（Wave 2 Phase A：MCP④ get_data_quality；diagnose::quality，与 web 同实例）。
+    pub quality: diagnose::quality::QualityService,
     /// get_sources_health 缺省统计窗口（秒；与 app 配置 health_window_secs 同源）。
     pub default_window_secs: i64,
     /// SSE 会话登记（sessionId → 消息通道）。

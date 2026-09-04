@@ -19,7 +19,7 @@ CollectorService
 
 - 每 enabled code 一个独立 ticker：`interval_secs`（≥60，symbols 表），**相位对齐分钟边界**（`next_tick = ceil(now/60)*60 + jitter(0~2s)`，抖动防同刻齐发）
 - 间隔修改热生效（ADR：symbols 变更下周期生效）：Scheduler 每周期前重读 symbols（轻量查询；变更频率极低，不做订阅推送）
-- 非交易时段（TradingCalendar）跳过拉取，记 NA 不记失败；Wave 1 简化口径=仅工作日（节假日噪音接受）
+- 非交易时段（TradingCalendar）跳过拉取，记 NA 不记失败；~~Wave 1 简化口径=仅工作日~~ **Wave 2 Phase A 起：交易日 = 工作日 ∧ ¬holidays（0008 节假日表）**，节假日不采集、不算缺口
 
 ## 3. 单次抓取流程（FetchExecutor）
 
@@ -31,7 +31,8 @@ CollectorService
   for src in chain:                                          # 单批次内按序转移
       t0 = now
       match provider[src].fetch_m1(C, limit=N):              # N=当日剩余分钟数+少量重叠
-          Ok(bars)  -> 记录成功事件(延迟) → writer.write_batch(bars)（首写胜出）→ break
+          Ok(bars)  -> 陈旧检测（§3.1，会话时段最新 bar 落后已到期标签 → stale_data 事件 + 进熔断 + 继续下一源）；
+                        否则记录成功事件(延迟) → writer.write_batch(bars)（首写胜出）→ break
           Err(NoData)      -> 记 NA（非交易时段/新上市），不视为失败，break
           Err(RateLimited) -> 记失败(err_kind=rate_limited) → CircuitRegistry.penalize(src, 退避档) → 继续下一源
           Err(e)           -> 记失败(err_kind) → CircuitRegistry.record_failure(src) → 继续下一源
@@ -41,6 +42,19 @@ CollectorService
 - **粘源**：单 code 单批次内不跳源重取已成功部分
 - 重叠窗口：每次拉取含最近 3 根已有 bar 的重叠，靠首写胜出自然去重（容忍源端当根 bar 修正）
 - Trace ID：每次抓取生成，贯穿事件/日志
+
+### 3.1 粘源陈旧检测（Wave 2 Phase A 补充规格，backlog「粘源无陈旧检测」结案）
+
+症状（Wave 1 验收遗留）：某源 HTTP 正常返回但喂的是**陈旧 bar**（最新标签落后于实时），
+executor 原样接受 → kline_raw 停止推进而无任何失败事件（粘源陈旧静默缺口）。
+
+规格（FetchExecutor 单次抓取 Ok(bars) 分支内，写库前判定）：
+- 判定纯函数在 domain::calendar（contracts §2.8）：会话时段内（`is_session_minute`）且
+  `is_stale(max(bars.ts), now)`——最新 bar 标签 < 已到期标签（`latest_due_label`，标签 ≤ now−60s 宽限）
+- 命中 → 记 `ok=false, err_kind=stale_data` 事件（§7 事件模型新行）→ `CircuitRegistry.report_failure`
+  （进熔断计数——交易时段喂陈旧数据=源故障）→ **继续链上下一源**（不接受陈旧写入，首写胜出本也只会落重复 ts）
+- 非会话时段（盘前/午休边缘/盘后回填）或当日无到期标签 → 不判定（不误伤）
+- 连续陈旧经熔断既有语义收敛（3 次 → Open → 摘除 + HalfOpen 探测自愈），无需额外状态机
 
 ## 4. 熔断状态机（CircuitRegistry，ADR-005 口径）
 
@@ -60,8 +74,9 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 ## 5. 当日缺口回填（GapBackfiller，Q4-B）
 
 - 触发：服务启动时 + 每 30 分钟周期检查
-- 缺口定义：当日交易分钟序列（09:30-11:30 ∪ 13:00-15:00，共 240 分钟）− kline_raw 已有 ts
-- 回填：对每个缺口 code，走正常 attempt_chain 拉 limit=240 的 m1，首写胜出只补缺的部分
+- 缺口定义：当日交易分钟标签序列（09:30..=11:30 ∪ 13:01..=15:00，共 241 个标签，contracts §2.8 实盘实证口径）− kline_raw 已有 ts
+- **交易日历驱动（Wave 2 Phase A）**：非交易日（周末 ∪ holidays[0008]）不算缺口、不触发回填
+- 回填：对每个缺口 code，走正常 attempt_chain 拉 limit=241+3 的 m1，首写胜出只补缺的部分
 - 只回填**当日**（更早的历史缺口归 tushare 准确层职责，ADR-003）
 
 ## 6. 冷藏备援与降级模式（ADR-015，取代原心跳模式）
@@ -83,6 +98,11 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 | 超时/HTTP/解析失败 | false | timeout/http/parse |
 | 403/429 | false | rate_limited |
 | 熔断状态迁移 | false | circuit_open / circuit_halfopen / circuit_closed / manual_reset |
+| 陈旧数据（§3.1） | false | stale_data（最新 bar 落后已到期标签；进熔断计数、链上转移） |
+
+注（D5 对齐，Wave 2 Phase A）：**非交易时段不产生任何健康事件**（§9.9 静默跳过），
+故「事件空窗」本身不是异常信号；质量报告区分口径见 design/07-app-plane §2（交易日历排除非交易日 →
+事件空窗只可能在交易日出现，交易日全天零事件 = 系统缺口）。stale_data 计入成功率分母（属源故障）。
 
 ## 8. TDD 规格要点
 
@@ -90,7 +110,8 @@ RateLimited：不进熔断计数，直接按 5s→10s→30s 退避档静默该�
 - FetchExecutor：首源成功不转移；NoData 不计失败；RateLimited 走退避不进熔断；全链失败产出 code 级事件
 - CircuitRegistry 状态机全迁移路径（含冷却翻倍封顶、手动复位）
 - CircuitProber 低频探测（§4）：HalfOpen 冷却到期单发探测闭合 / 失败重开冷却翻倍 / 无 HalfOpen 零调用；装配级全链路（双杀→降级→探测→回切）
-- GapBackfiller：缺口集合计算（含午休边界 11:30/13:00 不误判）；只写缺失 ts
+- GapBackfiller：缺口集合计算（含午休边界 11:30/13:01 不误判、节假日/周末零缺口）；只写缺失 ts
+- 陈旧检测（§3.1）：会话时段陈旧 bar → stale_data 事件 + 进熔断 + 链上转移；午休/盘前不误判
 - 全部用 mock Provider + fake clock，不触网
 
 ## 9. 实现（collector crate，TDD：全部 mock Provider + fake clock，不触网）
@@ -144,63 +165,73 @@ impl Clock for FakeClock {
 }
 ```
 
-### 9.3 TradingCalendar（Wave 0 简化口径：仅工作日，节假日噪音接受）
+### 9.3 TradingCalendar（Wave 2 Phase A：节假日表感知实现，trait 不变——父级预批准范围）
 
-bar 起始时刻口径：上午 09:30..=11:29（120 根）+ 下午 13:00..=14:59（120 根）= 240 分钟。
-边界：11:30 属午休（不误判为交易分钟）、13:00 属午后首节（不误判为午休）。
+分钟标签口径上移到 domain::calendar（contracts §2.8，241 标签实盘实证）；本模块保留薄包装 + 日历实现。
+交易日 = 工作日 ∧ ¬holidays（0008 表，HolidayCalendarRead 端口周期刷新快照；刷新失败保留旧快照，fail-open
+降级为仅工作日口径——与 Wave 0/1 行为一致）。边界：11:30 有标签（上午收盘 bar）、13:00 无标签（不误判缺口）、
+15:00 有标签（收盘集合竞价 bar）。
 
 ``` {.rust file=crates/collector/src/calendar.rs}
-//! 交易时段判定（工作日 + 双交易时段；节假日表 Wave 2 接入）。
+//! 交易时段判定（Wave 2 Phase A：节假日感知 HolidayCalendar；分钟标签口径见 domain::calendar §2.8）。
+//! 旧 WeekdayCalendar（仅工作日）已退役——节假日噪音结案（0008 holidays 表）。
 
 use crate::clock::Clock;
-use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use domain::ports::TradingCalendar;
 use domain::tz::utc_to_cst;
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::{Arc, RwLock};
 
-pub fn hm(h: u32, m: u32) -> NaiveTime { NaiveTime::from_hms_opt(h, m, 0).expect("valid hm") }
+// 分钟标签/会话窗口/陈旧判定纯函数统一走 domain（diagnose 质量报告共用同口径，防双份漂移）。
+pub use domain::calendar::{hm, is_session_minute, is_stale, is_weekday, latest_due_label,
+    trading_minute_labels};
 
-/// 分钟（bar 起始时刻）是否交易时段。
-pub fn is_trading_minute(t: NaiveTime) -> bool {
-    (hm(9, 30)..hm(11, 30)).contains(&t) || (hm(13, 0)..hm(15, 0)).contains(&t)
-}
+/// 兼容别名：当日交易分钟标签序列（241 个，naive CST）。
+pub fn trading_minutes(date: NaiveDate) -> Vec<NaiveDateTime> { trading_minute_labels(date) }
 
-/// 当日交易分钟序列（bar 起始时刻，naive CST）：09:30..=11:29 ∪ 13:00..=14:59，共 240。
-pub fn trading_minutes(date: NaiveDate) -> Vec<NaiveDateTime> {
-    let mut out = Vec::with_capacity(240);
-    let mut push_range = |start: NaiveTime, end: NaiveTime| {
-        let mut t = start;
-        while t < end {
-            out.push(date.and_time(t));
-            t += chrono::Duration::minutes(1);
-        }
-    };
-    push_range(hm(9, 30), hm(11, 30));
-    push_range(hm(13, 0), hm(15, 0));
-    out
-}
+/// 兼容别名：采集会话窗口判定（09:30..=11:31 ∪ 13:00..=15:01）。
+pub fn is_trading_minute(t: NaiveTime) -> bool { is_session_minute(t) }
 
-pub fn is_weekday(date: NaiveDate) -> bool {
-    matches!(date.weekday(), chrono::Weekday::Mon | chrono::Weekday::Tue
-        | chrono::Weekday::Wed | chrono::Weekday::Thu | chrono::Weekday::Fri)
-}
-
-pub struct WeekdayCalendar {
+/// 节假日感知日历：内存快照（RwLock，sync trait 约束）+ 外部周期刷新（service.rs 刷新任务）。
+/// 空快照 = 仅工作日口径（fail-open，与 Wave 0/1 行为一致；DB 故障不扩大停采面）。
+pub struct HolidayCalendar {
     clock: Arc<dyn Clock>,
+    holidays: RwLock<HashSet<NaiveDate>>,
 }
 
-impl WeekdayCalendar {
-    pub fn new(clock: Arc<dyn Clock>) -> Self { Self { clock } }
+impl HolidayCalendar {
+    pub fn new(clock: Arc<dyn Clock>) -> Self {
+        Self { clock, holidays: RwLock::new(HashSet::new()) }
+    }
+    /// 测试/装配用：直接给定节假日集合。
+    pub fn with_holidays(clock: Arc<dyn Clock>, holidays: HashSet<NaiveDate>) -> Self {
+        Self { clock, holidays: RwLock::new(holidays) }
+    }
+    /// 刷新快照（service 刷新任务调用；整体替换，读侧无锁竞争窗口语义）。
+    pub fn refresh(&self, holidays: HashSet<NaiveDate>) {
+        *self.holidays.write().expect("holidays poisoned") = holidays;
+    }
+    /// 当前快照（测试断言/观测用）。
+    pub fn snapshot(&self) -> HashSet<NaiveDate> {
+        self.holidays.read().expect("holidays poisoned").clone()
+    }
 }
 
-impl TradingCalendar for WeekdayCalendar {
-    fn is_trading_day(&self, date: NaiveDate) -> bool { is_weekday(date) }
+impl TradingCalendar for HolidayCalendar {
+    /// 交易日 = 工作日 ∧ 非节假日（0008）。
+    fn is_trading_day(&self, date: NaiveDate) -> bool {
+        is_weekday(date) && !self.holidays.read().expect("holidays poisoned").contains(&date)
+    }
 
     fn is_trading_now(&self) -> bool {
         let cst = utc_to_cst(self.clock.now());
-        self.is_trading_day(cst.date()) && is_trading_minute(cst.time())
+        self.is_trading_day(cst.date()) && is_session_minute(cst.time())
     }
 }
+
+/// 节假日快照刷新节拍（service.rs 刷新任务；小表全量读，低频）。
+pub const HOLIDAY_REFRESH_INTERVAL: std::time::Duration = std::time::Duration::from_secs(3600);
 ```
 
 ### 9.4 CircuitRegistry（熔断状态机，§4 全路径）
@@ -411,8 +442,10 @@ impl HealthMonitor for CircuitRegistry {
 ### 9.5 FetchExecutor（§3 单次抓取流程）
 
 ``` {.rust file=crates/collector/src/executor.rs}
-//! 单次抓取执行器：attempt_chain（当班源优先 + 注册序轮转）+ 首写胜出 + Trace ID 贯穿。
+//! 单次抓取执行器：attempt_chain（当班源优先 + 注册序轮转）+ 首写胜出 + Trace ID 贯穿
+//! + 粘源陈旧检测（§3.1：最新 bar 落后已到期标签 → stale_data 事件 + 进熔断 + 链上转移）。
 
+use crate::calendar::{is_session_minute, is_stale};
 use crate::circuit::CircuitRegistry;
 use crate::clock::Clock;
 use chrono::{DateTime, Utc};
@@ -420,6 +453,7 @@ use domain::ports::{ErrKind, EventSink, HealthEvent, HealthMonitor, KlineWriter}
 use domain::provider::{MinuteKlineProvider, ProviderError};
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::*;
+use domain::tz::utc_to_cst;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -510,6 +544,20 @@ impl FetchExecutor {
             let t0 = std::time::Instant::now();
             match provider.fetch_m1(code, limit).await {
                 Ok(bars) => {
+                    // 粘源陈旧检测（§3.1）：会话时段内最新 bar 标签 < 已到期标签 → 陈旧。
+                    // 陈旧 = 源故障：stale_data 事件 + 进熔断计数 + 链上转移；不接受陈旧写入
+                    // （陈旧 ts 必然已存在，首写胜出下写入也是空转，跳过保持语义清晰）。
+                    let cst_now = utc_to_cst(self.clock.now());
+                    let fetched_max = bars.iter().map(|b| b.ts).max();
+                    if let Some(mx) = fetched_max {
+                        if is_session_minute(cst_now.time()) && is_stale(utc_to_cst(mx), cst_now) {
+                            self.emit(*src, false, None, Some(ErrKind::StaleData), Some(code), &trace_id).await;
+                            self.circuits.report_failure(*src, ErrKind::StaleData.as_str()).await;
+                            tracing::warn!(code = %code.0, source = src.as_str(), trace_id,
+                                fetched_max = %mx, "stale bars, try next source");
+                            continue;
+                        }
+                    }
                     let latency = t0.elapsed().as_millis() as u64;
                     self.circuits.report_success(*src, latency).await;
                     self.emit(*src, true, Some(latency as u32), None, Some(code), &trace_id).await;
@@ -549,26 +597,29 @@ impl FetchExecutor {
 ### 9.6 GapBackfiller（§5 当日缺口回填）
 
 ``` {.rust file=crates/collector/src/gapfill.rs}
-//! 当日缺口回填：启动时 + 每 30 分钟。缺口 = 当日交易分钟序列 − kline_raw 已有 ts（仅当日；
-//! 更早历史缺口归 tushare 准确层，ADR-003）。只拉已过去的分钟（未来分钟不是缺口）。
+//! 当日缺口回填：启动时 + 每 30 分钟。缺口 = 当日交易分钟标签序列（241 个，§2.8 口径）−
+//! kline_raw 已有 ts（仅当日；更早历史缺口归 tushare 准确层，ADR-003）。只拉已过去的分钟（未来分钟不是缺口）。
+//! Wave 2 Phase A：交易日历驱动（TradingCalendar 注入）——非交易日（周末 ∪ holidays[0008]）不算缺口、不回填。
 
-use crate::calendar::{is_weekday, trading_minutes};
+use crate::calendar::trading_minutes;
 use crate::clock::Clock;
 use crate::executor::FetchExecutor;
 use chrono::{DateTime, NaiveDate, Timelike, Utc};
-use domain::ports::{RawBarReader, SymbolRegistry};
+use domain::ports::{RawBarReader, SymbolRegistry, TradingCalendar};
 use domain::tz::{cst_to_utc, utc_to_cst};
 use std::collections::HashSet;
 use std::sync::Arc;
 
 pub const BACKFILL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
-pub const GAP_LIMIT: usize = 240;
+/// 回填拉取上限：当日 241 标签 + 3 根重叠（§3）。
+pub const GAP_LIMIT: usize = 244;
 
-/// 缺口集合：当日已过去的交易分钟（bar 起始时刻）− existing。非当日/非交易日 → 空。
-pub fn compute_gaps(existing: &HashSet<DateTime<Utc>>, date: NaiveDate, now: DateTime<Utc>)
-    -> Vec<DateTime<Utc>> {
+/// 缺口集合：当日已过去的交易分钟标签 − existing。非当日/非交易日 → 空。
+/// trading_day 由调用方经 TradingCalendar 判定传入（纯函数保持可离线 TDD）。
+pub fn compute_gaps(existing: &HashSet<DateTime<Utc>>, date: NaiveDate, now: DateTime<Utc>,
+                    trading_day: bool) -> Vec<DateTime<Utc>> {
     let cst_now = utc_to_cst(now);
-    if cst_now.date() != date || !is_weekday(date) { return vec![]; }
+    if cst_now.date() != date || !trading_day { return vec![]; }
     let now_floor = cst_now.with_second(0).and_then(|t| t.with_nanosecond(0))
         .map(cst_to_utc).unwrap_or(now);
     trading_minutes(date).into_iter().map(cst_to_utc)
@@ -581,23 +632,25 @@ pub struct GapBackfiller {
     reader: Arc<dyn RawBarReader>,
     registry: Arc<dyn SymbolRegistry>,
     clock: Arc<dyn Clock>,
+    calendar: Arc<dyn TradingCalendar>,
 }
 
 impl GapBackfiller {
     pub fn new(executor: Arc<FetchExecutor>, reader: Arc<dyn RawBarReader>,
-               registry: Arc<dyn SymbolRegistry>, clock: Arc<dyn Clock>) -> Self {
-        Self { executor, reader, registry, clock }
+               registry: Arc<dyn SymbolRegistry>, clock: Arc<dyn Clock>,
+               calendar: Arc<dyn TradingCalendar>) -> Self {
+        Self { executor, reader, registry, clock, calendar }
     }
 
-    /// 当日缺口回填一轮：返回触发回填的 code 数。
+    /// 当日缺口回填一轮：返回触发回填的 code 数。非交易日整轮跳过（节假日零噪音）。
     pub async fn backfill_today(&self) -> anyhow::Result<usize> {
         let now = self.clock.now();
         let today = utc_to_cst(now).date();
-        if !is_weekday(today) { return Ok(0); }
+        if !self.calendar.is_trading_day(today) { return Ok(0); }
         let mut touched = 0usize;
         for code in self.registry.enabled_codes().await? {
             let existing = self.reader.existing_ts(&code, today).await?;
-            let gaps = compute_gaps(&existing, today, now);
+            let gaps = compute_gaps(&existing, today, now, true);
             if gaps.is_empty() { continue; }
             tracing::info!(code = %code.0, gaps = gaps.len(), "gap backfill start");
             self.executor.fetch_one(&code, GAP_LIMIT).await; // 首写胜出只补缺的部分
@@ -727,7 +780,7 @@ impl StandbyReserve {
 ``` {.rust file=crates/collector/src/scheduler.rs}
 //! 调度：每 code 独立 ticker，分钟边界相位对齐 + 0~2s 抖动；每周期重读 symbols 热生效（service.rs）。
 
-use crate::calendar::{is_weekday, trading_minutes};
+use crate::calendar::trading_minutes;
 use chrono::{DateTime, TimeZone, Timelike, Utc};
 use domain::tz::utc_to_cst;
 
@@ -742,10 +795,12 @@ pub fn next_tick_after(now: DateTime<Utc>, interval_secs: u64, jitter_seed: u64)
 /// 首写胜出重叠根数（§3：每次拉取含最近 3 根已有 bar 的重叠）。
 pub const OVERLAP_BARS: usize = 3;
 
-/// 本周期抓取 limit：当日剩余交易分钟数 + 3 根重叠（§3）。非交易日/已收盘 → 0（跳过）。
-pub fn fetch_limit(now: DateTime<Utc>) -> usize {
+/// 本周期抓取 limit：当日剩余交易分钟标签数 + 3 根重叠（§3）。
+/// trading_day 由调用方经 TradingCalendar 判定传入（节假日感知，Wave 2 Phase A）；
+/// 非交易日/已收盘 → 0（跳过）。
+pub fn fetch_limit(now: DateTime<Utc>, trading_day: bool) -> usize {
+    if !trading_day { return 0; }
     let cst = utc_to_cst(now);
-    if !is_weekday(cst.date()) { return 0; }
     let cur_floor = cst.with_second(0).and_then(|t| t.with_nanosecond(0));
     let Some(cur) = cur_floor else { return 0 };
     let remaining = trading_minutes(cst.date()).into_iter().filter(|m| *m >= cur).count();
@@ -765,15 +820,16 @@ pub fn fetch_limit(now: DateTime<Utc>) -> usize {
 //! §2 注记：非交易时段调度静默跳过（不为每分钟每标的刷 NA 事件噪音）；
 //! NA 事件口径由源端 NoData 响应承载（§7），与 028 一致。
 
-use crate::calendar::WeekdayCalendar;
+use crate::calendar::{HolidayCalendar, HOLIDAY_REFRESH_INTERVAL};
 use crate::clock::Clock;
 use crate::executor::{FetchExecutor, FetchOutcome};
 use crate::gapfill::{GapBackfiller, BACKFILL_INTERVAL};
 use crate::probe::CircuitProber;
 use crate::scheduler::{fetch_limit, next_tick_after};
 use crate::standby::StandbyReserve;
-use domain::ports::{HealthMonitor, KlineWriter, SymbolRegistry, TradingCalendar};
+use domain::ports::{HealthMonitor, HolidayCalendarRead, KlineWriter, SymbolRegistry, TradingCalendar};
 use domain::types::Code;
+use domain::tz::utc_to_cst;
 use rand::Rng;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -785,7 +841,10 @@ pub struct CollectorService {
     gapfill: Arc<GapBackfiller>,
     prober: Arc<CircuitProber>,
     registry: Arc<dyn SymbolRegistry>,
-    calendar: Arc<dyn TradingCalendar>,
+    /// 节假日感知日历（Wave 2 Phase A；与 gapfill 共享同一实例，快照由刷新任务维护）。
+    calendar: Arc<HolidayCalendar>,
+    /// 节假日表读端口（0008；刷新任务周期重读，失败保留旧快照 fail-open）。
+    holiday_source: Arc<dyn HolidayCalendarRead>,
     writer: Arc<dyn KlineWriter>,
     clock: Arc<dyn Clock>,
 }
@@ -798,15 +857,35 @@ impl CollectorService {
         gapfill: Arc<GapBackfiller>,
         prober: Arc<CircuitProber>,
         registry: Arc<dyn SymbolRegistry>,
+        calendar: Arc<HolidayCalendar>,
+        holiday_source: Arc<dyn HolidayCalendarRead>,
         writer: Arc<dyn KlineWriter>,
         clock: Arc<dyn Clock>,
     ) -> Self {
-        let calendar: Arc<dyn TradingCalendar> = Arc::new(WeekdayCalendar::new(clock.clone()));
-        Self { executor, standby, gapfill, prober, registry, calendar, writer, clock }
+        Self { executor, standby, gapfill, prober, registry, calendar, holiday_source,
+               writer, clock }
     }
 
-    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）。
+    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）+ 节假日快照刷新（1h，§9.3）。
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
+        // 节假日快照：启动即刷新 + 每 1h 重读（0008 小表全量；失败保留旧快照 fail-open）
+        {
+            let cal = self.calendar.clone();
+            let src = self.holiday_source.clone();
+            tokio::spawn(async move {
+                loop {
+                    match src.holidays().await {
+                        Ok(set) => {
+                            tracing::info!(holidays = set.len(), "holiday calendar refreshed");
+                            cal.refresh(set);
+                        }
+                        Err(e) => tracing::warn!(error = %e,
+                            "holiday refresh failed (keep previous snapshot)"),
+                    }
+                    tokio::time::sleep(HOLIDAY_REFRESH_INTERVAL).await;
+                }
+            });
+        }
         // 缺口回填：启动即跑一轮，之后每 30 分钟（§5）
         {
             let gf = self.gapfill.clone();
@@ -862,7 +941,8 @@ impl CollectorService {
                 self.degraded_loop(&code).await;
                 continue;
             }
-            let limit = fetch_limit(self.clock.now());
+            let trading_day = self.calendar.is_trading_day(utc_to_cst(self.clock.now()).date());
+            let limit = fetch_limit(self.clock.now(), trading_day);
             if limit == 0 { continue; }
             if self.executor.fetch_one(&code, limit).await == FetchOutcome::AllFailed {
                 tracing::warn!(code = %code.0, "attempt_chain all failed -> 进入降级模式");
@@ -876,7 +956,8 @@ impl CollectorService {
         while self.standby.is_degraded(code) {
             // 恢复探测：Tier1 有可用源 → 走正常链试一次
             if StandbyReserve::should_probe_recover(&self.executor.circuits().healthy_minute_sources().await) {
-                let limit = fetch_limit(self.clock.now()).max(crate::scheduler::OVERLAP_BARS + 1);
+                let trading_day = self.calendar.is_trading_day(utc_to_cst(self.clock.now()).date());
+                let limit = fetch_limit(self.clock.now(), trading_day).max(crate::scheduler::OVERLAP_BARS + 1);
                 if let FetchOutcome::Ok { .. } = self.executor.fetch_one(code, limit).await {
                     tracing::info!(code = %code.0, "Tier1 恢复探测成功 -> 回切正常模式");
                     self.standby.deactivate(code);
@@ -1133,46 +1214,70 @@ pub fn quote(code: &str, last: f64, vol: u64, amt: f64, src: SourceId) -> Quote 
 ```
 
 ``` {.rust file=crates/collector/tests/calendar_test.rs}
-//! TradingCalendar / 交易分钟序列（fake clock）。
+//! TradingCalendar / 交易分钟标签序列（fake clock）。
+//! Wave 2 Phase A：241 标签实盘实证口径（contracts §2.8）+ 节假日表感知 HolidayCalendar（0008）。
 
 use chrono::{NaiveDate, TimeZone, Utc};
 use collector::calendar::*;
 use collector::clock::FakeClock;
 use domain::ports::TradingCalendar;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 fn d(y: i32, m: u32, dd: u32) -> NaiveDate { NaiveDate::from_ymd_opt(y, m, dd).unwrap() }
 
 #[test]
-fn trading_minutes_240_and_lunch_boundary() {
+fn trading_minutes_241_labels_upstream_aligned() {
     let mins = trading_minutes(d(2026, 9, 3)); // 周四
-    assert_eq!(mins.len(), 240);
-    // 上午 09:30..=11:29、下午 13:00..=14:59；午休边界不误判
+    assert_eq!(mins.len(), 241, "09:30..=11:30(121) ∪ 13:01..=15:00(120)，上游三源实盘实证");
+    // 会话窗口：11:30/11:31 仍属会话（上午收盘 bar 可得性滞后）；午休不采集
     assert!(is_trading_minute(hm(9, 30)));
-    assert!(is_trading_minute(hm(11, 29)));
-    assert!(!is_trading_minute(hm(11, 30)), "11:30 属午休");
+    assert!(is_trading_minute(hm(11, 30)) && is_trading_minute(hm(11, 31)));
+    assert!(!is_trading_minute(hm(11, 32)), "11:32 起午休");
     assert!(!is_trading_minute(hm(12, 59)));
-    assert!(is_trading_minute(hm(13, 0)), "13:00 属午后首节");
-    assert!(is_trading_minute(hm(14, 59)));
-    assert!(!is_trading_minute(hm(15, 0)), "15:00 已收盘（bar 起始时刻口径）");
+    assert!(is_trading_minute(hm(13, 0)), "13:00 起为午后会话（等 13:01 首标签 bar）");
+    assert!(is_trading_minute(hm(15, 0)) && is_trading_minute(hm(15, 1)), "15:00 收盘 bar 滞后余量");
+    assert!(!is_trading_minute(hm(15, 2)), "15:02 起收盘");
     assert!(!is_trading_minute(hm(9, 29)));
+    // 标签集合：13:00 无标签（13:00 伪缺口结案）；11:30/15:00 有标签
+    let times: Vec<_> = mins.iter().map(|m| m.time()).collect();
+    assert!(!times.contains(&hm(13, 0)), "13:00 无标签（上游口径实证，Wave 1 伪缺口结案）");
+    assert!(times.contains(&hm(11, 30)) && times.contains(&hm(15, 0)));
+    assert!(times.contains(&hm(13, 1)) && times.contains(&hm(14, 59)));
 }
 
 #[test]
-fn weekday_calendar_with_fake_clock() {
-    // 2026-09-03 是周四；2026-09-05 是周六
-    assert!(is_weekday(d(2026, 9, 3)));
-    assert!(!is_weekday(d(2026, 9, 5)));
-    // 09:35 CST = 01:35 UTC → 交易中
+fn holiday_calendar_weekend_holiday_and_refresh() {
+    // 2026-09-03 周四 09:35 CST = 01:35 UTC
     let clock = Arc::new(FakeClock::new(Utc.with_ymd_and_hms(2026, 9, 3, 1, 35, 0).unwrap()));
-    let cal = WeekdayCalendar::new(clock.clone());
+    let cal = HolidayCalendar::new(clock.clone());
+    // 空快照 = 仅工作日口径（fail-open，与 Wave 0/1 行为一致）
+    assert!(cal.is_trading_day(d(2026, 9, 3)));
+    assert!(cal.is_trading_day(d(2026, 10, 1)), "空快照 fail-open：国庆暂按工作日");
+    // 刷新 2026 节假日（0008 迁移数据子集：国庆 10/1-10/8、元旦 1/1-1/3）
+    let mut h: HashSet<NaiveDate> = HashSet::new();
+    for dd in 1..=8u32 { h.insert(d(2026, 10, dd)); }
+    for dd in 1..=3u32 { h.insert(d(2026, 1, dd)); }
+    cal.refresh(h);
+    assert!(!cal.is_trading_day(d(2026, 10, 1)), "国庆不采集（任务书验收点）");
+    assert!(!cal.is_trading_day(d(2026, 10, 8)), "国庆区间内");
+    assert!(!cal.is_trading_day(d(2026, 1, 1)), "元旦不采集（任务书验收点）");
+    assert!(!cal.is_trading_day(d(2026, 9, 5)), "周六不采集");
+    assert!(!cal.is_trading_day(d(2026, 9, 6)), "周日不采集");
+    assert!(cal.is_trading_day(d(2026, 9, 3)), "普通工作日交易");
+    assert!(cal.is_trading_day(d(2026, 10, 9)), "国庆后首个工作日交易");
+    // is_trading_now：交易中 → 推进至午休 12:00 CST → 非交易
     assert!(cal.is_trading_now());
-    // 推进到午休 12:00 CST = 04:00 UTC
     clock.advance(chrono::Duration::minutes(145));
     assert!(!cal.is_trading_now());
-    // 推进到周六 10:00 CST（= 9-5 02:00 UTC）
+    // 周六 10:00 CST → 非交易
     let sat = Arc::new(FakeClock::new(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap()));
-    assert!(!WeekdayCalendar::new(sat).is_trading_now());
+    assert!(!HolidayCalendar::new(sat).is_trading_now());
+    // 国庆盘中时刻（10-01 10:00 CST = 02:00 UTC）→ 非交易
+    let gq_clock = Arc::new(FakeClock::new(Utc.with_ymd_and_hms(2026, 10, 1, 2, 0, 0).unwrap()));
+    let gq = HolidayCalendar::with_holidays(gq_clock,
+        (1..=8u32).map(|dd| d(2026, 10, dd)).collect());
+    assert!(!gq.is_trading_now(), "国庆盘中时刻也不采集");
 }
 ```
 
@@ -1416,6 +1521,93 @@ async fn circuit_open_source_excluded_from_chain() {
     assert!(matches!(out, FetchOutcome::Ok { source: SourceId::SinaJsonp, .. }));
     assert_eq!(t.calls(), 0, "熔断源不出现在 attempt_chain");
 }
+
+// ── §3.1 粘源陈旧检测（Wave 2 Phase A）──
+
+#[allow(clippy::type_complexity)] // 元组返回属测试装配惯例
+fn setup_at(now: chrono::DateTime<Utc>, t: Arc<MockMinute>, s: Arc<MockMinute>)
+    -> (Arc<FetchExecutor>, Arc<MemWriter>, Arc<MemSink>, Arc<CircuitRegistry>, Arc<FakeClock>) {
+    let clock = Arc::new(FakeClock::new(now));
+    let sink = Arc::new(MemSink::default());
+    let writer = Arc::new(MemWriter::default());
+    let circuits = Arc::new(CircuitRegistry::new(
+        vec![SourceId::TencentIfzq, SourceId::SinaJsonp], clock.clone(), sink.clone()));
+    let mut providers: HashMap<SourceId, Arc<dyn domain::provider::MinuteKlineProvider>> = HashMap::new();
+    providers.insert(SourceId::TencentIfzq, t);
+    providers.insert(SourceId::SinaJsonp, s);
+    let ex = Arc::new(FetchExecutor::new(
+        providers,
+        SourceSelector::new(vec![SourceId::TencentIfzq, SourceId::SinaJsonp]),
+        DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]),
+        circuits.clone(), writer.clone(), sink.clone(), clock.clone()));
+    (ex, writer, sink, circuits, clock)
+}
+
+#[tokio::test]
+async fn stale_bars_fail_over_and_count_toward_circuit() {
+    // now = 09:35:30 CST（01:35:30 UTC）：已到期标签 09:34。
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 1, 35, 30).unwrap();
+    let code = Code("518880".into());
+    let duty = duty_for(&DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]), &code, now);
+    // 当班源喂陈旧 bar（最新 09:30，落后已到期 09:34）；备源新鲜（09:35）
+    let mk = |src: SourceId| -> Arc<MockMinute> {
+        if src == duty {
+            Arc::new(MockMinute::new(src, (0..3).map(|_|
+                Ok(vec![bar("518880", 1, 30, src)])).collect()))
+        } else {
+            Arc::new(MockMinute::new(src, (0..3).map(|_|
+                Ok(vec![bar("518880", 1, 35, src)])).collect()))
+        }
+    };
+    let t = mk(SourceId::TencentIfzq);
+    let s = mk(SourceId::SinaJsonp);
+    let (ex, writer, sink, circuits, _c) = setup_at(now, t, s);
+    let out = ex.fetch_one(&code, 10).await;
+    let FetchOutcome::Ok { source, .. } = out else { panic!("陈旧应转移到备源成功: {out:?}") };
+    assert_ne!(source, duty, "陈旧源不被接受，转移到备源");
+    let kinds = sink.kinds();
+    assert!(kinds.contains(&Some("stale_data".into())), "陈旧事件 ok=false + err_kind=stale_data");
+    // 陈旧 bar 未写入
+    assert_eq!(writer.bars.lock().unwrap().iter().filter(|b| b.ts
+        == chrono::TimeZone::with_ymd_and_hms(&Utc, 2026, 9, 3, 1, 30, 0).unwrap()).count(), 0,
+        "陈旧 bar 不落库");
+    // 连续 3 次陈旧 → 熔断（进熔断计数，交易时段喂陈旧数据 = 源故障）
+    for _ in 0..2 { let _ = ex.fetch_one(&code, 10).await; }
+    assert_eq!(circuits.state(duty).await, collector::circuit::CircuitState::Open,
+        "连续 3 次陈旧 → Open");
+    assert!(!circuits.healthy_minute_sources().await.contains(&duty));
+}
+
+#[tokio::test]
+async fn stale_check_lunch_edge_and_grace_not_misjudged() {
+    // 午休后首轮 13:01:30 CST（05:01:30 UTC）：13:01 标签未到期（宽限 60s）→ 11:30 不判陈旧
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 5, 1, 30).unwrap();
+    let code = Code("518880".into());
+    let duty = duty_for(&DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]), &code, now);
+    let mk = |src: SourceId| Arc::new(MockMinute::new(src,
+        vec![Ok(vec![bar("518880", 3, 30, src)])])); // 最新 11:30 CST
+    let (ex, writer, sink, _circuits, _c) = setup_at(now, mk(SourceId::TencentIfzq), mk(SourceId::SinaJsonp));
+    let out = ex.fetch_one(&code, 10).await;
+    let FetchOutcome::Ok { source, .. } = out else { panic!("午休边缘不应判陈旧: {out:?}") };
+    assert_eq!(source, duty, "首源成功不转移");
+    assert!(!sink.kinds().contains(&Some("stale_data".into())));
+    assert_eq!(writer.bars.lock().unwrap().len(), 1);
+
+    // 13:02:30 CST：13:01 已到期而源仍停在 11:30 → 陈旧
+    let now2 = Utc.with_ymd_and_hms(2026, 9, 3, 5, 2, 30).unwrap();
+    let code2 = Code("518880".into());
+    let duty2 = duty_for(&DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]), &code2, now2);
+    let mk2 = |src: SourceId| -> Arc<MockMinute> {
+        if src == duty2 { Arc::new(MockMinute::new(src, vec![Ok(vec![bar("518880", 3, 30, src)])])) }
+        else { Arc::new(MockMinute::new(src, vec![Ok(vec![bar("518880", 5, 1, src)])])) } // 13:01 CST
+    };
+    let (ex2, _w2, sink2, _c2, _cl2) =
+        setup_at(now2, mk2(SourceId::TencentIfzq), mk2(SourceId::SinaJsonp));
+    let out2 = ex2.fetch_one(&code2, 10).await;
+    let FetchOutcome::Ok { source, .. } = out2 else { panic!("应转移备源: {out2:?}") };
+    assert_ne!(source, duty2);
+    assert!(sink2.kinds().contains(&Some("stale_data".into())), "13:01 到期后停在 11:30 → 陈旧");
+}
 ```
 
 ``` {.rust file=crates/collector/tests/gapfill_test.rs}
@@ -1424,11 +1616,11 @@ async fn circuit_open_source_excluded_from_chain() {
 mod common;
 
 use chrono::{NaiveDate, TimeZone, Utc};
+use collector::calendar::{trading_minutes, HolidayCalendar};
 use collector::circuit::CircuitRegistry;
 use collector::clock::FakeClock;
 use collector::executor::FetchExecutor;
 use collector::gapfill::*;
-use collector::calendar::trading_minutes;
 use common::*;
 use domain::ports::KlineWriter;
 use domain::selector::{DutyRoster, SourceSelector};
@@ -1448,26 +1640,34 @@ fn gaps_are_trading_minutes_minus_existing_only_past() {
     for m in trading_minutes(d()).into_iter().take(5) {
         existing.insert(cst_to_utc(m));
     }
-    let gaps = compute_gaps(&existing, d(), now);
+    let gaps = compute_gaps(&existing, d(), now, true);
     // 缺口 = 09:35..10:00（26 根，含 10:00 本分钟）；未来分钟不算缺口
     assert_eq!(gaps.len(), 26, "09:35..=10:00 共 26 根: {:?}", gaps.first());
     assert!(!gaps.contains(&cst_to_utc(trading_minutes(d())[0])), "已有 ts 不是缺口");
-    // 午休时段永远不在分钟序列里（11:30-12:59 不产生缺口）——由 trading_minutes 保证
+    // 午休时段永远不在标签序列里（11:31-12:59 不产生缺口）——由 trading_minutes 保证
     let noon = Utc.with_ymd_and_hms(2026, 9, 3, 4, 30, 0).unwrap(); // 12:30 CST
-    let gaps_noon = compute_gaps(&existing, d(), noon);
+    let gaps_noon = compute_gaps(&existing, d(), noon, true);
     assert!(gaps_noon.iter().all(|ts| {
         let cst = domain::tz::utc_to_cst(*ts);
         collector::calendar::is_trading_minute(cst.time())
-    }), "缺口全为交易分钟（午休不误判）");
+    }), "缺口全为会话内分钟（午休不误判）");
+    // 13:00 伪缺口结案：标签序列无 13:00，下午首轮前（13:00:30 CST）不产生 13:00 缺口
+    let pm = Utc.with_ymd_and_hms(2026, 9, 3, 5, 0, 30).unwrap(); // 13:00:30 CST
+    let gaps_pm = compute_gaps(&HashSet::new(), d(), pm, true);
+    assert!(gaps_pm.iter().all(|ts| {
+        let t = domain::tz::utc_to_cst(*ts).time();
+        t != collector::calendar::hm(13, 0)
+    }), "13:00 标签不存在 → 恒不为缺口（伪缺口结案）");
 }
 
 #[test]
 fn gaps_empty_on_non_trading_day_or_other_date() {
     let now = Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap(); // 周六
-    assert!(compute_gaps(&HashSet::new(), NaiveDate::from_ymd_opt(2026, 9, 5).unwrap(), now).is_empty());
+    assert!(compute_gaps(&HashSet::new(), NaiveDate::from_ymd_opt(2026, 9, 5).unwrap(), now, false)
+        .is_empty(), "非交易日（trading_day=false）→ 空");
     // now 与 date 不同日 → 空（只回填当日）
     let now2 = Utc.with_ymd_and_hms(2026, 9, 4, 2, 0, 0).unwrap();
-    assert!(compute_gaps(&HashSet::new(), d(), now2).is_empty());
+    assert!(compute_gaps(&HashSet::new(), d(), now2, true).is_empty());
 }
 
 #[tokio::test]
@@ -1482,12 +1682,13 @@ async fn backfill_writes_only_missing_ts() {
     writer.write_batch(std::slice::from_ref(&existing_bar)).await.unwrap();
     reader.ts.lock().unwrap().insert(("518880".into(), d()),
         HashSet::from([existing_bar.ts]));
-    // mock 源返回当日全 240 根（含已有的 09:30）
+    // mock 源返回当日全 241 标签（含已有的 09:30）
     let all: Vec<Bar> = trading_minutes(d()).into_iter().map(|t| Bar {
         code: Code("518880".into()), period: Period::M1, ts: cst_to_utc(t),
         open: 1.0, high: 1.0, low: 1.0, close: 1.0, volume: 1, amount: 1.0,
         source: SourceId::TencentIfzq,
     }).collect();
+    assert_eq!(all.len(), 241);
     // 双源均返回全量（duty 由 stable_seed 决定，任一当班都能成功承接）
     let t = Arc::new(MockMinute::new(SourceId::TencentIfzq, vec![Ok(all.clone())]));
     let s = Arc::new(MockMinute::new(SourceId::SinaJsonp, vec![Ok(all)]));
@@ -1501,14 +1702,45 @@ async fn backfill_writes_only_missing_ts() {
         DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]),
         circuits, writer.clone(), sink.clone(), clock.clone()));
     let registry = Arc::new(MemRegistry { codes: std::sync::Mutex::new(vec![(Code("518880".into()), 60)]) });
-    let bf = GapBackfiller::new(ex, reader.clone(), registry, clock);
+    let cal: Arc<dyn domain::ports::TradingCalendar> =
+        Arc::new(HolidayCalendar::new(clock.clone())); // 空快照：工作日口径
+    let bf = GapBackfiller::new(ex, reader.clone(), registry, clock, cal);
     let touched = bf.backfill_today().await.unwrap();
     assert_eq!(touched, 1);
-    // 首写胜出：mock 源返回全 240 根，已有的 09:30 冲突跳过不重复、其余全落
+    // 首写胜出：mock 源返回全 241 根，已有的 09:30 冲突跳过不重复、其余全落
     let written = writer.bars.lock().unwrap();
-    assert_eq!(written.len(), 240);
+    assert_eq!(written.len(), 241);
     assert_eq!(written.iter().filter(|b| b.ts == existing_bar.ts).count(), 1,
                "已有 ts 不重复落行（只写缺失 ts）");
+}
+
+#[tokio::test]
+async fn backfill_skips_holiday_entirely() {
+    // 国庆 2026-10-01 周四 10:00 CST = 02:00 UTC（0008 表口径）：整轮跳过、零调用、零缺口
+    let now = Utc.with_ymd_and_hms(2026, 10, 1, 2, 0, 30).unwrap();
+    let clock = Arc::new(FakeClock::new(now));
+    let sink = Arc::new(MemSink::default());
+    let writer = Arc::new(MemWriter::default());
+    let reader = Arc::new(MemReader::default());
+    let t = Arc::new(MockMinute::new(SourceId::TencentIfzq, vec![]));
+    let s = Arc::new(MockMinute::new(SourceId::SinaJsonp, vec![]));
+    let circuits = Arc::new(CircuitRegistry::new(
+        vec![SourceId::TencentIfzq, SourceId::SinaJsonp], clock.clone(), sink.clone()));
+    let mut providers: HashMap<SourceId, Arc<dyn domain::provider::MinuteKlineProvider>> = HashMap::new();
+    providers.insert(SourceId::TencentIfzq, t.clone());
+    providers.insert(SourceId::SinaJsonp, s.clone());
+    let ex = Arc::new(FetchExecutor::new(providers,
+        SourceSelector::new(vec![SourceId::TencentIfzq, SourceId::SinaJsonp]),
+        DutyRoster::new([SourceId::TencentIfzq, SourceId::SinaJsonp]),
+        circuits, writer.clone(), sink.clone(), clock.clone()));
+    let registry = Arc::new(MemRegistry { codes: std::sync::Mutex::new(vec![(Code("518880".into()), 60)]) });
+    let cal: Arc<dyn domain::ports::TradingCalendar> = Arc::new(HolidayCalendar::with_holidays(
+        clock.clone(), (1..=8u32).map(|dd| NaiveDate::from_ymd_opt(2026, 10, dd).unwrap()).collect()));
+    let bf = GapBackfiller::new(ex, reader, registry, clock, cal);
+    assert_eq!(bf.backfill_today().await.unwrap(), 0, "节假日整轮跳过");
+    assert_eq!(t.calls(), 0);
+    assert_eq!(s.calls(), 0, "节假日零抓取（不采集、不算缺口）");
+    assert!(writer.bars.lock().unwrap().is_empty());
 }
 ```
 
@@ -1845,15 +2077,18 @@ fn next_tick_aligns_minute_boundary_with_jitter() {
 
 #[test]
 fn fetch_limit_remaining_plus_overlap() {
-    // 10:00 CST = 02:00 UTC：已过 09:30..09:59 共 30 根 → 剩余 210（含 10:00 本分钟），+3 重叠
+    // 10:00 CST = 02:00 UTC：剩余标签 10:00..=11:30(91) ∪ 13:01..=15:00(120) = 211，+3 重叠
     let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 30).unwrap();
-    assert_eq!(fetch_limit(now), 210 + OVERLAP_BARS);
+    assert_eq!(fetch_limit(now, true), 211 + OVERLAP_BARS);
     // 午休 12:30 CST：剩余 120 根下午 +3
     let noon = Utc.with_ymd_and_hms(2026, 9, 3, 4, 30, 0).unwrap();
-    assert_eq!(fetch_limit(noon), 120 + OVERLAP_BARS);
-    // 盘后 15:30 CST → 0；周六 → 0
-    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap()), 0);
-    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap()), 0);
+    assert_eq!(fetch_limit(noon, true), 120 + OVERLAP_BARS);
+    // 盘后 15:30 CST → 0；非交易日（周末/节假日由调用方判定传入 false）→ 0
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap(), true), 0);
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap(), false), 0,
+        "周六不采");
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 10, 1, 2, 0, 0).unwrap(), false), 0,
+        "国庆（交易日历判定 false）不采");
 }
 ```
 

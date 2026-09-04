@@ -2,6 +2,8 @@
 //! web —— Presentation：axum REST + WebSocket + SPA 静态托管（应用面，ADR-017）。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
 
+// alerts：页面⑦ 告警中心（Wave 2 Phase B 加法；代码块在 design/07-app-plane/02-alerts.md）
+pub mod alerts;
 pub mod dto;
 pub mod rest;
 pub mod spa;
@@ -22,6 +24,15 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/sources/health", get(rest::get_sources_health))
         // Phase C：熔断手动复位（DB 控制通道，ADR-017）
         .route("/api/sources/{id}/reset", post(rest::reset_source))
+        // Wave 2 Phase B：页面⑦ 告警中心（列表/确认/规则 CRUD；02-alerts.md）
+        .route("/api/alerts", get(alerts::list_alerts))
+        .route("/api/alerts/{id}/ack", post(alerts::ack_alert))
+        .route("/api/alert-rules", get(alerts::list_rules).patch(alerts::patch_rule))
+        // Wave 2 Phase A：页面④ 数据质量 + tushare 同步状态（04-quality.md §7；sync 手动触发暂缓，§1.4）
+        .route("/api/quality/divergence", get(rest::get_quality_divergence))
+        .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
+        .route("/api/quality/gaps", get(rest::get_quality_gaps))
+        .route("/api/tushare/status", get(rest::get_tushare_status))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)

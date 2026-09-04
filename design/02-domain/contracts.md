@@ -325,6 +325,7 @@ pub enum ErrKind {
     CircuitClosed,
     ManualReset,
     AllFailed,      // code 级失败：attempt_chain 全链失败（03 §3；诊断面板缺口率之因）
+    StaleData,      // 陈旧数据：抓取成功但最新 bar 落后于已到期标签（03 §3.1，Wave 2 Phase A 粘源陈旧检测）
 }
 
 impl ErrKind {
@@ -335,6 +336,7 @@ impl ErrKind {
             ErrKind::CircuitOpen => "circuit_open", ErrKind::CircuitHalfopen => "circuit_halfopen",
             ErrKind::CircuitClosed => "circuit_closed", ErrKind::ManualReset => "manual_reset",
             ErrKind::AllFailed => "all_failed",
+            ErrKind::StaleData => "stale_data",
         }
     }
 }
@@ -365,7 +367,8 @@ pub trait RawBarReader: Send + Sync {
         -> anyhow::Result<std::collections::HashSet<DateTime<Utc>>>;
 }
 
-/// 交易时段判定（工作日 09:30-11:30 / 13:00-15:00，节假日表后续接入）。
+/// 交易时段判定（交易日 = 工作日 ∧ ¬holidays[0008]；分钟标签口径见 domain::calendar）。
+/// trait 不变量（Wave 2 Phase A 预批准范围）：仅实现替换（WeekdayCalendar → HolidayCalendar），签名不动。
 pub trait TradingCalendar: Send + Sync {
     fn is_trading_now(&self) -> bool;
     fn is_trading_day(&self, date: chrono::NaiveDate) -> bool;
@@ -518,6 +521,181 @@ pub trait CircuitResetWrite: Send + Sync {
 #[async_trait]
 pub trait CircuitResetChannel: Send + Sync {
     async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>>;
+}
+
+// ── Wave 2 Phase A 加法扩展：数据质量 / 交易日历只读端口（页面④ + MCP④；07-app-plane §2 口径）──
+// 与 Wave 1 同模式：端口在 domain，storage 实现，app bin 装配，diagnose/mcp/web 只依赖端口。
+
+/// raw vs accurate 对照行（同 code+ts 的 M1 双侧收盘）。
+/// amount 不参与比对——D4 结案（2026-09-04 实盘查证）：两层 amount 规范口径均为元，
+/// 但 tencent_ifzq raw 行 amount 不可信且比值不恒定，无法换算（04-storage §4.4 注记 7）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct DivergenceRow {
+    pub ts: DateTime<Utc>,
+    pub code: String,
+    pub raw_close: f64,
+    pub accurate_close: f64,
+    pub raw_source: Option<String>,
+}
+
+/// 质量对照只读端口（diagnose::quality::QualityService 输入；storage 实现）。
+#[async_trait]
+pub trait QualityRead: Send + Sync {
+    /// [from, to) 内 raw ⋈ accurate(M1) 双侧行（code=None 全标的；ts 升序）。
+    async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<DivergenceRow>>;
+}
+
+/// 节假日只读端口（0008 holidays 表；collector HolidayCalendar 刷新与 diagnose 缺口报告共用）。
+#[async_trait]
+pub trait HolidayCalendarRead: Send + Sync {
+    /// 全表快照（小表，年度数十行）。
+    async fn holidays(&self) -> anyhow::Result<std::collections::HashSet<chrono::NaiveDate>>;
+}
+
+/// 健康事件区间只读端口（质量缺口分类输入；与 HealthEventsRead 窗口口径分立——
+/// 缺口报告需历史任意闭开区间 [from, to)，非 now() 相对窗口）。
+#[async_trait]
+pub trait HealthEventsRangeRead: Send + Sync {
+    /// [from, to) 内全部事件（ts 升序）。
+    async fn events_between(&self, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>>;
+}
+
+/// tushare 同步检查点读模型（sync_checkpoints 行，0005）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SyncCheckpointView {
+    pub code: String,
+    pub period: String,
+    pub last_synced_date: chrono::NaiveDate,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// tushare 同步状态只读端口（页面④ sync-panel GET /api/tushare/status；storage 实现）。
+#[async_trait]
+pub trait TushareStatusRead: Send + Sync {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<SyncCheckpointView>>;
+}
+
+// ── Wave 2 Phase B 加法扩展：告警引擎端口（页面⑦ 告警中心；07-alerts.md 定稿）──
+// 与 Phase A/C 同模式：端口在 domain，storage 实现，app bin 装配；
+// alert crate（Application 层，与 diagnose 并列）注入以下端口做评估与持久化。
+// 通知渠道 = 仅页面⑦ + WS 推送（用户定稿 2026-09-04），无站外 webhook。
+
+/// 告警级别（07-alerts §4 分级定稿）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertLevel { Info, Warning, Critical }
+
+impl AlertLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self { AlertLevel::Info => "info", AlertLevel::Warning => "warning", AlertLevel::Critical => "critical" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "info" => Some(AlertLevel::Info), "warning" => Some(AlertLevel::Warning),
+                  "critical" => Some(AlertLevel::Critical), _ => None }
+    }
+}
+
+/// 告警生命周期状态机（07-alerts §5）：触发 triggered → 确认 acked → 恢复 resolved
+/// （triggered → resolved 直转合法：条件消失自动恢复，无需先确认）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertStatus { Triggered, Acked, Resolved }
+
+impl AlertStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self { AlertStatus::Triggered => "triggered", AlertStatus::Acked => "acked", AlertStatus::Resolved => "resolved" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "triggered" => Some(AlertStatus::Triggered), "acked" => Some(AlertStatus::Acked),
+                  "resolved" => Some(AlertStatus::Resolved), _ => None }
+    }
+}
+
+/// 告警规则（内置首批 + 页面仅可调阈值/开关/静默时长，07-alerts §3；无自由规则编辑器）。
+/// threshold 语义按规则 id 约定（02-alerts.md §2）：成功率下限(0-1) / 缺口率% / 停摆分钟数 / 未用。
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlertRule {
+    pub id: String,               // 内置规则 slug（source_success_rate / symbol_gap_rate / ...）
+    pub name: String,
+    pub level: AlertLevel,
+    pub threshold: f64,
+    pub duration_minutes: i64,    // 评估窗口/持续时长（分钟；0=瞬时判定）
+    pub silence_minutes: i64,     // 静默期：同 rule+source 静默期内不再触发/续触发
+    pub enabled: bool,
+}
+
+/// 规则补丁（PATCH /api/alert-rules；None = 不改；仅这三项可调）。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AlertRulePatch {
+    pub threshold: Option<f64>,
+    pub enabled: Option<bool>,
+    pub silence_minutes: Option<i64>,
+}
+
+/// 告警事件读模型（alert_events 行；聚合防刷屏单元 = 同 rule+source 未恢复事件一条）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlertEvent {
+    pub id: i64,
+    pub rule_id: String,
+    pub level: AlertLevel,
+    pub source: String,           // 来源：源ID / 标的 code / 系统组件（如 collector / tushare）
+    pub message: String,
+    pub status: AlertStatus,
+    pub fire_count: i64,          // 聚合触发计数（07-alerts §5）
+    pub first_fired_at: DateTime<Utc>,
+    pub last_fired_at: DateTime<Utc>,
+    pub acked_at: Option<DateTime<Utc>>,
+    pub resolved_at: Option<DateTime<Utc>>,
+}
+
+/// 告警列表过滤（GET /api/alerts?level=&from=&to=&source=；last_fired_at 口径）。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AlertFilter {
+    pub level: Option<AlertLevel>,
+    pub from: Option<DateTime<Utc>>,
+    pub to: Option<DateTime<Utc>>,
+    pub source: Option<String>,
+    pub limit: i64,               // web 层钳制 1..=1000，默认 200
+}
+
+/// 告警评估只读端口（alert crate 1min 评估节拍输入；storage 实现，ADR-017 应用面只读库）。
+/// 与 HealthEventsRead 分立：显式 since 参数（fake clock 确定性测试），且支持单源最近事件查询。
+#[async_trait]
+pub trait AlertEvalRead: Send + Sync {
+    /// since 之后的健康事件（成功率/停摆判定输入；无序要求，alert 聚合时自行归组）。
+    async fn events_since(&self, since: DateTime<Utc>) -> anyhow::Result<Vec<HealthEventRow>>;
+    /// 指定源最近一条事件（tushare 日增量失败判定；无事件 → None）。
+    async fn latest_event_of(&self, source: &str) -> anyhow::Result<Option<HealthEventRow>>;
+}
+
+/// 告警持久化端口（alert_rules / alert_events，0009 迁移；应用面自有表，写不违 ADR-017——
+/// 与 circuit_reset_requests 同口径：表属应用面，数据面不读）。
+/// 状态机转移由 alert crate 决策，本端口只提供原子原语。
+#[async_trait]
+pub trait AlertStore: Send + Sync {
+    /// 全部规则（评估节拍每轮重读 → 阈值/开关/静默时长热生效）。
+    async fn list_rules(&self) -> anyhow::Result<Vec<AlertRule>>;
+    /// 规则调整；未知 id → Ok(None)（web 映射 404）。
+    async fn patch_rule(&self, id: &str, patch: &AlertRulePatch) -> anyhow::Result<Option<AlertRule>>;
+    /// 未恢复（resolved_at IS NULL）的聚合事件（同 rule+source 至多一条）。
+    async fn open_incident(&self, rule_id: &str, source: &str) -> anyhow::Result<Option<AlertEvent>>;
+    /// 同 rule+source 最近一次触发时刻（含已恢复；静默期判定输入，抑制抖动反复新建）。
+    async fn last_fired_at(&self, rule_id: &str, source: &str) -> anyhow::Result<Option<DateTime<Utc>>>;
+    /// 新建事件（status=triggered，fire_count=1，first/last_fired_at=now）。
+    async fn insert_incident(&self, rule_id: &str, level: AlertLevel, source: &str,
+                             message: &str, now: DateTime<Utc>) -> anyhow::Result<AlertEvent>;
+    /// 续触发：fire_count+1、last_fired_at=now；若已 acked → 回退 triggered 并清 acked_at
+    /// （新活动需重新确认，未确认高亮）；未知 id → Ok(None)。
+    async fn refire(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 恢复：status→resolved、resolved_at=now（幂等：已恢复/未知 → Ok(None)）。
+    async fn resolve(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 确认：仅 triggered → acked 并记录 acked_at；其余（已确认/已恢复/未知）→ Ok(None)
+    /// （web 映射 404：无可确认对象）。
+    async fn ack(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 列表（last_fired_at 降序；过滤条件 Option 全 None = 全量按 limit 截断）。
+    async fn list_events(&self, filter: &AlertFilter) -> anyhow::Result<Vec<AlertEvent>>;
 }
 ```
 
@@ -751,5 +929,144 @@ pub fn merge_prefer_accurate(raw: Vec<Bar>, accurate: Vec<Bar>) -> Vec<Bar> {
     out.extend(acc.into_values().filter(|b| !raw_keys.contains(&(b.code.clone(), b.period, b.ts))));
     out.sort_by_key(|b| (b.code.clone(), b.ts));
     out
+}
+```
+
+## 2.8 交易日历分钟标签口径（Wave 2 Phase A，13:00 伪缺口结案）
+
+**实盘数据实证（2026-09-04，证据见 coder/report/011）**：上游三源（tencent ifzq / sina jsonp /
+tushare stk_mins）bar 标签集合一致——上午 09:30..=11:30（121 个）、下午 13:01..=15:00（120 个），
+全天 **241** 个标签；`kline_raw`/`kline_accurate` 均**无 13:00 标签**、均有 11:30 与 15:00 标签
+（准确层 518880 每日 241 行）。旧「bar 起始时刻」口径（240，含 13:00、缺 11:30/15:00）与上游错位，
+每日每标的恒产生 13:00 伪缺口（GapBackfiller 每轮空拉一次）。
+
+本节把标签序列/会话窗口/陈旧判定纯函数放 domain（collector 调度与 diagnose 质量缺口报告跨层共用，
+避免 Application 层互依）；`TradingCalendar` trait 不变（预批准范围：仅实现替换为节假日感知）。
+
+``` {.rust file=crates/domain/src/calendar.rs}
+//! 交易日历分钟标签口径（Wave 2 Phase A，实盘数据实证 2026-09-04 定稿，本节头注释）。
+//! 标签集合：09:30..=11:30 ∪ 13:01..=15:00（241 个）；采集会话窗口含标签可得性滞后余量。
+
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
+
+pub fn hm(h: u32, m: u32) -> NaiveTime { NaiveTime::from_hms_opt(h, m, 0).expect("valid hm") }
+
+pub fn is_weekday(date: NaiveDate) -> bool {
+    matches!(date.weekday(),
+        Weekday::Mon | Weekday::Tue | Weekday::Wed | Weekday::Thu | Weekday::Fri)
+}
+
+/// 当日交易分钟标签序列（naive CST）：09:30..=11:30 ∪ 13:01..=15:00，共 241。
+/// 09:30=开盘集合竞价+首分钟 bar；11:30=上午收盘 bar；13:00 无标签（午后首分钟标签 13:01）；
+/// 15:00=收盘集合竞价 bar。
+pub fn trading_minute_labels(date: NaiveDate) -> Vec<NaiveDateTime> {
+    let mut out = Vec::with_capacity(241);
+    let mut push_range = |start: NaiveTime, end_inclusive: NaiveTime| {
+        let mut t = start;
+        while t <= end_inclusive {
+            out.push(date.and_time(t));
+            t += Duration::minutes(1);
+        }
+    };
+    push_range(hm(9, 30), hm(11, 30));
+    push_range(hm(13, 1), hm(15, 0));
+    out
+}
+
+/// 采集会话窗口：该时刻是否应尝试采集（覆盖 11:30/15:00 标签 bar 的可得性滞后 ~1min）。
+/// 09:30..=11:31 ∪ 13:00..=15:01。
+pub fn is_session_minute(t: NaiveTime) -> bool {
+    (hm(9, 30)..hm(11, 32)).contains(&t) || (hm(13, 0)..hm(15, 2)).contains(&t)
+}
+
+/// 分钟下取整（naive）。
+fn minute_floor(t: NaiveDateTime) -> NaiveDateTime {
+    t.date().and_time(NaiveTime::from_hms_opt(t.time().hour(), t.time().minute(), 0)
+        .expect("valid hm"))
+}
+
+/// 陈旧判定基准（粘源陈旧检测，03-collector §3.1）：now（naive CST）时点「已到期」的最大标签
+/// = 标签 ≤ floor_min(now − 60s)（1 分钟宽限：标签时刻后 60s 内允许源端未更新）。
+/// None = 当日尚无到期标签（09:31 前）→ 调用方不做陈旧判定。
+pub fn latest_due_label(now: NaiveDateTime) -> Option<NaiveDateTime> {
+    let floor = minute_floor(now - Duration::seconds(60));
+    trading_minute_labels(now.date()).into_iter().filter(|l| *l <= floor).max()
+}
+
+/// 陈旧 bar 判定：抓取结果最新标签落后于已到期标签 → 源在喂旧数据。
+/// fetched_max / now 均为 naive CST；是否处于会话时段由调用方以 is_session_minute 门控
+/// （executor 仅交易时段抓取；盘后/周末回填场景 due=15:00 与非交易日语义见 03 §3.1）。
+pub fn is_stale(fetched_max: NaiveDateTime, now: NaiveDateTime) -> bool {
+    match latest_due_label(now) {
+        Some(due) => fetched_max < due,
+        None => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn d(y: i32, m: u32, dd: u32) -> NaiveDate { NaiveDate::from_ymd_opt(y, m, dd).unwrap() }
+
+    #[test]
+    fn labels_241_and_boundaries() {
+        let mins = trading_minute_labels(d(2026, 9, 3)); // 周四
+        assert_eq!(mins.len(), 241);
+        assert_eq!(mins.first().unwrap().time(), hm(9, 30), "首标签 09:30");
+        assert_eq!(mins.last().unwrap().time(), hm(15, 0), "末标签 15:00（收盘集合竞价 bar）");
+        let times: Vec<NaiveTime> = mins.iter().map(|m| m.time()).collect();
+        assert!(times.contains(&hm(11, 30)), "11:30 上午收盘 bar 有标签");
+        assert!(!times.contains(&hm(13, 0)), "13:00 无标签（上游口径实证）");
+        assert!(times.contains(&hm(13, 1)), "午后首标签 13:01");
+        assert!(!times.contains(&hm(12, 59)) && !times.contains(&hm(9, 29)));
+    }
+
+    #[test]
+    fn session_window_covers_label_availability_lag() {
+        assert!(!is_session_minute(hm(9, 29)));
+        assert!(is_session_minute(hm(9, 30)));
+        assert!(is_session_minute(hm(11, 30)) && is_session_minute(hm(11, 31)),
+            "11:30 标签 bar 滞后余量");
+        assert!(!is_session_minute(hm(11, 32)));
+        assert!(!is_session_minute(hm(12, 59)), "午休不采集");
+        assert!(is_session_minute(hm(13, 0)));
+        assert!(is_session_minute(hm(15, 0)) && is_session_minute(hm(15, 1)),
+            "15:00 收盘 bar 滞后余量");
+        assert!(!is_session_minute(hm(15, 2)));
+    }
+
+    #[test]
+    fn weekday_basics() {
+        assert!(is_weekday(d(2026, 9, 3)));
+        assert!(!is_weekday(d(2026, 9, 5)) && !is_weekday(d(2026, 9, 6)), "周末");
+    }
+
+    #[test]
+    fn latest_due_label_and_stale() {
+        let day = d(2026, 9, 3);
+        // 09:30:30 → 无到期标签（宽限 60s）→ None；09:31:01 → due=09:30
+        assert_eq!(latest_due_label(day.and_time(hm(9, 30))), None);
+        assert_eq!(latest_due_label(day.and_hms_opt(9, 31, 1).unwrap()).unwrap().time(), hm(9, 30));
+        // 10:41:20 → due=10:40
+        assert_eq!(latest_due_label(day.and_hms_opt(10, 41, 20).unwrap()).unwrap().time(), hm(10, 40));
+        // 午休 13:01:30 → floor=13:00，13:01 标签未到期 → due=11:30（午餐边缘不误判）
+        assert_eq!(latest_due_label(day.and_hms_opt(13, 1, 30).unwrap()).unwrap().time(), hm(11, 30));
+        // 13:02:30 → due=13:01
+        assert_eq!(latest_due_label(day.and_hms_opt(13, 2, 30).unwrap()).unwrap().time(), hm(13, 1));
+        // 盘后 21:00 → due=15:00（缺口回填场景）
+        assert_eq!(latest_due_label(day.and_hms_opt(21, 0, 0).unwrap()).unwrap().time(), hm(15, 0));
+
+        // is_stale：最新 bar 到期内不判陈旧；落后则陈旧
+        assert!(!is_stale(day.and_hms_opt(10, 40, 0).unwrap(), day.and_hms_opt(10, 41, 20).unwrap()));
+        assert!(is_stale(day.and_hms_opt(10, 39, 0).unwrap(), day.and_hms_opt(10, 41, 20).unwrap()),
+            "10:40 bar 已到期而源最新只到 10:39 → 陈旧");
+        assert!(!is_stale(day.and_hms_opt(11, 30, 0).unwrap(), day.and_hms_opt(13, 1, 30).unwrap()),
+            "午休后首轮：13:01 未到期，11:30 不判陈旧");
+        assert!(is_stale(day.and_hms_opt(11, 30, 0).unwrap(), day.and_hms_opt(13, 2, 30).unwrap()),
+            "13:01 到期后仍停在 11:30 → 陈旧");
+        // 当日无到期标签 → 不判陈旧
+        assert!(!is_stale(day.and_hms_opt(9, 30, 0).unwrap(), day.and_hms_opt(9, 30, 30).unwrap()));
+    }
 }
 ```

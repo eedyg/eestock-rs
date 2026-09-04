@@ -22,6 +22,9 @@ pub struct AppConfig {
     /// MCP HTTP/SSE 监听地址（Wave 1 Phase D，ADR-009；与 web 同进程、端口独立，仅局域网）
     #[serde(default = "default_mcp_listen")]
     pub mcp_listen: String,
+    /// 告警评估节拍（毫秒，Wave 2 Phase B；页面⑦ 告警引擎 1min 一轮）
+    #[serde(default = "default_alert_eval_ms")]
+    pub alert_eval_ms: u64,
 }
 
 fn default_listen() -> String { "0.0.0.0:8081".into() }
@@ -29,6 +32,7 @@ fn default_mcp_listen() -> String { "0.0.0.0:8082".into() }
 fn default_static_dir() -> String { "./web/dist".into() }
 fn default_health_window() -> i64 { 3600 }
 fn default_ws_poll_ms() -> u64 { 3000 }
+fn default_alert_eval_ms() -> u64 { 60_000 }
 
 /// 加载：TOML → env 覆盖（DATABASE_URL / APP_LISTEN）。
 pub fn load(path: &str) -> anyhow::Result<AppConfig> {

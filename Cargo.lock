@@ -12,6 +12,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alert"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "domain",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -36,6 +48,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "alert",
  "anyhow",
  "axum",
  "chrono",
@@ -2523,6 +2536,7 @@ dependencies = [
 name = "web"
 version = "0.1.0"
 dependencies = [
+ "alert",
  "anyhow",
  "axum",
  "chrono",

@@ -8,15 +8,16 @@
 //! §2 注记：非交易时段调度静默跳过（不为每分钟每标的刷 NA 事件噪音）；
 //! NA 事件口径由源端 NoData 响应承载（§7），与 028 一致。
 
-use crate::calendar::WeekdayCalendar;
+use crate::calendar::{HolidayCalendar, HOLIDAY_REFRESH_INTERVAL};
 use crate::clock::Clock;
 use crate::executor::{FetchExecutor, FetchOutcome};
 use crate::gapfill::{GapBackfiller, BACKFILL_INTERVAL};
 use crate::probe::CircuitProber;
 use crate::scheduler::{fetch_limit, next_tick_after};
 use crate::standby::StandbyReserve;
-use domain::ports::{HealthMonitor, KlineWriter, SymbolRegistry, TradingCalendar};
+use domain::ports::{HealthMonitor, HolidayCalendarRead, KlineWriter, SymbolRegistry, TradingCalendar};
 use domain::types::Code;
+use domain::tz::utc_to_cst;
 use rand::Rng;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,7 +29,10 @@ pub struct CollectorService {
     gapfill: Arc<GapBackfiller>,
     prober: Arc<CircuitProber>,
     registry: Arc<dyn SymbolRegistry>,
-    calendar: Arc<dyn TradingCalendar>,
+    /// 节假日感知日历（Wave 2 Phase A；与 gapfill 共享同一实例，快照由刷新任务维护）。
+    calendar: Arc<HolidayCalendar>,
+    /// 节假日表读端口（0008；刷新任务周期重读，失败保留旧快照 fail-open）。
+    holiday_source: Arc<dyn HolidayCalendarRead>,
     writer: Arc<dyn KlineWriter>,
     clock: Arc<dyn Clock>,
 }
@@ -41,15 +45,35 @@ impl CollectorService {
         gapfill: Arc<GapBackfiller>,
         prober: Arc<CircuitProber>,
         registry: Arc<dyn SymbolRegistry>,
+        calendar: Arc<HolidayCalendar>,
+        holiday_source: Arc<dyn HolidayCalendarRead>,
         writer: Arc<dyn KlineWriter>,
         clock: Arc<dyn Clock>,
     ) -> Self {
-        let calendar: Arc<dyn TradingCalendar> = Arc::new(WeekdayCalendar::new(clock.clone()));
-        Self { executor, standby, gapfill, prober, registry, calendar, writer, clock }
+        Self { executor, standby, gapfill, prober, registry, calendar, holiday_source,
+               writer, clock }
     }
 
-    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）。
+    /// 主循环：reconcile（60s）+ 缺口回填（30min）+ 熔断低频探测（60s，§4）+ 节假日快照刷新（1h，§9.3）。
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
+        // 节假日快照：启动即刷新 + 每 1h 重读（0008 小表全量；失败保留旧快照 fail-open）
+        {
+            let cal = self.calendar.clone();
+            let src = self.holiday_source.clone();
+            tokio::spawn(async move {
+                loop {
+                    match src.holidays().await {
+                        Ok(set) => {
+                            tracing::info!(holidays = set.len(), "holiday calendar refreshed");
+                            cal.refresh(set);
+                        }
+                        Err(e) => tracing::warn!(error = %e,
+                            "holiday refresh failed (keep previous snapshot)"),
+                    }
+                    tokio::time::sleep(HOLIDAY_REFRESH_INTERVAL).await;
+                }
+            });
+        }
         // 缺口回填：启动即跑一轮，之后每 30 分钟（§5）
         {
             let gf = self.gapfill.clone();
@@ -105,7 +129,8 @@ impl CollectorService {
                 self.degraded_loop(&code).await;
                 continue;
             }
-            let limit = fetch_limit(self.clock.now());
+            let trading_day = self.calendar.is_trading_day(utc_to_cst(self.clock.now()).date());
+            let limit = fetch_limit(self.clock.now(), trading_day);
             if limit == 0 { continue; }
             if self.executor.fetch_one(&code, limit).await == FetchOutcome::AllFailed {
                 tracing::warn!(code = %code.0, "attempt_chain all failed -> 进入降级模式");
@@ -119,7 +144,8 @@ impl CollectorService {
         while self.standby.is_degraded(code) {
             // 恢复探测：Tier1 有可用源 → 走正常链试一次
             if StandbyReserve::should_probe_recover(&self.executor.circuits().healthy_minute_sources().await) {
-                let limit = fetch_limit(self.clock.now()).max(crate::scheduler::OVERLAP_BARS + 1);
+                let trading_day = self.calendar.is_trading_day(utc_to_cst(self.clock.now()).date());
+                let limit = fetch_limit(self.clock.now(), trading_day).max(crate::scheduler::OVERLAP_BARS + 1);
                 if let FetchOutcome::Ok { .. } = self.executor.fetch_one(code, limit).await {
                     tracing::info!(code = %code.0, "Tier1 恢复探测成功 -> 回切正常模式");
                     self.standby.deactivate(code);

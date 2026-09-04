@@ -44,6 +44,7 @@ pub enum ErrKind {
     CircuitClosed,
     ManualReset,
     AllFailed,      // code 级失败：attempt_chain 全链失败（03 §3；诊断面板缺口率之因）
+    StaleData,      // 陈旧数据：抓取成功但最新 bar 落后于已到期标签（03 §3.1，Wave 2 Phase A 粘源陈旧检测）
 }
 
 impl ErrKind {
@@ -54,6 +55,7 @@ impl ErrKind {
             ErrKind::CircuitOpen => "circuit_open", ErrKind::CircuitHalfopen => "circuit_halfopen",
             ErrKind::CircuitClosed => "circuit_closed", ErrKind::ManualReset => "manual_reset",
             ErrKind::AllFailed => "all_failed",
+            ErrKind::StaleData => "stale_data",
         }
     }
 }
@@ -84,7 +86,8 @@ pub trait RawBarReader: Send + Sync {
         -> anyhow::Result<std::collections::HashSet<DateTime<Utc>>>;
 }
 
-/// 交易时段判定（工作日 09:30-11:30 / 13:00-15:00，节假日表后续接入）。
+/// 交易时段判定（交易日 = 工作日 ∧ ¬holidays[0008]；分钟标签口径见 domain::calendar）。
+/// trait 不变量（Wave 2 Phase A 预批准范围）：仅实现替换（WeekdayCalendar → HolidayCalendar），签名不动。
 pub trait TradingCalendar: Send + Sync {
     fn is_trading_now(&self) -> bool;
     fn is_trading_day(&self, date: chrono::NaiveDate) -> bool;
@@ -237,5 +240,180 @@ pub trait CircuitResetWrite: Send + Sync {
 #[async_trait]
 pub trait CircuitResetChannel: Send + Sync {
     async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>>;
+}
+
+// ── Wave 2 Phase A 加法扩展：数据质量 / 交易日历只读端口（页面④ + MCP④；07-app-plane §2 口径）──
+// 与 Wave 1 同模式：端口在 domain，storage 实现，app bin 装配，diagnose/mcp/web 只依赖端口。
+
+/// raw vs accurate 对照行（同 code+ts 的 M1 双侧收盘）。
+/// amount 不参与比对——D4 结案（2026-09-04 实盘查证）：两层 amount 规范口径均为元，
+/// 但 tencent_ifzq raw 行 amount 不可信且比值不恒定，无法换算（04-storage §4.4 注记 7）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct DivergenceRow {
+    pub ts: DateTime<Utc>,
+    pub code: String,
+    pub raw_close: f64,
+    pub accurate_close: f64,
+    pub raw_source: Option<String>,
+}
+
+/// 质量对照只读端口（diagnose::quality::QualityService 输入；storage 实现）。
+#[async_trait]
+pub trait QualityRead: Send + Sync {
+    /// [from, to) 内 raw ⋈ accurate(M1) 双侧行（code=None 全标的；ts 升序）。
+    async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<DivergenceRow>>;
+}
+
+/// 节假日只读端口（0008 holidays 表；collector HolidayCalendar 刷新与 diagnose 缺口报告共用）。
+#[async_trait]
+pub trait HolidayCalendarRead: Send + Sync {
+    /// 全表快照（小表，年度数十行）。
+    async fn holidays(&self) -> anyhow::Result<std::collections::HashSet<chrono::NaiveDate>>;
+}
+
+/// 健康事件区间只读端口（质量缺口分类输入；与 HealthEventsRead 窗口口径分立——
+/// 缺口报告需历史任意闭开区间 [from, to)，非 now() 相对窗口）。
+#[async_trait]
+pub trait HealthEventsRangeRead: Send + Sync {
+    /// [from, to) 内全部事件（ts 升序）。
+    async fn events_between(&self, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>>;
+}
+
+/// tushare 同步检查点读模型（sync_checkpoints 行，0005）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SyncCheckpointView {
+    pub code: String,
+    pub period: String,
+    pub last_synced_date: chrono::NaiveDate,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// tushare 同步状态只读端口（页面④ sync-panel GET /api/tushare/status；storage 实现）。
+#[async_trait]
+pub trait TushareStatusRead: Send + Sync {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<SyncCheckpointView>>;
+}
+
+// ── Wave 2 Phase B 加法扩展：告警引擎端口（页面⑦ 告警中心；07-alerts.md 定稿）──
+// 与 Phase A/C 同模式：端口在 domain，storage 实现，app bin 装配；
+// alert crate（Application 层，与 diagnose 并列）注入以下端口做评估与持久化。
+// 通知渠道 = 仅页面⑦ + WS 推送（用户定稿 2026-09-04），无站外 webhook。
+
+/// 告警级别（07-alerts §4 分级定稿）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertLevel { Info, Warning, Critical }
+
+impl AlertLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self { AlertLevel::Info => "info", AlertLevel::Warning => "warning", AlertLevel::Critical => "critical" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "info" => Some(AlertLevel::Info), "warning" => Some(AlertLevel::Warning),
+                  "critical" => Some(AlertLevel::Critical), _ => None }
+    }
+}
+
+/// 告警生命周期状态机（07-alerts §5）：触发 triggered → 确认 acked → 恢复 resolved
+/// （triggered → resolved 直转合法：条件消失自动恢复，无需先确认）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertStatus { Triggered, Acked, Resolved }
+
+impl AlertStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self { AlertStatus::Triggered => "triggered", AlertStatus::Acked => "acked", AlertStatus::Resolved => "resolved" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "triggered" => Some(AlertStatus::Triggered), "acked" => Some(AlertStatus::Acked),
+                  "resolved" => Some(AlertStatus::Resolved), _ => None }
+    }
+}
+
+/// 告警规则（内置首批 + 页面仅可调阈值/开关/静默时长，07-alerts §3；无自由规则编辑器）。
+/// threshold 语义按规则 id 约定（02-alerts.md §2）：成功率下限(0-1) / 缺口率% / 停摆分钟数 / 未用。
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlertRule {
+    pub id: String,               // 内置规则 slug（source_success_rate / symbol_gap_rate / ...）
+    pub name: String,
+    pub level: AlertLevel,
+    pub threshold: f64,
+    pub duration_minutes: i64,    // 评估窗口/持续时长（分钟；0=瞬时判定）
+    pub silence_minutes: i64,     // 静默期：同 rule+source 静默期内不再触发/续触发
+    pub enabled: bool,
+}
+
+/// 规则补丁（PATCH /api/alert-rules；None = 不改；仅这三项可调）。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AlertRulePatch {
+    pub threshold: Option<f64>,
+    pub enabled: Option<bool>,
+    pub silence_minutes: Option<i64>,
+}
+
+/// 告警事件读模型（alert_events 行；聚合防刷屏单元 = 同 rule+source 未恢复事件一条）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlertEvent {
+    pub id: i64,
+    pub rule_id: String,
+    pub level: AlertLevel,
+    pub source: String,           // 来源：源ID / 标的 code / 系统组件（如 collector / tushare）
+    pub message: String,
+    pub status: AlertStatus,
+    pub fire_count: i64,          // 聚合触发计数（07-alerts §5）
+    pub first_fired_at: DateTime<Utc>,
+    pub last_fired_at: DateTime<Utc>,
+    pub acked_at: Option<DateTime<Utc>>,
+    pub resolved_at: Option<DateTime<Utc>>,
+}
+
+/// 告警列表过滤（GET /api/alerts?level=&from=&to=&source=；last_fired_at 口径）。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AlertFilter {
+    pub level: Option<AlertLevel>,
+    pub from: Option<DateTime<Utc>>,
+    pub to: Option<DateTime<Utc>>,
+    pub source: Option<String>,
+    pub limit: i64,               // web 层钳制 1..=1000，默认 200
+}
+
+/// 告警评估只读端口（alert crate 1min 评估节拍输入；storage 实现，ADR-017 应用面只读库）。
+/// 与 HealthEventsRead 分立：显式 since 参数（fake clock 确定性测试），且支持单源最近事件查询。
+#[async_trait]
+pub trait AlertEvalRead: Send + Sync {
+    /// since 之后的健康事件（成功率/停摆判定输入；无序要求，alert 聚合时自行归组）。
+    async fn events_since(&self, since: DateTime<Utc>) -> anyhow::Result<Vec<HealthEventRow>>;
+    /// 指定源最近一条事件（tushare 日增量失败判定；无事件 → None）。
+    async fn latest_event_of(&self, source: &str) -> anyhow::Result<Option<HealthEventRow>>;
+}
+
+/// 告警持久化端口（alert_rules / alert_events，0009 迁移；应用面自有表，写不违 ADR-017——
+/// 与 circuit_reset_requests 同口径：表属应用面，数据面不读）。
+/// 状态机转移由 alert crate 决策，本端口只提供原子原语。
+#[async_trait]
+pub trait AlertStore: Send + Sync {
+    /// 全部规则（评估节拍每轮重读 → 阈值/开关/静默时长热生效）。
+    async fn list_rules(&self) -> anyhow::Result<Vec<AlertRule>>;
+    /// 规则调整；未知 id → Ok(None)（web 映射 404）。
+    async fn patch_rule(&self, id: &str, patch: &AlertRulePatch) -> anyhow::Result<Option<AlertRule>>;
+    /// 未恢复（resolved_at IS NULL）的聚合事件（同 rule+source 至多一条）。
+    async fn open_incident(&self, rule_id: &str, source: &str) -> anyhow::Result<Option<AlertEvent>>;
+    /// 同 rule+source 最近一次触发时刻（含已恢复；静默期判定输入，抑制抖动反复新建）。
+    async fn last_fired_at(&self, rule_id: &str, source: &str) -> anyhow::Result<Option<DateTime<Utc>>>;
+    /// 新建事件（status=triggered，fire_count=1，first/last_fired_at=now）。
+    async fn insert_incident(&self, rule_id: &str, level: AlertLevel, source: &str,
+                             message: &str, now: DateTime<Utc>) -> anyhow::Result<AlertEvent>;
+    /// 续触发：fire_count+1、last_fired_at=now；若已 acked → 回退 triggered 并清 acked_at
+    /// （新活动需重新确认，未确认高亮）；未知 id → Ok(None)。
+    async fn refire(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 恢复：status→resolved、resolved_at=now（幂等：已恢复/未知 → Ok(None)）。
+    async fn resolve(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 确认：仅 triggered → acked 并记录 acked_at；其余（已确认/已恢复/未知）→ Ok(None)
+    /// （web 映射 404：无可确认对象）。
+    async fn ack(&self, id: i64, now: DateTime<Utc>) -> anyhow::Result<Option<AlertEvent>>;
+    /// 列表（last_fired_at 降序；过滤条件 Option 全 None = 全量按 limit 截断）。
+    async fn list_events(&self, filter: &AlertFilter) -> anyhow::Result<Vec<AlertEvent>>;
 }
 // ~/~ end

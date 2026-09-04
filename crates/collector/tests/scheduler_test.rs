@@ -24,14 +24,17 @@ fn next_tick_aligns_minute_boundary_with_jitter() {
 
 #[test]
 fn fetch_limit_remaining_plus_overlap() {
-    // 10:00 CST = 02:00 UTC：已过 09:30..09:59 共 30 根 → 剩余 210（含 10:00 本分钟），+3 重叠
+    // 10:00 CST = 02:00 UTC：剩余标签 10:00..=11:30(91) ∪ 13:01..=15:00(120) = 211，+3 重叠
     let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 30).unwrap();
-    assert_eq!(fetch_limit(now), 210 + OVERLAP_BARS);
+    assert_eq!(fetch_limit(now, true), 211 + OVERLAP_BARS);
     // 午休 12:30 CST：剩余 120 根下午 +3
     let noon = Utc.with_ymd_and_hms(2026, 9, 3, 4, 30, 0).unwrap();
-    assert_eq!(fetch_limit(noon), 120 + OVERLAP_BARS);
-    // 盘后 15:30 CST → 0；周六 → 0
-    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap()), 0);
-    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap()), 0);
+    assert_eq!(fetch_limit(noon, true), 120 + OVERLAP_BARS);
+    // 盘后 15:30 CST → 0；非交易日（周末/节假日由调用方判定传入 false）→ 0
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 3, 7, 30, 0).unwrap(), true), 0);
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 9, 5, 2, 0, 0).unwrap(), false), 0,
+        "周六不采");
+    assert_eq!(fetch_limit(Utc.with_ymd_and_hms(2026, 10, 1, 2, 0, 0).unwrap(), false), 0,
+        "国庆（交易日历判定 false）不采");
 }
 // ~/~ end

@@ -1,11 +1,12 @@
 // ~/~ begin <<design/07-app-plane/00-web-api.md#crates/storage/tests/kline_reader.rs>>[init]
 //! KlineReader 只读集成测试（需 TimescaleDB :5433）：merge 准确层优先、游标分页、cagg/1h rollup、最新快照。
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
-use domain::ports::{HealthEventsRead, KlineRead};
+use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use domain::ports::{HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead, KlineRead,
+    QualityRead, TushareStatusRead};
 use domain::types::Period;
 use sqlx::PgPool;
-use storage::reader::{HealthEventReader, KlineReader};
+use storage::reader::{HealthEventReader, HolidaysReader, KlineReader};
 
 // 每测试独立 code：同 binary 测试并行执行，共享 code 会被彼此的 clean 误删（实锤踩坑）。
 const CODE_MERGE: &str = "997701";
@@ -147,5 +148,124 @@ async fn window_events_filters_window_and_maps_fields() {
     assert_eq!(mine[1].code.as_deref(), Some("518880"), "触发标的字段透传");
     sqlx::query("DELETE FROM source_health_events WHERE source = $1")
         .bind(SRC).execute(&pool).await.unwrap();
+}
+
+// ── Wave 2 Phase A：质量对照 / 节假日 / 事件区间 / 同步状态 / D3 merge 尾部优先级 ──
+
+const CODE_QUAL: &str = "997731";
+const CODE_LATEST: &str = "997741";
+
+#[tokio::test]
+async fn divergence_rows_join_code_filter_and_range() {
+    let pool = pool().await;
+    clean(&pool, CODE_QUAL).await;
+    // raw 3 根（09:30-09:32 CST）；accurate 覆盖 09:30（close 不同）、09:31（相同）；09:32 无准确层
+    for (i, c) in [(0i64, 10.10), (1, 10.0), (2, 10.0)] {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'webq_src') ON CONFLICT DO NOTHING")
+            .bind(CODE_QUAL).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    for (i, c) in [(0i64, 10.0), (1, 10.0)] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0) ON CONFLICT DO NOTHING")
+            .bind(CODE_QUAL).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+    // code 过滤 + 仅重叠 ts（09:32 无准确层不入选）
+    let rows = r.divergence_rows(Some(CODE_QUAL), base() - Duration::days(1),
+        base() + Duration::days(1)).await.unwrap();
+    let mine: Vec<_> = rows.iter().filter(|x| x.code == CODE_QUAL).collect();
+    assert_eq!(mine.len(), 2, "raw ⋈ accurate 仅重叠 ts");
+    assert!(mine[0].ts < mine[1].ts, "ts 升序");
+    assert_eq!(mine[0].raw_close, 10.10);
+    assert_eq!(mine[0].accurate_close, 10.0);
+    assert_eq!(mine[0].raw_source.as_deref(), Some("webq_src"));
+    // 区间 [from, to) 边界
+    let narrow = r.divergence_rows(Some(CODE_QUAL), base() + Duration::minutes(1),
+        base() + Duration::minutes(2)).await.unwrap();
+    assert_eq!(narrow.len(), 1, "半开区间只含 09:31");
+    // 无 code 过滤（source-accuracy 数据源）：至少含本测试行
+    let all = r.divergence_rows(None, base() - Duration::days(1),
+        base() + Duration::days(1)).await.unwrap();
+    assert!(all.iter().any(|x| x.code == CODE_QUAL));
+    clean(&pool, CODE_QUAL).await;
+}
+
+#[tokio::test]
+async fn holidays_reader_reads_0008_seed() {
+    let pool = pool().await;
+    let h = HolidaysReader::new(pool).holidays().await.unwrap();
+    assert!(h.contains(&NaiveDate::from_ymd_opt(2026, 10, 1).unwrap()), "国庆在表");
+    assert!(h.contains(&NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()), "元旦在表");
+    assert!(h.len() >= 34, "2026 全量 34 行（迁移内嵌官方口径）");
+}
+
+#[tokio::test]
+async fn events_between_and_sync_checkpoints() {
+    const SRC: &str = "storage_test_range";
+    let pool = pool().await;
+    sqlx::query("DELETE FROM source_health_events WHERE source = $1")
+        .bind(SRC).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM sync_checkpoints WHERE code = $1")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap();
+    for (i, ok) in [(0i64, true), (1, false), (2, true)] {
+        sqlx::query("INSERT INTO source_health_events (ts, source, ok, err_kind, code) \
+                     VALUES ($1, $2, $3, $4, $5)")
+            .bind(t0 + Duration::minutes(i)).bind(SRC).bind(ok)
+            .bind(if ok { None } else { Some("timeout") }).bind(Some(CODE_QUAL))
+            .execute(&pool).await.unwrap();
+    }
+    // [from, to) 半开区间 + ts 升序
+    let evs = HealthEventReader::new(pool.clone())
+        .events_between(t0, t0 + Duration::minutes(2)).await.unwrap();
+    let mine: Vec<_> = evs.iter().filter(|e| e.source == SRC).collect();
+    assert_eq!(mine.len(), 2, "[from, to) 不含 to 边界行");
+    assert!(mine[0].ts < mine[1].ts);
+    assert!(!mine[1].ok && mine[1].err_kind.as_deref() == Some("timeout"));
+
+    sqlx::query("INSERT INTO sync_checkpoints (code, period, last_synced_date) \
+                 VALUES ($1, 'M1', '2026-09-03') ON CONFLICT (code, period) \
+                 DO UPDATE SET last_synced_date = EXCLUDED.last_synced_date")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+    let cps = KlineReader::new(pool.clone()).sync_checkpoints().await.unwrap();
+    let cp = cps.iter().find(|c| c.code == CODE_QUAL).expect("含测试检查点");
+    assert_eq!(cp.period, "M1");
+    assert_eq!(cp.last_synced_date, NaiveDate::from_ymd_opt(2026, 9, 3).unwrap());
+    sqlx::query("DELETE FROM source_health_events WHERE source = $1")
+        .bind(SRC).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM sync_checkpoints WHERE code = $1")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn symbols_latest_d3_merge_tail_semantics() {
+    // D3 重写语义锁定（merge 尾部 top-2）：
+    // ① 准确层比 raw 更新 → 最新取准确层；② 同 ts 并列 → 准确层优先（merge 准确层优先语义）。
+    let pool = pool().await;
+    clean(&pool, CODE_LATEST).await;
+    sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, 'D3测试') ON CONFLICT (code) DO NOTHING")
+        .bind(CODE_LATEST).execute(&pool).await.unwrap();
+    // raw：09:30(1.0)、09:31(2.0)；accurate：09:31 同 ts 覆盖(9.99) + 09:32 更新(8.88)
+    for (i, c) in [(0i64, 1.0), (1, 2.0)] {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'webq_src') ON CONFLICT DO NOTHING")
+            .bind(CODE_LATEST).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    for (i, c) in [(1i64, 9.99), (2, 8.88)] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0) ON CONFLICT DO NOTHING")
+            .bind(CODE_LATEST).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    let rows = KlineReader::new(pool.clone()).symbols_with_latest().await.unwrap();
+    let s = rows.iter().find(|r| r.code == CODE_LATEST).expect("含测试标的");
+    assert_eq!(s.last_ts, Some(base() + Duration::minutes(2)), "准确层更新的 ts 为最新");
+    assert_eq!(s.last_close, Some(8.88));
+    assert_eq!(s.prev_close, Some(9.99), "同 ts 并列准确层优先（raw 2.0 被掩盖）");
+    clean(&pool, CODE_LATEST).await;
 }
 // ~/~ end

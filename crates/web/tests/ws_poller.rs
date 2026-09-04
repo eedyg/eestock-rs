@@ -29,6 +29,23 @@ fn state(pool: PgPool) -> Arc<AppState> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎装配（02-alerts.md；本文件不涉及行为，仅装配齐全）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（quality 端口组；仅装配齐全，行为测试见 api_quality.rs）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),

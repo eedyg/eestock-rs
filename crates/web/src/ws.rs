@@ -19,7 +19,7 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Topic { Bar, Quote, Health }
+pub enum Topic { Bar, Quote, Health, Alert }
 
 /// 客户端帧：{"type":"subscribe","topic":"bar","code":"518880","period":"1m"}（unsubscribe 同形）。
 #[derive(Debug, Clone, Deserialize)]
@@ -36,13 +36,16 @@ pub struct Subscription {
     pub period: Option<String>,   // bar 订阅必填（"1m"/"5m"/"15m"/"1h"/"1d"）
 }
 
-/// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health", ...}。
+/// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health"|"alert", ...}。
+/// Alert（Wave 2 Phase B）：newtype 变体内联事件字段（{"type":"alert", id, level, ...}），
+/// 推送源 = web::alerts::AlertEvaluator 评估节拍（非本 Poller）。
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PushMsg {
     Bar { code: String, period: String, bar: BarDto },
     Quote { code: String, ts: DateTime<Utc>, last: f64, change_pct: Option<f64> },
     Health { window_secs: i64, sources: Vec<diagnose::health::SourceHealth> },
+    Alert(crate::alerts::AlertEventDto),
 }
 
 /// 订阅匹配：topic 一致且（sub.code/period 为 None 通配或与消息相等）。
@@ -52,6 +55,7 @@ pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
         (Topic::Bar, PushMsg::Bar { code, period, .. }) => hit(&sub.code, code) && hit(&sub.period, period),
         (Topic::Quote, PushMsg::Quote { code, .. }) => hit(&sub.code, code),
         (Topic::Health, PushMsg::Health { .. }) => true,
+        (Topic::Alert, PushMsg::Alert(_)) => true,   // 订阅即全量告警推送（07-alerts §6）
         _ => false,
     }
 }
@@ -250,6 +254,32 @@ mod tests {
         assert_eq!(v["bar"]["close"], 1.05);
         let h = serde_json::to_value(PushMsg::Health { window_secs: 3600, sources: vec![] }).unwrap();
         assert_eq!(h["type"], "health");
+    }
+
+    #[test]
+    fn push_msg_alert_frame_shape() {
+        // Wave 2 Phase B：alert 帧平铺事件字段（07-alerts §6：{type:"alert", level, ...}）
+        let dto = crate::alerts::AlertEventDto {
+            id: 1, rule_id: "collection_stall".into(), level: domain::ports::AlertLevel::Critical,
+            source: "collector".into(), message: "停摆".into(),
+            status: domain::ports::AlertStatus::Triggered, fire_count: 1,
+            first_fired_at: Utc::now(), last_fired_at: Utc::now(), acked_at: None, resolved_at: None,
+        };
+        let v = serde_json::to_value(PushMsg::Alert(dto)).unwrap();
+        assert_eq!(v["type"], "alert");
+        assert_eq!(v["level"], "critical");
+        assert_eq!(v["status"], "triggered");
+        // 订阅匹配：alert topic 全量
+        let sub = Subscription { topic: Topic::Alert, code: None, period: None };
+        let dto2 = crate::alerts::AlertEventDto {
+            id: 2, rule_id: "symbol_gap_rate".into(), level: domain::ports::AlertLevel::Warning,
+            source: "513310".into(), message: "缺口".into(),
+            status: domain::ports::AlertStatus::Resolved, fire_count: 4,
+            first_fired_at: Utc::now(), last_fired_at: Utc::now(), acked_at: None,
+            resolved_at: Some(Utc::now()),
+        };
+        assert!(matches(&sub, &PushMsg::Alert(dto2)));
+        assert!(!matches(&sub, &bar_msg("518880", "1m")), "跨 topic 不匹配");
     }
 
     #[test]

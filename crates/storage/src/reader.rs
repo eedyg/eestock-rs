@@ -9,13 +9,15 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use domain::ports::{
-    HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView, SymbolStatView,
-    SymbolStatsRead,
+    DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead,
+    KlineBarView, KlineRead, QualityRead, SymbolLatestView, SymbolStatView, SymbolStatsRead,
+    SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Period;
 use sqlx::PgPool;
+use std::collections::HashSet;
 
 type BarTuple = (String, DateTime<Utc>, f64, f64, f64, f64, i64, f64, Option<String>);
 
@@ -46,19 +48,34 @@ GROUP BY code, time_bucket('1 hour', ts)
 ORDER BY ts DESC LIMIT $3
 "#;
 
-/// 每 code 最近 2 根 merge bar（LATERAL，避免全表窗口）；prev_close = 前一根收盘。
+/// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
+/// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
+/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯 LIMIT 2 取候选 → 按 ts 去重（同 ts 准确层优先，
+/// merge 语义）→ row_number 取最新两根。merge 尾部 top-2 ⊆ 双侧 top-2 并集，语义等价
+/// （实盘全量 symbols 新老查询 EXCEPT 互减 0 行，证据见 coder/report/011）。
+/// 实测（同库）：旧 19,850ms → 新 13.5ms。
 const SYMBOLS_LATEST_SQL: &str = r#"
 SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
-       l.ts AS last_ts, l.close AS last_close, l.prev_close
+       l.last_ts, l.last_close, l.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
-    SELECT ts, close, lag(close) OVER (ORDER BY ts) AS prev_close
+  SELECT max(CASE WHEN rn = 1 THEN ts END)   AS last_ts,
+         max(CASE WHEN rn = 1 THEN close END) AS last_close,
+         max(CASE WHEN rn = 2 THEN close END) AS prev_close
+  FROM (
+    SELECT ts, close, row_number() OVER (ORDER BY ts DESC) AS rn
     FROM (
-        SELECT ts, close FROM kline_merged m
-        WHERE m.code = s.code
-        ORDER BY ts DESC LIMIT 2
-    ) latest2
-    ORDER BY ts DESC LIMIT 1
+      SELECT DISTINCT ON (ts) ts, close
+      FROM (
+        (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
+         WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 2)
+        UNION ALL
+        (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
+         WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 2)
+      ) cand
+      ORDER BY ts, pri
+    ) dedup
+  ) ranked
 ) l ON true
 ORDER BY s.code
 "#;
@@ -158,6 +175,86 @@ impl HealthEventsRead for HealthEventReader {
         Ok(rows.into_iter().map(|(ts, source, ok, latency_ms, err_kind, code)|
             HealthEventRow { ts, source, ok, latency_ms, err_kind, code }
         ).collect())
+    }
+}
+
+// ── Wave 2 Phase A 加法：质量对照 / 节假日 / 事件区间 / tushare 同步状态（domain 端口契约见 §2）──
+
+/// raw ⋈ accurate(M1) 双侧收盘对照（质量分歧表数据源）。
+/// amount 刻意不查（D4 结案：跨层量纲不可比，04-storage §4.4 注记 7）。
+const DIVERGENCE_SQL: &str = r#"
+SELECT r.ts, r.code, r.close AS raw_close, a.close AS accurate_close, r.source AS raw_source
+FROM kline_raw r
+JOIN kline_accurate a ON a.code = r.code AND a.ts = r.ts AND a.period = 'M1'
+WHERE ($1::text IS NULL OR r.code = $1)
+  AND r.ts >= $2 AND r.ts < $3
+ORDER BY r.ts
+"#;
+
+#[async_trait]
+impl QualityRead for KlineReader {
+    async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> Result<Vec<DivergenceRow>> {
+        type Row = (DateTime<Utc>, String, f64, f64, String);
+        let rows: Vec<Row> = sqlx::query_as(DIVERGENCE_SQL)
+            .bind(code).bind(from).bind(to).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(ts, code, raw_close, accurate_close, raw_source)|
+            DivergenceRow { ts, code, raw_close, accurate_close, raw_source: Some(raw_source) }
+        ).collect())
+    }
+}
+
+/// tushare 同步检查点读（页面④ sync-panel 数据源）。
+const SYNC_CHECKPOINTS_SQL: &str = r#"
+SELECT code, period, last_synced_date, updated_at FROM sync_checkpoints ORDER BY code
+"#;
+
+#[async_trait]
+impl TushareStatusRead for KlineReader {
+    async fn sync_checkpoints(&self) -> Result<Vec<SyncCheckpointView>> {
+        type Row = (String, String, NaiveDate, DateTime<Utc>);
+        let rows: Vec<Row> = sqlx::query_as(SYNC_CHECKPOINTS_SQL).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(code, period, last_synced_date, updated_at)|
+            SyncCheckpointView { code, period, last_synced_date, updated_at }).collect())
+    }
+}
+
+/// 健康事件区间读（质量缺口分类输入；与窗口版同表，[from, to) 闭开区间）。
+const RANGE_EVENTS_SQL: &str = r#"
+SELECT ts, source, ok, latency_ms, err_kind, code
+FROM source_health_events
+WHERE ts >= $1 AND ts < $2
+ORDER BY ts
+"#;
+
+#[async_trait]
+impl HealthEventsRangeRead for HealthEventReader {
+    async fn events_between(&self, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> Result<Vec<HealthEventRow>> {
+        type Row = (DateTime<Utc>, String, bool, Option<i32>, Option<String>, Option<String>);
+        let rows: Vec<Row> = sqlx::query_as(RANGE_EVENTS_SQL)
+            .bind(from).bind(to).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(ts, source, ok, latency_ms, err_kind, code)|
+            HealthEventRow { ts, source, ok, latency_ms, err_kind, code }
+        ).collect())
+    }
+}
+
+/// 节假日表读（0008；collector HolidayCalendar 刷新与 diagnose 缺口报告共用同一实现）。
+pub struct HolidaysReader {
+    pool: PgPool,
+}
+
+impl HolidaysReader {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl HolidayCalendarRead for HolidaysReader {
+    async fn holidays(&self) -> Result<HashSet<NaiveDate>> {
+        let rows: Vec<(NaiveDate,)> = sqlx::query_as("SELECT date FROM holidays")
+            .fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(d,)| d).collect())
     }
 }
 // ~/~ end

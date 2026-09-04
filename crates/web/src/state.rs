@@ -16,6 +16,11 @@ pub struct AppState {
     pub symbol_stats: Arc<dyn domain::ports::SymbolStatsRead>,
     /// 熔断复位写端口（Phase C：POST /api/sources/{id}/reset；DB 控制通道）。
     pub resets: Arc<dyn domain::ports::CircuitResetWrite>,
+    /// 数据质量服务（Wave 2 Phase A：diagnose::quality，页面④ 三端点 + tushare status 数据源）。
+    pub quality: diagnose::quality::QualityService,
+    /// 告警引擎服务（Wave 2 Phase B：alert crate，Application 层；02-alerts.md）。
+    /// 评估节拍由 web::alerts::AlertEvaluator 驱动；本字段供 REST handlers 查询/确认/规则调整。
+    pub alerts: alert::engine::AlertService,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

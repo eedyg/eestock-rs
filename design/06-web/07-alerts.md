@@ -187,7 +187,9 @@ export interface RulePatch {
   silenceMinutes?: number;      // 静默期内同一规则不再触发
 }
 
-export function AlertsGrid(props: AlertsGridProps) {
+export function AlertsGrid(_props: AlertsGridProps) {
+  // Props 契约为页面状态对外接口（09-frontend §3：store 向其对齐）；骨架本体仅承载区域锚点，
+  // 不消费 props（noUnusedParameters 以 _ 前缀豁免，与其他 Grid 内联消费 props 的风格并存）。
   return (
     <div data-region="alerts" className="flex min-w-[1280px] flex-1 flex-col">
 

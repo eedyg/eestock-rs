@@ -108,7 +108,7 @@ mod tests {
         let r = dispatch(&st(), &req(Some(json!(2)), "tools/list", None)).await.unwrap();
         let names: Vec<&str> = r["result"]["tools"].as_array().unwrap()
             .iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, ["get_kline", "get_sources_health"]);
+        assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();

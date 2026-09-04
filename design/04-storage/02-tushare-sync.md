@@ -588,6 +588,9 @@ pub mod symbols;
 // admin：应用面写/控制通道加法扩展（Wave 1 Phase C：标的管理写 + 熔断复位 DB 通道；
 // 代码块在 design/07-app-plane/00-web-api.md）
 pub mod admin;
+// alerts：告警引擎端口实现加法扩展（Wave 2 Phase B：PgAlertStore + PgAlertEval；
+// 代码块在 design/07-app-plane/02-alerts.md）
+pub mod alerts;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

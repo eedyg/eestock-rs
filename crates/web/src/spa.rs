@@ -7,14 +7,20 @@ use axum::{
     extract::State,
     http::{header, StatusCode, Uri},
     response::{IntoResponse, Response},
+    Json,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::state::AppState;
 
-/// 未知路径兜底：静态文件 → SPA index.html → 503 占位。
+/// 未知路径兜底：/api/* → 404 JSON（D6：API 路径不回退 index.html，§1.3）；
+/// 其余 → 静态文件 → SPA index.html → 503 占位。
 pub async fn spa_fallback(State(st): State<Arc<AppState>>, uri: Uri) -> Response {
+    if uri.path().starts_with("/api/") {
+        return (StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "not found" }))).into_response();
+    }
     serve_path(&st.static_dir, uri.path()).await
 }
 

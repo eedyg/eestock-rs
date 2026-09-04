@@ -1,9 +1,9 @@
 # 07-app-plane / 00 — 应用面 Web API（web / diagnose / eestock-app / 部署）
 
 > 本文档 tangle 生成：
-> `crates/diagnose/src/{lib,health}.rs`、`crates/diagnose/tests/health_agg.rs`、
+> `crates/diagnose/src/{lib,health,quality}.rs`、`crates/diagnose/tests/{health_agg,quality}.rs`、
 > `crates/storage/src/{reader,admin}.rs`、`crates/storage/tests/{kline_reader,symbol_admin}.rs`、
-> `crates/web/src/{lib,dto,state,rest,ws,spa}.rs`、`crates/web/tests/{api_rest,ws_poller,api_admin}.rs`、
+> `crates/web/src/{lib,dto,state,rest,ws,spa}.rs`、`crates/web/tests/{api_rest,ws_poller,api_admin,api_quality}.rs`、
 > `crates/app/src/app_config.rs`、`crates/app/src/bin/eestock-app.rs`、`crates/app/tests/app_config.rs`、
 > `Dockerfile.app`。
 >
@@ -35,6 +35,12 @@
 > MCP HTTP/SSE 服务（ADR-009 范围①②，与 web **同进程**、**端口独立** 8082，复用同一
 > KlineRead/HealthEventsRead 端口实现实例）、`Dockerfile.app` `EXPOSE 8081 8082`——均为纯加法，
 > web/diagnose/storage 既有块零改动。
+>
+> ⚠️ Wave 2 Phase B 加法（wave-2.md §2 页面⑦ 告警中心；全部口径见 design/07-app-plane/02-alerts.md）：
+> `crates/web/src/alerts.rs`（handlers + AlertEvaluator，02-alerts.md tangle 生成，本文件 lib.rs 仅加法
+> `pub mod alerts;` 与 3 条路由）、AppState +`alerts: alert::engine::AlertService`、WS Topic/PushMsg
+> +`alert` 变体、`app_config.rs` +`alert_eval_ms`（默认 60000）、`eestock-app.rs` 装配 AlertService +
+> AlertEvaluator 节拍任务——均为纯加法，既有端点/WS 通道/diagnose 零改动。
 
 ## 1. 端点契约
 
@@ -50,6 +56,14 @@
 | `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
 | `GET /api/symbols?with_stats=1`（Phase C §8） | `with_stats=1` 追加每标的当日统计 | 列表项追加 `today_bars`（当日 kline_raw 行数，Asia/Shanghai 日界；无 bar → 0） | `kline_raw` 当日窗口 GROUP BY | 500 |
 | `POST /api/sources/{id}/reset`（Phase C §8） | 路径 id = SourceId 文本（未知 id 也接受：应用面不知编译期源清单，数据面消费端跳过并告警） | 202 `{"status":"accepted"}`（**异步**：写 `circuit_reset_requests`，数据面 ResetWatcher ≤5s 内消费复位并发出 `manual_reset` 事件） | `circuit_reset_requests` 表（0007） | 400：id 空；500 |
+| `GET /api/alerts`（Wave 2 Phase B） | `level=info\|warning\|critical`、`from`/`to`（RFC3339，last_fired_at 口径）、`source`、`limit`（默认 200，封顶 1000） | `[AlertEventDto]`（last_fired_at 降序；聚合防刷屏：同 rule+source 未恢复聚合一条，fire_count+last_fired_at） | `alert_events`（0009，应用面自有表） | 400：非法 level/from/to；500 |
+| `POST /api/alerts/{id}/ack`（Wave 2 Phase B） | — | 200 `AlertEventDto`（status=acked + acked_at 持久化，刷新不丢） | 同上 | 404：未知 id 或非 triggered（仅未确认可确认）；500 |
+| `GET /api/alert-rules`（Wave 2 Phase B） | — | `[AlertRuleDto]`（0009 种子 4 条内置规则，含阈值/开关/静默时长） | `alert_rules`（0009） | 500 |
+| `PATCH /api/alert-rules`（Wave 2 Phase B） | body `{id, threshold?, enabled?, silence_minutes?}`（None=不改；仅这三项可调，无自由规则编辑器） | 200 `AlertRuleDto`（评估节拍每轮重读 → 热生效） | 同上 | 400：id 空 / silence_minutes<1 / threshold 非法；404：未知 id；500 |
+| `GET /api/quality/divergence`（Wave 2 Phase A） | `code`（必填）、`from`/`to`（YYYY-MM-DD 必填，按 CST 日界闭区间，跨度钳制 ≤62 天）、`threshold_pct`（默认 0.5 = 页面④ `QUALITY_DEFAULTS.consistencyThresholdPct` 定稿口径） | `{"code","from","to","threshold_pct","summary":{"compared_bars","divergent_bars","divergence_rate","consistency_rate","max_deviation_pct"},"rows":[{"ts,raw_close,accurate_close,deviation_pct,raw_source}]}`；rows 按 \|偏差\| 降序；**只比 close**（D4 结案：amount 不跨层比对，04-storage §4.4 注记 7）；无比对数据 → rows 空 + summary 全 null/0 | `kline_raw ⋈ kline_accurate(period='M1')`（diagnose::quality） | 400：code 空 / from、to 非法或 from>to / threshold_pct 非正；500 |
+| `GET /api/quality/source-accuracy`（Wave 2 Phase A） | `from`/`to`、`threshold_pct`（同上） | `{"from","to","threshold_pct","sources":[{"source,samples,consistency_rate,avg_deviation_pct,max_deviation_pct}]}`（一致率降序） | 同上（全标的对照行按 raw_source 归组） | 400/500 同上 |
+| `GET /api/quality/gaps`（Wave 2 Phase A） | `code`（必填）、`from`/`to`（同上） | `{"code","from","to","days":[{"date","expected_bars","actual_bars","missing_bars","segments":[{"start","end","count","class"}]}]}`；仅含**有缺口的交易日**（周末 ∪ holidays[0008] 整日排除；未来分钟不算缺口）；start/end 为 CST "HH:MM"；class ∈ `source_fault`（窗口内有失败/陈旧/熔断事件）/ `upstream_no_data`（源可达但无该分钟数据：na 或仅成功事件）/ `system_gap`（邻近无事件：采集停摆/事件空窗，D5 口径） | 交易日历（0008 + 周末）× 241 分钟标签 − `kline_raw` 已有 ts；分类证据 = `source_health_events` 区间 | 400/500 同上 |
+| `GET /api/tushare/status`（Wave 2 Phase A） | — | `{"checkpoints":[{"code,period,last_synced_date,updated_at}],"covered_codes","last_updated_at","last_event":{"ts","ok","err_kind"}\|null,"quota_remaining":null}`（积分余额未入库 → 恒 null，待 tushare 账户侧可查后单开） | `sync_checkpoints`（0005）+ `source_health_events` 最近 7 日 source='tushare' 事件 | 500 |
 
 字段口径（diagnose，05-diagnose §1 实现 Wave 1 最小集）：
 
@@ -68,8 +82,8 @@
 {"type":"unsubscribe","topic":"quote","code":"518880"}
 ```
 
-- `topic`：`"bar" | "quote" | "health"`；`code`/`period` 省略 = 通配（该 topic 全量）。
-- `bar` 订阅 `period` 必填（服务端据此决定轮询哪个周期）。
+- `topic`：`"bar" | "quote" | "health" | "alert"`（Wave 2 Phase B 加法）；`code`/`period` 省略 = 通配（该 topic 全量）。
+- `bar` 订阅 `period` 必填（服务端据此决定轮询哪个周期）；`alert` 无需过滤字段（订阅即全量告警推送）。
 
 服务端推送帧（serde 内部 tag，`type` 平铺）：
 
@@ -77,7 +91,11 @@
 {"type":"bar","code":"518880","period":"1m","bar":{ts,open,high,low,close,volume,amount,"source"?}}
 {"type":"quote","code":"518880","ts":"...","last":1.234,"change_pct":0.12}
 {"type":"health","window_secs":3600,"sources":[SourceHealth...]}
+{"type":"alert","id":12,"rule_id":"collection_stall","level":"critical","source":"collector","message":"...","status":"triggered","fire_count":1,"first_fired_at":"...","last_fired_at":"...","acked_at":null,"resolved_at":null}
 ```
+
+- `alert` 帧（Wave 2 Phase B）：推送源 = **AlertEvaluator 评估节拍**（默认 1min，app_config `alert_eval_ms`），
+  新建/续触发（fired）与恢复（resolved）事件逐一推送；info/warning 前端静默入列表，critical 由 shell 右上角 toast 强弹（07-alerts §4）。
 
 **推送源 = 轮询**（ADR-017 铁律：应用面只读库，无数据面直连、无 NOTIFY 触发器）：Poller 按
 `ws_poll_ms`（默认 3000）周期——对每个活跃 bar 订阅 (code,period) 取最新 bar，ts 前进才推；
@@ -87,14 +105,21 @@ broadcast lagged 丢帧由客户端重连/REST 重拉兜底。
 
 ### 1.3 SPA 静态托管
 
-`web/dist` 存在即服务（按扩展名给 Content-Type）；未命中文件回退 `index.html`（history 路由深链）；
-路径含 `..`/反斜杠/空段 → 400（防目录穿越）；dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物覆盖）。
+`web/dist` 存在即服务（按扩展名给 Content-Type）；未命中文件回退 `index.html`（history 路由深链）——
+**例外（D6 结案，Wave 2 Phase A）**：`/api/*` 未命中**不回退** index.html，返回 404 JSON `{"error":"not found"}`
+（API 路径回退 HTML 会把路由错误掩盖成前端解析错误）；路径含 `..`/反斜杠/空段 → 400（防目录穿越）；
+dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物覆盖）。
 不引 tower-http：手写 ~60 行（ADR-017 最小攻击面同口径；零新增依赖）。
 
 ### 1.4 明确不做（边界）
 
 **Phase A 不做**（Phase B/C 或 Wave 2）：`/api/sources/{id}/metrics|events|divergence`、
 `/api/collection/gaps`、`/api/alerts*`（02-sources §8 / 03-symbols §6 所列其余端点）。
+**Wave 2 Phase A 已交付**：`GET /api/quality/divergence|source-accuracy|gaps` + `GET /api/tushare/status`
+（页面④ API 依赖节，06-web/04-quality.md §7）。
+**Wave 2 Phase A 暂缓（待父级裁决）**：`POST /api/tushare/sync` 手动触发——需新增 DB 控制通道表 +
+数据面 tushare 同步任务消费端（数据面改动超出本轮预批准范围「仅日历口径替换」，见 coder/report/011）。
+**Wave 2 Phase B 已交付**：`/api/alerts*` + `GET/PATCH /api/alert-rules`（本节 §1.1 表尾四行，02-alerts.md）。
 **Phase C 已交付**（§8）：`POST/PATCH /api/symbols`、`GET /api/symbols?with_stats=1`、
 `POST /api/sources/{id}/reset`。
 **不做物理删除**（03-symbols §4 定稿）：仅停用（`enabled=false`，历史数据保留），
@@ -108,10 +133,12 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 SQL 窗口读取下沉 storage（`HealthEventReader`），聚合口径与初版 SQL 版一致（测试锁定相同断言）。
 
 ``` {.rust file=crates/diagnose/src/lib.rs}
-//! diagnose —— 应用层：健康指标聚合查询（读 source_health_events，03 §7 / 05 §1 口径）。
+//! diagnose —— 应用层：健康指标聚合查询（读 source_health_events，03 §7 / 05 §1 口径）
+//! 与数据质量服务（Wave 2 Phase A：raw vs accurate 对照 + 交易日历驱动缺口报告，本节 §2.1）。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
 
 pub mod health;
+pub mod quality;
 ```
 
 ``` {.rust file=crates/diagnose/src/health.rs}
@@ -398,6 +425,686 @@ async fn health_service_aggregates_via_injected_port() {
 }
 ```
 
+### 2.1 QualityService（Wave 2 Phase A 加法：数据质量对照 + 交易日历驱动缺口报告）
+
+页面④（06-web/04-quality.md §7 API 依赖节）与 MCP④ 的数据源。与 health 同模式：
+diagnose 不依赖 sqlx，全部读输入经 domain 端口注入（QualityRead / RawBarReader /
+HealthEventsRangeRead / HolidayCalendarRead / TushareStatusRead），聚合与分类为纯函数（可离线 TDD）。
+
+口径定稿：
+- **分歧对照只比 close**（D4 结案：amount 跨层量纲不可比——tencent_ifzq raw amount 不可信且
+  比值不恒定，无法换算，见 04-storage §4.4 注记 7）；默认阈值 0.5%（页面④ QUALITY_DEFAULTS 定稿）。
+- **缺口 = 交易日历（周末 ∪ holidays[0008]）× 241 分钟标签 − kline_raw 已有 ts**；
+  未来分钟不算缺口；与 collector 调度/回填同口径（domain::calendar 单一事实源）。
+- **缺口分类（D5）**：source_fault（邻近窗口有失败/陈旧/熔断张开事件）/ upstream_no_data
+  （na 或仅成功事件——源可达但该分钟无数据）/ system_gap（邻近无任何事件——采集停摆或事件空窗；
+  非交易时段本就零事件[03 §9.9 静默跳过]，已被日历排除，不会误归此类）。
+
+``` {.rust file=crates/diagnose/src/quality.rs}
+//! 数据质量服务（Wave 2 Phase A，页面④ + MCP④；Application 层纯服务，端口注入，无 sqlx）。
+//! 口径：本节 §2.1 头注释（close-only 对照 / 交易日历驱动缺口 / D5 三级分类）。
+
+use anyhow::Result;
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Timelike, Utc};
+use domain::calendar::{is_weekday, trading_minute_labels};
+use domain::ports::{
+    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, QualityRead,
+    RawBarReader, SyncCheckpointView, TushareStatusRead,
+};
+use domain::types::Code;
+use domain::tz::{cst_to_utc, utc_to_cst};
+use serde::Serialize;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+/// 默认分歧/一致阈值（%）：页面④ QUALITY_DEFAULTS.consistencyThresholdPct=0.5 定稿口径。
+pub const DEFAULT_THRESHOLD_PCT: f64 = 0.5;
+/// 日期跨度上限（天，含端点）：缺口逐日读库，防重查询。
+pub const MAX_RANGE_DAYS: i64 = 62;
+
+/// 偏差% = (raw − accurate) / accurate × 100；accurate≈0 防御（实盘不出现）：双≈0 → 0，否则 ±100。
+pub fn deviation_pct(raw: f64, accurate: f64) -> f64 {
+    if accurate.abs() < 1e-12 {
+        return if raw.abs() < 1e-12 { 0.0 } else { 100.0 };
+    }
+    (raw - accurate) / accurate * 100.0
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DivergenceItem {
+    pub ts: DateTime<Utc>,
+    pub raw_close: f64,
+    pub accurate_close: f64,
+    pub deviation_pct: f64,
+    pub raw_source: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DivergenceSummary {
+    pub compared_bars: i64,
+    pub divergent_bars: i64,
+    /// 分歧率 = |偏差|>threshold 的 bar 占比；无比对样本 → None。
+    pub divergence_rate: Option<f64>,
+    /// 一致率 = |偏差|≤threshold 占比（页面④「≤0.5% 计一致」同口径，threshold 可调）。
+    pub consistency_rate: Option<f64>,
+    pub max_deviation_pct: Option<f64>,
+}
+
+/// 分歧报告：rows 按 |偏差| 降序（页面④ 默认排序）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DivergenceReport {
+    pub summary: DivergenceSummary,
+    pub rows: Vec<DivergenceItem>,
+}
+
+/// 对照行 → 分歧报告（纯函数）。
+pub fn summarize(rows: Vec<DivergenceRow>, threshold_pct: f64) -> DivergenceReport {
+    let mut items: Vec<DivergenceItem> = rows.into_iter().map(|r| DivergenceItem {
+        ts: r.ts,
+        raw_close: r.raw_close,
+        accurate_close: r.accurate_close,
+        deviation_pct: deviation_pct(r.raw_close, r.accurate_close),
+        raw_source: r.raw_source,
+    }).collect();
+    items.sort_by(|a, b| b.deviation_pct.abs().total_cmp(&a.deviation_pct.abs()));
+    let n = items.len() as i64;
+    let divergent = items.iter().filter(|i| i.deviation_pct.abs() > threshold_pct).count() as i64;
+    DivergenceReport {
+        summary: DivergenceSummary {
+            compared_bars: n,
+            divergent_bars: divergent,
+            divergence_rate: if n > 0 { Some(divergent as f64 / n as f64) } else { None },
+            consistency_rate: if n > 0 { Some((n - divergent) as f64 / n as f64) } else { None },
+            max_deviation_pct: items.first().map(|i| i.deviation_pct.abs()),
+        },
+        rows: items,
+    }
+}
+
+/// 源一致率排行卡（页面④ accuracy-cards；一致率降序，平手按 source 名序）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SourceAccuracy {
+    pub source: String,
+    pub samples: i64,
+    pub consistency_rate: Option<f64>,
+    pub avg_deviation_pct: Option<f64>,
+    pub max_deviation_pct: Option<f64>,
+}
+
+/// 对照行按 raw_source 归组的一致率统计（纯函数）。
+pub fn accuracy_by_source(rows: &[DivergenceRow], threshold_pct: f64) -> Vec<SourceAccuracy> {
+    let mut by: HashMap<String, Vec<f64>> = HashMap::new();
+    for r in rows {
+        by.entry(r.raw_source.clone().unwrap_or_else(|| "unknown".into()))
+            .or_default()
+            .push(deviation_pct(r.raw_close, r.accurate_close).abs());
+    }
+    let mut out: Vec<SourceAccuracy> = by.into_iter().map(|(source, devs)| {
+        let n = devs.len() as i64;
+        let consistent = devs.iter().filter(|d| **d <= threshold_pct).count() as i64;
+        SourceAccuracy {
+            source,
+            samples: n,
+            consistency_rate: Some(consistent as f64 / n as f64),
+            avg_deviation_pct: Some(devs.iter().sum::<f64>() / devs.len() as f64),
+            max_deviation_pct: devs.iter().cloned().reduce(f64::max),
+        }
+    }).collect();
+    out.sort_by(|a, b| b.consistency_rate.partial_cmp(&a.consistency_rate)
+        .unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.source.cmp(&b.source)));
+    out
+}
+
+/// 缺口分类（D5 口径，三级）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GapClass { SourceFault, UpstreamNoData, SystemGap }
+
+/// 失败证据类 err_kind（抓取失败/陈旧/熔断张开——源故障时段）。
+/// circuit_closed/manual_reset 是恢复不是故障，不列入。
+const FAULT_KINDS: &[&str] = &["timeout", "http", "parse", "rate_limited", "all_failed",
+    "stale_data", "circuit_open", "circuit_halfopen"];
+
+/// 缺口分钟分类（纯函数）：邻近事件窗口内——
+/// ① 有失败证据 → SourceFault（源故障时段）；
+/// ② 有 na（源可达无数据）或成功事件 → UpstreamNoData；
+/// ③ 无任何事件 → SystemGap（采集停摆/事件空窗；非交易日已由日历排除，不会误归此类）。
+pub fn classify_gap_minute(nearby: &[&HealthEventRow]) -> GapClass {
+    if nearby.iter().any(|e| !e.ok
+        && e.err_kind.as_deref().map(|k| FAULT_KINDS.contains(&k)).unwrap_or(false)) {
+        return GapClass::SourceFault;
+    }
+    if nearby.iter().any(|e| e.ok || e.err_kind.as_deref() == Some("na")) {
+        return GapClass::UpstreamNoData;
+    }
+    GapClass::SystemGap
+}
+
+/// 缺口段（连续同分类分钟合并；start/end = CST naive 标签时刻，含端点；count = 缺 bar 数）。
+/// 午休两侧不跨段（11:30 → 13:01 标签差 91min > 1min，自然断段）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct GapSegment {
+    pub start: NaiveDateTime,
+    pub end: NaiveDateTime,
+    pub count: i64,
+    pub class: GapClass,
+}
+
+/// CST 标签 → "HH:MM"（页面④ 缺口段展示口径）。
+pub fn hhmm(t: &NaiveDateTime) -> String { format!("{:02}:{:02}", t.hour(), t.minute()) }
+
+/// 缺口分钟（CST naive，升序，带分类）→ 连续段（纯函数）。
+pub fn segments_of(missing: &[(NaiveDateTime, GapClass)]) -> Vec<GapSegment> {
+    let mut out: Vec<GapSegment> = vec![];
+    for (m, class) in missing {
+        match out.last_mut() {
+            Some(seg) if seg.class == *class && *m - seg.end == Duration::minutes(1) => {
+                seg.end = *m;
+                seg.count += 1;
+            }
+            _ => out.push(GapSegment { start: *m, end: *m, count: 1, class: *class }),
+        }
+    }
+    out
+}
+
+/// 单日缺口卡（仅当日有缺口时由 gaps() 产出）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DayGap {
+    pub date: NaiveDate,
+    /// 应到 bar 数 = 已到期标签数（当日盘中为部分，历史日为 241）。
+    pub expected_bars: i64,
+    pub actual_bars: i64,
+    pub missing_bars: i64,
+    pub segments: Vec<GapSegment>,
+}
+
+/// tushare 最近事件视图（source_health_events source='tushare'；skip 审计 ok=true+na 也算可达证据）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct TushareEventView {
+    pub ts: DateTime<Utc>,
+    pub ok: bool,
+    pub err_kind: Option<String>,
+}
+
+/// 页面④ sync-panel 状态（quota 未入库 → 由 web 层恒置 null，见 §1.1）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct TushareStatus {
+    pub checkpoints: Vec<SyncCheckpointView>,
+    pub covered_codes: usize,
+    pub last_updated_at: Option<DateTime<Utc>>,
+    pub last_event: Option<TushareEventView>,
+}
+
+/// MCP④ 单日质量卡（get_data_quality(code, date)）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DailyQuality {
+    pub code: String,
+    pub date: NaiveDate,
+    pub trading_day: bool,
+    /// 当日缺口卡（无缺口 / 非交易日 / 当日尚无到期标签 → None）。
+    pub gap: Option<DayGap>,
+    pub divergence: DivergenceSummary,
+}
+
+/// 范围校验（web/MCP 共用）：from<=to 且跨度 ≤ MAX_RANGE_DAYS。
+pub fn validate_range(from: NaiveDate, to: NaiveDate) -> Result<()> {
+    if from > to { anyhow::bail!("from 不得晚于 to"); }
+    if (to - from).num_days() + 1 > MAX_RANGE_DAYS {
+        anyhow::bail!("日期跨度上限 {MAX_RANGE_DAYS} 天");
+    }
+    Ok(())
+}
+
+/// 日期闭区间 [from, to]（CST 日界）→ UTC 半开区间 [from 00:00 CST, to+1 00:00 CST)。
+pub fn day_range_utc(from: NaiveDate, to: NaiveDate) -> (DateTime<Utc>, DateTime<Utc>) {
+    (cst_to_utc(from.and_hms_opt(0, 0, 0).expect("valid hms")),
+     cst_to_utc((to + Duration::days(1)).and_hms_opt(0, 0, 0).expect("valid hms")))
+}
+
+/// 质量查询服务（Application）：注入只读端口；聚合/分类全部走纯函数。
+/// Clone 派生：eestock-app 装配时 web/mcp 两状态共享同一组端口实例。
+#[derive(Clone)]
+pub struct QualityService {
+    quality: Arc<dyn QualityRead>,
+    raw: Arc<dyn RawBarReader>,
+    events: Arc<dyn HealthEventsRangeRead>,
+    holidays: Arc<dyn HolidayCalendarRead>,
+    tushare: Arc<dyn TushareStatusRead>,
+    clock: Arc<dyn Clock>,
+}
+
+impl QualityService {
+    pub fn new(quality: Arc<dyn QualityRead>, raw: Arc<dyn RawBarReader>,
+               events: Arc<dyn HealthEventsRangeRead>, holidays: Arc<dyn HolidayCalendarRead>,
+               tushare: Arc<dyn TushareStatusRead>, clock: Arc<dyn Clock>) -> Self {
+        Self { quality, raw, events, holidays, tushare, clock }
+    }
+
+    /// GET /api/quality/divergence 数据源。
+    pub async fn divergence(&self, code: &str, from: NaiveDate, to: NaiveDate,
+                            threshold_pct: f64) -> Result<DivergenceReport> {
+        validate_range(from, to)?;
+        let (lo, hi) = day_range_utc(from, to);
+        let rows = self.quality.divergence_rows(Some(code), lo, hi).await?;
+        Ok(summarize(rows, threshold_pct))
+    }
+
+    /// GET /api/quality/source-accuracy 数据源。
+    pub async fn source_accuracy(&self, from: NaiveDate, to: NaiveDate,
+                                 threshold_pct: f64) -> Result<Vec<SourceAccuracy>> {
+        validate_range(from, to)?;
+        let (lo, hi) = day_range_utc(from, to);
+        let rows = self.quality.divergence_rows(None, lo, hi).await?;
+        Ok(accuracy_by_source(&rows, threshold_pct))
+    }
+
+    /// GET /api/quality/gaps 数据源：仅返回有缺口的交易日（非交易日整日排除）。
+    pub async fn gaps(&self, code: &str, from: NaiveDate, to: NaiveDate) -> Result<Vec<DayGap>> {
+        validate_range(from, to)?;
+        let holidays = self.holidays.holidays().await?;
+        let (lo, hi) = day_range_utc(from, to);
+        let evs = self.events.events_between(lo, hi).await?;
+        // 缺口分类证据：该 code 事件 ∪ 源级事件（code=None，如 circuit_open 影响全部标的）
+        let code_events: Vec<&HealthEventRow> = evs.iter()
+            .filter(|e| e.code.as_deref() == Some(code) || e.code.is_none()).collect();
+        let now_floor = {
+            let c = utc_to_cst(self.clock.now());
+            c.with_second(0).and_then(|t| t.with_nanosecond(0)).expect("valid minute floor")
+        };
+        let mut out = vec![];
+        let mut day = from;
+        while day <= to {
+            if is_weekday(day) && !holidays.contains(&day) {
+                let due: Vec<NaiveDateTime> = trading_minute_labels(day).into_iter()
+                    .filter(|l| *l <= now_floor).collect();
+                if !due.is_empty() {
+                    let existing = self.raw.existing_ts(&Code(code.into()), day).await?;
+                    let missing: Vec<(NaiveDateTime, GapClass)> = due.iter()
+                        .filter(|l| !existing.contains(&cst_to_utc(**l)))
+                        .map(|l| {
+                            let wlo = cst_to_utc(*l - Duration::minutes(2));
+                            let whi = cst_to_utc(*l + Duration::minutes(2));
+                            let nearby: Vec<&HealthEventRow> = code_events.iter()
+                                .filter(|e| e.ts >= wlo && e.ts < whi).copied().collect();
+                            (*l, classify_gap_minute(&nearby))
+                        }).collect();
+                    if !missing.is_empty() {
+                        out.push(DayGap {
+                            date: day,
+                            expected_bars: due.len() as i64,
+                            actual_bars: (due.len() - missing.len()) as i64,
+                            missing_bars: missing.len() as i64,
+                            segments: segments_of(&missing),
+                        });
+                    }
+                }
+            }
+            day += Duration::days(1);
+        }
+        Ok(out)
+    }
+
+    /// GET /api/tushare/status 数据源（最近事件窗口 7 天）。
+    pub async fn tushare_status(&self) -> Result<TushareStatus> {
+        let cps = self.tushare.sync_checkpoints().await?;
+        let now = self.clock.now();
+        let evs = self.events.events_between(now - Duration::days(7), now).await?;
+        let last_event = evs.iter().rev().find(|e| e.source == "tushare")
+            .map(|e| TushareEventView { ts: e.ts, ok: e.ok, err_kind: e.err_kind.clone() });
+        Ok(TushareStatus {
+            covered_codes: cps.len(),
+            last_updated_at: cps.iter().map(|c| c.updated_at).max(),
+            checkpoints: cps,
+            last_event,
+        })
+    }
+
+    /// MCP 工具④ get_data_quality(code, date)：单日质量卡（缺口 + 分歧汇总）。
+    pub async fn daily_quality(&self, code: &str, date: NaiveDate) -> Result<DailyQuality> {
+        let holidays = self.holidays.holidays().await?;
+        let trading = is_weekday(date) && !holidays.contains(&date);
+        let gap = self.gaps(code, date, date).await?.into_iter().next();
+        let div = self.divergence(code, date, date, DEFAULT_THRESHOLD_PCT).await?;
+        Ok(DailyQuality {
+            code: code.into(), date, trading_day: trading,
+            gap, divergence: div.summary,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+
+    fn d(y: i32, m: u32, dd: u32) -> NaiveDate { NaiveDate::from_ymd_opt(y, m, dd).unwrap() }
+    fn ndt(day: NaiveDate, h: u32, mi: u32) -> NaiveDateTime { day.and_hms_opt(h, mi, 0).unwrap() }
+    fn row(ts: DateTime<Utc>, raw: f64, acc: f64, src: &str) -> DivergenceRow {
+        DivergenceRow { ts, code: "518880".into(), raw_close: raw, accurate_close: acc,
+            raw_source: Some(src.into()) }
+    }
+    fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
+
+    #[test]
+    fn deviation_pct_guards_and_sign() {
+        assert!((deviation_pct(10.1, 10.0) - 1.0).abs() < 1e-9);
+        assert!((deviation_pct(9.9, 10.0) + 1.0).abs() < 1e-9);
+        assert_eq!(deviation_pct(0.0, 0.0), 0.0, "双零防御");
+        assert_eq!(deviation_pct(1.0, 0.0), 100.0, "accurate 零防御（不产出 inf/nan，JSON 安全）");
+    }
+
+    #[test]
+    fn summarize_rates_and_deviation_desc_order() {
+        let rows = vec![
+            row(base(), 10.04, 10.0, "tencent_ifzq"),        // +0.4% ≤0.5 一致
+            row(base() + Duration::minutes(1), 9.90, 10.0, "sina_jsonp"), // −1.0% 分歧
+            row(base() + Duration::minutes(2), 10.20, 10.0, "sina_jsonp"), // +2.0% 分歧
+        ];
+        let rep = summarize(rows, 0.5);
+        assert_eq!(rep.summary.compared_bars, 3);
+        assert_eq!(rep.summary.divergent_bars, 2, "|偏差|>0.5% 计分歧");
+        assert!((rep.summary.divergence_rate.unwrap() - 2.0 / 3.0).abs() < 1e-9);
+        assert!((rep.summary.consistency_rate.unwrap() - 1.0 / 3.0).abs() < 1e-9);
+        assert!((rep.summary.max_deviation_pct.unwrap() - 2.0).abs() < 1e-9);
+        assert!((rep.rows[0].deviation_pct - 2.0).abs() < 1e-9, "默认 |偏差| 降序");
+        assert!((rep.rows[1].deviation_pct + 1.0).abs() < 1e-9);
+        assert_eq!(rep.rows[2].raw_source.as_deref(), Some("tencent_ifzq"));
+        // 空样本
+        let empty = summarize(vec![], 0.5);
+        assert_eq!(empty.summary.compared_bars, 0);
+        assert!(empty.summary.divergence_rate.is_none() && empty.summary.consistency_rate.is_none()
+            && empty.summary.max_deviation_pct.is_none(), "无比对数据 → 汇总全 None（前端空态）");
+    }
+
+    #[test]
+    fn accuracy_by_source_grouped_and_sorted() {
+        let rows = vec![
+            row(base(), 10.001, 10.0, "tencent_ifzq"),
+            row(base() + Duration::minutes(1), 10.0, 10.0, "tencent_ifzq"),
+            row(base() + Duration::minutes(2), 10.10, 10.0, "sina_jsonp"),   // 1.0% 分歧
+            row(base() + Duration::minutes(3), 10.0, 10.0, "sina_jsonp"),
+        ];
+        let acc = accuracy_by_source(&rows, 0.5);
+        assert_eq!(acc.len(), 2);
+        assert_eq!(acc[0].source, "tencent_ifzq", "一致率降序");
+        assert_eq!(acc[0].consistency_rate, Some(1.0));
+        assert_eq!(acc[1].source, "sina_jsonp");
+        assert_eq!(acc[1].consistency_rate, Some(0.5));
+        assert!((acc[1].avg_deviation_pct.unwrap() - 0.5).abs() < 1e-9);
+        assert!((acc[1].max_deviation_pct.unwrap() - 1.0).abs() < 1e-9);
+        assert_eq!(acc[1].samples, 2);
+    }
+
+    fn ev(ts: DateTime<Utc>, ok: bool, kind: Option<&str>) -> HealthEventRow {
+        HealthEventRow { ts, source: "tencent_ifzq".into(), ok, latency_ms: None,
+            err_kind: kind.map(Into::into), code: Some("518880".into()) }
+    }
+
+    #[test]
+    fn classify_gap_minute_matrix() {
+        let t0 = base();
+        // ① 失败证据优先（timeout / stale_data / all_failed / circuit_open 均属源故障）
+        for k in ["timeout", "http", "parse", "rate_limited", "all_failed", "stale_data",
+                  "circuit_open", "circuit_halfopen"] {
+            let e = ev(t0, false, Some(k));
+            assert_eq!(classify_gap_minute(&[&e]), GapClass::SourceFault, "{k} 属源故障");
+        }
+        // ② na / 成功事件 → 源可达无数据
+        let na = ev(t0, true, Some("na"));
+        assert_eq!(classify_gap_minute(&[&na]), GapClass::UpstreamNoData);
+        let ok = ev(t0, true, None);
+        assert_eq!(classify_gap_minute(&[&ok]), GapClass::UpstreamNoData);
+        // 恢复类迁移不占故障位
+        let closed = ev(t0, false, Some("circuit_closed"));
+        let reset = ev(t0, false, Some("manual_reset"));
+        assert_eq!(classify_gap_minute(&[&closed]), GapClass::SystemGap,
+            "circuit_closed 是恢复不是故障（且 ok=false 不入 na/成功位）");
+        assert_eq!(classify_gap_minute(&[&reset]), GapClass::SystemGap);
+        // ③ 无事件 → 系统缺口（D5：事件空窗/采集停摆；非交易日已被日历排除）
+        assert_eq!(classify_gap_minute(&[]), GapClass::SystemGap);
+        // 混合：失败证据优先于 na
+        let mix_ok = ev(t0, true, Some("na"));
+        let mix_bad = ev(t0, false, Some("timeout"));
+        assert_eq!(classify_gap_minute(&[&mix_ok, &mix_bad]), GapClass::SourceFault);
+    }
+
+    #[test]
+    fn segments_merge_consecutive_same_class_and_break_lunch() {
+        let day = d(2026, 9, 3);
+        let missing = vec![
+            (ndt(day, 10, 41), GapClass::SourceFault),
+            (ndt(day, 10, 42), GapClass::SourceFault),
+            (ndt(day, 10, 43), GapClass::SourceFault),
+            (ndt(day, 11, 30), GapClass::SystemGap),
+            (ndt(day, 13, 1), GapClass::SystemGap),   // 午休断段：与 11:30 不合并
+            (ndt(day, 13, 2), GapClass::SystemGap),
+        ];
+        let segs = segments_of(&missing);
+        assert_eq!(segs.len(), 3);
+        assert_eq!((hhmm(&segs[0].start).as_str(), hhmm(&segs[0].end).as_str(), segs[0].count),
+            ("10:41", "10:43", 3));
+        assert_eq!(segs[0].class, GapClass::SourceFault);
+        assert_eq!((hhmm(&segs[1].start).as_str(), segs[1].count), ("11:30", 1), "分类变即断段");
+        assert_eq!((hhmm(&segs[2].start).as_str(), hhmm(&segs[2].end).as_str(), segs[2].count),
+            ("13:01", "13:02", 2), "午休两侧不跨段");
+    }
+
+    #[test]
+    fn validate_range_and_day_range_utc() {
+        assert!(validate_range(d(2026, 9, 1), d(2026, 9, 3)).is_ok());
+        assert!(validate_range(d(2026, 9, 3), d(2026, 9, 1)).is_err(), "from>to → 400");
+        assert!(validate_range(d(2026, 1, 1), d(2026, 12, 31)).is_err(), "超 62 天跨度 → 400");
+        let (lo, hi) = day_range_utc(d(2026, 9, 3), d(2026, 9, 3));
+        assert_eq!(lo, Utc.with_ymd_and_hms(2026, 9, 2, 16, 0, 0).unwrap(), "CST 日界 → UTC");
+        assert_eq!(hi, Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap());
+    }
+}
+```
+
+离线服务级测试（mock 端口，无 DB；fake clock 确定性）：
+
+``` {.rust file=crates/diagnose/tests/quality.rs}
+//! QualityService 离线测试（mock 端口 + FixedClock，无 DB）：
+//! 缺口日历口径（周末/节假日排除、未来分钟不算缺口）+ 三级分类 + 单日质量卡 + tushare 状态。
+
+use chrono::{DateTime, NaiveDate, TimeZone, Timelike, Utc};
+use diagnose::quality::*;
+use domain::ports::*;
+use domain::types::Code;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+
+fn d(y: i32, m: u32, dd: u32) -> NaiveDate { NaiveDate::from_ymd_opt(y, m, dd).unwrap() }
+
+struct FixedClock(DateTime<Utc>);
+impl Clock for FixedClock { fn now(&self) -> DateTime<Utc> { self.0 } }
+
+struct MemQuality(Vec<DivergenceRow>);
+#[async_trait::async_trait]
+impl QualityRead for MemQuality {
+    async fn divergence_rows(&self, code: Option<&str>, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<DivergenceRow>> {
+        Ok(self.0.iter().filter(|r| code.is_none_or(|c| r.code == c)).cloned().collect())
+    }
+}
+
+/// 测试内存已有-ts 表类型（提取 type 别名降 clippy 复杂度）。
+type TsMap = HashMap<(String, NaiveDate), HashSet<DateTime<Utc>>>;
+
+#[derive(Default)]
+struct MemRaw { ts: Mutex<TsMap> }
+#[async_trait::async_trait]
+impl RawBarReader for MemRaw {
+    async fn existing_ts(&self, code: &Code, date: NaiveDate)
+        -> anyhow::Result<HashSet<DateTime<Utc>>> {
+        Ok(self.ts.lock().unwrap().get(&(code.0.clone(), date)).cloned().unwrap_or_default())
+    }
+}
+
+struct MemRangeEvents(Vec<HealthEventRow>);
+#[async_trait::async_trait]
+impl HealthEventsRangeRead for MemRangeEvents {
+    async fn events_between(&self, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>> {
+        Ok(self.0.iter().filter(|e| e.ts >= from && e.ts < to).cloned().collect())
+    }
+}
+
+struct MemHolidays(HashSet<NaiveDate>);
+#[async_trait::async_trait]
+impl HolidayCalendarRead for MemHolidays {
+    async fn holidays(&self) -> anyhow::Result<HashSet<NaiveDate>> { Ok(self.0.clone()) }
+}
+
+struct MemTushare(Vec<SyncCheckpointView>);
+#[async_trait::async_trait]
+impl TushareStatusRead for MemTushare {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<SyncCheckpointView>> { Ok(self.0.clone()) }
+}
+
+fn svc(now: DateTime<Utc>, raw: Arc<MemRaw>, evs: Vec<HealthEventRow>, hol: HashSet<NaiveDate>,
+       rows: Vec<DivergenceRow>, cps: Vec<SyncCheckpointView>) -> QualityService {
+    QualityService::new(Arc::new(MemQuality(rows)), raw, Arc::new(MemRangeEvents(evs)),
+        Arc::new(MemHolidays(hol)), Arc::new(MemTushare(cps)), Arc::new(FixedClock(now)))
+}
+
+fn ev_cst(day: NaiveDate, h: u32, mi: u32, s: u32, ok: bool, kind: Option<&str>, code: &str)
+    -> HealthEventRow {
+    HealthEventRow {
+        ts: domain::tz::cst_to_utc(day.and_hms_opt(h, mi, s).unwrap()),
+        source: "tencent_ifzq".into(), ok, latency_ms: None,
+        err_kind: kind.map(Into::into), code: Some(code.into()),
+    }
+}
+
+/// 把某日全部 241 标签（除 skip 列出的 CST (h,m)）标为已有。
+fn seed_all_except(raw: &MemRaw, code: &str, day: NaiveDate, skip: &[(u32, u32)]) {
+    let set: HashSet<DateTime<Utc>> = domain::calendar::trading_minute_labels(day).into_iter()
+        .filter(|l| !skip.contains(&(l.time().hour(), l.time().minute())))
+        .map(domain::tz::cst_to_utc).collect();
+    raw.ts.lock().unwrap().insert((code.into(), day), set);
+}
+
+#[tokio::test]
+async fn gaps_exclude_weekend_and_holiday() {
+    let now = Utc.with_ymd_and_hms(2026, 10, 9, 2, 0, 0).unwrap();
+    let raw = Arc::new(MemRaw::default());
+    let mut hol = HashSet::new();
+    for dd in 1..=8u32 { hol.insert(d(2026, 10, dd)); } // 国庆（0008 口径）
+    for dd in 1..=3u32 { hol.insert(d(2026, 1, dd)); }  // 元旦（0008 口径）
+    let s = svc(now, raw, vec![], hol, vec![], vec![]);
+    // 周末
+    assert!(s.gaps("518880", d(2026, 9, 5), d(2026, 9, 6)).await.unwrap().is_empty(),
+        "周末整日排除（任务书验收点）");
+    // 节假日（含工作日 10-01 周四）
+    assert!(s.gaps("518880", d(2026, 10, 1), d(2026, 10, 8)).await.unwrap().is_empty(),
+        "国庆整日排除、不算缺口（任务书验收点）");
+    // 元旦（2026-01-01 周四）
+    assert!(s.gaps("518880", d(2026, 1, 1), d(2026, 1, 1)).await.unwrap().is_empty(),
+        "元旦排除");
+}
+
+#[tokio::test]
+async fn gaps_classify_three_tiers_and_segments() {
+    let day = d(2026, 9, 3); // 周四
+    // now = 次日 → 当日 241 标签全到期
+    let now = Utc.with_ymd_and_hms(2026, 9, 4, 2, 0, 0).unwrap();
+    let raw = Arc::new(MemRaw::default());
+    seed_all_except(&raw, "518880", day, &[(10, 41), (10, 42), (13, 5), (14, 0)]);
+    let evs = vec![
+        ev_cst(day, 10, 41, 30, false, Some("timeout"), "518880"),   // 源故障
+        ev_cst(day, 13, 5, 20, true, Some("na"), "518880"),          // 源可达无数据
+        // 14:00 邻近无事件 → 系统缺口
+    ];
+    let s = svc(now, raw, evs, HashSet::new(), vec![], vec![]);
+    let days = s.gaps("518880", day, day).await.unwrap();
+    assert_eq!(days.len(), 1, "仅缺口日出卡");
+    let g = &days[0];
+    assert_eq!(g.expected_bars, 241);
+    assert_eq!(g.actual_bars, 237);
+    assert_eq!(g.missing_bars, 4);
+    assert_eq!(g.segments.len(), 3);
+    assert_eq!((hhmm(&g.segments[0].start).as_str(), hhmm(&g.segments[0].end).as_str(),
+                g.segments[0].count, g.segments[0].class),
+        ("10:41", "10:42", 2, GapClass::SourceFault));
+    assert_eq!((hhmm(&g.segments[1].start).as_str(), g.segments[1].class),
+        ("13:05", GapClass::UpstreamNoData));
+    assert_eq!((hhmm(&g.segments[2].start).as_str(), g.segments[2].class),
+        ("14:00", GapClass::SystemGap), "交易日邻近零事件 → 系统缺口（D5）");
+}
+
+#[tokio::test]
+async fn gaps_future_minutes_not_due_and_full_day_ok() {
+    let day = d(2026, 9, 3);
+    // now = 当日 10:00:30 CST：到期标签 = 09:30..=10:00 共 31
+    let now = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 30).unwrap();
+    let raw = Arc::new(MemRaw::default()); // 零已有
+    let s = svc(now, raw, vec![], HashSet::new(), vec![], vec![]);
+    let days = s.gaps("518880", day, day).await.unwrap();
+    assert_eq!(days.len(), 1);
+    assert_eq!(days[0].expected_bars, 31, "未来分钟不算缺口");
+    assert_eq!(days[0].missing_bars, 31);
+    // 全天无缺口 → 不出卡
+    let raw2 = Arc::new(MemRaw::default());
+    seed_all_except(&raw2, "518880", day, &[]);
+    let s2 = svc(Utc.with_ymd_and_hms(2026, 9, 4, 2, 0, 0).unwrap(), raw2, vec![],
+        HashSet::new(), vec![], vec![]);
+    assert!(s2.gaps("518880", day, day).await.unwrap().is_empty(), "无缺口日不出卡");
+}
+
+#[tokio::test]
+async fn daily_quality_card_and_tushare_status() {
+    let day = d(2026, 9, 3);
+    let now = Utc.with_ymd_and_hms(2026, 9, 4, 2, 0, 0).unwrap();
+    let raw = Arc::new(MemRaw::default());
+    seed_all_except(&raw, "518880", day, &[]);
+    let rows = vec![
+        DivergenceRow { ts: domain::tz::cst_to_utc(day.and_hms_opt(9, 30, 0).unwrap()),
+            code: "518880".into(), raw_close: 10.1, accurate_close: 10.0,
+            raw_source: Some("tencent_ifzq".into()) },
+        DivergenceRow { ts: domain::tz::cst_to_utc(day.and_hms_opt(9, 31, 0).unwrap()),
+            code: "518880".into(), raw_close: 10.0, accurate_close: 10.0,
+            raw_source: Some("tencent_ifzq".into()) },
+    ];
+    let cps = vec![SyncCheckpointView { code: "518880".into(), period: "M1".into(),
+        last_synced_date: d(2026, 9, 3),
+        updated_at: Utc.with_ymd_and_hms(2026, 9, 3, 22, 0, 0).unwrap() }];
+    let evs = vec![
+        HealthEventRow { ts: Utc.with_ymd_and_hms(2026, 9, 3, 10, 0, 0).unwrap(),
+            source: "tushare".into(), ok: true, latency_ms: Some(42000), err_kind: None, code: None },
+        HealthEventRow { ts: Utc.with_ymd_and_hms(2026, 9, 3, 10, 30, 0).unwrap(),
+            source: "tencent_ifzq".into(), ok: true, latency_ms: None, err_kind: None, code: None },
+    ];
+    let s = svc(now, raw, evs, HashSet::new(), rows, cps);
+
+    // MCP④ 单日卡：交易日、无缺口、分歧汇总
+    let q = s.daily_quality("518880", day).await.unwrap();
+    assert!(q.trading_day);
+    assert!(q.gap.is_none(), "全天无缺口 → gap=None");
+    assert_eq!(q.divergence.compared_bars, 2);
+    assert_eq!(q.divergence.divergent_bars, 1, "+1.0% > 0.5% 默认阈值");
+    assert!((q.divergence.consistency_rate.unwrap() - 0.5).abs() < 1e-9);
+
+    // 节假日单日卡：trading_day=false
+    let mut hol = HashSet::new();
+    hol.insert(d(2026, 10, 1));
+    let raw2 = Arc::new(MemRaw::default());
+    let s2 = svc(now, raw2, vec![], hol, vec![], vec![]);
+    let q2 = s2.daily_quality("518880", d(2026, 10, 1)).await.unwrap();
+    assert!(!q2.trading_day);
+    assert!(q2.gap.is_none());
+    assert_eq!(q2.divergence.compared_bars, 0);
+
+    // tushare 状态
+    let st = s.tushare_status().await.unwrap();
+    assert_eq!(st.covered_codes, 1);
+    assert_eq!(st.last_updated_at, Some(Utc.with_ymd_and_hms(2026, 9, 3, 22, 0, 0).unwrap()));
+    let le = st.last_event.expect("最近 tushare 事件");
+    assert!(le.ok && le.err_kind.is_none(), "过滤 source='tushare' 且取最近一条");
+}
+```
+
 ## 3. storage 只读加法扩展（KlineReader）
 
 父级授权口径：「storage 读接口如需加法扩展可以」。`reader.rs` 为纯新增文件，写路径（kline.rs /
@@ -408,7 +1115,11 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 - 1m 读 `kline_merged`（准确层优先语义由视图承载，ADR-003，与 domain merge.rs 契约一致）；
 - 5m/15m/1d 直读对应 cagg（⚠️ cagg `volume` 列为 numeric，`::bigint` 归一；`amount` 恒 double）；
 - 1h 由 `kline_15m` 查询期 rollup（schema 未建 kline_1h cagg；`first/last` 为 timescaledb 聚合，普通查询可用）；
-- 表名只经内部 match 映射常量拼接，不接受外部输入（无注入面）。
+- 表名只经内部 match 映射常量拼接，不接受外部输入（无注入面）
+- **Wave 2 Phase A 加法**：`QualityRead`（raw⋈accurate 对照）/ `TushareStatusRead`（sync_checkpoints）
+  挂 KlineReader；`HealthEventsRangeRead`（任意区间事件）挂 HealthEventReader；新增 `HolidaysReader`
+  （0008 节假日表，collector 与应用面共用）。**D3 结案**：`symbols_with_latest` 重写为双侧索引回溯
+  top-2 合并（不再扫 kline_merged 视图），语义经实盘 EXCEPT 互减 0 行验证，19,850ms → 13.5ms。
 
 ``` {.rust file=crates/storage/src/reader.rs}
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
@@ -421,13 +1132,15 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use domain::ports::{
-    HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView, SymbolStatView,
-    SymbolStatsRead,
+    DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead,
+    KlineBarView, KlineRead, QualityRead, SymbolLatestView, SymbolStatView, SymbolStatsRead,
+    SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Period;
 use sqlx::PgPool;
+use std::collections::HashSet;
 
 type BarTuple = (String, DateTime<Utc>, f64, f64, f64, f64, i64, f64, Option<String>);
 
@@ -458,19 +1171,34 @@ GROUP BY code, time_bucket('1 hour', ts)
 ORDER BY ts DESC LIMIT $3
 "#;
 
-/// 每 code 最近 2 根 merge bar（LATERAL，避免全表窗口）；prev_close = 前一根收盘。
+/// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
+/// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
+/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯 LIMIT 2 取候选 → 按 ts 去重（同 ts 准确层优先，
+/// merge 语义）→ row_number 取最新两根。merge 尾部 top-2 ⊆ 双侧 top-2 并集，语义等价
+/// （实盘全量 symbols 新老查询 EXCEPT 互减 0 行，证据见 coder/report/011）。
+/// 实测（同库）：旧 19,850ms → 新 13.5ms。
 const SYMBOLS_LATEST_SQL: &str = r#"
 SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
-       l.ts AS last_ts, l.close AS last_close, l.prev_close
+       l.last_ts, l.last_close, l.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
-    SELECT ts, close, lag(close) OVER (ORDER BY ts) AS prev_close
+  SELECT max(CASE WHEN rn = 1 THEN ts END)   AS last_ts,
+         max(CASE WHEN rn = 1 THEN close END) AS last_close,
+         max(CASE WHEN rn = 2 THEN close END) AS prev_close
+  FROM (
+    SELECT ts, close, row_number() OVER (ORDER BY ts DESC) AS rn
     FROM (
-        SELECT ts, close FROM kline_merged m
-        WHERE m.code = s.code
-        ORDER BY ts DESC LIMIT 2
-    ) latest2
-    ORDER BY ts DESC LIMIT 1
+      SELECT DISTINCT ON (ts) ts, close
+      FROM (
+        (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
+         WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 2)
+        UNION ALL
+        (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
+         WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 2)
+      ) cand
+      ORDER BY ts, pri
+    ) dedup
+  ) ranked
 ) l ON true
 ORDER BY s.code
 "#;
@@ -572,16 +1300,97 @@ impl HealthEventsRead for HealthEventReader {
         ).collect())
     }
 }
+
+// ── Wave 2 Phase A 加法：质量对照 / 节假日 / 事件区间 / tushare 同步状态（domain 端口契约见 §2）──
+
+/// raw ⋈ accurate(M1) 双侧收盘对照（质量分歧表数据源）。
+/// amount 刻意不查（D4 结案：跨层量纲不可比，04-storage §4.4 注记 7）。
+const DIVERGENCE_SQL: &str = r#"
+SELECT r.ts, r.code, r.close AS raw_close, a.close AS accurate_close, r.source AS raw_source
+FROM kline_raw r
+JOIN kline_accurate a ON a.code = r.code AND a.ts = r.ts AND a.period = 'M1'
+WHERE ($1::text IS NULL OR r.code = $1)
+  AND r.ts >= $2 AND r.ts < $3
+ORDER BY r.ts
+"#;
+
+#[async_trait]
+impl QualityRead for KlineReader {
+    async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> Result<Vec<DivergenceRow>> {
+        type Row = (DateTime<Utc>, String, f64, f64, String);
+        let rows: Vec<Row> = sqlx::query_as(DIVERGENCE_SQL)
+            .bind(code).bind(from).bind(to).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(ts, code, raw_close, accurate_close, raw_source)|
+            DivergenceRow { ts, code, raw_close, accurate_close, raw_source: Some(raw_source) }
+        ).collect())
+    }
+}
+
+/// tushare 同步检查点读（页面④ sync-panel 数据源）。
+const SYNC_CHECKPOINTS_SQL: &str = r#"
+SELECT code, period, last_synced_date, updated_at FROM sync_checkpoints ORDER BY code
+"#;
+
+#[async_trait]
+impl TushareStatusRead for KlineReader {
+    async fn sync_checkpoints(&self) -> Result<Vec<SyncCheckpointView>> {
+        type Row = (String, String, NaiveDate, DateTime<Utc>);
+        let rows: Vec<Row> = sqlx::query_as(SYNC_CHECKPOINTS_SQL).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(code, period, last_synced_date, updated_at)|
+            SyncCheckpointView { code, period, last_synced_date, updated_at }).collect())
+    }
+}
+
+/// 健康事件区间读（质量缺口分类输入；与窗口版同表，[from, to) 闭开区间）。
+const RANGE_EVENTS_SQL: &str = r#"
+SELECT ts, source, ok, latency_ms, err_kind, code
+FROM source_health_events
+WHERE ts >= $1 AND ts < $2
+ORDER BY ts
+"#;
+
+#[async_trait]
+impl HealthEventsRangeRead for HealthEventReader {
+    async fn events_between(&self, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> Result<Vec<HealthEventRow>> {
+        type Row = (DateTime<Utc>, String, bool, Option<i32>, Option<String>, Option<String>);
+        let rows: Vec<Row> = sqlx::query_as(RANGE_EVENTS_SQL)
+            .bind(from).bind(to).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(ts, source, ok, latency_ms, err_kind, code)|
+            HealthEventRow { ts, source, ok, latency_ms, err_kind, code }
+        ).collect())
+    }
+}
+
+/// 节假日表读（0008；collector HolidayCalendar 刷新与 diagnose 缺口报告共用同一实现）。
+pub struct HolidaysReader {
+    pool: PgPool,
+}
+
+impl HolidaysReader {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl HolidayCalendarRead for HolidaysReader {
+    async fn holidays(&self) -> Result<HashSet<NaiveDate>> {
+        let rows: Vec<(NaiveDate,)> = sqlx::query_as("SELECT date FROM holidays")
+            .fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(d,)| d).collect())
+    }
+}
 ```
 
 ``` {.rust file=crates/storage/tests/kline_reader.rs}
 //! KlineReader 只读集成测试（需 TimescaleDB :5433）：merge 准确层优先、游标分页、cagg/1h rollup、最新快照。
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
-use domain::ports::{HealthEventsRead, KlineRead};
+use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use domain::ports::{HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead, KlineRead,
+    QualityRead, TushareStatusRead};
 use domain::types::Period;
 use sqlx::PgPool;
-use storage::reader::{HealthEventReader, KlineReader};
+use storage::reader::{HealthEventReader, HolidaysReader, KlineReader};
 
 // 每测试独立 code：同 binary 测试并行执行，共享 code 会被彼此的 clean 误删（实锤踩坑）。
 const CODE_MERGE: &str = "997701";
@@ -724,6 +1533,125 @@ async fn window_events_filters_window_and_maps_fields() {
     sqlx::query("DELETE FROM source_health_events WHERE source = $1")
         .bind(SRC).execute(&pool).await.unwrap();
 }
+
+// ── Wave 2 Phase A：质量对照 / 节假日 / 事件区间 / 同步状态 / D3 merge 尾部优先级 ──
+
+const CODE_QUAL: &str = "997731";
+const CODE_LATEST: &str = "997741";
+
+#[tokio::test]
+async fn divergence_rows_join_code_filter_and_range() {
+    let pool = pool().await;
+    clean(&pool, CODE_QUAL).await;
+    // raw 3 根（09:30-09:32 CST）；accurate 覆盖 09:30（close 不同）、09:31（相同）；09:32 无准确层
+    for (i, c) in [(0i64, 10.10), (1, 10.0), (2, 10.0)] {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'webq_src') ON CONFLICT DO NOTHING")
+            .bind(CODE_QUAL).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    for (i, c) in [(0i64, 10.0), (1, 10.0)] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0) ON CONFLICT DO NOTHING")
+            .bind(CODE_QUAL).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+    // code 过滤 + 仅重叠 ts（09:32 无准确层不入选）
+    let rows = r.divergence_rows(Some(CODE_QUAL), base() - Duration::days(1),
+        base() + Duration::days(1)).await.unwrap();
+    let mine: Vec<_> = rows.iter().filter(|x| x.code == CODE_QUAL).collect();
+    assert_eq!(mine.len(), 2, "raw ⋈ accurate 仅重叠 ts");
+    assert!(mine[0].ts < mine[1].ts, "ts 升序");
+    assert_eq!(mine[0].raw_close, 10.10);
+    assert_eq!(mine[0].accurate_close, 10.0);
+    assert_eq!(mine[0].raw_source.as_deref(), Some("webq_src"));
+    // 区间 [from, to) 边界
+    let narrow = r.divergence_rows(Some(CODE_QUAL), base() + Duration::minutes(1),
+        base() + Duration::minutes(2)).await.unwrap();
+    assert_eq!(narrow.len(), 1, "半开区间只含 09:31");
+    // 无 code 过滤（source-accuracy 数据源）：至少含本测试行
+    let all = r.divergence_rows(None, base() - Duration::days(1),
+        base() + Duration::days(1)).await.unwrap();
+    assert!(all.iter().any(|x| x.code == CODE_QUAL));
+    clean(&pool, CODE_QUAL).await;
+}
+
+#[tokio::test]
+async fn holidays_reader_reads_0008_seed() {
+    let pool = pool().await;
+    let h = HolidaysReader::new(pool).holidays().await.unwrap();
+    assert!(h.contains(&NaiveDate::from_ymd_opt(2026, 10, 1).unwrap()), "国庆在表");
+    assert!(h.contains(&NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()), "元旦在表");
+    assert!(h.len() >= 34, "2026 全量 34 行（迁移内嵌官方口径）");
+}
+
+#[tokio::test]
+async fn events_between_and_sync_checkpoints() {
+    const SRC: &str = "storage_test_range";
+    let pool = pool().await;
+    sqlx::query("DELETE FROM source_health_events WHERE source = $1")
+        .bind(SRC).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM sync_checkpoints WHERE code = $1")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 2, 0, 0).unwrap();
+    for (i, ok) in [(0i64, true), (1, false), (2, true)] {
+        sqlx::query("INSERT INTO source_health_events (ts, source, ok, err_kind, code) \
+                     VALUES ($1, $2, $3, $4, $5)")
+            .bind(t0 + Duration::minutes(i)).bind(SRC).bind(ok)
+            .bind(if ok { None } else { Some("timeout") }).bind(Some(CODE_QUAL))
+            .execute(&pool).await.unwrap();
+    }
+    // [from, to) 半开区间 + ts 升序
+    let evs = HealthEventReader::new(pool.clone())
+        .events_between(t0, t0 + Duration::minutes(2)).await.unwrap();
+    let mine: Vec<_> = evs.iter().filter(|e| e.source == SRC).collect();
+    assert_eq!(mine.len(), 2, "[from, to) 不含 to 边界行");
+    assert!(mine[0].ts < mine[1].ts);
+    assert!(!mine[1].ok && mine[1].err_kind.as_deref() == Some("timeout"));
+
+    sqlx::query("INSERT INTO sync_checkpoints (code, period, last_synced_date) \
+                 VALUES ($1, 'M1', '2026-09-03') ON CONFLICT (code, period) \
+                 DO UPDATE SET last_synced_date = EXCLUDED.last_synced_date")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+    let cps = KlineReader::new(pool.clone()).sync_checkpoints().await.unwrap();
+    let cp = cps.iter().find(|c| c.code == CODE_QUAL).expect("含测试检查点");
+    assert_eq!(cp.period, "M1");
+    assert_eq!(cp.last_synced_date, NaiveDate::from_ymd_opt(2026, 9, 3).unwrap());
+    sqlx::query("DELETE FROM source_health_events WHERE source = $1")
+        .bind(SRC).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM sync_checkpoints WHERE code = $1")
+        .bind(CODE_QUAL).execute(&pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn symbols_latest_d3_merge_tail_semantics() {
+    // D3 重写语义锁定（merge 尾部 top-2）：
+    // ① 准确层比 raw 更新 → 最新取准确层；② 同 ts 并列 → 准确层优先（merge 准确层优先语义）。
+    let pool = pool().await;
+    clean(&pool, CODE_LATEST).await;
+    sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, 'D3测试') ON CONFLICT (code) DO NOTHING")
+        .bind(CODE_LATEST).execute(&pool).await.unwrap();
+    // raw：09:30(1.0)、09:31(2.0)；accurate：09:31 同 ts 覆盖(9.99) + 09:32 更新(8.88)
+    for (i, c) in [(0i64, 1.0), (1, 2.0)] {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'webq_src') ON CONFLICT DO NOTHING")
+            .bind(CODE_LATEST).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    for (i, c) in [(1i64, 9.99), (2, 8.88)] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0) ON CONFLICT DO NOTHING")
+            .bind(CODE_LATEST).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    let rows = KlineReader::new(pool.clone()).symbols_with_latest().await.unwrap();
+    let s = rows.iter().find(|r| r.code == CODE_LATEST).expect("含测试标的");
+    assert_eq!(s.last_ts, Some(base() + Duration::minutes(2)), "准确层更新的 ts 为最新");
+    assert_eq!(s.last_close, Some(8.88));
+    assert_eq!(s.prev_close, Some(9.99), "同 ts 并列准确层优先（raw 2.0 被掩盖）");
+    clean(&pool, CODE_LATEST).await;
+}
 ```
 
 ## 4. web crate（Presentation 层）
@@ -732,6 +1660,8 @@ async fn window_events_filters_window_and_maps_fields() {
 //! web —— Presentation：axum REST + WebSocket + SPA 静态托管（应用面，ADR-017）。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
 
+// alerts：页面⑦ 告警中心（Wave 2 Phase B 加法；代码块在 design/07-app-plane/02-alerts.md）
+pub mod alerts;
 pub mod dto;
 pub mod rest;
 pub mod spa;
@@ -752,6 +1682,15 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/sources/health", get(rest::get_sources_health))
         // Phase C：熔断手动复位（DB 控制通道，ADR-017）
         .route("/api/sources/{id}/reset", post(rest::reset_source))
+        // Wave 2 Phase B：页面⑦ 告警中心（列表/确认/规则 CRUD；02-alerts.md）
+        .route("/api/alerts", get(alerts::list_alerts))
+        .route("/api/alerts/{id}/ack", post(alerts::ack_alert))
+        .route("/api/alert-rules", get(alerts::list_rules).patch(alerts::patch_rule))
+        // Wave 2 Phase A：页面④ 数据质量 + tushare 同步状态（04-quality.md §7；sync 手动触发暂缓，§1.4）
+        .route("/api/quality/divergence", get(rest::get_quality_divergence))
+        .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
+        .route("/api/quality/gaps", get(rest::get_quality_gaps))
+        .route("/api/tushare/status", get(rest::get_tushare_status))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -868,6 +1807,46 @@ impl From<&SymbolLatestView> for SymbolDto {
 pub struct HealthQuery {
     #[serde(default = "default_window")]
     pub window_secs: i64,
+}
+
+// ── Wave 2 Phase A：数据质量（页面④）查询参数与校验纯函数 ──
+
+/// GET /api/quality/divergence 查询参数。
+#[derive(Debug, Deserialize)]
+pub struct DivergenceQuery {
+    pub code: String,
+    pub from: String,
+    pub to: String,
+    pub threshold_pct: Option<f64>,
+}
+
+/// GET /api/quality/source-accuracy 查询参数（全标的，无 code）。
+#[derive(Debug, Deserialize)]
+pub struct SourceAccuracyQuery {
+    pub from: String,
+    pub to: String,
+    pub threshold_pct: Option<f64>,
+}
+
+/// GET /api/quality/gaps 查询参数。
+#[derive(Debug, Deserialize)]
+pub struct GapsQuery {
+    pub code: String,
+    pub from: String,
+    pub to: String,
+}
+
+/// YYYY-MM-DD 解析（前端日期控件口径；严格定长——chrono %Y-%m-%d 容忍未补零）。
+pub fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
+    let b = s.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' { return None; }
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
+}
+
+/// 阈值校验（%）：>0 且 ≤100。
+pub fn validate_threshold(t: f64) -> Result<(), String> {
+    if !(t > 0.0 && t <= 100.0) { return Err("threshold_pct 须在 (0, 100]".into()); }
+    Ok(())
 }
 
 // ── Phase C：标的管理写端点与熔断复位 DTO/校验（§8 契约）──
@@ -1016,6 +1995,23 @@ mod tests {
         assert!(req.enabled);
         assert!(req.name.is_none());
     }
+
+    // ── Wave 2 Phase A：质量端点查询参数校验 ──
+
+    #[test]
+    fn parse_date_and_threshold_validation() {
+        assert_eq!(parse_date("2026-09-03").unwrap(),
+            chrono::NaiveDate::from_ymd_opt(2026, 9, 3).unwrap());
+        assert!(parse_date("2026/09/03").is_none());
+        assert!(parse_date("2026-9-3").is_none(), "严格 %Y-%m-%d");
+        assert!(parse_date("").is_none());
+        assert!(validate_threshold(0.5).is_ok());
+        assert!(validate_threshold(0.3).is_ok());
+        assert!(validate_threshold(0.0).is_err());
+        assert!(validate_threshold(-1.0).is_err());
+        assert!(validate_threshold(100.0).is_ok());
+        assert!(validate_threshold(100.1).is_err());
+    }
 }
 ```
 
@@ -1037,6 +2033,11 @@ pub struct AppState {
     pub symbol_stats: Arc<dyn domain::ports::SymbolStatsRead>,
     /// 熔断复位写端口（Phase C：POST /api/sources/{id}/reset；DB 控制通道）。
     pub resets: Arc<dyn domain::ports::CircuitResetWrite>,
+    /// 数据质量服务（Wave 2 Phase A：diagnose::quality，页面④ 三端点 + tushare status 数据源）。
+    pub quality: diagnose::quality::QualityService,
+    /// 告警引擎服务（Wave 2 Phase B：alert crate，Application 层；02-alerts.md）。
+    /// 评估节拍由 web::alerts::AlertEvaluator 驱动；本字段供 REST handlers 查询/确认/规则调整。
+    pub alerts: alert::engine::AlertService,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -1215,6 +2216,100 @@ pub async fn get_sources_health(State(st): State<Arc<AppState>>,
         Err(e) => internal(e),
     }
 }
+
+// ── Wave 2 Phase A：数据质量（页面④，04-quality.md §7）+ tushare 同步状态 ──
+// 范围/阈值校验在 web 层（400）；service 内部同口径防御性复核。
+
+/// 解析 from/to（YYYY-MM-DD）+ 范围校验；失败 → 400 Response。
+/// （Err 载荷为 axum Response 属大类型——handler 短路返回模式既定，allow 之；与 alerts.rs 同口径）
+#[allow(clippy::result_large_err)]
+fn parse_range(from_s: &str, to_s: &str)
+    -> Result<(chrono::NaiveDate, chrono::NaiveDate), Response> {
+    let (Some(from), Some(to)) = (parse_date(from_s), parse_date(to_s)) else {
+        return Err(err(StatusCode::BAD_REQUEST, "from/to 必填且须为 YYYY-MM-DD"));
+    };
+    if let Err(e) = diagnose::quality::validate_range(from, to) {
+        return Err(err(StatusCode::BAD_REQUEST, &e.to_string()));
+    }
+    Ok((from, to))
+}
+
+/// 阈值解析（默认 = 页面④ QUALITY_DEFAULTS.consistencyThresholdPct=0.5）+ 校验。
+#[allow(clippy::result_large_err)]
+fn parse_threshold(q: Option<f64>) -> Result<f64, Response> {
+    let t = q.unwrap_or(diagnose::quality::DEFAULT_THRESHOLD_PCT);
+    if let Err(m) = validate_threshold(t) { return Err(err(StatusCode::BAD_REQUEST, &m)); }
+    Ok(t)
+}
+
+/// GET /api/quality/divergence?code=&from=&to=&threshold_pct=
+pub async fn get_quality_divergence(State(st): State<Arc<AppState>>,
+                                    Query(q): Query<DivergenceQuery>) -> Response {
+    if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    let threshold = match parse_threshold(q.threshold_pct) { Ok(t) => t, Err(r) => return r };
+    match st.quality.divergence(&q.code, from, to, threshold).await {
+        Ok(rep) => Json(serde_json::json!({
+            "code": q.code, "from": q.from, "to": q.to, "threshold_pct": threshold,
+            "summary": rep.summary, "rows": rep.rows,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/quality/source-accuracy?from=&to=&threshold_pct=
+pub async fn get_quality_source_accuracy(State(st): State<Arc<AppState>>,
+                                         Query(q): Query<SourceAccuracyQuery>) -> Response {
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    let threshold = match parse_threshold(q.threshold_pct) { Ok(t) => t, Err(r) => return r };
+    match st.quality.source_accuracy(from, to, threshold).await {
+        Ok(sources) => Json(serde_json::json!({
+            "from": q.from, "to": q.to, "threshold_pct": threshold, "sources": sources,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/quality/gaps?code=&from=&to=
+/// 仅含有缺口的交易日；segments 的 start/end 为 CST "HH:MM"（页面④ 展示口径）。
+pub async fn get_quality_gaps(State(st): State<Arc<AppState>>,
+                              Query(q): Query<GapsQuery>) -> Response {
+    if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
+    let (from, to) = match parse_range(&q.from, &q.to) { Ok(r) => r, Err(r) => return r };
+    match st.quality.gaps(&q.code, from, to).await {
+        Ok(days) => Json(serde_json::json!({
+            "code": q.code, "from": q.from, "to": q.to,
+            "days": days.iter().map(|d| serde_json::json!({
+                "date": d.date,
+                "expected_bars": d.expected_bars,
+                "actual_bars": d.actual_bars,
+                "missing_bars": d.missing_bars,
+                "segments": d.segments.iter().map(|s| serde_json::json!({
+                    "start": diagnose::quality::hhmm(&s.start),
+                    "end": diagnose::quality::hhmm(&s.end),
+                    "count": s.count,
+                    "class": s.class,
+                })).collect::<Vec<_>>(),
+            })).collect::<Vec<_>>(),
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// GET /api/tushare/status —— 页面④ sync-panel 状态区。
+/// quota_remaining 恒 null：tushare 积分余额未入库（§1.1 注明，待账户侧可查后单开）。
+pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
+    match st.quality.tushare_status().await {
+        Ok(s) => Json(serde_json::json!({
+            "checkpoints": s.checkpoints,
+            "covered_codes": s.covered_codes,
+            "last_updated_at": s.last_updated_at,
+            "last_event": s.last_event,
+            "quota_remaining": serde_json::Value::Null,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
 ```
 
 ``` {.rust file=crates/web/src/ws.rs}
@@ -1238,7 +2333,7 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Topic { Bar, Quote, Health }
+pub enum Topic { Bar, Quote, Health, Alert }
 
 /// 客户端帧：{"type":"subscribe","topic":"bar","code":"518880","period":"1m"}（unsubscribe 同形）。
 #[derive(Debug, Clone, Deserialize)]
@@ -1255,13 +2350,16 @@ pub struct Subscription {
     pub period: Option<String>,   // bar 订阅必填（"1m"/"5m"/"15m"/"1h"/"1d"）
 }
 
-/// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health", ...}。
+/// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health"|"alert", ...}。
+/// Alert（Wave 2 Phase B）：newtype 变体内联事件字段（{"type":"alert", id, level, ...}），
+/// 推送源 = web::alerts::AlertEvaluator 评估节拍（非本 Poller）。
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PushMsg {
     Bar { code: String, period: String, bar: BarDto },
     Quote { code: String, ts: DateTime<Utc>, last: f64, change_pct: Option<f64> },
     Health { window_secs: i64, sources: Vec<diagnose::health::SourceHealth> },
+    Alert(crate::alerts::AlertEventDto),
 }
 
 /// 订阅匹配：topic 一致且（sub.code/period 为 None 通配或与消息相等）。
@@ -1271,6 +2369,7 @@ pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
         (Topic::Bar, PushMsg::Bar { code, period, .. }) => hit(&sub.code, code) && hit(&sub.period, period),
         (Topic::Quote, PushMsg::Quote { code, .. }) => hit(&sub.code, code),
         (Topic::Health, PushMsg::Health { .. }) => true,
+        (Topic::Alert, PushMsg::Alert(_)) => true,   // 订阅即全量告警推送（07-alerts §6）
         _ => false,
     }
 }
@@ -1472,6 +2571,32 @@ mod tests {
     }
 
     #[test]
+    fn push_msg_alert_frame_shape() {
+        // Wave 2 Phase B：alert 帧平铺事件字段（07-alerts §6：{type:"alert", level, ...}）
+        let dto = crate::alerts::AlertEventDto {
+            id: 1, rule_id: "collection_stall".into(), level: domain::ports::AlertLevel::Critical,
+            source: "collector".into(), message: "停摆".into(),
+            status: domain::ports::AlertStatus::Triggered, fire_count: 1,
+            first_fired_at: Utc::now(), last_fired_at: Utc::now(), acked_at: None, resolved_at: None,
+        };
+        let v = serde_json::to_value(PushMsg::Alert(dto)).unwrap();
+        assert_eq!(v["type"], "alert");
+        assert_eq!(v["level"], "critical");
+        assert_eq!(v["status"], "triggered");
+        // 订阅匹配：alert topic 全量
+        let sub = Subscription { topic: Topic::Alert, code: None, period: None };
+        let dto2 = crate::alerts::AlertEventDto {
+            id: 2, rule_id: "symbol_gap_rate".into(), level: domain::ports::AlertLevel::Warning,
+            source: "513310".into(), message: "缺口".into(),
+            status: domain::ports::AlertStatus::Resolved, fire_count: 4,
+            first_fired_at: Utc::now(), last_fired_at: Utc::now(), acked_at: None,
+            resolved_at: Some(Utc::now()),
+        };
+        assert!(matches(&sub, &PushMsg::Alert(dto2)));
+        assert!(!matches(&sub, &bar_msg("518880", "1m")), "跨 topic 不匹配");
+    }
+
+    #[test]
     fn client_subscribe_unsubscribe_roundtrip() {
         let reg = SubscriptionRegistry::default();
         let mut mine = HashSet::new();
@@ -1497,14 +2622,20 @@ use axum::{
     extract::State,
     http::{header, StatusCode, Uri},
     response::{IntoResponse, Response},
+    Json,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::state::AppState;
 
-/// 未知路径兜底：静态文件 → SPA index.html → 503 占位。
+/// 未知路径兜底：/api/* → 404 JSON（D6：API 路径不回退 index.html，§1.3）；
+/// 其余 → 静态文件 → SPA index.html → 503 占位。
 pub async fn spa_fallback(State(st): State<Arc<AppState>>, uri: Uri) -> Response {
+    if uri.path().starts_with("/api/") {
+        return (StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "not found" }))).into_response();
+    }
     serve_path(&st.static_dir, uri.path()).await
 }
 
@@ -1620,6 +2751,23 @@ fn state(pool: PgPool) -> Arc<AppState> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎装配（02-alerts.md；本文件不涉及行为，仅装配齐全）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（quality 端口组；仅装配齐全，行为测试见 api_quality.rs）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -1803,6 +2951,23 @@ fn state(pool: PgPool) -> Arc<AppState> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎装配（02-alerts.md；本文件不涉及行为，仅装配齐全）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（quality 端口组；仅装配齐全，行为测试见 api_quality.rs）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -1908,6 +3073,9 @@ pub struct AppConfig {
     /// MCP HTTP/SSE 监听地址（Wave 1 Phase D，ADR-009；与 web 同进程、端口独立，仅局域网）
     #[serde(default = "default_mcp_listen")]
     pub mcp_listen: String,
+    /// 告警评估节拍（毫秒，Wave 2 Phase B；页面⑦ 告警引擎 1min 一轮）
+    #[serde(default = "default_alert_eval_ms")]
+    pub alert_eval_ms: u64,
 }
 
 fn default_listen() -> String { "0.0.0.0:8081".into() }
@@ -1915,6 +3083,7 @@ fn default_mcp_listen() -> String { "0.0.0.0:8082".into() }
 fn default_static_dir() -> String { "./web/dist".into() }
 fn default_health_window() -> i64 { 3600 }
 fn default_ws_poll_ms() -> u64 { 3000 }
+fn default_alert_eval_ms() -> u64 { 60_000 }
 
 /// 加载：TOML → env 覆盖（DATABASE_URL / APP_LISTEN）。
 pub fn load(path: &str) -> anyhow::Result<AppConfig> {
@@ -1978,6 +3147,23 @@ async fn main() -> anyhow::Result<()> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎（评估读端口 + 应用面自有表持久化 + SystemClock；02-alerts.md）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（页面④ 三端点 + tushare status；MCP④ 复用同实例）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),
@@ -1985,11 +3171,17 @@ async fn main() -> anyhow::Result<()> {
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());
 
+    // Wave 2 Phase B：告警评估节拍（默认 1min；新建/续触发/恢复事件经 WS {type:"alert"} 推送）
+    tokio::spawn(web::alerts::AlertEvaluator::new(
+        state.clone(), Duration::from_millis(cfg.alert_eval_ms)).run());
+
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),
+        // Wave 2 Phase A：MCP④ get_data_quality（与 web 共享同一 QualityService 实例，Clone=同 Arc 组）
+        quality: state.quality.clone(),
         default_window_secs: cfg.health_window_secs,
         sessions: mcp::state::SessionRegistry::default(),
     });
@@ -2037,6 +3229,7 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
     assert_eq!(cfg.health_window_secs, 3600);
     assert_eq!(cfg.ws_poll_ms, 3000);
     assert_eq!(cfg.mcp_listen, "0.0.0.0:8082", "Phase D：MCP 缺省端口 8082（独立端口）");
+    assert_eq!(cfg.alert_eval_ms, 60_000, "Wave 2 Phase B：告警评估节拍默认 1min");
 
     // env 覆盖（容器 secret/地址注入口径）
     std::env::set_var("DATABASE_URL", "postgres://override@h/db");
@@ -2372,6 +3565,23 @@ fn state(pool: PgPool) -> Arc<AppState> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎装配（02-alerts.md；本文件不涉及行为，仅装配齐全）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（quality 端口组；仅装配齐全，行为测试见 api_quality.rs）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -2509,3 +3719,220 @@ async fn reset_endpoint_enqueues_db_control_row() {
   （内存 channel + fake clock，无 DB）。
 - web：注册 201+缺省值、409/422/400 矩阵、PATCH 回读与 404、停用、with_stats 出/不出键、
   reset 202 + DB 行待消费（集成测试）；dto 校验纯函数单测（code/interval/settlement/name）。
+
+## 9. Wave 2 Phase A：数据质量端点 + D6 SPA 404（TDD 记录与集成测试）
+
+- diagnose：deviation/summarize/accuracy_by_source/classify_gap_minute/segments_of 纯函数单测；
+  QualityService 离线 mock 端口测试（周末/国庆/元旦排除、未来分钟不算缺口、三级分类、单日卡、
+  tushare 状态聚合）——`crates/diagnose/tests/quality.rs`。
+- storage：divergence_rows（重叠 ts/半开区间/code 过滤）、holidays 全表、events_between 半开区间、
+  sync_checkpoints、**D3 重写语义锁定**（准确层更新 ts 优先 + 同 ts 并列准确层掩盖 raw）——
+  kline_reader.rs 测试块尾部。
+- web：三端点 + tushare status 真实库集成测试（下）；SPA `/api/*` 未命中 404（api_rest.rs SPA 节）。
+
+``` {.rust file=crates/web/tests/api_quality.rs}
+//! 数据质量端点集成测试（需 TimescaleDB :5433；真实库 + 真实 server）：
+//! divergence / source-accuracy / gaps（含三级分类与节假日/周末排除）/ tushare status / D6 SPA 404。
+
+use chrono::{DateTime, NaiveDate, Timelike, Utc};
+use serde_json::Value;
+use sqlx::PgPool;
+use std::sync::Arc;
+use web::state::AppState;
+use web::ws::{SubscriptionRegistry, WsHub};
+
+const CODE: &str = "996611";   // 独立测试标的（并行安全）
+const SRC: &str = "webq_test_src";
+const DAY: &str = "2026-09-02"; // 周三，交易日（测试运行时已成历史日，241 标签全到期）
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+fn state(pool: PgPool) -> Arc<AppState> {
+    Arc::new(AppState {
+        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        health: diagnose::health::HealthService::new(
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase B：告警引擎（仅装配齐全，本文件不涉及其行为）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+        health_window_secs: 3600,
+        hub: WsHub::new(),
+        subs: SubscriptionRegistry::default(),
+    })
+}
+
+async fn spawn(state: Arc<AppState>) -> String {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, web::build_router(state)).await.unwrap(); });
+    format!("http://{addr}")
+}
+
+fn cst(day: NaiveDate, h: u32, mi: u32, s: u32) -> DateTime<Utc> {
+    domain::tz::cst_to_utc(day.and_hms_opt(h, mi, s).unwrap())
+}
+
+async fn clean(pool: &PgPool) {
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(CODE).execute(pool).await.unwrap();
+    }
+    sqlx::query("DELETE FROM source_health_events WHERE code = $1")
+        .bind(CODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM sync_checkpoints WHERE code = $1")
+        .bind(CODE).execute(pool).await.unwrap();
+}
+
+/// 造数：交易日 2026-09-02 全 241 标签（除 10:41/10:42/13:05/14:00 四分钟缺口）；
+/// accurate 全覆盖（09:30 close 10.00 vs raw 10.10 → +1.0% 分歧 bar；其余一致）；
+/// 事件：10:41:30 timeout（源故障）、13:05:20 na（源无数据）、14:00 邻近无事件（系统缺口）。
+async fn seed(pool: &PgPool) {
+    let day = NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    let skip = [(10u32, 41u32), (10, 42), (13, 5), (14, 0)];
+    for l in domain::calendar::trading_minute_labels(day) {
+        let (h, m) = (l.time().hour(), l.time().minute());
+        if skip.contains(&(h, m)) { continue; }
+        let ts = domain::tz::cst_to_utc(l);
+        let raw_close = if (h, m) == (9, 30) { 10.10 } else { 10.00 };
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, $4) ON CONFLICT DO NOTHING")
+            .bind(CODE).bind(ts).bind(raw_close).bind(SRC)
+            .execute(pool).await.unwrap();
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                     VALUES ($1, $2, 'M1', 10.0, 10.0, 10.0, 10.0, 100, 100.0) ON CONFLICT DO NOTHING")
+            .bind(CODE).bind(ts)
+            .execute(pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO source_health_events (ts, source, ok, err_kind, code) \
+                 VALUES ($1, $2, false, 'timeout', $3), ($4, $2, true, 'na', $3)")
+        .bind(cst(day, 10, 41, 30)).bind(SRC).bind(CODE).bind(cst(day, 13, 5, 20))
+        .execute(pool).await.unwrap();
+    sqlx::query("INSERT INTO sync_checkpoints (code, period, last_synced_date) \
+                 VALUES ($1, 'M1', '2026-09-02') ON CONFLICT (code, period) DO NOTHING")
+        .bind(CODE).execute(pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn quality_endpoints_full_flow() {
+    let pool = pool().await;
+    clean(&pool).await;
+    seed(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // ── divergence：对照汇总 + 降序 + 只比 close ──
+    let v: Value = http.get(format!("{url}/api/quality/divergence"))
+        .query(&[("code", CODE), ("from", DAY), ("to", DAY)])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["code"], CODE);
+    assert_eq!(v["threshold_pct"], 0.5, "默认阈值 = 页面④ 定稿 0.5");
+    assert_eq!(v["summary"]["compared_bars"], 237);
+    assert_eq!(v["summary"]["divergent_bars"], 1, "仅 09:30 +1.0% 超阈");
+    let rate = v["summary"]["divergence_rate"].as_f64().unwrap();
+    assert!((rate - 1.0 / 237.0).abs() < 1e-9);
+    let rows = v["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 237);
+    assert!((rows[0]["deviation_pct"].as_f64().unwrap() - 1.0).abs() < 1e-6, "偏差降序首位 = 最大偏差");
+    assert_eq!(rows[0]["raw_source"], SRC);
+    // 阈值参数可调
+    let v2: Value = http.get(format!("{url}/api/quality/divergence"))
+        .query(&[("code", CODE), ("from", DAY), ("to", DAY), ("threshold_pct", "2")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v2["summary"]["divergent_bars"], 0, "阈值 2% 时 +1.0% 计一致");
+
+    // ── source-accuracy：按 raw_source 归组（本测试源独立，不受库中真实数据污染）──
+    let v: Value = http.get(format!("{url}/api/quality/source-accuracy"))
+        .query(&[("from", DAY), ("to", DAY)]).send().await.unwrap().json().await.unwrap();
+    let mine = v["sources"].as_array().unwrap().iter()
+        .find(|s| s["source"] == SRC).expect("含本测试源");
+    assert_eq!(mine["samples"], 237);
+    let cr = mine["consistency_rate"].as_f64().unwrap();
+    assert!((cr - 236.0 / 237.0).abs() < 1e-9);
+
+    // ── gaps：三级分类 + 段合并 + 仅缺口日出卡 ──
+    let v: Value = http.get(format!("{url}/api/quality/gaps"))
+        .query(&[("code", CODE), ("from", DAY), ("to", DAY)])
+        .send().await.unwrap().json().await.unwrap();
+    let days = v["days"].as_array().unwrap();
+    assert_eq!(days.len(), 1);
+    assert_eq!(days[0]["date"], DAY);
+    assert_eq!(days[0]["expected_bars"], 241);
+    assert_eq!(days[0]["actual_bars"], 237);
+    assert_eq!(days[0]["missing_bars"], 4);
+    let segs = days[0]["segments"].as_array().unwrap();
+    assert_eq!(segs.len(), 3);
+    assert_eq!((segs[0]["start"].as_str().unwrap(), segs[0]["end"].as_str().unwrap(),
+                segs[0]["count"].as_i64().unwrap(), segs[0]["class"].as_str().unwrap()),
+        ("10:41", "10:42", 2, "source_fault"));
+    assert_eq!((segs[1]["start"].as_str().unwrap(), segs[1]["class"].as_str().unwrap()),
+        ("13:05", "upstream_no_data"));
+    assert_eq!((segs[2]["start"].as_str().unwrap(), segs[2]["class"].as_str().unwrap()),
+        ("14:00", "system_gap"));
+
+    // 节假日/周末整日排除（0008 已落库：国庆 10-01..08；09-05/06 周末）
+    for (from, to) in [("2026-10-01", "2026-10-08"), ("2026-09-05", "2026-09-06"),
+                       ("2026-01-01", "2026-01-01")] {
+        let v: Value = http.get(format!("{url}/api/quality/gaps"))
+            .query(&[("code", CODE), ("from", from), ("to", to)])
+            .send().await.unwrap().json().await.unwrap();
+        assert_eq!(v["days"].as_array().unwrap().len(), 0, "{from}..{to} 非交易日排除");
+    }
+
+    // ── tushare status：检查点透传 + quota 恒 null ──
+    let v: Value = http.get(format!("{url}/api/tushare/status")).send().await.unwrap()
+        .json().await.unwrap();
+    let cps = v["checkpoints"].as_array().unwrap();
+    assert!(cps.iter().any(|c| c["code"] == CODE
+        && c["last_synced_date"] == "2026-09-02"), "检查点含测试标的");
+    assert!(v["covered_codes"].as_i64().unwrap() >= 1);
+    assert!(v["quota_remaining"].is_null(), "积分余额未入库 → 恒 null（§1.1 注明）");
+    assert!(v.as_object().unwrap().contains_key("last_event"));
+
+    // ── 参数校验 400 矩阵 ──
+    for q in [
+        vec![("from", DAY), ("to", DAY)],                          // 缺 code
+        vec![("code", ""), ("from", DAY), ("to", DAY)],            // code 空
+        vec![("code", CODE), ("from", "2026/09/02"), ("to", DAY)], // 非法日期
+        vec![("code", CODE), ("from", DAY), ("to", "2026-09-01")], // from>to
+        vec![("code", CODE), ("from", "2026-01-01"), ("to", "2026-12-31")], // 超跨度
+        vec![("code", CODE), ("from", DAY), ("to", DAY), ("threshold_pct", "0")], // 阈值非正
+    ] {
+        let r = http.get(format!("{url}/api/quality/divergence")).query(&q).send().await.unwrap();
+        assert_eq!(r.status(), 400, "{q:?} → 400");
+    }
+    let r = http.get(format!("{url}/api/quality/gaps"))
+        .query(&[("from", DAY), ("to", DAY)]).send().await.unwrap();
+    assert_eq!(r.status(), 400, "gaps 缺 code → 400");
+
+    // ── D6：/api/* 未命中不回退 index.html → 404 JSON ──
+    let r = http.get(format!("{url}/api/quality/nope")).send().await.unwrap();
+    assert_eq!(r.status(), 404, "D6：/api/* 未匹配 → 404");
+    assert_eq!(r.json::<Value>().await.unwrap()["error"], "not found");
+    // 对照：非 /api 深链仍回退 index.html（前端 history 路由）
+    let body = http.get(format!("{url}/quality")).send().await.unwrap().text().await.unwrap();
+    assert!(body.contains("eestock"), "页面④ 深链回退 index.html");
+
+    clean(&pool).await;
+}
+```

@@ -1,6 +1,8 @@
 // ~/~ begin <<design/03-collector/00-design.md#crates/collector/src/executor.rs>>[init]
-//! 单次抓取执行器：attempt_chain（当班源优先 + 注册序轮转）+ 首写胜出 + Trace ID 贯穿。
+//! 单次抓取执行器：attempt_chain（当班源优先 + 注册序轮转）+ 首写胜出 + Trace ID 贯穿
+//! + 粘源陈旧检测（§3.1：最新 bar 落后已到期标签 → stale_data 事件 + 进熔断 + 链上转移）。
 
+use crate::calendar::{is_session_minute, is_stale};
 use crate::circuit::CircuitRegistry;
 use crate::clock::Clock;
 use chrono::{DateTime, Utc};
@@ -8,6 +10,7 @@ use domain::ports::{ErrKind, EventSink, HealthEvent, HealthMonitor, KlineWriter}
 use domain::provider::{MinuteKlineProvider, ProviderError};
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::*;
+use domain::tz::utc_to_cst;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -98,6 +101,20 @@ impl FetchExecutor {
             let t0 = std::time::Instant::now();
             match provider.fetch_m1(code, limit).await {
                 Ok(bars) => {
+                    // 粘源陈旧检测（§3.1）：会话时段内最新 bar 标签 < 已到期标签 → 陈旧。
+                    // 陈旧 = 源故障：stale_data 事件 + 进熔断计数 + 链上转移；不接受陈旧写入
+                    // （陈旧 ts 必然已存在，首写胜出下写入也是空转，跳过保持语义清晰）。
+                    let cst_now = utc_to_cst(self.clock.now());
+                    let fetched_max = bars.iter().map(|b| b.ts).max();
+                    if let Some(mx) = fetched_max {
+                        if is_session_minute(cst_now.time()) && is_stale(utc_to_cst(mx), cst_now) {
+                            self.emit(*src, false, None, Some(ErrKind::StaleData), Some(code), &trace_id).await;
+                            self.circuits.report_failure(*src, ErrKind::StaleData.as_str()).await;
+                            tracing::warn!(code = %code.0, source = src.as_str(), trace_id,
+                                fetched_max = %mx, "stale bars, try next source");
+                            continue;
+                        }
+                    }
                     let latency = t0.elapsed().as_millis() as u64;
                     self.circuits.report_success(*src, latency).await;
                     self.emit(*src, true, Some(latency as u32), None, Some(code), &trace_id).await;

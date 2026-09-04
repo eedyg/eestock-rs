@@ -11,6 +11,7 @@ providers = { path = "../providers" }
 storage = { path = "../storage" }
 tushare = { path = "../tushare" }
 diagnose = { path = "../diagnose" }
+alert = { path = "../alert" }   # Wave 2 Phase B：告警引擎（eestock-app 装配 AlertService + 评估节拍）
 web = { path = "../web" }
 mcp = { path = "../mcp" }   # Wave 1 Phase D：MCP HTTP/SSE（ADR-009，与 web 同进程、端口独立 8082）
 axum.workspace = true

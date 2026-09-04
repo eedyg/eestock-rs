@@ -24,6 +24,7 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
     assert_eq!(cfg.health_window_secs, 3600);
     assert_eq!(cfg.ws_poll_ms, 3000);
     assert_eq!(cfg.mcp_listen, "0.0.0.0:8082", "Phase D：MCP 缺省端口 8082（独立端口）");
+    assert_eq!(cfg.alert_eval_ms, 60_000, "Wave 2 Phase B：告警评估节拍默认 1min");
 
     // env 覆盖（容器 secret/地址注入口径）
     std::env::set_var("DATABASE_URL", "postgres://override@h/db");

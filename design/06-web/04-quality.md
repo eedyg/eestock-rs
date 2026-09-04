@@ -310,8 +310,15 @@ export function QualityGrid(props: QualityGridProps) {
 | 分歧表 | `GET /api/quality/divergence?code=&from=&to=` |
 | 源一致率排行 | `GET /api/quality/source-accuracy?from=&to=` |
 | 同步状态 | `GET /api/tushare/status` |
-| 手动同步 | `POST /api/tushare/sync {codes, from, to}` |
+| 手动同步 | `POST /api/tushare/sync {codes, from, to}`（⚠️ Wave 2 Phase A 暂缓：需数据面控制通道消费端，待父级裁决；本期前端隐藏手动触发按钮或置灰） |
 | 缺口报告 | `GET /api/quality/gaps?code=&from=&to=` |
+
+### 7.1 响应线格式（Wave 2 Phase A 后端定稿；threshold_pct 查询参数可调，默认 0.5 = consistencyThresholdPct）
+
+- `divergence` → `{"code","from","to","threshold_pct","summary":{"compared_bars","divergent_bars","divergence_rate","consistency_rate","max_deviation_pct"},"rows":[{"ts,raw_close,accurate_close,deviation_pct,raw_source}]}`；rows 按 |偏差| 降序；无比对数据 → rows 空 + summary 比率/极值 null（空态「该范围无比对数据」+ 补拉引导）。**只比 close**（amount 跨层不可比，D4 结案）。
+- `source-accuracy` → `{"from","to","threshold_pct","sources":[{"source,samples,consistency_rate,avg_deviation_pct,max_deviation_pct}]}`（一致率降序）。
+- `gaps` → `{"code","from","to","days":[{"date","expected_bars","actual_bars","missing_bars","segments":[{"start","end","count","class"}]}]}`；仅含有缺口交易日（节假日/周末整日不出卡）；start/end 为 CST "HH:MM"；class ∈ `source_fault`（源故障时段）/ `upstream_no_data`（源可达无数据）/ `system_gap`（采集停摆/事件空窗，D5）。
+- `tushare/status` → `{"checkpoints":[{"code,period,last_synced_date,updated_at}],"covered_codes","last_updated_at","last_event":{"ts,ok,err_kind}|null,"quota_remaining":null}`；quota 恒 null（积分余额未入库，前端渲染为 —）。
 
 ## 8. 验收（Wave 2）
 

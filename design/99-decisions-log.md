@@ -96,3 +96,22 @@
 - 筹码分布留 Wave 3（ADR-011 不变）；dashboard 密集区叠加随之 Wave 3
 - Wave 1 backlog 修复包（D3-D6 + 13:00 标签 + 粘源陈旧）全部并入 Wave 2
 - MCP Streamable HTTP 仅 spike 评估，不直接实施
+
+## 补记（2026-09-04 晚）— Wave 2 Phase A 实施裁决记录（质量后端 + 日历 + backlog 清零）
+
+1. **13:00 伪缺口结案（实盘实证）**：上游三源（tencent/sina/tushare）bar 标签集合一致 =
+   09:30..=11:30 ∪ 13:01..=15:00（241 个；无 13:00，有 11:30/15:00）。旧「bar 起始时刻 240」口径废止，
+   分钟标签纯函数上移 domain::calendar（contracts §2.8），collector/diagnose 共用单一事实源。
+2. **D4 结案（实盘查证）**：kline_raw/kline_accurate 的 amount 规范口径均为**元**；真正缺陷是
+   tencent_ifzq amount 字段不可信（比值随标的不恒定 1/885~1/1044~1/4.9，无法视图换算）。
+   providers 红线本轮不改 → 质量对照只比 close；tencent amount 泄漏记已知缺陷（04-storage §4.4 注记 7）。
+3. **D3 结案**：symbols_with_latest 重写为双侧索引回溯 top-2 合并（不再扫 kline_merged 视图），
+   实盘 EXCEPT 互减 0 行验证语义等价；19,850ms → 13.5ms（同库 EXPLAIN ANALYZE）。
+4. **D5 口径**：非交易时段零事件是既定行为（03 §9.9 静默跳过注记）——质量缺口报告经日历排除
+   非交易日，缺口分类三级（source_fault / upstream_no_data / system_gap）承载「事件空窗」区分。
+5. **D6 结案**：/api/* 未命中 → 404 JSON，仅非 /api 路径回退 index.html。
+6. **StaleData**：ErrKind 新增 stale_data（契约加法）；executor 会话时段陈旧 bar → 事件 + 进熔断 +
+   链上转移（03 §3.1 规格）。
+7. **POST /api/tushare/sync 暂缓**（父级裁决：采纳候选 B，留 Wave 2 后续 Phase 单开工单——手动轮与
+   三时点轮的 checkpoint/退避幂等交互单独评审；过渡态定稿：页面④ 手动触发按钮置灰）。GET /api/tushare/status
+   已交付（quota_remaining 恒 null——积分余额未入库）。

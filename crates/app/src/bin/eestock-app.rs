@@ -47,6 +47,23 @@ async fn main() -> anyhow::Result<()> {
         symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
         symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎（评估读端口 + 应用面自有表持久化 + SystemClock；02-alerts.md）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（页面④ 三端点 + tushare status；MCP④ 复用同实例）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),
@@ -54,11 +71,17 @@ async fn main() -> anyhow::Result<()> {
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());
 
+    // Wave 2 Phase B：告警评估节拍（默认 1min；新建/续触发/恢复事件经 WS {type:"alert"} 推送）
+    tokio::spawn(web::alerts::AlertEvaluator::new(
+        state.clone(), Duration::from_millis(cfg.alert_eval_ms)).run());
+
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),
+        // Wave 2 Phase A：MCP④ get_data_quality（与 web 共享同一 QualityService 实例，Clone=同 Arc 组）
+        quality: state.quality.clone(),
         default_window_secs: cfg.health_window_secs,
         sessions: mcp::state::SessionRegistry::default(),
     });

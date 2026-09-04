@@ -2,9 +2,14 @@
 //! 测试替身（仅 #[cfg(test)] 单测用）：mock domain 只读端口装配 McpState——
 //! 证明 mcp 与 storage 解耦（分层红线；真实装配由 tests/mcp_tools_db.rs 经 storage 实现锁定）。
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
-use domain::ports::{HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView};
-use domain::types::Period;
+use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use domain::ports::{
+    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead,
+    HolidayCalendarRead, KlineBarView, KlineRead, QualityRead, RawBarReader, SyncCheckpointView,
+    SymbolLatestView, TushareStatusRead,
+};
+use domain::types::{Code, Period};
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::state::McpState;
@@ -78,11 +83,76 @@ impl HealthEventsRead for MockEvents {
     }
 }
 
-/// 装配测试用 McpState（default_window_secs=3600）。
+// ── Wave 2 Phase A：质量端口 mock（MCP④ get_data_quality 测试）──
+
+struct FixedClock(DateTime<Utc>);
+impl Clock for FixedClock { fn now(&self) -> DateTime<Utc> { self.0 } }
+
+/// mock QualityRead：返回预设对照行（可按 code 过滤）。
+pub struct MockQualityRows(pub Vec<DivergenceRow>);
+
+#[async_trait::async_trait]
+impl QualityRead for MockQualityRows {
+    async fn divergence_rows(&self, code: Option<&str>, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<DivergenceRow>> {
+        Ok(self.0.iter().filter(|r| code.is_none_or(|c| r.code == c)).cloned().collect())
+    }
+}
+
+/// mock RawBarReader：按 (code, date) 返回预设已有 ts 集合。
+pub struct MockRawDays(pub HashMap<(String, NaiveDate), HashSet<DateTime<Utc>>>);
+
+#[async_trait::async_trait]
+impl RawBarReader for MockRawDays {
+    async fn existing_ts(&self, code: &Code, date: NaiveDate)
+        -> anyhow::Result<HashSet<DateTime<Utc>>> {
+        Ok(self.0.get(&(code.0.clone(), date)).cloned().unwrap_or_default())
+    }
+}
+
+/// mock HealthEventsRangeRead：恒空（缺口分类走 SystemGap 路径）。
+pub struct MockRangeEvents;
+
+#[async_trait::async_trait]
+impl HealthEventsRangeRead for MockRangeEvents {
+    async fn events_between(&self, _f: DateTime<Utc>, _t: DateTime<Utc>)
+        -> anyhow::Result<Vec<HealthEventRow>> {
+        Ok(vec![])
+    }
+}
+
+/// mock HolidayCalendarRead：预设节假日集合。
+pub struct MockHolidays(pub HashSet<NaiveDate>);
+
+#[async_trait::async_trait]
+impl HolidayCalendarRead for MockHolidays {
+    async fn holidays(&self) -> anyhow::Result<HashSet<NaiveDate>> { Ok(self.0.clone()) }
+}
+
+/// mock TushareStatusRead：恒空检查点。
+pub struct MockTushareStatus;
+
+#[async_trait::async_trait]
+impl TushareStatusRead for MockTushareStatus {
+    async fn sync_checkpoints(&self) -> anyhow::Result<Vec<SyncCheckpointView>> { Ok(vec![]) }
+}
+
+/// 装配质量服务（mock 端口；时钟固定 2026-09-04 12:00 CST = 04:00 UTC——历史日全到期）。
+pub fn quality_for(rows: Vec<DivergenceRow>,
+                   raw: HashMap<(String, NaiveDate), HashSet<DateTime<Utc>>>,
+                   holidays: HashSet<NaiveDate>) -> diagnose::quality::QualityService {
+    diagnose::quality::QualityService::new(
+        Arc::new(MockQualityRows(rows)), Arc::new(MockRawDays(raw)), Arc::new(MockRangeEvents),
+        Arc::new(MockHolidays(holidays)), Arc::new(MockTushareStatus),
+        Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 4, 4, 0, 0).unwrap())))
+}
+
+/// 装配测试用 McpState（default_window_secs=3600；质量服务默认空口径）。
 pub fn test_state(kline: Arc<MockKline>, events: Arc<MockEvents>) -> Arc<McpState> {
     Arc::new(McpState {
         kline,
         health: diagnose::health::HealthService::new(events),
+        quality: quality_for(vec![], HashMap::new(), HashSet::new()),
         default_window_secs: 3600,
         sessions: crate::state::SessionRegistry::default(),
     })

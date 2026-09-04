@@ -7,7 +7,8 @@ use collector::executor::FetchExecutor;
 use collector::gapfill::GapBackfiller;
 use collector::service::CollectorService;
 use collector::standby::StandbyReserve;
-use domain::ports::{Clock, EventSink, KlineWriter, RawBarReader, SystemClock, SymbolRegistry};
+use domain::ports::{Clock, EventSink, HolidayCalendarRead, KlineWriter, RawBarReader, SystemClock,
+    SymbolRegistry};
 use domain::provider::{MinuteKlineProvider, SnapshotProvider};
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::SourceId;
@@ -65,6 +66,11 @@ async fn main() -> anyhow::Result<()> {
     let sink: Arc<dyn EventSink> = Arc::new(storage::events::PgEventSink::new(pool.clone()));
     let writer: Arc<dyn KlineWriter> = Arc::new(storage::kline::RawKlineWriter::new(pool.clone()));
     let reader: Arc<dyn RawBarReader> = Arc::new(storage::kline::RawKlineWriter::new(pool.clone()));
+    // Wave 2 Phase A：节假日感知交易日历（0008 holidays 表；HolidayCalendar 实例在 gapfill/service 间共享，
+    // 快照由 service 刷新任务维护，刷新失败 fail-open 为仅工作日口径）
+    let holiday_source: Arc<dyn HolidayCalendarRead> =
+        Arc::new(storage::reader::HolidaysReader::new(pool.clone()));
+    let calendar = Arc::new(collector::calendar::HolidayCalendar::new(clock.clone()));
     let registry: Arc<dyn SymbolRegistry> = Arc::new(storage::symbols::PgSymbolRegistry::new(pool.clone()));
     let tier1 = vec![SourceId::TencentIfzq, SourceId::SinaJsonp];
     let circuits = Arc::new(CircuitRegistry::new(tier1.clone(), clock.clone(), sink.clone()));
@@ -75,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
         circuits.clone(), writer.clone(), sink.clone(), clock.clone()));
     let standby = Arc::new(StandbyReserve::new(snapshot_pool, clock.clone()));
     let gapfill = Arc::new(GapBackfiller::new(
-        executor.clone(), reader, registry.clone(), clock.clone()));
+        executor.clone(), reader, registry.clone(), clock.clone(), calendar.clone()));
     // 熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展，03-collector §10；
     // ADR-017：应用面 POST /api/sources/{id}/reset 经 circuit_reset_requests 表触达，无直连）
     let reset_watcher = Arc::new(collector::reset::ResetWatcher::new(
@@ -85,7 +91,8 @@ async fn main() -> anyhow::Result<()> {
     let prober = Arc::new(collector::probe::CircuitProber::new(
         minute_providers, circuits, registry.clone(), sink.clone(), clock.clone()));
     let svc = Arc::new(CollectorService::new(
-        executor, standby, gapfill, prober, registry, writer, clock.clone()));
+        executor, standby, gapfill, prober, registry, calendar, holiday_source,
+        writer, clock.clone()));
 
     // ---- tushare 日增量（三时点 08:00/18:00/00:00 Asia/Shanghai，04-storage §6.2）----
     if cfg.tushare_enabled {

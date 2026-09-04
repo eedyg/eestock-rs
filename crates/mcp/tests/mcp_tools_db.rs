@@ -25,6 +25,15 @@ fn state(pool: PgPool) -> Arc<McpState> {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
             Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Wave 2 Phase A：MCP④ 质量服务（真实 storage 端口实现）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
     })
@@ -108,5 +117,54 @@ async fn get_sources_health_aggregation_via_tool() {
     assert_eq!(h["status"], "degraded");
     assert_eq!(h["last_error"]["err_kind"], "timeout");
     clean_health(&pool).await;
+}
+
+#[tokio::test]
+async fn get_data_quality_via_tool() {
+    // MCP④ 端到端：真实库 → QualityService → tools/call payload
+    const QCODE: &str = "995521";
+    let pool = pool().await;
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(QCODE).execute(&pool).await.unwrap();
+    }
+    // 造数：2026-09-02（周三交易日，测试运行时为历史日）raw 全 241 标签除 10:41；
+    // accurate 仅 09:30（close 9.90 vs raw 10.00 → −1.0% 分歧）
+    let day = chrono::NaiveDate::from_ymd_opt(2026, 9, 2).unwrap();
+    for l in domain::calendar::trading_minute_labels(day) {
+        let ts = domain::tz::cst_to_utc(l);
+        let is_930 = l.time() == domain::calendar::hm(9, 30);
+        if l.time() != domain::calendar::hm(10, 41) {
+            sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                         VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'mcpq_src') ON CONFLICT DO NOTHING")
+                .bind(QCODE).bind(ts).bind(if is_930 { 10.0 } else { 1.0 })
+                .execute(&pool).await.unwrap();
+        }
+        if is_930 {
+            sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount) \
+                         VALUES ($1, $2, 'M1', 9.9, 9.9, 9.9, 9.9, 100, 100.0) ON CONFLICT DO NOTHING")
+                .bind(QCODE).bind(ts).execute(&pool).await.unwrap();
+        }
+    }
+    let st = state(pool.clone());
+    let payload = call_tool(&st, "get_data_quality",
+        json!({ "code": QCODE, "date": "2026-09-02" })).await;
+    assert_eq!(payload["code"], QCODE);
+    assert_eq!(payload["trading_day"], true);
+    assert_eq!(payload["gap"]["missing_bars"], 1);
+    assert_eq!(payload["gap"]["expected_bars"], 241, "交易日历 241 标签口径（13:00 伪缺口结案）");
+    assert_eq!(payload["gap"]["segments"][0]["class"], "system_gap",
+        "邻近无事件 → 系统缺口（D5）");
+    assert_eq!(payload["divergence"]["compared_bars"], 1);
+    assert_eq!(payload["divergence"]["divergent_bars"], 1, "−1.0% 超 0.5% 阈值");
+    // 节假日：国庆 2026-10-01（0008 已落库）
+    let payload = call_tool(&st, "get_data_quality",
+        json!({ "code": QCODE, "date": "2026-10-01" })).await;
+    assert_eq!(payload["trading_day"], false, "国庆非交易日");
+    assert!(payload["gap"].is_null());
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(QCODE).execute(&pool).await.unwrap();
+    }
 }
 // ~/~ end
