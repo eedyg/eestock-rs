@@ -3250,7 +3250,9 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
 ## 6. 部署
 
 - `Dockerfile.app`（本文档 tangle，审查返工后自包含）：三阶段——`frontend`（node:22，`npm ci` 严格按
-  lock 安装 → `npm run build`）→ `builder`（rust 编译 eestock-app）→ runtime（debian-slim 非 root，
+  lock 安装 → **`VITE_API_MOCK=0 npm run build`**：镜像产物为生产部署，必须直连真后端，
+  09-frontend §4 的 mock 默认仅限开发态；Wave 2 Phase C 联调发现缺该 env 会静默出 mock 数据）
+  → `builder`（rust 编译 eestock-app）→ runtime（debian-slim 非 root，
   dist 从 frontend 阶段 COPY）。构建上下文无需预存 dist；`.dockerignore` 排除 node_modules/target/data 等。
 - compose `app` 服务（docker-compose.yml 手写例外）：`depends_on: timescaledb(healthy)`——
   **不依赖 data 服务**（两面零耦合，库为唯一耦合点）；`8081:8081`（数据面 8080 不动）；
@@ -3268,7 +3270,8 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
-RUN npm run build
+# 生产镜像直连真后端（09-frontend §4：mock 开关默认仅开发态；缺省构建会静默出 mock 数据）
+RUN VITE_API_MOCK=0 npm run build
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build

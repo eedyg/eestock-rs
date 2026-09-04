@@ -8,7 +8,8 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
-RUN npm run build
+# 生产镜像直连真后端（09-frontend §4：mock 开关默认仅开发态；缺省构建会静默出 mock 数据）
+RUN VITE_API_MOCK=0 npm run build
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build

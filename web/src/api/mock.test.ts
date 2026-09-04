@@ -132,4 +132,49 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(legacy.length).toBeGreaterThan(0);
     expect(['crit', 'warn', 'info']).toContain(legacy[0]!.level);
   });
+
+  it('页面④ 数据质量 mock：divergence/source-accuracy/gaps/tushare-status 契约形状（04-quality §7.1）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    // divergence：rows 按 |偏差| 降序 + 汇总行齐备；查询参数回显
+    const div = await api.getQualityDivergence({ code: '518880', from: '2026-09-01', to: '2026-09-03' });
+    expect(div.code).toBe('518880');
+    expect(div.from).toBe('2026-09-01');
+    expect(div.to).toBe('2026-09-03');
+    expect(div.threshold_pct).toBe(0.5);
+    expect(div.rows.length).toBeGreaterThan(0);
+    for (let i = 1; i < div.rows.length; i++) {
+      expect(Math.abs(div.rows[i]!.deviation_pct)).toBeLessThanOrEqual(
+        Math.abs(div.rows[i - 1]!.deviation_pct),
+      );
+    }
+    expect(div.summary.compared_bars).toBeGreaterThan(0);
+    expect(div.summary.consistency_rate).not.toBeNull();
+    // 同一参数两次调用结果确定
+    const div2 = await api.getQualityDivergence({ code: '518880', from: '2026-09-01', to: '2026-09-03' });
+    expect(div2).toEqual(div);
+    // source-accuracy：一致率降序
+    const acc = await api.getSourceAccuracy({ from: '2026-09-01', to: '2026-09-03' });
+    expect(acc.sources.length).toBeGreaterThan(0);
+    for (let i = 1; i < acc.sources.length; i++) {
+      expect(acc.sources[i]!.consistency_rate ?? 0).toBeLessThanOrEqual(
+        acc.sources[i - 1]!.consistency_rate ?? 0,
+      );
+    }
+    // gaps：仅含有缺口交易日；segment 形状 {start,end,count,class}
+    const gaps = await api.getQualityGaps({ code: '518880', from: '2026-08-28', to: '2026-09-03' });
+    expect(gaps.days.length).toBeGreaterThan(0);
+    for (const d of gaps.days) {
+      expect(d.missing_bars).toBeGreaterThan(0);
+      for (const s of d.segments) {
+        expect(s.start).toMatch(/^\d{2}:\d{2}$/);
+        expect(['source_fault', 'upstream_no_data', 'system_gap']).toContain(s.class);
+      }
+    }
+    // tushare status：quota 恒 null；checkpoints/covered_codes/last_event 齐备
+    const ts = await api.getTushareStatus();
+    expect(ts.quota_remaining).toBeNull();
+    expect(ts.covered_codes).toBe(ts.checkpoints.length);
+    expect(ts.last_event).not.toBeNull();
+    expect(typeof ts.last_event!.ok).toBe('boolean');
+  });
 });

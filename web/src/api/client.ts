@@ -11,13 +11,17 @@ import type {
   KlineResponse,
   MetricPoint,
   Period,
+  QualityDivergenceResponse,
+  QualityGapsResponse,
   RateLimitCounters,
   RegisterSymbolInput,
+  SourceAccuracyResponse,
   SourceEventItem,
   SourcesHealth,
   SymbolPatchBody,
   SymbolRow,
   SymbolSnapshot,
+  TushareStatusResponse,
 } from './types';
 import { ApiError } from './types';
 
@@ -26,6 +30,17 @@ export interface KlineQuery {
   period: Period;
   before?: string; // 游标：排他上界 ts（向前翻页）
   limit?: number;
+}
+
+/** 页面④ 日期范围查询（from/to 为 YYYY-MM-DD，闭区间；thresholdPct 缺省由后端兜底 0.5） */
+export interface QualityRangeQuery {
+  from: string;
+  to: string;
+  thresholdPct?: number;
+}
+
+export interface QualityCodeRangeQuery extends QualityRangeQuery {
+  code: string;
 }
 
 export interface ApiClient {
@@ -66,6 +81,15 @@ export interface ApiClient {
   getSourceDivergence(id: string, range: DetailRange): Promise<DivergenceStat>;
   /** 限流计数器组（detail-panel；403/429/连接重置，封禁观测点 02-sources §4） */
   getSourceRateLimits(id: string, range: DetailRange): Promise<RateLimitCounters>;
+  // ── Wave 2 Phase C：页面④ 数据质量（04-quality §7.1 / 07-app-plane §1.1）──
+  /** 分歧对照（只比 close，D4 口径；rows 按 |偏差| 降序） */
+  getQualityDivergence(q: QualityCodeRangeQuery): Promise<QualityDivergenceResponse>;
+  /** 源一致率排行（一致率降序） */
+  getSourceAccuracy(q: QualityRangeQuery): Promise<SourceAccuracyResponse>;
+  /** 历史缺口报告（仅含有缺口交易日；segment 时刻 CST HH:MM） */
+  getQualityGaps(q: QualityCodeRangeQuery): Promise<QualityGapsResponse>;
+  /** tushare 同步状态（sync-panel；quota_remaining 恒 null） */
+  getTushareStatus(): Promise<TushareStatusResponse>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底） */
@@ -150,5 +174,18 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       get(`/api/sources/${encodeURIComponent(id)}/divergence?range=${range}`),
     getSourceRateLimits: (id, range) =>
       get(`/api/sources/${encodeURIComponent(id)}/rate-limits?range=${range}`),
+    // ── Wave 2 Phase C：页面④ ──
+    getQualityDivergence: (q) => get(`/api/quality/divergence?${qualityParams(q).toString()}`),
+    getSourceAccuracy: (q) => get(`/api/quality/source-accuracy?${qualityParams(q).toString()}`),
+    getQualityGaps: (q) => get(`/api/quality/gaps?${qualityParams(q).toString()}`),
+    getTushareStatus: () => get('/api/tushare/status'),
   };
+}
+
+/** 页面④ 查询参数序列化（code 可选；thresholdPct → threshold_pct，缺省不带由后端兜底） */
+function qualityParams(q: Partial<QualityCodeRangeQuery> & QualityRangeQuery): URLSearchParams {
+  const params = new URLSearchParams({ from: q.from, to: q.to });
+  if (q.code) params.set('code', q.code);
+  if (q.thresholdPct != null) params.set('threshold_pct', String(q.thresholdPct));
+  return params;
 }

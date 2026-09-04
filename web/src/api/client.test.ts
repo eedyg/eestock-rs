@@ -265,4 +265,92 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(items[0]).toEqual({ ts: '2026-09-07T02:00:00Z', level: 'crit', text: '停摆' });
     expect(items[1]!.level).toBe('warn');
   });
+
+  // ── Wave 2 Phase C：页面④ 数据质量（04-quality.md §7.1 / 07-app-plane §1.1 真实契约）──
+
+  it('getQualityDivergence → GET /api/quality/divergence?code=&from=&to=（threshold_pct 可选透传）', async () => {
+    const body = {
+      code: '518880', from: '2026-09-01', to: '2026-09-03', threshold_pct: 0.5,
+      summary: { compared_bars: 615, divergent_bars: 3, divergence_rate: 0.0049, consistency_rate: 0.9951, max_deviation_pct: 1.52 },
+      rows: [
+        { ts: '2026-09-02T02:41:00Z', raw_close: 2.468, accurate_close: 2.431, deviation_pct: 1.5216, raw_source: 'sina_jsonp' },
+        { ts: '2026-09-01T06:55:00Z', raw_close: 2.455, accurate_close: 2.441, deviation_pct: 0.5735, raw_source: 'tencent_ifzq' },
+      ],
+    };
+    const f = fetcherReturning(body);
+    const api = createHttpClient('', f);
+    const r = await api.getQualityDivergence({ code: '518880', from: '2026-09-01', to: '2026-09-03' });
+    const { url } = lastCall(f);
+    expect(url).toContain('/api/quality/divergence?');
+    expect(url).toContain('code=518880');
+    expect(url).toContain('from=2026-09-01');
+    expect(url).toContain('to=2026-09-03');
+    expect(url).not.toContain('threshold_pct'); // 缺省由后端兜底 0.5
+    expect(r.summary.compared_bars).toBe(615);
+    expect(r.rows).toHaveLength(2);
+    expect(r.rows[0]!.raw_source).toBe('sina_jsonp');
+
+    const f2 = fetcherReturning(body);
+    await createHttpClient('', f2).getQualityDivergence({ code: '518880', from: '2026-09-01', to: '2026-09-03', thresholdPct: 1 });
+    expect(lastCall(f2).url).toContain('threshold_pct=1');
+  });
+
+  it('getSourceAccuracy → GET /api/quality/source-accuracy?from=&to=', async () => {
+    const body = {
+      from: '2026-09-01', to: '2026-09-03', threshold_pct: 0.5,
+      sources: [
+        { source: 'tencent_ifzq', samples: 615, consistency_rate: 0.998, avg_deviation_pct: 0.02, max_deviation_pct: 0.57 },
+        { source: 'sina_jsonp', samples: 615, consistency_rate: 0.971, avg_deviation_pct: 0.31, max_deviation_pct: 1.52 },
+      ],
+    };
+    const f = fetcherReturning(body);
+    const api = createHttpClient('', f);
+    const r = await api.getSourceAccuracy({ from: '2026-09-01', to: '2026-09-03' });
+    const { url } = lastCall(f);
+    expect(url).toContain('/api/quality/source-accuracy?');
+    expect(url).toContain('from=2026-09-01');
+    expect(url).not.toContain('code=');
+    expect(r.sources).toHaveLength(2);
+    expect(r.sources[0]!.source).toBe('tencent_ifzq');
+  });
+
+  it('getQualityGaps → GET /api/quality/gaps?code=&from=&to=（segments start/end 为 CST HH:MM）', async () => {
+    const body = {
+      code: '518880', from: '2026-08-28', to: '2026-09-03',
+      days: [
+        { date: '2026-09-02', expected_bars: 241, actual_bars: 235, missing_bars: 6,
+          segments: [
+            { start: '10:41', end: '10:45', count: 5, class: 'source_fault' },
+            { start: '13:07', end: '13:07', count: 1, class: 'system_gap' },
+          ] },
+      ],
+    };
+    const f = fetcherReturning(body);
+    const api = createHttpClient('', f);
+    const r = await api.getQualityGaps({ code: '518880', from: '2026-08-28', to: '2026-09-03' });
+    const { url } = lastCall(f);
+    expect(url).toContain('/api/quality/gaps?');
+    expect(url).toContain('code=518880');
+    expect(r.days).toHaveLength(1);
+    expect(r.days[0]!.segments[0]).toEqual({ start: '10:41', end: '10:45', count: 5, class: 'source_fault' });
+  });
+
+  it('getTushareStatus → GET /api/tushare/status（quota_remaining 恒 null）', async () => {
+    const body = {
+      checkpoints: [
+        { code: '518880', period: '1m', last_synced_date: '2026-09-03', updated_at: '2026-09-03T22:30:00Z' },
+      ],
+      covered_codes: 44,
+      last_updated_at: '2026-09-03T22:30:00Z',
+      last_event: { ts: '2026-09-03T22:30:00Z', ok: true, err_kind: null },
+      quota_remaining: null,
+    };
+    const f = fetcherReturning(body);
+    const api = createHttpClient('', f);
+    const r = await api.getTushareStatus();
+    expect(lastCall(f).url).toBe('/api/tushare/status');
+    expect(r.covered_codes).toBe(44);
+    expect(r.quota_remaining).toBeNull();
+    expect(r.last_event).toEqual({ ts: '2026-09-03T22:30:00Z', ok: true, err_kind: null });
+  });
 });

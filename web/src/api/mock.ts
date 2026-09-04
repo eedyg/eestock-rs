@@ -1,4 +1,4 @@
-import type { ApiClient, KlineQuery } from './client';
+import type { ApiClient, KlineQuery, QualityCodeRangeQuery, QualityRangeQuery } from './client';
 import type {
   AlertEventItem,
   AlertItem,
@@ -11,14 +11,20 @@ import type {
   GapStat,
   MetricPoint,
   Period,
+  QualityDivergenceResponse,
+  QualityDivergenceRow,
+  QualityGapsResponse,
   RateLimitCounters,
   RegisterSymbolInput,
+  SourceAccuracyItem,
+  SourceAccuracyResponse,
   SourceEventItem,
   SourceHealthItem,
   SourcesHealth,
   SymbolPatchBody,
   SymbolRow,
   SymbolSnapshot,
+  TushareStatusResponse,
 } from './types';
 import { ApiError } from './types';
 
@@ -313,5 +319,101 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         connReset: Math.floor(rand01(`${id}:rreset`) * 6),
       };
     },
+    // ── Wave 2 Phase C：页面④ 数据质量（04-quality §7.1 线格式；确定性生成可复现）──
+    async getQualityDivergence(q: QualityCodeRangeQuery): Promise<QualityDivergenceResponse> {
+      const threshold = q.thresholdPct ?? 0.5;
+      const rows = mockDivergenceRows(q.code);
+      const n = rows.length;
+      const divergent = rows.filter((r) => Math.abs(r.deviation_pct) > threshold).length;
+      return {
+        code: q.code,
+        from: q.from,
+        to: q.to,
+        threshold_pct: threshold,
+        summary: {
+          compared_bars: n,
+          divergent_bars: divergent,
+          divergence_rate: n > 0 ? divergent / n : null,
+          consistency_rate: n > 0 ? (n - divergent) / n : null,
+          max_deviation_pct: n > 0 ? Math.abs(rows[0]!.deviation_pct) : null,
+        },
+        rows,
+      };
+    },
+    async getSourceAccuracy(q: QualityRangeQuery): Promise<SourceAccuracyResponse> {
+      const threshold = q.thresholdPct ?? 0.5;
+      const bySource = new Map<string, number[]>();
+      for (const r of mockDivergenceRows('518880').concat(mockDivergenceRows('513310'))) {
+        const key = r.raw_source ?? 'unknown';
+        bySource.set(key, [...(bySource.get(key) ?? []), Math.abs(r.deviation_pct)]);
+      }
+      const sources: SourceAccuracyItem[] = [...bySource.entries()].map(([source, devs]) => ({
+        source,
+        samples: devs.length,
+        consistency_rate: devs.filter((d) => d <= threshold).length / devs.length,
+        avg_deviation_pct: devs.reduce((a, b) => a + b, 0) / devs.length,
+        max_deviation_pct: Math.max(...devs),
+      }));
+      sources.sort(
+        (a, b) =>
+          (b.consistency_rate ?? 0) - (a.consistency_rate ?? 0) || a.source.localeCompare(b.source),
+      );
+      return { from: q.from, to: q.to, threshold_pct: threshold, sources };
+    },
+    async getQualityGaps(q: QualityCodeRangeQuery): Promise<QualityGapsResponse> {
+      // 固定样例（preview/04-quality.html 同构）：落在查询区间内的缺口日出卡
+      const days = [
+        { date: '2026-09-02', expected_bars: 241, actual_bars: 235, missing_bars: 6,
+          segments: [
+            { start: '10:41', end: '10:45', count: 5, class: 'source_fault' as const },
+            { start: '13:07', end: '13:07', count: 1, class: 'upstream_no_data' as const },
+          ] },
+        { date: '2026-08-28', expected_bars: 241, actual_bars: 210, missing_bars: 31,
+          segments: [
+            { start: '14:30', end: '15:00', count: 31, class: 'system_gap' as const },
+          ] },
+      ].filter((d) => d.date >= q.from && d.date <= q.to);
+      return { code: q.code, from: q.from, to: q.to, days };
+    },
+    async getTushareStatus(): Promise<TushareStatusResponse> {
+      const checkpoints = symbols
+        .filter((s) => s.enabled)
+        .map((s) => ({
+          code: s.code,
+          period: '1m',
+          last_synced_date: '2026-09-03',
+          updated_at: '2026-09-03T22:30:00Z',
+        }));
+      return {
+        checkpoints,
+        covered_codes: checkpoints.length,
+        last_updated_at: '2026-09-03T22:30:00Z',
+        last_event: { ts: '2026-09-03T22:30:00Z', ok: true, err_kind: null },
+        quota_remaining: null,
+      };
+    },
   };
+}
+
+/** 页面④ 分歧对照 mock 行（|偏差| 降序；两 1m 源交替归属，少量超阈分歧） */
+function mockDivergenceRows(code: string): QualityDivergenceRow[] {
+  const base = BASE_PRICE[code] ?? 1;
+  const rows: QualityDivergenceRow[] = [];
+  const start = Date.UTC(2026, 8, 1, 1, 30); // 2026-09-01 09:30 CST
+  for (let i = 0; i < 24; i++) {
+    const r = rand01(`${code}:div:${i}`);
+    // 大多数 |偏差| ≤0.3%（一致），少数 0.5%-2%（分歧）
+    const dev = r < 0.8 ? r * 0.375 : 0.5 + (r - 0.8) * 7.5;
+    const sign = rand01(`${code}:sign:${i}`) < 0.5 ? -1 : 1;
+    const accurate = round3(base * (1 + (rand01(`${code}:acc:${i}`) - 0.5) * 0.02));
+    rows.push({
+      ts: new Date(start + i * 17 * 60_000).toISOString(),
+      raw_close: round3(accurate * (1 + (sign * dev) / 100)),
+      accurate_close: accurate,
+      deviation_pct: sign * dev,
+      raw_source: i % 2 === 0 ? 'tencent_ifzq' : 'sina_jsonp',
+    });
+  }
+  rows.sort((a, b) => Math.abs(b.deviation_pct) - Math.abs(a.deviation_pct));
+  return rows;
 }

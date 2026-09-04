@@ -185,6 +185,105 @@ export interface RateLimitCounters {
   connReset: number;
 }
 
+// ── 页面④ 数据质量（Wave 2 Phase A 后端定稿；04-quality.md §7.1 / 07-app-plane §1.1，snake_case 不驼峰转换）──
+
+/** 分歧汇总（无比对样本 → 比率/极值 null，前端空态「该范围无比对数据」） */
+export interface QualityDivergenceSummary {
+  compared_bars: number;
+  divergent_bars: number;
+  divergence_rate: number | null; // 0-1
+  consistency_rate: number | null; // 0-1（|偏差|≤threshold 占比）
+  max_deviation_pct: number | null; // |偏差| 极值
+}
+
+/** 分歧行（|偏差| 降序；只比 close，D4 口径） */
+export interface QualityDivergenceRow {
+  ts: string; // ISO 8601 UTC，bar 起始时刻
+  raw_close: number;
+  accurate_close: number;
+  deviation_pct: number;
+  raw_source: string | null; // SourceId（如 tencent_ifzq）
+}
+
+/** GET /api/quality/divergence?code=&from=&to=&threshold_pct= 响应 */
+export interface QualityDivergenceResponse {
+  code: string;
+  from: string;
+  to: string;
+  threshold_pct: number;
+  summary: QualityDivergenceSummary;
+  rows: QualityDivergenceRow[];
+}
+
+/** 源一致率排行项（一致率降序，平手按 source 名序） */
+export interface SourceAccuracyItem {
+  source: string;
+  samples: number;
+  consistency_rate: number | null;
+  avg_deviation_pct: number | null;
+  max_deviation_pct: number | null;
+}
+
+/** GET /api/quality/source-accuracy?from=&to=&threshold_pct= 响应 */
+export interface SourceAccuracyResponse {
+  from: string;
+  to: string;
+  threshold_pct: number;
+  sources: SourceAccuracyItem[];
+}
+
+/** 缺口分类（D5 三级口径） */
+export type GapClass = 'source_fault' | 'upstream_no_data' | 'system_gap';
+
+/** 缺口段（start/end 为 CST "HH:MM"，含端点；count=缺 bar 数） */
+export interface GapSegmentItem {
+  start: string;
+  end: string;
+  count: number;
+  class: GapClass;
+}
+
+/** 单日缺口卡（仅当日有缺口时返回；非交易日整日不出卡） */
+export interface DayGapItem {
+  date: string; // YYYY-MM-DD
+  expected_bars: number;
+  actual_bars: number;
+  missing_bars: number;
+  segments: GapSegmentItem[];
+}
+
+/** GET /api/quality/gaps?code=&from=&to= 响应 */
+export interface QualityGapsResponse {
+  code: string;
+  from: string;
+  to: string;
+  days: DayGapItem[];
+}
+
+/** tushare 同步 checkpoint 行 */
+export interface SyncCheckpoint {
+  code: string;
+  period: string;
+  last_synced_date: string; // YYYY-MM-DD
+  updated_at: string; // ISO 8601 UTC
+}
+
+/** tushare 最近事件（source_health_events source='tushare'，7 天窗口） */
+export interface TushareEvent {
+  ts: string;
+  ok: boolean;
+  err_kind: string | null;
+}
+
+/** GET /api/tushare/status 响应（quota_remaining 恒 null：积分余额未入库，前端渲染 —） */
+export interface TushareStatusResponse {
+  checkpoints: SyncCheckpoint[];
+  covered_codes: number;
+  last_updated_at: string | null;
+  last_event: TushareEvent | null;
+  quota_remaining: null;
+}
+
 /** 后端错误线格式 {error: string} → 前端 ApiError */
 export class ApiError extends Error {
   constructor(
