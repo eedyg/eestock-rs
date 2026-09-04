@@ -30,8 +30,19 @@ export const MASKS_BY_PAGE: Record<string, string[]> = {
   sources: ['[data-region="topbar"]', '[data-region="summary-bar"]', '[data-region="source-cards"]', '[data-region="gap-cards"]', '[data-region="alert-preview"]', '[data-region="alert-preview"] > *', '[role="alert"]'],
   // 标的：表格时间/今日已采/最新 bar 时刻等数字列
   symbols: ['[data-region="topbar"]', '[data-region="symbol-table"] .num', '[role="alert"]'],
-  // 质量：分歧表数字（价格/偏差/时刻）+ 一致率/同步面板/缺口报告
-  quality: ['[data-region="topbar"]', '[data-region="divergence-table"] .num', '[data-region="accuracy-cards"]', '[data-region="sync-panel"]', '[data-region="gap-report"]', '[role="alert"]'],
+  // 质量：分歧表数字（价格/偏差/时刻）+ raw来源 源名（源归属随重同步而变）+ 过滤栏日期（每日变）
+  // 一致率/平均偏差/源成功率在 accuracy-cards，同步/缺口在各面板，均整体 mask；
+  // 分歧表 raw来源 列为非 .num 文本（源归属每日会变），须单独 mask，否则基线漂移（见 coder/report/019）。
+  quality: [
+    '[data-region="topbar"]',
+    '[data-region="filter-bar"] input[type="date"]',
+    '[data-region="divergence-table"] .num',
+    '[data-region="divergence-table"] tbody td:not(.num)',
+    '[data-region="accuracy-cards"]',
+    '[data-region="sync-panel"]',
+    '[data-region="gap-report"]',
+    '[role="alert"]',
+  ],
   // 告警：列表时刻/级别/状态随 WS 推送变化
   alerts: ['[data-region="topbar"]', '[data-region="alert-list"]', '[role="alert"]'],
 };
