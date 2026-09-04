@@ -73,7 +73,8 @@ describe('WsClient', () => {
     FakeWebSocket.instances[0]!.emitOpen();
     const frames = FakeWebSocket.instances[0]!.sent.map((f) => JSON.parse(f));
     expect(frames).toContainEqual({ type: 'subscribe', topic: 'quote' });
-    expect(frames).toContainEqual({ type: 'subscribe', topic: 'source_health' });
+    // source_health 经别名映射为后端口径 health（07-app-plane §1.4）
+    expect(frames).toContainEqual({ type: 'subscribe', topic: 'health' });
     client.close();
   });
 
@@ -178,5 +179,41 @@ describe('WsClient', () => {
     FakeWebSocket.instances[0]!.emitClose();
     expect(statuses).toEqual(['connecting', 'open', 'closed']);
     client.close();
+  });
+});
+
+describe('WS topic 别名适配（07-app-plane §1.4：后端 "health" ≡ 前端 "source_health"）', () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+  });
+
+  it('订阅 source_health 出站帧映射为 topic=health', () => {
+    const ws = createClient();
+    const handler = vi.fn();
+    ws.subscribe('source_health', handler);
+    ws.connect();
+    FakeWebSocket.instances[0]!.emitOpen();
+    const frame = JSON.parse(FakeWebSocket.instances[0]!.sent[0]!);
+    expect(frame).toEqual({ type: 'subscribe', topic: 'health' });
+  });
+
+  it('入站 {type:"health"} 帧分发到 source_health 订阅者', () => {
+    const ws = createClient();
+    const handler = vi.fn();
+    ws.subscribe('source_health', handler);
+    ws.connect();
+    FakeWebSocket.instances[0]!.emitOpen();
+    FakeWebSocket.instances[0]!.emitMessage({ type: 'health', window_secs: 3600, sources: [] });
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ type: 'health' }));
+  });
+
+  it('退订 source_health 出站帧同样映射', () => {
+    const ws = createClient();
+    const off = ws.subscribe('source_health', vi.fn());
+    ws.connect();
+    FakeWebSocket.instances[0]!.emitOpen();
+    off();
+    const last = JSON.parse(FakeWebSocket.instances[0]!.sent.at(-1)!);
+    expect(last).toEqual({ type: 'unsubscribe', topic: 'health' });
   });
 });

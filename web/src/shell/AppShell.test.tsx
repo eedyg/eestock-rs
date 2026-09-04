@@ -4,20 +4,36 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './AppShell';
 import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
+import { stubApi } from '@/test/apiStub';
+
+// 后端健康行（07-app-plane §1.1 线格式）；last_event_ts 用测试时刻保证采集灯判定确定
+function healthRow(source: string, status: 'healthy' | 'degraded' | 'circuit_open') {
+  return {
+    source,
+    window_secs: 3600,
+    attempts: 60,
+    successes: 60,
+    success_rate: 1,
+    p50_ms: 180,
+    p95_ms: 320,
+    circuit_state: status === 'circuit_open' ? ('open' as const) : ('closed' as const),
+    status,
+    last_error: null,
+    last_event_ts: new Date().toISOString(),
+  };
+}
 
 function fakeApi(): ApiClient {
-  return {
-    getSymbols: vi.fn(async () => []),
-    getKline: vi.fn(async () => []),
+  return stubApi({
     getSourcesHealth: vi.fn(async () => ({
-      collectorRunning: true,
+      window_secs: 3600,
       sources: [
-        { id: 'tencent_ifzq', name: '腾讯ifzq', role: '1m' as const, status: 'healthy' as const },
-        { id: 'sina_jsonp', name: '新浪jsonp', role: '1m' as const, status: 'circuit' as const },
-        { id: 'tencent_qt', name: '腾讯qt快照', role: 'snapshot' as const, status: 'healthy' as const },
+        healthRow('tencent_ifzq', 'healthy'),
+        healthRow('sina_jsonp', 'circuit_open'),
+        healthRow('tencent_qt', 'healthy'),
       ],
     })),
-  };
+  });
 }
 
 function fakeWs() {

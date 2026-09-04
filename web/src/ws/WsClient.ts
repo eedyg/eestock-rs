@@ -2,8 +2,13 @@
  * WS 客户端（00-shell：单连接 /ws，订阅分发，断线指数退避重连）。
  * 订阅键规范（09-frontend.md §5）：`bar:<code>:<period>` / `quote` / `source_health`。
  * 连线帧：{type:"subscribe"|"unsubscribe", topic, code?, period?}；
- * 服务端推送：{type:"bar", code, period, bar} / {type:"quote", ...} / {type:"source_health", ...}。
+ * 服务端推送：{type:"bar", code, period, bar} / {type:"quote", ...} / {type:"health", ...}。
+ * 前后端 topic 适配（07-app-plane §1.4）：后端口径 "health" ≡ 前端 "source_health"，
+ * 出站帧与入站分发经别名映射，页面层始终使用 "source_health"。
  */
+
+const OUT_TOPIC_ALIAS: Record<string, string> = { source_health: 'health' };
+const IN_TOPIC_ALIAS: Record<string, string> = { health: 'source_health' };
 
 export type WsConnectionStatus = 'connecting' | 'open' | 'closed';
 export type WsMessage = { type?: string; code?: string; period?: string; [k: string]: unknown };
@@ -18,7 +23,7 @@ export interface WsClientOptions {
 
 function topicToFrame(kind: 'subscribe' | 'unsubscribe', topic: string): Record<string, string> {
   const [head, code, period] = topic.split(':');
-  const frame: Record<string, string> = { type: kind, topic: head! };
+  const frame: Record<string, string> = { type: kind, topic: OUT_TOPIC_ALIAS[head!] ?? head! };
   if (code) frame.code = code;
   if (period) frame.period = period;
   return frame;
@@ -26,7 +31,8 @@ function topicToFrame(kind: 'subscribe' | 'unsubscribe', topic: string): Record<
 
 function messageTopic(msg: WsMessage): string {
   if (msg.type === 'bar') return `bar:${msg.code ?? ''}:${msg.period ?? ''}`;
-  return msg.type ?? '';
+  const t = msg.type ?? '';
+  return IN_TOPIC_ALIAS[t] ?? t;
 }
 
 export class WsClient {

@@ -59,11 +59,47 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(a).toEqual(b);
   });
 
-  it('getSourcesHealth 返回采集状态 + 1m/快照源清单', async () => {
+  it('getSourcesHealth 返回后端行格式（07-app-plane §1.1：snake_case，三态灯齐备）', async () => {
     const api = createMockClient();
     const health = await api.getSourcesHealth();
-    expect(typeof health.collectorRunning).toBe('boolean');
-    expect(health.sources.filter((s) => s.role === '1m').length).toBeGreaterThanOrEqual(2);
-    expect(health.sources.some((s) => s.role === 'snapshot')).toBe(true);
+    expect(health.window_secs).toBe(3600);
+    const statuses = health.sources.map((s) => s.status);
+    expect(statuses).toContain('healthy');
+    expect(statuses).toContain('degraded');
+    expect(statuses).toContain('circuit_open');
+    const qt = health.sources.find((s) => s.source === 'tencent_qt')!;
+    expect(qt.circuit_state).toBe('open');
+    expect(qt.last_error).not.toBeNull();
+  });
+
+  it('标的管理闭环：register（冲突 409/北交所 422）→ update → 列表反映', async () => {
+    const api = createMockClient();
+    const created = await api.registerSymbol({ code: '600519', name: '贵州茅台' });
+    expect(created.interval_secs).toBe(60);
+    expect(created.settlement).toBe('T1');
+    expect(created.enabled).toBe(true);
+    await expect(api.registerSymbol({ code: '600519' })).rejects.toMatchObject({ status: 409 });
+    await expect(api.registerSymbol({ code: '830799' })).rejects.toMatchObject({ status: 422 });
+    const patched = await api.updateSymbol('600519', { interval_secs: 300, enabled: false });
+    expect(patched.interval_secs).toBe(300);
+    expect(patched.enabled).toBe(false);
+    const rows = await api.getSymbolsAdmin();
+    expect(rows.find((r) => r.code === '600519')!.enabled).toBe(false);
+    await expect(api.updateSymbol('000000', { enabled: false })).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('页面②补充数据源：gaps/alerts/events/metrics/divergence 契约形状', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    const gaps = await api.getGaps();
+    expect(gaps.some((g) => g.gapPct > 20)).toBe(true); // 红卡样例
+    expect((await api.getAlerts(10)).length).toBeGreaterThan(0);
+    const events = await api.getSourceEvents('tencent_qt', 50);
+    expect(events[0]).toHaveProperty('traceId');
+    const metrics = await api.getSourceMetrics('tencent_qt', '1h');
+    expect(metrics.length).toBeGreaterThan(0);
+    expect(metrics[0]).toHaveProperty('successRate');
+    const div = await api.getSourceDivergence('tencent_qt', '3d');
+    expect(div.thresholdPct).toBe(0.5);
+    await expect(api.resetSource('tencent_qt')).resolves.toBeUndefined();
   });
 });
