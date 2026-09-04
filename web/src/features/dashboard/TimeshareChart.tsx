@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ApiClient } from '@/api/client';
+import type { WsClient } from '@/ws/WsClient';
+import { KlineDataFeed } from './feed';
 import { computeTimeshare, type TimesharePoint } from './timeshare';
 import { shanghaiDayKey } from '@/shell/session';
 
@@ -21,28 +23,47 @@ function polyline(points: TimesharePoint[], min: number, max: number, pick: (p: 
 /**
  * 分时 Tab（定稿 1b）：当日价格线 + 均价线，由 1m bar 客户端计算（零额外接口）。
  * 轻量 SVG 实现（klinecharts 为 K线导向；分时仅当日单日线，SVG 足够）。
+ * O1（定稿 1c 实时）：订阅 WS `bar:<code>:1m`（复用 feed.realtime 机制），
+ * 当日线随新 1m bar append/update 实时前进，盘中不重挂载也刷新。
  */
-export function TimeshareChart({ api, code }: { api: ApiClient; code: string }) {
+export function TimeshareChart({ api, ws, code }: { api: ApiClient; ws: WsClient; code: string }) {
   const [points, setPoints] = useState<TimesharePoint[]>([]);
   const [failed, setFailed] = useState(false);
+  // 复用 KlineDataFeed：1m 数据流 + WS 实时 append/update（零额外接口）
+  const feed = useMemo(() => new KlineDataFeed({ api, ws, code, period: '1m' }), [api, ws, code]);
+
+  // 重算：仅取当日 1m bar → 价格线+均价线（当日线收盘价 + 累计成交额/成交量）
+  const update = useCallback(() => {
+    if (feed.status === 'error') {
+      setFailed(true);
+      return;
+    }
+    if (feed.bars.length === 0) {
+      setFailed(false);
+      setPoints([]);
+      return;
+    }
+    const today = shanghaiDayKey(new Date());
+    const todayBars = feed.bars.filter((b) => shanghaiDayKey(new Date(Date.parse(b.ts))) === today);
+    setFailed(false);
+    setPoints(computeTimeshare(todayBars));
+  }, [feed]);
 
   useEffect(() => {
     let alive = true;
-    setFailed(false);
-    api
-      .getKline({ code, period: '1m', limit: 480 })
-      .then((bars) => {
-        const today = shanghaiDayKey(new Date());
-        const todayBars = bars.filter((b) => shanghaiDayKey(new Date(Date.parse(b.ts))) === today);
-        if (alive) setPoints(computeTimeshare(todayBars));
-      })
-      .catch(() => {
-        if (alive) setFailed(true);
-      });
+    const guarded = () => {
+      if (alive) update();
+    };
+    const offChange = feed.onChange(guarded);
+    const offRt = feed.onRealtime(guarded); // append/update 实时触发
+    void feed.loadInitial();
     return () => {
       alive = false;
+      offChange();
+      offRt();
+      feed.dispose();
     };
-  }, [api, code]);
+  }, [feed, update]);
 
   if (failed) {
     return <div className="flex h-full items-center justify-center text-xs text-dim">分时数据加载失败</div>;

@@ -305,6 +305,8 @@ export function DashboardGrid(props: DashboardGridProps) {
 
 - WebSocket 订阅当前标的：新 bar `appendBar`，当分钟未成型 bar 随快照/周期聚合 `updateBar` 闪动更新
 - 缩放跟随策略：用户未手动缩放 → 保持跟随最新 bar（视口锁定最右）；用户手动缩放/平移过 → 不再强拉，工具栏提供「回到最新」按钮
+- **quote 契约单一化（K1，2026-09-04）**：`WS {type:"quote"}` 载荷字段定为 **camelCase** `changePct`（与 REST `/api/symbols` 客户端归一化后一致）；`DashboardStore` 容错归一化 `msg.change_pct ?? msg.changePct`，防空值 `toFixed` 崩溃双保险（历史帧/其他源再踩不崩）。
+- **分时盘中自动刷新（O1，2026-09-04）**：`TimeshareChart` 复用 `KlineDataFeed`（period `1m`）的 `onChange`/`onRealtime`，订阅 `WS {type:"bar", code, period:"1m"}`；当日价格线 + 均价线随新 1m bar `appendBar`（更晚 ts）/`updateBar`（同 ts 未成型当根）实时前进，零额外接口。仅当日 bar 参与计算，跨周期/跨日 bar 忽略。
 
 ## 4. 数据范围（定稿 1d）
 
@@ -317,7 +319,7 @@ export function DashboardGrid(props: DashboardGridProps) {
 |---|---|
 | 标列表+最新价 | `GET /api/symbols`（含 latest 快照字段） |
 | 历史 bar | `GET /api/kline?code=&period=&before=&limit=`（merge 视图，准确层优先） |
-| 实时推送 | `WS /ws` 订阅 `{type:"bar", code, period}` / `{type:"quote", code}` |
+| 实时推送 | `WS /ws` 订阅 `{type:"bar", code, period}` / `{type:"quote", code}`（quote=**camelCase** `changePct`） |
 
 ## 6. 验收（Wave 1）
 

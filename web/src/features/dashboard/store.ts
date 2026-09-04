@@ -71,9 +71,12 @@ export class DashboardStore {
       this.unsubs.push(
         this.deps.ws.subscribe('quote', (msg: WsMessage) => {
           if (msg.type !== 'quote' || typeof msg.code !== 'string') return;
+          // K1 容错归一化：服务端新契约已对齐 camelCase（changePct），此处兼容历史帧/其他源
+          // 的 snake_case change_pct，并回退 0 防空值触发 toFixed 崩溃（与 REST 客户端一致）。
+          const changePct = ((msg.change_pct ?? msg.changePct) ?? 0) as number;
           const symbols = this.current.symbols.map((s) =>
             s.code === msg.code
-              ? { ...s, last: msg.last as number, changePct: msg.changePct as number }
+              ? { ...s, last: msg.last as number, changePct }
               : s,
           );
           this.patch({ symbols });

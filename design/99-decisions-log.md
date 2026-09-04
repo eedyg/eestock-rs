@@ -130,3 +130,14 @@
 ## K 线默认视口 + 实时动态（2026-09-04，用户追加）
 - 默认视口=当日+前一交易日；向前滚动分页可达最近 10-20 交易日
 - 实时进行中 bar 画虚线 + 跳动闪烁，区分已收盘实体直条
+
+## K1 + O1 + R1 处置（2026-09-04，排修轮）
+- **K1（WS quote 字段契约）修复**：后端 WS `PushMsg::Quote` 载荷对齐 camelCase `changePct`
+  （`crates/web/src/ws.rs` 对 `change_pct` 字段 `#[serde(rename = "changePct")]`），与前端/mock 一致；
+  前端 `DashboardStore` 容错归一化 `msg.change_pct ?? msg.changePct ?? 0`（兼容历史帧 snake_case + 防空值 toFixed 崩溃）。
+  全帧契约核对：quote=该字段 mismatch（本次修）；bar/health/alert 前后端一致（health `window_secs`、alert `rule_id` 等保持 snake_case，见 types.ts 注）。
+- **O1（分时盘中不自动刷新）修复**：`TimeshareChart` 复用 `KlineDataFeed`（1m）`onChange`/`onRealtime`，
+  订阅 `WS {type:"bar", code, period:"1m"}` 实时更新当日价格线+均价线（零额外接口）。
+- **R1（记录，不修）——高周期 cagg 回填深度**：本容器 cagg（5m/15m/1h/1d）仅回填 ~3 交易日，
+  「翻 10-20 交易日」仅在 1m（merged 深历史）验证通过。后续 backlog：考察高周期向前分页是否需扩大
+  cagg 窗口或改按需聚合（超出前端组件范围，需后端回填评估），本轮不做。

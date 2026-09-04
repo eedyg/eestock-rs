@@ -98,6 +98,21 @@ describe('DashboardStore', () => {
     store.dispose();
   });
 
+  it('K1 容错：收到 snake_case change_pct 帧不崩、仍取到数值（兼容历史/其他源）', async () => {
+    const store = new DashboardStore({ api: fakeApi(), ws });
+    await store.init();
+    // 服务端旧形状（snake_case）——规范化后必须仍更新，且不得写入 undefined
+    ws.emit('quote', { type: 'quote', code: '513310', last: 1.6, change_pct: 0.5 });
+    const s = store.state.symbols.find((x) => x.code === '513310')!;
+    expect(s.last).toBe(1.6);
+    expect(s.changePct).toBe(0.5);
+    expect(s.changePct).toEqual(expect.any(Number));
+    // 同时兼容 camelCase（正常路径不受影响）
+    ws.emit('quote', { type: 'quote', code: '513310', last: 1.7, changePct: 0.6 });
+    expect(store.state.symbols.find((x) => x.code === '513310')!.changePct).toBe(0.6);
+    store.dispose();
+  });
+
   it('selectSymbol 切换选中并重置跟随最新', async () => {
     const store = new DashboardStore({ api: fakeApi(), ws });
     await store.init();

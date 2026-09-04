@@ -103,7 +103,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
                 onManualZoom={() => store.noteManualZoom()}
               />
             ) : (
-              <TimeshareChart api={api} code={state.selected} />
+              <TimeshareChart api={api} ws={ws} code={state.selected} />
             ))}
         </RegionPortal>
       ) : (

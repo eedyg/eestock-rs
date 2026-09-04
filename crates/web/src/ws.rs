@@ -43,7 +43,7 @@ pub struct Subscription {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PushMsg {
     Bar { code: String, period: String, bar: BarDto },
-    Quote { code: String, ts: DateTime<Utc>, last: f64, change_pct: Option<f64> },
+    Quote { code: String, ts: DateTime<Utc>, last: f64, #[serde(rename = "changePct")] change_pct: Option<f64> },
     Health { window_secs: i64, sources: Vec<diagnose::health::SourceHealth> },
     Alert(crate::alerts::AlertEventDto),
 }
@@ -254,6 +254,18 @@ mod tests {
         assert_eq!(v["bar"]["close"], 1.05);
         let h = serde_json::to_value(PushMsg::Health { window_secs: 3600, sources: vec![] }).unwrap();
         assert_eq!(h["type"], "health");
+    }
+
+    #[test]
+    fn push_msg_quote_frame_camel_case() {
+        // K1 契约修复：WS quote 帧载荷与前端/mock 统一为 camelCase（前端 store 读 changePct）。
+        let q = PushMsg::Quote { code: "518880".into(), ts: Utc::now(), last: 1.234, change_pct: Some(0.12) };
+        let v = serde_json::to_value(&q).unwrap();
+        assert_eq!(v["type"], "quote");
+        assert_eq!(v["code"], "518880");
+        assert_eq!(v["changePct"], 0.12);
+        assert!(v.get("change_pct").is_none(), "不得再输出 snake_case change_pct");
+        assert_eq!(v["last"], 1.234);
     }
 
     #[test]
