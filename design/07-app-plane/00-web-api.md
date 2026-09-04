@@ -109,6 +109,14 @@ broadcast lagged 丢帧由客户端重连/REST 重拉兜底。
 **例外（D6 结案，Wave 2 Phase A）**：任何 `/api` 前缀路径（含裸 `/api`）未命中**不回退** index.html，返回 404 JSON `{"error":"not found"}`
 （API 路径回退 HTML 会把路由错误掩盖成前端解析错误，裸 `/api` 亦必须 404 而非回退 SPA 页）；路径含 `..`/反斜杠/空段 → 400（防目录穿越）；
 dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物覆盖）。
+
+**缓存头策略（SPA 缓存缺陷修复，Wave 2 收尾）**——根因：index.html 未设 Cache-Control，浏览器启发式缓存旧页 →
+引用已替换的旧 bundle 哈希 → JS 404 → React 未挂载图空白。对策：
+`index.html` 及一切**非哈希**静态 → `Cache-Control: no-store`（禁用启发式缓存，旧页每次重新验证/取新）；
+**哈希**静态资产（`assets/<name>-<hash>.<ext>`，Vite 内容寻址产物，内容随哈希变化不可变）→
+`Cache-Control: public, max-age=31536000, immutable`（可长期缓存，安全）。
+判定规则：路径（相对 static_dir）位于 `assets/` 前缀且 basename 去扩展名后最后一个 `-` 分段长度 >= 8 → 视为哈希资产，
+否则一律 `no-store`（保守回退：宁可不缓存，不缓存错）。
 不引 tower-http：手写 ~60 行（ADR-017 最小攻击面同口径；零新增依赖）。
 
 ### 1.4 明确不做（边界）
@@ -2644,9 +2652,11 @@ async fn serve_path(dir: &Path, req_path: &str) -> Response {
         None => (StatusCode::BAD_REQUEST, "bad path").into_response(),
         Some(rel) => {
             let candidate = dir.join(&rel);
-            if candidate.is_file() { return file_response(&candidate).await; }
+            if candidate.is_file() {
+                return file_response(&candidate, rel.to_str().unwrap_or("index.html")).await;
+            }
             let index = dir.join("index.html");
-            if index.is_file() { return file_response(&index).await; }
+            if index.is_file() { return file_response(&index, "index.html").await; }
             (StatusCode::SERVICE_UNAVAILABLE,
              "SPA 未构建：web/dist 缺失（前端 Wave 1 Phase B 产出）").into_response()
         }
@@ -2681,10 +2691,44 @@ pub fn mime_of(path: &Path) -> &'static str {
     }
 }
 
-async fn file_response(path: &Path) -> Response {
+async fn file_response(path: &Path, cache_key: &str) -> Response {
+    let cache = cache_control_for(cache_key);
     match tokio::fs::read(path).await {
-        Ok(bytes) => ([(header::CONTENT_TYPE, mime_of(path))], Body::from(bytes)).into_response(),
+        Ok(bytes) => (
+            [
+                (header::CONTENT_TYPE, mime_of(path)),
+                (header::CACHE_CONTROL, cache),
+            ],
+            Body::from(bytes),
+        ).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "not found").into_response(),
+    }
+}
+
+/// 相对 static_dir 路径的 Cache-Control 策略（§1.3 缓存头策略）：
+/// 哈希静态资产（`assets/<name>-<hash>.<ext>`）→ 长期不可变缓存；其余（含 index.html）→ no-store。
+fn cache_control_for(rel: &str) -> &'static str {
+    if is_hashed_asset(rel) {
+        "public, max-age=31536000, immutable"
+    } else {
+        "no-store"
+    }
+}
+
+/// 判定是否为 Vite 内容寻址哈希资产：路径位于 `assets/` 前缀，且 basename 去扩展名后
+/// 形如 `<name>-<hash>`，其中 `<hash>` 为第一个 `-` 之后的部分，长度 >= 8 且均为
+/// [A-Za-z0-9_-]（Vite 默认 8+ 位 url-safe hash，可能自带 `-`/`_`，如 index-D4J30-jW.css）。
+/// 保守：不满足一律视为非哈希（no-store）。
+fn is_hashed_asset(rel: &str) -> bool {
+    let p = rel.trim_start_matches('/');
+    if !p.starts_with("assets/") { return false; }
+    let basename = p.rsplit('/').next().unwrap_or(p);
+    let stem = basename.rsplit_once('.').map(|(s, _)| s).unwrap_or(basename);
+    match stem.split_once('-') {
+        Some((_, hash)) => {
+            hash.len() >= 8 && hash.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        }
+        None => false,
     }
 }
 
@@ -2712,6 +2756,44 @@ mod tests {
         assert_eq!(mime_of(Path::new("a.js")), "text/javascript");
         assert_eq!(mime_of(Path::new("a.woff2")), "font/woff2");
         assert_eq!(mime_of(Path::new("a.bin")), "application/octet-stream");
+    }
+
+    #[test]
+    fn cache_control_index_html_is_no_store() {
+        assert_eq!(cache_control_for("index.html"), "no-store");
+        assert_eq!(cache_control_for("/"), "no-store");
+        assert_eq!(cache_control_for(""), "no-store");
+    }
+
+    #[test]
+    fn cache_control_non_hashed_static_is_no_store() {
+        assert_eq!(cache_control_for("favicon.ico"), "no-store");
+        assert_eq!(cache_control_for("assets/vite.svg"), "no-store");
+        assert_eq!(cache_control_for("assets/index.js"), "no-store");
+        assert_eq!(cache_control_for("assets/foo-123.js"), "no-store");
+    }
+
+    #[test]
+    fn cache_control_hashed_assets_is_immutable() {
+        assert_eq!(
+            cache_control_for("assets/index-D3fG4fH1.js"),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            cache_control_for("assets/index-AbCdEf12.css"),
+            "public, max-age=31536000, immutable"
+        );
+    }
+
+    #[test]
+    fn is_hashed_asset_detection() {
+        assert!(is_hashed_asset("assets/index-12345678.js"));
+        assert!(is_hashed_asset("assets/logo-AbCdEfGh.svg"));
+        // Vite url-safe hash 可含 '-'（真实样例 index-D4J30-jW.css）：首 '-' 后整段即 hash
+        assert!(is_hashed_asset("assets/index-D4J30-jW.css"));
+        assert!(!is_hashed_asset("assets/index.js"));
+        assert!(!is_hashed_asset("index.html"));
+        assert!(!is_hashed_asset("assets/foo-123.js"));
     }
 }
 ```
@@ -3254,6 +3336,7 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
   09-frontend §4 的 mock 默认仅限开发态；Wave 2 Phase C 联调发现缺该 env 会静默出 mock 数据）
   → `builder`（rust 编译 eestock-app）→ runtime（debian-slim 非 root，
   dist 从 frontend 阶段 COPY）。构建上下文无需预存 dist；`.dockerignore` 排除 node_modules/target/data 等。
+  前端阶段构建前 `rm -rf dist` 清空历史产物（防旧镜像遗留的旧哈希 bundle 被 COPY 到运行时）。
 - compose `app` 服务（docker-compose.yml 手写例外）：`depends_on: timescaledb(healthy)`——
   **不依赖 data 服务**（两面零耦合，库为唯一耦合点）；`8081:8081`（数据面 8080 不动）；
   `./config/app.toml` 只读挂载（.gitignore；模板 config/app.toml.example 入库）；
@@ -3270,6 +3353,9 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
+# 清空历史构建产物：vite build 默认 emptyOutDir，但 COPY 的本地 web/dist 可能遗留旧哈希 bundle，
+# 导致 /app/dist 出现多个历史 index-*.js（旧镜像产物残留）。删净避免旧 bundle 被侥幸 COPY 到运行时。
+RUN rm -rf dist
 # 生产镜像直连真后端（09-frontend §4：mock 开关默认仅开发态；缺省构建会静默出 mock 数据）
 RUN VITE_API_MOCK=0 npm run build
 

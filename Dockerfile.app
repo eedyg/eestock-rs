@@ -8,6 +8,9 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
+# 清空历史构建产物：vite build 默认 emptyOutDir，但 COPY 的本地 web/dist 可能遗留旧哈希 bundle，
+# 导致 /app/dist 出现多个历史 index-*.js（旧镜像产物残留）。删净避免旧 bundle 被侥幸 COPY 到运行时。
+RUN rm -rf dist
 # 生产镜像直连真后端（09-frontend §4：mock 开关默认仅开发态；缺省构建会静默出 mock 数据）
 RUN VITE_API_MOCK=0 npm run build
 

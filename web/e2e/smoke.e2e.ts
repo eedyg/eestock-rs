@@ -48,3 +48,22 @@ test.describe('冒烟：深链直达（直接刷新/新开直达子路由）', (
     });
   }
 });
+
+test.describe('冒烟：SPA 缓存头策略（防旧 bundle 404 回退）', () => {
+  // 直接用 APIRequestContext 断言原始响应头，绕开浏览器缓存（Playwright request 不共享 page 缓存）。
+  test('index.html 响应头含 Cache-Control: no-store', async ({ request }) => {
+    const resp = await request.get('/');
+    expect(resp.status()).toBe(200);
+    expect(resp.headers()['cache-control']).toContain('no-store');
+  });
+
+  test('哈希静态资产响应头含 immutable 长期缓存', async ({ request }) => {
+    const page = await request.get('/');
+    const html = await page.text();
+    const m = html.match(/src="([^"]*\/assets\/index-[^"]*\.js)"/);
+    expect(m).toBeTruthy();
+    const asset = await request.get(m![1]);
+    expect(asset.status()).toBe(200);
+    expect(asset.headers()['cache-control']).toContain('immutable');
+  });
+});

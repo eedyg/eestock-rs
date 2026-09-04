@@ -29,9 +29,11 @@ async fn serve_path(dir: &Path, req_path: &str) -> Response {
         None => (StatusCode::BAD_REQUEST, "bad path").into_response(),
         Some(rel) => {
             let candidate = dir.join(&rel);
-            if candidate.is_file() { return file_response(&candidate).await; }
+            if candidate.is_file() {
+                return file_response(&candidate, rel.to_str().unwrap_or("index.html")).await;
+            }
             let index = dir.join("index.html");
-            if index.is_file() { return file_response(&index).await; }
+            if index.is_file() { return file_response(&index, "index.html").await; }
             (StatusCode::SERVICE_UNAVAILABLE,
              "SPA 未构建：web/dist 缺失（前端 Wave 1 Phase B 产出）").into_response()
         }
@@ -66,10 +68,44 @@ pub fn mime_of(path: &Path) -> &'static str {
     }
 }
 
-async fn file_response(path: &Path) -> Response {
+async fn file_response(path: &Path, cache_key: &str) -> Response {
+    let cache = cache_control_for(cache_key);
     match tokio::fs::read(path).await {
-        Ok(bytes) => ([(header::CONTENT_TYPE, mime_of(path))], Body::from(bytes)).into_response(),
+        Ok(bytes) => (
+            [
+                (header::CONTENT_TYPE, mime_of(path)),
+                (header::CACHE_CONTROL, cache),
+            ],
+            Body::from(bytes),
+        ).into_response(),
         Err(_) => (StatusCode::NOT_FOUND, "not found").into_response(),
+    }
+}
+
+/// 相对 static_dir 路径的 Cache-Control 策略（§1.3 缓存头策略）：
+/// 哈希静态资产（`assets/<name>-<hash>.<ext>`）→ 长期不可变缓存；其余（含 index.html）→ no-store。
+fn cache_control_for(rel: &str) -> &'static str {
+    if is_hashed_asset(rel) {
+        "public, max-age=31536000, immutable"
+    } else {
+        "no-store"
+    }
+}
+
+/// 判定是否为 Vite 内容寻址哈希资产：路径位于 `assets/` 前缀，且 basename 去扩展名后
+/// 形如 `<name>-<hash>`，其中 `<hash>` 为第一个 `-` 之后的部分，长度 >= 8 且均为
+/// [A-Za-z0-9_-]（Vite 默认 8+ 位 url-safe hash，可能自带 `-`/`_`，如 index-D4J30-jW.css）。
+/// 保守：不满足一律视为非哈希（no-store）。
+fn is_hashed_asset(rel: &str) -> bool {
+    let p = rel.trim_start_matches('/');
+    if !p.starts_with("assets/") { return false; }
+    let basename = p.rsplit('/').next().unwrap_or(p);
+    let stem = basename.rsplit_once('.').map(|(s, _)| s).unwrap_or(basename);
+    match stem.split_once('-') {
+        Some((_, hash)) => {
+            hash.len() >= 8 && hash.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        }
+        None => false,
     }
 }
 
@@ -97,6 +133,44 @@ mod tests {
         assert_eq!(mime_of(Path::new("a.js")), "text/javascript");
         assert_eq!(mime_of(Path::new("a.woff2")), "font/woff2");
         assert_eq!(mime_of(Path::new("a.bin")), "application/octet-stream");
+    }
+
+    #[test]
+    fn cache_control_index_html_is_no_store() {
+        assert_eq!(cache_control_for("index.html"), "no-store");
+        assert_eq!(cache_control_for("/"), "no-store");
+        assert_eq!(cache_control_for(""), "no-store");
+    }
+
+    #[test]
+    fn cache_control_non_hashed_static_is_no_store() {
+        assert_eq!(cache_control_for("favicon.ico"), "no-store");
+        assert_eq!(cache_control_for("assets/vite.svg"), "no-store");
+        assert_eq!(cache_control_for("assets/index.js"), "no-store");
+        assert_eq!(cache_control_for("assets/foo-123.js"), "no-store");
+    }
+
+    #[test]
+    fn cache_control_hashed_assets_is_immutable() {
+        assert_eq!(
+            cache_control_for("assets/index-D3fG4fH1.js"),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            cache_control_for("assets/index-AbCdEf12.css"),
+            "public, max-age=31536000, immutable"
+        );
+    }
+
+    #[test]
+    fn is_hashed_asset_detection() {
+        assert!(is_hashed_asset("assets/index-12345678.js"));
+        assert!(is_hashed_asset("assets/logo-AbCdEfGh.svg"));
+        // Vite url-safe hash 可含 '-'（真实样例 index-D4J30-jW.css）：首 '-' 后整段即 hash
+        assert!(is_hashed_asset("assets/index-D4J30-jW.css"));
+        assert!(!is_hashed_asset("assets/index.js"));
+        assert!(!is_hashed_asset("index.html"));
+        assert!(!is_hashed_asset("assets/foo-123.js"));
     }
 }
 // ~/~ end
