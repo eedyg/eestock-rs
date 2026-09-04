@@ -68,3 +68,20 @@
 6. **06 市价五档数据源**：推迟至 Wave 4 spike（券商通道 vs 本系统快照池 TencentQt 五档字段，届时实测定夺，文档标 TODO-W4）
 7. **03 表单弹窗形态**：批准模态弹窗（遮罩点击不关闭防误触）
 8. **布局空间自决项**（04 50/50 并排、06 右栏 W=320、08 锚点导航）：批准
+
+## 补记（2026-09-04）— Wave 1 Phase D：MCP server 裁决
+
+1. **MCP transport 维持 SSE（spec 2024-11-05）口径**（ADR-009「HTTP/SSE 常驻服务」字面合规）；
+   批准 mcp crate 引入 `tokio-stream`（workspace 级声明 `0.1`，features `sync`）——
+   锁文件零变化（sqlx 传递依赖已在树内，实际零新增编译单元）。
+   候选取舍：A tokio-stream（批准，代码最少风险最低）/ B futures-core 手写 Stream impl（多 poll 样板）/
+   C 零依赖 Streamable-HTTP-JSON（偏离 ADR-009 字面口径，否决）。决策注记落 design/07-app-plane/01-mcp.md §0。
+2. **Backlog（Wave 2 评估）**：MCP Streamable HTTP transport（2025-03-26 spec；SSE transport 已标记
+   deprecated）——届时评估双 transport 并存或迁移，本期不做。
+3. **部署形态**：MCP 与 web 同进程（eestock-app 复用同一 DI 产物，KISS）、端口独立 8082
+   （配置项 `mcp_listen`，env `MCP_LISTEN`）；SSE 端点连接泄漏防护 = SessionGuard drop 注销会话 + 15s 保活帧。
+
+## Wave 0 收官（2026-09-04，架构师终审）
+- 复验 5/5 PASS（tester/report/005）：修复质量/门禁/00:00 触发/**3c 实盘自愈（阻断 94s 零缺口零重启）**/准确层收敛 10,604 行
+- 项 5 口径裁决：闭环成立——数据已于 00:00 收敛（主目标达成）；08:00 触发失败属环境性（磁盘满，已解除），调度器重排 18:00 + 审计事件行为正确，触发机制已被 18:00/00:00 两次实盘验证
+- **Wave 0（完备产品级数据获取）正式收官**：历史（tushare 准确层，三时点自动补全）+ 实时（Tier1 双源轮值+熔断+降级+自愈回切）链路产品级 ready
