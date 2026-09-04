@@ -115,3 +115,8 @@
 7. **POST /api/tushare/sync 暂缓**（父级裁决：采纳候选 B，留 Wave 2 后续 Phase 单开工单——手动轮与
    三时点轮的 checkpoint/退避幂等交互单独评审；过渡态定稿：页面④ 手动触发按钮置灰）。GET /api/tushare/status
    已交付（quota_remaining 恒 null——积分余额未入库）。
+
+## E2E 测试栈定稿（2026-09-04，用户拍板）
+- 引入 Playwright E2E（真实浏览器）；运行打真实容器 :8081（a）
+- 视觉回归基线从初始建立（b）；动态区域用 mask 结构化基线防分钟级噪声
+- 截图走查并入页面验收门槛（用户过目才交付）
