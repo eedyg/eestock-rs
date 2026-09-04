@@ -90,3 +90,9 @@
 - 验收 8/8 PASS（tester/report/006）：门禁/REST/WS/SPA/symbols 写链热生效/熔断复位全链/MCP/compose
 - 部署偏差 D1（data 镜像滞后）+ D2（static_dir 残留旧值）已修复并实盘复验闭环；红线范围澄清：eestock 自身 docker 归架构师照管
 - Backlog 转 Wave 2：D3 慢查询优化、D4 amount 量纲、D5 事件空窗、D6 SPA 回退过宽（/api/* 应 404）、MCP Streamable HTTP 评估、13:00 标签伪缺口、粘源陈旧检测、节假日表
+
+## Wave 2 定稿（2026-09-04，用户确认）
+- 告警通知渠道：仅页面⑦展示 + WS 推送；webhook 按需后续单开
+- 筹码分布留 Wave 3（ADR-011 不变）；dashboard 密集区叠加随之 Wave 3
+- Wave 1 backlog 修复包（D3-D6 + 13:00 标签 + 粘源陈旧）全部并入 Wave 2
+- MCP Streamable HTTP 仅 spike 评估，不直接实施
