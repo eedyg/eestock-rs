@@ -2,13 +2,14 @@
 
 > 本文档 tangle 生成：
 > `crates/diagnose/src/{lib,health}.rs`、`crates/diagnose/tests/health_agg.rs`、
-> `crates/storage/src/reader.rs`、`crates/storage/tests/kline_reader.rs`、
-> `crates/web/src/{lib,dto,state,rest,ws,spa}.rs`、`crates/web/tests/{api_rest,ws_poller}.rs`、
+> `crates/storage/src/{reader,admin}.rs`、`crates/storage/tests/{kline_reader,symbol_admin}.rs`、
+> `crates/web/src/{lib,dto,state,rest,ws,spa}.rs`、`crates/web/tests/{api_rest,ws_poller,api_admin}.rs`、
 > `crates/app/src/app_config.rs`、`crates/app/src/bin/eestock-app.rs`、`crates/app/tests/app_config.rs`、
 > `Dockerfile.app`。
 >
-> 决策依据：ADR-017（部署双面分离：应用面与数据面零 API 直连，唯一耦合点 = TimescaleDB，全部读库）、
-> ADR-008（axum 栈）、ADR-010（免认证内网）、wave-1.md 2026-09-04 实施定稿（Phase A 后端）。
+> 决策依据：ADR-017（部署双面分离：应用面与数据面零 API 直连，唯一耦合点 = TimescaleDB）、
+> ADR-008（axum 栈）、ADR-010（免认证内网）、wave-1.md 2026-09-04 实施定稿（Phase A 后端）、
+> Wave 1 Phase C 任务书（§8：symbols 写端点 + 熔断复位 DB 控制通道）。
 >
 > **数据面零改动**：collector/providers/tushare/storage 写入路径一行不动。仅有三处父级授权的加法扩展：
 > ① `storage::reader`（只读查询模块，本节 §3）；② `app` crate 增加 `app_config` 模块与 `eestock-app` bin
@@ -39,6 +40,10 @@
 | `GET /api/kline` | `code`（必填）、`period=1m\|5m\|15m\|1h\|1d`（默认 `1m`）、`before`（RFC3339 游标，不含该 ts 的更早一页）、`limit`（默认 240，封顶 1000） | `{"code","period","bars":[{ts,open,high,low,close,volume,amount,source?}],"next_before"}`；bars **升序**（图表口径）；`next_before`=本页最旧 ts，`null`=无更早数据 | 1m=`kline_merged` 合并视图（准确层优先，ADR-003）；5m/15m/1d=对应 cagg（ADR-004）；1h=`kline_15m` 查询期 rollup（schema 未建 kline_1h cagg，rollup 语义等价） | 400：`code` 空 / `period` 非法 / `before` 非 RFC3339；500 JSON `{"error":...}` |
 | `GET /api/symbols` | — | `[{code,name,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`；`change_pct`=相对前一根 merge bar 收盘（%），无前值/无 bar → null | `symbols` + `kline_merged` 每 code 最近 2 根（LATERAL） | 500 |
 | `GET /api/sources/health` | `window_secs`（默认 3600 = 页面② `SOURCES_DEFAULTS.successRateWindow='1h'`，钳制 60..604800） | `{"window_secs","sources":[{source,attempts,successes,success_rate,p50_ms,p95_ms,circuit_state,status,last_error,last_event_ts}]}`；`success_rate` 分母**排除 `err_kind='na'`**（03 §7），分母 0 → `null` | `source_health_events` 窗口聚合（diagnose crate，05-diagnose §1 口径） | 500 |
+| `POST /api/symbols`（Phase C §8） | body `{code, name?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
+| `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
+| `GET /api/symbols?with_stats=1`（Phase C §8） | `with_stats=1` 追加每标的当日统计 | 列表项追加 `today_bars`（当日 kline_raw 行数，Asia/Shanghai 日界；无 bar → 0） | `kline_raw` 当日窗口 GROUP BY | 500 |
+| `POST /api/sources/{id}/reset`（Phase C §8） | 路径 id = SourceId 文本（未知 id 也接受：应用面不知编译期源清单，数据面消费端跳过并告警） | 202 `{"status":"accepted"}`（**异步**：写 `circuit_reset_requests`，数据面 ResetWatcher ≤5s 内消费复位并发出 `manual_reset` 事件） | `circuit_reset_requests` 表（0007） | 400：id 空；500 |
 
 字段口径（diagnose，05-diagnose §1 实现 Wave 1 最小集）：
 
@@ -80,10 +85,14 @@ broadcast lagged 丢帧由客户端重连/REST 重拉兜底。
 路径含 `..`/反斜杠/空段 → 400（防目录穿越）；dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物覆盖）。
 不引 tower-http：手写 ~60 行（ADR-017 最小攻击面同口径；零新增依赖）。
 
-### 1.4 明确不做（Phase A 边界）
+### 1.4 明确不做（边界）
 
-`POST/PATCH /api/symbols`、`/api/sources/{id}/metrics|events|divergence|reset`、`/api/collection/gaps`、
-`/api/alerts*`（02-sources §8 / 03-symbols §6 所列其余端点）→ Phase B/C 或 Wave 2，本阶段不实现。
+**Phase A 不做**（Phase B/C 或 Wave 2）：`/api/sources/{id}/metrics|events|divergence`、
+`/api/collection/gaps`、`/api/alerts*`（02-sources §8 / 03-symbols §6 所列其余端点）。
+**Phase C 已交付**（§8）：`POST/PATCH /api/symbols`、`GET /api/symbols?with_stats=1`、
+`POST /api/sources/{id}/reset`。
+**不做物理删除**（03-symbols §4 定稿）：仅停用（`enabled=false`，历史数据保留），
+无 `DELETE /api/symbols` 端点；物理删除仅限 DBA 手工 SQL，不在产品功能内。
 WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_health"` 为同一通道，前端适配层映射）。
 
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
@@ -407,7 +416,10 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use domain::ports::{HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView};
+use domain::ports::{
+    HealthEventRow, HealthEventsRead, KlineBarView, KlineRead, SymbolLatestView, SymbolStatView,
+    SymbolStatsRead,
+};
 use domain::types::Period;
 use sqlx::PgPool;
 
@@ -464,6 +476,14 @@ WHERE ts > now() - make_interval(secs => $1)
 ORDER BY source, ts
 "#;
 
+/// 当日（Asia/Shanghai 日界）kline_raw 每 code 行数与最新 ts（页面③ with_stats 数据源）。
+const TODAY_STATS_SQL: &str = r#"
+SELECT code, count(*)::bigint AS today_bars, max(ts) AS last_bar_ts
+FROM kline_raw
+WHERE ts >= $1 AND ts < $2
+GROUP BY code
+"#;
+
 /// K线只读端口实现（PgPool）。
 pub struct KlineReader {
     pool: PgPool,
@@ -506,6 +526,23 @@ impl KlineRead for KlineReader {
             SymbolLatestView { code, name, interval_secs, settlement, enabled,
                                last_ts, last_close, prev_close }
         ).collect())
+    }
+}
+
+/// 标的当日采集统计（SymbolStatsRead 实现；页面③ GET /api/symbols?with_stats=1 数据源）。
+/// 当日 = Asia/Shanghai 日界（domain::tz 固定 +8 平移口径，与 RawBarReader::existing_ts 一致）。
+#[async_trait]
+impl SymbolStatsRead for KlineReader {
+    async fn today_stats(&self) -> Result<Vec<SymbolStatView>> {
+        let today_cst = domain::tz::utc_to_cst(Utc::now()).date();
+        let start = domain::tz::cst_to_utc(today_cst.and_hms_opt(0, 0, 0).expect("valid hms"));
+        let end = domain::tz::cst_to_utc((today_cst + chrono::Duration::days(1))
+            .and_hms_opt(0, 0, 0).expect("valid hms"));
+        type Row = (String, i64, Option<DateTime<Utc>>);
+        let rows: Vec<Row> = sqlx::query_as(TODAY_STATS_SQL)
+            .bind(start).bind(end).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(code, today_bars, last_bar_ts)|
+            SymbolStatView { code, today_bars, last_bar_ts }).collect())
     }
 }
 
@@ -695,7 +732,7 @@ pub mod spa;
 pub mod state;
 pub mod ws;
 
-use axum::{routing::get, Router};
+use axum::{routing::{get, patch, post}, Router};
 use std::sync::Arc;
 
 /// 路由装配（DI 入口；state 由 app crate 注入）。
@@ -703,8 +740,12 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
     Router::new()
         .route("/healthz", get(rest::healthz))
         .route("/api/kline", get(rest::get_kline))
-        .route("/api/symbols", get(rest::get_symbols))
+        // Phase C：symbols 写端点（注册 POST / 编辑 PATCH；无物理删除，03-symbols §4）
+        .route("/api/symbols", get(rest::get_symbols).post(rest::register_symbol))
+        .route("/api/symbols/{code}", patch(rest::update_symbol))
         .route("/api/sources/health", get(rest::get_sources_health))
+        // Phase C：熔断手动复位（DB 控制通道，ADR-017）
+        .route("/api/sources/{id}/reset", post(rest::reset_source))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -796,6 +837,9 @@ pub struct SymbolDto {
     pub settlement: String,
     pub enabled: bool,
     pub latest: Option<LatestDto>,
+    /// 仅 with_stats=1 时填充：当日（Asia/Shanghai 日界）kline_raw 行数（无 bar → 0）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub today_bars: Option<i64>,
 }
 
 impl From<&SymbolLatestView> for SymbolDto {
@@ -808,7 +852,7 @@ impl From<&SymbolLatestView> for SymbolDto {
         });
         SymbolDto {
             code: r.code.clone(), name: r.name.clone(), interval_secs: r.interval_secs,
-            settlement: r.settlement.clone(), enabled: r.enabled, latest,
+            settlement: r.settlement.clone(), enabled: r.enabled, latest, today_bars: None,
         }
     }
 }
@@ -818,6 +862,79 @@ impl From<&SymbolLatestView> for SymbolDto {
 pub struct HealthQuery {
     #[serde(default = "default_window")]
     pub window_secs: i64,
+}
+
+// ── Phase C：标的管理写端点与熔断复位 DTO/校验（§8 契约）──
+
+/// GET /api/symbols 查询参数：with_stats=1 追加当日采集统计。
+#[derive(Debug, Deserialize)]
+pub struct SymbolsQuery {
+    pub with_stats: Option<String>,
+}
+
+fn default_interval() -> i32 { 60 }
+fn default_settlement() -> String { "T1".into() }
+fn default_enabled() -> bool { true }
+
+/// POST /api/symbols 请求体（缺省与 schema DEFAULT 同口径：60s / T1 / 启用）。
+#[derive(Debug, Deserialize)]
+pub struct RegisterSymbolReq {
+    pub code: String,
+    pub name: Option<String>,
+    #[serde(default = "default_interval")]
+    pub interval_secs: i32,
+    #[serde(default = "default_settlement")]
+    pub settlement: String,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
+}
+
+/// PATCH /api/symbols/{code} 请求体（None = 不改；code 主键不可改）。
+#[derive(Debug, Deserialize)]
+pub struct UpdateSymbolReq {
+    pub name: Option<String>,
+    pub interval_secs: Option<i32>,
+    pub settlement: Option<String>,
+    pub enabled: Option<bool>,
+}
+
+/// 校验错误分类：400 = 格式/取值错误；422 = 业务拒绝（北交所）。
+#[derive(Debug, PartialEq, Eq)]
+pub enum FieldError {
+    BadRequest(String),
+    Unprocessable(String),
+}
+
+/// code 校验（03-symbols §3）：6 位数字 → 市场前缀（复用 domain Code::market 契约，
+/// 5/6/9→沪、0/1/2/3→深、4/8/920 北交所拒绝）。
+pub fn validate_code(code: &str) -> Result<(), FieldError> {
+    if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
+        return Err(FieldError::BadRequest("code 须为 6 位数字".into()));
+    }
+    domain::types::Code(code.into()).market().map_err(|_|
+        FieldError::Unprocessable("北交所标的（4/8/920 前缀）暂不支持".into()))?;
+    Ok(())
+}
+
+/// interval_secs 校验：下限 60（schema CHECK interval_secs>=60 同口径，双保险）。
+pub fn validate_interval(secs: i32) -> Result<(), FieldError> {
+    if secs < 60 {
+        return Err(FieldError::BadRequest("interval_secs 下限 60（秒）".into()));
+    }
+    Ok(())
+}
+
+/// settlement 校验：T0/T1（schema CHECK 同口径）。
+pub fn validate_settlement(s: &str) -> Result<(), FieldError> {
+    if s != "T0" && s != "T1" {
+        return Err(FieldError::BadRequest("settlement 须为 T0 或 T1".into()));
+    }
+    Ok(())
+}
+
+/// name 归一：空串/纯空白 → None。
+pub fn normalize_name(name: Option<String>) -> Option<String> {
+    name.and_then(|n| { let t = n.trim().to_string(); if t.is_empty() { None } else { Some(t) } })
 }
 
 #[cfg(test)]
@@ -851,6 +968,47 @@ mod tests {
             last_ts: None, last_close: None, prev_close: None };
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert!(v["latest"].is_null());
+        assert!(v.get("today_bars").is_none(), "非 with_stats 请求不出 today_bars 键");
+    }
+
+    // ── Phase C：symbols 写端点校验（03-symbols §3 口径 + schema CHECK 对齐）──
+
+    #[test]
+    fn validate_code_format_and_market() {
+        assert!(validate_code("600519").is_ok(), "沪");
+        assert!(validate_code("159915").is_ok(), "深");
+        assert!(validate_code("518880").is_ok());
+        assert!(matches!(validate_code("60051"), Err(FieldError::BadRequest(_))), "非 6 位");
+        assert!(matches!(validate_code("60051a"), Err(FieldError::BadRequest(_))), "非数字");
+        assert!(matches!(validate_code(""), Err(FieldError::BadRequest(_))));
+        for bse in ["430001", "830799", "920001"] {
+            assert!(matches!(validate_code(bse), Err(FieldError::Unprocessable(_))),
+                "{bse} 北交所前缀 → 422");
+        }
+    }
+
+    #[test]
+    fn validate_interval_and_settlement() {
+        assert!(validate_interval(60).is_ok());
+        assert!(validate_interval(300).is_ok());
+        assert!(matches!(validate_interval(59), Err(FieldError::BadRequest(_))),
+            "下限 60（schema CHECK 同口径）");
+        assert!(validate_settlement("T0").is_ok());
+        assert!(validate_settlement("T1").is_ok());
+        assert!(matches!(validate_settlement("T2"), Err(FieldError::BadRequest(_))));
+        assert!(matches!(validate_settlement("t0"), Err(FieldError::BadRequest(_))));
+    }
+
+    #[test]
+    fn normalize_name_and_register_defaults() {
+        assert_eq!(normalize_name(Some("  黄金ETF  ".into())), Some("黄金ETF".into()));
+        assert_eq!(normalize_name(Some("   ".into())), None);
+        assert_eq!(normalize_name(None), None);
+        let req: RegisterSymbolReq = serde_json::from_str(r#"{"code":"600519"}"#).unwrap();
+        assert_eq!(req.interval_secs, 60, "缺省 60s（schema DEFAULT 同口径）");
+        assert_eq!(req.settlement, "T1");
+        assert!(req.enabled);
+        assert!(req.name.is_none());
     }
 }
 ```
@@ -867,6 +1025,12 @@ pub struct AppState {
     pub kline: Arc<dyn domain::ports::KlineRead>,
     /// 健康查询服务（diagnose；内部注入 domain::ports::HealthEventsRead）。
     pub health: diagnose::health::HealthService,
+    /// 标的管理写端口（Phase C：POST/PATCH /api/symbols；DB 控制通道，ADR-017）。
+    pub symbols_admin: Arc<dyn domain::ports::SymbolAdminWrite>,
+    /// 标的当日统计只读端口（Phase C：GET /api/symbols?with_stats=1）。
+    pub symbol_stats: Arc<dyn domain::ports::SymbolStatsRead>,
+    /// 熔断复位写端口（Phase C：POST /api/sources/{id}/reset；DB 控制通道）。
+    pub resets: Arc<dyn domain::ports::CircuitResetWrite>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -879,12 +1043,13 @@ pub struct AppState {
 //! REST 端点处理（契约见本文档 §1.1）。
 
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use chrono::{DateTime, Utc};
+use domain::ports::{SymbolAdminInput, SymbolPatch};
 use std::sync::Arc;
 
 use crate::dto::*;
@@ -934,9 +1099,101 @@ pub async fn get_kline(State(st): State<Arc<AppState>>, Query(q): Query<KlineQue
     }
 }
 
-pub async fn get_symbols(State(st): State<Arc<AppState>>) -> Response {
-    match st.kline.symbols_with_latest().await {
-        Ok(rows) => Json(rows.iter().map(SymbolDto::from).collect::<Vec<_>>()).into_response(),
+pub async fn get_symbols(State(st): State<Arc<AppState>>,
+                         Query(q): Query<SymbolsQuery>) -> Response {
+    let with_stats = q.with_stats.as_deref() == Some("1");
+    let rows = match st.kline.symbols_with_latest().await {
+        Ok(r) => r,
+        Err(e) => return internal(e),
+    };
+    let mut list: Vec<SymbolDto> = rows.iter().map(SymbolDto::from).collect();
+    if with_stats {
+        match st.symbol_stats.today_stats().await {
+            Ok(stats) => {
+                let map: std::collections::HashMap<String, i64> =
+                    stats.into_iter().map(|s| (s.code, s.today_bars)).collect();
+                for d in &mut list {
+                    d.today_bars = Some(map.get(&d.code).copied().unwrap_or(0));
+                }
+            }
+            Err(e) => return internal(e),
+        }
+    }
+    Json(list).into_response()
+}
+
+/// 字段校验错误 → 400/422 JSON（FieldError 分类）。
+fn field_err(e: FieldError) -> Response {
+    match e {
+        FieldError::BadRequest(m) => err(StatusCode::BAD_REQUEST, &m),
+        FieldError::Unprocessable(m) => err(StatusCode::UNPROCESSABLE_ENTITY, &m),
+    }
+}
+
+/// 写后回读（经 merge 视图返回含 latest 的完整行）；写成功但回读缺失 → 500（不自洽）。
+async fn read_symbol(st: &AppState, code: &str) -> anyhow::Result<Option<SymbolDto>> {
+    Ok(st.kline.symbols_with_latest().await?.iter()
+        .find(|r| r.code == code).map(SymbolDto::from))
+}
+
+/// POST /api/symbols —— 注册标的（校验 03-symbols §3；写 symbols 表即控制通道，热生效）。
+/// 名称不经服务端行情源反查（ADR-017：应用面无数据面直连）——请求体携带或留空后续 PATCH。
+pub async fn register_symbol(State(st): State<Arc<AppState>>,
+                             Json(req): Json<RegisterSymbolReq>) -> Response {
+    if let Err(e) = validate_code(&req.code) { return field_err(e); }
+    if let Err(e) = validate_interval(req.interval_secs) { return field_err(e); }
+    if let Err(e) = validate_settlement(&req.settlement) { return field_err(e); }
+    let input = SymbolAdminInput {
+        code: req.code.clone(), name: normalize_name(req.name),
+        interval_secs: req.interval_secs, settlement: req.settlement.clone(),
+        enabled: req.enabled,
+    };
+    match st.symbols_admin.register(&input).await {
+        Ok(true) => match read_symbol(&st, &req.code).await {
+            Ok(Some(dto)) => (StatusCode::CREATED, Json(dto)).into_response(),
+            Ok(None) => internal(anyhow::anyhow!("register 后回读缺失 {}", req.code)),
+            Err(e) => internal(e),
+        },
+        Ok(false) => err(StatusCode::CONFLICT, "code 已注册（编辑用 PATCH）"),
+        Err(e) => internal(e),
+    }
+}
+
+/// PATCH /api/symbols/{code} —— 编辑（间隔/启停/名称/settlement；code 主键不可改）。
+/// 仅停用、无物理删除（03-symbols §4）；间隔修改下一采集周期热生效。
+pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<String>,
+                           Json(req): Json<UpdateSymbolReq>) -> Response {
+    if let Some(secs) = req.interval_secs {
+        if let Err(e) = validate_interval(secs) { return field_err(e); }
+    }
+    if let Some(s) = &req.settlement {
+        if let Err(e) = validate_settlement(s) { return field_err(e); }
+    }
+    let patch = SymbolPatch {
+        name: normalize_name(req.name),
+        interval_secs: req.interval_secs,
+        settlement: req.settlement.clone(),
+        enabled: req.enabled,
+    };
+    match st.symbols_admin.update(&code, &patch).await {
+        Ok(true) => match read_symbol(&st, &code).await {
+            Ok(Some(dto)) => Json(dto).into_response(),
+            Ok(None) => internal(anyhow::anyhow!("update 后回读缺失 {code}")),
+            Err(e) => internal(e),
+        },
+        Ok(false) => err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => internal(e),
+    }
+}
+
+/// POST /api/sources/{id}/reset —— 熔断手动复位（DB 控制通道，ADR-017）。
+/// 202 异步：写 circuit_reset_requests；数据面 ResetWatcher ≤5s 消费并发出 manual_reset 事件
+/// （未知源 id 由消费端跳过并告警——应用面不知编译期源清单，不在此校验）。
+pub async fn reset_source(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+    if id.trim().is_empty() { return err(StatusCode::BAD_REQUEST, "source id 空"); }
+    match st.resets.request_reset(&id).await {
+        Ok(()) => (StatusCode::ACCEPTED,
+            Json(serde_json::json!({ "status": "accepted" }))).into_response(),
         Err(e) => internal(e),
     }
 }
@@ -1352,7 +1609,11 @@ fn state(pool: PgPool) -> Arc<AppState> {
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool))),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写 / 当日统计 / 熔断复位 DB 通道
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -1531,7 +1792,11 @@ fn state(pool: PgPool) -> Arc<AppState> {
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool))),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写 / 当日统计 / 熔断复位 DB 通道（本文件不涉及行为，仅装配齐全）
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -1691,11 +1956,15 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("schema self-check ok");
 
     // DI 装配（ADR-017：app 是唯一持有 storage 具体实现的应用面组件；
-    // web 只见 domain::ports::KlineRead，diagnose 只见 domain::ports::HealthEventsRead）
+    // web 只见 domain::ports，diagnose 只见 domain::ports::HealthEventsRead）
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool))),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写端点 / with_stats 当日统计 / 熔断复位 DB 控制通道
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),
@@ -1801,3 +2070,408 @@ CMD ["--config", "/etc/eestock/app.toml"]
 - web：parse_period 前端口径 / 游标分页无重复缺漏 / 400 校验 / SPA 深链回退与目录穿越 /
   WS matches 矩阵与 JSON tag 形状 / Poller 增量推送不重复（单测 + 集成测试）。
 - app：TOML 默认值 + env 覆盖。
+
+## 8. Phase C：symbols 写端点 + 熔断复位 DB 控制通道（Wave 1 Phase C 任务书）
+
+> 2026-09-06 Phase C 定稿节后落稿。契约表见 §1.1（Phase C 行）、边界见 §1.4。
+> 事实约束（ADR-017 铁律）：应用面影响数据面**只能经 DB**。本阶段两条控制通道：
+> ① symbols 表写入（数据面 Scheduler 每周期重读，间隔/启停热生效，03-collector §2 既有机制）；
+> ② `circuit_reset_requests` 表（0007 迁移）+ 数据面 `collector::reset::ResetWatcher`
+> 轮询消费（03-collector §10，纯加法扩展，数据面既有逻辑零改动）。
+
+### 8.1 决策注记
+
+- **名称不经服务端行情源反查**：03-symbols L2 的「注册时服务端反查名称」依赖行情源，
+  与 ADR-017（应用面无数据面/外网直连）冲突 → 按 ADR-017 裁决：name 由请求体携带或留空
+  （设计既定降级路径「失败留空可手工改」），可后续 `PATCH` 补录。
+- **无 `DELETE /api/symbols`**：03-symbols §4 定稿仅停用（`enabled=false`），物理删除不在产品内。
+- **复位为异步语义**：202 仅表示请求落库；数据面 ≤5s 消费后由数据面发出 `manual_reset`
+  事件（单写者原则），diagnose 聚合呈现闭合、WS `health` 推送经 Poller 增量生效。
+- **复位 id 不在应用面校验**：应用面不知编译期源清单；未知 id 由数据面消费端跳过并 warn。
+
+### 8.2 storage 写/控制通道加法扩展（admin.rs）
+
+父级授权口径同 Phase A reader（「storage 接口加法扩展可以」）：`admin.rs` 为纯新增文件，
+写路径（kline/accurate/events/symbols.rs）零改动；`pub mod admin;` 声明维护在
+design/04-storage/02-tushare-sync.md。实现 domain Phase C 端口（02-domain/contracts.md §2.4 尾部）。
+
+``` {.rust file=crates/storage/src/admin.rs}
+//! 应用面写/控制通道加法扩展（Wave 1 Phase C，ADR-017 授权口径；数据面既有写路径零改动）：
+//! - PgSymbolAdmin：symbols 表注册/编辑（写即控制通道——Scheduler 每周期重读热生效）
+//! - PgResetStore：熔断复位 DB 通道（应用面 request_reset 插入；数据面 take_pending 原子消费）
+//!
+//! 字段校验在 web 层完成（dto.rs 纯函数，与 schema CHECK 同口径）；本层仅落库，CHECK 兜底。
+
+use anyhow::Result;
+use async_trait::async_trait;
+use domain::ports::{
+    CircuitResetChannel, CircuitResetWrite, ResetRequest, SymbolAdminInput, SymbolAdminWrite,
+    SymbolPatch,
+};
+use sqlx::PgPool;
+
+/// symbols 表管理写（POST /api/symbols、PATCH /api/symbols/{code}）。
+pub struct PgSymbolAdmin {
+    pool: PgPool,
+}
+
+impl PgSymbolAdmin {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl SymbolAdminWrite for PgSymbolAdmin {
+    /// 注册；ON CONFLICT DO NOTHING → rows_affected=0 即已存在（Ok(false)，web 映射 409）。
+    async fn register(&self, input: &SymbolAdminInput) -> Result<bool> {
+        let n = sqlx::query(
+            "INSERT INTO symbols (code, name, interval_secs, settlement, enabled) \
+             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (code) DO NOTHING")
+            .bind(&input.code).bind(&input.name)
+            .bind(input.interval_secs).bind(&input.settlement).bind(input.enabled)
+            .execute(&self.pool).await?
+            .rows_affected();
+        Ok(n > 0)
+    }
+
+    /// 编辑（COALESCE 语义：None 字段不改）；code 不存在 → Ok(false)（web 映射 404）。
+    async fn update(&self, code: &str, patch: &SymbolPatch) -> Result<bool> {
+        let n = sqlx::query(
+            "UPDATE symbols SET \
+                 name = COALESCE($2, name), \
+                 interval_secs = COALESCE($3, interval_secs), \
+                 settlement = COALESCE($4, settlement), \
+                 enabled = COALESCE($5, enabled) \
+             WHERE code = $1")
+            .bind(code).bind(&patch.name).bind(patch.interval_secs)
+            .bind(&patch.settlement).bind(patch.enabled)
+            .execute(&self.pool).await?
+            .rows_affected();
+        Ok(n > 0)
+    }
+}
+
+/// 熔断复位 DB 控制通道（circuit_reset_requests，migrations/0007）：
+/// 应用面写（CircuitResetWrite）+ 数据面消费（CircuitResetChannel），单表双角色。
+pub struct PgResetStore {
+    pool: PgPool,
+}
+
+impl PgResetStore {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl CircuitResetWrite for PgResetStore {
+    async fn request_reset(&self, source: &str) -> Result<()> {
+        sqlx::query("INSERT INTO circuit_reset_requests (source) VALUES ($1)")
+            .bind(source).execute(&self.pool).await?;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl CircuitResetChannel for PgResetStore {
+    /// UPDATE ... RETURNING 原子消费（并发下同行只被一个消费者取出；
+    /// circuit_reset_pending_idx 部分索引覆盖 consumed_at IS NULL）。
+    async fn take_pending(&self) -> Result<Vec<ResetRequest>> {
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            "UPDATE circuit_reset_requests SET consumed_at = now() \
+             WHERE id IN (SELECT id FROM circuit_reset_requests \
+                          WHERE consumed_at IS NULL ORDER BY id) \
+             RETURNING id, source")
+            .fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(id, source)| ResetRequest { id, source }).collect())
+    }
+}
+```
+
+集成测试（真实库 :5433；独立 code 段 9968xx + 独立 source 名，前后清理可重入）：
+
+``` {.rust file=crates/storage/tests/symbol_admin.rs}
+//! PgSymbolAdmin / PgResetStore / today_stats 集成测试（需 TimescaleDB :5433，含 0007 迁移）。
+
+use chrono::{Duration, Utc};
+use domain::ports::{
+    CircuitResetChannel, CircuitResetWrite, SymbolAdminInput, SymbolAdminWrite, SymbolPatch,
+    SymbolStatsRead,
+};
+use sqlx::PgPool;
+use storage::admin::{PgResetStore, PgSymbolAdmin};
+use storage::reader::KlineReader;
+
+const CODE: &str = "996810";
+const CODE2: &str = "996811";
+const STATS_CODE: &str = "996812";
+const RSRC: &str = "storage_test_reset_src";
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+async fn clean(pool: &PgPool) {
+    for c in [CODE, CODE2] {
+        sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(c).execute(pool).await.unwrap();
+        sqlx::query("DELETE FROM symbols WHERE code = $1").bind(c).execute(pool).await.unwrap();
+    }
+}
+
+// 每测试独立 clean（同 binary 测试并行执行，共享清理会互删——实锤踩坑，见 kline_reader.rs 注记）
+async fn clean_stats(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(STATS_CODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(STATS_CODE).execute(pool).await.unwrap();
+}
+
+async fn clean_reset(pool: &PgPool) {
+    sqlx::query("DELETE FROM circuit_reset_requests WHERE source = $1")
+        .bind(RSRC).execute(pool).await.unwrap();
+}
+
+fn input(code: &str) -> SymbolAdminInput {
+    SymbolAdminInput { code: code.into(), name: Some("测试ETF".into()),
+        interval_secs: 60, settlement: "T1".into(), enabled: true }
+}
+
+#[tokio::test]
+async fn register_update_roundtrip_and_conflict() {
+    let pool = pool().await;
+    clean(&pool).await;
+    let admin = PgSymbolAdmin::new(pool.clone());
+
+    assert!(admin.register(&input(CODE)).await.unwrap(), "首次注册成功");
+    assert!(!admin.register(&input(CODE)).await.unwrap(), "重复注册 → false（409 语义）");
+
+    // 编辑：间隔 60→300 + 停用（COALESCE 只动给定字段）
+    let patch = SymbolPatch { interval_secs: Some(300), enabled: Some(false), ..Default::default() };
+    assert!(admin.update(CODE, &patch).await.unwrap());
+    let row: (i32, String, bool, Option<String>) =
+        sqlx::query_as("SELECT interval_secs, settlement, enabled, name FROM symbols WHERE code = $1")
+            .bind(CODE).fetch_one(&pool).await.unwrap();
+    assert_eq!(row.0, 300, "间隔更新落库（数据面下周期热生效）");
+    assert_eq!(row.1, "T1", "未给字段保持原值");
+    assert!(!row.2, "停用落库（仅停用，无物理删除）");
+    assert_eq!(row.3.as_deref(), Some("测试ETF"));
+
+    assert!(!admin.update("996899", &SymbolPatch::default()).await.unwrap(),
+        "未知 code → false（404 语义）");
+
+    // schema CHECK 对齐双保险：web 层已拦 <60，此处锁库层约束仍生效
+    let bad = SymbolAdminInput { interval_secs: 30, ..input(CODE2) };
+    assert!(admin.register(&bad).await.is_err(), "interval_secs<60 被 schema CHECK 拒绝");
+    let bad2 = SymbolAdminInput { settlement: "T2".into(), ..input(CODE2) };
+    assert!(admin.register(&bad2).await.is_err(), "非法 settlement 被 schema CHECK 拒绝");
+    clean(&pool).await;
+}
+
+#[tokio::test]
+async fn today_stats_counts_shanghai_day_window() {
+    let pool = pool().await;
+    clean_stats(&pool).await;
+    // 今日 2 根 + 昨日 3 根（Asia/Shanghai 日界由实现侧 domain::tz 计算）
+    let now = Utc::now();
+    for i in 0..2 {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 1, 1, 1, 1, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+            .bind(STATS_CODE).bind(now - Duration::minutes(i + 1)).execute(&pool).await.unwrap();
+    }
+    for i in 0..3 {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 1, 1, 1, 1, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+            .bind(STATS_CODE).bind(now - Duration::days(1) - Duration::minutes(i))
+            .execute(&pool).await.unwrap();
+    }
+    let stats = KlineReader::new(pool.clone()).today_stats().await.unwrap();
+    let s = stats.iter().find(|r| r.code == STATS_CODE).expect("含测试标的");
+    assert_eq!(s.today_bars, 2, "仅当日（Asia/Shanghai 日界）行数");
+    assert!(s.last_bar_ts.is_some());
+    clean_stats(&pool).await;
+}
+
+#[tokio::test]
+async fn reset_channel_write_take_consume_once() {
+    let pool = pool().await;
+    clean_reset(&pool).await;
+    let store = PgResetStore::new(pool.clone());
+
+    store.request_reset(RSRC).await.unwrap();
+    store.request_reset(RSRC).await.unwrap();
+    let taken = store.take_pending().await.unwrap();
+    let mine: Vec<_> = taken.iter().filter(|r| r.source == RSRC).collect();
+    assert_eq!(mine.len(), 2, "待消费请求原子取出");
+    assert!(mine[0].id < mine[1].id, "按 id 顺序");
+    let again = store.take_pending().await.unwrap();
+    assert!(!again.iter().any(|r| r.source == RSRC), "已消费不重复取出");
+    clean_reset(&pool).await;
+}
+```
+
+### 8.3 web 集成测试（真实库 + 真实 server，契约锁定）
+
+``` {.rust file=crates/web/tests/api_admin.rs}
+//! Phase C 写端点集成测试（需 TimescaleDB :5433）：
+//! POST/PATCH /api/symbols（校验 400/422、冲突 409、未知 404、with_stats）、
+//! POST /api/sources/{id}/reset（202 + DB 通道行落库待消费）。
+
+use chrono::{Duration, Utc};
+use serde_json::Value;
+use sqlx::PgPool;
+use std::sync::Arc;
+use web::state::AppState;
+use web::ws::{SubscriptionRegistry, WsHub};
+
+const CODE: &str = "996820";
+const RSRC: &str = "web_test_reset_src";
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+/// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-dependencies）。
+fn state(pool: PgPool) -> Arc<AppState> {
+    Arc::new(AppState {
+        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        health: diagnose::health::HealthService::new(
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+        health_window_secs: 3600,
+        hub: WsHub::new(),
+        subs: SubscriptionRegistry::default(),
+    })
+}
+
+async fn spawn(state: Arc<AppState>) -> String {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, web::build_router(state)).await.unwrap(); });
+    format!("http://{addr}")
+}
+
+// 每测试独立 clean（同 binary 测试并行执行，共享清理会互删——实锤踩坑）
+async fn clean(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+}
+
+async fn clean_reset(pool: &PgPool) {
+    sqlx::query("DELETE FROM circuit_reset_requests WHERE source IN ($1, 'no_such_source')")
+        .bind(RSRC).execute(pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn symbols_register_edit_disable_and_stats() {
+    let pool = pool().await;
+    clean(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 注册（缺省值：interval=60 / settlement=T1 / enabled=true）→ 201 + 回读完整行
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": CODE})).send().await.unwrap();
+    assert_eq!(r.status(), 201);
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["code"], CODE);
+    assert_eq!(v["interval_secs"], 60);
+    assert_eq!(v["settlement"], "T1");
+    assert_eq!(v["enabled"], true);
+    assert!(v["latest"].is_null(), "无 bar 标的 latest 为 null");
+
+    // 重复注册 → 409
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": CODE, "interval_secs": 120})).send().await.unwrap();
+    assert_eq!(r.status(), 409);
+
+    // 校验：北交所 422 / 非 6 位数字 400 / 间隔下限 400 / 非法 settlement 400
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": "830799"})).send().await.unwrap();
+    assert_eq!(r.status(), 422, "北交所前缀拒绝（暂不支持）");
+    let body: Value = r.json().await.unwrap();
+    assert!(body["error"].as_str().unwrap().contains("北交所"));
+    for bad in [serde_json::json!({"code": "12345"}), serde_json::json!({"code": "60051a"})] {
+        let r = http.post(format!("{url}/api/symbols")).json(&bad).send().await.unwrap();
+        assert_eq!(r.status(), 400, "{bad} → 400");
+    }
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": "996821", "interval_secs": 30})).send().await.unwrap();
+    assert_eq!(r.status(), 400, "interval_secs<60 → 400");
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": "996821", "settlement": "T2"})).send().await.unwrap();
+    assert_eq!(r.status(), 400);
+
+    // 编辑：间隔 60→300 + 名称（热生效语义由数据面重读承载，本层锁落库与回读）
+    let r = http.patch(format!("{url}/api/symbols/{CODE}"))
+        .json(&serde_json::json!({"interval_secs": 300, "name": "测试ETF"})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["interval_secs"], 300);
+    assert_eq!(v["name"], "测试ETF");
+    assert_eq!(v["settlement"], "T1", "未给字段不变");
+
+    // 停用（唯一删除语义，03-symbols §4）
+    let r = http.patch(format!("{url}/api/symbols/{CODE}"))
+        .json(&serde_json::json!({"enabled": false})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    assert_eq!(r.json::<Value>().await.unwrap()["enabled"], false);
+
+    // 未知 code → 404；非法 PATCH 值 → 400
+    let r = http.patch(format!("{url}/api/symbols/996899"))
+        .json(&serde_json::json!({"enabled": true})).send().await.unwrap();
+    assert_eq!(r.status(), 404);
+    let r = http.patch(format!("{url}/api/symbols/{CODE}"))
+        .json(&serde_json::json!({"interval_secs": 10})).send().await.unwrap();
+    assert_eq!(r.status(), 400);
+
+    // with_stats=1：今日 bar 数入列；不带参数不出 today_bars 键（Phase A 契约不回归）
+    sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, $2, 1, 1, 1, 1, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+        .bind(CODE).bind(Utc::now() - Duration::minutes(1)).execute(&pool).await.unwrap();
+    let v: Value = http.get(format!("{url}/api/symbols"))
+        .query(&[("with_stats", "1")]).send().await.unwrap().json().await.unwrap();
+    let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE).expect("含测试标的");
+    assert_eq!(s["today_bars"], 1);
+    let v: Value = http.get(format!("{url}/api/symbols")).send().await.unwrap()
+        .json().await.unwrap();
+    let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE).unwrap();
+    assert!(s.get("today_bars").is_none(), "无 with_stats 不出 today_bars 键");
+    clean(&pool).await;
+}
+
+#[tokio::test]
+async fn reset_endpoint_enqueues_db_control_row() {
+    let pool = pool().await;
+    clean_reset(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    let r = http.post(format!("{url}/api/sources/{RSRC}/reset")).send().await.unwrap();
+    assert_eq!(r.status(), 202, "异步接受（数据面消费后生效）");
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["status"], "accepted");
+
+    // DB 控制通道行落库且待消费（数据面 ResetWatcher 轮询取出）
+    let (cnt,): (i64,) = sqlx::query_as(
+        "SELECT count(*) FROM circuit_reset_requests WHERE source = $1 AND consumed_at IS NULL")
+        .bind(RSRC).fetch_one(&pool).await.unwrap();
+    assert_eq!(cnt, 1);
+
+    // 未知源 id 同样 202（应用面不知编译期源清单；数据面消费端跳过并告警）
+    let r = http.post(format!("{url}/api/sources/no_such_source/reset")).send().await.unwrap();
+    assert_eq!(r.status(), 202);
+    clean_reset(&pool).await;
+}
+```
+
+### 8.4 Phase C TDD 规格要点（Red-Green 记录）
+
+- domain：`SourceId::parse` 全变体往返 + 未知文本 None（契约测试）。
+- storage admin：注册/重复/编辑 COALESCE/未知 code/schema CHECK 双保险（interval<60、非法 settlement
+  库层仍拒绝）；today_stats 当日 Asia/Shanghai 窗口；reset 通道原子消费不重复（集成测试）。
+- collector reset：消费 → manual_reset（Healthy + 事件发出）；未知 source 跳过；空队列 noop
+  （内存 channel + fake clock，无 DB）。
+- web：注册 201+缺省值、409/422/400 矩阵、PATCH 回读与 404、停用、with_stats 出/不出键、
+  reset 202 + DB 行待消费（集成测试）；dto 校验纯函数单测（code/interval/settlement/name）。

@@ -24,7 +24,11 @@ fn state(pool: PgPool) -> Arc<AppState> {
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool))),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写 / 当日统计 / 熔断复位 DB 通道（本文件不涉及行为，仅装配齐全）
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),

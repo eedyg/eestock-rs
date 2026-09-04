@@ -36,11 +36,15 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("schema self-check ok");
 
     // DI 装配（ADR-017：app 是唯一持有 storage 具体实现的应用面组件；
-    // web 只见 domain::ports::KlineRead，diagnose 只见 domain::ports::HealthEventsRead）
+    // web 只见 domain::ports，diagnose 只见 domain::ports::HealthEventsRead）
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
-            Arc::new(storage::reader::HealthEventReader::new(pool))),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写端点 / with_stats 当日统计 / 熔断复位 DB 控制通道
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),

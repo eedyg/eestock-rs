@@ -76,6 +76,11 @@ async fn main() -> anyhow::Result<()> {
     let standby = Arc::new(StandbyReserve::new(snapshot_pool, clock.clone()));
     let gapfill = Arc::new(GapBackfiller::new(
         executor.clone(), reader, registry.clone(), clock.clone()));
+    // 熔断复位 DB 控制通道消费端（Wave 1 Phase C 加法扩展，03-collector §10；
+    // ADR-017：应用面 POST /api/sources/{id}/reset 经 circuit_reset_requests 表触达，无直连）
+    let reset_watcher = Arc::new(collector::reset::ResetWatcher::new(
+        Arc::new(storage::admin::PgResetStore::new(pool.clone())), circuits.clone()));
+    tokio::spawn(collector::reset::run_forever(reset_watcher));
     // 低频探测任务（§4）：HalfOpen Tier1 源冷却到期后单发轻量探测，熔断自愈
     let prober = Arc::new(collector::probe::CircuitProber::new(
         minute_providers, circuits, registry.clone(), sink.clone(), clock.clone()));
