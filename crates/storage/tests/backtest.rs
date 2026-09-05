@@ -31,6 +31,9 @@ fn new_run(group: &str) -> NewRun {
         strategy_id: "dual_ma".into(),
         params: serde_json::json!({ "fast": 5, "slow": 20 }),
         fee: serde_json::json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 }),
+        initial_capital: 100_000.0,
+        date_from: base(),
+        date_to: base() + Duration::hours(1),
         group_id: Some(group.into()),
     }
 }
@@ -89,6 +92,9 @@ async fn run_store_lifecycle() {
     let v0 = store.get_run(id).await.unwrap().expect("run 存在");
     assert_eq!(v0.status, RunStatus::Pending);
     assert_eq!(v0.progress, 0);
+    assert_eq!(v0.initial_capital, 100_000.0, "初始资金落库（B1）");
+    assert_eq!(v0.date_from, base(), "date_from 落库（B1）");
+    assert_eq!(v0.date_to, base() + Duration::hours(1), "date_to 落库（排除端点）");
 
     // progress → running + current_ts 写入
     let ts = base() + Duration::minutes(1);
@@ -126,6 +132,36 @@ async fn run_store_lifecycle() {
     let v3 = store.get_run(id2).await.unwrap().expect("run 存在");
     assert_eq!(v3.status, RunStatus::Failed);
     assert_eq!(v3.error.as_deref(), Some("simulated error"));
+
+    clean_backtest(&pool, &group).await;
+}
+
+#[tokio::test]
+async fn run_store_delete_run_cascades_results() {
+    let pool = pool().await;
+    let group = format!("bt_delete_{}", std::process::id());
+    clean_backtest(&pool, &group).await;
+
+    let store = PgBacktestStore::new(pool.clone());
+    let id = store.create_run(&new_run(&group)).await.unwrap();
+    // 写一个结果，验证 FK 级联删除
+    let result = RunResult {
+        net_value: serde_json::json!([]),
+        trades: serde_json::json!([]),
+        metrics: serde_json::json!({"net_profit": 1.0}),
+    };
+    store.mark_done(id, &result).await.unwrap();
+
+    // 删除存在的 run → true
+    assert!(store.delete_run(id).await.unwrap(), "存在 run 删除返回 true");
+    // run 及结果均不存在
+    assert!(store.get_run(id).await.unwrap().is_none(), "删除后 get_run 为 None");
+    let cnt: (i64,) = sqlx::query_as("SELECT count(*) FROM backtest_results WHERE run_id = $1")
+        .bind(id).fetch_one(&pool).await.unwrap();
+    assert_eq!(cnt.0, 0, "FK ON DELETE CASCADE 级联删除 backtest_results");
+
+    // 删除不存在的 run → false
+    assert!(!store.delete_run(999_999_999).await.unwrap(), "不存在 run 返回 false");
 
     clean_backtest(&pool, &group).await;
 }

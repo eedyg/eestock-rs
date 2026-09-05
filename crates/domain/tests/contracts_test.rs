@@ -190,20 +190,26 @@ fn run_status_str_and_parse() {
 
 #[test]
 fn backtest_run_types_serde_roundtrip() {
+    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
     let run = NewRun {
         code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
         params: serde_json::json!({"fast": 5, "slow": 20}),
         fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
+        initial_capital: 100_000.0,
+        date_from: t0,
+        date_to: t0,
         group_id: Some("g1".into()),
     };
     let j = serde_json::to_string(&run).unwrap();
     let back: NewRun = serde_json::from_str(&j).unwrap();
     assert_eq!(run, back);
 
-    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
     let view = RunView {
         id: 1, code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
         params: serde_json::json!({}), fee: serde_json::json!({}),
+        initial_capital: 100_000.0,
+        date_from: t0,
+        date_to: t0,
         status: RunStatus::Done, progress: 100, current_ts: Some(t0),
         created_at: t0, finished_at: Some(t0), error: None, group_id: None,
         result: Some(RunResult { net_value: serde_json::json!([t0, 1.0]),

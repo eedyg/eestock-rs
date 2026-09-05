@@ -153,9 +153,10 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 | `POST /api/backtest/runs` | body `{code,period,from,to,strategy_id,params?,params_grid?,fee:{rate_pct,min_fee,slippage_bp},initial_capital?}` | 200 `{"run_id":N}` 或 `{"group_id":G,"run_ids":[N,...]}`（网格展开） | `BacktestService::submit`（入队，异步；限并发） | 400：code 空 / from、to 非 RFC3339 / period 非法（非 M1\|M5\|M15\|D1）/ fee 缺字段或非数值 / 无 params 且无 params_grid；404：strategy_id 未知；500 |
 | `GET /api/backtest/runs` | `status=pending\|running\|done\|failed`、`group_id=G`（均可选） | `[BacktestRunDto]`（含 progress/status/current_ts/结果） | `BacktestService::list_runs` | 400：status 非法；500 |
 | `GET /api/backtest/runs/{id}` | — | `BacktestRunDto`（net_value/trades/metrics 完成才非 null） | `BacktestService::get_run` | 404：id 未知；500 |
+| `DELETE /api/backtest/runs/{id}` | — | 200 `{"deleted":true}`（run 及其结果级联删除） | `BacktestService::delete_run`（store 删 run，FK 级联删 result） | 404：id 未知；500 |
 | `GET /api/backtest/compare` | `ids=1,2,3`（逗号分隔必填） | `[BacktestRunDto]`（只含 store 存在的 run） | `BacktestService::compare` | 400：ids 空或含非数字；500 |
 
-字段口径：`period` 取 `M1/M5/M15/D1`（支持周期间；`H1` 拒绝 400，08-backtest §3）。`from`/`to` 为 RFC3339，回测区间 `[from,to)`。`fee` 为用户可调 3 字段，`stamp_duty_pct` 由 application 层取 ADR bt-1 常量（0.05%）。`params` 单点（与 `params_grid` 二选一；网格场景作为公共基础参数），`params_grid` = `{k:"起:止:步长"}`（多键笛卡尔积展开 N 子任务，共享 `group_id`）。`BacktestRunDto.net_value` = `{series,drawdown}`（净值序列+回撤序列），`metrics`/`trades` 为 jsonb 直通（前端渲染）。
+字段口径：`period` 取 `M1/M5/M15/D1`（支持周期间；`H1` 拒绝 400，08-backtest §3）。`from`/`to` 为 RFC3339，回测区间 `[from,to)`（B1 起持久化到 `backtest_runs.date_from/date_to`，`date_to` 存排除端点 `to`；`BacktestRunDto` 暴露 `initial_capital/date_from/date_to`，前端把 `date_from~date_to` 展示为区间）。`fee` 为用户可调 3 字段，`stamp_duty_pct` 由 application 层取 ADR bt-1 常量（0.05%）。`params` 单点（与 `params_grid` 二选一；网格场景作为公共基础参数），`params_grid` = `{k:"起:止:步长"}`（多键笛卡尔积展开 N 子任务，共享 `group_id`）。`BacktestRunDto.net_value` = `{series,drawdown}`（净值序列+回撤序列），`metrics`/`trades` 为 jsonb 直通（前端渲染）。
 
 #### WS
 
@@ -1817,10 +1818,10 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
-        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / compare，handlers 在 backtest.rs）
+        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / delete / compare，handlers 在 backtest.rs）
         .route("/api/backtest/strategies", get(backtest::strategies))
         .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
-        .route("/api/backtest/runs/{id}", get(backtest::get_run))
+        .route("/api/backtest/runs/{id}", get(backtest::get_run).delete(backtest::delete_run))
         .route("/api/backtest/compare", get(backtest::compare_runs))
         // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
         .route("/api/system/info", get(settings::system_info))
@@ -2229,6 +2230,7 @@ pub fn parse_backtest_ids(s: &str) -> Result<Vec<i64>, FieldError> {
 }
 
 /// 回测 run 读模型（GET /api/backtest/runs、/{id}、compare 响应项）。
+/// B1 增补：initial_capital/date_from/date_to（迁移 0012 持久化；前端展示区间）。
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BacktestRunDto {
     pub id: i64,
@@ -2237,6 +2239,9 @@ pub struct BacktestRunDto {
     pub strategy_id: String,
     pub params: serde_json::Value,
     pub fee: serde_json::Value,
+    pub initial_capital: f64,
+    pub date_from: DateTime<Utc>,
+    pub date_to: DateTime<Utc>,
     pub status: String,
     pub progress: i32,
     pub current_ts: Option<DateTime<Utc>>,
@@ -2262,6 +2267,9 @@ impl From<&RunView> for BacktestRunDto {
             strategy_id: r.strategy_id.clone(),
             params: r.params.clone(),
             fee: r.fee.clone(),
+            initial_capital: r.initial_capital,
+            date_from: r.date_from,
+            date_to: r.date_to,
             status: r.status.as_str().to_string(),
             progress: r.progress,
             current_ts: r.current_ts,
@@ -2444,10 +2452,15 @@ mod tests {
         let v = serde_json::to_value(BacktestRunDto::from(&RunView {
             id: 7, code: "600000".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
             params: serde_json::json!({}), fee: serde_json::json!({}),
+            initial_capital: 100_000.0,
+            date_from: chrono::Utc::now(), date_to: chrono::Utc::now(),
             status: domain::ports::RunStatus::Pending, progress: 0, current_ts: None,
             created_at: chrono::Utc::now(), finished_at: None, error: None, group_id: None, result: None,
         })).unwrap();
         assert_eq!(v["status"], "pending");
+        assert_eq!(v["initial_capital"], 100_000.0);
+        assert!(v.get("date_from").is_some(), "date_from 输出（B1 持久化展示）");
+        assert!(v.get("date_to").is_some());
         assert!(v.get("net_value").is_none(), "未完成不输出 net_value 键");
         assert!(v.get("metrics").is_none());
 

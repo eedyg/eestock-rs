@@ -152,6 +152,15 @@ pub async fn get_run(State(st): State<Arc<AppState>>, Path(id): Path<i64>) -> Re
     }
 }
 
+/// DELETE /api/backtest/runs/{id} —— 删除 run（其结果由 FK 级联删除；200=deleted / 404=not found）。
+pub async fn delete_run(State(st): State<Arc<AppState>>, Path(id): Path<i64>) -> Response {
+    match st.backtest.delete_run(id).await {
+        Ok(true) => Json(serde_json::json!({ "deleted": true })).into_response(),
+        Ok(false) => err(StatusCode::NOT_FOUND, "run 不存在"),
+        Err(e) => internal(e),
+    }
+}
+
 /// GET /api/backtest/compare?ids=1,2,3 —— 多 run 对比（只含 store 存在的 run）。
 pub async fn compare_runs(
     State(st): State<Arc<AppState>>,

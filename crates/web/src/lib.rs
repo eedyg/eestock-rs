@@ -36,10 +36,10 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
-        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / compare，handlers 在 backtest.rs）
+        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / delete / compare，handlers 在 backtest.rs）
         .route("/api/backtest/strategies", get(backtest::strategies))
         .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
-        .route("/api/backtest/runs/{id}", get(backtest::get_run))
+        .route("/api/backtest/runs/{id}", get(backtest::get_run).delete(backtest::delete_run))
         .route("/api/backtest/compare", get(backtest::compare_runs))
         // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
         .route("/api/system/info", get(settings::system_info))

@@ -392,6 +392,7 @@ pub fn parse_backtest_ids(s: &str) -> Result<Vec<i64>, FieldError> {
 }
 
 /// 回测 run 读模型（GET /api/backtest/runs、/{id}、compare 响应项）。
+/// B1 增补：initial_capital/date_from/date_to（迁移 0012 持久化；前端展示区间）。
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BacktestRunDto {
     pub id: i64,
@@ -400,6 +401,9 @@ pub struct BacktestRunDto {
     pub strategy_id: String,
     pub params: serde_json::Value,
     pub fee: serde_json::Value,
+    pub initial_capital: f64,
+    pub date_from: DateTime<Utc>,
+    pub date_to: DateTime<Utc>,
     pub status: String,
     pub progress: i32,
     pub current_ts: Option<DateTime<Utc>>,
@@ -425,6 +429,9 @@ impl From<&RunView> for BacktestRunDto {
             strategy_id: r.strategy_id.clone(),
             params: r.params.clone(),
             fee: r.fee.clone(),
+            initial_capital: r.initial_capital,
+            date_from: r.date_from,
+            date_to: r.date_to,
             status: r.status.as_str().to_string(),
             progress: r.progress,
             current_ts: r.current_ts,
@@ -607,10 +614,15 @@ mod tests {
         let v = serde_json::to_value(BacktestRunDto::from(&RunView {
             id: 7, code: "600000".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
             params: serde_json::json!({}), fee: serde_json::json!({}),
+            initial_capital: 100_000.0,
+            date_from: chrono::Utc::now(), date_to: chrono::Utc::now(),
             status: domain::ports::RunStatus::Pending, progress: 0, current_ts: None,
             created_at: chrono::Utc::now(), finished_at: None, error: None, group_id: None, result: None,
         })).unwrap();
         assert_eq!(v["status"], "pending");
+        assert_eq!(v["initial_capital"], 100_000.0);
+        assert!(v.get("date_from").is_some(), "date_from 输出（B1 持久化展示）");
+        assert!(v.get("date_to").is_some());
         assert!(v.get("net_value").is_none(), "未完成不输出 net_value 键");
         assert!(v.get("metrics").is_none());
 

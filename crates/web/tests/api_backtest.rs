@@ -12,6 +12,7 @@ use web::ws::{PushMsg, Subscription, SubscriptionRegistry, Topic, WsHub};
 
 const ENQUEUE_CODE: &str = "996611";
 const GRID_CODE: &str = "996612";
+const DELETE_CODE: &str = "996613";
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -189,6 +190,10 @@ async fn submit_enqueue_then_list_get_compare() {
     assert_eq!(d["code"], ENQUEUE_CODE);
     assert_eq!(d["strategy_id"], "dual_ma");
     assert!(d["status"].is_string(), "status 为字符串");
+    // B1：初始资金与区间持久化并暴露在 DTO
+    assert_eq!(d["initial_capital"], 100_000.0, "初始资金默认 100_000（B1）");
+    assert_eq!(d["date_from"], "2026-01-01T00:00:00Z", "date_from 持久化（B1）");
+    assert_eq!(d["date_to"], "2026-12-31T00:00:00Z", "date_to 持久化（排除端点）");
 
     // compare 只含存在 run
     let c: Value = http.get(format!("{url}/api/backtest/compare"))
@@ -260,4 +265,33 @@ async fn ws_backtest_progress_reaches_subscribed_clients() {
         }
         other => panic!("应为 backtest_progress，实际 {other:?}"),
     }
+}
+
+#[tokio::test]
+async fn delete_run_returns_200_deleted_or_404() {
+    let pool = pool().await;
+    clean_bt(&pool, DELETE_CODE).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 先创建 run → 200 {run_id}
+    let v: Value = http.post(format!("{url}/api/backtest/runs"))
+        .json(&valid_body(DELETE_CODE)).send().await.unwrap().json().await.unwrap();
+    let run_id = v["run_id"].as_i64().expect("run_id 为正整数");
+
+    // 删除存在 run → 200 {deleted:true}
+    let r = http.delete(format!("{url}/api/backtest/runs/{run_id}")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "删除存在 run → 200");
+    let dv: Value = r.json().await.unwrap();
+    assert_eq!(dv["deleted"], true, "响应体 deleted=true");
+
+    // 删除后 get → 404
+    let g = http.get(format!("{url}/api/backtest/runs/{run_id}")).send().await.unwrap();
+    assert_eq!(g.status(), 404, "删除后 get → 404（B1）");
+
+    // 删除不存在 run → 404
+    let r2 = http.delete(format!("{url}/api/backtest/runs/999999999")).send().await.unwrap();
+    assert_eq!(r2.status(), 404, "删除不存在 run → 404");
+
+    clean_bt(&pool, DELETE_CODE).await;
 }

@@ -738,6 +738,7 @@ impl RunStatus {
 }
 
 /// 新建回测运行（POST /api/backtest/runs 输入经 web 层校验解析后；params 为网格展开后单点）。
+/// B1 增补：持久化初始资金与回测区间（initial_capital/date_from/date_to，迁移 0012）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NewRun {
     pub code: String,
@@ -745,6 +746,9 @@ pub struct NewRun {
     pub strategy_id: String,      // builtin 策略 slug
     pub params: serde_json::Value,
     pub fee: serde_json::Value,   // {rate_pct,min_fee,slippage_bp}
+    pub initial_capital: f64,     // 初始资金（默认 100_000，ADR §4）
+    pub date_from: DateTime<Utc>, // 区间起点（闭）
+    pub date_to: DateTime<Utc>,   // 区间终点（开，[from, to) 半开）
     pub group_id: Option<String>,
 }
 
@@ -764,6 +768,7 @@ pub struct RunResult {
 }
 
 /// 回测运行读模型（含结果；result=None 表示未完成为 done）。
+/// B1 增补：initial_capital/date_from/date_to 持久化（迁移 0012）；前端把 date_from~date_to 展示为区间。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunView {
     pub id: i64,
@@ -772,6 +777,9 @@ pub struct RunView {
     pub strategy_id: String,
     pub params: serde_json::Value,
     pub fee: serde_json::Value,
+    pub initial_capital: f64,     // 初始资金（ADR §4 默认 100_000）
+    pub date_from: DateTime<Utc>, // 区间起点（闭）
+    pub date_to: DateTime<Utc>,   // 区间终点（开，[from, to) 半开）
     pub status: RunStatus,
     pub progress: i32,             // 0-100
     pub current_ts: Option<DateTime<Utc>>,
@@ -804,6 +812,9 @@ pub trait BacktestRunStore: Send + Sync {
     async fn mark_failed(&self, id: i64, err: &str) -> anyhow::Result<()>;
     async fn list_runs(&self, filter: &RunFilter) -> anyhow::Result<Vec<RunView>>;
     async fn get_run(&self, id: i64) -> anyhow::Result<Option<RunView>>;
+    /// 删除 run（`backtest_results` 由 FK ON DELETE CASCADE 级联删除）。
+    /// 返回 true=删了行；false=id 不存在（web 映射 404）。B1 增。
+    async fn delete_run(&self, id: i64) -> anyhow::Result<bool>;
 }
 
 /// 回测进度推送端口（web/application 实现；WS `{type:"backtest_progress", run_id, pct, bar_ts}`）。
@@ -1045,20 +1056,26 @@ fn run_status_str_and_parse() {
 
 #[test]
 fn backtest_run_types_serde_roundtrip() {
+    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
     let run = NewRun {
         code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
         params: serde_json::json!({"fast": 5, "slow": 20}),
         fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
+        initial_capital: 100_000.0,
+        date_from: t0,
+        date_to: t0,
         group_id: Some("g1".into()),
     };
     let j = serde_json::to_string(&run).unwrap();
     let back: NewRun = serde_json::from_str(&j).unwrap();
     assert_eq!(run, back);
 
-    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
     let view = RunView {
         id: 1, code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
         params: serde_json::json!({}), fee: serde_json::json!({}),
+        initial_capital: 100_000.0,
+        date_from: t0,
+        date_to: t0,
         status: RunStatus::Done, progress: 100, current_ts: Some(t0),
         created_at: t0, finished_at: Some(t0), error: None, group_id: None,
         result: Some(RunResult { net_value: serde_json::json!([t0, 1.0]),

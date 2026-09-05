@@ -54,6 +54,7 @@ struct MockStore {
     progress: Mutex<Vec<StoreProgressRecord>>,
     done: Mutex<Vec<(i64, RunResult)>>,
     failed: Mutex<Vec<(i64, String)>>,
+    deleted: Mutex<Vec<i64>>,
     runs: Mutex<HashMap<i64, RunView>>,
     next_id: AtomicI64,
 }
@@ -65,6 +66,7 @@ impl MockStore {
             progress: Mutex::new(Vec::new()),
             done: Mutex::new(Vec::new()),
             failed: Mutex::new(Vec::new()),
+            deleted: Mutex::new(Vec::new()),
             runs: Mutex::new(HashMap::new()),
             next_id: AtomicI64::new(1),
         }
@@ -104,6 +106,12 @@ impl BacktestRunStore for MockStore {
 
     async fn get_run(&self, id: i64) -> Result<Option<RunView>> {
         Ok(self.runs.lock().unwrap().get(&id).cloned())
+    }
+
+    async fn delete_run(&self, id: i64) -> Result<bool> {
+        let existed = self.runs.lock().unwrap().remove(&id).is_some();
+        self.deleted.lock().unwrap().push(id);
+        Ok(existed)
     }
 }
 
@@ -161,6 +169,9 @@ fn sample_run_view(id: i64) -> RunView {
         strategy_id: "dual_ma".to_string(),
         params: serde_json::json!({}),
         fee: serde_json::json!({}),
+        initial_capital: 100_000.0,
+        date_from: ts(1_700_000_000),
+        date_to: ts(1_740_000_000),
         status: RunStatus::Done,
         progress: 100,
         current_ts: Some(ts(1_704_067_200)),
@@ -238,6 +249,8 @@ async fn submit_single_run_returns_run_id_and_no_group() {
         4,
     );
     let req = base_submit("dual_ma");
+    let from = req.from;
+    let to = req.to;
 
     let out = service.submit(req).await.unwrap();
     let SubmitOutcome::Run(id) = out else {
@@ -247,6 +260,9 @@ async fn submit_single_run_returns_run_id_and_no_group() {
     let created = store.created.lock().unwrap();
     assert_eq!(created.len(), 1);
     assert!(created[0].group_id.is_none(), "单 run 不应有 group_id");
+    assert_eq!(created[0].initial_capital, 100_000.0, "初始资金默认 100_000 落库（B1）");
+    assert_eq!(created[0].date_from, from, "date_from 落库（B1）");
+    assert_eq!(created[0].date_to, to, "date_to 落库（排除端点，B1）");
 }
 
 #[tokio::test]
@@ -292,6 +308,9 @@ async fn run_success_marks_done_and_reports_progress() {
         strategy_id: "dual_ma".to_string(),
         params: serde_json::json!({"fast": 2, "slow": 3, "position_pct": 1.0}),
         fee: fee(),
+        initial_capital: 100_000.0,
+        date_from: ts(1_700_000_000),
+        date_to: ts(1_740_000_000),
         group_id: None,
     };
     // 7 根 bar → 进度回调 7 次
@@ -336,6 +355,9 @@ async fn run_bar_read_error_marks_failed() {
         strategy_id: "dual_ma".to_string(),
         params: serde_json::json!({}),
         fee: fee(),
+        initial_capital: 100_000.0,
+        date_from: ts(1_700_000_000),
+        date_to: ts(1_740_000_000),
         group_id: None,
     };
     execute_run(
@@ -365,6 +387,9 @@ async fn run_unknown_strategy_marks_failed() {
         strategy_id: "no_such_strategy".to_string(),
         params: serde_json::json!({}),
         fee: fee(),
+        initial_capital: 100_000.0,
+        date_from: ts(1_700_000_000),
+        date_to: ts(1_740_000_000),
         group_id: None,
     };
     execute_run(
@@ -432,4 +457,24 @@ async fn list_runs_delegates_to_store() {
     );
     let views = service.list_runs(&RunFilter::default()).await.unwrap();
     assert_eq!(views.len(), 2);
+}
+
+#[tokio::test]
+async fn delete_run_delegates_to_store() {
+    let store = Arc::new(MockStore::new());
+    store.set_run(1, sample_run_view(1));
+    let service = BacktestService::new(
+        Arc::new(MockBarRead { bars: vec![], fail: false }),
+        store.clone(),
+        Arc::new(MockSink::new()),
+        4,
+    );
+
+    // 存在 → true
+    assert!(service.delete_run(1).await.unwrap(), "存在 run 应返回 true");
+    // 不存在 → false（web 映射 404）
+    assert!(!service.delete_run(99).await.unwrap(), "不存在 run 应返回 false");
+    // 删除委托发生了两次
+    let deleted = store.deleted.lock().unwrap();
+    assert_eq!(deleted.as_slice(), &[1, 99]);
 }

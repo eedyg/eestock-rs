@@ -61,15 +61,21 @@ impl BacktestService {
         let is_grid = children_params.len() > 1;
         let group_id = is_grid.then(new_group_id);
         let initial_capital = req.initial_capital.unwrap_or(self.initial_capital_default);
+        let from = req.from;
+        let to = req.to;
         let mut run_ids = Vec::with_capacity(children_params.len());
 
         for params in children_params {
+            // B1：NewRun 持久化 initial_capital/date_from/date_to（迁移 0012；date_to = to，排除端点）。
             let run = NewRun {
                 code: req.code.clone(),
                 period: req.period.clone(),
                 strategy_id: req.strategy_id.clone(),
                 params,
                 fee: req.fee.clone(),
+                initial_capital,
+                date_from: from,
+                date_to: to,
                 group_id: group_id.clone(),
             };
             let id = self.store.create_run(&run).await?;
@@ -79,8 +85,6 @@ impl BacktestService {
             let bar_read = Arc::clone(&self.bar_read);
             let progress = Arc::clone(&self.progress);
             let semaphore = Arc::clone(&self.semaphore);
-            let from = req.from;
-            let to = req.to;
             let run = run.clone();
             tokio::spawn(async move {
                 let _permit = semaphore.acquire().await.expect("semaphore closed");
@@ -102,6 +106,12 @@ impl BacktestService {
     /// 单次 run 详情（含结果；GET /api/backtest/runs/{id}）。
     pub async fn get_run(&self, id: i64) -> anyhow::Result<Option<RunView>> {
         self.store.get_run(id).await
+    }
+
+    /// 删除 run（含其级联结果；DELETE /api/backtest/runs/{id}）。
+    /// 返回 true=已删；false=id 不存在（web 映射 404）。
+    pub async fn delete_run(&self, id: i64) -> anyhow::Result<bool> {
+        self.store.delete_run(id).await
     }
 
     /// 多 run 对比：委托 store 取多个 run（净值/指标由前端/3c 组装渲染）。

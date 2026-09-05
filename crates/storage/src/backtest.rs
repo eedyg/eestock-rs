@@ -13,7 +13,8 @@ use domain::ports::{
     BacktestBarRead, BacktestRunStore, NewRun, RunFilter, RunResult, RunStatus, RunView,
 };
 use domain::types::{Bar, Code, Period, SourceId};
-use sqlx::PgPool;
+use sqlx::postgres::PgRow;
+use sqlx::{PgPool, Row};
 
 /// 回测 K线读取：M1 走 kline_merged 视图（准确层优先，含 source）；其余周期走 accurage/cagg + 底层兜底。
 pub struct BacktestBarReader {
@@ -106,42 +107,44 @@ impl PgBacktestStore {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
-type RunRow = (i64, String, String, String, serde_json::Value, serde_json::Value,
-               String, i32, Option<DateTime<Utc>>, DateTime<Utc>, Option<DateTime<Utc>>,
-               Option<String>, Option<String>, Option<serde_json::Value>,
-               Option<serde_json::Value>, Option<serde_json::Value>);
-
-/// 联表行（run LEFT JOIN result）→ RunView。status 文本宽容解析；result 三列全非空才聚成 RunResult。
-fn to_run_view(row: RunRow) -> RunView {
-    let (id, code, period, strategy_id, params, fee, status, progress, current_ts,
-         created_at, finished_at, error, group_id, net_value, trades, metrics) = row;
+/// 联表行（run LEFT JOIN result）→ RunView（用 sqlx::Row 手动按列索引提取，避免 16 元组 FromRow 上限）。
+/// ⚠️ 列索引必须与 `RUNS_SELECT` 的列顺序一一对应；增列时同步更新。
+fn row_to_run_view(row: &PgRow) -> RunView {
+    let net_value: Option<serde_json::Value> = row.get(16);
+    let trades: Option<serde_json::Value> = row.get(17);
+    let metrics: Option<serde_json::Value> = row.get(18);
     let result = match (net_value, trades, metrics) {
         (Some(net_value), Some(trades), Some(metrics)) =>
             Some(RunResult { net_value, trades, metrics }),
         _ => None,
     };
+    let status: String = row.get(9);
     RunView {
-        id,
-        code,
-        period,
-        strategy_id,
-        params,
-        fee,
+        id: row.get(0),
+        code: row.get(1),
+        period: row.get(2),
+        strategy_id: row.get(3),
+        params: row.get(4),
+        fee: row.get(5),
+        initial_capital: row.get(6),
+        date_from: row.get(7),
+        date_to: row.get(8),
         status: RunStatus::parse(&status).unwrap_or(RunStatus::Pending),
-        progress,
-        current_ts,
-        created_at,
-        finished_at,
-        error,
-        group_id,
+        progress: row.get(10),
+        current_ts: row.get(11),
+        created_at: row.get(12),
+        finished_at: row.get(13),
+        error: row.get(14),
+        group_id: row.get(15),
         result,
     }
 }
 
 /// 列表/详情联表 SQL（run LEFT JOIN result；status/group 过滤用 `$n::text IS NULL OR`）。
 const RUNS_SELECT: &str = r#"
-SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json, r.status, r.progress,
-       r.current_ts, r.created_at, r.finished_at, r.error, r.group_id,
+SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
+       r.initial_capital, r.date_from, r.date_to,
+       r.status, r.progress, r.current_ts, r.created_at, r.finished_at, r.error, r.group_id,
        res.net_value_json, res.trades_json, res.metrics_json
 FROM backtest_runs r
 LEFT JOIN backtest_results res ON res.run_id = r.id
@@ -149,12 +152,15 @@ LEFT JOIN backtest_results res ON res.run_id = r.id
 
 #[async_trait]
 impl BacktestRunStore for PgBacktestStore {
+    /// 写 pending 行（B1 起落 initial_capital/date_from/date_to 三列，迁移 0012）。
     async fn create_run(&self, run: &NewRun) -> Result<i64> {
         let row: (i64,) = sqlx::query_as(
-            "INSERT INTO backtest_runs (code, period, strategy_id, params_json, fee_json, status, group_id) \
-             VALUES ($1, $2, $3, $4, $5, 'pending', $6) RETURNING id")
+            "INSERT INTO backtest_runs (code, period, strategy_id, params_json, fee_json, status, group_id, \
+             initial_capital, date_from, date_to) \
+             VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9) RETURNING id")
             .bind(&run.code).bind(&run.period).bind(&run.strategy_id)
             .bind(&run.params).bind(&run.fee).bind(&run.group_id)
+            .bind(run.initial_capital).bind(run.date_from).bind(run.date_to)
             .fetch_one(&self.pool).await?;
         Ok(row.0)
     }
@@ -201,16 +207,23 @@ impl BacktestRunStore for PgBacktestStore {
             "{RUNS_SELECT} WHERE ($1::text IS NULL OR r.status = $1) \
              AND ($2::text IS NULL OR r.group_id = $2) \
              ORDER BY r.created_at DESC, r.id DESC");
-        let rows: Vec<RunRow> = sqlx::query_as(&sql)
+        let rows: Vec<PgRow> = sqlx::query(&sql)
             .bind(filter.status.map(|s| s.as_str()))
             .bind(filter.group_id.as_deref())
             .fetch_all(&self.pool).await?;
-        Ok(rows.into_iter().map(to_run_view).collect())
+        Ok(rows.iter().map(row_to_run_view).collect())
     }
 
     async fn get_run(&self, id: i64) -> Result<Option<RunView>> {
         let sql = format!("{RUNS_SELECT} WHERE r.id = $1");
-        let row: Option<RunRow> = sqlx::query_as(&sql).bind(id).fetch_optional(&self.pool).await?;
-        Ok(row.map(to_run_view))
+        let row: Option<PgRow> = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await?;
+        Ok(row.as_ref().map(row_to_run_view))
+    }
+
+    /// 删除 run（backtest_results 由 FK ON DELETE CASCADE 级联）。返回 true=删了行；false=id 不存在。
+    async fn delete_run(&self, id: i64) -> Result<bool> {
+        let res = sqlx::query("DELETE FROM backtest_runs WHERE id = $1")
+            .bind(id).execute(&self.pool).await?;
+        Ok(res.rows_affected() > 0)
     }
 }

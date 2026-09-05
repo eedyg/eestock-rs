@@ -394,14 +394,39 @@ CREATE INDEX backtest_runs_group_idx      ON backtest_runs (group_id);
 CREATE INDEX backtest_results_run_id_idx  ON backtest_results (run_id);
 ```
 
+``` {.sql file=migrations/0012_backtest_run_extend.sql}
+-- 0012_backtest_run_extend.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- Wave 3 Phase 3b（B1）：回测存储扩展——持久化初始资金与回测区间（ADR 08-backtest §7）。
+-- backtest_runs 增列：initial_capital（初始资金）/ date_from（区间起点，闭）/ date_to（区间终点，开）。
+-- from/to 为半开区间 [from, to)：date_from = from，date_to = to（排除端点；展示口径由前端处理）。
+-- backtest_results 不动；run 删除级联已由 FK ON DELETE CASCADE 处理（见 0011）。
+ALTER TABLE backtest_runs
+    ADD COLUMN initial_capital float8 NOT NULL DEFAULT 100000,
+    ADD COLUMN date_from timestamptz,
+    ADD COLUMN date_to timestamptz;
+
+-- 既有行回填：旧行（Phase 3b 前）未存 from/to/initial_capital，无法精确重建区间（040 报告残留风险 #1）。
+-- 用 created_at 作 best-effort 占位（date_from = date_to = created_at），随后 SET NOT NULL，保证既有数据也能通过迁移。
+-- 全新容器（docker-entrypoint-initdb.d 按序跑 0011→0012）时表为空，无回填实体。
+UPDATE backtest_runs
+   SET date_from = created_at,
+       date_to   = created_at
+ WHERE date_from IS NULL;
+
+ALTER TABLE backtest_runs ALTER COLUMN date_from SET NOT NULL;
+ALTER TABLE backtest_runs ALTER COLUMN date_to SET NOT NULL;
+```
+
 **storage 模块 `crates/storage/src/backtest.rs`（非 tangle 手写，契约描述）**：
 实现 `domain::ports::{BacktestBarRead, BacktestRunStore}`（PgPool）。
 - `BacktestBarRead`：`bars(code, period, from, to)` 按统一读源（accurate 优先 + cagg 兜底，复用 KlineReader 口径，
   与 design/07-app-plane/00-web-api.md `merged_sql` 同语义）读 `[from, to)` 升序 `domain::Bar` 序列；
   M1 走 `kline_merged` 视图，5m/15m/1h/1d 走 period 对应 accurate/cagg 表 + 底层兜底反连接剔重（同 reader.rs）。
   兜底 cagg 行 source 缺 NULL → `domain::Bar.source` 以占位 `SourceId::parse().unwrap_or(Tushare)` 记（backtest 不消费 source）。
-- `PgBacktestStore`：`backtest_runs/backtest_results` CRUD（create_run 回 id；update_run_progress 写 progress/current_ts；
-  mark_done 事务内更新 status=done/finished_at + upsert result 3 列；mark_failed 置 failed/error；list_runs 按 status/group filter；get_run 联表）。
+- `PgBacktestStore`：`backtest_runs/backtest_results` CRUD（create_run 回 id 并写 initial_capital/date_from/date_to 三列；
+  update_run_progress 写 progress/current_ts；mark_done 事务内更新 status=done/finished_at + upsert result 3 列；
+  mark_failed 置 failed/error；list_runs 按 status/group filter；get_run 联表；delete_run 删 run（级联删结果）返回是否删行）。
+  B1 增补（ADR-007 手写例外）：`NewRun`/`RunView` 增 `initial_capital/date_from/date_to`；`create_run` 落这三列；`delete_run(&self, id) -> Result<bool>`。
 
 ## 4.4 设计注记
 
