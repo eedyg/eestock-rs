@@ -4,6 +4,12 @@ import type {
   AlertQuery,
   AlertRuleItem,
   AlertRulePatchBody,
+  BacktestPeriod,
+  BacktestRunDto,
+  BacktestStrategyDto,
+  BacktestStatus,
+  BacktestSubmitReq,
+  BacktestSubmitResp,
   Bar,
   CollectorConfigSnapshot,
   DetailRange,
@@ -106,6 +112,17 @@ export interface ApiClient {
   purgeRaw(confirm: string): Promise<PurgeRawResult>;
   /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
   resetCircuits(confirm: string): Promise<ResetCircuitsResult>;
+  // ── 页面⑤ 回测工作台（Wave 3 Phase 3c；07-app-plane/00-web-api.md §1.5）──
+  /** 策略目录（GET /api/backtest/strategies；7 款内置，params_schema 驱动参数表单） */
+  getStrategies(): Promise<BacktestStrategyDto[]>;
+  /** 提交回测/网格（POST /api/backtest/runs；网格展开→任务组）。body 字段后端 snake_case */
+  submitRun(req: BacktestSubmitReq): Promise<BacktestSubmitResp>;
+  /** 任务列表（GET /api/backtest/runs；status/group_id 过滤，'done' 时含结果字段） */
+  listRuns(filter?: { status?: BacktestStatus; groupId?: string }): Promise<BacktestRunDto[]>;
+  /** 单 run 详情（GET /api/backtest/runs/{id}；完成时含净值/交易/指标） */
+  getRun(id: number): Promise<BacktestRunDto>;
+  /** 多 run 对比（GET /api/backtest/compare?ids=；不存在的 run 被后端过滤） */
+  compare(ids: number[]): Promise<BacktestRunDto[]>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -211,7 +228,57 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
         method: 'POST',
         body: JSON.stringify({ confirm }),
       }),
+    // ── 页面⑤ 回测工作台（Wave 3 Phase 3c）──
+    getStrategies: () => get<BacktestStrategyDto[]>('/api/backtest/strategies'),
+    submitRun: (req) =>
+      request<BacktestSubmitResp>('/api/backtest/runs', {
+        method: 'POST',
+        body: JSON.stringify(toBacktestSubmitBody(req)),
+      }),
+    listRuns: (filter) => {
+      const params = new URLSearchParams();
+      if (filter?.status) params.set('status', filter.status);
+      if (filter?.groupId) params.set('group_id', filter.groupId);
+      const qs = params.toString();
+      return get<BacktestRunDto[]>(`/api/backtest/runs${qs ? `?${qs}` : ''}`);
+    },
+    getRun: (id) => get<BacktestRunDto>(`/api/backtest/runs/${id}`),
+    compare: (ids) => get<BacktestRunDto[]>(`/api/backtest/compare?ids=${ids.join(',')}`),
   };
+}
+
+/** 后端口径周期代码（front 1m/5m/15m/1d → M1/M5/M15/D1；H1 回测不支持） */
+const BACKTEST_PERIOD_CODE: Record<BacktestPeriod, string> = {
+  '1m': 'M1',
+  '5m': 'M5',
+  '15m': 'M15',
+  '1d': 'D1',
+} as const;
+
+/** 缺省回测区间（RFC3339；UI 未传 from/to 时兜底，后端 [from,to) 闭开） */
+const DEFAULT_BT_FROM = '2026-01-01T00:00:00Z';
+const DEFAULT_BT_TO = '2026-12-31T00:00:00Z';
+
+/** 提交请求 → 后端 body：period 映射 + params 与 params_grid 拆分 + fee/初始资金 snake_case。 */
+function toBacktestSubmitBody(req: BacktestSubmitReq): Record<string, unknown> {
+  const numeric: Record<string, number> = {};
+  const grid: Record<string, string> = {};
+  for (const [k, v] of Object.entries(req.params)) {
+    if (typeof v === 'string') grid[k] = v;  // 「起:止:步长」网格值
+    else numeric[k] = v;
+  }
+  const body: Record<string, unknown> = {
+    code: req.code,
+    period: BACKTEST_PERIOD_CODE[req.period],
+    from: req.from ?? DEFAULT_BT_FROM,
+    to: req.to ?? DEFAULT_BT_TO,
+    strategy_id: req.strategyId,
+    params: numeric,
+    fee: { rate_pct: req.fee.ratePct, min_fee: req.fee.minFee, slippage_bp: req.fee.slippageBp },
+  };
+  if (Object.keys(grid).length > 0) body.params_grid = grid;
+  if (req.initialCapital != null) body.initial_capital = req.initialCapital;
+  return body;
 }
 
 /** 页面④ 查询参数序列化（code 可选；thresholdPct → threshold_pct，缺省不带由后端兜底） */

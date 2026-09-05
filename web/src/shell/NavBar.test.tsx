@@ -13,26 +13,27 @@ describe('NavBar（00-shell：8 项按波次置灰）', () => {
     ]);
   });
 
-  it('Wave 2 Phase C + 设置页 S1 解锁 ①②③④⑦⑧，其余置灰且带波次标签', () => {
+  it('Wave 2 Phase C + 设置页 S1 + 回测 W3 解锁 ①②③④⑤⑦⑧，仅⑥置灰且带波次标签', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
     for (const [label, href] of [
       ['① 行情看板', '/'],
       ['② 数据源诊断', '/sources'],
       ['③ 标的管理', '/symbols'],
       ['④ 数据质量', '/quality'],
+      ['⑤ 回测工作台', '/backtest'],
       ['⑦ 告警中心', '/alerts'],
       ['⑧ 系统设置', '/settings'],
     ] as const) {
       expect(screen.getByText(label).closest('a')).toHaveAttribute('href', href);
     }
     // 置灰项不是链接
-    for (const label of ['⑤ 回测工作台', '⑥ 交易面板']) {
+    for (const label of ['⑥ 交易面板']) {
       expect(screen.getByText(label).closest('a')).toBeNull();
     }
     // 波次标签
     expect(screen.queryAllByText('W1')).toHaveLength(0); // ②③ 已解锁
     expect(screen.queryAllByText('W2')).toHaveLength(0); // ④⑦ 已由 Wave 2 解锁
-    expect(screen.getByText('W3')).toBeInTheDocument(); // ⑤
+    expect(screen.queryAllByText('W3')).toHaveLength(0); // ⑤ 已由 Wave 3 解锁
     expect(screen.getByText('W4')).toBeInTheDocument(); // ⑥
   });
 

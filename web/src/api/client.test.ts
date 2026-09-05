@@ -351,4 +351,104 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(r.quota_remaining).toBeNull();
     expect(r.last_event).toEqual({ ts: '2026-09-03T22:30:00Z', ok: true, err_kind: null });
   });
+
+  // ── 页面⑤ 回测工作台（Wave 3 Phase 3c；07-app-plane/00-web-api.md §1.5 契约）──
+
+  it('getStrategies → GET /api/backtest/strategies', async () => {
+    const f = fetcherReturning([{ id: 'dual_ma', name: '双均线', description: 'd', params_schema: [] }]);
+    const api = createHttpClient('', f);
+    const list = await api.getStrategies();
+    expect(lastCall(f).url).toBe('/api/backtest/strategies');
+    expect(list[0]!.id).toBe('dual_ma');
+  });
+
+  it('submitRun → POST /api/backtest/runs（period 映射 + fee snake_case + 默认 from/to）', async () => {
+    const f = fetcherReturning({ run_id: 7 });
+    const api = createHttpClient('', f);
+    const resp = await api.submitRun({
+      strategyId: 'dual_ma',
+      params: { fast: 5, slow: 20 },
+      code: '518880',
+      period: '1m',
+      fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 },
+    });
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/backtest/runs');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
+      code: '518880',
+      period: 'M1',
+      strategy_id: 'dual_ma',
+      params: { fast: 5, slow: 20 },
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+    });
+    expect(body.from).toBe('2026-01-01T00:00:00Z');
+    expect(body.to).toBe('2026-12-31T00:00:00Z');
+    expect(resp.run_id).toBe(7);
+  });
+
+  it('submitRun 网格参数（起:止:步长）→ 后端 body 拆 params_grid；period 1d → D1', async () => {
+    const f = fetcherReturning({ group_id: 'g1', run_ids: [1, 2, 3] });
+    const api = createHttpClient('', f);
+    const resp = await api.submitRun({
+      strategyId: 'dual_ma',
+      params: { fast: '3:9:2', slow: 20 },
+      code: '518880',
+      period: '1d',
+      fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 },
+    });
+    const body = JSON.parse(String(lastCall(f).init.body));
+    expect(body.period).toBe('D1');
+    expect(body.params).toEqual({ slow: 20 });
+    expect(body.params_grid).toEqual({ fast: '3:9:2' });
+    expect(resp.group_id).toBe('g1');
+    expect(resp.run_ids).toEqual([1, 2, 3]);
+  });
+
+  it('submitRun 显式 from/to/initialCapital 透传', async () => {
+    const f = fetcherReturning({ run_id: 9 });
+    const api = createHttpClient('', f);
+    await api.submitRun({
+      strategyId: 'macd',
+      params: {},
+      code: '513310',
+      period: '15m',
+      fee: { ratePct: 0.01, minFee: 5, slippageBp: 0 },
+      from: '2026-02-01T00:00:00Z',
+      to: '2026-03-01T00:00:00Z',
+      initialCapital: 200000,
+    });
+    const body = JSON.parse(String(lastCall(f).init.body));
+    expect(body.period).toBe('M15');
+    expect(body.from).toBe('2026-02-01T00:00:00Z');
+    expect(body.to).toBe('2026-03-01T00:00:00Z');
+    expect(body.initial_capital).toBe(200000);
+  });
+
+  it('listRuns → GET /api/backtest/runs（status/group_id 过滤）', async () => {
+    const f = fetcherReturning([]);
+    const api = createHttpClient('', f);
+    await api.listRuns();
+    expect(lastCall(f).url).toBe('/api/backtest/runs');
+    await api.listRuns({ status: 'running', groupId: 'g1' });
+    expect(lastCall(f).url).toBe('/api/backtest/runs?status=running&group_id=g1');
+  });
+
+  it('getRun → GET /api/backtest/runs/{id}', async () => {
+    const f = fetcherReturning({ id: 7, code: '518880', period: 'D1', status: 'done', metrics: { sharpe: 1.2 } });
+    const api = createHttpClient('', f);
+    const r = await api.getRun(7);
+    expect(lastCall(f).url).toBe('/api/backtest/runs/7');
+    expect(r.id).toBe(7);
+    expect(r.status).toBe('done');
+  });
+
+  it('compare → GET /api/backtest/compare?ids=（不存在 run 被后端过滤）', async () => {
+    const f = fetcherReturning([{ id: 7 }]);
+    const api = createHttpClient('', f);
+    const r = await api.compare([7, 999]);
+    expect(lastCall(f).url).toBe('/api/backtest/compare?ids=7,999');
+    expect(r).toHaveLength(1);
+  });
 });

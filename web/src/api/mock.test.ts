@@ -186,4 +186,82 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(ts.last_event).not.toBeNull();
     expect(typeof ts.last_event!.ok).toBe('boolean');
   });
+
+  // ── 页面⑤ 回测工作台（Wave 3 Phase 3c；契约 mock，恰 7 策略 + 四态种子 + 提交/网格展开）──
+
+  it('getStrategies 返回恰 7 款内置策略，schema 含 key/label/kind', async () => {
+    const api = createMockClient();
+    const list = await api.getStrategies();
+    expect(list).toHaveLength(7);
+    const ids = list.map((s) => s.id);
+    for (const id of ['dual_ma', 'ma_rsi', 'macd', 'boll', 'kdj', 'momentum', 'atr_channel']) {
+      expect(ids).toContain(id);
+    }
+    for (const s of list) {
+      expect(s.name).not.toBe('');
+      expect(s.params_schema.length).toBeGreaterThan(0);
+      const p = s.params_schema[0]!;
+      expect(p.key).toBeTruthy();
+      expect(p.label).toBeTruthy();
+      expect(typeof p.kind).toBe('object');
+    }
+    // boll 含 Choice 参数（mode）
+    const boll = list.find((s) => s.id === 'boll')!;
+    const mode = boll.params_schema.find((p) => p.key === 'mode')!;
+    expect(mode.kind).toHaveProperty('Choice');
+  });
+
+  it('submitRun 单 run → {run_id}，getRun 返回完成态（净值/指标/交易齐备）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    const resp = await api.submitRun({
+      strategyId: 'dual_ma',
+      params: { fast: 5, slow: 20 },
+      code: '518880',
+      period: '1d',
+      fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 },
+    });
+    expect(resp.run_id).toBeGreaterThan(0);
+    const run = await api.getRun(resp.run_id!);
+    expect(run.status).toBe('done');
+    expect(run.period).toBe('D1');
+    expect(run.metrics).toHaveProperty('sharpe');
+    expect(run.metrics!.trade_count).toBeGreaterThan(0);
+    expect(run.net_value!.series.length).toBeGreaterThan(0);
+    expect(run.net_value!.drawdown.length).toBe(run.net_value!.series.length);
+    expect(run.trades!.length).toBeGreaterThan(0);
+    expect(run.trades![0]).toHaveProperty('pnl');
+  });
+
+  it('submitRun 网格 → {group_id, run_ids}，list 按 group_id 过滤返回全部子任务', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    const resp = await api.submitRun({
+      strategyId: 'dual_ma',
+      params: { fast: '3:9:2', slow: 20 },
+      code: '518880',
+      period: '1d',
+      fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 },
+    });
+    expect(resp.group_id).toBeTruthy();
+    expect(resp.run_ids!.length).toBe(4); // 3/5/7/9
+    const group = await api.listRuns({ groupId: resp.group_id });
+    expect(group).toHaveLength(4);
+    for (const r of group) {
+      expect(r.group_id).toBe(resp.group_id);
+    }
+  });
+
+  it('listRuns 种子：done/running/pending/failed 四态齐备；compare 只含存在 run', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    const runs = await api.listRuns();
+    const statuses = runs.map((r) => r.status);
+    for (const st of ['pending', 'running', 'done', 'failed']) {
+      expect(statuses).toContain(st);
+    }
+    const done = runs.find((r) => r.status === 'done')!;
+    expect(done.id).toBeGreaterThan(0);
+    expect(done.metrics).toBeDefined();
+    const cmp = await api.compare([done.id, 999999]);
+    expect(cmp).toHaveLength(1);
+    expect(cmp[0]!.id).toBe(done.id);
+  });
 });

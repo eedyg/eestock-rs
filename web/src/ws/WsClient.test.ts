@@ -216,4 +216,16 @@ describe('WS topic 别名适配（07-app-plane §1.4：后端 "health" ≡ 前�
     const last = JSON.parse(FakeWebSocket.instances[0]!.sent.at(-1)!);
     expect(last).toEqual({ type: 'unsubscribe', topic: 'health' });
   });
+
+  it('backtest 订阅出站帧 topic=backtest；入站 backtest_progress 分发到 backtest 订阅者', () => {
+    const ws = createClient();
+    const handler = vi.fn();
+    ws.subscribe('backtest', handler);
+    ws.connect();
+    FakeWebSocket.instances[0]!.emitOpen();
+    const frame = JSON.parse(FakeWebSocket.instances[0]!.sent[0]!);
+    expect(frame).toEqual({ type: 'subscribe', topic: 'backtest' });
+    FakeWebSocket.instances[0]!.emitMessage({ type: 'backtest_progress', run_id: 7, pct: 50, bar_ts: null });
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ type: 'backtest_progress', run_id: 7 }));
+  });
 });

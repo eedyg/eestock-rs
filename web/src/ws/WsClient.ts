@@ -8,7 +8,10 @@
  */
 
 const OUT_TOPIC_ALIAS: Record<string, string> = { source_health: 'health' };
-const IN_TOPIC_ALIAS: Record<string, string> = { health: 'source_health' };
+const IN_TOPIC_ALIAS: Record<string, string> = {
+  health: 'source_health',
+  backtest_progress: 'backtest', // 后端帧 type=backtest_progress → 前端订阅 topic=backtest
+};
 
 export type WsConnectionStatus = 'connecting' | 'open' | 'closed';
 export type WsMessage = { type?: string; code?: string; period?: string; [k: string]: unknown };
