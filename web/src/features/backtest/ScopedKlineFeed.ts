@@ -1,6 +1,6 @@
 import type { ApiClient } from '@/api/client';
 import type { Bar, Period } from '@/api/types';
-import type { FeedStatus } from '@/features/dashboard/feed';
+import { defaultPageSizeForPeriod, type FeedStatus } from '@/features/dashboard/feed';
 
 /** 各周期 bar 时间步长（毫秒）；与 merge 视图 / mock PERIOD_MS 口径一致。 */
 const PERIOD_STEP_MS: Record<Period, number> = {
@@ -21,6 +21,8 @@ export interface ScopedKlineFeedDeps {
   toTs: number;
   /** 区间前后 buffer bar 数（默认 10） */
   buffer?: number;
+  /** 向前分页每页 bar 数（默认 = defaultPageSizeForPeriod(period)，与看板 KlineDataFeed 分页口径一致） */
+  pageSize?: number;
 }
 
 /**
@@ -30,7 +32,9 @@ export interface ScopedKlineFeedDeps {
  * 与看板 `KlineDataFeed` 的差异：
  *  - 取数走 `GET /api/kline` 的 `before`（排他上界）+ `limit`：把区间窗口拉到位后按时间戳过滤，
  *    得到「开仓→平仓 + 前后 buffer」的闭区间 bar（升序）。
- *  - `loadBefore` 恒返回 0：区间外无更早历史，不向前分页。
+ *  - 支持向前分页：初始把「区间 + 前后 buffer」拉齐（hasMore 起始 true），向左平移/缩放时
+ *    `loadBefore` 以当前最左 bar 的 ts 为 `before` 游标拉更早页，去重前插，返回新增条数（
+ *    KlineChart 的 `loadBarsForKc` forward 只看 delta，引擎据此 prepend，无重复）。
  *  - 禁实时：历史区间不订阅 WS；`onRealtime` 注册监听但从不触发（KlineChart 的实时标记因此不激活）。
  */
 export class ScopedKlineFeed {
@@ -41,11 +45,14 @@ export class ScopedKlineFeed {
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
   private loadPromise: Promise<void> | null = null;
+  private loadingBefore = false;
   private disposed = false;
   private readonly buffer: number;
+  private readonly pageSize: number;
 
   constructor(private deps: ScopedKlineFeedDeps) {
     this.buffer = deps.buffer ?? 10;
+    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period);
   }
 
   /** 任意状态变更（加载完成/区间就绪） */
@@ -99,7 +106,9 @@ export class ScopedKlineFeed {
           return t >= lo && t <= hi;
         });
         this.status = this.bars.length > 0 ? 'ready' : 'empty';
-        this.hasMore = false;
+        // 区间无可见 bar → 无需向前分页，避免 hasMore=true 触发 forward 空拉忙转；
+        // 否则取满请求窗口 → 认为左侧还有更早历史可拉（同 KlineDataFeed 分页口径）。
+        this.hasMore = this.bars.length > 0 && fetched.length >= needBars;
       } catch {
         if (!this.disposed) this.status = 'error';
       } finally {
@@ -110,9 +119,29 @@ export class ScopedKlineFeed {
     return this.loadPromise;
   }
 
-  /** 区间外无更早历史：恒返回 0（引擎据此停拉前向分页）。 */
+  /** 向前分页：以当前最左 bar 的 ts 为排他 `before` 游标拉更早 bar，去重前插，返回新增条数。
+   *  与看板 KlineDataFeed.loadBefore 同语义（KlineChart 的 forward 只回调 delta，无重复）。 */
   async loadBefore(): Promise<number> {
-    return 0;
+    if (this.disposed || !this.hasMore || this.loadingBefore || this.bars.length === 0) return 0;
+    this.loadingBefore = true;
+    try {
+      const before = this.bars[0]!.ts;
+      const older = await this.deps.api.getKline({
+        code: this.deps.code,
+        period: this.deps.period,
+        before,
+        limit: this.pageSize,
+      });
+      if (this.disposed) return 0;
+      const existing = new Set(this.bars.map((b) => b.ts));
+      const fresh = older.filter((b) => !existing.has(b.ts));
+      if (fresh.length > 0) this.bars = [...fresh, ...this.bars];
+      if (older.length < this.pageSize) this.hasMore = false;
+      this.emit();
+      return fresh.length;
+    } finally {
+      this.loadingBefore = false;
+    }
   }
 
   /** 历史区间无实时：恒 ignore（保持 KlineDataFeed 接口对齐）。 */

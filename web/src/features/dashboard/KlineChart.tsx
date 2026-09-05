@@ -34,7 +34,18 @@ export interface KlineRangeOverlay {
   toTs: number; // Unix 毫秒
   price?: number; // 名义锚定价（全高背景只用 x，y 不敏感）
 }
-export type KlineOverlay = KlinePriceLineOverlay | KlineRangeOverlay;
+/** overlay：开/平仓 bar 标记（如同 TradingView 买/卖点）——按 ts 锚定当前周期 bar 就近对齐。 */
+export interface KlineMarkerOverlay {
+  type: 'marker';
+  /** 锚定 ts（Unix 毫秒）：开仓/平仓 moment；渲染时按当前周期 bar 就近对齐，周期切换自动重定位。 */
+  ts: number;
+  /** 标记文本：开仓 'B' / 平仓 'S'。 */
+  text: 'B' | 'S';
+  /** 可选锚定价位（决定 pin 的 y 位置；缺省 0，简单注解以顶为锚）。 */
+  price?: number;
+  color?: string;
+}
+export type KlineOverlay = KlinePriceLineOverlay | KlineRangeOverlay | KlineMarkerOverlay;
 
 export interface KlineChartProps {
   feed: KlineChartFeedLike;
@@ -102,10 +113,12 @@ function ensureTradeRangeOverlayRegistered() {
   tradeRangeRegistered = true;
 }
 
-/** 创建 overlay（开/平仓满宽价位线 + 开平仓区间高亮背景）。
+/** 创建 overlay（开/平仓满宽价位线 + 开平仓区间高亮背景 + 开/平仓 B/S bar 标记）。
  *  专用图元：
  *   - 价位线用内置 `simpleTag`（满宽横线 + Y 轴标签），value 锚定价位，extendData 作标签。
- *   - 区间高亮用注册的 `tradeRange`（全高背景 rect），x 由 open/close 时间戳决定。 */
+ *   - 区间高亮用注册的 `tradeRange`（全高背景 rect），x 由 open/close 时间戳决定。
+ *   - 开/平仓标记用内置 `simpleAnnotation`（竖线 + 箭头 + 文本 B/S），point 用 { timestamp, value }
+ *     锚定，渲染时按当前周期 bar 就近对齐；周期切换（feed 变 → 整图重建）会重新 createOverlay，自动重定位。 */
 function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
   for (const ov of overlays) {
     if (ov.type === 'price-line') {
@@ -115,6 +128,23 @@ function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
         lock: true,
         points: [{ value: ov.price }],
         extendData: ov.label ?? '',
+        styles: {
+          line: {
+            style: 'dashed',
+            color: ov.color ?? '#8b93b0',
+            size: 1,
+          },
+        },
+      });
+    } else if (ov.type === 'marker') {
+      // 开/平仓 bar 标记（B/S）：klinecharts 内置 simpleAnnotation（竖线 + 箭头 + 文本），
+      // point 用 { timestamp, value } 锚定，渲染时按当前周期 bar 就近对齐（周期切换自动重定位）。
+      chart.createOverlay({
+        name: 'simpleAnnotation',
+        paneId: 'candle_pane',
+        lock: true,
+        points: [{ timestamp: ov.ts, value: ov.price ?? 0 }],
+        extendData: ov.text,
         styles: {
           line: {
             style: 'dashed',

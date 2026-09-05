@@ -186,6 +186,51 @@ describe('TradeDetailModal（交易明细弹窗）', () => {
     );
   });
 
+  it('K 线含开仓「B」/平仓「S」标记 overlay（simpleAnnotation，锚定开/平仓 ts）', async () => {
+    renderModal();
+    await screen.findByTestId('kline-chart');
+    // 开仓「B」：simpleAnnotation，extendData='B'，锚定开仓 bar（open_ts 毫秒）
+    expect(chartStub.createOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'simpleAnnotation',
+        extendData: 'B',
+        points: [expect.objectContaining({ timestamp: trade.open_ts * 1000 })],
+      }),
+    );
+    // 平仓「S」：simpleAnnotation，extendData='S'，锚定平仓 bar（close_ts 毫秒）
+    expect(chartStub.createOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'simpleAnnotation',
+        extendData: 'S',
+        points: [expect.objectContaining({ timestamp: trade.close_ts * 1000 })],
+      }),
+    );
+  });
+
+  it('周期切换 → B/S 标记随新周期 bar 重定位（重建 chart 重新 createOverlay，锚点仍为开/平 ts）', async () => {
+    renderModal();
+    await screen.findByTestId('kline-chart');
+    await userEvent.click(screen.getByRole('button', { name: '5m' }));
+    // 周期切换后 KlineChart 以新 feed 重建，B/S 会基于新周期 bar 就近对齐重新打点
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '5m' })).toHaveAttribute('aria-pressed', 'true');
+    });
+    expect(chartStub.createOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'simpleAnnotation',
+        extendData: 'B',
+        points: [expect.objectContaining({ timestamp: trade.open_ts * 1000 })],
+      }),
+    );
+    expect(chartStub.createOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'simpleAnnotation',
+        extendData: 'S',
+        points: [expect.objectContaining({ timestamp: trade.close_ts * 1000 })],
+      }),
+    );
+  });
+
   it('resize 手柄存在且拖动可调整弹窗尺寸', async () => {
     renderModal();
     await screen.findByTestId('kline-chart');

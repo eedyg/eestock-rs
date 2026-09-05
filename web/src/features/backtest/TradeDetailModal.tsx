@@ -89,18 +89,22 @@ export function TradeDetailModal({
         period: selPeriod,
         fromTs: trade.open_ts,
         toTs: trade.close_ts,
-        buffer: 10,
+        buffer: 30,
       }),
     [api, code, selPeriod, trade],
   );
   useEffect(() => () => feed.dispose(), [feed]);
 
-  // 开/平仓价位线 + 开平仓区间高亮 overlay（price 锚定价位）
+  // 开/平仓价位线 + 开平仓区间高亮 + 开/平仓「B/S」bar 标记 overlay（叠加渲染）。
+  // B/S 标记以 open_ts/close_ts 毫秒锚定，按当前周期 bar 就近对齐；周期切换时 KlineChart 重建 chart
+  // 重新 createOverlay，锚点仍是同一绝对 ts，因此自动重定位到新周期下最接近的 bar。
   const overlays: KlineOverlay[] = useMemo(
     () => [
       { type: 'price-line', price: trade.open_price, label: '开', color: '#38bdf8' },
       { type: 'price-line', price: trade.close_price, label: '平', color: '#f59e0b' },
       { type: 'range', fromTs: trade.open_ts * 1000, toTs: trade.close_ts * 1000, price: trade.open_price },
+      { type: 'marker', ts: trade.open_ts * 1000, text: 'B', price: trade.open_price, color: '#ff5c6c' },
+      { type: 'marker', ts: trade.close_ts * 1000, text: 'S', price: trade.close_price, color: '#00e0a4' },
     ],
     [trade],
   );
@@ -215,7 +219,7 @@ export function TradeDetailModal({
                 {i.label}
               </Button>
             ))}
-            <span className="ml-2 text-[11px] text-dim">K线区间：开仓→平仓 ±10 bar</span>
+            <span className="ml-2 text-[11px] text-dim">K线区间：开仓→平仓 ±30 bar</span>
           </div>
         </div>
 
