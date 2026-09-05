@@ -1,9 +1,17 @@
 // 页面⑤ 回测工作台展示格式化（深色交易终端风；指标↔字符串，统一口径）。
+import type { Period } from '@/api/types';
 
 /** 后端口径周期代码 → 前端标签（M1/M5/M15/D1 → 1m/5m/15m/日）。 */
 export function periodLabel(code: string | undefined): string {
   const map: Record<string, string> = { M1: '1m', M5: '5m', M15: '15m', D1: '日' };
   return map[code ?? ''] ?? (code || '—');
+}
+
+/** 后端口径周期代码 → 前端 Period（M1/M5/M15/D1 → 1m/5m/15m/1d；未识别兜底 1d）。
+ *  供弹窗 K 线默认周期与看板 KlineChart 周期切换复用。 */
+export function periodCodeToPeriod(code: string | undefined | null): Period {
+  const map: Record<string, Period> = { M1: '1m', M5: '5m', M15: '15m', D1: '1d' };
+  return map[code ?? ''] ?? '1d';
 }
 
 /** 状态 → 中文标签（task-list/grid-rank 展示）。 */

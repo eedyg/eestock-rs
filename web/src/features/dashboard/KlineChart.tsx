@@ -1,18 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
-import { init, dispose, type Chart, type KLineData } from 'klinecharts';
-import { defaultPageSizeForPeriod, type KlineDataFeed } from './feed';
-import type { Period } from '@/api/types';
+import {
+  init,
+  dispose,
+  registerOverlay,
+  type Chart,
+  type KLineData,
+  type OverlayCreateFiguresCallbackParams,
+} from 'klinecharts';
+import { defaultPageSizeForPeriod } from './feed';
+import type { Bar, Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
-import { loadBarsForKc } from './klineDataLoader';
+import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
+
+/** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
+ *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
+ *  - onRealtime：订阅实时 bar（区间 feed 从不触发，看板 feed 走 WS）。 */
+export interface KlineChartFeedLike extends KlineDataFeedLike {
+  onRealtime(cb: (bar: Bar) => void): () => void;
+}
+
+/** overlay：满宽价位线（开/平仓标记） */
+export interface KlinePriceLineOverlay {
+  type: 'price-line';
+  price: number;
+  label?: string;
+  color?: string;
+}
+/** overlay：开平仓区间高亮（klinecharts 自定义全高背景 rect） */
+export interface KlineRangeOverlay {
+  type: 'range';
+  fromTs: number; // Unix 毫秒
+  toTs: number; // Unix 毫秒
+  price?: number; // 名义锚定价（全高背景只用 x，y 不敏感）
+}
+export type KlineOverlay = KlinePriceLineOverlay | KlineRangeOverlay;
 
 export interface KlineChartProps {
-  feed: KlineDataFeed;
+  feed: KlineChartFeedLike;
   code: string;
   period: Period;
   followLatest: boolean;
   indicators: Record<IndicatorName, boolean>;
   onManualZoom(): void;
+  /** 可选 overlay（开/平仓价位线 + 区间高亮）；看板不传则默认无。 */
+  overlays?: KlineOverlay[];
 }
 
 const INDICATOR_DEFS: Array<{ key: IndicatorName | 'vol'; name: string; calcParams?: number[] }> = [
@@ -33,6 +65,76 @@ function syncIndicators(chart: Chart, indicators: Record<IndicatorName, boolean>
       } else {
         chart.createIndicator({ name: def.name, calcParams: def.calcParams }, true);
       }
+    }
+  }
+}
+
+/** klinecharts 无内置「开平仓区间全高背景」overlay：注册一个自定义 `tradeRange` 模板（全高 rect）。
+ *  注册为全局一次性；测试环境 klinecharts 被打桩（无 registerOverlay），跳过注册，交由 createOverlay 桩验证。 */
+let tradeRangeRegistered = false;
+function ensureTradeRangeOverlayRegistered() {
+  if (tradeRangeRegistered || typeof registerOverlay !== 'function') return;
+  registerOverlay({
+    name: 'tradeRange',
+    totalStep: 0,
+    createPointFigures: (p: OverlayCreateFiguresCallbackParams<unknown>) => {
+      const [a, b] = p.coordinates;
+      if (!a || !b) return [];
+      const x = Math.min(a.x, b.x);
+      const width = Math.abs(b.x - a.x);
+      return {
+        type: 'rect',
+        attrs: { x, y: 0, width, height: p.bounding.height },
+        ignoreEvent: true,
+      };
+    },
+    styles: {
+      rect: {
+        style: 'stroke_fill',
+        color: 'rgba(56,189,248,0.10)',
+        borderColor: 'rgba(56,189,248,0.30)',
+        borderSize: 1,
+        borderStyle: 'dashed',
+        borderRadius: 4,
+      },
+    },
+  });
+  tradeRangeRegistered = true;
+}
+
+/** 创建 overlay（开/平仓满宽价位线 + 开平仓区间高亮背景）。
+ *  专用图元：
+ *   - 价位线用内置 `simpleTag`（满宽横线 + Y 轴标签），value 锚定价位，extendData 作标签。
+ *   - 区间高亮用注册的 `tradeRange`（全高背景 rect），x 由 open/close 时间戳决定。 */
+function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
+  for (const ov of overlays) {
+    if (ov.type === 'price-line') {
+      chart.createOverlay({
+        name: 'simpleTag',
+        paneId: 'candle_pane',
+        lock: true,
+        points: [{ value: ov.price }],
+        extendData: ov.label ?? '',
+        styles: {
+          line: {
+            style: 'dashed',
+            color: ov.color ?? '#8b93b0',
+            size: 1,
+          },
+        },
+      });
+    } else {
+      ensureTradeRangeOverlayRegistered();
+      const price = ov.price ?? 0;
+      chart.createOverlay({
+        name: 'tradeRange',
+        paneId: 'candle_pane',
+        lock: true,
+        points: [
+          { timestamp: ov.fromTs, value: price },
+          { timestamp: ov.toTs, value: price },
+        ],
+      });
     }
   }
 }
@@ -123,6 +225,11 @@ export function KlineChart(props: KlineChartProps) {
     chart.setPeriod(PERIOD_MAP[props.period]);
     applyDarkTerminalStyles(chart);
     syncIndicators(chart, props.indicators);
+
+    // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
+    if (props.overlays && props.overlays.length > 0) {
+      createChartOverlays(chart, props.overlays);
+    }
 
     // WS 实时：appendBar/updateBar → DataLoader subscribeBar 回调；跟随最新则锁定视口最右
     const offRt = feed.onRealtime((bar) => {

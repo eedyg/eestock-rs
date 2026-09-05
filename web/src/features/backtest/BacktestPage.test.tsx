@@ -8,6 +8,29 @@ import { stubApi } from '@/test/apiStub';
 import type { BacktestRunDto } from '@/api/types';
 import { BacktestPage } from './BacktestPage';
 
+// jsdom 无 canvas：klinecharts 整体打桩（弹窗内 KlineChart 只取桩，不收数据渲染）
+const chartStub = {
+  setSymbol: vi.fn(),
+  setPeriod: vi.fn(),
+  setDataLoader: vi.fn(),
+  createIndicator: vi.fn(),
+  removeIndicator: vi.fn(),
+  setStyles: vi.fn(),
+  subscribeAction: vi.fn(),
+  unsubscribeAction: vi.fn(),
+  scrollToRealTime: vi.fn(),
+  setBarSpace: vi.fn(),
+  convertToPixel: vi.fn(() => ({ x: 0, y: 0 })),
+  createOverlay: vi.fn(),
+  removeOverlay: vi.fn(),
+  resize: vi.fn(),
+};
+vi.mock('klinecharts', () => ({
+  init: vi.fn(() => chartStub),
+  dispose: vi.fn(),
+  registerOverlay: vi.fn(),
+}));
+
 function fakeWs() {
   const handlers = new Map<string, Set<(msg: unknown) => void>>();
   return {
@@ -153,6 +176,8 @@ describe('BacktestPage（页面⑤回测工作台：骨架锚点 + 策略表单 
     await user.click(screen.getByTestId('trade-row-1700000000'));
     // 弹窗出现而非跳转
     expect(await screen.findByTestId('trade-detail-modal')).toBeInTheDocument();
+    // 弹窗内复用看板 KlineChart（K 线容器存在）
+    expect(await screen.findByTestId('kline-chart')).toBeInTheDocument();
     // 路由不变（无 navigate → location 仍为 /），回测页未重载（getRun 未再调用）
     expect(screen.getByTestId('location-path')).toHaveTextContent('/');
     expect((api.getRun as ReturnType<typeof vi.fn>).mock.calls.length).toBe(getRunCalls);

@@ -126,7 +126,13 @@ export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCl
       </RegionPortal>
 
       {selectedTrade && (
-        <TradeDetailModal trade={selectedTrade} code={selectedRun?.code ?? ''} onClose={() => setSelectedTrade(null)} />
+        <TradeDetailModal
+          trade={selectedTrade}
+          code={selectedRun?.code ?? ''}
+          period={selectedRun?.period ?? 'D1'}
+          api={api}
+          onClose={() => setSelectedTrade(null)}
+        />
       )}
     </div>
   );
