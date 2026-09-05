@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
 import { stubApi } from '@/test/apiStub';
@@ -138,7 +138,61 @@ describe('BacktestPage（页面⑤回测工作台：骨架锚点 + 策略表单 
     await userEvent.setup().click(screen.getByRole('button', { name: '查看' }));
     await waitFor(() => expect(screen.getByText('本次回测无交易')).toBeInTheDocument());
   });
+
+  it('点交易行 → 出现交易明细弹窗（不跳转，不重载）', async () => {
+    const user = userEvent.setup();
+    api = stubApi({
+      listRuns: vi.fn(async () => [runWithTrades]),
+      getRun: vi.fn(async () => runWithTrades),
+    });
+    renderPageWithLocation(api, ws);
+    await waitFor(() => expect(screen.getByRole('button', { name: '查看' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '查看' }));
+    await waitFor(() => expect(screen.getByTestId('trade-row-1700000000')).toBeInTheDocument());
+    const getRunCalls = (api.getRun as ReturnType<typeof vi.fn>).mock.calls.length;
+    await user.click(screen.getByTestId('trade-row-1700000000'));
+    // 弹窗出现而非跳转
+    expect(await screen.findByTestId('trade-detail-modal')).toBeInTheDocument();
+    // 路由不变（无 navigate → location 仍为 /），回测页未重载（getRun 未再调用）
+    expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    expect((api.getRun as ReturnType<typeof vi.fn>).mock.calls.length).toBe(getRunCalls);
+  });
+
+  it('点弹窗关闭 → 弹窗消失、回测页仍加载（不重载）', async () => {
+    const user = userEvent.setup();
+    api = stubApi({
+      listRuns: vi.fn(async () => [runWithTrades]),
+      getRun: vi.fn(async () => runWithTrades),
+    });
+    renderPageWithLocation(api, ws);
+    await waitFor(() => expect(screen.getByRole('button', { name: '查看' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '查看' }));
+    await waitFor(() => expect(screen.getByTestId('trade-row-1700000000')).toBeInTheDocument());
+    await user.click(screen.getByTestId('trade-row-1700000000'));
+    expect(await screen.findByTestId('trade-detail-modal')).toBeInTheDocument();
+    const getRunCalls = (api.getRun as ReturnType<typeof vi.fn>).mock.calls.length;
+    await user.click(screen.getByTestId('trade-detail-close'));
+    // 弹窗消失
+    await waitFor(() => expect(screen.queryByTestId('trade-detail-modal')).not.toBeInTheDocument());
+    // 回测页仍加载：交易表仍在、getRun 未再调用
+    expect(screen.getByTestId('trade-row-1700000000')).toBeInTheDocument();
+    expect((api.getRun as ReturnType<typeof vi.fn>).mock.calls.length).toBe(getRunCalls);
+  });
 });
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <div data-testid="location-path">{loc.pathname + loc.search}</div>;
+}
+
+function renderPageWithLocation(api: ApiClient, ws: ReturnType<typeof fakeWs>) {
+  return render(
+    <MemoryRouter>
+      <LocationProbe />
+      <BacktestPage api={api} ws={ws} />
+    </MemoryRouter>,
+  );
+}
 
 const doneRunNoTrades: BacktestRunDto = {
   id: 99,
@@ -157,4 +211,38 @@ const doneRunNoTrades: BacktestRunDto = {
   net_value: { series: [[0, 100000], [1, 101000]], drawdown: [[0, 0], [1, 0]] },
   trades: [],
   metrics: { net_profit: 1000, max_drawdown: 0, sharpe: 1.2, win_rate: 0, profit_factor: 0, annualized_return: 0.1, trade_count: 0, avg_hold_bars: 0 },
+};
+
+const runWithTrades: BacktestRunDto = {
+  id: 100,
+  code: '518880',
+  period: 'D1',
+  strategy_id: 'dual_ma',
+  params: { fast: 5, slow: 20 },
+  fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+  status: 'done',
+  progress: 100,
+  current_ts: '2026-09-04T02:00:00Z',
+  created_at: '2026-09-04T01:00:00Z',
+  finished_at: '2026-09-04T02:00:00Z',
+  error: null,
+  group_id: null,
+  net_value: { series: [[0, 100000], [1, 101000]], drawdown: [[0, 0], [1, 0]] },
+  trades: [
+    {
+      open_ts: 1700000000,
+      close_ts: 1700086400,
+      open_bar: 1,
+      close_bar: 2,
+      open_price: 10,
+      close_price: 11,
+      shares: 1000,
+      gross_value: 11000,
+      commission: 5,
+      stamp_duty: 5.5,
+      pnl: 1000,
+      hold_bars: 1,
+    },
+  ],
+  metrics: { net_profit: 1000, max_drawdown: 0, sharpe: 1.2, win_rate: 1, profit_factor: 2, annualized_return: 0.1, trade_count: 1, avg_hold_bars: 1 },
 };

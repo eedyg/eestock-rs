@@ -14,13 +14,13 @@ export function TradeTable({
   loading,
   error,
   onRetry,
-  onJumpToKline,
+  onShowTrade,
 }: {
   run: BacktestRunDto | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-  onJumpToKline: (code: string, from: string, to: string) => void;
+  onShowTrade: (trade: Trade) => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('open');
   const [dir, setDir] = useState<Dir>('asc');
@@ -120,7 +120,7 @@ export function TradeTable({
             <tr
               key={`${t.open_ts}-${t.close_ts}`}
               className="cursor-pointer border-b border-line hover:bg-white/5"
-              onClick={() => run && onJumpToKline(run.code, fmtTs(t.open_ts), fmtTs(t.close_ts))}
+              onClick={() => onShowTrade(t)}
               data-testid={`trade-row-${t.open_ts}`}
             >
               <td className="num px-3 py-2">{fmtTs(t.open_ts)}</td>

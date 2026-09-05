@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { BacktestGrid } from '@/layouts/BacktestGrid';
 import { defaultApi } from '@/api';
 import { defaultWs } from '@/ws';
 import type { ApiClient } from '@/api/client';
+import type { Trade } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { BacktestStore } from './store';
@@ -15,6 +15,7 @@ import { TradeTable } from './TradeTable';
 import { PeriodHeatmap } from './PeriodHeatmap';
 import { CompareView } from './CompareView';
 import { GridRank } from './GridRank';
+import { TradeDetailModal } from './TradeDetailModal';
 
 /**
  * 页面⑤回测工作台：以 tangle 骨架 BacktestGrid 为布局基座（骨架零改动），
@@ -24,7 +25,7 @@ import { GridRank } from './GridRank';
  */
 export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiClient; ws?: WsClient }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const store = useMemo(() => new BacktestStore({ api, ws }), [api, ws]);
   useEffect(() => {
     void store.init();
@@ -46,9 +47,7 @@ export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCl
         onSelectRun={(id) => void store.selectRun(Number(id))}
         onToggleCompare={(id) => store.toggleCompare(Number(id))}
         onSubmit={(p) => void store.submit(p)}
-        onJumpToKline={(code, from, _to) =>
-          navigate(`/?code=${encodeURIComponent(code)}&ts=${encodeURIComponent(from)}`)
-        }
+        onJumpToKline={(_code, _from, _to) => undefined}
       />
 
       <RegionPortal root={rootRef} region="strategy-form">
@@ -98,9 +97,7 @@ export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCl
           loading={state.runDetail.loading}
           error={state.runDetail.error}
           onRetry={loadSelected}
-          onJumpToKline={(code, from, _to) =>
-            navigate(`/?code=${encodeURIComponent(code)}&ts=${encodeURIComponent(from)}`)
-          }
+          onShowTrade={(trade) => setSelectedTrade(trade)}
         />
       </RegionPortal>
 
@@ -127,6 +124,10 @@ export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCl
           onSelectRun={(id) => void store.selectRun(id)}
         />
       </RegionPortal>
+
+      {selectedTrade && (
+        <TradeDetailModal trade={selectedTrade} code={selectedRun?.code ?? ''} onClose={() => setSelectedTrade(null)} />
+      )}
     </div>
   );
 }
