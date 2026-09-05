@@ -1,0 +1,12 @@
+# 08-backtest / 01 — 纯逻辑回测引擎（Wave 3）。手写（非 tangle）。
+# 定位：无 IO / 无 DB —— 事件驱动 bar 循环 + 组合/订单/费用/滑点 + 指标 + 8 项绩效指标，可完全单测锁定。
+# 分层：backtest crate（纯逻辑）被 application 层（BacktestService）调用；web/storage 不得反向依赖本 crate 的 IO。
+[package]
+name = "backtest"
+description = "纯逻辑回测引擎：策略 trait + 事件驱动 bar 循环 + 组合/费用/滑点 + 指标 + 8 项绩效指标（无 IO/无 DB，单测锁定）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# 结果/交易/指标类型需要序列化给 web/REST 层（纯逻辑，非 IO）；统一走 workspace 版本。
+serde.workspace = true
