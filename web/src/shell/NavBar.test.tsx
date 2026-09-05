@@ -13,7 +13,7 @@ describe('NavBar（00-shell：8 项按波次置灰）', () => {
     ]);
   });
 
-  it('Wave 2 Phase C 解锁 ①②③④⑦，其余置灰且带波次标签', () => {
+  it('Wave 2 Phase C + 设置页 S1 解锁 ①②③④⑦⑧，其余置灰且带波次标签', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
     for (const [label, href] of [
       ['① 行情看板', '/'],
@@ -21,11 +21,12 @@ describe('NavBar（00-shell：8 项按波次置灰）', () => {
       ['③ 标的管理', '/symbols'],
       ['④ 数据质量', '/quality'],
       ['⑦ 告警中心', '/alerts'],
+      ['⑧ 系统设置', '/settings'],
     ] as const) {
       expect(screen.getByText(label).closest('a')).toHaveAttribute('href', href);
     }
     // 置灰项不是链接
-    for (const label of ['⑤ 回测工作台', '⑥ 交易面板', '⑧ 系统设置']) {
+    for (const label of ['⑤ 回测工作台', '⑥ 交易面板']) {
       expect(screen.getByText(label).closest('a')).toBeNull();
     }
     // 波次标签

@@ -6,6 +6,7 @@
 pub mod alerts;
 pub mod dto;
 pub mod rest;
+pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -33,6 +34,13 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
+        // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
+        .route("/api/system/info", get(settings::system_info))
+        .route("/api/system/purge-raw", post(settings::purge_raw))
+        .route("/api/system/reset-circuits", post(settings::reset_circuits))
+        .route("/api/config/sources", get(settings::get_config_sources))
+        .route("/api/config/collector", get(settings::get_config_collector))
+        .route("/api/config/mcp", get(settings::get_config_mcp))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)

@@ -40,6 +40,17 @@ async fn main() -> anyhow::Result<()> {
     // Phase D：HealthEventsRead 实现实例 web 与 mcp 共享（同一 Arc）
     let health_events: Arc<dyn domain::ports::HealthEventsRead> =
         Arc::new(storage::reader::HealthEventReader::new(pool.clone()));
+    // 页面⑧ S1：系统信息（crate 版本走 env!，web 不依赖 collector/storage）；uptime 以进程启动 Instant 起算
+    let system_info = web::settings::SystemInfoSource {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        crate_versions: web::dto::CrateVersions {
+            collector: collector::VERSION.to_string(),
+            storage: storage::VERSION.to_string(),
+            diagnose: diagnose::VERSION.to_string(),
+        },
+        db: storage::system::system_info(pool.clone()),
+        started_at: std::time::Instant::now(),
+    };
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -64,6 +75,8 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        system_info,
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),

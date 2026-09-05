@@ -5,21 +5,27 @@ import type {
   AlertRuleItem,
   AlertRulePatchBody,
   Bar,
+  CollectorConfigSnapshot,
   DetailRange,
   DivergenceStat,
   KlineResponse,
+  McpConfigSnapshot,
   MetricPoint,
   Period,
+  PurgeRawResult,
   QualityDivergenceResponse,
   QualityGapsResponse,
   RateLimitCounters,
   RegisterSymbolInput,
+  ResetCircuitsResult,
   SourceAccuracyResponse,
+  SourceConfigSnapshot,
   SourceEventItem,
   SourcesHealth,
   SymbolPatchBody,
   SymbolRow,
   SymbolSnapshot,
+  SystemInfo,
   TushareStatusResponse,
 } from './types';
 import { ApiError } from './types';
@@ -87,6 +93,19 @@ export interface ApiClient {
   getQualityGaps(q: QualityCodeRangeQuery): Promise<QualityGapsResponse>;
   /** tushare 同步状态（sync-panel；quota_remaining 恒 null） */
   getTushareStatus(): Promise<TushareStatusResponse>;
+  // ── 页面⑧ 系统设置（08-settings §6；仅 S1 只读/运维端点，无配置持久化）──
+  /** 系统信息（应用/crate 版本、DB 状态、运行时长；只读） */
+  getSystemInfo(): Promise<SystemInfo>;
+  /** 源参数只读快照（内置源清单 + 默认参数；不落库） */
+  getConfigSources(): Promise<SourceConfigSnapshot>;
+  /** 采集参数只读快照（默认间隔 + 交易时段（写死）） */
+  getConfigCollector(): Promise<CollectorConfigSnapshot>;
+  /** MCP 配置只读快照（总开关/交易工具/每日限额默认值） */
+  getConfigMcp(): Promise<McpConfigSnapshot>;
+  /** 清空 kline_raw（危险；confirm 须为 'PURGE'，缺失/不匹配 → 400） */
+  purgeRaw(confirm: string): Promise<PurgeRawResult>;
+  /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
+  resetCircuits(confirm: string): Promise<ResetCircuitsResult>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -177,6 +196,21 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getSourceAccuracy: (q) => get(`/api/quality/source-accuracy?${qualityParams(q).toString()}`),
     getQualityGaps: (q) => get(`/api/quality/gaps?${qualityParams(q).toString()}`),
     getTushareStatus: () => get('/api/tushare/status'),
+    // ── 页面⑧ 系统设置（08-settings §6；仅 S1 只读/运维端点）──
+    getSystemInfo: () => get<SystemInfo>('/api/system/info'),
+    getConfigSources: () => get<SourceConfigSnapshot>('/api/config/sources'),
+    getConfigCollector: () => get<CollectorConfigSnapshot>('/api/config/collector'),
+    getConfigMcp: () => get<McpConfigSnapshot>('/api/config/mcp'),
+    purgeRaw: (confirm) =>
+      request<PurgeRawResult>('/api/system/purge-raw', {
+        method: 'POST',
+        body: JSON.stringify({ confirm }),
+      }),
+    resetCircuits: (confirm) =>
+      request<ResetCircuitsResult>('/api/system/reset-circuits', {
+        method: 'POST',
+        body: JSON.stringify({ confirm }),
+      }),
   };
 }
 

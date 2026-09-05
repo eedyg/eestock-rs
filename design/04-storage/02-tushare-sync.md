@@ -578,6 +578,9 @@ pub async fn set_checkpoint(pool: &PgPool, code: &str, period: &str, date: Naive
 //! storage —— 基础设施：TimescaleDB 读写（sqlx）。
 //! 由 design/04-storage/*.md tangle 生成（ADR-007），禁止手改。
 
+/// crate 编译时版本（settings 页 system-info 展示；由 app 装配 CrateVersions）。
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub mod accurate;
 pub mod events;
 pub mod kline;
@@ -591,6 +594,9 @@ pub mod admin;
 // alerts：告警引擎端口实现加法扩展（Wave 2 Phase B：PgAlertStore + PgAlertEval；
 // 代码块在 design/07-app-plane/02-alerts.md）
 pub mod alerts;
+// system：页面⑧ 设置页 S1 端口实现加法扩展（SystemInfoRead + RawPurgePort；
+// 代码块在 design/06-web/08-settings.md）
+pub mod system;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

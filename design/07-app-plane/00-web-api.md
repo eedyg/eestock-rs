@@ -147,6 +147,9 @@ SQL 窗口读取下沉 storage（`HealthEventReader`），聚合口径与初版 
 //! 与数据质量服务（Wave 2 Phase A：raw vs accurate 对照 + 交易日历驱动缺口报告，本节 §2.1）。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
 
+/// crate 编译时版本（settings 页 system-info 展示；由 app 装配 CrateVersions）。
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub mod health;
 pub mod quality;
 ```
@@ -1746,6 +1749,7 @@ async fn symbols_latest_d3_merge_tail_semantics() {
 pub mod alerts;
 pub mod dto;
 pub mod rest;
+pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -1773,6 +1777,13 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
+        // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
+        .route("/api/system/info", get(settings::system_info))
+        .route("/api/system/purge-raw", post(settings::purge_raw))
+        .route("/api/system/reset-circuits", post(settings::reset_circuits))
+        .route("/api/config/sources", get(settings::get_config_sources))
+        .route("/api/config/collector", get(settings::get_config_collector))
+        .route("/api/config/mcp", get(settings::get_config_mcp))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -2004,6 +2015,86 @@ pub fn normalize_name(name: Option<String>) -> Option<String> {
     name.and_then(|n| { let t = n.trim().to_string(); if t.is_empty() { None } else { Some(t) } })
 }
 
+// ── 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 / 运维 / 只读配置快照 DTO ──
+
+/// 各应用面 crate 版本（由 app 装配注入；web 不依赖 collector/storage，纯 DI）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CrateVersions {
+    pub collector: String,
+    pub storage: String,
+    pub diagnose: String,
+}
+
+/// GET /api/system/info 响应（只读；db_ok=false 表示进程在线但 DB 断开，非错误态）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SystemInfoDto {
+    pub app_version: String,
+    pub crate_versions: CrateVersions,
+    pub db_ok: bool,
+    pub uptime_secs: u64,
+}
+
+/// POST /api/system/purge-raw 与 reset-circuits 请求体（confirm 可选：
+/// 缺失/不匹配 → 400 服务端拒绝；用 Option 而非必填，避免 axum Json 缺字段返回 422）。
+#[derive(Debug, Deserialize)]
+pub struct ConfirmReq {
+    pub confirm: Option<String>,
+}
+
+/// POST /api/system/purge-raw 响应（rows_deleted=清理的 kline_raw 行数）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PurgeRawResultDto {
+    pub rows_deleted: u64,
+}
+
+/// POST /api/system/reset-circuits 响应（requests=写入的熔断复位请求数）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ResetCircuitsResultDto {
+    pub requests: usize,
+}
+
+/// GET /api/config/sources 单源只读快照项。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SourceConfigItemDto {
+    pub id: String,
+    pub label: String,
+    pub role: String,
+    pub rate_per_sec: i64,
+    pub jitter_ms: i64,
+    pub circuit_fail_count: i64,
+    pub backoff_steps: Vec<String>,
+    pub enabled: bool,
+    pub rotation_locked: bool,
+}
+
+/// GET /api/config/sources 响应（当前只读快照；S1 不落库，值为 SETTINGS_DEFAULTS 默认）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SourceConfigSnapshotDto {
+    pub sources: Vec<SourceConfigItemDto>,
+}
+
+/// GET /api/config/collector 响应（交易时段写死只读）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CollectorConfigSnapshotDto {
+    pub default_interval_sec: i64,
+    pub trading_hours: String,
+}
+
+/// GET /api/config/mcp 响应（只读；交易工具默认关，开启需二次确认 ADR-009）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct McpConfigSnapshotDto {
+    pub enabled: bool,
+    pub trading_tools_enabled: bool,
+    pub daily_limit_amount: i64,
+    pub daily_limit_count: i64,
+}
+
+/// 熔断复位内置源清单（reset-circuits 全部源；非近似变体，即数据面真实注册源）。
+pub const RESET_SOURCES: &[&str] = &[
+    "tencent_ifzq", "sina_jsonp", "tencent_qt", "sina_hq",
+    "ths_cs", "push2delay", "exchange", "tushare",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2120,6 +2211,10 @@ pub struct AppState {
     /// 告警引擎服务（Wave 2 Phase B：alert crate，Application 层；02-alerts.md）。
     /// 评估节拍由 web::alerts::AlertEvaluator 驱动；本字段供 REST handlers 查询/确认/规则调整。
     pub alerts: alert::engine::AlertService,
+    /// 页面⑧ 系统信息数据源（S1：版本/DB 探测/运行时长；08-settings.md）。
+    pub system_info: crate::settings::SystemInfoSource,
+    /// 页面⑧ raw 层清空端口（S1：POST /api/system/purge-raw；08-settings.md）。
+    pub raw_purge: Arc<dyn domain::ports::RawPurgePort>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -2936,6 +3031,16 @@ fn state(pool: PgPool) -> Arc<AppState> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        // 页面⑧ S1：设置页新增字段（装配齐全；行为测试见 api_settings.rs）
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -3136,6 +3241,15 @@ fn state(pool: PgPool) -> Arc<AppState> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -3308,6 +3422,17 @@ async fn main() -> anyhow::Result<()> {
     // Phase D：HealthEventsRead 实现实例 web 与 mcp 共享（同一 Arc）
     let health_events: Arc<dyn domain::ports::HealthEventsRead> =
         Arc::new(storage::reader::HealthEventReader::new(pool.clone()));
+    // 页面⑧ S1：系统信息（crate 版本走 env!，web 不依赖 collector/storage）；uptime 以进程启动 Instant 起算
+    let system_info = web::settings::SystemInfoSource {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        crate_versions: web::dto::CrateVersions {
+            collector: collector::VERSION.to_string(),
+            storage: storage::VERSION.to_string(),
+            diagnose: diagnose::VERSION.to_string(),
+        },
+        db: storage::system::system_info(pool.clone()),
+        started_at: std::time::Instant::now(),
+    };
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -3332,6 +3457,8 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        system_info,
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: web::ws::WsHub::new(),
@@ -3778,6 +3905,15 @@ fn state(pool: PgPool) -> Arc<AppState> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),
@@ -3971,6 +4107,15 @@ fn state(pool: PgPool) -> Arc<AppState> {
             Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),

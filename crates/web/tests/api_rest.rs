@@ -48,6 +48,16 @@ fn state(pool: PgPool) -> Arc<AppState> {
             Arc::new(storage::reader::KlineReader::new(pool.clone())),
             Arc::new(domain::ports::SystemClock),
         ),
+        // 页面⑧ S1：设置页新增字段（装配齐全；行为测试见 api_settings.rs）
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: WsHub::new(),

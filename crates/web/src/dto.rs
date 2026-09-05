@@ -223,6 +223,86 @@ pub fn normalize_name(name: Option<String>) -> Option<String> {
     name.and_then(|n| { let t = n.trim().to_string(); if t.is_empty() { None } else { Some(t) } })
 }
 
+// ── 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 / 运维 / 只读配置快照 DTO ──
+
+/// 各应用面 crate 版本（由 app 装配注入；web 不依赖 collector/storage，纯 DI）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CrateVersions {
+    pub collector: String,
+    pub storage: String,
+    pub diagnose: String,
+}
+
+/// GET /api/system/info 响应（只读；db_ok=false 表示进程在线但 DB 断开，非错误态）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SystemInfoDto {
+    pub app_version: String,
+    pub crate_versions: CrateVersions,
+    pub db_ok: bool,
+    pub uptime_secs: u64,
+}
+
+/// POST /api/system/purge-raw 与 reset-circuits 请求体（confirm 可选：
+/// 缺失/不匹配 → 400 服务端拒绝；用 Option 而非必填，避免 axum Json 缺字段返回 422）。
+#[derive(Debug, Deserialize)]
+pub struct ConfirmReq {
+    pub confirm: Option<String>,
+}
+
+/// POST /api/system/purge-raw 响应（rows_deleted=清理的 kline_raw 行数）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PurgeRawResultDto {
+    pub rows_deleted: u64,
+}
+
+/// POST /api/system/reset-circuits 响应（requests=写入的熔断复位请求数）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ResetCircuitsResultDto {
+    pub requests: usize,
+}
+
+/// GET /api/config/sources 单源只读快照项。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SourceConfigItemDto {
+    pub id: String,
+    pub label: String,
+    pub role: String,
+    pub rate_per_sec: i64,
+    pub jitter_ms: i64,
+    pub circuit_fail_count: i64,
+    pub backoff_steps: Vec<String>,
+    pub enabled: bool,
+    pub rotation_locked: bool,
+}
+
+/// GET /api/config/sources 响应（当前只读快照；S1 不落库，值为 SETTINGS_DEFAULTS 默认）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SourceConfigSnapshotDto {
+    pub sources: Vec<SourceConfigItemDto>,
+}
+
+/// GET /api/config/collector 响应（交易时段写死只读）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CollectorConfigSnapshotDto {
+    pub default_interval_sec: i64,
+    pub trading_hours: String,
+}
+
+/// GET /api/config/mcp 响应（只读；交易工具默认关，开启需二次确认 ADR-009）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct McpConfigSnapshotDto {
+    pub enabled: bool,
+    pub trading_tools_enabled: bool,
+    pub daily_limit_amount: i64,
+    pub daily_limit_count: i64,
+}
+
+/// 熔断复位内置源清单（reset-circuits 全部源；非近似变体，即数据面真实注册源）。
+pub const RESET_SOURCES: &[&str] = &[
+    "tencent_ifzq", "sina_jsonp", "tencent_qt", "sina_hq",
+    "ths_cs", "push2delay", "exchange", "tushare",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;

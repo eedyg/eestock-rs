@@ -6,23 +6,30 @@ import type {
   AlertRuleItem,
   AlertRulePatchBody,
   Bar,
+  CollectorConfigSnapshot,
   DetailRange,
   DivergenceStat,
+  McpConfigSnapshot,
   MetricPoint,
   Period,
+  PurgeRawResult,
   QualityDivergenceResponse,
   QualityDivergenceRow,
   QualityGapsResponse,
   RateLimitCounters,
   RegisterSymbolInput,
+  ResetCircuitsResult,
   SourceAccuracyItem,
   SourceAccuracyResponse,
+  SourceConfigItem,
+  SourceConfigSnapshot,
   SourceEventItem,
   SourceHealthItem,
   SourcesHealth,
   SymbolPatchBody,
   SymbolRow,
   SymbolSnapshot,
+  SystemInfo,
   TushareStatusResponse,
 } from './types';
 import { ApiError } from './types';
@@ -385,7 +392,54 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         quota_remaining: null,
       };
     },
+    // ── 页面⑧ 系统设置（08-settings §6；仅 S1 只读/运维端点，无配置持久化）──
+    async getSystemInfo(): Promise<SystemInfo> {
+      return { app_version: '0.1.0', crate_versions: { collector: '0.1.0', storage: '0.1.0', diagnose: '0.1.0' }, db_ok: true, uptime_secs: 61 };
+    },
+    async getConfigSources(): Promise<SourceConfigSnapshot> {
+      return { sources: mockSourceConfig() };
+    },
+    async getConfigCollector(): Promise<CollectorConfigSnapshot> {
+      return { default_interval_sec: 60, trading_hours: '09:30-11:30/13:00-15:00' };
+    },
+    async getConfigMcp(): Promise<McpConfigSnapshot> {
+      return { enabled: true, trading_tools_enabled: false, daily_limit_amount: 50000, daily_limit_count: 20 };
+    },
+    async purgeRaw(confirm: string): Promise<PurgeRawResult> {
+      if (confirm !== 'PURGE') {
+        throw new ApiError(400, 'HTTP 400: confirm 字段缺失或不匹配（须为 PURGE）');
+      }
+      return { rows_deleted: 0 };
+    },
+    async resetCircuits(confirm: string): Promise<ResetCircuitsResult> {
+      if (confirm !== 'RESET') {
+        throw new ApiError(400, 'HTTP 400: confirm 字段缺失或不匹配（须为 RESET）');
+      }
+      return { requests: 0 };
+    },
   };
+}
+
+/** 页面⑧ 内置源配置快照（08-settings §8；等同 SETTINGS_DEFAULTS 默认值，只读不落库）。
+ *  内置源清单与 frontend sourceMeta 同构；push2delay（东财系）rotation_locked=true（ADR-006）。 */
+function mockSourceConfig(): SourceConfigItem[] {
+  const base = {
+    rate_per_sec: 1,
+    jitter_ms: 0,
+    circuit_fail_count: 3,
+    backoff_steps: ['5s', '10s', '30s'],
+    enabled: true,
+  };
+  return [
+    { id: 'tencent_ifzq', label: '腾讯ifzq', role: '1m', ...base, rotation_locked: false },
+    { id: 'sina_jsonp', label: '新浪jsonp', role: '1m', ...base, rotation_locked: false },
+    { id: 'tencent_qt', label: '腾讯qt', role: 'snapshot', ...base, rotation_locked: false },
+    { id: 'sina_hq', label: '新浪hq', role: 'snapshot', ...base, rotation_locked: false },
+    { id: 'ths_cs', label: '同花顺', role: 'snapshot', ...base, rotation_locked: false },
+    { id: 'push2delay', label: 'push2delay（东财系）', role: 'snapshot', ...base, rotation_locked: true },
+    { id: 'exchange', label: '交易所', role: 'snapshot', ...base, rotation_locked: false },
+    { id: 'tushare', label: 'tushare（历史层）', role: 'snapshot', ...base, rotation_locked: false },
+  ];
 }
 
 /** 页面④ 分歧对照 mock 行（|偏差| 降序；两 1m 源交替归属，少量超阈分歧） */

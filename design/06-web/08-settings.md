@@ -229,7 +229,9 @@ export interface SourceConfigPatch {
 export interface CollectorConfigPatch { defaultIntervalSec?: number }
 export interface McpConfigPatch { enabled?: boolean; tradingToolsEnabled?: boolean; dailyLimitAmount?: number; dailyLimitCount?: number }
 
-export function SettingsGrid(props: SettingsGridProps) {
+// 骨架 Props 契约由区域组件（经 RegionPortal 挂入 data-region 锚点）消费，骨架自身不读 props；
+// 参数以 _ 前缀标记「契约声明、骨架未用」，满足 strict noUnusedParameters（S1 修复骨架潜在编译错误）。
+export function SettingsGrid(_props: SettingsGridProps) {
   return (
     <div data-region="settings" className="flex min-w-[1280px] flex-1">
 

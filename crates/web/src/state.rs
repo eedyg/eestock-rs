@@ -21,6 +21,10 @@ pub struct AppState {
     /// 告警引擎服务（Wave 2 Phase B：alert crate，Application 层；02-alerts.md）。
     /// 评估节拍由 web::alerts::AlertEvaluator 驱动；本字段供 REST handlers 查询/确认/规则调整。
     pub alerts: alert::engine::AlertService,
+    /// 页面⑧ 系统信息数据源（S1：版本/DB 探测/运行时长；08-settings.md）。
+    pub system_info: crate::settings::SystemInfoSource,
+    /// 页面⑧ raw 层清空端口（S1：POST /api/system/purge-raw；08-settings.md）。
+    pub raw_purge: Arc<dyn domain::ports::RawPurgePort>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

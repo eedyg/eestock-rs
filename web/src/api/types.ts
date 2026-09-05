@@ -275,6 +275,59 @@ export interface TushareStatusResponse {
   quota_remaining: null;
 }
 
+/** ── 页面⑧ 系统设置（08-settings.md §6 API 依赖）── */
+type CrateVersion = { collector: string; storage: string; diagnose: string };
+
+/** GET /api/system/info 响应（只读；db 断开以 db_ok=false 表达，不上错误态） */
+export interface SystemInfo {
+  app_version: string;
+  crate_versions: CrateVersion;
+  db_ok: boolean;
+  uptime_secs: number;
+}
+
+/** GET /api/config/sources → 单源只读快照项（snake_case 与后端线格式同构） */
+export interface SourceConfigItem {
+  id: string;                 // 源 id 文本（tencent_ifzq）
+  label: string;              // 中文名（前端静态映射）
+  role: '1m' | 'snapshot';
+  rate_per_sec: number;       // token bucket 默认 1 req/s（ADR-005 口径）
+  jitter_ms: number;          // 抖动范围
+  circuit_fail_count: number; // 熔断连续失败次数默认 3
+  backoff_steps: string[];    // 退避档位 5s→10s→30s
+  enabled: boolean;
+  rotation_locked: boolean;   // 东财系（push2delay）锁定轮转序末位（ADR-006）
+}
+
+/** GET /api/config/sources 响应（只读快照，S1 不落库） */
+export interface SourceConfigSnapshot {
+  sources: SourceConfigItem[];
+}
+
+/** GET /api/config/collector 响应（只读；交易时段写死） */
+export interface CollectorConfigSnapshot {
+  default_interval_sec: number;
+  trading_hours: string;
+}
+
+/** GET /api/config/mcp 响应（只读；S1 不做开关持久化） */
+export interface McpConfigSnapshot {
+  enabled: boolean;
+  trading_tools_enabled: boolean;
+  daily_limit_amount: number;
+  daily_limit_count: number;
+}
+
+/** POST /api/system/purge-raw 响应（rows_deleted=清理的 kline_raw 行数） */
+export interface PurgeRawResult {
+  rows_deleted: number;
+}
+
+/** POST /api/system/reset-circuits 响应（requests=写入的熔断复位请求数） */
+export interface ResetCircuitsResult {
+  requests: number;
+}
+
 /** 后端错误线格式 {error: string} → 前端 ApiError */
 export class ApiError extends Error {
   constructor(

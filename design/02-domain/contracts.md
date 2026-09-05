@@ -697,6 +697,23 @@ pub trait AlertStore: Send + Sync {
     /// 列表（last_fired_at 降序；过滤条件 Option 全 None = 全量按 limit 截断）。
     async fn list_events(&self, filter: &AlertFilter) -> anyhow::Result<Vec<AlertEvent>>;
 }
+
+// ── 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息/运维端点端口（storage 实现）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web 只依赖端口。
+
+/// 系统信息只读端口（GET /api/system/info 的 db_ok：SELECT 1 保活探测；storage 实现）。
+#[async_trait]
+pub trait SystemInfoRead: Send + Sync {
+    /// SELECT 1；Err → db_ok=false（进程在线但 DB 断开以状态字段表达，非错误态）。
+    async fn ping(&self) -> anyhow::Result<()>;
+}
+
+/// raw 层清空端口（POST /api/system/purge-raw；storage 实现；危险操作——confirm 校验在 web 层）。
+#[async_trait]
+pub trait RawPurgePort: Send + Sync {
+    /// 执行 DELETE FROM kline_raw；返回受影响（清理）行数。
+    async fn purge_raw(&self) -> anyhow::Result<u64>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）
