@@ -7,9 +7,9 @@ import type { WsClient } from '@/ws/WsClient';
 import { stubApi } from '@/test/apiStub';
 
 const SYMBOLS: SymbolSnapshot[] = [
-  { code: '518880', name: '黄金ETF', last: 2.431, changePct: 0.62 },
-  { code: '513310', name: '纳指ETF', last: 1.587, changePct: -0.31 },
-  { code: '161226', name: '白银LOF', last: 0.982, changePct: 1.15 },
+  { code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 },
+  { code: '513310', name: '纳指ETF', enabled: true, last: 1.587, changePct: -0.31 },
+  { code: '161226', name: '白银LOF', enabled: true, last: 0.982, changePct: 1.15 },
 ];
 
 function bar(ts: string, close = 1): Bar {

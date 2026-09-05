@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createMockClient } from './mock';
 
 describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
-  it('getSymbols 返回注册集合 4 标的（含 latest 快照字段）', async () => {
+  it('getSymbols 返回注册集合 4 标的（含 latest 快照字段 + enabled）', async () => {
     const api = createMockClient();
     const symbols = await api.getSymbols();
     expect(symbols.length).toBe(4);
@@ -10,9 +10,17 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(codes).toEqual(expect.arrayContaining(['518880', '513310', '161226', '159776']));
     for (const s of symbols) {
       expect(typeof s.name).toBe('string');
-      expect(typeof s.last).toBe('number');
+      // D2：有数据 last 为 number；latest=null（停用/未采到）→ last 为 null，不伪造 0
+      expect(s.last === null || typeof s.last === 'number').toBe(true);
       expect(typeof s.changePct).toBe('number');
+      expect(typeof s.enabled).toBe('boolean');
     }
+    // 停用/无数据标的 {159776}：enabled=false 且 last=null
+    const disabled = symbols.find((s) => s.code === '159776')!;
+    expect(disabled.enabled).toBe(false);
+    expect(disabled.last).toBeNull();
+    // 有数据标的 last 为 number
+    expect(symbols.find((s) => s.code === '518880')!.last).toEqual(expect.any(Number));
   });
 
   it('getKline 返回 limit 根升序 bar，字段齐备', async () => {

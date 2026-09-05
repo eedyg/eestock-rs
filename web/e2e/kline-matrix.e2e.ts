@@ -358,8 +358,8 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
     const kreqs = watchKline(page);
     await bt(page, '分时').click();
     await expect(bt(page, '分时')).toHaveAttribute('aria-pressed', 'true');
-    // 分时 = 1m REST 当日 bars（零额外接口）
-    const hit = kreqs.filter((u) => u.includes('period=1m') && u.includes('limit=480'));
+    // 分时 = 1m REST 当日 bars（零额外接口）；默认视口 = 2 个交易日 = 241×2 = 482（定稿 1d）
+    const hit = kreqs.filter((u) => u.includes('period=1m') && u.includes('limit=482'));
     expect(hit.length).toBeGreaterThan(0);
     const svg = page.locator('[data-region="main-chart"] svg');
     await expect(svg).toBeVisible();

@@ -89,12 +89,14 @@ export interface ApiClient {
   getTushareStatus(): Promise<TushareStatusResponse>;
 }
 
-/** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底） */
+/** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
+ *  D2：enabled 透传；latest=null → last=null（前端渲染「无数据」/「已停用」，不伪造 0.000）。 */
 function dtoToSnapshot(d: SymbolRow): SymbolSnapshot {
   return {
     code: d.code,
     name: d.name ?? d.code,
-    last: d.latest?.last ?? 0,
+    enabled: d.enabled,
+    last: d.latest?.last ?? null,
     changePct: d.latest?.change_pct ?? 0,
   };
 }

@@ -6,8 +6,10 @@ import { SymbolList } from './SymbolList';
 import type { SymbolSnapshot } from '@/api/types';
 
 const SYMBOLS: SymbolSnapshot[] = [
-  { code: '518880', name: '黄金ETF', last: 2.431, changePct: 0.62 },
-  { code: '513310', name: '纳指ETF', last: 1.587, changePct: -0.31 },
+  { code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 },
+  { code: '513310', name: '纳指ETF', enabled: true, last: 1.587, changePct: -0.31 },
+  { code: '159776', name: '港股通医药', enabled: false, last: null, changePct: 0 },
+  { code: '161226', name: '白银LOF', enabled: true, last: null, changePct: 0 },
 ];
 
 function renderList(props?: Partial<Parameters<typeof SymbolList>[0]>) {
@@ -68,5 +70,21 @@ describe('SymbolList（symbol-list 区域）', () => {
     renderList();
     expect(screen.getByText('+0.62%')).toHaveClass('text-up');
     expect(screen.getByText('-0.31%')).toHaveClass('text-down');
+  });
+
+  it('enabled=false → 渲染「已停用」(置灰，非 0.000)，行仍可点击加载K线', async () => {
+    const { props } = renderList();
+    const row = screen.getByText('港股通医药').closest('button')!;
+    expect(row).toHaveTextContent('已停用');
+    expect(screen.queryByText('0.000')).toBeNull();
+    await userEvent.click(screen.getByText('港股通医药'));
+    expect(props.onSelect).toHaveBeenCalledWith('159776');
+  });
+
+  it('enabled=true 但无 latest → 渲染「无数据」，非 0.000', () => {
+    renderList();
+    expect(screen.getByText('白银LOF')).toBeInTheDocument();
+    expect(screen.getByText('无数据')).toBeInTheDocument();
+    expect(screen.queryByText('0.000')).toBeNull();
   });
 });

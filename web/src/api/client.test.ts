@@ -39,8 +39,8 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     const api = createHttpClient('', f);
     const symbols = await api.getSymbols();
     expect(lastCall(f).url).toBe('/api/symbols');
-    expect(symbols[0]).toEqual({ code: '518880', name: '黄金ETF', last: 2.431, changePct: 0.62 });
-    expect(symbols[1]).toEqual({ code: '159776', name: '159776', last: 0, changePct: 0 });
+    expect(symbols[0]).toEqual({ code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 });
+    expect(symbols[1]).toEqual({ code: '159776', name: '159776', enabled: false, last: null, changePct: 0 });
   });
 
   it('getKline 拼游标参数并解包络 {bars}（升序）', async () => {

@@ -27,12 +27,12 @@ vi.mock('klinecharts', () => ({
 import { DashboardPage } from './DashboardPage';
 
 const SYMBOLS = [
-  { code: '518880', name: '黄金ETF', last: 2.431, changePct: 0.62 },
-  { code: '513310', name: '纳指ETF', last: 1.587, changePct: -0.31 },
-  { code: '161226', name: '白银LOF', last: 0.982, changePct: 1.15 },
-  { code: '159776', name: '港股通医药', last: 0.874, changePct: -0.8 },
-  { code: '512480', name: '半导体ETF', last: 1.023, changePct: 0.15 },
-  { code: '159915', name: '创业板ETF', last: 2.156, changePct: -0.42 },
+  { code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 },
+  { code: '513310', name: '纳指ETF', enabled: true, last: 1.587, changePct: -0.31 },
+  { code: '161226', name: '白银LOF', enabled: true, last: 0.982, changePct: 1.15 },
+  { code: '159776', name: '港股通医药', enabled: true, last: 0.874, changePct: -0.8 },
+  { code: '512480', name: '半导体ETF', enabled: true, last: 1.023, changePct: 0.15 },
+  { code: '159915', name: '创业板ETF', enabled: true, last: 2.156, changePct: -0.42 },
 ];
 
 type WsHandler = (msg: any) => void;

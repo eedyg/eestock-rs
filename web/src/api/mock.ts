@@ -175,7 +175,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       return symbols.map((s) => ({
         code: s.code,
         name: s.name ?? s.code,
-        last: s.latest?.last ?? 0,
+        enabled: s.enabled,
+        last: s.latest?.last ?? null,
         changePct: s.latest?.change_pct ?? 0,
       }));
     },

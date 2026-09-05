@@ -59,7 +59,7 @@ export function AlertList({
     return <div className="p-6 text-center text-xs text-dim">暂无告警</div>;
   }
   return (
-    <div className="p-3 text-xs">
+    <div className="max-h-[680px] overflow-y-auto p-3 text-xs">
       {list.data.map((a) => {
         const unacked = a.status === 'triggered';
         return (

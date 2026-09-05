@@ -15,9 +15,14 @@ export const DASHBOARD_DEFAULTS = {
 export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
 export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
 
-/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量） */
+/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
+ *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。 */
 export interface SymbolSnapshot {
-  code: string; name: string; last: number; changePct: number;
+  code: string;
+  name: string;
+  enabled: boolean;
+  last: number | null; // 无最新数据（latest=null）→ null；有数据为最新价
+  changePct: number;
 }
 
 /** 页面 Props 契约 */

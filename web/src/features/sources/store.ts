@@ -2,11 +2,7 @@ import { SOURCES_DEFAULTS } from '@/layouts/SourcesGrid';
 import type {
   AlertItem,
   DetailRange,
-  DivergenceStat,
-  MetricPoint,
   QualityGapsResponse,
-  RateLimitCounters,
-  SourceEventItem,
   SourcesHealth,
   SymbolSnapshot,
 } from '@/api/types';
@@ -21,11 +17,11 @@ export interface AsyncSlice<T> {
 
 const idle = <T>(): AsyncSlice<T> => ({ data: null, loading: false, error: null });
 
+/** detail-panel 数据（D1 降级）：后端 metrics/events/divergence/rate-limits 端点为
+ *  Wave 2+ 上线（ADR-014：Phase A 不建后端），前端不再发这 4 条请求，detail 置为
+ *  detailUnavailable 占位。字段结构保位以兼容未来端点落地（契约由 ApiClient 保留）。 */
 export interface DetailState {
-  metrics: AsyncSlice<MetricPoint[]>;
-  events: AsyncSlice<SourceEventItem[]>;
-  divergence: AsyncSlice<DivergenceStat>;
-  rateLimits: AsyncSlice<RateLimitCounters>;
+  detailUnavailable: boolean;
 }
 
 /** Date → CST 日历日 'YYYY-MM-DD'（固定 +8，与浏览器时区无关，04-quality §7 同口径） */
@@ -184,116 +180,21 @@ export class SourcesStore {
     }
   }
 
-  /** 点卡展开/折叠（L2：再次点卡或关闭折叠） */
+  /** 点卡展开/折叠（L2：再次点卡或关闭折叠）。
+   *  D1 降级：detail-panel 数据端点为 Wave 2+ 上线（ADR-014：Phase A 不建后端），
+   *  展开仅置 detailUnavailable 占位，不再发 metrics/events/divergence/rateLimits 请求。 */
   selectSource(id: string | null): void {
     if (id === null || id === this.current.selected) {
       this.patch({ selected: null, detail: null });
       return;
     }
-    this.patch({
-      selected: id,
-      detail: { metrics: idle(), events: idle(), divergence: idle(), rateLimits: idle() },
-    });
-    void this.loadDetail(id);
+    this.patch({ selected: id, detail: { detailUnavailable: true } });
   }
 
+  /** 范围切换只更新记录（后端端点未上线，不重查 detail 数据）。 */
   setDetailRange(range: DetailRange): void {
     this.patch({ detailRange: range });
-    const id = this.current.selected;
-    if (!id) return;
-    // 范围切换只重查时序/分歧率/限流计数（事件流水无 range 维度，L2）
-    void this.loadMetrics(id, range);
-    void this.loadDivergence(id, range);
-    void this.loadRateLimits(id, range);
   }
-
-  private detailGuard(id: string): boolean {
-    return !this.disposed && this.current.selected === id && this.current.detail !== null;
-  }
-
-  private async loadDetail(id: string): Promise<void> {
-    await Promise.all([
-      this.loadMetrics(id, this.current.detailRange),
-      this.loadEvents(id),
-      this.loadDivergence(id, this.current.detailRange),
-      this.loadRateLimits(id, this.current.detailRange),
-    ]);
-  }
-
-  private async loadMetrics(id: string, range: DetailRange): Promise<void> {
-    if (!this.detailGuard(id)) return;
-    this.patch({ detail: { ...this.current.detail!, metrics: { data: null, loading: true, error: null } } });
-    try {
-      const data = await this.deps.api.getSourceMetrics(id, range);
-      if (this.detailGuard(id))
-        this.patch({ detail: { ...this.current.detail!, metrics: { data, loading: false, error: null } } });
-    } catch (e) {
-      if (this.detailGuard(id))
-        this.patch({
-          detail: { ...this.current.detail!, metrics: { data: null, loading: false, error: (e as Error).message } },
-        });
-    }
-  }
-
-  private async loadEvents(id: string): Promise<void> {
-    if (!this.detailGuard(id)) return;
-    this.patch({ detail: { ...this.current.detail!, events: { data: null, loading: true, error: null } } });
-    try {
-      const data = await this.deps.api.getSourceEvents(id, SOURCES_DEFAULTS.eventLimit);
-      if (this.detailGuard(id))
-        this.patch({ detail: { ...this.current.detail!, events: { data, loading: false, error: null } } });
-    } catch (e) {
-      if (this.detailGuard(id))
-        this.patch({
-          detail: { ...this.current.detail!, events: { data: null, loading: false, error: (e as Error).message } },
-        });
-    }
-  }
-
-  private async loadDivergence(id: string, range: DetailRange): Promise<void> {
-    if (!this.detailGuard(id)) return;
-    this.patch({
-      detail: { ...this.current.detail!, divergence: { data: null, loading: true, error: null } },
-    });
-    try {
-      const data = await this.deps.api.getSourceDivergence(id, range);
-      if (this.detailGuard(id))
-        this.patch({
-          detail: { ...this.current.detail!, divergence: { data, loading: false, error: null } },
-        });
-    } catch (e) {
-      if (this.detailGuard(id))
-        this.patch({
-          detail: {
-            ...this.current.detail!,
-            divergence: { data: null, loading: false, error: (e as Error).message },
-          },
-        });
-    }
-  }
-
-  private async loadRateLimits(id: string, range: DetailRange): Promise<void> {
-    if (!this.detailGuard(id)) return;
-    this.patch({
-      detail: { ...this.current.detail!, rateLimits: { data: null, loading: true, error: null } },
-    });
-    try {
-      const data = await this.deps.api.getSourceRateLimits(id, range);
-      if (this.detailGuard(id))
-        this.patch({
-          detail: { ...this.current.detail!, rateLimits: { data, loading: false, error: null } },
-        });
-    } catch (e) {
-      if (this.detailGuard(id))
-        this.patch({
-          detail: {
-            ...this.current.detail!,
-            rateLimits: { data: null, loading: false, error: (e as Error).message },
-          },
-        });
-    }
-  }
-
   /** 熔断手动复位：POST /api/sources/{id}/reset（202 异步；成功后重拉健康） */
   async resetCircuit(id: string): Promise<void> {
     this.patch({

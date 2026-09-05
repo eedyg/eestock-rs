@@ -70,7 +70,7 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
     expect(screen.getByText(/连接重置|http/)).toBeInTheDocument();
   });
 
-  it('点卡展开详情：事件流水 + 范围切换；再点折叠', async () => {
+  it('点卡展开详情（D1 降级）：占位提示而非加载失败，未发 metrics/events/divergence/rate-limits 请求；再点折叠', async () => {
     const user = userEvent.setup();
     const { container } = renderPage(api, ws);
     await waitFor(() => expect(screen.getByText('腾讯qt')).toBeInTheDocument());
@@ -78,12 +78,15 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
     await waitFor(() =>
       expect(container.querySelector('[data-region="detail-panel"]')).not.toBeNull(),
     );
-    await waitFor(() => expect(screen.getByText(/事件流水/)).toBeInTheDocument());
-    // 范围切换 1h/今日/3日
-    await user.click(screen.getByRole('button', { name: '3日' }));
-    await waitFor(() =>
-      expect(api.getSourceMetrics).toHaveBeenCalledWith('tencent_qt', '3d'),
-    );
+    // detail-panel 显示「后续版本」占位，而非「事件流水/加载失败/404」
+    await waitFor(() => expect(screen.getByText(/详情数据将在后续版本提供/)).toBeInTheDocument());
+    expect(screen.queryByText(/事件流水/)).toBeNull();
+    expect(screen.queryByText(/加载失败/)).toBeNull();
+    // 未发出任何 /api/sources/{id}/metrics|events|divergence|rate-limits 请求
+    expect(api.getSourceMetrics).not.toHaveBeenCalled();
+    expect(api.getSourceEvents).not.toHaveBeenCalled();
+    expect(api.getSourceDivergence).not.toHaveBeenCalled();
+    expect(api.getSourceRateLimits).not.toHaveBeenCalled();
     // 再点同一卡折叠
     await user.click(screen.getByText('腾讯qt').closest('[data-source]')!);
     await waitFor(() =>
@@ -120,8 +123,8 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
   it('缺口摘要：单标的 GapReportList 渲染 + 标的选择器；告警预览计数头部', async () => {
     api = stubApi({
       getSymbols: vi.fn(async () => [
-        { code: '518880', name: '黄金ETF', last: 1, changePct: 0 },
-        { code: '513310', name: '纳指ETF', last: 1, changePct: 0 },
+        { code: '518880', name: '黄金ETF', enabled: true, last: 1, changePct: 0 },
+        { code: '513310', name: '纳指ETF', enabled: true, last: 1, changePct: 0 },
       ]),
       getQualityGaps: vi.fn(async (q: { code: string }) => ({
         code: q.code,
@@ -151,7 +154,7 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
 
   it('错误态：缺口加载失败 → GapReportList 错误占位 + 重试恢复', async () => {
     api = stubApi({
-      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', last: 1, changePct: 0 }]),
+      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', enabled: true, last: 1, changePct: 0 }]),
       getQualityGaps: vi.fn()
         .mockRejectedValueOnce(new Error('HTTP 500'))
         .mockResolvedValueOnce({
@@ -176,7 +179,7 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
 
   it('空态：缺口该范围无缺口占位；暂无告警占位', async () => {
     api = stubApi({
-      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', last: 1, changePct: 0 }]),
+      getSymbols: vi.fn(async () => [{ code: '518880', name: '黄金ETF', enabled: true, last: 1, changePct: 0 }]),
       getQualityGaps: vi.fn(async () => ({
         code: '518880', from: '2026-08-29', to: '2026-09-04', days: [],
       })),
@@ -187,19 +190,4 @@ describe('SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + �
     expect(screen.getByText('暂无告警')).toBeInTheDocument();
   });
 
-  it('Trace ID 点击复制', async () => {
-    const user = userEvent.setup();
-    // userEvent.setup 会装自己的 clipboard stub，须在其后覆写
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-    });
-    renderPage(api, ws);
-    await waitFor(() => expect(screen.getByText('腾讯qt')).toBeInTheDocument());
-    await user.click(screen.getByText('腾讯qt').closest('[data-source]')!);
-    await waitFor(() => expect(screen.getAllByText(/^trace:/)[0]).toBeInTheDocument());
-    await user.click(screen.getAllByText(/^trace:/)[0]!);
-    expect(writeText).toHaveBeenCalled();
-  });
 });

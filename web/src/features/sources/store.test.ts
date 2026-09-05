@@ -98,35 +98,33 @@ describe('SourcesStore（页面②状态机）', () => {
     store.dispose();
   });
 
-  it('点卡展开 detail-panel：加载 metrics/events/divergence；折叠清空', async () => {
+  it('点卡展开 detail-panel（D1 降级）：标记 detailUnavailable，不请求 metrics/events/divergence/rateLimits；折叠清空', async () => {
     const store = new SourcesStore({ api, ws });
     await store.init();
     store.selectSource('tencent_qt');
     expect(store.state.selected).toBe('tencent_qt');
-    await vi.waitFor(() => expect(store.state.detail?.events.data?.length).toBeGreaterThan(0));
-    expect(api.getSourceMetrics).toHaveBeenCalledWith('tencent_qt', '1h');
-    expect(api.getSourceEvents).toHaveBeenCalledWith('tencent_qt', 50);
-    expect(api.getSourceDivergence).toHaveBeenCalledWith('tencent_qt', '1h');
-    expect(api.getSourceRateLimits).toHaveBeenCalledWith('tencent_qt', '1h');
-    expect(store.state.detail?.rateLimits.data).toHaveProperty('http429');
+    // 后端端点为 Wave 2+ 上线（ADR-014：不建后端）→ 前端降级，不发这 4 条请求
+    expect(store.state.detail?.detailUnavailable).toBe(true);
+    expect(api.getSourceMetrics).not.toHaveBeenCalled();
+    expect(api.getSourceEvents).not.toHaveBeenCalled();
+    expect(api.getSourceDivergence).not.toHaveBeenCalled();
+    expect(api.getSourceRateLimits).not.toHaveBeenCalled();
     store.selectSource(null);
     expect(store.state.selected).toBeNull();
     expect(store.state.detail).toBeNull();
     store.dispose();
   });
 
-  it('范围切换重查 metrics/divergence（events 不重查）', async () => {
+  it('范围切换只更新 detailRange，不请求 detail 数据（D1 后端端点未上线降级）', async () => {
     const store = new SourcesStore({ api, ws });
     await store.init();
     store.selectSource('tencent_qt');
-    await vi.waitFor(() => expect(store.state.detail?.metrics.data).not.toBeNull());
-    vi.clearAllMocks();
     store.setDetailRange('3d');
     expect(store.state.detailRange).toBe('3d');
-    await vi.waitFor(() => expect(api.getSourceMetrics).toHaveBeenCalledWith('tencent_qt', '3d'));
-    expect(api.getSourceDivergence).toHaveBeenCalledWith('tencent_qt', '3d');
-    expect(api.getSourceRateLimits).toHaveBeenCalledWith('tencent_qt', '3d');
+    expect(api.getSourceMetrics).not.toHaveBeenCalled();
     expect(api.getSourceEvents).not.toHaveBeenCalled();
+    expect(api.getSourceDivergence).not.toHaveBeenCalled();
+    expect(api.getSourceRateLimits).not.toHaveBeenCalled();
     store.dispose();
   });
 

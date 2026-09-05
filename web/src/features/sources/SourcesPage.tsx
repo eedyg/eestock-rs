@@ -63,11 +63,7 @@ export function SourcesPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCli
       </RegionPortal>
       {state.selected && state.detail && (
         <RegionPortal root={rootRef} region="detail-panel">
-          <SourceDetailPanel
-            detail={state.detail}
-            range={state.detailRange}
-            onRangeChange={(r) => store.setDetailRange(r)}
-          />
+          <SourceDetailPanel detail={state.detail} />
         </RegionPortal>
       )}
       <RegionPortal root={rootRef} region="gap-cards">
