@@ -451,4 +451,16 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(lastCall(f).url).toBe('/api/backtest/compare?ids=7,999');
     expect(r).toHaveLength(1);
   });
+
+  it('deleteRun → DELETE /api/backtest/runs/{id}；404 透传 ApiError', async () => {
+    const f = fetcherReturning({ ok: true });
+    const api = createHttpClient('', f);
+    await api.deleteRun(7);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/backtest/runs/7');
+    expect(init.method).toBe('DELETE');
+
+    const f404 = fetcherReturning({ error: 'run 不存在' }, false, 404);
+    await expect(createHttpClient('', f404).deleteRun(999)).rejects.toMatchObject({ status: 404 });
+  });
 });

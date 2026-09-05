@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { BacktestRunDto, BacktestStrategyDto } from '@/api/types';
 import { fmtIso, periodLabel, statusLabel } from './format';
 
@@ -21,6 +22,7 @@ export function TaskList({
   progressMap,
   onSelectRun,
   onToggleCompare,
+  onDeleteRun,
 }: {
   runs: BacktestRunDto[] | null;
   strategies: BacktestStrategyDto[] | null;
@@ -32,7 +34,29 @@ export function TaskList({
   progressMap: Record<number, ProgressInfo>;
   onSelectRun: (id: number) => void;
   onToggleCompare: (id: number) => void;
+  /** 删除 run（DELETE /api/backtest/runs/{id}）；reject 时显示错误。 */
+  onDeleteRun: (id: number) => Promise<void>;
 }) {
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // 删除入口：done/failed（终态）可删；running/pending 不提供（任务执行中）。
+  const isDeletable = (s: BacktestRunDto['status']) => s === 'done' || s === 'failed';
+  const handleConfirmDelete = async (id: number) => {
+    setDeletingId(id);
+    setDeleteError(null);
+    try {
+      await onDeleteRun(id);
+      setConfirmId(null);
+    } catch (e) {
+      setDeleteError((e as Error).message);
+      setConfirmId(null);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (error) {
     return (
       <div className="flex h-full items-center gap-3 px-3 text-xs text-up">
@@ -76,6 +100,11 @@ export function TaskList({
 
   return (
     <div className="flex h-full flex-col overflow-auto px-3" data-testid="task-list">
+      {deleteError && (
+        <div className="py-1 text-xs text-up" data-testid="task-delete-error">
+          删除失败：{deleteError}
+        </div>
+      )}
       {runs.map((r) => {
         const prog = progressMap[r.id] ?? { pct: r.progress, currentTs: r.current_ts };
         const checked = compareIds.includes(r.id);
@@ -116,6 +145,37 @@ export function TaskList({
                 </>
               )}
             </span>
+            {isDeletable(r.status) &&
+              (confirmId === r.id ? (
+                <span className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={deletingId === r.id}
+                    onClick={() => handleConfirmDelete(r.id)}
+                    className="rounded border border-up/40 px-1.5 py-0.5 text-up hover:bg-up/10 disabled:opacity-50"
+                    data-testid={`task-delete-confirm-${r.id}`}
+                  >
+                    确认
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(null)}
+                    className="rounded border border-line px-1.5 py-0.5 text-dim hover:text-txt"
+                    data-testid={`task-delete-cancel-${r.id}`}
+                  >
+                    取消
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmId(r.id)}
+                  className="shrink-0 rounded border border-line px-1.5 py-0.5 text-dim hover:text-up"
+                  data-testid={`task-delete-${r.id}`}
+                >
+                  删除
+                </button>
+              ))}
           </div>
         );
       })}

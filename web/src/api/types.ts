@@ -403,6 +403,12 @@ export interface BacktestRunDto {
   finished_at: string | null;
   error: string | null;
   group_id: string | null;
+  /** 初始资金（后端 RunDto；未回填时缺失） */
+  initial_capital?: number;
+  /** 回测区间起点（后端 RunDto；RFC3339 或 YYYY-MM-DD） */
+  date_from?: string;
+  /** 回测区间终点（后端 RunDto） */
+  date_to?: string;
   net_value?: BacktestNetValue;
   trades?: Trade[];
   metrics?: Metrics;

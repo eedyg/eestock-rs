@@ -98,4 +98,22 @@ describe('BacktestStore（页面⑤状态机）', () => {
     await s.store.submit({ strategyId: 'dual_ma', params: {}, code: '518880', period: '1d', fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 } });
     expect(s.store.state.submitError).toContain('HTTP 400');
   });
+
+  it('deleteRun 删除 run 并从列表/选中结果区移除', async () => {
+    await s.store.init();
+    const doneId = s.store.state.runs.data!.find((r) => r.status === 'done')!.id;
+    await s.store.selectRun(doneId);
+    expect(s.store.state.selectedRunId).toBe(doneId);
+    await s.store.deleteRun(doneId);
+    expect(s.store.state.runs.data!.some((r) => r.id === doneId)).toBe(false);
+    expect(s.store.state.selectedRunId).toBeNull();
+    expect(s.store.state.runDetail.data).toBeNull();
+  });
+
+  it('deleteRun 不存在 → rethrow（调用方显示错误，不清列表）', async () => {
+    await s.store.init();
+    const before = s.store.state.runs.data!.length;
+    await expect(s.store.deleteRun(999999)).rejects.toBeTruthy();
+    expect(s.store.state.runs.data!.length).toBe(before);
+  });
 });

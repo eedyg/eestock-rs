@@ -4,6 +4,25 @@ import type { BacktestStrategyDto, BacktestSubmitReq } from '@/api/types';
 
 const DEFAULT_CODE = '518880';
 const DEFAULT_FEE = { ratePct: 0.025, minFee: 5, slippageBp: 2 };
+const DEFAULT_INITIAL_CAPITAL = 100000;
+
+/** Date → 'YYYY-MM-DD'（date input 值格式，本地时区）。 */
+function toDateInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+/** 回测区间默认：to=今天，from=近一年（近一年或全历史，此处取近一年）。 */
+function defaultDateRange(): { from: string; to: string } {
+  const to = new Date();
+  const from = new Date();
+  from.setFullYear(from.getFullYear() - 1);
+  return { from: toDateInput(from), to: toDateInput(to) };
+}
+
+/** 日期串'YYYY-MM-DD' → RFC3339 起点（UTC 当日 00:00:00），与 client 默认 from/to 格式同构。 */
+function dayToIso(day: string): string {
+  return day ? `${day}T00:00:00.000Z` : day;
+}
 
 function defaultValues(schema: BacktestStrategyDto['params_schema']): Record<string, number | string> {
   const out: Record<string, number | string> = {};
@@ -42,6 +61,10 @@ export function StrategyForm({
   const [code, setCode] = useState(DEFAULT_CODE);
   const [period, setPeriod] = useState<BacktestPeriod>('1d');
   const [fee, setFee] = useState(DEFAULT_FEE);
+  const [initialCapital, setInitialCapital] = useState(DEFAULT_INITIAL_CAPITAL);
+  const [dateFrom, setDateFrom] = useState<string>(() => defaultDateRange().from);
+  const [dateTo, setDateTo] = useState<string>(() => defaultDateRange().to);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const strategy = useMemo(
     () => strategies?.find((s) => s.id === strategyId) ?? null,
@@ -90,12 +113,31 @@ export function StrategyForm({
   const setGrid = (key: string, v: string) => setGrids((s) => ({ ...s, [key]: v }));
 
   const handleSubmit = () => {
+    const cap = Number(initialCapital);
+    if (!Number.isFinite(cap) || cap <= 0) {
+      setFormError('初始金额须大于 0');
+      return;
+    }
+    if (!dateFrom || !dateTo || dateFrom >= dateTo) {
+      setFormError('回测区间 from 须早于 to');
+      return;
+    }
+    setFormError(null);
     const merged: Record<string, number | string> = { ...values };
     for (const p of strategy.params_schema) {
       const g = grids[p.key];
       if (g && g.trim()) merged[p.key] = g.trim(); // 网格「起:止:步长」覆盖单值
     }
-    onSubmit({ strategyId: strategy.id, params: merged, code: code.trim(), period, fee });
+    onSubmit({
+      strategyId: strategy.id,
+      params: merged,
+      code: code.trim(),
+      period,
+      fee,
+      initialCapital: cap,
+      from: dayToIso(dateFrom),
+      to: dayToIso(dateTo),
+    });
   };
 
   return (
@@ -193,6 +235,33 @@ export function StrategyForm({
       </div>
 
       <div>
+        <label className="mb-1 block text-dim">初始金额 / 回测区间</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-2 text-txt"
+            value={initialCapital}
+            onChange={(e) => setInitialCapital(Number(e.target.value))}
+            data-testid="initial-capital"
+          />
+          <input
+            type="date"
+            className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-2 text-txt"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            data-testid="date-from"
+          />
+          <input
+            type="date"
+            className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-2 text-txt"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            data-testid="date-to"
+          />
+        </div>
+      </div>
+
+      <div>
         <label className="mb-1 block text-dim">手续费% / 最低费用 / 滑点 bp</label>
         <div className="flex gap-2">
           <input
@@ -221,6 +290,12 @@ export function StrategyForm({
           />
         </div>
       </div>
+
+      {formError && (
+        <div className="rounded-lg border border-up/40 bg-up/10 p-2 text-up" data-testid="form-error">
+          {formError}
+        </div>
+      )}
 
       {submitError && (
         <div className="rounded-lg border border-up/40 bg-up/10 p-2 text-up" data-testid="submit-error">

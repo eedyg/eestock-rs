@@ -123,6 +123,8 @@ export interface ApiClient {
   getRun(id: number): Promise<BacktestRunDto>;
   /** 多 run 对比（GET /api/backtest/compare?ids=；不存在的 run 被后端过滤） */
   compare(ids: number[]): Promise<BacktestRunDto[]>;
+  /** 删除回测 run（DELETE /api/backtest/runs/{id}；200 成功/404 不存在） */
+  deleteRun(id: number): Promise<void>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -244,6 +246,22 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     },
     getRun: (id) => get<BacktestRunDto>(`/api/backtest/runs/${id}`),
     compare: (ids) => get<BacktestRunDto[]>(`/api/backtest/compare?ids=${ids.join(',')}`),
+    deleteRun: async (id) => {
+      const res = await fetcher(`${baseUrl}/api/backtest/runs/${encodeURIComponent(String(id))}`, {
+        method: 'DELETE',
+        headers: { accept: 'application/json' },
+      });
+      if (!res.ok) {
+        let msg = `HTTP ${res.status} /api/backtest/runs/${id}`;
+        try {
+          const body = (await res.json()) as { error?: string };
+          if (body.error) msg = `${msg}: ${body.error}`;
+        } catch {
+          // 非 JSON 错误体忽略（如 204/空响应）
+        }
+        throw new ApiError(res.status, msg);
+      }
+    },
   };
 }
 

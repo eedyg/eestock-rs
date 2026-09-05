@@ -264,4 +264,15 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(cmp).toHaveLength(1);
     expect(cmp[0]!.id).toBe(done.id);
   });
+
+  it('deleteRun 删除 run（列表反映）；不存在 throw 404', async () => {
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
+    const runs = await api.listRuns();
+    expect(runs.length).toBeGreaterThan(0);
+    const id = runs[0]!.id;
+    await api.deleteRun(id);
+    const after = await api.listRuns();
+    expect(after.some((r) => r.id === id)).toBe(false);
+    await expect(api.deleteRun(999999)).rejects.toMatchObject({ status: 404 });
+  });
 });

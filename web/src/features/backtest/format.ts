@@ -61,6 +61,16 @@ export function formatAvgHold(bars: number | null | undefined, period?: string):
   return `${round1(bars)}bar`;
 }
 
+/** Unix 秒 → x 轴时间标签（默认月度 "YYYY-MM"；includeDay 时 "YYYY-MM-DD"；无效/非正 → '—'）。
+ *  x 轴用 UTC 日期口径（与 fmtTs 的 +8 展示不同），避免时区漂移导致的日期偏格。 */
+export function fmtAxis(ts: number | undefined | null, includeDay = false): string {
+  if (ts == null || !Number.isFinite(ts) || ts <= 0) return '—';
+  const d = new Date(ts * 1000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  const ymd = `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+  return includeDay ? ymd : ymd.slice(0, 7);
+}
+
 /** Unix 秒 → CST "MM-DD HH:mm" 展示（固定 +8，与浏览器时区无关）。 */
 export function fmtTs(ts: number | undefined | null): string {
   if (ts == null || Number.isNaN(ts)) return '—';

@@ -75,6 +75,7 @@ export function BacktestPage({ api = defaultApi, ws = defaultWs }: { api?: ApiCl
           progressMap={state.progressMap}
           onSelectRun={(id) => void store.selectRun(id)}
           onToggleCompare={(id) => store.toggleCompare(id)}
+          onDeleteRun={(id) => store.deleteRun(id)}
         />
       </RegionPortal>
 

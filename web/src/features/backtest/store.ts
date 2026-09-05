@@ -152,6 +152,23 @@ export class BacktestStore {
     }
   }
 
+  /** 删除回测 run：DELETE /api/backtest/runs/{id}；成功后从列表移除，若选中则清结果区，compare 剔除。 */
+  async deleteRun(id: number): Promise<void> {
+    await this.deps.api.deleteRun(id);
+    const runs = (this.current.runs.data ?? []).filter((r) => r.id !== id);
+    const compareIds = this.current.compareIds.filter((cid) => cid !== id);
+    const patch: Partial<BacktestState> = {
+      runs: { ...this.current.runs, data: runs },
+      compareIds,
+    };
+    if (compareIds.length < BACKTEST_DEFAULTS.compareMin) patch.resultView = 'single';
+    if (this.current.selectedRunId === id) {
+      patch.selectedRunId = null;
+      patch.runDetail = idle();
+    }
+    this.patch(patch);
+  }
+
   /** 勾选 2-N 次对比（仅已完成 run 入口可触发）；≥compareMin 进 compare-view，<2 回单次。 */
   toggleCompare(id: number): void {
     const set = new Set(this.current.compareIds);

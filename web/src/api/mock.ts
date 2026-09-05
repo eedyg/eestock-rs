@@ -727,6 +727,12 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         .filter((r): r is BacktestRunDto => r != null)
         .map((r) => ({ ...r }));
     },
+    async deleteRun(id: number): Promise<void> {
+      if (!backtestRuns.some((r) => r.id === id)) {
+        throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
+      }
+      backtestRuns = backtestRuns.filter((r) => r.id !== id);
+    },
   };
 }
 

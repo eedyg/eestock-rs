@@ -34,6 +34,17 @@ export function areaBelow(points: SvgPoint[], baselineY: number): string {
   return `${top} ${last.x.toFixed(1)},${baselineY} ${first.x.toFixed(1)},${baselineY}`;
 }
 
+/** 等距取样索引（含首尾，去重后升序）用于 x 轴刻度；count 为目标刻度数，n 小时可能少于 count。 */
+export function evenTickIndices(n: number, count = 5): number[] {
+  if (n <= 0) return [];
+  if (n === 1) return [0];
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(Math.round((i * (n - 1)) / (count - 1)));
+  }
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
 /** 由净值序列派生极值（含 0）；min=数据最小，max=数据最大。 */
 export function extentOf(values: number[]): { min: number; max: number } {
   let min = Infinity;

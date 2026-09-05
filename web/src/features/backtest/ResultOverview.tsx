@@ -1,6 +1,6 @@
 import type { BacktestRunDto } from '@/api/types';
-import { fmtMoney, fmtPct } from './format';
-import { areaBelow, extentOf, lineFrom, mapLine } from './chartUtils';
+import { fmtAxis, fmtMoney, fmtPct } from './format';
+import { areaBelow, evenTickIndices, extentOf, lineFrom, mapLine } from './chartUtils';
 
 const W = 1000;
 const H = 240;
@@ -57,6 +57,16 @@ export function ResultOverview({
   const eqPoints = mapLine(series, min, max, W, H, PAD);
   const depth = H * 0.35;
 
+  // 时间 x 轴：取净值序列 ts 均匀分布刻度（约 5 个，去重后可能更少）；跨度 <31 天用日粒度，否则月度。
+  const firstTs = series[0]?.[0] ?? 0;
+  const lastTs = series[series.length - 1]?.[0] ?? 0;
+  const spanDays = (lastTs - firstTs) / 86_400;
+  const includeDay = Number.isFinite(spanDays) && spanDays > 0 && spanDays < 31;
+  const axisTicks = evenTickIndices(series.length, 5).map((i) => ({
+    x: eqPoints[i]!.x,
+    label: fmtAxis(series[i]![0], includeDay),
+  }));
+
   return (
     <div className="relative h-full w-full overflow-hidden p-2">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full" data-testid="equity-drawdown-chart">
@@ -79,6 +89,18 @@ export function ResultOverview({
           return <rect key={`dd-${i}`} x={x} y={H - depth} width={rectW} height={depth} fill="#ff5c6c" opacity={Math.min(0.2, d[1] / (ddMax || 1))} />;
         })}
       </svg>
+      {/* 时间 x 轴：与 svg 同宽（inset-x-2 对齐 p-2），标签按其像素百分比定位，避免 preserveAspectRatio 拉伸 */}
+      <div className="absolute inset-x-2 bottom-0" data-testid="chart-x-axis">
+        {axisTicks.map(({ x, label }, i) => (
+          <span
+            key={i}
+            className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-[9px] leading-none text-dim"
+            style={{ left: `${(x / W) * 100}%` }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
       <div className="absolute left-3 top-2">
         <div className="num text-sm text-acc1" data-testid="last-equity">
           净值 {lastEquity.toFixed(3)}
@@ -88,7 +110,7 @@ export function ResultOverview({
           {fmtPct(retPct)}（{fmtMoney(lastEquity)}）
         </div>
       </div>
-      <div className="absolute bottom-2 left-3 text-[11px] text-dim">回撤（最大 −{fmtPct(ddMax)}，着色区间）</div>
+      <div className="absolute bottom-6 left-3 text-[11px] text-dim">回撤（最大 −{fmtPct(ddMax)}，着色区间）</div>
     </div>
   );
 }
