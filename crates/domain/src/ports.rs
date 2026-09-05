@@ -512,9 +512,12 @@ pub trait BacktestBarRead: Send + Sync {
 
 /// 回测运行存储端口（storage 实现；backtest_runs/backtest_results，迁移 0011）。
 /// create_run 写 pending 行并回 id；mark_done 写结果（3 列）+ 置 done；list/get 读联表。
+/// ⚠️ 审查修正（Phase 3b 申请）：create_run 由 `&mut self` 改为 `&self` —— storage `PgBacktestStore::create_run`
+/// 内部只读 `&self.pool`，无状态变异；此签名与 ports 全文件其余端口一致，避免 application 层为并发共享 store
+/// 引入 `Arc<Mutex<...>>` 包装。父级已批准（2026-xx）。
 #[async_trait]
 pub trait BacktestRunStore: Send + Sync {
-    async fn create_run(&mut self, run: &NewRun) -> anyhow::Result<i64>;
+    async fn create_run(&self, run: &NewRun) -> anyhow::Result<i64>;
     async fn update_run_progress(&self, id: i64, pct: i32, ts: DateTime<Utc>) -> anyhow::Result<()>;
     async fn mark_done(&self, id: i64, result: &RunResult) -> anyhow::Result<()>;
     async fn mark_failed(&self, id: i64, err: &str) -> anyhow::Result<()>;

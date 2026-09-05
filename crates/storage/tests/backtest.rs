@@ -81,7 +81,7 @@ async fn run_store_lifecycle() {
     let group = format!("bt_store_lifecycle_{}", std::process::id());
     clean_backtest(&pool, &group).await;
 
-    let mut store = PgBacktestStore::new(pool.clone());
+    let store = PgBacktestStore::new(pool.clone());
     let id = store.create_run(&new_run(&group)).await.unwrap();
     assert!(id > 0, "create_run 返回 id");
 

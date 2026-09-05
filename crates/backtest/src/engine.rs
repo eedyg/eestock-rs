@@ -41,8 +41,21 @@ impl Engine {
         Self { cfg }
     }
 
-    /// 运行一次回测。`strategy` 已按目标参数配置。
+    /// 运行一次回测。`strategy` 已按目标参数配置。等价于无进度回调的 [`Engine::run_with_progress`]。
     pub fn run(&self, bars: &[Bar], strategy: &mut dyn Strategy) -> BacktestResult {
+        self.run_with_progress(bars, strategy, &mut |_, _, _| {})
+    }
+
+    /// 运行一次回测并上报进度。[`progress`]`(bar_idx, total, bar_ts)` 每 bar 调用一次，
+    /// `total` = 总 bar 数、`bar_ts` = 当前 bar 的 Unix 秒。**纯逻辑、无 IO**——由 application 层
+    /// （Phase 3b BacktestService）注入异步进度报告（WS/DB）；本回调本身保持可单测锁定，无随机/无时间依赖。
+    /// ADR 08-backtest 增补（父级已批准此小改）。
+    pub fn run_with_progress(
+        &self,
+        bars: &[Bar],
+        strategy: &mut dyn Strategy,
+        progress: &mut dyn FnMut(usize, usize, i64),
+    ) -> BacktestResult {
         let fee = &self.cfg.fee;
         let initial = self.cfg.initial_capital;
         let period = self.cfg.period;
@@ -135,6 +148,9 @@ impl Engine {
 
             // 4) 记录收盘净值
             nav.push((bar.ts, cash + position * bar.close));
+
+            // 进度上报（纯逻辑；总 bar 数 = n，当前 bar 已处理到 i）
+            progress(i, n, bar.ts);
         }
 
         // 期末强制平仓（用最后 close）
@@ -179,4 +195,97 @@ impl Engine {
 /// 直接运行一次回测（便捷函数，等价于 `Engine::new(cfg).run(...)`）。
 pub fn run(bars: &[Bar], strategy: &mut dyn Strategy, cfg: &RunConfig) -> BacktestResult {
     Engine::new(cfg.clone()).run(bars, strategy)
+}
+
+/// 直接运行一次回测并上报进度（等价于 `Engine::new(cfg).run_with_progress(...)`）。
+pub fn run_with_progress(
+    bars: &[Bar],
+    strategy: &mut dyn Strategy,
+    cfg: &RunConfig,
+    progress: &mut dyn FnMut(usize, usize, i64),
+) -> BacktestResult {
+    Engine::new(cfg.clone()).run_with_progress(bars, strategy, progress)
+}
+
+#[cfg(test)]
+// 进度回调单测：手工固定 bar 序列 + 显式固定参数 + Hold 策略，无随机/无时间依赖，完全可复现。
+// 断言：回调调用次数 = bar 数；每次 total = bar 数；bar_ts 逐点等于对应 bar.ts；最后一回 index = n-1。
+mod progress_tests {
+    use super::*;
+    use crate::fee::FeeModel;
+    use crate::types::Period;
+
+    struct HoldStrategy;
+
+    impl Strategy for HoldStrategy {
+        fn id(&self) -> &str {
+            "test_hold"
+        }
+        fn params_schema(&self) -> Vec<crate::types::ParamDef> {
+            Vec::new()
+        }
+        fn on_bar(&mut self, _ctx: &mut Ctx, _bar: &Bar, _ind: &Indicators) -> Signal {
+            Signal::Hold
+        }
+    }
+
+    fn fixed_bars(n: usize) -> Vec<Bar> {
+        let base = 1_704_067_200_i64;
+        (0..n)
+            .map(|i| Bar {
+                ts: base + i as i64 * 86_400,
+                open: 10.0,
+                high: 10.0,
+                low: 10.0,
+                close: 10.0,
+                volume: 10_000.0,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn progress_callback_called_once_per_bar_with_correct_total_and_ts() {
+        let bars = fixed_bars(7);
+        let cfg = RunConfig {
+            initial_capital: 100_000.0,
+            fee: FeeModel::default(),
+            period: Period::D1,
+        };
+        let mut strat = HoldStrategy {};
+        let mut calls: Vec<(usize, usize, i64)> = Vec::new();
+        let res = Engine::new(cfg).run_with_progress(&bars, &mut strat, &mut |i, total, ts| {
+            calls.push((i, total, ts));
+        });
+
+        assert_eq!(calls.len(), bars.len(), "回调应每 bar 调用一次");
+        for (idx, (i, total, ts)) in calls.iter().enumerate() {
+            assert_eq!(*i, idx, "bar 序号应递增");
+            assert_eq!(*total, bars.len(), "total 恒等于 bar 数");
+            assert_eq!(*ts, bars[idx].ts, "bar_ts 应等于当前 bar 的 Unix 秒");
+        }
+        assert_eq!(calls.last().unwrap().0, bars.len() - 1, "最后一次回调应为最后一根 bar");
+        // 结果仍可正常产出（Hold 无交易）
+        assert_eq!(res.net_value_series.len(), bars.len());
+        assert!(res.trades.is_empty());
+    }
+
+    #[test]
+    fn progress_pct_ratio_is_monotonic_non_decreasing() {
+        // 用 pct = (i+1)*100/total 的语义各点比对：断言由回调推导的 pct 单调不减、且最后=100。
+        let bars = fixed_bars(4);
+        let cfg = RunConfig {
+            initial_capital: 100_000.0,
+            fee: FeeModel::default(),
+            period: Period::D1,
+        };
+        let mut strat = HoldStrategy {};
+        let mut pcts: Vec<i32> = Vec::new();
+        let _ = Engine::new(cfg).run_with_progress(&bars, &mut strat, &mut |i, total, _| {
+            pcts.push(((i + 1) * 100 / total) as i32);
+        });
+        assert_eq!(pcts, vec![25, 50, 75, 100], "pct 应为 25/50/75/100");
+        for w in pcts.windows(2) {
+            assert!(w[0] <= w[1], "pct 应单调不减");
+        }
+    }
 }

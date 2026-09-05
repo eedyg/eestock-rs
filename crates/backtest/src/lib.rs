@@ -12,7 +12,7 @@ pub mod strategies;
 pub mod types;
 
 // 常用类型再导出，方便应用层 `use backtest::*;`。
-pub use engine::{run, Engine};
+pub use engine::{run, run_with_progress, Engine};
 pub use fee::{BuyExecution, FeeModel, SellExecution};
 pub use indicators::{BollValue, Indicators, KdjValue, MacdValue};
 pub use metrics::{compute_drawdown, compute_metrics, BacktestMetrics};

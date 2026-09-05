@@ -1,0 +1,22 @@
+# 08-backtest / Phase 3b — 应用层回测服务（BacktestService）。
+# 定位：异步任务队列 + 真实进度上报；依赖注入 domain 端口（BacktestBarRead/BacktestRunStore/BacktestProgressSink）
+# + backtest crate（纯逻辑引擎）；不依赖 web/storage（DI 由 app bin / 阶段 3c 装配）。
+# ADR-007：本 crate 为**手写**新 crate（非 tangle 生成）。
+[package]
+name = "application"
+description = "应用层：回测 BacktestService（任务队列/调度、进度上报、端口注入；不依赖 web/storage）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+domain = { path = "../domain" }
+backtest = { path = "../backtest" }
+tokio.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true

@@ -149,7 +149,7 @@ LEFT JOIN backtest_results res ON res.run_id = r.id
 
 #[async_trait]
 impl BacktestRunStore for PgBacktestStore {
-    async fn create_run(&mut self, run: &NewRun) -> Result<i64> {
+    async fn create_run(&self, run: &NewRun) -> Result<i64> {
         let row: (i64,) = sqlx::query_as(
             "INSERT INTO backtest_runs (code, period, strategy_id, params_json, fee_json, status, group_id) \
              VALUES ($1, $2, $3, $4, $5, 'pending', $6) RETURNING id")

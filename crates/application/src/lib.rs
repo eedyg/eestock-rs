@@ -1,0 +1,13 @@
+//! # application —— 应用层：回测 `BacktestService`（异步任务队列 + 真实进度上报）。
+//!
+//! ADR-007：本 crate 为**手写**新 crate（非 tangle 生成）。权威依据 `design/08-backtest/01-engine-adr.md` §7。
+//! 依赖注入 domain 端口（`BacktestBarRead`/`BacktestRunStore`/`BacktestProgressSink`）+ `backtest` crate；
+//! **不依赖 web/storage**（差异在哪层均不反向依赖基础设施，DI 由 app bin / 阶段 3c 装配）。
+//!
+//! 分层红线：本层负责 `domain::Bar -> backtest::Bar` 映射、`backtest::run_with_progress` 的进度上报桥接、
+//! `backtest::BacktestResult -> domain::RunResult` 拆分；`backtest` crate 保持纯逻辑无 IO。
+
+pub mod fee;
+pub mod params;
+pub mod service;
+pub mod types;
