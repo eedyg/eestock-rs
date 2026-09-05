@@ -19,14 +19,15 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Topic { Bar, Quote, Health, Alert }
+pub enum Topic { Bar, Quote, Health, Alert, Backtest }
 
 /// 客户端帧：{"type":"subscribe","topic":"bar","code":"518880","period":"1m"}（unsubscribe 同形）。
+/// Backtest 订阅带 run_id（Wave 3 Phase 3c；省略 = 通配全部回测进度）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum ClientMsg {
-    Subscribe { topic: Topic, code: Option<String>, period: Option<String> },
-    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String> },
+    Subscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
+    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -34,6 +35,7 @@ pub struct Subscription {
     pub topic: Topic,
     pub code: Option<String>,     // None = 全部标的
     pub period: Option<String>,   // bar 订阅必填（"1m"/"5m"/"15m"/"1h"/"1d"）
+    pub run_id: Option<i64>,      // backtest 订阅的 run（None = 全部回测进度；Wave 3 Phase 3c）
 }
 
 /// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health"|"alert", ...}。
@@ -46,9 +48,11 @@ pub enum PushMsg {
     Quote { code: String, ts: DateTime<Utc>, last: f64, #[serde(rename = "changePct")] change_pct: Option<f64> },
     Health { window_secs: i64, sources: Vec<diagnose::health::SourceHealth> },
     Alert(crate::alerts::AlertEventDto),
+    /// 回测进度（Wave 3 Phase 3c；推送源 = application 层引擎回调，经 BacktestWsSink → hub）。
+    BacktestProgress { run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>> },
 }
 
-/// 订阅匹配：topic 一致且（sub.code/period 为 None 通配或与消息相等）。
+/// 订阅匹配：topic 一致且（sub.code/period/run_id 为 None 通配或与消息相等）。
 pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
     let hit = |want: &Option<String>, got: &str| want.as_deref().is_none_or(|w| w == got);
     match (sub.topic, msg) {
@@ -56,6 +60,8 @@ pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
         (Topic::Quote, PushMsg::Quote { code, .. }) => hit(&sub.code, code),
         (Topic::Health, PushMsg::Health { .. }) => true,
         (Topic::Alert, PushMsg::Alert(_)) => true,   // 订阅即全量告警推送（07-alerts §6）
+        (Topic::Backtest, PushMsg::BacktestProgress { run_id, .. }) =>
+            sub.run_id.is_none_or(|sid| sid == *run_id),
         _ => false,
     }
 }
@@ -118,13 +124,13 @@ async fn handle_socket(st: Arc<AppState>, mut sock: WebSocket) {
 fn apply_client_msg(reg: &SubscriptionRegistry, mine: &mut HashSet<Subscription>, text: &str) {
     let Ok(msg) = serde_json::from_str::<ClientMsg>(text) else { return }; // 坏帧忽略（ADR-010 内网）
     match msg {
-        ClientMsg::Subscribe { topic, code, period } => {
-            let sub = Subscription { topic, code, period };
+        ClientMsg::Subscribe { topic, code, period, run_id } => {
+            let sub = Subscription { topic, code, period, run_id };
             mine.insert(sub.clone());
             reg.add(sub);
         }
-        ClientMsg::Unsubscribe { topic, code, period } => {
-            let sub = Subscription { topic, code, period };
+        ClientMsg::Unsubscribe { topic, code, period, run_id } => {
+            let sub = Subscription { topic, code, period, run_id };
             mine.remove(&sub);
             reg.remove(&sub);
         }
@@ -224,7 +230,7 @@ mod tests {
     #[test]
     fn matches_bar_code_and_period() {
         let sub = Subscription { topic: Topic::Bar,
-            code: Some("518880".into()), period: Some("1m".into()) };
+            code: Some("518880".into()), period: Some("1m".into()), run_id: None };
         assert!(matches(&sub, &bar_msg("518880", "1m")));
         assert!(!matches(&sub, &bar_msg("518880", "5m")));
         assert!(!matches(&sub, &bar_msg("513310", "1m")));
@@ -232,18 +238,37 @@ mod tests {
 
     #[test]
     fn matches_none_is_wildcard() {
-        let sub = Subscription { topic: Topic::Quote, code: None, period: None };
+        let sub = Subscription { topic: Topic::Quote, code: None, period: None, run_id: None };
         let q = PushMsg::Quote { code: "518880".into(), ts: Utc::now(), last: 1.0, change_pct: None };
         assert!(matches(&sub, &q));
-        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None };
+        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None, run_id: None };
         assert!(!matches(&scoped, &q));
     }
 
     #[test]
     fn cross_topic_never_matches() {
-        let sub = Subscription { topic: Topic::Health, code: None, period: None };
+        let sub = Subscription { topic: Topic::Health, code: None, period: None, run_id: None };
         assert!(!matches(&sub, &bar_msg("518880", "1m")));
         assert!(matches(&sub, &PushMsg::Health { window_secs: 3600, sources: vec![] }));
+    }
+
+    #[test]
+    fn matches_backtest_progress_by_run_id() {
+        let prog = PushMsg::BacktestProgress { run_id: 7, pct: 50, bar_ts: None };
+        let scoped = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7) };
+        assert!(matches(&scoped, &prog), "run_id 匹配");
+        let other = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(8) };
+        assert!(!matches(&other, &prog), "不同 run_id 不匹配");
+        let wildcard = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: None };
+        assert!(matches(&wildcard, &prog), "run_id 省略 = 通配");
+        let bar = Subscription { topic: Topic::Bar, code: None, period: None, run_id: None };
+        assert!(!matches(&bar, &prog), "跨 topic 不匹配");
+        // 帧 JSON 形状：type=backtest_progress
+        let v = serde_json::to_value(&prog).unwrap();
+        assert_eq!(v["type"], "backtest_progress");
+        assert_eq!(v["run_id"], 7);
+        assert_eq!(v["pct"], 50);
+        assert!(v["bar_ts"].is_null());
     }
 
     #[test]
@@ -282,7 +307,7 @@ mod tests {
         assert_eq!(v["level"], "critical");
         assert_eq!(v["status"], "triggered");
         // 订阅匹配：alert topic 全量
-        let sub = Subscription { topic: Topic::Alert, code: None, period: None };
+        let sub = Subscription { topic: Topic::Alert, code: None, period: None, run_id: None };
         let dto2 = crate::alerts::AlertEventDto {
             id: 2, rule_id: "symbol_gap_rate".into(), level: domain::ports::AlertLevel::Warning,
             source: "513310".into(), message: "缺口".into(),
@@ -307,6 +332,19 @@ mod tests {
         apply_client_msg(&reg, &mut mine, "not json");   // 坏帧忽略不 panic
         apply_client_msg(&reg, &mut mine, r#"{"type":"subscribe","topic":"unknown"}"#);
         assert!(reg.snapshot().is_empty(), "未知 topic 忽略");
+    }
+
+    #[test]
+    fn client_subscribe_backtest_run_id() {
+        let reg = SubscriptionRegistry::default();
+        let mut mine = HashSet::new();
+        apply_client_msg(&reg, &mut mine, r#"{"type":"subscribe","topic":"backtest","run_id":7}"#);
+        assert_eq!(reg.snapshot().len(), 1, "backtest 订阅应登记");
+        let sub = reg.snapshot().into_iter().next().unwrap();
+        assert_eq!(sub.topic, Topic::Backtest);
+        assert_eq!(sub.run_id, Some(7));
+        apply_client_msg(&reg, &mut mine, r#"{"type":"unsubscribe","topic":"backtest","run_id":7}"#);
+        assert!(reg.snapshot().is_empty(), "退订应清除");
     }
 }
 // ~/~ end

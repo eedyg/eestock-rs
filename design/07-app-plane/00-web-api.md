@@ -136,6 +136,41 @@ dist 缺失 → 503 文本占位（Phase A 为占位页，Phase B 构建产物�
 无 `DELETE /api/symbols` 端点；物理删除仅限 DBA 手工 SQL，不在产品功能内。
 WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_health"` 为同一通道，前端适配层映射）。
 
+### 1.5 回测（Wave 3 Phase 3c；ADR 08-backtest §7）
+
+> 本文档 tangle 生成 web 回测的**接口层声明**（路由 / DTO / 状态字段 / WS topic），但本 § 的
+> `crates/web/src/backtest.rs`（REST handlers + `BacktestWsSink`）与 `crates/web/tests/api_backtest.rs`
+> 为**非 tangle 手写**（ADR-007 例外：新功能模块/测试不纳入 tangle 块），契约描述在此、实际代码块不入本文档。
+> 引擎/应用层在别处：`backtest` crate（纯逻辑，08-backtest/01-engine-adr.md，非 tangle）、
+> `application::BacktestService`（非 tangle）、storage `BacktestBarReader`/`PgBacktestStore`
+> （04-storage/schema.md，非 tangle）。本 § 只负责 REST/WS 接口与 app bin DI 装配。
+
+#### REST
+
+| 方法/路径 | 参数 | 响应 | 数据源 | 错误态 |
+|---|---|---|---|---|
+| `GET /api/backtest/strategies` | — | `[BacktestStrategyDto]`（id/name/description/params_schema，恰 7 款内置） | `BacktestService::strategies()`（backtest 注册表） | 500 |
+| `POST /api/backtest/runs` | body `{code,period,from,to,strategy_id,params?,params_grid?,fee:{rate_pct,min_fee,slippage_bp},initial_capital?}` | 200 `{"run_id":N}` 或 `{"group_id":G,"run_ids":[N,...]}`（网格展开） | `BacktestService::submit`（入队，异步；限并发） | 400：code 空 / from、to 非 RFC3339 / period 非法（非 M1\|M5\|M15\|D1）/ fee 缺字段或非数值 / 无 params 且无 params_grid；404：strategy_id 未知；500 |
+| `GET /api/backtest/runs` | `status=pending\|running\|done\|failed`、`group_id=G`（均可选） | `[BacktestRunDto]`（含 progress/status/current_ts/结果） | `BacktestService::list_runs` | 400：status 非法；500 |
+| `GET /api/backtest/runs/{id}` | — | `BacktestRunDto`（net_value/trades/metrics 完成才非 null） | `BacktestService::get_run` | 404：id 未知；500 |
+| `GET /api/backtest/compare` | `ids=1,2,3`（逗号分隔必填） | `[BacktestRunDto]`（只含 store 存在的 run） | `BacktestService::compare` | 400：ids 空或含非数字；500 |
+
+字段口径：`period` 取 `M1/M5/M15/D1`（支持周期间；`H1` 拒绝 400，08-backtest §3）。`from`/`to` 为 RFC3339，回测区间 `[from,to)`。`fee` 为用户可调 3 字段，`stamp_duty_pct` 由 application 层取 ADR bt-1 常量（0.05%）。`params` 单点（与 `params_grid` 二选一；网格场景作为公共基础参数），`params_grid` = `{k:"起:止:步长"}`（多键笛卡尔积展开 N 子任务，共享 `group_id`）。`BacktestRunDto.net_value` = `{series,drawdown}`（净值序列+回撤序列），`metrics`/`trades` 为 jsonb 直通（前端渲染）。
+
+#### WS
+
+新增订阅 topic `"backtest"`（客户端帧 `{"type":"subscribe","topic":"backtest","run_id":123}`；`run_id` 省略 = 通配全部回测进度）。服务端推送帧：
+
+```json
+{"type":"backtest_progress","run_id":123,"pct":50,"bar_ts":"..."}
+```
+
+推送源 = **application 层执行引擎的进度回调**（`BacktestService` 后台任务），经 `BacktestProgressSink`（web 实现 `BacktestWsSink`，持有 `WsHub`）发布 `PushMsg::BacktestProgress`；客户端按 `run_id` 订阅过滤。**无新增 Poller 轮询**——进度由引擎事件驱动（非库增量轮询）。`bar_ts` = 当前回测 bar 时刻（`current_ts`）。
+
+#### DI（app bin §5）
+
+`eestock-app.rs` 构造 `storage::backtest::BacktestBarReader(pool)` + `PgBacktestStore(pool)` + `web::backtest::BacktestWsSink(hub)` → `application::service::BacktestService::new(bar_read, store, sink, DEFAULT_MAX_CONCURRENT)` → 装入 `AppState.backtest` / `AppState.backtest_ws`。`web` crate 新增依赖 `application`（依赖方向：Presentation → Application → domain/backtest；app 为组合根）。并发上限用 `application::service::DEFAULT_MAX_CONCURRENT`（ADR §7 = 4），本期不开放配置（避免改动 config schema）。
+
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
 
 分层红线：diagnose **不依赖 sqlx**。窗口事件经 `domain::ports::HealthEventsRead` 注入，
@@ -1741,12 +1776,17 @@ async fn symbols_latest_d3_merge_tail_semantics() {
 
 ## 4. web crate（Presentation 层）
 
+> ⚠️ Wave 3 Phase 3c 加法：`crates/web/src/backtest.rs`（REST handlers + `BacktestWsSink`）为**非 tangle 手写**，
+> 契约在 §1.5，组件在 lib.rs（`pub mod backtest;` + 本节 5 条回测路由）装配；`dto.rs`/`state.rs`/`ws.rs` 三块为 tangle 加法。
+
 ``` {.rust file=crates/web/src/lib.rs}
 //! web —— Presentation：axum REST + WebSocket + SPA 静态托管（应用面，ADR-017）。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
 
 // alerts：页面⑦ 告警中心（Wave 2 Phase B 加法；代码块在 design/07-app-plane/02-alerts.md）
 pub mod alerts;
+// Wave 3 Phase 3c：回测 REST handlers + WS 进度 sink（§1.5；非 tangle 手写，web 依赖 application）
+pub mod backtest;
 pub mod dto;
 pub mod rest;
 pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
@@ -1777,6 +1817,11 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
+        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / compare，handlers 在 backtest.rs）
+        .route("/api/backtest/strategies", get(backtest::strategies))
+        .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
+        .route("/api/backtest/runs/{id}", get(backtest::get_run))
+        .route("/api/backtest/compare", get(backtest::compare_runs))
         // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
         .route("/api/system/info", get(settings::system_info))
         .route("/api/system/purge-raw", post(settings::purge_raw))
@@ -1794,7 +1839,7 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
 //! REST/WS 线格式（serde DTO）与查询参数校验纯函数。
 
 use chrono::{DateTime, Utc};
-use domain::ports::{KlineBarView, SymbolLatestView};
+use domain::ports::{KlineBarView, RunView, SymbolLatestView};
 use domain::types::Period;
 use serde::{Deserialize, Serialize};
 
@@ -2095,6 +2140,181 @@ pub const RESET_SOURCES: &[&str] = &[
     "ths_cs", "push2delay", "exchange", "tushare",
 ];
 
+// ── Wave 3 Phase 3c：回测（§1.5；DTO 与校验纯函数）──
+
+fn default_backtest_params() -> serde_json::Value { serde_json::json!({}) }
+
+/// POST /api/backtest/runs 请求体（from/to 为 RFC3339 字符串，handler 解析为 DateTime<Utc>）。
+#[derive(Debug, Deserialize)]
+pub struct BacktestSubmitReq {
+    pub code: String,
+    /// M1/M5/M15/D1（H1 回测不支持）。
+    pub period: String,
+    pub from: String,
+    pub to: String,
+    pub strategy_id: String,
+    /// 单点策略参数（缺省 `{}`；`params_grid` 场景下作为公共基础参数）。
+    #[serde(default = "default_backtest_params")]
+    pub params: serde_json::Value,
+    /// 参数网格 `{k: "起:止:步长"}`（缺省 None = 单 run）。
+    #[serde(default)]
+    pub params_grid: Option<serde_json::Value>,
+    /// 费用 `{rate_pct, min_fee, slippage_bp}`。
+    pub fee: serde_json::Value,
+    /// 初始资金（缺省 100_000，ADR §4）。
+    #[serde(default)]
+    pub initial_capital: Option<f64>,
+}
+
+/// 回测周期校验：M1/M5/M15/D1（H1 回测不支持，08-backtest §3）。
+pub fn validate_backtest_period(s: &str) -> Result<(), FieldError> {
+    match s {
+        "M1" | "M5" | "M15" | "D1" => Ok(()),
+        other => Err(FieldError::BadRequest(format!("period 须为 M1/M5/M15/D1，实际 {other}"))),
+    }
+}
+
+/// 校验提交体至少含 params 或 params_grid 之一（§1.5：二选一）。
+pub fn validate_backtest_params_present(
+    params: &serde_json::Value,
+    params_grid: &Option<serde_json::Value>,
+) -> Result<(), FieldError> {
+    if params_grid.is_none() && params.is_null() {
+        return Err(FieldError::BadRequest("params 或 params_grid 必填其一".into()));
+    }
+    Ok(())
+}
+
+/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值。
+pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
+    let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
+    for key in ["rate_pct", "min_fee", "slippage_bp"] {
+        match obj.get(key) {
+            Some(v) if v.is_number() => {}
+            Some(_) => return Err(FieldError::BadRequest(format!("fee.{key} 应为数值"))),
+            None => return Err(FieldError::BadRequest(format!("fee.{key} 缺失"))),
+        }
+    }
+    Ok(())
+}
+
+/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。
+#[derive(Debug, Deserialize, Default)]
+pub struct BacktestListQuery {
+    pub status: Option<String>,
+    pub group_id: Option<String>,
+}
+
+/// GET /api/backtest/compare 查询参数（ids 逗号分隔）。
+#[derive(Debug, Deserialize)]
+pub struct BacktestCompareQuery {
+    pub ids: String,
+}
+
+/// 解析 `ids=1,2,3` 为 `Vec<i64>`；空/含非数字 → FieldError。
+pub fn parse_backtest_ids(s: &str) -> Result<Vec<i64>, FieldError> {
+    let mut out = Vec::new();
+    for part in s.split(',') {
+        let t = part.trim();
+        if t.is_empty() { continue; } // 容忍尾部/重复逗号
+        match t.parse::<i64>() {
+            Ok(v) => out.push(v),
+            Err(_) => return Err(FieldError::BadRequest(format!("ids 含非数字: {t}"))),
+        }
+    }
+    if out.is_empty() {
+        return Err(FieldError::BadRequest("ids 必填（逗号分隔的 run id）".into()));
+    }
+    Ok(out)
+}
+
+/// 回测 run 读模型（GET /api/backtest/runs、/{id}、compare 响应项）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BacktestRunDto {
+    pub id: i64,
+    pub code: String,
+    pub period: String,
+    pub strategy_id: String,
+    pub params: serde_json::Value,
+    pub fee: serde_json::Value,
+    pub status: String,
+    pub progress: i32,
+    pub current_ts: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub error: Option<String>,
+    pub group_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub net_value: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trades: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<serde_json::Value>,
+}
+
+impl From<&RunView> for BacktestRunDto {
+    fn from(r: &RunView) -> Self {
+        let result = r.result.as_ref();
+        BacktestRunDto {
+            id: r.id,
+            code: r.code.clone(),
+            period: r.period.clone(),
+            strategy_id: r.strategy_id.clone(),
+            params: r.params.clone(),
+            fee: r.fee.clone(),
+            status: r.status.as_str().to_string(),
+            progress: r.progress,
+            current_ts: r.current_ts,
+            created_at: r.created_at,
+            finished_at: r.finished_at,
+            error: r.error.clone(),
+            group_id: r.group_id.clone(),
+            net_value: result.map(|res| res.net_value.clone()),
+            trades: result.map(|res| res.trades.clone()),
+            metrics: result.map(|res| res.metrics.clone()),
+        }
+    }
+}
+
+/// 策略目录项（GET /api/backtest/strategies）。params_schema 直通 backtest::ParamDef 的 JSON 形态。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BacktestStrategyDto {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub params_schema: Vec<serde_json::Value>,
+}
+
+/// 8 项绩效指标（BacktestMetrics 的 jsonb 形态；供前端/测试类型化解析）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MetricsDto {
+    pub net_profit: f64,
+    pub max_drawdown: f64,
+    pub sharpe: f64,
+    pub win_rate: f64,
+    pub profit_factor: f64,
+    pub annualized_return: f64,
+    pub trade_count: usize,
+    pub avg_hold_bars: f64,
+}
+
+/// 单笔交易（TradeDetail 的 jsonb 形态）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TradeDto {
+    pub open_ts: i64,
+    pub close_ts: i64,
+    pub open_bar: usize,
+    pub close_bar: usize,
+    pub open_price: f64,
+    pub close_price: f64,
+    pub shares: f64,
+    pub gross_value: f64,
+    pub commission: f64,
+    pub stamp_duty: f64,
+    pub pnl: f64,
+    pub hold_bars: usize,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2185,6 +2405,72 @@ mod tests {
         assert!(validate_threshold(100.0).is_ok());
         assert!(validate_threshold(100.1).is_err());
     }
+
+    #[test]
+    fn backtest_period_fee_and_params_validation() {
+        assert!(validate_backtest_period("M1").is_ok());
+        assert!(validate_backtest_period("D1").is_ok());
+        assert!(matches!(validate_backtest_period("H1"), Err(FieldError::BadRequest(_))));
+        assert!(matches!(validate_backtest_period("1m"), Err(FieldError::BadRequest(_))), "前端 1m 非回测口径");
+
+        let ok = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
+        assert!(validate_backtest_fee(&ok).is_ok());
+        let missing = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0});
+        assert!(matches!(validate_backtest_fee(&missing), Err(FieldError::BadRequest(_))));
+        let nonnum = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": "2"});
+        assert!(matches!(validate_backtest_fee(&nonnum), Err(FieldError::BadRequest(_))));
+        assert!(matches!(validate_backtest_fee(&serde_json::json!(42)), Err(FieldError::BadRequest(_))));
+
+        assert!(validate_backtest_params_present(&serde_json::json!({}), &None).is_ok());
+        assert!(validate_backtest_params_present(&serde_json::json!({}), &Some(serde_json::json!({}))).is_ok());
+        assert!(matches!(
+            validate_backtest_params_present(&serde_json::Value::Null, &None),
+            Err(FieldError::BadRequest(_))
+        ), "无 params 且无 params_grid → 400");
+    }
+
+    #[test]
+    fn backtest_parse_ids() {
+        assert_eq!(parse_backtest_ids("1,2,3").unwrap(), vec![1, 2, 3]);
+        assert_eq!(parse_backtest_ids("1, 2 ,3").unwrap(), vec![1, 2, 3], "容忍空格");
+        assert_eq!(parse_backtest_ids("1,,2").unwrap(), vec![1, 2], "容忍空段");
+        assert!(matches!(parse_backtest_ids(""), Err(FieldError::BadRequest(_))));
+        assert!(matches!(parse_backtest_ids("abc"), Err(FieldError::BadRequest(_))));
+    }
+
+    #[test]
+    fn backtest_dto_json_shapes() {
+        // RunView → BacktestRunDto（status 用 as_str()，result 未完成时结果字段 None 跳过序列化）
+        let v = serde_json::to_value(BacktestRunDto::from(&RunView {
+            id: 7, code: "600000".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
+            params: serde_json::json!({}), fee: serde_json::json!({}),
+            status: domain::ports::RunStatus::Pending, progress: 0, current_ts: None,
+            created_at: chrono::Utc::now(), finished_at: None, error: None, group_id: None, result: None,
+        })).unwrap();
+        assert_eq!(v["status"], "pending");
+        assert!(v.get("net_value").is_none(), "未完成不输出 net_value 键");
+        assert!(v.get("metrics").is_none());
+
+        // 策略目录 DTO：params_schema 为数组直通
+        let s = BacktestStrategyDto { id: "dual_ma".into(), name: "双均线".into(),
+            description: "d".into(), params_schema: vec![serde_json::json!({"key": "fast"})] };
+        let sv = serde_json::to_value(&s).unwrap();
+        assert_eq!(sv["id"], "dual_ma");
+        assert_eq!(sv["params_schema"][0]["key"], "fast");
+
+        // Metrics/Trade DTO 可反序列化（锁定 jsonb 字段名）
+        let m: MetricsDto = serde_json::from_value(serde_json::json!({
+            "net_profit": 8.9, "max_drawdown": 0.1, "sharpe": 4.58, "win_rate": 0.5,
+            "profit_factor": 2.0, "annualized_return": 214.0, "trade_count": 2, "avg_hold_bars": 2.5,
+        })).unwrap();
+        assert_eq!(m.trade_count, 2);
+        let t: TradeDto = serde_json::from_value(serde_json::json!({
+            "open_ts": 0, "close_ts": 1, "open_bar": 0, "close_bar": 1, "open_price": 1.0,
+            "close_price": 1.1, "shares": 100.0, "gross_value": 110.0, "commission": 0.1,
+            "stamp_duty": 0.05, "pnl": 9.9, "hold_bars": 1,
+        })).unwrap();
+        assert_eq!(t.pnl, 9.9);
+    }
 }
 ```
 
@@ -2215,6 +2501,10 @@ pub struct AppState {
     pub system_info: crate::settings::SystemInfoSource,
     /// 页面⑧ raw 层清空端口（S1：POST /api/system/purge-raw；08-settings.md）。
     pub raw_purge: Arc<dyn domain::ports::RawPurgePort>,
+    /// 回测服务（Wave 3 Phase 3c：application 层 BacktestService，§1.5；app bin 装配）。
+    pub backtest: Arc<application::service::BacktestService>,
+    /// 回测 WS 进度分发 sink（Wave 3 Phase 3c：web 实现 domain::ports::BacktestProgressSink，§1.5）。
+    pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -2510,14 +2800,15 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Topic { Bar, Quote, Health, Alert }
+pub enum Topic { Bar, Quote, Health, Alert, Backtest }
 
 /// 客户端帧：{"type":"subscribe","topic":"bar","code":"518880","period":"1m"}（unsubscribe 同形）。
+/// Backtest 订阅带 run_id（Wave 3 Phase 3c；省略 = 通配全部回测进度）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum ClientMsg {
-    Subscribe { topic: Topic, code: Option<String>, period: Option<String> },
-    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String> },
+    Subscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
+    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -2525,6 +2816,7 @@ pub struct Subscription {
     pub topic: Topic,
     pub code: Option<String>,     // None = 全部标的
     pub period: Option<String>,   // bar 订阅必填（"1m"/"5m"/"15m"/"1h"/"1d"）
+    pub run_id: Option<i64>,      // backtest 订阅的 run（None = 全部回测进度；Wave 3 Phase 3c）
 }
 
 /// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health"|"alert", ...}。
@@ -2537,9 +2829,11 @@ pub enum PushMsg {
     Quote { code: String, ts: DateTime<Utc>, last: f64, #[serde(rename = "changePct")] change_pct: Option<f64> },
     Health { window_secs: i64, sources: Vec<diagnose::health::SourceHealth> },
     Alert(crate::alerts::AlertEventDto),
+    /// 回测进度（Wave 3 Phase 3c；推送源 = application 层引擎回调，经 BacktestWsSink → hub）。
+    BacktestProgress { run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>> },
 }
 
-/// 订阅匹配：topic 一致且（sub.code/period 为 None 通配或与消息相等）。
+/// 订阅匹配：topic 一致且（sub.code/period/run_id 为 None 通配或与消息相等）。
 pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
     let hit = |want: &Option<String>, got: &str| want.as_deref().is_none_or(|w| w == got);
     match (sub.topic, msg) {
@@ -2547,6 +2841,8 @@ pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
         (Topic::Quote, PushMsg::Quote { code, .. }) => hit(&sub.code, code),
         (Topic::Health, PushMsg::Health { .. }) => true,
         (Topic::Alert, PushMsg::Alert(_)) => true,   // 订阅即全量告警推送（07-alerts §6）
+        (Topic::Backtest, PushMsg::BacktestProgress { run_id, .. }) =>
+            sub.run_id.is_none_or(|sid| sid == *run_id),
         _ => false,
     }
 }
@@ -2609,13 +2905,13 @@ async fn handle_socket(st: Arc<AppState>, mut sock: WebSocket) {
 fn apply_client_msg(reg: &SubscriptionRegistry, mine: &mut HashSet<Subscription>, text: &str) {
     let Ok(msg) = serde_json::from_str::<ClientMsg>(text) else { return }; // 坏帧忽略（ADR-010 内网）
     match msg {
-        ClientMsg::Subscribe { topic, code, period } => {
-            let sub = Subscription { topic, code, period };
+        ClientMsg::Subscribe { topic, code, period, run_id } => {
+            let sub = Subscription { topic, code, period, run_id };
             mine.insert(sub.clone());
             reg.add(sub);
         }
-        ClientMsg::Unsubscribe { topic, code, period } => {
-            let sub = Subscription { topic, code, period };
+        ClientMsg::Unsubscribe { topic, code, period, run_id } => {
+            let sub = Subscription { topic, code, period, run_id };
             mine.remove(&sub);
             reg.remove(&sub);
         }
@@ -2715,7 +3011,7 @@ mod tests {
     #[test]
     fn matches_bar_code_and_period() {
         let sub = Subscription { topic: Topic::Bar,
-            code: Some("518880".into()), period: Some("1m".into()) };
+            code: Some("518880".into()), period: Some("1m".into()), run_id: None };
         assert!(matches(&sub, &bar_msg("518880", "1m")));
         assert!(!matches(&sub, &bar_msg("518880", "5m")));
         assert!(!matches(&sub, &bar_msg("513310", "1m")));
@@ -2723,18 +3019,37 @@ mod tests {
 
     #[test]
     fn matches_none_is_wildcard() {
-        let sub = Subscription { topic: Topic::Quote, code: None, period: None };
+        let sub = Subscription { topic: Topic::Quote, code: None, period: None, run_id: None };
         let q = PushMsg::Quote { code: "518880".into(), ts: Utc::now(), last: 1.0, change_pct: None };
         assert!(matches(&sub, &q));
-        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None };
+        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None, run_id: None };
         assert!(!matches(&scoped, &q));
     }
 
     #[test]
     fn cross_topic_never_matches() {
-        let sub = Subscription { topic: Topic::Health, code: None, period: None };
+        let sub = Subscription { topic: Topic::Health, code: None, period: None, run_id: None };
         assert!(!matches(&sub, &bar_msg("518880", "1m")));
         assert!(matches(&sub, &PushMsg::Health { window_secs: 3600, sources: vec![] }));
+    }
+
+    #[test]
+    fn matches_backtest_progress_by_run_id() {
+        let prog = PushMsg::BacktestProgress { run_id: 7, pct: 50, bar_ts: None };
+        let scoped = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7) };
+        assert!(matches(&scoped, &prog), "run_id 匹配");
+        let other = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(8) };
+        assert!(!matches(&other, &prog), "不同 run_id 不匹配");
+        let wildcard = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: None };
+        assert!(matches(&wildcard, &prog), "run_id 省略 = 通配");
+        let bar = Subscription { topic: Topic::Bar, code: None, period: None, run_id: None };
+        assert!(!matches(&bar, &prog), "跨 topic 不匹配");
+        // 帧 JSON 形状：type=backtest_progress
+        let v = serde_json::to_value(&prog).unwrap();
+        assert_eq!(v["type"], "backtest_progress");
+        assert_eq!(v["run_id"], 7);
+        assert_eq!(v["pct"], 50);
+        assert!(v["bar_ts"].is_null());
     }
 
     #[test]
@@ -2773,7 +3088,7 @@ mod tests {
         assert_eq!(v["level"], "critical");
         assert_eq!(v["status"], "triggered");
         // 订阅匹配：alert topic 全量
-        let sub = Subscription { topic: Topic::Alert, code: None, period: None };
+        let sub = Subscription { topic: Topic::Alert, code: None, period: None, run_id: None };
         let dto2 = crate::alerts::AlertEventDto {
             id: 2, rule_id: "symbol_gap_rate".into(), level: domain::ports::AlertLevel::Warning,
             source: "513310".into(), message: "缺口".into(),
@@ -2798,6 +3113,19 @@ mod tests {
         apply_client_msg(&reg, &mut mine, "not json");   // 坏帧忽略不 panic
         apply_client_msg(&reg, &mut mine, r#"{"type":"subscribe","topic":"unknown"}"#);
         assert!(reg.snapshot().is_empty(), "未知 topic 忽略");
+    }
+
+    #[test]
+    fn client_subscribe_backtest_run_id() {
+        let reg = SubscriptionRegistry::default();
+        let mut mine = HashSet::new();
+        apply_client_msg(&reg, &mut mine, r#"{"type":"subscribe","topic":"backtest","run_id":7}"#);
+        assert_eq!(reg.snapshot().len(), 1, "backtest 订阅应登记");
+        let sub = reg.snapshot().into_iter().next().unwrap();
+        assert_eq!(sub.topic, Topic::Backtest);
+        assert_eq!(sub.run_id, Some(7));
+        apply_client_msg(&reg, &mut mine, r#"{"type":"unsubscribe","topic":"backtest","run_id":7}"#);
+        assert!(reg.snapshot().is_empty(), "退订应清除");
     }
 }
 ```
@@ -3006,6 +3334,16 @@ async fn pool() -> PgPool {
 /// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
 /// storage/sqlx 仅出现在 dev-dependencies（正常依赖图不含，cargo tree -e normal 验证）。
 fn state(pool: PgPool) -> Arc<AppState> {
+    // Wave 3 Phase 3c：回测 DI（与 app bin 同口径；本文件不涉及行为，仅装配齐全）
+    let backtest_hub = WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -3041,9 +3379,12 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
-        hub: WsHub::new(),
+        hub: backtest_hub,
         subs: SubscriptionRegistry::default(),
     })
 }
@@ -3216,6 +3557,16 @@ async fn pool() -> PgPool {
 /// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
 /// storage/sqlx 仅出现在 dev-dependencies（正常依赖图不含，cargo tree -e normal 验证）。
 fn state(pool: PgPool) -> Arc<AppState> {
+    // Wave 3 Phase 3c：回测 DI（与 app bin 同口径；本文件不涉及行为，仅装配齐全）
+    let backtest_hub = WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -3250,9 +3601,12 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
-        hub: WsHub::new(),
+        hub: backtest_hub,
         subs: SubscriptionRegistry::default(),
     })
 }
@@ -3274,8 +3628,8 @@ async fn poller_publishes_increments_only() {
 
     let st = state(pool.clone());
     st.subs.add(Subscription { topic: Topic::Bar,
-        code: Some(CODE.into()), period: Some("1m".into()) });
-    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None });
+        code: Some(CODE.into()), period: Some("1m".into()), run_id: None });
+    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None, run_id: None });
     let mut rx = st.hub.subscribe();
     let mut poller = Poller::new(st.clone(), StdDuration::from_secs(60));
 
@@ -3433,6 +3787,17 @@ async fn main() -> anyhow::Result<()> {
         db: storage::system::system_info(pool.clone()),
         started_at: std::time::Instant::now(),
     };
+    // Wave 3 Phase 3c：回测 DI（storage BarReader + PgBacktestStore + WS 进度 sink → application BacktestService）
+    // 并发上限用 application::service::DEFAULT_MAX_CONCURRENT（ADR §7 = 4；本期不开放配置）
+    let backtest_hub = web::ws::WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -3459,9 +3824,12 @@ async fn main() -> anyhow::Result<()> {
         ),
         system_info,
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
-        hub: web::ws::WsHub::new(),
+        hub: backtest_hub,
         subs: web::ws::SubscriptionRegistry::default(),
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());
@@ -3881,6 +4249,16 @@ async fn pool() -> PgPool {
 
 /// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-dependencies）。
 fn state(pool: PgPool) -> Arc<AppState> {
+    // Wave 3 Phase 3c：回测 DI（与 app bin 同口径；本文件不涉及行为，仅装配齐全）
+    let backtest_hub = WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -3914,9 +4292,12 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
-        hub: WsHub::new(),
+        hub: backtest_hub,
         subs: SubscriptionRegistry::default(),
     })
 }
@@ -4084,6 +4465,16 @@ async fn pool() -> PgPool {
 }
 
 fn state(pool: PgPool) -> Arc<AppState> {
+    // Wave 3 Phase 3c：回测 DI（与 app bin 同口径；本文件不涉及行为，仅装配齐全）
+    let backtest_hub = WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -4116,9 +4507,12 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
-        hub: WsHub::new(),
+        hub: backtest_hub,
         subs: SubscriptionRegistry::default(),
     })
 }

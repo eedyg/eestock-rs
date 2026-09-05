@@ -14,6 +14,7 @@ diagnose = { path = "../diagnose" }
 alert = { path = "../alert" }   # Wave 2 Phase B：告警引擎（eestock-app 装配 AlertService + 评估节拍）
 web = { path = "../web" }
 mcp = { path = "../mcp" }   # Wave 1 Phase D：MCP HTTP/SSE（ADR-009，与 web 同进程、端口独立 8082）
+application = { path = "../application" }   # Wave 3 Phase 3c：回测 BacktestService（app bin DI）
 axum.workspace = true
 tokio.workspace = true
 tracing.workspace = true

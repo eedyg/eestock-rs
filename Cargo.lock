@@ -50,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "alert",
  "anyhow",
+ "application",
  "axum",
  "chrono",
  "collector",
@@ -2561,6 +2562,8 @@ version = "0.1.0"
 dependencies = [
  "alert",
  "anyhow",
+ "application",
+ "async-trait",
  "axum",
  "chrono",
  "diagnose",

@@ -2,7 +2,7 @@
 //! REST/WS 线格式（serde DTO）与查询参数校验纯函数。
 
 use chrono::{DateTime, Utc};
-use domain::ports::{KlineBarView, SymbolLatestView};
+use domain::ports::{KlineBarView, RunView, SymbolLatestView};
 use domain::types::Period;
 use serde::{Deserialize, Serialize};
 
@@ -303,6 +303,181 @@ pub const RESET_SOURCES: &[&str] = &[
     "ths_cs", "push2delay", "exchange", "tushare",
 ];
 
+// ── Wave 3 Phase 3c：回测（§1.5；DTO 与校验纯函数）──
+
+fn default_backtest_params() -> serde_json::Value { serde_json::json!({}) }
+
+/// POST /api/backtest/runs 请求体（from/to 为 RFC3339 字符串，handler 解析为 DateTime<Utc>）。
+#[derive(Debug, Deserialize)]
+pub struct BacktestSubmitReq {
+    pub code: String,
+    /// M1/M5/M15/D1（H1 回测不支持）。
+    pub period: String,
+    pub from: String,
+    pub to: String,
+    pub strategy_id: String,
+    /// 单点策略参数（缺省 `{}`；`params_grid` 场景下作为公共基础参数）。
+    #[serde(default = "default_backtest_params")]
+    pub params: serde_json::Value,
+    /// 参数网格 `{k: "起:止:步长"}`（缺省 None = 单 run）。
+    #[serde(default)]
+    pub params_grid: Option<serde_json::Value>,
+    /// 费用 `{rate_pct, min_fee, slippage_bp}`。
+    pub fee: serde_json::Value,
+    /// 初始资金（缺省 100_000，ADR §4）。
+    #[serde(default)]
+    pub initial_capital: Option<f64>,
+}
+
+/// 回测周期校验：M1/M5/M15/D1（H1 回测不支持，08-backtest §3）。
+pub fn validate_backtest_period(s: &str) -> Result<(), FieldError> {
+    match s {
+        "M1" | "M5" | "M15" | "D1" => Ok(()),
+        other => Err(FieldError::BadRequest(format!("period 须为 M1/M5/M15/D1，实际 {other}"))),
+    }
+}
+
+/// 校验提交体至少含 params 或 params_grid 之一（§1.5：二选一）。
+pub fn validate_backtest_params_present(
+    params: &serde_json::Value,
+    params_grid: &Option<serde_json::Value>,
+) -> Result<(), FieldError> {
+    if params_grid.is_none() && params.is_null() {
+        return Err(FieldError::BadRequest("params 或 params_grid 必填其一".into()));
+    }
+    Ok(())
+}
+
+/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值。
+pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
+    let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
+    for key in ["rate_pct", "min_fee", "slippage_bp"] {
+        match obj.get(key) {
+            Some(v) if v.is_number() => {}
+            Some(_) => return Err(FieldError::BadRequest(format!("fee.{key} 应为数值"))),
+            None => return Err(FieldError::BadRequest(format!("fee.{key} 缺失"))),
+        }
+    }
+    Ok(())
+}
+
+/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。
+#[derive(Debug, Deserialize, Default)]
+pub struct BacktestListQuery {
+    pub status: Option<String>,
+    pub group_id: Option<String>,
+}
+
+/// GET /api/backtest/compare 查询参数（ids 逗号分隔）。
+#[derive(Debug, Deserialize)]
+pub struct BacktestCompareQuery {
+    pub ids: String,
+}
+
+/// 解析 `ids=1,2,3` 为 `Vec<i64>`；空/含非数字 → FieldError。
+pub fn parse_backtest_ids(s: &str) -> Result<Vec<i64>, FieldError> {
+    let mut out = Vec::new();
+    for part in s.split(',') {
+        let t = part.trim();
+        if t.is_empty() { continue; } // 容忍尾部/重复逗号
+        match t.parse::<i64>() {
+            Ok(v) => out.push(v),
+            Err(_) => return Err(FieldError::BadRequest(format!("ids 含非数字: {t}"))),
+        }
+    }
+    if out.is_empty() {
+        return Err(FieldError::BadRequest("ids 必填（逗号分隔的 run id）".into()));
+    }
+    Ok(out)
+}
+
+/// 回测 run 读模型（GET /api/backtest/runs、/{id}、compare 响应项）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BacktestRunDto {
+    pub id: i64,
+    pub code: String,
+    pub period: String,
+    pub strategy_id: String,
+    pub params: serde_json::Value,
+    pub fee: serde_json::Value,
+    pub status: String,
+    pub progress: i32,
+    pub current_ts: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub error: Option<String>,
+    pub group_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub net_value: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trades: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<serde_json::Value>,
+}
+
+impl From<&RunView> for BacktestRunDto {
+    fn from(r: &RunView) -> Self {
+        let result = r.result.as_ref();
+        BacktestRunDto {
+            id: r.id,
+            code: r.code.clone(),
+            period: r.period.clone(),
+            strategy_id: r.strategy_id.clone(),
+            params: r.params.clone(),
+            fee: r.fee.clone(),
+            status: r.status.as_str().to_string(),
+            progress: r.progress,
+            current_ts: r.current_ts,
+            created_at: r.created_at,
+            finished_at: r.finished_at,
+            error: r.error.clone(),
+            group_id: r.group_id.clone(),
+            net_value: result.map(|res| res.net_value.clone()),
+            trades: result.map(|res| res.trades.clone()),
+            metrics: result.map(|res| res.metrics.clone()),
+        }
+    }
+}
+
+/// 策略目录项（GET /api/backtest/strategies）。params_schema 直通 backtest::ParamDef 的 JSON 形态。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BacktestStrategyDto {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub params_schema: Vec<serde_json::Value>,
+}
+
+/// 8 项绩效指标（BacktestMetrics 的 jsonb 形态；供前端/测试类型化解析）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MetricsDto {
+    pub net_profit: f64,
+    pub max_drawdown: f64,
+    pub sharpe: f64,
+    pub win_rate: f64,
+    pub profit_factor: f64,
+    pub annualized_return: f64,
+    pub trade_count: usize,
+    pub avg_hold_bars: f64,
+}
+
+/// 单笔交易（TradeDetail 的 jsonb 形态）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TradeDto {
+    pub open_ts: i64,
+    pub close_ts: i64,
+    pub open_bar: usize,
+    pub close_bar: usize,
+    pub open_price: f64,
+    pub close_price: f64,
+    pub shares: f64,
+    pub gross_value: f64,
+    pub commission: f64,
+    pub stamp_duty: f64,
+    pub pnl: f64,
+    pub hold_bars: usize,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,6 +567,72 @@ mod tests {
         assert!(validate_threshold(-1.0).is_err());
         assert!(validate_threshold(100.0).is_ok());
         assert!(validate_threshold(100.1).is_err());
+    }
+
+    #[test]
+    fn backtest_period_fee_and_params_validation() {
+        assert!(validate_backtest_period("M1").is_ok());
+        assert!(validate_backtest_period("D1").is_ok());
+        assert!(matches!(validate_backtest_period("H1"), Err(FieldError::BadRequest(_))));
+        assert!(matches!(validate_backtest_period("1m"), Err(FieldError::BadRequest(_))), "前端 1m 非回测口径");
+
+        let ok = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
+        assert!(validate_backtest_fee(&ok).is_ok());
+        let missing = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0});
+        assert!(matches!(validate_backtest_fee(&missing), Err(FieldError::BadRequest(_))));
+        let nonnum = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": "2"});
+        assert!(matches!(validate_backtest_fee(&nonnum), Err(FieldError::BadRequest(_))));
+        assert!(matches!(validate_backtest_fee(&serde_json::json!(42)), Err(FieldError::BadRequest(_))));
+
+        assert!(validate_backtest_params_present(&serde_json::json!({}), &None).is_ok());
+        assert!(validate_backtest_params_present(&serde_json::json!({}), &Some(serde_json::json!({}))).is_ok());
+        assert!(matches!(
+            validate_backtest_params_present(&serde_json::Value::Null, &None),
+            Err(FieldError::BadRequest(_))
+        ), "无 params 且无 params_grid → 400");
+    }
+
+    #[test]
+    fn backtest_parse_ids() {
+        assert_eq!(parse_backtest_ids("1,2,3").unwrap(), vec![1, 2, 3]);
+        assert_eq!(parse_backtest_ids("1, 2 ,3").unwrap(), vec![1, 2, 3], "容忍空格");
+        assert_eq!(parse_backtest_ids("1,,2").unwrap(), vec![1, 2], "容忍空段");
+        assert!(matches!(parse_backtest_ids(""), Err(FieldError::BadRequest(_))));
+        assert!(matches!(parse_backtest_ids("abc"), Err(FieldError::BadRequest(_))));
+    }
+
+    #[test]
+    fn backtest_dto_json_shapes() {
+        // RunView → BacktestRunDto（status 用 as_str()，result 未完成时结果字段 None 跳过序列化）
+        let v = serde_json::to_value(BacktestRunDto::from(&RunView {
+            id: 7, code: "600000".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
+            params: serde_json::json!({}), fee: serde_json::json!({}),
+            status: domain::ports::RunStatus::Pending, progress: 0, current_ts: None,
+            created_at: chrono::Utc::now(), finished_at: None, error: None, group_id: None, result: None,
+        })).unwrap();
+        assert_eq!(v["status"], "pending");
+        assert!(v.get("net_value").is_none(), "未完成不输出 net_value 键");
+        assert!(v.get("metrics").is_none());
+
+        // 策略目录 DTO：params_schema 为数组直通
+        let s = BacktestStrategyDto { id: "dual_ma".into(), name: "双均线".into(),
+            description: "d".into(), params_schema: vec![serde_json::json!({"key": "fast"})] };
+        let sv = serde_json::to_value(&s).unwrap();
+        assert_eq!(sv["id"], "dual_ma");
+        assert_eq!(sv["params_schema"][0]["key"], "fast");
+
+        // Metrics/Trade DTO 可反序列化（锁定 jsonb 字段名）
+        let m: MetricsDto = serde_json::from_value(serde_json::json!({
+            "net_profit": 8.9, "max_drawdown": 0.1, "sharpe": 4.58, "win_rate": 0.5,
+            "profit_factor": 2.0, "annualized_return": 214.0, "trade_count": 2, "avg_hold_bars": 2.5,
+        })).unwrap();
+        assert_eq!(m.trade_count, 2);
+        let t: TradeDto = serde_json::from_value(serde_json::json!({
+            "open_ts": 0, "close_ts": 1, "open_bar": 0, "close_bar": 1, "open_price": 1.0,
+            "close_price": 1.1, "shares": 100.0, "gross_value": 110.0, "commission": 0.1,
+            "stamp_duty": 0.05, "pnl": 9.9, "hold_bars": 1,
+        })).unwrap();
+        assert_eq!(t.pnl, 9.9);
     }
 }
 // ~/~ end

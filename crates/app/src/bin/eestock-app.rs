@@ -51,6 +51,17 @@ async fn main() -> anyhow::Result<()> {
         db: storage::system::system_info(pool.clone()),
         started_at: std::time::Instant::now(),
     };
+    // Wave 3 Phase 3c：回测 DI（storage BarReader + PgBacktestStore + WS 进度 sink → application BacktestService）
+    // 并发上限用 application::service::DEFAULT_MAX_CONCURRENT（ADR §7 = 4；本期不开放配置）
+    let backtest_hub = web::ws::WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -77,9 +88,12 @@ async fn main() -> anyhow::Result<()> {
         ),
         system_info,
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
-        hub: web::ws::WsHub::new(),
+        hub: backtest_hub,
         subs: web::ws::SubscriptionRegistry::default(),
     });
     tokio::spawn(web::ws::Poller::new(state.clone(), Duration::from_millis(cfg.ws_poll_ms)).run());

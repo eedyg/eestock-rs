@@ -25,6 +25,10 @@ pub struct AppState {
     pub system_info: crate::settings::SystemInfoSource,
     /// 页面⑧ raw 层清空端口（S1：POST /api/system/purge-raw；08-settings.md）。
     pub raw_purge: Arc<dyn domain::ports::RawPurgePort>,
+    /// 回测服务（Wave 3 Phase 3c：application 层 BacktestService，§1.5；app bin 装配）。
+    pub backtest: Arc<application::service::BacktestService>,
+    /// 回测 WS 进度分发 sink（Wave 3 Phase 3c：web 实现 domain::ports::BacktestProgressSink，§1.5）。
+    pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

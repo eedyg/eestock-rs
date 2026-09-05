@@ -21,6 +21,16 @@ async fn pool() -> PgPool {
 /// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
 /// storage/sqlx 仅出现在 dev-dependencies（正常依赖图不含，cargo tree -e normal 验证）。
 fn state(pool: PgPool) -> Arc<AppState> {
+    // Wave 3 Phase 3c：回测 DI（与 app bin 同口径；本文件不涉及行为，仅装配齐全）
+    let backtest_hub = WsHub::new();
+    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
+        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
+    let backtest = Arc::new(application::service::BacktestService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
+        backtest_ws.clone(),
+        application::service::DEFAULT_MAX_CONCURRENT,
+    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -55,9 +65,12 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
+        backtest,
+        backtest_ws,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
-        hub: WsHub::new(),
+        hub: backtest_hub,
         subs: SubscriptionRegistry::default(),
     })
 }
@@ -79,8 +92,8 @@ async fn poller_publishes_increments_only() {
 
     let st = state(pool.clone());
     st.subs.add(Subscription { topic: Topic::Bar,
-        code: Some(CODE.into()), period: Some("1m".into()) });
-    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None });
+        code: Some(CODE.into()), period: Some("1m".into()), run_id: None });
+    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None, run_id: None });
     let mut rx = st.hub.subscribe();
     let mut poller = Poller::new(st.clone(), StdDuration::from_secs(60));
 
