@@ -597,6 +597,9 @@ pub mod alerts;
 // system：页面⑧ 设置页 S1 端口实现加法扩展（SystemInfoRead + RawPurgePort；
 // 代码块在 design/06-web/08-settings.md）
 pub mod system;
+// backtest：回测端口实现加法扩展（Wave 3 Phase 3a：BacktestBarRead + BacktestRunStore；
+// 代码块在 design/04-storage/schema.md §4.3.5。backtest.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod backtest;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

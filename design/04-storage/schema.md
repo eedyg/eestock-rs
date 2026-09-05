@@ -349,6 +349,60 @@ SELECT add_continuous_aggregate_policy('kline_accurate_1h',
     schedule_interval => INTERVAL '1 hour');
 ```
 
+## 4.3.5 回测存储（Wave 3 Phase 3a，0011；ADR 08-backtest §7）
+
+**上下文**：backtest engine crate（纯逻辑，无 IO/DB）已落（crates/backtest，commit 97fe314）。
+本迁移补回测**数据/应用面**两张表：任务运行（backtest_runs）+ 完成结果（backtest_results）。
+应用面 CRUD 经 `domain::ports::BacktestRunStore`（storage 实现，见下）。
+
+**表口径**：run 状态机 pending/running/done/failed；progress 0-100（整数，进度经 WS 分发）；
+current_ts = 当前回测 bar 时刻（进度展示）；result 只在 done 时写一次（中间结果不落库，ADR §7）。
+`backtest_runs` / `backtest_results` 为**应用面自有表**（与 circuit_reset_requests/alert_events 同口径：
+数据面、引擎回不读写，不违 ADR-017 只读库铁律）。
+
+``` {.sql file=migrations/0011_backtest.sql}
+-- 0011_backtest.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- Wave 3 Phase 3a：回测任务（运行）+ 结果存储（ADR 08-backtest §7）。
+-- backtest_runs = 任务状态（pending/running/done/failed + progress 0-100 + current_ts）；
+-- backtest_results = 完成结果的 3 个 jsonb 列（run_id 1:1，run_id PK）。
+CREATE TABLE backtest_runs (
+    id          bigserial PRIMARY KEY,
+    code        text NOT NULL,
+    period      text NOT NULL,                      -- M1/M5/M15/D1（回测支持周期）
+    strategy_id text NOT NULL,                      -- builtin 策略 slug
+    params_json jsonb NOT NULL DEFAULT '{}'::jsonb, -- 策略参数（网格展开后单点）
+    fee_json    jsonb NOT NULL DEFAULT '{}'::jsonb, -- {rate_pct,min_fee,slippage_bp}
+    status      text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','done','failed')),
+    progress    integer NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
+    current_ts  timestamptz,                        -- 当前回测 bar 时刻（进度展示）
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz,                        -- done/failed 时刻
+    error       text,                               -- failed 错误信息
+    group_id    text                                -- 任务组（grid 展开）
+);
+
+CREATE TABLE backtest_results (
+    run_id         bigint PRIMARY KEY REFERENCES backtest_runs(id) ON DELETE CASCADE,
+    net_value_json jsonb NOT NULL,
+    trades_json    jsonb NOT NULL,
+    metrics_json   jsonb NOT NULL
+);
+
+-- 查询：状态筛选 / 任务组聚合 / 结果 join（run_id PK 隐式索引；另列满足契约索引清单）
+CREATE INDEX backtest_runs_status_idx     ON backtest_runs (status);
+CREATE INDEX backtest_runs_group_idx      ON backtest_runs (group_id);
+CREATE INDEX backtest_results_run_id_idx  ON backtest_results (run_id);
+```
+
+**storage 模块 `crates/storage/src/backtest.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::{BacktestBarRead, BacktestRunStore}`（PgPool）。
+- `BacktestBarRead`：`bars(code, period, from, to)` 按统一读源（accurate 优先 + cagg 兜底，复用 KlineReader 口径，
+  与 design/07-app-plane/00-web-api.md `merged_sql` 同语义）读 `[from, to)` 升序 `domain::Bar` 序列；
+  M1 走 `kline_merged` 视图，5m/15m/1h/1d 走 period 对应 accurate/cagg 表 + 底层兜底反连接剔重（同 reader.rs）。
+  兜底 cagg 行 source 缺 NULL → `domain::Bar.source` 以占位 `SourceId::parse().unwrap_or(Tushare)` 记（backtest 不消费 source）。
+- `PgBacktestStore`：`backtest_runs/backtest_results` CRUD（create_run 回 id；update_run_progress 写 progress/current_ts；
+  mark_done 事务内更新 status=done/finished_at + upsert result 3 列；mark_failed 置 failed/error；list_runs 按 status/group filter；get_run 联表）。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

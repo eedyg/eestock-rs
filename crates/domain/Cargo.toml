@@ -7,6 +7,8 @@ edition.workspace = true
 [dependencies]
 chrono.workspace = true
 serde.workspace = true
+# Wave 3 Phase 3a：回测端口（NewRun/RunResult/RunView）携带 JSONB 载荷，ports.rs 需 serde_json::Value
+serde_json.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true

@@ -11,6 +11,8 @@ tokio.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
+# Wave 3 Phase 3a：回测结果三 jsonb 列（net_value/trades/metrics）读写，经 sqlx json feature 绑 serde_json::Value
+serde_json.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

@@ -22,6 +22,9 @@ sqlx = { version = "0.8", default-features = false, features = [
     "postgres",
     "chrono",
     "migrate",
+    # Phase 3a 回测：backtest_runs/backtest_results 用 jsonb 列，需 sqlx 支持 serde_json::Value
+    # （web/domain 已用 serde_json，无新增外部 crate；本 feature 仅解锁 jsonb 类型映射）
+    "json",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -714,6 +714,100 @@ pub trait RawPurgePort: Send + Sync {
     /// 执行 DELETE FROM kline_raw；返回受影响（清理）行数。
     async fn purge_raw(&self) -> anyhow::Result<u64>;
 }
+
+// ── Wave 3 Phase 3a：回测端口（ADR 08-backtest §2；engine 为纯逻辑 backtest crate，无 IO/DB──
+// 本块为数据/应用面端口：storage 实现 BacktestBarRead/BacktestRunStore，application 层实现 BacktestProgressSink）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
+// ⚠️ Bar 类型归属：端口返回 domain::types::Bar（storage 直接产）；application 层（Phase 3b）负责
+// domain::Bar -> backtest::Bar 映射（backtest crate 刻意不依赖 domain，见 crates/backtest/src/types.rs 注释）。
+
+/// 回测运行状态（backtest_runs.status：pending/running/done/failed）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RunStatus { Pending, Running, Done, Failed }
+
+impl RunStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self { RunStatus::Pending => "pending", RunStatus::Running => "running",
+                     RunStatus::Done => "done", RunStatus::Failed => "failed" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "pending" => Some(RunStatus::Pending), "running" => Some(RunStatus::Running),
+                  "done" => Some(RunStatus::Done), "failed" => Some(RunStatus::Failed), _ => None }
+    }
+}
+
+/// 新建回测运行（POST /api/backtest/runs 输入经 web 层校验解析后；params 为网格展开后单点）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewRun {
+    pub code: String,
+    pub period: String,           // M1/M5/M15/D1（回测支持周期）
+    pub strategy_id: String,      // builtin 策略 slug
+    pub params: serde_json::Value,
+    pub fee: serde_json::Value,   // {rate_pct,min_fee,slippage_bp}
+    pub group_id: Option<String>,
+}
+
+/// 回测运行列表过滤（GET /api/backtest/runs）。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RunFilter {
+    pub status: Option<RunStatus>,
+    pub group_id: Option<String>,
+}
+
+/// 回测结果（backtest_results 三 jsonb 列聚合）。application 层把 backtest::BacktestResult 拆分写入。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunResult {
+    pub net_value: serde_json::Value,   // 净值/回撤序列
+    pub trades: serde_json::Value,      // 交易明细
+    pub metrics: serde_json::Value,     // 8 项绩效指标
+}
+
+/// 回测运行读模型（含结果；result=None 表示未完成为 done）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunView {
+    pub id: i64,
+    pub code: String,
+    pub period: String,
+    pub strategy_id: String,
+    pub params: serde_json::Value,
+    pub fee: serde_json::Value,
+    pub status: RunStatus,
+    pub progress: i32,             // 0-100
+    pub current_ts: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub error: Option<String>,
+    pub group_id: Option<String>,
+    pub result: Option<RunResult>,
+}
+
+/// 回测 K线读取端口（storage 实现）。统一读源 = accurate 优先 + cagg 兜底（ADR-003 推广），
+/// 复用 KlineReader 口径（period 对应 accurate/cagg 表映射）。返回 [from, to) 区间 bar，ts 升序。
+/// 返回 domain::Bar；application 层映射为 backtest::Bar（ADR 08-backtest §3）。
+#[async_trait]
+pub trait BacktestBarRead: Send + Sync {
+    async fn bars(&self, code: &str, period: &Period, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<Bar>>;
+}
+
+/// 回测运行存储端口（storage 实现；backtest_runs/backtest_results，迁移 0011）。
+/// create_run 写 pending 行并回 id；mark_done 写结果（3 列）+ 置 done；list/get 读联表。
+#[async_trait]
+pub trait BacktestRunStore: Send + Sync {
+    async fn create_run(&mut self, run: &NewRun) -> anyhow::Result<i64>;
+    async fn update_run_progress(&self, id: i64, pct: i32, ts: DateTime<Utc>) -> anyhow::Result<()>;
+    async fn mark_done(&self, id: i64, result: &RunResult) -> anyhow::Result<()>;
+    async fn mark_failed(&self, id: i64, err: &str) -> anyhow::Result<()>;
+    async fn list_runs(&self, filter: &RunFilter) -> anyhow::Result<Vec<RunView>>;
+    async fn get_run(&self, id: i64) -> anyhow::Result<Option<RunView>>;
+}
+
+/// 回测进度推送端口（web/application 实现；WS `{type:"backtest_progress", run_id, pct, bar_ts}`）。
+#[async_trait]
+pub trait BacktestProgressSink: Send + Sync {
+    async fn send(&self, run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>>) -> anyhow::Result<()>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）
@@ -761,6 +855,7 @@ ProviderError 错误分类显示（01 §4 口径）、ErrKind 字符串、Trace 
 
 use chrono::{TimeZone, Utc};
 use domain::merge::merge_prefer_accurate;
+use domain::ports::{NewRun, RunFilter, RunResult, RunStatus, RunView};
 use domain::provider::ProviderError;
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::*;
@@ -928,6 +1023,53 @@ fn source_id_parse_roundtrip_and_unknown() {
     }
     assert_eq!(SourceId::parse("nonexistent_src"), None, "未知源 → None（消费端跳过不 panic）");
     assert_eq!(SourceId::parse(""), None);
+}
+
+#[test]
+fn run_status_str_and_parse() {
+    assert_eq!(RunStatus::Pending.as_str(), "pending");
+    assert_eq!(RunStatus::Running.as_str(), "running");
+    assert_eq!(RunStatus::Done.as_str(), "done");
+    assert_eq!(RunStatus::Failed.as_str(), "failed");
+    for s in ["pending", "running", "done", "failed"] {
+        assert_eq!(RunStatus::parse(s).unwrap().as_str(), s, "{s} 应往返一致");
+    }
+    assert_eq!(RunStatus::parse("unknown"), None, "未知状态 → None（消费端跳过不 panic）");
+    // serde snake_case：DB status 文本 ↔ 枚举（ADR 08-backtest §7 status 口径）
+    assert_eq!(serde_json::from_str::<RunStatus>("\"failed\"").unwrap(), RunStatus::Failed);
+    assert_eq!(serde_json::to_string(&RunStatus::Pending).unwrap(), "\"pending\"");
+}
+
+#[test]
+fn backtest_run_types_serde_roundtrip() {
+    let run = NewRun {
+        code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
+        params: serde_json::json!({"fast": 5, "slow": 20}),
+        fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
+        group_id: Some("g1".into()),
+    };
+    let j = serde_json::to_string(&run).unwrap();
+    let back: NewRun = serde_json::from_str(&j).unwrap();
+    assert_eq!(run, back);
+
+    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
+    let view = RunView {
+        id: 1, code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
+        params: serde_json::json!({}), fee: serde_json::json!({}),
+        status: RunStatus::Done, progress: 100, current_ts: Some(t0),
+        created_at: t0, finished_at: Some(t0), error: None, group_id: None,
+        result: Some(RunResult { net_value: serde_json::json!([t0, 1.0]),
+            trades: serde_json::json!([]), metrics: serde_json::json!({"net_profit": 1.0}) }),
+    };
+    let vj = serde_json::to_string(&view).unwrap();
+    let vback: RunView = serde_json::from_str(&vj).unwrap();
+    assert_eq!(view, vback);
+}
+
+#[test]
+fn run_filter_defaults() {
+    let f = RunFilter::default();
+    assert!(f.status.is_none() && f.group_id.is_none(), "全 None = 全量");
 }
 ```
 
