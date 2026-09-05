@@ -67,12 +67,16 @@ export function ResultOverview({
         </g>
         <polygon points={areaBelow(eqPoints, H - PAD)} fill="#38bdf8" opacity="0.08" />
         <polyline points={lineFrom(eqPoints)} fill="none" stroke="#38bdf8" strokeWidth="2" />
-        {/* 回撤区（资金占比 1/4）：回撤 >0 处着色 */}
+        {/* 回撤区（资金占比 1/4）：回撤 >0 处着色
+            宽度按点间距推导，减去固定小间隙；对任意大 n 保证 width 恒正（负值会导致
+            React dev console.error 及 rect 渲染异常）。n=1 时按整段 plot 宽计算，避免除零。 */}
         {drawdown.map((d, i) => {
           if (d[1] <= 0) return null;
           const x = eqPoints[i]!.x;
-          const w = eqPoints.length > 1 ? W - PAD * 2 : 0.5;
-          return <rect key={`dd-${i}`} x={x} y={H - depth} width={(w / Math.max(eqPoints.length - 1, 1)) - 1} height={depth} fill="#ff5c6c" opacity={Math.min(0.2, d[1] / (ddMax || 1))} />;
+          const plotW = W - PAD * 2;
+          const step = eqPoints.length > 1 ? plotW / (eqPoints.length - 1) : plotW;
+          const rectW = Math.max(0.5, step - 1); // 最小可见宽 0.5，无负宽、无除零
+          return <rect key={`dd-${i}`} x={x} y={H - depth} width={rectW} height={depth} fill="#ff5c6c" opacity={Math.min(0.2, d[1] / (ddMax || 1))} />;
         })}
       </svg>
       <div className="absolute left-3 top-2">

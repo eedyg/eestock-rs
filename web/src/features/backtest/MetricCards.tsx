@@ -1,5 +1,5 @@
 import type { Metrics } from '@/api/types';
-import { deltaClass, fmtHoldBars, fmtMoney, fmtPct, fmtRatio } from './format';
+import { deltaClass, formatAvgHold, fmtMoney, fmtPct, fmtRatio } from './format';
 
 interface MetricCardDef {
   key: keyof Metrics;
@@ -16,7 +16,7 @@ const METRIC_DEFS: MetricCardDef[] = [
   { key: 'profit_factor', label: '盈亏比', deco: (m) => fmtRatio(m.profit_factor) },
   { key: 'annualized_return', label: '年化', deco: (m) => fmtPct(m.annualized_return), cls: (m) => deltaClass(m.annualized_return) },
   { key: 'trade_count', label: '总交易数', deco: (m) => String(m.trade_count) },
-  { key: 'avg_hold_bars', label: '平均持仓', deco: (m) => fmtHoldBars(m.avg_hold_bars) },
+  { key: 'avg_hold_bars', label: '平均持仓', deco: (m) => formatAvgHold(m.avg_hold_bars) },
 ];
 
 /**

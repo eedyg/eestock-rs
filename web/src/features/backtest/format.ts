@@ -24,6 +24,43 @@ export function fmtHoldBars(bars: number | undefined): string {
   return `${bars}bar`;
 }
 
+/** 后端口径周期代码 → 一天的换算系数（bar 数 × factor = 天；M1=1/1440…）。 */
+const PERIOD_DAY_FACTOR: Record<string, number> = {
+  M1: 1 / (24 * 60),
+  M5: 5 / (24 * 60),
+  M15: 15 / (24 * 60),
+  D1: 1,
+};
+
+/** 数字取整到 1 位小数，整数去掉尾部 .0（如 17.0 → "17"，3.2 → "3.2"）。 */
+function round1(x: number): string {
+  const s = x.toFixed(1);
+  return s.endsWith('.0') ? s.slice(0, -2) : s;
+}
+
+/**
+ * 平均持仓时长（bar 数）→ 取整展示（修复#2：不再显示引擎原始小数，如 16.99…）。
+ * 传入 period（M1/M5/M15/D1）时按 ADR 口径换算为天/时/分；缺省则保留 bar 数（同样取整到 1 位）。
+ */
+export function formatAvgHold(bars: number | null | undefined, period?: string): string {
+  if (bars == null || Number.isNaN(bars)) return '—';
+  if (bars <= 0) return '0';
+
+  if (period) {
+    const factor = PERIOD_DAY_FACTOR[period];
+    if (factor != null) {
+      const days = bars * factor;
+      if (days >= 1) return `${round1(days)}天`;
+      const hours = days * 24;
+      if (hours >= 1) return `${round1(hours)}时`;
+      return `${round1(days * 24 * 60)}分`;
+    }
+  }
+
+  // 无 period / 未识别周期：保留 bar 数（取整到 1 位）。
+  return `${round1(bars)}bar`;
+}
+
 /** Unix 秒 → CST "MM-DD HH:mm" 展示（固定 +8，与浏览器时区无关）。 */
 export function fmtTs(ts: number | undefined | null): string {
   if (ts == null || Number.isNaN(ts)) return '—';
