@@ -4,6 +4,13 @@ services:
     image: timescale/timescaledb:2.29.2-pg16  # pin 版本（ADR：latest 滚动 tag 导致压缩语法漂移事故 2026-09-03）
     container_name: eestock-timescaledb
     restart: unless-stopped
+    # EV-1：TimescaleDB 并行查询需共享内存；不设则容器默认 /dev/shm=64MB → 并发 kline 间歇 500
+    #（"No space left on device"）。设 2g（compose v1 语法 shm_size: "2g"）；数据在 ./data/timescaledb 卷，重建安全。
+    shm_size: "2g"
+    # EV-1（续）：并发 kline 仍 500（out of shared memory）——根因是 PG 并行 worker 的 per-query
+    # DSA 共享内存预算在 kline 并发下耗尽（kline 为 (code,ts) 索引点查，并行无益且正是 DSA 主体）。
+    # 禁用并行 worker 消除 DSA 分配；dynamic_shared_memory_type=mmap（文件后备）兜底。
+    command: ["postgres", "-c", "max_parallel_workers_per_gather=0", "-c", "dynamic_shared_memory_type=mmap", "-c", "max_locks_per_transaction=512"]
     ports:
       # 宿主机 5433，避免与本机既有 PostgreSQL(5432) 冲突
       - "5433:5432"

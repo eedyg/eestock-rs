@@ -151,6 +151,8 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
       const cells = grid.querySelectorAll('[data-grid-cell]');
       expect(cells).toHaveLength(4);
     });
+    // R1：2×2 → grid-rows-2（两行等高均分网格高度，末行不坍缩）
+    expect(grid.classList.contains('grid-rows-2')).toBe(true);
     expect(within(grid as HTMLElement).getByText('港股通医药')).toBeInTheDocument();
     // 主图/副图被宫格替代
     expect(document.querySelector('[data-region="main-chart"]')).toBeNull();
@@ -168,6 +170,8 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     await waitFor(() => {
       expect(grid.querySelectorAll('[data-grid-cell]')).toHaveLength(6);
     });
+    // R1：2×3 → grid-rows-3（三行等高均分网格高度，末行不坍缩）
+    expect(grid.classList.contains('grid-rows-3')).toBe(true);
   });
 
   it('周期切换触发新周期数据加载', async () => {

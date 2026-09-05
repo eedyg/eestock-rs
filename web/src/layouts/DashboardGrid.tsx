@@ -70,8 +70,14 @@ export function DashboardGrid(props: DashboardGridProps) {
             </div>
           </>
         ) : (
-          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图 */
-          <div data-region="grid-view" className="grid flex-1 grid-cols-2">
+          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图
+             R1：显式 grid-rows（均分网格高度），避免 auto 行按内容分高导致 chart 容器 flex-1
+             在 auto 行下解析为 0 高（末行坍缩）；grid-view 自身 min-h-0，保证作为 flex 子项
+             可收缩到可用高度（否则 min-height:auto 会按内容 3×322px 撑高，2×3 纵向溢出 1042>720） */
+          <div
+            data-region="grid-view"
+            className={`grid min-h-0 flex-1 grid-cols-2 ${props.gridMode === 'grid2x3' ? 'grid-rows-3' : 'grid-rows-2'}`}
+          >
             {/* <GridCell/> ×4 或 ×6（grid2x3 时 grid-rows-3） */}
           </div>
         )}
