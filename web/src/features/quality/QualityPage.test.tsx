@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -11,6 +11,20 @@ import type {
 } from '@/api/types';
 import { stubApi } from '@/test/apiStub';
 import { QualityPage } from './QualityPage';
+
+// 固定系统时钟：store 默认范围由 defaultRange(now) 推导（from = now - 6天），
+// 此前用真实 new Date()，环境日历滚动后 from 漂移导致本文件 flaky。
+// 此处仅伪造 Date（保留真实定时器，findBy*/waitFor 依赖 setTimeout 不受影响），
+// 使 defaultRange 得到固定 from/to，与下方硬编码断言及 mock 数据一致。
+const NOW = new Date('2026-09-04T05:42:00Z'); // 2026-09-04 13:42 CST
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const DIVERGENCE: QualityDivergenceResponse = {
   code: '518880', from: '2026-08-29', to: '2026-09-04', threshold_pct: 0.5,
