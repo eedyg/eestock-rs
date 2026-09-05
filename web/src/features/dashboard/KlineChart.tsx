@@ -4,6 +4,7 @@ import { defaultPageSizeForPeriod, type KlineDataFeed } from './feed';
 import type { Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
+import { loadBarsForKc } from './klineDataLoader';
 
 export interface KlineChartProps {
   feed: KlineDataFeed;
@@ -97,13 +98,18 @@ export function KlineChart(props: KlineChartProps) {
 
     chart.setDataLoader({
       getBars: async ({ type, callback }) => {
+        // 修复「循环/重复 bar」：forward 只回调比已渲染最左 ts 更早的增量（loadBarsForKc 内部处理），
+        // 不再把整段 feed.bars 回传；否则 klinecharts 引擎 data.concat(_dataList) 不查重会平方级叠加重复。
         try {
-          if (type === 'forward') await feed.loadBefore();
-          else await feed.loadInitial();
-        } finally {
-          callback(feed.bars.map(toKcData), { forward: feed.hasMore, backward: false });
-          // 横向铺满：仅在初始 load 后固定 barSpace（向前分页不再变窄，窗口保持 ~2 交易日）
-          if (type !== 'forward') fitBarSpace(chart);
+          const { bars, forward } = await loadBarsForKc(
+            feed,
+            type === 'forward' ? 'forward' : 'init',
+            type === 'forward' ? null : () => fitBarSpace(chart),
+          );
+          callback(bars, { forward, backward: false });
+        } catch {
+          // 兜底：即使加载异常也保证 callback（避免 klinecharts _loading 卡死）；回空数组不会叠加重复。
+          callback([], { forward: feed.hasMore, backward: false });
         }
       },
       subscribeBar: ({ callback }) => {
