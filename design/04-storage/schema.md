@@ -428,6 +428,32 @@ ALTER TABLE backtest_runs ALTER COLUMN date_to SET NOT NULL;
   mark_failed 置 failed/error；list_runs 按 status/group filter；get_run 联表；delete_run 删 run（级联删结果）返回是否删行）。
   B1 增补（ADR-007 手写例外）：`NewRun`/`RunView` 增 `initial_capital/date_from/date_to`；`create_run` 落这三列；`delete_run(&self, id) -> Result<bool>`。
 
+## 4.3.6 看板收藏（Wave 3 页面①，0013；用户定稿 2026-09-05）
+
+**上下文**：看板收藏（置顶+排序）为应用面功能，仅影响 `/api/symbols` 的 symbol-list 展示。
+一键收藏 = 自动置顶（`star` → sort_order=max+1）；收藏区可拖拽排序（`reorder` → sort_order=索引）。
+`favorite_symbols` 为**应用面自有表**（与 circuit_reset_requests/alert_events/backtest 同口径：数据面不读写，
+不违 ADR-017 只读库铁律）。code 为主外键 → `symbols(code)`（标的不存在则收藏无意义），ON DELETE CASCADE
+（仅停用 symbols 不物理删除时不受影响；DBA 手工物理删除时级联清理收藏）。
+
+``` {.sql file=migrations/0013_favorite_symbols.sql}
+-- 0013_favorite_symbols.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- Wave 3 页面①：看板收藏（置顶+排序）。应用面自有表（数据面不读写，ADR-017 不违）。
+-- code 须存在 symbols（FK）；一键收藏=自动置顶（sort_order=max+1）；拖拽排序=sort_order=索引。
+CREATE TABLE favorite_symbols (
+    code       text PRIMARY KEY REFERENCES symbols(code) ON DELETE CASCADE,
+    sort_order integer NOT NULL
+);
+```
+
+**storage 模块 `crates/storage/src/favorite.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::FavoriteStore`（PgPool）。字段注：`sort_order` 起点 1（首个收藏=1）。
+- `list_favorites`：全量收藏（code + sort_order，按 sort_order 升序）。
+- `star`：INSERT ... SELECT COALESCE(MAX(sort_order),0)+1；已存在 → ON CONFLICT DO NOTHING（幂等 Ok）。
+- `unstar`：DELETE（不存在 → rows_affected=0，仍 Ok）。
+- `reorder`：批量 UPDATE sort_order = 索引（array_position 逐行）；入参须为已收藏 code（web 层校验 400）。
+- `favorite_map`：`SELECT code, sort_order FROM favorite_symbols` → `HashMap<code, sort_order>`（/api/symbols 展示用）。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

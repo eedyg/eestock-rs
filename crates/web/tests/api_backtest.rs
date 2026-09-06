@@ -67,6 +67,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         raw_purge: storage::system::raw_purge(pool.clone()),
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

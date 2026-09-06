@@ -62,6 +62,9 @@ async fn main() -> anyhow::Result<()> {
         backtest_ws.clone(),
         application::service::DEFAULT_MAX_CONCURRENT,
     ));
+    // Wave 3 页面①：看板收藏（FavoriteStore，favorite_symbols 表 0013）
+    let favorites: Arc<dyn domain::ports::FavoriteStore> =
+        Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -91,6 +94,8 @@ async fn main() -> anyhow::Result<()> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（FavoriteStore）
+        favorites,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,

@@ -13,7 +13,7 @@ pub mod spa;
 pub mod state;
 pub mod ws;
 
-use axum::{routing::{get, patch, post}, Router};
+use axum::{routing::{get, patch, post, put}, Router};
 use std::sync::Arc;
 
 /// 路由装配（DI 入口；state 由 app crate 注入）。
@@ -24,6 +24,9 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         // Phase C：symbols 写端点（注册 POST / 编辑 PATCH；无物理删除，03-symbols §4）
         .route("/api/symbols", get(rest::get_symbols).post(rest::register_symbol))
         .route("/api/symbols/{code}", patch(rest::update_symbol))
+        // 看板收藏（Wave 3 页面①）：一键收藏 POST（幂等）/ 取消 DELETE（幂等）/ 拖拽排序 PUT
+        .route("/api/symbols/{code}/favorite", post(rest::star_favorite).delete(rest::unstar_favorite))
+        .route("/api/symbols/favorites/order", put(rest::reorder_favorites))
         .route("/api/sources/health", get(rest::get_sources_health))
         // Phase C：熔断手动复位（DB 控制通道，ADR-017）
         .route("/api/sources/{id}/reset", post(rest::reset_source))

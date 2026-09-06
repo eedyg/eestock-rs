@@ -24,4 +24,7 @@ pub mod system;
 // backtest：回测端口实现加法扩展（Wave 3 Phase 3a：BacktestBarRead + BacktestRunStore；
 // 代码块在 design/04-storage/schema.md §4.3.5。backtest.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod backtest;
+// favorite：看板收藏端口实现加法扩展（Wave 3 页面①：FavoriteStore；
+// 代码块在 design/04-storage/schema.md §4.3.6。favorite.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod favorite;
 // ~/~ end

@@ -55,6 +55,10 @@
 | `POST /api/symbols`（Phase C §8） | body `{code, name?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
 | `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
 | `GET /api/symbols?with_stats=1`（Phase C §8） | `with_stats=1` 追加每标的当日统计 | 列表项追加 `today_bars`（当日 kline_raw 行数，Asia/Shanghai 日界；无 bar → 0） | `kline_raw` 当日窗口 GROUP BY | 500 |
+| `GET /api/symbols`（看板收藏，Wave 3 页面①） | — | 列表项追加 `favorite: bool`、`favorite_sort: Option<i32>`；**收藏优先**（按 favorite_sort 升序，非收藏按原顺序在后）（注：仅影响 symbol-list 展示，不改变行情数据） | `symbols` + `kline_merged`（既有）+ `favorite_symbols`（0013，经 FavoriteStore.favorite_map 注入） | 500 |
+| `POST /api/symbols/{code}/favorite`（看板收藏，Wave 3 页面①） | 路径 code | 200 幂等：已收藏再次收藏无副作用；未收藏则收藏并**自动置顶**（sort_order=max+1） | `favorite_symbols`（0013；应用面自有表，写不违 ADR-017） | 404：code 未注册；500 |
+| `DELETE /api/symbols/{code}/favorite`（看板收藏，Wave 3 页面①） | 路径 code | 200 幂等：已收藏取消；未收藏（或不存在收藏）同样 200 无副作用 | 同上 | 404：code 未注册；500 |
+| `PUT /api/symbols/favorites/order`（看板收藏，Wave 3 页面①） | body `{codes:[...]}` | 200：批量重排（sort_order=索引）；codes 顺序即收藏区展示顺序（可子集） | 同上 | 400：codes 含非已收藏 code；500 |
 | `POST /api/sources/{id}/reset`（Phase C §8） | 路径 id = SourceId 文本（未知 id 也接受：应用面不知编译期源清单，数据面消费端跳过并告警） | 202 `{"status":"accepted"}`（**异步**：写 `circuit_reset_requests`，数据面 ResetWatcher ≤5s 内消费复位并发出 `manual_reset` 事件） | `circuit_reset_requests` 表（0007） | 400：id 空；500 |
 | `GET /api/alerts`（Wave 2 Phase B） | `level=info\|warning\|critical`、`from`/`to`（RFC3339，last_fired_at 口径）、`source`、`limit`（默认 200，封顶 1000） | `[AlertEventDto]`（last_fired_at 降序；聚合防刷屏：同 rule+source 未恢复聚合一条，fire_count+last_fired_at） | `alert_events`（0009，应用面自有表） | 400：非法 level/from/to；500 |
 | `POST /api/alerts/{id}/ack`（Wave 2 Phase B） | — | 200 `AlertEventDto`（status=acked + acked_at 持久化，刷新不丢） | 同上 | 404：未知 id 或非 triggered（仅未确认可确认）；500 |
@@ -1795,7 +1799,7 @@ pub mod spa;
 pub mod state;
 pub mod ws;
 
-use axum::{routing::{get, patch, post}, Router};
+use axum::{routing::{get, patch, post, put}, Router};
 use std::sync::Arc;
 
 /// 路由装配（DI 入口；state 由 app crate 注入）。
@@ -1806,6 +1810,9 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         // Phase C：symbols 写端点（注册 POST / 编辑 PATCH；无物理删除，03-symbols §4）
         .route("/api/symbols", get(rest::get_symbols).post(rest::register_symbol))
         .route("/api/symbols/{code}", patch(rest::update_symbol))
+        // 看板收藏（Wave 3 页面①）：一键收藏 POST（幂等）/ 取消 DELETE（幂等）/ 拖拽排序 PUT
+        .route("/api/symbols/{code}/favorite", post(rest::star_favorite).delete(rest::unstar_favorite))
+        .route("/api/symbols/favorites/order", put(rest::reorder_favorites))
         .route("/api/sources/health", get(rest::get_sources_health))
         // Phase C：熔断手动复位（DB 控制通道，ADR-017）
         .route("/api/sources/{id}/reset", post(rest::reset_source))
@@ -1924,6 +1931,10 @@ pub struct SymbolDto {
     /// 仅 with_stats=1 时填充：当日（Asia/Shanghai 日界）kline_raw 行数（无 bar → 0）。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub today_bars: Option<i64>,
+    /// 是否收藏（Word 3 页面① 看板收藏；由 get_symbols handler 经 FavoriteStore.favorite_map 注入）。
+    pub favorite: bool,
+    /// 收藏排序（置顶/拖拽后 sort_order；非收藏 → None）。
+    pub favorite_sort: Option<i32>,
 }
 
 impl From<&SymbolLatestView> for SymbolDto {
@@ -1937,8 +1948,17 @@ impl From<&SymbolLatestView> for SymbolDto {
         SymbolDto {
             code: r.code.clone(), name: r.name.clone(), interval_secs: r.interval_secs,
             settlement: r.settlement.clone(), enabled: r.enabled, latest, today_bars: None,
+            favorite: false, favorite_sort: None,
         }
     }
+}
+
+// ── Wave 3 页面① 看板收藏 DTO（favorite_symbols 表，0013）──
+
+/// PUT /api/symbols/favorites/order 请求体：codes 顺序即收藏区展示顺序（可子集，须均为已收藏 code）。
+#[derive(Debug, Deserialize)]
+pub struct ReorderFavoritesReq {
+    pub codes: Vec<String>,
 }
 
 /// GET /api/sources/health 查询参数。
@@ -2357,6 +2377,35 @@ mod tests {
         assert!(v.get("today_bars").is_none(), "非 with_stats 请求不出 today_bars 键");
     }
 
+    // ── Wave 3 页面① 看板收藏 DTO（favorite/favorite_sort 恒输出；ReorderFavoritesReq 反序列化）──
+
+    #[test]
+    fn symbol_dto_favorite_fields_always_serialize() {
+        // 非收藏 → favorite=false, favorite_sort=null（Always 输出，前端置顶 UI 依据）
+        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
+            settlement: "T1".into(), enabled: true,
+            last_ts: None, last_close: None, prev_close: None };
+        let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
+        assert_eq!(v["favorite"], false);
+        assert!(v["favorite_sort"].is_null());
+        // 收藏标注（handler 注入）：favorite=true, favorite_sort=1
+        let mut dto = SymbolDto::from(&row);
+        dto.favorite = true;
+        dto.favorite_sort = Some(1);
+        let v2 = serde_json::to_value(&dto).unwrap();
+        assert_eq!(v2["favorite"], true);
+        assert_eq!(v2["favorite_sort"], 1);
+    }
+
+    #[test]
+    fn reorder_favorites_req_deserialize() {
+        let req: ReorderFavoritesReq = serde_json::from_str(r#"{"codes":["600519","518880"]}"#).unwrap();
+        assert_eq!(req.codes, vec!["600519", "518880"]);
+        // 空数组可接受（无收藏 → 空重排，无需收藏 400）
+        let empty: ReorderFavoritesReq = serde_json::from_str(r#"{"codes":[]}"#).unwrap();
+        assert!(empty.codes.is_empty());
+    }
+
     // ── Phase C：symbols 写端点校验（03-symbols §3 口径 + schema CHECK 对齐）──
 
     #[test]
@@ -2518,6 +2567,8 @@ pub struct AppState {
     pub backtest: Arc<application::service::BacktestService>,
     /// 回测 WS 进度分发 sink（Wave 3 Phase 3c：web 实现 domain::ports::BacktestProgressSink，§1.5）。
     pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
+    /// 看板收藏端口（Wave 3 页面①：FavoriteStore，favorite_symbols 表，0013；POST/DELETE/PUT 收藏端点 + /api/symbols 注入）。
+    pub favorites: Arc<dyn domain::ports::FavoriteStore>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -2593,7 +2644,18 @@ pub async fn get_symbols(State(st): State<Arc<AppState>>,
         Ok(r) => r,
         Err(e) => return internal(e),
     };
+    // 看板收藏（Wave 3 页面①）：经 FavoriteStore.favorite_map 注入 code→sort_order（非收藏不在 map）
+    let fav_map = match st.favorites.favorite_map().await {
+        Ok(m) => m,
+        Err(e) => return internal(e),
+    };
     let mut list: Vec<SymbolDto> = rows.iter().map(SymbolDto::from).collect();
+    for d in &mut list {
+        if let Some(sort) = fav_map.get(&d.code).copied() {
+            d.favorite = true;
+            d.favorite_sort = Some(sort);
+        }
+    }
     if with_stats {
         match st.symbol_stats.today_stats().await {
             Ok(stats) => {
@@ -2606,6 +2668,14 @@ pub async fn get_symbols(State(st): State<Arc<AppState>>,
             Err(e) => return internal(e),
         }
     }
+    // 收藏优先：按 favorite_sort 升序；非收藏保持原顺序（symbols_with_latest 按 code 序）。
+    // sort_by 为稳定排序（equal 不重排），锁住非收藏原序。
+    list.sort_by(|a, b| match (a.favorite_sort, b.favorite_sort) {
+        (Some(ao), Some(bo)) => ao.cmp(&bo),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => std::cmp::Ordering::Equal,
+    });
     Json(list).into_response()
 }
 
@@ -2617,10 +2687,19 @@ fn field_err(e: FieldError) -> Response {
     }
 }
 
-/// 写后回读（经 merge 视图返回含 latest 的完整行）；写成功但回读缺失 → 500（不自洽）。
+/// 写后回读（经 merge 视图返回含 latest + 收藏标注的完整行）；写成功但回读缺失 → 500（不自洽）。
 async fn read_symbol(st: &AppState, code: &str) -> anyhow::Result<Option<SymbolDto>> {
+    let fav_map = st.favorites.favorite_map().await?;
     Ok(st.kline.symbols_with_latest().await?.iter()
-        .find(|r| r.code == code).map(SymbolDto::from))
+        .find(|r| r.code == code)
+        .map(|r| {
+            let mut d = SymbolDto::from(r);
+            if let Some(sort) = fav_map.get(&r.code).copied() {
+                d.favorite = true;
+                d.favorite_sort = Some(sort);
+            }
+            d
+        }))
 }
 
 /// POST /api/symbols —— 注册标的（校验 03-symbols §3；写 symbols 表即控制通道，热生效）。
@@ -2669,6 +2748,70 @@ pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<Str
             Err(e) => internal(e),
         },
         Ok(false) => err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => internal(e),
+    }
+}
+
+// ── Wave 3 页面① 看板收藏端点（favorite_symbols 表，0013；应用面自有表，写不违 ADR-017）──
+
+/// 符号存在性探测（不存在 → 404）。复用 PgSymbolAdmin::update 的「无字段 no-op 探测」：
+/// `UPDATE symbols SET name=COALESCE(NULL,name) ... WHERE code=$1` → rows_affected>0 表示存在。
+/// 不新增 FavoriteStore 端口方法（契约最小集），符号存在性经既有 SymbolAdminWrite::update 探测。
+#[allow(clippy::result_large_err)]
+async fn symbol_exists(st: &AppState, code: &str) -> Result<bool, Response> {
+    match st.symbols_admin.update(code, &SymbolPatch::default()).await {
+        Ok(exists) => Ok(exists),
+        Err(e) => Err(internal(e)),
+    }
+}
+
+/// POST /api/symbols/{code}/favorite —— 一键收藏（自动置顶 sort_order=max+1）。
+/// 幂等语义（父级批准）：已收藏再次收藏 → 200 无副作用（不做 409）。
+pub async fn star_favorite(State(st): State<Arc<AppState>>, Path(code): Path<String>) -> Response {
+    if code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 空"); }
+    match symbol_exists(&st, &code).await {
+        Ok(true) => {}
+        Ok(false) => return err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => return e,
+    }
+    match st.favorites.star(&code).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "code": &code, "favorite": true }))).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// DELETE /api/symbols/{code}/favorite —— 取消收藏（不存在收藏 → 200 幂等）。
+pub async fn unstar_favorite(State(st): State<Arc<AppState>>, Path(code): Path<String>) -> Response {
+    if code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 空"); }
+    match symbol_exists(&st, &code).await {
+        Ok(true) => {}
+        Ok(false) => return err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => return e,
+    }
+    match st.favorites.unstar(&code).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "code": &code, "favorite": false }))).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/symbols/favorites/order —— 批量重排（sort_order=索引；codes 顺序即展示顺序，可子集）。
+/// 校验：codes 所有 code 均须已收藏（favorite_map 预检），否则 400。
+pub async fn reorder_favorites(State(st): State<Arc<AppState>>,
+                               Json(req): Json<ReorderFavoritesReq>) -> Response {
+    let fav_map = match st.favorites.favorite_map().await {
+        Ok(m) => m,
+        Err(e) => return internal(e),
+    };
+    for c in &req.codes {
+        if !fav_map.contains_key(c) {
+            return err(StatusCode::BAD_REQUEST, &format!("code {c} 未收藏"));
+        }
+    }
+    match st.favorites.reorder(&req.codes).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "codes": req.codes, "reordered": true }))).into_response(),
         Err(e) => internal(e),
     }
 }
@@ -3395,6 +3538,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -3617,6 +3762,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -3811,6 +3958,9 @@ async fn main() -> anyhow::Result<()> {
         backtest_ws.clone(),
         application::service::DEFAULT_MAX_CONCURRENT,
     ));
+    // Wave 3 页面①：看板收藏（FavoriteStore，favorite_symbols 表 0013）
+    let favorites: Arc<dyn domain::ports::FavoriteStore> =
+        Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -3840,6 +3990,8 @@ async fn main() -> anyhow::Result<()> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（FavoriteStore）
+        favorites,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -4310,6 +4462,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -4525,6 +4679,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
         backtest,
         backtest_ws,
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

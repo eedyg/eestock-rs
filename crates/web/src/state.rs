@@ -29,6 +29,8 @@ pub struct AppState {
     pub backtest: Arc<application::service::BacktestService>,
     /// 回测 WS 进度分发 sink（Wave 3 Phase 3c：web 实现 domain::ports::BacktestProgressSink，§1.5）。
     pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
+    /// 看板收藏端口（Wave 3 页面①：FavoriteStore，favorite_symbols 表，0013；POST/DELETE/PUT 收藏端点 + /api/symbols 注入）。
+    pub favorites: Arc<dyn domain::ports::FavoriteStore>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

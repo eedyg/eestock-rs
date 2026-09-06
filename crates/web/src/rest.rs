@@ -65,7 +65,18 @@ pub async fn get_symbols(State(st): State<Arc<AppState>>,
         Ok(r) => r,
         Err(e) => return internal(e),
     };
+    // 看板收藏（Wave 3 页面①）：经 FavoriteStore.favorite_map 注入 code→sort_order（非收藏不在 map）
+    let fav_map = match st.favorites.favorite_map().await {
+        Ok(m) => m,
+        Err(e) => return internal(e),
+    };
     let mut list: Vec<SymbolDto> = rows.iter().map(SymbolDto::from).collect();
+    for d in &mut list {
+        if let Some(sort) = fav_map.get(&d.code).copied() {
+            d.favorite = true;
+            d.favorite_sort = Some(sort);
+        }
+    }
     if with_stats {
         match st.symbol_stats.today_stats().await {
             Ok(stats) => {
@@ -78,6 +89,14 @@ pub async fn get_symbols(State(st): State<Arc<AppState>>,
             Err(e) => return internal(e),
         }
     }
+    // 收藏优先：按 favorite_sort 升序；非收藏保持原顺序（symbols_with_latest 按 code 序）。
+    // sort_by 为稳定排序（equal 不重排），锁住非收藏原序。
+    list.sort_by(|a, b| match (a.favorite_sort, b.favorite_sort) {
+        (Some(ao), Some(bo)) => ao.cmp(&bo),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => std::cmp::Ordering::Equal,
+    });
     Json(list).into_response()
 }
 
@@ -89,10 +108,19 @@ fn field_err(e: FieldError) -> Response {
     }
 }
 
-/// 写后回读（经 merge 视图返回含 latest 的完整行）；写成功但回读缺失 → 500（不自洽）。
+/// 写后回读（经 merge 视图返回含 latest + 收藏标注的完整行）；写成功但回读缺失 → 500（不自洽）。
 async fn read_symbol(st: &AppState, code: &str) -> anyhow::Result<Option<SymbolDto>> {
+    let fav_map = st.favorites.favorite_map().await?;
     Ok(st.kline.symbols_with_latest().await?.iter()
-        .find(|r| r.code == code).map(SymbolDto::from))
+        .find(|r| r.code == code)
+        .map(|r| {
+            let mut d = SymbolDto::from(r);
+            if let Some(sort) = fav_map.get(&r.code).copied() {
+                d.favorite = true;
+                d.favorite_sort = Some(sort);
+            }
+            d
+        }))
 }
 
 /// POST /api/symbols —— 注册标的（校验 03-symbols §3；写 symbols 表即控制通道，热生效）。
@@ -141,6 +169,70 @@ pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<Str
             Err(e) => internal(e),
         },
         Ok(false) => err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => internal(e),
+    }
+}
+
+// ── Wave 3 页面① 看板收藏端点（favorite_symbols 表，0013；应用面自有表，写不违 ADR-017）──
+
+/// 符号存在性探测（不存在 → 404）。复用 PgSymbolAdmin::update 的「无字段 no-op 探测」：
+/// `UPDATE symbols SET name=COALESCE(NULL,name) ... WHERE code=$1` → rows_affected>0 表示存在。
+/// 不新增 FavoriteStore 端口方法（契约最小集），符号存在性经既有 SymbolAdminWrite::update 探测。
+#[allow(clippy::result_large_err)]
+async fn symbol_exists(st: &AppState, code: &str) -> Result<bool, Response> {
+    match st.symbols_admin.update(code, &SymbolPatch::default()).await {
+        Ok(exists) => Ok(exists),
+        Err(e) => Err(internal(e)),
+    }
+}
+
+/// POST /api/symbols/{code}/favorite —— 一键收藏（自动置顶 sort_order=max+1）。
+/// 幂等语义（父级批准）：已收藏再次收藏 → 200 无副作用（不做 409）。
+pub async fn star_favorite(State(st): State<Arc<AppState>>, Path(code): Path<String>) -> Response {
+    if code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 空"); }
+    match symbol_exists(&st, &code).await {
+        Ok(true) => {}
+        Ok(false) => return err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => return e,
+    }
+    match st.favorites.star(&code).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "code": &code, "favorite": true }))).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// DELETE /api/symbols/{code}/favorite —— 取消收藏（不存在收藏 → 200 幂等）。
+pub async fn unstar_favorite(State(st): State<Arc<AppState>>, Path(code): Path<String>) -> Response {
+    if code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 空"); }
+    match symbol_exists(&st, &code).await {
+        Ok(true) => {}
+        Ok(false) => return err(StatusCode::NOT_FOUND, "code 未注册"),
+        Err(e) => return e,
+    }
+    match st.favorites.unstar(&code).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "code": &code, "favorite": false }))).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/symbols/favorites/order —— 批量重排（sort_order=索引；codes 顺序即展示顺序，可子集）。
+/// 校验：codes 所有 code 均须已收藏（favorite_map 预检），否则 400。
+pub async fn reorder_favorites(State(st): State<Arc<AppState>>,
+                               Json(req): Json<ReorderFavoritesReq>) -> Response {
+    let fav_map = match st.favorites.favorite_map().await {
+        Ok(m) => m,
+        Err(e) => return internal(e),
+    };
+    for c in &req.codes {
+        if !fav_map.contains_key(c) {
+            return err(StatusCode::BAD_REQUEST, &format!("code {c} 未收藏"));
+        }
+    }
+    match st.favorites.reorder(&req.codes).await {
+        Ok(()) => (StatusCode::OK,
+            Json(serde_json::json!({ "codes": req.codes, "reordered": true }))).into_response(),
         Err(e) => internal(e),
     }
 }

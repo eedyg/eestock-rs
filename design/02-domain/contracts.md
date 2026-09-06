@@ -822,6 +822,35 @@ pub trait BacktestRunStore: Send + Sync {
 pub trait BacktestProgressSink: Send + Sync {
     async fn send(&self, run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>>) -> anyhow::Result<()>;
 }
+
+// ── Wave 3 页面① 看板收藏（置顶+排序）端口（用户定稿 2026-09-05；favorite_symbols 表，迁移 0013）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web 只依赖端口。
+// 仅影响 /api/symbols 的 symbol-list 展示（应用面自有表，数据面不读写，ADR-017 不违）。
+
+/// 收藏项（favorite_symbols 行：code + sort_order）。sort_order 起点 1（首个收藏=1）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FavoriteItem {
+    pub code: String,
+    pub sort_order: i32,
+}
+
+/// 看板收藏端口（storage 实现；favorite_symbols 表，迁移 0013）。
+/// 一键收藏=自动置顶（star → sort_order=max+1）；已存在幂等（star 再次调用无副作用）。
+/// 取消收藏无行幂等（unstar 未知/已取消 → Ok）；标的不存在由 web 层校验映射 404。
+#[async_trait]
+pub trait FavoriteStore: Send + Sync {
+    /// 全量收藏（code + sort_order，按 sort_order 升序）。
+    async fn list_favorites(&self) -> anyhow::Result<Vec<FavoriteItem>>;
+    /// 收藏（自动置顶：sort_order = max+1；已存在 → 幂等 Ok，不重复插入）。
+    async fn star(&self, code: &str) -> anyhow::Result<()>;
+    /// 取消收藏（不存在 → 幂等 Ok）。
+    async fn unstar(&self, code: &str) -> anyhow::Result<()>;
+    /// 批量重排（sort_order = 索引；入参须为当前已收藏 code 子集，web 层校验 400——
+    /// 经 favorite_map 预检所有 code 均已在收藏集合，再提交事务内重排）。
+    async fn reorder(&self, codes: &[String]) -> anyhow::Result<()>;
+    /// code→sort_order 映射（/api/symbols 展示用：非收藏不在 map）。
+    async fn favorite_map(&self) -> anyhow::Result<std::collections::HashMap<String, i32>>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）

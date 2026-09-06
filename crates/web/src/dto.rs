@@ -86,6 +86,10 @@ pub struct SymbolDto {
     /// 仅 with_stats=1 时填充：当日（Asia/Shanghai 日界）kline_raw 行数（无 bar → 0）。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub today_bars: Option<i64>,
+    /// 是否收藏（Word 3 页面① 看板收藏；由 get_symbols handler 经 FavoriteStore.favorite_map 注入）。
+    pub favorite: bool,
+    /// 收藏排序（置顶/拖拽后 sort_order；非收藏 → None）。
+    pub favorite_sort: Option<i32>,
 }
 
 impl From<&SymbolLatestView> for SymbolDto {
@@ -99,8 +103,17 @@ impl From<&SymbolLatestView> for SymbolDto {
         SymbolDto {
             code: r.code.clone(), name: r.name.clone(), interval_secs: r.interval_secs,
             settlement: r.settlement.clone(), enabled: r.enabled, latest, today_bars: None,
+            favorite: false, favorite_sort: None,
         }
     }
+}
+
+// ── Wave 3 页面① 看板收藏 DTO（favorite_symbols 表，0013）──
+
+/// PUT /api/symbols/favorites/order 请求体：codes 顺序即收藏区展示顺序（可子集，须均为已收藏 code）。
+#[derive(Debug, Deserialize)]
+pub struct ReorderFavoritesReq {
+    pub codes: Vec<String>,
 }
 
 /// GET /api/sources/health 查询参数。
@@ -517,6 +530,35 @@ mod tests {
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert!(v["latest"].is_null());
         assert!(v.get("today_bars").is_none(), "非 with_stats 请求不出 today_bars 键");
+    }
+
+    // ── Wave 3 页面① 看板收藏 DTO（favorite/favorite_sort 恒输出；ReorderFavoritesReq 反序列化）──
+
+    #[test]
+    fn symbol_dto_favorite_fields_always_serialize() {
+        // 非收藏 → favorite=false, favorite_sort=null（Always 输出，前端置顶 UI 依据）
+        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
+            settlement: "T1".into(), enabled: true,
+            last_ts: None, last_close: None, prev_close: None };
+        let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
+        assert_eq!(v["favorite"], false);
+        assert!(v["favorite_sort"].is_null());
+        // 收藏标注（handler 注入）：favorite=true, favorite_sort=1
+        let mut dto = SymbolDto::from(&row);
+        dto.favorite = true;
+        dto.favorite_sort = Some(1);
+        let v2 = serde_json::to_value(&dto).unwrap();
+        assert_eq!(v2["favorite"], true);
+        assert_eq!(v2["favorite_sort"], 1);
+    }
+
+    #[test]
+    fn reorder_favorites_req_deserialize() {
+        let req: ReorderFavoritesReq = serde_json::from_str(r#"{"codes":["600519","518880"]}"#).unwrap();
+        assert_eq!(req.codes, vec!["600519", "518880"]);
+        // 空数组可接受（无收藏 → 空重排，无需收藏 400）
+        let empty: ReorderFavoritesReq = serde_json::from_str(r#"{"codes":[]}"#).unwrap();
+        assert!(empty.codes.is_empty());
     }
 
     // ── Phase C：symbols 写端点校验（03-symbols §3 口径 + schema CHECK 对齐）──
