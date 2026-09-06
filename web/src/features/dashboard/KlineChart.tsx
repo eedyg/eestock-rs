@@ -57,23 +57,28 @@ export interface KlineChartProps {
   onManualZoom(): void;
   /** 可选 overlay（开/平仓价位线 + 区间高亮 + 开/平仓 B/S 标记）；看板不传则默认无。 */
   overlays?: KlineOverlay[];
+  /** MA 窗口（统一配置，主图+宫格共用；默认 [5,10,20]，从 GET /api/config/ma 读） */
+  maWindows?: number[];
 }
 
+/** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
+const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
+
 const INDICATOR_DEFS: Array<{ key: IndicatorName | 'vol'; name: string; calcParams?: number[] }> = [
-  { key: 'ma', name: 'MA', calcParams: [5, 10, 20] }, // 定稿 1b：主图 MA(5/10/20) 默认开
+  { key: 'ma', name: 'MA' }, // 定稿 1b：主图 MA 默认开；calcParams 取 maWindows（统一配置）
   { key: 'vol', name: 'VOL' }, // 副图1 成交量默认开（无开关）
   { key: 'macd', name: 'MACD' },
   { key: 'kdj', name: 'KDJ' },
   { key: 'boll', name: 'BOLL' },
 ];
 
-function syncIndicators(chart: Chart, indicators: Record<IndicatorName, boolean>) {
+function syncIndicators(chart: Chart, indicators: Record<IndicatorName, boolean>, maWindows: number[]) {
   for (const def of INDICATOR_DEFS) {
     const enabled = def.key === 'vol' ? true : indicators[def.key];
     chart.removeIndicator({ name: def.name });
     if (enabled) {
       if (def.key === 'ma') {
-        chart.createIndicator({ name: def.name, calcParams: def.calcParams, paneId: 'candle_pane' }, false);
+        chart.createIndicator({ name: def.name, calcParams: maWindows, paneId: 'candle_pane' }, false);
       } else {
         chart.createIndicator({ name: def.name, calcParams: def.calcParams }, true);
       }
@@ -298,7 +303,7 @@ export function KlineChart(props: KlineChartProps) {
     chart.setSymbol({ ticker: props.code, pricePrecision: 3, volumePrecision: 0 });
     chart.setPeriod(PERIOD_MAP[props.period]);
     applyDarkTerminalStyles(chart);
-    syncIndicators(chart, props.indicators);
+    syncIndicators(chart, props.indicators, props.maWindows ?? DEFAULT_MA_WINDOWS);
 
     // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
     if (props.overlays && props.overlays.length > 0) {
@@ -334,10 +339,10 @@ export function KlineChart(props: KlineChartProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);
 
-  // 指标勾选热切换
+  // 指标勾选/MA 窗口热切换
   useEffect(() => {
-    if (chartRef.current) syncIndicators(chartRef.current, props.indicators);
-  }, [props.indicators]);
+    if (chartRef.current) syncIndicators(chartRef.current, props.indicators, props.maWindows ?? DEFAULT_MA_WINDOWS);
+  }, [props.indicators, props.maWindows]);
 
   // 「回到最新」：followLatest 置 true 时主动滚到最右
   useEffect(() => {

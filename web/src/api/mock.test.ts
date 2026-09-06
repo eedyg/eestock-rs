@@ -326,4 +326,29 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     await expect(api.starSymbol('000000')).rejects.toMatchObject({ status: 404 });
     await expect(api.unstarSymbol('000000')).rejects.toMatchObject({ status: 404 });
   });
+
+  // ── 行情看板 MA 可配置（W2：GET/PUT /api/config/ma；主图+宫格应用，回测弹窗不动）──
+
+  it('getMaConfig 默认 [5,10,20]；saveMaConfig 归一化（去重升序）并持久化', async () => {
+    const api = createMockClient();
+    const cfg = await api.getMaConfig();
+    expect(cfg.windows).toEqual([5, 10, 20]);
+
+    // 归一化：乱序 + 去重 → 升序（count 校验在去重前，故入参 ≤3 条）
+    const saved = await api.saveMaConfig([20, 5, 20]); // 3 条含重复
+    expect(saved.windows).toEqual([5, 20]); // 去重保留首次出现 [20,5]，升序→[5,20]
+    expect((await api.getMaConfig()).windows).toEqual([5, 20]);
+
+    const saved2 = await api.saveMaConfig([7, 50, 20]);
+    expect(saved2.windows).toEqual([7, 20, 50]); // 升序归一
+    expect((await api.getMaConfig()).windows).toEqual([7, 20, 50]);
+  });
+
+  it('saveMaConfig 校验：空/超 3 条/越界 → 400 + 非法值透传', async () => {
+    const api = createMockClient();
+    await expect(api.saveMaConfig([])).rejects.toMatchObject({ status: 400 });
+    await expect(api.saveMaConfig([5, 10, 20, 30])).rejects.toMatchObject({ status: 400 });
+    await expect(api.saveMaConfig([0])).rejects.toMatchObject({ status: 400 });
+    await expect(api.saveMaConfig([501])).rejects.toMatchObject({ status: 400 });
+  });
 });

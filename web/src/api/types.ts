@@ -333,6 +333,11 @@ export interface ResetCircuitsResult {
   requests: number;
 }
 
+/** GET/PUT /api/config/ma 响应/请求体：MA 窗口列表（归一化升序去重，默认 [5,10,20]；主图+宫格应用，回测弹窗不动）。 */
+export interface MaConfigDto {
+  windows: number[];
+}
+
 // ── 页面⑤ 回测工作台（06-web/05-backtest.md L2 + 08-backtest/01-engine-adr.md §7；后端线格式见 07-app-plane/00-web-api.md §1.5）──
 
 export type BacktestStatus = 'pending' | 'running' | 'done' | 'failed';

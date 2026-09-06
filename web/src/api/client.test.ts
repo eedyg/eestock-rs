@@ -344,6 +344,25 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(r.days[0]!.segments[0]).toEqual({ start: '10:41', end: '10:45', count: 5, class: 'source_fault' });
   });
 
+  it('getMaConfig → GET /api/config/ma（MA 窗口列表）', async () => {
+    const f = fetcherReturning({ windows: [5, 10, 20] });
+    const api = createHttpClient('', f);
+    const cfg = await api.getMaConfig();
+    expect(lastCall(f).url).toBe('/api/config/ma');
+    expect(cfg.windows).toEqual([5, 10, 20]);
+  });
+
+  it('saveMaConfig → PUT /api/config/ma（body {windows}）', async () => {
+    const f = fetcherReturning({ windows: [7, 10, 20] });
+    const api = createHttpClient('', f);
+    const cfg = await api.saveMaConfig([7, 10, 20]);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/config/ma');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(String(init.body))).toEqual({ windows: [7, 10, 20] });
+    expect(cfg.windows).toEqual([7, 10, 20]);
+  });
+
   it('getTushareStatus → GET /api/tushare/status（quota_remaining 恒 null）', async () => {
     const body = {
       checkpoints: [

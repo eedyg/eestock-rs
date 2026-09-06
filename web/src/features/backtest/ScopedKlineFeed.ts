@@ -9,6 +9,8 @@ const PERIOD_STEP_MS: Record<Period, number> = {
   '15m': 900_000,
   '1h': 3_600_000,
   '1d': 86_400_000,
+  '1w': 7 * 86_400_000, // 周线步长（约 7 天；回测周期不含 1w，仅类型完整性）
+  '1mo': 30 * 86_400_000, // 月线步长（约 30 天；回测周期不含 1mo，仅类型完整性）
 };
 
 export interface ScopedKlineFeedDeps {

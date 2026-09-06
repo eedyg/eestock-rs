@@ -101,4 +101,30 @@ describe('GridCell（宫格单格：表头 D2 + 布局 R1）', () => {
     expect(cell).not.toBeNull();
     expect(cell).toHaveClass('min-h-0');
   });
+
+  // ── W2：MA 可配置（统一）——GridCell 应用配置窗口 calcParams ──
+  it('默认 maWindows → 图表 MA calcParams=[5,10,20]', () => {
+    renderCell(ENABLED_DATA_PLUS);
+    expect(chartStub.createIndicator).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'MA', calcParams: [5, 10, 20] }),
+      false,
+    );
+  });
+
+  it('传 maWindows=[7,20,60] → 图表 MA calcParams=[7,20,60]', () => {
+    render(
+      <GridCell
+        symbol={ENABLED_DATA_PLUS}
+        period="15m"
+        api={fakeApi()}
+        ws={fakeWs()}
+        onPick={vi.fn()}
+        maWindows={[7, 20, 60]}
+      />,
+    );
+    expect(chartStub.createIndicator).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'MA', calcParams: [7, 20, 60] }),
+      false,
+    );
+  });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DashboardGrid, DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
 import { defaultApi } from '@/api';
 import { defaultWs } from '@/ws';
@@ -33,6 +33,39 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   const [indicators, setIndicators] = useState<Record<IndicatorName, boolean>>({
     ...DASHBOARD_DEFAULTS.indicators,
   });
+
+  // MA 窗口（统一配置，主图+宫格共用）：默认 [5,10,20]，mount 时 GET /api/config/ma 读；保存走乐观更新
+  const [maWindows, setMaWindows] = useState<number[]>(() => [...DASHBOARD_DEFAULTS.maWindows]);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getMaConfig()
+      .then((cfg) => {
+        if (!cancelled) setMaWindows(cfg.windows);
+      })
+      .catch(() => {
+        // 读取失败保持默认 [5,10,20]（不阻塞看板）
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  /** 保存 MA 窗口：乐观更新（先同步 setMaWindows 再 await 接口）→ 成功用后端归一化结果，失败回滚并 rethrow。 */
+  const saveMaWindows = useCallback(
+    async (windows: number[]) => {
+      const prev = maWindows;
+      setMaWindows([...windows]);
+      try {
+        const cfg = await api.saveMaConfig(windows);
+        setMaWindows(cfg.windows);
+      } catch (e) {
+        setMaWindows(prev);
+        throw e;
+      }
+    },
+    [api, maWindows],
+  );
 
   // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅
   const feed = useMemo(
@@ -89,6 +122,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           onGridModeChange={(m) => store.setGridMode(m)}
           followLatest={state.followLatest}
           onBackToLatest={() => store.backToLatest()}
+          maWindows={maWindows}
+          onSaveMaWindows={saveMaWindows}
         />
       </RegionPortal>
 
@@ -103,6 +138,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
                 followLatest={state.followLatest}
                 indicators={indicators}
                 onManualZoom={() => store.noteManualZoom()}
+                maWindows={maWindows}
               />
             ) : (
               <TimeshareChart api={api} ws={ws} code={state.selected} />
@@ -117,6 +153,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
               period={state.period}
               api={api}
               ws={ws}
+              maWindows={maWindows}
               onPick={(code) => {
                 store.selectSymbol(code);
                 store.setGridMode('single');

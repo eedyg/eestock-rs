@@ -11,10 +11,16 @@ export const BARS_PER_TRADING_DAY: Record<Period, number> = {
   '15m': 17,
   '1h': 5,
   '1d': 1,
+  '1w': 1, // 周线：一个单位即一根（周/月不再细分为交易日，按单位计 1 根）
+  '1mo': 1, // 月线：同上
 };
 
-/** 默认视口 = 当日 + 前一交易日（定稿 1d / 补定稿）：2 个交易日的 bar 数，避免裸 500 过度加载/缩成一小截 */
+/** 默认视口 = 当日 + 前一交易日（定稿 1d / 补定稿）：2 个交易日的 bar 数，避免裸 500 过度加载/缩成一小截。
+ *  1w/1mo：周/月一个单位即一根 bar，2×交易日=2 根过疏；给合理初始窗口（周≈30 根≈半年+、月≈24 根≈两年），
+ *  以覆盖足够历史又不致整屏过于稀疏/过度加载。 */
 export function defaultPageSizeForPeriod(period: Period): number {
+  if (period === '1w') return 30; // 周线视口：≈30 周（半年+）
+  if (period === '1mo') return 24; // 月线视口：≈24 月（两年）
   return BARS_PER_TRADING_DAY[period] * 2;
 }
 

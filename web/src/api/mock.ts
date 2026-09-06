@@ -39,6 +39,7 @@ import type {
   Trade,
   TushareStatusResponse,
   BacktestNetValue,
+  MaConfigDto,
 } from './types';
 import { ApiError } from './types';
 
@@ -55,6 +56,8 @@ const PERIOD_MS: Record<Period, number> = {
   '15m': 900_000,
   '1h': 3_600_000,
   '1d': 86_400_000,
+  '1w': 7 * 86_400_000, // 周线步长（约 7 天）
+  '1mo': 30 * 86_400_000, // 月线步长（约 30 天）
 };
 
 const BASE_PRICE: Record<string, number> = {
@@ -90,6 +93,24 @@ function rand01(key: string): number {
 
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;
+}
+
+/** 行情看板 MA 默认窗口（GET /api/config/ma 表空/未初始化时兜底；与后端默认 [5,10,20] 同构） */
+const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
+
+/** MA 窗口校验 + 归一化（与后端 validate_ma_windows 同构：1-3 条、每条 1-500、去重升序）。
+ *  不合规抛 ApiError(400)；归一化结果由 mock 内部状态保存并返回。 */
+function normalizeMaWindows(windows: number[]): number[] {
+  if (windows.length === 0) throw new ApiError(400, 'HTTP 400: MA 至少 1 条');
+  if (windows.length > 3) throw new ApiError(400, 'HTTP 400: MA 最多 3 条');
+  for (const w of windows) {
+    if (!Number.isInteger(w) || w < 1 || w > 500) {
+      throw new ApiError(400, `HTTP 400: MA 窗口须为 1..=500 整数，不合规值：${w}`);
+    }
+  }
+  const seen = new Set<number>();
+  for (const w of windows) if (!seen.has(w)) seen.add(w);
+  return [...seen].sort((a, b) => a - b);
 }
 
 function makeBar(code: string, period: Period, ts: number): Bar {
@@ -418,6 +439,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   /** 看板收藏（Wave 3 页面①）：已收藏 code 的有序列表（favoriteOrder 下标+1 = sort_order；起点 1）。
    *  star=追加（max+1）、unstar=移除、reorder=整序；getSymbols 据其注入 favorite/favorite_sort 并收藏优先。 */
   let favoriteOrder: string[] = [];
+  /** 行情看板 MA 窗口（GET/PUT /api/config/ma mock 内存态；默认 [5,10,20]） */
+  let maWindows: number[] = [...DEFAULT_MA_WINDOWS];
   /** 已收藏 code 的 sort_order 映射（与后端 favorite_map 同构：非收藏不在 map，sort_order 起点 1） */
   const favMap = (): Map<string, number> =>
     new Map(favoriteOrder.map((c, i) => [c, i + 1]));
@@ -719,6 +742,15 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     },
     async getConfigMcp(): Promise<McpConfigSnapshot> {
       return { enabled: true, trading_tools_enabled: false, daily_limit_amount: 50000, daily_limit_count: 20 };
+    },
+    // ── 行情看板 MA 可配置（后端 W1：GET/PUT /api/config/ma；主图+宫格应用，回测弹窗不动）──
+    async getMaConfig(): Promise<MaConfigDto> {
+      return { windows: maWindows.slice() };
+    },
+    async saveMaConfig(windows: number[]): Promise<MaConfigDto> {
+      const normalized = normalizeMaWindows(windows);
+      maWindows = normalized;
+      return { windows: normalized.slice() };
     },
     async purgeRaw(confirm: string): Promise<PurgeRawResult> {
       if (confirm !== 'PURGE') {

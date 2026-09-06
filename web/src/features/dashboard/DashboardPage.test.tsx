@@ -197,6 +197,47 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     });
   });
 
+  it('周期切 周/月 → 触发 1w/1mo 数据加载（KlineChart 按新周期）', async () => {
+    await renderPage();
+    await userEvent.click(screen.getByRole('button', { name: '周' }));
+    await waitFor(() => {
+      expect(api.getKline).toHaveBeenCalledWith(expect.objectContaining({ code: '518880', period: '1w' }));
+    });
+    await userEvent.click(screen.getByRole('button', { name: '月' }));
+    await waitFor(() => {
+      expect(api.getKline).toHaveBeenCalledWith(expect.objectContaining({ code: '518880', period: '1mo' }));
+    });
+  });
+
+  // ── W2：MA 可配置（统一）——保存走 saveMaConfig + 主图/宫格应用配置窗口 ──
+  it('MA 配置保存：改窗口 → 调 saveMaConfig + 主图 KlineChart 应用新 calcParams', async () => {
+    const saveMaConfig = vi.fn(async () => ({ windows: [7, 10, 20] }));
+    const apiMa = stubApi({
+      getSymbols: vi.fn(async () => SYMBOLS),
+      getKline: vi.fn(async () => [
+        { ts: '2026-09-04T02:00:00Z', open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 100, amount: 105 },
+      ]),
+      getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
+      saveMaConfig,
+    });
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiMa} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'MA 配置' }));
+    await userEvent.clear(screen.getByLabelText('MA 窗口 1'));
+    await userEvent.type(screen.getByLabelText('MA 窗口 1'), '7');
+    await userEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(saveMaConfig).toHaveBeenCalledWith([7, 10, 20]));
+    // 主图 KlineChart 应用配置窗口（统一配置）
+    expect(chartStub.createIndicator).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'MA', calcParams: [7, 10, 20] }),
+      false,
+    );
+  });
+
   // ── Wave 3 页面① 看板收藏（F2 前端）──
 
   it('收藏置顶回归：收藏优先不影响宫格/单图/选中（Q4 仅影响 symbol-list）', async () => {

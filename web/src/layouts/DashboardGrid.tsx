@@ -4,7 +4,7 @@
 
 /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
 export const DASHBOARD_DEFAULTS = {
-  period: '15m',                    // 周期：1m/5m/15m/1h/1d，默认 15m
+  period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
   indicators: { ma: true, macd: false, kdj: false, boll: false },
   maWindows: [5, 10, 20],
   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
@@ -12,7 +12,7 @@ export const DASHBOARD_DEFAULTS = {
   initialRange: 'today+prevTradingDay',
 } as const;
 
-export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
+export type Period = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1mo';
 export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
 
 /** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）

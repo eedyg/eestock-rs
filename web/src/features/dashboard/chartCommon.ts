@@ -8,6 +8,8 @@ export const PERIOD_MAP: Record<Period, KcPeriod> = {
   '15m': { type: 'minute', span: 15 },
   '1h': { type: 'hour', span: 1 },
   '1d': { type: 'day', span: 1 },
+  '1w': { type: 'week', span: 1 },   // 周线（klinecharts week 周期）
+  '1mo': { type: 'month', span: 1 }, // 月线（klinecharts month 周期）
 };
 
 export function toKcData(bar: Bar): KLineData {

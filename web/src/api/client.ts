@@ -15,6 +15,7 @@ import type {
   DetailRange,
   DivergenceStat,
   KlineResponse,
+  MaConfigDto,
   McpConfigSnapshot,
   MetricPoint,
   Period,
@@ -114,6 +115,10 @@ export interface ApiClient {
   getConfigCollector(): Promise<CollectorConfigSnapshot>;
   /** MCP 配置只读快照（总开关/交易工具/每日限额默认值） */
   getConfigMcp(): Promise<McpConfigSnapshot>;
+  /** 行情看板 MA 窗口配置（GET /api/config/ma；主图+宫格应用，回测弹窗不动） */
+  getMaConfig(): Promise<MaConfigDto>;
+  /** 保存 MA 窗口配置（PUT /api/config/ma；后端校验 1-3 条/1-500、归一化升序去重） */
+  saveMaConfig(windows: number[]): Promise<MaConfigDto>;
   /** 清空 kline_raw（危险；confirm 须为 'PURGE'，缺失/不匹配 → 400） */
   purgeRaw(confirm: string): Promise<PurgeRawResult>;
   /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
@@ -239,6 +244,9 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getConfigSources: () => get<SourceConfigSnapshot>('/api/config/sources'),
     getConfigCollector: () => get<CollectorConfigSnapshot>('/api/config/collector'),
     getConfigMcp: () => get<McpConfigSnapshot>('/api/config/mcp'),
+    getMaConfig: () => get<MaConfigDto>('/api/config/ma'),
+    saveMaConfig: (windows) =>
+      request<MaConfigDto>('/api/config/ma', { method: 'PUT', body: JSON.stringify({ windows }) }),
     purgeRaw: (confirm) =>
       request<PurgeRawResult>('/api/system/purge-raw', {
         method: 'POST',
