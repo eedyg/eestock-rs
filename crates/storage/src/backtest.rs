@@ -61,6 +61,20 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 周线 W1 兜底：kline_1d 查询期 rollup（与 reader.rs FALLBACK_1W 同义；周=A股交易周周一为界）。
+const FALLBACK_1W: &str = r#"
+(SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai'))"#;
+
+/// 月线 MO1 兜底：kline_1d 查询期 rollup（与 reader.rs FALLBACK_1MO 同义；月=自然月）。
+const FALLBACK_1MO: &str = r#"
+(SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai'))"#;
+
 fn period_range_sql(p: Period) -> String {
     match p {
         Period::M1 => M1_RANGE_SQL.to_string(),
@@ -68,6 +82,10 @@ fn period_range_sql(p: Period) -> String {
         Period::M15 => range_sql("kline_accurate_15m", "kline_15m"),
         Period::H1 => range_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => range_sql("kline_accurate_1d", "kline_1d"),
+        // ⚠️ W1/MO1 仅看板读源扩展（domain::Period 增变体以保 match 全穷尽）；回测周期不扩——
+        // application::parse_period 仍拒绝 1w/1mo，故实际回测不会以 W1/MO1 条目入队。
+        Period::W1 => range_sql("kline_accurate_1w", FALLBACK_1W),
+        Period::MO1 => range_sql("kline_accurate_1mo", FALLBACK_1MO),
     }
 }
 

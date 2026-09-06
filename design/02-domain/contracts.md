@@ -48,8 +48,10 @@ impl Code {
 
 /// 采集周期。本系统采集只写 1m（ADR-004），高周期由连续聚合生成；
 /// 历史层（ADR-016）可为多粒度。
+/// ⚠️ W1/MO1（看板周/月线，用户定稿）：仅看板读源扩展，回测周期不扩（backtest::Period 独立枚举）——
+/// W1=A股交易周（Asia/Shanghai 周一为界）、MO1=自然月（Asia/Shanghai 月界）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Period { M1, M5, M15, H1, D1 }
+pub enum Period { M1, M5, M15, H1, D1, W1, MO1 }
 
 /// 一根 K线 bar（真实 OHLCV）。
 /// ts 用 DateTime<Utc>（⚠️ 审查修正：NaiveDateTime 配 timestamptz 是时区炸弹）；
@@ -850,6 +852,23 @@ pub trait FavoriteStore: Send + Sync {
     async fn reorder(&self, codes: &[String]) -> anyhow::Result<()>;
     /// code→sort_order 映射（/api/symbols 展示用：非收藏不在 map）。
     async fn favorite_map(&self) -> anyhow::Result<std::collections::HashMap<String, i32>>;
+}
+
+// ── 行情看板 MA 可配置（后端 W1；ma_config 表，迁移 0015；用户定稿 2026-09-06）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web 只依赖端口。
+// 仅看板主图+宫格应用 MA 窗口配置；回测弹窗不动（回测周期/参数不扩展）。
+
+// MA 窗口配置（ma_config 单行：ma_windows int[]）。约定：归一化升序 + 去重，默认 [5,10,20]（前端硬编码改由 DB 持久化配置驱动）。
+
+/// MA 配置端口（storage 实现；ma_config 表，迁移 0015）。
+/// get：读当前配置（表未初始化/空 → 默认 [5,10,20]）；set：web 层已校验 + 归一化升序去重，
+/// 层内直接写回并返回归一化后的窗口列表。
+#[async_trait]
+pub trait MaConfigStore: Send + Sync {
+    /// 读当前 MA 窗口配置（升序去重归一化；表空 → 默认 [5,10,20]）。
+    async fn get(&self) -> anyhow::Result<Vec<i32>>;
+    /// 写回归一化后的 MA 窗口配置（升序去重），返回写回后的窗口列表。
+    async fn set(&self, windows: &[i32]) -> anyhow::Result<Vec<i32>>;
 }
 ```
 

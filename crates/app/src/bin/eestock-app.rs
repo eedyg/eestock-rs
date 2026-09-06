@@ -65,6 +65,9 @@ async fn main() -> anyhow::Result<()> {
     // Wave 3 页面①：看板收藏（FavoriteStore，favorite_symbols 表 0013）
     let favorites: Arc<dyn domain::ports::FavoriteStore> =
         Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone()));
+    // 行情看板 MA 可配置（MaConfigStore，ma_config 表 0015；主图+宫格应用，回测弹窗不动）
+    let ma_config: Arc<dyn domain::ports::MaConfigStore> =
+        Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -96,6 +99,8 @@ async fn main() -> anyhow::Result<()> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（FavoriteStore）
         favorites,
+        // 行情看板 MA 可配置（MaConfigStore）
+        ma_config,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,

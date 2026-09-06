@@ -49,7 +49,7 @@
 | 方法/路径 | 参数 | 响应 | 数据源 | 错误态 |
 |---|---|---|---|---|
 | `GET /healthz` | — | `{"status":"ok"}` | 静态 | —（compose healthcheck 经 `--self-check` 调此路由） |
-| `GET /api/kline` | `code`（必填）、`period=1m\|5m\|15m\|1h\|1d`（默认 `1m`）、`before`（RFC3339 游标，不含该 ts 的更早一页）、`limit`（默认 240，封顶 1000） | `{"code","period","bars":[{ts,open,high,low,close,volume,amount,source?}],"next_before"}`；bars **升序**（图表口径）；`next_before`=本页最旧 ts，`null`=无更早数据 | 1m=`kline_merged` 合并视图（准确层优先，ADR-003）；5m/15m/1d=对应 cagg（ADR-004）；1h=`kline_15m` 查询期 rollup（schema 未建 kline_1h cagg，rollup 语义等价） | 400：`code` 空 / `period` 非法 / `before` 非 RFC3339；500 JSON `{"error":...}` |
+| `GET /api/kline` | `code`（必填）、`period=1m\|5m\|15m\|1h\|1d\|1w\|1mo`（默认 `1m`；看板 W1 增周 `1w`/月 `1mo`，回测周期不扩）、`before`（RFC3339 游标，不含该 ts 的更早一页）、`limit`（默认 240，封顶 1000） | `{"code","period","bars":[{ts,open,high,low,close,volume,amount,source?}],"next_before"}`；bars **升序**（图表口径）；`next_before`=本页最旧 ts，`null`=无更早数据 | 1m=`kline_merged` 合并视图（准确层优先，ADR-003）；5m/15m/1d=对应 cagg（ADR-004）；1h=`kline_15m` 查询期 rollup（schema 未建 kline_1h cagg，rollup 语义等价）；1w/1mo=`kline_accurate_1w/1mo`（0014 cagg）+`kline_1d` 查询期 rollup 兜底 | 400：`code` 空 / `period` 非法 / `before` 非 RFC3339；500 JSON `{"error":...}` |
 | `GET /api/symbols` | — | `[{code,name,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`；`change_pct`=相对前一根 merge bar 收盘（%），无前值/无 bar → null | `symbols` + `kline_merged` 每 code 最近 2 根（LATERAL） | 500 |
 | `GET /api/sources/health` | `window_secs`（默认 3600 = 页面② `SOURCES_DEFAULTS.successRateWindow='1h'`，钳制 60..604800） | `{"window_secs","sources":[{source,attempts,successes,success_rate,p50_ms,p95_ms,circuit_state,status,last_error,last_event_ts}]}`；`success_rate` 分母**排除 `err_kind='na'`**（03 §7），分母 0 → `null` | `source_health_events` 窗口聚合（diagnose crate，05-diagnose §1 口径） | 500 |
 | `POST /api/symbols`（Phase C §8） | body `{code, name?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
@@ -68,6 +68,8 @@
 | `GET /api/quality/source-accuracy`（Wave 2 Phase A） | `from`/`to`、`threshold_pct`（同上） | `{"from","to","threshold_pct","sources":[{"source,samples,consistency_rate,avg_deviation_pct,max_deviation_pct}]}`（一致率降序） | 同上（全标的对照行按 raw_source 归组） | 400/500 同上 |
 | `GET /api/quality/gaps`（Wave 2 Phase A） | `code`（必填）、`from`/`to`（同上） | `{"code","from","to","days":[{"date","expected_bars","actual_bars","missing_bars","segments":[{"start","end","count","class"}]}]}`；仅含**有缺口的交易日**（周末 ∪ holidays[0008] 整日排除；未来分钟不算缺口）；start/end 为 CST "HH:MM"；class ∈ `source_fault`（窗口内有失败/陈旧/熔断事件）/ `upstream_no_data`（源可达但无该分钟数据：na 或仅成功事件）/ `system_gap`（邻近无事件：采集停摆/事件空窗，D5 口径） | 交易日历（0008 + 周末）× 241 分钟标签 − `kline_raw` 已有 ts；分类证据 = `source_health_events` 区间 | 400/500 同上 |
 | `GET /api/tushare/status`（Wave 2 Phase A） | — | `{"checkpoints":[{"code,period,last_synced_date,updated_at}],"covered_codes","last_updated_at","last_event":{"ts","ok","err_kind"}\|null,"quota_remaining":null}`（积分余额未入库 → 恒 null，待 tushare 账户侧可查后单开） | `sync_checkpoints`（0005）+ `source_health_events` 最近 7 日 source='tushare' 事件 | 500 |
+| `GET /api/config/ma`（看板 MA 可配置，后端 W1） | — | `{"windows":[5,10,20]}`（归一化升序去重；主图+宫格应用，回测弹窗不动） | `ma_config`（0015，应用面自有表；表空 → 默认 [5,10,20]） | 500 |
+| `PUT /api/config/ma`（看板 MA 可配置，后端 W1） | body `{"windows":[5,10,20]}` | 200 `{"windows":[...]}`（校验+归一化升序去重后写回并返回） | 同上 | 400：1-3 条 / 每条 1-500 整数；500 |
 
 字段口径（diagnose，05-diagnose §1 实现 Wave 1 最小集）：
 
@@ -1180,8 +1182,8 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
 //! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
-//! - 1m：kline_merged 合并视图（准确层优先，ADR-003）
-//! - 5m/15m/1h/1d：merged_sql(accurate_<P> UNION ALL 兜底 反连接)（accurate 覆盖 2024-01-01→今）
+//! - 1m：kline_merged 合并视图（准确层优先，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
+//! - 周线 W1/月线 MO1（看板 W1）：accurate 用 kline_accurate_1w/1mo（0014 cagg）；兜底用 kline_1d 查询期 rollup
 //! - symbols + 最新快照（REST /api/symbols latest 字段与 WS quote 推送数据源）
 //! - source_health_events 窗口读取（diagnose 聚合输入）
 
@@ -1238,6 +1240,22 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 周线 W1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1w cagg；与 accurate_1w 同 time_bucket 对齐）。
+/// 周=A股交易周（Asia/Shanghai 周一为界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
+const FALLBACK_1W: &str = r#"
+(SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai'))"#;
+
+/// 月线 MO1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1mo cagg；与 accurate_1mo 同 time_bucket 对齐）。
+/// 月=自然月（Asia/Shanghai 月界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
+const FALLBACK_1MO: &str = r#"
+(SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai'))"#;
+
 /// 周期 → 统一读源 SQL（1m 走既有 kline_merged；其余按 accurate 表 + 兜底片段）。
 fn period_merged_sql(p: Period) -> String {
     match p {
@@ -1246,6 +1264,8 @@ fn period_merged_sql(p: Period) -> String {
         Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
         Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
+        Period::W1 => merged_sql("kline_accurate_1w", FALLBACK_1W),
+        Period::MO1 => merged_sql("kline_accurate_1mo", FALLBACK_1MO),
     }
 }
 
@@ -1470,6 +1490,7 @@ const CODE_CAGG: &str = "997711";
 const CODE_SYM: &str = "997721";
 const CODE_SYM_EMPTY: &str = "997722";
 const CODE_DEEP: &str = "997751";
+const CODE_WM: &str = "997733";   // 周/月聚合测试独占 code（避免与其他并行测试互删；997731 已被 CODE_QUAL 占用）
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -1556,6 +1577,54 @@ async fn merged_periods_accurate_first_and_1h_rollup() {
         assert_eq!(bars[0].source.as_deref(), Some("tushare"), "{p:?} accurate 层来源");
     }
     clean(&pool, CODE_CAGG).await;
+}
+
+#[tokio::test]
+async fn weekly_monthly_periods_aggregate() {
+    let pool = pool().await;
+    clean(&pool, CODE_WM).await;
+    // 种子：kline_accurate M1 跨两周/两月，验证 W1/MO1 聚合（周=A股交易周周一为界、月=自然月）。
+    // 2026-08-31(Mon) 两根 + 2026-09-07(Mon) 一根 → 两周（周 A/B）两月（8月/9月）；
+    // 周内多根验证 first(open)/last(close)/sum(volume)。
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2026, 8, 31, 1, 30, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2026, 8, 31, 2, 0, 0).unwrap(), 2.0),
+        (Utc.with_ymd_and_hms(2026, 9, 7, 1, 30, 0).unwrap(), 3.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close, volume = EXCLUDED.volume")
+            .bind(CODE_WM).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // 刷新 W1/MO1 cagg：refresh_continuous_aggregate 只物化**完全落在窗口内**的桶（含整桶起止），
+    // 故窗口须从最早一周桶起点（08-30 16:00 UTC）之前到最晚一月桶终点之后（09 月桶=08-31 16:00→09-30 16:00 UTC）。
+    for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-07-25 00:00:00+00', '2026-10-03 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+
+    // 周线：两个交易周（周一为界）。第一周（2026-08-31）聚合两根 → open=first=1.0, close=last=2.0, vol=200。
+    let weekly = r.bars(Period::W1, CODE_WM, None, 10).await.unwrap();
+    assert_eq!(weekly.len(), 2, "W1：两个交易周");
+    assert_eq!(weekly[0].open, 1.0, "W1 首周 open = first(open)");
+    assert_eq!(weekly[0].close, 2.0, "W1 首周 close = last(close)");
+    assert_eq!(weekly[0].volume, 200, "W1 首周 volume = sum(volume)");
+    assert_eq!(weekly[1].open, 3.0, "W1 第二周单根");
+    assert_eq!(weekly[1].close, 3.0);
+
+    // 月线：8月（两根）+ 9月（一根）→ 两月。
+    let monthly = r.bars(Period::MO1, CODE_WM, None, 10).await.unwrap();
+    assert_eq!(monthly.len(), 2, "MO1：自然月（8月 + 9月）");
+    assert_eq!(monthly[0].open, 1.0, "MO1 8月 open = first(open)");
+    assert_eq!(monthly[0].close, 2.0, "MO1 8月 close = last(close)");
+    assert_eq!(monthly[0].volume, 200, "MO1 8月 volume = sum(volume)");
+    assert_eq!(monthly[1].open, 3.0, "MO1 9月单根");
+    assert_eq!(monthly[1].close, 3.0);
+
+    clean(&pool, CODE_WM).await;
 }
 
 #[tokio::test]
@@ -1837,6 +1906,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/sources", get(settings::get_config_sources))
         .route("/api/config/collector", get(settings::get_config_collector))
         .route("/api/config/mcp", get(settings::get_config_mcp))
+        // 行情看板 MA 可配置（后端 W1：GET 读 / PUT 写归一化升序窗口；主图+宫格应用，回测弹窗不动）
+        .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -1868,7 +1939,8 @@ pub struct KlineQuery {
     pub limit: i64,
 }
 
-/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d。
+/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
+/// ⚠️ 1m 已=分钟，故周/月用 1w/1mo（避免与 1m 混淆）；domain 变体名为 W1/MO1。仅看板读源，回测周期不扩。
 pub fn parse_period(s: &str) -> Option<Period> {
     match s {
         "1m" => Some(Period::M1),
@@ -1876,8 +1948,38 @@ pub fn parse_period(s: &str) -> Option<Period> {
         "15m" => Some(Period::M15),
         "1h" => Some(Period::H1),
         "1d" => Some(Period::D1),
+        "1w" => Some(Period::W1),
+        "1mo" => Some(Period::MO1),
         _ => None,
     }
+}
+
+/// GET/PUT /api/config/ma 响应/请求体：MA 窗口列表（归一化升序去重，默认 [5,10,20]；主图+宫格应用，回测弹窗不动）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MaConfigDto {
+    pub windows: Vec<i32>,
+}
+
+/// MA 窗口校验 + 归一化（纯函数，web handler 层 400 用）：
+/// - 条目数 1..=3（最多 3 条 MA）
+/// - 每条 1..=500 整数
+/// - 归一化：去重（保留首次出现）+ 升序排序（升序/去重归一，存库前统一口径）
+///
+/// 失败返回描述性错误（handler `err(400, e)`）。
+pub fn validate_ma_windows(windows: &[i32]) -> Result<Vec<i32>, String> {
+    // count
+    if windows.is_empty() { return Err("MA 至少 1 条".into()); }
+    if windows.len() > 3 { return Err("MA 最多 3 条".into()); }
+    for &w in windows {
+        if !(1..=500).contains(&w) { return Err(format!("MA 窗口须为 1..=500 整数，不合规值：{w}")); }
+    }
+    // 归一化：去重（保持首次出现）+ 升序
+    let mut out: Vec<i32> = Vec::new();
+    for &w in windows {
+        if !out.contains(&w) { out.push(w); }
+    }
+    out.sort_unstable();
+    Ok(out)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -2354,8 +2456,38 @@ mod tests {
         assert_eq!(parse_period("15m"), Some(Period::M15));
         assert_eq!(parse_period("1h"), Some(Period::H1));
         assert_eq!(parse_period("1d"), Some(Period::D1));
+        // 看板 W1 增 周/月：1w/1mo（1m 已=分钟，避免歧义）；回测周期不扩。
+        assert_eq!(parse_period("1w"), Some(Period::W1));
+        assert_eq!(parse_period("1mo"), Some(Period::MO1));
         assert_eq!(parse_period("3m"), None);
         assert_eq!(parse_period("M1"), None, "domain 变体名不是前端口径");
+        assert_eq!(parse_period("1m"), Some(Period::M1), "1m 仍=分钟，不与月混淆");
+    }
+
+    #[test]
+    fn ma_windows_validation_and_normalize() {
+        // 合法：升序去重归一化
+        assert_eq!(validate_ma_windows(&[5, 10, 20]).unwrap(), vec![5, 10, 20]);
+        assert_eq!(validate_ma_windows(&[20, 5, 10]).unwrap(), vec![5, 10, 20], "乱序归一化升序");
+        assert_eq!(validate_ma_windows(&[5, 5, 10]).unwrap(), vec![5, 10], "去重");
+        assert_eq!(validate_ma_windows(&[1]).unwrap(), vec![1], "最少 1 条");
+        assert_eq!(validate_ma_windows(&[500]).unwrap(), vec![500], "上界 500");
+        // 非法：条目数
+        assert!(validate_ma_windows(&[]).is_err(), "至少 1 条");
+        assert!(validate_ma_windows(&[5, 10, 20, 30]).is_err(), "最多 3 条");
+        // 非法：量纲
+        assert!(validate_ma_windows(&[0]).is_err());
+        assert!(validate_ma_windows(&[501]).is_err());
+        assert!(validate_ma_windows(&[-1]).is_err());
+    }
+
+    #[test]
+    fn ma_config_dto_roundtrip() {
+        let dto = MaConfigDto { windows: vec![5, 10, 20] };
+        let v = serde_json::to_value(&dto).unwrap();
+        assert_eq!(v["windows"][0], 5);
+        let back: MaConfigDto = serde_json::from_value(v).unwrap();
+        assert_eq!(back.windows, vec![5, 10, 20]);
     }
 
     #[test]
@@ -2569,6 +2701,8 @@ pub struct AppState {
     pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
     /// 看板收藏端口（Wave 3 页面①：FavoriteStore，favorite_symbols 表，0013；POST/DELETE/PUT 收藏端点 + /api/symbols 注入）。
     pub favorites: Arc<dyn domain::ports::FavoriteStore>,
+    /// 行情看板 MA 可配置端口（后端 W1：MaConfigStore，ma_config 表，0015；GET/PUT /api/config/ma——主图+宫格应用，回测弹窗不动）。
+    pub ma_config: Arc<dyn domain::ports::MaConfigStore>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -2930,6 +3064,31 @@ pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
             "last_event": s.last_event,
             "quota_remaining": serde_json::Value::Null,
         })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+// ── 行情看板 MA 可配置（后端 W1：GET /api/config/ma 读 + PUT 写；主图+宫格应用，回测弹窗不动）──
+// 校验在 web 层（validate_ma_windows，400）；storage 只存归一化（升序去重）结果，见 §1.1 契约表。
+
+/// GET /api/config/ma —— 读当前 MA 窗口（ma_config 表；表空 → 默认 [5,10,20]）。
+pub async fn get_ma_config(State(st): State<Arc<AppState>>) -> Response {
+    match st.ma_config.get().await {
+        Ok(windows) => Json(MaConfigDto { windows }).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/config/ma —— body {windows:[...]}：校验（1-3 条、每条 1-500、升序/去重归一）→ 存 DB → 返回归一化。
+/// 400：条目数/量纲不合规；500：存储失败。
+pub async fn put_ma_config(State(st): State<Arc<AppState>>,
+                           Json(req): Json<MaConfigDto>) -> Response {
+    let windows = match validate_ma_windows(&req.windows) {
+        Ok(w) => w,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &e),
+    };
+    match st.ma_config.set(&windows).await {
+        Ok(w) => Json(MaConfigDto { windows: w }).into_response(),
         Err(e) => internal(e),
     }
 }
@@ -3540,6 +3699,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -3764,6 +3925,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -3961,6 +4124,9 @@ async fn main() -> anyhow::Result<()> {
     // Wave 3 页面①：看板收藏（FavoriteStore，favorite_symbols 表 0013）
     let favorites: Arc<dyn domain::ports::FavoriteStore> =
         Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone()));
+    // 行情看板 MA 可配置（MaConfigStore，ma_config 表 0015；主图+宫格应用，回测弹窗不动）
+    let ma_config: Arc<dyn domain::ports::MaConfigStore> =
+        Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -3992,6 +4158,8 @@ async fn main() -> anyhow::Result<()> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（FavoriteStore）
         favorites,
+        // 行情看板 MA 可配置（MaConfigStore）
+        ma_config,
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -4464,6 +4632,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -4681,6 +4851,8 @@ fn state(pool: PgPool) -> Arc<AppState> {
         backtest_ws,
         // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

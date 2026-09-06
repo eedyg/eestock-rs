@@ -12,7 +12,8 @@ pub struct AccurateWriter {
 
 pub fn period_str(p: Period) -> &'static str {
     match p { Period::M1 => "M1", Period::M5 => "M5", Period::M15 => "M15",
-              Period::H1 => "H1", Period::D1 => "D1" }
+              Period::H1 => "H1", Period::D1 => "D1",
+              Period::W1 => "W1", Period::MO1 => "MO1" }
 }
 
 // source 列文本口径单一事实源在 domain（SourceId::as_str，含 *_approx 变体）。

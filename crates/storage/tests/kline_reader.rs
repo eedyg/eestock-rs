@@ -14,6 +14,7 @@ const CODE_CAGG: &str = "997711";
 const CODE_SYM: &str = "997721";
 const CODE_SYM_EMPTY: &str = "997722";
 const CODE_DEEP: &str = "997751";
+const CODE_WM: &str = "997733";   // 周/月聚合测试独占 code（避免与其他并行测试互删；997731 已被 CODE_QUAL 占用）
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -100,6 +101,54 @@ async fn merged_periods_accurate_first_and_1h_rollup() {
         assert_eq!(bars[0].source.as_deref(), Some("tushare"), "{p:?} accurate 层来源");
     }
     clean(&pool, CODE_CAGG).await;
+}
+
+#[tokio::test]
+async fn weekly_monthly_periods_aggregate() {
+    let pool = pool().await;
+    clean(&pool, CODE_WM).await;
+    // 种子：kline_accurate M1 跨两周/两月，验证 W1/MO1 聚合（周=A股交易周周一为界、月=自然月）。
+    // 2026-08-31(Mon) 两根 + 2026-09-07(Mon) 一根 → 两周（周 A/B）两月（8月/9月）；
+    // 周内多根验证 first(open)/last(close)/sum(volume)。
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2026, 8, 31, 1, 30, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2026, 8, 31, 2, 0, 0).unwrap(), 2.0),
+        (Utc.with_ymd_and_hms(2026, 9, 7, 1, 30, 0).unwrap(), 3.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close, volume = EXCLUDED.volume")
+            .bind(CODE_WM).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // 刷新 W1/MO1 cagg：refresh_continuous_aggregate 只物化**完全落在窗口内**的桶（含整桶起止），
+    // 故窗口须从最早一周桶起点（08-30 16:00 UTC）之前到最晚一月桶终点之后（09 月桶=08-31 16:00→09-30 16:00 UTC）。
+    for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-07-25 00:00:00+00', '2026-10-03 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+
+    // 周线：两个交易周（周一为界）。第一周（2026-08-31）聚合两根 → open=first=1.0, close=last=2.0, vol=200。
+    let weekly = r.bars(Period::W1, CODE_WM, None, 10).await.unwrap();
+    assert_eq!(weekly.len(), 2, "W1：两个交易周");
+    assert_eq!(weekly[0].open, 1.0, "W1 首周 open = first(open)");
+    assert_eq!(weekly[0].close, 2.0, "W1 首周 close = last(close)");
+    assert_eq!(weekly[0].volume, 200, "W1 首周 volume = sum(volume)");
+    assert_eq!(weekly[1].open, 3.0, "W1 第二周单根");
+    assert_eq!(weekly[1].close, 3.0);
+
+    // 月线：8月（两根）+ 9月（一根）→ 两月。
+    let monthly = r.bars(Period::MO1, CODE_WM, None, 10).await.unwrap();
+    assert_eq!(monthly.len(), 2, "MO1：自然月（8月 + 9月）");
+    assert_eq!(monthly[0].open, 1.0, "MO1 8月 open = first(open)");
+    assert_eq!(monthly[0].close, 2.0, "MO1 8月 close = last(close)");
+    assert_eq!(monthly[0].volume, 200, "MO1 8月 volume = sum(volume)");
+    assert_eq!(monthly[1].open, 3.0, "MO1 9月单根");
+    assert_eq!(monthly[1].close, 3.0);
+
+    clean(&pool, CODE_WM).await;
 }
 
 #[tokio::test]

@@ -520,7 +520,8 @@ pub struct AccurateWriter {
 
 pub fn period_str(p: Period) -> &'static str {
     match p { Period::M1 => "M1", Period::M5 => "M5", Period::M15 => "M15",
-              Period::H1 => "H1", Period::D1 => "D1" }
+              Period::H1 => "H1", Period::D1 => "D1",
+              Period::W1 => "W1", Period::MO1 => "MO1" }
 }
 
 // source 列文本口径单一事实源在 domain（SourceId::as_str，含 *_approx 变体）。
@@ -603,6 +604,9 @@ pub mod backtest;
 // favorite：看板收藏端口实现加法扩展（Wave 3 页面①：FavoriteStore；
 // 代码块在 design/04-storage/schema.md §4.3.6。favorite.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod favorite;
+// ma_config：行情看板 MA 可配置端口实现加法扩展（后端 W1：MaConfigStore；
+// 代码块在 design/04-storage/schema.md §4.3.7。ma_config.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod ma_config;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

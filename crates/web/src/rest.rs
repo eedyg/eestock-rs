@@ -354,4 +354,29 @@ pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
         Err(e) => internal(e),
     }
 }
+
+// ── 行情看板 MA 可配置（后端 W1：GET /api/config/ma 读 + PUT 写；主图+宫格应用，回测弹窗不动）──
+// 校验在 web 层（validate_ma_windows，400）；storage 只存归一化（升序去重）结果，见 §1.1 契约表。
+
+/// GET /api/config/ma —— 读当前 MA 窗口（ma_config 表；表空 → 默认 [5,10,20]）。
+pub async fn get_ma_config(State(st): State<Arc<AppState>>) -> Response {
+    match st.ma_config.get().await {
+        Ok(windows) => Json(MaConfigDto { windows }).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/config/ma —— body {windows:[...]}：校验（1-3 条、每条 1-500、升序/去重归一）→ 存 DB → 返回归一化。
+/// 400：条目数/量纲不合规；500：存储失败。
+pub async fn put_ma_config(State(st): State<Arc<AppState>>,
+                           Json(req): Json<MaConfigDto>) -> Response {
+    let windows = match validate_ma_windows(&req.windows) {
+        Ok(w) => w,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &e),
+    };
+    match st.ma_config.set(&windows).await {
+        Ok(w) => Json(MaConfigDto { windows: w }).into_response(),
+        Err(e) => internal(e),
+    }
+}
 // ~/~ end

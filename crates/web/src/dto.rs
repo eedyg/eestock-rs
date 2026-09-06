@@ -23,7 +23,8 @@ pub struct KlineQuery {
     pub limit: i64,
 }
 
-/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d。
+/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
+/// ⚠️ 1m 已=分钟，故周/月用 1w/1mo（避免与 1m 混淆）；domain 变体名为 W1/MO1。仅看板读源，回测周期不扩。
 pub fn parse_period(s: &str) -> Option<Period> {
     match s {
         "1m" => Some(Period::M1),
@@ -31,8 +32,38 @@ pub fn parse_period(s: &str) -> Option<Period> {
         "15m" => Some(Period::M15),
         "1h" => Some(Period::H1),
         "1d" => Some(Period::D1),
+        "1w" => Some(Period::W1),
+        "1mo" => Some(Period::MO1),
         _ => None,
     }
+}
+
+/// GET/PUT /api/config/ma 响应/请求体：MA 窗口列表（归一化升序去重，默认 [5,10,20]；主图+宫格应用，回测弹窗不动）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MaConfigDto {
+    pub windows: Vec<i32>,
+}
+
+/// MA 窗口校验 + 归一化（纯函数，web handler 层 400 用）：
+/// - 条目数 1..=3（最多 3 条 MA）
+/// - 每条 1..=500 整数
+/// - 归一化：去重（保留首次出现）+ 升序排序（升序/去重归一，存库前统一口径）
+///
+/// 失败返回描述性错误（handler `err(400, e)`）。
+pub fn validate_ma_windows(windows: &[i32]) -> Result<Vec<i32>, String> {
+    // count
+    if windows.is_empty() { return Err("MA 至少 1 条".into()); }
+    if windows.len() > 3 { return Err("MA 最多 3 条".into()); }
+    for &w in windows {
+        if !(1..=500).contains(&w) { return Err(format!("MA 窗口须为 1..=500 整数，不合规值：{w}")); }
+    }
+    // 归一化：去重（保持首次出现）+ 升序
+    let mut out: Vec<i32> = Vec::new();
+    for &w in windows {
+        if !out.contains(&w) { out.push(w); }
+    }
+    out.sort_unstable();
+    Ok(out)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -509,8 +540,38 @@ mod tests {
         assert_eq!(parse_period("15m"), Some(Period::M15));
         assert_eq!(parse_period("1h"), Some(Period::H1));
         assert_eq!(parse_period("1d"), Some(Period::D1));
+        // 看板 W1 增 周/月：1w/1mo（1m 已=分钟，避免歧义）；回测周期不扩。
+        assert_eq!(parse_period("1w"), Some(Period::W1));
+        assert_eq!(parse_period("1mo"), Some(Period::MO1));
         assert_eq!(parse_period("3m"), None);
         assert_eq!(parse_period("M1"), None, "domain 变体名不是前端口径");
+        assert_eq!(parse_period("1m"), Some(Period::M1), "1m 仍=分钟，不与月混淆");
+    }
+
+    #[test]
+    fn ma_windows_validation_and_normalize() {
+        // 合法：升序去重归一化
+        assert_eq!(validate_ma_windows(&[5, 10, 20]).unwrap(), vec![5, 10, 20]);
+        assert_eq!(validate_ma_windows(&[20, 5, 10]).unwrap(), vec![5, 10, 20], "乱序归一化升序");
+        assert_eq!(validate_ma_windows(&[5, 5, 10]).unwrap(), vec![5, 10], "去重");
+        assert_eq!(validate_ma_windows(&[1]).unwrap(), vec![1], "最少 1 条");
+        assert_eq!(validate_ma_windows(&[500]).unwrap(), vec![500], "上界 500");
+        // 非法：条目数
+        assert!(validate_ma_windows(&[]).is_err(), "至少 1 条");
+        assert!(validate_ma_windows(&[5, 10, 20, 30]).is_err(), "最多 3 条");
+        // 非法：量纲
+        assert!(validate_ma_windows(&[0]).is_err());
+        assert!(validate_ma_windows(&[501]).is_err());
+        assert!(validate_ma_windows(&[-1]).is_err());
+    }
+
+    #[test]
+    fn ma_config_dto_roundtrip() {
+        let dto = MaConfigDto { windows: vec![5, 10, 20] };
+        let v = serde_json::to_value(&dto).unwrap();
+        assert_eq!(v["windows"][0], 5);
+        let back: MaConfigDto = serde_json::from_value(v).unwrap();
+        assert_eq!(back.windows, vec![5, 10, 20]);
     }
 
     #[test]

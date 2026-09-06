@@ -31,6 +31,8 @@ pub struct AppState {
     pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
     /// 看板收藏端口（Wave 3 页面①：FavoriteStore，favorite_symbols 表，0013；POST/DELETE/PUT 收藏端点 + /api/symbols 注入）。
     pub favorites: Arc<dyn domain::ports::FavoriteStore>,
+    /// 行情看板 MA 可配置端口（后端 W1：MaConfigStore，ma_config 表，0015；GET/PUT /api/config/ma——主图+宫格应用，回测弹窗不动）。
+    pub ma_config: Arc<dyn domain::ports::MaConfigStore>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

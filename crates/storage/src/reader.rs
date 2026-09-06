@@ -2,8 +2,8 @@
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
 //! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
-//! - 1m：kline_merged 合并视图（准确层优先，ADR-003）
-//! - 5m/15m/1h/1d：merged_sql(accurate_<P> UNION ALL 兜底 反连接)（accurate 覆盖 2024-01-01→今）
+//! - 1m：kline_merged 合并视图（准确层优先，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
+//! - 周线 W1/月线 MO1（看板 W1）：accurate 用 kline_accurate_1w/1mo（0014 cagg）；兜底用 kline_1d 查询期 rollup
 //! - symbols + 最新快照（REST /api/symbols latest 字段与 WS quote 推送数据源）
 //! - source_health_events 窗口读取（diagnose 聚合输入）
 
@@ -60,6 +60,22 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 周线 W1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1w cagg；与 accurate_1w 同 time_bucket 对齐）。
+/// 周=A股交易周（Asia/Shanghai 周一为界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
+const FALLBACK_1W: &str = r#"
+(SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai'))"#;
+
+/// 月线 MO1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1mo cagg；与 accurate_1mo 同 time_bucket 对齐）。
+/// 月=自然月（Asia/Shanghai 月界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
+const FALLBACK_1MO: &str = r#"
+(SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_1d GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai'))"#;
+
 /// 周期 → 统一读源 SQL（1m 走既有 kline_merged；其余按 accurate 表 + 兜底片段）。
 fn period_merged_sql(p: Period) -> String {
     match p {
@@ -68,6 +84,8 @@ fn period_merged_sql(p: Period) -> String {
         Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
         Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
+        Period::W1 => merged_sql("kline_accurate_1w", FALLBACK_1W),
+        Period::MO1 => merged_sql("kline_accurate_1mo", FALLBACK_1MO),
     }
 }
 

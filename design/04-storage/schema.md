@@ -454,6 +454,73 @@ CREATE TABLE favorite_symbols (
 - `reorder`：批量 UPDATE sort_order = 索引（array_position 逐行）；入参须为已收藏 code（web 层校验 400）。
 - `favorite_map`：`SELECT code, sort_order FROM favorite_symbols` → `HashMap<code, sort_order>`（/api/symbols 展示用）。
 
+## 4.3.7 行情看板周/月线 + MA 配置（后端 W1，0014/0015；用户定稿 2026-09-06）
+
+**上下文**：行情看板加周线/月线周期 + MA 可配置（主图+宫格应用，回测弹窗不动）。周期枚举
+`domain::Period` 增 `W1`（周）/`MO1`（月）——仅看板读源扩展；**回测周期不扩**（`backtest::Period`
+独立枚举）。周 = A股交易周（`time_bucket('1 week', ts, 'Asia/Shanghai')` 周一为界）；月 = 自然月
+（`time_bucket('1 month', ts, 'Asia/Shanghai')` 月界）。
+
+**周/月线 cagg（0014）**：`kline_accurate_1w/1mo` 从 `kline_accurate` M1 聚合（`WHERE ts >= '2024-01-01'`，
+与 0010 同口径——尊重「2024 即可」不聚合 2012 前的亿万级 M1）。准确层优先 + 底层兜底（ADR-003 推广）：
+兜底在 reader.rs **查询期 rollup**（`kline_1d` → week/month 桶，与 1h 兜底从 `kline_15m` rollup 同型）——
+schema 未建 raw-derived `kline_1w/1mo` cagg，按「复用 cagg 兜底语义」判断不新增，表名/时机按 0010 既有模式。
+
+``` {.sql file=migrations/0014_weekly_monthly_caggs.sql}
+-- 0014_weekly_monthly_caggs.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 行情看板周线/月线（后端 W1）：kline_accurate M1 连续聚合出 kline_accurate_1w/1mo。
+-- 周=A股交易周（time_bucket('1 week', ts, 'Asia/Shanghai') 周一为界）；月=自然月（month 界）。
+-- WHERE ts >= '2024-01-01'（与 0010 同口径：尊重「2024 即可」不聚合 2012 前亿万级 M1）。
+-- 兜底在 reader.rs 查询期 rollup（kline_1d → week/month 桶），见 00-web-api §3。
+CREATE MATERIALIZED VIEW kline_accurate_1w
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai');
+
+CREATE MATERIALIZED VIEW kline_accurate_1mo
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai');
+
+-- 刷新策略（周/月桶变化不频繁，schedule 放宽；历史回填后须手动全量 refresh 一次）
+-- ⚠️ TimescaleDB 校验：refresh 窗口（start_offset = end_offset）须覆盖 ≥ 两个桶，否则报
+-- "policy refresh window too small"（周桶=7d、月桶≈30d）；故周用 30d/1d、月用 120d/1d。
+SELECT add_continuous_aggregate_policy('kline_accurate_1w',
+    start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 hour');
+SELECT add_continuous_aggregate_policy('kline_accurate_1mo',
+    start_offset => INTERVAL '120 days', end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 hour');
+```
+
+**MA 配置持久化（0015）**：`ma_config` 单行（id 恒 1）存 `ma_windows int[]`（默认 [5,10,20]）。
+应用面自有表（数据面不读写，ADR-017 不违）。归一化（升序去重）在 web/dto 层；本表只持久化归一化结果。
+
+``` {.sql file=migrations/0015_ma_config.sql}
+-- 0015_ma_config.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 行情看板 MA 可配置（后端 W1）：ma_config 单行存 ma_windows int[]（默认 [5,10,20]）。
+-- 应用面自有表（数据面不读写，ADR-017 不违）。id 恒 1（单行），CHECK 保证。
+-- 归一化（升序去重）在 web/dto 层；本表只持久化归一化结果。
+CREATE TABLE ma_config (
+    id         integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    ma_windows integer[] NOT NULL DEFAULT ARRAY[5,10,20],
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO ma_config (id, ma_windows) VALUES (1, ARRAY[5,10,20]) ON CONFLICT (id) DO NOTHING;
+```
+
+**storage 模块 `crates/storage/src/ma_config.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::MaConfigStore`（PgPool）。
+- `get`：`SELECT ma_windows FROM ma_config WHERE id = 1`；表空/无行 → 默认 `[5,10,20]`（不抛错）。
+- `set`：`INSERT ... ON CONFLICT (id) DO UPDATE SET ma_windows = EXCLUDED.ma_windows, updated_at = now()`，
+  参数绑定 `&[i32]` 到 `int4[]` 列（sqlx 支持 Vec<i32>/&[i32] 数组映射）；写回后返回归一化窗口列表。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）
