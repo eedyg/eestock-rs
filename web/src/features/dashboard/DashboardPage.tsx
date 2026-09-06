@@ -72,6 +72,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           onSearchChange={(q) => store.setSearch(q)}
           onSelect={(c) => store.selectSymbol(c)}
           onRetry={() => void store.init()}
+          onToggleFavorite={(c) => store.toggleFavorite(c)}
+          onReorderFavorites={(codes) => store.reorderFavorites(codes)}
         />
       </RegionPortal>
 

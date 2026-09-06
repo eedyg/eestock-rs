@@ -112,6 +112,59 @@ export class DashboardStore {
     this.patch({ search });
   }
 
+  /** 看板收藏（Wave 3 页面①）：星标切换——乐观更新收藏标注 + 调 api.starSymbol/unstarSymbol，失败回滚并 rethrow。
+   *  仅更新 favorite/favoriteSort 字段（list 顺序保持 getSymbols 后端口径），收藏置顶展示由 SymbolList 分区负责（不擅动宫格）。 */
+  async toggleFavorite(code: string): Promise<void> {
+    const prev = this.current.symbols;
+    const target = prev.find((s) => s.code === code);
+    if (!target) return;
+    const isFav = target.favorite === true;
+    if (isFav) {
+      const next = prev.map((s) =>
+        s.code === code ? { ...s, favorite: false, favoriteSort: null } : s,
+      );
+      this.patch({ symbols: next });
+      try {
+        await this.deps.api.unstarSymbol(code);
+      } catch (e) {
+        this.patch({ symbols: prev });
+        throw e;
+      }
+    } else {
+      const maxSort = prev
+        .filter((s) => s.favorite === true)
+        .reduce((m, s) => Math.max(m, s.favoriteSort ?? 0), 0);
+      const next = prev.map((s) =>
+        s.code === code ? { ...s, favorite: true, favoriteSort: maxSort + 1 } : s,
+      );
+      this.patch({ symbols: next });
+      try {
+        await this.deps.api.starSymbol(code);
+      } catch (e) {
+        this.patch({ symbols: prev });
+        throw e;
+      }
+    }
+  }
+
+  /** 看板收藏：批量重排（乐观更新 favoriteSort + 调 api.reorderFavorites），失败回滚并 rethrow。 */
+  async reorderFavorites(codes: string[]): Promise<void> {
+    const prev = this.current.symbols;
+    const order = new Map(codes.map((c, i) => [c, i + 1]));
+    const next = prev.map((s) =>
+      s.favorite === true && order.has(s.code)
+        ? { ...s, favoriteSort: order.get(s.code)! }
+        : s,
+    );
+    this.patch({ symbols: next });
+    try {
+      await this.deps.api.reorderFavorites(codes);
+    } catch (e) {
+      this.patch({ symbols: prev });
+      throw e;
+    }
+  }
+
   noteManualZoom(): void {
     this.patch({ followLatest: false });
   }

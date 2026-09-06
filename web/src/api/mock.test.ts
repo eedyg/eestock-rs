@@ -275,4 +275,55 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(after.some((r) => r.id === id)).toBe(false);
     await expect(api.deleteRun(999999)).rejects.toMatchObject({ status: 404 });
   });
+
+  // ── Wave 3 页面① 看板收藏（F2 前端依赖；与后端 favorite.rs 同构：star 幂等置顶、unstar 幂等、reorder 校验已收藏）──
+
+  it('getSymbols 初始全非收藏（favorite=false, favorite_sort=null，不伪造收藏标注）', async () => {
+    const api = createMockClient();
+    const symbols = await api.getSymbols();
+    for (const s of symbols) {
+      expect(s.favorite).toBe(false);
+      expect(s.favoriteSort).toBeNull();
+    }
+  });
+
+  it('starSymbol 收藏置顶：getSymbols 反映 favorite=true + favoriteSort 升序且收藏优先；重复 star 幂等', async () => {
+    const api = createMockClient();
+    await api.starSymbol('513310');
+    await api.starSymbol('518880');
+    await api.starSymbol('513310'); // 幂等：不追加
+    const symbols = await api.getSymbols();
+    expect(symbols[0]).toMatchObject({ code: '513310', favorite: true, favoriteSort: 1 });
+    expect(symbols[1]).toMatchObject({ code: '518880', favorite: true, favoriteSort: 2 });
+    // 收藏优先：前两名为收藏，非收藏在后
+    expect(symbols.slice(0, 2).every((s) => s.favorite === true)).toBe(true);
+    expect(symbols.slice(2).every((s) => s.favorite === false)).toBe(true);
+  });
+
+  it('unstarSymbol 取消收藏（幂等）：getSymbols 回退 favorite=false, favoriteSort=null；仍非收藏在先', async () => {
+    const api = createMockClient();
+    await api.starSymbol('513310');
+    await api.unstarSymbol('513310');
+    await api.unstarSymbol('513310'); // 幂等
+    const symbols = await api.getSymbols();
+    expect(symbols.find((s) => s.code === '513310')).toMatchObject({ favorite: false, favoriteSort: null });
+  });
+
+  it('reorderFavorites 批量重排：codes 顺序即展示顺序；含未收藏 code → 400', async () => {
+    const api = createMockClient();
+    await api.starSymbol('518880');
+    await api.starSymbol('513310');
+    await api.starSymbol('161226');
+    await api.reorderFavorites(['161226', '518880', '513310']);
+    const symbols = await api.getSymbols();
+    expect(symbols.slice(0, 3).map((s) => s.code)).toEqual(['161226', '518880', '513310']);
+    expect(symbols[0]).toMatchObject({ code: '161226', favorite: true, favoriteSort: 1 });
+    await expect(api.reorderFavorites(['518880', '000000'])).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('star/unstar 未知 code 404（符号须已注册）', async () => {
+    const api = createMockClient();
+    await expect(api.starSymbol('000000')).rejects.toMatchObject({ status: 404 });
+    await expect(api.unstarSymbol('000000')).rejects.toMatchObject({ status: 404 });
+  });
 });

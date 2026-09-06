@@ -16,13 +16,17 @@ export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
 export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
 
 /** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
- *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。 */
+ *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。
+ *  Wave 3 页面① 看板收藏：favorite=true 收藏区（按 favoriteSort 升序置顶）；favoriteSort=null 非收藏。/api/symbols
+ *  恒输出 favorite/favorite_sort（后端 always 序列化），此处标记 optional 以兼容既有快照构造；client/mock 恒填充。 */
 export interface SymbolSnapshot {
   code: string;
   name: string;
   enabled: boolean;
   last: number | null; // 无最新数据（latest=null）→ null；有数据为最新价
   changePct: number;
+  favorite?: boolean; // 是否收藏（缺失视为非收藏）
+  favoriteSort?: number | null; // 收藏排序（sort_order，起点 1；非收藏 null）
 }
 
 /** 页面 Props 契约 */

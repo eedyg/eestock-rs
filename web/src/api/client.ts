@@ -59,6 +59,12 @@ export interface ApiClient {
   getSymbols(): Promise<SymbolSnapshot[]>;
   /** 页面①：K线游标分页（解 {bars} 包络，升序） */
   getKline(q: KlineQuery): Promise<Bar[]>;
+  /** 看板收藏（Wave 3 页面①）：一键收藏（POST /api/symbols/{code}/favorite；幂等，404=code 未注册） */
+  starSymbol(code: string): Promise<void>;
+  /** 看板收藏：取消收藏（DELETE /api/symbols/{code}/favorite；幂等，404=code 未注册） */
+  unstarSymbol(code: string): Promise<void>;
+  /** 看板收藏：批量重排（PUT /api/symbols/favorites/order body {codes}；codes 顺序即收藏区展示顺序，须均为已收藏 code，否则 400） */
+  reorderFavorites(codes: string[]): Promise<void>;
   /** 状态条 + 页面②：源健康窗口聚合 */
   getSourcesHealth(): Promise<SourcesHealth>;
   // ── Phase C：页面③ 标的管理 ──
@@ -128,7 +134,8 @@ export interface ApiClient {
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
- *  D2：enabled 透传；latest=null → last=null（前端渲染「无数据」/「已停用」，不伪造 0.000）。 */
+ *  D2：enabled 透传；latest=null → last=null（前端渲染「无数据」/「已停用」，不伪造 0.000）。
+ *  看板收藏：favorite/favorite_sort 透传（恒输出；缺失兜底 false/null）。 */
 function dtoToSnapshot(d: SymbolRow): SymbolSnapshot {
   return {
     code: d.code,
@@ -136,6 +143,8 @@ function dtoToSnapshot(d: SymbolRow): SymbolSnapshot {
     enabled: d.enabled,
     last: d.latest?.last ?? null,
     changePct: d.latest?.change_pct ?? 0,
+    favorite: d.favorite ?? false,
+    favoriteSort: d.favorite_sort ?? null,
   };
 }
 
@@ -175,6 +184,16 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       if (q.limit != null) params.set('limit', String(q.limit));
       const resp = await get<KlineResponse>(`/api/kline?${params.toString()}`);
       return resp.bars;
+    },
+    // ── 看板收藏（Wave 3 页面①；07-app-plane/00-web-api.md §1.5）──
+    starSymbol: async (code) => {
+      await request(`/api/symbols/${encodeURIComponent(code)}/favorite`, { method: 'POST' });
+    },
+    unstarSymbol: async (code) => {
+      await request(`/api/symbols/${encodeURIComponent(code)}/favorite`, { method: 'DELETE' });
+    },
+    reorderFavorites: async (codes) => {
+      await request('/api/symbols/favorites/order', { method: 'PUT', body: JSON.stringify({ codes }) });
     },
     getSourcesHealth: () => get('/api/sources/health'),
     getSymbolsAdmin: () => get('/api/symbols?with_stats=1'),

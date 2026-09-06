@@ -74,6 +74,9 @@ export interface SymbolRow {
   enabled: boolean;
   latest: SymbolLatest | null;
   today_bars?: number; // 仅 with_stats=1 响应携带
+  /** 看板收藏（Wave 3 页面①）：后端恒输出 favorite + favorite_sort（always 序列化；此处 optional 兼容既有构造） */
+  favorite?: boolean; // 是否收藏（缺失视为非收藏）
+  favorite_sort?: number | null; // 收藏排序（sort_order，起点 1；非收藏 null）
 }
 
 /** POST /api/symbols 请求体（缺省 60s/T1/启用 由后端兜底） */

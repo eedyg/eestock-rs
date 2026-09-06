@@ -305,3 +305,90 @@ describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/�
     feed.dispose();
   });
 });
+
+describe('DashboardStore（看板收藏 Wave 3 页面①）', () => {
+  let ws: ReturnType<typeof fakeWs>;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws = fakeWs();
+  });
+
+  it('toggleFavorite 非收藏 → star：乐观标记收藏置顶 + 调 api.starSymbol', async () => {
+    const star = vi.fn(async () => {});
+    const unstar = vi.fn(async () => {});
+    const api = fakeApi({ starSymbol: star, unstarSymbol: unstar });
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    await store.toggleFavorite('513310');
+    expect(star).toHaveBeenCalledWith('513310');
+    expect(unstar).not.toHaveBeenCalled();
+    const fav = store.state.symbols.find((s) => s.code === '513310')!;
+    expect(fav.favorite).toBe(true);
+    expect(fav.favoriteSort).toBe(1);
+    // 收藏置顶展示由 SymbolList 分区负责；store 仅更新收藏标注（不擅动 list 顺序/宫格）
+    expect(store.state.symbols[0]!.favorite).not.toBe(true);
+    store.dispose();
+  });
+
+  it('toggleFavorite 已收藏 → unstar：乐观移出收藏区 + 调 api.unstarSymbol', async () => {
+    const star = vi.fn(async () => {});
+    const unstar = vi.fn(async () => {});
+    const api = fakeApi({ starSymbol: star, unstarSymbol: unstar });
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    await store.toggleFavorite('513310'); // 收藏
+    expect(store.state.symbols.find((s) => s.code === '513310')!.favorite).toBe(true);
+    await store.toggleFavorite('513310'); // 取消收藏
+    expect(unstar).toHaveBeenCalledWith('513310');
+    expect(store.state.symbols.find((s) => s.code === '513310')!.favorite).not.toBe(true);
+    store.dispose();
+  });
+
+  it('toggleFavorite api 失败 → 乐观更新回滚并 rethrow', async () => {
+    const api = fakeApi({
+      starSymbol: vi.fn(async () => {
+        throw new Error('net');
+      }),
+    });
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    const before = store.state.symbols.map((s) => ({ ...s }));
+    await expect(store.toggleFavorite('513310')).rejects.toThrow('net');
+    expect(store.state.symbols).toEqual(before);
+    expect(store.state.symbols.find((s) => s.code === '513310')!.favorite).not.toBe(true);
+    store.dispose();
+  });
+
+  it('reorderFavorites 乐观按新顺序归位 + 调 api.reorderFavorites', async () => {
+    const reorder = vi.fn(async () => {});
+    const api = fakeApi({ reorderFavorites: reorder });
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    await store.toggleFavorite('513310');
+    await store.toggleFavorite('161226');
+    expect(store.state.symbols.find((s) => s.code === '513310')!.favoriteSort).toBe(1);
+    expect(store.state.symbols.find((s) => s.code === '161226')!.favoriteSort).toBe(2);
+    await store.reorderFavorites(['161226', '513310']);
+    expect(reorder).toHaveBeenCalledWith(['161226', '513310']);
+    // 重排只改 favoriteSort（展示排序由 SymbolList 按 favoriteSort 升序分区）
+    expect(store.state.symbols.find((s) => s.code === '161226')!.favoriteSort).toBe(1);
+    expect(store.state.symbols.find((s) => s.code === '513310')!.favoriteSort).toBe(2);
+    store.dispose();
+  });
+
+  it('reorderFavorites api 失败 → 乐观回滚并 rethrow', async () => {
+    const api = fakeApi({
+      reorderFavorites: vi.fn(async () => {
+        throw new Error('net');
+      }),
+    });
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    await store.toggleFavorite('513310');
+    await store.toggleFavorite('161226');
+    const before = store.state.symbols.map((s) => ({ ...s }));
+    await expect(store.reorderFavorites(['161226', '513310'])).rejects.toThrow('net');
+    expect(store.state.symbols).toEqual(before);
+    store.dispose();
+  });
+});

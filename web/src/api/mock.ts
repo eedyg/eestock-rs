@@ -66,10 +66,10 @@ const BASE_PRICE: Record<string, number> = {
 
 function initialSymbols(): SymbolRow[] {
   return [
-    { code: '518880', name: '黄金ETF', interval_secs: 60, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:23:00Z', last: 2.431, change_pct: 0.62 }, today_bars: 205 },
-    { code: '513310', name: '纳指ETF', interval_secs: 60, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:23:00Z', last: 1.587, change_pct: -0.31 }, today_bars: 189 },
-    { code: '161226', name: '白银LOF', interval_secs: 300, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:20:00Z', last: 0.982, change_pct: 1.15 }, today_bars: 41 },
-    { code: '159776', name: '港股通医药', interval_secs: 60, settlement: 'T1', enabled: false, latest: null, today_bars: 0 },
+    { code: '518880', name: '黄金ETF', interval_secs: 60, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:23:00Z', last: 2.431, change_pct: 0.62 }, today_bars: 205, favorite: false, favorite_sort: null },
+    { code: '513310', name: '纳指ETF', interval_secs: 60, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:23:00Z', last: 1.587, change_pct: -0.31 }, today_bars: 189, favorite: false, favorite_sort: null },
+    { code: '161226', name: '白银LOF', interval_secs: 300, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:20:00Z', last: 0.982, change_pct: 1.15 }, today_bars: 41, favorite: false, favorite_sort: null },
+    { code: '159776', name: '港股通医药', interval_secs: 60, settlement: 'T1', enabled: false, latest: null, today_bars: 0, favorite: false, favorite_sort: null },
   ];
 }
 
@@ -415,6 +415,17 @@ function seedBacktestRuns(anchor: number): BacktestRunDto[] {
 export function createMockClient(opts: MockOptions = {}): ApiClient {
   const anchorNow = opts.now?.getTime() ?? Date.now();
   let symbols = initialSymbols();
+  /** 看板收藏（Wave 3 页面①）：已收藏 code 的有序列表（favoriteOrder 下标+1 = sort_order；起点 1）。
+   *  star=追加（max+1）、unstar=移除、reorder=整序；getSymbols 据其注入 favorite/favorite_sort 并收藏优先。 */
+  let favoriteOrder: string[] = [];
+  /** 已收藏 code 的 sort_order 映射（与后端 favorite_map 同构：非收藏不在 map，sort_order 起点 1） */
+  const favMap = (): Map<string, number> =>
+    new Map(favoriteOrder.map((c, i) => [c, i + 1]));
+  const assertSymbolExists = (code: string) => {
+    if (!symbols.some((s) => s.code === code)) {
+      throw new ApiError(404, `HTTP 404: code 未注册`);
+    }
+  };
   /** 页面⑦ 内部状态：ack/patch 行为可在测试中闭环验证 */
   const alertEvents = initialAlertEvents();
   const alertRules = initialAlertRules();
@@ -447,13 +458,42 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
 
   return {
     async getSymbols(): Promise<SymbolSnapshot[]> {
-      return symbols.map((s) => ({
+      const map = favMap();
+      const list = symbols.map((s) => ({
         code: s.code,
         name: s.name ?? s.code,
         enabled: s.enabled,
         last: s.latest?.last ?? null,
         changePct: s.latest?.change_pct ?? 0,
+        favorite: map.has(s.code),
+        favoriteSort: map.get(s.code) ?? null,
       }));
+      // 与后端 /api/symbols 同构：收藏优先（favorite_sort 升序），非收藏保持原序（稳定排序）
+      list.sort((a, b) => {
+        if (a.favorite && b.favorite) return (a.favoriteSort ?? 0) - (b.favoriteSort ?? 0);
+        if (a.favorite) return -1;
+        if (b.favorite) return 1;
+        return 0;
+      });
+      return list;
+    },
+    // ── 看板收藏（Wave 3 页面①；与后端 favorite.rs 同构：star 追加 max+1 幂等、unstar 幂等、reorder 校验已收藏）──
+    async starSymbol(code: string): Promise<void> {
+      assertSymbolExists(code);
+      if (!favoriteOrder.includes(code)) favoriteOrder = [...favoriteOrder, code];
+    },
+    async unstarSymbol(code: string): Promise<void> {
+      assertSymbolExists(code);
+      favoriteOrder = favoriteOrder.filter((c) => c !== code);
+    },
+    async reorderFavorites(codes: string[]): Promise<void> {
+      const set = new Set(favoriteOrder);
+      for (const c of codes) {
+        if (!set.has(c)) {
+          throw new ApiError(400, `HTTP 400: code ${c} 未收藏`);
+        }
+      }
+      favoriteOrder = [...codes];
     },
     async getKline({ code, period, before, limit = 500 }: KlineQuery): Promise<Bar[]> {
       const step = PERIOD_MS[period];
@@ -478,7 +518,12 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       };
     },
     async getSymbolsAdmin(): Promise<SymbolRow[]> {
-      return symbols.map((s) => ({ ...s }));
+      const map = favMap();
+      return symbols.map((s) => ({
+        ...s,
+        favorite: map.has(s.code),
+        favorite_sort: map.get(s.code) ?? null,
+      }));
     },
     async registerSymbol(input: RegisterSymbolInput): Promise<SymbolRow> {
       if (symbols.some((s) => s.code === input.code)) {
@@ -495,6 +540,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         enabled: input.enabled ?? true,
         latest: null,
         today_bars: 0,
+        favorite: false,
+        favorite_sort: null,
       };
       symbols = [...symbols, row];
       return { ...row };

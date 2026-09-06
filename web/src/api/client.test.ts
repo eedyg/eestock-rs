@@ -39,8 +39,19 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     const api = createHttpClient('', f);
     const symbols = await api.getSymbols();
     expect(lastCall(f).url).toBe('/api/symbols');
-    expect(symbols[0]).toEqual({ code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 });
-    expect(symbols[1]).toEqual({ code: '159776', name: '159776', enabled: false, last: null, changePct: 0 });
+    expect(symbols[0]).toEqual({ code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62, favorite: false, favoriteSort: null });
+    expect(symbols[1]).toEqual({ code: '159776', name: '159776', enabled: false, last: null, changePct: 0, favorite: false, favoriteSort: null });
+  });
+
+  it('getSymbols → favorite/favorite_sort 恒映射（收藏=true+sort，非收藏=false+null）', async () => {
+    const f = fetcherReturning([
+      { code: '513310', name: '纳指ETF', interval_secs: 60, settlement: 'T0', enabled: true, latest: { ts: '2026-09-04T02:23:00Z', last: 1.587, change_pct: -0.31 }, favorite: true, favorite_sort: 2 },
+      { code: '518880', name: null, interval_secs: 60, settlement: 'T0', enabled: true, latest: null, favorite: false, favorite_sort: null },
+    ]);
+    const api = createHttpClient('', f);
+    const symbols = await api.getSymbols();
+    expect(symbols[0]).toMatchObject({ code: '513310', favorite: true, favoriteSort: 2 });
+    expect(symbols[1]).toMatchObject({ code: '518880', favorite: false, favoriteSort: null });
   });
 
   it('getKline 拼游标参数并解包络 {bars}（升序）', async () => {
@@ -462,5 +473,44 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
 
     const f404 = fetcherReturning({ error: 'run 不存在' }, false, 404);
     await expect(createHttpClient('', f404).deleteRun(999)).rejects.toMatchObject({ status: 404 });
+  });
+
+  // ── 看板收藏（Wave 3 页面①；07-app-plane/00-web-api.md §1.5）──
+
+  it('starSymbol → POST /api/symbols/{code}/favorite', async () => {
+    const f = fetcherReturning({ code: '513310', favorite: true });
+    const api = createHttpClient('', f);
+    await api.starSymbol('513310');
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/symbols/513310/favorite');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeUndefined();
+  });
+
+  it('unstarSymbol → DELETE /api/symbols/{code}/favorite', async () => {
+    const f = fetcherReturning({ code: '518880', favorite: false });
+    const api = createHttpClient('', f);
+    await api.unstarSymbol('518880');
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/symbols/518880/favorite');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('reorderFavorites → PUT /api/symbols/favorites/order（body {codes} = 收藏区展示顺序）', async () => {
+    const f = fetcherReturning({ codes: ['518880', '513310'], reordered: true });
+    const api = createHttpClient('', f);
+    await api.reorderFavorites(['518880', '513310']);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/symbols/favorites/order');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(String(init.body))).toEqual({ codes: ['518880', '513310'] });
+    expect((init.headers as Record<string, string> | undefined)?.['content-type']).toContain('application/json');
+  });
+
+  it('starSymbol 404（code 未注册）/ reorder 400（未收藏 code）透传 ApiError', async () => {
+    const f404 = fetcherReturning({ error: 'code 未注册' }, false, 404);
+    await expect(createHttpClient('', f404).starSymbol('000000')).rejects.toMatchObject({ status: 404 });
+    const f400 = fetcherReturning({ error: 'code X 未收藏' }, false, 400);
+    await expect(createHttpClient('', f400).reorderFavorites(['X'])).rejects.toMatchObject({ status: 400 });
   });
 });
