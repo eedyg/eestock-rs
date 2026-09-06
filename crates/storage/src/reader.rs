@@ -30,6 +30,7 @@ ORDER BY ts DESC LIMIT $3
 
 /// 统一读源：accurate(优先) UNION ALL 兜底(反连接剔重)。
 /// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖 2024-01-01→今；
+///   W1/MO1（0016）为全历史（2012+，无 2024 过滤），pre-2024 也走 accurate。
 ///   source 记为 'tushare'（与 kline_merged M1 的 accurate 分支一致）。
 /// - 兜底分支：`{fallback}`（表名或 1h rollup 片段），与 accurate 同 ts 的存在时被反连接剔重。
 /// - cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。

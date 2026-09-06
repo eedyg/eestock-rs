@@ -1168,7 +1168,7 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 消费方（web/diagnose）不反向依赖本 crate。
 
 - **统一读源（Wave 3，0010，用户定稿 2026-09-04）**：所有周期都走「accurate 优先 + 底层兜底」合并；
-  读取 = `kline_merged_<P>` = `accurate_<P>`（优先，覆盖 2024-01-01→今）UNION ALL
+  读取 = `kline_merged_<P>` = `accurate_<P>`（优先，覆盖 2024-01-01→今；**W1/MO1 例外**——0016 全历史 2012+）UNION ALL
   `兜底层_<P>`（5m/15m/1d 用 raw-derived cagg；1h 用 kline_15m rollup；1m 用 raw）+ NOT EXISTS 反连接；
 - 1m 读 `kline_merged`（准确层优先语义由视图承载，ADR-003，与 domain merge.rs 契约一致）；
 - 5m/15m/1h/1d 读 `merged_sql(accurate_<P>, 兜底)`（⚠️ cagg `volume` 列为 numeric，`::bigint` 归一；`amount` 恒 double）；
@@ -1210,6 +1210,7 @@ ORDER BY ts DESC LIMIT $3
 
 /// 统一读源：accurate(优先) UNION ALL 兜底(反连接剔重)。
 /// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖 2024-01-01→今；
+///   W1/MO1（0016）为全历史（2012+，无 2024 过滤），pre-2024 也走 accurate。
 ///   source 记为 'tushare'（与 kline_merged M1 的 accurate 分支一致）。
 /// - 兜底分支：`{fallback}`（表名或 1h rollup 片段），与 accurate 同 ts 的存在时被反连接剔重。
 /// - cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。
@@ -1491,6 +1492,7 @@ const CODE_SYM: &str = "997721";
 const CODE_SYM_EMPTY: &str = "997722";
 const CODE_DEEP: &str = "997751";
 const CODE_WM: &str = "997733";   // 周/月聚合测试独占 code（避免与其他并行测试互删；997731 已被 CODE_QUAL 占用）
+const CODE_WM_DEEP: &str = "997752"; // W1/MO1 全历史深翻测试独占 code（0016 前 cagg 有 ts>=2024 过滤）
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -1845,6 +1847,57 @@ async fn symbols_latest_d3_merge_tail_semantics() {
     assert_eq!(s.last_close, Some(8.88));
     assert_eq!(s.prev_close, Some(9.99), "同 ts 并列准确层优先（raw 2.0 被掩盖）");
     clean(&pool, CODE_LATEST).await;
+}
+
+#[tokio::test]
+async fn weekly_monthly_deep_scroll_before_2024() {
+    // 修复问题①：W1/MO1 accurate cagg 全历史（0016 去掉 ts >= '2024-01-01' 过滤）。
+    // 种子 pre-2024（2023）M1 → 周/月桶 <2024；refresh accurate cagg 后深翻应能翻到 <2024-01-01，
+    // 且走 accurate（source='tushare'）而非兜底 kline_1d rollup（kline_1d 仅近 2 周数据，无 pre-2024 行）。
+    // 〇 兜底保留：FALLBACK_1W/1MO 作为 accurate 缺失时的安全网（reader.rs 不删）；全历史 cagg 后 pre-2024
+    //   也走 accurate，故本测试断言 source='tushare' 印证「pre-2024 走 accurate」。
+    let pool = pool().await;
+    clean(&pool, CODE_WM_DEEP).await;
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2023, 1, 2, 1, 30, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2023, 6, 5, 1, 30, 0).unwrap(), 2.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close, volume = EXCLUDED.volume")
+            .bind(CODE_WM_DEEP).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // refresh W1/MO1 cagg 覆盖 2023 桶（整桶起止须落窗内；周桶=2023-01-01 16:00 UTC / 2023-06-04 16:00 UTC；
+    // 月桶=2022-12-31 16:00 UTC（1月）/2023-05-31 16:00 UTC（6月）。放宽窗口覆盖全部）。
+    for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2022-12-01 00:00:00+00', '2023-07-01 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
+    let r = KlineReader::new(pool.clone());
+
+    let cutoff = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+    let start = Utc.with_ymd_and_hms(2024, 1, 15, 0, 0, 0).unwrap();
+    for p in [Period::W1, Period::MO1] {
+        let mut cursor = start;
+        let mut got: Vec<DateTime<Utc>> = Vec::new();
+        for _ in 0..8 {
+            let page = r.bars(p, CODE_WM_DEEP, Some(cursor), 1).await.unwrap();
+            if page.is_empty() { break; }
+            let b = &page[0];
+            assert!(b.ts < cursor, "{p:?} before 不含该 ts 本身");
+            assert_eq!(b.source.as_deref(), Some("tushare"), "{p:?} pre-2024 走 accurate cagg（0016 全历史）");
+            got.push(b.ts);
+            cursor = b.ts;
+        }
+        let before_cutoff = got.iter().filter(|t| **t < cutoff).count();
+        assert!(before_cutoff >= 1, "{p:?} 深翻应覆盖 <2024-01-01 数据点，实际 {got:?}");
+        assert!(got.windows(2).all(|w| w[0] > w[1]), "{p:?} 降序翻页 cursor 严格前进");
+        let distinct: std::collections::HashSet<_> = got.iter().collect();
+        assert_eq!(distinct.len(), got.len(), "{p:?} 无重复数据点");
+    }
+    clean(&pool, CODE_WM_DEEP).await;
 }
 ```
 

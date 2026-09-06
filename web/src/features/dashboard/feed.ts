@@ -24,6 +24,24 @@ export function defaultPageSizeForPeriod(period: Period): number {
   return BARS_PER_TRADING_DAY[period] * 2;
 }
 
+/** 分页批量（loadBefore 向前翻页每页 bar 数）——与「视口 pageSize」分离。
+ *  视口 pageSize=defaultPageSizeForPeriod（2 交易日，小）只用于初始画面铺满与宫格缩略；
+ *  深翻（forward）改用本批量，避免「每翻一次只 2 根、深翻几百次」的低效（问题②根因）。
+ *  取值权衡：批量越大单次往返越大、往返次数越少；给足够深翻的合理量（按周期 bar 总量与滚动坡度）。 */
+export const PAGINATION_BATCH: Record<Period, number> = {
+  '1m': 500, // 分钟：1 根/bar，最大批量加速深翻
+  '5m': 300,
+  '15m': 220,
+  '1h': 120,
+  '1d': 250, // 日线：250 交易日 ≈ 1 年/页，深翻到多年前也不频繁
+  '1w': 150, // 周线：150 周 ≈ 3 年/页
+  '1mo': 80, // 月线：80 月 ≈ 6.7 年/页
+};
+
+export function paginationBatchForPeriod(period: Period): number {
+  return PAGINATION_BATCH[period];
+}
+
 
 type WsLike = Pick<WsClient, 'subscribe'>;
 
@@ -32,7 +50,8 @@ export interface KlineDataFeedDeps {
   ws: WsLike;
   code: string;
   period: Period;
-  pageSize?: number; // 默认 = 2 个交易日的 bar 数（defaultPageSizeForPeriod，定稿 1d/补定稿）；宫格缩略图显式传小值
+  pageSize?: number; // 视口大小（默认 = 2 个交易日的 bar 数，defaultPageSizeForPeriod，定稿 1d/补定稿）；宫格缩略图显式传小值
+  paginationBatch?: number; // 深翻每页 bar 数（默认 = paginationBatchForPeriod(period)）；不传时按周期取批量值
 }
 
 /**
@@ -46,6 +65,7 @@ export class KlineDataFeed {
   hasMore = true;
 
   private readonly pageSize: number;
+  private readonly paginationBatch: number;
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
   private unsubWs: (() => void) | null = null;
@@ -55,6 +75,7 @@ export class KlineDataFeed {
 
   constructor(private deps: KlineDataFeedDeps) {
     this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period);
+    this.paginationBatch = deps.paginationBatch ?? paginationBatchForPeriod(deps.period);
   }
 
   /** 任意状态变更（加载完成/分页拼接/实时更新） */
@@ -110,7 +131,8 @@ export class KlineDataFeed {
     return this.loadInitial();
   }
 
-  /** 向前翻页：以最早 bar 的 ts 为排他游标，去重拼接；返回新增条数 */
+  /** 向前翻页：以最早 bar 的 ts 为排他游标，去重拼接；返回新增条数。
+   *  使用分页批量 `paginationBatch`（而非视口 pageSize），深翻每页取更多、往返更少（问题②修复）。 */
   async loadBefore(): Promise<number> {
     if (this.disposed || !this.hasMore || this.loadingBefore || this.bars.length === 0) return 0;
     this.loadingBefore = true;
@@ -120,13 +142,13 @@ export class KlineDataFeed {
         code: this.deps.code,
         period: this.deps.period,
         before,
-        limit: this.pageSize,
+        limit: this.paginationBatch,
       });
       if (this.disposed) return 0;
       const existing = new Set(this.bars.map((b) => b.ts));
       const fresh = older.filter((b) => !existing.has(b.ts));
       if (fresh.length > 0) this.bars = [...fresh, ...this.bars];
-      if (older.length < this.pageSize) this.hasMore = false;
+      if (older.length < this.paginationBatch) this.hasMore = false;
       this.emit();
       return fresh.length;
     } finally {

@@ -461,23 +461,25 @@ CREATE TABLE favorite_symbols (
 独立枚举）。周 = A股交易周（`time_bucket('1 week', ts, 'Asia/Shanghai')` 周一为界）；月 = 自然月
 （`time_bucket('1 month', ts, 'Asia/Shanghai')` 月界）。
 
-**周/月线 cagg（0014）**：`kline_accurate_1w/1mo` 从 `kline_accurate` M1 聚合（`WHERE ts >= '2024-01-01'`，
-与 0010 同口径——尊重「2024 即可」不聚合 2012 前的亿万级 M1）。准确层优先 + 底层兜底（ADR-003 推广）：
-兜底在 reader.rs **查询期 rollup**（`kline_1d` → week/month 桶，与 1h 兜底从 `kline_15m` rollup 同型）——
-schema 未建 raw-derived `kline_1w/1mo` cagg，按「复用 cagg 兜底语义」判断不新增，表名/时机按 0010 既有模式。
+**周/月线 cagg（0014；0016 重建为全历史）**：`kline_accurate_1w/1mo` 从 `kline_accurate` M1 聚合（**全历史**，
+不设 `ts >= '2024-01-01'` 过滤——周/月桶少，全量聚合 M1 2012+ 便宜，与 0010 的 2024 口径（5m/15m/1h）不同）。
+准确层优先 + 底层兜底（ADR-003 推广）：兜底在 reader.rs **查询期 rollup**（`kline_1d` → week/month 桶，与 1h 兜底
+从 `kline_15m` rollup 同型）——schema 未建 raw-derived `kline_1w/1mo` cagg，按「复用 cagg 兜底语义」判断不新增，
+表名/时机按 0010 既有模式。**0016**：既有库的 0014 已建（2024 过滤）→ DROP 后重建为全历史（同 refresh 策略）；
+兜底 FALLBACK_1W/1MO 保留（accurate 缺时的安全网），全历史 cagg 后 pre-2024 也走 accurate。
 
 ``` {.sql file=migrations/0014_weekly_monthly_caggs.sql}
 -- 0014_weekly_monthly_caggs.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
 -- 行情看板周线/月线（后端 W1）：kline_accurate M1 连续聚合出 kline_accurate_1w/1mo。
 -- 周=A股交易周（time_bucket('1 week', ts, 'Asia/Shanghai') 周一为界）；月=自然月（month 界）。
--- WHERE ts >= '2024-01-01'（与 0010 同口径：尊重「2024 即可」不聚合 2012 前亿万级 M1）。
+-- 全历史（无 ts >= '2024-01-01' 过滤）：周/月桶少，全量聚合 M1 2012+ 便宜（与 0010 的 2024 口径不同）。
 -- 兜底在 reader.rs 查询期 rollup（kline_1d → week/month 桶），见 00-web-api §3。
 CREATE MATERIALIZED VIEW kline_accurate_1w
 WITH (timescaledb.continuous) AS
 SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
-FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+FROM kline_accurate WHERE period = 'M1'
 GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai');
 
 CREATE MATERIALIZED VIEW kline_accurate_1mo
@@ -485,7 +487,7 @@ WITH (timescaledb.continuous) AS
 SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
-FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+FROM kline_accurate WHERE period = 'M1'
 GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai');
 
 -- 刷新策略（周/月桶变化不频繁，schedule 放宽；历史回填后须手动全量 refresh 一次）
@@ -520,6 +522,50 @@ INSERT INTO ma_config (id, ma_windows) VALUES (1, ARRAY[5,10,20]) ON CONFLICT (i
 - `get`：`SELECT ma_windows FROM ma_config WHERE id = 1`；表空/无行 → 默认 `[5,10,20]`（不抛错）。
 - `set`：`INSERT ... ON CONFLICT (id) DO UPDATE SET ma_windows = EXCLUDED.ma_windows, updated_at = now()`，
   参数绑定 `&[i32]` 到 `int4[]` 列（sqlx 支持 Vec<i32>/&[i32] 数组映射）；写回后返回归一化窗口列表。
+
+## 4.3.8 周/月线全历史重建（后端 W1，0016；用户定稿 2026-09-06）
+
+**上下文**：既有库 0014 建的 `kline_accurate_1w/1mo` 带 `WHERE ts >= '2024-01-01'`（0010 同口径），
+故 accurate cagg 只有 2024+ 的周/月桶；reader.rs 兜底 `FALLBACK_1W/1MO` 用 `kline_1d` 查询期 rollup，
+但 `kline_1d` 仅近 2 周数据（无 pre-2024 行）→ 周/月线只能到 2024。
+
+**修复（0016）**：DROP 既有 `kline_accurate_1w/1mo` → 重建为**全历史**（去掉 2024 过滤；周/月桶少，
+全量聚合 M1 2012+ 便宜）+ **同样 refresh 策略**。这样周/月线覆盖全历史（2012+）且走 accurate cagg 快。
+兜底 `FALLBACK_1W/1MO` 保留（accurate 缺时安全网）；全历史 cagg 后 pre-2024 也走 accurate。
+
+``` {.sql file=migrations/0016_weekly_monthly_full_history.sql}
+-- 0016_weekly_monthly_full_history.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 问题① 修复：周/月线全历史。既有库 0014 建的 kline_accurate_1w/1mo 带 ts >= '2024-01-01' 过滤
+-- （仅 2024+），且 reader 兜底 kline_1d 只有近 2 周数据 → 周/月线只能到 2024。
+-- 本迁移 DROP 后重建为全历史（无 2024 过滤；周/月桶少，全量聚合 M1 2012+ 便宜）+ 同样 refresh 策略。
+-- 兜底 FALLBACK_1W/1MO（reader.rs 查询期 kline_1d rollup）保留作为 accurate 缺时的安全网。
+DROP MATERIALIZED VIEW kline_accurate_1w;
+DROP MATERIALIZED VIEW kline_accurate_1mo;
+
+CREATE MATERIALIZED VIEW kline_accurate_1w
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('1 week', ts, 'Asia/Shanghai');
+
+CREATE MATERIALIZED VIEW kline_accurate_1mo
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('1 month', ts, 'Asia/Shanghai') AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai');
+
+-- 刷新策略（与 0014 同）：周用 30d/1d、月用 120d/1d（窗口须覆盖 ≥ 两桶）。
+SELECT add_continuous_aggregate_policy('kline_accurate_1w',
+    start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 hour');
+SELECT add_continuous_aggregate_policy('kline_accurate_1mo',
+    start_offset => INTERVAL '120 days', end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 hour');
+```
 
 ## 4.4 设计注记
 

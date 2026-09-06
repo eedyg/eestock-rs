@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DashboardStore } from './store';
-import { KlineDataFeed, defaultPageSizeForPeriod, BARS_PER_TRADING_DAY } from './feed';
+import { KlineDataFeed, defaultPageSizeForPeriod, paginationBatchForPeriod, BARS_PER_TRADING_DAY } from './feed';
 import type { ApiClient } from '@/api/client';
 import type { Bar, SymbolSnapshot } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
@@ -217,7 +217,7 @@ describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/�
     feed.dispose();
   });
 
-  it('loadBefore 以最早 bar 的 ts 为游标向前翻页并去重拼接', async () => {
+  it('loadBefore 用分页批量（非视口 pageSize）向前翻页并去重拼接', async () => {
     const pages: Record<string, Bar[]> = {
       initial: [bar('2026-09-04T01:45:00Z'), bar('2026-09-04T02:00:00Z'), bar('2026-09-04T02:15:00Z')],
       older: [bar('2026-09-04T01:15:00Z'), bar('2026-09-04T01:30:00Z'), bar('2026-09-04T01:45:00Z')],
@@ -228,8 +228,9 @@ describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/�
     const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', pageSize: 3 });
     await feed.loadInitial();
     await feed.loadBefore();
+    // loadBefore 用 `paginationBatchForPeriod('15m')`=220 而非视口 pageSize（3）；loadInitial 仍用 pageSize
     expect(api.getKline).toHaveBeenLastCalledWith({
-      code: '518880', period: '15m', before: '2026-09-04T01:45:00Z', limit: 3,
+      code: '518880', period: '15m', before: '2026-09-04T01:45:00Z', limit: paginationBatchForPeriod('15m'),
     });
     // 游标重叠的 01:45 去重，无重复无缺漏
     expect(feed.bars.map((b) => b.ts)).toEqual([
