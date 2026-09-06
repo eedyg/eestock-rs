@@ -24,6 +24,7 @@ function hhmm(iso: string): string {
 export function AlertList({
   list,
   acking,
+  ackError,
   onAck,
   onRetry,
 }: {
@@ -31,6 +32,7 @@ export function AlertList({
   acking: Record<number, boolean>;
   onAck: (id: number) => void;
   onRetry: () => void;
+  ackError?: string | null;
 }) {
   if (list.error) {
     return (
@@ -59,7 +61,12 @@ export function AlertList({
     return <div className="p-6 text-center text-xs text-dim">暂无告警</div>;
   }
   return (
-    <div className="h-[680px] overflow-y-auto p-3 text-xs">
+    <div className="flex h-[680px] flex-col overflow-y-auto p-3 text-xs">
+      {ackError && (
+        <div className="mb-1.5 rounded-lg border border-up/40 bg-up/10 px-3 py-1.5 text-up" role="alert">
+          {ackError}
+        </div>
+      )}
       {list.data.map((a) => {
         const unacked = a.status === 'triggered';
         return (

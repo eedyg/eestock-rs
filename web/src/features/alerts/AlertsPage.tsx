@@ -61,6 +61,7 @@ export function AlertsPage({ api = defaultApi, ws = defaultWs }: { api?: ApiClie
         <AlertList
           list={state.list}
           acking={state.acking}
+          ackError={state.ackError}
           onAck={(id) => void store.ack(id)}
           onRetry={() => void store.loadList()}
         />

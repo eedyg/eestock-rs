@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { WsMessage } from '@/ws/WsClient';
 import { stubApi } from '@/test/apiStub';
+import { ApiError } from '@/api/types';
 import type { AlertEventItem } from '@/api/types';
 import { AlertsStore } from './store';
 
@@ -87,6 +88,40 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
     const after = store.state.list.data!.find((a) => a.id === target.id)!;
     expect(after.status).toBe('acked');
     expect(after.acked_at).not.toBeNull();
+    store.dispose();
+  });
+
+  it('ack 失败（404）：resolve 不 reject、置 ackError、不翻转', async () => {
+    const api = stubApi({
+      ackAlert: vi.fn(async () => {
+        throw new ApiError(404, 'not found');
+      }),
+    });
+    const store = new AlertsStore({ api, ws: fakeWs() });
+    await store.init();
+    const target = store.state.list.data!.find((a) => a.status === 'triggered')!;
+    await expect(store.ack(target.id)).resolves.toBeUndefined();
+    // 不翻转（仍为 triggered）、ackError 置位、防双击清除
+    const after = store.state.list.data!.find((a) => a.id === target.id)!;
+    expect(after.status).toBe('triggered');
+    expect(store.state.ackError).toContain('HTTP 404');
+    expect(store.state.acking[target.id]).toBe(false);
+    store.dispose();
+  });
+
+  it('ack 失败后再成功：error 清空、条目翻转', async () => {
+    const api = stubApi();
+    const store = new AlertsStore({ api, ws: fakeWs() });
+    await store.init();
+    const target = store.state.list.data!.find((a) => a.status === 'triggered')!;
+    vi.mocked(api.ackAlert).mockRejectedValueOnce(new ApiError(404, 'not found'));
+    await store.ack(target.id);
+    expect(store.state.ackError).toContain('HTTP 404');
+    expect(store.state.list.data!.find((a) => a.id === target.id)!.status).toBe('triggered');
+    // 后续成功 → 翻转 + 清空 error
+    await store.ack(target.id);
+    expect(store.state.ackError).toBeNull();
+    expect(store.state.list.data!.find((a) => a.id === target.id)!.status).toBe('acked');
     store.dispose();
   });
 

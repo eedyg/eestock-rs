@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { WsMessage } from '@/ws/WsClient';
 import type { ApiClient } from '@/api/client';
+import { ApiError } from '@/api/types';
 import type { AlertEventItem, AlertRuleItem } from '@/api/types';
 import { stubApi } from '@/test/apiStub';
 import { AlertsPage } from './AlertsPage';
@@ -99,6 +100,21 @@ describe('AlertsPage（页面⑦，骨架 AlertsGrid + RegionPortal）', () => {
     await waitFor(() => expect(api.ackAlert).toHaveBeenCalledWith(1));
     await waitFor(() => expect(screen.getAllByRole('button', { name: '确认' })).toHaveLength(1));
     expect(screen.getAllByText(/已确认/)).toHaveLength(2);
+  });
+
+  it('确认失败（404）：显示确认失败提示、行不翻转、仍可交互', async () => {
+    const api = apiWith({
+      ackAlert: vi.fn(async () => {
+        throw new ApiError(404, 'not found');
+      }),
+    });
+    const user = userEvent.setup();
+    render(<AlertsPage api={api} ws={fakeWs() as never} />);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: '确认' })).toHaveLength(2));
+    await user.click(screen.getAllByRole('button', { name: '确认' })[0]!);
+    await waitFor(() => expect(screen.getByText(/确认失败：HTTP 404/)).toBeInTheDocument());
+    // 行不翻转（仍 triggered，2 条未确认）；页面仍可交互
+    expect(screen.getAllByRole('button', { name: '确认' })).toHaveLength(2);
   });
 
   it('过滤变更即重查：级别下拉变更携带 level 参数', async () => {

@@ -28,6 +28,7 @@ export interface AlertsState {
   list: AsyncSlice<AlertEventItem[]>;
   rules: AsyncSlice<AlertRuleItem[]>;
   acking: Record<number, boolean>;
+  ackError: string | null;
 }
 
 type WsLike = Pick<WsClient, 'subscribe'>;
@@ -60,6 +61,7 @@ export class AlertsStore {
     list: { data: null, loading: true, error: null },
     rules: { data: null, loading: true, error: null },
     acking: {},
+    ackError: null,
   };
   private listeners = new Set<() => void>();
   private offWs: (() => void) | null = null;
@@ -132,16 +134,22 @@ export class AlertsStore {
     await this.loadList();
   }
 
-  /** 「确认」= 标记已读（就地更新，持久化由后端 acked_at 承载） */
+  /** 「确认」= 标记已读（就地更新，持久化由后端 acked_at 承载）；404/失败 → 置 ackError（不抛未捕获，不翻转） */
   async ack(id: number): Promise<void> {
     if (this.current.acking[id]) return;
-    this.patch({ acking: { ...this.current.acking, [id]: true } });
+    this.patch({ acking: { ...this.current.acking, [id]: true }, ackError: null });
     try {
       const updated = await this.deps.api.ackAlert(id);
       const list = this.current.list.data;
       if (list) {
         this.patch({ list: { ...this.current.list, data: list.map((a) => (a.id === id ? updated : a)) } });
       }
+      this.patch({ ackError: null });
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      const status =
+        typeof err.status === 'number' ? `HTTP ${err.status}` : (err.message ?? 'unknown');
+      this.patch({ ackError: `确认失败：${status}` });
     } finally {
       this.patch({ acking: { ...this.current.acking, [id]: false } });
     }
