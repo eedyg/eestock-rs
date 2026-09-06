@@ -45,11 +45,16 @@ const trade: Trade = {
   hold_bars: 1,
 };
 
+// 已加载 bar 集合：落在开→平 ± buffer 窗口内（对各周期 1m/5m/15m/1d 均覆盖），
+// 且 trade.open_ts/close_ts（D1 桶边界）本身不是这些 1m bar 的 ts（无同类 bar，模拟 D1→1m 场景）。
 const BARS: Bar[] = [
-  { ts: '2023-11-14T09:30:00.000Z', open: 9.9, high: 10.1, low: 9.8, close: 10, volume: 1000, amount: 10000 },
-  { ts: '2023-11-14T09:31:00.000Z', open: 10, high: 10.2, low: 9.9, close: 10.1, volume: 1200, amount: 12120 },
-  { ts: '2023-11-14T09:32:00.000Z', open: 10.1, high: 11.2, low: 10, close: 11, volume: 1500, amount: 16500 },
+  { ts: '2023-11-14T22:00:00.000Z', open: 9.9, high: 10.1, low: 9.8, close: 10, volume: 1000, amount: 10000 },
+  { ts: '2023-11-14T22:10:00.000Z', open: 10, high: 10.2, low: 9.9, close: 10.1, volume: 1200, amount: 12120 },
+  { ts: '2023-11-15T22:00:00.000Z', open: 10.1, high: 11.2, low: 10, close: 11, volume: 1500, amount: 16500 },
 ];
+// 开仓/平仓 ts 在「已加载 bar 集合」里吸附后的目标 bar ts（D1 桶边界 22:13:20Z → 最近 22:10 / 次日 22:00）。
+const SNAPPED_OPEN_TS = Date.parse('2023-11-14T22:10:00.000Z');
+const SNAPPED_CLOSE_TS = Date.parse('2023-11-15T22:00:00.000Z');
 
 function fakeApi(): ApiClient {
   return stubApi({ getKline: vi.fn(async () => BARS) });
@@ -186,49 +191,54 @@ describe('TradeDetailModal（交易明细弹窗）', () => {
     );
   });
 
-  it('K 线含开仓「B」/平仓「S」标记 overlay（simpleAnnotation，锚定开/平仓 ts）', async () => {
+  it('K 线含开仓「B」/平仓「S」标记 overlay：吸附到已加载 bar 并钳位（On-Screen）', async () => {
     renderModal();
     await screen.findByTestId('kline-chart');
-    // 开仓「B」：simpleAnnotation，extendData='B'，锚定开仓 bar（open_ts 毫秒）
-    expect(chartStub.createOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'simpleAnnotation',
-        extendData: 'B',
-        points: [expect.objectContaining({ timestamp: trade.open_ts * 1000 })],
-      }),
-    );
-    // 平仓「S」：simpleAnnotation，extendData='S'，锚定平仓 bar（close_ts 毫秒）
-    expect(chartStub.createOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'simpleAnnotation',
-        extendData: 'S',
-        points: [expect.objectContaining({ timestamp: trade.close_ts * 1000 })],
-      }),
-    );
+    // 开仓「B」：simpleAnnotation，extendData='B'，锚定「吸附后」开仓 bar ts（非原始 D1 桶 ts）
+    await waitFor(() => {
+      expect(chartStub.createOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'simpleAnnotation',
+          extendData: 'B',
+          points: [expect.objectContaining({ timestamp: SNAPPED_OPEN_TS })],
+        }),
+      );
+      // 平仓「S」：simpleAnnotation，extendData='S'，锚定「吸附后」平仓 bar ts
+      expect(chartStub.createOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'simpleAnnotation',
+          extendData: 'S',
+          points: [expect.objectContaining({ timestamp: SNAPPED_CLOSE_TS })],
+        }),
+      );
+    });
   });
 
-  it('周期切换 → B/S 标记随新周期 bar 重定位（重建 chart 重新 createOverlay，锚点仍为开/平 ts）', async () => {
+  it('周期切换（D1→更细 1m）→ B/S 标记按新周期已加载 bar 重新吸附锚定（On-Screen）', async () => {
     renderModal();
     await screen.findByTestId('kline-chart');
-    await userEvent.click(screen.getByRole('button', { name: '5m' }));
-    // 周期切换后 KlineChart 以新 feed 重建，B/S 会基于新周期 bar 就近对齐重新打点
+    // 切到更细周期 1m（触发新的 ScopedKlineFeed + KlineChart 重建）
+    await userEvent.click(screen.getByRole('button', { name: '1m' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '5m' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: '1m' })).toHaveAttribute('aria-pressed', 'true');
     });
-    expect(chartStub.createOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'simpleAnnotation',
-        extendData: 'B',
-        points: [expect.objectContaining({ timestamp: trade.open_ts * 1000 })],
-      }),
-    );
-    expect(chartStub.createOverlay).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'simpleAnnotation',
-        extendData: 'S',
-        points: [expect.objectContaining({ timestamp: trade.close_ts * 1000 })],
-      }),
-    );
+    // B/S 基于 1m 已加载 bar 重新吸附（仍锚定「吸附后」真实 bar ts，落于已加载范围内）
+    await waitFor(() => {
+      expect(chartStub.createOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'simpleAnnotation',
+          extendData: 'B',
+          points: [expect.objectContaining({ timestamp: SNAPPED_OPEN_TS })],
+        }),
+      );
+      expect(chartStub.createOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'simpleAnnotation',
+          extendData: 'S',
+          points: [expect.objectContaining({ timestamp: SNAPPED_CLOSE_TS })],
+        }),
+      );
+    });
   });
 
   it('resize 手柄存在且拖动可调整弹窗尺寸', async () => {

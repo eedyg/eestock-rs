@@ -34,10 +34,11 @@ export interface KlineRangeOverlay {
   toTs: number; // Unix 毫秒
   price?: number; // 名义锚定价（全高背景只用 x，y 不敏感）
 }
-/** overlay：开/平仓 bar 标记（如同 TradingView 买/卖点）——按 ts 锚定当前周期 bar 就近对齐。 */
+/** overlay：开/平仓 bar 标记（如同 TradingView 买/卖点）——按 ts 锚定当前周期 bar，渲染时先经
+ *  snapTsToBars 吸附到「已加载 bar」并钳位（On-Screen），周期切换自动重定位。 */
 export interface KlineMarkerOverlay {
   type: 'marker';
-  /** 锚定 ts（Unix 毫秒）：开仓/平仓 moment；渲染时按当前周期 bar 就近对齐，周期切换自动重定位。 */
+  /** 目标 ts（Unix 毫秒）：开仓/平仓 moment（run 周期桶 ts）；渲染前吸附/钳位到当前周期已加载 bar。 */
   ts: number;
   /** 标记文本：开仓 'B' / 平仓 'S'。 */
   text: 'B' | 'S';
@@ -54,7 +55,7 @@ export interface KlineChartProps {
   followLatest: boolean;
   indicators: Record<IndicatorName, boolean>;
   onManualZoom(): void;
-  /** 可选 overlay（开/平仓价位线 + 区间高亮）；看板不传则默认无。 */
+  /** 可选 overlay（开/平仓价位线 + 区间高亮 + 开/平仓 B/S 标记）；看板不传则默认无。 */
   overlays?: KlineOverlay[];
 }
 
@@ -113,12 +114,42 @@ function ensureTradeRangeOverlayRegistered() {
   tradeRangeRegistered = true;
 }
 
-/** 创建 overlay（开/平仓满宽价位线 + 开平仓区间高亮背景 + 开/平仓 B/S bar 标记）。
- *  专用图元：
- *   - 价位线用内置 `simpleTag`（满宽横线 + Y 轴标签），value 锚定价位，extendData 作标签。
- *   - 区间高亮用注册的 `tradeRange`（全高背景 rect），x 由 open/close 时间戳决定。
- *   - 开/平仓标记用内置 `simpleAnnotation`（竖线 + 箭头 + 文本 B/S），point 用 { timestamp, value }
- *     锚定，渲染时按当前周期 bar 就近对齐；周期切换（feed 变 → 整图重建）会重新 createOverlay，自动重定位。 */
+/** B/S 标记「吸附 + 钳位」纯函数：在已加载 bar 集合里吸附到距目标 ts 最近的 bar，并钳位到 [0, len-1]
+ *  （On-Screen 保证）。
+ *  语义：
+ *   - 目标 ts 有同类 bar（等于/粗于 run 周期）→ 精确命中，吸附不偏移。
+ *   - 目标 ts 无同类 bar（如 D1 run 桶 ts=16:00Z 切 1m）→ 吸附到最近 bar；
+ *     若 ts 在区间外（早/晚于首/末根）→ 钳位到边缘根——标记始终落在已加载范围内，不会因 klinecharts
+ *     按周期步长外推到屏外。
+ *  注：返回 ts 恒为已加载某根 bar 的真实时间戳（毫秒），index 恒在 [0, bars.length-1]。
+ *  bars 为空返回 null（无可吸附 bar）。 */
+export interface SnapToBarsResult {
+  index: number;
+  ts: number;
+}
+export function snapTsToBars(
+  bars: ReadonlyArray<{ ts: string }>,
+  targetTs: number,
+): SnapToBarsResult | null {
+  if (bars.length === 0) return null;
+  let bestIndex = 0;
+  let bestTs = Date.parse(bars[0]!.ts);
+  let bestDiff = Math.abs(bestTs - targetTs);
+  for (let i = 1; i < bars.length; i++) {
+    const t = Date.parse(bars[i]!.ts);
+    const diff = Math.abs(t - targetTs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIndex = i;
+      bestTs = t;
+    }
+  }
+  return { index: bestIndex, ts: bestTs };
+}
+
+/** 创建基础 overlay（开/平仓满宽价位线 + 开平仓区间高亮背景）。
+ *  B/S bar 标记（simpleAnnotation）不在此创建：其 ts 需先依「已加载 bar」吸附/钳位以保证跨周期 On-Screen，
+ *  由 createMarkerOverlays 在 feed 加载完成后创建。 */
 function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
   for (const ov of overlays) {
     if (ov.type === 'price-line') {
@@ -136,24 +167,7 @@ function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
           },
         },
       });
-    } else if (ov.type === 'marker') {
-      // 开/平仓 bar 标记（B/S）：klinecharts 内置 simpleAnnotation（竖线 + 箭头 + 文本），
-      // point 用 { timestamp, value } 锚定，渲染时按当前周期 bar 就近对齐（周期切换自动重定位）。
-      chart.createOverlay({
-        name: 'simpleAnnotation',
-        paneId: 'candle_pane',
-        lock: true,
-        points: [{ timestamp: ov.ts, value: ov.price ?? 0 }],
-        extendData: ov.text,
-        styles: {
-          line: {
-            style: 'dashed',
-            color: ov.color ?? '#8b93b0',
-            size: 1,
-          },
-        },
-      });
-    } else {
+    } else if (ov.type === 'range') {
       ensureTradeRangeOverlayRegistered();
       const price = ov.price ?? 0;
       chart.createOverlay({
@@ -166,6 +180,36 @@ function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
         ],
       });
     }
+  }
+}
+
+/** 创建开/平仓 B/S bar 标记 overlay（klinecharts 内置 simpleAnnotation：竖线 + 箭头 + 文本 B/S）。
+ *  marker ts 先经 snapTsToBars 吸附/钳位到「已加载 bar」再锚定，保证跨周期 On-Screen；
+ *  周期切换（feed 变 → 整图重建）后重新 createOverlay，回到当前周期已加载 bar 重新吸附。
+ *  无已加载 bar（bars 空）则跳过（无可吸附对象，避免锚定到屏外）。 */
+function createMarkerOverlays(
+  chart: Chart,
+  overlays: ReadonlyArray<KlineOverlay>,
+  bars: ReadonlyArray<{ ts: string }>,
+) {
+  for (const ov of overlays) {
+    if (ov.type !== 'marker') continue;
+    const snapped = snapTsToBars(bars, ov.ts);
+    if (!snapped) continue;
+    chart.createOverlay({
+      name: 'simpleAnnotation',
+      paneId: 'candle_pane',
+      lock: true,
+      points: [{ timestamp: snapped.ts, value: ov.price ?? 0 }],
+      extendData: ov.text,
+      styles: {
+        line: {
+          style: 'dashed',
+          color: ov.color ?? '#8b93b0',
+          size: 1,
+        },
+      },
+    });
   }
 }
 
@@ -273,7 +317,13 @@ export function KlineChart(props: KlineChartProps) {
     };
     chart.subscribeAction('onZoom', manual);
     chart.subscribeAction('onScroll', manual);
-    void feed.loadInitial(); // 幂等兜底（DataLoader 路径之外保证加载）
+    // 幂等兜底（DataLoader 路径之外保证加载）；加载完成后依「已加载 bar」吸附/钳位创建 B/S 标记
+    // （跨周期 On-Screen）。仅在本 chart 仍存活时创建（防周期切换/卸载后仍回打点）。
+    void feed.loadInitial().then(() => {
+      if (chartRef.current === chart) {
+        createMarkerOverlays(chart, props.overlays ?? [], feed.bars);
+      }
+    });
 
     return () => {
       offRt();
