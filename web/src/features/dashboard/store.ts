@@ -65,6 +65,22 @@ export class DashboardStore {
     this.listeners.forEach((l) => l());
   }
 
+  /** 读 URL `?code=` 深链参数（不存在 → null）。批1c C1b：支持打开/刷新按 URL code 选中。 */
+  private readUrlCode(): string | null {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('code');
+  }
+
+  /**
+   * 初选解析优先级：URL `?code=`（存在且在 symbols 中）> 现有 selected（重试保留）> 默认首只。
+   * C1b：URL 带 code 且已注册 → 选中该只；URL code 不存在（未注册/停用）→ 回退默认首只；无 code → 默认首只。
+   */
+  private resolveInitialSelected(symbols: SymbolSnapshot[], urlCode: string | null): string | null {
+    if (urlCode && symbols.some((s) => s.code === urlCode)) return urlCode;
+    if (symbols.some((s) => s.code === this.current.selected)) return this.current.selected;
+    return symbols[0]?.code ?? null;
+  }
+
   async init(): Promise<void> {
     this.patch({ symbolsStatus: 'loading' });
     if (this.unsubs.length === 0) {
@@ -85,9 +101,7 @@ export class DashboardStore {
     }
     try {
       const symbols = await this.deps.api.getSymbols();
-      const selected = symbols.some((s) => s.code === this.current.selected)
-        ? this.current.selected
-        : (symbols[0]?.code ?? null);
+      const selected = this.resolveInitialSelected(symbols, this.readUrlCode());
       this.patch({ symbols, symbolsStatus: 'ready', selected });
     } catch {
       this.patch({ symbolsStatus: 'error' });

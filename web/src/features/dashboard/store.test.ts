@@ -187,6 +187,10 @@ describe('DashboardStore', () => {
     ws.emit('quote', { type: 'quote', code: '518880', last: 9.9, changePct: 9 });
     expect(store.state.symbols.find((s) => s.code === '518880')!.last).toBe(2.431);
   });
+
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
 });
 
 describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/实时追加）', () => {
@@ -312,6 +316,59 @@ describe('DashboardStore（看板收藏 Wave 3 页面①）', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ws = fakeWs();
+  });
+
+  it('URL ?code= 深链：URL 带 code → init 后选中该只（打开即选中）', async () => {
+    window.history.replaceState(null, '', '/?code=161226');
+    const api = fakeApi();
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    expect(store.state.selected).toBe('161226');
+    store.dispose();
+  });
+
+  it('URL ?code= 深链：reload（URL 仍带 code）→ 新 store init 后仍选中该只（刷新保持）', async () => {
+    window.history.replaceState(null, '', '/?code=161226');
+    const s1 = new DashboardStore({ api: fakeApi(), ws });
+    await s1.init();
+    expect(s1.state.selected).toBe('161226');
+    s1.dispose();
+    // 刷新 = 重新挂载 → 新 store 重新读 location.search（仍带 code）
+    const s2 = new DashboardStore({ api: fakeApi(), ws });
+    await s2.init();
+    expect(s2.state.selected).toBe('161226');
+    s2.dispose();
+  });
+
+  it('URL ?code= 深链：URL code=不存在（未注册/停用）→ 回退默认首只（不报错）', async () => {
+    window.history.replaceState(null, '', '/?code=ZZZZ');
+    const api = fakeApi();
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    expect(store.state.selected).toBe('518880');
+    store.dispose();
+  });
+
+  it('URL ?code= 深链：URL 无 code → 默认首只（对照不误选）', async () => {
+    window.history.replaceState(null, '', '/');
+    const api = fakeApi();
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    expect(store.state.selected).toBe('518880');
+    store.dispose();
+  });
+
+  it('URL ?code= 深链：URL 深链选中后 正常点选/切周期 不丢（与 selectSymbol 协调）', async () => {
+    window.history.replaceState(null, '', '/?code=161226');
+    const api = fakeApi();
+    const store = new DashboardStore({ api, ws });
+    await store.init();
+    expect(store.state.selected).toBe('161226');
+    store.setPeriod('1h');
+    expect(store.state.selected).toBe('161226');
+    store.selectSymbol('513310'); // 正常点选仍生效（不破坏）
+    expect(store.state.selected).toBe('513310');
+    store.dispose();
   });
 
   it('toggleFavorite 非收藏 → star：乐观标记收藏置顶 + 调 api.starSymbol', async () => {

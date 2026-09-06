@@ -314,3 +314,76 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     });
   });
 });
+
+// ── URL ?code= 深链选中（批1c C1b 缺口）：打开/刷新按 URL code 选中；无 code 默认首只 ──
+describe('DashboardPage（URL ?code= 深链选中）', () => {
+  let ws: ReturnType<typeof fakeWs>;
+  let api: ApiClient;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws = fakeWs();
+    api = fakeApi();
+  });
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
+  function selectedCodeInList(): string | null {
+    const symRegion = document.querySelector('[data-region="symbol-list"]');
+    const sel = symRegion?.querySelector('button[data-selected="true"] b');
+    return sel?.textContent?.trim() ?? null;
+  }
+
+  async function renderWithUrl(url: string) {
+    window.history.replaceState(null, '', url);
+    const r = render(
+      <MemoryRouter>
+        <DashboardPage api={api} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
+    return r;
+  }
+
+  it('URL 带 code=161226 → 打开后选中该只并加载其 kline', async () => {
+    await renderWithUrl('/?code=161226');
+    expect(selectedCodeInList()).toBe('161226');
+    await waitFor(() => {
+      expect(api.getKline).toHaveBeenCalledWith(expect.objectContaining({ code: '161226' }));
+    });
+  });
+
+  it('URL 带 code=161226 选中后切周期/指标不丢（复用批1c 断言）', async () => {
+    await renderWithUrl('/?code=161226');
+    expect(selectedCodeInList()).toBe('161226');
+    await userEvent.click(screen.getByRole('button', { name: '1h' }));
+    await waitFor(() => {
+      expect(api.getKline).toHaveBeenCalledWith(expect.objectContaining({ code: '161226', period: '1h' }));
+    });
+    expect(selectedCodeInList()).toBe('161226'); // 切周期不丢选中
+  });
+
+  it('URL code=不存在（未注册/停用）→ 默认选中首只（不报错）', async () => {
+    await renderWithUrl('/?code=ZZZZ');
+    expect(selectedCodeInList()).toBe('518880');
+  });
+
+  it('URL 无 code → 默认选中首只（对照不误选）', async () => {
+    await renderWithUrl('/');
+    expect(selectedCodeInList()).toBe('518880');
+  });
+
+  it('reload（URL 仍带 code）→ 重新挂载后仍选中该只（刷新保持）', async () => {
+    const { unmount } = await renderWithUrl('/?code=161226');
+    expect(selectedCodeInList()).toBe('161226');
+    unmount();
+    // 刷新 = 重新挂载 → 新 store 重新读 location.search（仍带 code）
+    render(
+      <MemoryRouter>
+        <DashboardPage api={api} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
+    expect(selectedCodeInList()).toBe('161226');
+  });
+});
