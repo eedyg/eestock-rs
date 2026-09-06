@@ -95,15 +95,32 @@ export class BacktestStore {
     await Promise.all([this.loadStrategies(), this.loadRuns()]);
   }
 
-  /** WS 进度回调节点：按 run_id 落到 progressMap（覆盖 REST 进度），不重推全列表。 */
+  /** WS 进度回调节点：按 run_id 落到 progressMap（覆盖 REST 进度），不重推全列表。
+   *  完成信号（pct>=100）驱动该 run 详情重捞，把行状态翻为终态并结果可点，无需整页 reload。 */
   private onProgress(msg: BacktestProgressMsg): void {
     if (typeof msg.run_id !== 'number') return;
+    const pct = msg.pct ?? 0;
     this.patch({
       progressMap: {
         ...this.current.progressMap,
-        [msg.run_id]: { pct: msg.pct ?? 0, currentTs: msg.bar_ts ?? null },
+        [msg.run_id]: { pct, currentTs: msg.bar_ts ?? null },
       },
     });
+    if (pct >= 100) void this.refreshRunInList(msg.run_id);
+  }
+
+  /** WS 完成信号驱动：重捞单个 run（GET /api/backtest/runs/{id}）并合并回 runs 列表。
+   *  仅更新该行终态（done/failed）+ 结果可点，其它行保持不变；重捞失败保留现有行（下次信号/重试兜底）。 */
+  private async refreshRunInList(id: number): Promise<void> {
+    const cur = (this.current.runs.data ?? []).find((r) => r.id === id);
+    if (cur && (cur.status === 'done' || cur.status === 'failed')) return;
+    try {
+      const data = await this.deps.api.getRun(id);
+      const runs = (this.current.runs.data ?? []).map((r) => (r.id === id ? data : r));
+      this.patch({ runs: { ...this.current.runs, data: runs } });
+    } catch {
+      // 单 run 重捞失败：保留当前行（列表快照兜底）
+    }
   }
 
   async loadStrategies(): Promise<void> {
@@ -205,8 +222,10 @@ export class BacktestStore {
     if (view === 'compare') void this.refreshCompare();
   }
 
-  /** 提交回测/网格：POST /api/backtest/runs；网格→任务组排行视图；单 run→载入其详情。 */
+  /** 提交回测/网格：POST /api/backtest/runs；网格→任务组排行视图；单 run→载入其详情。
+   *  in-flight 去重：提交进行中再次提交被忽略（防御 dblclick 发 2 POST；按钮已禁用但 store 层兜底）。 */
   async submit(req: BacktestSubmitReq): Promise<void> {
+    if (this.current.submitting) return;
     this.patch({ submitting: true, submitError: null });
     try {
       const resp = await this.deps.api.submitRun(req);

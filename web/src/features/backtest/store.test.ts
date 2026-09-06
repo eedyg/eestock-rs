@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
+import type { BacktestRunDto, BacktestSubmitReq, BacktestSubmitResp } from '@/api/types';
 import { createMockClient } from '@/api/mock';
 import { BacktestStore, gridGroups } from './store';
 
@@ -45,6 +46,27 @@ describe('BacktestStore（页面⑤状态机）', () => {
     expect(s.store.state.progressMap[12]).toBeUndefined();
     s.ws.emit('backtest', { type: 'backtest_progress', run_id: 12, pct: 80, bar_ts: '2026-09-04T02:00:00Z' });
     expect(s.store.state.progressMap[12]).toEqual({ pct: 80, currentTs: '2026-09-04T02:00:00Z' });
+  });
+
+  it('WS progress 未到 100 仅推进度不重捞；到 100 重捞单 run 合并回 runs（行状态翻 done、不改其它行）', async () => {
+    await s.store.init();
+    expect(s.store.state.runs.data!.find((r) => r.id === 12)!.status).toBe('running');
+    const getRunSpy = vi.spyOn(s.api, 'getRun');
+    // 未到 100：仅推进度，不重捞（WS 完成信号驱动局部刷新，非全列表轮询）
+    s.ws.emit('backtest', { type: 'backtest_progress', run_id: 12, pct: 80, bar_ts: '2026-09-04T02:00:00Z' });
+    expect(getRunSpy).not.toHaveBeenCalled();
+    expect(s.store.state.runs.data!.find((r) => r.id === 12)!.status).toBe('running');
+    // 到 100：触发该 run 详情重捞并合并回 runs
+    const running12 = s.store.state.runs.data!.find((r) => r.id === 12)!;
+    const done12: BacktestRunDto = { ...running12, status: 'done', progress: 100, finished_at: '2026-09-04T02:00:00Z' };
+    getRunSpy.mockResolvedValue(done12);
+    s.ws.emit('backtest', { type: 'backtest_progress', run_id: 12, pct: 100, bar_ts: '2026-09-04T02:00:00Z' });
+    await vi.waitFor(() => expect(s.store.state.runs.data!.find((r) => r.id === 12)!.status).toBe('done'));
+    expect(getRunSpy).toHaveBeenCalledWith(12);
+    // 其它 run 保持不变
+    expect(s.store.state.runs.data!.find((r) => r.id === 11)!.status).toBe('done');
+    expect(s.store.state.runs.data!.find((r) => r.id === 13)!.status).toBe('pending');
+    expect(s.store.state.runs.data!.find((r) => r.id === 14)!.status).toBe('failed');
   });
 
   it('selectRun 载入详情并置 resultView=single、清 compare', async () => {
@@ -97,6 +119,24 @@ describe('BacktestStore（页面⑤状态机）', () => {
     vi.spyOn(s.api, 'submitRun').mockRejectedValueOnce(new Error('HTTP 400'));
     await s.store.submit({ strategyId: 'dual_ma', params: {}, code: '518880', period: '1d', fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 } });
     expect(s.store.state.submitError).toContain('HTTP 400');
+  });
+
+  it('submit 进行中再次 submit → 仅 1 次 POST（in-flight 去重，防御 dblclick）', async () => {
+    await s.store.init();
+    const submitRunSpy = vi.spyOn(s.api, 'submitRun');
+    let release!: (r: BacktestSubmitResp) => void;
+    submitRunSpy.mockImplementationOnce(() => new Promise((res) => { release = res; }));
+    const req: BacktestSubmitReq = { strategyId: 'dual_ma', params: { fast: 5, slow: 20 }, code: '518880', period: '1d', fee: { ratePct: 0.025, minFee: 5, slippageBp: 2 } };
+    const first = s.store.submit(req);
+    // 提交进行中（submitting=true），模拟 dblclick 第二次 submit
+    expect(s.store.state.submitting).toBe(true);
+    await s.store.submit(req);
+    expect(submitRunSpy).toHaveBeenCalledTimes(1); // 仅 1 次 POST
+    expect(s.store.state.submitting).toBe(true);   // 仍处于提交中
+    release!({ run_id: 999 });
+    await first;
+    expect(s.store.state.submitting).toBe(false);  // 完成后清除标志
+    expect(submitRunSpy).toHaveBeenCalledTimes(1); // 依然只 1 次
   });
 
   it('deleteRun 删除 run 并从列表/选中结果区移除', async () => {
