@@ -45,3 +45,11 @@
 - 发现的缺陷 → 修复 + **转成对应回归用例**(fail→fix→green 固化)。
 - 每轮结束须对这些用例对当前环境全绿才收尾；改动后自动复跑把关。
 - 临时探针/证据在 `/tmp`，不入库。
+
+## ✅ 本轮完成（2026-09-06/07 一整个深度 TDD 轮）
+**看板①**：`dashboard-periods-ma`(周期深翻/分页批量/MA配置) `dashboard-favorites`(星标/拖拽/持久/Q4) `dashboard-state-consistency`(选中/竞态/WS/reload一致性)。
+**回测⑤**：`backtest-form-task`(表单/提交/任务/删除/幂等) `backtest-result-trade-modal`(结果图/指标/弹窗K线) `backtest-compare-gridrank`(compare/网格)。
+**②③**：`sources-symbols-deep`。**④**：`quality-deep`。**⑦⑧**：`alerts-settings-deep`。
+共 **9 个回归 e2e 文件(~6500 行)**，全部随 `npm run e2e` 常驻。
+**深测抓并修复 3 个真实缺陷 + 1 改进**：C1b 看板 URL ?code= 选中未实现；回测 run 完成后状态不自动刷新；告警 ack 404 未捕获 rejection；回测提交 in-flight 去重。
+各页覆盖交互/边界/一致性/可重入，全程 pageerror=0。
