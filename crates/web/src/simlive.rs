@@ -113,7 +113,7 @@ pub async fn state(State(st): State<Arc<AppState>>, Query(q): Query<SimStateQuer
     let sid = match resolve_session_id(&sim, q.session_id.as_deref()) { Ok(id) => id, Err(e) => return e };
 
     let account = match sim.get_account(&sid) { Ok(a) => a, Err(e) => return internal(e) };
-    let positions = match sim.get_positions(&sid) { Ok(p) => p, Err(e) => return internal(e) };
+    let positions = match sim.get_positions(&sid).await { Ok(p) => p, Err(e) => return internal(e) };
     let pnl = match sim.get_pnl(&sid) { Ok(p) => p, Err(e) => return internal(e) };
     let trading_enabled = match sim.trading_enabled(&sid) { Ok(t) => t, Err(e) => return internal(e) };
     let session_detail = match sim.get_session(&sid).await { Ok(s) => s, Err(e) => return internal(e) };
@@ -134,7 +134,7 @@ pub async fn state(State(st): State<Arc<AppState>>, Query(q): Query<SimStateQuer
 pub async fn positions(State(st): State<Arc<AppState>>, Query(q): Query<SimStateQuery>) -> Response {
     let sim = match sim_service(&st) { Ok(s) => s, Err(e) => return e };
     let sid = match resolve_session_id(&sim, q.session_id.as_deref()) { Ok(id) => id, Err(e) => return e };
-    match sim.get_positions(&sid) {
+    match sim.get_positions(&sid).await {
         Ok(positions) => Json(serde_json::json!({ "session_id": sid, "positions": positions })).into_response(),
         Err(e) => internal(e),
     }

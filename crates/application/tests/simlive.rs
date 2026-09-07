@@ -212,7 +212,7 @@ async fn market_buy_fills_at_latest_applies_account_and_persists() {
 
     let acct = svc.get_account(&id).unwrap();
     close(acct.cash, 1_000_000.0 - 1000.0 * 10.002 - 5.0);
-    let pos = svc.get_positions(&id).unwrap();
+    let pos = svc.get_positions(&id).await.unwrap();
     assert_eq!(pos.len(), 1);
     assert_eq!(pos[0].code, "510300");
     close(pos[0].qty, 1000.0);
@@ -353,8 +353,153 @@ async fn place_order_is_idempotent_by_intent() {
     assert_eq!(f1, f2);
     // 只记一笔成交明细
     assert_eq!(store.trades.lock().unwrap().len(), 1, "intent 去重不重复落单");
-    let pos = svc.get_positions(&id).unwrap();
+    let pos = svc.get_positions(&id).await.unwrap();
     close(pos[0].qty, 1000.0); // 不重复加仓
+}
+
+/// bug 修复（510880 持仓「最新价」=0.000）：持仓 latest/market_value 从本系统行情源解析。
+/// start + place(buy 510880) → 持仓 latest=行情源 close（mock 返回 3.389）、market_value=qty×3.389。
+#[tokio::test]
+async fn place_order_position_latest_resolves_from_market_quote() {
+    let store = Arc::new(MockSimStore::default());
+    let kline = Arc::new(MockKline::default());
+    // 模拟 /api/symbols latest last=3.389（510880 真实标的）；mock KlineRead 返回该 close。
+    kline.set_latest("510880", dma_bar(100, 3.389));
+    let svc = service(store.clone()).with_kline(kline.clone());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "t-quote".into(),
+            cash_init: None,
+            strategy_set: vec!["dual_ma".into()],
+            stock_set: vec!["510880".into()],
+            period: "M1".into(),
+            source: "manual".into(),
+        })
+        .await
+        .unwrap();
+    let sid = view.id;
+
+    let fill = svc
+        .place_order(
+            &sid,
+            &PlaceOrderReq {
+                code: "510880".into(),
+                side: "buy".into(),
+                qty: 1000.0,
+                limit_price: None,
+                intent_id: None,
+                source: "manual".into(),
+            },
+            3.389,
+        )
+        .await
+        .unwrap()
+        .expect("市价即时成交");
+    let _ = fill;
+
+    let pos = svc.get_positions(&sid).await.unwrap();
+    assert_eq!(pos.len(), 1);
+    assert_eq!(pos[0].code, "510880");
+    // 持仓最新价=行情源 close（非 0.000）；市值=qty×行情价（与成交价含滑点无关）。
+    close(pos[0].latest, 3.389);
+    close(pos[0].market_value, 1000.0 * 3.389);
+}
+
+/// bug 兜底：缺行情（未注入行情端口）→ 持仓 latest 回退 0.000（注明）。
+#[tokio::test]
+async fn place_order_position_latest_falls_back_zero_without_quote() {
+    let store = Arc::new(MockSimStore::default());
+    // 不注入 kline → 无行情源 → 回退 0.000。
+    let svc = service(store.clone());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "t-noq".into(),
+            cash_init: None,
+            strategy_set: vec!["dual_ma".into()],
+            stock_set: vec!["510300".into()],
+            period: "M1".into(),
+            source: "manual".into(),
+        })
+        .await
+        .unwrap();
+    let sid = view.id;
+
+    svc.place_order(
+        &sid,
+        &PlaceOrderReq {
+            code: "510300".into(),
+            side: "buy".into(),
+            qty: 1000.0,
+            limit_price: None,
+            intent_id: None,
+            source: "manual".into(),
+        },
+        10.0,
+    )
+    .await
+    .unwrap()
+    .expect("成交");
+
+    let pos = svc.get_positions(&sid).await.unwrap();
+    assert_eq!(pos.len(), 1);
+    close(pos[0].latest, 0.000); // 无行情兜底
+    close(pos[0].market_value, 0.0);
+}
+
+/// 评分/持仓价格一致：二者同源（KlineRead::latest_bar close）。
+#[tokio::test]
+async fn position_latest_matches_scoring_latest_price_same_quote_source() {
+    let store = Arc::new(MockSimStore::default());
+    let kline = Arc::new(MockKline::default());
+    kline.set_latest("510300", dma_bar(100, 10.0));
+    let svc = service(store.clone()).with_kline(kline.clone());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "t-sync".into(),
+            cash_init: None,
+            strategy_set: vec!["dual_ma".into()],
+            stock_set: vec!["510300".into()],
+            period: "M1".into(),
+            source: "manual".into(),
+        })
+        .await
+        .unwrap();
+    let sid = view.id;
+
+    // 手动建仓 510300。
+    svc.place_order(
+        &sid,
+        &PlaceOrderReq {
+            code: "510300".into(),
+            side: "buy".into(),
+            qty: 1000.0,
+            limit_price: None,
+            intent_id: None,
+            source: "manual".into(),
+        },
+        10.0,
+    )
+    .await
+    .unwrap()
+    .expect("成交");
+
+    // 配置策略 + 喂 bar → 评分 latest_price = 该 bar close。
+    let configs = vec![StrategyConfig {
+        id: "dual_ma".into(),
+        params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
+        stocks: vec!["510300".into()],
+        weight: 1.0,
+    }];
+    svc.configure_strategies(&sid, configs).unwrap();
+    let events = svc.process_bar(&sid, "510300", dma_bar(100, 10.0)).await.unwrap();
+    // dual_ma 单策略 → 1 条信号事件。
+    assert_eq!(events.len(), 1, "单策略一条事件");
+
+    let signal = svc.get_strategy_signal(&sid, "510300").unwrap().expect("有评估");
+    close(signal.latest_price, 10.0);
+    let pos = svc.get_positions(&sid).await.unwrap();
+    assert_eq!(pos.len(), 1);
+    close(pos[0].latest, signal.latest_price); // 持仓与评分同价
 }
 
 #[tokio::test]
@@ -516,7 +661,7 @@ async fn feed_polls_new_bar_drives_evaluation_and_auto_order() {
     close(analysis[0].aggregate_score, 100.0);
 
     // 聚合自动单（enabled + 达阈值 → source=aggregate_strategy）
-    let pos = svc.get_positions(&id).unwrap();
+    let pos = svc.get_positions(&id).await.unwrap();
     assert_eq!(pos.len(), 1);
     close(pos[0].qty, 100.0);
     let orders = svc.get_orders(&id).unwrap();
@@ -582,7 +727,7 @@ async fn set_trading_on_and_buy_threshold_places_aggregate_order() {
     let last_events = feed_all(&svc, &id, &golden_buy_bars()).await;
 
     // 达做多阈值 → 下单（source=aggregate_strategy）。
-    let pos = svc.get_positions(&id).unwrap();
+    let pos = svc.get_positions(&id).await.unwrap();
     assert_eq!(pos.len(), 1, "建立持仓");
     assert_eq!(pos[0].code, "510300");
     close(pos[0].qty, 100.0); // DEFAULT_AGGREGATE_QTY
@@ -614,7 +759,7 @@ async fn set_trading_off_only_scores_no_order() {
 
     assert!(last_events.iter().all(|e| !e.ordered), "off 时不下单");
     close(last_events[0].aggregate_score, 100.0);
-    assert_eq!(svc.get_positions(&id).unwrap().len(), 0, "无持仓");
+    assert_eq!(svc.get_positions(&id).await.unwrap().len(), 0, "无持仓");
     assert!(store.trades.lock().unwrap().is_empty(), "无成交落库");
 }
 
@@ -627,7 +772,7 @@ async fn trading_on_no_threshold_no_order() {
     let bars = vec![dma_bar(100, 10.0), dma_bar(101, 11.0), dma_bar(102, 12.0), dma_bar(103, 13.0)];
     let last = feed_all(&svc, &id, &bars).await;
     assert!(last.iter().all(|e| !e.ordered), "未达做多阈值不下单");
-    assert_eq!(svc.get_positions(&id).unwrap().len(), 0);
+    assert_eq!(svc.get_positions(&id).await.unwrap().len(), 0);
 }
 
 #[tokio::test]

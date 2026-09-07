@@ -210,7 +210,7 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 
 #### DI（app bin §5）
 
-`eestock-app.rs` 已构造 `sim_service`（`application::simlive::SimLiveService::with_default_fee(PgSimSessionStore, SystemClock).with_backtest(backtest.clone())`）；
+`eestock-app.rs` 已构造 `sim_service`（`application::simlive::SimLiveService::with_default_fee(PgSimSessionStore, SystemClock).with_backtest(backtest.clone()).with_kline(sim_kline.clone())`）；其中 `sim_kline = Arc::new(storage::reader::KlineReader::new(pool.clone()))`（实现 `domain::ports::KlineRead`，与 `state.kline` 同款/同库；持仓 latest/market_value 经行情源解析）。
 本 § 加法：把**同一** `sim_service` Arc **也**装入 `AppState.sim`（原仅 `McpState.sim`），保证 web 与 MCP 共享同一实例（双通道一致性，ADR §7）。
 
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
@@ -4244,6 +4244,18 @@ async fn main() -> anyhow::Result<()> {
     // 行情看板 MA 可配置（MaConfigStore，ma_config 表 0015；主图+宫格应用，回测弹窗不动）
     let ma_config: Arc<dyn domain::ports::MaConfigStore> =
         Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone()));
+    // 11-sim-live / L1：模拟实盘服务（sim_* 工具 + web 面板 /api/sim-live/*；SimSessionStore + SystemClock + 默认 FeeModel）。
+    // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
+    // **MCP 与 web 共享同一服务实例**（ADR 11-sim-live §7 双通道一致性）：同一 Arc 同时装入 AppState.sim 与 McpState.sim。
+    // 持仓 latest/market_value 经行情源读端口解析（复用 state.kline 同款 KlineReader）；缺行情才回退 0.000。
+    let sim_kline: Arc<dyn domain::ports::KlineRead> =
+        Arc::new(storage::reader::KlineReader::new(pool.clone()));
+    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
+        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    )
+    .with_backtest(backtest.clone())
+    .with_kline(sim_kline.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -4271,12 +4283,14 @@ async fn main() -> anyhow::Result<()> {
         system_info,
         raw_purge: storage::system::raw_purge(pool.clone()),
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
-        backtest,
+        backtest: backtest.clone(),
         backtest_ws,
         // Wave 3 页面①：看板收藏（FavoriteStore）
         favorites,
         // 行情看板 MA 可配置（MaConfigStore）
         ma_config,
+        // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
+        sim: Some(sim_service.clone()),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -4288,13 +4302,16 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(web::alerts::AlertEvaluator::new(
         state.clone(), Duration::from_millis(cfg.alert_eval_ms)).run());
 
+    // 11-sim-live / L4（F2）：实时评分 feed（poll 式：每 DEFAULT_POLL_INTERVAL 查每标的最近 bar ts，
+    // 新 bar 即 process_bar → 评估/评分/聚合/达阈值+统一开关开 → 自动模拟单）。复用 state.kline。
+    tokio::spawn(application::simlive_feed::SimLiveFeed::new(
+        sim_service.clone(),
+        state.kline.clone(),
+        application::simlive_feed::DEFAULT_POLL_INTERVAL,
+    ).run());
+
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
-    // 11-sim-live / L1：模拟实盘服务（sim_* 工具；SimSessionStore + SystemClock + 默认 FeeModel）
-    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
-        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
-        Arc::new(domain::ports::SystemClock),
-    ));
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),

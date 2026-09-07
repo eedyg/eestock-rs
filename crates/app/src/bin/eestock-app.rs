@@ -71,11 +71,15 @@ async fn main() -> anyhow::Result<()> {
     // 11-sim-live / L1：模拟实盘服务（sim_* 工具 + web 面板 /api/sim-live/*；SimSessionStore + SystemClock + 默认 FeeModel）。
     // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
     // **MCP 与 web 共享同一服务实例**（ADR 11-sim-live §7 双通道一致性）：同一 Arc 同时装入 AppState.sim 与 McpState.sim。
+    // 持仓 latest/market_value 经行情源读端口解析（复用 state.kline 同款 KlineReader）；缺行情才回退 0.000。
+    let sim_kline: Arc<dyn domain::ports::KlineRead> =
+        Arc::new(storage::reader::KlineReader::new(pool.clone()));
     let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
         Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
         Arc::new(domain::ports::SystemClock),
     )
-    .with_backtest(backtest.clone()));
+    .with_backtest(backtest.clone())
+    .with_kline(sim_kline.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),

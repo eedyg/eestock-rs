@@ -246,7 +246,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "sim_start_session" => sim_start_session(st, id, &args).await,
         "sim_stop_session" => sim_stop_session(st, id, &args).await,
         "sim_get_account" => sim_get_account(st, id, &args),
-        "sim_get_positions" => sim_get_positions(st, id, &args),
+        "sim_get_positions" => sim_get_positions(st, id, &args).await,
         "sim_get_orders" => sim_get_orders(st, id, &args),
         "sim_get_pnl" => sim_get_pnl(st, id, &args),
         "sim_place_order" => sim_place_order(st, id, &args).await,
@@ -425,13 +425,13 @@ fn sim_get_account(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     }
 }
 
-/// sim_get_positions(session_id)。
-fn sim_get_positions(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+/// sim_get_positions(session_id)。持仓 latest/market_value 由 SimLiveService 经行情源解析。
+async fn sim_get_positions(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
     let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
         return result_err(id, INVALID_PARAMS, "session_id 必填");
     };
-    match sim.get_positions(session_id) {
+    match sim.get_positions(session_id).await {
         Ok(pos) => tool_ok(id, &json!({ "session_id": session_id, "positions": pos })),
         Err(e) => tool_fail(id, e),
     }

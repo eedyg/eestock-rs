@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 
 use backtest::{Bar, FeeModel, Period, TradeDetail, compute_drawdown, compute_metrics};
 use domain::ports::{
-    Clock, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionStore,
-    SimSessionStatus, SimSessionView,
+    Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult,
+    SimSessionStore, SimSessionStatus, SimSessionView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -188,6 +188,10 @@ pub struct SimLiveService {
     aggregate_qty: f64,
     /// 回测服务（L3「回测一下」；经 BacktestService.submit 触发既有回测 run；None = 未注入）。
     backtest: Option<Arc<BacktestService>>,
+    /// 本系统行情源读端口（KlineRead；None = 未注入）。
+    /// 持仓读模型（PositionView.latest/market_value）经此解析每标的最近一根 close，
+    /// 与评分表（相同端口取 latest_bar）同价；缺行情/未注入才回退 0.000。
+    kline: Option<Arc<dyn KlineRead>>,
     sessions: Mutex<Map<String, LiveSession>>,
     /// MCP sim_* 服务快捷开关（L3b web：默认开；关闭后 MCP sim_* 工具返回 isError，web 反映状态）。
     /// 与 web 共享同一服务实例（ADR 11-sim-live §7 双通道一致性），故放服务内而非各端各自维护。
@@ -203,6 +207,7 @@ impl SimLiveService {
             default_cash: DEFAULT_CASH_INIT,
             aggregate_qty: DEFAULT_AGGREGATE_QTY,
             backtest: None,
+            kline: None,
             sessions: Mutex::new(Map::new()),
             mcp_enabled: AtomicBool::new(true),
         }
@@ -211,6 +216,12 @@ impl SimLiveService {
     /// 注入回测服务（L3「回测一下」；未注入时 sim_run_backtest_compare 返回错误）。
     pub fn with_backtest(mut self, backtest: Arc<BacktestService>) -> Self {
         self.backtest = Some(backtest);
+        self
+    }
+
+    /// 注入本系统行情源读端口（KlineRead；持仓 latest/market_value 从行情源解析）。
+    pub fn with_kline(mut self, kline: Arc<dyn KlineRead>) -> Self {
+        self.kline = Some(kline);
         self
     }
 
@@ -482,24 +493,38 @@ impl SimLiveService {
     }
 
     /// 持仓查询。
-    pub fn get_positions(&self, session_id: &str) -> anyhow::Result<Vec<PositionView>> {
-        let sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
-        Ok(live
-            .manager
-            .get_state()
-            .expect("会话存在")
-            .positions
-            .into_iter()
-            .map(|p| PositionView {
-                code: p.code,
+    /// 持仓 latest/market_value 从本系统行情源（KlineRead::latest_bar 每标的最近一根 close）解析，
+    /// 与评分表同源同价；缺行情（未上市/停牌/未注入端口）才回退 0.000。
+    pub async fn get_positions(&self, session_id: &str) -> anyhow::Result<Vec<PositionView>> {
+        // 锁内取持仓快照 + 会话周期（不跨 await 持锁）。
+        let (positions, period) = {
+            let sessions = self.sessions.lock().expect("sessions poisoned");
+            let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+            let st = live.manager.get_state().expect("会话存在");
+            (st.positions, dom_period_from_str(&st.session.period).unwrap_or(domain::types::Period::M1))
+        };
+        let mut out = Vec::with_capacity(positions.len());
+        for p in &positions {
+            let latest = self.resolve_latest_price(period, &p.code).await;
+            out.push(PositionView {
+                code: p.code.clone(),
                 qty: p.qty,
                 avg_cost: p.avg_cost,
-                latest: p.latest,
-                market_value: p.market_value,
-                unrealized_pnl: p.unrealized_pnl,
-            })
-            .collect())
+                latest,
+                market_value: p.qty * latest,
+                unrealized_pnl: p.qty * (latest - p.avg_cost),
+            });
+        }
+        Ok(out)
+    }
+
+    /// 从行情源解析单标的最近一根 close；未注入端口 / 无 bar / 查询失败 → 0.000（缺行情兜底）。
+    async fn resolve_latest_price(&self, period: domain::types::Period, code: &str) -> f64 {
+        let Some(kline) = &self.kline else { return 0.0 };
+        match kline.latest_bar(period, code).await {
+            Ok(Some(bar)) => bar.close,
+            _ => 0.0,
+        }
     }
 
     /// 盈亏查询。
@@ -856,6 +881,21 @@ fn to_session_view(s: &SimSession) -> SimSessionView {
             simlive::SessionStatus::Ended => SimSessionStatus::Ended,
         },
         source: s.source.clone(),
+    }
+}
+
+/// 会话周期字符串 → domain::types::Period（行情源查询用；与 backtest::Period 独立枚举）。
+/// 未知周期回退 M1（防御性）。
+fn dom_period_from_str(s: &str) -> Option<domain::types::Period> {
+    match s {
+        "M1" => Some(domain::types::Period::M1),
+        "M5" => Some(domain::types::Period::M5),
+        "M15" => Some(domain::types::Period::M15),
+        "H1" => Some(domain::types::Period::H1),
+        "D1" => Some(domain::types::Period::D1),
+        "W1" => Some(domain::types::Period::W1),
+        "MO1" => Some(domain::types::Period::MO1),
+        _ => None,
     }
 }
 
