@@ -303,7 +303,7 @@ pub async fn trading(State(st): State<Arc<AppState>>, Json(body): Json<SimToggle
     let sim = match sim_service(&st) { Ok(s) => s, Err(e) => return e };
     // 统一交易开关作用于当前会话。
     let sid = match resolve_session_id(&sim, None) { Ok(id) => id, Err(e) => return e };
-    match sim.set_trading(&sid, body.enabled) {
+    match sim.set_trading(&sid, body.enabled).await {
         Ok(enabled) => Json(serde_json::json!({ "session_id": sid, "trading_enabled": enabled })).into_response(),
         Err(e) => internal(e),
     }

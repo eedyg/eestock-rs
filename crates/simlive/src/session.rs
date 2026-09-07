@@ -155,6 +155,24 @@ impl SessionManager {
         }
     }
 
+    /// 从已落盘运行态恢复会话（重启恢复；应用层 `recover_sessions` 调用）。
+    /// 重建账户/会话/净值序列/成交/信号事件，使会话**续跑**（状态=Running、end_ts=None）。
+    pub fn restore(
+        account: SimAccount,
+        session: SimSession,
+        net_value_series: Vec<(i64, f64)>,
+        trades: Vec<SimTrade>,
+        signal_events: Vec<SignalEvent>,
+    ) -> Self {
+        Self {
+            account,
+            session: Some(session),
+            net_value_series,
+            trades,
+            signal_events,
+        }
+    }
+
     /// 开始会话：重置账户为 cash_init，置 running。
     #[allow(clippy::too_many_arguments)]
     pub fn start_session(
@@ -382,5 +400,46 @@ mod tests {
         // 重新 start → 事件流清空。
         m.start_session("test2", 50_000.0, vec![], vec![], "M1", 2000, "manual");
         assert!(m.signal_events().is_empty());
+    }
+
+    /// 重启恢复：`restore` 从落盘运行态重建会话（Running、净值序列/成交延续），可续跑。
+    #[test]
+    fn restore_reconstructs_running_session() {
+        let mut account = SimAccount::new(1_000_000.0);
+        account.apply_fill(&buy("510300", 1000.0, 10.0, 5.0)).unwrap();
+        let session = SimSession {
+            id: "s_1000_0".into(),
+            name: "trestore".into(),
+            cash_init: 1_000_000.0,
+            strategy_set: vec!["dual_ma".into()],
+            stock_set: vec!["510300".into()],
+            period: "M1".into(),
+            start_ts: 1000,
+            end_ts: None,
+            status: SessionStatus::Running,
+            source: "manual".into(),
+        };
+        let nv = vec![(1000, 1_000_000.0), (2000, 989_995.0)];
+        let trades = vec![SimTrade {
+            code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.0, ts: 2000, fee: 5.0, source: "manual".into(),
+        }];
+        let mut m = SessionManager::restore(account, session, nv.clone(), trades.clone(), vec![]);
+        let st = m.get_state().expect("restore 后有状态");
+        assert_eq!(st.session.status, SessionStatus::Running);
+        assert!(st.session.end_ts.is_none());
+        assert_eq!(st.net_value_series, nv);
+        assert_eq!(st.trades, trades);
+        close(st.cash, 1_000_000.0 - 1000.0 * 10.0 - 5.0);
+        assert_eq!(st.positions.len(), 1);
+        assert_eq!(st.positions[0].code, "510300");
+        close(st.positions[0].qty, 1000.0);
+        close(st.positions[0].avg_cost, 10.0);
+        // 续跑：打市值追加净值点。
+        let mut latest = BTreeMap::new();
+        latest.insert("510300".into(), 11.0);
+        let equity = m.tick(3000, &latest);
+        close(equity, 1_000_000.0 - 1000.0 * 10.0 - 5.0 + 1000.0 * 11.0);
+        let st = m.get_state().unwrap();
+        assert_eq!(st.net_value_series.last().unwrap().0, 3000);
     }
 }

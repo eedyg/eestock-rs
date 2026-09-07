@@ -956,8 +956,34 @@ pub struct SimSessionResult {
     pub metrics: serde_json::Value,
 }
 
-/// 模拟实盘会话存储端口（storage 实现；simsession 等表，迁移 0018）。
+/// 会话**运行态快照**（重启恢复字段；持久化到 `simsession_state.state_json`，迁移 0019）。
+/// 与 `simsession`（元数据/状态机）分层：本结构捕获应用面内存态（现金/持仓/净值序列/策略配置/订单/开关），
+/// 供进程重启后重建 SessionManager/编排器**续跑**。中间结果（净值/持仓/PnL）随每次变更实时落盘。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimSessionState {
+    pub cash: f64,
+    pub realized_pnl: f64,
+    /// 累计费用（佣金 + 印花税）。
+    pub total_fee: f64,
+    /// 持仓（code/qty/avg_cost；`latest` 经 `latest_prices` 还原）。
+    pub positions: Vec<SimPositionRow>,
+    /// 各持仓标的最新价（重建 position.latest/market_value/unrealized_pnl）。
+    pub latest_prices: std::collections::BTreeMap<String, f64>,
+    /// 运行期净值序列 `(ts, equity)`。
+    pub net_value_series: Vec<(i64, f64)>,
+    /// 统一交易开关键（重建 LiveSession.trading_enabled）。
+    pub trading_enabled: bool,
+    /// 每策略配置 JSON 数组 `[{id,params,stocks,weight,stock_weights}]`（params 用 `str_params_to_json` 口径：Num→number、Choice→string）。
+    pub strategy_configs: serde_json::Value,
+    /// 订单 JSON 数组（历史/挂单；重建 orders 面板）。
+    pub orders: serde_json::Value,
+    /// 上次落盘时间（诊断/幂等用）。
+    pub updated_at: DateTime<Utc>,
+}
+
+/// 模拟实盘会话存储端口（storage 实现；simsession 等表，迁移 0018/0019）。
 /// 会话运行期间应用面内存维护 + 事件流落库；`mark_end` 置 ended + 写结果（幂等重写）。
+/// 重启恢复：应用层启动时对 `status='running'` 会话读 `get_state` 重建内存态续跑（`recover_sessions`）。
 #[async_trait]
 pub trait SimSessionStore: Send + Sync {
     /// 新建会话（running；返回 ()，id 已由调用方生成）。
@@ -968,10 +994,19 @@ pub trait SimSessionStore: Send + Sync {
     async fn list_sessions(&self) -> anyhow::Result<Vec<SimSessionView>>;
     /// 追加一条成交明细。
     async fn append_trade(&self, t: &NewSimTrade) -> anyhow::Result<()>;
+    /// 读会话成交明细（ts 升序；恢复重建用）。
+    async fn list_trades(&self, session_id: &str) -> anyhow::Result<Vec<NewSimTrade>>;
     /// 覆盖式写会话内持仓（全量，幂等）。
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> anyhow::Result<()>;
+    /// 实时落盘会话运行态（upsert 幂等：存在则覆盖，含 updated_at）。
+    async fn upsert_state(&self, session_id: &str, state: &SimSessionState) -> anyhow::Result<()>;
+    /// 读会话运行态；未知/未落盘 → Ok(None)。
+    async fn get_state(&self, session_id: &str) -> anyhow::Result<Option<SimSessionState>>;
     /// 结束会话：置 ended + end_ts + 结果；返回是否更新到行（未知 id → false）。
     async fn mark_end(&self, session_id: &str, end_ts: DateTime<Utc>, result: &SimSessionResult) -> anyhow::Result<bool>;
+    /// 读会话结束结果（simsession_result）；未知/未结束 → Ok(None)。
+    /// L3：会话回看（sim_get_session）/回测对比需要取回结果 JSON。
+    async fn get_result(&self, session_id: &str) -> anyhow::Result<Option<SimSessionResult>>;
     /// 删除会话（FK 级联结果/成交/持仓）；返回是否删行。
     async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
 }

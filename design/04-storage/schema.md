@@ -706,6 +706,26 @@ CREATE INDEX sim_trades_session_idx     ON sim_trades (session_id, ts);
 CREATE INDEX sim_positions_session_idx  ON sim_positions (session_id);
 ```
 
+## 4.3.11 模拟实盘会话运行态存储（0019；重启恢复续跑）
+
+**上下文**：随会话运行**实时落盘**内存态（现金/持仓/净值序列/策略配置/订单/开关），供进程重启后
+`recover_sessions()` 重建同一会话**续跑**（不标记中断）。与 `simsession_result`（只有 ended 才写一次的
+最终结果，ADR §3 原口径）不同，本表是**运行期中间状态**，每次 `start/process_bar/place_order/configure_strategies/set_trading/cancel_order/mark_to_market` 后 upsert。
+
+**表口径**：`state_json` 为 `domain::ports::SimSessionState` 序列化；`updated_at` 列供诊断/幂等；
+FK 级联删除。仅存 `status='running'` 会话（ended 后该行可为残留，recover 跳过 ended 不读）。
+
+``` {.sql file=migrations/0019_sim_session_state.sql}
+-- 0019_sim_session_state.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 11-sim-live / 会话运行态实时落盘（重启恢复续跑）：simsession_state（state_json + updated_at）。
+-- 应用面自有表（数据面不读写，ADR-017 不违）；`state_json` = domain::ports::SimSessionState 序列化。
+CREATE TABLE simsession_state (
+    session_id text PRIMARY KEY REFERENCES simsession(id) ON DELETE CASCADE,
+    state_json jsonb NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
 **storage 模块 `crates/storage/src/sim.rs`（非 tangle 手写，契约描述）**：
 实现 `domain::ports::SimSessionStore`（PgPool）。见 design/02-domain/contracts.md「SimSessionStore」端口。
 

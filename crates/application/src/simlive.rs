@@ -7,16 +7,17 @@
 //! 持久化经 `SimSessionStore`（会话元数据 / 成交明细 / 持仓快照 / 结束结果）。
 
 use anyhow::anyhow;
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use std::collections::{BTreeMap, HashMap as Map, HashSet};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use backtest::{
-    Bar, FeeModel, ParamDef, ParamKind, Period, TradeDetail, compute_drawdown, compute_metrics,
+    Bar, FeeModel, ParamDef, ParamKind, ParamValue, Period, StrategyParams, TradeDetail,
+    compute_drawdown, compute_metrics,
 };
 use domain::ports::{
-    Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult,
+    Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionState,
     SimSessionStore, SimSessionStatus, SimSessionView,
 };
 use serde::{Deserialize, Serialize};
@@ -25,8 +26,8 @@ use crate::params::to_strategy_params;
 use crate::service::BacktestService;
 use crate::types::{SubmitOutcome, SubmitReq};
 use simlive::{
-    Fill, FillEngine, Order, OrderStatus, RealtimeStrategyOrchestrator, SessionManager, Side,
-    SignalEvent, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation,
+    Fill, FillEngine, Order, OrderStatus, Position, RealtimeStrategyOrchestrator, SessionManager,
+    Side, SignalEvent, SimAccount, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation,
 };
 pub use simlive::StrategyConfig;
 
@@ -225,6 +226,15 @@ pub struct BacktestCompareView {
     pub run_ids: Vec<i64>,
 }
 
+/// 启动恢复结果（`recover_sessions` 返回；重启后收敛/恢复遗留 running 会话）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RecoveryReport {
+    /// 成功恢复（续跑）的会话 id（有持久化运行态→重建内存，不标记中断）。
+    pub recovered: Vec<String>,
+    /// 降级标记 ended 的会话 id（无运行态/损坏→标记 ended + 告警，不打崩）。
+    pub degraded: Vec<String>,
+}
+
 /// 模拟实盘服务。
 pub struct SimLiveService {
     store: Arc<dyn SimSessionStore>,
@@ -365,7 +375,158 @@ impl SimLiveService {
                 trading_enabled: false,
             },
         );
+        // 实时落盘初始运行态（现金= cash_init、净值序列=[(start_ts,cash_init)]；供重启恢复）。
+        self.persist_state(&session.id).await?;
         Ok(to_session_view(&session))
+    }
+
+    // ── 11-sim-live / 重启恢复（实时落盘 + 从落盘重建续跑）──
+
+    /// 启动恢复：收敛/恢复进程重启遗留的 `status='running'` 会话。
+    /// - 有 `simsession_state` → 重建内存 `LiveSession`（账户/持仓/PnL/策略配置/净值序列/订单），续跑不标记中断；
+    /// - 无 state / 损坏 → 标记 ended（最小结束结果）+ 告警，不打崩。
+    /// 幂等：仅「内存不存在但仍 running」的会话；已 ended / 已恢复 / 已在内存的不动。
+    /// 调用点：app bin 构造 `SimLiveService` 后（`recover_sessions().await?`）。
+    pub async fn recover_sessions(&self) -> anyhow::Result<RecoveryReport> {
+        let now = self.clock.now();
+        let in_memory: std::collections::HashSet<String> =
+            self.sessions.lock().expect("sessions poisoned").keys().cloned().collect();
+        let mut recovered = Vec::new();
+        let mut degraded = Vec::new();
+        for view in self.store.list_sessions().await? {
+            if view.status != SimSessionStatus::Running {
+                continue; // 已 ended / 已恢复不动。
+            }
+            let id = view.id.clone();
+            if in_memory.contains(&id) {
+                continue; // 幂等：已在内存（本进程活动会话）不重复恢复。
+            }
+            match self.store.get_state(&id).await? {
+                Some(state) => match self.restore_live_session(&view, &state).await {
+                    Ok(live) => {
+                        self.sessions.lock().expect("sessions poisoned").insert(id.clone(), live);
+                        recovered.push(id);
+                    }
+                    Err(e) => {
+                        tracing::warn!(session_id = %id, error = %e, "sim-live 会话状态损坏，标记 ended");
+                        degraded.push(id.clone());
+                        let _ = self.store.mark_end(&id, now, &degraded_result()).await;
+                    }
+                },
+                None => {
+                    tracing::warn!(session_id = %id, "sim-live 运行中会话无 simsession_state，标记 ended");
+                    degraded.push(id.clone());
+                    let _ = self.store.mark_end(&id, now, &degraded_result()).await;
+                }
+            }
+        }
+        Ok(RecoveryReport { recovered, degraded })
+    }
+
+    /// 实时落盘运行态（幂等 upsert）：从内存 `LiveSession` 快照构建 [`SimSessionState`] 写库。
+    /// 会话不在内存（未知/已 ended）→ 无操作。
+    async fn persist_state(&self, session_id: &str) -> anyhow::Result<()> {
+        let now = self.clock.now();
+        let state = {
+            let sessions = self.sessions.lock().expect("sessions poisoned");
+            sessions.get(session_id).and_then(|live| build_live_state(session_id, live, now))
+        };
+        if let Some(state) = state {
+            self.store.upsert_state(session_id, &state).await?;
+        }
+        Ok(())
+    }
+
+    /// 从持久化运行态重建内存 `LiveSession`（续跑）：账户现金/持仓/PnL、订单、意图去重、策略编排器。
+    /// 编排器内部 bars/评分状态不持久化 → 重建后首根新 bar 重新评估（残差：重启前的实时评分丢失）。
+    async fn restore_live_session(
+        &self,
+        view: &SimSessionView,
+        state: &SimSessionState,
+    ) -> anyhow::Result<LiveSession> {
+        let session = SimSession {
+            id: view.id.clone(),
+            name: view.name.clone(),
+            cash_init: view.cash_init,
+            strategy_set: view.strategy_set.clone(),
+            stock_set: view.stock_set.clone(),
+            period: view.period.clone(),
+            start_ts: view.start_ts.timestamp(),
+            end_ts: None,
+            status: simlive::SessionStatus::Running,
+            source: view.source.clone(),
+        };
+        let mut account = SimAccount::new(view.cash_init);
+        account.cash = state.cash;
+        account.realized_pnl = state.realized_pnl;
+        account.total_fee = state.total_fee;
+        for row in &state.positions {
+            let latest = state.latest_prices.get(&row.code).copied().unwrap_or(0.0);
+            account.positions.insert(
+                row.code.clone(),
+                Position {
+                    code: row.code.clone(),
+                    qty: row.qty,
+                    avg_cost: row.avg_cost,
+                    latest,
+                    market_value: row.qty * latest,
+                    unrealized_pnl: row.qty * (latest - row.avg_cost),
+                },
+            );
+        }
+        // 成交明细回填（重建 SessionManager.trades；sim_trades 已按 ts 升序读回）。
+        let mut trades = Vec::new();
+        for t in self.store.list_trades(&view.id).await? {
+            trades.push(SimTrade {
+                code: t.code,
+                side: Side::parse(&t.side).ok_or_else(|| anyhow!("未知方向：{}", t.side))?,
+                qty: t.qty,
+                price: t.price,
+                ts: t.ts.timestamp(),
+                fee: t.fee,
+                source: t.source,
+            });
+        }
+        let orders: Vec<SimOrder> = serde_json::from_value(state.orders.clone()).unwrap_or_default();
+        let trading_enabled = state.trading_enabled;
+        let orchestrator = state.strategy_configs.as_array().and_then(|arr| {
+            if arr.is_empty() {
+                return None;
+            }
+            let configs: Vec<StrategyConfig> = arr.iter().filter_map(strategy_config_from_json).collect();
+            if configs.is_empty() {
+                None
+            } else {
+                Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs))
+            }
+        });
+        // intent 去重重建（同 intent_id 重复下单不重复执行）。
+        let mut intent_seen = HashSet::new();
+        let mut intent_fills = Map::new();
+        for o in &orders {
+            if let Some(intent) = &o.intent_id {
+                intent_seen.insert(intent.clone());
+                if let Some(price) = o.filled_price {
+                    intent_fills.insert(intent.clone(), Fill {
+                        code: o.code.clone(),
+                        side: o.side,
+                        qty: o.filled_qty,
+                        price,
+                        fee: o.fee,
+                    });
+                }
+            }
+        }
+        let manager = SessionManager::restore(account, session, state.net_value_series.clone(), trades, Vec::new());
+        Ok(LiveSession {
+            manager,
+            fill_engine: FillEngine::new(self.fee),
+            orders,
+            intent_seen,
+            intent_fills,
+            orchestrator,
+            trading_enabled,
+        })
     }
 
     /// 停止会话：置 ended + 落库结束结果；返回是否转换（未知/已 ended → false）。
@@ -548,26 +709,35 @@ impl SimLiveService {
                 .collect();
             self.store.update_positions(session_id, &rows).await?;
         }
+        // 实时落盘运行态（现金/持仓/净值序列/订单/开关；重启恢复）。
+        self.persist_state(session_id).await?;
         let _ = order_id;
         Ok(fill)
     }
 
-    /// 撤单：仅取消 pending 单；已成交/未知 → false。
+    /// 撤单：仅取消 pending 单；已成交/未知 → false。变更即实时落盘（重启恢复：订单状态一致）。
     pub async fn cancel_order(&self, session_id: &str, order_id: &str) -> anyhow::Result<bool> {
-        let mut sessions = self.sessions.lock().expect("sessions poisoned");
-        let Some(live) = sessions.get_mut(session_id) else {
-            return Ok(false);
-        };
-        for o in live.orders.iter_mut() {
-            if o.id == order_id {
-                if o.status == OrderStatus::Pending {
-                    o.status = OrderStatus::Cancelled;
-                    return Ok(true);
-                }
+        let cancelled = {
+            let mut sessions = self.sessions.lock().expect("sessions poisoned");
+            let Some(live) = sessions.get_mut(session_id) else {
                 return Ok(false);
+            };
+            let mut changed = false;
+            for o in live.orders.iter_mut() {
+                if o.id == order_id {
+                    if o.status == OrderStatus::Pending {
+                        o.status = OrderStatus::Cancelled;
+                        changed = true;
+                    }
+                    break;
+                }
             }
+            changed
+        };
+        if cancelled {
+            self.persist_state(session_id).await?;
         }
-        Ok(false)
+        Ok(cancelled)
     }
 
     /// 账户查询。
@@ -674,10 +844,14 @@ impl SimLiveService {
     // ── 11-sim-live / L2：多策略实时评分 + 聚合 + 统一交易开关 + 事件流 ──
 
     /// 配置实时策略编排器（3 策略实例 × 其标的集/weight；复用 backtest 内建策略）。
-    pub fn configure_strategies(&self, session_id: &str, configs: Vec<StrategyConfig>) -> anyhow::Result<()> {
-        let mut sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
-        live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+    /// 变更即实时落盘（重启恢复：策略配置重建）。
+    pub async fn configure_strategies(&self, session_id: &str, configs: Vec<StrategyConfig>) -> anyhow::Result<()> {
+        {
+            let mut sessions = self.sessions.lock().expect("sessions poisoned");
+            let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+            live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+        }
+        self.persist_state(session_id).await?;
         Ok(())
     }
 
@@ -720,10 +894,14 @@ impl SimLiveService {
 
     /// 统一交易开关：`enabled` 且某 stock 聚合评分达做多/卖阈值 → 下模拟单；disabled → 只评估/评分不入单。
     /// 仅影响聚合策略驱动的下单（source=aggregate_strategy），不影响手动 `place_order`。返回新开关态。
-    pub fn set_trading(&self, session_id: &str, enabled: bool) -> anyhow::Result<bool> {
-        let mut sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
-        live.trading_enabled = enabled;
+    /// 变更即实时落盘（重启恢复：trading_enabled 重建）。
+    pub async fn set_trading(&self, session_id: &str, enabled: bool) -> anyhow::Result<bool> {
+        {
+            let mut sessions = self.sessions.lock().expect("sessions poisoned");
+            let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+            live.trading_enabled = enabled;
+        }
+        self.persist_state(session_id).await?;
         Ok(enabled)
     }
 
@@ -860,13 +1038,16 @@ impl SimLiveService {
                 .collect();
             self.store.update_positions(session_id, &rows).await?;
         }
+        // 实时落盘运行态（每次评估后；账务/净值序列/订单/开关一致）。
+        self.persist_state(session_id).await?;
         Ok(events)
     }
 
     /// 查询某标的最近一次策略评估（聚合分 + 各策略独立分）；未评估/未知 → Ok(None)。
+    /// 会话不在内存（未启动/已 ended-降级）→ Ok(None)（不 500；重启恢复合法）。
     pub fn get_strategy_signal(&self, session_id: &str, code: &str) -> anyhow::Result<Option<StockEvaluation>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        let Some(live) = sessions.get(session_id) else { return Ok(None); };
         Ok(live
             .orchestrator
             .as_ref()
@@ -874,16 +1055,18 @@ impl SimLiveService {
     }
 
     /// 当前会话每策略配置（id/params/stocks/weight/stock_weights；供 web/MCP 展示）。
+    /// 会话不在内存 → Ok(vec![])（不 500；重启恢复合法）。
     pub fn strategy_configs(&self, session_id: &str) -> anyhow::Result<Vec<StrategyConfig>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        let Some(live) = sessions.get(session_id) else { return Ok(Vec::new()); };
         Ok(live.orchestrator.as_ref().map(|o| o.configs()).unwrap_or_default())
     }
 
     /// 全部标的最近评估概览（多 stock 评估；无编排器 → 空）。
+    /// 会话不在内存 → Ok(vec![])（不 500；重启恢复合法）。
     pub fn get_strategy_analysis(&self, session_id: &str) -> anyhow::Result<Vec<StockEvaluation>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
-        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        let Some(live) = sessions.get(session_id) else { return Ok(Vec::new()); };
         Ok(live
             .orchestrator
             .as_ref()
@@ -1074,6 +1257,96 @@ pub fn strategy_params_to_json(params: &backtest::StrategyParams) -> serde_json:
         }
     }
     serde_json::Value::Object(obj)
+}
+
+/// `serde_json::Value` → `backtest::StrategyParams`（`strategy_params_to_json` 逆操作：Num→number、Choice→string）。
+fn strategy_params_from_json(v: &serde_json::Value) -> StrategyParams {
+    let mut m = std::collections::HashMap::new();
+    if let Some(obj) = v.as_object() {
+        for (k, val) in obj {
+            let pv = if let Some(n) = val.as_f64() {
+                ParamValue::Num(n)
+            } else if let Some(s) = val.as_str() {
+                ParamValue::Choice(s.into())
+            } else {
+                continue;
+            };
+            m.insert(k.clone(), pv);
+        }
+    }
+    m
+}
+
+/// 恢复用：从策略配置 JSON（`{id,params,stocks,weight,stock_weights}`）重建 `simlive::StrategyConfig`。
+fn strategy_config_from_json(v: &serde_json::Value) -> Option<StrategyConfig> {
+    let id = v.get("id")?.as_str()?;
+    let params = v.get("params").map(strategy_params_from_json).unwrap_or_default();
+    let stocks = v.get("stocks")
+        .and_then(|s| s.as_array())
+        .map(|a| a.iter().filter_map(|s| s.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+    let weight = v.get("weight").and_then(|w| w.as_f64()).unwrap_or(1.0);
+    let stock_weights = v.get("stock_weights")
+        .and_then(|sw| sw.as_object())
+        .map(|o| o.iter().filter_map(|(k, val)| val.as_f64().map(|f| (k.clone(), f))).collect())
+        .unwrap_or_default();
+    Some(StrategyConfig { id: id.into(), params, stocks, weight, stock_weights })
+}
+
+/// 从内存 `LiveSession` 快照构建 `SimSessionState`（重启恢复落盘）。
+fn build_live_state(session_id: &str, live: &LiveSession, now: DateTime<Utc>) -> Option<SimSessionState> {
+    let st = live.manager.get_state()?;
+    let mut latest_prices = BTreeMap::new();
+    for p in &st.positions {
+        latest_prices.insert(p.code.clone(), p.latest);
+    }
+    let positions: Vec<SimPositionRow> = st
+        .positions
+        .iter()
+        .map(|p| SimPositionRow {
+            session_id: session_id.into(),
+            code: p.code.clone(),
+            qty: p.qty,
+            avg_cost: p.avg_cost,
+        })
+        .collect();
+    let strategy_configs = live
+        .orchestrator
+        .as_ref()
+        .map(|o| {
+            serde_json::Value::Array(o.configs().iter().map(|c| {
+                serde_json::json!({
+                    "id": c.id,
+                    "params": strategy_params_to_json(&c.params),
+                    "stocks": c.stocks,
+                    "weight": c.weight,
+                    "stock_weights": c.stock_weights,
+                })
+            }).collect())
+        })
+        .unwrap_or_else(|| serde_json::Value::Array(vec![]));
+    let orders = serde_json::to_value(&live.orders).unwrap_or_else(|_| serde_json::Value::Array(vec![]));
+    Some(SimSessionState {
+        cash: st.cash,
+        realized_pnl: st.realized_pnl,
+        total_fee: st.total_fee,
+        positions,
+        latest_prices,
+        net_value_series: st.net_value_series.clone(),
+        trading_enabled: live.trading_enabled,
+        strategy_configs,
+        orders,
+        updated_at: now,
+    })
+}
+
+/// 降级结果：进程重启且无可用运行态 → 标记 ended 的最小结束结果（不打崩，get_session 不 500）。
+fn degraded_result() -> SimSessionResult {
+    SimSessionResult {
+        net_value: serde_json::json!({ "series": [], "drawdown": [], "note": "恢复降级：进程重启且无 simsession_state，已标记 ended" }),
+        trades: serde_json::json!([]),
+        metrics: serde_json::json!({ "note": "中断，部分数据；运行态缺失" }),
+    }
 }
 
 /// 会话 id 生成（时间戳 + 单调计数器；与 simlive SessionManager 同模式命名，无随机）。

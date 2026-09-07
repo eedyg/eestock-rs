@@ -6,8 +6,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use domain::ports::{
-    NewSimSession, NewSimTrade, SimSessionResult, SimSessionStatus, SimSessionStore, SimSessionView,
-    SimPositionRow,
+    NewSimSession, NewSimTrade, SimSessionResult, SimSessionState, SimSessionStatus, SimSessionStore,
+    SimSessionView, SimPositionRow,
 };
 use sqlx::PgPool;
 
@@ -69,6 +69,18 @@ impl SimSessionStore for PgSimSessionStore {
         Ok(())
     }
 
+    async fn list_trades(&self, session_id: &str) -> Result<Vec<NewSimTrade>> {
+        type TradeRow = (String, String, f64, f64, DateTime<Utc>, f64, String);
+        let rows: Vec<TradeRow> =
+            sqlx::query_as(
+                "SELECT code, side, qty, price, ts, fee, source \
+                 FROM sim_trades WHERE session_id = $1 ORDER BY ts ASC, id ASC")
+                .bind(session_id).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(|(code, side, qty, price, ts, fee, source)|
+            NewSimTrade { session_id: session_id.into(), code, side, qty, price, ts, fee, source }
+        ).collect())
+    }
+
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> Result<()> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("DELETE FROM sim_positions WHERE session_id = $1")
@@ -81,6 +93,26 @@ impl SimSessionStore for PgSimSessionStore {
         }
         tx.commit().await?;
         Ok(())
+    }
+
+    async fn upsert_state(&self, session_id: &str, state: &SimSessionState) -> Result<()> {
+        let state_json = serde_json::to_value(state)?;
+        sqlx::query(
+            "INSERT INTO simsession_state (session_id, state_json, updated_at) VALUES ($1, $2, $3) \
+             ON CONFLICT (session_id) DO UPDATE SET \
+                state_json = EXCLUDED.state_json, \
+                updated_at = EXCLUDED.updated_at")
+            .bind(session_id).bind(&state_json).bind(state.updated_at)
+            .execute(&self.pool).await?;
+        Ok(())
+    }
+
+    async fn get_state(&self, session_id: &str) -> Result<Option<SimSessionState>> {
+        let row: Option<(serde_json::Value,)> =
+            sqlx::query_as(
+                "SELECT state_json FROM simsession_state WHERE session_id = $1")
+                .bind(session_id).fetch_optional(&self.pool).await?;
+        Ok(row.map(|(v,)| serde_json::from_value(v).expect("simsession_state.state_json 可反序列化")))
     }
 
     async fn mark_end(&self, session_id: &str, end_ts: DateTime<Utc>, result: &SimSessionResult) -> Result<bool> {

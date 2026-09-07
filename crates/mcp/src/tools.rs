@@ -820,6 +820,8 @@ mod tests {
     struct MockSimStore {
         sessions: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionView>>,
         results: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionResult>>,
+        states: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionState>>,
+        trades: std::sync::Mutex<Vec<domain::ports::NewSimTrade>>,
     }
 
     #[async_trait::async_trait]
@@ -839,8 +841,25 @@ mod tests {
         async fn list_sessions(&self) -> anyhow::Result<Vec<domain::ports::SimSessionView>> {
             Ok(self.sessions.lock().unwrap().values().cloned().collect())
         }
-        async fn append_trade(&self, _: &domain::ports::NewSimTrade) -> anyhow::Result<()> { Ok(()) }
-        async fn update_positions(&self, _: &str, _: &[domain::ports::SimPositionRow]) -> anyhow::Result<()> { Ok(()) }
+        async fn append_trade(&self, t: &domain::ports::NewSimTrade) -> anyhow::Result<()> {
+            self.trades.lock().unwrap().push(t.clone());
+            Ok(())
+        }
+        async fn list_trades(&self, session_id: &str) -> anyhow::Result<Vec<domain::ports::NewSimTrade>> {
+            Ok(self.trades.lock().unwrap().iter().cloned().filter(|t| t.session_id == session_id).collect())
+        }
+        async fn update_positions(&self, session_id: &str, _: &[domain::ports::SimPositionRow]) -> anyhow::Result<()> {
+            // 留空：get_positions 读模型走状态重建，不依赖此表。
+            let _ = session_id;
+            Ok(())
+        }
+        async fn upsert_state(&self, session_id: &str, state: &domain::ports::SimSessionState) -> anyhow::Result<()> {
+            self.states.lock().unwrap().insert(session_id.into(), state.clone());
+            Ok(())
+        }
+        async fn get_state(&self, session_id: &str) -> anyhow::Result<Option<domain::ports::SimSessionState>> {
+            Ok(self.states.lock().unwrap().get(session_id).cloned())
+        }
         async fn mark_end(&self, id: &str, end_ts: DateTime<Utc>, result: &domain::ports::SimSessionResult) -> anyhow::Result<bool> {
             let mut s = self.sessions.lock().unwrap();
             let Some(v) = s.get_mut(id) else { return Ok(false) };
@@ -1062,7 +1081,7 @@ mod tests {
             weight: 1.0,
             stock_weights: std::collections::HashMap::new(),
         }];
-        svc.configure_strategies(&sid, configs).unwrap();
+        svc.configure_strategies(&sid, configs).await.unwrap();
         for (i, c) in [12.0, 8.0, 9.0, 14.0].into_iter().enumerate() {
             svc.process_bar(
                 &sid, "510300",

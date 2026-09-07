@@ -12,7 +12,8 @@ use chrono::{DateTime, TimeZone, Utc};
 use domain::ports::{
     BacktestBarRead, BacktestProgressSink, BacktestRunStore, Clock, KlineBarView, KlineRead,
     NewRun, NewSimSession, NewSimTrade, RunFilter, RunResult, RunView, SimPositionRow,
-    SimSessionResult, SimSessionStatus, SimSessionStore, SimSessionView, SymbolLatestView,
+    SimSessionResult, SimSessionState, SimSessionStatus, SimSessionStore, SimSessionView,
+    SymbolLatestView,
 };
 use domain::types::Period;
 
@@ -43,6 +44,7 @@ struct MockSimStore {
     ended: Mutex<Vec<(String, SimSessionResult)>>,
     sessions: Mutex<HashMap<String, SimSessionView>>,
     results: Mutex<HashMap<String, SimSessionResult>>,
+    states: Mutex<HashMap<String, SimSessionState>>,
 }
 
 #[async_trait]
@@ -76,6 +78,9 @@ impl SimSessionStore for MockSimStore {
         self.trades.lock().unwrap().push(t.clone());
         Ok(())
     }
+    async fn list_trades(&self, session_id: &str) -> Result<Vec<NewSimTrade>> {
+        Ok(self.trades.lock().unwrap().iter().cloned().filter(|t| t.session_id == session_id).collect())
+    }
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> Result<()> {
         self.pos_updates
             .lock()
@@ -99,6 +104,13 @@ impl SimSessionStore for MockSimStore {
     }
     async fn get_result(&self, session_id: &str) -> Result<Option<SimSessionResult>> {
         Ok(self.results.lock().unwrap().get(session_id).cloned())
+    }
+    async fn upsert_state(&self, session_id: &str, state: &SimSessionState) -> Result<()> {
+        self.states.lock().unwrap().insert(session_id.into(), state.clone());
+        Ok(())
+    }
+    async fn get_state(&self, session_id: &str) -> Result<Option<SimSessionState>> {
+        Ok(self.states.lock().unwrap().get(session_id).cloned())
     }
     async fn delete_session(&self, session_id: &str) -> Result<bool> {
         Ok(self.sessions.lock().unwrap().remove(session_id).is_some())
@@ -510,7 +522,7 @@ async fn position_latest_matches_scoring_latest_price_same_quote_source() {
         weight: 1.0,
         stock_weights: HashMap::new(),
     }];
-    svc.configure_strategies(&sid, configs).unwrap();
+    svc.configure_strategies(&sid, configs).await.unwrap();
     let events = svc.process_bar(&sid, "510300", dma_bar(100, 10.0)).await.unwrap();
     // dual_ma 单策略 → 1 条信号事件。
     assert_eq!(events.len(), 1, "单策略一条事件");
@@ -594,7 +606,7 @@ async fn configured_buy_service(store: Arc<MockSimStore>) -> (SimLiveService, St
         weight: 1.0,
         stock_weights: HashMap::new(),
     }];
-    svc.configure_strategies(&id, configs).unwrap();
+    svc.configure_strategies(&id, configs).await.unwrap();
     (svc, id)
 }
 
@@ -648,8 +660,8 @@ async fn orders_include_source_manual_and_aggregate() {
         weight: 1.0,
         stock_weights: HashMap::new(),
     }];
-    svc.configure_strategies(&id, configs).unwrap();
-    svc.set_trading(&id, true).unwrap();
+    svc.configure_strategies(&id, configs).await.unwrap();
+    svc.set_trading(&id, true).await.unwrap();
     feed_all(&svc, &id, &golden_buy_bars()).await;
 
     let orders = svc.get_orders(&id).unwrap();
@@ -664,7 +676,7 @@ async fn feed_polls_new_bar_drives_evaluation_and_auto_order() {
     let store = Arc::new(MockSimStore::default());
     let (svc_inst, id) = configured_buy_service(store.clone()).await;
     let svc = Arc::new(svc_inst);
-    svc.set_trading(&id, true).unwrap();
+    svc.set_trading(&id, true).await.unwrap();
 
     let kline = Arc::new(MockKline::default());
     let feed = SimLiveFeed::new(svc.clone(), kline.clone(), Duration::from_millis(10));
@@ -975,7 +987,7 @@ async fn start_session_with_strategies_without_registry_port_falls_back_to_forma
 async fn set_trading_on_and_buy_threshold_places_aggregate_order() {
     let store = Arc::new(MockSimStore::default());
     let (svc, id) = configured_buy_service(store.clone()).await;
-    assert!(svc.set_trading(&id, true).unwrap(), "开关打开返回 true");
+    assert!(svc.set_trading(&id, true).await.unwrap(), "开关打开返回 true");
     assert!(svc.trading_enabled(&id).unwrap(), "查询开关态 true");
 
     let last_events = feed_all(&svc, &id, &golden_buy_bars()).await;
@@ -1006,7 +1018,7 @@ async fn set_trading_off_only_scores_no_order() {
     let store = Arc::new(MockSimStore::default());
     let (svc, id) = configured_buy_service(store.clone()).await;
     // 关闭（默认也 off）：只评估/评分，不入单。
-    assert!(!svc.set_trading(&id, false).unwrap(), "开关关闭返回 false");
+    assert!(!svc.set_trading(&id, false).await.unwrap(), "开关关闭返回 false");
     assert!(!svc.trading_enabled(&id).unwrap());
 
     let last_events = feed_all(&svc, &id, &golden_buy_bars()).await;
@@ -1021,7 +1033,7 @@ async fn set_trading_off_only_scores_no_order() {
 async fn trading_on_no_threshold_no_order() {
     let store = Arc::new(MockSimStore::default());
     let (svc, id) = configured_buy_service(store.clone()).await;
-    svc.set_trading(&id, true).unwrap();
+    svc.set_trading(&id, true).await.unwrap();
     // 单调上涨但无「升级金叉」（首根即有 prev_above=None → Hold；后续一直 above → Hold）。
     let bars = vec![dma_bar(100, 10.0), dma_bar(101, 11.0), dma_bar(102, 12.0), dma_bar(103, 13.0)];
     let last = feed_all(&svc, &id, &bars).await;
@@ -1300,6 +1312,146 @@ async fn current_session_resolves_latest_running_only() {
     assert!(svc.stop_session(&id).await.unwrap());
     // 已无 running 会话 → current None（内存里已 ended；回看须显式 id）。
     assert!(svc.current_session_id().is_none(), "stop 后无 running → None");
+}
+
+// ── 11-sim-live / 重启恢复：实时落盘 + 从落盘重建续跑 ──
+
+/// TDD①：process_bar 后 simsession_state 写盘（含现金/持仓/净值序列/策略配置/开关）。
+#[tokio::test]
+async fn process_bar_persists_running_state() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = configured_buy_service(store.clone()).await;
+    svc.set_trading(&id, true).await.unwrap();
+    feed_all(&svc, &id, &golden_buy_bars()).await;
+
+    let state = store.get_state(&id).await.unwrap().expect("process_bar 后应有运行态");
+    // 现金/费用/已实现与实时账户一致。
+    let live = svc.get_account(&id).unwrap();
+    close(state.cash, live.cash);
+    close(state.realized_pnl, live.realized_pnl);
+    close(state.total_fee, live.total_fee);
+    // 持仓（聚合买 100 股）。
+    assert_eq!(state.positions.len(), 1);
+    assert_eq!(state.positions[0].code, "510300");
+    close(state.positions[0].qty, 100.0);
+    // 净值序列非空（初始点 + …）。
+    assert!(!state.net_value_series.is_empty(), "净现值序列已落盘");
+    // 策略配置已落盘（configure_strategies 后 persist）。
+    let cfg = state.strategy_configs.as_array().expect("策略配置数组");
+    assert_eq!(cfg.len(), 1, "dual_ma 配置落盘");
+    assert_eq!(cfg[0]["id"], serde_json::json!("dual_ma"));
+    // 交易开关键落盘。
+    assert!(state.trading_enabled, "trading_enabled 落盘");
+}
+
+/// TDD②：模拟重启（新 SimLiveService 实例 + 同一 store）→ recover 重建会话→账户/持仓/PnL/策略配置一致、可继续（不 500）。
+#[tokio::test]
+async fn recover_sessions_restores_running_session_and_continues() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc_a, id) = configured_buy_service(store.clone()).await;
+    svc_a.set_trading(&id, true).await.unwrap();
+    feed_all(&svc_a, &id, &golden_buy_bars()).await;
+
+    let persisted = store.get_state(&id).await.unwrap().expect("运行态已落盘");
+
+    // 模拟重启：全新 SimLiveService 实例，复用同一 store。
+    let svc_b = service(store.clone());
+    let report = svc_b.recover_sessions().await.unwrap();
+    assert!(report.recovered.contains(&id), "应恢复该会话");
+    assert!(report.degraded.is_empty(), "有运行态 → 不降级");
+    assert!(report.recovered.len() == 1);
+
+    // 会话作为当前运行会话存在（不 500）。
+    assert_eq!(svc_b.current_session_id().as_deref(), Some(id.as_str()));
+
+    // 账户一致。
+    let acct = svc_b.get_account(&id).unwrap();
+    close(acct.cash, persisted.cash);
+    close(acct.realized_pnl, persisted.realized_pnl);
+    close(acct.total_fee, persisted.total_fee);
+
+    // 持仓一致。
+    let pos = svc_b.get_positions(&id).await.unwrap();
+    assert_eq!(pos.len(), persisted.positions.len());
+    assert_eq!(pos[0].code, "510300");
+    close(pos[0].qty, persisted.positions[0].qty);
+    close(pos[0].avg_cost, persisted.positions[0].avg_cost);
+
+    // PnL 一致。
+    let pnl = svc_b.get_pnl(&id).unwrap();
+    close(pnl.realized_pnl, persisted.realized_pnl);
+
+    // 策略配置一致（编排器按持久化配置重建）。
+    let cfg = svc_b.strategy_configs(&id).unwrap();
+    assert_eq!(cfg.len(), 1);
+    assert_eq!(cfg[0].id, "dual_ma");
+
+    // 策略查询不 500（重建编排器尚无 bar → 空评估；非 Err）。
+    assert!(svc_b.get_strategy_analysis(&id).unwrap().is_empty());
+    assert!(svc_b.get_strategy_signal(&id, "510300").unwrap().is_none());
+
+    // 继续运行：喂新 bar → 评估成功（不 500）。
+    let events = svc_b.process_bar(&id, "510300", dma_bar(200, 12.0)).await.unwrap();
+    assert!(!events.is_empty(), "恢复后 process_bar 继续产生事件");
+}
+
+/// TDD③：无状态/损坏 → 标记 ended + 告警（不打崩，get_session 不 500）。
+#[tokio::test]
+async fn recover_sessions_degraded_when_no_state_marks_ended() {
+    let store = Arc::new(MockSimStore::default());
+    // 预置一个有 running 视图但**无 simsession_state** 的会话（模拟旧版遗留 running）。
+    let id = "s_recover_no_state".to_string();
+    store.sessions.lock().unwrap().insert(id.clone(), SimSessionView {
+        id: id.clone(),
+        name: "legacy".into(),
+        cash_init: 1_000_000.0,
+        strategy_set: vec!["dual_ma".into()],
+        stock_set: vec!["510300".into()],
+        period: "M1".into(),
+        start_ts: fixed_now(),
+        end_ts: None,
+        status: SimSessionStatus::Running,
+        source: "manual".into(),
+    });
+
+    let svc = service(store.clone());
+    let report = svc.recover_sessions().await.unwrap();
+    assert!(report.recovered.is_empty());
+    assert_eq!(report.degraded, vec![id.clone()], "无状态 → 降级标记 ended");
+
+    // 会话已 ended（降级），标记结果写入。
+    let view = store.get_session(&id).await.unwrap().expect("会话存在");
+    assert_eq!(view.status, SimSessionStatus::Ended, "降级会话标记 ended");
+    let result = store.get_result(&id).await.unwrap().expect("降级结果已落库");
+    assert!(result.metrics.as_object().unwrap().contains_key("note"), "降级结果带注解");
+    // 查 get_session 不 500（返回 ended + 结果）。
+    let detail = svc.get_session(&id).await.unwrap().expect("get_session 不 500");
+    assert_eq!(detail.session.status, SimSessionStatus::Ended);
+    assert!(detail.result.is_some());
+}
+
+/// TDD④：幂等——同一实例二次 recover 不再收敛已恢复会话；已 ended 会话不受影响。
+#[tokio::test]
+async fn recover_sessions_is_idempotent() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc_a, id) = configured_buy_service(store.clone()).await;
+    feed_all(&svc_a, &id, &golden_buy_bars()).await;
+
+    let svc_b = service(store.clone());
+    let report1 = svc_b.recover_sessions().await.unwrap();
+    assert!(report1.recovered.contains(&id), "首次恢复含会话");
+
+    // 已恢复会话已在内存 → 二次恢复不再收敛它。
+    let report2 = svc_b.recover_sessions().await.unwrap();
+    assert!(!report2.recovered.contains(&id), "幂等：已恢复/在内存不再重复收敛");
+
+    // 已 ended 会话（正常 stop）不会被恢复。
+    let store2 = Arc::new(MockSimStore::default());
+    let (svc_c, id_c) = started(store2.clone()).await;
+    assert!(svc_c.stop_session(&id_c).await.unwrap());
+    let svc_d = service(store2.clone());
+    let report3 = svc_d.recover_sessions().await.unwrap();
+    assert!(report3.recovered.is_empty() && report3.degraded.is_empty(), "已 ended 会话不恢复");
 }
 
 

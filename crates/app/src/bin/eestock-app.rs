@@ -80,6 +80,9 @@ async fn main() -> anyhow::Result<()> {
     )
     .with_backtest(backtest.clone())
     .with_kline(sim_kline.clone()));
+    // 11-sim-live 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state 重建内存续跑；无 state → ended+告警）。
+    let sim_recovery = sim_service.recover_sessions().await?;
+    tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),

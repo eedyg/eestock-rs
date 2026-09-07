@@ -4,7 +4,8 @@
 
 use chrono::{Duration, TimeZone, Utc};
 use domain::ports::{
-    NewSimSession, NewSimTrade, SimSessionResult, SimSessionStatus, SimSessionStore, SimPositionRow,
+    NewSimSession, NewSimTrade, SimSessionResult, SimSessionState, SimSessionStatus, SimSessionStore,
+    SimPositionRow,
 };
 use sqlx::PgPool;
 use storage::sim::PgSimSessionStore;
@@ -201,4 +202,67 @@ async fn delete_session_cascades_children() {
     }
 
     assert!(!store.delete_session("no_such").await.unwrap(), "未知 id 返回 false");
+}
+
+/// 重启恢复新增读写：list_trades（ts 升序）+ upsert_state/get_state（幂等覆盖；未知 → None/空）。
+#[tokio::test]
+async fn list_trades_and_upsert_get_state_roundtrip() {
+    let pool = pool().await;
+    let id = sid("state");
+    clean(&pool, &id).await;
+
+    let store = PgSimSessionStore::new(pool.clone());
+    store.create_session(&new_session(&id, "t1")).await.unwrap();
+
+    // 初始：无成交、无运行态。
+    assert!(store.list_trades(&id).await.unwrap().is_empty());
+    assert!(store.get_state(&id).await.unwrap().is_none());
+
+    // 追加两笔成交（买→卖），list_trades 按 ts 升序。
+    store.append_trade(&NewSimTrade {
+        session_id: id.clone(), code: "510300".into(), side: "buy".into(),
+        qty: 100.0, price: 10.0, ts: base(), fee: 5.0, source: "manual".into(),
+    }).await.unwrap();
+    store.append_trade(&NewSimTrade {
+        session_id: id.clone(), code: "510300".into(), side: "sell".into(),
+        qty: 100.0, price: 11.0, ts: base() + Duration::minutes(1), fee: 5.0, source: "manual".into(),
+    }).await.unwrap();
+    let trades = store.list_trades(&id).await.unwrap();
+    assert_eq!(trades.len(), 2);
+    assert_eq!(trades[0].side, "buy");
+    assert_eq!(trades[1].side, "sell");
+
+    // upsert_state → get_state 幂等。
+    let state = SimSessionState {
+        cash: 1_000_000.0,
+        realized_pnl: 0.0,
+        total_fee: 10.0,
+        positions: vec![SimPositionRow { session_id: id.clone(), code: "510300".into(), qty: 100.0, avg_cost: 10.0 }],
+        latest_prices: Default::default(),
+        net_value_series: vec![(1, 1_000_000.0)],
+        trading_enabled: true,
+        strategy_configs: serde_json::json!([]),
+        orders: serde_json::json!([]),
+        updated_at: base(),
+    };
+    store.upsert_state(&id, &state).await.unwrap();
+    let got = store.get_state(&id).await.unwrap().expect("运行态存在");
+    assert_eq!(got.cash, 1_000_000.0);
+    assert_eq!(got.realized_pnl, 0.0);
+    assert_eq!(got.total_fee, 10.0);
+    assert_eq!(got.positions.len(), 1);
+    assert_eq!(got.positions[0].code, "510300");
+    assert_eq!(got.positions[0].qty, 100.0);
+    assert!(got.trading_enabled);
+
+    // upsert 幂等覆盖（cash 变化 → 读回新值）。
+    let state2 = SimSessionState { cash: 999_000.0, ..state.clone() };
+    store.upsert_state(&id, &state2).await.unwrap();
+    assert_eq!(store.get_state(&id).await.unwrap().unwrap().cash, 999_000.0, "upsert 覆盖");
+
+    // 未知 id：state → None；list_trades → 空。
+    assert!(store.get_state("no_such").await.unwrap().is_none());
+    assert!(store.list_trades("no_such").await.unwrap().is_empty());
+
+    clean(&pool, &id).await;
 }
