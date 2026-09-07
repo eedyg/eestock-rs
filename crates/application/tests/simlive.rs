@@ -17,7 +17,7 @@ use domain::ports::{
 use domain::types::Period;
 
 use application::service::BacktestService;
-use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
+use application::simlive::{InvalidConfig, PlaceOrderReq, SimLiveService, StartSessionReq, StrategyConfigInput};
 use application::simlive_feed::SimLiveFeed;
 use backtest::{Bar, ParamValue};
 use simlive::StrategyConfig;
@@ -123,6 +123,7 @@ async fn started(store: Arc<MockSimStore>) -> (SimLiveService, String) {
             stock_set: vec!["510300".into()],
             period: "M1".into(),
             source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap();
@@ -374,6 +375,7 @@ async fn place_order_position_latest_resolves_from_market_quote() {
             stock_set: vec!["510880".into()],
             period: "M1".into(),
             source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap();
@@ -419,6 +421,7 @@ async fn place_order_position_latest_falls_back_zero_without_quote() {
             stock_set: vec!["510300".into()],
             period: "M1".into(),
             source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap();
@@ -461,6 +464,7 @@ async fn position_latest_matches_scoring_latest_price_same_quote_source() {
             stock_set: vec!["510300".into()],
             period: "M1".into(),
             source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap();
@@ -489,6 +493,7 @@ async fn position_latest_matches_scoring_latest_price_same_quote_source() {
         params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
         stocks: vec!["510300".into()],
         weight: 1.0,
+        stock_weights: HashMap::new(),
     }];
     svc.configure_strategies(&sid, configs).unwrap();
     let events = svc.process_bar(&sid, "510300", dma_bar(100, 10.0)).await.unwrap();
@@ -572,6 +577,7 @@ async fn configured_buy_service(store: Arc<MockSimStore>) -> (SimLiveService, St
         params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
         stocks: vec!["510300".into()],
         weight: 1.0,
+        stock_weights: HashMap::new(),
     }];
     svc.configure_strategies(&id, configs).unwrap();
     (svc, id)
@@ -625,6 +631,7 @@ async fn orders_include_source_manual_and_aggregate() {
         params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
         stocks: vec!["510300".into()],
         weight: 1.0,
+        stock_weights: HashMap::new(),
     }];
     svc.configure_strategies(&id, configs).unwrap();
     svc.set_trading(&id, true).unwrap();
@@ -710,11 +717,154 @@ async fn start_session_when_already_running_returns_already_running_error() {
             stock_set: vec![],
             period: "M1".into(),
             source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap_err();
     assert!(err.downcast_ref::<application::simlive::AlreadyRunning>().is_some(),
         "重复 start 应返回 AlreadyRunning（防多 running）");
+}
+
+//// ADR §4 多策略：start_session 带 strategies → 编排器按每策略 参数/标的集 配置（固定输入断言）。
+#[tokio::test]
+async fn start_session_with_strategies_wires_orchestrator() {
+    let store = Arc::new(MockSimStore::default());
+    let svc = service(store.clone());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "s-multi".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec![],
+            period: "M1".into(),
+            source: "manual".into(),
+            strategies: vec![
+                StrategyConfigInput {
+                    id: "dual_ma".into(),
+                    params: serde_json::json!({"fast": 2.0, "slow": 3.0}),
+                    stocks: vec!["510300".into()],
+                    weight: 2.0,
+                    stock_weights: HashMap::new(),
+                },
+                StrategyConfigInput {
+                    id: "momentum".into(),
+                    params: serde_json::json!({"lookback": 2.0}),
+                    stocks: vec!["159577".into()],
+                    weight: 1.0,
+                    stock_weights: HashMap::new(),
+                },
+            ],
+        })
+        .await
+        .unwrap();
+    let sid = view.id.clone();
+
+    // 会话级 strategy_set/stock_set 由策略派生（去重、保序）。
+    let meta = svc.get_session(&sid).await.unwrap().unwrap().session;
+    assert_eq!(meta.strategy_set, vec!["dual_ma".to_string(), "momentum".to_string()]);
+    assert_eq!(meta.stock_set, vec!["510300".to_string(), "159577".to_string()]);
+
+    // 编排器：dual_ma 只覆盖 510300；momentum 只覆盖 159577。
+    svc.process_bar(&sid, "510300", dma_bar(100, 10.0)).await.unwrap();
+    let a = svc.get_strategy_signal(&sid, "510300").unwrap().expect("有评估");
+    assert_eq!(a.code, "510300");
+    assert_eq!(a.per_strategy_scores.len(), 1, "仅 dual_ma 覆盖 510300");
+    assert_eq!(a.per_strategy_scores[0].strategy_id, "dual_ma");
+
+    svc.process_bar(&sid, "159577", dma_bar(100, 12.0)).await.unwrap();
+    let b = svc.get_strategy_signal(&sid, "159577").unwrap().expect("有评估");
+    assert_eq!(b.code, "159577");
+    assert_eq!(b.per_strategy_scores.len(), 1, "仅 momentum 覆盖 159577");
+    assert_eq!(b.per_strategy_scores[0].strategy_id, "momentum");
+
+    // 未覆盖标的不评估。
+    assert!(svc.get_strategy_signal(&sid, "999999").unwrap().is_none());
+}
+
+//// ADR §4：start_session 带非法 strategies（未知 id / weight≤0 / params 越界 / 未知标的 / 空标的集）→ Err(InvalidConfig)。
+#[tokio::test]
+async fn start_session_invalid_strategies_rejects() {
+    let store = Arc::new(MockSimStore::default());
+    let svc = service(store.clone());
+    let base = |strategies: Vec<StrategyConfigInput>| StartSessionReq {
+        name: "bad".into(),
+        cash_init: None,
+        strategy_set: vec![],
+        stock_set: vec![],
+        period: "M1".into(),
+        source: "manual".into(),
+        strategies,
+    };
+    // 未知策略 id
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "not_a_strategy".into(), params: serde_json::json!({}),
+            stocks: vec!["510300".into()], weight: 1.0,
+            stock_weights: HashMap::new(),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "未知策略 id → InvalidConfig");
+    // weight ≤ 0
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({}),
+            stocks: vec!["510300".into()], weight: 0.0,
+            stock_weights: HashMap::new(),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "weight≤0 → InvalidConfig");
+    // params 越界（fast 超 max=200）
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({"fast": 99999.0, "slow": 3.0}),
+            stocks: vec!["510300".into()], weight: 1.0,
+            stock_weights: HashMap::new(),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "params 越界 → InvalidConfig");
+    // 未知标的（非 6 位数字）
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({}),
+            stocks: vec!["abc".into()], weight: 1.0,
+            stock_weights: HashMap::new(),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "未知标的 → InvalidConfig");
+    // 空标的集
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({}),
+            stocks: vec![], weight: 1.0,
+            stock_weights: HashMap::new(),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "空标的集 → InvalidConfig");
+    // stock_weights 键不在标的集
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({}),
+            stocks: vec!["510300".into()], weight: 1.0,
+            stock_weights: HashMap::from([("159577".to_string(), 2.0)]),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "stock_weights 键不在标的集 → InvalidConfig");
+    // stock_weights 值 ≤0
+    let err = svc
+        .start_session(&base(vec![StrategyConfigInput {
+            id: "dual_ma".into(), params: serde_json::json!({}),
+            stocks: vec!["510300".into()], weight: 1.0,
+            stock_weights: HashMap::from([("510300".to_string(), 0.0)]),
+        }]))
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<InvalidConfig>().is_some(), "stock_weights 值≤0 → InvalidConfig");
 }
 
 #[tokio::test]
@@ -888,6 +1038,7 @@ async fn build_closed_session(store: Arc<MockSimStore>) -> (SimLiveService, Stri
             name: "t1".into(), cash_init: None,
             strategy_set: vec!["dual_ma".into()], stock_set: vec!["510300".into()],
             period: "M1".into(), source: "manual".into(),
+            strategies: Default::default(),
         })
         .await
         .unwrap();

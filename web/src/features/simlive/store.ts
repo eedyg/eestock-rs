@@ -167,8 +167,15 @@ export class SimLiveStore {
     }
   }
 
-  /** 开会话（POST /api/sim-live/start-session；可带选中的标的/策略集）. */
-  async startSession(params: { name: string; period: string; cash_init?: number; stock_set?: string[]; strategy_set?: string[] }): Promise<void> {
+  /** 开会话（POST /api/sim-live/start-session；可带选中的标的/策略集，或每策略明细 strategies）. */
+  async startSession(params: {
+    name: string;
+    period: string;
+    cash_init?: number;
+    stock_set?: string[];
+    strategy_set?: string[];
+    strategies?: import('@/api/types').SimStrategyConfigInput[];
+  }): Promise<void> {
     if (this.current.starting) return;
     this.patch({ starting: true, actionError: null });
     try {

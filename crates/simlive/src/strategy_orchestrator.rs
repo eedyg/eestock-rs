@@ -14,7 +14,7 @@
 //! - **内建状态按标的隔离**：策略的 `on_bar` 带内部状态（如 `dual_ma` 的 `prev_above`、`momentum` 的滚动窗），
 //!   这些状态是**按标的**的，故对每个「策略 × 标的」建独立实例（`create_strategy` 各建一次）。
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,8 +29,10 @@ pub struct StrategyConfig {
     pub params: StrategyParams,
     /// 该策略实时评估的标的集（≤30 股）。
     pub stocks: Vec<String>,
-    /// 聚合权重。
+    /// 聚合权重（策略级默认）。
     pub weight: f64,
+    /// 按标的覆盖权重（ADR §4 补充：策略×股票级权重）；未指定某股 → 用 `weight`。
+    pub stock_weights: HashMap<String, f64>,
 }
 
 /// 单策略对单标的的独立评分。
@@ -180,8 +182,10 @@ impl RealtimeStrategyOrchestrator {
                 signal: signal_str(&signal).to_string(),
             });
             // 仅当该策略覆盖该标的且有分才累加权重。
-            weighted_sum += rt.config.weight * score;
-            weight_sum += rt.config.weight;
+            // 权重 w[S,X] = stock_weights[X] ?? weight（ADR §4 补充：策略×股票级权重覆盖）。
+            let w = rt.config.stock_weights.get(code).copied().unwrap_or(rt.config.weight);
+            weighted_sum += w * score;
+            weight_sum += w;
         }
 
         let aggregate_score = if weight_sum > 0.0 {
@@ -211,6 +215,11 @@ impl RealtimeStrategyOrchestrator {
     /// 全部最近评估（多标的概览；按 code 升序）。
     pub fn all_evaluations(&self) -> Vec<&StockEvaluation> {
         self.latest.values().collect()
+    }
+
+    /// 全部策略配置（供 web/MCP 展示每策略 参数/标的/权重；含 stock_weights）。
+    pub fn configs(&self) -> Vec<StrategyConfig> {
+        self.strategies.iter().map(|rt| rt.config.clone()).collect()
     }
 
     pub fn buy_long_threshold(&self) -> f64 {
@@ -333,18 +342,21 @@ mod tests {
                 params: num_params(&[("lookback", 2.0)]),
                 stocks: vec!["AAA".into(), "BBB".into()],
                 weight: 2.0,
+                stock_weights: HashMap::new(),
             },
             StrategyConfig {
                 id: "momentum".into(),
                 params: num_params(&[("lookback", 3.0)]),
                 stocks: vec!["AAA".into()],
                 weight: 1.0,
+                stock_weights: HashMap::new(),
             },
             StrategyConfig {
                 id: "dual_ma".into(),
                 params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
                 stocks: vec!["BBB".into()],
                 weight: 3.0,
+                stock_weights: HashMap::new(),
             },
         ];
         let mut orch = RealtimeStrategyOrchestrator::new(configs, 60.0, 40.0);
@@ -462,6 +474,7 @@ mod tests {
             params: num_params(&[("lookback", 2.0)]),
             stocks: vec!["AAA".into()],
             weight: 1.0,
+            stock_weights: HashMap::new(),
         }];
         let mut orch = RealtimeStrategyOrchestrator::with_default_thresholds(configs);
         // 未覆盖标的不评估。
@@ -480,6 +493,7 @@ mod tests {
             params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
             stocks: vec!["AAA".into(), "BBB".into()],
             weight: 1.0,
+            stock_weights: HashMap::new(),
         }];
         let mut orch = RealtimeStrategyOrchestrator::with_default_thresholds(configs);
         // AAA：先高后低（始终低于快慢线 → 未金叉）；BBB：先低后高 → 于 bar3 金叉。
@@ -496,5 +510,59 @@ mod tests {
         // 状态隔离：AAA 未金叉 → Hold(50)；BBB 于末 bar 金叉 → Buy(100)。
         close(a.aggregate_score, 50.0);
         close(b.aggregate_score, 100.0);
+    }
+
+    /// ADR §4 补充：策略×股票级权重 `stock_weights[X]` 覆盖默认 `weight` 参与聚合。
+    /// 两策略均覆盖 AAA（momentum lookback=2 权重默认 1，但 stock_weights[AAA]=3；momentum lookback=3 权重 1）；
+    /// 聚合 = Σ(w[S,X]·score)/Σ(w[S,X]) = (3·s2 + 1·s3)/4。
+    #[test]
+    fn orchestrator_stock_weights_override_default_weight() {
+        let configs = vec![
+            StrategyConfig {
+                id: "momentum".into(),
+                params: num_params(&[("lookback", 2.0)]),
+                stocks: vec!["AAA".into()],
+                weight: 1.0,
+                stock_weights: HashMap::from([("AAA".to_string(), 3.0)]),
+            },
+            StrategyConfig {
+                id: "momentum".into(),
+                params: num_params(&[("lookback", 3.0)]),
+                stocks: vec!["AAA".into()],
+                weight: 1.0,
+                stock_weights: HashMap::new(),
+            },
+        ];
+        let mut orch = RealtimeStrategyOrchestrator::new(configs, 60.0, 40.0);
+        let aaa_bars = vec![bar(100, 10.0), bar(101, 10.0), bar(102, 10.0), bar(103, 11.0), bar(104, 13.0)];
+        for b in &aaa_bars {
+            orch.feed_bar("AAA", b.clone());
+        }
+        // 参考运行：独立实例逐 bar 喂入，取末 bar 信号 → 分。
+        let mut m2 = create_strategy("momentum", &num_params(&[("lookback", 2.0)])).unwrap();
+        let mut m3 = create_strategy("momentum", &num_params(&[("lookback", 3.0)])).unwrap();
+        let mut s2 = Signal::Hold;
+        let mut s3 = Signal::Hold;
+        for (i, b) in aaa_bars.iter().enumerate() {
+            let ind = Indicators::new(&aaa_bars, i);
+            let mut ctx = Ctx { bar_index: i, ts: b.ts, cash: 0.0, position: 0.0, equity: 0.0 };
+            s2 = m2.on_bar(&mut ctx, b, &ind);
+            let ind = Indicators::new(&aaa_bars, i);
+            let mut ctx = Ctx { bar_index: i, ts: b.ts, cash: 0.0, position: 0.0, equity: 0.0 };
+            s3 = m3.on_bar(&mut ctx, b, &ind);
+        }
+        let score2 = signal_to_score(&s2);
+        let score3 = signal_to_score(&s3);
+        let ev = orch.latest_evaluation("AAA").unwrap();
+        assert_eq!(ev.per_strategy_scores.len(), 2);
+        // stock_weights 生效：w[AAA] 对策略1=3、对策略2=1 → (3·score2 + 1·score3)/4。
+        let agg_stock = (3.0 * score2 + 1.0 * score3) / 4.0;
+        close(ev.aggregate_score, agg_stock);
+        // 若忽略 stock_weights（均=weight=1）→ (score2+score3)/2；score2≠score3 时二者必不同。
+        let agg_uniform = (score2 + score3) / 2.0;
+        if (score2 - score3).abs() > 1e-9 {
+            assert!((ev.aggregate_score - agg_uniform).abs() > 1e-9,
+                "stock_weights 应在评分不同时改变聚合分");
+        }
     }
 }

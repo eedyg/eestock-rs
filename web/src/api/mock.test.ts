@@ -420,6 +420,25 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(stock.per_strategy_scores[0]!.strategy_id).toBe('dual_ma');
   });
 
+  it('startSimSession 带 strategies（每策略参数/标的子集/权重+股票级权重）→ 派生聚合评分', async () => {
+    const api = createMockClient();
+    await api.startSimSession({
+      name: 't', period: 'M1',
+      strategies: [
+        { id: 'dual_ma', params: { fast: 2, slow: 3 }, stocks: ['518880'], weight: 1.0, stock_weights: { '518880': 3.0 } },
+        { id: 'macd', stocks: ['518880'], weight: 1.0 },
+      ],
+    });
+    const s = await api.getSimStrategies();
+    // 会话 strategy_set/stock_set 由策略派生。
+    expect((await api.getSimState()).session?.strategy_set).toEqual(['dual_ma', 'macd']);
+    expect((await api.getSimState()).session?.stock_set).toEqual(['518880']);
+    // 聚合权重：dual_ma 518880 权重=3、macd 权重=1 → (3*86 + 1*12)/4 = 67.5 → 68。
+    const stock = s.stocks.find((x) => x.code === '518880')!;
+    expect(stock.per_strategy_scores.length).toBe(2);
+    expect(stock.aggregate_score).toBe(68);
+  });
+
   it('startSimSession 重置账户/持仓/订单；stopSimSession 写入历史；toggle 开关读回', async () => {
     const api = createMockClient();
     const before = await api.getSimState();

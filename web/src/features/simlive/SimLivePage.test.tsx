@@ -117,6 +117,46 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     );
   });
 
+  it('选中策略渲染单策略卡（参数/schema/标的子集/权重）→ start body 含 strategies', async () => {
+    const idle = stubApi();
+    vi.spyOn(idle, 'getSimState').mockResolvedValue({
+      active: false, session: null, account: null, positions: [], pnl: null,
+      trading_enabled: false, mcp_enabled: true,
+    });
+    renderPage(idle);
+    await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
+    await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    // 单策略卡 + schema 参数编辑（fast/slow/position_pct）+ 标的子集 + 权重。
+    expect(screen.getByTestId('sim-strategy-card-dual_ma')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-dual_ma-param-fast')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-dual_ma-param-slow')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-dual_ma-stock-518880')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-dual_ma-weight')).toBeInTheDocument();
+    // 改参数（fast=3）、策略权重=2、每标的权重=3。
+    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-param-fast'));
+    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-param-fast'), '3');
+    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-weight'));
+    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-weight'), '2');
+    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-stockweight-518880'));
+    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-stockweight-518880'), '3');
+    await userEvent.click(screen.getByTestId('sim-start-button'));
+    await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
+    expect(idle.startSimSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        strategies: [
+          expect.objectContaining({
+            id: 'dual_ma',
+            params: expect.objectContaining({ fast: 3 }),
+            stocks: ['518880'],
+            weight: 2,
+            stock_weights: expect.objectContaining({ '518880': 3 }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it('会话配置面板展示标的/策略 chips', async () => {
     const idle = stubApi();
     vi.spyOn(idle, 'getSimState').mockResolvedValue({

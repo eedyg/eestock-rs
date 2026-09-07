@@ -12,19 +12,23 @@ use std::collections::{BTreeMap, HashMap as Map, HashSet};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use backtest::{Bar, FeeModel, Period, TradeDetail, compute_drawdown, compute_metrics};
+use backtest::{
+    Bar, FeeModel, ParamDef, ParamKind, Period, TradeDetail, compute_drawdown, compute_metrics,
+};
 use domain::ports::{
     Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult,
     SimSessionStore, SimSessionStatus, SimSessionView,
 };
 use serde::{Deserialize, Serialize};
 
+use crate::params::to_strategy_params;
 use crate::service::BacktestService;
 use crate::types::{SubmitOutcome, SubmitReq};
 use simlive::{
     Fill, FillEngine, Order, OrderStatus, RealtimeStrategyOrchestrator, SessionManager, Side,
-    SignalEvent, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation, StrategyConfig,
+    SignalEvent, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation,
 };
+pub use simlive::StrategyConfig;
 
 static NEXT_ORDER_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -32,6 +36,33 @@ static NEXT_ORDER_ID: AtomicU64 = AtomicU64::new(0);
 pub const DEFAULT_CASH_INIT: f64 = 1_000_000.0;
 /// 聚合策略默认开仓数量（每股；L2 简化来源 aggregate_strategy）。
 pub const DEFAULT_AGGREGATE_QTY: f64 = 100.0;
+
+/// 单策略输入（ADR 11-sim-live §4 多策略：id + 各自参数 + 各自标的集 + 权重）。
+/// `params` 为 `serde_json::Value`（web/MCP 传参形态）；应用层经 [`to_strategy_params`] 转 `backtest::StrategyParams`。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyConfigInput {
+    pub id: String,
+    /// 策略参数（按 `params_schema`；缺省 → 各策略默认值）。
+    #[serde(default = "default_params")]
+    pub params: serde_json::Value,
+    /// 该策略实时评估的标的子集（须非空，均为注册标的）。
+    #[serde(default)]
+    pub stocks: Vec<String>,
+    /// 聚合权重（>0，缺省 1.0）。
+    #[serde(default = "default_weight")]
+    pub weight: f64,
+    /// 按标的覆盖权重（策略×股票级，ADR §4 补充）：未指定某股 → 用 `weight`。
+    #[serde(default)]
+    pub stock_weights: Map<String, f64>,
+}
+
+fn default_params() -> serde_json::Value {
+    serde_json::Value::Object(Default::default())
+}
+
+fn default_weight() -> f64 {
+    1.0
+}
 
 /// 启动会话请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -46,6 +77,10 @@ pub struct StartSessionReq {
     pub period: String,
     #[serde(default = "default_source")]
     pub source: String,
+    /// 每策略配置（ADR §4）：若提供 → 用之（每策略实例+参数+标的集+权重入 orchestrator）；
+    /// 未提供 → 回退 `strategy_set × stock_set`（缺省参数、weight=1，由 `feed_targets` 自动配置）。
+    #[serde(default)]
+    pub strategies: Vec<StrategyConfigInput>,
 }
 
 fn default_source() -> String {
@@ -63,6 +98,18 @@ impl std::fmt::Display for AlreadyRunning {
 }
 
 impl std::error::Error for AlreadyRunning {}
+
+/// 会话配置非法（策略 id/params/标的集/weight 校验失败）。web 映射 400 / MCP 映射 isError。
+#[derive(Debug, Clone, PartialEq)]
+pub struct InvalidConfig(pub String);
+
+impl std::fmt::Display for InvalidConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for InvalidConfig {}
 
 /// F2：实时 feed 的 poll 目标（running 会话 × 其策略标的集）。
 #[derive(Debug, Clone, PartialEq)]
@@ -232,17 +279,60 @@ impl SimLiveService {
 
     /// 开始会话：重置账户为 cash_init，落库 running 元数据，缓存运行态。
     /// O1：已有 running 会话时拒绝再 start（返回 [`AlreadyRunning`]，防多 running）；web 映射 409。
+    /// ADR §4 多策略：若 `req.strategies` 提供 → 逐项校验（id/params/stocks/weight）并配置编排器
+    /// （每策略实例+参数+标的集+权重）；会话级 `strategy_set`/`stock_set` 由策略派生（去重、保序）。
+    /// 未提供 → 回退 `strategy_set × stock_set`（缺省参数、weight=1，由 `feed_targets` 自动配置）。
     pub async fn start_session(&self, req: &StartSessionReq) -> anyhow::Result<SimSessionView> {
         if let Some(existing) = self.current_session_id() {
             return Err(AlreadyRunning(existing).into());
         }
+        // 每策略配置（ADR §4）：校验 + 转 `simlive::StrategyConfig`（params json → StrategyParams）。
+        let detailed: Option<Vec<StrategyConfig>> = if req.strategies.is_empty() {
+            None
+        } else {
+            let mut configs = Vec::with_capacity(req.strategies.len());
+            for s in &req.strategies {
+                if let Err(e) = validate_strategy_config_input(s) {
+                    return Err(InvalidConfig(format!("{}", e)).into());
+                }
+                configs.push(StrategyConfig {
+                    id: s.id.clone(),
+                    params: to_strategy_params(&s.params)?,
+                    stocks: s.stocks.clone(),
+                    weight: s.weight,
+                    stock_weights: s.stock_weights.clone(),
+                });
+            }
+            Some(configs)
+        };
+        // 会话级 strategy_set/stock_set：detailed 时从策略派生；否则直接用 req。
+        let (strategy_set, stock_set) = match &detailed {
+            Some(configs) => {
+                let mut ids: Vec<String> = Vec::new();
+                for c in configs {
+                    if !ids.contains(&c.id) {
+                        ids.push(c.id.clone());
+                    }
+                }
+                let mut stks: Vec<String> = Vec::new();
+                for c in configs {
+                    for s in &c.stocks {
+                        if !stks.contains(s) {
+                            stks.push(s.clone());
+                        }
+                    }
+                }
+                (ids, stks)
+            }
+            None => (req.strategy_set.clone(), req.stock_set.clone()),
+        };
         let now = self.clock.now();
         let mut manager = SessionManager::new();
         let session = manager.start_session(
             &req.name,
             req.cash_init.unwrap_or(self.default_cash),
-            req.strategy_set.clone(),
-            req.stock_set.clone(),
+            strategy_set,
+            stock_set,
             &req.period,
             now.timestamp(),
             &req.source,
@@ -267,7 +357,7 @@ impl SimLiveService {
                 orders: Vec::new(),
                 intent_seen: HashSet::new(),
                 intent_fills: Map::new(),
-                orchestrator: None,
+                orchestrator: detailed.map(|c| RealtimeStrategyOrchestrator::with_default_thresholds(c)),
                 trading_enabled: false,
             },
         );
@@ -601,6 +691,7 @@ impl SimLiveService {
                         params: Default::default(), // 缺省参数（各策略 schema 默认值）
                         stocks: meta.2.clone(),
                         weight: 1.0,
+                        stock_weights: Map::new(),
                     })
                     .collect();
                 if configs.is_empty() {
@@ -769,6 +860,13 @@ impl SimLiveService {
             .and_then(|o| o.latest_evaluation(code).cloned()))
     }
 
+    /// 当前会话每策略配置（id/params/stocks/weight/stock_weights；供 web/MCP 展示）。
+    pub fn strategy_configs(&self, session_id: &str) -> anyhow::Result<Vec<StrategyConfig>> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        Ok(live.orchestrator.as_ref().map(|o| o.configs()).unwrap_or_default())
+    }
+
     /// 全部标的最近评估概览（多 stock 评估；无编排器 → 空）。
     pub fn get_strategy_analysis(&self, session_id: &str) -> anyhow::Result<Vec<StockEvaluation>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
@@ -857,6 +955,103 @@ impl SimLiveService {
         }
         Ok(BacktestCompareView { session_id: session_id.into(), session_result, run_ids })
     }
+}
+
+/// 校验单策略输入（ADR §4）：策略 id 非空且 ∈ 内置目录、params 合法（按 schema）、
+/// 标的集非空且均为注册标的（6 位数字 + 支持市场）、weight>0。
+fn validate_strategy_config_input(input: &StrategyConfigInput) -> anyhow::Result<()> {
+    let id = input.id.trim();
+    if id.is_empty() {
+        return Err(anyhow!("策略 id 不能为空"));
+    }
+    let catalog = backtest::builtin_strategy_catalog();
+    let meta = catalog
+        .iter()
+        .find(|s| s.id == id)
+        .ok_or_else(|| anyhow!("未知策略 id: {id}"))?;
+    // params 合法（按 schema）。
+    validate_params(&input.params, &meta.params_schema)?;
+    // 标的集非空 + 均为注册标的。
+    if input.stocks.is_empty() {
+        return Err(anyhow!("策略 {id} 至少需指定一个标的"));
+    }
+    for code in &input.stocks {
+        validate_registered_stock(code)?;
+    }
+    // weight>0。
+    if !input.weight.is_finite() || input.weight <= 0.0 {
+        return Err(anyhow!("策略 {id} 权重必须为正数"));
+    }
+    // stock_weights（策略×股票级）：键须 ∈ 标的集、值>0。
+    for (code, w) in &input.stock_weights {
+        if !input.stocks.contains(code) {
+            return Err(anyhow!("策略 {id} 的 stock_weights 键 {code} 不在其标的集内"));
+        }
+        if !w.is_finite() || *w <= 0.0 {
+            return Err(anyhow!("策略 {id} 的 {code} 权重必须为正数"));
+        }
+    }
+    Ok(())
+}
+
+/// 校验 params 按 strategy 的 `params_schema`：未知键 → 拒绝；Num 须数值且 ∈[min,max]；Choice 须 ∈ options。
+fn validate_params(params: &serde_json::Value, schema: &[ParamDef]) -> anyhow::Result<()> {
+    let obj = match params.as_object() {
+        Some(o) => o,
+        None => return Err(anyhow!("params 应为对象")),
+    };
+    for (key, val) in obj {
+        let def = schema
+            .iter()
+            .find(|p| p.key == *key)
+            .ok_or_else(|| anyhow!("参数 {key} 不在 schema 内"))?;
+        match (&def.kind, val) {
+            (ParamKind::Num { min, max, .. }, serde_json::Value::Number(n)) => {
+                let f = n.as_f64().ok_or_else(|| anyhow!("参数 {key} 应为有限数值"))?;
+                if !f.is_finite() {
+                    return Err(anyhow!("参数 {key} 应为有限数值"));
+                }
+                if f < *min || f > *max {
+                    return Err(anyhow!("参数 {key} 超出范围 [{min},{max}]"));
+                }
+            }
+            (ParamKind::Num { .. }, _) => return Err(anyhow!("参数 {key} 应为数值")),
+            (ParamKind::Choice { options, .. }, serde_json::Value::String(s)) => {
+                if !options.contains(s) {
+                    return Err(anyhow!("参数 {key} 须为 {} 之一", options.join("/")));
+                }
+            }
+            (ParamKind::Choice { .. }, _) => return Err(anyhow!("参数 {key} 应为字符串")),
+        }
+    }
+    Ok(())
+}
+
+/// 校验注册标的（03-symbols §3 口径）：6 位数字 + 市场前缀（5/6/9→沪、0/1/2/3→深；北交所/未知前缀拒绝）。
+fn validate_registered_stock(code: &str) -> anyhow::Result<()> {
+    if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
+        return Err(anyhow!("标的 {code} 须为 6 位数字"));
+    }
+    domain::types::Code(code.into())
+        .market()
+        .map_err(|_| anyhow!("标的不支持（北交所/未知前缀）: {code}"))?;
+    Ok(())
+}
+
+/// `backtest::StrategyParams` → `serde_json::Value`（Num→number / Choice→string；供 web/MCP 展示）。
+pub fn strategy_params_to_json(params: &backtest::StrategyParams) -> serde_json::Value {
+    let mut obj = serde_json::Map::new();
+    for (k, v) in params {
+        match v {
+            backtest::ParamValue::Num(n) => {
+                obj.insert(k.clone(), serde_json::json!(n));
+            }
+            backtest::ParamValue::Choice(s) => {
+                obj.insert(k.clone(), serde_json::json!(s));
+            }
+        }
+    }
+    serde_json::Value::Object(obj)
 }
 
 /// 会话 id 生成（时间戳 + 单调计数器；与 simlive SessionManager 同模式命名，无随机）。

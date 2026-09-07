@@ -52,6 +52,7 @@ import type {
   SimStartSessionReq,
   SimStateDto,
   SimStrategiesDto,
+  SimStrategyConfigInput,
   SimStrategyScore,
   SimToggleReq,
 } from './types';
@@ -896,14 +897,22 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     async startSimSession(req: SimStartSessionReq): Promise<{ started: boolean; session: SimSession }> {
       const id = `s_${simSeq}`;
       simSeq += 1;
+      // ADR §4 多策略：若提供每策略明细 → 会话级 strategy_set/stock_set 由策略派生（去重、保序）。
+      const detail = req.strategies ?? [];
+      const strategy_set = detail.length > 0
+        ? Array.from(new Set(detail.map((s) => s.id)))
+        : (req.strategy_set ?? []);
+      const stock_set = detail.length > 0
+        ? Array.from(new Set(detail.flatMap((s) => s.stocks)))
+        : (req.stock_set ?? []);
       const session: SimSession = {
         id,
         name: req.name,
         status: 'running',
         source: req.source ?? 'web',
         cash_init: req.cash_init ?? 1_000_000,
-        strategy_set: req.strategy_set ?? [],
-        stock_set: req.stock_set ?? [],
+        strategy_set,
+        stock_set,
         period: req.period,
         start_ts: new Date(anchorNow).toISOString(),
         end_ts: null,
@@ -919,6 +928,7 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         mcp_enabled: true,
         strategies: simLive.strategies,
         history: simLive.history,
+        strategiesDetail: detail,
       };
       return { started: true, session };
     },
@@ -1029,6 +1039,8 @@ interface SimLiveSeed {
   mcp_enabled: boolean;
   strategies: SimStrategiesDto;
   history: SimSessionListEntry[];
+  /** ADR §4 多策略：每策略明细（id/params/stocks/weight/stock_weights）；空 = 简单档。 */
+  strategiesDetail: SimStrategyConfigInput[];
 }
 
 function seedSimLiveState(now: number): SimLiveSeed {
@@ -1116,6 +1128,7 @@ function seedSimLiveState(now: number): SimLiveSeed {
     mcp_enabled: true,
     strategies: { session_id: session.id, strategies, stocks },
     history,
+    strategiesDetail: [],
   };
 }
 
@@ -1148,8 +1161,22 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
   const seedStrategyIds = Array.from(
     new Set(seedStocks.flatMap((s) => s.per_strategy_scores.map((x) => x.strategy_id))),
   );
-  const strategyIds = strategy_set.length > 0 ? strategy_set : seedStrategyIds;
-  const stockCodes = stock_set.length > 0 ? stock_set : seedStocks.map((s) => s.code);
+  // ADR §4 多策略：若提供每策略明细 → 用它（id/标的集/权重）；否则回退简单档（strategy_set × stock_set）。
+  const detail = simLive.strategiesDetail;
+  const useDetail = detail.length > 0;
+  const strategyIds = useDetail
+    ? detail.map((x) => x.id)
+    : (strategy_set.length > 0 ? strategy_set : seedStrategyIds);
+  const stockCodes = useDetail
+    ? Array.from(new Set(detail.flatMap((x) => x.stocks)))
+    : (stock_set.length > 0 ? stock_set : seedStocks.map((s) => s.code));
+  // 权重 w[S,X] = stock_weights[X] ?? weight（策略×标的级；简单档恒 1.0）。
+  const weightOf = (sid: string, code: string): number => {
+    if (!useDetail) return 1.0;
+    const s = detail.find((x) => x.id === sid);
+    if (!s) return 1.0;
+    return s.stock_weights?.[code] ?? s.weight ?? 1.0;
+  };
 
   const stocks: SimStrategiesDto['stocks'] = stockCodes.map((code) => {
     const seed = seedStocks.find((x) => x.code === code);
@@ -1160,6 +1187,7 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
       return { strategy_id: sid, score, signal: simSignal(score) };
     });
     const fullySeeded =
+      !useDetail &&
       seed != null &&
       strategyIds.length === seed.per_strategy_scores.length &&
       strategyIds.every((sid) => seed.per_strategy_scores.some((x) => x.strategy_id === sid));
@@ -1169,9 +1197,11 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
         per_strategy_scores, aggregate_score: seed.aggregate_score, signal: seed.signal,
       };
     }
-    const agg = Math.round(
-      per_strategy_scores.reduce((s, x) => s + x.score, 0) / Math.max(1, per_strategy_scores.length),
-    );
+    // 聚合评分 = Σ(w[S,X]·score)/Σ(w[S,X])（策略×标的权重；简单档各向 1）。
+    const wsum = per_strategy_scores.reduce((s, x) => s + weightOf(x.strategy_id, code), 0);
+    const agg = wsum > 0
+      ? Math.round(per_strategy_scores.reduce((s, x) => s + weightOf(x.strategy_id, code) * x.score, 0) / wsum)
+      : 50;
     return {
       code, ts: seed?.ts ?? Date.now(),
       latest_price: seed?.latest_price ?? (BASE_PRICE[code] ?? 1),
@@ -1185,7 +1215,19 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
       const s = st.per_strategy_scores.find((x) => x.strategy_id === sid);
       if (s && (!strongest || s.score > strongest.score)) strongest = { code: st.code, score: s.score, signal: s.signal };
     }
-    return { strategy_id: sid, name: SIM_STRATEGY_NAMES[sid] ?? sid, strongest };
+    const cfg = useDetail ? detail.find((x) => x.id === sid) : undefined;
+    return {
+      strategy_id: sid,
+      name: SIM_STRATEGY_NAMES[sid] ?? sid,
+      strongest,
+      config: cfg ? {
+        id: cfg.id,
+        params: cfg.params ?? {},
+        stocks: cfg.stocks,
+        weight: cfg.weight ?? 1.0,
+        stock_weights: cfg.stock_weights ?? {},
+      } : null,
+    };
   });
 
   return { session_id: simLive.session.id, strategies, stocks };

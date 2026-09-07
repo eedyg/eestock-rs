@@ -329,7 +329,7 @@ use serde_json::{json, Value};
 use crate::rpc::{result_err, result_ok, INVALID_PARAMS};
 use crate::state::McpState;
 // 11-sim-live / L1：模拟实盘工具（sim_*；经 application::SimLiveService，非真实券商）
-use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
+use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq, StrategyConfigInput};
 use std::sync::Arc;
 
 /// limit 上限/缺省（与 REST /api/kline 同口径，07 §1.1）。
@@ -393,7 +393,7 @@ pub fn tool_list() -> Value {
             },
             {
                 "name": "sim_start_session",
-                "description": "模拟实盘，不触真实券商：开启模拟会话（name/period 必填；cash_init 默认 1000000；strategy_set/stock_set 可选）。",
+                "description": "模拟实盘，不触真实券商：开启模拟会话（name/period 必填；cash_init 默认 1000000；若提供 strategies 按每策略参数/标的集/权重，否则用 strategy_set × stock_set 默认参数。",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -402,6 +402,7 @@ pub fn tool_list() -> Value {
                         "cash_init": { "type": "number", "description": "初始资金，默认 1000000" },
                         "strategy_set": { "type": "array", "items": { "type": "string" } },
                         "stock_set": { "type": "array", "items": { "type": "string" } },
+                        "strategies": { "type": "array", "description": "可选：每策略配置（id/params/stocks/weight），覆盖 strategy_set×stock_set 简单档", "items": { "type": "object", "properties": { "id": { "type": "string" }, "params": { "type": "object", "description": "策略参数（按 params_schema）" }, "stocks": { "type": "array", "items": { "type": "string" }, "description": "该策略标的子集（须非空）" }, "weight": { "type": "number", "description": "聚合权重，>0，默认 1.0" } }, "required": ["id", "stocks"] } },
                         "source": { "type": "string", "description": "mcp/web/preset/manual" }
                     },
                     "required": ["name", "period"]
@@ -688,7 +689,8 @@ fn sim_service(st: &McpState, id: Option<Value>) -> Result<Arc<SimLiveService>, 
     }
 }
 
-/// sim_start_session(name, period, cash_init?, strategy_set?, stock_set?, source?)：开模拟会话。
+/// sim_start_session(name, period, cash_init?, strategy_set?, stock_set?, source?, strategies?)：开模拟会话。
+/// `strategies`（ADR §4 多策略）可选：每策略 {id, params, stocks, weight}；提供则用之，否则回退 strategy_set × stock_set（默认参数、weight=1）。
 async fn sim_start_session(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
     let Some(name) = args.get("name").and_then(Value::as_str).filter(|s| !s.is_empty()) else {
@@ -701,6 +703,14 @@ async fn sim_start_session(st: &McpState, id: Option<Value>, args: &Value) -> Va
     let strategy_set = str_array(args, "strategy_set");
     let stock_set = str_array(args, "stock_set");
     let source = args.get("source").and_then(Value::as_str).unwrap_or("manual").to_string();
+    // strategies（可选）：json 数组 → Vec<StrategyConfigInput>（serde 默认 params={}/weight=1）。
+    let strategies: Vec<StrategyConfigInput> = match args.get("strategies") {
+        Some(v) => match serde_json::from_value(v.clone()) {
+            Ok(list) => list,
+            Err(e) => return result_err(id, INVALID_PARAMS, format!("strategies 解析失败: {e}")),
+        },
+        None => Vec::new(),
+    };
     let req = StartSessionReq {
         name: name.into(),
         cash_init,
@@ -708,6 +718,7 @@ async fn sim_start_session(st: &McpState, id: Option<Value>, args: &Value) -> Va
         stock_set,
         period: period.into(),
         source,
+        strategies,
     };
     match sim.start_session(&req).await {
         Ok(view) => tool_ok(id, &view),
@@ -1196,6 +1207,57 @@ mod tests {
         assert_eq!(p["equity"], json!(200000.0));
     }
 
+    // ADR §4 多策略：MCP sim_start_session 带 strategies → 编排器按每策略 参数/标的集 配置（固定输入断言）。
+    #[tokio::test]
+    async fn sim_start_session_with_strategies_wires_orchestrator() {
+        let st = sim_state();
+        let svc = st.sim.clone().unwrap();
+        let r = call(&st, "sim_start_session", json!({
+            "name": "s1", "period": "M1",
+            "strategies": [{ "id": "dual_ma", "params": { "fast": 2.0, "slow": 3.0 }, "stocks": ["510300"], "weight": 2.0 }],
+        })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["status"], "running");
+        let sid = p["id"].as_str().unwrap().to_string();
+        // 会话级 strategy_set/stock_set 由策略派生。
+        let r = call(&st, "sim_get_session", json!({ "session_id": sid })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["session"]["strategy_set"], json!(["dual_ma"]));
+        assert_eq!(p["session"]["stock_set"], json!(["510300"]));
+
+        // 喂入先低后高序列 → dual_ma 金叉 → Buy(100)；编排器已用 per-strategy 参数。
+        for (i, c) in [12.0, 8.0, 9.0, 14.0].into_iter().enumerate() {
+            svc.process_bar(&sid, "510300", backtest::Bar {
+                ts: 100 + i as i64, open: c, high: c, low: c, close: c, volume: 10_000.0,
+            }).await.unwrap();
+        }
+        let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "510300" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["signal"], "buy");
+        assert_eq!(p["aggregate_score"], json!(100.0));
+        assert_eq!(p["per_strategy_scores"][0]["strategy_id"], "dual_ma");
+        // 未覆盖标的不评估。
+        let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "999999" })).await;
+        assert_eq!(payload_of(&r)["evaluation"], json!(null));
+    }
+
+    // ADR §4：MCP sim_start_session 带非法 strategies → isError（未知 id / weight≤0）。
+    #[tokio::test]
+    async fn sim_start_session_invalid_strategies_is_error() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({
+            "name": "s2", "period": "M1",
+            "strategies": [{ "id": "bad", "stocks": ["510300"] }],
+        })).await;
+        assert_eq!(r["result"]["isError"], true, "未知策略 id → isError");
+        let st2 = sim_state();
+        let r = call(&st2, "sim_start_session", json!({
+            "name": "s2", "period": "M1",
+            "strategies": [{ "id": "dual_ma", "stocks": ["510300"], "weight": 0.0 }],
+        })).await;
+        assert_eq!(r["result"]["isError"], true, "weight≤0 → isError");
+    }
+
     #[tokio::test]
     async fn sim_place_order_market_fills_and_updates_account() {
         let st = sim_state();
@@ -1313,6 +1375,7 @@ mod tests {
             ]),
             stocks: vec!["510300".into()],
             weight: 1.0,
+            stock_weights: std::collections::HashMap::new(),
         }];
         svc.configure_strategies(&sid, configs).unwrap();
         for (i, c) in [12.0, 8.0, 9.0, 14.0].into_iter().enumerate() {

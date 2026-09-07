@@ -538,11 +538,12 @@ export interface SimStockEvaluation {
   signal: 'buy' | 'sell' | 'hold';
 }
 
-/** 每策略当前最强标的（strategy-panel） */
+/** 每策略当前最强标的（strategy-panel）+ 其配置（ADR §4：params/stocks/weight/stock_weights）。 */
 export interface SimStrategySummary {
   strategy_id: string;
   name: string;
   strongest: { code: string; score: number; signal: 'buy' | 'sell' | 'hold' } | null;
+  config?: SimStrategyConfigInput | null;
 }
 
 /** GET /api/sim-live/strategies 响应 */
@@ -585,6 +586,19 @@ export interface SimBacktestCompare {
   run_ids: number[];
 }
 
+/** 单策略配置输入（ADR 11-sim-live §4 多策略；params 为策略参数对象，按 params_schema） */
+export interface SimStrategyConfigInput {
+  id: string;
+  /** 策略参数（数值/枚举；缺省 → 各策略 schema 默认值） */
+  params?: Record<string, number | string>;
+  /** 该策略实时评估的标的子集（须非空） */
+  stocks: string[];
+  /** 策略级聚合权重（>0，缺省 1.0） */
+  weight?: number;
+  /** 按标的覆盖权重（策略×股票级）；未指定某股 → 用 weight */
+  stock_weights?: Record<string, number>;
+}
+
 /** 开会话请求 */
 export interface SimStartSessionReq {
   name: string;
@@ -593,6 +607,8 @@ export interface SimStartSessionReq {
   strategy_set?: string[];
   stock_set?: string[];
   source?: string;
+  /** 每策略配置（ADR §4）：若提供则用之（每策略实例+参数+标的集+权重），否则用 strategy_set × stock_set（默认参数、weight=1） */
+  strategies?: SimStrategyConfigInput[];
 }
 
 /** 下模拟单请求（`price`=模拟行情最新价） */

@@ -1,16 +1,58 @@
 import { useState } from 'react';
 import type {
+  BacktestParamDef,
   BacktestStrategyDto,
   SimOrder,
   SimSessionDetail,
   SimSessionListEntry,
   SimStateDto,
   SimStrategiesDto,
+  SimStrategyConfigInput,
   SymbolSnapshot,
 } from '@/api/types';
 
+/** 参数 schema 默认值（Num→def，Choice→def）。 */
+function paramDefDefault(p: BacktestParamDef): number | string {
+  if ('Num' in p.kind) return p.kind.Num.def;
+  return p.kind.Choice.def;
+}
+
+/** 单策略参数输入（schema 驱动：Num→number 输入 / Choice→select）。 */
+function StrategyParamField({ strategyId, def, value, onChange }: {
+  strategyId: string;
+  def: BacktestParamDef;
+  value: number | string;
+  onChange: (v: number | string) => void;
+}) {
+  const testid = `sim-strategy-${strategyId}-param-${def.key}`;
+  if ('Num' in def.kind) {
+    return (
+      <input
+        data-testid={testid}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : value)}
+        className="w-20 rounded border border-line bg-transparent px-2 py-1 text-xs"
+      />
+    );
+  }
+  return (
+    <select
+      data-testid={testid}
+      value={String(value)}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded border border-line bg-transparent px-2 py-1 text-xs"
+    >
+      {def.kind.Choice.options.map((o) => (
+        <option key={o} value={o}>{o}</option>
+      ))}
+    </select>
+  );
+}
+
 /** 会话控制：状态 pill + 账户 KPI + 统一交易开关 + MCP 状态/停用按钮 + 停止/开始会话。
- *  未运行态额外展示「配置会话」面板：标的 multi-select + 策略 multi-select + 名称/周期/初始资金。 */
+ *  未运行态额外展示「配置会话」面板：标的 multi-select + 策略 multi-select + 名称/周期/初始资金。
+ *  每选中策略渲染「单策略卡」：schema 参数编辑 + 标的子集 multi-select + 策略权重 + 每标的权重（ADR §4）。 */
 export function SessionControl({
   state,
   starting,
@@ -31,7 +73,14 @@ export function SessionControl({
   togglingMcp: boolean;
   symbols: SymbolSnapshot[];
   strategies: BacktestStrategyDto[];
-  onStart: (p: { name: string; period: string; cash_init?: number; stock_set?: string[]; strategy_set?: string[] }) => void;
+  onStart: (p: {
+    name: string;
+    period: string;
+    cash_init?: number;
+    stock_set?: string[];
+    strategy_set?: string[];
+    strategies?: SimStrategyConfigInput[];
+  }) => void;
   onStop: () => void;
   onToggleTrading: (enabled: boolean) => void;
   onToggleMcp: (enabled: boolean) => void;
@@ -43,6 +92,11 @@ export function SessionControl({
   const [cashInit, setCashInit] = useState('1000000');
   const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
   const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
+  // 每策略详细配置（ADR §4：各自参数/标的子集/权重 + 策略×股票级权重）。
+  const [strategyParams, setStrategyParams] = useState<Record<string, Record<string, number | string>>>({});
+  const [strategyStocks, setStrategyStocks] = useState<Record<string, string[]>>({});
+  const [strategyWeights, setStrategyWeights] = useState<Record<string, number>>({});
+  const [strategyStockWeights, setStrategyStockWeights] = useState<Record<string, Record<string, number>>>({});
   const [configError, setConfigError] = useState<string | null>(null);
 
   const toggleStock = (code: string) =>
@@ -52,13 +106,28 @@ export function SessionControl({
       else n.add(code);
       return n;
     });
-  const toggleStrategy = (id: string) =>
+  const toggleStrategy = (id: string) => {
     setSelectedStrategies((prev) => {
       const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
+      if (n.has(id)) {
+        n.delete(id);
+        return n;
+      }
+      n.add(id);
+      // 选中即初始化该策略卡片：参数=schema 默认值；标的子集=当前全选股票；权重=1.0。
+      const def = strategies.find((s) => s.id === id);
+      const params: Record<string, number | string> = {};
+      if (def) {
+        for (const p of def.params_schema) {
+          params[p.key] = paramDefDefault(p);
+        }
+      }
+      setStrategyParams((prev2) => ({ ...prev2, [id]: params }));
+      setStrategyStocks((prev2) => ({ ...prev2, [id]: Array.from(selectedStocks) }));
+      setStrategyWeights((prev2) => ({ ...prev2, [id]: 1.0 }));
       return n;
     });
+  };
   const start = () => {
     if (starting) return;
     if (selectedStocks.size === 0) {
@@ -71,12 +140,28 @@ export function SessionControl({
     }
     setConfigError(null);
     const cash = Number(cashInit);
+    // 每策略明细（ADR §4）：id/params/stocks/weight + stock_weights（每策略×标的级权重）。
+    const strategies: SimStrategyConfigInput[] = Array.from(selectedStrategies).map((id) => {
+      const stocks = strategyStocks[id]?.length ? strategyStocks[id] : Array.from(selectedStocks);
+      const weight = strategyWeights[id] ?? 1.0;
+      const perStock = strategyStockWeights[id] ?? {};
+      const stock_weights: Record<string, number> = {};
+      for (const c of stocks) stock_weights[c] = perStock[c] !== undefined ? perStock[c] : weight;
+      return {
+        id,
+        params: strategyParams[id] ?? {},
+        stocks,
+        weight,
+        stock_weights,
+      };
+    });
     onStart({
       name: name.trim() || '手动会话',
       period,
       cash_init: Number.isFinite(cash) && cash > 0 ? cash : undefined,
       stock_set: Array.from(selectedStocks),
       strategy_set: Array.from(selectedStrategies),
+      strategies,
     });
   };
 
@@ -216,6 +301,82 @@ export function SessionControl({
             <div className="text-[11px] text-[--dim]">策略（multi-select；默认参数）</div>
             <div className="flex flex-wrap gap-2">{strategies.map(strategyChip)}</div>
           </div>
+          {/* 每策略详细配置卡（ADR §4）：参数/标的子集/权重（+每标的权重） */}
+          {Array.from(selectedStrategies).map((id) => {
+            const def = strategies.find((s) => s.id === id);
+            if (!def) return null;
+            const stocks = strategyStocks[id]?.length ? strategyStocks[id] : Array.from(selectedStocks);
+            const weight = strategyWeights[id] ?? 1.0;
+            const perStock = strategyStockWeights[id] ?? {};
+            return (
+              <div key={id} data-testid={`sim-strategy-card-${id}`} className="mt-2 rounded border border-[--line] p-3">
+                <div className="mb-2 text-[11px] text-[--dim]">{def.name}（{def.id}）· 参数/标的/权重</div>
+                {/* 参数 + 策略权重 */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {def.params_schema.map((p) => (
+                    <label key={p.key} className="flex items-center gap-1 text-xs">
+                      <span className="text-[--dim]">{p.label}</span>
+                      <StrategyParamField
+                        strategyId={id}
+                        def={p}
+                        value={strategyParams[id]?.[p.key] ?? paramDefDefault(p)}
+                        onChange={(v) => setStrategyParams((prev) => ({ ...prev, [id]: { ...prev[id], [p.key]: v } }))}
+                      />
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-1 text-xs">
+                    <span className="text-[--dim]">权重</span>
+                    <input
+                      data-testid={`sim-strategy-${id}-weight`}
+                      type="number"
+                      step="0.1"
+                      value={weight}
+                      onChange={(e) => setStrategyWeights((prev) => ({ ...prev, [id]: Number(e.target.value) }))}
+                      className="w-16 rounded border border-line bg-transparent px-2 py-1 text-xs"
+                    />
+                  </label>
+                </div>
+                {/* 标的子集 + 每标的权重 */}
+                <div className="mt-2">
+                  <div className="text-[11px] text-[--dim]">标的子集（默认全选；可去掉）</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(selectedStocks).map((code) => {
+                      const on = stocks.includes(code);
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          data-testid={`sim-strategy-${id}-stock-${code}`}
+                          data-on={on}
+                          className={chipCls(on)}
+                          onClick={() => setStrategyStocks((prev) => ({
+                            ...prev,
+                            [id]: on ? (prev[id] ?? []).filter((c) => c !== code) : [...(prev[id] ?? []), code],
+                          }))}
+                        >{code}</button>
+                      );
+                    })}
+                  </div>
+                  {stocks.map((code) => (
+                    <label key={code} className="mr-3 inline-flex items-center gap-1 text-xs">
+                      <span className="text-[--dim]">{code}权重</span>
+                      <input
+                        data-testid={`sim-strategy-${id}-stockweight-${code}`}
+                        type="number"
+                        step="0.1"
+                        value={perStock[code] ?? weight}
+                        onChange={(e) => setStrategyStockWeights((prev) => ({
+                          ...prev,
+                          [id]: { ...(prev[id] ?? {}), [code]: Number(e.target.value) },
+                        }))}
+                        className="w-16 rounded border border-line bg-transparent px-2 py-1 text-xs"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
           {configError && (
             <div data-testid="sim-config-error" className="mt-2 text-xs text-[--down]">{configError}</div>
           )}
@@ -248,7 +409,7 @@ export function PositionTable({ positions }: { positions: SimStateDto['positions
   );
 }
 
-/** 3 策略独立评估（当前最强标的/分）。 */
+/** 3 策略独立评估（当前最强标的/分）+ ADR §4 每策略 参数/标的/权重 展示。 */
 export function StrategyPanel({ strategies }: { strategies: SimStrategiesDto['strategies'] }) {
   if (strategies.length === 0) return <div data-testid="sim-strategies-empty">未启动会话</div>;
   return (
@@ -263,6 +424,16 @@ export function StrategyPanel({ strategies }: { strategies: SimStrategiesDto['st
               </strong>
             ) : '—'}
           </div>
+          {s.config && (
+            <div data-testid={`sim-strategy-config-${s.strategy_id}`} className="mt-1 text-[--dim]">
+              <div>标的：{(s.config.stocks ?? []).join(',')}</div>
+              <div>权重：{s.config.weight ?? 1.0}</div>
+              <div>参数：{JSON.stringify(s.config.params ?? {})}</div>
+              {s.config.stock_weights && Object.keys(s.config.stock_weights).length > 0 && (
+                <div>标的权重：{JSON.stringify(s.config.stock_weights)}</div>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

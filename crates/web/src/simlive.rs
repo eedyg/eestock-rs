@@ -213,6 +213,8 @@ pub async fn start_session(State(st): State<Arc<AppState>>, Json(body): Json<Sta
         Err(e) => {
             if e.downcast_ref::<application::simlive::AlreadyRunning>().is_some() {
                 err(StatusCode::CONFLICT, "已有运行中会话，请先停止会话再开始（单运行会话约束）")
+            } else if e.downcast_ref::<application::simlive::InvalidConfig>().is_some() {
+                err(StatusCode::BAD_REQUEST, &format!("策略配置非法：{e}"))
             } else {
                 internal(e)
             }
@@ -267,13 +269,24 @@ pub async fn strategies(
             }
         }
     }
+    // 每策略配置（ADR §4：params/stocks/weight/stock_weights；供 strategy-panel 展示）。
+    let config_map: std::collections::HashMap<String, application::simlive::StrategyConfig> = match sim.strategy_configs(&sid) {
+        Ok(configs) => configs.into_iter().map(|c| (c.id.clone(), c)).collect(),
+        Err(e) => return internal(e),
+    };
     let strategy_ids: std::collections::BTreeSet<String> = strategy_names.into_iter().collect();
     let strategies: Vec<serde_json::Value> = strategy_ids
         .into_iter()
         .map(|id| {
             let name = name_map.get(&id).cloned().unwrap_or_else(|| id.clone());
             let strongest = per_strategy.get(&id).cloned().unwrap_or(serde_json::json!(null));
-            serde_json::json!({ "strategy_id": id, "name": name, "strongest": strongest })
+            let config = config_map.get(&id).map(|c| serde_json::json!({
+                "params": application::simlive::strategy_params_to_json(&c.params),
+                "stocks": c.stocks,
+                "weight": c.weight,
+                "stock_weights": c.stock_weights,
+            })).unwrap_or(serde_json::Value::Null);
+            serde_json::json!({ "strategy_id": id, "name": name, "strongest": strongest, "config": config })
         })
         .collect();
 
