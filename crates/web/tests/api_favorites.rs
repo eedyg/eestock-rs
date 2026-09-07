@@ -68,6 +68,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         backtest_ws,
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
+        sim: None,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

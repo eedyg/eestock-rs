@@ -9,7 +9,7 @@
 use anyhow::anyhow;
 use chrono::DateTime;
 use std::collections::{BTreeMap, HashMap as Map, HashSet};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use backtest::{Bar, FeeModel, Period, TradeDetail, compute_drawdown, compute_metrics};
@@ -165,6 +165,9 @@ pub struct SimLiveService {
     /// 回测服务（L3「回测一下」；经 BacktestService.submit 触发既有回测 run；None = 未注入）。
     backtest: Option<Arc<BacktestService>>,
     sessions: Mutex<Map<String, LiveSession>>,
+    /// MCP sim_* 服务快捷开关（L3b web：默认开；关闭后 MCP sim_* 工具返回 isError，web 反映状态）。
+    /// 与 web 共享同一服务实例（ADR 11-sim-live §7 双通道一致性），故放服务内而非各端各自维护。
+    mcp_enabled: AtomicBool,
 }
 
 impl SimLiveService {
@@ -177,6 +180,7 @@ impl SimLiveService {
             aggregate_qty: DEFAULT_AGGREGATE_QTY,
             backtest: None,
             sessions: Mutex::new(Map::new()),
+            mcp_enabled: AtomicBool::new(true),
         }
     }
 
@@ -259,6 +263,37 @@ impl SimLiveService {
         let _ = ended;
         let updated = self.store.mark_end(session_id, now, &result).await?;
         Ok(updated)
+    }
+
+    // ── 11-sim-live / L3b：web 面板（与 MCP 共享同一服务实例）──
+
+    /// MCP sim_* 服务快捷开关当前态（默认开）。
+    pub fn mcp_enabled(&self) -> bool {
+        self.mcp_enabled.load(Ordering::Relaxed)
+    }
+
+    /// 切换 MCP sim_* 服务开关（返回新态）。关闭后 MCP sim_* 工具应返回 isError。
+    pub fn set_mcp_enabled(&self, enabled: bool) -> bool {
+        self.mcp_enabled.store(enabled, Ordering::Relaxed);
+        enabled
+    }
+
+    /// 当前会话解析：返回**最新 running** 会话 id；无 running → None（web 面板展示 idle 态）。
+    /// 已结束会话的回看需显式传 `session_id`（存库仍在），此处只服务「当前会话」区域。
+    pub fn current_session_id(&self) -> Option<String> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let mut best: Option<(&String, i64)> = None;
+        for (id, live) in sessions.iter() {
+            if let Some(session) = live.manager.current_session() {
+                if session.status == simlive::SessionStatus::Running {
+                    let ts = session.start_ts;
+                    if best.map(|(_, t)| ts > t).unwrap_or(true) {
+                        best = Some((id, ts));
+                    }
+                }
+            }
+        }
+        best.map(|(id, _)| id.clone())
     }
 
     /// 下单：市价按最新价即时成交；限价触及成交；未成交（限价未触及）记 pending 单。

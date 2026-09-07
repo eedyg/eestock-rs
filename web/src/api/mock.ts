@@ -40,6 +40,19 @@ import type {
   TushareStatusResponse,
   BacktestNetValue,
   MaConfigDto,
+  SimBacktestCompare,
+  SimCancelOrderReq,
+  SimOrdersResp,
+  SimPnlResp,
+  SimPlaceOrderReq,
+  SimPositionsResp,
+  SimSession,
+  SimSessionDetail,
+  SimSessionListEntry,
+  SimStartSessionReq,
+  SimStateDto,
+  SimStrategiesDto,
+  SimToggleReq,
 } from './types';
 import { ApiError } from './types';
 
@@ -93,6 +106,10 @@ function rand01(key: string): number {
 
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;
+}
+
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
 }
 
 /** 行情看板 MA 默认窗口（GET /api/config/ma 表空/未初始化时兜底；与后端默认 [5,10,20] 同构） */
@@ -480,6 +497,28 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     groupId: string | null,
   ): BacktestRunDto => makeDoneRun(req, params, nextBacktestRunId++, groupId, anchorNow);
 
+  /** 页面⑨ 模拟实盘：内存态（活跃会话/账户/策略评估/订单/历史）；与 MCP 共享同一服务（同 client 状态）。 */
+  let simSeq = 12;
+  let simLive = seedSimLiveState(anchorNow);
+  const mutateSim = () => {
+    // 重算 pnl 快照（未实现 = 市值 - 成本×量；已实现/费用累计）。
+    const unrealized = simLive.positions.reduce(
+      (s, p) => s + (p.latest - p.avg_cost) * p.qty, 0);
+    const market_value = simLive.positions.reduce((s, p) => s + p.market_value, 0);
+    simLive.account = {
+      ...simLive.account,
+      equity: simLive.account.cash + market_value,
+      market_value,
+      unrealized_pnl: unrealized,
+    };
+    simLive.pnl = {
+      realized_pnl: simLive.account.realized_pnl,
+      unrealized_pnl: unrealized,
+      total_fee: simLive.account.total_fee,
+      net_profit: simLive.account.realized_pnl + unrealized,
+    };
+  };
+
   const queryAlerts = async (q: AlertQuery): Promise<AlertEventItem[]> => {
     const out = alertEvents
       .filter(
@@ -835,6 +874,270 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       }
       backtestRuns = backtestRuns.filter((r) => r.id !== id);
     },
+    // ── 页面⑨ 模拟实盘（§1.6；模拟实盘，不触真实券商）──
+    async getSimState(_sessionId?: string): Promise<SimStateDto> {
+      return { active: simLive.session.status === 'running', session: simLive.session,
+        account: simLive.account, positions: simLive.positions.map((p) => ({ ...p })),
+        pnl: simLive.pnl, trading_enabled: simLive.trading_enabled, mcp_enabled: simLive.mcp_enabled };
+    },
+    async getSimPositions(_sessionId?: string): Promise<SimPositionsResp> {
+      return { session_id: simLive.session.id, positions: simLive.positions.map((p) => ({ ...p })) };
+    },
+    async getSimOrders(_sessionId?: string): Promise<SimOrdersResp> {
+      return { session_id: simLive.session.id, orders: simLive.orders.map((o) => ({ ...o })) };
+    },
+    async getSimPnl(_sessionId?: string): Promise<SimPnlResp> {
+      return { session_id: simLive.session.id, pnl: { ...simLive.pnl } };
+    },
+    async getSimStrategies(_sessionId?: string): Promise<SimStrategiesDto> {
+      return simStrategiesView(simLive);
+    },
+    async startSimSession(req: SimStartSessionReq): Promise<{ started: boolean; session: SimSession }> {
+      const id = `s_${simSeq}`;
+      simSeq += 1;
+      const session: SimSession = {
+        id,
+        name: req.name,
+        status: 'running',
+        source: req.source ?? 'web',
+        cash_init: req.cash_init ?? 1_000_000,
+        strategy_set: req.strategy_set ?? [],
+        stock_set: req.stock_set ?? [],
+        period: req.period,
+        start_ts: new Date(anchorNow).toISOString(),
+        end_ts: null,
+      };
+      simLive = {
+        session,
+        account: { session_id: id, cash: session.cash_init, equity: session.cash_init,
+          market_value: 0, realized_pnl: 0, unrealized_pnl: 0, total_fee: 0 },
+        positions: [],
+        orders: [],
+        pnl: { realized_pnl: 0, unrealized_pnl: 0, total_fee: 0, net_profit: 0 },
+        trading_enabled: false,
+        mcp_enabled: true,
+        strategies: simLive.strategies,
+        history: simLive.history,
+      };
+      return { started: true, session };
+    },
+    async stopSimSession(req: { session_id?: string }): Promise<{ session_id: string; stopped: boolean }> {
+      const id = req.session_id ?? simLive.session.id;
+      if (simLive.session.id !== id || simLive.session.status === 'ended') {
+        return { session_id: id, stopped: false };
+      }
+      const ended = { ...simLive.session, status: 'ended' as const, end_ts: new Date(anchorNow).toISOString() };
+      simLive = { ...simLive, session: ended };
+      simLive.history = [{ session: ended, metrics: toSimMetrics(simLive.pnl) }, ...simLive.history];
+      // 若还有其它运行会话，则退回未运行态；此处简化：已 ended 后 state.active=false。
+      return { session_id: id, stopped: true };
+    },
+    async placeSimOrder(req: SimPlaceOrderReq): Promise<{ session_id: string; filled: boolean; fill: unknown | null; reason?: string }> {
+      const side = req.side as 'buy' | 'sell';
+      const fee = round4(req.price * req.qty * 0.00025);
+      // 限价触及判定：买限价=市价 ≤ 限价成交；卖限价=市价 ≥ 限价成交。未触及 → pending。
+      const limitTouched = req.limit_price == null
+        ? true
+        : side === 'buy' ? req.price <= req.limit_price : req.price >= req.limit_price;
+      if (!limitTouched) {
+        // 限价未触及 → pending（不成交）。
+        simLive.orders.push({ id: `o_${simSeq++}`, code: req.code, side, qty: req.qty,
+          limit_price: req.limit_price ?? null, status: 'pending', filled_price: null, filled_qty: 0,
+          fee: 0, ts: anchorNow, source: req.source ?? 'manual' });
+        return { session_id: simLive.session.id, filled: false, fill: null, reason: '限价未触及，记为 pending 单' };
+      }
+      const price = round4(req.price);
+      const fill = { code: req.code, side, qty: req.qty, price, fee };
+      // 更新持仓（简化：买加仓/卖减仓，买卖价差区分为开/平）。
+      const pos = simLive.positions.find((p) => p.code === req.code);
+      if (side === 'buy') {
+        if (pos) {
+          const newQty = pos.qty + req.qty;
+          pos.avg_cost = (pos.avg_cost * pos.qty + price * req.qty) / newQty;
+          pos.qty = newQty;
+        } else {
+          simLive.positions.push({ code: req.code, qty: req.qty, avg_cost: price, latest: price,
+            market_value: price * req.qty, unrealized_pnl: 0 });
+        }
+        simLive.account.cash = round4(simLive.account.cash - price * req.qty - fee);
+      } else {
+        if (pos) {
+          const realized = (price - pos.avg_cost) * Math.min(req.qty, pos.qty);
+          simLive.account.realized_pnl = round4(simLive.account.realized_pnl + realized);
+          pos.qty -= req.qty;
+          if (pos.qty <= 0) simLive.positions = simLive.positions.filter((p) => p.code !== req.code);
+          simLive.account.cash = round4(simLive.account.cash + price * req.qty - fee);
+        }
+      }
+      simLive.account.total_fee = round4(simLive.account.total_fee + fee);
+      simLive.orders.push({ id: `o_${simSeq++}`, code: req.code, side, qty: req.qty,
+        limit_price: req.limit_price ?? null, status: 'filled', filled_price: price, filled_qty: req.qty,
+        fee, ts: anchorNow, source: req.source ?? 'manual' });
+      mutateSim();
+      return { session_id: simLive.session.id, filled: true, fill };
+    },
+    async cancelSimOrder(req: SimCancelOrderReq): Promise<{ session_id: string; order_id: string; cancelled: boolean }> {
+      const o = simLive.orders.find((x) => x.id === req.order_id);
+      if (!o || o.status !== 'pending') return { session_id: req.session_id, order_id: req.order_id, cancelled: false };
+      o.status = 'cancelled';
+      return { session_id: req.session_id, order_id: req.order_id, cancelled: true };
+    },
+    async toggleSimTrading(req: SimToggleReq): Promise<{ session_id: string; trading_enabled: boolean }> {
+      simLive.trading_enabled = req.enabled;
+      return { session_id: simLive.session.id, trading_enabled: req.enabled };
+    },
+    async toggleSimMcp(req: SimToggleReq): Promise<{ mcp_enabled: boolean }> {
+      simLive.mcp_enabled = req.enabled;
+      return { mcp_enabled: req.enabled };
+    },
+    async getSimSessions(): Promise<SimSessionListEntry[]> {
+      return simLive.history.map((h) => ({ session: { ...h.session }, metrics: h.metrics }));
+    },
+    async getSimSession(id: string): Promise<SimSessionDetail> {
+      const found = simLive.history.find((h) => h.session.id === id);
+      if (!found) throw new ApiError(404, `HTTP 404: session ${id} 不存在`);
+      return { session: { ...found.session }, result: found.metrics ? { net_value: {}, trades: [], metrics: found.metrics } : null };
+    },
+    async runSimBacktestCompare(id: string): Promise<SimBacktestCompare> {
+      const found = simLive.history.find((h) => h.session.id === id);
+      if (!found) throw new ApiError(404, `HTTP 404: session ${id} 不存在`);
+      return {
+        session_id: id,
+        session_result: found.metrics ? { net_value: {}, trades: [], metrics: found.metrics } : null,
+        run_ids: [1001 + simLive.history.findIndex((h) => h.session.id === id)],
+      };
+    },
+  };
+}
+
+/** 页面⑨ 模拟实盘 mock 种子（活跃会话 + 账户/持仓/订单 + 3 策略评估 + 历史会话）。
+ *  确定性生成，无实时行情；与后端同构（§1.6）。 */
+interface SimLiveSeed {
+  session: SimSession;
+  account: {
+    session_id: string; cash: number; equity: number; market_value: number;
+    realized_pnl: number; unrealized_pnl: number; total_fee: number;
+  };
+  positions: Array<{ code: string; qty: number; avg_cost: number; latest: number;
+    market_value: number; unrealized_pnl: number }>;
+  orders: Array<{ id: string; code: string; side: 'buy' | 'sell'; qty: number;
+    limit_price: number | null; status: 'pending' | 'filled' | 'cancelled';
+    filled_price: number | null; filled_qty: number; fee: number; ts: number; source: string }>;
+  pnl: { realized_pnl: number; unrealized_pnl: number; total_fee: number; net_profit: number };
+  trading_enabled: boolean;
+  mcp_enabled: boolean;
+  strategies: SimStrategiesDto;
+  history: SimSessionListEntry[];
+}
+
+function seedSimLiveState(now: number): SimLiveSeed {
+  const gold = { code: '518880', qty: 50_000, avg_cost: 8.65, latest: 9.165 };
+  const csi500 = { code: '159577', qty: 280_000, avg_cost: 1.51, latest: 1.761 };
+  const mk = (p: { code: string; qty: number; avg_cost: number; latest: number }) => ({
+    ...p,
+    market_value: round4(p.qty * p.latest),
+    unrealized_pnl: round4((p.latest - p.avg_cost) * p.qty),
+  });
+  const positions = [mk(gold), mk(csi500)];
+  const market_value = round4(positions.reduce((s, p) => s + p.market_value, 0));
+  const unrealized = round4(positions.reduce((s, p) => s + p.unrealized_pnl, 0));
+  const cash = round4(312_842.1);
+  const realized = round4(12_408.3);
+  const total_fee = round4(1_230.5);
+  const session: SimSession = {
+    id: `s_${now}`,
+    name: '黄金ETF+中证500 策略',
+    status: 'running',
+    source: 'web',
+    cash_init: 1_000_000,
+    strategy_set: ['dual_ma', 'macd', 'ma_rsi'],
+    stock_set: ['518880', '159577', '161226'],
+    period: 'M1',
+    start_ts: new Date(now).toISOString(),
+    end_ts: null,
+  };
+  const stocks: SimStrategiesDto['stocks'] = [
+    { code: '518880', ts: now, latest_price: 9.165,
+      per_strategy_scores: [{ strategy_id: 'dual_ma', score: 86, signal: 'buy' },
+        { strategy_id: 'macd', score: 12, signal: 'hold' },
+        { strategy_id: 'ma_rsi', score: 64, signal: 'buy' }],
+      aggregate_score: 72, signal: 'buy' },
+    { code: '159577', ts: now, latest_price: 1.761,
+      per_strategy_scores: [{ strategy_id: 'dual_ma', score: 51, signal: 'hold' },
+        { strategy_id: 'macd', score: 3, signal: 'hold' },
+        { strategy_id: 'ma_rsi', score: 21, signal: 'hold' }],
+      aggregate_score: 28, signal: 'hold' },
+    { code: '161226', ts: now, latest_price: 0.982,
+      per_strategy_scores: [{ strategy_id: 'dual_ma', score: 8, signal: 'sell' },
+        { strategy_id: 'macd', score: 15, signal: 'sell' },
+        { strategy_id: 'ma_rsi', score: 31, signal: 'hold' }],
+      aggregate_score: 18, signal: 'sell' },
+  ];
+  const nameMap: Record<string, string> = { dual_ma: '双均线交叉', macd: 'MACD 金叉', ma_rsi: '均线+RSI' };
+  const strategies: SimStrategiesDto['strategies'] = Object.keys(nameMap).map((id) => {
+    let strongest: { code: string; score: number; signal: 'buy' | 'sell' | 'hold' } | null = null;
+    for (const st of stocks) {
+      const s = st.per_strategy_scores.find((x) => x.strategy_id === id);
+      if (s && (!strongest || s.score > strongest.score)) strongest = { code: st.code, score: s.score, signal: s.signal };
+    }
+    return { strategy_id: id, name: nameMap[id] ?? id, strongest };
+  });
+  const orders = [
+    { id: `o_1`, code: '518880', side: 'buy' as const, qty: 10_000, limit_price: null, status: 'filled' as const,
+      filled_price: 9.151, filled_qty: 10_000, fee: 22.88, ts: now - 60_000, source: 'strategy' },
+    { id: `o_2`, code: '159577', side: 'buy' as const, qty: 20_000, limit_price: null, status: 'filled' as const,
+      filled_price: 1.742, filled_qty: 20_000, fee: 8.71, ts: now - 30_000, source: 'manual' },
+    { id: `o_3`, code: '161226', side: 'buy' as const, qty: 10_000, limit_price: 0.99, status: 'cancelled' as const,
+      filled_price: null, filled_qty: 0, fee: 0, ts: now - 15_000, source: 'manual' },
+  ];
+  const history: SimSessionListEntry[] = [
+    { session: { id: `s_old11`, name: '双均线+RSI', status: 'ended', source: 'web', cash_init: 1_000_000,
+        strategy_set: ['dual_ma', 'ma_rsi'], stock_set: ['518880', '159577'], period: 'M1',
+        start_ts: new Date(now - 5 * 86400_000).toISOString(), end_ts: new Date(now - 4 * 86400_000).toISOString(),
+      },
+      metrics: { net_profit: 64_200, max_drawdown: -3.1, sharpe: 1.28, win_rate: 0.625,
+        profit_factor: 1.4, annualized_return: 0.18, trade_count: 24, avg_hold_bars: 90 } },
+    { session: { id: `s_old10`, name: 'MACD', status: 'ended', source: 'web', cash_init: 1_000_000,
+        strategy_set: ['macd'], stock_set: ['159577'], period: 'M1',
+        start_ts: new Date(now - 12 * 86400_000).toISOString(), end_ts: new Date(now - 11 * 86400_000).toISOString(),
+      },
+      metrics: { net_profit: 21_800, max_drawdown: -1.7, sharpe: 0.84, win_rate: 0.55,
+        profit_factor: 1.12, annualized_return: 0.06, trade_count: 18, avg_hold_bars: 120 } },
+  ];
+  return {
+    session,
+    account: { session_id: session.id, cash, equity: round4(cash + market_value), market_value,
+      realized_pnl: realized, unrealized_pnl: unrealized, total_fee },
+    positions,
+    orders,
+    pnl: { realized_pnl: realized, unrealized_pnl: unrealized, total_fee, net_profit: round4(realized + unrealized) },
+    trading_enabled: true,
+    mcp_enabled: true,
+    strategies: { session_id: session.id, strategies, stocks },
+    history,
+  };
+}
+
+/** 页面⑨ 模拟实盘：策略评估视图（每策略最强 + 每 stock 聚合/独立分），由种子派生。 */
+function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
+  return {
+    session_id: simLive.strategies.session_id,
+    strategies: simLive.strategies.strategies,
+    stocks: simLive.strategies.stocks.map((s) => ({ ...s })),
+  };
+}
+
+/** 页面⑨ 把 pnl 快照映射为 BacktestMetrics jsonb 摘要（历史会话指标；口径 08-backtest）。 */
+function toSimMetrics(pnl: SimLiveSeed['pnl']): Record<string, unknown> {
+  return {
+    net_profit: pnl.net_profit,
+    max_drawdown: -1.2,
+    sharpe: 1.0,
+    win_rate: 0.6,
+    profit_factor: 1.2,
+    annualized_return: 0.1,
+    trade_count: 20,
+    avg_hold_bars: 90,
   };
 }
 

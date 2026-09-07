@@ -178,6 +178,41 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 
 `eestock-app.rs` 构造 `storage::backtest::BacktestBarReader(pool)` + `PgBacktestStore(pool)` + `web::backtest::BacktestWsSink(hub)` → `application::service::BacktestService::new(bar_read, store, sink, DEFAULT_MAX_CONCURRENT)` → 装入 `AppState.backtest` / `AppState.backtest_ws`。`web` crate 新增依赖 `application`（依赖方向：Presentation → Application → domain/backtest；app 为组合根）。并发上限用 `application::service::DEFAULT_MAX_CONCURRENT`（ADR §7 = 4），本期不开放配置（避免改动 config schema）。
 
+### 1.6 模拟实盘（11-sim-live / L3b；ADR 11-sim-live §7/§8）
+
+> 与 §1.5 同模式：本 § 的 `crates/web/src/simlive.rs`（REST handlers）为**非 tangle 手写**（ADR-007 例外），
+> 契约描述在此、实际代码块不入本文档；`crates/web/src/lib.rs` 路由与 `crates/web/src/state.rs` 的 `AppState.sim`
+> 字段为 tangle 加法；**MCP 与 web 共享同一 `SimLiveService` 实例**（app bin 把同一 Arc clone 装入 `AppState.sim` 与 `McpState.sim`）。
+> 应用层在 `application::SimLiveService`（非 tangle）；storage `PgSimSessionStore`（迁移 0018，非 tangle）。
+
+#### REST
+
+| 方法/路径 | 参数 | 响应 | 数据源 | 错误态 |
+|---|---|---|---|---|
+| `GET /api/sim-live/state` | `?session_id=`（可选；缺省=当前运行会话） | `{active, session, account, positions, pnl, trading_enabled, mcp_enabled}`（当前会话聚合） | `SimLiveService::current_session_id` + `get_account`/`get_positions`/`get_pnl`/`trading_enabled`/`get_session`/`mcp_enabled` | 404：无运行会话；503：未配置；500 |
+| `GET /api/sim-live/positions` | `?session_id=`（可选） | `{session_id, positions:[PositionView]}` | `SimLiveService::get_positions` | 同上 |
+| `GET /api/sim-live/orders` | `?session_id=`（可选） | `{session_id, orders:[OrderView]}` | `SimLiveService::get_orders` | 同上 |
+| `GET /api/sim-live/pnl` | `?session_id=`（可选） | `{session_id, pnl:PnlView}` | `SimLiveService::get_pnl` | 同上 |
+| `GET /api/sim-live/strategies` | `?session_id=`（可选） | `{session_id, strategies:[{strategy_id,name,strongest:{code,score,signal}}], stocks:[StockEvaluation]}` | `SimLiveService::get_strategy_analysis` + `list_builtin_strategies`（名称映射） | 同上 |
+| `GET /api/sim-live/sessions` | — | `[SessionListEntry]`（已结束附指标摘要；start_ts DESC） | `SimLiveService::list_sessions` | 503；500 |
+| `GET /api/sim-live/sessions/{id}` | — | `SessionDetail`（元数据+结果） | `SimLiveService::get_session` | 404：未知 id；503；500 |
+| `POST /api/sim-live/sessions/{id}/backtest-compare` | — | `BacktestCompareView`（session_result + run_ids） | `SimLiveService::run_backtest_compare` | 404：未知 id；400：区间无效；503；500 |
+| `POST /api/sim-live/place-order` | body `{session_id?, code, side, qty, price, limit_price?, intent_id?, source?}`（`price`=模拟行情最新价） | 200 `{session_id, filled, fill}` 或 `{session_id, filled:false, fill:null, reason}` | `SimLiveService::place_order` | 400：side 非法/缺字段；404 无会话；503；500 |
+| `POST /api/sim-live/cancel-order` | body `{session_id, order_id}` | `{session_id, order_id, cancelled}` | `SimLiveService::cancel_order` | 503；500 |
+| `POST /api/sim-live/start-session` | body `{name, period, cash_init?, strategy_set?, stock_set?, source?}` | `{started:true, session:SimSessionView}` | `SimLiveService::start_session` | 400；503；500 |
+| `POST /api/sim-live/stop-session` | body `{session_id?}` | `{session_id, stopped}` | `SimLiveService::stop_session` | 404 无会话；503；500 |
+| `POST /api/sim-live/trading` | body `{enabled}` | `{session_id, trading_enabled}` | `SimLiveService::set_trading`（当前会话） | 404 无会话；503；500 |
+| `POST /api/sim-live/mcp-toggle` | body `{enabled}` | `{mcp_enabled}` | `SimLiveService::set_mcp_enabled`（**共享实例**：关闭后 MCP sim_* 工具 isError） | 503；500 |
+
+字段口径：`session_id` 缺省解析为**当前运行会话**（`SimLiveService::current_session_id`），历史回看必须显式传 id。
+`strategies` 每策略的 `strongest` = 该策略独立分最高的 stock（供 strategy-panel）；`stocks` = 每 stock 的聚合+独立评分+信号（供 stock-scoring）。
+`trading` 为统一交易开关（聚合评分→自动模拟单，作用于当前会话；无每策略开关）；`mcp-toggle` 共享 `SimLiveService` 的 `mcp_enabled`（web 开关即 MCP 服务开关）。
+
+#### DI（app bin §5）
+
+`eestock-app.rs` 已构造 `sim_service`（`application::simlive::SimLiveService::with_default_fee(PgSimSessionStore, SystemClock).with_backtest(backtest.clone())`）；
+本 § 加法：把**同一** `sim_service` Arc **也**装入 `AppState.sim`（原仅 `McpState.sim`），保证 web 与 MCP 共享同一实例（双通道一致性，ADR §7）。
+
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
 
 分层红线：diagnose **不依赖 sqlx**。窗口事件经 `domain::ports::HealthEventsRead` 注入，
@@ -1917,6 +1952,8 @@ pub mod backtest;
 pub mod dto;
 pub mod rest;
 pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
+// 11-sim-live / L3b：模拟实盘 REST handlers（§1.6；非 tangle 手写，web 依赖 application，与 MCP 共享 SimLiveService）
+pub mod simlive;
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -1952,6 +1989,21 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
         .route("/api/backtest/runs/{id}", get(backtest::get_run).delete(backtest::delete_run))
         .route("/api/backtest/compare", get(backtest::compare_runs))
+        // 11-sim-live / L3b：模拟实盘 web 面板（§1.6；handlers 在 simlive.rs，与 MCP 共享同一 SimLiveService）
+        .route("/api/sim-live/state", get(simlive::state))
+        .route("/api/sim-live/positions", get(simlive::positions))
+        .route("/api/sim-live/orders", get(simlive::orders))
+        .route("/api/sim-live/pnl", get(simlive::pnl))
+        .route("/api/sim-live/strategies", get(simlive::strategies))
+        .route("/api/sim-live/sessions", get(simlive::list_sessions))
+        .route("/api/sim-live/sessions/{id}", get(simlive::get_session))
+        .route("/api/sim-live/sessions/{id}/backtest-compare", post(simlive::backtest_compare))
+        .route("/api/sim-live/place-order", post(simlive::place_order))
+        .route("/api/sim-live/cancel-order", post(simlive::cancel_order))
+        .route("/api/sim-live/start-session", post(simlive::start_session))
+        .route("/api/sim-live/stop-session", post(simlive::stop_session))
+        .route("/api/sim-live/trading", post(simlive::trading))
+        .route("/api/sim-live/mcp-toggle", post(simlive::mcp_toggle))
         // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
         .route("/api/system/info", get(settings::system_info))
         .route("/api/system/purge-raw", post(settings::purge_raw))
@@ -2765,6 +2817,9 @@ pub struct AppState {
     pub favorites: Arc<dyn domain::ports::FavoriteStore>,
     /// 行情看板 MA 可配置端口（后端 W1：MaConfigStore，ma_config 表，0015；GET/PUT /api/config/ma——主图+宫格应用，回测弹窗不动）。
     pub ma_config: Arc<dyn domain::ports::MaConfigStore>,
+    /// 模拟实盘服务（11-sim-live / L3b：web 面板 /api/sim-live/*；与 MCP 共享同一 SimLiveService 实例）。
+    /// `None` = 未配置，/api/sim-live/* 返回 503。storage::sim::PgSimSessionStore 由 app bin 装配。
+    pub sim: Option<Arc<application::simlive::SimLiveService>>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

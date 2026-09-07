@@ -536,4 +536,83 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     const f400 = fetcherReturning({ error: 'code X 未收藏' }, false, 400);
     await expect(createHttpClient('', f400).reorderFavorites(['X'])).rejects.toMatchObject({ status: 400 });
   });
+
+  // ── 页面⑨ 模拟实盘（§1.6）──
+
+  it('getSimState/positions/orders/pnl/strategies → GET /api/sim-live/*（session_id 可选查询）', async () => {
+    const f = fetcherReturning({ active: true, session: null, account: null, positions: [], pnl: null, trading_enabled: false, mcp_enabled: true });
+    const api = createHttpClient('', f);
+    await api.getSimState();
+    expect(lastCall(f).url).toBe('/api/sim-live/state');
+    await api.getSimState('s_9');
+    expect(lastCall(f).url).toBe('/api/sim-live/state?session_id=s_9');
+    await api.getSimPositions();
+    expect(lastCall(f).url).toBe('/api/sim-live/positions');
+    await api.getSimOrders();
+    expect(lastCall(f).url).toBe('/api/sim-live/orders');
+    await api.getSimPnl();
+    expect(lastCall(f).url).toBe('/api/sim-live/pnl');
+    await api.getSimStrategies();
+    expect(lastCall(f).url).toBe('/api/sim-live/strategies');
+  });
+
+  it('startSimSession → POST /api/sim-live/start-session（body 含 name/period/cash_init/strategy_set）', async () => {
+    const f = fetcherReturning({ started: true, session: { id: 's_1', name: 't', status: 'running', source: 'web', cash_init: 1_000_000, strategy_set: [], stock_set: [], period: 'M1', start_ts: '', end_ts: null } });
+    const api = createHttpClient('', f);
+    await api.startSimSession({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'] });
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/sim-live/start-session');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'] });
+  });
+
+  it('placeSimOrder → POST /api/sim-live/place-order（body 含 price=sell 模拟行情价）+ trading/mcp-toggle body {enabled}', async () => {
+    const f = fetcherReturning({ session_id: 's_9', filled: true, fill: {} });
+    const api = createHttpClient('', f);
+    await api.placeSimOrder({ code: '518880', side: 'buy', qty: 1000, price: 9.165 });
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/sim-live/place-order');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ code: '518880', side: 'buy', qty: 1000, price: 9.165 });
+
+    const f2 = fetcherReturning({ session_id: 's', trading_enabled: true });
+    const api2 = createHttpClient('', f2);
+    await api2.toggleSimTrading({ enabled: true });
+    expect(JSON.parse(String(lastCall(f2).init.body))).toEqual({ enabled: true });
+    const f3 = fetcherReturning({ mcp_enabled: false });
+    const api3 = createHttpClient('', f3);
+    await api3.toggleSimMcp({ enabled: false });
+    expect(JSON.parse(String(lastCall(f3).init.body))).toEqual({ enabled: false });
+  });
+
+  it('stopSimSession/cancelSimOrder/runSimBacktestCompare/getSimSessions/getSimSession → 对应端点', async () => {
+    const f = fetcherReturning({ session_id: 's', stopped: true });
+    const api = createHttpClient('', f);
+    await api.stopSimSession({ session_id: 's' });
+    expect(lastCall(f).url).toBe('/api/sim-live/stop-session');
+
+    const f2 = fetcherReturning({ session_id: 's', order_id: 'o_1', cancelled: true });
+    const api2 = createHttpClient('', f2);
+    await api2.cancelSimOrder({ session_id: 's', order_id: 'o_1' });
+    const { url: u2, init: i2 } = lastCall(f2);
+    expect(u2).toBe('/api/sim-live/cancel-order');
+    expect(JSON.parse(String(i2.body))).toEqual({ session_id: 's', order_id: 'o_1' });
+
+    const f3 = fetcherReturning({ session_id: 's', session_result: null, run_ids: [1] });
+    const api3 = createHttpClient('', f3);
+    await api3.runSimBacktestCompare('s_9');
+    const c = lastCall(f3);
+    expect(c.url).toBe('/api/sim-live/sessions/s_9/backtest-compare');
+    expect(c.init.method).toBe('POST');
+
+    const f4 = fetcherReturning([]);
+    const api4 = createHttpClient('', f4);
+    await api4.getSimSessions();
+    expect(lastCall(f4).url).toBe('/api/sim-live/sessions');
+
+    const f5 = fetcherReturning({ session: null, result: null });
+    const api5 = createHttpClient('', f5);
+    await api5.getSimSession('s_9');
+    expect(lastCall(f5).url).toBe('/api/sim-live/sessions/s_9');
+  });
 });

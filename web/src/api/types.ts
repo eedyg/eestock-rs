@@ -448,6 +448,181 @@ export interface BacktestSubmitResp {
   run_ids?: number[];
 }
 
+// ── 页面⑨ 模拟实盘（11-sim-live / L3b；07-app-plane/00-web-api.md §1.6，snake_case 直通）──
+
+export type SimSessionStatus = 'running' | 'ended';
+
+/** 模拟会话元数据（GET /api/sim-live/state.session / sessions / sessions/{id}） */
+export interface SimSession {
+  id: string;
+  name: string;
+  status: SimSessionStatus;
+  source: string;                          // 'mcp' | 'web' | 'manual' | 'preset'
+  cash_init: number;
+  strategy_set: string[];
+  stock_set: string[];
+  period: string;
+  start_ts: string;
+  end_ts: string | null;
+}
+
+/** 账户读模型 */
+export interface SimAccount {
+  session_id: string;
+  cash: number;
+  equity: number;
+  market_value: number;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_fee: number;
+}
+
+/** 持仓读模型 */
+export interface SimPosition {
+  code: string;
+  qty: number;
+  avg_cost: number;
+  latest: number;
+  market_value: number;
+  unrealized_pnl: number;
+}
+
+/** 盈亏读模型 */
+export interface SimPnl {
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_fee: number;
+  net_profit: number;
+}
+
+/** 模拟订单 */
+export interface SimOrder {
+  id: string;
+  code: string;
+  side: 'buy' | 'sell';
+  qty: number;
+  limit_price: number | null;
+  status: 'pending' | 'filled' | 'cancelled';
+  filled_price: number | null;
+  filled_qty: number;
+  fee: number;
+  ts: number;
+  source: string;                          // 'strategy' | 'manual' | 'aggregate_strategy'
+}
+
+/** GET /api/sim-live/state 响应（当前会话聚合：会话+账户+持仓+P&L+开关） */
+export interface SimStateDto {
+  active: boolean;
+  session: SimSession | null;
+  account: SimAccount | null;
+  positions: SimPosition[];
+  pnl: SimPnl | null;
+  trading_enabled: boolean;
+  mcp_enabled: boolean;
+}
+
+/** 单策略对单标的独立评分（0-100） */
+export interface SimStrategyScore {
+  strategy_id: string;
+  score: number;
+  signal: 'buy' | 'sell' | 'hold';
+}
+
+/** 单 stock 评估（stock-scoring 行） */
+export interface SimStockEvaluation {
+  code: string;
+  ts: number;
+  latest_price: number;
+  per_strategy_scores: SimStrategyScore[];
+  aggregate_score: number;
+  signal: 'buy' | 'sell' | 'hold';
+}
+
+/** 每策略当前最强标的（strategy-panel） */
+export interface SimStrategySummary {
+  strategy_id: string;
+  name: string;
+  strongest: { code: string; score: number; signal: 'buy' | 'sell' | 'hold' } | null;
+}
+
+/** GET /api/sim-live/strategies 响应 */
+export interface SimStrategiesDto {
+  session_id: string;
+  strategies: SimStrategySummary[];
+  stocks: SimStockEvaluation[];
+}
+
+/** GET /api/sim-live/positions / orders / pnl 响应（{session_id, ...} 包络） */
+export interface SimPositionsResp {
+  session_id: string;
+  positions: SimPosition[];
+}
+export interface SimOrdersResp {
+  session_id: string;
+  orders: SimOrder[];
+}
+export interface SimPnlResp {
+  session_id: string;
+  pnl: SimPnl;
+}
+
+/** 历史会话条目（已结束附指标摘要；metrics=BacktestMetrics jsonb） */
+export interface SimSessionListEntry {
+  session: SimSession;
+  metrics: Record<string, unknown> | null;
+}
+
+/** 会话详情回看（元数据+结束结果） */
+export interface SimSessionDetail {
+  session: SimSession;
+  result: { net_value: unknown; trades: unknown; metrics: unknown } | null;
+}
+
+/** POST /api/sim-live/sessions/{id}/backtest-compare 响应 */
+export interface SimBacktestCompare {
+  session_id: string;
+  session_result: SimSessionDetail['result'];
+  run_ids: number[];
+}
+
+/** 开会话请求 */
+export interface SimStartSessionReq {
+  name: string;
+  period: string;
+  cash_init?: number;
+  strategy_set?: string[];
+  stock_set?: string[];
+  source?: string;
+}
+
+/** 下模拟单请求（`price`=模拟行情最新价） */
+export interface SimPlaceOrderReq {
+  session_id?: string;
+  code: string;
+  side: 'buy' | 'sell';
+  qty: number;
+  price: number;
+  limit_price?: number;
+  intent_id?: string;
+  source?: string;
+}
+
+/** 统一交易开关 / MCP 开关请求 */
+export interface SimToggleReq {
+  enabled: boolean;
+}
+
+/** 撤单请求 */
+export interface SimCancelOrderReq {
+  session_id: string;
+  order_id: string;
+}
+
+/** 停会话请求 */
+export interface SimStopReq {
+  session_id?: string;
+}
+
 /** 后端错误线格式 {error: string} → 前端 ApiError */
 export class ApiError extends Error {
   constructor(

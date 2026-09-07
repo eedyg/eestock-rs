@@ -4,16 +4,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { NavBar } from './NavBar';
 import { NAV_ITEMS } from './navItems';
 
-describe('NavBar（00-shell：8 项按波次置灰）', () => {
-  it('渲染 8 个导航项', () => {
+describe('NavBar（00-shell：9 项按波次置灰）', () => {
+  it('渲染 9 个导航项', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
-    expect(screen.getAllByRole('listitem')).toHaveLength(8);
+    expect(screen.getAllByRole('listitem')).toHaveLength(9);
     expect(NAV_ITEMS.map((i) => i.path)).toEqual([
-      '/', '/sources', '/symbols', '/quality', '/backtest', '/trading', '/alerts', '/settings',
+      '/', '/sources', '/symbols', '/quality', '/backtest', '/trading', '/alerts', '/settings', '/sim-live',
     ]);
   });
 
-  it('Wave 2 Phase C + 设置页 S1 + 回测 W3 解锁 ①②③④⑤⑦⑧，仅⑥置灰且带波次标签', () => {
+  it('Wave 2 Phase C + 设置页 S1 + 回测 W3 + 模拟实盘 L3b 解锁 ①②③④⑤⑦⑧⑨，仅⑥置灰且带波次标签', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
     for (const [label, href] of [
       ['① 行情看板', '/'],
@@ -23,6 +23,7 @@ describe('NavBar（00-shell：8 项按波次置灰）', () => {
       ['⑤ 回测工作台', '/backtest'],
       ['⑦ 告警中心', '/alerts'],
       ['⑧ 系统设置', '/settings'],
+      ['⑨ 模拟实盘', '/sim-live'],
     ] as const) {
       expect(screen.getByText(label).closest('a')).toHaveAttribute('href', href);
     }

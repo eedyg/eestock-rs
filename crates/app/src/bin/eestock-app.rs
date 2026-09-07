@@ -68,6 +68,14 @@ async fn main() -> anyhow::Result<()> {
     // 行情看板 MA 可配置（MaConfigStore，ma_config 表 0015；主图+宫格应用，回测弹窗不动）
     let ma_config: Arc<dyn domain::ports::MaConfigStore> =
         Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone()));
+    // 11-sim-live / L1：模拟实盘服务（sim_* 工具 + web 面板 /api/sim-live/*；SimSessionStore + SystemClock + 默认 FeeModel）。
+    // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
+    // **MCP 与 web 共享同一服务实例**（ADR 11-sim-live §7 双通道一致性）：同一 Arc 同时装入 AppState.sim 与 McpState.sim。
+    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
+        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    )
+    .with_backtest(backtest.clone()));
     let state = Arc::new(web::state::AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(health_events.clone()),
@@ -101,6 +109,8 @@ async fn main() -> anyhow::Result<()> {
         favorites,
         // 行情看板 MA 可配置（MaConfigStore）
         ma_config,
+        // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
+        sim: Some(sim_service.clone()),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -114,13 +124,6 @@ async fn main() -> anyhow::Result<()> {
 
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
-    // 11-sim-live / L1：模拟实盘服务（sim_* 工具；SimSessionStore + SystemClock + 默认 FeeModel）
-    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
-        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
-        Arc::new(domain::ports::SystemClock),
-    )
-    // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
-    .with_backtest(backtest.clone()));
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),

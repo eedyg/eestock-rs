@@ -9,6 +9,8 @@ pub mod backtest;
 pub mod dto;
 pub mod rest;
 pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
+// 11-sim-live / L3b：模拟实盘 REST handlers（§1.6；非 tangle 手写，web 依赖 application，与 MCP 共享 SimLiveService）
+pub mod simlive;
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -44,6 +46,21 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
         .route("/api/backtest/runs/{id}", get(backtest::get_run).delete(backtest::delete_run))
         .route("/api/backtest/compare", get(backtest::compare_runs))
+        // 11-sim-live / L3b：模拟实盘 web 面板（§1.6；handlers 在 simlive.rs，与 MCP 共享同一 SimLiveService）
+        .route("/api/sim-live/state", get(simlive::state))
+        .route("/api/sim-live/positions", get(simlive::positions))
+        .route("/api/sim-live/orders", get(simlive::orders))
+        .route("/api/sim-live/pnl", get(simlive::pnl))
+        .route("/api/sim-live/strategies", get(simlive::strategies))
+        .route("/api/sim-live/sessions", get(simlive::list_sessions))
+        .route("/api/sim-live/sessions/{id}", get(simlive::get_session))
+        .route("/api/sim-live/sessions/{id}/backtest-compare", post(simlive::backtest_compare))
+        .route("/api/sim-live/place-order", post(simlive::place_order))
+        .route("/api/sim-live/cancel-order", post(simlive::cancel_order))
+        .route("/api/sim-live/start-session", post(simlive::start_session))
+        .route("/api/sim-live/stop-session", post(simlive::stop_session))
+        .route("/api/sim-live/trading", post(simlive::trading))
+        .route("/api/sim-live/mcp-toggle", post(simlive::mcp_toggle))
         // 页面⑧ 系统设置 S1（08-settings.md §6）：系统信息 + 只读配置快照 + 危险运维
         .route("/api/system/info", get(settings::system_info))
         .route("/api/system/purge-raw", post(settings::purge_raw))

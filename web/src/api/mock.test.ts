@@ -394,4 +394,73 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     await expect(api.saveMaConfig([0])).rejects.toMatchObject({ status: 400 });
     await expect(api.saveMaConfig([501])).rejects.toMatchObject({ status: 400 });
   });
+
+  // ── 页面⑨ 模拟实盘（§1.6；与 MCP 共享同一服务）──
+
+  it('getSimState 返回活跃会话（账户/持仓/P&L/开关）', async () => {
+    const api = createMockClient();
+    const st = await api.getSimState();
+    expect(st.active).toBe(true);
+    expect(st.session?.status).toBe('running');
+    expect(st.account?.cash).toBeGreaterThan(0);
+    expect(st.positions.length).toBe(2);
+    expect(st.pnl).toBeTruthy();
+    expect(typeof st.trading_enabled).toBe('boolean');
+    expect(st.mcp_enabled).toBe(true);
+  });
+
+  it('getSimStrategies 返回每策略最强 + 每 stock 聚合/独立分', async () => {
+    const api = createMockClient();
+    const s = await api.getSimStrategies();
+    expect(s.strategies.length).toBe(3);
+    expect(s.strategies.some((x) => x.strongest?.code === '518880')).toBe(true);
+    const stock = s.stocks.find((x) => x.code === '518880')!;
+    expect(stock.aggregate_score).toBe(72);
+    expect(stock.per_strategy_scores.length).toBe(3);
+    expect(stock.per_strategy_scores[0]!.strategy_id).toBe('dual_ma');
+  });
+
+  it('startSimSession 重置账户/持仓/订单；stopSimSession 写入历史；toggle 开关读回', async () => {
+    const api = createMockClient();
+    const before = await api.getSimState();
+    await api.startSimSession({ name: 't2', period: 'M1', cash_init: 500_000 });
+    const after = await api.getSimState();
+    expect(after.session?.name).toBe('t2');
+    expect(after.account?.cash).toBe(500_000);
+    expect(after.positions.length).toBe(0);
+    expect(after.trading_enabled).toBe(false);
+
+    // 统一交易开关 / MCP 开关
+    expect((await api.toggleSimTrading({ enabled: true })).trading_enabled).toBe(true);
+    expect((await api.getSimState()).trading_enabled).toBe(true);
+    expect((await api.toggleSimMcp({ enabled: false })).mcp_enabled).toBe(false);
+    expect((await api.getSimState()).mcp_enabled).toBe(false);
+
+    // 停会话 → 历史列表出现 ended 会话
+    await api.stopSimSession({});
+    const sessions = await api.getSimSessions();
+    expect(sessions.some((h) => h.session.status === 'ended')).toBe(true);
+    void before;
+  });
+
+  it('placeSimOrder 市价成交更新持仓/账户；cancelSimOrder 撤 pending；runSimBacktestCompare 触发 run', async () => {
+    const api = createMockClient();
+    await api.startSimSession({ name: 't3', period: 'M1' });
+    const filled = await api.placeSimOrder({ code: '510300', side: 'buy', qty: 1000, price: 10.0 });
+    expect(filled.filled).toBe(true);
+    const pos = (await api.getSimPositions()).positions;
+    expect(pos.some((p) => p.code === '510300')).toBe(true);
+
+    // pending 单 → 可撤
+    const pend = await api.placeSimOrder({ code: '159577', side: 'buy', qty: 1000, price: 1.5, limit_price: 1.4 });
+    expect(pend.filled).toBe(false);
+    const ordersResp = await api.getSimOrders();
+    const order = ordersResp.orders.find((o) => o.status === 'pending')!;
+    expect((await api.cancelSimOrder({ session_id: ordersResp.session_id, order_id: order.id })).cancelled).toBe(true);
+
+    // 历史「回测一下」
+    const cmp = await api.runSimBacktestCompare('s_old11');
+    expect(cmp.run_ids.length).toBeGreaterThan(0);
+    expect(cmp.session_id).toBe('s_old11');
+  });
 });

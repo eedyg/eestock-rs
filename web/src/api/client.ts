@@ -34,6 +34,19 @@ import type {
   SymbolSnapshot,
   SystemInfo,
   TushareStatusResponse,
+  SimBacktestCompare,
+  SimCancelOrderReq,
+  SimOrdersResp,
+  SimPnlResp,
+  SimPlaceOrderReq,
+  SimPositionsResp,
+  SimSessionDetail,
+  SimSessionListEntry,
+  SimStartSessionReq,
+  SimStateDto,
+  SimStopReq,
+  SimStrategiesDto,
+  SimToggleReq,
 } from './types';
 import { ApiError } from './types';
 
@@ -141,6 +154,35 @@ export interface ApiClient {
   compare(ids: number[]): Promise<BacktestRunDto[]>;
   /** 删除回测 run（DELETE /api/backtest/runs/{id}；200 成功/404 不存在） */
   deleteRun(id: number): Promise<void>;
+  // ── 页面⑨ 模拟实盘（Wave 4/L3b；07-app-plane/00-web-api.md §1.6，与 MCP 共享同一 SimLiveService）──
+  /** 当前会话聚合（GET /api/sim-live/state；account+positions+pnl+trading_enabled+mcp_enabled） */
+  getSimState(sessionId?: string): Promise<SimStateDto>;
+  /** 持仓（GET /api/sim-live/positions） */
+  getSimPositions(sessionId?: string): Promise<SimPositionsResp>;
+  /** 订单（GET /api/sim-live/orders） */
+  getSimOrders(sessionId?: string): Promise<SimOrdersResp>;
+  /** 盈亏（GET /api/sim-live/pnl） */
+  getSimPnl(sessionId?: string): Promise<SimPnlResp>;
+  /** 策略评估概览（GET /api/sim-live/strategies；每策略独立分+聚合分） */
+  getSimStrategies(sessionId?: string): Promise<SimStrategiesDto>;
+  /** 开会话（POST /api/sim-live/start-session） */
+  startSimSession(req: SimStartSessionReq): Promise<{ started: boolean; session: import('./types').SimSession }>;
+  /** 停会话（POST /api/sim-live/stop-session） */
+  stopSimSession(req: SimStopReq): Promise<{ session_id: string; stopped: boolean }>;
+  /** 下模拟单（POST /api/sim-live/place-order；`price`=模拟行情最新价） */
+  placeSimOrder(req: SimPlaceOrderReq): Promise<{ session_id: string; filled: boolean; fill: unknown | null; reason?: string }>;
+  /** 撤单（POST /api/sim-live/cancel-order） */
+  cancelSimOrder(req: SimCancelOrderReq): Promise<{ session_id: string; order_id: string; cancelled: boolean }>;
+  /** 统一交易开关（POST /api/sim-live/trading） */
+  toggleSimTrading(req: SimToggleReq): Promise<{ session_id: string; trading_enabled: boolean }>;
+  /** MCP sim_* 服务快捷开关（POST /api/sim-live/mcp-toggle；共享同一 SimLiveService） */
+  toggleSimMcp(req: SimToggleReq): Promise<{ mcp_enabled: boolean }>;
+  /** 历史会话列表（GET /api/sim-live/sessions） */
+  getSimSessions(): Promise<SimSessionListEntry[]>;
+  /** 会话详情回看（GET /api/sim-live/sessions/{id}） */
+  getSimSession(id: string): Promise<SimSessionDetail>;
+  /** 「回测一下」对比（POST /api/sim-live/sessions/{id}/backtest-compare） */
+  runSimBacktestCompare(id: string): Promise<SimBacktestCompare>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -296,6 +338,33 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
         throw new ApiError(res.status, msg);
       }
     },
+    // ── 页面⑨ 模拟实盘（§1.6；与 MCP 共享同一 SimLiveService）──
+    getSimState: (sessionId) => get(`/api/sim-live/state${simSessionQuery(sessionId)}`),
+    getSimPositions: (sessionId) => get(`/api/sim-live/positions${simSessionQuery(sessionId)}`),
+    getSimOrders: (sessionId) => get(`/api/sim-live/orders${simSessionQuery(sessionId)}`),
+    getSimPnl: (sessionId) => get(`/api/sim-live/pnl${simSessionQuery(sessionId)}`),
+    getSimStrategies: (sessionId) =>
+      get(`/api/sim-live/strategies${simSessionQuery(sessionId)}`),
+    startSimSession: async (req) => {
+      const res = await fetcher(`${baseUrl}/api/sim-live/start-session`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(req),
+      });
+      if (!res.ok) {
+        throw new ApiError(res.status, `HTTP ${res.status} /api/sim-live/start-session`);
+      }
+      return (await res.json()) as Promise<{ started: boolean; session: import('./types').SimSession }>;
+    },
+    stopSimSession: (req) => request('/api/sim-live/stop-session', { method: 'POST', body: JSON.stringify(req) }),
+    placeSimOrder: (req) => request('/api/sim-live/place-order', { method: 'POST', body: JSON.stringify(req) }),
+    cancelSimOrder: (req) => request('/api/sim-live/cancel-order', { method: 'POST', body: JSON.stringify(req) }),
+    toggleSimTrading: (req) => request('/api/sim-live/trading', { method: 'POST', body: JSON.stringify(req) }),
+    toggleSimMcp: (req) => request('/api/sim-live/mcp-toggle', { method: 'POST', body: JSON.stringify(req) }),
+    getSimSessions: () => get('/api/sim-live/sessions'),
+    getSimSession: (id) => get(`/api/sim-live/sessions/${encodeURIComponent(id)}`),
+    runSimBacktestCompare: (id) =>
+      request(`/api/sim-live/sessions/${encodeURIComponent(id)}/backtest-compare`, { method: 'POST' }),
   };
 }
 
@@ -339,4 +408,10 @@ function qualityParams(q: Partial<QualityCodeRangeQuery> & QualityRangeQuery): U
   if (q.code) params.set('code', q.code);
   if (q.thresholdPct != null) params.set('threshold_pct', String(q.thresholdPct));
   return params;
+}
+
+/** 页面⑨ sim-live：可选 `session_id` 查询参数（缺省时后端回落当前运行会话）。 */
+function simSessionQuery(sessionId?: string): string {
+  if (!sessionId) return '';
+  return `?session_id=${encodeURIComponent(sessionId)}`;
 }

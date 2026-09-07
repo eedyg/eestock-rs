@@ -56,7 +56,7 @@ function fakeWs() {
 }
 
 describe('AppShell（骨架：状态条+导航+页面出口）', () => {
-  it('渲染顶部状态条、8 项导航与 Outlet 内容；健康数取 1m 角色源', async () => {
+  it('渲染顶部状态条、9 项导航与 Outlet 内容；健康数取 1m 角色源', async () => {
     const ws = fakeWs();
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -67,7 +67,7 @@ describe('AppShell（骨架：状态条+导航+页面出口）', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getAllByRole('listitem')).toHaveLength(8);
+    expect(screen.getAllByRole('listitem')).toHaveLength(9);
     expect(screen.getByText('页面内容')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('1/2')).toBeInTheDocument());
     expect(screen.getByText('采集正常')).toBeInTheDocument();

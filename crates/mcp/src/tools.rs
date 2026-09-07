@@ -359,10 +359,16 @@ async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Val
 
 // ── 11-sim-live / L1：模拟实盘工具（sim_*）──
 
-/// 取注入的 SimLiveService；未配置（None）→ 工具错误帧（isError）。
+/// 取注入的 SimLiveService；未配置（None）→ 工具错误帧（isError）；
+/// MCP sim_* 服务开关关闭（web/共享实例 `set_mcp_enabled(false)`）→ 工具错误帧（isError，提示已停用）。
 fn sim_service(st: &McpState, id: Option<Value>) -> Result<Arc<SimLiveService>, Value> {
     match st.sim.clone() {
-        Some(s) => Ok(s),
+        Some(s) => {
+            if !s.mcp_enabled() {
+                return Err(tool_fail(id, anyhow::anyhow!("sim-live MCP 服务已停用（模拟实盘，不触真实券商）")));
+            }
+            Ok(s)
+        }
         None => Err(tool_fail(id, anyhow::anyhow!("sim-live 未配置（McpState.sim=None）"))),
     }
 }
@@ -912,6 +918,28 @@ mod tests {
         let st = test_state(Arc::new(MockKline::new()), Arc::new(MockEvents::new()));
         let r = call(&st, "sim_get_account", json!({ "session_id": "x" })).await;
         assert_eq!(r["result"]["isError"], true, "sim=None → 工具错误帧");
+    }
+
+    /// L3b：mcp-toggle 关闭后 sim_* 工具返回 isError；重开后恢复（共享同一实例）。
+    #[tokio::test]
+    async fn sim_tools_gated_by_mcp_enabled_toggle() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+
+        // 关闭 MCP 服务开关（共享实例）→ sim_get_account 错误帧。
+        let svc = st.sim.clone().unwrap();
+        assert!(!svc.set_mcp_enabled(false));
+        let r = call(&st, "sim_get_account", json!({ "session_id": sid })).await;
+        assert_eq!(r["result"]["isError"], true, "关闭后 sim_* 工具 isError");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("停用"),
+            "描述含停用提示");
+
+        // 重开 → 恢复（成功帧无 isError，payload 返回账户）。
+        assert!(svc.set_mcp_enabled(true));
+        let r = call(&st, "sim_get_account", json!({ "session_id": sid })).await;
+        assert_ne!(r["result"]["isError"], true, "重开后工具不再 isError");
+        assert!(payload_of(&r)["cash"].as_f64().unwrap() > 0.0, "恢复后返回账户");
     }
 
     #[tokio::test]

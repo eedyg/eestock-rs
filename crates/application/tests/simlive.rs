@@ -708,3 +708,31 @@ async fn run_backtest_compare_unknown_session_errors() {
     assert!(r.is_err(), "未知会话 → Err");
     assert!(bt_store.created.lock().unwrap().is_empty(), "未触发 run");
 }
+
+// ── 11-sim-live / L3b：web 面板服务侧（与 MCP 共享同一实例）──
+
+/// mcp_enabled 默认为 true；set_mcp_enabled 切换后读回；MCP 与 web 共享同值（同一实例）。
+#[tokio::test]
+async fn mcp_enabled_toggle_reads_back_same_instance() {
+    let store = Arc::new(MockSimStore::default());
+    let svc = service(store);
+    assert!(svc.mcp_enabled(), "默认开启");
+    assert!(!svc.set_mcp_enabled(false), "关闭返回 false");
+    assert!(!svc.mcp_enabled(), "读回 false");
+    assert!(svc.set_mcp_enabled(true), "恢复 true");
+    assert!(svc.mcp_enabled(), "读回 true");
+}
+
+/// current_session_id：运行中会话 → 该 running id；stop 后无 running → None（历史回看须显式传 id）。
+#[tokio::test]
+async fn current_session_resolves_latest_running_only() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = started(store.clone()).await;
+    assert_eq!(svc.current_session_id().as_deref(), Some(id.as_str()), "运行中会话=current");
+
+    assert!(svc.stop_session(&id).await.unwrap());
+    // 已无 running 会话 → current None（内存里已 ended；回看须显式 id）。
+    assert!(svc.current_session_id().is_none(), "stop 后无 running → None");
+}
+
+
