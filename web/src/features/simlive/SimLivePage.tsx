@@ -13,6 +13,7 @@ import {
   OrderTradeList,
   SessionHistory,
 } from './panels';
+import './simlive.css'; // 页面作用域样式（.tab/.tab-on/.sim-card 等，避免污染全局 index.css）
 
 /** 空态默认（current 未加载时骨架渲染用；active=false）。 */
 const EMPTY_STATE: SimStateDto = {
@@ -35,7 +36,9 @@ const EMPTY_STRATEGIES: SimStrategiesDto = { session_id: '', strategies: [], sto
  * 与 MCP 共享同一 SimLiveService（后端）；本页轮询 /state 刷新（简单起见，不做 WS 订阅）。 */
 export function SimLivePage({ api = defaultApi }: { api?: ApiClient }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const store = useMemo(() => new SimLiveStore({ api }), [api]);
+  // #history 深链：location.hash 决定初始 Tab（读一次，不随后续 hash 变动作响应）。
+  const initialTab = window.location.hash === '#history' ? 'history' : 'current';
+  const store = useMemo(() => new SimLiveStore({ api }, initialTab), [api]);
   useEffect(() => {
     void store.init();
     // 轻量轮询 /state 实时刷新（当前会话聚合；5s；dispose 时清）。
@@ -53,7 +56,7 @@ export function SimLivePage({ api = defaultApi }: { api?: ApiClient }) {
   const error = s.current.error ?? s.strategies.error ?? s.orders.error ?? s.actionError;
 
   return (
-    <div ref={rootRef} className="flex min-w-0 flex-1">
+    <div ref={rootRef} className="flex min-w-0 min-h-0 flex-1">
       <SimLiveGrid
         activeTab={s.activeTab}
         onTabChange={(t) => store.setTab(t)}

@@ -53,53 +53,59 @@ export interface SimLiveGridProps {
 }
 
 export function SimLiveGrid(props: SimLiveGridProps) {
+  const tabCls = (t: SimLiveTab) => `tab${props.activeTab === t ? ' tab-on' : ''}`;
   return (
-    <div data-region="sim-live" className="flex min-w-[1280px] flex-1 flex-col">
+    <div data-region="sim-live" className="flex min-w-[1280px] min-h-0 flex-1 flex-col overflow-y-auto">
 
       {/* Tab 切换（当前会话 / 历史回顾；历史不影响当前会话） */}
-      <div className="flex gap-1 border-b px-3 py-2">
+      <div className="flex shrink-0 gap-2 border-b border-line px-4 py-3">
         <button
           type="button"
           data-tab="current"
-          className={props.activeTab === 'current' ? 'tab-on' : ''}
+          className={tabCls('current')}
           onClick={() => props.onTabChange('current')}
         >当前会话</button>
         <button
           type="button"
           data-tab="history"
-          className={props.activeTab === 'history' ? 'tab-on' : ''}
+          className={tabCls('history')}
           onClick={() => props.onTabChange('history')}
         >历史回顾</button>
       </div>
 
       {props.activeTab === 'current' && (
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-col p-4">
 
           {/* session-control：GET /api/sim-live/state；会话状态+账户+统一交易开关+MCP 状态/停用按钮+停止会话；
               三态=骨架数值/未运行（active=false）/错误占位+重试 */}
-          <section data-region="session-control" className="border-b px-4 py-3">
+          <section data-region="session-control" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">会话 + 账户 + 统一交易开关 + MCP 状态/快捷开关</h3>
             {/* <SessionControl/>（状态 pill / 总资产/可用/已实现/未实现 / 统一开关 / MCP 开关） */}
           </section>
 
           {/* position-table：state.positions；三态=骨架行/「无持仓」/错误占位+重试 */}
-          <section data-region="position-table" className="border-b px-4">
+          <section data-region="position-table" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">持仓（现价=本系统行情，数量/成本=模拟账户）</h3>
             {/* <PositionTable positions/>（现价=本系统行情，数量/成本=模拟账户） */}
           </section>
 
           {/* strategy-panel：GET /api/sim-live/strategies.strategies（3 策略独立评估）；
               三态=骨架卡/「未启动会话」/错误占位+重试 */}
-          <section data-region="strategy-panel" className="border-b px-4 py-3">
+          <section data-region="strategy-panel" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">3 策略并行评估（评分汇总到聚合）</h3>
             {/* <StrategyPanel strategies/>（每策略当前最强标的/分） */}
           </section>
 
           {/* stock-scoring：strategies.stocks（每 stock 聚合+各策略独立分+信号）；
               三态=骨架行/「未评估」/错误占位+重试 */}
-          <section data-region="stock-scoring" className="border-b px-4">
+          <section data-region="stock-scoring" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">股票评分（聚合 = 交易决策）</h3>
             {/* <StockScoringTable stocks/>（聚合分决策+独立分展示） */}
           </section>
 
           {/* order-trade-list：GET /api/sim-live/orders + state.trades；三态=骨架行/「无委托」/错误占位+重试 */}
-          <section data-region="order-trade-list" className="px-4">
+          <section data-region="order-trade-list" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">模拟委托/成交（source: strategy|manual）</h3>
             {/* <OrderTradeList onCancelOrder/>（source: strategy|manual） */}
           </section>
         </div>
@@ -108,8 +114,11 @@ export function SimLiveGrid(props: SimLiveGridProps) {
       {props.activeTab === 'history' && (
         /* session-history：GET /api/sim-live/sessions + 详情 + 「回测一下」对比；
            三态=骨架行/「无历史会话」/错误占位+重试；独立 Tab，不影响当前会话 */
-        <div data-region="session-history" className="flex-1 px-4 py-3">
-          {/* <SessionHistory onSelectSession onBacktestCompare/> */}
+        <div className="flex flex-col p-4">
+          <div data-region="session-history" className="sim-card mb-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">历史会话回看 + 「回测一下」对比（不影响当前会话）</h3>
+            {/* <SessionHistory onSelectSession onBacktestCompare/> */}
+          </div>
         </div>
       )}
     </div>

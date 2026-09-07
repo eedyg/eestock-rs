@@ -14,6 +14,7 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
   beforeEach(() => {
     vi.clearAllMocks();
     api = stubApi();
+    window.location.hash = '';
   });
 
   it('骨架区域齐备：session-control / position-table / strategy-panel / stock-scoring / order-trade-list（默认当前会话）', async () => {
@@ -100,5 +101,48 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     await waitFor(() => expect(screen.getByTestId('sim-compare-s_old11')).toBeInTheDocument());
     await userEvent.click(screen.getByTestId('sim-compare-s_old11'));
     await waitFor(() => expect(api.runSimBacktestCompare).toHaveBeenCalledWith('s_old11'));
+  });
+
+  it('Tab 高亮类(.tab-on)存在且 active 态切换', async () => {
+    const { container } = renderPage(api);
+    await waitFor(() => expect(screen.getByTestId('sim-equity')).toBeInTheDocument());
+    const cur = () => container.querySelector('[data-tab="current"]')!;
+    const hist = () => container.querySelector('[data-tab="history"]')!;
+    // 默认「当前会话」选中；历史 Tab 无高亮。
+    expect(cur().className).toContain('tab-on');
+    expect(hist().className).not.toContain('tab-on');
+    await userEvent.click(hist());
+    await waitFor(() => expect(screen.getByTestId('sim-history')).toBeInTheDocument());
+    // 切到「历史回顾」后高亮互转。
+    expect(hist().className).toContain('tab-on');
+    expect(cur().className).not.toContain('tab-on');
+  });
+
+  it('region 卡片类(.sim-card)存在且相邻有 margin(mb-5)', async () => {
+    const { container } = renderPage(api);
+    await waitFor(() => expect(screen.getByTestId('sim-equity')).toBeInTheDocument());
+    const check = (r: string) => {
+      const el = container.querySelector(`[data-region="${r}"]`);
+      expect(el).not.toBeNull();
+      expect(el!.className).toContain('sim-card');
+      // 独立卡片 + 两两间距（margin-bottom 16-20px）。
+      expect(el!.className).toContain('mb-5');
+    };
+    ['session-control', 'position-table', 'strategy-panel', 'stock-scoring', 'order-trade-list'].forEach(check);
+    await userEvent.click(container.querySelector('[data-tab="history"]')!);
+    await waitFor(() => expect(screen.getByTestId('sim-history')).toBeInTheDocument());
+    check('session-history');
+  });
+
+  it('#history 深链 → 历史 Tab 初始激活', async () => {
+    window.location.hash = '#history';
+    try {
+      const { container } = renderPage(api);
+      await waitFor(() => expect(screen.getByTestId('sim-history')).toBeInTheDocument());
+      expect(container.querySelector('[data-tab="history"]')!.className).toContain('tab-on');
+      expect(container.querySelector('[data-tab="current"]')!.className).not.toContain('tab-on');
+    } finally {
+      window.location.hash = '';
+    }
   });
 });

@@ -31,31 +31,34 @@ export function SessionControl({
   void starting;
   const active = state.active && state.session?.status === 'running';
   const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // KPI 项：label + 数值（等宽数字，复用 token 涨跌色）。
+  const kpi = (label: string, value: string, testid: string, tone = 'text-[--txt]') => (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] text-[--dim]">{label}</span>
+      <strong data-testid={testid} className={`num text-base ${tone}`}>{value}</strong>
+    </div>
+  );
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        data-testid="sim-start-button"
-        disabled={active}
-        onClick={() => onStart({ name: '手动会话', period: 'M1' })}
-      >{active ? '运行中' : '开始会话'}</button>
-      <div className="flex flex-wrap items-center gap-4">
-        <span data-testid="sim-session-status" className={active ? 'text-[--up]' : 'text-[--dim]'}>
-          {active ? `运行中 · ${state.session?.id}` : '未运行'}
-        </span>
-        <span className="text-[--dim]">总资产</span>
-        <strong data-testid="sim-equity">{state.account ? `¥ ${fmt(state.account.equity)}` : '—'}</strong>
-        <span className="text-[--dim]">可用</span>
-        <strong data-testid="sim-cash">{state.account ? `¥ ${fmt(state.account.cash)}` : '—'}</strong>
-        <span className="text-[--dim]">已实现</span>
-        <strong data-testid="sim-realized" className="text-[--up]">
-          {state.account ? `¥ ${fmt(state.account.realized_pnl)}` : '—'}
-        </strong>
-        <span className="text-[--dim]">未实现</span>
-        <strong data-testid="sim-unrealized" className="text-[--up]">
-          {state.account ? `¥ ${fmt(state.account.unrealized_pnl)}` : '—'}
-        </strong>
+    <div className="flex flex-col gap-4">
+      {/* KPI 行 1：会话状态 pill + 账户指标 */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] text-[--dim]">会话状态</span>
+          <span
+            data-testid="sim-session-status"
+            className={`inline-flex items-center gap-2 rounded-full border border-line bg-white/5 px-3 py-1 text-xs ${active ? 'text-[--up]' : 'text-[--dim]'}`}
+          >
+            <span className={active ? 'dot-live' : 'dot-idle'} />
+            {active ? `运行中 · ${state.session?.id}` : '未运行'}
+          </span>
+        </div>
+        {kpi('总资产', state.account ? `¥ ${fmt(state.account.equity)}` : '—', 'sim-equity')}
+        {kpi('可用资金', state.account ? `¥ ${fmt(state.account.cash)}` : '—', 'sim-cash')}
+        {kpi('已实现盈亏', state.account ? `¥ ${fmt(state.account.realized_pnl)}` : '—', 'sim-realized', 'text-[--up]')}
+        {kpi('未实现盈亏', state.account ? `¥ ${fmt(state.account.unrealized_pnl)}` : '—', 'sim-unrealized', 'text-[--up]')}
       </div>
+
+      {/* KPI 行 2：统一交易开关 + MCP 状态/停用 + 流程/操作 */}
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2">
           <span className="text-[--dim]">统一交易开关</span>
@@ -66,7 +69,7 @@ export function SessionControl({
             disabled={togglingTrading || !active}
             onChange={(e) => onToggleTrading(e.target.checked)}
           />
-          <span>{state.trading_enabled ? '开' : '关'}</span>
+          <span className={state.trading_enabled ? 'text-[--down]' : 'text-[--dim]'}>{state.trading_enabled ? '开' : '关'}</span>
         </label>
         <label className="flex items-center gap-2">
           <span className="text-[--dim]">MCP sim_* 服务</span>
@@ -80,6 +83,12 @@ export function SessionControl({
             onClick={() => onToggleMcp(!state.mcp_enabled)}
           >{state.mcp_enabled ? '停用' : '启用'}</button>
         </label>
+        <button
+          type="button"
+          data-testid="sim-start-button"
+          disabled={active}
+          onClick={() => onStart({ name: '手动会话', period: 'M1' })}
+        >{active ? '运行中' : '开始会话'}</button>
         <button
           type="button"
           data-testid="sim-stop-button"

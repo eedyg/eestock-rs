@@ -60,7 +60,10 @@ export class SimLiveStore {
   private listeners = new Set<() => void>();
   private disposed = false;
 
-  constructor(private deps: { api: ApiClient }) {}
+  constructor(private deps: { api: ApiClient }, initialTab: SimLiveTab = 'current') {
+    // #history 深链：构造时由 SimLivePage 读 location.hash 传入初始 Tab。
+    this.current = { ...this.current, activeTab: initialTab };
+  }
 
   get state(): SimLiveState {
     return this.current;
