@@ -81,7 +81,56 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     await waitFor(() => expect(api.stopSimSession).toHaveBeenCalledWith({ session_id: undefined }));
   });
 
-  it('未运行会话时可开始会话 → 调 startSimSession', async () => {
+  it('未运行会话时可开始会话（先选标的/策略）→ 调 startSimSession', async () => {
+    const idle = stubApi();
+    vi.spyOn(idle, 'getSimState').mockResolvedValue({
+      active: false, session: null, account: null, positions: [], pnl: null,
+      trading_enabled: false, mcp_enabled: true,
+    });
+    renderPage(idle);
+    await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
+    await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    await userEvent.click(screen.getByTestId('sim-start-button'));
+    await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
+  });
+
+  it('未运行时可配置标的/策略并开始 → startSimSession body 含 stock_set/strategy_set', async () => {
+    const idle = stubApi();
+    vi.spyOn(idle, 'getSimState').mockResolvedValue({
+      active: false, session: null, account: null, positions: [], pnl: null,
+      trading_enabled: false, mcp_enabled: true,
+    });
+    renderPage(idle);
+    await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
+    await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    await userEvent.click(screen.getByTestId('sim-start-button'));
+    await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
+    expect(idle.startSimSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '手动会话',
+        period: 'M1',
+        stock_set: ['518880'],
+        strategy_set: ['dual_ma'],
+      }),
+    );
+  });
+
+  it('会话配置面板展示标的/策略 chips', async () => {
+    const idle = stubApi();
+    vi.spyOn(idle, 'getSimState').mockResolvedValue({
+      active: false, session: null, account: null, positions: [], pnl: null,
+      trading_enabled: false, mcp_enabled: true,
+    });
+    renderPage(idle);
+    await waitFor(() => expect(screen.getByTestId('sim-config-stock-518880')).toBeInTheDocument());
+    expect(screen.getByTestId('sim-config-stock-513310')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-config-strategy-dual_ma')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-config-strategy-macd')).toBeInTheDocument();
+  });
+
+  it('未选择标的/策略开始 → 提示且不调 startSimSession', async () => {
     const idle = stubApi();
     vi.spyOn(idle, 'getSimState').mockResolvedValue({
       active: false, session: null, account: null, positions: [], pnl: null,
@@ -90,7 +139,23 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(idle);
     await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
     await userEvent.click(screen.getByTestId('sim-start-button'));
-    await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
+    expect(screen.getByTestId('sim-config-error')).toBeInTheDocument();
+    expect(idle.startSimSession).not.toHaveBeenCalled();
+  });
+
+  it('开始会话后 策略面板/评分区采用所选标的/策略（mock 派生）', async () => {
+    const api = stubApi();
+    await api.stopSimSession({}); // 先停掉种子会话 → 未运行态
+    renderPage(api);
+    await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
+    await userEvent.click(screen.getByTestId('sim-config-stock-161226'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-macd'));
+    await userEvent.click(screen.getByTestId('sim-start-button'));
+    await waitFor(() => expect(screen.getByTestId('sim-strategy-panel')).toBeInTheDocument());
+    // 所选标的出现在评分区
+    expect(screen.getByTestId('sim-score-code-161226')).toBeInTheDocument();
+    // 所选策略出现在策略面板（macd）
+    expect(screen.getByTestId('sim-strategy-panel').textContent).toContain('MACD');
   });
 
   it('历史会话「回测一下」→ 调 runSimBacktestCompare', async () => {

@@ -1,18 +1,24 @@
+import { useState } from 'react';
 import type {
+  BacktestStrategyDto,
   SimOrder,
   SimSessionDetail,
   SimSessionListEntry,
   SimStateDto,
   SimStrategiesDto,
+  SymbolSnapshot,
 } from '@/api/types';
 
-/** 会话控制：状态 pill + 账户 KPI + 统一交易开关 + MCP 状态/停用按钮 + 停止/开始会话。 */
+/** 会话控制：状态 pill + 账户 KPI + 统一交易开关 + MCP 状态/停用按钮 + 停止/开始会话。
+ *  未运行态额外展示「配置会话」面板：标的 multi-select + 策略 multi-select + 名称/周期/初始资金。 */
 export function SessionControl({
   state,
   starting,
   stopping,
   togglingTrading,
   togglingMcp,
+  symbols,
+  strategies,
   onStart,
   onStop,
   onToggleTrading,
@@ -23,13 +29,57 @@ export function SessionControl({
   stopping: boolean;
   togglingTrading: boolean;
   togglingMcp: boolean;
-  onStart: (p: { name: string; period: string }) => void;
+  symbols: SymbolSnapshot[];
+  strategies: BacktestStrategyDto[];
+  onStart: (p: { name: string; period: string; cash_init?: number; stock_set?: string[]; strategy_set?: string[] }) => void;
   onStop: () => void;
   onToggleTrading: (enabled: boolean) => void;
   onToggleMcp: (enabled: boolean) => void;
 }) {
-  void starting;
   const active = state.active && state.session?.status === 'running';
+  // 配置会话（未运行态可编辑；选中集以 chips 呈现）。
+  const [name, setName] = useState('手动会话');
+  const [period, setPeriod] = useState('M1');
+  const [cashInit, setCashInit] = useState('1000000');
+  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
+  const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  const toggleStock = (code: string) =>
+    setSelectedStocks((prev) => {
+      const n = new Set(prev);
+      if (n.has(code)) n.delete(code);
+      else n.add(code);
+      return n;
+    });
+  const toggleStrategy = (id: string) =>
+    setSelectedStrategies((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const start = () => {
+    if (starting) return;
+    if (selectedStocks.size === 0) {
+      setConfigError('请选择至少一个标的');
+      return;
+    }
+    if (selectedStrategies.size === 0) {
+      setConfigError('请选择至少一个策略');
+      return;
+    }
+    setConfigError(null);
+    const cash = Number(cashInit);
+    onStart({
+      name: name.trim() || '手动会话',
+      period,
+      cash_init: Number.isFinite(cash) && cash > 0 ? cash : undefined,
+      stock_set: Array.from(selectedStocks),
+      strategy_set: Array.from(selectedStrategies),
+    });
+  };
+
   const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   // KPI 项：label + 数值（等宽数字，复用 token 涨跌色）。
   const kpi = (label: string, value: string, testid: string, tone = 'text-[--txt]') => (
@@ -37,6 +87,29 @@ export function SessionControl({
       <span className="text-[11px] text-[--dim]">{label}</span>
       <strong data-testid={testid} className={`num text-base ${tone}`}>{value}</strong>
     </div>
+  );
+  const chipCls = (on: boolean) =>
+    `rounded-full border px-2.5 py-1 text-xs ${on ? 'border-[--acc1] text-[--acc1]' : 'border-[--line] text-[--dim]'}`;
+  const stockChip = (s: SymbolSnapshot) => (
+    <button
+      key={s.code}
+      type="button"
+      data-testid={`sim-config-stock-${s.code}`}
+      data-on={selectedStocks.has(s.code)}
+      className={chipCls(selectedStocks.has(s.code))}
+      onClick={() => toggleStock(s.code)}
+    >{s.code} {s.name !== s.code ? s.name : ''}</button>
+  );
+  const strategyChip = (st: BacktestStrategyDto) => (
+    <button
+      key={st.id}
+      type="button"
+      data-testid={`sim-config-strategy-${st.id}`}
+      data-on={selectedStrategies.has(st.id)}
+      className={chipCls(selectedStrategies.has(st.id))}
+      onClick={() => toggleStrategy(st.id)}
+      title={st.description}
+    >{st.name}</button>
   );
   return (
     <div className="flex flex-col gap-4">
@@ -87,7 +160,7 @@ export function SessionControl({
           type="button"
           data-testid="sim-start-button"
           disabled={active}
-          onClick={() => onStart({ name: '手动会话', period: 'M1' })}
+          onClick={start}
         >{active ? '运行中' : '开始会话'}</button>
         <button
           type="button"
@@ -96,6 +169,58 @@ export function SessionControl({
           onClick={onStop}
         >停止会话</button>
       </div>
+
+      {/* 配置会话（未运行态）：标的/策略 multi-select chips + 名称/周期/初始资金。 */}
+      {!active && (
+        <div data-testid="sim-session-config" className="rounded border border-[--line] p-3">
+          <div className="mb-2 text-[11px] text-[--dim]">配置会话（选择标的/策略后开始）</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1 text-xs">
+              <span className="text-[--dim]">名称</span>
+              <input
+                data-testid="sim-config-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-28 rounded border border-line bg-transparent px-2 py-1 text-xs"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <span className="text-[--dim]">周期</span>
+              <select
+                data-testid="sim-config-period"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="rounded border border-line bg-transparent px-2 py-1 text-xs"
+              >
+                <option value="M1">1m</option>
+                <option value="M5">5m</option>
+                <option value="M15">15m</option>
+                <option value="D1">日</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-xs">
+              <span className="text-[--dim]">初始资金</span>
+              <input
+                data-testid="sim-config-cash"
+                value={cashInit}
+                onChange={(e) => setCashInit(e.target.value)}
+                className="w-24 rounded border border-line bg-transparent px-2 py-1 text-xs"
+              />
+            </label>
+          </div>
+          <div className="mt-2">
+            <div className="text-[11px] text-[--dim]">标的（multi-select）</div>
+            <div className="flex flex-wrap gap-2">{symbols.map(stockChip)}</div>
+          </div>
+          <div className="mt-2">
+            <div className="text-[11px] text-[--dim]">策略（multi-select；默认参数）</div>
+            <div className="flex flex-wrap gap-2">{strategies.map(strategyChip)}</div>
+          </div>
+          {configError && (
+            <div data-testid="sim-config-error" className="mt-2 text-xs text-[--down]">{configError}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

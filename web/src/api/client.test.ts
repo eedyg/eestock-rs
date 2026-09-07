@@ -556,14 +556,14 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(lastCall(f).url).toBe('/api/sim-live/strategies');
   });
 
-  it('startSimSession → POST /api/sim-live/start-session（body 含 name/period/cash_init/strategy_set）', async () => {
+  it('startSimSession → POST /api/sim-live/start-session（body 含 name/period/cash_init/strategy_set/stock_set）', async () => {
     const f = fetcherReturning({ started: true, session: { id: 's_1', name: 't', status: 'running', source: 'web', cash_init: 1_000_000, strategy_set: [], stock_set: [], period: 'M1', start_ts: '', end_ts: null } });
     const api = createHttpClient('', f);
-    await api.startSimSession({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'] });
+    await api.startSimSession({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'], stock_set: ['518880'] });
     const { url, init } = lastCall(f);
     expect(url).toBe('/api/sim-live/start-session');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(String(init.body))).toEqual({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'] });
+    expect(JSON.parse(String(init.body))).toEqual({ name: 't', period: 'M1', cash_init: 200_000, strategy_set: ['dual_ma'], stock_set: ['518880'] });
   });
 
   it('placeSimOrder → POST /api/sim-live/place-order（body 含 price=sell 模拟行情价）+ trading/mcp-toggle body {enabled}', async () => {

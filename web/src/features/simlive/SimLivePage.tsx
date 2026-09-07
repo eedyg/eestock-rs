@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { SimLiveGrid } from '@/layouts/SimLiveGrid';
 import { defaultApi } from '@/api';
 import type { ApiClient } from '@/api/client';
-import type { SimStateDto, SimStrategiesDto } from '@/api/types';
+import type { BacktestStrategyDto, SimStateDto, SimStrategiesDto, SymbolSnapshot } from '@/api/types';
 import { RegionPortal } from '@/components/RegionPortal';
 import { SimLiveStore } from './store';
 import {
@@ -39,6 +39,15 @@ export function SimLivePage({ api = defaultApi }: { api?: ApiClient }) {
   // #history 深链：location.hash 决定初始 Tab（读一次，不随后续 hash 变动作响应）。
   const initialTab = window.location.hash === '#history' ? 'history' : 'current';
   const store = useMemo(() => new SimLiveStore({ api }, initialTab), [api]);
+  // 会话配置可选项：标的目录（GET /api/symbols）+ 策略目录（GET /api/backtest/strategies）。
+  const [symbols, setSymbols] = useState<SymbolSnapshot[]>([]);
+  const [strategyCatalog, setStrategyCatalog] = useState<BacktestStrategyDto[]>([]);
+  useEffect(() => {
+    let canc = false;
+    void api.getSymbols().then((d) => { if (!canc) setSymbols(d); }).catch(() => {});
+    void api.getStrategies().then((d) => { if (!canc) setStrategyCatalog(d); }).catch(() => {});
+    return () => { canc = true; };
+  }, [api]);
   useEffect(() => {
     void store.init();
     // 轻量轮询 /state 实时刷新（当前会话聚合；5s；dispose 时清）。
@@ -84,6 +93,8 @@ export function SimLivePage({ api = defaultApi }: { api?: ApiClient }) {
           stopping={s.stopping}
           togglingTrading={s.togglingTrading}
           togglingMcp={s.togglingMcp}
+          symbols={symbols}
+          strategies={strategyCatalog}
           onStart={(p) => void store.startSession(p)}
           onStop={() => void store.stopSession()}
           onToggleTrading={(e) => void store.toggleTrading(e)}

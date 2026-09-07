@@ -52,6 +52,7 @@ import type {
   SimStartSessionReq,
   SimStateDto,
   SimStrategiesDto,
+  SimStrategyScore,
   SimToggleReq,
 } from './types';
 import { ApiError } from './types';
@@ -1118,13 +1119,76 @@ function seedSimLiveState(now: number): SimLiveSeed {
   };
 }
 
-/** 页面⑨ 模拟实盘：策略评估视图（每策略最强 + 每 stock 聚合/独立分），由种子派生。 */
+/** 模拟实盘策略名映射（sim-live 策略面板展示；与内置 3 款种子名同构）。 */
+const SIM_STRATEGY_NAMES: Record<string, string> = {
+  dual_ma: '双均线交叉',
+  macd: 'MACD 金叉',
+  ma_rsi: '均线+RSI',
+};
+
+/** 单策略信号（sim-live 聚合口径：≥60 buy，≤30 sell，否则 hold）。 */
+function simSignal(score: number): 'buy' | 'sell' | 'hold' {
+  if (score >= 60) return 'buy';
+  if (score <= 30) return 'sell';
+  return 'hold';
+}
+
+/** 合成单策略分（确定性哈希；供不在内置种子集的 stock×strategy 组合补位）。 */
+function synthSimScore(code: string, strategyId: string): number {
+  return Math.round(rand01(`sim:${code}:${strategyId}`) * 100);
+}
+
+/** 页面⑨ 模拟实盘：策略评估视图（每策略最强 + 每 stock 聚合/独立分）。
+ *  由会话的 strategy_set/stock_set 派生（开会话选集即刻反映到面板/评分区）；
+ *  不在内置种子集（518880/159577/161226 × dual_ma/macd/ma_rsi）的组合用确定性分补位。
+ *  内置种子集保留原始分数/聚合/信号（兼容既有 mock 测试锁定值）。 */
 function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
-  return {
-    session_id: simLive.strategies.session_id,
-    strategies: simLive.strategies.strategies,
-    stocks: simLive.strategies.stocks.map((s) => ({ ...s })),
-  };
+  const { strategy_set, stock_set } = simLive.session;
+  const seedStocks = simLive.strategies.stocks;
+  const seedStrategyIds = Array.from(
+    new Set(seedStocks.flatMap((s) => s.per_strategy_scores.map((x) => x.strategy_id))),
+  );
+  const strategyIds = strategy_set.length > 0 ? strategy_set : seedStrategyIds;
+  const stockCodes = stock_set.length > 0 ? stock_set : seedStocks.map((s) => s.code);
+
+  const stocks: SimStrategiesDto['stocks'] = stockCodes.map((code) => {
+    const seed = seedStocks.find((x) => x.code === code);
+    const per_strategy_scores: SimStrategyScore[] = strategyIds.map((sid) => {
+      const seedScore = seed?.per_strategy_scores.find((x) => x.strategy_id === sid);
+      if (seedScore) return { strategy_id: sid, score: seedScore.score, signal: seedScore.signal };
+      const score = synthSimScore(code, sid);
+      return { strategy_id: sid, score, signal: simSignal(score) };
+    });
+    const fullySeeded =
+      seed != null &&
+      strategyIds.length === seed.per_strategy_scores.length &&
+      strategyIds.every((sid) => seed.per_strategy_scores.some((x) => x.strategy_id === sid));
+    if (fullySeeded && seed) {
+      return {
+        code, ts: seed.ts, latest_price: seed.latest_price,
+        per_strategy_scores, aggregate_score: seed.aggregate_score, signal: seed.signal,
+      };
+    }
+    const agg = Math.round(
+      per_strategy_scores.reduce((s, x) => s + x.score, 0) / Math.max(1, per_strategy_scores.length),
+    );
+    return {
+      code, ts: seed?.ts ?? Date.now(),
+      latest_price: seed?.latest_price ?? (BASE_PRICE[code] ?? 1),
+      per_strategy_scores, aggregate_score: agg, signal: simSignal(agg),
+    };
+  });
+
+  const strategies: SimStrategiesDto['strategies'] = strategyIds.map((sid) => {
+    let strongest: { code: string; score: number; signal: 'buy' | 'sell' | 'hold' } | null = null;
+    for (const st of stocks) {
+      const s = st.per_strategy_scores.find((x) => x.strategy_id === sid);
+      if (s && (!strongest || s.score > strongest.score)) strongest = { code: st.code, score: s.score, signal: s.signal };
+    }
+    return { strategy_id: sid, name: SIM_STRATEGY_NAMES[sid] ?? sid, strongest };
+  });
+
+  return { session_id: simLive.session.id, strategies, stocks };
 }
 
 /** 页面⑨ 把 pnl 快照映射为 BacktestMetrics jsonb 摘要（历史会话指标；口径 08-backtest）。 */
