@@ -2,16 +2,19 @@
 //! 全部输入为手工固定数据 + 固定时钟，无 RNG / 无时间依赖 / 无实时行情，任意次运行一致。
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use domain::ports::{
-    Clock, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionStatus,
+    BacktestBarRead, BacktestProgressSink, BacktestRunStore, Clock, NewRun, NewSimSession,
+    NewSimTrade, RunFilter, RunResult, RunView, SimPositionRow, SimSessionResult, SimSessionStatus,
     SimSessionStore, SimSessionView,
 };
 
+use application::service::BacktestService;
 use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
 use backtest::{Bar, ParamValue};
 use simlive::StrategyConfig;
@@ -36,6 +39,7 @@ struct MockSimStore {
     pos_updates: Mutex<Vec<(String, Vec<SimPositionRow>)>>,
     ended: Mutex<Vec<(String, SimSessionResult)>>,
     sessions: Mutex<HashMap<String, SimSessionView>>,
+    results: Mutex<HashMap<String, SimSessionResult>>,
 }
 
 #[async_trait]
@@ -87,7 +91,11 @@ impl SimSessionStore for MockSimStore {
         v.status = SimSessionStatus::Ended;
         v.end_ts = Some(end_ts);
         self.ended.lock().unwrap().push((session_id.into(), result.clone()));
+        self.results.lock().unwrap().insert(session_id.into(), result.clone());
         Ok(true)
+    }
+    async fn get_result(&self, session_id: &str) -> Result<Option<SimSessionResult>> {
+        Ok(self.results.lock().unwrap().get(session_id).cloned())
     }
     async fn delete_session(&self, session_id: &str) -> Result<bool> {
         Ok(self.sessions.lock().unwrap().remove(session_id).is_some())
@@ -489,4 +497,214 @@ async fn process_bar_unconfigured_errors_and_unknown_stock_no_event() {
     // 已配置但未覆盖的标的 → Ok(空事件)。
     let ev = svc2.process_bar(&id2, "999999", dma_bar(100, 10.0)).await.unwrap();
     assert!(ev.is_empty(), "未覆盖标的无事件");
+}
+
+// ── 11-sim-live / L3：会话记录回看 + 回测对比 ──
+
+/// 回测 run 存储 mock：记录 create_run 触发参数，返回自增 id。
+#[derive(Default)]
+struct MockBacktestStore {
+    created: Mutex<Vec<NewRun>>,
+    next_id: AtomicU64,
+}
+
+#[async_trait]
+impl BacktestRunStore for MockBacktestStore {
+    async fn create_run(&self, run: &NewRun) -> Result<i64> {
+        self.created.lock().unwrap().push(run.clone());
+        Ok(self.next_id.fetch_add(1, Ordering::Relaxed) as i64 + 1)
+    }
+    async fn update_run_progress(&self, _: i64, _: i32, _: DateTime<Utc>) -> Result<()> { Ok(()) }
+    async fn mark_done(&self, _: i64, _: &RunResult) -> Result<()> { Ok(()) }
+    async fn mark_failed(&self, _: i64, _: &str) -> Result<()> { Ok(()) }
+    async fn list_runs(&self, _: &RunFilter) -> Result<Vec<RunView>> { Ok(Vec::new()) }
+    async fn get_run(&self, _: i64) -> Result<Option<RunView>> { Ok(None) }
+    async fn delete_run(&self, _: i64) -> Result<bool> { Ok(false) }
+}
+
+struct MockBarRead;
+#[async_trait]
+impl BacktestBarRead for MockBarRead {
+    async fn bars(
+        &self,
+        _: &str,
+        _: &domain::types::Period,
+        _: DateTime<Utc>,
+        _: DateTime<Utc>,
+    ) -> Result<Vec<domain::types::Bar>> {
+        Ok(Vec::new())
+    }
+}
+
+struct MockProgress;
+#[async_trait]
+impl BacktestProgressSink for MockProgress {
+    async fn send(&self, _: i64, _: i32, _: Option<DateTime<Utc>>) -> Result<()> { Ok(()) }
+}
+
+/// mock 回测服务（记录 create_run；后台任务读到空 bar → mark_failed，不影响断言）。
+fn mock_backtest_service() -> (Arc<MockBacktestStore>, BacktestService) {
+    let bt_store = Arc::new(MockBacktestStore::default());
+    let bt = BacktestService::new(
+        Arc::new(MockBarRead),
+        bt_store.clone(),
+        Arc::new(MockProgress),
+        1,
+    );
+    (bt_store, bt)
+}
+
+/// 可控时钟：不再恒返回固定时刻（start/end 需可推进，保证回测区间 start<end）。
+struct TestClock(AtomicI64);
+impl Clock for TestClock {
+    fn now(&self) -> DateTime<Utc> {
+        DateTime::from_timestamp(self.0.load(Ordering::Relaxed), 0).unwrap()
+    }
+}
+impl TestClock {
+    fn set(&self, ts: i64) { self.0.store(ts, Ordering::Relaxed); }
+}
+
+/// 以市价买/卖一笔，并两次打市值，得到固定净值序列（3 点）+ 1 个已平仓 round-trip。
+/// 用可控时钟：start=base、end=base+3600（start<end，供回测对比区间）。并在开始时推进时钟使 start≠end。
+async fn build_closed_session(store: Arc<MockSimStore>) -> (SimLiveService, String) {
+    let base = fixed_now().timestamp();
+    let clock = Arc::new(TestClock(AtomicI64::new(base)));
+    let svc = SimLiveService::new(store.clone(), clock.clone(), backtest::FeeModel::default());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "t1".into(), cash_init: None,
+            strategy_set: vec!["dual_ma".into()], stock_set: vec!["510300".into()],
+            period: "M1".into(), source: "manual".into(),
+        })
+        .await
+        .unwrap();
+    let id = view.id.clone();
+    // 推进时钟（在会话内，模拟“一段时间后”），使商谈/stop 的 ts 与 start 不同。
+    clock.set(base + 1800);
+    // 买 1000 @ 10.0（市价 → 有效价 10.002、费 5）
+    svc.place_order(
+        &id,
+        &PlaceOrderReq { code: "510300".into(), side: "buy".into(), qty: 1000.0,
+            limit_price: None, intent_id: None, source: "manual".into() },
+        10.0,
+    ).await.unwrap().expect("买成交");
+    // 打市值 12.0
+    let mut latest = std::collections::BTreeMap::new();
+    latest.insert("510300".to_string(), 12.0);
+    svc.mark_to_market(&id, &latest, 2000).unwrap();
+    // 卖 1000 @ 12.0（市价 → 有效价 11.9976、费 5 + 印花税）
+    svc.place_order(
+        &id,
+        &PlaceOrderReq { code: "510300".into(), side: "sell".into(), qty: 1000.0,
+            limit_price: None, intent_id: None, source: "manual".into() },
+        12.0,
+    ).await.unwrap().expect("卖成交");
+    // 打市值 12.0（已无持仓 → equity = cash）
+    svc.mark_to_market(&id, &latest, 3000).unwrap();
+    // 推进到会话结束（end > start）。
+    clock.set(base + 3600);
+    (svc, id)
+}
+
+/// stop_session 结算：结果采用 backtest 指标口径（net_value={series,drawdown}、trades=TradeDetail、metrics=8 项）。
+#[tokio::test]
+async fn stop_session_result_uses_backtest_metrics_structure_and_trade_pnl() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = build_closed_session(store.clone()).await;
+    assert!(svc.stop_session(&id).await.unwrap(), "stop 成功");
+
+    let ended = store.ended.lock().unwrap();
+    let (_, result) = &ended[0];
+    // net_value = {series, drawdown}（3 点）
+    assert!(result.net_value["series"].is_array(), "series 数组");
+    assert_eq!(result.net_value["series"].as_array().unwrap().len(), 3);
+    assert!(result.net_value["drawdown"].is_array(), "drawdown 数组");
+    assert_eq!(result.net_value["drawdown"].as_array().unwrap().len(), 3);
+    // trades = 已平仓 TradeDetail（1 笔 round-trip）
+    let trades = result.trades.as_array().expect("trades 数组");
+    assert_eq!(trades.len(), 1, "买→卖 → 1 个已平仓段");
+    assert_eq!(trades[0]["shares"], serde_json::json!(1000.0));
+    assert!(trades[0]["open_price"].as_f64().unwrap() > 0.0);
+    assert!(trades[0]["close_price"].as_f64().unwrap() > 0.0);
+    assert!(trades[0]["pnl"].as_f64().unwrap() > 0.0, "低买高卖盈利");
+    // metrics = 8 项 backtest 指标
+    let m = &result.metrics;
+    for key in ["net_profit", "max_drawdown", "sharpe", "win_rate",
+                "annualized_return", "trade_count", "avg_hold_bars"] {
+        assert!(m[key].is_number(), "metrics.{key} 存在且为 number");
+    }
+    // 全盈（无亏损）⇒ profit_factor=∞ → serde_json 序列化为 null；否则为正 number。
+    assert!(m["profit_factor"].is_null() || m["profit_factor"].as_f64().unwrap() > 0.0,
+        "profit_factor 为 ∞(null) 或正数");
+    assert_eq!(m["trade_count"], serde_json::json!(1), "已平仓 1 笔 ⇒ trade_count=1");
+    assert_eq!(m["win_rate"], serde_json::json!(1.0), "唯一盈利 ⇒ win_rate=1");
+    assert!(m["net_profit"].as_f64().unwrap() > 0.0, "净收益为正");
+}
+
+/// sim_list_sessions 返回历史会话（已结束附指标摘要）；sim_get_session 返回详情（元数据 + 结果）。
+#[tokio::test]
+async fn list_and_get_session_return_history_and_result() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = build_closed_session(store.clone()).await;
+    assert!(svc.stop_session(&id).await.unwrap());
+
+    // 未注入 backtest 时 run_backtest_compare 报错（防御性）。
+    let r = svc.run_backtest_compare(&id).await;
+    assert!(r.is_err(), "未注入回测服务 → Err");
+
+    let entries = svc.list_sessions().await.unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].session.id, id);
+    assert_eq!(entries[0].session.status, SimSessionStatus::Ended);
+    assert!(entries[0].metrics.is_some(), "已结束会话附指标摘要");
+    assert!(entries[0].metrics.as_ref().unwrap()["trade_count"].is_number());
+
+    let detail = svc.get_session(&id).await.unwrap().expect("会话存在");
+    assert_eq!(detail.session.id, id);
+    assert!(detail.result.is_some(), "详情含结束结果");
+    assert!(detail.result.as_ref().unwrap().metrics["sharpe"].is_number());
+
+    // 未知 id → None
+    assert!(svc.get_session("no-such").await.unwrap().is_none());
+}
+
+/// sim_run_backtest_compare：注入回测服务 → 按会话 (period/strategy/stock/date_range/initial) 触发一次 run。
+#[tokio::test]
+async fn run_backtest_compare_triggers_run_with_session_params() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = build_closed_session(store.clone()).await;
+    assert!(svc.stop_session(&id).await.unwrap());
+
+    let (bt_store, bt) = mock_backtest_service();
+    let svc = svc.with_backtest(Arc::new(bt));
+    let view = svc.run_backtest_compare(&id).await.unwrap();
+
+    // 单 stock + 单策略 → 一次 run。
+    assert_eq!(view.run_ids.len(), 1);
+    assert_eq!(view.run_ids[0], 1);
+    assert!(view.session_result.is_some(), "返回会话自身结果供对比");
+    assert_eq!(view.session_id, id);
+
+    // 触发参数 = 会话 (code=stock, period, strategy_id, date_range=[start,end), initial_capital)。
+    let created = bt_store.created.lock().unwrap();
+    assert_eq!(created.len(), 1);
+    let run = &created[0];
+    assert_eq!(run.code, "510300");
+    assert_eq!(run.period, "M1");
+    assert_eq!(run.strategy_id, "dual_ma");
+    assert_eq!(run.initial_capital, 1_000_000.0);
+    assert_eq!(run.date_from, fixed_now());
+    assert!(run.date_to > run.date_from, "date_to > date_from");
+}
+
+/// run_backtest_compare 未知会话 → Err。
+#[tokio::test]
+async fn run_backtest_compare_unknown_session_errors() {
+    let store = Arc::new(MockSimStore::default());
+    let (bt_store, bt) = mock_backtest_service();
+    let svc = service(store).with_backtest(Arc::new(bt));
+    let r = svc.run_backtest_compare("no-such").await;
+    assert!(r.is_err(), "未知会话 → Err");
+    assert!(bt_store.created.lock().unwrap().is_empty(), "未触发 run");
 }

@@ -689,6 +689,9 @@ pub trait SimSessionStore: Send + Sync {
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> anyhow::Result<()>;
     /// 结束会话：置 ended + end_ts + 结果；返回是否更新到行（未知 id → false）。
     async fn mark_end(&self, session_id: &str, end_ts: DateTime<Utc>, result: &SimSessionResult) -> anyhow::Result<bool>;
+    /// 读会话结束结果（simsession_result）；未知/未结束 → Ok(None)。
+    /// L3：会话回看（sim_get_session）/回测对比需要取回结果 JSON。
+    async fn get_result(&self, session_id: &str) -> anyhow::Result<Option<SimSessionResult>>;
     /// 删除会话（FK 级联结果/成交/持仓）；返回是否删行。
     async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
 }

@@ -95,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
         system_info,
         raw_purge: storage::system::raw_purge(pool.clone()),
         // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
-        backtest,
+        backtest: backtest.clone(),
         backtest_ws,
         // Wave 3 页面①：看板收藏（FavoriteStore）
         favorites,
@@ -118,7 +118,9 @@ async fn main() -> anyhow::Result<()> {
     let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
         Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
         Arc::new(domain::ports::SystemClock),
-    ));
+    )
+    // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
+    .with_backtest(backtest.clone()));
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),

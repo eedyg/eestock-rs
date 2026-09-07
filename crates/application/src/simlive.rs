@@ -12,13 +12,15 @@ use std::collections::{BTreeMap, HashMap as Map, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use backtest::FeeModel;
+use backtest::{Bar, FeeModel, Period, TradeDetail, compute_drawdown, compute_metrics};
 use domain::ports::{
     Clock, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionStore,
     SimSessionStatus, SimSessionView,
 };
-use backtest::Bar;
 use serde::{Deserialize, Serialize};
+
+use crate::service::BacktestService;
+use crate::types::{SubmitOutcome, SubmitReq};
 use simlive::{
     Fill, FillEngine, Order, OrderStatus, RealtimeStrategyOrchestrator, SessionManager, Side,
     SignalEvent, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation, StrategyConfig,
@@ -125,6 +127,33 @@ struct LiveSession {
     trading_enabled: bool,
 }
 
+/// 会话列表条目（L3：sim_list_sessions；含结束结果指标摘要）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionListEntry {
+    pub session: SimSessionView,
+    /// 结束结果指标摘要（未结束 → None；已结束 → metrics_json）。
+    pub metrics: Option<serde_json::Value>,
+}
+
+/// 会话详情（L3：sim_get_session；元数据 + 结束结果）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionDetail {
+    pub session: SimSessionView,
+    /// 结束结果（simsession_result 三 jsonb 列；未结束 → None）。
+    pub result: Option<SimSessionResult>,
+}
+
+/// 回测对比视图（L3：sim_run_backtest_compare）。
+/// 模拟实盘用会话自身结果；回测用触发的新 run（异步，调用方轮询 backtest get_run 完成）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BacktestCompareView {
+    pub session_id: String,
+    /// 会话自身的结束结果（净值/交易/指标）。
+    pub session_result: Option<SimSessionResult>,
+    /// 为该会话（同周期+同策略集+同标的集）触发的回测 run id 列表（“回测一下”）。
+    pub run_ids: Vec<i64>,
+}
+
 /// 模拟实盘服务。
 pub struct SimLiveService {
     store: Arc<dyn SimSessionStore>,
@@ -133,6 +162,8 @@ pub struct SimLiveService {
     default_cash: f64,
     /// 聚合策略开仓数量（每股；L2 简化，来源标识 aggregate_strategy）。
     aggregate_qty: f64,
+    /// 回测服务（L3「回测一下」；经 BacktestService.submit 触发既有回测 run；None = 未注入）。
+    backtest: Option<Arc<BacktestService>>,
     sessions: Mutex<Map<String, LiveSession>>,
 }
 
@@ -144,8 +175,15 @@ impl SimLiveService {
             fee,
             default_cash: DEFAULT_CASH_INIT,
             aggregate_qty: DEFAULT_AGGREGATE_QTY,
+            backtest: None,
             sessions: Mutex::new(Map::new()),
         }
+    }
+
+    /// 注入回测服务（L3「回测一下」；未注入时 sim_run_backtest_compare 返回错误）。
+    pub fn with_backtest(mut self, backtest: Arc<BacktestService>) -> Self {
+        self.backtest = Some(backtest);
+        self
     }
 
     /// 便捷构造：默认 FeeModel（佣金/印花税/滑点与 backtest 同步口径）。
@@ -205,14 +243,16 @@ impl SimLiveService {
                 return Ok(false); // 非 running（已 ended / 未知）
             };
             let state = live.manager.get_state().expect("session 存在");
+            // L3：结束结算用 backtest 指标口径（8 项；结构=backtest_run：
+            // net_value={series,drawdown}, trades=TradeDetail 已平仓配对, metrics=BacktestMetrics）。
+            let bt_period = bt_period_from_str(&session.period);
+            let detail = sim_trades_to_trade_details(&state.trades, bt_period);
+            let metrics = compute_metrics(&state.net_value_series, &detail, session.cash_init, bt_period);
+            let drawdown = compute_drawdown(&state.net_value_series);
             let result = SimSessionResult {
-                net_value: serde_json::to_value(&state.net_value_series).expect("net_value 可序列化"),
-                trades: serde_json::to_value(&state.trades).expect("trades 可序列化"),
-                metrics: serde_json::json!({
-                    "net_profit": state.realized_pnl + state.unrealized_pnl,
-                    "total_fee": state.total_fee,
-                    "cash_init": session.cash_init,
-                }),
+                net_value: serde_json::json!({ "series": state.net_value_series, "drawdown": drawdown }),
+                trades: serde_json::to_value(&detail).expect("trades 可序列化"),
+                metrics: serde_json::to_value(metrics).expect("metrics 可序列化"),
             };
             (session.clone(), result)
         };
@@ -616,6 +656,79 @@ impl SimLiveService {
     pub fn list_builtin_strategies(&self) -> anyhow::Result<Vec<backtest::StrategyResult>> {
         Ok(backtest::builtin_strategy_catalog())
     }
+
+    // ── 11-sim-live / L3：会话记录回看 + 回测对比 ──
+
+    /// 历史会话列表（L3：sim_list_sessions；start_ts DESC）。已结束会话附指标摘要。
+    pub async fn list_sessions(&self) -> anyhow::Result<Vec<SessionListEntry>> {
+        let views = self.store.list_sessions().await?;
+        let mut out = Vec::with_capacity(views.len());
+        for v in views {
+            let metrics = if v.status == SimSessionStatus::Ended {
+                self.store.get_result(&v.id).await?.map(|r| r.metrics)
+            } else {
+                None
+            };
+            out.push(SessionListEntry { session: v, metrics });
+        }
+        Ok(out)
+    }
+
+    /// 会话详情（L3：sim_get_session；元数据 + 结束结果）。未知 id → Ok(None)。
+    pub async fn get_session(&self, session_id: &str) -> anyhow::Result<Option<SessionDetail>> {
+        let Some(view) = self.store.get_session(session_id).await? else {
+            return Ok(None);
+        };
+        let result = self.store.get_result(session_id).await?;
+        Ok(Some(SessionDetail { session: view, result }))
+    }
+
+    /// 「回测一下」（L3：sim_run_backtest_compare）：按该会话 (period, strategy_set, stock_set, date_range)
+    /// 触发一次回测 run —— 复用既有 backtest 服务/引擎（```BacktestService::submit``` → ```BacktestRunStore```）。
+    /// 因 backtest 引擎为单 code/单策略 run，此处对会话的 stock_set × strategy_set 笛卡尔积逐个触发；
+    /// 单 stock + 单策略会话即“一次 run”。返回会话自身结果 + 新回测 run id 列表（异步：调用方轮询 get_run）。
+    pub async fn run_backtest_compare(&self, session_id: &str) -> anyhow::Result<BacktestCompareView> {
+        let Some(backtest) = self.backtest.clone() else {
+            return Err(anyhow!("回测服务未注入（SimLiveService.backtest=None；app 装配时 with_backtest）"));
+        };
+        let Some(view) = self.store.get_session(session_id).await? else {
+            return Err(anyhow!("会话不存在：{session_id}"));
+        };
+        let session_result = self.store.get_result(session_id).await?;
+        let from = view.start_ts;
+        let to = view.end_ts.unwrap_or_else(|| self.clock.now());
+        if to <= from {
+            return Err(anyhow!("回测区间无效（start≥end），无法触发对比"));
+        }
+        // 费用口径=会话 FeeModel（复用同源，模拟/回测一致）。
+        let fee = serde_json::json!({
+            "rate_pct": self.fee.commission_rate_pct,
+            "min_fee": self.fee.min_commission,
+            "slippage_bp": self.fee.slippage_bp,
+        });
+        let mut run_ids = Vec::new();
+        for stock in &view.stock_set {
+            for strategy in &view.strategy_set {
+                let req = SubmitReq {
+                    code: stock.clone(),
+                    period: view.period.clone(),
+                    from,
+                    to,
+                    strategy_id: strategy.clone(),
+                    params: serde_json::json!({}),
+                    params_grid: None,
+                    fee: fee.clone(),
+                    initial_capital: Some(view.cash_init),
+                };
+                match backtest.submit(req).await? {
+                    SubmitOutcome::Run(id) => run_ids.push(id),
+                    // 无 params_grid → 恒为单 run，不会出现 Group。
+                    SubmitOutcome::Group(_) => {}
+                }
+            }
+        }
+        Ok(BacktestCompareView { session_id: session_id.into(), session_result, run_ids })
+    }
 }
 
 /// 会话 id 生成（时间戳 + 单调计数器；与 simlive SessionManager 同模式命名，无随机）。
@@ -641,4 +754,101 @@ fn to_session_view(s: &SimSession) -> SimSessionView {
         },
         source: s.source.clone(),
     }
+}
+
+/// 会话周期字符串 → backtest::Period（与 backtest 支持周期一致；未知周期回退 M1，防御性）。
+fn bt_period_from_str(s: &str) -> Period {
+    match s {
+        "M1" => Period::M1,
+        "M5" => Period::M5,
+        "M15" => Period::M15,
+        "D1" => Period::D1,
+        _ => Period::M1,
+    }
+}
+
+/// 周期 → 每根 bar 秒数（用于把成交时间差折算成 hold_bars，与 backtest 口径同周期粒度）。
+fn bt_bar_seconds(period: Period) -> i64 {
+    match period {
+        Period::M1 => 60,
+        Period::M5 => 300,
+        Period::M15 => 900,
+        Period::D1 => 86_400,
+    }
+}
+
+/// 把模拟会话成交明细（SimTrade，FIFO per code）配对成 backtest 口径的**已平仓** `TradeDetail` 列表。
+/// 仅“卖出有对应买入”的已平仓段计入（胜率/交易笔数/持仓时长口径=backtest）；
+/// 期末未实现持仓（未平仓）不进入 `win_rate`/`trade_count`/`avg_hold_bars`（与 backtest 强制平仓口径一致）。
+/// 费用按其占成交量比例分摊到平仓段（买/卖各一次）；`stamp_duty` 已含在 sim 的 `fee` 内，此处单列 ≈0 保留字段。
+/// 确定性、无随机：输入 k 条成交 → 输出确定的一组 TradeDetail。
+fn sim_trades_to_trade_details(trades: &[SimTrade], period: Period) -> Vec<TradeDetail> {
+    use std::collections::{BTreeMap, VecDeque};
+
+    /// 开仓 lot（FIFO）。
+    struct Lot {
+        open_ts: i64,
+        open_price: f64,
+        open_qty: f64,
+        remaining: f64,
+        fee: f64,
+    }
+
+    let bar_sec = bt_bar_seconds(period);
+    let mut open: BTreeMap<String, VecDeque<Lot>> = BTreeMap::new();
+    let mut closed: Vec<TradeDetail> = Vec::new();
+
+    for t in trades {
+        match &t.side {
+            Side::Buy => {
+                open.entry(t.code.clone()).or_default().push_back(Lot {
+                    open_ts: t.ts,
+                    open_price: t.price,
+                    open_qty: t.qty,
+                    remaining: t.qty,
+                    fee: t.fee,
+                });
+            }
+            Side::Sell => {
+                let Some(queues) = open.get_mut(&t.code) else { continue };
+                let mut sell_remaining = t.qty;
+                while sell_remaining > 0.0 {
+                    let Some(lot) = queues.front_mut() else { break };
+                    let matched = lot.remaining.min(sell_remaining);
+                    if matched <= 0.0 {
+                        break;
+                    }
+                    let ratio = matched / lot.open_qty;
+                    let buy_fee_share = lot.fee * ratio;
+                    let sell_fee_share = t.fee * (matched / t.qty);
+                    let buy_cost = lot.open_price * matched + buy_fee_share;
+                    let sell_gross = t.price * matched;
+                    let pnl = (sell_gross - sell_fee_share) - buy_cost;
+                    let open_bar = (lot.open_ts / bar_sec) as usize;
+                    let close_bar = (t.ts / bar_sec) as usize;
+                    closed.push(TradeDetail {
+                        open_ts: lot.open_ts,
+                        close_ts: t.ts,
+                        open_bar,
+                        close_bar,
+                        open_price: lot.open_price,
+                        close_price: t.price,
+                        shares: matched,
+                        gross_value: sell_gross,
+                        commission: buy_fee_share + sell_fee_share,
+                        stamp_duty: 0.0,
+                        pnl,
+                        hold_bars: close_bar.saturating_sub(open_bar),
+                    });
+                    lot.remaining -= matched;
+                    sell_remaining -= matched;
+                    if lot.remaining <= 1e-9 {
+                        queues.pop_front();
+                    }
+                }
+            }
+        }
+    }
+
+    closed
 }

@@ -303,7 +303,8 @@ mod tests {
         assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality",
             "sim_start_session", "sim_stop_session", "sim_get_account", "sim_get_positions",
             "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
-            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis"]);
+            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",
+            "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();
@@ -511,6 +512,33 @@ pub fn tool_list() -> Value {
                     "properties": { "session_id": { "type": "string" } },
                     "required": ["session_id"]
                 }
+            },
+            {
+                "name": "sim_list_sessions",
+                "description": "模拟实盘，不触真实券商：历史会话列表（已结束；含周期/策略集/标的数/净收益/最大回撤/夏普摘要指标）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "sim_get_session",
+                "description": "模拟实盘，不触真实券商：会话详情回看（元数据 + 结束结果：净值/交易/指标）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_run_backtest_compare",
+                "description": "模拟实盘，不触真实券商：按会话（同周期+同策略集+同标的集+起止区间）触发一次回测 run（异步；返回 run_id，调用方轮询 backtest 完成），用于模拟实盘 vs 回测对比。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
             }
         ]
     })
@@ -541,6 +569,10 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "sim_list_strategies" => sim_list_strategies(st, id, &args),
         "sim_get_strategy_signal" => sim_get_strategy_signal(st, id, &args),
         "sim_get_strategy_analysis" => sim_get_strategy_analysis(st, id, &args),
+        // 11-sim-live / L3：会话记录回看 + 回测对比
+        "sim_list_sessions" => sim_list_sessions(st, id, &args).await,
+        "sim_get_session" => sim_get_session(st, id, &args).await,
+        "sim_run_backtest_compare" => sim_run_backtest_compare(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -831,6 +863,40 @@ fn sim_get_strategy_analysis(st: &McpState, id: Option<Value>, args: &Value) -> 
     }
 }
 
+/// sim_list_sessions()：历史会话列表（已结束附指标摘要）。
+async fn sim_list_sessions(st: &McpState, id: Option<Value>, _args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    match sim.list_sessions().await {
+        Ok(entries) => tool_ok(id, &serde_json::to_value(&entries).unwrap_or_else(|_| json!([]))),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_session(session_id)：会话详情回看（元数据 + 结束结果）。
+async fn sim_get_session(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_session(session_id).await {
+        Ok(Some(detail)) => tool_ok(id, &detail),
+        Ok(None) => tool_ok(id, &json!({ "session_id": session_id, "session": null, "result": null })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_run_backtest_compare(session_id)：触发一次回测 run（异步），返回会话结果 + run id 列表。
+async fn sim_run_backtest_compare(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.run_backtest_compare(session_id).await {
+        Ok(view) => tool_ok(id, &view),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
 /// 解析字符串数组参数（缺省/非数组 → 空）。
 fn str_array(args: &Value, key: &str) -> Vec<String> {
     args.get(key)
@@ -844,6 +910,10 @@ mod tests {
     use super::*;
     use crate::mocks::{quality_for, test_state, MockEvents, MockKline};
     use chrono::TimeZone;
+    use domain::ports::{
+        BacktestBarRead, BacktestProgressSink, BacktestRunStore, NewRun, RunFilter, RunResult, RunView,
+    };
+    use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
     use std::sync::Arc;
 
     async fn call(st: &McpState, name: &str, args: Value) -> Value {
@@ -860,7 +930,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 14, "3 只读工具 + 8 模拟实盘 L1 + 3 策略工具 L2（11-sim-live L1/L2）");
+        assert_eq!(tools.len(), 17, "3 只读工具 + 8 模拟实盘 L1 + 3 策略工具 L2 + 3 会话记录/对比 L3（11-sim-live L1/L2/L3）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -873,7 +943,8 @@ mod tests {
         let sim_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("sim_")).collect();
         assert_eq!(sim_names, vec!["sim_start_session", "sim_stop_session", "sim_get_account",
             "sim_get_positions", "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
-            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis"]);
+            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",
+            "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare"]);
         // 每个 sim 工具 description 均注明「模拟实盘，不触真实券商」
         for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("sim_")) {
             assert!(t["description"].as_str().unwrap().contains("模拟实盘，不触真实券商"),
@@ -1046,6 +1117,7 @@ mod tests {
     #[derive(Default)]
     struct MockSimStore {
         sessions: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionView>>,
+        results: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionResult>>,
     }
 
     #[async_trait::async_trait]
@@ -1067,13 +1139,17 @@ mod tests {
         }
         async fn append_trade(&self, _: &domain::ports::NewSimTrade) -> anyhow::Result<()> { Ok(()) }
         async fn update_positions(&self, _: &str, _: &[domain::ports::SimPositionRow]) -> anyhow::Result<()> { Ok(()) }
-        async fn mark_end(&self, id: &str, end_ts: DateTime<Utc>, _: &domain::ports::SimSessionResult) -> anyhow::Result<bool> {
+        async fn mark_end(&self, id: &str, end_ts: DateTime<Utc>, result: &domain::ports::SimSessionResult) -> anyhow::Result<bool> {
             let mut s = self.sessions.lock().unwrap();
             let Some(v) = s.get_mut(id) else { return Ok(false) };
             if v.status != domain::ports::SimSessionStatus::Running { return Ok(false) }
             v.status = domain::ports::SimSessionStatus::Ended;
             v.end_ts = Some(end_ts);
+            self.results.lock().unwrap().insert(id.into(), result.clone());
             Ok(true)
+        }
+        async fn get_result(&self, id: &str) -> anyhow::Result<Option<domain::ports::SimSessionResult>> {
+            Ok(self.results.lock().unwrap().get(id).cloned())
         }
         async fn delete_session(&self, id: &str) -> anyhow::Result<bool> {
             Ok(self.sessions.lock().unwrap().remove(id).is_some())
@@ -1247,6 +1323,148 @@ mod tests {
         assert_eq!(r["error"]["code"], -32602, "code 空");
         let r = call(&st, "sim_get_strategy_analysis", json!({})).await;
         assert_eq!(r["error"]["code"], -32602, "sim_get_strategy_analysis 缺 session_id");
+    }
+
+    // ── 11-sim-live / L3：会话记录/详情/回测对比工具 ──
+
+    /// 回测 run store mock（记录 create_run；后台任务空 bar → mark_failed，不影响断言）。
+    #[derive(Default)]
+    struct MockBacktestStore {
+        created: std::sync::Mutex<Vec<NewRun>>,
+        next_id: AtomicU64,
+    }
+    #[async_trait::async_trait]
+    impl BacktestRunStore for MockBacktestStore {
+        async fn create_run(&self, run: &NewRun) -> anyhow::Result<i64> {
+            self.created.lock().unwrap().push(run.clone());
+            Ok(self.next_id.fetch_add(1, Ordering::Relaxed) as i64 + 1)
+        }
+        async fn update_run_progress(&self, _: i64, _: i32, _: DateTime<Utc>) -> anyhow::Result<()> { Ok(()) }
+        async fn mark_done(&self, _: i64, _: &RunResult) -> anyhow::Result<()> { Ok(()) }
+        async fn mark_failed(&self, _: i64, _: &str) -> anyhow::Result<()> { Ok(()) }
+        async fn list_runs(&self, _: &RunFilter) -> anyhow::Result<Vec<RunView>> { Ok(Vec::new()) }
+        async fn get_run(&self, _: i64) -> anyhow::Result<Option<RunView>> { Ok(None) }
+        async fn delete_run(&self, _: i64) -> anyhow::Result<bool> { Ok(false) }
+    }
+    struct MockBarRead;
+    #[async_trait::async_trait]
+    impl BacktestBarRead for MockBarRead {
+        async fn bars(
+            &self,
+            _: &str,
+            _: &domain::types::Period,
+            _: DateTime<Utc>,
+            _: DateTime<Utc>,
+        ) -> anyhow::Result<Vec<domain::types::Bar>> {
+            Ok(Vec::new())
+        }
+    }
+    struct MockProgress;
+    #[async_trait::async_trait]
+    impl BacktestProgressSink for MockProgress {
+        async fn send(&self, _: i64, _: i32, _: Option<DateTime<Utc>>) -> anyhow::Result<()> { Ok(()) }
+    }
+
+    /// 注入回测服务的 sim state（L3 对比 happy path；返回可推进时钟，保证 start<end）。
+    fn sim_state_with_backtest() -> (Arc<McpState>, Arc<MockBacktestStore>, Arc<TestClock>) {
+        let store = Arc::new(MockSimStore::default());
+        let bt_store = Arc::new(MockBacktestStore::default());
+        let bt = application::service::BacktestService::new(
+            Arc::new(MockBarRead), bt_store.clone(), Arc::new(MockProgress), 1);
+        let clock = Arc::new(TestClock(AtomicI64::new(1_784_000_000)));
+        let svc = application::simlive::SimLiveService::with_default_fee(store, clock.clone())
+            .with_backtest(Arc::new(bt));
+        (Arc::new(McpState {
+            kline: Arc::new(MockKline::new()),
+            health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
+            quality: quality_for(vec![], std::collections::HashMap::new(), std::collections::HashSet::new()),
+            default_window_secs: 3600,
+            sessions: crate::state::SessionRegistry::default(),
+            sim: Some(Arc::new(svc)),
+        }), bt_store, clock)
+    }
+
+    struct TestClock(AtomicI64);
+    impl domain::ports::Clock for TestClock {
+        fn now(&self) -> DateTime<Utc> { DateTime::from_timestamp(self.0.load(Ordering::Relaxed), 0).unwrap() }
+    }
+    impl TestClock {
+        fn set(&self, ts: i64) { self.0.store(ts, Ordering::Relaxed); }
+    }
+
+    #[tokio::test]
+    async fn sim_list_and_get_session_returns_history() {
+        let st = sim_state();
+        let svc = st.sim.clone().unwrap();
+        let r = call(&st, "sim_start_session", json!({ "name": "h1", "period": "M1", "cash_init": 200000 })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+        // 放一单再 stop，产生结束结果。
+        let _ = svc.place_order(&sid, &application::simlive::PlaceOrderReq {
+            code: "510300".into(), side: "buy".into(), qty: 1000.0,
+            limit_price: None, intent_id: None, source: "manual".into(),
+        }, 10.0).await.unwrap();
+        assert!(svc.stop_session(&sid).await.unwrap());
+
+        // 列表：已结束会话附指标摘要。
+        let r = call(&st, "sim_list_sessions", json!({})).await;
+        let list = payload_of(&r);
+        let arr = list.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["session"]["id"], json!(sid));
+        assert_eq!(arr[0]["session"]["status"], "ended");
+        assert!(arr[0]["metrics"]["trade_count"].is_number());
+
+        // 详情：元数据 + 结束结果。
+        let r = call(&st, "sim_get_session", json!({ "session_id": sid })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["session"]["id"], json!(sid));
+        assert!(p["result"]["metrics"]["sharpe"].is_number());
+        assert!(p["result"]["net_value"]["series"].is_array());
+
+        // 未知会话 → session:null.
+        let r = call(&st, "sim_get_session", json!({ "session_id": "no-such" })).await;
+        assert_eq!(payload_of(&r)["session"], json!(null));
+    }
+
+    #[tokio::test]
+    async fn sim_run_backtest_compare_triggers_run() {
+        let (st, bt_store, clock) = sim_state_with_backtest();
+        let svc = st.sim.clone().unwrap();
+        let r = call(&st, "sim_start_session", json!({ "name": "c1", "period": "M1", "cash_init": 200000,
+            "strategy_set": ["dual_ma"], "stock_set": ["510300"] })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+        let _ = svc.place_order(&sid, &application::simlive::PlaceOrderReq {
+            code: "510300".into(), side: "buy".into(), qty: 100.0,
+            limit_price: None, intent_id: None, source: "manual".into(),
+        }, 10.0).await.unwrap();
+        // 推进时钟使 start<end。
+        clock.set(1_784_003_600);
+        assert!(svc.stop_session(&sid).await.unwrap());
+
+        let r = call(&st, "sim_run_backtest_compare", json!({ "session_id": sid })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["run_ids"].as_array().unwrap().len(), 1, "单stock+单策略触发一次 run");
+        assert!(p["session_result"]["metrics"]["trade_count"].is_number());
+        // 触发参数 = 会话 (code/period/strategy/date_range/initial)。
+        let created = bt_store.created.lock().unwrap();
+        assert_eq!(created.len(), 1);
+        assert_eq!(created[0].code, "510300");
+        assert_eq!(created[0].period, "M1");
+        assert_eq!(created[0].strategy_id, "dual_ma");
+        assert!(created[0].date_to > created[0].date_from);
+    }
+
+    #[tokio::test]
+    async fn sim_l3_param_validation_is_32602() {
+        let st = sim_state();
+        let r = call(&st, "sim_get_session", json!({})).await;
+        assert_eq!(r["error"]["code"], -32602, "sim_get_session 缺 session_id");
+        let r = call(&st, "sim_run_backtest_compare", json!({})).await;
+        assert_eq!(r["error"]["code"], -32602, "sim_run_backtest_compare 缺 session_id");
+        // sim_list_sessions 无参数，正常调用（sim 未注入 backtest 也能列出）。
+        let r = call(&st, "sim_list_sessions", json!({})).await;
+        let p = payload_of(&r);
+        assert!(p.is_array());
     }
 }
 ```
@@ -1734,13 +1952,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 14 个工具（3 只读 + 8 模拟实盘 L1 + 3 策略工具 L2；ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A + 11-sim-live L1/L2）
+    // 3. tools/list → 17 个工具（3 只读 + 8 模拟实盘 L1 + 3 策略工具 L2 + 3 会话记录/对比 L3；ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A + 11-sim-live L1/L2/L3）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 14, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 17, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],

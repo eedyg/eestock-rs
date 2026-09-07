@@ -166,6 +166,12 @@ async fn mark_end_writes_result_and_transitions_status() {
     assert_eq!(m["net_profit"], serde_json::json!(1000.0));
     assert_eq!(nv[0][1], serde_json::json!(1_000_000.0));
 
+    // get_result 端口读回同一结果（L3 会话回看/回测对比用）。
+    let r = store.get_result(&id).await.unwrap().expect("结果存在");
+    assert_eq!(r.net_value, result.net_value);
+    assert_eq!(r.trades, result.trades);
+    assert_eq!(r.metrics, result.metrics);
+
     clean(&pool, &id).await;
 }
 

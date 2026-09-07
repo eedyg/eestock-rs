@@ -107,6 +107,14 @@ impl SimSessionStore for PgSimSessionStore {
         Ok(true)
     }
 
+    async fn get_result(&self, session_id: &str) -> Result<Option<SimSessionResult>> {
+        let row: Option<(serde_json::Value, serde_json::Value, serde_json::Value)> =
+            sqlx::query_as(
+                "SELECT net_value_json, trades_json, metrics_json FROM simsession_result WHERE session_id = $1")
+                .bind(session_id).fetch_optional(&self.pool).await?;
+        Ok(row.map(|(net_value, trades, metrics)| SimSessionResult { net_value, trades, metrics }))
+    }
+
     async fn delete_session(&self, session_id: &str) -> Result<bool> {
         let res = sqlx::query("DELETE FROM simsession WHERE id = $1")
             .bind(session_id).execute(&self.pool).await?;
