@@ -91,4 +91,54 @@ describe('TaskList（每行删除按钮：二次确认 → 删除 → 行消失�
     expect(onDeleteRun).toHaveBeenCalledWith(1);
     expect(screen.getByTestId('task-row-1')).toBeInTheDocument(); // 失败不删行
   });
+
+  it('hasMore → 渲染「加载更多」，点击调 onLoadMore', async () => {
+    const user = userEvent.setup();
+    const onLoadMore = vi.fn();
+    render(
+      <TaskList
+        runs={[makeRun(1, 'done'), makeRun(2, 'failed')]}
+        strategies={[strategy]}
+        loading={false}
+        error={null}
+        onRetry={() => {}}
+        selectedRunId={null}
+        compareIds={[]}
+        progressMap={{}}
+        onSelectRun={() => {}}
+        onToggleCompare={() => {}}
+        onDeleteRun={async () => {}}
+        hasMore
+        onLoadMore={onLoadMore}
+      />,
+    );
+    const btn = await screen.findByTestId('task-load-more');
+    expect(btn.textContent).toBe('加载更多任务');
+    await user.click(btn);
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('loadingMore → 按钮禁用并显示加载中', async () => {
+    render(
+      <TaskList
+        runs={[makeRun(1, 'done')]}
+        strategies={[strategy]}
+        loading={false}
+        error={null}
+        onRetry={() => {}}
+        selectedRunId={null}
+        compareIds={[]}
+        progressMap={{}}
+        onSelectRun={() => {}}
+        onToggleCompare={() => {}}
+        onDeleteRun={async () => {}}
+        hasMore
+        loadingMore
+        onLoadMore={() => {}}
+      />,
+    );
+    const btn = await screen.findByTestId('task-load-more');
+    expect(btn.textContent).toBe('加载中…');
+    expect(btn).toBeDisabled();
+  });
 });

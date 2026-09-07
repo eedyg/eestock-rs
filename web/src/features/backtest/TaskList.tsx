@@ -8,8 +8,8 @@ interface ProgressInfo {
 }
 
 /**
- * 页面⑤任务列表：GET /api/backtest/runs + WS backtest_progress 实时进度（运行中）。
- * 状态（排队/运行中/完成/失败）+ 进度% + 当前回测日期；点已完成载入结果；勾选 2-N 进对比；多任务并行。
+ * 页面⑤任务列表：GET /api/backtest/runs（**轻量分页**：首屏 limit=100，加载更多 offset 递增）+ WS backtest_progress 实时进度（运行中）。
+ * 状态（排队/运行中/完成/失败）+ 进度% + 当前回测日期；点已完成载入结果（仅此时 GET /{id} 拉结果）；勾选 2-N 进对比；多任务并行。
  */
 export function TaskList({
   runs,
@@ -23,6 +23,9 @@ export function TaskList({
   onSelectRun,
   onToggleCompare,
   onDeleteRun,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: {
   runs: BacktestRunDto[] | null;
   strategies: BacktestStrategyDto[] | null;
@@ -36,6 +39,12 @@ export function TaskList({
   onToggleCompare: (id: number) => void;
   /** 删除 run（DELETE /api/backtest/runs/{id}）；reject 时显示错误。 */
   onDeleteRun: (id: number) => Promise<void>;
+  /** 分页：还有更多（条数==limit）。 */
+  hasMore?: boolean;
+  /** 分页：加载更多进行中。 */
+  loadingMore?: boolean;
+  /** 分页：加载更多（滚动/按钮触发）。 */
+  onLoadMore?: () => void;
 }) {
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -179,6 +188,19 @@ export function TaskList({
           </div>
         );
       })}
+      {hasMore && (
+        <div className="flex justify-center py-2">
+          <button
+            type="button"
+            disabled={loadingMore}
+            onClick={onLoadMore}
+            className="rounded-lg border border-line px-3 py-1 text-xs text-dim hover:text-txt disabled:opacity-50"
+            data-testid="task-load-more"
+          >
+            {loadingMore ? '加载中…' : '加载更多任务'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

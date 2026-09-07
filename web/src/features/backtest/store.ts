@@ -23,6 +23,10 @@ interface ProgressInfo {
 export interface BacktestState {
   strategies: AsyncSlice<BacktestStrategyDto[]>;
   runs: AsyncSlice<BacktestRunDto[]>;
+  /** 分页：列表是否还有更多（返回条数 == limit）。 */
+  hasMore: boolean;
+  /** 分页：加载更多进行中。 */
+  loadingMore: boolean;
   selectedRunId: number | null;
   runDetail: AsyncSlice<BacktestRunDto>;
   compareIds: number[];
@@ -54,6 +58,8 @@ export class BacktestStore {
   private current: BacktestState = {
     strategies: { data: null, loading: true, error: null },
     runs: { data: null, loading: true, error: null },
+    hasMore: false,
+    loadingMore: false,
     selectedRunId: null,
     runDetail: idle(),
     compareIds: [],
@@ -63,6 +69,10 @@ export class BacktestStore {
     submitting: false,
     submitError: null,
   };
+  /** 分页：单页 limit（与后端默认一致；`条数==limit` 即还有更多）。 */
+  private runLimit = 100;
+  /** 分页：已加载累计条数（作为下一次 loadMore 的 offset）。 */
+  private runNextOffset = 0;
   private listeners = new Set<() => void>();
   private unsubs: Array<() => void> = [];
   private disposed = false;
@@ -136,17 +146,44 @@ export class BacktestStore {
   async loadRuns(): Promise<void> {
     this.patch({ runs: { data: null, loading: true, error: null } });
     try {
-      const data = await this.deps.api.listRuns();
-      this.patch({ runs: { data, loading: false, error: null } });
+      const data = await this.deps.api.listRuns({ limit: this.runLimit, offset: 0 });
+      this.runNextOffset = data.length;
+      this.patch({
+        runs: { data, loading: false, error: null },
+        hasMore: data.length === this.runLimit,
+        loadingMore: false,
+      });
     } catch (e) {
-      this.patch({ runs: { data: null, loading: false, error: (e as Error).message } });
+      this.patch({ runs: { data: null, loading: false, error: (e as Error).message }, loadingMore: false });
+    }
+  }
+
+  /** 加载更多（滚动/「加载更多」按钮）：以累计条数为 offset 追加下一页；条数==limit 则还有更多。 */
+  async loadMoreRuns(): Promise<void> {
+    if (this.current.runs.loading || this.current.loadingMore || !this.current.hasMore) return;
+    this.patch({ loadingMore: true });
+    try {
+      const data = await this.deps.api.listRuns({ limit: this.runLimit, offset: this.runNextOffset });
+      const cur = this.current.runs.data ?? [];
+      this.runNextOffset += data.length;
+      this.patch({
+        runs: { data: [...cur, ...data], loading: false, error: null },
+        hasMore: data.length === this.runLimit,
+        loadingMore: false,
+      });
+    } catch (e) {
+      this.patch({ loadingMore: false, runs: { ...this.current.runs, error: (e as Error).message } });
     }
   }
 
   async refreshRuns(): Promise<void> {
     try {
-      const data = await this.deps.api.listRuns();
-      this.patch({ runs: { data, loading: false, error: null } });
+      const data = await this.deps.api.listRuns({ limit: this.runLimit, offset: 0 });
+      this.runNextOffset = data.length;
+      this.patch({
+        runs: { data, loading: false, error: null },
+        hasMore: data.length === this.runLimit,
+      });
     } catch (e) {
       this.patch({ runs: { ...this.current.runs, error: (e as Error).message } });
     }

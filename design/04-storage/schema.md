@@ -430,8 +430,9 @@ ALTER TABLE backtest_runs ALTER COLUMN date_to SET NOT NULL;
   兜底 cagg 行 source 缺 NULL → `domain::Bar.source` 以占位 `SourceId::parse().unwrap_or(Tushare)` 记（backtest 不消费 source）。
 - `PgBacktestStore`：`backtest_runs/backtest_results` CRUD（create_run 回 id 并写 initial_capital/date_from/date_to 三列；
   update_run_progress 写 progress/current_ts；mark_done 事务内更新 status=done/finished_at + upsert result 3 列；
-  mark_failed 置 failed/error；list_runs 按 status/group filter；get_run 联表；delete_run 删 run（级联删结果）返回是否删行）。
+  mark_failed 置 failed/error；list_runs 按 status/group filter + limit/offset 分页（**轻量**：`RUNS_SELECT_LIGHT` 不联 backtest_results、不选结果 JSON 列、result=None；排序 created_at DESC, id DESC）；get_run 用 `RUNS_SELECT` 联表读全量结果；delete_run 删 run（级联删结果）返回是否删行。
   B1 增补（ADR-007 手写例外）：`NewRun`/`RunView` 增 `initial_capital/date_from/date_to`；`create_run` 落这三列；`delete_run(&self, id) -> Result<bool>`。
+  性能修正（ADR-007 手写例外）：列表页不再联结果/全量返回——`RunFilter` 增 `limit/offset`（默认 100），`list_runs` 轻量分页，结果仅 `get_run` 读。
 
 ## 4.3.6 看板收藏（Wave 3 页面①，0013；用户定稿 2026-09-05）
 

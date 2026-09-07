@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { BacktestRunDto } from './types';
 import { createMockClient } from './mock';
 
 describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
@@ -250,7 +251,7 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     }
   });
 
-  it('listRuns 种子：done/running/pending/failed 四态齐备；compare 只含存在 run', async () => {
+  it('listRuns 种子：done/running/pending/failed 四态齐备；列表轻量（不含结果）；compare 只含存在 run；getRun 才有结果', async () => {
     const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z') });
     const runs = await api.listRuns();
     const statuses = runs.map((r) => r.status);
@@ -259,10 +260,52 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     }
     const done = runs.find((r) => r.status === 'done')!;
     expect(done.id).toBeGreaterThan(0);
-    expect(done.metrics).toBeDefined();
+    // 轻量列表：结果列被剥离（性能根因——列表只需要元数据+状态）。
+    expect(done.metrics).toBeUndefined();
+    expect(done.net_value).toBeUndefined();
+    expect(done.trades).toBeUndefined();
+    // 结果仅 getRun 提供。
+    const detail = await api.getRun(done.id);
+    expect(detail.metrics).toBeDefined();
+    expect(detail.net_value).toBeDefined();
     const cmp = await api.compare([done.id, 999999]);
     expect(cmp).toHaveLength(1);
     expect(cmp[0]!.id).toBe(done.id);
+  });
+
+  it('listRuns 分页：created_at DESC, id DESC + limit/offset 切片；未传 limit 返回全部', async () => {
+    const seeds: BacktestRunDto[] = Array.from({ length: 120 }, (_, i) => ({
+      id: 100 + i,
+      code: '518880',
+      period: 'D1',
+      strategy_id: 'dual_ma',
+      params: {},
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+      status: 'done',
+      progress: 100,
+      current_ts: null,
+      // 秒递增 → created_at 单调于 id → created_at DESC, id DESC 等价 id DESC。
+      created_at: new Date(2026, 8, 4, 0, 0, i).toISOString(),
+      finished_at: '2026-09-04T02:00:00Z',
+      error: null,
+      group_id: i % 10 === 0 ? 'g_pg' : null,
+    }));
+    const api = createMockClient({ now: new Date('2026-09-04T07:00:00Z'), backtestRuns: seeds });
+    // 未传 limit → 返回全部
+    const all = await api.listRuns();
+    expect(all.length).toBe(120);
+    // limit=100 offset=0 → 100 条，id DESC（最新 id 最大在前）
+    const p1 = await api.listRuns({ limit: 100, offset: 0 });
+    expect(p1.length).toBe(100);
+    expect(p1[0]!.id).toBe(219);
+    expect(p1[99]!.id).toBe(120);
+    // offset=100 → 20 条
+    const p2 = await api.listRuns({ limit: 100, offset: 100 });
+    expect(p2.length).toBe(20);
+    expect(p2[0]!.id).toBe(119);
+    expect(p2[19]!.id).toBe(100);
+    // 结果列剥离
+    expect(p1[0]!.metrics).toBeUndefined();
   });
 
   it('deleteRun 删除 run（列表反映）；不存在 throw 404', async () => {

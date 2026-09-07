@@ -108,7 +108,7 @@ pub async fn submit_run(
         Ok(SubmitOutcome::Run(id)) => Json(serde_json::json!({ "run_id": id })).into_response(),
         Ok(SubmitOutcome::Group(gid)) => {
             // 网格展开：返回 group_id + 该组子任务 run_ids（复用 list_runs 按 group 过滤）
-            let filter = RunFilter { group_id: Some(gid.clone()), status: None };
+            let filter = RunFilter { group_id: Some(gid.clone()), status: None, ..Default::default() };
             match st.backtest.list_runs(&filter).await {
                 Ok(runs) => {
                     let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
@@ -124,7 +124,7 @@ pub async fn submit_run(
     }
 }
 
-/// GET /api/backtest/runs —— 列表（`status`/`group_id` 过滤）。
+/// GET /api/backtest/runs —— 列表（`status`/`group_id` 过滤 + `limit`/`offset` 分页；**轻量：不含结果列**）。
 pub async fn list_runs(
     State(st): State<Arc<AppState>>,
     Query(q): Query<BacktestListQuery>,
@@ -136,7 +136,13 @@ pub async fn list_runs(
             None => return err(StatusCode::BAD_REQUEST, "status 须为 pending/running/done/failed"),
         },
     };
-    let filter = RunFilter { status, group_id: q.group_id.clone() };
+    // limit clamp 1-500（单页上限），offset 非负（越界仅返回空页）。
+    let filter = RunFilter {
+        status,
+        group_id: q.group_id.clone(),
+        limit: q.limit.clamp(1, MAX_BACKTEST_LIMIT),
+        offset: q.offset.max(0),
+    };
     match st.backtest.list_runs(&filter).await {
         Ok(runs) => Json(runs.iter().map(BacktestRunDto::from).collect::<Vec<_>>()).into_response(),
         Err(e) => internal(e),

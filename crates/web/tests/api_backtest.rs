@@ -4,6 +4,7 @@
 //! 每测试用独立 code（并行执行互不共享清理）。
 
 use chrono::{DateTime, TimeZone, Utc};
+use domain::ports::BacktestRunStore;
 use serde_json::Value;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -91,6 +92,21 @@ async fn clean_bt(pool: &PgPool, code: &str) {
                  (SELECT id FROM backtest_runs WHERE code = $1)")
         .bind(code).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM backtest_runs WHERE code = $1").bind(code).execute(pool).await.unwrap();
+}
+
+/// 直造 run（store 侧；测试不走 HTTP 提交以控制排序与结果注入）。
+fn new_bt_run(group: &str) -> domain::ports::NewRun {
+    domain::ports::NewRun {
+        code: "515880".into(),
+        period: "D1".into(),
+        strategy_id: "dual_ma".into(),
+        params: serde_json::json!({}),
+        fee: serde_json::json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 }),
+        initial_capital: 100_000.0,
+        date_from: base(),
+        date_to: base() + chrono::Duration::hours(1),
+        group_id: Some(group.into()),
+    }
 }
 
 /// 合法提交 body（D1 / dual_ma / 默认参数 / 默认费用）。
@@ -269,6 +285,80 @@ async fn ws_backtest_progress_reaches_subscribed_clients() {
         }
         other => panic!("应为 backtest_progress，实际 {other:?}"),
     }
+}
+
+#[tokio::test]
+async fn list_runs_pagination_light_numbered() {
+    let pool = pool().await;
+    let group = format!("bt_list_page_{}", std::process::id());
+    // 清理：FK 级联删结果 → 删 run。
+    sqlx::query("DELETE FROM backtest_results WHERE run_id IN \
+                 (SELECT id FROM backtest_runs WHERE group_id = $1)")
+        .bind(&group).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM backtest_runs WHERE group_id = $1").bind(&group).execute(&pool).await.unwrap();
+
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let store = storage::backtest::PgBacktestStore::new(pool.clone());
+    // 造 5 个 run（共用 group；created_at DESC, id DESC → 最新 id 最大在前）。
+    let mut ids = Vec::new();
+    for _ in 0..5 { ids.push(store.create_run(&new_bt_run(&group)).await.unwrap()); }
+    let result = domain::ports::RunResult {
+        net_value: serde_json::json!([[base(), 100_000.0]]),
+        trades: serde_json::json!([]),
+        metrics: serde_json::json!({ "net_profit": 1.0 }),
+    };
+    store.mark_done(ids[0], &result).await.unwrap();
+    store.mark_done(ids[1], &result).await.unwrap();
+
+    // limit=2 offset=0 → 2 条，且均为轻量（无 net_value/trades/metrics 键）。
+    let p1: Value = http.get(format!("{url}/api/backtest/runs"))
+        .query(&[("group_id", group.as_str()), ("limit", "2"), ("offset", "0")])
+        .send().await.unwrap().json().await.unwrap();
+    let a1 = p1.as_array().expect("list 返回数组");
+    assert_eq!(a1.len(), 2, "limit=2 页1 恰 2 条");
+    assert_eq!(a1[0]["id"], ids[4], "created_at DESC, id DESC → 最新 id 最大在前");
+    assert_eq!(a1[1]["id"], ids[3]);
+    assert!(a1[0].get("net_value").is_none(), "列表不返回结果列（轻量）");
+    assert!(a1[0].get("metrics").is_none(), "列表不返回 metrics");
+
+    // limit=2 offset=2 → 下 2 条。
+    let p2: Value = http.get(format!("{url}/api/backtest/runs"))
+        .query(&[("group_id", group.as_str()), ("limit", "2"), ("offset", "2")])
+        .send().await.unwrap().json().await.unwrap();
+    let a2 = p2.as_array().unwrap();
+    assert_eq!(a2.len(), 2);
+    assert_eq!(a2[0]["id"], ids[2]);
+    assert_eq!(a2[1]["id"], ids[1]);
+
+    // limit=2 offset=4 → 尾 1 条。
+    let p3: Value = http.get(format!("{url}/api/backtest/runs"))
+        .query(&[("group_id", group.as_str()), ("limit", "2"), ("offset", "4")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(p3.as_array().unwrap().len(), 1);
+    assert_eq!(p3.as_array().unwrap()[0]["id"], ids[0]);
+
+    // get_run 单跑 → 带结果列（详情才读结果）。
+    let d: Value = http.get(format!("{url}/api/backtest/runs/{}", ids[0]))
+        .send().await.unwrap().json().await.unwrap();
+    assert!(d.get("net_value").is_some(), "get_run 返回结果列");
+    assert!(d.get("metrics").is_some(), "get_run 返回 metrics");
+
+    // 超限 limit clamp 到 500（封顶）；越界 offset 返回空页而非报错。
+    let big: Value = http.get(format!("{url}/api/backtest/runs"))
+        .query(&[("group_id", group.as_str()), ("limit", "2000"), ("offset", "0")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(big.as_array().unwrap().len(), 5, "limit clamp 500 > 5 条则返回全部");
+    let oob: Value = http.get(format!("{url}/api/backtest/runs"))
+        .query(&[("group_id", group.as_str()), ("limit", "2"), ("offset", "100")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(oob.as_array().unwrap().len(), 0, "越界 offset 返回空页");
+
+    // 清理。
+    sqlx::query("DELETE FROM backtest_results WHERE run_id IN \
+                 (SELECT id FROM backtest_runs WHERE group_id = $1)")
+        .bind(&group).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM backtest_runs WHERE group_id = $1").bind(&group).execute(&pool).await.unwrap();
 }
 
 #[tokio::test]

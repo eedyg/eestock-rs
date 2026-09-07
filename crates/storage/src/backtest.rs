@@ -125,17 +125,9 @@ impl PgBacktestStore {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
-/// 联表行（run LEFT JOIN result）→ RunView（用 sqlx::Row 手动按列索引提取，避免 16 元组 FromRow 上限）。
-/// ⚠️ 列索引必须与 `RUNS_SELECT` 的列顺序一一对应；增列时同步更新。
-fn row_to_run_view(row: &PgRow) -> RunView {
-    let net_value: Option<serde_json::Value> = row.get(16);
-    let trades: Option<serde_json::Value> = row.get(17);
-    let metrics: Option<serde_json::Value> = row.get(18);
-    let result = match (net_value, trades, metrics) {
-        (Some(net_value), Some(trades), Some(metrics)) =>
-            Some(RunResult { net_value, trades, metrics }),
-        _ => None,
-    };
+/// Run 元数据（RUNS_SELECT_LIGHT 16 列，索引 0-15；list 只用，result=None）。
+/// ⚠️ 列索引必须与 `RUNS_SELECT_LIGHT` 的列顺序一一对应；增列时同步更新。
+fn row_to_run_view_light(row: &PgRow) -> RunView {
     let status: String = row.get(9);
     RunView {
         id: row.get(0),
@@ -154,11 +146,25 @@ fn row_to_run_view(row: &PgRow) -> RunView {
         finished_at: row.get(13),
         error: row.get(14),
         group_id: row.get(15),
-        result,
+        result: None,
     }
 }
 
-/// 列表/详情联表 SQL（run LEFT JOIN result；status/group 过滤用 `$n::text IS NULL OR`）。
+/// 联表行（run LEFT JOIN result，RUNS_SELECT 19 列，索引 0-18）→ RunView：在 light 元数据上补结果。
+fn row_to_run_view(row: &PgRow) -> RunView {
+    let net_value: Option<serde_json::Value> = row.get(16);
+    let trades: Option<serde_json::Value> = row.get(17);
+    let metrics: Option<serde_json::Value> = row.get(18);
+    let mut v = row_to_run_view_light(row);
+    v.result = match (net_value, trades, metrics) {
+        (Some(net_value), Some(trades), Some(metrics)) =>
+            Some(RunResult { net_value, trades, metrics }),
+        _ => None,
+    };
+    v
+}
+
+/// 详情联表 SQL（run LEFT JOIN result；供 get_run 单 run 读全量结果）。
 const RUNS_SELECT: &str = r#"
 SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
        r.initial_capital, r.date_from, r.date_to,
@@ -166,6 +172,15 @@ SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
        res.net_value_json, res.trades_json, res.metrics_json
 FROM backtest_runs r
 LEFT JOIN backtest_results res ON res.run_id = r.id
+"#;
+
+/// 列表轻量 SELECT（只取 run 元数据；不联 backtest_results、不选中结果 JSON 列——
+/// 列表页重/慢/传输大的根因）。sort 由调用方按 created_at DESC, id DESC + LIMIT/OFFSET 分页。
+const RUNS_SELECT_LIGHT: &str = r#"
+SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
+       r.initial_capital, r.date_from, r.date_to,
+       r.status, r.progress, r.current_ts, r.created_at, r.finished_at, r.error, r.group_id
+FROM backtest_runs r
 "#;
 
 #[async_trait]
@@ -220,16 +235,20 @@ impl BacktestRunStore for PgBacktestStore {
         Ok(())
     }
 
+    /// 列表（轻量）：RUNS_SELECT_LIGHT + status/group 过滤 + LIMIT/OFFSET 分页；result=None。
+    /// 排序 created_at DESC, id DESC 保证稳定分页（同秒创建 id 大者靠前）。
     async fn list_runs(&self, filter: &RunFilter) -> Result<Vec<RunView>> {
         let sql = format!(
-            "{RUNS_SELECT} WHERE ($1::text IS NULL OR r.status = $1) \
+            "{RUNS_SELECT_LIGHT} WHERE ($1::text IS NULL OR r.status = $1) \
              AND ($2::text IS NULL OR r.group_id = $2) \
-             ORDER BY r.created_at DESC, r.id DESC");
+             ORDER BY r.created_at DESC, r.id DESC LIMIT $3 OFFSET $4");
         let rows: Vec<PgRow> = sqlx::query(&sql)
             .bind(filter.status.map(|s| s.as_str()))
             .bind(filter.group_id.as_deref())
+            .bind(filter.limit.max(0))
+            .bind(filter.offset.max(0))
             .fetch_all(&self.pool).await?;
-        Ok(rows.iter().map(row_to_run_view).collect())
+        Ok(rows.iter().map(row_to_run_view_light).collect())
     }
 
     async fn get_run(&self, id: i64) -> Result<Option<RunView>> {

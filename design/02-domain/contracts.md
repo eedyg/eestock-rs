@@ -754,11 +754,20 @@ pub struct NewRun {
     pub group_id: Option<String>,
 }
 
-/// 回测运行列表过滤（GET /api/backtest/runs）。
-#[derive(Debug, Clone, Default, PartialEq)]
+/// 回测运行列表过滤（GET /api/backtest/runs）。limit/offset 分页（默认 limit=100/offset=0）；
+/// ⚠️ 列表走轻量 SELECT（run LEFT JOIN 结果拆出去），`limit` 应始终设正数以约束单页行数。
+#[derive(Debug, Clone, PartialEq)]
 pub struct RunFilter {
     pub status: Option<RunStatus>,
     pub group_id: Option<String>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl Default for RunFilter {
+    fn default() -> Self {
+        Self { status: None, group_id: None, limit: 100, offset: 0 }
+    }
 }
 
 /// 回测结果（backtest_results 三 jsonb 列聚合）。application 层把 backtest::BacktestResult 拆分写入。

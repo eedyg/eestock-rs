@@ -433,6 +433,20 @@ function seedBacktestRuns(anchor: number): BacktestRunDto[] {
   ];
 }
 
+/** 轻列表：剥离结果列（net_value/trades/metrics）——列表行只需元数据+状态，结果仅 getRun。 */
+function stripBacktestResult(r: BacktestRunDto): BacktestRunDto {
+  const { net_value: _nv, trades: _t, metrics: _m, ...rest } = r;
+  return rest;
+}
+
+/** 与后端同序：created_at DESC, id DESC（列表稳定分页）。
+ *  backtestRuns 内部按插入序；排序后才 slice(offset, limit)。 */
+function backtestSortDesc(a: BacktestRunDto, b: BacktestRunDto): number {
+  const ca = a.created_at.localeCompare(b.created_at);
+  if (ca !== 0) return -ca;
+  return b.id - a.id;
+}
+
 export function createMockClient(opts: MockOptions = {}): ApiClient {
   const anchorNow = opts.now?.getTime() ?? Date.now();
   let symbols = initialSymbols();
@@ -789,11 +803,20 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       backtestRuns = [...backtestRuns, run];
       return { run_id: run.id };
     },
-    async listRuns(filter?: { status?: BacktestStatus; groupId?: string }): Promise<BacktestRunDto[]> {
+    async listRuns(filter?: {
+      status?: BacktestStatus;
+      groupId?: string;
+      limit?: number;
+      offset?: number;
+    }): Promise<BacktestRunDto[]> {
       let out = backtestRuns.slice();
       if (filter?.status) out = out.filter((r) => r.status === filter.status);
       if (filter?.groupId) out = out.filter((r) => r.group_id === filter.groupId);
-      return out.map((r) => ({ ...r }));
+      out.sort(backtestSortDesc);
+      const offset = filter?.offset ?? 0;
+      const limit = filter?.limit ?? out.length;
+      out = out.slice(offset, offset + Math.max(0, limit));
+      return out.map(stripBacktestResult);
     },
     async getRun(id: number): Promise<BacktestRunDto> {
       const r = backtestRuns.find((x) => x.id === id);

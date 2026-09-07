@@ -137,6 +137,61 @@ async fn run_store_lifecycle() {
 }
 
 #[tokio::test]
+async fn run_store_list_pagination_light() {
+    let pool = pool().await;
+    let group = format!("bt_list_page_{}", std::process::id());
+    clean_backtest(&pool, &group).await;
+
+    let store = PgBacktestStore::new(pool.clone());
+    // 造 5 个 run（共用 group；created_at DESC, id DESC → 最新 id 最大靠前）。
+    let mut ids = Vec::new();
+    for _ in 0..5 {
+        ids.push(store.create_run(&new_run(&group)).await.unwrap());
+    }
+    // 前 2 个（最早创建）mark_done 带结果；结果应从列表剥离、只在 get_run 出现。
+    let result = RunResult {
+        net_value: serde_json::json!([[base(), 100_000.0]]),
+        trades: serde_json::json!([]),
+        metrics: serde_json::json!({ "net_profit": 1.0 }),
+    };
+    store.mark_done(ids[0], &result).await.unwrap();
+    store.mark_done(ids[1], &result).await.unwrap();
+
+    // 默认（limit=100, offset=0）→ 全 5 条，且每条 result=None（轻量列表不联结果）。
+    let all = store.list_runs(&RunFilter { group_id: Some(group.clone()), ..Default::default() })
+        .await.unwrap();
+    assert_eq!(all.len(), 5, "默认 limit=100 覆盖全部 5 条");
+    assert!(all.iter().all(|r| r.result.is_none()), "列表返回所有项 result=None（轻量，不联结果）");
+
+    // get_run 单跑带结果。
+    let detail = store.get_run(ids[0]).await.unwrap().expect("run 存在");
+    assert!(detail.result.is_some(), "get_run 读全量结果");
+
+    // limit=2 offset=0 → 最新 2 条（id 大者靠前）；每条 result=None。
+    let page1 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 0, ..Default::default() })
+        .await.unwrap();
+    assert_eq!(page1.len(), 2, "limit=2 页1 恰 2 条");
+    assert_eq!(page1[0].id, ids[4], "created_at DESC, id DESC → 最新 id 最大在前");
+    assert_eq!(page1[1].id, ids[3]);
+    assert!(page1.iter().all(|r| r.result.is_none()), "页1 无结果列");
+
+    // limit=2 offset=2 → 下 2 条。
+    let page2 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 2, ..Default::default() })
+        .await.unwrap();
+    assert_eq!(page2.len(), 2, "limit=2 offset=2 页2 恰 2 条");
+    assert_eq!(page2[0].id, ids[2]);
+    assert_eq!(page2[1].id, ids[1]);
+
+    // limit=2 offset=4 → 尾 1 条。
+    let page3 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 4, ..Default::default() })
+        .await.unwrap();
+    assert_eq!(page3.len(), 1, "limit=2 offset=4 尾页恰 1 条");
+    assert_eq!(page3[0].id, ids[0]);
+
+    clean_backtest(&pool, &group).await;
+}
+
+#[tokio::test]
 async fn run_store_delete_run_cascades_results() {
     let pool = pool().await;
     let group = format!("bt_delete_{}", std::process::id());

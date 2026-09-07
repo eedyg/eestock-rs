@@ -405,12 +405,21 @@ pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> 
     Ok(())
 }
 
-/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。
-#[derive(Debug, Deserialize, Default)]
+/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。limit/offset 分页：limit 默认 100 封顶 500（handler 内 clamp）。
+#[derive(Debug, Deserialize)]
 pub struct BacktestListQuery {
     pub status: Option<String>,
     pub group_id: Option<String>,
+    #[serde(default = "default_backtest_limit")]
+    pub limit: i64,
+    #[serde(default)]
+    pub offset: i64,
 }
+
+fn default_backtest_limit() -> i64 { 100 }
+
+/// GET /api/backtest/runs 列表单页上限（handler 以 `limit.clamp(1, MAX_BACKTEST_LIMIT)` 归一）。
+pub const MAX_BACKTEST_LIMIT: i64 = 500;
 
 /// GET /api/backtest/compare 查询参数（ids 逗号分隔）。
 #[derive(Debug, Deserialize)]

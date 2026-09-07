@@ -128,8 +128,13 @@ export interface ApiClient {
   getStrategies(): Promise<BacktestStrategyDto[]>;
   /** 提交回测/网格（POST /api/backtest/runs；网格展开→任务组）。body 字段后端 snake_case */
   submitRun(req: BacktestSubmitReq): Promise<BacktestSubmitResp>;
-  /** 任务列表（GET /api/backtest/runs；status/group_id 过滤，'done' 时含结果字段） */
-  listRuns(filter?: { status?: BacktestStatus; groupId?: string }): Promise<BacktestRunDto[]>;
+  /** 任务列表（GET /api/backtest/runs；status/group_id 过滤 + limit/offset 分页；**轻量：不含结果字段**，结果仅 getRun） */
+  listRuns(filter?: {
+    status?: BacktestStatus;
+    groupId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<BacktestRunDto[]>;
   /** 单 run 详情（GET /api/backtest/runs/{id}；完成时含净值/交易/指标） */
   getRun(id: number): Promise<BacktestRunDto>;
   /** 多 run 对比（GET /api/backtest/compare?ids=；不存在的 run 被后端过滤） */
@@ -268,6 +273,8 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       const params = new URLSearchParams();
       if (filter?.status) params.set('status', filter.status);
       if (filter?.groupId) params.set('group_id', filter.groupId);
+      if (filter?.limit != null) params.set('limit', String(filter.limit));
+      if (filter?.offset != null) params.set('offset', String(filter.offset));
       const qs = params.toString();
       return get<BacktestRunDto[]>(`/api/backtest/runs${qs ? `?${qs}` : ''}`);
     },

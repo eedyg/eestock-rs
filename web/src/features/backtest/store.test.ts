@@ -139,6 +139,47 @@ describe('BacktestStore（页面⑤状态机）', () => {
     expect(submitRunSpy).toHaveBeenCalledTimes(1); // 依然只 1 次
   });
 
+  it('分页：loadRuns 首屏 limit=100；loadMoreRuns 追加下一页并翻转 hasMore', async () => {
+    // 注入 120 个 run，验证分页首屏与追加（mock listRuns 按 created_at DESC, id DESC 排序）。
+    const seeds: BacktestRunDto[] = Array.from({ length: 120 }, (_, i) => ({
+      id: 100 + i,
+      code: '518880',
+      period: 'D1',
+      strategy_id: 'dual_ma',
+      params: {},
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+      status: i % 2 ? 'running' : 'done',
+      progress: i % 2 ? 50 : 100,
+      current_ts: null,
+      created_at: new Date(2026, 8, 4, 0, i % 60).toISOString(),
+      finished_at: i % 2 ? '2026-09-04T02:00:00Z' : null,
+      error: null,
+      group_id: null,
+    }));
+    const api = createMockClient({
+      now: new Date('2026-09-04T07:00:00Z'),
+      backtestRuns: seeds,
+    });
+    const ws = fakeWs();
+    const store = new BacktestStore({ api: api as ApiClient, ws });
+    const listRunsSpy = vi.spyOn(api, 'listRuns');
+
+    await store.init();
+    expect(listRunsSpy).toHaveBeenCalledWith({ limit: 100, offset: 0 });
+    expect(store.state.runs.data!.length).toBe(100);
+    expect(store.state.hasMore).toBe(true);
+
+    await store.loadMoreRuns();
+    expect(listRunsSpy).toHaveBeenLastCalledWith({ limit: 100, offset: 100 });
+    expect(store.state.runs.data!.length).toBe(120);
+    expect(store.state.hasMore).toBe(false);
+
+    // 已到末尾：再 loadMore 不应重复拉取。
+    const callsBefore = listRunsSpy.mock.calls.length;
+    await store.loadMoreRuns();
+    expect(listRunsSpy.mock.calls.length).toBe(callsBefore);
+  });
+
   it('deleteRun 删除 run 并从列表/选中结果区移除', async () => {
     await s.store.init();
     const doneId = s.store.state.runs.data!.find((r) => r.status === 'done')!.id;

@@ -157,7 +157,7 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 |---|---|---|---|---|
 | `GET /api/backtest/strategies` | — | `[BacktestStrategyDto]`（id/name/description/params_schema，恰 7 款内置） | `BacktestService::strategies()`（backtest 注册表） | 500 |
 | `POST /api/backtest/runs` | body `{code,period,from,to,strategy_id,params?,params_grid?,fee:{rate_pct,min_fee,slippage_bp},initial_capital?}` | 200 `{"run_id":N}` 或 `{"group_id":G,"run_ids":[N,...]}`（网格展开） | `BacktestService::submit`（入队，异步；限并发） | 400：code 空 / from、to 非 RFC3339 / period 非法（非 M1\|M5\|M15\|D1）/ fee 缺字段或非数值 / 无 params 且无 params_grid；404：strategy_id 未知；500 |
-| `GET /api/backtest/runs` | `status=pending\|running\|done\|failed`、`group_id=G`（均可选） | `[BacktestRunDto]`（含 progress/status/current_ts/结果） | `BacktestService::list_runs` | 400：status 非法；500 |
+| `GET /api/backtest/runs` | `status=pending\|running\|done\|failed`、`group_id=G`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[BacktestRunDto]`（**轻量列表：不含 net_value/trades/metrics 结果列**；created_at DESC, id DESC 排序；`返回条数==limit` 表示还有更多，前端据此做分页） | `BacktestService::list_runs`（storage 走轻量 SELECT，无 LEFT JOIN backtest_results） | 400：status 非法；500 |
 | `GET /api/backtest/runs/{id}` | — | `BacktestRunDto`（net_value/trades/metrics 完成才非 null） | `BacktestService::get_run` | 404：id 未知；500 |
 | `DELETE /api/backtest/runs/{id}` | — | 200 `{"deleted":true}`（run 及其结果级联删除） | `BacktestService::delete_run`（store 删 run，FK 级联删 result） | 404：id 未知；500 |
 | `GET /api/backtest/compare` | `ids=1,2,3`（逗号分隔必填） | `[BacktestRunDto]`（只含 store 存在的 run） | `BacktestService::compare` | 400：ids 空或含非数字；500 |
@@ -2374,12 +2374,21 @@ pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> 
     Ok(())
 }
 
-/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。
-#[derive(Debug, Deserialize, Default)]
+/// GET /api/backtest/runs 查询参数（status/group_id 均可选）。limit/offset 分页：limit 默认 100 封顶 500（handler 内 clamp）。
+#[derive(Debug, Deserialize)]
 pub struct BacktestListQuery {
     pub status: Option<String>,
     pub group_id: Option<String>,
+    #[serde(default = "default_backtest_limit")]
+    pub limit: i64,
+    #[serde(default)]
+    pub offset: i64,
 }
+
+fn default_backtest_limit() -> i64 { 100 }
+
+/// GET /api/backtest/runs 列表单页上限（handler 以 `limit.clamp(1, MAX_BACKTEST_LIMIT)` 归一）。
+pub const MAX_BACKTEST_LIMIT: i64 = 500;
 
 /// GET /api/backtest/compare 查询参数（ids 逗号分隔）。
 #[derive(Debug, Deserialize)]

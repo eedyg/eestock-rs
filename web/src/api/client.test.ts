@@ -456,13 +456,17 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(body.initial_capital).toBe(200000);
   });
 
-  it('listRuns → GET /api/backtest/runs（status/group_id 过滤）', async () => {
+  it('listRuns → GET /api/backtest/runs（status/group_id/limit/offset 过滤序列化）', async () => {
     const f = fetcherReturning([]);
     const api = createHttpClient('', f);
     await api.listRuns();
     expect(lastCall(f).url).toBe('/api/backtest/runs');
     await api.listRuns({ status: 'running', groupId: 'g1' });
     expect(lastCall(f).url).toBe('/api/backtest/runs?status=running&group_id=g1');
+    await api.listRuns({ status: 'done', limit: 100, offset: 0 });
+    expect(lastCall(f).url).toBe('/api/backtest/runs?status=done&limit=100&offset=0');
+    await api.listRuns({ limit: 100, offset: 100 });
+    expect(lastCall(f).url).toBe('/api/backtest/runs?limit=100&offset=100');
   });
 
   it('getRun → GET /api/backtest/runs/{id}', async () => {
