@@ -290,9 +290,13 @@ impl SimLiveService {
         let detailed: Option<Vec<StrategyConfig>> = if req.strategies.is_empty() {
             None
         } else {
+            // 注册表成员校验（ADR §4 修复）：strategies[].stocks 的每个 code 须在 symbols 注册表。
+            // 经注入的 ports.kline（KlineRead::symbols_with_latest 注册表读）建 code 集；
+            // 未注入端口 → Ok(None)（回退仅格式校验，兼容既有未注入构造）。
+            let registered = self.registered_codes().await?;
             let mut configs = Vec::with_capacity(req.strategies.len());
             for s in &req.strategies {
-                if let Err(e) = validate_strategy_config_input(s) {
+                if let Err(e) = validate_strategy_config_input(s, &registered) {
                     return Err(InvalidConfig(format!("{}", e)).into());
                 }
                 configs.push(StrategyConfig {
@@ -615,6 +619,15 @@ impl SimLiveService {
             Ok(Some(bar)) => bar.close,
             _ => 0.0,
         }
+    }
+
+    /// 拉取已注册标的 code 集（symbols 注册表成员校验输入；经注入的 ports.kline `symbols_with_latest`）。
+    /// 未注入行情源读端口 → Ok(None)：调用方回退仅格式校验（兼容既有未注入构造，如前端手动会话）。
+    /// 注册表查询失败 → Err（fail-closed：无法确认注册即拒，宁可失败也不放过未注册标的）。
+    async fn registered_codes(&self) -> anyhow::Result<Option<HashSet<String>>> {
+        let Some(kline) = &self.kline else { return Ok(None) };
+        let symbols = kline.symbols_with_latest().await?;
+        Ok(Some(symbols.into_iter().map(|s| s.code).collect()))
     }
 
     /// 盈亏查询。
@@ -958,8 +971,9 @@ impl SimLiveService {
 }
 
 /// 校验单策略输入（ADR §4）：策略 id 非空且 ∈ 内置目录、params 合法（按 schema）、
-/// 标的集非空且均为注册标的（6 位数字 + 支持市场）、weight>0。
-fn validate_strategy_config_input(input: &StrategyConfigInput) -> anyhow::Result<()> {
+/// 标的集非空且均为注册标的（6 位数字 + 支持市场 + **在 symbols 注册表内**）、weight>0。
+/// `registered`：注册表 code 集；`None` = 未注入注册表端口 → 回退仅格式校验（兼容既有构造）。
+fn validate_strategy_config_input(input: &StrategyConfigInput, registered: &Option<HashSet<String>>) -> anyhow::Result<()> {
     let id = input.id.trim();
     if id.is_empty() {
         return Err(anyhow!("策略 id 不能为空"));
@@ -976,7 +990,7 @@ fn validate_strategy_config_input(input: &StrategyConfigInput) -> anyhow::Result
         return Err(anyhow!("策略 {id} 至少需指定一个标的"));
     }
     for code in &input.stocks {
-        validate_registered_stock(code)?;
+        validate_registered_stock(code, registered)?;
     }
     // weight>0。
     if !input.weight.is_finite() || input.weight <= 0.0 {
@@ -1027,14 +1041,22 @@ fn validate_params(params: &serde_json::Value, schema: &[ParamDef]) -> anyhow::R
     Ok(())
 }
 
-/// 校验注册标的（03-symbols §3 口径）：6 位数字 + 市场前缀（5/6/9→沪、0/1/2/3→深；北交所/未知前缀拒绝）。
-fn validate_registered_stock(code: &str) -> anyhow::Result<()> {
+/// 校验注册标的（03-symbols §3 口径）：6 位数字 + 市场前缀（5/6/9→沪、0/1/2/3→深；北交所/未知前缀拒绝），
+/// **且须在 symbols 注册表内**（ADR §4 修复：本来只验格式、不查注册表，导致 999999 这类格式合法但未注册
+/// 标的通过 → 无行情、评分/市值异常）。`registered` 为注册表 code 集；`None` = 未注入端口 → 回退仅格式。
+fn validate_registered_stock(code: &str, registered: &Option<HashSet<String>>) -> anyhow::Result<()> {
     if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
         return Err(anyhow!("标的 {code} 须为 6 位数字"));
     }
     domain::types::Code(code.into())
         .market()
         .map_err(|_| anyhow!("标的不支持（北交所/未知前缀）: {code}"))?;
+    // 注册表成员校验：code 须在 symbols 注册表；未注入注册表端口（None）才回退仅格式校验。
+    if let Some(reg) = registered {
+        if !reg.contains(code) {
+            return Err(anyhow!("股票 {code} 未注册"));
+        }
+    }
     Ok(())
 }
 

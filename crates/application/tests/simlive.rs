@@ -1,7 +1,7 @@
 //! 应用层 SimLiveService 集成测试（**mock 端口**，确定性、无实时 DB）。
 //! 全部输入为手工固定数据 + 固定时钟，无 RNG / 无时间依赖 / 无实时行情，任意次运行一致。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -135,9 +135,12 @@ fn close(a: f64, b: f64) {
 }
 
 /// F2：mock `KlineRead` —— 按 code 存最近一根 bar（确定性、无 DB）。`latest_bar` 走默认 `bars(None,1)`。
+/// 另存「注册表」= `set_registered` 设定的 code 集（`symbols_with_latest` 返回这些注册行），
+/// 供 `start_session` 的**注册表成员校验**（ADR 11-sim-live §4：strategies[].stocks 须为注册标的）。
 #[derive(Default)]
 struct MockKline {
     latest: Mutex<HashMap<String, KlineBarView>>,
+    registered: Mutex<HashSet<String>>,
 }
 
 impl MockKline {
@@ -157,6 +160,9 @@ impl MockKline {
             },
         );
     }
+    fn set_registered(&self, codes: &[&str]) {
+        self.registered.lock().unwrap().extend(codes.iter().map(|s| s.to_string()));
+    }
 }
 
 #[async_trait]
@@ -168,7 +174,16 @@ impl KlineRead for MockKline {
         Ok(self.latest.lock().unwrap().get(code).cloned().into_iter().collect())
     }
     async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
-        Ok(Vec::new())
+        Ok(self.registered.lock().unwrap().iter().map(|code| SymbolLatestView {
+            code: code.clone(),
+            name: None,
+            interval_secs: 60,
+            settlement: "T1".into(),
+            enabled: true,
+            last_ts: None,
+            last_close: None,
+            prev_close: None,
+        }).collect())
     }
 }
 
@@ -865,6 +880,95 @@ async fn start_session_invalid_strategies_rejects() {
         .await
         .unwrap_err();
     assert!(err.downcast_ref::<InvalidConfig>().is_some(), "stock_weights 值≤0 → InvalidConfig");
+}
+
+// ADR §4：strategies[].stocks 注册表成员校验——格式合法（6 位数字 + 市场前缀）但**未注册**的 code（如 999999）应拒（修复偏差：原来只验格式、不查注册表）。
+// 注入 mock 注册表只含 518880/510300；999999 未注册 → Err(InvalidConfig)「未注册」；未落库。
+#[tokio::test]
+async fn start_session_with_strategies_rejects_unregistered_code() {
+    let store = Arc::new(MockSimStore::default());
+    let kline = Arc::new(MockKline::default());
+    kline.set_registered(&["518880", "510300"]); // 注册表={518880,510300}
+    let svc = service(store.clone()).with_kline(kline.clone());
+    let err = svc
+        .start_session(&StartSessionReq {
+            name: "reg-reject".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec![],
+            period: "M1".into(),
+            source: "manual".into(),
+            strategies: vec![StrategyConfigInput {
+                id: "dual_ma".into(),
+                params: serde_json::json!({}),
+                stocks: vec!["999999".into()], // 格式合法（6 位数字 + 前缀 9→沪）但未注册
+                weight: 1.0,
+                stock_weights: HashMap::new(),
+            }],
+        })
+        .await
+        .unwrap_err();
+    let e = err.downcast_ref::<InvalidConfig>().expect("应为 InvalidConfig");
+    assert!(e.0.contains("999999") && e.0.contains("未注册"), "应提示未注册：{}", e.0);
+    // 校验即拒 → 未落库会话元数据
+    assert!(store.created.lock().unwrap().is_empty(), "未注册 code → start 应拒且不落库");
+}
+
+// ADR §4 反向：已注册 code（518880，注册表内）→ 200，会话 stock_set 由策略派生。
+#[tokio::test]
+async fn start_session_with_strategies_accepts_registered_code() {
+    let store = Arc::new(MockSimStore::default());
+    let kline = Arc::new(MockKline::default());
+    kline.set_registered(&["518880"]);
+    let svc = service(store.clone()).with_kline(kline.clone());
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "reg-ok".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec![],
+            period: "M1".into(),
+            source: "manual".into(),
+            strategies: vec![StrategyConfigInput {
+                id: "dual_ma".into(),
+                params: serde_json::json!({}),
+                stocks: vec!["518880".into()],
+                weight: 1.0,
+                stock_weights: HashMap::new(),
+            }],
+        })
+        .await
+        .unwrap();
+    let meta = svc.get_session(&view.id).await.unwrap().unwrap().session;
+    assert_eq!(meta.stock_set, vec!["518880".to_string()], "会话 stock_set 由策略派生");
+}
+
+// ADR §4 反向：未注入注册表端口（kline=None）→ 回退格式校验（兼容既有不注入构造），
+// 格式合法的 510300 仍可 start 成功（注册表校验仅在注入端口时强制）。
+#[tokio::test]
+async fn start_session_with_strategies_without_registry_port_falls_back_to_format() {
+    let store = Arc::new(MockSimStore::default());
+    let svc = service(store.clone()); // 不注入 kline
+    let view = svc
+        .start_session(&StartSessionReq {
+            name: "no-reg".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec![],
+            period: "M1".into(),
+            source: "manual".into(),
+            strategies: vec![StrategyConfigInput {
+                id: "dual_ma".into(),
+                params: serde_json::json!({}),
+                stocks: vec!["510300".into()],
+                weight: 1.0,
+                stock_weights: HashMap::new(),
+            }],
+        })
+        .await
+        .unwrap();
+    let meta = svc.get_session(&view.id).await.unwrap().unwrap().session;
+    assert_eq!(meta.stock_set, vec!["510300".to_string()]);
 }
 
 #[tokio::test]
