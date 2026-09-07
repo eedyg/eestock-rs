@@ -99,6 +99,7 @@ fn state() -> Arc<McpState> {
             Arc::new(MockHolidays), Arc::new(MockTushare), Arc::new(NowClock)),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
+        sim: None,
     })
 }
 
@@ -191,13 +192,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 三个只读工具（ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A）
+    // 3. tools/list → 11 个工具（3 只读 + 8 模拟实盘；ADR-009 范围①② Wave 1 + 范围④ Wave 2 Phase A + 11-sim-live L1）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 3, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 11, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],

@@ -10,4 +10,5 @@
 pub mod fee;
 pub mod params;
 pub mod service;
+pub mod simlive; // 11-sim-live / L1：模拟实盘服务（SimLiveService，手写，非 tangle）
 pub mod types;

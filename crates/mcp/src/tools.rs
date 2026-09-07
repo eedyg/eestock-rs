@@ -13,6 +13,9 @@ use serde_json::{json, Value};
 
 use crate::rpc::{result_err, result_ok, INVALID_PARAMS};
 use crate::state::McpState;
+// 11-sim-live / L1：模拟实盘工具（sim_*；经 application::SimLiveService，非真实券商）
+use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
+use std::sync::Arc;
 
 /// limit 上限/缺省（与 REST /api/kline 同口径，07 §1.1）。
 pub const MAX_LIMIT: i64 = 1000;
@@ -72,6 +75,97 @@ pub fn tool_list() -> Value {
                     },
                     "required": ["code", "date"]
                 }
+            },
+            {
+                "name": "sim_start_session",
+                "description": "模拟实盘，不触真实券商：开启模拟会话（name/period 必填；cash_init 默认 1000000；strategy_set/stock_set 可选）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "period": { "type": "string", "enum": ["M1", "M5", "M15", "D1"], "description": "周期" },
+                        "cash_init": { "type": "number", "description": "初始资金，默认 1000000" },
+                        "strategy_set": { "type": "array", "items": { "type": "string" } },
+                        "stock_set": { "type": "array", "items": { "type": "string" } },
+                        "source": { "type": "string", "description": "mcp/web/preset/manual" }
+                    },
+                    "required": ["name", "period"]
+                }
+            },
+            {
+                "name": "sim_stop_session",
+                "description": "模拟实盘，不触真实券商：停止会话并落库结束结果（净值/成交/指标）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_get_account",
+                "description": "模拟实盘，不触真实券商：查询会话账户（现金/净值/市值/已实现+未实现盈亏/费用）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_get_positions",
+                "description": "模拟实盘，不触真实券商：查询会话持仓（code/qty/avg_cost/latest/市值/盈亏）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_get_orders",
+                "description": "模拟实盘，不触真实券商：查询会话订单（含 pending/filled/cancelled）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_get_pnl",
+                "description": "模拟实盘，不触真实券商：查询会话已实现/未实现盈亏与费用。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
+            },
+            {
+                "name": "sim_place_order",
+                "description": "模拟实盘，不触真实券商：下模拟单（市价按 price 即时成交；限价 price 触及成交；滑点/费用按 FeeModel）。price 为模拟行情最新价。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": { "type": "string" },
+                        "code": { "type": "string" },
+                        "side": { "type": "string", "enum": ["buy", "sell"] },
+                        "qty": { "type": "number" },
+                        "price": { "type": "number", "description": "模拟行情最新价（成交参考价）" },
+                        "limit_price": { "type": "number" },
+                        "intent_id": { "type": "string", "description": "幂等键（同 intent 不重复执行）" },
+                        "source": { "type": "string" }
+                    },
+                    "required": ["session_id", "code", "side", "qty", "price"]
+                }
+            },
+            {
+                "name": "sim_cancel_order",
+                "description": "模拟实盘，不触真实券商：撤除未成交（pending）模拟单；已成交/未知单返回 false。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": { "type": "string" },
+                        "order_id": { "type": "string" }
+                    },
+                    "required": ["session_id", "order_id"]
+                }
             }
         ]
     })
@@ -90,6 +184,15 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "get_kline" => get_kline(st, id, &args).await,
         "get_sources_health" => get_sources_health(st, id, &args).await,
         "get_data_quality" => get_data_quality(st, id, &args).await,
+        // 11-sim-live / L1：模拟实盘工具（sim_*，不触真实券商）
+        "sim_start_session" => sim_start_session(st, id, &args).await,
+        "sim_stop_session" => sim_stop_session(st, id, &args).await,
+        "sim_get_account" => sim_get_account(st, id, &args),
+        "sim_get_positions" => sim_get_positions(st, id, &args),
+        "sim_get_orders" => sim_get_orders(st, id, &args),
+        "sim_get_pnl" => sim_get_pnl(st, id, &args),
+        "sim_place_order" => sim_place_order(st, id, &args).await,
+        "sim_cancel_order" => sim_cancel_order(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -189,10 +292,166 @@ async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Val
     }
 }
 
+// ── 11-sim-live / L1：模拟实盘工具（sim_*）──
+
+/// 取注入的 SimLiveService；未配置（None）→ 工具错误帧（isError）。
+fn sim_service(st: &McpState, id: Option<Value>) -> Result<Arc<SimLiveService>, Value> {
+    match st.sim.clone() {
+        Some(s) => Ok(s),
+        None => Err(tool_fail(id, anyhow::anyhow!("sim-live 未配置（McpState.sim=None）"))),
+    }
+}
+
+/// sim_start_session(name, period, cash_init?, strategy_set?, stock_set?, source?)：开模拟会话。
+async fn sim_start_session(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(name) = args.get("name").and_then(Value::as_str).filter(|s| !s.is_empty()) else {
+        return result_err(id, INVALID_PARAMS, "name 必填（非空 string）");
+    };
+    let Some(period) = args.get("period").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "period 必填");
+    };
+    let cash_init = args.get("cash_init").and_then(Value::as_f64);
+    let strategy_set = str_array(args, "strategy_set");
+    let stock_set = str_array(args, "stock_set");
+    let source = args.get("source").and_then(Value::as_str).unwrap_or("manual").to_string();
+    let req = StartSessionReq {
+        name: name.into(),
+        cash_init,
+        strategy_set,
+        stock_set,
+        period: period.into(),
+        source,
+    };
+    match sim.start_session(&req).await {
+        Ok(view) => tool_ok(id, &view),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_stop_session(session_id)：停止会话（落库结束结果）。
+async fn sim_stop_session(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.stop_session(session_id).await {
+        Ok(true) => tool_ok(id, &json!({ "session_id": session_id, "stopped": true })),
+        Ok(false) => tool_ok(id, &json!({ "session_id": session_id, "stopped": false })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_account(session_id)。
+fn sim_get_account(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_account(session_id) {
+        Ok(view) => tool_ok(id, &view),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_positions(session_id)。
+fn sim_get_positions(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_positions(session_id) {
+        Ok(pos) => tool_ok(id, &json!({ "session_id": session_id, "positions": pos })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_orders(session_id)。
+fn sim_get_orders(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_orders(session_id) {
+        Ok(orders) => tool_ok(id, &json!({ "session_id": session_id, "orders": orders })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_pnl(session_id)。
+fn sim_get_pnl(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_pnl(session_id) {
+        Ok(pnl) => tool_ok(id, &json!({ "session_id": session_id, "pnl": pnl })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_place_order(session_id, code, side, qty, price, limit_price?, intent_id?, source?)：下模拟单。
+async fn sim_place_order(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
+        return result_err(id, INVALID_PARAMS, "code 必填（非空 string）");
+    };
+    let Some(side) = args.get("side").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "side 必填（buy/sell）");
+    };
+    let Some(qty) = args.get("qty").and_then(Value::as_f64) else {
+        return result_err(id, INVALID_PARAMS, "qty 必填（number）");
+    };
+    let Some(price) = args.get("price").and_then(Value::as_f64) else {
+        return result_err(id, INVALID_PARAMS, "price 必填（模拟行情最新价）");
+    };
+    let req = PlaceOrderReq {
+        code: code.into(),
+        side: side.into(),
+        qty,
+        limit_price: args.get("limit_price").and_then(Value::as_f64),
+        intent_id: args.get("intent_id").and_then(Value::as_str).map(|s| s.into()),
+        source: args.get("source").and_then(Value::as_str).unwrap_or("manual").into(),
+    };
+    match sim.place_order(session_id, &req, price).await {
+        Ok(Some(fill)) => tool_ok(id, &json!({ "session_id": session_id, "filled": true, "fill": fill })),
+        Ok(None) => tool_ok(id, &json!({ "session_id": session_id, "filled": false,
+            "fill": null, "reason": "限价未触及，记为 pending 单" })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_cancel_order(session_id, order_id)。
+async fn sim_cancel_order(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    let Some(order_id) = args.get("order_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "order_id 必填");
+    };
+    match sim.cancel_order(session_id, order_id).await {
+        Ok(cancelled) => tool_ok(id, &json!({ "session_id": session_id, "order_id": order_id, "cancelled": cancelled })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// 解析字符串数组参数（缺省/非数组 → 空）。
+fn str_array(args: &Value, key: &str) -> Vec<String> {
+    args.get(key)
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).map(|s| s.into()).collect())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mocks::{test_state, MockEvents, MockKline};
+    use crate::mocks::{quality_for, test_state, MockEvents, MockKline};
+    use chrono::TimeZone;
     use std::sync::Arc;
 
     async fn call(st: &McpState, name: &str, args: Value) -> Value {
@@ -209,7 +468,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 3, "ADR-009 范围①②（Wave 1）+ 范围④（Wave 2 Phase A），三个只读工具");
+        assert_eq!(tools.len(), 11, "3 只读工具 + 8 模拟实盘工具（11-sim-live / L1）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -218,8 +477,17 @@ mod tests {
         assert!(tools[1]["inputSchema"]["properties"]["window_secs"].is_object());
         assert_eq!(tools[2]["name"], "get_data_quality", "MCP④ 数据质量（范围④）");
         assert_eq!(tools[2]["inputSchema"]["required"], json!(["code", "date"]));
+        // 模拟实盘工具（11-sim-live / L1）
+        let sim_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("sim_")).collect();
+        assert_eq!(sim_names, vec!["sim_start_session", "sim_stop_session", "sim_get_account",
+            "sim_get_positions", "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order"]);
+        // 每个 sim 工具 description 均注明「模拟实盘，不触真实券商」
+        for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("sim_")) {
+            assert!(t["description"].as_str().unwrap().contains("模拟实盘，不触真实券商"),
+                "{} 描述须注明模拟实盘", t["name"]);
+        }
         assert!(!tools.iter().any(|t| t["name"].as_str().unwrap().contains("trade")),
-            "交易类工具不做（ADR-009 范围④ Wave 4）");
+            "交易类（真实）工具不做（ADR-009 范围④ Wave 4）；sim_* 为模拟，非真实");
     }
 
     #[tokio::test]
@@ -324,6 +592,7 @@ mod tests {
             quality: crate::mocks::quality_for(rows, raw, holidays),
             default_window_secs: 3600,
             sessions: crate::state::SessionRegistry::default(),
+            sim: None,
         })
     }
 
@@ -375,6 +644,133 @@ mod tests {
                      json!({ "code": "518880", "date": "2026/09/03" }), // 非法日期
                      json!({ "code": "518880", "date": "2026-9-3" })] {
             let r = call(&st, "get_data_quality", args.clone()).await;
+            assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
+        }
+    }
+
+    // ── 11-sim-live / L1：sim_* 工具（mock SimSessionStore + 固定时钟，无实时 DB）──
+
+    #[derive(Default)]
+    struct MockSimStore {
+        sessions: std::sync::Mutex<std::collections::HashMap<String, domain::ports::SimSessionView>>,
+    }
+
+    #[async_trait::async_trait]
+    impl domain::ports::SimSessionStore for MockSimStore {
+        async fn create_session(&self, s: &domain::ports::NewSimSession) -> anyhow::Result<()> {
+            self.sessions.lock().unwrap().insert(s.id.clone(), domain::ports::SimSessionView {
+                id: s.id.clone(), name: s.name.clone(), cash_init: s.cash_init,
+                strategy_set: s.strategy_set.clone(), stock_set: s.stock_set.clone(),
+                period: s.period.clone(), start_ts: s.start_ts, end_ts: None,
+                status: domain::ports::SimSessionStatus::Running, source: s.source.clone(),
+            });
+            Ok(())
+        }
+        async fn get_session(&self, id: &str) -> anyhow::Result<Option<domain::ports::SimSessionView>> {
+            Ok(self.sessions.lock().unwrap().get(id).cloned())
+        }
+        async fn list_sessions(&self) -> anyhow::Result<Vec<domain::ports::SimSessionView>> {
+            Ok(self.sessions.lock().unwrap().values().cloned().collect())
+        }
+        async fn append_trade(&self, _: &domain::ports::NewSimTrade) -> anyhow::Result<()> { Ok(()) }
+        async fn update_positions(&self, _: &str, _: &[domain::ports::SimPositionRow]) -> anyhow::Result<()> { Ok(()) }
+        async fn mark_end(&self, id: &str, end_ts: DateTime<Utc>, _: &domain::ports::SimSessionResult) -> anyhow::Result<bool> {
+            let mut s = self.sessions.lock().unwrap();
+            let Some(v) = s.get_mut(id) else { return Ok(false) };
+            if v.status != domain::ports::SimSessionStatus::Running { return Ok(false) }
+            v.status = domain::ports::SimSessionStatus::Ended;
+            v.end_ts = Some(end_ts);
+            Ok(true)
+        }
+        async fn delete_session(&self, id: &str) -> anyhow::Result<bool> {
+            Ok(self.sessions.lock().unwrap().remove(id).is_some())
+        }
+    }
+
+    struct FixedClock(DateTime<Utc>);
+    impl domain::ports::Clock for FixedClock { fn now(&self) -> DateTime<Utc> { self.0 } }
+
+    fn sim_state() -> Arc<McpState> {
+        let store = Arc::new(MockSimStore::default());
+        let svc = application::simlive::SimLiveService::with_default_fee(
+            store, Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap())));
+        Arc::new(McpState {
+            kline: Arc::new(MockKline::new()),
+            health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
+            quality: quality_for(vec![], std::collections::HashMap::new(), std::collections::HashSet::new()),
+            default_window_secs: 3600,
+            sessions: crate::state::SessionRegistry::default(),
+            sim: Some(Arc::new(svc)),
+        })
+    }
+
+    #[tokio::test]
+    async fn sim_start_session_and_get_account_happy() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1", "cash_init": 200000 })).await;
+        let p = payload_of(&r);
+        assert!(p["id"].as_str().unwrap().starts_with("s_"), "会话 id s_ 前缀");
+        assert_eq!(p["name"], "t1");
+        assert_eq!(p["cash_init"], json!(200000.0), "cash_init 透传");
+        assert_eq!(p["status"], "running");
+
+        let sid = p["id"].as_str().unwrap();
+        let r = call(&st, "sim_get_account", json!({ "session_id": sid })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["cash"], json!(200000.0));
+        assert_eq!(p["equity"], json!(200000.0));
+    }
+
+    #[tokio::test]
+    async fn sim_place_order_market_fills_and_updates_account() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+        let r = call(&st, "sim_place_order", json!({ "session_id": sid, "code": "510300", "side": "buy", "qty": 1000, "price": 10.0 })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["filled"], true, "市价即时成交");
+        assert!(p["fill"]["price"].as_f64().unwrap() > 10.0, "含滑点");
+        // 账户现金减少、持仓存在
+        let r = call(&st, "sim_get_account", json!({ "session_id": sid })).await;
+        assert!(payload_of(&r)["cash"].as_f64().unwrap() < 1_000_000.0);
+        let r = call(&st, "sim_get_positions", json!({ "session_id": sid })).await;
+        let pos = &payload_of(&r)["positions"][0];
+        assert_eq!(pos["code"], "510300");
+        assert_eq!(pos["qty"], json!(1000.0));
+    }
+
+    #[tokio::test]
+    async fn sim_place_order_limit_not_touched_pending() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+        // 限价买 9，最新 10.5 > 9 → 不触及
+        let r = call(&st, "sim_place_order", json!({ "session_id": sid, "code": "510300", "side": "buy", "qty": 1000, "price": 10.5, "limit_price": 9.0 })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["filled"], false, "限价未触及 pending");
+        // pending 单可查
+        let r = call(&st, "sim_get_orders", json!({ "session_id": sid })).await;
+        assert_eq!(payload_of(&r)["orders"][0]["status"], "pending");
+    }
+
+    #[tokio::test]
+    async fn sim_tool_unconfigured_returns_is_error() {
+        let st = test_state(Arc::new(MockKline::new()), Arc::new(MockEvents::new()));
+        let r = call(&st, "sim_get_account", json!({ "session_id": "x" })).await;
+        assert_eq!(r["result"]["isError"], true, "sim=None → 工具错误帧");
+    }
+
+    #[tokio::test]
+    async fn sim_place_order_param_validation_is_32602() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
+        let p = payload_of(&r);
+        let sid = p["id"].as_str().unwrap();
+        for args in [json!({ "session_id": sid, "code": "510300", "side": "buy", "qty": 1000 }),  // 缺 price
+                     json!({ "session_id": sid, "side": "buy", "qty": 1000, "price": 10.0 }), // 缺 code
+                     json!({ "session_id": sid, "code": "510300", "qty": 1000, "price": 10.0 }), // 缺 side
+                     json!({ "code": "510300", "side": "buy", "qty": 1000, "price": 10.0 })] {
+            let r = call(&st, "sim_place_order", args.clone()).await;
             assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
         }
     }

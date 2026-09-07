@@ -8,6 +8,8 @@ edition.workspace = true
 [dependencies]
 domain = { path = "../domain" }
 diagnose = { path = "../diagnose" }
+# 11-sim-live / L1：sim_* 工具（MCP → application → domain/backtest/simlive；同 web 依赖 application 工艺）
+application = { path = "../application" }
 axum.workspace = true
 # tokio-stream：SSE 流包装（父级裁决 2026-09-04 批准；决策注记见 01-mcp.md §0）
 tokio-stream.workspace = true

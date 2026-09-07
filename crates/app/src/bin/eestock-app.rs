@@ -114,6 +114,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
+    // 11-sim-live / L1：模拟实盘服务（sim_* 工具；SimSessionStore + SystemClock + 默认 FeeModel）
+    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
+        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    ));
     let mcp_state = Arc::new(mcp::state::McpState {
         kline: state.kline.clone(),
         health: diagnose::health::HealthService::new(health_events),
@@ -121,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
         quality: state.quality.clone(),
         default_window_secs: cfg.health_window_secs,
         sessions: mcp::state::SessionRegistry::default(),
+        sim: Some(sim_service),
     });
     let mcp_listen = cfg.mcp_listen.clone();
     tokio::spawn(async move {

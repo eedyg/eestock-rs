@@ -80,6 +80,7 @@ dependencies = [
  "domain",
  "serde",
  "serde_json",
+ "simlive",
  "tokio",
  "tracing",
 ]
@@ -1055,6 +1056,7 @@ name = "mcp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "application",
  "async-trait",
  "axum",
  "chrono",
@@ -1746,6 +1748,15 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core 0.6.4",
+]
+
+[[package]]
+name = "simlive"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "backtest",
+ "serde",
 ]
 
 [[package]]

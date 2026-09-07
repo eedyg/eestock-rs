@@ -36,6 +36,7 @@ fn state(pool: PgPool) -> Arc<McpState> {
         ),
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
+        sim: None,
     })
 }
 

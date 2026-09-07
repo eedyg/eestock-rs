@@ -5,6 +5,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use application::simlive::SimLiveService;
+
 /// MCP 应用状态（与 web::state::AppState 同模式，只读端口注入）。
 pub struct McpState {
     /// K线只读端口（domain::ports::KlineRead；storage 实现由 app 装配）。
@@ -17,6 +19,8 @@ pub struct McpState {
     pub default_window_secs: i64,
     /// SSE 会话登记（sessionId → 消息通道）。
     pub sessions: SessionRegistry,
+    /// 模拟实盘服务（11-sim-live / L1：sim_* 工具；None = 未配置，工具返回 isError）。
+    pub sim: Option<Arc<SimLiveService>>,
 }
 
 /// 会话登记表（std Mutex 不跨 await；与 web SubscriptionRegistry 同模式）。

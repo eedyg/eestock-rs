@@ -607,6 +607,9 @@ pub mod favorite;
 // ma_config：行情看板 MA 可配置端口实现加法扩展（后端 W1：MaConfigStore；
 // 代码块在 design/04-storage/schema.md §4.3.7。ma_config.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod ma_config;
+// sim：模拟实盘会话存储端口实现加法扩展（L1 sim-live：SimSessionStore；
+// 代码块在 design/04-storage/schema.md §4.3.10。sim.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod sim;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

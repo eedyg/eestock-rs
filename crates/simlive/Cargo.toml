@@ -1,0 +1,15 @@
+# 11-sim-live / L1 — 模拟实盘核心（纯逻辑，手写，非 tangle）。
+# 定位：无 IO / 无 DB —— SimAccount / FillEngine / SessionManager，可完全单测锁定。
+# 分层：simlive crate（纯逻辑）被 application 层（SimLiveService）调用；web/storage/mcp 不得反向依赖本 crate 的 IO。
+# 复用 backtest::FeeModel（费用/滑点同步口径）；不依赖 domain/application。
+[package]
+name = "simlive"
+description = "模拟实盘核心：账户/撮合/会话/信号（纯逻辑，无 IO/无 DB，单测锁定）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# 复用回测费用模型（佣金/印花税/滑点），统一口径（ADR 11-sim-live §5/§6）。
+backtest = { path = "../backtest" }
+serde.workspace = true
+anyhow.workspace = true

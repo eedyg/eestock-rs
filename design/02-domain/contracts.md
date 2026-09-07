@@ -879,6 +879,102 @@ pub trait MaConfigStore: Send + Sync {
     /// 写回归一化后的 MA 窗口配置（升序去重），返回写回后的窗口列表。
     async fn set(&self, windows: &[i32]) -> anyhow::Result<Vec<i32>>;
 }
+
+// ── 11-sim-live / L1：模拟实盘会话存储端口（simsession/sim_session_result/sim_trades/sim_positions，迁移 0018）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，mcp/web/application 只依赖端口。
+// 应用面自有表（数据面不读写，ADR-017 不违）；会话状态 running/ended 状态机（ADR 11-sim-live §3/§9）。
+
+/// 模拟实盘会话状态（simsession.status：running/ended）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SimSessionStatus { Running, Ended }
+
+impl SimSessionStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self { SimSessionStatus::Running => "running", SimSessionStatus::Ended => "ended" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "running" => Some(SimSessionStatus::Running), "ended" => Some(SimSessionStatus::Ended), _ => None }
+    }
+}
+
+/// 新建会话（传入；id 由应用层生成后入库）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewSimSession {
+    pub id: String,
+    pub name: String,
+    pub cash_init: f64,
+    pub strategy_set: Vec<String>,
+    pub stock_set: Vec<String>,
+    pub period: String,
+    pub start_ts: DateTime<Utc>,
+    pub source: String,
+}
+
+/// 会话读模型（simsession 行；session 元数据，无结果 JSON）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimSessionView {
+    pub id: String,
+    pub name: String,
+    pub cash_init: f64,
+    pub strategy_set: Vec<String>,
+    pub stock_set: Vec<String>,
+    pub period: String,
+    pub start_ts: DateTime<Utc>,
+    pub end_ts: Option<DateTime<Utc>>,
+    pub status: SimSessionStatus,
+    pub source: String,
+}
+
+/// 新成交明细（sim_trades 行）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewSimTrade {
+    pub session_id: String,
+    pub code: String,
+    pub side: String,
+    pub qty: f64,
+    pub price: f64,
+    pub ts: DateTime<Utc>,
+    pub fee: f64,
+    pub source: String,
+}
+
+/// 会话内持仓行（sim_positions 行；code/qty/avg_cost，可重建）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimPositionRow {
+    pub session_id: String,
+    pub code: String,
+    pub qty: f64,
+    pub avg_cost: f64,
+}
+
+/// 会话结束结果（simsession_result 三 jsonb 列；结构=backtest_result）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimSessionResult {
+    pub net_value: serde_json::Value,
+    pub trades: serde_json::Value,
+    pub metrics: serde_json::Value,
+}
+
+/// 模拟实盘会话存储端口（storage 实现；simsession 等表，迁移 0018）。
+/// 会话运行期间应用面内存维护 + 事件流落库；`mark_end` 置 ended + 写结果（幂等重写）。
+#[async_trait]
+pub trait SimSessionStore: Send + Sync {
+    /// 新建会话（running；返回 ()，id 已由调用方生成）。
+    async fn create_session(&self, s: &NewSimSession) -> anyhow::Result<()>;
+    /// 读单会话元数据；未知 id → Ok(None)。
+    async fn get_session(&self, id: &str) -> anyhow::Result<Option<SimSessionView>>;
+    /// 会话列表（start_ts DESC）。
+    async fn list_sessions(&self) -> anyhow::Result<Vec<SimSessionView>>;
+    /// 追加一条成交明细。
+    async fn append_trade(&self, t: &NewSimTrade) -> anyhow::Result<()>;
+    /// 覆盖式写会话内持仓（全量，幂等）。
+    async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> anyhow::Result<()>;
+    /// 结束会话：置 ended + end_ts + 结果；返回是否更新到行（未知 id → false）。
+    async fn mark_end(&self, session_id: &str, end_ts: DateTime<Utc>, result: &SimSessionResult) -> anyhow::Result<bool>;
+    /// 删除会话（FK 级联结果/成交/持仓）；返回是否删行。
+    async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）

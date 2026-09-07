@@ -11,6 +11,7 @@ edition.workspace = true
 [dependencies]
 domain = { path = "../domain" }
 backtest = { path = "../backtest" }
+simlive = { path = "../simlive" }
 tokio.workspace = true
 chrono.workspace = true
 serde.workspace = true

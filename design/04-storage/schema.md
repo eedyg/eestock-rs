@@ -642,6 +642,73 @@ SELECT add_continuous_aggregate_policy('kline_accurate_1h',
 -- CALL refresh_continuous_aggregate('kline_accurate_1h', NULL, NULL);
 ```
 
+## 4.3.10 模拟实盘会话存储（L1 sim-live，0018；ADR 11-sim-live §9）
+
+**上下文**：sim-live（纸面交易，ADR 11-sim-live）L1 核心落数据/应用面会话存储。
+会话运行期在应用面内存维护（统一读共享状态 + 变更通知），落库用于会话语义状态快照与持久化：
+- `simsession`：会话元数据（name/cash_init/strategy_set/stock_set/period/start-end/status/source）。
+- `simsession_result`：会话结束后结果（net_value/trades/metrics 三 jsonb 列，结构=backtest_result）。
+- `sim_trades`：会话内成交明细（会话事件流落库）。
+- `sim_positions`：会话内持仓状态（code/qty/avg_cost，可重建）。
+
+**表口径**：应用面自有表（与 backtest/alert 同口径：数据面不读写，不违 ADR-017 只读库铁律）。
+`simsession.id` 为应用层生成会话 id（`s_<ts>_<seq>` 口径）；`status` 状态机 running/ended。
+`simsession_result` 只在 ended 时写一次（中间结果不落库，ADR §3）。
+
+``` {.sql file=migrations/0018_sim_session.sql}
+-- 0018_sim_session.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 11-sim-live / L1：模拟实盘会话存储（ADR 11-sim-live §9）。
+-- simsession = 会话元数据；simsession_result = 结束结果（3 jsonb 列）；
+-- sim_trades = 会话内成交明细；sim_positions = 会话内持仓状态（可重建）。
+-- 应用面自有表（数据面不读写，ADR-017 不违）。
+CREATE TABLE simsession (
+    id           text PRIMARY KEY,                     -- 应用层生成会话 id（s_<ts>_<seq>）
+    name         text NOT NULL,
+    cash_init    float8 NOT NULL,                      -- 初始资金（默认 1_000_000 可配，ADR §5）
+    strategy_set jsonb NOT NULL DEFAULT '[]'::jsonb,   -- 策略集（何时/哪些策略 trading on|off）
+    stock_set    jsonb NOT NULL DEFAULT '[]'::jsonb,   -- 标的集
+    period       text NOT NULL,                        -- M1/M5/M15/D1（回测支持周期）
+    start_ts     timestamptz NOT NULL,
+    end_ts       timestamptz,                          -- ended 时刻
+    status       text NOT NULL DEFAULT 'running' CHECK (status IN ('running','ended')),
+    source       text NOT NULL DEFAULT 'manual'        -- mcp/web/preset/manual
+);
+
+CREATE TABLE simsession_result (
+    session_id    text PRIMARY KEY REFERENCES simsession(id) ON DELETE CASCADE,
+    net_value_json jsonb NOT NULL,
+    trades_json    jsonb NOT NULL,
+    metrics_json   jsonb NOT NULL
+);
+
+CREATE TABLE sim_trades (
+    id         bigserial PRIMARY KEY,
+    session_id text NOT NULL REFERENCES simsession(id) ON DELETE CASCADE,
+    code       text NOT NULL,
+    side       text NOT NULL CHECK (side IN ('buy','sell')),
+    qty        float8 NOT NULL,
+    price      float8 NOT NULL,
+    ts         timestamptz NOT NULL,
+    fee        float8 NOT NULL,
+    source     text NOT NULL                            -- strategy/manual
+);
+
+CREATE TABLE sim_positions (
+    session_id text NOT NULL REFERENCES simsession(id) ON DELETE CASCADE,
+    code       text NOT NULL,
+    qty        float8 NOT NULL,
+    avg_cost   float8 NOT NULL,
+    PRIMARY KEY (session_id, code)
+);
+
+-- 查询：会话直查（主键）+ 成交按会话检索 + 持仓按会话检索
+CREATE INDEX sim_trades_session_idx     ON sim_trades (session_id, ts);
+CREATE INDEX sim_positions_session_idx  ON sim_positions (session_id);
+```
+
+**storage 模块 `crates/storage/src/sim.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::SimSessionStore`（PgPool）。见 design/02-domain/contracts.md「SimSessionStore」端口。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

@@ -155,6 +155,7 @@ pub fn test_state(kline: Arc<MockKline>, events: Arc<MockEvents>) -> Arc<McpStat
         quality: quality_for(vec![], HashMap::new(), HashSet::new()),
         default_window_secs: 3600,
         sessions: crate::state::SessionRegistry::default(),
+        sim: None,
     })
 }
 // ~/~ end
