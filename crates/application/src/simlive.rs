@@ -460,8 +460,15 @@ impl SimLiveService {
         account.cash = state.cash;
         account.realized_pnl = state.realized_pnl;
         account.total_fee = state.total_fee;
+        // 持仓重建：`latest` 优先行情源 close（与 `get_positions` 同源，自洽），避免账户级 PnL 与持仓视图不一致。
+        // 修复 bug：落盘 `latest_prices[code]` 取自内存 `position.latest`，而模拟实盘 feed/manual 成交后不 mark_to_market，
+        // 该值为默认 0.0 → 恢复重建时 `unrealized=qty×(0−avg_cost)=−qty×avg_cost`（大额漂移，深测见 -10172/-16209）。
+        // 现改为：行情源 quote 非 0 优先；否则回退落盘 latest_prices；仍无 → 0.0（与持仓视图缺行情兜底一致）。
+        let period = dom_period_from_str(&view.period).unwrap_or(domain::types::Period::M1);
         for row in &state.positions {
-            let latest = state.latest_prices.get(&row.code).copied().unwrap_or(0.0);
+            let persisted = state.latest_prices.get(&row.code).copied().unwrap_or(0.0);
+            let quote = self.resolve_latest_price(period, &row.code).await;
+            let latest = if quote != 0.0 { quote } else { persisted };
             account.positions.insert(
                 row.code.clone(),
                 Position {

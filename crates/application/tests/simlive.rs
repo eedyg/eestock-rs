@@ -1454,4 +1454,138 @@ async fn recover_sessions_is_idempotent() {
     assert!(report3.recovered.is_empty() && report3.degraded.is_empty(), "已 ended 会话不恢复");
 }
 
+// ── 11-sim-live / 重启恢复：账户级 PnL（unrealized/net_profit）与持仓视图 close 复算自洽 ──
+
+/// ⚠️ bug(深测) 回归：重启恢复后**账户级 unrealized/net_profit 不一致**，而持仓视图按 close 复算自洽。
+/// 根因：运行态落盘（`build_live_state`）取内存 `position.latest`——模拟实盘 feed/manual 成交后**从未 mark_to_market**，
+/// 故该值为默认 0.0 → 落盘 `latest_prices[code]=0.0`；恢复重建时 `unrealized=qty×(0−avg_cost)=−qty×avg_cost`（大额漂移）。
+/// 修复：恢复重建每仓 `latest` 优先用行情源 close（与 `get_positions` 同源）还原，使账户级 PnL 与持仓视图自洽。
+/// 本测试：买入后不打市值 → 恢复 → `get_account.unrealized` 应 == 持仓视图（close 复算）的值；且二次恢复不累积。
+#[tokio::test]
+async fn recover_after_unmarked_positions_pnl_matches_position_view() {
+    let store = Arc::new(MockSimStore::default());
+    let kline = Arc::new(MockKline::default());
+    // 行情源最新 close = 11.0（模拟盘后真实收盘/打市值价；成交价含滑点≈10.002）。
+    kline.set_latest("510300", dma_bar(100, 11.0));
+    let svc_a = service(store.clone()).with_kline(kline.clone());
+    let view = svc_a
+        .start_session(&StartSessionReq {
+            name: "t-unmark".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec!["510300".into()],
+            period: "M1".into(),
+            source: "manual".into(),
+            strategies: Default::default(),
+        })
+        .await
+        .unwrap();
+    let sid = view.id.clone();
+
+    // 手动买入，但**从未 mark_to_market**（模拟真实 sim-live 路径：feed 只 process_bar，不打市值）。
+    svc_a
+        .place_order(
+            &sid,
+            &PlaceOrderReq {
+                code: "510300".into(),
+                side: "buy".into(),
+                qty: 1000.0,
+                limit_price: None,
+                intent_id: None,
+                source: "manual".into(),
+            },
+            10.0,
+        )
+        .await
+        .unwrap()
+        .expect("市价即成交");
+
+    // 持仓视图（行情源 close 复算）即自洽基准值。
+    let pos_before = svc_a.get_positions(&sid).await.unwrap();
+    let avg_cost = pos_before[0].avg_cost;
+    let expected_unrealized = 1000.0 * (11.0 - avg_cost);
+
+    // 模拟重启：新服务实例（同一 store + 同一 kline）恢复。
+    let svc_b = service(store.clone()).with_kline(kline.clone());
+    let report = svc_b.recover_sessions().await.unwrap();
+    assert!(report.recovered.contains(&sid), "应恢复该会话");
+    assert!(report.degraded.is_empty(), "有运行态 → 不降级");
+
+    // 恢复后账户级 unrealized 应与持仓视图自洽（修复前为 −qty×avg_cost 大额漂移）。
+    let acct = svc_b.get_account(&sid).unwrap();
+    close(acct.unrealized_pnl, expected_unrealized);
+    let pnl = svc_b.get_pnl(&sid).unwrap();
+    close(pnl.unrealized_pnl, expected_unrealized);
+    close(pnl.net_profit, acct.realized_pnl + expected_unrealized);
+    let pos_after = svc_b.get_positions(&sid).await.unwrap();
+    close(pos_after[0].unrealized_pnl, expected_unrealized);
+
+    // 二次恢复（再重建）不累积/不翻倍。
+    let svc_c = service(store.clone()).with_kline(kline.clone());
+    let report2 = svc_c.recover_sessions().await.unwrap();
+    assert!(report2.recovered.contains(&sid));
+    let acct2 = svc_c.get_account(&sid).unwrap();
+    close(acct2.unrealized_pnl, expected_unrealized);
+    close(acct2.unrealized_pnl, acct.unrealized_pnl); // 二次恢复与一次一致
+}
+
+/// bug 回归①：恢复后 unrealized=Σ(qty×(latest−avg_cost))、net_profit=realized+unrealized == 落盘快照。
+/// 预置完整 state（cash/positions(latest)/realized）→ recover → get_account PnL == 落盘值（与快照一致）。
+#[tokio::test]
+async fn recover_reproduces_persisted_pnl_snapshot() {
+    let store = Arc::new(MockSimStore::default());
+    let sid = "s_state_snap".to_string();
+    // 预置 running 视图。
+    store.sessions.lock().unwrap().insert(sid.clone(), SimSessionView {
+        id: sid.clone(),
+        name: "snap".into(),
+        cash_init: 1_000_000.0,
+        strategy_set: vec![],
+        stock_set: vec!["510300".into()],
+        period: "M1".into(),
+        start_ts: fixed_now(),
+        end_ts: None,
+        status: SimSessionStatus::Running,
+        source: "manual".into(),
+    });
+    // 预置运行态：买 1000@10、latest=11 → unrealized=1000；realized=200；fee=5。
+    let state = SimSessionState {
+        cash: 1_000_000.0 - 1000.0 * 10.0 - 5.0,
+        realized_pnl: 200.0,
+        total_fee: 5.0,
+        positions: vec![SimPositionRow {
+            session_id: sid.clone(),
+            code: "510300".into(),
+            qty: 1000.0,
+            avg_cost: 10.0,
+        }],
+        latest_prices: std::collections::BTreeMap::from([("510300".into(), 11.0)]),
+        net_value_series: vec![(1, 1_000_000.0), (2, 999_995.0)],
+        trading_enabled: false,
+        strategy_configs: serde_json::json!([]),
+        orders: serde_json::json!([]),
+        updated_at: fixed_now(),
+    };
+    store.states.lock().unwrap().insert(sid.clone(), state.clone());
+
+    let svc = service(store.clone()); // 不注入 kline → 纯落盘还原（用 latest_prices）。
+    let report = svc.recover_sessions().await.unwrap();
+    assert!(report.recovered.contains(&sid), "恢复该会话");
+    let acct = svc.get_account(&sid).unwrap();
+    close(acct.realized_pnl, 200.0);
+    close(acct.unrealized_pnl, 1000.0 * (11.0 - 10.0)); // = 1000
+    let pnl = svc.get_pnl(&sid).unwrap();
+    close(pnl.net_profit, 200.0 + 1000.0); // realized + unrealized
+    close(pnl.total_fee, 5.0);
+
+    // 二次恢复（再重建）不累积/不翻倍。
+    let svc2 = service(store.clone());
+    let report2 = svc2.recover_sessions().await.unwrap();
+    assert!(report2.recovered.contains(&sid));
+    let acct2 = svc2.get_account(&sid).unwrap();
+    close(acct2.unrealized_pnl, 1000.0);
+    close(acct2.realized_pnl, 200.0);
+    close(acct2.cash, state.cash);
+}
+
 
