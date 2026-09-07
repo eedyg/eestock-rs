@@ -2,7 +2,7 @@
 -- 0014_weekly_monthly_caggs.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
 -- 行情看板周线/月线（后端 W1）：kline_accurate M1 连续聚合出 kline_accurate_1w/1mo。
 -- 周=A股交易周（time_bucket('1 week', ts, 'Asia/Shanghai') 周一为界）；月=自然月（month 界）。
--- 全历史（无 ts >= '2024-01-01' 过滤）：周/月桶少，全量聚合 M1 2012+ 便宜（与 0010 的 2024 口径不同）。
+-- 全历史（无 ts >= '2024-01-01' 过滤）：周/月桶少，全量聚合 M1 2012+ 便宜（0010 的 5m/15m/1h 由 0017 同步全量）。
 -- 兜底在 reader.rs 查询期 rollup（kline_1d → week/month 桶），见 00-web-api §3。
 CREATE MATERIALIZED VIEW kline_accurate_1w
 WITH (timescaledb.continuous) AS

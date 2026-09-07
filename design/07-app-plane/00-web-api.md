@@ -1168,7 +1168,7 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 消费方（web/diagnose）不反向依赖本 crate。
 
 - **统一读源（Wave 3，0010，用户定稿 2026-09-04）**：所有周期都走「accurate 优先 + 底层兜底」合并；
-  读取 = `kline_merged_<P>` = `accurate_<P>`（优先，覆盖 2024-01-01→今；**W1/MO1 例外**——0016 全历史 2012+）UNION ALL
+  读取 = `kline_merged_<P>` = `accurate_<P>`（优先，覆盖全历史 2012+；5m/15m/1h 由 0017 全量、1w/1mo 由 0016 全量）UNION ALL
   `兜底层_<P>`（5m/15m/1d 用 raw-derived cagg；1h 用 kline_15m rollup；1m 用 raw）+ NOT EXISTS 反连接；
 - 1m 读 `kline_merged`（准确层优先语义由视图承载，ADR-003，与 domain merge.rs 契约一致）；
 - 5m/15m/1h/1d 读 `merged_sql(accurate_<P>, 兜底)`（⚠️ cagg `volume` 列为 numeric，`::bigint` 归一；`amount` 恒 double）；
@@ -1209,8 +1209,8 @@ ORDER BY ts DESC LIMIT $3
 "#;
 
 /// 统一读源：accurate(优先) UNION ALL 兜底(反连接剔重)。
-/// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖 2024-01-01→今；
-///   W1/MO1（0016）为全历史（2012+，无 2024 过滤），pre-2024 也走 accurate。
+/// - accurate 分支：`{accurate}` 表（0010 cagg；D1 复用 kline_accurate_1d），覆盖全历史 2012+；
+///   5m/15m/1h（0017）与 1w/1mo（0016）均全量（无 2024 过滤），pre-2024 也走 accurate。
 ///   source 记为 'tushare'（与 kline_merged M1 的 accurate 分支一致）。
 /// - 兜底分支：`{fallback}`（表名或 1h rollup 片段），与 accurate 同 ts 的存在时被反连接剔重。
 /// - cagg 无 source 列（以 NULL 归一行型）；volume 为 numeric → ::bigint。

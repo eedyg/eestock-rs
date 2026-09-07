@@ -300,9 +300,14 @@ INSERT INTO alert_rules (id, name, level, threshold, duration_minutes, silence_m
 
 - accurate 层：`kline_accurate` M1（2012→今，全量真值）聚合出 `kline_accurate_5m/15m/1h`；
   `kline_accurate_1d` **复用 0005 既有 cagg**（聚合全量 M1，日级桶化开销可忽略，不新增）；
-  均 `WHERE ts >= '2024-01-01'`（尊重「2024 即可」不聚合 2012 前的亿万级 M1）。
+  **各周期聚合/读取 DB 全部 accurate M1（2012→今），无人工时间截断；数据摄取量=可获取量**。
 - 兜底层（reader 端 UNION ALL + NOT EXISTS 反连接）：`5m/15m/1d` 用 raw-derived `kline_5m/15m/1d`；
   `1h` 用 `kline_15m` 查询期 rollup；`1m` 用 `kline_raw`（现有 `kline_merged` 语义不变）。
+
+⚠️ 0017（用户定稿 2026-09-07）：既有库 0010 建的 `kline_accurate_5m/15m/1h` 带 `WHERE ts >= '2024-01-01'`
+（0010 定稿时的「2024 即可」口径）→ DROP 后重建为**全量**（无 2024 过滤，聚合全部 accurate M1），
+与 0016 周/月同型（见 4.3.9）。**统一原则**：所有周期聚合/读取 DB 全部 accurate M1（2012→今），
+无人工时间截断；数据摄取量=可获取量（供后续遵循）。
 
 ⚠️ 运维注记：cagg 刷新策略只覆盖近期窗口；**历史回填后须手动全量刷新一次**：
 `CALL refresh_continuous_aggregate('kline_accurate_5m', NULL, NULL);`（15m/1h 同理，
@@ -311,14 +316,14 @@ D1 复用 0005 的 `kline_accurate_1d` 亦须全量刷新一次以物化深历�
 ``` {.sql file=migrations/0010_accurate_caggs.sql}
 -- 0010_accurate_caggs.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
 -- 统一读源（用户定稿 2026-09-04）：kline_accurate M1（2012→今）为全历史真值；
--- 5m/15m/1h cagg 从 M1 聚合（WHERE ts >= '2024-01-01'，尊重「2024 即可」不聚合 2012 前）。
+-- 各周期聚合/读取 DB 全部 accurate M1（2012→今），无人工时间截断；数据摄取量=可获取量。
 -- D1 accurate 复用 0005 既有 kline_accurate_1d（聚合全量 M1；日级桶化开销可忽略）。
 CREATE MATERIALIZED VIEW kline_accurate_5m
 WITH (timescaledb.continuous) AS
 SELECT code, time_bucket('5 minutes', ts) AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
-FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+FROM kline_accurate WHERE period = 'M1'
 GROUP BY code, time_bucket('5 minutes', ts);
 
 CREATE MATERIALIZED VIEW kline_accurate_15m
@@ -326,7 +331,7 @@ WITH (timescaledb.continuous) AS
 SELECT code, time_bucket('15 minutes', ts) AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
-FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+FROM kline_accurate WHERE period = 'M1'
 GROUP BY code, time_bucket('15 minutes', ts);
 
 CREATE MATERIALIZED VIEW kline_accurate_1h
@@ -334,7 +339,7 @@ WITH (timescaledb.continuous) AS
 SELECT code, time_bucket('1 hour', ts) AS ts,
        first(open, ts) AS open, max(high) AS high, min(low) AS low,
        last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
-FROM kline_accurate WHERE period = 'M1' AND ts >= '2024-01-01'
+FROM kline_accurate WHERE period = 'M1'
 GROUP BY code, time_bucket('1 hour', ts);
 
 -- 刷新策略（近期窗口增量；历史回填后须手动全量 refresh 一次，见块头运维注记）
@@ -462,7 +467,7 @@ CREATE TABLE favorite_symbols (
 （`time_bucket('1 month', ts, 'Asia/Shanghai')` 月界）。
 
 **周/月线 cagg（0014；0016 重建为全历史）**：`kline_accurate_1w/1mo` 从 `kline_accurate` M1 聚合（**全历史**，
-不设 `ts >= '2024-01-01'` 过滤——周/月桶少，全量聚合 M1 2012+ 便宜，与 0010 的 2024 口径（5m/15m/1h）不同）。
+不设 `ts >= '2024-01-01'` 过滤——周/月桶少，全量聚合 M1 2012+ 便宜（0010 的 5m/15m/1h 由 0017 同步全量）。
 准确层优先 + 底层兜底（ADR-003 推广）：兜底在 reader.rs **查询期 rollup**（`kline_1d` → week/month 桶，与 1h 兜底
 从 `kline_15m` rollup 同型）——schema 未建 raw-derived `kline_1w/1mo` cagg，按「复用 cagg 兜底语义」判断不新增，
 表名/时机按 0010 既有模式。**0016**：既有库的 0014 已建（2024 过滤）→ DROP 后重建为全历史（同 refresh 策略）；
@@ -472,7 +477,7 @@ CREATE TABLE favorite_symbols (
 -- 0014_weekly_monthly_caggs.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
 -- 行情看板周线/月线（后端 W1）：kline_accurate M1 连续聚合出 kline_accurate_1w/1mo。
 -- 周=A股交易周（time_bucket('1 week', ts, 'Asia/Shanghai') 周一为界）；月=自然月（month 界）。
--- 全历史（无 ts >= '2024-01-01' 过滤）：周/月桶少，全量聚合 M1 2012+ 便宜（与 0010 的 2024 口径不同）。
+-- 全历史（无 ts >= '2024-01-01' 过滤）：周/月桶少，全量聚合 M1 2012+ 便宜（0010 的 5m/15m/1h 由 0017 同步全量）。
 -- 兜底在 reader.rs 查询期 rollup（kline_1d → week/month 桶），见 00-web-api §3。
 CREATE MATERIALIZED VIEW kline_accurate_1w
 WITH (timescaledb.continuous) AS
@@ -565,6 +570,75 @@ SELECT add_continuous_aggregate_policy('kline_accurate_1w',
 SELECT add_continuous_aggregate_policy('kline_accurate_1mo',
     start_offset => INTERVAL '120 days', end_offset => INTERVAL '1 day',
     schedule_interval => INTERVAL '1 hour');
+```
+
+## 4.3.9 分钟线全历史重建（0017；用户定稿 2026-09-07）
+
+**上下文**：0010 建的 `kline_accurate_5m/15m/1h` 带 `WHERE ts >= '2024-01-01'`（「2024 即可」口径，
+不聚合 2012 前亿万级 M1）——5m/15m/1h accurate cagg 只有 2024+ 桶。而 1m（`kline_accurate` M1）、
+1d（复用 0005）、周/月（0016 全历史）已全量，故分钟/日/周/月深翻在 2024 边界截断，与
+「数据只到 2024」的人为截断同源。
+
+**修复（0017）** 与 0016 周/月同型：DROP 既有 `kline_accurate_5m/15m/1h` → 重建为**全量**
+（移除 `WHERE ts >= '2024-01-01'`，聚合 `kline_accurate` 全部 M1）+ **同样 refresh 策略**
+（窗口须覆盖 ≥ 两桶：5m 用 2h/1m、15m 用 6h/1m、1h 用 2d/1h，与 0010 同）。这样 5m/15m/1h
+覆盖全历史（2012+）且走 accurate cagg 快。兜底（reader.rs 查询期 `kline_5m/15m` + `kline_15m` rollup）
+保留作为 accurate 缺时的安全网。**统一原则**：所有周期聚合/读取 DB 全部 accurate M1（2012→今），
+无人工时间截断；数据摄取量=可获取量（供后续遵循）。
+
+**性能注记**：全量 5m/15m/1h 物化行数较多（一次性）；TimescaleDB cagg 为**增量刷新**，历史回填后
+手动全量 refresh 一次即可，查询同快（cagg 查询读物化桶，与行数无关）。若全量聚合超时/物化开销过大，
+可**按 code 子集分批**（每批若干 code 的窗口 refresh）或确认可接受时长。
+
+``` {.sql file=migrations/0017_minute_caggs_full_history.sql}
+-- 0017_minute_caggs_full_history.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 问题① 修复：分钟线全历史。既有库 0010 建的 kline_accurate_5m/15m/1h 带 ts >= '2024-01-01' 过滤
+-- （仅 2024+），与 1m/1d/周/月（全量）口径不一致，深翻在 2024 边界截断。
+-- 本迁移 DROP 后重建为全量（无 2024 过滤，聚合 kline_accurate 全部 M1）+ 同样 refresh 策略。
+-- 兜底（reader.rs 查询期 kline_5m/15m + kline_15m rollup）保留作为 accurate 缺时的安全网。
+DROP MATERIALIZED VIEW kline_accurate_5m;
+DROP MATERIALIZED VIEW kline_accurate_15m;
+DROP MATERIALIZED VIEW kline_accurate_1h;
+
+CREATE MATERIALIZED VIEW kline_accurate_5m
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('5 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('5 minutes', ts);
+
+CREATE MATERIALIZED VIEW kline_accurate_15m
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('15 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('15 minutes', ts);
+
+CREATE MATERIALIZED VIEW kline_accurate_1h
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('1 hour', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('1 hour', ts);
+
+-- 刷新策略（与 0010 同，窗口须覆盖 ≥ 两桶：5m=2h≈24桶、15m=6h≈24桶、1h=2d≈48桶）
+SELECT add_continuous_aggregate_policy('kline_accurate_5m',
+    start_offset => INTERVAL '2 hours', end_offset => INTERVAL '1 minute',
+    schedule_interval => INTERVAL '1 minute');
+SELECT add_continuous_aggregate_policy('kline_accurate_15m',
+    start_offset => INTERVAL '6 hours', end_offset => INTERVAL '1 minute',
+    schedule_interval => INTERVAL '1 minute');
+SELECT add_continuous_aggregate_policy('kline_accurate_1h',
+    start_offset => INTERVAL '2 days', end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
+-- 运维注记：历史回填后须手动全量刷新一次以物化深历史（覆盖 2012→今）：
+-- CALL refresh_continuous_aggregate('kline_accurate_5m', NULL, NULL);
+-- CALL refresh_continuous_aggregate('kline_accurate_15m', NULL, NULL);
+-- CALL refresh_continuous_aggregate('kline_accurate_1h', NULL, NULL);
 ```
 
 ## 4.4 设计注记
