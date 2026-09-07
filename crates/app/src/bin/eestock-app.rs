@@ -122,6 +122,14 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(web::alerts::AlertEvaluator::new(
         state.clone(), Duration::from_millis(cfg.alert_eval_ms)).run());
 
+    // 11-sim-live / L4（F2）：实时评分 feed（poll 式：每 DEFAULT_POLL_INTERVAL 查每标的最近 bar ts，
+    // 新 bar 即 process_bar → 评估/评分/聚合/达阈值+统一开关开 → 自动模拟单）。复用 state.kline。
+    tokio::spawn(application::simlive_feed::SimLiveFeed::new(
+        sim_service.clone(),
+        state.kline.clone(),
+        application::simlive_feed::DEFAULT_POLL_INTERVAL,
+    ).run());
+
     // Wave 1 Phase D：MCP HTTP/SSE 服务（ADR-009 范围①②）——与 web 同进程、端口独立
     // （design/07-app-plane/01-mcp.md；复用同一 KlineRead/HealthEventsRead 端口实现实例）
     let mcp_state = Arc::new(mcp::state::McpState {

@@ -57,6 +57,9 @@ pub struct SimOrder {
     pub filled_qty: f64,
     pub fee: f64,
     pub ts: i64,
+    /// 订单来源：`manual` | `aggregate_strategy`（自动单）| `strategy`（预留）。
+    /// L4 补（F1）：`SimOrder` 未透传 source，导致面板「来源」列空白；此处补上与 `SimTrade.source` 同口径。
+    pub source: String,
 }
 
 /// 订单状态（L1 简化：pending→filled；取消→cancelled）。

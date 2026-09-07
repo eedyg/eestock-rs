@@ -4,18 +4,21 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use domain::ports::{
-    BacktestBarRead, BacktestProgressSink, BacktestRunStore, Clock, NewRun, NewSimSession,
-    NewSimTrade, RunFilter, RunResult, RunView, SimPositionRow, SimSessionResult, SimSessionStatus,
-    SimSessionStore, SimSessionView,
+    BacktestBarRead, BacktestProgressSink, BacktestRunStore, Clock, KlineBarView, KlineRead,
+    NewRun, NewSimSession, NewSimTrade, RunFilter, RunResult, RunView, SimPositionRow,
+    SimSessionResult, SimSessionStatus, SimSessionStore, SimSessionView, SymbolLatestView,
 };
+use domain::types::Period;
 
 use application::service::BacktestService;
 use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
+use application::simlive_feed::SimLiveFeed;
 use backtest::{Bar, ParamValue};
 use simlive::StrategyConfig;
 
@@ -128,6 +131,44 @@ async fn started(store: Arc<MockSimStore>) -> (SimLiveService, String) {
 
 fn close(a: f64, b: f64) {
     assert!((a - b).abs() < 1e-6, "expected {b}, got {a}");
+}
+
+/// F2：mock `KlineRead` —— 按 code 存最近一根 bar（确定性、无 DB）。`latest_bar` 走默认 `bars(None,1)`。
+#[derive(Default)]
+struct MockKline {
+    latest: Mutex<HashMap<String, KlineBarView>>,
+}
+
+impl MockKline {
+    fn set_latest(&self, code: &str, bar: Bar) {
+        self.latest.lock().unwrap().insert(
+            code.to_string(),
+            KlineBarView {
+                code: code.to_string(),
+                ts: DateTime::from_timestamp(bar.ts, 0).unwrap(),
+                open: bar.open,
+                high: bar.high,
+                low: bar.low,
+                close: bar.close,
+                volume: bar.volume as i64,
+                amount: 0.0,
+                source: None,
+            },
+        );
+    }
+}
+
+#[async_trait]
+impl KlineRead for MockKline {
+    async fn bars(&self, _period: Period, code: &str, _before: Option<DateTime<Utc>>, limit: i64) -> Result<Vec<KlineBarView>> {
+        if limit < 1 {
+            return Ok(Vec::new());
+        }
+        Ok(self.latest.lock().unwrap().get(code).cloned().into_iter().collect())
+    }
+    async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
+        Ok(Vec::new())
+    }
 }
 
 #[tokio::test]
@@ -403,6 +444,132 @@ async fn feed_all(svc: &SimLiveService, id: &str, bars: &[Bar]) -> Vec<simlive::
         last = svc.process_bar(id, "510300", b.clone()).await.unwrap();
     }
     last
+}
+
+/// F1：`get_orders`（OrderView）须含 `source`——手动单 source=manual；聚合自动单 source=aggregate_strategy。
+/// （L4 修复：SimOrder/OrderView 未透传 source → 面板「来源」列空白。）
+#[tokio::test]
+async fn orders_include_source_manual_and_aggregate() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = started(store.clone()).await;
+
+    // 手动市价单（码「600000」不在策略标的集内，避免占用聚合标的的持仓判定） → source=manual
+    svc.place_order(
+        &id,
+        &PlaceOrderReq {
+            code: "600000".into(),
+            side: "buy".into(),
+            qty: 1000.0,
+            limit_price: None,
+            intent_id: Some("int-src-manual".into()),
+            source: "manual".into(),
+        },
+        10.0,
+    )
+    .await
+    .unwrap()
+    .expect("市价成交");
+    let orders = svc.get_orders(&id).unwrap();
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders[0].code, "600000");
+    assert_eq!(orders[0].source, "manual");
+
+    // 聚合自动单 → source=aggregate_strategy（配置策略 + 开启开关 + 达阈值）
+    let configs = vec![StrategyConfig {
+        id: "dual_ma".into(),
+        params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
+        stocks: vec!["510300".into()],
+        weight: 1.0,
+    }];
+    svc.configure_strategies(&id, configs).unwrap();
+    svc.set_trading(&id, true).unwrap();
+    feed_all(&svc, &id, &golden_buy_bars()).await;
+
+    let orders = svc.get_orders(&id).unwrap();
+    assert_eq!(orders.len(), 2, "手动 + 聚合自动各 1 单");
+    let agg = orders.iter().rev().find(|o| o.status == "filled").expect("存在 filled 单");
+    assert_eq!(agg.source, "aggregate_strategy");
+}
+
+/// F2：`SimLiveFeed` poll 驱动——喂新 bar → `process_bar` → 会话 evaluation 非空 + 聚合自动单（enabled+达阈值）。
+#[tokio::test]
+async fn feed_polls_new_bar_drives_evaluation_and_auto_order() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc_inst, id) = configured_buy_service(store.clone()).await;
+    let svc = Arc::new(svc_inst);
+    svc.set_trading(&id, true).unwrap();
+
+    let kline = Arc::new(MockKline::default());
+    let feed = SimLiveFeed::new(svc.clone(), kline.clone(), Duration::from_millis(10));
+
+    // 逐根 bar 推进 mock kline 的“最新”一根，再 tick —— 模拟 poll 式 feed 发现新 bar。
+    for b in golden_buy_bars() {
+        kline.set_latest("510300", b);
+        feed.tick().await.unwrap();
+    }
+
+    // evaluation 非空（会话评分真实驱动）
+    let analysis = svc.get_strategy_analysis(&id).unwrap();
+    assert_eq!(analysis.len(), 1);
+    assert_eq!(analysis[0].code, "510300");
+    assert_eq!(analysis[0].signal, "buy");
+    close(analysis[0].aggregate_score, 100.0);
+
+    // 聚合自动单（enabled + 达阈值 → source=aggregate_strategy）
+    let pos = svc.get_positions(&id).unwrap();
+    assert_eq!(pos.len(), 1);
+    close(pos[0].qty, 100.0);
+    let orders = svc.get_orders(&id).unwrap();
+    let agg = orders.iter().rev().find(|o| o.status == "filled").expect("存在自动单");
+    assert_eq!(agg.source, "aggregate_strategy");
+}
+
+/// F2：`feed_targets` 对无编排器 running 会话自动配置默认策略（strategy_set × stock_set），并返回 poll 目标。
+#[tokio::test]
+async fn feed_targets_auto_configures_session_strategies() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc_inst, id) = started(store.clone()).await; // strategy_set=["dual_ma"], stock_set=["510300"]
+    let svc = Arc::new(svc_inst);
+
+    // 初始：无编排器 → 无评估
+    assert!(svc.get_strategy_analysis(&id).unwrap().is_empty());
+
+    // feed_targets 自动配置编排器并返回 poll 目标
+    let targets = svc.feed_targets().unwrap();
+    assert_eq!(targets.len(), 1);
+    assert_eq!(targets[0].session_id, id);
+    assert_eq!(targets[0].period, "M1");
+    assert_eq!(targets[0].codes, vec!["510300".to_string()]);
+
+    // 喂一根 bar → 评估出现（默认 fast/slow 单 bar → Hold(50)）
+    let kline = Arc::new(MockKline::default());
+    kline.set_latest("510300", dma_bar(100, 10.0));
+    let feed = SimLiveFeed::new(svc.clone(), kline.clone(), Duration::from_millis(10));
+    feed.tick().await.unwrap();
+    let analysis = svc.get_strategy_analysis(&id).unwrap();
+    assert_eq!(analysis.len(), 1);
+    assert_eq!(analysis[0].code, "510300");
+    assert_eq!(analysis[0].signal, "hold");
+}
+
+/// O1：已有 running 会话时再 start → Err（`AlreadyRunning`），防多 running。
+#[tokio::test]
+async fn start_session_when_already_running_returns_already_running_error() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, _first) = started(store.clone()).await;
+    let err = svc
+        .start_session(&StartSessionReq {
+            name: "dup".into(),
+            cash_init: None,
+            strategy_set: vec![],
+            stock_set: vec![],
+            period: "M1".into(),
+            source: "manual".into(),
+        })
+        .await
+        .unwrap_err();
+    assert!(err.downcast_ref::<application::simlive::AlreadyRunning>().is_some(),
+        "重复 start 应返回 AlreadyRunning（防多 running）");
 }
 
 #[tokio::test]

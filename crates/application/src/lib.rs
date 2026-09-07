@@ -11,4 +11,5 @@ pub mod fee;
 pub mod params;
 pub mod service;
 pub mod simlive; // 11-sim-live / L1：模拟实盘服务（SimLiveService，手写，非 tangle）
+pub mod simlive_feed; // 11-sim-live / L4（F2）：实时评分 feed（poll 式，接入 KlineRead→process_bar；手写，非 tangle）
 pub mod types;

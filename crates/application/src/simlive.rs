@@ -52,6 +52,27 @@ fn default_source() -> String {
     "manual".into()
 }
 
+/// O1：已有 running 会话时再 start → 约束（防多 running）。web 映射 409 / MCP 映射 isError。
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlreadyRunning(pub String);
+
+impl std::fmt::Display for AlreadyRunning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "已有运行中会话：{}", self.0)
+    }
+}
+
+impl std::error::Error for AlreadyRunning {}
+
+/// F2：实时 feed 的 poll 目标（running 会话 × 其策略标的集）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct FeedTarget {
+    pub session_id: String,
+    pub period: String,
+    /// 需轮询的标的集（= 编排器覆盖标的全集；自动配置时 = 会话 stock_set）。
+    pub codes: Vec<String>,
+}
+
 /// 下单请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlaceOrderReq {
@@ -112,6 +133,9 @@ pub struct OrderView {
     pub filled_qty: f64,
     pub fee: f64,
     pub ts: i64,
+    /// 订单来源：`manual` | `aggregate_strategy`（自动单）| `strategy`（预留）。
+    /// L4 补（F1）：透传 `SimOrder.source`，供面板「来源」列（`/api/sim-live/orders`）。
+    pub source: String,
 }
 
 /// 会话内运行态。
@@ -196,7 +220,11 @@ impl SimLiveService {
     }
 
     /// 开始会话：重置账户为 cash_init，落库 running 元数据，缓存运行态。
+    /// O1：已有 running 会话时拒绝再 start（返回 [`AlreadyRunning`]，防多 running）；web 映射 409。
     pub async fn start_session(&self, req: &StartSessionReq) -> anyhow::Result<SimSessionView> {
+        if let Some(existing) = self.current_session_id() {
+            return Err(AlreadyRunning(existing).into());
+        }
         let now = self.clock.now();
         let mut manager = SessionManager::new();
         let session = manager.start_session(
@@ -357,6 +385,7 @@ impl SimLiveService {
                         filled_qty: f.qty,
                         fee: f.fee,
                         ts,
+                        source: req.source.clone(),
                     });
                     if let Some(intent) = &req.intent_id {
                         live.intent_seen.insert(intent.clone());
@@ -381,6 +410,7 @@ impl SimLiveService {
                         filled_qty: 0.0,
                         fee: 0.0,
                         ts,
+                        source: req.source.clone(),
                     });
                     (None, None, Vec::new(), order_id)
                 }
@@ -501,6 +531,7 @@ impl SimLiveService {
                 filled_qty: o.filled_qty,
                 fee: o.fee,
                 ts: o.ts,
+                source: o.source.clone(),
             })
             .collect())
     }
@@ -520,6 +551,42 @@ impl SimLiveService {
         let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
         live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
         Ok(())
+    }
+
+    /// F2：实时 feed 的 poll 目标枚举。对每个 running 会话：
+    /// - 若未配置编排器，用会话 `strategy_set × stock_set` 自动配置（默认参数、weight=1.0）；
+    /// - 返回其标的集（编排器覆盖标的；自动配置时 = stock_set）作为轮询目标。
+    /// 已配置（MCP/web 自定义参数）的会话不被覆盖，仅按现覆盖标的轮询。
+    pub fn feed_targets(&self) -> anyhow::Result<Vec<FeedTarget>> {
+        let mut sessions = self.sessions.lock().expect("sessions poisoned");
+        let mut targets = Vec::new();
+        for (id, live) in sessions.iter_mut() {
+            let meta = {
+                let Some(session) = live.manager.current_session() else { continue };
+                if session.status != simlive::SessionStatus::Running {
+                    continue;
+                }
+                (session.period.clone(), session.strategy_set.clone(), session.stock_set.clone())
+            };
+            if live.orchestrator.is_none() {
+                let configs: Vec<StrategyConfig> = meta.1
+                    .iter()
+                    .map(|sid| StrategyConfig {
+                        id: sid.clone(),
+                        params: Default::default(), // 缺省参数（各策略 schema 默认值）
+                        stocks: meta.2.clone(),
+                        weight: 1.0,
+                    })
+                    .collect();
+                if configs.is_empty() {
+                    continue;
+                }
+                live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+            }
+            let codes = live.orchestrator.as_ref().expect("已配置").stocks();
+            targets.push(FeedTarget { session_id: id.clone(), period: meta.0, codes });
+        }
+        Ok(targets)
     }
 
     /// 统一交易开关：`enabled` 且某 stock 聚合评分达做多/卖阈值 → 下模拟单；disabled → 只评估/评分不入单。
@@ -611,6 +678,7 @@ impl SimLiveService {
                             filled_qty: fill.qty,
                             fee: fill.fee,
                             ts,
+                            source: "aggregate_strategy".into(),
                         });
                         let positions = live.manager.positions();
                         did_order = true;

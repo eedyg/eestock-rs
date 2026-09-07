@@ -16,3 +16,66 @@
 - 2026-09-04T09:55:13.220Z  [cleanup] code=510300  before={"symbols":0,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0} after={"symbols":0,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0}（全表归零复核）
 - 2026-09-04T11:53:13.206Z  [cleanup] code=510300  before={"symbols":1,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0} after={"symbols":0,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0}（全表归零复核）
 - 2026-09-04T11:53:14.622Z  [cleanup] code=510300  before={"symbols":0,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0} after={"symbols":0,"kline_raw":0,"kline_accurate":0,"source_health_events":0,"alert_events":0}（全表归零复核）
+- 2026-09-07T07:45:20.327Z  [sim-cleanup] name~e2e-deep-a2-mtqxrbbo1%  删除会话 id=s_1788767120_3（级联 result/trades/positions）
+- 2026-09-07T07:45:28.826Z  [sim-cleanup] name~e2e-deep-a2-mtqxrhvs1%  删除会话 id=s_1788767128_4（级联 result/trades/positions）
+- 2026-09-07T07:45:29.175Z  [sim-cleanup] name~e2e-deep-a3-mtqxri102%  删除会话 id=s_1788767128_5（级联 result/trades/positions）
+- 2026-09-07T07:45:29.475Z  [sim-cleanup] name~e2e-deep-a4-mtqxriam3%  删除会话 id=s_1788767129_6（级联 result/trades/positions）
+- 2026-09-07T07:45:29.702Z  [sim-cleanup] name~e2e-deep-a5-mtqxriki4%  删除会话 id=s_1788767129_7（级联 result/trades/positions）
+- 2026-09-07T07:45:29.857Z  [sim-cleanup] name~e2e-deep-a6-mtqxrip85%  删除会话 id=s_1788767129_8（级联 result/trades/positions）
+- 2026-09-07T07:45:30.155Z  [sim-cleanup] name~e2e-deep-a7-mtqxritk6%  删除会话 id=s_1788767129_9（级联 result/trades/positions）
+- 2026-09-07T07:45:33.305Z  [sim-cleanup] name~e2e-deep-a8-mtqxrj1s7%  删除会话 id=s_1788767130_10（级联 result/trades/positions）
+- 2026-09-07T07:45:39.660Z  [sim-cleanup] name~e2e-deep-b2-mtqxrlr38%  删除会话 id=s_1788767133_11（级联 result/trades/positions）
+- 2026-09-07T07:45:50.823Z  [sim-cleanup] name~e2e-deep-b3-mtqxrqh99%  删除会话 id=s_1788767139_12（级联 result/trades/positions）
+- 2026-09-07T07:45:56.952Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767150_13（级联 result/trades/positions）
+- 2026-09-07T07:45:56.974Z  [bt-cleanup] run_id∈[590,591]  删除对比 run（590
+591）
+- 2026-09-07T07:46:03.535Z  [sim-cleanup] name~e2e-deep-b5-mtqxs43e1%  删除会话 id=s_1788767157_14（级联 result/trades/positions）
+- 2026-09-07T07:46:09.654Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767163_15（级联 result/trades/positions）
+- 2026-09-07T07:46:21.263Z  [sim-cleanup] name~e2e-deep-b7-mtqxsdvb1%  删除会话 id=s_1788767170_16（级联 result/trades/positions）
+- 2026-09-07T07:46:27.689Z  [sim-cleanup] name~e2e-deep-b8-mtqxsmkn2%  删除会话 id=s_1788767181_17
+s_1788767187_18（级联 result/trades/positions）
+- 2026-09-07T07:46:38.793Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767187_19（级联 result/trades/positions）
+- 2026-09-07T07:46:38.815Z  [bt-cleanup] run_id∈[592]  删除对比 run（592）
+- 2026-09-07T07:46:47.872Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767201_20（级联 result/trades/positions）
+- 2026-09-07T07:46:54.338Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767208_21（级联 result/trades/positions）
+- 2026-09-07T07:48:34.613Z  [sim-cleanup] name~e2e-deep-b4-mtqxv9eq1%  删除会话 id=s_1788767304_24（级联 result/trades/positions）
+- 2026-09-07T07:48:45.728Z  [sim-cleanup] name~e2e-deep-b6-mtqxvhgg2%  删除会话 id=s_1788767314_25（级联 result/trades/positions）
+- 2026-09-07T07:48:50.801Z  [sim-cleanup] name~e2e-deep-a2-mtqxvtqa1%  删除会话 id=s_1788767330_26（级联 result/trades/positions）
+- 2026-09-07T07:48:51.148Z  [sim-cleanup] name~e2e-deep-a3-mtqxvtvf2%  删除会话 id=s_1788767330_27（级联 result/trades/positions）
+- 2026-09-07T07:48:51.439Z  [sim-cleanup] name~e2e-deep-a4-mtqxvu4y3%  删除会话 id=s_1788767331_28（级联 result/trades/positions）
+- 2026-09-07T07:48:51.654Z  [sim-cleanup] name~e2e-deep-a5-mtqxvuek4%  删除会话 id=s_1788767331_29（级联 result/trades/positions）
+- 2026-09-07T07:48:51.793Z  [sim-cleanup] name~e2e-deep-a6-mtqxvuj05%  删除会话 id=s_1788767331_30（级联 result/trades/positions）
+- 2026-09-07T07:48:52.084Z  [sim-cleanup] name~e2e-deep-a7-mtqxvumu6%  删除会话 id=s_1788767331_31（级联 result/trades/positions）
+- 2026-09-07T07:48:55.226Z  [sim-cleanup] name~e2e-deep-a8-mtqxvuux7%  删除会话 id=s_1788767332_32（级联 result/trades/positions）
+- 2026-09-07T07:49:01.548Z  [sim-cleanup] name~e2e-deep-b2-mtqxvxj78%  删除会话 id=s_1788767335_33（级联 result/trades/positions）
+- 2026-09-07T07:49:12.664Z  [sim-cleanup] name~e2e-deep-b3-mtqxw2909%  删除会话 id=s_1788767341_34（级联 result/trades/positions）
+- 2026-09-07T07:49:23.114Z  [sim-cleanup] name~e2e-deep-b4-mtqxwatt10%  删除会话 id=s_1788767352_35（级联 result/trades/positions）
+- 2026-09-07T07:49:29.325Z  [sim-cleanup] name~e2e-deep-b5-mtqxwiw711%  删除会话 id=s_1788767363_36（级联 result/trades/positions）
+- 2026-09-07T07:49:40.446Z  [sim-cleanup] name~e2e-deep-b6-mtqxwnoa12%  删除会话 id=s_1788767369_37（级联 result/trades/positions）
+- 2026-09-07T07:49:51.709Z  [sim-cleanup] name~e2e-deep-b7-mtqxww9o13%  删除会话 id=s_1788767380_38（级联 result/trades/positions）
+- 2026-09-07T07:49:58.128Z  [sim-cleanup] name~e2e-deep-b8-mtqxx4yc14%  删除会话 id=s_1788767391_39
+s_1788767398_40（级联 result/trades/positions）
+- 2026-09-07T07:50:09.207Z  [sim-cleanup] name~e2e-deep%  删除会话 id=s_1788767398_41（级联 result/trades/positions）
+- 2026-09-07T07:50:09.226Z  [bt-cleanup] run_id∈[593,594,595]  删除对比 run（594
+595
+593）
+- 2026-09-07T07:50:48.510Z  [sim-cleanup] name~e2e-deep-c1-mtqxy49w1%  删除会话 id=s_1788767437_42（级联 result/trades/positions）
+- 2026-09-07T07:50:52.075Z  [sim-cleanup] name~e2e-deep-a2-mtqxyfaz1%  删除会话 id=s_1788767451_43（级联 result/trades/positions）
+- 2026-09-07T07:50:52.419Z  [sim-cleanup] name~e2e-deep-a3-mtqxyfg52%  删除会话 id=s_1788767452_44（级联 result/trades/positions）
+- 2026-09-07T07:50:52.711Z  [sim-cleanup] name~e2e-deep-a4-mtqxyfpm3%  删除会话 id=s_1788767452_45（级联 result/trades/positions）
+- 2026-09-07T07:50:52.925Z  [sim-cleanup] name~e2e-deep-a5-mtqxyfz94%  删除会话 id=s_1788767452_46（级联 result/trades/positions）
+- 2026-09-07T07:50:53.066Z  [sim-cleanup] name~e2e-deep-a6-mtqxyg3n5%  删除会话 id=s_1788767452_47（级联 result/trades/positions）
+- 2026-09-07T07:50:53.360Z  [sim-cleanup] name~e2e-deep-a7-mtqxyg7k6%  删除会话 id=s_1788767453_48（级联 result/trades/positions）
+- 2026-09-07T07:50:56.503Z  [sim-cleanup] name~e2e-deep-a8-mtqxygfp7%  删除会话 id=s_1788767453_49（级联 result/trades/positions）
+- 2026-09-07T07:51:02.811Z  [sim-cleanup] name~e2e-deep-b2-mtqxyj418%  删除会话 id=s_1788767456_50（级联 result/trades/positions）
+- 2026-09-07T07:51:13.926Z  [sim-cleanup] name~e2e-deep-b3-mtqxyntf9%  删除会话 id=s_1788767462_51（级联 result/trades/positions）
+- 2026-09-07T07:51:24.354Z  [sim-cleanup] name~e2e-deep-b4-mtqxywe710%  删除会话 id=s_1788767474_52（级联 result/trades/positions）
+- 2026-09-07T07:51:30.540Z  [sim-cleanup] name~e2e-deep-b5-mtqxz4fj11%  删除会话 id=s_1788767484_53（级联 result/trades/positions）
+- 2026-09-07T07:51:41.658Z  [sim-cleanup] name~e2e-deep-b6-mtqxz97d12%  删除会话 id=s_1788767490_54（级联 result/trades/positions）
+- 2026-09-07T07:51:52.921Z  [sim-cleanup] name~e2e-deep-b7-mtqxzhsk13%  删除会话 id=s_1788767501_55（级联 result/trades/positions）
+- 2026-09-07T07:51:59.341Z  [sim-cleanup] name~e2e-deep-b8-mtqxzqh414%  删除会话 id=s_1788767513_56
+s_1788767519_57（级联 result/trades/positions）
+- 2026-09-07T07:52:10.356Z  [sim-cleanup] name~e2e-deep-c1-mtqxzvft15%  删除会话 id=s_1788767519_58（级联 result/trades/positions）
+- 2026-09-07T07:52:10.486Z  [bt-cleanup] run_id∈[596,597,598]  删除对比 run（597
+598
+596）

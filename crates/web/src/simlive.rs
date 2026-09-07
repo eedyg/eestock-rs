@@ -205,11 +205,18 @@ pub async fn cancel_order(
 }
 
 /// POST /api/sim-live/start-session —— 开模拟会话（body = StartSessionReq）。
+/// O1：已有 running 会话时 → 409（防多 running；`SimLiveService::start_session` 返回 `AlreadyRunning`）。
 pub async fn start_session(State(st): State<Arc<AppState>>, Json(body): Json<StartSessionReq>) -> Response {
     let sim = match sim_service(&st) { Ok(s) => s, Err(e) => return e };
     match sim.start_session(&body).await {
         Ok(view) => Json(serde_json::json!({ "started": true, "session": view })).into_response(),
-        Err(e) => internal(e),
+        Err(e) => {
+            if e.downcast_ref::<application::simlive::AlreadyRunning>().is_some() {
+                err(StatusCode::CONFLICT, "已有运行中会话，请先停止会话再开始（单运行会话约束）")
+            } else {
+                internal(e)
+            }
+        }
     }
 }
 
