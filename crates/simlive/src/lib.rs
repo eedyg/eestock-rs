@@ -7,10 +7,16 @@
 pub mod account;
 pub mod fill;
 pub mod session;
+pub mod strategy_orchestrator;
 
 pub use account::{Position, SimAccount, SimPosition};
 pub use fill::{Fill, FillEngine, IntentId, Order, Side, SimTrade};
 pub use session::{
     OrderStatus, SessionManager, SessionState, SessionStatus, SimOrder, SimSession,
-    StrategySignal,
+    SignalEvent, StrategySignal,
+};
+pub use strategy_orchestrator::{
+    DEFAULT_BUY_LONG_THRESHOLD, DEFAULT_SELL_THRESHOLD, NEUTRAL_SCORE,
+    RealtimeStrategyOrchestrator, StockEvaluation, StrategyConfig, StrategyScore,
+    aggregate_to_signal, signal_str, signal_to_score, weighted_aggregate,
 };

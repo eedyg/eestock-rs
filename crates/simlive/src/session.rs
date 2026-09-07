@@ -91,6 +91,23 @@ pub struct StrategySignal {
     pub aggregate_score: f64,
 }
 
+/// 会话内信号事件（ADR §10 事件流；L2 每评估一次产出一条）。
+/// `ordered` 表示该次评估是否因聚合信号触发下模拟单（由 application 层判定）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SignalEvent {
+    pub ts: i64,
+    pub code: String,
+    pub strategy_id: String,
+    /// 该策略对该标的的独立评分 0-100。
+    pub score: f64,
+    /// 方向信号：buy / sell / hold。
+    pub signal: String,
+    /// 该标的本次聚合评分 0-100。
+    pub aggregate_score: f64,
+    /// 是否因此触发下模拟单。
+    pub ordered: bool,
+}
+
 /// 会话状态快照（get_state 返回；供 MCP/web 查询）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
@@ -104,6 +121,7 @@ pub struct SessionState {
     pub positions: Vec<Position>,
     pub net_value_series: Vec<(i64, f64)>,
     pub trades: Vec<SimTrade>,
+    pub signal_events: Vec<SignalEvent>,
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -114,6 +132,7 @@ pub struct SessionManager {
     session: Option<SimSession>,
     net_value_series: Vec<(i64, f64)>,
     trades: Vec<SimTrade>,
+    signal_events: Vec<SignalEvent>,
 }
 
 impl Default for SessionManager {
@@ -129,6 +148,7 @@ impl SessionManager {
             session: None,
             net_value_series: Vec::new(),
             trades: Vec::new(),
+            signal_events: Vec::new(),
         }
     }
 
@@ -161,6 +181,7 @@ impl SessionManager {
         self.session = Some(session.clone());
         self.net_value_series.clear();
         self.trades.clear();
+        self.signal_events.clear();
         // 记录初始净值点（现金 = cash_init，市值 0）。
         self.record_net_value(start_ts);
         session
@@ -177,6 +198,16 @@ impl SessionManager {
 
     pub fn trades(&self) -> &[SimTrade] {
         &self.trades
+    }
+
+    /// 记录一个信号事件（L2 事件流：每评估一次 append 一条）。
+    pub fn record_signal_event(&mut self, event: SignalEvent) {
+        self.signal_events.push(event);
+    }
+
+    /// 会话信号事件列表（L2；供 MCP/web 查询）。
+    pub fn signal_events(&self) -> &[SignalEvent] {
+        &self.signal_events
     }
 
     /// 记净值：打市值后追加 `(ts, equity)` 到净值序列（并返回）。`latest` 空 = 沿用上次价。
@@ -217,6 +248,7 @@ impl SessionManager {
             positions: self.account.positions.values().cloned().collect(),
             net_value_series: self.net_value_series.clone(),
             trades: self.trades.clone(),
+            signal_events: self.signal_events.clone(),
         })
     }
 
@@ -316,5 +348,36 @@ mod tests {
         assert_eq!(pos[0].code, "510300");
         close(pos[0].qty, 1000.0);
         close(pos[0].avg_cost, 10.0);
+    }
+
+    /// 事件流：record_signal_event 追加到会话，get_state 可读，start_session 重置。
+    #[test]
+    fn signal_event_recorded_reset_on_start() {
+        let mut m = SessionManager::new();
+        m.start_session("test", 100_000.0, vec![], vec![], "M1", 1000, "manual");
+        assert!(m.signal_events().is_empty());
+
+        let ev = SignalEvent {
+            ts: 1001,
+            code: "510300".into(),
+            strategy_id: "dual_ma".into(),
+            score: 100.0,
+            signal: "buy".into(),
+            aggregate_score: 80.0,
+            ordered: true,
+        };
+        m.record_signal_event(ev.clone());
+        assert_eq!(m.signal_events().len(), 1);
+        assert_eq!(m.signal_events()[0], ev);
+
+        let st = m.get_state().unwrap();
+        assert_eq!(st.signal_events.len(), 1);
+        assert_eq!(st.signal_events[0].strategy_id, "dual_ma");
+        assert_eq!(st.signal_events[0].aggregate_score, 80.0);
+        assert!(st.signal_events[0].ordered);
+
+        // 重新 start → 事件流清空。
+        m.start_session("test2", 50_000.0, vec![], vec![], "M1", 2000, "manual");
+        assert!(m.signal_events().is_empty());
     }
 }

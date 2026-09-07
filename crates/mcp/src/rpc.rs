@@ -110,7 +110,8 @@ mod tests {
             .iter().map(|t| t["name"].as_str().unwrap()).collect();
         assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality",
             "sim_start_session", "sim_stop_session", "sim_get_account", "sim_get_positions",
-            "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order"]);
+            "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
+            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();

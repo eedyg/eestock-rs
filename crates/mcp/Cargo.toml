@@ -27,3 +27,6 @@ storage = { path = "../storage" }
 sqlx.workspace = true
 reqwest.workspace = true
 async-trait.workspace = true
+# 11-sim-live / L2：sim_* 策略工具测试需要构造 StrategyConfig（backtest::ParamValue）+ simlive 类型；仅 dev 侧。
+backtest = { path = "../backtest" }
+simlive = { path = "../simlive" }

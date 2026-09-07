@@ -13,6 +13,8 @@ use domain::ports::{
 };
 
 use application::simlive::{PlaceOrderReq, SimLiveService, StartSessionReq};
+use backtest::{Bar, ParamValue};
+use simlive::StrategyConfig;
 
 /// 固定时钟（确定性；11-sim-live 会话/成交 ts 全部来自此）。
 struct FixedClock(DateTime<Utc>);
@@ -354,3 +356,137 @@ async fn unknown_session_errors() {
 
 /// 常量镜像 DEFAULT_CASH_INIT（测试断言用）。
 const DEFAULT_CASH: f64 = 1_000_000.0;
+
+// ── 11-sim-live / L2：RealtimeStrategyOrchestrator 联动（固定 bar，无实时 DB）──
+
+fn num_params(pairs: &[(&str, f64)]) -> std::collections::HashMap<String, ParamValue> {
+    pairs
+        .iter()
+        .map(|(k, v)| (k.to_string(), ParamValue::Num(*v)))
+        .collect()
+}
+
+fn dma_bar(ts: i64, close: f64) -> Bar {
+    Bar { ts, open: close, high: close * 1.01, low: close * 0.99, close, volume: 10_000.0 }
+}
+
+/// 配置一个会产生「金叉买入」的编排器（dual_ma fast=2 slow=3，序列末 bar 金叉）。
+async fn configured_buy_service(store: Arc<MockSimStore>) -> (SimLiveService, String) {
+    let (svc, id) = started(store.clone()).await;
+    let configs = vec![StrategyConfig {
+        id: "dual_ma".into(),
+        params: num_params(&[("fast", 2.0), ("slow", 3.0)]),
+        stocks: vec!["510300".into()],
+        weight: 1.0,
+    }];
+    svc.configure_strategies(&id, configs).unwrap();
+    (svc, id)
+}
+
+/// 先低后高序列 → dual_ma 于末 bar（ts=103）金叉 → Buy(100)。返回逐 bar。
+fn golden_buy_bars() -> Vec<Bar> {
+    vec![dma_bar(100, 12.0), dma_bar(101, 8.0), dma_bar(102, 9.0), dma_bar(103, 14.0)]
+}
+
+/// 喂入全部 bar，返回最后一次 process_bar 的事件。
+async fn feed_all(svc: &SimLiveService, id: &str, bars: &[Bar]) -> Vec<simlive::SignalEvent> {
+    let mut last = Vec::new();
+    for b in bars {
+        last = svc.process_bar(id, "510300", b.clone()).await.unwrap();
+    }
+    last
+}
+
+#[tokio::test]
+async fn set_trading_on_and_buy_threshold_places_aggregate_order() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = configured_buy_service(store.clone()).await;
+    assert!(svc.set_trading(&id, true).unwrap(), "开关打开返回 true");
+    assert!(svc.trading_enabled(&id).unwrap(), "查询开关态 true");
+
+    let last_events = feed_all(&svc, &id, &golden_buy_bars()).await;
+
+    // 达做多阈值 → 下单（source=aggregate_strategy）。
+    let pos = svc.get_positions(&id).unwrap();
+    assert_eq!(pos.len(), 1, "建立持仓");
+    assert_eq!(pos[0].code, "510300");
+    close(pos[0].qty, 100.0); // DEFAULT_AGGREGATE_QTY
+
+    // 落库一笔成交（source=aggregate_strategy）。
+    let trades = store.trades.lock().unwrap();
+    assert_eq!(trades.len(), 1);
+    assert_eq!(trades[0].source, "aggregate_strategy");
+    assert_eq!(trades[0].code, "510300");
+
+    // 事件流：末 bar 两策略事件均 ordered=true，聚合分=100。
+    assert_eq!(last_events.len(), 1, "仅一个策略覆盖该 stock");
+    assert_eq!(last_events[0].strategy_id, "dual_ma");
+    assert!(last_events[0].ordered);
+    close(last_events[0].aggregate_score, 100.0);
+    assert_eq!(last_events[0].signal, "buy");
+    assert_eq!(last_events[0].code, "510300");
+}
+
+#[tokio::test]
+async fn set_trading_off_only_scores_no_order() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = configured_buy_service(store.clone()).await;
+    // 关闭（默认也 off）：只评估/评分，不入单。
+    assert!(!svc.set_trading(&id, false).unwrap(), "开关关闭返回 false");
+    assert!(!svc.trading_enabled(&id).unwrap());
+
+    let last_events = feed_all(&svc, &id, &golden_buy_bars()).await;
+
+    assert!(last_events.iter().all(|e| !e.ordered), "off 时不下单");
+    close(last_events[0].aggregate_score, 100.0);
+    assert_eq!(svc.get_positions(&id).unwrap().len(), 0, "无持仓");
+    assert!(store.trades.lock().unwrap().is_empty(), "无成交落库");
+}
+
+#[tokio::test]
+async fn trading_on_no_threshold_no_order() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = configured_buy_service(store.clone()).await;
+    svc.set_trading(&id, true).unwrap();
+    // 单调上涨但无「升级金叉」（首根即有 prev_above=None → Hold；后续一直 above → Hold）。
+    let bars = vec![dma_bar(100, 10.0), dma_bar(101, 11.0), dma_bar(102, 12.0), dma_bar(103, 13.0)];
+    let last = feed_all(&svc, &id, &bars).await;
+    assert!(last.iter().all(|e| !e.ordered), "未达做多阈值不下单");
+    assert_eq!(svc.get_positions(&id).unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn get_strategy_signal_and_analysis_return_evaluations() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = configured_buy_service(store.clone()).await;
+    feed_all(&svc, &id, &golden_buy_bars()).await;
+
+    let sig = svc.get_strategy_signal(&id, "510300").unwrap().expect("有评估");
+    close(sig.aggregate_score, 100.0);
+    assert_eq!(sig.signal, "buy");
+    assert_eq!(sig.per_strategy_scores.len(), 1);
+    assert_eq!(sig.per_strategy_scores[0].strategy_id, "dual_ma");
+    close(sig.per_strategy_scores[0].score, 100.0);
+    close(sig.latest_price, 14.0);
+
+    // 未覆盖标的不评估。
+    assert!(svc.get_strategy_signal(&id, "999999").unwrap().is_none());
+
+    let analysis = svc.get_strategy_analysis(&id).unwrap();
+    assert_eq!(analysis.len(), 1);
+    assert_eq!(analysis[0].code, "510300");
+}
+
+#[tokio::test]
+async fn process_bar_unconfigured_errors_and_unknown_stock_no_event() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = started(store.clone()).await;
+    // 未配置编排器 → Err。
+    let r = svc.process_bar(&id, "510300", dma_bar(100, 10.0)).await;
+    assert!(r.is_err(), "未配置策略应 Err");
+
+    let (svc2, id2) = configured_buy_service(store).await;
+    // 已配置但未覆盖的标的 → Ok(空事件)。
+    let ev = svc2.process_bar(&id2, "999999", dma_bar(100, 10.0)).await.unwrap();
+    assert!(ev.is_empty(), "未覆盖标的无事件");
+}

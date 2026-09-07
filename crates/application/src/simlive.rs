@@ -17,15 +17,19 @@ use domain::ports::{
     Clock, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionStore,
     SimSessionStatus, SimSessionView,
 };
+use backtest::Bar;
 use serde::{Deserialize, Serialize};
 use simlive::{
-    Fill, FillEngine, Order, OrderStatus, SessionManager, Side, SimOrder, SimSession, SimTrade,
+    Fill, FillEngine, Order, OrderStatus, RealtimeStrategyOrchestrator, SessionManager, Side,
+    SignalEvent, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation, StrategyConfig,
 };
 
 static NEXT_ORDER_ID: AtomicU64 = AtomicU64::new(0);
 
 /// 默认初始资金（ADR 11-sim-live §5：1_000_000）。
 pub const DEFAULT_CASH_INIT: f64 = 1_000_000.0;
+/// 聚合策略默认开仓数量（每股；L2 简化来源 aggregate_strategy）。
+pub const DEFAULT_AGGREGATE_QTY: f64 = 100.0;
 
 /// 启动会话请求。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -115,6 +119,10 @@ struct LiveSession {
     orders: Vec<SimOrder>,
     intent_seen: HashSet<String>,
     intent_fills: Map<String, Fill>,
+    /// 实时策略编排器（L2；每新 bar 评估/评分/聚合）。
+    orchestrator: Option<RealtimeStrategyOrchestrator>,
+    /// 统一交易开关（L2；enabled 且聚合达阈值才下模拟单；disabled 只评估/评分）。
+    trading_enabled: bool,
 }
 
 /// 模拟实盘服务。
@@ -123,6 +131,8 @@ pub struct SimLiveService {
     clock: Arc<dyn Clock>,
     fee: FeeModel,
     default_cash: f64,
+    /// 聚合策略开仓数量（每股；L2 简化，来源标识 aggregate_strategy）。
+    aggregate_qty: f64,
     sessions: Mutex<Map<String, LiveSession>>,
 }
 
@@ -133,6 +143,7 @@ impl SimLiveService {
             clock,
             fee,
             default_cash: DEFAULT_CASH_INIT,
+            aggregate_qty: DEFAULT_AGGREGATE_QTY,
             sessions: Mutex::new(Map::new()),
         }
     }
@@ -175,6 +186,8 @@ impl SimLiveService {
                 orders: Vec::new(),
                 intent_seen: HashSet::new(),
                 intent_fills: Map::new(),
+                orchestrator: None,
+                trading_enabled: false,
             },
         );
         Ok(to_session_view(&session))
@@ -422,6 +435,186 @@ impl SimLiveService {
         let mut sessions = self.sessions.lock().expect("sessions poisoned");
         let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
         Ok(live.manager.tick(ts, latest))
+    }
+
+    // ── 11-sim-live / L2：多策略实时评分 + 聚合 + 统一交易开关 + 事件流 ──
+
+    /// 配置实时策略编排器（3 策略实例 × 其标的集/weight；复用 backtest 内建策略）。
+    pub fn configure_strategies(&self, session_id: &str, configs: Vec<StrategyConfig>) -> anyhow::Result<()> {
+        let mut sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+        Ok(())
+    }
+
+    /// 统一交易开关：`enabled` 且某 stock 聚合评分达做多/卖阈值 → 下模拟单；disabled → 只评估/评分不入单。
+    /// 仅影响聚合策略驱动的下单（source=aggregate_strategy），不影响手动 `place_order`。返回新开关态。
+    pub fn set_trading(&self, session_id: &str, enabled: bool) -> anyhow::Result<bool> {
+        let mut sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        live.trading_enabled = enabled;
+        Ok(enabled)
+    }
+
+    /// 当前统一交易开关态。
+    pub fn trading_enabled(&self, session_id: &str) -> anyhow::Result<bool> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        Ok(live.trading_enabled)
+    }
+
+    /// 喂入一根新 bar（实时行情），每策略×标的评估+聚合评分；若 `trading_enabled` 且聚合达阈值 → 经 FillEngine
+    /// 下模拟单（同一会话/账户，source=aggregate_strategy），并把每信号事件 append 到会话事件流。
+    /// 返回本次产出的信号事件（`ordered` 标记该 stock 是否因此下单）。
+    pub async fn process_bar(&self, session_id: &str, code: &str, bar: Bar) -> anyhow::Result<Vec<SignalEvent>> {
+        let ts = self.clock.now().timestamp();
+
+        // 锁内：喂 bar → 评估 → 决定下单 → 记录信号事件。
+        let (events, persist) = {
+            let mut sessions = self.sessions.lock().expect("sessions poisoned");
+            let Some(live) = sessions.get_mut(session_id) else {
+                return Err(anyhow!("会话不存在：{session_id}"));
+            };
+            let Some(orch) = live.orchestrator.as_mut() else {
+                return Err(anyhow!("会话未配置策略（先 configure_strategies）：{session_id}"));
+            };
+            // 未覆盖标的 → 不评估（仍记录行情）。
+            let Some(eval) = orch.feed_bar(code, bar) else {
+                return Ok(Vec::new());
+            };
+
+            let mut did_order = false;
+            let mut persist: Option<(SimTrade, Vec<SimPosition>)> = None;
+            if live.trading_enabled {
+                let held = live
+                    .manager
+                    .account
+                    .positions
+                    .get(&eval.code)
+                    .map(|p| p.qty)
+                    .unwrap_or(0.0);
+                // 建仓：已有持仓不重复叠单；平仓：清全部持仓（source=aggregate_strategy）。
+                let order = match eval.signal.as_str() {
+                    "buy" if held <= 0.0 => Some(Order {
+                        code: eval.code.clone(),
+                        side: Side::Buy,
+                        qty: self.aggregate_qty,
+                        limit_price: None,
+                    }),
+                    "sell" if held > 0.0 => Some(Order {
+                        code: eval.code.clone(),
+                        side: Side::Sell,
+                        qty: held,
+                        limit_price: None,
+                    }),
+                    _ => None,
+                };
+                if let Some(order) = order {
+                    if let Some(fill) = live.fill_engine.try_fill(&order, eval.latest_price) {
+                        live.manager.account.apply_fill(&fill)?;
+                        let trade = SimTrade {
+                            code: fill.code.clone(),
+                            side: fill.side,
+                            qty: fill.qty,
+                            price: fill.price,
+                            ts,
+                            fee: fill.fee,
+                            source: "aggregate_strategy".into(),
+                        };
+                        live.manager.record_trade(trade.clone());
+                        let order_id = new_order_id(ts);
+                        live.orders.push(SimOrder {
+                            id: order_id,
+                            session_id: session_id.into(),
+                            intent_id: None,
+                            code: fill.code.clone(),
+                            side: fill.side,
+                            qty: fill.qty,
+                            limit_price: None,
+                            status: OrderStatus::Filled,
+                            filled_price: Some(fill.price),
+                            filled_qty: fill.qty,
+                            fee: fill.fee,
+                            ts,
+                        });
+                        let positions = live.manager.positions();
+                        did_order = true;
+                        persist = Some((trade, positions));
+                    }
+                }
+            }
+
+            let events: Vec<SignalEvent> = eval
+                .per_strategy_scores
+                .iter()
+                .map(|s| SignalEvent {
+                    ts: eval.ts,
+                    code: eval.code.clone(),
+                    strategy_id: s.strategy_id.clone(),
+                    score: s.score,
+                    signal: s.signal.clone(),
+                    aggregate_score: eval.aggregate_score,
+                    ordered: did_order,
+                })
+                .collect();
+            for e in &events {
+                live.manager.record_signal_event(e.clone());
+            }
+            (events, persist)
+        };
+
+        // 锁外持久化（仅成交才写成交明细/持仓）。
+        if let Some((trade, positions)) = persist {
+            self.store
+                .append_trade(&NewSimTrade {
+                    session_id: session_id.into(),
+                    code: trade.code.clone(),
+                    side: trade.side.as_str().into(),
+                    qty: trade.qty,
+                    price: trade.price,
+                    ts: DateTime::from_timestamp(trade.ts, 0).unwrap_or_else(|| self.clock.now()),
+                    fee: trade.fee,
+                    source: trade.source,
+                })
+                .await?;
+            let rows: Vec<SimPositionRow> = positions
+                .into_iter()
+                .map(|p| SimPositionRow {
+                    session_id: session_id.into(),
+                    code: p.code,
+                    qty: p.qty,
+                    avg_cost: p.avg_cost,
+                })
+                .collect();
+            self.store.update_positions(session_id, &rows).await?;
+        }
+        Ok(events)
+    }
+
+    /// 查询某标的最近一次策略评估（聚合分 + 各策略独立分）；未评估/未知 → Ok(None)。
+    pub fn get_strategy_signal(&self, session_id: &str, code: &str) -> anyhow::Result<Option<StockEvaluation>> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        Ok(live
+            .orchestrator
+            .as_ref()
+            .and_then(|o| o.latest_evaluation(code).cloned()))
+    }
+
+    /// 全部标的最近评估概览（多 stock 评估；无编排器 → 空）。
+    pub fn get_strategy_analysis(&self, session_id: &str) -> anyhow::Result<Vec<StockEvaluation>> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        Ok(live
+            .orchestrator
+            .as_ref()
+            .map(|o| o.all_evaluations().into_iter().cloned().collect())
+            .unwrap_or_default())
+    }
+
+    /// 内置策略清单 + 参数 schema（供 MCP sim_list_strategies；复用 backtest 目录）。
+    pub fn list_builtin_strategies(&self) -> anyhow::Result<Vec<backtest::StrategyResult>> {
+        Ok(backtest::builtin_strategy_catalog())
     }
 }
 

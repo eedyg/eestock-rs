@@ -166,6 +166,37 @@ pub fn tool_list() -> Value {
                     },
                     "required": ["session_id", "order_id"]
                 }
+            },
+            {
+                "name": "sim_list_strategies",
+                "description": "模拟实盘，不触真实券商：内置策略清单 + 参数 schema（id/name/description/params_schema）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "strategy_id": { "type": "string", "description": "可选：仅返回指定策略" }
+                    }
+                }
+            },
+            {
+                "name": "sim_get_strategy_signal",
+                "description": "模拟实盘，不触真实券商：查询单标的当前策略信号（聚合分 + 各策略独立分 + 信号/最新价）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": { "type": "string" },
+                        "code": { "type": "string", "description": "6 位标的代码" }
+                    },
+                    "required": ["session_id", "code"]
+                }
+            },
+            {
+                "name": "sim_get_strategy_analysis",
+                "description": "模拟实盘，不触真实券商：多标的评估概览（每标的聚合分 + 各策略独立分）。",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "session_id": { "type": "string" } },
+                    "required": ["session_id"]
+                }
             }
         ]
     })
@@ -193,6 +224,9 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "sim_get_pnl" => sim_get_pnl(st, id, &args),
         "sim_place_order" => sim_place_order(st, id, &args).await,
         "sim_cancel_order" => sim_cancel_order(st, id, &args).await,
+        "sim_list_strategies" => sim_list_strategies(st, id, &args),
+        "sim_get_strategy_signal" => sim_get_strategy_signal(st, id, &args),
+        "sim_get_strategy_analysis" => sim_get_strategy_analysis(st, id, &args),
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -439,6 +473,50 @@ async fn sim_cancel_order(st: &McpState, id: Option<Value>, args: &Value) -> Val
     }
 }
 
+/// sim_list_strategies(strategy_id?)：内置策略清单 + 参数 schema。
+fn sim_list_strategies(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let filter = args.get("strategy_id").and_then(Value::as_str);
+    match sim.list_builtin_strategies() {
+        Ok(mut catalog) => {
+            if let Some(fid) = filter {
+                catalog.retain(|s| s.id == fid);
+            }
+            tool_ok(id, &serde_json::to_value(&catalog).unwrap_or_else(|_| json!([])))
+        }
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_strategy_signal(session_id, code)：单标的当前策略信号（聚合分 + 各策略独立分）。
+fn sim_get_strategy_signal(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
+        return result_err(id, INVALID_PARAMS, "code 必填（非空 string）");
+    };
+    match sim.get_strategy_signal(session_id, code) {
+        Ok(Some(eval)) => tool_ok(id, &serde_json::to_value(&eval).unwrap_or_else(|_| json!({}))),
+        Ok(None) => tool_ok(id, &json!({ "session_id": session_id, "code": code, "evaluation": null })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// sim_get_strategy_analysis(session_id)：多标的评估概览。
+fn sim_get_strategy_analysis(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = args.get("session_id").and_then(Value::as_str) else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填");
+    };
+    match sim.get_strategy_analysis(session_id) {
+        Ok(evals) => tool_ok(id, &json!({ "session_id": session_id,
+            "evaluations": serde_json::to_value(&evals).unwrap_or_else(|_| json!([])) })),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
 /// 解析字符串数组参数（缺省/非数组 → 空）。
 fn str_array(args: &Value, key: &str) -> Vec<String> {
     args.get(key)
@@ -468,7 +546,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 11, "3 只读工具 + 8 模拟实盘工具（11-sim-live / L1）");
+        assert_eq!(tools.len(), 14, "3 只读工具 + 8 模拟实盘 L1 + 3 策略工具 L2（11-sim-live L1/L2）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -480,7 +558,8 @@ mod tests {
         // 模拟实盘工具（11-sim-live / L1）
         let sim_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("sim_")).collect();
         assert_eq!(sim_names, vec!["sim_start_session", "sim_stop_session", "sim_get_account",
-            "sim_get_positions", "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order"]);
+            "sim_get_positions", "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
+            "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis"]);
         // 每个 sim 工具 description 均注明「模拟实盘，不触真实券商」
         for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("sim_")) {
             assert!(t["description"].as_str().unwrap().contains("模拟实盘，不触真实券商"),
@@ -773,6 +852,87 @@ mod tests {
             let r = call(&st, "sim_place_order", args.clone()).await;
             assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
         }
+    }
+
+    // ── 11-sim-live / L2：sim_* 策略工具（sim_list_strategies / sim_get_strategy_signal / sim_get_strategy_analysis）──
+
+    #[tokio::test]
+    async fn sim_list_strategies_returns_catalog() {
+        let st = sim_state();
+        let r = call(&st, "sim_list_strategies", json!({})).await;
+        let p = payload_of(&r);
+        let arr = p.as_array().expect("策略清单为数组");
+        assert!(arr.len() >= 7, "至少 7 款内建策略");
+        assert!(arr.iter().all(|s| s["id"].is_string()
+            && s["name"].is_string()
+            && s["params_schema"].is_array()), "每项含 id/name/params_schema");
+        assert_eq!(arr[0]["id"], "dual_ma");
+    }
+
+    #[tokio::test]
+    async fn sim_list_strategies_filter_by_id() {
+        let st = sim_state();
+        let r = call(&st, "sim_list_strategies", json!({ "strategy_id": "macd" })).await;
+        let p = payload_of(&r);
+        let arr = p.as_array().unwrap();
+        assert_eq!(arr.len(), 1, "过滤后仅 1 项");
+        assert_eq!(arr[0]["id"], "macd");
+    }
+
+    #[tokio::test]
+    async fn sim_get_strategy_signal_and_analysis_happy() {
+        let st = sim_state();
+        let svc = st.sim.clone().unwrap();
+        let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+
+        // 配置双均线（先低后高序列末 bar 金叉 → Buy）。
+        let configs = vec![simlive::StrategyConfig {
+            id: "dual_ma".into(),
+            params: std::collections::HashMap::from([
+                ("fast".to_string(), backtest::ParamValue::Num(2.0)),
+                ("slow".to_string(), backtest::ParamValue::Num(3.0)),
+            ]),
+            stocks: vec!["510300".into()],
+            weight: 1.0,
+        }];
+        svc.configure_strategies(&sid, configs).unwrap();
+        for (i, c) in [12.0, 8.0, 9.0, 14.0].into_iter().enumerate() {
+            svc.process_bar(
+                &sid, "510300",
+                backtest::Bar { ts: 100 + i as i64, open: c, high: c, low: c, close: c, volume: 10_000.0 },
+            ).await.unwrap();
+        }
+
+        // 单标的信号：聚合分=100、信号=buy、含各策略独立分。
+        let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "510300" })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["code"], "510300");
+        assert_eq!(p["signal"], "buy");
+        assert_eq!(p["aggregate_score"], json!(100.0));
+        assert_eq!(p["per_strategy_scores"][0]["strategy_id"], "dual_ma");
+        assert_eq!(p["latest_price"], json!(14.0));
+
+        // 未评估标的目标 → evaluation null。
+        let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "999999" })).await;
+        assert_eq!(payload_of(&r)["evaluation"], json!(null));
+
+        // 多标的评估概览。
+        let r = call(&st, "sim_get_strategy_analysis", json!({ "session_id": sid })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["evaluations"].as_array().unwrap().len(), 1);
+        assert_eq!(p["evaluations"][0]["code"], "510300");
+    }
+
+    #[tokio::test]
+    async fn sim_get_strategy_tool_param_validation_is_32602() {
+        let st = sim_state();
+        let r = call(&st, "sim_get_strategy_signal", json!({ "code": "510300" })).await;
+        assert_eq!(r["error"]["code"], -32602, "sim_get_strategy_signal 缺 session_id");
+        let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": "s_x", "code": "" })).await;
+        assert_eq!(r["error"]["code"], -32602, "code 空");
+        let r = call(&st, "sim_get_strategy_analysis", json!({})).await;
+        assert_eq!(r["error"]["code"], -32602, "sim_get_strategy_analysis 缺 session_id");
     }
 }
 // ~/~ end
