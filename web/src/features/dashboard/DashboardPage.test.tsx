@@ -25,7 +25,7 @@ vi.mock('klinecharts', () => ({
   dispose: vi.fn(),
 }));
 
-import { DashboardPage } from './DashboardPage';
+import { DashboardPage, readViewportDays } from './DashboardPage';
 
 const SYMBOLS = [
   { code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 },
@@ -411,5 +411,153 @@ describe('DashboardPage（URL ?code= 深链选中）', () => {
     );
     await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
     expect(selectedCodeInList()).toBe('161226');
+  });
+});
+
+// ── 修复：K线视口配置读取「失败重试 + focus/visibilitychange 重读」（不再静默兜底默认 2）──
+// 根因：mount 时 getKlineConfig().then(set).catch(()=>{}) 失败静默兜底默认 2、无重试；
+// 若 /api/config/kline 偶发失败/网络抖动，页面永用默认值、无提示、无收敛。
+
+describe('readViewportDays（K线视口读取：失败重试 + 指数退避）', () => {
+  const instantSleep = vi.fn(async (_ms: number) => {});
+
+  it('首次失败 → 重试成功 → 返回配置值，getKlineConfig 调用次数=尝试数', async () => {
+    const getKlineConfig = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('网络抖动'))
+      .mockResolvedValueOnce({ viewport_days: 34 });
+    const days = await readViewportDays(
+      { getKlineConfig } as unknown as ApiClient,
+      { sleep: instantSleep },
+    );
+    expect(days).toBe(34);
+    expect(getKlineConfig).toHaveBeenCalledTimes(2);
+    expect(instantSleep).toHaveBeenCalledTimes(1);
+    expect(instantSleep).toHaveBeenCalledWith(500);
+  });
+
+  it('连续失败 → 全部尝试后抛出（组件据此保持默认 2，而非静默收敛到错误值）', async () => {
+    const getKlineConfig = vi.fn().mockRejectedValue(new Error('down'));
+    await expect(
+      readViewportDays({ getKlineConfig } as unknown as ApiClient, { sleep: instantSleep }),
+    ).rejects.toThrow('down');
+    expect(getKlineConfig).toHaveBeenCalledTimes(3);
+  });
+
+  it('指数退避：连续失败 3 次 → 依次等 500ms/1000ms 再尝试', async () => {
+    const getKlineConfig = vi.fn().mockRejectedValue(new Error('down'));
+    const sleep = vi.fn(async (_ms: number) => {});
+    await expect(
+      readViewportDays({ getKlineConfig } as unknown as ApiClient, { sleep }),
+    ).rejects.toThrow('down');
+    expect(sleep.mock.calls.map((c) => c[0])).toEqual([500, 1000]);
+  });
+});
+
+describe('DashboardPage（K线视口配置：失败重试与重读收敛到配置值）', () => {
+  let ws: ReturnType<typeof fakeWs>;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws = fakeWs();
+  });
+
+  function apiWith(getKlineConfig: ReturnType<typeof vi.fn>): ApiClient {
+    return stubApi({
+      getSymbols: vi.fn(async () => SYMBOLS),
+      getKline: vi.fn(async () => [
+        { ts: '2026-09-04T02:00:00Z', open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 100, amount: 105 },
+      ]),
+      getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
+      getKlineConfig,
+    });
+  }
+
+  it('mount 首次失败 → 重试成功 → feed 用配置 viewport_days 计算 pageSize（穿越瞬态）', async () => {
+    const getKlineConfig = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('网络抖动'))
+      .mockResolvedValueOnce({ viewport_days: 34 });
+    const apiK = apiWith(getKlineConfig);
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiK} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument(), { timeout: 2000 });
+    // 首次失败 → 500ms 退避后重试成功：viewport_days=34 → 15m pageSize = 17×34 = 578
+    await waitFor(
+      () => {
+        expect(getKlineConfig).toHaveBeenCalledTimes(2);
+        expect(apiK.getKline).toHaveBeenCalledWith(
+          expect.objectContaining({ code: '518880', period: '15m', limit: 578 }),
+        );
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('连续失败 → 重试 3 次后仍失败 → 保持默认 2（feed 用默认 pageSize，不静默收敛）', async () => {
+    const getKlineConfig = vi.fn().mockRejectedValue(new Error('down'));
+    const apiK = apiWith(getKlineConfig);
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiK} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument(), { timeout: 2000 });
+    await waitFor(() => expect(getKlineConfig).toHaveBeenCalledTimes(3), { timeout: 3000 });
+    // 始终用默认 2（15m pageSize = 17×2 = 34），从未收敛到配置值
+    expect(apiK.getKline).toHaveBeenCalledWith(
+      expect.objectContaining({ code: '518880', period: '15m', limit: 34 }),
+    );
+  });
+
+  it('window focus → 重读成功 → 更新 viewportDays → feed 用新 pageSize', async () => {
+    let value = 10;
+    const getKlineConfig = vi.fn(async () => ({ viewport_days: value }));
+    const apiK = apiWith(getKlineConfig);
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiK} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument(), { timeout: 2000 });
+    // 初始 10 → 15m pageSize = 17×10 = 170
+    await waitFor(
+      () => expect(apiK.getKline).toHaveBeenCalledWith(expect.objectContaining({ limit: 170 })),
+      { timeout: 2000 },
+    );
+    value = 20; // 跨 tab 改配置 / 从后台回来：新值 20 → 17×20 = 340
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(
+      () => expect(apiK.getKline).toHaveBeenCalledWith(expect.objectContaining({ limit: 340 })),
+      { timeout: 2000 },
+    );
+  });
+
+  it('visibilitychange(visible) → 重读成功 → 更新 viewportDays → feed 用新 pageSize', async () => {
+    let value = 5;
+    const getKlineConfig = vi.fn(async () => ({ viewport_days: value }));
+    const apiK = apiWith(getKlineConfig);
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiK} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument(), { timeout: 2000 });
+    await waitFor(
+      () => expect(apiK.getKline).toHaveBeenCalledWith(expect.objectContaining({ limit: 85 })),
+      { timeout: 2000 },
+    );
+    value = 30; // 切回本 tab：新值 30 → 17×30 = 510
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await waitFor(
+      () => expect(apiK.getKline).toHaveBeenCalledWith(expect.objectContaining({ limit: 510 })),
+      { timeout: 2000 },
+    );
   });
 });

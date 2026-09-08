@@ -13,6 +13,42 @@ import { KlineChart } from './KlineChart';
 import { TimeshareChart } from './TimeshareChart';
 import { GridCell } from './GridCell';
 
+/** 等待实现（指数退避用；测试可注入瞬时 sleep）。 */
+const sleepMs = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export interface ReadViewportDaysOptions {
+  /** 最多尝试次数（含首次），默认 3。 */
+  attempts?: number;
+  /** 每次失败后、下一次尝试前的等待（指数退避），默认 500ms→1s。 */
+  backoffMs?: number[];
+  /** 等待实现（便于测试注入瞬时 sleep）。 */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/**
+ * 读取 K线默认视口（GET /api/config/kline）并对瞬态失败重试，直到成功或尝试次数耗尽。
+ * 全部失败则抛出（由调用方决定兜底），避免 mount 时 `getKlineConfig().then(set).catch(()=>{})`
+ * 的静默吞错——偶发失败/网络抖动时页面被永久锁定在默认视口、无重试、无收敛。
+ */
+export async function readViewportDays(
+  api: ApiClient,
+  opts: ReadViewportDaysOptions = {},
+): Promise<number> {
+  const attempts = opts.attempts ?? 3;
+  const backoffMs = opts.backoffMs ?? [500, 1000];
+  const sleep = opts.sleep ?? sleepMs;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const cfg = await api.getKlineConfig();
+      return cfg.viewport_days;
+    } catch (e) {
+      if (attempt >= attempts) throw e;
+      await sleep(backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 500);
+    }
+  }
+  throw new Error('unreachable');
+}
+
 /**
  * 页面①行情看板：以 tangle 骨架 DashboardGrid 为布局基座（骨架零改动），
  * 业务组件经 RegionPortal 挂入 data-region 锚点（09-frontend.md §3）。
@@ -67,20 +103,45 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, maWindows],
   );
 
-  // K线默认视口（交易日数，统一配置，主图+宫格共用）：默认 2，mount 时 GET /api/config/kline 读；缺省 2 兜底。
+  // K线默认视口（交易日数，统一配置，主图+宫格共用）：默认 2，mount 时 GET /api/config/kline 读；
+  // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 2 兜底（不再静默吞错）。
   const [viewportDays, setViewportDays] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_DAYS);
   useEffect(() => {
     let cancelled = false;
-    api
-      .getKlineConfig()
-      .then((cfg) => {
-        if (!cancelled) setViewportDays(cfg.viewport_days);
+    readViewportDays(api)
+      .then((days) => {
+        if (!cancelled) setViewportDays(days);
       })
       .catch(() => {
-        // 读取失败保持默认 2（不阻塞看板）
+        // 读取失败（已重试）保持默认 2（不阻塞看板）；至少真实重试，穿越瞬态
       });
     return () => {
       cancelled = true;
+    };
+  }, [api]);
+
+  // window focus / visibilitychange(visible) 时重读 getKlineConfig（跨 tab 改配置 / 从后台回来能刷新）；
+  // 重读成功则 setViewportDays（feed 重建，useMemo 已含 viewportDays 依赖）；失败保持当前值不回落默认。
+  useEffect(() => {
+    let cancelled = false;
+    const reread = () => {
+      readViewportDays(api)
+        .then((days) => {
+          if (!cancelled) setViewportDays(days);
+        })
+        .catch(() => {
+          // 重读失败保持当前 viewportDays（不重置为默认）
+        });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') reread();
+    };
+    window.addEventListener('focus', reread);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', reread);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [api]);
 
