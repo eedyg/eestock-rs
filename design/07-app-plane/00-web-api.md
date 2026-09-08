@@ -1218,6 +1218,8 @@ accurate.rs / events.rs / symbols.rs）零改动；`pub mod reader;` 声明维�
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
 //! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
 //! - 1m：kline_merged 合并视图（准确层优先，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
+//! - forming 桶（实时右缘）：5m/15m/1h 在 latest 查询（before=None）额外聚合当前未闭合桶（kline_raw 实时）
+//!   —— cagg(accurate/兜底) 只承载**已闭合**桶，右缘落后至上一闭合桶（5m 最多 ~5min），forming 分支让右缘随 live 前进。
 //! - 周线 W1/月线 MO1（看板 W1）：accurate 用 kline_accurate_1w/1mo（0014 cagg）；兜底用 kline_1d 查询期 rollup
 //! - symbols + 最新快照（REST /api/symbols latest 字段与 WS quote 推送数据源）
 //! - source_health_events 窗口读取（diagnose 聚合输入）
@@ -1305,6 +1307,27 @@ fn period_merged_sql(p: Period) -> String {
     }
 }
 
+/// 当前 forming（未闭合）桶聚合 SQL：从 kline_raw 实时聚合周期桶，供 live 图表右缘随最新 raw 1m 前进。
+/// 仅对日内周期 M5/M15/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
+/// bucket 用 `time_bucket(interval, now())`——只产**当前**未闭合桶（≤1 行）；`source` 记 NULL（与兜底分支同型）。
+fn forming_sql(period: Period) -> Option<String> {
+    let interval = match period {
+        Period::M5 => "5 minutes",
+        Period::M15 => "15 minutes",
+        Period::H1 => "1 hour",
+        _ => return None,
+    };
+    Some(format!(r#"
+SELECT code, time_bucket('{interval}', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount,
+       NULL::text AS source
+FROM kline_raw
+WHERE code = $1 AND ts >= time_bucket('{interval}', now())
+GROUP BY code, time_bucket('{interval}', ts)
+"#, interval = interval))
+}
+
 /// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
 /// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
 /// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯 LIMIT 2 取候选 → 按 ts 去重（同 ts 准确层优先，
@@ -1359,6 +1382,16 @@ pub struct KlineReader {
 
 impl KlineReader {
     pub fn new(pool: PgPool) -> Self { Self { pool } }
+
+    /// 当前 forming（未闭合）桶：仅 M5/M15/H1 由 forming_sql 从最新 raw 1m 聚合（≤1 行）；其余无。
+    async fn forming_bar(&self, period: Period, code: &str) -> Result<Option<KlineBarView>> {
+        let Some(sql) = forming_sql(period) else { return Ok(None); };
+        let rows: Vec<BarTuple> = sqlx::query_as(&sql).bind(code).fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(
+            |(code, ts, open, high, low, close, volume, amount, source)|
+            KlineBarView { code, ts, open, high, low, close, volume, amount, source }
+        ).next())
+    }
 }
 
 #[async_trait]
@@ -1375,6 +1408,22 @@ impl KlineRead for KlineReader {
             KlineBarView { code, ts, open, high, low, close, volume, amount, source }
         ).collect();
         bars.reverse();
+        // 实时右缘：latest 查询（before=None 且 limit>0）合入当前 forming 桶（若存在且更新于已返回最后一根）。
+        // - 更新（f.ts > 末根.ts）：剔除最旧一根保 limit，末根追加 f；
+        // - 相同（f.ts == 末根.ts）：f 覆盖 cagg/rollup 的陈旧/部分桶（如 1h rollup 未闭合窗）。
+        if before.is_none() && limit > 0 {
+            if let Some(f) = self.forming_bar(period, code).await? {
+                let last_ts = bars.last().map(|b| b.ts);
+                if last_ts.map_or(true, |t| f.ts > t) {
+                    if bars.len() as i64 >= limit {
+                        bars.remove(0);
+                    }
+                    bars.push(f);
+                } else if last_ts == Some(f.ts) {
+                    *bars.last_mut().expect("non-empty") = f;
+                }
+            }
+        }
         Ok(bars)
     }
 
@@ -1933,6 +1982,37 @@ async fn weekly_monthly_deep_scroll_before_2024() {
         assert_eq!(distinct.len(), got.len(), "{p:?} 无重复数据点");
     }
     clean(&pool, CODE_WM_DEEP).await;
+}
+
+#[tokio::test]
+async fn high_period_forming_bucket_included_on_latest() {
+    // 实时右缘：bars(None) 在日内周期合入「当前未闭合桶」（从最新 raw 聚合），而非停在上一闭合桶。
+    // cagg(accurate/兜底) 只承载已闭合桶：5m 右缘落后至上一闭合桶（最多 ~5min）——本测试锁 forming 分支。
+    const CODE_FORMING: &str = "997762";
+    let pool = pool().await;
+    clean(&pool, CODE_FORMING).await;
+    // 从 DB now() 取当前 forming 5m 桶（避免测试进程与 DB 时钟偏移/跨桶竞态）。
+    let row: (Option<DateTime<Utc>>,) = sqlx::query_as("SELECT time_bucket('5 minutes', now())")
+        .fetch_one(&pool).await.unwrap();
+    let fb = row.0.expect("forming 5m bucket");
+    sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, $2, 10.0, 10.5, 9.9, 10.2, 300, 3000.0, 'webq_src') ON CONFLICT DO NOTHING")
+        .bind(CODE_FORMING).bind(fb)
+        .execute(&pool).await.unwrap();
+    let r = KlineReader::new(pool.clone());
+    let bars = r.bars(Period::M5, CODE_FORMING, None, 10).await.unwrap();
+    let last = bars.last().expect("非空：forming 桶");
+    assert_eq!(last.ts, fb, "M5 latest 含当前 forming 桶（右缘随 live 前进）");
+    assert_eq!(last.open, 10.0);
+    assert_eq!(last.high, 10.5);
+    assert_eq!(last.low, 9.9);
+    assert_eq!(last.close, 10.2);
+    assert_eq!(last.volume, 300);
+    assert!(last.source.is_none(), "forming 桶 source 与兜底同型（NULL，非 accurate）");
+    // 游标分页（before=Some(fb)）不含 forming 桶（形成于 latest 私有分支，不回填到历史页）。
+    let paged = r.bars(Period::M5, CODE_FORMING, Some(fb), 10).await.unwrap();
+    assert!(paged.iter().all(|b| b.ts < fb), "before 游标不含 forming 桶");
+    clean(&pool, CODE_FORMING).await;
 }
 ```
 

@@ -729,6 +729,31 @@ CREATE TABLE simsession_state (
 **storage 模块 `crates/storage/src/sim.rs`（非 tangle 手写，契约描述）**：
 实现 `domain::ports::SimSessionStore`（PgPool）。见 design/02-domain/contracts.md「SimSessionStore」端口。
 
+## 4.3.12 准确层 cagg 物化恢复刷新（0020；tushare 回填后置运维修复）
+
+**上下文**：0017 重建的 `kline_accurate_5m/15m/1h`（全量）在**大批量 tushare M1 回填**后，
+cagg 刷新策略只覆盖近期窗口（5m start_offset 2h / 15m 6h / 1h 2d；见 4.3.4），
+回填的**旧桶**落在窗口之外 → `kline_accurate_5m/15m` 物化 watermark 停在回填边界
+（实盘签名：accurate M1 max=09-07 07:00，而 5m/15m cagg max 停在 09-04 07:00，落后 3 交易日；1h 因 start_offset 2d 恰好覆盖）。
+这是设计的已知运维要求（4.3.4 块头注记「历史回填后须手动全量刷新一次」），本迁移把它固化为**可复跑**脚本：
+全量刷新全部 accurate cagg 至最新 M1。
+
+**幂等性**：`refresh_continuous_aggregate(cagg, NULL, NULL)` 幂等；空库（全新容器，数据由 tushare 首填）
+时为 no-op，不阻塞后续迁移。**残留风险**：若下一次 tushare 批量回填又带入 start_offset 之外的旧桶，
+需再次运行本迁移（或等价 CALL）；更根治的选项是把 accurate cagg 的 start_offset 加大到覆盖单次回填批次（2-3 天）——
+属策略参数调整，未在本迁移内一并改动（避免扩大 DDL 影响面；见 4.4 注记 8）。
+
+``` {.sql file=migrations/0020_accurate_cagg_refresh.sql}
+-- 0020_accurate_cagg_refresh.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 修复：accurate cagg（5m/15m/1h/1d）在 tushare 大批量 M1 回填后物化滞后。
+-- 成因：cagg 刷新策略只覆盖近期窗口（start_offset 2h/6h/2d），回填的旧桶落在窗口外 → watermark 停在回填边界。
+-- 处置：全量刷新全部 accurate cagg 至最新 M1（与 kline_accurate M1 max 对齐）；幂等；空数据为 no-op。
+CALL refresh_continuous_aggregate('kline_accurate_5m', NULL, NULL);
+CALL refresh_continuous_aggregate('kline_accurate_15m', NULL, NULL);
+CALL refresh_continuous_aggregate('kline_accurate_1h', NULL, NULL);
+CALL refresh_continuous_aggregate('kline_accurate_1d', NULL, NULL);
+```
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）
@@ -738,3 +763,4 @@ CREATE TABLE simsession_state (
 5. **压缩事故复盘（2026-09-03，证据修正版）**：真问题是 0003 设计遗漏——kline_accurate 从未配压缩（16M 行 3GB 裸奔）。排查弯路：误判"旧语法静默失效"（reloptions 为空所致）——**2.29 中压缩设置存目录表而非 reloptions，information 视图标志位是可信的**。已用新语法（enable_columnstore/segmentby/orderby，前向兼容）统一四表并实测：kline_accurate 760 chunks 压缩 3044MB→446MB（6.8x）。对策：①compose 镜像 pin 2.29.2-pg16（滚动 latest 仍有 API 漂移风险）；②压缩验收=视图标志位 + compress_chunk 冒烟 + 实测体积
 6. **交易日历（0008）**：节假日表为 A 股法定休市日唯一事实源；交易日判定 = 工作日 ∧ ¬holidays。2026 数据内嵌于迁移（来源见块头注释）；每年末按当年官方通知追加下一年度（或 tushare trade_cal 复核导入）
 7. **amount 量纲锁定（Wave 2 Phase A D4 结案，实盘查证 2026-09-04）**：`kline_raw.amount` 与 `kline_accurate.amount` **均为元**（tushare stk_mins 解析直取、实盘校验 amount ≈ close×volume 成立；sina_jsonp raw 行同口径 ✓）。⚠️ 已知缺陷：**tencent_ifzq 源 amount 不可信**——实盘签名：raw(tencent) amount ≈ 真实值/10³~10⁴ 且比值随标的不恒定（588000≈1/885、518880≈1/1044、159337≈1/4.9，golden 样本同签名），非固定量纲比，无法视图层换算；根因是 tencent ifzq m1 响应第 7 字段对基金/ETF 的口径与「万元」假设不符（providers 红线，本轮不改解析，留待数据面专项）。对策：①准确层（tushare）数值正确，merge 视图对已同步日天然掩盖（ADR-003 语义正常工作）；②质量对照（分歧率）**只比 close**，amount 不参与跨层比对；③当日未覆盖时段的 tencent 行 amount 及下游 cagg 聚合值低估为已知泄漏，前端/消费方不应据此口径决策
+8. **accurate cagg 物化滞后根因（0020）**：cagg 刷新策略 start_offset（5m=2h/15m=6h）小于单次 tushare 回填批次跨度，大批量回填时**旧桶不落入刷新窗口** → 物化 watermark 停在回填边界。当前以「回填后全量刷新」作为运维惯例规避（0020 固化）；根治选项=加大 start_offset 覆盖单次回填批次（建议 5m/15m ≥ 2d），属策略参数调整，未随 0020 一并改动

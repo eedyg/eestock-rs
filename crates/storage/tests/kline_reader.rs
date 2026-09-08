@@ -422,4 +422,35 @@ async fn weekly_monthly_deep_scroll_before_2024() {
     }
     clean(&pool, CODE_WM_DEEP).await;
 }
+
+#[tokio::test]
+async fn high_period_forming_bucket_included_on_latest() {
+    // 实时右缘：bars(None) 在日内周期合入「当前未闭合桶」（从最新 raw 聚合），而非停在上一闭合桶。
+    // cagg(accurate/兜底) 只承载已闭合桶：5m 右缘落后至上一闭合桶（最多 ~5min）——本测试锁 forming 分支。
+    const CODE_FORMING: &str = "997762";
+    let pool = pool().await;
+    clean(&pool, CODE_FORMING).await;
+    // 从 DB now() 取当前 forming 5m 桶（避免测试进程与 DB 时钟偏移/跨桶竞态）。
+    let row: (Option<DateTime<Utc>>,) = sqlx::query_as("SELECT time_bucket('5 minutes', now())")
+        .fetch_one(&pool).await.unwrap();
+    let fb = row.0.expect("forming 5m bucket");
+    sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, $2, 10.0, 10.5, 9.9, 10.2, 300, 3000.0, 'webq_src') ON CONFLICT DO NOTHING")
+        .bind(CODE_FORMING).bind(fb)
+        .execute(&pool).await.unwrap();
+    let r = KlineReader::new(pool.clone());
+    let bars = r.bars(Period::M5, CODE_FORMING, None, 10).await.unwrap();
+    let last = bars.last().expect("非空：forming 桶");
+    assert_eq!(last.ts, fb, "M5 latest 含当前 forming 桶（右缘随 live 前进）");
+    assert_eq!(last.open, 10.0);
+    assert_eq!(last.high, 10.5);
+    assert_eq!(last.low, 9.9);
+    assert_eq!(last.close, 10.2);
+    assert_eq!(last.volume, 300);
+    assert!(last.source.is_none(), "forming 桶 source 与兜底同型（NULL，非 accurate）");
+    // 游标分页（before=Some(fb)）不含 forming 桶（形成于 latest 私有分支，不回填到历史页）。
+    let paged = r.bars(Period::M5, CODE_FORMING, Some(fb), 10).await.unwrap();
+    assert!(paged.iter().all(|b| b.ts < fb), "before 游标不含 forming 桶");
+    clean(&pool, CODE_FORMING).await;
+}
 // ~/~ end
