@@ -64,6 +64,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
+        config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
@@ -77,6 +78,11 @@ async fn spawn(state: Arc<AppState>) -> String {
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, web::build_router(state)).await.unwrap(); });
     format!("http://{addr}")
+}
+
+/// 清空 app_config（收敛到默认；GET 缺则默认回退）。
+async fn clear_config(pool: &PgPool) {
+    sqlx::query("DELETE FROM app_config").execute(pool).await.unwrap();
 }
 
 #[tokio::test]
@@ -98,7 +104,8 @@ async fn system_info_returns_version_db_and_uptime() {
 #[tokio::test]
 async fn config_snapshots_return_readonly_defaults() {
     let pool = pool().await;
-    let url = spawn(state(pool)).await;
+    clear_config(&pool).await; // 收敛到空表 → GET 缺则默认
+    let url = spawn(state(pool.clone())).await;
     let http = reqwest::Client::new();
 
     // GET /api/config/sources：内置源清单 + 默认参数
@@ -165,4 +172,93 @@ async fn reset_circuits_rejects_missing_or_mismatched_confirm() {
     let r = http.post(format!("{url}/api/system/reset-circuits"))
         .json(&serde_json::json!({ "confirm": "reset" })).send().await.unwrap();
     assert_eq!(r.status(), 400);
+}
+
+/// 有效 sources PATCH body（前 7 真实源 + push2delay 末位，ADR-006）。
+fn valid_sources_json() -> serde_json::Value {
+    let mut arr = Vec::new();
+    for id in ["tencent_ifzq", "sina_jsonp", "tencent_qt", "sina_hq", "ths_cs", "exchange", "tushare"] {
+        arr.push(serde_json::json!({ "id": id, "rate_per_sec": 1, "jitter_ms": 0,
+            "circuit_fail_count": 3, "backoff_steps": ["5s", "10s", "30s"], "enabled": true }));
+    }
+    arr.push(serde_json::json!({ "id": "push2delay", "rate_per_sec": 2, "jitter_ms": 150,
+        "circuit_fail_count": 5, "backoff_steps": ["5s", "10s", "30s"], "enabled": true }));
+    serde_json::json!({ "sources": arr })
+}
+
+#[tokio::test]
+async fn config_patch_persists_get_reads_back_and_validates() {
+    let pool = pool().await;
+    clear_config(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 0) 空表 → GET 默认（sources / collector / mcp）
+    let s: Value = http.get(format!("{url}/api/config/sources")).send().await.unwrap()
+        .json().await.unwrap();
+    assert!(s["sources"].as_array().unwrap().len() >= 8, "空表 → 默认清单");
+    let c: Value = http.get(format!("{url}/api/config/collector")).send().await.unwrap()
+        .json().await.unwrap();
+    assert_eq!(c["default_interval_sec"], 60);
+    let m: Value = http.get(format!("{url}/api/config/mcp")).send().await.unwrap()
+        .json().await.unwrap();
+    assert_eq!(m["daily_limit_amount"], 50000);
+
+    // 1) PATCH sources 合法 → 200 + GET 读回持久化（含 push2delay 末位参数）
+    let body = valid_sources_json();
+    let r = http.patch(format!("{url}/api/config/sources")).json(&body).send().await.unwrap();
+    assert_eq!(r.status(), 200, "合法 sources → 200");
+    let v: Value = r.json().await.unwrap();
+    let push = v["sources"].as_array().unwrap().iter()
+        .find(|x| x["id"] == "push2delay").unwrap().clone();
+    assert_eq!(push["rate_per_sec"], 2, "写回参数回显");
+    let got: Value = http.get(format!("{url}/api/config/sources")).send().await.unwrap()
+        .json().await.unwrap();
+    let push_got = got["sources"].as_array().unwrap().iter()
+        .find(|x| x["id"] == "push2delay").unwrap();
+    assert_eq!(push_got["rate_per_sec"], 2, "GET 读回持久化");
+    assert_eq!(push_got["jitter_ms"], 150);
+
+    // 2) PATCH sources 非法（rate<0 / 东财非末位 / enabled 非布尔） → 400
+    let mut bad = body.clone();
+    bad["sources"][1]["rate_per_sec"] = serde_json::json!(-1);
+    assert_eq!(http.patch(format!("{url}/api/config/sources")).json(&bad)
+        .send().await.unwrap().status(), 400, "rate<0 → 400");
+    let mut bad = body.clone();
+    let arr = bad["sources"].as_array_mut().unwrap();
+    let push = arr.remove(arr.len() - 1);
+    arr.insert(0, push); // push2delay 移到首位（东财非末位）
+    assert_eq!(http.patch(format!("{url}/api/config/sources")).json(&bad)
+        .send().await.unwrap().status(), 400, "东财非末位 → 400（ADR-006）");
+    let mut bad = body.clone();
+    bad["sources"][0]["enabled"] = serde_json::json!("yes");
+    assert_eq!(http.patch(format!("{url}/api/config/sources")).json(&bad)
+        .send().await.unwrap().status(), 400, "enabled 非布尔 → 400");
+
+    // 3) PATCH collector 合法（≥60）→ 200 + GET 读回；非法（<60）→ 400
+    let r = http.patch(format!("{url}/api/config/collector"))
+        .json(&serde_json::json!({ "default_interval_sec": 120 })).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let c: Value = http.get(format!("{url}/api/config/collector")).send().await.unwrap()
+        .json().await.unwrap();
+    assert_eq!(c["default_interval_sec"], 120, "GET 读回 collector 持久化");
+    let r = http.patch(format!("{url}/api/config/collector"))
+        .json(&serde_json::json!({ "default_interval_sec": 59 })).send().await.unwrap();
+    assert_eq!(r.status(), 400, "<60 → 400");
+
+    // 4) PATCH mcp 合法 → 200 + GET 读回；非法（金额<0）→ 400
+    let r = http.patch(format!("{url}/api/config/mcp"))
+        .json(&serde_json::json!({ "enabled": true, "trading_tools_enabled": true,
+            "daily_limit_amount": 100000, "daily_limit_count": 30 })).send().await.unwrap();
+    assert_eq!(r.status(), 200, "合法 mcp → 200");
+    let m: Value = http.get(format!("{url}/api/config/mcp")).send().await.unwrap()
+        .json().await.unwrap();
+    assert_eq!(m["daily_limit_amount"], 100000, "GET 读回 mcp 持久化");
+    assert_eq!(m["trading_tools_enabled"], true);
+    let r = http.patch(format!("{url}/api/config/mcp"))
+        .json(&serde_json::json!({ "enabled": true, "trading_tools_enabled": false,
+            "daily_limit_amount": -1, "daily_limit_count": 20 })).send().await.unwrap();
+    assert_eq!(r.status(), 400, "金额<0 → 400");
+
+    clear_config(&pool).await;
 }

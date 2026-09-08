@@ -341,10 +341,97 @@ pub struct McpConfigSnapshotDto {
     pub daily_limit_count: i64,
 }
 
+// ── 页面⑧ 系统设置 S2：配置持久化 PATCH 请求体 / 校验（08-settings.md §6 + 00-web-api.md config 契约）──
+// 前端编辑 → PATCH /api/config/{sources,collector,mcp}；值域校验（非法 → 400）、
+// 东财末位（ADR-006）、≥60（collector 间隔）、≥0（限额）在 web 层完成；storage ConfigStore 只存 jsonb。
+
+/// PATCH /api/config/sources 单源可编辑参数（label/role/rotation_locked 由服务端按 SOURCE_CONFIG 派生）；
+/// 轮转序 = sources 数组顺序；push2delay（东财系）必须为末位（ADR-006 服务端校验）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SourceConfigPatchItemDto {
+    pub id: String,
+    pub rate_per_sec: i64,
+    pub jitter_ms: i64,
+    pub circuit_fail_count: i64,
+    pub backoff_steps: Vec<String>,
+    pub enabled: bool,
+}
+
+/// PATCH /api/config/sources 请求体：完整源清单（含轮转序）。
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct SourceConfigPatchDto {
+    pub sources: Vec<SourceConfigPatchItemDto>,
+}
+
+/// PATCH /api/config/collector 请求体（交易时段写死只读，不可改）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CollectorConfigPatchDto {
+    pub default_interval_sec: i64,
+}
+
+/// PATCH /api/config/mcp 请求体（总开关/交易工具/每日限额）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpConfigPatchDto {
+    pub enabled: bool,
+    pub trading_tools_enabled: bool,
+    pub daily_limit_amount: i64,
+    pub daily_limit_count: i64,
+}
+
+/// 单源可编辑参数值域校验（纯函数，单元可测）：速率/抖动/熔断次数 ≥0；退避档位非空且每档非空字符串。
+pub fn validate_source_config_item(it: &SourceConfigPatchItemDto) -> Result<(), String> {
+    if it.id.trim().is_empty() { return Err("源 id 不能为空".into()); }
+    if it.rate_per_sec < 0 { return Err(format!("源 {} 速率 rate_per_sec 须 ≥0", it.id)); }
+    if it.jitter_ms < 0 { return Err(format!("源 {} 抖动 jitter_ms 须 ≥0", it.id)); }
+    if it.circuit_fail_count < 0 { return Err(format!("源 {} 熔断次数 circuit_fail_count 须 ≥0", it.id)); }
+    if it.backoff_steps.is_empty() { return Err(format!("源 {} 退避档位不能为空", it.id)); }
+    if it.backoff_steps.iter().any(|b| b.trim().is_empty()) {
+        return Err(format!("源 {} 退避档位含空字符串", it.id));
+    }
+    Ok(())
+}
+
+/// sources 清单校验（纯函数）：全部为已知内置源、无重复 id、每源值域合法、含全部内置源、
+/// push2delay（东财系）必须为末位（ADR-006）。失败返回描述性错误（handler `err(400, e)`）。
+pub fn validate_source_config(dto: &SourceConfigPatchDto) -> Result<(), String> {
+    if dto.sources.is_empty() { return Err("源清单不能为空".into()); }
+    let mut seen = std::collections::HashSet::new();
+    for it in &dto.sources {
+        if !RESET_SOURCES.contains(&it.id.as_str()) { return Err(format!("未知源 id：{}", it.id)); }
+        if !seen.insert(it.id.clone()) { return Err(format!("源 id 重复：{}", it.id)); }
+        validate_source_config_item(it)?;
+    }
+    // 必须包含全部内置真实源（完整轮转序），否则视为残缺
+    for id in RESET_SOURCES {
+        if !seen.contains(*id) { return Err(format!("源清单缺 {}（须为完整内置源清单）", id)); }
+    }
+    // 东财末位（ADR-006）：push2delay 必须为最后一个元素
+    if dto.sources.last().map(|s| s.id.as_str()) != Some("push2delay") {
+        return Err("轮转序违规：push2delay（东财系）必须为末位（ADR-006）".into());
+    }
+    Ok(())
+}
+
+/// collector 间隔校验（纯函数）：≥60 秒（全局默认抓取间隔下界）。
+#[allow(dead_code)]
+pub fn verify_collector_interval(sec: i64) -> Result<(), String> {
+    if sec < 60 { return Err(format!("default_interval_sec 须 ≥60，收到 {sec}")); }
+    Ok(())
+}
+
+/// MCP 限额校验（纯函数）：金额/笔数 ≥0。
+#[allow(dead_code)]
+pub fn verify_mcp_daily_limit(m: &McpConfigPatchDto) -> Result<(), String> {
+    if m.daily_limit_amount < 0 { return Err(format!("daily_limit_amount 须 ≥0，收到 {}", m.daily_limit_amount)); }
+    if m.daily_limit_count < 0 { return Err(format!("daily_limit_count 须 ≥0，收到 {}", m.daily_limit_count)); }
+    Ok(())
+}
+
 /// 熔断复位内置源清单（reset-circuits 全部源；非近似变体，即数据面真实注册源）。
+/// 顺序与 rotation（SOURCE_CONFIG）一致：push2delay（东财系，ADR-006）锁定末位。
 pub const RESET_SOURCES: &[&str] = &[
     "tencent_ifzq", "sina_jsonp", "tencent_qt", "sina_hq",
-    "ths_cs", "push2delay", "exchange", "tushare",
+    "ths_cs", "exchange", "tushare", "push2delay",
 ];
 
 // ── Wave 3 Phase 3c：回测（§1.5；DTO 与校验纯函数）──
@@ -581,6 +668,110 @@ mod tests {
         assert_eq!(v["windows"][0], 5);
         let back: MaConfigDto = serde_json::from_value(v).unwrap();
         assert_eq!(back.windows, vec![5, 10, 20]);
+    }
+
+    // ── 页面⑧ S2：配置持久化 PATCH 校验纯函数（值域 / 东财末位 ADR-006 / ≥60 / ≥0）──
+
+    fn patch_item(id: &str) -> SourceConfigPatchItemDto {
+        SourceConfigPatchItemDto {
+            id: id.into(), rate_per_sec: 1, jitter_ms: 0, circuit_fail_count: 3,
+            backoff_steps: vec!["5s".into(), "10s".into(), "30s".into()], enabled: true,
+        }
+    }
+
+    /// 完整合法 sources 清单（前 7 真实源 + push2delay 末位，ADR-006）。
+    fn valid_sources_patch() -> SourceConfigPatchDto {
+        let mut items: Vec<SourceConfigPatchItemDto> = RESET_SOURCES
+            .iter().filter(|s| **s != "push2delay").map(|s| patch_item(s)).collect();
+        items.push(patch_item("push2delay")); // 末位
+        SourceConfigPatchDto { sources: items }
+    }
+
+    #[test]
+    fn source_config_patch_validation_ok() {
+        assert!(validate_source_config(&valid_sources_patch()).is_ok(), "完整且东财末位 → 合法");
+    }
+
+    #[test]
+    fn source_config_patch_validation_rejects_bad_values() {
+        // rate<0
+        let mut p = valid_sources_patch();
+        p.sources[0].rate_per_sec = -1;
+        assert!(validate_source_config(&p).is_err(), "rate<0 → 拒绝");
+        // jitter<0
+        let mut p = valid_sources_patch();
+        p.sources[0].jitter_ms = -1;
+        assert!(validate_source_config(&p).is_err());
+        // circuit<0
+        let mut p = valid_sources_patch();
+        p.sources[0].circuit_fail_count = -1;
+        assert!(validate_source_config(&p).is_err());
+        // 空退避
+        let mut p = valid_sources_patch();
+        p.sources[0].backoff_steps = vec![];
+        assert!(validate_source_config(&p).is_err());
+    }
+
+    #[test]
+    fn source_config_patch_validation_rejects_eastmoney_not_last() {
+        // push2delay 挪到非末位（首元素）→ 拒（ADR-006）
+        let mut p = valid_sources_patch();
+        let push = p.sources.remove(p.sources.len() - 1);
+        p.sources.insert(0, push);
+        assert!(validate_source_config(&p).is_err(), "push2delay 非末位 → 拒（ADR-006）");
+    }
+
+    #[test]
+    fn source_config_patch_validation_rejects_unknown_dup_missing() {
+        // 未知源
+        let mut p = valid_sources_patch();
+        p.sources[0].id = "not_a_source".into();
+        assert!(validate_source_config(&p).is_err(), "未知源 id → 拒");
+        // 重复 id
+        let mut p = valid_sources_patch();
+        p.sources[1].id = p.sources[0].id.clone();
+        assert!(validate_source_config(&p).is_err(), "重复 id → 拒");
+        // 缺内置源（末位后仍保留 push2delay，但缺某真实源）
+        let mut p = valid_sources_patch();
+        p.sources.retain(|s| !s.id.is_empty());
+        let missing = p.sources.remove(0); // 移除首元素
+        assert!(validate_source_config(&p).is_err(), "缺内置源 → 拒");
+        let _ = missing;
+    }
+
+    #[test]
+    fn source_config_patch_item_value_domain() {
+        assert!(validate_source_config_item(&patch_item("tencent_ifzq")).is_ok());
+        let mut it = patch_item("x");
+        it.rate_per_sec = -5;
+        assert!(validate_source_config_item(&it).is_err());
+        let mut it = patch_item("x");
+        it.jitter_ms = -1;
+        assert!(validate_source_config_item(&it).is_err());
+        let mut it = patch_item("x");
+        it.circuit_fail_count = -1;
+        assert!(validate_source_config_item(&it).is_err());
+    }
+
+    #[test]
+    fn collector_interval_validation() {
+        assert!(verify_collector_interval(60).is_ok());
+        assert!(verify_collector_interval(120).is_ok());
+        assert!(verify_collector_interval(59).is_err(), "<60 → 拒");
+        assert!(verify_collector_interval(0).is_err());
+    }
+
+    #[test]
+    fn mcp_daily_limit_validation() {
+        let ok = McpConfigPatchDto { enabled: true, trading_tools_enabled: false,
+            daily_limit_amount: 50000, daily_limit_count: 20 };
+        assert!(verify_mcp_daily_limit(&ok).is_ok());
+        let mut bad = McpConfigPatchDto { enabled: true, trading_tools_enabled: false,
+            daily_limit_amount: -1, daily_limit_count: 20 };
+        assert!(verify_mcp_daily_limit(&bad).is_err(), "金额<0 → 拒");
+        bad.daily_limit_amount = 100;
+        bad.daily_limit_count = -1;
+        assert!(verify_mcp_daily_limit(&bad).is_err(), "笔数<0 → 拒");
     }
 
     #[test]

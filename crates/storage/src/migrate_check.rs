@@ -21,6 +21,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "backtest_runs", "backtest_results",
     "favorite_symbols",
     "ma_config",
+    // 页面⑧ 系统设置 S2：配置持久化（app_config 表，0021）
+    "app_config",
     "simsession", "simsession_result", "sim_trades", "sim_positions", "simsession_state",
 ];
 

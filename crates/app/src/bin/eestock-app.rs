@@ -68,6 +68,9 @@ async fn main() -> anyhow::Result<()> {
     // 行情看板 MA 可配置（MaConfigStore，ma_config 表 0015；主图+宫格应用，回测弹窗不动）
     let ma_config: Arc<dyn domain::ports::MaConfigStore> =
         Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone()));
+    // 页面⑧ 系统设置 S2：配置持久化（ConfigStore，app_config 表 0021；sources/collector/mcp 三块）
+    let config: Arc<dyn domain::ports::ConfigStore> =
+        Arc::new(storage::config_store::PgConfigStore::new(pool.clone()));
     // 11-sim-live / L1：模拟实盘服务（sim_* 工具 + web 面板 /api/sim-live/*；SimSessionStore + SystemClock + 默认 FeeModel）。
     // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
     // **MCP 与 web 共享同一服务实例**（ADR 11-sim-live §7 双通道一致性）：同一 Arc 同时装入 AppState.sim 与 McpState.sim。
@@ -116,6 +119,8 @@ async fn main() -> anyhow::Result<()> {
         favorites,
         // 行情看板 MA 可配置（MaConfigStore）
         ma_config,
+        // 页面⑧ 系统设置 S2：配置持久化（ConfigStore）
+        config,
         // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
         sim: Some(sim_service.clone()),
         static_dir: cfg.static_dir.clone().into(),

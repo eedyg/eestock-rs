@@ -304,9 +304,24 @@ export interface SourceConfigItem {
   rotation_locked: boolean;   // 东财系（push2delay）锁定轮转序末位（ADR-006）
 }
 
-/** GET /api/config/sources 响应（只读快照，S1 不落库） */
+/** GET /api/config/sources 响应（只读快照，S2 读持久，缺则默认） */
 export interface SourceConfigSnapshot {
   sources: SourceConfigItem[];
+}
+
+/** PATCH /api/config/sources 单源可编辑参数（label/role/rotation_locked 由服务端派生；轮转序 = 数组顺序，push2delay 末位 ADR-006）。 */
+export interface SourceConfigPatchItem {
+  id: string;
+  rate_per_sec: number;
+  jitter_ms: number;
+  circuit_fail_count: number;
+  backoff_steps: string[];
+  enabled: boolean;
+}
+
+/** PATCH /api/config/sources 请求体（完整源清单 + 轮转序）。 */
+export interface SourceConfigPatchBody {
+  sources: SourceConfigPatchItem[];
 }
 
 /** GET /api/config/collector 响应（只读；交易时段写死） */
@@ -315,8 +330,21 @@ export interface CollectorConfigSnapshot {
   trading_hours: string;
 }
 
-/** GET /api/config/mcp 响应（只读；S1 不做开关持久化） */
+/** PATCH /api/config/collector 请求体（交易时段写死只读，不可改）。 */
+export interface CollectorConfigPatchBody {
+  default_interval_sec: number;
+}
+
+/** GET /api/config/mcp 响应（S2 读持久，缺则默认） */
 export interface McpConfigSnapshot {
+  enabled: boolean;
+  trading_tools_enabled: boolean;
+  daily_limit_amount: number;
+  daily_limit_count: number;
+}
+
+/** PATCH /api/config/mcp 请求体（总开关/交易工具/每日限额）。 */
+export interface McpConfigPatchBody {
   enabled: boolean;
   trading_tools_enabled: boolean;
   daily_limit_amount: number;

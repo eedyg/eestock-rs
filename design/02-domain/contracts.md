@@ -880,6 +880,23 @@ pub trait MaConfigStore: Send + Sync {
     async fn set(&self, windows: &[i32]) -> anyhow::Result<Vec<i32>>;
 }
 
+// ── 页面⑧ 系统设置 S2：配置持久化端口（app_config 表，迁移 0021）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web 只依赖端口。
+// 应用面自有表（数据面不读写，ADR-017 不违）。存 sources/collector/mcp 三块配置，value 为 jsonb；
+// 缺值由 web 层回退 SETTINGS_DEFAULTS 默认（内置源参数 / 60s / 交易工具关 / 50000·20 等）。
+
+/// 配置持久化端口（storage 实现；app_config 表：key text PK + value jsonb）。
+/// get：按 key 读配置值（表空/无该 key → None，由 web 层回退默认）；
+/// set：写/覆盖 key 的配置值（INSERT ... ON CONFLICT DO UPDATE, updated_at=now()）。
+/// 键名约定："sources" / "collector" / "mcp"。
+#[async_trait]
+pub trait ConfigStore: Send + Sync {
+    /// 按 key 读配置值；缺失 → Ok(None)。
+    async fn get(&self, key: &str) -> anyhow::Result<Option<serde_json::Value>>;
+    /// 写/覆盖 key 的配置值（跨 key 独立；updated_at=now()）。
+    async fn set(&self, key: &str, value: serde_json::Value) -> anyhow::Result<()>;
+}
+
 // ── 11-sim-live / L1：模拟实盘会话存储端口（simsession/sim_session_result/sim_trades/sim_positions，迁移 0018）──
 // 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，mcp/web/application 只依赖端口。
 // 应用面自有表（数据面不读写，ADR-017 不违）；会话状态 running/ended 状态机（ADR 11-sim-live §3/§9）。

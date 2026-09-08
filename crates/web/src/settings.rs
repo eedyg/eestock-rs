@@ -1,10 +1,12 @@
 // ~/~ begin <<design/06-web/08-settings.md#crates/web/src/settings.rs>>[init]
-//! 页面⑧ 系统设置 S1：系统信息 / 危险运维 / 只读配置快照端点（08-settings.md §6）。
+//! 页面⑧ 系统设置 S1+S2：系统信息 / 危险运维 / 配置持久化 + PATCH / 只读快照端点（08-settings.md §6）。
 //! 由 08-settings.md tangle 生成（ADR-007），禁止手改。
-//! S1 边界：只读 + 运维；配置持久化（PATCH /api/config/*）与日志采集/WS 属 S2，本模块不实现。
+//! S2 边界（本模块）：config 持久化 + PATCH /api/config/{sources,collector,mcp} + GET 读持久（缺则默认）；
+//! 日志采集/WS 仍属 S2 后续，本模块不实现。
 
 use axum::{Json, extract::State, http::StatusCode, response::{IntoResponse, Response}};
 use domain::ports::SystemInfoRead;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::dto::*;
@@ -67,41 +69,158 @@ pub async fn reset_circuits(State(st): State<Arc<AppState>>, Json(req): Json<Con
     Json(ResetCircuitsResultDto { requests: n }).into_response()
 }
 
-/// GET /api/config/sources —— 内置源只读快照（值 = SETTINGS_DEFAULTS 默认；S1 不落库）。
-pub async fn get_config_sources() -> Response {
-    Json(SourceConfigSnapshotDto { sources: default_source_config() }).into_response()
+/// app_config 键名约定（sources/collector/mcp 三块）。
+const K_SOURCES: &str = "sources";
+const K_COLLECTOR: &str = "collector";
+const K_MCP: &str = "mcp";
+/// 交易时段写死只读（无合理变更理由，08-settings §3）。
+const TRADING_HOURS: &str = "09:30-11:30/13:00-15:00";
+
+/// MCP 配置默认（总开关开 / 交易工具默认关 ADR-009 / 限额 50000·20）。
+fn default_mcp() -> McpConfigSnapshotDto {
+    McpConfigSnapshotDto { enabled: true, trading_tools_enabled: false,
+        daily_limit_amount: 50_000, daily_limit_count: 20 }
 }
 
-/// GET /api/config/collector —— 采集参数只读快照（默认间隔 + 写死交易时段）。
-pub async fn get_config_collector() -> Response {
-    Json(CollectorConfigSnapshotDto {
-        default_interval_sec: 60,
-        trading_hours: "09:30-11:30/13:00-15:00".into(),
-    })
-    .into_response()
+/// 把持久化的可编辑源参数（按轮转序）合并回完整快照（label/role/rotation_locked 由 SOURCE_CONFIG 派生；
+/// 缺省源补默认参数）。轮转序 = items 数组顺序（push2delay 末位，ADR-006 已由 PATCH 校验保证）。
+fn merge_source_config(items: &[SourceConfigPatchItemDto]) -> Vec<SourceConfigItemDto> {
+    let meta: HashMap<&str, (&str, &str, bool)> = SOURCE_CONFIG
+        .iter().map(|&(id, l, r, lock)| (id, (l, r, lock))).collect();
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for it in items {
+        if let Some(&(label, role, locked)) = meta.get(it.id.as_str()) {
+            out.push(SourceConfigItemDto {
+                id: it.id.clone(), label: label.into(), role: role.into(),
+                rate_per_sec: it.rate_per_sec, jitter_ms: it.jitter_ms,
+                circuit_fail_count: it.circuit_fail_count,
+                backoff_steps: it.backoff_steps.clone(), enabled: it.enabled,
+                rotation_locked: locked,
+            });
+            seen.insert(it.id.clone());
+        }
+    }
+    // 补齐内置源（未在持久化清单中出现的，按默认参数追加末尾）
+    for &(id, label, role, locked) in SOURCE_CONFIG {
+        if !seen.contains(id) {
+            out.push(SourceConfigItemDto {
+                id: id.into(), label: label.into(), role: role.into(),
+                rate_per_sec: 1, jitter_ms: 0, circuit_fail_count: 3,
+                backoff_steps: vec!["5s".into(), "10s".into(), "30s".into()],
+                enabled: true, rotation_locked: locked,
+            });
+        }
+    }
+    out
 }
 
-/// GET /api/config/mcp —— MCP 配置只读快照（总开关/交易工具/每日限额默认值）。
-pub async fn get_config_mcp() -> Response {
+/// GET /api/config/sources —— 内置源快照（读持久化；缺 → SETTINGS_DEFAULTS 默认）。
+pub async fn get_config_sources(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_SOURCES).await {
+        Ok(Some(v)) => match serde_json::from_value::<Vec<SourceConfigPatchItemDto>>(v) {
+            Ok(items) => Json(SourceConfigSnapshotDto { sources: merge_source_config(&items) }).into_response(),
+            Err(e) => {
+                tracing::warn!(error = %e, "sources config parse failed; fallback default");
+                Json(SourceConfigSnapshotDto { sources: default_source_config() }).into_response()
+            }
+        },
+        _ => Json(SourceConfigSnapshotDto { sources: default_source_config() }).into_response(),
+    }
+}
+
+/// PATCH /api/config/sources —— body {sources:[...]}（完整清单 + 轮转序；东财末位校验 ADR-006）。
+/// 校验（值域/已知源/无重复/缺源/东财末位）失败 → 400；写库后返回完整快照。
+/// 手动反序列化（Json<Value>）以把字段类型错（如 enabled 非布尔）映射为 400 而非 axum 默认 422。
+pub async fn patch_config_sources(State(st): State<Arc<AppState>>,
+                                  Json(req): Json<serde_json::Value>) -> Response {
+    let dto: SourceConfigPatchDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("sources 请求体非法：{e}")),
+    };
+    if let Err(e) = validate_source_config(&dto) { return err(StatusCode::BAD_REQUEST, &e); }
+    let items = dto.sources;
+    let value = match serde_json::to_value(&items) {
+        Ok(v) => v,
+        Err(e) => return internal(e.into()),
+    };
+    if let Err(e) = st.config.set(K_SOURCES, value).await { return internal(e); }
+    Json(SourceConfigSnapshotDto { sources: merge_source_config(&items) }).into_response()
+}
+
+/// GET /api/config/collector —— 采集参数快照（读持久化；缺 → 默认 60s + 写死交易时段）。
+pub async fn get_config_collector(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_COLLECTOR).await {
+        Ok(Some(v)) => match serde_json::from_value::<CollectorConfigPatchDto>(v) {
+            Ok(c) => Json(CollectorConfigSnapshotDto {
+                default_interval_sec: c.default_interval_sec, trading_hours: TRADING_HOURS.into() }).into_response(),
+            Err(e) => {
+                tracing::warn!(error = %e, "collector config parse failed; fallback default");
+                Json(CollectorConfigSnapshotDto { default_interval_sec: 60, trading_hours: TRADING_HOURS.into() }).into_response()
+            }
+        },
+        _ => Json(CollectorConfigSnapshotDto { default_interval_sec: 60, trading_hours: TRADING_HOURS.into() }).into_response(),
+    }
+}
+
+/// PATCH /api/config/collector —— body {default_interval_sec}（≥60 校验 → 400），写库返回快照。
+pub async fn patch_config_collector(State(st): State<Arc<AppState>>,
+                                    Json(req): Json<serde_json::Value>) -> Response {
+    let dto: CollectorConfigPatchDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("collector 请求体非法：{e}")),
+    };
+    if let Err(e) = verify_collector_interval(dto.default_interval_sec) {
+        return err(StatusCode::BAD_REQUEST, &e);
+    }
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_COLLECTOR, value).await { return internal(e); }
+    Json(CollectorConfigSnapshotDto { default_interval_sec: dto.default_interval_sec, trading_hours: TRADING_HOURS.into() }).into_response()
+}
+
+/// GET /api/config/mcp —— MCP 配置快照（读持久化；缺 → 默认）。
+pub async fn get_config_mcp(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_MCP).await {
+        Ok(Some(v)) => match serde_json::from_value::<McpConfigPatchDto>(v) {
+            Ok(m) => Json(McpConfigSnapshotDto {
+                enabled: m.enabled, trading_tools_enabled: m.trading_tools_enabled,
+                daily_limit_amount: m.daily_limit_amount, daily_limit_count: m.daily_limit_count }).into_response(),
+            Err(e) => {
+                tracing::warn!(error = %e, "mcp config parse failed; fallback default");
+                Json(default_mcp()).into_response()
+            }
+        },
+        _ => Json(default_mcp()).into_response(),
+    }
+}
+
+/// PATCH /api/config/mcp —— body {enabled, trading_tools_enabled, daily_limit_amount, daily_limit_count}。
+/// 校验（金额/笔数 ≥0）失败 → 400；写库返回快照。
+pub async fn patch_config_mcp(State(st): State<Arc<AppState>>,
+                              Json(req): Json<serde_json::Value>) -> Response {
+    let dto: McpConfigPatchDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("mcp 请求体非法：{e}")),
+    };
+    if let Err(e) = verify_mcp_daily_limit(&dto) { return err(StatusCode::BAD_REQUEST, &e); }
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_MCP, value).await { return internal(e); }
     Json(McpConfigSnapshotDto {
-        enabled: true,
-        trading_tools_enabled: false,
-        daily_limit_amount: 50_000,
-        daily_limit_count: 20,
-    })
-    .into_response()
+        enabled: dto.enabled, trading_tools_enabled: dto.trading_tools_enabled,
+        daily_limit_amount: dto.daily_limit_amount, daily_limit_count: dto.daily_limit_count }).into_response()
 }
 
 /// 内置源快照（id, label, role, rotation_locked）。非近似变体 = 数据面真实注册源。
+/// 轮转序 = 数组顺序；push2delay（东财系，ADR-006）锁定末位。
 const SOURCE_CONFIG: &[(&str, &str, &str, bool)] = &[
     ("tencent_ifzq", "腾讯ifzq", "1m", false),
     ("sina_jsonp", "新浪jsonp", "1m", false),
     ("tencent_qt", "腾讯qt", "snapshot", false),
     ("sina_hq", "新浪hq", "snapshot", false),
     ("ths_cs", "同花顺", "snapshot", false),
-    ("push2delay", "push2delay（东财系）", "snapshot", true), // ADR-006 锁定末位
     ("exchange", "交易所", "snapshot", false),
     ("tushare", "tushare（历史层）", "snapshot", false),
+    ("push2delay", "push2delay（东财系）", "snapshot", true), // ADR-006 锁定末位
 ];
 
 /// SETTINGS_DEFAULTS（08-settings.md L3）默认值：1 req/s / 熔断 3 / 退避 5s→10s→30s。
@@ -133,6 +252,8 @@ mod tests {
         assert!(cfg.iter().any(|s| s.id == "push2delay" && s.rotation_locked));
         assert!(cfg.iter().all(|s| s.rate_per_sec == 1 && s.circuit_fail_count == 3));
         assert!(cfg.iter().all(|s| s.backoff_steps == vec!["5s", "10s", "30s"]));
+        // 东财末位（ADR-006 对齐）：push2delay 必须为最后一个元素（默认轮转序与 PATCH 校验一致）
+        assert_eq!(cfg.last().unwrap().id, "push2delay", "push2delay 默认锁定末位（ADR-006）");
     }
 
     #[test]

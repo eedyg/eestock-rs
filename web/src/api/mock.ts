@@ -15,6 +15,8 @@ import type {
   DetailRange,
   DivergenceStat,
   McpConfigSnapshot,
+  CollectorConfigPatchBody,
+  McpConfigPatchBody,
   MetricPoint,
   Metrics,
   Period,
@@ -474,6 +476,12 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   let favoriteOrder: string[] = [];
   /** 行情看板 MA 窗口（GET/PUT /api/config/ma mock 内存态；默认 [5,10,20]） */
   let maWindows: number[] = [...DEFAULT_MA_WINDOWS];
+  /** 页面⑧ S2 源参数配置 mock 内存态（GET/PATCH /api/config/sources；默认 = 内置源参数） */
+  let sourceConfig: SourceConfigItem[] = mockSourceConfig();
+  /** 页面⑧ S2 采集参数 mock 内存态（GET/PATCH /api/config/collector；默认 60） */
+  let collectorConfig: CollectorConfigSnapshot = { default_interval_sec: 60, trading_hours: '09:30-11:30/13:00-15:00' };
+  /** 页面⑧ S2 MCP 配置 mock 内存态（GET/PATCH /api/config/mcp；默认 总开/交易工具关/50000·20） */
+  let mcpConfig: McpConfigSnapshot = { enabled: true, trading_tools_enabled: false, daily_limit_amount: 50000, daily_limit_count: 20 };
   /** 已收藏 code 的 sort_order 映射（与后端 favorite_map 同构：非收藏不在 map，sort_order 起点 1） */
   const favMap = (): Map<string, number> =>
     new Map(favoriteOrder.map((c, i) => [c, i + 1]));
@@ -790,13 +798,46 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       return { app_version: '0.1.0', crate_versions: { collector: '0.1.0', storage: '0.1.0', diagnose: '0.1.0' }, db_ok: true, uptime_secs: 61 };
     },
     async getConfigSources(): Promise<SourceConfigSnapshot> {
-      return { sources: mockSourceConfig() };
+      return { sources: sourceConfig.map((s) => ({ ...s })) };
+    },
+    async saveConfigSources(sources: SourceConfigItem[]): Promise<SourceConfigSnapshot> {
+      // 校验：东财末位（ADR-006）+ 每源值域；仿真后端 400
+      const items = sources as unknown as { id: string; rate_per_sec: number; jitter_ms: number; circuit_fail_count: number; backoff_steps: string[]; enabled: boolean }[];
+      for (const it of items) {
+        if (it.rate_per_sec < 0 || it.jitter_ms < 0 || it.circuit_fail_count < 0 || it.backoff_steps.length === 0) {
+          throw new ApiError(400, `HTTP 400: 源 ${it.id} 参数不合法`);
+        }
+      }
+      if (items[items.length - 1]?.id !== 'push2delay') {
+        throw new ApiError(400, 'HTTP 400: 轮转序违规：push2delay（东财系）必须为末位（ADR-006）');
+      }
+      sourceConfig = items.map((it) => {
+        const meta = sourceConfig.find((s) => s.id === it.id);
+        return { id: it.id, label: meta?.label ?? it.id, role: meta?.role ?? 'snapshot',
+          rate_per_sec: it.rate_per_sec, jitter_ms: it.jitter_ms, circuit_fail_count: it.circuit_fail_count,
+          backoff_steps: [...it.backoff_steps], enabled: it.enabled, rotation_locked: meta?.rotation_locked ?? false };
+      });
+      return { sources: sourceConfig.map((s) => ({ ...s })) };
     },
     async getConfigCollector(): Promise<CollectorConfigSnapshot> {
-      return { default_interval_sec: 60, trading_hours: '09:30-11:30/13:00-15:00' };
+      return { ...collectorConfig };
+    },
+    async saveConfigCollector(patch: CollectorConfigPatchBody): Promise<CollectorConfigSnapshot> {
+      if (patch.default_interval_sec < 60) {
+        throw new ApiError(400, 'HTTP 400: default_interval_sec 须 ≥60');
+      }
+      collectorConfig = { ...collectorConfig, default_interval_sec: patch.default_interval_sec };
+      return { ...collectorConfig };
     },
     async getConfigMcp(): Promise<McpConfigSnapshot> {
-      return { enabled: true, trading_tools_enabled: false, daily_limit_amount: 50000, daily_limit_count: 20 };
+      return { ...mcpConfig };
+    },
+    async saveConfigMcp(patch: McpConfigPatchBody): Promise<McpConfigSnapshot> {
+      if (patch.daily_limit_amount < 0 || patch.daily_limit_count < 0) {
+        throw new ApiError(400, 'HTTP 400: 每日限额须 ≥0');
+      }
+      mcpConfig = { ...patch };
+      return { ...mcpConfig };
     },
     // ── 行情看板 MA 可配置（后端 W1：GET/PUT /api/config/ma；主图+宫格应用，回测弹窗不动）──
     async getMaConfig(): Promise<MaConfigDto> {
@@ -1263,9 +1304,9 @@ function mockSourceConfig(): SourceConfigItem[] {
     { id: 'tencent_qt', label: '腾讯qt', role: 'snapshot', ...base, rotation_locked: false },
     { id: 'sina_hq', label: '新浪hq', role: 'snapshot', ...base, rotation_locked: false },
     { id: 'ths_cs', label: '同花顺', role: 'snapshot', ...base, rotation_locked: false },
-    { id: 'push2delay', label: 'push2delay（东财系）', role: 'snapshot', ...base, rotation_locked: true },
     { id: 'exchange', label: '交易所', role: 'snapshot', ...base, rotation_locked: false },
     { id: 'tushare', label: 'tushare（历史层）', role: 'snapshot', ...base, rotation_locked: false },
+    { id: 'push2delay', label: 'push2delay（东财系）', role: 'snapshot', ...base, rotation_locked: true }, // ADR-006 末位
   ];
 }
 

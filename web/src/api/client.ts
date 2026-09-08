@@ -11,11 +11,13 @@ import type {
   BacktestSubmitReq,
   BacktestSubmitResp,
   Bar,
+  CollectorConfigPatchBody,
   CollectorConfigSnapshot,
   DetailRange,
   DivergenceStat,
   KlineResponse,
   MaConfigDto,
+  McpConfigPatchBody,
   McpConfigSnapshot,
   MetricPoint,
   Period,
@@ -26,6 +28,7 @@ import type {
   RegisterSymbolInput,
   ResetCircuitsResult,
   SourceAccuracyResponse,
+  SourceConfigItem,
   SourceConfigSnapshot,
   SourceEventItem,
   SourcesHealth,
@@ -122,12 +125,18 @@ export interface ApiClient {
   // ── 页面⑧ 系统设置（08-settings §6；仅 S1 只读/运维端点，无配置持久化）──
   /** 系统信息（应用/crate 版本、DB 状态、运行时长；只读） */
   getSystemInfo(): Promise<SystemInfo>;
-  /** 源参数只读快照（内置源清单 + 默认参数；不落库） */
+  /** 源参数快照（S2 读持久，缺则默认） */
   getConfigSources(): Promise<SourceConfigSnapshot>;
-  /** 采集参数只读快照（默认间隔 + 交易时段（写死）） */
+  /** 保存源参数（PATCH /api/config/sources；完整清单+轮转序，东财末位 ADR-006，值域校验） */
+  saveConfigSources(sources: SourceConfigItem[]): Promise<SourceConfigSnapshot>;
+  /** 采集参数快照（默认间隔 + 交易时段（写死）） */
   getConfigCollector(): Promise<CollectorConfigSnapshot>;
-  /** MCP 配置只读快照（总开关/交易工具/每日限额默认值） */
+  /** 保存采集参数（PATCH /api/config/collector；default_interval_sec ≥60） */
+  saveConfigCollector(patch: CollectorConfigPatchBody): Promise<CollectorConfigSnapshot>;
+  /** MCP 配置快照（总开关/交易工具/每日限额） */
   getConfigMcp(): Promise<McpConfigSnapshot>;
+  /** 保存 MCP 配置（PATCH /api/config/mcp；金额/笔数 ≥0） */
+  saveConfigMcp(patch: McpConfigPatchBody): Promise<McpConfigSnapshot>;
   /** 行情看板 MA 窗口配置（GET /api/config/ma；主图+宫格应用，回测弹窗不动） */
   getMaConfig(): Promise<MaConfigDto>;
   /** 保存 MA 窗口配置（PUT /api/config/ma；后端校验 1-3 条/1-500、归一化升序去重） */
@@ -289,8 +298,21 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     // ── 页面⑧ 系统设置（08-settings §6；仅 S1 只读/运维端点）──
     getSystemInfo: () => get<SystemInfo>('/api/system/info'),
     getConfigSources: () => get<SourceConfigSnapshot>('/api/config/sources'),
+    saveConfigSources: (sources) =>
+      request<SourceConfigSnapshot>('/api/config/sources', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          sources: sources.map(({ id, rate_per_sec, jitter_ms, circuit_fail_count, backoff_steps, enabled }) => ({
+            id, rate_per_sec, jitter_ms, circuit_fail_count, backoff_steps, enabled,
+          })),
+        }),
+      }),
     getConfigCollector: () => get<CollectorConfigSnapshot>('/api/config/collector'),
+    saveConfigCollector: (patch) =>
+      request<CollectorConfigSnapshot>('/api/config/collector', { method: 'PATCH', body: JSON.stringify(patch) }),
     getConfigMcp: () => get<McpConfigSnapshot>('/api/config/mcp'),
+    saveConfigMcp: (patch) =>
+      request<McpConfigSnapshot>('/api/config/mcp', { method: 'PATCH', body: JSON.stringify(patch) }),
     getMaConfig: () => get<MaConfigDto>('/api/config/ma'),
     saveMaConfig: (windows) =>
       request<MaConfigDto>('/api/config/ma', { method: 'PUT', body: JSON.stringify({ windows }) }),

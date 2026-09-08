@@ -529,6 +529,30 @@ INSERT INTO ma_config (id, ma_windows) VALUES (1, ARRAY[5,10,20]) ON CONFLICT (i
 - `set`：`INSERT ... ON CONFLICT (id) DO UPDATE SET ma_windows = EXCLUDED.ma_windows, updated_at = now()`，
   参数绑定 `&[i32]` 到 `int4[]` 列（sqlx 支持 Vec<i32>/&[i32] 数组映射）；写回后返回归一化窗口列表。
 
+**页面⑧ 设置页 S2：配置持久化（0021）**：`app_config` 表（key text PK + value jsonb）。
+存三块配置（sources / collector / mcp），value 为 jsonb；默认值 = 现 GET 返回的 SETTINGS_DEFAULTS
+默认（内置源参数 / 60s / 交易工具关 / 50000·20 等），缺值由 web 层回退默认。应用面自有表
+（数据面不读写，ADR-017 不违）。
+
+``` {.sql file=migrations/0021_app_config.sql}
+-- 0021_app_config.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 页面⑧ 系统设置 S2：配置持久化（app_config 表：key text PK + value jsonb）。
+-- 存三块配置（sources / collector / mcp），value 为 jsonb；默认值 = 现 GET 返回的
+-- SETTINGS_DEFAULTS 默认（内置源参数 / 60s / ma 等），缺值由 web 层回退默认，本表不强制种子。
+-- 应用面自有表（数据面不读写，ADR-017 不违）。
+CREATE TABLE app_config (
+    key        text PRIMARY KEY,
+    value      jsonb NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+**storage 模块 `crates/storage/src/config_store.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::ConfigStore`（PgPool；app_config 表，迁移 0021）。
+- `get`：`SELECT value FROM app_config WHERE key = $1`；表无该 key → `Ok(None)`（web 层回退默认）。
+- `set`：`INSERT ... ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`；
+  键名约定 `"sources" / "collector" / "mcp"`；跨 key 独立。
+
 ## 4.3.8 周/月线全历史重建（后端 W1，0016；用户定稿 2026-09-06）
 
 **上下文**：既有库 0014 建的 `kline_accurate_1w/1mo` 带 `WHERE ts >= '2024-01-01'`（0010 同口径），

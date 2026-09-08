@@ -33,6 +33,8 @@ pub struct AppState {
     pub favorites: Arc<dyn domain::ports::FavoriteStore>,
     /// 行情看板 MA 可配置端口（后端 W1：MaConfigStore，ma_config 表，0015；GET/PUT /api/config/ma——主图+宫格应用，回测弹窗不动）。
     pub ma_config: Arc<dyn domain::ports::MaConfigStore>,
+    /// 页面⑧ 系统设置 S2 配置持久化端口（ConfigStore，app_config 表，0021：sources/collector/mcp 三块；GET 读持久 + PATCH 写）。
+    pub config: Arc<dyn domain::ports::ConfigStore>,
     /// 模拟实盘服务（11-sim-live / L3b：web 面板 /api/sim-live/*；与 MCP 共享同一 SimLiveService 实例）。
     /// `None` = 未配置，/api/sim-live/* 返回 503。storage::sim::PgSimSessionStore 由 app bin 装配。
     pub sim: Option<Arc<application::simlive::SimLiveService>>,

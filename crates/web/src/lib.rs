@@ -65,9 +65,10 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/system/info", get(settings::system_info))
         .route("/api/system/purge-raw", post(settings::purge_raw))
         .route("/api/system/reset-circuits", post(settings::reset_circuits))
-        .route("/api/config/sources", get(settings::get_config_sources))
-        .route("/api/config/collector", get(settings::get_config_collector))
-        .route("/api/config/mcp", get(settings::get_config_mcp))
+        // S2：config 持久化 PATCH（GET 读持久 + PATCH 写；缺则默认）
+        .route("/api/config/sources", get(settings::get_config_sources).patch(settings::patch_config_sources))
+        .route("/api/config/collector", get(settings::get_config_collector).patch(settings::patch_config_collector))
+        .route("/api/config/mcp", get(settings::get_config_mcp).patch(settings::patch_config_mcp))
         // 行情看板 MA 可配置（后端 W1：GET 读 / PUT 写归一化升序窗口；主图+宫格应用，回测弹窗不动）
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
         .route("/ws", get(ws::ws_handler))

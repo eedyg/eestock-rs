@@ -118,6 +118,13 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "holidays",
     // Wave 2 Phase B 加法：告警引擎表（0009；应用面自有，数据面不读写）
     "alert_rules", "alert_events",
+    // Wave 3 (0011-0019)：回测/收藏/MA配置/模拟实盘 应用面表
+    "backtest_runs", "backtest_results",
+    "favorite_symbols",
+    "ma_config",
+    // 页面⑧ 系统设置 S2：配置持久化（app_config 表，0021）
+    "app_config",
+    "simsession", "simsession_result", "sim_trades", "sim_positions", "simsession_state",
 ];
 
 /// 应为 hypertable 的表。
