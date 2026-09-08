@@ -8,6 +8,7 @@ import { SystemInfoPanel } from './SystemInfoPanel';
 import { SourceConfigPanel } from './SourceConfigPanel';
 import { CollectorConfigPanel } from './CollectorConfigPanel';
 import { McpConfigPanel } from './McpConfigPanel';
+import { KlineConfigPanel } from './KlineConfigPanel';
 import { LogViewer } from './LogViewer';
 import { DangerZone } from './DangerZone';
 
@@ -52,6 +53,9 @@ export function SettingsPage({ api = defaultApi }: { api?: ApiClient }) {
       </RegionPortal>
       <RegionPortal root={rootRef} region="mcp-config">
         <McpConfigPanel api={api} />
+      </RegionPortal>
+      <RegionPortal root={rootRef} region="kline-config">
+        <KlineConfigPanel api={api} />
       </RegionPortal>
       <RegionPortal root={rootRef} region="system-info">
         <SystemInfoPanel api={api} />

@@ -220,6 +220,7 @@ export interface SettingsGridProps {
 
 export type SettingsSection =
   | 'source-config' | 'collector-config' | 'mcp-config'
+  | 'kline-config'
   | 'system-info' | 'log-viewer' | 'danger-zone';
 
 export interface SourceConfigPatch {
@@ -258,6 +259,12 @@ export function SettingsGrid(_props: SettingsGridProps) {
             三态=骨架区/不可能空/错误占位+重试 */}
         <section data-region="mcp-config" className="mb-4">
           {/* <McpConfigPanel onSaveMcpConfig onEnableMcpTradingTools/>（总开关/交易工具开关/每日限额） */}
+        </section>
+
+        {/* kline-config：GET/PUT /api/config/kline；默认K线视口（交易日数，缺省 2，1-50）；
+            三态=骨架区/不可能空/错误占位+重试（保存失败回滚提示）；看板主图+宫格共用，回测弹窗不动 */}
+        <section data-region="kline-config" className="mb-4">
+          {/* <KlineConfigPanel/>（默认K线视口(交易日) 输入 → PUT /api/config/kline → 乐观更新/回显） */}
         </section>
 
         {/* system-info：GET /api/system/info；

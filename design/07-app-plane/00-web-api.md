@@ -70,6 +70,8 @@
 | `GET /api/tushare/status`（Wave 2 Phase A） | — | `{"checkpoints":[{"code,period,last_synced_date,updated_at}],"covered_codes","last_updated_at","last_event":{"ts","ok","err_kind"}\|null,"quota_remaining":null}`（积分余额未入库 → 恒 null，待 tushare 账户侧可查后单开） | `sync_checkpoints`（0005）+ `source_health_events` 最近 7 日 source='tushare' 事件 | 500 |
 | `GET /api/config/ma`（看板 MA 可配置，后端 W1） | — | `{"windows":[5,10,20]}`（归一化升序去重；主图+宫格应用，回测弹窗不动） | `ma_config`（0015，应用面自有表；表空 → 默认 [5,10,20]） | 500 |
 | `PUT /api/config/ma`（看板 MA 可配置，后端 W1） | body `{"windows":[5,10,20]}` | 200 `{"windows":[...]}`（校验+归一化升序去重后写回并返回） | 同上 | 400：1-3 条 / 每条 1-500 整数；500 |
+| `GET /api/config/kline`（看板 K线默认视口，后端 W1） | — | `{"viewport_days":2}`（每周期实际 bar = 该周期每日 bar 数 × viewport_days；主图+宫格应用，回测弹窗不动） | `app_config`（0021，key="kline"；无键 → 默认 2） | 500 |
+| `PUT /api/config/kline`（看板 K线默认视口，后端 W1） | body `{"viewport_days":10}` | 200 `{"viewport_days":10}`（校验后写回并返回） | 同上 | 400：viewport_days 1-50 整数（非整数/0/51 → 400）；500 |
 
 字段口径（diagnose，05-diagnose §1 实现 Wave 1 最小集）：
 
@@ -2094,6 +2096,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/mcp", get(settings::get_config_mcp).patch(settings::patch_config_mcp))
         // 行情看板 MA 可配置（后端 W1：GET 读 / PUT 写归一化升序窗口；主图+宫格应用，回测弹窗不动）
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
+        // 行情看板 K线默认视口（后端 W1：GET /api/config/kline 读 / PUT 写 viewport_days；app_config 0021；缺省 2）
+        .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)

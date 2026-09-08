@@ -16,6 +16,7 @@ import type {
   DetailRange,
   DivergenceStat,
   KlineResponse,
+  KlineConfigDto,
   MaConfigDto,
   McpConfigPatchBody,
   McpConfigSnapshot,
@@ -141,6 +142,10 @@ export interface ApiClient {
   getMaConfig(): Promise<MaConfigDto>;
   /** 保存 MA 窗口配置（PUT /api/config/ma；后端校验 1-3 条/1-500、归一化升序去重） */
   saveMaConfig(windows: number[]): Promise<MaConfigDto>;
+  /** 行情看板 K线默认视口配置（GET /api/config/kline；缺省 2；回测弹窗不动） */
+  getKlineConfig(): Promise<KlineConfigDto>;
+  /** 保存 K线默认视口配置（PUT /api/config/kline；后端校验 1-50 整数） */
+  saveKlineConfig(viewportDays: number): Promise<KlineConfigDto>;
   /** 清空 kline_raw（危险；confirm 须为 'PURGE'，缺失/不匹配 → 400） */
   purgeRaw(confirm: string): Promise<PurgeRawResult>;
   /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
@@ -316,6 +321,9 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getMaConfig: () => get<MaConfigDto>('/api/config/ma'),
     saveMaConfig: (windows) =>
       request<MaConfigDto>('/api/config/ma', { method: 'PUT', body: JSON.stringify({ windows }) }),
+    getKlineConfig: () => get<KlineConfigDto>('/api/config/kline'),
+    saveKlineConfig: (viewportDays) =>
+      request<KlineConfigDto>('/api/config/kline', { method: 'PUT', body: JSON.stringify({ viewport_days: viewportDays }) }),
     purgeRaw: (confirm) =>
       request<PurgeRawResult>('/api/system/purge-raw', {
         method: 'POST',

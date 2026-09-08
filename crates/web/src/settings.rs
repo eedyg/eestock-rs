@@ -6,6 +6,7 @@
 
 use axum::{Json, extract::State, http::StatusCode, response::{IntoResponse, Response}};
 use domain::ports::SystemInfoRead;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -69,10 +70,14 @@ pub async fn reset_circuits(State(st): State<Arc<AppState>>, Json(req): Json<Con
     Json(ResetCircuitsResultDto { requests: n }).into_response()
 }
 
-/// app_config 键名约定（sources/collector/mcp 三块）。
+/// app_config 键名约定（sources/collector/mcp/kline 四块）。
 const K_SOURCES: &str = "sources";
 const K_COLLECTOR: &str = "collector";
 const K_MCP: &str = "mcp";
+const K_KLINE: &str = "kline";
+
+/// K线默认视口缺省值（GET 缺 / 解析失败 → 2 交易日；1-50 整数）。
+const DEFAULT_KLINE_VIEWPORT_DAYS: i32 = 2;
 /// 交易时段写死只读（无合理变更理由，08-settings §3）。
 const TRADING_HOURS: &str = "09:30-11:30/13:00-15:00";
 
@@ -210,6 +215,50 @@ pub async fn patch_config_mcp(State(st): State<Arc<AppState>>,
         daily_limit_amount: dto.daily_limit_amount, daily_limit_count: dto.daily_limit_count }).into_response()
 }
 
+/// GET /api/config/kline 响应/请求体：K线默认视口（app_config key "kline"，迁移 0021；缺省 2）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KlineConfigDto {
+    /// 默认视口的交易日数（1-50 整数；每周期实际 bar = 该周期每日 bar 数 × viewport_days）。
+    pub viewport_days: i32,
+}
+
+/// viewport_days 校验（纯函数）：整数 1..=50；失败返回描述性错误（handler `err(400, e)`）。
+pub fn verify_kline_viewport_days(viewport_days: i32) -> Result<(), String> {
+    if !(1..=50).contains(&viewport_days) {
+        return Err(format!("viewport_days 须为 1..=50 整数，收到 {viewport_days}"));
+    }
+    Ok(())
+}
+
+/// GET /api/config/kline —— 读 K线默认视口（app_config key "kline"；缺/解析失败 → 默认 2）。
+pub async fn get_config_kline(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_KLINE).await {
+        Ok(Some(v)) => match serde_json::from_value::<KlineConfigDto>(v) {
+            Ok(c) => Json(KlineConfigDto { viewport_days: c.viewport_days }).into_response(),
+            Err(e) => {
+                tracing::warn!(error = %e, "kline config parse failed; fallback default");
+                Json(KlineConfigDto { viewport_days: DEFAULT_KLINE_VIEWPORT_DAYS }).into_response()
+            }
+        },
+        _ => Json(KlineConfigDto { viewport_days: DEFAULT_KLINE_VIEWPORT_DAYS }).into_response(),
+    }
+}
+
+/// PUT /api/config/kline —— body {viewport_days}：校验（整数 1-50）失败 400；落库返回。
+pub async fn put_config_kline(State(st): State<Arc<AppState>>,
+                              Json(req): Json<serde_json::Value>) -> Response {
+    let dto: KlineConfigDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("kline 请求体非法：{e}")),
+    };
+    if let Err(e) = verify_kline_viewport_days(dto.viewport_days) {
+        return err(StatusCode::BAD_REQUEST, &e);
+    }
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_KLINE, value).await { return internal(e); }
+    Json(KlineConfigDto { viewport_days: dto.viewport_days }).into_response()
+}
+
 /// 内置源快照（id, label, role, rotation_locked）。非近似变体 = 数据面真实注册源。
 /// 轮转序 = 数组顺序；push2delay（东财系，ADR-006）锁定末位。
 const SOURCE_CONFIG: &[(&str, &str, &str, bool)] = &[
@@ -261,5 +310,29 @@ mod tests {
         assert!(!RESET_SOURCES.contains(&"tencent_qt_approx"));
         assert!(!RESET_SOURCES.contains(&"push2delay_approx"));
         assert!(RESET_SOURCES.contains(&"tencent_ifzq"));
+    }
+
+    #[test]
+    fn kline_viewport_days_validation() {
+        assert!(verify_kline_viewport_days(2).is_ok());
+        assert!(verify_kline_viewport_days(10).is_ok());
+        assert!(verify_kline_viewport_days(1).is_ok(), "下界 1 合法");
+        assert!(verify_kline_viewport_days(50).is_ok(), "上界 50 合法");
+        assert!(verify_kline_viewport_days(0).is_err(), "0 → 拒");
+        assert!(verify_kline_viewport_days(51).is_err(), "51 → 拒");
+        assert!(verify_kline_viewport_days(-1).is_err(), "负值 → 拒");
+    }
+
+    #[test]
+    fn kline_config_dto_roundtrip_and_non_integer_rejected() {
+        let dto = KlineConfigDto { viewport_days: 10 };
+        let v = serde_json::to_value(&dto).unwrap();
+        assert_eq!(v["viewport_days"], 10);
+        let back: KlineConfigDto = serde_json::from_value(v).unwrap();
+        assert_eq!(back.viewport_days, 10);
+        // 非整（10.5）反序列化为 i32 失败 → 上层 handler 映射 400
+        assert!(serde_json::from_value::<KlineConfigDto>(serde_json::json!({"viewport_days": 10.5})).is_err());
+        // 缺字段 → 反序列化失败
+        assert!(serde_json::from_value::<KlineConfigDto>(serde_json::json!({})).is_err());
     }
 }

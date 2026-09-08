@@ -42,6 +42,7 @@ import type {
   TushareStatusResponse,
   BacktestNetValue,
   MaConfigDto,
+  KlineConfigDto,
   SimBacktestCompare,
   SimCancelOrderReq,
   SimOrdersResp,
@@ -118,6 +119,16 @@ function round4(n: number): number {
 
 /** 行情看板 MA 默认窗口（GET /api/config/ma 表空/未初始化时兜底；与后端默认 [5,10,20] 同构） */
 const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
+
+/** 行情看板 K线默认视口（GET /api/config/kline 无键/未初始化时兜底；与后端默认 2 交易日同构） */
+const DEFAULT_KLINE_VIEWPORT_DAYS = 2;
+
+/** K线默认视口校验（与后端 verify_kline_viewport_days 同构：整数 1-50）。  不合规抛 ApiError(400)。 */
+function assertKlineViewportDays(viewportDays: number): void {
+  if (!Number.isInteger(viewportDays) || viewportDays < 1 || viewportDays > 50) {
+    throw new ApiError(400, `HTTP 400: viewport_days 须为 1..=50 整数，收到 ${viewportDays}`);
+  }
+}
 
 /** MA 窗口校验 + 归一化（与后端 validate_ma_windows 同构：1-3 条、每条 1-500、去重升序）。
  *  不合规抛 ApiError(400)；归一化结果由 mock 内部状态保存并返回。 */
@@ -476,6 +487,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   let favoriteOrder: string[] = [];
   /** 行情看板 MA 窗口（GET/PUT /api/config/ma mock 内存态；默认 [5,10,20]） */
   let maWindows: number[] = [...DEFAULT_MA_WINDOWS];
+  /** 行情看板 K线默认视口（GET/PUT /api/config/kline mock 内存态；默认 2 交易日） */
+  let klineViewportDays: number = DEFAULT_KLINE_VIEWPORT_DAYS;
   /** 页面⑧ S2 源参数配置 mock 内存态（GET/PATCH /api/config/sources；默认 = 内置源参数） */
   let sourceConfig: SourceConfigItem[] = mockSourceConfig();
   /** 页面⑧ S2 采集参数 mock 内存态（GET/PATCH /api/config/collector；默认 60） */
@@ -847,6 +860,15 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       const normalized = normalizeMaWindows(windows);
       maWindows = normalized;
       return { windows: normalized.slice() };
+    },
+    // ── 行情看板 K线默认视口（后端 W1：GET/PUT /api/config/kline；主图+宫格应用，回测弹窗不动）──
+    async getKlineConfig(): Promise<KlineConfigDto> {
+      return { viewport_days: klineViewportDays };
+    },
+    async saveKlineConfig(viewportDays: number): Promise<KlineConfigDto> {
+      assertKlineViewportDays(viewportDays);
+      klineViewportDays = viewportDays;
+      return { viewport_days: klineViewportDays };
     },
     async purgeRaw(confirm: string): Promise<PurgeRawResult> {
       if (confirm !== 'PURGE') {

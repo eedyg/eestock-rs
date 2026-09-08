@@ -1,26 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { defaultPageSizeForPeriod, paginationBatchForPeriod, PAGINATION_BATCH, BARS_PER_TRADING_DAY } from './feed';
+import { defaultPageSizeForPeriod, paginationBatchForPeriod, PAGINATION_BATCH, BARS_PER_TRADING_DAY, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
 
-describe('feed defaultPageSizeForPeriod（周/月合理初始视口，非 2×交易日）', () => {
-  it('1w → 30 根（≈30 周，半年+视口）', () => {
-    expect(defaultPageSizeForPeriod('1w')).toBe(30);
-  });
-
-  it('1mo → 24 根（≈24 月，两年视口）', () => {
-    expect(defaultPageSizeForPeriod('1mo')).toBe(24);
-  });
-
-  it('1w/1mo 不按 2×交易日（周/月一单位即一根）', () => {
-    // BARS_PER_TRADING_DAY['1w']=1、['1mo']=1；若按 2× 会得 2 根，过疏
-    expect(BARS_PER_TRADING_DAY['1w']).toBe(1);
-    expect(BARS_PER_TRADING_DAY['1mo']).toBe(1);
-    expect(defaultPageSizeForPeriod('1w')).toBeGreaterThan(BARS_PER_TRADING_DAY['1w'] * 2);
-    expect(defaultPageSizeForPeriod('1mo')).toBeGreaterThan(BARS_PER_TRADING_DAY['1mo'] * 2);
-  });
-
-  it('常规周期仍为 2×交易日（缺口回归）', () => {
+describe('feed defaultPageSizeForPeriod（可配置视口：BARS_PER_TRADING_DAY × viewport_days，缺省 2）', () => {
+  it('常规周期默认 = 每日 bar 数 × DEFAULT_KLINE_VIEWPORT_DAYS(2)', () => {
+    expect(defaultPageSizeForPeriod('1m')).toBe(BARS_PER_TRADING_DAY['1m'] * 2);
     expect(defaultPageSizeForPeriod('15m')).toBe(BARS_PER_TRADING_DAY['15m'] * 2);
     expect(defaultPageSizeForPeriod('1d')).toBe(BARS_PER_TRADING_DAY['1d'] * 2);
+  });
+
+  it('统一公式：周/月一单位即一根（1×N），不再特殊化 30/24', () => {
+    expect(defaultPageSizeForPeriod('1w')).toBe(BARS_PER_TRADING_DAY['1w'] * 2);
+    expect(defaultPageSizeForPeriod('1mo')).toBe(BARS_PER_TRADING_DAY['1mo'] * 2);
+  });
+
+  it('配置 viewport_days 生效：每周期实际 bar = 每日 bar 数 × viewport_days（1m=241×N、1d=1×N）', () => {
+    expect(defaultPageSizeForPeriod('1m', 10)).toBe(BARS_PER_TRADING_DAY['1m'] * 10);
+    expect(defaultPageSizeForPeriod('1d', 5)).toBe(BARS_PER_TRADING_DAY['1d'] * 5);
+    expect(defaultPageSizeForPeriod('1w', 10)).toBe(10);
+  });
+
+  it('缺省 viewport_days = DEFAULT_KLINE_VIEWPORT_DAYS(2)，用户调大可见更多', () => {
+    expect(defaultPageSizeForPeriod('1m')).toBe(241 * DEFAULT_KLINE_VIEWPORT_DAYS);
+    expect(defaultPageSizeForPeriod('1d', 10)).toBeGreaterThan(defaultPageSizeForPeriod('1d'));
   });
 });
 

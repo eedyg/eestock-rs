@@ -5,6 +5,7 @@ const SECTIONS: { id: SettingsSection; label: string; danger?: boolean }[] = [
   { id: 'source-config', label: '数据源参数' },
   { id: 'collector-config', label: '采集参数' },
   { id: 'mcp-config', label: 'MCP 配置' },
+  { id: 'kline-config', label: 'K线视口' },
   { id: 'system-info', label: '系统信息' },
   { id: 'log-viewer', label: '日志查看' },
   { id: 'danger-zone', label: '⚠ 危险操作', danger: true },

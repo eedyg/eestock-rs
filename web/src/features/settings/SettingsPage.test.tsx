@@ -21,7 +21,7 @@ describe('SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区
     api = stubApi();
   });
 
-  it('骨架区域齐备：settings-nav + 6 内容区（source/collector/mcp/system/log/danger）', async () => {
+  it('骨架区域齐备：settings-nav + 内容区（source/collector/mcp/kline/system/log/danger）', async () => {
     const { container } = renderPage(api);
     await waitFor(() => expect(screen.getByText('腾讯ifzq')).toBeInTheDocument());
     for (const r of [
@@ -29,6 +29,7 @@ describe('SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区
       'source-config',
       'collector-config',
       'mcp-config',
+      'kline-config',
       'system-info',
       'log-viewer',
       'danger-zone',
@@ -170,5 +171,30 @@ describe('SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区
     await waitFor(() =>
       expect(screen.getByText(/日志跟随将在下一阶段上线/)).toBeInTheDocument(),
     );
+  });
+
+  it('K线视口面板：编辑视口→PUT kline（1-50）乐观更新+回显，非法禁用保存', async () => {
+    const user = userEvent.setup();
+    renderPage(api);
+    await waitFor(() => expect(screen.getByText(/默认K线视口/)).toBeInTheDocument());
+
+    const input = screen.getByLabelText('默认K线视口(交易日)');
+    // 默认回显 2（mock 底座缺省）
+    expect(input).toHaveValue(2);
+    // 编辑 → 10 → 保存 → PUT /api/config/kline
+    await user.clear(input);
+    await user.type(input, '10');
+    expect(screen.getByTestId('save-kline-config')).toBeEnabled();
+    await user.click(screen.getByTestId('save-kline-config'));
+    await waitFor(() => expect(api.saveKlineConfig).toHaveBeenCalledWith(10));
+    await waitFor(() => expect(screen.getByText(/已保存/)).toBeInTheDocument());
+
+    // 非法（0/51）→ 禁用保存
+    await user.clear(input);
+    await user.type(input, '0');
+    expect(screen.getByTestId('save-kline-config')).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, '51');
+    expect(screen.getByTestId('save-kline-config')).toBeDisabled();
   });
 });

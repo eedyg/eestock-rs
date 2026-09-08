@@ -71,6 +71,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/mcp", get(settings::get_config_mcp).patch(settings::patch_config_mcp))
         // 行情看板 MA 可配置（后端 W1：GET 读 / PUT 写归一化升序窗口；主图+宫格应用，回测弹窗不动）
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
+        // 行情看板 K线默认视口（后端 W1：GET /api/config/kline 读 / PUT 写 viewport_days；app_config 0021；缺省 2）
+        .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)

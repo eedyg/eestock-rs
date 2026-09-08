@@ -262,3 +262,45 @@ async fn config_patch_persists_get_reads_back_and_validates() {
 
     clear_config(&pool).await;
 }
+
+/// 清理 kline 配置键（只删该 key，避免抹掉同 binary 其它配置键，配合并行测试隔离）。
+async fn clear_kline_config(pool: &PgPool) {
+    sqlx::query("DELETE FROM app_config WHERE key = 'kline'")
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn config_kline_put_get_and_validate() {
+    let pool = pool().await;
+    clear_kline_config(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 0) 表无 kline 键 → GET 缺省 2
+    let v: Value = http.get(format!("{url}/api/config/kline"))
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["viewport_days"], 2, "GET 缺省 2（app_config 无 kline 键）");
+
+    // 1) PUT 10 → 200 + GET 读回 10（落库持久化）
+    let r = http.put(format!("{url}/api/config/kline"))
+        .json(&serde_json::json!({ "viewport_days": 10 })).send().await.unwrap();
+    assert_eq!(r.status(), 200, "合法 PUT → 200");
+    let v: Value = http.get(format!("{url}/api/config/kline"))
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["viewport_days"], 10, "GET 读回持久化（2→10）");
+
+    // 2) 0 / 51 / 非整 → 400
+    for bad in [
+        serde_json::json!({ "viewport_days": 0 }),
+        serde_json::json!({ "viewport_days": 51 }),
+        serde_json::json!({ "viewport_days": 10.5 }),
+    ] {
+        let r = http.put(format!("{url}/api/config/kline"))
+            .json(&bad).send().await.unwrap();
+        assert_eq!(r.status(), 400, "非法值 {bad} → 400");
+    }
+
+    clear_kline_config(&pool).await;
+}

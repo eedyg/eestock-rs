@@ -366,6 +366,12 @@ export interface MaConfigDto {
   windows: number[];
 }
 
+/** GET/PUT /api/config/kline 响应/请求体：K线默认视口（app_config key "kline"，迁移 0021；缺省 2）。
+ *  每周期实际 bar = 该周期每日 bar 数 × viewport_days；主图+宫格应用，回测弹窗不动。 */
+export interface KlineConfigDto {
+  viewport_days: number;
+}
+
 // ── 页面⑤ 回测工作台（06-web/05-backtest.md L2 + 08-backtest/01-engine-adr.md §7；后端线格式见 07-app-plane/00-web-api.md §1.5）──
 
 export type BacktestStatus = 'pending' | 'running' | 'done' | 'failed';

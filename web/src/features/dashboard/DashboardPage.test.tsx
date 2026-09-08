@@ -238,6 +238,32 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     );
   });
 
+  // ── W2：K线默认视口（可配置）——mount 读 getKlineConfig，feed 用配置 viewport_days 计算 pageSize ──
+  it('K线视口配置：mount 读 getKlineConfig，feed 用配置 viewport_days 计算 pageSize', async () => {
+    const getKlineConfig = vi.fn(async () => ({ viewport_days: 10 }));
+    const apiK = stubApi({
+      getSymbols: vi.fn(async () => SYMBOLS),
+      getKline: vi.fn(async () => [
+        { ts: '2026-09-04T02:00:00Z', open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 100, amount: 105 },
+      ]),
+      getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
+      getKlineConfig,
+    });
+    render(
+      <MemoryRouter>
+        <DashboardPage api={apiK} ws={ws} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
+    expect(getKlineConfig).toHaveBeenCalled();
+    // 默认周期 15m；viewport_days=10 → pageSize = BARS_PER_TRADING_DAY['15m'](17) × 10 = 170
+    await waitFor(() => {
+      expect(apiK.getKline).toHaveBeenCalledWith(
+        expect.objectContaining({ code: '518880', period: '15m', limit: 170 }),
+      );
+    });
+  });
+
   // ── Wave 3 页面① 看板收藏（F2 前端）──
 
   it('收藏置顶回归：收藏优先不影响宫格/单图/选中（Q4 仅影响 symbol-list）', async () => {

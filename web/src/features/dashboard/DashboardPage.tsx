@@ -6,7 +6,7 @@ import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { DashboardStore } from './store';
-import { KlineDataFeed } from './feed';
+import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
 import { SymbolList } from './SymbolList';
 import { Toolbar, type ChartTab, type IndicatorName } from './Toolbar';
 import { KlineChart } from './KlineChart';
@@ -67,13 +67,30 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, maWindows],
   );
 
+  // K线默认视口（交易日数，统一配置，主图+宫格共用）：默认 2，mount 时 GET /api/config/kline 读；缺省 2 兜底。
+  const [viewportDays, setViewportDays] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_DAYS);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getKlineConfig()
+      .then((cfg) => {
+        if (!cancelled) setViewportDays(cfg.viewport_days);
+      })
+      .catch(() => {
+        // 读取失败保持默认 2（不阻塞看板）
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
   // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅
   const feed = useMemo(
     () =>
       state.selected
-        ? new KlineDataFeed({ api, ws, code: state.selected, period: state.period })
+        ? new KlineDataFeed({ api, ws, code: state.selected, period: state.period, viewportDays })
         : null,
-    [api, ws, state.selected, state.period],
+    [api, ws, state.selected, state.period, viewportDays],
   );
   useEffect(() => () => feed?.dispose(), [feed]);
 

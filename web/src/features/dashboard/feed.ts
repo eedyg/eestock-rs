@@ -15,13 +15,14 @@ export const BARS_PER_TRADING_DAY: Record<Period, number> = {
   '1mo': 1, // 月线：同上
 };
 
-/** 默认视口 = 当日 + 前一交易日（定稿 1d / 补定稿）：2 个交易日的 bar 数，避免裸 500 过度加载/缩成一小截。
- *  1w/1mo：周/月一个单位即一根 bar，2×交易日=2 根过疏；给合理初始窗口（周≈30 根≈半年+、月≈24 根≈两年），
- *  以覆盖足够历史又不致整屏过于稀疏/过度加载。 */
-export function defaultPageSizeForPeriod(period: Period): number {
-  if (period === '1w') return 30; // 周线视口：≈30 周（半年+）
-  if (period === '1mo') return 24; // 月线视口：≈24 月（两年）
-  return BARS_PER_TRADING_DAY[period] * 2;
+/** 行情看板 K线默认视口（交易日数，GET /api/config/kline；缺省 2；1-50 整数，可配）。 */
+export const DEFAULT_KLINE_VIEWPORT_DAYS = 2;
+
+/** 默认视口 = viewport_days 个交易日的 bar 数（可配置，默认 2；1m=241×N、1d=1×N 等）。
+ *  `viewport_days` 由看板加载配置（GET /api/config/kline）传入；缺省 2 兜底。
+ *  划归视口 pageSize，用于初始画面铺满与宫格缩略；深翻（forward）用 PAGINATION_BATCH，与视口分离。 */
+export function defaultPageSizeForPeriod(period: Period, viewportDays: number = DEFAULT_KLINE_VIEWPORT_DAYS): number {
+  return BARS_PER_TRADING_DAY[period] * viewportDays;
 }
 
 /** 分页批量（loadBefore 向前翻页每页 bar 数）——与「视口 pageSize」分离。
@@ -50,7 +51,8 @@ export interface KlineDataFeedDeps {
   ws: WsLike;
   code: string;
   period: Period;
-  pageSize?: number; // 视口大小（默认 = 2 个交易日的 bar 数，defaultPageSizeForPeriod，定稿 1d/补定稿）；宫格缩略图显式传小值
+  pageSize?: number; // 视口大小（默认 = viewport_days 个交易日的 bar 数，defaultPageSizeForPeriod+viewportDays；定稿 1d/补定稿）；宫格缩略图显式传小值
+  viewportDays?: number; // 默认视口的交易日数（GET /api/config/kline 加载；缺省 2 兜底；与 pageSize 互斥——显式 pageSize 优先）
   paginationBatch?: number; // 深翻每页 bar 数（默认 = paginationBatchForPeriod(period)）；不传时按周期取批量值
 }
 
@@ -74,7 +76,7 @@ export class KlineDataFeed {
   private disposed = false;
 
   constructor(private deps: KlineDataFeedDeps) {
-    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period);
+    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period, deps.viewportDays);
     this.paginationBatch = deps.paginationBatch ?? paginationBatchForPeriod(deps.period);
   }
 
