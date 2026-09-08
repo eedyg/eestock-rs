@@ -10,6 +10,7 @@ import type {
   SimStrategyConfigInput,
   SymbolSnapshot,
 } from '@/api/types';
+import { formatCstDateTime } from './format';
 
 /** 参数 schema 默认值（Num→def，Choice→def）。 */
 function paramDefDefault(p: BacktestParamDef): number | string {
@@ -475,7 +476,7 @@ export function OrderTradeList({ orders, onCancel }: { orders: SimOrder[]; onCan
       <tbody>
         {orders.map((o) => (
           <tr key={o.id}>
-            <td>{new Date(o.ts).toLocaleTimeString('zh-CN')}</td>
+            <td>{formatCstDateTime(o.ts)}</td>
             <td>{o.code}</td>
             <td className={o.side === 'buy' ? 'text-[--up]' : 'text-[--down]'}>{o.side === 'buy' ? '买入' : '卖出'}</td>
             <td>{o.filled_price?.toFixed(3) ?? o.limit_price?.toFixed(3) ?? '—'}</td>

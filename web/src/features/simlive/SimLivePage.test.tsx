@@ -45,6 +45,26 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     expect(screen.getByTestId('sim-order-list')).toBeInTheDocument();
   });
 
+  it('委托/成交时刻按 CST 显示（09-08 14:54:17 含日期+时分秒，非浏览器时区）', async () => {
+    const ts = Date.UTC(2025, 8, 8, 6, 54, 17) / 1000; // 2025-09-08T06:54:17Z
+    const api = stubApi({
+      getSimOrders: vi.fn().mockResolvedValue({
+        session_id: 's_cst',
+        orders: [
+          { id: 'o_cst', code: '518880', side: 'buy', qty: 10_000, limit_price: null,
+            status: 'filled', filled_price: 9.151, filled_qty: 10_000, fee: 22.88, ts, source: 'strategy' },
+        ],
+      }),
+    });
+    renderPage(api);
+    await waitFor(() => expect(screen.getByTestId('sim-order-list')).toBeInTheDocument());
+    // 完整「日期+时分秒」CST 展示（14:54:17 而非仅 14:54），且与浏览器时区无关（固定 +8）。
+    expect(screen.getByText('09-08 14:54:17')).toBeInTheDocument();
+    // 时段列头部「时刻」存在，值为含秒的完整格式。
+    const orderRow = screen.getByText('09-08 14:54:17').closest('tr')!;
+    expect(orderRow.querySelector('td')!.textContent).toBe('09-08 14:54:17');
+  });
+
   it('Tab 切换：历史回顾展示会话列表+回测对比（不影响当前会话）', async () => {
     renderPage(api);
     await waitFor(() => expect(screen.getByTestId('sim-equity')).toBeInTheDocument());
