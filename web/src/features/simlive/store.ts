@@ -86,48 +86,81 @@ export class SimLiveStore {
     await Promise.all([this.loadCurrent(), this.loadStrategies(), this.loadOrders(), this.loadSessions()]);
   }
 
-  /** 会话状态聚合 + 策略评估 + 订单（当前会话）。 */
+  /** 会话状态聚合 + 策略评估 + 订单（当前会话）。
+   *  轮询（setInterval 5s）走静默刷新：保留原位 data、不置 loading（不整页刷新/不滚回顶部）。 */
   async refreshCurrent(): Promise<void> {
-    await Promise.all([this.loadCurrent(), this.loadStrategies(), this.loadOrders()]);
+    await Promise.all([
+      this.loadCurrent({ silent: true }),
+      this.loadStrategies({ silent: true }),
+      this.loadOrders({ silent: true }),
+    ]);
   }
 
-  async loadCurrent(): Promise<void> {
-    this.patch({ current: { data: null, loading: true, error: null } });
+  /** 拉取当前态。
+   *  @param silent 静默/后台刷新：拉取期间保留原位 data、不置 loading（轮询用，避免骨架闪烁/内容塌缩）；
+   *                仅首次/无数据的非静默加载（init）才进骨架（data null + loading true）。
+   *               拉取失败时静默模式保留旧 data（只记 error），下次轮询覆盖。 */
+  async loadCurrent(opts?: { silent?: boolean }): Promise<void> {
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      this.patch({ current: { data: null, loading: true, error: null } });
+    }
     try {
       const data = await this.deps.api.getSimState();
       this.patch({ current: { data, loading: false, error: null } });
     } catch (e) {
-      this.patch({ current: { data: null, loading: false, error: (e as Error).message } });
+      const prev = this.current.current;
+      this.patch(silent
+        ? { current: { ...prev, error: (e as Error).message } }
+        : { current: { data: null, loading: false, error: (e as Error).message } });
     }
   }
 
-  async loadStrategies(): Promise<void> {
-    this.patch({ strategies: { data: null, loading: true, error: null } });
+  async loadStrategies(opts?: { silent?: boolean }): Promise<void> {
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      this.patch({ strategies: { data: null, loading: true, error: null } });
+    }
     try {
       const data = await this.deps.api.getSimStrategies();
       this.patch({ strategies: { data, loading: false, error: null } });
     } catch (e) {
-      this.patch({ strategies: { data: null, loading: false, error: (e as Error).message } });
+      const prev = this.current.strategies;
+      this.patch(silent
+        ? { strategies: { ...prev, error: (e as Error).message } }
+        : { strategies: { data: null, loading: false, error: (e as Error).message } });
     }
   }
 
-  async loadOrders(): Promise<void> {
-    this.patch({ orders: { data: null, loading: true, error: null } });
+  async loadOrders(opts?: { silent?: boolean }): Promise<void> {
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      this.patch({ orders: { data: null, loading: true, error: null } });
+    }
     try {
       const data = await this.deps.api.getSimOrders();
       this.patch({ orders: { data: data.orders, loading: false, error: null } });
     } catch (e) {
-      this.patch({ orders: { data: null, loading: false, error: (e as Error).message } });
+      const prev = this.current.orders;
+      this.patch(silent
+        ? { orders: { ...prev, error: (e as Error).message } }
+        : { orders: { data: null, loading: false, error: (e as Error).message } });
     }
   }
 
-  async loadSessions(): Promise<void> {
-    this.patch({ sessions: { data: null, loading: true, error: null } });
+  async loadSessions(opts?: { silent?: boolean }): Promise<void> {
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      this.patch({ sessions: { data: null, loading: true, error: null } });
+    }
     try {
       const data = await this.deps.api.getSimSessions();
       this.patch({ sessions: { data, loading: false, error: null } });
     } catch (e) {
-      this.patch({ sessions: { data: null, loading: false, error: (e as Error).message } });
+      const prev = this.current.sessions;
+      this.patch(silent
+        ? { sessions: { ...prev, error: (e as Error).message } }
+        : { sessions: { data: null, loading: false, error: (e as Error).message } });
     }
   }
 

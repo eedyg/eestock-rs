@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ApiClient } from '@/api/client';
+import type { SimStateDto } from '@/api/types';
 import { stubApi } from '@/test/apiStub';
 import { SimLivePage } from './SimLivePage';
 
@@ -248,6 +249,41 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
       expect(container.querySelector('[data-tab="current"]')!.className).not.toContain('tab-on');
     } finally {
       window.location.hash = '';
+    }
+  });
+
+  it('轮询刷新（5s）内容保持原位：不闪退骨架/未运行态（后台静默刷新，不整页刷新/不滚回顶部）', async () => {
+    const running = await api.getSimState(); // 真实 mock 运行态快照（active=true、session running）
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      renderPage(api);
+      await waitFor(() => expect(screen.getByTestId('sim-equity')).toBeInTheDocument());
+      expect(screen.getByTestId('sim-session-status').textContent).toContain('运行中');
+      // 记录当前 DOM 节点（若刷新触发重挂/塌缩，节点会被移除/替换为骨架/未运行态）。
+      const statusEl = screen.getByTestId('sim-session-status');
+      const posTableEl = screen.getByTestId('sim-position-table');
+      const strategyEl = screen.getByTestId('sim-strategy-panel');
+
+      // 下一次轮询 getSimState 挂起 → 观察拉取中的中间态。
+      let resolve!: (d: SimStateDto) => void;
+      const pending = new Promise<SimStateDto>((r) => { resolve = r; });
+      vi.spyOn(api, 'getSimState').mockReturnValueOnce(pending);
+
+      // 推进 5s 触发 setInterval 轮询 store.refreshCurrent()。
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+      // 拉取中间态：运行中内容仍在（未闪退到 EMPTY_STATE/未运行/骨架），且未重挂。
+      expect(screen.getByTestId('sim-session-status')).toBe(statusEl);
+      expect(screen.getByTestId('sim-session-status').textContent).toContain('运行中');
+      expect(screen.getByTestId('sim-position-table')).toBe(posTableEl);
+      expect(screen.getByTestId('sim-strategy-panel')).toBe(strategyEl);
+      expect(screen.getByTestId('sim-equity')).toBeInTheDocument();
+
+      await act(async () => { resolve(running); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByTestId('sim-session-status').textContent).toContain('运行中');
+    } finally {
+      vi.useRealTimers();
     }
   });
 });
