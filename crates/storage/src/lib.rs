@@ -36,4 +36,7 @@ pub mod config_store;
 // sim：模拟实盘会话存储端口实现加法扩展（L1 sim-live：SimSessionStore；
 // 代码块在 design/04-storage/schema.md §4.3.10。sim.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod sim;
+// strategy：策略 Registry 存储端口实现加法扩展（12-strategy-system / P2a：StrategyStore；
+// 代码块在 design/04-storage/schema.md §4.3.13。strategy.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod strategy;
 // ~/~ end

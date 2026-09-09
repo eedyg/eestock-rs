@@ -12,6 +12,12 @@ edition.workspace = true
 domain = { path = "../domain" }
 backtest = { path = "../backtest" }
 simlive = { path = "../simlive" }
+# 12-strategy-system / P2a：StrategyService（Registry CRUD/发布门禁/在线试算/参考插件播种）。
+# strategy-runtime/strategy-core 为 workspace 内 Domain 层 crate（非外部依赖）；
+# sha2 为架构裁决 2026-09-09 批准的外部依赖（发布版本 sha256 寻址，ABI G4）。
+strategy-runtime = { path = "../strategy-runtime" }
+strategy-core = { path = "../strategy-core" }
+sha2.workspace = true
 tokio.workspace = true
 chrono.workspace = true
 serde.workspace = true

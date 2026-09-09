@@ -80,7 +80,10 @@ dependencies = [
  "domain",
  "serde",
  "serde_json",
+ "sha2",
  "simlive",
+ "strategy-core",
+ "strategy-runtime",
  "tokio",
  "tracing",
 ]

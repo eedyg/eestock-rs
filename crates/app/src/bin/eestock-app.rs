@@ -84,6 +84,18 @@ async fn main() -> anyhow::Result<()> {
     .with_backtest(backtest.clone())
     .with_kline(sim_kline.clone()));
     // 11-sim-live 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state 重建内存续跑；无 state → ended+告警）。
+    // 12-strategy-system / P2a：策略 Registry DI（PgStrategyStore + BacktestBarRead（复用回测取数
+    // 口径 kline_accurate 优先）+ SystemClock → StrategyService）。
+    let strategy_service = Arc::new(application::strategy::StrategyService::new(
+        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    ));
+    // P2a 启动播种：strategy 表为空 → strategy-core::reference 7 参考插件 + 4 官方模板以
+    // published 入库（sha256 启动时计算；幂等——表非空整体跳过，按 name+sha256 逐款跳过）。
+    let seed_report = strategy_service.seed_reference_plugins().await?;
+    tracing::info!(seeded = %seed_report.seeded, skipped = %seed_report.skipped,
+        "strategy registry 启动播种完成");
     let sim_recovery = sim_service.recover_sessions().await?;
     tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
@@ -123,6 +135,8 @@ async fn main() -> anyhow::Result<()> {
         config,
         // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
         sim: Some(sim_service.clone()),
+        // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*）
+        strategies: Some(strategy_service),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,

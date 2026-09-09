@@ -744,4 +744,111 @@ pub trait SimSessionStore: Send + Sync {
     /// 删除会话（FK 级联结果/成交/持仓）；返回是否删行。
     async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
 }
+
+// ── 12-strategy-system / P2a：Strategy Registry 存储端口（strategy/strategy_version 表，迁移 0022）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
+// 应用面自有表（数据面不读写，ADR-017 不违）。
+// 状态机 draft→published→archived 由 application 层经 `domain::strategy_state` 纯函数校验；
+// published 不可变由 DB BEFORE UPDATE/DELETE trigger 双保险（04-storage §4.3.13）。
+
+use crate::strategy_state::{ApprovalLevel, StrategyKind, StrategyStatus};
+
+/// 策略元数据行（strategy 表；一等资源，ADR 12 §5）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyRow {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub kind: StrategyKind,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// 策略版本行（strategy_version 表；code + params_schema + sha256 寻址，ABI G4）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyVersionRow {
+    pub id: String,
+    pub strategy_id: String,
+    pub version: i32,
+    pub code: String,
+    pub params_schema: serde_json::Value,
+    pub sha256: String,
+    pub status: StrategyStatus,
+    pub approval_level: ApprovalLevel,
+    pub created_at: DateTime<Utc>,
+    pub published_at: Option<DateTime<Utc>>,
+}
+
+/// 新建策略（id 由应用层生成后传入，st_<ts>_<seq> 口径）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategy {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub kind: StrategyKind,
+    pub created_by: String,
+}
+
+/// 新建版本（id 由应用层生成，sv_<ts>_<seq>；status 由存储默认 draft，approval_level 默认 backtest_ok）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategyVersion {
+    pub id: String,
+    pub strategy_id: String,
+    pub version: i32,
+    pub code: String,
+    pub params_schema: serde_json::Value,
+    pub sha256: String,
+}
+
+/// catalog 条目（策略 + 其最新 published 版本；消费方下拉数据源，ADR §5 catalog 接口）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CatalogEntry {
+    pub strategy: StrategyRow,
+    pub version: StrategyVersionRow,
+}
+
+/// 策略 Registry 存储端口（storage 实现；strategy/strategy_version 表，迁移 0022）。
+/// 流转合法性由 application 层校验（domain::strategy_state），本端口只提供原子原语；
+/// published 不可变由 DB trigger 兜底（直接改库也会被拦）。
+#[async_trait]
+pub trait StrategyStore: Send + Sync {
+    /// 新建策略元数据行。
+    async fn create_strategy(&self, s: &NewStrategy) -> anyhow::Result<StrategyRow>;
+    /// 读策略；未知 id → Ok(None)（web 映射 404）。
+    async fn get_strategy(&self, id: &str) -> anyhow::Result<Option<StrategyRow>>;
+    /// 策略总数（启动播种「表为空」判定输入）。
+    async fn count_strategies(&self) -> anyhow::Result<i64>;
+    /// catalog：每策略取**最新 published 版本**；`level` 为 at-least 语义（权限分级阶梯：
+    /// backtest_ok ≤ sim_ok ≤ live_approved，live_approved 通过一切过滤），`kind` 精确匹配；
+    /// 仅 published 版本入册（draft/archived 不出现）。按 strategy.id 升序。
+    async fn catalog(&self, level: Option<ApprovalLevel>, kind: Option<StrategyKind>)
+        -> anyhow::Result<Vec<CatalogEntry>>;
+    /// 新建 draft 版本（status='draft'、approval_level='backtest_ok' 默认）。
+    async fn create_version(&self, v: &NewStrategyVersion) -> anyhow::Result<StrategyVersionRow>;
+    /// 读版本；未知 id → Ok(None)。
+    async fn get_version(&self, id: &str) -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 播种幂等探测：按「策略 name + 版本 sha256」查版本（存在则跳过该款播种）。
+    async fn find_version_by_name_sha(&self, name: &str, sha256: &str)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 某策略全部版本（version 升序）。
+    async fn list_versions(&self, strategy_id: &str) -> anyhow::Result<Vec<StrategyVersionRow>>;
+    /// 下一版本号 = max(version)+1；无版本 → 1。
+    async fn next_version_number(&self, strategy_id: &str) -> anyhow::Result<i32>;
+    /// 原地更新 draft 代码（code/params_schema/sha256）；仅 status='draft' 生效，
+    /// 非 draft / 未知 id → Ok(None)（application 层据此走自动新 draft 或 409）。
+    async fn update_draft(&self, id: &str, code: &str, params_schema: &serde_json::Value, sha256: &str)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 发布定格：draft→published，写入最终 sha256/params_schema/published_at。
+    /// **乐观并发（TOCTOU 防护）**：`WHERE id=$1 AND status='draft' AND code=$expected_code`——
+    /// `expected_code` 为 application 层冒烟通过的 code 原文；0 行命中（未知 id / 状态已漂移 /
+    /// code 被并发改写）→ `Ok(None)`（application 映射 409，版本保持 draft）。
+    async fn mark_published(&self, id: &str, expected_code: &str, sha256: &str,
+                            params_schema: &serde_json::Value,
+                            published_at: DateTime<Utc>) -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 通用状态写（archive 用：published→archived）；未知 id → Ok(None)。
+    /// 流转合法性由 application 层经 strategy_state 校验后调用。
+    async fn set_status(&self, id: &str, status: StrategyStatus)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+}
 // ~/~ end

@@ -1,14 +1,16 @@
-//! MA 配置端点集成测试（需 TimescaleDB :5433，含 0015 迁移）：真实起 axum server + reqwest 断言。
-//! 非 tangle 手写（契约在 design/07-app-plane/00-web-api.md §1.1 config/ma 两条；行为测试装配同 api_rest.rs）。
-//! 覆盖：GET 默认 [5,10,20]、PUT 校验+归一化写回、GET 读回持久化、400（条目数/量纲不合规）。
-//! ⚠️ ma_config 为全局单行：本测试与 storage::tests::ma_config_store 共用同一行，均先清后收；
-//! 跨 binary 并行时可能互踩（残余风险见 coder/report/060）。
+//! /api/kline 周线/月线（period=1w|1mo）端点集成测试（需 TimescaleDB :5433，含 0014 迁移 cagg）。
+//! 非 tangle 手写（契约在 design/07-app-plane/00-web-api.md §1.1 GET /api/kline；装配同 api_rest.rs）。
+//! 覆盖：真实 HTTP 路径 parse_period(1w/1mo) → KlineReader W1/MO1 分支 → BarDto 响应升序。
+//! ⚠️ 依赖 kline_accurate_1w/1mo cagg 已应用（0014）。cagg refresh 须完全覆盖整桶。
 
+use chrono::{TimeZone, Utc};
 use serde_json::Value;
 use sqlx::PgPool;
 use std::sync::Arc;
 use web::state::AppState;
 use web::ws::{SubscriptionRegistry, WsHub};
+
+const CODE: &str = "997732";
 
 async fn pool() -> PgPool {
     let url = std::env::var("DATABASE_URL")
@@ -16,7 +18,6 @@ async fn pool() -> PgPool {
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
 }
 
-/// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-deps）。
 fn state(pool: PgPool) -> Arc<AppState> {
     let backtest_hub = WsHub::new();
     let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
@@ -79,51 +80,58 @@ async fn spawn(state: Arc<AppState>) -> String {
     format!("http://{addr}")
 }
 
-async fn clear_config(pool: &PgPool) {
-    sqlx::query("DELETE FROM ma_config").execute(pool).await.unwrap();
+async fn clean(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
 }
 
 #[tokio::test]
-async fn ma_config_get_default_put_normalize_and_validate() {
+async fn kline_weekly_monthly_period() {
     let pool = pool().await;
-    clear_config(&pool).await; // 收敛默认（表空）
+    clean(&pool).await;
+    // 种子：kline_accurate M1 两周/两月（周一为界周桶 + 自然月桶）。2026-08-31(Mon) 两根 + 2026-09-07(Mon) 一根。
+    for (ts, c) in [
+        (Utc.with_ymd_and_hms(2026, 8, 31, 1, 30, 0).unwrap(), 1.0),
+        (Utc.with_ymd_and_hms(2026, 8, 31, 2, 0, 0).unwrap(), 2.0),
+        (Utc.with_ymd_and_hms(2026, 9, 7, 1, 30, 0).unwrap(), 3.0),
+    ] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') \
+                     ON CONFLICT (code, ts, period) DO UPDATE SET close = EXCLUDED.close, volume = EXCLUDED.volume")
+            .bind(CODE).bind(ts).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    // 刷新 cagg（窗口完全覆盖整桶：最长月桶终点 09-30 16:00 UTC 之后）
+    for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-07-25 00:00:00+00', '2026-10-03 00:00:00+00')"))
+            .execute(&pool).await.unwrap();
+    }
     let url = spawn(state(pool.clone())).await;
     let http = reqwest::Client::new();
 
-    // 1) GET 默认 [5,10,20]（表空）
-    let v: Value = http.get(format!("{url}/api/config/ma")).send().await.unwrap()
-        .json().await.unwrap();
-    assert_eq!(v["windows"], serde_json::json!([5, 10, 20]), "表空 → 默认 [5,10,20]");
+    // 周线 period=1w → 2 bars（升序；首周 open=1 close=2 vol=200）
+    let v: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "1w"), ("limit", "10")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["period"], "1w");
+    let bars = v["bars"].as_array().unwrap();
+    assert_eq!(bars.len(), 2, "1w 返回两个交易周");
+    assert_eq!(bars[0]["open"], 1.0, "1w 首周 open=first(open)");
+    assert_eq!(bars[0]["close"], 2.0, "1w 首周 close=last(close)");
+    assert_eq!(bars[0]["volume"], 200);
+    assert_eq!(bars[1]["open"], 3.0);
 
-    // 2) PUT 乱序 {windows:[20,5,10]} → 200，归一化升序返回 [5,10,20]
-    let r = http.put(format!("{url}/api/config/ma"))
-        .json(&serde_json::json!({ "windows": [20, 5, 10] }))
-        .send().await.unwrap();
-    assert_eq!(r.status(), 200);
-    let v: Value = r.json().await.unwrap();
-    assert_eq!(v["windows"], serde_json::json!([5, 10, 20]), "乱序归一化升序");
+    // 月线 period=1mo → 2 bars（8月/9月）；bars 升序
+    let v: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "1mo"), ("limit", "10")])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["period"], "1mo");
+    let bars = v["bars"].as_array().unwrap();
+    assert_eq!(bars.len(), 2, "1mo 返回两个自然月");
+    assert_eq!(bars[0]["open"], 1.0);
+    assert_eq!(bars[0]["close"], 2.0);
+    assert_eq!(bars[1]["open"], 3.0);
 
-    // 3) GET 读回持久化（已入库）
-    let v: Value = http.get(format!("{url}/api/config/ma")).send().await.unwrap()
-        .json().await.unwrap();
-    assert_eq!(v["windows"], serde_json::json!([5, 10, 20]), "写回持久化读回一致");
-
-    // 4) 400 校验：条目数（0 / >3）
-    for bad in [serde_json::json!({ "windows": [] }), serde_json::json!({ "windows": [5, 10, 20, 30] })] {
-        let r = http.put(format!("{url}/api/config/ma")).json(&bad).send().await.unwrap();
-        assert_eq!(r.status(), 400, "条目数不合规 → 400：{bad}");
-    }
-    // 5) 400 校验：量纲（0 / 501 / 负值）
-    for bad in [serde_json::json!({ "windows": [0] }), serde_json::json!({ "windows": [501] }),
-                serde_json::json!({ "windows": [-1] })] {
-        let r = http.put(format!("{url}/api/config/ma")).json(&bad).send().await.unwrap();
-        assert_eq!(r.status(), 400, "量纲不合规 → 400：{bad}");
-    }
-
-    // 6) 400 后配置未变（仍为 [5,10,20]）
-    let v: Value = http.get(format!("{url}/api/config/ma")).send().await.unwrap()
-        .json().await.unwrap();
-    assert_eq!(v["windows"], serde_json::json!([5, 10, 20]), "400 不落库");
-
-    clear_config(&pool).await;
+    clean(&pool).await;
 }

@@ -778,6 +778,122 @@ CALL refresh_continuous_aggregate('kline_accurate_1h', NULL, NULL);
 CALL refresh_continuous_aggregate('kline_accurate_1d', NULL, NULL);
 ```
 
+## 4.3.13 策略 Registry（12-strategy-system / P2a，0022；ADR 12 §5 数据模型与状态机）
+
+**上下文**：统一策略系统（12-strategy-system）P2a 落 Strategy Registry 持久化。
+`strategy` = 策略元数据（一等资源，版本化+哈希寻址）；`strategy_version` = 版本化插件代码
+（code + params_schema jsonb + sha256，ABI G4 寻址）。状态机 `draft→published→archived` 单向流转
+（应用层经 `domain::strategy_state` 纯函数校验）；权限分级 `approval_level`
+（backtest_ok→sim_ok→live_approved，独立标记，升级需显式动作）。
+
+**表口径**：应用面自有表（与 backtest/simsession 同口径：数据面不读写，不违 ADR-017）。
+`strategy.id` / `strategy_version.id` 为应用层生成（`st_<ts>_<seq>` / `sv_<ts>_<seq>` 口径）。
+
+**published 不可变 + 状态机补强（DB 双保险之一）**：应用层状态机校验之外，DB 层 BEFORE UPDATE
+trigger 拦 published 行内容字段（code/params_schema/sha256/version）及定位字段
+（strategy_id/published_at）变更；**状态机补强**（MINOR-1）：published 行 status 变更目标仅允许
+`archived`（published→draft/published 均被拒）；`archived` 为终态——禁止任何 status 变更
+（同值 no-op UPDATE 放行，便于幂等清理）。BEFORE DELETE trigger 拦 published 行删除
+（published 只能 archive，不可删；连带 strategy 行级联删除也会被拦截；archived 行可删）。
+
+``` {.sql file=migrations/0022_strategy_registry.sql}
+-- 0022_strategy_registry.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 12-strategy-system / P2a：Strategy Registry（ADR 12-strategy-system §5 数据模型与状态机）。
+-- strategy = 策略元数据（一等资源）；strategy_version = 版本化插件代码（sha256 寻址，ABI G4）。
+-- 状态机 draft→published→archived 单向；published 不可变（BEFORE UPDATE/DELETE trigger 双保险）。
+-- 应用面自有表（数据面不读写，ADR-017 不违）。
+CREATE TABLE strategy (
+    id          text PRIMARY KEY,                       -- 应用层生成（st_<ts>_<seq>）
+    name        text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    kind        text NOT NULL DEFAULT 'strategy' CHECK (kind IN ('strategy','template')),
+    created_by  text NOT NULL DEFAULT 'local',
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE strategy_version (
+    id             text PRIMARY KEY,                    -- 应用层生成（sv_<ts>_<seq>）
+    strategy_id    text NOT NULL REFERENCES strategy(id) ON DELETE CASCADE,
+    version        integer NOT NULL,
+    code           text NOT NULL,                       -- 插件 JS 源码全文（02-plugin-abi §1）
+    params_schema  jsonb NOT NULL DEFAULT '[]'::jsonb,  -- PARAMS_SCHEMA 声明（ABI §1）
+    sha256         text NOT NULL,                       -- 内容哈希寻址（ABI G4）
+    status         text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+    approval_level text NOT NULL DEFAULT 'backtest_ok'
+                   CHECK (approval_level IN ('backtest_ok','sim_ok','live_approved')),
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    published_at   timestamptz,
+    UNIQUE (strategy_id, version)
+);
+
+-- 查询：某策略版本按状态检索 + catalog 过滤（仅 published 按权限级别；部分索引）
+CREATE INDEX strategy_version_status_idx  ON strategy_version (strategy_id, status);
+CREATE INDEX strategy_version_catalog_idx ON strategy_version (approval_level) WHERE status = 'published';
+
+-- published 不可变 + 状态机补强（DB 双保险之一，ADR §5「published 不可变」）：
+-- BEFORE UPDATE：
+--   ① published 行 status 变更目标仅允许 archived（published→draft 拒绝；draft→published 时
+--      OLD='draft' 不触发；同值 no-op UPDATE 放行）；
+--   ② archived 为终态——禁止任何 status 变更（archived→draft/published 拒绝）；
+--   ③ published 行内容字段（code/params_schema/sha256/version）及定位字段
+--      （strategy_id/published_at）任一变化 → 拒绝。
+-- BEFORE DELETE：OLD.status='published' → 拒绝（published 只能 archive，不可删；
+-- 连带 strategy 行 ON DELETE CASCADE 级联删除 published 版本同样被拦；archived 行可删）。
+CREATE OR REPLACE FUNCTION strategy_version_published_guard() RETURNS trigger AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.status = 'published' THEN
+            RAISE EXCEPTION 'strategy_version % is published: archive instead of delete', OLD.id;
+        END IF;
+        RETURN OLD;
+    END IF;
+    -- ① 状态机补强：published 行 status 仅允许 → archived
+    IF OLD.status = 'published'
+       AND NEW.status IS DISTINCT FROM OLD.status
+       AND NEW.status <> 'archived' THEN
+        RAISE EXCEPTION 'strategy_version % is published: status can only transition to archived', OLD.id;
+    END IF;
+    -- ② archived 为终态：禁止任何 status 变更
+    IF OLD.status = 'archived' AND NEW.status IS DISTINCT FROM OLD.status THEN
+        RAISE EXCEPTION 'strategy_version % is archived: terminal state, status immutable', OLD.id;
+    END IF;
+    -- ③ published 不可变：内容字段 + 定位字段冻结
+    IF OLD.status = 'published' AND (
+        NEW.code IS DISTINCT FROM OLD.code OR
+        NEW.params_schema IS DISTINCT FROM OLD.params_schema OR
+        NEW.sha256 IS DISTINCT FROM OLD.sha256 OR
+        NEW.version IS DISTINCT FROM OLD.version OR
+        NEW.strategy_id IS DISTINCT FROM OLD.strategy_id OR
+        NEW.published_at IS DISTINCT FROM OLD.published_at
+    ) THEN
+        RAISE EXCEPTION 'strategy_version % is published and immutable: create a new draft version', OLD.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER strategy_version_no_update_published
+    BEFORE UPDATE ON strategy_version
+    FOR EACH ROW EXECUTE FUNCTION strategy_version_published_guard();
+
+CREATE TRIGGER strategy_version_no_delete_published
+    BEFORE DELETE ON strategy_version
+    FOR EACH ROW EXECUTE FUNCTION strategy_version_published_guard();
+```
+
+**storage 模块 `crates/storage/src/strategy.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::StrategyStore`（PgPool；strategy/strategy_version 表，迁移 0022）。
+见 design/02-domain/contracts.md「StrategyStore」端口（§2.4 末尾 Registry 段）。
+- `catalog`：`DISTINCT ON (s.id)` 取每策略最新 published 版本（`ORDER BY s.id, v.version DESC`）；
+  `level` 过滤为 at-least 语义——SQL 侧按 rank 展开：`backtest_ok` 要求 → 全部级别通过；
+  `sim_ok` → `('sim_ok','live_approved')`；`live_approved` → `('live_approved')`。
+- `update_draft`：`UPDATE ... WHERE id=$1 AND status='draft'`，命中时同事务推进
+  `strategy.updated_at`（与 `create_version` 对齐）；0 行 → `Ok(None)`。
+- `mark_published`：`UPDATE ... SET status='published', sha256, params_schema, published_at
+  WHERE id=$1 AND status='draft' AND code=$expected_code`（**乐观并发 TOCTOU 防护**：
+  `expected_code` 为 application 层冒烟通过的原文）；0 行 → `Ok(None)`（application 映射 409）。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

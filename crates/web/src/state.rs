@@ -38,6 +38,10 @@ pub struct AppState {
     /// 模拟实盘服务（11-sim-live / L3b：web 面板 /api/sim-live/*；与 MCP 共享同一 SimLiveService 实例）。
     /// `None` = 未配置，/api/sim-live/* 返回 503。storage::sim::PgSimSessionStore 由 app bin 装配。
     pub sim: Option<Arc<application::simlive::SimLiveService>>,
+    /// 策略 Registry 服务（12-strategy-system / P2a：/api/strategies/*；§1.7）。
+    /// `None` = 未装配，/api/strategies/* 返回 503（与 `sim` 同模式）。
+    /// storage::strategy::PgStrategyStore + BacktestBarRead 由 app bin 装配注入。
+    pub strategies: Option<Arc<application::strategy::StrategyService>>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

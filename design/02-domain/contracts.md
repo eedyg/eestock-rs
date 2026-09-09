@@ -1027,6 +1027,113 @@ pub trait SimSessionStore: Send + Sync {
     /// 删除会话（FK 级联结果/成交/持仓）；返回是否删行。
     async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
 }
+
+// ── 12-strategy-system / P2a：Strategy Registry 存储端口（strategy/strategy_version 表，迁移 0022）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
+// 应用面自有表（数据面不读写，ADR-017 不违）。
+// 状态机 draft→published→archived 由 application 层经 `domain::strategy_state` 纯函数校验；
+// published 不可变由 DB BEFORE UPDATE/DELETE trigger 双保险（04-storage §4.3.13）。
+
+use crate::strategy_state::{ApprovalLevel, StrategyKind, StrategyStatus};
+
+/// 策略元数据行（strategy 表；一等资源，ADR 12 §5）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyRow {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub kind: StrategyKind,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// 策略版本行（strategy_version 表；code + params_schema + sha256 寻址，ABI G4）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyVersionRow {
+    pub id: String,
+    pub strategy_id: String,
+    pub version: i32,
+    pub code: String,
+    pub params_schema: serde_json::Value,
+    pub sha256: String,
+    pub status: StrategyStatus,
+    pub approval_level: ApprovalLevel,
+    pub created_at: DateTime<Utc>,
+    pub published_at: Option<DateTime<Utc>>,
+}
+
+/// 新建策略（id 由应用层生成后传入，st_<ts>_<seq> 口径）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategy {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub kind: StrategyKind,
+    pub created_by: String,
+}
+
+/// 新建版本（id 由应用层生成，sv_<ts>_<seq>；status 由存储默认 draft，approval_level 默认 backtest_ok）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategyVersion {
+    pub id: String,
+    pub strategy_id: String,
+    pub version: i32,
+    pub code: String,
+    pub params_schema: serde_json::Value,
+    pub sha256: String,
+}
+
+/// catalog 条目（策略 + 其最新 published 版本；消费方下拉数据源，ADR §5 catalog 接口）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CatalogEntry {
+    pub strategy: StrategyRow,
+    pub version: StrategyVersionRow,
+}
+
+/// 策略 Registry 存储端口（storage 实现；strategy/strategy_version 表，迁移 0022）。
+/// 流转合法性由 application 层校验（domain::strategy_state），本端口只提供原子原语；
+/// published 不可变由 DB trigger 兜底（直接改库也会被拦）。
+#[async_trait]
+pub trait StrategyStore: Send + Sync {
+    /// 新建策略元数据行。
+    async fn create_strategy(&self, s: &NewStrategy) -> anyhow::Result<StrategyRow>;
+    /// 读策略；未知 id → Ok(None)（web 映射 404）。
+    async fn get_strategy(&self, id: &str) -> anyhow::Result<Option<StrategyRow>>;
+    /// 策略总数（启动播种「表为空」判定输入）。
+    async fn count_strategies(&self) -> anyhow::Result<i64>;
+    /// catalog：每策略取**最新 published 版本**；`level` 为 at-least 语义（权限分级阶梯：
+    /// backtest_ok ≤ sim_ok ≤ live_approved，live_approved 通过一切过滤），`kind` 精确匹配；
+    /// 仅 published 版本入册（draft/archived 不出现）。按 strategy.id 升序。
+    async fn catalog(&self, level: Option<ApprovalLevel>, kind: Option<StrategyKind>)
+        -> anyhow::Result<Vec<CatalogEntry>>;
+    /// 新建 draft 版本（status='draft'、approval_level='backtest_ok' 默认）。
+    async fn create_version(&self, v: &NewStrategyVersion) -> anyhow::Result<StrategyVersionRow>;
+    /// 读版本；未知 id → Ok(None)。
+    async fn get_version(&self, id: &str) -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 播种幂等探测：按「策略 name + 版本 sha256」查版本（存在则跳过该款播种）。
+    async fn find_version_by_name_sha(&self, name: &str, sha256: &str)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 某策略全部版本（version 升序）。
+    async fn list_versions(&self, strategy_id: &str) -> anyhow::Result<Vec<StrategyVersionRow>>;
+    /// 下一版本号 = max(version)+1；无版本 → 1。
+    async fn next_version_number(&self, strategy_id: &str) -> anyhow::Result<i32>;
+    /// 原地更新 draft 代码（code/params_schema/sha256）；仅 status='draft' 生效，
+    /// 非 draft / 未知 id → Ok(None)（application 层据此走自动新 draft 或 409）。
+    async fn update_draft(&self, id: &str, code: &str, params_schema: &serde_json::Value, sha256: &str)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 发布定格：draft→published，写入最终 sha256/params_schema/published_at。
+    /// **乐观并发（TOCTOU 防护）**：`WHERE id=$1 AND status='draft' AND code=$expected_code`——
+    /// `expected_code` 为 application 层冒烟通过的 code 原文；0 行命中（未知 id / 状态已漂移 /
+    /// code 被并发改写）→ `Ok(None)`（application 映射 409，版本保持 draft）。
+    async fn mark_published(&self, id: &str, expected_code: &str, sha256: &str,
+                            params_schema: &serde_json::Value,
+                            published_at: DateTime<Utc>) -> anyhow::Result<Option<StrategyVersionRow>>;
+    /// 通用状态写（archive 用：published→archived）；未知 id → Ok(None)。
+    /// 流转合法性由 application 层经 strategy_state 校验后调用。
+    async fn set_status(&self, id: &str, status: StrategyStatus)
+        -> anyhow::Result<Option<StrategyVersionRow>>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）
@@ -1451,6 +1558,202 @@ mod tests {
             "13:01 到期后仍停在 11:30 → 陈旧");
         // 当日无到期标签 → 不判陈旧
         assert!(!is_stale(day.and_hms_opt(9, 30, 0).unwrap(), day.and_hms_opt(9, 30, 30).unwrap()));
+    }
+}
+```
+
+## 2.9 策略 Registry 状态机（12-strategy-system / P2a；ADR 12 §5）
+
+**选址理由**：状态机为纯函数校验模块，放 domain 层独立模块 `strategy_state`（不放 strategy-core——
+该 crate 是评分/聚合/执行内核，Registry 持久化语义不属其职责；不放 application——web/application
+均需共享强类型枚举，domain 是全 workspace 唯一公共依赖点，与 RunStatus/AlertStatus 等既有
+状态枚举同层同模式）。纯函数、无 IO，全流转表可单测。
+
+合法流转（单向）：`draft → published → archived`。其余一律非法（含 draft→archived、
+published→draft、archived→\*、同态自转）。published 不可变由 DB trigger 双保险（04-storage §4.3.13）。
+
+权限分级 `approval_level` 为**有序阶梯**：backtest_ok(1) → sim_ok(2) → live_approved(3)；
+catalog 过滤用 at-least 语义（`satisfies`：高级别通过低级别过滤）。
+
+``` {.rust file=crates/domain/src/strategy_state.rs}
+//! 策略 Registry 状态机与强类型枚举（12-strategy-system / P2a；ADR 12-strategy-system §5）。
+//! 纯函数校验模块：流转表驱动、无 IO、可单测（TDD：本模块测试即合法流转的可执行规格）。
+
+use serde::{Deserialize, Serialize};
+
+/// 版本状态（strategy_version.status）：draft → published → archived 单向流转（ADR §5）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StrategyStatus { Draft, Published, Archived }
+
+impl StrategyStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StrategyStatus::Draft => "draft",
+            StrategyStatus::Published => "published",
+            StrategyStatus::Archived => "archived",
+        }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "draft" => Some(StrategyStatus::Draft),
+            "published" => Some(StrategyStatus::Published),
+            "archived" => Some(StrategyStatus::Archived),
+            _ => None,
+        }
+    }
+}
+
+/// 权限分级（strategy_version.approval_level）：backtest_ok → sim_ok → live_approved
+/// 有序升级（ADR §5：独立标记，升级需显式动作）。rank 用于 catalog at-least 过滤。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalLevel { BacktestOk, SimOk, LiveApproved }
+
+impl ApprovalLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ApprovalLevel::BacktestOk => "backtest_ok",
+            ApprovalLevel::SimOk => "sim_ok",
+            ApprovalLevel::LiveApproved => "live_approved",
+        }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "backtest_ok" => Some(ApprovalLevel::BacktestOk),
+            "sim_ok" => Some(ApprovalLevel::SimOk),
+            "live_approved" => Some(ApprovalLevel::LiveApproved),
+            _ => None,
+        }
+    }
+    /// 阶梯 rank（backtest_ok=1 < sim_ok=2 < live_approved=3）。
+    pub fn rank(&self) -> u8 {
+        match self {
+            ApprovalLevel::BacktestOk => 1,
+            ApprovalLevel::SimOk => 2,
+            ApprovalLevel::LiveApproved => 3,
+        }
+    }
+    /// catalog 过滤（at-least 语义）：本级别是否满足要求的最低级别。
+    pub fn satisfies(&self, required: &ApprovalLevel) -> bool {
+        self.rank() >= required.rank()
+    }
+}
+
+/// 策略类别（strategy.kind）：strategy=用户策略 / template=官方模板（ADR §13.2 D10）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StrategyKind { Strategy, Template }
+
+impl StrategyKind {
+    pub fn as_str(&self) -> &'static str {
+        match self { StrategyKind::Strategy => "strategy", StrategyKind::Template => "template" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "strategy" => Some(StrategyKind::Strategy),
+            "template" => Some(StrategyKind::Template),
+            _ => None,
+        }
+    }
+}
+
+/// 非法状态流转（状态机校验失败载荷；application 层包装后 web 映射 409）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvalidTransition {
+    pub from: StrategyStatus,
+    pub to: StrategyStatus,
+}
+
+impl std::fmt::Display for InvalidTransition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "非法状态流转: {} → {}（合法：draft→published→archived 单向）",
+               self.from.as_str(), self.to.as_str())
+    }
+}
+
+impl std::error::Error for InvalidTransition {}
+
+/// 合法流转判定（单向表驱动）：draft→published、published→archived。
+pub fn can_transition(from: StrategyStatus, to: StrategyStatus) -> bool {
+    matches!(
+        (from, to),
+        (StrategyStatus::Draft, StrategyStatus::Published)
+            | (StrategyStatus::Published, StrategyStatus::Archived)
+    )
+}
+
+/// 流转校验：合法 → Ok(())；非法 → Err(InvalidTransition)。
+pub fn validate_transition(from: StrategyStatus, to: StrategyStatus)
+    -> Result<(), InvalidTransition> {
+    if can_transition(from, to) { Ok(()) } else { Err(InvalidTransition { from, to }) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use StrategyStatus::*;
+
+    /// 全流转表（3×3=9 对）：仅 draft→published、published→archived 合法。
+    #[test]
+    fn transition_table_full() {
+        let all = [Draft, Published, Archived];
+        for from in all {
+            for to in all {
+                let expected = matches!((from, to),
+                    (Draft, Published) | (Published, Archived));
+                assert_eq!(can_transition(from, to), expected, "{from:?} → {to:?}");
+                assert_eq!(validate_transition(from, to).is_ok(), expected);
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_transition_display_mentions_states() {
+        let e = validate_transition(Draft, Archived).unwrap_err();
+        assert_eq!(e, InvalidTransition { from: Draft, to: Archived });
+        let msg = e.to_string();
+        assert!(msg.contains("draft") && msg.contains("archived"));
+    }
+
+    #[test]
+    fn status_str_roundtrip() {
+        for s in [Draft, Published, Archived] {
+            assert_eq!(StrategyStatus::parse(s.as_str()), Some(s));
+        }
+        assert_eq!(StrategyStatus::parse("unknown"), None);
+    }
+
+    #[test]
+    fn approval_level_ladder_and_satisfies() {
+        use ApprovalLevel::*;
+        assert!(BacktestOk.rank() < SimOk.rank() && SimOk.rank() < LiveApproved.rank());
+        // at-least 语义：高级别通过低级别过滤；低级别不满足高级别要求。
+        assert!(LiveApproved.satisfies(&BacktestOk));
+        assert!(LiveApproved.satisfies(&LiveApproved));
+        assert!(SimOk.satisfies(&BacktestOk));
+        assert!(!BacktestOk.satisfies(&SimOk));
+        assert!(!BacktestOk.satisfies(&LiveApproved));
+        for l in [BacktestOk, SimOk, LiveApproved] {
+            assert_eq!(ApprovalLevel::parse(l.as_str()), Some(l));
+        }
+        assert_eq!(ApprovalLevel::parse("admin"), None);
+    }
+
+    #[test]
+    fn kind_str_roundtrip() {
+        for k in [StrategyKind::Strategy, StrategyKind::Template] {
+            assert_eq!(StrategyKind::parse(k.as_str()), Some(k));
+        }
+        assert_eq!(StrategyKind::parse("builtin"), None);
+    }
+
+    #[test]
+    fn serde_snake_case() {
+        assert_eq!(serde_json::to_string(&Draft).unwrap(), "\"draft\"");
+        assert_eq!(serde_json::to_string(&ApprovalLevel::LiveApproved).unwrap(),
+                   "\"live_approved\"");
+        assert_eq!(serde_json::to_string(&StrategyKind::Template).unwrap(), "\"template\"");
     }
 }
 ```

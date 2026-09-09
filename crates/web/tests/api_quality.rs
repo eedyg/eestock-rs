@@ -71,6 +71,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

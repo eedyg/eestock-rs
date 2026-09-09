@@ -125,6 +125,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     // 页面⑧ 系统设置 S2：配置持久化（app_config 表，0021）
     "app_config",
     "simsession", "simsession_result", "sim_trades", "sim_positions", "simsession_state",
+    // 12-strategy-system / P2a：Strategy Registry 表（0022；应用面自有）
+    "strategy", "strategy_version",
 ];
 
 /// 应为 hypertable 的表。

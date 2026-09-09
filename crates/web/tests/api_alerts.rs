@@ -78,6 +78,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         // 页面⑧ 系统设置 S2：配置持久化（装配齐全）
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

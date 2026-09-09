@@ -215,6 +215,44 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 `eestock-app.rs` 已构造 `sim_service`（`application::simlive::SimLiveService::with_default_fee(PgSimSessionStore, SystemClock).with_backtest(backtest.clone()).with_kline(sim_kline.clone())`）；其中 `sim_kline = Arc::new(storage::reader::KlineReader::new(pool.clone()))`（实现 `domain::ports::KlineRead`，与 `state.kline` 同款/同库；持仓 latest/market_value 经行情源解析）。
 本 § 加法：把**同一** `sim_service` Arc **也**装入 `AppState.sim`（原仅 `McpState.sim`），保证 web 与 MCP 共享同一实例（双通道一致性，ADR §7）。
 
+### 1.7 策略 Registry（12-strategy-system / P2a；ADR 12-strategy-system §5/§13.5）
+
+> 与 §1.5/§1.6 同模式：`crates/web/src/strategies.rs`（REST handlers + DTO）为**非 tangle 手写**（ADR-007 例外），
+> 契约描述在此、实际代码块不入本文档；`crates/web/src/lib.rs` 路由与 `crates/web/src/state.rs` 的
+> `AppState.strategies` 字段为 tangle 加法。应用层在 `application::strategy::StrategyService`（非 tangle）；
+> storage `PgStrategyStore`（迁移 0022，非 tangle；端口 `domain::ports::StrategyStore`，contracts.md §2.4 末尾）。
+
+#### REST
+
+| 方法/路径 | 参数 | 响应 | 错误态 |
+|---|---|---|---|
+| `GET /api/strategies` | `?level=&kind=`（可选） | `[CatalogEntry]`（仅 published；每策略最新 published 版本；level at-least 过滤） | 400：level/kind 非法；503；500 |
+| `POST /api/strategies` | body `{name, description?, kind?, code}` | 201 `{strategy, version}`（v1 draft，sha256+schema 即算） | 400：name/code 空、kind 非法；503；500 |
+| `GET /api/strategies/{id}` | — | `StrategyRow` | 404：未知 id；503；500 |
+| `GET /api/strategies/{id}/versions` | — | `[StrategyVersionRow]`（version 升序） | 404：策略未知；503；500 |
+| `POST /api/strategies/{id}/versions` | body `{from_version_id}` | 201 `StrategyVersionRow`（从指定版本新建 draft，回滚/派生） | 400：版本不属该策略；404；503；500 |
+| `PUT /api/strategies/versions/{vid}` | body `{code}` | 200 `{outcome:"updated", version}`（draft 原地更新）/ 201 `{outcome:"new_draft", version}`（published 自动落新 draft，ADR §13.5） | 400：code 空；404；409：archived；503；500 |
+| `POST /api/strategies/versions/{vid}/publish` | — | `StrategyVersionRow`（门禁冒烟通过 → published） | 400：发布门禁未通过；404；409：非 draft；503；500 |
+| `POST /api/strategies/versions/{vid}/archive` | — | `StrategyVersionRow`（published→archived） | 404；409：非 published；503；500 |
+| `GET /api/strategies/versions/diff` | `?from=&to=`（版本 id） | `{from:{id,strategy_id,version,status,code}, to:{…}}`（前端渲染 diff） | 400：缺参数；404；503；500 |
+| `POST /api/strategies/test-run` | body `{code\|version_id, params?, symbol, period, from, to, mode}` | `TestRunResponse`（评分序列/信号/成交/事件 + truncated 标记） | 400：入参/区间超限/门禁；404：version_id 未知；503；500 |
+
+**错误语义约定**：未注册/未找到 404（`StrategyNotFound`）、非法状态流转 409（`StrategyInvalidTransition`）、
+校验失败 400（`StrategyValidation` 与 web 层入参校验）；服务未装配（`AppState.strategies=None`）→ 503（与 `sim` 同模式）。
+
+**test-run 口径**：`code`（插件 JS 源码）与 `version_id` 二选一；`symbol` = 标的代码（避免与策略 code 同名冲突）；
+`period` ∈ M1/M5/M15/D1（复用回测 parse_period）；区间上限 D1≤5年（366×5 天）/ 分钟级≤3个月（93 天），超限 400；
+`from/to` RFC3339 且 from<to。mode：`pure_score`（裸评分，position 恒 null）/ `sim_position`
+（单 slot EnsembleEngine：默认阈值 60/40 + LumpSum pct=1.0 + 默认 FeeModel + 初始资金 100_000）。
+试算收紧 RuntimeLimits（per_call 20ms / 内存 32MB，实例化 max(20×per_call,1s)）。
+截断口径（防巨包）：评分点 ≤50_000、事件 ≤1_000、成交 ≤5_000，超出截尾并置 `truncated.{scores,events,trades}`。
+
+#### DI（app bin §5）
+
+`eestock-app.rs` 构造 `strategy_service`（`StrategyService::new(PgStrategyStore, BacktestBarReader, SystemClock)`，
+BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppState.strategies`；随后调用
+`seed_reference_plugins()` 启动播种（strategy 表为空 → 7 参考插件 + 4 官方模板以 published 入库；幂等）。
+
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
 
 分层红线：diagnose **不依赖 sqlx**。窗口事件经 `domain::ports::HealthEventsRead` 注入，
@@ -2136,6 +2174,8 @@ pub mod rest;
 pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
 // 11-sim-live / L3b：模拟实盘 REST handlers（§1.6；非 tangle 手写，web 依赖 application，与 MCP 共享 SimLiveService）
 pub mod simlive;
+// 12-strategy-system / P2a：策略 Registry REST handlers（§1.7；非 tangle 手写，web 依赖 application）
+pub mod strategies;
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -2198,6 +2238,15 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
         // 行情看板 K线默认视口（后端 W1：GET /api/config/kline 读 / PUT 写 viewport_days；app_config 0021；缺省 2）
         .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
+        // 12-strategy-system / P2a：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
+        .route("/api/strategies", get(strategies::catalog).post(strategies::create_strategy))
+        .route("/api/strategies/test-run", post(strategies::test_run))
+        .route("/api/strategies/versions/diff", get(strategies::diff_versions))
+        .route("/api/strategies/versions/{vid}", put(strategies::update_draft))
+        .route("/api/strategies/versions/{vid}/publish", post(strategies::publish_version))
+        .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
+        .route("/api/strategies/{id}", get(strategies::get_strategy))
+        .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -3198,6 +3247,10 @@ pub struct AppState {
     /// 模拟实盘服务（11-sim-live / L3b：web 面板 /api/sim-live/*；与 MCP 共享同一 SimLiveService 实例）。
     /// `None` = 未配置，/api/sim-live/* 返回 503。storage::sim::PgSimSessionStore 由 app bin 装配。
     pub sim: Option<Arc<application::simlive::SimLiveService>>,
+    /// 策略 Registry 服务（12-strategy-system / P2a：/api/strategies/*；§1.7）。
+    /// `None` = 未装配，/api/strategies/* 返回 503（与 `sim` 同模式）。
+    /// storage::strategy::PgStrategyStore + BacktestBarRead 由 app bin 装配注入。
+    pub strategies: Option<Arc<application::strategy::StrategyService>>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -4198,6 +4251,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -4426,6 +4480,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -4642,6 +4697,18 @@ async fn main() -> anyhow::Result<()> {
     .with_backtest(backtest.clone())
     .with_kline(sim_kline.clone()));
     // 11-sim-live 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state 重建内存续跑；无 state → ended+告警）。
+    // 12-strategy-system / P2a：策略 Registry DI（PgStrategyStore + BacktestBarRead（复用回测取数
+    // 口径 kline_accurate 优先）+ SystemClock → StrategyService）。
+    let strategy_service = Arc::new(application::strategy::StrategyService::new(
+        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    ));
+    // P2a 启动播种：strategy 表为空 → strategy-core::reference 7 参考插件 + 4 官方模板以
+    // published 入库（sha256 启动时计算；幂等——表非空整体跳过，按 name+sha256 逐款跳过）。
+    let seed_report = strategy_service.seed_reference_plugins().await?;
+    tracing::info!(seeded = %seed_report.seeded, skipped = %seed_report.skipped,
+        "strategy registry 启动播种完成");
     let sim_recovery = sim_service.recover_sessions().await?;
     tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
@@ -4681,6 +4748,8 @@ async fn main() -> anyhow::Result<()> {
         config,
         // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
         sim: Some(sim_service.clone()),
+        // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*）
+        strategies: Some(strategy_service),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -5167,6 +5236,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -5388,6 +5458,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,

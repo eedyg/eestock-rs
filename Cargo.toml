@@ -50,3 +50,6 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 # 禁忌（评审 NIT-5 裁决）：禁止为 rquickjs 启用 rust-alloc/allocator feature
 # （会使 set_memory_limit 静默失效，G2 内存上限形同虚设）。
 rquickjs = { version = "0.11", default-features = false, features = ["std"] }
+# sha256 哈希寻址（strategy Registry 发布版本 sha256，ABI G4；架构裁决 2026-09-09 批准，
+# 纯 Rust 实现无系统依赖；application 层 StrategyService 发布门禁/播种使用）。
+sha2 = "0.10"
