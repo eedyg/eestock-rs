@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ApiClient } from '@/api/client';
 import type { Bar, Period } from '@/api/types';
+import { DEFAULT_KLINE_VIEWPORT_DAYS } from '@/features/dashboard/feed';
 import { ScopedKlineFeed } from './ScopedKlineFeed';
 
 const MIN = 60 * 1000;
@@ -165,5 +166,10 @@ describe('ScopedKlineFeed（区间 K 线 feed——向前分页拉取更早历�
     await feed.loadInitial();
     await feed.loadInitial();
     expect(api.getKline).toHaveBeenCalledTimes(1);
+  });
+
+  it('无 viewportDays 输入 → 暴露默认 2（fallback；fitBarSpace 铺满目标=旧行为，不破坏区间弹窗）', () => {
+    const feed = makeFeed(poolApi(fullPool()));
+    expect(feed.viewportDays).toBe(DEFAULT_KLINE_VIEWPORT_DAYS);
   });
 });

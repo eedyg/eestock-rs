@@ -80,6 +80,12 @@ export class KlineDataFeed {
     this.paginationBatch = deps.paginationBatch ?? paginationBatchForPeriod(deps.period);
   }
 
+  /** 默认视口（交易日数，GET /api/config/kline；缺省 2 兜底）。KlineChart.fitBarSpace 铺满目标据此计算，
+   *  使初始可见 K 线数随配置 viewportDays 变化，而非恒用默认 2 视口。 */
+  get viewportDays(): number {
+    return this.deps.viewportDays ?? DEFAULT_KLINE_VIEWPORT_DAYS;
+  }
+
   /** 任意状态变更（加载完成/分页拼接/实时更新） */
   onChange(cb: () => void): () => void {
     this.listeners.add(cb);

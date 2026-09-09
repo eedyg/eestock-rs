@@ -7,7 +7,7 @@ import {
   type KLineData,
   type OverlayCreateFiguresCallbackParams,
 } from 'klinecharts';
-import { defaultPageSizeForPeriod } from './feed';
+import { defaultPageSizeForPeriod, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
 import type { Bar, Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
@@ -15,8 +15,12 @@ import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 
 /** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
  *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
- *  - onRealtime：订阅实时 bar（区间 feed 从不触发，看板 feed 走 WS）。 */
+ *  - onRealtime：订阅实时 bar（区间 feed 从不触发，看板 feed 走 WS）。
+ *  - viewportDays：默认视口（交易日数，GET /api/config/kline；缺省 2 兜底）。fitBarSpace 铺满目标据此
+ *    计算（而非恒用默认 2 视口），使初始可见 K 线数随配置变化。看板 KlineDataFeed 返回配置值，
+ *    区间 ScopedKlineFeed 无配置 → 缺省 2（保持弹窗旧行为）。 */
 export interface KlineChartFeedLike extends KlineDataFeedLike {
+  viewportDays?: number;
   onRealtime(cb: (bar: Bar) => void): () => void;
 }
 
@@ -244,7 +248,9 @@ export function KlineChart(props: KlineChartProps) {
     const el = ref.current;
     const width = el ? el.clientWidth : 0;
     if (width <= 0) return;
-    const target = defaultPageSizeForPeriod(props.period);
+    // 铺满目标 = 配置视口（viewportDays×每日bar）而非恒 2 视口：feed 按 viewportDays 加载了
+    // BARS_PER_TRADING_DAY×viewportDays 根，barSpace 用同一个 target 才能让初始可见 K 线数随配置变。
+    const target = defaultPageSizeForPeriod(props.period, props.feed.viewportDays ?? DEFAULT_KLINE_VIEWPORT_DAYS);
     const space = Math.max(1, Math.min(50, Math.round((width - extraPx) / target)));
     chart.setBarSpace(space);
   };
