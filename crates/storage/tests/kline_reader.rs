@@ -77,6 +77,86 @@ async fn merged_1m_accurate_first_and_cursor_pagination() {
 }
 
 #[tokio::test]
+async fn merged_1m_branch_limit_merge_correctness() {
+    // MERGED_1M_SQL 改为双侧各自 (code,ts) 索引 DESC LIMIT 后合并：语义与旧 kline_merged 视图等价。
+    // 本测试用「准确层与 raw 交替、双侧行数 > limit」的种子，锁 per-branch LIMIT 合并正确性：
+    // ① 准确层优先（同 ts）② raw 兜底（仅无准确层时）③ 无重复 ④ 升序 ⑤ limit 生效 ⑥ before 深翻。
+    const CODE_BRANCH: &str = "997763";
+    let pool = pool().await;
+    clean(&pool, CODE_BRANCH).await;
+    // accurate：偶数分钟 0..=24（13 根）；raw：奇数分钟 1..=25（13 根）——交替、无重叠 ts。
+    for i in 0..26i64 {
+        let ts = base() + Duration::minutes(i);
+        if i % 2 == 0 {
+            sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                         VALUES ($1, $2, 'M1', $3, $3, $3, $3, 200, 200.0, 'tushare') ON CONFLICT DO NOTHING")
+                .bind(CODE_BRANCH).bind(ts).bind(100.0 + i as f64)
+                .execute(&pool).await.unwrap();
+        } else {
+            sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                         VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'webq_src') ON CONFLICT DO NOTHING")
+                .bind(CODE_BRANCH).bind(ts).bind(200.0 + i as f64)
+                .execute(&pool).await.unwrap();
+        }
+    }
+    let r = KlineReader::new(pool.clone());
+    let bars = r.bars(Period::M1, CODE_BRANCH, None, 5).await.unwrap();
+    // 总量 26 根（准确 13 + raw 13，无重叠）；limit=5 取最新 5 根 = ts 21..25，升序返回。
+    assert_eq!(bars.len(), 5, "limit=5 生效，返回最新 5 根");
+    assert!(bars.windows(2).all(|w| w[0].ts < w[1].ts), "升序返回（图表口径）");
+    let expected: Vec<(i64, f64, &str)> = vec![
+        (21, 221.0, "webq_src"), // raw 奇数分钟
+        (22, 122.0, "tushare"),  // accurate 偶数分钟
+        (23, 223.0, "webq_src"),
+        (24, 124.0, "tushare"),
+        (25, 225.0, "webq_src"),
+    ];
+    for (b, (min, close, src)) in bars.iter().zip(&expected) {
+        assert_eq!(b.ts, base() + Duration::minutes(*min), "ts 对齐");
+        assert_eq!(b.close, *close, "close 对齐（准确层优先/raw 兜底）");
+        assert_eq!(b.source.as_deref(), Some(*src),
+            "source：raw 保留实际来源，accurate 层 = tushare");
+        assert_eq!(b.volume, if *src == "tushare" { 200 } else { 100 }, "volume 按来源区分");
+    }
+    // before 深翻：before=24min 取下一页（limit=5）→ ts 19..23，降序翻页、无重复/缺口。
+    let page = r.bars(Period::M1, CODE_BRANCH, Some(base() + Duration::minutes(24)), 5).await.unwrap();
+    assert_eq!(page.len(), 5);
+    assert!(page.iter().all(|b| b.ts < base() + Duration::minutes(24)), "before 不含该 ts 本身");
+    let distinct: std::collections::HashSet<_> = page.iter().map(|b| b.ts).collect();
+    assert_eq!(distinct.len(), page.len(), "深翻页内无重复数据点");
+    clean(&pool, CODE_BRANCH).await;
+}
+
+#[tokio::test]
+async fn merged_1m_branch_index_limit_performance() {
+    // 基准（可加；若 518880 无 500 根 M1 则跳过断言以免假阴性）：MERGED_1M_SQL 改为双侧
+    // (code,ts) 索引 DESC LIMIT 合并后，1m 500 bars（无 before）直接走各分支索引 LIMIT，
+    // 不再全量 Append + top-N 排序。改前（直查 kline_merged 视图，~77万行全量 Append+top-N）
+    // 实测 ~1.05s；改后 ~0.1s。目标 <500ms。
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    let real_code = "518880"; // 真实全量 M1 code（77万+ 行），只读不改。
+    // 预热几次：① 命中 sqlx 语句缓存 ② 让 Postgres 切换到 prepared statement 的 generic plan
+    // （hypertable 上千 chunk 子计划，单次计划 ~600ms 不属稳态）。预热后测稳态执行时间。
+    for _ in 0..8 {
+        let w = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+        if w.len() != 500 {
+            eprintln!("[bench-skip] {real_code} 无 500 根 M1（实际 {}），跳过性能断言", w.len());
+            return;
+        }
+    }
+    let t = std::time::Instant::now();
+    let bars = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+    let dt = t.elapsed();
+    assert_eq!(bars.len(), 500);
+    assert!(bars.windows(2).all(|w| w[0].ts < w[1].ts), "升序返回（图表口径）");
+    eprintln!("[bench] M1 500 bars 稳态执行 = {}ms（双侧索引 DESC LIMIT 合并）", dt.as_millis());
+    assert!(dt.as_millis() < 500,
+        "1m 500 bars 稳态应在 <500ms 内返回（双侧索引 DESC LIMIT 合并），实际 {}ms；改前全量 Append+top-N 仅执行已超 1s",
+        dt.as_millis());
+}
+
+#[tokio::test]
 async fn merged_periods_accurate_first_and_1h_rollup() {
     let pool = pool().await;
     clean(&pool, CODE_CAGG).await;

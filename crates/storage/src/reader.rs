@@ -2,7 +2,7 @@
 //! 应用面只读扩展（Wave 1 Phase A 加法，ADR-017 授权口径；写入路径零改动）：
 //! 实现 domain::ports::{KlineRead, HealthEventsRead}（分层红线：web/diagnose 只依赖 domain 端口）。
 //! 统一读源（Wave 3 0010）：所有周期 accurate 优先 + 底层兜底（ADR-003 推广）。
-//! - 1m：kline_merged 合并视图（准确层优先，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
+//! - 1m：MERGED_1M_SQL 双侧 (code,ts) 索引 DESC LIMIT 合并（准确层优先语义等价 kline_merged，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
 //! - forming 桶（实时右缘）：5m/15m/1h 在 latest 查询（before=None）额外聚合当前未闭合桶（kline_raw 实时）
 //!   —— cagg(accurate/兜底) 只承载**已闭合**桶，右缘落后至上一闭合桶（5m 最多 ~5min），forming 分支让右缘随 live 前进。
 //! - 周线 W1/月线 MO1（看板 W1）：accurate 用 kline_accurate_1w/1mo（0014 cagg）；兜底用 kline_1d 查询期 rollup
@@ -23,10 +23,30 @@ use std::collections::HashSet;
 
 type BarTuple = (String, DateTime<Utc>, f64, f64, f64, f64, i64, f64, Option<String>);
 
+/// 1m 统一读源（MERGED_1M_SQL，ADR-003 准确层优先语义等价 kline_merged）。
+/// 旧版直查 kline_merged 视图（accurate(M1) UNION ALL raw 反连接剔重）：ORDER BY ts DESC LIMIT 无法
+/// 下推到各分支 → 全量 Append（~77万行）+ top-N 排序 + raw 反连接逐行查 accurate，实测 ~2.5s。
+/// 新版双侧各自 (code,ts) 索引回溯 DESC LIMIT 取候选 → 合并（同 ts 准确层优先，raw 经反连接剔重）
+/// 再 DESC LIMIT。merge 尾部 top-N ⊆ 双侧 top-N 并集，语义等价（实盘 EXCEPT 互减 0 行）。
+/// 实测（同库）：旧 ~1.05s → 新 ~0.1s。raw 分支保留实际 source（与 kline_merged 口径一致）；
+/// accurate 分支 source 记 'tushare'（与准确层写入源一致）。
 const MERGED_1M_SQL: &str = r#"
 SELECT code, ts, open, high, low, close, volume, amount, source
-FROM kline_merged
-WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
+FROM (
+    (SELECT a.code, a.ts, a.open, a.high, a.low, a.close, a.volume::bigint AS volume,
+            a.amount, 'tushare'::text AS source
+     FROM kline_accurate a
+     WHERE a.code = $1 AND a.period = 'M1' AND ($2::timestamptz IS NULL OR a.ts < $2)
+     ORDER BY a.ts DESC LIMIT $3)
+    UNION ALL
+    (SELECT f.code, f.ts, f.open, f.high, f.low, f.close, f.volume::bigint AS volume,
+            f.amount, f.source
+     FROM kline_raw f
+     WHERE f.code = $1 AND ($2::timestamptz IS NULL OR f.ts < $2)
+       AND NOT EXISTS (SELECT 1 FROM kline_accurate a
+                       WHERE a.code = f.code AND a.ts = f.ts AND a.period = 'M1')
+     ORDER BY f.ts DESC LIMIT $3)
+) m
 ORDER BY ts DESC LIMIT $3
 "#;
 
@@ -79,7 +99,7 @@ const FALLBACK_1MO: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_1d GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai'))"#;
 
-/// 周期 → 统一读源 SQL（1m 走既有 kline_merged；其余按 accurate 表 + 兜底片段）。
+/// 周期 → 统一读源 SQL（1m 用 MERGED_1M_SQL 双侧索引 DESC LIMIT 合并；其余按 accurate 表 + 兜底片段）。
 fn period_merged_sql(p: Period) -> String {
     match p {
         Period::M1 => MERGED_1M_SQL.to_string(),
