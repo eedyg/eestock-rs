@@ -44,3 +44,9 @@ toml = "0.8"
 # SSE 流包装（mcp：ReceiverStream/IntervalStream；父级裁决 2026-09-04 批准——
 # 锁文件零变化：sqlx 传递依赖已在树内；决策注记见 design/07-app-plane/01-mcp.md §0）
 tokio-stream = { version = "0.1", features = ["sync"] }
+# QuickJS 沙箱绑定（strategy-runtime 插件运行时；父级裁决 2026-09-08 批准，ADR 12-strategy-system D1）。
+# 版本选型：锁 0.11 —— 0.12+ 的 MSRV 为 rust 1.87，超出 workspace rust-version = 1.85；
+# 0.11（MSRV 1.85）是兼容本 workspace 的最新稳定版。default-features 关闭，仅留 std（纯逻辑 crate 最小面）。
+# 禁忌（评审 NIT-5 裁决）：禁止为 rquickjs 启用 rust-alloc/allocator feature
+# （会使 set_memory_limit 静默失效，G2 内存上限形同虚设）。
+rquickjs = { version = "0.11", default-features = false, features = ["std"] }

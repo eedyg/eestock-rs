@@ -1,0 +1,18 @@
+# 12-strategy-system / P0 — 策略插件运行时（纯逻辑，手写，非 tangle）。
+# 定位：统一策略系统唯一策略内核的 Domain 层（ADR 12-strategy-system §3），
+#   插件 ABI 契约见 design/12-strategy-system/02-plugin-abi.md（唯一权威）。
+# 分层红线：无 IO / 无 DB / 无网络 / 无系统时钟（唯一例外：interrupt 超时用单调时钟 Instant）；
+#   不依赖 web/storage/application/mcp；QuickJsRuntime 为 PluginRuntime 首个实现（WASM 未来可替换，D1）。
+[package]
+name = "strategy-runtime"
+description = "策略插件运行时：PluginRuntime trait + QuickJS 沙箱实现 + 确定性守卫（纯逻辑，无 IO/无 DB）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# 复用 backtest 的 Bar / Indicators / StrategyParams / ParamValue，指标口径与 Rust 内建策略一致（ABI §2）。
+backtest = { path = "../backtest" }
+rquickjs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

@@ -141,3 +141,20 @@
 - **R1（记录，不修）——高周期 cagg 回填深度**：本容器 cagg（5m/15m/1h/1d）仅回填 ~3 交易日，
   「翻 10-20 交易日」仅在 1m（merged 深历史）验证通过。后续 backlog：考察高周期向前分页是否需扩大
   cagg 窗口或改按需聚合（超出前端组件范围，需后端回填评估），本轮不做。
+
+---
+
+# 统一策略系统决策（2026-09-08，三轮 Grill 定稿）
+
+## 定案（D1-D16，权威细节见 design/12-strategy-system/01-adr.md + 02-plugin-abi.md）
+- **统一策略系统**：唯一策略内核驱动 回测/模拟实盘/真实实盘（本期实盘仅 RiskGate+Executor Port 架构预留）；golang 旧系统仅参考，无迁移
+- **插件化方案 C**：QuickJS（JS 文本即存即跑）先行，Host ABI 契约预留 WASM；确定性守卫（禁 Date/Random/IO、超时+内存硬上限、状态 save/load、sha256 寻址重放）
+- **评分语义**：插件连续分 0-100；加权平均聚合（策略权重可调，无覆盖取 50）；阈值 60/40 可配
+- **职责分层（D9）**：插件=决策层（ctx.position 只读全景，门控/DCA/软止损编码进评分）；引擎=执行层（笨规则+目标仓位幂等换算，无固定门控）
+- **ExecutionPolicy**：LumpSum + DCA 双模式；止损三层（策略软止损 / Policy 硬止损 trigger:intrabar|close 默认 intrabar / RiskGate 实盘兜底）
+- **Registry**：策略一等资源（版本化+sha256+draft→published→archived+权限三级）；编辑已发布版本自动落新 draft；版本 diff 视图；组合预设（P3 可裁剪）
+- **Web**：策略列表/编辑器(CodeMirror 6+试算双模式)/回测工作台新页面；评分序列全量落库、UI 抽样
+- **sim-live**：保留骨架换内核（Registry 策略源+QuickJS 实例，3策略×30股上限沿用）
+- **MCP**：新工具 strategy_*/bt_* 落现有 SSE；Streamable HTTP 迁移维持独立 backlog
+- **并存期**：新工作台独立页面/API 族；旧回测页+内建策略保留至 P4 验收后退役
+- **实施分期**：P0 runtime+契约测试 → P1 strategy-core(聚合/Policy/引擎) → P2 Registry+编辑页 → P3 工作台+MCP → P4 sim-live 切源+旧退役 → P5 实盘契约文档化
