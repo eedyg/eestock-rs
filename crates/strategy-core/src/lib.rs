@@ -56,9 +56,13 @@
 pub mod aggregate;
 pub mod engine;
 pub mod policy;
+pub mod reference;
 pub mod stop;
 
-pub use aggregate::{aggregate, classify, StrategySlot, TradeSignal, DEFAULT_BUY_THRESHOLD, DEFAULT_SELL_THRESHOLD, NEUTRAL_SCORE};
+pub use aggregate::{
+    aggregate, classify, StrategySlot, TradeSignal, DEFAULT_BUY_THRESHOLD, DEFAULT_SELL_THRESHOLD,
+    NEUTRAL_SCORE,
+};
 pub use engine::{
     run_ensemble, BarRecord, EngineEvent, EnsembleConfig, EnsembleResult, OrderIntent, OrderReason,
     OrderSide, SlotScore, SlotScoreOutcome, CIRCUIT_BREAKER_THRESHOLD,

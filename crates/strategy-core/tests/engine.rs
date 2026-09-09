@@ -142,7 +142,10 @@ fn e2e_buy_hold_force_close_fee_parity_with_backtest() {
     // 成交：bar1 open 买入 1 笔；期末强制平仓 1 笔（最后 close）。
     let f = fills(&res);
     assert_eq!(f.len(), 2, "买入 + 期末强平各一笔");
-    assert_eq!((f[0].0, f[0].1, f[0].4), (1, OrderSide::Buy, OrderReason::Policy));
+    assert_eq!(
+        (f[0].0, f[0].1, f[0].4),
+        (1, OrderSide::Buy, OrderReason::Policy)
+    );
     assert_eq!(
         (f[1].0, f[1].1, f[1].4),
         (9, OrderSide::Sell, OrderReason::ForceClose)
@@ -209,8 +212,18 @@ fn e2e_deterministic_double_run_pointwise_equal() {
     let bars = flat_bars(30, 10.0);
     let cfg = base_cfg(
         vec![
-            slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 2.0),
-            slot(POSITION_GATE, "sha256:position_gate", StrategyParams::new(), 1.0),
+            slot(
+                CONSTANT_SCORE,
+                "sha256:constant_score",
+                params(&[("score", 80.0)]),
+                2.0,
+            ),
+            slot(
+                POSITION_GATE,
+                "sha256:position_gate",
+                StrategyParams::new(),
+                1.0,
+            ),
         ],
         ExecutionPolicy::Dca {
             tranches: 2,
@@ -247,7 +260,12 @@ fn e2e_deterministic_double_run_pointwise_equal() {
 fn e2e_position_gate_buy_then_sell() {
     let bars = flat_bars(6, 10.0);
     let cfg = base_cfg(
-        vec![slot(POSITION_GATE, "sha256:position_gate", StrategyParams::new(), 1.0)],
+        vec![slot(
+            POSITION_GATE,
+            "sha256:position_gate",
+            StrategyParams::new(),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     let res = run(&cfg, &bars);
@@ -312,10 +330,38 @@ fn e2e_dca_batches_with_interval() {
 /// 止损测试 bar 序列：bar0/1 平 10；bar2 插针（low/close 破线）；后续平 9.6。
 fn stop_bars() -> Vec<Bar> {
     vec![
-        Bar { ts: 1_700_000_000, open: 10.0, high: 10.0, low: 10.0, close: 10.0, volume: 1.0 },
-        Bar { ts: 1_700_086_400, open: 10.0, high: 10.0, low: 10.0, close: 10.0, volume: 1.0 },
-        Bar { ts: 1_700_172_800, open: 9.8, high: 9.9, low: 9.50, close: 9.60, volume: 1.0 },
-        Bar { ts: 1_700_259_200, open: 9.60, high: 9.60, low: 9.60, close: 9.60, volume: 1.0 },
+        Bar {
+            ts: 1_700_000_000,
+            open: 10.0,
+            high: 10.0,
+            low: 10.0,
+            close: 10.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_086_400,
+            open: 10.0,
+            high: 10.0,
+            low: 10.0,
+            close: 10.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_172_800,
+            open: 9.8,
+            high: 9.9,
+            low: 9.50,
+            close: 9.60,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_259_200,
+            open: 9.60,
+            high: 9.60,
+            low: 9.60,
+            close: 9.60,
+            volume: 1.0,
+        },
     ]
 }
 
@@ -323,7 +369,12 @@ fn stop_bars() -> Vec<Bar> {
 fn stop_fixed_pct_intrabar_fills_same_bar_at_line_minus_slippage() {
     let bars = stop_bars();
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     cfg.stop = Some(StopConfig {
@@ -351,7 +402,10 @@ fn stop_fixed_pct_intrabar_fills_same_bar_at_line_minus_slippage() {
 
     // 首笔交易为止损平仓：bar2 当 bar 成交，价 = 止损线 ×(1−slippage)。
     assert_eq!(res.trades[0].close_bar, 2);
-    close(res.trades[0].close_price, line * (1.0 - fee.slippage_fraction()));
+    close(
+        res.trades[0].close_price,
+        line * (1.0 - fee.slippage_fraction()),
+    );
     // 语义注明：止损平仓后信号仍为 Buy（80 分）→ Policy 重新建仓，bar3 open 再买入，
     // 期末强平收尾——硬止损只负责「触发即平仓」，不抑制后续信号（ADR §13.3 第二层职责边界）。
     assert_eq!(res.trades.len(), 2);
@@ -365,7 +419,12 @@ fn stop_close_basis_next_open_fill() {
     bars[2].low = 9.50;
     bars[3].open = 9.55;
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     cfg.stop = Some(StopConfig {
@@ -397,16 +456,70 @@ fn stop_close_basis_next_open_fill() {
 fn stop_trailing_intrabar_uses_peak_close_since_entry() {
     // 建仓后收盘冲高至 12（峰值），bar5 low 10.7 破线 12×0.9=10.8 → 当 bar 成交。
     let bars = vec![
-        Bar { ts: 1_700_000_000, open: 10.0, high: 10.0, low: 10.0, close: 10.0, volume: 1.0 },
-        Bar { ts: 1_700_086_400, open: 10.0, high: 10.6, low: 9.9, close: 10.5, volume: 1.0 },
-        Bar { ts: 1_700_172_800, open: 10.5, high: 11.1, low: 10.4, close: 11.0, volume: 1.0 },
-        Bar { ts: 1_700_259_200, open: 11.0, high: 11.6, low: 10.9, close: 11.5, volume: 1.0 },
-        Bar { ts: 1_700_345_600, open: 11.5, high: 12.1, low: 11.4, close: 12.0, volume: 1.0 },
-        Bar { ts: 1_700_432_000, open: 11.8, high: 11.9, low: 10.7, close: 11.0, volume: 1.0 },
-        Bar { ts: 1_700_518_400, open: 11.0, high: 11.0, low: 11.0, close: 11.0, volume: 1.0 },
+        Bar {
+            ts: 1_700_000_000,
+            open: 10.0,
+            high: 10.0,
+            low: 10.0,
+            close: 10.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_086_400,
+            open: 10.0,
+            high: 10.6,
+            low: 9.9,
+            close: 10.5,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_172_800,
+            open: 10.5,
+            high: 11.1,
+            low: 10.4,
+            close: 11.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_259_200,
+            open: 11.0,
+            high: 11.6,
+            low: 10.9,
+            close: 11.5,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_345_600,
+            open: 11.5,
+            high: 12.1,
+            low: 11.4,
+            close: 12.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_432_000,
+            open: 11.8,
+            high: 11.9,
+            low: 10.7,
+            close: 11.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_518_400,
+            open: 11.0,
+            high: 11.0,
+            low: 11.0,
+            close: 11.0,
+            volume: 1.0,
+        },
     ];
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     cfg.stop = Some(StopConfig {
@@ -425,7 +538,10 @@ fn stop_trailing_intrabar_uses_peak_close_since_entry() {
     assert_eq!(stop_fill.0, 5);
     close(stop_fill.3, line * (1.0 - fee.slippage_fraction()));
     assert_eq!(res.trades[0].close_bar, 5);
-    close(res.trades[0].close_price, line * (1.0 - fee.slippage_fraction()));
+    close(
+        res.trades[0].close_price,
+        line * (1.0 - fee.slippage_fraction()),
+    );
 }
 
 #[test]
@@ -441,11 +557,30 @@ fn stop_atr_close_basis_uses_atr14_line() {
             volume: 1.0,
         })
         .collect();
-    bars.push(Bar { ts: 1_700_000_000 + 16 * 86_400, open: 9.9, high: 9.9, low: 7.3, close: 7.5, volume: 1.0 });
-    bars.push(Bar { ts: 1_700_000_000 + 17 * 86_400, open: 7.6, high: 7.6, low: 7.6, close: 7.6, volume: 1.0 });
+    bars.push(Bar {
+        ts: 1_700_000_000 + 16 * 86_400,
+        open: 9.9,
+        high: 9.9,
+        low: 7.3,
+        close: 7.5,
+        volume: 1.0,
+    });
+    bars.push(Bar {
+        ts: 1_700_000_000 + 17 * 86_400,
+        open: 7.6,
+        high: 7.6,
+        low: 7.6,
+        close: 7.6,
+        volume: 1.0,
+    });
 
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     cfg.stop = Some(StopConfig {
@@ -459,7 +594,9 @@ fn stop_atr_close_basis_uses_atr14_line() {
     let fee = FeeModel::default();
     let buy = fee.buy(100_000.0, 10.0);
     let avg_cost = 100_000.0 / buy.shares;
-    let atr14 = backtest::Indicators::new(&bars, 16).atr(14).expect("ATR 数据充足");
+    let atr14 = backtest::Indicators::new(&bars, 16)
+        .atr(14)
+        .expect("ATR 数据充足");
     let line = avg_cost - 2.0 * atr14;
     assert!(bars[16].close < line, "前置：bar16 close 必须破 ATR 线");
 
@@ -482,7 +619,12 @@ fn stop_atr_close_basis_uses_atr14_line() {
 fn g5_circuit_breaker_after_10_consecutive_timeouts() {
     let bars = flat_bars(12, 10.0);
     let mut cfg = base_cfg(
-        vec![slot(INFINITE_LOOP, "sha256:infinite_loop", StrategyParams::new(), 1.0)],
+        vec![slot(
+            INFINITE_LOOP,
+            "sha256:infinite_loop",
+            StrategyParams::new(),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     cfg.runtime_limits = RuntimeLimits {
@@ -498,18 +640,30 @@ fn g5_circuit_breaker_after_10_consecutive_timeouts() {
         close(r.scores[0].score, 50.0);
         match &r.scores[0].outcome {
             SlotScoreOutcome::Err(e) => {
-                assert!(matches!(e.root_cause(), PluginError::Timeout(_)), "root_cause 应为 Timeout");
+                assert!(
+                    matches!(e.root_cause(), PluginError::Timeout(_)),
+                    "root_cause 应为 Timeout"
+                );
                 match e {
-                    PluginError::OnBar { code_hash, bar_index, .. } => {
+                    PluginError::OnBar {
+                        code_hash,
+                        bar_index,
+                        ..
+                    } => {
                         assert_eq!(code_hash, "sha256:infinite_loop");
                         assert_eq!(*bar_index, i);
                     }
-                    other => panic!("on_bar 错误应自含 sha256/bar_index（OnBar 包装），got {other}"),
+                    other => {
+                        panic!("on_bar 错误应自含 sha256/bar_index（OnBar 包装），got {other}")
+                    }
                 }
             }
             other => panic!("应为错误 outcome，got {other:?}"),
         }
-        assert!(r.events.iter().any(|e| matches!(e, EngineEvent::PluginError { .. })));
+        assert!(r
+            .events
+            .iter()
+            .any(|e| matches!(e, EngineEvent::PluginError { .. })));
     }
     // 第 10 次连续错误（bar 9）→ 熔断告警事件。
     assert!(
@@ -539,10 +693,10 @@ fn g5_consecutive_count_resets_on_success() {
     );
     let res = run(&cfg, &bars);
 
-    assert!(!res
-        .per_bar
+    assert!(!res.per_bar.iter().any(|r| r
+        .events
         .iter()
-        .any(|r| r.events.iter().any(|e| matches!(e, EngineEvent::CircuitBreaker { .. }))));
+        .any(|e| matches!(e, EngineEvent::CircuitBreaker { .. }))));
     // 错误 bar（2/5/8）记中立 50；正常 bar 记 60。
     for (i, r) in res.per_bar.iter().enumerate() {
         if i % 3 == 2 {
@@ -558,7 +712,10 @@ fn g5_consecutive_count_resets_on_success() {
         .flat_map(|r| r.events.iter())
         .filter(|e| matches!(e, EngineEvent::PluginError { .. }))
         .count();
-    assert_eq!(err_events, 3, "3 个错误事件落事件流（禁止静默吞错，ADR §10）");
+    assert_eq!(
+        err_events, 3,
+        "3 个错误事件落事件流（禁止静默吞错，ADR §10）"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -585,13 +742,23 @@ fn engine_threshold_exact_boundaries() {
     let bars = flat_bars(3, 10.0);
     // 恰值 60 → Buy。
     let cfg_buy = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:s60", params(&[("score", 60.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:s60",
+            params(&[("score", 60.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     assert_eq!(run(&cfg_buy, &bars).per_bar[0].signal, TradeSignal::Buy);
     // 恰值 40 → Sell（无持仓 → 无订单、无交易）。
     let cfg_sell = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:s40", params(&[("score", 40.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:s40",
+            params(&[("score", 40.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     let res = run(&cfg_sell, &bars);
@@ -599,7 +766,12 @@ fn engine_threshold_exact_boundaries() {
     assert!(res.trades.is_empty());
     // 50 → Hold。
     let cfg_hold = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:s50", params(&[("score", 50.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:s50",
+            params(&[("score", 50.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     assert_eq!(run(&cfg_hold, &bars).per_bar[0].signal, TradeSignal::Hold);
@@ -618,7 +790,10 @@ fn instantiate_failure_is_reported_not_swallowed() {
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
     let mut rt = QuickJsRuntime::new(RuntimeLimits::default());
-    assert!(run_ensemble(&cfg, &bars, &mut rt).is_err(), "实例化失败应直接报错（配置错误，非 per-bar 异常）");
+    assert!(
+        run_ensemble(&cfg, &bars, &mut rt).is_err(),
+        "实例化失败应直接报错（配置错误，非 per-bar 异常）"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -633,7 +808,12 @@ fn perf_smoke_1260_bars_3_plugins() {
         vec![
             slot(CONSTANT_SCORE, "sha256:p1", params(&[("score", 55.0)]), 1.0),
             slot(POSITION_GATE, "sha256:p2", StrategyParams::new(), 1.0),
-            slot(SCRIPTED_INDEX, "sha256:p3", params(&[("buy_below", 600.0)]), 1.0),
+            slot(
+                SCRIPTED_INDEX,
+                "sha256:p3",
+                params(&[("buy_below", 600.0)]),
+                1.0,
+            ),
         ],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
@@ -658,7 +838,12 @@ fn lump_sum_frozen_target_flat_no_fee_bleed() {
     // 评审反例：flat bars=10.0、initial 100_000、pct=0.8、恒 80 分端到端。
     let bars = flat_bars(10, 10.0);
     let cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 0.8 },
     );
     let res = run(&cfg, &bars);
@@ -668,14 +853,23 @@ fn lump_sum_frozen_target_flat_no_fee_bleed() {
     close(res.per_bar[0].orders[0].qty, 8_000.0);
     // bar1 成交后全程无新订单（冻结目标不随净值/费用漂移重算）。
     for (i, r) in res.per_bar.iter().enumerate().skip(1) {
-        assert!(r.orders.is_empty(), "bar{i} 不得产生新订单（冻结口径，无费用出血）");
+        assert!(
+            r.orders.is_empty(),
+            "bar{i} 不得产生新订单（冻结口径，无费用出血）"
+        );
     }
     // 成交仅 2 笔：bar1 买入 + 期末强平；中途无任何微卖出。
     let f = fills(&res);
     assert_eq!(f.len(), 2, "买入 + 期末强平各一笔");
-    assert_eq!((f[0].0, f[0].1, f[0].4), (1, OrderSide::Buy, OrderReason::Policy));
+    assert_eq!(
+        (f[0].0, f[0].1, f[0].4),
+        (1, OrderSide::Buy, OrderReason::Policy)
+    );
     close(f[0].2, 8_000.0);
-    assert_eq!((f[1].0, f[1].1, f[1].4), (9, OrderSide::Sell, OrderReason::ForceClose));
+    assert_eq!(
+        (f[1].0, f[1].1, f[1].4),
+        (9, OrderSide::Sell, OrderReason::ForceClose)
+    );
     // 现金单调不降：持仓期内（flat 价格、无交易）净值严格持平。
     for i in 1..8 {
         close(res.net_value[i + 1].1, res.net_value[i].1);
@@ -688,17 +882,32 @@ fn lump_sum_frozen_target_rising_price_no_micro_sell() {
     let bars: Vec<Bar> = (0..10)
         .map(|i| {
             let p = 10.0 + 0.1 * i as f64;
-            Bar { ts: 1_700_000_000 + i as i64 * 86_400, open: p, high: p, low: p, close: p, volume: 1.0 }
+            Bar {
+                ts: 1_700_000_000 + i as i64 * 86_400,
+                open: p,
+                high: p,
+                low: p,
+                close: p,
+                volume: 1.0,
+            }
         })
         .collect();
     let cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 0.8 },
     );
     let res = run(&cfg, &bars);
 
     for (i, r) in res.per_bar.iter().enumerate().skip(1) {
-        assert!(r.orders.is_empty(), "bar{i} 不得因价格漂移产生微卖出（冻结口径）");
+        assert!(
+            r.orders.is_empty(),
+            "bar{i} 不得因价格漂移产生微卖出（冻结口径）"
+        );
     }
     assert_eq!(fills(&res).len(), 2, "买入 + 期末强平各一笔");
 }
@@ -708,7 +917,12 @@ fn lump_sum_interrupted_buy_resnapshots_frozen_target() {
     // 中断后首个 Buy 重新快照：position_gate 驱动 Buy→Sell→Buy 振荡，pct=0.8。
     let bars = flat_bars(6, 10.0);
     let cfg = base_cfg(
-        vec![slot(POSITION_GATE, "sha256:position_gate", StrategyParams::new(), 1.0)],
+        vec![slot(
+            POSITION_GATE,
+            "sha256:position_gate",
+            StrategyParams::new(),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 0.8 },
     );
     let res = run(&cfg, &bars);
@@ -742,9 +956,30 @@ fn dca_stop_bars(close5: f64, low5: f64, tail: f64) -> Vec<Bar> {
             volume: 1.0,
         })
         .collect();
-    v.push(Bar { ts: 1_700_000_000 + 5 * 86_400, open: 9.7, high: 9.7, low: low5, close: close5, volume: 1.0 });
-    v.push(Bar { ts: 1_700_000_000 + 6 * 86_400, open: tail, high: tail, low: tail, close: tail, volume: 1.0 });
-    v.push(Bar { ts: 1_700_000_000 + 7 * 86_400, open: tail, high: tail, low: tail, close: tail, volume: 1.0 });
+    v.push(Bar {
+        ts: 1_700_000_000 + 5 * 86_400,
+        open: 9.7,
+        high: 9.7,
+        low: low5,
+        close: close5,
+        volume: 1.0,
+    });
+    v.push(Bar {
+        ts: 1_700_000_000 + 6 * 86_400,
+        open: tail,
+        high: tail,
+        low: tail,
+        close: tail,
+        volume: 1.0,
+    });
+    v.push(Bar {
+        ts: 1_700_000_000 + 7 * 86_400,
+        open: tail,
+        high: tail,
+        low: tail,
+        close: tail,
+        volume: 1.0,
+    });
     v
 }
 
@@ -752,10 +987,24 @@ fn dca_stop_bars(close5: f64, low5: f64, tail: f64) -> Vec<Bar> {
 fn stop_liquidation_resets_dca_state_close_basis() {
     let bars = dca_stop_bars(9.42, 9.42, 9.42);
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
-        ExecutionPolicy::Dca { tranches: 4, mode: DcaMode::Equal, amount: None, interval: 1 },
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::Dca {
+            tranches: 4,
+            mode: DcaMode::Equal,
+            amount: None,
+            interval: 1,
+        },
     );
-    cfg.stop = Some(StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::CloseBasis });
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::FixedPct,
+        value: 0.05,
+        trigger: StopTrigger::CloseBasis,
+    });
     let res = run(&cfg, &bars);
 
     // bar5 收盘破线（avg_cost≈9.9295，线≈9.4330 > 9.42）→ 订单标注 stop_trigger，bar6 open 成交。
@@ -774,7 +1023,10 @@ fn stop_liquidation_resets_dca_state_close_basis() {
     assert_eq!(res.per_bar[6].orders[0].reason, OrderReason::Policy);
     let expected_batch = res.net_value[6].1 / 4.0 / bars[6].close;
     close(res.per_bar[6].orders[0].qty, expected_batch);
-    assert!(res.per_bar[6].orders[0].qty < 4_000.0, "单批 ≈ 2.5k 股，不得一次性买回 10_000 股");
+    assert!(
+        res.per_bar[6].orders[0].qty < 4_000.0,
+        "单批 ≈ 2.5k 股，不得一次性买回 10_000 股"
+    );
     // 批次重新计数：bar7 继续第 2 批（等额同价 → 同量）。
     assert_eq!(res.per_bar[7].orders.len(), 1);
     close(res.per_bar[7].orders[0].qty, expected_batch);
@@ -788,10 +1040,24 @@ fn stop_liquidation_resets_dca_state_intrabar() {
     // Intrabar 变体：bar5 low 9.42 破线（线≈9.4330）→ 当 bar 成交并重置。
     let bars = dca_stop_bars(9.5, 9.42, 9.5);
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
-        ExecutionPolicy::Dca { tranches: 4, mode: DcaMode::Equal, amount: None, interval: 1 },
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::Dca {
+            tranches: 4,
+            mode: DcaMode::Equal,
+            amount: None,
+            interval: 1,
+        },
     );
-    cfg.stop = Some(StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::Intrabar });
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::FixedPct,
+        value: 0.05,
+        trigger: StopTrigger::Intrabar,
+    });
     let res = run(&cfg, &bars);
 
     let stop_fill = fills(&res)
@@ -806,7 +1072,10 @@ fn stop_liquidation_resets_dca_state_intrabar() {
     assert_eq!(res.per_bar[5].orders[0].reason, OrderReason::Policy);
     let expected_batch = res.net_value[5].1 / 4.0 / bars[5].close;
     close(res.per_bar[5].orders[0].qty, expected_batch);
-    assert!(res.per_bar[5].orders[0].qty < 4_000.0, "单批 ≈ 2.5k 股，不得一次性买回 10_000 股");
+    assert!(
+        res.per_bar[5].orders[0].qty < 4_000.0,
+        "单批 ≈ 2.5k 股，不得一次性买回 10_000 股"
+    );
     // bar6 继续第 2 批。
     assert_eq!(res.per_bar[6].orders.len(), 1);
     close(res.per_bar[6].orders[0].qty, expected_batch);
@@ -832,19 +1101,39 @@ fn stop_atr_intrabar_uses_atr_through_previous_bar() {
             volume: 1.0,
         })
         .collect();
-    bars.push(Bar { ts: 1_700_000_000 + 14 * 86_400, open: 9.9, high: 9.9, low: 7.9, close: 8.2, volume: 1.0 });
+    bars.push(Bar {
+        ts: 1_700_000_000 + 14 * 86_400,
+        open: 9.9,
+        high: 9.9,
+        low: 7.9,
+        close: 8.2,
+        volume: 1.0,
+    });
 
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
-    cfg.stop = Some(StopConfig { kind: StopKind::Atr, value: 2.0, trigger: StopTrigger::Intrabar });
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::Atr,
+        value: 2.0,
+        trigger: StopTrigger::Intrabar,
+    });
     let res = run(&cfg, &bars);
 
     let fee = FeeModel::default();
     let avg_cost = 100_000.0 / fee.buy(100_000.0, 10.0).shares;
-    let atr_prev = backtest::Indicators::new(&bars, 13).atr(14).expect("截至上一 bar ATR 数据充足");
-    let atr_incl = backtest::Indicators::new(&bars, 14).atr(14).expect("含当前 bar ATR 数据充足");
+    let atr_prev = backtest::Indicators::new(&bars, 13)
+        .atr(14)
+        .expect("截至上一 bar ATR 数据充足");
+    let atr_incl = backtest::Indicators::new(&bars, 14)
+        .atr(14)
+        .expect("含当前 bar ATR 数据充足");
     let line_prev = avg_cost - 2.0 * atr_prev;
     let line_incl = avg_cost - 2.0 * atr_incl;
     assert!(
@@ -858,7 +1147,11 @@ fn stop_atr_intrabar_uses_atr_through_previous_bar() {
         .into_iter()
         .filter(|f| f.4 == OrderReason::StopTrigger)
         .collect();
-    assert_eq!(stop_fills.len(), 1, "bar14 前（i<14 数据不足/线未破）不得触发");
+    assert_eq!(
+        stop_fills.len(),
+        1,
+        "bar14 前（i<14 数据不足/线未破）不得触发"
+    );
     assert_eq!(stop_fills[0].0, 14, "Intrabar 当 bar 成交");
     close(stop_fills[0].3, line_prev * (1.0 - fee.slippage_fraction()));
     assert_eq!(res.trades[0].close_bar, 14);
@@ -894,10 +1187,19 @@ fn stop_configured_but_never_holding_is_noop() {
     // 守卫路径：配置止损但全程零持仓（恒 50 → Hold）→ 无成交无交易无panic。
     let bars = flat_bars(5, 10.0);
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 50.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 50.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
-    cfg.stop = Some(StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::Intrabar });
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::FixedPct,
+        value: 0.05,
+        trigger: StopTrigger::Intrabar,
+    });
     let res = run(&cfg, &bars);
 
     assert!(fills(&res).is_empty());
@@ -911,19 +1213,77 @@ fn stop_configured_but_never_holding_is_noop() {
 fn stop_trailing_close_basis_next_open_fill() {
     // MINOR-5 组合覆盖：Trailing × CloseBasis（既有用例为 Trailing × Intrabar）。
     let bars = vec![
-        Bar { ts: 1_700_000_000, open: 10.0, high: 10.0, low: 10.0, close: 10.0, volume: 1.0 },
-        Bar { ts: 1_700_086_400, open: 10.0, high: 10.6, low: 9.9, close: 10.5, volume: 1.0 },
-        Bar { ts: 1_700_172_800, open: 10.5, high: 11.1, low: 10.4, close: 11.0, volume: 1.0 },
-        Bar { ts: 1_700_259_200, open: 11.0, high: 11.6, low: 10.9, close: 11.5, volume: 1.0 },
-        Bar { ts: 1_700_345_600, open: 11.5, high: 12.1, low: 11.4, close: 12.0, volume: 1.0 },
-        Bar { ts: 1_700_432_000, open: 11.8, high: 11.9, low: 10.6, close: 10.7, volume: 1.0 },
-        Bar { ts: 1_700_518_400, open: 10.65, high: 10.65, low: 10.65, close: 10.65, volume: 1.0 },
+        Bar {
+            ts: 1_700_000_000,
+            open: 10.0,
+            high: 10.0,
+            low: 10.0,
+            close: 10.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_086_400,
+            open: 10.0,
+            high: 10.6,
+            low: 9.9,
+            close: 10.5,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_172_800,
+            open: 10.5,
+            high: 11.1,
+            low: 10.4,
+            close: 11.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_259_200,
+            open: 11.0,
+            high: 11.6,
+            low: 10.9,
+            close: 11.5,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_345_600,
+            open: 11.5,
+            high: 12.1,
+            low: 11.4,
+            close: 12.0,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_432_000,
+            open: 11.8,
+            high: 11.9,
+            low: 10.6,
+            close: 10.7,
+            volume: 1.0,
+        },
+        Bar {
+            ts: 1_700_518_400,
+            open: 10.65,
+            high: 10.65,
+            low: 10.65,
+            close: 10.65,
+            volume: 1.0,
+        },
     ];
     let mut cfg = base_cfg(
-        vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
         ExecutionPolicy::LumpSum { position_pct: 1.0 },
     );
-    cfg.stop = Some(StopConfig { kind: StopKind::Trailing, value: 0.1, trigger: StopTrigger::CloseBasis });
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::Trailing,
+        value: 0.1,
+        trigger: StopTrigger::CloseBasis,
+    });
     let res = run(&cfg, &bars);
 
     // 峰值 12（bar4 收盘并入）→ 线 10.8；bar5 close 10.7 < 10.8 → 收盘判定触发 → bar6 open 成交。
@@ -949,7 +1309,12 @@ fn ensemble_config_validate_rejects_illegal_configs() {
     let bars = flat_bars(3, 10.0);
     let mk = || {
         base_cfg(
-            vec![slot(CONSTANT_SCORE, "sha256:constant_score", params(&[("score", 80.0)]), 1.0)],
+            vec![slot(
+                CONSTANT_SCORE,
+                "sha256:constant_score",
+                params(&[("score", 80.0)]),
+                1.0,
+            )],
             ExecutionPolicy::LumpSum { position_pct: 0.8 },
         )
     };
@@ -985,7 +1350,12 @@ fn ensemble_config_validate_rejects_illegal_configs() {
     assert!(run_err(&c), "position_pct ∉ (0,1] → Err");
 
     let mut c = mk();
-    c.policy = ExecutionPolicy::Dca { tranches: 0, mode: DcaMode::Equal, amount: None, interval: 1 };
+    c.policy = ExecutionPolicy::Dca {
+        tranches: 0,
+        mode: DcaMode::Equal,
+        amount: None,
+        interval: 1,
+    };
     assert!(run_err(&c), "tranches < 1 → Err");
 
     assert!(!run_err(&mk()), "合法配置 → Ok");

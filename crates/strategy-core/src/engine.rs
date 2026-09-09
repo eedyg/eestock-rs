@@ -53,7 +53,10 @@ impl EnsembleConfig {
             ));
         }
         if !self.initial_capital.is_finite() || self.initial_capital <= 0.0 {
-            return Err(format!("initial_capital 必须为正有限值，got {}", self.initial_capital));
+            return Err(format!(
+                "initial_capital 必须为正有限值，got {}",
+                self.initial_capital
+            ));
         }
         self.policy.validate()?;
         Ok(())
@@ -283,7 +286,8 @@ pub fn run_ensemble(
                     if qty > 0.0 && cash > 0.0 {
                         // 预算上限 = min(目标股数所需预算, 可用现金)；FeeModel.buy 将佣金折入，
                         // 保证现金不因费用透支（与 backtest 引擎口径一致）。
-                        let need = qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
+                        let need =
+                            qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
                         let exec = fee.buy(need.min(cash), bar.open);
                         if exec.shares > 0.0 {
                             cash -= exec.total_cost;
@@ -444,12 +448,7 @@ pub fn run_ensemble(
         let agg = aggregate(
             &scores
                 .iter()
-                .map(|s| {
-                    (
-                        slots[s.slot_idx].weight,
-                        s.score,
-                    )
-                })
+                .map(|s| (slots[s.slot_idx].weight, s.score))
                 .collect::<Vec<_>>(),
         );
         let signal = classify(agg, cfg.buy_threshold, cfg.sell_threshold);
@@ -486,7 +485,8 @@ pub fn run_ensemble(
         if !stop_order {
             let current_qty = holding.map(|h| h.qty).unwrap_or(0.0);
             let equity = cash + current_qty * bar.close;
-            let target = policy_state.target_qty(&cfg.policy, signal, equity, bar.close, current_qty);
+            let target =
+                policy_state.target_qty(&cfg.policy, signal, equity, bar.close, current_qty);
             let delta = target - current_qty;
             const EPS: f64 = 1e-9;
             if delta > EPS {
@@ -516,7 +516,10 @@ pub fn run_ensemble(
         if holding.is_some() {
             trailing.on_bar_close(bar.close);
         }
-        nav.push((bar.ts, cash + holding.map(|h| h.qty).unwrap_or(0.0) * bar.close));
+        nav.push((
+            bar.ts,
+            cash + holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
+        ));
         per_bar.push(BarRecord {
             ts: bar.ts,
             scores,
@@ -541,7 +544,15 @@ pub fn run_ensemble(
                 reason: OrderReason::ForceClose,
             });
         }
-        apply_sell(&mut holding, &mut trades, &mut trailing, h.qty, bar.ts, n - 1, &exec);
+        apply_sell(
+            &mut holding,
+            &mut trades,
+            &mut trailing,
+            h.qty,
+            bar.ts,
+            n - 1,
+            &exec,
+        );
         if let Some(last) = nav.last_mut() {
             last.1 = cash;
         }

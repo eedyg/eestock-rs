@@ -18,7 +18,14 @@ mod tests {
     use backtest::{Bar, FeeModel};
 
     fn bar(low: f64, close: f64) -> Bar {
-        Bar { ts: 0, open: close, high: close + 0.5, low, close, volume: 1.0 }
+        Bar {
+            ts: 0,
+            open: close,
+            high: close + 0.5,
+            low,
+            close,
+            volume: 1.0,
+        }
     }
 
     fn close_eq(a: f64, b: f64) {
@@ -29,13 +36,21 @@ mod tests {
 
     #[test]
     fn fixed_pct_line() {
-        let s = StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::Intrabar };
+        let s = StopConfig {
+            kind: StopKind::FixedPct,
+            value: 0.05,
+            trigger: StopTrigger::Intrabar,
+        };
         close_eq(s.stop_line(10.0, None, None).unwrap(), 9.5);
     }
 
     #[test]
     fn trailing_line_uses_peak_close() {
-        let s = StopConfig { kind: StopKind::Trailing, value: 0.1, trigger: StopTrigger::Intrabar };
+        let s = StopConfig {
+            kind: StopKind::Trailing,
+            value: 0.1,
+            trigger: StopTrigger::Intrabar,
+        };
         // 峰值 12（与 avg_cost 无关）→ 线 = 12 × 0.9
         close_eq(s.stop_line(10.0, Some(12.0), None).unwrap(), 10.8);
         // 无峰值（未建仓）→ 不触发
@@ -44,7 +59,11 @@ mod tests {
 
     #[test]
     fn atr_line() {
-        let s = StopConfig { kind: StopKind::Atr, value: 2.0, trigger: StopTrigger::CloseBasis };
+        let s = StopConfig {
+            kind: StopKind::Atr,
+            value: 2.0,
+            trigger: StopTrigger::CloseBasis,
+        };
         // 线 = avg_cost − 2 × ATR(14) = 10 − 2×0.5 = 9
         close_eq(s.stop_line(10.0, None, Some(0.5)).unwrap(), 9.0);
         // ATR 数据不足 → 不触发
@@ -55,18 +74,44 @@ mod tests {
 
     #[test]
     fn intrabar_triggers_on_low_cross() {
-        let s = StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::Intrabar };
-        assert!(s.intrabar_triggered(9.5, &bar(9.49, 10.0)), "low 9.49 < 9.5 → 触发");
-        assert!(!s.intrabar_triggered(9.5, &bar(9.5, 10.0)), "low 恰触线不触发（严格小于）");
-        assert!(!s.intrabar_triggered(9.5, &bar(9.6, 9.4)), "low 未触线不触发（即使 close 破线）");
+        let s = StopConfig {
+            kind: StopKind::FixedPct,
+            value: 0.05,
+            trigger: StopTrigger::Intrabar,
+        };
+        assert!(
+            s.intrabar_triggered(9.5, &bar(9.49, 10.0)),
+            "low 9.49 < 9.5 → 触发"
+        );
+        assert!(
+            !s.intrabar_triggered(9.5, &bar(9.5, 10.0)),
+            "low 恰触线不触发（严格小于）"
+        );
+        assert!(
+            !s.intrabar_triggered(9.5, &bar(9.6, 9.4)),
+            "low 未触线不触发（即使 close 破线）"
+        );
     }
 
     #[test]
     fn close_basis_triggers_on_close_cross() {
-        let s = StopConfig { kind: StopKind::FixedPct, value: 0.05, trigger: StopTrigger::CloseBasis };
-        assert!(s.close_triggered(9.5, &bar(10.0, 9.49)), "close 9.49 < 9.5 → 触发");
-        assert!(!s.close_triggered(9.5, &bar(9.0, 9.5)), "close 恰触线不触发");
-        assert!(!s.close_triggered(9.5, &bar(9.0, 10.0)), "low 破线但 close 未破 → 不触发");
+        let s = StopConfig {
+            kind: StopKind::FixedPct,
+            value: 0.05,
+            trigger: StopTrigger::CloseBasis,
+        };
+        assert!(
+            s.close_triggered(9.5, &bar(10.0, 9.49)),
+            "close 9.49 < 9.5 → 触发"
+        );
+        assert!(
+            !s.close_triggered(9.5, &bar(9.0, 9.5)),
+            "close 恰触线不触发"
+        );
+        assert!(
+            !s.close_triggered(9.5, &bar(9.0, 10.0)),
+            "low 破线但 close 未破 → 不触发"
+        );
     }
 
     // ---- 成交价口径（ADR §13.3：止损价 ×(1−slippage)，Intrabar 当 bar 成交）----

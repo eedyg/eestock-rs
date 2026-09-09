@@ -49,7 +49,9 @@ impl ExecutionPolicy {
         match self {
             ExecutionPolicy::LumpSum { position_pct } => {
                 if !position_pct.is_finite() || *position_pct <= 0.0 || *position_pct > 1.0 {
-                    return Err(format!("LumpSum.position_pct 必须在 (0,1]，got {position_pct}"));
+                    return Err(format!(
+                        "LumpSum.position_pct 必须在 (0,1]，got {position_pct}"
+                    ));
                 }
                 Ok(())
             }
@@ -226,7 +228,10 @@ mod tests {
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 0.8 };
         // 净值 100_000 × 0.8 / 价 10 = 8000 股
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            8_000.0,
+        );
     }
 
     #[test]
@@ -244,8 +249,14 @@ mod tests {
     fn lump_sum_sell_target_zero_hold_keeps_current() {
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 1.0 };
-        close(st.target_qty(&p, TradeSignal::Sell, 100_000.0, 10.0, 5_000.0), 0.0);
-        close(st.target_qty(&p, TradeSignal::Hold, 100_000.0, 10.0, 5_000.0), 5_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Sell, 100_000.0, 10.0, 5_000.0),
+            0.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Hold, 100_000.0, 10.0, 5_000.0),
+            5_000.0,
+        );
     }
 
     // ---- DCA Equal 批次序列（interval=1）----
@@ -260,11 +271,23 @@ mod tests {
             interval: 1,
         };
         // 起点净值 90_000 → 每批 30_000，价 10 → 每批 3000 股
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0), 3_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 3_000.0), 6_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 6_000.0), 9_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0),
+            3_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 3_000.0),
+            6_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 6_000.0),
+            9_000.0,
+        );
         // 批次用尽后继续 Buy：目标不变（幂等）
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 9_000.0), 9_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 9_000.0),
+            9_000.0,
+        );
     }
 
     #[test]
@@ -277,8 +300,14 @@ mod tests {
             interval: 1,
         };
         // 计划总额 = 起点净值 80_000，每批 40_000；第二 bar 净值变了也不改计划
-        close(st.target_qty(&p, TradeSignal::Buy, 80_000.0, 10.0, 0.0), 4_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 95_000.0, 10.0, 4_000.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 80_000.0, 10.0, 0.0),
+            4_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 95_000.0, 10.0, 4_000.0),
+            8_000.0,
+        );
     }
 
     // ---- DCA 中断取消 / 重启重新计数（任务书口径）----
@@ -292,9 +321,15 @@ mod tests {
             amount: None,
             interval: 1,
         };
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0), 3_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0),
+            3_000.0,
+        );
         // Hold 中断：目标 = 当前（无订单），剩余批次取消
-        close(st.target_qty(&p, TradeSignal::Hold, 91_000.0, 10.0, 3_000.0), 3_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Hold, 91_000.0, 10.0, 3_000.0),
+            3_000.0,
+        );
         // Buy 重新出现 → 重新开始计数：新一轮第 1 批（以当前持仓为基线累加）
         // 新起点净值 91_000 → 每批 30_333.33 → 价 10 → 3033.33 股；目标 = 3000 + 3033.33
         let t = st.target_qty(&p, TradeSignal::Buy, 91_000.0, 10.0, 3_000.0);
@@ -312,9 +347,15 @@ mod tests {
         };
         st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0);
         // Sell → 一次性清仓（目标 0），状态复位
-        close(st.target_qty(&p, TradeSignal::Sell, 90_000.0, 10.0, 3_000.0), 0.0);
+        close(
+            st.target_qty(&p, TradeSignal::Sell, 90_000.0, 10.0, 3_000.0),
+            0.0,
+        );
         // Sell 后 Buy → 全新一轮（base 0）
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0), 3_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 0.0),
+            3_000.0,
+        );
     }
 
     // ---- DCA interval ----
@@ -329,10 +370,22 @@ mod tests {
             interval: 2,
         };
         // bar0（run 内第 0 bar）→ 第 1 批；bar1 不触发；bar2 → 第 2 批
-        close(st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 0.0), 3_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 3_000.0), 3_000.0); // 无新批
-        close(st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 3_000.0), 6_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 6_000.0), 6_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 0.0),
+            3_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 3_000.0),
+            3_000.0,
+        ); // 无新批
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 3_000.0),
+            6_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 60_000.0, 10.0, 6_000.0),
+            6_000.0,
+        );
     }
 
     // ---- DCA FixedAmount ----
@@ -347,9 +400,18 @@ mod tests {
             interval: 1,
         };
         // 每批固定 5_000 元，价 10 → 500 股
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 500.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 500.0), 1_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 1_000.0), 1_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            500.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 500.0),
+            1_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 1_000.0),
+            1_000.0,
+        );
     }
 
     // ---- LumpSum 冻结口径（ADR §13.1 MAJOR-1 裁决）----
@@ -359,31 +421,58 @@ mod tests {
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 0.8 };
         // Buy 信号建立：冻结 100_000×0.8/10 = 8000 股
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            8_000.0,
+        );
         // Buy 持续期：净值/费用漂移不得重算——目标恒为冻结值
-        close(st.target_qty(&p, TradeSignal::Buy, 95_000.0, 10.0, 8_000.0), 8_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 120_000.0, 12.0, 8_000.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 95_000.0, 10.0, 8_000.0),
+            8_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 120_000.0, 12.0, 8_000.0),
+            8_000.0,
+        );
     }
 
     #[test]
     fn lump_sum_hold_unfreezes_and_next_buy_resnapshots() {
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 0.8 };
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            8_000.0,
+        );
         // Hold 中断 → 解冻，目标 = 当前（无订单）
-        close(st.target_qty(&p, TradeSignal::Hold, 95_000.0, 10.0, 8_000.0), 8_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Hold, 95_000.0, 10.0, 8_000.0),
+            8_000.0,
+        );
         // 中断后首个 Buy → 按新净值重新快照（90_000×0.8/10 = 7200，非旧冻结值 8000）
-        close(st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 8_000.0), 7_200.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 90_000.0, 10.0, 8_000.0),
+            7_200.0,
+        );
     }
 
     #[test]
     fn lump_sum_sell_unfreezes() {
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 0.8 };
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 8_000.0);
-        close(st.target_qty(&p, TradeSignal::Sell, 90_000.0, 10.0, 8_000.0), 0.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            8_000.0,
+        );
+        close(
+            st.target_qty(&p, TradeSignal::Sell, 90_000.0, 10.0, 8_000.0),
+            0.0,
+        );
         // Sell 后首个 Buy → 新快照 50_000×0.8/10 = 4000
-        close(st.target_qty(&p, TradeSignal::Buy, 50_000.0, 10.0, 0.0), 4_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 50_000.0, 10.0, 0.0),
+            4_000.0,
+        );
     }
 
     #[test]
@@ -394,15 +483,26 @@ mod tests {
         st.target_qty(&lump, TradeSignal::Buy, 100_000.0, 10.0, 0.0);
         st.reset();
         // 复位后 Buy → 重新快照（非旧冻结值）
-        close(st.target_qty(&lump, TradeSignal::Buy, 60_000.0, 10.0, 0.0), 4_800.0);
+        close(
+            st.target_qty(&lump, TradeSignal::Buy, 60_000.0, 10.0, 0.0),
+            4_800.0,
+        );
 
         let mut st = PolicyState::new();
-        let dca = ExecutionPolicy::Dca { tranches: 4, mode: DcaMode::Equal, amount: None, interval: 1 };
+        let dca = ExecutionPolicy::Dca {
+            tranches: 4,
+            mode: DcaMode::Equal,
+            amount: None,
+            interval: 1,
+        };
         st.target_qty(&dca, TradeSignal::Buy, 100_000.0, 10.0, 0.0);
         st.target_qty(&dca, TradeSignal::Buy, 100_000.0, 10.0, 2_500.0);
         st.reset();
         // 复位后 Buy → 全新一轮第 1 批（60_000/4/10 = 1500），而非续用旧批次
-        close(st.target_qty(&dca, TradeSignal::Buy, 60_000.0, 10.0, 0.0), 1_500.0);
+        close(
+            st.target_qty(&dca, TradeSignal::Buy, 60_000.0, 10.0, 0.0),
+            1_500.0,
+        );
     }
 
     #[test]
@@ -411,30 +511,63 @@ mod tests {
         // 避免对不可达缺口每 bar 重复挂微单。
         let mut st = PolicyState::new();
         let p = ExecutionPolicy::LumpSum { position_pct: 1.0 };
-        close(st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0), 10_000.0);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0),
+            10_000.0,
+        );
         st.clamp_lump_frozen(9_995.5);
-        close(st.target_qty(&p, TradeSignal::Buy, 99_955.0, 10.0, 9_995.5), 9_995.5);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 99_955.0, 10.0, 9_995.5),
+            9_995.5,
+        );
         // 钳制只降不升：更高实得不得上调冻结目标
         st.clamp_lump_frozen(12_000.0);
-        close(st.target_qty(&p, TradeSignal::Buy, 99_955.0, 10.0, 9_995.5), 9_995.5);
+        close(
+            st.target_qty(&p, TradeSignal::Buy, 99_955.0, 10.0, 9_995.5),
+            9_995.5,
+        );
     }
 
     // ---- 配置校验 ----
 
     #[test]
     fn policy_validation() {
-        assert!(ExecutionPolicy::LumpSum { position_pct: 0.0 }.validate().is_err());
-        assert!(ExecutionPolicy::LumpSum { position_pct: 1.5 }.validate().is_err());
-        assert!(ExecutionPolicy::LumpSum { position_pct: 0.5 }.validate().is_ok());
-        assert!(ExecutionPolicy::Dca { tranches: 0, mode: DcaMode::Equal, amount: None, interval: 1 }
+        assert!(ExecutionPolicy::LumpSum { position_pct: 0.0 }
             .validate()
             .is_err());
+        assert!(ExecutionPolicy::LumpSum { position_pct: 1.5 }
+            .validate()
+            .is_err());
+        assert!(ExecutionPolicy::LumpSum { position_pct: 0.5 }
+            .validate()
+            .is_ok());
+        assert!(ExecutionPolicy::Dca {
+            tranches: 0,
+            mode: DcaMode::Equal,
+            amount: None,
+            interval: 1
+        }
+        .validate()
+        .is_err());
         // FixedAmount 缺 amount → 非法
-        assert!(ExecutionPolicy::Dca { tranches: 2, mode: DcaMode::FixedAmount, amount: None, interval: 1 }
+        assert!(ExecutionPolicy::Dca {
+            tranches: 2,
+            mode: DcaMode::FixedAmount,
+            amount: None,
+            interval: 1
+        }
+        .validate()
+        .is_err());
+        assert!(
+            ExecutionPolicy::Dca {
+                tranches: 2,
+                mode: DcaMode::FixedAmount,
+                amount: Some(100.0),
+                interval: 0
+            }
             .validate()
-            .is_err());
-        assert!(ExecutionPolicy::Dca { tranches: 2, mode: DcaMode::FixedAmount, amount: Some(100.0), interval: 0 }
-            .validate()
-            .is_ok(), "interval=0 按默认 1 处理");
+            .is_ok(),
+            "interval=0 按默认 1 处理"
+        );
     }
 }

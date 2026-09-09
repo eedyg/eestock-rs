@@ -165,8 +165,16 @@ mod tests {
 
     #[test]
     fn classify_boundaries_exact() {
-        assert_eq!(classify(60.0, 60.0, 40.0), TradeSignal::Buy, "恰值 60 → Buy");
-        assert_eq!(classify(40.0, 60.0, 40.0), TradeSignal::Sell, "恰值 40 → Sell");
+        assert_eq!(
+            classify(60.0, 60.0, 40.0),
+            TradeSignal::Buy,
+            "恰值 60 → Buy"
+        );
+        assert_eq!(
+            classify(40.0, 60.0, 40.0),
+            TradeSignal::Sell,
+            "恰值 40 → Sell"
+        );
         assert_eq!(classify(59.999999, 60.0, 40.0), TradeSignal::Hold);
         assert_eq!(classify(40.000001, 60.0, 40.0), TradeSignal::Hold);
         assert_eq!(classify(50.0, 60.0, 40.0), TradeSignal::Hold);
