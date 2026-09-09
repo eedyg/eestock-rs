@@ -2074,6 +2074,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "strategy-core"
+version = "0.1.0"
+dependencies = [
+ "backtest",
+ "serde",
+ "strategy-runtime",
+]
+
+[[package]]
 name = "strategy-runtime"
 version = "0.1.0"
 dependencies = [

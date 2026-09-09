@@ -95,7 +95,7 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 3. 信号判定：聚合 ≥ buy_threshold（默认 60，可配）→ buy；≤ sell_threshold（默认 40）→ sell；否则 hold；
 4. **ExecutionPolicy** 将信号转为订单（本期双模式）：
    - `LumpSum{position_pct}`：buy → 下一 bar open 按资金比例全量买入；sell → 全部清仓（沿用现有引擎成交假设：close 判定、次 bar open 成交、slippage_bp + FeeModel）；
-   - `Dca{tranches: N, mode: equal|fixed_amount, amount?}`：buy 信号持续期间分 N 批建仓（每 bar 一批或按 interval 配），sell 信号对称分批减仓；信号中断即停止后续批次；
+   - `Dca{tranches: N, mode: equal|fixed_amount, amount?, interval?: k（默认 1）}`：buy 信号持续期间分 N 批建仓（每 k bar 一批；Equal 计划总额 = 本轮 Buy 起点净值快照；信号中断 → 剩余批次取消，Buy 重现重新计数）；**sell 信号 → 一次性清仓**（目标 0；P1a 裁决覆盖本节旧文「对称分批减仓」，与 Grill Q3 推荐一致）；
 5. 期末强制平仓 + 绩效指标（复用 backtest::metrics 8 项）。
 
 **记录输出**：每 bar 落 {各策略分, 聚合分, 信号, 订单} 序列——页面评分曲线/总分曲线/交易标记的数据源，也是确定性验收的 diff 对象。
@@ -149,6 +149,10 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 插件从「纯评分器」升级为「环境感知的决策者」，但**评分仍是唯一输出**：
 - **插件（决策层）**：ctx 增强为只读全景（+ `ctx.position`，见 02-ABI §2.5）。策略的两态门控/状态机/定投节奏全部编码在「何时给多少分」里——引擎**不固定任何门控行为**。
 - **引擎（执行层）**：只保留最笨的统一规则：总分 ≥ buy阈 → 按 Policy 买；≤ sell阈 → 卖。**Policy 将信号换算为目标仓位，订单 = 目标 − 当前（幂等）**——重复信号天然无副作用。
+- **LumpSum 冻结口径（P1a 评审 MAJOR-1 裁决）**：LumpSum 的股数目标在 **Buy 信号建立时**按当时净值×position_pct 换算并**冻结**，Buy 持续期不重算（费用折损导致的市值漂移不再触发微卖出）；信号中断（Hold/Sell）后解冻，次个 Buy 重新快照。
+- **止损×Policy 交互（P1a 评审 MAJOR-2 裁决）**：硬止损强平 = **外部中断**——触发即平仓的同时**重置 PolicyState**（DCA 批次/基线清零，与 Trailing 峰值 reset 对齐）；次个 Buy 信号重新计数，禁止以陈旧批次状态一次性重建仓。
+- **Intrabar ATR 口径（P1a 评审 MINOR-1 裁决）**：Intrabar 触发的 ATR 止损线用**截至上一 bar** 的数据计算（当 bar close 在 bar 内尚不可知，避免前视）；CloseBasis 路径用含当前 bar 数据（收盘后判定，无前视）。
+- **gap-through 成交口径（P1a 评审 MINOR-2 备案）**：开盘跳空破止损线时仍按止损价×(1−滑点)成交（ADR §13.3 字面口径），为**有意接受的乐观偏差**，crate 文档注明。
 - 语义后果（文档注明，非 bug）：position-aware 插件在「纯试算（无持仓）」与「组合回测（有持仓）」中分数可能不同。
 
 ### 13.2 官方策略模板（D10）

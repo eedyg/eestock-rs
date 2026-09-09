@@ -1,0 +1,17 @@
+# 12-strategy-system / P1a — 统一策略系统策略内核（纯逻辑，手写，非 tangle）。
+# 定位：Domain 层（ADR 12-strategy-system §3）——聚合评分 / ExecutionPolicy / 硬止损 /
+#   G5 熔断 / EnsembleEngine，复用 strategy-runtime（插件 ABI）与 backtest（费用/指标/绩效）。
+# 分层红线：无 IO / 无 DB / 无网络 / 无系统时钟；不依赖 web/storage/application/mcp；
+#   插件永远接触不到订单/账户写接口——引擎只把评分当输入（ADR §3 红线）。
+[package]
+name = "strategy-core"
+description = "统一策略内核：聚合评分 + ExecutionPolicy + 硬止损 + G5 熔断 + EnsembleEngine（纯逻辑，无 IO/无 DB）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# 插件 ABI / 实例 Port（P0 交付物）。
+strategy-runtime = { path = "../strategy-runtime" }
+# FeeModel / Indicators / metrics / Bar / TradeDetail 复用（口径与内建回测一致）。
+backtest = { path = "../backtest" }
+serde.workspace = true
