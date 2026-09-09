@@ -52,17 +52,7 @@ async fn main() -> anyhow::Result<()> {
         db: storage::system::system_info(pool.clone()),
         started_at: std::time::Instant::now(),
     };
-    // Wave 3 Phase 3c：回测 DI（storage BarReader + PgBacktestStore + WS 进度 sink → application BacktestService）
-    // 并发上限用 application::service::DEFAULT_MAX_CONCURRENT（ADR §7 = 4；本期不开放配置）
     let backtest_hub = web::ws::WsHub::new();
-    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
-        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
-    let backtest = Arc::new(application::service::BacktestService::new(
-        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
-        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
-        backtest_ws.clone(),
-        application::service::DEFAULT_MAX_CONCURRENT,
-    ));
     // Wave 3 页面①：看板收藏（FavoriteStore，favorite_symbols 表 0013）
     let favorites: Arc<dyn domain::ports::FavoriteStore> =
         Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone()));
@@ -145,9 +135,6 @@ async fn main() -> anyhow::Result<()> {
         ),
         system_info,
         raw_purge: storage::system::raw_purge(pool.clone()),
-        // Wave 3 Phase 3c：回测服务 + WS 进度分发（§1.5）
-        backtest: backtest.clone(),
-        backtest_ws,
         // Wave 3 页面①：看板收藏（FavoriteStore）
         favorites,
         // 行情看板 MA 可配置（MaConfigStore）

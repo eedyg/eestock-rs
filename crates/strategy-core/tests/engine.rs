@@ -89,34 +89,13 @@ fn fills(res: &strategy_core::EnsembleResult) -> Vec<(usize, OrderSide, f64, f64
 }
 
 // ---------------------------------------------------------------------------
-// 端到端：Buy → 持仓 → 期末强平；费用口径与 backtest 引擎逐点一致
+// 端到端：Buy → 持仓 → 期末强平（ensemble 自身断言）
+// P4b：旧 backtest 引擎已物理删除（D16 终章），原「费用口径与旧引擎逐点一致」交叉验证随之退役
+// （费用 parity 已于并存期历史证明，见 git 历史）；ensemble 断言继续守护未来回归。
 // ---------------------------------------------------------------------------
 
-/// 对照组：等价的 backtest 内建引擎脚本策略（bar0 Buy(1.0)，其余 Hold）。
-struct ScriptedStrategy;
-impl backtest::Strategy for ScriptedStrategy {
-    fn id(&self) -> &str {
-        "test_scripted"
-    }
-    fn params_schema(&self) -> Vec<backtest::ParamDef> {
-        Vec::new()
-    }
-    fn on_bar(
-        &mut self,
-        ctx: &mut backtest::Ctx,
-        _bar: &Bar,
-        _ind: &backtest::Indicators,
-    ) -> backtest::Signal {
-        if ctx.bar_index == 0 {
-            backtest::Signal::Buy(1.0)
-        } else {
-            backtest::Signal::Hold
-        }
-    }
-}
-
 #[test]
-fn e2e_buy_hold_force_close_fee_parity_with_backtest() {
+fn e2e_buy_hold_force_close() {
     let bars = flat_bars(10, 10.0);
     let cfg = base_cfg(
         vec![slot(
@@ -151,56 +130,6 @@ fn e2e_buy_hold_force_close_fee_parity_with_backtest() {
         (9, OrderSide::Sell, OrderReason::ForceClose)
     );
     assert_eq!(res.trades.len(), 1);
-
-    // 费用口径与 backtest 引擎一致（同一 FeeModel、同一成交假设）。
-    let bt = backtest::run(
-        &bars,
-        &mut ScriptedStrategy,
-        &backtest::RunConfig {
-            initial_capital: 100_000.0,
-            fee: FeeModel::default(),
-            period: Period::D1,
-        },
-    );
-    assert_eq!(res.net_value.len(), bt.net_value_series.len());
-    for ((ts_a, v_a), (ts_b, v_b)) in res.net_value.iter().zip(bt.net_value_series.iter()) {
-        assert_eq!(ts_a, ts_b);
-        close(*v_a, *v_b);
-    }
-    close(res.trades[0].open_price, bt.trades[0].open_price);
-    close(res.trades[0].close_price, bt.trades[0].close_price);
-    close(res.trades[0].pnl, bt.trades[0].pnl);
-    // MINOR-3：TradeDetail 全字段对照相等。
-    assert_eq!(res.trades.len(), bt.trades.len());
-    for (ta, tb) in res.trades.iter().zip(bt.trades.iter()) {
-        assert_eq!(ta.open_ts, tb.open_ts);
-        assert_eq!(ta.close_ts, tb.close_ts);
-        assert_eq!(ta.open_bar, tb.open_bar);
-        assert_eq!(ta.close_bar, tb.close_bar);
-        close(ta.open_price, tb.open_price);
-        close(ta.close_price, tb.close_price);
-        close(ta.shares, tb.shares);
-        close(ta.gross_value, tb.gross_value);
-        close(ta.commission, tb.commission);
-        close(ta.stamp_duty, tb.stamp_duty);
-        close(ta.pnl, tb.pnl);
-        assert_eq!(ta.hold_bars, tb.hold_bars);
-    }
-    // MINOR-3：drawdown 逐点对照相等。
-    assert_eq!(res.drawdown.len(), bt.drawdown_series.len());
-    for ((ts_a, d_a), (ts_b, d_b)) in res.drawdown.iter().zip(bt.drawdown_series.iter()) {
-        assert_eq!(ts_a, ts_b);
-        close(*d_a, *d_b);
-    }
-    // MINOR-3：8 项绩效全字段对照相等。
-    close(res.metrics.net_profit, bt.metrics.net_profit);
-    close(res.metrics.max_drawdown, bt.metrics.max_drawdown);
-    close(res.metrics.sharpe, bt.metrics.sharpe);
-    close(res.metrics.win_rate, bt.metrics.win_rate);
-    close(res.metrics.profit_factor, bt.metrics.profit_factor);
-    close(res.metrics.annualized_return, bt.metrics.annualized_return);
-    assert_eq!(res.metrics.trade_count, bt.metrics.trade_count);
-    close(res.metrics.avg_hold_bars, bt.metrics.avg_hold_bars);
 }
 
 // ---------------------------------------------------------------------------

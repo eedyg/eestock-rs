@@ -20,14 +20,6 @@ async fn pool() -> PgPool {
 
 fn state(pool: PgPool) -> Arc<AppState> {
     let backtest_hub = WsHub::new();
-    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
-        Arc::new(web::backtest::BacktestWsSink::new(backtest_hub.clone()));
-    let backtest = Arc::new(application::service::BacktestService::new(
-        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
-        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
-        backtest_ws.clone(),
-        application::service::DEFAULT_MAX_CONCURRENT,
-    ));
     Arc::new(AppState {
         kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
         health: diagnose::health::HealthService::new(
@@ -59,8 +51,6 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
-        backtest,
-        backtest_ws,
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),

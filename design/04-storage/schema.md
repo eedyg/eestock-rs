@@ -356,6 +356,10 @@ SELECT add_continuous_aggregate_policy('kline_accurate_1h',
 
 ## 4.3.5 回测存储（Wave 3 Phase 3a，0011；ADR 08-backtest §7）
 
+> ⚠️ **P4b 退役注记**：`BacktestRunStore` / `PgBacktestStore` 已随 P4b（12-strategy-system D16 终章）删除；
+> `backtest_runs` / `backtest_results` 表**保留不读写**（迁移不回收，未来 DROP 另立项）。
+> `BacktestBarRead` / `BacktestBarReader` 保留——新系统（strategy 试算 / workbench 工作台 / mcp bt_* 工具）复用同一取数口径。
+
 **上下文**：backtest engine crate（纯逻辑，无 IO/DB）已落（crates/backtest，commit 97fe314）。
 本迁移补回测**数据/应用面**两张表：任务运行（backtest_runs）+ 完成结果（backtest_results）。
 应用面 CRUD 经 `domain::ports::BacktestRunStore`（storage 实现，见下）。
@@ -423,7 +427,9 @@ ALTER TABLE backtest_runs ALTER COLUMN date_to SET NOT NULL;
 ```
 
 **storage 模块 `crates/storage/src/backtest.rs`（非 tangle 手写，契约描述）**：
-实现 `domain::ports::{BacktestBarRead, BacktestRunStore}`（PgPool）。
+实现 `domain::ports::BacktestBarRead`（PgPool）。
+（⚠️ P4b 注记：`BacktestRunStore` / `PgBacktestStore` 已随 P4b 删除；`backtest_runs` / `backtest_results`
+表保留不读写——迁移不回收，未来 DROP 另立项。下文 `PgBacktestStore` 段为历史契约记录。）
 - `BacktestBarRead`：`bars(code, period, from, to)` 按统一读源（accurate 优先 + cagg 兜底，复用 KlineReader 口径，
   与 design/07-app-plane/00-web-api.md `merged_sql` 同语义）读 `[from, to)` 升序 `domain::Bar` 序列；
   M1 走 `kline_merged` 视图，5m/15m/1h/1d 走 period 对应 accurate/cagg 表 + 底层兜底反连接剔重（同 reader.rs）。

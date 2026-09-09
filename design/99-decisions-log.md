@@ -158,3 +158,11 @@
 - **MCP**：新工具 strategy_*/bt_* 落现有 SSE；Streamable HTTP 迁移维持独立 backlog
 - **并存期**：新工作台独立页面/API 族；旧回测页+内建策略保留至 P4 验收后退役
 - **实施分期**：P0 runtime+契约测试 → P1 strategy-core(聚合/Policy/引擎) → P2 Registry+编辑页 → P3 工作台+MCP → P4 sim-live 切源+旧退役 → P5 实盘契约文档化
+
+## 旧策略系统退役（2026-09-10，12-strategy-system P4b / D16 终章，架构裁决：彻底删除而非仅隐藏）
+- **旧回测服务链删除**：`application::BacktestService`（service/params/types）+ web 旧 REST `/api/backtest/*`（handlers/DTO/WS `backtest_progress` topic）+ app bin DI + `PgBacktestStore`/`BacktestRunStore`/`BacktestProgressSink` 端口（backtest_runs/backtest_results 表保留于库内不再读写，迁移 0011/0012 不回收）。
+- **backtest crate 摘除**：`engine.rs`（旧单策略 Engine/run）+ `strategies.rs`（7 款内建策略注册表）删除；保留 `fee/indicators/metrics/types`；ABI 共用类型 `ParamValue`/`StrategyParams` 迁入 `types.rs`（strategy-core/strategy-runtime/simlive/application 继续引用）。
+- **simlive 旧编排器删除**：`RealtimeStrategyOrchestrator`（P4a 起 #[deprecated]）及其三档映射 `signal_to_score`/`signal_str`；聚合共享件（`weighted_aggregate`/`aggregate_to_signal`/`StockEvaluation`/`StrategyScore`/阈值常量）保留供 `PluginStrategyOrchestrator`。
+- **旧回测前端删除**：页面⑤ /backtest（features/backtest 旧页组件、`BacktestGrid` 布局、05-backtest 预览、api client/mock/types 旧回测族）；导航旧入口移除；/backtest 路由重定向 /backtest-workbench。`chartUtils`/`format`/`ScopedKlineFeed` 被工作台复用保留。
+- **迁移等价性测试退役**：strategy-core `tests/equivalence.rs`（旧引擎↔JS 插件逐 bar 等价，并存期验收使命完成）删除；`engine.rs` 费用 parity 交叉验证尾部移除（ensemble 自身断言保留）；`reference.rs` 插件顺序断言改硬编码 7 款 id。
+- **保留判定**：`BacktestBarRead`/`BacktestBarReader`（strategy 试算/workbench/mcp bt_* 复用）、`application::fee::to_fee_model`、`parse_period`/`to_bt_bar`（迁 application::bar_map）、MCP 无旧回测工具（sim_*/strategy_*/bt_* 全为新系统）。

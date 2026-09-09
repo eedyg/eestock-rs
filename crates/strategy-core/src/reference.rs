@@ -1,8 +1,12 @@
 //! 首期参考插件包（ADR `design/12-strategy-system/01-adr.md` §7 D8）+ 官方策略模板（§13.2 D10）。
 //!
-//! - 7 款参考插件：Rust 内建策略（`backtest::strategies`）的 JS 1:1 迁移，兼作用户模板与
-//!   测试 fixture；迁移等价性测试见 `tests/equivalence.rs`（golden bars 信号序列逐 bar 一致）。
+//! - 7 款参考插件：原 Rust 内建策略（`backtest::strategies`）的 JS 1:1 迁移，兼作用户模板与
+//!   测试 fixture；迁移等价性测试 `tests/equivalence.rs` 已随 P4b 删除（旧 Rust 内建策略本体不再存在，
+//!   等价性对照失去参照物）。
 //! - 4 款官方模板：ABI §4.5（纯评分 / 两态门控 / 定投 / 趋势+止损），编辑器「新建策略」起点。
+//!
+//! ⚠️ 冻结历史记录（架构裁决）：7 个播种插件 JS 文件内注释若仍提及 `equivalence.rs`，属**有意保留**——
+//! JS 字节是 sha256 寻址的播种源，改注释 = 变哈希 = 扰动播种语义，故冻结不改。
 //!
 //! 代码经 `include_str!` 静态内嵌（发布内容 = 仓内文件字节，sha256 寻址的播种源），
 //! 供 P2 Registry 播种与测试共用；纯静态、无 serde、无 IO（Domain 层红线）。
@@ -20,7 +24,7 @@ pub struct ReferencePlugin {
     pub code: &'static str,
 }
 
-/// 7 款参考插件（顺序与 `backtest::strategies::builtin_strategy_ids()` 固定顺序一致）。
+/// 7 款参考插件（顺序锁定为 ADR §7 名单固定顺序；P4b 后 Rust 内建注册表已删除，顺序由单测硬编码守护）。
 pub fn reference_plugins() -> Vec<ReferencePlugin> {
     vec![
         ReferencePlugin {
@@ -104,11 +108,15 @@ mod tests {
 
     #[test]
     fn reference_plugins_match_builtin_order() {
-        // 7 款、id 唯一、顺序与 Rust 内建注册表固定顺序一致（ADR §7 名单）。
+        // 7 款、id 唯一、顺序锁定为 ADR §7 名单固定顺序（P4b：Rust 内建注册表已物理删除，
+        // 本清单硬编码保留顺序/唯一性覆盖——等价性已于并存期经 backtest::builtin_strategy_ids() 历史验证）。
+        const BUILTIN_ORDER: [&str; 7] = [
+            "dual_ma", "ma_rsi", "macd", "boll", "kdj", "momentum", "atr_channel",
+        ];
         let plugins = reference_plugins();
         assert_eq!(plugins.len(), 7);
         let ids: Vec<&str> = plugins.iter().map(|p| p.id).collect();
-        assert_eq!(ids, backtest::builtin_strategy_ids());
+        assert_eq!(ids, BUILTIN_ORDER);
         let mut seen = std::collections::HashSet::new();
         for p in &plugins {
             assert!(seen.insert(p.id), "id {} 重复", p.id);

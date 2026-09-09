@@ -15,6 +15,10 @@
 
 ## 2. 架构分层
 
+> ⚠️ **P4b 退役注记**（12-strategy-system D16 终章）：§7 服务链（`BacktestService` / 内置策略 /
+> `/api/backtest` 端点）与本 § 分层图中的应用服务链已于 P4b 退役删除；**§1-§6 口径对保留件
+> （fee/indicators/metrics/types）继续有效**。回测能力由 12-strategy-system ensemble 引擎 + 回测工作台全覆盖。
+
 ```
 web crate (REST/WS)  →  application 层: BacktestService (任务队列/调度)
                               ↓ 端口(port)  ← backtest crate (纯逻辑引擎, 无 IO)
@@ -82,6 +86,10 @@ pub trait Strategy: Send + Sync {
 > 全部用**精确小数/整数**计算并在单元测试锁死（黄金样本：手工小序列）。
 
 ## 7. 异步任务制 + REST/WS 契约
+
+> ⚠️ **P4b 退役注记**（12-strategy-system D16 终章）：本节服务链（`BacktestService` / 内置策略 /
+> `/api/backtest` 端点）已于 P4b 退役删除，保留仅为历史记录；§1-§6 口径对保留件
+> （fee/indicators/metrics/types）继续有效。
 
 - **提交** `POST /api/backtest/runs`：body = `{code, period, from, to, strategy_id, params:{...} 或 params_grid:{k:"起:止:步长"}, fee:{rate_pct,min_fee,slippage_bp}}`。若为网格 → 展开为 N 个子任务。返回 `run_id`（或任务组 `group_id`）。
 - **进度** `GET /api/backtest/runs`（列表：状态 pending/running/done/failed、进度%、当前回测日期）；`GET /api/backtest/runs/{id}`（净值+指标+交易）；`GET /api/backtest/compare?ids=`；`GET /api/backtest/strategies`（策略清单+schema）。

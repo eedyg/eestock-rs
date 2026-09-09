@@ -717,89 +717,12 @@ pub trait RawPurgePort: Send + Sync {
     async fn purge_raw(&self) -> anyhow::Result<u64>;
 }
 
-// ── Wave 3 Phase 3a：回测端口（ADR 08-backtest §2；engine 为纯逻辑 backtest crate，无 IO/DB──
-// 本块为数据/应用面端口：storage 实现 BacktestBarRead/BacktestRunStore，application 层实现 BacktestProgressSink）──
-// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
-// ⚠️ Bar 类型归属：端口返回 domain::types::Bar（storage 直接产）；application 层（Phase 3b）负责
+// ── 回测 K 线读取端口（ADR 08-backtest §2；engine 为纯逻辑 backtest crate，无 IO/DB）──
+// P4b（D16 终章，12-strategy-system §13.8）：旧回测运行存储/进度端口（BacktestRunStore/BacktestProgressSink
+// + RunStatus/NewRun/RunFilter/RunResult/RunView）随旧 BacktestService 链物理删除；BacktestBarRead 保留——
+// 新系统（strategy 试算 / workbench 工作台 / mcp bt_* 工具）复用同一取数端口。
+// ⚠️ Bar 类型归属：端口返回 domain::types::Bar（storage 直接产）；application 层负责
 // domain::Bar -> backtest::Bar 映射（backtest crate 刻意不依赖 domain，见 crates/backtest/src/types.rs 注释）。
-
-/// 回测运行状态（backtest_runs.status：pending/running/done/failed）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RunStatus { Pending, Running, Done, Failed }
-
-impl RunStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self { RunStatus::Pending => "pending", RunStatus::Running => "running",
-                     RunStatus::Done => "done", RunStatus::Failed => "failed" }
-    }
-    pub fn parse(s: &str) -> Option<Self> {
-        match s { "pending" => Some(RunStatus::Pending), "running" => Some(RunStatus::Running),
-                  "done" => Some(RunStatus::Done), "failed" => Some(RunStatus::Failed), _ => None }
-    }
-}
-
-/// 新建回测运行（POST /api/backtest/runs 输入经 web 层校验解析后；params 为网格展开后单点）。
-/// B1 增补：持久化初始资金与回测区间（initial_capital/date_from/date_to，迁移 0012）。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct NewRun {
-    pub code: String,
-    pub period: String,           // M1/M5/M15/D1（回测支持周期）
-    pub strategy_id: String,      // builtin 策略 slug
-    pub params: serde_json::Value,
-    pub fee: serde_json::Value,   // {rate_pct,min_fee,slippage_bp}
-    pub initial_capital: f64,     // 初始资金（默认 100_000，ADR §4）
-    pub date_from: DateTime<Utc>, // 区间起点（闭）
-    pub date_to: DateTime<Utc>,   // 区间终点（开，[from, to) 半开）
-    pub group_id: Option<String>,
-}
-
-/// 回测运行列表过滤（GET /api/backtest/runs）。limit/offset 分页（默认 limit=100/offset=0）；
-/// ⚠️ 列表走轻量 SELECT（run LEFT JOIN 结果拆出去），`limit` 应始终设正数以约束单页行数。
-#[derive(Debug, Clone, PartialEq)]
-pub struct RunFilter {
-    pub status: Option<RunStatus>,
-    pub group_id: Option<String>,
-    pub limit: i64,
-    pub offset: i64,
-}
-
-impl Default for RunFilter {
-    fn default() -> Self {
-        Self { status: None, group_id: None, limit: 100, offset: 0 }
-    }
-}
-
-/// 回测结果（backtest_results 三 jsonb 列聚合）。application 层把 backtest::BacktestResult 拆分写入。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RunResult {
-    pub net_value: serde_json::Value,   // 净值/回撤序列
-    pub trades: serde_json::Value,      // 交易明细
-    pub metrics: serde_json::Value,     // 8 项绩效指标
-}
-
-/// 回测运行读模型（含结果；result=None 表示未完成为 done）。
-/// B1 增补：initial_capital/date_from/date_to 持久化（迁移 0012）；前端把 date_from~date_to 展示为区间。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RunView {
-    pub id: i64,
-    pub code: String,
-    pub period: String,
-    pub strategy_id: String,
-    pub params: serde_json::Value,
-    pub fee: serde_json::Value,
-    pub initial_capital: f64,     // 初始资金（ADR §4 默认 100_000）
-    pub date_from: DateTime<Utc>, // 区间起点（闭）
-    pub date_to: DateTime<Utc>,   // 区间终点（开，[from, to) 半开）
-    pub status: RunStatus,
-    pub progress: i32,             // 0-100
-    pub current_ts: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub finished_at: Option<DateTime<Utc>>,
-    pub error: Option<String>,
-    pub group_id: Option<String>,
-    pub result: Option<RunResult>,
-}
 
 /// 回测 K线读取端口（storage 实现）。统一读源 = accurate 优先 + cagg 兜底（ADR-003 推广），
 /// 复用 KlineReader 口径（period 对应 accurate/cagg 表映射）。返回 [from, to) 区间 bar，ts 升序。
@@ -808,30 +731,6 @@ pub struct RunView {
 pub trait BacktestBarRead: Send + Sync {
     async fn bars(&self, code: &str, period: &Period, from: DateTime<Utc>, to: DateTime<Utc>)
         -> anyhow::Result<Vec<Bar>>;
-}
-
-/// 回测运行存储端口（storage 实现；backtest_runs/backtest_results，迁移 0011）。
-/// create_run 写 pending 行并回 id；mark_done 写结果（3 列）+ 置 done；list/get 读联表。
-/// ⚠️ 审查修正（Phase 3b 申请）：create_run 由 `&mut self` 改为 `&self` —— storage `PgBacktestStore::create_run`
-/// 内部只读 `&self.pool`，无状态变异；此签名与 ports 全文件其余端口一致，避免 application 层为并发共享 store
-/// 引入 `Arc<Mutex<...>>` 包装。父级已批准（2026-xx）。
-#[async_trait]
-pub trait BacktestRunStore: Send + Sync {
-    async fn create_run(&self, run: &NewRun) -> anyhow::Result<i64>;
-    async fn update_run_progress(&self, id: i64, pct: i32, ts: DateTime<Utc>) -> anyhow::Result<()>;
-    async fn mark_done(&self, id: i64, result: &RunResult) -> anyhow::Result<()>;
-    async fn mark_failed(&self, id: i64, err: &str) -> anyhow::Result<()>;
-    async fn list_runs(&self, filter: &RunFilter) -> anyhow::Result<Vec<RunView>>;
-    async fn get_run(&self, id: i64) -> anyhow::Result<Option<RunView>>;
-    /// 删除 run（`backtest_results` 由 FK ON DELETE CASCADE 级联删除）。
-    /// 返回 true=删了行；false=id 不存在（web 映射 404）。B1 增。
-    async fn delete_run(&self, id: i64) -> anyhow::Result<bool>;
-}
-
-/// 回测进度推送端口（web/application 实现；WS `{type:"backtest_progress", run_id, pct, bar_ts}`）。
-#[async_trait]
-pub trait BacktestProgressSink: Send + Sync {
-    async fn send(&self, run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>>) -> anyhow::Result<()>;
 }
 
 // ── Wave 3 页面① 看板收藏（置顶+排序）端口（用户定稿 2026-09-05；favorite_symbols 表，迁移 0013）──
@@ -1190,7 +1089,7 @@ pub trait StrategyStore: Send + Sync {
 // ── 12-strategy-system / P3a：回测工作台端口（strategy_run/strategy_run_result/strategy_preset 表，迁移 0023）──
 // 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
 // 应用面自有表（数据面不读写，ADR-017 不违）。ADR 12 §13.4（per_bar 全量落库）/§13.5（组合预设、结果页数据源）。
-// 任务制与 BacktestRunStore 同型：create(queued) → mark_started(queued→running 原子认领) →
+// 任务制（P4b 前与旧 BacktestRunStore 同型，旧端口已随 D16 退役删除）：create(queued) → mark_started(queued→running 原子认领) →
 // update_progress(0..1) → mark_succeeded/mark_failed/mark_canceled（终态迁移均为条件更新，0 行 = 已被并发迁移）。
 
 /// 策略运行状态（strategy_run.status：queued/running/succeeded/failed/canceled）。
@@ -1341,7 +1240,7 @@ pub trait StrategyPresetStore: Send + Sync {
 }
 
 /// 策略运行进度推送端口（web 实现；WS `{type:"strategy_run_progress", run_id, progress, bar_ts}`）。
-/// 与 BacktestProgressSink 同型（broadcast hub 分发）；run_id 为 text（sr_<ts>_<seq>）。
+/// broadcast hub 分发（P4b 前与旧 BacktestProgressSink 同型，旧端口已随 D16 退役删除）；run_id 为 text（sr_<ts>_<seq>）。
 #[async_trait]
 pub trait StrategyRunProgressSink: Send + Sync {
     async fn send(&self, run_id: &str, progress: f64, bar_ts: Option<DateTime<Utc>>) -> anyhow::Result<()>;
@@ -1393,7 +1292,6 @@ ProviderError 错误分类显示（01 §4 口径）、ErrKind 字符串、Trace 
 
 use chrono::{TimeZone, Utc};
 use domain::merge::merge_prefer_accurate;
-use domain::ports::{NewRun, RunFilter, RunResult, RunStatus, RunView};
 use domain::provider::ProviderError;
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::*;
@@ -1563,58 +1461,6 @@ fn source_id_parse_roundtrip_and_unknown() {
     assert_eq!(SourceId::parse(""), None);
 }
 
-#[test]
-fn run_status_str_and_parse() {
-    assert_eq!(RunStatus::Pending.as_str(), "pending");
-    assert_eq!(RunStatus::Running.as_str(), "running");
-    assert_eq!(RunStatus::Done.as_str(), "done");
-    assert_eq!(RunStatus::Failed.as_str(), "failed");
-    for s in ["pending", "running", "done", "failed"] {
-        assert_eq!(RunStatus::parse(s).unwrap().as_str(), s, "{s} 应往返一致");
-    }
-    assert_eq!(RunStatus::parse("unknown"), None, "未知状态 → None（消费端跳过不 panic）");
-    // serde snake_case：DB status 文本 ↔ 枚举（ADR 08-backtest §7 status 口径）
-    assert_eq!(serde_json::from_str::<RunStatus>("\"failed\"").unwrap(), RunStatus::Failed);
-    assert_eq!(serde_json::to_string(&RunStatus::Pending).unwrap(), "\"pending\"");
-}
-
-#[test]
-fn backtest_run_types_serde_roundtrip() {
-    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
-    let run = NewRun {
-        code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
-        params: serde_json::json!({"fast": 5, "slow": 20}),
-        fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
-        initial_capital: 100_000.0,
-        date_from: t0,
-        date_to: t0,
-        group_id: Some("g1".into()),
-    };
-    let j = serde_json::to_string(&run).unwrap();
-    let back: NewRun = serde_json::from_str(&j).unwrap();
-    assert_eq!(run, back);
-
-    let view = RunView {
-        id: 1, code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
-        params: serde_json::json!({}), fee: serde_json::json!({}),
-        initial_capital: 100_000.0,
-        date_from: t0,
-        date_to: t0,
-        status: RunStatus::Done, progress: 100, current_ts: Some(t0),
-        created_at: t0, finished_at: Some(t0), error: None, group_id: None,
-        result: Some(RunResult { net_value: serde_json::json!([t0, 1.0]),
-            trades: serde_json::json!([]), metrics: serde_json::json!({"net_profit": 1.0}) }),
-    };
-    let vj = serde_json::to_string(&view).unwrap();
-    let vback: RunView = serde_json::from_str(&vj).unwrap();
-    assert_eq!(view, vback);
-}
-
-#[test]
-fn run_filter_defaults() {
-    let f = RunFilter::default();
-    assert!(f.status.is_none() && f.group_id.is_none(), "全 None = 全量");
-}
 ```
 
 ``` {.rust file=crates/domain/src/merge.rs}
@@ -1778,7 +1624,7 @@ mod tests {
 
 **选址理由**：状态机为纯函数校验模块，放 domain 层独立模块 `strategy_state`（不放 strategy-core——
 该 crate 是评分/聚合/执行内核，Registry 持久化语义不属其职责；不放 application——web/application
-均需共享强类型枚举，domain 是全 workspace 唯一公共依赖点，与 RunStatus/AlertStatus 等既有
+均需共享强类型枚举，domain 是全 workspace 唯一公共依赖点，与 StrategyRunStatus/AlertStatus 等既有
 状态枚举同层同模式）。纯函数、无 IO，全流转表可单测。
 
 合法流转（单向）：`draft → published → archived`。其余一律非法（含 draft→archived、

@@ -40,14 +40,6 @@ function on_bar(ctx) { return ctx.params.score; }
 /// 测试装配（与 app bin 同口径）：storage 具体实现注入 domain 端口 + WorkbenchService + StrategyService。
 fn state(pool: PgPool) -> Arc<AppState> {
     let hub = WsHub::new();
-    let backtest_ws: Arc<dyn domain::ports::BacktestProgressSink> =
-        Arc::new(web::backtest::BacktestWsSink::new(hub.clone()));
-    let backtest = Arc::new(application::service::BacktestService::new(
-        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
-        Arc::new(storage::backtest::PgBacktestStore::new(pool.clone())),
-        backtest_ws.clone(),
-        application::service::DEFAULT_MAX_CONCURRENT,
-    ));
     let strategy_store = Arc::new(storage::strategy::PgStrategyStore::new(pool.clone()));
     let strategies = Arc::new(application::strategy::StrategyService::new(
         strategy_store.clone(),
@@ -97,8 +89,6 @@ fn state(pool: PgPool) -> Arc<AppState> {
             started_at: std::time::Instant::now(),
         },
         raw_purge: storage::system::raw_purge(pool.clone()),
-        backtest,
-        backtest_ws,
         favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
         ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),

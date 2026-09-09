@@ -10,7 +10,7 @@ pub const DEFAULT_BUY_THRESHOLD: f64 = 60.0;
 /// 默认卖出阈值（ADR §6 步骤 3）。
 pub const DEFAULT_SELL_THRESHOLD: f64 = 40.0;
 
-/// 引擎信号（聚合分经阈值判定后的三态；与 backtest::Signal 区分——本信号不含资金比例，
+/// 引擎信号（聚合分经阈值判定后的三态；本信号不含资金比例，
 /// 仓位换算全部归 ExecutionPolicy，ADR §13.1 决策层/执行层分离）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TradeSignal {

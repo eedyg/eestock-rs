@@ -6,7 +6,6 @@ import { SymbolsPage } from '@/features/symbols/SymbolsPage';
 import { AlertsPage } from '@/features/alerts/AlertsPage';
 import { QualityPage } from '@/features/quality/QualityPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
-import { BacktestPage } from '@/features/backtest/BacktestPage';
 import { SimLivePage } from '@/features/simlive/SimLivePage';
 import { StrategiesPage } from '@/features/strategies/StrategiesPage';
 import { StrategyEditorPage } from '@/features/strategies/StrategyEditorPage';
@@ -23,13 +22,14 @@ export default function App() {
           <Route path="/symbols" element={<SymbolsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/quality" element={<QualityPage />} />
-          <Route path="/backtest" element={<BacktestPage />} />
+          {/* P4b（D16 终章）：旧回测页已物理删除，/backtest 重定向至统一策略回测工作台 */}
+          <Route path="/backtest" element={<Navigate to="/backtest-workbench" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sim-live" element={<SimLivePage />} />
           {/* 页面⑩ 策略管理（12-strategy-system / P2b） */}
           <Route path="/strategies" element={<StrategiesPage />} />
           <Route path="/strategies/:id/edit" element={<StrategyEditorPage />} />
-          {/* 页面⑪ 回测工作台（12-strategy-system / P3b；旧 /backtest 并存期 D16 不动） */}
+          {/* 页面⑪ 回测工作台（12-strategy-system / P3b；P4b 起为唯一回测入口） */}
           <Route path="/backtest-workbench" element={<WorkbenchPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

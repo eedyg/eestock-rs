@@ -4,8 +4,6 @@
 
 // alerts：页面⑦ 告警中心（Wave 2 Phase B 加法；代码块在 design/07-app-plane/02-alerts.md）
 pub mod alerts;
-// Wave 3 Phase 3c：回测 REST handlers + WS 进度 sink（§1.5；非 tangle 手写，web 依赖 application）
-pub mod backtest;
 pub mod dto;
 pub mod rest;
 pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维端点）
@@ -45,11 +43,6 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
         .route("/api/tushare/status", get(rest::get_tushare_status))
-        // Wave 3 Phase 3c：回测（§1.5；strategies / submit / list / detail / delete / compare，handlers 在 backtest.rs）
-        .route("/api/backtest/strategies", get(backtest::strategies))
-        .route("/api/backtest/runs", get(backtest::list_runs).post(backtest::submit_run))
-        .route("/api/backtest/runs/{id}", get(backtest::get_run).delete(backtest::delete_run))
-        .route("/api/backtest/compare", get(backtest::compare_runs))
         // 11-sim-live / L3b：模拟实盘 web 面板（§1.6；handlers 在 simlive.rs，与 MCP 共享同一 SimLiveService）
         .route("/api/sim-live/state", get(simlive::state))
         .route("/api/sim-live/positions", get(simlive::positions))

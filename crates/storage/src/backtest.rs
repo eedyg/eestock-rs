@@ -1,20 +1,20 @@
-//! 回测端口实现（Wave 3 Phase 3a；**非 tangle 手写**，契约描述见 design/04-storage/schema.md §4.3.5）。
-//! 实现 domain::ports::{BacktestBarRead, BacktestRunStore}（PgPool）。
+//! 回测 K 线读取端口实现（Wave 3 Phase 3a；**非 tangle 手写**，契约描述见 design/04-storage/schema.md §4.3.5）。
+//! 实现 domain::ports::BacktestBarRead（PgPool）。
 //! 分层：storage（Infrastructure）只依赖 domain 端口；engine（backtest crate）无 IO/DB，
-//! application 层（Phase 3b BacktestService）做 domain::Bar -> backtest::Bar 映射。
+//! application 层做 domain::Bar -> backtest::Bar 映射。
+//!
+//! P4b（D16 终章）：`PgBacktestStore`（backtest_runs/backtest_results CRUD，迁移 0011）随旧回测服务
+//! 链物理删除（design/12-strategy-system/01-adr.md §13.8）；`BacktestBarReader` 保留——
+//! 新系统（strategy 试算 / workbench 工作台 / mcp bt_* 工具）复用同一取数口径。
 //!
 //! - `BacktestBarReader`：统一读源（accurate 优先 + cagg 兜底，与 KlineReader 同口径），读 [from,to) 升序 domain::Bar。
-//! - `PgBacktestStore`：backtest_runs/backtest_results CRUD（迁移 0011；应用面自有表）。
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use domain::ports::{
-    BacktestBarRead, BacktestRunStore, NewRun, RunFilter, RunResult, RunStatus, RunView,
-};
+use domain::ports::BacktestBarRead;
 use domain::types::{Bar, Code, Period, SourceId};
-use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 
 /// 回测 K线读取：M1 走 kline_merged 视图（准确层优先，含 source）；其余周期走 accurage/cagg + 底层兜底。
 pub struct BacktestBarReader {
@@ -83,7 +83,7 @@ fn period_range_sql(p: Period) -> String {
         Period::H1 => range_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => range_sql("kline_accurate_1d", "kline_1d"),
         // ⚠️ W1/MO1 仅看板读源扩展（domain::Period 增变体以保 match 全穷尽）；回测周期不扩——
-        // application::parse_period 仍拒绝 1w/1mo，故实际回测不会以 W1/MO1 条目入队。
+        // application::bar_map::parse_period 仍拒绝 1w/1mo，故实际回测不会以 W1/MO1 条目入队。
         Period::W1 => range_sql("kline_accurate_1w", FALLBACK_1W),
         Period::MO1 => range_sql("kline_accurate_1mo", FALLBACK_1MO),
     }
@@ -116,151 +116,3 @@ impl BacktestBarRead for BacktestBarReader {
     }
 }
 
-/// 回测运行存储：backtest_runs/backtest_results（迁移 0011）。
-pub struct PgBacktestStore {
-    pool: PgPool,
-}
-
-impl PgBacktestStore {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
-}
-
-/// Run 元数据（RUNS_SELECT_LIGHT 16 列，索引 0-15；list 只用，result=None）。
-/// ⚠️ 列索引必须与 `RUNS_SELECT_LIGHT` 的列顺序一一对应；增列时同步更新。
-fn row_to_run_view_light(row: &PgRow) -> RunView {
-    let status: String = row.get(9);
-    RunView {
-        id: row.get(0),
-        code: row.get(1),
-        period: row.get(2),
-        strategy_id: row.get(3),
-        params: row.get(4),
-        fee: row.get(5),
-        initial_capital: row.get(6),
-        date_from: row.get(7),
-        date_to: row.get(8),
-        status: RunStatus::parse(&status).unwrap_or(RunStatus::Pending),
-        progress: row.get(10),
-        current_ts: row.get(11),
-        created_at: row.get(12),
-        finished_at: row.get(13),
-        error: row.get(14),
-        group_id: row.get(15),
-        result: None,
-    }
-}
-
-/// 联表行（run LEFT JOIN result，RUNS_SELECT 19 列，索引 0-18）→ RunView：在 light 元数据上补结果。
-fn row_to_run_view(row: &PgRow) -> RunView {
-    let net_value: Option<serde_json::Value> = row.get(16);
-    let trades: Option<serde_json::Value> = row.get(17);
-    let metrics: Option<serde_json::Value> = row.get(18);
-    let mut v = row_to_run_view_light(row);
-    v.result = match (net_value, trades, metrics) {
-        (Some(net_value), Some(trades), Some(metrics)) =>
-            Some(RunResult { net_value, trades, metrics }),
-        _ => None,
-    };
-    v
-}
-
-/// 详情联表 SQL（run LEFT JOIN result；供 get_run 单 run 读全量结果）。
-const RUNS_SELECT: &str = r#"
-SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
-       r.initial_capital, r.date_from, r.date_to,
-       r.status, r.progress, r.current_ts, r.created_at, r.finished_at, r.error, r.group_id,
-       res.net_value_json, res.trades_json, res.metrics_json
-FROM backtest_runs r
-LEFT JOIN backtest_results res ON res.run_id = r.id
-"#;
-
-/// 列表轻量 SELECT（只取 run 元数据；不联 backtest_results、不选中结果 JSON 列——
-/// 列表页重/慢/传输大的根因）。sort 由调用方按 created_at DESC, id DESC + LIMIT/OFFSET 分页。
-const RUNS_SELECT_LIGHT: &str = r#"
-SELECT r.id, r.code, r.period, r.strategy_id, r.params_json, r.fee_json,
-       r.initial_capital, r.date_from, r.date_to,
-       r.status, r.progress, r.current_ts, r.created_at, r.finished_at, r.error, r.group_id
-FROM backtest_runs r
-"#;
-
-#[async_trait]
-impl BacktestRunStore for PgBacktestStore {
-    /// 写 pending 行（B1 起落 initial_capital/date_from/date_to 三列，迁移 0012）。
-    async fn create_run(&self, run: &NewRun) -> Result<i64> {
-        let row: (i64,) = sqlx::query_as(
-            "INSERT INTO backtest_runs (code, period, strategy_id, params_json, fee_json, status, group_id, \
-             initial_capital, date_from, date_to) \
-             VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9) RETURNING id")
-            .bind(&run.code).bind(&run.period).bind(&run.strategy_id)
-            .bind(&run.params).bind(&run.fee).bind(&run.group_id)
-            .bind(run.initial_capital).bind(run.date_from).bind(run.date_to)
-            .fetch_one(&self.pool).await?;
-        Ok(row.0)
-    }
-
-    /// 进度上报：写 progress/current_ts，并把 pending → running（进度即运行中）。
-    async fn update_run_progress(&self, id: i64, pct: i32, ts: DateTime<Utc>) -> Result<()> {
-        sqlx::query(
-            "UPDATE backtest_runs SET progress = $2, current_ts = $3, \
-             status = CASE WHEN status = 'pending' THEN 'running' ELSE status END \
-             WHERE id = $1")
-            .bind(id).bind(pct).bind(ts)
-            .execute(&self.pool).await?;
-        Ok(())
-    }
-
-    /// 完成：事务内置 done + 结果 upsert（run_id PK 冲突走 DO UPDATE，幂等重跑）。
-    async fn mark_done(&self, id: i64, result: &RunResult) -> Result<()> {
-        let mut tx = self.pool.begin().await?;
-        sqlx::query(
-            "UPDATE backtest_runs SET status = 'done', progress = 100, finished_at = now() WHERE id = $1")
-            .bind(id).execute(&mut *tx).await?;
-        sqlx::query(
-            "INSERT INTO backtest_results (run_id, net_value_json, trades_json, metrics_json) \
-             VALUES ($1, $2, $3, $4) \
-             ON CONFLICT (run_id) DO UPDATE SET \
-                net_value_json = EXCLUDED.net_value_json, \
-                trades_json = EXCLUDED.trades_json, \
-                metrics_json = EXCLUDED.metrics_json")
-            .bind(id).bind(&result.net_value).bind(&result.trades).bind(&result.metrics)
-            .execute(&mut *tx).await?;
-        tx.commit().await?;
-        Ok(())
-    }
-
-    async fn mark_failed(&self, id: i64, err: &str) -> Result<()> {
-        sqlx::query(
-            "UPDATE backtest_runs SET status = 'failed', finished_at = now(), error = $2 WHERE id = $1")
-            .bind(id).bind(err).execute(&self.pool).await?;
-        Ok(())
-    }
-
-    /// 列表（轻量）：RUNS_SELECT_LIGHT + status/group 过滤 + LIMIT/OFFSET 分页；result=None。
-    /// 排序 created_at DESC, id DESC 保证稳定分页（同秒创建 id 大者靠前）。
-    async fn list_runs(&self, filter: &RunFilter) -> Result<Vec<RunView>> {
-        let sql = format!(
-            "{RUNS_SELECT_LIGHT} WHERE ($1::text IS NULL OR r.status = $1) \
-             AND ($2::text IS NULL OR r.group_id = $2) \
-             ORDER BY r.created_at DESC, r.id DESC LIMIT $3 OFFSET $4");
-        let rows: Vec<PgRow> = sqlx::query(&sql)
-            .bind(filter.status.map(|s| s.as_str()))
-            .bind(filter.group_id.as_deref())
-            .bind(filter.limit.max(0))
-            .bind(filter.offset.max(0))
-            .fetch_all(&self.pool).await?;
-        Ok(rows.iter().map(row_to_run_view_light).collect())
-    }
-
-    async fn get_run(&self, id: i64) -> Result<Option<RunView>> {
-        let sql = format!("{RUNS_SELECT} WHERE r.id = $1");
-        let row: Option<PgRow> = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await?;
-        Ok(row.as_ref().map(row_to_run_view))
-    }
-
-    /// 删除 run（backtest_results 由 FK ON DELETE CASCADE 级联）。返回 true=删了行；false=id 不存在。
-    async fn delete_run(&self, id: i64) -> Result<bool> {
-        let res = sqlx::query("DELETE FROM backtest_runs WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
-        Ok(res.rows_affected() > 0)
-    }
-}

@@ -37,7 +37,7 @@ use strategy_runtime::{
 };
 
 // 复用回测服务的周期解析口径（M1/M5/M15/D1；H1 拒绝）。
-pub use crate::service::parse_period;
+pub use crate::bar_map::parse_period;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -307,7 +307,7 @@ pub(crate) fn schema_from_json(v: &serde_json::Value) -> Vec<ParamDef> {
     serde_json::from_value(v.clone()).unwrap_or_default()
 }
 
-/// `domain::types::Bar -> backtest::Bar`（ts 转 Unix 秒；volume 转 f64；与 service.rs 同口径）。
+/// `domain::types::Bar -> backtest::Bar`（ts 转 Unix 秒；volume 转 f64；与 bar_map.rs 同口径）。
 fn to_bt_bar(b: &domain::types::Bar) -> backtest::Bar {
     backtest::Bar {
         ts: b.ts.timestamp(),
@@ -620,7 +620,7 @@ impl StrategyService {
         };
         let params = fill_and_validate_params(&schema, &req.params).map_err(StrategyValidation)?;
 
-        let (domain_period, bt_period) = crate::service::parse_period(&req.period)
+        let (domain_period, bt_period) = crate::bar_map::parse_period(&req.period)
             .map_err(|e| StrategyValidation(e.to_string()))?;
         // 区间上限（400）：D1 ≤ 5 年；分钟级（M1/M5/M15）≤ 3 个月。
         let span_days = (req.to - req.from).num_days();

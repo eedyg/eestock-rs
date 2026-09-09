@@ -20,11 +20,8 @@ pub use session::{
     OrderStatus, SessionEvent, SessionManager, SessionState, SessionStatus, SimOrder, SimSession,
     SignalEvent, StrategySignal,
 };
-// P4a 切源：旧编排器标 deprecated 保留至 P4b 物理删除（ADR §13.8 并存期结束）。
-#[allow(deprecated)]
-pub use strategy_orchestrator::{
-    signal_str, signal_to_score, RealtimeStrategyOrchestrator, StrategyConfig,
-};
+// P4b（D16 终章）：旧 RealtimeStrategyOrchestrator 已物理删除（ADR §13.8 并存期结束）；
+// 本模块保留新编排器复用的聚合语义件（weighted_aggregate/aggregate_to_signal/StockEvaluation 等）。
 pub use strategy_orchestrator::{
     aggregate_to_signal, weighted_aggregate, StockEvaluation, StrategyScore,
     DEFAULT_BUY_LONG_THRESHOLD, DEFAULT_SELL_THRESHOLD, NEUTRAL_SCORE,

@@ -3,8 +3,6 @@
 export type { Period, GridMode, SymbolSnapshot } from '@/layouts/DashboardGrid';
 export type { DetailRange } from '@/layouts/SourcesGrid';
 export type { Settlement, FormMode, SymbolFormValues } from '@/layouts/SymbolsGrid';
-import type { BacktestPeriod } from '@/layouts/BacktestGrid';
-export type { BacktestPeriod } from '@/layouts/BacktestGrid';
 
 /** 历史 bar（GET /api/kline 响应 bars 项，merge 视图，升序） */
 export interface Bar {
@@ -372,35 +370,8 @@ export interface KlineConfigDto {
   viewport_days: number;
 }
 
-// ── 页面⑤ 回测工作台（06-web/05-backtest.md L2 + 08-backtest/01-engine-adr.md §7；后端线格式见 07-app-plane/00-web-api.md §1.5）──
-
-export type BacktestStatus = 'pending' | 'running' | 'done' | 'failed';
-
-/** 参数种类（直通 backtest::ParamDef JSON：serde 外部标签枚举，{"Num":{"min":..}} 或 {"Choice":{"options":..}}） */
-export type BacktestParamKind =
-  | { Num: { min: number; max: number; step: number; def: number } }
-  | { Choice: { options: string[]; def: string } };
-
-/** 单个参数描述（GET /api/backtest/strategies → params_schema 项） */
-export interface BacktestParamDef {
-  key: string;
-  label: string;
-  kind: BacktestParamKind;
-}
-
-/** 策略目录项（GET /api/backtest/strategies；恰好 7 款内置策略） */
-export interface BacktestStrategyDto {
-  id: string;
-  name: string;
-  description: string;
-  params_schema: BacktestParamDef[];
-}
-
-/** 净值/回撤序列（run.net_value；ts 为 Unix 秒） */
-export interface BacktestNetValue {
-  series: Array<[number, number]>;    // [ts_unix_sec, equity]
-  drawdown: Array<[number, number]>;  // [ts_unix_sec, drawdown]
-}
+// ── 回测/模拟实盘共享读模型（P4b：旧页面⑤ DTO 已退役；Metrics/Trade 为 ensemble 引擎
+//    backtest::BacktestMetrics / backtest::TradeDetail 的 jsonb 形态，页面⑪ 工作台与⑨ sim-live 沿用）──
 
 /** 8 项绩效指标（BacktestMetrics jsonb；口径 08-backtest §6 单测锁定） */
 export interface Metrics {
@@ -428,58 +399,6 @@ export interface Trade {
   stamp_duty: number;
   pnl: number;
   hold_bars: number;
-}
-
-/** 回测 run（GET /api/backtest/runs、/{id}、compare 响应项；status=done 时才带结果字段） */
-export interface BacktestRunDto {
-  id: number;
-  code: string;
-  period: string;  // 后端口径：M1/M5/M15/D1
-  strategy_id: string;
-  params: Record<string, unknown>;
-  fee: Record<string, number>;
-  status: BacktestStatus;
-  progress: number;
-  current_ts: string | null;
-  created_at: string;
-  finished_at: string | null;
-  error: string | null;
-  group_id: string | null;
-  /** 初始资金（后端 RunDto；未回填时缺失） */
-  initial_capital?: number;
-  /** 回测区间起点（后端 RunDto；RFC3339 或 YYYY-MM-DD） */
-  date_from?: string;
-  /** 回测区间终点（后端 RunDto） */
-  date_to?: string;
-  net_value?: BacktestNetValue;
-  trades?: Trade[];
-  metrics?: Metrics;
-}
-
-/** 提交费用（前端骨架契约 camelCase；client 序列化为 rate_pct/min_fee/slippage_bp） */
-export interface BacktestFee {
-  ratePct: number;
-  minFee: number;
-  slippageBp: number;
-}
-
-/** 提交回测请求（前端契约；period 为前端口径 1m/5m/15m/1d，client 映射为后端 M1/M5/M15/D1） */
-export interface BacktestSubmitReq {
-  strategyId: string;
-  params: Record<string, number | string>;  // 数值参数 + 「起:止:步长」网格字符串
-  code: string;
-  period: BacktestPeriod;
-  fee: BacktestFee;
-  from?: string;  // RFC3339；缺省由 client 兜底默认区间
-  to?: string;
-  initialCapital?: number;
-}
-
-/** POST /api/backtest/runs 响应：单 run → {run_id}；网格 → {group_id, run_ids} */
-export interface BacktestSubmitResp {
-  run_id?: number;
-  group_id?: string;
-  run_ids?: number[];
 }
 
 // ── 页面⑨ 模拟实盘（11-sim-live / L3b；07-app-plane/00-web-api.md §1.6，snake_case 直通）──

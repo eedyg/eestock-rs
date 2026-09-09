@@ -598,7 +598,8 @@ pub mod alerts;
 // system：页面⑧ 设置页 S1 端口实现加法扩展（SystemInfoRead + RawPurgePort；
 // 代码块在 design/06-web/08-settings.md）
 pub mod system;
-// backtest：回测端口实现加法扩展（Wave 3 Phase 3a：BacktestBarRead + BacktestRunStore；
+// backtest：回测取数端口实现（Wave 3 Phase 3a：BacktestBarRead；P4b 起 BacktestRunStore 随旧回测服务退役删除，
+// BacktestBarReader 保留供 strategy 试算 / workbench / mcp 复用；
 // 代码块在 design/04-storage/schema.md §4.3.5。backtest.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod backtest;
 // favorite：看板收藏端口实现加法扩展（Wave 3 页面①：FavoriteStore；

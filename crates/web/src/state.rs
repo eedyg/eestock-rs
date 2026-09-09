@@ -25,10 +25,6 @@ pub struct AppState {
     pub system_info: crate::settings::SystemInfoSource,
     /// 页面⑧ raw 层清空端口（S1：POST /api/system/purge-raw；08-settings.md）。
     pub raw_purge: Arc<dyn domain::ports::RawPurgePort>,
-    /// 回测服务（Wave 3 Phase 3c：application 层 BacktestService，§1.5；app bin 装配）。
-    pub backtest: Arc<application::service::BacktestService>,
-    /// 回测 WS 进度分发 sink（Wave 3 Phase 3c：web 实现 domain::ports::BacktestProgressSink，§1.5）。
-    pub backtest_ws: Arc<dyn domain::ports::BacktestProgressSink>,
     /// 看板收藏端口（Wave 3 页面①：FavoriteStore，favorite_symbols 表，0013；POST/DELETE/PUT 收藏端点 + /api/symbols 注入）。
     pub favorites: Arc<dyn domain::ports::FavoriteStore>,
     /// 行情看板 MA 可配置端口（后端 W1：MaConfigStore，ma_config 表，0015；GET/PUT /api/config/ma——主图+宫格应用，回测弹窗不动）。

@@ -4,23 +4,22 @@ import { MemoryRouter } from 'react-router-dom';
 import { NavBar } from './NavBar';
 import { NAV_ITEMS } from './navItems';
 
-describe('NavBar（00-shell：11 项按波次置灰）', () => {
-  it('渲染 11 个导航项', () => {
+describe('NavBar（00-shell：10 项按波次置灰；P4b 起旧 ⑤ 回测页退役）', () => {
+  it('渲染 10 个导航项', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
-    expect(screen.getAllByRole('listitem')).toHaveLength(11);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
     expect(NAV_ITEMS.map((i) => i.path)).toEqual([
-      '/', '/sources', '/symbols', '/quality', '/backtest', '/trading', '/alerts', '/settings', '/sim-live', '/strategies', '/backtest-workbench',
+      '/', '/sources', '/symbols', '/quality', '/trading', '/alerts', '/settings', '/sim-live', '/strategies', '/backtest-workbench',
     ]);
   });
 
-  it('Wave 2 Phase C + 设置页 S1 + 回测 W3 + 模拟实盘 L3b 解锁 ①②③④⑤⑦⑧⑨，仅⑥置灰且带波次标签', () => {
+  it('Wave 2 Phase C + 设置页 S1 + 模拟实盘 L3b + 策略/工作台解锁 ①②③④⑦⑧⑨⑩⑪，仅⑥置灰且带波次标签', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
     for (const [label, href] of [
       ['① 行情看板', '/'],
       ['② 数据源诊断', '/sources'],
       ['③ 标的管理', '/symbols'],
       ['④ 数据质量', '/quality'],
-      ['⑤ 回测工作台', '/backtest'],
       ['⑦ 告警中心', '/alerts'],
       ['⑧ 系统设置', '/settings'],
       ['⑨ 模拟实盘', '/sim-live'],
@@ -36,7 +35,7 @@ describe('NavBar（00-shell：11 项按波次置灰）', () => {
     // 波次标签
     expect(screen.queryAllByText('W1')).toHaveLength(0); // ②③ 已解锁
     expect(screen.queryAllByText('W2')).toHaveLength(0); // ④⑦ 已由 Wave 2 解锁
-    expect(screen.queryAllByText('W3')).toHaveLength(0); // ⑤ 已由 Wave 3 解锁
+    expect(screen.queryAllByText('W3')).toHaveLength(0); // 旧 ⑤ 已随 P4b 退役（导航项删除）
     expect(screen.getByText('W4')).toBeInTheDocument(); // ⑥
   });
 

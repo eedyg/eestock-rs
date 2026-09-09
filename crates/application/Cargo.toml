@@ -1,10 +1,12 @@
-# 08-backtest / Phase 3b — 应用层回测服务（BacktestService）。
-# 定位：异步任务队列 + 真实进度上报；依赖注入 domain 端口（BacktestBarRead/BacktestRunStore/BacktestProgressSink）
-# + backtest crate（纯逻辑引擎）；不依赖 web/storage（DI 由 app bin / 阶段 3c 装配）。
-# ADR-007：本 crate 为**手写**新 crate（非 tangle 生成）。
+# 应用层服务 crate（手写，非 tangle；ADR-007）。
+# 定位：StrategyService（12-strategy-system P2a Registry CRUD/发布门禁/在线试算）/
+# WorkbenchService（P3a 回测工作台，任务制 ensemble 引擎）/ SimLiveService（11-sim-live 模拟实盘）等；
+# 依赖注入 domain 端口 + backtest/strategy-core/simlive 纯逻辑 crate；不依赖 web/storage（DI 由 app bin 装配）。
+# P4b（D16 终章）：旧 BacktestService（异步任务队列 + 进度上报）及 BacktestRunStore/BacktestProgressSink
+# 端口已退役删除（design/12-strategy-system/01-adr.md §13.8）。
 [package]
 name = "application"
-description = "应用层：回测 BacktestService（任务队列/调度、进度上报、端口注入；不依赖 web/storage）"
+description = "应用层：StrategyService / WorkbenchService / SimLiveService 等（任务队列/调度、端口注入；不依赖 web/storage）"
 version.workspace = true
 edition.workspace = true
 

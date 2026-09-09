@@ -5,11 +5,6 @@ import type {
   AlertQuery,
   AlertRuleItem,
   AlertRulePatchBody,
-  BacktestRunDto,
-  BacktestStatus,
-  BacktestStrategyDto,
-  BacktestSubmitReq,
-  BacktestSubmitResp,
   Bar,
   CollectorConfigSnapshot,
   DetailRange,
@@ -40,7 +35,6 @@ import type {
   SystemInfo,
   Trade,
   TushareStatusResponse,
-  BacktestNetValue,
   MaConfigDto,
   KlineConfigDto,
   SimBacktestCompare,
@@ -211,7 +205,6 @@ function healthItem(
 
 export interface MockOptions {
   now?: Date; // 测试注入固定时刻，保证可复现
-  backtestRuns?: BacktestRunDto[]; // 测试注入固定 run 列表（否则用内置种子）
 }
 
 /** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一） */
@@ -242,113 +235,8 @@ function initialAlertRules(): AlertRuleItem[] {
   ];
 }
 
-// ── 页面⑤ 回测工作台（Wave 3 Phase 3c；契约 mock，与后端 07-app-plane/00-web-api.md §1.5 同构）──
-
-/** 内置 7 款策略目录（id/name/description/params_schema；与 backtest::builtin_strategy_catalog 同构） */
-function mockBacktestStrategies(): BacktestStrategyDto[] {
-  const num = (
-    key: string,
-    label: string,
-    min: number,
-    max: number,
-    step: number,
-    def: number,
-  ) => ({ key, label, kind: { Num: { min, max, step, def } } });
-  const posPct = () => num('position_pct', '仓位比例', 0, 1, 0.05, 1);
-  return [
-    {
-      id: 'dual_ma',
-      name: '双均线交叉',
-      description: '快/慢均线金叉买入、死叉卖出',
-      params_schema: [num('fast', '快线', 2, 200, 1, 5), num('slow', '慢线', 2, 250, 1, 20), posPct()],
-    },
-    {
-      id: 'ma_rsi',
-      name: '均线+RSI 过滤',
-      description: '均线交叉定方向 + RSI 超买/超卖过滤',
-      params_schema: [
-        num('fast', '快线', 2, 200, 1, 5),
-        num('slow', '慢线', 2, 250, 1, 20),
-        num('rsi_period', 'RSI 周期', 2, 60, 1, 14),
-        num('rsi_oversold', '超卖阈值', 10, 50, 1, 30),
-        num('rsi_overbought', '超买阈值', 50, 90, 1, 70),
-        posPct(),
-      ],
-    },
-    {
-      id: 'macd',
-      name: 'MACD 金叉/死叉',
-      description: 'DIF 上穿 DEA 金叉买入、下穿死叉卖出',
-      params_schema: [
-        num('fast', '快线', 2, 100, 1, 12),
-        num('slow', '慢线', 2, 200, 1, 26),
-        num('signal', '信号线', 2, 100, 1, 9),
-        posPct(),
-      ],
-    },
-    {
-      id: 'boll',
-      name: 'BOLL 带突破',
-      description: '收破上轨买/下破下轨卖（趋势或均值回归，mode 参数）',
-      params_schema: [
-        num('period', '周期', 2, 200, 1, 20),
-        num('k', '带宽 k', 0.5, 4, 0.1, 2),
-        { key: 'mode', label: '模式', kind: { Choice: { options: ['mean_reversion', 'trend'], def: 'mean_reversion' } } },
-        posPct(),
-      ],
-    },
-    {
-      id: 'kdj',
-      name: 'KDJ 金叉/死叉',
-      description: 'K 上穿 D 金叉买入、下穿死叉卖出',
-      params_schema: [
-        num('n', 'N', 2, 100, 1, 9),
-        num('k_period', 'K 周期', 2, 30, 1, 3),
-        num('d_period', 'D 周期', 2, 30, 1, 3),
-        posPct(),
-      ],
-    },
-    {
-      id: 'momentum',
-      name: '动量突破',
-      description: 'close 突破 N 日高点买入、跌破 N 日低点卖出',
-      params_schema: [num('lookback', '回看日', 2, 150, 1, 20), posPct()],
-    },
-    {
-      id: 'atr_channel',
-      name: 'ATR 通道突破',
-      description: 'Donchian 通道突破买卖 + ATR 止损',
-      params_schema: [
-        num('channel_period', '通道周期', 2, 150, 1, 20),
-        num('atr_period', 'ATR 周期', 2, 60, 1, 14),
-        num('atr_multiplier', 'ATR 倍数', 0.5, 5, 0.5, 1),
-        posPct(),
-      ],
-    },
-  ];
-}
-
-/** 确定性净值/回撤序列（[ts_unix_sec, equity]；由 runId 哈希驱动，可复现）。 */
-function mockBacktestNetValue(seed: string, anchorTs: number): BacktestNetValue {
-  const INITIAL = 100_000;
-  const series: Array<[number, number]> = [];
-  const drawdown: Array<[number, number]> = [];
-  const points = 120;
-  let equity = INITIAL;
-  let peak = INITIAL;
-  for (let i = 0; i < points; i++) {
-    const ts = anchorTs + i * 86_400; // 每日一根，120 天
-    const r = rand01(`${seed}:eq:${i}`);
-    equity = equity * (1 + (r - 0.47) * 0.04);
-    peak = Math.max(peak, equity);
-    const dd = peak > 0 ? (peak - equity) / peak : 0;
-    series.push([ts, round3(equity)]);
-    drawdown.push([ts, round3(dd)]);
-  }
-  return { series, drawdown };
-}
-
-/** 确定性 8 项指标（与净值无关，契约 mock 定值；前端只读展示，口径由后端单测锁定）。 */
+/** 确定性 8 项指标（与净值无关，契约 mock 定值；前端只读展示，口径由后端单测锁定）。
+ *  P4b：页面⑤ 旧回测 mock 已随旧系统退役删除；本函数由页面⑪ 工作台 mock 沿用。 */
 function mockBacktestMetrics(seed: string): Metrics {
   return {
     net_profit: round3(1000 + rand01(`${seed}:np`) * 6000),
@@ -361,149 +249,6 @@ function mockBacktestMetrics(seed: string): Metrics {
     avg_hold_bars: round3(2 + rand01(`${seed}:ah`) * 30),
   };
 }
-
-/** 确定性交易明细（含盈亏/持仓时长；open/close_ts 为 Unix 秒）。 */
-function mockBacktestTrades(seed: string, anchorTs: number): Trade[] {
-  const n = 4;
-  const out: Trade[] = [];
-  for (let i = 0; i < n; i++) {
-    const openTs = anchorTs + i * 12 * 86_400 + 9 * 3_600; // 每日 09:00 CST 起点
-    const hold = 2 + Math.floor(rand01(`${seed}:h:${i}`) * 4);
-    const openPrice = round3(1 + rand01(`${seed}:op:${i}`) * 3);
-    const closePrice = round3(openPrice * (1 + (rand01(`${seed}:cp:${i}`) - 0.5) * 0.12));
-    const shares = 1000 + Math.floor(rand01(`${seed}:sh:${i}`) * 9000);
-    const pnl = Math.round((closePrice - openPrice) * shares);
-    out.push({
-      open_ts: openTs,
-      close_ts: openTs + hold * 86_400,
-      open_bar: i + 1,
-      close_bar: i + 1 + hold,
-      open_price: openPrice,
-      close_price: closePrice,
-      shares,
-      gross_value: round3(closePrice * shares),
-      commission: round3(5 + rand01(`${seed}:com:${i}`) * 10),
-      stamp_duty: round3(closePrice * shares * 0.0005),
-      pnl,
-      hold_bars: hold,
-    });
-  }
-  return out;
-}
-
-/** 解析「起:止:步长」→ 升序值（含止；后端 application::params::parse_range 同口径）。 */
-function mockParseRange(s: string): number[] {
-  const parts = s.split(':').map((x) => Number(x.trim()));
-  const a = parts[0];
-  const b = parts[1];
-  const c = parts[2];
-  if (a === undefined || b === undefined || c === undefined) return [];
-  if (Number.isNaN(a) || Number.isNaN(b) || Number.isNaN(c) || c <= 0) return [];
-  const out: number[] = [];
-  for (let v = a; v <= b + 1e-9; v += c) out.push(v);
-  return out;
-}
-
-/** 展开参数网格（base 参数 ∪ 网格键笛卡尔积；后端 application::params::expand_grid 同口径）。 */
-function mockExpandGrid(
-  base: Record<string, unknown>,
-  grid: Record<string, string>,
-): Array<Record<string, unknown>> {
-  const keys = Object.entries(grid)
-    .map(([k, range]) => [k, mockParseRange(range)] as const)
-    .filter(([, vals]) => vals.length > 0);
-  let results: Array<Record<string, unknown>> = [{ ...base }];
-  for (const [k, vals] of keys) {
-    const next: Array<Record<string, unknown>> = [];
-    for (const r of results) {
-      for (const v of vals) next.push({ ...r, [k]: v });
-    }
-    results = next;
-  }
-  return results;
-}
-
-/** 前端周期代码 → 后端口径（1m/5m/15m/1d → M1/M5/M15/D1）。 */
-const BT_PERIOD_CODE: Record<string, string> = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '1d': 'D1' };
-
-/** 提交请求（前端契约）→ run 行（status 完成态；与后端 dto 同构）。 */
-function makeDoneRun(req: BacktestSubmitReq, params: Record<string, unknown>, id: number, groupId: string | null, anchor: number): BacktestRunDto {
-  const seed = `bt:${id}`;
-  const created = new Date(anchor - 3_600_000).toISOString();
-  return {
-    id,
-    code: req.code,
-    period: BT_PERIOD_CODE[req.period] ?? 'D1',
-    strategy_id: req.strategyId,
-    params: params as Record<string, unknown>,
-    fee: { rate_pct: req.fee.ratePct, min_fee: req.fee.minFee, slippage_bp: req.fee.slippageBp },
-    status: 'done',
-    progress: 100,
-    current_ts: new Date(anchor).toISOString(),
-    created_at: created,
-    finished_at: new Date(anchor).toISOString(),
-    error: null,
-    group_id: groupId,
-    net_value: mockBacktestNetValue(seed, anchor - 120 * 86_400),
-    trades: mockBacktestTrades(seed, anchor - 120 * 86_400),
-    metrics: mockBacktestMetrics(seed),
-  };
-}
-
-/** 内置种子 run（done/running/pending/failed 各态，便于 task-list 三态可见；mock 内部分页/推进）。 */
-function seedBacktestRuns(anchor: number): BacktestRunDto[] {
-  const d = (id: number, over: Partial<BacktestRunDto>): BacktestRunDto => ({
-    id,
-    code: '518880',
-    period: 'D1',
-    strategy_id: 'dual_ma',
-    params: { fast: 5, slow: 20 },
-    fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
-    status: 'pending',
-    progress: 0,
-    current_ts: null,
-    created_at: new Date(anchor - 3_600_000).toISOString(),
-    finished_at: null,
-    error: null,
-    group_id: null,
-    ...over,
-  });
-  return [
-    d(11, {
-      status: 'done',
-      progress: 100,
-      current_ts: new Date(anchor).toISOString(),
-      finished_at: new Date(anchor).toISOString(),
-      net_value: mockBacktestNetValue('bt:11', anchor - 120 * 86_400),
-      trades: mockBacktestTrades('bt:11', anchor - 120 * 86_400),
-      metrics: mockBacktestMetrics('bt:11'),
-    }),
-    d(12, {
-      code: '513310',
-      status: 'running',
-      progress: 63,
-      current_ts: new Date(anchor - 3600).toISOString(),
-      group_id: 'g_seed_grid',
-    }),
-    d(13, { status: 'pending', code: '161226' }),
-    d(14, { status: 'failed', code: '159776', error: '回测区间无 K 线 bar' }),
-  ];
-}
-
-/** 轻列表：剥离结果列（net_value/trades/metrics）——列表行只需元数据+状态，结果仅 getRun。 */
-function stripBacktestResult(r: BacktestRunDto): BacktestRunDto {
-  const { net_value: _nv, trades: _t, metrics: _m, ...rest } = r;
-  return rest;
-}
-
-/** 与后端同序：created_at DESC, id DESC（列表稳定分页）。
- *  backtestRuns 内部按插入序；排序后才 slice(offset, limit)。 */
-function backtestSortDesc(a: BacktestRunDto, b: BacktestRunDto): number {
-  const ca = a.created_at.localeCompare(b.created_at);
-  if (ca !== 0) return -ca;
-  return b.id - a.id;
-}
-
 // ── 页面⑩ 策略 Registry（12-strategy-system / P2b；契约 mock，与后端 §1.7 同构）──
 
 /** 种子插件代码（dual_ma 参考插件语义缩略版；含 PARAMS_SCHEMA 供编辑器参数面板测试） */
@@ -838,11 +583,6 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   const alertRules = initialAlertRules();
   /** 测试观测口：已收到的复位请求 */
   const resetLog: string[] = [];
-  /** 页面⑤ 回测：内部 run 列表（构造时可用 opts.backtestRuns 注入种子，否则内置四态） */
-  let backtestRuns: BacktestRunDto[] =
-    opts.backtestRuns ?? seedBacktestRuns(anchorNow);
-  let nextBacktestRunId =
-    (backtestRuns.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
   /** 页面⑩ 策略 Registry mock 内存态（策略行 + 版本行；行为可闭环验证）。 */
   const strategyStore = seedStrategyStore(anchorNow);
   /** 页面⑪ 回测工作台 mock 内存态（runs 含结果 / presets；§1.8 行为可闭环验证）。 */
@@ -878,12 +618,6 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     strategyStore.versions.push(nv);
     return { ...nv };
   };
-
-  const createBacktestRun = (
-    req: BacktestSubmitReq,
-    params: Record<string, unknown>,
-    groupId: string | null,
-  ): BacktestRunDto => makeDoneRun(req, params, nextBacktestRunId++, groupId, anchorNow);
 
   /** 页面⑨ 模拟实盘：内存态（活跃会话/账户/策略评估/订单/历史）；与 MCP 共享同一服务（同 client 状态）。 */
   let simSeq = 12;
@@ -1246,63 +980,6 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         throw new ApiError(400, 'HTTP 400: confirm 字段缺失或不匹配（须为 RESET）');
       }
       return { requests: 0 };
-    },
-    // ── 页面⑤ 回测工作台（Wave 3 Phase 3c；契约 mock，与后端 §1.5 同构）──
-    async getStrategies(): Promise<BacktestStrategyDto[]> {
-      return mockBacktestStrategies();
-    },
-    async submitRun(req: BacktestSubmitReq): Promise<BacktestSubmitResp> {
-      // 网格参数（字符串「起:止:步长」）→ 展开为任务组；否则单 run
-      const grid: Record<string, string> = {};
-      const base: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(req.params)) {
-        if (typeof v === 'string') grid[k] = v;
-        else base[k] = v;
-      }
-      if (Object.keys(grid).length > 0) {
-        const children = mockExpandGrid(base, grid);
-        const group_id = `g_mock_${nextBacktestRunId}`;
-        const runs = children.map((params) => createBacktestRun(req, params, group_id));
-        // 同类任务组共享 group_id（复用 makeDoneRun 用 seed 派生，保证确定且互异）
-        for (const r of runs) r.group_id = group_id;
-        backtestRuns = [...backtestRuns, ...runs];
-        return { group_id, run_ids: runs.map((r) => r.id) };
-      }
-      const run = createBacktestRun(req, base, null);
-      backtestRuns = [...backtestRuns, run];
-      return { run_id: run.id };
-    },
-    async listRuns(filter?: {
-      status?: BacktestStatus;
-      groupId?: string;
-      limit?: number;
-      offset?: number;
-    }): Promise<BacktestRunDto[]> {
-      let out = backtestRuns.slice();
-      if (filter?.status) out = out.filter((r) => r.status === filter.status);
-      if (filter?.groupId) out = out.filter((r) => r.group_id === filter.groupId);
-      out.sort(backtestSortDesc);
-      const offset = filter?.offset ?? 0;
-      const limit = filter?.limit ?? out.length;
-      out = out.slice(offset, offset + Math.max(0, limit));
-      return out.map(stripBacktestResult);
-    },
-    async getRun(id: number): Promise<BacktestRunDto> {
-      const r = backtestRuns.find((x) => x.id === id);
-      if (!r) throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
-      return { ...r };
-    },
-    async compare(ids: number[]): Promise<BacktestRunDto[]> {
-      return ids
-        .map((id) => backtestRuns.find((x) => x.id === id))
-        .filter((r): r is BacktestRunDto => r != null)
-        .map((r) => ({ ...r }));
-    },
-    async deleteRun(id: number): Promise<void> {
-      if (!backtestRuns.some((r) => r.id === id)) {
-        throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
-      }
-      backtestRuns = backtestRuns.filter((r) => r.id !== id);
     },
     // ── 页面⑨ 模拟实盘（§1.6；模拟实盘，不触真实券商）──
     async getSimState(_sessionId?: string): Promise<SimStateDto> {

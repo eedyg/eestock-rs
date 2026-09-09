@@ -948,7 +948,7 @@ async fn unknown_session_errors() {
 /// 常量镜像 DEFAULT_CASH_INIT（测试断言用）。
 const DEFAULT_CASH: f64 = 1_000_000.0;
 
-// ── 11-sim-live / L2：RealtimeStrategyOrchestrator 联动（固定 bar，无实时 DB）──
+// ── 11-sim-live / L2：策略编排器联动（固定 bar，无实时 DB；P4a 起策略源为 Registry 插件编排器 PluginStrategyOrchestrator）──
 
 fn dma_bar(ts: i64, close: f64) -> Bar {
     Bar {

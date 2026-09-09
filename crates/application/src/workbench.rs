@@ -201,7 +201,7 @@ impl WorkbenchService {
         if !enabled.iter().any(|c| c.0 == symbol) {
             return Err(WorkbenchValidation(format!("symbol 未注册: {symbol}")).into());
         }
-        let (domain_period, bt_period) = crate::service::parse_period(&req.period)
+        let (domain_period, bt_period) = crate::bar_map::parse_period(&req.period)
             .map_err(|e| WorkbenchValidation(e.to_string()))?;
         if req.from >= req.to {
             return Err(WorkbenchValidation("from 须早于 to".into()).into());
@@ -273,7 +273,7 @@ impl WorkbenchService {
             .bars(&symbol, &domain_period, req.from, req.to)
             .await?
             .iter()
-            .map(crate::service::to_bt_bar)
+            .map(crate::bar_map::to_bt_bar)
             .collect();
         if bars.is_empty() {
             return Err(WorkbenchValidation(format!(

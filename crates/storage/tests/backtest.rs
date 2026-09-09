@@ -1,12 +1,13 @@
-//! 回测端口实现集成测试（需 TimescaleDB :5433，迁移 0011 已 apply）。
-//! 契约：BacktestBarRead（统一读源 accurate 优先 + 区间升序）、BacktestRunStore（CRUD 状态机）。
-//! 每测试独立 group_id：并行执行共享 backtest_runs 表，用唯一 group 隔离 + 清理。
+//! 回测 K 线读取端口实现集成测试（需 TimescaleDB :5433）。
+//! 契约：BacktestBarRead（统一读源 accurate 优先 + 区间升序）。
+//! P4b（D16 终章）：PgBacktestStore（backtest_runs/backtest_results CRUD，迁移 0011）随旧回测服务退役删除；
+//! BacktestBarReader 保留（新系统 strategy 试算 / workbench / mcp 复用同一取数口径）。
 
 use chrono::{Duration, TimeZone, Utc};
-use domain::ports::{BacktestBarRead, BacktestRunStore, NewRun, RunFilter, RunResult, RunStatus};
+use domain::ports::BacktestBarRead;
 use domain::types::{Period, SourceId};
 use sqlx::PgPool;
-use storage::backtest::{BacktestBarReader, PgBacktestStore};
+use storage::backtest::BacktestBarReader;
 
 fn base() -> chrono::DateTime<Utc> {
     Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap()
@@ -16,26 +17,6 @@ async fn pool() -> PgPool {
     let url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
-}
-
-async fn clean_backtest(pool: &PgPool, group: &str) {
-    // run_id PK 级联删除 backtest_results
-    sqlx::query("DELETE FROM backtest_runs WHERE group_id = $1")
-        .bind(group).execute(pool).await.unwrap();
-}
-
-fn new_run(group: &str) -> NewRun {
-    NewRun {
-        code: "518880".into(),
-        period: "D1".into(),
-        strategy_id: "dual_ma".into(),
-        params: serde_json::json!({ "fast": 5, "slow": 20 }),
-        fee: serde_json::json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 }),
-        initial_capital: 100_000.0,
-        date_from: base(),
-        date_to: base() + Duration::hours(1),
-        group_id: Some(group.into()),
-    }
 }
 
 #[tokio::test]
@@ -76,147 +57,4 @@ async fn bar_read_m1_accurate_first_in_range() {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(&code).execute(&pool).await.unwrap();
     }
-}
-
-#[tokio::test]
-async fn run_store_lifecycle() {
-    let pool = pool().await;
-    let group = format!("bt_store_lifecycle_{}", std::process::id());
-    clean_backtest(&pool, &group).await;
-
-    let store = PgBacktestStore::new(pool.clone());
-    let id = store.create_run(&new_run(&group)).await.unwrap();
-    assert!(id > 0, "create_run 返回 id");
-
-    // create 后 pending
-    let v0 = store.get_run(id).await.unwrap().expect("run 存在");
-    assert_eq!(v0.status, RunStatus::Pending);
-    assert_eq!(v0.progress, 0);
-    assert_eq!(v0.initial_capital, 100_000.0, "初始资金落库（B1）");
-    assert_eq!(v0.date_from, base(), "date_from 落库（B1）");
-    assert_eq!(v0.date_to, base() + Duration::hours(1), "date_to 落库（排除端点）");
-
-    // progress → running + current_ts 写入
-    let ts = base() + Duration::minutes(1);
-    store.update_run_progress(id, 42, ts).await.unwrap();
-    let v1 = store.get_run(id).await.unwrap().expect("run 存在");
-    assert_eq!(v1.status, RunStatus::Running);
-    assert_eq!(v1.progress, 42);
-    assert_eq!(v1.current_ts, Some(ts));
-
-    // mark_done → done + 结果 upsert
-    let result = RunResult {
-        net_value: serde_json::json!([[ts, 100000.0], [ts + Duration::minutes(1), 101000.0]]),
-        trades: serde_json::json!([]),
-        metrics: serde_json::json!({ "net_profit": 1000.0, "sharpe": 1.2 }),
-    };
-    store.mark_done(id, &result).await.unwrap();
-    let v2 = store.get_run(id).await.unwrap().expect("run 存在");
-    assert_eq!(v2.status, RunStatus::Done);
-    assert_eq!(v2.progress, 100);
-    assert!(v2.finished_at.is_some());
-    let res = v2.result.expect("done 后带结果");
-    assert_eq!(res.metrics["net_profit"], serde_json::json!(1000.0));
-
-    // list_runs 按 status=done 命中；按 group 命中
-    let done_only = store.list_runs(&RunFilter { status: Some(RunStatus::Done), ..Default::default() })
-        .await.unwrap();
-    assert!(done_only.iter().any(|r| r.id == id), "done 状态列表命中");
-    let by_group = store.list_runs(&RunFilter { group_id: Some(group.clone()), ..Default::default() })
-        .await.unwrap();
-    assert!(by_group.iter().any(|r| r.id == id), "group 过滤命中");
-
-    // mark_failed → failed + error
-    let id2 = store.create_run(&new_run(&group)).await.unwrap();
-    store.mark_failed(id2, "simulated error").await.unwrap();
-    let v3 = store.get_run(id2).await.unwrap().expect("run 存在");
-    assert_eq!(v3.status, RunStatus::Failed);
-    assert_eq!(v3.error.as_deref(), Some("simulated error"));
-
-    clean_backtest(&pool, &group).await;
-}
-
-#[tokio::test]
-async fn run_store_list_pagination_light() {
-    let pool = pool().await;
-    let group = format!("bt_list_page_{}", std::process::id());
-    clean_backtest(&pool, &group).await;
-
-    let store = PgBacktestStore::new(pool.clone());
-    // 造 5 个 run（共用 group；created_at DESC, id DESC → 最新 id 最大靠前）。
-    let mut ids = Vec::new();
-    for _ in 0..5 {
-        ids.push(store.create_run(&new_run(&group)).await.unwrap());
-    }
-    // 前 2 个（最早创建）mark_done 带结果；结果应从列表剥离、只在 get_run 出现。
-    let result = RunResult {
-        net_value: serde_json::json!([[base(), 100_000.0]]),
-        trades: serde_json::json!([]),
-        metrics: serde_json::json!({ "net_profit": 1.0 }),
-    };
-    store.mark_done(ids[0], &result).await.unwrap();
-    store.mark_done(ids[1], &result).await.unwrap();
-
-    // 默认（limit=100, offset=0）→ 全 5 条，且每条 result=None（轻量列表不联结果）。
-    let all = store.list_runs(&RunFilter { group_id: Some(group.clone()), ..Default::default() })
-        .await.unwrap();
-    assert_eq!(all.len(), 5, "默认 limit=100 覆盖全部 5 条");
-    assert!(all.iter().all(|r| r.result.is_none()), "列表返回所有项 result=None（轻量，不联结果）");
-
-    // get_run 单跑带结果。
-    let detail = store.get_run(ids[0]).await.unwrap().expect("run 存在");
-    assert!(detail.result.is_some(), "get_run 读全量结果");
-
-    // limit=2 offset=0 → 最新 2 条（id 大者靠前）；每条 result=None。
-    let page1 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 0, ..Default::default() })
-        .await.unwrap();
-    assert_eq!(page1.len(), 2, "limit=2 页1 恰 2 条");
-    assert_eq!(page1[0].id, ids[4], "created_at DESC, id DESC → 最新 id 最大在前");
-    assert_eq!(page1[1].id, ids[3]);
-    assert!(page1.iter().all(|r| r.result.is_none()), "页1 无结果列");
-
-    // limit=2 offset=2 → 下 2 条。
-    let page2 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 2, ..Default::default() })
-        .await.unwrap();
-    assert_eq!(page2.len(), 2, "limit=2 offset=2 页2 恰 2 条");
-    assert_eq!(page2[0].id, ids[2]);
-    assert_eq!(page2[1].id, ids[1]);
-
-    // limit=2 offset=4 → 尾 1 条。
-    let page3 = store.list_runs(&RunFilter { group_id: Some(group.clone()), limit: 2, offset: 4, ..Default::default() })
-        .await.unwrap();
-    assert_eq!(page3.len(), 1, "limit=2 offset=4 尾页恰 1 条");
-    assert_eq!(page3[0].id, ids[0]);
-
-    clean_backtest(&pool, &group).await;
-}
-
-#[tokio::test]
-async fn run_store_delete_run_cascades_results() {
-    let pool = pool().await;
-    let group = format!("bt_delete_{}", std::process::id());
-    clean_backtest(&pool, &group).await;
-
-    let store = PgBacktestStore::new(pool.clone());
-    let id = store.create_run(&new_run(&group)).await.unwrap();
-    // 写一个结果，验证 FK 级联删除
-    let result = RunResult {
-        net_value: serde_json::json!([]),
-        trades: serde_json::json!([]),
-        metrics: serde_json::json!({"net_profit": 1.0}),
-    };
-    store.mark_done(id, &result).await.unwrap();
-
-    // 删除存在的 run → true
-    assert!(store.delete_run(id).await.unwrap(), "存在 run 删除返回 true");
-    // run 及结果均不存在
-    assert!(store.get_run(id).await.unwrap().is_none(), "删除后 get_run 为 None");
-    let cnt: (i64,) = sqlx::query_as("SELECT count(*) FROM backtest_results WHERE run_id = $1")
-        .bind(id).fetch_one(&pool).await.unwrap();
-    assert_eq!(cnt.0, 0, "FK ON DELETE CASCADE 级联删除 backtest_results");
-
-    // 删除不存在的 run → false
-    assert!(!store.delete_run(999_999_999).await.unwrap(), "不存在 run 返回 false");
-
-    clean_backtest(&pool, &group).await;
 }

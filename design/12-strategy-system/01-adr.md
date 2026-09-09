@@ -142,7 +142,7 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 | P1 | strategy-core（聚合+ExecutionPolicy+EnsembleEngine）复用 backtest 指标/费用/绩效 | 聚合/Policy/引擎单测 + 7 参考插件迁移等价性测试绿 |
 | P2 | Registry（storage+StrategyService+REST）+ 策略列表/编辑页（含试算） | 发布不可变/版本钉住/权限过滤端到端 |
 | P3 | 回测工作台（BacktestWorkbenchService 任务制+WS 进度+页面）+ MCP 工具族 | 页面跑通多策略聚合回测；MCP tools/list 全量 |
-| P4 | sim-live 切换 Registry 策略源 + 插件运行时；旧编排器/内建策略 deprecated | sim-live 会话用插件策略跑通；回测对比功能不失效 |
+| P4 | sim-live 切换 Registry 策略源 + 插件运行时；旧编排器/内建策略 deprecated | sim-live 会话用插件策略跑通；回测对比功能不失效。**P4b 已完成删除（2026-09-10）**：旧回测服务链 / backtest 旧引擎+7 款内建策略 / 旧 RealtimeStrategyOrchestrator / 旧回测页 /backtest 全部物理删除（§13.8 并存期结束；退役清单见 design/99-decisions-log.md「旧策略系统退役」） |
 | P5 | RiskGate + Executor Port 契约文档化（实盘预留，不实现） | 契约评审通过 |
 
 ## 13. Grill 定稿增补（2026-09-08 三轮，全部父级拍板）

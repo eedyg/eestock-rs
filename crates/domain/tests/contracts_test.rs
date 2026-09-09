@@ -3,7 +3,6 @@
 
 use chrono::{TimeZone, Utc};
 use domain::merge::merge_prefer_accurate;
-use domain::ports::{NewRun, RunFilter, RunResult, RunStatus, RunView};
 use domain::provider::ProviderError;
 use domain::selector::{DutyRoster, SourceSelector};
 use domain::types::*;
@@ -173,56 +172,4 @@ fn source_id_parse_roundtrip_and_unknown() {
     assert_eq!(SourceId::parse(""), None);
 }
 
-#[test]
-fn run_status_str_and_parse() {
-    assert_eq!(RunStatus::Pending.as_str(), "pending");
-    assert_eq!(RunStatus::Running.as_str(), "running");
-    assert_eq!(RunStatus::Done.as_str(), "done");
-    assert_eq!(RunStatus::Failed.as_str(), "failed");
-    for s in ["pending", "running", "done", "failed"] {
-        assert_eq!(RunStatus::parse(s).unwrap().as_str(), s, "{s} 应往返一致");
-    }
-    assert_eq!(RunStatus::parse("unknown"), None, "未知状态 → None（消费端跳过不 panic）");
-    // serde snake_case：DB status 文本 ↔ 枚举（ADR 08-backtest §7 status 口径）
-    assert_eq!(serde_json::from_str::<RunStatus>("\"failed\"").unwrap(), RunStatus::Failed);
-    assert_eq!(serde_json::to_string(&RunStatus::Pending).unwrap(), "\"pending\"");
-}
-
-#[test]
-fn backtest_run_types_serde_roundtrip() {
-    let t0 = Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap();
-    let run = NewRun {
-        code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
-        params: serde_json::json!({"fast": 5, "slow": 20}),
-        fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
-        initial_capital: 100_000.0,
-        date_from: t0,
-        date_to: t0,
-        group_id: Some("g1".into()),
-    };
-    let j = serde_json::to_string(&run).unwrap();
-    let back: NewRun = serde_json::from_str(&j).unwrap();
-    assert_eq!(run, back);
-
-    let view = RunView {
-        id: 1, code: "518880".into(), period: "D1".into(), strategy_id: "dual_ma".into(),
-        params: serde_json::json!({}), fee: serde_json::json!({}),
-        initial_capital: 100_000.0,
-        date_from: t0,
-        date_to: t0,
-        status: RunStatus::Done, progress: 100, current_ts: Some(t0),
-        created_at: t0, finished_at: Some(t0), error: None, group_id: None,
-        result: Some(RunResult { net_value: serde_json::json!([t0, 1.0]),
-            trades: serde_json::json!([]), metrics: serde_json::json!({"net_profit": 1.0}) }),
-    };
-    let vj = serde_json::to_string(&view).unwrap();
-    let vback: RunView = serde_json::from_str(&vj).unwrap();
-    assert_eq!(view, vback);
-}
-
-#[test]
-fn run_filter_defaults() {
-    let f = RunFilter::default();
-    assert!(f.status.is_none() && f.group_id.is_none(), "全 None = 全量");
-}
 // ~/~ end
