@@ -166,3 +166,16 @@
 - **旧回测前端删除**：页面⑤ /backtest（features/backtest 旧页组件、`BacktestGrid` 布局、05-backtest 预览、api client/mock/types 旧回测族）；导航旧入口移除；/backtest 路由重定向 /backtest-workbench。`chartUtils`/`format`/`ScopedKlineFeed` 被工作台复用保留。
 - **迁移等价性测试退役**：strategy-core `tests/equivalence.rs`（旧引擎↔JS 插件逐 bar 等价，并存期验收使命完成）删除；`engine.rs` 费用 parity 交叉验证尾部移除（ensemble 自身断言保留）；`reference.rs` 插件顺序断言改硬编码 7 款 id。
 - **保留判定**：`BacktestBarRead`/`BacktestBarReader`（strategy 试算/workbench/mcp bt_* 复用）、`application::fee::to_fee_model`、`parse_period`/`to_bt_bar`（迁 application::bar_map）、MCP 无旧回测工具（sim_*/strategy_*/bt_* 全为新系统）。
+
+---
+
+# 统一策略系统实施收官（2026-09-09~10，P0-P5 全六期）
+
+## 实施裁决（架构师全权期，父级授权「所有决策你来做」）
+- 新依赖批准：rquickjs 0.11（D1 运行时，MSRV 1.85 约束）、sha2 0.10（ABI G4 哈希寻址）、前端 CodeMirror 系（D13）
+- 红线豁免 2 次（均增量加法+测试锁定）：strategy-core observer 钩子（P3a 进度/取消，EnsembleError::Canceled 独立枚举）；strategy-core validate 增 sell<50<buy（P4a MINOR-4，中立 50 必落 Hold 区）
+- P4b 物理退役（D16 终章）：旧 BacktestService 链/内建 7 策略/旧编排器/旧回测页全删（-10500 行）；backtest crate 收敛 fee/indicators/metrics/types；过渡性测试（equivalence 等）按裁决 A 退役，验收证据在 git 历史
+- sim-live actor 承载模型（QuickJS !Send 常驻实例）：每会话 worker 线程 + bounded(4) mpsc + oneshot；WorkerExitProbe/panic 隔离/代际守卫
+- MCP 停用开关=B 方案（McpState 单一开关）：sim_* 开关是下单风险语义，不盲目复刻死能力
+- 列表徽章口径：latest_published?.approval_level ?? latest_version（已发布版本权限优先）
+- P5 实盘契约经 oracle 挑战修订：R7 增险/减险语义（减险永远放行）、R9-R12 市场硬约束（T+1 品种属性/整手/涨跌停/可用资金）、恢复三段式（halted→对账→人工复位）、Executor 四条款（幂等本地台账/fill 事件流/归一化/day-order）、开工条件+3（浸泡期/对账演练/绝对资金封顶）
