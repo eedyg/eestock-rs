@@ -18,6 +18,9 @@
 //!    无前视）；触发同时**重置 PolicyState**（MAJOR-2 裁决，强平后首个 Buy 重新计数）；
 //! 7. 否则 ExecutionPolicy 换算目标仓位（幂等）→ 订单 = 目标 − 当前 → 次 bar open 挂单；
 //! 8. 记录收盘净值 + per_bar 全量数据（ADR §13.4 全量落库的数据源）。
+//! 9. observer 钩子调用（每 bar 末恰一次，P3a 裁决：进度上报 + 协作式取消）：
+//!    返回 [`LoopControl::Break`] → 立即跳出循环（不做期末强平、不产出结果）
+//!    → [`EnsembleError::Canceled`]。
 //!
 //! 期末仍持仓 → 最后 close 强制平仓（沿用 backtest 引擎口径，净值最后一点修正为已实现净值）。
 //! 绩效 = `backtest::metrics::compute_metrics`（8 项）+ `compute_drawdown`，与内建回测一致。

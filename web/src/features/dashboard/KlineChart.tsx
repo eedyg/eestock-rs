@@ -44,8 +44,8 @@ export interface KlineMarkerOverlay {
   type: 'marker';
   /** 目标 ts（Unix 毫秒）：开仓/平仓 moment（run 周期桶 ts）；渲染前吸附/钳位到当前周期已加载 bar。 */
   ts: number;
-  /** 标记文本：开仓 'B' / 平仓 'S'。 */
-  text: 'B' | 'S';
+  /** 标记文本：开仓 'B' / 平仓 'S' / 硬止损触发 '⊗'（P3b 工作台；string 宽化向后兼容）。 */
+  text: string;
   /** 可选锚定价位（决定 pin 的 y 位置；缺省 0，简单注解以顶为锚）。 */
   price?: number;
   color?: string;

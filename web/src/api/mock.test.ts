@@ -615,3 +615,130 @@ function on_bar(ctx) { return 50; }
     await expect(api.patchStrategy('st_missing', { name: 'x' })).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为同构）', () => {
+  const validSubmit = () => ({
+    symbol: '518880',
+    period: 'D1',
+    from: '2026-01-01T00:00:00Z',
+    to: '2026-04-01T00:00:00Z',
+    slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    policy: { LumpSum: { position_pct: 1 } } as const,
+    fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+  });
+
+  it('种子 runs：succeeded/running/failed 三态齐备；列表 created_at DESC, id DESC + limit/offset 分页 + status 过滤', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const all = await api.listWorkbenchRuns();
+    expect(all.length).toBeGreaterThanOrEqual(3);
+    const statuses = new Set(all.map((r) => r.status));
+    expect(statuses.has('succeeded')).toBe(true);
+    expect(statuses.has('running')).toBe(true);
+    expect(statuses.has('failed')).toBe(true);
+    for (let i = 1; i < all.length; i++) {
+      const prev = all[i - 1]!;
+      const cur = all[i]!;
+      expect(prev.created_at > cur.created_at || (prev.created_at === cur.created_at && prev.id > cur.id)).toBe(true);
+    }
+    const succ = await api.listWorkbenchRuns({ status: 'succeeded' });
+    expect(succ.every((r) => r.status === 'succeeded')).toBe(true);
+    const page = await api.listWorkbenchRuns({ limit: 1, offset: 1 });
+    expect(page).toHaveLength(1);
+    expect(page[0]!.id).toBe(all[1]!.id);
+  });
+
+  it('submit 校验：symbol 未注册/period 非法/from≥to/slots 空/weight≤0/阈值倒挂/fee 缺键 → 400；version 未知 404、非 published 400', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), symbol: '999999' })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), period: 'H1' })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), from: '2026-04-01T00:00:00Z', to: '2026-01-01T00:00:00Z' })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [] })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_mock_dual_v1', weight: 0 }] })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), buy_threshold: 30, sell_threshold: 70 })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), fee: { rate_pct: 0.025 } as never })).rejects.toMatchObject({ status: 400 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_nope', weight: 1 }] })).rejects.toMatchObject({ status: 404 });
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_mock_dual_v2', weight: 1 }] })).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('submit 校验：params 未知键 → 400（对齐后端 fill_and_validate_params 拒绝语义）；已知键正常填充缺省', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    await expect(
+      api.submitWorkbenchRun({
+        ...validSubmit(),
+        slots: [{ version_id: 'sv_mock_dual_v1', weight: 1, params: { fast: 5, nope: 1 } }],
+      }),
+    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining('未知参数键') });
+    // 已知键子集：其余按 schema 缺省填充（与后端同口径）
+    const run = await api.submitWorkbenchRun({
+      ...validSubmit(),
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1, params: { fast: 7 } }],
+    });
+    expect(run.config.slots[0]!.params).toEqual({ fast: 7, slow: 20 });
+  });
+
+  it('submit 成功：config 钉住（slots 展开 strategy_id/version/sha256，params 按 schema 缺省填充；阈值/资金缺省 60/40/100000），结果可取', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await api.submitWorkbenchRun(validSubmit());
+    expect(run.id).toMatch(/^sr_/);
+    expect(run.config.slots).toHaveLength(1);
+    const slot = run.config.slots[0]!;
+    expect(slot.strategy_id).toBe('st_mock_dual_ma');
+    expect(slot.version).toBe(1);
+    expect(slot.sha256).toBeTruthy();
+    expect(slot.params).toEqual({ fast: 5, slow: 20 }); // schema 缺省填充
+    expect(run.config.buy_threshold).toBe(60);
+    expect(run.config.sell_threshold).toBe(40);
+    expect(run.config.initial_capital).toBe(100000);
+    // mock 同步完成（对齐旧回测 mock 即时终态先例）：结果经 result 端点可取
+    const res = await api.getWorkbenchResult(run.id);
+    expect(res.per_bar.length).toBeGreaterThan(0);
+    expect(res.per_bar[0]).toMatchObject({ ts: expect.any(Number), aggregate: expect.any(Number), signal: expect.stringMatching(/Buy|Sell|Hold/) });
+    expect(res.per_bar[0]!.scores[0]).toMatchObject({ slot_idx: 0, score: expect.any(Number) });
+    expect(res.net_value[0]).toHaveLength(2);
+    expect(res.metrics).toMatchObject({ net_profit: expect.any(Number), trade_count: expect.any(Number) });
+    expect(res.trades.length).toBeGreaterThan(0);
+  });
+
+  it('cancel：running/queued → canceled；终态 → 409；未知 → 404', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const running = (await api.listWorkbenchRuns({ status: 'running' }))[0]!;
+    const canceled = await api.cancelWorkbenchRun(running.id);
+    expect(canceled.status).toBe('canceled');
+    await expect(api.cancelWorkbenchRun(running.id)).rejects.toMatchObject({ status: 409 });
+    const done = (await api.listWorkbenchRuns({ status: 'succeeded' }))[0]!;
+    await expect(api.cancelWorkbenchRun(done.id)).rejects.toMatchObject({ status: 409 });
+    await expect(api.cancelWorkbenchRun('sr_nope')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('compare：输入序并排 net_value+metrics；未知/未成功 run 跳过；空 ids → 400', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const r2 = await api.submitWorkbenchRun(validSubmit());
+    const r1 = await api.submitWorkbenchRun({ ...validSubmit(), name: 'first' });
+    const items = await api.compareWorkbenchRuns([r2.id, 'sr_nope', r1.id]);
+    expect(items.map((i) => i.run_id)).toEqual([r2.id, r1.id]);
+    expect(items[0]).toMatchObject({ symbol: '518880', period: 'D1' });
+    expect(items[0]!.net_value.length).toBeGreaterThan(0);
+    expect(items[0]!.metrics).toMatchObject({ sharpe: expect.any(Number) });
+    await expect(api.compareWorkbenchRuns([])).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('presets CRUD 闭环：create 钉住 → list/get/apply → update（重名 409）→ delete；非法入参 400/404', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const config = (await api.submitWorkbenchRun(validSubmit())).config;
+    const created = await api.createWorkbenchPreset({ name: '组合A', config });
+    expect(created.id).toMatch(/^sp_/);
+    expect(created.config.slots[0]!.version_id).toBe('sv_mock_dual_v1');
+    expect((await api.listWorkbenchPresets()).some((p) => p.id === created.id)).toBe(true);
+    expect((await api.getWorkbenchPreset(created.id)).name).toBe('组合A');
+    expect((await api.applyWorkbenchPreset(created.id)).slots).toHaveLength(1);
+    const renamed = await api.updateWorkbenchPreset(created.id, { name: '组合B', config });
+    expect(renamed.name).toBe('组合B');
+    await expect(api.createWorkbenchPreset({ name: '组合B', config })).rejects.toMatchObject({ status: 409 });
+    await expect(api.createWorkbenchPreset({ name: '  ', config })).rejects.toMatchObject({ status: 400 });
+    await expect(api.createWorkbenchPreset({ name: '空配置', config: { ...config, slots: [] } })).rejects.toMatchObject({ status: 400 });
+    await expect(api.updateWorkbenchPreset('sp_nope', { name: 'x', config })).rejects.toMatchObject({ status: 404 });
+    await api.deleteWorkbenchPreset(created.id);
+    await expect(api.getWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
+    await expect(api.deleteWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
+  });
+});

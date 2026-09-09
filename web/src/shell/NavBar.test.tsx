@@ -4,12 +4,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { NavBar } from './NavBar';
 import { NAV_ITEMS } from './navItems';
 
-describe('NavBar（00-shell：10 项按波次置灰）', () => {
-  it('渲染 10 个导航项', () => {
+describe('NavBar（00-shell：11 项按波次置灰）', () => {
+  it('渲染 11 个导航项', () => {
     render(<MemoryRouter><NavBar /></MemoryRouter>);
-    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getAllByRole('listitem')).toHaveLength(11);
     expect(NAV_ITEMS.map((i) => i.path)).toEqual([
-      '/', '/sources', '/symbols', '/quality', '/backtest', '/trading', '/alerts', '/settings', '/sim-live', '/strategies',
+      '/', '/sources', '/symbols', '/quality', '/backtest', '/trading', '/alerts', '/settings', '/sim-live', '/strategies', '/backtest-workbench',
     ]);
   });
 
@@ -25,6 +25,7 @@ describe('NavBar（00-shell：10 项按波次置灰）', () => {
       ['⑧ 系统设置', '/settings'],
       ['⑨ 模拟实盘', '/sim-live'],
       ['⑩ 策略', '/strategies'],
+      ['⑪ 回测工作台', '/backtest-workbench'],
     ] as const) {
       expect(screen.getByText(label).closest('a')).toHaveAttribute('href', href);
     }

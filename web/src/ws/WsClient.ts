@@ -11,6 +11,7 @@ const OUT_TOPIC_ALIAS: Record<string, string> = { source_health: 'health' };
 const IN_TOPIC_ALIAS: Record<string, string> = {
   health: 'source_health',
   backtest_progress: 'backtest', // 后端帧 type=backtest_progress → 前端订阅 topic=backtest
+  strategy_run_progress: 'strategy_run', // 后端帧 type=strategy_run_progress → 前端订阅 topic=strategy_run（P3b §1.8）
 };
 
 export type WsConnectionStatus = 'connecting' | 'open' | 'closed';

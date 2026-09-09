@@ -14,6 +14,8 @@
 //!  ├─ 7. CloseBasis 硬止损检查（收盘判定 → 次 bar open 成交）
 //!  ├─ 8. ExecutionPolicy 信号 → 目标仓位（幂等）→ 订单 = 目标 − 当前（ADR §13.1）
 //!  └─ 9. 记录净值 / per_bar 全量数据（ADR §13.4 全量落库的数据源）
+//!     10. observer 钩子（每 bar 末恰一次；P3a：进度上报 + 协作式取消，
+//!         Break → 立即跳出，不做期末强平、不产出结果 → EnsembleError::Canceled）
 //! ```
 //!
 //! ## 口径红线

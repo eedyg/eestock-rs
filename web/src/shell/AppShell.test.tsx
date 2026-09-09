@@ -67,7 +67,7 @@ describe('AppShell（骨架：状态条+导航+页面出口）', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getAllByRole('listitem')).toHaveLength(11);
     expect(screen.getByText('页面内容')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('1/2')).toBeInTheDocument());
     expect(screen.getByText('采集正常')).toBeInTheDocument();

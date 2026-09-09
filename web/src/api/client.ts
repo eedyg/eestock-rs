@@ -64,6 +64,14 @@ import type {
   StrategyTestRunResp,
   StrategyUpdateOutcome,
   StrategyVersionRowDto,
+  WorkbenchCompareItem,
+  WorkbenchPresetConfigInput,
+  WorkbenchPresetRow,
+  WorkbenchRunConfig,
+  WorkbenchRunResult,
+  WorkbenchRunStatus,
+  WorkbenchRunView,
+  WorkbenchSubmitReq,
 } from './types';
 import { ApiError } from './types';
 
@@ -235,6 +243,35 @@ export interface ApiClient {
   diffStrategyVersions(from: string, to: string): Promise<StrategyDiffResp>;
   /** 在线试算（POST /api/strategies/test-run；同步；双模式 pure_score/sim_position） */
   runStrategyTest(req: StrategyTestRunReq): Promise<StrategyTestRunResp>;
+  // ── 页面⑪ 回测工作台（12-strategy-system / P3b；07-app-plane §1.8）──
+  /** 提交 ensemble 运行（POST /api/workbench/runs；201 queued 行含钉住 config 快照） */
+  submitWorkbenchRun(req: WorkbenchSubmitReq): Promise<WorkbenchRunView>;
+  /** 运行历史（GET /api/workbench/runs；status 过滤 + limit/offset 分页；轻量不含结果） */
+  listWorkbenchRuns(filter?: {
+    status?: WorkbenchRunStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<WorkbenchRunView[]>;
+  /** 单 run 详情（GET /api/workbench/runs/{id}；404 未知 id） */
+  getWorkbenchRun(id: string): Promise<WorkbenchRunView>;
+  /** 运行结果（GET /api/workbench/runs/{id}/result；per_bar 全量五 jsonb；404 未知/未成功） */
+  getWorkbenchResult(id: string): Promise<WorkbenchRunResult>;
+  /** 协作式取消（POST /api/workbench/runs/{id}/cancel；409 已终态/404 未知） */
+  cancelWorkbenchRun(id: string): Promise<WorkbenchRunView>;
+  /** 多 run 并排对比（POST /api/workbench/runs/compare body {ids}；输入序；未知/未成功跳过） */
+  compareWorkbenchRuns(ids: string[]): Promise<WorkbenchCompareItem[]>;
+  /** 组合预设列表（GET /api/workbench/presets；created_at ASC） */
+  listWorkbenchPresets(): Promise<WorkbenchPresetRow[]>;
+  /** 预设详情（GET /api/workbench/presets/{id}；404） */
+  getWorkbenchPreset(id: string): Promise<WorkbenchPresetRow>;
+  /** 新建预设（POST /api/workbench/presets；201；409 重名/400 配置非法；config 未钉住形态，后端钉住） */
+  createWorkbenchPreset(req: { name: string; config: WorkbenchPresetConfigInput }): Promise<WorkbenchPresetRow>;
+  /** 更新预设（PUT /api/workbench/presets/{id}；404/409 撞名） */
+  updateWorkbenchPreset(id: string, req: { name: string; config: WorkbenchPresetConfigInput }): Promise<WorkbenchPresetRow>;
+  /** 删除预设（DELETE /api/workbench/presets/{id}；404） */
+  deleteWorkbenchPreset(id: string): Promise<void>;
+  /** 应用预设（POST /api/workbench/presets/{id}/apply → 钉住 config，供 submit 合并 symbol/period/from/to） */
+  applyWorkbenchPreset(id: string): Promise<WorkbenchRunConfig>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -495,6 +532,42 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
           mode: req.mode,
         }),
       }),
+    // ── 页面⑪ 回测工作台（§1.8）──
+    submitWorkbenchRun: (req) =>
+      request<WorkbenchRunView>('/api/workbench/runs', { method: 'POST', body: JSON.stringify(req) }),
+    listWorkbenchRuns: (filter) => {
+      const params = new URLSearchParams();
+      if (filter?.status) params.set('status', filter.status);
+      if (filter?.limit != null) params.set('limit', String(filter.limit));
+      if (filter?.offset != null) params.set('offset', String(filter.offset));
+      const qs = params.toString();
+      return get<WorkbenchRunView[]>(`/api/workbench/runs${qs ? `?${qs}` : ''}`);
+    },
+    getWorkbenchRun: (id) => get<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}`),
+    getWorkbenchResult: (id) =>
+      get<WorkbenchRunResult>(`/api/workbench/runs/${encodeURIComponent(id)}/result`),
+    cancelWorkbenchRun: (id) =>
+      request<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
+    compareWorkbenchRuns: (ids) =>
+      request<WorkbenchCompareItem[]>('/api/workbench/runs/compare', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }),
+    listWorkbenchPresets: () => get<WorkbenchPresetRow[]>('/api/workbench/presets'),
+    getWorkbenchPreset: (id) =>
+      get<WorkbenchPresetRow>(`/api/workbench/presets/${encodeURIComponent(id)}`),
+    createWorkbenchPreset: (req) =>
+      request<WorkbenchPresetRow>('/api/workbench/presets', { method: 'POST', body: JSON.stringify(req) }),
+    updateWorkbenchPreset: (id, req) =>
+      request<WorkbenchPresetRow>(`/api/workbench/presets/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(req),
+      }),
+    deleteWorkbenchPreset: async (id) => {
+      await request(`/api/workbench/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+    applyWorkbenchPreset: (id) =>
+      request<WorkbenchRunConfig>(`/api/workbench/presets/${encodeURIComponent(id)}/apply`, { method: 'POST' }),
   };
 }
 

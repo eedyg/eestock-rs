@@ -860,3 +860,163 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+// ── 页面⑪ 回测工作台（12-strategy-system / P3b；07-app-plane/00-web-api.md §1.8）──
+// 字段名与后端 serde 线格式一致（snake_case 透传，不做驼峰转换）。
+
+/** 策略运行状态（StrategyRunStatus serde snake_case） */
+export type WorkbenchRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+
+/** POST /api/workbench/runs 槽位（version_id 为 sv_ 前缀 published 版本） */
+export interface WorkbenchSlotReq {
+  version_id: string;
+  params?: Record<string, number>;
+  weight: number;
+}
+
+/** ExecutionPolicy serde 外部标签形态（strategy-core policy.rs） */
+export type WorkbenchPolicy =
+  | { LumpSum: { position_pct: number } }
+  | { Dca: { tranches: number; mode: 'Equal' | 'FixedAmount'; amount?: number | null; interval: number } };
+
+/** StopConfig serde 形态（strategy-core stop.rs；trigger 缺省 Intrabar） */
+export interface WorkbenchStop {
+  kind: 'FixedPct' | 'Trailing' | 'Atr';
+  value: number;
+  trigger?: 'Intrabar' | 'CloseBasis';
+}
+
+/** fee 形状（web 层 validate_backtest_fee 三键） */
+export interface WorkbenchFee {
+  rate_pct: number;
+  min_fee: number;
+  slippage_bp: number;
+}
+
+/** POST /api/workbench/runs body（from/to RFC3339；buy/sell_threshold、initial_capital、stop 可省） */
+export interface WorkbenchSubmitReq {
+  name?: string;
+  symbol: string;
+  period: string; // M1/M5/M15/D1
+  from: string;
+  to: string;
+  slots: WorkbenchSlotReq[];
+  buy_threshold?: number;
+  sell_threshold?: number;
+  policy: WorkbenchPolicy;
+  stop?: WorkbenchStop | null;
+  initial_capital?: number;
+  fee: WorkbenchFee;
+}
+
+/** 钉住槽位（config.slots 项；submit 时快照 strategy_id/version/sha256，params 按 schema 缺省填充） */
+export interface WorkbenchPinnedSlot {
+  strategy_id: string;
+  version_id: string;
+  version: number;
+  sha256: string;
+  params: Record<string, number>;
+  weight: number;
+}
+
+/** 钉住配置快照（strategy_run.config / strategy_preset.config / POST presets/{id}/apply 返回形状） */
+export interface WorkbenchRunConfig {
+  slots: WorkbenchPinnedSlot[];
+  buy_threshold: number;
+  sell_threshold: number;
+  policy: WorkbenchPolicy;
+  stop: WorkbenchStop | null;
+  initial_capital: number;
+  fee: WorkbenchFee;
+}
+
+/** StrategyRunView（strategy_run 轻量行；结果不内联，经 result 端点单独取） */
+export interface WorkbenchRunView {
+  id: string; // sr_ 前缀
+  name: string;
+  symbol: string;
+  period: string; // M1/M5/M15/D1
+  from_ts: string; // RFC3339
+  to_ts: string;
+  config: WorkbenchRunConfig;
+  status: WorkbenchRunStatus;
+  progress: number; // 0..1
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+/** per_bar 单 slot 评分（score 恒有值——插件错误 bar 记中立 50，error 字段携带错误文本） */
+export interface WorkbenchBarScore {
+  slot_idx: number;
+  score: number;
+  error?: string;
+}
+
+/** per_bar 订单意图（OrderIntent serde；次 bar open 成交——Intrabar 止损除外） */
+export interface WorkbenchOrderIntent {
+  side: 'Buy' | 'Sell';
+  qty: number;
+  reason: 'Policy' | 'StopTrigger' | 'ForceClose';
+}
+
+/** per_bar 事件（bar_record_json 投影：插件错误/熔断/插件 log/成交） */
+export type WorkbenchEngineEvent =
+  | { type: 'plugin_error'; slot_idx: number; sha256: string; bar_index: number; error: string }
+  | { type: 'circuit_breaker'; slot_idx: number; sha256: string; bar_index: number }
+  | { type: 'plugin_log'; slot_idx: number; bar_index: number; message: string }
+  | { type: 'fill'; bar_index: number; side: 'Buy' | 'Sell'; qty: number; price: number; reason: 'Policy' | 'StopTrigger' | 'ForceClose' };
+
+/** per_bar 全量记录（ADR §13.4；UI 端抽样渲染，后端不做有损预处理） */
+export interface WorkbenchBarRecord {
+  ts: number; // Unix 秒
+  scores: WorkbenchBarScore[];
+  aggregate: number;
+  signal: 'Buy' | 'Sell' | 'Hold';
+  orders: WorkbenchOrderIntent[];
+  events: WorkbenchEngineEvent[];
+}
+
+/** 8 项绩效（backtest::BacktestMetrics serde 形状，与既有 Metrics 同构） */
+export type WorkbenchMetrics = Metrics;
+
+/** StrategyRunResult（GET /api/workbench/runs/{id}/result；五 jsonb 列聚合） */
+export interface WorkbenchRunResult {
+  per_bar: WorkbenchBarRecord[];
+  trades: Trade[];
+  net_value: Array<[number, number]>; // [ts_unix_sec, equity]
+  drawdown: Array<[number, number]>; // [ts_unix_sec, dd]
+  metrics: WorkbenchMetrics;
+}
+
+/** CompareItem（POST /api/workbench/runs/compare；输入序，未知/未成功 run 被后端跳过） */
+export interface WorkbenchCompareItem {
+  run_id: string;
+  name: string;
+  symbol: string;
+  period: string;
+  net_value: Array<[number, number]>;
+  metrics: WorkbenchMetrics;
+}
+
+/** StrategyPresetRow（组合预设；config 为钉住形态） */
+export interface WorkbenchPresetRow {
+  id: string; // sp_ 前缀
+  name: string;
+  config: WorkbenchRunConfig;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 预设 create/update 的 config 入参（未钉住形态：后端 validate_preset_config 校验+钉住，
+ *  slots 仅需 {version_id, params?, weight}；WorkbenchRunConfig（钉住形态）可直接赋给本类型）。 */
+export interface WorkbenchPresetConfigInput {
+  slots: WorkbenchSlotReq[];
+  buy_threshold?: number;
+  sell_threshold?: number;
+  policy: WorkbenchPolicy;
+  stop?: WorkbenchStop | null;
+  initial_capital?: number;
+  fee: WorkbenchFee;
+}

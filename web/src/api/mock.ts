@@ -74,6 +74,15 @@ import type {
   StrategyTradeDetail,
   StrategyUpdateOutcome,
   StrategyVersionRowDto,
+  WorkbenchBarRecord,
+  WorkbenchCompareItem,
+  WorkbenchPinnedSlot,
+  WorkbenchPresetRow,
+  WorkbenchRunConfig,
+  WorkbenchRunResult,
+  WorkbenchRunStatus,
+  WorkbenchRunView,
+  WorkbenchSubmitReq,
 } from './types';
 import { ApiError } from './types';
 
@@ -627,6 +636,179 @@ function approvalRank(l: StrategyApprovalLevel): number {
   return l === 'backtest_ok' ? 1 : l === 'sim_ok' ? 2 : 3;
 }
 
+// ── 页面⑪ 回测工作台（12-strategy-system / P3b；§1.8 契约 mock）──
+
+/** 确定性 ensemble 运行结果（ADR §13.4 五 jsonb 列形状；由 run id 哈希驱动，可复现）。
+ *  per_bar 60 根日线粒度：scores（每 slot 一分，偶发插件错误记中立 50 + error 文本）/aggregate
+ *  （权重加权）/signal（config 阈值判定）/orders/events（含一次 StopTrigger 成交与插件 log）；
+ *  trades/net_value/drawdown/metrics 与旧回测 mock 同口径生成。 */
+function mockWorkbenchResult(
+  seed: string,
+  config: WorkbenchRunConfig,
+  fromMs: number,
+  toMs: number,
+): WorkbenchRunResult {
+  const N = 60;
+  const stepSec = Math.max(60, Math.floor((toMs - fromMs) / 1000 / N));
+  const startSec = Math.floor(fromMs / 1000);
+  const totalWeight = config.slots.reduce((s, x) => s + x.weight, 0) || 1;
+  const perBar: WorkbenchBarRecord[] = [];
+  const trades: Trade[] = [];
+  const netValue: Array<[number, number]> = [];
+  const drawdown: Array<[number, number]> = [];
+  let equity = config.initial_capital;
+  let peak = equity;
+  let holding: { qty: number; price: number; openTs: number; openBar: number } | null = null;
+  for (let i = 0; i < N; i++) {
+    const ts = startSec + i * stepSec;
+    const price = round3(2 + rand01(`${seed}:px:${i}`) * 1.5);
+    const scores = config.slots.map((_s, idx) => {
+      // 确定性错误素材：bar 7 必出插件错误（G5 中立分 50 + error 文本）；其余按 3% 哈希随机
+      const isErr = i === 7 || rand01(`${seed}:err:${idx}:${i}`) < 0.03;
+      const score = isErr ? 50 : Math.round(rand01(`${seed}:sc:${idx}:${i}`) * 100);
+      return isErr
+        ? { slot_idx: idx, score, error: 'mock 插件错误（契约桩）' }
+        : { slot_idx: idx, score };
+    });
+    const aggregate = round3(scores.reduce((s, x) => s + x.score * config.slots[x.slot_idx]!.weight, 0) / totalWeight);
+    const signal: WorkbenchBarRecord['signal'] =
+      aggregate >= config.buy_threshold ? 'Buy' : aggregate <= config.sell_threshold ? 'Sell' : 'Hold';
+    const orders: WorkbenchBarRecord['orders'] = [];
+    const events: WorkbenchBarRecord['events'] = [];
+    if (scores.some((s) => s.error)) {
+      const bad = scores.findIndex((s) => s.error);
+      events.push({
+        type: 'plugin_error', slot_idx: bad, sha256: config.slots[bad]?.sha256 ?? '',
+        bar_index: i, error: 'mock 插件错误（契约桩）',
+      });
+    }
+    if (i % 17 === 0) events.push({ type: 'plugin_log', slot_idx: 0, bar_index: i, message: `mock log bar=${i}` });
+    // 简薄撮合同构：Buy 开/加仓、Sell 平仓；中段插一笔硬止损强平（StopTrigger 不同图标测试素材）
+    const stopBar = Math.floor(N / 2);
+    if (i === stopBar && config.stop) {
+      // 确定性止损素材：无持仓则补一笔建仓，保证 stopBar 处必有 StopTrigger 强平
+      if (!holding) holding = { qty: 100, price: round3(price * 1.08), openTs: ts - stepSec, openBar: i - 1 };
+      const sp = round3(holding.price * (1 - 0.08));
+      events.push({ type: 'fill', bar_index: i, side: 'Sell', qty: holding.qty, price: sp, reason: 'StopTrigger' });
+      equity += (sp - holding.price) * holding.qty;
+      trades.push({
+        open_ts: holding.openTs, close_ts: ts, open_bar: holding.openBar, close_bar: i,
+        open_price: holding.price, close_price: sp, shares: holding.qty,
+        gross_value: round3(sp * holding.qty), commission: 10, stamp_duty: round3(sp * holding.qty * 0.0005),
+        pnl: Math.round((sp - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
+      });
+      holding = null;
+    } else if (!holding && signal === 'Buy') {
+      const qty = Math.floor((equity * 0.9) / price / 100) * 100 || 100;
+      events.push({ type: 'fill', bar_index: i, side: 'Buy', qty, price, reason: 'Policy' });
+      holding = { qty, price, openTs: ts, openBar: i };
+    } else if (holding && signal === 'Sell') {
+      events.push({ type: 'fill', bar_index: i, side: 'Sell', qty: holding.qty, price, reason: 'Policy' });
+      equity += (price - holding.price) * holding.qty;
+      trades.push({
+        open_ts: holding.openTs, close_ts: ts, open_bar: holding.openBar, close_bar: i,
+        open_price: holding.price, close_price: price, shares: holding.qty,
+        gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
+        pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
+      });
+      holding = null;
+    }
+    const eq = round3(equity + (holding ? (price - holding.price) * holding.qty : 0));
+    peak = Math.max(peak, eq);
+    netValue.push([ts, eq]);
+    drawdown.push([ts, peak > 0 ? round3((peak - eq) / peak) : 0]);
+    perBar.push({ ts, scores, aggregate, signal, orders, events });
+  }
+  // 期末仍持仓 → 强平（ForceClose）
+  if (holding) {
+    const last = perBar[perBar.length - 1]!;
+    const price = round3(2 + rand01(`${seed}:px:end`) * 1.5);
+    last.events.push({ type: 'fill', bar_index: N - 1, side: 'Sell', qty: holding.qty, price, reason: 'ForceClose' });
+    trades.push({
+      open_ts: holding.openTs, close_ts: last.ts, open_bar: holding.openBar, close_bar: N - 1,
+      open_price: holding.price, close_price: price, shares: holding.qty,
+      gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
+      pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: N - 1 - holding.openBar,
+    });
+    const eq = round3(equity + (price - holding.price) * holding.qty);
+    netValue[netValue.length - 1] = [last.ts, eq];
+    peak = Math.max(peak, eq);
+    drawdown[drawdown.length - 1] = [last.ts, peak > 0 ? round3((peak - eq) / peak) : 0];
+  }
+  return { per_bar: perBar, trades, net_value: netValue, drawdown, metrics: mockBacktestMetrics(seed) };
+}
+
+/** 种子工作台 runs（succeeded/running/failed 三态；config 钉住形状与 submit 同构）。 */
+function seedWorkbenchRuns(
+  anchor: number,
+  store: MockStrategyStore,
+): Map<string, { view: WorkbenchRunView; result: WorkbenchRunResult | null }> {
+  const iso = (offMs: number) => new Date(anchor - offMs).toISOString();
+  const dual = store.versions.find((v) => v.id === 'sv_mock_dual_v1')!;
+  const tpl = store.versions.find((v) => v.id === 'sv_mock_tpl_v1')!;
+  const pin = (v: StrategyVersionRowDto, weight: number): WorkbenchPinnedSlot => ({
+    strategy_id: v.strategy_id,
+    version_id: v.id,
+    version: v.version,
+    sha256: v.sha256,
+    params: Object.fromEntries(v.params_schema.map((p) => [p.key, p.default])),
+    weight,
+  });
+  const baseConfig = (slots: WorkbenchPinnedSlot[]): WorkbenchRunConfig => ({
+    slots,
+    buy_threshold: 60,
+    sell_threshold: 40,
+    policy: { LumpSum: { position_pct: 1 } },
+    stop: { kind: 'FixedPct', value: 0.08, trigger: 'Intrabar' },
+    initial_capital: 100_000,
+    fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+  });
+  const mk = (
+    id: string,
+    over: Partial<WorkbenchRunView>,
+    config: WorkbenchRunConfig,
+  ): { view: WorkbenchRunView; result: WorkbenchRunResult | null } => {
+    const fromMs = anchor - 90 * 86_400_000;
+    const view: WorkbenchRunView = {
+      id,
+      name: '',
+      symbol: '518880',
+      period: 'D1',
+      from_ts: new Date(fromMs).toISOString(),
+      to_ts: iso(0),
+      config,
+      status: 'queued',
+      progress: 0,
+      error: null,
+      created_at: iso(3_600_000),
+      started_at: null,
+      finished_at: null,
+      ...over,
+    };
+    const result =
+      view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor) : null;
+    return { view, result };
+  };
+  const map = new Map<string, { view: WorkbenchRunView; result: WorkbenchRunResult | null }>();
+  map.set('sr_mock_seed1', mk('sr_mock_seed1', {
+    name: '种子·双均线', status: 'succeeded', progress: 1,
+    created_at: iso(7_200_000), started_at: iso(7_200_000), finished_at: iso(7_100_000),
+  }, baseConfig([pin(dual, 1)])));
+  map.set('sr_mock_seed2', mk('sr_mock_seed2', {
+    name: '种子·双策略组合', status: 'succeeded', progress: 1,
+    created_at: iso(3_600_000), started_at: iso(3_600_000), finished_at: iso(3_500_000),
+  }, baseConfig([pin(dual, 1), pin(tpl, 2)])));
+  map.set('sr_mock_seed3', mk('sr_mock_seed3', {
+    name: '种子·运行中', status: 'running', progress: 0.42,
+    created_at: iso(1_800_000), started_at: iso(1_800_000),
+  }, baseConfig([pin(dual, 1)])));
+  map.set('sr_mock_seed4', mk('sr_mock_seed4', {
+    name: '种子·失败', status: 'failed', progress: 0.1, error: 'mock 引擎错误（契约桩）',
+    created_at: iso(900_000), started_at: iso(900_000), finished_at: iso(800_000),
+  }, baseConfig([pin(dual, 1)])));
+  return map;
+}
+
 export function createMockClient(opts: MockOptions = {}): ApiClient {
   const anchorNow = opts.now?.getTime() ?? Date.now();
   let symbols = initialSymbols();
@@ -663,6 +845,11 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     (backtestRuns.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
   /** 页面⑩ 策略 Registry mock 内存态（策略行 + 版本行；行为可闭环验证）。 */
   const strategyStore = seedStrategyStore(anchorNow);
+  /** 页面⑪ 回测工作台 mock 内存态（runs 含结果 / presets；§1.8 行为可闭环验证）。 */
+  const workbenchRuns = seedWorkbenchRuns(anchorNow, strategyStore);
+  let workbenchSeq = 100;
+  const workbenchPresets = new Map<string, WorkbenchPresetRow>();
+  let workbenchPresetSeq = 1;
   /** 新建 draft 版本（从指定版本派生；与后端 create_draft_from 同口径）。局部函数而非对象方法，
    *  避免 stubApi（vi.fn 包装）下 `this` 上下文丢失。 */
   const createDraftFromVersion = (strategyId: string, fromVersionId: string): StrategyVersionRowDto => {
@@ -1459,6 +1646,192 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         events,
         truncated: { scores: false, events: false, trades: false },
       };
+    },
+    // ── 页面⑪ 回测工作台（§1.8；mock 行为与后端契约同构）──
+    // 与旧回测 mock 同先例：submit 同步落终态（succeeded + 结果可取），异步进度由 WS 测试桩驱动。
+    async submitWorkbenchRun(req: WorkbenchSubmitReq): Promise<WorkbenchRunView> {
+      // web 层预校验同构（workbench.rs submit_run）：symbol 空/未注册、period、from/to、slots、fee
+      if (!req.symbol.trim()) throw new ApiError(400, 'HTTP 400: symbol 必填');
+      if (!symbols.some((s) => s.code === req.symbol)) {
+        throw new ApiError(400, `HTTP 400: symbol ${req.symbol} 未注册`);
+      }
+      if (!['M1', 'M5', 'M15', 'D1'].includes(req.period)) {
+        throw new ApiError(400, 'HTTP 400: period 须为 M1/M5/M15/D1');
+      }
+      const fromMs = Date.parse(req.from);
+      const toMs = Date.parse(req.to);
+      if (Number.isNaN(fromMs) || Number.isNaN(toMs)) throw new ApiError(400, 'HTTP 400: from/to 须为 RFC3339');
+      if (fromMs >= toMs) throw new ApiError(400, 'HTTP 400: from 须早于 to');
+      if (req.slots.length === 0 || req.slots.length > 10) {
+        throw new ApiError(400, 'HTTP 400: slots 必填（1..=10）');
+      }
+      for (const key of ['rate_pct', 'min_fee', 'slippage_bp'] as const) {
+        if (typeof req.fee?.[key] !== 'number') throw new ApiError(400, `HTTP 400: fee.${key} 缺失或应为数值`);
+      }
+      // 服务层校验同构：weight>0、版本存在(404)/published、params 按 schema 缺省填充并越界检查、阈值不倒挂
+      const buy = req.buy_threshold ?? 60;
+      const sell = req.sell_threshold ?? 40;
+      if (buy <= sell) throw new ApiError(400, 'HTTP 400: 阈值倒挂（buy_threshold 须 > sell_threshold）');
+      const pinnedSlots: WorkbenchPinnedSlot[] = req.slots.map((s) => {
+        if (!(s.weight > 0)) throw new ApiError(400, 'HTTP 400: weight 须 > 0');
+        const v = strategyStore.versions.find((x) => x.id === s.version_id);
+        if (!v) throw new ApiError(404, `HTTP 404: 版本 ${s.version_id} 不存在`);
+        if (v.status !== 'published') throw new ApiError(400, `HTTP 400: 版本 ${s.version_id} 非 published`);
+        // 未知参数键拒绝（对齐后端 fill_and_validate_params：schema 未声明的键 → 400）
+        for (const k of Object.keys(s.params ?? {})) {
+          if (!v.params_schema.some((p) => p.key === k)) {
+            throw new ApiError(400, `HTTP 400: 未知参数键: ${k}（schema 未声明）`);
+          }
+        }
+        const params: Record<string, number> = {};
+        for (const p of v.params_schema) {
+          const val = s.params?.[p.key] ?? p.default;
+          if (typeof val !== 'number' || Number.isNaN(val)) throw new ApiError(400, `HTTP 400: 参数 ${p.key} 须为数值`);
+          if ((p.min !== undefined && val < p.min) || (p.max !== undefined && val > p.max)) {
+            throw new ApiError(400, `HTTP 400: 参数 ${p.key} 越 schema 范围`);
+          }
+          params[p.key] = val;
+        }
+        return {
+          strategy_id: v.strategy_id,
+          version_id: v.id,
+          version: v.version,
+          sha256: v.sha256,
+          params,
+          weight: s.weight,
+        };
+      });
+      const policy = req.policy as Record<string, unknown> | undefined;
+      if (!policy || (!policy.LumpSum && !policy.Dca)) throw new ApiError(400, 'HTTP 400: policy 非法');
+      const config: WorkbenchRunConfig = {
+        slots: pinnedSlots,
+        buy_threshold: buy,
+        sell_threshold: sell,
+        policy: req.policy,
+        stop: req.stop ?? null,
+        initial_capital: req.initial_capital ?? 100_000,
+        fee: req.fee,
+      };
+      const id = `sr_mock_${workbenchSeq}`;
+      workbenchSeq += 1;
+      const nowIso = new Date(anchorNow).toISOString();
+      const view: WorkbenchRunView = {
+        id,
+        name: req.name ?? '',
+        symbol: req.symbol,
+        period: req.period,
+        from_ts: new Date(fromMs).toISOString(),
+        to_ts: new Date(toMs).toISOString(),
+        config,
+        status: 'succeeded',
+        progress: 1,
+        error: null,
+        created_at: nowIso,
+        started_at: nowIso,
+        finished_at: nowIso,
+      };
+      workbenchRuns.set(id, { view, result: mockWorkbenchResult(id, config, fromMs, toMs) });
+      return { ...view };
+    },
+    async listWorkbenchRuns(filter?: {
+      status?: WorkbenchRunStatus;
+      limit?: number;
+      offset?: number;
+    }): Promise<WorkbenchRunView[]> {
+      let out = [...workbenchRuns.values()].map((r) => r.view);
+      if (filter?.status) out = out.filter((r) => r.status === filter.status);
+      // 与后端同序：created_at DESC, id DESC
+      out.sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+      const offset = filter?.offset ?? 0;
+      const limit = filter?.limit ?? 100;
+      return out.slice(offset, offset + Math.max(0, limit)).map((v) => ({ ...v }));
+    },
+    async getWorkbenchRun(id: string): Promise<WorkbenchRunView> {
+      const r = workbenchRuns.get(id);
+      if (!r) throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
+      return { ...r.view };
+    },
+    async getWorkbenchResult(id: string): Promise<WorkbenchRunResult> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      return r.result;
+    },
+    async cancelWorkbenchRun(id: string): Promise<WorkbenchRunView> {
+      const r = workbenchRuns.get(id);
+      if (!r) throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
+      if (r.view.status !== 'queued' && r.view.status !== 'running') {
+        throw new ApiError(409, `HTTP 409: run ${id} 已终态（${r.view.status}），不可取消`);
+      }
+      r.view = { ...r.view, status: 'canceled', finished_at: new Date(anchorNow).toISOString() };
+      return { ...r.view };
+    },
+    async compareWorkbenchRuns(ids: string[]): Promise<WorkbenchCompareItem[]> {
+      if (ids.length === 0) throw new ApiError(400, 'HTTP 400: ids 必填（run id 数组）');
+      const out: WorkbenchCompareItem[] = [];
+      for (const id of ids) {
+        const r = workbenchRuns.get(id);
+        if (!r || r.view.status !== 'succeeded' || !r.result) continue; // 未知/未成功跳过
+        out.push({
+          run_id: id,
+          name: r.view.name,
+          symbol: r.view.symbol,
+          period: r.view.period,
+          net_value: r.result.net_value,
+          metrics: r.result.metrics,
+        });
+      }
+      return out;
+    },
+    async listWorkbenchPresets(): Promise<WorkbenchPresetRow[]> {
+      return [...workbenchPresets.values()]
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+        .map((p) => ({ ...p }));
+    },
+    async createWorkbenchPreset(req: { name: string; config: WorkbenchRunConfig }): Promise<WorkbenchPresetRow> {
+      const name = req.name.trim();
+      if (!name) throw new ApiError(400, 'HTTP 400: name 必填');
+      if (!req.config?.slots || req.config.slots.length === 0) {
+        throw new ApiError(400, 'HTTP 400: 配置非法（slots 空）');
+      }
+      if ([...workbenchPresets.values()].some((p) => p.name === name)) {
+        throw new ApiError(409, `HTTP 409: 预设名 ${name} 重名`);
+      }
+      const id = `sp_mock_${workbenchPresetSeq}`;
+      workbenchPresetSeq += 1;
+      const nowIso = new Date(anchorNow).toISOString();
+      const row: WorkbenchPresetRow = { id, name, config: req.config, created_at: nowIso, updated_at: nowIso };
+      workbenchPresets.set(id, row);
+      return { ...row };
+    },
+    async getWorkbenchPreset(id: string): Promise<WorkbenchPresetRow> {
+      const p = workbenchPresets.get(id);
+      if (!p) throw new ApiError(404, `HTTP 404: 预设 ${id} 不存在`);
+      return { ...p };
+    },
+    async updateWorkbenchPreset(id: string, req: { name: string; config: WorkbenchRunConfig }): Promise<WorkbenchPresetRow> {
+      const name = req.name.trim();
+      if (!name) throw new ApiError(400, 'HTTP 400: name 必填');
+      if (!req.config?.slots || req.config.slots.length === 0) {
+        throw new ApiError(400, 'HTTP 400: 配置非法（slots 空）');
+      }
+      const p = workbenchPresets.get(id);
+      if (!p) throw new ApiError(404, `HTTP 404: 预设 ${id} 不存在`);
+      if ([...workbenchPresets.values()].some((x) => x.id !== id && x.name === name)) {
+        throw new ApiError(409, `HTTP 409: 预设名 ${name} 重名`);
+      }
+      const next: WorkbenchPresetRow = { ...p, name, config: req.config, updated_at: new Date(anchorNow).toISOString() };
+      workbenchPresets.set(id, next);
+      return { ...next };
+    },
+    async deleteWorkbenchPreset(id: string): Promise<void> {
+      if (!workbenchPresets.delete(id)) throw new ApiError(404, `HTTP 404: 预设 ${id} 不存在`);
+    },
+    async applyWorkbenchPreset(id: string): Promise<WorkbenchRunConfig> {
+      const p = workbenchPresets.get(id);
+      if (!p) throw new ApiError(404, `HTTP 404: 预设 ${id} 不存在`);
+      return p.config;
     },
   };
 }

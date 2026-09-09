@@ -10,6 +10,7 @@ import { BacktestPage } from '@/features/backtest/BacktestPage';
 import { SimLivePage } from '@/features/simlive/SimLivePage';
 import { StrategiesPage } from '@/features/strategies/StrategiesPage';
 import { StrategyEditorPage } from '@/features/strategies/StrategyEditorPage';
+import { WorkbenchPage } from '@/features/workbench/WorkbenchPage';
 
 // 路由（00-shell §路由索引）：①...⑦ + ④（W2 Phase C）+ ⑤（W3 Phase 3c）+ ⑧（S1 设置页）已解锁，其余置灰项无路由，统一回落 /
 export default function App() {
@@ -28,6 +29,8 @@ export default function App() {
           {/* 页面⑩ 策略管理（12-strategy-system / P2b） */}
           <Route path="/strategies" element={<StrategiesPage />} />
           <Route path="/strategies/:id/edit" element={<StrategyEditorPage />} />
+          {/* 页面⑪ 回测工作台（12-strategy-system / P3b；旧 /backtest 并存期 D16 不动） */}
+          <Route path="/backtest-workbench" element={<WorkbenchPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

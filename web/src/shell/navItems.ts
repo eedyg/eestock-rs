@@ -18,4 +18,5 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/settings', label: '⑧ 系统设置', enabled: true },  // 页面⑧ 设置页 S1 低风险切片解锁
   { path: '/sim-live', label: '⑨ 模拟实盘', enabled: true },  // 11-sim-live / L3b：web 面板（模拟实盘，不触真实券商）
   { path: '/strategies', label: '⑩ 策略', enabled: true },  // 12-strategy-system / P2b：策略管理（列表+编辑器+试算）
+  { path: '/backtest-workbench', label: '⑪ 回测工作台', enabled: true },  // 12-strategy-system / P3b：统一策略 ensemble 回测（旧 ⑤ 并存期 D16）
 ];

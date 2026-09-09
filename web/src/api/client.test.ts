@@ -616,3 +616,99 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(lastCall(f5).url).toBe('/api/sim-live/sessions/s_9');
   });
 });
+
+describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8 线格式）', () => {
+  const submitBody: import('./types').WorkbenchSubmitReq = {
+    symbol: '518880',
+    period: 'D1',
+    from: '2026-01-01T00:00:00Z',
+    to: '2026-03-01T00:00:00Z',
+    slots: [{ version_id: 'sv_1', params: { fast: 5 }, weight: 1 }],
+    buy_threshold: 60,
+    sell_threshold: 40,
+    policy: { LumpSum: { position_pct: 1 } },
+    stop: { kind: 'FixedPct', value: 0.08, trigger: 'Intrabar' },
+    initial_capital: 100000,
+    fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+  };
+
+  it('submitWorkbenchRun → POST /api/workbench/runs（body 原样 snake_case）', async () => {
+    const f = fetcherReturning({ id: 'sr_1', status: 'queued' }, true, 201);
+    const api = createHttpClient('', f);
+    await api.submitWorkbenchRun(submitBody);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/workbench/runs');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual(submitBody);
+  });
+
+  it('listWorkbenchRuns → GET /api/workbench/runs（status/limit/offset 序列化；缺省不带参）', async () => {
+    const f = fetcherReturning([]);
+    const api = createHttpClient('', f);
+    await api.listWorkbenchRuns({ status: 'succeeded', limit: 50, offset: 100 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs?status=succeeded&limit=50&offset=100');
+    await api.listWorkbenchRuns();
+    expect(lastCall(f).url).toBe('/api/workbench/runs');
+  });
+
+  it('getWorkbenchRun / getWorkbenchResult / cancelWorkbenchRun URL 契约', async () => {
+    const f = fetcherReturning({});
+    const api = createHttpClient('', f);
+    await api.getWorkbenchRun('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9');
+    await api.getWorkbenchResult('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/result');
+    await api.cancelWorkbenchRun('sr_9');
+    const c = lastCall(f);
+    expect(c.url).toBe('/api/workbench/runs/sr_9/cancel');
+    expect(c.init.method).toBe('POST');
+  });
+
+  it('compareWorkbenchRuns → POST /api/workbench/runs/compare（body {ids}）', async () => {
+    const f = fetcherReturning([]);
+    const api = createHttpClient('', f);
+    await api.compareWorkbenchRuns(['sr_1', 'sr_2']);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/workbench/runs/compare');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ ids: ['sr_1', 'sr_2'] });
+  });
+
+  it('presets CRUD + apply URL/method/body 契约', async () => {
+    const f = fetcherReturning({});
+    const api = createHttpClient('', f);
+    await api.listWorkbenchPresets();
+    expect(lastCall(f).url).toBe('/api/workbench/presets');
+
+    const cfg = { slots: [], buy_threshold: 60, sell_threshold: 40 } as never;
+    await api.createWorkbenchPreset({ name: 'p1', config: cfg });
+    let c = lastCall(f);
+    expect(c.url).toBe('/api/workbench/presets');
+    expect(c.init.method).toBe('POST');
+    expect(JSON.parse(String(c.init.body))).toEqual({ name: 'p1', config: cfg });
+
+    await api.updateWorkbenchPreset('sp_1', { name: 'p2', config: cfg });
+    c = lastCall(f);
+    expect(c.url).toBe('/api/workbench/presets/sp_1');
+    expect(c.init.method).toBe('PUT');
+
+    await api.deleteWorkbenchPreset('sp_1');
+    c = lastCall(f);
+    expect(c.url).toBe('/api/workbench/presets/sp_1');
+    expect(c.init.method).toBe('DELETE');
+
+    await api.applyWorkbenchPreset('sp_1');
+    c = lastCall(f);
+    expect(c.url).toBe('/api/workbench/presets/sp_1/apply');
+    expect(c.init.method).toBe('POST');
+  });
+
+  it('错误透传：400/404/409 ApiError（状态码 + 服务端 error 文本）', async () => {
+    const f = fetcherReturning({ error: 'ids 必填' }, false, 400);
+    const api = createHttpClient('', f);
+    await expect(api.compareWorkbenchRuns([])).rejects.toMatchObject({ status: 400 });
+    const f404 = fetcherReturning({ error: 'run 不存在' }, false, 404);
+    const api404 = createHttpClient('', f404);
+    await expect(api404.getWorkbenchRun('sr_x')).rejects.toBeInstanceOf(ApiError);
+  });
+});
