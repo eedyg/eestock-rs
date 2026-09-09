@@ -148,10 +148,10 @@ async fn main() -> anyhow::Result<()> {
         config,
         // 11-sim-live / L3b：模拟实盘服务（与 MCP 共享同一 SimLiveService 实例）
         sim: Some(sim_service.clone()),
-        // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*）
-        strategies: Some(strategy_service),
-        // 12-strategy-system / P3a：回测工作台服务（/api/workbench/*，§1.8）
-        workbench: Some(workbench_service),
+        // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*；clone 供 MCP P3c 共享同实例）
+        strategies: Some(strategy_service.clone()),
+        // 12-strategy-system / P3a：回测工作台服务（/api/workbench/*，§1.8；clone 供 MCP P3c 共享同实例）
+        workbench: Some(workbench_service.clone()),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,
@@ -181,6 +181,13 @@ async fn main() -> anyhow::Result<()> {
         default_window_secs: cfg.health_window_secs,
         sessions: mcp::state::SessionRegistry::default(),
         sim: Some(sim_service),
+        // 12-strategy-system / P3c：统一策略系统 MCP 工具族（strategy_*/bt_*）——与 web 共享同一服务实例
+        //（同 SimLiveService 双通道口径）；落现有 SSE server（ADR §13.7，不做 transport 迁移）。
+        strategies: Some(strategy_service),
+        workbench: Some(workbench_service),
+        // P3c：strategy_*/bt_* 工具族 MCP 停用开关（父级裁决：McpState 本地单开关，默认开；
+        // 后续如需运行时翻转，web 端点写同一 Arc——本期不做端点）。
+        strategy_tools_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
     });
     let mcp_listen = cfg.mcp_listen.clone();
     tokio::spawn(async move {

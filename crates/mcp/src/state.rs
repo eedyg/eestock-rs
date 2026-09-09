@@ -3,9 +3,12 @@
 //! 分层红线：mcp 只见 domain 端口 + diagnose 服务，不依赖 storage/sqlx（同 web 口径）。
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use application::simlive::SimLiveService;
+use application::strategy::StrategyService;
+use application::workbench::WorkbenchService;
 
 /// MCP 应用状态（与 web::state::AppState 同模式，只读端口注入）。
 pub struct McpState {
@@ -21,6 +24,29 @@ pub struct McpState {
     pub sessions: SessionRegistry,
     /// 模拟实盘服务（11-sim-live / L1：sim_* 工具；None = 未配置，工具返回 isError）。
     pub sim: Option<Arc<SimLiveService>>,
+    /// 统一策略系统 Registry 服务（12-strategy-system / P3c：strategy_* 工具；
+    /// None = 未配置，工具返回 isError；与 web AppState.strategies 共享同一实例）。
+    pub strategies: Option<Arc<StrategyService>>,
+    /// 回测工作台服务（12-strategy-system / P3c：bt_* 工具；
+    /// None = 未配置，工具返回 isError；与 web AppState.workbench 共享同一实例）。
+    pub workbench: Option<Arc<WorkbenchService>>,
+    /// strategy_*/bt_* 工具族 MCP 停用开关（父级裁决 2026-09：McpState 本地**单开关**，默认开；
+    /// 不在 StrategyService/WorkbenchService 上复制 sim 式开关——风险画像不同且生产无翻转路径）。
+    /// 后续如需运行时翻转：web 端点写同一 Arc（本期不做端点，见遗留风险）。
+    pub strategy_tools_enabled: Arc<AtomicBool>,
+}
+
+impl McpState {
+    /// strategy_*/bt_* 工具族是否启用（MCP 停用开关；默认 true）。
+    pub fn strategy_tools_enabled(&self) -> bool {
+        self.strategy_tools_enabled.load(Ordering::Relaxed)
+    }
+
+    /// 设置 strategy_*/bt_* 工具族开关（返回设置后值；后续 web 端点写同一 Arc 用）。
+    pub fn set_strategy_tools_enabled(&self, enabled: bool) -> bool {
+        self.strategy_tools_enabled.store(enabled, Ordering::Relaxed);
+        enabled
+    }
 }
 
 /// 会话登记表（std Mutex 不跨 await；与 web SubscriptionRegistry 同模式）。

@@ -117,6 +117,8 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 | `strategy_test_run` | 在线试算（单标的区间，返回评分序列+信号） |
 | `bt_run_ensemble` / `bt_get_run` / `bt_list_runs` / `bt_compare_runs` | 回测工作台任务（异步，进度经 WS；MCP 侧轮询） |
 
+> P3c 实施定稿（2026-09-09，父级批准）：`strategy_versions` 并入 `strategy_get`（详情+版本列表合一）；bt_* 增补 `bt_get_run_result` / `bt_cancel_run` / `bt_list_presets` / `bt_apply_preset`（最终矩阵 strategy_*×7 + bt_*×8，权威 schema 以 design/07-app-plane/01-mcp.md 为准）。
+
 **Web 页面**：策略列表 / 策略编辑器（Monaco + 参数表单 + 试算面板）/ 回测工作台（策略多选下拉+权重+阈值+ExecutionPolicy 配置 → 运行 → 每策略评分曲线/总分曲线/净值/回撤/交易明细/绩效，多任务 compare）。sim-live 配置页策略来源切换为 Registry catalog。
 
 ## 9. TDD 规格（Red-Green-Refactor 强制）

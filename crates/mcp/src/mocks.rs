@@ -147,7 +147,8 @@ pub fn quality_for(rows: Vec<DivergenceRow>,
         Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 4, 4, 0, 0).unwrap())))
 }
 
-/// 装配测试用 McpState（default_window_secs=3600；质量服务默认空口径）。
+/// 装配测试用 McpState（default_window_secs=3600；质量服务默认空口径；
+/// P3c 策略/工作台服务 None——strategy_*/bt_* 走「未配置 isError」路径，开关默认开）。
 pub fn test_state(kline: Arc<MockKline>, events: Arc<MockEvents>) -> Arc<McpState> {
     Arc::new(McpState {
         kline,
@@ -156,6 +157,9 @@ pub fn test_state(kline: Arc<MockKline>, events: Arc<MockEvents>) -> Arc<McpStat
         default_window_secs: 3600,
         sessions: crate::state::SessionRegistry::default(),
         sim: None,
+        strategies: None,
+        workbench: None,
+        strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
     })
 }
 // ~/~ end

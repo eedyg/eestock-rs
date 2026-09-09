@@ -37,6 +37,9 @@ fn state(pool: PgPool) -> Arc<McpState> {
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
         sim: None,
+        strategies: None,
+        workbench: None,
+        strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
     })
 }
 
