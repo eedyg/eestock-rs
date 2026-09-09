@@ -152,7 +152,8 @@ fn new_group_id() -> String {
 }
 
 /// `domain::types::Bar -> backtest::Bar`（ts 转 Unix 秒；volume 转 f64）。
-fn to_bt_bar(b: &domain::types::Bar) -> backtest::Bar {
+/// P3a：pub(crate) 供 workbench 复用（同口径映射）。
+pub(crate) fn to_bt_bar(b: &domain::types::Bar) -> backtest::Bar {
     backtest::Bar {
         ts: b.ts.timestamp(),
         open: b.open,

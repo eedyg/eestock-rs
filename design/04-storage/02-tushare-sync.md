@@ -616,6 +616,9 @@ pub mod sim;
 // strategy：策略 Registry 存储端口实现加法扩展（12-strategy-system / P2a：StrategyStore；
 // 代码块在 design/04-storage/schema.md §4.3.13。strategy.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod strategy;
+// workbench：回测工作台存储端口实现加法扩展（12-strategy-system / P3a：StrategyRunStore + StrategyPresetStore；
+// 代码块在 design/04-storage/schema.md §4.3.14。workbench.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod workbench;
 ```
 
 ``` {.rust file=crates/storage/tests/accurate_upsert.rs}

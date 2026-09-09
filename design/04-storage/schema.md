@@ -900,6 +900,78 @@ CREATE TRIGGER strategy_version_no_delete_published
   WHERE id=$1 AND status='draft' AND code=$expected_code`（**乐观并发 TOCTOU 防护**：
   `expected_code` 为 application 层冒烟通过的原文）；0 行 → `Ok(None)`（application 映射 409）。
 
+## 4.3.14 回测工作台（12-strategy-system / P3a，0023；ADR 12 §13.4 数据粒度 / §13.5 组合预设）
+
+**上下文**：统一策略系统 P3a 落回测工作台持久化。`strategy_run` = 任务制 ensemble 运行
+（ queued→running→succeeded/failed/canceled 状态机，progress 0..1，config 为完整可复现快照——
+钉住 (strategy_id, version, sha256) + params/weight + thresholds + policy + stop + initial_capital + fee，
+ADR §13.4 复现前提）；`strategy_run_result` = 运行结果（per_bar 全量——各策略分+聚合分+信号+订单+事件，
+ADR §13.4；trades/net_value/drawdown/metrics 五 jsonb 列，FK ON DELETE CASCADE）；
+`strategy_preset` = 组合预设（ADR §13.5：命名保存 {策略集+权重/参数, 阈值, Policy, 止损}，
+config 同 strategy_run.config 形状，工作台与 sim-live 共用下拉，name UNIQUE）。
+
+**表口径**：应用面自有表（与 backtest/strategy 同口径：数据面不读写，不违 ADR-017）。
+`strategy_run.id` / `strategy_preset.id` 为应用层生成（`sr_<ts>_<seq>` / `sp_<ts>_<seq>` 口径）。
+状态迁移全部条件更新（应用层端口契约：queued→running 原子认领；running→succeeded 同事务落结果；
+queued/running→canceled 协作式取消 DB 侧），终态不可再迁移（domain::ports::StrategyRunStatus::is_terminal）。
+
+``` {.sql file=migrations/0023_strategy_workbench.sql}
+-- 0023_strategy_workbench.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 12-strategy-system / P3a：回测工作台（ADR 12-strategy-system §13.4 数据粒度 / §13.5 组合预设）。
+-- strategy_run = 任务制 ensemble 运行（config 完整快照钉住 (strategy_id, version, sha256)，复现前提）；
+-- strategy_run_result = 结果（per_bar 全量五 jsonb 列，FK 级联）；strategy_preset = 组合预设（name UNIQUE）。
+-- 应用面自有表（数据面不读写，ADR-017 不违）。
+CREATE TABLE strategy_run (
+    id          text PRIMARY KEY,                       -- 应用层生成（sr_<ts>_<seq>）
+    name        text NOT NULL DEFAULT '',
+    symbol      text NOT NULL,
+    period      text NOT NULL,                          -- M1/M5/M15/D1
+    from_ts     timestamptz NOT NULL,                   -- 区间起点（闭）
+    to_ts       timestamptz NOT NULL,                   -- 区间终点（开，[from, to) 半开）
+    config      jsonb NOT NULL,                         -- 完整快照：slots+thresholds+policy+stop+initial_capital+fee
+    status      text NOT NULL DEFAULT 'queued'
+                CHECK (status IN ('queued','running','succeeded','failed','canceled')),
+    progress    float8 NOT NULL DEFAULT 0,              -- 0..1
+    error       text,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    started_at  timestamptz,
+    finished_at timestamptz
+);
+
+CREATE TABLE strategy_run_result (
+    run_id    text PRIMARY KEY REFERENCES strategy_run(id) ON DELETE CASCADE,
+    per_bar   jsonb NOT NULL,   -- 各策略分+聚合分+信号+订单+事件全量（ADR §13.4）
+    trades    jsonb NOT NULL,   -- 成交明细
+    net_value jsonb NOT NULL,   -- 净值序列 [(ts, equity)]
+    drawdown  jsonb NOT NULL,   -- 回撤序列 [(ts, dd)]
+    metrics   jsonb NOT NULL    -- 8 项绩效指标
+);
+
+CREATE TABLE strategy_preset (
+    id         text PRIMARY KEY,                        -- 应用层生成（sp_<ts>_<seq>）
+    name       text NOT NULL UNIQUE,
+    config     jsonb NOT NULL,                          -- 同 strategy_run.config 形状（ADR §13.5）
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 查询：状态过滤列表（created_at DESC）+ 标的维度检索
+CREATE INDEX strategy_run_status_created_idx ON strategy_run (status, created_at DESC);
+CREATE INDEX strategy_run_symbol_idx         ON strategy_run (symbol);
+```
+
+**storage 模块 `crates/storage/src/workbench.rs`（非 tangle 手写，契约描述）**：
+实现 `domain::ports::StrategyRunStore` + `StrategyPresetStore`（PgPool；迁移 0023）。
+- `mark_started`：`UPDATE ... SET status='running', started_at=$2 WHERE id=$1 AND status='queued'`
+  （原子认领，0 行 → false——并发取消/启动时后台任务放弃执行）。
+- `mark_succeeded`：事务内 `INSERT strategy_run_result` + `UPDATE strategy_run SET status='succeeded',
+  progress=1, finished_at WHERE status='running'`（0 行 → rollback + false，结果不落库）。
+- `mark_failed` / `mark_canceled`：`WHERE status IN ('queued','running')` 条件更新
+  （0 行 → false / Some(false)，终态不覆盖——并发取消胜出保留 canceled）。
+- `update_progress`：仅 running 行生效（`WHERE status='running'`，终态行静默忽略）。
+- `update_preset`：`UPDATE ... SET name, config, updated_at=now() ... RETURNING`；
+  name UNIQUE 冲突 → sqlx Err（application/web 映射 409）。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

@@ -26,6 +26,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "simsession", "simsession_result", "sim_trades", "sim_positions", "simsession_state",
     // 12-strategy-system / P2a：Strategy Registry 表（0022；应用面自有）
     "strategy", "strategy_version",
+    // 12-strategy-system / P3a：回测工作台表（0023；应用面自有）
+    "strategy_run", "strategy_run_result", "strategy_preset",
 ];
 
 /// 应为 hypertable 的表。

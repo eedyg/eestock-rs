@@ -75,6 +75,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
         strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
+        workbench: None, // P3a：回测工作台（行为测试见 api_workbench.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -99,8 +100,8 @@ async fn poller_publishes_increments_only() {
 
     let st = state(pool.clone());
     st.subs.add(Subscription { topic: Topic::Bar,
-        code: Some(CODE.into()), period: Some("1m".into()), run_id: None });
-    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None, run_id: None });
+        code: Some(CODE.into()), period: Some("1m".into()), run_id: None, strategy_run_id: None, });
+    st.subs.add(Subscription { topic: Topic::Quote, code: None, period: None, run_id: None, strategy_run_id: None });
     let mut rx = st.hub.subscribe();
     let mut poller = Poller::new(st.clone(), StdDuration::from_secs(60));
 

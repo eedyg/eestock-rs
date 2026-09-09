@@ -255,6 +255,71 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppState.strategies`；随后调用
 `seed_reference_plugins()` 启动播种（strategy 表为空 → 7 参考插件 + 4 官方模板以 published 入库；幂等）。
 
+### 1.8 回测工作台（12-strategy-system / P3a；ADR 12-strategy-system §6/§8/§11/§13.4/§13.5）
+
+> 与 §1.5/§1.6/§1.7 同模式：`crates/web/src/workbench.rs`（REST handlers + DTO + `WorkbenchWsSink`）
+> 为**非 tangle 手写**（ADR-007 例外），契约描述在此、实际代码块不入本文档；`crates/web/src/lib.rs`
+> 路由与 `crates/web/src/state.rs` 的 `AppState.workbench` 字段、ws.rs 的 `Topic::StrategyRun` /
+> `PushMsg::StrategyRunProgress` / `Subscription.strategy_run_id` 为 tangle 加法。
+> 应用层在 `application::workbench::WorkbenchService`（非 tangle，任务制 ensemble 运行——
+> 与 `BacktestService` 同模式：入队 queued → Semaphore 限并发 → mark_started 原子认领 →
+> spawn_blocking 跑 `strategy_core::run_ensemble_with_quickjs_observed` → observer 回调点进度上报+
+> 协作式取消 → mark_succeeded（同事务落结果）/mark_failed/mark_canceled）；
+> storage `PgStrategyRunStore`/`PgStrategyPresetStore`（迁移 0023，非 tangle；端口
+> `domain::ports::StrategyRunStore`/`StrategyPresetStore`/`StrategyRunProgressSink`，contracts.md §2.4 末尾）。
+
+#### REST
+
+| 方法/路径 | 参数 | 响应 | 错误态 |
+|---|---|---|---|
+| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight}`） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本非 published、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
+| `GET /api/workbench/runs` | `status=queued\|running\|succeeded\|failed\|canceled`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[StrategyRunView]`（**轻量：不含结果**；created_at DESC, id DESC） | 400：status 非法；503；500 |
+| `GET /api/workbench/runs/{id}` | — | `StrategyRunView` | 404：id 未知；503；500 |
+| `GET /api/workbench/runs/{id}/result` | — | `StrategyRunResult`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics 五 jsonb，ADR §13.4） | 404：id 未知或未成功（无结果）；503；500 |
+| `POST /api/workbench/runs/{id}/cancel` | — | 200 `StrategyRunView`（canceled 行） | 404：id 未知；409：已终态；503；500 |
+| `POST /api/workbench/runs/compare` | body `{ids:["sr_..", ...]}`（必填非空） | 200 `[CompareItem]`（`{run_id,name,symbol,period,net_value,metrics}` 并排；输入序；未知/未成功 run 跳过） | 400：ids 空；503；500 |
+| `POST /api/workbench/presets` | body `{name, config}`（config 同 strategy_run.config 形状） | 201 `StrategyPresetRow`（config 经校验+钉住——slots 展开含 sha256/version/params 缺省填充） | 400：name 空/配置非法（同 submit 配置口径）；409：name 重名；503；500 |
+| `GET /api/workbench/presets` | — | `[StrategyPresetRow]`（created_at ASC, id ASC） | 503；500 |
+| `GET /api/workbench/presets/{id}` | — | `StrategyPresetRow` | 404；503；500 |
+| `PUT /api/workbench/presets/{id}` | body `{name, config}` | 200 `StrategyPresetRow`（updated_at 推进） | 400：name 空/配置非法；404；409：撞名；503；500 |
+| `DELETE /api/workbench/presets/{id}` | — | 200 `{"deleted":true}` | 404；503；500 |
+| `POST /api/workbench/presets/{id}/apply` | — | 200 `config`（钉住形态原样返回，供 submit 合并 symbol/period/from/to 后提交） | 404；503；500 |
+
+**错误语义约定**（沿用 §1.7）：未找到 404（`WorkbenchNotFound`）、冲突 409（`WorkbenchConflict`：
+终态取消/预设重名）、校验失败 400（`WorkbenchValidation` 与 web 层入参校验）；服务未装配
+（`AppState.workbench=None`）→ 503。
+
+**submit 口径**：`policy` 为 strategy-core `ExecutionPolicy` serde 形态（`{"LumpSum":{"position_pct":..}}` /
+`{"Dca":{"tranches":N,"mode":"Equal"|"FixedAmount","amount"?,"interval"?}}`）；`stop` 为 `StopConfig`
+形态（`{"kind":"FixedPct"|"Trailing"|"Atr","value":..,"trigger":"Intrabar"|"CloseBasis"}`，trigger 缺省
+Intrabar），null/缺省 = 无硬止损。`buy_threshold`/`sell_threshold` 缺省 60/40（ADR §6）；
+`initial_capital` 缺省 100_000。**运行钉住**：submit 时快照 `(strategy_id, version_id, version, sha256,
+params[按 schema 缺省填充], weight)` 入 config（ADR §13.4 复现前提；published 不可变由 0022 trigger
+保证 sha256 不失配）。**取消语义**：queued → DB 直接落 canceled（后台任务 mark_started 认领失败自动放弃）；
+running → 内存取消标记 + DB canceled，引擎 observer 每 bar 回调点检查标记，下一 bar 边界协作式 Break
+（`EnsembleError::Canceled`，不落结果）。进度 0..1（observer 回调按 0.1% 粒度节流防帧洪泛）。
+
+#### WS
+
+新增订阅 topic `"strategy_run"`（客户端帧 `{"type":"subscribe","topic":"strategy_run",
+"strategy_run_id":"sr_.."}`；`strategy_run_id` 省略 = 通配全部工作台进度）。服务端推送帧：
+
+```json
+{"type":"strategy_run_progress","run_id":"sr_..","progress":0.42,"bar_ts":"..."}
+```
+
+推送源 = **application 层引擎 observer 回调**（`WorkbenchService` 后台任务），经
+`StrategyRunProgressSink`（web 实现 `WorkbenchWsSink`，持有 `WsHub`）发布
+`PushMsg::StrategyRunProgress`；客户端按 `strategy_run_id` 订阅过滤。**无新增 Poller 轮询**——
+进度由引擎事件驱动（与 §1.5 回测同模式）。
+
+#### DI（app bin §5）
+
+`eestock-app.rs` 构造 `storage::workbench::PgStrategyRunStore` + `PgStrategyPresetStore` +
+复用 `PgStrategyStore` / `BacktestBarReader` / `PgSymbolRegistry` + `web::workbench::WorkbenchWsSink(hub)`
+→ `application::workbench::WorkbenchService::new(...)` → 装入 `AppState.workbench`（Some）。
+并发上限用 `application::workbench::DEFAULT_MAX_CONCURRENT`（与回测同口径 = 4，本期不开放配置）。
+
 ## 2. diagnose crate：健康聚合查询（Application 层纯服务，端口注入）
 
 分层红线：diagnose **不依赖 sqlx**。窗口事件经 `domain::ports::HealthEventsRead` 注入，
@@ -2178,6 +2243,8 @@ pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维�
 pub mod simlive;
 // 12-strategy-system / P2a：策略 Registry REST handlers（§1.7；非 tangle 手写，web 依赖 application）
 pub mod strategies;
+// 12-strategy-system / P3a：回测工作台 REST handlers + WS 进度 sink（§1.8；非 tangle 手写，web 依赖 application）
+pub mod workbench;
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -2251,6 +2318,16 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
         .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
+        // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
+        // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}
+        .route("/api/workbench/runs", get(workbench::list_runs).post(workbench::submit_run))
+        .route("/api/workbench/runs/compare", post(workbench::compare_runs))
+        .route("/api/workbench/runs/{id}", get(workbench::get_run))
+        .route("/api/workbench/runs/{id}/result", get(workbench::get_result))
+        .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
+        .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
+        .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))
+        .route("/api/workbench/presets/{id}/apply", post(workbench::apply_preset))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)
@@ -3255,6 +3332,11 @@ pub struct AppState {
     /// `None` = 未装配，/api/strategies/* 返回 503（与 `sim` 同模式）。
     /// storage::strategy::PgStrategyStore + BacktestBarRead 由 app bin 装配注入。
     pub strategies: Option<Arc<application::strategy::StrategyService>>,
+    /// 回测工作台服务（12-strategy-system / P3a：/api/workbench/*，§1.8）。
+    /// `None` = 未装配，/api/workbench/* 返回 503（与 `strategies` 同模式）。
+    /// storage::workbench::PgStrategyRunStore/PgStrategyPresetStore + PgStrategyStore +
+    /// PgSymbolRegistry + BacktestBarRead 由 app bin 装配注入。
+    pub workbench: Option<Arc<application::workbench::WorkbenchService>>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,
@@ -3667,15 +3749,16 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Topic { Bar, Quote, Health, Alert, Backtest }
+pub enum Topic { Bar, Quote, Health, Alert, Backtest, StrategyRun }
 
 /// 客户端帧：{"type":"subscribe","topic":"bar","code":"518880","period":"1m"}（unsubscribe 同形）。
 /// Backtest 订阅带 run_id（Wave 3 Phase 3c；省略 = 通配全部回测进度）。
+/// StrategyRun 订阅带 strategy_run_id（P3a 回测工作台，§1.8；run id 为 text sr_ 前缀；省略 = 通配）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum ClientMsg {
-    Subscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
-    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64> },
+    Subscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64>, strategy_run_id: Option<String> },
+    Unsubscribe { topic: Topic, code: Option<String>, period: Option<String>, run_id: Option<i64>, strategy_run_id: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -3684,6 +3767,7 @@ pub struct Subscription {
     pub code: Option<String>,     // None = 全部标的
     pub period: Option<String>,   // bar 订阅必填（"1m"/"5m"/"15m"/"1h"/"1d"）
     pub run_id: Option<i64>,      // backtest 订阅的 run（None = 全部回测进度；Wave 3 Phase 3c）
+    pub strategy_run_id: Option<String>, // strategy_run 订阅的 run（None = 全部工作台进度；P3a §1.8）
 }
 
 /// 服务端推送帧：serde 内部 tag 平铺为 {"type":"bar"|"quote"|"health"|"alert", ...}。
@@ -3698,6 +3782,9 @@ pub enum PushMsg {
     Alert(crate::alerts::AlertEventDto),
     /// 回测进度（Wave 3 Phase 3c；推送源 = application 层引擎回调，经 BacktestWsSink → hub）。
     BacktestProgress { run_id: i64, pct: i32, bar_ts: Option<DateTime<Utc>> },
+    /// 策略运行进度（P3a 回测工作台，§1.8；推送源 = application 层引擎 observer 回调，
+    /// 经 WorkbenchWsSink → hub；progress 0..1）。
+    StrategyRunProgress { run_id: String, progress: f64, bar_ts: Option<DateTime<Utc>> },
 }
 
 /// 订阅匹配：topic 一致且（sub.code/period/run_id 为 None 通配或与消息相等）。
@@ -3710,6 +3797,8 @@ pub fn matches(sub: &Subscription, msg: &PushMsg) -> bool {
         (Topic::Alert, PushMsg::Alert(_)) => true,   // 订阅即全量告警推送（07-alerts §6）
         (Topic::Backtest, PushMsg::BacktestProgress { run_id, .. }) =>
             sub.run_id.is_none_or(|sid| sid == *run_id),
+        (Topic::StrategyRun, PushMsg::StrategyRunProgress { run_id, .. }) =>
+            sub.strategy_run_id.as_deref().is_none_or(|sid| sid == run_id),
         _ => false,
     }
 }
@@ -3772,13 +3861,13 @@ async fn handle_socket(st: Arc<AppState>, mut sock: WebSocket) {
 fn apply_client_msg(reg: &SubscriptionRegistry, mine: &mut HashSet<Subscription>, text: &str) {
     let Ok(msg) = serde_json::from_str::<ClientMsg>(text) else { return }; // 坏帧忽略（ADR-010 内网）
     match msg {
-        ClientMsg::Subscribe { topic, code, period, run_id } => {
-            let sub = Subscription { topic, code, period, run_id };
+        ClientMsg::Subscribe { topic, code, period, run_id, strategy_run_id } => {
+            let sub = Subscription { topic, code, period, run_id, strategy_run_id };
             mine.insert(sub.clone());
             reg.add(sub);
         }
-        ClientMsg::Unsubscribe { topic, code, period, run_id } => {
-            let sub = Subscription { topic, code, period, run_id };
+        ClientMsg::Unsubscribe { topic, code, period, run_id, strategy_run_id } => {
+            let sub = Subscription { topic, code, period, run_id, strategy_run_id };
             mine.remove(&sub);
             reg.remove(&sub);
         }
@@ -3878,7 +3967,7 @@ mod tests {
     #[test]
     fn matches_bar_code_and_period() {
         let sub = Subscription { topic: Topic::Bar,
-            code: Some("518880".into()), period: Some("1m".into()), run_id: None };
+            code: Some("518880".into()), period: Some("1m".into()), run_id: None, strategy_run_id: None };
         assert!(matches(&sub, &bar_msg("518880", "1m")));
         assert!(!matches(&sub, &bar_msg("518880", "5m")));
         assert!(!matches(&sub, &bar_msg("513310", "1m")));
@@ -3886,16 +3975,16 @@ mod tests {
 
     #[test]
     fn matches_none_is_wildcard() {
-        let sub = Subscription { topic: Topic::Quote, code: None, period: None, run_id: None };
+        let sub = Subscription { topic: Topic::Quote, code: None, period: None, run_id: None, strategy_run_id: None };
         let q = PushMsg::Quote { code: "518880".into(), ts: Utc::now(), last: 1.0, change_pct: None };
         assert!(matches(&sub, &q));
-        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None, run_id: None };
+        let scoped = Subscription { topic: Topic::Quote, code: Some("513310".into()), period: None, run_id: None, strategy_run_id: None };
         assert!(!matches(&scoped, &q));
     }
 
     #[test]
     fn cross_topic_never_matches() {
-        let sub = Subscription { topic: Topic::Health, code: None, period: None, run_id: None };
+        let sub = Subscription { topic: Topic::Health, code: None, period: None, run_id: None, strategy_run_id: None };
         assert!(!matches(&sub, &bar_msg("518880", "1m")));
         assert!(matches(&sub, &PushMsg::Health { window_secs: 3600, sources: vec![] }));
     }
@@ -3903,13 +3992,13 @@ mod tests {
     #[test]
     fn matches_backtest_progress_by_run_id() {
         let prog = PushMsg::BacktestProgress { run_id: 7, pct: 50, bar_ts: None };
-        let scoped = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7) };
+        let scoped = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7), strategy_run_id: None };
         assert!(matches(&scoped, &prog), "run_id 匹配");
-        let other = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(8) };
+        let other = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(8), strategy_run_id: None };
         assert!(!matches(&other, &prog), "不同 run_id 不匹配");
-        let wildcard = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: None };
+        let wildcard = Subscription { topic: Topic::Backtest, code: None, period: None, run_id: None, strategy_run_id: None };
         assert!(matches(&wildcard, &prog), "run_id 省略 = 通配");
-        let bar = Subscription { topic: Topic::Bar, code: None, period: None, run_id: None };
+        let bar = Subscription { topic: Topic::Bar, code: None, period: None, run_id: None, strategy_run_id: None };
         assert!(!matches(&bar, &prog), "跨 topic 不匹配");
         // 帧 JSON 形状：type=backtest_progress
         let v = serde_json::to_value(&prog).unwrap();
@@ -3955,7 +4044,7 @@ mod tests {
         assert_eq!(v["level"], "critical");
         assert_eq!(v["status"], "triggered");
         // 订阅匹配：alert topic 全量
-        let sub = Subscription { topic: Topic::Alert, code: None, period: None, run_id: None };
+        let sub = Subscription { topic: Topic::Alert, code: None, period: None, run_id: None, strategy_run_id: None };
         let dto2 = crate::alerts::AlertEventDto {
             id: 2, rule_id: "symbol_gap_rate".into(), level: domain::ports::AlertLevel::Warning,
             source: "513310".into(), message: "缺口".into(),
@@ -3992,6 +4081,45 @@ mod tests {
         assert_eq!(sub.topic, Topic::Backtest);
         assert_eq!(sub.run_id, Some(7));
         apply_client_msg(&reg, &mut mine, r#"{"type":"unsubscribe","topic":"backtest","run_id":7}"#);
+        assert!(reg.snapshot().is_empty(), "退订应清除");
+    }
+
+    #[test]
+    fn matches_strategy_run_progress_by_run_id() {
+        // P3a §1.8：strategy_run_progress 帧（run_id 为 text sr_ 前缀；progress 0..1）
+        let prog = PushMsg::StrategyRunProgress { run_id: "sr_1_000001".into(), progress: 0.5, bar_ts: None };
+        let scoped = Subscription { topic: Topic::StrategyRun, code: None, period: None,
+            run_id: None, strategy_run_id: Some("sr_1_000001".into()) };
+        assert!(matches(&scoped, &prog), "strategy_run_id 匹配");
+        let other = Subscription { topic: Topic::StrategyRun, code: None, period: None,
+            run_id: None, strategy_run_id: Some("sr_1_000002".into()) };
+        assert!(!matches(&other, &prog), "不同 run_id 不匹配");
+        let wildcard = Subscription { topic: Topic::StrategyRun, code: None, period: None,
+            run_id: None, strategy_run_id: None };
+        assert!(matches(&wildcard, &prog), "strategy_run_id 省略 = 通配");
+        let bt = Subscription { topic: Topic::Backtest, code: None, period: None,
+            run_id: None, strategy_run_id: None };
+        assert!(!matches(&bt, &prog), "跨 topic（backtest）不匹配");
+        // 帧 JSON 形状：type=strategy_run_progress
+        let v = serde_json::to_value(&prog).unwrap();
+        assert_eq!(v["type"], "strategy_run_progress");
+        assert_eq!(v["run_id"], "sr_1_000001");
+        assert_eq!(v["progress"], 0.5);
+        assert!(v["bar_ts"].is_null());
+    }
+
+    #[test]
+    fn client_subscribe_strategy_run_id() {
+        let reg = SubscriptionRegistry::default();
+        let mut mine = HashSet::new();
+        apply_client_msg(&reg, &mut mine,
+            r#"{"type":"subscribe","topic":"strategy_run","strategy_run_id":"sr_1_000001"}"#);
+        assert_eq!(reg.snapshot().len(), 1, "strategy_run 订阅应登记");
+        let sub = reg.snapshot().into_iter().next().unwrap();
+        assert_eq!(sub.topic, Topic::StrategyRun);
+        assert_eq!(sub.strategy_run_id.as_deref(), Some("sr_1_000001"));
+        apply_client_msg(&reg, &mut mine,
+            r#"{"type":"unsubscribe","topic":"strategy_run","strategy_run_id":"sr_1_000001"}"#);
         assert!(reg.snapshot().is_empty(), "退订应清除");
     }
 }
@@ -4713,6 +4841,19 @@ async fn main() -> anyhow::Result<()> {
     let seed_report = strategy_service.seed_reference_plugins().await?;
     tracing::info!(seeded = %seed_report.seeded, skipped = %seed_report.skipped,
         "strategy registry 启动播种完成");
+    // 12-strategy-system / P3a：回测工作台 DI（§1.8：PgStrategyRunStore + PgStrategyPresetStore +
+    // PgStrategyStore + PgSymbolRegistry + BacktestBarRead + WorkbenchWsSink → WorkbenchService）。
+    // 并发上限用 application::workbench::DEFAULT_MAX_CONCURRENT（与回测同口径 = 4，本期不开放配置）。
+    let workbench_service = Arc::new(application::workbench::WorkbenchService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::workbench::PgStrategyRunStore::new(pool.clone())),
+        Arc::new(storage::workbench::PgStrategyPresetStore::new(pool.clone())),
+        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        Arc::new(storage::symbols::PgSymbolRegistry::new(pool.clone())),
+        Arc::new(web::workbench::WorkbenchWsSink::new(backtest_hub.clone())),
+        Arc::new(domain::ports::SystemClock),
+        application::workbench::DEFAULT_MAX_CONCURRENT,
+    ));
     let sim_recovery = sim_service.recover_sessions().await?;
     tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
@@ -4754,6 +4895,8 @@ async fn main() -> anyhow::Result<()> {
         sim: Some(sim_service.clone()),
         // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*）
         strategies: Some(strategy_service),
+        // 12-strategy-system / P3a：回测工作台服务（/api/workbench/*，§1.8）
+        workbench: Some(workbench_service),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,

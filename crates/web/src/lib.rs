@@ -13,6 +13,8 @@ pub mod settings; // 页面⑧ 系统设置 S1（08-settings.md；只读/运维�
 pub mod simlive;
 // 12-strategy-system / P2a：策略 Registry REST handlers（§1.7；非 tangle 手写，web 依赖 application）
 pub mod strategies;
+// 12-strategy-system / P3a：回测工作台 REST handlers + WS 进度 sink（§1.8；非 tangle 手写，web 依赖 application）
+pub mod workbench;
 pub mod spa;
 pub mod state;
 pub mod ws;
@@ -86,6 +88,16 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
         .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
+        // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
+        // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}
+        .route("/api/workbench/runs", get(workbench::list_runs).post(workbench::submit_run))
+        .route("/api/workbench/runs/compare", post(workbench::compare_runs))
+        .route("/api/workbench/runs/{id}", get(workbench::get_run))
+        .route("/api/workbench/runs/{id}/result", get(workbench::get_result))
+        .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
+        .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
+        .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))
+        .route("/api/workbench/presets/{id}/apply", post(workbench::apply_preset))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
         .with_state(state)

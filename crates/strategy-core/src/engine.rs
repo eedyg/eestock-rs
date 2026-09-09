@@ -35,6 +35,42 @@ use crate::stop::{StopConfig, StopTrigger, TrailingState};
 /// G5 熔断阈值：单插件实例**连续**错误达到此次数 → 本运行停用（ABI §3 G5）。
 pub const CIRCUIT_BREAKER_THRESHOLD: u32 = 10;
 
+/// 观察者返回的运行控制（P3a 裁决 2026-09-09：进度上报 + 协作式取消钩子）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoopControl {
+    /// 继续下一 bar。
+    Continue,
+    /// 立即跳出循环（协作式取消）：不做期末强平、不产出结果 → [`EnsembleError::Canceled`]。
+    Break,
+}
+
+/// Ensemble 运行错误（P3a 加法）。**取消不是插件错误**（裁决契约），独立 variant 表达；
+/// 插件运行时错误经 [`EnsembleError::Plugin`] 包装（`From<PluginError>` 转换）。
+#[derive(Debug, Clone, PartialEq)]
+pub enum EnsembleError {
+    /// 运行被协作式取消（observer 返回 [`LoopControl::Break`]）。
+    Canceled,
+    /// 插件运行时错误（实例化失败等；原样包装 [`PluginError`]）。
+    Plugin(PluginError),
+}
+
+impl From<PluginError> for EnsembleError {
+    fn from(e: PluginError) -> Self {
+        EnsembleError::Plugin(e)
+    }
+}
+
+impl std::fmt::Display for EnsembleError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EnsembleError::Canceled => write!(f, "运行已被取消（observer Break）"),
+            EnsembleError::Plugin(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for EnsembleError {}
+
 impl EnsembleConfig {
     /// 配置校验（`run_ensemble` 启动时调用；非法配置直接拒绝运行，NIT-3）：
     /// - `buy_threshold` 必须严格大于 `sell_threshold`（且均为有限值）；
@@ -240,11 +276,33 @@ struct SlotState {
 ///
 /// 实例化失败（配置级错误，非 per-bar 异常）直接返回 `Err`；per-bar 插件错误
 /// 按 G5 兜底为中立分 50 + 错误事件，引擎永不因插件崩溃中断。
+///
+/// **签名/行为零变更**（P3a 裁决契约第 3 条）：内部以 no-op observer 委托
+/// [`run_ensemble_with_observer`]；`EnsembleError::Canceled` 对 no-op observer 不可达
+/// （expect 不可达分支，注释备案）。
 pub fn run_ensemble(
     cfg: &EnsembleConfig,
     bars: &[Bar],
     rt: &mut dyn PluginRuntime,
 ) -> Result<EnsembleResult, PluginError> {
+    match run_ensemble_with_observer(cfg, bars, rt, &mut |_i, _total| LoopControl::Continue) {
+        Ok(res) => Ok(res),
+        Err(EnsembleError::Plugin(e)) => Err(e),
+        // 不可达：no-op observer 恒 Continue，Break 分支不会触发。
+        Err(EnsembleError::Canceled) => unreachable!("no-op observer 恒 Continue，Canceled 不可达"),
+    }
+}
+
+/// 带观察者钩子的 Ensemble 运行（P3a 裁决 2026-09-09 增量加法）：
+/// `observer` 在每 bar 末（步骤 8 记录后）恰调用一次，参数 `(bar_index, total)`；
+/// 返回 [`LoopControl::Break`] → 引擎**立即跳出循环**（不做期末强平、不产出结果），
+/// 返回 [`EnsembleError::Canceled`]（协作式取消，供 application 层进度回调点检查取消标记）。
+pub fn run_ensemble_with_observer(
+    cfg: &EnsembleConfig,
+    bars: &[Bar],
+    rt: &mut dyn PluginRuntime,
+    observer: &mut dyn FnMut(usize, usize) -> LoopControl,
+) -> Result<EnsembleResult, EnsembleError> {
     cfg.validate()
         .map_err(|e| PluginError::SchemaError(format!("EnsembleConfig 非法: {e}")))?;
 
@@ -260,7 +318,7 @@ pub fn run_ensemble(
                 disabled: false,
             })
         })
-        .collect::<Result<_, PluginError>>()?;
+        .collect::<Result<_, EnsembleError>>()?;
 
     let fee = &cfg.fee;
     let n = bars.len();
@@ -528,6 +586,12 @@ pub fn run_ensemble(
             orders,
             events,
         });
+
+        // 9) 观察者钩子（每 bar 末恰一次；P3a 裁决）：Break → 协作式取消，
+        //    立即跳出（不做期末强平、不产出结果）。
+        if observer(i, n) == LoopControl::Break {
+            return Err(EnsembleError::Canceled);
+        }
     }
 
     // 期末强制平仓（沿用 backtest 引擎口径：最后 close 成交，净值最后一点修正为已实现净值）。
@@ -578,6 +642,17 @@ pub fn run_ensemble_with_quickjs(
 ) -> Result<EnsembleResult, PluginError> {
     let mut rt = strategy_runtime::QuickJsRuntime::new(cfg.runtime_limits);
     run_ensemble(cfg, bars, &mut rt)
+}
+
+/// 便捷入口（带观察者钩子）：按 `cfg.runtime_limits` 构造 `QuickJsRuntime` 并运行。
+/// application 层据此实现进度上报 + 协作式取消（P3a）。
+pub fn run_ensemble_with_quickjs_observed(
+    cfg: &EnsembleConfig,
+    bars: &[Bar],
+    observer: &mut dyn FnMut(usize, usize) -> LoopControl,
+) -> Result<EnsembleResult, EnsembleError> {
+    let mut rt = strategy_runtime::QuickJsRuntime::new(cfg.runtime_limits);
+    run_ensemble_with_observer(cfg, bars, &mut rt, observer)
 }
 
 /// 卖出台账处理：部分卖出按比例摊薄成本；清仓合成完整 [`TradeDetail`] 并重置 Trailing。

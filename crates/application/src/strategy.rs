@@ -68,7 +68,8 @@ fn test_run_limits() -> RuntimeLimits {
 }
 
 /// 应用层生成 id（st_/sv_ 前缀，simsession 的 s_<ts>_<seq> 同口径）。
-fn new_id(prefix: &str, now: DateTime<Utc>) -> String {
+/// P3a：pub(crate) 供 workbench 复用（sr_/sp_ 前缀）。
+pub(crate) fn new_id(prefix: &str, now: DateTime<Utc>) -> String {
     let n = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     format!("{prefix}_{}_{:06}", now.timestamp_millis(), n)
 }
@@ -264,7 +265,8 @@ fn publish_smoke(code: &str, code_hash: &str) -> Result<Vec<ParamDef>, String> {
 
 /// 参数校验 + 缺省填充（ABI §1 NIT-6：Registry/消费方职责）。
 /// 规则：params 须为对象；未知键拒绝；值须为数值；声明 min/max 越界拒绝；缺省按键默认值填充。
-fn fill_and_validate_params(
+/// P3a：pub(crate) 供 workbench submit/preset 校验复用。
+pub(crate) fn fill_and_validate_params(
     schema: &[ParamDef],
     params: &serde_json::Value,
 ) -> Result<StrategyParams, String> {
@@ -301,7 +303,7 @@ fn schema_to_json(schema: &[ParamDef]) -> serde_json::Value {
     serde_json::to_value(schema).expect("ParamDef 可序列化")
 }
 
-fn schema_from_json(v: &serde_json::Value) -> Vec<ParamDef> {
+pub(crate) fn schema_from_json(v: &serde_json::Value) -> Vec<ParamDef> {
     serde_json::from_value(v.clone()).unwrap_or_default()
 }
 

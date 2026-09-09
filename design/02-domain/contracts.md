@@ -1183,6 +1183,166 @@ pub trait StrategyStore: Send + Sync {
     async fn update_meta(&self, id: &str, name: &str, description: &str)
         -> anyhow::Result<Option<StrategyRow>>;
 }
+
+// ── 12-strategy-system / P3a：回测工作台端口（strategy_run/strategy_run_result/strategy_preset 表，迁移 0023）──
+// 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
+// 应用面自有表（数据面不读写，ADR-017 不违）。ADR 12 §13.4（per_bar 全量落库）/§13.5（组合预设、结果页数据源）。
+// 任务制与 BacktestRunStore 同型：create(queued) → mark_started(queued→running 原子认领) →
+// update_progress(0..1) → mark_succeeded/mark_failed/mark_canceled（终态迁移均为条件更新，0 行 = 已被并发迁移）。
+
+/// 策略运行状态（strategy_run.status：queued/running/succeeded/failed/canceled）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StrategyRunStatus { Queued, Running, Succeeded, Failed, Canceled }
+
+impl StrategyRunStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self { StrategyRunStatus::Queued => "queued", StrategyRunStatus::Running => "running",
+                     StrategyRunStatus::Succeeded => "succeeded", StrategyRunStatus::Failed => "failed",
+                     StrategyRunStatus::Canceled => "canceled" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "queued" => Some(StrategyRunStatus::Queued), "running" => Some(StrategyRunStatus::Running),
+                  "succeeded" => Some(StrategyRunStatus::Succeeded), "failed" => Some(StrategyRunStatus::Failed),
+                  "canceled" => Some(StrategyRunStatus::Canceled), _ => None }
+    }
+    /// 是否终态（succeeded/failed/canceled 不可再迁移、不可取消）。
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, StrategyRunStatus::Succeeded | StrategyRunStatus::Failed | StrategyRunStatus::Canceled)
+    }
+}
+
+/// 新建策略运行（入队快照）。`config` 为完整可复现快照（ADR §13.4 复现前提）：
+/// slots[{strategy_id, version_id, version, sha256, params, weight}]（运行钉住），
+/// 另有 buy_threshold/sell_threshold、policy、stop、initial_capital、fee。
+/// id 由应用层生成（sr_<ts>_<seq> 口径，与 st_/sv_ 同型）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategyRun {
+    pub id: String,
+    pub name: String,
+    pub symbol: String,
+    pub period: String,           // M1/M5/M15/D1
+    pub from_ts: DateTime<Utc>,   // 区间起点（闭）
+    pub to_ts: DateTime<Utc>,     // 区间终点（开，[from, to) 半开）
+    pub config: serde_json::Value,
+}
+
+/// 策略运行结果（strategy_run_result 五 jsonb 列聚合；ADR §13.4 全量粒度，后端不做有损预处理）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyRunResult {
+    pub per_bar: serde_json::Value,   // 各策略分+聚合分+信号+订单+事件全量
+    pub trades: serde_json::Value,    // 成交明细
+    pub net_value: serde_json::Value, // 净值序列 [(ts, equity)]
+    pub drawdown: serde_json::Value,  // 回撤序列 [(ts, dd)]
+    pub metrics: serde_json::Value,   // 8 项绩效指标
+}
+
+/// 策略运行读模型（strategy_run 行；**结果不内联**——列表/详情走轻量 SELECT，
+/// 结果经 `get_result` 单独取，避免列表联大 jsonb 表）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyRunView {
+    pub id: String,
+    pub name: String,
+    pub symbol: String,
+    pub period: String,
+    pub from_ts: DateTime<Utc>,
+    pub to_ts: DateTime<Utc>,
+    pub config: serde_json::Value,
+    pub status: StrategyRunStatus,
+    pub progress: f64,   // 0..1
+    pub error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
+}
+
+/// 策略运行列表过滤（GET /api/workbench/runs）。limit/offset 分页（默认 limit=100/offset=0）；
+/// 排序 created_at DESC, id DESC。⚠️ `limit` 应始终设正数以约束单页行数。
+#[derive(Debug, Clone, PartialEq)]
+pub struct StrategyRunFilter {
+    pub status: Option<StrategyRunStatus>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+impl Default for StrategyRunFilter {
+    fn default() -> Self {
+        Self { status: None, limit: 100, offset: 0 }
+    }
+}
+
+/// 策略运行存储端口（storage 实现；strategy_run/strategy_run_result，迁移 0023）。
+/// 状态迁移全部条件更新（WHERE status IN (...)），0 行命中 = 已被并发迁移——application 据此放弃执行。
+#[async_trait]
+pub trait StrategyRunStore: Send + Sync {
+    /// 写 queued 行（progress=0）；返回写入行。
+    async fn create_run(&self, run: &NewStrategyRun) -> anyhow::Result<StrategyRunView>;
+    /// 读 run；未知 id → Ok(None)（web 映射 404）。
+    async fn get_run(&self, id: &str) -> anyhow::Result<Option<StrategyRunView>>;
+    /// 列表（轻量，不联结果表；created_at DESC, id DESC）。
+    async fn list_runs(&self, filter: &StrategyRunFilter) -> anyhow::Result<Vec<StrategyRunView>>;
+    /// queued→running 原子认领（`WHERE id=$1 AND status='queued'`），同事务写 started_at；
+    /// false = 已被并发取消/启动（后台任务应放弃执行，防止取消后又被跑起来）。
+    async fn mark_started(&self, id: &str, started_at: DateTime<Utc>) -> anyhow::Result<bool>;
+    /// 进度更新（0..1；仅 running 行生效，终态行忽略）。
+    async fn update_progress(&self, id: &str, progress: f64) -> anyhow::Result<()>;
+    /// running→succeeded + 同事务落结果（INSERT strategy_run_result + UPDATE strategy_run）；
+    /// false = 行已非 running（如并发取消）→ 结果不应落库。
+    async fn mark_succeeded(&self, id: &str, result: &StrategyRunResult, finished_at: DateTime<Utc>)
+        -> anyhow::Result<bool>;
+    /// queued/running→failed + error；false = 行已终态（并发取消胜出，保留 canceled）。
+    async fn mark_failed(&self, id: &str, error: &str, finished_at: DateTime<Utc>) -> anyhow::Result<bool>;
+    /// queued/running→canceled（协作式取消的 DB 侧）。
+    /// None = 未知 id（web 映射 404）；Some(false) = 已终态不可取消（web 映射 409）；Some(true) = 已取消。
+    async fn mark_canceled(&self, id: &str, finished_at: DateTime<Utc>) -> anyhow::Result<Option<bool>>;
+    /// 读结果（strategy_run_result）；未知 run / 未成功 → Ok(None)。
+    async fn get_result(&self, run_id: &str) -> anyhow::Result<Option<StrategyRunResult>>;
+}
+
+/// 组合预设行（strategy_preset；ADR §13.5 组合预设，config 同 strategy_run.config 形状）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyPresetRow {
+    pub id: String,
+    pub name: String,
+    pub config: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// 新建组合预设（id 由应用层生成，sp_<ts>_<seq> 口径）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NewStrategyPreset {
+    pub id: String,
+    pub name: String,
+    pub config: serde_json::Value,
+}
+
+/// 组合预设存储端口（storage 实现；strategy_preset 表，迁移 0023）。
+/// name UNIQUE 冲突 → sqlx Err（application/web 映射 409）。
+#[async_trait]
+pub trait StrategyPresetStore: Send + Sync {
+    /// 新建预设（name UNIQUE 冲突 → Err）。
+    async fn create_preset(&self, p: &NewStrategyPreset) -> anyhow::Result<StrategyPresetRow>;
+    /// 读预设；未知 id → Ok(None)（web 映射 404）。
+    async fn get_preset(&self, id: &str) -> anyhow::Result<Option<StrategyPresetRow>>;
+    /// 按唯一名探测（create/update 前预检查，name UNIQUE 冲突 → 409 语义；DB UNIQUE 约束为最终兑底）。
+    async fn find_preset_by_name(&self, name: &str) -> anyhow::Result<Option<StrategyPresetRow>>;
+    /// 全部预设（created_at ASC, id ASC）。
+    async fn list_presets(&self) -> anyhow::Result<Vec<StrategyPresetRow>>;
+    /// 更新预设（name/config 为 application 层校验后最终值）；命中推进 updated_at 并返回更新后行；
+    /// 未知 id → Ok(None)（web 映射 404）；name 冲突 → Err（409）。
+    async fn update_preset(&self, id: &str, name: &str, config: &serde_json::Value)
+        -> anyhow::Result<Option<StrategyPresetRow>>;
+    /// 删除预设；false = 未知 id（web 映射 404）。
+    async fn delete_preset(&self, id: &str) -> anyhow::Result<bool>;
+}
+
+/// 策略运行进度推送端口（web 实现；WS `{type:"strategy_run_progress", run_id, progress, bar_ts}`）。
+/// 与 BacktestProgressSink 同型（broadcast hub 分发）；run_id 为 text（sr_<ts>_<seq>）。
+#[async_trait]
+pub trait StrategyRunProgressSink: Send + Sync {
+    async fn send(&self, run_id: &str, progress: f64, bar_ts: Option<DateTime<Utc>>) -> anyhow::Result<()>;
+}
 ```
 
 ## 2.5 真值合并策略（ADR-003）

@@ -96,6 +96,19 @@ async fn main() -> anyhow::Result<()> {
     let seed_report = strategy_service.seed_reference_plugins().await?;
     tracing::info!(seeded = %seed_report.seeded, skipped = %seed_report.skipped,
         "strategy registry 启动播种完成");
+    // 12-strategy-system / P3a：回测工作台 DI（§1.8：PgStrategyRunStore + PgStrategyPresetStore +
+    // PgStrategyStore + PgSymbolRegistry + BacktestBarRead + WorkbenchWsSink → WorkbenchService）。
+    // 并发上限用 application::workbench::DEFAULT_MAX_CONCURRENT（与回测同口径 = 4，本期不开放配置）。
+    let workbench_service = Arc::new(application::workbench::WorkbenchService::new(
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(storage::workbench::PgStrategyRunStore::new(pool.clone())),
+        Arc::new(storage::workbench::PgStrategyPresetStore::new(pool.clone())),
+        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        Arc::new(storage::symbols::PgSymbolRegistry::new(pool.clone())),
+        Arc::new(web::workbench::WorkbenchWsSink::new(backtest_hub.clone())),
+        Arc::new(domain::ports::SystemClock),
+        application::workbench::DEFAULT_MAX_CONCURRENT,
+    ));
     let sim_recovery = sim_service.recover_sessions().await?;
     tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
@@ -137,6 +150,8 @@ async fn main() -> anyhow::Result<()> {
         sim: Some(sim_service.clone()),
         // 12-strategy-system / P2a：策略 Registry 服务（/api/strategies/*）
         strategies: Some(strategy_service),
+        // 12-strategy-system / P3a：回测工作台服务（/api/workbench/*，§1.8）
+        workbench: Some(workbench_service),
         static_dir: cfg.static_dir.clone().into(),
         health_window_secs: cfg.health_window_secs,
         hub: backtest_hub,

@@ -75,6 +75,7 @@ fn state(pool: PgPool) -> Arc<AppState> {
         config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
         sim: None,
         strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
+        workbench: None, // P3a：回测工作台（行为测试见 api_workbench.rs）
         static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
         health_window_secs: 3600,
         hub: backtest_hub,
@@ -272,7 +273,7 @@ async fn ws_backtest_progress_reaches_subscribed_clients() {
     let pool = pool().await;
     let st = state(pool);
     // 模拟 WS 客户端订阅 run 7（handle_socket 会 add 到 registry；本测试直调同路径）
-    st.subs.add(Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7) });
+    st.subs.add(Subscription { topic: Topic::Backtest, code: None, period: None, run_id: Some(7), strategy_run_id: None, });
     let mut rx = st.hub.subscribe();
 
     // 经 AppState.backtest_ws（= BacktestService 注入的 sink）推一帧

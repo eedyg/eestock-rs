@@ -42,6 +42,11 @@ pub struct AppState {
     /// `None` = 未装配，/api/strategies/* 返回 503（与 `sim` 同模式）。
     /// storage::strategy::PgStrategyStore + BacktestBarRead 由 app bin 装配注入。
     pub strategies: Option<Arc<application::strategy::StrategyService>>,
+    /// 回测工作台服务（12-strategy-system / P3a：/api/workbench/*，§1.8）。
+    /// `None` = 未装配，/api/workbench/* 返回 503（与 `strategies` 同模式）。
+    /// storage::workbench::PgStrategyRunStore/PgStrategyPresetStore + PgStrategyStore +
+    /// PgSymbolRegistry + BacktestBarRead 由 app bin 装配注入。
+    pub workbench: Option<Arc<application::workbench::WorkbenchService>>,
     pub static_dir: PathBuf,
     /// /api/sources/health 与 WS health 推送的默认窗口（秒）。
     pub health_window_secs: i64,

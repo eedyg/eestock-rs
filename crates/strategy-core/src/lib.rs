@@ -64,8 +64,9 @@ pub use aggregate::{
     NEUTRAL_SCORE,
 };
 pub use engine::{
-    run_ensemble, BarRecord, EngineEvent, EnsembleConfig, EnsembleResult, OrderIntent, OrderReason,
-    OrderSide, SlotScore, SlotScoreOutcome, CIRCUIT_BREAKER_THRESHOLD,
+    run_ensemble, run_ensemble_with_observer, run_ensemble_with_quickjs_observed, BarRecord,
+    EngineEvent, EnsembleConfig, EnsembleError, EnsembleResult, LoopControl, OrderIntent,
+    OrderReason, OrderSide, SlotScore, SlotScoreOutcome, CIRCUIT_BREAKER_THRESHOLD,
 };
 pub use policy::{DcaMode, ExecutionPolicy, PolicyState};
 pub use stop::{StopConfig, StopKind, StopTrigger, TrailingState};
