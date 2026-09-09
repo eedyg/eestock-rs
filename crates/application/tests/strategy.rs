@@ -7,8 +7,9 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use domain::ports::{
-    BacktestBarRead, CatalogEntry, Clock, NewStrategy, NewStrategyVersion, StrategyRow,
-    StrategyStore, StrategyVersionRow,
+    BacktestBarRead, CatalogEntry, Clock, NewStrategy, NewStrategyVersion,
+    StrategyManageItem, StrategyManagePublishedSummary, StrategyManageVersionSummary,
+    StrategyRow, StrategyStore, StrategyVersionRow,
 };
 use domain::strategy_state::{ApprovalLevel, StrategyKind, StrategyStatus};
 use domain::types::{Code, Period, SourceId};
@@ -305,6 +306,75 @@ impl StrategyStore for MockStore {
         v.status = status;
         Ok(Some(v.clone()))
     }
+
+    // P2b：manage_list——语义对齐 SQL（全部策略含仅 draft/零版本；latest_version=版本号最大
+    // 任意状态；latest_published=最新 published）。
+    async fn manage_list(
+        &self,
+        kind: Option<StrategyKind>,
+    ) -> anyhow::Result<Vec<StrategyManageItem>> {
+        let strategies = self.strategies.lock().unwrap();
+        let versions = self.versions.lock().unwrap();
+        let mut out = Vec::new();
+        for s in strategies.values() {
+            if let Some(k) = kind {
+                if s.kind != k {
+                    continue;
+                }
+            }
+            let mine: Vec<_> =
+                versions.values().filter(|v| v.strategy_id == s.id).collect();
+            let latest_version = mine.iter().max_by_key(|v| v.version).map(|v| {
+                StrategyManageVersionSummary {
+                    id: v.id.clone(),
+                    version: v.version,
+                    status: v.status,
+                    approval_level: v.approval_level,
+                    sha256: v.sha256.clone(),
+                    created_at: v.created_at,
+                    published_at: v.published_at,
+                }
+            });
+            let latest_published = mine
+                .iter()
+                .filter(|v| v.status == StrategyStatus::Published)
+                .max_by_key(|v| v.version)
+                .map(|v| StrategyManagePublishedSummary {
+                    id: v.id.clone(),
+                    version: v.version,
+                    approval_level: v.approval_level,
+                });
+            out.push(StrategyManageItem {
+                id: s.id.clone(),
+                name: s.name.clone(),
+                description: s.description.clone(),
+                kind: s.kind,
+                created_by: s.created_by.clone(),
+                created_at: s.created_at,
+                updated_at: s.updated_at,
+                version_count: mine.len() as i64,
+                latest_version,
+                latest_published,
+            });
+        }
+        out.sort_by(|a, b| a.id.cmp(&b.id));
+        Ok(out)
+    }
+
+    // P2b：update_meta——最终值落库 + updated_at 推进；未知 id → None。
+    async fn update_meta(
+        &self,
+        id: &str,
+        name: &str,
+        description: &str,
+    ) -> anyhow::Result<Option<StrategyRow>> {
+        let mut strategies = self.strategies.lock().unwrap();
+        let Some(s) = strategies.get_mut(id) else { return Ok(None) };
+        s.name = name.to_string();
+        s.description = description.to_string();
+        self.bump_updated(s);
+        Ok(Some(s.clone()))
+    }
 }
 
 fn service(bars: Vec<domain::types::Bar>) -> (StrategyService, Arc<MockStore>) {
@@ -571,6 +641,74 @@ async fn catalog_only_published_with_level_filter() {
     // kind 过滤
     assert_eq!(svc.catalog(None, Some(StrategyKind::Template)).await.unwrap().len(), 0);
     assert_eq!(svc.catalog(None, Some(StrategyKind::Strategy)).await.unwrap().len(), 1);
+}
+
+// ── P2b：manage_list / update_meta ──
+
+#[tokio::test]
+async fn manage_list_includes_draft_only_with_aggregates() {
+    let (svc, _) = service(vec![]);
+    // 仅 draft 策略（latest_published 应为 None）
+    let (s_draft, _) = svc.create_strategy(&input("mg-draft", CONST_SCORE)).await.unwrap();
+    // published v1 + 自动新 draft v2（latest_version=v2 draft / latest_published=v1）
+    let (s_pub, v1) = create_published(&svc, "mg-pub", CONST_SCORE).await;
+    let UpdateDraftOutcome::NewDraft(_) = svc.update_draft(&v1.id, TREND).await.unwrap() else {
+        panic!("published 编辑应自动落新 draft")
+    };
+
+    let items = svc.manage_list(None).await.unwrap();
+    assert_eq!(items.len(), 2, "含仅 draft 策略");
+    let e_draft = items.iter().find(|e| e.id == s_draft.id).unwrap();
+    assert_eq!(e_draft.version_count, 1);
+    assert_eq!(e_draft.latest_version.as_ref().unwrap().version, 1);
+    assert_eq!(e_draft.latest_version.as_ref().unwrap().status, StrategyStatus::Draft);
+    assert!(e_draft.latest_published.is_none());
+
+    let e_pub = items.iter().find(|e| e.id == s_pub.id).unwrap();
+    assert_eq!(e_pub.version_count, 2);
+    assert_eq!(e_pub.latest_version.as_ref().unwrap().version, 2);
+    assert_eq!(e_pub.latest_version.as_ref().unwrap().status, StrategyStatus::Draft);
+    let lp = e_pub.latest_published.as_ref().unwrap();
+    assert_eq!(lp.version, 1);
+    assert_eq!(lp.approval_level, ApprovalLevel::BacktestOk);
+
+    // kind 过滤
+    assert!(svc.manage_list(Some(StrategyKind::Template)).await.unwrap().is_empty());
+    assert_eq!(svc.manage_list(Some(StrategyKind::Strategy)).await.unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn update_meta_validation_400_and_404() {
+    let (svc, _) = service(vec![]);
+    let (s, _) = svc.create_strategy(&input("meta", CONST_SCORE)).await.unwrap();
+    // name/description 均空 → 400
+    let e = svc.update_meta(&s.id, None, None).await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyValidation>().is_some(), "均空应 400");
+    // name trim 后为空 → 400
+    let e = svc.update_meta(&s.id, Some("   "), None).await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyValidation>().is_some(), "空白 name 应 400");
+    // 未知 id → 404
+    let e = svc.update_meta("st_none", Some("x"), None).await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyNotFound>().is_some(), "未知 id 应 404");
+}
+
+#[tokio::test]
+async fn update_meta_happy_trims_name_and_keeps_missing_fields() {
+    let (svc, _) = service(vec![]);
+    let (s, _) = svc.create_strategy(&input("meta-old", CONST_SCORE)).await.unwrap();
+    // 仅改 name（trim 后落库）；description 保持原值
+    let row = svc.update_meta(&s.id, Some("  meta-new  "), None).await.unwrap();
+    assert_eq!(row.name, "meta-new");
+    assert_eq!(row.description, "desc", "未给 description 应保持");
+    assert!(row.updated_at > s.updated_at, "update_meta 应推进 updated_at");
+    // 仅改 description；name 保持
+    let row2 = svc.update_meta(&s.id, None, Some("desc-new")).await.unwrap();
+    assert_eq!(row2.name, "meta-new", "未给 name 应保持");
+    assert_eq!(row2.description, "desc-new");
+    // 读回一致
+    let got = svc.get_strategy(&s.id).await.unwrap();
+    assert_eq!(got.name, "meta-new");
+    assert_eq!(got.description, "desc-new");
 }
 
 // ── 播种 ──

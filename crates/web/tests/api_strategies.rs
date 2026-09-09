@@ -286,6 +286,117 @@ async fn create_validation_400() {
     }
 }
 
+// P2b：GET /api/strategies/manage?kind=——管理列表（全部策略含仅 draft；聚合 version_count /
+// latest_version / latest_published）。
+#[tokio::test]
+async fn manage_endpoint_lists_all_strategies_with_aggregates() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let p = pref("mg");
+    clean_strategies(&pool, &p).await;
+
+    // 仅 draft 策略（应出现，latest_published = null）
+    let created = create(&http, &url, &format!("{p}-draft"), CONST_SCORE).await;
+    let sid_draft = created["strategy"]["id"].as_str().unwrap().to_string();
+    // published 策略（latest_version = latest_published = v1）
+    let created2 = create(&http, &url, &format!("{p}-pub"), TREND).await;
+    let sid_pub = created2["strategy"]["id"].as_str().unwrap().to_string();
+    let vid_pub = created2["version"]["id"].as_str().unwrap().to_string();
+    let r = http.post(format!("{url}/api/strategies/versions/{vid_pub}/publish")).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+
+    let r = http.get(format!("{url}/api/strategies/manage")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "{:?}", r.text().await);
+    let body: Value = r.json().await.unwrap();
+    let items = body["items"].as_array().expect("响应应为 { items: [...] }");
+    let mine: Vec<&Value> = items.iter()
+        .filter(|e| e["name"].as_str().unwrap().starts_with(&p)).collect();
+    assert_eq!(mine.len(), 2, "含仅 draft 策略");
+
+    let e_draft = mine.iter().find(|e| e["id"] == sid_draft).unwrap();
+    assert_eq!(e_draft["kind"], "strategy");
+    assert_eq!(e_draft["version_count"], 1);
+    assert!(e_draft["latest_published"].is_null(), "仅 draft → latest_published null");
+    assert_eq!(e_draft["latest_version"]["version"], 1);
+    assert_eq!(e_draft["latest_version"]["status"], "draft");
+    assert_eq!(e_draft["latest_version"]["approval_level"], "backtest_ok");
+    assert!(e_draft["latest_version"]["sha256"].is_string());
+    assert!(e_draft["latest_version"]["created_at"].is_string());
+    assert!(e_draft["latest_version"]["published_at"].is_null());
+
+    let e_pub = mine.iter().find(|e| e["id"] == sid_pub).unwrap();
+    assert_eq!(e_pub["version_count"], 1);
+    assert_eq!(e_pub["latest_version"]["status"], "published");
+    assert!(e_pub["latest_version"]["published_at"].is_string());
+    assert_eq!(e_pub["latest_published"]["version"], 1);
+    assert_eq!(e_pub["latest_published"]["approval_level"], "backtest_ok");
+    assert_eq!(e_pub["latest_published"]["id"], vid_pub);
+
+    // kind 过滤：template → 无本测试条目；strategy → 2 条；非法 kind → 400
+    let r = http.get(format!("{url}/api/strategies/manage?kind=template")).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let body: Value = r.json().await.unwrap();
+    assert!(!body["items"].as_array().unwrap().iter()
+        .any(|e| e["name"].as_str().unwrap().starts_with(&p)));
+    let r = http.get(format!("{url}/api/strategies/manage?kind=strategy")).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let body: Value = r.json().await.unwrap();
+    assert_eq!(body["items"].as_array().unwrap().iter()
+        .filter(|e| e["name"].as_str().unwrap().starts_with(&p)).count(), 2);
+    let r = http.get(format!("{url}/api/strategies/manage?kind=builtin")).send().await.unwrap();
+    assert_eq!(r.status(), 400);
+
+    clean_strategies(&pool, &p).await;
+}
+
+// P2b：PATCH /api/strategies/{id}——更新元数据（name trim / description；均空 400 / 未知 id 404）。
+#[tokio::test]
+async fn patch_meta_update_and_error_semantics() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let p = pref("pm");
+    clean_strategies(&pool, &p).await;
+
+    let created = create(&http, &url, &format!("{p}-old"), CONST_SCORE).await;
+    let sid = created["strategy"]["id"].as_str().unwrap().to_string();
+
+    // 200：更新 name（trim 后落库）+ description；响应为更新后 strategy 行
+    let r = http.patch(format!("{url}/api/strategies/{sid}"))
+        .json(&json!({ "name": format!("  {p}-new  "), "description": "d2" }))
+        .send().await.unwrap();
+    assert_eq!(r.status(), 200, "{:?}", r.text().await);
+    let row: Value = r.json().await.unwrap();
+    assert_eq!(row["id"], sid);
+    assert_eq!(row["name"], format!("{p}-new"), "name 应 trim 后落库");
+    assert_eq!(row["description"], "d2");
+    assert!(row["updated_at"].is_string());
+
+    // 仅 description：name 保持
+    let r = http.patch(format!("{url}/api/strategies/{sid}"))
+        .json(&json!({ "description": "d3" })).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let row: Value = r.json().await.unwrap();
+    assert_eq!(row["name"], format!("{p}-new"), "未给 name 应保持");
+    assert_eq!(row["description"], "d3");
+
+    // 400：name/description 均空
+    let r = http.patch(format!("{url}/api/strategies/{sid}"))
+        .json(&json!({})).send().await.unwrap();
+    assert_eq!(r.status(), 400, "均空应 400");
+    // 400：name trim 后为空
+    let r = http.patch(format!("{url}/api/strategies/{sid}"))
+        .json(&json!({ "name": "   " })).send().await.unwrap();
+    assert_eq!(r.status(), 400, "空白 name 应 400");
+    // 404：未知 id
+    let r = http.patch(format!("{url}/api/strategies/st_none"))
+        .json(&json!({ "name": "x" })).send().await.unwrap();
+    assert_eq!(r.status(), 404);
+
+    clean_strategies(&pool, &p).await;
+}
+
 /// 造 M1 accurate bar（close 递变；test-run 数据源）。
 async fn seed_m1_bars(pool: &PgPool, code: &str, closes: &[f64]) {
     for (i, c) in closes.iter().enumerate() {

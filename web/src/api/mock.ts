@@ -58,6 +58,22 @@ import type {
   SimStrategyConfigInput,
   SimStrategyScore,
   SimToggleReq,
+  StrategyApprovalLevel,
+  StrategyCatalogEntry,
+  StrategyCreateReq,
+  StrategyCreateResp,
+  StrategyDiffResp,
+  StrategyKind,
+  StrategyManageItem,
+  StrategyParamDef,
+  StrategyPatchReq,
+  StrategyRowDto,
+  StrategyStatus,
+  StrategyTestRunReq,
+  StrategyTestRunResp,
+  StrategyTradeDetail,
+  StrategyUpdateOutcome,
+  StrategyVersionRowDto,
 } from './types';
 import { ApiError } from './types';
 
@@ -479,6 +495,138 @@ function backtestSortDesc(a: BacktestRunDto, b: BacktestRunDto): number {
   return b.id - a.id;
 }
 
+// ── 页面⑩ 策略 Registry（12-strategy-system / P2b；契约 mock，与后端 §1.7 同构）──
+
+/** 种子插件代码（dual_ma 参考插件语义缩略版；含 PARAMS_SCHEMA 供编辑器参数面板测试） */
+const MOCK_DUAL_MA_CODE = `const PARAMS_SCHEMA = [
+  { key: "fast", type: "int", default: 5, min: 1, max: 250, description: "快线周期" },
+  { key: "slow", type: "int", default: 20, min: 2, max: 250, description: "慢线周期" }
+];
+
+function init(params) {}
+
+function on_bar(ctx) {
+  const fast = ctx.indicators.ma(ctx.params.fast);
+  const slow = ctx.indicators.ma(ctx.params.slow);
+  if (fast === null || slow === null) return 50;
+  return fast > slow ? 80 : 30;
+}
+`;
+
+const MOCK_TEMPLATE_CODE = `const PARAMS_SCHEMA = [];
+
+// 纯评分模板：不读 position 的最小骨架
+function on_bar(ctx) {
+  return 50;
+}
+`;
+
+const MOCK_DUAL_MA_SCHEMA: StrategyParamDef[] = [
+  { key: 'fast', type: 'int', default: 5, min: 1, max: 250, description: '快线周期' },
+  { key: 'slow', type: 'int', default: 20, min: 2, max: 250, description: '慢线周期' },
+];
+
+/** 与后端同口径的内容哈希占位（mock 不做真 sha256；确定性即可）。 */
+function mockSha(code: string): string {
+  let h = 'sha_';
+  for (let i = 0; i < 16; i++) h += '0123456789abcdef'[Math.floor(rand01(`${code}:${i}`) * 16)];
+  return h;
+}
+
+/** 简易正则重解析 PARAMS_SCHEMA（与后端 extract_schema 对齐意图：保存时代码的 schema 声明即时生效）。
+ *  后端是 QuickJS 实例化后读插件声明；mock 无法执行 JS，用正则提取 `PARAMS_SCHEMA = [...]` 字面量中的
+ *  `{ key, type, default, min?, max?, description? }` 条目。**解析失败（无声明/无法识别）→ 空数组**（同后端 None→[] 落库语义）。 */
+function mockExtractParamsSchema(code: string): StrategyParamDef[] {
+  const m = /PARAMS_SCHEMA\s*=\s*\[([\s\S]*?)\]\s*;?/.exec(code);
+  if (!m) return [];
+  const body = m[1]!;
+  const out: StrategyParamDef[] = [];
+  const entryRe = /\{([^{}]*)\}/g;
+  let em: RegExpExecArray | null;
+  while ((em = entryRe.exec(body)) !== null) {
+    const fields = em[1]!;
+    const str = (k: string): string | undefined => {
+      const fm = new RegExp(`${k}\\s*:\\s*"([^"]*)"`).exec(fields);
+      return fm?.[1];
+    };
+    const num = (k: string): number | undefined => {
+      const fm = new RegExp(`${k}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`).exec(fields);
+      return fm ? Number(fm[1]) : undefined;
+    };
+    const key = str('key');
+    const type = str('type');
+    const def = num('default');
+    // 条目缺 key/type/default → 整体视为解析失败（返回空数组，与「解析失败置空」口径一致）
+    if (key === undefined || (type !== 'int' && type !== 'float') || def === undefined) return [];
+    const def0: StrategyParamDef = { key, type, default: def };
+    const min = num('min');
+    const max = num('max');
+    const desc = str('description');
+    if (min !== undefined) def0.min = min;
+    if (max !== undefined) def0.max = max;
+    if (desc !== undefined) def0.description = desc;
+    out.push(def0);
+  }
+  return out;
+}
+
+/** 试算区间上限（与后端 application::strategy 同口径：D1 ≤ 366*5 天；分钟级 M1/M5/M15 ≤ 93 天）。 */
+const MOCK_TESTRUN_D1_MAX_SPAN_DAYS = 366 * 5;
+const MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS = 93;
+
+interface MockStrategyStore {
+  strategies: StrategyRowDto[];
+  versions: StrategyVersionRowDto[];
+  seq: number;
+}
+
+function seedStrategyStore(anchor: number): MockStrategyStore {
+  const iso = (offMs: number) => new Date(anchor - offMs).toISOString();
+  const v = (
+    id: string,
+    strategyId: string,
+    version: number,
+    code: string,
+    status: StrategyStatus,
+    approval: StrategyApprovalLevel,
+    schema: StrategyParamDef[],
+    ageMs: number,
+  ): StrategyVersionRowDto => ({
+    id,
+    strategy_id: strategyId,
+    version,
+    code,
+    params_schema: schema,
+    sha256: mockSha(code),
+    status,
+    approval_level: approval,
+    created_at: iso(ageMs),
+    published_at: status === 'draft' ? null : iso(ageMs - 60_000),
+  });
+  return {
+    seq: 100,
+    strategies: [
+      { id: 'st_mock_dual_ma', name: '双均线插件策略', description: 'MA 金叉死叉评分',
+        kind: 'strategy', created_by: 'seed', created_at: iso(10 * 86400_000), updated_at: iso(3600_000) },
+      { id: 'st_mock_tpl_pure', name: '纯评分模板', description: '官方模板：最小骨架',
+        kind: 'template', created_by: 'system', created_at: iso(10 * 86400_000), updated_at: iso(10 * 86400_000) },
+      { id: 'st_mock_draft', name: '未发布草稿策略', description: '仅 draft，catalog 不可见',
+        kind: 'strategy', created_by: 'seed', created_at: iso(7200_000), updated_at: iso(1800_000) },
+    ],
+    versions: [
+      v('sv_mock_dual_v1', 'st_mock_dual_ma', 1, MOCK_DUAL_MA_CODE, 'published', 'sim_ok', MOCK_DUAL_MA_SCHEMA, 5 * 86400_000),
+      v('sv_mock_dual_v2', 'st_mock_dual_ma', 2, MOCK_DUAL_MA_CODE + '\n// v2 draft 调整\n', 'draft', 'backtest_ok', MOCK_DUAL_MA_SCHEMA, 86400_000),
+      v('sv_mock_tpl_v1', 'st_mock_tpl_pure', 1, MOCK_TEMPLATE_CODE, 'published', 'backtest_ok', [], 10 * 86400_000),
+      v('sv_mock_draft_v1', 'st_mock_draft', 1, MOCK_TEMPLATE_CODE, 'draft', 'backtest_ok', [], 7200_000),
+    ],
+  };
+}
+
+/** approval 阶梯 rank（at-least 过滤；与后端 ApprovalLevel::rank 同构）。 */
+function approvalRank(l: StrategyApprovalLevel): number {
+  return l === 'backtest_ok' ? 1 : l === 'sim_ok' ? 2 : 3;
+}
+
 export function createMockClient(opts: MockOptions = {}): ApiClient {
   const anchorNow = opts.now?.getTime() ?? Date.now();
   let symbols = initialSymbols();
@@ -513,6 +661,36 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     opts.backtestRuns ?? seedBacktestRuns(anchorNow);
   let nextBacktestRunId =
     (backtestRuns.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
+  /** 页面⑩ 策略 Registry mock 内存态（策略行 + 版本行；行为可闭环验证）。 */
+  const strategyStore = seedStrategyStore(anchorNow);
+  /** 新建 draft 版本（从指定版本派生；与后端 create_draft_from 同口径）。局部函数而非对象方法，
+   *  避免 stubApi（vi.fn 包装）下 `this` 上下文丢失。 */
+  const createDraftFromVersion = (strategyId: string, fromVersionId: string): StrategyVersionRowDto => {
+    const from = strategyStore.versions.find((x) => x.id === fromVersionId);
+    if (!from || !strategyStore.strategies.some((x) => x.id === strategyId)) {
+      throw new ApiError(404, `HTTP 404: 版本 ${fromVersionId} 不存在`);
+    }
+    if (from.strategy_id !== strategyId) {
+      throw new ApiError(400, 'HTTP 400: 版本不属该策略');
+    }
+    const n = Math.max(
+      0,
+      ...strategyStore.versions.filter((x) => x.strategy_id === strategyId).map((x) => x.version),
+    );
+    const vid = `sv_mock_${strategyStore.seq}_v${n + 1}`;
+    strategyStore.seq += 1;
+    const nv: StrategyVersionRowDto = {
+      ...from,
+      id: vid,
+      version: n + 1,
+      status: 'draft',
+      approval_level: 'backtest_ok',
+      created_at: new Date(anchorNow).toISOString(),
+      published_at: null,
+    };
+    strategyStore.versions.push(nv);
+    return { ...nv };
+  };
 
   const createBacktestRun = (
     req: BacktestSubmitReq,
@@ -1079,6 +1257,207 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         session_id: id,
         session_result: found.metrics ? { net_value: {}, trades: [], metrics: found.metrics } : null,
         run_ids: [1001 + simLive.history.findIndex((h) => h.session.id === id)],
+      };
+    },
+    // ── 页面⑩ 策略 Registry（§1.7；mock 行为与后端语义同构）──
+    async getStrategyManageList(filter?: { kind?: StrategyKind }): Promise<StrategyManageItem[]> {
+      const list = strategyStore.strategies
+        .filter((s) => !filter?.kind || s.kind === filter.kind)
+        .map((s) => {
+          const vs = strategyStore.versions.filter((x) => x.strategy_id === s.id);
+          const latest = vs.length > 0 ? vs.reduce((a, b) => (b.version > a.version ? b : a)) : null;
+          const pubs = vs.filter((x) => x.status === 'published');
+          const latestPub = pubs.length > 0 ? pubs.reduce((a, b) => (b.version > a.version ? b : a)) : null;
+          return {
+            ...s,
+            version_count: vs.length,
+            latest_version: latest
+              ? { id: latest.id, version: latest.version, status: latest.status,
+                  approval_level: latest.approval_level, sha256: latest.sha256,
+                  created_at: latest.created_at, published_at: latest.published_at }
+              : null,
+            latest_published: latestPub
+              ? { id: latestPub.id, version: latestPub.version, approval_level: latestPub.approval_level }
+              : null,
+          };
+        });
+      return list;
+    },
+    async getStrategyCatalog(filter?: { level?: StrategyApprovalLevel; kind?: StrategyKind }): Promise<StrategyCatalogEntry[]> {
+      const out: StrategyCatalogEntry[] = [];
+      for (const s of strategyStore.strategies) {
+        if (filter?.kind && s.kind !== filter.kind) continue;
+        const pubs = strategyStore.versions.filter(
+          (x) => x.strategy_id === s.id && x.status === 'published',
+        );
+        if (pubs.length === 0) continue;
+        const latest = pubs.reduce((a, b) => (b.version > a.version ? b : a));
+        if (filter?.level && approvalRank(latest.approval_level) < approvalRank(filter.level)) continue;
+        out.push({ strategy: { ...s }, version: { ...latest } });
+      }
+      return out;
+    },
+    async createStrategy(req: StrategyCreateReq): Promise<StrategyCreateResp> {
+      if (!req.name.trim()) throw new ApiError(400, 'HTTP 400: name 必填');
+      if (!req.code.trim()) throw new ApiError(400, 'HTTP 400: code 必填');
+      if (req.kind !== undefined && req.kind !== 'strategy' && req.kind !== 'template') {
+        throw new ApiError(400, 'HTTP 400: kind 须为 strategy/template');
+      }
+      const id = `st_mock_${strategyStore.seq}`;
+      const vid = `sv_mock_${strategyStore.seq}_v1`;
+      strategyStore.seq += 1;
+      const nowIso = new Date(anchorNow).toISOString();
+      const strategy: StrategyRowDto = {
+        id, name: req.name.trim(), description: req.description ?? '',
+        kind: req.kind ?? 'strategy', created_by: 'web', created_at: nowIso, updated_at: nowIso,
+      };
+      const version: StrategyVersionRowDto = {
+        id: vid, strategy_id: id, version: 1, code: req.code,
+        params_schema: [], sha256: mockSha(req.code), status: 'draft',
+        approval_level: 'backtest_ok', created_at: nowIso, published_at: null,
+      };
+      strategyStore.strategies.push(strategy);
+      strategyStore.versions.push(version);
+      return { strategy: { ...strategy }, version: { ...version } };
+    },
+    async patchStrategy(id: string, patch: StrategyPatchReq): Promise<StrategyRowDto> {
+      // 校验顺序对齐后端 update_meta：先 400（空 patch / name trim 后空）后 404（未知 id）
+      if (patch.name === undefined && patch.description === undefined) {
+        throw new ApiError(400, 'HTTP 400: 至少一个字段');
+      }
+      if (patch.name !== undefined && !patch.name.trim()) {
+        throw new ApiError(400, 'HTTP 400: name 不能为空');
+      }
+      const s = strategyStore.strategies.find((x) => x.id === id);
+      if (!s) throw new ApiError(404, `HTTP 404: 策略 ${id} 不存在`);
+      if (patch.name !== undefined) {
+        s.name = patch.name.trim();
+      }
+      if (patch.description !== undefined) s.description = patch.description;
+      s.updated_at = new Date(anchorNow).toISOString();
+      return { ...s };
+    },
+    async getStrategy(id: string): Promise<StrategyRowDto> {
+      const s = strategyStore.strategies.find((x) => x.id === id);
+      if (!s) throw new ApiError(404, `HTTP 404: 策略 ${id} 不存在`);
+      return { ...s };
+    },
+    async getStrategyVersions(id: string): Promise<StrategyVersionRowDto[]> {
+      if (!strategyStore.strategies.some((x) => x.id === id)) {
+        throw new ApiError(404, `HTTP 404: 策略 ${id} 不存在`);
+      }
+      return strategyStore.versions
+        .filter((x) => x.strategy_id === id)
+        .sort((a, b) => a.version - b.version)
+        .map((x) => ({ ...x }));
+    },
+    async createStrategyVersion(strategyId: string, fromVersionId: string): Promise<StrategyVersionRowDto> {
+      return createDraftFromVersion(strategyId, fromVersionId);
+    },
+    async updateStrategyVersion(vid: string, code: string): Promise<StrategyUpdateOutcome> {
+      if (!code.trim()) throw new ApiError(400, 'HTTP 400: code 必填');
+      const v = strategyStore.versions.find((x) => x.id === vid);
+      if (!v) throw new ApiError(404, `HTTP 404: 版本 ${vid} 不存在`);
+      if (v.status === 'archived') throw new ApiError(409, 'HTTP 409: archived 版本不可编辑');
+      if (v.status === 'draft') {
+        v.code = code;
+        v.sha256 = mockSha(code);
+        v.params_schema = mockExtractParamsSchema(code); // 保存即重解析 schema（对齐后端 extract_schema）
+        return { outcome: 'updated', version: { ...v } };
+      }
+      // published → 自动落新 draft（ADR §13.5 防呆）
+      const nv = createDraftFromVersion(v.strategy_id, v.id);
+      const stored = strategyStore.versions.find((x) => x.id === nv.id)!;
+      stored.code = code;
+      stored.sha256 = mockSha(code);
+      stored.params_schema = mockExtractParamsSchema(code); // new_draft 分支同样重解析
+      return { outcome: 'new_draft', version: { ...stored } };
+    },
+    async publishStrategyVersion(vid: string): Promise<StrategyVersionRowDto> {
+      const v = strategyStore.versions.find((x) => x.id === vid);
+      if (!v) throw new ApiError(404, `HTTP 404: 版本 ${vid} 不存在`);
+      if (v.status !== 'draft') throw new ApiError(409, 'HTTP 409: 仅 draft 可发布');
+      // 发布门禁占位：代码须含 on_bar（模拟冒烟；真实门禁由后端 QuickJS 实例化）
+      if (!v.code.includes('on_bar')) {
+        throw new ApiError(400, 'HTTP 400: 发布门禁未通过（on_bar 缺失）');
+      }
+      v.status = 'published';
+      v.published_at = new Date(anchorNow).toISOString();
+      return { ...v };
+    },
+    async archiveStrategyVersion(vid: string): Promise<StrategyVersionRowDto> {
+      const v = strategyStore.versions.find((x) => x.id === vid);
+      if (!v) throw new ApiError(404, `HTTP 404: 版本 ${vid} 不存在`);
+      if (v.status !== 'published') throw new ApiError(409, 'HTTP 409: 仅 published 可归档');
+      v.status = 'archived';
+      return { ...v };
+    },
+    async diffStrategyVersions(from: string, to: string): Promise<StrategyDiffResp> {
+      const f = strategyStore.versions.find((x) => x.id === from);
+      const t = strategyStore.versions.find((x) => x.id === to);
+      if (!f || !t) throw new ApiError(404, 'HTTP 404: 版本不存在（diff 两端均须有效）');
+      const side = (v: StrategyVersionRowDto) => ({
+        id: v.id, strategy_id: v.strategy_id, version: v.version, status: v.status, code: v.code,
+      });
+      return { from: side(f), to: side(t) };
+    },
+    async runStrategyTest(req: StrategyTestRunReq): Promise<StrategyTestRunResp> {
+      if ((req.code !== undefined) === (req.versionId !== undefined)) {
+        throw new ApiError(400, 'HTTP 400: code 与 version_id 须且仅须提供一个');
+      }
+      if (!req.symbol.trim()) throw new ApiError(400, 'HTTP 400: symbol（标的代码）必填');
+      if (req.mode !== 'pure_score' && req.mode !== 'sim_position') {
+        throw new ApiError(400, 'HTTP 400: mode 须为 pure_score/sim_position');
+      }
+      const fromMs = Date.parse(req.from);
+      const toMs = Date.parse(req.to);
+      if (Number.isNaN(fromMs) || Number.isNaN(toMs) || fromMs >= toMs) {
+        throw new ApiError(400, 'HTTP 400: from 须早于 to');
+      }
+      // 区间上限校验（复刻后端：D1 ≤ 5 年 / 分钟级 ≤ 3 个月 → 400）
+      const spanDays = Math.round((toMs - fromMs) / 86_400_000);
+      const limitDays =
+        req.period === 'D1' ? MOCK_TESTRUN_D1_MAX_SPAN_DAYS : MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS;
+      if (spanDays > limitDays) {
+        throw new ApiError(
+          400,
+          `HTTP 400: 试算区间超限：${req.period} 跨度 ${spanDays} 天 > 上限 ${limitDays} 天`,
+        );
+      }
+      if (req.versionId && !strategyStore.versions.some((x) => x.id === req.versionId)) {
+        throw new ApiError(404, `HTTP 404: 版本 ${req.versionId} 不存在`);
+      }
+      const code = req.code ?? strategyStore.versions.find((x) => x.id === req.versionId)!.code;
+      if (!code.includes('on_bar')) throw new ApiError(400, 'HTTP 400: 插件缺少 on_bar');
+      // 确定性评分序列（由 code+symbol 哈希驱动，30 点），sim_position 补信号/成交/事件
+      const seed = `${code.length}:${req.symbol}`;
+      const n = 30;
+      const step = Math.max(60, Math.floor((toMs - fromMs) / 1000 / n));
+      const scores = Array.from({ length: n }, (_, i) => ({
+        ts: Math.floor(fromMs / 1000) + i * step,
+        score: Math.round(rand01(`${seed}:${i}`) * 100),
+      }));
+      const signals = req.mode === 'sim_position'
+        ? scores.map((p) => ({ ts: p.ts, signal: p.score >= 60 ? 'buy' : p.score <= 40 ? 'sell' : 'hold' }))
+        : [];
+      const trades: StrategyTradeDetail[] = req.mode === 'sim_position'
+        ? [{
+            open_ts: scores[2]!.ts, close_ts: scores[10]!.ts, open_bar: 2, close_bar: 10,
+            open_price: 2.4, close_price: 2.52, shares: 1000, gross_value: 2520,
+            commission: 5, stamp_duty: 1.26, pnl: 113.74, hold_bars: 8,
+          }]
+        : [];
+      const events = [{ type: 'log', bar_index: 0, message: 'mock 试算事件（契约桩）' }];
+      return {
+        mode: req.mode,
+        symbol: req.symbol,
+        period: req.period,
+        bar_count: n,
+        scores,
+        signals,
+        trades,
+        events,
+        truncated: { scores: false, events: false, trades: false },
       };
     },
   };

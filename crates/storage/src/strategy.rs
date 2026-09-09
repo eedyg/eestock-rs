@@ -15,7 +15,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use domain::ports::{
-    CatalogEntry, NewStrategy, NewStrategyVersion, StrategyRow, StrategyStore, StrategyVersionRow,
+    CatalogEntry, NewStrategy, NewStrategyVersion, StrategyManageItem,
+    StrategyManagePublishedSummary, StrategyManageVersionSummary, StrategyRow, StrategyStore,
+    StrategyVersionRow,
 };
 use domain::strategy_state::{ApprovalLevel, StrategyKind, StrategyStatus};
 use sqlx::PgPool;
@@ -136,6 +138,90 @@ impl CatalogJoinRow {
                 created_at: self.v_created_at,
                 published_at: self.v_published_at,
             },
+        }
+    }
+}
+
+/// manage_list 联表行（18 列超出 sqlx 元组 FromRow 上限；与 CatalogJoinRow 同模式手写 FromRow）。
+/// 三段 LATERAL 聚合：版本计数 / 最新版本（任意状态）/ 最新 published——一查询聚合，无 N+1。
+struct ManageJoinRow {
+    s_id: String,
+    s_name: String,
+    s_description: String,
+    s_kind: String,
+    s_created_by: String,
+    s_created_at: DateTime<Utc>,
+    s_updated_at: DateTime<Utc>,
+    version_count: i64,
+    lv_id: Option<String>,
+    lv_version: Option<i32>,
+    lv_status: Option<String>,
+    lv_approval_level: Option<String>,
+    lv_sha256: Option<String>,
+    lv_created_at: Option<DateTime<Utc>>,
+    lv_published_at: Option<DateTime<Utc>>,
+    lp_id: Option<String>,
+    lp_version: Option<i32>,
+    lp_approval_level: Option<String>,
+}
+
+impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for ManageJoinRow {
+    fn from_row(row: &'r sqlx::postgres::PgRow) -> std::result::Result<Self, sqlx::Error> {
+        use sqlx::Row;
+        Ok(Self {
+            s_id: row.try_get("s_id")?,
+            s_name: row.try_get("s_name")?,
+            s_description: row.try_get("s_description")?,
+            s_kind: row.try_get("s_kind")?,
+            s_created_by: row.try_get("s_created_by")?,
+            s_created_at: row.try_get("s_created_at")?,
+            s_updated_at: row.try_get("s_updated_at")?,
+            version_count: row.try_get("version_count")?,
+            lv_id: row.try_get("lv_id")?,
+            lv_version: row.try_get("lv_version")?,
+            lv_status: row.try_get("lv_status")?,
+            lv_approval_level: row.try_get("lv_approval_level")?,
+            lv_sha256: row.try_get("lv_sha256")?,
+            lv_created_at: row.try_get("lv_created_at")?,
+            lv_published_at: row.try_get("lv_published_at")?,
+            lp_id: row.try_get("lp_id")?,
+            lp_version: row.try_get("lp_version")?,
+            lp_approval_level: row.try_get("lp_approval_level")?,
+        })
+    }
+}
+
+impl ManageJoinRow {
+    fn into_item(self) -> StrategyManageItem {
+        // latest_version：lv_id 为 None（零版本策略）→ None；其余列随 LATERAL 同行同生同灭。
+        let latest_version = self.lv_id.map(|id| StrategyManageVersionSummary {
+            id,
+            version: self.lv_version.unwrap_or(0),
+            status: StrategyStatus::parse(self.lv_status.as_deref().unwrap_or(""))
+                .unwrap_or(StrategyStatus::Draft),
+            approval_level: ApprovalLevel::parse(self.lv_approval_level.as_deref().unwrap_or(""))
+                .unwrap_or(ApprovalLevel::BacktestOk),
+            sha256: self.lv_sha256.unwrap_or_default(),
+            created_at: self.lv_created_at.unwrap_or_else(Utc::now),
+            published_at: self.lv_published_at,
+        });
+        let latest_published = self.lp_id.map(|id| StrategyManagePublishedSummary {
+            id,
+            version: self.lp_version.unwrap_or(0),
+            approval_level: ApprovalLevel::parse(self.lp_approval_level.as_deref().unwrap_or(""))
+                .unwrap_or(ApprovalLevel::BacktestOk),
+        });
+        StrategyManageItem {
+            id: self.s_id,
+            name: self.s_name,
+            description: self.s_description,
+            kind: StrategyKind::parse(&self.s_kind).unwrap_or(StrategyKind::Strategy),
+            created_by: self.s_created_by,
+            created_at: self.s_created_at,
+            updated_at: self.s_updated_at,
+            version_count: self.version_count,
+            latest_version,
+            latest_published,
         }
     }
 }
@@ -315,5 +401,54 @@ impl StrategyStore for PgStrategyStore {
             .bind(id).bind(status.as_str())
             .fetch_optional(&self.pool).await?;
         Ok(row.map(version_from_tuple))
+    }
+
+    // P2b：manage 管理列表——全部策略（含仅 draft / 零版本），三段 LATERAL 一查询聚合（无 N+1）：
+    // ① 版本计数；② 版本号最大版本（任意状态）；③ 最新 published。
+    async fn manage_list(&self, kind: Option<StrategyKind>) -> Result<Vec<StrategyManageItem>> {
+        let rows: Vec<ManageJoinRow> = sqlx::query_as(
+            "SELECT s.id AS s_id, s.name AS s_name, s.description AS s_description, \
+                 s.kind AS s_kind, s.created_by AS s_created_by, \
+                 s.created_at AS s_created_at, s.updated_at AS s_updated_at, \
+                 vc.cnt AS version_count, \
+                 lv.id AS lv_id, lv.version AS lv_version, lv.status AS lv_status, \
+                 lv.approval_level AS lv_approval_level, lv.sha256 AS lv_sha256, \
+                 lv.created_at AS lv_created_at, lv.published_at AS lv_published_at, \
+                 lp.id AS lp_id, lp.version AS lp_version, lp.approval_level AS lp_approval_level \
+             FROM strategy s \
+             LEFT JOIN LATERAL ( \
+                 SELECT count(*) AS cnt FROM strategy_version v WHERE v.strategy_id = s.id \
+             ) vc ON true \
+             LEFT JOIN LATERAL ( \
+                 SELECT v.id, v.version, v.status, v.approval_level, v.sha256, \
+                        v.created_at, v.published_at \
+                 FROM strategy_version v WHERE v.strategy_id = s.id \
+                 ORDER BY v.version DESC LIMIT 1 \
+             ) lv ON true \
+             LEFT JOIN LATERAL ( \
+                 SELECT v.id, v.version, v.approval_level \
+                 FROM strategy_version v WHERE v.strategy_id = s.id AND v.status = 'published' \
+                 ORDER BY v.version DESC LIMIT 1 \
+             ) lp ON true \
+             WHERE ($1::text IS NULL OR s.kind = $1) \
+             ORDER BY s.id")
+            .bind(kind.map(|k| k.as_str()))
+            .fetch_all(&self.pool).await?;
+        Ok(rows.into_iter().map(ManageJoinRow::into_item).collect())
+    }
+
+    // P2b：update_meta——name/description 最终值落库 + updated_at 推进；未知 id → None。
+    async fn update_meta(
+        &self,
+        id: &str,
+        name: &str,
+        description: &str,
+    ) -> Result<Option<StrategyRow>> {
+        let row: Option<StrategyTuple> = sqlx::query_as(&format!(
+            "UPDATE strategy SET name = $2, description = $3, updated_at = now() \
+             WHERE id = $1 RETURNING {STRATEGY_COLS}"))
+            .bind(id).bind(name).bind(description)
+            .fetch_optional(&self.pool).await?;
+        Ok(row.map(strategy_from_tuple))
     }
 }

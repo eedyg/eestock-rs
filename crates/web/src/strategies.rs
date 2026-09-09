@@ -86,6 +86,22 @@ pub struct CreateDraftReq {
     pub from_version_id: String,
 }
 
+/// GET /api/strategies/manage?kind= 查询参数（P2b）。
+#[derive(Debug, Deserialize)]
+pub struct ManageQuery {
+    #[serde(default)]
+    pub kind: Option<String>,
+}
+
+/// PATCH /api/strategies/{id} 请求体（P2b：name/description 均可选，均空 → 400）。
+#[derive(Debug, Deserialize)]
+pub struct UpdateMetaReq {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
 /// PUT /api/strategies/versions/{vid} 请求体（改 draft 代码；published → 自动新 draft）。
 #[derive(Debug, Deserialize)]
 pub struct UpdateDraftReq {
@@ -176,6 +192,38 @@ pub async fn create_strategy(
             Json(serde_json::json!({ "strategy": strategy, "version": version })),
         )
             .into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/strategies/manage?kind= —— 管理列表（P2b：全部策略含仅 draft / 零版本；
+/// 聚合 version_count / latest_version（版本号最大，任意状态）/ latest_published（无 → null））。
+/// 响应 `{ items: [...] }`；kind 非法 → 400。
+pub async fn manage_list(State(st): State<Arc<AppState>>, Query(q): Query<ManageQuery>) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let kind = match q.kind.as_deref() {
+        None => None,
+        Some(s) => match StrategyKind::parse(s) {
+            Some(k) => Some(k),
+            None => return err(StatusCode::BAD_REQUEST, "kind 须为 strategy/template"),
+        },
+    };
+    match svc.manage_list(kind).await {
+        Ok(items) => Json(serde_json::json!({ "items": items })).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// PATCH /api/strategies/{id} —— 更新策略元数据（P2b：name/description 均可选；
+/// 均空 / name trim 后空 → 400；未知 id → 404；200 返回更新后 strategy 行）。
+pub async fn update_meta(
+    State(st): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateMetaReq>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    match svc.update_meta(&id, req.name.as_deref(), req.description.as_deref()).await {
+        Ok(s) => Json(s).into_response(),
         Err(e) => map_svc_err(e),
     }
 }

@@ -51,6 +51,19 @@ import type {
   SimStopReq,
   SimStrategiesDto,
   SimToggleReq,
+  StrategyApprovalLevel,
+  StrategyCatalogEntry,
+  StrategyCreateReq,
+  StrategyCreateResp,
+  StrategyDiffResp,
+  StrategyKind,
+  StrategyManageItem,
+  StrategyPatchReq,
+  StrategyRowDto,
+  StrategyTestRunReq,
+  StrategyTestRunResp,
+  StrategyUpdateOutcome,
+  StrategyVersionRowDto,
 } from './types';
 import { ApiError } from './types';
 
@@ -197,6 +210,31 @@ export interface ApiClient {
   getSimSession(id: string): Promise<SimSessionDetail>;
   /** 「回测一下」对比（POST /api/sim-live/sessions/{id}/backtest-compare） */
   runSimBacktestCompare(id: string): Promise<SimBacktestCompare>;
+  // ── 页面⑩ 策略 Registry（12-strategy-system / P2b；07-app-plane §1.7）──
+  /** 管理列表（GET /api/strategies/manage?kind=；含仅 draft 策略，列表页数据源） */
+  getStrategyManageList(filter?: { kind?: StrategyKind }): Promise<StrategyManageItem[]>;
+  /** 策略 catalog（GET /api/strategies?level=&kind=；仅 published；level at-least 语义；模板下拉数据源） */
+  getStrategyCatalog(filter?: { level?: StrategyApprovalLevel; kind?: StrategyKind }): Promise<StrategyCatalogEntry[]>;
+  /** 新建策略（POST /api/strategies；201 v1 draft；模板创建时 code 预填模板代码） */
+  createStrategy(req: StrategyCreateReq): Promise<StrategyCreateResp>;
+  /** 策略元数据编辑（PATCH /api/strategies/{id}；至少一个字段） */
+  patchStrategy(id: string, patch: StrategyPatchReq): Promise<StrategyRowDto>;
+  /** 策略详情（GET /api/strategies/{id}） */
+  getStrategy(id: string): Promise<StrategyRowDto>;
+  /** 版本列表（GET /api/strategies/{id}/versions；version 升序） */
+  getStrategyVersions(id: string): Promise<StrategyVersionRowDto[]>;
+  /** 从指定版本新建 draft（POST /api/strategies/{id}/versions；回滚/派生） */
+  createStrategyVersion(strategyId: string, fromVersionId: string): Promise<StrategyVersionRowDto>;
+  /** 保存代码（PUT /api/strategies/versions/{vid}；draft 原地更新 / published 自动新 draft；archived → 409） */
+  updateStrategyVersion(vid: string, code: string): Promise<StrategyUpdateOutcome>;
+  /** 发布（POST /api/strategies/versions/{vid}/publish；门禁冒烟通过才转 published） */
+  publishStrategyVersion(vid: string): Promise<StrategyVersionRowDto>;
+  /** 归档（POST /api/strategies/versions/{vid}/archive；仅 published） */
+  archiveStrategyVersion(vid: string): Promise<StrategyVersionRowDto>;
+  /** 版本 diff（GET /api/strategies/versions/diff?from=&to=；前端渲染行级 diff） */
+  diffStrategyVersions(from: string, to: string): Promise<StrategyDiffResp>;
+  /** 在线试算（POST /api/strategies/test-run；同步；双模式 pure_score/sim_position） */
+  runStrategyTest(req: StrategyTestRunReq): Promise<StrategyTestRunResp>;
 }
 
 /** 后端 SymbolDto → 骨架 SymbolSnapshot（latest 展开；无 bar/无名兜底）。
@@ -395,6 +433,68 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getSimSession: (id) => get(`/api/sim-live/sessions/${encodeURIComponent(id)}`),
     runSimBacktestCompare: (id) =>
       request(`/api/sim-live/sessions/${encodeURIComponent(id)}/backtest-compare`, { method: 'POST' }),
+    // ── 页面⑩ 策略 Registry（§1.7）──
+    getStrategyManageList: (filter) => {
+      const params = new URLSearchParams();
+      if (filter?.kind) params.set('kind', filter.kind);
+      const qs = params.toString();
+      return get<{ items: StrategyManageItem[] }>(`/api/strategies/manage${qs ? `?${qs}` : ''}`).then(
+        (r) => r.items,
+      );
+    },
+    getStrategyCatalog: (filter) => {
+      const params = new URLSearchParams();
+      if (filter?.level) params.set('level', filter.level);
+      if (filter?.kind) params.set('kind', filter.kind);
+      const qs = params.toString();
+      return get<StrategyCatalogEntry[]>(`/api/strategies${qs ? `?${qs}` : ''}`);
+    },
+    createStrategy: (req) =>
+      request<StrategyCreateResp>('/api/strategies', { method: 'POST', body: JSON.stringify(req) }),
+    patchStrategy: (id, patch) =>
+      request<StrategyRowDto>(`/api/strategies/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    getStrategy: (id) => get<StrategyRowDto>(`/api/strategies/${encodeURIComponent(id)}`),
+    getStrategyVersions: (id) =>
+      get<StrategyVersionRowDto[]>(`/api/strategies/${encodeURIComponent(id)}/versions`),
+    createStrategyVersion: (strategyId, fromVersionId) =>
+      request<StrategyVersionRowDto>(`/api/strategies/${encodeURIComponent(strategyId)}/versions`, {
+        method: 'POST',
+        body: JSON.stringify({ from_version_id: fromVersionId }),
+      }),
+    updateStrategyVersion: (vid, code) =>
+      request<StrategyUpdateOutcome>(`/api/strategies/versions/${encodeURIComponent(vid)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ code }),
+      }),
+    publishStrategyVersion: (vid) =>
+      request<StrategyVersionRowDto>(`/api/strategies/versions/${encodeURIComponent(vid)}/publish`, {
+        method: 'POST',
+      }),
+    archiveStrategyVersion: (vid) =>
+      request<StrategyVersionRowDto>(`/api/strategies/versions/${encodeURIComponent(vid)}/archive`, {
+        method: 'POST',
+      }),
+    diffStrategyVersions: (from, to) =>
+      get<StrategyDiffResp>(
+        `/api/strategies/versions/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      ),
+    runStrategyTest: (req) =>
+      request<StrategyTestRunResp>('/api/strategies/test-run', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...(req.code !== undefined ? { code: req.code } : {}),
+          ...(req.versionId !== undefined ? { version_id: req.versionId } : {}),
+          params: req.params ?? {},
+          symbol: req.symbol,
+          period: req.period,
+          from: req.from,
+          to: req.to,
+          mode: req.mode,
+        }),
+      }),
   };
 }
 

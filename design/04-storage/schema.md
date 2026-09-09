@@ -796,6 +796,12 @@ trigger 拦 published 行内容字段（code/params_schema/sha256/version）及�
 （同值 no-op UPDATE 放行，便于幂等清理）。BEFORE DELETE trigger 拦 published 行删除
 （published 只能 archive，不可删；连带 strategy 行级联删除也会被拦截；archived 行可删）。
 
+**P2b 查询口径（无新迁移，复用 0022 表）**：manage 管理列表（`StrategyStore::manage_list`）
+一查询聚合——`strategy` LEFT JOIN 三段 LATERAL（① 版本计数 `count(*)`；② 版本号最大版本
+（任意状态，`ORDER BY version DESC LIMIT 1`）；③ 最新 published 同式加 `status='published'`），
+无 N+1；`kind` 精确匹配过滤。元数据更新（`StrategyStore::update_meta`）为单条件 UPDATE
+（name/description 最终值 + `updated_at = now()`，`RETURNING` 行；0 行 → `Ok(None)` → 404）。
+
 ``` {.sql file=migrations/0022_strategy_registry.sql}
 -- 0022_strategy_registry.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
 -- 12-strategy-system / P2a：Strategy Registry（ADR 12-strategy-system §5 数据模型与状态机）。

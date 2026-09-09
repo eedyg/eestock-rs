@@ -673,6 +673,183 @@ export interface SimStopReq {
   session_id?: string;
 }
 
+// ── 策略 Registry（12-strategy-system / P2b；07-app-plane §1.7 后端线格式，snake_case 直传）──
+
+/** 版本状态（domain::strategy_state；draft→published→archived 单向） */
+export type StrategyStatus = 'draft' | 'published' | 'archived';
+/** 权限分级（at-least 阶梯：backtest_ok ≤ sim_ok ≤ live_approved） */
+export type StrategyApprovalLevel = 'backtest_ok' | 'sim_ok' | 'live_approved';
+/** 策略类别：strategy=用户策略 / template=官方模板（ADR §13.2 D10） */
+export type StrategyKind = 'strategy' | 'template';
+
+/** 策略元数据行（StrategyRow） */
+export interface StrategyRowDto {
+  id: string;
+  name: string;
+  description: string;
+  kind: StrategyKind;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 插件 PARAMS_SCHEMA 声明项（02-plugin-abi §1；strategy-runtime ParamDef serde 形状） */
+export interface StrategyParamDef {
+  key: string;
+  type: 'int' | 'float';
+  default: number;
+  min?: number;
+  max?: number;
+  description?: string;
+}
+
+/** 策略版本行（StrategyVersionRow；params_schema JSONB → StrategyParamDef[]） */
+export interface StrategyVersionRowDto {
+  id: string;
+  strategy_id: string;
+  version: number;
+  code: string;
+  params_schema: StrategyParamDef[];
+  sha256: string;
+  status: StrategyStatus;
+  approval_level: StrategyApprovalLevel;
+  created_at: string;
+  published_at: string | null;
+}
+
+/** catalog 条目（GET /api/strategies；策略 + 其最新 published 版本） */
+export interface StrategyCatalogEntry {
+  strategy: StrategyRowDto;
+  version: StrategyVersionRowDto;
+}
+
+/** 管理列表版本摘要（GET /api/strategies/manage latest_version/latest_published 内联形状） */
+export interface StrategyVersionBrief {
+  id: string;
+  version: number;
+  status: StrategyStatus;
+  approval_level: StrategyApprovalLevel;
+  sha256: string;
+  created_at: string;
+  published_at: string | null;
+}
+
+/** 管理列表条目（含仅 draft 策略；列表页数据源） */
+export interface StrategyManageItem {
+  id: string;
+  name: string;
+  description: string;
+  kind: StrategyKind;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  version_count: number;
+  latest_version: StrategyVersionBrief | null;
+  latest_published: { id: string; version: number; approval_level: StrategyApprovalLevel } | null;
+}
+
+/** POST /api/strategies 请求体 */
+export interface StrategyCreateReq {
+  name: string;
+  description?: string;
+  kind?: StrategyKind;
+  code: string;
+}
+
+/** POST /api/strategies 响应（201：v1 draft） */
+export interface StrategyCreateResp {
+  strategy: StrategyRowDto;
+  version: StrategyVersionRowDto;
+}
+
+/** PATCH /api/strategies/{id} 请求体（至少一个字段） */
+export interface StrategyPatchReq {
+  name?: string;
+  description?: string;
+}
+
+/** PUT /api/strategies/versions/{vid} 响应：draft 原地更新 / published 自动落新 draft（ADR §13.5） */
+export interface StrategyUpdateOutcome {
+  outcome: 'updated' | 'new_draft';
+  version: StrategyVersionRowDto;
+}
+
+/** GET /api/strategies/versions/diff 响应（前端渲染 diff） */
+export interface StrategyDiffSide {
+  id: string;
+  strategy_id: string;
+  version: number;
+  status: StrategyStatus;
+  code: string;
+}
+export interface StrategyDiffResp {
+  from: StrategyDiffSide;
+  to: StrategyDiffSide;
+}
+
+/** 试算模式（ADR §13.5 双模式） */
+export type StrategyTestMode = 'pure_score' | 'sim_position';
+
+/** POST /api/strategies/test-run 请求（前端驼峰 → client 转 snake；code 与 versionId 二选一） */
+export interface StrategyTestRunReq {
+  code?: string;
+  versionId?: string;
+  params?: Record<string, number | string>;
+  symbol: string;
+  period: 'M1' | 'M5' | 'M15' | 'D1';
+  from: string; // RFC3339
+  to: string; // RFC3339
+  mode: StrategyTestMode;
+}
+
+/** 试算评分点（score=null：插件熔断停用后的 bar） */
+export interface StrategyScorePoint {
+  ts: number; // Unix 秒
+  score: number | null;
+}
+
+/** sim_position 模式逐 bar 信号点 */
+export interface StrategySignalPoint {
+  ts: number;
+  signal: string; // buy|sell|hold
+}
+
+/** sim_position 模式成交明细（backtest::TradeDetail JSON 形状） */
+export interface StrategyTradeDetail {
+  open_ts: number;
+  close_ts: number;
+  open_bar: number;
+  close_bar: number;
+  open_price: number;
+  close_price: number;
+  shares: number;
+  gross_value: number;
+  commission: number;
+  stamp_duty: number;
+  pnl: number;
+  hold_bars: number;
+}
+
+/** 试算事件（插件日志/插件错误/熔断；type 为 serde rename 后字段名） */
+export interface StrategyTestEvent {
+  type: string;
+  bar_index: number;
+  message: string;
+}
+
+/** 试算响应（POST /api/strategies/test-run；截断标记 truncated） */
+export interface StrategyTestRunResp {
+  mode: StrategyTestMode;
+  symbol: string;
+  period: string;
+  bar_count: number;
+  scores: StrategyScorePoint[];
+  signals: StrategySignalPoint[];
+  trades: StrategyTradeDetail[];
+  events: StrategyTestEvent[];
+  truncated: { scores: boolean; events: boolean; trades: boolean };
+}
+
 /** 后端错误线格式 {error: string} → 前端 ApiError */
 export class ApiError extends Error {
   constructor(

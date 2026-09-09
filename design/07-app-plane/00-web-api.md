@@ -236,6 +236,8 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 | `POST /api/strategies/versions/{vid}/archive` | — | `StrategyVersionRow`（published→archived） | 404；409：非 published；503；500 |
 | `GET /api/strategies/versions/diff` | `?from=&to=`（版本 id） | `{from:{id,strategy_id,version,status,code}, to:{…}}`（前端渲染 diff） | 400：缺参数；404；503；500 |
 | `POST /api/strategies/test-run` | body `{code\|version_id, params?, symbol, period, from, to, mode}` | `TestRunResponse`（评分序列/信号/成交/事件 + truncated 标记） | 400：入参/区间超限/门禁；404：version_id 未知；503；500 |
+| `GET /api/strategies/manage` | `?kind=`（可选：strategy/template） | 200 `{ items: [StrategyManageItem] }`（P2b；**全部策略含仅 draft / 零版本**；每条目聚合 `version_count` / `latest_version`（版本号最大，任意状态：`{id,version,status,approval_level,sha256,created_at,published_at}`，零版本 → null）/ `latest_published`（最新 published `{id,version,approval_level}`，无 → null）） | 400：kind 非法；503；500 |
+| `PATCH /api/strategies/{id}` | body `{name?, description?}` | 200 `StrategyRow`（更新后策略行，updated_at 推进；未给字段保持原值；name trim 后落库） | 400：name/description 均空、name trim 后为空；404：未知 id；503；500 |
 
 **错误语义约定**：未注册/未找到 404（`StrategyNotFound`）、非法状态流转 409（`StrategyInvalidTransition`）、
 校验失败 400（`StrategyValidation` 与 web 层入参校验）；服务未装配（`AppState.strategies=None`）→ 503（与 `sim` 同模式）。
@@ -2238,14 +2240,16 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
         // 行情看板 K线默认视口（后端 W1：GET /api/config/kline 读 / PUT 写 viewport_days；app_config 0021；缺省 2）
         .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
-        // 12-strategy-system / P2a：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
+        // 12-strategy-system / P2a+P2b：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
         .route("/api/strategies", get(strategies::catalog).post(strategies::create_strategy))
         .route("/api/strategies/test-run", post(strategies::test_run))
+        // P2b：manage 管理列表（静态段优先于 {id} 参数段，axum matchit 保证）
+        .route("/api/strategies/manage", get(strategies::manage_list))
         .route("/api/strategies/versions/diff", get(strategies::diff_versions))
         .route("/api/strategies/versions/{vid}", put(strategies::update_draft))
         .route("/api/strategies/versions/{vid}/publish", post(strategies::publish_version))
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
-        .route("/api/strategies/{id}", get(strategies::get_strategy))
+        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)

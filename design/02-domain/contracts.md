@@ -1028,7 +1028,8 @@ pub trait SimSessionStore: Send + Sync {
     async fn delete_session(&self, session_id: &str) -> anyhow::Result<bool>;
 }
 
-// ── 12-strategy-system / P2a：Strategy Registry 存储端口（strategy/strategy_version 表，迁移 0022）──
+// ── 12-strategy-system / P2a+P2b：Strategy Registry 存储端口（strategy/strategy_version 表，迁移 0022）──
+// P2b 加法（架构裁决 A/A）：manage_list（管理列表聚合）/ update_meta（元数据更新）+ ManageItem DTO。
 // 与既有加法扩展同模式：端口在 domain，storage 实现，app bin 装配，web/application 只依赖端口。
 // 应用面自有表（数据面不读写，ADR-017 不违）。
 // 状态机 draft→published→archived 由 application 层经 `domain::strategy_state` 纯函数校验；
@@ -1091,6 +1092,44 @@ pub struct CatalogEntry {
     pub version: StrategyVersionRow,
 }
 
+// ── P2b：manage 管理列表 DTO（GET /api/strategies/manage；契约与前端锁定，字段序即 wire 序）──
+
+/// manage 条目 latest_version 槽位（版本号最大版本，**任意状态**；策略零版本 → None）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyManageVersionSummary {
+    pub id: String,
+    pub version: i32,
+    pub status: StrategyStatus,
+    pub approval_level: ApprovalLevel,
+    pub sha256: String,
+    pub created_at: DateTime<Utc>,
+    pub published_at: Option<DateTime<Utc>>,
+}
+
+/// manage 条目 latest_published 槽位（最新 published 版本；无 published → None）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyManagePublishedSummary {
+    pub id: String,
+    pub version: i32,
+    pub approval_level: ApprovalLevel,
+}
+
+/// manage 列表条目（含全部策略——仅 draft / 零版本策略亦在列，与 catalog 仅 published 不同）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StrategyManageItem {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub kind: StrategyKind,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// 版本总数（任意状态）。
+    pub version_count: i64,
+    pub latest_version: Option<StrategyManageVersionSummary>,
+    pub latest_published: Option<StrategyManagePublishedSummary>,
+}
+
 /// 策略 Registry 存储端口（storage 实现；strategy/strategy_version 表，迁移 0022）。
 /// 流转合法性由 application 层校验（domain::strategy_state），本端口只提供原子原语；
 /// published 不可变由 DB trigger 兜底（直接改库也会被拦）。
@@ -1133,6 +1172,16 @@ pub trait StrategyStore: Send + Sync {
     /// 流转合法性由 application 层经 strategy_state 校验后调用。
     async fn set_status(&self, id: &str, status: StrategyStatus)
         -> anyhow::Result<Option<StrategyVersionRow>>;
+    // ── P2b：manage 管理端点原语 ──
+    /// 管理列表：**全部策略（含仅 draft / 零版本）**，`kind` 精确匹配过滤（None=不过滤）；
+    /// 每条目聚合 version_count（版本总数）/ latest_version（版本号最大版本，任意状态）/
+    /// latest_published（最新 published，无 → None）。**一查询聚合（无 N+1）**。按 strategy.id 升序。
+    async fn manage_list(&self, kind: Option<StrategyKind>)
+        -> anyhow::Result<Vec<StrategyManageItem>>;
+    /// 更新策略元数据（PATCH /api/strategies/{id}）：name/description 为 application 层
+    /// 合并/校验后的**最终值**；命中推进 updated_at 并返回更新后行；未知 id → Ok(None)（web 映射 404）。
+    async fn update_meta(&self, id: &str, name: &str, description: &str)
+        -> anyhow::Result<Option<StrategyRow>>;
 }
 ```
 

@@ -355,6 +355,89 @@ async fn update_draft_advances_strategy_updated_at() {
     clean(&pool, &sid).await;
 }
 
+// P2b：manage_list 管理列表——全部策略（含仅 draft / 零版本）+ 聚合 version_count /
+// latest_version（版本号最大，任意状态）/ latest_published（最新 published，无 → None）。
+#[tokio::test]
+async fn manage_list_includes_draft_only_and_aggregates() {
+    let pool = pool().await;
+    let store = PgStrategyStore::new(pool.clone());
+    let s1 = pid("m_s1"); // v1 published + v2 draft → latest_version=v2，latest_published=v1
+    let s2 = pid("m_s2"); // 仅 draft → latest_published None
+    let s3 = pid("m_s3"); // 零版本（template）→ latest_version None、version_count 0
+    for sid in [&s1, &s2, &s3] { clean(&pool, sid).await; }
+
+    store.create_strategy(&new_strategy(&s1, "mg-s1", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("m_v1"), &s1, 1, "m1v1")).await.unwrap();
+    store.mark_published(&pid("m_v1"), "m1v1", "sha-m1", &serde_json::json!([]), Utc::now()).await.unwrap();
+    store.create_version(&new_version(&pid("m_v2"), &s1, 2, "m1v2-draft")).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s2, "mg-s2", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("m_v3"), &s2, 1, "m2v1-draft")).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s3, "mg-s3", StrategyKind::Template)).await.unwrap();
+
+    let all = store.manage_list(None).await.unwrap();
+    let e1 = all.iter().find(|e| e.id == s1).expect("s1 应在列");
+    assert_eq!(e1.version_count, 2);
+    let lv = e1.latest_version.as_ref().expect("latest_version = v2（版本号最大，任意状态）");
+    assert_eq!(lv.version, 2);
+    assert_eq!(lv.status, StrategyStatus::Draft);
+    assert_eq!(lv.sha256, format!("sha-{}", pid("m_v2")));
+    assert_eq!(lv.approval_level, ApprovalLevel::BacktestOk);
+    assert!(lv.published_at.is_none());
+    let lp = e1.latest_published.as_ref().expect("latest_published = v1");
+    assert_eq!(lp.version, 1);
+    assert_eq!(lp.approval_level, ApprovalLevel::BacktestOk);
+    assert_eq!(lp.id, pid("m_v1"));
+
+    let e2 = all.iter().find(|e| e.id == s2).expect("仅 draft 策略也应在列");
+    assert_eq!(e2.version_count, 1);
+    assert_eq!(e2.latest_version.as_ref().unwrap().status, StrategyStatus::Draft);
+    assert!(e2.latest_published.is_none(), "无 published → latest_published None");
+
+    let e3 = all.iter().find(|e| e.id == s3).expect("零版本策略也应在列");
+    assert_eq!(e3.version_count, 0);
+    assert!(e3.latest_version.is_none(), "零版本 → latest_version None");
+    assert!(e3.latest_published.is_none());
+
+    // kind 精确匹配过滤
+    let templates = store.manage_list(Some(StrategyKind::Template)).await.unwrap();
+    assert!(templates.iter().any(|e| e.id == s3));
+    assert!(!templates.iter().any(|e| e.id == s1 || e.id == s2));
+    let strategies = store.manage_list(Some(StrategyKind::Strategy)).await.unwrap();
+    assert!(strategies.iter().any(|e| e.id == s1 || e.id == s2));
+    assert!(!strategies.iter().any(|e| e.id == s3));
+
+    for sid in [&s1, &s2, &s3] { clean(&pool, sid).await; }
+}
+
+// P2b：update_meta——name/description 最终值落库 + updated_at 推进；未知 id → None。
+#[tokio::test]
+async fn update_meta_updates_fields_and_advances_updated_at() {
+    let pool = pool().await;
+    let store = PgStrategyStore::new(pool.clone());
+    let sid = pid("n_st");
+    clean(&pool, &sid).await;
+    store.create_strategy(&new_strategy(&sid, "meta-old", StrategyKind::Strategy)).await.unwrap();
+    let before = store.get_strategy(&sid).await.unwrap().unwrap().updated_at;
+    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+
+    let row = store.update_meta(&sid, "meta-new", "desc-new").await.unwrap()
+        .expect("命中应返回更新后行");
+    assert_eq!(row.name, "meta-new");
+    assert_eq!(row.description, "desc-new");
+    assert!(row.updated_at > before, "update_meta 应推进 updated_at（{before} → {}）", row.updated_at);
+    // 非目标字段不变
+    assert_eq!(row.kind, StrategyKind::Strategy);
+    assert_eq!(row.created_by, "test");
+    // 读回一致
+    let got = store.get_strategy(&sid).await.unwrap().unwrap();
+    assert_eq!(got.name, "meta-new");
+
+    assert!(store.update_meta(&pid("none"), "x", "y").await.unwrap().is_none(), "未知 id → None");
+    clean(&pool, &sid).await;
+}
+
 #[tokio::test]
 async fn find_version_by_name_sha_for_seed_idempotency() {
     let pool = pool().await;

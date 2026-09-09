@@ -28,8 +28,8 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use domain::ports::{
-    BacktestBarRead, CatalogEntry, Clock, NewStrategy, NewStrategyVersion, StrategyRow,
-    StrategyStore, StrategyVersionRow,
+    BacktestBarRead, CatalogEntry, Clock, NewStrategy, NewStrategyVersion, StrategyManageItem,
+    StrategyRow, StrategyStore, StrategyVersionRow,
 };
 use domain::strategy_state::{validate_transition, ApprovalLevel, StrategyKind, StrategyStatus};
 use strategy_runtime::{
@@ -531,6 +531,41 @@ impl StrategyService {
         kind: Option<StrategyKind>,
     ) -> anyhow::Result<Vec<CatalogEntry>> {
         self.store.catalog(level, kind).await
+    }
+
+    /// 管理列表（P2b：GET /api/strategies/manage）——**全部策略（含仅 draft / 零版本）**，
+    /// 聚合 version_count / latest_version（版本号最大，任意状态）/ latest_published（无 → None）。
+    pub async fn manage_list(
+        &self,
+        kind: Option<StrategyKind>,
+    ) -> anyhow::Result<Vec<StrategyManageItem>> {
+        self.store.manage_list(kind).await
+    }
+
+    /// 更新策略元数据（P2b：PATCH /api/strategies/{id}）。
+    /// 校验（400）：name/description 均为 None；name trim 后为空。未知 id → 404。
+    /// 合并口径：未给字段保持原值；name trim 后落库；命中推进 updated_at（storage）。
+    pub async fn update_meta(
+        &self,
+        id: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+    ) -> anyhow::Result<StrategyRow> {
+        if name.is_none() && description.is_none() {
+            return Err(StrategyValidation("name/description 至少提供一个".into()).into());
+        }
+        if let Some(n) = name {
+            if n.trim().is_empty() {
+                return Err(StrategyValidation("name trim 后为空".into()).into());
+            }
+        }
+        let cur = self.get_strategy(id).await?; // 未知 id → 404
+        let new_name = name.map(|n| n.trim().to_string()).unwrap_or(cur.name);
+        let new_description = description.map(str::to_string).unwrap_or(cur.description);
+        self.store
+            .update_meta(id, &new_name, &new_description)
+            .await?
+            .ok_or_else(|| anyhow!(StrategyNotFound(format!("策略不存在: {id}"))))
     }
 
     /// diff：取两版本（前端渲染 diff）；任一未知 → 404。

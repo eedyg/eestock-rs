@@ -483,3 +483,135 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     expect(cmp.session_id).toBe('s_old11');
   });
 });
+
+describe('策略 Registry mock（12-strategy-system / P2b；§1.7 契约行为）', () => {
+  it('manage 列表含仅 draft 策略（version_count/latest_version/latest_published 口径）', async () => {
+    const api = createMockClient();
+    const items = await api.getStrategyManageList();
+    expect(items).toHaveLength(3);
+    const draft = items.find((x) => x.id === 'st_mock_draft')!;
+    expect(draft.version_count).toBe(1);
+    expect(draft.latest_version?.status).toBe('draft');
+    expect(draft.latest_published).toBeNull();
+    const dual = items.find((x) => x.id === 'st_mock_dual_ma')!;
+    expect(dual.version_count).toBe(2);
+    expect(dual.latest_version?.version).toBe(2);
+    expect(dual.latest_published?.version).toBe(1);
+  });
+
+  it('catalog 仅 published 且 level at-least 过滤；kind=template 过滤模板', async () => {
+    const api = createMockClient();
+    const all = await api.getStrategyCatalog();
+    expect(all.map((e) => e.strategy.id).sort()).toEqual(['st_mock_dual_ma', 'st_mock_tpl_pure']);
+    // at-least：live_approved 无满足者；sim_ok 剩 dual_ma（v1 sim_ok）
+    expect(await api.getStrategyCatalog({ level: 'live_approved' })).toHaveLength(0);
+    expect((await api.getStrategyCatalog({ level: 'sim_ok' })).map((e) => e.strategy.id)).toEqual(['st_mock_dual_ma']);
+    expect((await api.getStrategyCatalog({ kind: 'template' })).map((e) => e.strategy.id)).toEqual(['st_mock_tpl_pure']);
+  });
+
+  it('create/patch/版本流转：create v1 draft → 201 形状；patch 名称；publish/archived 流转', async () => {
+    const api = createMockClient();
+    const { strategy, version } = await api.createStrategy({ name: ' 新策略 ', code: 'function on_bar(ctx){return 50;}' });
+    expect(strategy.name).toBe('新策略');
+    expect(version.status).toBe('draft');
+    expect(version.version).toBe(1);
+    const patched = await api.patchStrategy(strategy.id, { description: 'd' });
+    expect(patched.description).toBe('d');
+    await expect(api.patchStrategy(strategy.id, {})).rejects.toMatchObject({ status: 400 });
+    const pub = await api.publishStrategyVersion(version.id);
+    expect(pub.status).toBe('published');
+    const arch = await api.archiveStrategyVersion(version.id);
+    expect(arch.status).toBe('archived');
+    // draft 不可归档（409）
+    await expect(api.archiveStrategyVersion('sv_mock_dual_v2')).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('update_draft：draft 原地 updated；published 自动 new_draft（version+1）；archived 409', async () => {
+    const api = createMockClient();
+    const upd = await api.updateStrategyVersion('sv_mock_dual_v2', 'function on_bar(ctx){return 51;}');
+    expect(upd.outcome).toBe('updated');
+    expect(upd.version.version).toBe(2);
+    const nd = await api.updateStrategyVersion('sv_mock_dual_v1', 'function on_bar(ctx){return 52;}');
+    expect(nd.outcome).toBe('new_draft');
+    expect(nd.version.version).toBe(3);
+    expect(nd.version.status).toBe('draft');
+    // 归档 v1 后再编辑 → 409
+    await api.archiveStrategyVersion('sv_mock_tpl_v1');
+    await expect(api.updateStrategyVersion('sv_mock_tpl_v1', 'function on_bar(ctx){return 1;}')).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('diff：返回两端 code；未知版本 404。test-run：code/version_id 二选一校验 + 双模式输出', async () => {
+    const api = createMockClient();
+    const d = await api.diffStrategyVersions('sv_mock_dual_v1', 'sv_mock_dual_v2');
+    expect(d.from.version).toBe(1);
+    expect(d.to.code).toContain('v2 draft 调整');
+    await expect(api.diffStrategyVersions('sv_missing', 'sv_mock_dual_v2')).rejects.toMatchObject({ status: 404 });
+    // 二选一
+    await expect(
+      api.runStrategyTest({ symbol: '518880', period: 'D1', from: '2026-01-01T00:00:00Z', to: '2026-06-01T00:00:00Z', mode: 'pure_score' }),
+    ).rejects.toMatchObject({ status: 400 });
+    const pure = await api.runStrategyTest({
+      code: 'function on_bar(ctx){return 50;}', symbol: '518880', period: 'D1',
+      from: '2026-01-01T00:00:00Z', to: '2026-06-01T00:00:00Z', mode: 'pure_score',
+    });
+    expect(pure.scores.length).toBeGreaterThan(0);
+    expect(pure.trades).toEqual([]);
+    const sim = await api.runStrategyTest({
+      versionId: 'sv_mock_dual_v1', symbol: '518880', period: 'D1',
+      from: '2026-01-01T00:00:00Z', to: '2026-06-01T00:00:00Z', mode: 'sim_position',
+    });
+    expect(sim.trades.length).toBeGreaterThan(0);
+    expect(sim.signals.length).toBeGreaterThan(0);
+    expect(sim.truncated).toEqual({ scores: false, events: false, trades: false });
+  });
+
+  it('MINOR-3：保存时重解析代码 PARAMS_SCHEMA（draft 原地 / published→new_draft 均生效；解析失败置空数组）', async () => {
+    const api = createMockClient();
+    const code = `const PARAMS_SCHEMA = [
+  { key: "bias", type: "float", default: 0.5, min: 0, max: 1, description: "偏移" },
+  { key: "n", type: "int", default: 9, min: 2, max: 60 }
+];
+function on_bar(ctx) { return 50; }
+`;
+    // draft 原地保存 → schema 重解析
+    const upd = await api.updateStrategyVersion('sv_mock_dual_v2', code);
+    expect(upd.outcome).toBe('updated');
+    expect(upd.version.params_schema.map((p) => p.key)).toEqual(['bias', 'n']);
+    expect(upd.version.params_schema[0]).toMatchObject({ key: 'bias', type: 'float', default: 0.5, min: 0, max: 1 });
+    // published → new_draft 分支同样重解析
+    const nd = await api.updateStrategyVersion('sv_mock_dual_v1', code);
+    expect(nd.outcome).toBe('new_draft');
+    expect(nd.version.params_schema.map((p) => p.key)).toEqual(['bias', 'n']);
+    // 无 PARAMS_SCHEMA（解析失败）→ 空数组
+    const none = await api.updateStrategyVersion('sv_mock_dual_v2', 'function on_bar(ctx){return 1;}');
+    expect(none.version.params_schema).toEqual([]);
+  });
+
+  it('MINOR-4：试算区间上限对齐后端（D1≤5年 / 分钟级≤3个月）超限 → 400', async () => {
+    const api = createMockClient();
+    const base = { code: 'function on_bar(ctx){return 50;}', symbol: '518880', mode: 'pure_score' as const };
+    // D1 五年内存量 OK（1826 天 ≤ 1830）
+    await expect(
+      api.runStrategyTest({ ...base, period: 'D1', from: '2021-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
+    ).resolves.toBeTruthy();
+    // D1 超 5 年 → 400
+    await expect(
+      api.runStrategyTest({ ...base, period: 'D1', from: '2019-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
+    ).rejects.toMatchObject({ status: 400 });
+    // M1 + 1 年区间 → 400（分钟级上限 3 个月）
+    await expect(
+      api.runStrategyTest({ ...base, period: 'M1', from: '2025-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
+    ).rejects.toMatchObject({ status: 400 });
+    // M1 三个月内 OK
+    await expect(
+      api.runStrategyTest({ ...base, period: 'M1', from: '2026-01-01T00:00:00Z', to: '2026-03-01T00:00:00Z' }),
+    ).resolves.toBeTruthy();
+  });
+
+  it('NIT-1：patch 校验顺序对齐后端——先 400（空 patch / name trim 后空）后 404（未知 id）', async () => {
+    const api = createMockClient();
+    await expect(api.patchStrategy('st_missing', {})).rejects.toMatchObject({ status: 400 });
+    await expect(api.patchStrategy('st_missing', { name: '   ' })).rejects.toMatchObject({ status: 400 });
+    await expect(api.patchStrategy('st_missing', { name: 'x' })).rejects.toMatchObject({ status: 404 });
+  });
+});

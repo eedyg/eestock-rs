@@ -75,14 +75,16 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/ma", get(rest::get_ma_config).put(rest::put_ma_config))
         // 行情看板 K线默认视口（后端 W1：GET /api/config/kline 读 / PUT 写 viewport_days；app_config 0021；缺省 2）
         .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
-        // 12-strategy-system / P2a：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
+        // 12-strategy-system / P2a+P2b：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
         .route("/api/strategies", get(strategies::catalog).post(strategies::create_strategy))
         .route("/api/strategies/test-run", post(strategies::test_run))
+        // P2b：manage 管理列表（静态段优先于 {id} 参数段，axum matchit 保证）
+        .route("/api/strategies/manage", get(strategies::manage_list))
         .route("/api/strategies/versions/diff", get(strategies::diff_versions))
         .route("/api/strategies/versions/{vid}", put(strategies::update_draft))
         .route("/api/strategies/versions/{vid}/publish", post(strategies::publish_version))
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
-        .route("/api/strategies/{id}", get(strategies::get_strategy))
+        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         .route("/ws", get(ws::ws_handler))
         .fallback(spa::spa_fallback)
