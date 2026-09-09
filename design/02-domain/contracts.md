@@ -990,7 +990,10 @@ pub struct SimSessionState {
     pub net_value_series: Vec<(i64, f64)>,
     /// 统一交易开关键（重建 LiveSession.trading_enabled）。
     pub trading_enabled: bool,
-    /// 每策略配置 JSON 数组 `[{id,params,stocks,weight,stock_weights}]`（params 用 `str_params_to_json` 口径：Num→number、Choice→string）。
+    /// 钉住策略快照 JSON（P4a 切源后 schema=2 对象：`{schema, buy_long_threshold, sell_threshold,
+    /// strategies: [{strategy_id, version_id, version, sha256, name, params, stocks, weight,
+    /// stock_weights}]}`；code 不落盘——恢复时按 version_id 从 strategy_version 表重取）。
+    /// 切源前旧形状（内建策略 id 数组）已不可恢复（恢复时降级 ended）。
     pub strategy_configs: serde_json::Value,
     /// 订单 JSON 数组（历史/挂单；重建 orders 面板）。
     pub orders: serde_json::Value,

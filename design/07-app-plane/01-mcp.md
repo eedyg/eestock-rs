@@ -363,6 +363,8 @@ mod tests {
 ```
 
 ``` {.rust file=crates/mcp/src/tools.rs}
+// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
+// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
 //! MCP 工具实现（ADR-009 范围①②）：
 //! - get_kline(code, period, limit)：merge 视图准确层优先（经 domain::ports::KlineRead）
 //! - get_sources_health(window_secs?)：源健康卡片数据（经 diagnose::health::HealthService）
@@ -456,16 +458,18 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "sim_start_session",
-            "description": "模拟实盘，不触真实券商：开启模拟会话（name/period 必填；cash_init 默认 1000000；若提供 strategies 按每策略参数/标的集/权重，否则用 strategy_set × stock_set 默认参数。",
+            "description": "模拟实盘，不触真实券商：开启模拟会话（name/period 必填；cash_init 默认 1000000）。⚠️ P4a 破坏性 wire 变更（系统 pre-1.0）：策略源切换为统一策略系统 Registry——strategies 元素为 {strategy_id, version_id?, params, stocks, weight, stock_weights?}（strategy_id=Registry 策略 id（st_ 前缀），version_id 缺省=最新 published；旧内建 id（dual_ma 等 7 款）不再接受，请先用 strategy_list 查询可用策略；无 published 版本 → isError）。若提供 strategies 按每策略参数/标的集/权重钉住 published 版本建插件实例，否则回退 strategy_set × stock_set（strategy_set 元素=Registry strategy_id，默认参数、weight=1）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "name": { "type": "string" },
                     "period": { "type": "string", "enum": ["M1", "M5", "M15", "D1"], "description": "周期" },
                     "cash_init": { "type": "number", "description": "初始资金，默认 1000000" },
-                    "strategy_set": { "type": "array", "items": { "type": "string" } },
+                    "strategy_set": { "type": "array", "items": { "type": "string" }, "description": "P4a：元素为 Registry strategy_id（st_ 前缀），非旧内建 id" },
                     "stock_set": { "type": "array", "items": { "type": "string" } },
-                    "strategies": { "type": "array", "description": "可选：每策略配置（id/params/stocks/weight），覆盖 strategy_set×stock_set 简单档", "items": { "type": "object", "properties": { "id": { "type": "string" }, "params": { "type": "object", "description": "策略参数（按 params_schema）" }, "stocks": { "type": "array", "items": { "type": "string" }, "description": "该策略标的子集（须非空）" }, "weight": { "type": "number", "description": "聚合权重，>0，默认 1.0" } }, "required": ["id", "stocks"] } },
+                    "buy_long_threshold": { "type": "number", "description": "聚合做多阈值（可选，默认 60；会话级钉住，回测对比同源；须 > 50 且 > sell_threshold——夹中立 50 契约）" },
+                    "sell_threshold": { "type": "number", "description": "聚合卖出阈值（可选，默认 40；须 < 50 且 < buy_long_threshold——夹中立 50 契约）" },
+                    "strategies": { "type": "array", "description": "可选：每策略配置（P4a 新 wire：strategy_id/version_id?/params/stocks/weight/stock_weights?），覆盖 strategy_set×stock_set 简单档", "items": { "type": "object", "properties": { "strategy_id": { "type": "string", "description": "Registry 策略 id（st_ 前缀；strategy_list 可查）" }, "version_id": { "type": "string", "description": "钉住版本 id（sv_ 前缀；缺省=最新 published）" }, "params": { "type": "object", "description": "策略参数（按版本 params_schema，缺省填充）" }, "stocks": { "type": "array", "items": { "type": "string" }, "description": "该策略标的子集（须非空 ≤30）" }, "weight": { "type": "number", "description": "聚合权重，>0，默认 1.0" }, "stock_weights": { "type": "object", "description": "策略×股票级权重（可选；未指定的股用 weight）" } }, "required": ["strategy_id", "stocks"] } },
                     "source": { "type": "string", "description": "mcp/web/preset/manual" }
                 },
                 "required": ["name", "period"]
@@ -548,7 +552,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "sim_list_strategies",
-            "description": "模拟实盘，不触真实券商：内置策略清单 + 参数 schema（id/name/description/params_schema）。",
+            "description": "模拟实盘，不触真实券商：策略目录（⚠️ P4a 数据源切换为统一策略系统 Registry catalog——仅 published 策略的最新 published 版本，{strategy, version} 条目；旧内置 7 款目录废止。与 strategy_list 同源，供 sim_start_session 策略选择）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -597,7 +601,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "sim_run_backtest_compare",
-            "description": "模拟实盘，不触真实券商：按会话（同周期+同策略集+同标的集+起止区间）触发一次回测 run（异步；返回 run_id，调用方轮询 backtest 完成），用于模拟实盘 vs 回测对比。",
+            "description": "模拟实盘，不触真实券商：「回测一下」对比（⚠️ P4a 口径变化：切换为统一 ensemble 引擎——会话每标的 1 个 ensemble run，slots=覆盖该标的的钉住策略版本，阈值=会话钉住阈值，LumpSum 全仓+会话费用口径；评分语义与 sim-live 一致，但与切源前历史对比结果绝对值不可直接比）。异步：返回 run_ids（sr_ 前缀字符串，调用方轮询 bt_get_run 完成）+ 会话自身结束结果。",
             "inputSchema": {
                 "type": "object",
                 "properties": { "session_id": { "type": "string" } },
@@ -820,7 +824,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "sim_get_pnl" => sim_get_pnl(st, id, &args),
         "sim_place_order" => sim_place_order(st, id, &args).await,
         "sim_cancel_order" => sim_cancel_order(st, id, &args).await,
-        "sim_list_strategies" => sim_list_strategies(st, id, &args),
+        "sim_list_strategies" => sim_list_strategies(st, id, &args).await,
         "sim_get_strategy_signal" => sim_get_strategy_signal(st, id, &args),
         "sim_get_strategy_analysis" => sim_get_strategy_analysis(st, id, &args),
         // 11-sim-live / L3：会话记录回看 + 回测对比
@@ -988,6 +992,8 @@ async fn sim_start_session(st: &McpState, id: Option<Value>, args: &Value) -> Va
         stock_set,
         period: period.into(),
         source,
+        buy_long_threshold: args.get("buy_long_threshold").and_then(Value::as_f64),
+        sell_threshold: args.get("sell_threshold").and_then(Value::as_f64),
         strategies,
     };
     match sim.start_session(&req).await {
@@ -1106,16 +1112,24 @@ async fn sim_cancel_order(st: &McpState, id: Option<Value>, args: &Value) -> Val
     }
 }
 
-/// sim_list_strategies(strategy_id?)：内置策略清单 + 参数 schema。
-fn sim_list_strategies(st: &McpState, id: Option<Value>, args: &Value) -> Value {
-    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+/// sim_list_strategies(strategy_id?)：策略目录（P4a 数据源 = Registry catalog，仅 published
+/// 最新版本；旧内置目录废止）。复用 sim_* 开关门禁；Registry 服务未注入 → isError。
+async fn sim_list_strategies(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let _sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(strategies) = st.strategies.clone() else {
+        return tool_fail(id, anyhow::anyhow!(
+            "策略 Registry 未配置（McpState.strategies=None；P4a 起 sim_list_strategies 数据源为 Registry catalog）"
+        ));
+    };
     let filter = args.get("strategy_id").and_then(Value::as_str);
-    match sim.list_builtin_strategies() {
-        Ok(mut catalog) => {
-            if let Some(fid) = filter {
-                catalog.retain(|s| s.id == fid);
-            }
-            tool_ok(id, &serde_json::to_value(&catalog).unwrap_or_else(|_| json!([])))
+    match strategies.catalog(None, None).await {
+        Ok(catalog) => {
+            let entries: Vec<Value> = catalog
+                .into_iter()
+                .filter(|e| filter.is_none_or(|fid| e.strategy.id == fid))
+                .map(|e| serde_json::to_value(&e).unwrap_or_else(|_| json!({})))
+                .collect();
+            tool_ok(id, &json!(entries))
         }
         Err(e) => tool_fail(id, e),
     }
@@ -1624,10 +1638,8 @@ mod tests {
     use super::*;
     use crate::mocks::{quality_for, test_state, MockEvents, MockKline};
     use chrono::TimeZone;
-    use domain::ports::{
-        BacktestBarRead, BacktestProgressSink, BacktestRunStore, NewRun, RunFilter, RunResult, RunView,
-    };
-    use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
+    use domain::ports::BacktestBarRead;
+    use std::sync::atomic::{AtomicI64, Ordering};
     use std::sync::Arc;
 
     async fn call(st: &McpState, name: &str, args: Value) -> Value {
@@ -1928,10 +1940,37 @@ mod tests {
     struct FixedClock(DateTime<Utc>);
     impl domain::ports::Clock for FixedClock { fn now(&self) -> DateTime<Utc> { self.0 } }
 
+    /// P4a sim 测试插件真身（strategy-core 参考插件：与 Rust 内建 1:1 迁移，80/20/50 评分口径）。
+    fn sim_reference_js(id: &str) -> &'static str {
+        strategy_core::reference::reference_plugins()
+            .into_iter()
+            .find(|p| p.id == id)
+            .unwrap_or_else(|| panic!("参考插件不存在: {id}"))
+            .code
+    }
+
+    /// P4a：播种 sim 用 Registry（dual_ma/momentum 参考插件 published；id 直用插件 id 便于测试）。
+    fn sim_registry() -> Arc<MockStrategyStore> {
+        let reg = Arc::new(MockStrategyStore::default());
+        reg.seed_published("dual_ma", "双均线交叉", sim_reference_js("dual_ma"), json!([
+            { "key": "fast", "type": "int", "default": 5.0, "min": 2.0, "max": 200.0 },
+            { "key": "slow", "type": "int", "default": 20.0, "min": 2.0, "max": 250.0 }
+        ]));
+        reg.seed_published("momentum", "动量突破", sim_reference_js("momentum"), json!([
+            { "key": "lookback", "type": "int", "default": 20.0, "min": 2.0, "max": 150.0 }
+        ]));
+        reg
+    }
+
     fn sim_state() -> Arc<McpState> {
         let store = Arc::new(MockSimStore::default());
-        let svc = application::simlive::SimLiveService::with_default_fee(
-            store, Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap())));
+        let registry = sim_registry();
+        let clock = Arc::new(FixedClock(Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap()));
+        let svc = application::simlive::SimLiveService::with_default_fee(store, clock.clone())
+            .with_strategies(registry.clone());
+        // strategies service 同源（sim_list_strategies P4a 数据源 = Registry catalog）。
+        let strategies = Arc::new(application::strategy::StrategyService::new(
+            registry, Arc::new(MockStrategyBars), clock));
         Arc::new(McpState {
             kline: Arc::new(MockKline::new()),
             health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
@@ -1939,7 +1978,7 @@ mod tests {
             default_window_secs: 3600,
             sessions: crate::state::SessionRegistry::default(),
 
-            strategies: None,
+            strategies: Some(strategies),
             workbench: None,
             strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             sim: Some(Arc::new(svc)),
@@ -1970,7 +2009,7 @@ mod tests {
         let svc = st.sim.clone().unwrap();
         let r = call(&st, "sim_start_session", json!({
             "name": "s1", "period": "M1",
-            "strategies": [{ "id": "dual_ma", "params": { "fast": 2.0, "slow": 3.0 }, "stocks": ["510300"], "weight": 2.0 }],
+            "strategies": [{ "strategy_id": "dual_ma", "params": { "fast": 2.0, "slow": 3.0 }, "stocks": ["510300"], "weight": 2.0 }],
         })).await;
         let p = payload_of(&r);
         assert_eq!(p["status"], "running");
@@ -1990,7 +2029,7 @@ mod tests {
         let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "510300" })).await;
         let p = payload_of(&r);
         assert_eq!(p["signal"], "buy");
-        assert_eq!(p["aggregate_score"], json!(100.0));
+        assert_eq!(p["aggregate_score"], json!(80.0));
         assert_eq!(p["per_strategy_scores"][0]["strategy_id"], "dual_ma");
         // 未覆盖标的不评估。
         let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "999999" })).await;
@@ -2003,15 +2042,37 @@ mod tests {
         let st = sim_state();
         let r = call(&st, "sim_start_session", json!({
             "name": "s2", "period": "M1",
-            "strategies": [{ "id": "bad", "stocks": ["510300"] }],
+            "strategies": [{ "strategy_id": "bad", "stocks": ["510300"] }],
         })).await;
         assert_eq!(r["result"]["isError"], true, "未知策略 id → isError");
         let st2 = sim_state();
         let r = call(&st2, "sim_start_session", json!({
             "name": "s2", "period": "M1",
-            "strategies": [{ "id": "dual_ma", "stocks": ["510300"], "weight": 0.0 }],
+            "strategies": [{ "strategy_id": "dual_ma", "stocks": ["510300"], "weight": 0.0 }],
         })).await;
         assert_eq!(r["result"]["isError"], true, "weight≤0 → isError");
+    }
+
+    /// P4a 破坏性 wire 变更：旧内建 id（注册表无此 strategy_id）→ isError + 明确引导 strategy_list。
+    #[tokio::test]
+    async fn sim_start_session_legacy_builtin_id_rejected_with_guidance() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({
+            "name": "legacy", "period": "M1",
+            "strategies": [{ "strategy_id": "kdj", "stocks": ["510300"] }],
+        })).await;
+        assert_eq!(r["result"]["isError"], true, "未播种的 kdj（旧内建 id 形态）→ isError");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap_or("");
+        assert!(text.contains("未知策略 id"), "错误提示未知策略：{text}");
+        assert!(text.contains("strategy_list"), "引导 strategy_list：{text}");
+
+        // 未发布（仅 draft）策略 → isError。
+        let st2 = sim_state();
+        let r = call(&st2, "sim_start_session", json!({
+            "name": "draft-only", "period": "M1",
+            "strategies": [{ "strategy_id": "dual_ma", "version_id": "sv_not_exist", "stocks": ["510300"] }],
+        })).await;
+        assert_eq!(r["result"]["isError"], true, "不存在版本 → isError");
     }
 
     #[tokio::test]
@@ -2092,27 +2153,31 @@ mod tests {
 
     // ── 11-sim-live / L2：sim_* 策略工具（sim_list_strategies / sim_get_strategy_signal / sim_get_strategy_analysis）──
 
+    /// P4a：数据源 = Registry catalog（仅 published 最新版本；{strategy, version} 条目）。
     #[tokio::test]
     async fn sim_list_strategies_returns_catalog() {
         let st = sim_state();
         let r = call(&st, "sim_list_strategies", json!({})).await;
         let p = payload_of(&r);
-        let arr = p.as_array().expect("策略清单为数组");
-        assert!(arr.len() >= 7, "至少 7 款内建策略");
-        assert!(arr.iter().all(|s| s["id"].is_string()
-            && s["name"].is_string()
-            && s["params_schema"].is_array()), "每项含 id/name/params_schema");
-        assert_eq!(arr[0]["id"], "dual_ma");
+        let arr = p.as_array().expect("策略目录为数组");
+        assert_eq!(arr.len(), 2, "mock registry 播种 dual_ma + momentum");
+        assert!(arr.iter().all(|e| e["strategy"]["id"].is_string()
+            && e["strategy"]["name"].is_string()
+            && e["version"]["id"].is_string()
+            && e["version"]["params_schema"].is_array()
+            && e["version"]["status"] == "published"), "每项为 catalog 条目（strategy+published version）");
+        assert_eq!(arr[0]["strategy"]["id"], "dual_ma");
+        assert_eq!(arr[0]["version"]["id"], "sv_dual_ma");
     }
 
     #[tokio::test]
     async fn sim_list_strategies_filter_by_id() {
         let st = sim_state();
-        let r = call(&st, "sim_list_strategies", json!({ "strategy_id": "macd" })).await;
+        let r = call(&st, "sim_list_strategies", json!({ "strategy_id": "momentum" })).await;
         let p = payload_of(&r);
         let arr = p.as_array().unwrap();
         assert_eq!(arr.len(), 1, "过滤后仅 1 项");
-        assert_eq!(arr[0]["id"], "macd");
+        assert_eq!(arr[0]["strategy"]["id"], "momentum");
     }
 
     #[tokio::test]
@@ -2122,13 +2187,11 @@ mod tests {
         let r = call(&st, "sim_start_session", json!({ "name": "t1", "period": "M1" })).await;
         let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
 
-        // 配置双均线（先低后高序列末 bar 金叉 → Buy）。
-        let configs = vec![simlive::StrategyConfig {
-            id: "dual_ma".into(),
-            params: std::collections::HashMap::from([
-                ("fast".to_string(), backtest::ParamValue::Num(2.0)),
-                ("slow".to_string(), backtest::ParamValue::Num(3.0)),
-            ]),
+        // 配置双均线（先低后高序列末 bar 金叉 → 80 分 Buy 区）。
+        let configs = vec![application::simlive::StrategyConfigInput {
+            strategy_id: "dual_ma".into(),
+            version_id: None,
+            params: json!({ "fast": 2.0, "slow": 3.0 }),
             stocks: vec!["510300".into()],
             weight: 1.0,
             stock_weights: std::collections::HashMap::new(),
@@ -2141,12 +2204,12 @@ mod tests {
             ).await.unwrap();
         }
 
-        // 单标的信号：聚合分=100、信号=buy、含各策略独立分。
+        // 单标的信号：聚合分=80（插件 Buy 区高分）、信号=buy、含各策略独立分。
         let r = call(&st, "sim_get_strategy_signal", json!({ "session_id": sid, "code": "510300" })).await;
         let p = payload_of(&r);
         assert_eq!(p["code"], "510300");
         assert_eq!(p["signal"], "buy");
-        assert_eq!(p["aggregate_score"], json!(100.0));
+        assert_eq!(p["aggregate_score"], json!(80.0));
         assert_eq!(p["per_strategy_scores"][0]["strategy_id"], "dual_ma");
         assert_eq!(p["latest_price"], json!(14.0));
 
@@ -2174,53 +2237,19 @@ mod tests {
 
     // ── 11-sim-live / L3：会话记录/详情/回测对比工具 ──
 
-    /// 回测 run store mock（记录 create_run；后台任务空 bar → mark_failed，不影响断言）。
-    #[derive(Default)]
-    struct MockBacktestStore {
-        created: std::sync::Mutex<Vec<NewRun>>,
-        next_id: AtomicU64,
-    }
-    #[async_trait::async_trait]
-    impl BacktestRunStore for MockBacktestStore {
-        async fn create_run(&self, run: &NewRun) -> anyhow::Result<i64> {
-            self.created.lock().unwrap().push(run.clone());
-            Ok(self.next_id.fetch_add(1, Ordering::Relaxed) as i64 + 1)
-        }
-        async fn update_run_progress(&self, _: i64, _: i32, _: DateTime<Utc>) -> anyhow::Result<()> { Ok(()) }
-        async fn mark_done(&self, _: i64, _: &RunResult) -> anyhow::Result<()> { Ok(()) }
-        async fn mark_failed(&self, _: i64, _: &str) -> anyhow::Result<()> { Ok(()) }
-        async fn list_runs(&self, _: &RunFilter) -> anyhow::Result<Vec<RunView>> { Ok(Vec::new()) }
-        async fn get_run(&self, _: i64) -> anyhow::Result<Option<RunView>> { Ok(None) }
-        async fn delete_run(&self, _: i64) -> anyhow::Result<bool> { Ok(false) }
-    }
-    struct MockBarRead;
-    #[async_trait::async_trait]
-    impl BacktestBarRead for MockBarRead {
-        async fn bars(
-            &self,
-            _: &str,
-            _: &domain::types::Period,
-            _: DateTime<Utc>,
-            _: DateTime<Utc>,
-        ) -> anyhow::Result<Vec<domain::types::Bar>> {
-            Ok(Vec::new())
-        }
-    }
-    struct MockProgress;
-    #[async_trait::async_trait]
-    impl BacktestProgressSink for MockProgress {
-        async fn send(&self, _: i64, _: i32, _: Option<DateTime<Utc>>) -> anyhow::Result<()> { Ok(()) }
-    }
-
-    /// 注入回测服务的 sim state（L3 对比 happy path；返回可推进时钟，保证 start<end）。
-    fn sim_state_with_backtest() -> (Arc<McpState>, Arc<MockBacktestStore>, Arc<TestClock>) {
+    /// 注入回测工作台的 sim state（P4a：对比走统一 ensemble 引擎；返回可推进时钟，保证 start<end）。
+    fn sim_state_with_workbench() -> (Arc<McpState>, Arc<MockStrategyRunStore>, Arc<TestClock>) {
         let store = Arc::new(MockSimStore::default());
-        let bt_store = Arc::new(MockBacktestStore::default());
-        let bt = application::service::BacktestService::new(
-            Arc::new(MockBarRead), bt_store.clone(), Arc::new(MockProgress), 1);
+        let registry = sim_registry();
         let clock = Arc::new(TestClock(AtomicI64::new(1_784_000_000)));
+        let run_store = Arc::new(MockStrategyRunStore::default());
+        let preset_store = Arc::new(MockStrategyPresetStore::default());
+        let workbench = Arc::new(application::workbench::WorkbenchService::new(
+            Arc::new(MockStrategyBars), run_store.clone(), preset_store, registry.clone(),
+            Arc::new(MockSimCompareSymbols), Arc::new(MockStrategySink), clock.clone(), 1));
         let svc = application::simlive::SimLiveService::with_default_fee(store, clock.clone())
-            .with_backtest(Arc::new(bt));
+            .with_strategies(registry)
+            .with_workbench(workbench.clone());
         (Arc::new(McpState {
             kline: Arc::new(MockKline::new()),
             health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
@@ -2229,10 +2258,21 @@ mod tests {
             sessions: crate::state::SessionRegistry::default(),
 
             strategies: None,
-            workbench: None,
+            workbench: Some(workbench),
             strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             sim: Some(Arc::new(svc)),
-        }), bt_store, clock)
+        }), run_store, clock)
+    }
+
+    /// 对比回测 symbol 注册表 mock（含 510300）。
+    struct MockSimCompareSymbols;
+    #[async_trait::async_trait]
+    impl domain::ports::SymbolRegistry for MockSimCompareSymbols {
+        async fn enabled_codes(&self) -> anyhow::Result<Vec<domain::types::Code>> {
+            Ok(vec![domain::types::Code("510300".into()), domain::types::Code("600000".into())])
+        }
+        async fn interval_secs(&self, _: &domain::types::Code) -> anyhow::Result<u64> { Ok(60) }
+        async fn upsert(&self, _: domain::types::Code, _: u64, _: bool) -> anyhow::Result<()> { Ok(()) }
     }
 
     struct TestClock(AtomicI64);
@@ -2277,9 +2317,10 @@ mod tests {
         assert_eq!(payload_of(&r)["session"], json!(null));
     }
 
+    /// P4a：对比走统一 ensemble 引擎——每标的 1 个 ensemble run（钉住 slots + 会话阈值 + LumpSum 全仓）。
     #[tokio::test]
     async fn sim_run_backtest_compare_triggers_run() {
-        let (st, bt_store, clock) = sim_state_with_backtest();
+        let (st, run_store, clock) = sim_state_with_workbench();
         let svc = st.sim.clone().unwrap();
         let r = call(&st, "sim_start_session", json!({ "name": "c1", "period": "M1", "cash_init": 200000,
             "strategy_set": ["dual_ma"], "stock_set": ["510300"] })).await;
@@ -2294,15 +2335,24 @@ mod tests {
 
         let r = call(&st, "sim_run_backtest_compare", json!({ "session_id": sid })).await;
         let p = payload_of(&r);
-        assert_eq!(p["run_ids"].as_array().unwrap().len(), 1, "单stock+单策略触发一次 run");
+        let run_ids = p["run_ids"].as_array().unwrap();
+        assert_eq!(run_ids.len(), 1, "单 stock × 1 覆盖策略 → 1 个 ensemble run");
+        assert!(run_ids[0].as_str().unwrap().starts_with("sr_"), "run id 为 sr_ 前缀字符串");
         assert!(p["session_result"]["metrics"]["trade_count"].is_number());
-        // 触发参数 = 会话 (code/period/strategy/date_range/initial)。
-        let created = bt_store.created.lock().unwrap();
-        assert_eq!(created.len(), 1);
-        assert_eq!(created[0].code, "510300");
-        assert_eq!(created[0].period, "M1");
-        assert_eq!(created[0].strategy_id, "dual_ma");
-        assert!(created[0].date_to > created[0].date_from);
+        // 钉住快照：slots[0] = 钉住版本（sv_dual_ma）+ 阈值 60/40 + LumpSum。
+        let runs = run_store.runs.lock().unwrap();
+        assert_eq!(runs.len(), 1);
+        let run = runs.values().next().unwrap();
+        assert_eq!(run.symbol, "510300");
+        assert_eq!(run.period, "M1");
+        let slots = run.config["slots"].as_array().unwrap();
+        assert_eq!(slots.len(), 1);
+        assert_eq!(slots[0]["strategy_id"], json!("dual_ma"));
+        assert_eq!(slots[0]["version_id"], json!("sv_dual_ma"));
+        assert_eq!(run.config["buy_threshold"], json!(60.0));
+        assert_eq!(run.config["sell_threshold"], json!(40.0));
+        assert_eq!(run.config["policy"], json!({ "LumpSum": { "position_pct": 1.0 } }));
+        assert!(run.to_ts > run.from_ts);
     }
 
     #[tokio::test]
@@ -2376,6 +2426,25 @@ mod tests {
     struct MockStrategyStore {
         strategies: std::sync::Mutex<std::collections::HashMap<String, domain::ports::StrategyRow>>,
         versions: std::sync::Mutex<std::collections::HashMap<String, domain::ports::StrategyVersionRow>>,
+    }
+
+    impl MockStrategyStore {
+        /// P4a：直插 published 策略（version=1，version_id = "sv_{strategy_id}"；sim_* 切源测试播种用）。
+        fn seed_published(&self, strategy_id: &str, name: &str, code: &str, params_schema: serde_json::Value) {
+            self.strategies.lock().unwrap().insert(strategy_id.to_string(), domain::ports::StrategyRow {
+                id: strategy_id.to_string(), name: name.to_string(), description: String::new(),
+                kind: domain::strategy_state::StrategyKind::Strategy, created_by: "test".into(),
+                created_at: p3c_now(), updated_at: p3c_now(),
+            });
+            self.versions.lock().unwrap().insert(format!("sv_{strategy_id}"), domain::ports::StrategyVersionRow {
+                id: format!("sv_{strategy_id}"), strategy_id: strategy_id.to_string(), version: 1,
+                code: code.to_string(), params_schema,
+                sha256: application::strategy::sha256_hex(code),
+                status: domain::strategy_state::StrategyStatus::Published,
+                approval_level: domain::strategy_state::ApprovalLevel::BacktestOk,
+                created_at: p3c_now(), published_at: Some(p3c_now()),
+            });
+        }
     }
 
     #[async_trait::async_trait]
@@ -2994,6 +3063,8 @@ mod tests {
         assert_eq!(r["result"]["isError"], true, "workbench=None → 工具错误帧");
     }
 }
+// ~/~ end
+// ~/~ end
 ```
 
 ``` {.rust file=crates/mcp/src/mocks.rs}

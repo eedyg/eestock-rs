@@ -425,8 +425,8 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     await api.startSimSession({
       name: 't', period: 'M1',
       strategies: [
-        { id: 'dual_ma', params: { fast: 2, slow: 3 }, stocks: ['518880'], weight: 1.0, stock_weights: { '518880': 3.0 } },
-        { id: 'macd', stocks: ['518880'], weight: 1.0 },
+        { strategy_id: 'dual_ma', params: { fast: 2, slow: 3 }, stocks: ['518880'], weight: 1.0, stock_weights: { '518880': 3.0 } },
+        { strategy_id: 'macd', stocks: ['518880'], weight: 1.0 },
       ],
     });
     const s = await api.getSimStrategies();

@@ -11,5 +11,10 @@ edition.workspace = true
 [dependencies]
 # 复用回测费用模型（佣金/印花税/滑点），统一口径（ADR 11-sim-live §5/§6）。
 backtest = { path = "../backtest" }
+# 12-strategy-system / P4a —— sim-live 切源：编排器内核换为 Registry 插件 + QuickJS 实例
+#（ADR §13.6；仅新增依赖边，strategy-runtime/strategy-core 本体红线不改）。
+strategy-runtime = { path = "../strategy-runtime" }
+strategy-core = { path = "../strategy-core" }
 serde.workspace = true
+serde_json.workspace = true
 anyhow.workspace = true

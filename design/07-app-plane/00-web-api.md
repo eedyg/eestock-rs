@@ -4744,6 +4744,7 @@ pub fn load(path: &str) -> anyhow::Result<AppConfig> {
 ```
 
 ``` {.rust file=crates/app/src/bin/eestock-app.rs}
+// ~/~ begin <<design/07-app-plane/00-web-api.md#crates/app/src/bin/eestock-app.rs>>[init]
 //! eestock-app —— 应用面进程（web REST/WS + diagnose 读库 + SPA 托管）。
 //! ADR-017：与数据面零 API 直连，唯一耦合点 = TimescaleDB；启动 schema 自检复用 storage::migrate_check。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
@@ -4817,22 +4818,18 @@ async fn main() -> anyhow::Result<()> {
     let config: Arc<dyn domain::ports::ConfigStore> =
         Arc::new(storage::config_store::PgConfigStore::new(pool.clone()));
     // 11-sim-live / L1：模拟实盘服务（sim_* 工具 + web 面板 /api/sim-live/*；SimSessionStore + SystemClock + 默认 FeeModel）。
-    // L3「回测一下」：注入回测服务，sim_run_backtest_compare 复用既有 backtest 引擎触发对比 run。
+    // 12-strategy-system / P4a 切源：策略源 = Registry（注入 PgStrategyStore，与 StrategyService/WorkbenchService
+    // 共享同一 store 实例）；「回测一下」改走统一 ensemble 引擎（注入 WorkbenchService，见下方后注）。
     // **MCP 与 web 共享同一服务实例**（ADR 11-sim-live §7 双通道一致性）：同一 Arc 同时装入 AppState.sim 与 McpState.sim。
     // 持仓 latest/market_value 经行情源读端口解析（复用 state.kline 同款 KlineReader）；缺行情才回退 0.000。
     let sim_kline: Arc<dyn domain::ports::KlineRead> =
         Arc::new(storage::reader::KlineReader::new(pool.clone()));
-    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
-        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
-        Arc::new(domain::ports::SystemClock),
-    )
-    .with_backtest(backtest.clone())
-    .with_kline(sim_kline.clone()));
-    // 11-sim-live 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state 重建内存续跑；无 state → ended+告警）。
+    // P4a：Registry store 共享实例（StrategyService / WorkbenchService / SimLiveService 同一事实源）。
+    let strategy_store = Arc::new(storage::strategy::PgStrategyStore::new(pool.clone()));
     // 12-strategy-system / P2a：策略 Registry DI（PgStrategyStore + BacktestBarRead（复用回测取数
     // 口径 kline_accurate 优先）+ SystemClock → StrategyService）。
     let strategy_service = Arc::new(application::strategy::StrategyService::new(
-        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        strategy_store.clone(),
         Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
         Arc::new(domain::ports::SystemClock),
     ));
@@ -4848,12 +4845,23 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
         Arc::new(storage::workbench::PgStrategyRunStore::new(pool.clone())),
         Arc::new(storage::workbench::PgStrategyPresetStore::new(pool.clone())),
-        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        strategy_store.clone(),
         Arc::new(storage::symbols::PgSymbolRegistry::new(pool.clone())),
         Arc::new(web::workbench::WorkbenchWsSink::new(backtest_hub.clone())),
         Arc::new(domain::ports::SystemClock),
         application::workbench::DEFAULT_MAX_CONCURRENT,
     ));
+    // 11-sim-live / P4a：SimLiveService 装配（策略源 = Registry 共享 strategy_store；「回测一下」
+    // 统一 ensemble 引擎 = workbench_service——消费式 builder，故构造置于 workbench_service 之后）。
+    // 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state + strategy_version 钉住
+    // 快照重建插件实例续跑；无 state / 版本失效 / 实例化失败 → ended + 告警）。
+    let sim_service = Arc::new(application::simlive::SimLiveService::with_default_fee(
+        Arc::new(storage::sim::PgSimSessionStore::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    )
+    .with_strategies(strategy_store.clone())
+    .with_workbench(workbench_service.clone())
+    .with_kline(sim_kline.clone()));
     let sim_recovery = sim_service.recover_sessions().await?;
     tracing::info!(recovered = %sim_recovery.recovered.len(), degraded = %sim_recovery.degraded.len(), "sim-live 启动恢复完成");
     let state = Arc::new(web::state::AppState {
@@ -4950,6 +4958,7 @@ async fn main() -> anyhow::Result<()> {
 fn arg_val(args: &[String], key: &str) -> Option<String> {
     args.iter().position(|a| a == key).and_then(|i| args.get(i + 1)).cloned()
 }
+// ~/~ end
 ```
 
 ``` {.rust file=crates/app/tests/app_config.rs}

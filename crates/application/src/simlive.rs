@@ -13,23 +13,26 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use backtest::{
-    Bar, FeeModel, ParamDef, ParamKind, ParamValue, Period, StrategyParams, TradeDetail,
+    Bar, FeeModel, ParamValue, Period, StrategyParams, TradeDetail,
     compute_drawdown, compute_metrics,
 };
 use domain::ports::{
     Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionState,
-    SimSessionStore, SimSessionStatus, SimSessionView,
+    SimSessionStore, SimSessionStatus, SimSessionView, StrategyStore,
 };
+use domain::strategy_state::StrategyStatus;
 use serde::{Deserialize, Serialize};
 
-use crate::params::to_strategy_params;
-use crate::service::BacktestService;
-use crate::types::{SubmitOutcome, SubmitReq};
+use crate::simlive_orch::{spawn_orchestrator_async, OrchestratorHandle};
+use crate::strategy::{fill_and_validate_params, schema_from_json, sha256_hex};
+use crate::workbench::{SlotReq, SubmitRunReq, WorkbenchService};
+// P4a：钉住策略配置/会话事件类型再导出（web/MCP 展示与事件流面共用同型）。
+pub use simlive::{PluginStrategyConfig, SessionEvent};
 use simlive::{
-    Fill, FillEngine, Order, OrderStatus, Position, RealtimeStrategyOrchestrator, SessionManager,
-    Side, SignalEvent, SimAccount, SimOrder, SimPosition, SimSession, SimTrade, StockEvaluation,
+    current_entry_ts, Fill, FillEngine, Order, OrderStatus, Position,
+    PositionInput, SessionManager, Side, SignalEvent, SimAccount, SimOrder,
+    SimPosition, SimSession, SimTrade, StockEvaluation, MAX_STOCKS_PER_STRATEGY, MAX_STRATEGIES,
 };
-pub use simlive::StrategyConfig;
 
 static NEXT_ORDER_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -38,15 +41,20 @@ pub const DEFAULT_CASH_INIT: f64 = 1_000_000.0;
 /// 聚合策略默认开仓数量（每股；L2 简化来源 aggregate_strategy）。
 pub const DEFAULT_AGGREGATE_QTY: f64 = 100.0;
 
-/// 单策略输入（ADR 11-sim-live §4 多策略：id + 各自参数 + 各自标的集 + 权重）。
-/// `params` 为 `serde_json::Value`（web/MCP 传参形态）；应用层经 [`to_strategy_params`] 转 `backtest::StrategyParams`。
+/// 单策略输入（P4a 切源：**破坏性 wire 变更**，系统 pre-1.0）：
+/// `strategy_id` 为 **Registry 策略 id**（st_ 前缀；旧内建 id 如 dual_ma 不再接受，
+/// 返回明确错误并引导用 `strategy_list` 查询可用策略）；`version_id` 缺省 = 最新 published。
+/// `params` 为 `serde_json::Value`（web/MCP 传参形态）；应用层按版本 schema 校验/缺省填充。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StrategyConfigInput {
-    pub id: String,
-    /// 策略参数（按 `params_schema`；缺省 → 各策略默认值）。
+    pub strategy_id: String,
+    /// 钉住版本 id（sv_ 前缀）；缺省 = 该策略最新 published 版本。
+    #[serde(default)]
+    pub version_id: Option<String>,
+    /// 策略参数（按版本 params_schema；缺省 → schema 默认值填充）。
     #[serde(default = "default_params")]
     pub params: serde_json::Value,
-    /// 该策略实时评估的标的子集（须非空，均为注册标的）。
+    /// 该策略实时评估的标的子集（须非空 ≤30，均为注册标的）。
     #[serde(default)]
     pub stocks: Vec<String>,
     /// 聚合权重（>0，缺省 1.0）。
@@ -78,8 +86,15 @@ pub struct StartSessionReq {
     pub period: String,
     #[serde(default = "default_source")]
     pub source: String,
-    /// 每策略配置（ADR §4）：若提供 → 用之（每策略实例+参数+标的集+权重入 orchestrator）；
-    /// 未提供 → 回退 `strategy_set × stock_set`（缺省参数、weight=1，由 `feed_targets` 自动配置）。
+    /// 聚合做多阈值（缺省 60；P4a：会话级钉住，回测对比同源）。
+    #[serde(default)]
+    pub buy_long_threshold: Option<f64>,
+    /// 聚合卖出阈值（缺省 40；P4a：会话级钉住，回测对比同源）。
+    #[serde(default)]
+    pub sell_threshold: Option<f64>,
+    /// 每策略配置（ADR §4；P4a 切源 Registry）：若提供 → 钉住 published 版本建插件编排器；
+    /// 未提供 → 回退 `strategy_set × stock_set`（strategy_set 元素 = Registry strategy_id，
+    /// 缺省参数、weight=1）。两者均空 → 纯手动会话（无策略编排器）。
     #[serde(default)]
     pub strategies: Vec<StrategyConfigInput>,
 }
@@ -193,8 +208,20 @@ struct LiveSession {
     orders: Vec<SimOrder>,
     intent_seen: HashSet<String>,
     intent_fills: Map<String, Fill>,
-    /// 实时策略编排器（L2；每新 bar 评估/评分/聚合）。
-    orchestrator: Option<RealtimeStrategyOrchestrator>,
+    /// 插件策略编排器 worker 句柄（P4a；每「策略×标的」一 QuickJS 实例，专用线程承载）。
+    /// Drop 句柄 → worker 线程退出（stop/end/reconfigure 时显式置 None）。
+    orchestrator: Option<OrchestratorHandle>,
+    /// 编排器代际（MINOR-1：start/恢复 = 0，configure_strategies/故障注入每次 +1）。
+    /// `process_bar` 阶段 1 捕获、阶段 3 锁内比对——在飞期间重配的旧 worker 迟到结果据此丢弃。
+    generation: u64,
+    /// 钉住策略快照（启动时定格：strategy_id+version_id+version+sha256+code+params；
+    /// 恢复/回测对比/展示同源）。
+    pinned: Vec<PluginStrategyConfig>,
+    /// 会话级钉住阈值（默认 60/40；回测对比同源）。
+    buy_long_threshold: f64,
+    sell_threshold: f64,
+    /// code → 最近一次评估（查询用；worker 评估后由 process_bar 更新）。
+    latest: BTreeMap<String, StockEvaluation>,
     /// 统一交易开关（L2；enabled 且聚合达阈值才下模拟单；disabled 只评估/评分）。
     trading_enabled: bool,
 }
@@ -216,14 +243,17 @@ pub struct SessionDetail {
 }
 
 /// 回测对比视图（L3：sim_run_backtest_compare）。
-/// 模拟实盘用会话自身结果；回测用触发的新 run（异步，调用方轮询 backtest get_run 完成）。
+/// **P4a 口径变化**：回测从「旧内建回测引擎 × 策略×标的笛卡尔积」切换为**统一 ensemble 引擎**
+/// （每标的 1 个 ensemble run，slots=覆盖该标的的钉住策略，阈值=会话钉住阈值，
+/// LumpSum 全仓 + 会话 FeeModel；评分语义与 sim-live 一致，可比性增强，
+/// 但与切源前的历史对比结果**绝对值不可直接比**）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BacktestCompareView {
     pub session_id: String,
     /// 会话自身的结束结果（净值/交易/指标）。
     pub session_result: Option<SimSessionResult>,
-    /// 为该会话（同周期+同策略集+同标的集）触发的回测 run id 列表（“回测一下”）。
-    pub run_ids: Vec<i64>,
+    /// 触发的 ensemble run id 列表（sr_ 前缀字符串；异步：调用方轮询 bt_get_run）。
+    pub run_ids: Vec<String>,
 }
 
 /// 启动恢复结果（`recover_sessions` 返回；重启后收敛/恢复遗留 running 会话）。
@@ -243,8 +273,11 @@ pub struct SimLiveService {
     default_cash: f64,
     /// 聚合策略开仓数量（每股；L2 简化，来源标识 aggregate_strategy）。
     aggregate_qty: f64,
-    /// 回测服务（L3「回测一下」；经 BacktestService.submit 触发既有回测 run；None = 未注入）。
-    backtest: Option<Arc<BacktestService>>,
+    /// 策略 Registry 读端口（P4a 切源：启动钉住 published 版本 + 恢复重建；None = 未注入，
+    /// 注入前任何带策略的会话启动返回 InvalidConfig）。
+    strategies: Option<Arc<dyn StrategyStore>>,
+    /// 回测工作台（P4a「回测一下」：统一 ensemble 引擎；None = 未注入）。
+    workbench: Option<Arc<WorkbenchService>>,
     /// 本系统行情源读端口（KlineRead；None = 未注入）。
     /// 持仓读模型（PositionView.latest/market_value）经此解析每标的最近一根 close，
     /// 与评分表（相同端口取 latest_bar）同价；缺行情/未注入才回退 0.000。
@@ -263,16 +296,23 @@ impl SimLiveService {
             fee,
             default_cash: DEFAULT_CASH_INIT,
             aggregate_qty: DEFAULT_AGGREGATE_QTY,
-            backtest: None,
+            strategies: None,
+            workbench: None,
             kline: None,
             sessions: Mutex::new(Map::new()),
             mcp_enabled: AtomicBool::new(true),
         }
     }
 
-    /// 注入回测服务（L3「回测一下」；未注入时 sim_run_backtest_compare 返回错误）。
-    pub fn with_backtest(mut self, backtest: Arc<BacktestService>) -> Self {
-        self.backtest = Some(backtest);
+    /// 注入策略 Registry 读端口（P4a 切源必需：启动钉住 published 版本 + 恢复重建）。
+    pub fn with_strategies(mut self, strategies: Arc<dyn StrategyStore>) -> Self {
+        self.strategies = Some(strategies);
+        self
+    }
+
+    /// 注入回测工作台（P4a「回测一下」走统一 ensemble 引擎；未注入时 sim_run_backtest_compare 返回错误）。
+    pub fn with_workbench(mut self, workbench: Arc<WorkbenchService>) -> Self {
+        self.workbench = Some(workbench);
         self
     }
 
@@ -289,56 +329,88 @@ impl SimLiveService {
 
     /// 开始会话：重置账户为 cash_init，落库 running 元数据，缓存运行态。
     /// O1：已有 running 会话时拒绝再 start（返回 [`AlreadyRunning`]，防多 running）；web 映射 409。
-    /// ADR §4 多策略：若 `req.strategies` 提供 → 逐项校验（id/params/stocks/weight）并配置编排器
-    /// （每策略实例+参数+标的集+权重）；会话级 `strategy_set`/`stock_set` 由策略派生（去重、保序）。
-    /// 未提供 → 回退 `strategy_set × stock_set`（缺省参数、weight=1，由 `feed_targets` 自动配置）。
+    /// P4a 切源（ADR 12 §13.6）：策略来源 = Registry **published 版本**——启动时钉住
+    /// （strategy_id+version_id+version+sha256+code+params 定格），每「策略×标的」一个 QuickJS 实例；
+    /// **无 published / 未知策略 / 实例化失败 → 启动失败（InvalidConfig，web 400 / MCP isError）**，
+    /// 旧「未知策略静默跳过」语义废止。未提供 `strategies` → 回退 `strategy_set × stock_set`
+    /// （strategy_set 元素 = Registry strategy_id，缺省参数、weight=1）；两者均空 → 纯手动会话。
     pub async fn start_session(&self, req: &StartSessionReq) -> anyhow::Result<SimSessionView> {
         if let Some(existing) = self.current_session_id() {
             return Err(AlreadyRunning(existing).into());
         }
-        // 每策略配置（ADR §4）：校验 + 转 `simlive::StrategyConfig`（params json → StrategyParams）。
-        let detailed: Option<Vec<StrategyConfig>> = if req.strategies.is_empty() {
+        // 会话级钉住阈值（缺省 60/40；回测对比同源）。
+        let buy_long_threshold = req.buy_long_threshold.unwrap_or(simlive::DEFAULT_BUY_LONG_THRESHOLD);
+        let sell_threshold = req.sell_threshold.unwrap_or(simlive::DEFAULT_SELL_THRESHOLD);
+        if !buy_long_threshold.is_finite()
+            || !sell_threshold.is_finite()
+            || buy_long_threshold <= sell_threshold
+        {
+            return Err(InvalidConfig(format!(
+                "buy_long_threshold 须严格大于 sell_threshold 且均有限，got {buy_long_threshold} <= {sell_threshold}"
+            ))
+            .into());
+        }
+        // MINOR-4（与 strategy-core EnsembleConfig::validate 同规）：阈值须夹中立 50——
+        // 保证「全部熔断 → 聚合中立 50 → Hold」契约不被阈值配置破坏（web 400 / MCP isError）。
+        if buy_long_threshold <= simlive::NEUTRAL_SCORE || sell_threshold >= simlive::NEUTRAL_SCORE {
+            return Err(InvalidConfig(format!(
+                "buy_long_threshold 须 > 50 且 sell_threshold 须 < 50（夹中立 50，全熔断→Hold 契约），\
+                 got {buy_long_threshold} / {sell_threshold}"
+            ))
+            .into());
+        }
+        // strategies 未提供 → 回退 strategy_set × stock_set（元素 = Registry strategy_id）。
+        let inputs: Vec<StrategyConfigInput> = if req.strategies.is_empty() {
+            req.strategy_set
+                .iter()
+                .map(|sid| StrategyConfigInput {
+                    strategy_id: sid.clone(),
+                    version_id: None,
+                    params: default_params(),
+                    stocks: req.stock_set.clone(),
+                    weight: 1.0,
+                    stock_weights: Map::new(),
+                })
+                .collect()
+        } else {
+            req.strategies.clone()
+        };
+        // 钉住解析（注册表成员校验 + published 版本定格 + params 校验填充）。
+        let pinned: Vec<PluginStrategyConfig> = if inputs.is_empty() {
+            Vec::new()
+        } else {
+            let registered = self.registered_codes().await?;
+            match self.resolve_pinned_configs(&inputs, &registered).await {
+                Ok(p) => p,
+                Err(e) => return Err(e.into()),
+            }
+        };
+        // 插件编排器 worker（每「策略×标的」一 QuickJS 实例；实例化失败 → 启动失败显式报错）。
+        let orchestrator = if pinned.is_empty() {
             None
         } else {
-            // 注册表成员校验（ADR §4 修复）：strategies[].stocks 的每个 code 须在 symbols 注册表。
-            // 经注入的 ports.kline（KlineRead::symbols_with_latest 注册表读）建 code 集；
-            // 未注入端口 → Ok(None)（回退仅格式校验，兼容既有未注入构造）。
-            let registered = self.registered_codes().await?;
-            let mut configs = Vec::with_capacity(req.strategies.len());
-            for s in &req.strategies {
-                if let Err(e) = validate_strategy_config_input(s, &registered) {
-                    return Err(InvalidConfig(format!("{}", e)).into());
-                }
-                configs.push(StrategyConfig {
-                    id: s.id.clone(),
-                    params: to_strategy_params(&s.params)?,
-                    stocks: s.stocks.clone(),
-                    weight: s.weight,
-                    stock_weights: s.stock_weights.clone(),
-                });
+            match spawn_orchestrator_async(pinned.clone(), buy_long_threshold, sell_threshold).await {
+                Ok(h) => Some(h),
+                Err(e) => return Err(InvalidConfig(format!("策略插件实例化失败：{e}")).into()),
             }
-            Some(configs)
         };
-        // 会话级 strategy_set/stock_set：detailed 时从策略派生；否则直接用 req。
-        let (strategy_set, stock_set) = match &detailed {
-            Some(configs) => {
-                let mut ids: Vec<String> = Vec::new();
-                for c in configs {
-                    if !ids.contains(&c.id) {
-                        ids.push(c.id.clone());
-                    }
+        // 会话级 strategy_set/stock_set 由钉住配置派生（去重、保序）。
+        let (strategy_set, stock_set) = {
+            let mut ids: Vec<String> = Vec::new();
+            for c in &pinned {
+                if !ids.contains(&c.strategy_id) {
+                    ids.push(c.strategy_id.clone());
                 }
-                let mut stks: Vec<String> = Vec::new();
-                for c in configs {
-                    for s in &c.stocks {
-                        if !stks.contains(s) {
-                            stks.push(s.clone());
-                        }
-                    }
-                }
-                (ids, stks)
             }
-            None => (req.strategy_set.clone(), req.stock_set.clone()),
+            let mut stks: Vec<String> = Vec::new();
+            for c in &pinned {
+                for s in &c.stocks {
+                    if !stks.contains(s) {
+                        stks.push(s.clone());
+                    }
+                }
+            }
+            (ids, stks)
         };
         let now = self.clock.now();
         let mut manager = SessionManager::new();
@@ -371,13 +443,131 @@ impl SimLiveService {
                 orders: Vec::new(),
                 intent_seen: HashSet::new(),
                 intent_fills: Map::new(),
-                orchestrator: detailed.map(|c| RealtimeStrategyOrchestrator::with_default_thresholds(c)),
+                orchestrator,
+                generation: 0,
+                pinned,
+                buy_long_threshold,
+                sell_threshold,
+                latest: BTreeMap::new(),
                 trading_enabled: false,
             },
         );
         // 实时落盘初始运行态（现金= cash_init、净值序列=[(start_ts,cash_init)]；供重启恢复）。
         self.persist_state(&session.id).await?;
         Ok(to_session_view(&session))
+    }
+
+    /// 钉住解析（P4a）：逐输入校验（strategy_id/stocks/weight/上限）→ 版本定格
+    /// （version_id 缺省 = 最新 published；无 published → InvalidConfig）→ params 按版本
+    /// schema 校验/缺省填充 → `PluginStrategyConfig`（含 code/sha256/name 快照）。
+    /// `registered`：注册表 code 集；`None` = 未注入注册表端口 → 回退仅格式校验。
+    async fn resolve_pinned_configs(
+        &self,
+        inputs: &[StrategyConfigInput],
+        registered: &Option<HashSet<String>>,
+    ) -> Result<Vec<PluginStrategyConfig>, InvalidConfig> {
+        let Some(store) = self.strategies.clone() else {
+            return Err(InvalidConfig(
+                "策略 Registry 未注入（P4a 切源后 sim-live 策略源为 Registry；app 装配 with_strategies）".into(),
+            ));
+        };
+        if inputs.len() > MAX_STRATEGIES {
+            return Err(InvalidConfig(format!(
+                "策略数 {} 超上限 {MAX_STRATEGIES}（ADR §4：3 策略）",
+                inputs.len()
+            )));
+        }
+        let mut out = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let sid = input.strategy_id.trim();
+            if sid.is_empty() {
+                return Err(InvalidConfig("strategy_id 不能为空".into()));
+            }
+            // 旧内建 id 拒绝 + 引导（破坏性 wire 变更，pre-1.0）。
+            let strategy = store.get_strategy(sid).await.map_err(|e| {
+                InvalidConfig(format!("查询策略失败: {e}"))
+            })?.ok_or_else(|| {
+                InvalidConfig(format!(
+                    "未知策略 id: {sid}（P4a 切源后仅接受 Registry strategy_id，旧内建 id 如 dual_ma 已废止；\
+                     请用 strategy_list 查询可用策略）"
+                ))
+            })?;
+            // 版本定格：显式 version_id（须属于该策略且 published）/ 缺省取最新 published。
+            let version = match &input.version_id {
+                Some(vid) => {
+                    let v = store.get_version(vid).await.map_err(|e| {
+                        InvalidConfig(format!("查询策略版本失败: {e}"))
+                    })?.ok_or_else(|| InvalidConfig(format!("策略版本不存在: {vid}")))?;
+                    if v.strategy_id != sid {
+                        return Err(InvalidConfig(format!(
+                            "版本 {vid} 不属于策略 {sid}"
+                        )));
+                    }
+                    if v.status != StrategyStatus::Published {
+                        return Err(InvalidConfig(format!(
+                            "策略版本 {vid} 未发布（status={}），仅 published 版本可用于会话",
+                            v.status.as_str()
+                        )));
+                    }
+                    v
+                }
+                None => store
+                    .list_versions(sid)
+                    .await
+                    .map_err(|e| InvalidConfig(format!("查询策略版本失败: {e}")))?
+                    .into_iter()
+                    .filter(|v| v.status == StrategyStatus::Published)
+                    .max_by_key(|v| v.version)
+                    .ok_or_else(|| {
+                        InvalidConfig(format!(
+                            "策略 {sid} 无 published 版本（仅 published 版本可用于会话；请先 strategy_publish）"
+                        ))
+                    })?,
+            };
+            // params 按版本 schema 校验 + 缺省填充（ABI §1 NIT-6：消费方职责）。
+            let schema = schema_from_json(&version.params_schema);
+            let params = fill_and_validate_params(&schema, &input.params)
+                .map_err(InvalidConfig)?;
+            // 标的集：非空、≤30、均注册。
+            if input.stocks.is_empty() {
+                return Err(InvalidConfig(format!("策略 {sid} 至少需指定一个标的")));
+            }
+            if input.stocks.len() > MAX_STOCKS_PER_STRATEGY {
+                return Err(InvalidConfig(format!(
+                    "策略 {sid} 标的数 {} 超上限 {MAX_STOCKS_PER_STRATEGY}（ADR §4：≤30 股）",
+                    input.stocks.len()
+                )));
+            }
+            for code in &input.stocks {
+                validate_registered_stock(code, registered).map_err(|e| InvalidConfig(e.to_string()))?;
+            }
+            if !input.weight.is_finite() || input.weight <= 0.0 {
+                return Err(InvalidConfig(format!("策略 {sid} 权重必须为正数")));
+            }
+            for (code, w) in &input.stock_weights {
+                if !input.stocks.contains(code) {
+                    return Err(InvalidConfig(format!(
+                        "策略 {sid} 的 stock_weights 键 {code} 不在其标的集内"
+                    )));
+                }
+                if !w.is_finite() || *w <= 0.0 {
+                    return Err(InvalidConfig(format!("策略 {sid} 的 {code} 权重必须为正数")));
+                }
+            }
+            out.push(PluginStrategyConfig {
+                strategy_id: sid.to_string(),
+                version_id: version.id.clone(),
+                version: version.version,
+                sha256: version.sha256.clone(),
+                name: strategy.name.clone(),
+                code: version.code.clone(),
+                params,
+                stocks: input.stocks.clone(),
+                weight: input.weight,
+                stock_weights: input.stock_weights.clone(),
+            });
+        }
+        Ok(out)
     }
 
     // ── 11-sim-live / 重启恢复（实时落盘 + 从落盘重建续跑）──
@@ -408,15 +598,15 @@ impl SimLiveService {
                         recovered.push(id);
                     }
                     Err(e) => {
-                        tracing::warn!(session_id = %id, error = %e, "sim-live 会话状态损坏，标记 ended");
+                        tracing::warn!(session_id = %id, error = %e, "sim-live 会话状态损坏/策略不可恢复，标记 ended");
                         degraded.push(id.clone());
-                        let _ = self.store.mark_end(&id, now, &degraded_result()).await;
+                        let _ = self.store.mark_end(&id, now, &degraded_result(&format!("恢复失败: {e}"))).await;
                     }
                 },
                 None => {
                     tracing::warn!(session_id = %id, "sim-live 运行中会话无 simsession_state，标记 ended");
                     degraded.push(id.clone());
-                    let _ = self.store.mark_end(&id, now, &degraded_result()).await;
+                    let _ = self.store.mark_end(&id, now, &degraded_result("进程重启且无 simsession_state")).await;
                 }
             }
         }
@@ -496,17 +686,24 @@ impl SimLiveService {
         }
         let orders: Vec<SimOrder> = serde_json::from_value(state.orders.clone()).unwrap_or_default();
         let trading_enabled = state.trading_enabled;
-        let orchestrator = state.strategy_configs.as_array().and_then(|arr| {
-            if arr.is_empty() {
-                return None;
+        // P4a 恢复：从钉住快照重建插件编排器（读 strategy_version 表取 code + 校验 sha256
+        // 与 published 状态；published 不可变保证 code 与钉住 sha256 一致）。
+        // 恢复失败（旧内建配置/版本缺失/状态漂移/实例化失败）→ Err → 调用方标 ended + 告警
+        //（参照既有恢复口径：恢复失败不打崩，会话降级 ended）。
+        let snapshot = parse_pinned_snapshot(&state.strategy_configs)
+            .ok_or_else(|| anyhow!("simsession_state.strategy_configs 形状非法"))?;
+        let (orchestrator, pinned, buy_long_threshold, sell_threshold) = match snapshot {
+            PinnedSnapshotParse::Empty => (None, Vec::new(), simlive::DEFAULT_BUY_LONG_THRESHOLD, simlive::DEFAULT_SELL_THRESHOLD),
+            PinnedSnapshotParse::Legacy => {
+                return Err(anyhow!("旧内建策略配置（P4a 切源前）不可恢复，会话降级 ended"));
             }
-            let configs: Vec<StrategyConfig> = arr.iter().filter_map(strategy_config_from_json).collect();
-            if configs.is_empty() {
-                None
-            } else {
-                Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs))
+            PinnedSnapshotParse::Pinned(snap) => {
+                let rebuilt = self
+                    .reinstantiate_pinned(&snap.strategies, snap.buy_long_threshold, snap.sell_threshold)
+                    .await?;
+                (Some(rebuilt), snap.strategies, snap.buy_long_threshold, snap.sell_threshold)
             }
-        });
+        };
         // intent 去重重建（同 intent_id 重复下单不重复执行）。
         let mut intent_seen = HashSet::new();
         let mut intent_fills = Map::new();
@@ -524,7 +721,7 @@ impl SimLiveService {
                 }
             }
         }
-        let manager = SessionManager::restore(account, session, state.net_value_series.clone(), trades, Vec::new());
+        let manager = SessionManager::restore(account, session, state.net_value_series.clone(), trades, Vec::new(), Vec::new());
         Ok(LiveSession {
             manager,
             fill_engine: FillEngine::new(self.fee),
@@ -532,11 +729,64 @@ impl SimLiveService {
             intent_seen,
             intent_fills,
             orchestrator,
+            generation: 0,
+            pinned,
+            buy_long_threshold,
+            sell_threshold,
+            latest: BTreeMap::new(),
             trading_enabled,
         })
     }
 
+    /// 恢复用：按钉住快照重新实例化插件编排器 worker。
+    /// 逐钉住项读 strategy_version 表：版本须存在且仍 published、strategy_id/sha256 与钉住一致
+    /// （published 不可变 + 此处 sha256 复核双保险）；取表内 code 重新实例化。
+    /// 任一失败 → Err（调用方按既有恢复口径降级 ended + 告警）。
+    async fn reinstantiate_pinned(
+        &self,
+        pinned: &[PluginStrategyConfig],
+        buy_long_threshold: f64,
+        sell_threshold: f64,
+    ) -> anyhow::Result<OrchestratorHandle> {
+        let Some(store) = self.strategies.clone() else {
+            return Err(anyhow!("策略 Registry 未注入，无法恢复策略会话"));
+        };
+        if pinned.is_empty() {
+            return Err(anyhow!("钉住快照为空，无需重建编排器"));
+        }
+        let mut configs = Vec::with_capacity(pinned.len());
+        for p in pinned {
+            let v = store.get_version(&p.version_id).await?
+                .ok_or_else(|| anyhow!("钉住版本 {} 不存在（策略 {}）", p.version_id, p.strategy_id))?;
+            if v.status != StrategyStatus::Published {
+                return Err(anyhow!(
+                    "钉住版本 {} 已非 published（status={}），会话不可恢复",
+                    p.version_id,
+                    v.status.as_str()
+                ));
+            }
+            if v.strategy_id != p.strategy_id || v.sha256 != p.sha256 {
+                return Err(anyhow!(
+                    "钉住版本 {} 与快照漂移（strategy_id/sha256 不一致）",
+                    p.version_id
+                ));
+            }
+            // 双保险：复核 code 的 sha256 与钉住一致（published 不可变由 DB trigger 保证）。
+            if sha256_hex(&v.code) != p.sha256 {
+                return Err(anyhow!(
+                    "钉住版本 {} code sha256 复核不一致（数据损坏）",
+                    p.version_id
+                ));
+            }
+            let mut c = p.clone();
+            c.code = v.code;
+            configs.push(c);
+        }
+        spawn_orchestrator_async(configs, buy_long_threshold, sell_threshold).await
+    }
+
     /// 停止会话：置 ended + 落库结束结果；返回是否转换（未知/已 ended → false）。
+    /// P4a：停止即 drop 编排器句柄 → worker 线程退出（裁决契约 ①，禁止泄漏）。
     pub async fn stop_session(&self, session_id: &str) -> anyhow::Result<bool> {
         let now = self.clock.now();
         let (ended, result) = {
@@ -547,6 +797,7 @@ impl SimLiveService {
             let Some(session) = live.manager.stop_session(now.timestamp()) else {
                 return Ok(false); // 非 running（已 ended / 未知）
             };
+            live.orchestrator = None; // drop sender → worker 线程通道断连退出
             let state = live.manager.get_state().expect("session 存在");
             // L3：结束结算用 backtest 指标口径（8 项；结构=backtest_run：
             // net_value={series,drawdown}, trades=TradeDetail 已平仓配对, metrics=BacktestMetrics）。
@@ -849,52 +1100,77 @@ impl SimLiveService {
     }
 
     // ── 11-sim-live / L2：多策略实时评分 + 聚合 + 统一交易开关 + 事件流 ──
+    // P4a 切源（ADR 12 §13.6）：编排器内核 = Registry 钉住插件 + QuickJS 实例（worker 线程承载）。
 
-    /// 配置实时策略编排器（3 策略实例 × 其标的集/weight；复用 backtest 内建策略）。
-    /// 变更即实时落盘（重启恢复：策略配置重建）。
-    pub async fn configure_strategies(&self, session_id: &str, configs: Vec<StrategyConfig>) -> anyhow::Result<()> {
+    /// 重配实时策略编排器（P4a：入参为 Registry wire 形状，重新钉住 + 重建 worker；
+    /// 旧句柄 drop → 旧 worker 线程退出，裁决契约 ①）。变更即实时落盘（重启恢复：钉住快照重建）。
+    pub async fn configure_strategies(&self, session_id: &str, inputs: Vec<StrategyConfigInput>) -> anyhow::Result<()> {
+        let registered = self.registered_codes().await?;
+        let pinned = self
+            .resolve_pinned_configs(&inputs, &registered)
+            .await
+            .map_err(|e| anyhow!("{e}"))?;
+        let (buy, sell) = {
+            let sessions = self.sessions.lock().expect("sessions poisoned");
+            let live = sessions.get(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+            (live.buy_long_threshold, live.sell_threshold)
+        };
+        let handle = if pinned.is_empty() {
+            None
+        } else {
+            Some(spawn_orchestrator_async(pinned.clone(), buy, sell).await
+                .map_err(|e| anyhow!("策略插件实例化失败：{e}"))?)
+        };
         {
             let mut sessions = self.sessions.lock().expect("sessions poisoned");
             let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
-            live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+            live.orchestrator = handle; // 旧句柄随赋值 drop → 旧 worker 退出
+            live.generation += 1; // 代际 +1：在飞旧 worker 的迟到结果由 process_bar 阶段 3 丢弃（MINOR-1）
+            live.pinned = pinned;
+            live.latest.clear();
         }
         self.persist_state(session_id).await?;
         Ok(())
     }
 
-    /// F2：实时 feed 的 poll 目标枚举。对每个 running 会话：
-    /// - 若未配置编排器，用会话 `strategy_set × stock_set` 自动配置（默认参数、weight=1.0）；
-    /// - 返回其标的集（编排器覆盖标的；自动配置时 = stock_set）作为轮询目标。
-    /// 已配置（MCP/web 自定义参数）的会话不被覆盖，仅按现覆盖标的轮询。
-    pub fn feed_targets(&self) -> anyhow::Result<Vec<FeedTarget>> {
+    /// 测试故障注入：替换会话编排器句柄（MINOR-3 actor 生命周期/panic 隔离测试用；
+    /// 与 configure_strategies 同语义——旧句柄 drop → 旧 worker 退出 + 代际 +1）。
+    /// 生产路径不得使用。
+    #[doc(hidden)]
+    pub fn __test_inject_orchestrator(
+        &self,
+        session_id: &str,
+        handle: OrchestratorHandle,
+    ) -> anyhow::Result<()> {
         let mut sessions = self.sessions.lock().expect("sessions poisoned");
+        let live = sessions.get_mut(session_id).ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        live.orchestrator = Some(handle);
+        live.generation += 1;
+        Ok(())
+    }
+
+    /// F2：实时 feed 的 poll 目标枚举（P4a：编排器在 start_session/恢复时已钉住配置，
+    /// 不再自动配置；无编排器的纯手动会话不产轮询目标）。
+    pub fn feed_targets(&self) -> anyhow::Result<Vec<FeedTarget>> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
         let mut targets = Vec::new();
-        for (id, live) in sessions.iter_mut() {
-            let meta = {
-                let Some(session) = live.manager.current_session() else { continue };
-                if session.status != simlive::SessionStatus::Running {
-                    continue;
-                }
-                (session.period.clone(), session.strategy_set.clone(), session.stock_set.clone())
-            };
-            if live.orchestrator.is_none() {
-                let configs: Vec<StrategyConfig> = meta.1
-                    .iter()
-                    .map(|sid| StrategyConfig {
-                        id: sid.clone(),
-                        params: Default::default(), // 缺省参数（各策略 schema 默认值）
-                        stocks: meta.2.clone(),
-                        weight: 1.0,
-                        stock_weights: Map::new(),
-                    })
-                    .collect();
-                if configs.is_empty() {
-                    continue;
-                }
-                live.orchestrator = Some(RealtimeStrategyOrchestrator::with_default_thresholds(configs));
+        for (id, live) in sessions.iter() {
+            let Some(session) = live.manager.current_session() else { continue };
+            if session.status != simlive::SessionStatus::Running {
+                continue;
             }
-            let codes = live.orchestrator.as_ref().expect("已配置").stocks();
-            targets.push(FeedTarget { session_id: id.clone(), period: meta.0, codes });
+            if live.orchestrator.is_none() {
+                continue; // 纯手动会话（无策略）不轮询。
+            }
+            // 覆盖标的 = 钉住配置的股票并集（去重、升序）。
+            let codes: Vec<String> = live
+                .pinned
+                .iter()
+                .flat_map(|c| c.stocks.iter().cloned())
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            targets.push(FeedTarget { session_id: id.clone(), period: session.period.clone(), codes });
         }
         Ok(targets)
     }
@@ -919,25 +1195,82 @@ impl SimLiveService {
         Ok(live.trading_enabled)
     }
 
-    /// 喂入一根新 bar（实时行情），每策略×标的评估+聚合评分；若 `trading_enabled` 且聚合达阈值 → 经 FillEngine
-    /// 下模拟单（同一会话/账户，source=aggregate_strategy），并把每信号事件 append 到会话事件流。
+    /// 喂入一根新 bar（实时行情），经编排 worker 线程评估（插件连续分直通 + 聚合）；
+    /// 若 `trading_enabled` 且聚合达阈值 → 经 FillEngine 下模拟单（同一会话/账户，
+    /// source=aggregate_strategy），并把每信号事件 + 会话事件（插件错误/熔断）append 到会话事件流。
+    /// **position 注入**（ABI §2.5）：构建 BarCtx 时从 SimAccount 取该标的实际持仓
+    /// （qty/avg_cost/entry_ts FIFO 推导；空仓 → 插件见 null）。
+    /// worker 线程死亡（panic 隔离，裁决契约 ②）→ 记错误事件 + 会话降级 ended（不毒化服务）。
     /// 返回本次产出的信号事件（`ordered` 标记该 stock 是否因此下单）。
     pub async fn process_bar(&self, session_id: &str, code: &str, bar: Bar) -> anyhow::Result<Vec<SignalEvent>> {
         let ts = self.clock.now().timestamp();
 
-        // 锁内：喂 bar → 评估 → 决定下单 → 记录信号事件。
+        // 阶段 1（锁内）：取 worker 句柄 + 编排器代际 + 推导持仓输入（position 注入），随即放锁再 await。
+        let (handle, generation, position) = {
+            let sessions = self.sessions.lock().expect("sessions poisoned");
+            let Some(live) = sessions.get(session_id) else {
+                return Err(anyhow!("会话不存在：{session_id}"));
+            };
+            let Some(orch) = live.orchestrator.as_ref() else {
+                return Err(anyhow!("会话未配置策略（先 configure_strategies）：{session_id}"));
+            };
+            (orch.clone(), live.generation, position_input(live, code))
+        };
+
+        // 阶段 2（锁外 await）：worker 线程评估（不阻塞 tokio executor，裁决契约 ③）。
+        let outcome = match handle.feed_bar(code, bar, position).await {
+            Ok(o) => o,
+            Err(dead) => {
+                // 裁决契约 ②：worker panic → 错误事件 + 会话降级 ended（不打崩服务）。
+                let reason = format!("{dead}");
+                tracing::warn!(session_id = %session_id, code = %code, "sim-live 编排 worker 终止，会话降级 ended");
+                self.degrade_session(session_id, &reason).await;
+                return Err(anyhow!(reason));
+            }
+        };
+        // 未覆盖标的 → 不评估（仍记录行情）。
+        let Some(eval) = outcome.eval else {
+            // 事件（理论上未覆盖标的无插件调用 → 无事件；防御性归集）。
+            if !outcome.events.is_empty() {
+                let mut sessions = self.sessions.lock().expect("sessions poisoned");
+                if let Some(live) = sessions.get_mut(session_id) {
+                    // MINOR-1：同在飞窗口守卫——代际已变/会话已停 → 迟到事件不归集。
+                    let still_running = live
+                        .manager
+                        .current_session()
+                        .map(|s| s.status == simlive::SessionStatus::Running)
+                        .unwrap_or(false);
+                    if still_running && live.generation == generation {
+                        for e in outcome.events {
+                            live.manager.record_session_event(e);
+                        }
+                    }
+                }
+            }
+            return Ok(Vec::new());
+        };
+
+        // 阶段 3（锁内）：交易判定 + 事件归集。
         let (events, persist) = {
             let mut sessions = self.sessions.lock().expect("sessions poisoned");
             let Some(live) = sessions.get_mut(session_id) else {
                 return Err(anyhow!("会话不存在：{session_id}"));
             };
-            let Some(orch) = live.orchestrator.as_mut() else {
-                return Err(anyhow!("会话未配置策略（先 configure_strategies）：{session_id}"));
-            };
-            // 未覆盖标的 → 不评估（仍记录行情）。
-            let Some(eval) = orch.feed_bar(code, bar) else {
-                return Ok(Vec::new());
-            };
+            // MINOR-1 在飞窗口守卫：评估在锁外 await 期间会话可能已 stop/degrade（→ ended）
+            // 或已 configure_strategies 重配（→ 代际 +1）。迟到结果一律丢弃：
+            // 不下单（防 ended 会话补成交）、不写 latest（防旧 worker 污染评分表）、不归集事件。
+            let still_running = live
+                .manager
+                .current_session()
+                .map(|s| s.status == simlive::SessionStatus::Running)
+                .unwrap_or(false);
+            if !still_running || live.generation != generation {
+                (Vec::new(), None)
+            } else {
+            live.latest.insert(eval.code.clone(), eval.clone());
+            for e in outcome.events {
+                live.manager.record_session_event(e);
+            }
 
             let mut did_order = false;
             let mut persist: Option<(SimTrade, Vec<SimPosition>)> = None;
@@ -1018,6 +1351,7 @@ impl SimLiveService {
                 live.manager.record_signal_event(e.clone());
             }
             (events, persist)
+            }
         };
 
         // 锁外持久化（仅成交才写成交明细/持仓）。
@@ -1055,18 +1389,31 @@ impl SimLiveService {
     pub fn get_strategy_signal(&self, session_id: &str, code: &str) -> anyhow::Result<Option<StockEvaluation>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
         let Some(live) = sessions.get(session_id) else { return Ok(None); };
-        Ok(live
-            .orchestrator
-            .as_ref()
-            .and_then(|o| o.latest_evaluation(code).cloned()))
+        Ok(live.latest.get(code).cloned())
     }
 
-    /// 当前会话每策略配置（id/params/stocks/weight/stock_weights；供 web/MCP 展示）。
-    /// 会话不在内存 → Ok(vec![])（不 500；重启恢复合法）。
-    pub fn strategy_configs(&self, session_id: &str) -> anyhow::Result<Vec<StrategyConfig>> {
+    /// 当前会话钉住策略配置（P4a：strategy_id/version_id/version/sha256/name/params/stocks/
+    /// weight/stock_weights；供 web/MCP 展示）。会话不在内存 → Ok(vec![])（不 500；重启恢复合法）。
+    pub fn strategy_configs(&self, session_id: &str) -> anyhow::Result<Vec<PluginStrategyConfig>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
         let Some(live) = sessions.get(session_id) else { return Ok(Vec::new()); };
-        Ok(live.orchestrator.as_ref().map(|o| o.configs()).unwrap_or_default())
+        Ok(live.pinned.clone())
+    }
+
+    /// 会话事件流（P4a：插件错误/熔断告警；内存态不持久化）。返回最近 `limit` 条（尾部）。
+    /// 会话不在内存 → Ok(vec![])（不 500；重启恢复合法）。
+    pub fn session_events(&self, session_id: &str, limit: usize) -> anyhow::Result<Vec<SessionEvent>> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        let Some(live) = sessions.get(session_id) else { return Ok(Vec::new()); };
+        let events = live.manager.session_events();
+        let start = events.len().saturating_sub(limit);
+        Ok(events[start..].to_vec())
+    }
+
+    /// 会话级钉住阈值（回测对比同源；会话不在内存 → None）。
+    pub fn pinned_thresholds(&self, session_id: &str) -> Option<(f64, f64)> {
+        let sessions = self.sessions.lock().expect("sessions poisoned");
+        sessions.get(session_id).map(|l| (l.buy_long_threshold, l.sell_threshold))
     }
 
     /// 全部标的最近评估概览（多 stock 评估；无编排器 → 空）。
@@ -1074,16 +1421,29 @@ impl SimLiveService {
     pub fn get_strategy_analysis(&self, session_id: &str) -> anyhow::Result<Vec<StockEvaluation>> {
         let sessions = self.sessions.lock().expect("sessions poisoned");
         let Some(live) = sessions.get(session_id) else { return Ok(Vec::new()); };
-        Ok(live
-            .orchestrator
-            .as_ref()
-            .map(|o| o.all_evaluations().into_iter().cloned().collect())
-            .unwrap_or_default())
+        Ok(live.latest.values().cloned().collect())
     }
 
-    /// 内置策略清单 + 参数 schema（供 MCP sim_list_strategies；复用 backtest 目录）。
-    pub fn list_builtin_strategies(&self) -> anyhow::Result<Vec<backtest::StrategyResult>> {
-        Ok(backtest::builtin_strategy_catalog())
+    /// worker 线程死亡/状态损坏降级（裁决契约 ②）：内存置 ended + 落库最小结束结果 + 告警。
+    /// 幂等（已 ended 不动）。
+    async fn degrade_session(&self, session_id: &str, reason: &str) {
+        let now = self.clock.now();
+        {
+            let mut sessions = self.sessions.lock().expect("sessions poisoned");
+            if let Some(live) = sessions.get_mut(session_id) {
+                live.manager.record_session_event(SessionEvent::PluginError {
+                    ts: now.timestamp(),
+                    code: String::new(),
+                    strategy_id: String::new(),
+                    sha256: String::new(),
+                    bar_index: 0,
+                    error: format!("会话降级 ended：{reason}"),
+                });
+                live.manager.stop_session(now.timestamp());
+                live.orchestrator = None; // drop sender → worker 退出（若仍存活）
+            }
+        }
+        let _ = self.store.mark_end(session_id, now, &degraded_result(reason)).await;
     }
 
     // ── 11-sim-live / L3：会话记录回看 + 回测对比 ──
@@ -1112,13 +1472,18 @@ impl SimLiveService {
         Ok(Some(SessionDetail { session: view, result }))
     }
 
-    /// 「回测一下」（L3：sim_run_backtest_compare）：按该会话 (period, strategy_set, stock_set, date_range)
-    /// 触发一次回测 run —— 复用既有 backtest 服务/引擎（```BacktestService::submit``` → ```BacktestRunStore```）。
-    /// 因 backtest 引擎为单 code/单策略 run，此处对会话的 stock_set × strategy_set 笛卡尔积逐个触发；
-    /// 单 stock + 单策略会话即“一次 run”。返回会话自身结果 + 新回测 run id 列表（异步：调用方轮询 get_run）。
+    /// 「回测一下」（L3：sim_run_backtest_compare）。**P4a 口径变化**：从旧内建回测引擎
+    /// （策略×标的笛卡尔积单 run）切换为**统一 ensemble 引擎**（WorkbenchService.submit）——
+    /// 会话每个标的触发 1 个 ensemble run：slots = 覆盖该标的的**钉住策略**（version_id 钉住，
+    /// weight = w[S,X] = stock_weights[X] ?? weight），阈值 = **会话钉住阈值**（决策点 2 裁决，
+    /// 非写死 60/40），policy = LumpSum 全仓，stop = None，initial_capital = cash_init，
+    /// fee = 会话 FeeModel（模拟/回测一致）。评分语义与 sim-live 统一（可比性增强；
+    /// 与切源前历史对比结果**绝对值不可直接比**）。
+    /// 钉住快照来源：会话在内存 → 内存钉住配置；否则 → simsession_state 快照（重启后可比）。
+    /// 无钉住快照（切源前旧会话/纯手动会话）→ 明确报错。
     pub async fn run_backtest_compare(&self, session_id: &str) -> anyhow::Result<BacktestCompareView> {
-        let Some(backtest) = self.backtest.clone() else {
-            return Err(anyhow!("回测服务未注入（SimLiveService.backtest=None；app 装配时 with_backtest）"));
+        let Some(workbench) = self.workbench.clone() else {
+            return Err(anyhow!("回测工作台未注入（SimLiveService.workbench=None；app 装配时 with_workbench）"));
         };
         let Some(view) = self.store.get_session(session_id).await? else {
             return Err(anyhow!("会话不存在：{session_id}"));
@@ -1129,6 +1494,38 @@ impl SimLiveService {
         if to <= from {
             return Err(anyhow!("回测区间无效（start≥end），无法触发对比"));
         }
+        // 钉住快照：内存优先；否则读落盘运行态。
+        let snapshot = {
+            let in_mem = {
+                let sessions = self.sessions.lock().expect("sessions poisoned");
+                sessions.get(session_id).map(|live| PinnedSnapshot {
+                    strategies: live.pinned.clone(),
+                    buy_long_threshold: live.buy_long_threshold,
+                    sell_threshold: live.sell_threshold,
+                })
+            };
+            match in_mem {
+                Some(snap) => snap,
+                None => match self.store.get_state(session_id).await? {
+                    Some(state) => match parse_pinned_snapshot(&state.strategy_configs) {
+                        Some(PinnedSnapshotParse::Pinned(snap)) => snap,
+                        Some(PinnedSnapshotParse::Empty) => {
+                            return Err(anyhow!("会话无策略（纯手动会话），无法回测对比"));
+                        }
+                        Some(PinnedSnapshotParse::Legacy) => {
+                            return Err(anyhow!(
+                                "切源前旧会话（内建策略）无插件钉住快照，无法走统一引擎对比"
+                            ));
+                        }
+                        None => return Err(anyhow!("simsession_state.strategy_configs 形状非法")),
+                    },
+                    None => return Err(anyhow!("会话无钉住策略快照（无 simsession_state），无法回测对比")),
+                },
+            }
+        };
+        if snapshot.strategies.is_empty() {
+            return Err(anyhow!("会话无策略（纯手动会话），无法回测对比"));
+        }
         // 费用口径=会话 FeeModel（复用同源，模拟/回测一致）。
         let fee = serde_json::json!({
             "rate_pct": self.fee.commission_rate_pct,
@@ -1137,98 +1534,40 @@ impl SimLiveService {
         });
         let mut run_ids = Vec::new();
         for stock in &view.stock_set {
-            for strategy in &view.strategy_set {
-                let req = SubmitReq {
-                    code: stock.clone(),
+            // slots = 覆盖该标的的钉住策略；weight = w[S,X]（stock_weights 覆盖默认）。
+            let slots: Vec<SlotReq> = snapshot
+                .strategies
+                .iter()
+                .filter(|c| c.stocks.iter().any(|s| s == stock))
+                .map(|c| SlotReq {
+                    version_id: c.version_id.clone(),
+                    params: strategy_params_to_json(&c.params),
+                    weight: c.stock_weights.get(stock).copied().unwrap_or(c.weight),
+                })
+                .collect();
+            if slots.is_empty() {
+                continue; // 无策略覆盖该标的 → 不产 run。
+            }
+            let run = workbench
+                .submit(SubmitRunReq {
+                    name: format!("sim-compare:{session_id}:{stock}"),
+                    symbol: stock.clone(),
                     period: view.period.clone(),
                     from,
                     to,
-                    strategy_id: strategy.clone(),
-                    params: serde_json::json!({}),
-                    params_grid: None,
-                    fee: fee.clone(),
+                    slots,
+                    buy_threshold: Some(snapshot.buy_long_threshold),
+                    sell_threshold: Some(snapshot.sell_threshold),
+                    policy: serde_json::json!({ "LumpSum": { "position_pct": 1.0 } }),
+                    stop: None,
                     initial_capital: Some(view.cash_init),
-                };
-                match backtest.submit(req).await? {
-                    SubmitOutcome::Run(id) => run_ids.push(id),
-                    // 无 params_grid → 恒为单 run，不会出现 Group。
-                    SubmitOutcome::Group(_) => {}
-                }
-            }
+                    fee: fee.clone(),
+                })
+                .await?;
+            run_ids.push(run.id);
         }
         Ok(BacktestCompareView { session_id: session_id.into(), session_result, run_ids })
     }
-}
-
-/// 校验单策略输入（ADR §4）：策略 id 非空且 ∈ 内置目录、params 合法（按 schema）、
-/// 标的集非空且均为注册标的（6 位数字 + 支持市场 + **在 symbols 注册表内**）、weight>0。
-/// `registered`：注册表 code 集；`None` = 未注入注册表端口 → 回退仅格式校验（兼容既有构造）。
-fn validate_strategy_config_input(input: &StrategyConfigInput, registered: &Option<HashSet<String>>) -> anyhow::Result<()> {
-    let id = input.id.trim();
-    if id.is_empty() {
-        return Err(anyhow!("策略 id 不能为空"));
-    }
-    let catalog = backtest::builtin_strategy_catalog();
-    let meta = catalog
-        .iter()
-        .find(|s| s.id == id)
-        .ok_or_else(|| anyhow!("未知策略 id: {id}"))?;
-    // params 合法（按 schema）。
-    validate_params(&input.params, &meta.params_schema)?;
-    // 标的集非空 + 均为注册标的。
-    if input.stocks.is_empty() {
-        return Err(anyhow!("策略 {id} 至少需指定一个标的"));
-    }
-    for code in &input.stocks {
-        validate_registered_stock(code, registered)?;
-    }
-    // weight>0。
-    if !input.weight.is_finite() || input.weight <= 0.0 {
-        return Err(anyhow!("策略 {id} 权重必须为正数"));
-    }
-    // stock_weights（策略×股票级）：键须 ∈ 标的集、值>0。
-    for (code, w) in &input.stock_weights {
-        if !input.stocks.contains(code) {
-            return Err(anyhow!("策略 {id} 的 stock_weights 键 {code} 不在其标的集内"));
-        }
-        if !w.is_finite() || *w <= 0.0 {
-            return Err(anyhow!("策略 {id} 的 {code} 权重必须为正数"));
-        }
-    }
-    Ok(())
-}
-
-/// 校验 params 按 strategy 的 `params_schema`：未知键 → 拒绝；Num 须数值且 ∈[min,max]；Choice 须 ∈ options。
-fn validate_params(params: &serde_json::Value, schema: &[ParamDef]) -> anyhow::Result<()> {
-    let obj = match params.as_object() {
-        Some(o) => o,
-        None => return Err(anyhow!("params 应为对象")),
-    };
-    for (key, val) in obj {
-        let def = schema
-            .iter()
-            .find(|p| p.key == *key)
-            .ok_or_else(|| anyhow!("参数 {key} 不在 schema 内"))?;
-        match (&def.kind, val) {
-            (ParamKind::Num { min, max, .. }, serde_json::Value::Number(n)) => {
-                let f = n.as_f64().ok_or_else(|| anyhow!("参数 {key} 应为有限数值"))?;
-                if !f.is_finite() {
-                    return Err(anyhow!("参数 {key} 应为有限数值"));
-                }
-                if f < *min || f > *max {
-                    return Err(anyhow!("参数 {key} 超出范围 [{min},{max}]"));
-                }
-            }
-            (ParamKind::Num { .. }, _) => return Err(anyhow!("参数 {key} 应为数值")),
-            (ParamKind::Choice { options, .. }, serde_json::Value::String(s)) => {
-                if !options.contains(s) {
-                    return Err(anyhow!("参数 {key} 须为 {} 之一", options.join("/")));
-                }
-            }
-            (ParamKind::Choice { .. }, _) => return Err(anyhow!("参数 {key} 应为字符串")),
-        }
-    }
-    Ok(())
 }
 
 /// 校验注册标的（03-symbols §3 口径）：6 位数字 + 市场前缀（5/6/9→沪、0/1/2/3→深；北交所/未知前缀拒绝），
@@ -1284,20 +1623,102 @@ fn strategy_params_from_json(v: &serde_json::Value) -> StrategyParams {
     m
 }
 
-/// 恢复用：从策略配置 JSON（`{id,params,stocks,weight,stock_weights}`）重建 `simlive::StrategyConfig`。
-fn strategy_config_from_json(v: &serde_json::Value) -> Option<StrategyConfig> {
-    let id = v.get("id")?.as_str()?;
-    let params = v.get("params").map(strategy_params_from_json).unwrap_or_default();
-    let stocks = v.get("stocks")
-        .and_then(|s| s.as_array())
-        .map(|a| a.iter().filter_map(|s| s.as_str().map(String::from)).collect())
-        .unwrap_or_default();
-    let weight = v.get("weight").and_then(|w| w.as_f64()).unwrap_or(1.0);
-    let stock_weights = v.get("stock_weights")
-        .and_then(|sw| sw.as_object())
-        .map(|o| o.iter().filter_map(|(k, val)| val.as_f64().map(|f| (k.clone(), f))).collect())
-        .unwrap_or_default();
-    Some(StrategyConfig { id: id.into(), params, stocks, weight, stock_weights })
+/// 钉住策略快照（P4a；simsession_state.strategy_configs 的持久化形状，schema=2）：
+/// `{ "schema": 2, "buy_long_threshold": .., "sell_threshold": .., "strategies": [ {strategy_id,
+/// version_id, version, sha256, name, params, stocks, weight, stock_weights} ] }`。
+/// 恢复/回测对比同源；published 不可变保证 code 与 sha256 一致（恢复时从 strategy_version 表重取 code）。
+#[derive(Debug, Clone, PartialEq)]
+struct PinnedSnapshot {
+    strategies: Vec<PluginStrategyConfig>,
+    buy_long_threshold: f64,
+    sell_threshold: f64,
+}
+
+/// 快照解析结果（恢复口径分支）。
+#[derive(Debug, Clone, PartialEq)]
+enum PinnedSnapshotParse {
+    /// 无策略（纯手动会话）。
+    Empty,
+    /// 切源前旧形状（内建策略 id 数组）——不可恢复/不可对比（P4b 前降级）。
+    Legacy,
+    /// 新钉住快照。
+    Pinned(PinnedSnapshot),
+}
+
+/// 解析 simsession_state.strategy_configs（新旧形状判别）。
+/// 旧形状：JSON 数组（空 = 无策略 → Empty；非空 = 旧内建配置 → Legacy）。
+/// 新形状：schema=2 对象（strategies 空 → Empty）。
+fn parse_pinned_snapshot(v: &serde_json::Value) -> Option<PinnedSnapshotParse> {
+    if let Some(arr) = v.as_array() {
+        return Some(if arr.is_empty() {
+            PinnedSnapshotParse::Empty
+        } else {
+            PinnedSnapshotParse::Legacy
+        });
+    }
+    let obj = v.as_object()?;
+    if obj.get("schema")?.as_i64()? != 2 {
+        return None;
+    }
+    let buy = obj.get("buy_long_threshold")?.as_f64()?;
+    let sell = obj.get("sell_threshold")?.as_f64()?;
+    let arr = obj.get("strategies")?.as_array()?;
+    if arr.is_empty() {
+        return Some(PinnedSnapshotParse::Empty);
+    }
+    let mut strategies = Vec::with_capacity(arr.len());
+    for item in arr {
+        let strategy_id = item.get("strategy_id")?.as_str()?.to_string();
+        let version_id = item.get("version_id")?.as_str()?.to_string();
+        let version = item.get("version")?.as_i64()? as i32;
+        let sha256 = item.get("sha256")?.as_str()?.to_string();
+        let name = item.get("name").and_then(|n| n.as_str()).unwrap_or(&strategy_id).to_string();
+        let params = item.get("params").map(strategy_params_from_json).unwrap_or_default();
+        let stocks: Vec<String> = item.get("stocks")?.as_array()?
+            .iter().filter_map(|s| s.as_str().map(String::from)).collect();
+        let weight = item.get("weight")?.as_f64()?;
+        let stock_weights = item.get("stock_weights")
+            .and_then(|sw| sw.as_object())
+            .map(|o| o.iter().filter_map(|(k, val)| val.as_f64().map(|f| (k.clone(), f))).collect())
+            .unwrap_or_default();
+        strategies.push(PluginStrategyConfig {
+            strategy_id,
+            version_id,
+            version,
+            sha256,
+            name,
+            code: String::new(), // 恢复时从 strategy_version 表重取（reinstantiate_pinned）。
+            params,
+            stocks,
+            weight,
+            stock_weights,
+        });
+    }
+    Some(PinnedSnapshotParse::Pinned(PinnedSnapshot {
+        strategies,
+        buy_long_threshold: buy,
+        sell_threshold: sell,
+    }))
+}
+
+/// 钉住配置 → 落盘快照 JSON（schema=2；code 不落盘——恢复时按 version_id 重取，单一事实源）。
+fn pinned_snapshot_json(live: &LiveSession) -> serde_json::Value {
+    serde_json::json!({
+        "schema": 2,
+        "buy_long_threshold": live.buy_long_threshold,
+        "sell_threshold": live.sell_threshold,
+        "strategies": live.pinned.iter().map(|c| serde_json::json!({
+            "strategy_id": c.strategy_id,
+            "version_id": c.version_id,
+            "version": c.version,
+            "sha256": c.sha256,
+            "name": c.name,
+            "params": strategy_params_to_json(&c.params),
+            "stocks": c.stocks,
+            "weight": c.weight,
+            "stock_weights": c.stock_weights,
+        })).collect::<Vec<_>>(),
+    })
 }
 
 /// 从内存 `LiveSession` 快照构建 `SimSessionState`（重启恢复落盘）。
@@ -1317,21 +1738,8 @@ fn build_live_state(session_id: &str, live: &LiveSession, now: DateTime<Utc>) ->
             avg_cost: p.avg_cost,
         })
         .collect();
-    let strategy_configs = live
-        .orchestrator
-        .as_ref()
-        .map(|o| {
-            serde_json::Value::Array(o.configs().iter().map(|c| {
-                serde_json::json!({
-                    "id": c.id,
-                    "params": strategy_params_to_json(&c.params),
-                    "stocks": c.stocks,
-                    "weight": c.weight,
-                    "stock_weights": c.stock_weights,
-                })
-            }).collect())
-        })
-        .unwrap_or_else(|| serde_json::Value::Array(vec![]));
+    // P4a：钉住策略快照（schema=2 对象；含会话级阈值，恢复/回测对比同源）。
+    let strategy_configs = pinned_snapshot_json(live);
     let orders = serde_json::to_value(&live.orders).unwrap_or_else(|_| serde_json::Value::Array(vec![]));
     Some(SimSessionState {
         cash: st.cash,
@@ -1347,13 +1755,28 @@ fn build_live_state(session_id: &str, live: &LiveSession, now: DateTime<Utc>) ->
     })
 }
 
-/// 降级结果：进程重启且无可用运行态 → 标记 ended 的最小结束结果（不打崩，get_session 不 500）。
-fn degraded_result() -> SimSessionResult {
+/// 降级结果：进程重启且无可用运行态/策略不可恢复/worker 终止 → 标记 ended 的最小结束结果
+/// （不打崩，get_session 不 500）。`reason` 入 net_value/metrics note（诊断留痕）。
+fn degraded_result(reason: &str) -> SimSessionResult {
     SimSessionResult {
-        net_value: serde_json::json!({ "series": [], "drawdown": [], "note": "恢复降级：进程重启且无 simsession_state，已标记 ended" }),
+        net_value: serde_json::json!({ "series": [], "drawdown": [], "note": format!("降级 ended：{reason}") }),
         trades: serde_json::json!([]),
-        metrics: serde_json::json!({ "note": "中断，部分数据；运行态缺失" }),
+        metrics: serde_json::json!({ "note": format!("中断，部分数据；{reason}") }),
     }
+}
+
+/// position 注入推导（ABI §2.5）：该标的当前持仓 → `PositionInput`（空仓 → None）。
+/// `entry_ts` 从成交台账按 **sticky-first-entry** 推导（自空仓以来首笔建仓 ts 钉死，
+/// 部分卖出不前进、清仓重钉——与 strategy-core `Holding` 口径一致，MINOR-2）；
+/// 台账缺失（异常重建）回退会话 start_ts。
+fn position_input(live: &LiveSession, code: &str) -> Option<PositionInput> {
+    let pos = live.manager.account.positions.get(code)?;
+    if pos.qty <= 1e-9 {
+        return None;
+    }
+    let entry_ts = current_entry_ts(live.manager.trades(), code)
+        .or_else(|| live.manager.current_session().map(|s| s.start_ts))?;
+    Some(PositionInput { qty: pos.qty, avg_cost: pos.avg_cost, entry_ts })
 }
 
 /// 会话 id 生成（时间戳 + 单调计数器；与 simlive SessionManager 同模式命名，无随机）。

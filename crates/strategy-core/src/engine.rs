@@ -77,6 +77,9 @@ impl std::error::Error for EnsembleError {}
 impl EnsembleConfig {
     /// 配置校验（`run_ensemble` 启动时调用；非法配置直接拒绝运行，NIT-3）：
     /// - `buy_threshold` 必须严格大于 `sell_threshold`（且均为有限值）；
+    /// - **阈值必须夹中立 50**（MINOR-4：`buy_threshold > 50` 且 `sell_threshold < 50`）——
+    ///   保证「全部熔断 → 聚合中立 50 → Hold」契约不被阈值配置破坏
+    ///   （buy ≤ 50 则中立 50 误判 Buy；sell ≥ 50 则中立 50 误判 Sell）；
     /// - `initial_capital` 必须为正有限值；
     /// - `policy` 自身校验（LumpSum position_pct ∈ (0,1]；Dca tranches ≥ 1 等）。
     ///
@@ -88,6 +91,12 @@ impl EnsembleConfig {
         {
             return Err(format!(
                 "buy_threshold 必须严格大于 sell_threshold，got {} <= {}",
+                self.buy_threshold, self.sell_threshold
+            ));
+        }
+        if self.buy_threshold <= NEUTRAL_SCORE || self.sell_threshold >= NEUTRAL_SCORE {
+            return Err(format!(
+                "buy_threshold 必须 > 50 且 sell_threshold 必须 < 50（夹中立 50，全熔断→Hold 契约），got {} / {}",
                 self.buy_threshold, self.sell_threshold
             ));
         }

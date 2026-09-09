@@ -6,17 +6,26 @@
 
 pub mod account;
 pub mod fill;
+pub mod plugin_orchestrator;
 pub mod session;
 pub mod strategy_orchestrator;
 
 pub use account::{Position, SimAccount, SimPosition};
 pub use fill::{Fill, FillEngine, IntentId, Order, Side, SimTrade};
+pub use plugin_orchestrator::{
+    current_entry_ts, OrchestratorError, PluginStrategyConfig, PluginStrategyOrchestrator,
+    PositionInput, MAX_STOCKS_PER_STRATEGY, MAX_STRATEGIES,
+};
 pub use session::{
-    OrderStatus, SessionManager, SessionState, SessionStatus, SimOrder, SimSession,
+    OrderStatus, SessionEvent, SessionManager, SessionState, SessionStatus, SimOrder, SimSession,
     SignalEvent, StrategySignal,
 };
+// P4a 切源：旧编排器标 deprecated 保留至 P4b 物理删除（ADR §13.8 并存期结束）。
+#[allow(deprecated)]
 pub use strategy_orchestrator::{
+    signal_str, signal_to_score, RealtimeStrategyOrchestrator, StrategyConfig,
+};
+pub use strategy_orchestrator::{
+    aggregate_to_signal, weighted_aggregate, StockEvaluation, StrategyScore,
     DEFAULT_BUY_LONG_THRESHOLD, DEFAULT_SELL_THRESHOLD, NEUTRAL_SCORE,
-    RealtimeStrategyOrchestrator, StockEvaluation, StrategyConfig, StrategyScore,
-    aggregate_to_signal, signal_str, signal_to_score, weighted_aggregate,
 };

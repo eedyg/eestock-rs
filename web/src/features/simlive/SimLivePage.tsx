@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { SimLiveGrid } from '@/layouts/SimLiveGrid';
 import { defaultApi } from '@/api';
 import type { ApiClient } from '@/api/client';
-import type { BacktestStrategyDto, SimStateDto, SimStrategiesDto, SymbolSnapshot } from '@/api/types';
+import type { SimStateDto, SimStrategiesDto, StrategyCatalogEntry, SymbolSnapshot } from '@/api/types';
 import { RegionPortal } from '@/components/RegionPortal';
 import { SimLiveStore } from './store';
 import {
@@ -39,13 +39,14 @@ export function SimLivePage({ api = defaultApi }: { api?: ApiClient }) {
   // #history 深链：location.hash 决定初始 Tab（读一次，不随后续 hash 变动作响应）。
   const initialTab = window.location.hash === '#history' ? 'history' : 'current';
   const store = useMemo(() => new SimLiveStore({ api }, initialTab), [api]);
-  // 会话配置可选项：标的目录（GET /api/symbols）+ 策略目录（GET /api/backtest/strategies）。
+  // 会话配置可选项：标的目录（GET /api/symbols）+ 策略目录（P4a 切源：GET /api/strategies
+  // Registry catalog——仅 published 策略最新版本；旧内建目录 /api/backtest/strategies 不再用于会话配置）。
   const [symbols, setSymbols] = useState<SymbolSnapshot[]>([]);
-  const [strategyCatalog, setStrategyCatalog] = useState<BacktestStrategyDto[]>([]);
+  const [strategyCatalog, setStrategyCatalog] = useState<StrategyCatalogEntry[]>([]);
   useEffect(() => {
     let canc = false;
     void api.getSymbols().then((d) => { if (!canc) setSymbols(d); }).catch(() => {});
-    void api.getStrategies().then((d) => { if (!canc) setStrategyCatalog(d); }).catch(() => {});
+    void api.getStrategyCatalog({ kind: 'strategy' }).then((d) => { if (!canc) setStrategyCatalog(d); }).catch(() => {});
     return () => { canc = true; };
   }, [api]);
   useEffect(() => {

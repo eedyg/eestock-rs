@@ -23,6 +23,7 @@ use backtest::{Bar, Ctx, Indicators, Signal, Strategy, create_strategy, Strategy
 /// 策略配置（ADR §4）：id/params/stocks/weight。
 /// 注：`params` 为 `backtest::StrategyParams`（`ParamValue` 未实现 serde），故本结构不导出 serde
 /// （不在 MCP/存储边界传输）；MCP 侧只传 id/weight/stocks（可序列化），params 由应用层持有。
+#[deprecated(note = "P4a 切源：改用 plugin_orchestrator::PluginStrategyConfig（Registry 钉住快照）；P4b 物理删除")]
 #[derive(Debug, Clone, PartialEq)]
 pub struct StrategyConfig {
     pub id: String,
@@ -60,6 +61,7 @@ pub struct StockEvaluation {
 }
 
 /// 每个策略在其标的集内的运行时（每标的一个独立策略实例）。
+#[allow(deprecated)] // 模块整体已 deprecated（P4b 删除），内部自引用豁免。
 struct StrategyRuntime {
     config: StrategyConfig,
     /// code → 该策略在该标的上的实例。
@@ -67,6 +69,7 @@ struct StrategyRuntime {
 }
 
 /// 实时策略编排器。
+#[deprecated(note = "P4a 切源：改用 plugin_orchestrator::PluginStrategyOrchestrator（Registry 插件 + QuickJS 实例）；P4b 物理删除")]
 pub struct RealtimeStrategyOrchestrator {
     strategies: Vec<StrategyRuntime>,
     /// code → 累计 bar 序列（供 Indicators 惰性计算）。
@@ -86,6 +89,7 @@ pub const DEFAULT_SELL_THRESHOLD: f64 = 40.0;
 /// 无覆盖策略时的中立聚合分。
 pub const NEUTRAL_SCORE: f64 = 50.0;
 
+#[allow(deprecated)]
 impl RealtimeStrategyOrchestrator {
     /// 用给定策略配置构建编排器。未知策略 id（`create_strategy` 返回 None）被静默跳过。
     /// `buy_long_threshold`/`sell_threshold` 为聚合信号阈值（缺省 60/40）。
@@ -232,6 +236,7 @@ impl RealtimeStrategyOrchestrator {
 }
 
 /// `Signal → 0-100 分数` 映射（`Buy(_) → 100`、`Hold → 50`、`Sell → 0`）。
+#[deprecated(note = "P4a 切源：插件连续分直通，三档映射废止；P4b 物理删除")]
 pub fn signal_to_score(signal: &Signal) -> f64 {
     match signal {
         Signal::Buy(_) => 100.0,
@@ -241,6 +246,7 @@ pub fn signal_to_score(signal: &Signal) -> f64 {
 }
 
 /// 信号 → 文本（buy/sell/hold）。
+#[deprecated(note = "P4a 切源：内建策略 Signal 不再参与 sim-live 评分；P4b 物理删除")]
 pub fn signal_str(signal: &Signal) -> &'static str {
     match signal {
         Signal::Buy(_) => "buy",
@@ -280,6 +286,7 @@ pub fn weighted_aggregate(scores: &[(f64, f64)]) -> f64 {
 }
 
 #[cfg(test)]
+#[allow(deprecated)] // 旧编排器保留至 P4b 物理删除，测试原样锁定其语义。
 mod tests {
     use super::*;
 

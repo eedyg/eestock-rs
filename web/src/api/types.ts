@@ -553,6 +553,8 @@ export interface SimStateDto {
   pnl: SimPnl | null;
   trading_enabled: boolean;
   mcp_enabled: boolean;
+  /** P4a：会话事件流（插件错误/熔断告警，最近 50 条；无事件 → 空数组） */
+  session_events?: SimSessionEvent[];
 }
 
 /** 单策略对单标的独立评分（0-100） */
@@ -577,7 +579,7 @@ export interface SimStrategySummary {
   strategy_id: string;
   name: string;
   strongest: { code: string; score: number; signal: 'buy' | 'sell' | 'hold' } | null;
-  config?: SimStrategyConfigInput | null;
+  config?: SimPinnedConfig | null;
 }
 
 /** GET /api/sim-live/strategies 响应 */
@@ -613,25 +615,45 @@ export interface SimSessionDetail {
   result: { net_value: unknown; trades: unknown; metrics: unknown } | null;
 }
 
-/** POST /api/sim-live/sessions/{id}/backtest-compare 响应 */
+/** POST /api/sim-live/sessions/{id}/backtest-compare 响应
+ * （P4a 口径变化：统一 ensemble 引擎，run_ids 为 sr_ 前缀字符串） */
 export interface SimBacktestCompare {
   session_id: string;
   session_result: SimSessionDetail['result'];
-  run_ids: number[];
+  run_ids: string[];
 }
 
-/** 单策略配置输入（ADR 11-sim-live §4 多策略；params 为策略参数对象，按 params_schema） */
+/** 单策略配置输入（⚠️ P4a 破坏性 wire 变更：strategy_id = Registry 策略 id（st_ 前缀，
+ * 旧内建 id 不再接受）；params 按版本 params_schema，缺省填充） */
 export interface SimStrategyConfigInput {
-  id: string;
-  /** 策略参数（数值/枚举；缺省 → 各策略 schema 默认值） */
+  strategy_id: string;
+  /** 钉住版本 id（sv_ 前缀；缺省 = 最新 published） */
+  version_id?: string;
+  /** 策略参数（数值；缺省 → 版本 schema 默认值） */
   params?: Record<string, number | string>;
-  /** 该策略实时评估的标的子集（须非空） */
+  /** 该策略实时评估的标的子集（须非空 ≤30） */
   stocks: string[];
   /** 策略级聚合权重（>0，缺省 1.0） */
   weight?: number;
   /** 按标的覆盖权重（策略×股票级）；未指定某股 → 用 weight */
   stock_weights?: Record<string, number>;
 }
+
+/** 钉住策略配置（GET /api/sim-live/strategies 的 config 槽；P4a：Registry 钉住快照） */
+export interface SimPinnedConfig {
+  version_id: string;
+  version: number;
+  sha256: string;
+  params?: Record<string, number | string>;
+  stocks: string[];
+  weight?: number;
+  stock_weights?: Record<string, number>;
+}
+
+/** 会话事件（P4a：插件错误/熔断告警；state 响应附最近 50 条） */
+export type SimSessionEvent =
+  | { type: 'plugin_error'; ts: number; code: string; strategy_id: string; sha256: string; bar_index: number; error: string }
+  | { type: 'circuit_breaker'; ts: number; code: string; strategy_id: string; sha256: string; bar_index: number };
 
 /** 开会话请求 */
 export interface SimStartSessionReq {

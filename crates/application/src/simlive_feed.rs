@@ -3,8 +3,8 @@
 //!
 //! 数据流：app bin 装配（`eestock-app.rs`）注入 `SimLiveService` + `domain::ports::KlineRead`
 //! + poll 周期 → `tokio::spawn(SimLiveFeed.run())`。每轮：
-//! 1. `SimLiveService::feed_targets()` 枚举 running 会话（未配置编排器则用会话 `strategy_set × stock_set`
-//!    缺省参数自动配置）；
+//! 1. `SimLiveService::feed_targets()` 枚举 poll 目标（**P4a：仅「running 且有钉住编排器」的
+//!    会话**——策略配置在 start_session/恢复时已钉住重建，feed 不再自动配置；纯手动会话不轮询）；
 //! 2. 对每个目标的每标的，经 `KlineRead::latest_bar(period, code)` 取最近一根；
 //! 3. 若该标的最近 bar ts 有变化（新 bar）→ `SimLiveService::process_bar(session_id, code, bar)`
 //!    （评估→评分→聚合→达阈值+统一开关开→自动模拟单）。

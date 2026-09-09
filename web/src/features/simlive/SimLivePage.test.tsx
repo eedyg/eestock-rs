@@ -111,7 +111,7 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(idle);
     await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
     await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
-    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-st_mock_dual_ma'));
     await userEvent.click(screen.getByTestId('sim-start-button'));
     await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
   });
@@ -125,7 +125,7 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(idle);
     await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
     await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
-    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-st_mock_dual_ma'));
     await userEvent.click(screen.getByTestId('sim-start-button'));
     await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
     expect(idle.startSimSession).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
         name: '手动会话',
         period: 'M1',
         stock_set: ['518880'],
-        strategy_set: ['dual_ma'],
+        strategy_set: ['st_mock_dual_ma'],
       }),
     );
   });
@@ -147,27 +147,27 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(idle);
     await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
     await userEvent.click(screen.getByTestId('sim-config-stock-518880'));
-    await userEvent.click(screen.getByTestId('sim-config-strategy-dual_ma'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-st_mock_dual_ma'));
     // 单策略卡 + schema 参数编辑（fast/slow/position_pct）+ 标的子集 + 权重。
-    expect(screen.getByTestId('sim-strategy-card-dual_ma')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-strategy-dual_ma-param-fast')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-strategy-dual_ma-param-slow')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-strategy-dual_ma-stock-518880')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-strategy-dual_ma-weight')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-card-st_mock_dual_ma')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-st_mock_dual_ma-param-fast')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-st_mock_dual_ma-param-slow')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-st_mock_dual_ma-stock-518880')).toBeInTheDocument();
+    expect(screen.getByTestId('sim-strategy-st_mock_dual_ma-weight')).toBeInTheDocument();
     // 改参数（fast=3）、策略权重=2、每标的权重=3。
-    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-param-fast'));
-    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-param-fast'), '3');
-    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-weight'));
-    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-weight'), '2');
-    await userEvent.clear(screen.getByTestId('sim-strategy-dual_ma-stockweight-518880'));
-    await userEvent.type(screen.getByTestId('sim-strategy-dual_ma-stockweight-518880'), '3');
+    await userEvent.clear(screen.getByTestId('sim-strategy-st_mock_dual_ma-param-fast'));
+    await userEvent.type(screen.getByTestId('sim-strategy-st_mock_dual_ma-param-fast'), '3');
+    await userEvent.clear(screen.getByTestId('sim-strategy-st_mock_dual_ma-weight'));
+    await userEvent.type(screen.getByTestId('sim-strategy-st_mock_dual_ma-weight'), '2');
+    await userEvent.clear(screen.getByTestId('sim-strategy-st_mock_dual_ma-stockweight-518880'));
+    await userEvent.type(screen.getByTestId('sim-strategy-st_mock_dual_ma-stockweight-518880'), '3');
     await userEvent.click(screen.getByTestId('sim-start-button'));
     await waitFor(() => expect(idle.startSimSession).toHaveBeenCalled());
     expect(idle.startSimSession).toHaveBeenCalledWith(
       expect.objectContaining({
         strategies: [
           expect.objectContaining({
-            id: 'dual_ma',
+            strategy_id: 'st_mock_dual_ma',
             params: expect.objectContaining({ fast: 3 }),
             stocks: ['518880'],
             weight: 2,
@@ -187,8 +187,9 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(idle);
     await waitFor(() => expect(screen.getByTestId('sim-config-stock-518880')).toBeInTheDocument());
     expect(screen.getByTestId('sim-config-stock-513310')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-config-strategy-dual_ma')).toBeInTheDocument();
-    expect(screen.getByTestId('sim-config-strategy-macd')).toBeInTheDocument();
+    // P4a：策略 chips 数据源 = Registry catalog（mock 播种 st_mock_dual_ma 一款 strategy kind）。
+    expect(screen.getByTestId('sim-config-strategy-st_mock_dual_ma')).toBeInTheDocument();
+    expect(screen.queryByTestId('sim-config-strategy-macd')).toBeNull();
   });
 
   it('未选择标的/策略开始 → 提示且不调 startSimSession', async () => {
@@ -210,13 +211,13 @@ describe('SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + �
     renderPage(api);
     await waitFor(() => expect(screen.getByTestId('sim-start-button')).toBeEnabled());
     await userEvent.click(screen.getByTestId('sim-config-stock-161226'));
-    await userEvent.click(screen.getByTestId('sim-config-strategy-macd'));
+    await userEvent.click(screen.getByTestId('sim-config-strategy-st_mock_dual_ma'));
     await userEvent.click(screen.getByTestId('sim-start-button'));
     await waitFor(() => expect(screen.getByTestId('sim-strategy-panel')).toBeInTheDocument());
     // 所选标的出现在评分区
     expect(screen.getByTestId('sim-score-code-161226')).toBeInTheDocument();
-    // 所选策略出现在策略面板（macd）
-    expect(screen.getByTestId('sim-strategy-panel').textContent).toContain('MACD');
+    // 所选策略出现在策略面板（st_mock_dual_ma）
+    expect(screen.getByTestId('sim-strategy-panel').textContent).toContain('st_mock_dual_ma');
   });
 
   it('历史会话「回测一下」→ 调 runSimBacktestCompare', async () => {

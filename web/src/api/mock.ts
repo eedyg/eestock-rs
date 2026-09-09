@@ -1328,7 +1328,7 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       // ADR §4 多策略：若提供每策略明细 → 会话级 strategy_set/stock_set 由策略派生（去重、保序）。
       const detail = req.strategies ?? [];
       const strategy_set = detail.length > 0
-        ? Array.from(new Set(detail.map((s) => s.id)))
+        ? Array.from(new Set(detail.map((s) => s.strategy_id)))
         : (req.strategy_set ?? []);
       const stock_set = detail.length > 0
         ? Array.from(new Set(detail.flatMap((s) => s.stocks)))
@@ -1443,7 +1443,7 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       return {
         session_id: id,
         session_result: found.metrics ? { net_value: {}, trades: [], metrics: found.metrics } : null,
-        run_ids: [1001 + simLive.history.findIndex((h) => h.session.id === id)],
+        run_ids: [`sr_mock_${1001 + simLive.history.findIndex((h) => h.session.id === id)}`],
       };
     },
     // ── 页面⑩ 策略 Registry（§1.7；mock 行为与后端语义同构）──
@@ -1980,7 +1980,7 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
   const detail = simLive.strategiesDetail;
   const useDetail = detail.length > 0;
   const strategyIds = useDetail
-    ? detail.map((x) => x.id)
+    ? detail.map((x) => x.strategy_id)
     : (strategy_set.length > 0 ? strategy_set : seedStrategyIds);
   const stockCodes = useDetail
     ? Array.from(new Set(detail.flatMap((x) => x.stocks)))
@@ -1988,7 +1988,7 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
   // 权重 w[S,X] = stock_weights[X] ?? weight（策略×标的级；简单档恒 1.0）。
   const weightOf = (sid: string, code: string): number => {
     if (!useDetail) return 1.0;
-    const s = detail.find((x) => x.id === sid);
+    const s = detail.find((x) => x.strategy_id === sid);
     if (!s) return 1.0;
     return s.stock_weights?.[code] ?? s.weight ?? 1.0;
   };
@@ -2030,13 +2030,16 @@ function simStrategiesView(simLive: SimLiveSeed): SimStrategiesDto {
       const s = st.per_strategy_scores.find((x) => x.strategy_id === sid);
       if (s && (!strongest || s.score > strongest.score)) strongest = { code: st.code, score: s.score, signal: s.signal };
     }
-    const cfg = useDetail ? detail.find((x) => x.id === sid) : undefined;
+    const cfg = useDetail ? detail.find((x) => x.strategy_id === sid) : undefined;
     return {
       strategy_id: sid,
       name: SIM_STRATEGY_NAMES[sid] ?? sid,
       strongest,
+      // P4a：config 槽 = Registry 钉住快照形状（version_id/version/sha256 + params/stocks/权重）。
       config: cfg ? {
-        id: cfg.id,
+        version_id: `sv_mock_${cfg.strategy_id}_v1`,
+        version: 1,
+        sha256: mockSha(cfg.strategy_id),
         params: cfg.params ?? {},
         stocks: cfg.stocks,
         weight: cfg.weight ?? 1.0,

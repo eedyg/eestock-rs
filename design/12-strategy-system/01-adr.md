@@ -181,6 +181,37 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 ### 13.6 sim-live 切源口径（D14）
 **保留骨架换内核**：会话/账户/撮合/UI 配置流/会话记录/回测对比全部不动；编排器内 `create_strategy` 替换为 Registry 已发布策略 + QuickJS 实例（每策略×标的一实例），评分/聚合语义不变，沿用 3 策略×30 股上限。
 
+**P4a 落地注记（2026-09-10，实现口径定稿）**：
+- 新编排器 `simlive::PluginStrategyOrchestrator`（纯逻辑同步、!Send——QuickJS 实例含 Rc）；
+  **承载模型（父级裁决决策点 1）**：每会话专用 worker 线程 actor 模式——application 层
+  `simlive_orch::OrchestratorHandle`（tokio mpsc bounded(4) + oneshot 回复）；会话 stop/end
+  → drop sender → 线程退出；worker panic → 调用方 RecvError → 会话记错误事件并降级 ended
+  （不毒化服务）。旧 `RealtimeStrategyOrchestrator` 标 `#[deprecated]`，P4b 物理删除。
+- **废止语义**：① `Buy=100/Hold=50/Sell=0` 三档映射（插件连续分 0-100 直通；聚合/阈值/
+  信号判定不变）；② 旧编排器「未知策略静默跳过」（实例化失败 = 会话启动失败，显式报错）。
+- **破坏性 wire 变更（pre-1.0）**：`sim_start_session` strategies 元素
+  `{strategy_id, version_id?, params, stocks, weight, stock_weights?}`（version_id 缺省 =
+  最新 published）；旧内建 id 拒绝并引导 `strategy_list`；新增可选会话级阈值
+  `buy_long_threshold`/`sell_threshold`（缺省 60/40，钉住进会话快照）。
+- **position 注入**：每 bar 由 SimAccount 实际持仓 + 成交台账推导 entry_ts 构建
+  `PositionSnapshot`（qty/avg_cost/entry_ts/bars_since_entry/unrealized_pnl；空仓 null）。
+  **entry_ts 口径（P4a 评审 MINOR-2 修正）**：sticky-first-entry——自空仓以来首笔建仓 ts
+  钉死，加仓/部分卖出不前进，清仓后重新钉（与引擎 `Holding.entry_ts` 一致；avg_cost 仍
+  有口径差——引擎含买入佣金、sim-live 未摊费用，有意保留）。
+- **阈值校验（P4a 评审 MINOR-4）**：strategy-core `EnsembleConfig::validate` 与 sim-live
+  会话配置/编排器构造同规——`buy_threshold > 50` 且 `sell_threshold < 50`（夹中立 50，
+  保证「全熔断→中立 50→Hold」契约；strategy-core 红线豁免项）。
+- **G5 对齐引擎**：插件错误 → 中立分 50 + `SessionEvent::PluginError`（自含 sha256/bar_index，
+  入会话事件流，内存态不持久化，web state 附最近 50 条）；连续 10 次 → 实例熔断停用
+  （按无覆盖处理）+ `CircuitBreaker` 告警；全部熔断 → 聚合中立 50 → 不产交易信号。
+- **回测对比（决策点 2 裁决修正）**：改走统一 ensemble 引擎（WorkbenchService）——每标的
+  1 个 ensemble run，slots=覆盖该标的的钉住策略（w[S,X] 权重），阈值=**会话钉住阈值**
+  （非写死 60/40），LumpSum 全仓 + cash_init + 会话 FeeModel；run id 为 sr_ 前缀字符串。
+  与切源前历史对比结果绝对值不可直接比（评分语义统一，可比性增强）。
+- **恢复**：从钉住快照（simsession_state.strategy_configs schema=2 对象）读 strategy_version
+  表重取 code + 复核 sha256/published；失败（版本缺失/失效/漂移/实例化失败/旧内建形状）
+  → 会话标 ended + 告警（既有恢复口径）。
+
 ### 13.7 MCP transport（D15）
 新工具族（strategy_*/bt_*）落在**现有 SSE server**；Streamable HTTP 迁移维持独立 backlog 项，不与本次交付耦合。
 

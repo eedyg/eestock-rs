@@ -111,6 +111,32 @@ pub struct SignalEvent {
     pub ordered: bool,
 }
 
+/// 会话事件（P4a 切源 / G5 熔断语义对齐引擎；ADR 12-strategy-system §10 禁止静默吞错）。
+/// 内存态事件流，与 `signal_events` 同级（不落 simsession_state）。
+/// 熔断停用后该实例按「无覆盖」处理（与引擎语义一致）；全部熔断 → 聚合中立 50 → 不产交易信号。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SessionEvent {
+    /// 插件 on_bar 错误（G5：该 bar 该策略记中立分 50）。
+    PluginError {
+        ts: i64,
+        code: String,
+        strategy_id: String,
+        /// 发布版本 sha256（G4 寻址/留痕）。
+        sha256: String,
+        bar_index: usize,
+        error: String,
+    },
+    /// 熔断告警（连续错误达阈值 = strategy_core::CIRCUIT_BREAKER_THRESHOLD，本实例停用）。
+    CircuitBreaker {
+        ts: i64,
+        code: String,
+        strategy_id: String,
+        sha256: String,
+        bar_index: usize,
+    },
+}
+
 /// 会话状态快照（get_state 返回；供 MCP/web 查询）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
@@ -125,6 +151,8 @@ pub struct SessionState {
     pub net_value_series: Vec<(i64, f64)>,
     pub trades: Vec<SimTrade>,
     pub signal_events: Vec<SignalEvent>,
+    /// 会话事件流（P4a：插件错误/熔断告警；内存态不持久化）。
+    pub session_events: Vec<SessionEvent>,
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -136,6 +164,7 @@ pub struct SessionManager {
     net_value_series: Vec<(i64, f64)>,
     trades: Vec<SimTrade>,
     signal_events: Vec<SignalEvent>,
+    session_events: Vec<SessionEvent>,
 }
 
 impl Default for SessionManager {
@@ -152,6 +181,7 @@ impl SessionManager {
             net_value_series: Vec::new(),
             trades: Vec::new(),
             signal_events: Vec::new(),
+            session_events: Vec::new(),
         }
     }
 
@@ -163,6 +193,7 @@ impl SessionManager {
         net_value_series: Vec<(i64, f64)>,
         trades: Vec<SimTrade>,
         signal_events: Vec<SignalEvent>,
+        session_events: Vec<SessionEvent>,
     ) -> Self {
         Self {
             account,
@@ -170,6 +201,7 @@ impl SessionManager {
             net_value_series,
             trades,
             signal_events,
+            session_events,
         }
     }
 
@@ -203,6 +235,7 @@ impl SessionManager {
         self.net_value_series.clear();
         self.trades.clear();
         self.signal_events.clear();
+        self.session_events.clear();
         // 记录初始净值点（现金 = cash_init，市值 0）。
         self.record_net_value(start_ts);
         session
@@ -224,6 +257,16 @@ impl SessionManager {
     /// 记录一个信号事件（L2 事件流：每评估一次 append 一条）。
     pub fn record_signal_event(&mut self, event: SignalEvent) {
         self.signal_events.push(event);
+    }
+
+    /// 记录一个会话事件（P4a：插件错误/熔断告警）。
+    pub fn record_session_event(&mut self, event: SessionEvent) {
+        self.session_events.push(event);
+    }
+
+    /// 会话事件列表（P4a；供 web 面板查询）。
+    pub fn session_events(&self) -> &[SessionEvent] {
+        &self.session_events
     }
 
     /// 会话信号事件列表（L2；供 MCP/web 查询）。
@@ -270,6 +313,7 @@ impl SessionManager {
             net_value_series: self.net_value_series.clone(),
             trades: self.trades.clone(),
             signal_events: self.signal_events.clone(),
+            session_events: self.session_events.clone(),
         })
     }
 
@@ -423,7 +467,7 @@ mod tests {
         let trades = vec![SimTrade {
             code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.0, ts: 2000, fee: 5.0, source: "manual".into(),
         }];
-        let mut m = SessionManager::restore(account, session, nv.clone(), trades.clone(), vec![]);
+        let mut m = SessionManager::restore(account, session, nv.clone(), trades.clone(), vec![], vec![]);
         let st = m.get_state().expect("restore 后有状态");
         assert_eq!(st.session.status, SessionStatus::Running);
         assert!(st.session.end_ts.is_none());

@@ -1090,6 +1090,7 @@ dependencies = [
  "simlive",
  "sqlx",
  "storage",
+ "strategy-core",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -1817,6 +1818,9 @@ dependencies = [
  "anyhow",
  "backtest",
  "serde",
+ "serde_json",
+ "strategy-core",
+ "strategy-runtime",
 ]
 
 [[package]]

@@ -30,3 +30,5 @@ async-trait.workspace = true
 # 11-sim-live / L2：sim_* 策略工具测试需要构造 StrategyConfig（backtest::ParamValue）+ simlive 类型；仅 dev 侧。
 backtest = { path = "../backtest" }
 simlive = { path = "../simlive" }
+# 12-strategy-system / P4a：sim_* 切源测试播种参考插件 code（Registry 策略源）；仅 dev 侧。
+strategy-core = { path = "../strategy-core" }

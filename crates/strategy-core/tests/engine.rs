@@ -1328,6 +1328,27 @@ fn ensemble_config_validate_rejects_illegal_configs() {
     c.sell_threshold = 60.0;
     assert!(run_err(&c), "buy_threshold < sell_threshold → Err");
 
+    // MINOR-4：阈值须夹中立 50（buy > 50 且 sell < 50），保证「全熔断→中立 50→Hold」契约。
+    let mut c = mk();
+    c.buy_threshold = 45.0;
+    c.sell_threshold = 40.0;
+    assert!(run_err(&c), "buy=45/sell=40：buy 未夹中立 50（中立 50 会误判 buy）→ Err");
+
+    let mut c = mk();
+    c.buy_threshold = 50.0;
+    c.sell_threshold = 40.0;
+    assert!(run_err(&c), "buy_threshold 恰值中立 50（须严格大于）→ Err");
+
+    let mut c = mk();
+    c.buy_threshold = 60.0;
+    c.sell_threshold = 50.0;
+    assert!(run_err(&c), "sell_threshold 恰值中立 50（须严格小于）→ Err");
+
+    let mut c = mk();
+    c.buy_threshold = 60.0;
+    c.sell_threshold = 55.0;
+    assert!(run_err(&c), "sell_threshold 超中立 50（中立 50 会误判 sell）→ Err");
+
     let mut c = mk();
     c.buy_threshold = 50.0;
     c.sell_threshold = 50.0;

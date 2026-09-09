@@ -11,6 +11,7 @@ pub mod fee;
 pub mod params;
 pub mod service;
 pub mod simlive; // 11-sim-live / L1：模拟实盘服务（SimLiveService，手写，非 tangle）
+pub mod simlive_orch; // 12-strategy-system / P4a：插件编排器 worker 线程承载壳（actor 模式，手写，非 tangle）
 pub mod simlive_feed; // 11-sim-live / L4（F2）：实时评分 feed（poll 式，接入 KlineRead→process_bar；手写，非 tangle）
 pub mod strategy; // 12-strategy-system / P2a：策略 Registry 服务（StrategyService，手写，非 tangle）
 pub mod workbench; // 12-strategy-system / P3a：回测工作台服务（WorkbenchService 任务制 ensemble，手写，非 tangle）

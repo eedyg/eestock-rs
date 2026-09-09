@@ -126,6 +126,8 @@ pub async fn state(State(st): State<Arc<AppState>>, Query(q): Query<SimStateQuer
         "pnl": pnl,
         "trading_enabled": trading_enabled,
         "mcp_enabled": sim.mcp_enabled(),
+        // P4a：会话事件流（插件错误/熔断告警；决策点 3：附最近 50 条）。
+        "session_events": sim.session_events(&sid, 50).unwrap_or_default(),
     }))
     .into_response()
 }
@@ -242,12 +244,7 @@ pub async fn strategies(
     let sid = match resolve_session_id(&sim, q.session_id.as_deref()) { Ok(id) => id, Err(e) => return e };
     let evals = match sim.get_strategy_analysis(&sid) { Ok(e) => e, Err(e) => return internal(e) };
 
-    // 策略名映射（内置目录；未知 id 兜底回 id）。
-    let name_map: std::collections::HashMap<String, String> = match sim.list_builtin_strategies() {
-        Ok(catalog) => catalog.into_iter().map(|s| (s.id.clone(), s.name)).collect(),
-        Err(_) => Default::default(),
-    };
-
+    // P4a：策略名/版本取自钉住快照（Registry 来源；旧内置目录映射废止）。
     // 每策略：跨所有评估找其独立分最高的 stock（strategy-panel「当前最强」）。
     let mut per_strategy: std::collections::BTreeMap<String, serde_json::Value> = Default::default();
     let mut strategy_names: Vec<String> = Vec::new();
@@ -269,18 +266,24 @@ pub async fn strategies(
             }
         }
     }
-    // 每策略配置（ADR §4：params/stocks/weight/stock_weights；供 strategy-panel 展示）。
-    let config_map: std::collections::HashMap<String, application::simlive::StrategyConfig> = match sim.strategy_configs(&sid) {
-        Ok(configs) => configs.into_iter().map(|c| (c.id.clone(), c)).collect(),
+    // 每策略钉住配置（P4a：strategy_id/name/version/sha256/params/stocks/weight/stock_weights）。
+    let config_map: std::collections::HashMap<String, application::simlive::PluginStrategyConfig> = match sim.strategy_configs(&sid) {
+        Ok(configs) => configs.into_iter().map(|c| (c.strategy_id.clone(), c)).collect(),
         Err(e) => return internal(e),
     };
-    let strategy_ids: std::collections::BTreeSet<String> = strategy_names.into_iter().collect();
+    let strategy_ids: std::collections::BTreeSet<String> = config_map.keys().cloned()
+        .chain(strategy_names)
+        .collect();
     let strategies: Vec<serde_json::Value> = strategy_ids
         .into_iter()
         .map(|id| {
-            let name = name_map.get(&id).cloned().unwrap_or_else(|| id.clone());
+            let pinned = config_map.get(&id);
+            let name = pinned.map(|c| c.name.clone()).unwrap_or_else(|| id.clone());
             let strongest = per_strategy.get(&id).cloned().unwrap_or(serde_json::json!(null));
-            let config = config_map.get(&id).map(|c| serde_json::json!({
+            let config = pinned.map(|c| serde_json::json!({
+                "version_id": c.version_id,
+                "version": c.version,
+                "sha256": c.sha256,
                 "params": application::simlive::strategy_params_to_json(&c.params),
                 "stocks": c.stocks,
                 "weight": c.weight,

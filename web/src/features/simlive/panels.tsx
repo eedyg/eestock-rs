@@ -1,53 +1,41 @@
 import { useState } from 'react';
 import type {
-  BacktestParamDef,
-  BacktestStrategyDto,
   SimOrder,
   SimSessionDetail,
   SimSessionListEntry,
   SimStateDto,
   SimStrategiesDto,
   SimStrategyConfigInput,
+  StrategyCatalogEntry,
+  StrategyParamDef,
   SymbolSnapshot,
 } from '@/api/types';
 import { formatCstDateTime } from './format';
 
-/** 参数 schema 默认值（Num→def，Choice→def）。 */
-function paramDefDefault(p: BacktestParamDef): number | string {
-  if ('Num' in p.kind) return p.kind.Num.def;
-  return p.kind.Choice.def;
+/** 参数 schema 默认值（P4a：插件 schema 仅 int/float 数值型，ABI §1）。 */
+function paramDefDefault(p: StrategyParamDef): number {
+  return p.default;
 }
 
-/** 单策略参数输入（schema 驱动：Num→number 输入 / Choice→select）。 */
+/** 单策略参数输入（P4a：插件 schema 数值型 → number 输入，min/max 边界）。 */
 function StrategyParamField({ strategyId, def, value, onChange }: {
   strategyId: string;
-  def: BacktestParamDef;
+  def: StrategyParamDef;
   value: number | string;
   onChange: (v: number | string) => void;
 }) {
   const testid = `sim-strategy-${strategyId}-param-${def.key}`;
-  if ('Num' in def.kind) {
-    return (
-      <input
-        data-testid={testid}
-        type="number"
-        value={value}
-        onChange={(e) => onChange(Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : value)}
-        className="w-20 rounded border border-line bg-transparent px-2 py-1 text-xs"
-      />
-    );
-  }
   return (
-    <select
+    <input
       data-testid={testid}
-      value={String(value)}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded border border-line bg-transparent px-2 py-1 text-xs"
-    >
-      {def.kind.Choice.options.map((o) => (
-        <option key={o} value={o}>{o}</option>
-      ))}
-    </select>
+      type="number"
+      min={def.min}
+      max={def.max}
+      step={def.type === 'int' ? 1 : 0.01}
+      value={value}
+      onChange={(e) => onChange(Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : value)}
+      className="w-20 rounded border border-line bg-transparent px-2 py-1 text-xs"
+    />
   );
 }
 
@@ -73,7 +61,7 @@ export function SessionControl({
   togglingTrading: boolean;
   togglingMcp: boolean;
   symbols: SymbolSnapshot[];
-  strategies: BacktestStrategyDto[];
+  strategies: StrategyCatalogEntry[];
   onStart: (p: {
     name: string;
     period: string;
@@ -116,10 +104,10 @@ export function SessionControl({
       }
       n.add(id);
       // 选中即初始化该策略卡片：参数=schema 默认值；标的子集=当前全选股票；权重=1.0。
-      const def = strategies.find((s) => s.id === id);
+      const def = strategies.find((e) => e.strategy.id === id);
       const params: Record<string, number | string> = {};
       if (def) {
-        for (const p of def.params_schema) {
+        for (const p of def.version.params_schema) {
           params[p.key] = paramDefDefault(p);
         }
       }
@@ -149,7 +137,7 @@ export function SessionControl({
       const stock_weights: Record<string, number> = {};
       for (const c of stocks) stock_weights[c] = perStock[c] !== undefined ? perStock[c] : weight;
       return {
-        id,
+        strategy_id: id,
         params: strategyParams[id] ?? {},
         stocks,
         weight,
@@ -186,16 +174,16 @@ export function SessionControl({
       onClick={() => toggleStock(s.code)}
     >{s.code} {s.name !== s.code ? s.name : ''}</button>
   );
-  const strategyChip = (st: BacktestStrategyDto) => (
+  const strategyChip = (e: StrategyCatalogEntry) => (
     <button
-      key={st.id}
+      key={e.strategy.id}
       type="button"
-      data-testid={`sim-config-strategy-${st.id}`}
-      data-on={selectedStrategies.has(st.id)}
-      className={chipCls(selectedStrategies.has(st.id))}
-      onClick={() => toggleStrategy(st.id)}
-      title={st.description}
-    >{st.name}</button>
+      data-testid={`sim-config-strategy-${e.strategy.id}`}
+      data-on={selectedStrategies.has(e.strategy.id)}
+      className={chipCls(selectedStrategies.has(e.strategy.id))}
+      onClick={() => toggleStrategy(e.strategy.id)}
+      title={e.strategy.description}
+    >{e.strategy.name}</button>
   );
   return (
     <div className="flex flex-col gap-4">
@@ -304,19 +292,21 @@ export function SessionControl({
           </div>
           {/* 每策略详细配置卡（ADR §4）：参数/标的子集/权重（+每标的权重） */}
           {Array.from(selectedStrategies).map((id) => {
-            const def = strategies.find((s) => s.id === id);
-            if (!def) return null;
+            const entry = strategies.find((e) => e.strategy.id === id);
+            if (!entry) return null;
+            const defName = entry.strategy.name;
+            const defSchema = entry.version.params_schema;
             const stocks = strategyStocks[id]?.length ? strategyStocks[id] : Array.from(selectedStocks);
             const weight = strategyWeights[id] ?? 1.0;
             const perStock = strategyStockWeights[id] ?? {};
             return (
               <div key={id} data-testid={`sim-strategy-card-${id}`} className="mt-2 rounded border border-[--line] p-3">
-                <div className="mb-2 text-[11px] text-[--dim]">{def.name}（{def.id}）· 参数/标的/权重</div>
+                <div className="mb-2 text-[11px] text-[--dim]">{defName}（{id} · v{entry.version.version}）· 参数/标的/权重</div>
                 {/* 参数 + 策略权重 */}
                 <div className="flex flex-wrap items-center gap-3">
-                  {def.params_schema.map((p) => (
+                  {defSchema.map((p) => (
                     <label key={p.key} className="flex items-center gap-1 text-xs">
-                      <span className="text-[--dim]">{p.label}</span>
+                      <span className="text-[--dim]">{p.description ?? p.key}</span>
                       <StrategyParamField
                         strategyId={id}
                         def={p}
@@ -505,7 +495,7 @@ export function SessionHistory({
 }: {
   sessions: SimSessionListEntry[];
   selected: SimSessionDetail | null;
-  compare: { data: { session_id: string; run_ids: number[] } | null; loading: boolean; error: string | null };
+  compare: { data: { session_id: string; run_ids: string[] } | null; loading: boolean; error: string | null };
   onSelect: (id: string) => void;
   onCompare: (id: string) => void;
 }) {
