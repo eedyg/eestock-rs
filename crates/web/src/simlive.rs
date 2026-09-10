@@ -31,6 +31,9 @@ fn internal(e: anyhow::Error) -> Response {
 }
 
 /// 取注入的 SimLiveService；未配置（None）→ 503。
+// axum handler 直接返回 Response 为错误通道属本 crate 惯例（同 rest.rs/workbench.rs），
+// 局部 allow 而非 Box 改动 20+ 调用点。
+#[allow(clippy::result_large_err)]
 fn sim_service(st: &Arc<AppState>) -> Result<Arc<SimLiveService>, Response> {
     st.sim
         .clone()
@@ -39,6 +42,7 @@ fn sim_service(st: &Arc<AppState>) -> Result<Arc<SimLiveService>, Response> {
 
 /// 解析目标会话：显式 `session_id` 优先；缺省回落到**当前运行会话**（`SimLiveService::current_session_id`）。
 /// 用于当前会话区域（session-control / position-table / 等），历史回看必须显式传 id。
+#[allow(clippy::result_large_err)] // 同上：Response 错误通道惯例
 fn resolve_session_id(sim: &SimLiveService, explicit: Option<&str>) -> Result<String, Response> {
     if let Some(sid) = explicit {
         if !sid.trim().is_empty() {

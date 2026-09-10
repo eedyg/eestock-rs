@@ -88,6 +88,12 @@ export class WorkbenchStore {
   private listeners = new Set<() => void>();
   private unsubs: Array<() => void> = [];
   private disposed = false;
+  /** TD-4 终态复核定时器（run_id → timer）；dispose 统一清理。 */
+  private retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** TD-4：GET 复核仍为 queued/running 时的短延迟（ms）与最大复核次数。
+   *  后端 report_task 发帧先于 mark_succeeded/mark_failed 提交，progress=1 帧到达时 GET 可能命中 running@100%。 */
+  private static readonly REFRESH_RETRY_MS = 1500;
+  private static readonly REFRESH_MAX_RETRIES = 3;
 
   constructor(private deps: { api: ApiClient; ws: WsLike }) {}
 
@@ -140,8 +146,10 @@ export class WorkbenchStore {
     if (progress >= 1) void this.refreshRunInList(msg.run_id);
   }
 
-  /** 完成信号驱动：重捞单个 run 合并回列表；若当前选中则一并重捞结果。 */
-  private async refreshRunInList(id: string): Promise<void> {
+  /** 完成信号驱动：重捞单个 run 合并回列表；若当前选中则一并重捞结果。
+   *  TD-4：WS 帧无状态字段且发帧先于终态提交——GET 复核仍为 queued/running 不视为终态，
+   *  调度短延迟复核（至多 REFRESH_MAX_RETRIES 次），避免行卡「运行中 100%」。 */
+  private async refreshRunInList(id: string, attempt = 0): Promise<void> {
     const cur = (this.current.runs.data ?? []).find((r) => r.id === id);
     if (cur && cur.status !== 'queued' && cur.status !== 'running') return;
     try {
@@ -151,9 +159,32 @@ export class WorkbenchStore {
       if (this.current.selectedRunId === id && data.status === 'succeeded') {
         await this.loadResult(id);
       }
+      // TD-4：复核仍非终态（发帧先于提交）→ 短延迟后再复核，不置终态
+      if (
+        (data.status === 'queued' || data.status === 'running') &&
+        attempt < WorkbenchStore.REFRESH_MAX_RETRIES
+      ) {
+        this.scheduleRefreshRetry(id, attempt + 1);
+      }
     } catch {
-      // 单 run 重捞失败：保留当前行（下次信号/重试兜底）
+      // 单 run 重捞失败：保留当前行；同样调度一次复核（仍受 REFRESH_MAX_RETRIES 上限约束），
+      // 避免 GET 异常（网络抖动/5xx）时行卡 running@100% 直至手动刷新
+      if (attempt < WorkbenchStore.REFRESH_MAX_RETRIES) {
+        this.scheduleRefreshRetry(id, attempt + 1);
+      }
     }
+  }
+
+  /** TD-4 复核调度：同 run 重复触发时替换旧定时器（不产生并行复核链）。 */
+  private scheduleRefreshRetry(id: string, attempt: number): void {
+    if (this.disposed) return;
+    const old = this.retryTimers.get(id);
+    if (old) clearTimeout(old);
+    const t = setTimeout(() => {
+      this.retryTimers.delete(id);
+      void this.refreshRunInList(id, attempt);
+    }, WorkbenchStore.REFRESH_RETRY_MS);
+    this.retryTimers.set(id, t);
   }
 
   async loadCatalog(): Promise<void> {
@@ -334,5 +365,7 @@ export class WorkbenchStore {
     this.disposed = true;
     this.unsubs.forEach((u) => u());
     this.unsubs = [];
+    this.retryTimers.forEach((t) => clearTimeout(t));
+    this.retryTimers.clear();
   }
 }

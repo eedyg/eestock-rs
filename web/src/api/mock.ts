@@ -207,7 +207,9 @@ export interface MockOptions {
   now?: Date; // 测试注入固定时刻，保证可复现
 }
 
-/** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一） */
+/** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一）。
+ *  注意：种子时间为绝对日期（2026-09-07），依赖测试侧 FIXED_NOW 注入钉住时钟（TD-5 口径）——
+ *  新增依赖真实时钟的 alerts 测试须同样注入 `now`（见 features/alerts/store.test.ts / AlertsPage.test.tsx）。 */
 function initialAlertEvents(): AlertEventItem[] {
   return [
     { id: 3, rule_id: 'collection_stall', level: 'critical', source: 'collector',

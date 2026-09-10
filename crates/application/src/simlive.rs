@@ -575,8 +575,8 @@ impl SimLiveService {
     /// 启动恢复：收敛/恢复进程重启遗留的 `status='running'` 会话。
     /// - 有 `simsession_state` → 重建内存 `LiveSession`（账户/持仓/PnL/策略配置/净值序列/订单），续跑不标记中断；
     /// - 无 state / 损坏 → 标记 ended（最小结束结果）+ 告警，不打崩。
-    /// 幂等：仅「内存不存在但仍 running」的会话；已 ended / 已恢复 / 已在内存的不动。
-    /// 调用点：app bin 构造 `SimLiveService` 后（`recover_sessions().await?`）。
+    ///   幂等：仅「内存不存在但仍 running」的会话；已 ended / 已恢复 / 已在内存的不动。
+    ///   调用点：app bin 构造 `SimLiveService` 后（`recover_sessions().await?`）。
     pub async fn recover_sessions(&self) -> anyhow::Result<RecoveryReport> {
         let now = self.clock.now();
         let in_memory: std::collections::HashSet<String> =

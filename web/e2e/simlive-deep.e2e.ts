@@ -35,7 +35,8 @@ import { psql, LEDGER } from './helpers/db';
  *          E2E_SHOTS（证据目录，默认 /tmp/simlive_deep）。
  * 运行：cd web && npx playwright test e2e/simlive-deep.e2e.ts
  * 清理口径（恢复初始 = 保留环境自带 running 会话，自建夹具零残留）：
- *   产品 API stop（幂等）→ SQL 删 simsession（级联 result/trades/positions）→ 删对比 backtest_runs
+ *   产品 API stop（幂等）→ SQL 删 simsession（级联 result/trades/positions）→ 删对比 strategy_run
+ *   （P4a 起对比 run 走统一 ensemble 引擎，落 strategy_run 系表；旧 backtest_runs 已由迁移 0024 DROP）
  *   → mcp 恢复 true；全部台账留 sql-ledger.md。
  */
 
@@ -273,10 +274,10 @@ function sqlDeleteSessionsLike(name: string): string {
   if (del) ledger('sim-cleanup', `name~${name}%`, `删除会话 id=${del}（级联 result/trades/positions）`);
   return del;
 }
-function sqlDeleteBacktestRuns(ids: number[]): void {
+function sqlDeleteStrategyRuns(ids: string[]): void {
   if (!ids.length) return;
-  const del = psql(`DELETE FROM backtest_runs WHERE id IN (${ids.join(',')}) RETURNING id;`);
-  if (del) ledger('bt-cleanup', `run_id∈[${ids.join(',')}]`, `删除对比 run（${del}）`);
+  const del = psql(`DELETE FROM strategy_run WHERE id IN (${ids.map(q).join(',')}) RETURNING id;`);
+  if (del) ledger('bt-cleanup', `run_id∈[${ids.join(',')}]`, `删除对比 run（${del}，strategy_run_result 级联）`);
 }
 /** 停会话（产品 API，幂等断言）+ SQL 删自建行（级联）。 */
 async function cleanupTestSession(req: APIRequestContext, sid: string, name: string): Promise<void> {
@@ -287,8 +288,8 @@ async function cleanupTestSession(req: APIRequestContext, sid: string, name: str
   sqlDeleteSessionsLike(name);
 }
 
-/* 模块级回测 run 账（afterAll 兜底删除对比产物） */
-const btRunIds: number[] = [];
+/* 模块级回测 run 账（afterAll 兜底删除对比产物；sr_ 前缀字符串 id） */
+const btRunIds: string[] = [];
 
 /* 面板定位辅助 */
 const pill = (page: Page) => page.getByTestId('sim-session-status');
@@ -530,13 +531,13 @@ test.describe('A MCP sim_* 契约（JSON-RPC over SSE 127.0.0.1:8082）', () => 
     expect(cmp.payload.run_ids.length, '1 stock × 1 strategy = 1 run').toBe(1);
     expect(cmp.payload.session_result, '会话自身结果透出').toBeTruthy();
     expect(cmp.payload.session_result.metrics, '结果含指标').toBeTruthy();
-    const runId = cmp.payload.run_ids[0] as number;
+    const runId = cmp.payload.run_ids[0] as string;
     btRunIds.push(runId);
 
     const rcmp = await restPost(request, `/api/sim-live/sessions/${sid}/backtest-compare`, {});
     expect(rcmp.status, 'REST compare 200（面板同端点）').toBe(200);
     expect(rcmp.json.run_ids.length, 'REST compare 同样触发 ≥1 run').toBeGreaterThanOrEqual(1);
-    btRunIds.push(...(rcmp.json.run_ids as number[]).filter((x: number) => !btRunIds.includes(x)));
+    btRunIds.push(...(rcmp.json.run_ids as string[]).filter((x: string) => !btRunIds.includes(x)));
     ev('A8', 'PASS', `compare 返回 run_ids=[${runId}]（秒级）+ session_result 透出；REST 同端点一致（异步引擎不阻塞触发契约）`);
     sqlDeleteSessionsLike(name);
   });
@@ -827,7 +828,7 @@ test.describe('B web /sim-live 面板（SPA chromium）', () => {
     const cmpP = page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes(`/api/sim-live/sessions/${sid}/backtest-compare`), { timeout: 15_000 });
     await page.getByTestId(`sim-compare-${sid}`).click();
     const cmpResp = await cmpP;
-    const runIds = ((await cmpResp.json()).run_ids ?? []) as number[];
+    const runIds = ((await cmpResp.json()).run_ids ?? []) as string[];
     expect(runIds.length, '单 stock×单策略 → 1 run').toBe(1);
     btRunIds.push(runIds[0]);
     await expect(page.getByTestId('sim-compare-result'), { timeout: 20_000 })
@@ -951,8 +952,8 @@ test.afterAll(async () => {
     }
   }
   const del = sqlDeleteSessionsLike(PREFIX);
-  // 3) 删回测对比产物（backtest_runs 级联 results）
-  sqlDeleteBacktestRuns([...new Set(btRunIds)]);
+  // 3) 删回测对比产物（strategy_run，FK 级联 strategy_run_result）
+  sqlDeleteStrategyRuns([...new Set(btRunIds)]);
   await ctx.dispose().catch(() => {});
   // 4) 复核初始（仅环境自带 running 会话保留）
   const remain = psql(`SELECT id || '|' || status FROM simsession ORDER BY start_ts;`);

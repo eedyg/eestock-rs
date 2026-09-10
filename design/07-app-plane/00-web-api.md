@@ -1546,7 +1546,7 @@ impl KlineRead for KlineReader {
         if before.is_none() && limit > 0 {
             if let Some(f) = self.forming_bar(period, code).await? {
                 let last_ts = bars.last().map(|b| b.ts);
-                if last_ts.map_or(true, |t| f.ts > t) {
+                if last_ts.is_none_or(|t| f.ts > t) {
                     if bars.len() as i64 >= limit {
                         bars.remove(0);
                     }

@@ -179,3 +179,12 @@
 - MCP 停用开关=B 方案（McpState 单一开关）：sim_* 开关是下单风险语义，不盲目复刻死能力
 - 列表徽章口径：latest_published?.approval_level ?? latest_version（已发布版本权限优先）
 - P5 实盘契约经 oracle 挑战修订：R7 增险/减险语义（减险永远放行）、R9-R12 市场硬约束（T+1 品种属性/整手/涨跌停/可用资金）、恢复三段式（halted→对账→人工复位）、Executor 四条款（幂等本地台账/fill 事件流/归一化/day-order）、开工条件+3（浸泡期/对账演练/绝对资金封顶）
+
+---
+
+# 技术债清算（2026-09-10，后端车道 TD-1~TD-3）
+
+## TD-3 旧回测残留表回收（架构裁决：执行 DROP）
+- **处置**：迁移 `0024_drop_legacy_backtest_tables.sql`（`DROP TABLE IF EXISTS backtest_results, backtest_runs`，先子后父：子表 `backtest_results.run_id` 存 FK 约束 `backtest_results_run_id_fkey` 引用父表 `backtest_runs(id)`（0011 建表，`ON DELETE CASCADE`），先 DROP 子表再 DROP 父表顺序正确且必要）；`migrate_check::EXPECTED_RELATIONS` 同步移除两表；design/04-storage/schema.md §4.3.5「未来 DROP 另立项」注记结案（见 §4.3.15）。
+- **依据**：两表自 P4b（D16 终章）退役后全 workspace 零代码读写（仅 migrate_check 台账 + e2e 陈旧清理残留引用）；裁决明确接受 DROP 不可逆（历史回测数据随表删除）。
+- **遗留（已结案 2026-09-10 收尾包）**：`web/e2e/simlive-deep.e2e.ts` / `backtest-form-task.e2e.ts` / `backtest-compare-gridrank.e2e.ts` 的 `backtest_runs` SQL 清理/快照残留已清理——`backtest-form-task.e2e.ts` / `backtest-compare-gridrank.e2e.ts` / `backtest-result-trade-modal.e2e.ts` 三个文件整体针对已退役旧回测页（/backtest + 已删 `/api/backtest/*`），整文件删除；`simlive-deep.e2e.ts` 主体仍测现存 sim-live 功能，仅清理段改为 strategy_run 系表清理（P4a 起对比 run 落 strategy_run，sr_ 前缀字符串 id，FK 级联 strategy_run_result）。

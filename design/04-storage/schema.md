@@ -357,7 +357,7 @@ SELECT add_continuous_aggregate_policy('kline_accurate_1h',
 ## 4.3.5 回测存储（Wave 3 Phase 3a，0011；ADR 08-backtest §7）
 
 > ⚠️ **P4b 退役注记**：`BacktestRunStore` / `PgBacktestStore` 已随 P4b（12-strategy-system D16 终章）删除；
-> `backtest_runs` / `backtest_results` 表**保留不读写**（迁移不回收，未来 DROP 另立项）。
+> `backtest_runs` / `backtest_results` 表经架构裁决（2026-09-10，技术债清算 TD-3）由迁移 **0024 DROP 回收**（见 §4.3.15），下文为历史契约记录。
 > `BacktestBarRead` / `BacktestBarReader` 保留——新系统（strategy 试算 / workbench 工作台 / mcp bt_* 工具）复用同一取数口径。
 
 **上下文**：backtest engine crate（纯逻辑，无 IO/DB）已落（crates/backtest，commit 97fe314）。
@@ -429,7 +429,7 @@ ALTER TABLE backtest_runs ALTER COLUMN date_to SET NOT NULL;
 **storage 模块 `crates/storage/src/backtest.rs`（非 tangle 手写，契约描述）**：
 实现 `domain::ports::BacktestBarRead`（PgPool）。
 （⚠️ P4b 注记：`BacktestRunStore` / `PgBacktestStore` 已随 P4b 删除；`backtest_runs` / `backtest_results`
-表保留不读写——迁移不回收，未来 DROP 另立项。下文 `PgBacktestStore` 段为历史契约记录。）
+表经架构裁决（2026-09-10，TD-3）由迁移 0024 DROP 回收。下文 `PgBacktestStore` 段为历史契约记录。）
 - `BacktestBarRead`：`bars(code, period, from, to)` 按统一读源（accurate 优先 + cagg 兜底，复用 KlineReader 口径，
   与 design/07-app-plane/00-web-api.md `merged_sql` 同语义）读 `[from, to)` 升序 `domain::Bar` 序列；
   M1 走 `kline_merged` 视图，5m/15m/1h/1d 走 period 对应 accurate/cagg 表 + 底层兜底反连接剔重（同 reader.rs）。
@@ -977,6 +977,22 @@ CREATE INDEX strategy_run_symbol_idx         ON strategy_run (symbol);
 - `update_progress`：仅 running 行生效（`WHERE status='running'`，终态行静默忽略）。
 - `update_preset`：`UPDATE ... SET name, config, updated_at=now() ... RETURNING`；
   name UNIQUE 冲突 → sqlx Err（application/web 映射 409）。
+
+## 4.3.15 旧回测表回收（技术债清算 TD-3，0024；架构裁决 2026-09-10：执行 DROP）
+
+**上下文**：旧回测服务链（BacktestService / PgBacktestStore / 旧 REST）已随 P4b 物理退役（§4.3.5 注记），
+`backtest_runs` / `backtest_results` 自此库内保留不读写。架构裁决（2026-09-10）终局处理：DROP 回收。
+两表为应用面自有表，退役后无任何代码路径读写（grep 全 workspace 零引用）；DROP 不可逆，裁决已明确接受。
+`migrate_check` 的 `EXPECTED_RELATIONS` 同步移除两表（03-raw-writer.md）。
+
+``` {.sql file=migrations/0024_drop_legacy_backtest_tables.sql}
+-- 0024_drop_legacy_backtest_tables.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- 技术债清算 TD-3（架构裁决 2026-09-10）：旧回测残留表终局回收。
+-- backtest_runs / backtest_results 自 P4b（12-strategy-system D16 终章）退役后无任何代码读写；
+-- IF EXISTS 保证幂等（全新库从 0001 顺跑本迁移时两表由 0011 建出，重复执行/缺表均安全）。
+DROP TABLE IF EXISTS backtest_results;
+DROP TABLE IF EXISTS backtest_runs;
+```
 
 ## 4.4 设计注记
 

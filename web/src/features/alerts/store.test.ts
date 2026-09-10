@@ -41,10 +41,14 @@ function ev(id: number, over: Partial<AlertEventItem> = {}): AlertEventItem {
 }
 
 describe('AlertsStore（页面⑦ 状态机）', () => {
+  // TD-5：钉住时钟——默认过滤 range:'today' 的 from 由 now 推导；契约 mock 种子固定在 2026-09-07，
+  // 不注入 now 时真实时钟跨日后种子全部被 from 过滤掉（历史 7 个失败的根因）。
+  const FIXED_NOW = () => new Date('2026-09-07T05:00:00+08:00');
+
   it('init 加载列表+规则；默认过滤=今日（from 携带）', async () => {
     const api = stubApi();
     const ws = fakeWs();
-    const store = new AlertsStore({ api, ws, now: () => new Date('2026-09-07T05:00:00+08:00') });
+    const store = new AlertsStore({ api, ws, now: FIXED_NOW });
     await store.init();
     const s = store.state;
     expect(s.list.loading).toBe(false);
@@ -62,7 +66,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
 
   it('过滤变更即重查（级别/时间范围/来源）', async () => {
     const api = stubApi();
-    const store = new AlertsStore({ api, ws: fakeWs(), now: () => new Date('2026-09-07T05:00:00+08:00') });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     vi.mocked(api.getAlertEvents).mockClear();
 
@@ -80,7 +84,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
 
   it('ack：调用 API 并就地把条目更新为已确认（确认时刻持久化）', async () => {
     const api = stubApi();
-    const store = new AlertsStore({ api, ws: fakeWs() });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     const target = store.state.list.data!.find((a) => a.status === 'triggered')!;
     await store.ack(target.id);
@@ -97,7 +101,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
         throw new ApiError(404, 'not found');
       }),
     });
-    const store = new AlertsStore({ api, ws: fakeWs() });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     const target = store.state.list.data!.find((a) => a.status === 'triggered')!;
     await expect(store.ack(target.id)).resolves.toBeUndefined();
@@ -111,7 +115,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
 
   it('ack 失败后再成功：error 清空、条目翻转', async () => {
     const api = stubApi();
-    const store = new AlertsStore({ api, ws: fakeWs() });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     const target = store.state.list.data!.find((a) => a.status === 'triggered')!;
     vi.mocked(api.ackAlert).mockRejectedValueOnce(new ApiError(404, 'not found'));
@@ -127,7 +131,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
 
   it('updateRule：PATCH 后规则就地更新（阈值/开关/静默热生效口径）', async () => {
     const api = stubApi();
-    const store = new AlertsStore({ api, ws: fakeWs() });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     await store.updateRule('symbol_gap_rate', { threshold: 10, silence_minutes: 45 });
     expect(api.patchAlertRule).toHaveBeenCalledWith('symbol_gap_rate', { threshold: 10, silence_minutes: 45 });
@@ -140,7 +144,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
   it('WS alert 推送：新事件入列表头部；同 id 替换（续触发计数/状态翻转）', async () => {
     const api = stubApi();
     const ws = fakeWs();
-    const store = new AlertsStore({ api, ws });
+    const store = new AlertsStore({ api, ws, now: FIXED_NOW });
     await store.init();
     const before = store.state.list.data!.length;
 
@@ -160,7 +164,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
   it('WS 推送按当前过滤收纳：级别不匹配的新事件不入列', async () => {
     const api = stubApi();
     const ws = fakeWs();
-    const store = new AlertsStore({ api, ws });
+    const store = new AlertsStore({ api, ws, now: FIXED_NOW });
     await store.init();
     await store.setFilter({ level: 'critical' });
     vi.mocked(api.getAlertEvents).mockResolvedValue([]);
@@ -177,7 +181,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
   it('列表加载失败 → error 态；重试恢复', async () => {
     const api = stubApi();
     vi.mocked(api.getAlertEvents).mockRejectedValueOnce(new Error('db down'));
-    const store = new AlertsStore({ api, ws: fakeWs() });
+    const store = new AlertsStore({ api, ws: fakeWs(), now: FIXED_NOW });
     await store.init();
     expect(store.state.list.error).toContain('db down');
     await store.loadList();
@@ -189,7 +193,7 @@ describe('AlertsStore（页面⑦ 状态机）', () => {
   it('dispose 后 WS 推送不再入列', async () => {
     const api = stubApi();
     const ws = fakeWs();
-    const store = new AlertsStore({ api, ws });
+    const store = new AlertsStore({ api, ws, now: FIXED_NOW });
     await store.init();
     store.dispose();
     const before = store.state.list.data!.length;

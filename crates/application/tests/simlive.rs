@@ -88,8 +88,8 @@ impl SimSessionStore for MockSimStore {
             .lock()
             .unwrap()
             .iter()
-            .cloned()
             .filter(|t| t.session_id == session_id)
+            .cloned()
             .collect())
     }
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> Result<()> {
@@ -1138,7 +1138,7 @@ async fn start_session_when_already_running_returns_already_running_error() {
     );
 }
 
-//// ADR §4 多策略：start_session 带 strategies → 编排器按每策略 参数/标的集 配置（固定输入断言）。
+/// ADR §4 多策略：start_session 带 strategies → 编排器按每策略 参数/标的集 配置（固定输入断言）。
 #[tokio::test]
 async fn start_session_with_strategies_wires_orchestrator() {
     let store = Arc::new(MockSimStore::default());
@@ -1214,7 +1214,7 @@ async fn start_session_with_strategies_wires_orchestrator() {
     assert!(svc.get_strategy_signal(&sid, "999999").unwrap().is_none());
 }
 
-//// ADR §4：start_session 带非法 strategies（未知 id / weight≤0 / params 越界 / 未知标的 / 空标的集）→ Err(InvalidConfig)。
+/// ADR §4：start_session 带非法 strategies（未知 id / weight≤0 / params 越界 / 未知标的 / 空标的集）→ Err(InvalidConfig)。
 #[tokio::test]
 async fn start_session_invalid_strategies_rejects() {
     let store = Arc::new(MockSimStore::default());

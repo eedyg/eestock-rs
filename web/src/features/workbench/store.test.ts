@@ -76,6 +76,104 @@ describe('WorkbenchStore（页面⑪回测工作台状态机）', () => {
     expect(getSpy).toHaveBeenCalledWith('sr_mock_seed3');
   });
 
+  it('TD-4：progress=1 GET 命中 running@100%（发帧先于终态提交）→ 1.5s 短延迟复核，复核到 succeeded 翻终态（不卡死）', async () => {
+    vi.useFakeTimers();
+    try {
+      await s.store.init();
+      const getSpy = vi.spyOn(s.api, 'getWorkbenchRun');
+      const cur = s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!;
+      // 竞态复现：progress=1 帧先于 mark_succeeded 提交，首次 GET 命中 running@100%；复核时才拿到终态
+      getSpy
+        .mockResolvedValueOnce({ ...cur, status: 'running', progress: 1 })
+        .mockResolvedValue({ ...cur, status: 'succeeded', progress: 1, finished_at: '2026-09-09T06:00:00Z' });
+      s.ws.emit('strategy_run', { type: 'strategy_run_progress', run_id: 'sr_mock_seed3', progress: 1, bar_ts: null });
+      await vi.advanceTimersByTimeAsync(0); // 首次 GET 落盘
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      // 不误置终态：行仍为 running，但已调度复核
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('running');
+      await vi.advanceTimersByTimeAsync(1500); // 短延迟复核
+      expect(getSpy).toHaveBeenCalledTimes(2);
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('succeeded');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('TD-4：持续 running 时最多复核 3 次后停手（不无限轮询、不误置终态）', async () => {
+    vi.useFakeTimers();
+    try {
+      await s.store.init();
+      const getSpy = vi.spyOn(s.api, 'getWorkbenchRun');
+      const cur = s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!;
+      getSpy.mockResolvedValue({ ...cur, status: 'running', progress: 1 });
+      s.ws.emit('strategy_run', { type: 'strategy_run_progress', run_id: 'sr_mock_seed3', progress: 1, bar_ts: null });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1500 * 10); // 远超 3 次复核窗口
+      expect(getSpy).toHaveBeenCalledTimes(4); // 首次 GET + 至多 3 次复核
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('TD-4：GET 复核异常（网络抖动/5xx）→ 仍调度一次短延迟复核，复核到 succeeded 翻终态（不卡 running@100%）', async () => {
+    vi.useFakeTimers();
+    try {
+      await s.store.init();
+      const getSpy = vi.spyOn(s.api, 'getWorkbenchRun');
+      const cur = s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!;
+      // 首次复核 GET 抛异常（保留当前行），复核链不应中断——1.5s 后再复核拿到终态
+      getSpy
+        .mockRejectedValueOnce(new Error('network'))
+        .mockResolvedValue({ ...cur, status: 'succeeded', progress: 1, finished_at: '2026-09-09T06:00:00Z' });
+      s.ws.emit('strategy_run', { type: 'strategy_run_progress', run_id: 'sr_mock_seed3', progress: 1, bar_ts: null });
+      await vi.advanceTimersByTimeAsync(0); // 首次 GET 抛异常落 catch
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('running');
+      await vi.advanceTimersByTimeAsync(1500); // catch 分支调度的复核
+      expect(getSpy).toHaveBeenCalledTimes(2);
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('succeeded');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('TD-4：GET 持续异常时最多复核 3 次后停手（catch 复核仍受 REFRESH_MAX_RETRIES 上限约束）', async () => {
+    vi.useFakeTimers();
+    try {
+      await s.store.init();
+      const getSpy = vi.spyOn(s.api, 'getWorkbenchRun');
+      getSpy.mockRejectedValue(new Error('network'));
+      s.ws.emit('strategy_run', { type: 'strategy_run_progress', run_id: 'sr_mock_seed3', progress: 1, bar_ts: null });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1500 * 10); // 远超 3 次复核窗口
+      expect(getSpy).toHaveBeenCalledTimes(4); // 首次 GET + 至多 3 次复核
+      expect(s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!.status).toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('TD-4：dispose 清理待复核定时器（之后不再 GET）', async () => {
+    vi.useFakeTimers();
+    try {
+      await s.store.init();
+      const getSpy = vi.spyOn(s.api, 'getWorkbenchRun');
+      const cur = s.store.state.runs.data!.find((r) => r.id === 'sr_mock_seed3')!;
+      getSpy.mockResolvedValue({ ...cur, status: 'running', progress: 1 });
+      s.ws.emit('strategy_run', { type: 'strategy_run_progress', run_id: 'sr_mock_seed3', progress: 1, bar_ts: null });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      s.store.dispose();
+      await vi.advanceTimersByTimeAsync(1500 * 10);
+      expect(getSpy).toHaveBeenCalledTimes(1); // 定时器已清理，无后续复核
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('selectRun succeeded → 载入结果；failed → 清空结果且不打 result 端点', async () => {
     await s.store.init();
     const resSpy = vi.spyOn(s.api, 'getWorkbenchResult');

@@ -157,7 +157,11 @@ async fn list_events_filters() {
         ..Default::default() }).await.unwrap();
     assert_eq!(by_src.len(), 2);
 
+    // 窗口查询叠加本测试唯一 source 标记：共享 dev 库中运行中的 app 会写入真实事件
+    // （可能恰落入 t0 固定窗口），不带 source 过滤的裸窗口断言会被外部行污染（TD-2 实锤）。
+    // 窗口语义不削弱：source=A 的两行 m1@t0 / m2@t0+5m 中仅 m2 落入 4m..6m。
     let ranged = store.list_events(&AlertFilter {
+        source: Some(A.into()),
         from: Some(t0() + Duration::minutes(4)), to: Some(t0() + Duration::minutes(6)),
         limit: 200, ..Default::default() }).await.unwrap();
     assert_eq!(ranged.len(), 1, "from/to 窗口（last_fired_at 口径）");

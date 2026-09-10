@@ -165,15 +165,22 @@ describe('AlertsPage（页面⑦，骨架 AlertsGrid + RegionPortal）', () => {
   });
 
   it('WS 实时推送：新告警事件即时入列表顶部', async () => {
-    const ws = fakeWs();
-    render(<AlertsPage api={apiWith()} ws={ws as never} />);
-    await waitFor(() => expect(screen.getByText('513310 当日缺口率 7.8%（>1%）')).toBeInTheDocument());
-    ws.emit('alert', {
-      type: 'alert', id: 9001, rule_id: 'collection_stall', level: 'critical',
-      source: 'collector', message: '采集停摆：WS 新事件', status: 'triggered', fire_count: 1,
-      first_fired_at: '2026-09-07T03:00:00Z', last_fired_at: '2026-09-07T03:00:00Z',
-      acked_at: null, resolved_at: null,
-    });
-    await waitFor(() => expect(screen.getByText('采集停摆：WS 新事件')).toBeInTheDocument());
+    // TD-5：钉住时钟——store 默认过滤 range:'today' 的 from 由真实时钟推导，
+    // 跨日后本测试固化的 2026-09-07 事件会被 matchesFilter 排除（历史失败根因）。仅 fake Date，定时器保持真实。
+    vi.useFakeTimers({ now: new Date('2026-09-07T05:00:00+08:00'), toFake: ['Date'] });
+    try {
+      const ws = fakeWs();
+      render(<AlertsPage api={apiWith()} ws={ws as never} />);
+      await waitFor(() => expect(screen.getByText('513310 当日缺口率 7.8%（>1%）')).toBeInTheDocument());
+      ws.emit('alert', {
+        type: 'alert', id: 9001, rule_id: 'collection_stall', level: 'critical',
+        source: 'collector', message: '采集停摆：WS 新事件', status: 'triggered', fire_count: 1,
+        first_fired_at: '2026-09-07T03:00:00Z', last_fired_at: '2026-09-07T03:00:00Z',
+        acked_at: null, resolved_at: null,
+      });
+      await waitFor(() => expect(screen.getByText('采集停摆：WS 新事件')).toBeInTheDocument());
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
