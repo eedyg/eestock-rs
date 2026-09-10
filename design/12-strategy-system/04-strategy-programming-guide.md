@@ -84,6 +84,42 @@ if (ctx.bar.close < m.lower) return 85;          // 破下轨，超卖看多
 
 需要指标历史序列（而非当前值）时，用模块级变量自持滚动窗口（参考 kdj.js/momentum.js 插件）。
 
+## 4.5 历史数据的获取（边界与两条通道）
+
+**插件拿不到原始历史 bar 数组**——`ctx.bar` 只有当前这一根，这是有意设计
+（历史消费必须走受控通道，保证确定性与口径统一）：
+
+**通道 1：指标（首选）**。宿主已对 `bars[0..=index]` 全窗口算好指标，`ma(20)` 就是
+「过去 20 根的均价」——绝大多数历史需求指标已覆盖（见 §4 表）。
+
+**通道 2：自持滚动窗口（需要原始值序列时）**。模块级变量自己攒：
+
+```js
+// 例：Donchian 通道（需要过去 N 根的最高价，momentum.js 参考插件同款模式）
+let highs = [], lows = [];
+const N = 20;
+
+function on_bar(ctx) {
+  // 先用「不含当前 bar」的窗口判定（避免当前 bar 恒 ≤ 自身 high 的自破位）
+  if (highs.length >= N) {
+    const upper = Math.max(...highs.slice(-N));
+    if (ctx.bar.close > upper) return 85;   // 突破 N 日新高
+  }
+  highs.push(ctx.bar.high); lows.push(ctx.bar.low);   // 判定后推窗
+  if (highs.length > N) { highs.shift(); lows.shift(); }
+  return 50;
+}
+// 滚动状态必须进快照，否则恢复/重放后行为分叉：
+function save() { return { highs, lows }; }
+function load(s) { highs = s.highs || []; lows = s.lows || []; }
+```
+
+可模仿的仓内模式：`kdj.js`（RSV 滚动窗）、`macd.js`（EMA 增量复算）、
+`momentum.js`/`atr_channel.js`（Donchian 通道 + 状态快照）。
+
+> 若确需直接读「k 根前那根 bar」（指标覆盖不了的场景），ABI 预留了扩展候选
+> `ctx.bar_at(k)`（0=当前，越界 null）——尚未启用，启用时手册会更新。
+
 ## 5. 参数（PARAMS_SCHEMA）
 
 ```js
