@@ -1,0 +1,86 @@
+{
+ "run_id": "sr_1789041364644_000065",
+ "status": "succeeded",
+ "metrics": {
+  "annualized_return": 0.0,
+  "avg_hold_bars": 0.0,
+  "max_drawdown": 0.0,
+  "net_profit": 0.0,
+  "profit_factor": 0.0,
+  "sharpe": 0.0,
+  "trade_count": 0,
+  "win_rate": 0.0
+ },
+ "trades": [],
+ "config": {
+  "buy_threshold": 60.0,
+  "fee": {
+   "min_fee": 0.0,
+   "rate_pct": 0.005,
+   "slippage_bp": 2.0,
+   "stamp_duty_pct": 0.0
+  },
+  "initial_capital": 100000.0,
+  "policy": {
+   "LumpSum": {
+    "position_pct": 1.0
+   }
+  },
+  "sell_threshold": 40.0,
+  "slots": [
+   {
+    "params": {
+     "atr_mult": 2.0,
+     "atr_n": 14.0,
+     "break_buf_bp": 0.0,
+     "entry_cutoff": 810.0,
+     "entry_mode": 0.0,
+     "force_exit": 885.0,
+     "ma_filter_n": 240.0,
+     "ma_slope_lag": 24.0,
+     "mom_n": 6.0,
+     "mom_pct": 0.5,
+     "or_minutes": 30.0,
+     "pullback_n": 20.0,
+     "use_ma_filter": 1.0,
+     "use_ma_slope": 1.0,
+     "use_or_low_stop": 1.0,
+     "vol_mult": 2.0,
+     "vol_n": 48.0
+    },
+    "sha256": "6b36deea2c92bef0f5b159e2cadd47ca4b593aacdd0b9dee883aa86b057e144f",
+    "strategy_id": "st_1789040608445_000007",
+    "version": 4,
+    "version_id": "sv_1789041175399_000047",
+    "weight": 1.0
+   },
+   {
+    "params": {
+     "atr_mult": 2.0,
+     "atr_n": 14.0,
+     "break_buf_bp": 0.0,
+     "entry_cutoff": 810.0,
+     "entry_mode": 2.0,
+     "force_exit": 885.0,
+     "ma_filter_n": 240.0,
+     "ma_slope_lag": 24.0,
+     "mom_n": 6.0,
+     "mom_pct": 0.4,
+     "or_minutes": 30.0,
+     "pullback_n": 20.0,
+     "use_ma_filter": 1.0,
+     "use_ma_slope": 1.0,
+     "use_or_low_stop": 1.0,
+     "vol_mult": 1.5,
+     "vol_n": 48.0
+    },
+    "sha256": "6b36deea2c92bef0f5b159e2cadd47ca4b593aacdd0b9dee883aa86b057e144f",
+    "strategy_id": "st_1789040608445_000007",
+    "version": 4,
+    "version_id": "sv_1789041175399_000047",
+    "weight": 1.0
+   }
+  ],
+  "stop": null
+ }
+}

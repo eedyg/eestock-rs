@@ -711,7 +711,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_run_ensemble",
-            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，仅 published 版本可运行；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）。适用场景：策略组合历史表现验证/参数与阈值对比。",
+            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，仅 published 版本可运行；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）；可选 stamp_duty_pct（缺省 0.05 A股股票口径；ETF 回测显式传 0，值域 [0,1]）。适用场景：策略组合历史表现验证/参数与阈值对比。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -731,7 +731,7 @@ fn tool_schemas() -> Vec<Value> {
                     "policy": { "type": "object", "description": "ExecutionPolicy：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}" },
                     "stop": { "type": "object", "description": "硬止损（可空）：{\"kind\":\"FixedPct|Trailing|Atr\", \"value\":>0, \"trigger\":\"Intrabar|CloseBasis\"}" },
                     "initial_capital": { "type": "number", "description": "初始资金，默认 100000" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）" }
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）；stamp_duty_pct 可选，缺省 0.05（A股股票），ETF 显式传 0，值域 [0,1]" }
                 },
                 "required": ["symbol", "period", "from", "to", "slots", "policy"]
             }

@@ -1,0 +1,89 @@
+{
+ "run_id": "sr_1789041579555_000077",
+ "status": "succeeded",
+ "metrics": {
+  "annualized_return": 0.01795273013209031,
+  "avg_hold_bars": 10.0,
+  "max_drawdown": 0.005140736074194897,
+  "net_profit": 169.31070739861752,
+  "profit_factor": null,
+  "sharpe": 0.7357236438565663,
+  "trade_count": 2,
+  "win_rate": 1.0
+ },
+ "trades": [
+  {
+   "close_bar": 676,
+   "close_price": 4.8810236,
+   "close_ts": 1787807100,
+   "commission": 10.004676782039772,
+   "gross_value": 100098.53539080796,
+   "hold_bars": 13,
+   "open_bar": 663,
+   "open_price": 4.8759749999999995,
+   "open_ts": 1787798100,
+   "pnl": 93.53046403842744,
+   "shares": 20507.69338439748,
+   "stamp_duty": 0.0
+  },
+  {
+   "close_bar": 1028,
+   "close_price": 4.7760446000000005,
+   "close_ts": 1788758100,
+   "commission": 10.013142273055315,
+   "gross_value": 100174.3194233698,
+   "hold_bars": 7,
+   "open_bar": 1021,
+   "open_price": 4.7719542,
+   "open_ts": 1788750900,
+   "pnl": 75.78024336019007,
+   "shares": 20974.32662654988,
+   "stamp_duty": 0.0
+  }
+ ],
+ "config": {
+  "buy_threshold": 60.0,
+  "fee": {
+   "min_fee": 0.0,
+   "rate_pct": 0.005,
+   "slippage_bp": 2.0,
+   "stamp_duty_pct": 0.0
+  },
+  "initial_capital": 100000.0,
+  "policy": {
+   "LumpSum": {
+    "position_pct": 1.0
+   }
+  },
+  "sell_threshold": 40.0,
+  "slots": [
+   {
+    "params": {
+     "atr_mult": 2.0,
+     "atr_n": 14.0,
+     "break_buf_bp": 0.0,
+     "entry_cutoff": 810.0,
+     "entry_mode": 1.0,
+     "force_exit": 885.0,
+     "ma_filter_n": 240.0,
+     "ma_slope_lag": 24.0,
+     "mom_n": 6.0,
+     "mom_pct": 0.5,
+     "or_minutes": 30.0,
+     "pullback_n": 20.0,
+     "use_ma_filter": 1.0,
+     "use_ma_slope": 1.0,
+     "use_or_low_stop": 1.0,
+     "vol_mult": 2.0,
+     "vol_n": 48.0
+    },
+    "sha256": "6b36deea2c92bef0f5b159e2cadd47ca4b593aacdd0b9dee883aa86b057e144f",
+    "strategy_id": "st_1789040608445_000007",
+    "version": 4,
+    "version_id": "sv_1789041175399_000047",
+    "weight": 1.0
+   }
+  ],
+  "stop": null
+ }
+}

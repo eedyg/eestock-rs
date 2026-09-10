@@ -436,7 +436,8 @@ pub const RESET_SOURCES: &[&str] = &[
 
 // ── 费用校验（§1.5 旧回测退役后由 §1.8 工作台沿用；POST /api/workbench/runs 复用）──
 
-/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值。
+/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值；
+/// `stamp_duty_pct` 可选（研发任务裁决：ETF 无印花税，缺省由 application 层取 0.05），若提供须为数值且 ∈ [0, 1]。
 pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
     let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
     for key in ["rate_pct", "min_fee", "slippage_bp"] {
@@ -444,6 +445,13 @@ pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> 
             Some(v) if v.is_number() => {}
             Some(_) => return Err(FieldError::BadRequest(format!("fee.{key} 应为数值"))),
             None => return Err(FieldError::BadRequest(format!("fee.{key} 缺失"))),
+        }
+    }
+    if let Some(v) = obj.get("stamp_duty_pct") {
+        match v.as_f64() {
+            Some(x) if (0.0..=1.0).contains(&x) => {}
+            Some(_) => return Err(FieldError::BadRequest("fee.stamp_duty_pct 须 ∈ [0,1]".into())),
+            None => return Err(FieldError::BadRequest("fee.stamp_duty_pct 应为数值".into())),
         }
     }
     Ok(())
@@ -712,6 +720,15 @@ mod tests {
         let nonnum = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": "2"});
         assert!(matches!(validate_backtest_fee(&nonnum), Err(FieldError::BadRequest(_))));
         assert!(matches!(validate_backtest_fee(&serde_json::json!(42)), Err(FieldError::BadRequest(_))));
+        // stamp_duty_pct 可选（研发任务裁决：ETF 无印花税）：缺省兼容；显式 0 合法；越界/非数值 400。
+        let etf = serde_json::json!({"rate_pct": 0.005, "min_fee": 0.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0});
+        assert!(validate_backtest_fee(&etf).is_ok());
+        let over = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 1.5});
+        assert!(matches!(validate_backtest_fee(&over), Err(FieldError::BadRequest(_))));
+        let neg = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": -0.1});
+        assert!(matches!(validate_backtest_fee(&neg), Err(FieldError::BadRequest(_))));
+        let nonnum_stamp = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": "0"});
+        assert!(matches!(validate_backtest_fee(&nonnum_stamp), Err(FieldError::BadRequest(_))));
     }
 }
 

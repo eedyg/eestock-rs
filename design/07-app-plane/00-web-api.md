@@ -163,13 +163,13 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 | 方法/路径 | 参数 | 响应 | 数据源 | 错误态 |
 |---|---|---|---|---|
 | `GET /api/backtest/strategies` | — | `[BacktestStrategyDto]`（id/name/description/params_schema，恰 7 款内置） | `BacktestService::strategies()`（backtest 注册表） | 500 |
-| `POST /api/backtest/runs` | body `{code,period,from,to,strategy_id,params?,params_grid?,fee:{rate_pct,min_fee,slippage_bp},initial_capital?}` | 200 `{"run_id":N}` 或 `{"group_id":G,"run_ids":[N,...]}`（网格展开） | `BacktestService::submit`（入队，异步；限并发） | 400：code 空 / from、to 非 RFC3339 / period 非法（非 M1\|M5\|M15\|D1）/ fee 缺字段或非数值 / 无 params 且无 params_grid；404：strategy_id 未知；500 |
+| `POST /api/backtest/runs` | body `{code,period,from,to,strategy_id,params?,params_grid?,fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?},initial_capital?}` | 200 `{"run_id":N}` 或 `{"group_id":G,"run_ids":[N,...]}`（网格展开） | `BacktestService::submit`（入队，异步；限并发） | 400：code 空 / from、to 非 RFC3339 / period 非法（非 M1\|M5\|M15\|D1）/ fee 缺字段或非数值 / 无 params 且无 params_grid；404：strategy_id 未知；500 |
 | `GET /api/backtest/runs` | `status=pending\|running\|done\|failed`、`group_id=G`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[BacktestRunDto]`（**轻量列表：不含 net_value/trades/metrics 结果列**；created_at DESC, id DESC 排序；`返回条数==limit` 表示还有更多，前端据此做分页） | `BacktestService::list_runs`（storage 走轻量 SELECT，无 LEFT JOIN backtest_results） | 400：status 非法；500 |
 | `GET /api/backtest/runs/{id}` | — | `BacktestRunDto`（net_value/trades/metrics 完成才非 null） | `BacktestService::get_run` | 404：id 未知；500 |
 | `DELETE /api/backtest/runs/{id}` | — | 200 `{"deleted":true}`（run 及其结果级联删除） | `BacktestService::delete_run`（store 删 run，FK 级联删 result） | 404：id 未知；500 |
 | `GET /api/backtest/compare` | `ids=1,2,3`（逗号分隔必填） | `[BacktestRunDto]`（只含 store 存在的 run） | `BacktestService::compare` | 400：ids 空或含非数字；500 |
 
-字段口径：`period` 取 `M1/M5/M15/D1`（支持周期间；`H1` 拒绝 400，08-backtest §3）。`from`/`to` 为 RFC3339，回测区间 `[from,to)`（B1 起持久化到 `backtest_runs.date_from/date_to`，`date_to` 存排除端点 `to`；`BacktestRunDto` 暴露 `initial_capital/date_from/date_to`，前端把 `date_from~date_to` 展示为区间）。`fee` 为用户可调 3 字段，`stamp_duty_pct` 由 application 层取 ADR bt-1 常量（0.05%）。`params` 单点（与 `params_grid` 二选一；网格场景作为公共基础参数），`params_grid` = `{k:"起:止:步长"}`（多键笛卡尔积展开 N 子任务，共享 `group_id`）。`BacktestRunDto.net_value` = `{series,drawdown}`（净值序列+回撤序列），`metrics`/`trades` 为 jsonb 直通（前端渲染）。
+字段口径：`period` 取 `M1/M5/M15/D1`（支持周期间；`H1` 拒绝 400，08-backtest §3）。`from`/`to` 为 RFC3339，回测区间 `[from,to)`（B1 起持久化到 `backtest_runs.date_from/date_to`，`date_to` 存排除端点 `to`；`BacktestRunDto` 暴露 `initial_capital/date_from/date_to`，前端把 `date_from~date_to` 展示为区间）。`fee` 为用户可调 3+1 字段：`stamp_duty_pct` 可选（研发任务裁决修订），缺省由 application 层取 0.05%（A 股股票口径，ADR bt-1），ETF 类回测显式传 0；若提供须 ∈ [0,1]，否则 400。`params` 单点（与 `params_grid` 二选一；网格场景作为公共基础参数），`params_grid` = `{k:"起:止:步长"}`（多键笛卡尔积展开 N 子任务，共享 `group_id`）。`BacktestRunDto.net_value` = `{series,drawdown}`（净值序列+回撤序列），`metrics`/`trades` 为 jsonb 直通（前端渲染）。
 
 #### WS
 
@@ -286,7 +286,7 @@ BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppStat
 
 | 方法/路径 | 参数 | 响应 | 错误态 |
 |---|---|---|---|
-| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight}`） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本非 published、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
+| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight}`） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本非 published、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
 | `GET /api/workbench/runs` | `status=queued\|running\|succeeded\|failed\|canceled`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[StrategyRunView]`（**轻量：不含结果**；created_at DESC, id DESC） | 400：status 非法；503；500 |
 | `GET /api/workbench/runs/{id}` | — | `StrategyRunView` | 404：id 未知；503；500 |
 | `GET /api/workbench/runs/{id}/result` | — | `StrategyRunResult`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics 五 jsonb，ADR §13.4） | 404：id 未知或未成功（无结果）；503；500 |
@@ -2782,7 +2782,8 @@ pub const RESET_SOURCES: &[&str] = &[
 
 // ── 费用校验（§1.5 旧回测退役后由 §1.8 工作台沿用；POST /api/workbench/runs 复用）──
 
-/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值。
+/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值；
+/// `stamp_duty_pct` 可选（研发任务裁决：ETF 无印花税，缺省由 application 层取 0.05），若提供须为数值且 ∈ [0, 1]。
 pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
     let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
     for key in ["rate_pct", "min_fee", "slippage_bp"] {
@@ -2790,6 +2791,13 @@ pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> 
             Some(v) if v.is_number() => {}
             Some(_) => return Err(FieldError::BadRequest(format!("fee.{key} 应为数值"))),
             None => return Err(FieldError::BadRequest(format!("fee.{key} 缺失"))),
+        }
+    }
+    if let Some(v) = obj.get("stamp_duty_pct") {
+        match v.as_f64() {
+            Some(x) if (0.0..=1.0).contains(&x) => {}
+            Some(_) => return Err(FieldError::BadRequest("fee.stamp_duty_pct 须 ∈ [0,1]".into())),
+            None => return Err(FieldError::BadRequest("fee.stamp_duty_pct 应为数值".into())),
         }
     }
     Ok(())
@@ -3058,6 +3066,15 @@ mod tests {
         let nonnum = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": "2"});
         assert!(matches!(validate_backtest_fee(&nonnum), Err(FieldError::BadRequest(_))));
         assert!(matches!(validate_backtest_fee(&serde_json::json!(42)), Err(FieldError::BadRequest(_))));
+        // stamp_duty_pct 可选（研发任务裁决：ETF 无印花税）：缺省兼容；显式 0 合法；越界/非数值 400。
+        let etf = serde_json::json!({"rate_pct": 0.005, "min_fee": 0.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0});
+        assert!(validate_backtest_fee(&etf).is_ok());
+        let over = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 1.5});
+        assert!(matches!(validate_backtest_fee(&over), Err(FieldError::BadRequest(_))));
+        let neg = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": -0.1});
+        assert!(matches!(validate_backtest_fee(&neg), Err(FieldError::BadRequest(_))));
+        let nonnum_stamp = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": "0"});
+        assert!(matches!(validate_backtest_fee(&nonnum_stamp), Err(FieldError::BadRequest(_))));
     }
 }
 
