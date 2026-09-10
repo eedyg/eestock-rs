@@ -286,7 +286,7 @@ BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppStat
 
 | 方法/路径 | 参数 | 响应 | 错误态 |
 |---|---|---|---|
-| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight}`） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本非 published、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
+| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight,archived}`；`archived` 为审计标记，见下方 submit 口径） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本为 draft（未发布代码不可运行；published|archived 可运行）、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
 | `GET /api/workbench/runs` | `status=queued\|running\|succeeded\|failed\|canceled`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[StrategyRunView]`（**轻量：不含结果**；created_at DESC, id DESC） | 400：status 非法；503；500 |
 | `GET /api/workbench/runs/{id}` | — | `StrategyRunView` | 404：id 未知；503；500 |
 | `GET /api/workbench/runs/{id}/result` | — | `StrategyRunResult`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics 五 jsonb，ADR §13.4） | 404：id 未知或未成功（无结果）；503；500 |
@@ -308,8 +308,12 @@ BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppStat
 形态（`{"kind":"FixedPct"|"Trailing"|"Atr","value":..,"trigger":"Intrabar"|"CloseBasis"}`，trigger 缺省
 Intrabar），null/缺省 = 无硬止损。`buy_threshold`/`sell_threshold` 缺省 60/40（ADR §6）；
 `initial_capital` 缺省 100_000。**运行钉住**：submit 时快照 `(strategy_id, version_id, version, sha256,
-params[按 schema 缺省填充], weight)` 入 config（ADR §13.4 复现前提；published 不可变由 0022 trigger
-保证 sha256 不失配）。**取消语义**：queued → DB 直接落 canceled（后台任务 mark_started 认领失败自动放弃）；
+params[按 schema 缺省填充], weight, archived)` 入 config（ADR §13.4 复现前提；published 不可变由 0022 trigger
+保证 sha256 不失配）。**版本状态口径（2026-09-10 裁决）**：submit 允许 published|archived 版本——
+archived 为**审计重跑**（代码不可变+sha256 钉住、回测不触真实资金），快照 `archived:true` 审计标记
+随 submit 201 响应与 `GET /api/workbench/runs/{id}` 详情返回（避免误解为「在用策略」）；draft 仍 400
+（未发布代码不可运行，门禁语义保留；与 version_id 未知 404 区分）。catalog 下拉/sim-live 会话/未来
+live_approved 语义**不放宽**（仅 published）。**取消语义**：queued → DB 直接落 canceled（后台任务 mark_started 认领失败自动放弃）；
 running → 内存取消标记 + DB canceled，引擎 observer 每 bar 回调点检查标记，下一 bar 边界协作式 Break
 （`EnsembleError::Canceled`，不落结果）。进度 0..1（observer 回调按 0.1% 粒度节流防帧洪泛）。
 

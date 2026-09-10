@@ -711,7 +711,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_run_ensemble",
-            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，仅 published 版本可运行；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）；可选 stamp_duty_pct（缺省 0.05 A股股票口径；ETF 回测显式传 0，值域 [0,1]）。适用场景：策略组合历史表现验证/参数与阈值对比。",
+            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）；可选 stamp_duty_pct（缺省 0.05 A股股票口径；ETF 回测显式传 0，值域 [0,1]）。适用场景：策略组合历史表现验证/参数与阈值对比。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -1439,6 +1439,8 @@ fn strategy_guide(st: &McpState, id: Option<Value>) -> Value {
 
 /// bt_run_ensemble(...)：提交 ensemble 回测（异步任务，返回 run_id）。
 /// slot.version_id 缺省 → catalog 解析该策略最新 published（父级批准口径；无 published → isError）。
+/// 显式 version_id：published|archived 可运行（archived = 审计重跑，2026-09-10 裁决；config 快照
+/// 钉住 archived 审计标记）；draft → isError（未发布代码不可运行）。语义校验归服务层。
 async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
     let strategies = match strategy_service(st, &id) { Ok(s) => s, Err(e) => return e };
@@ -1461,7 +1463,7 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
     let Some(slots_v) = args.get("slots").and_then(Value::as_array).filter(|a| !a.is_empty()) else {
         return result_err(id, INVALID_PARAMS, "slots 必填（非空数组，1..=10）");
     };
-    // 槽位结构校验（-32602）；语义校验（published/weight>0/params schema）归服务层（isError）。
+    // 槽位结构校验（-32602）；语义校验（draft 拒绝/weight>0/params schema）归服务层（isError）。
     let mut pending: Vec<(String, Option<String>, f64, Value)> = Vec::with_capacity(slots_v.len());
     for (i, s) in slots_v.iter().enumerate() {
         let Some(strategy_id) = s.get("strategy_id").and_then(Value::as_str).filter(|x| !x.is_empty()) else {
@@ -2955,7 +2957,7 @@ mod tests {
     #[tokio::test]
     async fn bt_run_ensemble_unpublished_and_invalid_config_are_is_error() {
         let (st, _fx) = strategy_state();
-        // draft 版本显式 version_id → isError（仅 published 可运行）
+        // draft 版本显式 version_id → isError（未发布代码不可运行；published|archived 可运行）
         let r = call(&st, "strategy_create", json!({ "name": "d", "code": CONST_80 })).await;
         let draft_vid = payload_of(&r)["version"]["id"].as_str().unwrap().to_string();
         let draft_sid = payload_of(&r)["strategy"]["id"].as_str().unwrap().to_string();
@@ -2989,6 +2991,40 @@ mod tests {
         a["policy"] = json!({ "Bogus": {} });
         let r = call(&st, "bt_run_ensemble", a).await;
         assert_eq!(r["result"]["isError"], true, "非法 policy");
+    }
+
+    /// 2026-09-10 裁决：archived 版本可审计重跑（显式 version_id；config 快照钉住 archived 审计标记）。
+    #[tokio::test]
+    async fn bt_run_ensemble_archived_version_audit_rerun() {
+        let (st, _fx) = strategy_state();
+        let (sid, vid) = create_published(&st, "恒分80", CONST_80).await;
+        let r = call(&st, "strategy_archive", json!({ "version_id": vid })).await;
+        assert_eq!(payload_of(&r)["status"], json!("archived"), "published→archived 归档成功");
+        let r = call(&st, "bt_run_ensemble", json!({
+            "name": "audit", "symbol": "600000", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "slots": [{ "strategy_id": sid, "version_id": vid, "weight": 1.0 }],
+            "policy": { "LumpSum": { "position_pct": 1.0 } }
+        })).await;
+        let p = payload_of(&r);
+        let run_id = p["run_id"].as_str().unwrap().to_string();
+        assert!(run_id.starts_with("sr_"), "archived 版本审计重跑应提交成功: {p}");
+        let slot = &p["run"]["config"]["slots"][0];
+        assert_eq!(slot["version_id"], json!(vid), "钉住 archived version_id");
+        assert_eq!(slot["archived"], json!(true), "审计标记 archived=true");
+        assert_eq!(slot["sha256"].as_str().unwrap().len(), 64, "sha256 钉住");
+        // 轮询至成功（真实 QuickJS 引擎跑 6 bar，不触真实资金）
+        let mut status = String::new();
+        for _ in 0..200 {
+            let r = call(&st, "bt_get_run", json!({ "run_id": run_id })).await;
+            status = payload_of(&r)["status"].as_str().unwrap().to_string();
+            if status != "queued" && status != "running" { break; }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert_eq!(status, "succeeded", "审计重跑应成功");
+        // 详情（bt_get_run）返回 config 快照含审计标记
+        let r = call(&st, "bt_get_run", json!({ "run_id": run_id })).await;
+        assert_eq!(payload_of(&r)["config"]["slots"][0]["archived"], json!(true));
     }
 
     #[tokio::test]

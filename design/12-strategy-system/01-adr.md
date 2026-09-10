@@ -84,6 +84,7 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 ```
 
 - **published 不可变**：编辑已发布版本 → 自动产生新 draft 版本；运行中的回测/会话**钉住 (strategy_id, version, sha256)**。
+- **archived 版本可用于审计重跑**（2026-09-10 裁决）：workbench submit（REST + MCP bt_run_ensemble）允许 archived 版本——代码不可变+sha256 钉住、回测不触真实资金；config 快照钉住 `archived:true` 审计标记。catalog/sim-live/未来 live_approved 选用仍仅 published 不变。
 - **参数与代码分离**：插件内声明 `params_schema`（key/type/default/min/max/description），消费方 UI 按 schema 渲染参数表单 + 权重 + 标的映射；逻辑改动走代码，调优走参数。
 - **catalog 接口**：`GET /api/strategies?level=backtest_ok` 为所有消费方下拉唯一数据源（沿用 builtin_strategy_catalog 模式，来源换 DB）；实盘场景过滤 `live_approved`。
 

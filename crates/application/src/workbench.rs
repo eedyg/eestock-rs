@@ -14,8 +14,10 @@
 //!   → 落 canceled（不落结果）。完成 `mark_succeeded`（同事务落五 jsonb 结果）/ 插件错误
 //!   `mark_failed`。
 //! - **运行钉住快照**：submit 时把 (strategy_id, version_id, version, sha256, params[缺省填充],
-//!   weight) 快照进 `config`（复现前提，published 不可变由 0022 trigger 保证 sha256 不失配）。
-//! - 提交校验全路径（400/404）：版本存在（404）且 published（400）；symbol 已注册（400）；
+//!   weight, archived) 快照进 `config`（复现前提，published 不可变由 0022 trigger 保证 sha256 不失配；
+//!   `archived` 为审计标记——2026-09-10 裁决：archived 版本允许审计重跑）。
+//! - 提交校验全路径（400/404）：版本存在（404）且非 draft（400；published|archived 可运行——
+//!   archived 为审计重跑，draft 未发布代码不可运行）；symbol 已注册（400）；
 //!   区间上限 D1≤5年 / 分钟级≤3个月（400）；slots 1..=10；weight>0；params 按 schema 校验填充；
 //!   阈值/Policy 经 `EnsembleConfig::validate`（strategy-core）；Stop value 正有限；fee 三字段；
 //!   bar 数 >20 万拒绝（400）。
@@ -148,6 +150,8 @@ struct ValidatedSlot {
     params: StrategyParams,
     params_json: serde_json::Value,
     weight: f64,
+    /// 审计标记：archived 版本提交的运行（2026-09-10 裁决审计重跑），钉入 config 快照。
+    archived: bool,
 }
 
 /// 回测工作台服务。
@@ -227,7 +231,7 @@ impl WorkbenchService {
             ))
             .into());
         }
-        // 槽位钉住校验（版本存在 404 / published 400 / weight>0 / params schema 校验填充）。
+        // 槽位钉住校验（版本存在 404 / draft 400——published|archived 可运行 / weight>0 / params schema 校验填充）。
         let mut slots = Vec::with_capacity(req.slots.len());
         for s in &req.slots {
             slots.push(self.validate_slot(s).await?);
@@ -291,6 +295,7 @@ impl WorkbenchService {
         }
 
         // 钉住快照（复现前提）：slots 全字段 + 阈值 + policy/stop 原文 + 资金 + fee 原文。
+        // `archived` 为审计标记（2026-09-10 裁决：archived 版本可审计重跑，避免误解为「在用策略」）。
         let config = serde_json::json!({
             "slots": slots.iter().map(|s| serde_json::json!({
                 "strategy_id": s.strategy_id,
@@ -299,6 +304,7 @@ impl WorkbenchService {
                 "sha256": s.sha256,
                 "params": s.params_json,
                 "weight": s.weight,
+                "archived": s.archived,
             })).collect::<Vec<_>>(),
             "buy_threshold": buy,
             "sell_threshold": sell,
@@ -339,7 +345,9 @@ impl WorkbenchService {
         Ok(run)
     }
 
-    /// 槽位校验 + 钉住（版本存在 404 / 须 published 400 / weight>0 / params schema 填充）。
+    /// 槽位校验 + 钉住（版本存在 404 / draft 400 / weight>0 / params schema 填充）。
+    /// 2026-09-10 裁决：published|archived 可运行（archived = 审计重跑，快照带 `archived` 标记）；
+    /// draft 仍拒绝（未发布代码不可运行，门禁语义保留）。
     async fn validate_slot(&self, s: &SlotReq) -> anyhow::Result<ValidatedSlot> {
         if s.version_id.trim().is_empty() {
             return Err(WorkbenchValidation("slot.version_id 必填".into()).into());
@@ -356,14 +364,23 @@ impl WorkbenchService {
             .get_version(&s.version_id)
             .await?
             .ok_or_else(|| WorkbenchNotFound(format!("策略版本不存在: {}", s.version_id)))?;
-        if v.status != domain::strategy_state::StrategyStatus::Published {
+        let status = v.status;
+        if status == domain::strategy_state::StrategyStatus::Draft {
             return Err(WorkbenchValidation(format!(
-                "策略版本 {} 未发布（status={}），仅 published 版本可运行",
-                s.version_id,
-                v.status.as_str()
+                "策略版本 {} 未发布（status=draft），draft 版本不可运行（published/archived 版本可运行）",
+                s.version_id
             ))
             .into());
         }
+        debug_assert!(
+            matches!(
+                status,
+                domain::strategy_state::StrategyStatus::Published
+                    | domain::strategy_state::StrategyStatus::Archived
+            ),
+            "状态机仅 draft/published/archived 三态"
+        );
+        let archived = status == domain::strategy_state::StrategyStatus::Archived;
         let schema = schema_from_json(&v.params_schema);
         let params =
             fill_and_validate_params(&schema, &s.params).map_err(WorkbenchValidation)?;
@@ -390,6 +407,7 @@ impl WorkbenchService {
             params,
             params_json,
             weight: s.weight,
+            archived,
         })
     }
 
@@ -557,9 +575,9 @@ impl WorkbenchService {
         Ok(self.get_preset(id).await?.config)
     }
 
-    /// 预设 config 校验 + 钉住（与 submit 同口径：slots 1..=10 / weight>0 / 版本存在+published /
+    /// 预设 config 校验 + 钉住（与 submit 同口径：slots 1..=10 / weight>0 / 版本存在+非 draft /
     /// params schema 填充 / 阈值+policy 经 strategy-core validate / stop 正有限 / fee 三字段）。
-    /// 输出钉住形态（slots 展开为 {strategy_id, version_id, version, sha256, params, weight}）。
+    /// 输出钉住形态（slots 展开为 {strategy_id, version_id, version, sha256, params, weight, archived}）。
     async fn validate_preset_config(
         &self,
         config: &serde_json::Value,
@@ -649,6 +667,7 @@ impl WorkbenchService {
                 "sha256": s.sha256,
                 "params": s.params_json,
                 "weight": s.weight,
+                "archived": s.archived,
             })).collect::<Vec<_>>(),
             "buy_threshold": buy,
             "sell_threshold": sell,

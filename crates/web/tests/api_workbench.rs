@@ -203,6 +203,7 @@ async fn submit_run_lifecycle_end_to_end() {
     assert_eq!(slot["version_id"], vid, "快照钉住 version_id");
     assert_eq!(slot["sha256"].as_str().unwrap().len(), 64, "快照钉住 sha256");
     assert!(slot["strategy_id"].as_str().unwrap().starts_with("st_"));
+    assert_eq!(slot["archived"], false, "published 版本审计标记为 false");
     assert_eq!(run["config"]["buy_threshold"], 60.0, "阈值缺省 60");
 
     // 等待成功 → progress 1 / started_at/finished_at 齐
@@ -268,10 +269,14 @@ async fn submit_validation_error_matrix() {
     let r = http.post(format!("{url}/api/workbench/runs"))
         .json(&submit_body("000000", &vid)).send().await.unwrap();
     assert_eq!(r.status(), 400, "未注册 symbol 应 400: {:?}", r.text().await);
-    // draft 版本 → 400
+    // draft 版本 → 400（未发布不可运行，与 404 不存在区分）
     let r = http.post(format!("{url}/api/workbench/runs"))
         .json(&submit_body(&code, &draft_vid)).send().await.unwrap();
     assert_eq!(r.status(), 400, "draft 版本应 400: {:?}", r.text().await);
+    let body: Value = r.json().await.unwrap();
+    let msg = body["error"].as_str().unwrap_or_default().to_string();
+    assert!(msg.contains("未发布") && msg.contains("draft"),
+        "draft 文案须区分「未发布不可运行」: {msg}");
     // 未知版本 → 404
     let r = http.post(format!("{url}/api/workbench/runs"))
         .json(&submit_body(&code, "sv_none")).send().await.unwrap();
@@ -338,6 +343,42 @@ async fn submit_validation_error_matrix() {
     assert_eq!(r.status(), 400, "空区间应 400: {:?}", r.text().await);
 
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(&code2).execute(&pool).await.unwrap();
+    clean(&pool, &code, &p).await;
+}
+
+// ── 审计重跑（2026-09-10 裁决）：archived 版本可 submit，config 快照钉住 archived 审计标记 ──
+
+#[tokio::test]
+async fn submit_archived_version_audit_rerun_201() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let code = format!("85{}", std::process::id() % 10000);
+    let p = pref("audit");
+    clean(&pool, &code, &p).await;
+    seed_symbol_and_bars(&pool, &code).await;
+    let vid = create_published(&http, &url, &format!("{p}-const"), CONST_SCORE).await;
+    // 归档（published → archived）
+    let r = http.post(format!("{url}/api/strategies/versions/{vid}/archive"))
+        .send().await.unwrap();
+    assert_eq!(r.status(), 200, "archive 应 200: {:?}", r.text().await);
+
+    // archived 版本审计重跑 → 201 + 审计标记
+    let r = http.post(format!("{url}/api/workbench/runs"))
+        .json(&submit_body(&code, &vid)).send().await.unwrap();
+    assert_eq!(r.status(), 201, "archived 版本审计重跑应 201: {:?}", r.text().await);
+    let run: Value = r.json().await.unwrap();
+    let run_id = run["id"].as_str().unwrap().to_string();
+    let slot = &run["config"]["slots"][0];
+    assert_eq!(slot["version_id"], vid, "快照钉住 version_id");
+    assert_eq!(slot["archived"], true, "审计标记 archived=true");
+    assert_eq!(slot["sha256"].as_str().unwrap().len(), 64, "快照钉住 sha256");
+
+    // 详情返回该标记 + 审计重跑至成功
+    let fin = wait_terminal(&http, &url, &run_id).await;
+    assert_eq!(fin["status"], "succeeded", "审计重跑应成功: {:?}", fin["error"]);
+    assert_eq!(fin["config"]["slots"][0]["archived"], true, "详情返回审计标记");
+
     clean(&pool, &code, &p).await;
 }
 

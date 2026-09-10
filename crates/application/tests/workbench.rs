@@ -505,15 +505,34 @@ async fn submit_rejects_draft_version_400() {
     let r = rig(trend_bars(), 2);
     r.strategies.add_version("sv_draft", "st_1", CONST_SCORE, StrategyStatus::Draft);
     let err = r.svc.submit(submit_req("sv_draft")).await.unwrap_err();
-    assert!(err.downcast_ref::<WorkbenchValidation>().is_some(), "draft 版本 → 400: {err:?}");
+    let e = err.downcast_ref::<WorkbenchValidation>().expect("draft 版本 → 400");
+    assert!(e.0.contains("draft") && e.0.contains("未发布"),
+        "draft 文案须区分「未发布不可运行」（与 404 不存在区分）: {}", e.0);
+}
+
+/// 2026-09-10 架构裁决：archived 版本允许审计重跑（代码不可变+sha256 钉住、回测不触真实资金）；
+/// submit 放行 published|archived，config 快照钉住 `archived` 审计标记。
+#[tokio::test]
+async fn submit_accepts_archived_version_with_audit_marker() {
+    let r = rig(trend_bars(), 2);
+    r.strategies.add_version("sv_arch", "st_1", TREND, StrategyStatus::Archived);
+    let run = r.svc.submit(submit_req("sv_arch")).await.expect("archived 版本审计重跑应可提交");
+    assert_eq!(run.status, StrategyRunStatus::Queued);
+    let slot = &run.config["slots"][0];
+    assert_eq!(slot["version_id"], "sv_arch", "快照钉住 version_id");
+    assert_eq!(slot["archived"], true, "archived 版本须带审计标记");
+    assert_eq!(slot["sha256"].as_str().unwrap().len(), 64, "快照钉住 sha256");
+    // 审计重跑真实执行至成功（不触真实资金，纯历史 bar 回放）
+    let fin = wait_terminal(&r.runs, &run.id).await;
+    assert_eq!(fin.status, StrategyRunStatus::Succeeded, "审计重跑应成功: {:?}", fin.error);
 }
 
 #[tokio::test]
-async fn submit_rejects_archived_version_400() {
+async fn submit_marks_published_version_not_archived() {
     let r = rig(trend_bars(), 2);
-    r.strategies.add_version("sv_arch", "st_1", CONST_SCORE, StrategyStatus::Archived);
-    let err = r.svc.submit(submit_req("sv_arch")).await.unwrap_err();
-    assert!(err.downcast_ref::<WorkbenchValidation>().is_some(), "archived 版本 → 400");
+    r.strategies.add_version("sv_pub", "st_1", CONST_SCORE, StrategyStatus::Published);
+    let run = r.svc.submit(submit_req("sv_pub")).await.expect("published 提交成功");
+    assert_eq!(run.config["slots"][0]["archived"], false, "published 版本审计标记为 false");
 }
 
 #[tokio::test]
