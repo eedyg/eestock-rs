@@ -482,3 +482,84 @@ async fn test_run_both_modes_and_errors() {
     sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(&code).execute(&pool).await.unwrap();
     clean_strategies(&pool, &p).await;
 }
+
+// ── 策略删除（裁决 2026-09-10）：DELETE /api/strategies/{id} → 204/404/409；
+// manage 条目 deletable 字段（全 draft/零版本 → true）──
+
+#[tokio::test]
+async fn delete_endpoint_all_draft_204_published_or_archived_409_unknown_404() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let p = pref("del");
+    clean_strategies(&pool, &p).await;
+
+    // 全 draft → 204
+    let created = create(&http, &url, &format!("{p}-draft"), CONST_SCORE).await;
+    let sid_draft = created["strategy"]["id"].as_str().unwrap().to_string();
+    // manage 列表 deletable=true
+    let r = http.get(format!("{url}/api/strategies/manage")).send().await.unwrap();
+    let body: Value = r.json().await.unwrap();
+    let e = body["items"].as_array().unwrap().iter()
+        .find(|e| e["id"] == sid_draft).expect("应在列");
+    assert_eq!(e["deletable"], true, "全 draft → deletable=true");
+
+    let r = http.delete(format!("{url}/api/strategies/{sid_draft}")).send().await.unwrap();
+    assert_eq!(r.status(), 204, "{:?}", r.text().await);
+    let r = http.get(format!("{url}/api/strategies/{sid_draft}")).send().await.unwrap();
+    assert_eq!(r.status(), 404, "删除后 get 应 404");
+
+    // 重复删 → 404
+    let r = http.delete(format!("{url}/api/strategies/{sid_draft}")).send().await.unwrap();
+    assert_eq!(r.status(), 404, "已删策略再删 → 404");
+
+    // published → 409（文案「含已发布版本的策略不可删除，请归档」）
+    let created = create(&http, &url, &format!("{p}-pub"), TREND).await;
+    let sid_pub = created["strategy"]["id"].as_str().unwrap().to_string();
+    let vid_pub = created["version"]["id"].as_str().unwrap().to_string();
+    let r = http.post(format!("{url}/api/strategies/versions/{vid_pub}/publish")).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let r = http.get(format!("{url}/api/strategies/manage")).send().await.unwrap();
+    let body: Value = r.json().await.unwrap();
+    let e = body["items"].as_array().unwrap().iter().find(|e| e["id"] == sid_pub).unwrap();
+    assert_eq!(e["deletable"], false, "含 published → deletable=false");
+    let r = http.delete(format!("{url}/api/strategies/{sid_pub}")).send().await.unwrap();
+    assert_eq!(r.status(), 409, "含 published → 409");
+    let body: Value = r.json().await.unwrap();
+    assert!(body["error"].as_str().unwrap().contains("含已发布版本的策略不可删除，请归档"),
+        "409 文案：{}", body["error"]);
+
+    // published→archived 历史 → 409
+    let r = http.post(format!("{url}/api/strategies/versions/{vid_pub}/archive")).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let r = http.delete(format!("{url}/api/strategies/{sid_pub}")).send().await.unwrap();
+    assert_eq!(r.status(), 409, "archived 历史 → 409");
+
+    // 未知 id → 404
+    let r = http.delete(format!("{url}/api/strategies/st_none")).send().await.unwrap();
+    assert_eq!(r.status(), 404);
+
+    clean_strategies(&pool, &p).await;
+}
+
+// 手册暴露（裁决 2026-09-10）：GET /api/strategies/guide → text/markdown 全文（静态段先于 {id}）。
+#[tokio::test]
+async fn guide_endpoint_returns_markdown_full_text() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    let r = http.get(format!("{url}/api/strategies/guide")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "{:?}", r.text().await);
+    let ct = r.headers().get("content-type").unwrap().to_str().unwrap().to_string();
+    assert!(ct.starts_with("text/markdown"), "content-type 应为 text/markdown，got {ct}");
+    let body = r.text().await.unwrap();
+    assert!(body.contains("PARAMS_SCHEMA"), "手册应含 PARAMS_SCHEMA 章节");
+    assert!(body.contains("ctx.position"), "手册应含 ctx.position 章节");
+    // 与 design 源文件字节一致（include_str! 静态内嵌）
+    let src = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../design/12-strategy-system/04-strategy-programming-guide.md"),
+    ).unwrap();
+    assert_eq!(body, src, "guide 响应应 = design 手册全文");
+}

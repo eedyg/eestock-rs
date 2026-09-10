@@ -1145,6 +1145,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
             latest_published: latestPub
               ? { id: latestPub.id, version: latestPub.version, approval_level: latestPub.approval_level }
               : null,
+            // 裁决 2026-09-10：全部版本 draft 或无版本才可删（与后端 NOT EXISTS 同语义）
+            deletable: !vs.some((x) => x.status !== 'draft'),
           };
         });
       return list;
@@ -1257,6 +1259,18 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       if (v.status !== 'published') throw new ApiError(409, 'HTTP 409: 仅 published 可归档');
       v.status = 'archived';
       return { ...v };
+    },
+    async deleteStrategy(id: string): Promise<void> {
+      // 裁决 2026-09-10：与后端单语句同语义——存在非 draft 版本（含 archived 历史）→ 409；
+      // 未知 id → 404；否则删除策略 + 级联 draft 版本。
+      const s = strategyStore.strategies.find((x) => x.id === id);
+      if (!s) throw new ApiError(404, `HTTP 404: 策略 ${id} 不存在`);
+      const vs = strategyStore.versions.filter((x) => x.strategy_id === id);
+      if (vs.some((x) => x.status !== 'draft')) {
+        throw new ApiError(409, 'HTTP 409: 含已发布版本的策略不可删除，请归档');
+      }
+      strategyStore.strategies = strategyStore.strategies.filter((x) => x.id !== id);
+      strategyStore.versions = strategyStore.versions.filter((x) => x.strategy_id !== id);
     },
     async diffStrategyVersions(from: string, to: string): Promise<StrategyDiffResp> {
       const f = strategyStore.versions.find((x) => x.id === from);

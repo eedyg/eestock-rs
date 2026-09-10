@@ -1030,6 +1030,10 @@ pub struct StrategyManageItem {
     pub version_count: i64,
     pub latest_version: Option<StrategyManageVersionSummary>,
     pub latest_published: Option<StrategyManagePublishedSummary>,
+    /// 可删除标记（策略删除裁决 2026-09-10）：**仅当全部版本均为 draft（或无版本）时 true**——
+    /// 任何版本曾为 published（含已归档）即 false（历史 run 钉住 sha256，删除破坏复现性）。
+    /// 供前端渲染删除按钮禁用态；实际删除仍由 delete_strategy 单语句防竞态兜底。
+    pub deletable: bool,
 }
 
 /// 策略 Registry 存储端口（storage 实现；strategy/strategy_version 表，迁移 0022）。
@@ -1084,6 +1088,14 @@ pub trait StrategyStore: Send + Sync {
     /// 合并/校验后的**最终值**；命中推进 updated_at 并返回更新后行；未知 id → Ok(None)（web 映射 404）。
     async fn update_meta(&self, id: &str, name: &str, description: &str)
         -> anyhow::Result<Option<StrategyRow>>;
+    /// 删除策略（策略删除裁决 2026-09-10；DELETE /api/strategies/{id}）。
+    /// **单语句防竞态**：`DELETE FROM strategy WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM
+    /// strategy_version WHERE strategy_id=$1 AND status<>'draft')`——检查与删除同事务语句，
+    /// 无「先查后删」TOCTOU 窗口（并发 publish 到达 → 0 行命中，不删）。
+    /// 命中 → Ok(1)；0 行 = 策略不存在 **或** 存在非 draft 版本（published/archived 历史均拦截）——
+    /// 由 application 层经 get_strategy 区分 404/409。draft 版本随 ON DELETE CASCADE 一并删除
+    /// （published 行本就被 BEFORE DELETE trigger 拦截，与 NOT EXISTS 守卫同向双保险）。
+    async fn delete_strategy(&self, id: &str) -> anyhow::Result<u64>;
 }
 
 // ── 12-strategy-system / P3a：回测工作台端口（strategy_run/strategy_run_result/strategy_preset 表，迁移 0023）──

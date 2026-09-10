@@ -153,6 +153,8 @@ struct ManageJoinRow {
     s_created_at: DateTime<Utc>,
     s_updated_at: DateTime<Utc>,
     version_count: i64,
+    /// 可删除标记（裁决 2026-09-10：全部版本 draft 或无版本）；SQL 侧 NOT EXISTS 计算。
+    deletable: bool,
     lv_id: Option<String>,
     lv_version: Option<i32>,
     lv_status: Option<String>,
@@ -177,6 +179,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for ManageJoinRow {
             s_created_at: row.try_get("s_created_at")?,
             s_updated_at: row.try_get("s_updated_at")?,
             version_count: row.try_get("version_count")?,
+            deletable: row.try_get("deletable")?,
             lv_id: row.try_get("lv_id")?,
             lv_version: row.try_get("lv_version")?,
             lv_status: row.try_get("lv_status")?,
@@ -222,6 +225,7 @@ impl ManageJoinRow {
             version_count: self.version_count,
             latest_version,
             latest_published,
+            deletable: self.deletable,
         }
     }
 }
@@ -405,12 +409,15 @@ impl StrategyStore for PgStrategyStore {
 
     // P2b：manage 管理列表——全部策略（含仅 draft / 零版本），三段 LATERAL 一查询聚合（无 N+1）：
     // ① 版本计数；② 版本号最大版本（任意状态）；③ 最新 published。
+    // deletable（裁决 2026-09-10）：标量子查询 NOT EXISTS（非 draft 版本）——全 draft / 零版本才可删。
     async fn manage_list(&self, kind: Option<StrategyKind>) -> Result<Vec<StrategyManageItem>> {
         let rows: Vec<ManageJoinRow> = sqlx::query_as(
             "SELECT s.id AS s_id, s.name AS s_name, s.description AS s_description, \
                  s.kind AS s_kind, s.created_by AS s_created_by, \
                  s.created_at AS s_created_at, s.updated_at AS s_updated_at, \
                  vc.cnt AS version_count, \
+                 NOT EXISTS (SELECT 1 FROM strategy_version v \
+                     WHERE v.strategy_id = s.id AND v.status <> 'draft') AS deletable, \
                  lv.id AS lv_id, lv.version AS lv_version, lv.status AS lv_status, \
                  lv.approval_level AS lv_approval_level, lv.sha256 AS lv_sha256, \
                  lv.created_at AS lv_created_at, lv.published_at AS lv_published_at, \
@@ -450,5 +457,17 @@ impl StrategyStore for PgStrategyStore {
             .bind(id).bind(name).bind(description)
             .fetch_optional(&self.pool).await?;
         Ok(row.map(strategy_from_tuple))
+    }
+
+    // 策略删除（裁决 2026-09-10）：**单语句防竞态**——NOT EXISTS 守卫与 DELETE 同语句，
+    // 无「先查后删」TOCTOU 窗口（并发 publish 到达 → 0 行，不删）；draft 版本 ON DELETE CASCADE。
+    // 0 行 = 策略不存在或存在非 draft 版本（含 archived 的 published 历史），404/409 区分归 application。
+    async fn delete_strategy(&self, id: &str) -> Result<u64> {
+        let res = sqlx::query(
+            "DELETE FROM strategy WHERE id = $1 AND NOT EXISTS (\
+                 SELECT 1 FROM strategy_version \
+                 WHERE strategy_id = $1 AND status <> 'draft')")
+            .bind(id).execute(&self.pool).await?;
+        Ok(res.rows_affected())
     }
 }

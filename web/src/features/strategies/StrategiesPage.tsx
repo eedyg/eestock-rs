@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { defaultApi } from '@/api';
 import type { ApiClient } from '@/api/client';
+import { ApiError } from '@/api/types';
 import type { StrategyApprovalLevel, StrategyKind, StrategyManageItem } from '@/api/types';
 import { CreateStrategyModal } from './CreateStrategyModal';
 import {
@@ -20,7 +21,9 @@ import {
  * 架构裁决 2026-09-09 缺口 1 选 A 补端点）。
  * 过滤：kind / approval_level 均为前端客户端过滤（approval 为 at-least 语义，UI 注明）；
  * approval 口径（架构裁决 MINOR-1）：`latest_published?.approval_level ?? latest_version?.approval_level`。
- * 操作：编辑 / 新建版本（从最新版本派生 draft 后进编辑器）/ 归档（仅最新版本为 published 可点）。
+ * 操作：编辑 / 新建版本（从最新版本派生 draft 后进编辑器）/ 归档（仅最新版本为 published 可点）/
+ * 删除（裁决 2026-09-10：仅 deletable 行可点——全 draft/零版本；二次确认 + 409 友好提示）。
+ * 帮助入口：「📖 完整编程手册」（/api/strategies/guide，新窗口）。
  */
 export function StrategiesPage({ api = defaultApi }: { api?: ApiClient }) {
   const navigate = useNavigate();
@@ -78,18 +81,47 @@ export function StrategiesPage({ api = defaultApi }: { api?: ApiClient }) {
     }
   };
 
+  /** 删除（裁决 2026-09-10）：仅 deletable 行可点（按钮已禁用兜底）；二次确认 + 409 友好提示。 */
+  const handleDelete = async (it: StrategyManageItem) => {
+    if (!it.deletable) return;
+    if (!window.confirm(`确认删除策略「${it.name}」？其全部草稿版本将一并删除，且不可恢复。`)) return;
+    setActionError(null);
+    try {
+      await api.deleteStrategy(it.id);
+      refresh();
+    } catch (e) {
+      // 409（竞态：删除间隙被发布）→ 友好提示；其余透传
+      if (e instanceof ApiError && e.status === 409) {
+        setActionError('含已发布版本的策略不可删除，请归档');
+      } else {
+        setActionError(e instanceof Error ? e.message : '删除失败');
+      }
+    }
+  };
+
   return (
     <div data-region="strategies" className="flex min-w-0 flex-1 flex-col gap-3 overflow-auto p-4 text-xs">
       <div className="flex items-center justify-between">
         <h1 className="text-sm font-medium text-txt">策略管理</h1>
-        <button
-          type="button"
-          className="rounded-lg bg-gradient-to-r from-acc1 to-acc2 px-3 py-1.5 font-medium text-white"
-          onClick={() => setShowCreate(true)}
-          data-testid="create-strategy-btn"
-        >
-          + 新建策略
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/strategies/guide"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-acc1 hover:underline"
+            data-testid="guide-link"
+          >
+            📖 完整编程手册
+          </a>
+          <button
+            type="button"
+            className="rounded-lg bg-gradient-to-r from-acc1 to-acc2 px-3 py-1.5 font-medium text-white"
+            onClick={() => setShowCreate(true)}
+            data-testid="create-strategy-btn"
+          >
+            + 新建策略
+          </button>
+        </div>
       </div>
 
       {/* 过滤栏 */}
@@ -222,6 +254,16 @@ export function StrategiesPage({ api = defaultApi }: { api?: ApiClient }) {
                           data-testid="archive-btn"
                         >
                           归档
+                        </button>
+                        <button
+                          type="button"
+                          className="text-up hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={!it.deletable}
+                          title={it.deletable ? undefined : '含已发布版本的策略不可删除，请归档'}
+                          onClick={() => void handleDelete(it)}
+                          data-testid="delete-btn"
+                        >
+                          删除
                         </button>
                       </div>
                     </td>

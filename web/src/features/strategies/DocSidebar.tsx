@@ -5,6 +5,16 @@
 export function DocSidebar() {
   return (
     <div className="flex flex-col gap-3 overflow-auto p-3 text-xs" data-testid="doc-sidebar">
+      {/* 手册入口（裁决 2026-09-10）：完整编程手册 = GET /api/strategies/guide（markdown 全文，新窗口） */}
+      <a
+        href="/api/strategies/guide"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-acc1 hover:underline"
+        data-testid="guide-link"
+      >
+        📖 完整编程手册
+      </a>
       <section>
         <h3 className="mb-1 font-medium text-txt">生命周期钩子</h3>
         <pre className="whitespace-pre-wrap rounded-lg bg-panel2 p-2 font-mono text-[11px] text-dim">{`const PARAMS_SCHEMA = [ ... ];  // 首行级字面量（必须）

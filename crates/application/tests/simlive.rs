@@ -393,6 +393,9 @@ impl StrategyStore for MockStrategyStore {
         s.description = description.to_string();
         Ok(Some(s.clone()))
     }
+    async fn delete_strategy(&self, _id: &str) -> Result<u64> {
+        unimplemented!()
+    }
 }
 
 /// 参考插件 code 取数（strategy-core::reference；与 Rust 内建 1:1 迁移）。

@@ -215,6 +215,8 @@ export interface ApiClient {
   publishStrategyVersion(vid: string): Promise<StrategyVersionRowDto>;
   /** 归档（POST /api/strategies/versions/{vid}/archive；仅 published） */
   archiveStrategyVersion(vid: string): Promise<StrategyVersionRowDto>;
+  /** 删除策略（DELETE /api/strategies/{id} → 204；裁决 2026-09-10：仅全 draft/零版本可删，409=含已发布版本请归档） */
+  deleteStrategy(id: string): Promise<void>;
   /** 版本 diff（GET /api/strategies/versions/diff?from=&to=；前端渲染行级 diff） */
   diffStrategyVersions(from: string, to: string): Promise<StrategyDiffResp>;
   /** 在线试算（POST /api/strategies/test-run；同步；双模式 pure_score/sim_position） */
@@ -290,6 +292,7 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       }
       throw new ApiError(res.status, msg);
     }
+    if (res.status === 204) return undefined as T; // 204 No Content（删除类端点）无体
     return (await res.json()) as T;
   }
   const get = <T>(path: string) => request<T>(path);
@@ -456,6 +459,9 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
       request<StrategyVersionRowDto>(`/api/strategies/versions/${encodeURIComponent(vid)}/archive`, {
         method: 'POST',
       }),
+    deleteStrategy: async (id) => {
+      await request<void>(`/api/strategies/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
     diffStrategyVersions: (from, to) =>
       get<StrategyDiffResp>(
         `/api/strategies/versions/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,

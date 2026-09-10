@@ -424,6 +424,9 @@ impl StrategyStore for MockStrategyStore {
     ) -> anyhow::Result<Option<StrategyRow>> {
         unimplemented!()
     }
+    async fn delete_strategy(&self, _id: &str) -> anyhow::Result<u64> {
+        unimplemented!()
+    }
 }
 
 // ── 装配 ──

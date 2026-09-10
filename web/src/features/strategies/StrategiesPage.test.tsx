@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import type { ApiClient } from '@/api/client';
+import { ApiError } from '@/api/types';
 import { stubApi } from '@/test/apiStub';
 import { StrategiesPage } from './StrategiesPage';
 
@@ -148,5 +149,71 @@ describe('StrategiesPage（策略列表页 /strategies：manage 列表 + 过滤 
     });
     renderPage(api);
     await waitFor(() => expect(screen.getByTestId('strategy-list-error')).toBeInTheDocument());
+  });
+});
+
+describe('策略删除 + 手册入口（裁决 2026-09-10）', () => {
+  let api: ApiClient;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api = stubApi();
+  });
+
+  it('删除按钮：deletable=true 行可点；deletable=false（含 published/曾发布）行禁用且有 tooltip 说明', async () => {
+    renderPage(api);
+    await waitFor(() => expect(screen.getAllByTestId(/^strategy-row-/)).toHaveLength(3));
+    // 仅 draft 策略 → 可删
+    const draftRow = screen.getByTestId('strategy-row-st_mock_draft');
+    const delBtn = within(draftRow).getByTestId('delete-btn');
+    expect(delBtn).not.toBeDisabled();
+    // 双均线（v1 published + v2 draft）→ 禁用 + tooltip
+    const dualRow = screen.getByTestId('strategy-row-st_mock_dual_ma');
+    const dualDel = within(dualRow).getByTestId('delete-btn');
+    expect(dualDel).toBeDisabled();
+    expect(dualDel).toHaveAttribute('title', '含已发布版本的策略不可删除，请归档');
+    // 模板（published）→ 禁用
+    const tplRow = screen.getByTestId('strategy-row-st_mock_tpl_pure');
+    expect(within(tplRow).getByTestId('delete-btn')).toBeDisabled();
+  });
+
+  it('删除确认流：confirm 取消不调 API；确认后调 deleteStrategy 并刷新列表（行消失）', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderPage(api);
+    await waitFor(() => expect(screen.getAllByTestId(/^strategy-row-/)).toHaveLength(3));
+    const draftRow = screen.getByTestId('strategy-row-st_mock_draft');
+    await user.click(within(draftRow).getByTestId('delete-btn'));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(api.deleteStrategy).not.toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(true);
+    await user.click(within(draftRow).getByTestId('delete-btn'));
+    await waitFor(() => expect(api.deleteStrategy).toHaveBeenCalledWith('st_mock_draft'));
+    // mock 删除生效 → 刷新后行消失
+    await waitFor(() => expect(screen.queryByTestId('strategy-row-st_mock_draft')).toBeNull());
+    expect(screen.getAllByTestId(/^strategy-row-/)).toHaveLength(2);
+  });
+
+  it('删除 409（竞态：后端拒绝）→ 友好提示「含已发布版本的策略不可删除，请归档」', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api = stubApi({
+      deleteStrategy: vi.fn().mockRejectedValue(new ApiError(409, 'HTTP 409: 含已发布版本的策略不可删除，请归档')),
+    });
+    renderPage(api);
+    await waitFor(() => expect(screen.getAllByTestId(/^strategy-row-/)).toHaveLength(3));
+    const draftRow = screen.getByTestId('strategy-row-st_mock_draft');
+    await user.click(within(draftRow).getByTestId('delete-btn'));
+    await waitFor(() => expect(screen.getByTestId('action-error')).toHaveTextContent('含已发布版本的策略不可删除，请归档'));
+  });
+
+  it('帮助入口：列表页「📖 完整编程手册」链接新窗口打开 /api/strategies/guide', async () => {
+    renderPage(api);
+    await waitFor(() => expect(screen.getByTestId('strategy-table')).toBeInTheDocument());
+    const link = screen.getByTestId('guide-link');
+    expect(link).toHaveTextContent('完整编程手册');
+    expect(link).toHaveAttribute('href', '/api/strategies/guide');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
   });
 });

@@ -805,8 +805,18 @@ trigger 拦 published 行内容字段（code/params_schema/sha256/version）及�
 **P2b 查询口径（无新迁移，复用 0022 表）**：manage 管理列表（`StrategyStore::manage_list`）
 一查询聚合——`strategy` LEFT JOIN 三段 LATERAL（① 版本计数 `count(*)`；② 版本号最大版本
 （任意状态，`ORDER BY version DESC LIMIT 1`）；③ 最新 published 同式加 `status='published'`），
-无 N+1；`kind` 精确匹配过滤。元数据更新（`StrategyStore::update_meta`）为单条件 UPDATE
-（name/description 最终值 + `updated_at = now()`，`RETURNING` 行；0 行 → `Ok(None)` → 404）。
+无 N+1；`kind` 精确匹配过滤。`deletable`（策略删除裁决 2026-09-10）为同查询标量子查询
+`NOT EXISTS (SELECT 1 FROM strategy_version WHERE strategy_id=s.id AND status<>'draft')`——
+**全部版本 draft 或无版本才可删**（任何版本曾为 published 含已归档即不可删：历史 run 钉住
+sha256，删除破坏复现性），供前端渲染删除按钮禁用态。元数据更新（`StrategyStore::update_meta`）
+为单条件 UPDATE（name/description 最终值 + `updated_at = now()`，`RETURNING` 行；0 行 → `Ok(None)` → 404）。
+
+**策略删除（裁决 2026-09-10；`StrategyStore::delete_strategy`）**：**单语句防竞态**——
+`DELETE FROM strategy WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM strategy_version WHERE
+strategy_id=$1 AND status<>'draft')`，守卫与删除同语句，无「先查后删」TOCTOU 窗口
+（并发 publish 到达 → 0 行命中，不删）。命中 → `Ok(1)`；0 行 = 策略不存在或有非 draft
+版本，由 application 层经 `get_strategy` 区分 404/409。draft 版本随 ON DELETE CASCADE
+一并删除（published 行本被 BEFORE DELETE trigger 拦截，NOT EXISTS 守卫与之同向双保险）。
 
 ``` {.sql file=migrations/0022_strategy_registry.sql}
 -- 0022_strategy_registry.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改

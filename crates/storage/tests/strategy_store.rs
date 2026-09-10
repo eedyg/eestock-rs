@@ -456,3 +456,90 @@ async fn find_version_by_name_sha_for_seed_idempotency() {
 
     clean(&pool, &sid).await;
 }
+
+// ── 策略删除（裁决 2026-09-10）：仅当全部版本均为 draft（或无版本）可删——单语句防竞态，
+// 0 行 = 不存在或有 published/archived 历史（application 层区分 404/409）；draft 版本级联清除 ──
+
+#[tokio::test]
+async fn delete_strategy_all_draft_succeeds_and_cascades() {
+    let pool = pool().await;
+    let store = PgStrategyStore::new(pool.clone());
+    let s1 = pid("x_s1"); // 两 draft 版本
+    let s2 = pid("x_s2"); // 零版本
+    for sid in [&s1, &s2] { clean(&pool, sid).await; }
+
+    store.create_strategy(&new_strategy(&s1, "del-s1", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v1"), &s1, 1, "d1")).await.unwrap();
+    store.create_version(&new_version(&pid("x_v2"), &s1, 2, "d2")).await.unwrap();
+    store.create_strategy(&new_strategy(&s2, "del-s2", StrategyKind::Strategy)).await.unwrap();
+
+    assert_eq!(store.delete_strategy(&s1).await.unwrap(), 1, "全 draft 可删");
+    assert!(store.get_strategy(&s1).await.unwrap().is_none(), "策略行已删");
+    assert!(store.list_versions(&s1).await.unwrap().is_empty(), "draft 版本随 ON DELETE CASCADE 清除");
+
+    assert_eq!(store.delete_strategy(&s2).await.unwrap(), 1, "零版本策略可删");
+    assert!(store.get_strategy(&s2).await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn delete_strategy_blocked_with_published_or_archived_history() {
+    let pool = pool().await;
+    let store = PgStrategyStore::new(pool.clone());
+    let s1 = pid("x_s3"); // published 当前
+    let s2 = pid("x_s4"); // published→archived 历史
+    for sid in [&s1, &s2] { clean(&pool, sid).await; }
+
+    store.create_strategy(&new_strategy(&s1, "del-s3", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v3"), &s1, 1, "p1")).await.unwrap();
+    store.mark_published(&pid("x_v3"), "p1", "sha-p1", &serde_json::json!([]), Utc::now()).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s2, "del-s4", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v4"), &s2, 1, "p2")).await.unwrap();
+    store.mark_published(&pid("x_v4"), "p2", "sha-p2", &serde_json::json!([]), Utc::now()).await.unwrap();
+    store.set_status(&pid("x_v4"), StrategyStatus::Archived).await.unwrap();
+
+    assert_eq!(store.delete_strategy(&s1).await.unwrap(), 0, "含 published 版本 → 0 行（不删）");
+    assert!(store.get_strategy(&s1).await.unwrap().is_some(), "策略行仍在");
+    assert_eq!(store.list_versions(&s1).await.unwrap().len(), 1, "版本未被连带删");
+    assert_eq!(store.delete_strategy(&s2).await.unwrap(), 0, "published→archived 历史同样拦截");
+    assert!(store.get_strategy(&s2).await.unwrap().is_some());
+
+    assert_eq!(store.delete_strategy(&pid("x_none")).await.unwrap(), 0, "未知 id → 0 行（application 映射 404）");
+
+    for sid in [&s1, &s2] { clean(&pool, sid).await; }
+}
+
+#[tokio::test]
+async fn manage_list_deletable_flag() {
+    let pool = pool().await;
+    let store = PgStrategyStore::new(pool.clone());
+    let s1 = pid("x_s5"); // published + draft → 不可删
+    let s2 = pid("x_s6"); // 仅 draft → 可删
+    let s3 = pid("x_s7"); // 零版本 → 可删
+    let s4 = pid("x_s8"); // published→archived 历史 → 不可删
+    for sid in [&s1, &s2, &s3, &s4] { clean(&pool, sid).await; }
+
+    store.create_strategy(&new_strategy(&s1, "del-s5", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v5"), &s1, 1, "x1")).await.unwrap();
+    store.mark_published(&pid("x_v5"), "x1", "sha-x1", &serde_json::json!([]), Utc::now()).await.unwrap();
+    store.create_version(&new_version(&pid("x_v6"), &s1, 2, "x2-draft")).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s2, "del-s6", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v7"), &s2, 1, "x3-draft")).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s3, "del-s7", StrategyKind::Strategy)).await.unwrap();
+
+    store.create_strategy(&new_strategy(&s4, "del-s8", StrategyKind::Strategy)).await.unwrap();
+    store.create_version(&new_version(&pid("x_v8"), &s4, 1, "x4")).await.unwrap();
+    store.mark_published(&pid("x_v8"), "x4", "sha-x4", &serde_json::json!([]), Utc::now()).await.unwrap();
+    store.set_status(&pid("x_v8"), StrategyStatus::Archived).await.unwrap();
+
+    let all = store.manage_list(None).await.unwrap();
+    let flag = |id: &str| all.iter().find(|e| e.id == id).unwrap_or_else(|| panic!("{id} 应在列")).deletable;
+    assert!(!flag(&s1), "含 published → deletable=false");
+    assert!(flag(&s2), "全 draft → deletable=true");
+    assert!(flag(&s3), "零版本 → deletable=true");
+    assert!(!flag(&s4), "published→archived 历史 → deletable=false");
+
+    for sid in [&s1, &s2, &s3, &s4] { clean(&pool, sid).await; }
+}

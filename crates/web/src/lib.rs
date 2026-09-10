@@ -75,11 +75,13 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/test-run", post(strategies::test_run))
         // P2b：manage 管理列表（静态段优先于 {id} 参数段，axum matchit 保证）
         .route("/api/strategies/manage", get(strategies::manage_list))
+        // 手册暴露（裁决 2026-09-10）：静态段 guide 先于 {id} 注册
+        .route("/api/strategies/guide", get(strategies::guide))
         .route("/api/strategies/versions/diff", get(strategies::diff_versions))
         .route("/api/strategies/versions/{vid}", put(strategies::update_draft))
         .route("/api/strategies/versions/{vid}/publish", post(strategies::publish_version))
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
-        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
+        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta).delete(strategies::delete_strategy))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
         // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}

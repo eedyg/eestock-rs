@@ -115,7 +115,7 @@ mod tests {
             "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare",
             // 12-strategy-system / P3c：统一策略系统工具族
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
-            "strategy_publish", "strategy_archive", "strategy_test_run",
+            "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
             "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({

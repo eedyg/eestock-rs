@@ -355,6 +355,8 @@ impl StrategyStore for MockStore {
                 version_count: mine.len() as i64,
                 latest_version,
                 latest_published,
+                // 裁决 2026-09-10：全部版本 draft 或无版本才可删（与 SQL NOT EXISTS 同语义）。
+                deletable: !mine.iter().any(|v| v.status != StrategyStatus::Draft),
             });
         }
         out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -374,6 +376,24 @@ impl StrategyStore for MockStore {
         s.description = description.to_string();
         self.bump_updated(s);
         Ok(Some(s.clone()))
+    }
+
+    // 策略删除（裁决 2026-09-10）：与 SQL 单语句同语义——存在非 draft 版本 → 0 行；
+    // 否则删除策略 + 级联 draft 版本（锁内原子，等价单语句防竞态）。
+    async fn delete_strategy(&self, id: &str) -> anyhow::Result<u64> {
+        let mut strategies = self.strategies.lock().unwrap();
+        let mut versions = self.versions.lock().unwrap();
+        if versions
+            .values()
+            .any(|v| v.strategy_id == id && v.status != StrategyStatus::Draft)
+        {
+            return Ok(0);
+        }
+        if strategies.remove(id).is_none() {
+            return Ok(0);
+        }
+        versions.retain(|_, v| v.strategy_id != id);
+        Ok(1)
     }
 }
 
@@ -881,4 +901,77 @@ async fn test_run_events_truncation_cap() {
     assert_eq!(resp.events.len(), MAX_EVENTS);
     assert!(resp.truncated.events);
     assert_eq!(resp.scores.len(), MAX_EVENTS + 50);
+}
+
+// ── 策略删除（裁决 2026-09-10）：仅全 draft / 零版本可删；404/409 区分 ──
+
+#[tokio::test]
+async fn delete_strategy_all_draft_ok_and_cascades() {
+    let (svc, store) = service(vec![]);
+    let (s, _v1) = svc.create_strategy(&input("del-draft", CONST_SCORE)).await.unwrap();
+    let v2 = svc.create_draft_from(&s.id, &svc.list_versions(&s.id).await.unwrap()[0].id)
+        .await.unwrap();
+    assert_eq!(v2.version, 2);
+    // manage_list deletable=true（全 draft）
+    let items = svc.manage_list(None).await.unwrap();
+    assert!(items.iter().find(|e| e.id == s.id).unwrap().deletable, "全 draft → deletable");
+
+    svc.delete_strategy(&s.id).await.unwrap();
+    assert!(store.get_strategy(&s.id).await.unwrap().is_none(), "策略行已删");
+    assert!(store.list_versions(&s.id).await.unwrap().is_empty(), "draft 版本级联清除");
+}
+
+#[tokio::test]
+async fn delete_strategy_with_published_is_409() {
+    let (svc, _) = service(vec![]);
+    let (s, _v) = create_published(&svc, "del-pub", CONST_SCORE).await;
+    let items = svc.manage_list(None).await.unwrap();
+    assert!(!items.iter().find(|e| e.id == s.id).unwrap().deletable, "含 published → !deletable");
+
+    let e = svc.delete_strategy(&s.id).await.unwrap_err();
+    let c = e.downcast_ref::<StrategyInvalidTransition>().expect("409 语义");
+    assert!(c.0.contains("含已发布版本的策略不可删除，请归档"), "409 文案：{}", c.0);
+    // 策略仍在
+    assert!(svc.get_strategy(&s.id).await.is_ok());
+}
+
+#[tokio::test]
+async fn delete_strategy_with_archived_history_is_409() {
+    let (svc, _) = service(vec![]);
+    let (s, v) = create_published(&svc, "del-arch", CONST_SCORE).await;
+    svc.archive(&v.id).await.unwrap();
+    let items = svc.manage_list(None).await.unwrap();
+    assert!(!items.iter().find(|e| e.id == s.id).unwrap().deletable,
+        "published→archived 历史 → !deletable");
+
+    let e = svc.delete_strategy(&s.id).await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyInvalidTransition>().is_some(), "archived 历史同样 409");
+    assert!(svc.get_strategy(&s.id).await.is_ok());
+}
+
+#[tokio::test]
+async fn delete_strategy_unknown_id_is_404() {
+    let (svc, _) = service(vec![]);
+    let e = svc.delete_strategy("st_none").await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyNotFound>().is_some(), "未知 id → 404");
+}
+
+#[tokio::test]
+async fn delete_strategy_zero_version_ok() {
+    let (svc, store) = service(vec![]);
+    // 零版本策略：直接走 store 建行（service create_strategy 恒带 v1）
+    store
+        .create_strategy(&NewStrategy {
+            id: "st_zero".into(),
+            name: "zero".into(),
+            description: String::new(),
+            kind: StrategyKind::Strategy,
+            created_by: "test".into(),
+        })
+        .await
+        .unwrap();
+    let items = svc.manage_list(None).await.unwrap();
+    assert!(items.iter().find(|e| e.id == "st_zero").unwrap().deletable, "零版本 → deletable");
+    svc.delete_strategy("st_zero").await.unwrap();
+    assert!(store.get_strategy("st_zero").await.unwrap().is_none());
 }

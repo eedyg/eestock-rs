@@ -10,6 +10,8 @@
 //!   （version+1，ADR §13.5 防呆）；archived 拒绝（409）。
 //! - 状态机：draft→published→archived 单向（`domain::strategy_state` 纯函数校验，非法 → 409）；
 //!   published 不可变另有 DB trigger 双保险（schema §4.3.13）。
+//! - 策略删除（裁决 2026-09-10）：仅当全部版本均为 draft（或无版本）时可删（storage 单语句
+//!   防竞态）；存在 published/archived 历史 → 409，未知 id → 404。
 //! - **发布门禁**：`publish` 前以 `QuickJsRuntime` 真实实例化冒烟（eval + PARAMS_SCHEMA 解析 +
 //!   on_bar 存在 + init(defaults) 两阶段），通过才计算 sha256 并 draft→published。
 //! - **在线试算 `test_run`**：pure_score（裸评分，position 恒 None）/ sim_position
@@ -542,6 +544,22 @@ impl StrategyService {
         kind: Option<StrategyKind>,
     ) -> anyhow::Result<Vec<StrategyManageItem>> {
         self.store.manage_list(kind).await
+    }
+
+    /// 删除策略（裁决 2026-09-10；DELETE /api/strategies/{id}）：仅当全部版本均为 draft
+    /// （或无版本）时可删——任何版本曾为 published（含已归档）即禁止（历史 run 钉住 sha256，
+    /// 删除破坏复现性）。存在性先经 get_strategy 探测（404）；storage 单语句删除 0 行命中
+    /// （存在但含非 draft 版本，含并发 publish 竞态漂移）→ 409。
+    pub async fn delete_strategy(&self, id: &str) -> anyhow::Result<()> {
+        self.get_strategy(id).await?; // 未知 id → 404
+        let n = self.store.delete_strategy(id).await?;
+        if n == 0 {
+            return Err(StrategyInvalidTransition(format!(
+                "含已发布版本的策略不可删除，请归档: {id}"
+            ))
+            .into());
+        }
+        Ok(())
     }
 
     /// 更新策略元数据（P2b：PATCH /api/strategies/{id}）。

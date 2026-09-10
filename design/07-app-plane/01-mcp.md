@@ -94,7 +94,10 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
   （v1 draft；params 仅提示不持久化）/ `strategy_update(version_id, code)`（draft 原地 updated /
   published 自动落新 draft new_draft，ADR §13.5）/ `strategy_publish(version_id)`（发布门禁冒烟）/
   `strategy_archive(version_id)`（published→archived）/ `strategy_test_run(code?|version_id?, symbol,
-  period, from, to, mode, params?)`（在线试算双模式 pure_score/sim_position，同步）。
+  period, from, to, mode, params?)`（在线试算双模式 pure_score/sim_position，同步）/
+  `strategy_guide()`（手册暴露裁决 2026-09-10：返回《策略编程手册》全文 markdown，
+  `include_str!` 静态内嵌 design/12-strategy-system/04-strategy-programming-guide.md，
+  与 REST `GET /api/strategies/guide` 同字节；无参数，不经 StrategyService，恒可用）。
 - **bt_\*（12-strategy-system / P3c，回测工作台任务，经 `WorkbenchService`）**：
   `bt_run_ensemble(name?, symbol, period, from, to, slots[{strategy_id, version_id?, weight, params?}],
   buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee?)`（异步任务返回 run_id；
@@ -106,6 +109,7 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
 - **P3c 开关（父级裁决）**：strategy_*/bt_* 共用 McpState 本地单开关 `strategy_tools_enabled`
   （默认开；停用 → isError「统一策略系统 MCP 工具已停用」，参照 sim_* 既有实现；
   后续如需运行时翻转，web 端点写同一 Arc——本期不做端点）。服务未配置（None）→ isError「未配置」。
+  开关对 `strategy_guide` 同样生效（停用 → isError）。
 
 ## 2. mcp crate（Presentation 层）
 
@@ -351,7 +355,7 @@ mod tests {
             "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare",
             // 12-strategy-system / P3c：统一策略系统工具族
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
-            "strategy_publish", "strategy_archive", "strategy_test_run",
+            "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
             "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
@@ -698,6 +702,14 @@ fn tool_schemas() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "strategy_guide",
+            "description": "统一策略系统 Registry：返回《策略编程手册》全文（markdown；include_str! 静态内嵌 design/12-strategy-system/04-strategy-programming-guide.md，与 GET /api/strategies/guide 同字节）。适用场景：编写/调试策略插件前取最新 ctx/指标/PARAMS_SCHEMA 契约。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
+        }),
+        json!({
             "name": "bt_run_ensemble",
             "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，仅 published 版本可运行；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）。适用场景：策略组合历史表现验证/参数与阈值对比。",
             "inputSchema": {
@@ -839,6 +851,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "strategy_publish" => strategy_publish(st, id, &args).await,
         "strategy_archive" => strategy_archive(st, id, &args).await,
         "strategy_test_run" => strategy_test_run(st, id, &args).await,
+        "strategy_guide" => strategy_guide(st, id),
         // 12-strategy-system / P3c：回测工作台工具（bt_*）
         "bt_run_ensemble" => bt_run_ensemble(st, id, &args).await,
         "bt_get_run" => bt_get_run(st, id, &args).await,
@@ -1412,6 +1425,18 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
     }
 }
 
+/// 策略编程手册全文（架构师主笔事实源；include_str! 静态内嵌，与 web
+/// GET /api/strategies/guide 共用同一文件字节，双通道一致）。
+const STRATEGY_GUIDE: &str =
+    include_str!("../../../design/12-strategy-system/04-strategy-programming-guide.md");
+
+/// strategy_guide()：返回手册全文（markdown；无参数）。不经 StrategyService（纯静态内容），
+/// 但 `strategy_tools_enabled` 单开关对本工具同样生效（停用 → isError）。
+fn strategy_guide(st: &McpState, id: Option<Value>) -> Value {
+    if let Err(e) = strategy_gate(st, &id) { return e; }
+    tool_ok(id, &json!({ "format": "markdown", "guide": STRATEGY_GUIDE }))
+}
+
 /// bt_run_ensemble(...)：提交 ensemble 回测（异步任务，返回 run_id）。
 /// slot.version_id 缺省 → catalog 解析该策略最新 published（父级批准口径；无 published → isError）。
 async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Value {
@@ -1656,7 +1681,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 32, "3 只读工具 + 14 模拟实盘（11-sim-live）+ 7 strategy_* + 8 bt_*（12-strategy-system / P3c）");
+        assert_eq!(tools.len(), 33, "3 只读工具 + 14 模拟实盘（11-sim-live）+ 8 strategy_* + 8 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -1681,7 +1706,8 @@ mod tests {
         // 统一策略系统工具族（12-strategy-system / P3c；ADR §8 矩阵，落现有 SSE server §13.7）
         let strategy_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("strategy_")).collect();
         assert_eq!(strategy_names, vec!["strategy_list", "strategy_get", "strategy_create",
-            "strategy_update", "strategy_publish", "strategy_archive", "strategy_test_run"]);
+            "strategy_update", "strategy_publish", "strategy_archive", "strategy_test_run",
+            "strategy_guide"]);
         let bt_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("bt_")).collect();
         assert_eq!(bt_names, vec!["bt_run_ensemble", "bt_get_run", "bt_get_run_result",
             "bt_list_runs", "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
@@ -1703,6 +1729,8 @@ mod tests {
         assert_eq!(by_name("strategy_archive")["inputSchema"]["required"], json!(["version_id"]));
         assert_eq!(by_name("strategy_test_run")["inputSchema"]["required"],
             json!(["symbol", "period", "from", "to", "mode"]));
+        assert!(by_name("strategy_guide")["inputSchema"]["required"].is_null(),
+            "strategy_guide 无参数（无 required）");
         assert_eq!(by_name("bt_run_ensemble")["inputSchema"]["required"],
             json!(["symbol", "period", "from", "to", "slots", "policy"]));
         assert_eq!(by_name("bt_get_run")["inputSchema"]["required"], json!(["run_id"]));
@@ -2553,6 +2581,9 @@ mod tests {
         async fn update_meta(&self, _: &str, _: &str, _: &str) -> anyhow::Result<Option<domain::ports::StrategyRow>> {
             unimplemented!("MCP 不暴露 update_meta")
         }
+        async fn delete_strategy(&self, _: &str) -> anyhow::Result<u64> {
+            unimplemented!("MCP 不暴露 delete_strategy")
+        }
     }
 
     /// 全内存 StrategyRunStore（条件更新/原子认领与 Pg 同语义；结果级联）。
@@ -3046,12 +3077,36 @@ mod tests {
         let r = call(&st, "strategy_list", json!({})).await;
         assert_eq!(r["result"]["isError"], true, "停用后 strategy_* isError");
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("停用"));
+        let r = call(&st, "strategy_guide", json!({})).await;
+        assert_eq!(r["result"]["isError"], true, "停用后 strategy_guide 同样 isError");
         let r = call(&st, "bt_list_runs", json!({})).await;
         assert_eq!(r["result"]["isError"], true, "停用后 bt_* isError");
         // 重开 → 恢复
         assert!(st.set_strategy_tools_enabled(true));
         let r = call(&st, "strategy_list", json!({})).await;
         assert_ne!(r["result"]["isError"], true, "重开后恢复");
+    }
+
+    #[tokio::test]
+    async fn strategy_guide_returns_handbook_full_text() {
+        let (st, _fx) = strategy_state();
+        let r = call(&st, "strategy_guide", json!({})).await;
+        assert_ne!(r["result"]["isError"], true, "手册工具恒可用（不经 StrategyService）");
+        let p = payload_of(&r);
+        assert_eq!(p["format"], "markdown");
+        let guide = p["guide"].as_str().expect("guide 全文");
+        assert!(guide.contains("PARAMS_SCHEMA"), "手册应含 PARAMS_SCHEMA 章节");
+        assert!(guide.contains("ctx.position"), "手册应含 ctx.position 章节");
+        // 与 design 源文件字节一致（include_str! 静态内嵌，与 REST /api/strategies/guide 同字节）
+        let src = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../design/12-strategy-system/04-strategy-programming-guide.md"),
+        ).unwrap();
+        assert_eq!(guide, src, "strategy_guide 应 = design 手册全文");
+        // 不经 StrategyService：未装配 strategies 的 state 也可用
+        let bare = test_state(Arc::new(MockKline::new()), Arc::new(MockEvents::new()));
+        let r = call(&bare, "strategy_guide", json!({})).await;
+        assert_ne!(r["result"]["isError"], true, "未装配 StrategyService 仍可取手册");
     }
 
     #[tokio::test]
@@ -3557,13 +3612,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 32 个工具（3 只读 + 14 模拟实盘 + 7 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c）
+    // 3. tools/list → 33 个工具（3 只读 + 14 模拟实盘 + 8 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 32, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 33, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -3860,7 +3915,7 @@ tangle 单属主原则：`crates/app/**` 与 `Dockerfile.app` 的代码块属主
   缺 sessionId 400、断连后会话注销（泄漏防护）。
 - 工具数据通路（真实库 :5433）：merge 准确层优先、健康聚合 0.75/degraded/last_error——
   与 web REST 同端口同口径（storage 端口实现复用，零新 SQL）。
-- **P3c（strategy_*/bt_*）**：tools/list 32 工具 schema 契约（名称序/必填/枚举/描述注明
+- **P3c（strategy_*/bt_*）**：tools/list 33 工具 schema 契约（名称序/必填/枚举/描述注明
   「统一策略系统 Registry」）；strategy CRUD 全流程（create→update 原地→publish→update 新 draft→
   catalog level/kind 过滤→archive）；test_run 双模式（inline pure_score 裸评分 / version sim_position
   信号+成交）；bt_run_ensemble happy（version_id 缺省 catalog 解析钉住 + fee 缺省 + 后台真实引擎

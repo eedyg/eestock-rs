@@ -252,6 +252,18 @@ function on_bar(ctx) { return 50; }
     expect(within(panel).getAllByText('int').length).toBeGreaterThan(0);
   });
 
+  it('文档侧栏顶部「📖 完整编程手册」链接新窗口打开 /api/strategies/guide', async () => {
+    const user = userEvent.setup();
+    renderEditor(api);
+    await waitFor(() => expect(screen.getByTestId('version-select')).toBeInTheDocument());
+    await user.click(screen.getByTestId('tab-doc'));
+    const doc = screen.getByTestId('doc-sidebar');
+    const link = within(doc).getByTestId('guide-link');
+    expect(link).toHaveTextContent('完整编程手册');
+    expect(link).toHaveAttribute('href', '/api/strategies/guide');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
   it('指标 API 文档侧栏：列出 indicators 签名与 position/log/save/load 契约', async () => {
     const user = userEvent.setup();
     renderEditor(api);

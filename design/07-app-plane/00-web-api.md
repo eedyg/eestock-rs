@@ -241,8 +241,17 @@ WS topic 名采用任务书口径 `"health"`（02-sources 文档中 `"source_hea
 | `POST /api/strategies/versions/{vid}/archive` | — | `StrategyVersionRow`（published→archived） | 404；409：非 published；503；500 |
 | `GET /api/strategies/versions/diff` | `?from=&to=`（版本 id） | `{from:{id,strategy_id,version,status,code}, to:{…}}`（前端渲染 diff） | 400：缺参数；404；503；500 |
 | `POST /api/strategies/test-run` | body `{code\|version_id, params?, symbol, period, from, to, mode}` | `TestRunResponse`（评分序列/信号/成交/事件 + truncated 标记） | 400：入参/区间超限/门禁；404：version_id 未知；503；500 |
-| `GET /api/strategies/manage` | `?kind=`（可选：strategy/template） | 200 `{ items: [StrategyManageItem] }`（P2b；**全部策略含仅 draft / 零版本**；每条目聚合 `version_count` / `latest_version`（版本号最大，任意状态：`{id,version,status,approval_level,sha256,created_at,published_at}`，零版本 → null）/ `latest_published`（最新 published `{id,version,approval_level}`，无 → null）） | 400：kind 非法；503；500 |
+| `GET /api/strategies/manage` | `?kind=`（可选：strategy/template） | 200 `{ items: [StrategyManageItem] }`（P2b；**全部策略含仅 draft / 零版本**；每条目聚合 `version_count` / `latest_version`（版本号最大，任意状态：`{id,version,status,approval_level,sha256,created_at,published_at}`，零版本 → null）/ `latest_published`（最新 published `{id,version,approval_level}`，无 → null）/ `deletable`（bool，删除裁决 2026-09-10：全部版本 draft 或无版本 → true；任何版本曾为 published 含已归档 → false，供前端渲染删除按钮禁用态）） | 400：kind 非法；503；500 |
 | `PATCH /api/strategies/{id}` | body `{name?, description?}` | 200 `StrategyRow`（更新后策略行，updated_at 推进；未给字段保持原值；name trim 后落库） | 400：name/description 均空、name trim 后为空；404：未知 id；503；500 |
+| `DELETE /api/strategies/{id}` | — | 204（无体；draft 版本随 ON DELETE CASCADE 一并删） | 404：未知 id；409：含已发布版本（含已归档历史）不可删除，文案「含已发布版本的策略不可删除，请归档」；503；500 |
+| `GET /api/strategies/guide` | — | 200 text/markdown：策略编程手册全文（`include_str!` 自 design/12-strategy-system/04-strategy-programming-guide.md，与 MCP `strategy_guide` 同字节；无需策略服务装配恒可用） | —（静态内容恒 200） |
+
+**删除规则裁决（2026-09-10）**：**仅当策略的全部版本都是 draft（或无版本）时可删除**——任何版本
+曾为 published（含已归档）即禁止（历史 run 钉住 sha256，删除破坏复现性）。storage 单语句
+`DELETE … WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM strategy_version WHERE strategy_id=$1 AND
+status<>'draft')` 防竞态（检查与删除同语句，无 TOCTOU 窗口）；0 行命中由 application 层经
+`get_strategy` 区分 404（不存在）/ 409（有 published 历史）。**路由顺序**：静态段 `guide`
+先于 `{id}` 参数段注册（axum matchit 静态优先亦保证）。
 
 **错误语义约定**：未注册/未找到 404（`StrategyNotFound`）、非法状态流转 409（`StrategyInvalidTransition`）、
 校验失败 400（`StrategyValidation` 与 web 层入参校验）；服务未装配（`AppState.strategies=None`）→ 503（与 `sim` 同模式）。
@@ -2311,11 +2320,13 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/test-run", post(strategies::test_run))
         // P2b：manage 管理列表（静态段优先于 {id} 参数段，axum matchit 保证）
         .route("/api/strategies/manage", get(strategies::manage_list))
+        // 手册暴露（裁决 2026-09-10）：静态段 guide 先于 {id} 注册
+        .route("/api/strategies/guide", get(strategies::guide))
         .route("/api/strategies/versions/diff", get(strategies::diff_versions))
         .route("/api/strategies/versions/{vid}", put(strategies::update_draft))
         .route("/api/strategies/versions/{vid}/publish", post(strategies::publish_version))
         .route("/api/strategies/versions/{vid}/archive", post(strategies::archive_version))
-        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta))
+        .route("/api/strategies/{id}", get(strategies::get_strategy).patch(strategies::update_meta).delete(strategies::delete_strategy))
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
         // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}

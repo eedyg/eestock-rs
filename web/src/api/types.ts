@@ -687,6 +687,8 @@ export interface StrategyManageItem {
   version_count: number;
   latest_version: StrategyVersionBrief | null;
   latest_published: { id: string; version: number; approval_level: StrategyApprovalLevel } | null;
+  /** 可删除标记（裁决 2026-09-10）：全部版本 draft 或无版本 → true；任何版本曾为 published（含已归档）→ false */
+  deletable: boolean;
 }
 
 /** POST /api/strategies 请求体 */

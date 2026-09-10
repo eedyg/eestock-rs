@@ -15,6 +15,12 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+
+/// 策略编程手册全文（design/12-strategy-system/04-strategy-programming-guide.md；
+/// include_str! 静态内嵌——手册为架构师主笔事实源，仓外不读盘，随二进制分发）。
+/// GET /api/strategies/guide 与 MCP strategy_guide 双通道共用同一字节。
+const STRATEGY_GUIDE: &str =
+    include_str!("../../../design/12-strategy-system/04-strategy-programming-guide.md");
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -233,6 +239,24 @@ pub async fn get_strategy(State(st): State<Arc<AppState>>, Path(id): Path<String
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     match svc.get_strategy(&id).await {
         Ok(s) => Json(s).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/strategies/guide —— 策略编程手册全文（text/markdown；无需策略服务装配，
+/// 静态内嵌内容恒可用）。⚠️ 静态段 `guide` 须先于 `{id}` 参数段注册（axum matchit 保证）。
+pub async fn guide() -> Response {
+    ([(axum::http::header::CONTENT_TYPE, "text/markdown; charset=utf-8")], STRATEGY_GUIDE)
+        .into_response()
+}
+
+/// DELETE /api/strategies/{id} —— 删除策略（裁决 2026-09-10：仅当全部版本均为 draft
+/// 或无版本时可删）。204 无体 / 404 未知 id / 409 含已发布版本（含已归档历史，文案
+/// 「含已发布版本的策略不可删除，请归档」）。
+pub async fn delete_strategy(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    match svc.delete_strategy(&id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => map_svc_err(e),
     }
 }
