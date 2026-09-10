@@ -264,7 +264,7 @@ describe('WorkbenchStore（页面⑪回测工作台状态机）', () => {
 
   it('分页：loadMoreRuns 以累计 offset 追加（hasMore=条数==limit）', async () => {
     await s.store.init();
-    // 种子 4 条 < limit 100 → 无更多
+    // 种子 4 条 < limit 50 → 无更多
     expect(s.store.state.hasMore).toBe(false);
     await s.store.loadMoreRuns(); // 不爆错、不变
     expect(s.store.state.runs.data!.length).toBeGreaterThanOrEqual(4);

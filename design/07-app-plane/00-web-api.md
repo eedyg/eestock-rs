@@ -4727,8 +4727,9 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
 ## 6. 部署
 
 - `Dockerfile.app`（本文档 tangle，审查返工后自包含）：三阶段——`frontend`（node:22，`npm ci` 严格按
-  lock 安装 → **`VITE_API_MOCK=0 npm run build`**：镜像产物为生产部署，必须直连真后端，
-  09-frontend §4 的 mock 默认仅限开发态；Wave 2 Phase C 联调发现缺该 env 会静默出 mock 数据）
+  lock 安装 → **`npm run build:prod`**（= `VITE_API_MOCK=0 vite build`）：镜像产物为生产部署，必须直连真后端；
+  09-frontend §4 的 mock 自 mock 构建事故根治后默认关闭、仅 `VITE_API_MOCK=1` 显式启用
+  （事故前科：Wave 2 Phase C 联调与 2026-09-10 8081 事件均为缺省构建静默出 mock 数据））
   → `builder`（rust 编译 eestock-app）→ runtime（debian-slim 非 root，
   dist 从 frontend 阶段 COPY）。构建上下文无需预存 dist；`.dockerignore` 排除 node_modules/target/data 等。
   前端阶段构建前 `rm -rf dist` 清空历史产物（防旧镜像遗留的旧哈希 bundle 被 COPY 到运行时）。
@@ -4742,6 +4743,9 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
   `./config/app.toml` 只读挂载（.gitignore；模板 config/app.toml.example 入库）；
   healthcheck 复用二进制 `--self-check`。
 - `docker compose up -d` 一条命令起三容器（db/data/app），wave-1.md 验收口径。
+- **部署惯例（mock 构建事故根治后定稿）**：凡部署语义的前端构建一律走语义化脚本 `npm run build:prod`
+  （容器镜像、host 直建同理，如 `cd web && npm run build:prod` 或 `VITE_API_MOCK=0 npm run build`）；
+  `npm run build:mock` 仅限契约桩开发自验。验收防呆：部署报告须附 `grep -c 契约桩 dist/assets/*.js` = 0 的证据。
 
 ``` {.dockerfile file=Dockerfile.app}
 # Dockerfile.app — 应用面镜像（由 design/07-app-plane/00-web-api.md tangle 生成，禁止手改）
@@ -4756,8 +4760,8 @@ COPY web/ ./
 # 清空历史构建产物：vite build 默认 emptyOutDir，但 COPY 的本地 web/dist 可能遗留旧哈希 bundle，
 # 导致 /app/dist 出现多个历史 index-*.js（旧镜像产物残留）。删净避免旧 bundle 被侥幸 COPY 到运行时。
 RUN rm -rf dist
-# 生产镜像直连真后端（09-frontend §4：mock 开关默认仅开发态；缺省构建会静默出 mock 数据）
-RUN VITE_API_MOCK=0 npm run build
+# 生产镜像直连真后端（09-frontend §4：mock 仅 VITE_API_MOCK=1 显式启用；build:prod 为部署语义脚本）
+RUN npm run build:prod
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build

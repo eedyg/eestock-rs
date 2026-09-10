@@ -6,6 +6,47 @@ import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
 import { stubApi } from '@/test/apiStub';
 import { WorkbenchPage } from './WorkbenchPage';
+import type { WorkbenchRunView } from '@/api/types';
+
+/** 批量历史行（回归：真实环境 100+ 条历史把配置区挤出可视区的无界增长 bug）。 */
+function mkBulkRuns(n: number): WorkbenchRunView[] {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `sr_h_${i}`,
+    name: `历史运行 ${i}`,
+    symbol: '518880',
+    period: 'D1',
+    from_ts: '2026-01-01T00:00:00Z',
+    to_ts: '2026-04-01T00:00:00Z',
+    config: {
+      slots: [],
+      buy_threshold: 60,
+      sell_threshold: 40,
+      policy: { LumpSum: { position_pct: 1 } },
+      stop: null,
+      initial_capital: 100_000,
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+    },
+    status: 'canceled',
+    progress: 0,
+    error: null,
+    created_at: new Date(Date.UTC(2026, 8, 9, 6, 0, 0) - i * 60_000).toISOString(),
+    started_at: null,
+    finished_at: null,
+  }));
+}
+
+/** 覆写 listWorkbenchRuns 为 200 条后端数据（limit/offset 契约与后端/契约 mock 一致）。 */
+function stubBulkRuns(api: ApiClient, n = 200) {
+  const runs = mkBulkRuns(n);
+  (api.listWorkbenchRuns as ReturnType<typeof vi.fn>).mockImplementation(
+    (f?: { status?: string; limit?: number; offset?: number }) => {
+      const offset = f?.offset ?? 0;
+      const limit = f?.limit ?? 100;
+      return Promise.resolve(runs.slice(offset, offset + limit));
+    },
+  );
+  return runs;
+}
 
 // jsdom 无 canvas：klinecharts 整体打桩（与 BacktestPage.test 同模式）
 const chartStub = {
@@ -240,5 +281,64 @@ describe('WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 +
     expect(screen.getByTestId('wb-preset-msg')).not.toHaveTextContent('409');
     // 更新后脏标记消除
     expect(screen.queryByTestId('wb-preset-dirty')).toBeNull();
+  });
+});
+
+describe('WorkbenchPage 布局（运行历史无界增长覆盖配置区 回归）', () => {
+  let ws: ReturnType<typeof fakeWs>;
+  let api: ApiClient;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws = fakeWs();
+    api = stubApi();
+  });
+
+  it('200 条历史：首屏仅渲染一页（50 条 DOM 有界）+ 分页控件存在 + 配置区始终可见', async () => {
+    stubBulkRuns(api, 200);
+    renderPage(api, ws);
+    await waitFor(() => expect(screen.getByTestId('wb-run-row-sr_h_0')).toBeInTheDocument());
+    // DOM 有界：分页首屏只渲染一页，而非一次性渲染全部 200 条
+    expect(screen.getAllByTestId(/^wb-run-row-/).length).toBe(50);
+    expect(screen.getAllByTestId(/^wb-run-row-/).length).toBeLessThan(200);
+    // 分页控件（hasMore：200 > 50）
+    expect(screen.getByTestId('wb-runs-more')).toBeInTheDocument();
+    // 左列：整列不再滚动（历史不再把配置区顶走），高度有界
+    const left = screen.getByTestId('wb-left-col');
+    expect(left.className).not.toContain('overflow-y-auto');
+    expect(left.className).toContain('min-h-0');
+    // 历史包装：max-h 有界 + 内部滚动容器
+    expect(screen.getByTestId('wb-run-history').className).toMatch(/max-h-/);
+    expect(screen.getByTestId('wb-run-list-scroll').className).toContain('overflow-y-auto');
+    // 配置区完整可见可操作（含提交按钮）
+    expect(screen.getByTestId('wb-config')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-submit')).toBeInTheDocument();
+  });
+
+  it('「加载更多」以 offset 追加第二页（50→100 条），配置区布局不受影响', async () => {
+    const user = userEvent.setup();
+    stubBulkRuns(api, 200);
+    renderPage(api, ws);
+    await waitFor(() => expect(screen.getByTestId('wb-run-row-sr_h_0')).toBeInTheDocument());
+    await user.click(screen.getByTestId('wb-runs-more'));
+    await waitFor(() => expect(screen.getByTestId('wb-run-row-sr_h_99')).toBeInTheDocument());
+    expect(screen.getAllByTestId(/^wb-run-row-/).length).toBe(100);
+    expect(api.listWorkbenchRuns).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 50 }));
+    // 历史仍在有界滚动容器内，配置区仍可见
+    expect(screen.getByTestId('wb-run-list-scroll').contains(screen.getByTestId('wb-run-row-sr_h_99'))).toBe(true);
+    expect(screen.getByTestId('wb-config')).toBeInTheDocument();
+  });
+
+  it('选中历史项后左列布局稳定：配置区不被结果视图内容高度顶走', async () => {
+    const user = userEvent.setup();
+    stubBulkRuns(api, 200);
+    renderPage(api, ws);
+    await waitFor(() => expect(screen.getByTestId('wb-run-row-sr_h_10')).toBeInTheDocument());
+    const before = screen.getByTestId('wb-left-col').className;
+    await user.click(screen.getByTestId('wb-run-select-sr_h_10'));
+    await waitFor(() => expect(screen.getByTestId('wb-result-pending')).toBeInTheDocument());
+    // 左列类名（布局结构）不因选中/结果区内容变化而改变，配置区仍在
+    expect(screen.getByTestId('wb-left-col').className).toBe(before);
+    expect(screen.getByTestId('wb-config')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-run-history')).toBeInTheDocument();
   });
 });

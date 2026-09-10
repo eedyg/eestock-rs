@@ -82,8 +82,9 @@ export class WorkbenchStore {
     submitting: false,
     submitError: null,
   };
-  /** 分页单页 limit（与后端默认一致；条数==limit 即还有更多）。 */
-  private runLimit = 100;
+  /** 分页单页 limit（后端 limit/offset 契约；条数==limit 即还有更多）。
+   *  50/页：首屏 DOM 有界（不一次性渲染全部历史），余量走「加载更多」。 */
+  private runLimit = 50;
   private runNextOffset = 0;
   private listeners = new Set<() => void>();
   private unsubs: Array<() => void> = [];

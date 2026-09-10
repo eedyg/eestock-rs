@@ -389,7 +389,7 @@ async fn cancel_run_semantics() {
     let pool = pool().await;
     let url = spawn(state(pool.clone())).await;
     let http = reqwest::Client::new();
-    let code = format!("85{}", std::process::id() % 10000);
+    let code = format!("82{}", std::process::id() % 10000);
     let p = pref("cxl");
     clean(&pool, &code, &p).await;
     seed_symbol_and_bars(&pool, &code).await;

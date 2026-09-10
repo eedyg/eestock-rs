@@ -28,9 +28,10 @@ export function WorkbenchPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
 
   return (
     <div className="flex min-w-0 flex-1" data-testid="workbench-page">
-      {/* 左列：配置区 + 运行管理 */}
-      <div className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line">
-        <ConfigPanel
+      {/* 左列：配置区 + 运行管理（min-h-0 约束列高；配置区内部滚动不被挤压，历史区 max-h 有界） */}
+      <div className="flex min-h-0 w-[380px] shrink-0 flex-col border-r border-line" data-testid="wb-left-col">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ConfigPanel
           catalog={state.catalog.data}
           catalogLoading={state.catalog.loading}
           catalogError={state.catalog.error}
@@ -46,7 +47,8 @@ export function WorkbenchPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           onRenamePreset={(id, name) => store.renamePreset(id, name)}
           onDeletePreset={(id) => store.deletePreset(id)}
         />
-        <div className="border-t border-line">
+        </div>
+        <div className="flex max-h-[45%] shrink-0 flex-col border-t border-line" data-testid="wb-run-history">
           <RunList
             runs={state.runs.data}
             loading={state.runs.loading}
@@ -64,8 +66,8 @@ export function WorkbenchPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           />
         </div>
       </div>
-      {/* 右列：结果视图 / compare 面板 */}
-      <div className="min-w-0 flex-1 bg-panel">
+      {/* 右列：结果视图 / compare 面板（min-h-0 保证内部 overflow 生效，不反向挤压左列） */}
+      <div className="min-h-0 min-w-0 flex-1 bg-panel">
         {state.view === 'compare' ? (
           <ComparePanel
             items={state.compare.data}

@@ -13,7 +13,7 @@
 
 | 类别 | 选型 | 说明 |
 |---|---|---|
-| 构建 | Vite 6 + TypeScript 5.8 | `npm run build` = `tsc -b && vite build` |
+| 构建 | Vite 6 + TypeScript 5.8 | `npm run build` = `tsc -b && vite build`（默认真实 API）；`build:prod` / `build:mock` 为语义化变体 |
 | 框架 | React 18 + react-router-dom 6 | 路由表与 00-shell §路由索引一致 |
 | 样式 | Tailwind 3.4 + shadcn 约定 | shadcn 按需落码（`components.json` + `lib/utils.ts` cn + `components/ui/`），不跑 CLI 全量生成 |
 | K线 | klinecharts 10 | 主图 candle pane + 副图 VOL pane 单实例；MA(5/10/20) 内置指标 |
@@ -35,7 +35,7 @@ L3 骨架（`web/src/layouts/*Grid.tsx`）由 tangle 单向生成、禁止手改
 2. 测试直接注入 mock client 断言数据流，无需网络层拦截
 3. 零新增 dev 依赖
 
-切换方式：`VITE_API_MOCK=0` 或后端就绪后移除 mock 开关，默认开发态 mock 开启。
+切换方式（mock 构建事故根治后翻转）：仅 `VITE_API_MOCK=1` 显式启用 mock；未设置/`0`/其他值一律直连真后端——默认值站在生产一侧，防止缺省构建静默出 mock 数据（事故前科见 07-app-plane §6）。语义化脚本：`npm run build:mock`（契约桩开发自验）/ `npm run build:prod`（部署）。
 
 ## 5. API 契约假设（以 01-dashboard §5 / 02-sources §8 为准；Phase A 对齐）
 
