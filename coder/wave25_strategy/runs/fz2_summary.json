@@ -1,0 +1,518 @@
+{
+ "fz2_ha_510050": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.028501083045350373,
+   "annualized_return": -0.008274973920043616,
+   "max_drawdown": 0.08999328408327734,
+   "sharpe": -0.07185429744091647,
+   "trade_count": 3,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 0.384341908797034
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.08616115885223141,
+   "annualized_return": -0.058286002294576034,
+   "max_drawdown": 0.08616115885223141,
+   "sharpe": -1.2263558005436836,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  }
+ },
+ "fz2_ha_588000": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.06842892347675833,
+   "annualized_return": -0.020163677571288452,
+   "max_drawdown": 0.11591757068419617,
+   "sharpe": -0.4196198706918911,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.08614092063689793,
+   "annualized_return": -0.05827210181808251,
+   "max_drawdown": 0.09946754303046335,
+   "sharpe": -0.827652323701427,
+   "trade_count": 2,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  }
+ },
+ "fz2_ha_512480": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.14788965270496002,
+   "annualized_return": 0.04043183497882885,
+   "max_drawdown": 0.14451382694023207,
+   "sharpe": 0.3659947690405861,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.38769614138889397,
+   "annualized_return": -0.27887526387575,
+   "max_drawdown": 0.5570715474209651,
+   "sharpe": -0.3493526600463959,
+   "trade_count": 3,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  }
+ },
+ "fz2_ha_515070": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.14378294223921473,
+   "annualized_return": 0.039360792616233375,
+   "max_drawdown": 0.20953742351376914,
+   "sharpe": 0.34682863394581853,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 31.81286812083871
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.004820875173162986,
+   "annualized_return": -0.0032157721350928314,
+   "max_drawdown": 0.10384954781264633,
+   "sharpe": 0.043948906955240105,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 0.9535782747763093
+  }
+ },
+ "fz2_ha_512690": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.15825209811368146,
+   "annualized_return": -0.04830146042793748,
+   "max_drawdown": 0.20022175326411795,
+   "sharpe": -0.4390443958214703,
+   "trade_count": 2,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.0,
+   "annualized_return": 0.0,
+   "max_drawdown": 0.0,
+   "trade_count": 0
+  }
+ },
+ "fz2_ha_518880": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.20422685444321798,
+   "annualized_return": 0.05485634561305641,
+   "max_drawdown": 0.08579151676301022,
+   "sharpe": 0.7562080972138117,
+   "trade_count": 5,
+   "win_rate": 0.8,
+   "profit_factor": 5.5719210919746205
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.42033749116849917,
+   "annualized_return": 0.2634882087656736,
+   "max_drawdown": 0.16855467918346756,
+   "sharpe": 1.25131788973056,
+   "trade_count": 2,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_ha_159985": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.5260619753811511,
+   "annualized_return": 0.1291549146800417,
+   "max_drawdown": 0.11850188474186185,
+   "sharpe": 1.0924596568147957,
+   "trade_count": 4,
+   "win_rate": 0.75,
+   "profit_factor": 17.75823899321109
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.046736593405936167,
+   "annualized_return": -0.031398563143241964,
+   "max_drawdown": 0.046736593405936167,
+   "sharpe": -0.9198676592982614,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  }
+ },
+ "fz2_ha_513050": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.3075149628597509,
+   "annualized_return": 0.08009891288703064,
+   "max_drawdown": 0.0912831677828082,
+   "sharpe": 0.8262056653180172,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.04643683180465552,
+   "annualized_return": 0.03071599063532693,
+   "max_drawdown": 0.11784693112902622,
+   "sharpe": 0.3138478663574459,
+   "trade_count": 2,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_hb_510050": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.0552771443841622,
+   "annualized_return": -0.016208244281167516,
+   "max_drawdown": 0.10659784739821088,
+   "sharpe": -0.3976542695382668,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.09501126657298653,
+   "annualized_return": 0.06236331178080068,
+   "max_drawdown": 0.05053805633605224,
+   "sharpe": 0.745531629763941,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 11.064269728663119
+  }
+ },
+ "fz2_hb_588000": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.08834730527528278,
+   "annualized_return": 0.02462738090716976,
+   "max_drawdown": 0.08510638297872353,
+   "sharpe": 0.3637025575050522,
+   "trade_count": 0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.36849260890829705,
+   "annualized_return": -0.2638788182624482,
+   "max_drawdown": 0.38156527073600754,
+   "sharpe": -1.024903553385353,
+   "trade_count": 3,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  }
+ },
+ "fz2_hb_512480": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.13104416575518263,
+   "annualized_return": 0.036020948837902855,
+   "max_drawdown": 0.12409636619450093,
+   "sharpe": 0.44050792035922814,
+   "trade_count": 0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.44643093789116584,
+   "annualized_return": -0.3257510757454527,
+   "max_drawdown": 0.5498489513706603,
+   "sharpe": -0.47232075416222,
+   "trade_count": 3,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 0.050730533567596006
+  }
+ },
+ "fz2_hb_515070": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.18088452969121005,
+   "annualized_return": 0.04893941587216788,
+   "max_drawdown": 0.2671867700163367,
+   "sharpe": 0.39184224505548204,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.5121825425987787,
+   "annualized_return": -0.38024653301107736,
+   "max_drawdown": 0.5309413875283268,
+   "sharpe": -0.7156359063784697,
+   "trade_count": 3,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 0.19225245332944507
+  }
+ },
+ "fz2_hb_512690": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.17764006903340868,
+   "annualized_return": -0.054653179952698916,
+   "max_drawdown": 0.18602519893990566,
+   "sharpe": -0.99255814177529,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.0,
+   "annualized_return": 0.0,
+   "max_drawdown": 0.0,
+   "trade_count": 0
+  }
+ },
+ "fz2_hb_518880": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.5307630606190434,
+   "annualized_return": 0.1301534146028085,
+   "max_drawdown": 0.09285766528024397,
+   "sharpe": 1.3111798815467177,
+   "trade_count": 1,
+   "win_rate": 0.0,
+   "profit_factor": 0.0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.3764895461644253,
+   "annualized_return": 0.2373545947954201,
+   "max_drawdown": 0.24890793010752688,
+   "sharpe": 1.0025622639308638,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_hb_159985": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.02855423945799329,
+   "annualized_return": -0.00829056792821048,
+   "max_drawdown": 0.22023795659880796,
+   "sharpe": -0.0009314436677099248,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 0.827234057510582
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.10318271055194583,
+   "annualized_return": 0.06764076030179078,
+   "max_drawdown": 0.08864628820960685,
+   "sharpe": 0.6557730118192898,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_hb_513050": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.48127341748400476,
+   "annualized_return": 0.1195301971425975,
+   "max_drawdown": 0.16462480857580408,
+   "sharpe": 0.8453368833523169,
+   "trade_count": 0
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.3672298178145088,
+   "annualized_return": -0.2628980478575287,
+   "max_drawdown": 0.3950002960295461,
+   "sharpe": -1.7540364322523512,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 0.5985493423009418
+  }
+ },
+ "fz2_hc_510050": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.18909124060295435,
+   "annualized_return": 0.05102911750983585,
+   "max_drawdown": 0.08992139753531592,
+   "sharpe": 0.6043749360927411,
+   "trade_count": 16,
+   "win_rate": 0.75,
+   "profit_factor": 4.7471150210024655
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.08776826876470312,
+   "annualized_return": -0.059390162503028865,
+   "max_drawdown": 0.17667215984692763,
+   "sharpe": -0.41634595173669825,
+   "trade_count": 4,
+   "win_rate": 0.25,
+   "profit_factor": 0.39394464774155596
+  }
+ },
+ "fz2_hc_588000": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.20993688419075318,
+   "annualized_return": 0.05629129198658278,
+   "max_drawdown": 0.19035087719298238,
+   "sharpe": 0.3772684972570277,
+   "trade_count": 9,
+   "win_rate": 0.6666666666666666,
+   "profit_factor": 1.8315209256380172
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.4364421897764401,
+   "annualized_return": 0.2730188947175829,
+   "max_drawdown": 0.3020477815699658,
+   "sharpe": 0.836839178995831,
+   "trade_count": 1,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_hc_512480": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.07965269010381659,
+   "annualized_return": 0.022268350069708065,
+   "max_drawdown": 0.24705722551148412,
+   "sharpe": 0.21403302785292733,
+   "trade_count": 14,
+   "win_rate": 0.5,
+   "profit_factor": 0.8134737129942238
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.16501997970277338,
+   "annualized_return": 0.10716452446451608,
+   "max_drawdown": 0.557071510876407,
+   "sharpe": 0.5543596822119579,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 15.692017422091705
+  }
+ },
+ "fz2_hc_515070": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.1494074717829691,
+   "annualized_return": -0.045438454709073595,
+   "max_drawdown": 0.35661934590818856,
+   "sharpe": -0.15456369315508578,
+   "trade_count": 16,
+   "win_rate": 0.1875,
+   "profit_factor": 0.21157366214284934
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.1543216613941868,
+   "annualized_return": -0.10570416624842693,
+   "max_drawdown": 0.549703781489513,
+   "sharpe": 0.13978292096216632,
+   "trade_count": 2,
+   "win_rate": 0.5,
+   "profit_factor": 0.5641648501348172
+  }
+ },
+ "fz2_hc_512690": {
+  "is": {
+   "bars": 840,
+   "total_return": -0.286788850724057,
+   "annualized_return": -0.09255778966665806,
+   "max_drawdown": 0.33907386946007567,
+   "sharpe": -0.4579850492785138,
+   "trade_count": 11,
+   "win_rate": 0.5454545454545454,
+   "profit_factor": 0.31083893512421495
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.06882276838401613,
+   "annualized_return": -0.04641456702254565,
+   "max_drawdown": 0.10382726470098813,
+   "sharpe": -0.5652267170142563,
+   "trade_count": 7,
+   "win_rate": 0.2857142857142857,
+   "profit_factor": 0.2426606377471604
+  }
+ },
+ "fz2_hc_518880": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.7626047385159624,
+   "annualized_return": 0.1768959596929165,
+   "max_drawdown": 0.07491856677524444,
+   "sharpe": 1.5906032813664666,
+   "trade_count": 3,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 1.7963167405226057
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.34788729640286964,
+   "annualized_return": 0.22015780956377018,
+   "max_drawdown": 0.28545026881720426,
+   "sharpe": 0.9195244802961682,
+   "trade_count": 2,
+   "win_rate": 1.0,
+   "profit_factor": Infinity
+  }
+ },
+ "fz2_hc_159985": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.3516049387893365,
+   "annualized_return": 0.09044202214059927,
+   "max_drawdown": 0.17297676559619035,
+   "sharpe": 0.6191417192761437,
+   "trade_count": 13,
+   "win_rate": 0.5384615384615384,
+   "profit_factor": 3.8965165738056724
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": 0.10528282694110636,
+   "annualized_return": 0.06899499197681624,
+   "max_drawdown": 0.108914281108902,
+   "sharpe": 0.6060867052556236,
+   "trade_count": 7,
+   "win_rate": 0.42857142857142855,
+   "profit_factor": 2.5933392447926735
+  }
+ },
+ "fz2_hc_513050": {
+  "is": {
+   "bars": 840,
+   "total_return": 0.17695933819941878,
+   "annualized_return": 0.04793627129086331,
+   "max_drawdown": 0.23991735479889087,
+   "sharpe": 0.39280096302615464,
+   "trade_count": 17,
+   "win_rate": 0.5294117647058824,
+   "profit_factor": 0.3535361846672759
+  },
+  "oos": {
+   "bars": 369,
+   "total_return": -0.14513134690089413,
+   "annualized_return": -0.09923821919417841,
+   "max_drawdown": 0.2777451198085018,
+   "sharpe": -0.3894435362851558,
+   "trade_count": 5,
+   "win_rate": 0.4,
+   "profit_factor": 3.0168507362215466
+  }
+ }
+}

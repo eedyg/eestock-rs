@@ -1,0 +1,45 @@
+{
+ "tag": "hc_ens_don_t250r2_7030",
+ "symbol": "518880",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1.0,
+   "code_sha1": "3fa81d5357"
+  },
+  {
+   "params": {
+    "lb": 250,
+    "use_r2": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": 50878.958279989485,
+  "max_drawdown": 0.07491856677524429,
+  "sharpe": 1.4168324263065644,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.13116219758348313,
+  "trade_count": 1,
+  "avg_hold_bars": 459
+ },
+ "trades": [
+  {
+   "open_ts": 1681315200,
+   "close_ts": 1741536000,
+   "open_bar": 381,
+   "close_bar": 840,
+   "open_price": 4.33595051170198,
+   "close_price": 6.5426912,
+   "shares": 23061.840761355164,
+   "gross_value": 150886.50260511975,
+   "commission": 12.54407514275876,
+   "stamp_duty": 0,
+   "pnl": 50878.958279989485,
+   "hold_bars": 459
+  }
+ ]
+}

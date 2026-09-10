@@ -1,0 +1,41 @@
+{
+ "tag": "ha_r60a25_chand",
+ "symbol": "512690",
+ "slots": [
+  {
+   "params": {
+    "range_n": 60,
+    "amp_max": 0.25,
+    "exit_mode": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": -5572.087640600992,
+  "max_drawdown": 0.059382383988995674,
+  "sharpe": -0.7565251222064153,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.017032862813838867,
+  "trade_count": 1,
+  "avg_hold_bars": 16
+ },
+ "trades": [
+  {
+   "open_ts": 1715011200,
+   "close_ts": 1716912000,
+   "open_bar": 636,
+   "close_bar": 652,
+   "open_price": 0.7241447999999999,
+   "close_price": 0.6838632000000001,
+   "shares": 138087.0238244996,
+   "gross_value": 94432.63399109856,
+   "commission": 9.7213817120577,
+   "stamp_duty": 0,
+   "pnl": -5572.087640600992,
+   "hold_bars": 16
+  }
+ ]
+}

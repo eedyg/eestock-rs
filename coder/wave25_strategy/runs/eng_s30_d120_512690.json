@@ -1,0 +1,39 @@
+{
+ "tag": "s30_d120",
+ "symbol": "512690",
+ "slots": [
+  {
+   "params": {
+    "brk_n": 120
+   },
+   "weight": 1.0,
+   "code_sha1": "3fa81d5357"
+  }
+ ],
+ "metrics": {
+  "net_profit": 835.9357785160682,
+  "max_drawdown": 0.05746054763260725,
+  "sharpe": 0.07526957045181441,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.0024975276551153502,
+  "trade_count": 1,
+  "avg_hold_bars": 37
+ },
+ "trades": [
+  {
+   "open_ts": 1673280000,
+   "close_ts": 1678291200,
+   "open_bar": 320,
+   "close_bar": 357,
+   "open_price": 0.8991798,
+   "close_price": 0.9068186,
+   "shares": 110741.97120708748,
+   "gross_value": 100422.87929125139,
+   "commission": 9.999991140646515,
+   "stamp_duty": 0,
+   "pnl": 835.9357785160682,
+   "hold_bars": 37
+  }
+ ]
+}

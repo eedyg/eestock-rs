@@ -1,0 +1,96 @@
+{
+ "tag": "hc_ens_don_t120t250",
+ "symbol": "512690",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1.0,
+   "code_sha1": "3fa81d5357"
+  },
+  {
+   "params": {
+    "lb": 120,
+    "use_r2": 1,
+    "r2_min": 0.5
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  },
+  {
+   "params": {
+    "lb": 250,
+    "use_r2": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": -53478.9721726358,
+  "max_drawdown": 0.5682876579328184,
+  "sharpe": -1.1275124123399063,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.20491539218085508,
+  "trade_count": 4,
+  "avg_hold_bars": 29.5
+ },
+ "trades": [
+  {
+   "open_ts": 1637769600,
+   "close_ts": 1641225600,
+   "open_bar": 46,
+   "close_bar": 73,
+   "open_price": 1.310262,
+   "close_price": 0.964807,
+   "shares": 76316.79789995243,
+   "gross_value": 73630.98083145941,
+   "commission": 8.681299054075744,
+   "stamp_duty": 0,
+   "pnl": -26372.70071758215,
+   "hold_bars": 27
+  },
+  {
+   "open_ts": 1673798400,
+   "close_ts": 1685462400,
+   "open_bar": 324,
+   "close_bar": 412,
+   "open_price": 0.9211842,
+   "close_price": 0.7688462,
+   "shares": 79922.79730971587,
+   "gross_value": 61448.33900494527,
+   "commission": 6.753597855317769,
+   "stamp_duty": 0,
+   "pnl": -12182.032694422815,
+   "hold_bars": 88
+  },
+  {
+   "open_ts": 1728316800,
+   "close_ts": 1728489600,
+   "open_bar": 738,
+   "close_bar": 740,
+   "open_price": 0.7811562,
+   "close_price": 0.6388722,
+   "shares": 78655.45262045045,
+   "gross_value": 50250.78205762294,
+   "commission": 5.584648826795911,
+   "stamp_duty": 0,
+   "pnl": -11196.997069474965,
+   "hold_bars": 2
+  },
+  {
+   "open_ts": 1730995200,
+   "close_ts": 1731254400,
+   "open_bar": 761,
+   "close_bar": 762,
+   "open_price": 0.7191438,
+   "close_price": 0.6658668000000001,
+   "shares": 69868.85965040445,
+   "gross_value": 46523.35399506394,
+   "commission": 4.838455561282528,
+   "stamp_duty": 0,
+   "pnl": -3727.2416911558685,
+   "hold_bars": 1
+  }
+ ]
+}

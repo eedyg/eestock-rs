@@ -1,0 +1,41 @@
+{
+ "tag": "ha_r60a25_dry070",
+ "symbol": "515070",
+ "slots": [
+  {
+   "params": {
+    "range_n": 60,
+    "amp_max": 0.25,
+    "dry_coef": 0.7
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": 14844.927001095435,
+  "max_drawdown": 0.1395531091762894,
+  "sharpe": 0.46047105223627455,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.042346474495188025,
+  "trade_count": 1,
+  "avg_hold_bars": 63
+ },
+ "trades": [
+  {
+   "open_ts": 1674144000,
+   "close_ts": 1682524800,
+   "open_bar": 328,
+   "close_bar": 391,
+   "open_price": 0.9731945999999999,
+   "close_price": 1.1177764000000001,
+   "shares": 102749.2345826698,
+   "gross_value": 114850.66953457217,
+   "commission": 10.742283489231381,
+   "stamp_duty": 0,
+   "pnl": 14844.927001095435,
+   "hold_bars": 63
+  }
+ ]
+}

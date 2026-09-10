@@ -1,0 +1,40 @@
+{
+ "tag": "hc_mix_lb250_z05",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {
+    "lb": 250,
+    "gate_z": 0.5
+   },
+   "weight": 1.0,
+   "code_sha1": "8bc573c687"
+  }
+ ],
+ "metrics": {
+  "net_profit": 7931.1648416413955,
+  "max_drawdown": 0.05649241146711627,
+  "sharpe": 0.43526950959265165,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.02313333593631306,
+  "trade_count": 1,
+  "avg_hold_bars": 20
+ },
+ "trades": [
+  {
+   "open_ts": 1739116800,
+   "close_ts": 1741536000,
+   "open_bar": 820,
+   "close_bar": 840,
+   "open_price": 1.0772153999999998,
+   "close_price": 1.1627674000000001,
+   "shares": 92827.30292380476,
+   "gross_value": 107936.56166972488,
+   "commission": 10.396578095989017,
+   "stamp_duty": 0,
+   "pnl": 7931.1648416413955,
+   "hold_bars": 20
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "tag": "hb_lb250_zs15",
+ "symbol": "510050",
+ "slots": [
+  {
+   "params": {
+    "lb": 250,
+    "z_scale": 15
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": -1026.5078624804446,
+  "max_drawdown": 0.05982556209399849,
+  "sharpe": -0.0857803275407784,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.0030869831430572203,
+  "trade_count": 1,
+  "avg_hold_bars": 44
+ },
+ "trades": [
+  {
+   "open_ts": 1735228800,
+   "close_ts": 1741536000,
+   "open_bar": 796,
+   "close_bar": 840,
+   "open_price": 2.7544567308012358,
+   "close_price": 2.7264546,
+   "shares": 36302.92332064658,
+   "gross_value": 98978.27228102414,
+   "commission": 9.948655188465864,
+   "stamp_duty": 0,
+   "pnl": -1026.5078624804446,
+   "hold_bars": 44
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "tag": "hb_lb250_vol_r2",
+ "symbol": "512480",
+ "slots": [
+  {
+   "params": {
+    "lb": 250,
+    "use_scale": 1,
+    "use_r2": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": 6781.801741110001,
+  "max_drawdown": 0.12475065629441233,
+  "sharpe": 0.2688845252845337,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.01985635832261079,
+  "trade_count": 1,
+  "avg_hold_bars": 44
+ },
+ "trades": [
+  {
+   "open_ts": 1735228800,
+   "close_ts": 1741536000,
+   "open_bar": 796,
+   "close_bar": 840,
+   "open_price": 1.0682136,
+   "close_price": 1.1407718,
+   "shares": 93609.55547653344,
+   "gross_value": 106787.14109816491,
+   "commission": 10.339107067411017,
+   "stamp_duty": 0,
+   "pnl": 6781.801741110001,
+   "hold_bars": 44
+  }
+ ]
+}

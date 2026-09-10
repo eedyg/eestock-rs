@@ -1,0 +1,40 @@
+{
+ "tag": "hb_lb250_ez05",
+ "symbol": "159985",
+ "slots": [
+  {
+   "params": {
+    "lb": 250,
+    "exit_z": -0.5
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": 13036.663647689405,
+  "max_drawdown": 0.1846543001686341,
+  "sharpe": 0.3390165719440102,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.03740136442922659,
+  "trade_count": 1,
+  "avg_hold_bars": 449
+ },
+ "trades": [
+  {
+   "open_ts": 1664208000,
+   "close_ts": 1722873600,
+   "open_bar": 251,
+   "close_bar": 700,
+   "open_price": 1.7493498,
+   "close_price": 1.9776044,
+   "shares": 57161.23799253156,
+   "gross_value": 113042.31576347759,
+   "commission": 10.651865800676653,
+   "stamp_duty": 0,
+   "pnl": 13036.663647689405,
+   "hold_bars": 449
+  }
+ ]
+}

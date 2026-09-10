@@ -1,0 +1,40 @@
+{
+ "tag": "ha_r120a25",
+ "symbol": "515070",
+ "slots": [
+  {
+   "params": {
+    "range_n": 120,
+    "amp_max": 0.25
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": -406.31553291814635,
+  "max_drawdown": 0.12063492063492046,
+  "sharpe": 0.04211068070562968,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.001219233488061966,
+  "trade_count": 1,
+  "avg_hold_bars": 62
+ },
+ "trades": [
+  {
+   "open_ts": 1728316800,
+   "close_ts": 1735833600,
+   "open_bar": 738,
+   "close_bar": 800,
+   "open_price": 1.1222244000000001,
+   "close_price": 1.1177764000000001,
+   "shares": 89104.28275306389,
+   "gross_value": 99598.66440030186,
+   "commission": 9.979683232517866,
+   "stamp_duty": 0,
+   "pnl": -406.31553291814635,
+   "hold_bars": 62
+  }
+ ]
+}

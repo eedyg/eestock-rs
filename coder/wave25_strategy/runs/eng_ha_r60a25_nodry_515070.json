@@ -1,0 +1,83 @@
+{
+ "tag": "ha_r60a25_nodry",
+ "symbol": "515070",
+ "slots": [
+  {
+   "params": {
+    "range_n": 60,
+    "amp_max": 0.25,
+    "use_dry": 0
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": 7457.953858937311,
+  "max_drawdown": 0.20953742351376903,
+  "sharpe": 0.21242078884924567,
+  "win_rate": 0.5,
+  "profit_factor": 1.7443253733636006,
+  "annualized_return": 0.021787126414626767,
+  "trade_count": 4,
+  "avg_hold_bars": 40.25
+ },
+ "trades": [
+  {
+   "open_ts": 1641312000,
+   "close_ts": 1643299200,
+   "open_bar": 74,
+   "close_bar": 91,
+   "open_price": 1.3192637999999999,
+   "close_price": 1.1927614000000002,
+   "shares": 75796.06159889136,
+   "gross_value": 90406.61654717992,
+   "commission": 9.52008083986177,
+   "stamp_duty": 0,
+   "pnl": -9597.90378364743,
+   "hold_bars": 17
+  },
+  {
+   "open_ts": 1674144000,
+   "close_ts": 1682524800,
+   "open_bar": 328,
+   "close_bar": 391,
+   "open_price": 0.9731945999999999,
+   "close_price": 1.1177764000000001,
+   "shares": 92887.46190899095,
+   "gross_value": 103827.41277776904,
+   "commission": 9.711249455766643,
+   "stamp_duty": 0,
+   "pnl": 13420.125190777602,
+   "hold_bars": 63
+  },
+  {
+   "open_ts": 1728316800,
+   "close_ts": 1735833600,
+   "open_bar": 738,
+   "close_bar": 800,
+   "open_price": 1.1222244000000001,
+   "close_price": 1.1177764000000001,
+   "shares": 92510.0457231213,
+   "gross_value": 103405.54587222592,
+   "commission": 10.361128821386817,
+   "stamp_duty": 0,
+   "pnl": -421.84581219783286,
+   "hold_bars": 62
+  },
+  {
+   "open_ts": 1739203200,
+   "close_ts": 1741536000,
+   "open_bar": 821,
+   "close_bar": 840,
+   "open_price": 1.2812561999999998,
+   "close_price": 1.3317336000000002,
+   "shares": 80592.65439979138,
+   "gross_value": 107327.94577739004,
+   "commission": 10.529389195080165,
+   "stamp_duty": 0,
+   "pnl": 4057.578264004973,
+   "hold_bars": 19
+  }
+ ]
+}

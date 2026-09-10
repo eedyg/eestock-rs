@@ -1,0 +1,41 @@
+{
+ "tag": "ha_r60a25_bv150",
+ "symbol": "512690",
+ "slots": [
+  {
+   "params": {
+    "range_n": 60,
+    "amp_max": 0.25,
+    "brk_vol": 1.5
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": -4329.615109556282,
+  "max_drawdown": 0.04814305364511688,
+  "sharpe": -0.6075066318216868,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.013175067975074395,
+  "trade_count": 1,
+  "avg_hold_bars": 14
+ },
+ "trades": [
+  {
+   "open_ts": 1715011200,
+   "close_ts": 1716739200,
+   "open_bar": 636,
+   "close_bar": 650,
+   "open_price": 0.7241447999999999,
+   "close_price": 0.6928614,
+   "shares": 138087.0238244996,
+   "gross_value": 95675.16864887615,
+   "commission": 9.78350844494658,
+   "stamp_duty": 0,
+   "pnl": -4329.615109556282,
+   "hold_bars": 14
+  }
+ ]
+}

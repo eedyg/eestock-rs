@@ -1,0 +1,172 @@
+{
+ "tag": "hc_ens_don_t120r2",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1.0,
+   "code_sha1": "3fa81d5357"
+  },
+  {
+   "params": {
+    "lb": 120,
+    "use_r2": 1,
+    "r2_min": 0.5
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": 39207.25530697926,
+  "max_drawdown": 0.19035087719298238,
+  "sharpe": 0.5895805420789971,
+  "win_rate": 0.6,
+  "profit_factor": 3.9437207592326433,
+  "annualized_return": 0.1041989108303043,
+  "trade_count": 10,
+  "avg_hold_bars": 17.3
+ },
+ "trades": [
+  {
+   "open_ts": 1635696000,
+   "close_ts": 1638806400,
+   "open_bar": 28,
+   "close_bar": 54,
+   "open_price": 1.4492898,
+   "close_price": 1.4677064,
+   "shares": 68965.51724137932,
+   "gross_value": 101221.13103448277,
+   "commission": 10.058607586205287,
+   "stamp_duty": 0,
+   "pnl": 1260.0517372413742,
+   "hold_bars": 26
+  },
+  {
+   "open_ts": 1659888000,
+   "close_ts": 1659974400,
+   "open_bar": 216,
+   "close_bar": 217,
+   "open_price": 1.2162431999999999,
+   "close_price": 1.2067586000000001,
+   "shares": 83252.25496659878,
+   "gross_value": 100465.3746503358,
+   "commission": 10.086018181913296,
+   "stamp_duty": 0,
+   "pnl": -799.7003556380951,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1660060800,
+   "close_ts": 1660147200,
+   "open_bar": 218,
+   "close_bar": 219,
+   "open_price": 1.2062412,
+   "close_price": 1.214757,
+   "shares": 82479.76303908315,
+   "gross_value": 100192.86951006754,
+   "commission": 9.984167892696984,
+   "stamp_duty": 0,
+   "pnl": 692.3969981955306,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1660233600,
+   "close_ts": 1660492800,
+   "open_bar": 220,
+   "close_bar": 221,
+   "open_price": 1.2242448,
+   "close_price": 1.1967606000000002,
+   "shares": 82304.9213830747,
+   "gross_value": 98499.28709736133,
+   "commission": 9.963032955754684,
+   "stamp_duty": 0,
+   "pnl": -2272.0479532324243,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1666800000,
+   "close_ts": 1668441600,
+   "open_bar": 268,
+   "close_bar": 281,
+   "open_price": 1.0532105999999999,
+   "close_price": 1.0687862,
+   "shares": 93880.32805474465,
+   "gross_value": 100337.99907638392,
+   "commission": 9.960687785748707,
+   "stamp_duty": 0,
+   "pnl": 1452.281749863745,
+   "hold_bars": 13
+  },
+  {
+   "open_ts": 1674144000,
+   "close_ts": 1675008000,
+   "open_bar": 328,
+   "close_bar": 329,
+   "open_price": 1.070214,
+   "close_price": 1.0907818,
+   "shares": 93745.70485729135,
+   "gross_value": 102256.108686505,
+   "commission": 10.129203723231452,
+   "stamp_duty": 0,
+   "pnl": 1918.013704640558,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1679328000,
+   "close_ts": 1682438400,
+   "open_bar": 365,
+   "close_bar": 390,
+   "open_price": 1.0682136,
+   "close_price": 1.114777,
+   "shares": 95716.70271459878,
+   "gross_value": 106702.77870207228,
+   "commission": 10.44743311444735,
+   "stamp_duty": 0,
+   "pnl": 4446.4476820665,
+   "hold_bars": 25
+  },
+  {
+   "open_ts": 1709049600,
+   "close_ts": 1709136000,
+   "open_bar": 592,
+   "close_bar": 593,
+   "open_price": 0.8361672,
+   "close_price": 0.8038392000000001,
+   "shares": 127596.62057742673,
+   "gross_value": 102567.16540766225,
+   "commission": 10.462963718272885,
+   "stamp_duty": 0,
+   "pnl": -4135.4065137453,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1709481600,
+   "close_ts": 1709568000,
+   "open_bar": 595,
+   "close_bar": 596,
+   "open_price": 0.8571713999999999,
+   "close_price": 0.8508298,
+   "shares": 119645.74320133837,
+   "gross_value": 101798.16375884607,
+   "commission": 10.217753648142054,
+   "stamp_duty": 0,
+   "pnl": -768.9631987337489,
+   "hold_bars": 1
+  },
+  {
+   "open_ts": 1727625600,
+   "close_ts": 1741536000,
+   "open_bar": 737,
+   "close_bar": 840,
+   "open_price": 0.85017,
+   "close_price": 1.1627674000000001,
+   "shares": 119726.62461794178,
+   "gross_value": 139214.21601778016,
+   "commission": 12.050110023464601,
+   "stamp_duty": 0,
+   "pnl": 37414.18145632112,
+   "hold_bars": 103
+  }
+ ]
+}

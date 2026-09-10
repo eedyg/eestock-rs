@@ -1,0 +1,96 @@
+{
+ "tag": "hc_ens_don_t120t250",
+ "symbol": "518880",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1.0,
+   "code_sha1": "3fa81d5357"
+  },
+  {
+   "params": {
+    "lb": 120,
+    "use_r2": 1,
+    "r2_min": 0.5
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  },
+  {
+   "params": {
+    "lb": 250,
+    "use_r2": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "1f1d9d26c7"
+  }
+ ],
+ "metrics": {
+  "net_profit": 57943.282674012065,
+  "max_drawdown": 0.116028665290216,
+  "sharpe": 1.282639350493081,
+  "win_rate": 0.25,
+  "profit_factor": 60.50232790783751,
+  "annualized_return": 0.14677849189346004,
+  "trade_count": 4,
+  "avg_hold_bars": 173
+ },
+ "trades": [
+  {
+   "open_ts": 1636387200,
+   "close_ts": 1638288000,
+   "open_bar": 34,
+   "close_bar": 50,
+   "open_price": 3.6757349999999995,
+   "close_price": 3.5712856,
+   "shares": 27204.08306093543,
+   "gross_value": 97153.55009672263,
+   "commission": 9.857427517338905,
+   "stamp_duty": 0,
+   "pnl": -2851.3075807822024,
+   "hold_bars": 16
+  },
+  {
+   "open_ts": 1640534400,
+   "close_ts": 1658073600,
+   "open_bar": 68,
+   "close_bar": 201,
+   "open_price": 3.6367272,
+   "close_price": 3.6352728,
+   "shares": 26711.884033384857,
+   "gross_value": 97104.98546331827,
+   "commission": 9.712441034539456,
+   "stamp_duty": 0,
+   "pnl": -48.56220517269685,
+   "hold_bars": 133
+  },
+  {
+   "open_ts": 1667923200,
+   "close_ts": 1670342400,
+   "open_bar": 277,
+   "close_bar": 297,
+   "open_price": 3.9037805999999997,
+   "close_price": 3.89922,
+   "shares": 24872.113829930036,
+   "gross_value": 96981.8436879398,
+   "commission": 9.703855956910242,
+   "stamp_duty": 0,
+   "pnl": -123.13561828967067,
+   "hold_bars": 20
+  },
+  {
+   "open_ts": 1672848000,
+   "close_ts": 1741536000,
+   "open_bar": 317,
+   "close_bar": 840,
+   "open_price": 4.0168032,
+   "close_price": 6.5426912,
+   "shares": 24141.622369862678,
+   "gross_value": 157951.18023302368,
+   "commission": 12.74616631107857,
+   "stamp_duty": 0,
+   "pnl": 60966.28807825662,
+   "hold_bars": 523
+  }
+ ]
+}

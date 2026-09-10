@@ -1,0 +1,41 @@
+{
+ "tag": "ha_r60a25_retest",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {
+    "range_n": 60,
+    "amp_max": 0.25,
+    "entry_mode": 1
+   },
+   "weight": 1.0,
+   "code_sha1": "aa6b6568ce"
+  }
+ ],
+ "metrics": {
+  "net_profit": -6944.335044334963,
+  "max_drawdown": 0.08865973568053519,
+  "sharpe": -0.6798391432964715,
+  "win_rate": 0,
+  "profit_factor": 0,
+  "annualized_return": -0.021335139403917402,
+  "trade_count": 1,
+  "avg_hold_bars": 11
+ },
+ "trades": [
+  {
+   "open_ts": 1660060800,
+   "close_ts": 1661356800,
+   "open_bar": 218,
+   "close_bar": 229,
+   "open_price": 1.2062412,
+   "close_price": 1.1217756,
+   "shares": 82101.80623973727,
+   "gross_value": 92099.80295566503,
+   "commission": 9.556719211819296,
+   "stamp_duty": 0,
+   "pnl": -6944.335044334963,
+   "hold_bars": 11
+  }
+ ]
+}
