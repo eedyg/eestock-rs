@@ -70,9 +70,26 @@ async fn spawn(state: Arc<AppState>) -> String {
     format!("http://{addr}")
 }
 
-/// 清空 app_config（收敛到默认；GET 缺则默认回退）。
+/// app_config 串行锁：本 binary 内三个读写 app_config 的测试互斥。
+/// 根因（间歇 flake）：共享 dev 库（127.0.0.1:5433 app_config）上，
+/// 「清键→GET 读默认」与「PATCH 写回」并行执行存在执行序竞态
+/// （如 snapshot 测试清键后、GET 前，patch 测试写入 trading_tools_enabled=true）。
+/// cargo test 同一 binary 内测试默认多线程并行，故需 binary 内互斥；
+/// 跨 binary 无其他测试写 sources/collector/mcp 键（grep 全仓确认），互斥即可根治。
+static CONFIG_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+
+fn config_lock() -> &'static tokio::sync::Mutex<()> {
+    CONFIG_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
+/// 清空本 binary 使用的 app_config 键（收敛到默认；GET 缺则默认回退）。
+/// 只删 sources/collector/mcp 三键、不清全表：共享 dev 库上避免抹掉其他
+/// binary/部署实例的配置键（如 kline 键由 kline 测试自管、storage 测试的独立键）。
 async fn clear_config(pool: &PgPool) {
-    sqlx::query("DELETE FROM app_config").execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM app_config WHERE key IN ('sources', 'collector', 'mcp')")
+        .execute(pool)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -93,8 +110,9 @@ async fn system_info_returns_version_db_and_uptime() {
 
 #[tokio::test]
 async fn config_snapshots_return_readonly_defaults() {
+    let _guard = config_lock().lock().await; // 与 patch/kline 测试互斥（共享 app_config）
     let pool = pool().await;
-    clear_config(&pool).await; // 收敛到空表 → GET 缺则默认
+    clear_config(&pool).await; // 收敛到缺键 → GET 缺则默认
     let url = spawn(state(pool.clone())).await;
     let http = reqwest::Client::new();
 
@@ -178,6 +196,7 @@ fn valid_sources_json() -> serde_json::Value {
 
 #[tokio::test]
 async fn config_patch_persists_get_reads_back_and_validates() {
+    let _guard = config_lock().lock().await; // 与 snapshot/kline 测试互斥（共享 app_config）
     let pool = pool().await;
     clear_config(&pool).await;
     let url = spawn(state(pool.clone())).await;
@@ -263,6 +282,7 @@ async fn clear_kline_config(pool: &PgPool) {
 
 #[tokio::test]
 async fn config_kline_put_get_and_validate() {
+    let _guard = config_lock().lock().await; // 与 snapshot/patch 测试互斥（共享 app_config）
     let pool = pool().await;
     clear_kline_config(&pool).await;
     let url = spawn(state(pool.clone())).await;

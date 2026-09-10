@@ -1,0 +1,58 @@
+{
+ "run_id": "sr_1789044295270_000113",
+ "status": "succeeded",
+ "error": null,
+ "metrics": {
+  "annualized_return": 0.1385423663458012,
+  "avg_hold_bars": 1207.0,
+  "max_drawdown": 0.26602023608768954,
+  "net_profit": 86355.39713295718,
+  "profit_factor": null,
+  "sharpe": 0.7497852949550664,
+  "trade_count": 1,
+  "win_rate": 1.0
+ },
+ "trades": [
+  {
+   "close_bar": 1208,
+   "close_price": 2.3935212000000003,
+   "close_ts": 1788883200,
+   "commission": 14.317985780935658,
+   "gross_value": 186364.7153687256,
+   "hold_bars": 1207,
+   "open_bar": 1,
+   "open_price": 1.2842568,
+   "open_ts": 1631548800,
+   "pnl": 86355.39713295718,
+   "shares": 77862.15362066799,
+   "stamp_duty": 0.0
+  }
+ ],
+ "config": {
+  "buy_threshold": 60.0,
+  "fee": {
+   "min_fee": 0.0,
+   "rate_pct": 0.005,
+   "slippage_bp": 2.0,
+   "stamp_duty_pct": 0.0
+  },
+  "initial_capital": 100000.0,
+  "policy": {
+   "LumpSum": {
+    "position_pct": 1.0
+   }
+  },
+  "sell_threshold": 40.0,
+  "slots": [
+   {
+    "params": {},
+    "sha256": "c51add60e843d57bdb0e3affa71e746225d09bc85301b6ff7b0822ada7021c38",
+    "strategy_id": "st_1789044235378_000093",
+    "version": 1,
+    "version_id": "sv_1789044235378_000094",
+    "weight": 1.0
+   }
+  ],
+  "stop": null
+ }
+}

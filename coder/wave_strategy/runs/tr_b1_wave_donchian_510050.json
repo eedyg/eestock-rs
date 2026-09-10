@@ -1,0 +1,46 @@
+{
+ "tag": "b1_wave_donchian",
+ "symbol": "510050",
+ "params": {},
+ "metrics": {
+  "total_return": -0.11027481562267027,
+  "annualized_return": -0.03294340081035263,
+  "max_drawdown": 0.1252970532758575,
+  "trade_count": 2,
+  "win_rate": 0.0,
+  "profit_factor": null,
+  "sharpe": -1.280357769865959,
+  "avg_hold_bars": 10.5
+ },
+ "trades": [
+  {
+   "close_bar": 335,
+   "close_price": 2.7474504000000004,
+   "close_ts": 1675699200,
+   "commission": 49.113271865121185,
+   "gross_value": 96503.35089567967,
+   "hold_bars": 10,
+   "open_bar": 325,
+   "open_price": 2.8455690000000002,
+   "open_ts": 1673884800,
+   "pnl": -3543.750616438352,
+   "shares": 35124.69265893923,
+   "stamp_duty": 48.25167544783984
+  },
+  {
+   "close_bar": 772,
+   "close_price": 2.7114576,
+   "close_ts": 1732464000,
+   "commission": 46.36785981484773,
+   "gross_value": 89039.29791116634,
+   "hold_bars": 11,
+   "open_bar": 761,
+   "open_price": 2.9365872,
+   "open_ts": 1730995200,
+   "pnl": -7483.730945828662,
+   "shares": 32838.16715819799,
+   "stamp_duty": 44.51964895558317
+  }
+ ],
+ "events": []
+}

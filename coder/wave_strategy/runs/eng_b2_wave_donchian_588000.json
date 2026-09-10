@@ -1,0 +1,51 @@
+{
+ "tag": "b2_wave_donchian",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1,
+   "code_sha1": "ba0696cd30"
+  }
+ ],
+ "metrics": {
+  "net_profit": -4055.5864132380957,
+  "max_drawdown": 0.10837444063959782,
+  "sharpe": -0.191918242315602,
+  "win_rate": 0.5,
+  "profit_factor": 0.13100992052758295,
+  "annualized_return": -0.012328955564194,
+  "trade_count": 2,
+  "avg_hold_bars": 12.5
+ },
+ "trades": [
+  {
+   "open_ts": 1680537600,
+   "close_ts": 1682438400,
+   "open_bar": 375,
+   "close_bar": 390,
+   "open_price": 1.1692338,
+   "close_price": 1.114777,
+   "shares": 85521.81800593474,
+   "gross_value": 95337.7557112019,
+   "commission": 9.766637798062867,
+   "stamp_duty": 0,
+   "pnl": -4667.011176583663,
+   "hold_bars": 15
+  },
+  {
+   "open_ts": 1740326400,
+   "close_ts": 1741536000,
+   "open_bar": 830,
+   "close_bar": 840,
+   "open_price": 1.155231,
+   "close_price": 1.1627674000000001,
+   "shares": 82396.70598393805,
+   "gross_value": 95808.2035855081,
+   "commission": 9.549771631800304,
+   "stamp_duty": 0,
+   "pnl": 611.424763345567,
+   "hold_bars": 10
+  }
+ ]
+}

@@ -144,8 +144,14 @@ async fn list_events_filters() {
     store.insert_incident("source_success_rate", AlertLevel::Warning, B, "m3",
         t0() + Duration::minutes(10)).await.unwrap();
 
-    let all = store.list_events(&AlertFilter { limit: 200, ..Default::default() }).await.unwrap();
-    let mine: Vec<_> = all.iter().filter(|e| e.source == A || e.source == B).collect();
+    // source 过滤下推 SQL WHERE（LIMIT 之前）：共享 dev 库有实时 app 持续写真实告警事件，
+    // 裸 limit:200 先截断再内存过滤会把固定 t0 的测试事件挤出窗口（全量连跑 flake 实锤）；
+    // 按本测试唯一 source 标记分别查询再合并排序，窗口/排序语义不削弱。
+    let mut mine = store.list_events(&AlertFilter { source: Some(A.into()), limit: 200,
+        ..Default::default() }).await.unwrap();
+    mine.extend(store.list_events(&AlertFilter { source: Some(B.into()), limit: 200,
+        ..Default::default() }).await.unwrap());
+    mine.sort_by_key(|e| std::cmp::Reverse(e.last_fired_at));
     assert_eq!(mine.len(), 3);
     assert_eq!(mine[0].source, B, "last_fired_at 降序");
 

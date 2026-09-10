@@ -1,0 +1,169 @@
+{
+ "tag": "b16_X3a_brk15",
+ "symbol": "159985",
+ "slots": [
+  {
+   "params": {
+    "use_vol": 0,
+    "use_regime": 0,
+    "use_adx": 0,
+    "brk_n": 15,
+    "exit_n": 15
+   },
+   "weight": 1,
+   "code_sha1": "ba0696cd30"
+  }
+ ],
+ "metrics": {
+  "net_profit": 103788.22328658975,
+  "max_drawdown": 0.1319972325368749,
+  "sharpe": 1.3733130303736625,
+  "win_rate": 0.6,
+  "profit_factor": 5.691637616177414,
+  "annualized_return": 0.23777992585203855,
+  "trade_count": 10,
+  "avg_hold_bars": 44.1
+ },
+ "trades": [
+  {
+   "open_ts": 1637683200,
+   "close_ts": 1642435200,
+   "open_bar": 45,
+   "close_bar": 83,
+   "open_price": 1.1822363999999999,
+   "close_price": 1.2117576,
+   "shares": 84530.85376162299,
+   "gross_value": 102430.90448013526,
+   "commission": 10.118317836015262,
+   "stamp_duty": 0,
+   "pnl": 2485.333922231628,
+   "hold_bars": 38
+  },
+  {
+   "open_ts": 1643299200,
+   "close_ts": 1649174400,
+   "open_bar": 91,
+   "close_bar": 132,
+   "open_price": 1.2872573999999999,
+   "close_price": 1.5196960000000002,
+   "shares": 79611.28047252713,
+   "gross_value": 120984.94448897759,
+   "commission": 11.173257720028449,
+   "stamp_duty": 0,
+   "pnl": 18493.561319521526,
+   "hold_bars": 41
+  },
+  {
+   "open_ts": 1652716800,
+   "close_ts": 1655827200,
+   "open_bar": 158,
+   "close_bar": 183,
+   "open_price": 1.6393278,
+   "close_price": 1.6126774,
+   "shares": 73794.17746677826,
+   "gross_value": 119006.20225226255,
+   "commission": 11.998952442586646,
+   "stamp_duty": 0,
+   "pnl": -1978.6432996032236,
+   "hold_bars": 25
+  },
+  {
+   "open_ts": 1659888000,
+   "close_ts": 1675958400,
+   "open_bar": 216,
+   "close_bar": 338,
+   "open_price": 1.5993198,
+   "close_price": 1.9576084,
+   "shares": 74051.18353587425,
+   "gross_value": 144963.21891976913,
+   "commission": 13.169737148107924,
+   "stamp_duty": 0,
+   "pnl": 26518.52514026333,
+   "hold_bars": 122
+  },
+  {
+   "open_ts": 1686672000,
+   "close_ts": 1694707200,
+   "open_bar": 422,
+   "close_bar": 487,
+   "open_price": 1.7913582,
+   "close_price": 2.2955408,
+   "shares": 81229.70688237443,
+   "gross_value": 186466.1063205313,
+   "commission": 16.59888039138332,
+   "stamp_duty": 0,
+   "pnl": 40938.00593280204,
+   "hold_bars": 65
+  },
+  {
+   "open_ts": 1698681600,
+   "close_ts": 1701100800,
+   "open_bar": 513,
+   "close_bar": 533,
+   "open_price": 2.2544508,
+   "close_price": 2.2155568000000003,
+   "shares": 81386.63597346806,
+   "gross_value": 180316.7147601418,
+   "commission": 18.189944067003317,
+   "stamp_duty": 0,
+   "pnl": -3183.64176361906,
+   "hold_bars": 20
+  },
+  {
+   "open_ts": 1709481600,
+   "close_ts": 1717430400,
+   "open_bar": 595,
+   "close_bar": 656,
+   "open_price": 2.060412,
+   "close_price": 2.2175564,
+   "shares": 88945.30708066814,
+   "gross_value": 197241.23496670093,
+   "commission": 19.02526065095598,
+   "stamp_duty": 0,
+   "pnl": 13958.231653356372,
+   "hold_bars": 61
+  },
+  {
+   "open_ts": 1725379200,
+   "close_ts": 1728403200,
+   "open_bar": 721,
+   "close_bar": 739,
+   "open_price": 1.9433886,
+   "close_price": 1.9246150000000002,
+   "shares": 101196.18927909317,
+   "gross_value": 194763.70382938194,
+   "commission": 19.57136122189725,
+   "stamp_duty": 0,
+   "pnl": -1919.3881402718544,
+   "hold_bars": 18
+  },
+  {
+   "open_ts": 1730995200,
+   "close_ts": 1732464000,
+   "open_bar": 761,
+   "close_bar": 772,
+   "open_price": 1.955391,
+   "close_price": 1.8886222000000001,
+   "shares": 99878.85781089206,
+   "gross_value": 188633.42817229417,
+   "commission": 19.196782391313096,
+   "stamp_duty": 0,
+   "pnl": -6687.9882637952105,
+   "hold_bars": 11
+  },
+  {
+   "open_ts": 1735833600,
+   "close_ts": 1741536000,
+   "open_bar": 800,
+   "close_bar": 840,
+   "open_price": 1.8413682000000002,
+   "close_price": 1.989602,
+   "shares": 102431.74926806975,
+   "gross_value": 203798.41320725012,
+   "commission": 19.620648948991832,
+   "stamp_duty": 0,
+   "pnl": 15164.226785704202,
+   "hold_bars": 40
+  }
+ ]
+}

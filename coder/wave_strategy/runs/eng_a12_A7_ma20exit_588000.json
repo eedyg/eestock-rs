@@ -1,0 +1,54 @@
+{
+ "tag": "a12_A7_ma20exit",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {
+    "exit_mode": 2,
+    "exit_ma": 20
+   },
+   "weight": 1,
+   "code_sha1": "ba0696cd30"
+  }
+ ],
+ "metrics": {
+  "net_profit": -1818.3175762373576,
+  "max_drawdown": 0.087583171990835,
+  "sharpe": -0.0716867582388134,
+  "win_rate": 0.5,
+  "profit_factor": 0.2560074707873479,
+  "annualized_return": -0.00548352076385783,
+  "trade_count": 2,
+  "avg_hold_bars": 12
+ },
+ "trades": [
+  {
+   "open_ts": 1680537600,
+   "close_ts": 1682352000,
+   "open_bar": 375,
+   "close_bar": 389,
+   "open_price": 1.1692338,
+   "close_price": 1.1407718,
+   "shares": 85521.81800593474,
+   "gross_value": 97560.87826590257,
+   "commission": 9.877793925797903,
+   "stamp_duty": 0,
+   "pnl": -2443.9997780107224,
+   "hold_bars": 14
+  },
+  {
+   "open_ts": 1740326400,
+   "close_ts": 1741536000,
+   "open_bar": 830,
+   "close_bar": 840,
+   "open_price": 1.155231,
+   "close_price": 1.1627674000000001,
+   "shares": 84318.06415037967,
+   "gross_value": 98042.29622517018,
+   "commission": 9.772456889586177,
+   "stamp_duty": 0,
+   "pnl": 625.6822017733648,
+   "hold_bars": 10
+  }
+ ]
+}

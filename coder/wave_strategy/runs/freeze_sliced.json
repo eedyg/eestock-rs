@@ -1,0 +1,714 @@
+[
+ {
+  "sym": "510050",
+  "pathA_full": {
+   "annualized_return": -0.010409349551139702,
+   "avg_hold_bars": 33.142857142857146,
+   "max_drawdown": 0.163762458568582,
+   "net_profit": -4896.254615762387,
+   "profit_factor": 1.521184557732432,
+   "sharpe": -0.03951602450518399,
+   "trade_count": 14,
+   "win_rate": 0.35714285714285715
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.03539425138783847,
+   "annualized_return": 0.010045578049539428,
+   "max_drawdown": 0.13539037290354838,
+   "sharpe": 0.15102415825358853,
+   "trade_count": 9,
+   "win_rate": 0.4444444444444444,
+   "profit_factor": 1.146614534862478
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": -0.07743315945089801,
+   "annualized_return": -0.052300721550010865,
+   "max_drawdown": 0.16376245856858218,
+   "sharpe": -0.40536825887471306,
+   "trade_count": 5,
+   "win_rate": 0.2,
+   "profit_factor": 0.6279751654723642
+  },
+  "pathB_full": {
+   "annualized_return": 0.015942681814154147,
+   "avg_hold_bars": 14.88888888888889,
+   "max_drawdown": 0.14986724277792776,
+   "net_profit": 7883.700572634072,
+   "profit_factor": 2.308650506421481,
+   "sharpe": 0.205448899968626,
+   "trade_count": 27,
+   "win_rate": 0.3703703703703703
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.04673884701844622,
+   "annualized_return": 0.013213545105125402,
+   "max_drawdown": 0.10217147747968192,
+   "sharpe": 0.1899077007993955,
+   "trade_count": 10,
+   "win_rate": 0.4,
+   "profit_factor": 1.5460220686255708
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": 0.03520029506289757,
+   "annualized_return": 0.0233259170715423,
+   "max_drawdown": 0.14986724277792784,
+   "sharpe": 0.2641453558082064,
+   "trade_count": 17,
+   "win_rate": 0.35294117647058826,
+   "profit_factor": 1.279163772667361
+  },
+  "hold_full": {
+   "annualized_return": -0.01696474636726819,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.3337126864717501,
+   "net_profit": -7880.973866808898,
+   "profit_factor": 0.0,
+   "sharpe": -0.015964728271481425,
+   "trade_count": 1,
+   "win_rate": 0.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": -0.1645289645778727,
+   "annualized_return": -0.05034631413724133,
+   "max_drawdown": 0.3337126864717501,
+   "sharpe": -0.21343252462760956,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": 0.10744792575358919,
+   "annualized_return": 0.0703902286548368,
+   "max_drawdown": 0.11337026270740136,
+   "sharpe": 0.545311161542246,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "588000",
+  "pathA_full": {
+   "annualized_return": 0.11688491016422288,
+   "avg_hold_bars": 30.76923076923077,
+   "max_drawdown": 0.1903508771929823,
+   "net_profit": 69951.94001332353,
+   "profit_factor": 2.4326856816907063,
+   "sharpe": 0.5832570863722134,
+   "trade_count": 13,
+   "win_rate": 0.6153846153846154
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.17368179987382848,
+   "annualized_return": 0.047096816590832535,
+   "max_drawdown": 0.19035087719298227,
+   "sharpe": 0.32701568227619376,
+   "trade_count": 8,
+   "win_rate": 0.5,
+   "profit_factor": 1.559987394126016
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": 0.4530042937532104,
+   "annualized_return": 0.2827831781900201,
+   "max_drawdown": 0.1802391129607509,
+   "sharpe": 1.0553545600328949,
+   "trade_count": 5,
+   "win_rate": 0.8,
+   "profit_factor": 7.634706827310258
+  },
+  "pathB_full": {
+   "annualized_return": 0.06839705004391794,
+   "avg_hold_bars": 12.852941176470589,
+   "max_drawdown": 0.28306360732234426,
+   "net_profit": 37356.2589762687,
+   "profit_factor": 3.54500843305449,
+   "sharpe": 0.384409032939422,
+   "trade_count": 34,
+   "win_rate": 0.29411764705882354
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.16599638600492028,
+   "annualized_return": 0.04512182928237718,
+   "max_drawdown": 0.1934677181051968,
+   "sharpe": 0.32478286816061863,
+   "trade_count": 13,
+   "win_rate": 0.23076923076923078,
+   "profit_factor": 1.196614756190764
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": 0.1820678102074007,
+   "annualized_return": 0.11793670115573907,
+   "max_drawdown": 0.28306360732234415,
+   "sharpe": 0.50338848328483,
+   "trade_count": 21,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 1.576757490547602
+  },
+  "hold_full": {
+   "annualized_return": 0.031688225259489,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.5603392041748205,
+   "net_profit": 16144.972797715236,
+   "profit_factor": null,
+   "sharpe": 0.2567767745010075,
+   "trade_count": 1,
+   "win_rate": 1.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": -0.18865903250688232,
+   "annualized_return": -0.05831080430844071,
+   "max_drawdown": 0.5603392041748205,
+   "sharpe": -0.054483143582808605,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": 0.43644218977644034,
+   "annualized_return": 0.2730188947175831,
+   "max_drawdown": 0.3020477815699659,
+   "sharpe": 0.8368391789958262,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "512480",
+  "pathA_full": {
+   "annualized_return": 0.04028305733056281,
+   "avg_hold_bars": 42.61538461538461,
+   "max_drawdown": 0.5570715474209651,
+   "net_profit": 20861.08391358952,
+   "profit_factor": 3.384542214574679,
+   "sharpe": 0.32996344614231066,
+   "trade_count": 13,
+   "win_rate": 0.3076923076923077
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.16882806750191404,
+   "annualized_return": 0.04585058729531877,
+   "max_drawdown": 0.23849275983555007,
+   "sharpe": 0.3138198178840339,
+   "trade_count": 9,
+   "win_rate": 0.2222222222222222,
+   "profit_factor": 1.5055595701996716
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": 0.03494271616538902,
+   "annualized_return": 0.023156199209446227,
+   "max_drawdown": 0.5570715474209651,
+   "sharpe": 0.40243255999363486,
+   "trade_count": 4,
+   "win_rate": 0.5,
+   "profit_factor": 1.5033351546067413
+  },
+  "pathB_full": {
+   "annualized_return": 0.05042055851713778,
+   "avg_hold_bars": 14.64516129032258,
+   "max_drawdown": 0.553823847915921,
+   "net_profit": 26617.15699169728,
+   "profit_factor": 1.722439698327963,
+   "sharpe": 0.356733013734582,
+   "trade_count": 31,
+   "win_rate": 0.4516129032258064
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.06398327895344069,
+   "annualized_return": 0.017982499957507114,
+   "max_drawdown": 0.30634184374263274,
+   "sharpe": 0.19162581612089072,
+   "trade_count": 18,
+   "win_rate": 0.3888888888888889,
+   "profit_factor": 0.7125217991977099
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": 0.19106280401171927,
+   "annualized_return": 0.12359956106075343,
+   "max_drawdown": 0.553823847915921,
+   "sharpe": 0.5799557535711185,
+   "trade_count": 13,
+   "win_rate": 0.5384615384615384,
+   "profit_factor": 2.238170856205808
+  },
+  "hold_full": {
+   "annualized_return": -0.050103099659447925,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.6912828400679221,
+   "net_profit": -21855.177383464557,
+   "profit_factor": 0.0,
+   "sharpe": 0.13350767099385494,
+   "trade_count": 1,
+   "win_rate": 0.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": -0.09316142724409437,
+   "annualized_return": -0.02771116094899473,
+   "max_drawdown": 0.5851689030187572,
+   "sharpe": 0.0805927665261099,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": -0.1375230770391469,
+   "annualized_return": -0.09390285951542521,
+   "max_drawdown": 0.6912828400679221,
+   "sharpe": 0.21493418152279817,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "515070",
+  "pathA_full": {
+   "annualized_return": 0.012235406276480676,
+   "avg_hold_bars": 35.13333333333333,
+   "max_drawdown": 0.5605578564108613,
+   "net_profit": 6008.024350587031,
+   "profit_factor": 0.6932799356625087,
+   "sharpe": 0.2467356640571633,
+   "trade_count": 15,
+   "win_rate": 0.6
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.3213851178385183,
+   "annualized_return": 0.08337917165706177,
+   "max_drawdown": 0.2689909756514264,
+   "sharpe": 0.4743689762305983,
+   "trade_count": 10,
+   "win_rate": 0.5,
+   "profit_factor": 1.6019786354384715
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": -0.1911255503773296,
+   "annualized_return": -0.13183670599104702,
+   "max_drawdown": 0.5605578564108612,
+   "sharpe": 0.048839084823548026,
+   "trade_count": 5,
+   "win_rate": 0.8,
+   "profit_factor": 0.8810202327898051
+  },
+  "pathB_full": {
+   "annualized_return": -0.05408371034665982,
+   "avg_hold_bars": 14.54054054054054,
+   "max_drawdown": 0.5497037814895129,
+   "net_profit": -23413.8081532606,
+   "profit_factor": 1.9994290679622384,
+   "sharpe": 0.0478831773995529,
+   "trade_count": 37,
+   "win_rate": 0.2972972972972973
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.1453174236657988,
+   "annualized_return": 0.0397613101473131,
+   "max_drawdown": 0.3017245030675696,
+   "sharpe": 0.29678550002931214,
+   "trade_count": 18,
+   "win_rate": 0.2777777777777778,
+   "profit_factor": 0.9068557067329784
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": -0.32578812823021797,
+   "annualized_return": -0.23106381567954526,
+   "max_drawdown": 0.5497037814895129,
+   "sharpe": -0.16388282480522368,
+   "trade_count": 19,
+   "win_rate": 0.3157894736842105,
+   "profit_factor": 0.8216057584924397
+  },
+  "hold_full": {
+   "annualized_return": -0.02259198760410175,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.6233377207253978,
+   "net_profit": -10383.511178014756,
+   "profit_factor": 0.0,
+   "sharpe": 0.18411524004657676,
+   "trade_count": 1,
+   "win_rate": 0.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": 0.10639601137817878,
+   "annualized_return": 0.029481825213052648,
+   "max_drawdown": 0.45140289472367445,
+   "sharpe": 0.2536244702020989,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": -0.1833537693457663,
+   "annualized_return": -0.1262858859381467,
+   "max_drawdown": 0.6233377207253978,
+   "sharpe": 0.12279501009713394,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "512690",
+  "pathA_full": {
+   "annualized_return": -0.05430423414206565,
+   "avg_hold_bars": 33.54545454545455,
+   "max_drawdown": 0.3253262572383278,
+   "net_profit": -23499.430423269136,
+   "profit_factor": 0.5420806217377345,
+   "sharpe": -0.1702283924625527,
+   "trade_count": 11,
+   "win_rate": 0.4545454545454546
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": -0.16556483902062014,
+   "annualized_return": -0.050684828897157974,
+   "max_drawdown": 0.32532625723832775,
+   "sharpe": -0.11824388714007045,
+   "trade_count": 7,
+   "win_rate": 0.5714285714285714,
+   "profit_factor": 0.47579556561853603
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": -0.0846964332454303,
+   "annualized_return": -0.057280230735200055,
+   "max_drawdown": 0.17232168503604894,
+   "sharpe": -0.41111666829308025,
+   "trade_count": 4,
+   "win_rate": 0.25,
+   "profit_factor": 0.3609824779337904
+  },
+  "pathB_full": {
+   "annualized_return": -0.0729033732617611,
+   "avg_hold_bars": 10.318181818181818,
+   "max_drawdown": 0.3945737767028982,
+   "net_profit": -30453.019665159925,
+   "profit_factor": 0.4368332380154821,
+   "sharpe": -0.5382873669084431,
+   "trade_count": 22,
+   "win_rate": 0.3181818181818182
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": -0.25857864603632474,
+   "annualized_return": -0.08238537688461722,
+   "max_drawdown": 0.3584077150693682,
+   "sharpe": -0.5635188476337707,
+   "trade_count": 16,
+   "win_rate": 0.3125,
+   "profit_factor": 0.21580985578996512
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": -0.06197764654283988,
+   "annualized_return": -0.04174811089117225,
+   "max_drawdown": 0.11810099180817879,
+   "sharpe": -0.5112002555692249,
+   "trade_count": 6,
+   "win_rate": 0.3333333333333333,
+   "profit_factor": 0.12915233379939162
+  },
+  "hold_full": {
+   "annualized_return": -0.18863891842107583,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.7283875478036096,
+   "net_profit": -63318.74525881342,
+   "profit_factor": 0.0,
+   "sharpe": -0.5275030560050483,
+   "trade_count": 1,
+   "win_rate": 0.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": -0.4731646703525365,
+   "annualized_return": -0.16820344825981037,
+   "max_drawdown": 0.6561858666802197,
+   "sharpe": -0.39949416435229224,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": -0.3048779581914276,
+   "annualized_return": -0.2152498800827417,
+   "max_drawdown": 0.4121282205773471,
+   "sharpe": -1.009953499746743,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "518880",
+  "pathA_full": {
+   "annualized_return": 0.15219940292232303,
+   "avg_hold_bars": 45.875,
+   "max_drawdown": 0.17671916216057892,
+   "net_profit": 97326.86021302806,
+   "profit_factor": 4.420081594352409,
+   "sharpe": 1.0337358690797662,
+   "trade_count": 16,
+   "win_rate": 0.625
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.38395752201442424,
+   "annualized_return": 0.09787968944819281,
+   "max_drawdown": 0.08692945283965192,
+   "sharpe": 1.0263321988255492,
+   "trade_count": 12,
+   "win_rate": 0.5833333333333334,
+   "profit_factor": 4.236078287391122
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": 0.4219145728479712,
+   "annualized_return": 0.2644231043758418,
+   "max_drawdown": 0.1767191621605787,
+   "sharpe": 1.203199572534475,
+   "trade_count": 4,
+   "win_rate": 0.75,
+   "profit_factor": 11.340396181479532
+  },
+  "pathB_full": {
+   "annualized_return": 0.19880780050005553,
+   "avg_hold_bars": 27.96969696969697,
+   "max_drawdown": 0.21970159774175177,
+   "net_profit": 138676.90080378743,
+   "profit_factor": 3.9261786653697337,
+   "sharpe": 1.2220677936955402,
+   "trade_count": 33,
+   "win_rate": 0.5757575757575758
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.708242133693284,
+   "annualized_return": 0.16634821502019892,
+   "max_drawdown": 0.06450707584994886,
+   "sharpe": 1.5525737364860206,
+   "trade_count": 22,
+   "win_rate": 0.6363636363636364,
+   "profit_factor": 7.603793470286865
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": 0.39336449289798137,
+   "annualized_return": 0.24744455536061571,
+   "max_drawdown": 0.2197015977417517,
+   "sharpe": 1.075628701187401,
+   "trade_count": 11,
+   "win_rate": 0.45454545454545453,
+   "profit_factor": 4.615075207072742
+  },
+  "hold_full": {
+   "annualized_return": 0.20860680691893815,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.3051892322226434,
+   "net_profit": 148183.12888522795,
+   "profit_factor": null,
+   "sharpe": 1.1542276835124594,
+   "trade_count": 1,
+   "win_rate": 1.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": 0.7918972305299286,
+   "annualized_return": 0.182483608073301,
+   "max_drawdown": 0.11376256930595907,
+   "sharpe": 1.534852567059523,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": 0.3812202994756042,
+   "annualized_return": 0.240187373540782,
+   "max_drawdown": 0.3051892322226434,
+   "sharpe": 0.960590445694305,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "159985",
+  "pathA_full": {
+   "annualized_return": 0.15802366984593386,
+   "avg_hold_bars": 39.333333333333336,
+   "max_drawdown": 0.14229133676661582,
+   "net_profit": 102158.4907158998,
+   "profit_factor": 3.6174543013382574,
+   "sharpe": 1.0112663880813932,
+   "trade_count": 15,
+   "win_rate": 0.5333333333333333
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.8112460970851896,
+   "annualized_return": 0.18613886864128126,
+   "max_drawdown": 0.13199723253687434,
+   "sharpe": 1.1937444185020187,
+   "trade_count": 9,
+   "win_rate": 0.5555555555555556,
+   "profit_factor": 4.453814702308546
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": 0.09986413651808834,
+   "annualized_return": 0.06549906861091914,
+   "max_drawdown": 0.11353488988367089,
+   "sharpe": 0.5088386002539533,
+   "trade_count": 6,
+   "win_rate": 0.5,
+   "profit_factor": 3.5480512619860085
+  },
+  "pathB_full": {
+   "annualized_return": 0.1007066192200894,
+   "avg_hold_bars": 14.295454545454543,
+   "max_drawdown": 0.23559407153895032,
+   "net_profit": 58461.71690819066,
+   "profit_factor": 3.359936352600999,
+   "sharpe": 0.683825798866818,
+   "trade_count": 44,
+   "win_rate": 0.3636363636363637
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.5288549715349591,
+   "annualized_return": 0.12974840461562942,
+   "max_drawdown": 0.13372148546755624,
+   "sharpe": 0.8784927146703089,
+   "trade_count": 25,
+   "win_rate": 0.36,
+   "profit_factor": 2.37506931414841
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": 0.03647317671404937,
+   "annualized_return": 0.02416440782159812,
+   "max_drawdown": 0.14045885145019388,
+   "sharpe": 0.23488669352293398,
+   "trade_count": 19,
+   "win_rate": 0.3684210526315789,
+   "profit_factor": 1.2222698170045672
+  },
+  "hold_full": {
+   "annualized_return": 0.1385423663458012,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.26602023608768954,
+   "net_profit": 86355.39713295718,
+   "profit_factor": null,
+   "sharpe": 0.7497852949550664,
+   "trade_count": 1,
+   "win_rate": 1.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": 0.5268768325012991,
+   "annualized_return": 0.12932814539035387,
+   "max_drawdown": 0.26602023608768943,
+   "sharpe": 0.7160382252933336,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": 0.20271433363819136,
+   "annualized_return": 0.13091370658029522,
+   "max_drawdown": 0.14691943127962082,
+   "sharpe": 0.7911661154207822,
+   "trade_count": 0
+  }
+ },
+ {
+  "sym": "513050",
+  "pathA_full": {
+   "annualized_return": 0.02775587875472585,
+   "avg_hold_bars": 27.5,
+   "max_drawdown": 0.2601062291785868,
+   "net_profit": 14036.412093434934,
+   "profit_factor": 1.651505770331824,
+   "sharpe": 0.23977790946414795,
+   "trade_count": 14,
+   "win_rate": 0.42857142857142855
+  },
+  "pathA_is": {
+   "bars": 840,
+   "total_return": 0.3086585861697073,
+   "annualized_return": 0.0803703125051698,
+   "max_drawdown": 0.2601062291785867,
+   "sharpe": 0.5190574157996133,
+   "trade_count": 9,
+   "win_rate": 0.4444444444444444,
+   "profit_factor": 1.1353593270396358
+  },
+  "pathA_oos": {
+   "bars": 369,
+   "total_return": -0.10517295869312593,
+   "annualized_return": -0.0713898945530359,
+   "max_drawdown": 0.2178000585797344,
+   "sharpe": -0.3574364770524438,
+   "trade_count": 5,
+   "win_rate": 0.4,
+   "profit_factor": 1.3718264442655876
+  },
+  "pathB_full": {
+   "annualized_return": -0.024190168440408,
+   "avg_hold_bars": 11.676470588235292,
+   "max_drawdown": 0.31014482744873834,
+   "net_profit": -11084.345368465132,
+   "profit_factor": 1.997382068490141,
+   "sharpe": -0.04721031344935896,
+   "trade_count": 34,
+   "win_rate": 0.29411764705882354
+  },
+  "pathB_is": {
+   "bars": 840,
+   "total_return": 0.008699268648981295,
+   "annualized_return": 0.002492216822503668,
+   "max_drawdown": 0.3101448274487383,
+   "sharpe": 0.10193107501387612,
+   "trade_count": 21,
+   "win_rate": 0.23809523809523808,
+   "profit_factor": 0.45923008808147386
+  },
+  "pathB_oos": {
+   "bars": 369,
+   "total_return": -0.09481272854394551,
+   "annualized_return": -0.06423771449897742,
+   "max_drawdown": 0.25252728509042643,
+   "sharpe": -0.2712689719856439,
+   "trade_count": 13,
+   "win_rate": 0.38461538461538464,
+   "profit_factor": 1.2785885597789486
+  },
+  "hold_full": {
+   "annualized_return": -0.07331631151334217,
+   "avg_hold_bars": 1207.0,
+   "max_drawdown": 0.4812460267005721,
+   "net_profit": -30601.50954129595,
+   "profit_factor": 0.0,
+   "sharpe": -0.08483571409632001,
+   "trade_count": 1,
+   "win_rate": 0.0
+  },
+  "hold_is": {
+   "bars": 840,
+   "total_return": 0.056416047367317645,
+   "annualized_return": 0.015896612515627018,
+   "max_drawdown": 0.48124602670057215,
+   "sharpe": 0.21193732506148932,
+   "trade_count": 0
+  },
+  "hold_oos": {
+   "bars": 369,
+   "total_return": -0.3254145834163935,
+   "annualized_return": -0.23077988902412838,
+   "max_drawdown": 0.46381766381766376,
+   "sharpe": -0.7782546585880159,
+   "trade_count": 0
+  }
+ }
+]

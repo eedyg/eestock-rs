@@ -1,0 +1,37 @@
+{
+ "tag": "a12_B0_default",
+ "symbol": "512480",
+ "slots": [
+  {
+   "params": {},
+   "weight": 1,
+   "code_sha1": "602b529c0f"
+  }
+ ],
+ "metrics": {
+  "net_profit": 11300.454930925334,
+  "max_drawdown": 0.08371369319419239,
+  "sharpe": 0.4466413543409402,
+  "win_rate": 1,
+  "profit_factor": null,
+  "annualized_return": 0.03260089121078624,
+  "trade_count": 1,
+  "avg_hold_bars": 27
+ },
+ "trades": [
+  {
+   "open_ts": 1678809600,
+   "close_ts": 1682265600,
+   "open_bar": 361,
+   "close_bar": 388,
+   "open_price": 0.9071814,
+   "close_price": 1.009798,
+   "shares": 110226.02563278687,
+   "gross_value": 111306.02023193691,
+   "commission": 10.565051024099619,
+   "stamp_duty": 0,
+   "pnl": 11300.454930925334,
+   "hold_bars": 27
+  }
+ ]
+}

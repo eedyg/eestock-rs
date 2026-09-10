@@ -1,0 +1,168 @@
+{
+ "tag": "b15_X1_exit5",
+ "symbol": "588000",
+ "slots": [
+  {
+   "params": {
+    "use_vol": 0,
+    "use_regime": 0,
+    "use_adx": 0,
+    "exit_n": 5
+   },
+   "weight": 1,
+   "code_sha1": "ba0696cd30"
+  }
+ ],
+ "metrics": {
+  "net_profit": 23286.226861074203,
+  "max_drawdown": 0.19692661666490446,
+  "sharpe": 0.4181728933216532,
+  "win_rate": 0.6,
+  "profit_factor": 1.5342322461209668,
+  "annualized_return": 0.06473599801041297,
+  "trade_count": 10,
+  "avg_hold_bars": 14.8
+ },
+ "trades": [
+  {
+   "open_ts": 1635696000,
+   "close_ts": 1638460800,
+   "open_bar": 28,
+   "close_bar": 52,
+   "open_price": 1.4492898,
+   "close_price": 1.4827034000000001,
+   "shares": 68965.51724137932,
+   "gross_value": 102255.40689655175,
+   "commission": 10.110321379308736,
+   "stamp_duty": 0,
+   "pnl": 2294.275885517258,
+   "hold_bars": 24
+  },
+  {
+   "open_ts": 1652976000,
+   "close_ts": 1655222400,
+   "open_bar": 161,
+   "close_bar": 178,
+   "open_price": 1.0842168,
+   "close_price": 1.1167766000000001,
+   "shares": 94343.82627851354,
+   "gross_value": 105360.97754230902,
+   "commission": 10.38250694848897,
+   "stamp_duty": 0,
+   "pnl": 3061.4336079146597,
+   "hold_bars": 17
+  },
+  {
+   "open_ts": 1659888000,
+   "close_ts": 1660665600,
+   "open_bar": 216,
+   "close_bar": 223,
+   "open_price": 1.2162431999999999,
+   "close_price": 1.1887622,
+   "shares": 86619.55271062018,
+   "gross_value": 102970.05004329281,
+   "commission": 10.416024600733957,
+   "stamp_duty": 0,
+   "pnl": -2390.8079526412766,
+   "hold_bars": 7
+  },
+  {
+   "open_ts": 1666800000,
+   "close_ts": 1668096000,
+   "open_bar": 268,
+   "close_bar": 279,
+   "open_price": 1.0532105999999999,
+   "close_price": 1.0977804000000002,
+   "shares": 97757.99213672268,
+   "gross_value": 107316.8077110483,
+   "commission": 10.513828063209926,
+   "stamp_duty": 0,
+   "pnl": 4346.540329872121,
+   "hold_bars": 11
+  },
+  {
+   "open_ts": 1674144000,
+   "close_ts": 1676822400,
+   "open_bar": 328,
+   "close_bar": 344,
+   "open_price": 1.070214,
+   "close_price": 1.0267946,
+   "shares": 100265.99966626713,
+   "gross_value": 102952.58702092488,
+   "commission": 10.512933179383591,
+   "stamp_duty": 0,
+   "pnl": -4364.002479088915,
+   "hold_bars": 16
+  },
+  {
+   "open_ts": 1679328000,
+   "close_ts": 1681401600,
+   "open_bar": 365,
+   "close_bar": 382,
+   "open_price": 1.0682136,
+   "close_price": 1.1487702,
+   "shares": 96368.64038892595,
+   "gross_value": 110705.42229331454,
+   "commission": 10.682385728515863,
+   "stamp_duty": 0,
+   "pnl": 7752.4476306260185,
+   "hold_bars": 17
+  },
+  {
+   "open_ts": 1709049600,
+   "close_ts": 1711296000,
+   "open_bar": 592,
+   "close_bar": 610,
+   "open_price": 0.8361672,
+   "close_price": 0.8308338,
+   "shares": 132383.03571891438,
+   "gross_value": 109988.30062188137,
+   "commission": 11.034132646322215,
+   "stamp_duty": 0,
+   "pnl": -717.0858153495792,
+   "hold_bars": 18
+  },
+  {
+   "open_ts": 1727625600,
+   "close_ts": 1730304000,
+   "open_bar": 737,
+   "close_bar": 755,
+   "open_price": 0.85017,
+   "close_price": 1.0057988,
+   "shares": 129359.18974056152,
+   "gross_value": 130109.31781002908,
+   "commission": 12.004331007587552,
+   "stamp_duty": 0,
+   "pnl": 20120.01113728831,
+   "hold_bars": 18
+  },
+  {
+   "open_ts": 1731340800,
+   "close_ts": 1731859200,
+   "open_bar": 763,
+   "close_bar": 767,
+   "open_price": 1.130226,
+   "close_price": 1.039792,
+   "shares": 115106.45439829039,
+   "gross_value": 119686.77043170716,
+   "commission": 12.489153898021812,
+   "stamp_duty": 0,
+   "pnl": -10422.026250953,
+   "hold_bars": 4
+  },
+  {
+   "open_ts": 1739116800,
+   "close_ts": 1741017600,
+   "open_bar": 820,
+   "close_bar": 836,
+   "open_price": 1.0772153999999998,
+   "close_price": 1.1097780000000002,
+   "shares": 111096.4458483122,
+   "gross_value": 123292.39148064824,
+   "commission": 12.148359691680678,
+   "stamp_duty": 0,
+   "pnl": 3605.4407678886055,
+   "hold_bars": 16
+  }
+ ]
+}

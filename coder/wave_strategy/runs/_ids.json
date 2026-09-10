@@ -1,0 +1,20 @@
+{
+ "buy_hold_version": "sv_1789044235378_000094",
+ "buy_hold_strategy": "st_1789044235378_000093",
+ "donchian": {
+  "strategy_id": "st_1789046242243_000119",
+  "version_id": "sv_1789046242243_000120"
+ },
+ "tsmom60": {
+  "strategy_id": "st_1789046242257_000121",
+  "version_id": "sv_1789046242257_000122"
+ },
+ "tsmom250": {
+  "strategy_id": "st_1789046242264_000123",
+  "version_id": "sv_1789046242264_000124"
+ },
+ "retest": {
+  "strategy_id": "st_1789046242271_000125",
+  "version_id": "sv_1789046242271_000126"
+ }
+}

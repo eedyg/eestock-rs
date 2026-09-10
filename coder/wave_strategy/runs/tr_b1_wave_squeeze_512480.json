@@ -1,0 +1,32 @@
+{
+ "tag": "b1_wave_squeeze",
+ "symbol": "512480",
+ "params": {},
+ "metrics": {
+  "total_return": 0.11200301768356735,
+  "annualized_return": 0.03090434601241321,
+  "max_drawdown": 0.0923512285768402,
+  "trade_count": 1,
+  "win_rate": 1.0,
+  "profit_factor": Infinity,
+  "sharpe": 0.44337483929725297,
+  "avg_hold_bars": 27.0
+ },
+ "trades": [
+  {
+   "close_bar": 388,
+   "close_price": 1.009798,
+   "close_ts": 1682265600,
+   "commission": 52.81469271005962,
+   "gross_value": 111283.76459180057,
+   "hold_bars": 27,
+   "open_bar": 361,
+   "open_price": 0.9071814,
+   "open_ts": 1678809600,
+   "pnl": 11200.30176835673,
+   "shares": 110203.98593758413,
+   "stamp_duty": 55.64188229590029
+  }
+ ],
+ "events": []
+}
