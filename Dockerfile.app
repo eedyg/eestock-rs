@@ -16,7 +16,7 @@ RUN VITE_API_MOCK=0 npm run build
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build
-# 依赖缓存分层：先 COPY 锁文件与 13 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
+# 依赖缓存分层：先 COPY 锁文件与 15 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
 # 清单不变 → 本层及 fetch 层命中 Docker 缓存，源码变更只触发 COPY crates 与 cargo build 重编（依赖已 fetch）。
 COPY Cargo.toml Cargo.lock ./
 COPY crates/alert/Cargo.toml crates/alert/Cargo.toml
@@ -30,11 +30,13 @@ COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
 COPY crates/simlive/Cargo.toml crates/simlive/Cargo.toml
 COPY crates/providers/Cargo.toml crates/providers/Cargo.toml
 COPY crates/storage/Cargo.toml crates/storage/Cargo.toml
+COPY crates/strategy-core/Cargo.toml crates/strategy-core/Cargo.toml
+COPY crates/strategy-runtime/Cargo.toml crates/strategy-runtime/Cargo.toml
 COPY crates/tushare/Cargo.toml crates/tushare/Cargo.toml
 COPY crates/web/Cargo.toml crates/web/Cargo.toml
 # workspace 特例：crates/* 无显式 [lib]/[[bin]]，cargo 自动发现目标需 src。故先补空 src/lib.rs 使
 # 每个 crate 可加载解析依赖图；随后 COPY crates ./crates 以真实源码覆盖（各 crate 均含真实 lib.rs，零残留）。
-RUN for c in alert app application backtest collector diagnose domain mcp providers storage tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
+RUN for c in alert app application backtest collector diagnose domain mcp providers storage strategy-core strategy-runtime tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
 RUN cargo fetch
 COPY crates ./crates
 RUN cargo build --release --bin eestock-app
