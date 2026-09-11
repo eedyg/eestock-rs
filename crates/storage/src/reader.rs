@@ -133,35 +133,50 @@ GROUP BY code, time_bucket('{interval}', ts)
 "#, interval = interval))
 }
 
-/// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
+/// 每 code 最新快照（D3 优化版，Wave 2 Phase A；2026-09-11 涨跌幅语义修复）。
 /// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
-/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯 LIMIT 2 取候选 → 按 ts 去重（同 ts 准确层优先，
-/// merge 语义）→ row_number 取最新两根。merge 尾部 top-2 ⊆ 双侧 top-2 并集，语义等价
+/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯取候选，语义等价 merge 尾部
 /// （实盘全量 symbols 新老查询 EXCEPT 互减 0 行，证据见 coder/report/011）。
-/// 实测（同库）：旧 19,850ms → 新 13.5ms。
+/// - last：merge 尾部 top-1（双侧各 DESC LIMIT 1 候选 → 最新 ts；同 ts 准确层 pri=0 优先）。
+/// - prev_close：**最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（昨收）**——
+///   修复前取 merge 尾部 rn=2（上一根 M1 收盘）→ 涨跌幅实为**1 分钟涨跌**（±0.0x% 像「卡住」）语义 bug。
+///   统一读源口径：kline_accurate_1d 优先 + kline_1d 兜底（同 ts pri=0 accurate 优先）；
+///   日界 `time_bucket('1 day', now(), 'Asia/Shanghai')` 排除当日 forming 桶；周末/节假日无 D1 bar
+///   自然跳过（周一取上周五收盘）；无 D1 历史 → NULL（前端 --）。
+///
+/// 性能：两 D1 cagg 物化表均有 (code,ts DESC) 索引，LATERAL LIMIT 1 索引回溯，无全表扫描。
+/// 同库 EXPLAIN ANALYZE：旧 Execution 13.2ms → 新 16.0ms（Planning 两侧均 ~460ms，系 kline_accurate
+/// 70+ chunk 既有规划开销，新旧一致；应用侧 sqlx prepared 复用后摊销，app 端保持 13.5ms 量级）。
 const SYMBOLS_LATEST_SQL: &str = r#"
 SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
-       l.last_ts, l.last_close, l.prev_close
+       l.last_ts, l.last_close, p.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
-  SELECT max(CASE WHEN rn = 1 THEN ts END)   AS last_ts,
-         max(CASE WHEN rn = 1 THEN close END) AS last_close,
-         max(CASE WHEN rn = 2 THEN close END) AS prev_close
+  SELECT ts AS last_ts, close AS last_close
   FROM (
-    SELECT ts, close, row_number() OVER (ORDER BY ts DESC) AS rn
-    FROM (
-      SELECT DISTINCT ON (ts) ts, close
-      FROM (
-        (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
-         WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 2)
-        UNION ALL
-        (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
-         WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 2)
-      ) cand
-      ORDER BY ts, pri
-    ) dedup
-  ) ranked
+    (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
+     WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 1)
+    UNION ALL
+    (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
+     WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 1)
+  ) cand
+  ORDER BY ts DESC, pri
+  LIMIT 1
 ) l ON true
+LEFT JOIN LATERAL (
+  SELECT close AS prev_close
+  FROM (
+    (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate_1d a
+     WHERE a.code = s.code AND a.ts < time_bucket('1 day', now(), 'Asia/Shanghai')
+     ORDER BY a.ts DESC LIMIT 1)
+    UNION ALL
+    (SELECT f.ts, f.close, 1 AS pri FROM kline_1d f
+     WHERE f.code = s.code AND f.ts < time_bucket('1 day', now(), 'Asia/Shanghai')
+     ORDER BY f.ts DESC LIMIT 1)
+  ) dcand
+  ORDER BY ts DESC, pri
+  LIMIT 1
+) p ON true
 ORDER BY s.code
 "#;
 
@@ -232,7 +247,7 @@ impl KlineRead for KlineReader {
         Ok(bars)
     }
 
-    /// 注册表 + 最新快照（涨跌幅 = (last − prev_close) / prev_close，由调用方计算）。
+    /// 注册表 + 最新快照（日涨跌幅 = (last − prev_close) / prev_close，prev_close=昨收 D1，由调用方计算）。
     async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
         type Row = (String, Option<String>, i32, String, bool,
                     Option<DateTime<Utc>>, Option<f64>, Option<f64>);

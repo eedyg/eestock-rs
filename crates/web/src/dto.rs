@@ -102,7 +102,7 @@ pub struct KlineResponse {
 pub struct LatestDto {
     pub ts: DateTime<Utc>,
     pub last: f64,
-    /// 相对前一根 merge bar 收盘（%）；无前值 → None。
+    /// **日涨跌幅**（%）：(last − 昨收) / 昨收；昨收=前一交易日 D1 收盘，无 D1 历史 → None。
     pub change_pct: Option<f64>,
 }
 

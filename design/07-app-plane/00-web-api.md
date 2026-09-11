@@ -50,7 +50,7 @@
 |---|---|---|---|---|
 | `GET /healthz` | — | `{"status":"ok"}` | 静态 | —（compose healthcheck 经 `--self-check` 调此路由） |
 | `GET /api/kline` | `code`（必填）、`period=1m\|5m\|15m\|1h\|1d\|1w\|1mo`（默认 `1m`；看板 W1 增周 `1w`/月 `1mo`，回测周期不扩）、`before`（RFC3339 游标，不含该 ts 的更早一页）、`limit`（默认 240，封顶 1000） | `{"code","period","bars":[{ts,open,high,low,close,volume,amount,source?}],"next_before"}`；bars **升序**（图表口径）；`next_before`=本页最旧 ts，`null`=无更早数据 | 1m=`kline_merged` 合并视图（准确层优先，ADR-003）；5m/15m/1d=对应 cagg（ADR-004）；1h=`kline_15m` 查询期 rollup（schema 未建 kline_1h cagg，rollup 语义等价）；1w/1mo=`kline_accurate_1w/1mo`（0014 cagg）+`kline_1d` 查询期 rollup 兜底 | 400：`code` 空 / `period` 非法 / `before` 非 RFC3339；500 JSON `{"error":...}` |
-| `GET /api/symbols` | — | `[{code,name,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`；`change_pct`=相对前一根 merge bar 收盘（%），无前值/无 bar → null | `symbols` + `kline_merged` 每 code 最近 2 根（LATERAL） | 500 |
+| `GET /api/symbols` | — | `[{code,name,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`；`change_pct`=**日涨跌幅** (last−昨收)/昨收（%）；昨收=最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（accurate_1d 优先 + kline_1d 兜底），无 D1 历史/无 bar → null | `symbols` + 最新 merge M1（last）与最近 D1 收盘（双侧 LATERAL） | 500 |
 | `GET /api/sources/health` | `window_secs`（默认 3600 = 页面② `SOURCES_DEFAULTS.successRateWindow='1h'`，钳制 60..604800） | `{"window_secs","sources":[{source,attempts,successes,success_rate,p50_ms,p95_ms,circuit_state,status,last_error,last_event_ts}]}`；`success_rate` 分母**排除 `err_kind='na'`**（03 §7），分母 0 → `null` | `source_health_events` 窗口聚合（diagnose crate，05-diagnose §1 口径） | 500 |
 | `POST /api/symbols`（Phase C §8） | body `{code, name?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
 | `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
@@ -1473,35 +1473,50 @@ GROUP BY code, time_bucket('{interval}', ts)
 "#, interval = interval))
 }
 
-/// 每 code 最近 2 根 merge bar（D3 优化版，Wave 2 Phase A）。
+/// 每 code 最新快照（D3 优化版，Wave 2 Phase A；2026-09-11 涨跌幅语义修复）。
 /// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，
-/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯 LIMIT 2 取候选 → 按 ts 去重（同 ts 准确层优先，
-/// merge 语义）→ row_number 取最新两根。merge 尾部 top-2 ⊆ 双侧 top-2 并集，语义等价
+/// Wave 1 验收 D3）；新版双侧各自 (code,ts) 索引回溯取候选，语义等价 merge 尾部
 /// （实盘全量 symbols 新老查询 EXCEPT 互减 0 行，证据见 coder/report/011）。
-/// 实测（同库）：旧 19,850ms → 新 13.5ms。
+/// - last：merge 尾部 top-1（双侧各 DESC LIMIT 1 候选 → 最新 ts；同 ts 准确层 pri=0 优先）。
+/// - prev_close：**最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（昨收）**——
+///   修复前取 merge 尾部 rn=2（上一根 M1 收盘）→ 涨跌幅实为**1 分钟涨跌**（±0.0x% 像「卡住」）语义 bug。
+///   统一读源口径：kline_accurate_1d 优先 + kline_1d 兜底（同 ts pri=0 accurate 优先）；
+///   日界 `time_bucket('1 day', now(), 'Asia/Shanghai')` 排除当日 forming 桶；周末/节假日无 D1 bar
+///   自然跳过（周一取上周五收盘）；无 D1 历史 → NULL（前端 --）。
+///
+/// 性能：两 D1 cagg 物化表均有 (code,ts DESC) 索引，LATERAL LIMIT 1 索引回溯，无全表扫描。
+/// 同库 EXPLAIN ANALYZE：旧 Execution 13.2ms → 新 16.0ms（Planning 两侧均 ~460ms，系 kline_accurate
+/// 70+ chunk 既有规划开销，新旧一致；应用侧 sqlx prepared 复用后摊销，app 端保持 13.5ms 量级）。
 const SYMBOLS_LATEST_SQL: &str = r#"
 SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
-       l.last_ts, l.last_close, l.prev_close
+       l.last_ts, l.last_close, p.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
-  SELECT max(CASE WHEN rn = 1 THEN ts END)   AS last_ts,
-         max(CASE WHEN rn = 1 THEN close END) AS last_close,
-         max(CASE WHEN rn = 2 THEN close END) AS prev_close
+  SELECT ts AS last_ts, close AS last_close
   FROM (
-    SELECT ts, close, row_number() OVER (ORDER BY ts DESC) AS rn
-    FROM (
-      SELECT DISTINCT ON (ts) ts, close
-      FROM (
-        (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
-         WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 2)
-        UNION ALL
-        (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
-         WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 2)
-      ) cand
-      ORDER BY ts, pri
-    ) dedup
-  ) ranked
+    (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate a
+     WHERE a.code = s.code AND a.period = 'M1' ORDER BY a.ts DESC LIMIT 1)
+    UNION ALL
+    (SELECT r.ts, r.close, 1 AS pri FROM kline_raw r
+     WHERE r.code = s.code ORDER BY r.ts DESC LIMIT 1)
+  ) cand
+  ORDER BY ts DESC, pri
+  LIMIT 1
 ) l ON true
+LEFT JOIN LATERAL (
+  SELECT close AS prev_close
+  FROM (
+    (SELECT a.ts, a.close, 0 AS pri FROM kline_accurate_1d a
+     WHERE a.code = s.code AND a.ts < time_bucket('1 day', now(), 'Asia/Shanghai')
+     ORDER BY a.ts DESC LIMIT 1)
+    UNION ALL
+    (SELECT f.ts, f.close, 1 AS pri FROM kline_1d f
+     WHERE f.code = s.code AND f.ts < time_bucket('1 day', now(), 'Asia/Shanghai')
+     ORDER BY f.ts DESC LIMIT 1)
+  ) dcand
+  ORDER BY ts DESC, pri
+  LIMIT 1
+) p ON true
 ORDER BY s.code
 "#;
 
@@ -1572,7 +1587,7 @@ impl KlineRead for KlineReader {
         Ok(bars)
     }
 
-    /// 注册表 + 最新快照（涨跌幅 = (last − prev_close) / prev_close，由调用方计算）。
+    /// 注册表 + 最新快照（日涨跌幅 = (last − prev_close) / prev_close，prev_close=昨收 D1，由调用方计算）。
     async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
         type Row = (String, Option<String>, i32, String, bool,
                     Option<DateTime<Utc>>, Option<f64>, Option<f64>);
@@ -1722,6 +1737,10 @@ const CODE_SYM_EMPTY: &str = "997722";
 const CODE_DEEP: &str = "997751";
 const CODE_WM: &str = "997733";   // 周/月聚合测试独占 code（避免与其他并行测试互删；997731 已被 CODE_QUAL 占用）
 const CODE_WM_DEEP: &str = "997752"; // W1/MO1 全历史深翻测试独占 code（0016 前 cagg 有 ts>=2024 过滤）
+const CODE_SYM_D1: &str = "997771";  // 快照昨收（D1 兜底）专用：raw-only，accurate_1d 永不涉及（跨测试残留隔离）
+const CODE_D1_YDAY: &str = "997772"; // 昨收语义：昨日 D1 + 今日 M1（动态相对 now()，见测试注释）
+const CODE_D1_GAP: &str = "997773";  // 昨收语义：空档跳过（跨周末/节假日同型）
+const CODE_D1_NEW: &str = "997775";  // 昨收语义：无 D1 历史 → NULL
 
 fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
 
@@ -1735,6 +1754,26 @@ async fn clean(pool: &PgPool, code: &str) {
     for t in ["kline_raw", "kline_accurate", "symbols"] {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(code).execute(pool).await.unwrap();
+    }
+}
+
+/// cagg refresh 串行化锁：TimescaleDB 对同 cagg 重叠窗口的并发 refresh 报 55P03
+/// （"due to a concurrent refresh"，实锤）。同 binary 测试并行执行，所有 refresh 调用须经此锁。
+fn cagg_refresh_lock() -> &'static tokio::sync::Mutex<()> {
+    static L: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    L.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
+/// 刷新 D1 两 cagg（统一读源两侧：accurate + raw 兜底）覆盖 [from, to] UTC 窗口。
+/// 窗口须含整桶（D1 桶 ts = 前一 UTC 日 16:00；refresh 只物化完全落入窗口的桶）。
+/// 显式窗口 refresh 按当前源表行**重算**桶（自愈：clean 后残留桶被重算/清除），重跑确定。
+async fn refresh_d1(pool: &PgPool, from: DateTime<Utc>, to: DateTime<Utc>) {
+    let _g = cagg_refresh_lock().lock().await;
+    for v in ["kline_accurate_1d", "kline_1d"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '{}', '{}')",
+            from.format("%Y-%m-%d %H:%M:%S+00"), to.format("%Y-%m-%d %H:%M:%S+00")))
+            .execute(pool).await.unwrap();
     }
 }
 
@@ -1870,12 +1909,14 @@ async fn merged_periods_accurate_first_and_1h_rollup() {
     // 统一读源：所有周期读 merged（accurate 优先）。refres：accurate cagg（窗口覆盖 base() 数据
     // + D1 桶对齐）与 raw-derived cagg（兜底）。窗口 [09-02, 09-04] UTC 覆盖 base()=09-03 01:30 UTC
     // 的 M1 种子（01:30-01:34 UTC）与 D1 桶 ts（09-02 16:00 UTC）。
+    let _g = cagg_refresh_lock().lock().await;
     for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d",
               "kline_5m", "kline_15m", "kline_1d"] {
         sqlx::query(&format!(
             "CALL refresh_continuous_aggregate('{v}', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
+    drop(_g);
     let r = KlineReader::new(pool.clone());
 
     // 准确层优先：overlap 分钟返回 accurate（close=9.99, vol=777, source=tushare），而非 raw 侧。
@@ -1910,11 +1951,13 @@ async fn weekly_monthly_periods_aggregate() {
     }
     // 刷新 W1/MO1 cagg：refresh_continuous_aggregate 只物化**完全落在窗口内**的桶（含整桶起止），
     // 故窗口须从最早一周桶起点（08-30 16:00 UTC）之前到最晚一月桶终点之后（09 月桶=08-31 16:00→09-30 16:00 UTC）。
+    let _g = cagg_refresh_lock().lock().await;
     for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
         sqlx::query(&format!(
             "CALL refresh_continuous_aggregate('{v}', '2026-07-25 00:00:00+00', '2026-10-03 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
+    drop(_g);
     let r = KlineReader::new(pool.clone());
 
     // 周线：两个交易周（周一为界）。第一周（2026-08-31）聚合两根 → open=first=1.0, close=last=2.0, vol=200。
@@ -1956,11 +1999,13 @@ async fn unified_read_deep_history_to_2024() {
     }
     // 刷新 accurate cagg（覆盖 2024 窗口：种子在 01-01/01-02。D1 用 Asia/Shanghai 日界，
     // 2024-01-01 交易日的桶 ts = 2023-12-31 16:00 UTC，故窗口须扩展到其前，否则该桶不被刷新）
+    let _g = cagg_refresh_lock().lock().await;
     for v in ["kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h", "kline_accurate_1d"] {
         sqlx::query(&format!(
             "CALL refresh_continuous_aggregate('{v}', '2023-12-31 00:00:00+00', '2024-01-04 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
+    drop(_g);
     let r = KlineReader::new(pool.clone());
 
     for p in [Period::M1, Period::M5, Period::M15, Period::H1, Period::D1] {
@@ -1989,25 +2034,46 @@ async fn symbols_with_latest_snapshot() {
     let pool = pool().await;
     clean(&pool, CODE_SYM).await;
     clean(&pool, CODE_SYM_EMPTY).await;
+    clean(&pool, CODE_SYM_D1).await;
     seed(&pool, CODE_SYM).await;
-    for (c, n) in [(CODE_SYM, "测试ETF"), (CODE_SYM_EMPTY, "无数据ETF")] {
+    // 昨收专用码：raw-only 两根（收 4.0/5.0，base() 日）。不用 seed()（其 accurate 行会被其他测试的
+    // accurate_1d 窗口 refresh 物化，跨测试时序使 prev_close 在 5.0/9.99 间漂移——实锤残留见 coder/report）。
+    for (i, c) in [(0i64, 4.0), (1, 5.0)] {
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+            .bind(CODE_SYM_D1).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    for (c, n) in [(CODE_SYM, "测试ETF"), (CODE_SYM_EMPTY, "无数据ETF"), (CODE_SYM_D1, "昨收ETF")] {
         sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, $2) \
                      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name")
             .bind(c).bind(n).execute(&pool).await.unwrap();
     }
+    // 涨跌幅语义（2026-09-11 修复）：prev_close = 最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘
+    // （昨收），非上一根 M1。物化 D1 cagg（窗口含 base()=2026-09-03 日桶；假定运行日晚于该日，
+    // 否则日桶被日界排除 prev_close=NULL）。
+    refresh_d1(&pool, Utc.with_ymd_and_hms(2026, 9, 2, 0, 0, 0).unwrap(),
+                   Utc.with_ymd_and_hms(2026, 9, 4, 0, 0, 0).unwrap()).await;
     let rows = KlineReader::new(pool.clone()).symbols_with_latest().await.unwrap();
 
     let s = rows.iter().find(|r| r.code == CODE_SYM).expect("含测试标的");
     assert_eq!(s.name.as_deref(), Some("测试ETF"));
     assert_eq!(s.last_close, Some(5.0));
-    assert_eq!(s.prev_close, Some(4.0), "前一根 bar 收盘（涨跌幅输入）");
     assert!(s.last_ts.is_some());
+    // CODE_SYM 的 prev_close 不断言：其 accurate 行可能被其他测试的 accurate_1d 窗口 refresh 物化
+    // （优先级高于 raw 兜底），取值依赖并行时序；D1 昨收语义由 CODE_SYM_D1 / 专用测试锁定。
+
+    let d1 = rows.iter().find(|r| r.code == CODE_SYM_D1).expect("含昨收标的");
+    assert_eq!(d1.last_close, Some(5.0));
+    assert_eq!(d1.prev_close, Some(5.0),
+        "昨收=前一交易日 D1 收盘（kline_1d 兜底物化；当日最后 raw bar 收 5.0），非上一根 M1（4.0）");
 
     let empty = rows.iter().find(|r| r.code == CODE_SYM_EMPTY).expect("含无数据标的");
     assert!(empty.last_ts.is_none() && empty.last_close.is_none() && empty.prev_close.is_none(),
         "无 bar 标的 latest 字段全空（前端 — 占位）");
     clean(&pool, CODE_SYM).await;
     clean(&pool, CODE_SYM_EMPTY).await;
+    clean(&pool, CODE_SYM_D1).await;
 }
 
 #[tokio::test]
@@ -2131,8 +2197,9 @@ async fn events_between_and_sync_checkpoints() {
 
 #[tokio::test]
 async fn symbols_latest_d3_merge_tail_semantics() {
-    // D3 重写语义锁定（merge 尾部 top-2）：
+    // D3 重写语义锁定（merge 尾部 last）：
     // ① 准确层比 raw 更新 → 最新取准确层；② 同 ts 并列 → 准确层优先（merge 准确层优先语义）。
+    // 涨跌幅语义修复（2026-09-11）：prev_close = 前一交易日 D1 收盘（昨收），同为 accurate 优先 + raw 兜底。
     let pool = pool().await;
     clean(&pool, CODE_LATEST).await;
     sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, 'D3测试') ON CONFLICT (code) DO NOTHING")
@@ -2150,12 +2217,70 @@ async fn symbols_latest_d3_merge_tail_semantics() {
             .bind(CODE_LATEST).bind(base() + Duration::minutes(i)).bind(c)
             .execute(&pool).await.unwrap();
     }
+    // 物化 D1 两 cagg（窗口含 base() 日桶；假定运行日晚于 2026-09-03）：
+    // accurate D1 收 = 当日最后 accurate M1 = 8.88；raw D1 收 = 2.0 → 昨收取 accurate 8.88（优先语义）。
+    refresh_d1(&pool, Utc.with_ymd_and_hms(2026, 9, 2, 0, 0, 0).unwrap(),
+                   Utc.with_ymd_and_hms(2026, 9, 4, 0, 0, 0).unwrap()).await;
     let rows = KlineReader::new(pool.clone()).symbols_with_latest().await.unwrap();
     let s = rows.iter().find(|r| r.code == CODE_LATEST).expect("含测试标的");
     assert_eq!(s.last_ts, Some(base() + Duration::minutes(2)), "准确层更新的 ts 为最新");
     assert_eq!(s.last_close, Some(8.88));
-    assert_eq!(s.prev_close, Some(9.99), "同 ts 并列准确层优先（raw 2.0 被掩盖）");
+    assert_eq!(s.prev_close, Some(8.88),
+        "昨收=前一交易日 D1 收盘；同 ts accurate(8.88) 优先于 raw 兜底(2.0)");
     clean(&pool, CODE_LATEST).await;
+}
+
+#[tokio::test]
+async fn symbols_latest_prev_close_is_prev_trading_day_d1() {
+    // 涨跌幅语义修复（2026-09-11）主测试：prev_close = 最近一个**早于当前交易日**（Asia/Shanghai 日界）
+    // 的 D1 收盘。SQL 边界基于 now()，故种子相对运行时刻动态构造（cagg 残留桶由显式窗口 refresh 重算，
+    // 重跑确定；各日桶收盘恒定）。
+    let pool = pool().await;
+    for c in [CODE_D1_YDAY, CODE_D1_GAP, CODE_D1_NEW] {
+        clean(&pool, c).await;
+        sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, 'D1昨收测试') ON CONFLICT (code) DO NOTHING")
+            .bind(c).execute(&pool).await.unwrap();
+    }
+    // Asia/Shanghai 日界（与 reader TODAY_STATS_SQL / domain::tz 同口径）
+    let today_cst = domain::tz::utc_to_cst(Utc::now()).date();
+    let today0 = domain::tz::cst_to_utc(today_cst.and_hms_opt(0, 0, 0).expect("valid hms"));
+    let y0 = today0 - Duration::days(1);
+    // YDAY：昨日 accurate M1 两根（收 7.60/7.77 → 昨日 D1 收 7.77）+ 今日 accurate M1（8.88）。
+    // 今日桶被日界排除（跨夜场景：日界后 prev 才换到今日收盘）→ prev_close=7.77；last=最新 8.88。
+    for (day0, min, close) in [(y0, 30i64, 7.60), (y0, 31, 7.77), (today0, 30, 8.88)] {
+        sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, 'M1', $3, $3, $3, $3, 100, 100.0, 'tushare') ON CONFLICT DO NOTHING")
+            .bind(CODE_D1_YDAY).bind(day0 + Duration::minutes(min)).bind(close)
+            .execute(&pool).await.unwrap();
+    }
+    // GAP：仅 4 天前 accurate M1（收 6.66），此后无 bar —— 空档跳过（周一取上周五收盘同型）。
+    sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, $2, 'M1', 6.66, 6.66, 6.66, 6.66, 100, 100.0, 'tushare') ON CONFLICT DO NOTHING")
+        .bind(CODE_D1_GAP).bind(y0 - Duration::days(3) + Duration::minutes(30))
+        .execute(&pool).await.unwrap();
+    // NEW：仅 accurate M1（固定日 2026-08-20 09:30 CST，收 3.33）；两 D1 cagg 均无其桶
+    // （本测试 refresh 窗口不覆盖该日；D1 cagg 自动策略仅近 3 天）→ 无 D1 历史 → prev_close NULL。
+    sqlx::query("INSERT INTO kline_accurate (code, ts, period, open, high, low, close, volume, amount, source) \
+                 VALUES ($1, '2026-08-20 01:30:00+00', 'M1', 3.33, 3.33, 3.33, 3.33, 100, 100.0, 'tushare') \
+                 ON CONFLICT DO NOTHING")
+        .bind(CODE_D1_NEW).execute(&pool).await.unwrap();
+    // 物化 D1 桶：窗口含 4 天前/昨日/今日桶（D1 桶 ts=前一 UTC 日 16:00，前后各留 1 天余量）。
+    refresh_d1(&pool, y0 - Duration::days(5), today0 + Duration::days(1)).await;
+    let rows = KlineReader::new(pool.clone()).symbols_with_latest().await.unwrap();
+
+    let yday = rows.iter().find(|r| r.code == CODE_D1_YDAY).expect("含 YDAY 标的");
+    assert_eq!(yday.last_close, Some(8.88), "last=最新 M1（今日 accurate）");
+    assert_eq!(yday.prev_close, Some(7.77),
+        "昨收=昨日 D1 收盘；当日 forming 桶（8.88）被 Asia/Shanghai 日界排除");
+
+    let gap = rows.iter().find(|r| r.code == CODE_D1_GAP).expect("含 GAP 标的");
+    assert_eq!(gap.prev_close, Some(6.66), "空档跳过：最近非空 D1 即昨收（跨周末/节假日同型）");
+
+    let new = rows.iter().find(|r| r.code == CODE_D1_NEW).expect("含 NEW 标的");
+    assert_eq!(new.last_close, Some(3.33));
+    assert!(new.prev_close.is_none(), "无 D1 历史的新标的 → prev_close NULL（前端 --）");
+
+    for c in [CODE_D1_YDAY, CODE_D1_GAP, CODE_D1_NEW] { clean(&pool, c).await; }
 }
 
 #[tokio::test]
@@ -2179,11 +2304,13 @@ async fn weekly_monthly_deep_scroll_before_2024() {
     }
     // refresh W1/MO1 cagg 覆盖 2023 桶（整桶起止须落窗内；周桶=2023-01-01 16:00 UTC / 2023-06-04 16:00 UTC；
     // 月桶=2022-12-31 16:00 UTC（1月）/2023-05-31 16:00 UTC（6月）。放宽窗口覆盖全部）。
+    let _g = cagg_refresh_lock().lock().await;
     for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
         sqlx::query(&format!(
             "CALL refresh_continuous_aggregate('{v}', '2022-12-01 00:00:00+00', '2023-07-01 00:00:00+00')"))
             .execute(&pool).await.unwrap();
     }
+    drop(_g);
     let r = KlineReader::new(pool.clone());
 
     let cutoff = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
@@ -2452,7 +2579,7 @@ pub struct KlineResponse {
 pub struct LatestDto {
     pub ts: DateTime<Utc>,
     pub last: f64,
-    /// 相对前一根 merge bar 收盘（%）；无前值 → None。
+    /// **日涨跌幅**（%）：(last − 昨收) / 昨收；昨收=前一交易日 D1 收盘，无 D1 历史 → None。
     pub change_pct: Option<f64>,
 }
 
@@ -4228,7 +4355,13 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
     sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, '测试ETF') \
                  ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name")
         .bind(SCODE).execute(&pool).await.unwrap();
-    seed_bars(&pool, SCODE, 2).await;   // 收盘 1,2 → change_pct=100
+    seed_bars(&pool, SCODE, 2).await;   // 收盘 1,2（2026-09-03，须早于运行日）
+    // 涨跌幅语义修复（2026-09-11）：change_pct=(last−昨收)/昨收；昨收=前一交易日 D1 收盘
+    // （kline_1d 兜底，须显式物化 base() 日桶）。last=2.0、昨收=2.0 → 0.0；
+    // 日界/空档/NULL 口径由 storage symbols_latest_prev_close_is_prev_trading_day_d1 锁定，
+    // 本测试只验证 REST 链路接线（prev_close → change_pct 同一路径）。
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')")
+        .execute(&pool).await.unwrap();
     for i in 0..3 {
         sqlx::query("INSERT INTO source_health_events (ts, source, ok, latency_ms) \
                      VALUES (now() - make_interval(secs => $1), $2, true, 120)")
@@ -4245,7 +4378,8 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
         .json().await.unwrap();
     let s = v.as_array().unwrap().iter().find(|x| x["code"] == SCODE).expect("含测试标的");
     assert_eq!(s["latest"]["last"], 2.0);
-    assert!((s["latest"]["change_pct"].as_f64().unwrap() - 100.0).abs() < 1e-6);
+    assert!((s["latest"]["change_pct"].as_f64().unwrap() - 0.0).abs() < 1e-6,
+        "change_pct=(last−昨收)/昨收=(2.0−2.0)/2.0=0.0（旧口径相对上一根 M1 会得 +100）");
 
     // /api/sources/health：3 成功 + 1 失败 → 成功率 0.75、degraded
     let v: Value = http.get(format!("{url}/api/sources/health"))

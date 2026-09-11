@@ -124,7 +124,8 @@ pub struct KlineBarView {
     pub source: Option<String>,  // 仅 1m merge 视图带来源
 }
 
-/// 注册标的 + 最新快照（读模型；last/prev_close 供涨跌幅计算）。
+/// 注册标的 + 最新快照（读模型；last/prev_close 供日涨跌幅计算：
+/// prev_close = 最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（昨收），无 D1 历史 → None）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct SymbolLatestView {
     pub code: String,

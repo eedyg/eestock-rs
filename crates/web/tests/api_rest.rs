@@ -168,7 +168,13 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
     sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, '测试ETF') \
                  ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name")
         .bind(SCODE).execute(&pool).await.unwrap();
-    seed_bars(&pool, SCODE, 2).await;   // 收盘 1,2 → change_pct=100
+    seed_bars(&pool, SCODE, 2).await;   // 收盘 1,2（2026-09-03，须早于运行日）
+    // 涨跌幅语义修复（2026-09-11）：change_pct=(last−昨收)/昨收；昨收=前一交易日 D1 收盘
+    // （kline_1d 兜底，须显式物化 base() 日桶）。last=2.0、昨收=2.0 → 0.0；
+    // 日界/空档/NULL 口径由 storage symbols_latest_prev_close_is_prev_trading_day_d1 锁定，
+    // 本测试只验证 REST 链路接线（prev_close → change_pct 同一路径）。
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')")
+        .execute(&pool).await.unwrap();
     for i in 0..3 {
         sqlx::query("INSERT INTO source_health_events (ts, source, ok, latency_ms) \
                      VALUES (now() - make_interval(secs => $1), $2, true, 120)")
@@ -185,7 +191,8 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
         .json().await.unwrap();
     let s = v.as_array().unwrap().iter().find(|x| x["code"] == SCODE).expect("含测试标的");
     assert_eq!(s["latest"]["last"], 2.0);
-    assert!((s["latest"]["change_pct"].as_f64().unwrap() - 100.0).abs() < 1e-6);
+    assert!((s["latest"]["change_pct"].as_f64().unwrap() - 0.0).abs() < 1e-6,
+        "change_pct=(last−昨收)/昨收=(2.0−2.0)/2.0=0.0（旧口径相对上一根 M1 会得 +100）");
 
     // /api/sources/health：3 成功 + 1 失败 → 成功率 0.75、degraded
     let v: Value = http.get(format!("{url}/api/sources/health"))
