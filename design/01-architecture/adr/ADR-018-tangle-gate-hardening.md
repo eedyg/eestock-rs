@@ -90,3 +90,56 @@
 - **如需收紧**：改配置为 `listen = "127.0.0.1:8081"` + `mcp_listen = "127.0.0.1:8082"` 并重启
   （跨机访问须经 SSH 隧道等显式中继，见 §3 S2）。
 - **遗留**：S1 目标保持"待确认访问方式后执行"；本 ADR 记录为已知偏差，不作为缺陷。
+
+---
+
+## 7. F3-f 处置记录：entangled 标记嵌套污染清理（2026-09-12）
+
+### 7.1 事实与污染清单（修复前）
+
+全仓 `~/~ begin|end` 逐条分类（枚举范围 `design/**`、`crates/**`、`web/**`）：
+
+| 类别 | 位置 | 判定 |
+|---|---|---|
+| (a) 文档代码块内 = **污染** | `design/07-app-plane/01-mcp.md`（块 `crates/mcp/src/tools.rs` 内 2×begin L384/385 + 2×end L3905/3906）；`design/07-app-plane/00-web-api.md`（块 `crates/app/src/bin/eestock-app.rs` 内 1×begin L4656 + 1×end L4861） | 须清（本次对象） |
+| (b) 生成物注解 = 期望 | `crates/**`、`web/src/layouts/*.tsx` 约 60 份生成物各恰 1 组 begin/end；**例外**：`crates/mcp/src/tools.rs` 累积 3 组（6 行）、`crates/app/src/bin/eestock-app.rs` 累积 2 组（4 行）——即污染在生成物侧的显形 | 清污染后须恰 1 组 |
+| (c) 散文提及 | 本 ADR 正文 §1.9 / §4（`~/~ begin` 字样） | 保留 |
+| (d) `design/**/preview/*.html` | `design/06-web/preview/*.html`(7)、`design/11-sim-live/preview/*.html`(2)，各恰 1 组 `<!-- ~/~ begin <<...>> -->` / `end`，出处为 `design/06-web/*.md`、`design/11-sim-live/01-adr.md` 中声明生成物的代码块，且在 `.entangled` filedb 中登记 | **tangle 生成物**（非污染、非设计资产），符合预期 |
+
+另发现（**超出 F3-f 范围**，作为遗留登记）：`crates/web/src/settings.rs`、`crates/web/tests/api_settings.rs` 各含 1 行**孤立 begin**（无对应 end；`design/06-web/08-settings.md` 已无对应生成物声明块，二者亦不在 filedb 中）。二者不受 tangle 治理、也未被全局 stitch 触碰（无块可回写），属独立治理缺口，另行处理。
+
+### 7.2 处置
+
+- **只改文档代码块**：删除上述 (a) 6 个标记行（`01-mcp.md` 4 行、`00-web-api.md` 2 行），**未手改任何生成物**。
+- 随后 `entangled tangle` 由生成器重建：`crates/mcp/src/tools.rs`（6→2 行标记，恰 1 组）、`crates/app/src/bin/eestock-app.rs`（4→2 行，恰 1 组）；其余生成物零改动。
+- 终态：文档代码块内标记 **0**；生成物按 entangled 注解设置**恰 1 组 begin/end**。
+
+### 7.3 语义零漂移证据
+
+对两份重建生成物做**忽略标记行**（过滤 `~/~` 行）的逐字节比对：
+
+| 生成物 | 修复前 filtered sha256 | 修复后 filtered sha256 | 结论 |
+|---|---|---|---|
+| `crates/mcp/src/tools.rs` | `da0396a4…daab40` | `da0396a4…daab40` | 完全一致 |
+| `crates/app/src/bin/eestock-app.rs` | `dda3af61…5370f` | `dda3af61…5370f` | 完全一致 |
+
+即本次仅清标记行、代码语义零改动；两份文档的 diff 亦仅删除 6 个标记行。
+
+### 7.4 终态验证
+
+1. `entangled tangle` 幂等：连跑两次第二次均 `Nothing to be done`。
+2. `./scripts/check-tangle.sh` **绿**（沙箱重新生成 + 逐字节比对通过）。
+3. **沙箱全局 `entangled stitch` 不再破坏（F3-f 成败判据）**：
+   - 修复前（对照，隔离副本实测）：全局 stitch 把 `01-mcp.md`（4996→1474 行）、`00-web-api.md`（5749→5544 行）的块改写成自引用 `<<crates/mcp/src/tools.rs>>` / `<<crates/app/src/bin/eestock-app.rs>>`，随后 tangle 死于 `ERROR Cyclic reference`。
+   - 修复后（隔离副本）：**①** DB 同步态直接全局 stitch → `Nothing to be done`，文档零改动；**②** 直接全局 stitch（DB 陈旧）→ 仅报 `changed outside the control of Entangled` 冲突并 break off，文档**未**被改写为自引用（`^<<` 计数 0）、行数不变，随后 tangle 正常再生；**③** 强制写回路径（块内注入代码侧探针 → stitch）→ 探针**正确回写进文档块**（非自引用），两份生成物内容不变，随后 tangle 无 `Cyclic reference`、二次 tangle `Nothing to be done`。
+   - 结论：自引用 + 循环引用这一破坏模式**已消除**。残留为**通用**性质（与 F3-f 无关）：全局 stitch 会被"文档末次 tangle 后又被编辑"的无关冲突整体 break off。
+
+### 7.5 已验证的 stitch 可用范围（本次取证）
+
+- `design/07-app-plane/{00-web-api,01-mcp}.md` **已不再被 scoped stitch 跳过**：`scripts/stitch.sh` 的"块内嵌 `~/~ begin`"守卫对二者不再命中（守卫本身保留，防复发）。
+- 全局 `entangled stitch` 的**破坏性自引用模式**已消除，但**全局执行仍不推荐**：blast radius 大（遍历全部生成物），且会被无关冲突整体 break off。治理路径仍为 D-F3-4：**沙箱 scoped `scripts/stitch.sh` + round-trip 校验**。
+
+### 7.6 遗留
+
+- 孤立 begin 标记（`settings.rs` / `api_settings.rs`，见 §7.1）未在本次范围内处理。
+- 建议（未实施，待架构裁定）：在门禁加一条"文档代码块内不得含 `~/~` 标记"的守卫，防 F3-f 复发。

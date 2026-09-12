@@ -1,5 +1,4 @@
 // ~/~ begin <<design/07-app-plane/00-web-api.md#crates/app/src/bin/eestock-app.rs>>[init]
-// ~/~ begin <<design/07-app-plane/00-web-api.md#crates/app/src/bin/eestock-app.rs>>[init]
 //! eestock-app —— 应用面进程（web REST/WS + diagnose 读库 + SPA 托管）。
 //! ADR-017：与数据面零 API 直连，唯一耦合点 = TimescaleDB；启动 schema 自检复用 storage::migrate_check。
 //! 由 design/07-app-plane/00-web-api.md tangle 生成（ADR-007），禁止手改。
@@ -204,5 +203,4 @@ async fn main() -> anyhow::Result<()> {
 fn arg_val(args: &[String], key: &str) -> Option<String> {
     args.iter().position(|a| a == key).and_then(|i| args.get(i + 1)).cloned()
 }
-// ~/~ end
 // ~/~ end

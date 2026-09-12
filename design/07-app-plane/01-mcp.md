@@ -381,8 +381,6 @@ mod tests {
 ```
 
 ``` {.rust file=crates/mcp/src/tools.rs}
-// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
-// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
 //! MCP 工具实现（ADR-009 范围①②）：
 //! - get_kline(code, period, limit)：merge 视图准确层优先（经 domain::ports::KlineRead）；
 //!   I-1（P0）修复：**未注册代码 → isError**（以平台 symbols 注册表判定，不以「有无 K 线」推断）
@@ -3902,8 +3900,6 @@ mod tests {
         assert_eq!(r["result"]["isError"], true, "workbench=None → 工具错误帧");
     }
 }
-// ~/~ end
-// ~/~ end
 ```
 
 ``` {.rust file=crates/mcp/src/mocks.rs}
