@@ -1,0 +1,23 @@
+d6bbd47 fix(test): 性能门禁补两处弱点 —— 前置不足响亮失败 + 阈值收紧到 0.25
+ .../151_debt_cleanup/01_tangle_inventory_after.txt | 174 +++++++++++++++++++++
+ .../151_debt_cleanup/02_perf_selfcalib_21runs.txt  |  24 +++
+ .../02_perf_selfcalib_21runs_final.txt             |  24 +++
+ .../03_perf_ratio_probe_and_mutation.txt           |  49 ++++++
+ .../04_item1_marker_removal_diff.txt               |  18 +++
+ .../151_debt_cleanup/05_item3_ts_fee_evidence.txt  | 120 ++++++++++++++
+ .../06_item2_diff_and_roundtrip.txt                |  14 ++
+ .../07_item1_governance_and_compile.txt            |  26 +++
+ .../151_debt_cleanup/08_inventory_script.py        |  65 ++++++++
+ .../151_debt_cleanup/09_perf_min5_20runs.txt       |  32 ++++
+ coder/evidence/151_debt_cleanup/09_stats.py        |   9 ++
+ .../10_marker_ownership_classification.txt         |  44 ++++++
+ .../151_debt_cleanup/11_marker_removal_diff.txt    |  62 ++++++++
+ .../151_debt_cleanup/12_ts_type_gap_closure.txt    | 152 ++++++++++++++++++
+ .../151_debt_cleanup/13_mutation_min5_gate.txt     |  28 ++++
+ .../151_debt_cleanup/14_frontend_tsc_vitest.txt    |  11 ++
+ .../151_debt_cleanup/15_rA_20runs_ratio_dist.txt   |  30 ++++
+ .../16_rA_mutation_and_rB_redgreen.txt             |  31 ++++
+ coder/report/151_debt_cleanup_batch1.md            | 125 +++++++++++++++
+ crates/storage/tests/kline_reader.rs               |  62 +++++---
+ design/07-app-plane/00-web-api.md                  |  62 +++++---
+ 21 files changed, 1118 insertions(+), 44 deletions(-)

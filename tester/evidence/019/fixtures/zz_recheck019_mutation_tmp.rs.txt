@@ -1,0 +1,99 @@
+//! 019 独立复核临时夹具（运行后删除，不入库）——R-A 突变实验独立复做（判据 <0.25）。
+//! 原始文件：crates/storage/tests/zz_recheck019_mutation_tmp.rs
+//! 命令：cargo test -p storage --test zz_recheck019_mutation_tmp -- --nocapture --test-threads=1
+//!
+//! 判据/骨架与终稿 `merged_1m_branch_index_limit_performance` 一致（8 预热 + min-of-5 / 2 预热 + min-of-5，
+//! ratio = min5(目标)/min5(参考) < 0.25）。仅把「目标：生产路径」替换为「目标：修复前路径」以证明判据非空。
+
+use chrono::{DateTime, Utc};
+use domain::ports::KlineRead;
+use domain::types::Period;
+use sqlx::PgPool;
+use storage::reader::KlineReader;
+use std::time::Instant;
+
+const PRE_FIX_1M_SQL: &str = r#"
+SELECT code, ts, open, high, low, close, volume, amount, source
+FROM kline_merged
+WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
+ORDER BY ts DESC LIMIT $3
+"#;
+
+type PreFix1mRow = (String, DateTime<Utc>, f64, f64, f64, f64, i64, f64, Option<String>);
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+async fn pre_fix_1m_rows(pool: &PgPool, code: &str) -> Vec<PreFix1mRow> {
+    sqlx::query_as::<_, PreFix1mRow>(PRE_FIX_1M_SQL)
+        .bind(code)
+        .bind(None::<DateTime<Utc>>)
+        .bind(500i64)
+        .fetch_all(pool)
+        .await
+        .expect("1m 修复前路径（参考基线）可用")
+}
+
+const REAL_CODE: &str = "518880";
+
+/// 参考侧：2 预热 + min-of-5（与终稿一致）。
+async fn ref_min5(pool: &PgPool) -> f64 {
+    let _w = pre_fix_1m_rows(pool, REAL_CODE).await;
+    for _ in 0..2 {
+        let _ = pre_fix_1m_rows(pool, REAL_CODE).await;
+    }
+    let mut t_ref = f64::INFINITY;
+    for _ in 0..5 {
+        let t = Instant::now();
+        let _ = pre_fix_1m_rows(pool, REAL_CODE).await;
+        t_ref = t_ref.min(t.elapsed().as_secs_f64() * 1000.0);
+    }
+    t_ref
+}
+
+/// 突变：目标 = 修复前路径 ⇒ 比值 ≈1.0 ≥ 0.25 ⇒ 判据必红。
+#[tokio::test]
+#[should_panic(expected = "突变实验")]
+async fn ra_mutation_pre_fix_as_target_must_be_red() {
+    let pool = pool().await;
+    // 目标侧：8 预热 + min-of-5，但走修复前路径（冒充生产路径）。
+    for _ in 0..8 {
+        let w = pre_fix_1m_rows(&pool, REAL_CODE).await;
+        assert_eq!(w.len(), 500, "目标冒充路径同为 500 根");
+    }
+    let mut t_target = f64::INFINITY;
+    for _ in 0..5 {
+        let t = Instant::now();
+        let _ = pre_fix_1m_rows(&pool, REAL_CODE).await;
+        t_target = t_target.min(t.elapsed().as_secs_f64() * 1000.0);
+    }
+    let t_ref = ref_min5(&pool).await;
+    let ratio = t_target / t_ref;
+    eprintln!("[ra-mutation] 目标=修复前路径：目标 min5={t_target:.0}ms vs 参考 min5={t_ref:.0}ms（比值 {ratio:.3}）");
+    assert!(ratio < 0.25,
+        "突变实验：修复前路径冒充目标时判据必须红（实测比值 {ratio:.3} ≥ 0.25；目标 min5={t_target:.0}ms、参考 min5={t_ref:.0}ms）");
+}
+
+/// 对照：目标 = 真实生产路径 ⇒ 比值 ~0.05 < 0.25 ⇒ 绿（证明判据非恒红）。
+#[tokio::test]
+async fn ra_control_real_path_is_green() {
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    for _ in 0..8 {
+        let w = r.bars(Period::M1, REAL_CODE, None, 500).await.unwrap();
+        assert_eq!(w.len(), 500, "真实路径 500 根");
+    }
+    let mut t_target = f64::INFINITY;
+    for _ in 0..5 {
+        let t = Instant::now();
+        let _ = r.bars(Period::M1, REAL_CODE, None, 500).await.unwrap();
+        t_target = t_target.min(t.elapsed().as_secs_f64() * 1000.0);
+    }
+    let t_ref = ref_min5(&pool).await;
+    let ratio = t_target / t_ref;
+    eprintln!("[ra-control ] 真实生产路径：目标 min5={t_target:.0}ms vs 参考 min5={t_ref:.0}ms（比值 {ratio:.3}）");
+    assert!(ratio < 0.25, "对照组应绿：实测比值 {ratio:.3}");
+}

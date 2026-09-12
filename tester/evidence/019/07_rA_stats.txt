@@ -1,0 +1,5 @@
+[stats] n=12 PASS=12 FAIL=0
+[stats] ratio min=0.055 max=0.060 mean=0.0563 median=0.0560
+[stats] 阈值 0.25; 最坏余量 = 0.25/0.060 = 4.17x (要求 ≥3x)
+[stats] <3x 余量样本数 = 0
+[stats] <1.5x 余量样本数 = 0

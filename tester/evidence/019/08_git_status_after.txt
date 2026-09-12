@@ -1,0 +1,11 @@
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? tester/evidence/018/
+?? tester/evidence/019/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/

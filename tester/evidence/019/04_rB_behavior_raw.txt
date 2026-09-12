@@ -1,0 +1,22 @@
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running tests/zz_recheck019_rb_tmp.rs (target/debug/deps/zz_recheck019_rb_tmp-d581af381fa20a85)
+
+running 4 tests
+test rb_control_old_silent_return_is_vacuous_pass ... [bench-skip] 999999 无 500 根 M1（实际 0），跳过性能断言
+[control] 旧写法在 0 根下已 return，未作任何测量 —— 本用例仍 PASS（vacuous）
+ok
+test rb_nonzero_insufficient_997799_panics - should panic ... 
+thread 'rb_nonzero_insufficient_997799_panics' (237237) panicked at crates/storage/tests/zz_recheck019_rb_tmp.rs:23:13:
+数据前提不满足（期望 500 根 M1，实得 3 根）→ 门禁无法测量：997799 的 M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test rb_normal_518880_green ... [control] 518880 前置检查通过（8 次均 500 根）→ 未 panic
+ok
+test rb_zero_bars_999999_panics - should panic ... 
+thread 'rb_zero_bars_999999_panics' (237293) panicked at crates/storage/tests/zz_recheck019_rb_tmp.rs:23:13:
+数据前提不满足（期望 500 根 M1，实得 0 根）→ 门禁无法测量：999999 的 M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.25s
+

@@ -1,0 +1,6 @@
+# 019 R-A 反向风险：诱导负载下连跑真实门禁（判据 <0.25 = 4×，余量倍数 = 0.25/比值）
+# 时间：2026-09-13T00:51:38+08:00  16 核
+== round 1: 16 busy-loop ==
+round busy=16 | load1(前)=3.70 load1(后)=8.82 | [bench] 自校准 1m 500 bars：目标 min5=123ms vs 修复前路径 min5=2234ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 27.58s
+round busy=32 | load1(前)=11.23 load1(后)=18.73 | [bench] 自校准 1m 500 bars：目标 min5=104ms vs 修复前路径 min5=1891ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 23.55s
+== done ==

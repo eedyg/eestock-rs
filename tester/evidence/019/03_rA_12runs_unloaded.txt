@@ -1,0 +1,15 @@
+# 019 R-A 独立复做：连跑 12 次（终稿二进制 kline_reader-552e3228620d3eed，判据 <0.25）
+# 时间：2026-09-13T00:47:17+08:00  16 核
+# 每行：run | load1 | [bench] 输出 | test result
+run 01 | load1=0.82 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1105ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.39s
+run 02 | load1=1.16 | [bench] 自校准 1m 500 bars：目标 min5=60ms vs 修复前路径 min5=1085ms（比值 0.056，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.33s
+run 03 | load1=1.13 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1104ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.39s
+run 04 | load1=1.24 | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1088ms（比值 0.057，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.47s
+run 05 | load1=1.25 | [bench] 自校准 1m 500 bars：目标 min5=65ms vs 修复前路径 min5=1103ms（比值 0.059，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.51s
+run 06 | load1=1.44 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1110ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.48s
+run 07 | load1=1.81 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1106ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.42s
+run 08 | load1=1.63 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1105ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.49s
+run 09 | load1=1.60 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1110ms（比值 0.055，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.54s
+run 10 | load1=1.54 | [bench] 自校准 1m 500 bars：目标 min5=63ms vs 修复前路径 min5=1110ms（比值 0.057，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.48s
+run 11 | load1=1.58 | [bench] 自校准 1m 500 bars：目标 min5=66ms vs 修复前路径 min5=1107ms（比值 0.060，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.36s
+run 12 | load1=1.72 | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1081ms（比值 0.056，判据 <0.25） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.30s

@@ -1,0 +1,75 @@
+//! 019 独立复核临时夹具（运行后删除，不入库）——R-B 前置不足行为级验证。
+//! 原始文件：crates/storage/tests/zz_recheck019_rb_tmp.rs
+//! 命令：cargo test -p storage --test zz_recheck019_rb_tmp -- --nocapture --test-threads=1
+//!
+//! 本夹具**不修改** `kline_reader.rs`；仅逐字复制终稿前置检查片段，换用「数据不足」code 复现。
+
+use domain::ports::KlineRead;
+use domain::types::Period;
+use sqlx::PgPool;
+use storage::reader::KlineReader;
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+/// 终稿（kline_reader.rs 现行）前置检查片段逐字复制，仅把 real_code 参数化。
+async fn precondition_check(r: &KlineReader, real_code: &str) {
+    for _ in 0..8 {
+        let w = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+        if w.len() != 500 {
+            panic!("数据前提不满足（期望 500 根 M1，实得 {} 根）→ 门禁无法测量：{real_code} 的 M1 \
+                    数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。",
+                w.len());
+        }
+    }
+}
+
+/// 旧写法（修复前）逐字复制：数据不足时静默 return ⇒ 测试 PASS（vacuous）。
+async fn old_silent_return_check(r: &KlineReader, real_code: &str) {
+    for _ in 0..8 {
+        let w = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+        if w.len() != 500 {
+            eprintln!("[bench-skip] {real_code} 无 500 根 M1（实际 {}），跳过性能断言", w.len());
+            return;
+        }
+    }
+}
+
+// ── R-B: 0 根 code（999999，实测 DB 0 行）⇒ 终稿必须 panic ──
+#[tokio::test]
+#[should_panic(expected = "数据前提不满足（期望 500 根 M1，实得 0 根）")]
+async fn rb_zero_bars_999999_panics() {
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    precondition_check(&r, "999999").await;
+}
+
+// ── R-B: 非零但不足 500 根（997799，临时种入 3 根）⇒ 终稿必须 panic ──
+#[tokio::test]
+#[should_panic(expected = "数据前提不满足（期望 500 根 M1，实得 3 根）")]
+async fn rb_nonzero_insufficient_997799_panics() {
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    precondition_check(&r, "997799").await;
+}
+
+// ── R-B 对照：旧写法在 0 根下静默 return ⇒ 测试「PASS」（vacuous pass 实证）──
+#[tokio::test]
+async fn rb_control_old_silent_return_is_vacuous_pass() {
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    old_silent_return_check(&r, "999999").await;
+    eprintln!("[control] 旧写法在 0 根下已 return，未作任何测量 —— 本用例仍 PASS（vacuous）");
+}
+
+// ── 反向对照：正常 code（518880，769513 行）⇒ 终稿前置检查通过、不 panic（非恒红）──
+#[tokio::test]
+async fn rb_normal_518880_green() {
+    let pool = pool().await;
+    let r = KlineReader::new(pool.clone());
+    precondition_check(&r, "518880").await;
+    eprintln!("[control] 518880 前置检查通过（8 次均 500 根）→ 未 panic");
+}
