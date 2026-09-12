@@ -103,6 +103,15 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
   `strategy_guide()`（手册暴露裁决 2026-09-10：返回《策略编程手册》全文 markdown，
   `include_str!` 静态内嵌 design/12-strategy-system/04-strategy-programming-guide.md，
   与 REST `GET /api/strategies/guide` 同字节；无参数，不经 StrategyService，恒可用）。
+
+> **⚠️ WIRE 变更（ADR-019 D11 / 2026-09-12，平台 pre-1.0）**：试算与回测**响应**中的 `fee`
+> 由旧的扁平形状 `{rate_pct, min_fee, slippage_bp, stamp_duty_pct}` 改为**两段显式形状**：
+> `fee.effective` = 引擎**实际应用**的参数（`commission_rate_pct`/`min_fee`/`stamp_duty_pct`/
+> `slippage_bp`）+ `source`（explicit\|profile\|default）；`fee.profile` = 解析到的费率档案
+> 全量事实 + `not_modeled`（经手费/证管费/过户费——**入库但引擎未建模**，显式标注以免被误读为
+> 已计入成本）。变更理由：旧形状回显档案字段却不区分是否参与撮合，属误导性回显。
+> **钉住 config（`strategy_run.config.fee`）保持扁平不变**（新形状作入参在 service/web 双层
+> fail-fast 400），故前端 ConfigPanel 与预设往返不受影响；受影响仅**消费响应 fee 的外部客户端**。
 - **bt_\*（12-strategy-system / P3c，回测工作台任务，经 `WorkbenchService`）**：
   `bt_run_ensemble(name?, symbol, period, from, to, slots[{strategy_id, version_id?, weight, params?}],
   buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee?)`（异步任务返回 run_id；
