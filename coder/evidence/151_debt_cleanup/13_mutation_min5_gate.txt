@@ -1,0 +1,28 @@
+# R5 加固后的突变实验（Red 非空证明）——2026-09-13
+# 夹具：crates/storage/tests/zz_mutation_min5_gate.rs（**临时，运行后已删除，不入库**）
+# 做法：以"修复前路径"（PRE_FIX_1M_SQL：kline_merged 全量 Append + top-N）冒充"目标"，
+#       判据与终稿**逐字相同**（比值 = min5(目标)/min5(参考) < 0.6）；预热 8+2、双侧各取 5 样本。
+# 期望：判据非空 ⇒ 本测试**必须失败**（退出码非 0，见下；这不是缺陷，是 Red 证明）。
+# 命令：cargo test -p storage --test zz_mutation_min5_gate -- --nocapture
+# 结果：比值 1.021 ≥ 0.6 ⇒ FAILED（预期）✅ 判据仍能抓住"退回全量合并"的真回归。
+
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+     Running tests/zz_mutation_min5_gate.rs (target/debug/deps/zz_mutation_min5_gate-4c49b5a996833adc)
+
+running 1 test
+[mutation] 修复前路径冒充目标：目标 min5=1455ms vs 参考 min5=1425ms（比值 1.021，判据 <0.6）
+
+thread 'mutation_pre_fix_as_target_must_fail_new_gate' (176201) panicked at crates/storage/tests/zz_mutation_min5_gate.rs:47:5:
+突变实验：修复前路径冒充目标时判据必须红（实测比值 1.021 ≥ 0.6）——判据非空证明
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mutation_pre_fix_as_target_must_fail_new_gate ... FAILED
+
+failures:
+
+failures:
+    mutation_pre_fix_as_target_must_fail_new_gate
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.32s
+
+error: test failed, to rerun pass `-p storage --test zz_mutation_min5_gate`

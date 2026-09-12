@@ -1,0 +1,44 @@
+# 项 3（批次 1 收尾）：成对但"无主"标记的归属判定（2026-09-13，HEAD 3cbd757）
+# 判定规则：全 design/ 搜索 `file=<相对路径>`；无命中 ⇒ 无任何 design 文档声明该生成物 ⇒ 历史遗留、现手维护 ⇒ 删标记。
+
+===== A) crates/storage/src/system.rs =====
+$ grep -n '~/\~' crates/storage/src/system.rs
+1:// ~/~ begin <<design/06-web/08-settings.md#crates/storage/src/system.rs>>[init]
+58:// ~/~ end
+$ grep -rn 'file=crates/storage/src/system.rs' design/   # 声明搜索
+(0 命中)
+$ grep -rn 'system\.rs' design/                        # 更宽松搜索（含散文/裸路径）
+(0 命中)
+$ git log --oneline -S 'file=crates/storage/src/system.rs' -- design/  # 历史声明搜索
+(以上为空 ⇒ 任何 revision 从未声明)
+$ python3 filedb 检查
+in filedb: False
+
+===== B) design/11-sim-live/preview/sim-live.html =====
+$ grep -n '~/\~' design/11-sim-live/preview/sim-live.html
+1:<!-- ~/~ begin <<design/11-sim-live/01-adr.md#design/11-sim-live/preview/sim-live.html>>[init] -->
+151:<!-- ~/~ end -->
+$ grep -rn 'file=design/11-sim-live/preview/sim-live.html' design/  # 声明搜索（注：命中自身标记行不算声明）
+(0 命中)
+$ grep -rn 'file=' design/11-sim-live/01-adr.md | wc -l   # 被引用文档自身的 file= 声明数
+0
+$ python3 filedb 检查
+in filedb: False
+
+===== C) design/11-sim-live/preview/sim-live-history.html =====
+$ grep -n '~/\~' design/11-sim-live/preview/sim-live-history.html
+1:<!-- ~/~ begin <<design/11-sim-live/01-adr.md#design/11-sim-live/preview/sim-live-history.html>>[init] -->
+99:<!-- ~/~ end -->
+$ grep -rn 'file=design/11-sim-live/preview/sim-live-history.html' design/
+(0 命中)
+$ python3 filedb 检查
+in filedb: False
+
+===== D) 对照：受治理 preview（06-web 7 份）确实有声明 =====  # 说明分类器可区分
+design/06-web/08-settings.md:37:``` {.html file=design/06-web/preview/08-settings.html}
+
+===== E) scripts/tests/*.sh 的 3 处为合成夹具内的**数据**（非本仓标记）——不属清理对象 =====
+scripts/tests/test_stitch.sh:56:// ~/~ begin <<design/page.md#web/src/layouts/Grid.tsx>>[init]
+scripts/tests/test_stitch.sh:58:// ~/~ end
+scripts/tests/test_check_tangle.sh:64:// ~/~ begin <<design/page.md#web/src/layouts/Grid.tsx>>[init]
+scripts/tests/test_check_tangle.sh:66:// ~/~ end

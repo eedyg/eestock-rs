@@ -1,0 +1,32 @@
+# R5 加固后（目标 min-of-5 / 参考 min-of-5 / 阈值 0.6）连跑 20 次
+# 命令：cargo test -p storage --test kline_reader merged_1m_branch_index_limit_performance -- --nocapture
+# 日期：2026-09-13  仓库：3cbd757
+run 01: PASS | 目标 min5=65ms vs 修复前路径 min5=1121ms（比值 0.058
+run 02: PASS | 目标 min5=63ms vs 修复前路径 min5=1121ms（比值 0.056
+run 03: PASS | 目标 min5=63ms vs 修复前路径 min5=1120ms（比值 0.056
+run 04: PASS | 目标 min5=64ms vs 修复前路径 min5=1098ms（比值 0.058
+run 05: PASS | 目标 min5=61ms vs 修复前路径 min5=1101ms（比值 0.055
+run 06: PASS | 目标 min5=62ms vs 修复前路径 min5=1134ms（比值 0.055
+run 07: PASS | 目标 min5=63ms vs 修复前路径 min5=1123ms（比值 0.056
+run 08: PASS | 目标 min5=61ms vs 修复前路径 min5=1122ms（比值 0.054
+run 09: PASS | 目标 min5=64ms vs 修复前路径 min5=1099ms（比值 0.059
+run 10: PASS | 目标 min5=60ms vs 修复前路径 min5=1087ms（比值 0.055
+run 11: PASS | 目标 min5=64ms vs 修复前路径 min5=1196ms（比值 0.054
+run 12: PASS | 目标 min5=122ms vs 修复前路径 min5=2225ms（比值 0.055
+run 13: PASS | 目标 min5=73ms vs 修复前路径 min5=2424ms（比值 0.030
+run 14: PASS | 目标 min5=71ms vs 修复前路径 min5=1168ms（比值 0.061
+run 15: PASS | 目标 min5=69ms vs 修复前路径 min5=1457ms（比值 0.048
+run 16: PASS | 目标 min5=90ms vs 修复前路径 min5=1421ms（比值 0.063
+run 17: PASS | 目标 min5=75ms vs 修复前路径 min5=1435ms（比值 0.052
+run 18: PASS | 目标 min5=72ms vs 修复前路径 min5=1382ms（比值 0.052
+run 19: PASS | 目标 min5=76ms vs 修复前路径 min5=1348ms（比值 0.056
+run 20: PASS | 目标 min5=80ms vs 修复前路径 min5=1340ms（比值 0.060
+== 连跑汇总：20 passed / 0 failed（共 20 次）==
+
+== 汇总统计（脚本 coder/evidence/151_debt_cleanup/09_stats.py 生成）==
+runs = 20  PASS = 20  FAIL = 0
+比值 min=0.030  max=0.063  mean=0.055  median=0.056
+目标 min5(ms) min=60 max=122 mean=70.9
+参考 min5(ms) min=1087 max=2424 mean=1326.1
+阈值 = 0.6；最坏比值 0.063 ⇒ 余量 = 0.6/0.063 = 9.52×  (要求 ≥1.5×)
+（对照旧档：min-of-3 + 0.5 时最坏比值 0.490 ⇒ 余量 1.02×）

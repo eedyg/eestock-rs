@@ -471,3 +471,128 @@ cd web && npx tsc -b --force && npx vitest run                                  
 | **R3** | 仍开放（登记） | `crates/web/src/settings.rs:2`；**新增同型**：`crates/storage/src/system.rs:2`（均为"tangle 生成/禁止手改"失实注释，属注释语义修正，未在"仅删标记行"范围内）。 |
 | **R4** | 不变 | 参考基线依赖 legacy `kline_merged`；缺表仍以 panic 红（非静默）。 |
 | 新增 | 低 | 本批未新增运行时风险：`crates/` 改动仅测试文件 + `system.rs` 删注释；前端仅类型声明。临时夹具 `zz_mutation_min5_gate.rs` 已删除（`git status` 无残留）。 |
+
+# §收尾-2（2026-09-13，tester 018 独立验收 R-A / R-B 修复）
+
+- **报告自身路径**：`coder/report/151_debt_cleanup_batch1.md`（本节追加于文件末尾）
+- **依据**：`tester/report/018_debt_batch1_acceptance.md` §6 残留风险 **R-A**（门禁过松）、**R-B**（目标侧前置 skip 可致静默绿）
+- **改动范围**：仅 `crates/storage/tests/kline_reader.rs`（性能门禁测试）及其 tangle 事实源 `design/07-app-plane/00-web-api.md`
+- **纪律**：**未** `git add`/stage；**未**重启服务；DB **只读**（仅 SELECT / 被测只读查询，无 DDL/DML）；临时夹具运行后已删除
+
+## §收尾-2.1 变更清单
+
+| # | 文件 | 变更 | 规模 |
+|---|---|---|---|
+| 1 | `crates/storage/tests/kline_reader.rs` | R-B：前置不足由静默 `return` 改**响亮 panic**（含"不得恢复静默 return 通过"禁令注释）；R-A：性能判据阈值 **0.6 → 0.25**；同步重写函数头依据/失效场景注释 | 62 行（+40/−22） |
+| 2 | `design/07-app-plane/00-web-api.md` | 上项的事实源回写（`./scripts/stitch.sh` 沙箱 stitch + round-trip 校验） | 62 行（+40/−22，与生成物逐侧同数） |
+
+`git diff --stat`：`kline_reader.rs | 62 ++++---`、`00-web-api.md | 62 ++++---`（2 files changed, 80 insertions(+), 44 deletions(-)）；`git diff --cached --name-only | wc -l` = **0**；`./scripts/check-tangle.sh` → ✅（沙箱重生成 + 逐字节比对通过）。
+
+## §收尾-2.2 R-B：前置不足必须响亮失败（方案 (a) 直接 panic）
+
+**改前**（vacuous pass 假绿）：
+
+```rust
+for _ in 0..8 {
+    let w = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+    if w.len() != 500 {
+        eprintln!("[bench-skip] {real_code} 无 500 根 M1（实际 {}），跳过性能断言", w.len());
+        return;                      // ← 数据前提被破坏时测试**照样 PASS**，门禁没测量
+    }
+}
+```
+
+**改后**：
+
+```rust
+    if w.len() != 500 {
+        panic!("数据前提不满足（期望 500 根 M1，实得 {} 根）→ 门禁无法测量：{real_code} 的 M1 \
+                数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。",
+            w.len());
+    }
+```
+
+**方案选择理由**（任务书要求二选一并说明）：选 **(a)**。
+
+- (b)（保留 skip 语义 + 改名/`#[ignore]` + 打印 `[bench-SKIPPED]`）**仍不合格**：门禁在"跳过"态下同样**没有测量**，而 `#[ignore]` 默认不执行 ⇒ 在 CI 里同样是无声假绿；"在同一输出中断言已跳过态"只是把假绿写得更显眼，判据依然为空。
+- (a) 与项目已反复落地的"消灭静默失真"原则（I-1、门禁假绿 F3）一致：数据前提是**只读即可核实的客观事实**（实测 `kline_accurate code=518880 period=M1` = **769,513** 行；`code=999999` = 0 行），不满足只可能来自换库/数据被删/连错库，此时唯一正确行为是**让门禁红**并要求人介入。
+- 注释已写明**不得**恢复"静默 return 通过"的写法（含改名/`#[ignore]`/"打印后 return"三种变体均不接受）。
+
+**红/绿证据**（`coder/evidence/151_debt_cleanup/16_rA_mutation_and_rB_redgreen.txt`，临时夹具 `crates/storage/tests/zz_rbra_tmp.rs`，运行后已删除、`git status` 无残留）：
+
+- **RED（旧写法假绿实证）**：夹具以 `HEAD` 逐字逻辑 + 前置不足场景（`code=999999`，实测 0 根）运行，「要求响亮失败」的 `#[should_panic(expected = "数据前提不满足")]` 用例 **FAILED**：
+
+```
+test rb_red_pre_fix_silent_return_is_vacuous_pass - should panic ... [bench-skip] 999999 无 500 根 M1（实际 0），跳过性能断言
+FAILED
+---- rb_red_pre_fix_silent_return_is_vacuous_pass stdout ----
+note: test did not panic as expected
+```
+
+⇒ 旧写法在数据前提不满足时**静默接受**（空跑、零测量、零断言）= 假绿灯口成立。
+
+- **GREEN（终稿响亮失败）**：同一场景、终稿 panic 片段逐字复制 ⇒ 捕获到 panic 且消息完整：
+
+```
+test rb_green_post_fix_precondition_shortfall_panics_loudly - should panic ...
+panicked at zz_rbra_tmp.rs:71:13: 数据前提不满足（期望 500 根 M1，实得 0 根）→ 门禁无法测量：999999 的
+M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code.
+ok
+```
+
+## §收尾-2.3 R-A：阈值 0.6 → 0.25（收紧；保留 ≥3× 余量）
+
+- **依据**：实测分布（tester 018 §4.2 + 本轮）稳态比值 ≈0.055（min 0.030）、诱导负载最坏 0.075。
+  原 0.6 相对 0.055 留 ~10.9× 余量 ⇒ 目标侧劣化到 ~5× 仍不触发（门禁近乎失效）。
+  取 **0.25**（=要求目标比修复前快 **≥4×**）：相对稳态 0.055 留 **4.5×**，相对最坏的诱导负载值 0.075 留 **3.3×**，满足"仍保留 ≥3× 余量"。
+- **(a) 连跑 ≥20 次**（`15_rA_20runs_ratio_dist.txt`）：**20/20 PASS**（0 failed）。
+  比值 **min 0.054 / max 0.060 / mean 0.056 / median 0.0555**；目标 min5 = 60–66ms，参考 min5 = 1085–1123ms；
+  最坏余量 = 0.25/0.060 = **4.17×**；窗口负载 `load1 ≈ 2.19`（16 核）。
+  上述 20 次跑的是**判据终稿**；随后仅修正注释中的统计数字，重建终稿二进制再跑 2 次（比值 0.054 / 0.055，全绿）确认最终字节同样绿。
+- **(b) 突变实验复证判据非空**（同 `16_…txt`）：以**修复前路径**（`PRE_FIX_1M_SQL` 全量 Append + top-N）冒充目标、判据与终稿逐字相同（双侧 min-of-5、预热 8+2、`< 0.25`）：
+
+```
+[ra-mutation] 目标=修复前路径：目标 min5=1106ms vs 参考 min5=1091ms（比值 1.014）
+panicked: 突变实验：修复前路径冒充目标时判据必须红（实测比值 1.014 ≥ 0.25）   → 用例 ok（panic 被捕获）
+[ra-control ] 真实生产路径：目标 min5=59ms vs 参考 min5=1086ms（比值 0.055）   → ok
+```
+
+  ⇒ 判据**非空**（真回归 ⇒ 比值 1.014 ≥ 0.25 必红）且**非恒红**（真实路径 0.055 绿）；与本项目历史突变实测 0.983 / 1.021 / 1.275 同量级。
+- **(c) 更慢环境是否安全 / 是否叠加绝对上限**：**不叠加绝对墙钟上限，仅用比值判据**。理由：绝对阈值恰是本测试被根治的假红来源（tester 014 的 `504ms vs 500ms` 假红），叠加它会把已消除的 flaky 重新引入；而比值判据的设计性质是机器快慢/缓存冷热/并行负载在**两侧同向抵消**——实测把 `load1` 从 1.6 拉到 9.6 时比值仅从 0.055 变到 0.075（1.36×），远小于 0.25/0.075 = 3.3× 的余量。故"更慢的 CI 机"主要同向抬高两侧耗时、基本不动比值，0.25 仍安全。
+  **触发复审条件**（写入注释）：若将来 ≥20 次连跑的比值 max 逼近 0.15（余量 <1.7×），再考虑（i）两侧样本增至 min-of-9 或（ii）改为"比值 + 宽松绝对上限（如参考路径 min5 的绝对下限不合理时）"的双判据——**当前数据不支持该复杂度**。
+
+## §收尾-2.4 勘误（提交信息 6220b6a【3】行数措辞）
+
+**追加一行勘误（2026-09-13，依据 tester 018 §5-D1）**：提交 `6220b6a` 的提交信息【3】称 3 个 Rust 文件"移除标记行（**各 −2 行**）"**有误**——实测 `crates/web/src/settings.rs` 与 `crates/web/tests/api_settings.rs` 各 **−1 行**，且二者均为**孤立 begin**（**非"成对"**）；仅 `crates/storage/src/system.rs` 为 **−2 行**（成对）。**正文分类正确**（本报告 §1 按项 1 = 各 −1、§收尾-3 按 system.rs + 2 份 HTML = 各 −2），**仅提交信息措辞不准**，据此提交信息做审计时须以本报告为准。
+
+## §收尾-2.5 门禁 / 纪律 / 证据
+
+```
+$ ./scripts/check-tangle.sh
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+$ git diff --cached --name-only | wc -l   → 0
+$ git status --porcelain | grep -v '^??'   → M crates/storage/tests/kline_reader.rs / M design/07-app-plane/00-web-api.md
+```
+
+| # | 证据文件 | 内容 |
+|---|---|---|
+| 15 | `coder/evidence/151_debt_cleanup/15_rA_20runs_ratio_dist.txt` | 阈值 0.25 下 20 次连跑逐次 `[bench]` 比值 + 统计（min/max/mean/median + 余量）+ 终稿重建后 2 次复跑 |
+| 16 | `coder/evidence/151_debt_cleanup/16_rA_mutation_and_rB_redgreen.txt` | R-B 红（旧写法 vacuous PASS）/绿（终稿响亮 panic）+ R-A 突变必红 + 真实路径对照，原始输出 |
+
+**复现**：
+
+```bash
+cd /home/eestock/workspace/git/eestock/eestock-rs
+cargo test -p storage --test kline_reader merged_1m_branch_index_limit_performance -- --nocapture
+# 连跑 20 次：见 15 号证据（直接调用 target/debug/deps/kline_reader-<hash> --exact …）
+# R-B / 突变：按 16 号证据的夹具配方（zz_rbra_tmp.rs，跑完删除）重建
+./scripts/check-tangle.sh
+```
+
+## §收尾-2.6 风险更新（仅列变化项）
+
+| 原 # | 状态 | 说明 |
+|---|---|---|
+| **R-A**（tester 018） | **已关闭** | 阈值 0.6 → 0.25；20/20 PASS、最坏余量 4.17×（诱导负载口径 3.3×）；突变 1.014 仍必红；仅比值不叠加绝对上限（理由见 §收尾-2.3(c)）。 |
+| **R-B**（tester 018） | **已关闭** | 前置不足改为响亮 panic（方案 a），红/绿证据齐备；注释明令禁止恢复静默 return。 |
+| 新增 | 低（登记） | 判据收紧后，若未来比值 max ≥0.15（余量 <1.7×）需复审（注释已写明候选方案）。 |

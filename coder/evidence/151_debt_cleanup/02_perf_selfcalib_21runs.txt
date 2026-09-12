@@ -1,0 +1,24 @@
+run 01: PASS | 目标 min=342ms vs 修复前路径 min=1362ms（比值 0.251，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.56s
+run 02: PASS | 目标 min=389ms vs 修复前路径 min=1372ms（比值 0.283，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.57s
+run 03: PASS | 目标 min=355ms vs 修复前路径 min=1347ms（比值 0.263，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.43s
+run 04: PASS | 目标 min=369ms vs 修复前路径 min=1422ms（比值 0.260，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.91s
+run 05: PASS | 目标 min=366ms vs 修复前路径 min=1413ms（比值 0.259，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.93s
+run 06: PASS | 目标 min=390ms vs 修复前路径 min=1460ms（比值 0.267，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 15.04s
+run 07: PASS | 目标 min=346ms vs 修复前路径 min=1460ms（比值 0.237，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.42s
+run 08: PASS | 目标 min=375ms vs 修复前路径 min=1400ms（比值 0.268，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.88s
+run 09: PASS | 目标 min=356ms vs 修复前路径 min=1424ms（比值 0.250，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.07s
+run 10: PASS | 目标 min=371ms vs 修复前路径 min=1445ms（比值 0.257，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.29s
+run 11: PASS | 目标 min=377ms vs 修复前路径 min=1461ms（比值 0.258，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.20s
+run 12: PASS | 目标 min=375ms vs 修复前路径 min=1411ms（比值 0.266，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.13s
+run 13: PASS | 目标 min=368ms vs 修复前路径 min=1383ms（比值 0.266，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 14.17s
+run 14: PASS | 目标 min=358ms vs 修复前路径 min=1386ms（比值 0.258，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.78s
+run 15: PASS | 目标 min=302ms vs 修复前路径 min=1169ms（比值 0.259，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 12.18s
+run 16: PASS | 目标 min=301ms vs 修复前路径 min=1177ms（比值 0.256，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.65s
+run 17: PASS | 目标 min=310ms vs 修复前路径 min=1106ms（比值 0.280，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.26s
+run 18: PASS | 目标 min=284ms vs 修复前路径 min=1087ms（比值 0.261，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 10.66s
+run 19: PASS | 目标 min=301ms vs 修复前路径 min=1128ms（比值 0.266，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.13s
+run 20: PASS | 目标 min=307ms vs 修复前路径 min=1151ms（比值 0.266，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.18s
+run 21: PASS | 目标 min=295ms vs 修复前路径 min=1117ms（比值 0.264，判据 <0.5） | test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 11.68s
+
+== 连跑汇总：21 passed / 0 failed（共 21 次）==
+== 判据：min(目标)×2 < min(参考)（比值 <0.5）==

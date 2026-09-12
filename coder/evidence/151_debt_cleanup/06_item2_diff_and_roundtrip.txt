@@ -1,0 +1,14 @@
+### 项 2 变更 diff（代码侧 = 生成物；文档侧由 ./scripts/stitch.sh 回写，两侧逐字节等价）
+### git diff --stat
+ crates/storage/tests/kline_reader.rs | 110 ++++++++++++++++++++++++++++++-----
+ crates/web/src/settings.rs           |   1 -
+ crates/web/tests/api_settings.rs     |   1 -
+ design/07-app-plane/00-web-api.md    | 110 ++++++++++++++++++++++++++++++-----
+ 4 files changed, 192 insertions(+), 30 deletions(-)
+
+### git diff -- crates/storage/tests/kline_reader.rs | grep '^[-+]' | head -0
+4
+
+### 生成物与设计文档块（去掉首行 begin 标记）逐字节比对
+doc block lines=728  code lines (减去标记行)=728
+逐行一致： True

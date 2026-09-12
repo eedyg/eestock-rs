@@ -1,0 +1,30 @@
+run 01: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1091ms（比值 0.057，判据 <0.25）
+run 02: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1085ms（比值 0.058，判据 <0.25）
+run 03: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1110ms（比值 0.055，判据 <0.25）
+run 04: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1102ms（比值 0.056，判据 <0.25）
+run 05: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1107ms（比值 0.055，判据 <0.25）
+run 06: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1119ms（比值 0.055，判据 <0.25）
+run 07: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1095ms（比值 0.056，判据 <0.25）
+run 08: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1120ms（比值 0.054，判据 <0.25）
+run 09: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1118ms（比值 0.055，判据 <0.25）
+run 10: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1100ms（比值 0.057，判据 <0.25）
+run 11: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=65ms vs 修复前路径 min5=1109ms（比值 0.058，判据 <0.25）
+run 12: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1090ms（比值 0.056，判据 <0.25）
+run 13: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=66ms vs 修复前路径 min5=1109ms（比值 0.060，判据 <0.25）
+run 14: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1100ms（比值 0.055，判据 <0.25）
+run 15: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1102ms（比值 0.057，判据 <0.25）
+run 16: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1113ms（比值 0.055，判据 <0.25）
+run 17: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=60ms vs 修复前路径 min5=1101ms（比值 0.055，判据 <0.25）
+run 18: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1104ms（比值 0.055，判据 <0.25）
+run 19: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1123ms（比值 0.056，判据 <0.25）
+run 20: test result: ok | [bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1112ms（比值 0.055，判据 <0.25）
+== 连跑汇总：20 passed / 0 failed（共 20 次）==
+
+[stats] n=20 min=0.054 max=0.06 mean=0.0560 median=0.0555
+[stats] 阈值 0.25；最坏余量 = 0.25/0.06 = 4.17x
+[stats] 目标 min5(ms) 60-66；参考 min5(ms) 1085-1123；负载 load1 2.19
+== 终稿（注释修正后重建）复跑 2 次 ==
+[bench] 自校准 1m 500 bars：目标 min5=62ms vs 修复前路径 min5=1136ms（比值 0.054，判据 <0.25）
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.72s
+[bench] 自校准 1m 500 bars：目标 min5=61ms vs 修复前路径 min5=1120ms（比值 0.055，判据 <0.25）
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 13.53s

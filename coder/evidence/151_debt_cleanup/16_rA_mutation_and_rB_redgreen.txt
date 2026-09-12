@@ -1,0 +1,31 @@
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running tests/zz_rbra_tmp.rs (target/debug/deps/zz_rbra_tmp-4c84f920e673b898)
+
+running 4 tests
+test ra_control_real_path_is_green ... [ra-control] 真实生产路径：目标 min5=59ms vs 参考 min5=1086ms（比值 0.055）
+ok
+test ra_mutation_pre_fix_path_as_target_must_be_red - should panic ... [ra-mutation] 目标=修复前路径：目标 min5=1106ms vs 参考 min5=1091ms（比值 1.014）
+
+thread 'ra_mutation_pre_fix_path_as_target_must_be_red' (220346) panicked at crates/storage/tests/zz_rbra_tmp.rs:117:5:
+突变实验：修复前路径冒充目标时判据必须红（实测比值 1.014 ≥ 0.25）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test rb_green_post_fix_precondition_shortfall_panics_loudly - should panic ... 
+thread 'rb_green_post_fix_precondition_shortfall_panics_loudly' (220640) panicked at crates/storage/tests/zz_rbra_tmp.rs:71:13:
+数据前提不满足（期望 500 根 M1，实得 0 根）→ 门禁无法测量：999999 的 M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。
+ok
+test rb_red_pre_fix_silent_return_is_vacuous_pass - should panic ... [bench-skip] 999999 无 500 根 M1（实际 0），跳过性能断言
+FAILED
+
+failures:
+
+---- rb_red_pre_fix_silent_return_is_vacuous_pass stdout ----
+note: test did not panic as expected at crates/storage/tests/zz_rbra_tmp.rs:44:10
+
+failures:
+    rb_red_pre_fix_silent_return_is_vacuous_pass
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.79s
+
+error: test failed, to rerun pass `-p storage --test zz_rbra_tmp`

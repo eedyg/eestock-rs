@@ -1,0 +1,11 @@
+# 项 3 收尾：前端 tsc + vitest（零运行时逻辑改动）— 2026-09-13
+$ npx tsc -b --force
+exit=0
+
+$ npx vitest run
+
+ Test Files  47 passed (47)
+      Tests  457 passed (457)
+   Start at  00:23:03
+   Duration  7.47s (transform 5.18s, setup 3.69s, collect 15.98s, tests 32.11s, environment 24.69s, prepare 6.30s)
+

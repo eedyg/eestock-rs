@@ -1,0 +1,26 @@
+### 项 1 取证：二文件不受 tangle 治理
+$ grep -n 'file=' design/06-web/08-settings.md
+37:``` {.html file=design/06-web/preview/08-settings.html}
+192:``` {.tsx file=web/src/layouts/SettingsGrid.tsx}
+
+$ 全仓 design/ 是否声明 crates/web/src/settings.rs 或 crates/web/tests/api_settings.rs
+（0 命中：无声明）
+
+$ .entangled/filedb.json 是否登记二者
+crates/web/src/settings.rs: in filedb = False
+crates/web/tests/api_settings.rs: in filedb = False
+
+$ 修改前标记行
+// ~/~ begin <<design/06-web/08-settings.md#crates/web/src/settings.rs>>[init]
+// ~/~ begin <<design/06-web/08-settings.md#crates/web/tests/api_settings.rs>>[init]
+
+$ 修改后（应为原第 2 行）
+//! 页面⑧ 系统设置 S1+S2：系统信息 / 危险运维 / 配置持久化 + PATCH / 只读快照端点（08-settings.md §6）。
+//! 页面⑧ 系统设置 S1 端点集成测试（需 TimescaleDB :5433）：真实起 axum server + reqwest 断言。
+
+$ 修改后全仓 '~/~' 里该二文件的命中数（应 0）
+crates/web/src/settings.rs:0
+crates/web/tests/api_settings.rs:0
+
+$ cargo check -p web --all-targets
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s

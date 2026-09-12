@@ -1,0 +1,152 @@
+# 项 3 收尾：TS 类型层补缺口（零运行时影响）— 证据（2026-09-13）
+
+## 0. 前置复核：types.ts 非 tangle 生成物（可直接编辑，无需回写 design/）
+$ head -1 web/src/api/types.ts
+// API 契约类型（09-frontend.md §5；Phase C 起以 07-app-plane §1.1 真实后端契约为事实源）
+$ grep -c '~/\~' web/src/api/types.ts
+0
+$ python3 -c "...print('api/types.ts in filedb:', 'web/src/api/types.ts' in targets)"
+api/types.ts in filedb: False
+$ grep -rn 'file=web/src/api/types.ts' design/
+(0 命中)
+
+## 1. 事实源：crates/application/src/fee.rs::resolved_fee_to_json（两段形状）
+/// D11-fix 响应回显：**显式区分两段**，消除「档案规费被误读为已计入成本」的误导。
+/// - `effective`：引擎**实际应用**的参数（`commission_rate_pct`/`min_fee`/`stamp_duty_pct`/`slippage_bp`）
+///   + `source`（explicit|profile|default）——**任何未参与撮合的档案字段不得出现在此段**；
+/// - `profile`：解析到的档案**全量事实**字段 + `not_modeled`（经手费/证管费/过户费，引擎未建模 →
+///   显式标注其未参与撮合，**始终**列出，schema 稳定）；
+/// - `symbol_type`：解析到的标的类型（None = 未解析）。
+pub fn resolved_fee_to_json(r: &ResolvedFee) -> serde_json::Value {
+    let mut j = serde_json::json!({
+        "effective": {
+            "commission_rate_pct": r.model.commission_rate_pct,
+            "min_fee": r.model.min_commission,
+            "stamp_duty_pct": r.model.stamp_duty_pct,
+            "slippage_bp": r.model.slippage_bp,
+            "source": r.source.as_str(),
+        },
+        "symbol_type": match &r.symbol_type {
+            Some(t) => serde_json::json!(t),
+            None => serde_json::Value::Null,
+        },
+    });
+    let obj = j.as_object_mut().expect("resolved fee json 恒为对象");
+    if let Some(p) = &r.profile {
+        let mut pj = serde_json::json!({
+            "type": p.type_,
+            "commission_rate_pct": p.commission_rate_pct,
+            "min_fee": p.min_fee,
+            "exchange_fee_pct": p.exchange_fee_pct,
+            "regulatory_fee_pct": p.regulatory_fee_pct,
+            "stamp_duty_pct": p.stamp_duty_pct,
+            "transfer_fee_pct": p.transfer_fee_pct,
+            "note": p.note,
+            "source": p.source,
+        });
+        let pc = pj.as_object_mut().expect("profile json 恒为对象");
+        let not_modeled = not_modeled_fields(pc);
+        pc.insert("not_modeled".into(), serde_json::json!(not_modeled));
+        obj.insert("profile".into(), pj);
+    }
+    j
+}
+
+## 2. 设计事实源：design/07-app-plane/01-mcp.md §WIRE 变更（ADR-019 D11）
+> **⚠️ WIRE 变更（ADR-019 D11 / 2026-09-12，平台 pre-1.0）**：试算与回测**响应**中的 `fee`
+> 由旧的扁平形状 `{rate_pct, min_fee, slippage_bp, stamp_duty_pct}` 改为**两段显式形状**：
+> `fee.effective` = 引擎**实际应用**的参数（`commission_rate_pct`/`min_fee`/`stamp_duty_pct`/
+> `slippage_bp`）+ `source`（explicit\|profile\|default）；`fee.profile` = 解析到的费率档案
+> 全量事实 + `not_modeled`（经手费/证管费/过户费——**入库但引擎未建模**，显式标注以免被误读为
+> 已计入成本）。变更理由：旧形状回显档案字段却不区分是否参与撮合，属误导性回显。
+> **钉住 config（`strategy_run.config.fee`）保持扁平不变**（新形状作入参在 service/web 双层
+> fail-fast 400），故前端 ConfigPanel 与预设往返不受影响；受影响仅**消费响应 fee 的外部客户端**。
+- **bt_\*（12-strategy-system / P3c，回测工作台任务，经 `WorkbenchService`）**：
+  `bt_run_ensemble(name?, symbol, period, from, to, slots[{strategy_id, version_id?, weight, params?}],
+  buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee?)`（异步任务返回 run_id；
+
+## 3. 落库扁平 config（4 键）事实源：fee.rs::fee_model_to_json
+/// I-3/D6：`FeeModel -> serde_json`（**输入/预设钉住**形态：`{rate_pct, min_fee, slippage_bp, stamp_duty_pct}`）。
+/// 注意：这是**提交入参**兼容形态（供预设 config 回填后再次提交），**不是**响应回显；
+/// 响应/运行快照一律用 [`resolved_fee_to_json`] 的两段（`effective`/`profile`+`not_modeled`）结构。
+pub fn fee_model_to_json(m: &FeeModel) -> serde_json::Value {
+    serde_json::json!({
+        "rate_pct": m.commission_rate_pct,
+        "min_fee": m.min_commission,
+        "slippage_bp": m.slippage_bp,
+        "stamp_duty_pct": m.stamp_duty_pct,
+    })
+}
+
+## 4. 改动 diff（web/src/api/types.ts）
+diff --git a/web/src/api/types.ts b/web/src/api/types.ts
+index e6563f9..bb4d4fd 100644
+--- a/web/src/api/types.ts
++++ b/web/src/api/types.ts
+@@ -780,6 +780,41 @@ export interface StrategyTestEvent {
+   message: string;
+ }
+ 
++/**
++ * 试算/回测响应侧 `fee` 的回显形状（ADR-019 D11 两段显式形状；**不是**钉住 config 的扁平 fee）。
++ * 形状来源（后端 = 事实源）：`crates/application/src/fee.rs::resolved_fee_to_json`。
++ * 设计事实源：`design/07-app-plane/01-mcp.md` 的「⚠️ WIRE 变更（ADR-019 D11）」段——
++ * `effective` = 引擎**实际应用**参数 + `source`；`profile` = 解析到的档案**全量事实** +
++ * `not_modeled`（经手费/证管费/过户费：入库但引擎未建模，显式标注以免被误读为已计入成本）。
++ * 零运行时影响：本批仅补类型声明（无消费者、无 mock 改动）。
++ */
++export interface ResolvedFee {
++  /** 引擎实际应用参数（任何未参与撮合的档案字段**不得**出现在此段）。 */
++  effective: {
++    commission_rate_pct: number;
++    min_fee: number;
++    stamp_duty_pct: number;
++    slippage_bp: number;
++    source: 'explicit' | 'profile' | 'default';
++  };
++  /** 档案全量事实 + `not_modeled`；**未解析到档案时后端不输出该段**（故可选）。 */
++  profile?: {
++    type: string;
++    commission_rate_pct: number;
++    min_fee: number;
++    exchange_fee_pct: number;
++    regulatory_fee_pct: number;
++    stamp_duty_pct: number;
++    transfer_fee_pct: number;
++    note: string;
++    source: string;
++    /** 档案数值费率键 − 引擎已消费字段（升序）；始终存在（schema 稳定）。 */
++    not_modeled: string[];
++  };
++  /** 解析到的标的类型（`symbols.type`）；未解析 = null。 */
++  symbol_type: string | null;
++}
++
+ /** 试算响应（POST /api/strategies/test-run；截断标记 truncated） */
+ export interface StrategyTestRunResp {
+   mode: StrategyTestMode;
+@@ -791,6 +826,8 @@ export interface StrategyTestRunResp {
+   trades: StrategyTradeDetail[];
+   events: StrategyTestEvent[];
+   truncated: { scores: boolean; events: boolean; trades: boolean };
++  /** 响应回显的生效费用（两段形状，见 {@link ResolvedFee}）；旧 fixture/后端省略时可缺。 */
++  fee?: ResolvedFee;
+ }
+ 
+ /** 后端错误线格式 {error: string} → 前端 ApiError */
+@@ -829,11 +866,14 @@ export interface WorkbenchStop {
+   trigger?: 'Intrabar' | 'CloseBasis';
+ }
+ 
+-/** fee 形状（web 层 validate_backtest_fee 三键） */
++/** fee 形状（web 层 validate_backtest_fee 三键入参；钉住 config 落库为 `fee_model_to_json` **4 键**，
++ * 第 4 键 `stamp_duty_pct` 由后端按标的 type 解析后钉入，前端不读写 → 声明为可选。 */
+ export interface WorkbenchFee {
+   rate_pct: number;
+   min_fee: number;
+   slippage_bp: number;
++  /** 钉住 config 的落地形态含该键（`fee_model_to_json`）；入参三键可省。 */
++  stamp_duty_pct?: number;
+ }
+ 
+ /** POST /api/workbench/runs body（from/to RFC3339；buy/sell_threshold、initial_capital、stop 可省） */

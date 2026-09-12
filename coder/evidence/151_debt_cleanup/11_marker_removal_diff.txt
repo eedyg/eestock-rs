@@ -1,0 +1,62 @@
+# 项 3 收尾：3 处"成对但无主"标记删除（仅标记行，零语义改动）
+# 规则：无任何 design 文档声明（file= 搜索 0 命中）且不在 filedb ⇒ 历史遗留、现手维护 ⇒ 删标记
+# 日期：2026-09-13  HEAD 3cbd757
+
+$ git diff --numstat <3 files>   # 每份恰 2 行删除、0 行新增
+0	2	crates/storage/src/system.rs
+0	2	design/11-sim-live/preview/sim-live-history.html
+0	2	design/11-sim-live/preview/sim-live.html
+
+$ git diff <3 files>
+diff --git a/crates/storage/src/system.rs b/crates/storage/src/system.rs
+index 14c39e5..3bee7c7 100644
+--- a/crates/storage/src/system.rs
++++ b/crates/storage/src/system.rs
+@@ -1,4 +1,3 @@
+-// ~/~ begin <<design/06-web/08-settings.md#crates/storage/src/system.rs>>[init]
+ //! 页面⑧ 系统设置 S1：系统信息 db 保活 + raw 层清空端口实现（storage 基础设施层）。
+ //! 由 08-settings.md tangle 生成（ADR-007），禁止手改。
+ //! 端口契约见 domain::ports::{SystemInfoRead, RawPurgePort}（ADR-017：web 只依赖端口）。
+@@ -55,4 +54,3 @@ pub fn system_info(pool: PgPool) -> Arc<dyn SystemInfoRead> {
+ pub fn raw_purge(pool: PgPool) -> Arc<dyn RawPurgePort> {
+     Arc::new(PgRawPurge::new(pool))
+ }
+-// ~/~ end
+diff --git a/design/11-sim-live/preview/sim-live-history.html b/design/11-sim-live/preview/sim-live-history.html
+index 531260d..dafa5e4 100644
+--- a/design/11-sim-live/preview/sim-live-history.html
++++ b/design/11-sim-live/preview/sim-live-history.html
+@@ -1,4 +1,3 @@
+-<!-- ~/~ begin <<design/11-sim-live/01-adr.md#design/11-sim-live/preview/sim-live-history.html>>[init] -->
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+@@ -96,4 +95,3 @@
+   <p class="note">历史回顾页（独立于当前会话，不影响正在运行的 session）。含：会话列表（回看/回测对比/删除）、会话详情（净值/指标/事件流）、「回测一下」对比（同周期+同策略集）。数字=占用例。</p>
+ </body>
+ </html>
+-<!-- ~/~ end -->
+diff --git a/design/11-sim-live/preview/sim-live.html b/design/11-sim-live/preview/sim-live.html
+index b5c0f42..04fad9c 100644
+--- a/design/11-sim-live/preview/sim-live.html
++++ b/design/11-sim-live/preview/sim-live.html
+@@ -1,4 +1,3 @@
+-<!-- ~/~ begin <<design/11-sim-live/01-adr.md#design/11-sim-live/preview/sim-live.html>>[init] -->
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+@@ -148,4 +147,3 @@
+   <p class="note">本样机为 sim-live 页面布局/区域/风格基调（深色终端风）+ Tab（当前会话/历史回顾）。要点：统一交易开关（聚合评分→自动模拟单，无每策略开关）；MCP sim_* 状态+快捷停用按钮；持仓紧挨会话/账户；历史回看独立 Tab 不影响当前会话。数字=占用例，三态/交互见 ADR §3/§8。</p>
+ </body>
+ </html>
+-<!-- ~/~ end -->
+
+# 零语义改动校验：删标记行后 filtered sha256（HEAD vs 工作区）逐份相同
+crates/storage/src/system.rs                            HEAD-filtered=87ef565a82fdc43b  工作区-filtered=87ef565a82fdc43b  SAME
+design/11-sim-live/preview/sim-live.html                HEAD-filtered=35d40f7f9691c14e  工作区-filtered=35d40f7f9691c14e  SAME
+design/11-sim-live/preview/sim-live-history.html        HEAD-filtered=0f8dea37c0d9c8ee  工作区-filtered=0f8dea37c0d9c8ee  SAME
+
+$ grep -c '~/~' <3 files>   # 清理后均为 0
+crates/storage/src/system.rs:0
+design/11-sim-live/preview/sim-live.html:0
+design/11-sim-live/preview/sim-live-history.html:0

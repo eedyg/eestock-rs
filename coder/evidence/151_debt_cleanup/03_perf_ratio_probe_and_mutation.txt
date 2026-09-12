@@ -1,0 +1,49 @@
+### 探针：目标(生产 1m 读源) vs 参考(修复前 kline_merged 直查) 同run耗时分布
+### 命令：cargo test -p storage --test zz_probe_perf_ratio -- --nocapture（探针已删除，源码见本文件末尾）
+--- probe run 1
+PROBE equivalence(target vs pre-fix 500 bars) = OK
+PROBE target=[284.121, 283.655, 310.151, 310.918, 61.312]ms (min 61 max 311)
+PROBE ref   =[1105.421, 1140.346, 1377.439, 1308.035, 1141.721]ms (min 1105 max 1377)
+PROBE ratio min/min = 0.055  max/min = 0.281  min/max = 0.045  max/max = 0.226
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.72s
+--- probe run 2
+PROBE equivalence(target vs pre-fix 500 bars) = OK
+PROBE target=[285.574, 285.017, 314.906, 314.852, 62.408]ms (min 62 max 315)
+PROBE ref   =[1098.445, 1101.622, 1307.65, 1315.023, 1149.003]ms (min 1098 max 1315)
+PROBE ratio min/min = 0.057  max/min = 0.287  min/max = 0.047  max/max = 0.239
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.70s
+--- probe run 3
+PROBE equivalence(target vs pre-fix 500 bars) = OK
+PROBE target=[289.128, 296.51, 312.259, 310.962, 60.356]ms (min 60 max 312)
+PROBE ref   =[1113.723, 1121.46, 1650.955, 1559.85, 1153.192]ms (min 1114 max 1651)
+PROBE ratio min/min = 0.054  max/min = 0.280  min/max = 0.037  max/max = 0.189
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.11s
+
+### 突变实验（Red 证据）：把参考路径冒充为目标，用同判据判定 → 必红
+MUTATION target(pre-fix as target)=1090ms ref=1109ms ratio=0.983
+MUTATION ⇒ 自校准判据在 1m 读源退回全量合并时**必红**（ratio 0.983 ≥ 0.5）
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.54s
+
+### 参考路径单次执行剖面（确定预热次数）
+REF profile ms = [1504.0, 1567.0, 1113.0, 1090.0, 1107.0, 1083.0, 1111.0, 1128.0, 1115.0, 1110.0]
+REF min = 1083ms
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.95s
+
+### 补充：参考基线不可用时的行为（缺表 ⇒ PG ERROR ⇒ sqlx Err ⇒ .expect panic ⇒ 测试红，非静默）
+$ psql -c 'SELECT count(*) FROM kline_no_such_base'
+ERROR:  relation "kline_no_such_base" does not exist
+LINE 1: SELECT count(*) FROM kline_no_such_base
+                             ^
+
+### 生成物侧参考基线实现（crates/storage/tests/kline_reader.rs）
+async fn pre_fix_1m_rows(pool: &PgPool, code: &str) -> Vec<PreFix1mRow> {
+    sqlx::query_as::<_, PreFix1mRow>(PRE_FIX_1M_SQL)
+        .bind(code)
+        .bind(None::<DateTime<Utc>>)
+        .bind(500i64)
+        .fetch_all(pool)
+        .await
+        .expect("1m 修复前路径（参考基线）可用")
+}
+### 目标侧唯一 skip 分支（既有前置，与判据无关）
+217:            eprintln!("[bench-skip] {real_code} 无 500 根 M1（实际 {}），跳过性能断言", w.len());

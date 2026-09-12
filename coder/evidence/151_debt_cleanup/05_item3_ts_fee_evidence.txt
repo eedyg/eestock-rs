@@ -1,0 +1,120 @@
+### A. tester 014 指认的两处（行号取证）
+--- web/src/api/types.ts:832-836（WorkbenchFee 定义）
+     1	/** fee 形状（web 层 validate_backtest_fee 三键） */
+     2	export interface WorkbenchFee {
+     3	  rate_pct: number;
+     4	  min_fee: number;
+     5	  slippage_bp: number;
+--- web/src/api/types.ts:866-874（WorkbenchRunConfig，含 fee: WorkbenchFee @873）
+export interface WorkbenchRunConfig {
+  slots: WorkbenchPinnedSlot[];
+  buy_threshold: number;
+  sell_threshold: number;
+  policy: WorkbenchPolicy;
+  stop: WorkbenchStop | null;
+  initial_capital: number;
+  fee: WorkbenchFee;
+}
+--- web/src/api/mock.ts:1397-1407（钉住 config 构造，含 fee: req.fee @1406）
+      const policy = req.policy as Record<string, unknown> | undefined;
+      if (!policy || (!policy.LumpSum && !policy.Dca)) throw new ApiError(400, 'HTTP 400: policy 非法');
+      const config: WorkbenchRunConfig = {
+        slots: pinnedSlots,
+        buy_threshold: buy,
+        sell_threshold: sell,
+        policy: req.policy,
+        stop: req.stop ?? null,
+        initial_capital: req.initial_capital ?? 100_000,
+        fee: req.fee,
+      };
+
+### B. 数据形状来源（后端 = 事实源）
+--- 钉住 config fee = 扁平 4 键：crates/application/src/fee.rs::fee_model_to_json
+/// 注意：这是**提交入参**兼容形态（供预设 config 回填后再次提交），**不是**响应回显；
+/// 响应/运行快照一律用 [`resolved_fee_to_json`] 的两段（`effective`/`profile`+`not_modeled`）结构。
+pub fn fee_model_to_json(m: &FeeModel) -> serde_json::Value {
+    serde_json::json!({
+        "rate_pct": m.commission_rate_pct,
+        "min_fee": m.min_commission,
+        "slippage_bp": m.slippage_bp,
+        "stamp_duty_pct": m.stamp_duty_pct,
+    })
+}
+
+/// 档案字段 → 生效 `FeeModel` 的**消费映射**（单一事实源，与 [`fee_model_from_profile`] 一一对应）：
+/// 未列入本表的档案数值费率字段 = 引擎**未消费** → 回显段 `profile.not_modeled`。
+--- 写入点：crates/application/src/workbench.rs（config.fee = fee_model_to_json）
+338:        // I-3/D6 + ADR-019 v1.1 R-1：`config.fee` 保持**扁平** [`fee_model_to_json`] 形态
+340:        // 必须向后兼容；两段结构（effective/profile）**只用于响应回显**（`resolved_fee_to_json`），不得混入 config。
+357:            "fee": crate::fee::fee_model_to_json(&fee),
+692:            .ok_or_else(|| WorkbenchValidation("config.fee 必填".to_string()))?;
+734:            "fee": crate::fee::fee_model_to_json(&fee),
+--- 两段回显只用于**响应**：crates/application/src/fee.rs::resolved_fee_to_json
+
+/// D11-fix 响应回显：**显式区分两段**，消除「档案规费被误读为已计入成本」的误导。
+/// - `effective`：引擎**实际应用**的参数（`commission_rate_pct`/`min_fee`/`stamp_duty_pct`/`slippage_bp`）
+///   + `source`（explicit|profile|default）——**任何未参与撮合的档案字段不得出现在此段**；
+/// - `profile`：解析到的档案**全量事实**字段 + `not_modeled`（经手费/证管费/过户费，引擎未建模 →
+///   显式标注其未参与撮合，**始终**列出，schema 稳定）；
+/// - `symbol_type`：解析到的标的类型（None = 未解析）。
+pub fn resolved_fee_to_json(r: &ResolvedFee) -> serde_json::Value {
+    let mut j = serde_json::json!({
+        "effective": {
+            "commission_rate_pct": r.model.commission_rate_pct,
+            "min_fee": r.model.min_commission,
+            "stamp_duty_pct": r.model.stamp_duty_pct,
+            "slippage_bp": r.model.slippage_bp,
+            "source": r.source.as_str(),
+        },
+        "symbol_type": match &r.symbol_type {
+--- 试算响应 fee = 两段（strategy.rs TestRunResponse.fee）
+701:        let fee_json = crate::fee::resolved_fee_to_json(&resolved);
+758:                &fee_json,
+770:                &fee_json,
+857:    fee_json: &serde_json::Value,
+885:                fee: fee_json.clone(),
+969:        fee: fee_json.clone(),
+988:    fee_json: &serde_json::Value,
+1070:        fee: fee_json.clone(),
+
+### C. 设计事实源（ADR-019 §6 v1.1 R-1）
+| # | 决议 |
+|---|---|
+| R-1 | **钉住 config 保持扁平**（`fee_model_to_json`）：`strategy_run.config.fee` 与预设往返/前端读取**必须**向后兼容。两段结构**只用于试算/回测的响应回显**（`resolved_fee_to_json`），且不得混入 config。 |
+| R-2 | **费率解析改为按字段优先级**（field-level）：显式对象中**出现的字段**优先，**缺失字段回退 profile**，profile 缺失再回退旧默认。理由：调用方不应被迫知道"ETF 印花税=0"这类标的属性；旧行为"对象存在=整体显式、缺失 stamp 取 0.05"是造成 R2-④ 的直接原因。 |
+| R-3 | `source` 语义随之明确：取本次解析中**最高优先级来源**（任一字段来自显式 → `"explicit"`；否则 profile → `"profile"`；否则 `"default"`），并在文档写明该口径（不等于"所有字段都来自该类"）。 |
+| R-4 | 前端无需改动即可恢复（config 扁平 + 三键 fee 经字段级回退自动获得 ETF 正确费率）；`zz_tester_010` 夹具中关于 `source` 的断言须相应复核。 |
+| R-5 | 本修订须补：①直连 API 回归（应用预设→回填→提交，费用输入框值与钉住 config 均可读）；②前端实跑验证（此前 014/015 均声明未做前端实测 → 本次须补 Playwright/真实浏览器走查，验证「提交→费率正确→预设往返」闭环）。 |
+
+**教训（记录）**：v1.0 的"对象级显式优先"是为向后兼容而设，但它把"标的类型知识"的负担推给了调用方，
+并在前端路径上直接失效；同时我把两段结构误写入钉住 config，破坏了既有消费者。**契约变更必须逐消费者清点**
+（本次漏了前端三个消费点），仅凭"无 grep 消费者"不足以判定安全——应查**实际数据形状**（DB 行）。
+
+**v1.1 落地（实现锚点）**：
+- R-1：`crates/application/src/workbench.rs::submit`（`config.fee = fee_model_to_json(&fee)`；两段回显 `resolved_fee_to_json` 仅用于 `TestRunResponse.fee` 与 `resolved_fee_to_json` 调用点）；
+- R-2/R-3：`crates/application/src/fee.rs::resolve_fee`（字段级优先级；`FeeSource` = 最高优先级来源）；
+- **R-2 补守卫（架构师裁决）**：显式 `fee` 对象**存在**但**不含任何可识别字段**（`{}`/全未知键，如 `{"foo":1}`）→ **400/isError**（消息须指明可识别字段集 `rate_pct/min_fee/slippage_bp/stamp_duty_pct` 与当前收到的键）；含 **≥1 个**可识别字段 → 按 R-2 字段级解析，缺失字段逐级回退，不报错。理由：空/全未知键是典型调用方 bug，静默按"全量回退"属"静默失真"类缺陷（同 I-1 静默空返回、门禁假绿），必须 fail-fast；"部分字段"（前端三键不带 stamp）是合法意图，必须允许。**HTTP 层 `validate_backtest_fee` 三键预校验保持不变**（UI 契约）；守卫作用于 API/服务层解析点（`fee::resolve_fee`，与 R-2 同处）；
+
+### D. 前端消费者（证明 873/1406 是钉住 config 且按扁平读）
+87:    fee: cfg.fee,
+100:    fee: cfg.fee,
+264:    if (!Number.isFinite(fee.rate_pct) || !Number.isFinite(fee.min_fee) || !Number.isFinite(fee.slippage_bp)) {
+360:      setFeeRate(String(cfg.fee.rate_pct));
+361:      setFeeMin(String(cfg.fee.min_fee));
+362:      setFeeSlippage(String(cfg.fee.slippage_bp));
+
+### E. 前端是否存在两段 fee 的消费者/类型
+--- web/src 内 effective/profile/not_modeled 检索（应为 0 命中 = 无消费者、无类型）
+（0 命中）
+--- StrategyTestRunResp 定义（试算响应类型，无 fee 字段）
+export interface StrategyTestRunResp {
+  mode: StrategyTestMode;
+  symbol: string;
+  period: string;
+  bar_count: number;
+  scores: StrategyScorePoint[];
+  signals: StrategySignalPoint[];
+  trades: StrategyTradeDetail[];
+  events: StrategyTestEvent[];
+  truncated: { scores: boolean; events: boolean; trades: boolean };
+}
