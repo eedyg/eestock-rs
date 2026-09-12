@@ -1,0 +1,76 @@
+# ADR-018：tangle 门禁硬化（F3 立项）
+
+- 状态：**已定**（用户 2026-09-12 拍板 D-F3-3 = **O1**：保持全文件治理 + 强制 stitch 流程）；其余决议按本 ADR 执行
+- 触发：MCP 批独立验收发现 F3 —— `./scripts/check-tangle.sh` 在存在冲突时**输出 ✅ 假绿**
+- 关联：ADR-007（文学式编程单向工作流）；本 ADR 修正其「门禁」条款
+
+## 1. 事实（架构师实测复现）
+
+1. `entangled tangle` 遇冲突时打印 `ERROR conflicts found, breaking off (use --force to run anyway)`，
+   但**退出码为 0 且不写任何源文件**。
+2. `check-tangle.sh` 的判据是 `entangled tangle` 之后的 `git diff --quiet`：
+   由于 tangle 什么都没写，工作区自然无 diff → 脚本打印 **✅「design 与生成物一致」**，**假绿**。
+3. 真实漂移点：`web/src/layouts/{DashboardGrid,SimLiveGrid}.tsx` 与
+   `design/06-web/{01-dashboard,10-simlive}.md` 不一致。溯源：偏离来自已提交提交 `4d55f17`
+   （fix(web): /sim-live 样式对齐静态样机）——**手改了生成物、未回写文档**，违反 ADR-007
+   「src 为生成物，改码必改文档」。文档侧最后更新于 `40eeb2c`。
+4. **冲突会连锁放大**：entangled 遇冲突即 break off，**其后所有待再生文件本应发生的同步全部被跳过**，
+   漂移静默累积。因此假绿不是"少报一个错"，而是**掩盖整条生成链的失同步**。
+5. **门禁依赖未版本化状态**：`.entangled/`（filedb）在 `.gitignore` 中。
+   在无该状态的干净副本里，entangled 行为与真实仓库不同（实测出现 `create`/`not managed`
+   等另一类输出）→ **门禁在 CI/新克隆场景不可复现**，属独立缺陷。
+6. 工具能力（实测 `entangled --help`）：`tangle -s/--show`（dry-run）、
+   `stitch`（代码改动回写文档）、`sync`（智能选择）、`status`（总览）——
+   **"改码后回写文档"的官方路径早已存在（stitch），本仓库未使用**。
+7. **全局 `stitch` 是破坏性的（隔离副本实测，HAZARD）**：`entangled stitch`（无范围限定）
+   会把 `design/07-app-plane/{00-web-api,01-mcp}.md` 的代码块改写成自引用 `<<crates/mcp/src/tools.rs>>`
+   （-3579 行），随后 `entangled tangle` 直接死于 `ERROR Cyclic reference`；
+   另会被无关冲突整体阻断（ADR 文件在末次 tangle 后被编辑 → "changed outside the control of Entangled" → break off）。
+   → **全局 stitch 禁止在真实仓库执行**；stitch 必须沙箱 scoped（见 D-F3-4 / F3-d）。
+8. **限定范围的沙箱 stitch 可用（实测）**：仅加载 `design/06-web/{01-dashboard,10-simlive}.md` 的沙箱 stitch
+   成功把实现回写进文档块（文档内出现 `tabCls`/`1w,1mo`/`enabled`/`favorite`/`grid-rows` 等真实实现内容），
+   两份 TSX **逐字节不变**、其它文档零改动、沙箱 round-trip 校验通过。
+9. **文档卫生遗留（F3-f，另项）**：`design/07-app-plane/{00-web-api,01-mcp}.md` 的代码块内嵌
+   `~/~ begin` 遗留标记——这是全局 stitch 破坏的成因之一，属文档卫生问题（非漂移）。
+
+## 2. 决议
+
+| # | 决议 | 内容 |
+|---|---|---|
+| D-F3-1 | **门禁必须 fail-loud（v1.1 实测修正）** | 检判据：① ② 用 `entangled tangle -s`（dry-run，永不写仓）取 `conflicts found`/`ERROR`/`not managed by Entangled`；**漂移判定以④为权威**：**沙箱重新生成 + 逐字节比对**（把 watch_list 输入拷入临时目录，在沙箱内 `tangle -f`，与真实仓逐字节比）。失败即 exit 非 0 并打印两条出路（改文档→tangle / 改码→stitch）。<br>**原字面条件③（仓内 tangle + git diff）被否决**：实测两个不可接受缺陷——(a) 对"仅文档尾部加一行"的合法编辑误报为"生成物与文档不一致"（诊断错误）；(b) 门禁自身在仓内 tangle 会**静默回退真实工作区的生成物**。新增硬约束：**门禁严禁修改真实工作区**。 |
+| D-F3-1a | **原例场景必须被抓住（本次 F3 的成败判据）** | 原发事故形态 = **有 DB + 仅手改生成物**（文档侧未变）。此时 `entangled tangle` 判 "Nothing to be done"（DB 记的是上次写入内容 digest，**不检查磁盘生成物**）→ 条件①失效。实测：④（沙箱比对）在当前仓精确报出 web/src/layouts/{DashboardGrid,SimLiveGrid}.tsx 两处漂移、其余 139 个生成物一致；在无 .entangled 干净副本结果相同 → 天然满足 D-F3-2。 |
+| D-F3-2 | **门禁必须可复现** | 门禁在**无 `.entangled` 状态**的干净副本上同样必须正确（CI 场景）；三种状态（干净 / 冲突 / 空 DB）行为必须由自测固定。 |
+| D-F3-3 | **治理边界 = O1（用户 2026-09-12 拍板）** | 8 份前端骨架**保持全文件 tangle 治理**；UI 改动后必须用 `stitch`（或 `sync`）回写文档再提交。不改变治理边界（不做 O2/O3）。为此 F3-d 的便捷入口从「可选」升为「应做」：提供可发现/可脚本化的 stitch 入口（如 `make stitch` 或文档化命令 + 钩子提示），否则纪律会因摩擦而再次失效。 |
+| D-F3-4 | **漂移修复路径** | 优先用官方 `stitch` 回写文档，**但仅限沙箱 scoped**（全局 stitch 已证破坏性，见 §1.7）。若 TSX（非内置语言表）stitch 不可用，则人工把当前实现同步进文档块。两条路均以「tangle 无冲突 + 沙箱比对零漂移」为验收，且**实现侧改动逐字节不变**（4d55f17 的 UI 修复是已验收成果）。 |
+| D-F3-5 | **门禁自测常驻** | 新增 fixture 自测：构造 干净/冲突/空DB 三种仓库状态，断言门禁的通过/失败与提示文案；纳入回归常驻。 |
+| D-F3-6 | **纪律** | 手改生成物后**必须**回写文档（stitch 或手改文档块）方可提交；`--force` 属破坏性操作，禁止用于"让门禁变绿"（它会把文档内容覆盖实现，即回退成果）。 |
+
+## 3. 待拍板：治理边界（D-F3-3）
+
+8 份前端骨架（`web/src/layouts/*.tsx`）当前为**全文件 tangle**治理，而 UI 天然会迭代 → 漂移高发。
+
+| 选项 | 语义 | 优点 | 代价 |
+|---|---|---|---|
+| ~~O1（架构师推荐）~~ | ✅ **已拍板（用户 2026-09-12）**：保持全文件治理，**强制 stitch 流程**：改码后必须 `stitch` 回写文档 | 单一事实源最严格；改动最小；工具已支持 | UI 迭代多一步 stitch（**本次决议要求脚本化/钩子化以降低摩擦**） |
+| O2 | 文档只治理**骨架区**（块内=Props 契约/区域映射/三态注释），块外手写不受管 | 彻底消除前端类漂移 | 需重构 8 份文件的块边界；文档表达力下降 |
+| O3 | 前端整体移出 tangle 治理；文档仅存设计说明 | 最省事 | 放弃前端骨架的事实源纪律，与 ADR-007 精神相悖 |
+
+**决议 O1**（用户拍板）：本次漂移的根因不是"治理太严"，而是"没人用 stitch + 门禁没抓到"。
+工具与纪律完备后再考虑 O2。**F3-d 便捷入口由可选升为应做**（否则摩擦会再次击穿纪律）。
+
+## 3.1 交付纪律（O1 下的日常操作）
+
+1. 需求变更 → 先改 `design/` 文档 → `entangled tangle`（文档→代码，正向）。
+2. 代码先行（如 UI 细节实现）→ 改码后必须 `entangled stitch`（或 `sync`）回写文档 → 提交前门禁须绿。
+3. **禁止**手改生成物后直接提交（本次事故即如此）；**禁止**用 `--force` 让门禁变绿（它会把文档内容覆盖实现 = 回退成果）。
+
+## 4. 后续（派生）
+
+- F3-a：门禁硬化 + 自测（D-F3-1/2/5）→ 实施
+- F3-b：两份 TSX 漂移修复（D-F3-4）→ 实施
+- F3-c：全仓扫描一次，确认是否还有其他"冲突被 break off 掩盖"的失同步文件
+- F3-d（**O1 下应做**）：提供可发现/可脚本化的 **scoped stitch** 入口（`scripts/stitch.sh`）：
+  无参=所有含代码块的文档 → **排除块内嵌 `~/~ begin` 遗留标记的文档**（07-app-plane 两份，已证会破坏）并告警
+  → 沙箱内 scoped `stitch -f` → **换新沙箱做 round-trip 校验**（生成物须与仓库代码逐字节一致）
+  → 校验通过才把文档拷回仓库。校验失败则**拒绝回写**。真实仓只被"已校验的文档回写"触碰。
+- F3-f（另项）：`design/07-app-plane/{00-web-api,01-mcp}.md` 的块内嵌遗留标记清理（文档卫生）。

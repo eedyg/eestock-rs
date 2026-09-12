@@ -212,7 +212,7 @@ min-width: 1280px（桌面优先，不响应式）
 
 /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
 export const DASHBOARD_DEFAULTS = {
-  period: '15m',                    // 周期：1m/5m/15m/1h/1d，默认 15m
+  period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
   indicators: { ma: true, macd: false, kdj: false, boll: false },
   maWindows: [5, 10, 20],
   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
@@ -220,12 +220,21 @@ export const DASHBOARD_DEFAULTS = {
   initialRange: 'today+prevTradingDay',
 } as const;
 
-export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
+export type Period = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1mo';
 export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
 
-/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量） */
+/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
+ *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。
+ *  Wave 3 页面① 看板收藏：favorite=true 收藏区（按 favoriteSort 升序置顶）；favoriteSort=null 非收藏。/api/symbols
+ *  恒输出 favorite/favorite_sort（后端 always 序列化），此处标记 optional 以兼容既有快照构造；client/mock 恒填充。 */
 export interface SymbolSnapshot {
-  code: string; name: string; last: number; changePct: number;
+  code: string;
+  name: string;
+  enabled: boolean;
+  last: number | null; // 无最新数据（latest=null）→ null；有数据为最新价
+  changePct: number;
+  favorite?: boolean; // 是否收藏（缺失视为非收藏）
+  favoriteSort?: number | null; // 收藏排序（sort_order，起点 1；非收藏 null）
 }
 
 /** 页面 Props 契约 */
@@ -273,8 +282,14 @@ export function DashboardGrid(props: DashboardGridProps) {
             </div>
           </>
         ) : (
-          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图 */
-          <div data-region="grid-view" className="grid flex-1 grid-cols-2">
+          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图
+             R1：显式 grid-rows（均分网格高度），避免 auto 行按内容分高导致 chart 容器 flex-1
+             在 auto 行下解析为 0 高（末行坍缩）；grid-view 自身 min-h-0，保证作为 flex 子项
+             可收缩到可用高度（否则 min-height:auto 会按内容 3×322px 撑高，2×3 纵向溢出 1042>720） */
+          <div
+            data-region="grid-view"
+            className={`grid min-h-0 flex-1 grid-cols-2 ${props.gridMode === 'grid2x3' ? 'grid-rows-3' : 'grid-rows-2'}`}
+          >
             {/* <GridCell/> ×4 或 ×6（grid2x3 时 grid-rows-3） */}
           </div>
         )}
