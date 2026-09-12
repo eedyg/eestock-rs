@@ -1562,6 +1562,8 @@ impl SimLiveService {
                     stop: None,
                     initial_capital: Some(view.cash_init),
                     fee: fee.clone(),
+                    // sim-live 回测对比：不预热（会话评分历史由 live bar 累积，与既有对比口径一致）。
+                    warmup_bars: 0,
                 })
                 .await?;
             run_ids.push(run.id);
@@ -1825,6 +1827,7 @@ fn bt_period_from_str(s: &str) -> Period {
         "M1" => Period::M1,
         "M5" => Period::M5,
         "M15" => Period::M15,
+        "H1" => Period::H1,
         "D1" => Period::D1,
         _ => Period::M1,
     }
@@ -1836,6 +1839,7 @@ fn bt_bar_seconds(period: Period) -> i64 {
         Period::M1 => 60,
         Period::M5 => 300,
         Period::M15 => 900,
+        Period::H1 => 3_600,
         Period::D1 => 86_400,
     }
 }

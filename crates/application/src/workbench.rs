@@ -60,6 +60,9 @@ const PROGRESS_THROTTLE_MILLI: f64 = 1000.0;
 /// 默认初始资金（与回测/试算一致，ADR §4）。
 const DEFAULT_INITIAL_CAPITAL: f64 = 100_000.0;
 
+/// I-2/D6：缺省前置预热根数（架构师 2026-09-12 裁决；与试算同值）。
+pub const DEFAULT_WARMUP_BARS: usize = 250;
+
 // ── 错误类型（web 映射：NotFound→404 / Conflict→409 / Validation→400）──
 
 /// 未找到（run/preset/版本）。web 映射 404。
@@ -125,8 +128,10 @@ pub struct SubmitRunReq {
     pub stop: Option<serde_json::Value>,
     /// 缺省 100_000。
     pub initial_capital: Option<f64>,
-    /// `{rate_pct, min_fee, slippage_bp}`。
+    /// `{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`。
     pub fee: serde_json::Value,
+    /// I-2/D6：前置预热根数（缺省 [`DEFAULT_WARMUP_BARS`]=250；0 = 无预热）。
+    pub warmup_bars: usize,
 }
 
 /// compare 并排条目（前端净值叠加 + 绩效并排，ADR §13.5）。
@@ -210,10 +215,10 @@ impl WorkbenchService {
         if req.from >= req.to {
             return Err(WorkbenchValidation("from 须早于 to".into()).into());
         }
-        // 区间上限（400）：D1 ≤ 5 年；分钟级 ≤ 3 个月（与试算同口径）。
+        // 区间上限（400）：D1 ≤ 5 年；分钟级 ≤ 3 个月（与试算同口径；H1 按日线档）。
         let span_days = (req.to - req.from).num_days();
         let limit_days = match domain_period {
-            domain::types::Period::D1 => D1_MAX_SPAN_DAYS,
+            domain::types::Period::D1 | domain::types::Period::H1 => D1_MAX_SPAN_DAYS,
             _ => MINUTE_MAX_SPAN_DAYS,
         };
         if span_days > limit_days {
@@ -258,7 +263,7 @@ impl WorkbenchService {
         };
         let initial_capital = req.initial_capital.unwrap_or(DEFAULT_INITIAL_CAPITAL);
         let fee = to_fee_model(&req.fee).map_err(|e| WorkbenchValidation(e.to_string()))?;
-        let probe = EnsembleConfig {
+        let mut probe = EnsembleConfig {
             slots: vec![], // validate 不检视 slots（零 slot 合法）；钉住校验已先行
             buy_threshold: buy,
             sell_threshold: sell,
@@ -267,19 +272,34 @@ impl WorkbenchService {
             initial_capital,
             fee,
             period: bt_period,
+            warmup_bars: 0,
             runtime_limits: strategy_runtime::RuntimeLimits::default(),
         };
         probe.validate().map_err(WorkbenchValidation)?;
 
         // 读 bar + 数量护栏（提交时拒绝：空区间 / >20 万 bar → 400）。
-        let bars: Vec<backtest::Bar> = self
+        // I-2/D6：一次性拉取 [warmup_start, to)（前置预热），再按 from 切分。
+        let warmup_requested = req.warmup_bars;
+        let warmup_start = if warmup_requested == 0 {
+            req.from
+        } else {
+            req.from - crate::bar_map::warmup_lookback(&domain_period, warmup_requested)
+        };
+        let all: Vec<backtest::Bar> = self
             .bar_read
-            .bars(&symbol, &domain_period, req.from, req.to)
+            .bars(&symbol, &domain_period, warmup_start, req.to)
             .await?
             .iter()
             .map(crate::bar_map::to_bt_bar)
             .collect();
-        if bars.is_empty() {
+        let split = all
+            .iter()
+            .position(|b| b.ts >= req.from.timestamp())
+            .unwrap_or(all.len());
+        let warmup_effective = split.min(warmup_requested);
+        let slice_start = split - warmup_effective;
+        let bars: Vec<backtest::Bar> = all[slice_start..].to_vec();
+        if bars.len() == warmup_effective {
             return Err(WorkbenchValidation(format!(
                 "区间内无 K 线数据（{symbol} {} {}~{}）",
                 req.period, req.from, req.to
@@ -293,9 +313,13 @@ impl WorkbenchService {
             ))
             .into());
         }
+        // I-2/D6：引擎按 warmup_effective 标记前缀（不执行/不计绩效）。
+        probe.warmup_bars = warmup_effective;
 
-        // 钉住快照（复现前提）：slots 全字段 + 阈值 + policy/stop 原文 + 资金 + fee 原文。
+        // 钉住快照（复现前提）：slots 全字段 + 阈值 + policy/stop 原文 + 资金 + **生效** fee。
         // `archived` 为审计标记（2026-09-10 裁决：archived 版本可审计重跑，避免误解为「在用策略」）。
+        // I-3/D6：fee 回显**生效**值（含 stamp_duty_pct 实际取值，缺省 0.05 也可见）；
+        // I-2/D6：warmup 段钉住 requested/effective。
         let config = serde_json::json!({
             "slots": slots.iter().map(|s| serde_json::json!({
                 "strategy_id": s.strategy_id,
@@ -311,7 +335,9 @@ impl WorkbenchService {
             "policy": req.policy,
             "stop": req.stop,
             "initial_capital": initial_capital,
-            "fee": req.fee,
+            "fee": crate::fee::fee_model_to_json(&fee),
+            "warmup_requested": warmup_requested,
+            "warmup_effective": warmup_effective,
         });
 
         let now = self.clock.now();
@@ -646,6 +672,17 @@ impl WorkbenchService {
             .cloned()
             .ok_or_else(|| WorkbenchValidation("config.fee 必填".to_string()))?;
         let fee = to_fee_model(&fee_json).map_err(|e| WorkbenchValidation(e.to_string()))?;
+        // I-2/D6：预设可携带 warmup_bars（缺省 250）；非整数 → 400。
+        let warmup_bars = match obj.get("warmup_bars") {
+            None => DEFAULT_WARMUP_BARS,
+            Some(v) => v
+                .as_u64()
+                .filter(|n| *n <= u32::MAX as u64)
+                .map(|n| n as usize)
+                .ok_or_else(|| {
+                    WorkbenchValidation("config.warmup_bars 应为非负整数".to_string())
+                })?,
+        };
         let probe = EnsembleConfig {
             slots: vec![],
             buy_threshold: buy,
@@ -655,6 +692,7 @@ impl WorkbenchService {
             initial_capital,
             fee,
             period: backtest::Period::D1, // validate 不检视 period（仅占位）
+            warmup_bars: 0,
             runtime_limits: strategy_runtime::RuntimeLimits::default(),
         };
         probe.validate().map_err(WorkbenchValidation)?;
@@ -674,7 +712,8 @@ impl WorkbenchService {
             "policy": policy_json,
             "stop": stop_json,
             "initial_capital": initial_capital,
-            "fee": fee_json,
+            "fee": crate::fee::fee_model_to_json(&fee),
+            "warmup_bars": warmup_bars,
         }))
     }
 }
@@ -870,6 +909,7 @@ fn bar_record_json(rec: &strategy_core::BarRecord) -> serde_json::Value {
         .collect();
     serde_json::json!({
         "ts": rec.ts,
+        "warmup": rec.warmup,
         "scores": scores,
         "aggregate": rec.aggregate,
         "signal": rec.signal,

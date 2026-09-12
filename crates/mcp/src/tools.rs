@@ -11,7 +11,7 @@
 //! 12-strategy-system / P3c：strategy_*（统一策略系统 Registry，经 StrategyService）+
 //! bt_*（回测工作台任务，经 WorkbenchService）——落现有 SSE server（ADR §13.7，无 transport 迁移）。
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use domain::types::Period;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -31,7 +31,8 @@ use domain::strategy_state::{ApprovalLevel, StrategyKind};
 use std::sync::Arc;
 
 /// limit 上限/缺省（与 REST /api/kline 同口径，07 §1.1）。
-pub const MAX_LIMIT: i64 = 1000;
+/// I-10/I-5（D2）：上限 1000→10000（M15 最大窗口 1188 根 > 旧上限）；超上限**不再静默封顶**。
+pub const MAX_LIMIT: i64 = 10000;
 pub const DEFAULT_LIMIT: i64 = 240;
 /// window_secs 钳制区间（与 REST /api/sources/health 同口径）。
 pub const MIN_WINDOW_SECS: i64 = 60;
@@ -60,13 +61,15 @@ fn tool_schemas() -> Vec<Value> {
     vec![
         json!({
             "name": "get_kline",
-            "description": "查询标的 K 线（1m 为 merge 视图：准确层优先、raw 补缺；5m/15m/1d 连续聚合；1h 由 15m rollup）。bars 升序返回。code 须为平台已注册标的：未注册 → isError（与「已注册但区间无数据」的空 bars 区分）。",
+            "description": "查询标的 K 线（1m 为 merge 视图：准确层优先、raw 补缺；5m/15m/1d 连续聚合；1h 由 15m rollup）。bars 升序返回。code 须为平台已注册标的：未注册 → isError（与「已注册但区间无数据」的空 bars 区分）。I-5/I-10（D2）：可选 from/to 区间（ISO 日期 Asia/Shanghai 日界 或 RFC3339；from 闭、to 开），limit 上限 10000。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "code": { "type": "string", "description": "6 位标的代码，如 518880（须为平台已注册标的）" },
                     "period": { "type": "string", "enum": ["1m", "5m", "15m", "1h", "1d"], "description": "周期，默认 1m" },
-                    "limit": { "type": "integer", "description": "根数，默认 240，上限 1000" }
+                    "from": { "type": "string", "description": "区间起点（闭）：YYYY-MM-DD（Asia/Shanghai 日界）或 RFC3339" },
+                    "to": { "type": "string", "description": "区间终点（开）：YYYY-MM-DD（含 to 整日）或 RFC3339" },
+                    "limit": { "type": "integer", "description": "根数，默认 240，上限 10000（超上限 → 参数错误并提示分段取数）" }
                 },
                 "required": ["code"]
             }
@@ -91,6 +94,14 @@ fn tool_schemas() -> Vec<Value> {
                     "date": { "type": "string", "description": "日期 YYYY-MM-DD（Asia/Shanghai 日界）" }
                 },
                 "required": ["code", "date"]
+            }
+        }),
+        json!({
+            "name": "list_symbols",
+            "description": "统一策略系统 Registry：返回平台 symbols 注册表全部标的（含 enabled=false 的停用标的；与 web GET /api/symbols 同源同字段）：code/name/interval_secs/settlement/enabled + 数据可用区间（latest={ts,last,change_pct}，无 bar → null）。按 code 升序（确定性输出）。适用场景：调用方选标的（get_kline / strategy_test_run / bt_run_ensemble）。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
             }
         }),
         json!({
@@ -252,7 +263,8 @@ fn tool_schemas() -> Vec<Value> {
                 "type": "object",
                 "properties": {
                     "level": { "type": "string", "enum": ["backtest_ok", "sim_ok", "live_approved"], "description": "权限分级 at-least 过滤（缺省不过滤）" },
-                    "kind": { "type": "string", "enum": ["strategy", "template"], "description": "类别过滤（缺省不过滤）" }
+                    "kind": { "type": "string", "enum": ["strategy", "template"], "description": "类别过滤（缺省不过滤）" },
+                    "include_source": { "type": "boolean", "description": "I-7（D5）：默认 false 只回摘要（version 不含 code，体积小）；true 显式返回全量源码" }
                 }
             }
         }),
@@ -318,18 +330,22 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "strategy_test_run",
-            "description": "统一策略系统 Registry：在线试算（同步，单标的区间）。双模式：pure_score 裸评分（position 恒 null，看原始反应）/ sim_position 模拟持仓（默认 60/40 阈值 + LumpSum 全仓 + 默认费用，逐 bar 信号+成交）。code 内联源码与 version_id 已存版本二选一（恰一个）。区间上限：D1≤5年 / 分钟级≤3个月。适用场景：发布前验证插件行为/调参。",
+            "description": "统一策略系统 Registry：在线试算（同步，单标的区间）。双模式：pure_score 裸评分（position 恒 null，看原始反应）/ sim_position 模拟持仓（默认 60/40 阈值 + LumpSum 全仓 + 默认费用，逐 bar 信号+成交）。code 内联源码与 version_id 已存版本二选一（恰一个）。区间上限：D1/H1≤5年 / 分钟级≤3个月。适用场景：发布前验证插件行为/调参。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "code": { "type": "string", "description": "内联插件源码（与 version_id 二选一）" },
                     "version_id": { "type": "string", "description": "已存版本 id（sv_ 前缀；draft/published 均可试算）" },
                     "symbol": { "type": "string", "description": "6 位标的代码" },
-                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "D1"], "description": "周期" },
+                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "H1", "D1"], "description": "周期（I-6：补 H1，与数据层 cagg 1h 口径对齐）" },
                     "from": { "type": "string", "description": "区间起点 RFC3339（闭）" },
                     "to": { "type": "string", "description": "区间终点 RFC3339（开）" },
                     "mode": { "type": "string", "enum": ["pure_score", "sim_position"], "description": "试算模式" },
-                    "params": { "type": "object", "description": "插件参数（按版本 schema 校验/缺省填充）" }
+                    "params": { "type": "object", "description": "插件参数（按版本 schema 校验/缺省填充）" },
+                    "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；历史不足时响应回显 warmup_effective < warmup_requested。" },
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1）。⚠️ 缺省 stamp_duty_pct=0.05 为 A 股股票口径兼容值——ETF/LOF 无印花税，须显式传 stamp_duty_pct:0；值域 [0,1]。与 bt_run_ensemble 同 to_fee_model 口径，响应回显生效 fee。" },
+                    "policy": { "type": "object", "description": "ExecutionPolicy（与 bt_run_ensemble 同 JSON 口径）：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}；缺省 LumpSum 全仓。" },
+                    "capital": { "type": "number", "description": "初始资金，默认 100000（与回测 ADR §4 一致）。" }
                 },
                 "required": ["symbol", "period", "from", "to", "mode"]
             }
@@ -350,9 +366,9 @@ fn tool_schemas() -> Vec<Value> {
                 "properties": {
                     "name": { "type": "string", "description": "运行名（可空）" },
                     "symbol": { "type": "string", "description": "6 位标的代码（须已注册启用）" },
-                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "D1"], "description": "周期" },
+                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "H1", "D1"], "description": "周期（I-6：补 H1，与数据层 cagg 1h 口径对齐）" },
                     "from": { "type": "string", "description": "区间起点 RFC3339（闭）" },
-                    "to": { "type": "string", "description": "区间终点 RFC3339（开）；D1≤5年 / 分钟级≤3个月" },
+                    "to": { "type": "string", "description": "区间终点 RFC3339（开）；D1/H1≤5年 / 分钟级≤3个月" },
                     "slots": { "type": "array", "description": "策略槽位 1..=10", "items": { "type": "object", "properties": {
                         "strategy_id": { "type": "string", "description": "策略 id（st_ 前缀）" },
                         "version_id": { "type": "string", "description": "版本 id（缺省 = 该策略最新 published）" },
@@ -364,7 +380,8 @@ fn tool_schemas() -> Vec<Value> {
                     "policy": { "type": "object", "description": "ExecutionPolicy：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}" },
                     "stop": { "type": "object", "description": "硬止损（可空）：{\"kind\":\"FixedPct|Trailing|Atr\", \"value\":>0, \"trigger\":\"Intrabar|CloseBasis\"}" },
                     "initial_capital": { "type": "number", "description": "初始资金，默认 100000" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）；stamp_duty_pct 可选，缺省 0.05（A股股票），ETF 显式传 0，值域 [0,1]" }
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）；stamp_duty_pct 可选，缺省 0.05（A股股票），ETF 显式传 0，值域 [0,1]" },
+                    "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；warmup 段不执行 Policy、不计净值/绩效；config 钉住 warmup_requested/effective 并逐 bar 标记 warmup。" }
                 },
                 "required": ["symbol", "period", "from", "to", "slots", "policy"]
             }
@@ -460,6 +477,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "get_kline" => get_kline(st, id, &args).await,
         "get_sources_health" => get_sources_health(st, id, &args).await,
         "get_data_quality" => get_data_quality(st, id, &args).await,
+        "list_symbols" => list_symbols(st, id, &args).await,
         // 11-sim-live / L1：模拟实盘工具（sim_*，不触真实券商）
         "sim_start_session" => sim_start_session(st, id, &args).await,
         "sim_stop_session" => sim_stop_session(st, id, &args).await,
@@ -538,7 +556,20 @@ async fn ensure_registered(st: &McpState, code: &str) -> anyhow::Result<()> {
                    请核对代码（注册标的见 web /api/symbols）")
 }
 
-/// get_kline(code, period=1m, limit=240≤1000)：merge 视图准确层优先（经 domain::ports::KlineRead）。
+/// get_kline 边界解析（I-5/D2）：严格 ISO 日期 YYYY-MM-DD（Asia/Shanghai 当日 00:00 = UTC 前一日 16:00）
+/// 或 RFC3339（归一 UTC）。非法 → None（调用方映射 -32602）。
+fn parse_kline_bound(s: &str) -> Option<DateTime<Utc>> {
+    if let Some(d) = parse_date_strict(s) {
+        let cst = chrono::FixedOffset::east_opt(8 * 3600).expect("CST 固定偏移");
+        let naive = d.and_hms_opt(0, 0, 0)?;
+        return cst.from_local_datetime(&naive).single().map(|t| t.with_timezone(&Utc));
+    }
+    parse_rfc3339_utc(s)
+}
+
+/// get_kline(code, period=1m, from?, to?, limit=240≤10000)：merge 视图准确层优先（经 domain::ports::KlineRead）。
+/// I-5/I-10（D2）：可选 from/to 区间（from 闭、to 开；ISO 日期按 Asia/Shanghai 日界，to 含整日）；
+/// limit 超上限 → -32602（提示分段取数，不静默封顶）；区间内根数 > limit → 工具错误（不静默截断）。
 async fn get_kline(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
         return result_err(id, INVALID_PARAMS, "code 必填（非空 string）");
@@ -550,22 +581,82 @@ async fn get_kline(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let limit = match args.get("limit") {
         None => DEFAULT_LIMIT,
         Some(v) => match v.as_i64() {
+            // I-10（D2）：超上限不再静默封顶 → 明确参数错误 + 分段取数提示。
+            Some(n) if n > MAX_LIMIT => return result_err(id, INVALID_PARAMS,
+                "limit 超上限 10000——请缩小 limit 或用 from/to 分段取数"),
             Some(n) => n.clamp(1, MAX_LIMIT),
             None => return result_err(id, INVALID_PARAMS, "limit 须为整数"),
         },
     };
+    // from/to（可独立可选，I-5）：from 闭 / to 开；ISO 日期按 Asia/Shanghai 日界（to 含整日）。
+    let from_raw = match args.get("from") {
+        None => None,
+        Some(v) => match v.as_str() {
+            Some(s) => Some(s),
+            None => return result_err(id, INVALID_PARAMS, "from 须为字符串（YYYY-MM-DD 或 RFC3339）"),
+        },
+    };
+    let to_raw = match args.get("to") {
+        None => None,
+        Some(v) => match v.as_str() {
+            Some(s) => Some(s),
+            None => return result_err(id, INVALID_PARAMS, "to 须为字符串（YYYY-MM-DD 或 RFC3339）"),
+        },
+    };
+    let from = match from_raw {
+        None => None,
+        Some(s) => match parse_kline_bound(s) {
+            Some(t) => Some(t),
+            None => return result_err(id, INVALID_PARAMS, "from 须为 YYYY-MM-DD 或 RFC3339"),
+        },
+    };
+    let to = match to_raw {
+        None => None,
+        Some(s) => match parse_kline_bound(s) {
+            Some(t) => Some(t),
+            None => return result_err(id, INVALID_PARAMS, "to 须为 YYYY-MM-DD 或 RFC3339"),
+        },
+    };
+    // to 含整日：ISO 日期形式 → 次日 00:00 CST（开区间上界）。
+    // F1（010 验收）：**本归一必须先于下面的是否空区间判定**——否则同日 date 形式
+    // （from=to=YYYY-MM-DD，应为「该日整日」）与「RFC3339 from + date to」混合形式会被误判为
+    // from ≥ to；同日 date 在归一后是天然合法区间（展开后 t > f）。
+    let to = match (to_raw, to) {
+        (Some(s), Some(t)) if parse_date_strict(s).is_some() =>
+            Some(t + chrono::Duration::days(1)),
+        (_, t) => t,
+    };
+    // 归一后 f ≥ t = 空区间（from 闭 / to 开无任何 bar）→ 协议层参数错误；不静默返回空 bars。
+    if let (Some(f), Some(t)) = (from, to) {
+        if f >= t { return result_err(id, INVALID_PARAMS, "from 须早于 to"); }
+    }
     // I-1（P0）：注册成员校验先于取数（参数校验之后、bars 之前）——未注册 → isError；
     // 已注册但该区间无数据 → 仍为正常空 bars（两种语义由此可区分）。
     if let Err(e) = ensure_registered(st, code).await {
         return tool_fail(id, e);
     }
-    match st.kline.bars(period, code, None, limit).await {
+    // 有 from 时多取一根以判定「区间根数 > limit」（不静默截断）。
+    let fetch_limit = if from.is_some() { limit + 1 } else { limit };
+    match st.kline.bars(period, code, to, fetch_limit).await {
         Ok(bars) => {
-            let out: Vec<BarOut> = bars.iter().map(|b| BarOut {
+            let filtered: Vec<&domain::ports::KlineBarView> = bars.iter()
+                .filter(|b| from.is_none_or(|f| b.ts >= f))
+                .filter(|b| to.is_none_or(|t| b.ts < t))
+                .collect();
+            if from.is_some() && filtered.len() > limit as usize {
+                return tool_fail(id, anyhow::anyhow!(
+                    "区间内根数 {} 超 limit {limit}——请缩小 from/to 区间或分段取数",
+                    filtered.len()));
+            }
+            let out: Vec<BarOut> = filtered.iter().take(limit as usize).map(|b| BarOut {
                 ts: b.ts, open: b.open, high: b.high, low: b.low, close: b.close,
                 volume: b.volume, amount: b.amount, source: b.source.clone(),
             }).collect();
-            tool_ok(id, &json!({ "code": code, "period": period_s, "bars": out }))
+            match (from, to) {
+                (Some(f), Some(t)) => tool_ok(id, &json!({
+                    "code": code, "period": period_s, "from": f, "to": t, "bars": out })),
+                _ => tool_ok(id, &json!({ "code": code, "period": period_s, "bars": out })),
+            }
         }
         Err(e) => tool_fail(id, e),
     }
@@ -607,6 +698,34 @@ async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Val
     match st.quality.daily_quality(code, date).await {
         Ok(q) => tool_ok(id, &q),
         Err(e) => tool_fail(id, e),
+    }
+}
+
+/// list_symbols()：平台 symbols 注册表全部标的（含 enabled=false）+ 数据可用区间
+/// （latest={ts,last,change_pct}；无 bar → null），按 code 升序（确定性）。
+/// 与 web `GET /api/symbols` **同源**（同一 `KlineRead::symbols_with_latest` 端口）；注册表不可读 → isError（fail-closed）。
+async fn list_symbols(st: &McpState, id: Option<Value>, _args: &Value) -> Value {
+    match st.kline.symbols_with_latest().await {
+        Ok(rows) => {
+            let mut syms: Vec<Value> = rows.iter().map(|r| {
+                let latest = match (r.last_ts, r.last_close) {
+                    (Some(ts), Some(last)) => {
+                        let change_pct = r.prev_close
+                            .filter(|p| *p != 0.0)
+                            .map(|p| (last - p) / p * 100.0);
+                        json!({ "ts": ts, "last": last, "change_pct": change_pct })
+                    }
+                    _ => Value::Null,
+                };
+                json!({
+                    "code": r.code, "name": r.name, "interval_secs": r.interval_secs,
+                    "settlement": r.settlement, "enabled": r.enabled, "latest": latest,
+                })
+            }).collect();
+            syms.sort_by(|a, b| a["code"].as_str().cmp(&b["code"].as_str()));
+            tool_ok(id, &json!({ "symbols": syms }))
+        }
+        Err(e) => tool_fail(id, anyhow::anyhow!("标的注册表查询失败：{e}")),
     }
 }
 
@@ -895,9 +1014,10 @@ fn req_str<'a>(args: &'a Value, key: &str) -> Option<&'a str> {
     args.get(key).and_then(Value::as_str).filter(|s| !s.is_empty())
 }
 
-/// 回测/试算周期口径（M1/M5/M15/D1；与 application::service::parse_period 同集，H1 拒绝）。
+/// 回测/试算周期口径（M1/M5/M15/H1/D1；与 application::bar_map::parse_period 同集；
+/// I-6/D3：补 H1 与数据层 cagg 1h 对齐；W1/MO1 不入回测）。
 fn valid_bt_period(s: &str) -> bool {
-    matches!(s, "M1" | "M5" | "M15" | "D1")
+    matches!(s, "M1" | "M5" | "M15" | "H1" | "D1")
 }
 
 /// RFC3339 时间戳解析（非法 → None → -32602；与 get_data_quality date 校验同层口径）。
@@ -910,7 +1030,17 @@ fn default_fee_json() -> Value {
     json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })
 }
 
-/// strategy_list(level?, kind?)：catalog（仅 published，每策略最新 published 版本；level at-least 过滤）。
+/// 试算缺省前置预热根数（I-2/D6 架构师裁决；与 application::workbench::DEFAULT_WARMUP_BARS 同值）。
+pub const DEFAULT_TEST_RUN_WARMUP_BARS: usize = 250;
+/// 试算缺省初始资金（与回测 ADR §4 一致）。
+pub const DEFAULT_TEST_RUN_CAPITAL: f64 = 100_000.0;
+/// 试算缺省费用（ADR bt-1；缺省 stamp_duty_pct=0.05 为股票口径兼容值，ETF/LOF 须显式传 0）。
+fn default_test_run_fee() -> Value {
+    json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })
+}
+
+/// strategy_list(level?, kind?, include_source?)：catalog（仅 published，每策略最新 published 版本；level at-least 过滤）。
+/// I-7（D5）：默认只回摘要（version 不含 code）；include_source=true 显式返回全量源码。
 async fn strategy_list(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let svc = match strategy_service(st, &id) { Ok(s) => s, Err(e) => return e };
     let level = match args.get("level") {
@@ -927,8 +1057,26 @@ async fn strategy_list(st: &McpState, id: Option<Value>, args: &Value) -> Value 
             None => return result_err(id, INVALID_PARAMS, "kind 须为 strategy/template"),
         },
     };
+    let include_source = match args.get("include_source") {
+        None => false,
+        Some(v) => match v.as_bool() {
+            Some(b) => b,
+            None => return result_err(id, INVALID_PARAMS, "include_source 须为 boolean"),
+        },
+    };
     match svc.catalog(level, kind).await {
-        Ok(entries) => tool_ok(id, &entries),
+        Ok(entries) => {
+            if include_source { return tool_ok(id, &entries); }
+            // I-7（D5）瘦身：摘要剔除 version.code（身份/版本/sha256/状态保留）。
+            let slim: Vec<Value> = entries.iter().map(|e| {
+                let mut v = serde_json::to_value(e).expect("CatalogEntry 可序列化");
+                if let Some(ver) = v.get_mut("version").and_then(Value::as_object_mut) {
+                    ver.remove("code");
+                }
+                v
+            }).collect();
+            tool_ok(id, &slim)
+        }
         Err(e) => tool_fail(id, e),
     }
 }
@@ -1040,10 +1188,10 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
         return result_err(id, INVALID_PARAMS, "symbol 必填（非空 string）");
     };
     let Some(period) = args.get("period").and_then(Value::as_str) else {
-        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/D1）");
+        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/H1/D1）");
     };
     if !valid_bt_period(period) {
-        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/D1");
+        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/H1/D1");
     }
     let Some(from_s) = args.get("from").and_then(Value::as_str) else {
         return result_err(id, INVALID_PARAMS, "from 必填（RFC3339 时间戳）");
@@ -1066,8 +1214,38 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
     if !params.is_object() {
         return result_err(id, INVALID_PARAMS, "params 须为 object");
     }
+    // I-9（D9）：symbol 注册校验（口径同 get_kline I-1）——未注册/注册表不可读 → isError（不静默无数据）。
+    if let Err(e) = ensure_registered(st, symbol).await {
+        return tool_fail(id, e);
+    }
+    // I-2/D6：前置预热根数（缺省 250；0=不预热）。
+    let warmup_bars = match args.get("warmup_bars") {
+        None => DEFAULT_TEST_RUN_WARMUP_BARS,
+        Some(v) => match v.as_u64() {
+            Some(n) => n as usize,
+            None => return result_err(id, INVALID_PARAMS, "warmup_bars 须为非负整数"),
+        },
+    };
+    // I-3/D6：fee/policy/capital（缺省与 bt_run_ensemble 同口径）。
+    let fee = args.get("fee").cloned().unwrap_or_else(default_test_run_fee);
+    if !fee.is_object() {
+        return result_err(id, INVALID_PARAMS, "fee 须为 object");
+    }
+    let policy = args.get("policy").cloned()
+        .unwrap_or_else(|| json!({ "LumpSum": { "position_pct": 1.0 } }));
+    if !policy.is_object() {
+        return result_err(id, INVALID_PARAMS, "policy 须为 object");
+    }
+    let capital = match args.get("capital") {
+        None => DEFAULT_TEST_RUN_CAPITAL,
+        Some(v) => match v.as_f64() {
+            Some(n) if n.is_finite() && n > 0.0 => n,
+            _ => return result_err(id, INVALID_PARAMS, "capital 须为正有限数值"),
+        },
+    };
     let req = TestRunRequest {
         source, params, symbol: symbol.to_string(), period: period.to_string(), from, to, mode,
+        warmup_bars, fee, policy, initial_capital: capital,
     };
     match svc.test_run(&req).await {
         Ok(resp) => tool_ok(id, &resp),
@@ -1099,10 +1277,10 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
         return result_err(id, INVALID_PARAMS, "symbol 必填（非空 string）");
     };
     let Some(period) = args.get("period").and_then(Value::as_str) else {
-        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/D1）");
+        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/H1/D1）");
     };
     if !valid_bt_period(period) {
-        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/D1");
+        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/H1/D1");
     }
     let Some(from) = args.get("from").and_then(Value::as_str).and_then(parse_rfc3339_utc) else {
         return result_err(id, INVALID_PARAMS, "from 必填（RFC3339 时间戳）");
@@ -1181,10 +1359,18 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
         },
     };
     let fee = args.get("fee").cloned().unwrap_or_else(default_fee_json);
+    // I-2/D6：前置预热根数（缺省 250）。
+    let warmup_bars = match args.get("warmup_bars") {
+        None => DEFAULT_TEST_RUN_WARMUP_BARS,
+        Some(v) => match v.as_u64() {
+            Some(n) => n as usize,
+            None => return result_err(id, INVALID_PARAMS, "warmup_bars 须为非负整数"),
+        },
+    };
     let req = SubmitRunReq {
         name, symbol: symbol.to_string(), period: period.to_string(), from, to, slots,
         buy_threshold, sell_threshold, policy,
-        stop: args.get("stop").cloned(), initial_capital, fee,
+        stop: args.get("stop").cloned(), initial_capital, fee, warmup_bars,
     };
     match wb.submit(req).await {
         Ok(run) => tool_ok(id, &json!({ "run_id": run.id, "run": run })),
@@ -1333,15 +1519,22 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 33, "3 只读工具 + 14 模拟实盘（11-sim-live）+ 8 strategy_* + 8 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10）");
+        assert_eq!(tools.len(), 34, "4 只读工具（I-4 加 list_symbols）+ 14 模拟实盘（11-sim-live）+ 8 strategy_* + 8 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
             json!(["1m", "5m", "15m", "1h", "1d"]));
+        // I-5/I-10（D2）：from/to 边界 + limit 上限 10000
+        assert!(tools[0]["inputSchema"]["properties"]["from"].is_object(), "get_kline 增 from");
+        assert!(tools[0]["inputSchema"]["properties"]["to"].is_object(), "get_kline 增 to");
+        assert!(tools[0]["inputSchema"]["properties"]["limit"]["description"]
+            .as_str().unwrap().contains("10000"), "limit 描述注明上限 10000");
         assert_eq!(tools[1]["name"], "get_sources_health");
         assert!(tools[1]["inputSchema"]["properties"]["window_secs"].is_object());
         assert_eq!(tools[2]["name"], "get_data_quality", "MCP④ 数据质量（范围④）");
         assert_eq!(tools[2]["inputSchema"]["required"], json!(["code", "date"]));
+        assert_eq!(tools[3]["name"], "list_symbols", "I-4（D1）标的列表工具（与 web /api/symbols 同源）");
+        assert!(tools[3]["inputSchema"]["required"].is_null(), "list_symbols 无必填参数");
         // 模拟实盘工具（11-sim-live / L1）
         let sim_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("sim_")).collect();
         assert_eq!(sim_names, vec!["sim_start_session", "sim_stop_session", "sim_get_account",
@@ -1374,6 +1567,8 @@ mod tests {
             json!(["backtest_ok", "sim_ok", "live_approved"]));
         assert_eq!(by_name("strategy_list")["inputSchema"]["properties"]["kind"]["enum"],
             json!(["strategy", "template"]));
+        assert_eq!(by_name("strategy_list")["inputSchema"]["properties"]["include_source"]["type"],
+            json!("boolean"), "I-7（D5）：include_source 显式索取源码");
         assert_eq!(by_name("strategy_create")["inputSchema"]["required"], json!(["name", "code"]));
         assert_eq!(by_name("strategy_get")["inputSchema"]["required"], json!(["strategy_id"]));
         assert_eq!(by_name("strategy_update")["inputSchema"]["required"], json!(["version_id", "code"]));
@@ -1414,13 +1609,15 @@ mod tests {
 
     #[tokio::test]
     async fn get_kline_limit_clamped_and_period_mapped() {
+        // I-10（D2 契约变更）：limit 上限 1000→10000 且**超限不再静默封顶**（见
+        // get_kline_limit_cap_and_segment_hint）；本用例保留下限钳制与周期映射契约。
         let kline = Arc::new(MockKline::new());
         let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
         let _ = call(&st, "get_kline",
-            json!({ "code": "518880", "period": "5m", "limit": 99999 })).await;
+            json!({ "code": "518880", "period": "5m", "limit": 0 })).await;
         let calls = kline.calls.lock().unwrap();
         assert_eq!(calls[0].period, Period::M5);
-        assert_eq!(calls[0].limit, MAX_LIMIT, "limit 封顶 1000（与 REST 同口径）");
+        assert_eq!(calls[0].limit, 1, "limit 下限钳制 1");
     }
 
     #[tokio::test]
@@ -1484,6 +1681,204 @@ mod tests {
         assert_eq!(r["result"]["isError"], true, "注册表不可查 → isError（fail-closed）");
         let text = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("mock registry failure"), "{text}");
+    }
+
+    // ── I-4（D1）：list_symbols（与 web GET /api/symbols 同源）──
+
+    /// 注册表行构造（I-4 用例：注册状态/采集间隔/交割类型/最新快照均可控）。
+    fn sample_symbol(code: &str, name: Option<&str>, interval_secs: i32, settlement: &str,
+                     enabled: bool, last_ts: Option<DateTime<Utc>>,
+                     last_close: Option<f64>, prev_close: Option<f64>)
+        -> domain::ports::SymbolLatestView {
+        domain::ports::SymbolLatestView {
+            code: code.into(), name: name.map(str::to_string), interval_secs,
+            settlement: settlement.into(), enabled, last_ts, last_close, prev_close,
+        }
+    }
+
+    /// I-4：全部注册标的（含 enabled=false）+ 注册状态 + 数据可用区间（最新可用 bar ts/last/日涨跌幅）；
+    /// 与 web /api/symbols 同源同字段（KlineRead::symbols_with_latest），按 code 升序。
+    #[tokio::test]
+    async fn list_symbols_returns_registered_with_status_and_latest() {
+        let kline = Arc::new(MockKline::new().with_symbols(vec![
+            sample_symbol("518880", Some("黄金ETF"), 60, "T1", true,
+                Some(Utc.with_ymd_and_hms(2026, 9, 11, 7, 0, 0).unwrap()), Some(5.0), Some(4.0)),
+            sample_symbol("600000", None, 15, "T0", false, None, None, None),
+        ]));
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "list_symbols", json!({})).await;
+        assert!(r.get("error").is_none(), "list_symbols 无协议错误：{r}");
+        let p = payload_of(&r);
+        let syms = p["symbols"].as_array().expect("symbols 数组");
+        assert_eq!(syms.len(), 2, "全部注册标的（含 enabled=false 的停用标的）");
+        // 同源 web `GET /api/symbols`：按 code 升序（确定性输出）——修复 A1 遗留断言与注释自相矛盾
+        // （原断言 syms[0]=="600000" 与注释「按 code 升序」矛盾，且与端到端 `list_symbols_matches_real_symbols_registry`
+        //  的 `want.sort()`（升序）不相容；以 web 同源升序为准，冲突已报架构师）。
+        assert_eq!(syms[0]["code"], "518880", "按 code 升序（确定性输出）");
+        assert_eq!(syms[0]["name"], "黄金ETF");
+        assert_eq!(syms[0]["interval_secs"], 60, "采集间隔（与 REST 同源字段）");
+        assert_eq!(syms[0]["settlement"], "T1", "交割类型 T0/T1（与 REST 同源字段）");
+        assert_eq!(syms[0]["latest"]["ts"], "2026-09-11T07:00:00Z", "数据可用区间终点（最新 bar ts）");
+        assert_eq!(syms[0]["latest"]["last"], json!(5.0));
+        assert_eq!(syms[0]["latest"]["change_pct"], json!(25.0), "日涨跌幅 vs 昨收 (5-4)/4×100");
+        assert_eq!(syms[1]["code"], "600000");
+        assert_eq!(syms[1]["enabled"], false, "注册状态 = enabled（停用标的仍在册）");
+        assert!(syms[1]["latest"].is_null(), "无 bar → latest=null（可用区间为空）");
+        assert!(kline.calls.lock().unwrap().is_empty(), "list_symbols 只读注册表，不查 K 线");
+    }
+
+    /// I-4：注册表不可读 → isError（fail-closed，与 I-1 同口径）。
+    #[tokio::test]
+    async fn list_symbols_registry_failure_is_tool_error_fail_closed() {
+        let st = test_state(Arc::new(MockKline::failing_registry()), Arc::new(MockEvents::new()));
+        let r = call(&st, "list_symbols", json!({})).await;
+        assert_eq!(r["result"]["isError"], true, "注册表不可读 → isError（fail-closed）");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("注册表"), "错误消息须指明注册表失败：{text}");
+    }
+
+    // ── I-5/I-10（D2）：get_kline from/to 区间 + limit 上限（10000）──
+
+    /// I-5：from/to 接受 ISO 日期（Asia/Shanghai 日界）与 RFC3339；from 闭、to 开；区间过滤。
+    #[tokio::test]
+    async fn get_kline_from_to_date_bounds_and_range_filter() {
+        let base = Utc.with_ymd_and_hms(2026, 9, 1, 0, 0, 0).unwrap();
+        let bars: Vec<domain::ports::KlineBarView> = (0..4i64).map(|i| domain::ports::KlineBarView {
+            code: "518880".into(), ts: base + chrono::Duration::days(i),
+            open: 1.0, high: 1.0, low: 1.0, close: 1.0, volume: 1, amount: 1.0,
+            source: Some("tushare".into()),
+        }).collect();
+        let kline = Arc::new(MockKline::new().with_bars(bars));
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({
+            "code": "518880", "period": "1d", "from": "2026-09-02", "to": "2026-09-04",
+            "limit": 10,
+        })).await;
+        let p = payload_of(&r);
+        let out = p["bars"].as_array().unwrap();
+        assert_eq!(out.len(), 3, "from 闭：仅保留 ts ≥ from 的 bar");
+        let calls = kline.calls.lock().unwrap();
+        assert_eq!(calls[0].before, Some(Utc.with_ymd_and_hms(2026, 9, 4, 16, 0, 0).unwrap()),
+            "to 为日期 → 次日 00:00 CST（含 to 整日）= 2026-09-04T16:00Z，作 before（开）");
+        assert_eq!(calls[0].limit, 11, "有 from 时多取一根以判定区间根数超限");
+        assert_eq!(p["from"], "2026-09-01T16:00:00Z", "边界回声（归一 UTC）");
+        assert_eq!(p["to"], "2026-09-04T16:00:00Z");
+    }
+
+    /// I-5：RFC3339 边界带偏移 → 归一 UTC；from 闭语义保留。
+    #[tokio::test]
+    async fn get_kline_from_to_rfc3339_bounds() {
+        let kline = Arc::new(MockKline::new());
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({
+            "code": "518880", "from": "2026-09-02T00:00:00Z",
+            "to": "2026-09-03T00:00:00+08:00", "limit": 5,
+        })).await;
+        let p = payload_of(&r);
+        assert_eq!(p["to"], "2026-09-02T16:00:00Z", "带偏移的 RFC3339 归一为 UTC");
+        let calls = kline.calls.lock().unwrap();
+        assert_eq!(calls[0].before, Some(Utc.with_ymd_and_hms(2026, 9, 2, 16, 0, 0).unwrap()));
+    }
+
+    /// I-5/F1（010 验收缺陷 F1）：**同日 date 形式（from=to=YYYY-MM-DD）合法** = 该 CST 日整日；
+    /// 「RFC3339 from + date to」混合形式亦合法。
+    /// 依据契约「from 闭 / to 开 / to 含整日」：date 形式 to 先展开为次日 00:00 CST，再比较 f ≥ t
+    ///（即 f ≥ t 只表达「空区间」，不等于「同日非法」）。
+    #[tokio::test]
+    async fn get_kline_same_day_date_bounds_legal() {
+        let kline = Arc::new(MockKline::new());
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        // 同日 date：2026-09-03 00:00 CST（闭）→ 2026-09-04 00:00 CST（开）= 2026-09-03 整日
+        let r = call(&st, "get_kline", json!({
+            "code": "518880", "from": "2026-09-03", "to": "2026-09-03", "limit": 10,
+        })).await;
+        assert!(r.get("error").is_none(), "同日 date 区间合法（该 CST 日整日）：{r}");
+        let p = payload_of(&r);
+        assert_eq!(p["from"], "2026-09-02T16:00:00Z", "from = 该日 00:00 CST（闭）");
+        assert_eq!(p["to"], "2026-09-03T16:00:00Z", "to = 次日 00:00 CST（开，含 to 整日）");
+        assert_eq!(p["bars"].as_array().unwrap().len(), 2, "该日内的样例 bar（09-03T01:30/01:31Z）全保留");
+        // 混合形式：RFC3339 from（晚于该日 00:00 CST，但仍早于展开后的 to）+ date to
+        let r = call(&st, "get_kline", json!({
+            "code": "518880", "from": "2026-09-03T01:31:00Z", "to": "2026-09-03", "limit": 10,
+        })).await;
+        assert!(r.get("error").is_none(), "RFC3339 from + date to 合法：{r}");
+        let p = payload_of(&r);
+        assert_eq!(p["from"], "2026-09-03T01:31:00Z");
+        assert_eq!(p["to"], "2026-09-03T16:00:00Z", "date to 展开为次日 00:00 CST");
+        assert_eq!(p["bars"].as_array().unwrap().len(), 1, "from 闭：仅 01:31Z 一根");
+        let calls = kline.calls.lock().unwrap();
+        assert_eq!(calls[1].before, Some(Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap()),
+            "取数 before = 展开后的 to（开）");
+    }
+
+    /// I-5：边界校验 —— 非法格式 / 非法类型 / 空或反向区间 → -32602（不落取数）。
+    /// 注：同日 date 形式（from=to=YYYY-MM-DD）合法（见 get_kline_same_day_date_bounds_legal），
+    /// 此处只保留真非法：反向 date、RFC3339 f==t（空区间）、RFC3339 from 晚于 date to 展开后的日界。
+    #[tokio::test]
+    async fn get_kline_from_to_validation_is_32602() {
+        let kline = Arc::new(MockKline::new());
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        for args in [
+            json!({ "code": "518880", "from": "2026/09/02" }),
+            json!({ "code": "518880", "to": "2026-9-2" }),
+            json!({ "code": "518880", "from": "2026-09-03", "to": "2026-09-02" }),
+            json!({ "code": "518880", "from": "2026-09-02T00:00:00Z", "to": "2026-09-02T00:00:00Z" }),
+            json!({ "code": "518880", "from": "2026-09-03T01:31:00Z", "to": "2026-09-02" }),
+            json!({ "code": "518880", "from": 20260902 }),
+        ] {
+            let r = call(&st, "get_kline", args.clone()).await;
+            assert_eq!(r["error"]["code"], -32602, "{args} → invalid params");
+        }
+        assert!(kline.calls.lock().unwrap().is_empty(), "边界非法不落取数");
+    }
+
+    /// I-10/I-5（D2）：limit 上限提升至 10000；超限 → 明确 -32602 + 分段取数提示（不再静默钳制）。
+    #[tokio::test]
+    async fn get_kline_limit_cap_and_segment_hint() {
+        let kline = Arc::new(MockKline::new());
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({ "code": "518880", "limit": MAX_LIMIT + 1 })).await;
+        assert_eq!(r["error"]["code"], -32602, "超限 → 协议层参数错误（不再静默封顶）");
+        let msg = r["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("10000") && msg.contains("分段"), "提示上限与分段取数：{msg}");
+        assert!(kline.calls.lock().unwrap().is_empty(), "超限不落取数");
+        // 上限内：足额透传（I-10：M15 最大窗口 1188 根 > 旧上限 1000）
+        let r = call(&st, "get_kline", json!({ "code": "518880", "period": "15m", "limit": 1188 })).await;
+        assert!(r.get("error").is_none(), "上限内不报错：{r}");
+        assert_eq!(kline.calls.lock().unwrap()[0].limit, 1188, "足额透传（不再封顶 1000）");
+    }
+
+    /// I-5（D2）：区间内根数 > limit → 显式 isError + 分段取数提示（不静默截断）。
+    #[tokio::test]
+    async fn get_kline_range_over_limit_is_tool_error() {
+        let base = Utc.with_ymd_and_hms(2026, 9, 1, 0, 0, 0).unwrap();
+        let bars: Vec<domain::ports::KlineBarView> = (0..5i64).map(|i| domain::ports::KlineBarView {
+            code: "518880".into(), ts: base + chrono::Duration::days(i),
+            open: 1.0, high: 1.0, low: 1.0, close: 1.0, volume: 1, amount: 1.0,
+            source: Some("tushare".into()),
+        }).collect();
+        let kline = Arc::new(MockKline::new().with_bars(bars));
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({ "code": "518880", "from": "2026-09-01", "limit": 2 })).await;
+        assert_eq!(r["result"]["isError"], true, "区间根数 > limit → isError");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("分段"), "提示分段取数：{text}");
+        assert_eq!(kline.calls.lock().unwrap()[0].limit, 3, "多取一根（limit+1）判定区间超限");
+    }
+
+    /// 向后兼容（D2）：不传 from/to → payload 键与取数参数与现状一致。
+    #[tokio::test]
+    async fn get_kline_without_bounds_keeps_legacy_shape() {
+        let kline = Arc::new(MockKline::new());
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({ "code": "518880" })).await;
+        let p = payload_of(&r);
+        let mut keys: Vec<&str> = p.as_object().unwrap().keys().map(|s| s.as_str()).collect();
+        keys.sort();
+        assert_eq!(keys, ["bars", "code", "period"], "无 from/to 时不回声边界（向后兼容）");
+        let calls = kline.calls.lock().unwrap();
+        assert!(calls[0].before.is_none(), "无 to → 仍取最新页（行为不变）");
+        assert_eq!(calls[0].limit, DEFAULT_LIMIT, "缺省 limit=240 不变");
     }
 
     #[tokio::test]
@@ -2423,7 +2818,13 @@ mod tests {
     }
 
     /// 装配 P3c state：真实 StrategyService/WorkbenchService + 内存 mock 端口（开关默认开）。
+    /// I-9（D9）：strategy_test_run 走 symbols 注册表校验 → 夹具注册表须含用例 symbol（600000）。
     fn strategy_state() -> (Arc<McpState>, P3cFixture) {
+        strategy_state_with_kline(Arc::new(MockKline::with_registered(&["518880", "600000"])))
+    }
+
+    /// 同 strategy_state，但注入自定义 KlineRead（I-9：注册表不可读 fail-closed 用例）。
+    fn strategy_state_with_kline(kline: Arc<MockKline>) -> (Arc<McpState>, P3cFixture) {
         let store = Arc::new(MockStrategyStore::default());
         let bars = Arc::new(MockStrategyBars);
         let clock = Arc::new(FixedClock(p3c_now()));
@@ -2435,7 +2836,7 @@ mod tests {
             bars, run_store.clone(), preset_store.clone(), store,
             Arc::new(MockStrategySymbols), Arc::new(MockStrategySink), clock, 2));
         let st = Arc::new(McpState {
-            kline: Arc::new(MockKline::new()),
+            kline,
             health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
             quality: quality_for(vec![], std::collections::HashMap::new(), std::collections::HashSet::new()),
             default_window_secs: 3600,
@@ -2534,6 +2935,136 @@ mod tests {
         assert_eq!(p["signals"].as_array().unwrap().len(), 6);
         assert_eq!(p["signals"][0]["signal"], "buy", "恒 80 ≥ 60 阈值");
         assert!(!p["trades"].as_array().unwrap().is_empty(), "LumpSum 有成交");
+        // I-6/D3：H1 周期被接受（原「H1 拒绝」口径作废，与数据层 cagg 1h 对齐）。
+        let r = call(&st, "strategy_test_run", json!({
+            "code": CONST_42, "symbol": "600000", "period": "H1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "mode": "pure_score"
+        })).await;
+        assert!(r["error"].is_null(), "H1 不应被拒: {r}");
+        let p = payload_of(&r);
+        assert_eq!(p["period"], "H1");
+        assert_eq!(p["scores"].as_array().unwrap().len(), 6);
+    }
+
+    // ── I-7（D5）：strategy_list 默认瘦身（摘要不含源码）──
+
+    /// I-7：默认只回摘要（不含源码）；include_source=true 显式取全量；体积显著下降。
+    #[tokio::test]
+    async fn strategy_list_default_slim_and_include_source_full() {
+        let (st, _fx) = strategy_state();
+        // 真实体量量级的插件源码（多 KB 注释）——体积对比须有意义（改前 39097 字符实测基准）。
+        let code = format!("// {}\nfunction on_bar(ctx) {{ return 80; }}", "x".repeat(4000));
+        let (_sid, _vid) = create_published(&st, "大源码策略", &code).await;
+        let r = call(&st, "strategy_list", json!({})).await;
+        let slim = payload_of(&r);
+        let entry = &slim[0];
+        assert_eq!(entry["strategy"]["name"], "大源码策略", "摘要保留身份字段");
+        assert_eq!(entry["version"]["status"], "published");
+        assert!(entry["version"].get("code").is_none(), "默认不含源码（I-7 瘦身）");
+        assert!(entry["version"]["id"].as_str().unwrap().starts_with("sv_"),
+            "版本 id 保留（供 strategy_test_run / bt_run_ensemble 选版）");
+        assert!(entry["version"]["sha256"].is_string(), "sha256 保留（钉住可复现性）");
+        // 显式索取全量 → 与改动前同形（含 code）
+        let r = call(&st, "strategy_list", json!({ "include_source": true })).await;
+        let full = payload_of(&r);
+        assert_eq!(full[0]["version"]["code"], json!(code), "include_source=true 返回源码");
+        assert_eq!(full[0]["strategy"]["id"], slim[0]["strategy"]["id"], "两种口径同条目");
+        let (slim_len, full_len) = (slim.to_string().len(), full.to_string().len());
+        assert!(slim_len * 2 < full_len,
+            "体积显著下降（I-7）：slim={slim_len} full={full_len}");
+    }
+
+    /// I-7：include_source 类型校验（非 boolean → -32602）。
+    #[tokio::test]
+    async fn strategy_list_include_source_type_validation_is_32602() {
+        let (st, _fx) = strategy_state();
+        for v in [json!("yes"), json!(1)] {
+            let r = call(&st, "strategy_list", json!({ "include_source": v })).await;
+            assert_eq!(r["error"]["code"], -32602, "include_source 须 boolean：{v}");
+        }
+    }
+
+    // ── I-9（D9）：strategy_test_run symbol 注册校验（口径同 get_kline I-1）──
+
+    /// I-9：未注册 symbol → 明确 isError（含被拒 code 与原因）；已注册 → 既有语义不变。
+    #[tokio::test]
+    async fn strategy_test_run_unregistered_symbol_is_tool_error() {
+        let (st, _fx) = strategy_state();
+        let args = json!({ "code": CONST_42, "symbol": "510300", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" });
+        let r = call(&st, "strategy_test_run", args.clone()).await;
+        assert!(r.get("error").is_none(), "注册校验走工具错误惯例（非 -32602）：{r}");
+        assert_eq!(r["result"]["isError"], true, "未注册 symbol → isError（非静默无数据）");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("510300") && text.contains("未注册"), "错误须含被拒 code 与原因：{text}");
+        // 对照：已注册 600000 → 正常返回（既有语义不变）
+        let mut ok = args.clone();
+        ok["symbol"] = json!("600000");
+        let r = call(&st, "strategy_test_run", ok).await;
+        assert!(r.get("error").is_none(), "已注册 symbol 不报协议错误：{r}");
+        assert_eq!(payload_of(&r)["bar_count"], 6, "已注册 → 试算照常");
+    }
+
+    /// I-9：注册表不可读 → fail-closed（isError），与 get_kline 同口径。
+    #[tokio::test]
+    async fn strategy_test_run_registry_failure_is_tool_error_fail_closed() {
+        let (st, _fx) = strategy_state_with_kline(Arc::new(MockKline::failing_registry()));
+        let r = call(&st, "strategy_test_run", json!({ "code": CONST_42, "symbol": "600000",
+            "period": "D1", "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "mode": "pure_score" })).await;
+        assert_eq!(r["result"]["isError"], true, "注册表不可读 → 拒（fail-closed）");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("注册表"), "{text}");
+    }
+
+    // ── I-2/I-3（D6）：strategy_test_run 增 warmup_bars/fee/policy/capital 参数组 ──
+
+    /// I-3：fee 生效回显（含 stamp_duty_pct）；ETF 显式 0；policy/capital 接受；非法 → 错误。
+    #[tokio::test]
+    async fn strategy_test_run_fee_policy_capital_channel() {
+        let (st, _fx) = strategy_state();
+        let base = json!({ "code": CONST_80, "symbol": "600000", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "sim_position" });
+        // 缺省：股票口径 0.05 回显 + I-2 warmup 缺省 250/effective 0（mock 无 from 前置历史）。
+        let p = payload_of(&call(&st, "strategy_test_run", base.clone()).await);
+        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.05), "缺省股票口径回显");
+        assert_eq!(p["fee"]["rate_pct"], json!(0.025));
+        assert_eq!(p["warmup_requested"], json!(250), "缺省预热 250");
+        assert_eq!(p["warmup_effective"], json!(0), "mock 无 from 前置历史");
+        // ETF：显式 stamp_duty_pct=0 → 回显 0。
+        let mut a = base.clone();
+        a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0 });
+        let p = payload_of(&call(&st, "strategy_test_run", a).await);
+        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.0), "ETF 显式 0 回显");
+        // policy=Dca + capital 接受。
+        let mut a = base.clone();
+        a["policy"] = json!({ "Dca": { "tranches": 3, "mode": "Equal", "amount": null, "interval": 1 } });
+        a["capital"] = json!(200000);
+        let r = call(&st, "strategy_test_run", a).await;
+        assert!(r.get("error").is_none(), "Dca/capital 接受：{r}");
+        // 非法 capital（≤0）→ -32602。
+        let mut a = base.clone();
+        a["mode"] = json!("pure_score");
+        a["capital"] = json!(0);
+        assert_eq!(call(&st, "strategy_test_run", a).await["error"]["code"], -32602);
+        // 非法 fee（缺字段）→ 服务层工具错误（isError）。
+        let mut a = base.clone();
+        a["mode"] = json!("pure_score");
+        a["fee"] = json!({ "rate_pct": 0.025 });
+        assert_eq!(call(&st, "strategy_test_run", a).await["result"]["isError"], true);
+    }
+
+    /// I-2：bt_run_ensemble schema 含 warmup_bars（缺省可选，不入 required）。
+    #[test]
+    fn bt_run_ensemble_schema_has_warmup_bars() {
+        let v = tool_list();
+        let tools = v["tools"].as_array().unwrap();
+        let bt = tools.iter().find(|t| t["name"] == "bt_run_ensemble").unwrap();
+        assert!(bt["inputSchema"]["properties"]["warmup_bars"].is_object(),
+            "I-2（D6）：bt_run_ensemble 增 warmup_bars");
+        assert!(!bt["inputSchema"]["required"].as_array().unwrap()
+            .iter().any(|x| x == "warmup_bars"), "warmup_bars 可选（兼容既有调用）");
     }
 
     #[tokio::test]
@@ -2557,8 +3088,8 @@ mod tests {
                 "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" })),
             ("strategy_test_run", json!({ "code": "x", "period": "D1",
                 "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" })), // 缺 symbol
-            ("strategy_test_run", json!({ "code": "x", "symbol": "600000", "period": "1h",
-                "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" })), // 非法 period
+            ("strategy_test_run", json!({ "code": "x", "symbol": "600000", "period": "W1",
+                "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" })), // 非法 period（H1 已支持）
             ("strategy_test_run", json!({ "code": "x", "symbol": "600000", "period": "D1",
                 "from": "2026/09/01", "to": "2026-09-10T00:00:00Z", "mode": "pure_score" })),          // 非法 from
             ("strategy_test_run", json!({ "code": "x", "symbol": "600000", "period": "D1",
@@ -2729,9 +3260,9 @@ mod tests {
             ("bt_run_ensemble", json!({ "symbol": "600000", "period": "D1",
                 "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
                 "slots": [] })),                                                      // slots 空 + 缺 policy
-            ("bt_run_ensemble", json!({ "symbol": "600000", "period": "1h",
+            ("bt_run_ensemble", json!({ "symbol": "600000", "period": "W1",
                 "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
-                "slots": [{ "strategy_id": "s", "weight": 1.0 }], "policy": {} })), // 非法 period
+                "slots": [{ "strategy_id": "s", "weight": 1.0 }], "policy": {} })), // 非法 period（H1 已支持）
             ("bt_run_ensemble", json!({ "symbol": "600000", "period": "D1",
                 "from": "bad", "to": "2026-09-10T00:00:00Z",
                 "slots": [{ "strategy_id": "s", "weight": 1.0 }], "policy": {} })), // 非法 from

@@ -48,6 +48,12 @@ impl domain::ports::KlineRead for ShimKline {
 /// storage/sqlx 仅 dev-dependencies（分层红线：cargo tree -p mcp -e normal 无 storage/sqlx）。
 /// `kline` 由调用方给定（缺省 = 真实 KlineReader；注册表口径可经 ShimKline 注入而不写库）。
 fn state_with_kline(pool: PgPool, kline: Arc<dyn domain::ports::KlineRead>) -> Arc<McpState> {
+    state_full(pool, kline, None)
+}
+
+/// 完整装配（P3c 工具族 I-7/I-9 用例需真实 `StrategyService`；与 app bin 同结构）。
+fn state_full(pool: PgPool, kline: Arc<dyn domain::ports::KlineRead>,
+              strategies: Option<Arc<application::strategy::StrategyService>>) -> Arc<McpState> {
     Arc::new(McpState {
         kline,
         health: diagnose::health::HealthService::new(
@@ -64,10 +70,19 @@ fn state_with_kline(pool: PgPool, kline: Arc<dyn domain::ports::KlineRead>) -> A
         default_window_secs: 3600,
         sessions: SessionRegistry::default(),
         sim: None,
-        strategies: None,
+        strategies,
         workbench: None,
         strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
     })
+}
+
+/// 真实 Registry 服务（storage 具体实现；与 app bin 装配同形；catalog 只读）。
+fn real_strategies(pool: PgPool) -> Arc<application::strategy::StrategyService> {
+    Arc::new(application::strategy::StrategyService::new(
+        Arc::new(storage::strategy::PgStrategyStore::new(pool.clone())),
+        Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
+        Arc::new(domain::ports::SystemClock),
+    ))
 }
 
 /// 缺省装配：注册表 = 真实 symbols 表（只读查询）。
@@ -226,5 +241,122 @@ async fn get_kline_unregistered_code_is_tool_error_against_real_registry() {
     // 正向对照：已注册 518880 → 非错误（bars 可空，但语义是「该区间无数据」——与未注册可区分）
     let resp = dispatch(&st, &req("518880")).await.expect("tools/call 有响应");
     assert!(resp["result"]["isError"].is_null(), "已注册 518880 → 非错误");
+}
+
+/// I-4（D1）端到端：list_symbols 与 web `GET /api/symbols` **同源**（同一
+/// `KlineRead::symbols_with_latest` 端口）——逐行 code 集合一致、字段齐全；本测试**只读**。
+#[tokio::test]
+async fn list_symbols_matches_real_symbols_registry() {
+    let pool = pool().await;
+    let st = state(pool.clone());
+    let payload = call_tool(&st, "list_symbols", json!({})).await;
+    let syms = payload["symbols"].as_array().expect("symbols 数组");
+    assert!(!syms.is_empty(), "真实注册表非空");
+    // 同源：与端口返回的注册表行逐行一致（code 升序）
+    let rows = st.kline.symbols_with_latest().await.expect("注册表只读查询");
+    let mut want: Vec<String> = rows.iter().map(|r| r.code.clone()).collect();
+    want.sort();
+    let got: Vec<String> = syms.iter().map(|s| s["code"].as_str().unwrap().to_string()).collect();
+    assert_eq!(got, want, "list_symbols 由 symbols_with_latest 同源产出（与 REST 同源口径）");
+    // 字段齐备：注册状态 / 采集间隔 / 交割类型 / 可用区间终点
+    let hit = syms.iter().find(|s| s["code"] == "518880").expect("518880 已注册");
+    assert!(hit["enabled"].is_boolean(), "注册状态");
+    assert!(hit["interval_secs"].is_number(), "采集间隔");
+    assert!(hit["settlement"].is_string(), "交割类型");
+    let row = rows.iter().find(|r| r.code == "518880").unwrap();
+    let last_ts = row.last_ts.expect("518880 有数据（可用区间终点非空）");
+    let echoed: chrono::DateTime<chrono::Utc> = chrono::DateTime::parse_from_rfc3339(
+        hit["latest"]["ts"].as_str().expect("latest.ts 字符串")).unwrap().to_utc();
+    assert_eq!(echoed, last_ts, "可用区间终点 = 注册表最新 bar ts");
+}
+
+/// I-5/I-10（D2）端到端：from/to 区间（真实 `KlineRead::bars` 的 before 截断语义）+ limit 上限。
+/// 独立 code 995502（同 binary 测试并行，共享清理会互删）。
+#[tokio::test]
+async fn get_kline_from_to_and_limit_cap_against_real_data() {
+    const RCODE: &str = "995502";
+    let pool = pool().await;
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(RCODE).execute(&pool).await.unwrap();
+    }
+    let base = chrono::DateTime::parse_from_rfc3339("2026-09-03T01:30:00Z").unwrap().to_utc();
+    for i in 0..5i64 {
+        let c = 1.0 + i as f64;
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+            .bind(RCODE).bind(base + chrono::Duration::minutes(i)).bind(c)
+            .execute(&pool).await.unwrap();
+    }
+    let st = state_with_kline(pool.clone(), Arc::new(ShimKline {
+        inner: storage::reader::KlineReader::new(pool.clone()),
+        registered: vec![RCODE.into()],
+    }));
+    let req = |args: Value| RpcRequest { jsonrpc: Some("2.0".into()), id: Some(json!(1)),
+        method: "tools/call".into(),
+        params: Some(json!({ "name": "get_kline", "arguments": args })) };
+    let ts = |m: i64| (base + chrono::Duration::minutes(m))
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    // from 闭 to 开 → 仅区间内 3 根（min2/min3/min4），升序
+    let payload = call_tool(&st, "get_kline", json!({
+        "code": RCODE, "period": "1m", "from": ts(2), "to": ts(5), "limit": 10,
+    })).await;
+    let bars = payload["bars"].as_array().unwrap();
+    assert_eq!(bars.len(), 3, "真实 before 截断 + from 闭过滤（min2/min3/min4）");
+    assert_eq!(bars[0]["close"], json!(3.0), "区间起点即 from（闭）");
+    assert_eq!(bars[2]["close"], json!(5.0), "末根 < to（开）");
+    assert_eq!(payload["from"], json!(ts(2)), "边界回声");
+    // 超限 → -32602（协议层参数错误，与「静默封顶」语义区分）
+    let resp = dispatch(&st, &req(json!({ "code": RCODE, "limit": 10001 }))).await.unwrap();
+    assert_eq!(resp["error"]["code"], -32602, "limit 超上限 10000 → 协议层错误");
+    assert!(resp["error"]["message"].as_str().unwrap().contains("分段"), "提示分段取数");
+    // 区间根数 > limit → 工具错误（多取一根判定：真实 reader 只回 limit+1 根也成立）
+    let resp = dispatch(&st, &req(json!({ "code": RCODE, "from": ts(0), "limit": 2 }))).await.unwrap();
+    assert_eq!(resp["result"]["isError"], true, "区间 5 根 > limit 2 → 显式错误（不静默截断）");
+    for t in ["kline_raw", "kline_accurate"] {
+        sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
+            .bind(RCODE).execute(&pool).await.unwrap();
+    }
+}
+
+/// I-7（D5）端到端：真实 Registry（catalog 实际体量）对比「默认摘要 vs include_source」负载体积。
+/// 改前实测基准：39097 字符（11 条含全量 JS）。本测试**只读** catalog（不写策略表）。
+#[tokio::test]
+async fn strategy_list_slim_reduces_payload_against_real_registry() {
+    let pool = pool().await;
+    let st = state_full(pool.clone(), Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        Some(real_strategies(pool.clone())));
+    let slim = call_tool(&st, "strategy_list", json!({})).await;
+    let full = call_tool(&st, "strategy_list", json!({ "include_source": true })).await;
+    let entries = slim.as_array().expect("catalog 数组");
+    assert!(!entries.is_empty(), "真实 Registry 有 published 策略");
+    assert!(entries.iter().all(|e| e["version"].get("code").is_none()),
+        "默认摘要不含源码（I-7）");
+    assert!(entries.iter().all(|e| e["version"]["id"].as_str().unwrap().starts_with("sv_")),
+        "摘要保留版本 id（选版依据）");
+    assert!(full.as_array().unwrap().iter()
+        .all(|e| e["version"]["code"].as_str().is_some_and(|c| !c.is_empty())),
+        "include_source=true 含源码");
+    let (slim_len, full_len) = (slim.to_string().len(), full.to_string().len());
+    println!("I-7 体积对比（真实 Registry）：slim={slim_len} 字符 / full={full_len} 字符（改前 39097 基准）");
+    assert!(slim_len * 2 < full_len, "默认摘要体积显著下降：slim={slim_len} full={full_len}");
+}
+
+/// I-9（D9）端到端：真实 symbols 注册表 → strategy_test_run 未注册 symbol 明确 isError
+/// （口径与 get_kline I-1 一致：510300 不在 44 注册标的内；本测试**只读**）。
+#[tokio::test]
+async fn strategy_test_run_unregistered_symbol_against_real_registry() {
+    let pool = pool().await;
+    let st = state_full(pool.clone(), Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        Some(real_strategies(pool.clone())));
+    let resp = dispatch(&st, &RpcRequest { jsonrpc: Some("2.0".into()), id: Some(json!(1)),
+        method: "tools/call".into(),
+        params: Some(json!({ "name": "strategy_test_run", "arguments": {
+            "code": "function on_bar(ctx) { return 50; }", "symbol": "510300", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "mode": "pure_score" }})) }).await.expect("tools/call 有响应");
+    assert_eq!(resp["result"]["isError"], true, "未注册 510300 → isError（非静默无数据）");
+    let text = resp["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("510300") && text.contains("未注册"), "{text}");
 }
 // ~/~ end

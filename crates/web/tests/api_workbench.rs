@@ -281,11 +281,15 @@ async fn submit_validation_error_matrix() {
     let r = http.post(format!("{url}/api/workbench/runs"))
         .json(&submit_body(&code, "sv_none")).send().await.unwrap();
     assert_eq!(r.status(), 404, "未知版本应 404");
-    // period 非法 → 400
+    // period 非法 → 400（W1 为看板读源扩展周期，不在回测白名单 M1/M5/M15/H1/D1 内；
+    // 与 MCP 侧同类样例一致——H1 已合法，不可再作非法样例）
     let mut b = submit_body(&code, &vid);
-    b["period"] = json!("H1");
+    b["period"] = json!("W1");
     let r = http.post(format!("{url}/api/workbench/runs")).json(&b).send().await.unwrap();
-    assert_eq!(r.status(), 400);
+    assert_eq!(r.status(), 400, "非法 period 应 400");
+    let body: Value = r.json().await.unwrap();
+    let msg = body["error"].as_str().unwrap_or_default().to_string();
+    assert!(msg.contains("period"), "非法 period 须明确报 period 校验失败: {msg}");
     // from/to 非 RFC3339 → 400
     let mut b = submit_body(&code, &vid);
     b["from"] = json!("not-a-time");

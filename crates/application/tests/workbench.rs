@@ -482,6 +482,8 @@ fn submit_req(version_id: &str) -> SubmitRunReq {
         stop: None,
         initial_capital: None,
         fee: fee_json(),
+        // I-2/D6：默认前置预热 250 根（架构师裁决）；夹具 from 早于全部 bar → effective=0。
+        warmup_bars: 250,
     }
 }
 
@@ -572,6 +574,48 @@ async fn submit_rejects_span_limits_400() {
     req.to = req.from;
     let err = r.svc.submit(req).await.unwrap_err();
     assert!(err.downcast_ref::<WorkbenchValidation>().is_some(), "from>=to → 400");
+}
+
+/// I-6/D3：工作台接受 H1（与试算同口径；未支持周期仍拒）。
+#[tokio::test]
+async fn submit_accepts_h1_and_rejects_unknown_period() {
+    let r = rig(trend_bars(), 2);
+    r.strategies.add_version("sv_pub", "st_1", CONST_SCORE, StrategyStatus::Published);
+    let mut req = submit_req("sv_pub");
+    req.period = "H1".into();
+    let run = r.svc.submit(req).await.expect("H1 应被接受（I-6/D3）");
+    assert_eq!(run.period, "H1");
+    // W1 看板读源扩展不入回测 → 仍拒。
+    let mut req = submit_req("sv_pub");
+    req.period = "W1".into();
+    assert!(r.svc.submit(req).await.unwrap_err().downcast_ref::<WorkbenchValidation>().is_some());
+}
+
+/// I-2/D6 + I-3/D6：工作台 warmup 标记（前缀不计绩效）+ 钉住 config 回显生效 fee。
+#[tokio::test]
+async fn submit_warmup_marks_prefix_and_pins_effective_fee() {
+    // 10 根恒价日线；请求 [bar5, bar10)，warmup_bars=5。
+    let r = rig(flat_bars(10), 1);
+    r.strategies.add_version("sv_pub", "st_1", CONST_SCORE, StrategyStatus::Published);
+    let mut req = submit_req("sv_pub");
+    req.from = dbar(5, 0.0).ts;
+    req.to = dbar(10, 0.0).ts;
+    req.warmup_bars = 5;
+    let run = r.svc.submit(req).await.expect("提交成功");
+    // 钉住 config：warmup requested/effective + 生效 fee（含 stamp_duty_pct 实际取值）。
+    assert_eq!(run.config["warmup_requested"], serde_json::json!(5));
+    assert_eq!(run.config["warmup_effective"], serde_json::json!(5));
+    assert_eq!(run.config["fee"]["stamp_duty_pct"], serde_json::json!(0.05), "缺省股票口径回显");
+    let fin = wait_terminal(&r.runs, &run.id).await;
+    assert_eq!(fin.status, StrategyRunStatus::Succeeded, "{:?}", fin.error);
+    let res = r.runs.get_result(&run.id).await.unwrap().expect("结果");
+    let per_bar = res.per_bar.as_array().unwrap();
+    assert_eq!(per_bar.len(), 10, "per_bar 含 warmup 前缀 + in-range");
+    assert!(per_bar[..5].iter().all(|b| b["warmup"] == serde_json::json!(true)), "前 5 根标记 warmup");
+    assert!(per_bar[5..].iter().all(|b| b["warmup"] == serde_json::json!(false)), "in-range 不标记");
+    // 净值/回撤仅 in-range（5 点）。
+    assert_eq!(res.net_value.as_array().unwrap().len(), 5, "净值仅 in-range");
+    assert_eq!(res.drawdown.as_array().unwrap().len(), 5);
 }
 
 #[tokio::test]

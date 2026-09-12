@@ -32,7 +32,10 @@ web crate (REST/WS)  →  application 层: BacktestService (任务队列/调度)
 ## 3. 数据源与周期口径
 
 - **数据源**：统一读源（ADR-003/用户 2026-09-04）= `kline_accurate` 优先 + cagg 兜底（kline_merged 口径）。回测取 `code` + 目标周期在区间 `[from, to)` 的 bar 序列（升序）。
-- **周期**：1m / 5m / 15m / 日（UI 提供）。M1 直读 accurate；高周期读 `kline_accurate_<P>` 优先 + cagg 兜底。
+- **周期**：1m / 5m / 15m / 1h / 日（UI 提供）。M1 直读 accurate；高周期读 `kline_accurate_<P>` 优先 + cagg 兜底。
+  > I-6/D3（2026-09-12 用户批准）：补 **H1**——数据层已有 `kline_accurate_1h` cagg + 15m rollup 兜底，
+  > 引擎 `backtest::Period` 与试算/工作台 `parse_period` 同步纳入，消除「`get_kline` 支持 1h 但回测拒绝 H1」的双口径；
+  > 区间上限档 H1 归日线档（≤5 年，小时线量级远低于分钟级）。
 - **日期区间**：由 UI 传 `from,to`（或默认 = kline 全历史）；引擎按 bar 时间推进，交易日历不强制（回测用真实 kline 已采集数据，天然含缺口）。
 - **价格**：用 close 作为占位/成交价（简化）；open/high/low 仅策略指标用（如突破用 high）。成交按 ⚠️ 见 §8 决策（滑点／是否用 open 成交）。
 
@@ -42,6 +45,10 @@ web crate (REST/WS)  →  application 层: BacktestService (任务队列/调度)
 - **仓位**：单标的、单方向（多头）；支持 全仓 / 按资金比例（`position_pct` 参数，默认 100%）。
 - **成交假设**：信号在 bar close 判定，**下一 bar open 成交**（或 close 成交——见 §8 决策）。滑点以 `slippage_bp` 计入成交价（买：价×(1+bp)；卖：价×(1−bp)）。
 - **费用**：`commission_rate_pct`（万级），每笔**最低费用** `min_commission`（元）；卖出加**印花税**（A 股卖出 0.05%）。具体默认值见 §8（05-backtest 标注「与旧系统口径一致但数值待裁决」）。
+  > **I-3/D6 印花税口径（2026-09-12 用户批准）**：缺省 `stamp_duty_pct=0.05` 是 **A 股股票口径兼容值**；
+  > **ETF/LOF 无印花税，须显式传 `stamp_duty_pct:0`**（平台注册标的多为 ETF/LOF）。
+  > 试算（`strategy_test_run`）与工作台（`bt_run_ensemble`）均回显**生效** fee（含 stamp_duty_pct 实际取值），
+  > 使「缺省被多收」在结果里可见。标的类型元数据（symbols 表/Registry 增 type）另立 D11，不在本批。
 - **持仓**：bar 循环中维护 `position`（数量/成本/开仓bar）；无持仓时只算净值=现金；有持仓时净值=现金+持仓×close。
 - **结标的**：回测期末**强制平仓**（最后可用 close）。
 - **禁止**：保证金/做空/杠杆；分红/除权不复权（用不复权 K 线，回测区间内除权导致跳空——接受为简化，见 §8 决策）。

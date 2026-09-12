@@ -40,12 +40,15 @@ pub struct Bar {
     pub volume: f64,
 }
 
-/// 回测周期（ADR §3；UI：1m/5m/15m/日）。
+/// 回测周期（ADR §3；UI：1m/5m/15m/1h/日）。
+/// I-6/D3（2026-09-12 用户批准）：补 H1——与数据层 cagg 小时线口径对齐，
+/// 消除「get_kline 支持 1h 但引擎拒绝 H1」的双口径。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Period {
     M1,
     M5,
     M15,
+    H1,
     D1,
 }
 
@@ -57,6 +60,7 @@ impl Period {
             Period::M1 => 252.0 * 240.0,
             Period::M5 => 252.0 * 48.0,
             Period::M15 => 252.0 * 16.0,
+            Period::H1 => 252.0 * 4.0,
             Period::D1 => 252.0,
         }
     }
@@ -108,3 +112,18 @@ pub struct TradeDetail {
     pub hold_bars: usize,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::Period;
+
+    /// ADR bt-3 年化折返因子表：日内周期按「A 股每日 4 小时（=240 分钟）」折算。
+    /// H1 = 每年 252×4 根小时线（I-6/D3：引擎补 H1，与数据层 cagg 1h 口径对齐）。
+    #[test]
+    fn bars_per_year_known_factors() {
+        assert_eq!(Period::M1.bars_per_year(), 252.0 * 240.0);
+        assert_eq!(Period::M5.bars_per_year(), 252.0 * 48.0);
+        assert_eq!(Period::M15.bars_per_year(), 252.0 * 16.0);
+        assert_eq!(Period::H1.bars_per_year(), 252.0 * 4.0);
+        assert_eq!(Period::D1.bars_per_year(), 252.0);
+    }
+}

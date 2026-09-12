@@ -201,18 +201,20 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 33 个工具（3 只读 + 14 模拟实盘 + 8 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10）
+    // 3. tools/list → 34 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 33, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 34, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
         json!(["1m", "5m", "15m", "1h", "1d"]));
+    assert!(tools[0]["inputSchema"]["properties"]["from"].is_object(), "I-5：get_kline 增 from");
     assert_eq!(tools[1]["name"], "get_sources_health");
+    assert_eq!(tools[3]["name"], "list_symbols", "I-4：标的列表（与 web /api/symbols 同源）");
 
     // 4. tools/call get_kline → content text 为 payload JSON
     let status = post(&http, &base, &client.endpoint, &json!({
@@ -228,6 +230,19 @@ async fn mcp_sse_full_protocol_roundtrip() {
     assert_eq!(payload["period"], "1m", "缺省 period=1m");
     assert_eq!(payload["bars"][0]["close"], 1.05);
     assert_eq!(payload["bars"][0]["source"], "tencent_ifzq");
+
+    // 4b. I-4（D1）：tools/call list_symbols → 全部注册标的（与 web /api/symbols 同源端口）
+    let status = post(&http, &base, &client.endpoint, &json!({
+        "jsonrpc": "2.0", "id": 31, "method": "tools/call",
+        "params": { "name": "list_symbols", "arguments": {} } })).await;
+    assert_eq!(status, 202);
+    let resp = next_resp(&mut client).await;
+    assert_eq!(resp["id"], 31);
+    let payload: Value = serde_json::from_str(
+        resp["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(payload["symbols"][0]["code"], "518880", "注册表口径（与 get_kline 同源端口）");
+    assert_eq!(payload["symbols"][0]["enabled"], true, "注册状态字段");
+    assert!(payload["symbols"][0]["latest"].is_null(), "无 bar → latest=null");
 
     // 5. tools/call get_sources_health
     let status = post(&http, &base, &client.endpoint, &json!({
@@ -274,6 +289,30 @@ async fn mcp_sse_full_protocol_roundtrip() {
     assert_eq!(resp["result"]["isError"], true, "未注册 999999 → isError（P0 静默失败修复）");
     let text = resp["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("999999") && text.contains("未注册"), "{text}");
+
+    // 8c. I-5/I-10（D2）：limit 超上限 → -32602 + 分段取数提示（不再静默封顶 1000）
+    let status = post(&http, &base, &client.endpoint, &json!({
+        "jsonrpc": "2.0", "id": 8, "method": "tools/call",
+        "params": { "name": "get_kline", "arguments": { "code": "518880", "limit": 10001 } } })).await;
+    assert_eq!(status, 202);
+    let resp = next_resp(&mut client).await;
+    assert_eq!(resp["error"]["code"], -32602, "超限 ≠ 静默封顶");
+    let msg = resp["error"]["message"].as_str().unwrap();
+    assert!(msg.contains("10000") && msg.contains("分段"), "{msg}");
+
+    // 8d. I-5（D2）：from/to 区间（ISO 日期 → Asia/Shanghai 日界）+ 边界回声
+    let status = post(&http, &base, &client.endpoint, &json!({
+        "jsonrpc": "2.0", "id": 81, "method": "tools/call",
+        "params": { "name": "get_kline", "arguments": {
+            "code": "518880", "from": "2026-09-02", "to": "2026-09-04" } } })).await;
+    assert_eq!(status, 202);
+    let resp = next_resp(&mut client).await;
+    assert_eq!(resp["id"], 81);
+    let payload: Value = serde_json::from_str(
+        resp["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(payload["from"], "2026-09-01T16:00:00Z", "from 日期 → 当日 00:00 CST（闭）");
+    assert_eq!(payload["to"], "2026-09-04T16:00:00Z", "to 日期 → 次日 00:00 CST（开，含 to 整日）");
+    assert_eq!(payload["bars"].as_array().unwrap().len(), 1, "mock bar（2026-09-03T01:31Z）落在区间内");
 
     // 9. 断连 → 会话注销（连接泄漏防护：SessionGuard drop；
     //    服务端在下一写帧（保活 ≤15s）时发现写失败而清理，容差 20s）

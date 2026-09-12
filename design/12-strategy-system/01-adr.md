@@ -174,10 +174,31 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 
 ### 13.5 Web 交互定稿（D13）
 - 编辑器：**CodeMirror 6**（非 Monaco；包体积理由见 Grill Q5）+ 指标 API 文档侧栏 + 版本 diff 视图。
-- 试算**双模式**：纯评分模式（position 恒 null，看原始反应）/ 模拟持仓模式（单策略 ensemble，自身分数走默认 60/40 阈值+LumpSum 模拟成交，position 有真实值，可调 DCA/止损/门控模板）。同步执行 + 区间上限（日线≤5年 / 1m≤3个月）。
+- 试算**双模式**：纯评分模式（position 恒 null，看原始反应）/ 模拟持仓模式（单策略 ensemble，自身分数走默认 60/40 阈值+LumpSum 模拟成交，position 有真实值，可调 DCA/止损/门控模板）。同步执行 + 区间上限（日线/H1≤5年 / 分钟级≤3个月）。
 - 工作台结果页：K线+买卖标记(含硬止损触发点) / 总分曲线(60/40阈值线+三区着色) / 各策略评分曲线(图例开关,默认前3) / 净值+回撤 / Tab(交易明细|8项绩效|逐bar评分表|事件日志) / 多任务 compare(净值叠加+绩效并排)。K线叠加策略指标线为 P3 可选裁剪项。
 - 版本管理：编辑已发布版本**自动落新 draft**（防呆）；回滚=从旧版本建 draft；版本列表带 diff 视图。
 - **组合预设（Combo Preset）**：命名保存 {策略集+权重/参数, 阈值, Policy, 止损}，工作台与 sim-live 共用下拉——保证回测↔模拟实盘对比时配置一致。P3 末可裁剪项。
+
+#### 13.5.1 试算/回测 warmup 与 fee 参数口径（I-2/I-3/D6，2026-09-12 用户批准）
+
+> 适用于统一 ensemble 引擎（strategy-core）上的**试算**（`strategy_test_run`）与**工作台**（`bt_run_ensemble`）；
+> 两者共用同一代码路径，口径一致。
+
+**warmup（I-2，架构师裁决 = 引擎级标记）**：宿主不再只取 `[from,to)` bar 而从 0 起算指标
+（旧行为：前 `window−1` 根恒中立 50/Hold 且计入 scores/signals——见 tester/report/001 §1）。
+- 服务层向前多取 `warmup_bars` 根（缺省 **250**，请求参数可覆盖；`0`=旧行为），拼 `[warmup_start,to)` 喂引擎。
+- 引擎（`EnsembleConfig.warmup_bars`）对前缀 warmup 段**仍逐 bar 评分**（真预热指标/插件状态），
+  但 `BarRecord.warmup=true`、**不执行 Policy、不产订单、不成交、不计净值/回撤/绩效**；`from` 起空仓正常执行。
+- 响应回报 `warmup_requested` / `warmup_effective`（实际可得前置根数；`< requested` 即历史不足，silent shortfall 必须可见）
+  + 逐 bar `warmup: bool`。pure_score / sim_position 同口径。
+
+**试算参数组（I-3）**：`strategy_test_run` 新增：
+- `fee`（费率/最低费/滑点 + 可选 `stamp_duty_pct`）——与工作台 `to_fee_model` **同源口径**；
+  缺省 `stamp_duty_pct=0.05` 为 **A 股股票口径兼容值**，**ETF/LOF 须显式传 0**（另立 D11 标的类型元数据做按类型推断）。
+- `policy`（`ExecutionPolicy`：`LumpSum`/`Dca`，与 `bt_run_ensemble` 同 JSON 口径；缺省 LumpSum 全仓）、
+  `capital`（初始资金，缺省 100_000）。**保留缺省值兼容既有调用**；响应回显**生效** fee（含 stamp_duty_pct 实际取值）。
+
+**H1（I-6）**：试算/工作台 period 集含 `H1`（与数据层 `kline_accurate_1h` cagg 对齐）；区间上限 H1 归日线档（≤ 5 年）。
 
 ### 13.6 sim-live 切源口径（D14）
 **保留骨架换内核**：会话/账户/撮合/UI 配置流/会话记录/回测对比全部不动；编排器内 `create_strategy` 替换为 Registry 已发布策略 + QuickJS 实例（每策略×标的一实例），评分/聚合语义不变，沿用 3 策略×30 股上限。

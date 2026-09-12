@@ -17,7 +17,7 @@ use domain::types::{Code, Period, SourceId};
 use application::strategy::{
     sha256_hex, CreateStrategyInput, StrategyInvalidTransition, StrategyNotFound, StrategyService,
     StrategyValidation, TestRunMode, TestRunRequest, TestRunSource, UpdateDraftOutcome,
-    MAX_EVENTS,
+    DEFAULT_TEST_RUN_CAPITAL, MAX_EVENTS,
 };
 
 // ── fixtures ──
@@ -770,6 +770,11 @@ fn test_req(source: TestRunSource, mode: TestRunMode, from: DateTime<Utc>, to: D
         from,
         to,
         mode,
+        // I-2/D6：默认前置预热 250 根（架构师裁决）；I-3：fee/policy/capital 缺省。
+        warmup_bars: 250,
+        fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
+        policy: serde_json::json!({"LumpSum": {"position_pct": 1.0}}),
+        initial_capital: DEFAULT_TEST_RUN_CAPITAL,
     }
 }
 
@@ -846,6 +851,129 @@ async fn test_run_interval_limits() {
     let (from, to) = span(10);
     let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
     req.period = "W1".into();
+    assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
+}
+
+/// I-6/D3：试算引擎支持 H1（与数据层 cagg 1h 口径对齐）；区间档位与数据量同 D1 档。
+#[tokio::test]
+async fn test_run_h1_period_supported() {
+    let (svc, _) = service(trend_bars());
+    let (from, to) = span(10);
+    // pure_score：H1 不再被拒（原 bar_map 抛「周期 H1 回测暂不支持」）。
+    let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
+    req.period = "H1".into();
+    let resp = svc.test_run(&req).await.unwrap();
+    assert_eq!(resp.period, "H1");
+    assert_eq!(resp.bar_count, 6);
+    assert_eq!(resp.scores.len(), 6);
+    // sim_position：H1 走同一 ensemble 引擎（信号 + 成交可产）。
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    req.period = "H1".into();
+    let resp = svc.test_run(&req).await.unwrap();
+    assert_eq!(resp.period, "H1");
+    assert_eq!(resp.signals.len(), 6);
+    // H1 跨 5 年（小时线量级 ~5k bar）在档内；超 5 年 → 400。
+    let (from, to) = span(366 * 5 + 10);
+    let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
+    req.period = "H1".into();
+    let e = svc.test_run(&req).await.unwrap_err();
+    assert!(e.downcast_ref::<StrategyValidation>().unwrap().0.contains("区间超限"));
+}
+
+// ── I-2/D6：warmup 契约（架构师 2026-09-12 裁决 = 方案 A）──
+
+/// warmup：前置历史预热逐 bar 标记；warmup 段不计入成交（即不计入绩效）。
+#[tokio::test]
+async fn test_run_warmup_prefix_marked() {
+    // 10 根日线（close = 100+i）；请求 [bar3, bar10)，warmup_bars=3。
+    let bars: Vec<_> = (0..10).map(|i| dbar(i, 100.0 + i as f64)).collect();
+    let (svc, _) = service(bars.clone());
+    let from = bars[3].ts;
+    let to = bars[9].ts + Duration::days(1);
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    req.warmup_bars = 3;
+    let resp = svc.test_run(&req).await.unwrap();
+    assert_eq!(resp.warmup_requested, 3);
+    assert_eq!(resp.warmup_effective, 3, "前置 3 根可得 → effective=3");
+    assert_eq!(resp.bar_count, 10, "bar_count = warmup + in-range（3+7）");
+    assert_eq!(resp.scores.len(), 10);
+    assert!(resp.scores[..3].iter().all(|p| p.warmup), "前 3 根标记 warmup");
+    assert!(resp.scores[3..].iter().all(|p| !p.warmup), "in-range 不标记 warmup");
+    assert!(resp.signals[..3].iter().all(|p| p.warmup));
+    // 成交仅 in-range（open_bar >= 3，即 warmup 段不执行）。
+    let trades = resp.trades.as_array().unwrap();
+    assert!(!trades.is_empty());
+    for t in trades {
+        assert!(t["open_bar"].as_u64().unwrap() >= 3, "成交不得落在 warmup 段");
+    }
+}
+
+/// warmup 历史不足：warmup_effective < warmup_requested（silent shortfall 可见）。
+#[tokio::test]
+async fn test_run_warmup_reports_shortfall() {
+    let bars: Vec<_> = (0..10).map(|i| dbar(i, 100.0)).collect();
+    let (svc, _) = service(bars.clone());
+    let from = bars[3].ts; // 仅 3 根前置历史
+    let to = bars[9].ts + Duration::days(1);
+    let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
+    req.warmup_bars = 5; // 请求 5，但仅 3 根可得
+    let resp = svc.test_run(&req).await.unwrap();
+    assert_eq!(resp.warmup_requested, 5);
+    assert_eq!(resp.warmup_effective, 3, "历史不足 → effective < requested");
+    assert_eq!(resp.bar_count, 10); // 3 warmup + 7 in-range
+}
+
+// ── I-3/D6：试算 fee / policy / capital 参数组 ──
+
+/// fee 生效回显（含 stamp_duty_pct 实际取值）；ETF 显式 0 vs 缺省 0.05 影响成交。
+#[tokio::test]
+async fn test_run_fee_echo_and_stamp_duty_effect() {
+    let (svc, _) = service(trend_bars());
+    let (from, to) = span(30);
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    // 缺省：股票口径 0.05（bt_run_ensemble 同源 to_fee_model）。
+    let r0 = svc.test_run(&req).await.unwrap();
+    assert_eq!(r0.fee["stamp_duty_pct"], serde_json::json!(0.05));
+    assert_eq!(r0.fee["rate_pct"], serde_json::json!(0.025));
+    let duty0: f64 = r0.trades.as_array().unwrap().iter().map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
+    // ETF：显式 stamp_duty_pct=0 → 零印花税（ETF 真实口径，须显式传）。
+    req.fee = serde_json::json!(
+        {"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+    );
+    let r1 = svc.test_run(&req).await.unwrap();
+    assert_eq!(r1.fee["stamp_duty_pct"], serde_json::json!(0.0), "ETF 显式 0 应回显");
+    let duty1: f64 = r1.trades.as_array().unwrap().iter().map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
+    assert_eq!(duty1, 0.0, "ETF 口径零印花税");
+    assert!(duty0 > 0.0, "缺省股票口径有印花税");
+    // 非法 fee（缺 slippage_bp）→ 400。
+    req.fee = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0});
+    assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
+}
+
+/// policy（LumpSum/Dca）+ capital 参数生效；与工作台 ExecutionPolicy 同口径。
+#[tokio::test]
+async fn test_run_policy_and_capital_effect() {
+    let (svc, _) = service(trend_bars());
+    let (from, to) = span(30);
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    // LumpSum 全仓（缺省）。
+    let lump = svc.test_run(&req).await.unwrap();
+    let lump_shares = lump.trades.as_array().unwrap()[0]["shares"].as_f64().unwrap();
+    // Dca 3 批（interval=1）→ 每批 1/3 → 回合 shares 不同。
+    req.policy = serde_json::json!(
+        {"Dca": {"tranches": 3, "mode": "Equal", "amount": null, "interval": 1}}
+    );
+    let dca = svc.test_run(&req).await.unwrap();
+    let dca_shares = dca.trades.as_array().unwrap()[0]["shares"].as_f64().unwrap();
+    assert!(dca_shares < lump_shares, "Dca 分 3 批建仓 → 回合 shares 小于 LumpSum");
+    // capital：加倍初始资金 → 股数近似加倍。
+    req.policy = serde_json::json!({"LumpSum": {"position_pct": 1.0}});
+    req.initial_capital = 200_000.0;
+    let cap = svc.test_run(&req).await.unwrap();
+    let cap_shares = cap.trades.as_array().unwrap()[0]["shares"].as_f64().unwrap();
+    assert!(cap_shares > lump_shares, "加倍资本 → 股数增大");
+    // 非法 policy → 400。
+    req.policy = serde_json::json!({"Bogus": {}});
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
 }
 

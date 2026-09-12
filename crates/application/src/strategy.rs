@@ -38,7 +38,8 @@ use strategy_runtime::{
     BarCtx, ParamDef, PluginRuntime, QuickJsRuntime, RuntimeLimits, StrategyParams,
 };
 
-// 复用回测服务的周期解析口径（M1/M5/M15/D1；H1 拒绝）。
+// 复用回测/试算的周期解析口径（`crate::bar_map::parse_period`：M1/M5/M15/H1/D1；
+// I-6/D3 起 H1 已支持，W1/MO1 为看板读源扩展、不入回测）。
 pub use crate::bar_map::parse_period;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -54,6 +55,7 @@ pub const MAX_EVENTS: usize = 1_000;
 pub const MAX_TRADES: usize = 5_000;
 
 /// 试算区间上限：日线 ≤ 5 年（366×5 天含闰年冗余）/ 分钟级（M1/M5/M15）≤ 3 个月（93 天）。
+/// H1（I-6/D3）归入日线档（同上限）——小时级数据量远低于分钟级，详见 test_run 区间校验。
 pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
 pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
 
@@ -162,6 +164,17 @@ pub struct TestRunRequest {
     pub from: DateTime<Utc>,
     pub to: DateTime<Utc>,
     pub mode: TestRunMode,
+    /// I-2/D6：前置预热根数（请求值）。服务层按此拉取 `from` 之前可得历史，
+    /// 实际生效值见响应 `warmup_effective`（< 请求值即历史不足）。0 = 无预热。
+    pub warmup_bars: usize,
+    /// I-3/D6：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
+    /// 与工作台 `bt_run_ensemble` 同 `to_fee_model` 口径（缺省 stamp_duty_pct 0.05）。
+    pub fee: serde_json::Value,
+    /// I-3/D6：执行策略 JSON（与 `bt_run_ensemble` 同 `ExecutionPolicy` 口径：
+    /// `{"LumpSum":{"position_pct":..}}` 或 `{"Dca":{..}}`）。
+    pub policy: serde_json::Value,
+    /// I-3/D6：初始资金（缺省 100_000，与回测 ADR §4 / 工作台一致）。
+    pub initial_capital: f64,
 }
 
 /// 评分点（score=None：插件熔断停用后的 bar）。
@@ -169,6 +182,8 @@ pub struct TestRunRequest {
 pub struct ScorePoint {
     pub ts: i64,
     pub score: Option<f64>,
+    /// I-2/D6：是否属于前置 warmup 段（true 的 bar 不计入绩效统计）。
+    pub warmup: bool,
 }
 
 /// 信号点（sim_position 模式逐 bar 信号）。
@@ -176,6 +191,8 @@ pub struct ScorePoint {
 pub struct SignalPoint {
     pub ts: i64,
     pub signal: String,
+    /// I-2/D6：是否属于前置 warmup 段（warmup 段信号不执行）。
+    pub warmup: bool,
 }
 
 /// 试算事件（插件日志/插件错误/熔断；JSON 便于前端直渲）。
@@ -201,12 +218,19 @@ pub struct TestRunResponse {
     pub mode: TestRunMode,
     pub symbol: String,
     pub period: String,
+    /// 处理总 bar 数（含前置 warmup）；`scores.len() == bar_count`。
     pub bar_count: usize,
+    /// I-2/D6：请求的前置预热根数。
+    pub warmup_requested: usize,
+    /// I-2/D6：实际前置（可得历史）根数；`< warmup_requested` 即历史不足。
+    pub warmup_effective: usize,
     pub scores: Vec<ScorePoint>,
-    /// sim_position 模式逐 bar 信号；pure_score 恒空。
+    /// sim_position 模式逐 bar 信号（含前置 warmup）；pure_score 恒空。
     pub signals: Vec<SignalPoint>,
-    /// sim_position 模式成交明细（backtest::TradeDetail JSON）；pure_score 恒空数组。
+    /// sim_position 模式成交明细（backtest::TradeDetail JSON，**仅 in-range**）；pure_score 恒空数组。
     pub trades: serde_json::Value,
+    /// I-3/D6：生效费用（回显，含 stamp_duty_pct 实际取值）。
+    pub fee: serde_json::Value,
     pub events: Vec<TestRunEvent>,
     pub truncated: Truncation,
 }
@@ -640,10 +664,12 @@ impl StrategyService {
 
         let (domain_period, bt_period) = crate::bar_map::parse_period(&req.period)
             .map_err(|e| StrategyValidation(e.to_string()))?;
-        // 区间上限（400）：D1 ≤ 5 年；分钟级（M1/M5/M15）≤ 3 个月。
+        // 区间上限（400）：D1 ≤ 5 年；分钟级（M1/M5/M15）≤ 3 个月；
+        // H1（I-6/D3）按日线档（5 年）——小时线 5 年 ≈ 5k bar，远低于评分点截断上限，
+        // 且低于 M1×3 个月 bar 量；数据层 cagg 1h 覆盖全历史。
         let span_days = (req.to - req.from).num_days();
         let limit_days = match domain_period {
-            domain::types::Period::D1 => D1_MAX_SPAN_DAYS,
+            domain::types::Period::D1 | domain::types::Period::H1 => D1_MAX_SPAN_DAYS,
             _ => MINUTE_MAX_SPAN_DAYS,
         };
         if span_days > limit_days {
@@ -654,14 +680,45 @@ impl StrategyService {
             .into());
         }
 
-        let bars: Vec<backtest::Bar> = self
+        // I-3/D6：fee / policy / capital 入参校验（与工作台 to_fee_model / ExecutionPolicy 同口径）。
+        let fee =
+            crate::fee::to_fee_model(&req.fee).map_err(|e| StrategyValidation(e.to_string()))?;
+        let policy: strategy_core::ExecutionPolicy = serde_json::from_value(req.policy.clone())
+            .map_err(|e| StrategyValidation(format!("policy 非法: {e}")))?;
+        policy.validate().map_err(StrategyValidation)?;
+        if !req.initial_capital.is_finite() || req.initial_capital <= 0.0 {
+            return Err(StrategyValidation(format!(
+                "capital 须为正有限值，got {}",
+                req.initial_capital
+            ))
+            .into());
+        }
+
+        // I-2/D6：一次性拉取 [warmup_start, to)，再按 `from` 切分为 warmup 前缀 + in-range。
+        // 只截取 `from` 之前最近 `warmup_requested` 根作预热（前面多取的丢弃）。
+        let warmup_requested = req.warmup_bars;
+        let warmup_start = if warmup_requested == 0 {
+            req.from
+        } else {
+            req.from - crate::bar_map::warmup_lookback(&domain_period, warmup_requested)
+        };
+        let all: Vec<backtest::Bar> = self
             .bar_read
-            .bars(req.symbol.trim(), &domain_period, req.from, req.to)
+            .bars(req.symbol.trim(), &domain_period, warmup_start, req.to)
             .await?
             .iter()
             .map(to_bt_bar)
             .collect();
-        if bars.is_empty() {
+        // bars 按 ts 升序：split = 首个 ts >= from 的下标，也即 from 之前可得 bar 数。
+        let split = all
+            .iter()
+            .position(|b| b.ts >= req.from.timestamp())
+            .unwrap_or(all.len());
+        let warmup_effective = split.min(warmup_requested);
+        let slice_start = split - warmup_effective;
+        let bars: Vec<backtest::Bar> = all[slice_start..].to_vec();
+        let range_bars = bars.len() - warmup_effective;
+        if range_bars == 0 {
             return Err(StrategyValidation(format!(
                 "区间内无 K 线数据（{} {} {}~{}）",
                 req.symbol, req.period, req.from, req.to
@@ -674,10 +731,28 @@ impl StrategyService {
         let mode = req.mode;
         let req_owned = req.clone();
         blocking(move || match mode {
-            TestRunMode::PureScore => Ok(run_pure_score(&req_owned, &code, &code_hash, &params, &bars)),
-            TestRunMode::SimPosition => {
-                run_sim_position(&req_owned, &code, &code_hash, &params, &bars, bt_period)
-            }
+            TestRunMode::PureScore => Ok(run_pure_score(
+                &req_owned,
+                &code,
+                &code_hash,
+                &params,
+                &bars,
+                warmup_effective,
+                warmup_requested,
+                &fee,
+            )),
+            TestRunMode::SimPosition => run_sim_position(
+                &req_owned,
+                &code,
+                &code_hash,
+                &params,
+                &bars,
+                bt_period,
+                warmup_effective,
+                warmup_requested,
+                &fee,
+                &policy,
+            ),
         })
         .await?
     }
@@ -752,12 +827,17 @@ impl StrategyService {
 
 /// pure_score 试算：逐 bar on_bar（position 恒 None）；G5 语义——错误 bar 中立分 50 +
 /// 错误事件，连续 10 次熔断停用（后续 bar score=None）。
+/// I-2/D6：前 `warmup_effective` 根为预热段（仍评分，逐 bar 标记 warmup=true）。
+#[allow(clippy::too_many_arguments)]
 fn run_pure_score(
     req: &TestRunRequest,
     code: &str,
     code_hash: &str,
     params: &StrategyParams,
     bars: &[backtest::Bar],
+    warmup_effective: usize,
+    warmup_requested: usize,
+    fee: &backtest::FeeModel,
 ) -> TestRunResponse {
     let mut scores = Vec::with_capacity(bars.len());
     let mut events = Vec::new();
@@ -780,9 +860,12 @@ fn run_pure_score(
                 symbol: req.symbol.clone(),
                 period: req.period.clone(),
                 bar_count: bars.len(),
+                warmup_requested,
+                warmup_effective,
                 scores,
                 signals: vec![],
                 trades: serde_json::json!([]),
+                fee: crate::fee::fee_model_to_json(fee),
                 events,
                 truncated,
             };
@@ -795,7 +878,11 @@ fn run_pure_score(
             break;
         }
         if disabled {
-            scores.push(ScorePoint { ts: bar.ts, score: None });
+            scores.push(ScorePoint {
+                ts: bar.ts,
+                score: None,
+                warmup: i < warmup_effective,
+            });
             continue;
         }
         let ctx = BarCtx::new(i, bar.clone(), bars, None);
@@ -804,13 +891,21 @@ fn run_pure_score(
             if events.len() >= MAX_EVENTS {
                 truncated.events = true;
             } else {
-                events.push(TestRunEvent { kind: "log".into(), bar_index: i, message: msg });
+                events.push(TestRunEvent {
+                    kind: "log".into(),
+                    bar_index: i,
+                    message: msg,
+                });
             }
         }
         match out {
             Ok(score) => {
                 consecutive_errors = 0;
-                scores.push(ScorePoint { ts: bar.ts, score: Some(score) });
+                scores.push(ScorePoint {
+                    ts: bar.ts,
+                    score: Some(score),
+                    warmup: i < warmup_effective,
+                });
             }
             Err(e) => {
                 consecutive_errors += 1;
@@ -823,7 +918,11 @@ fn run_pure_score(
                         message: e.to_string(),
                     });
                 }
-                scores.push(ScorePoint { ts: bar.ts, score: Some(strategy_core::NEUTRAL_SCORE) });
+                scores.push(ScorePoint {
+                    ts: bar.ts,
+                    score: Some(strategy_core::NEUTRAL_SCORE),
+                    warmup: i < warmup_effective,
+                });
                 if consecutive_errors >= strategy_core::CIRCUIT_BREAKER_THRESHOLD {
                     disabled = true;
                     if events.len() >= MAX_EVENTS {
@@ -845,16 +944,20 @@ fn run_pure_score(
         symbol: req.symbol.clone(),
         period: req.period.clone(),
         bar_count: bars.len(),
+        warmup_requested,
+        warmup_effective,
         scores,
         signals: vec![],
         trades: serde_json::json!([]),
+        fee: crate::fee::fee_model_to_json(fee),
         events,
         truncated,
     }
 }
 
-/// sim_position 试算：单 slot EnsembleEngine（默认阈值 60/40 + LumpSum pct=1.0 + 默认 FeeModel，
-/// ADR §13.5），收紧 RuntimeLimits。
+/// sim_position 试算：单 slot EnsembleEngine（默认 60/40 阈值 + 可配 ExecutionPolicy + 可配 fee，
+/// ADR §13.5），收紧 RuntimeLimits。I-2/D6：warmup 段由引擎标记（不执行/不计绩效）。
+#[allow(clippy::too_many_arguments)]
 fn run_sim_position(
     req: &TestRunRequest,
     code: &str,
@@ -862,6 +965,10 @@ fn run_sim_position(
     params: &StrategyParams,
     bars: &[backtest::Bar],
     period: backtest::Period,
+    warmup_effective: usize,
+    warmup_requested: usize,
+    fee: &backtest::FeeModel,
+    policy: &strategy_core::ExecutionPolicy,
 ) -> anyhow::Result<TestRunResponse> {
     let slot = strategy_core::StrategySlot::new(code, code_hash, params.clone(), 1.0)
         .map_err(StrategyValidation)?;
@@ -869,11 +976,12 @@ fn run_sim_position(
         slots: vec![slot],
         buy_threshold: strategy_core::DEFAULT_BUY_THRESHOLD,
         sell_threshold: strategy_core::DEFAULT_SELL_THRESHOLD,
-        policy: strategy_core::ExecutionPolicy::LumpSum { position_pct: 1.0 },
+        policy: *policy,
         stop: None,
-        initial_capital: DEFAULT_TEST_RUN_CAPITAL,
-        fee: backtest::FeeModel::default(),
+        initial_capital: req.initial_capital,
+        fee: fee.clone(),
         period,
+        warmup_bars: warmup_effective,
         runtime_limits: test_run_limits(),
     };
     let result = strategy_core::engine::run_ensemble_with_quickjs(&cfg, bars)
@@ -888,7 +996,11 @@ fn run_sim_position(
             truncated.scores = true;
             break;
         }
-        scores.push(ScorePoint { ts: rec.ts, score: Some(rec.aggregate) });
+        scores.push(ScorePoint {
+            ts: rec.ts,
+            score: Some(rec.aggregate),
+            warmup: rec.warmup,
+        });
         signals.push(SignalPoint {
             ts: rec.ts,
             signal: match rec.signal {
@@ -897,6 +1009,7 @@ fn run_sim_position(
                 strategy_core::TradeSignal::Hold => "hold",
             }
             .to_string(),
+            warmup: rec.warmup,
         });
         for ev in &rec.events {
             let (kind, bar_index, message) = match ev {
@@ -931,9 +1044,12 @@ fn run_sim_position(
         symbol: req.symbol.clone(),
         period: req.period.clone(),
         bar_count: bars.len(),
+        warmup_requested,
+        warmup_effective,
         scores,
         signals,
         trades,
+        fee: crate::fee::fee_model_to_json(fee),
         events,
         truncated,
     })

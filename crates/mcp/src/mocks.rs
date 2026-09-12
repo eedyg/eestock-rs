@@ -27,23 +27,36 @@ pub struct BarsCall {
 /// `registered` = symbols 注册表口径（`symbols_with_latest` 返回；get_kline 注册成员校验输入——
 /// I-1：未注册 code 必须显式 isError，不得静默空）；`empty_bars` = 已注册但区间无数据（bars 空集）；
 /// `registry_fail` = 注册表查询失败（fail-closed 路径）。
+/// `bars_override` = 固定 bars 序列（I-5 from/to 区间过滤用例：mock 不实现 before 过滤，仅按 ts 侧筛选）；
+/// `symbols_override` = 固定注册表行（I-4 list_symbols 用例：注册状态/可用区间字段可控）。
 pub struct MockKline {
     pub calls: Mutex<Vec<BarsCall>>,
     pub fail: bool,
     pub registered: Vec<String>,
     pub empty_bars: bool,
     pub registry_fail: bool,
+    pub bars_override: Option<Vec<KlineBarView>>,
+    pub symbols_override: Option<Vec<SymbolLatestView>>,
 }
 
 impl MockKline {
     /// 缺省注册表 = ["518880"]（既有用例口径；518880 为平台已注册标的）。
     pub fn new() -> Self {
         Self { calls: Mutex::new(vec![]), fail: false, registered: vec!["518880".into()],
-               empty_bars: false, registry_fail: false }
+               empty_bars: false, registry_fail: false,
+               bars_override: None, symbols_override: None }
     }
     /// 自定义注册表（未注册 / 多标的用例）。
     pub fn with_registered(codes: &[&str]) -> Self {
         Self { registered: codes.iter().map(|c| (*c).into()).collect(), ..Self::new() }
+    }
+    /// 固定 bars 序列（I-5 区间过滤用例）。
+    pub fn with_bars(self, bars: Vec<KlineBarView>) -> Self {
+        Self { bars_override: Some(bars), ..self }
+    }
+    /// 固定注册表行（I-4 list_symbols 用例：name/interval/settlement/enabled/最新快照 可控）。
+    pub fn with_symbols(self, rows: Vec<SymbolLatestView>) -> Self {
+        Self { symbols_override: Some(rows), ..self }
     }
     /// bars 端口失败（isError 路径）。
     pub fn failing() -> Self { Self { fail: true, ..Self::new() } }
@@ -73,12 +86,14 @@ impl KlineRead for MockKline {
             .push(BarsCall { period, code: code.into(), before, limit });
         if self.fail { anyhow::bail!("mock kline failure"); }
         if self.empty_bars { return Ok(vec![]); }
+        if let Some(bars) = &self.bars_override { return Ok(bars.clone()); }
         Ok(sample_bars(code))
     }
 
     /// symbols 注册表口径（I-1：get_kline 以注册表判定「标的存在」，不以「有无 K 线」推断）。
     async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
         if self.registry_fail { anyhow::bail!("mock registry failure"); }
+        if let Some(rows) = &self.symbols_override { return Ok(rows.clone()); }
         Ok(self.registered.iter().map(|c| SymbolLatestView {
             code: c.clone(), name: Some(format!("mock {c}")), interval_secs: 60,
             settlement: "T1".into(), enabled: true,

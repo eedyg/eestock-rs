@@ -57,6 +57,7 @@ fn run_scores(code: &str, id: &str, bars: &[Bar]) -> Vec<f64> {
         initial_capital: 100_000.0,
         fee: FeeModel::default(),
         period: Period::D1,
+        warmup_bars: 0,
         runtime_limits: RuntimeLimits::default(),
     };
     run_ensemble_with_quickjs(&cfg, bars)
@@ -140,6 +141,7 @@ fn two_state_gate_scores_gated_by_position() {
         initial_capital: 100_000.0,
         fee: FeeModel::default(),
         period: Period::D1,
+        warmup_bars: 0,
         runtime_limits: RuntimeLimits::default(),
     };
     let res = run_ensemble_with_quickjs(&cfg, &bars).expect("运行成功");

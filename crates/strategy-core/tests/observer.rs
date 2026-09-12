@@ -42,6 +42,7 @@ fn base_cfg() -> EnsembleConfig {
         initial_capital: 100_000.0,
         fee: FeeModel::default(),
         period: Period::D1,
+        warmup_bars: 0,
         runtime_limits: RuntimeLimits::default(),
     }
 }

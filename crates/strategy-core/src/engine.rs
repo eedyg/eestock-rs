@@ -129,6 +129,11 @@ pub struct EnsembleConfig {
     pub fee: FeeModel,
     /// 周期（绩效年化因子用，对应 backtest::Period）。
     pub period: Period,
+    /// 前置预热根数（I-2/D6，架构师 2026-09-12 裁决 = 方案 A）。`bars` 前 `warmup_bars` 根
+    /// 为 **warmup 段**：引擎仍逐 bar 调用插件（真预热指标/插件状态），per_bar 记 `warmup=true`，
+    /// 但**不执行 Policy、不产订单、不成交、不计净值/回撤/绩效**；warmup 结束后从空仓开始正常执行。
+    /// `0` = 旧行为（无预热，向后兼容）。引擎内部按 `min(warmup_bars, bars.len())` 截断。
+    pub warmup_bars: usize,
     /// 运行时限额（`run_ensemble_with_quickjs` 便捷入口据此构造 QuickJsRuntime；
     /// 使用 [`run_ensemble`] 注入自定义运行时时本字段仅作文档性声明）。
     pub runtime_limits: RuntimeLimits,
@@ -216,6 +221,9 @@ pub enum EngineEvent {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BarRecord {
     pub ts: i64,
+    /// 是否属于前置 warmup 段（I-2/D6）：true 的 bar 仅用于预热指标/插件状态，
+    /// 不计入绩效统计、不产订单/成交（响应层据此逐根标记）。
+    pub warmup: bool,
     /// 各活跃 slot 评分（已熔断 slot 不出现——按「无覆盖」处理）。
     pub scores: Vec<SlotScore>,
     pub aggregate: f64,
@@ -334,6 +342,8 @@ pub fn run_ensemble_with_observer(
 
     let fee = &cfg.fee;
     let n = bars.len();
+    // I-2/D6：前置 warmup 段长度（截断到 bars 长度；0 = 旧行为）。
+    let warmup = cfg.warmup_bars.min(n);
     let mut cash = cfg.initial_capital;
     let mut holding: Option<Holding> = None;
     let mut pending: Option<Pending> = None;
@@ -346,79 +356,83 @@ pub fn run_ensemble_with_observer(
 
     for i in 0..n {
         let bar = &bars[i];
+        let is_warmup = i < warmup;
         let mut events: Vec<EngineEvent> = Vec::new();
         let mut orders: Vec<OrderIntent> = Vec::new();
 
         // 1) 执行上一 bar 挂单（本 bar open 成交）。
-        if let Some(p) = pending.take() {
-            match p {
-                Pending::BuyDelta { qty, reason } => {
-                    if qty > 0.0 && cash > 0.0 {
-                        // 预算上限 = min(目标股数所需预算, 可用现金)；FeeModel.buy 将佣金折入，
-                        // 保证现金不因费用透支（与 backtest 引擎口径一致）。
-                        let need =
-                            qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
-                        let exec = fee.buy(need.min(cash), bar.open);
-                        if exec.shares > 0.0 {
-                            cash -= exec.total_cost;
-                            match &mut holding {
-                                Some(h) => {
-                                    h.qty += exec.shares;
-                                    h.cost_basis += exec.total_cost;
-                                    h.value_basis += exec.trade_value;
-                                    h.buy_commission += exec.commission;
+        //    I-2/D6：warmup 段不执行任何挂单（warmup 段本身也不产挂单，此处为显式隔离）。
+        if !is_warmup {
+            if let Some(p) = pending.take() {
+                match p {
+                    Pending::BuyDelta { qty, reason } => {
+                        if qty > 0.0 && cash > 0.0 {
+                            // 预算上限 = min(目标股数所需预算, 可用现金)；FeeModel.buy 将佣金折入，
+                            // 保证现金不因费用透支（与 backtest 引擎口径一致）。
+                            let need =
+                                qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
+                            let exec = fee.buy(need.min(cash), bar.open);
+                            if exec.shares > 0.0 {
+                                cash -= exec.total_cost;
+                                match &mut holding {
+                                    Some(h) => {
+                                        h.qty += exec.shares;
+                                        h.cost_basis += exec.total_cost;
+                                        h.value_basis += exec.trade_value;
+                                        h.buy_commission += exec.commission;
+                                    }
+                                    None => {
+                                        holding = Some(Holding {
+                                            qty: exec.shares,
+                                            cost_basis: exec.total_cost,
+                                            value_basis: exec.trade_value,
+                                            buy_commission: exec.commission,
+                                            entry_ts: bar.ts,
+                                            entry_bar: i,
+                                        });
+                                        trailing.on_entry(bar.open);
+                                    }
                                 }
-                                None => {
-                                    holding = Some(Holding {
-                                        qty: exec.shares,
-                                        cost_basis: exec.total_cost,
-                                        value_basis: exec.trade_value,
-                                        buy_commission: exec.commission,
-                                        entry_ts: bar.ts,
-                                        entry_bar: i,
-                                    });
-                                    trailing.on_entry(bar.open);
-                                }
-                            }
-                            events.push(EngineEvent::Fill {
-                                bar_index: i,
-                                side: OrderSide::Buy,
-                                qty: exec.shares,
-                                price: exec.effective_price,
-                                reason,
-                            });
-                            // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
-                            // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
-                            if reason == OrderReason::Policy {
-                                if let Some(h) = &holding {
-                                    policy_state.clamp_lump_frozen(h.qty);
+                                events.push(EngineEvent::Fill {
+                                    bar_index: i,
+                                    side: OrderSide::Buy,
+                                    qty: exec.shares,
+                                    price: exec.effective_price,
+                                    reason,
+                                });
+                                // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
+                                // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
+                                if reason == OrderReason::Policy {
+                                    if let Some(h) = &holding {
+                                        policy_state.clamp_lump_frozen(h.qty);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                Pending::SellQty { qty, reason } => {
-                    if let Some(h) = holding {
-                        let q = qty.min(h.qty);
-                        if q > 0.0 {
-                            let exec = fee.sell(q, bar.open);
-                            cash += exec.proceeds;
-                            events.push(EngineEvent::Fill {
-                                bar_index: i,
-                                side: OrderSide::Sell,
-                                qty: q,
-                                price: exec.effective_price,
-                                reason,
-                            });
-                            apply_sell(
-                                &mut holding,
-                                &mut trades,
-                                &mut trailing,
-                                q,
-                                bar.ts,
-                                i,
-                                &exec,
-                            );
+                    Pending::SellQty { qty, reason } => {
+                        if let Some(h) = holding {
+                            let q = qty.min(h.qty);
+                            if q > 0.0 {
+                                let exec = fee.sell(q, bar.open);
+                                cash += exec.proceeds;
+                                events.push(EngineEvent::Fill {
+                                    bar_index: i,
+                                    side: OrderSide::Sell,
+                                    qty: q,
+                                    price: exec.effective_price,
+                                    reason,
+                                });
+                                apply_sell(
+                                    &mut holding,
+                                    &mut trades,
+                                    &mut trailing,
+                                    q,
+                                    bar.ts,
+                                    i,
+                                    &exec,
+                                );
+                            }
                         }
                     }
                 }
@@ -552,7 +566,8 @@ pub fn run_ensemble_with_observer(
         }
 
         // 7) Policy：信号 → 目标仓位（幂等）→ 订单 = 目标 − 当前。
-        if !stop_order {
+        //    I-2/D6：warmup 段不执行 Policy（不产订单），from 起从空仓开始。
+        if !stop_order && !is_warmup {
             let current_qty = holding.map(|h| h.qty).unwrap_or(0.0);
             let equity = cash + current_qty * bar.close;
             let target =
@@ -583,15 +598,19 @@ pub fn run_ensemble_with_observer(
         }
 
         // 8) Trailing 峰值更新（持仓中每 bar 末并入当前 close；清仓已重置）+ 净值/记录。
+        //    I-2/D6：warmup 段不计净值（绩效序列仅含 in-range）；per_bar 仍全量记录并标记 warmup。
         if holding.is_some() {
             trailing.on_bar_close(bar.close);
         }
-        nav.push((
-            bar.ts,
-            cash + holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
-        ));
+        if !is_warmup {
+            nav.push((
+                bar.ts,
+                cash + holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
+            ));
+        }
         per_bar.push(BarRecord {
             ts: bar.ts,
+            warmup: is_warmup,
             scores,
             aggregate: agg,
             signal,

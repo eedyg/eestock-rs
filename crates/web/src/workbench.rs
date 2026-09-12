@@ -94,6 +94,9 @@ pub struct WorkbenchSubmitReq {
     #[serde(default)]
     pub initial_capital: Option<f64>,
     pub fee: serde_json::Value,
+    /// I-2/D6：前置预热根数（缺省 250）；0 = 无预热。
+    #[serde(default)]
+    pub warmup_bars: Option<usize>,
 }
 
 /// GET /api/workbench/runs 查询参数（status 可选；limit 默认 100 封顶 500，offset 默认 0）。
@@ -139,8 +142,8 @@ pub async fn submit_run(
     if req.symbol.trim().is_empty() {
         return err(StatusCode::BAD_REQUEST, "symbol 必填");
     }
-    if !matches!(req.period.as_str(), "M1" | "M5" | "M15" | "D1") {
-        return err(StatusCode::BAD_REQUEST, "period 须为 M1/M5/M15/D1");
+    if !matches!(req.period.as_str(), "M1" | "M5" | "M15" | "H1" | "D1") {
+        return err(StatusCode::BAD_REQUEST, "period 须为 M1/M5/M15/H1/D1");
     }
     let from = match DateTime::parse_from_rfc3339(&req.from) {
         Ok(t) => t.with_timezone(&Utc),
@@ -179,6 +182,10 @@ pub async fn submit_run(
         policy: req.policy,
         stop: req.stop,
         initial_capital: req.initial_capital,
+        // I-2/D6：前置预热根数（缺省 250）。
+        warmup_bars: req
+            .warmup_bars
+            .unwrap_or(application::workbench::DEFAULT_WARMUP_BARS),
         fee: req.fee,
     };
     match svc.submit(submit).await {

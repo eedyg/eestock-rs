@@ -12,6 +12,17 @@ use backtest::FeeModel;
 /// 缺省卖方印花税 0.05%（A 股股票口径，ADR bt-1）；ETF 类回测显式传 0。
 const DEFAULT_STAMP_DUTY_PCT: f64 = 0.05;
 
+/// I-3/D6：`FeeModel -> serde_json`（**生效** fee 回显，含 stamp_duty_pct 实际取值）。
+/// 用于试算响应与工作台钉住 config 快照——使「缺省 0.05 被应用到 ETF」在结果里可见。
+pub fn fee_model_to_json(m: &FeeModel) -> serde_json::Value {
+    serde_json::json!({
+        "rate_pct": m.commission_rate_pct,
+        "min_fee": m.min_commission,
+        "slippage_bp": m.slippage_bp,
+        "stamp_duty_pct": m.stamp_duty_pct,
+    })
+}
+
 /// `serde_json::Value` `{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}` → [`FeeModel`]。
 /// `stamp_duty_pct` 缺省 0.05（完全向后兼容）；若提供须为数值且 ∈ [0, 1]，否则报错（web 层同口径 400）。
 pub fn to_fee_model(fee: &serde_json::Value) -> Result<FeeModel> {

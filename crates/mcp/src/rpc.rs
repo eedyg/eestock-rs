@@ -108,7 +108,7 @@ mod tests {
         let r = dispatch(&st(), &req(Some(json!(2)), "tools/list", None)).await.unwrap();
         let names: Vec<&str> = r["result"]["tools"].as_array().unwrap()
             .iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality",
+        assert_eq!(names, ["get_kline", "get_sources_health", "get_data_quality", "list_symbols",
             "sim_start_session", "sim_stop_session", "sim_get_account", "sim_get_positions",
             "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
             "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",

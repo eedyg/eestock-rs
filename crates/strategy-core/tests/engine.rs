@@ -62,6 +62,7 @@ fn base_cfg(slots: Vec<StrategySlot>, policy: ExecutionPolicy) -> EnsembleConfig
         initial_capital: 100_000.0,
         fee: FeeModel::default(),
         period: Period::D1,
+        warmup_bars: 0,
         runtime_limits: RuntimeLimits::default(),
     }
 }
@@ -1309,4 +1310,82 @@ fn ensemble_config_validate_rejects_illegal_configs() {
     assert!(run_err(&c), "tranches < 1 → Err");
 
     assert!(!run_err(&mk()), "合法配置 → Ok");
+}
+
+// ---------------------------------------------------------------------------
+// I-2/D6：warmup 语义（架构师 2026-09-12 裁决 = 方案 A 引擎级标记）
+// warmup 段逐 bar 评分（真预热指标/插件状态）但 per_bar 记 warmup=true、
+// 不执行 Policy、不产订单、不计净值/回撤/绩效；from 起空仓正常执行。
+// ---------------------------------------------------------------------------
+
+#[test]
+fn warmup_prefix_scores_but_never_executes_or_counts_metrics() {
+    let bars = flat_bars(10, 10.0);
+    let mut cfg = base_cfg(
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::LumpSum { position_pct: 1.0 },
+    );
+    cfg.warmup_bars = 3;
+    let res = run(&cfg, &bars);
+
+    // 前缀 3 根标记 warmup=true，其余 false。
+    assert!(
+        res.per_bar[..3].iter().all(|r| r.warmup),
+        "前 3 根应标记 warmup"
+    );
+    assert!(
+        res.per_bar[3..].iter().all(|r| !r.warmup),
+        "from 起不得标记 warmup"
+    );
+    // warmup 段仍评分（预热插件/指标）。
+    assert!(
+        res.per_bar[..3].iter().all(|r| r.aggregate == 80.0),
+        "warmup 段应仍评分"
+    );
+    // warmup 段不产订单、不成交、无持仓演进。
+    assert!(
+        res.per_bar[..3].iter().all(|r| r.orders.is_empty()),
+        "warmup 不得产订单"
+    );
+    assert!(
+        res.per_bar[..3]
+            .iter()
+            .flat_map(|r| r.events.iter())
+            .all(|e| !matches!(e, EngineEvent::Fill { .. })),
+        "warmup 段不得成交"
+    );
+    // 净值/回撤/绩效仅含 in-range（10 - 3 = 7 点）。
+    assert_eq!(res.net_value.len(), 7, "净值仅 in-range 7 根");
+    assert_eq!(res.drawdown.len(), 7);
+    assert_eq!(res.net_value[0].0, bars[3].ts, "净值首点 = from 首根");
+    // 首个成交发生在 in-range：index 3 决策 Buy → index 4 open 成交。
+    let f = fills(&res);
+    assert!(!f.is_empty(), "in-range 应有成交（恒 80 → Buy）");
+    assert_eq!(
+        f[0].0, 4,
+        "首个成交在 index 4（index 3 决策，warmup 不执行）"
+    );
+}
+
+#[test]
+fn warmup_zero_is_legacy_behaviour() {
+    let bars = flat_bars(6, 10.0);
+    let mut cfg = base_cfg(
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::LumpSum { position_pct: 1.0 },
+    );
+    cfg.warmup_bars = 0;
+    let res = run(&cfg, &bars);
+    assert!(res.per_bar.iter().all(|r| !r.warmup));
+    assert_eq!(res.net_value.len(), 6);
 }
