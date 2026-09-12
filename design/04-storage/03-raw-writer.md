@@ -129,6 +129,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "strategy", "strategy_version",
     // 12-strategy-system / P3a：回测工作台表（0023；应用面自有）
     "strategy_run", "strategy_run_result", "strategy_preset",
+    // ADR-019 / D11：费率档案表（0025；按 type 主键，symbols.type 为其解析键）
+    "fee_profiles",
 ];
 
 /// 应为 hypertable 的表。

@@ -95,7 +95,7 @@ impl KlineRead for MockKline {
         if self.registry_fail { anyhow::bail!("mock registry failure"); }
         if let Some(rows) = &self.symbols_override { return Ok(rows.clone()); }
         Ok(self.registered.iter().map(|c| SymbolLatestView {
-            code: c.clone(), name: Some(format!("mock {c}")), interval_secs: 60,
+            code: c.clone(), name: Some(format!("mock {c}")), type_: None, interval_secs: 60,
             settlement: "T1".into(), enabled: true,
             last_ts: None, last_close: None, prev_close: None,
         }).collect())

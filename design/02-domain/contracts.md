@@ -413,6 +413,8 @@ pub struct KlineBarView {
 pub struct SymbolLatestView {
     pub code: String,
     pub name: Option<String>,
+    /// ADR-019 D11-1：标的类型（`etf`/`lof`/`stock`/保留位；**None = 未知**，不得静默错判）。
+    pub type_: Option<String>,
     pub interval_secs: i32,
     pub settlement: String,
     pub enabled: bool,
@@ -467,6 +469,8 @@ pub struct SymbolAdminInput {
     pub name: Option<String>,     // 服务端不反查行情源（ADR-017 无数据面直连），可空，可后续 PATCH 补
     pub interval_secs: i32,
     pub settlement: String,       // "T0" | "T1"
+    /// ADR-019 D11-1/D11-5：标的类型（缺省 None = 未知；web 层按枚举校验）。
+    pub type_: Option<String>,
     pub enabled: bool,
 }
 
@@ -477,6 +481,8 @@ pub struct SymbolPatch {
     pub name: Option<String>,
     pub interval_secs: Option<i32>,
     pub settlement: Option<String>,
+    /// ADR-019 D11-1：标的类型（None = 不改；web 层按枚举校验）。
+    pub type_: Option<String>,
     pub enabled: Option<bool>,
 }
 
@@ -503,6 +509,33 @@ pub struct SymbolStatView {
 pub trait SymbolStatsRead: Send + Sync {
     /// 当日（Asia/Shanghai 日界）kline_raw 每 code bar 数与最新 ts；无 bar 的 code 不出现。
     async fn today_stats(&self) -> anyhow::Result<Vec<SymbolStatView>>;
+}
+
+// ── ADR-019 / D11：按标的类型推断费率档案（D11-2/D11-3）──
+
+/// 费率档案行（`fee_profiles` 表，迁移 0025；ADR-019 D11-2）。
+/// 单位=百分数（`0.025`=万2.5、`0.00341`=0.0341‰），与 `backtest::FeeModel` 同口径。
+/// `note`/`source` 为口径与来源说明（D11-2 要求每行说明口径）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct FeeProfileRow {
+    pub type_: String,
+    pub commission_rate_pct: f64,   // 佣金%（全佣口径：已含经手费/证管费等规费）
+    pub min_fee: f64,               // 单笔最低佣金（元）
+    pub exchange_fee_pct: f64,      // 交易经手费%（双边；etf/lof 按全佣口径列 0）
+    pub regulatory_fee_pct: f64,    // 证管费/监管费%（双边；同上）
+    pub stamp_duty_pct: f64,        // 印花税%（仅卖出；etf/lof 不征 → 0）
+    pub transfer_fee_pct: f64,      // 过户费%（双边；etf/lof 免收 → 0）
+    pub note: String,
+    pub source: String,
+}
+
+/// 费率档案只读端口（application 层费率解析输入；storage 实现）。
+/// `stamp_duty_pct` 等三项规费是否参与撮合由引擎口径决定（本批只消费佣金/最低/印花税，见 D11-follow-up）。
+#[async_trait]
+pub trait FeeProfileStore: Send + Sync {
+    /// 按标的 code 解析其 `symbols.type` 对应的档案行；
+    /// code 未注册 / `type IS NULL` / 该 type 无档案行 → `Ok(None)`（调用方回退旧默认，不报错）。
+    async fn for_symbol(&self, code: &str) -> anyhow::Result<Option<FeeProfileRow>>;
 }
 
 /// 熔断复位请求（DB 控制通道 circuit_reset_requests 行）。

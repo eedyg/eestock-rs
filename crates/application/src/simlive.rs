@@ -1527,6 +1527,8 @@ impl SimLiveService {
             return Err(anyhow!("会话无策略（纯手动会话），无法回测对比"));
         }
         // 费用口径=会话 FeeModel（复用同源，模拟/回测一致）。
+        // ADR-019 D11-3：sim-live 对比**保持会话费率口径**（显式传入 → 不按类型推断），
+        // 否则同一会话的模拟与回测口径会分叉（会话 FeeModel 由 start_session 钉住）。
         let fee = serde_json::json!({
             "rate_pct": self.fee.commission_rate_pct,
             "min_fee": self.fee.min_commission,
@@ -1561,7 +1563,7 @@ impl SimLiveService {
                     policy: serde_json::json!({ "LumpSum": { "position_pct": 1.0 } }),
                     stop: None,
                     initial_capital: Some(view.cash_init),
-                    fee: fee.clone(),
+                    fee: Some(fee.clone()),
                     // sim-live 回测对比：不预热（会话评分历史由 live bar 累积，与既有对比口径一致）。
                     warmup_bars: 0,
                 })

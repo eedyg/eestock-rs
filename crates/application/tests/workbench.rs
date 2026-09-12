@@ -481,7 +481,8 @@ fn submit_req(version_id: &str) -> SubmitRunReq {
         policy: serde_json::json!({"LumpSum": {"position_pct": 1.0}}),
         stop: None,
         initial_capital: None,
-        fee: fee_json(),
+        // ADR-019 D11-3：fee 为 Option（None = 按标的 type 查档案；本夹具显式传 = 旧口径）。
+        fee: Some(fee_json()),
         // I-2/D6：默认前置预热 250 根（架构师裁决）；夹具 from 早于全部 bar → effective=0。
         warmup_bars: 250,
     }
@@ -605,7 +606,7 @@ async fn submit_warmup_marks_prefix_and_pins_effective_fee() {
     // 钉住 config：warmup requested/effective + 生效 fee（含 stamp_duty_pct 实际取值）。
     assert_eq!(run.config["warmup_requested"], serde_json::json!(5));
     assert_eq!(run.config["warmup_effective"], serde_json::json!(5));
-    assert_eq!(run.config["fee"]["stamp_duty_pct"], serde_json::json!(0.05), "缺省股票口径回显");
+    assert_eq!(run.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "缺省股票口径回显");
     let fin = wait_terminal(&r.runs, &run.id).await;
     assert_eq!(fin.status, StrategyRunStatus::Succeeded, "{:?}", fin.error);
     let res = r.runs.get_result(&run.id).await.unwrap().expect("结果");
@@ -655,7 +656,7 @@ async fn submit_rejects_bad_slots_and_config_400() {
         "stop value≤0 → 400");
     // 非法 fee
     let mut req = submit_req("sv_pub");
-    req.fee = serde_json::json!({"rate_pct": 0.025});
+    req.fee = Some(serde_json::json!({"rate_pct": 0.025}));
     assert!(r.svc.submit(req).await.unwrap_err().downcast_ref::<WorkbenchValidation>().is_some(),
         "fee 缺字段 → 400");
     // 非法初始资金
@@ -885,4 +886,90 @@ async fn preset_crud_and_apply() {
     assert!(r.svc.get_preset(&p.id).await.is_err());
     let err = r.svc.delete_preset(&p.id).await.unwrap_err();
     assert!(err.downcast_ref::<WorkbenchNotFound>().is_some(), "二次删除 → 404");
+}
+
+// ── ADR-019（D11-3）：工作台按标的 type 推断费率（与试算同口径）──
+
+/// 费率档案测试替身：`codes` 内 code → etf 档案（其余 → None = 无档案）。
+struct StubEtfProfiles(Vec<&'static str>);
+
+#[async_trait::async_trait]
+impl domain::ports::FeeProfileStore for StubEtfProfiles {
+    async fn for_symbol(&self, code: &str)
+        -> anyhow::Result<Option<domain::ports::FeeProfileRow>> {
+        if !self.0.contains(&code) {
+            return Ok(None);
+        }
+        Ok(Some(domain::ports::FeeProfileRow {
+            type_: "etf".into(),
+            commission_rate_pct: 0.025,
+            min_fee: 5.0,
+            exchange_fee_pct: 0.0,
+            regulatory_fee_pct: 0.0,
+            stamp_duty_pct: 0.0,
+            transfer_fee_pct: 0.0,
+            note: "测试档案：全佣口径（经手费/证管费列 0）；印花税不征".into(),
+            source: "test".into(),
+        }))
+    }
+}
+
+fn rig_with_fee_profiles(bars: Vec<domain::types::Bar>, codes: Vec<&'static str>) -> Rig {
+    let runs = Arc::new(MockRunStore::default());
+    let presets = Arc::new(MockPresetStore::default());
+    let strategies = Arc::new(MockStrategyStore::default());
+    let sink = Arc::new(MockSink::default());
+    let svc = Arc::new(
+        WorkbenchService::new(
+            Arc::new(MockBars(bars)),
+            runs.clone(),
+            presets.clone(),
+            strategies.clone(),
+            Arc::new(MockSymbols(vec!["518880".into(), "600000".into()])),
+            sink.clone(),
+            Arc::new(FixedClock),
+            1,
+        )
+        .with_fee_profiles(Arc::new(StubEtfProfiles(codes))),
+    );
+    Rig { svc, runs, strategies, sink }
+}
+
+/// 省略 fee 的 ETF 运行：钉住 config 快照 = 档案生效值（印花税 0）+ source=profile；
+/// 显式传参仍整体优先（向后兼容旧行为）。
+#[tokio::test]
+async fn submit_fee_resolves_by_symbol_type_and_pins_source() {
+    let r = rig_with_fee_profiles(flat_bars(10), vec!["518880"]);
+    r.strategies.add_version("sv_pub", "st_1", CONST_SCORE, StrategyStatus::Published);
+    // ① 省略 fee + ETF 标的 → profile 分支
+    let mut req = submit_req("sv_pub");
+    req.symbol = "518880".into();
+    req.fee = None;
+    let run = r.svc.submit(req).await.expect("提交成功");
+    assert_eq!(run.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.0), "ETF 印花税 0（D11 主目标）");
+    assert_eq!(run.config["fee"]["effective"]["source"], serde_json::json!("profile"));
+    assert_eq!(run.config["fee"]["symbol_type"], serde_json::json!("etf"));
+    assert_eq!(run.config["fee"]["profile"]["transfer_fee_pct"], serde_json::json!(0.0));
+    assert_eq!(run.config["fee"]["profile"]["not_modeled"],
+        serde_json::json!(["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]),
+        "未建模规费须显式标注，不得出现在 effective 段");
+    let fin = wait_terminal(&r.runs, &run.id).await;
+    assert_eq!(fin.status, StrategyRunStatus::Succeeded, "{:?}", fin.error);
+
+    // ② 显式 fee → config 钉住显式值 + source=explicit（可复现旧口径）
+    let mut req = submit_req("sv_pub");
+    req.symbol = "518880".into();
+    req.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}));
+    let run2 = r.svc.submit(req).await.expect("提交成功");
+    assert_eq!(run2.config["fee"]["effective"]["source"], serde_json::json!("explicit"));
+    assert_eq!(run2.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "显式缺 stamp → 旧默认");
+
+    // ③ 未建档标的 → default 分支（旧默认），不借用他类型档案
+    let mut req = submit_req("sv_pub");
+    req.symbol = "600000".into();
+    req.fee = None;
+    let run3 = r.svc.submit(req).await.expect("提交成功");
+    assert_eq!(run3.config["fee"]["effective"]["source"], serde_json::json!("default"));
+    assert_eq!(run3.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05));
+    assert!(run3.config["fee"].get("profile").is_none());
 }

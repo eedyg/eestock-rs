@@ -38,7 +38,7 @@ impl domain::ports::KlineRead for ShimKline {
     }
     async fn symbols_with_latest(&self) -> anyhow::Result<Vec<domain::ports::SymbolLatestView>> {
         Ok(self.registered.iter().map(|c| domain::ports::SymbolLatestView {
-            code: c.clone(), name: None, interval_secs: 60, settlement: "T1".into(),
+            code: c.clone(), name: None, type_: None, interval_secs: 60, settlement: "T1".into(),
             enabled: true, last_ts: None, last_close: None, prev_close: None,
         }).collect())
     }

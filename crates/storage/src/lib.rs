@@ -43,4 +43,7 @@ pub mod strategy;
 // workbench：回测工作台存储端口实现加法扩展（12-strategy-system / P3a：StrategyRunStore + StrategyPresetStore；
 // 代码块在 design/04-storage/schema.md §4.3.14。workbench.rs 本身为非 tangle 手写，此处仅注册模块）
 pub mod workbench;
+// fee_profile：按标的类型推断费率档案端口实现加法扩展（ADR-019 / D11：FeeProfileStore，fee_profiles 表，迁移 0025；
+// 代码块在 design/04-storage/schema.md §4.3.16。fee_profile.rs 本身为非 tangle 手写，此处仅注册模块）
+pub mod fee_profile;
 // ~/~ end

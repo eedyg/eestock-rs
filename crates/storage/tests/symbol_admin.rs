@@ -41,7 +41,7 @@ async fn clean_reset(pool: &PgPool) {
 
 fn input(code: &str) -> SymbolAdminInput {
     SymbolAdminInput { code: code.into(), name: Some("测试ETF".into()),
-        interval_secs: 60, settlement: "T1".into(), enabled: true }
+        interval_secs: 60, settlement: "T1".into(), type_: None, enabled: true }
 }
 
 #[tokio::test]
@@ -72,6 +72,20 @@ async fn register_update_roundtrip_and_conflict() {
     assert!(admin.register(&bad).await.is_err(), "interval_secs<60 被 schema CHECK 拒绝");
     let bad2 = SymbolAdminInput { settlement: "T2".into(), ..input(CODE2) };
     assert!(admin.register(&bad2).await.is_err(), "非法 settlement 被 schema CHECK 拒绝");
+    // ADR-019 D11-1：非法 type 被 schema CHECK 拒绝；合法枚举（含保留位）可落库
+    let bad3 = SymbolAdminInput { type_: Some("stockx".into()), ..input(CODE2) };
+    assert!(admin.register(&bad3).await.is_err(), "非法 type 被 symbols_type_check 拒绝");
+    let ok3 = SymbolAdminInput { type_: Some("etf".into()), ..input(CODE2) };
+    assert!(admin.register(&ok3).await.unwrap(), "合法 type 可登记");
+    let ty: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE2).fetch_one(&pool).await.unwrap();
+    assert_eq!(ty.as_deref(), Some("etf"), "type 落库");
+    // PATCH type（COALESCE 语义：Some 覆盖 / None 不改）
+    let patch_t = SymbolPatch { type_: Some("lof".into()), ..Default::default() };
+    assert!(admin.update(CODE2, &patch_t).await.unwrap());
+    let ty: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE2).fetch_one(&pool).await.unwrap();
+    assert_eq!(ty.as_deref(), Some("lof"), "PATCH type 生效");
     clean(&pool).await;
 }
 

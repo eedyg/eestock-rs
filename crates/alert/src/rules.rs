@@ -240,7 +240,7 @@ mod tests {
     // ── 规则② 缺口率 ──
 
     fn sym(code: &str, enabled: bool) -> SymbolLatestView {
-        SymbolLatestView { code: code.into(), name: None, interval_secs: 60,
+        SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
             settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
     }
 

@@ -142,7 +142,8 @@ pub struct TestRunReq {
     /// I-2/D6：前置预热根数（缺省 250，与 MCP strategy_test_run 同口径）。
     #[serde(default)]
     pub warmup_bars: Option<usize>,
-    /// I-3/D6：费用入参（缺省 ADR bt-1 `{rate_pct:0.025,min_fee:5.0,slippage_bp:2.0}`）。
+    /// I-3/D6 + D11-3：费用入参（省略/`null` = 按标的 type 查 `fee_profiles` 解析，
+    /// 无档案 → 旧 ADR bt-1 默认；显式传对象整体优先）。
     #[serde(default)]
     pub fee: Option<serde_json::Value>,
     /// I-3/D6：执行策略（缺省 `{"LumpSum":{"position_pct":1.0}}`）。
@@ -158,12 +159,6 @@ pub const DEFAULT_TEST_RUN_WARMUP_BARS: usize = 250;
 
 /// 试算缺省初始资金（与回测 ADR §4 一致）。
 pub const DEFAULT_TEST_RUN_CAPITAL: f64 = 100_000.0;
-
-/// 试算缺省费用（ADR bt-1；缺省 stamp_duty_pct=0.05 为**股票口径兼容值**，
-/// ETF/LOF 须显式传 `stamp_duty_pct:0`——见 design/08-backtest/01-engine-adr.md §4）。
-fn default_test_run_fee() -> serde_json::Value {
-    serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0})
-}
 
 // ── handlers ──
 
@@ -408,7 +403,8 @@ pub async fn test_run(State(st): State<Arc<AppState>>, Json(req): Json<TestRunRe
         to,
         mode,
         warmup_bars: req.warmup_bars.unwrap_or(DEFAULT_TEST_RUN_WARMUP_BARS),
-        fee: req.fee.clone().unwrap_or_else(default_test_run_fee),
+        // ADR-019 D11-3：省略 → None，由服务层按标的 type 解析（不再在传输层硬编码缺省）。
+        fee: req.fee.clone(),
         policy: req
             .policy
             .clone()

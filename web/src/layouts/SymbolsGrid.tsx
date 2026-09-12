@@ -11,6 +11,9 @@ export const SYMBOLS_DEFAULTS = {
   bseRejected: true,              // 北交所前缀（4/8/920）拒绝并提示「暂不支持」
 } as const;
 
+/** ADR-019 D11-1：标的类型（含 D11-6 保留位 bond_etf/money_etf/index） */
+export type SymbolType = 'etf' | 'lof' | 'stock' | 'bond_etf' | 'money_etf' | 'index';
+
 export type Settlement = 'T0' | 'T1';
 export type FormMode = 'register' | 'edit';
 
@@ -30,6 +33,8 @@ export interface SymbolFormValues {
   code: string;                    // 6 位数字；市场前缀校验；北交所拒绝
   intervalSec: number;             // ≥ SYMBOLS_DEFAULTS.minIntervalSec，热生效
   settlement: Settlement;          // ⚠️ 修改需二次确认（回测/交易撮合规则输入）
+  /** ADR-019 D11-1：标的类型（可选；undefined/null = 未知 → 费率回落旧默认） */
+  type?: SymbolType | null;
   enabled: boolean;
   name: string;                    // 注册时服务端反查，失败留空可手工改
 }
@@ -51,6 +56,7 @@ export function SymbolsGrid(props: SymbolsGridProps) {
 
       {props.formMode && (
         /* form-dialog：注册 POST /api/symbols（服务端反查名称）/ 编辑 PATCH /api/symbols/{code}；
+           标的类型 type（ADR-019 D11-1，可选）参与费率推断；
             三态=提交中禁用+spinner/不可能空/校验内联+提交错误提示；
             settlement 修改二次确认；code 编辑态只读；遮罩点击不关闭 */
         <div data-region="form-dialog" className="fixed inset-0 flex items-center justify-center">

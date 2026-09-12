@@ -771,8 +771,9 @@ fn test_req(source: TestRunSource, mode: TestRunMode, from: DateTime<Utc>, to: D
         to,
         mode,
         // I-2/D6：默认前置预热 250 根（架构师裁决）；I-3：fee/policy/capital 缺省。
+        // ADR-019 D11-3：fee 为 Option（None = 按标的 type 查档案）。
         warmup_bars: 250,
-        fee: serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}),
+        fee: Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0})),
         policy: serde_json::json!({"LumpSum": {"position_pct": 1.0}}),
         initial_capital: DEFAULT_TEST_RUN_CAPITAL,
     }
@@ -933,21 +934,100 @@ async fn test_run_fee_echo_and_stamp_duty_effect() {
     let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
     // 缺省：股票口径 0.05（bt_run_ensemble 同源 to_fee_model）。
     let r0 = svc.test_run(&req).await.unwrap();
-    assert_eq!(r0.fee["stamp_duty_pct"], serde_json::json!(0.05));
-    assert_eq!(r0.fee["rate_pct"], serde_json::json!(0.025));
+    assert_eq!(r0.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05));
+    assert_eq!(r0.fee["effective"]["commission_rate_pct"], serde_json::json!(0.025));
     let duty0: f64 = r0.trades.as_array().unwrap().iter().map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
     // ETF：显式 stamp_duty_pct=0 → 零印花税（ETF 真实口径，须显式传）。
-    req.fee = serde_json::json!(
+    req.fee = Some(serde_json::json!(
         {"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
-    );
+    ));
     let r1 = svc.test_run(&req).await.unwrap();
-    assert_eq!(r1.fee["stamp_duty_pct"], serde_json::json!(0.0), "ETF 显式 0 应回显");
+    assert_eq!(r1.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.0), "ETF 显式 0 应回显");
     let duty1: f64 = r1.trades.as_array().unwrap().iter().map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
     assert_eq!(duty1, 0.0, "ETF 口径零印花税");
     assert!(duty0 > 0.0, "缺省股票口径有印花税");
     // 非法 fee（缺 slippage_bp）→ 400。
-    req.fee = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0});
+    req.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0}));
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
+}
+
+// ── ADR-019（D11-3）：费率档案推断 + 三层解析 ──
+
+/// 费率档案测试替身：`codes` 内 code → etf 档案（其余 → None = 无档案）。
+struct StubEtfProfiles(Vec<&'static str>);
+
+#[async_trait::async_trait]
+impl domain::ports::FeeProfileStore for StubEtfProfiles {
+    async fn for_symbol(&self, code: &str)
+        -> anyhow::Result<Option<domain::ports::FeeProfileRow>> {
+        if !self.0.contains(&code) {
+            return Ok(None);
+        }
+        Ok(Some(domain::ports::FeeProfileRow {
+            type_: "etf".into(),
+            commission_rate_pct: 0.025,
+            min_fee: 5.0,
+            exchange_fee_pct: 0.0,
+            regulatory_fee_pct: 0.0,
+            stamp_duty_pct: 0.0,
+            transfer_fee_pct: 0.0,
+            note: "测试档案：全佣口径（经手费/证管费列 0）；印花税不征".into(),
+            source: "test".into(),
+        }))
+    }
+}
+
+fn service_with_fee_profiles(bars: Vec<domain::types::Bar>, codes: Vec<&'static str>)
+    -> (StrategyService, Arc<MockStore>) {
+    let (svc, store) = service(bars);
+    (svc.with_fee_profiles(Arc::new(StubEtfProfiles(codes))), store)
+}
+
+/// D11 主目标：ETF 标的省略 fee → 印花税 0（对比旧默认 0.05）；source/symbol_type 回显。
+#[tokio::test]
+async fn test_run_fee_resolves_by_symbol_type_when_absent() {
+    let (svc, _) = service_with_fee_profiles(trend_bars(), vec!["518880"]);
+    let (from, to) = span(30);
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    req.symbol = "518880".into();
+    req.fee = None; // 省略 → 按 type 解析
+    let r = svc.test_run(&req).await.unwrap();
+    assert_eq!(r.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.0), "ETF 印花税不征 → 0");
+    assert_eq!(r.fee["effective"]["commission_rate_pct"], serde_json::json!(0.025));
+    assert_eq!(r.fee["effective"]["source"], serde_json::json!("profile"));
+    assert_eq!(r.fee["symbol_type"], serde_json::json!("etf"));
+    assert_eq!(r.fee["profile"]["exchange_fee_pct"], serde_json::json!(0.0), "全佣口径：经手费列 0");
+    assert_eq!(r.fee["profile"]["regulatory_fee_pct"], serde_json::json!(0.0));
+    assert_eq!(r.fee["profile"]["transfer_fee_pct"], serde_json::json!(0.0));
+    assert_eq!(r.fee["profile"]["not_modeled"],
+        serde_json::json!(["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]),
+        "档案三项规费未建模 → 显式标注，不得放入 effective");
+    let duty: f64 = r.trades.as_array().unwrap().iter()
+        .map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
+    assert_eq!(duty, 0.0, "缺省口径下 ETF 成交零印花税（旧默认会多收 0.05%）");
+
+    // 显式传参优先（同一 ETF）：可复现旧行为（缺 stamp → 0.05）。
+    let mut req2 = req.clone();
+    req2.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}));
+    let r2 = svc.test_run(&req2).await.unwrap();
+    assert_eq!(r2.fee["effective"]["source"], serde_json::json!("explicit"), "显式优先于档案");
+    assert_eq!(r2.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "显式分支保持旧默认");
+
+    // 未建档标的（600000 不在替身内）→ default 分支（旧默认，不借用他类型档案）。
+    let mut req3 = req.clone();
+    req3.symbol = "600000".into();
+    let r3 = svc.test_run(&req3).await.unwrap();
+    assert_eq!(r3.fee["effective"]["source"], serde_json::json!("default"));
+    assert_eq!(r3.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05));
+    assert!(r3.fee.get("profile").is_none(), "无档案 → 不回显 profile 明细");
+
+    // 未装配档案端口（旧装配）= 不按类型推断（向后兼容既有测试/部署）。
+    let (svc_plain, _) = service(trend_bars());
+    let mut req4 = req.clone();
+    req4.symbol = "518880".into();
+    let r4 = svc_plain.test_run(&req4).await.unwrap();
+    assert_eq!(r4.fee["effective"]["source"], serde_json::json!("default"));
+    assert_eq!(r4.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "未装配 → 旧行为不变");
 }
 
 /// policy（LumpSum/Dca）+ capital 参数生效；与工作台 ExecutionPolicy 同口径。

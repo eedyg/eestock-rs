@@ -27,10 +27,11 @@ impl SymbolAdminWrite for PgSymbolAdmin {
     /// 注册；ON CONFLICT DO NOTHING → rows_affected=0 即已存在（Ok(false)，web 映射 409）。
     async fn register(&self, input: &SymbolAdminInput) -> Result<bool> {
         let n = sqlx::query(
-            "INSERT INTO symbols (code, name, interval_secs, settlement, enabled) \
-             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (code) DO NOTHING")
+            "INSERT INTO symbols (code, name, interval_secs, settlement, type, enabled) \
+             VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (code) DO NOTHING")
             .bind(&input.code).bind(&input.name)
-            .bind(input.interval_secs).bind(&input.settlement).bind(input.enabled)
+            .bind(input.interval_secs).bind(&input.settlement).bind(&input.type_)
+            .bind(input.enabled)
             .execute(&self.pool).await?
             .rows_affected();
         Ok(n > 0)
@@ -43,10 +44,11 @@ impl SymbolAdminWrite for PgSymbolAdmin {
                  name = COALESCE($2, name), \
                  interval_secs = COALESCE($3, interval_secs), \
                  settlement = COALESCE($4, settlement), \
-                 enabled = COALESCE($5, enabled) \
+                 type = COALESCE($5, type), \
+                 enabled = COALESCE($6, enabled) \
              WHERE code = $1")
             .bind(code).bind(&patch.name).bind(patch.interval_secs)
-            .bind(&patch.settlement).bind(patch.enabled)
+            .bind(&patch.settlement).bind(&patch.type_).bind(patch.enabled)
             .execute(&self.pool).await?
             .rows_affected();
         Ok(n > 0)

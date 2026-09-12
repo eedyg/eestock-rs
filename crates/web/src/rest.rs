@@ -130,9 +130,11 @@ pub async fn register_symbol(State(st): State<Arc<AppState>>,
     if let Err(e) = validate_code(&req.code) { return field_err(e); }
     if let Err(e) = validate_interval(req.interval_secs) { return field_err(e); }
     if let Err(e) = validate_settlement(&req.settlement) { return field_err(e); }
+    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
     let input = SymbolAdminInput {
         code: req.code.clone(), name: normalize_name(req.name),
         interval_secs: req.interval_secs, settlement: req.settlement.clone(),
+        type_: req.r#type.clone(),
         enabled: req.enabled,
     };
     match st.symbols_admin.register(&input).await {
@@ -156,10 +158,12 @@ pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<Str
     if let Some(s) = &req.settlement {
         if let Err(e) = validate_settlement(s) { return field_err(e); }
     }
+    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
     let patch = SymbolPatch {
         name: normalize_name(req.name),
         interval_secs: req.interval_secs,
         settlement: req.settlement.clone(),
+        type_: req.r#type.clone(),
         enabled: req.enabled,
     };
     match st.symbols_admin.update(&code, &patch).await {

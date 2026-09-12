@@ -110,6 +110,8 @@ pub struct LatestDto {
 pub struct SymbolDto {
     pub code: String,
     pub name: Option<String>,
+    /// ADR-019 D11-1：标的类型（`etf`/`lof`/`stock`/保留位）；**null = 未设置（未知）**。
+    pub r#type: Option<String>,
     pub interval_secs: i32,
     pub settlement: String,
     pub enabled: bool,
@@ -132,7 +134,8 @@ impl From<&SymbolLatestView> for SymbolDto {
                 .map(|p| (last - p) / p * 100.0),
         });
         SymbolDto {
-            code: r.code.clone(), name: r.name.clone(), interval_secs: r.interval_secs,
+            code: r.code.clone(), name: r.name.clone(), r#type: r.type_.clone(),
+            interval_secs: r.interval_secs,
             settlement: r.settlement.clone(), enabled: r.enabled, latest, today_bars: None,
             favorite: false, favorite_sort: None,
         }
@@ -211,6 +214,8 @@ fn default_enabled() -> bool { true }
 pub struct RegisterSymbolReq {
     pub code: String,
     pub name: Option<String>,
+    /// ADR-019 D11-1：标的类型（**可选**；缺省 = None = 未知，不静默错判）。
+    pub r#type: Option<String>,
     #[serde(default = "default_interval")]
     pub interval_secs: i32,
     #[serde(default = "default_settlement")]
@@ -225,6 +230,8 @@ pub struct UpdateSymbolReq {
     pub name: Option<String>,
     pub interval_secs: Option<i32>,
     pub settlement: Option<String>,
+    /// ADR-019 D11-1：标的类型（None = 不改；空串 → 400，本批不支持经 API 清空 type）。
+    pub r#type: Option<String>,
     pub enabled: Option<bool>,
 }
 
@@ -260,6 +267,22 @@ pub fn validate_settlement(s: &str) -> Result<(), FieldError> {
         return Err(FieldError::BadRequest("settlement 须为 T0 或 T1".into()));
     }
     Ok(())
+}
+
+/// 标的类型枚举（ADR-019 D11-1，与 `symbols_type_check` CHECK 同口径；
+/// `bond_etf`/`money_etf`/`index` = D11-6 保留位，可登记但本批无费率档案 → 回退旧默认）。
+pub const SYMBOL_TYPES: [&str; 6] = ["etf", "lof", "stock", "bond_etf", "money_etf", "index"];
+
+/// type 校验（ADR-019 D11-1）：None 合法（未知）；空串拒绝（避免「意外清空」歧义）；枚举外 400。
+pub fn validate_symbol_type(t: Option<&str>) -> Result<(), FieldError> {
+    match t {
+        None => Ok(()),
+        Some(x) if SYMBOL_TYPES.contains(&x) => Ok(()),
+        Some("") => Err(FieldError::BadRequest(
+            "type 不可为空串（省略该字段 = 保持/未知；本批不支持经 API 清空 type）".into())),
+        Some(x) => Err(FieldError::BadRequest(format!(
+            "type 须为 {} 之一，got {x}", SYMBOL_TYPES.join("/")))),
+    }
 }
 
 /// name 归一：空串/纯空白 → None。
@@ -617,8 +640,8 @@ mod tests {
 
     #[test]
     fn symbol_without_bars_serializes_null_latest() {
-        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
-            settlement: "T1".into(), enabled: true,
+        let row = SymbolLatestView { code: "997702".into(), name: None, type_: Some("etf".into()),
+            interval_secs: 60, settlement: "T1".into(), enabled: true,
             last_ts: None, last_close: None, prev_close: None };
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert!(v["latest"].is_null());
@@ -630,8 +653,8 @@ mod tests {
     #[test]
     fn symbol_dto_favorite_fields_always_serialize() {
         // 非收藏 → favorite=false, favorite_sort=null（Always 输出，前端置顶 UI 依据）
-        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
-            settlement: "T1".into(), enabled: true,
+        let row = SymbolLatestView { code: "997702".into(), name: None, type_: Some("etf".into()),
+            interval_secs: 60, settlement: "T1".into(), enabled: true,
             last_ts: None, last_close: None, prev_close: None };
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert_eq!(v["favorite"], false);
@@ -709,6 +732,19 @@ mod tests {
         assert!(validate_threshold(-1.0).is_err());
         assert!(validate_threshold(100.0).is_ok());
         assert!(validate_threshold(100.1).is_err());
+    }
+
+    #[test]
+    fn symbol_type_validation_enum_and_optional() {
+        // ADR-019 D11-1：None 合法（未知）；枚举内合法（含 D11-6 保留位）；枚举外/空串 → 400。
+        assert!(validate_symbol_type(None).is_ok());
+        for ok in SYMBOL_TYPES {
+            assert!(validate_symbol_type(Some(ok)).is_ok(), "{ok} 应合法");
+        }
+        for bad in ["", "ETF", "stockx", "fund", "etfs"] {
+            assert!(matches!(validate_symbol_type(Some(bad)), Err(FieldError::BadRequest(_))),
+                "{bad:?} 应拒绝");
+        }
     }
 
     #[test]

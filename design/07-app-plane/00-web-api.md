@@ -50,10 +50,10 @@
 |---|---|---|---|---|
 | `GET /healthz` | — | `{"status":"ok"}` | 静态 | —（compose healthcheck 经 `--self-check` 调此路由） |
 | `GET /api/kline` | `code`（必填）、`period=1m\|5m\|15m\|1h\|1d\|1w\|1mo`（默认 `1m`；看板 W1 增周 `1w`/月 `1mo`，回测周期不扩）、`before`（RFC3339 游标，不含该 ts 的更早一页）、`limit`（默认 240，封顶 1000） | `{"code","period","bars":[{ts,open,high,low,close,volume,amount,source?}],"next_before"}`；bars **升序**（图表口径）；`next_before`=本页最旧 ts，`null`=无更早数据 | 1m=`kline_merged` 合并视图（准确层优先，ADR-003）；5m/15m/1d=对应 cagg（ADR-004）；1h=`kline_15m` 查询期 rollup（schema 未建 kline_1h cagg，rollup 语义等价）；1w/1mo=`kline_accurate_1w/1mo`（0014 cagg）+`kline_1d` 查询期 rollup 兜底 | 400：`code` 空 / `period` 非法 / `before` 非 RFC3339；500 JSON `{"error":...}` |
-| `GET /api/symbols` | — | `[{code,name,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`；`change_pct`=**日涨跌幅** (last−昨收)/昨收（%）；昨收=最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（accurate_1d 优先 + kline_1d 兜底），无 D1 历史/无 bar → null | `symbols` + 最新 merge M1（last）与最近 D1 收盘（双侧 LATERAL） | 500 |
+| `GET /api/symbols` | — | `[{code,name,type,interval_secs,settlement,enabled,latest:{ts,last,change_pct}\|null}]`（`type`=ADR-019 D11-1 标的类型，null=未设置）；`change_pct`=**日涨跌幅** (last−昨收)/昨收（%）；昨收=最近一个早于当前交易日（Asia/Shanghai 日界）的 D1 收盘（accurate_1d 优先 + kline_1d 兜底），无 D1 历史/无 bar → null | `symbols` + 最新 merge M1（last）与最近 D1 收盘（双侧 LATERAL） | 500 |
 | `GET /api/sources/health` | `window_secs`（默认 3600 = 页面② `SOURCES_DEFAULTS.successRateWindow='1h'`，钳制 60..604800） | `{"window_secs","sources":[{source,attempts,successes,success_rate,p50_ms,p95_ms,circuit_state,status,last_error,last_event_ts}]}`；`success_rate` 分母**排除 `err_kind='na'`**（03 §7），分母 0 → `null` | `source_health_events` 窗口聚合（diagnose crate，05-diagnose §1 口径） | 500 |
-| `POST /api/symbols`（Phase C §8） | body `{code, name?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
-| `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
+| `POST /api/symbols`（Phase C §8） | body `{code, name?, type?, interval_secs?, settlement?, enabled?}`（缺省 interval=60 / settlement=T1 / enabled=true；**`type` 可选**，省略 = null = 未知，ADR-019 D11-1） | 201 `SymbolDto`（含 latest） | `symbols` 表写入（**DB 控制通道**：数据面 Scheduler 每周期重读热生效，无直连） | 400：code 非 6 位数字 / settlement 非法 / interval_secs<60 / **type 枚举外或空串**；409：code 已注册；422：北交所前缀（4/8/920）拒绝「暂不支持」；500 |
+| `PATCH /api/symbols/{code}`（Phase C §8） | body `{name?, type?, interval_secs?, settlement?, enabled?}`（None=不改；code 主键不可改；`type` 空串 → 400） | 200 `SymbolDto` | 同上，间隔修改下一采集周期热生效 | 400/422 同上；404：code 未注册；500 |
 | `GET /api/symbols?with_stats=1`（Phase C §8） | `with_stats=1` 追加每标的当日统计 | 列表项追加 `today_bars`（当日 kline_raw 行数，Asia/Shanghai 日界；无 bar → 0） | `kline_raw` 当日窗口 GROUP BY | 500 |
 | `GET /api/symbols`（看板收藏，Wave 3 页面①） | — | 列表项追加 `favorite: bool`、`favorite_sort: Option<i32>`；**收藏优先**（按 favorite_sort 升序，非收藏按原顺序在后）（注：仅影响 symbol-list 展示，不改变行情数据） | `symbols` + `kline_merged`（既有）+ `favorite_symbols`（0013，经 FavoriteStore.favorite_map 注入） | 500 |
 | `POST /api/symbols/{code}/favorite`（看板收藏，Wave 3 页面①） | 路径 code | 200 幂等：已收藏再次收藏无副作用；未收藏则收藏并**自动置顶**（sort_order=max+1） | `favorite_symbols`（0013；应用面自有表，写不违 ADR-017） | 404：code 未注册；500 |
@@ -286,7 +286,7 @@ BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppStat
 
 | 方法/路径 | 参数 | 响应 | 错误态 |
 |---|---|---|---|
-| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight,archived}`；`archived` 为审计标记，见下方 submit 口径） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本为 draft（未发布代码不可运行；published|archived 可运行）、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
+| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight,archived}`；`archived` 为审计标记，见下方 submit 口径；`config.fee` 为**两段生效回显** `{effective:{commission_rate_pct,min_fee,stamp_duty_pct,slippage_bp,source},symbol_type,profile?:{…,not_modeled:[…]}}`，ADR-019 D11-3） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本为 draft（未发布代码不可运行；published|archived 可运行）、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
 | `GET /api/workbench/runs` | `status=queued\|running\|succeeded\|failed\|canceled`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[StrategyRunView]`（**轻量：不含结果**；created_at DESC, id DESC） | 400：status 非法；503；500 |
 | `GET /api/workbench/runs/{id}` | — | `StrategyRunView` | 404：id 未知；503；500 |
 | `GET /api/workbench/runs/{id}/result` | — | `StrategyRunResult`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics 五 jsonb，ADR §13.4） | 404：id 未知或未成功（无结果）；503；500 |
@@ -1488,7 +1488,7 @@ GROUP BY code, time_bucket('{interval}', ts)
 /// 同库 EXPLAIN ANALYZE：旧 Execution 13.2ms → 新 16.0ms（Planning 两侧均 ~460ms，系 kline_accurate
 /// 70+ chunk 既有规划开销，新旧一致；应用侧 sqlx prepared 复用后摊销，app 端保持 13.5ms 量级）。
 const SYMBOLS_LATEST_SQL: &str = r#"
-SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
+SELECT s.code, s.name, s.type, s.interval_secs, s.settlement, s.enabled,
        l.last_ts, l.last_close, p.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
@@ -1589,12 +1589,12 @@ impl KlineRead for KlineReader {
 
     /// 注册表 + 最新快照（日涨跌幅 = (last − prev_close) / prev_close，prev_close=昨收 D1，由调用方计算）。
     async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
-        type Row = (String, Option<String>, i32, String, bool,
+        type Row = (String, Option<String>, Option<String>, i32, String, bool,
                     Option<DateTime<Utc>>, Option<f64>, Option<f64>);
         let rows: Vec<Row> = sqlx::query_as(SYMBOLS_LATEST_SQL).fetch_all(&self.pool).await?;
         Ok(rows.into_iter().map(
-            |(code, name, interval_secs, settlement, enabled, last_ts, last_close, prev_close)|
-            SymbolLatestView { code, name, interval_secs, settlement, enabled,
+            |(code, name, type_, interval_secs, settlement, enabled, last_ts, last_close, prev_close)|
+            SymbolLatestView { code, name, type_, interval_secs, settlement, enabled,
                                last_ts, last_close, prev_close }
         ).collect())
     }
@@ -2587,6 +2587,8 @@ pub struct LatestDto {
 pub struct SymbolDto {
     pub code: String,
     pub name: Option<String>,
+    /// ADR-019 D11-1：标的类型（`etf`/`lof`/`stock`/保留位）；**null = 未设置（未知）**。
+    pub r#type: Option<String>,
     pub interval_secs: i32,
     pub settlement: String,
     pub enabled: bool,
@@ -2609,7 +2611,8 @@ impl From<&SymbolLatestView> for SymbolDto {
                 .map(|p| (last - p) / p * 100.0),
         });
         SymbolDto {
-            code: r.code.clone(), name: r.name.clone(), interval_secs: r.interval_secs,
+            code: r.code.clone(), name: r.name.clone(), r#type: r.type_.clone(),
+            interval_secs: r.interval_secs,
             settlement: r.settlement.clone(), enabled: r.enabled, latest, today_bars: None,
             favorite: false, favorite_sort: None,
         }
@@ -2688,6 +2691,8 @@ fn default_enabled() -> bool { true }
 pub struct RegisterSymbolReq {
     pub code: String,
     pub name: Option<String>,
+    /// ADR-019 D11-1：标的类型（**可选**；缺省 = None = 未知，不静默错判）。
+    pub r#type: Option<String>,
     #[serde(default = "default_interval")]
     pub interval_secs: i32,
     #[serde(default = "default_settlement")]
@@ -2702,6 +2707,8 @@ pub struct UpdateSymbolReq {
     pub name: Option<String>,
     pub interval_secs: Option<i32>,
     pub settlement: Option<String>,
+    /// ADR-019 D11-1：标的类型（None = 不改；空串 → 400，本批不支持经 API 清空 type）。
+    pub r#type: Option<String>,
     pub enabled: Option<bool>,
 }
 
@@ -2737,6 +2744,22 @@ pub fn validate_settlement(s: &str) -> Result<(), FieldError> {
         return Err(FieldError::BadRequest("settlement 须为 T0 或 T1".into()));
     }
     Ok(())
+}
+
+/// 标的类型枚举（ADR-019 D11-1，与 `symbols_type_check` CHECK 同口径；
+/// `bond_etf`/`money_etf`/`index` = D11-6 保留位，可登记但本批无费率档案 → 回退旧默认）。
+pub const SYMBOL_TYPES: [&str; 6] = ["etf", "lof", "stock", "bond_etf", "money_etf", "index"];
+
+/// type 校验（ADR-019 D11-1）：None 合法（未知）；空串拒绝（避免「意外清空」歧义）；枚举外 400。
+pub fn validate_symbol_type(t: Option<&str>) -> Result<(), FieldError> {
+    match t {
+        None => Ok(()),
+        Some(x) if SYMBOL_TYPES.contains(&x) => Ok(()),
+        Some("") => Err(FieldError::BadRequest(
+            "type 不可为空串（省略该字段 = 保持/未知；本批不支持经 API 清空 type）".into())),
+        Some(x) => Err(FieldError::BadRequest(format!(
+            "type 须为 {} 之一，got {x}", SYMBOL_TYPES.join("/")))),
+    }
 }
 
 /// name 归一：空串/纯空白 → None。
@@ -3094,8 +3117,8 @@ mod tests {
 
     #[test]
     fn symbol_without_bars_serializes_null_latest() {
-        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
-            settlement: "T1".into(), enabled: true,
+        let row = SymbolLatestView { code: "997702".into(), name: None, type_: Some("etf".into()),
+            interval_secs: 60, settlement: "T1".into(), enabled: true,
             last_ts: None, last_close: None, prev_close: None };
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert!(v["latest"].is_null());
@@ -3107,8 +3130,8 @@ mod tests {
     #[test]
     fn symbol_dto_favorite_fields_always_serialize() {
         // 非收藏 → favorite=false, favorite_sort=null（Always 输出，前端置顶 UI 依据）
-        let row = SymbolLatestView { code: "997702".into(), name: None, interval_secs: 60,
-            settlement: "T1".into(), enabled: true,
+        let row = SymbolLatestView { code: "997702".into(), name: None, type_: Some("etf".into()),
+            interval_secs: 60, settlement: "T1".into(), enabled: true,
             last_ts: None, last_close: None, prev_close: None };
         let v = serde_json::to_value(SymbolDto::from(&row)).unwrap();
         assert_eq!(v["favorite"], false);
@@ -3186,6 +3209,19 @@ mod tests {
         assert!(validate_threshold(-1.0).is_err());
         assert!(validate_threshold(100.0).is_ok());
         assert!(validate_threshold(100.1).is_err());
+    }
+
+    #[test]
+    fn symbol_type_validation_enum_and_optional() {
+        // ADR-019 D11-1：None 合法（未知）；枚举内合法（含 D11-6 保留位）；枚举外/空串 → 400。
+        assert!(validate_symbol_type(None).is_ok());
+        for ok in SYMBOL_TYPES {
+            assert!(validate_symbol_type(Some(ok)).is_ok(), "{ok} 应合法");
+        }
+        for bad in ["", "ETF", "stockx", "fund", "etfs"] {
+            assert!(matches!(validate_symbol_type(Some(bad)), Err(FieldError::BadRequest(_))),
+                "{bad:?} 应拒绝");
+        }
     }
 
     #[test]
@@ -3396,9 +3432,11 @@ pub async fn register_symbol(State(st): State<Arc<AppState>>,
     if let Err(e) = validate_code(&req.code) { return field_err(e); }
     if let Err(e) = validate_interval(req.interval_secs) { return field_err(e); }
     if let Err(e) = validate_settlement(&req.settlement) { return field_err(e); }
+    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
     let input = SymbolAdminInput {
         code: req.code.clone(), name: normalize_name(req.name),
         interval_secs: req.interval_secs, settlement: req.settlement.clone(),
+        type_: req.r#type.clone(),
         enabled: req.enabled,
     };
     match st.symbols_admin.register(&input).await {
@@ -3422,10 +3460,12 @@ pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<Str
     if let Some(s) = &req.settlement {
         if let Err(e) = validate_settlement(s) { return field_err(e); }
     }
+    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
     let patch = SymbolPatch {
         name: normalize_name(req.name),
         interval_secs: req.interval_secs,
         settlement: req.settlement.clone(),
+        type_: req.r#type.clone(),
         enabled: req.enabled,
     };
     match st.symbols_admin.update(&code, &patch).await {
@@ -4688,7 +4728,10 @@ async fn main() -> anyhow::Result<()> {
         strategy_store.clone(),
         Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
         Arc::new(domain::ports::SystemClock),
-    ));
+    )
+    // ADR-019 D11-3：费率档案端口（fee_profiles + symbols.type，迁移 0025）——
+    // 未显式传 fee 的试算/回测按标的 type 推断（无档案 → 旧 ADR bt-1 默认）。
+    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
     // P2a 启动播种：strategy 表为空 → strategy-core::reference 7 参考插件 + 4 官方模板以
     // published 入库（sha256 启动时计算；幂等——表非空整体跳过，按 name+sha256 逐款跳过）。
     let seed_report = strategy_service.seed_reference_plugins().await?;
@@ -4706,7 +4749,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(web::workbench::WorkbenchWsSink::new(backtest_hub.clone())),
         Arc::new(domain::ports::SystemClock),
         application::workbench::DEFAULT_MAX_CONCURRENT,
-    ));
+    )
+    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
     // 11-sim-live / P4a：SimLiveService 装配（策略源 = Registry 共享 strategy_store；「回测一下」
     // 统一 ensemble 引擎 = workbench_service——消费式 builder，故构造置于 workbench_service 之后）。
     // 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state + strategy_version 钉住
@@ -4999,10 +5043,11 @@ impl SymbolAdminWrite for PgSymbolAdmin {
     /// 注册；ON CONFLICT DO NOTHING → rows_affected=0 即已存在（Ok(false)，web 映射 409）。
     async fn register(&self, input: &SymbolAdminInput) -> Result<bool> {
         let n = sqlx::query(
-            "INSERT INTO symbols (code, name, interval_secs, settlement, enabled) \
-             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (code) DO NOTHING")
+            "INSERT INTO symbols (code, name, interval_secs, settlement, type, enabled) \
+             VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (code) DO NOTHING")
             .bind(&input.code).bind(&input.name)
-            .bind(input.interval_secs).bind(&input.settlement).bind(input.enabled)
+            .bind(input.interval_secs).bind(&input.settlement).bind(&input.type_)
+            .bind(input.enabled)
             .execute(&self.pool).await?
             .rows_affected();
         Ok(n > 0)
@@ -5015,10 +5060,11 @@ impl SymbolAdminWrite for PgSymbolAdmin {
                  name = COALESCE($2, name), \
                  interval_secs = COALESCE($3, interval_secs), \
                  settlement = COALESCE($4, settlement), \
-                 enabled = COALESCE($5, enabled) \
+                 type = COALESCE($5, type), \
+                 enabled = COALESCE($6, enabled) \
              WHERE code = $1")
             .bind(code).bind(&patch.name).bind(patch.interval_secs)
-            .bind(&patch.settlement).bind(patch.enabled)
+            .bind(&patch.settlement).bind(&patch.type_).bind(patch.enabled)
             .execute(&self.pool).await?
             .rows_affected();
         Ok(n > 0)
@@ -5105,7 +5151,7 @@ async fn clean_reset(pool: &PgPool) {
 
 fn input(code: &str) -> SymbolAdminInput {
     SymbolAdminInput { code: code.into(), name: Some("测试ETF".into()),
-        interval_secs: 60, settlement: "T1".into(), enabled: true }
+        interval_secs: 60, settlement: "T1".into(), type_: None, enabled: true }
 }
 
 #[tokio::test]
@@ -5136,6 +5182,20 @@ async fn register_update_roundtrip_and_conflict() {
     assert!(admin.register(&bad).await.is_err(), "interval_secs<60 被 schema CHECK 拒绝");
     let bad2 = SymbolAdminInput { settlement: "T2".into(), ..input(CODE2) };
     assert!(admin.register(&bad2).await.is_err(), "非法 settlement 被 schema CHECK 拒绝");
+    // ADR-019 D11-1：非法 type 被 schema CHECK 拒绝；合法枚举（含保留位）可落库
+    let bad3 = SymbolAdminInput { type_: Some("stockx".into()), ..input(CODE2) };
+    assert!(admin.register(&bad3).await.is_err(), "非法 type 被 symbols_type_check 拒绝");
+    let ok3 = SymbolAdminInput { type_: Some("etf".into()), ..input(CODE2) };
+    assert!(admin.register(&ok3).await.unwrap(), "合法 type 可登记");
+    let ty: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE2).fetch_one(&pool).await.unwrap();
+    assert_eq!(ty.as_deref(), Some("etf"), "type 落库");
+    // PATCH type（COALESCE 语义：Some 覆盖 / None 不改）
+    let patch_t = SymbolPatch { type_: Some("lof".into()), ..Default::default() };
+    assert!(admin.update(CODE2, &patch_t).await.unwrap());
+    let ty: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE2).fetch_one(&pool).await.unwrap();
+    assert_eq!(ty.as_deref(), Some("lof"), "PATCH type 生效");
     clean(&pool).await;
 }
 
@@ -5196,6 +5256,8 @@ use web::state::AppState;
 use web::ws::{SubscriptionRegistry, WsHub};
 
 const CODE: &str = "996820";
+/// ADR-019 D11 用例独占 code（同 binary 测试并行执行，共享 code 的 clean 会互删——实锤踩坑）。
+const CODE_TYPE: &str = "996822";
 const RSRC: &str = "web_test_reset_src";
 
 async fn pool() -> PgPool {
@@ -5266,6 +5328,12 @@ async fn spawn(state: Arc<AppState>) -> String {
 async fn clean(pool: &PgPool) {
     sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+}
+
+/// D11 type 用例独占清理（只删自己的 CODE_TYPE，避免与同 binary 并行用例互删）。
+async fn clean_type(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE_TYPE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE_TYPE).execute(pool).await.unwrap();
 }
 
 async fn clean_reset(pool: &PgPool) {
@@ -5349,6 +5417,56 @@ async fn symbols_register_edit_disable_and_stats() {
     let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE).unwrap();
     assert!(s.get("today_bars").is_none(), "无 with_stats 不出 today_bars 键");
     clean(&pool).await;
+}
+
+/// ADR-019 D11-1/D11-5：POST/PATCH /api/symbols 的可选 `type`（校验 / 落库 / 回读 / null 语义）。
+#[tokio::test]
+async fn symbols_type_optional_register_and_patch() {
+    let pool = pool().await;
+    clean_type(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 省略 type → null（未知；**不得**静默错判为某类型）
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": CODE_TYPE})).send().await.unwrap();
+    assert_eq!(r.status(), 201);
+    let v: Value = r.json().await.unwrap();
+    assert!(v["type"].is_null(), "省略 type → null（未知）");
+    let t: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE_TYPE).fetch_one(&pool).await.unwrap();
+    assert!(t.is_none(), "落库为 NULL");
+
+    // 枚举外 / 空串 → 400（大小写敏感；空串禁用以免「意外清空」歧义）
+    for bad in ["stockx", "", "ETF", "fund"] {
+        let r = http.post(format!("{url}/api/symbols"))
+            .json(&serde_json::json!({"code": "996823", "type": bad})).send().await.unwrap();
+        assert_eq!(r.status(), 400, "type={bad:?} → 400");
+    }
+
+    // PATCH 设 etf → 200 + 回读 type（写 symbols.type 即控制通道，数据面重读热生效）
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"type": "etf"})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    assert_eq!(r.json::<Value>().await.unwrap()["type"], "etf");
+
+    // 未给 type 的 PATCH 不改 type（COALESCE 语义）；D11-6 保留位可登记
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"interval_secs": 300})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["type"], "etf", "未给 type → 保留原值");
+    assert_eq!(v["interval_secs"], 300);
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"type": "bond_etf"})).send().await.unwrap();
+    assert_eq!(r.status(), 200, "D11-6 保留位枚举可登记（费率档案未播种 → 解析回退旧默认）");
+
+    // GET /api/symbols 回显 type（与 MCP list_symbols 同源字段）
+    let v: Value = http.get(format!("{url}/api/symbols")).send().await.unwrap()
+        .json().await.unwrap();
+    let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE_TYPE).expect("含测试标的");
+    assert_eq!(s["type"], "bond_etf");
+    clean_type(&pool).await;
 }
 
 #[tokio::test]

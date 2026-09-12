@@ -11,6 +11,8 @@ use web::state::AppState;
 use web::ws::{SubscriptionRegistry, WsHub};
 
 const CODE: &str = "996820";
+/// ADR-019 D11 用例独占 code（同 binary 测试并行执行，共享 code 的 clean 会互删——实锤踩坑）。
+const CODE_TYPE: &str = "996822";
 const RSRC: &str = "web_test_reset_src";
 
 async fn pool() -> PgPool {
@@ -81,6 +83,12 @@ async fn spawn(state: Arc<AppState>) -> String {
 async fn clean(pool: &PgPool) {
     sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+}
+
+/// D11 type 用例独占清理（只删自己的 CODE_TYPE，避免与同 binary 并行用例互删）。
+async fn clean_type(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE_TYPE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(CODE_TYPE).execute(pool).await.unwrap();
 }
 
 async fn clean_reset(pool: &PgPool) {
@@ -164,6 +172,56 @@ async fn symbols_register_edit_disable_and_stats() {
     let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE).unwrap();
     assert!(s.get("today_bars").is_none(), "无 with_stats 不出 today_bars 键");
     clean(&pool).await;
+}
+
+/// ADR-019 D11-1/D11-5：POST/PATCH /api/symbols 的可选 `type`（校验 / 落库 / 回读 / null 语义）。
+#[tokio::test]
+async fn symbols_type_optional_register_and_patch() {
+    let pool = pool().await;
+    clean_type(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 省略 type → null（未知；**不得**静默错判为某类型）
+    let r = http.post(format!("{url}/api/symbols"))
+        .json(&serde_json::json!({"code": CODE_TYPE})).send().await.unwrap();
+    assert_eq!(r.status(), 201);
+    let v: Value = r.json().await.unwrap();
+    assert!(v["type"].is_null(), "省略 type → null（未知）");
+    let t: Option<String> = sqlx::query_scalar("SELECT type FROM symbols WHERE code = $1")
+        .bind(CODE_TYPE).fetch_one(&pool).await.unwrap();
+    assert!(t.is_none(), "落库为 NULL");
+
+    // 枚举外 / 空串 → 400（大小写敏感；空串禁用以免「意外清空」歧义）
+    for bad in ["stockx", "", "ETF", "fund"] {
+        let r = http.post(format!("{url}/api/symbols"))
+            .json(&serde_json::json!({"code": "996823", "type": bad})).send().await.unwrap();
+        assert_eq!(r.status(), 400, "type={bad:?} → 400");
+    }
+
+    // PATCH 设 etf → 200 + 回读 type（写 symbols.type 即控制通道，数据面重读热生效）
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"type": "etf"})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    assert_eq!(r.json::<Value>().await.unwrap()["type"], "etf");
+
+    // 未给 type 的 PATCH 不改 type（COALESCE 语义）；D11-6 保留位可登记
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"interval_secs": 300})).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["type"], "etf", "未给 type → 保留原值");
+    assert_eq!(v["interval_secs"], 300);
+    let r = http.patch(format!("{url}/api/symbols/{CODE_TYPE}"))
+        .json(&serde_json::json!({"type": "bond_etf"})).send().await.unwrap();
+    assert_eq!(r.status(), 200, "D11-6 保留位枚举可登记（费率档案未播种 → 解析回退旧默认）");
+
+    // GET /api/symbols 回显 type（与 MCP list_symbols 同源字段）
+    let v: Value = http.get(format!("{url}/api/symbols")).send().await.unwrap()
+        .json().await.unwrap();
+    let s = v.as_array().unwrap().iter().find(|x| x["code"] == CODE_TYPE).expect("含测试标的");
+    assert_eq!(s["type"], "bond_etf");
+    clean_type(&pool).await;
 }
 
 #[tokio::test]

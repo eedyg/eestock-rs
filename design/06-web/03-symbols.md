@@ -192,6 +192,9 @@ export const SYMBOLS_DEFAULTS = {
   bseRejected: true,              // 北交所前缀（4/8/920）拒绝并提示「暂不支持」
 } as const;
 
+/** ADR-019 D11-1：标的类型（含 D11-6 保留位 bond_etf/money_etf/index） */
+export type SymbolType = 'etf' | 'lof' | 'stock' | 'bond_etf' | 'money_etf' | 'index';
+
 export type Settlement = 'T0' | 'T1';
 export type FormMode = 'register' | 'edit';
 
@@ -211,6 +214,8 @@ export interface SymbolFormValues {
   code: string;                    // 6 位数字；市场前缀校验；北交所拒绝
   intervalSec: number;             // ≥ SYMBOLS_DEFAULTS.minIntervalSec，热生效
   settlement: Settlement;          // ⚠️ 修改需二次确认（回测/交易撮合规则输入）
+  /** ADR-019 D11-1：标的类型（可选；undefined/null = 未知 → 费率回落旧默认） */
+  type?: SymbolType | null;
   enabled: boolean;
   name: string;                    // 注册时服务端反查，失败留空可手工改
 }
@@ -232,6 +237,7 @@ export function SymbolsGrid(props: SymbolsGridProps) {
 
       {props.formMode && (
         /* form-dialog：注册 POST /api/symbols（服务端反查名称）/ 编辑 PATCH /api/symbols/{code}；
+           标的类型 type（ADR-019 D11-1，可选）参与费率推断；
             三态=提交中禁用+spinner/不可能空/校验内联+提交错误提示；
             settlement 修改二次确认；code 编辑态只读；遮罩点击不关闭 */
         <div data-region="form-dialog" className="fixed inset-0 flex items-center justify-center">
@@ -250,10 +256,15 @@ export function SymbolsGrid(props: SymbolsGridProps) {
 
 ## 3. 注册 / 编辑
 
-- 注册表单字段：code、间隔秒数（默认 60，下限 60）、**交收规则 T+0/T+1（默认按分类规则预填：跨境/债券/商品/货币→T0，股票型→T1，人工确认可改）**、启用开关（默认开）
+- 注册表单字段：code、间隔秒数（默认 60，下限 60）、**交收规则 T+0/T+1（默认按分类规则预填：跨境/债券/商品/货币→T0，股票型→T1，人工确认可改）**、**标的类型 `type`（可选：`etf`/`lof`/`stock`，D11-6 保留位 `bond_etf`/`money_etf`/`index`；省略 = 未知）**、启用开关（默认开）
 - code 校验：6 位数字；市场规则 5/6/9→沪、0/1/2/3→深；北交所前缀（4/8/920）拒绝并明确提示「暂不支持」
 - **间隔修改热生效**：写 symbols 表后下一采集周期即按新间隔调度，无需重启
-- 编辑：间隔、启用状态、名称、**settlement** 可改；code 主键不可改（改 code = 停用旧的 + 注册新的）
+- 编辑：间隔、启用状态、名称、**settlement**、**`type`** 可改；code 主键不可改（改 code = 停用旧的 + 注册新的）
+- **`type` 的作用（ADR-019 / D11）**：试算/回测**省略 fee** 时按 `type` 查 `fee_profiles` 推断默认费率
+  （etf/lof：印花税**不征**→0、过户费**免收**→0、经手费/证管费按**全佣口径已含于佣金→列 0**；stock：印花税卖出 0.05%）。
+  省略 `type` = 未知 → 回落旧 ADR bt-1 默认（股票口径 0.05），**不会**借用其他类型的费率档案。
+  枚举外/空串 → 400（空串禁用以免「意外清空」歧义；本批不支持经 API 清空 type）。
+  写入 symbols 表即控制通道（数据面重读热生效）；列表列与 `GET /api/symbols` 回显 `type`（null = 未设置）。
 - ⚠️ settlement 是回测/交易的撮合规则输入：T+1 当日买不可当日卖，T+0 可日内回转——改错会直接污染回测结论，修改需二次确认
 
 ## 4. 删除语义
@@ -270,8 +281,8 @@ export function SymbolsGrid(props: SymbolsGridProps) {
 | 用途 | 接口 |
 |---|---|
 | 列表（含今日 bar 数/最新时刻） | `GET /api/symbols?with_stats=1` |
-| 注册（服务端反查名称） | `POST /api/symbols` |
-| 编辑（间隔/启停/名称，热生效） | `PATCH /api/symbols/{code}` |
+| 注册（服务端反查名称；可选 `type`） | `POST /api/symbols` |
+| 编辑（间隔/启停/名称/`type`，热生效） | `PATCH /api/symbols/{code}` |
 | 停用 | `PATCH /api/symbols/{code} {enabled:false}` |
 
 ## 7. 验收（Wave 1）

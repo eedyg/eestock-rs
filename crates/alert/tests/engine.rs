@@ -204,8 +204,8 @@ fn ok_events(src: &str, n: usize, at: DateTime<Utc>) -> Vec<HealthEventRow> {
 }
 
 fn sym(code: &str, enabled: bool) -> SymbolLatestView {
-    SymbolLatestView { code: code.into(), name: None, interval_secs: 60, settlement: "T1".into(),
-        enabled, last_ts: None, last_close: None, prev_close: None }
+    SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
+        settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
 }
 
 /// 全规则开启时默认不触发基线：源全部健康 + 标的满格 + tushare 最近成功。

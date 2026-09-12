@@ -77,7 +77,10 @@ async fn main() -> anyhow::Result<()> {
         strategy_store.clone(),
         Arc::new(storage::backtest::BacktestBarReader::new(pool.clone())),
         Arc::new(domain::ports::SystemClock),
-    ));
+    )
+    // ADR-019 D11-3：费率档案端口（fee_profiles + symbols.type，迁移 0025）——
+    // 未显式传 fee 的试算/回测按标的 type 推断（无档案 → 旧 ADR bt-1 默认）。
+    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
     // P2a 启动播种：strategy 表为空 → strategy-core::reference 7 参考插件 + 4 官方模板以
     // published 入库（sha256 启动时计算；幂等——表非空整体跳过，按 name+sha256 逐款跳过）。
     let seed_report = strategy_service.seed_reference_plugins().await?;
@@ -95,7 +98,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(web::workbench::WorkbenchWsSink::new(backtest_hub.clone())),
         Arc::new(domain::ports::SystemClock),
         application::workbench::DEFAULT_MAX_CONCURRENT,
-    ));
+    )
+    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
     // 11-sim-live / P4a：SimLiveService 装配（策略源 = Registry 共享 strategy_store；「回测一下」
     // 统一 ensemble 引擎 = workbench_service——消费式 builder，故构造置于 workbench_service 之后）。
     // 启动恢复：收敛/恢复进程重启遗留的 running 会话（读 simsession_state + strategy_version 钉住

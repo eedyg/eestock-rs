@@ -98,7 +98,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "list_symbols",
-            "description": "统一策略系统 Registry：返回平台 symbols 注册表全部标的（含 enabled=false 的停用标的；与 web GET /api/symbols 同源同字段）：code/name/interval_secs/settlement/enabled + 数据可用区间（latest={ts,last,change_pct}，无 bar → null）。按 code 升序（确定性输出）。适用场景：调用方选标的（get_kline / strategy_test_run / bt_run_ensemble）。",
+            "description": "统一策略系统 Registry：返回平台 symbols 注册表全部标的（含 enabled=false 的停用标的；与 web GET /api/symbols 同源同字段）：code/name/type/interval_secs/settlement/enabled + 数据可用区间（latest={ts,last,change_pct}，无 bar → null）。`type`=ADR-019 D11-1 标的类型（etf/lof/stock；null=未设置），决定试算/回测省略 fee 时的费率推断。按 code 升序（确定性输出）。适用场景：调用方选标的（get_kline / strategy_test_run / bt_run_ensemble）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {}
@@ -343,7 +343,7 @@ fn tool_schemas() -> Vec<Value> {
                     "mode": { "type": "string", "enum": ["pure_score", "sim_position"], "description": "试算模式" },
                     "params": { "type": "object", "description": "插件参数（按版本 schema 校验/缺省填充）" },
                     "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；历史不足时响应回显 warmup_effective < warmup_requested。" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1）。⚠️ 缺省 stamp_duty_pct=0.05 为 A 股股票口径兼容值——ETF/LOF 无印花税，须显式传 stamp_duty_pct:0；值域 [0,1]。与 bt_run_ensemble 同 to_fee_model 口径，响应回显生效 fee。" },
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费 0、经手费/证管费按全佣口径已含于佣金 → 列 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025, 5.0, 0.05}）。显式传对象时整体以显式为准（缺 stamp_duty_pct 仍 0.05，可复现旧行为）；值域 [0,1]。响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + source=explicit|profile|default）与 `fee.profile`（档案**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单——这三项**引擎未建模、未计入成本**，不得出现在 effective 段）。" },
                     "policy": { "type": "object", "description": "ExecutionPolicy（与 bt_run_ensemble 同 JSON 口径）：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}；缺省 LumpSum 全仓。" },
                     "capital": { "type": "number", "description": "初始资金，默认 100000（与回测 ADR §4 一致）。" }
                 },
@@ -360,7 +360,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_run_ensemble",
-            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee 缺省 {rate_pct:0.025, min_fee:5.0, slippage_bp:2.0}（ADR bt-1 默认）；可选 stamp_duty_pct（缺省 0.05 A股股票口径；ETF 回测显式传 0，值域 [0,1]）。适用场景：策略组合历史表现验证/参数与阈值对比。",
+            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee **省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费免收 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025,5.0,0.05}），显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）；生效 fee 钉入 config 快照，分 `effective`（引擎实际应用参数 + source=explicit|profile|default）与 `profile`（档案全量事实 + `not_modeled` 显式未建模清单）两段。适用场景：策略组合历史表现验证/参数与阈值对比。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -380,7 +380,7 @@ fn tool_schemas() -> Vec<Value> {
                     "policy": { "type": "object", "description": "ExecutionPolicy：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}" },
                     "stop": { "type": "object", "description": "硬止损（可空）：{\"kind\":\"FixedPct|Trailing|Atr\", \"value\":>0, \"trigger\":\"Intrabar|CloseBasis\"}" },
                     "initial_capital": { "type": "number", "description": "初始资金，默认 100000" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）；stamp_duty_pct 可选，缺省 0.05（A股股票），ETF 显式传 0，值域 [0,1]" },
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税 0/过户费 0；stock 0.05；无档案 → 旧默认）；显式对象整体优先；stamp_duty_pct 值域 [0,1]。config 快照钉入生效 fee：`fee.effective`（引擎实际应用参数 + source=explicit|profile|default）+ `fee.profile`（档案全量事实含 `not_modeled` 未建模清单）；未建模字段不得入 effective 段。" },
                     "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；warmup 段不执行 Policy、不计净值/绩效；config 钉住 warmup_requested/effective 并逐 bar 标记 warmup。" }
                 },
                 "required": ["symbol", "period", "from", "to", "slots", "policy"]
@@ -702,7 +702,8 @@ async fn get_data_quality(st: &McpState, id: Option<Value>, args: &Value) -> Val
 }
 
 /// list_symbols()：平台 symbols 注册表全部标的（含 enabled=false）+ 数据可用区间
-/// （latest={ts,last,change_pct}；无 bar → null），按 code 升序（确定性）。
+/// （latest={ts,last,change_pct}；无 bar → null）+ ADR-019 D11-1 标的类型 `type`（null=未设置），
+/// 按 code 升序（确定性）。
 /// 与 web `GET /api/symbols` **同源**（同一 `KlineRead::symbols_with_latest` 端口）；注册表不可读 → isError（fail-closed）。
 async fn list_symbols(st: &McpState, id: Option<Value>, _args: &Value) -> Value {
     match st.kline.symbols_with_latest().await {
@@ -718,7 +719,8 @@ async fn list_symbols(st: &McpState, id: Option<Value>, _args: &Value) -> Value 
                     _ => Value::Null,
                 };
                 json!({
-                    "code": r.code, "name": r.name, "interval_secs": r.interval_secs,
+                    "code": r.code, "name": r.name, "type": r.type_,
+                    "interval_secs": r.interval_secs,
                     "settlement": r.settlement, "enabled": r.enabled, "latest": latest,
                 })
             }).collect();
@@ -1025,20 +1027,10 @@ fn parse_rfc3339_utc(s: &str) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(s).ok().map(|t| t.with_timezone(&Utc))
 }
 
-/// bt_run_ensemble 缺省费用（ADR bt-1 推荐默认；任务书未列 fee 参数，父级批准缺省 + 可选覆盖）。
-fn default_fee_json() -> Value {
-    json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })
-}
-
 /// 试算缺省前置预热根数（I-2/D6 架构师裁决；与 application::workbench::DEFAULT_WARMUP_BARS 同值）。
 pub const DEFAULT_TEST_RUN_WARMUP_BARS: usize = 250;
 /// 试算缺省初始资金（与回测 ADR §4 一致）。
 pub const DEFAULT_TEST_RUN_CAPITAL: f64 = 100_000.0;
-/// 试算缺省费用（ADR bt-1；缺省 stamp_duty_pct=0.05 为股票口径兼容值，ETF/LOF 须显式传 0）。
-fn default_test_run_fee() -> Value {
-    json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })
-}
-
 /// strategy_list(level?, kind?, include_source?)：catalog（仅 published，每策略最新 published 版本；level at-least 过滤）。
 /// I-7（D5）：默认只回摘要（version 不含 code）；include_source=true 显式返回全量源码。
 async fn strategy_list(st: &McpState, id: Option<Value>, args: &Value) -> Value {
@@ -1226,11 +1218,13 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
             None => return result_err(id, INVALID_PARAMS, "warmup_bars 须为非负整数"),
         },
     };
-    // I-3/D6：fee/policy/capital（缺省与 bt_run_ensemble 同口径）。
-    let fee = args.get("fee").cloned().unwrap_or_else(default_test_run_fee);
-    if !fee.is_object() {
-        return result_err(id, INVALID_PARAMS, "fee 须为 object");
-    }
+    // I-3/D6 + ADR-019 D11-3：fee **省略** = 传 None 交服务层按标的 type 查 `fee_profiles` 解析
+    // （无档案/type 未设 → 旧 ADR bt-1 默认）；显式传对象仍整体优先（向后兼容）。
+    let fee = match args.get("fee") {
+        None => None,
+        Some(v) if v.is_object() => Some(v.clone()),
+        Some(_) => return result_err(id, INVALID_PARAMS, "fee 须为 object"),
+    };
     let policy = args.get("policy").cloned()
         .unwrap_or_else(|| json!({ "LumpSum": { "position_pct": 1.0 } }));
     if !policy.is_object() {
@@ -1358,7 +1352,12 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
             None => return result_err(id, INVALID_PARAMS, "initial_capital 须为 number"),
         },
     };
-    let fee = args.get("fee").cloned().unwrap_or_else(default_fee_json);
+    // ADR-019 D11-3：同上（省略 = 按标的 type 查 fee_profiles；显式对象整体优先）。
+    let fee = match args.get("fee") {
+        None => None,
+        Some(v) if v.is_object() => Some(v.clone()),
+        Some(_) => return result_err(id, INVALID_PARAMS, "fee 须为 object"),
+    };
     // I-2/D6：前置预热根数（缺省 250）。
     let warmup_bars = match args.get("warmup_bars") {
         None => DEFAULT_TEST_RUN_WARMUP_BARS,
@@ -1686,13 +1685,14 @@ mod tests {
     // ── I-4（D1）：list_symbols（与 web GET /api/symbols 同源）──
 
     /// 注册表行构造（I-4 用例：注册状态/采集间隔/交割类型/最新快照均可控）。
-    fn sample_symbol(code: &str, name: Option<&str>, interval_secs: i32, settlement: &str,
-                     enabled: bool, last_ts: Option<DateTime<Utc>>,
+    #[allow(clippy::too_many_arguments)] // 9 参（I-4 用例可控字段 + D11 type）
+    fn sample_symbol(code: &str, name: Option<&str>, type_: Option<&str>, interval_secs: i32,
+                     settlement: &str, enabled: bool, last_ts: Option<DateTime<Utc>>,
                      last_close: Option<f64>, prev_close: Option<f64>)
         -> domain::ports::SymbolLatestView {
         domain::ports::SymbolLatestView {
-            code: code.into(), name: name.map(str::to_string), interval_secs,
-            settlement: settlement.into(), enabled, last_ts, last_close, prev_close,
+            code: code.into(), name: name.map(str::to_string), type_: type_.map(str::to_string),
+            interval_secs, settlement: settlement.into(), enabled, last_ts, last_close, prev_close,
         }
     }
 
@@ -1701,9 +1701,9 @@ mod tests {
     #[tokio::test]
     async fn list_symbols_returns_registered_with_status_and_latest() {
         let kline = Arc::new(MockKline::new().with_symbols(vec![
-            sample_symbol("518880", Some("黄金ETF"), 60, "T1", true,
+            sample_symbol("518880", Some("黄金ETF"), Some("etf"), 60, "T1", true,
                 Some(Utc.with_ymd_and_hms(2026, 9, 11, 7, 0, 0).unwrap()), Some(5.0), Some(4.0)),
-            sample_symbol("600000", None, 15, "T0", false, None, None, None),
+            sample_symbol("600000", None, None, 15, "T0", false, None, None, None),
         ]));
         let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
         let r = call(&st, "list_symbols", json!({})).await;
@@ -2823,18 +2823,59 @@ mod tests {
         strategy_state_with_kline(Arc::new(MockKline::with_registered(&["518880", "600000"])))
     }
 
+    /// ADR-019 D11-3 测试替身：`etf_codes` 内的 code 解析为 etf 档案（其余 → None = 无档案）。
+    /// 用于锁定「按标的 type 推断费率」而不影响既有「缺省旧默认」用例。
+    struct StubEtfFeeProfiles {
+        etf_codes: Vec<String>,
+    }
+
+    #[async_trait::async_trait]
+    impl domain::ports::FeeProfileStore for StubEtfFeeProfiles {
+        async fn for_symbol(&self, code: &str)
+            -> anyhow::Result<Option<domain::ports::FeeProfileRow>> {
+            if !self.etf_codes.iter().any(|c| c == code) { return Ok(None); }
+            Ok(Some(domain::ports::FeeProfileRow {
+                type_: "etf".into(), commission_rate_pct: 0.025, min_fee: 5.0,
+                exchange_fee_pct: 0.0, regulatory_fee_pct: 0.0, stamp_duty_pct: 0.0,
+                transfer_fee_pct: 0.0,
+                note: "测试档案（全佣口径：经手费/证管费列 0；印花税不征）".into(),
+                source: "test".into(),
+            }))
+        }
+    }
+
     /// 同 strategy_state，但注入自定义 KlineRead（I-9：注册表不可读 fail-closed 用例）。
     fn strategy_state_with_kline(kline: Arc<MockKline>) -> (Arc<McpState>, P3cFixture) {
+        strategy_state_full(kline, None)
+    }
+
+    /// ADR-019 D11-3：装配 FeeProfileStore 的 P3c state（etf_codes 内的标的解析为 etf 档案）。
+    fn strategy_state_with_fee_profiles(kline: Arc<MockKline>, etf_codes: &[&str])
+        -> (Arc<McpState>, P3cFixture) {
+        strategy_state_full(kline, Some(Arc::new(StubEtfFeeProfiles {
+            etf_codes: etf_codes.iter().map(|c| c.to_string()).collect(),
+        })))
+    }
+
+    fn strategy_state_full(kline: Arc<MockKline>,
+                           fee_profiles: Option<Arc<dyn domain::ports::FeeProfileStore>>)
+        -> (Arc<McpState>, P3cFixture) {
         let store = Arc::new(MockStrategyStore::default());
         let bars = Arc::new(MockStrategyBars);
         let clock = Arc::new(FixedClock(p3c_now()));
-        let strategies = Arc::new(application::strategy::StrategyService::new(
-            store.clone(), bars.clone(), clock.clone()));
         let run_store = Arc::new(MockStrategyRunStore::default());
         let preset_store = Arc::new(MockStrategyPresetStore::default());
-        let workbench = Arc::new(application::workbench::WorkbenchService::new(
+        let mut strategies = application::strategy::StrategyService::new(
+            store.clone(), bars.clone(), clock.clone());
+        let mut workbench = application::workbench::WorkbenchService::new(
             bars, run_store.clone(), preset_store.clone(), store,
-            Arc::new(MockStrategySymbols), Arc::new(MockStrategySink), clock, 2));
+            Arc::new(MockStrategySymbols), Arc::new(MockStrategySink), clock, 2);
+        if let Some(fp) = fee_profiles {
+            strategies = strategies.with_fee_profiles(fp.clone());
+            workbench = workbench.with_fee_profiles(fp);
+        }
+        let strategies = Arc::new(strategies);
+        let workbench = Arc::new(workbench);
         let st = Arc::new(McpState {
             kline,
             health: diagnose::health::HealthService::new(Arc::new(MockEvents::new())),
@@ -3028,15 +3069,15 @@ mod tests {
             "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "sim_position" });
         // 缺省：股票口径 0.05 回显 + I-2 warmup 缺省 250/effective 0（mock 无 from 前置历史）。
         let p = payload_of(&call(&st, "strategy_test_run", base.clone()).await);
-        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.05), "缺省股票口径回显");
-        assert_eq!(p["fee"]["rate_pct"], json!(0.025));
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "缺省股票口径回显");
+        assert_eq!(p["fee"]["effective"]["commission_rate_pct"], json!(0.025));
         assert_eq!(p["warmup_requested"], json!(250), "缺省预热 250");
         assert_eq!(p["warmup_effective"], json!(0), "mock 无 from 前置历史");
         // ETF：显式 stamp_duty_pct=0 → 回显 0。
         let mut a = base.clone();
         a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0 });
         let p = payload_of(&call(&st, "strategy_test_run", a).await);
-        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.0), "ETF 显式 0 回显");
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.0), "ETF 显式 0 回显");
         // policy=Dca + capital 接受。
         let mut a = base.clone();
         a["policy"] = json!({ "Dca": { "tranches": 3, "mode": "Equal", "amount": null, "interval": 1 } });
@@ -3053,6 +3094,89 @@ mod tests {
         a["mode"] = json!("pure_score");
         a["fee"] = json!({ "rate_pct": 0.025 });
         assert_eq!(call(&st, "strategy_test_run", a).await["result"]["isError"], true);
+    }
+
+    // ── ADR-019（D11-3）：按标的 type 推断费率 + 生效 fee/source 回显 ──
+
+    /// ETF 标的 + 省略 fee → 印花税 0（D11 主目标）；显式传参优先（旧行为可复现）；无档案 → 旧默认。
+    #[tokio::test]
+    async fn strategy_test_run_fee_resolves_by_symbol_type() {
+        let (st, _fx) = strategy_state_with_fee_profiles(
+            Arc::new(MockKline::with_registered(&["518880", "600000"])), &["518880"]);
+        let base = json!({ "code": CONST_80, "symbol": "518880", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z", "mode": "sim_position" });
+        // ① 省略 fee → profile 分支：ETF 无印花税/无过户费/规费列 0（全佣口径），回显来源。
+        let p = payload_of(&call(&st, "strategy_test_run", base.clone()).await);
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.0), "ETF 印花税不征 → 0（D11 主目标）");
+        assert_eq!(p["fee"]["effective"]["commission_rate_pct"], json!(0.025), "佣金仍为全佣口径默认");
+        assert_eq!(p["fee"]["effective"]["source"], json!("profile"), "来源=profile（按 type 查档案）");
+        assert_eq!(p["fee"]["symbol_type"], json!("etf"));
+        assert_eq!(p["fee"]["profile"]["exchange_fee_pct"], json!(0.0), "全佣口径：经手费列 0");
+        assert_eq!(p["fee"]["profile"]["regulatory_fee_pct"], json!(0.0), "证管费列 0");
+        assert_eq!(p["fee"]["profile"]["transfer_fee_pct"], json!(0.0), "过户费免收 → 0");
+        assert_eq!(p["fee"]["profile"]["not_modeled"],
+            json!(["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]),
+            "三项规费未建模 → 显式标注，不得误读为已计入");
+        assert!(p["fee"]["effective"].get("exchange_fee_pct").is_none(), "未建模字段不得入 effective");
+        // ② 显式传对象 → 整体以显式为准（缺 stamp_duty_pct 仍 0.05：旧行为完全可复现）
+        let mut a = base.clone();
+        a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 });
+        let p = payload_of(&call(&st, "strategy_test_run", a).await);
+        assert_eq!(p["fee"]["effective"]["source"], json!("explicit"), "显式传参优先");
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "显式分支保持旧默认 0.05（向后兼容）");
+        // ③ 未建档标的（600000 不在 etf_codes）→ default 分支：旧默认，不借用他类型档案
+        let mut a = base.clone();
+        a["symbol"] = json!("600000");
+        let p = payload_of(&call(&st, "strategy_test_run", a).await);
+        assert_eq!(p["fee"]["effective"]["source"], json!("default"));
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "type 未知 → 旧 ADR bt-1 默认");
+        assert!(p["fee"].get("profile").is_none(), "无档案 → 不回显 profile 明细");
+        assert!(p["fee"]["symbol_type"].is_null());
+    }
+
+    /// bt_run_ensemble：省略 fee → config 快照钉住 profile 生效值 + source（与试算同口径）。
+    #[tokio::test]
+    async fn bt_run_ensemble_fee_resolves_by_symbol_type_and_pins_source() {
+        // 注：工作台注册表替身（MockStrategySymbols）仅含 600000，故本用例的档案替身按 600000 建档。
+        let (st, _fx) = strategy_state_with_fee_profiles(
+            Arc::new(MockKline::with_registered(&["600000"])), &["600000"]);
+        let (sid, vid) = create_published(&st, "D11费率", CONST_80).await;
+        let mk = |fee: Option<Value>| {
+            let mut a = json!({
+                "name": "d11", "symbol": "600000", "period": "D1",
+                "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+                "slots": [{ "strategy_id": sid, "version_id": vid, "weight": 1.0, "params": {} }],
+                "policy": { "LumpSum": { "position_pct": 1.0 } }
+            });
+            if let Some(f) = fee { a["fee"] = f; }
+            a
+        };
+        // 省略 fee → 按 type 解析（ETF 印花税 0）并钉入 config 快照（复现前提 + 来源可见）
+        let p = payload_of(&call(&st, "bt_run_ensemble", mk(None)).await);
+        assert_eq!(p["run"]["config"]["fee"]["effective"]["stamp_duty_pct"], json!(0.0), "ETF 缺省印花税 0");
+        assert_eq!(p["run"]["config"]["fee"]["effective"]["source"], json!("profile"));
+        assert_eq!(p["run"]["config"]["fee"]["symbol_type"], json!("etf"));
+        // 显式 fee → config 快照钉住显式值（source=explicit）
+        let p2 = payload_of(&call(&st, "bt_run_ensemble", mk(Some(json!(
+            { "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })))).await);
+        assert_eq!(p2["run"]["config"]["fee"]["effective"]["source"], json!("explicit"));
+        assert_eq!(p2["run"]["config"]["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "显式缺 stamp → 旧默认");
+    }
+
+    /// list_symbols：注册表行回显 type（ADR-019 D11-1；null = 未设置）。
+    #[tokio::test]
+    async fn list_symbols_exposes_symbol_type_or_null() {
+        let kline = Arc::new(MockKline::new().with_symbols(vec![
+            sample_symbol("518880", Some("黄金ETF"), Some("etf"), 60, "T1", true, None, None, None),
+            sample_symbol("600000", None, None, 15, "T0", false, None, None, None),
+        ]));
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        let p = payload_of(&call(&st, "list_symbols", json!({})).await);
+        let syms = p["symbols"].as_array().expect("symbols 数组");
+        assert_eq!(syms[0]["code"], "518880");
+        assert_eq!(syms[0]["type"], json!("etf"), "已判定标的回显 type");
+        assert_eq!(syms[1]["code"], "600000");
+        assert!(syms[1]["type"].is_null(), "未设置 type → null（不静默错判）");
     }
 
     /// I-2：bt_run_ensemble schema 含 warmup_bars（缺省可选，不入 required）。
@@ -3137,7 +3261,7 @@ mod tests {
         assert_eq!(p["run"]["status"], "queued");
         assert_eq!(p["run"]["config"]["slots"][0]["strategy_id"], json!(sid));
         assert_eq!(p["run"]["config"]["slots"][0]["version_id"], json!(vid), "钉住解析的最新 published");
-        assert_eq!(p["run"]["config"]["fee"]["rate_pct"], json!(0.025), "fee 缺省 ADR bt-1 默认");
+        assert_eq!(p["run"]["config"]["fee"]["effective"]["commission_rate_pct"], json!(0.025), "fee 缺省 ADR bt-1 默认");
         // 轮询至完成（后台真实 QuickJS 引擎跑 6 bar）
         let mut status = String::new();
         for _ in 0..200 {

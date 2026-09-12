@@ -498,6 +498,7 @@ impl KlineRead for MockKline {
             .map(|code| SymbolLatestView {
                 code: code.clone(),
                 name: None,
+                type_: None,
                 interval_secs: 60,
                 settlement: "T1".into(),
                 enabled: true,

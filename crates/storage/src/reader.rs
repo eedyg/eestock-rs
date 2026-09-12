@@ -148,7 +148,7 @@ GROUP BY code, time_bucket('{interval}', ts)
 /// 同库 EXPLAIN ANALYZE：旧 Execution 13.2ms → 新 16.0ms（Planning 两侧均 ~460ms，系 kline_accurate
 /// 70+ chunk 既有规划开销，新旧一致；应用侧 sqlx prepared 复用后摊销，app 端保持 13.5ms 量级）。
 const SYMBOLS_LATEST_SQL: &str = r#"
-SELECT s.code, s.name, s.interval_secs, s.settlement, s.enabled,
+SELECT s.code, s.name, s.type, s.interval_secs, s.settlement, s.enabled,
        l.last_ts, l.last_close, p.prev_close
 FROM symbols s
 LEFT JOIN LATERAL (
@@ -249,12 +249,12 @@ impl KlineRead for KlineReader {
 
     /// 注册表 + 最新快照（日涨跌幅 = (last − prev_close) / prev_close，prev_close=昨收 D1，由调用方计算）。
     async fn symbols_with_latest(&self) -> Result<Vec<SymbolLatestView>> {
-        type Row = (String, Option<String>, i32, String, bool,
+        type Row = (String, Option<String>, Option<String>, i32, String, bool,
                     Option<DateTime<Utc>>, Option<f64>, Option<f64>);
         let rows: Vec<Row> = sqlx::query_as(SYMBOLS_LATEST_SQL).fetch_all(&self.pool).await?;
         Ok(rows.into_iter().map(
-            |(code, name, interval_secs, settlement, enabled, last_ts, last_close, prev_close)|
-            SymbolLatestView { code, name, interval_secs, settlement, enabled,
+            |(code, name, type_, interval_secs, settlement, enabled, last_ts, last_close, prev_close)|
+            SymbolLatestView { code, name, type_, interval_secs, settlement, enabled,
                                last_ts, last_close, prev_close }
         ).collect())
     }

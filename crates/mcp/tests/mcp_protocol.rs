@@ -31,8 +31,8 @@ impl KlineRead for MockKline {
     async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
         // I-1：get_kline 注册成员校验输入（518880 = 平台已注册标的；本文件用例代码）。
         Ok(vec![SymbolLatestView {
-            code: "518880".into(), name: None, interval_secs: 60, settlement: "T1".into(),
-            enabled: true, last_ts: None, last_close: None, prev_close: None,
+            code: "518880".into(), name: None, type_: Some("etf".into()), interval_secs: 60,
+            settlement: "T1".into(), enabled: true, last_ts: None, last_close: None, prev_close: None,
         }])
     }
 }

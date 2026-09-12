@@ -93,7 +93,10 @@ pub struct WorkbenchSubmitReq {
     pub stop: Option<serde_json::Value>,
     #[serde(default)]
     pub initial_capital: Option<f64>,
-    pub fee: serde_json::Value,
+    /// I-3/D6 + D11-3：省略/`null` = 按标的 type 查 `fee_profiles` 解析（无档案 → 旧默认）；
+    /// 显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）。
+    #[serde(default)]
+    pub fee: Option<serde_json::Value>,
     /// I-2/D6：前置预热根数（缺省 250）；0 = 无预热。
     #[serde(default)]
     pub warmup_bars: Option<usize>,
@@ -159,12 +162,15 @@ pub async fn submit_run(
     if req.slots.is_empty() {
         return err(StatusCode::BAD_REQUEST, "slots 必填（1..=10）");
     }
-    if let Err(e) = crate::dto::validate_backtest_fee(&req.fee) {
-        return match e {
-            crate::dto::FieldError::BadRequest(m) | crate::dto::FieldError::Unprocessable(m) => {
-                err(StatusCode::BAD_REQUEST, &m)
-            }
-        };
+    // fee 缺省（None）= 按标的 type 解析（ADR-019 D11-3）→ 仅显式传入时做形状校验。
+    if let Some(fee) = &req.fee {
+        if let Err(e) = crate::dto::validate_backtest_fee(fee) {
+            return match e {
+                crate::dto::FieldError::BadRequest(m) | crate::dto::FieldError::Unprocessable(m) => {
+                    err(StatusCode::BAD_REQUEST, &m)
+                }
+            };
+        }
     }
     let submit = SubmitRunReq {
         name: req.name.unwrap_or_default(),

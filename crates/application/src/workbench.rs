@@ -37,13 +37,13 @@ use tokio::sync::Semaphore;
 
 use domain::ports::{
     BacktestBarRead, Clock, NewStrategyPreset, NewStrategyRun, StrategyPresetRow,
-    StrategyPresetStore, StrategyRunFilter, StrategyRunResult, StrategyRunStore, StrategyRunView,
-    StrategyStore, SymbolRegistry,
+    FeeProfileStore, StrategyPresetStore, StrategyRunFilter, StrategyRunResult, StrategyRunStore,
+    StrategyRunView, StrategyStore, SymbolRegistry,
 };
 use strategy_core::{EnsembleConfig, EnsembleError, ExecutionPolicy, LoopControl, StopConfig};
 use strategy_runtime::StrategyParams;
 
-use crate::fee::to_fee_model;
+use crate::fee::{resolve_fee, resolved_fee_to_json, to_fee_model};
 use crate::strategy::{
     fill_and_validate_params, new_id, schema_from_json, D1_MAX_SPAN_DAYS, MINUTE_MAX_SPAN_DAYS,
 };
@@ -128,8 +128,9 @@ pub struct SubmitRunReq {
     pub stop: Option<serde_json::Value>,
     /// 缺省 100_000。
     pub initial_capital: Option<f64>,
-    /// `{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`。
-    pub fee: serde_json::Value,
+    /// `{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`；**None = 未显式传** →
+    /// 按标的 `type` 查 `fee_profiles` 解析默认值（ADR-019 D11-3），无档案 → 回落旧 ADR bt-1 默认。
+    pub fee: Option<serde_json::Value>,
     /// I-2/D6：前置预热根数（缺省 [`DEFAULT_WARMUP_BARS`]=250；0 = 无预热）。
     pub warmup_bars: usize,
 }
@@ -168,6 +169,8 @@ pub struct WorkbenchService {
     symbols: Arc<dyn SymbolRegistry>,
     progress: Arc<dyn domain::ports::StrategyRunProgressSink>,
     clock: Arc<dyn Clock>,
+    /// ADR-019 D11-3：费率档案读端口（None = 未装配 → 保持旧默认行为，向后兼容既有测试装配）。
+    fee_profiles: Option<Arc<dyn FeeProfileStore>>,
     semaphore: Arc<Semaphore>,
     /// running 运行取消标记（协作式：引擎 observer 回调点检查）。
     cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
@@ -193,9 +196,16 @@ impl WorkbenchService {
             symbols,
             progress,
             clock,
+            fee_profiles: None,
             semaphore: Arc::new(Semaphore::new(max_concurrent.max(1))),
             cancel_flags: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    /// ADR-019 D11-3：装配费率档案端口（app bin 调用）。未装配 = 不按类型推断（旧行为）。
+    pub fn with_fee_profiles(mut self, store: Arc<dyn FeeProfileStore>) -> Self {
+        self.fee_profiles = Some(store);
+        self
     }
 
     /// 提交 ensemble 运行：校验全路径 → 钉住快照入库 queued → 后台任务异步执行。
@@ -262,7 +272,15 @@ impl WorkbenchService {
             }
         };
         let initial_capital = req.initial_capital.unwrap_or(DEFAULT_INITIAL_CAPITAL);
-        let fee = to_fee_model(&req.fee).map_err(|e| WorkbenchValidation(e.to_string()))?;
+        // ADR-019 D11-3：fee 三层解析（显式 > 按标的 type 查档案 > 旧 ADR bt-1 默认）。
+        let profile = match &self.fee_profiles {
+            Some(store) => store.for_symbol(&symbol).await?,
+            None => None,
+        };
+        let resolved = resolve_fee(req.fee.as_ref(), profile)
+            .map_err(|e| WorkbenchValidation(e.to_string()))?;
+        let fee = resolved.model;
+        let fee_json = resolved_fee_to_json(&resolved);
         let mut probe = EnsembleConfig {
             slots: vec![], // validate 不检视 slots（零 slot 合法）；钉住校验已先行
             buy_threshold: buy,
@@ -335,7 +353,7 @@ impl WorkbenchService {
             "policy": req.policy,
             "stop": req.stop,
             "initial_capital": initial_capital,
-            "fee": crate::fee::fee_model_to_json(&fee),
+            "fee": fee_json,
             "warmup_requested": warmup_requested,
             "warmup_effective": warmup_effective,
         });

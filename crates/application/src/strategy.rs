@@ -30,8 +30,8 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use domain::ports::{
-    BacktestBarRead, CatalogEntry, Clock, NewStrategy, NewStrategyVersion, StrategyManageItem,
-    StrategyRow, StrategyStore, StrategyVersionRow,
+    BacktestBarRead, CatalogEntry, Clock, FeeProfileStore, NewStrategy, NewStrategyVersion,
+    StrategyManageItem, StrategyRow, StrategyStore, StrategyVersionRow,
 };
 use domain::strategy_state::{validate_transition, ApprovalLevel, StrategyKind, StrategyStatus};
 use strategy_runtime::{
@@ -167,9 +167,10 @@ pub struct TestRunRequest {
     /// I-2/D6：前置预热根数（请求值）。服务层按此拉取 `from` 之前可得历史，
     /// 实际生效值见响应 `warmup_effective`（< 请求值即历史不足）。0 = 无预热。
     pub warmup_bars: usize,
-    /// I-3/D6：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
-    /// 与工作台 `bt_run_ensemble` 同 `to_fee_model` 口径（缺省 stamp_duty_pct 0.05）。
-    pub fee: serde_json::Value,
+    /// I-3/D6 + D11-3：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
+    /// **None = 未显式传** → 按标的 `type` 查 `fee_profiles` 解析（无档案 → 旧 ADR bt-1 默认）；
+    /// 显式传对象时整体以显式为准（缺 stamp_duty_pct 仍 0.05，向后兼容旧行为）。
+    pub fee: Option<serde_json::Value>,
     /// I-3/D6：执行策略 JSON（与 `bt_run_ensemble` 同 `ExecutionPolicy` 口径：
     /// `{"LumpSum":{"position_pct":..}}` 或 `{"Dca":{..}}`）。
     pub policy: serde_json::Value,
@@ -350,6 +351,8 @@ pub struct StrategyService {
     store: Arc<dyn StrategyStore>,
     bar_read: Arc<dyn BacktestBarRead>,
     clock: Arc<dyn Clock>,
+    /// ADR-019 D11-3：费率档案读端口（None = 未装配 → 不按类型推断，保持旧默认行为）。
+    fee_profiles: Option<Arc<dyn FeeProfileStore>>,
 }
 
 impl StrategyService {
@@ -358,7 +361,13 @@ impl StrategyService {
         bar_read: Arc<dyn BacktestBarRead>,
         clock: Arc<dyn Clock>,
     ) -> Self {
-        Self { store, bar_read, clock }
+        Self { store, bar_read, clock, fee_profiles: None }
+    }
+
+    /// ADR-019 D11-3：装配费率档案端口（app bin 调用）。未装配 = 不按类型推断（旧行为）。
+    pub fn with_fee_profiles(mut self, store: Arc<dyn FeeProfileStore>) -> Self {
+        self.fee_profiles = Some(store);
+        self
     }
 
     /// 新建策略（v1 draft；sha256 创建即计算，schema 最佳-effort 提取——draft 允许暂存坏代码）。
@@ -680,9 +689,15 @@ impl StrategyService {
             .into());
         }
 
-        // I-3/D6：fee / policy / capital 入参校验（与工作台 to_fee_model / ExecutionPolicy 同口径）。
-        let fee =
-            crate::fee::to_fee_model(&req.fee).map_err(|e| StrategyValidation(e.to_string()))?;
+        // I-3/D6 + ADR-019 D11-3：fee 三层解析（显式 > 按标的 type 查 fee_profiles > 旧 ADR bt-1 默认）。
+        let profile = match &self.fee_profiles {
+            Some(store) => store.for_symbol(req.symbol.trim()).await?,
+            None => None,
+        };
+        let resolved = crate::fee::resolve_fee(req.fee.as_ref(), profile)
+            .map_err(|e| StrategyValidation(e.to_string()))?;
+        let fee = resolved.model;
+        let fee_json = crate::fee::resolved_fee_to_json(&resolved);
         let policy: strategy_core::ExecutionPolicy = serde_json::from_value(req.policy.clone())
             .map_err(|e| StrategyValidation(format!("policy 非法: {e}")))?;
         policy.validate().map_err(StrategyValidation)?;
@@ -739,7 +754,7 @@ impl StrategyService {
                 &bars,
                 warmup_effective,
                 warmup_requested,
-                &fee,
+                &fee_json,
             )),
             TestRunMode::SimPosition => run_sim_position(
                 &req_owned,
@@ -751,6 +766,7 @@ impl StrategyService {
                 warmup_effective,
                 warmup_requested,
                 &fee,
+                &fee_json,
                 &policy,
             ),
         })
@@ -837,7 +853,7 @@ fn run_pure_score(
     bars: &[backtest::Bar],
     warmup_effective: usize,
     warmup_requested: usize,
-    fee: &backtest::FeeModel,
+    fee_json: &serde_json::Value,
 ) -> TestRunResponse {
     let mut scores = Vec::with_capacity(bars.len());
     let mut events = Vec::new();
@@ -865,7 +881,7 @@ fn run_pure_score(
                 scores,
                 signals: vec![],
                 trades: serde_json::json!([]),
-                fee: crate::fee::fee_model_to_json(fee),
+                fee: fee_json.clone(),
                 events,
                 truncated,
             };
@@ -949,7 +965,7 @@ fn run_pure_score(
         scores,
         signals: vec![],
         trades: serde_json::json!([]),
-        fee: crate::fee::fee_model_to_json(fee),
+        fee: fee_json.clone(),
         events,
         truncated,
     }
@@ -968,6 +984,7 @@ fn run_sim_position(
     warmup_effective: usize,
     warmup_requested: usize,
     fee: &backtest::FeeModel,
+    fee_json: &serde_json::Value,
     policy: &strategy_core::ExecutionPolicy,
 ) -> anyhow::Result<TestRunResponse> {
     let slot = strategy_core::StrategySlot::new(code, code_hash, params.clone(), 1.0)
@@ -1049,7 +1066,7 @@ fn run_sim_position(
         scores,
         signals,
         trades,
-        fee: crate::fee::fee_model_to_json(fee),
+        fee: fee_json.clone(),
         events,
         truncated,
     })
