@@ -1,0 +1,14 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.20s
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-49b94151a6004fd2)
+
+running 6 tests
+test cancel_run_semantics ... ok
+test compare_endpoint_side_by_side ... ok
+test preset_crud_apply_end_to_end ... ok
+test submit_archived_version_audit_rerun_201 ... ok
+test submit_run_lifecycle_end_to_end ... ok
+test submit_validation_error_matrix ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.93s
+

@@ -1,0 +1,6 @@
+======= [1] OLD gate (sha d6397313c984) =======
+[check-tangle] entangled tangle ...
+[20:55:19] INFO     Welcome to Entangled v2.4.3!
+           INFO     Nothing to be done.
+[check-tangle] ✅ tangle 后无 diff，design 与生成物一致。
+OLD_GATE_RC=0

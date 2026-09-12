@@ -1,0 +1,20 @@
+   Compiling domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling alert v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/alert)
+   Compiling diagnose v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/diagnose)
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.32s
+     Running tests/zz_tester_011_f2_path.rs (target/debug/deps/zz_tester_011_f2_path-79c3a983ba027de8)
+
+running 1 test
+F2 EVIDENCE path_A(W1) status=400 error="period 须为 M1/M5/M15/H1/D1"
+F2 EVIDENCE path_B(H1) status=400 error="区间内无 K 线数据（893581 H1 2026-09-09 01:29:00 UTC~2026-09-09 01:40:00 UTC）"
+test f2_period_paths_are_distinguishable ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+

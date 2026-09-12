@@ -1,0 +1,5 @@
+frame json chars: 42040
+payload text chars: 39097
+entries: 11
+sum of version.code chars: 24733
+per-entry chars: 2755,3488,4138,3505,4274,2954,4325,2105,2139,2361,2385

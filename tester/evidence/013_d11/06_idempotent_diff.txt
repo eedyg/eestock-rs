@@ -1,0 +1,3 @@
+=== diff 迁移前快照 vs 幂等测试后快照（剔除时间戳行标签）===
+--- 行数: before=47 after=47
+NO-DIFF：44 行 symbols（code/name/interval/settlement/enabled/created_at/type）+ 3 行 fee_profiles（含 updated_at/xmin）逐字节一致 → 零变更、零污染

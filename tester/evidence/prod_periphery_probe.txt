@@ -1,0 +1,18 @@
+# SSE GET http://127.0.0.1:8082/sse -> 200 text/event-stream (17ms)
+# endpoint frame: /messages?sessionId=12f7e0092e534eed3dd65b331180f44c
+
+## tools/call get_data_quality {"code":"999999","date":"2026-09-10"}
+# POST /messages -> 202 (33ms)
+# SSE frame: {"id":100,"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"code\": \"999999\",\n  \"date\": \"2026-09-10\",\n  \"trading_day\": true,\n  \"gap\": {\n    \"date\": \"2026-09-10\",\n    \"expected_bars\": 241,\n    \"actual_bars\": 0,\n    \"missing_bars\": 241,\n    \"segments\": [\n      {\n        \"start\": \"2026-09-10T09:30:00\",\n        \"end\": \"2026-09-10T09:30:00\",\n        \"count\": 1,\n        \"class\": \"system_gap\"\n      },\n      {\n        \"start\": \"2026-09-10T09:31:00\",\n        \"end\": \"2026-09-10T09:39:00\",\n        \"count\": 9,\n        \"class\": \"source_fault\"\n      },\n      {\n        \"start\": \"2026-09-10T09:40:00\",\n        \"end\": \"2026-09-10T11:30:00\",\n        \"count\": 111,\n        \"class\": \"system_gap\"\n      },\n      {\n        \"start\": \"2026-09-10T13:01:00\",\n        \"end\": \"2026-09-10T14:57:00\",\n        \"count\": 117,\n        \"class\": \"system_gap\"\n      },\n      {\n        \"start\": \"2026-09-10T14:58:00\",\n        \"end\": \"2026-09-10T15:00:00\",\n        \"count\": 3,\n        \"class\": \"source_fault\"\n      }\n    ]\n  },\n  \"divergence\": {\n    \"compared_bars\": 0,\n    \"divergent_bars\": 0,\n    \"divergence_rate\": null,\n    \"consistency_rate\": null,\n    \"max_deviation_pct\": null\n  }\n}","type":"text"}]}}
+
+## tools/call strategy_test_run {"symbol":"999999","period":"1d","from":"2026-09-01","to":"2026-09-10"}
+# POST /messages -> 202 (1ms)
+# SSE frame: {"error":{"code":-32602,"message":"code 与 version_id 须恰提供一个（二选一）"},"id":101,"jsonrpc":"2.0"}
+
+## tools/call bt_run_ensemble {"symbol":"999999"}
+# POST /messages -> 202 (1ms)
+# SSE frame: {"error":{"code":-32602,"message":"period 必填（M1/M5/M15/D1）"},"id":102,"jsonrpc":"2.0"}
+
+## tools/call sim_start_session {"name":"i1-tester-probe","stock_set":["999999"]}
+# POST /messages -> 202 (1ms)
+# SSE frame: {"error":{"code":-32602,"message":"period 必填"},"id":103,"jsonrpc":"2.0"}

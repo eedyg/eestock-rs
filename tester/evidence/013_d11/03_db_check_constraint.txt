@@ -1,0 +1,14 @@
+=== 1.11 CHECK 枚举强制（非法值应被拒）===
+ERROR:  new row for relation "symbols" violates check constraint "symbols_type_check"
+DETAIL:  Failing row contains (ZZTEST_BAD, t, 60, T1, f, 2026-09-12 13:34:16.591417+00, foo).
+exit=0
+=== 1.12 保留位应被接受（bond_etf/money_etf/index），随后清理 ===
+     code     |   type    
+--------------+-----------
+ ZZTEST_RES_B | bond_etf
+ ZZTEST_RES_I | index
+ ZZTEST_RES_M | money_etf
+(3 rows)
+
+=== 1.13 残留测试标检查（应为 0）===
+0

@@ -1,0 +1,96 @@
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.10s
+     Running tests/zz_tester_010_acceptance.rs (target/debug/deps/zz_tester_010_acceptance-541ed87f287745eb)
+
+running 1 test
+test zz_tester_010_full_acceptance ... EV D1.schema {"additionalProperties":null,"name":"list_symbols","properties":{},"required":null,"required_present":false}
+EV D1.sql_order_head ["159337","159577","159638"]
+EV D1.sql_order_tail ["562500","562800","588000"]
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/010_mcp_batch/list_symbols_payload.json (7770 bytes)
+EV D1.tool_n 44
+EV D1.tool_order_head ["159337","159577","159638"]
+EV D1.tool_order_tail ["562500","562800","588000"]
+EV D1.same_order_as_sql true
+EV D1.ascending true
+EV D1.count_eq_sql true
+EV D1.field_mismatches []
+EV D1.sample_first {"code":"159337","enabled":true,"interval_secs":60,"latest":{"change_pct":0.0,"last":1.74,"ts":"2026-09-11T07:00:00Z"},"name":"中证500ETF基金","settlement":"T1"}
+EV D1.sample_with_null_latest null
+EV D1.latest_keys {"change_pct":0.0,"last":1.74,"ts":"2026-09-11T07:00:00Z"}
+EV D1.unknown_args_ignored {"isError":false,"n":44}
+EV D1.registry_down {"isError":true,"text":"工具执行失败：标的注册表查询失败：injected registry outage (tester 010)"}
+EV D2.legacy_shape {"bar_keys":["amount","close","high","low","open","source","ts","volume"],"default_limit_expected":240,"keys":["bars","code","period"],"n_bars":240}
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/010_mcp_batch/get_kline_legacy_payload_shape.json (46 bytes)
+EV D2.limit_10001 {"code":-32602,"has_10000":true,"has_segment":true,"message":"limit 超上限 10000——请缩小 limit 或用 from/to 分段取数"}
+EV D2.exact_window {"from":"2020-02-17T03:21:00Z","n_probe":20000,"to":"2020-04-15T06:50:00Z","to2":"2020-04-15T06:51:00Z"}
+EV D2.exactly_10000 {"from":"2020-02-17T03:21:00Z","isError":false,"n_bars":10000,"text":"","to":"2020-04-15T06:50:00Z"}
+EV D2.over_limit_interval {"isError":true,"text":"工具执行失败：区间内根数 10001 超 limit 10000——请缩小 from/to 区间或分段取数"}
+EV D2.date_same_from_to {"isError":null,"message":"from 须早于 to","protocol_error":-32602,"text":""}
+EV D2.date_mixed_forms {"message":"from 须早于 to","protocol_error":-32602}
+EV D2.date_bounds {"expect_from":"2026-09-09T16:00:00Z (CST 2026-09-10 00:00)","expect_to":"2026-09-11T16:00:00Z (CST 2026-09-12 00:00；to 含整日 09-11)","expect_ts":["2026-09-10T01:00:00+00:00","2026-09-10T02:00:00+00:00","2026-09-10T03:00:00+00:00","2026-09-10T05:00:00+00:00","2026-09-10T06:00:00+00:00","2026-09-10T07:00:00+00:00","2026-09-11T01:00:00+00:00","2026-09-11T02:00:00+00:00","2026-09-11T03:00:00+00:00","2026-09-11T05:00:00+00:00","2026-09-11T06:00:00+00:00","2026-09-11T07:00:00+00:00"],"from_echo":"2026-09-09T16:00:00Z","n":12,"to_echo":"2026-09-11T16:00:00Z","ts_equal_port_expectation":true,"ts_head":["2026-09-10T01:00:00Z","2026-09-10T02:00:00Z"],"ts_tail":["2026-09-11T06:00:00Z","2026-09-11T07:00:00Z"]}
+EV D2.date_vs_rfc3339_equivalent {"equal":true,"from":"2026-09-09T16:00:00Z","to":"2026-09-11T16:00:00Z"}
+EV D2.single_day_rfc3339 {"n":6,"ts":["2026-09-10T01:00:00Z","2026-09-10T02:00:00Z","2026-09-10T03:00:00Z","2026-09-10T05:00:00Z","2026-09-10T06:00:00Z","2026-09-10T07:00:00Z"]}
+EV D2.rfc3339_bounds {"from":"2026-09-10T01:00:00Z","n":3,"to":"2026-09-10T04:00:00Z","ts":["2026-09-10T01:00:00Z","2026-09-10T02:00:00Z","2026-09-10T03:00:00Z"]}
+EV D2.validation.from_gt_to {"code":-32602,"message":"from 须早于 to"}
+EV D2.validation.bad_from {"code":-32602,"message":"from 须为 YYYY-MM-DD 或 RFC3339"}
+EV D2.validation.from_number {"code":-32602,"message":"from 须为字符串（YYYY-MM-DD 或 RFC3339）"}
+EV D2.validation.limit_string {"code":-32602,"message":"limit 须为整数"}
+EV D2.1h_available {"last":{"amount":26048276.0,"close":8.943,"high":8.943,"low":8.943,"open":8.943,"source":"tushare","ts":"2026-09-11T07:00:00Z","volume":2912700},"n":3}
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/010_mcp_batch/strategy_list_slim.json (14000 bytes)
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/010_mcp_batch/strategy_list_full.json (47752 bytes)
+EV D5.sizes {"baseline_before_change":39097,"delta_vs_baseline":0,"full_bytes":47752,"full_chars":39097,"ratio_full_over_slim":2.9489364911751395,"slim_bytes":14000,"slim_chars":13258}
+EV D5.slim_has_no_code true
+EV D5.full_has_code true
+EV D5.slim_keeps_identity true
+EV D5.n_entries {"full":11,"slim":11}
+EV D5.slim_entry_sample {"strategy":{"created_at":"2026-09-10T04:15:13.978310Z","created_by":"seed","description":"快/慢均线金叉买入、死叉卖出","id":"st_1789013713975_000000","kind":"strategy","name":"双均线交叉","updated_at":"2026-09-10T04:15:13.979600Z"},"version":{"approval_level":"backtest_ok","created_at":"2026-09-10T04:15:13.979600Z","id":"sv_1789013713975_000001","params_schema":[{"default":5.0,"description":"快线周期","key":"fast","max":200.0,"min":2.0,"type":"int"},{"default":20.0,"description":"慢线周期","key":"slow","max":250.0,"min":2.0,"type":"int"}],"published_at":"2026-09-10T04:15:13.975162Z","sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","status":"published","strategy_id":"st_1789013713975_000000","version":1}}
+EV D5.slim_keys ["strategy","version"]
+EV D5.version_keys_slim ["approval_level","created_at","id","params_schema","published_at","sha256","status","strategy_id","version"]
+EV D5.version_keys_full ["approval_level","code","created_at","id","params_schema","published_at","sha256","status","strategy_id","version"]
+EV D5.invalid_type {"code":-32602,"message":"include_source 须为 boolean"}
+EV D9.unregistered {"isError":true,"mentions_code":true,"mentions_未注册":true,"text":"工具执行失败：标的 510300 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"}
+EV D9.registered_ok {"isError":false,"ok":true,"text":"ok"}
+EV D9.registry_down {"isError":true,"text":"工具执行失败：标的注册表查询失败：injected registry outage (tester 010)"}
+EV I6.h1_test_run {"bar_count":952,"isError":false,"period":"H1","text":"","warmup_effective":250,"warmup_requested":250}
+EV I6.h1_span_5y {"isError":false,"text":"accepted"}
+EV I6.h1_span_6y {"isError":true,"text":"工具执行失败：试算区间超限：H1 跨度 2192 天 > 上限 1830 天"}
+EV I6.d1_span_6y {"isError":true,"text":"工具执行失败：试算区间超限：D1 跨度 2192 天 > 上限 1830 天"}
+EV I6.w1_rejected {"code":-32602,"message":"period 须为 M1/M5/M15/H1/D1"}
+EV I2.default_warmup {"bar_count":598,"effective":250,"requested":250}
+EV I2.warmup0 {"bar_count":348,"effective":0,"first_trade":{"close_bar":347,"close_price":5.1249748,"close_ts":1711695600,"commission":52.540908706991885,"gross_value":110188.62857952969,"hold_bars":346,"open_bar":1,"open_price":4.6499298,"open_ts":1704160800,"pnl":10105.98710809504,"shares":21500.325929315724,"stamp_duty":55.09431428976484},"n_scores_warmup_true":0,"n_signals_warmup_true":0,"n_trades":1,"requested":0}
+EV I2.warmup5 {"bar_count":353,"effective":5,"first_trade":{"close_bar":352,"close_price":5.1249748,"close_ts":1711695600,"commission":52.540908706991885,"gross_value":110188.62857952969,"hold_bars":346,"open_bar":6,"open_price":4.6499298,"open_ts":1704160800,"pnl":10105.98710809504,"shares":21500.325929315724,"stamp_duty":55.09431428976484},"min_trade_open_bar":6,"n_scores_warmup_true":5,"n_signals_warmup_true":5,"n_trades":1,"prefix_all_true":true,"requested":5,"scores_len":353,"signals_len":353,"suffix_all_false":true,"trades_in_warmup":0,"warmup_scores":[100.0,100.0,100.0,100.0,100.0],"warmup_signals":["buy","buy","buy","buy","buy"]}
+EV I2.default_250_marks {"effective":250,"min_trade_open_bar":251,"n_true":250,"requested":250,"scores_len":598}
+EV I2.shortfall {"bar_count":90,"data_start_h1":"2013-07-29T01:00:00Z","effective":1,"from":"2013-07-29T02:00:00Z","n_true":1,"requested":250}
+EV I3.fee_default_echo {"commission_sum":52.540908706991885,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"n_trades":1,"pnl_sum":10105.98710809504,"shares_first":21500.325929315724,"stamp_duty_sum":55.09431428976484}
+EV I3.fee_etf_echo {"commission_same_as_default":true,"commission_sum":52.540908706991885,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"n_trades":1,"pnl_differs":true,"pnl_sum":10161.0814223848,"stamp_duty_sum":0.0}
+EV I3.capital_effect {"n_trades":1,"ratio":2.0,"shares_first_100k":21500.325929315724,"shares_first_200k":43000.65185863145,"threshold_effect_applied":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05}}
+EV I3.policy_dca {"isError":false,"n_trades":1,"text":""}
+EV I3.policy_lumpsum_half {"isError":false,"n_trades":1,"shares_first":10757.314974182444,"vs_full_shares":21500.325929315724}
+EV I3.validation.fee_empty_object {"isError":true,"message":"","protocol_error":null,"text":"工具执行失败：fee.rate_pct 缺失或非数值"}
+EV I3.validation.fee_missing_rate {"isError":true,"message":"","protocol_error":null,"text":"工具执行失败：fee.rate_pct 缺失或非数值"}
+EV I3.validation.fee_stamp_out_of_range {"isError":true,"message":"","protocol_error":null,"text":"工具执行失败：fee.stamp_duty_pct 须 ∈ [0,1]（百分比）"}
+EV I3.validation.policy_bad {"isError":true,"message":"","protocol_error":null,"text":"工具执行失败：policy 非法: unknown variant `Nope`, expected `LumpSum` or `Dca`"}
+EV I3.validation.capital_zero {"isError":false,"message":"capital 须为正有限数值","protocol_error":-32602,"text":""}
+EV I3.validation.capital_negative {"isError":false,"message":"capital 须为正有限数值","protocol_error":-32602,"text":""}
+EV I3.validation.warmup_negative {"isError":false,"message":"warmup_bars 须为非负整数","protocol_error":-32602,"text":""}
+EV I3.validation.warmup_float {"isError":false,"message":"warmup_bars 须为非负整数","protocol_error":-32602,"text":""}
+EV X.version {"strategy_id":"st_1789013713975_000000","version_id":"sv_1789013713975_000001"}
+EV X.test_run {"bar_count":598,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"isError":false,"n_scores":598,"n_trades":14,"text":"","warmup_effective":250,"warmup_requested":250}
+EV X.bt_submit {"config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"isError":false,"run_id":"sr_1789209454542_000000","status":"queued","text":""}
+EV X.bt_run_view {"config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"error":null,"status":"succeeded"}
+EV X.bt_result {"bar_count_test_run":598,"drawdown_len":348,"first_bt_trade":{"close_bar":265,"close_price":4.6450708,"close_ts":1704344400,"commission":49.87575170304787,"gross_value":99528.00056375357,"hold_bars":10,"open_bar":255,"open_price":4.665933,"open_ts":1704178800,"pnl":-496.881436387368,"shares":21426.584189793957,"stamp_duty":0.0},"first_tr_trade":{"close_bar":265,"close_price":4.6450708,"close_ts":1704344400,"commission":49.87575170304787,"gross_value":99528.00056375357,"hold_bars":10,"open_bar":255,"open_price":4.665933,"open_ts":1704178800,"pnl":-496.881436387368,"shares":21426.584189793957,"stamp_duty":0.0},"metrics":{"annualized_return":0.2077278249302721,"avg_hold_bars":14.428571428571429,"max_drawdown":0.021193263691958415,"net_profit":6733.031900235714,"profit_factor":5.737051683919076,"sharpe":2.9199593578867,"trade_count":14,"win_rate":0.35714285714285715},"n_per_bar":598,"n_per_bar_warmup_true":250,"n_trades":14,"net_value_equals_inrange":true,"net_value_len":348,"trades_equal_to_test_run":true,"warmup_effective_test_run":250}
+EV X.per_bar_first3 [{"aggregate":50.0,"events":[],"orders":[],"scores":[{"score":50.0,"slot_idx":0}],"signal":"Hold","ts":1698894000,"warmup":true},{"aggregate":50.0,"events":[],"orders":[],"scores":[{"score":50.0,"slot_idx":0}],"signal":"Hold","ts":1698901200,"warmup":true},{"aggregate":50.0,"events":[],"orders":[],"scores":[{"score":50.0,"slot_idx":0}],"signal":"Hold","ts":1698904800,"warmup":true}]
+EV X.per_bar_warmup_boundary [{"signal":"Hold","ts":1703833200,"warmup":true},{"signal":"Hold","ts":1704157200,"warmup":false}]
+EV X.dca_two_channel {"bt_n_trades":14,"bt_status":"succeeded","lumpsum_n_trades":14,"metrics":{"annualized_return":0.06642157966495099,"avg_hold_bars":14.428571428571429,"max_drawdown":0.007104418850881047,"net_profit":2245.0116533417313,"profit_factor":5.729007033342409,"sharpe":2.934011521074989,"trade_count":14,"win_rate":0.35714285714285715},"tr_isError":false,"tr_n_trades":14,"trades_equal":true}
+EV SSE.tools_list {"has_bt_run_ensemble":true,"has_get_kline":true,"has_list_symbols":true,"has_strategy_test_run":true,"n_tools":34}
+EV SSE.list_symbols {"isError":null,"n":44}
+EV SSE.get_kline_limit_over {"error":{"code":-32602,"message":"limit 超上限 10000——请缩小 limit 或用 from/to 分段取数"},"isError":null}
+EV SCHEMA.strategy_test_run {"period_enum":["M1","M5","M15","H1","D1"],"properties":["capital","code","fee","from","mode","params","period","policy","symbol","to","version_id","warmup_bars"],"required":["symbol","period","from","to","mode"],"warmup_bars":{"description":"前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；历史不足时响应回显 warmup_effective < warmup_requested。","type":"integer"}}
+EV SCHEMA.bt_run_ensemble {"period_enum":["M1","M5","M15","H1","D1"],"properties":["buy_threshold","fee","from","initial_capital","name","period","policy","sell_threshold","slots","stop","symbol","to","warmup_bars"],"required":["symbol","period","from","to","slots","policy"]}
+EV SCHEMA.get_kline {"properties":{"code":{"description":"6 位标的代码，如 518880（须为平台已注册标的）","type":"string"},"from":{"description":"区间起点（闭）：YYYY-MM-DD（Asia/Shanghai 日界）或 RFC3339","type":"string"},"limit":{"description":"根数，默认 240，上限 10000（超上限 → 参数错误并提示分段取数）","type":"integer"},"period":{"description":"周期，默认 1m","enum":["1m","5m","15m","1h","1d"],"type":"string"},"to":{"description":"区间终点（开）：YYYY-MM-DD（含 to 整日）或 RFC3339","type":"string"}},"required":["code"]}
+EV SCHEMA.strategy_list {"properties":{"include_source":{"description":"I-7（D5）：默认 false 只回摘要（version 不含 code，体积小）；true 显式返回全量源码","type":"boolean"},"kind":{"description":"类别过滤（缺省不过滤）","enum":["strategy","template"],"type":"string"},"level":{"description":"权限分级 at-least 过滤（缺省不过滤）","enum":["backtest_ok","sim_ok","live_approved"],"type":"string"}}}
+DONE zz_tester_010_acceptance
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.30s
+

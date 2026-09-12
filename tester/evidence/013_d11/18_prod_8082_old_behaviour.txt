@@ -1,0 +1,22 @@
+工具数 = 33 ; strategy_*/bt_* 是否存在: ['strategy_test_run', 'bt_run_ensemble']
+
+== 生产 :8082 strategy_test_run fee 描述 ==
+"<无>"
+
+== 生产 :8082 bt_run_ensemble fee 描述 ==
+{
+ "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）；stamp_duty_pct 可选，缺省 0.05（A股股票），ETF 显式传 0，值域 [0,1]",
+ "type": "object"
+}
+
+== 生产 :8082 strategy_test_run(510050, 省略 fee) == 旧行为取证 ==
+isError = None
+顶层键 = ['bar_count', 'events', 'mode', 'period', 'scores', 'signals', 'symbol', 'trades', 'truncated']
+fee = null
+bar_count = 63 n_trades = 1 stamp_sum = 49.789572335449385 pnl_sum = -373.4130387571058
+
+== 原始响应（诊断）==
+{"id": 1, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"mode\": \"sim_position\",\n  \"symbol\": \"510050\",\n  \"period\": \"D1\",\n  \"bar_count\": 63,\n  \"scores\": [\n    {\n      \"ts\": 1781539200,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1781625600,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1781712000,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782057600,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782144000,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782230400,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782316800,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782403200,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782662400,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782748800,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782835200,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1782921600,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783008000,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783267200,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783353600,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783440000,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783526400,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783612800,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783872000,\n      \"score\": 100.0\n    },\n    {\n      \"ts\": 1783958400,\n      \"score\": 100.0\n    
+
+== 生产 strategy_test_run inputSchema 原文 ==
+{"properties": {"code": {"description": "内联插件源码（与 version_id 二选一）", "type": "string"}, "from": {"description": "区间起点 RFC3339（闭）", "type": "string"}, "mode": {"description": "试算模式", "enum": ["pure_score", "sim_position"], "type": "string"}, "params": {"description": "插件参数（按版本 schema 校验/缺省填充）", "type": "object"}, "period": {"description": "周期", "enum": ["M1", "M5", "M15", "D1"], "type": "string"}, "symbol": {"description": "6 位标的代码", "type": "string"}, "to": {"description": "区间终点 RFC3339（开）", "type": "string"}, "version_id": {"description": "已存版本 id（sv_ 前缀；draft/published 均可试算）", "type": "string"}}, "required": ["symbol", "period", "from", "to", "mode"], "type": "object"}

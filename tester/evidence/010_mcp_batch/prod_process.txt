@@ -1,0 +1,2 @@
+    PID                  STARTED     ELAPSED CMD
+3696673 Fri Sep 11 11:24:16 2026  1-07:09:52 target/debug/eestock-app --config /tmp/app_dev_8081.toml

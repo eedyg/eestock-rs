@@ -1,0 +1,4 @@
+roots=['design']
+inputs=58 generated_compared=151 drift=2 missing=0
+  DRIFT: web/src/layouts/DashboardGrid.tsx
+  DRIFT: web/src/layouts/SimLiveGrid.tsx

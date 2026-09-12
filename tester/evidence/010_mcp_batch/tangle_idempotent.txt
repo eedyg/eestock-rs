@@ -1,0 +1,3 @@
+b97be9ea1f0e2f057c953cc0841216c7226a7a4258e947eceb96e2da44dfad40  /tmp/tangle010_r3/crates/mcp/src/tools.rs
+b97be9ea1f0e2f057c953cc0841216c7226a7a4258e947eceb96e2da44dfad40  /tmp/tangle010_snap/crates/mcp/src/tools.rs
+b97be9ea1f0e2f057c953cc0841216c7226a7a4258e947eceb96e2da44dfad40  /home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/src/tools.rs

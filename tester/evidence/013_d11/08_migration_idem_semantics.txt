@@ -1,0 +1,25 @@
+=== 幂等语义：不覆盖人工维护值 / 补 NULL（事务内，测试后 ROLLBACK）===
+BEGIN
+UPDATE 1
+UPDATE 1
+               s               
+-------------------------------
+ pre: 510050=stock 518880=NULL
+(1 row)
+
+psql:migrations/0025_symbol_type_fee_profiles.sql:15: NOTICE:  column "type" of relation "symbols" already exists, skipping
+ALTER TABLE
+DO
+UPDATE 1
+psql:migrations/0025_symbol_type_fee_profiles.sql:88: NOTICE:  relation "fee_profiles" already exists, skipping
+CREATE TABLE
+INSERT 0 0
+                                   s                                    
+------------------------------------------------------------------------
+ post: 510050=stock (期望 stock，不覆盖) 518880=etf (期望 etf，补 NULL)
+(1 row)
+
+ROLLBACK
+
+=== 归档：迁移复跑不影响既有 44 行的其它字段（rollback 后全表快照对拍）===
+44

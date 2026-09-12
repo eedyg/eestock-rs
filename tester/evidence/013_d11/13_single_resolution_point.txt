@@ -1,0 +1,47 @@
+=== 传输层是否残留硬编码缺省 fee（应 0 处）===
+--- crates/mcp/src/tools.rs ---
+346:                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费 0、经手费/证管费按全佣口径已含于佣金 → 列 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025, 5.0, 0.05}）。显式传对象时整体以显式为准（缺 stamp_duty_pct 仍 0.05，可复现旧行为）；值域 [0,1]。响应回显生效 fee 明细 + source（explicit|profile|default）。" },
+363:            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee **省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费免收 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025,5.0,0.05}），显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）；生效 fee（含 source=explicit|profile|default）钉入 config 快照。适用场景：策略组合历史表现验证/参数与阈值对比。",
+383:                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税 0/过户费 0；stock 0.05；无档案 → 旧默认）；显式对象整体优先；stamp_duty_pct 值域 [0,1]。生效 fee 钉入 config 快照并含 source。" },
+3072:        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.05), "缺省股票口径回显");
+3078:        a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0 });
+3080:        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.0), "ETF 显式 0 回显");
+3110:        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.0), "ETF 印花税不征 → 0（D11 主目标）");
+3122:        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.05), "显式分支保持旧默认 0.05（向后兼容）");
+3128:        assert_eq!(p["fee"]["stamp_duty_pct"], json!(0.05), "type 未知 → 旧 ADR bt-1 默认");
+3152:        assert_eq!(p["run"]["config"]["fee"]["stamp_duty_pct"], json!(0.0), "ETF 缺省印花税 0");
+3159:        assert_eq!(p2["run"]["config"]["fee"]["stamp_duty_pct"], json!(0.05), "显式缺 stamp → 旧默认");
+--- crates/web/src ---
+crates/web/src/dto.rs:473:    if let Some(v) = obj.get("stamp_duty_pct") {
+crates/web/src/dto.rs:760:        let etf = serde_json::json!({"rate_pct": 0.005, "min_fee": 0.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0});
+crates/web/src/dto.rs:762:        let over = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 1.5});
+crates/web/src/dto.rs:764:        let neg = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": -0.1});
+crates/web/src/dto.rs:766:        let nonnum_stamp = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": "0"});
+
+=== 费率解析单点（application::fee::resolve_fee 的调用方，应只在 strategy/workbench 服务层）===
+crates/application/src/strategy.rs:697:        let resolved = crate::fee::resolve_fee(req.fee.as_ref(), profile)
+crates/application/src/workbench.rs:46:use crate::fee::{resolve_fee, resolved_fee_to_json, to_fee_model};
+crates/application/src/workbench.rs:280:        let resolved = resolve_fee(req.fee.as_ref(), profile)
+crates/application/src/workbench.rs:692:        let fee = to_fee_model(&fee_json).map_err(|e| WorkbenchValidation(e.to_string()))?;
+
+=== PgFeeProfileStore 装配点（应 app bin 2 处）===
+crates/storage/tests/fee_profile_store.rs:1://! `PgFeeProfileStore` 集成测试（ADR-019 / D11-2/D11-3；需迁移 0025 已 apply，TimescaleDB :5433）。
+crates/storage/tests/fee_profile_store.rs:8:use storage::fee_profile::PgFeeProfileStore;
+crates/storage/tests/fee_profile_store.rs:19:    let store = PgFeeProfileStore::new(pool);
+crates/app/src/bin/eestock-app.rs:83:    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
+crates/app/src/bin/eestock-app.rs:102:    .with_fee_profiles(Arc::new(storage::fee_profile::PgFeeProfileStore::new(pool.clone()))));
+crates/application/tests/strategy.rs:980:fn service_with_fee_profiles(bars: Vec<domain::types::Bar>, codes: Vec<&'static str>)
+crates/application/tests/strategy.rs:983:    (svc.with_fee_profiles(Arc::new(StubEtfProfiles(codes))), store)
+crates/application/tests/strategy.rs:989:    let (svc, _) = service_with_fee_profiles(trend_bars(), vec!["518880"]);
+crates/application/tests/workbench.rs:917:fn rig_with_fee_profiles(bars: Vec<domain::types::Bar>, codes: Vec<&'static str>) -> Rig {
+crates/application/tests/workbench.rs:933:        .with_fee_profiles(Arc::new(StubEtfProfiles(codes))),
+crates/application/tests/workbench.rs:942:    let r = rig_with_fee_profiles(flat_bars(10), vec!["518880"]);
+crates/application/src/strategy.rs:368:    pub fn with_fee_profiles(mut self, store: Arc<dyn FeeProfileStore>) -> Self {
+crates/application/src/workbench.rs:206:    pub fn with_fee_profiles(mut self, store: Arc<dyn FeeProfileStore>) -> Self {
+crates/mcp/tests/d11_fee_profile_e2e.rs:7://! + PgFeeProfileStore.with_fee_profiles），是「生产装配真的接线」的端到端证据。
+crates/mcp/tests/d11_fee_profile_e2e.rs:17:use storage::fee_profile::PgFeeProfileStore;
+crates/mcp/tests/d11_fee_profile_e2e.rs:37:    .with_fee_profiles(Arc::new(PgFeeProfileStore::new(pool.clone())))
+crates/mcp/src/tools.rs:2853:    fn strategy_state_with_fee_profiles(kline: Arc<MockKline>, etf_codes: &[&str])
+crates/mcp/src/tools.rs:2874:            strategies = strategies.with_fee_profiles(fp.clone());
+crates/mcp/src/tools.rs:2875:            workbench = workbench.with_fee_profiles(fp);
+crates/mcp/src/tools.rs:3104:        let (st, _fx) = strategy_state_with_fee_profiles(

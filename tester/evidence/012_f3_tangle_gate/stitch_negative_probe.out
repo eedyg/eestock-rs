@@ -1,0 +1,13 @@
+=== fixture: doc declares Grid.tsx; repo file is marker-less + has EXTRA line ===
+=== run: bash stitch.sh  (default scoped) ===
+STITCH_RC=1
+[stitch] ⚠️  无参数默认 scoped 回写（不做全局 stitch —— 全局 stitch 已证破坏性，见 --help HAZARD）。
+[stitch]    正在用沙箱重新生成比对检测漂移 ...
+[stitch] 检测到 1 个漂移生成物：web/src/layouts/Grid.tsx
+[stitch] round-trip 校验中（全新沙箱：回写后的文档能否重新生成出仓库中的生成物）...
+[stitch] ❌ round-trip 校验失败：回写后的文档无法重新生成出仓库中的生成物；**已拒绝回写**（仓库未被修改）。
+  - 不一致: web/src/layouts/Grid.tsx
+下一步：若属于文档侧改动 → 运行 entangled tangle；若是文档块与生成物本就不同步 → 先人工对齐（见 ADR-018 F3-f）。
+--- doc  unchanged: YES
+--- code unchanged: YES
+--- git status:

@@ -1,0 +1,33 @@
+### F3 独立复核：纯净 HEAD 快照（git archive HEAD -> git init/commit），TMP=/tmp/f3b.amml4y ###
+
+[1] git status before: (empty)
+
+[2] entangled tangle (no .entangled cache):
+[18:53:06] INFO     Welcome to Entangled v2.4.3!
+           WARNING  `web/src/layouts/DashboardGrid.tsx` not managed by Entangled
+           WARNING  `web/src/layouts/SimLiveGrid.tsx` not managed by Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+   ENTANGLED_EXIT=0
+
+[3] git status after tangle (files written?):
+   (empty above = 未写任何文件)
+
+[4] ./scripts/check-tangle.sh :
+[check-tangle] entangled tangle ...
+[18:53:06] INFO     Welcome to Entangled v2.4.3!
+           WARNING  `web/src/layouts/DashboardGrid.tsx` not managed by Entangled
+           WARNING  `web/src/layouts/SimLiveGrid.tsx` not managed by Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+[check-tangle] ✅ tangle 后无 diff，design 与生成物一致。
+   SCRIPT_EXIT=0
+
+[5] entangled tangle --force :
+[18:53:06] INFO     Welcome to Entangled v2.4.3!
+           WARNING  `web/src/layouts/DashboardGrid.tsx` not managed by Entangled
+           WARNING  `web/src/layouts/SimLiveGrid.tsx` not managed by Entangled
+           WARNING  conflicts found, but continuing anyway
+   FORCE_EXIT=0
+
+[6] git status after --force (即被回退为陈旧文档内容的文件):
+ M web/src/layouts/DashboardGrid.tsx
+ M web/src/layouts/SimLiveGrid.tsx

@@ -1,0 +1,46 @@
+=== web/src/layouts/DashboardGrid.tsx ===
+7c7
+<   period: '15m',                    // 周期：1m/5m/15m/1h/1d，默认 15m
+---
+>   period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
+15c15
+< export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
+---
+> export type Period = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1mo';
+18c18,21
+< /** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量） */
+---
+> /** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
+>  *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。
+>  *  Wave 3 页面① 看板收藏：favorite=true 收藏区（按 favoriteSort 升序置顶）；favoriteSort=null 非收藏。/api/symbols
+>  *  恒输出 favorite/favorite_sort（后端 always 序列化），此处标记 optional 以兼容既有快照构造；client/mock 恒填充。 */
+20c23,29
+<   code: string; name: string; last: number; changePct: number;
+---
+>   code: string;
+>   name: string;
+(diff lines: 27)
+git tracked? web/src/layouts/DashboardGrid.tsx
+=== web/src/layouts/SimLiveGrid.tsx ===
+55a56
+>   const tabCls = (t: SimLiveTab) => `tab${props.activeTab === t ? ' tab-on' : ''}`;
+57c58
+<     <div data-region="sim-live" className="flex min-w-[1280px] flex-1 flex-col">
+---
+>     <div data-region="sim-live" className="flex min-w-[1280px] min-h-0 flex-1 flex-col overflow-y-auto">
+60c61
+<       <div className="flex gap-1 border-b px-3 py-2">
+---
+>       <div className="flex shrink-0 gap-2 border-b border-line px-4 py-3">
+64c65
+<           className={props.activeTab === 'current' ? 'tab-on' : ''}
+---
+>           className={tabCls('current')}
+70c71
+<           className={props.activeTab === 'history' ? 'tab-on' : ''}
+---
+>           className={tabCls('history')}
+76c77
+<         <div className="flex flex-1 flex-col">
+(diff lines: 33)
+git tracked? web/src/layouts/SimLiveGrid.tsx

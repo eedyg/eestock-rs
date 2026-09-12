@@ -1,0 +1,4 @@
+### F1 fact-source -> generated mirror (independent regeneration) ###
+temp dir: /tmp/tangle_mirror.nm510Z
+cmp crates/mcp/src/tools.rs (regenerated from design/) vs worktree: IDENTICAL (byte-for-byte)
+cmp exit=0

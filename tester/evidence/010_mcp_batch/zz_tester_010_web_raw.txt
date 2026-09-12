@@ -1,0 +1,27 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+warning: unused import: `domain::ports::StrategyRunStore as _`
+ --> crates/web/tests/zz_tester_010_web.rs:8:5
+  |
+8 | use domain::ports::StrategyRunStore as _;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `web` (test "zz_tester_010_web") generated 1 warning (run `cargo fix --test "zz_tester_010_web" -p web` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running tests/zz_tester_010_web.rs (target/debug/deps/zz_tester_010_web-f118fadfad44f030)
+
+running 1 test
+test zz_tester_010_web_h1_and_testrun_dto ... WEB_RUN period=M1 status=201 body={"id":"sr_1789209644549_000002","name":"","symbol":"888451","period":"M1","from_ts":"2026-09-09T01:29:00Z","to_ts":"2026-09-09T01:40:00Z","config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp"
+WEB_RUN period=H1 status=400 body={"error":"区间内无 K 线数据（888451 H1 2026-09-09 01:29:00 UTC~2026-09-09 01:40:00 UTC）"}
+WEB_RUN period=W1 status=400 body={"error":"period 须为 M1/M5/M15/H1/D1"}
+WEB_RUN period=1h status=400 body={"error":"period 须为 M1/M5/M15/H1/D1"}
+WEB_RUN period=D1 status=400 body={"error":"区间内无 K 线数据（888451 D1 2026-09-09 01:29:00 UTC~2026-09-09 01:40:00 UTC）"}
+WEB_TESTRUN default status=200 warmup_requested=250 warmup_effective=0 fee={"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05} n_scores=6 n_signals=6 first_signal="buy"
+WEB_TESTRUN explicit status=200 warmup_requested=2 warmup_effective=0 fee={"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0} n_scores=6 n_trades=1 capital_echo_present=false
+WEB_TESTRUN H1 status=400 period=null bar_count=null warmup_effective=null err=区间内无 K 线数据（888451 H1 2026-09-09 01:29:00 UTC~2026-09-09 01:40:00 UTC）
+WEB_CLEANUP leftover_strategies=0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.51s
+

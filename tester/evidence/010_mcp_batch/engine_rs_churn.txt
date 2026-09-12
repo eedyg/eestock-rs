@@ -1,0 +1,47 @@
+=== engine.rs hunk headers (full diff) ===
+@@ -131,0 +132,5 @@ pub struct EnsembleConfig {
+@@ -218,0 +224,3 @@ pub struct BarRecord {
+@@ -336,0 +345,2 @@ pub fn run_ensemble_with_observer(
+@@ -348,0 +359 @@ pub fn run_ensemble_with_observer(
+@@ -353,17 +364,31 @@ pub fn run_ensemble_with_observer(
+@@ -371,24 +396,13 @@ pub fn run_ensemble_with_observer(
+@@ -399,23 +413,23 @@ pub fn run_ensemble_with_observer(
+@@ -555 +569,2 @@ pub fn run_ensemble_with_observer(
+@@ -585,0 +601 @@ pub fn run_ensemble_with_observer(
+@@ -589,4 +605,6 @@ pub fn run_ensemble_with_observer(
+@@ -594,0 +613 @@ pub fn run_ensemble_with_observer(
+
+=== engine.rs substantive (indentation-insensitive) diff ===
+131a132,136
+> /// 前置预热根数（I-2/D6，架构师 2026-09-12 裁决 = 方案 A）。`bars` 前 `warmup_bars` 根
+> /// 为 **warmup 段**：引擎仍逐 bar 调用插件（真预热指标/插件状态），per_bar 记 `warmup=true`，
+> /// 但**不执行 Policy、不产订单、不成交、不计净值/回撤/绩效**；warmup 结束后从空仓开始正常执行。
+> /// `0` = 旧行为（无预热，向后兼容）。引擎内部按 `min(warmup_bars, bars.len())` 截断。
+> pub warmup_bars: usize,
+218a224,226
+> /// 是否属于前置 warmup 段（I-2/D6）：true 的 bar 仅用于预热指标/插件状态，
+> /// 不计入绩效统计、不产订单/成交（响应层据此逐根标记）。
+> pub warmup: bool,
+336a345,346
+> // I-2/D6：前置 warmup 段长度（截断到 bars 长度；0 = 旧行为）。
+> let warmup = cfg.warmup_bars.min(n);
+348a359
+> let is_warmup = i < warmup;
+352a364,365
+> //    I-2/D6：warmup 段不执行任何挂单（warmup 段本身也不产挂单，此处为显式隔离）。
+> if !is_warmup {
+426a440
+> }
+555c569,570
+< if !stop_order {
+---
+> //    I-2/D6：warmup 段不执行 Policy（不产订单），from 起从空仓开始。
+> if !stop_order && !is_warmup {
+585a601
+> //    I-2/D6：warmup 段不计净值（绩效序列仅含 in-range）；per_bar 仍全量记录并标记 warmup。
+588a605
+> if !is_warmup {
+592a610
+> }
+594a613
+> warmup: is_warmup,

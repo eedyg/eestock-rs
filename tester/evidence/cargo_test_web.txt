@@ -1,0 +1,156 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/web-9677246747bb6b5c)
+
+running 43 tests
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::collector_interval_validation ... ok
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test settings::tests::kline_viewport_days_validation ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test spa::tests::mime_mapping ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/api_admin.rs (target/debug/deps/api_admin-f0f1fc8d3dcc6fd8)
+
+running 2 tests
+test reset_endpoint_enqueues_db_control_row ... ok
+test symbols_register_edit_disable_and_stats ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-be886f51ddce0f7b)
+
+running 3 tests
+test rules_list_patch_and_validation ... ok
+test alerts_list_filters_and_ack_lifecycle ... ok
+test evaluator_fires_incident_and_publishes_ws ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-3db9001b68b92a54)
+
+running 2 tests
+test favorite_not_found_and_reorder_validation ... ok
+test favorite_star_unstar_reorder_and_symbols_order ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-17cc477d0db647bd)
+
+running 1 test
+test kline_weekly_monthly_period ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-f4edf2fb5f946232)
+
+running 1 test
+test ma_config_get_default_put_normalize_and_validate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/api_quality.rs (target/debug/deps/api_quality-cb107f687a7e91f5)
+
+running 1 test
+test quality_endpoints_full_flow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running tests/api_rest.rs (target/debug/deps/api_rest-c64d0f85043a7c1a)
+
+running 2 tests
+test symbols_latest_healthz_spa_and_sources_health ... ok
+test kline_cursor_pagination_cagg_and_validation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+
+     Running tests/api_settings.rs (target/debug/deps/api_settings-1b9fe8101ad895d0)
+
+running 6 tests
+test system_info_returns_version_db_and_uptime ... ok
+test reset_circuits_rejects_missing_or_mismatched_confirm ... ok
+test purge_raw_rejects_missing_or_mismatched_confirm ... ok
+test config_patch_persists_get_reads_back_and_validates ... ok
+test config_snapshots_return_readonly_defaults ... ok
+test config_kline_put_get_and_validate ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-a614ea9c8244386b)
+
+running 9 tests
+test guide_endpoint_returns_markdown_full_text ... ok
+test create_validation_400 ... ok
+test patch_meta_update_and_error_semantics ... ok
+test publish_gate_rejects_bad_code_400 ... ok
+test catalog_filters_and_validation ... ok
+test delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 ... ok
+test registry_lifecycle_end_to_end ... ok
+test manage_endpoint_lists_all_strategies_with_aggregates ... ok
+test test_run_both_modes_and_errors ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.35s
+
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-49b94151a6004fd2)
+
+running 6 tests
+test cancel_run_semantics ... ok
+test submit_archived_version_audit_rerun_201 ... ok
+test submit_run_lifecycle_end_to_end ... ok
+test preset_crud_apply_end_to_end ... ok
+test submit_validation_error_matrix ... ok
+test compare_endpoint_side_by_side ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-916564b98f1f523f)
+
+running 1 test
+test poller_publishes_increments_only ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+
+   Doc-tests web
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,232 @@
+### global 'entangled stitch' in throwaway copy (README/ADR HAZARD claim)
+[20:57:09] INFO     Welcome to Entangled v2.4.3!
+[20:57:10] INFO     create `design/00-vision.md`
+           INFO     create `design/01-architecture/00-overview.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-001-full-rewrite-rust.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-002-storage-timescaledb.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-003-dual-truth-layers.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-004-write-1m-aggregate-rest.
+                    md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-005-source-selection.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-006-eastmoney-demotion.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-007-literate-programming.md`
+           INFO     create `design/01-architecture/adr/ADR-008-web-stack.md`
+           INFO     create `design/01-architecture/adr/ADR-009-mcp-server.md`
+           INFO     create `design/01-architecture/adr/ADR-010-no-auth-lan.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-011-chip-self-compute.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-012-delivery-waves.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-013-broker-dual-route.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-014-metrics-framework.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-015-source-tiers-standby.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-016-provider-dual-abstractio
+                    n.md`
+           INFO     create
+                    `design/01-architecture/adr/ADR-017-deployment-two-planes.md
+                    `
+           INFO     create
+                    `design/01-architecture/adr/ADR-018-tangle-gate-hardening.md
+                    `
+           INFO     create `design/02-domain/contracts.md`
+           INFO     create `design/03-collector/00-design.md`
+           INFO     create `design/03-collector/01-providers-spec.md`
+           INFO     create `design/03-collector/02-data-plane.md`
+           INFO     create `design/04-storage/02-tushare-sync.md`
+           INFO     create `design/04-storage/03-raw-writer.md`
+           INFO     create `design/04-storage/schema.md`
+           INFO     create `design/05-diagnose/00-design.md`
+           INFO     create `design/06-web/00-shell.md`
+           INFO     create `design/06-web/01-dashboard.md`
+           INFO     create `design/06-web/02-sources.md`
+           INFO     create `design/06-web/03-symbols.md`
+           INFO     create `design/06-web/04-quality.md`
+           INFO     create `design/06-web/05-backtest.md`
+           INFO     create `design/06-web/06-trading.md`
+           INFO     create `design/06-web/07-alerts.md`
+           INFO     create `design/06-web/08-settings.md`
+           INFO     create `design/06-web/09-frontend.md`
+           INFO     create `design/06-web/10-simlive.md`
+           INFO     create `design/07-app-plane/00-web-api.md`
+           INFO     create `design/07-app-plane/01-mcp.md`
+           INFO     create `design/07-app-plane/02-alerts.md`
+           INFO     create `design/08-backtest/01-engine-adr.md`
+           INFO     create `design/09-trading/00-webauto-legacy.md`
+           INFO     create `design/09-trading/01-adr.md`
+           INFO     create `design/10-test-coverage/web-interaction-matrix.md`
+           INFO     create `design/10-wave-plans/wave-0.md`
+           INFO     create `design/10-wave-plans/wave-1.md`
+           INFO     create `design/10-wave-plans/wave-2.md`
+           INFO     create `design/11-sim-live/01-adr.md`
+           INFO     create `design/11-sim-live/mcp-access.md`
+           INFO     create `design/12-strategy-system/01-adr.md`
+           INFO     create `design/12-strategy-system/02-plugin-abi.md`
+           INFO     create `design/12-strategy-system/03-live-readiness.md`
+           INFO     create
+                    `design/12-strategy-system/04-strategy-programming-guide.md`
+           INFO     create `design/13-mcp-hardening/01-findings-triage.md`
+           INFO     create `design/13-mcp-hardening/02-adr-security.md`
+           INFO     create `design/99-decisions-log.md`
+           INFO     create `design/99-glossary.md`
+           WARNING  `design/07-app-plane/00-web-api.md` not managed by Entangled
+           WARNING  `design/07-app-plane/01-mcp.md` not managed by Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+global_stitch_rc=0
+--- git diff --stat after global stitch ---
+--- subsequent 'entangled tangle' ---
+[20:57:10] INFO     Welcome to Entangled v2.4.3!
+           INFO     create `crates/domain/src/types.rs`
+           INFO     create `crates/domain/src/provider.rs`
+           INFO     create `crates/domain/src/selector.rs`
+           INFO     create `crates/domain/src/ports.rs`
+           INFO     create `crates/domain/src/tz.rs`
+           INFO     create `crates/domain/tests/contracts_test.rs`
+           INFO     create `crates/domain/src/merge.rs`
+           INFO     create `crates/domain/src/calendar.rs`
+           INFO     create `crates/domain/src/strategy_state.rs`
+           INFO     create `crates/collector/src/lib.rs`
+           INFO     create `crates/collector/src/clock.rs`
+           INFO     create `crates/collector/src/calendar.rs`
+           INFO     create `crates/collector/src/circuit.rs`
+           INFO     create `crates/collector/src/executor.rs`
+           INFO     create `crates/collector/src/gapfill.rs`
+           INFO     create `crates/collector/src/standby.rs`
+           INFO     create `crates/collector/src/scheduler.rs`
+           INFO     create `crates/collector/src/service.rs`
+           INFO     create `crates/collector/src/probe.rs`
+           INFO     create `crates/collector/tests/common/mod.rs`
+           INFO     create `crates/collector/tests/calendar_test.rs`
+           INFO     create `crates/collector/tests/circuit_test.rs`
+           INFO     create `crates/collector/tests/executor_test.rs`
+           INFO     create `crates/collector/tests/gapfill_test.rs`
+           INFO     create `crates/collector/tests/standby_test.rs`
+           INFO     create `crates/collector/tests/probe_test.rs`
+           INFO     create `crates/collector/tests/scheduler_test.rs`
+           INFO     create `crates/collector/src/reset.rs`
+           INFO     create `crates/collector/tests/reset_test.rs`
+           INFO     create `crates/providers/src/lib.rs`
+           INFO     create `crates/providers/src/http.rs`
+           INFO     create `crates/providers/src/tencent_ifzq.rs`
+           INFO     create `crates/providers/src/sina_jsonp.rs`
+           INFO     create `crates/providers/src/tencent_qt.rs`
+           INFO     create `crates/providers/src/sina_hq.rs`
+           INFO     create `crates/providers/src/ths_cs.rs`
+           INFO     create `crates/providers/src/push2delay.rs`
+           INFO     create `crates/providers/src/exchange.rs`
+           INFO     create `crates/providers/tests/golden_parse.rs`
+           INFO     create `crates/providers/tests/http_behavior.rs`
+           INFO     create `crates/app/src/config.rs`
+           INFO     create `crates/app/src/healthz.rs`
+           INFO     create `crates/app/src/lib.rs`
+           INFO     create `crates/app/src/bin/eestock-data.rs`
+           INFO     create `crates/app/tests/config_healthz.rs`
+           INFO     create `Dockerfile`
+           INFO     create `migrations/0005_sync_checkpoints.sql`
+           INFO     create `crates/tushare/src/parse.rs`
+           INFO     create `crates/tushare/src/client.rs`
+           INFO     create `crates/tushare/src/sync.rs`
+           INFO     create `crates/tushare/src/lib.rs`
+           INFO     create `crates/tushare/tests/golden_parse.rs`
+           INFO     create `crates/tushare/tests/sync_plan.rs`
+           INFO     create `crates/storage/src/accurate.rs`
+           INFO     create `crates/storage/src/lib.rs`
+           INFO     create `crates/storage/tests/accurate_upsert.rs`
+           INFO     create `crates/tushare/src/bin/tushare_sync.rs`
+           INFO     create `crates/tushare/src/daily.rs`
+           INFO     create `crates/tushare/tests/daily_sync.rs`
+           INFO     create `crates/storage/src/kline.rs`
+           INFO     create `crates/storage/src/events.rs`
+           INFO     create `crates/storage/src/migrate_check.rs`
+           INFO     create `crates/storage/tests/raw_writer.rs`
+           INFO     create `crates/storage/tests/event_sink.rs`
+           INFO     create `crates/storage/src/symbols.rs`
+           INFO     create `crates/storage/tests/symbols_registry.rs`
+           INFO     create `migrations/0001_init.sql`
+           INFO     create `migrations/0002_caggs.sql`
+           INFO     create `migrations/0003_compression.sql`
+           INFO     create `migrations/0004_metrics.sql`
+           INFO     create `migrations/0006_accurate_compression.sql`
+           INFO     create `migrations/0007_circuit_reset.sql`
+           INFO     create `migrations/0008_holidays.sql`
+           INFO     create `migrations/0009_alert_engine.sql`
+           INFO     create `migrations/0010_accurate_caggs.sql`
+           INFO     create `migrations/0011_backtest.sql`
+           INFO     create `migrations/0012_backtest_run_extend.sql`
+           INFO     create `migrations/0013_favorite_symbols.sql`
+           INFO     create `migrations/0014_weekly_monthly_caggs.sql`
+           INFO     create `migrations/0015_ma_config.sql`
+           INFO     create `migrations/0021_app_config.sql`
+           INFO     create `migrations/0016_weekly_monthly_full_history.sql`
+           INFO     create `migrations/0017_minute_caggs_full_history.sql`
+           INFO     create `migrations/0018_sim_session.sql`
+           INFO     create `migrations/0019_sim_session_state.sql`
+           INFO     create `migrations/0020_accurate_cagg_refresh.sql`
+           INFO     create `migrations/0022_strategy_registry.sql`
+           INFO     create `migrations/0023_strategy_workbench.sql`
+           INFO     create `migrations/0024_drop_legacy_backtest_tables.sql`
+           INFO     create `design/06-web/preview/01-dashboard.html`
+           INFO     create `web/src/layouts/DashboardGrid.tsx`
+           INFO     create `design/06-web/preview/02-sources.html`
+           INFO     create `web/src/layouts/SourcesGrid.tsx`
+           INFO     create `design/06-web/preview/03-symbols.html`
+           INFO     create `web/src/layouts/SymbolsGrid.tsx`
+           INFO     create `design/06-web/preview/04-quality.html`
+           INFO     create `web/src/layouts/QualityGrid.tsx`
+           INFO     create `design/06-web/preview/06-trading.html`
+           INFO     create `web/src/layouts/TradingGrid.tsx`
+           INFO     create `design/06-web/preview/07-alerts.html`
+           INFO     create `web/src/layouts/AlertsGrid.tsx`
+           INFO     create `design/06-web/preview/08-settings.html`
+           INFO     create `web/src/layouts/SettingsGrid.tsx`
+           INFO     create `web/src/layouts/SimLiveGrid.tsx`
+           INFO     create `crates/diagnose/src/lib.rs`
+           INFO     create `crates/diagnose/src/health.rs`
+           INFO     create `crates/diagnose/tests/health_agg.rs`
+           INFO     create `crates/diagnose/src/quality.rs`
+           INFO     create `crates/diagnose/tests/quality.rs`
+           INFO     create `crates/storage/src/reader.rs`
+           INFO     create `crates/storage/tests/kline_reader.rs`
+           INFO     create `crates/web/src/lib.rs`
+           INFO     create `crates/web/src/dto.rs`
+           INFO     create `crates/web/src/state.rs`
+           INFO     create `crates/web/src/rest.rs`
+           INFO     create `crates/web/src/ws.rs`
+           INFO     create `crates/web/src/spa.rs`
+           INFO     create `crates/web/tests/api_rest.rs`
+           INFO     create `crates/web/tests/ws_poller.rs`
+           INFO     create `crates/app/src/app_config.rs`
+           INFO     create `crates/app/src/bin/eestock-app.rs`
+           INFO     create `crates/app/tests/app_config.rs`
+           INFO     create `Dockerfile.app`
+           INFO     create `crates/storage/src/admin.rs`
+           INFO     create `crates/storage/tests/symbol_admin.rs`
+           INFO     create `crates/web/tests/api_admin.rs`
+           INFO     create `crates/web/tests/api_quality.rs`
+           INFO     create `crates/mcp/src/lib.rs`
+           INFO     create `crates/mcp/src/state.rs`
+           INFO     create `crates/mcp/src/rpc.rs`
+           INFO     create `crates/mcp/src/tools.rs`
+           INFO     create `crates/mcp/src/mocks.rs`
+           INFO     create `crates/mcp/src/server.rs`
+           INFO     create `crates/mcp/tests/mcp_protocol.rs`
+           INFO     create `crates/mcp/tests/mcp_tools_db.rs`
+           INFO     create `crates/alert/src/lib.rs`
+           INFO     create `crates/alert/src/rules.rs`
+           INFO     create `crates/alert/src/engine.rs`
+           INFO     create `crates/alert/tests/engine.rs`
+           INFO     create `crates/storage/src/alerts.rs`
+           INFO     create `crates/storage/tests/alert_store.rs`
+           INFO     create `crates/web/src/alerts.rs`
+           INFO     create `crates/web/tests/api_alerts.rs`
+tangle_rc=0

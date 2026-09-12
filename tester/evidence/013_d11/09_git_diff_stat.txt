@@ -1,0 +1,79 @@
+=== git status --porcelain（tracked 修改）===
+ M crates/alert/src/rules.rs
+ M crates/alert/tests/engine.rs
+ M crates/app/src/bin/eestock-app.rs
+ M crates/application/src/fee.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/strategy.rs
+ M crates/application/src/workbench.rs
+ M crates/application/tests/simlive.rs
+ M crates/application/tests/strategy.rs
+ M crates/application/tests/workbench.rs
+ M crates/domain/src/ports.rs
+ M crates/mcp/src/mocks.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/mcp/tests/mcp_tools_db.rs
+ M crates/storage/src/admin.rs
+ M crates/storage/src/lib.rs
+ M crates/storage/src/migrate_check.rs
+ M crates/storage/src/reader.rs
+ M crates/storage/tests/symbol_admin.rs
+ M crates/web/src/dto.rs
+ M crates/web/src/rest.rs
+ M crates/web/src/strategies.rs
+ M crates/web/src/workbench.rs
+ M crates/web/tests/api_admin.rs
+ M design/02-domain/contracts.md
+ M design/04-storage/02-tushare-sync.md
+ M design/04-storage/03-raw-writer.md
+ M design/04-storage/schema.md
+ M design/06-web/03-symbols.md
+ M design/07-app-plane/00-web-api.md
+ M design/07-app-plane/01-mcp.md
+ M design/07-app-plane/02-alerts.md
+ M design/08-backtest/01-engine-adr.md
+ M design/12-strategy-system/01-adr.md
+ M web/src/layouts/SymbolsGrid.tsx
+
+=== staged 计数 ===
+0
+
+=== diff --stat (tracked) ===
+ crates/alert/src/rules.rs             |   2 +-
+ crates/alert/tests/engine.rs          |   4 +-
+ crates/app/src/bin/eestock-app.rs     |   8 +-
+ crates/application/src/fee.rs         | 263 ++++++++++++++++++++++++++++++++--
+ crates/application/src/simlive.rs     |   4 +-
+ crates/application/src/strategy.rs    |  45 ++++--
+ crates/application/src/workbench.rs   |  32 ++++-
+ crates/application/tests/simlive.rs   |   1 +
+ crates/application/tests/strategy.rs  |  85 ++++++++++-
+ crates/application/tests/workbench.rs |  88 +++++++++++-
+ crates/domain/src/ports.rs            |  33 +++++
+ crates/mcp/src/mocks.rs               |   2 +-
+ crates/mcp/src/tools.rs               | 184 +++++++++++++++++++-----
+ crates/mcp/tests/mcp_protocol.rs      |   4 +-
+ crates/mcp/tests/mcp_tools_db.rs      |   2 +-
+ crates/storage/src/admin.rs           |  12 +-
+ crates/storage/src/lib.rs             |   3 +
+ crates/storage/src/migrate_check.rs   |   2 +
+ crates/storage/src/reader.rs          |   8 +-
+ crates/storage/tests/symbol_admin.rs  |  16 ++-
+ crates/web/src/dto.rs                 |  46 +++++-
+ crates/web/src/rest.rs                |   4 +
+ crates/web/src/strategies.rs          |  12 +-
+ crates/web/src/workbench.rs           |  20 ++-
+ crates/web/tests/api_admin.rs         |  58 ++++++++
+ design/02-domain/contracts.md         |  33 +++++
+ design/04-storage/02-tushare-sync.md  |   3 +
+ design/04-storage/03-raw-writer.md    |   2 +
+ design/04-storage/schema.md           | 136 ++++++++++++++++++
+ design/06-web/03-symbols.md           |  19 ++-
+ design/07-app-plane/00-web-api.md     | 158 +++++++++++++++++---
+ design/07-app-plane/01-mcp.md         | 192 ++++++++++++++++++++-----
+ design/07-app-plane/02-alerts.md      |   6 +-
+ design/08-backtest/01-engine-adr.md   |  15 ++
+ design/12-strategy-system/01-adr.md   |   7 +-
+ web/src/layouts/SymbolsGrid.tsx       |   6 +
+ 36 files changed, 1343 insertions(+), 172 deletions(-)

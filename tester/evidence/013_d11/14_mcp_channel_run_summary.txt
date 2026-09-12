@@ -1,0 +1,8 @@
+EV B1.trades n=1 stamp_sum=0 pnl=-323.62346642166085 bars=63
+EV B2.trades n=1 stamp_sum=49.789572335449385 pnl=-373.4130387571058
+EV B3a.unregistered_gated isError=true text="工具执行失败：标的 999999 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"
+EV B3d.cleanup left=0
+EV C.publish sid=st_1789220320349_000000 vid=sv_1789220320349_000001 status="published"
+EV C.run_id=sr_1789220320357_000002 final_status=succeeded
+EV DONE mcp 通道验收完成
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.29s

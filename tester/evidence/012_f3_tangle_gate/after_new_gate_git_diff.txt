@@ -1,0 +1,457 @@
+diff --git a/README.md b/README.md
+index 9f2c667..f1538e5 100644
+--- a/README.md
++++ b/README.md
+@@ -7,8 +7,9 @@
+ 
+ - `design/` 是**唯一事实源**；`crates/domain/src/*.rs`、`migrations/*.sql` 等由
+   [entangled](https://entangled.github.io/) 从文档**单向**生成（`design → src`）。
+-- **改代码 = 改 design/ 文档**，然后 `entangled tangle`。禁止手改任何带
+-  `~/~ begin <<...>>` 标记的生成文件。
++- **改哪一侧就从哪一侧出发**：改 `design/` 文档 → `entangled tangle`；改代码/生成物 →
++  `./scripts/stitch.sh` 把实现回写文档（ADR-018 O1 纪律，详见下文「O1 纪律」）。
++  手改了生成物却不回写文档 = 漂移，门禁会拦。
+ - 手写例外（不 tangle）：`entangled.toml`、`Cargo.toml` workspace 骨架、本 README、
+   `docker-compose.yml`、`scripts/`、前端构建配置（package.json 等）。
+ 
+@@ -22,9 +23,25 @@ entangled --version               # 本仓库验证版本：2.4.0
+ 
+ ### 安装一致性门禁（pre-commit hook）
+ 
+-门禁逻辑：`entangled tangle && git diff --exit-code`——重新 tangle 后若 working tree
+-出现差异，说明生成物与 design/ 脱节，拒绝提交。`entangled` 未安装时 hook **硬失败**
+-并给出安装提示（不会静默放行）。
++门禁逻辑（ADR-018 D-F3-1 硬化版，`scripts/check-tangle.sh`）：
++
++1. `entangled tangle -s`（dry-run，**永不写盘**）输出含 `conflicts found` / `ERROR` /
++   `not managed by Entangled` / `changed outside the control of Entangled` → 硬失败；
++2. **漂移判据（权威）**：把 `watch_list` 输入 + 目标文件副本拷进临时沙箱（**不拷 `.entangled`**），
++   在沙箱内 `entangled tangle -f` 重新生成，再与真实仓库**逐字节比对**；
++   任一生成物缺失 / 内容不一致 → 硬失败并列出漂移文件、打印两条出路（改文档 → tangle /
++   改码 → stitch）。
++
++关键性质：**门禁不修改真实工作区**（全部 tangle 都在沙箱里跑，`--force` 只允许出现在隔离副本）；
++**与 `.entangled/` 本地状态无关**（干净副本 / CI 新克隆同样正确；缓存过期也不会误报）。
++注意：沙箱内故意**不拷 filedb**——filedb 记的是"上次写入内容 digest"，回写后就是过期值，
++带上它会把"内容一致、仅缓存旧"的仓库误判为失败。
++
++> 旧实现 `entangled tangle && git diff --quiet` 会**假绿**：entangled 的 filedb 记录的是
++> “上次写入内容 digest”，文档侧未变时它直接判定 target unchanged，**根本不看磁盘生成物**——
++> 手改生成物（如 `4d55f17`）后 `tangle` 打印 `Nothing to be done.`，`git diff` 自然为空。
++> 遇冲突时 `entangled tangle` 还会打印 `ERROR conflicts found, breaking off` 却**退出码 0**，
++> 且不写任何文件（ADR-018 §1）。
+ 
+ ```bash
+ ln -sf ../../scripts/check-tangle.sh .git/hooks/pre-commit
+@@ -32,6 +49,36 @@ ln -sf ../../scripts/check-tangle.sh .git/hooks/pre-commit
+ 
+ > hook 位于 `.git/hooks/`，不入库，克隆后需重新执行上面一行。
+ > 手动自检：`./scripts/check-tangle.sh`
++> 门禁自测（三态 fixture，可复跑）：`bash scripts/tests/test_check_tangle.sh`
++
++### O1 纪律：改码后必须回写文档（ADR-018 §3.1）
++
++每类改动只走一条路，两条都不能省——**改文档不回 tangle = 生成物过期；改代码不回写文档 = 漂移**：
++
++| 改动位置 | 动作 |
++|---|---|
++| `design/` 文档（事实源） | `entangled tangle`（文档 → 生成物） |
++| 代码 / 生成物（如 `web/src/layouts/*.tsx`） | `./scripts/stitch.sh`（代码 → 文档，沙箱 scoped 回写） |
++
++```bash
++./scripts/stitch.sh                     # 默认 scoped：只回写「检测到漂移」的生成物所属文档
++./scripts/stitch.sh web/src/layouts/X.tsx   # 显式 scoped
++./scripts/stitch.sh --help              # O1 纪律 + HAZARD 说明
++bash scripts/tests/test_stitch.sh       # 回写入口自测（含「校验失败拒绝回写」负样例）
++```
++
++`scripts/stitch.sh` 的保证：① 只在**临时沙箱**里 stitch（`--force` 仅沙箱内使用）；② 回写前做
++**round-trip 校验**（用回写后的文档重新生成，必须与仓库生成物逐字节一致），**校验不通过拒绝回写**；
++③ 实现侧生成物一个字节都不动（零回退）。
++
++**HAZARD（实测）**：
++- **禁止在仓库根跑全局 `entangled stitch`**：`design/07-app-plane/{00-web-api,01-mcp}.md` 的代码块内
++  嵌着 `// ~/~ begin` 遗留标记，全局 stitch 会把它们改写成自引用（`<<crates/mcp/src/tools.rs>>`，
++  -3583 行），随后 `entangled tangle` 直接死于 `ERROR Cyclic reference`（F3-f 待办）。
++- **禁止 `entangled tangle --force` 让门禁变绿**：它会用文档旧内容覆盖实现 = 回退已验收成果（D-F3-6）。
++- `.entangled/filedb.json` 是**未版本化的本地缓存**；若 `entangled tangle` 报
++  `changed outside the control of Entangled`（缓存过期，例如刚回写过文档），用 `entangled reset`
++  重建缓存（只动 `.entangled/`，不改任何文件）；门禁本身不依赖它。
+ 
+ ## 启动开发数据库（TimescaleDB）
+ 
+@@ -80,8 +127,11 @@ curl "http://localhost:8081/api/sources/health"   # 源健康（成功率分母
+ ## 常用命令
+ 
+ ```bash
+-entangled tangle              # 从 design/ 重新生成代码
+-./scripts/check-tangle.sh     # tangle 一致性自检（同 pre-commit 门禁）
++entangled tangle              # 从 design/ 重新生成代码（改文档后走这条）
++./scripts/stitch.sh           # 改码后回写文档（沙箱 scoped + round-trip 校验，ADR-018 O1）
++./scripts/check-tangle.sh     # tangle 一致性自检（同 pre-commit 门禁，ADR-018 硬化版）
++bash scripts/tests/test_check_tangle.sh   # 门禁三态 fixture 自测
++bash scripts/tests/test_stitch.sh         # stitch 入口自测（含拒绘回写负样例）
+ cargo check --workspace       # 全 workspace 编译检查
+ cargo test --workspace        # 测试（TDD：Red-Green-Refactor）
+ cargo clippy --workspace      # lint
+@@ -94,6 +144,6 @@ docker compose up -d timescaledb
+ design/         # 事实源文档树（00-vision / 01-architecture+ADR / 02-domain / ... / 07-app-plane / ...）
+ crates/         # domain collector storage providers tushare diagnose mcp web app
+ migrations/     # TimescaleDB DDL（tangle 生成）
+-scripts/        # 工程脚本（check-tangle.sh 等）
++scripts/        # 工程脚本（check-tangle.sh 门禁 / stitch.sh 回写 / tests/ 自测 / lib/）
+ docker-compose.yml  Dockerfile（数据面，tangle）  Dockerfile.app（应用面，tangle）
+ ```
+diff --git a/design/06-web/01-dashboard.md b/design/06-web/01-dashboard.md
+index 1fe617f..76d03b8 100644
+--- a/design/06-web/01-dashboard.md
++++ b/design/06-web/01-dashboard.md
+@@ -212,7 +212,7 @@ min-width: 1280px（桌面优先，不响应式）
+ 
+ /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
+ export const DASHBOARD_DEFAULTS = {
+-  period: '15m',                    // 周期：1m/5m/15m/1h/1d，默认 15m
++  period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
+   indicators: { ma: true, macd: false, kdj: false, boll: false },
+   maWindows: [5, 10, 20],
+   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
+@@ -220,12 +220,21 @@ export const DASHBOARD_DEFAULTS = {
+   initialRange: 'today+prevTradingDay',
+ } as const;
+ 
+-export type Period = '1m' | '5m' | '15m' | '1h' | '1d';
++export type Period = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1mo';
+ export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
+ 
+-/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量） */
++/** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
++ *  D2：enabled=false 渲染「已停用」；last=null（启用但尚未采到数据）渲染「无数据」，不伪造 0.000。
++ *  Wave 3 页面① 看板收藏：favorite=true 收藏区（按 favoriteSort 升序置顶）；favoriteSort=null 非收藏。/api/symbols
++ *  恒输出 favorite/favorite_sort（后端 always 序列化），此处标记 optional 以兼容既有快照构造；client/mock 恒填充。 */
+ export interface SymbolSnapshot {
+-  code: string; name: string; last: number; changePct: number;
++  code: string;
++  name: string;
++  enabled: boolean;
++  last: number | null; // 无最新数据（latest=null）→ null；有数据为最新价
++  changePct: number;
++  favorite?: boolean; // 是否收藏（缺失视为非收藏）
++  favoriteSort?: number | null; // 收藏排序（sort_order，起点 1；非收藏 null）
+ }
+ 
+ /** 页面 Props 契约 */
+@@ -273,8 +282,14 @@ export function DashboardGrid(props: DashboardGridProps) {
+             </div>
+           </>
+         ) : (
+-          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图 */
+-          <div data-region="grid-view" className="grid flex-1 grid-cols-2">
++          /* grid-view：2×2/2×3，每格独立订阅独立三态；点格→onSelectSymbol+回单图
++             R1：显式 grid-rows（均分网格高度），避免 auto 行按内容分高导致 chart 容器 flex-1
++             在 auto 行下解析为 0 高（末行坍缩）；grid-view 自身 min-h-0，保证作为 flex 子项
++             可收缩到可用高度（否则 min-height:auto 会按内容 3×322px 撑高，2×3 纵向溢出 1042>720） */
++          <div
++            data-region="grid-view"
++            className={`grid min-h-0 flex-1 grid-cols-2 ${props.gridMode === 'grid2x3' ? 'grid-rows-3' : 'grid-rows-2'}`}
++          >
+             {/* <GridCell/> ×4 或 ×6（grid2x3 时 grid-rows-3） */}
+           </div>
+         )}
+diff --git a/design/06-web/10-simlive.md b/design/06-web/10-simlive.md
+index 75ed061..1d6f838 100644
+--- a/design/06-web/10-simlive.md
++++ b/design/06-web/10-simlive.md
+@@ -88,53 +88,59 @@ export interface SimLiveGridProps {
+ }
+ 
+ export function SimLiveGrid(props: SimLiveGridProps) {
++  const tabCls = (t: SimLiveTab) => `tab${props.activeTab === t ? ' tab-on' : ''}`;
+   return (
+-    <div data-region="sim-live" className="flex min-w-[1280px] flex-1 flex-col">
++    <div data-region="sim-live" className="flex min-w-[1280px] min-h-0 flex-1 flex-col overflow-y-auto">
+ 
+       {/* Tab 切换（当前会话 / 历史回顾；历史不影响当前会话） */}
+-      <div className="flex gap-1 border-b px-3 py-2">
++      <div className="flex shrink-0 gap-2 border-b border-line px-4 py-3">
+         <button
+           type="button"
+           data-tab="current"
+-          className={props.activeTab === 'current' ? 'tab-on' : ''}
++          className={tabCls('current')}
+           onClick={() => props.onTabChange('current')}
+         >当前会话</button>
+         <button
+           type="button"
+           data-tab="history"
+-          className={props.activeTab === 'history' ? 'tab-on' : ''}
++          className={tabCls('history')}
+           onClick={() => props.onTabChange('history')}
+         >历史回顾</button>
+       </div>
+ 
+       {props.activeTab === 'current' && (
+-        <div className="flex flex-1 flex-col">
++        <div className="flex flex-col p-4">
+ 
+           {/* session-control：GET /api/sim-live/state；会话状态+账户+统一交易开关+MCP 状态/停用按钮+停止会话；
+               三态=骨架数值/未运行（active=false）/错误占位+重试 */}
+-          <section data-region="session-control" className="border-b px-4 py-3">
++          <section data-region="session-control" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">会话 + 账户 + 统一交易开关 + MCP 状态/快捷开关</h3>
+             {/* <SessionControl/>（状态 pill / 总资产/可用/已实现/未实现 / 统一开关 / MCP 开关） */}
+           </section>
+ 
+           {/* position-table：state.positions；三态=骨架行/「无持仓」/错误占位+重试 */}
+-          <section data-region="position-table" className="border-b px-4">
++          <section data-region="position-table" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">持仓（现价=本系统行情，数量/成本=模拟账户）</h3>
+             {/* <PositionTable positions/>（现价=本系统行情，数量/成本=模拟账户） */}
+           </section>
+ 
+           {/* strategy-panel：GET /api/sim-live/strategies.strategies（3 策略独立评估）；
+               三态=骨架卡/「未启动会话」/错误占位+重试 */}
+-          <section data-region="strategy-panel" className="border-b px-4 py-3">
++          <section data-region="strategy-panel" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">3 策略并行评估（评分汇总到聚合）</h3>
+             {/* <StrategyPanel strategies/>（每策略当前最强标的/分） */}
+           </section>
+ 
+           {/* stock-scoring：strategies.stocks（每 stock 聚合+各策略独立分+信号）；
+               三态=骨架行/「未评估」/错误占位+重试 */}
+-          <section data-region="stock-scoring" className="border-b px-4">
++          <section data-region="stock-scoring" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">股票评分（聚合 = 交易决策）</h3>
+             {/* <StockScoringTable stocks/>（聚合分决策+独立分展示） */}
+           </section>
+ 
+           {/* order-trade-list：GET /api/sim-live/orders + state.trades；三态=骨架行/「无委托」/错误占位+重试 */}
+-          <section data-region="order-trade-list" className="px-4">
++          <section data-region="order-trade-list" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">模拟委托/成交（source: strategy|manual）</h3>
+             {/* <OrderTradeList onCancelOrder/>（source: strategy|manual） */}
+           </section>
+         </div>
+@@ -143,8 +149,11 @@ export function SimLiveGrid(props: SimLiveGridProps) {
+       {props.activeTab === 'history' && (
+         /* session-history：GET /api/sim-live/sessions + 详情 + 「回测一下」对比；
+            三态=骨架行/「无历史会话」/错误占位+重试；独立 Tab，不影响当前会话 */
+-        <div data-region="session-history" className="flex-1 px-4 py-3">
+-          {/* <SessionHistory onSelectSession onBacktestCompare/> */}
++        <div className="flex flex-col p-4">
++          <div data-region="session-history" className="sim-card mb-5">
++            <h3 className="mb-3 text-[11px] font-medium tracking-wide text-dim">历史会话回看 + 「回测一下」对比（不影响当前会话）</h3>
++            {/* <SessionHistory onSelectSession onBacktestCompare/> */}
++          </div>
+         </div>
+       )}
+     </div>
+diff --git a/scripts/check-tangle.sh b/scripts/check-tangle.sh
+index 65bbc7f..5b34dde 100755
+--- a/scripts/check-tangle.sh
++++ b/scripts/check-tangle.sh
+@@ -1,19 +1,74 @@
+ #!/usr/bin/env bash
+-# check-tangle.sh — 文学式一致性门禁（ADR-007）
+-# 语义：design/ 是事实源，src/migrations 由 entangled 单向生成。
+-# 重新 tangle 后若 git 出现 diff，说明生成物与文档脱节，拒绝提交。
++# check-tangle.sh — 文学式一致性门禁（ADR-007 单向工作流 + ADR-018 门禁硬化）
++#
++# 语义：design/ 是事实源，src/migrations/web 生成物由 entangled 单向生成（改码必改文档）。
++#
++# 判据（ADR-018 D-F3-1，架构师 2026-09-12 修正版）：
++#   ① ② 冲突/未托管：`entangled tangle -s`（dry-run，**永不写盘**；在沙箱内以空 DB 跑）
++#        输出含 `not managed by Entangled`（= 磁盘生成物 ≠ 文档重新生成结果）/
++#        `conflicts found` / `ERROR` / `changed outside the control of Entangled`
++#        （后两者在本沙箱配置下基本不会出现，保留为防御性匹配）→ 硬失败
++#   ④ 漂移（**权威判据**）：把 watch_list 输入 + 目标文件副本拷进**临时沙箱**，
++#        在沙箱内（空 filedb）`entangled tangle -f` 无条件重新生成，再与真实仓库逐字节比对；
++#        任一生成物缺失/内容不一致 → 硬失败并列出漂移文件
++#
++# 关键性质（ADR-018 §2 决议 + 架构师裁决）：
++#   - **门禁不修改真实工作区**（pre-commit 场景下静默回退生成物是不可接受的失败模式）：
++#     全部 tangle 都在沙箱里跑，`--force` 只允许出现在隔离副本中（D-F3-6）。
++#   - **可复现且无假阳性**（D-F3-2）：判据不依赖 `.entangled/`（filedb 未版本化、回写后即过期）：
++#     干净副本（CI 新克隆）、本地仓库（DB 新/旧）结果一致，权威判据是
++#     "文档重新生成的字节 vs 仓库字节"。
++#   - 旧实现（`entangled tangle && git diff --quiet`）在"有 DB + 只手改生成物"时假绿：
++#     DB 记的是"上次写入内容 digest"，文档侧未变则 entangled 直接判定 unchanged，
++#     根本不看磁盘上的生成物（entangled 2.4 io/filedb.py:check）。
+ #
+ # 用法：
+ #   手动：  ./scripts/check-tangle.sh
+-#   hook：  见 README「工程基建」一节（symlink 到 .git/hooks/pre-commit）
++#   hook：  见 README「工程基建」（symlink 到 .git/hooks/pre-commit）
++#   回写：  改码后运行 ./scripts/stitch.sh（沙箱 scoped stitch 回写文档）
+ set -euo pipefail
++shopt -s globstar
++
+ cd "$(git rev-parse --show-toplevel)"
++ROOT=$PWD
++
++# shellcheck source=scripts/lib/entangled_patterns.sh
++# 注意：本脚本会被 symlink 到 .git/hooks/pre-commit 运行（ADR-007 安装方式），
++# 因此必须解析**真实路径**（readlink -f）后才能找到 scripts/lib/。
++_self="${BASH_SOURCE[0]}"
++if command -v readlink >/dev/null 2>&1 && readlink -f "$_self" >/dev/null 2>&1; then
++    _self=$(readlink -f "$_self")
++fi
++SELF_DIR=$(cd "$(dirname "$_self")" && pwd)
++if [ ! -f "$SELF_DIR/lib/entangled_patterns.sh" ]; then
++    echo "[check-tangle] ❌ 缺少 scripts/lib/entangled_patterns.sh（门禁依赖，无法继续）。" >&2
++    exit 1
++fi
++# shellcheck source=scripts/lib/entangled_patterns.sh
++source "$SELF_DIR/lib/entangled_patterns.sh"
+ 
++die() {
++    echo "[check-tangle] ❌ $1" >&2
++    shift || true
++    [ "$#" -gt 0 ] && printf '%s\n' "$@" >&2
++    cat >&2 <<'EOF'
++
++可操作下一步（二选一，勿用 --force 变绿）：
++  • 改动在 design/ 文档侧（文档已改、生成物未重新生成）→ 运行： entangled tangle
++  • 改动在代码侧（手改了生成物、文档未同步）        → 运行： ./scripts/stitch.sh
++    （scripts/stitch.sh = 沙箱 scoped 回写 + round-trip 校验；校验不通过拒绝回写）
++禁止：`entangled tangle --force` —— 它会用文档旧内容覆盖实现，等于回退已验收成果
++（ADR-018 D-F3-6）；分不清方向时，先看下面列出的文件属于哪一侧。
++EOF
++    exit 1
++}
++
++# ------------------------------------------------------------ 0) 依赖检查 ----
+ if ! command -v entangled >/dev/null 2>&1; then
+     cat >&2 <<'EOF'
+ [check-tangle] ❌ 未找到 `entangled` 命令，无法执行 tangle 一致性检查。
+ 
+-本项目采用文学式编程（design/ → src 单向生成），跳过检查会破坏事实源纪律，
++本项目采用文学式编程（design/ → 生成物单向 tangle），跳过检查会破坏事实源纪律，
+ 因此这里是硬失败而不是静默放行。请二选一：
+ 
+   1) 安装 entangled（推荐 pipx）：
+@@ -26,17 +81,113 @@ EOF
+     exit 1
+ fi
+ 
+-echo "[check-tangle] entangled tangle ..."
+-entangled tangle
++# --------------------------------------------------- 1) 解析 watch_list ----
++if [ ! -f entangled.toml ]; then
++    die "未找到 entangled.toml（无法确定 design/ 事实源范围）。"
++fi
+ 
+-if git diff --quiet; then
+-    echo "[check-tangle] ✅ tangle 后无 diff，design 与生成物一致。"
+-else
+-    cat >&2 <<'EOF'
+-[check-tangle] ❌ tangle 产生了差异：生成物与 design/ 文档不一致。
+-请修改 design/ 下对应文档（而不是手改生成代码），再重新提交。
+-差异摘要：
+-EOF
+-    git diff --stat >&2
+-    exit 1
++patterns=()
++while IFS= read -r p; do
++    [ -n "$p" ] && patterns+=("$p")
++done < <(sed -n 's/^[[:space:]]*watch_list[[:space:]]*=[[:space:]]*\[\(.*\)\].*/\1/p' entangled.toml |
++    tr ',' '\n' | tr -d '"' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$')
++
++if [ "${#patterns[@]}" -eq 0 ]; then
++    die "entangled.toml 的 watch_list 为空或无法解析（门禁无法确定事实源范围）。"
+ fi
++
++# 每个 pattern 的根目录（pattern 首个 '*' 之前的部分），用于建沙箱
++roots=()
++for p in "${patterns[@]}"; do
++    case "$p" in
++        /*|*..*)
++            die "watch_list 模式 \`$p\` 含绝对路径或 \`..\`，门禁拒绝沙箱化。" ;;
++    esac
++    r="${p%%\**}"
++    r="${r%/}"
++    if [ -z "$r" ] || [ "$r" = "." ]; then
++        die "watch_list 模式 \`$p\` 的根为仓库根，门禁无法沙箱化（请把事实源收进子目录）。"
++    fi
++    roots+=("$r")
++done
++
++# ------------------------------------------------------------ 2) 建沙箱 ----
++SBX=$(mktemp -d "${TMPDIR:-/tmp}/check-tangle.XXXXXX")
++trap 'rm -rf "$SBX"' EXIT
++
++cp -a entangled.toml "$SBX/entangled.toml"
++for r in "${roots[@]}"; do
++    [ -e "$ROOT/$r" ] || die "watch_list 根 \`$r\` 在仓库中不存在。"
++    mkdir -p "$SBX/$(dirname "$r")"
++    cp -a "$ROOT/$r" "$SBX/$r"
++done
++# 沙箱**不**拷 `.entangled`（filedb）——故意：
++#   • filedb 记的是"上次写入内容 digest"，回写/重生成后它就是过期的；带着它跑 dry-run 会产生
++#     假冲突（`changed outside the control of Entangled`），把"内容其实一致、只是本地缓存旧"
++#     的仓库误判为失败（实测：`scripts/stitch.sh` 回写文档后即会踩到）。
++#   • 空 DB 下 dry-run 的 `not managed by Entangled` = 磁盘生成物与文档重新生成结果不一致，
++#     正好就是漂移语义；且与本地状态无关 → CI/新克隆行为一致（D-F3-2）。
++
++# 目标文件副本：沙箱内 dry-run 的冲突检测需要"磁盘上的生成物"与仓库一致
++while IFS= read -r tgt; do
++    [ -n "$tgt" ] || continue
++    case "$tgt" in
++        /*|*..*) continue ;;
++    esac
++    [ -f "$ROOT/$tgt" ] || continue
++    mkdir -p "$SBX/$(dirname "$tgt")"
++    cp -a "$ROOT/$tgt" "$SBX/$tgt"
++done < <(for r in "${roots[@]}"; do grep -rhoE 'file=[^ }"]+' "$ROOT/$r" 2>/dev/null || true; done |
++    sed 's/^file=//' | sort -u)
++
++# ------------------------------------------------- 3) ①② dry-run 冲突/未托管 ----
++# 注意：rich 日志会按终端宽度**折行**（例：`WARNING \`long/path\` not managed by\n Entangled`），
++# 因此先把换行拉平再匹配，命中后再按日志级别重新分行用于展示。
++dry_out=$(cd "$SBX" && entangled tangle -s 2>&1 | tr '\n' ' ' | tr -s ' ' || true)
++dry_hits=$(printf '%s\n' "$dry_out" |
++    sed -E 's/ (WARNING|ERROR) /\n\1 /g' |
++    grep -E 'conflicts found|ERROR|not managed by Entangled|changed outside the control of Entangled' || true)
++if [ -n "$dry_hits" ]; then
++    die "entangled dry-run 报告冲突/未托管（生成物与 design/ 文档失同步）：" \
++        "$dry_hits"
++fi
++
++# --------------------------------------------- 4) ④ 沙箱重新生成（权威判据）----
++# 必须清掉沙箱里的 filedb：DB 记的是"上次写入内容 digest"，带着它跑 tangle 会重复
++# `-s` 的判定（文档侧未变 → unchanged → 不重新生成），从而漏掉"只手改生成物"的漂移。
++# 空 DB + `-f` = 对每个目标无条件重新生成（force 只出现在这个隔离沙箱内，见 D-F3-6）。
++rm -rf "$SBX/.entangled"
++regen_out=$(cd "$SBX" && entangled tangle -f 2>&1 | tr '\n' ' ' | tr -s ' ' || true)
++if printf '%s\n' "$regen_out" | grep -qE 'ERROR|Traceback'; then
++    die "沙箱内重新生成失败，无法验证一致性（design/ 文档本身可能有循环引用等缺陷）：" \
++        "$(printf '%s\n' "$regen_out" | sed -E 's/ (WARNING|ERROR) /\n\1 /g' | grep -E 'ERROR|Error|error|Traceback' | head -5)"
++fi
++
++# ------------------------------------------------------- 5) 逐字节比对 ----
++drift=(); missing=()
++while IFS= read -r rel; do
++    [ -n "$rel" ] || continue
++    case "$rel" in .entangled/*) continue ;; esac
++    skip=0
++    for p in "${patterns[@]}"; do
++        if path_matches "$rel" "$p"; then
++            skip=1
++            break
++        fi
++    done
++    [ "$skip" -eq 1 ] && continue
++    if [ ! -f "$ROOT/$rel" ]; then
++        missing+=("$rel")
++    elif ! cmp -s "$SBX/$rel" "$ROOT/$rel"; then
++        drift+=("$rel")
++    fi
++done < <(cd "$SBX" && find . -type f | sed 's|^\./||' | sort)
++
++if [ "${#drift[@]}" -gt 0 ] || [ "${#missing[@]}" -gt 0 ]; then
++    detail=()
++    [ "${#drift[@]}" -gt 0 ] && detail+=("生成物与 design/ 文档不一致（沙箱重新生成对比）：" "$(printf '  - %s\n' "${drift[@]}")")
++    [ "${#missing[@]}" -gt 0 ] && detail+=("design/ 文档声明但仓库中缺失的生成物：" "$(printf '  - %s\n' "${missing[@]}")")
++    die "${#drift[@]} 个漂移 + ${#missing[@]} 个缺失。" "${detail[@]}"
++fi
++
++echo "[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。"

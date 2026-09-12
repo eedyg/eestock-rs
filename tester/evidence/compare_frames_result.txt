@@ -1,0 +1,8 @@
+MATCH  get_sources_health {"window_secs":60}  (payload bytes identical, 101 chars)
+MATCH  get_data_quality {"code":"518880","date":"2026-09-10"}  (payload bytes identical, 350 chars)
+MATCH  get_data_quality {"code":"999999","date":"2026-09-10"}  (payload bytes identical, 1310 chars)
+MATCH  strategy_list {}  (payload bytes identical, 42016 chars)
+MATCH  bt_list_runs {}  (payload bytes identical, 191541 chars)
+MATCH  sim_list_sessions {}  (payload bytes identical, 8104 chars)
+
+# compared=6 identical=6 differing=0

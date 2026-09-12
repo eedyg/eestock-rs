@@ -1,0 +1,19 @@
+### global 'entangled stitch' in throwaway copy WITH .entangled (reproduce ADR-018 §1.7 HAZARD)
+global_stitch_rc=0
+--- stitch output tail ---
+[20:57:17] INFO     Welcome to Entangled v2.4.3!
+--- git diff --stat after global stitch ---
+ design/07-app-plane/00-web-api.md |  203 +--
+ design/07-app-plane/01-mcp.md     | 3378 +------------------------------------
+ 2 files changed, 2 insertions(+), 3579 deletions(-)
+--- subsequent 'entangled tangle' ---
+[20:57:18] INFO     Welcome to Entangled v2.4.3!
+           ERROR    Cyclic reference in
+                    <<crates/app/src/bin/eestock-app.rs[0]>>:
+                    crates/app/src/bin/eestock-app.rs[0]
+tangle_rc=0
+--- git diff --numstat (added deleted file) ---
+1	202	design/07-app-plane/00-web-api.md
+1	3377	design/07-app-plane/01-mcp.md
+--- sample of rewritten block (self-reference) ---
++<<crates/mcp/src/tools.rs>>

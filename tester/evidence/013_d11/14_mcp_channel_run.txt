@@ -1,0 +1,31 @@
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.18s
+     Running tests/zz_tester_013_d11_mcp.rs (target/debug/deps/zz_tester_013_d11_mcp-77dfb792718bc4e7)
+
+running 1 test
+test zz_tester_013_d11_mcp ... EV A.list_symbols rows=44 etf=42 lof=2 null=0
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_A_list_symbols.json
+EV B1.profile fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"profile","stamp_duty_pct":0.0,"symbol_type":"etf"}
+EV B1.trades n=1 stamp_sum=0 pnl=-323.62346642166085 bars=63
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_B1_profile_test_run.json
+EV B2.explicit fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"explicit","stamp_duty_pct":0.05,"symbol_type":"etf"}
+EV B2.trades n=1 stamp_sum=49.789572335449385 pnl=-373.4130387571058
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_B2_explicit_test_run.json
+EV B2b.explicit0 fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"explicit","stamp_duty_pct":0.0,"symbol_type":"etf"}
+EV B3a.unregistered_gated isError=true text="工具执行失败：标的 999999 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"
+EV B3b.type_null fee={"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"source":"default","stamp_duty_pct":0.05,"symbol_type":null}
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_B3b_type_null_default.json
+EV B3c.no_profile_row fee={"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"source":"default","stamp_duty_pct":0.05,"symbol_type":null}
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_B3c_no_profile_row_default.json
+EV B3d.type_etf fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"profile","stamp_duty_pct":0.0,"symbol_type":"etf"}
+EV B3d.cleanup left=0
+EV D.sse fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"profile","stamp_duty_pct":0.0,"symbol_type":"etf"}
+EV C.publish sid=st_1789220355191_000000 vid=sv_1789220355191_000001 status="published"
+EV C.bt_run_ensemble config.fee={"min_fee":5.0,"profile":{"commission_rate_pct":0.025,"exchange_fee_pct":0.0,"min_fee":5.0,"note":"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）","regulatory_fee_pct":0.0,"source":"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）","stamp_duty_pct":0.0,"transfer_fee_pct":0.0,"type":"etf"},"rate_pct":0.025,"slippage_bp":2.0,"source":"profile","stamp_duty_pct":0.0,"symbol_type":"etf"}
+EV file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/013_d11/mcp_C_bt_run_ensemble.json
+EV C.run_id=sr_1789220355208_000002 final_status=succeeded
+EV DONE mcp 通道验收完成
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+

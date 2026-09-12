@@ -1,0 +1,24 @@
+=== 全新库按文件名顺序应用 0001..0025（initdb 路径）===
+全部 25 个迁移 OK（见上方日志）；0025 在空库上: 回填 0 行（symbols 为空）
+ symbols_rows 
+--------------
+            0
+(1 row)
+
+ type  | commission_rate_pct | min_fee | exchange_fee_pct | regulatory_fee_pct | stamp_duty_pct | transfer_fee_pct 
+-------+---------------------+---------+------------------+--------------------+----------------+------------------
+ etf   |               0.025 |       5 |                0 |                  0 |              0 |                0
+ lof   |               0.025 |       5 |                0 |                  0 |              0 |                0
+ stock |               0.025 |       5 |          0.00341 |              0.002 |           0.05 |            0.001
+(3 rows)
+
+ column_name | is_nullable | column_default 
+-------------+-------------+----------------
+ type        | YES         | 
+(1 row)
+
+      conname       
+--------------------
+ symbols_type_check
+(1 row)
+

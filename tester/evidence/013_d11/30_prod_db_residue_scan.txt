@@ -1,0 +1,23 @@
+=== 全量测试套件对生产库的残留扫描（应用面测试夹具）===
+ strategy_run_rows 
+-------------------
+               344
+(1 row)
+
+ strategy_rows 
+---------------
+            20
+(1 row)
+
+ERROR:  relation "sim_session" does not exist
+LINE 1: SELECT count(*) AS sim_sessions FROM sim_session;
+                                             ^
+ code | name 
+------+------
+(0 rows)
+
+ favorite_rows 
+---------------
+             5
+(1 row)
+

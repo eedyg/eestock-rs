@@ -1,0 +1,672 @@
+{
+  "bar_count": 63,
+  "events": [],
+  "fee": {
+    "min_fee": 5.0,
+    "rate_pct": 0.025,
+    "slippage_bp": 2.0,
+    "source": "default",
+    "stamp_duty_pct": 0.05,
+    "symbol_type": null
+  },
+  "mode": "sim_position",
+  "period": "D1",
+  "scores": [
+    {
+      "score": 100.0,
+      "ts": 1781539200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1781625600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1781712000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782057600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782144000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782230400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782316800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782403200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782662400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782748800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782835200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1782921600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783008000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783267200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783353600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783440000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783526400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783612800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783872000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1783958400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784044800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784131200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784217600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784476800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784563200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784649600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784736000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1784822400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785081600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785168000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785254400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785340800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785427200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785686400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785772800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785859200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1785945600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786032000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786291200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786377600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786464000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786550400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786636800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786896000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1786982400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787068800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787155200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787241600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787500800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787587200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787673600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787760000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1787846400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788105600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788192000,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788278400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788364800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788451200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788710400,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788796800,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788883200,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1788969600,
+      "warmup": false
+    },
+    {
+      "score": 100.0,
+      "ts": 1789056000,
+      "warmup": false
+    }
+  ],
+  "signals": [
+    {
+      "signal": "buy",
+      "ts": 1781539200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1781625600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1781712000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782057600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782144000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782230400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782316800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782403200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782662400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782748800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782835200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1782921600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783008000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783267200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783353600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783440000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783526400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783612800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783872000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1783958400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784044800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784131200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784217600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784476800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784563200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784649600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784736000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1784822400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785081600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785168000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785254400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785340800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785427200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785686400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785772800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785859200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1785945600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786032000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786291200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786377600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786464000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786550400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786636800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786896000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1786982400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787068800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787155200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787241600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787500800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787587200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787673600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787760000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1787846400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788105600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788192000,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788278400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788364800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788451200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788710400,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788796800,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788883200,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1788969600,
+      "warmup": false
+    },
+    {
+      "signal": "buy",
+      "ts": 1789056000,
+      "warmup": false
+    }
+  ],
+  "symbol": "999999",
+  "trades": [
+    {
+      "close_bar": 62,
+      "close_price": 2.9804038,
+      "close_ts": 1789056000,
+      "commission": 49.85801369863014,
+      "gross_value": 99579.14467089876,
+      "hold_bars": 61,
+      "open_bar": 1,
+      "open_price": 2.9885976,
+      "open_ts": 1781625600,
+      "pnl": -373.4130387571058,
+      "shares": 33411.29301703976,
+      "stamp_duty": 49.789572335449385
+    }
+  ],
+  "truncated": {
+    "events": false,
+    "scores": false,
+    "trades": false
+  },
+  "warmup_effective": 0,
+  "warmup_requested": 0
+}

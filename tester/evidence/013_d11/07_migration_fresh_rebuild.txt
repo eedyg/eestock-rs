@@ -1,0 +1,46 @@
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+DROP TABLE
+      ?column?       
+---------------------
+ dropped: type col=0
+(1 row)
+
+        ?column?         
+-------------------------
+ dropped: fee_profiles=0
+(1 row)
+
+ALTER TABLE
+DO
+UPDATE 44
+CREATE TABLE
+INSERT 0 3
+                  s                  
+-------------------------------------
+ recreated: null_type=0 etf=42 lof=2
+(1 row)
+
+          s           
+----------------------
+ recreated profiles=3
+(1 row)
+
+        s        
+-----------------
+ 551000 type=etf
+(1 row)
+
+              s              
+-----------------------------
+ column_default_is_null=true
+(1 row)
+
+         s         
+-------------------
+ check_exists=true
+(1 row)
+
+ROLLBACK

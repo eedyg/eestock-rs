@@ -1,0 +1,9 @@
+### run1 test_check_tangle.sh
+run1 rc=0
+run2 rc=0
+diff run1 vs run2 (timestamps/stamps may differ):
+IDENTICAL
+stitch run1 rc=0
+stitch run2 rc=0
+diff stitch run1 vs run2:
+IDENTICAL

@@ -1,0 +1,2 @@
+=== npx tsc -b --force ===
+tsc rc=0

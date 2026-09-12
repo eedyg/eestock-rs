@@ -1,0 +1,9 @@
+### Item 3: TSX zero-regression
+worktree:
+9fda9247fb28b16f1e83ce49479ad4e27eb73c54135bbb5abc9e44d7648a790c  web/src/layouts/DashboardGrid.tsx
+f93402fbed5ed2647b8a949fd45b87ad789ca48d735b8c6df5b900470d143d35  web/src/layouts/SimLiveGrid.tsx
+HEAD(44adaf9):
+9fda9247fb28b16f1e83ce49479ad4e27eb73c54135bbb5abc9e44d7648a790c  web/src/layouts/DashboardGrid.tsx
+f93402fbed5ed2647b8a949fd45b87ad789ca48d735b8c6df5b900470d143d35  web/src/layouts/SimLiveGrid.tsx
+### git status for TSX (must be empty):
+### expected from report: 9fda9247fb28b16f1e83ce49479ad4e27eb73c54135bbb5abc9e44d7648a790c / f93402fbed5ed2647b8a949fd45b87ad789ca48d735b8c6df5b900470d143d35

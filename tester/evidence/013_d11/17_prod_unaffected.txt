@@ -1,0 +1,51 @@
+=== 生产进程（未重启取证）===
+ 515249  515212 Sat Sep  5 11:26:53 2026  7-10:13:23 /usr/local/bin/eestock-data --config /etc/eestock/data.toml
+1248965       1 Fri Sep  4 09:18:48 2026  8-12:21:28 /snap/chromium/3520/usr/lib/chromium-browser/chrome_crashpad_handler --monitor-self --monitor-self-annotation=ptype=crashpad-handler --database=/home/eestock/snap/chromium/common/chromium/Crash Reports --annotation=channel=snap --annotation=lsb-release=Ubuntu Core 24 --annotation=plat=Linux --annotation=prod=Chrome_Linux --annotation=ver=152.0.7977.64 --initial-client-fd=5 --shared-client-connection
+1248967       1 Fri Sep  4 09:18:48 2026  8-12:21:28 /snap/chromium/3520/usr/lib/chromium-browser/chrome_crashpad_handler --no-periodic-tasks --monitor-self-annotation=ptype=crashpad-handler --database=/home/eestock/snap/chromium/common/chromium/Crash Reports --annotation=channel=snap --annotation=lsb-release=Ubuntu Core 24 --annotation=plat=Linux --annotation=prod=Chrome_Linux --annotation=ver=152.0.7977.64 --initial-client-fd=4 --shared-client-connection
+1343124       1 Fri Sep 11 22:55:46 2026    22:44:31 /home/eestock/workspace/git/scrylink/target/release/scrylink-web --host 0.0.0.0 --port 1420 --static-dir /home/eestock/workspace/git/scrylink/frontend/dist
+2352660       1 Sat Sep 12 12:07:56 2026    09:32:20 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && node -e ' const base="http://127.0.0.1:8082"; const resp=await fetch(base+"/sse");const rd=resp.body.getReader();const dec=new TextDecoder(); let buf="",endpoint=null,q=[]; const p=(async()=>{while(true){const{done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n\n"))>=0){const f=buf.slice(0,i);buf=buf.slice(i+2);const d=f.split("\n").find(l=>l.startsWith("data: "));if(d){const s=d.slice(6);if(!endpoint&&s.startsWith("/messages?"))endpoint=s;else q.push(s);}}}})(); for(let k=0;k<100&&!endpoint;k++)await new Promise(r=>setTimeout(r,20)); await fetch(base+endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/list"})}); for(let k=0;k<100&&q.length===0;k++)await new Promise(r=>setTimeout(r,20)); const tools=JSON.parse(q[0]).result.tools; console.log("tool count:",tools.length); for(const name of ["strategy_test_run","bt_run_ensemble","sim_start_session","get_data_quality"]){   const t=tools.find(x=>x.name===name);   console.log("\n==",name,"==\n",JSON.stringify(t.inputSchema)); } ' 2>&1 | tee prod_tools_schemas_periphery.txt
+3040794 3785711 Sat Sep 12 18:27:37 2026    03:12:39 /usr/bin/node /home/eestock/.pi/agent/npm/node_modules/tsx/dist/cli.mjs /home/eestock/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+3040806 3040794 Sat Sep 12 18:27:37 2026    03:12:39 /usr/bin/node --require /home/eestock/.pi/agent/npm/node_modules/tsx/dist/preflight.cjs --import file:///home/eestock/.pi/agent/npm/node_modules/tsx/dist/loader.mjs /home/eestock/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+3040829 3040806 Sat Sep 12 18:27:37 2026    03:12:39 /home/eestock/.pi/agent/npm/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.28.0 --ping
+3201189       1 Sat Sep 12 20:02:24 2026    01:37:52 /home/eestock/workspace/git/scrylink/target/release/scrylink-server
+3406782  531857 Sat Sep 12 21:17:01 2026       23:15 postgres: eestock eestock 172.24.0.3(45440) idle
+3410067  531857 Sat Sep 12 21:17:29 2026       22:47 postgres: eestock eestock 172.24.0.1(51510) idle
+3410068  531857 Sat Sep 12 21:17:29 2026       22:47 postgres: eestock eestock 172.24.0.1(51512) idle
+3410069  531857 Sat Sep 12 21:17:29 2026       22:47 postgres: eestock eestock 172.24.0.1(51524) idle
+3413083  531857 Sat Sep 12 21:18:59 2026       21:17 postgres: eestock eestock 172.24.0.3(56016) idle
+3413084  531857 Sat Sep 12 21:18:59 2026       21:17 postgres: eestock eestock 172.24.0.3(56014) idle
+3444207 3785711 Sat Sep 12 21:22:40 2026       17:37 /usr/bin/node /home/eestock/.pi/agent/npm/node_modules/jiti/lib/jiti-cli.mjs /home/eestock/.pi/agent/npm/node_modules/pi-subagents/src/runs/background/subagent-runner.ts /tmp/pi-subagents-uid-1001/async-cfg-69658c43-cd8f-4af1-95cb-c086186e0411.json
+3490045  531857 Sat Sep 12 21:27:00 2026       13:16 postgres: eestock eestock 172.24.0.3(33068) idle
+3506477  531857 Sat Sep 12 21:29:00 2026       11:16 postgres: eestock eestock 172.24.0.3(59762) idle
+3506478  531857 Sat Sep 12 21:29:00 2026       11:16 postgres: eestock eestock 172.24.0.3(59776) idle
+3506479  531857 Sat Sep 12 21:29:00 2026       11:16 postgres: eestock eestock 172.24.0.3(59780) idle
+3506480  531857 Sat Sep 12 21:29:00 2026       11:16 postgres: eestock eestock 172.24.0.3(59784) idle
+3506481  531857 Sat Sep 12 21:29:00 2026       11:16 postgres: eestock eestock 172.24.0.3(59792) idle
+3510443  531857 Sat Sep 12 21:29:59 2026       10:17 postgres: eestock eestock 172.24.0.3(57022) idle
+3532059  137504 Sat Sep 12 21:33:46 2026       06:30 /usr/bin/node /home/eestock/.pi/agent/npm/node_modules/jiti/lib/jiti-cli.mjs /home/eestock/.pi/agent/npm/node_modules/pi-subagents/src/runs/background/subagent-runner.ts /tmp/pi-subagents-uid-1001/async-cfg-fac4919e-1be1-4f17-8317-090c80d28fb8.json
+3533211 3785711 Sat Sep 12 21:34:25 2026       05:51 /usr/bin/node /home/eestock/.pi/agent/npm/node_modules/jiti/lib/jiti-cli.mjs /home/eestock/.pi/agent/npm/node_modules/pi-subagents/src/runs/background/subagent-runner.ts /tmp/pi-subagents-uid-1001/async-cfg-383ece56-7b51-4329-a275-13787ad14808.json
+3551179  531857 Sat Sep 12 21:39:05 2026       01:11 postgres: eestock eestock 172.24.0.1(45690) idle
+3586612 3533260 Sat Sep 12 21:40:16 2026       00:00 /bin/bash -c cd /home/eestock/workspace/git/scrylink && bash scripts/testenv.sh --selftest >/tmp/testenv_selftest_via_flag.log 2>&1; echo "--selftest rc=$?"; tail -4 /tmp/testenv_selftest_via_flag.log | head -3; echo "=== git staged check ==="; git diff --cached --name-only | head; echo "(staged above; empty=good)"; echo "=== git status (script paths only) ==="; git status --short -- scripts/ | head
+3586613 3586612 Sat Sep 12 21:40:16 2026       00:00 bash /home/eestock/workspace/git/scrylink/scripts/tests/test_testenv.sh
+3586723 3586613 Sat Sep 12 21:40:16 2026       00:00 bash /home/eestock/workspace/git/scrylink/scripts/tests/test_testenv.sh
+3586724 3586723 Sat Sep 12 21:40:16 2026       00:00 bash /home/eestock/workspace/git/scrylink/scripts/tests/../testenv.sh up alpha alpine sleep 300
+3586764 3586724 Sat Sep 12 21:40:16 2026       00:00 bash /home/eestock/workspace/git/scrylink/scripts/tests/../testenv.sh up alpha alpine sleep 300
+3696673 3696671 Fri Sep 11 11:24:16 2026  1-10:16:00 target/debug/eestock-app --config /tmp/app_dev_8081.toml
+4155728    2379 Tue Sep  8 23:01:27 2026  3-22:38:50 sshd: eestock [priv]
+4155814 4155728 Tue Sep  8 23:01:27 2026  3-22:38:49 sshd: eestock@pts/2
+
+=== 监听端口 ===
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=11)) 
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                              
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=12)) 
+LISTEN 0      4096            [::]:8080          [::]:*                                              
+
+=== 8081 healthz ===
+http=200
+{"status":"ok"}
+http=404
+{"error":"not found"}
+
+=== 二进制/容器时间戳 ===
+-rwxr-xr-x 2 root root 1446024 2024-03-31 16:41:03.000000000 +0800 /usr/bin/bash
+Sat Sep 12 09:40:17 PM CST 2026

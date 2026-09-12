@@ -1,0 +1,77 @@
+--- /tmp/145_before/crates__mcp__src__tools.rs	2026-09-12 18:48:07.777016347 +0800
++++ crates/mcp/src/tools.rs	2026-09-12 18:51:12.722930940 +0800
+@@ -617,15 +617,19 @@
+             None => return result_err(id, INVALID_PARAMS, "to 须为 YYYY-MM-DD 或 RFC3339"),
+         },
+     };
+-    if let (Some(f), Some(t)) = (from, to) {
+-        if f >= t { return result_err(id, INVALID_PARAMS, "from 须早于 to"); }
+-    }
+     // to 含整日：ISO 日期形式 → 次日 00:00 CST（开区间上界）。
++    // F1（010 验收）：**本归一必须先于下面的是否空区间判定**——否则同日 date 形式
++    // （from=to=YYYY-MM-DD，应为「该日整日」）与「RFC3339 from + date to」混合形式会被误判为
++    // from ≥ to；同日 date 在归一后是天然合法区间（展开后 t > f）。
+     let to = match (to_raw, to) {
+         (Some(s), Some(t)) if parse_date_strict(s).is_some() =>
+             Some(t + chrono::Duration::days(1)),
+         (_, t) => t,
+     };
++    // 归一后 f ≥ t = 空区间（from 闭 / to 开无任何 bar）→ 协议层参数错误；不静默返回空 bars。
++    if let (Some(f), Some(t)) = (from, to) {
++        if f >= t { return result_err(id, INVALID_PARAMS, "from 须早于 to"); }
++    }
+     // I-1（P0）：注册成员校验先于取数（参数校验之后、bars 之前）——未注册 → isError；
+     // 已注册但该区间无数据 → 仍为正常空 bars（两种语义由此可区分）。
+     if let Err(e) = ensure_registered(st, code).await {
+@@ -1776,7 +1780,40 @@
+         assert_eq!(calls[0].before, Some(Utc.with_ymd_and_hms(2026, 9, 2, 16, 0, 0).unwrap()));
+     }
+ 
++    /// I-5/F1（010 验收缺陷 F1）：**同日 date 形式（from=to=YYYY-MM-DD）合法** = 该 CST 日整日；
++    /// 「RFC3339 from + date to」混合形式亦合法。
++    /// 依据契约「from 闭 / to 开 / to 含整日」：date 形式 to 先展开为次日 00:00 CST，再比较 f ≥ t
++    ///（即 f ≥ t 只表达「空区间」，不等于「同日非法」）。
++    #[tokio::test]
++    async fn get_kline_same_day_date_bounds_legal() {
++        let kline = Arc::new(MockKline::new());
++        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
++        // 同日 date：2026-09-03 00:00 CST（闭）→ 2026-09-04 00:00 CST（开）= 2026-09-03 整日
++        let r = call(&st, "get_kline", json!({
++            "code": "518880", "from": "2026-09-03", "to": "2026-09-03", "limit": 10,
++        })).await;
++        assert!(r.get("error").is_none(), "同日 date 区间合法（该 CST 日整日）：{r}");
++        let p = payload_of(&r);
++        assert_eq!(p["from"], "2026-09-02T16:00:00Z", "from = 该日 00:00 CST（闭）");
++        assert_eq!(p["to"], "2026-09-03T16:00:00Z", "to = 次日 00:00 CST（开，含 to 整日）");
++        assert_eq!(p["bars"].as_array().unwrap().len(), 2, "该日内的样例 bar（09-03T01:30/01:31Z）全保留");
++        // 混合形式：RFC3339 from（晚于该日 00:00 CST，但仍早于展开后的 to）+ date to
++        let r = call(&st, "get_kline", json!({
++            "code": "518880", "from": "2026-09-03T01:31:00Z", "to": "2026-09-03", "limit": 10,
++        })).await;
++        assert!(r.get("error").is_none(), "RFC3339 from + date to 合法：{r}");
++        let p = payload_of(&r);
++        assert_eq!(p["from"], "2026-09-03T01:31:00Z");
++        assert_eq!(p["to"], "2026-09-03T16:00:00Z", "date to 展开为次日 00:00 CST");
++        assert_eq!(p["bars"].as_array().unwrap().len(), 1, "from 闭：仅 01:31Z 一根");
++        let calls = kline.calls.lock().unwrap();
++        assert_eq!(calls[1].before, Some(Utc.with_ymd_and_hms(2026, 9, 3, 16, 0, 0).unwrap()),
++            "取数 before = 展开后的 to（开）");
++    }
++
+     /// I-5：边界校验 —— 非法格式 / 非法类型 / 空或反向区间 → -32602（不落取数）。
++    /// 注：同日 date 形式（from=to=YYYY-MM-DD）合法（见 get_kline_same_day_date_bounds_legal），
++    /// 此处只保留真非法：反向 date、RFC3339 f==t（空区间）、RFC3339 from 晚于 date to 展开后的日界。
+     #[tokio::test]
+     async fn get_kline_from_to_validation_is_32602() {
+         let kline = Arc::new(MockKline::new());
+@@ -1784,8 +1821,9 @@
+         for args in [
+             json!({ "code": "518880", "from": "2026/09/02" }),
+             json!({ "code": "518880", "to": "2026-9-2" }),
+-            json!({ "code": "518880", "from": "2026-09-02", "to": "2026-09-02" }),
+             json!({ "code": "518880", "from": "2026-09-03", "to": "2026-09-02" }),
++            json!({ "code": "518880", "from": "2026-09-02T00:00:00Z", "to": "2026-09-02T00:00:00Z" }),
++            json!({ "code": "518880", "from": "2026-09-03T01:31:00Z", "to": "2026-09-02" }),
+             json!({ "code": "518880", "from": 20260902 }),
+         ] {
+             let r = call(&st, "get_kline", args.clone()).await;

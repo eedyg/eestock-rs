@@ -1,0 +1,46 @@
+=== 1.6 列定义（默认值 / 可空）===
+  table_name  |     column_name     |        data_type         | is_nullable | column_default 
+--------------+---------------------+--------------------------+-------------+----------------
+ fee_profiles | commission_rate_pct | double precision         | NO          | 
+ fee_profiles | exchange_fee_pct    | double precision         | NO          | 
+ fee_profiles | min_fee             | double precision         | NO          | 
+ fee_profiles | note                | text                     | NO          | ''::text
+ fee_profiles | regulatory_fee_pct  | double precision         | NO          | 
+ fee_profiles | source              | text                     | NO          | ''::text
+ fee_profiles | stamp_duty_pct      | double precision         | NO          | 
+ fee_profiles | transfer_fee_pct    | double precision         | NO          | 
+ fee_profiles | type                | text                     | NO          | 
+ fee_profiles | updated_at          | timestamp with time zone | NO          | now()
+ symbols      | type                | text                     | YES         | 
+(11 rows)
+
+=== 1.7 CHECK 约束原文 ===
+                conname                 |                                                                      def                                                                      
+----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------
+ symbols_interval_secs_check            | CHECK ((interval_secs >= 60))
+ symbols_pkey                           | PRIMARY KEY (code)
+ symbols_settlement_check               | CHECK ((settlement = ANY (ARRAY['T0'::text, 'T1'::text])))
+ symbols_type_check                     | CHECK (((type IS NULL) OR (type = ANY (ARRAY['etf'::text, 'lof'::text, 'stock'::text, 'bond_etf'::text, 'money_etf'::text, 'index'::text]))))
+ fee_profiles_commission_rate_pct_check | CHECK ((commission_rate_pct >= (0)::double precision))
+ fee_profiles_exchange_fee_pct_check    | CHECK ((exchange_fee_pct >= (0)::double precision))
+ fee_profiles_min_fee_check             | CHECK ((min_fee >= (0)::double precision))
+ fee_profiles_pkey                      | PRIMARY KEY (type)
+ fee_profiles_regulatory_fee_pct_check  | CHECK ((regulatory_fee_pct >= (0)::double precision))
+ fee_profiles_stamp_duty_pct_check      | CHECK ((stamp_duty_pct >= (0)::double precision))
+ fee_profiles_transfer_fee_pct_check    | CHECK ((transfer_fee_pct >= (0)::double precision))
+ fee_profiles_type_check                | CHECK ((type = ANY (ARRAY['etf'::text, 'lof'::text, 'stock'::text, 'bond_etf'::text, 'money_etf'::text, 'index'::text])))
+(12 rows)
+
+=== 1.8 外键（应为 0 条指向 fee_profiles）===
+ conname | pg_get_constraintdef 
+---------+----------------------
+(0 rows)
+
+=== 1.9 索引 ===
+     indexname     |                                    indexdef                                     
+-------------------+---------------------------------------------------------------------------------
+ fee_profiles_pkey | CREATE UNIQUE INDEX fee_profiles_pkey ON public.fee_profiles USING btree (type)
+(1 row)
+
+=== 1.10 type 无默认值的直接证明：column_default IS NULL ===
+true

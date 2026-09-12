@@ -1,0 +1,14 @@
+web n: 44 tool n: 44 code sets identical: True
+web code order: ['518880', '161226', '513310', '159776', '159742', '159337'] ... ['562500', '562800', '588000']
+tool code order (ascending): ['159337', '159577', '159638', '159740', '159742', '159776'] ... ['562500', '562800', '588000']
+tool ascending: True
+web favorites (front-loaded): ['518880', '161226', '513310', '159776', '159742']
+非收藏段是否 code 升序: True
+name: mismatches=0 []
+interval_secs: mismatches=0 []
+settlement: mismatches=0 []
+enabled: mismatches=0 []
+latest: mismatches=0 []
+Traceback (most recent call last):
+  File "<stdin>", line 15, in <module>
+TypeError: unsupported operand type(s) for -: 'list' and 'set'

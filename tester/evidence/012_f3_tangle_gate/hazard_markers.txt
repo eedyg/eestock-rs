@@ -1,0 +1,15 @@
+### README/ADR HAZARD support: '~/~ begin' markers inside code blocks of 07-app-plane docs
+--- design/07-app-plane/00-web-api.md ---
+4613:// ~/~ begin <<design/07-app-plane/00-web-api.md#crates/app/src/bin/eestock-app.rs>>[init]
+4814:// ~/~ end
+--- design/07-app-plane/01-mcp.md ---
+375:// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
+376:// ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
+3750:// ~/~ end
+3751:// ~/~ end
+### stitch.sh hard-skip logic for those docs:
+11:#     的代码块内嵌 `// ~/~ begin` 遗留标记，全局 stitch 会把它们改写成自引用
+17:#   • 块内嵌 `~/~ begin` 的文档（当前仅上述两份）会被自动跳过并告警：它们属文档卫生遗留
+243:# 这些文档的代码块里嵌着 `// ~/~ begin` 标记（历史 stitch 遗留），stitch 会把块改写成
+247:    if grep -q '~/~ begin' "$d"; then skipped+=("$d"); else kept+=("$d"); fi
+251:    info "⚠️  跳过块内嵌 \`~/~ begin\` 遗留标记的文档（stitch 会破坏其内容，见 F3-f）：${skipped[*]}"

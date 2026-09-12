@@ -1,0 +1,10 @@
+    Checking backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Checking domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+    Checking strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Checking strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Checking simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Checking diagnose v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/diagnose)
+    Checking storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.69s

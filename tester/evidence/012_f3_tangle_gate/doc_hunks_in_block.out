@@ -1,0 +1,4 @@
+### Item 4: doc hunks must all be inside fenced code blocks (L3)
+design/06-web/01-dashboard.md: changed_lines=27 outside_block=0
+design/06-web/10-simlive.md: changed_lines=33 outside_block=0
+RC=0

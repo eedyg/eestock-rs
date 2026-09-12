@@ -1,0 +1,24 @@
+### forced check after: cargo clean -p mcp -p web -p application -p backtest -p strategy-core -p app
+### start 2026-09-12T10:40:57Z
+    Checking backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Checking alert v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/alert)
+    Checking storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Checking strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Checking strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Checking simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Checking web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Checking app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+warning: unused import: `domain::ports::StrategyRunStore as _`
+ --> crates/web/tests/zz_tester_010_web.rs:8:5
+  |
+8 | use domain::ports::StrategyRunStore as _;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `web` (test "zz_tester_010_web") generated 1 warning (run `cargo fix --test "zz_tester_010_web" -p web` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.64s
+EXIT=0
+### end 2026-09-12T10:40:59Z

@@ -1,0 +1,17 @@
+### Final real-repo side-effect re-verification (after ALL tester activity)
+files compared (excl. tester evidence dir): 9563
+FINAL_TREE_IDENTICAL_TO_BASELINE
+--- git diff --cached (must be empty) ---
+(empty above = nothing staged)
+--- git status tracked ---
+ M README.md
+ M design/06-web/01-dashboard.md
+ M design/06-web/10-simlive.md
+ M scripts/check-tangle.sh
+--- .entangled listing ---
+total 48
+drwxrwxr-x  3 eestock eestock  4096 Sep 12 20:47 .
+drwxrwxr-x 17 eestock eestock  4096 Sep 12 12:07 ..
+-rw-------  1 eestock eestock 36711 Sep 12 20:47 filedb.json
+-rw-rw-r--  1 eestock eestock     0 Sep 12 20:47 filedb.lock
+drwxrwxr-x  2 eestock eestock  4096 Sep 12 20:47 tmp

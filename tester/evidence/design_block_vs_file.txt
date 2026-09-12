@@ -1,0 +1,10 @@
+MATCH   crates/mcp/src/lib.rs
+MATCH   crates/mcp/src/state.rs
+MATCH   crates/mcp/src/rpc.rs
+MATCH   crates/mcp/src/tools.rs
+MATCH   crates/mcp/src/mocks.rs
+MATCH   crates/mcp/src/server.rs
+MATCH   crates/mcp/tests/mcp_protocol.rs
+MATCH   crates/mcp/tests/mcp_tools_db.rs
+
+# doc-blocks (markers stripped) ok=8 bad=0

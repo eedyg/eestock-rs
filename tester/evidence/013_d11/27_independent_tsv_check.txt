@@ -1,0 +1,9 @@
+=== 独立复核 coder 证据 TSV：当前库非 type 字段 vs before_migration.tsv ===
+NO-DIFF：迁移前后（含今天全部幂等复跑）非 type 字段逐字节一致 → 纯加法迁移，未改动既有 44 行
+
+=== 迁移动态性复核：coder TSV 是否可能是「伪造的同文件拷贝」 ===
+before/after 两文件 sha256 是否相同（相同=合理，因纯加法）: 1
+(1 = 完全一致)
+
+=== MCP 无 symbols 写工具（type 不可经 MCP 设置）===
+"name": "list_symbols"

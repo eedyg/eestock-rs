@@ -1,0 +1,286 @@
+=== tangle run 1 ===
+[18:38:13] INFO     Welcome to Entangled v2.4.3!
+[18:38:14] INFO     create `crates/domain/src/types.rs`
+           INFO     create `crates/domain/src/provider.rs`
+           INFO     create `crates/domain/src/selector.rs`
+           INFO     create `crates/domain/src/ports.rs`
+           INFO     create `crates/domain/src/tz.rs`
+           INFO     create `crates/domain/tests/contracts_test.rs`
+           INFO     create `crates/domain/src/merge.rs`
+           INFO     create `crates/domain/src/calendar.rs`
+           INFO     create `crates/domain/src/strategy_state.rs`
+           INFO     create `crates/collector/src/lib.rs`
+           INFO     create `crates/collector/src/clock.rs`
+           INFO     create `crates/collector/src/calendar.rs`
+           INFO     create `crates/collector/src/circuit.rs`
+           INFO     create `crates/collector/src/executor.rs`
+           INFO     create `crates/collector/src/gapfill.rs`
+           INFO     create `crates/collector/src/standby.rs`
+           INFO     create `crates/collector/src/scheduler.rs`
+           INFO     create `crates/collector/src/service.rs`
+           INFO     create `crates/collector/src/probe.rs`
+           INFO     create `crates/collector/tests/common/mod.rs`
+           INFO     create `crates/collector/tests/calendar_test.rs`
+           INFO     create `crates/collector/tests/circuit_test.rs`
+           INFO     create `crates/collector/tests/executor_test.rs`
+           INFO     create `crates/collector/tests/gapfill_test.rs`
+           INFO     create `crates/collector/tests/standby_test.rs`
+           INFO     create `crates/collector/tests/probe_test.rs`
+           INFO     create `crates/collector/tests/scheduler_test.rs`
+           INFO     create `crates/collector/src/reset.rs`
+           INFO     create `crates/collector/tests/reset_test.rs`
+           INFO     create `crates/providers/src/lib.rs`
+           INFO     create `crates/providers/src/http.rs`
+           INFO     create `crates/providers/src/tencent_ifzq.rs`
+           INFO     create `crates/providers/src/sina_jsonp.rs`
+           INFO     create `crates/providers/src/tencent_qt.rs`
+           INFO     create `crates/providers/src/sina_hq.rs`
+           INFO     create `crates/providers/src/ths_cs.rs`
+           INFO     create `crates/providers/src/push2delay.rs`
+           INFO     create `crates/providers/src/exchange.rs`
+           INFO     create `crates/providers/tests/golden_parse.rs`
+           INFO     create `crates/providers/tests/http_behavior.rs`
+           INFO     create `crates/app/src/config.rs`
+           INFO     create `crates/app/src/healthz.rs`
+           INFO     create `crates/app/src/lib.rs`
+           INFO     create `crates/app/src/bin/eestock-data.rs`
+           INFO     create `crates/app/tests/config_healthz.rs`
+           INFO     create `Dockerfile`
+           INFO     create `migrations/0005_sync_checkpoints.sql`
+           INFO     create `crates/tushare/src/parse.rs`
+           INFO     create `crates/tushare/src/client.rs`
+           INFO     create `crates/tushare/src/sync.rs`
+           INFO     create `crates/tushare/src/lib.rs`
+           INFO     create `crates/tushare/tests/golden_parse.rs`
+           INFO     create `crates/tushare/tests/sync_plan.rs`
+           INFO     create `crates/storage/src/accurate.rs`
+           INFO     create `crates/storage/src/lib.rs`
+           INFO     create `crates/storage/tests/accurate_upsert.rs`
+           INFO     create `crates/tushare/src/bin/tushare_sync.rs`
+           INFO     create `crates/tushare/src/daily.rs`
+           INFO     create `crates/tushare/tests/daily_sync.rs`
+           INFO     create `crates/storage/src/kline.rs`
+           INFO     create `crates/storage/src/events.rs`
+           INFO     create `crates/storage/src/migrate_check.rs`
+           INFO     create `crates/storage/tests/raw_writer.rs`
+           INFO     create `crates/storage/tests/event_sink.rs`
+           INFO     create `crates/storage/src/symbols.rs`
+           INFO     create `crates/storage/tests/symbols_registry.rs`
+           INFO     create `migrations/0001_init.sql`
+           INFO     create `migrations/0002_caggs.sql`
+           INFO     create `migrations/0003_compression.sql`
+           INFO     create `migrations/0004_metrics.sql`
+           INFO     create `migrations/0006_accurate_compression.sql`
+           INFO     create `migrations/0007_circuit_reset.sql`
+           INFO     create `migrations/0008_holidays.sql`
+           INFO     create `migrations/0009_alert_engine.sql`
+           INFO     create `migrations/0010_accurate_caggs.sql`
+           INFO     create `migrations/0011_backtest.sql`
+           INFO     create `migrations/0012_backtest_run_extend.sql`
+           INFO     create `migrations/0013_favorite_symbols.sql`
+           INFO     create `migrations/0014_weekly_monthly_caggs.sql`
+           INFO     create `migrations/0015_ma_config.sql`
+           INFO     create `migrations/0021_app_config.sql`
+           INFO     create `migrations/0016_weekly_monthly_full_history.sql`
+           INFO     create `migrations/0017_minute_caggs_full_history.sql`
+           INFO     create `migrations/0018_sim_session.sql`
+           INFO     create `migrations/0019_sim_session_state.sql`
+           INFO     create `migrations/0020_accurate_cagg_refresh.sql`
+           INFO     create `migrations/0022_strategy_registry.sql`
+           INFO     create `migrations/0023_strategy_workbench.sql`
+           INFO     create `migrations/0024_drop_legacy_backtest_tables.sql`
+           INFO     create `design/06-web/preview/01-dashboard.html`
+           INFO     create `web/src/layouts/DashboardGrid.tsx`
+           INFO     create `design/06-web/preview/02-sources.html`
+           INFO     create `web/src/layouts/SourcesGrid.tsx`
+           INFO     create `design/06-web/preview/03-symbols.html`
+           INFO     create `web/src/layouts/SymbolsGrid.tsx`
+           INFO     create `design/06-web/preview/04-quality.html`
+           INFO     create `web/src/layouts/QualityGrid.tsx`
+           INFO     create `design/06-web/preview/06-trading.html`
+           INFO     create `web/src/layouts/TradingGrid.tsx`
+           INFO     create `design/06-web/preview/07-alerts.html`
+           INFO     create `web/src/layouts/AlertsGrid.tsx`
+           INFO     create `design/06-web/preview/08-settings.html`
+           INFO     create `web/src/layouts/SettingsGrid.tsx`
+           INFO     create `web/src/layouts/SimLiveGrid.tsx`
+           INFO     create `crates/diagnose/src/lib.rs`
+           INFO     create `crates/diagnose/src/health.rs`
+           INFO     create `crates/diagnose/tests/health_agg.rs`
+           INFO     create `crates/diagnose/src/quality.rs`
+           INFO     create `crates/diagnose/tests/quality.rs`
+           INFO     create `crates/storage/src/reader.rs`
+           INFO     create `crates/storage/tests/kline_reader.rs`
+           INFO     create `crates/web/src/lib.rs`
+           INFO     create `crates/web/src/dto.rs`
+           INFO     create `crates/web/src/state.rs`
+           INFO     create `crates/web/src/rest.rs`
+           INFO     create `crates/web/src/ws.rs`
+           INFO     create `crates/web/src/spa.rs`
+           INFO     create `crates/web/tests/api_rest.rs`
+           INFO     create `crates/web/tests/ws_poller.rs`
+           INFO     create `crates/app/src/app_config.rs`
+           INFO     create `crates/app/src/bin/eestock-app.rs`
+           INFO     create `crates/app/tests/app_config.rs`
+           INFO     create `Dockerfile.app`
+           INFO     create `crates/storage/src/admin.rs`
+           INFO     create `crates/storage/tests/symbol_admin.rs`
+           INFO     create `crates/web/tests/api_admin.rs`
+           INFO     create `crates/web/tests/api_quality.rs`
+           INFO     create `crates/mcp/src/lib.rs`
+           INFO     create `crates/mcp/src/state.rs`
+           INFO     create `crates/mcp/src/rpc.rs`
+           INFO     create `crates/mcp/src/tools.rs`
+           INFO     create `crates/mcp/src/mocks.rs`
+           INFO     create `crates/mcp/src/server.rs`
+           INFO     create `crates/mcp/tests/mcp_protocol.rs`
+           INFO     create `crates/mcp/tests/mcp_tools_db.rs`
+           INFO     create `crates/alert/src/lib.rs`
+           INFO     create `crates/alert/src/rules.rs`
+           INFO     create `crates/alert/src/engine.rs`
+           INFO     create `crates/alert/tests/engine.rs`
+           INFO     create `crates/storage/src/alerts.rs`
+           INFO     create `crates/storage/tests/alert_store.rs`
+           INFO     create `crates/web/src/alerts.rs`
+           INFO     create `crates/web/tests/api_alerts.rs`
+rc=0
+=== generated files ===
+./crates/alert/src/engine.rs
+./crates/alert/src/lib.rs
+./crates/alert/src/rules.rs
+./crates/alert/tests/engine.rs
+./crates/app/src/app_config.rs
+./crates/app/src/bin/eestock-app.rs
+./crates/app/src/bin/eestock-data.rs
+./crates/app/src/config.rs
+./crates/app/src/healthz.rs
+./crates/app/src/lib.rs
+./crates/app/tests/app_config.rs
+./crates/app/tests/config_healthz.rs
+./crates/collector/src/calendar.rs
+./crates/collector/src/circuit.rs
+./crates/collector/src/clock.rs
+./crates/collector/src/executor.rs
+./crates/collector/src/gapfill.rs
+./crates/collector/src/lib.rs
+./crates/collector/src/probe.rs
+./crates/collector/src/reset.rs
+./crates/collector/src/scheduler.rs
+./crates/collector/src/service.rs
+./crates/collector/src/standby.rs
+./crates/collector/tests/calendar_test.rs
+./crates/collector/tests/circuit_test.rs
+./crates/collector/tests/common/mod.rs
+./crates/collector/tests/executor_test.rs
+./crates/collector/tests/gapfill_test.rs
+./crates/collector/tests/probe_test.rs
+./crates/collector/tests/reset_test.rs
+./crates/collector/tests/scheduler_test.rs
+./crates/collector/tests/standby_test.rs
+./crates/diagnose/src/health.rs
+./crates/diagnose/src/lib.rs
+./crates/diagnose/src/quality.rs
+./crates/diagnose/tests/health_agg.rs
+./crates/diagnose/tests/quality.rs
+./crates/domain/src/calendar.rs
+./crates/domain/src/merge.rs
+./crates/domain/src/ports.rs
+./crates/domain/src/provider.rs
+./crates/domain/src/selector.rs
+./crates/domain/src/strategy_state.rs
+./crates/domain/src/types.rs
+./crates/domain/src/tz.rs
+./crates/domain/tests/contracts_test.rs
+./crates/mcp/src/lib.rs
+./crates/mcp/src/mocks.rs
+./crates/mcp/src/rpc.rs
+./crates/mcp/src/server.rs
+./crates/mcp/src/state.rs
+./crates/mcp/src/tools.rs
+./crates/mcp/tests/mcp_protocol.rs
+./crates/mcp/tests/mcp_tools_db.rs
+./crates/providers/src/exchange.rs
+./crates/providers/src/http.rs
+./crates/providers/src/lib.rs
+./crates/providers/src/push2delay.rs
+./crates/providers/src/sina_hq.rs
+./crates/providers/src/sina_jsonp.rs
+./crates/providers/src/tencent_ifzq.rs
+./crates/providers/src/tencent_qt.rs
+./crates/providers/src/ths_cs.rs
+./crates/providers/tests/golden_parse.rs
+./crates/providers/tests/http_behavior.rs
+./crates/storage/src/accurate.rs
+./crates/storage/src/admin.rs
+./crates/storage/src/alerts.rs
+./crates/storage/src/events.rs
+./crates/storage/src/kline.rs
+./crates/storage/src/lib.rs
+./crates/storage/src/migrate_check.rs
+./crates/storage/src/reader.rs
+./crates/storage/src/symbols.rs
+./crates/storage/tests/accurate_upsert.rs
+./crates/storage/tests/alert_store.rs
+./crates/storage/tests/event_sink.rs
+./crates/storage/tests/kline_reader.rs
+./crates/storage/tests/raw_writer.rs
+./crates/storage/tests/symbol_admin.rs
+./crates/storage/tests/symbols_registry.rs
+./crates/tushare/src/bin/tushare_sync.rs
+./crates/tushare/src/client.rs
+./crates/tushare/src/daily.rs
+./crates/tushare/src/lib.rs
+./crates/tushare/src/parse.rs
+./crates/tushare/src/sync.rs
+./crates/tushare/tests/daily_sync.rs
+./crates/tushare/tests/golden_parse.rs
+./crates/tushare/tests/sync_plan.rs
+./crates/web/src/alerts.rs
+./crates/web/src/dto.rs
+./crates/web/src/lib.rs
+./crates/web/src/rest.rs
+./crates/web/src/spa.rs
+./crates/web/src/state.rs
+./crates/web/src/ws.rs
+./crates/web/tests/api_admin.rs
+./crates/web/tests/api_alerts.rs
+./crates/web/tests/api_quality.rs
+./crates/web/tests/api_rest.rs
+./crates/web/tests/ws_poller.rs
+./Dockerfile
+./Dockerfile.app
+./.entangled/filedb.json
+./.entangled/filedb.lock
+./entangled.toml
+./migrations/0001_init.sql
+./migrations/0002_caggs.sql
+./migrations/0003_compression.sql
+./migrations/0004_metrics.sql
+./migrations/0005_sync_checkpoints.sql
+./migrations/0006_accurate_compression.sql
+./migrations/0007_circuit_reset.sql
+./migrations/0008_holidays.sql
+./migrations/0009_alert_engine.sql
+./migrations/0010_accurate_caggs.sql
+./migrations/0011_backtest.sql
+./migrations/0012_backtest_run_extend.sql
+./migrations/0013_favorite_symbols.sql
+./migrations/0014_weekly_monthly_caggs.sql
+./migrations/0015_ma_config.sql
+./migrations/0016_weekly_monthly_full_history.sql
+./migrations/0017_minute_caggs_full_history.sql
+./migrations/0018_sim_session.sql
+./migrations/0019_sim_session_state.sql
+./migrations/0020_accurate_cagg_refresh.sql
+./migrations/0021_app_config.sql
+./migrations/0022_strategy_registry.sql
+./migrations/0023_strategy_workbench.sql
+./migrations/0024_drop_legacy_backtest_tables.sql
+./web/src/layouts/AlertsGrid.tsx
+./web/src/layouts/DashboardGrid.tsx
+./web/src/layouts/QualityGrid.tsx
+./web/src/layouts/SettingsGrid.tsx
+./web/src/layouts/SimLiveGrid.tsx
+./web/src/layouts/SourcesGrid.tsx
+./web/src/layouts/SymbolsGrid.tsx
+./web/src/layouts/TradingGrid.tsx

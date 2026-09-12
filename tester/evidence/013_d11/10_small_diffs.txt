@@ -1,0 +1,167 @@
+=== 小改动文件 diff（判断是否无关 churn）===
+########## crates/alert/src/rules.rs
+diff --git a/crates/alert/src/rules.rs b/crates/alert/src/rules.rs
+index 7935fd7..efe3519 100644
+--- a/crates/alert/src/rules.rs
++++ b/crates/alert/src/rules.rs
+@@ -241,5 +241,5 @@ mod tests {
+ 
+     fn sym(code: &str, enabled: bool) -> SymbolLatestView {
+-        SymbolLatestView { code: code.into(), name: None, interval_secs: 60,
++        SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
+             settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
+     }
+########## crates/alert/tests/engine.rs
+diff --git a/crates/alert/tests/engine.rs b/crates/alert/tests/engine.rs
+index b8f3c3b..16cc329 100644
+--- a/crates/alert/tests/engine.rs
++++ b/crates/alert/tests/engine.rs
+@@ -205,6 +205,6 @@ fn ok_events(src: &str, n: usize, at: DateTime<Utc>) -> Vec<HealthEventRow> {
+ 
+ fn sym(code: &str, enabled: bool) -> SymbolLatestView {
+-    SymbolLatestView { code: code.into(), name: None, interval_secs: 60, settlement: "T1".into(),
+-        enabled, last_ts: None, last_close: None, prev_close: None }
++    SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
++        settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
+ }
+ 
+########## crates/application/src/simlive.rs
+diff --git a/crates/application/src/simlive.rs b/crates/application/src/simlive.rs
+index 309ab89..36aae0d 100644
+--- a/crates/application/src/simlive.rs
++++ b/crates/application/src/simlive.rs
+@@ -1528,4 +1528,6 @@ impl SimLiveService {
+         }
+         // 费用口径=会话 FeeModel（复用同源，模拟/回测一致）。
++        // ADR-019 D11-3：sim-live 对比**保持会话费率口径**（显式传入 → 不按类型推断），
++        // 否则同一会话的模拟与回测口径会分叉（会话 FeeModel 由 start_session 钉住）。
+         let fee = serde_json::json!({
+             "rate_pct": self.fee.commission_rate_pct,
+@@ -1562,5 +1564,5 @@ impl SimLiveService {
+                     stop: None,
+                     initial_capital: Some(view.cash_init),
+-                    fee: fee.clone(),
++                    fee: Some(fee.clone()),
+                     // sim-live 回测对比：不预热（会话评分历史由 live bar 累积，与既有对比口径一致）。
+                     warmup_bars: 0,
+########## crates/application/tests/simlive.rs
+diff --git a/crates/application/tests/simlive.rs b/crates/application/tests/simlive.rs
+index 0775c4f..3e74153 100644
+--- a/crates/application/tests/simlive.rs
++++ b/crates/application/tests/simlive.rs
+@@ -499,4 +499,5 @@ impl KlineRead for MockKline {
+                 code: code.clone(),
+                 name: None,
++                type_: None,
+                 interval_secs: 60,
+                 settlement: "T1".into(),
+########## crates/mcp/src/mocks.rs
+diff --git a/crates/mcp/src/mocks.rs b/crates/mcp/src/mocks.rs
+index 3dfcc99..a63a200 100644
+--- a/crates/mcp/src/mocks.rs
++++ b/crates/mcp/src/mocks.rs
+@@ -96,5 +96,5 @@ impl KlineRead for MockKline {
+         if let Some(rows) = &self.symbols_override { return Ok(rows.clone()); }
+         Ok(self.registered.iter().map(|c| SymbolLatestView {
+-            code: c.clone(), name: Some(format!("mock {c}")), interval_secs: 60,
++            code: c.clone(), name: Some(format!("mock {c}")), type_: None, interval_secs: 60,
+             settlement: "T1".into(), enabled: true,
+             last_ts: None, last_close: None, prev_close: None,
+########## crates/mcp/tests/mcp_protocol.rs
+diff --git a/crates/mcp/tests/mcp_protocol.rs b/crates/mcp/tests/mcp_protocol.rs
+index 4940a7e..62e2688 100644
+--- a/crates/mcp/tests/mcp_protocol.rs
++++ b/crates/mcp/tests/mcp_protocol.rs
+@@ -32,6 +32,6 @@ impl KlineRead for MockKline {
+         // I-1：get_kline 注册成员校验输入（518880 = 平台已注册标的；本文件用例代码）。
+         Ok(vec![SymbolLatestView {
+-            code: "518880".into(), name: None, interval_secs: 60, settlement: "T1".into(),
+-            enabled: true, last_ts: None, last_close: None, prev_close: None,
++            code: "518880".into(), name: None, type_: Some("etf".into()), interval_secs: 60,
++            settlement: "T1".into(), enabled: true, last_ts: None, last_close: None, prev_close: None,
+         }])
+     }
+########## crates/mcp/tests/mcp_tools_db.rs
+diff --git a/crates/mcp/tests/mcp_tools_db.rs b/crates/mcp/tests/mcp_tools_db.rs
+index 590b17e..37d90f2 100644
+--- a/crates/mcp/tests/mcp_tools_db.rs
++++ b/crates/mcp/tests/mcp_tools_db.rs
+@@ -39,5 +39,5 @@ impl domain::ports::KlineRead for ShimKline {
+     async fn symbols_with_latest(&self) -> anyhow::Result<Vec<domain::ports::SymbolLatestView>> {
+         Ok(self.registered.iter().map(|c| domain::ports::SymbolLatestView {
+-            code: c.clone(), name: None, interval_secs: 60, settlement: "T1".into(),
++            code: c.clone(), name: None, type_: None, interval_secs: 60, settlement: "T1".into(),
+             enabled: true, last_ts: None, last_close: None, prev_close: None,
+         }).collect())
+########## design/07-app-plane/02-alerts.md
+diff --git a/design/07-app-plane/02-alerts.md b/design/07-app-plane/02-alerts.md
+index 2473528..36b849f 100644
+--- a/design/07-app-plane/02-alerts.md
++++ b/design/07-app-plane/02-alerts.md
+@@ -297,5 +297,5 @@ mod tests {
+ 
+     fn sym(code: &str, enabled: bool) -> SymbolLatestView {
+-        SymbolLatestView { code: code.into(), name: None, interval_secs: 60,
++        SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
+             settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
+     }
+@@ -725,6 +725,6 @@ fn ok_events(src: &str, n: usize, at: DateTime<Utc>) -> Vec<HealthEventRow> {
+ 
+ fn sym(code: &str, enabled: bool) -> SymbolLatestView {
+-    SymbolLatestView { code: code.into(), name: None, interval_secs: 60, settlement: "T1".into(),
+-        enabled, last_ts: None, last_close: None, prev_close: None }
++    SymbolLatestView { code: code.into(), name: None, type_: None, interval_secs: 60,
++        settlement: "T1".into(), enabled, last_ts: None, last_close: None, prev_close: None }
+ }
+ 
+########## design/04-storage/03-raw-writer.md
+diff --git a/design/04-storage/03-raw-writer.md b/design/04-storage/03-raw-writer.md
+index 7a8610b..63894a7 100644
+--- a/design/04-storage/03-raw-writer.md
++++ b/design/04-storage/03-raw-writer.md
+@@ -130,4 +130,6 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
+     // 12-strategy-system / P3a：回测工作台表（0023；应用面自有）
+     "strategy_run", "strategy_run_result", "strategy_preset",
++    // ADR-019 / D11：费率档案表（0025；按 type 主键，symbols.type 为其解析键）
++    "fee_profiles",
+ ];
+ 
+########## design/04-storage/02-tushare-sync.md
+diff --git a/design/04-storage/02-tushare-sync.md b/design/04-storage/02-tushare-sync.md
+index 4114794..f2635fd 100644
+--- a/design/04-storage/02-tushare-sync.md
++++ b/design/04-storage/02-tushare-sync.md
+@@ -621,4 +621,7 @@ pub mod strategy;
+ // 代码块在 design/04-storage/schema.md §4.3.14。workbench.rs 本身为非 tangle 手写，此处仅注册模块）
+ pub mod workbench;
++// fee_profile：按标的类型推断费率档案端口实现加法扩展（ADR-019 / D11：FeeProfileStore，fee_profiles 表，迁移 0025；
++// 代码块在 design/04-storage/schema.md §4.3.16。fee_profile.rs 本身为非 tangle 手写，此处仅注册模块）
++pub mod fee_profile;
+ ```
+ 
+########## crates/web/src/rest.rs
+diff --git a/crates/web/src/rest.rs b/crates/web/src/rest.rs
+index 6b81d6e..c2f28f3 100644
+--- a/crates/web/src/rest.rs
++++ b/crates/web/src/rest.rs
+@@ -131,7 +131,9 @@ pub async fn register_symbol(State(st): State<Arc<AppState>>,
+     if let Err(e) = validate_interval(req.interval_secs) { return field_err(e); }
+     if let Err(e) = validate_settlement(&req.settlement) { return field_err(e); }
++    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
+     let input = SymbolAdminInput {
+         code: req.code.clone(), name: normalize_name(req.name),
+         interval_secs: req.interval_secs, settlement: req.settlement.clone(),
++        type_: req.r#type.clone(),
+         enabled: req.enabled,
+     };
+@@ -157,8 +159,10 @@ pub async fn update_symbol(State(st): State<Arc<AppState>>, Path(code): Path<Str
+         if let Err(e) = validate_settlement(s) { return field_err(e); }
+     }
++    if let Err(e) = validate_symbol_type(req.r#type.as_deref()) { return field_err(e); }
+     let patch = SymbolPatch {
+         name: normalize_name(req.name),
+         interval_secs: req.interval_secs,
+         settlement: req.settlement.clone(),
++        type_: req.r#type.clone(),
+         enabled: req.enabled,
+     };

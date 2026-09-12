@@ -1,0 +1,11 @@
+### 生产二进制误删与恢复（cargo clean -p app 副作用）
+prod exe before restore: lrwxrwxrwx 1 eestock eestock 0 Sep 12 18:35 /proc/3696673/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+on-disk after clean: ls: cannot access 'target/debug/eestock-app': No such file or directory
+--- cargo build -p app 2026-09-12T10:41:53Z ---
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.89s
+on-disk after build: -rwxrwxr-x 2 eestock eestock 204734184 Sep 12 18:41 target/debug/eestock-app
+prod process still: 3696673 Fri Sep 11 11:24:16 2026  1-07:17:41 target/debug/eestock-app --config /tmp/app_dev_8081.toml
+prod exe still: lrwxrwxrwx 1 eestock eestock 0 Sep 12 18:35 /proc/3696673/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+healthz: {"status":"ok"}

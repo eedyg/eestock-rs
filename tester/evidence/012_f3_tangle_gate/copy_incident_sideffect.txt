@@ -1,0 +1,3 @@
+### copy(incident state) workspace fingerprint before/after NEW gate
+gate rc=1
+WORKSPACE_IDENTICAL(no .entangled change)

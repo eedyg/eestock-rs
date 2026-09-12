@@ -1,0 +1,23 @@
+=== 既有 tester 夹具（010 批）在本次全量运行中的结果 ===
+469:     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-c6e989a12139b5e1)
+--
+498:     Running tests/zz_tester_010_acceptance.rs (target/debug/deps/zz_tester_010_acceptance-da5f5b3084bc8cc0)
+--
+505:     Running tests/zz_tester_i1_acceptance.rs (target/debug/deps/zz_tester_i1_acceptance-c883aea388523998)
+--
+648:     Running tests/fee_profile_store.rs (target/debug/deps/fee_profile_store-08e5d77c7dbf459b)
+--
+735:     Running tests/symbol_type_fee_migration.rs (target/debug/deps/symbol_type_fee_migration-45abd54341dae3ec)
+--
+1098:     Running tests/zz_tester_010_web.rs (target/debug/deps/zz_tester_010_web-0ac03683430abf9b)
+--
+1105:     Running tests/zz_tester_011_f2_path.rs (target/debug/deps/zz_tester_011_f2_path-af17705373422ee6)
+
+=== 与 D11 直接相关的测试目标结果行 ===
+     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-c6e989a12139b5e1) -> test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+     Running tests/fee_profile_store.rs (target/debug/deps/fee_profile_store-08e5d77c7dbf459b) -> test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+     Running tests/symbol_type_fee_migration.rs (target/debug/deps/symbol_type_fee_migration-45abd54341dae3ec) -> test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/api_admin.rs (target/debug/deps/api_admin-b018b72cda9267ab) -> test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
+
+=== 缺省 stamp 0.05 断言（I-3 夹具）是否仍存在且通过 ===
+566:    assert_eq!(p_fee_def["fee"]["stamp_duty_pct"], json!(0.05), "缺省须回显 0.05（股票口径）");

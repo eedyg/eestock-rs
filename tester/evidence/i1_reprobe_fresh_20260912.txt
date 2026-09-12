@@ -1,0 +1,37 @@
+### FRESH REPROBE @ 2026-09-12T04:35:00Z (reuse-round corroboration, prod :8082 pre-fix still in place)
+--- probe_sse.mjs :8082 get_kline 510300 (unregistered) + 518880 (registered) ---
+# SSE GET http://127.0.0.1:8082/sse -> 200 text/event-stream (17ms)
+# endpoint frame: /messages?sessionId=628ba3cdd42730d44cc1deca8a2b39eb
+
+## tools/call get_kline {"code":"510300"}
+# POST /messages -> 202 (308ms)
+# SSE frame: {"id":100,"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"bars\": [],\n  \"code\": \"510300\",\n  \"period\": \"1m\"\n}","type":"text"}]}}
+
+## tools/call get_kline {"code":"518880","period":"1d","limit":2}
+# POST /messages -> 202 (41ms)
+# SSE frame: {"id":101,"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"bars\": [\n    {\n      \"amount\": 4001856222.0,\n      \"close\": 9.083,\n      \"high\": 9.105,\n      \"low\": 9.051,\n      \"open\": 9.06,\n      \"source\": \"tushare\",\n      \"ts\": \"2026-09-09T16:00:00Z\",\n      \"volume\": 441013607\n    },\n    {\n      \"amount\": 5504843800.0,\n      \"close\": 8.943,\n      \"high\": 8.963,\n      \"low\": 8.852,\n      \"open\": 8.895,\n      \"source\": \"tushare\",\n      \"ts\": \"2026-09-10T16:00:00Z\",\n      \"volume\": 617832329\n    }\n  ],\n  \"code\": \"518880\",\n  \"period\": \"1d\"\n}","type":"text"}]}}
+
+--- REST :8081 fresh ---
+--- code=510300 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 60
+date: Sat, 12 Sep 2026 04:35:00 GMT
+
+{"code":"510300","period":"1d","bars":[],"next_before":null}--- code=518880 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 360
+date: Sat, 12 Sep 2026 04:35:00 GMT
+
+{"code":"518880","period":"1d","bars":[{"ts":"2026-09-09T16:00:00Z","open":9.06,"high":9.105,"low":9.051,"close":9.083,"volume":441013607,"amount":4001856222.0,"source":"tushare"},{"ts":"2026-09-10T16:00:00Z","open":8.895,"high":8.963,"low":8.852,"close":8.943,"volume":617832329,"amount":5504843800.0,"source":"tushare"}],"next_before":"2026-09-09T16:00:00Z"}
+--- ss listeners ---
+LISTEN 0      128        127.0.0.1:18082      0.0.0.0:*    users:(("eestock-app",pid=1858479,fd=12)) 
+LISTEN 0      128        127.0.0.1:18081      0.0.0.0:*    users:(("eestock-app",pid=1858479,fd=11)) 
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=11)) 
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                              
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=12)) 
+LISTEN 0      4096            [::]:8080          [::]:*                                              
+--- eestock-app procs ---
+1858479       1 eestock  Fri Sep  4 13:24:52 2026  7-23:10:07 target/debug/eestock-app --config /tmp/app_smoke.toml
+3696673 3696671 eestock  Fri Sep 11 11:24:16 2026  1-01:10:43 target/debug/eestock-app --config /tmp/app_dev_8081.toml

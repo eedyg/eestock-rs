@@ -1,0 +1,1202 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running unittests src/lib.rs (target/debug/deps/alert-90c2062ffabef02e)
+
+running 8 tests
+test rules::tests::expected_minutes_elapsed_curve ... ok
+test rules::tests::gap_rate_fires_only_for_enabled_and_past_grace ... ok
+test rules::tests::gap_rate_zero_bars_is_full_gap ... ok
+test rules::tests::stall_only_in_session_and_na_not_success ... ok
+test rules::tests::success_rate_min_samples_guard ... ok
+test rules::tests::success_rate_breach_boundary_and_na_exclusion ... ok
+test rules::tests::trading_session_boundaries ... ok
+test rules::tests::tushare_latest_failure_freshness_window ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (target/debug/deps/engine-20ac264d9649d7d0)
+
+running 6 tests
+test full_lifecycle_fire_ack_resolve ... ok
+test aggregation_silence_and_refire_reopens ... ok
+test silence_suppresses_new_incident_after_resolve ... ok
+test list_filter_and_rule_patch_passthrough ... ok
+test gap_stall_tushare_rules_dispatch ... ok
+test disabled_rule_skipped ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/app-354303d66bb20181)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/eestock-app.rs (target/debug/deps/eestock_app-6cc618ccbe5fdba1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/eestock-data.rs (target/debug/deps/eestock_data-5da06b5ae060a313)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/app_config.rs (target/debug/deps/app_config-5020509f8d8e65ad)
+
+running 1 test
+test parse_minimal_uses_defaults_and_env_overrides ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/config_healthz.rs (target/debug/deps/config_healthz-e9610352db92798d)
+
+running 3 tests
+test self_check_false_when_down ... ok
+test config_parse_and_defaults ... ok
+test healthz_serves_200_and_404 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/deps/application-de2c4f2456b911fb)
+
+running 17 tests
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::resolve_fee_propagates_invalid_explicit_fee ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::explicit_fee_wins_over_profile_and_keeps_legacy_stamp_default ... ok
+test fee::tests::resolved_json_exposes_effective_fee_source_and_profile_detail ... ok
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/simlive.rs (target/debug/deps/simlive-fb17d5b33610748b)
+
+running 55 tests
+test p4a_explicit_version_id_must_be_published_and_owned ... ok
+test p4a_limits_3_strategies_30_stocks ... ok
+test p4a_no_published_version_rejected ... ok
+test p4a_feed_targets_from_pinned_configs_only ... ok
+test p4a_custom_thresholds_pinned_and_used ... ok
+test cancel_order_cancels_pending_but_not_filled ... ok
+test feed_targets_returns_pinned_session_poll_targets ... ok
+test p4a_recover_degrades_legacy_builtin_configs ... ok
+test p4a_registry_not_injected_errors ... ok
+test list_and_get_session_return_history_and_result ... ok
+test current_session_resolves_latest_running_only ... ok
+test p4a_thresholds_must_straddle_neutral_50 ... ok
+test p4a_pinning_latest_published_by_default_and_explicit_version ... ok
+test p4a_g5_events_stream_and_circuit_breaker ... ok
+test feed_polls_new_bar_drives_evaluation_and_auto_order ... ok
+test limit_not_touched_records_pending_no_fill_no_trade_persist ... ok
+test p4a_unknown_strategy_id_rejected_with_guidance ... ok
+test place_order_position_latest_falls_back_zero_without_quote ... ok
+test p4a_position_injection_drives_gate_plugin ... ok
+test pnl_and_mark_to_market_reflect_unrealized ... ok
+test mcp_enabled_toggle_reads_back_same_instance ... ok
+test place_order_is_idempotent_by_intent ... ok
+test p4a_recover_reinstantiates_plugin_and_continues ... ok
+test recover_after_unmarked_positions_pnl_matches_position_view ... ok
+test recover_sessions_degraded_when_no_state_marks_ended ... ok
+test p4a_recover_degrades_when_pinned_version_archived ... ok
+test get_strategy_signal_and_analysis_return_evaluations ... ok
+test recover_reproduces_persisted_pnl_snapshot ... ok
+test process_bar_persists_running_state ... ok
+test run_backtest_compare_unknown_session_errors ... ok
+test market_buy_fills_at_latest_applies_account_and_persists ... ok
+test place_order_position_latest_resolves_from_market_quote ... ok
+test run_backtest_compare_manual_session_errors ... ok
+test p4a_late_feed_after_stop_does_not_trade ... ok
+test position_latest_matches_scoring_latest_price_same_quote_source ... ok
+test start_session_invalid_strategies_rejects ... ok
+test start_session_defaults_cash_to_1m_and_persists ... ok
+test p4a_late_eval_from_replaced_worker_does_not_pollute_latest ... ok
+test start_session_when_already_running_returns_already_running_error ... ok
+test process_bar_unconfigured_errors_and_unknown_stock_no_event ... ok
+test start_session_with_strategies_without_registry_port_falls_back_to_format ... ok
+test stop_session_result_uses_backtest_metrics_structure_and_trade_pnl ... ok
+test start_session_with_strategies_accepts_registered_code ... ok
+test unknown_session_errors ... ok
+test orders_include_source_manual_and_aggregate ... ok
+test stop_session_ends_and_persists_result_two_stop_returns_false ... ok
+test recover_sessions_is_idempotent ... ok
+test start_session_with_strategies_rejects_unregistered_code ... ok
+test set_trading_on_and_buy_threshold_places_aggregate_order ... ok
+test set_trading_off_only_scores_no_order ... ok
+test trading_on_no_threshold_no_order ... ok
+test p4a_worker_panic_degrades_session_to_ended ... ok
+test recover_sessions_restores_running_session_and_continues ... ok
+test run_backtest_compare_triggers_ensemble_run_with_pinned_config ... ok
+test start_session_with_strategies_wires_orchestrator ... ok
+
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/strategy.rs (target/debug/deps/strategy-771e8d7b65ecea5a)
+
+running 39 tests
+test not_found_semantics ... ok
+test delete_strategy_unknown_id_is_404 ... ok
+test delete_strategy_zero_version_ok ... ok
+test create_strategy_makes_v1_draft_with_sha_and_schema ... ok
+test archive_transition_rules ... ok
+test delete_strategy_with_published_is_409 ... ok
+test publish_gate_rejects_bad_code ... ok
+test create_rejects_empty_name_or_code ... ok
+test publish_non_draft_is_invalid_transition ... ok
+test catalog_only_published_with_level_filter ... ok
+test publish_conflict_when_status_changed_concurrently ... ok
+test delete_strategy_with_archived_history_is_409 ... ok
+test delete_strategy_all_draft_ok_and_cascades ... ok
+test publish_happy_sets_status_published_at_and_stable_sha ... ok
+test diff_returns_both_versions ... ok
+test catalog_filters_level_set_before_latest_published ... ok
+test manage_list_includes_draft_only_with_aggregates ... ok
+test test_run_interval_limits ... ok
+test update_draft_advances_strategy_updated_at ... ok
+test test_run_warmup_prefix_marked ... ok
+test test_run_fee_resolves_by_symbol_type_when_absent ... ok
+test update_draft_edits_in_place_when_draft ... ok
+test seed_reference_plugins_seeds_11_and_is_idempotent ... ok
+test test_run_sim_position_produces_signals_and_trade ... ok
+test test_run_param_validation ... ok
+test create_draft_from_inherits_code_and_bumps_version ... ok
+test publish_conflict_when_code_changed_concurrently ... ok
+test test_run_h1_period_supported ... ok
+test test_run_pure_score_inline_code ... ok
+test test_run_warmup_reports_shortfall ... ok
+test update_meta_happy_trims_name_and_keeps_missing_fields ... ok
+test test_run_fee_echo_and_stamp_duty_effect ... ok
+test update_draft_on_archived_is_conflict ... ok
+test test_run_version_source_and_bad_inputs ... ok
+test update_meta_validation_400_and_404 ... ok
+test update_draft_on_published_auto_creates_new_draft ... ok
+test test_run_pure_score_defaults_fill_and_neutral_on_error ... ok
+test test_run_policy_and_capital_effect ... ok
+test test_run_events_truncation_cap ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/workbench.rs (target/debug/deps/workbench-a3d833c372c3f24f)
+
+running 17 tests
+test submit_rejects_unknown_version_404 ... ok
+test submit_rejects_span_limits_400 ... ok
+test submit_rejects_draft_version_400 ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test submit_marks_published_version_not_archived ... ok
+test preset_crud_and_apply ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test cancel_unknown_run_404_and_terminal_409 ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test compare_returns_side_by_side_net_value_and_metrics ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test run_success_end_to_end ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.99s
+
+     Running unittests src/lib.rs (target/debug/deps/backtest-08de17136bfc2352)
+
+running 21 tests
+test fee::tests::default_matches_adr_bt1 ... ok
+test fee::tests::commission_proportional_and_min ... ok
+test fee::tests::sell_charges_commission_and_stamp ... ok
+test indicators::tests::atr_wilder ... ok
+test indicators::tests::boll_population_std ... ok
+test indicators::tests::ema_recursive ... ok
+test fee::tests::stamp_only_sell_side ... ok
+test fee::tests::sell_roundtrip_golden_pnl ... ok
+test fee::tests::slippage_prices ... ok
+test fee::tests::buy_uses_proportional_commission_and_total_equals_budget ... ok
+test fee::tests::buy_respects_min_commission_branch ... ok
+test indicators::tests::kdj_smoothing ... ok
+test indicators::tests::macd_dif_dea_hist ... ok
+test indicators::tests::ma_simple ... ok
+test indicators::tests::rsi_wilder ... ok
+test indicators::tests::true_range_definition ... ok
+test types::tests::bars_per_year_known_factors ... ok
+test metrics::tests::drawdown_series_known ... ok
+test metrics::tests::max_drawdown_only_wins_no_loss_gives_infinity_profit_factor ... ok
+test metrics::tests::metrics_known_sequence ... ok
+test metrics::tests::no_trades_degenerate ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/collector-b3fe278f6b4cd904)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/calendar_test.rs (target/debug/deps/calendar_test-c7ca8829e952507d)
+
+running 2 tests
+test trading_minutes_241_labels_upstream_aligned ... ok
+test holiday_calendar_weekend_holiday_and_refresh ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/circuit_test.rs (target/debug/deps/circuit_test-c5cf88e68311fa26)
+
+running 4 tests
+test rate_limited_backoff_ladder_not_circuit ... ok
+test three_failures_open_then_cooldown_halfopen_then_close ... ok
+test manual_reset_from_any_state ... ok
+test halfopen_failure_reopens_with_doubled_cooldown_capped_30min ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/executor_test.rs (target/debug/deps/executor_test-e38f5095977dddf0)
+
+running 7 tests
+test all_failed_emits_code_level_event_and_counts_circuit ... ok
+test circuit_open_source_excluded_from_chain ... ok
+test nodata_marks_na_no_failover_no_circuit ... ok
+test first_source_success_no_failover ... ok
+test stale_check_lunch_edge_and_grace_not_misjudged ... ok
+test rate_limited_failover_no_circuit_trip ... ok
+test stale_bars_fail_over_and_count_toward_circuit ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/gapfill_test.rs (target/debug/deps/gapfill_test-12d1927b8246200d)
+
+running 4 tests
+test gaps_are_trading_minutes_minus_existing_only_past ... ok
+test backfill_skips_holiday_entirely ... ok
+test gaps_empty_on_non_trading_day_or_other_date ... ok
+test backfill_writes_only_missing_ts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/probe_test.rs (target/debug/deps/probe_test-5c768cf83f46c4f4)
+
+running 5 tests
+test halfopen_probe_success_closes_circuit_and_restores_source ... ok
+test probe_noop_without_halfopen_sources ... ok
+test full_recovery_cycle_degraded_code_returns_to_normal ... ok
+test probe_nodata_means_reachable_closes_circuit ... ok
+test probe_failure_reopens_with_doubled_cooldown ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/reset_test.rs (target/debug/deps/reset_test-bb794db6e00b44ea)
+
+running 2 tests
+test unknown_source_skipped_and_empty_is_noop ... ok
+test pending_reset_applied_and_event_emitted ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduler_test.rs (target/debug/deps/scheduler_test-60a0fa42fdf0bbc1)
+
+running 2 tests
+test next_tick_aligns_minute_boundary_with_jitter ... ok
+test fetch_limit_remaining_plus_overlap ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/standby_test.rs (target/debug/deps/standby_test-ffd1e8680b362990)
+
+running 6 tests
+test synthesize_approx_bar_from_quotes ... ok
+test should_probe_recover_only_when_tier1_available ... ok
+test poll_delay_in_5_to_10s_and_backoff_exponential ... ok
+test poll_falls_through_shuffled_pool_to_healthy_source ... ok
+test tier2_failure_backs_off_source ... ok
+test poll_once_success_then_volume_diff ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/diagnose-3a548efc57f527d1)
+
+running 10 tests
+test health::tests::circuit_state_mapping ... ok
+test health::tests::status_light_matrix ... ok
+test quality::tests::deviation_pct_guards_and_sign ... ok
+test quality::tests::accuracy_by_source_grouped_and_sorted ... ok
+test quality::tests::segments_merge_consecutive_same_class_and_break_lunch ... ok
+test quality::tests::summarize_rates_and_deviation_desc_order ... ok
+test health::tests::percentile_cont_pg_linear_interpolation ... ok
+test quality::tests::classify_gap_minute_matrix ... ok
+test quality::tests::validate_range_and_day_range_utc ... ok
+test health::tests::success_rate_denominator_semantics ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/health_agg.rs (target/debug/deps/health_agg-6d70e9958ed46655)
+
+running 4 tests
+test healthy_when_all_ok_and_multi_source_sorted ... ok
+test circuit_state_from_latest_migration_and_last_error_excludes_migrations ... ok
+test success_rate_excludes_na_and_percentiles ... ok
+test health_service_aggregates_via_injected_port ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/quality.rs (target/debug/deps/quality-5a3c75154a269498)
+
+running 4 tests
+test daily_quality_card_and_tushare_status ... ok
+test gaps_future_minutes_not_due_and_full_day_ok ... ok
+test gaps_exclude_weekend_and_holiday ... ok
+test gaps_classify_three_tiers_and_segments ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/domain-5122d1305e482a5a)
+
+running 10 tests
+test calendar::tests::session_window_covers_label_availability_lag ... ok
+test calendar::tests::weekday_basics ... ok
+test calendar::tests::latest_due_label_and_stale ... ok
+test strategy_state::tests::kind_str_roundtrip ... ok
+test strategy_state::tests::approval_level_ladder_and_satisfies ... ok
+test strategy_state::tests::invalid_transition_display_mentions_states ... ok
+test calendar::tests::labels_241_and_boundaries ... ok
+test strategy_state::tests::serde_snake_case ... ok
+test strategy_state::tests::status_str_roundtrip ... ok
+test strategy_state::tests::transition_table_full ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts_test.rs (target/debug/deps/contracts_test-5f346bffa58d7858)
+
+running 13 tests
+test err_kind_str_table ... ok
+test duty_roster_deterministic_and_alternates ... ok
+test selector_empty_pool ... ok
+test market_prefix_mapping ... ok
+test prefixed_code ... ok
+test source_id_parse_roundtrip_and_unknown ... ok
+test provider_error_classification ... ok
+test selector_duty_first_when_healthy ... ok
+test merge_prefers_accurate_and_fills_and_keeps_accurate_only ... ok
+test bar_quote_serde_roundtrip ... ok
+test source_id_str_and_approx ... ok
+test trace_id_format ... ok
+test selector_excludes_unhealthy ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/mcp-d5a33039697e8050)
+
+running 65 tests
+test rpc::tests::notifications_yield_no_response ... ok
+test rpc::tests::unknown_method_is_32601 ... ok
+test rpc::tests::initialize_returns_protocol_capabilities_serverinfo ... ok
+test tools::tests::call_tool_requires_params_and_name ... ok
+test rpc::tests::id_echo_string_and_numeric_and_ping ... ok
+test state::tests::session_lifecycle_and_id_shape ... ok
+test tools::tests::get_kline_from_to_rfc3339_bounds ... ok
+test tools::tests::get_data_quality_holiday_and_param_validation ... ok
+test tools::tests::bt_presets_list_and_apply ... ok
+test tools::tests::get_data_quality_happy_path ... ok
+test tools::tests::get_kline_from_to_date_bounds_and_range_filter ... ok
+test tools::tests::get_kline_from_to_validation_is_32602 ... ok
+test tools::tests::bt_tools_param_validation_and_unknown_id ... ok
+test tools::tests::bt_run_ensemble_schema_has_warmup_bars ... ok
+test tools::tests::get_kline_port_failure_is_tool_error_not_protocol_error ... ok
+test tools::tests::get_kline_happy_path_and_defaults ... ok
+test tools::tests::get_kline_limit_cap_and_segment_hint ... ok
+test tools::tests::get_kline_limit_clamped_and_period_mapped ... ok
+test tools::tests::get_kline_param_validation_is_32602 ... ok
+test tools::tests::get_kline_range_over_limit_is_tool_error ... ok
+test tools::tests::list_symbols_returns_registered_with_status_and_latest ... ok
+test tools::tests::get_kline_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::get_kline_registered_without_bars_is_empty_not_error ... ok
+test tools::tests::get_kline_unregistered_code_is_tool_error ... ok
+test tools::tests::get_kline_without_bounds_keeps_legacy_shape ... ok
+test tools::tests::get_kline_same_day_date_bounds_legal ... ok
+test tools::tests::get_sources_health_failure_is_tool_error ... ok
+test tools::tests::list_symbols_exposes_symbol_type_or_null ... ok
+test tools::tests::get_sources_health_happy_and_window_clamp ... ok
+test tools::tests::list_symbols_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::sim_get_strategy_tool_param_validation_is_32602 ... ok
+test tools::tests::sim_start_session_and_get_account_happy ... ok
+test tools::tests::sim_start_session_invalid_strategies_is_error ... ok
+test tools::tests::sim_l3_param_validation_is_32602 ... ok
+test tools::tests::sim_list_strategies_filter_by_id ... ok
+test tools::tests::sim_place_order_param_validation_is_32602 ... ok
+test tools::tests::sim_list_strategies_returns_catalog ... ok
+test tools::tests::sim_place_order_market_fills_and_updates_account ... ok
+test tools::tests::sim_start_session_legacy_builtin_id_rejected_with_guidance ... ok
+test tools::tests::sim_list_and_get_session_returns_history ... ok
+test rpc::tests::tools_list_and_call_route_to_tools_layer ... ok
+test tools::tests::sim_run_backtest_compare_triggers_run ... ok
+test tools::tests::strategy_guide_returns_handbook_full_text ... ok
+test tools::tests::sim_get_strategy_signal_and_analysis_happy ... ok
+test tools::tests::strategy_test_run_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::strategy_tools_gated_by_mcp_disable_switch ... ok
+test tools::tests::strategy_tools_param_validation_is_32602 ... ok
+test tools::tests::strategy_tools_unconfigured_returns_is_error ... ok
+test tools::tests::sim_place_order_limit_not_touched_pending ... ok
+test tools::tests::sim_tool_unconfigured_returns_is_error ... ok
+test tools::tests::sim_tools_gated_by_mcp_enabled_toggle ... ok
+test tools::tests::bt_run_ensemble_fee_resolves_by_symbol_type_and_pins_source ... ok
+test tools::tests::bt_run_ensemble_unpublished_and_invalid_config_are_is_error ... ok
+test tools::tests::sim_start_session_with_strategies_wires_orchestrator ... ok
+test tools::tests::strategy_list_include_source_type_validation_is_32602 ... ok
+test tools::tests::strategy_crud_flow_via_tools ... ok
+test tools::tests::strategy_test_run_unregistered_symbol_is_tool_error ... ok
+test tools::tests::tool_list_schema_contract ... ok
+test tools::tests::strategy_tools_unknown_id_and_state_errors_are_is_error ... ok
+test tools::tests::strategy_test_run_fee_resolves_by_symbol_type ... ok
+test tools::tests::strategy_list_default_slim_and_include_source_full ... ok
+test tools::tests::strategy_test_run_inline_and_version_modes ... ok
+test tools::tests::strategy_test_run_fee_policy_capital_channel ... ok
+test tools::tests::bt_run_ensemble_archived_version_audit_rerun ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-c6e989a12139b5e1)
+
+running 1 test
+test real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/mcp_protocol.rs (target/debug/deps/mcp_protocol-e4452b8178479d29)
+
+running 2 tests
+test messages_requires_known_session ... ok
+test mcp_sse_full_protocol_roundtrip ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/mcp_tools_db.rs (target/debug/deps/mcp_tools_db-56ca40dfd54772a9)
+
+running 8 tests
+test get_sources_health_aggregation_via_tool ... ok
+test strategy_list_slim_reduces_payload_against_real_registry ... ok
+test strategy_test_run_unregistered_symbol_against_real_registry ... ok
+test get_data_quality_via_tool ... ok
+test list_symbols_matches_real_symbols_registry ... ok
+test get_kline_merged_accurate_first_via_tool ... ok
+test get_kline_from_to_and_limit_cap_against_real_data ... ok
+test get_kline_unregistered_code_is_tool_error_against_real_registry ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
+
+     Running tests/zz_tester_010_acceptance.rs (target/debug/deps/zz_tester_010_acceptance-da5f5b3084bc8cc0)
+
+running 1 test
+test zz_tester_010_full_acceptance ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.93s
+
+     Running tests/zz_tester_i1_acceptance.rs (target/debug/deps/zz_tester_i1_acceptance-c883aea388523998)
+
+running 1 test
+test zz_tester_i1_full_sse_acceptance ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+
+     Running unittests src/lib.rs (target/debug/deps/providers-493b5af86ce74317)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/golden_parse.rs (target/debug/deps/golden_parse-47dfd982a08acbb9)
+
+running 10 tests
+test ifzq_empty_m1_is_nodata ... ok
+test push2delay_golden_fltt2_string_coercion ... ok
+test sina_jsonp_null_is_nodata ... ok
+test ifzq_golden_field_order_trap ... ok
+test sina_jsonp_golden_strips_wrapper ... ok
+test ths_cs_golden_jsonp_fields ... ok
+test sina_hq_golden_gbk_comma_fields ... ok
+test exchange_golden_dual_endpoints ... ok
+test tencent_qt_golden_gbk_tilde_fields ... ok
+test smoke_csvs_are_structured_auxiliary ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/http_behavior.rs (target/debug/deps/http_behavior-e45da80ce2c3e824)
+
+running 4 tests
+test gate_enforces_min_interval ... ok
+test ifzq_fallback_also_fails_propagates_first_error ... ok
+test ifzq_fallback_endpoint_on_failure ... ok
+test sina_hq_sends_referer ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running unittests src/lib.rs (target/debug/deps/simlive-9601ee6778c9a049)
+
+running 40 tests
+test account::tests::buy_updates_cash_position_cost_fee ... ok
+test account::tests::add_to_position_weighted_avg_cost ... ok
+test account::tests::default_cash_1m ... ok
+test account::tests::partial_sell_keeps_remaining_at_avg_cost ... ok
+test account::tests::mark_to_market_keeps_unknown_code_at_last ... ok
+test account::tests::sell_updates_cash_realized_and_removes_position ... ok
+test account::tests::sell_more_than_held_is_err ... ok
+test fill::tests::invalid_latest_or_qty_does_not_fill ... ok
+test account::tests::mark_to_market_refreshes_values_and_equity ... ok
+test fill::tests::limit_buy_touches_at_or_below_limit ... ok
+test fill::tests::limit_sell_touches_at_or_above_limit ... ok
+test fill::tests::market_buy_fills_at_latest_with_slippage_and_commission ... ok
+test fill::tests::market_sell_charges_slippage_commission_and_stamp ... ok
+test fill::tests::side_parse_roundtrip ... ok
+test plugin_orchestrator::tests::aggregate_helpers_unchanged ... ok
+test plugin_orchestrator::tests::current_entry_ts_sticky_first_entry ... ok
+test plugin_orchestrator::tests::instantiate_failure_is_explicit_error ... ok
+test plugin_orchestrator::tests::g5_consecutive_errors_reset_on_success ... ok
+test plugin_orchestrator::tests::circuit_breaker_alert_event_on_threshold ... ok
+test plugin_orchestrator::tests::g5_error_neutral_score_events_and_circuit_breaker ... ok
+test plugin_orchestrator::tests::limits_3_strategies_30_stocks_enforced ... ok
+test plugin_orchestrator::tests::params_passed_to_instantiate ... ok
+test plugin_orchestrator::tests::position_injection_real_quickjs ... ok
+test plugin_orchestrator::tests::position_snapshot_fields_bars_since_entry ... ok
+test plugin_orchestrator::tests::position_snapshot_fields_full ... ok
+test session::tests::signal_event_recorded_reset_on_start ... ok
+test session::tests::tick_records_equity_with_latest_prices ... ok
+test plugin_orchestrator::tests::plugin_scores_pass_through_and_aggregate_weighted ... ok
+test session::tests::record_trade_appends_to_event_stream ... ok
+test session::tests::positions_snapshot_returns_code_qty_avg_cost ... ok
+test session::tests::start_session_resets_account_and_records_initial_net_value ... ok
+test session::tests::stop_session_sets_ended_and_end_ts_is_idempotent ... ok
+test strategy_orchestrator::tests::aggregate_to_signal_thresholds ... ok
+test plugin_orchestrator::tests::thresholds_must_straddle_neutral_50 ... ok
+test strategy_orchestrator::tests::weighted_aggregate_computes_weighted_mean ... ok
+test session::tests::restore_reconstructs_running_session ... ok
+test plugin_orchestrator::tests::uncovered_stock_not_evaluated ... ok
+test plugin_orchestrator::tests::stock_weights_override_default_weight ... ok
+test plugin_orchestrator::tests::session_events_record_read_reset_restore ... ok
+test plugin_orchestrator::tests::partial_sell_keeps_entry_ts_and_bars_since_entry_monotonic ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/storage-25e1fda1b50308df)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/accurate_upsert.rs (target/debug/deps/accurate_upsert-fabf4397b574b2dd)
+
+running 2 tests
+test checkpoints_roundtrip ... ok
+test conflict_updates_row_not_keeps_first ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/alert_store.rs (target/debug/deps/alert_store-0545c13f7d91a303)
+
+running 4 tests
+test rules_seeded_and_patch_roundtrip ... ok
+test list_events_filters ... ok
+test incident_state_machine_primitives ... ok
+test eval_read_window_and_latest_of ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/backtest.rs (target/debug/deps/backtest-33d19cca5eff0b82)
+
+running 1 test
+test bar_read_m1_accurate_first_in_range ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
+
+     Running tests/config_store.rs (target/debug/deps/config_store-6a39bda01585dd9f)
+
+running 1 test
+test config_store_get_set_override_and_isolated_key ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/event_sink.rs (target/debug/deps/event_sink-f4913b3bc9b23673)
+
+running 3 tests
+test missing_relations_detected ... ok
+test event_roundtrip_na_and_circuit_kinds ... ok
+test verify_schema_passes_on_migrated_db ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/favorite_store.rs (target/debug/deps/favorite_store-5473461a73ba5287)
+
+running 5 tests
+test star_and_unstar_unknown_symbol_noop ... ok
+test delete_symbol_cascades_favorite ... ok
+test reorder_updates_sort_order_by_index ... ok
+test star_autotop_then_idempotent_unstar ... ok
+test favorite_map_excludes_non_favorites ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/fee_profile_store.rs (target/debug/deps/fee_profile_store-08e5d77c7dbf459b)
+
+running 1 test
+test for_symbol_resolves_profile_by_type_and_misses_fail_soft ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/kline_reader.rs (target/debug/deps/kline_reader-5f273671bac4c935)
+
+running 15 tests
+test holidays_reader_reads_0008_seed ... ok
+test window_events_filters_window_and_maps_fields ... ok
+test events_between_and_sync_checkpoints ... ok
+test high_period_forming_bucket_included_on_latest ... ok
+test divergence_rows_join_code_filter_and_range ... ok
+test weekly_monthly_periods_aggregate ... ok
+test symbols_latest_d3_merge_tail_semantics ... ok
+test merged_1m_branch_limit_merge_correctness ... ok
+test unified_read_deep_history_to_2024 ... ok
+test merged_1m_accurate_first_and_cursor_pagination ... ok
+test merged_1m_branch_index_limit_performance ... ok
+test weekly_monthly_deep_scroll_before_2024 ... ok
+test merged_periods_accurate_first_and_1h_rollup ... ok
+test symbols_with_latest_snapshot ... ok
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.33s
+
+     Running tests/ma_config_store.rs (target/debug/deps/ma_config_store-d4678f69b2d64ce7)
+
+running 1 test
+test ma_config_get_set_override_single_row ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/raw_writer.rs (target/debug/deps/raw_writer-63fb59144c325391)
+
+running 3 tests
+test empty_batch_writes_zero ... ok
+test approx_source_marker_persisted ... ok
+test first_write_wins_and_row_count_asserted ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/sim_store.rs (target/debug/deps/sim_store-ebf768e62f588036)
+
+running 6 tests
+test create_and_get_session_roundtrip ... ok
+test list_sessions_returns_desc_by_start_ts ... ok
+test append_trade_and_update_positions ... ok
+test mark_end_writes_result_and_transitions_status ... ok
+test delete_session_cascades_children ... ok
+test list_trades_and_upsert_get_state_roundtrip ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/strategy_store.rs (target/debug/deps/strategy_store-ade76eb16d1bcc54)
+
+running 16 tests
+test update_draft_advances_strategy_updated_at ... ok
+test unique_strategy_version_enforced ... ok
+test trigger_status_machine_and_published_frozen_fields ... ok
+test update_draft_only_draft ... ok
+test update_meta_updates_fields_and_advances_updated_at ... ok
+test catalog_filters_level_set_before_latest_published ... ok
+test manage_list_includes_draft_only_and_aggregates ... ok
+test delete_strategy_all_draft_succeeds_and_cascades ... ok
+test create_get_roundtrip_and_next_version ... ok
+test published_delete_trigger_blocks_delete_and_cascade ... ok
+test delete_strategy_blocked_with_published_or_archived_history ... ok
+test published_immutable_update_trigger ... ok
+test mark_published_requires_draft_and_expected_code ... ok
+test manage_list_deletable_flag ... ok
+test catalog_filters_level_kind_and_latest_published ... ok
+test find_version_by_name_sha_for_seed_idempotency ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/symbol_admin.rs (target/debug/deps/symbol_admin-62dc4adda7d5e8f9)
+
+running 3 tests
+test reset_channel_write_take_consume_once ... ok
+test today_stats_counts_shanghai_day_window ... ok
+test register_update_roundtrip_and_conflict ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/symbol_type_fee_migration.rs (target/debug/deps/symbol_type_fee_migration-45abd54341dae3ec)
+
+running 1 test
+test migration_0025_idempotent_backfill_and_seed_in_rolled_back_tx ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/symbols_registry.rs (target/debug/deps/symbols_registry-6a2f41bf4e053292)
+
+running 2 tests
+test symbols_upsert_read_disable ... ok
+test existing_ts_returns_written_bars_cst_day ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/workbench_store.rs (target/debug/deps/workbench_store-6eca84acfd7bdacc)
+
+running 9 tests
+test run_create_get_roundtrip ... ok
+test result_cascade_delete_with_run ... ok
+test mark_succeeded_writes_result_transactionally ... ok
+test mark_started_atomic_claim ... ok
+test mark_failed_terminal_guards ... ok
+test update_progress_only_running ... ok
+test mark_canceled_semantics ... ok
+test preset_crud_and_unique_name ... ok
+test run_list_order_filter_pagination ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-d15084d2afb7c598)
+
+running 32 tests
+test aggregate::tests::aggregate_single_slot_equals_score ... ok
+test aggregate::tests::aggregate_empty_is_neutral ... ok
+test aggregate::tests::aggregate_weighted_mean ... ok
+test aggregate::tests::classify_custom_thresholds ... ok
+test aggregate::tests::classify_boundaries_exact ... ok
+test aggregate::tests::slot_accepts_positive_weight ... ok
+test aggregate::tests::slot_rejects_non_positive_weight ... ok
+test policy::tests::clamp_lump_frozen_caps_unreachable_target ... ok
+test policy::tests::dca_equal_batches_split_plan_total ... ok
+test policy::tests::dca_equal_plan_total_snapshotted_at_run_start ... ok
+test policy::tests::dca_fixed_amount_batches ... ok
+test policy::tests::dca_hold_interrupts_and_cancels_remaining_batches ... ok
+test policy::tests::dca_interval_fires_every_k_bars ... ok
+test policy::tests::dca_sell_liquidates_all_and_resets ... ok
+test policy::tests::lump_sum_buy_freezes_target_against_equity_drift ... ok
+test policy::tests::lump_sum_buy_target_is_pct_of_equity ... ok
+test policy::tests::lump_sum_hold_unfreezes_and_next_buy_resnapshots ... ok
+test policy::tests::lump_sum_repeated_buy_is_idempotent ... ok
+test policy::tests::lump_sum_sell_target_zero_hold_keeps_current ... ok
+test policy::tests::lump_sum_sell_unfreezes ... ok
+test policy::tests::policy_state_reset_clears_lump_freeze_and_dca ... ok
+test policy::tests::policy_validation ... ok
+test stop::tests::atr_line ... ok
+test stop::tests::close_basis_triggers_on_close_cross ... ok
+test reference::tests::official_templates_len_4_and_wellformed ... ok
+test stop::tests::intrabar_triggers_on_low_cross ... ok
+test stop::tests::trailing_line_uses_peak_close ... ok
+test stop::tests::default_trigger_is_intrabar ... ok
+test stop::tests::trailing_peak_tracks_max_close_since_entry ... ok
+test stop::tests::intrabar_fill_price_is_line_minus_slippage ... ok
+test reference::tests::reference_plugins_match_builtin_order ... ok
+test stop::tests::fixed_pct_line ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (target/debug/deps/engine-31d94638671d9752)
+
+running 26 tests
+test perf_smoke_1260_bars_3_plugins ... ignored, 性能冒烟：手动运行 cargo test -p strategy-core -- --ignored
+test instantiate_failure_is_reported_not_swallowed ... ok
+test lump_sum_interrupted_buy_resnapshots_frozen_target ... ok
+test stop_close_basis_next_open_fill ... ok
+test g5_consecutive_count_resets_on_success ... ok
+test stop_atr_intrabar_uses_atr_through_previous_bar ... ok
+test e2e_position_gate_buy_then_sell ... ok
+test ensemble_config_validate_rejects_illegal_configs ... ok
+test e2e_buy_hold_force_close ... ok
+test engine_weighted_aggregation_across_slots ... ok
+test e2e_dca_batches_with_interval ... ok
+test stop_liquidation_resets_dca_state_close_basis ... ok
+test stop_configured_but_never_holding_is_noop ... ok
+test stop_trailing_intrabar_uses_peak_close_since_entry ... ok
+test lump_sum_frozen_target_rising_price_no_micro_sell ... ok
+test lump_sum_frozen_target_flat_no_fee_bleed ... ok
+test warmup_prefix_scores_but_never_executes_or_counts_metrics ... ok
+test stop_fixed_pct_intrabar_fills_same_bar_at_line_minus_slippage ... ok
+test zero_slots_neutral_50_no_orders ... ok
+test stop_liquidation_resets_dca_state_intrabar ... ok
+test warmup_zero_is_legacy_behaviour ... ok
+test stop_trailing_close_basis_next_open_fill ... ok
+test stop_atr_close_basis_uses_atr14_line ... ok
+test engine_threshold_exact_boundaries ... ok
+test e2e_deterministic_double_run_pointwise_equal ... ok
+test g5_circuit_breaker_after_10_consecutive_timeouts ... ok
+
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/observer.rs (target/debug/deps/observer-73c218164a6657f2)
+
+running 6 tests
+test ensemble_error_is_std_error ... ok
+test observer_break_at_first_bar ... ok
+test observer_break_cancels_run_without_result ... ok
+test observer_called_once_per_bar_in_order ... ok
+test plugin_error_wraps_into_ensemble_error ... ok
+test observer_continue_all_matches_run_ensemble ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/templates.rs (target/debug/deps/templates-2887fb97b72bc8c6)
+
+running 3 tests
+test two_state_gate_scores_gated_by_position ... ok
+test templates_instantiate_with_valid_schema ... ok
+test templates_deterministic_double_run ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/deps/strategy_runtime-a282562da76dd461)
+
+running 14 tests
+test types::tests::clamp_boundaries ... ok
+test quickjs::tests::duplicate_param_key_is_schema_error ... ok
+test quickjs::tests::date_is_absent_from_sandbox ... ok
+test quickjs::tests::malformed_schema_fails_with_schema_error ... ok
+test quickjs::tests::syntax_error_fails_instantiate ... ok
+test quickjs::tests::math_legit_functions_still_work ... ok
+test quickjs::tests::math_random_is_forbidden ... ok
+test quickjs::tests::indicators_match_backtest_and_null_when_insufficient ... ok
+test quickjs::tests::load_without_hook_errors ... ok
+test quickjs::tests::non_finite_score_is_invalid ... ok
+test quickjs::tests::params_frozen_and_passed ... ok
+test types::tests::default_limits_match_abi ... ok
+test quickjs::tests::missing_on_bar_fails_instantiate ... ok
+test quickjs::tests::save_error_variants_are_reported ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (target/debug/deps/contract-600b52fbb995409a)
+
+running 13 tests
+test contract_position_panorama ... ok
+test contract_boundary_clamp ... ok
+test contract_save_error_is_reported_not_swallowed ... ok
+test contract_state_round_trip ... ok
+test contract_log_sink ... ok
+test contract_exception_isolation ... ok
+test contract_forged_guard_messages_are_js_exception ... ok
+test contract_stack_overflow_is_js_exception ... ok
+test contract_capability_forbidden ... ok
+test contract_params_schema_extraction ... ok
+test contract_determinism_double_run ... ok
+test contract_timeout_circuit_semantics ... ok
+test contract_memory_limit ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+     Running unittests src/lib.rs (target/debug/deps/tushare-89792b3958b10383)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/tushare_sync.rs (target/debug/deps/tushare_sync-519a9998cbd6254e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/daily_sync.rs (target/debug/deps/daily_sync-8428105102bee3c7)
+
+running 11 tests
+test backoff_doubles_and_caps ... ok
+test next_run_cross_midnight_and_weekend ... ok
+test next_run_three_triggers_same_day ... ok
+test sync_target_is_latest_closed_weekday ... ok
+test intraday_run_does_not_advance_checkpoint_to_today ... ok
+test incremental_from_checkpoint_and_events ... ok
+test rate_limited_aborts_whole_round ... ok
+test checkpoint_today_still_fetches_today_after_close ... ok
+test zero_call_round_emits_audit_event ... ok
+test retry_then_success_emits_failure_events ... ok
+test retries_exhausted_skips_code_continues_others ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/golden_parse.rs (target/debug/deps/golden_parse-caca5ca05e38c7f6)
+
+running 4 tests
+test cst_naive_converts_to_utc ... ok
+test empty_window_is_not_error ... ok
+test permission_denied_maps_to_http_error ... ok
+test parses_full_trading_day_241_bars ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sync_plan.rs (target/debug/deps/sync_plan-233e775852feddb4)
+
+running 7 tests
+test checkpoint_cap_intraday_vs_after_close ... ok
+test resume_after_checkpoint_next_day ... ok
+test resume_without_checkpoint_full_history ... ok
+test windows_cover_closed_interval ... ok
+test windows_empty_when_inverted ... ok
+test windows_single_partial ... ok
+test throttle_enforces_interval ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running unittests src/lib.rs (target/debug/deps/web-4d417d90e7f0c16f)
+
+running 44 tests
+test dto::tests::collector_interval_validation ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::symbol_type_validation_enum_and_optional ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+test settings::tests::kline_viewport_days_validation ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test spa::tests::mime_mapping ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/api_admin.rs (target/debug/deps/api_admin-b018b72cda9267ab)
+
+running 3 tests
+test reset_endpoint_enqueues_db_control_row ... ok
+test symbols_register_edit_disable_and_stats ... ok
+test symbols_type_optional_register_and_patch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
+
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-4a40dc91a6db9ea8)
+
+running 3 tests
+test rules_list_patch_and_validation ... ok
+test alerts_list_filters_and_ack_lifecycle ... ok
+test evaluator_fires_incident_and_publishes_ws ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-facdfbcd18b7756d)
+
+running 2 tests
+test favorite_not_found_and_reorder_validation ... ok
+test favorite_star_unstar_reorder_and_symbols_order ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-a1d1038cdfef2bf0)
+
+running 1 test
+test kline_weekly_monthly_period ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
+
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-4d2ef40445b8d479)
+
+running 1 test
+test ma_config_get_default_put_normalize_and_validate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/api_quality.rs (target/debug/deps/api_quality-ec7e50f1e6fea931)
+
+running 1 test
+test quality_endpoints_full_flow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+
+     Running tests/api_rest.rs (target/debug/deps/api_rest-90a3064c05a97312)
+
+running 2 tests
+test symbols_latest_healthz_spa_and_sources_health ... ok
+test kline_cursor_pagination_cagg_and_validation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.44s
+
+     Running tests/api_settings.rs (target/debug/deps/api_settings-12f4d36a3edc2437)
+
+running 6 tests
+test reset_circuits_rejects_missing_or_mismatched_confirm ... ok
+test purge_raw_rejects_missing_or_mismatched_confirm ... ok
+test system_info_returns_version_db_and_uptime ... ok
+test config_snapshots_return_readonly_defaults ... ok
+test config_kline_put_get_and_validate ... ok
+test config_patch_persists_get_reads_back_and_validates ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-c056cd1d64779ec6)
+
+running 9 tests
+test guide_endpoint_returns_markdown_full_text ... ok
+test create_validation_400 ... ok
+test patch_meta_update_and_error_semantics ... ok
+test publish_gate_rejects_bad_code_400 ... ok
+test manage_endpoint_lists_all_strategies_with_aggregates ... ok
+test catalog_filters_and_validation ... ok
+test delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 ... ok
+test registry_lifecycle_end_to_end ... ok
+test test_run_both_modes_and_errors ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-74a17c76063241d5)
+
+running 6 tests
+test submit_run_lifecycle_end_to_end ... ok
+test submit_validation_error_matrix ... ok
+test preset_crud_apply_end_to_end ... ok
+test submit_archived_version_audit_rerun_201 ... ok
+test cancel_run_semantics ... ok
+test compare_endpoint_side_by_side ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.53s
+
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-55f4076cae68aae1)
+
+running 1 test
+test poller_publishes_increments_only ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.46s
+
+     Running tests/zz_tester_010_web.rs (target/debug/deps/zz_tester_010_web-0ac03683430abf9b)
+
+running 1 test
+test zz_tester_010_web_h1_and_testrun_dto ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
+
+     Running tests/zz_tester_011_f2_path.rs (target/debug/deps/zz_tester_011_f2_path-af17705373422ee6)
+
+running 1 test
+test f2_period_paths_are_distinguishable ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+   Doc-tests alert
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests backtest
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests collector
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests diagnose
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests domain
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mcp
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests providers
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests simlive
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests storage
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests strategy_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests strategy_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests tushare
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests web
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+rc=0

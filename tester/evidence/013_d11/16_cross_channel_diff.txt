@@ -1,0 +1,30 @@
+=== D11 口径一致性：MCP 通道 vs web REST 通道（同一隔离探针库、同一配置、生产同构装配）===
+
+--- ① 试算省略 fee（ETP 510050 → profile） ---
+MCP fee   = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0, "symbol_type": "etf"}
+WEB fee   = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0, "symbol_type": "etf"}
+fee 逐字段一致: True
+MCP 口径    = {'bar_count': 63, 'warmup_requested': 0, 'warmup_effective': 0, 'n_trades': 1, 'stamp_sum': 0.0, 'pnl_sum': -323.623466}
+WEB 口径    = {'bar_count': 63, 'warmup_requested': 0, 'warmup_effective': 0, 'n_trades': 1, 'stamp_sum': 0.0, 'pnl_sum': -323.623466}
+口径一致（bar/warmup/trades/stamp/pnl）: True
+
+--- ② 试算显式 fee（510050 → explicit，缺 stamp 仍 0.05） ---
+MCP fee   = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "explicit", "stamp_duty_pct": 0.05, "symbol_type": "etf"}
+WEB fee   = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "explicit", "stamp_duty_pct": 0.05, "symbol_type": "etf"}
+fee 逐字段一致: True
+MCP 口径    = {'bar_count': 63, 'warmup_requested': 0, 'warmup_effective': 0, 'n_trades': 1, 'stamp_sum': 49.789572, 'pnl_sum': -373.413039}
+WEB 口径    = {'bar_count': 63, 'warmup_requested': 0, 'warmup_effective': 0, 'n_trades': 1, 'stamp_sum': 49.789572, 'pnl_sum': -373.413039}
+口径一致（bar/warmup/trades/stamp/pnl）: True
+
+--- ③ 工作台提交省略 fee（钉住 config.fee）---
+MCP bt_run_ensemble config.fee = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0, "symbol_type": "etf"}
+WEB POST /api/workbench/runs  config.fee = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0, "symbol_type": "etf"}
+WEB GET  /api/workbench/runs/{id} config.fee = {"min_fee": 5.0, "profile": {"commission_rate_pct": 0.025, "exchange_fee_pct": 0.0, "min_fee": 5.0, "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）", "regulatory_fee_pct": 0.0, "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）", "stamp_duty_pct": 0.0, "transfer_fee_pct": 0.0, "type": "etf"}, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0, "symbol_type": "etf"}
+三处一致: True
+
+--- ④ 第三级 default（MCP: type=NULL 已注册；WEB: 未注册）---
+MCP type=NULL fee = {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "default", "stamp_duty_pct": 0.05, "symbol_type": null}
+WEB 未注册  fee = {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "source": "default", "stamp_duty_pct": 0.05, "symbol_type": null}
+两条 default 路径回显一致: True
+
+=== 结论：一致（同一解析点，无双份策略） ===

@@ -1,0 +1,498 @@
+[
+  {
+    "strategy": {
+      "id": "st_1789013713975_000000",
+      "name": "双均线交叉",
+      "description": "快/慢均线金叉买入、死叉卖出",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:13.978310Z",
+      "updated_at": "2026-09-10T04:15:13.979600Z"
+    },
+    "version": {
+      "id": "sv_1789013713975_000001",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：dual_ma —— 双均线交叉\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::DualMaStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：插件内部复刻 Rust 信号逻辑，\n//   输出分数 Buy→80 / Sell→20 / Hold→50。等价性依据：默认聚合阈 60/40 下\n//   80≥60 即聚合 Buy、20≤40 即聚合 Sell、50 居中即 Hold，\n//   与 Rust 版 Signal::Buy/Sell/Hold 逐 bar 一一对应（守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct 参数——仓位换算是 ExecutionPolicy 职责\n//   （ADR §13.1 决策/执行分层），插件只产评分；Rust 版 Signal::Buy(pct) 的 pct\n//   在此映射为固定买入区高分 80。\n//\n// 语义注记（与 Rust 版逐条对齐）：\n//   - 金叉定义：fast_ma > slow_ma 且上一有效 bar fast_ma <= slow_ma（严格大于）；\n//     死叉反之。\n//   - prev 状态仅当快/慢均线均可用（非 null）时更新；数据不足（指标 null）\n//     → 中立分 50 且不更新 prev（对应 Rust 的 prev_above: Option<bool> 口径）。\n//\n// 内部状态（ABI G3）：prevAbove 模块级变量，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 5, min: 2, max: 200, description: \"快线周期\" },\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期\" }\n];\n\n// 上一有效 bar 的「快线 > 慢线」状态；null = 尚无有效读数（对应 Rust None）。\nlet prevAbove = null;\n\nfunction init(params) {\n  prevAbove = null;\n}\n\nfunction on_bar(ctx) {\n  const fast = ctx.indicators.ma(ctx.params.fast);\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  if (fast === null || slow === null) {\n    return 50; // 数据不足：中立，且不更新 prev\n  }\n  const above = fast > slow;\n  let score = 50;\n  if (prevAbove !== null) {\n    if (above && !prevAbove) {\n      score = 80; // 金叉 → Buy\n    } else if (!above && prevAbove) {\n      score = 20; // 死叉 → Sell\n    }\n  }\n  prevAbove = above;\n  return score;\n}\n\nfunction save() {\n  return { prevAbove: prevAbove };\n}\n\nfunction load(state) {\n  prevAbove = (state && (state.prevAbove === true || state.prevAbove === false))\n    ? state.prevAbove\n    : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.979600Z",
+      "published_at": "2026-09-10T04:15:13.975162Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013713985_000002",
+      "name": "均线+RSI 过滤",
+      "description": "均线交叉定方向 + RSI 超买/超卖过滤（方向正确才开仓）",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:13.985915Z",
+      "updated_at": "2026-09-10T04:15:13.986785Z"
+    },
+    "version": {
+      "id": "sv_1789013713985_000003",
+      "strategy_id": "st_1789013713985_000002",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：ma_rsi —— 均线交叉 + RSI 超买/超卖过滤\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::MaRsiStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold，\n//   与 Rust 版 Signal 逐 bar 一一对应（守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1），\n//   插件只产评分。\n//\n// 语义注记（与 Rust 版逐条对齐）：\n//   - 金叉（快线上穿慢线）且 RSI < 超买线 → Buy；死叉且 RSI > 超卖线 → Sell。\n//   - RSI 数据不足（null）按「通过」处理（对应 Rust 的 is_none_or / map_or(true)）。\n//   - 快/慢均线任一不可用（null）→ 中立 50 且不更新 prev 状态。\n//\n// 内部状态（ABI G3）：prevAbove 模块级变量，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 5, min: 2, max: 200, description: \"快线周期\" },\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期\" },\n  { key: \"rsi_period\", type: \"int\", default: 14, min: 2, max: 60, description: \"RSI 周期\" },\n  { key: \"rsi_oversold\", type: \"float\", default: 30, min: 10, max: 50, description: \"RSI 超卖线\" },\n  { key: \"rsi_overbought\", type: \"float\", default: 70, min: 50, max: 90, description: \"RSI 超买线\" }\n];\n\n// 上一有效 bar 的「快线 > 慢线」状态；null = 尚无有效读数。\nlet prevAbove = null;\n\nfunction init(params) {\n  prevAbove = null;\n}\n\nfunction on_bar(ctx) {\n  const fast = ctx.indicators.ma(ctx.params.fast);\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  const rsi = ctx.indicators.rsi(ctx.params.rsi_period);\n  if (fast === null || slow === null) {\n    return 50; // 数据不足：中立，且不更新 prev\n  }\n  const above = fast > slow;\n  let score = 50;\n  if (prevAbove !== null) {\n    if (above && !prevAbove) {\n      // 金叉：RSI 未进入超买才 Buy；RSI 不足（null）按通过处理。\n      if (rsi === null || rsi < ctx.params.rsi_overbought) {\n        score = 80;\n      }\n    } else if (!above && prevAbove) {\n      // 死叉：RSI 未进入超卖才 Sell；RSI 不足（null）按通过处理。\n      if (rsi === null || rsi > ctx.params.rsi_oversold) {\n        score = 20;\n      }\n    }\n  }\n  prevAbove = above;\n  return score;\n}\n\nfunction save() {\n  return { prevAbove: prevAbove };\n}\n\nfunction load(state) {\n  prevAbove = (state && (state.prevAbove === true || state.prevAbove === false))\n    ? state.prevAbove\n    : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 14.0,
+          "description": "RSI 周期",
+          "key": "rsi_period",
+          "max": 60.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 30.0,
+          "description": "RSI 超卖线",
+          "key": "rsi_oversold",
+          "max": 50.0,
+          "min": 10.0,
+          "type": "float"
+        },
+        {
+          "default": 70.0,
+          "description": "RSI 超买线",
+          "key": "rsi_overbought",
+          "max": 90.0,
+          "min": 50.0,
+          "type": "float"
+        }
+      ],
+      "sha256": "51d2a3a4e3cff36ca4ad2da53dd5e4c0eba67ad2265325a16373e7fc7266ee63",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.986785Z",
+      "published_at": "2026-09-10T04:15:13.985164Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013713989_000004",
+      "name": "MACD 金叉/死叉",
+      "description": "DIF 上穿 DEA 金叉买入、下穿死叉卖出",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:13.990500Z",
+      "updated_at": "2026-09-10T04:15:13.991271Z"
+    },
+    "version": {
+      "id": "sv_1789013713989_000005",
+      "strategy_id": "st_1789013713989_000004",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：macd —— MACD 金叉/死叉（DIF 上穿 DEA Buy / 下穿 Sell）\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::MacdStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold\n//   （守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1）。\n//\n// 指标口径注记（重要）：\n//   host 注入的 ctx.indicators.macd() 周期固定为 (12,26,9)（ABI §2），无法表达\n//   本策略的 fast/slow/signal 参数。为与 Rust 版在任意参数下语义一致，本插件\n//   按 backtest::Indicators::macd 口径**自持增量状态复算**：\n//     - EMA 种子 = 首根 bar 的 close；DIF = EMA(fast) − EMA(slow)；\n//     - DEA 种子 = 首根 DIF（= 0），之后按 signal 周期 EMA 递推；\n//     - 全部 IEEE754 双精度同序运算，与 Rust 逐点一致（equivalence 测试含\n//       默认参数 12/26/9 长序列抽查）。\n//   前提：引擎从 bar 0 起逐 bar 连续调用 on_bar（EnsembleEngine 保证）。\n//   MACD 自首根 bar 起即有值（Rust 版同样无暖机 null），故 prev 每 bar 更新。\n//\n// 内部状态（ABI G3）：emaFast/emaSlow/dea/seen/prevGt，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 12, min: 2, max: 100, description: \"快线 EMA 周期\" },\n  { key: \"slow\", type: \"int\", default: 26, min: 2, max: 200, description: \"慢线 EMA 周期\" },\n  { key: \"signal\", type: \"int\", default: 9, min: 2, max: 100, description: \"信号线（DEA）周期\" }\n];\n\nlet emaFast = 0;\nlet emaSlow = 0;\nlet dea = 0;\nlet seen = 0;      // 已处理 bar 数（首根种子判定）\nlet prevGt = null; // 上一 bar 的 dif > dea；null = 尚无读数\n\nfunction init(params) {\n  emaFast = 0;\n  emaSlow = 0;\n  dea = 0;\n  seen = 0;\n  prevGt = null;\n}\n\nfunction on_bar(ctx) {\n  const fast = ctx.params.fast;\n  const slow = ctx.params.slow;\n  const sig = ctx.params.signal;\n  // 周期非法（Rust 版 fast/slow/signal 为 0 时指标 None → Hold 且不更新 prev）。\n  if (fast < 1 || slow < 1 || sig < 1) {\n    return 50;\n  }\n  const close = ctx.bar.close;\n  if (seen === 0) {\n    // 种子：EMA 双均线与 DEA 均以首根起算（DIF[0] = 0，DEA[0] = 0）。\n    emaFast = close;\n    emaSlow = close;\n    dea = 0;\n  } else {\n    const kf = 2 / (fast + 1);\n    const ks = 2 / (slow + 1);\n    emaFast = close * kf + emaFast * (1 - kf);\n    emaSlow = close * ks + emaSlow * (1 - ks);\n    const ksig = 2 / (sig + 1);\n    dea = (emaFast - emaSlow) * ksig + dea * (1 - ksig);\n  }\n  seen += 1;\n  const dif = emaFast - emaSlow;\n  const gt = dif > dea;\n  let score = 50;\n  if (prevGt !== null) {\n    if (gt && !prevGt) {\n      score = 80; // 金叉 → Buy\n    } else if (!gt && prevGt) {\n      score = 20; // 死叉 → Sell\n    }\n  }\n  prevGt = gt;\n  return score;\n}\n\nfunction save() {\n  return { emaFast: emaFast, emaSlow: emaSlow, dea: dea, seen: seen, prevGt: prevGt };\n}\n\n// 防御口径（NIT-3）：与 dual_ma/boll 一致——字段缺失/类型错误时回退安全默认\n// （= init() 初始值），不得将 undefined 写入状态引入 NaN 污染。\nfunction load(state) {\n  const s = state || {};\n  emaFast = (typeof s.emaFast === \"number\") ? s.emaFast : 0;\n  emaSlow = (typeof s.emaSlow === \"number\") ? s.emaSlow : 0;\n  dea = (typeof s.dea === \"number\") ? s.dea : 0;\n  seen = (typeof s.seen === \"number\") ? s.seen : 0;\n  prevGt = (s.prevGt === true || s.prevGt === false) ? s.prevGt : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 12.0,
+          "description": "快线 EMA 周期",
+          "key": "fast",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 26.0,
+          "description": "慢线 EMA 周期",
+          "key": "slow",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 9.0,
+          "description": "信号线（DEA）周期",
+          "key": "signal",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "ff6efcf8bcd9ed9094bd9656194603a9e934d74dd0a350235274df213c00e19d",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.991271Z",
+      "published_at": "2026-09-10T04:15:13.989846Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013713993_000006",
+      "name": "BOLL 带突破",
+      "description": "收破上轨买/下破下轨卖（趋势或均值回归，mode 参数）",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:13.994405Z",
+      "updated_at": "2026-09-10T04:15:13.995230Z"
+    },
+    "version": {
+      "id": "sv_1789013713993_000007",
+      "strategy_id": "st_1789013713993_000006",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：boll —— BOLL 带突破（mean_reversion 默认 / trend 双模式）\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::BollStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold\n//   （守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1）。\n//\n// 语义注记（与 Rust 版逐条对齐）：\n//   - mode：mean_reversion（默认）= 收破下轨 Buy / 收破上轨 Sell（均值回归）；\n//           trend = 收破上轨 Buy / 下破下轨 Sell（趋势突破）。\n//   - 穿越判定：prev_close 相对**当前** band（上破：prev_close ≤ upper 且 close > upper；\n//     下破：prev_close ≥ lower 且 close < lower），一次性信号。\n//   - prev_close **无条件每 bar 记录**（含 band 不可用期间），确保 band 首次可用时\n//     能检测到「越过 band」的一次性信号（Rust 同口径）。\n//   - band 数据不足（boll 返回 null）→ 中立 50（仅记录 prev_close）。\n//\n// 参数编码注记：ABI §1 的 PARAMS_SCHEMA 仅支持 int/float，Rust 版的 Choice 参数\n//   mode 在此编码为 int：0 = mean_reversion（默认）/ 1 = trend；缺省按 0 处理。\n//\n// 内部状态（ABI G3）：prevClose 模块级变量，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"period\", type: \"int\", default: 20, min: 2, max: 200, description: \"周期\" },\n  { key: \"k\", type: \"float\", default: 2.0, min: 0.5, max: 4.0, description: \"标准差倍数\" },\n  { key: \"mode\", type: \"int\", default: 0, min: 0, max: 1, description: \"模式：0=mean_reversion（默认，均值回归）/ 1=trend（趋势突破）\" }\n];\n\n// 上一 bar 收盘价；null = 首根之前（对应 Rust prev_close: Option<f64>）。\nlet prevClose = null;\n\nfunction init(params) {\n  prevClose = null;\n}\n\nfunction on_bar(ctx) {\n  const close = ctx.bar.close;\n  let score = 50;\n  const b = ctx.indicators.boll(ctx.params.period, ctx.params.k);\n  if (b !== null) {\n    const crossedUp = prevClose !== null && prevClose <= b.upper && close > b.upper;\n    const crossedDown = prevClose !== null && prevClose >= b.lower && close < b.lower;\n    if (ctx.params.mode === 1) {\n      // trend：收破上轨 Buy / 下破下轨 Sell。\n      if (crossedUp) {\n        score = 80;\n      } else if (crossedDown) {\n        score = 20;\n      }\n    } else {\n      // mean_reversion（默认；mode 缺省/0）：收破下轨 Buy / 收破上轨 Sell。\n      if (crossedDown) {\n        score = 80;\n      } else if (crossedUp) {\n        score = 20;\n      }\n    }\n  }\n  prevClose = close; // 无条件记录（Rust 同口径）\n  return score;\n}\n\nfunction save() {\n  return { prevClose: prevClose };\n}\n\nfunction load(state) {\n  prevClose = (state && typeof state.prevClose === \"number\") ? state.prevClose : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "周期",
+          "key": "period",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 2.0,
+          "description": "标准差倍数",
+          "key": "k",
+          "max": 4.0,
+          "min": 0.5,
+          "type": "float"
+        },
+        {
+          "default": 0.0,
+          "description": "模式：0=mean_reversion（默认，均值回归）/ 1=trend（趋势突破）",
+          "key": "mode",
+          "max": 1.0,
+          "min": 0.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "ca8a78dc61b0c1cd0ddaeab7be037516450ff8360020146043a67e5eeb7b758b",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.995230Z",
+      "published_at": "2026-09-10T04:15:13.993786Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013713997_000008",
+      "name": "KDJ 金叉/死叉",
+      "description": "K 上穿 D 金叉买入、下穿死叉卖出",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:13.998431Z",
+      "updated_at": "2026-09-10T04:15:13.999376Z"
+    },
+    "version": {
+      "id": "sv_1789013713997_000009",
+      "strategy_id": "st_1789013713997_000008",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：kdj —— KDJ 金叉/死叉（K 上穿 D Buy / 下穿 Sell）\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::KdjStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold\n//   （守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1）。\n//\n// 指标口径注记（重要）：\n//   host 注入的 ctx.indicators.kdj() 周期固定为 (9,3,3)（ABI §2），无法表达\n//   本策略的 n/k_period/d_period 参数。为与 Rust 版在任意参数下语义一致，\n//   本插件按 backtest::Indicators::kdj 口径**自持滚动窗口与平滑状态复算**：\n//     - RSV = (close − n周期最低low) / (n周期最高high − n周期最低low) × 100，\n//       区间含当前 bar；high == low 时 RSV 取 50（Rust 同口径）；\n//     - K/D 以 50 为种子，自窗口首次满 n 根起按 (m−1)/m 平滑递推；\n//     - J = 3K − 2D（本策略只用 K/D 交叉，J 不参与判定）；\n//     - 全部 IEEE754 双精度同序运算，与 Rust 逐点一致（equivalence 测试含\n//       默认参数 9/3/3 长序列抽查）。\n//   前提：引擎从 bar 0 起逐 bar 连续调用 on_bar（EnsembleEngine 保证）。\n//   数据不足（窗口未满 n 根）→ 中立 50 且不更新 prev/K/D（对应 Rust kdj 返回 None\n//   时 prev_k_gt_d 不更新的口径）。\n//\n// 内部状态（ABI G3）：highs/lows 滚动窗 + k/d/prevGt，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"n\", type: \"int\", default: 9, min: 2, max: 100, description: \"RSV 周期\" },\n  { key: \"k_period\", type: \"int\", default: 3, min: 2, max: 30, description: \"K 平滑周期\" },\n  { key: \"d_period\", type: \"int\", default: 3, min: 2, max: 30, description: \"D 平滑周期\" }\n];\n\nlet highs = [];    // 最近 n 根 high（滚动窗）\nlet lows = [];     // 最近 n 根 low（滚动窗）\nlet k = 50;        // K 值（种子 50，Rust 同口径）\nlet d = 50;        // D 值（种子 50）\nlet prevGt = null; // 上一有效 bar 的 k > d；null = 尚无有效读数\n\nfunction init(params) {\n  highs = [];\n  lows = [];\n  k = 50;\n  d = 50;\n  prevGt = null;\n}\n\nfunction on_bar(ctx) {\n  const n = ctx.params.n;\n  const kp = ctx.params.k_period;\n  const dp = ctx.params.d_period;\n  if (n < 1 || kp < 1 || dp < 1) {\n    return 50; // 周期非法（Rust 版指标 None → Hold）\n  }\n  highs.push(ctx.bar.high);\n  lows.push(ctx.bar.low);\n  if (highs.length > n) {\n    highs.shift();\n    lows.shift();\n  }\n  if (highs.length < n) {\n    return 50; // 窗口未满：指标不可用 → 中立，不更新 prev/K/D\n  }\n  let hh = -Infinity;\n  let ll = Infinity;\n  for (let i = 0; i < highs.length; i++) {\n    if (highs[i] > hh) { hh = highs[i]; }\n    if (lows[i] < ll) { ll = lows[i]; }\n  }\n  const rsv = hh === ll ? 50 : (ctx.bar.close - ll) / (hh - ll) * 100;\n  k = ((kp - 1) / kp) * k + (1 / kp) * rsv;\n  d = ((dp - 1) / dp) * d + (1 / dp) * k;\n  const gt = k > d;\n  let score = 50;\n  if (prevGt !== null) {\n    if (gt && !prevGt) {\n      score = 80; // 金叉 → Buy\n    } else if (!gt && prevGt) {\n      score = 20; // 死叉 → Sell\n    }\n  }\n  prevGt = gt;\n  return score;\n}\n\nfunction save() {\n  return { highs: highs.slice(), lows: lows.slice(), k: k, d: d, prevGt: prevGt };\n}\n\n// 防御口径（NIT-3）：与 dual_ma/boll 一致——字段缺失/类型错误时回退安全默认\n// （= init() 初始值），不得将 undefined 写入状态引入 NaN 污染。\nfunction load(state) {\n  const s = state || {};\n  highs = Array.isArray(s.highs) ? s.highs.slice() : [];\n  lows = Array.isArray(s.lows) ? s.lows.slice() : [];\n  k = (typeof s.k === \"number\") ? s.k : 50;\n  d = (typeof s.d === \"number\") ? s.d : 50;\n  prevGt = (s.prevGt === true || s.prevGt === false) ? s.prevGt : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 9.0,
+          "description": "RSV 周期",
+          "key": "n",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "K 平滑周期",
+          "key": "k_period",
+          "max": 30.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "D 平滑周期",
+          "key": "d_period",
+          "max": 30.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "bcfb095bd10afac24995cf1622a665683627c0c221bfd0a4f8ec6d9ec91bfd55",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.999376Z",
+      "published_at": "2026-09-10T04:15:13.997753Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714002_000010",
+      "name": "动量突破",
+      "description": "close 突破 N 日高点买入、跌破 N 日低点卖出",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.002603Z",
+      "updated_at": "2026-09-10T17:15:43.458931Z"
+    },
+    "version": {
+      "id": "sv_1789013714002_000011",
+      "strategy_id": "st_1789013714002_000010",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：momentum —— 动量突破（Donchian 通道）\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::MomentumStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold\n//   （守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1）。\n//\n// 语义注记（与 Rust 版逐条对齐）：\n//   - Donchian 上/下轨 = **当前 bar 之前** lookback 根 bar 的最高 high / 最低 low\n//     （**不含当前 bar**，避免 close 恒 ≤ 当前 high 造成的自破位；Rust 模块头口径注记）；\n//     无对应 host 指标，插件自持固定长度滚动窗口（与 Rust 的 VecDeque 一致）。\n//   - 窗口未满 lookback 根 → 中立 50。\n//   - close > 上轨 → Buy；close < 下轨 → Sell（即使空仓也发出 Sell 信号，\n//     与 Rust 一致；是否成交由引擎按持仓决定）。\n//   - 窗口在信号判定**之后**推入当前 bar（Rust 同序）。\n//\n// 内部状态（ABI G3）：highs/lows 滚动窗，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"lookback\", type: \"int\", default: 20, min: 2, max: 150, description: \"回看日数\" }\n];\n\nlet highs = []; // 最近 lookback 根 high（不含当前 bar）\nlet lows = [];  // 最近 lookback 根 low（不含当前 bar）\n\nfunction init(params) {\n  highs = [];\n  lows = [];\n}\n\nfunction on_bar(ctx) {\n  const lb = ctx.params.lookback;\n  let score = 50;\n  if (highs.length === lb) {\n    let hh = -Infinity;\n    let ll = Infinity;\n    for (let i = 0; i < highs.length; i++) {\n      if (highs[i] > hh) { hh = highs[i]; }\n      if (lows[i] < ll) { ll = lows[i]; }\n    }\n    if (ctx.bar.close > hh) {\n      score = 80; // 突破上轨 → Buy\n    } else if (ctx.bar.close < ll) {\n      score = 20; // 跌破下轨 → Sell\n    }\n  }\n  // 信号判定之后推入当前 bar（Rust 同序），窗口超长则弹出最旧一根。\n  highs.push(ctx.bar.high);\n  lows.push(ctx.bar.low);\n  if (highs.length > lb) {\n    highs.shift();\n    lows.shift();\n  }\n  return score;\n}\n\nfunction save() {\n  return { highs: highs.slice(), lows: lows.slice() };\n}\n\n// 防御口径（NIT-3）：与 dual_ma/boll 一致——字段缺失/类型错误时回退安全默认\n// （= init() 初始值），不得将 undefined 写入状态引入 NaN 污染。\nfunction load(state) {\n  const s = state || {};\n  highs = Array.isArray(s.highs) ? s.highs.slice() : [];\n  lows = Array.isArray(s.lows) ? s.lows.slice() : [];\n}\n",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "回看日数",
+          "key": "lookback",
+          "max": 150.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "4900fa2ce8edb0d959053d7f9704814615eb9b795bd2d0b741cb351499b9448b",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.003508Z",
+      "published_at": "2026-09-10T04:15:14.002018Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714005_000012",
+      "name": "ATR 通道突破",
+      "description": "Donchian 通道突破买卖 + ATR 止损",
+      "kind": "strategy",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.006555Z",
+      "updated_at": "2026-09-10T04:15:14.007269Z"
+    },
+    "version": {
+      "id": "sv_1789013714005_000013",
+      "strategy_id": "st_1789013714005_000012",
+      "version": 1,
+      "code": "// =============================================================================\n// 参考插件：atr_channel —— ATR 通道突破（Donchian 通道 + ATR 止损）\n// 迁移自 Rust 内建策略 crates/backtest/src/strategies.rs::AtrChannelStrategy（语义 1:1）。\n// =============================================================================\n//\n// 评分映射口径（架构裁决，ADR §6/§13.1）：Buy→80 / Sell→20 / Hold→50。\n//   等价性依据：默认聚合阈 60/40 下 80≥60 即 Buy、20≤40 即 Sell、50 即 Hold\n//   （守门测试：tests/equivalence.rs）。\n//\n// 仓位说明：不含 position_pct——仓位换算是 ExecutionPolicy 职责（ADR §13.1）。\n//\n// 语义注记（与 Rust 版逐条对齐）：\n//   - Donchian 上/下轨 = **当前 bar 之前** channel_period 根 bar 的最高 high /\n//     最低 low（**不含当前 bar**，Rust 模块头口径注记）；无对应 host 指标，\n//     插件自持固定长度滚动窗口。\n//   - 空仓判定用 ctx.position === null（对应 Rust 的 ctx.position > 0.0；\n//     ABI §2.5：空仓时 host 给 null）。\n//   - 空仓且 close 破上轨 → Buy，并记录 **entry = 自身 Buy 信号当根 close**\n//     （插件内部状态记录，**不用 ctx.position.avg_cost**——口径注记：Rust 版\n//     同样取信号 bar close 的近似值，实际成交在下一 open）。\n//   - 持仓时 ATR 止损**优先**：close < entry − atr_multiplier × ATR(atr_period)\n//     → Sell 并清空 entry；ATR 数据不足（null）→ 该 bar 不触发止损（Rust 同口径）。\n//   - 止损未触发且 close 跌破通道下轨 → Sell（通道离场）并清空 entry。\n//   - 窗口在信号判定**之后**推入当前 bar（Rust 同序）。\n//\n// 内部状态（ABI G3）：highs/lows 滚动窗 + entry，经 save()/load() 快照/恢复。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"channel_period\", type: \"int\", default: 20, min: 2, max: 150, description: \"通道周期\" },\n  { key: \"atr_period\", type: \"int\", default: 14, min: 2, max: 60, description: \"ATR 周期\" },\n  { key: \"atr_multiplier\", type: \"float\", default: 1.0, min: 0.5, max: 5.0, description: \"ATR 止损倍数\" }\n];\n\nlet highs = [];   // 最近 channel_period 根 high（不含当前 bar）\nlet lows = [];    // 最近 channel_period 根 low（不含当前 bar）\nlet entry = null; // 自身 Buy 信号当根 close（止损基准）；null = 无未平仓信号\n\nfunction init(params) {\n  highs = [];\n  lows = [];\n  entry = null;\n}\n\nfunction on_bar(ctx) {\n  const cp = ctx.params.channel_period;\n  const ready = highs.length === cp;\n  let upper = -Infinity;\n  let lower = Infinity;\n  if (ready) {\n    for (let i = 0; i < highs.length; i++) {\n      if (highs[i] > upper) { upper = highs[i]; }\n      if (lows[i] < lower) { lower = lows[i]; }\n    }\n  }\n\n  let score = 50;\n  const holding = ctx.position !== null;\n  if (holding) {\n    // ATR 止损优先（数据不足则不触发，Rust 同口径）。\n    const a = ctx.indicators.atr(ctx.params.atr_period);\n    if (a !== null && entry !== null &&\n        ctx.bar.close < entry - ctx.params.atr_multiplier * a) {\n      entry = null;\n      score = 20;\n    }\n    // 通道下轨跌破 → 离场。\n    if (score === 50 && ready && ctx.bar.close < lower) {\n      entry = null;\n      score = 20;\n    }\n  } else if (ready && ctx.bar.close > upper) {\n    // 空仓 + 突破上轨 → Buy；entry 记当根 close（近似口径，见头注释）。\n    entry = ctx.bar.close;\n    score = 80;\n  }\n\n  // 信号判定之后推入当前 bar（Rust 同序），供下一根的通道计算。\n  highs.push(ctx.bar.high);\n  lows.push(ctx.bar.low);\n  if (highs.length > cp) {\n    highs.shift();\n    lows.shift();\n  }\n  return score;\n}\n\nfunction save() {\n  return { highs: highs.slice(), lows: lows.slice(), entry: entry };\n}\n\n// 防御口径（NIT-3）：与 dual_ma/boll 一致——字段缺失/类型错误时回退安全默认\n// （= init() 初始值），不得将 undefined 写入状态引入 NaN 污染。\nfunction load(state) {\n  const s = state || {};\n  highs = Array.isArray(s.highs) ? s.highs.slice() : [];\n  lows = Array.isArray(s.lows) ? s.lows.slice() : [];\n  entry = (typeof s.entry === \"number\") ? s.entry : null;\n}\n",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "通道周期",
+          "key": "channel_period",
+          "max": 150.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 14.0,
+          "description": "ATR 周期",
+          "key": "atr_period",
+          "max": 60.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 1.0,
+          "description": "ATR 止损倍数",
+          "key": "atr_multiplier",
+          "max": 5.0,
+          "min": 0.5,
+          "type": "float"
+        }
+      ],
+      "sha256": "00548404ea9d4ea2e557a2acecad5ac718cde081de2a7ec8ba89d7fbc67340d7",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.007269Z",
+      "published_at": "2026-09-10T04:15:14.005902Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714009_000014",
+      "name": "纯评分模板",
+      "description": "不读 position 的最小评分骨架（教学向）",
+      "kind": "template",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.009812Z",
+      "updated_at": "2026-09-10T04:15:14.010697Z"
+    },
+    "version": {
+      "id": "sv_1789013714009_000015",
+      "strategy_id": "st_1789013714009_000014",
+      "version": 1,
+      "code": "// =============================================================================\n// 官方模板：pure_score —— 纯评分模板（ADR §13.2 D10 / ABI §4.5）\n// =============================================================================\n// 适用场景：最小编写起点。不读 ctx.position、无内部状态，只根据指标输出分数。\n//\n// 插件契约速览（权威：design/12-strategy-system/02-plugin-abi.md）：\n//   - on_bar(ctx) 每 bar 调用一次，返回 0-100 连续分（越界由 host clamp）。\n//   - 默认聚合阈值：总分 ≥ 60 → 买入信号；≤ 40 → 卖出信号；其余 → 持有。\n//     所以「买入区」惯例给 80，「卖出区」惯例给 20，中立给 50。\n//   - ctx.indicators 由 host 侧确定性计算（与 Rust 回测口径一致）；\n//     数据不足返回 null，策略必须自行判空（否则 null 参与比较会得到意外结果）。\n//   - ctx.params 为下方 PARAMS_SCHEMA 声明的参数（已由消费方填好默认值，只读冻结）。\n//   - 插件只产评分，永远看不到订单/账户接口；仓位换算由 ExecutionPolicy 负责。\n//\n// 本模板策略：快均线上穿慢均线区间给 80（买入区），下穿区间给 20（卖出区），\n// 数据不足给 50（中立）。无内部状态 → 无需实现 save()/load()。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 5, min: 2, max: 200, description: \"快线周期\" },\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期\" }\n];\n\nfunction on_bar(ctx) {\n  const fast = ctx.indicators.ma(ctx.params.fast);\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  // 数据不足（指标 null）→ 中立分：不表达观点。\n  if (fast === null || slow === null) {\n    return 50;\n  }\n  // 趋势上行 → 买入区高分；下行 → 卖出区低分。\n  return fast > slow ? 80 : 20;\n}\n",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "bb9995fe0576f8802585155d8cdae64735167e89a4881d98d9b3f65521ae7a8b",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.010697Z",
+      "published_at": "2026-09-10T04:15:14.009263Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714012_000016",
+      "name": "两态门控模板",
+      "description": "空仓才给买入区高分、持仓期中立——示范门控",
+      "kind": "template",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.013177Z",
+      "updated_at": "2026-09-10T04:15:14.013879Z"
+    },
+    "version": {
+      "id": "sv_1789013714012_000017",
+      "strategy_id": "st_1789013714012_000016",
+      "version": 1,
+      "code": "// =============================================================================\n// 官方模板：two_state_gate —— 两态门控模板（ADR §13.2 D10 / ABI §4.5）\n// =============================================================================\n// 适用场景：只想「开一次仓、持有一段时间、条件变坏就离场」的策略。\n// 核心手法（ABI §4.5）：空仓（ctx.position === null）时才给买入区高分；\n// 持仓期给中立分——门控逻辑全部编码在「何时给多少分」里，引擎不做任何固定门控。\n//\n// ctx.position（ABI §2.5，只读持仓全景）：\n//   null           → 当前空仓（纯评分试算模式下恒为 null）；\n//   { qty, avg_cost, entry_ts, bars_since_entry, unrealized_pnl } → 持仓中。\n// 注意：position 是共享组合视角的真实执行结果；插件修改它不会影响任何执行。\n//\n// 本模板策略：\n//   空仓 + 快线 > 慢线 → 80（开门，允许买入）；\n//   持仓 + 快线 < 慢线 → 20（趋势变坏，关门离场）；\n//   其余 → 50（中立，不动作）。\n// 无内部状态（门控完全由 ctx.position 驱动）→ 无需 save()/load()。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 5, min: 2, max: 200, description: \"快线周期\" },\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期\" }\n];\n\nfunction on_bar(ctx) {\n  const fast = ctx.indicators.ma(ctx.params.fast);\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  if (fast === null || slow === null) {\n    return 50; // 数据不足 → 中立\n  }\n  const trendUp = fast > slow;\n  if (ctx.position === null) {\n    // 空仓：趋势向上才开门（买入区高分）。\n    return trendUp ? 80 : 50;\n  }\n  // 持仓：趋势走坏给卖出区低分（离场），否则中立（继续持有）。\n  return trendUp ? 50 : 20;\n}\n",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "2548e2387f62178c002b8921d09a96e6f311f11df5da919df7560543f27f402a",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.013879Z",
+      "published_at": "2026-09-10T04:15:14.012650Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714015_000018",
+      "name": "定投模板",
+      "description": "按 bars_since_entry 控制高分时机，配合 DCA Policy",
+      "kind": "template",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.016468Z",
+      "updated_at": "2026-09-10T04:15:14.017313Z"
+    },
+    "version": {
+      "id": "sv_1789013714015_000019",
+      "strategy_id": "st_1789013714015_000018",
+      "version": 1,
+      "code": "// =============================================================================\n// 官方模板：dca —— 定投模板（ADR §13.2 D10 / ABI §4.5）\n// =============================================================================\n// 适用场景：分批建仓（定投式）。请配合 ExecutionPolicy = Dca（tranches/interval）\n// 使用——**分批换算是 Policy 的职责**，插件只需控制「何时保持在买入区」。\n//\n// 与 DCA Policy 的协作口径（ADR §13.1）：\n//   - Buy 信号（聚合 ≥ 60）持续期间，Policy 每 interval bar 执行一批，共 tranches 批；\n//   - 信号中断（Hold/Sell）→ 剩余批次取消；Buy 重现 → 重新计数。\n//   因此插件的典型写法：空仓且触发条件满足 → 给 80 开启本轮；随后用\n//   ctx.position.bars_since_entry（建仓以来经过的 bar 数）控制高分持续的窗口，\n//   窗口结束回到 50（中立），让 Policy 停止后续批次。\n//\n// 本模板策略：\n//   空仓 + 收盘低于慢速均线（回踩）→ 80（开启一轮定投）；\n//   持仓且 bars_since_entry < plan_bars → 继续 80（让 Policy 把批次打完）；\n//   达到计划窗口 → 50（中立，停止加仓）；趋势深跌可改为 20 离场（留作练习）。\n// 无内部状态（节奏由 ctx.position 驱动）→ 无需 save()/load()。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期（回踩判定基准）\" },\n  { key: \"plan_bars\", type: \"int\", default: 3, min: 1, max: 60, description: \"计划加仓窗口（bar 数，应与 DCA Policy 的 tranches×interval 对齐）\" }\n];\n\nfunction on_bar(ctx) {\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  if (slow === null) {\n    return 50; // 数据不足 → 中立\n  }\n  if (ctx.position === null) {\n    // 空仓：价格回踩慢线下方 → 开启一轮定投（买入区高分）。\n    return ctx.bar.close < slow ? 80 : 50;\n  }\n  // 持仓：计划窗口内保持买入区高分（Policy 按 interval 逐批执行），窗口外中立。\n  return ctx.position.bars_since_entry < ctx.params.plan_bars ? 80 : 50;\n}\n",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "慢线周期（回踩判定基准）",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "计划加仓窗口（bar 数，应与 DCA Policy 的 tranches×interval 对齐）",
+          "key": "plan_bars",
+          "max": 60.0,
+          "min": 1.0,
+          "type": "int"
+        }
+      ],
+      "sha256": "df3c134dc1b2312fc827645bb4f172d94c9646d3ff6b4ab10cb73d07d2958f09",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.017313Z",
+      "published_at": "2026-09-10T04:15:14.015903Z"
+    }
+  },
+  {
+    "strategy": {
+      "id": "st_1789013714019_000020",
+      "name": "趋势+止损模板",
+      "description": "趋势评分 + close 跌破 avg_cost×(1−stop_pct) 输出 0（软止损示范）",
+      "kind": "template",
+      "created_by": "seed",
+      "created_at": "2026-09-10T04:15:14.020089Z",
+      "updated_at": "2026-09-10T04:15:14.020905Z"
+    },
+    "version": {
+      "id": "sv_1789013714019_000021",
+      "strategy_id": "st_1789013714019_000020",
+      "version": 1,
+      "code": "// =============================================================================\n// 官方模板：trend_stop —— 趋势 + 止损模板（ADR §13.2 D10 / ABI §4.5）\n// =============================================================================\n// 适用场景：趋势跟随 + 软止损。演示三层止损中的「策略层（软止损）」（ADR §13.3）：\n// 持仓亏损超过 stop_pct 时输出 0 分——强卖出区分数，把聚合总分拖过卖出阈。\n//\n// 软止损 vs 硬止损（重要口径）：\n//   - 本模板的 0 分是**软止损**：它只是评分，可被执行层费用口径影响、\n//     也可在组合回测中被其他策略的高分对冲（聚合是加权平均）。\n//   - **硬止损**在 Run 级 stop 配置（fixed_pct/trailing/atr），触发即绕过评分\n//     直接平仓，不依赖策略自觉。需要确定性保护时请用硬止损。\n//\n// 本模板策略：\n//   持仓且 close < avg_cost × (1 − stop_pct) → 0（软止损，拖低总分至卖出区）；\n//   快线 > 慢线 → 80（买入区）；快线 < 慢线 → 20（卖出区）；数据不足 → 50。\n// 无内部状态 → 无需 save()/load()。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"fast\", type: \"int\", default: 5, min: 2, max: 200, description: \"快线周期\" },\n  { key: \"slow\", type: \"int\", default: 20, min: 2, max: 250, description: \"慢线周期\" },\n  { key: \"stop_pct\", type: \"float\", default: 0.08, min: 0.01, max: 0.5, description: \"软止损幅度（相对摊薄成本价，0.08 = 8%）\" }\n];\n\nfunction on_bar(ctx) {\n  // 软止损：持仓浮亏越线 → 0 分（强卖出区；单策略 60/40 阈下必然触发卖出信号）。\n  if (ctx.position !== null &&\n      ctx.bar.close < ctx.position.avg_cost * (1 - ctx.params.stop_pct)) {\n    return 0;\n  }\n  const fast = ctx.indicators.ma(ctx.params.fast);\n  const slow = ctx.indicators.ma(ctx.params.slow);\n  if (fast === null || slow === null) {\n    return 50; // 数据不足 → 中立\n  }\n  return fast > slow ? 80 : 20;\n}\n",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 0.08,
+          "description": "软止损幅度（相对摊薄成本价，0.08 = 8%）",
+          "key": "stop_pct",
+          "max": 0.5,
+          "min": 0.01,
+          "type": "float"
+        }
+      ],
+      "sha256": "5f4f05f6fbddedfb959e0efcb4c6c15a6ea79d1d2f643cdadde420bb1c125f67",
+      "status": "published",
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.020905Z",
+      "published_at": "2026-09-10T04:15:14.019492Z"
+    }
+  }
+]

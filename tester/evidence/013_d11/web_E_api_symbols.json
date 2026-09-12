@@ -1,0 +1,21 @@
+{
+  "etf": 42,
+  "lof": 2,
+  "null": 0,
+  "rows": 44,
+  "sample_510050": {
+    "code": "510050",
+    "enabled": true,
+    "favorite": false,
+    "favorite_sort": null,
+    "interval_secs": 60,
+    "latest": {
+      "change_pct": 0.0,
+      "last": 2.981,
+      "ts": "2026-09-11T07:00:00Z"
+    },
+    "name": "华夏上证50ETF",
+    "settlement": "T1",
+    "type": "etf"
+  }
+}

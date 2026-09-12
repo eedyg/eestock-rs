@@ -1,0 +1,10 @@
+=== 幂等复跑（保留命令标签：UPDATE n / INSERT 0 n）===
+BEGIN
+psql:migrations/0025_symbol_type_fee_profiles.sql:15: NOTICE:  column "type" of relation "symbols" already exists, skipping
+ALTER TABLE
+DO
+UPDATE 0
+psql:migrations/0025_symbol_type_fee_profiles.sql:88: NOTICE:  relation "fee_profiles" already exists, skipping
+CREATE TABLE
+INSERT 0 0
+ROLLBACK

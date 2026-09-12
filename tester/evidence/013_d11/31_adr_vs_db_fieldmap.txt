@@ -1,0 +1,30 @@
+=== ADR-019 §1 事实 vs 迁移播种/生产库 fee_profiles 逐字段对拍 ===
+
+来源：design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md §1.1（ETF/LOF）/§1.2（A股）
+
+type     commission   min_fee      exchange       regulatory     stamp        transfer      
+ type  | commission | min_fee | exchange | regulatory | stamp | transfer 
+-------+------------+---------+----------+------------+-------+----------
+ etf   |      0.025 |       5 |        0 |          0 |     0 |        0
+ lof   |      0.025 |       5 |        0 |          0 |     0 |        0
+ stock |      0.025 |       5 |  0.00341 |      0.002 |  0.05 |    0.001
+(3 rows)
+
+ADR §1.1（场内基金 ETF/LOF）：印花税=不征(0)｜过户费=免收(0)｜经手费 0.04‰ 事实值按全佣口径已含于佣金→列 0｜证管费 基金未列→0｜佣金万2.5=0.025 双向、最低 5 元
+ADR §1.2（A股）：印花税 0.5‰=0.05（卖出单边）｜过户费 0.01‰=0.001（双边）｜经手费 0.0341‰=0.00341（双边）｜证管费 0.02‰=0.002（双边）｜佣金 0.025/最低 5
+
+--- note/source 口径字段（D11-2 要求每行说明口径）---
+ type  | note_全佣 | note_不得叠加 | note_不征 | note_免收 | src_adr019 | src_中国结算 | src_深交所 
+-------+-----------+---------------+-----------+-----------+------------+--------------+------------
+ etf   | t         | t             | t         | t         | t          | t            | t
+ lof   | t         | t             | t         | t         | t          | t            | t
+ stock | f         | f             | f         | f         | t          | t            | t
+(3 rows)
+
+
+--- 保留位（D11-6）不播种复核 ---
+ reserved_rows 
+---------------
+             0
+(1 row)
+

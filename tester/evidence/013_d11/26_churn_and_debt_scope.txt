@@ -1,0 +1,48 @@
+=== 0 staged 复核 ===
+git diff --cached --name-only | wc -l = 0
+staged 文件: (空=0 staged)
+
+=== 工作区状态（tracked 修改 + 未跟踪）===
+tracked 修改数 = 36
+未跟踪数 = 30
+--- 未跟踪（crates/ 内）---
+?? crates/mcp/tests/d11_fee_profile_e2e.rs
+?? crates/mcp/tests/zz_tester_010_acceptance.rs
+?? crates/mcp/tests/zz_tester_013_d11_mcp.rs
+?? crates/mcp/tests/zz_tester_i1_acceptance.rs
+?? crates/storage/src/fee_profile.rs
+?? crates/storage/tests/fee_profile_store.rs
+?? crates/storage/tests/symbol_type_fee_migration.rs
+?? crates/web/tests/zz_tester_010_web.rs
+?? crates/web/tests/zz_tester_011_f2_path.rs
+?? crates/web/tests/zz_tester_013_d11_web.rs
+
+=== design 事实源文档改动计数（任务书称 18）===
+modified design 文件数 = 10
+design/02-domain/contracts.md
+design/04-storage/02-tushare-sync.md
+design/04-storage/03-raw-writer.md
+design/04-storage/schema.md
+design/06-web/03-symbols.md
+design/07-app-plane/00-web-api.md
+design/07-app-plane/01-mcp.md
+design/07-app-plane/02-alerts.md
+design/08-backtest/01-engine-adr.md
+design/12-strategy-system/01-adr.md
+新增 design 文件（ADR-019）= 1
+
+=== backtest 引擎（FeeModel）零改动取证 ===
+crates/backtest 修改数 = 0
+crates/backtest/src/fee.rs:16:pub struct FeeModel {
+crates/backtest/src/fee.rs-17-    /// 佣金率（%，0.025 = 万2.5）。
+crates/backtest/src/fee.rs-18-    pub commission_rate_pct: f64,
+crates/backtest/src/fee.rs-19-    /// 单笔最低佣金（元）。
+crates/backtest/src/fee.rs-20-    pub min_commission: f64,
+crates/backtest/src/fee.rs-21-    /// 卖方印花税率（%，0.05 = 0.05%）。
+crates/backtest/src/fee.rs-22-    pub stamp_duty_pct: f64,
+crates/backtest/src/fee.rs-23-    /// 滑点（bp，2.0 = 0.02%）。
+crates/backtest/src/fee.rs-24-    pub slippage_bp: f64,
+crates/backtest/src/fee.rs-25-}
+crates/backtest/src/fee.rs-26-
+crates/backtest/src/fee.rs-27-impl Default for FeeModel {
+crates/backtest/src/fee.rs-28-    /// ADR bt-1 推荐默认值：0.025 / 5.0 / 0.05 / 2.0。

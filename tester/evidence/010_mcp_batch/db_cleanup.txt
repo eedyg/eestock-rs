@@ -1,0 +1,6 @@
+=== 清理 tester 010 造出的 DB 运行行（只删自有）===
+DELETE 2
+DELETE 2
+--- 残留 ---
+0
+--- 合成 symbol 残留（web 夹具 88xxxx / mcp 夹具应无）---

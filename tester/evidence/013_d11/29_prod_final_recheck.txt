@@ -1,0 +1,40 @@
+=== 生产未受影响：最终复核（与验收开始时对比）===
+--- 进程（PID / 启动时间）---
+    PID                  STARTED     ELAPSED CMD
+3696673 Fri Sep 11 11:24:16 2026  1-10:19:00 target/debug/eestock-app --config /tmp/app_dev_8081.toml
+    PID                  STARTED     ELAPSED CMD
+ 515249 Sat Sep  5 11:26:53 2026  7-10:16:23 /usr/local/bin/eestock-data --config /etc/eestock/data.toml
+
+--- 端口 ---
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=11)) 
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                              
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=12)) 
+LISTEN 0      4096            [::]:8080          [::]:*                                              
+
+--- :8081 healthz ---
+{"status":"ok"} http=200
+--- :8080 (数据面 healthz) ---
+{"status":"ok"} http=200
+
+--- :8082 工具数（应与验收开始时相同=33）---
+工具数 = 33
+bt_run_ensemble fee 描述含 'ADR-019'?  False
+bt_run_ensemble fee 描述含 '缺省 {0.025, 5.0, 2.0}（ADR bt-1 默认）'?  True
+
+--- D11 表最终状态 ---
+  t  | count 
+-----+-------
+ etf |    42
+ lof |     2
+(2 rows)
+
+ profiles 
+----------
+        3
+(1 row)
+
+ residual_test_symbols 
+-----------------------
+                     0
+(1 row)
+

@@ -1,0 +1,3 @@
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+rc=0
+TANGLE-GATE: working tree unchanged (status identical)

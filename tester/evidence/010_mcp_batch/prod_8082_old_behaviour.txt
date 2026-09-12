@@ -1,0 +1,13 @@
+=== PROD :8082 tools/call get_kline 510300（旧行为对照：本批前）===
+Exception in thread Thread-1 (reader):
+# SSE status=200 content-type=text/event-stream
+# endpoint=/messages?sessionId=b55614d0542cd0695bb2ec5f77cf0dbf
+# POST /messages status=202
+RAW={"id":1,"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"bars\": [],\n  \"code\": \"510300\",\n  \"period\": \"1m\"\n}","type":"text"}]}}
+
+=== PROD :8082 tools/call list_symbols（旧二进制应无此工具）===
+Exception in thread Thread-1 (reader):
+# SSE status=200 content-type=text/event-stream
+# endpoint=/messages?sessionId=be587b2661040f189a2dcf6d4fe874ed
+# POST /messages status=202
+RAW={"error":{"code":-32602,"message":"未知工具：list_symbols"},"id":1,"jsonrpc":"2.0"}

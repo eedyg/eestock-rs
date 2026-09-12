@@ -1,0 +1,8 @@
+PROD tools n= 33
+PROD has list_symbols: False
+PROD names: ['bt_apply_preset', 'bt_cancel_run', 'bt_compare_runs', 'bt_get_run', 'bt_get_run_result', 'bt_list_presets', 'bt_list_runs', 'bt_run_ensemble', 'get_data_quality', 'get_kline', 'get_sources_health', 'sim_cancel_order', 'sim_get_account', 'sim_get_orders', 'sim_get_pnl', 'sim_get_positions', 'sim_get_session', 'sim_get_strategy_analysis', 'sim_get_strategy_signal', 'sim_list_sessions', 'sim_list_strategies', 'sim_place_order', 'sim_run_backtest_compare', 'sim_start_session', 'sim_stop_session', 'strategy_archive', 'strategy_create', 'strategy_get', 'strategy_guide', 'strategy_list', 'strategy_publish', 'strategy_test_run', 'strategy_update']
+PROD get_kline desc: 查询标的 K 线（1m 为 merge 视图：准确层优先、raw 补缺；5m/15m/1d 连续聚合；1h 由 15m rollup）。bars 升序返回。
+PROD get_kline required: ['code']
+PROD get_kline limit desc: {'description': '根数，默认 240，上限 1000', 'type': 'integer'}
+PROD strategy_test_run period_enum: ['M1', 'M5', 'M15', 'D1'] props: ['code', 'from', 'mode', 'params', 'period', 'symbol', 'to', 'version_id']
+PROD bt_run_ensemble period_enum: ['M1', 'M5', 'M15', 'D1'] props: ['buy_threshold', 'fee', 'from', 'initial_capital', 'name', 'period', 'policy', 'sell_threshold', 'slots', 'stop', 'symbol', 'to']

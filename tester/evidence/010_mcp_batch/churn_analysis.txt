@@ -1,0 +1,25 @@
+=== git diff --check (whitespace errors) ===
+rc=0
+=== indentation-insensitive content diff per file ===
+27 crates/application/src/bar_map.rs
+11 crates/application/src/fee.rs
+4 crates/application/src/simlive.rs
+157 crates/application/src/strategy.rs
+60 crates/application/src/workbench.rs
+130 crates/application/tests/strategy.rs
+44 crates/application/tests/workbench.rs
+21 crates/backtest/src/types.rs
+17 crates/mcp/src/mocks.rs
+2 crates/mcp/src/rpc.rs
+557 crates/mcp/src/tools.rs
+43 crates/mcp/tests/mcp_protocol.rs
+134 crates/mcp/tests/mcp_tools_db.rs
+21 crates/strategy-core/src/engine.rs
+79 crates/strategy-core/tests/engine.rs
+1 crates/strategy-core/tests/observer.rs
+2 crates/strategy-core/tests/templates.rs
+31 crates/web/src/strategies.rs
+11 crates/web/src/workbench.rs
+756 design/07-app-plane/01-mcp.md
+9 design/08-backtest/01-engine-adr.md
+23 design/12-strategy-system/01-adr.md

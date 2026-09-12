@@ -1,0 +1,487 @@
+[
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:13.978310Z",
+      "created_by": "seed",
+      "description": "快/慢均线金叉买入、死叉卖出",
+      "id": "st_1789013713975_000000",
+      "kind": "strategy",
+      "name": "双均线交叉",
+      "updated_at": "2026-09-10T04:15:13.979600Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.979600Z",
+      "id": "sv_1789013713975_000001",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:13.975162Z",
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "status": "published",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:13.985915Z",
+      "created_by": "seed",
+      "description": "均线交叉定方向 + RSI 超买/超卖过滤（方向正确才开仓）",
+      "id": "st_1789013713985_000002",
+      "kind": "strategy",
+      "name": "均线+RSI 过滤",
+      "updated_at": "2026-09-10T04:15:13.986785Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.986785Z",
+      "id": "sv_1789013713985_000003",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 14.0,
+          "description": "RSI 周期",
+          "key": "rsi_period",
+          "max": 60.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 30.0,
+          "description": "RSI 超卖线",
+          "key": "rsi_oversold",
+          "max": 50.0,
+          "min": 10.0,
+          "type": "float"
+        },
+        {
+          "default": 70.0,
+          "description": "RSI 超买线",
+          "key": "rsi_overbought",
+          "max": 90.0,
+          "min": 50.0,
+          "type": "float"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:13.985164Z",
+      "sha256": "51d2a3a4e3cff36ca4ad2da53dd5e4c0eba67ad2265325a16373e7fc7266ee63",
+      "status": "published",
+      "strategy_id": "st_1789013713985_000002",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:13.990500Z",
+      "created_by": "seed",
+      "description": "DIF 上穿 DEA 金叉买入、下穿死叉卖出",
+      "id": "st_1789013713989_000004",
+      "kind": "strategy",
+      "name": "MACD 金叉/死叉",
+      "updated_at": "2026-09-10T04:15:13.991271Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.991271Z",
+      "id": "sv_1789013713989_000005",
+      "params_schema": [
+        {
+          "default": 12.0,
+          "description": "快线 EMA 周期",
+          "key": "fast",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 26.0,
+          "description": "慢线 EMA 周期",
+          "key": "slow",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 9.0,
+          "description": "信号线（DEA）周期",
+          "key": "signal",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:13.989846Z",
+      "sha256": "ff6efcf8bcd9ed9094bd9656194603a9e934d74dd0a350235274df213c00e19d",
+      "status": "published",
+      "strategy_id": "st_1789013713989_000004",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:13.994405Z",
+      "created_by": "seed",
+      "description": "收破上轨买/下破下轨卖（趋势或均值回归，mode 参数）",
+      "id": "st_1789013713993_000006",
+      "kind": "strategy",
+      "name": "BOLL 带突破",
+      "updated_at": "2026-09-10T04:15:13.995230Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.995230Z",
+      "id": "sv_1789013713993_000007",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "周期",
+          "key": "period",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 2.0,
+          "description": "标准差倍数",
+          "key": "k",
+          "max": 4.0,
+          "min": 0.5,
+          "type": "float"
+        },
+        {
+          "default": 0.0,
+          "description": "模式：0=mean_reversion（默认，均值回归）/ 1=trend（趋势突破）",
+          "key": "mode",
+          "max": 1.0,
+          "min": 0.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:13.993786Z",
+      "sha256": "ca8a78dc61b0c1cd0ddaeab7be037516450ff8360020146043a67e5eeb7b758b",
+      "status": "published",
+      "strategy_id": "st_1789013713993_000006",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:13.998431Z",
+      "created_by": "seed",
+      "description": "K 上穿 D 金叉买入、下穿死叉卖出",
+      "id": "st_1789013713997_000008",
+      "kind": "strategy",
+      "name": "KDJ 金叉/死叉",
+      "updated_at": "2026-09-10T04:15:13.999376Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:13.999376Z",
+      "id": "sv_1789013713997_000009",
+      "params_schema": [
+        {
+          "default": 9.0,
+          "description": "RSV 周期",
+          "key": "n",
+          "max": 100.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "K 平滑周期",
+          "key": "k_period",
+          "max": 30.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "D 平滑周期",
+          "key": "d_period",
+          "max": 30.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:13.997753Z",
+      "sha256": "bcfb095bd10afac24995cf1622a665683627c0c221bfd0a4f8ec6d9ec91bfd55",
+      "status": "published",
+      "strategy_id": "st_1789013713997_000008",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.002603Z",
+      "created_by": "seed",
+      "description": "close 突破 N 日高点买入、跌破 N 日低点卖出",
+      "id": "st_1789013714002_000010",
+      "kind": "strategy",
+      "name": "动量突破",
+      "updated_at": "2026-09-10T17:15:43.458931Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.003508Z",
+      "id": "sv_1789013714002_000011",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "回看日数",
+          "key": "lookback",
+          "max": 150.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.002018Z",
+      "sha256": "4900fa2ce8edb0d959053d7f9704814615eb9b795bd2d0b741cb351499b9448b",
+      "status": "published",
+      "strategy_id": "st_1789013714002_000010",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.006555Z",
+      "created_by": "seed",
+      "description": "Donchian 通道突破买卖 + ATR 止损",
+      "id": "st_1789013714005_000012",
+      "kind": "strategy",
+      "name": "ATR 通道突破",
+      "updated_at": "2026-09-10T04:15:14.007269Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.007269Z",
+      "id": "sv_1789013714005_000013",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "通道周期",
+          "key": "channel_period",
+          "max": 150.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 14.0,
+          "description": "ATR 周期",
+          "key": "atr_period",
+          "max": 60.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 1.0,
+          "description": "ATR 止损倍数",
+          "key": "atr_multiplier",
+          "max": 5.0,
+          "min": 0.5,
+          "type": "float"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.005902Z",
+      "sha256": "00548404ea9d4ea2e557a2acecad5ac718cde081de2a7ec8ba89d7fbc67340d7",
+      "status": "published",
+      "strategy_id": "st_1789013714005_000012",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.009812Z",
+      "created_by": "seed",
+      "description": "不读 position 的最小评分骨架（教学向）",
+      "id": "st_1789013714009_000014",
+      "kind": "template",
+      "name": "纯评分模板",
+      "updated_at": "2026-09-10T04:15:14.010697Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.010697Z",
+      "id": "sv_1789013714009_000015",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.009263Z",
+      "sha256": "bb9995fe0576f8802585155d8cdae64735167e89a4881d98d9b3f65521ae7a8b",
+      "status": "published",
+      "strategy_id": "st_1789013714009_000014",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.013177Z",
+      "created_by": "seed",
+      "description": "空仓才给买入区高分、持仓期中立——示范门控",
+      "id": "st_1789013714012_000016",
+      "kind": "template",
+      "name": "两态门控模板",
+      "updated_at": "2026-09-10T04:15:14.013879Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.013879Z",
+      "id": "sv_1789013714012_000017",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.012650Z",
+      "sha256": "2548e2387f62178c002b8921d09a96e6f311f11df5da919df7560543f27f402a",
+      "status": "published",
+      "strategy_id": "st_1789013714012_000016",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.016468Z",
+      "created_by": "seed",
+      "description": "按 bars_since_entry 控制高分时机，配合 DCA Policy",
+      "id": "st_1789013714015_000018",
+      "kind": "template",
+      "name": "定投模板",
+      "updated_at": "2026-09-10T04:15:14.017313Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.017313Z",
+      "id": "sv_1789013714015_000019",
+      "params_schema": [
+        {
+          "default": 20.0,
+          "description": "慢线周期（回踩判定基准）",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 3.0,
+          "description": "计划加仓窗口（bar 数，应与 DCA Policy 的 tranches×interval 对齐）",
+          "key": "plan_bars",
+          "max": 60.0,
+          "min": 1.0,
+          "type": "int"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.015903Z",
+      "sha256": "df3c134dc1b2312fc827645bb4f172d94c9646d3ff6b4ab10cb73d07d2958f09",
+      "status": "published",
+      "strategy_id": "st_1789013714015_000018",
+      "version": 1
+    }
+  },
+  {
+    "strategy": {
+      "created_at": "2026-09-10T04:15:14.020089Z",
+      "created_by": "seed",
+      "description": "趋势评分 + close 跌破 avg_cost×(1−stop_pct) 输出 0（软止损示范）",
+      "id": "st_1789013714019_000020",
+      "kind": "template",
+      "name": "趋势+止损模板",
+      "updated_at": "2026-09-10T04:15:14.020905Z"
+    },
+    "version": {
+      "approval_level": "backtest_ok",
+      "created_at": "2026-09-10T04:15:14.020905Z",
+      "id": "sv_1789013714019_000021",
+      "params_schema": [
+        {
+          "default": 5.0,
+          "description": "快线周期",
+          "key": "fast",
+          "max": 200.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 20.0,
+          "description": "慢线周期",
+          "key": "slow",
+          "max": 250.0,
+          "min": 2.0,
+          "type": "int"
+        },
+        {
+          "default": 0.08,
+          "description": "软止损幅度（相对摊薄成本价，0.08 = 8%）",
+          "key": "stop_pct",
+          "max": 0.5,
+          "min": 0.01,
+          "type": "float"
+        }
+      ],
+      "published_at": "2026-09-10T04:15:14.019492Z",
+      "sha256": "5f4f05f6fbddedfb959e0efcb4c6c15a6ea79d1d2f643cdadde420bb1c125f67",
+      "status": "published",
+      "strategy_id": "st_1789013714019_000020",
+      "version": 1
+    }
+  }
+]

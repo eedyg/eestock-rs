@@ -1,0 +1,7 @@
+=== 生产 :8081 配置指向的库 ===
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "0.0.0.0:8081"
+mcp_listen = "0.0.0.0:8082"
+
+=== 测试库 = 生产库（同一 5433/eestock）===
+44 symbols, 3 profiles

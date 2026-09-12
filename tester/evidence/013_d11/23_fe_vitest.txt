@@ -1,0 +1,198 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/strategies/StrategiesPage.test.tsx > StrategiesPage（策略列表页 /strategies：manage 列表 + 过滤 + 新建 + 操作） > 表格渲染：名称/kind/最新版本状态徽章/approval 徽章/版本数/更新时间/操作列
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/dashboard/SymbolList.test.tsx > SymbolList（symbol-list 区域） > 渲染 code/名称/最新价/涨跌幅
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/dashboard/DashboardPage.test.tsx > DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > 渲染 tangle 骨架区域锚点（dashboard/symbol-list/toolbar/main-chart/sub-chart）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/symbols/SymbolsPage.test.tsx > SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 骨架区域齐备 + 表格行渲染（code/名称/间隔/启用/今日bar/最新时刻/操作）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/SymbolList.test.tsx (16 tests) 555ms
+ ✓ src/features/workbench/RunList.test.tsx (3 tests) 584ms
+   ✓ RunList 布局（页面⑪ 运行历史有界化：内部滚动，不挤压配置区） > 200 条历史：行渲染在有界内部滚动容器（min-h-0 flex-1 overflow-y-auto），而非撑开整列  352ms
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 页面骨架：配置区 + 运行历史（种子四态）+ 结果占位；订阅 strategy_run
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/Toolbar.test.tsx (11 tests) 1119ms
+ ✓ src/features/strategies/StrategiesPage.test.tsx (13 tests) 1271ms
+stderr | src/features/alerts/AlertsPage.test.tsx > AlertsPage（页面⑦，骨架 AlertsGrid + RegionPortal） > WS 实时推送：新告警事件即时入列表顶部
+Warning: An update to AlertsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at AlertsPage (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/alerts/AlertsPage.tsx:12:23)
+
+ ✓ src/features/alerts/AlertsPage.test.tsx (7 tests) 977ms
+stderr | src/features/strategies/StrategyEditorPage.test.tsx > StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 加载：头部名称/描述 + 版本下拉默认最新版本（v2 draft）+ 状态徽章 + 代码入编辑器
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/settings/SettingsPage.test.tsx > SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 骨架区域齐备：settings-nav + 内容区（source/collector/mcp/kline/system/log/danger）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > WS strategy_run_progress 推进运行中 run 的进度条（0..1 → %）
+Warning: An update to WorkbenchPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at WorkbenchPage (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/WorkbenchPage.tsx:11:26)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+stderr | src/features/quality/QualityPage.test.tsx > QualityPage（页面④，骨架 QualityGrid + RegionPortal） > 五区齐备：分歧表+汇总行 / 一致率卡 / sync-panel（按钮置灰）/ 缺口列表 / filter-bar
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/sources/SourcesPage.test.tsx > SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + 详情 + 三态） > 骨架区域齐备：summary-bar / source-cards / gap-cards / alert-preview（detail 默认折叠）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/strategies/TestRunPanel.test.tsx (5 tests) 666ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (12 tests) 2881ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > DCA policy + 硬止损：表单切换渲染并正确序列化（Dca/StopConfig serde 形态）  330ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 预设管理：重命名 / 删除回调  478ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：slots 超 10 上限 → 提交前友好提示，不触发 onSubmit（与后端 1..=10 同口径）  1009ms
+ ✓ src/features/dashboard/store.test.ts (32 tests) 329ms
+stderr | src/shell/NavBar.test.tsx > NavBar（00-shell：10 项按波次置灰；P4b 起旧 ⑤ 回测页退役） > 渲染 10 个导航项
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/workbench/ResultView.test.tsx (10 tests) 2421ms
+   ✓ ResultView（ADR §13.5 结果页布局） > Tab 切换：8项绩效 / 逐bar评分表 / 事件日志（含插件错误与 log）  1006ms
+   ✓ ResultView（ADR §13.5 结果页布局） > 逐bar评分表分页：>100 行分页器可见且翻页  837ms
+ ✓ src/shell/NavBar.test.tsx (3 tests) 453ms
+   ✓ NavBar（00-shell：10 项按波次置灰；P4b 起旧 ⑤ 回测页退役） > 渲染 10 个导航项  375ms
+stderr | src/shell/AppShell.test.tsx > AppShell（骨架：状态条+导航+页面出口） > 渲染顶部状态条、10 项导航与 Outlet 内容；健康数取 1m 角色源
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/shell/AppShell.test.tsx > AppShell（骨架：状态条+导航+页面出口） > critical 告警 WS 推送 → 右上角 toast 强弹；warning 静默（07-alerts §4）
+Warning: An update to AppShell inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at AppShell (/home/eestock/workspace/git/eestock/eestock-rs/web/src/shell/AppShell.tsx:11:21)
+    at RenderedRoute (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:535:7)
+    at Routes (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1269:7)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+ ✓ src/shell/AppShell.test.tsx (2 tests) 199ms
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 结果头部进度叠加 progressMap：running run 选中后 WS 推进实时更新（与 RunList 同模式）
+Warning: An update to WorkbenchPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at WorkbenchPage (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/WorkbenchPage.tsx:11:26)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+ ✓ src/features/simlive/SimLivePage.test.tsx (18 tests) 2884ms
+   ✓ SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + 策略/评分 + 订单 + 历史回看） > 未运行会话时可开始会话（先选标的/策略）→ 调 startSimSession  390ms
+   ✓ SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + 策略/评分 + 订单 + 历史回看） > 未运行时可配置标的/策略并开始 → startSimSession body 含 stock_set/strategy_set  413ms
+   ✓ SimLivePage（页面⑨模拟实盘：Tab + 会话控制 + 持仓 + 策略/评分 + 订单 + 历史回看） > 选中策略渲染单策略卡（参数/schema/标的子集/权重）→ start body 含 strategies  385ms
+ ✓ src/features/quality/QualityPage.test.tsx (6 tests) 2201ms
+   ✓ QualityPage（页面④，骨架 QualityGrid + RegionPortal） > 五区齐备：分歧表+汇总行 / 一致率卡 / sync-panel（按钮置灰）/ 缺口列表 / filter-bar  959ms
+   ✓ QualityPage（页面④，骨架 QualityGrid + RegionPortal） > 错误态+重试：divergence 失败显示错误条，重试后恢复  319ms
+   ✓ QualityPage（页面④，骨架 QualityGrid + RegionPortal） > 标的切换即重查：getQualityDivergence 携带新 code  513ms
+ ✓ src/features/symbols/SymbolsPage.test.tsx (8 tests) 3271ms
+   ✓ SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 注册弹窗：打开/取消关闭/遮罩点击不关闭  464ms
+   ✓ SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 注册成功：填 code → 保存 → POST + 弹窗关闭 + 列表新增  1221ms
+   ✓ SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 编辑：code 只读 + 值预填；settlement 变更需二次确认后保存  653ms
+   ✓ SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 提交中：保存按钮禁用 + spinner 文案  306ms
+ ✓ src/features/workbench/store.test.ts (16 tests) 227ms
+ ✓ src/features/sources/SourcesPage.test.tsx (10 tests) 2662ms
+   ✓ SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + 详情 + 三态） > 骨架区域齐备：summary-bar / source-cards / gap-cards / alert-preview（detail 默认折叠）  603ms
+   ✓ SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + 详情 + 三态） > 汇总条：1m 可用/总数（降级计可用）、快照池计数、系统灯  428ms
+   ✓ SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + 详情 + 三态） > 点卡展开详情（D1 降级）：占位提示而非加载失败，未发 metrics/events/divergence/rate-limits 请求；再点折叠  423ms
+ ✓ src/features/settings/SettingsPage.test.tsx (11 tests) 2580ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 源参数面板：保存启用，编辑速率→PATCH 乐观更新，值域非法禁用保存  451ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > MCP 面板：交易工具开启需二次确认（ADR-009）→确认→保存 PATCH mcp，限额非法禁用  423ms
+ ✓ src/features/workbench/WorkbenchPage.test.tsx (14 tests) 3537ms
+   ✓ WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 提交 → submitWorkbenchRun 收到钉住前请求（slots/阈值/policy/fee），新 run 选中并渲染结果  379ms
+   ✓ WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 预设：保存 → 下拉出现；选中即回填；删除 → 消失  512ms
+   ✓ WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 切换 run：图例勾选态不跨 run 泄漏（key 重挂载 → 默认前 3 重新生效）  434ms
+   ✓ WorkbenchPage 布局（运行历史无界增长覆盖配置区 回归） > 选中历史项后左列布局稳定：配置区不被结果视图内容高度顶走  612ms
+ ✓ src/features/strategies/StrategyEditorPage.test.tsx (17 tests) 2985ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 名称/描述编辑：保存信息 → patchStrategy  706ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 版本 diff：选两版本 → diffStrategyVersions → 渲染 add/del 行  343ms
+ ✓ src/api/mock.test.ts (37 tests) 174ms
+ ✓ src/api/client.test.ts (37 tests) 95ms
+ ✓ src/features/sources/store.test.ts (9 tests) 224ms
+stderr | src/shell/TopBar.test.tsx > TopBar（顶部状态条 H=40） > 交易时段 pill：标签 + 时间
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/strategies/ScoreChart.test.tsx (2 tests) 110ms
+ ✓ src/shell/TopBar.test.tsx (5 tests) 176ms
+ ✓ src/features/dashboard/GridCell.test.tsx (8 tests) 242ms
+ ✓ src/features/dashboard/TimeshareChart.test.tsx (3 tests) 247ms
+ ✓ src/features/dashboard/KlineChart.test.tsx (5 tests) 100ms
+ ✓ src/features/simlive/store.test.ts (5 tests) 33ms
+ ✓ src/features/alerts/store.test.ts (10 tests) 67ms
+ ✓ src/api/index.test.ts (4 tests) 30ms
+ ✓ src/features/symbols/validate.test.ts (5 tests) 10ms
+ ✓ src/features/quality/store.test.ts (7 tests) 83ms
+ ✓ src/features/symbols/store.test.ts (8 tests) 278ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (26 tests) 5970ms
+   ✓ DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > 默认 15m 高亮；业务组件经 portal 挂入骨架区域  478ms
+   ✓ DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > MA 配置保存：改窗口 → 调 saveMaConfig + 主图 KlineChart 应用新 calcParams  564ms
+   ✓ DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > 收藏置顶回归：收藏优先不影响宫格/单图/选中（Q4 仅影响 symbol-list）  376ms
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > mount 首次失败 → 重试成功 → feed 用配置 viewport_days 计算 pageSize（穿越瞬态）  571ms
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > 连续失败 → 重试 3 次后仍失败 → 保持默认 2（feed 用默认 pageSize，不静默收敛）  1580ms
+ ✓ src/features/strategies/format.test.ts (4 tests) 14ms
+ ✓ src/features/dashboard/klineDataLoader.test.ts (3 tests) 14ms
+ ✓ src/shell/session.test.ts (7 tests) 11ms
+ ✓ src/features/workbench/chartUtils.test.ts (3 tests) 14ms
+ ✓ src/features/strategies/diff.test.ts (6 tests) 40ms
+ ✓ src/features/backtest/ScopedKlineFeed.test.ts (7 tests) 67ms
+ ✓ src/ws/WsClient.test.ts (13 tests) 74ms
+ ✓ src/features/dashboard/timeshare.test.ts (3 tests) 5ms
+ ✓ src/features/dashboard/feed.test.ts (7 tests) 5ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 4ms
+ ✓ src/features/dashboard/chartCommon.test.ts (3 tests) 3ms
+ ✓ src/features/backtest/markerSnap.test.ts (7 tests) 3ms
+ ✓ src/features/backtest/format.test.ts (4 tests) 3ms
+
+ Test Files  47 passed (47)
+      Tests  457 passed (457)
+   Start at  21:41:23
+   Duration  9.60s (transform 8.92s, setup 5.30s, collect 23.77s, tests 39.90s, environment 32.09s, prepare 8.62s)
+
+rc=0

@@ -1,0 +1,13 @@
+--- git diff --stat（原样）---
+ design/12-strategy-system/01-adr.md   |   7 +-
+ web/src/layouts/SymbolsGrid.tsx       |   6 +
+ 36 files changed, 1343 insertions(+), 172 deletions(-)
+--- git diff --ignore-all-space --stat（忽略空白）---
+ design/12-strategy-system/01-adr.md   |   7 +-
+ web/src/layouts/SymbolsGrid.tsx       |   6 +
+ 36 files changed, 1338 insertions(+), 167 deletions(-)
+--- 仅空白差异的文件（两版对比）---
+6d5
+< 13/7 crates/web/src/workbench.rs
+35a35
+> 8/2 crates/web/src/workbench.rs

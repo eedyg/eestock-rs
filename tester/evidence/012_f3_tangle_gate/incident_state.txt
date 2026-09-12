@@ -1,0 +1,4 @@
+### STATE: HEAD=9d5490b clean tree; DashboardGrid.tsx hand-edited+committed; design/06-web/01-dashboard.md unchanged
+(no tracked diff)
+895942bd8add6b5674a9e8cbdcd58e048da1a102871c7f696080160670fb1adb  web/src/layouts/DashboardGrid.tsx
+3b3bfd9b80dc3781b2a3d8435374a90d832226da348e3aff0229d336149d6774  design/06-web/01-dashboard.md

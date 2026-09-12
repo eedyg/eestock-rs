@@ -1,0 +1,50 @@
+[1/8] clean-db：干净 + 有 DB
+  ✅ fixture: 已生成 .entangled（有 DB 态）
+  ✅ clean-db: 退出码 0（放行）
+  ✅ clean-db: 输出含 ✅ 通过标记
+[2/8] clean-no-db：干净 + 无 DB（CI 新克隆一致提交）
+  ✅ clean-no-db: 退出码 0（放行）
+  ✅ clean-no-db: 输出含 ✅ 通过标记
+[3/8] silent-drift：有 DB、只手改生成物（文档未动）——假绿原例
+  ✅ silent-drift: 退出码非 0（硬失败）
+  ✅ silent-drift: 输出含 ❌ 失败标记
+  ✅ silent-drift: 指出漂移文件 web/src/layouts/Grid.tsx
+  ✅ silent-drift: 提示「改码 → scripts/stitch.sh」出路
+  ✅ silent-drift: 提示「改文档 → entangled tangle」出路
+  ✅ silent-drift: 门禁未修改工作区（逐字节一致）
+[4/8] conflict：文档与生成物同时被改（tangle 报 conflicts found）
+  ✅ conflict: 退出码非 0（硬失败）
+  ✅ conflict: 输出含 ❌ 失败标记
+  ✅ conflict: 指出漂移文件 web/src/layouts/Grid.tsx
+  ✅ conflict: 提示「改码 → scripts/stitch.sh」出路
+  ✅ conflict: 提示「改文档 → entangled tangle」出路
+  ✅ conflict: 门禁未修改工作区（逐字节一致）
+[5/8] empty-db-drift：无 DB + 漂移（CI 干净副本）
+  ✅ empty-db-drift: 退出码非 0（硬失败）
+  ✅ empty-db-drift: 输出含 ❌ 失败标记
+  ✅ empty-db-drift: 指出漂移文件 web/src/layouts/Grid.tsx
+  ✅ empty-db-drift: 提示「改码 → scripts/stitch.sh」出路
+  ✅ empty-db-drift: 提示「改文档 → entangled tangle」出路
+  ✅ empty-db-drift: 门禁未修改工作区（逐字节一致）
+[6/8] doc-side-drift：文档已改、生成物未重新 tangle（生成物禁止被门禁覆盖）
+  ✅ doc-side-drift: 退出码非 0（硬失败）
+  ✅ doc-side-drift: 输出含 ❌ 失败标记
+  ✅ doc-side-drift: 指出漂移文件 web/src/layouts/Grid.tsx
+  ✅ doc-side-drift: 提示「改码 → scripts/stitch.sh」出路
+  ✅ doc-side-drift: 提示「改文档 → entangled tangle」出路
+  ✅ doc-side-drift: 门禁未修改工作区（逐字节一致）
+[7/8] stale-db：文档与生成物一致、但本地 filedb 缓存过期（刚用 stitch 回写过）→ 必须放行
+  ✅ stale-db: 退出码 0（放行）
+  ✅ stale-db: 输出含 ✅ 通过标记
+[8/8] hook-symlink：pre-commit 安装方式（symlink 到 .git/hooks）必须能找到 scripts/lib/
+  ✅ hook-symlink: 干净态经 symlink 调用放行
+  ✅ hook-symlink: scripts/lib 依赖解析正常（symlink 场景）
+  ✅ hook-symlink: 漂移态经 symlink 调用硬失败
+[extra] 可复跑：clean-db 连续两次同结果
+  ✅ 可复跑: 两次均放行
+[extra] watch_list 通配符匹配（** 需匹配零个目录：design/00-vision.md 直接位于 design/ 下）
+  ✅ glob: design/**/*.md 命中 design/00-vision.md（零目录）
+  ✅ glob: design/**/*.md 命中 design/06-web/01-dashboard.md
+  ✅ glob: .html 生成物不匹配 *.md
+
+===== test_check_tangle: PASS=38 FAIL=0 =====

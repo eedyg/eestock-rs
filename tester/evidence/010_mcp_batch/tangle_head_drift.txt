@@ -1,0 +1,9 @@
+--- web/src/layouts/DashboardGrid.tsx
+  HEAD_tangle vs worktree: DIFF
+  HEAD_tangle vs HEAD_git: DIFF
+--- web/src/layouts/SimLiveGrid.tsx
+  HEAD_tangle vs worktree: DIFF
+  HEAD_tangle vs HEAD_git: DIFF
+--- crates/mcp/src/tools.rs
+  HEAD_tangle vs worktree: DIFF
+  HEAD_tangle vs HEAD_git: SAME

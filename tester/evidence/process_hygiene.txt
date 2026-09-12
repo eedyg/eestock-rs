@@ -1,0 +1,47 @@
+### stray/alternate-port eestock-app inventory @ 2026-09-12T04:07:48Z
+--- ps (full) ---
+ 515249  515212 10001    Sat Sep  5 11:26:53 2026  7-00:40:54 /usr/local/bin/eestock-data --config /etc/eestock/data.toml
+1343090       1 eestock  Fri Sep 11 22:55:45 2026    13:12:03 /home/eestock/workspace/git/scrylink/target/release/scrylink-server
+1343124       1 eestock  Fri Sep 11 22:55:46 2026    13:12:02 /home/eestock/workspace/git/scrylink/target/release/scrylink-web --host 0.0.0.0 --port 1420 --static-dir /home/eestock/workspace/git/scrylink/frontend/dist
+1858479       1 eestock  Fri Sep  4 13:24:52 2026  7-22:42:55 target/debug/eestock-app --config /tmp/app_smoke.toml
+3696673 3696671 eestock  Fri Sep 11 11:24:16 2026  1-00:43:31 target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+--- listeners ---
+LISTEN 0      128        127.0.0.1:18082      0.0.0.0:*    users:(("eestock-app",pid=1858479,fd=12)) 
+LISTEN 0      128        127.0.0.1:18081      0.0.0.0:*    users:(("eestock-app",pid=1858479,fd=11)) 
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=11)) 
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                              
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3696673,fd=12)) 
+LISTEN 0      4096            [::]:8080          [::]:*                                              
+
+--- PID 1858479 cwd/exe/config ---
+lrwxrwxrwx 1 eestock eestock 0 Sep 11 18:51 /proc/1858479/cwd -> /home/eestock/workspace/git/eestock/eestock-rs
+lrwxrwxrwx 1 eestock eestock 0 Sep 12 12:05 /proc/1858479/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+target/debug/eestock-app --config /tmp/app_smoke.toml 
+--- /tmp/app_smoke.toml ---
+-rw-rw-r-- 1 eestock eestock 211 Sep 10 12:14 /tmp/app_dev_8081.toml
+-rw-rw-r-- 1 eestock eestock 217 Sep  4 13:24 /tmp/app_smoke.toml
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "127.0.0.1:18081"
+mcp_listen = "127.0.0.1:18082"
+static_dir = "./web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 60000
+
+--- 1858479 env (端口相关) ---
+ANDROID_SDK_ROOT=/home/eestock/Android/Sdk
+BUN_INSTALL=/home/eestock/.bun
+CARGO=/home/eestock/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
+CARGO_HOME=/home/eestock/.cargo
+CARGO_MANIFEST_DIR=/home/eestock/workspace/git/eestock/eestock-rs/crates/app
+CARGO_MANIFEST_PATH=/home/eestock/workspace/git/eestock/eestock-rs/crates/app/Cargo.toml
+FPATH=/home/linuxbrew/.linuxbrew/Homebrew/share/zsh/site-functions:/home/eestock/.oh-my-zsh/plugins/git:/home/eestock/.oh-my-zsh/functions:/home/eestock/.oh-my-zsh/completions:/home/eestock/.oh-my-zsh/custom/functions:/home/eestock/.oh-my-zsh/custom/completions:/home/linuxbrew/.linuxbrew/Homebrew/share/zsh/site-functions:/home/eestock/.oh-my-zsh/plugins/git:/home/eestock/.oh-my-zsh/functions:/home/eestock/.oh-my-zsh/completions:/home/eestock/.oh-my-zsh/custom/functions:/home/eestock/.oh-my-zsh/custom/completions:/home/eestock/.oh-my-zsh/cache/completions:/usr/local/share/zsh/site-functions:/usr/share/zsh/vendor-functions:/usr/share/zsh/vendor-completions:/usr/share/zsh/functions/Calendar:/usr/share/zsh/functions/Chpwd:/usr/share/zsh/functions/Completion:/usr/share/zsh/functions/Completion/AIX:/usr/share/zsh/functions/Completion/BSD:/usr/share/zsh/functions/Completion/Base:/usr/share/zsh/functions/Completion/Cygwin:/usr/share/zsh/functions/Completion/Darwin:/usr/share/zsh/functions/Completion/Debian:/usr/share/zsh/functions/Completion/Linux:/usr/share/zsh/functions/Completion/Mandriva:/usr/share/zsh/functions/Completion/Redhat:/usr/share/zsh/functions/Completion/Solaris:/usr/share/zsh/functions/Completion/Unix:/usr/share/zsh/functions/Completion/X:/usr/share/zsh/functions/Completion/Zsh:/usr/share/zsh/functions/Completion/openSUSE:/usr/share/zsh/functions/Exceptions:/usr/share/zsh/functions/MIME:/usr/share/zsh/functions/Math:/usr/share/zsh/functions/Misc:/usr/share/zsh/functions/Newuser:/usr/share/zsh/functions/Prompts:/usr/share/zsh/functions/TCP:/usr/share/zsh/functions/VCS_Info:/usr/share/zsh/functions/VCS_Info/Backends:/usr/share/zsh/functions/Zftp:/usr/share/zsh/functions/Zle
+HOME=/home/eestock
+LD_LIBRARY_PATH=/home/eestock/workspace/git/eestock/eestock-rs/target/debug/build/ring-d78b44e256c9d12c/out:/home/eestock/workspace/git/eestock/eestock-rs/target/debug:/home/eestock/workspace/git/eestock/eestock-rs/target/debug/deps:/home/eestock/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:/home/eestock/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib
+LOGNAME=eestock
+
+--- 3696673 start vs staged-fix mtime ---
+3696673 Fri Sep 11 11:24:16 2026  1-00:43:31 target/debug/eestock-app --config /tmp/app_dev_8081.toml
+2026-09-12 11:57:52.617842507 +0800 ../../crates/mcp/src/tools.rs
+2026-09-12 11:58:37.640195617 +0800 ../../coder/report/142_mcp_get_kline_unregistered_code_i1_fix.md

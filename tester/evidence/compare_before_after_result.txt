@@ -1,0 +1,20 @@
+
+=== get_kline code=510300 ===
+prod(修前) isError=false  text="{\n  \"bars\": [],\n  \"code\": \"510300\",\n  \"period\": \"1m\"\n}"
+harness(修后) isError=true  text="工具执行失败：标的 510300 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"
+payload_identical=false  behavior_changed=true
+
+=== get_kline code=999999 ===
+prod(修前) isError=false  text="{\n  \"bars\": [],\n  \"code\": \"999999\",\n  \"period\": \"1m\"\n}"
+harness(修后) isError=true  text="工具执行失败：标的 999999 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"
+payload_identical=false  behavior_changed=true
+
+=== get_kline code=ABC123 ===
+prod(修前) isError=false  text="{\n  \"bars\": [],\n  \"code\": \"ABC123\",\n  \"period\": \"1m\"\n}"
+harness(修后) isError=true  text="工具执行失败：标的 ABC123 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）"
+payload_identical=false  behavior_changed=true
+
+=== get_kline code=518880 ===
+prod(修前) isError=false  text="{\n  \"bars\": [\n    {\n      \"amount\": 4042974977.0,\n      \"close\": 9.041,\n      \"high\": 9.052,\n      \"low\": 8.97,\n      \"open\": 8.97,\n      \"source\": \"tushare
+harness(修后) isError=false  text="{\n  \"bars\": [\n    {\n      \"amount\": 4042974977.0,\n      \"close\": 9.041,\n      \"high\": 9.052,\n      \"low\": 8.97,\n      \"open\": 8.97,\n      \"source\": \"tushare
+payload_identical=true  behavior_changed=false

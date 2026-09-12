@@ -1,0 +1,29 @@
+### REST /api/kline on prod :8081 (pre-fix binary, PID 3696673) at 2026-09-12T04:07:43Z
+--- code=999999 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 60
+date: Sat, 12 Sep 2026 04:07:43 GMT
+
+{"code":"999999","period":"1d","bars":[],"next_before":null}
+--- code=510300 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 60
+date: Sat, 12 Sep 2026 04:07:43 GMT
+
+{"code":"510300","period":"1d","bars":[],"next_before":null}
+--- code=ABC123 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 60
+date: Sat, 12 Sep 2026 04:07:43 GMT
+
+{"code":"ABC123","period":"1d","bars":[],"next_before":null}
+--- code=518880 ---
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 360
+date: Sat, 12 Sep 2026 04:07:43 GMT
+
+{"code":"518880","period":"1d","bars":[{"ts":"2026-09-09T16:00:00Z","open":9.06,"high":9.105,"low":9.051,"close":9.083,"volume":441013607,"amount":4001856222.0,"source":"tushare"},{"ts":"2026-09-10T16:00:00Z","open":8.895,"high":8.963,"low":8.852,"close":8.943,"volume":617832329,"amount":5504843800.0,"source":"tushare"}],"next_before":"2026-09-09T16:00:00Z"}

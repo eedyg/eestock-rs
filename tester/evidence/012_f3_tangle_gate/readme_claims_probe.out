@@ -1,0 +1,5 @@
+### README claims: 'entangled tangle -s' never writes; 'entangled reset' only touches .entangled/
+entangled reset rc=0
+reset: non-.entangled files IDENTICAL
+tangle -s rc=0
+tangle -s: non-.entangled files IDENTICAL (dry-run, no write)

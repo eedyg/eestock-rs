@@ -1,0 +1,35 @@
+=== 1.1 type 分布 ===
+ type | count 
+------+-------
+ etf  |    42
+ lof  |     2
+(2 rows)
+
+=== 1.2 symbols 总数 / NULL 数 ===
+ total | null_type | etf | lof | stock 
+-------+-----------+-----+-----+-------
+    44 |         0 |  42 |   2 |     0
+(1 row)
+
+=== 1.3 551000 ===
+  code  | name | type | interval_secs | settlement | enabled 
+--------+------+------+---------------+------------+---------
+ 551000 |      | etf  |            60 | T1         | t
+(1 row)
+
+=== 1.4 fee_profiles 全部字段 ===
+ type  | commission_rate_pct | min_fee | exchange_fee_pct | regulatory_fee_pct | stamp_duty_pct | transfer_fee_pct 
+-------+---------------------+---------+------------------+--------------------+----------------+------------------
+ etf   |               0.025 |       5 |                0 |                  0 |              0 |                0
+ lof   |               0.025 |       5 |                0 |                  0 |              0 |                0
+ stock |               0.025 |       5 |          0.00341 |              0.002 |           0.05 |            0.001
+(3 rows)
+
+=== 1.5 note/source 长度 ===
+ type  | note_len | source_len | note_has_quanyong | src_ref_adr 
+-------+----------+------------+-------------------+-------------
+ etf   |      205 |         72 | t                 | t
+ lof   |      262 |         82 | t                 | t
+ stock |      254 |         75 | f                 | t
+(3 rows)
+

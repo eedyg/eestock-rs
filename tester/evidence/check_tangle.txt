@@ -1,0 +1,4 @@
+[check-tangle] entangled tangle ...
+[12:07:06] INFO     Welcome to Entangled v2.4.3!
+           INFO     Nothing to be done.
+[check-tangle] ✅ tangle 后无 diff，design 与生成物一致。

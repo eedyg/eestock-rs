@@ -1,0 +1,28 @@
+ M README.md
+ M design/06-web/01-dashboard.md
+ M design/06-web/10-simlive.md
+ M scripts/check-tangle.sh
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/report/146_tangle_gate_hardening.md
+?? crates/mcp/tests/zz_tester_010_acceptance.rs
+?? crates/mcp/tests/zz_tester_i1_acceptance.rs
+?? crates/web/tests/zz_tester_010_web.rs
+?? crates/web/tests/zz_tester_011_f2_path.rs
+?? design/01-architecture/adr/ADR-018-tangle-gate-hardening.md
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? scripts/lib/
+?? scripts/stitch.sh
+?? scripts/tests/test_check_tangle.sh
+?? scripts/tests/test_stitch.sh
+?? tester/design/
+?? tester/evidence/
+?? tester/report/007_wave2_acceptance.md
+?? tester/report/009_i1_fix_acceptance.md
+?? tester/report/010_mcp_batch_acceptance.md
+?? tester/report/011_f1f2f4_acceptance.md
+?? tester/test/
