@@ -151,17 +151,71 @@ async fn merged_1m_branch_limit_merge_correctness() {
     clean(&pool, CODE_BRANCH).await;
 }
 
+/// 1m 读源**修复前** SQL 原文（ab470b2 前的 `MERGED_1M_SQL`：直查 `kline_merged` 视图 +
+/// `ORDER BY ts DESC LIMIT`，无法下推到各分支 → 全量 Append（~77万行）+ top-N）。
+/// **仅作性能自校准参考基线与语义等价对照**，不是生产路径；依赖 legacy `kline_merged` 视图
+/// （ADR-003 旧实现）——若该视图退役，须同步替换参考基线（缺表会以错误红，不会静默放行）。
+const PRE_FIX_1M_SQL: &str = r#"
+SELECT code, ts, open, high, low, close, volume, amount, source
+FROM kline_merged
+WHERE code = $1 AND ($2::timestamptz IS NULL OR ts < $2)
+ORDER BY ts DESC LIMIT $3
+"#;
+
+/// `PRE_FIX_1M_SQL` 行型（9 列，降序）：code/ts/open/high/low/close/volume/amount/source。
+type PreFix1mRow = (String, DateTime<Utc>, f64, f64, f64, f64, i64, f64, Option<String>);
+
+/// 执行 1m 修复前路径（参考基线），返回降序 500 行。
+async fn pre_fix_1m_rows(pool: &PgPool, code: &str) -> Vec<PreFix1mRow> {
+    sqlx::query_as::<_, PreFix1mRow>(PRE_FIX_1M_SQL)
+        .bind(code)
+        .bind(None::<DateTime<Utc>>)
+        .bind(500i64)
+        .fetch_all(pool)
+        .await
+        .expect("1m 修复前路径（参考基线）可用")
+}
+
 #[tokio::test]
 async fn merged_1m_branch_index_limit_performance() {
-    // 基准（可加；若 518880 无 500 根 M1 则跳过断言以免假阴性）：MERGED_1M_SQL 改为双侧
-    // (code,ts) 索引 DESC LIMIT 合并后，1m 500 bars（无 before）直接走各分支索引 LIMIT，
-    // 不再全量 Append + top-N 排序。改前（直查 kline_merged 视图，~77万行全量 Append+top-N）
-    // 实测 ~1.05s；改后 ~0.1s。目标 <500ms。
+    // 1m 读源性能门禁：**自校准**（判据与绝对墙钟阈值解耦，见下），2026-09-13 债务清理项 2。
+    //
+    // 背景：原判据为绝对墙钟 `dt.as_millis() < 500`。tester 014 全量回归中它偶发失败 1 次
+    // （504ms vs 500ms，隔离重跑 3/3 绿：282/290/288ms）——绝对阈值随机器/负载/计划开销漂移，
+    // 本质不稳。
+    // 根因（本次实测）：该耗时含 **Postgres 计划开销**。SQL 引用 hypertable（~1000 chunk），
+    // 单次 planning 实测 585–800ms，稳态执行仅 ~60–180ms；sqlx 复用已 prepare 的语句 + PG 数次
+    // 执行后选定 generic plan ⇒ 稳态 60–390ms，但同 binary 其它测试的 cagg refresh / DELETE 会令
+    // 计划缓存失效并退回 custom plan → 该次执行把「计划+执行」一起计 ~500ms ⇒ 与机器负载无关的假红。
+    //
+    // 判据（自校准，机器无关）：在**同一次运行内**测修复前路径（`PRE_FIX_1M_SQL`）作参考，要求
+    //     比值 = min5(目标) / min5(参考) < 0.6      —— 目标须比修复前路径快 ≥1.67×
+    // 系数依据（探针期实测：11 次运行 × 各 5 样本，含 3 次并发压测；3 次留存于
+    //   `coder/evidence/151_debt_cleanup/03_perf_ratio_probe_and_mutation.txt`）：
+    //   min(目标)/min(参考) ∈ [0.052, 0.069]，最坏 max(目标)/min(参考) = 0.342 ⇒ 稳态比值 ≤0.35。
+    // **2026-09-13 批次 1 收尾加固（R5）**：min-of-3 + 阈值 0.5 曾在外部负载窗口录到 0.490（余量仅
+    //   1.02×）⇒ 仍可能 flaky。两条加固**同时**采用（只选其一不足以消除 flaky）：
+    //   ① 两侧各取 **min-of-5**：估计量仍是 min——单次计划抖动/调度延迟只会抬高个别样本、不会抬高
+    //      最小值；两侧样本数相同（对称），避免「一侧 min-of-3 一侧 min-of-5」带来的估计量口径歧义。
+    //   ② 阈值放宽至 **0.6**（=要求 ≥1.67×）：按 §上实测分布仍能抓住真回归（突变实验见下）。
+    //   收尾实测（≥20 次连跑，证据 `coder/evidence/151_debt_cleanup/09_perf_min5_20runs.txt`）：
+    //      比值分布与余量见该文件汇总行；余量 = 0.6 / max(比值) ≥ 1.5×。
+    //   相对判据的关键性质：机器快慢、缓存冷热、并行负载在两侧同向抵消。
+    //
+    // 失效场景（本判据会红的情形，仅两种，皆真回归）：
+    //   ① 1m 读源退回「全量 Append + top-N」（如分支级 DESC LIMIT 被绕过）→ 目标 ≈ 参考
+    //      （突变实验：以修复前路径冒充目标，两次实测比值 0.983 / 1.275）⇒ 比值 ≫0.6，红；
+    //   ② 该路径整体慢 ≥1.67×（含计划开销）⇒ 红。**不再**因单次计划抖动/机器负载而红。
+    // 功能覆盖（≥ 原断言）：①500 根、严格升序（隐含无重复）；②**语义等价**：与修复前路径同参结果
+    //   逐根比对 ts/open/high/low/close/volume/amount/source——锁定「双侧索引 DESC LIMIT 合并」与
+    //   旧全量合并同口径（原断言只检长度/升序，此为加强项）。
+    //
+    // 前置：若 518880 无 500 根 M1（真实库该 code 全量 ~77 万行）则跳过，避免假阴性。
     let pool = pool().await;
     let r = KlineReader::new(pool.clone());
     let real_code = "518880"; // 真实全量 M1 code（77万+ 行），只读不改。
-    // 预热几次：① 命中 sqlx 语句缓存 ② 让 Postgres 切换到 prepared statement 的 generic plan
-    // （hypertable 上千 chunk 子计划，单次计划 ~600ms 不属稳态）。预热后测稳态执行时间。
+    // 预热 8 次：① 命中 sqlx 语句缓存 ② 让 Postgres 选定 generic plan
+    // （hypertable 上千 chunk 子计划，单次计划 ~600ms 不属稳态）。
     for _ in 0..8 {
         let w = r.bars(Period::M1, real_code, None, 500).await.unwrap();
         if w.len() != 500 {
@@ -169,15 +223,51 @@ async fn merged_1m_branch_index_limit_performance() {
             return;
         }
     }
-    let t = std::time::Instant::now();
-    let bars = r.bars(Period::M1, real_code, None, 500).await.unwrap();
-    let dt = t.elapsed();
-    assert_eq!(bars.len(), 500);
+    // 目标（生产路径）：5 次取 min（R5 加固①；对含 planning 的负载敏感侧多取样本，压低最小值噪声）。
+    let mut t_target = f64::INFINITY;
+    let mut bars = Vec::new();
+    for _ in 0..5 {
+        let t = std::time::Instant::now();
+        bars = r.bars(Period::M1, real_code, None, 500).await.unwrap();
+        t_target = t_target.min(t.elapsed().as_secs_f64() * 1000.0);
+    }
+    // 参考（修复前路径）：预热 2 次越过头次冷启动（头次 1.5–2.8s），随后 5 次取 min（稳态 ~1.1–1.5s）。
+    // 样本数与目标侧相同（对称）；参考侧以 cached plan 执行主，对负载不如目标侧敏感，故其 min 被
+    // 多取样本压低的幅度远小于目标侧 —— 对称取样净效果是拉大比值余量（实测见 09 号证据）。
+    let mut old_rows = pre_fix_1m_rows(&pool, real_code).await;
+    for _ in 0..2 {
+        old_rows = pre_fix_1m_rows(&pool, real_code).await;
+    }
+    let mut t_ref = f64::INFINITY;
+    for _ in 0..5 {
+        let t = std::time::Instant::now();
+        old_rows = pre_fix_1m_rows(&pool, real_code).await;
+        t_ref = t_ref.min(t.elapsed().as_secs_f64() * 1000.0);
+    }
+
+    // 功能断言①：形状（500 根、严格升序 ⇒ 无重复）。
+    assert_eq!(bars.len(), 500, "1m 500 bars");
     assert!(bars.windows(2).all(|w| w[0].ts < w[1].ts), "升序返回（图表口径）");
-    eprintln!("[bench] M1 500 bars 稳态执行 = {}ms（双侧索引 DESC LIMIT 合并）", dt.as_millis());
-    assert!(dt.as_millis() < 500,
-        "1m 500 bars 稳态应在 <500ms 内返回（双侧索引 DESC LIMIT 合并），实际 {}ms；改前全量 Append+top-N 仅执行已超 1s",
-        dt.as_millis());
+    // 功能断言②：语义等价（参考为降序，反序对齐逐根比对）。
+    assert_eq!(old_rows.len(), bars.len(), "参考路径同为 500 根");
+    for (b, o) in bars.iter().zip(old_rows.iter().rev()) {
+        assert_eq!(b.ts, o.1, "ts 对齐（升序口径）");
+        assert_eq!(b.open, o.2, "open 与修复前路径一致");
+        assert_eq!(b.high, o.3, "high 与修复前路径一致");
+        assert_eq!(b.low, o.4, "low 与修复前路径一致");
+        assert_eq!(b.close, o.5, "close 与修复前路径一致");
+        assert_eq!(b.volume, o.6, "volume 与修复前路径一致");
+        assert_eq!(b.amount, o.7, "amount 与修复前路径一致");
+        assert_eq!(b.source, o.8, "source 与修复前路径一致（raw 保留实际来源，accurate 记 tushare）");
+    }
+    // 性能断言：自校准相对判据（见函数头注释；R5 加固②：阈值 0.5 → 0.6）。
+    let ratio = t_target / t_ref;
+    assert!(ratio < 0.6,
+        "1m 500 bars 应比修复前路径（kline_merged 全量合并）快 ≥1.67×：目标 min5={t_target:.0}ms、\
+         参考 min5={t_ref:.0}ms（比值 {ratio:.3}，判据 <0.6）。失败通常意味着分支级索引 DESC LIMIT \
+         被绕过（退回全量 Append + top-N）");
+    eprintln!("[bench] 自校准 1m 500 bars：目标 min5={t_target:.0}ms vs 修复前路径 min5={t_ref:.0}ms\
+         （比值 {ratio:.3}，判据 <0.6）");
 }
 
 #[tokio::test]

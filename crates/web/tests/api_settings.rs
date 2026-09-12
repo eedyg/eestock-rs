@@ -1,4 +1,3 @@
-// ~/~ begin <<design/06-web/08-settings.md#crates/web/tests/api_settings.rs>>[init]
 //! 页面⑧ 系统设置 S1 端点集成测试（需 TimescaleDB :5433）：真实起 axum server + reqwest 断言。
 //! 危险操作（purge-raw / reset-circuits）只测「拒绝路径」（confirm 缺失/不匹配 → 400），不真删 kline_raw。
 

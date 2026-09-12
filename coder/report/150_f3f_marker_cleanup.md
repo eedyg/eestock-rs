@@ -147,3 +147,19 @@ cp -a design crates web migrations .entangled entangled.toml "$(mktemp -d)" && c
 
 F3-f 完成：文档代码块内标记归零、生成物恰 1 组注解、语义零漂移、tangle 幂等、门禁绿、
 编译与 mcp 单测绿、沙箱全局 stitch 破坏模式（自引用 + Cyclic reference）已消除。
+
+---
+
+## 11. 勘误（2026-09-13，批次 1 收尾追加；原文 §2(d) 保留不改）
+
+- **勘误 1**：§2(d) 称「`design/06-web/preview/*.html`(7 份) + `design/11-sim-live/preview/*.html`(2 份)，
+  …**9 份均在** `.entangled/filedb.json` 中登记」。实测更正为：**只有 7 份**（全部为
+  `design/06-web/preview/*.html`）在 filedb 中登记；`design/11-sim-live/preview/{sim-live,sim-live-history}.html`
+  **未被 filedb 登记**（`'design/11-sim-live/preview/sim-live.html' in filedb = False`，filedb targets 全长 144）。
+  取证：`python3 -c "import json;t=json.load(open('.entangled/filedb.json'));print([k for k in t if 'preview' in k])"`
+  → 仅 7 条 06-web 项。故 §2(d) 的「9 份均在 filedb」一句**作废**，以本条为准。
+- **勘误 2（同源补充）**：该 2 份 sim-live 样机 HTML 在 `design/11-sim-live/01-adr.md` 中**无任何
+  `file=` 生成物声明**（`grep -c 'file=' design/11-sim-live/01-adr.md` → 0），即其 begin 标记内的
+  `<<design/11-sim-live/01-adr.md#…>>` 是**悬空引用**且不受 tangle 治理——该判定在批次 1 收尾项 3
+  中被独立复核并**据此移除标记**（详见 `coder/report/151_debt_cleanup_batch1.md` §收尾-项 3 与
+  `coder/evidence/151_debt_cleanup/10_marker_ownership_classification.txt`）。

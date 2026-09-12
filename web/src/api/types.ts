@@ -780,6 +780,41 @@ export interface StrategyTestEvent {
   message: string;
 }
 
+/**
+ * 试算/回测响应侧 `fee` 的回显形状（ADR-019 D11 两段显式形状；**不是**钉住 config 的扁平 fee）。
+ * 形状来源（后端 = 事实源）：`crates/application/src/fee.rs::resolved_fee_to_json`。
+ * 设计事实源：`design/07-app-plane/01-mcp.md` 的「⚠️ WIRE 变更（ADR-019 D11）」段——
+ * `effective` = 引擎**实际应用**参数 + `source`；`profile` = 解析到的档案**全量事实** +
+ * `not_modeled`（经手费/证管费/过户费：入库但引擎未建模，显式标注以免被误读为已计入成本）。
+ * 零运行时影响：本批仅补类型声明（无消费者、无 mock 改动）。
+ */
+export interface ResolvedFee {
+  /** 引擎实际应用参数（任何未参与撮合的档案字段**不得**出现在此段）。 */
+  effective: {
+    commission_rate_pct: number;
+    min_fee: number;
+    stamp_duty_pct: number;
+    slippage_bp: number;
+    source: 'explicit' | 'profile' | 'default';
+  };
+  /** 档案全量事实 + `not_modeled`；**未解析到档案时后端不输出该段**（故可选）。 */
+  profile?: {
+    type: string;
+    commission_rate_pct: number;
+    min_fee: number;
+    exchange_fee_pct: number;
+    regulatory_fee_pct: number;
+    stamp_duty_pct: number;
+    transfer_fee_pct: number;
+    note: string;
+    source: string;
+    /** 档案数值费率键 − 引擎已消费字段（升序）；始终存在（schema 稳定）。 */
+    not_modeled: string[];
+  };
+  /** 解析到的标的类型（`symbols.type`）；未解析 = null。 */
+  symbol_type: string | null;
+}
+
 /** 试算响应（POST /api/strategies/test-run；截断标记 truncated） */
 export interface StrategyTestRunResp {
   mode: StrategyTestMode;
@@ -791,6 +826,8 @@ export interface StrategyTestRunResp {
   trades: StrategyTradeDetail[];
   events: StrategyTestEvent[];
   truncated: { scores: boolean; events: boolean; trades: boolean };
+  /** 响应回显的生效费用（两段形状，见 {@link ResolvedFee}）；旧 fixture/后端省略时可缺。 */
+  fee?: ResolvedFee;
 }
 
 /** 后端错误线格式 {error: string} → 前端 ApiError */
@@ -829,11 +866,14 @@ export interface WorkbenchStop {
   trigger?: 'Intrabar' | 'CloseBasis';
 }
 
-/** fee 形状（web 层 validate_backtest_fee 三键） */
+/** fee 形状（web 层 validate_backtest_fee 三键入参；钉住 config 落库为 `fee_model_to_json` **4 键**，
+ * 第 4 键 `stamp_duty_pct` 由后端按标的 type 解析后钉入，前端不读写 → 声明为可选。 */
 export interface WorkbenchFee {
   rate_pct: number;
   min_fee: number;
   slippage_bp: number;
+  /** 钉住 config 的落地形态含该键（`fee_model_to_json`）；入参三键可省。 */
+  stamp_duty_pct?: number;
 }
 
 /** POST /api/workbench/runs body（from/to RFC3339；buy/sell_threshold、initial_capital、stop 可省） */

@@ -1,4 +1,3 @@
-// ~/~ begin <<design/06-web/08-settings.md#crates/web/src/settings.rs>>[init]
 //! 页面⑧ 系统设置 S1+S2：系统信息 / 危险运维 / 配置持久化 + PATCH / 只读快照端点（08-settings.md §6）。
 //! 由 08-settings.md tangle 生成（ADR-007），禁止手改。
 //! S2 边界（本模块）：config 持久化 + PATCH /api/config/{sources,collector,mcp} + GET 读持久（缺则默认）；
