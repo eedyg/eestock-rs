@@ -45,15 +45,19 @@ web crate (REST/WS)  →  application 层: BacktestService (任务队列/调度)
 - **仓位**：单标的、单方向（多头）；支持 全仓 / 按资金比例（`position_pct` 参数，默认 100%）。
 - **成交假设**：信号在 bar close 判定，**下一 bar open 成交**（或 close 成交——见 §8 决策）。滑点以 `slippage_bp` 计入成交价（买：价×(1+bp)；卖：价×(1−bp)）。
 - **费用**：`commission_rate_pct`（万级），每笔**最低费用** `min_commission`（元）；卖出加**印花税**（A 股卖出 0.05%）。具体默认值见 §8（05-backtest 标注「与旧系统口径一致但数值待裁决」）。
-  > **I-3/D6 印花税口径（2026-09-12 用户批准）**：缺省 `stamp_duty_pct=0.05` 是 **A 股股票口径兼容值**；
-  > **ETF/LOF 无印花税，须显式传 `stamp_duty_pct:0`**（平台注册标的多为 ETF/LOF）。
+  > **I-3/D6 印花税口径（2026-09-12 用户批准，v1.1 修订）**：旧缺省 `stamp_duty_pct=0.05` 是 **A 股股票口径兼容值**；
+  > **ETF/LOF 印花税不征**——ADR-019（D11）后，**省略 fee 或 UI 三键 fee（无 stamp）均经档案字段级回退**得到 0（调用方无需知道该属性）；
+  > 要显式复现旧股票口径须传 `stamp_duty_pct:0.05`。
   > 试算（`strategy_test_run`）与工作台（`bt_run_ensemble`）均回显**生效** fee（含 stamp_duty_pct 实际取值），
   > 使「缺省被多收」在结果里可见。标的类型元数据（symbols 表/Registry 增 type）另立 D11，不在本批。
   >
   > **D11 费率口径（ADR-019，2026-09-12 落地；本节为费率事实唯一出口）**：调用方**省略** `fee` 时按
-  > 标的 `symbols.type` 查 `fee_profiles`（迁移 0025）解析（`source="profile"`）；**显式传 `fee` 对象整体优先**
-  > （缺 `stamp_duty_pct` 仍 0.05 → 旧行为完全可复现，`source="explicit"`）；`type` 未设/无档案 → 旧默认
-  > （`source="default"`）。费率事实：
+  > 标的 `symbols.type` 查 `fee_profiles`（迁移 0025）解析（`source="profile"`）；**显式传 `fee` 对象按字段优先级**（ADR-019 **v1.1 修订 R-2**）：
+  > **出现的字段**以其值（并校验）为准，**缺失字段逐字段回退档案**，档案缺失再回退旧默认；`source` 取本次解析
+  > **最高优先级来源**（任一字段来自显式 → `"explicit"`；否则 profile → `"profile"`；否则 `"default"`，R-3——**不等于**"所有字段均来自该类"）。
+  > 关键后果：UI 三键 fee（`rate_pct`/`min_fee`/`slippage_bp`，**无 stamp**）+ ETF 档案 → stamp 回退为 **0**
+  > （v1.0 旧行为"对象存在=整体显式、缺 stamp 取 0.05"已于 v1.1 废止）；复现旧口径须显式传 `stamp_duty_pct:0.05`。
+  > 费率事实：
   > - **ETF/LOF**（场内基金二级市场买卖）：印花税**不征**→0（《印花税法》第三条列举式定义仅含股票/存托凭证，
   >   属"不征"而非"免征"）；过户费**免收**→0（中国结算：ETF/LOF 二级市场买卖免收）；经手费事实值 0.04‰（双边，
   >   深交所 2026-01）与证管费（交易所收费表仅列 A股/B股/优先股）**按平台全佣口径已含于佣金 → 列 0，不得叠加**；
@@ -63,6 +67,8 @@ web crate (REST/WS)  →  application 层: BacktestService (任务队列/调度)
   >   档案中的经手费/证管费/过户费为**事实/口径列，本批未建模**（**D11-follow-up 债务**：注册个股或需规费精度时
   >   须扩展 FeeModel = 经手费/证管费/过户费双边 + 印花税仅卖出侧）。
   > 响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + `source`=explicit|profile|default）与 `fee.profile`（解析到档案时的**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单）；`fee.symbol_type` 回显解析到的标的类型。**未参与撮合的档案字段不得出现在 effective 段**——`not_modeled` 由档案字段集与 `FeeModel` 消费字段集派生（非硬编码字符串），避免规费被误读为「已计入成本」（D11 验收 013 §11.3）。
+  > **钉住 config 保持扁平（v1.1 R-1）**：两段结构（`effective`/`profile`）**仅用于试算/回测的响应回显**；
+  > `strategy_run.config.fee` 与工作台预设仍为扁平 `fee_model_to_json` 形态（`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，含 stamp 实际取值），以保前端读取与预设往返向后兼容。
 - **持仓**：bar 循环中维护 `position`（数量/成本/开仓bar）；无持仓时只算净值=现金；有持仓时净值=现金+持仓×close。
 - **结标的**：回测期末**强制平仓**（最后可用 close）。
 - **禁止**：保证金/做空/杠杆；分红/除权不复权（用不复权 K 线，回测区间内除权导致跳空——接受为简化，见 §8 决策）。
@@ -123,7 +129,7 @@ pub trait Strategy: Send + Sync {
 | # | 决策 | 我的推荐 | 备选 |
 |---|---|---|---|
 | D-bt-1 | **手续费/滑点默认值**（05-backtest 「与旧系统口径一致但数值待裁决」） | 佣金 0.025%（万2.5）最低 5 元；卖印花税 0.05%；滑点 2bp | 佣金 0.01% 最低 5 元；0 滑点 |
-| D-bt-1（D11 修订） | **缺省费率改为按标的类型推断**（ADR-019） | 省略 fee → 查 `fee_profiles`（etf/lof 印花税 0+过户费 0；stock 0.05）；显式传参优先；`type` 未知 → 上表旧默认 | 保持全局固定默认（已否决：对 100% ETF 标的系统性多收印花税） |
+| D-bt-1（D11 修订） | **缺省费率改为按标的类型推断**（ADR-019；v1.1 字段级） | 省略 fee → 查 `fee_profiles`（etf/lof 印花税 0+过户费 0；stock 0.05）；显式对象**按字段优先级**（出现字段优先，缺失字段逐字段回退档案→旧默认）；`type` 未知 → 上表旧默认 | 保持全局固定默认（已否决：对 100% ETF 标的系统性多收印花税） |
 | D-bt-2 | **成交时点** | bar close 判信号 → **下一 bar open 成交**（避免前视） | close 成交 |
 | D-bt-3 | **年化因子 / Sharpe 基准** | Sharpe rf=0，年化因子按周期：日线 √252、1m √(252×240) 等；年化收益用 bar 数换算 | 统一 √252 |
 | D-bt-4 | **复权** | 用不复权 K 线，接受除权跳空 | 前复权 |

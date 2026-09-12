@@ -167,9 +167,10 @@ pub struct TestRunRequest {
     /// I-2/D6：前置预热根数（请求值）。服务层按此拉取 `from` 之前可得历史，
     /// 实际生效值见响应 `warmup_effective`（< 请求值即历史不足）。0 = 无预热。
     pub warmup_bars: usize,
-    /// I-3/D6 + D11-3：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
+    /// I-3/D6 + D11-3（v1.1 R-2/R-3）：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
     /// **None = 未显式传** → 按标的 `type` 查 `fee_profiles` 解析（无档案 → 旧 ADR bt-1 默认）；
-    /// 显式传对象时整体以显式为准（缺 stamp_duty_pct 仍 0.05，向后兼容旧行为）。
+    /// 显式对象按**字段优先级**：出现的字段以其值（并校验）为准，缺失字段逐字段回退档案→旧默认
+    /// （如 UI 三键 fee 无 stamp + ETF 档案 → stamp 回退为 0）。
     pub fee: Option<serde_json::Value>,
     /// I-3/D6：执行策略 JSON（与 `bt_run_ensemble` 同 `ExecutionPolicy` 口径：
     /// `{"LumpSum":{"position_pct":..}}` 或 `{"Dca":{..}}`）。

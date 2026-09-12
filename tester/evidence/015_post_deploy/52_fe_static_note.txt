@@ -1,0 +1,56 @@
+# 前端路径静态复核（不构成前端 UI 实测，仅静态定位残余风险）
+
+## ConfigPanel 提交时构造 fee（恒显式三键，无 stamp_duty_pct）
+      if (!Number.isFinite(cap) || cap <= 0) {
+        return { err: '初始资金须为正数' };
+      }
+      const fee = { rate_pct: Number(feeRate), min_fee: Number(feeMin), slippage_bp: Number(feeSlippage) };
+      if (!Number.isFinite(fee.rate_pct) || !Number.isFinite(fee.min_fee) || !Number.isFinite(fee.slippage_bp)) {
+        return { err: '费用参数须为数值' };
+      }
+      return {
+        ok: {
+          slots: parsed.ok,
+          config: {
+            slots: parsed.ok,
+            buy_threshold: buy,
+            sell_threshold: sell,
+            policy,
+            stop,
+            initial_capital: cap,
+            fee,
+          },
+        },
+      };
+
+## ConfigPanel 回填（读取 cfg.fee.rate_pct —— 两段结构下为 undefined 风险点）
+          setStopTrigger(cfg.stop.trigger ?? 'Intrabar');
+        } else {
+          setStopEnabled(false);
+        }
+        setInitialCapital(String(cfg.initial_capital));
+        setFeeRate(String(cfg.fee.rate_pct));
+        setFeeMin(String(cfg.fee.min_fee));
+        setFeeSlippage(String(cfg.fee.slippage_bp));
+        const row = (presets ?? []).find((p) => p.id === id);
+        if (row) setPresetName(row.name);
+        setAppliedJson(canonicalConfig(pinnedToInput(cfg)));
+
+## types.ts WorkbenchFee（旧扁平形状，未含 effective/profile）
+  }
+  
+  /** fee 形状（web 层 validate_backtest_fee 三键） */
+  export interface WorkbenchFee {
+    rate_pct: number;
+    min_fee: number;
+    slippage_bp: number;
+  }
+  
+  /** POST /api/workbench/runs body（from/to RFC3339；buy/sell_threshold、initial_capital、stop 可省） */
+  export interface WorkbenchSubmitReq {
+
+## types.ts period 注释（未见 H1）
+    period: string; // M1/M5/M15/D1
+
+## 结论：经 UI 工作台提交的 ETF 回测仍以 explicit + stamp 0.05 计费（D11 类型推断不覆盖 UI 路径）；
+##       本项为 014 报告 §7 已登记的既有债，非本次部署引入；本次部署验收**未**做前端 UI 实测。

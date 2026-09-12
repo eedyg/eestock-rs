@@ -1,0 +1,86 @@
+# I-3/D11 费率两段回显（生产实测，真实 ETF 510050，D1 from=2026-06-01 to=2026-09-12，恒 buy 探针）
+
+## ① 省略 fee
+   fee = {
+ "effective": {
+  "commission_rate_pct": 0.025,
+  "min_fee": 5.0,
+  "slippage_bp": 2.0,
+  "source": "profile",
+  "stamp_duty_pct": 0.0
+ },
+ "profile": {
+  "commission_rate_pct": 0.025,
+  "exchange_fee_pct": 0.0,
+  "min_fee": 5.0,
+  "not_modeled": [
+   "exchange_fee_pct",
+   "regulatory_fee_pct",
+   "transfer_fee_pct"
+  ],
+  "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）",
+  "regulatory_fee_pct": 0.0,
+  "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）",
+  "stamp_duty_pct": 0.0,
+  "transfer_fee_pct": 0.0,
+  "type": "etf"
+ },
+ "symbol_type": "etf"
+}
+   断言: effective.stamp_duty_pct==0.0 -> True；source=='profile' -> True
+         symbol_type=etf
+         profile.not_modeled=['exchange_fee_pct', 'regulatory_fee_pct', 'transfer_fee_pct']
+         effective 段字段=['commission_rate_pct', 'min_fee', 'slippage_bp', 'source', 'stamp_duty_pct']；是否含未建模字段 -> []
+
+## ② 显式 fee={rate_pct:0.025,min_fee:5.0,slippage_bp:2.0,stamp_duty_pct:0.05}
+   fee = {
+ "effective": {
+  "commission_rate_pct": 0.025,
+  "min_fee": 5.0,
+  "slippage_bp": 2.0,
+  "source": "explicit",
+  "stamp_duty_pct": 0.05
+ },
+ "profile": {
+  "commission_rate_pct": 0.025,
+  "exchange_fee_pct": 0.0,
+  "min_fee": 5.0,
+  "not_modeled": [
+   "exchange_fee_pct",
+   "regulatory_fee_pct",
+   "transfer_fee_pct"
+  ],
+  "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）",
+  "regulatory_fee_pct": 0.0,
+  "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）",
+  "stamp_duty_pct": 0.0,
+  "transfer_fee_pct": 0.0,
+  "type": "etf"
+ },
+ "symbol_type": "etf"
+}
+   断言: effective.stamp_duty_pct==0.05 -> True；source=='explicit' -> True
+         effective 段字段=['commission_rate_pct', 'min_fee', 'slippage_bp', 'source', 'stamp_duty_pct']；是否含未建模字段 -> []
+
+## ③ 同标的两口径成交对比（同一策略/区间/bar 集）
+   bar_count: profile=324 explicit=324；warmup: 250/250 vs 250/250
+   trades: profile=1 explicit=1；开平仓 bar: profile=[(251, 323)] explicit=[(251, 323)]
+   stamp_sum: profile=0.0 explicit=50.152576980877896  Δstamp=50.152577
+   pnl_sum:   profile=280.0776732653467 explicit=229.92509628446714  Δpnl(profile-explicit)=50.152577
+   成交额(gross_value) profile=[100305.15396175579] explicit=[100305.15396175579]
+   印花税差额 vs pnl 差额: Δstamp=50.152577 vs Δpnl=50.152577 -> 相对误差 0.000000%
+   -> 结论：口径切换对 pnl 的影响恰等于卖出印花税差额（≈0.05% × 卖出成交额）
+
+## ④ 补充：显式 fee 省略 stamp_duty_pct（旧行为复现）→ 仍回落 0.05
+   effective={"commission_rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "source": "explicit", "stamp_duty_pct": 0.05}
+   断言: source=='explicit' -> True；stamp_duty_pct==0.05 -> True
+   stamp_sum=50.152576980877896（与 ② 显式 0.05 完全一致，见 16 文件同窗口）
+
+## ⑤ 补充：第二个真实 ETF 518880（同区间/同策略，省略 fee）
+   effective={"commission_rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0}
+   symbol_type=etf not_modeled=['exchange_fee_pct', 'regulatory_fee_pct', 'transfer_fee_pct']
+   effective 是否含未建模字段 -> []；stamp_sum=0.0
+
+## ⑥ 补充：LOF 161226（type=lof，省略 fee）
+   effective={"commission_rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0}
+   symbol_type=lof not_modeled=['exchange_fee_pct', 'regulatory_fee_pct', 'transfer_fee_pct']；stamp_sum=0.0

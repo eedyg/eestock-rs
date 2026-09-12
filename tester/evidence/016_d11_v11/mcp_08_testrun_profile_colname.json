@@ -1,0 +1,1 @@
+{"id":1,"jsonrpc":"2.0","result":{"content":[{"text":"工具执行失败：fee 对象不含任何可识别字段（可识别: rate_pct/min_fee/slippage_bp/stamp_duty_pct；当前收到: commission_rate_pct）","type":"text"}],"isError":true}}

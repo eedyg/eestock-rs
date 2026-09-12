@@ -1,0 +1,34 @@
+## before teardown
+listeners:
+LISTEN 0      128        127.0.0.1:18082      0.0.0.0:*    users:(("eestock-app_v11",pid=3840565,fd=12))
+LISTEN 0      128        127.0.0.1:18081      0.0.0.0:*    users:(("eestock-app_v11",pid=3840565,fd=11))
+alt_pid=3840565
+ps -p 3840565:
+3840565 3840563 /tmp/tester016/eestock-app_v11 --config /tmp/app_tester016.toml
+
+## after SIGTERM (waited 500ms)
+process gone (kill -0 returned non-zero)
+listeners on 18081/18082:
+NONE (ports free)
+pgrep eestock-app_v11:
+3863237 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && EV=tester/evidence/016_d11_v11 && { echo "## before teardown"; echo "listeners:"; ss -ltnp | grep -E "18081|18082"; PID=$(ss -ltnp | grep -oP ':18081\s.*pid=\K[0-9]+' | head -1); echo "alt_pid=$PID"; echo "ps -p $PID:"; ps -p $PID -o pid,ppid,cmd --no-headers; echo "$PID" > /tmp/tester016/alt_pid.txt; } | tee $EV/41_teardown.txt PID=$(cat /tmp/tester016/alt_pid.txt); echo "killing $PID"; kill -TERM $PID; for i in $(seq 1 20); do sleep 0.5; if ! kill -0 $PID 2>/dev/null; then break; fi; done { echo; echo "## after SIGTERM (waited $((i*5))00ms)"; if kill -0 $PID 2>/dev/null; then echo "STILL ALIVE -> sending SIGKILL"; kill -9 $PID; sleep 1; else echo "process gone (kill -0 returned non-zero)"; fi; echo "listeners on 18081/18082:"; ss -ltnp | grep -E "18081|18082" || echo "NONE (ports free)"; echo "pgrep eestock-app_v11:"; pgrep -af eestock-app_v11 || echo "NONE (no alt process)"; echo "prod 8081/8082 still listening:"; ss -ltnp | grep -E ":8081|:8082"; echo "prod pid: $(pgrep -f 'eestock-app --config /tmp/app_dev_8081.toml' | tr '\n' ' ')"; } | tee -a $EV/41_teardown.txt
+3863256 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && EV=tester/evidence/016_d11_v11 && { echo "## before teardown"; echo "listeners:"; ss -ltnp | grep -E "18081|18082"; PID=$(ss -ltnp | grep -oP ':18081\s.*pid=\K[0-9]+' | head -1); echo "alt_pid=$PID"; echo "ps -p $PID:"; ps -p $PID -o pid,ppid,cmd --no-headers; echo "$PID" > /tmp/tester016/alt_pid.txt; } | tee $EV/41_teardown.txt PID=$(cat /tmp/tester016/alt_pid.txt); echo "killing $PID"; kill -TERM $PID; for i in $(seq 1 20); do sleep 0.5; if ! kill -0 $PID 2>/dev/null; then break; fi; done { echo; echo "## after SIGTERM (waited $((i*5))00ms)"; if kill -0 $PID 2>/dev/null; then echo "STILL ALIVE -> sending SIGKILL"; kill -9 $PID; sleep 1; else echo "process gone (kill -0 returned non-zero)"; fi; echo "listeners on 18081/18082:"; ss -ltnp | grep -E "18081|18082" || echo "NONE (ports free)"; echo "pgrep eestock-app_v11:"; pgrep -af eestock-app_v11 || echo "NONE (no alt process)"; echo "prod 8081/8082 still listening:"; ss -ltnp | grep -E ":8081|:8082"; echo "prod pid: $(pgrep -f 'eestock-app --config /tmp/app_dev_8081.toml' | tr '\n' ' ')"; } | tee -a $EV/41_teardown.txt
+prod 8081/8082 still listening:
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=12)) 
+prod pid: 3767370 3767395 3863237 3863256 3863263 
+
+## independent re-check (new shell)
+18081 curl:
+  http_code=000
+  connection failed (expected: instance down)
+18082 curl:
+  http_code=000
+  connection failed (expected: instance down)
+ss grep:
+  NONE
+pgrep -x eestock-app_v11:
+  NONE
+prod listeners:
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=12)) 

@@ -1,0 +1,5 @@
+# D9 strategy_test_run 注册表门禁（生产 :8082 实测）
+args={code:内联恒买, symbol:'510300'(未注册), period:D1, from/to, mode:sim_position}
+isError=True
+message=工具执行失败：标的 510300 未注册（不在平台 symbols 注册表内）——已拒绝查询；请核对代码（注册标的见 web /api/symbols）
+校验: isError=True 且含代码 '510300' + 原因 '未注册' -> PASS

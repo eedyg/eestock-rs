@@ -1,0 +1,21 @@
+# I-2 warmup（生产实测，恒 buy 探针 'function on_bar(ctx){return 100;}'）
+
+## strategy_test_run D1 510050 from=2026-08-01 to=2026-09-12 warmup_bars=250
+   bar_count=280 warmup_requested=250 warmup_effective=250
+   有 warmup 字段的逐 bar 记录: signals=280 scores=280
+   warmup=true 计数: signals=250 scores=250
+   首个 warmup=false 的下标: signals=250 scores=250
+   warmup 段信号分布: {"buy": 250}
+   warmup 段为 buy 的样例: {"ts": 1753113600, "signal": "buy", "warmup": true}  signals[249]={"ts": 1785427200, "signal": "buy", "warmup": true}
+   in-range 段信号分布: {"buy": 30}
+   trades=1；open_bar/close_bar=[(251, 279)]
+   -> warmup 段 [0,249] 内成交数 = 0
+
+## bt_get_run_result H1 run sr_1789223648181_000000（warmup_bars 缺省=250）
+   per_bar=274 warmup=true 计数=250 首个非 warmup 下标=250
+   warmup 段 orders 非空条数=0；warmup 段 signal 分布={"Buy": 9, "Hold": 233, "Sell": 8}
+   trades=1；open_bar/close_bar=[(266, 273)]
+   -> warmup 段（下标<250）内成交数 = 0
+   warmup 段首/末逐 bar 样例: {"aggregate": 50.0, "events": [], "orders": [], "scores": [{"score": 50.0, "slot_idx": 0}], "signal": "Hold", "ts": 1780455600, "warmup": true}
+                             {"aggregate": 50.0, "events": [], "orders": [], "scores": [{"score": 50.0, "slot_idx": 0}], "signal": "Hold", "ts": 1785481200, "warmup": true}
+   in-range 首条: {"aggregate": 50.0, "events": [], "orders": [], "scores": [{"score": 50.0, "slot_idx": 0}], "signal": "Hold", "ts": 1785718800, "warmup": false}

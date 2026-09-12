@@ -1,15 +1,25 @@
-//! 回测费用映射与**按标的类型推断费率**（ADR-019 / D11-3）。
+//! 回测费用映射与**按标的类型推断费率**（ADR-019 / D11-3；v1.1 修订 R-2/R-3）。
 //!
-//! 三层费率解析（`resolve_fee`，ADR-019 ¶3 / D11-3）：
-//! 1. **显式传参优先**：调用方给了 `fee` 对象 → 整体以显式为准（缺 `stamp_duty_pct` 仍取
-//!    旧默认 0.05 → 完全向后兼容，可复现旧行为）；`source="explicit"`。
-//! 2. **按类型推断**：未传 `fee` → 按标的 `symbols.type` 查 `fee_profiles`（D11-2）；
-//!    `source="profile"`。滑点非费率事实（档案无列）→ 取 ADR bt-1 默认 2bp。
-//! 3. **未知回退**：`type IS NULL` / 无档案行 → 旧 ADR bt-1 默认（0.025/5/0.05/2）
-//!    + `source="default"`——不静默借用他类型档案（ADR-019 D11-1 裁决 A2）。
+//! 费率解析（`resolve_fee`）= **按字段优先级**（ADR-019 v1.1 R-2）：
+//! 1. **显式字段优先**：显式 `fee` 对象中**出现的**字段以其值（并校验）为准；
+//! 2. **缺失字段回退档案**：显式未出现的字段 → 按标的 `symbols.type` 查 `fee_profiles`（D11-2）；
+//! 3. **档案缺失再回退旧默认**：无档案行 / `type` 未设 → 旧 ADR bt-1 默认（0.025 / 5 / 0.05）。
+//!    滑点非费率事实（档案无列）→ 档案分支取 ADR bt-1 默认 2bp。
+//!
+//! `source`（R-3）= 本次解析**最高优先级来源**：任一字段来自显式 → `"explicit"`；否则解析到档案 → `"profile"`；
+//! 否则 → `"default"`。**口径注记**：`source="explicit"` **不等于**「所有字段都来自显式」——未出现的字段
+//! 仍逐字段回退档案/默认。
 //!
 //! 字段映射：`rate_pct -> commission_rate_pct`、`min_fee -> min_commission`、`slippage_bp -> slippage_bp`；
-//! `stamp_duty_pct`（卖方印花税）为可选用户参数，缺省 0.05（A 股股票口径，ADR bt-1）。
+//! `stamp_duty_pct`（卖方印花税）为可选字段，缺失时**按优先级回退**（档案/默认），不再固定 0.05
+//! —— 这是 R-2 直接修复的回归（v1.0「对象存在=整体显式、缺失 stamp 取 0.05」使 UI 三键 fee 对 ETF 多收印花税）。
+//!
+//! **v1.1 补守卫（架构师裁决）**：显式 `fee` 对象**存在**但**不含任何可识别字段**
+//! （`{}` / 全未知键，如 `{"foo":1}`）→ **报错（HTTP 400 / MCP isError）**，消息指明可识别字段集
+//! 与实际收到的键。含 **≥1 个**可识别字段（[`RECOGNIZED_FEE_FIELDS`]）→ 正常字段级解析（缺失字段逐级回退，
+//! 不报错）。理由：空/全未知键是典型调用方 bug，静默按"全量回退"属"静默失真"类缺陷（同 I-1 静默空返回），
+//! 必须 fail-fast；而"部分字段"（如 UI 三键不带 stamp）是合法意图，必须允许。
+//! **HTTP 层 `validate_backtest_fee` 三键预校验保持不变**（UI 契约）；本守卫作用于本模块（API/服务层解析点）。
 //! （父级 2026-xx 已批准：在 application 层完成映射，不改 backtest/fee 的 `FeeModel` 定义。）
 
 use anyhow::{anyhow, Result};
@@ -25,14 +35,19 @@ pub const DEFAULT_SLIPPAGE_BP: f64 = 2.0;
 /// 缺省卖方印花税 0.05%（A 股股票口径，ADR bt-1）；ETF/LOF 类标的经档案解析为 0（D11）。
 pub const DEFAULT_STAMP_DUTY_PCT: f64 = 0.05;
 
-/// 生效费的来源（D11-3 响应回显三值）。
+/// 显式 `fee` 对象**可识别（入参形态）字段集**：调用方入参至少须含其一（ADR-019 v1.1 补守卫）。
+/// **注意**：这是**入参**键名，与档案列名（`commission_rate_pct` 等）不同；`stamp_duty_pct` 虽可省略，
+/// 但"本对象根本没有任何费率入参"属调用方 bug → fail-fast。
+pub const RECOGNIZED_FEE_FIELDS: [&str; 4] = ["rate_pct", "min_fee", "slippage_bp", "stamp_duty_pct"];
+
+/// 生效费的来源（D11-3 响应回显三值；v1.1 R-3：取**最高优先级来源**，非"所有字段均来自该类"）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeeSource {
-    /// 调用方显式传 `fee`（整体以显式为准）。
+    /// 至少一个字段来自调用方显式 `fee` 对象（其余字段仍可回退档案/默认）。
     Explicit,
-    /// 按标的 type 查 `fee_profiles` 解析。
+    /// 无字段来自显式，但解析到标的 type 的 `fee_profiles` 档案。
     Profile,
-    /// type 未知/无档案 → 回退旧 ADR bt-1 默认。
+    /// 无显式字段且 type 未知/无档案 → 回退旧 ADR bt-1 默认。
     Default,
 }
 
@@ -79,23 +94,90 @@ pub fn fee_model_from_profile(p: &FeeProfileRow) -> FeeModel {
     }
 }
 
-/// 三层费率解析（详见模块头注）：显式 > 档案（按 type）> 旧默认。
+/// 费率解析（详见模块头注）：**按字段优先级** 显式字段 > 档案（按 type）> 旧默认。
 /// `profile` 为调用方按 `symbols.type` 查得（`FeeProfileStore::for_symbol`，查不到即 None）。
+///
+/// **守卫（v1.1 补）**：显式对象**存在但无任何可识别字段**（`{}` / 全未知键）→ 报错（400/isError）；
+/// 含 ≥1 可识别字段（[`RECOGNIZED_FEE_FIELDS`]）→ 出现的字段生效 + 缺失字段逐级回退。
 pub fn resolve_fee(explicit: Option<&serde_json::Value>, profile: Option<FeeProfileRow>) -> Result<ResolvedFee> {
     let symbol_type = profile.as_ref().map(|p| p.type_.clone());
-    let model = match explicit {
-        Some(v) => to_fee_model(v)?,
-        None => match &profile {
-            Some(p) => fee_model_from_profile(p),
-            None => legacy_default_fee_model(),
-        },
+    // 基础值 = 档案（若有）否则旧默认；显式字段在其上**逐字段**覆盖（v1.1 R-2）。
+    let base = match &profile {
+        Some(p) => fee_model_from_profile(p),
+        None => legacy_default_fee_model(),
     };
-    let source = match explicit {
-        Some(_) => FeeSource::Explicit,
-        None if profile.is_some() => FeeSource::Profile,
-        None => FeeSource::Default,
+    let (model, source) = match explicit {
+        None => {
+            let source = if profile.is_some() { FeeSource::Profile } else { FeeSource::Default };
+            (base, source)
+        }
+        Some(v) => {
+            let obj = v.as_object().ok_or_else(|| anyhow!("fee 应为对象"))?;
+            // v1.1 补守卫（架构师裁决）：显式对象**存在**但**不含任何可识别字段**（`{}`/全未知键）
+            // → fail-fast（调用方 bug；不得静默按"全量回退"处理，否则与 I-1 静默空返回同类缺陷）。
+            // 含 ≥1 可识别字段（哪怕只有 1 个）→ 按字段级优先级解析，缺失字段逐字段回退。
+            if !obj.keys().any(|k| RECOGNIZED_FEE_FIELDS.contains(&k.as_str())) {
+                let mut got: Vec<&str> = obj.keys().map(String::as_str).collect();
+                got.sort_unstable();
+                let got = if got.is_empty() { "（空对象）".to_string() } else { got.join(", ") };
+                return Err(anyhow!(
+                    "fee 对象不含任何可识别字段（可识别: {}；当前收到: {got}）",
+                    RECOGNIZED_FEE_FIELDS.join("/")
+                ));
+            }
+            let mut m = base;
+            let mut from_explicit = false;
+            if let Some(x) = explicit_number(obj, "rate_pct")? {
+                m.commission_rate_pct = x;
+                from_explicit = true;
+            }
+            if let Some(x) = explicit_number(obj, "min_fee")? {
+                m.min_commission = x;
+                from_explicit = true;
+            }
+            if let Some(x) = explicit_number(obj, "slippage_bp")? {
+                m.slippage_bp = x;
+                from_explicit = true;
+            }
+            if let Some(x) = explicit_stamp_duty(obj)? {
+                m.stamp_duty_pct = x;
+                from_explicit = true;
+            }
+            let source = if from_explicit {
+                FeeSource::Explicit
+            } else if profile.is_some() {
+                FeeSource::Profile
+            } else {
+                FeeSource::Default
+            };
+            (m, source)
+        }
     };
     Ok(ResolvedFee { model, source, symbol_type, profile })
+}
+
+/// 读取显式 fee 对象的数值字段（缺失 → `None`；出现但非数值 → 报错）。
+fn explicit_number(obj: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<Option<f64>> {
+    match obj.get(key) {
+        None => Ok(None),
+        Some(v) => v.as_f64().map(Some).ok_or_else(|| anyhow!("fee.{key} 应为数值")),
+    }
+}
+
+/// 读取/校验显式 `stamp_duty_pct`（缺失 → `None`；出现须为数值且 ∈ [0,1]）。
+fn explicit_stamp_duty(obj: &serde_json::Map<String, serde_json::Value>) -> Result<Option<f64>> {
+    match obj.get("stamp_duty_pct") {
+        None => Ok(None),
+        Some(v) => {
+            let x = v
+                .as_f64()
+                .ok_or_else(|| anyhow!("fee.stamp_duty_pct 应为数值"))?;
+            if !(0.0..=1.0).contains(&x) {
+                return Err(anyhow!("fee.stamp_duty_pct 须 ∈ [0,1]（百分比）"));
+            }
+            Ok(Some(x))
+        }
+    }
 }
 
 /// I-3/D6：`FeeModel -> serde_json`（**输入/预设钉住**形态：`{rate_pct, min_fee, slippage_bp, stamp_duty_pct}`）。
@@ -174,7 +256,10 @@ pub fn resolved_fee_to_json(r: &ResolvedFee) -> serde_json::Value {
 }
 
 /// `serde_json::Value` `{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}` → [`FeeModel`]。
-/// `stamp_duty_pct` 缺省 0.05（完全向后兼容）；若提供须为数值且 ∈ [0, 1]，否则报错（web 层同口径 400）。
+/// **用途**：解析**钉住/预设的扁平 fee**（[`fee_model_to_json`] 的往返形态；如工作台预设 CRUD），
+/// 要求三键齐（缺 → 报错）；`stamp_duty_pct` 缺省 0.05（扁平预设无标的类型，不可推断）；
+/// 若提供须为数值且 ∈ [0, 1]，否则报错（web 层同口径 400）。
+/// **费率解析请用 [`resolve_fee`]**（字段级优先级，见模块头注）——不要把本函数用于调用方 fee 入参。
 pub fn to_fee_model(fee: &serde_json::Value) -> Result<FeeModel> {
     let obj = fee.as_object().ok_or_else(|| anyhow!("fee 应为对象"))?;
     let rate_pct = obj
@@ -304,23 +389,116 @@ mod tests {
         assert_eq!(m, FeeModel::default(), "旧默认必须与 backtest::FeeModel::default 一致");
     }
 
-    #[test]
-    fn explicit_fee_wins_over_profile_and_keeps_legacy_stamp_default() {
-        // 显式传对象（未传 stamp）→ 以显式为准 + 旧行为 0.05（向后兼容，ADR-019 §3.2）。
-        let explicit = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
-        let r = resolve_fee(Some(&explicit), Some(etf_profile())).unwrap();
-        assert_eq!(r.source, FeeSource::Explicit);
-        assert_eq!(r.model.stamp_duty_pct, 0.05, "显式分支缺 stamp → 旧默认 0.05（可复现旧行为）");
-        assert_eq!(r.model.commission_rate_pct, 0.025);
-        assert_eq!(r.symbol_type.as_deref(), Some("etf"), "仍回显标的类型供对照");
+    // ── ADR-019 v1.1 R-2/R-3：按**字段**优先级解析（显式字段 > 档案 > 旧默认） ──
 
-        // ETF 显式 stamp=0 → 以显式 0 为准（卖出零印花税）。
-        let explicit0 = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0,
-                                          "slippage_bp": 2.0, "stamp_duty_pct": 0.0});
-        let r0 = resolve_fee(Some(&explicit0), Some(etf_profile())).unwrap();
-        assert_eq!(r0.source, FeeSource::Explicit);
-        assert_eq!(r0.model.stamp_duty_pct, 0.0);
-        assert_eq!(r0.model.sell(1000.0, 10.0).stamp_duty, 0.0);
+    /// 本批核心断言（R2-①）：UI 三键 fee（无 stamp）+ ETF 档案 → stamp=0。
+    /// 字段级回退：缺失的 `stamp_duty_pct` 回退档案（ETF 不征 0），而非旧"整体显式→0.05"。
+    #[test]
+    fn explicit_three_keys_without_stamp_falls_back_to_etf_profile() {
+        let ui = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
+        let r = resolve_fee(Some(&ui), Some(etf_profile())).unwrap();
+        assert_eq!(r.source, FeeSource::Explicit, "三键均来自显式 → source=explicit");
+        assert_eq!(r.model.stamp_duty_pct, 0.0, "缺 stamp → 回退 ETF 档案 = 0（核心断言）");
+        assert_eq!(r.model.sell(1000.0, 10.0).stamp_duty, 0.0, "ETF 卖出零印花税");
+        assert_eq!(r.model.commission_rate_pct, 0.025, "显式 rate 生效");
+        assert_eq!(r.model.min_commission, 5.0);
+        assert_eq!(r.symbol_type.as_deref(), Some("etf"), "仍回显标的类型供对照");
+    }
+
+    /// R2-②：三键 fee（无 stamp）+ stock 档案 → stamp=0.05（回退档案事实，而非凭空旧默认）。
+    #[test]
+    fn explicit_three_keys_without_stamp_falls_back_to_stock_profile() {
+        let ui = serde_json::json!({"rate_pct": 0.02, "min_fee": 5.0, "slippage_bp": 2.0});
+        let r = resolve_fee(Some(&ui), Some(stock_profile())).unwrap();
+        assert_eq!(r.source, FeeSource::Explicit);
+        assert_eq!(r.model.commission_rate_pct, 0.02, "显式字段优先");
+        assert_eq!(r.model.stamp_duty_pct, 0.05, "缺 stamp → 回退 stock 档案 0.05");
+    }
+
+    /// R2-③：显式 stamp=0.07 → 0.07（显式字段最高优先，覆盖档案与默认）。
+    #[test]
+    fn explicit_stamp_wins_over_profile() {
+        let e = serde_json::json!({"rate_pct": 0.02, "min_fee": 5.0,
+                                  "slippage_bp": 2.0, "stamp_duty_pct": 0.07});
+        let r = resolve_fee(Some(&e), Some(stock_profile())).unwrap();
+        assert_eq!(r.source, FeeSource::Explicit);
+        assert_eq!(r.model.stamp_duty_pct, 0.07, "显式 stamp 优先于档案 0.05");
+        // ETF 档案下显式 stamp=0.05 仍可复现旧口径（01-cases）
+        let e2 = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0,
+                                   "slippage_bp": 2.0, "stamp_duty_pct": 0.05});
+        assert_eq!(resolve_fee(Some(&e2), Some(etf_profile())).unwrap().model.stamp_duty_pct, 0.05);
+    }
+
+    /// 显式仅含部分字段：出现的生效、缺失的逐字段回退档案（R-2 字段级核心语义）。
+    #[test]
+    fn partial_explicit_overrides_only_present_fields() {
+        let partial = serde_json::json!({"rate_pct": 0.01});
+        let r = resolve_fee(Some(&partial), Some(etf_profile())).unwrap();
+        assert_eq!(r.source, FeeSource::Explicit, "有字段来自显式 → explicit");
+        assert_eq!(r.model.commission_rate_pct, 0.01, "显式 rate 生效");
+        assert_eq!(r.model.min_commission, 5.0, "缺 min_fee → 回退档案");
+        assert_eq!(r.model.slippage_bp, DEFAULT_SLIPPAGE_BP, "缺 slippage → 回退档案（=默认）");
+        assert_eq!(r.model.stamp_duty_pct, 0.0, "缺 stamp → 回退 ETF 档案 0");
+        // 部分显式 + 无档案 → 缺失字段回退旧默认
+        let r2 = resolve_fee(Some(&partial), None).unwrap();
+        assert_eq!(r2.source, FeeSource::Explicit);
+        assert_eq!(r2.model.commission_rate_pct, 0.01);
+        assert_eq!(r2.model.stamp_duty_pct, DEFAULT_STAMP_DUTY_PCT, "无档案 → 缺失字段回退旧默认");
+    }
+
+    /// v1.1 补守卫（架构师裁决）：显式对象**存在**但**不含任何可识别字段**（`{}` / 全未知键）
+    /// → **fail-fast 报错**（调用方 bug，不得静默按"全量回退"处理）。
+    #[test]
+    fn explicit_object_without_recognized_fields_is_rejected() {
+        for (tag, v) in [
+            ("empty_object", serde_json::json!({})),
+            ("unknown_only", serde_json::json!({"foo": 1})),
+            // 档案列名不是入参名（`commission_rate_pct` ∉ 可识别集）→ 视为未知键
+            ("profile_column_name", serde_json::json!({"commission_rate_pct": 0.025})),
+        ] {
+            let err = resolve_fee(Some(&v), Some(etf_profile()))
+                .expect_err(&format!("{tag}: 无可识别字段须报错"));
+            let msg = err.to_string();
+            assert!(msg.contains("可识别"), "{tag}: 错误消息须指明可识别字段集，实际: {msg}");
+            for k in ["rate_pct", "min_fee", "slippage_bp", "stamp_duty_pct"] {
+                assert!(msg.contains(k), "{tag}: 错误消息须列出可识别字段 {k}，实际: {msg}");
+            }
+            assert!(msg.contains("收到"), "{tag}: 错误消息须指明当前收到的键，实际: {msg}");
+            // 无档案时同样须报错（守卫先于回退，不因缺档案而放行）
+            assert!(resolve_fee(Some(&v), None).is_err(), "{tag}: 无档案时亦须报错");
+        }
+    }
+
+    /// v1.1 补守卫正向面：显式对象含 **≥1 个可识别字段**（如仅 `rate_pct`）→ 合法。
+    /// 出现的字段生效，缺失字段逐字段回退档案（不报错）。
+    #[test]
+    fn explicit_object_with_single_recognized_field_is_accepted() {
+        let r = resolve_fee(Some(&serde_json::json!({"rate_pct": 0.025})), Some(etf_profile()))
+            .expect("含 1 个可识别字段须放行");
+        assert_eq!(r.source, FeeSource::Explicit, "有字段来自显式 → explicit");
+        assert_eq!(r.model.commission_rate_pct, 0.025, "显式 rate 生效");
+        assert_eq!(r.model.min_commission, etf_profile().min_fee, "缺 min_fee → 回退档案");
+        assert_eq!(r.model.slippage_bp, DEFAULT_SLIPPAGE_BP, "缺 slippage → 回退档案（=默认）");
+        assert_eq!(r.model.stamp_duty_pct, 0.0, "缺 stamp → 回退 ETF 档案 0");
+        // 无档案时缺失字段回退旧默认，仍为成功（含可识别字段）
+        let r2 = resolve_fee(Some(&serde_json::json!({"rate_pct": 0.025})), None).unwrap();
+        assert_eq!(r2.source, FeeSource::Explicit);
+        assert_eq!(r2.model.stamp_duty_pct, DEFAULT_STAMP_DUTY_PCT, "无档案 → 缺失字段回退旧默认");
+    }
+
+    /// 字段级校验：**出现的**字段非法（非数值/越界）仍须报错；未出现的字段不报缺。
+    #[test]
+    fn present_but_invalid_explicit_fields_still_error() {
+        for bad in [
+            serde_json::json!({"rate_pct": "x"}),
+            serde_json::json!({"min_fee": serde_json::Value::Null}),
+            serde_json::json!({"slippage_bp": "2"}),
+            serde_json::json!({"stamp_duty_pct": 1.5}),
+            serde_json::json!({"stamp_duty_pct": "0"}),
+        ] {
+            assert!(resolve_fee(Some(&bad), Some(etf_profile())).is_err(), "非法字段须报错: {bad}");
+        }
+        assert!(resolve_fee(Some(&serde_json::json!(42)), None).is_err(), "非对象须报错");
     }
 
     #[test]
@@ -349,13 +527,6 @@ mod tests {
         assert_eq!(r.symbol_type, None);
         assert_eq!(r.profile, None);
         assert_eq!(r.model, legacy_default_fee_model());
-    }
-
-    #[test]
-    fn resolve_fee_propagates_invalid_explicit_fee() {
-        let bad = serde_json::json!({"rate_pct": 0.025});
-        assert!(resolve_fee(Some(&bad), Some(etf_profile())).is_err(), "缺字段的显式 fee 仍须报错");
-        assert!(resolve_fee(Some(&serde_json::json!(42)), None).is_err());
     }
 
     #[test]

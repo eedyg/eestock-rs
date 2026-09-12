@@ -725,7 +725,7 @@ fn tool_schemas() -> Vec<Value> {
                     "mode": { "type": "string", "enum": ["pure_score", "sim_position"], "description": "试算模式" },
                     "params": { "type": "object", "description": "插件参数（按版本 schema 校验/缺省填充）" },
                     "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；历史不足时响应回显 warmup_effective < warmup_requested。" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费 0、经手费/证管费按全佣口径已含于佣金 → 列 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025, 5.0, 0.05}）。显式传对象时整体以显式为准（缺 stamp_duty_pct 仍 0.05，可复现旧行为）；值域 [0,1]。响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + source=explicit|profile|default）与 `fee.profile`（档案**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单——这三项**引擎未建模、未计入成本**，不得出现在 effective 段）。" },
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费 0、经手费/证管费按全佣口径已含于佣金 → 列 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025, 5.0, 0.05}）。**显式对象按字段优先级（ADR-019 v1.1 R-2）**：出现的字段以其值（并校验，stamp 值域 [0,1]）为准，缺失字段逐字段回退档案→旧默认（如 UI 三键 fee 无 stamp + ETF 档案 → stamp=0）；`source` 取最高优先级来源（任一字段来自显式 → explicit，R-3）。**v1.1 补守卫**：显式对象**存在但无可识别字段**（`{}`/全未知键）→ **报错（isError，消息含可识别字段集与当前收到键）**；含 ≥1 可识别字段（rate_pct/min_fee/slippage_bp/stamp_duty_pct）即放行（缺失字段逐级回退）。响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + source=explicit|profile|default）与 `fee.profile`（档案**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单——这三项**引擎未建模、未计入成本**，不得出现在 effective 段）。" },
                     "policy": { "type": "object", "description": "ExecutionPolicy（与 bt_run_ensemble 同 JSON 口径）：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}；缺省 LumpSum 全仓。" },
                     "capital": { "type": "number", "description": "初始资金，默认 100000（与回测 ADR §4 一致）。" }
                 },
@@ -742,7 +742,7 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_run_ensemble",
-            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee **省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费免收 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025,5.0,0.05}），显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）；生效 fee 钉入 config 快照，分 `effective`（引擎实际应用参数 + source=explicit|profile|default）与 `profile`（档案全量事实 + `not_modeled` 显式未建模清单）两段。适用场景：策略组合历史表现验证/参数与阈值对比。",
+            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee **省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费免收 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025,5.0,0.05}），**显式对象按字段优先级**（ADR-019 v1.1 R-2：出现字段优先，缺失字段逐字段回退档案→旧默认）；**生效 fee 以扁平形态钉入 config 快照**（`fee_model_to_json`：`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，R-1——预设往返/前端读取兼容），响应回显分 `effective`（引擎实际应用参数 + source=explicit|profile|default）与 `profile`（档案全量事实 + `not_modeled` 显式未建模清单）两段。适用场景：策略组合历史表现验证/参数与阈值对比。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -762,7 +762,7 @@ fn tool_schemas() -> Vec<Value> {
                     "policy": { "type": "object", "description": "ExecutionPolicy：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}" },
                     "stop": { "type": "object", "description": "硬止损（可空）：{\"kind\":\"FixedPct|Trailing|Atr\", \"value\":>0, \"trigger\":\"Intrabar|CloseBasis\"}" },
                     "initial_capital": { "type": "number", "description": "初始资金，默认 100000" },
-                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税 0/过户费 0；stock 0.05；无档案 → 旧默认）；显式对象整体优先；stamp_duty_pct 值域 [0,1]。config 快照钉入生效 fee：`fee.effective`（引擎实际应用参数 + source=explicit|profile|default）+ `fee.profile`（档案全量事实含 `not_modeled` 未建模清单）；未建模字段不得入 effective 段。" },
+                    "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税 0/过户费 0；stock 0.05；无档案 → 旧默认）；**显式对象按字段优先级**（ADR-019 v1.1 R-2：出现字段优先，缺失字段逐字段回退档案→旧默认）；**v1.1 补守卫**：显式对象存在但**无可识别字段**（`{}`/全未知键）→ isError（消息含可识别字段集与收到键）；stamp_duty_pct 值域 [0,1]。**config 快照钉入生效 fee 的扁平形态**（R-1：`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，不含两段结构）；两段（`effective`+source / `profile`+`not_modeled`）仅出现在试算/回测的**响应回显**。" },
                     "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；warmup 段不执行 Policy、不计净值/绩效；config 钉住 warmup_requested/effective 并逐 bar 标记 warmup。" }
                 },
                 "required": ["symbol", "period", "from", "to", "slots", "policy"]
@@ -1601,7 +1601,8 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
         },
     };
     // I-3/D6 + ADR-019 D11-3：fee **省略** = 传 None 交服务层按标的 type 查 `fee_profiles` 解析
-    // （无档案/type 未设 → 旧 ADR bt-1 默认）；显式传对象仍整体优先（向后兼容）。
+    // （无档案/type 未设 → 旧 ADR bt-1 默认）；显式对象按字段优先级（v1.1 R-2：出现字段优先，缺失字段逐字段回退档案→旧默认；
+    // v1.1 补守卫：显式对象**无可识别字段**（空对象/全未知键）→ 服务层报错 isError）。
     let fee = match args.get("fee") {
         None => None,
         Some(v) if v.is_object() => Some(v.clone()),
@@ -1734,7 +1735,8 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
             None => return result_err(id, INVALID_PARAMS, "initial_capital 须为 number"),
         },
     };
-    // ADR-019 D11-3：同上（省略 = 按标的 type 查 fee_profiles；显式对象整体优先）。
+    // ADR-019 D11-3（v1.1 R-2）：同上（省略 = 按标的 type 查 fee_profiles；显式对象按字段优先级）。
+    // v1.1 补守卫：无可识别字段的显式对象由服务层报错（isError），此处仅透传 object。
     let fee = match args.get("fee") {
         None => None,
         Some(v) if v.is_object() => Some(v.clone()),
@@ -3471,11 +3473,25 @@ mod tests {
         a["mode"] = json!("pure_score");
         a["capital"] = json!(0);
         assert_eq!(call(&st, "strategy_test_run", a).await["error"]["code"], -32602);
-        // 非法 fee（缺字段）→ 服务层工具错误（isError）。
+        // 非法 fee（字段非数值）→ 服务层工具错误（isError）。
+        // v1.1 R-2：**缺字段不再报错**（改为字段级回退）；出现的非法字段仍报错。
+        let mut a = base.clone();
+        a["mode"] = json!("pure_score");
+        a["fee"] = json!({ "rate_pct": "x" });
+        assert_eq!(call(&st, "strategy_test_run", a).await["result"]["isError"], true);
+        // 缺字段 fee（三键缺二）不再报错：字段级回退（无档案 → 旧默认）。
         let mut a = base.clone();
         a["mode"] = json!("pure_score");
         a["fee"] = json!({ "rate_pct": 0.025 });
-        assert_eq!(call(&st, "strategy_test_run", a).await["result"]["isError"], true);
+        assert_ne!(call(&st, "strategy_test_run", a).await["result"]["isError"], true);
+        // v1.1 补守卫（架构师裁决）：显式对象存在但**无可识别字段**（空对象/全未知键）→ 报错（fail-fast）。
+        for no_field in [json!({}), json!({ "foo": 1 })] {
+            let mut a = base.clone();
+            a["mode"] = json!("pure_score");
+            a["fee"] = no_field.clone();
+            assert_eq!(call(&st, "strategy_test_run", a).await["result"]["isError"], true,
+                "无可识别字段 {} 须报错", no_field);
+        }
     }
 
     // ── ADR-019（D11-3）：按标的 type 推断费率 + 生效 fee/source 回显 ──
@@ -3500,12 +3516,17 @@ mod tests {
             json!(["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]),
             "三项规费未建模 → 显式标注，不得误读为已计入");
         assert!(p["fee"]["effective"].get("exchange_fee_pct").is_none(), "未建模字段不得入 effective");
-        // ② 显式传对象 → 整体以显式为准（缺 stamp_duty_pct 仍 0.05：旧行为完全可复现）
+        // ② 显式三键（无 stamp，UI 形态）+ ETF 档案 → **字段级回退** stamp=0（v1.1 R-2 本批核心断言）
         let mut a = base.clone();
         a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 });
         let p = payload_of(&call(&st, "strategy_test_run", a).await);
-        assert_eq!(p["fee"]["effective"]["source"], json!("explicit"), "显式传参优先");
-        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "显式分支保持旧默认 0.05（向后兼容）");
+        assert_eq!(p["fee"]["effective"]["source"], json!("explicit"), "有字段来自显式 → explicit");
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.0), "缺 stamp → 回退 ETF 档案 0（非旧 0.05）");
+        // ②b 显式 stamp=0.05 → 显式字段最高优先（旧行为可复现）
+        let mut a = base.clone();
+        a["fee"] = json!({ "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.05 });
+        let p = payload_of(&call(&st, "strategy_test_run", a).await);
+        assert_eq!(p["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "显式 stamp 优先");
         // ③ 未建档标的（600000 不在 etf_codes）→ default 分支：旧默认，不借用他类型档案
         let mut a = base.clone();
         a["symbol"] = json!("600000");
@@ -3516,7 +3537,7 @@ mod tests {
         assert!(p["fee"]["symbol_type"].is_null());
     }
 
-    /// bt_run_ensemble：省略 fee → config 快照钉住 profile 生效值 + source（与试算同口径）。
+    /// bt_run_ensemble：省略 fee → config 快照钉住 profile 生效值（**扁平**形态，R-1）；显式三键 fee 按字段级回退。
     #[tokio::test]
     async fn bt_run_ensemble_fee_resolves_by_symbol_type_and_pins_source() {
         // 注：工作台注册表替身（MockStrategySymbols）仅含 600000，故本用例的档案替身按 600000 建档。
@@ -3533,16 +3554,16 @@ mod tests {
             if let Some(f) = fee { a["fee"] = f; }
             a
         };
-        // 省略 fee → 按 type 解析（ETF 印花税 0）并钉入 config 快照（复现前提 + 来源可见）
+        // 省略 fee → 按 type 解析（ETF 印花税 0）并**扁平**钉入 config 快照（R-1 复现前提）
         let p = payload_of(&call(&st, "bt_run_ensemble", mk(None)).await);
-        assert_eq!(p["run"]["config"]["fee"]["effective"]["stamp_duty_pct"], json!(0.0), "ETF 缺省印花税 0");
-        assert_eq!(p["run"]["config"]["fee"]["effective"]["source"], json!("profile"));
-        assert_eq!(p["run"]["config"]["fee"]["symbol_type"], json!("etf"));
-        // 显式 fee → config 快照钉住显式值（source=explicit）
+        assert_eq!(p["run"]["config"]["fee"]["stamp_duty_pct"], json!(0.0), "ETF 缺省印花税 0（扁平）");
+        assert_eq!(p["run"]["config"]["fee"]["rate_pct"], json!(0.025));
+        assert!(p["run"]["config"]["fee"].get("effective").is_none(), "R-1：config.fee 扁平，无两段结构");
+        // 显式三键 fee（无 stamp）+ ETF → 字段级回退 stamp=0 并扁平钉入（R-2 核心）
         let p2 = payload_of(&call(&st, "bt_run_ensemble", mk(Some(json!(
             { "rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0 })))).await);
-        assert_eq!(p2["run"]["config"]["fee"]["effective"]["source"], json!("explicit"));
-        assert_eq!(p2["run"]["config"]["fee"]["effective"]["stamp_duty_pct"], json!(0.05), "显式缺 stamp → 旧默认");
+        assert_eq!(p2["run"]["config"]["fee"]["stamp_duty_pct"], json!(0.0),
+            "三键 fee 无 stamp + ETF → 回退档案 stamp=0 并钉入 config");
     }
 
     /// list_symbols：注册表行回显 type（ADR-019 D11-1；null = 未设置）。
@@ -3643,7 +3664,8 @@ mod tests {
         assert_eq!(p["run"]["status"], "queued");
         assert_eq!(p["run"]["config"]["slots"][0]["strategy_id"], json!(sid));
         assert_eq!(p["run"]["config"]["slots"][0]["version_id"], json!(vid), "钉住解析的最新 published");
-        assert_eq!(p["run"]["config"]["fee"]["effective"]["commission_rate_pct"], json!(0.025), "fee 缺省 ADR bt-1 默认");
+        assert_eq!(p["run"]["config"]["fee"]["rate_pct"], json!(0.025), "fee 缺省 ADR bt-1 默认（扁平 config.fee，R-1）");
+        assert!(p["run"]["config"]["fee"].get("effective").is_none(), "config.fee 不得含两段结构");
         // 轮询至完成（后台真实 QuickJS 引擎跑 6 bar）
         let mut status = String::new();
         for _ in 0..200 {

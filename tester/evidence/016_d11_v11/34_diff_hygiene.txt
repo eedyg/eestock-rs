@@ -1,0 +1,59 @@
+## numstat (plain)
+217	46	crates/application/src/fee.rs
+3	2	crates/application/src/strategy.rs
+6	5	crates/application/src/workbench.rs
+17	4	crates/application/tests/strategy.rs
+37	22	crates/application/tests/workbench.rs
+41	19	crates/mcp/src/tools.rs
+21	12	crates/mcp/tests/d11_fee_profile_e2e.rs
+5	2	crates/web/src/dto.rs
+2	2	crates/web/src/strategies.rs
+2	2	crates/web/src/workbench.rs
+35	0	design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md
+5	0	design/04-storage/schema.md
+6	3	design/07-app-plane/00-web-api.md
+41	19	design/07-app-plane/01-mcp.md
+12	6	design/08-backtest/01-engine-adr.md
+6	4	design/12-strategy-system/01-adr.md
+
+## numstat (-w ignore-all-space)
+215	44	crates/application/src/fee.rs
+3	2	crates/application/src/strategy.rs
+6	5	crates/application/src/workbench.rs
+17	4	crates/application/tests/strategy.rs
+37	22	crates/application/tests/workbench.rs
+41	19	crates/mcp/src/tools.rs
+21	12	crates/mcp/tests/d11_fee_profile_e2e.rs
+5	2	crates/web/src/dto.rs
+2	2	crates/web/src/strategies.rs
+2	2	crates/web/src/workbench.rs
+35	0	design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md
+5	0	design/04-storage/schema.md
+6	3	design/07-app-plane/00-web-api.md
+41	19	design/07-app-plane/01-mcp.md
+12	6	design/08-backtest/01-engine-adr.md
+6	4	design/12-strategy-system/01-adr.md
+
+## whitespace-only hunks check: diff of patches
+plain patch lines: 1080 | -w patch lines: 1078
+
+## files changed vs HEAD (excluding untracked)
+crates/application/src/fee.rs
+crates/application/src/strategy.rs
+crates/application/src/workbench.rs
+crates/application/tests/strategy.rs
+crates/application/tests/workbench.rs
+crates/mcp/src/tools.rs
+crates/mcp/tests/d11_fee_profile_e2e.rs
+crates/web/src/dto.rs
+crates/web/src/strategies.rs
+crates/web/src/workbench.rs
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md
+design/04-storage/schema.md
+design/07-app-plane/00-web-api.md
+design/07-app-plane/01-mcp.md
+design/08-backtest/01-engine-adr.md
+design/12-strategy-system/01-adr.md
+
+## Cargo.lock / Cargo.toml touched?
+0

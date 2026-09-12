@@ -194,11 +194,13 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 
 **试算参数组（I-3）**：`strategy_test_run` 新增：
 - `fee`（费率/最低费/滑点 + 可选 `stamp_duty_pct`）——与工作台 `to_fee_model` **同源口径**；
-  缺省 `stamp_duty_pct=0.05` 为 **A 股股票口径兼容值**，**ETF/LOF 须显式传 0**。
-  **D11（ADR-019）已落地**：**省略 `fee`** 时按标的 `symbols.type` 查 `fee_profiles` 解析默认值
-  （etf/lof 印花税不征 0、过户费 0、经手费/证管费全佣口径列 0；stock 0.05），**显式传 `fee` 对象整体优先**
-  （缺 `stamp_duty_pct` 仍 0.05 → 旧行为可复现）；`type` 未设/无档案 → 旧默认。解析在 **application 服务层**
+  缺省 `stamp_duty_pct=0.05` 为 **A 股股票口径兼容值**，**ETF/LOF 印花税不征**。
+  **D11（ADR-019，v1.1 修订）已落地**：**省略 `fee`** 时按标的 `symbols.type` 查 `fee_profiles` 解析默认值
+  （etf/lof 印花税不征 0、过户费 0、经手费/证管费全佣口径列 0；stock 0.05）；**显式 `fee` 对象按字段优先级**
+  （v1.1 R-2：出现的字段以其值（并校验）为准，缺失字段逐字段回退档案→旧默认——如 UI 三键 fee 无 stamp + ETF 档案 → stamp 回退 0）；
+  `source` 取本次解析**最高优先级来源**（任一字段来自显式 → explicit；否则 profile；否则 default，R-3）；`type` 未设/无档案 → 旧默认。解析在 **application 服务层**
   单点完成（MCP 与 REST 同口径），响应回显**显式两段**：`fee.effective`（引擎实际应用参数 + `source`（explicit|profile|default））与 `fee.profile`（档案全量事实 + `not_modeled` 未建模清单），另附 `symbol_type`；**未参与撮合的档案字段不得出现在 effective 段**（D11 验收 013 §11.3）。
+  **钉住 config 保持扁平（v1.1 R-1）**：两段结构仅用于响应回显；`strategy_run.config.fee` 仍为扁平 `{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`（预设往返/前端读取兼容）。
   费率事实与口径唯一出口见 design/08-backtest/01-engine-adr.md §4 D11 段。
 - `policy`（`ExecutionPolicy`：`LumpSum`/`Dca`，与 `bt_run_ensemble` 同 JSON 口径；缺省 LumpSum 全仓）、
   `capital`（初始资金，缺省 100_000）。**保留缺省值兼容既有调用**；响应回显**生效** fee（含 stamp_duty_pct 实际取值）。

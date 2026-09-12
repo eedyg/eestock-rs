@@ -1,0 +1,4 @@
+[
+ {"file":"20_bt_run_ensemble_h1.json","method":"tools/call","params":{"name":"bt_run_ensemble","arguments":{"name":"post-deploy-015 H1 acceptance","symbol":"510050","period":"H1","from":"2026-08-03T00:00:00+08:00","to":"2026-08-07T00:00:00+08:00","slots":[{"strategy_id":"st_1789013713975_000000","weight":1.0}],"policy":{"LumpSum":{"position_pct":1.0}}}}},
+ {"file":"21_bt_run_ensemble_bad_period.json","method":"tools/call","params":{"name":"bt_run_ensemble","arguments":{"name":"post-deploy-015 bad period","symbol":"510050","period":"M7","from":"2026-08-03T00:00:00+08:00","to":"2026-08-07T00:00:00+08:00","slots":[{"strategy_id":"st_1789013713975_000000","weight":1.0}],"policy":{"LumpSum":{"position_pct":1.0}}}}}
+]

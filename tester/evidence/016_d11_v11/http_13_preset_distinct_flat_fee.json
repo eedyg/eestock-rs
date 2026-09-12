@@ -1,0 +1,82 @@
+{
+ "request": {
+  "method": "POST",
+  "path": "/api/workbench/presets",
+  "body": {
+   "name": "tester016-roundtrip-20260912T1500",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "rate_pct": 0.011,
+     "min_fee": 3.5,
+     "slippage_bp": 7.25,
+     "stamp_duty_pct": 0.02
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1.0
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_bars": 250
+   }
+  }
+ },
+ "note": "往返:不同数值扁平 fee 建预设",
+ "http_status": 201,
+ "ms": 2,
+ "response": {
+  "id": "sp_1789225147731_000003",
+  "name": "tester016-roundtrip-20260912T1500",
+  "config": {
+   "buy_threshold": 60.0,
+   "fee": {
+    "min_fee": 3.5,
+    "rate_pct": 0.011,
+    "slippage_bp": 7.25,
+    "stamp_duty_pct": 0.02
+   },
+   "initial_capital": 100000.0,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "sell_threshold": 40.0,
+   "slots": [
+    {
+     "archived": false,
+     "params": {
+      "fast": 5.0,
+      "slow": 20.0
+     },
+     "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+     "strategy_id": "st_1789013713975_000000",
+     "version": 1,
+     "version_id": "sv_1789013713975_000001",
+     "weight": 1.0
+    }
+   ],
+   "stop": null,
+   "warmup_bars": 250
+  },
+  "created_at": "2026-09-12T14:59:07.731287Z",
+  "updated_at": "2026-09-12T14:59:07.731287Z"
+ }
+}

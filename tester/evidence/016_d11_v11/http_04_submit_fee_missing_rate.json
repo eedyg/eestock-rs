@@ -1,0 +1,38 @@
+{
+ "request": {
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000,
+   "fee": {
+    "min_fee": 5.0,
+    "slippage_bp": 2.0
+   }
+  }
+ },
+ "note": "HTTP fee 缺 rate_pct",
+ "http_status": 400,
+ "ms": 0,
+ "response": {
+  "error": "fee.rate_pct 缺失"
+ }
+}

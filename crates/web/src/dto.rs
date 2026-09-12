@@ -459,8 +459,11 @@ pub const RESET_SOURCES: &[&str] = &[
 
 // ── 费用校验（§1.5 旧回测退役后由 §1.8 工作台沿用；POST /api/workbench/runs 复用）──
 
-/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值；
-/// `stamp_duty_pct` 可选（研发任务裁决：ETF 无印花税，缺省由 application 层取 0.05），若提供须为数值且 ∈ [0, 1]。
+/// 费用校验（web 层预校验）：提交入参 `fee` 为 `{rate_pct, min_fee, slippage_bp}` 三字段必齐、均为数值；
+/// `stamp_duty_pct` 可选（提供须为数值且 ∈ [0,1]）。**费率语义归 application 层**（ADR-019 v1.1 R-2
+/// 字段级优先级：省略 fee 或缺失字段按标的 type 查 `fee_profiles` 回退；UI 三键 fee 无 stamp + ETF → stamp 0）。
+/// **本层三键预校验不变**（UI 契约）；"显式对象存在但无可识别字段（`{}`/全未知键）→ 400" 的补守卫
+/// 作用于 **application 层解析点**（`fee::resolve_fee`），见 `design/07-app-plane/01-mcp.md`。
 pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
     let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
     for key in ["rate_pct", "min_fee", "slippage_bp"] {

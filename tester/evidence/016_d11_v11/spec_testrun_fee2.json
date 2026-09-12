@@ -1,0 +1,59 @@
+[
+ {
+  "file": "mcp_07_testrun_partial_rate001.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "rate_pct": 0.01
+    }
+   }
+  }
+ },
+ {
+  "file": "mcp_08_testrun_profile_colname.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "commission_rate_pct": 0.02
+    }
+   }
+  }
+ },
+ {
+  "file": "mcp_09_testrun_stamp_out_of_range.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "rate_pct": 0.025,
+     "min_fee": 5,
+     "slippage_bp": 2,
+     "stamp_duty_pct": 1.5
+    }
+   }
+  }
+ }
+]

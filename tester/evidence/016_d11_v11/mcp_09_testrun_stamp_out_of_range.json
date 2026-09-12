@@ -1,0 +1,1 @@
+{"id":1,"jsonrpc":"2.0","result":{"content":[{"text":"工具执行失败：fee.stamp_duty_pct 须 ∈ [0,1]（百分比）","type":"text"}],"isError":true}}

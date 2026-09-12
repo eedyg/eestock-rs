@@ -43,7 +43,7 @@ use domain::ports::{
 use strategy_core::{EnsembleConfig, EnsembleError, ExecutionPolicy, LoopControl, StopConfig};
 use strategy_runtime::StrategyParams;
 
-use crate::fee::{resolve_fee, resolved_fee_to_json, to_fee_model};
+use crate::fee::{resolve_fee, to_fee_model};
 use crate::strategy::{
     fill_and_validate_params, new_id, schema_from_json, D1_MAX_SPAN_DAYS, MINUTE_MAX_SPAN_DAYS,
 };
@@ -272,7 +272,7 @@ impl WorkbenchService {
             }
         };
         let initial_capital = req.initial_capital.unwrap_or(DEFAULT_INITIAL_CAPITAL);
-        // ADR-019 D11-3：fee 三层解析（显式 > 按标的 type 查档案 > 旧 ADR bt-1 默认）。
+        // ADR-019 D11-3 + v1.1 R-2：fee 按**字段优先级**解析（显式字段 > 按标的 type 查档案 > 旧 ADR bt-1 默认）。
         let profile = match &self.fee_profiles {
             Some(store) => store.for_symbol(&symbol).await?,
             None => None,
@@ -280,7 +280,6 @@ impl WorkbenchService {
         let resolved = resolve_fee(req.fee.as_ref(), profile)
             .map_err(|e| WorkbenchValidation(e.to_string()))?;
         let fee = resolved.model;
-        let fee_json = resolved_fee_to_json(&resolved);
         let mut probe = EnsembleConfig {
             slots: vec![], // validate 不检视 slots（零 slot 合法）；钉住校验已先行
             buy_threshold: buy,
@@ -336,7 +335,9 @@ impl WorkbenchService {
 
         // 钉住快照（复现前提）：slots 全字段 + 阈值 + policy/stop 原文 + 资金 + **生效** fee。
         // `archived` 为审计标记（2026-09-10 裁决：archived 版本可审计重跑，避免误解为「在用策略」）。
-        // I-3/D6：fee 回显**生效**值（含 stamp_duty_pct 实际取值，缺省 0.05 也可见）；
+        // I-3/D6 + ADR-019 v1.1 R-1：`config.fee` 保持**扁平** [`fee_model_to_json`] 形态
+        // （`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，含 stamp 实际取值）——预设往返/前端读取
+        // 必须向后兼容；两段结构（effective/profile）**只用于响应回显**（`resolved_fee_to_json`），不得混入 config。
         // I-2/D6：warmup 段钉住 requested/effective。
         let config = serde_json::json!({
             "slots": slots.iter().map(|s| serde_json::json!({
@@ -353,7 +354,7 @@ impl WorkbenchService {
             "policy": req.policy,
             "stop": req.stop,
             "initial_capital": initial_capital,
-            "fee": fee_json,
+            "fee": crate::fee::fee_model_to_json(&fee),
             "warmup_requested": warmup_requested,
             "warmup_effective": warmup_effective,
         });

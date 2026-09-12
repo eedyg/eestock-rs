@@ -1,0 +1,4 @@
+[
+ {"file":"17_testrun_fee_explicit_no_stamp.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"code":"function on_bar(ctx) { return 100; }","symbol":"510050","period":"D1","from":"2026-06-01T00:00:00+08:00","to":"2026-09-12T00:00:00+08:00","mode":"sim_position","fee":{"rate_pct":0.025,"min_fee":5.0,"slippage_bp":2.0}}}},
+ {"file":"18_testrun_fee_profile_518880.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"code":"function on_bar(ctx) { return 100; }","symbol":"518880","period":"D1","from":"2026-06-01T00:00:00+08:00","to":"2026-09-12T00:00:00+08:00","mode":"sim_position"}}}
+]

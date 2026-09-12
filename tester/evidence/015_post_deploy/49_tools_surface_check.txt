@@ -1,0 +1,49 @@
+# MCP 工具面（生产 :8082 tools/list）
+工具数=34；含 list_symbols=True；protocolVersion 字段=None
+
+## 全部工具名（按返回顺序）
+ 1. get_kline
+ 2. get_sources_health
+ 3. get_data_quality
+ 4. list_symbols
+ 5. sim_start_session
+ 6. sim_stop_session
+ 7. sim_get_account
+ 8. sim_get_positions
+ 9. sim_get_orders
+10. sim_get_pnl
+11. sim_place_order
+12. sim_cancel_order
+13. sim_list_strategies
+14. sim_get_strategy_signal
+15. sim_get_strategy_analysis
+16. sim_list_sessions
+17. sim_get_session
+18. sim_run_backtest_compare
+19. strategy_list
+20. strategy_get
+21. strategy_create
+22. strategy_update
+23. strategy_publish
+24. strategy_archive
+25. strategy_test_run
+26. strategy_guide
+27. bt_run_ensemble
+28. bt_get_run
+29. bt_get_run_result
+30. bt_list_runs
+31. bt_cancel_run
+32. bt_compare_runs
+33. bt_list_presets
+34. bt_apply_preset
+
+## 关键 schema 检查
+list_symbols required=null
+strategy_list.properties.include_source={"description": "I-7（D5）：默认 false 只回摘要（version 不含 code，体积小）；true 显式返回全量源码", "type": "boolean"}
+strategy_test_run.period.enum=["M1", "M5", "M15", "H1", "D1"]
+bt_run_ensemble.period.enum=["M1", "M5", "M15", "H1", "D1"]
+get_kline.period.enum=["1m", "5m", "15m", "1h", "1d"]
+strategy_test_run.properties 含 warmup_bars/fee/policy/capital=["warmup_bars", "fee", "policy", "capital"]
+bt_run_ensemble.properties 含 warmup_bars/fee=["warmup_bars", "fee"]
+strategy_test_run.fee.description 含 'not_modeled'=True
+strategy_test_run.fee.description 含 'effective'/'profile'=True

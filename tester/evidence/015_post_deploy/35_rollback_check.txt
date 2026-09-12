@@ -1,0 +1,38 @@
+# 回滚可用性（采集 2026-09-12T22:37:44+08:00）
+
+## 现场二进制与备份
+-rwxrwxr-x 2 eestock eestock 205180096 2026-09-12 21:58:37.740156616 +0800 target/debug/eestock-app
+-rwxrwxr-x 1 eestock eestock 205180096 2026-09-12 22:28:34.530965791 +0800 /tmp/eestock-app-d11.bak
+
+## sha256
+4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad  target/debug/eestock-app
+4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad  /tmp/eestock-app-d11.bak
+
+## 运行进程实际镜像（/proc/3767395/exe）
+lrwxrwxrwx 1 eestock eestock 0 Sep 12 22:28 /proc/3767395/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad  /proc/3767395/exe
+
+## 三元一致（运行中镜像 / 现场 target / 备份）
+running=4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad
+target =4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad
+backup =4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad
+MATCH: 本次上线二进制 == 备份 == 运行中镜像
+
+## 回滚步骤（由架构师执行；本报告不执行）
+1) 备份当前现场（可选但建议）：
+     cp -p eestock-rs/target/debug/eestock-app /tmp/eestock-app-d11.current.$(date +%Y%m%d_%H%M%S)
+2) kill 新进程（优雅，等待退出；确认无残留监听）：
+     kill 3767395
+     # 若 5s 未退出： kill -9 3767395
+     ss -ltnp | grep -E ':8081|:8082'   # 期望：无输出
+3) 恢复旧二进制（备份即本次二进制；回滚到 d11 之前需用更早备份，见“注意”）：
+     cp -p /tmp/eestock-app-d11.bak eestock-rs/target/debug/eestock-app
+     sha256sum eestock-rs/target/debug/eestock-app   # 期望 4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad
+4) 重启（与本次同参数）：
+     cd eestock-rs && nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml \
+       >> logs/app_dev_8081_rollback_$(date +%Y%m%d_%H%M%S).log 2>&1 &
+5) 验收：curl -s 127.0.0.1:8081/healthz ；curl -s 127.0.0.1:8081/api/symbols | jq length ；MCP 8082 /sse 握手。
+注意：/tmp/eestock-app-d11.bak 与当前 target 二进制 sha256 完全相同，即它是「本次上线后」的镜像，
+      不是「d11 之前的旧镜像」。若目标是回退到部署前的代码行为，需要用部署前的二进制（未在本任务中定位，
+      旧二进制已被 target/debug/eestock-app 覆盖）。因此本备份只保证「重启同一上线版本」可复现，
+      不构成「代码行为回退」手段。回退代码行为需 git 回滚 + 重新 build（源码仓库仍保留 d11 提交）。

@@ -1,0 +1,19 @@
+# 进程与部署事实（采集时间 2026-09-12T22:35:37+08:00）
+
+    PID    PPID                  STARTED     ELAPSED   RSS CMD
+3767395 3767370 Sat Sep 12 22:28:40 2026       06:57 27548 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+cwd: /home/eestock/workspace/git/eestock/eestock-rs
+stdout: /home/eestock/workspace/git/eestock/eestock-rs/logs/app_dev_8081_redeploy_20260912_222837.log
+
+# 旧 PID 3696673 现状
+    PID CMD
+(不存在)
+
+# 监听端口
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3767395,fd=12)) 
+
+# /healthz
+{"status":"ok"}
+http=200

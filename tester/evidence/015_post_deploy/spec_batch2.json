@@ -1,0 +1,102 @@
+[
+ {
+  "file": "10_strategy_list_default.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_list",
+   "arguments": {}
+  }
+ },
+ {
+  "file": "11_strategy_list_include_source.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_list",
+   "arguments": {
+    "include_source": true
+   }
+  }
+ },
+ {
+  "file": "12_testrun_d9_unregistered.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "code": "function on_bar(ctx) { return 100; }",
+    "symbol": "510300",
+    "period": "D1",
+    "from": "2026-08-01T00:00:00+08:00",
+    "to": "2026-08-15T00:00:00+08:00",
+    "mode": "sim_position"
+   }
+  }
+ },
+ {
+  "file": "13_testrun_h1.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "code": "function on_bar(ctx) { return 100; }",
+    "symbol": "510050",
+    "period": "H1",
+    "from": "2026-08-03T00:00:00+08:00",
+    "to": "2026-08-07T00:00:00+08:00",
+    "mode": "sim_position"
+   }
+  }
+ },
+ {
+  "file": "14_testrun_warmup250.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "code": "function on_bar(ctx) { return 100; }",
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-08-01T00:00:00+08:00",
+    "to": "2026-09-12T00:00:00+08:00",
+    "mode": "sim_position",
+    "warmup_bars": 250
+   }
+  }
+ },
+ {
+  "file": "15_testrun_fee_profile.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "code": "function on_bar(ctx) { return 100; }",
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00+08:00",
+    "to": "2026-09-12T00:00:00+08:00",
+    "mode": "sim_position"
+   }
+  }
+ },
+ {
+  "file": "16_testrun_fee_explicit.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "code": "function on_bar(ctx) { return 100; }",
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00+08:00",
+    "to": "2026-09-12T00:00:00+08:00",
+    "mode": "sim_position",
+    "fee": {
+     "rate_pct": 0.025,
+     "min_fee": 5.0,
+     "slippage_bp": 2.0,
+     "stamp_duty_pct": 0.05
+    }
+   }
+  }
+ }
+]

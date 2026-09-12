@@ -1,0 +1,64 @@
+# 新日志文件: logs/app_dev_8081_redeploy_20260912_222837.log
+size=7527 bytes  mtime=2026-09-12 22:35:22.283353445 +0800
+
+# 全文（44 行）
+{"timestamp":"2026-09-12T14:28:40.619986Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:28:40.662243Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:28:40.663369Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:28:40.664200Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:28:40.664262Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:28:40.664287Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:29:37.724868Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"5404087a003521d495b9acf449f32b5e"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:29:52.725779Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"5404087a003521d495b9acf449f32b5e"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:29:52.726540Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"90ffacbc8b573fb7f12de50b130ee40b"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:07.727929Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"90ffacbc8b573fb7f12de50b130ee40b"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:07.728863Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"35aabcd8b7ee0b391598462e03e83444"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:22.730351Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"35aabcd8b7ee0b391598462e03e83444"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:22.731069Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"62272d9889f7a7299cf7b5d1c655c96d"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:37.731879Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"62272d9889f7a7299cf7b5d1c655c96d"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:37.732930Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"70ed371d910ae3b305b5fa345cf427b5"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:52.733813Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"70ed371d910ae3b305b5fa345cf427b5"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:30:52.734663Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"08c0412154afb9c3c83429b13b130231"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:31:07.736325Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"08c0412154afb9c3c83429b13b130231"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:31:07.737101Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"7f3baf66ffdf2a213a5e0f4a214e9c5f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:31:22.738045Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"7f3baf66ffdf2a213a5e0f4a214e9c5f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:31:22.738982Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"fa8f68a72ab55e393964729403d78c45"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:31:37.740278Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"fa8f68a72ab55e393964729403d78c45"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:03.796001Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"f5d84b6636789b65671b81649a33dc08"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:18.796868Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"f5d84b6636789b65671b81649a33dc08"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:18.797291Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"67818799547d66e8ef82172e7a1adc89"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:33.799335Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"67818799547d66e8ef82172e7a1adc89"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:33.799817Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"ad0ad0f9ea86fc7761bf938031b9447f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:48.800906Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"ad0ad0f9ea86fc7761bf938031b9447f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:32:48.801421Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"b62fcd38578599d668861baf76e6383f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:03.803201Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"b62fcd38578599d668861baf76e6383f"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:03.803864Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"14fb80616aed6154f80e8321a25b4fa7"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:18.804631Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"14fb80616aed6154f80e8321a25b4fa7"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:18.805088Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"dfd73fc67c642a186be2de7448550523"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:33.805982Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"dfd73fc67c642a186be2de7448550523"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:33.806536Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"1a75de22daed33ff17e14af70062d489"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:33:48.808488Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"1a75de22daed33ff17e14af70062d489"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:34:08.163060Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"b4773aa2b1f4b497b7d859fbf8718263"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:34:23.164260Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"b4773aa2b1f4b497b7d859fbf8718263"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:34:23.164774Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"39a8494052dc9f84bba58188739bb2ac"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:34:38.166133Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"39a8494052dc9f84bba58188739bb2ac"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:34:49.777499Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"8cdf7640faa91f3453fef9232c04a3fa"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:35:04.779502Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"8cdf7640faa91f3453fef9232c04a3fa"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:35:07.282194Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"c8c1a27d33b67c9478f988679c2873e7"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:35:22.283887Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"c8c1a27d33b67c9478f988679c2873e7"},"target":"mcp::server"}
+
+# grep -c 各等级/关键字
+ERROR      0
+WARN       0
+panic      0
+sim-live   1
+recovered  1
+degraded   1
+
+# 其它 app 日志（同目录，按 mtime 最近 5）
+total 2384
+-rw-rw-r-- 1 eestock eestock   7527 Sep 12 22:35 app_dev_8081_redeploy_20260912_222837.log
+-rw-rw-r-- 1 eestock eestock 284134 Sep 12 21:55 app_dev_8081_redeploy_20260911_112417.log
+-rw-rw-r-- 1 eestock eestock    953 Sep 11 01:16 app_dev_8081_redeploy_20260911_011604.log
+-rw-rw-r-- 1 eestock eestock    953 Sep 11 00:45 app_incident_fix_20260911_0045.log
+-rw-rw-r-- 1 eestock eestock    953 Sep 11 00:28 app_1ecbd9b_restart.log

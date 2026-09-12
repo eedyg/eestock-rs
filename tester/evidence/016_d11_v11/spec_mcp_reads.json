@@ -1,0 +1,42 @@
+[
+ {
+  "file": "mcp_12_bt_get_run_new_flat.json",
+  "method": "tools/call",
+  "params": {
+   "name": "bt_get_run",
+   "arguments": {
+    "run_id": "sr_1789225152377_000004"
+   }
+  }
+ },
+ {
+  "file": "mcp_13_bt_get_run_stamp007.json",
+  "method": "tools/call",
+  "params": {
+   "name": "bt_get_run",
+   "arguments": {
+    "run_id": "sr_1789225167373_000005"
+   }
+  }
+ },
+ {
+  "file": "mcp_14_bt_get_run_old_nested.json",
+  "method": "tools/call",
+  "params": {
+   "name": "bt_get_run",
+   "arguments": {
+    "run_id": "sr_1789223648181_000000"
+   }
+  }
+ },
+ {
+  "file": "mcp_15_bt_list_runs.json",
+  "method": "tools/call",
+  "params": {
+   "name": "bt_list_runs",
+   "arguments": {
+    "limit": 5
+   }
+  }
+ }
+]

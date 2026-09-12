@@ -1,0 +1,48 @@
+{"timestamp":"2026-09-12T14:54:59.945948Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_tester016.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.989869Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.991259Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.992414Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.992488Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18081","static_dir":"/home/eestock/workspace/git/eestock/eestock-rs/web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.992507Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18082"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:55:30.727280Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"871da2209e5d0a879ea2a8a1e00f8e4c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:55:45.729331Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"871da2209e5d0a879ea2a8a1e00f8e4c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:55:45.729806Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"81677b70cf38a911d8b85edd06c41298"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:00.730824Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"81677b70cf38a911d8b85edd06c41298"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:00.731206Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"47b174b23f8e7908bde522622075d40c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:15.732626Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"47b174b23f8e7908bde522622075d40c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:15.733022Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"7a158f3715d5833a8370f26f10651bf1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:30.734307Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"7a158f3715d5833a8370f26f10651bf1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:30.734758Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"229b99d7e8f2390acea7734f8032537c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:45.736060Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"229b99d7e8f2390acea7734f8032537c"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:56:45.736541Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"ea360f8a0e9e720c6564b61d94773aa1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:00.738333Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"ea360f8a0e9e720c6564b61d94773aa1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:05.602033Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"b536881bfe949dd4ff7a81c9913609f3"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:20.603095Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"b536881bfe949dd4ff7a81c9913609f3"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:20.603661Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"a527fca808faae07bca4f8afc238c6f0"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:35.604626Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"a527fca808faae07bca4f8afc238c6f0"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:35.605137Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"acf7d0c01f0a759523df0216ffe7d1cd"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:50.606211Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"acf7d0c01f0a759523df0216ffe7d1cd"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:57:50.606698Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"94493f73fa2e53c351d315384628dfb1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:58:05.608492Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"94493f73fa2e53c351d315384628dfb1"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:58:05.608951Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"4b3df7789d0c1d86316274ca14374d0d"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:58:20.610268Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"4b3df7789d0c1d86316274ca14374d0d"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:58:20.610698Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"6a49eedb379ba488d11ab9b0d135da42"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:58:35.611942Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"6a49eedb379ba488d11ab9b0d135da42"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:59:12.367996Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"a8315cb57dc49169348d5c7aa6da5397"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:59:27.369253Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"a8315cb57dc49169348d5c7aa6da5397"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:59:27.369700Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"389aae5dcba676770052a8162e3dcf56"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:59:42.370590Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"389aae5dcba676770052a8162e3dcf56"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T14:59:48.823170Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"87a0f79529fc0aa19438797d66ac19bb"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:03.824860Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"87a0f79529fc0aa19438797d66ac19bb"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:03.825250Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"e029661b3363a601a97cc9c3e3f50665"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:18.826886Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"e029661b3363a601a97cc9c3e3f50665"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:18.827386Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"9f9694decabe5147ced039c022a07fd2"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:33.829021Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"9f9694decabe5147ced039c022a07fd2"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:33.829467Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"2b721b1dbb208b5354609e2f54eec6be"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:48.831505Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"2b721b1dbb208b5354609e2f54eec6be"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:00:59.020226Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"723e5667ddf23549fba7c805047efdf3"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:01:14.022573Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"723e5667ddf23549fba7c805047efdf3"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:01:14.023054Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"aae64bba6cbc05117302bd3e180ad366"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:01:29.023590Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"aae64bba6cbc05117302bd3e180ad366"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:01:29.024057Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"17f5c59bb3d527c56f98365e23a790e3"},"target":"mcp::server"}
+{"timestamp":"2026-09-12T15:01:44.025108Z","level":"INFO","fields":{"message":"mcp sse session closed","session":"17f5c59bb3d527c56f98365e23a790e3"},"target":"mcp::server"}

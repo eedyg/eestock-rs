@@ -1,0 +1,43 @@
+## application 测试中与 fee/config 形状相关用例（原始 test 名）
+test feed_polls_new_bar_drives_evaluation_and_auto_order ... ok
+test feed_targets_returns_pinned_session_poll_targets ... ok
+test fee::tests::consumed_profile_fields_are_exactly_what_engine_applies ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test fee::tests::effective_excludes_unmodeled_profile_fields ... ok
+test fee::tests::effective_strictly_matches_fee_model_fields_and_is_disjoint_from_not_modeled ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::explicit_object_without_recognized_fields_is_rejected ... ok
+test fee::tests::explicit_object_with_single_recognized_field_is_accepted ... ok
+test fee::tests::explicit_stamp_wins_over_profile ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_etf_profile ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_stock_profile ... ok
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::not_modeled_matches_profile_numeric_fields_minus_consumed ... ok
+test fee::tests::partial_explicit_overrides_only_present_fields ... ok
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::resolved_json_exposes_effective_and_profile_segments ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test p4a_feed_targets_from_pinned_configs_only ... ok
+test p4a_late_feed_after_stop_does_not_trade ... ok
+test p4a_recover_degrades_legacy_builtin_configs ... ok
+test process_bar_unconfigured_errors_and_unknown_stock_no_event ... ok
+test run_backtest_compare_triggers_ensemble_run_with_pinned_config ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test test_run_fee_echo_and_stamp_duty_effect ... ok
+test test_run_fee_resolves_by_symbol_type_when_absent ... ok
+
+## workbench/strategy 集成用例总数
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.07s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

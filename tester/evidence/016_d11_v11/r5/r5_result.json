@@ -1,0 +1,371 @@
+{
+ "base": "http://127.0.0.1:18081",
+ "started_at": "2026-09-12T15:03:28.928Z",
+ "steps": [
+  {
+   "step": "open-workbench",
+   "ok": true,
+   "detail": {
+    "url": "http://127.0.0.1:18081/backtest-workbench"
+   }
+  },
+  {
+   "step": "R5-1-apply-preset-fee-inputs-are-numbers",
+   "ok": true,
+   "detail": {
+    "before_default": "0.025",
+    "after_apply": {
+     "rate": "0.025",
+     "min": "5",
+     "slippage": "2"
+    },
+    "preset_msg": null
+   }
+  },
+  {
+   "step": "R5-1b-apply-preset-populates-inputs-from-config(not defaults)",
+   "ok": true,
+   "detail": {
+    "applied": {
+     "rate": "0.011",
+     "min": "3.5",
+     "slippage": "7.25"
+    },
+    "expected": {
+     "rate": "0.011",
+     "min": "3.5",
+     "slippage": "7.25"
+    },
+    "form_defaults": [
+     "0.025",
+     "5",
+     "2"
+    ]
+   }
+  },
+  {
+   "step": "R5-2-ui-submit-etf-run-succeeded",
+   "ok": true,
+   "detail": {
+    "slot_added_via_ui": false,
+    "newest_run": {
+     "id": "sr_1789225411103_000009",
+     "status": "succeeded",
+     "progress": 1,
+     "fee": {
+      "min_fee": 5,
+      "rate_pct": 0.025,
+      "slippage_bp": 2,
+      "stamp_duty_pct": 0
+     }
+    },
+    "submit_http": {
+     "status": 201,
+     "fee": {
+      "min_fee": 5,
+      "rate_pct": 0.025,
+      "slippage_bp": 2,
+      "stamp_duty_pct": 0
+     },
+     "id": "sr_1789225411103_000009"
+    },
+    "result_view_visible": true
+   }
+  },
+  {
+   "step": "R5-2b-run-pinned-fee-flat-and-etf-stamp-zero",
+   "ok": true,
+   "detail": {
+    "status": 200,
+    "run_status": "succeeded",
+    "fee": {
+     "min_fee": 5,
+     "rate_pct": 0.025,
+     "slippage_bp": 2,
+     "stamp_duty_pct": 0
+    },
+    "fee_keys": [
+     "min_fee",
+     "rate_pct",
+     "slippage_bp",
+     "stamp_duty_pct"
+    ]
+   }
+  },
+  {
+   "step": "R5-2c-trial-echo-effective-stamp-zero-source-explicit",
+   "ok": true,
+   "detail": {
+    "status": 200,
+    "effective": {
+     "commission_rate_pct": 0.025,
+     "min_fee": 5,
+     "slippage_bp": 2,
+     "source": "explicit",
+     "stamp_duty_pct": 0
+    },
+    "symbol_type": "etf",
+    "not_modeled": [
+     "exchange_fee_pct",
+     "regulatory_fee_pct",
+     "transfer_fee_pct"
+    ],
+    "trades": 4,
+    "stamp_sum": 0
+   }
+  },
+  {
+   "step": "R5-3a-preset-from-run-config-http-2xx-not-400",
+   "ok": true,
+   "detail": {
+    "status": 201,
+    "id": "sp_1789225413381_000010",
+    "fee": {
+     "min_fee": 5,
+     "rate_pct": 0.025,
+     "slippage_bp": 2,
+     "stamp_duty_pct": 0
+    },
+    "error": null
+   }
+  },
+  {
+   "step": "R5-3b-ui-save-preset-message",
+   "ok": true,
+   "detail": {
+    "msg": "已保存预设"
+   }
+  },
+  {
+   "step": "R5-4-no-console-error-no-uncaught-exception",
+   "ok": true,
+   "detail": {
+    "console_errors": [],
+    "pageerrors": [],
+    "requestfailed": []
+   }
+  }
+ ],
+ "consoles": [],
+ "pageerrors": [],
+ "requestfailed": [],
+ "api_responses": [
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/presets",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/sources/health",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/strategies",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs?limit=50&offset=0",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/presets/sp_1789225140594_000002/apply",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/symbols",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/presets/sp_1789225147731_000003/apply",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/presets/sp_1789225140594_000002/apply",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs?limit=1",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/runs",
+   "status": 201
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs?limit=50&offset=0",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs/sr_1789225411103_000009",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs/sr_1789225411103_000009/result",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/kline?code=510050&period=1d&before=2026-08-04T00%3A00%3A00.000Z&limit=68",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs?limit=1",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs/sr_1789225411103_000009",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs/sr_1789225411103_000009",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/strategies/test-run",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/runs/sr_1789225411103_000009",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/presets",
+   "status": 201
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:18081/api/workbench/presets",
+   "status": 201
+  },
+  {
+   "method": "GET",
+   "url": "http://127.0.0.1:18081/api/workbench/presets",
+   "status": 200
+  }
+ ],
+ "submit_response": {
+  "status": 201,
+  "body": {
+   "id": "sr_1789225411103_000009",
+   "name": "tester016 r5 ui",
+   "symbol": "510050",
+   "period": "D1",
+   "from_ts": "2026-06-01T00:00:00Z",
+   "to_ts": "2026-08-01T00:00:00Z",
+   "config": {
+    "buy_threshold": 60,
+    "fee": {
+     "min_fee": 5,
+     "rate_pct": 0.025,
+     "slippage_bp": 2,
+     "stamp_duty_pct": 0
+    },
+    "initial_capital": 100000,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1
+     }
+    },
+    "sell_threshold": 40,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5,
+       "slow": 20
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "queued",
+   "progress": 0,
+   "error": null,
+   "created_at": "2026-09-12T15:03:31.104145Z",
+   "started_at": null,
+   "finished_at": null
+  }
+ },
+ "run_readback": {
+  "status": 200,
+  "run_status": "succeeded",
+  "fee": {
+   "min_fee": 5,
+   "rate_pct": 0.025,
+   "slippage_bp": 2,
+   "stamp_duty_pct": 0
+  },
+  "fee_keys": [
+   "min_fee",
+   "rate_pct",
+   "slippage_bp",
+   "stamp_duty_pct"
+  ]
+ },
+ "trial_echo": {
+  "status": 200,
+  "effective": {
+   "commission_rate_pct": 0.025,
+   "min_fee": 5,
+   "slippage_bp": 2,
+   "source": "explicit",
+   "stamp_duty_pct": 0
+  },
+  "symbol_type": "etf",
+  "not_modeled": [
+   "exchange_fee_pct",
+   "regulatory_fee_pct",
+   "transfer_fee_pct"
+  ],
+  "trades": 4,
+  "stamp_sum": 0
+ },
+ "preset_from_run": {
+  "status": 201,
+  "id": "sp_1789225413381_000010",
+  "fee": {
+   "min_fee": 5,
+   "rate_pct": 0.025,
+   "slippage_bp": 2,
+   "stamp_duty_pct": 0
+  },
+  "error": null
+ },
+ "ui_preset_save": {
+  "msg": "已保存预设"
+ },
+ "screenshots": [
+  "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/016_d11_v11/r5/r5_01_preset_applied.png",
+  "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/016_d11_v11/r5/r5_01b_preset_applied_distinct.png",
+  "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/016_d11_v11/r5/r5_02_run_submitted.png",
+  "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/016_d11_v11/r5/r5_03_ui_preset_saved.png",
+  "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/016_d11_v11/r5/r5_04_final.png"
+ ],
+ "finished_at": "2026-09-12T15:03:34.607Z",
+ "console_error_count": 0
+}

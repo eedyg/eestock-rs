@@ -93,8 +93,8 @@ pub struct WorkbenchSubmitReq {
     pub stop: Option<serde_json::Value>,
     #[serde(default)]
     pub initial_capital: Option<f64>,
-    /// I-3/D6 + D11-3：省略/`null` = 按标的 type 查 `fee_profiles` 解析（无档案 → 旧默认）；
-    /// 显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）。
+    /// I-3/D6 + D11-3（v1.1 R-2）：省略/`null` = 按标的 type 查 `fee_profiles` 解析（无档案 → 旧默认）；
+    /// 显式对象按**字段优先级**（出现字段优先，缺失字段逐字段回退档案→旧默认）。
     #[serde(default)]
     pub fee: Option<serde_json::Value>,
     /// I-2/D6：前置预热根数（缺省 250）；0 = 无预热。

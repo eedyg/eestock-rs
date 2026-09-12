@@ -1,0 +1,19 @@
+# D5 strategy_list 目录瘦身（生产 :8082 实测）
+
+条目数: default=15  include_source=true=15（同一 catalog 快照）
+payload text 字符数: default=19477  include_source=true=52656
+整帧 JSON 字符数:    default=22061  include_source=true=56832
+默认含 'code' 键=False；默认含源码特征 'on_bar'=False
+include_source 含 'code' 键=True；含 'on_bar'=True
+
+version 字段（默认）: ['approval_level', 'created_at', 'id', 'params_schema', 'published_at', 'sha256', 'status', 'strategy_id', 'version']
+version 字段（include_source）: ['approval_level', 'code', 'created_at', 'id', 'params_schema', 'published_at', 'sha256', 'status', 'strategy_id', 'version']
+默认 version 不含 code: True；且含 sha256 指纹: True
+
+# 与 39097 字符基准对比
+基准（tester/evidence/143/strategy_list_before_prod_8082.txt）：旧行为 payload text 39097 字符 / 11 条目 / 含 code 合计 24733 字符
+本次默认（15 条目，不含 code）: 19477 字符
+本次 include_source=true（15 条目，= 旧行为在本 catalog 上的等价输出）: 52656 字符
+-> 同口径（含 source）相比默认: -33179 字符 = 63.0% 缩减
+-> 相对历史基准 39097（11 条目，不同 catalog 规模，仅量级参照）: 默认 19477（-19620 字符）
+-> 注：条目数 11->15，不可直接比值；同 catalog 口径的 −63.0% 是 D5 的有效瘦身证据

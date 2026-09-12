@@ -1,0 +1,72 @@
+# list_symbols (MCP) vs /api/symbols (REST) 同源一致性
+count: MCP=44 REST=44   code 集合一致=True
+MCP 排序: code 升序=True；REST 排序: code 升序=False（REST 收藏优先：favorite=true 排前）
+MCP 每条含 type 键=True；type 分布 MCP={"etf": 42, "lof": 2} REST={"etf": 42, "lof": 2}
+注册字段(code/name/type/interval_secs/settlement/enabled) 逐条差异条数 = 0  []
+latest 快照逐条差异条数 = 0
+REST 专有字段（MCP 不返回）= ['favorite', 'favorite_sort']  ← web 收藏功能字段，非注册表字段
+REST favorite=true 条数 = 5
+
+MCP list_symbols[0:2]:
+[
+ {
+  "code": "159337",
+  "enabled": true,
+  "interval_secs": 60,
+  "latest": {
+   "change_pct": 0.0,
+   "last": 1.74,
+   "ts": "2026-09-11T07:00:00Z"
+  },
+  "name": "中证500ETF基金",
+  "settlement": "T1",
+  "type": "etf"
+ },
+ {
+  "code": "159577",
+  "enabled": true,
+  "interval_secs": 60,
+  "latest": {
+   "change_pct": 0.0,
+   "last": 1.639,
+   "ts": "2026-09-11T07:00:00Z"
+  },
+  "name": "汇添富MSCI美国50ETF",
+  "settlement": "T0",
+  "type": "etf"
+ }
+]
+REST /api/symbols[0:2]:
+[
+ {
+  "code": "518880",
+  "name": "华安黄金易ETF",
+  "type": "etf",
+  "interval_secs": 60,
+  "settlement": "T0",
+  "enabled": true,
+  "latest": {
+   "ts": "2026-09-11T07:00:00Z",
+   "last": 8.943,
+   "change_pct": 0.0
+  },
+  "favorite": true,
+  "favorite_sort": 1
+ },
+ {
+  "code": "161226",
+  "name": "国投瑞银白银期货(LOF)A",
+  "type": "lof",
+  "interval_secs": 60,
+  "settlement": "T0",
+  "enabled": true,
+  "latest": {
+   "ts": "2026-09-11T07:00:00Z",
+   "last": 1.913,
+   "change_pct": 0.0
+  },
+  "favorite": true,
+  "favorite_sort": 2
+ }
+]
+MCP list_symbols type 为 null 的条数 = 0

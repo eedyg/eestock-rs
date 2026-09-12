@@ -1,0 +1,42 @@
+## git status --porcelain
+ M crates/application/src/fee.rs
+ M crates/application/src/strategy.rs
+ M crates/application/src/workbench.rs
+ M crates/application/tests/strategy.rs
+ M crates/application/tests/workbench.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/d11_fee_profile_e2e.rs
+ M crates/web/src/dto.rs
+ M crates/web/src/strategies.rs
+ M crates/web/src/workbench.rs
+ M design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md
+ M design/04-storage/schema.md
+ M design/07-app-plane/00-web-api.md
+ M design/07-app-plane/01-mcp.md
+ M design/08-backtest/01-engine-adr.md
+ M design/12-strategy-system/01-adr.md
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/report/149_d11_v11_fee_regression_fix.md
+?? crates/mcp/tests/zz_tester_010_acceptance.rs
+?? crates/mcp/tests/zz_tester_i1_acceptance.rs
+?? crates/web/tests/zz_tester_010_web.rs
+?? crates/web/tests/zz_tester_011_f2_path.rs
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? tester/evidence/015_post_deploy/
+?? tester/evidence/016_d11_v11/
+?? tester/report/015_post_deploy_acceptance.md
+?? tester/test/
+
+## staged (diff --cached --name-only)
+(count: 0)
+
+## HEAD
+88f558aedbf5b870d6733d83f6cadd79db275bd9 docs(mcp): 标注 fee 响应的 WIRE 变更（ADR-019 D11-fix 破坏性变更注记）
+
+## branch
+master

@@ -1,0 +1,155 @@
+[
+ {
+  "file": "http_01_submit_ui3_etf.json",
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000,
+   "fee": {
+    "rate_pct": 0.025,
+    "min_fee": 5.0,
+    "slippage_bp": 2.0
+   }
+  },
+  "note": "①HTTP:UI三键fee+ETF(510050)"
+ },
+ {
+  "file": "http_02_submit_fee_empty.json",
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000,
+   "fee": {}
+  },
+  "note": "HTTP fee={} 契约"
+ },
+ {
+  "file": "http_03_submit_fee_partial_rate.json",
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000,
+   "fee": {
+    "rate_pct": 0.025
+   }
+  },
+  "note": "HTTP fee 缺 min_fee/slippage"
+ },
+ {
+  "file": "http_04_submit_fee_missing_rate.json",
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000,
+   "fee": {
+    "min_fee": 5.0,
+    "slippage_bp": 2.0
+   }
+  },
+  "note": "HTTP fee 缺 rate_pct"
+ },
+ {
+  "file": "http_05_submit_no_fee_etf.json",
+  "method": "POST",
+  "path": "/api/workbench/runs",
+  "body": {
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from": "2026-06-01T00:00:00Z",
+   "to": "2026-08-01T00:00:00Z",
+   "slots": [
+    {
+     "version_id": "sv_1789013713975_000001",
+     "params": {},
+     "weight": 1.0
+    }
+   ],
+   "buy_threshold": 60,
+   "sell_threshold": 40,
+   "policy": {
+    "LumpSum": {
+     "position_pct": 1.0
+    }
+   },
+   "initial_capital": 100000
+  },
+  "note": "②HTTP:fee 省略→profile(ETF)"
+ }
+]

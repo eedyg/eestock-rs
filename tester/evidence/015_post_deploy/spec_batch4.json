@@ -1,0 +1,5 @@
+[
+ {"file":"40_get_kline_518880_1m_tail.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"518880","period":"1m","limit":3}}},
+ {"file":"41_get_kline_518880_1d_tail.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"518880","period":"1d","limit":3}}},
+ {"file":"42_get_sources_health.json","method":"tools/call","params":{"name":"get_sources_health","arguments":{"window_secs":3600}}}
+]

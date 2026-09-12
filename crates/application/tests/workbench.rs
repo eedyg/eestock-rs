@@ -603,10 +603,15 @@ async fn submit_warmup_marks_prefix_and_pins_effective_fee() {
     req.to = dbar(10, 0.0).ts;
     req.warmup_bars = 5;
     let run = r.svc.submit(req).await.expect("提交成功");
-    // 钉住 config：warmup requested/effective + 生效 fee（含 stamp_duty_pct 实际取值）。
+    // 钉住 config：warmup requested/effective + 生效 fee（**扁平**形态，ADR-019 v1.1 R-1）。
     assert_eq!(run.config["warmup_requested"], serde_json::json!(5));
     assert_eq!(run.config["warmup_effective"], serde_json::json!(5));
-    assert_eq!(run.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "缺省股票口径回显");
+    assert_eq!(run.config["fee"]["stamp_duty_pct"], serde_json::json!(0.05), "缺省股票口径回显（扁平）");
+    // R-1：config.fee 必须为扁平 `fee_model_to_json` 形态（两段仅用于响应回显），且可被 `to_fee_model` 无损解析。
+    assert!(run.config["fee"].get("effective").is_none(), "config.fee 不得含两段 effective 段");
+    assert!(run.config["fee"].get("profile").is_none(), "config.fee 不得含两段 profile 段");
+    let round = application::fee::to_fee_model(&run.config["fee"]).expect("钉住 fee 可往返解析");
+    assert_eq!(application::fee::fee_model_to_json(&round), run.config["fee"], "扁平 fee 往返无损");
     let fin = wait_terminal(&r.runs, &run.id).await;
     assert_eq!(fin.status, StrategyRunStatus::Succeeded, "{:?}", fin.error);
     let res = r.runs.get_result(&run.id).await.unwrap().expect("结果");
@@ -654,11 +659,16 @@ async fn submit_rejects_bad_slots_and_config_400() {
     req.stop = Some(serde_json::json!({"kind": "FixedPct", "value": -0.1, "trigger": "Intrabar"}));
     assert!(r.svc.submit(req).await.unwrap_err().downcast_ref::<WorkbenchValidation>().is_some(),
         "stop value≤0 → 400");
-    // 非法 fee
+    // 非法 fee（字段非数值）→ 400（v1.1 R-2：缺字段不再报错，改为字段级回退；**出现的非法字段**仍报错）
     let mut req = submit_req("sv_pub");
-    req.fee = Some(serde_json::json!({"rate_pct": 0.025}));
+    req.fee = Some(serde_json::json!({"rate_pct": "x"}));
     assert!(r.svc.submit(req).await.unwrap_err().downcast_ref::<WorkbenchValidation>().is_some(),
-        "fee 缺字段 → 400");
+        "fee.rate_pct 非数值 → 400");
+    // 非法 fee（stamp 越界）→ 400
+    let mut req = submit_req("sv_pub");
+    req.fee = Some(serde_json::json!({"stamp_duty_pct": 1.5}));
+    assert!(r.svc.submit(req).await.unwrap_err().downcast_ref::<WorkbenchValidation>().is_some(),
+        "fee.stamp_duty_pct 越界 → 400");
     // 非法初始资金
     let mut req = submit_req("sv_pub");
     req.initial_capital = Some(0.0);
@@ -935,41 +945,46 @@ fn rig_with_fee_profiles(bars: Vec<domain::types::Bar>, codes: Vec<&'static str>
     Rig { svc, runs, strategies, sink }
 }
 
-/// 省略 fee 的 ETF 运行：钉住 config 快照 = 档案生效值（印花税 0）+ source=profile；
-/// 显式传参仍整体优先（向后兼容旧行为）。
+/// 省略 fee 的 ETF 运行：钉住 config 快照为**扁平** fee（印花税 0，ADR-019 v1.1 R-1）；
+/// 显式三键 fee（无 stamp）+ ETF 档案 → 字段级回退 stamp=0（R-2 本批核心断言）。
 #[tokio::test]
 async fn submit_fee_resolves_by_symbol_type_and_pins_source() {
     let r = rig_with_fee_profiles(flat_bars(10), vec!["518880"]);
     r.strategies.add_version("sv_pub", "st_1", CONST_SCORE, StrategyStatus::Published);
-    // ① 省略 fee + ETF 标的 → profile 分支
+    // ① 省略 fee + ETF 标的 → profile 解析：config.fee 扁平，印花税 0
     let mut req = submit_req("sv_pub");
     req.symbol = "518880".into();
     req.fee = None;
     let run = r.svc.submit(req).await.expect("提交成功");
-    assert_eq!(run.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.0), "ETF 印花税 0（D11 主目标）");
-    assert_eq!(run.config["fee"]["effective"]["source"], serde_json::json!("profile"));
-    assert_eq!(run.config["fee"]["symbol_type"], serde_json::json!("etf"));
-    assert_eq!(run.config["fee"]["profile"]["transfer_fee_pct"], serde_json::json!(0.0));
-    assert_eq!(run.config["fee"]["profile"]["not_modeled"],
-        serde_json::json!(["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]),
-        "未建模规费须显式标注，不得出现在 effective 段");
+    assert_eq!(run.config["fee"]["stamp_duty_pct"], serde_json::json!(0.0), "ETF 印花税 0（D11 主目标）");
+    assert_eq!(run.config["fee"]["rate_pct"], serde_json::json!(0.025));
+    assert_eq!(run.config["fee"]["min_fee"], serde_json::json!(5.0));
+    assert_eq!(run.config["fee"]["slippage_bp"], serde_json::json!(2.0));
+    assert!(run.config["fee"].get("effective").is_none(), "R-1：config.fee 扁平，无两段结构");
+    application::fee::to_fee_model(&run.config["fee"]).expect("扁平 config.fee 可往返解析");
     let fin = wait_terminal(&r.runs, &run.id).await;
     assert_eq!(fin.status, StrategyRunStatus::Succeeded, "{:?}", fin.error);
 
-    // ② 显式 fee → config 钉住显式值 + source=explicit（可复现旧口径）
+    // ② **核心断言（R-2 ①）**：UI 三键 fee（无 stamp）+ ETF → 字段级回退 → stamp=0（非旧 0.05）
     let mut req = submit_req("sv_pub");
     req.symbol = "518880".into();
     req.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}));
     let run2 = r.svc.submit(req).await.expect("提交成功");
-    assert_eq!(run2.config["fee"]["effective"]["source"], serde_json::json!("explicit"));
-    assert_eq!(run2.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "显式缺 stamp → 旧默认");
+    assert_eq!(run2.config["fee"]["stamp_duty_pct"], serde_json::json!(0.0),
+        "三键 fee 无 stamp + ETF 档案 → 回退档案 stamp=0（本批核心断言）");
 
-    // ③ 未建档标的 → default 分支（旧默认），不借用他类型档案
+    // ③ 显式 stamp 优先（R-2 ③）：三键 + stamp=0.05 → 0.05
+    let mut req = submit_req("sv_pub");
+    req.symbol = "518880".into();
+    req.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0,
+                                      "slippage_bp": 2.0, "stamp_duty_pct": 0.05}));
+    let run2b = r.svc.submit(req).await.expect("提交成功");
+    assert_eq!(run2b.config["fee"]["stamp_duty_pct"], serde_json::json!(0.05), "显式 stamp 优先");
+
+    // ④ 未建档标的 → default 分支（旧默认），不借用他类型档案
     let mut req = submit_req("sv_pub");
     req.symbol = "600000".into();
     req.fee = None;
     let run3 = r.svc.submit(req).await.expect("提交成功");
-    assert_eq!(run3.config["fee"]["effective"]["source"], serde_json::json!("default"));
-    assert_eq!(run3.config["fee"]["effective"]["stamp_duty_pct"], serde_json::json!(0.05));
-    assert!(run3.config["fee"].get("profile").is_none());
+    assert_eq!(run3.config["fee"]["stamp_duty_pct"], serde_json::json!(0.05));
 }

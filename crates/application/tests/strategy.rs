@@ -946,8 +946,11 @@ async fn test_run_fee_echo_and_stamp_duty_effect() {
     let duty1: f64 = r1.trades.as_array().unwrap().iter().map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
     assert_eq!(duty1, 0.0, "ETF 口径零印花税");
     assert!(duty0 > 0.0, "缺省股票口径有印花税");
-    // 非法 fee（缺 slippage_bp）→ 400。
-    req.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0}));
+    // 非法 fee（字段非数值）→ 400（v1.1 R-2：缺字段不再报错，改为字段级回退；出现的非法字段仍报错）。
+    req.fee = Some(serde_json::json!({"rate_pct": "x"}));
+    assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
+    // 非法 fee（stamp 越界）→ 400。
+    req.fee = Some(serde_json::json!({"stamp_duty_pct": 1.5}));
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
 }
 
@@ -1006,12 +1009,22 @@ async fn test_run_fee_resolves_by_symbol_type_when_absent() {
         .map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
     assert_eq!(duty, 0.0, "缺省口径下 ETF 成交零印花税（旧默认会多收 0.05%）");
 
-    // 显式传参优先（同一 ETF）：可复现旧行为（缺 stamp → 0.05）。
+    // 显式三键（无 stamp）+ ETF 档案 → **字段级回退** stamp=0（ADR-019 v1.1 R-2 本批核心断言）。
     let mut req2 = req.clone();
     req2.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0}));
     let r2 = svc.test_run(&req2).await.unwrap();
     assert_eq!(r2.fee["effective"]["source"], serde_json::json!("explicit"), "显式优先于档案");
-    assert_eq!(r2.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "显式分支保持旧默认");
+    assert_eq!(r2.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.0),
+        "三键无 stamp → 回退 ETF 档案 0（非旧 0.05）");
+    let duty2: f64 = r2.trades.as_array().unwrap().iter()
+        .map(|t| t["stamp_duty"].as_f64().unwrap()).sum();
+    assert_eq!(duty2, 0.0, "ETF 三键 fee 也零印花税（UI 路径修复核心）");
+    // 显式 stamp=0.05 → 显式字段最高优先（可复现旧行为）。
+    let mut req2b = req.clone();
+    req2b.fee = Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0,
+                                        "slippage_bp": 2.0, "stamp_duty_pct": 0.05}));
+    let r2b = svc.test_run(&req2b).await.unwrap();
+    assert_eq!(r2b.fee["effective"]["stamp_duty_pct"], serde_json::json!(0.05), "显式 stamp 优先");
 
     // 未建档标的（600000 不在替身内）→ default 分支（旧默认，不借用他类型档案）。
     let mut req3 = req.clone();

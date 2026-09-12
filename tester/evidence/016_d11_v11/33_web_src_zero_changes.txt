@@ -1,0 +1,5 @@
+## web/ status (should be empty)
+## web/src diff vs HEAD (stat)
+## web/src/ tracked changes count
+0
+## web/ untracked

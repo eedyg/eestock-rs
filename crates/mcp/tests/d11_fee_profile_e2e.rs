@@ -1,6 +1,6 @@
-//! D11 端到端实测（ADR-019 D11-3）：**真实库** `symbols.type` + `fee_profiles` + 真实 K 线
+//! D11 端到端实测（ADR-019 D11-3；v1.1 R-2 字段级解析）：**真实库** `symbols.type` + `fee_profiles` + 真实 K 线
 //! → `StrategyService::test_run` 省略 fee 时按标的类型解析（ETF：印花税 0、过户费 0、规费列 0），
-//! 显式传参仍整体优先（可复现旧行为）。
+//! 显式三键 fee（无 stamp，UI 形态）+ ETF 档案 → **字段级回退** stamp=0；显式 stamp=0.05 仍可复现旧行为。
 //!
 //! 只读：不写任何库数据；无需已发布策略（`TestRunSource::Inline`）。
 //! 装配与 app bin 生产装配**同结构**（PgStrategyStore + BacktestBarReader + SystemClock
@@ -96,18 +96,27 @@ async fn real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins() {
     assert_eq!(sum(trades, "stamp_duty"), 0.0, "ETF 缺省口径成交印花税合计为 0");
     let pnl_profile = sum(trades, "pnl");
 
-    // ② 显式传参（缺 stamp）→ 整体以显式为准：旧行为完全可复现（0.05 卖出印花税）
-    let explicit = json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
-    let r2 = svc.test_run(&request(ETF, from, to, Some(explicit))).await.expect("显式口径试算");
-    assert_eq!(r2.fee["effective"]["source"], json!("explicit"), "显式传参优先于档案");
-    assert_eq!(r2.fee["effective"]["stamp_duty_pct"], json!(0.05), "显式分支缺 stamp → 旧 ADR bt-1 默认");
-    let trades2 = r2.trades.as_array().unwrap();
-    let stamp2 = sum(trades2, "stamp_duty");
-    assert!(stamp2 > 0.0, "旧口径下 ETF 被多收印花税（={stamp2}）");
-    let pnl_explicit = sum(trades2, "pnl");
+    // ② 显式三键（无 stamp，UI 形态）+ ETF 档案 → 字段级回退 stamp=0（v1.1 R-2 本批核心断言）
+    let explicit3 = json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
+    let r2 = svc.test_run(&request(ETF, from, to, Some(explicit3))).await.expect("显式口径试算");
+    assert_eq!(r2.fee["effective"]["source"], json!("explicit"), "有字段来自显式 → explicit");
+    assert_eq!(r2.fee["effective"]["stamp_duty_pct"], json!(0.0),
+        "三键无 stamp → 回退 ETF 档案 0（非旧 0.05；UI 路径修复核心）");
+    assert_eq!(sum(r2.trades.as_array().unwrap(), "stamp_duty"), 0.0, "ETF 三键 fee 也零印花税");
+
+    // ③ 显式 stamp=0.05 → 显式字段最高优先：旧行为（多收 0.05% 印花税）完全可复现
+    let explicit_old = json!({"rate_pct": 0.025, "min_fee": 5.0,
+                              "slippage_bp": 2.0, "stamp_duty_pct": 0.05});
+    let r3 = svc.test_run(&request(ETF, from, to, Some(explicit_old))).await.expect("显式旧口径试算");
+    assert_eq!(r3.fee["effective"]["source"], json!("explicit"), "显式字段优先于档案");
+    assert_eq!(r3.fee["effective"]["stamp_duty_pct"], json!(0.05), "显式 stamp 优先（复现旧行为）");
+    let trades3 = r3.trades.as_array().unwrap();
+    let stamp3 = sum(trades3, "stamp_duty");
+    assert!(stamp3 > 0.0, "旧口径下 ETF 被多收印花税（={stamp3}）");
+    let pnl_explicit = sum(trades3, "pnl");
     // 实测留痕（--nocapture 可见；D11 背景数字：同一 ETF 同配置旧口径 pnl 偏低）
     println!(
-        "[D11 实测] symbol={ETF} bars={} trades={} | profile: fee={} stamp_sum=0 pnl={pnl_profile:.4}          | explicit: stamp_sum={stamp2} pnl={pnl_explicit:.4} | Δpnl={:.4}",
+        "[D11 实测] symbol={ETF} bars={} trades={} | profile: fee={} stamp_sum=0 pnl={pnl_profile:.4}          | explicit(stamp=0.05): stamp_sum={stamp3} pnl={pnl_explicit:.4} | Δpnl={:.4}",
         r.bar_count, trades.len(), r.fee, pnl_profile - pnl_explicit
     );
     assert!(

@@ -1,0 +1,30 @@
+## env
+UTC 2026-09-12T15:04:20Z
+repo=/home/eestock/workspace/git/eestock/eestock-rs
+HEAD 88f558aedbf5b870d6733d83f6cadd79db275bd9 docs(mcp): 标注 fee 响应的 WIRE 变更（ADR-019 D11-fix 破坏性变更注记）
+branch=master
+cargo cargo 1.97.1 (c980f4866 2026-06-30)
+node v22.22.2 / playwright 1.63.0 (web/node_modules)
+
+## binary
+98635e74346fba06ef57519d5db4d13846fbf1e05b53e0118f50b6cc04813b33  target/debug/eestock-app
+c76894dbe405ef45b5809d80c9ccb79ec9d4ba1d7413f14a156197af7f558a1b  web/dist/index.html
+698283dfab325cb2e1ee90c69755fe10bb73280283020d59128f908a2b04e688  web/dist/assets/index-Cm6bbPuq.css
+2a2fd96b293da8dbaaf5930f1b45605b029b17b47b757441674a83f567dc84e6  web/dist/assets/index-csVFM0jP.js
+
+## prod instance (untouched)
+3767395 Sat Sep 12 22:28:40 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+lrwxrwxrwx 1 eestock eestock 0 Sep 12 22:39 /proc/3767395/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+
+## alt instance (torn down)
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "127.0.0.1:18081"
+mcp_listen = "127.0.0.1:18082"
+static_dir = "/home/eestock/workspace/git/eestock/eestock-rs/web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 3600000
+start/stop: started 2026-09-12T14:54:59Z (log first line) / SIGTERM teardown see 41_teardown.txt
+{"timestamp":"2026-09-12T14:54:59.945948Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_tester016.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.989869Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T14:54:59.991259Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}

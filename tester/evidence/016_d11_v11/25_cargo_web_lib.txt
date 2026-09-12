@@ -1,0 +1,51 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running unittests src/lib.rs (target/debug/deps/web-9677246747bb6b5c)
+
+running 44 tests
+test dto::tests::collector_interval_validation ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::symbol_type_validation_enum_and_optional ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test settings::tests::kline_viewport_days_validation ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test spa::tests::mime_mapping ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

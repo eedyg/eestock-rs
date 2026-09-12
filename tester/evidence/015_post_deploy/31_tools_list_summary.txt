@@ -1,0 +1,49 @@
+tools/list count = 34
+
+names:
+get_kline
+get_sources_health
+get_data_quality
+list_symbols
+sim_start_session
+sim_stop_session
+sim_get_account
+sim_get_positions
+sim_get_orders
+sim_get_pnl
+sim_place_order
+sim_cancel_order
+sim_list_strategies
+sim_get_strategy_signal
+sim_get_strategy_analysis
+sim_list_sessions
+sim_get_session
+sim_run_backtest_compare
+strategy_list
+strategy_get
+strategy_create
+strategy_update
+strategy_publish
+strategy_archive
+strategy_test_run
+strategy_guide
+bt_run_ensemble
+bt_get_run
+bt_get_run_result
+bt_list_runs
+bt_cancel_run
+bt_compare_runs
+bt_list_presets
+bt_apply_preset
+
+list_symbols present: True
+list_symbols index: 3
+list_symbols schema:
+{
+ "description": "统一策略系统 Registry：返回平台 symbols 注册表全部标的（含 enabled=false 的停用标的；与 web GET /api/symbols 同源同字段）：code/name/type/interval_secs/settlement/enabled + 数据可用区间（latest={ts,last,change_pct}，无 bar → null）。`type`=ADR-019 D11-1 标的类型（etf/lof/stock；null=未设置），决定试算/回测省略 fee 时的费率推断。按 code 升序（确定性输出）。适用场景：调用方选标的（get_kline / strategy_test_run / bt_run_ensemble）。",
+ "inputSchema": {
+  "properties": {},
+  "type": "object"
+ },
+ "name": "list_symbols"
+}

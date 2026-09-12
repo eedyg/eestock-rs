@@ -1,0 +1,10 @@
+# I-6/H1 周期支持（生产实测）
+
+## strategy_test_run period=H1（510050, 2026-08-03~2026-08-07）: isError=None bar_count=274 trades=1 warmup=250/250
+## bt_run_ensemble period=H1: isError=None run_id=sr_1789223648181_000000 status=queued period=H1 from_ts=2026-08-02T16:00:00Z to_ts=2026-08-06T16:00:00Z
+   config.fee.effective={"commission_rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "source": "profile", "stamp_duty_pct": 0.0}
+   config.fee.profile.not_modeled=["exchange_fee_pct", "regulatory_fee_pct", "transfer_fee_pct"]
+   config.warmup_requested=250 warmup_effective=250
+## 反例 period='M7' -> {"code": -32602, "message": "period 须为 M1/M5/M15/H1/D1"}（枚举校验生效，H1 在允许集内）
+## bt_get_run: status=succeeded progress=1.0 error=None finished_at=2026-09-12T14:34:08.415063Z
+## get_kline period=1h（H1 数据面）: bars=5（见 43 文件）

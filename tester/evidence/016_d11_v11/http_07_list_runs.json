@@ -1,0 +1,274 @@
+{
+ "request": {
+  "method": "GET",
+  "path": "/api/workbench/runs?limit=5",
+  "body": null
+ },
+ "note": "R-1/旧数据:列表透传",
+ "http_status": 200,
+ "ms": 1,
+ "response": [
+  {
+   "id": "sr_1789225123616_000001",
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from_ts": "2026-06-01T00:00:00Z",
+   "to_ts": "2026-08-01T00:00:00Z",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "min_fee": 5.0,
+     "rate_pct": 0.025,
+     "slippage_bp": 2.0,
+     "stamp_duty_pct": 0.0
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1.0
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "succeeded",
+   "progress": 1.0,
+   "error": null,
+   "created_at": "2026-09-12T14:58:43.616679Z",
+   "started_at": "2026-09-12T14:58:43.618353Z",
+   "finished_at": "2026-09-12T14:58:44.080462Z"
+  },
+  {
+   "id": "sr_1789225123584_000000",
+   "name": "tester016 httpsubmit",
+   "symbol": "510050",
+   "period": "D1",
+   "from_ts": "2026-06-01T00:00:00Z",
+   "to_ts": "2026-08-01T00:00:00Z",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "min_fee": 5.0,
+     "rate_pct": 0.025,
+     "slippage_bp": 2.0,
+     "stamp_duty_pct": 0.0
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1.0
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "succeeded",
+   "progress": 1.0,
+   "error": null,
+   "created_at": "2026-09-12T14:58:43.584953Z",
+   "started_at": "2026-09-12T14:58:43.587040Z",
+   "finished_at": "2026-09-12T14:58:44.054384Z"
+  },
+  {
+   "id": "sr_1789223648181_000000",
+   "name": "post-deploy-015 H1 acceptance",
+   "symbol": "510050",
+   "period": "H1",
+   "from_ts": "2026-08-02T16:00:00Z",
+   "to_ts": "2026-08-06T16:00:00Z",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "effective": {
+      "commission_rate_pct": 0.025,
+      "min_fee": 5.0,
+      "slippage_bp": 2.0,
+      "source": "profile",
+      "stamp_duty_pct": 0.0
+     },
+     "profile": {
+      "commission_rate_pct": 0.025,
+      "exchange_fee_pct": 0.0,
+      "min_fee": 5.0,
+      "not_modeled": [
+       "exchange_fee_pct",
+       "regulatory_fee_pct",
+       "transfer_fee_pct"
+      ],
+      "note": "场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）",
+      "regulatory_fee_pct": 0.0,
+      "source": "ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）",
+      "stamp_duty_pct": 0.0,
+      "transfer_fee_pct": 0.0,
+      "type": "etf"
+     },
+     "symbol_type": "etf"
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1.0
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "succeeded",
+   "progress": 1.0,
+   "error": null,
+   "created_at": "2026-09-12T14:34:08.181553Z",
+   "started_at": "2026-09-12T14:34:08.182954Z",
+   "finished_at": "2026-09-12T14:34:08.415063Z"
+  },
+  {
+   "id": "sr_1789220521987_000001",
+   "name": "tester-010-h1-dca",
+   "symbol": "518880",
+   "period": "H1",
+   "from_ts": "2024-01-02T00:00:00Z",
+   "to_ts": "2024-04-01T00:00:00Z",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "min_fee": 5.0,
+     "rate_pct": 0.025,
+     "slippage_bp": 2.0,
+     "source": "explicit",
+     "stamp_duty_pct": 0.0,
+     "symbol_type": null
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "Dca": {
+      "amount": null,
+      "interval": 5,
+      "mode": "Equal",
+      "tranches": 3
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "succeeded",
+   "progress": 1.0,
+   "error": null,
+   "created_at": "2026-09-12T13:42:01.988526Z",
+   "started_at": "2026-09-12T13:42:01.993173Z",
+   "finished_at": "2026-09-12T13:42:02.537591Z"
+  },
+  {
+   "id": "sr_1789220520005_000000",
+   "name": "tester-010-h1-warmup",
+   "symbol": "518880",
+   "period": "H1",
+   "from_ts": "2024-01-02T00:00:00Z",
+   "to_ts": "2024-04-01T00:00:00Z",
+   "config": {
+    "buy_threshold": 60.0,
+    "fee": {
+     "min_fee": 5.0,
+     "rate_pct": 0.025,
+     "slippage_bp": 2.0,
+     "source": "explicit",
+     "stamp_duty_pct": 0.0,
+     "symbol_type": null
+    },
+    "initial_capital": 100000.0,
+    "policy": {
+     "LumpSum": {
+      "position_pct": 1.0
+     }
+    },
+    "sell_threshold": 40.0,
+    "slots": [
+     {
+      "archived": false,
+      "params": {
+       "fast": 5.0,
+       "slow": 20.0
+      },
+      "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+      "strategy_id": "st_1789013713975_000000",
+      "version": 1,
+      "version_id": "sv_1789013713975_000001",
+      "weight": 1.0
+     }
+    ],
+    "stop": null,
+    "warmup_effective": 250,
+    "warmup_requested": 250
+   },
+   "status": "succeeded",
+   "progress": 1.0,
+   "error": null,
+   "created_at": "2026-09-12T13:42:00.006Z",
+   "started_at": "2026-09-12T13:42:00.009297Z",
+   "finished_at": "2026-09-12T13:42:00.629355Z"
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+# git 状态（验收期间未提交、未改实现）
+
+## git diff --cached --stat（暂存区）
+(空 = 0 staged)
+
+## git status --porcelain | wc -l
+14
+
+## 未跟踪目录（本次新增证据）
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? crates/mcp/tests/zz_tester_010_acceptance.rs
+?? crates/mcp/tests/zz_tester_i1_acceptance.rs
+?? crates/web/tests/zz_tester_010_web.rs
+?? crates/web/tests/zz_tester_011_f2_path.rs
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? spec_batch4.json
+?? tester/evidence/015_post_deploy/
+?? tester/test/
+
+## 本次验收新增文件（tester/evidence/015_post_deploy）
+total 824
+-rw-rw-r-- 1 eestock eestock 22178 Sep 12 22:29 01_tools_list.json
+-rw-rw-r-- 1 eestock eestock 14853 Sep 12 22:30 02_list_symbols.json
+-rw-rw-r-- 1 eestock eestock   249 Sep 12 22:30 03_get_kline_unregistered_510300.json
+-rw-rw-r-- 1 eestock eestock  1330 Sep 12 22:30 04_get_kline_legacy_default.json
+-rw-rw-r-- 1 eestock eestock  1691 Sep 12 22:30 05_get_kline_window_date.json
+-rw-rw-r-- 1 eestock eestock   132 Sep 12 22:31 06_get_kline_limit_over.json
+-rw-rw-r-- 1 eestock eestock  1365 Sep 12 22:31 07_get_kline_1h.json
+-rw-rw-r-- 1 eestock eestock   954 Sep 12 22:31 08_get_kline_rfc3339_window.json
+-rw-rw-r-- 1 eestock eestock 23553 Sep 12 22:32 10_strategy_list_default.json
+-rw-rw-r-- 1 eestock eestock 68557 Sep 12 22:32 11_strategy_list_include_source.json
+-rw-rw-r-- 1 eestock eestock   249 Sep 12 22:32 12_testrun_d9_unregistered.json
+-rw-rw-r-- 1 eestock eestock 52931 Sep 12 22:33 13_testrun_h1.json
+-rw-rw-r-- 1 eestock eestock 54054 Sep 12 22:33 14_testrun_warmup250.json
+-rw-rw-r-- 1 eestock eestock 62279 Sep 12 22:33 15_testrun_fee_profile.json
+-rw-rw-r-- 1 eestock eestock 62297 Sep 12 22:33 16_testrun_fee_explicit.json
+-rw-rw-r-- 1 eestock eestock 62297 Sep 12 22:37 17_testrun_fee_explicit_no_stamp.json
+-rw-rw-r-- 1 eestock eestock 62290 Sep 12 22:37 18_testrun_fee_profile_518880.json
+-rw-rw-r-- 1 eestock eestock 62444 Sep 12 22:38 19_testrun_fee_profile_lof161226.json
+-rw-rw-r-- 1 eestock eestock  2773 Sep 12 22:34 20_bt_run_ensemble_h1.json
+-rw-rw-r-- 1 eestock eestock    91 Sep 12 22:34 21_bt_run_ensemble_bad_period.json
+-rw-rw-r-- 1 eestock eestock  2637 Sep 12 22:35 22_bt_get_run_h1.json
+-rw-rw-r-- 1 eestock eestock 79901 Sep 12 22:35 23_bt_get_run_result_h1.json
+-rw-rw-r-- 1 eestock eestock  9982 Sep 12 22:35 30_api_symbols.json
+-rw-rw-r-- 1 eestock eestock  1304 Sep 12 22:35 31_tools_list_summary.txt
+-rw-rw-r-- 1 eestock eestock  1702 Sep 12 22:35 32_list_symbols_vs_api_compare.txt
+-rw-rw-r-- 1 eestock eestock  3425 Sep 12 22:36 33_data_freshness.txt
+-rw-rw-r-- 1 eestock eestock  8281 Sep 12 22:35 34_logs_grep.txt
+-rw-rw-r-- 1 eestock eestock  2666 Sep 12 22:37 35_rollback_check.txt
+-rw-rw-r-- 1 eestock eestock   712 Sep 12 22:35 36_process_and_health.txt
+-rw-rw-r-- 1 eestock eestock  1272 Sep 12 22:37 37_crash_and_logscan.txt
+-rw-rw-r-- 1 eestock eestock   845 Sep 12 22:36 40_get_kline_518880_1m_tail.json
+-rw-rw-r-- 1 eestock eestock   880 Sep 12 22:36 41_get_kline_518880_1d_tail.json
+-rw-rw-r-- 1 eestock eestock   123 Sep 12 22:36 42_get_sources_health.json
+-rw-rw-r-- 1 eestock eestock  2099 Sep 12 22:36 43_kline_i1_d2_check.txt
+-rw-rw-r-- 1 eestock eestock  1392 Sep 12 22:37 44_d5_strategy_list_check.txt
+-rw-rw-r-- 1 eestock eestock   410 Sep 12 22:37 45_d9_check.txt
+-rw-rw-r-- 1 eestock eestock  1563 Sep 12 22:37 46_i2_warmup_check.txt
+-rw-rw-r-- 1 eestock eestock  4859 Sep 12 22:38 47_i3_d11_fee_check.txt
+-rw-rw-r-- 1 eestock eestock   892 Sep 12 22:37 48_i6_h1_check.txt
+-rw-rw-r-- 1 eestock eestock  1567 Sep 12 22:37 49_tools_surface_check.txt
+-rw-rw-r-- 1 eestock eestock    81 Sep 12 22:38 50_db_side_effects.txt
+-rw-rw-r-- 1 eestock eestock   640 Sep 12 22:38 51_git_state.txt
+-rw-rw-r-- 1 eestock eestock  3363 Sep 12 22:31 probe_015.py
+-rw-rw-r-- 1 eestock eestock  4291 Sep 12 22:38 _probe_015_raw.log
+-rw-rw-r-- 1 eestock eestock  1137 Sep 12 22:29 spec_batch1.json
+-rw-rw-r-- 1 eestock eestock  2208 Sep 12 22:32 spec_batch2.json
+-rw-rw-r-- 1 eestock eestock   724 Sep 12 22:34 spec_batch3.json
+-rw-rw-r-- 1 eestock eestock   441 Sep 12 22:35 spec_batch4.json
+-rw-rw-r-- 1 eestock eestock   643 Sep 12 22:37 spec_batch5.json

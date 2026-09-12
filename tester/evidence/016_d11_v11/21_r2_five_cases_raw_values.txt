@@ -1,0 +1,19 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running tests/zz_tester_016_fee_cases.rs (target/debug/deps/zz_tester_016_fee_cases-fe0e3102df111fda)
+
+running 1 test
+EV R2-1 ui3+etf         => OK source=explicit symbol_type=Some("etf") rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0 sell(1000@10).stamp=0
+EV R2-2 ui3+stock       => OK source=explicit symbol_type=Some("stock") rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0.05 sell(1000@10).stamp=4.999000000000001
+EV R2-3 stamp0.07+stock => OK source=explicit symbol_type=Some("stock") rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0.07 sell(1000@10).stamp=6.998600000000002
+EV R2-4 none+etf        => OK source=profile symbol_type=Some("etf") rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0 sell(1000@10).stamp=0
+EV R2-5 none+none       => OK source=default symbol_type=None rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0.05 sell(1000@10).stamp=4.999000000000001
+EV GUARD {} (empty)     => ERR(status=400/isError): fee 对象不含任何可识别字段（可识别: rate_pct/min_fee/slippage_bp/stamp_duty_pct；当前收到: （空对象））
+EV GUARD {"foo":1}       => ERR(status=400/isError): fee 对象不含任何可识别字段（可识别: rate_pct/min_fee/slippage_bp/stamp_duty_pct；当前收到: foo）
+EV GUARD 档案列名       => ERR(status=400/isError): fee 对象不含任何可识别字段（可识别: rate_pct/min_fee/slippage_bp/stamp_duty_pct；当前收到: commission_rate_pct）
+EV GUARD {rate_pct}     => OK source=explicit symbol_type=Some("etf") rate_pct=0.025 min_fee=5 slippage_bp=2 stamp_duty_pct=0 sell(1000@10).stamp=0
+EV GUARD stamp=1.5      => ERR(status=400/isError): fee.stamp_duty_pct 须 ∈ [0,1]（百分比）
+test r2_five_cases_and_guard_raw_values ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

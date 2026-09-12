@@ -1,0 +1,168 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src/lib.rs (target/debug/deps/application-eaa2a8e6e505b781)
+
+running 26 tests
+test fee::tests::consumed_profile_fields_are_exactly_what_engine_applies ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::explicit_object_with_single_recognized_field_is_accepted ... ok
+test fee::tests::effective_excludes_unmodeled_profile_fields ... ok
+test fee::tests::explicit_stamp_wins_over_profile ... ok
+test fee::tests::effective_strictly_matches_fee_model_fields_and_is_disjoint_from_not_modeled ... ok
+test fee::tests::explicit_object_without_recognized_fields_is_rejected ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_stock_profile ... ok
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_etf_profile ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::not_modeled_matches_profile_numeric_fields_minus_consumed ... ok
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test fee::tests::partial_explicit_overrides_only_present_fields ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test fee::tests::resolved_json_exposes_effective_and_profile_segments ... ok
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/simlive.rs (target/debug/deps/simlive-76f78b569f4c3158)
+
+running 55 tests
+test p4a_explicit_version_id_must_be_published_and_owned ... ok
+test p4a_feed_targets_from_pinned_configs_only ... ok
+test list_and_get_session_return_history_and_result ... ok
+test mcp_enabled_toggle_reads_back_same_instance ... ok
+test get_strategy_signal_and_analysis_return_evaluations ... ok
+test limit_not_touched_records_pending_no_fill_no_trade_persist ... ok
+test p4a_limits_3_strategies_30_stocks ... ok
+test p4a_no_published_version_rejected ... ok
+test cancel_order_cancels_pending_but_not_filled ... ok
+test current_session_resolves_latest_running_only ... ok
+test p4a_recover_degrades_legacy_builtin_configs ... ok
+test feed_polls_new_bar_drives_evaluation_and_auto_order ... ok
+test market_buy_fills_at_latest_applies_account_and_persists ... ok
+test feed_targets_returns_pinned_session_poll_targets ... ok
+test p4a_custom_thresholds_pinned_and_used ... ok
+test orders_include_source_manual_and_aggregate ... ok
+test p4a_registry_not_injected_errors ... ok
+test p4a_g5_events_stream_and_circuit_breaker ... ok
+test p4a_thresholds_must_straddle_neutral_50 ... ok
+test p4a_unknown_strategy_id_rejected_with_guidance ... ok
+test recover_reproduces_persisted_pnl_snapshot ... ok
+test p4a_recover_reinstantiates_plugin_and_continues ... ok
+test recover_sessions_degraded_when_no_state_marks_ended ... ok
+test place_order_is_idempotent_by_intent ... ok
+test p4a_position_injection_drives_gate_plugin ... ok
+test run_backtest_compare_manual_session_errors ... ok
+test run_backtest_compare_unknown_session_errors ... ok
+test place_order_position_latest_falls_back_zero_without_quote ... ok
+test p4a_late_feed_after_stop_does_not_trade ... ok
+test pnl_and_mark_to_market_reflect_unrealized ... ok
+test p4a_recover_degrades_when_pinned_version_archived ... ok
+test position_latest_matches_scoring_latest_price_same_quote_source ... ok
+test start_session_invalid_strategies_rejects ... ok
+test start_session_with_strategies_rejects_unregistered_code ... ok
+test process_bar_persists_running_state ... ok
+test p4a_pinning_latest_published_by_default_and_explicit_version ... ok
+test p4a_late_eval_from_replaced_worker_does_not_pollute_latest ... ok
+test run_backtest_compare_triggers_ensemble_run_with_pinned_config ... ok
+test start_session_defaults_cash_to_1m_and_persists ... ok
+test place_order_position_latest_resolves_from_market_quote ... ok
+test set_trading_off_only_scores_no_order ... ok
+test recover_after_unmarked_positions_pnl_matches_position_view ... ok
+test process_bar_unconfigured_errors_and_unknown_stock_no_event ... ok
+test start_session_when_already_running_returns_already_running_error ... ok
+test p4a_worker_panic_degrades_session_to_ended ... ok
+test recover_sessions_restores_running_session_and_continues ... ok
+test set_trading_on_and_buy_threshold_places_aggregate_order ... ok
+test start_session_with_strategies_accepts_registered_code ... ok
+test start_session_with_strategies_without_registry_port_falls_back_to_format ... ok
+test unknown_session_errors ... ok
+test recover_sessions_is_idempotent ... ok
+test start_session_with_strategies_wires_orchestrator ... ok
+test stop_session_ends_and_persists_result_two_stop_returns_false ... ok
+test stop_session_result_uses_backtest_metrics_structure_and_trade_pnl ... ok
+test trading_on_no_threshold_no_order ... ok
+
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/strategy.rs (target/debug/deps/strategy-0608b4dff971c643)
+
+running 39 tests
+test delete_strategy_unknown_id_is_404 ... ok
+test create_rejects_empty_name_or_code ... ok
+test delete_strategy_zero_version_ok ... ok
+test not_found_semantics ... ok
+test create_strategy_makes_v1_draft_with_sha_and_schema ... ok
+test delete_strategy_all_draft_ok_and_cascades ... ok
+test delete_strategy_with_published_is_409 ... ok
+test diff_returns_both_versions ... ok
+test publish_conflict_when_status_changed_concurrently ... ok
+test manage_list_includes_draft_only_with_aggregates ... ok
+test delete_strategy_with_archived_history_is_409 ... ok
+test publish_conflict_when_code_changed_concurrently ... ok
+test publish_gate_rejects_bad_code ... ok
+test catalog_only_published_with_level_filter ... ok
+test archive_transition_rules ... ok
+test catalog_filters_level_set_before_latest_published ... ok
+test create_draft_from_inherits_code_and_bumps_version ... ok
+test publish_happy_sets_status_published_at_and_stable_sha ... ok
+test test_run_sim_position_produces_signals_and_trade ... ok
+test test_run_warmup_prefix_marked ... ok
+test test_run_warmup_reports_shortfall ... ok
+test test_run_param_validation ... ok
+test test_run_version_source_and_bad_inputs ... ok
+test update_draft_advances_strategy_updated_at ... ok
+test update_draft_edits_in_place_when_draft ... ok
+test update_meta_happy_trims_name_and_keeps_missing_fields ... ok
+test test_run_h1_period_supported ... ok
+test test_run_pure_score_inline_code ... ok
+test test_run_interval_limits ... ok
+test update_draft_on_archived_is_conflict ... ok
+test update_draft_on_published_auto_creates_new_draft ... ok
+test test_run_fee_echo_and_stamp_duty_effect ... ok
+test test_run_pure_score_defaults_fill_and_neutral_on_error ... ok
+test update_meta_validation_400_and_404 ... ok
+test test_run_policy_and_capital_effect ... ok
+test publish_non_draft_is_invalid_transition ... ok
+test seed_reference_plugins_seeds_11_and_is_idempotent ... ok
+test test_run_fee_resolves_by_symbol_type_when_absent ... ok
+test test_run_events_truncation_cap ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/workbench.rs (target/debug/deps/workbench-e66b704bfea03951)
+
+running 17 tests
+test submit_rejects_draft_version_400 ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test submit_rejects_span_limits_400 ... ok
+test submit_marks_published_version_not_archived ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test submit_rejects_unknown_version_404 ... ok
+test preset_crud_and_apply ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test run_success_end_to_end ... ok
+test cancel_unknown_run_404_and_terminal_409 ... ok
+test compare_returns_side_by_side_net_value_and_metrics ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.07s
+
+   Doc-tests application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

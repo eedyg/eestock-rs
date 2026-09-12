@@ -1,0 +1,12 @@
+## counts
+strategy_run=351
+strategy_preset=0
+## runs with two-segment fee (effective/profile keys)
+sr_1789223648181_000000 | 510050 | 2026-09-12 14:34:08.181553+00
+## new runs this session (flat fee, 4 keys only)
+sr_1789225123584_000000 | 510050 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+sr_1789225123616_000001 | 510050 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+sr_1789225152377_000004 | 518880 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+sr_1789225167373_000005 | 518880 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.07}
+sr_1789225397240_000006 | 510050 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+sr_1789225411103_000009 | 510050 | {"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}

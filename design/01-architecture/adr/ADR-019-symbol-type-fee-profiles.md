@@ -60,3 +60,38 @@
 - 深圳证券交易所《深交所收费及代收税费标准》（2026年1月）：基金经手费 0.04‰ 双边、A股经手费 0.0341‰ 双边、A股监管费 0.02‰ 双边、债券ETF/货币ETF 经手费暂免
 - 中国结算收费标准/代收税费一览表：股票过户费 0.01‰ 双边；ETF/LOF 二级市场买卖免过户费
 - 多家券商费用公示（华金/长城/大同/浙商等）：佣金双向、最低 5 元、全佣/净佣口径差异
+
+---
+
+## 6. 修订（v1.1，2026-09-12 部署后验收发现回归）
+
+部署后验收（tester 015）发现：v1.0 把**两段结构**（`effective`/`profile`）写进了**钉住 config**
+（`strategy_run.config.fee`），破坏了前端与预设往返路径。证据（架构师复核）：
+
+1. 生产实际存储：`strategy_run.config.fee = {effective:{…}, profile:{…}}`（tester 015 的新 run 行）。
+2. 前端 `ConfigPanel.tsx:360-362` 读 `cfg.fee.rate_pct/min_fee/slippage_bp` → **这些顶层键已不存在**
+   → 应用预设/回填后费用输入框显示 `undefined`（静默 UI 破坏）。
+3. 前端 `ConfigPanel.tsx:322` 用 run config 建预设 → `to_fee_model(&fee_json)` 要求扁平键
+   → **400 失败**（预设往返断裂）。
+4. 前端 `ConfigPanel.tsx:263` 提交恒带三键 fee（`rate_pct/min_fee/slippage_bp`，无 stamp）
+   → 走"对象存在=整体显式"分支 → **ETF 仍被收 0.05 印花税**（D11 的收益经 UI 路径未生效）。
+
+**修订决议（v1.1）**：
+
+| # | 决议 |
+|---|---|
+| R-1 | **钉住 config 保持扁平**（`fee_model_to_json`）：`strategy_run.config.fee` 与预设往返/前端读取**必须**向后兼容。两段结构**只用于试算/回测的响应回显**（`resolved_fee_to_json`），且不得混入 config。 |
+| R-2 | **费率解析改为按字段优先级**（field-level）：显式对象中**出现的字段**优先，**缺失字段回退 profile**，profile 缺失再回退旧默认。理由：调用方不应被迫知道"ETF 印花税=0"这类标的属性；旧行为"对象存在=整体显式、缺失 stamp 取 0.05"是造成 R2-④ 的直接原因。 |
+| R-3 | `source` 语义随之明确：取本次解析中**最高优先级来源**（任一字段来自显式 → `"explicit"`；否则 profile → `"profile"`；否则 `"default"`），并在文档写明该口径（不等于"所有字段都来自该类"）。 |
+| R-4 | 前端无需改动即可恢复（config 扁平 + 三键 fee 经字段级回退自动获得 ETF 正确费率）；`zz_tester_010` 夹具中关于 `source` 的断言须相应复核。 |
+| R-5 | 本修订须补：①直连 API 回归（应用预设→回填→提交，费用输入框值与钉住 config 均可读）；②前端实跑验证（此前 014/015 均声明未做前端实测 → 本次须补 Playwright/真实浏览器走查，验证「提交→费率正确→预设往返」闭环）。 |
+
+**教训（记录）**：v1.0 的"对象级显式优先"是为向后兼容而设，但它把"标的类型知识"的负担推给了调用方，
+并在前端路径上直接失效；同时我把两段结构误写入钉住 config，破坏了既有消费者。**契约变更必须逐消费者清点**
+（本次漏了前端三个消费点），仅凭"无 grep 消费者"不足以判定安全——应查**实际数据形状**（DB 行）。
+
+**v1.1 落地（实现锚点）**：
+- R-1：`crates/application/src/workbench.rs::submit`（`config.fee = fee_model_to_json(&fee)`；两段回显 `resolved_fee_to_json` 仅用于 `TestRunResponse.fee` 与 `resolved_fee_to_json` 调用点）；
+- R-2/R-3：`crates/application/src/fee.rs::resolve_fee`（字段级优先级；`FeeSource` = 最高优先级来源）；
+- **R-2 补守卫（架构师裁决）**：显式 `fee` 对象**存在**但**不含任何可识别字段**（`{}`/全未知键，如 `{"foo":1}`）→ **400/isError**（消息须指明可识别字段集 `rate_pct/min_fee/slippage_bp/stamp_duty_pct` 与当前收到的键）；含 **≥1 个**可识别字段 → 按 R-2 字段级解析，缺失字段逐级回退，不报错。理由：空/全未知键是典型调用方 bug，静默按"全量回退"属"静默失真"类缺陷（同 I-1 静默空返回、门禁假绿），必须 fail-fast；"部分字段"（前端三键不带 stamp）是合法意图，必须允许。**HTTP 层 `validate_backtest_fee` 三键预校验保持不变**（UI 契约）；守卫作用于 API/服务层解析点（`fee::resolve_fee`，与 R-2 同处）；
+- 历史 run 行兼容：`strategy_run.config.fee` 旧行可能为两段结构（v1.0 写入），**读取/转换路径需容忍旧形状**（前端仅读三个顶层数值键；`to_fee_model` 用于扁平预设，不接受两段）——不以旧行破坏读取为代价。

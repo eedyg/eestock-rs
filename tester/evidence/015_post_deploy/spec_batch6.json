@@ -1,0 +1,3 @@
+[
+ {"file":"19_testrun_fee_profile_lof161226.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"code":"function on_bar(ctx) { return 100; }","symbol":"161226","period":"D1","from":"2026-06-01T00:00:00+08:00","to":"2026-09-12T00:00:00+08:00","mode":"sim_position"}}}
+]

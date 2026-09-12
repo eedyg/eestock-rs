@@ -1,0 +1,89 @@
+## added/removed lines that are empty-or-whitespace-only
+215	44	crates/application/src/fee.rs
+3	2	crates/application/src/strategy.rs
+6	5	crates/application/src/workbench.rs
+17	4	crates/application/tests/strategy.rs
+37	22	crates/application/tests/workbench.rs
+41	19	crates/mcp/src/tools.rs
+21	12	crates/mcp/tests/d11_fee_profile_e2e.rs
+5	2	crates/web/src/dto.rs
+2	2	crates/web/src/strategies.rs
+2	2	crates/web/src/workbench.rs
+35	0	design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md
+5	0	design/04-storage/schema.md
+6	3	design/07-app-plane/00-web-api.md
+41	19	design/07-app-plane/01-mcp.md
+12	6	design/08-backtest/01-engine-adr.md
+6	4	design/12-strategy-system/01-adr.md
+--- fee.rs whitespace-only difference hunks ---
+60c60
+< @@ -86,6 +104,4 @@ pub fn resolve_fee(explicit: Option<&serde_json::Value>, profile: Option<FeeProf
+---
+> @@ -86,3 +104,2 @@ pub fn resolve_fee(explicit: Option<&serde_json::Value>, profile: Option<FeeProf
+64,66d63
+< -            Some(p) => fee_model_from_profile(p),
+< -            None => legacy_default_fee_model(),
+< -        },
+69,70c66,67
+< +        Some(p) => fee_model_from_profile(p),
+< +        None => legacy_default_fee_model(),
+---
+> @@ -91 +107,0 @@ pub fn resolve_fee(explicit: Option<&serde_json::Value>, profile: Option<FeeProf
+> -        },
+174c171
+< @@ -315,0 +406,11 @@ mod tests {
+---
+> @@ -315,0 +406 @@ mod tests {
+176c173,180
+< +
+
+## web/src/dto.rs full diff (validate_backtest_fee contract)
+diff --git a/crates/web/src/dto.rs b/crates/web/src/dto.rs
+index dc13bf0..e1cd842 100644
+--- a/crates/web/src/dto.rs
++++ b/crates/web/src/dto.rs
+@@ -459,8 +459,11 @@ pub const RESET_SOURCES: &[&str] = &[
+ 
+ // ── 费用校验（§1.5 旧回测退役后由 §1.8 工作台沿用；POST /api/workbench/runs 复用）──
+ 
+-/// 费用校验：`{rate_pct, min_fee, slippage_bp}` 三字段必须齐、均为数值；
+-/// `stamp_duty_pct` 可选（研发任务裁决：ETF 无印花税，缺省由 application 层取 0.05），若提供须为数值且 ∈ [0, 1]。
++/// 费用校验（web 层预校验）：提交入参 `fee` 为 `{rate_pct, min_fee, slippage_bp}` 三字段必齐、均为数值；
++/// `stamp_duty_pct` 可选（提供须为数值且 ∈ [0,1]）。**费率语义归 application 层**（ADR-019 v1.1 R-2
++/// 字段级优先级：省略 fee 或缺失字段按标的 type 查 `fee_profiles` 回退；UI 三键 fee 无 stamp + ETF → stamp 0）。
++/// **本层三键预校验不变**（UI 契约）；"显式对象存在但无可识别字段（`{}`/全未知键）→ 400" 的补守卫
++/// 作用于 **application 层解析点**（`fee::resolve_fee`），见 `design/07-app-plane/01-mcp.md`。
+ pub fn validate_backtest_fee(fee: &serde_json::Value) -> Result<(), FieldError> {
+     let obj = fee.as_object().ok_or_else(|| FieldError::BadRequest("fee 应为对象".into()))?;
+     for key in ["rate_pct", "min_fee", "slippage_bp"] {
+## web/src/strategies.rs + workbench.rs diffs
+diff --git a/crates/web/src/strategies.rs b/crates/web/src/strategies.rs
+index af34354..d125f2f 100644
+--- a/crates/web/src/strategies.rs
++++ b/crates/web/src/strategies.rs
+@@ -142,8 +142,8 @@ pub struct TestRunReq {
+     /// I-2/D6：前置预热根数（缺省 250，与 MCP strategy_test_run 同口径）。
+     #[serde(default)]
+     pub warmup_bars: Option<usize>,
+-    /// I-3/D6 + D11-3：费用入参（省略/`null` = 按标的 type 查 `fee_profiles` 解析，
+-    /// 无档案 → 旧 ADR bt-1 默认；显式传对象整体优先）。
++    /// I-3/D6 + D11-3（v1.1 R-2）：费用入参（省略/`null` = 按标的 type 查 `fee_profiles` 解析，
++    /// 无档案 → 旧 ADR bt-1 默认；显式对象按**字段优先级**：出现字段优先，缺失字段逐字段回退档案→旧默认）。
+     #[serde(default)]
+     pub fee: Option<serde_json::Value>,
+     /// I-3/D6：执行策略（缺省 `{"LumpSum":{"position_pct":1.0}}`）。
+diff --git a/crates/web/src/workbench.rs b/crates/web/src/workbench.rs
+index cff3d39..65ff24a 100644
+--- a/crates/web/src/workbench.rs
++++ b/crates/web/src/workbench.rs
+@@ -93,8 +93,8 @@ pub struct WorkbenchSubmitReq {
+     pub stop: Option<serde_json::Value>,
+     #[serde(default)]
+     pub initial_capital: Option<f64>,
+-    /// I-3/D6 + D11-3：省略/`null` = 按标的 type 查 `fee_profiles` 解析（无档案 → 旧默认）；
+-    /// 显式传对象整体优先（缺 stamp_duty_pct 仍 0.05）。
++    /// I-3/D6 + D11-3（v1.1 R-2）：省略/`null` = 按标的 type 查 `fee_profiles` 解析（无档案 → 旧默认）；
++    /// 显式对象按**字段优先级**（出现字段优先，缺失字段逐字段回退档案→旧默认）。
+     #[serde(default)]
+     pub fee: Option<serde_json::Value>,
+     /// I-2/D6：前置预热根数（缺省 250）；0 = 无预热。

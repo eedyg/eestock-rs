@@ -1,0 +1,10 @@
+[
+ {"file":"01_tools_list.json","method":"tools/list","params":{}},
+ {"file":"02_list_symbols.json","method":"tools/call","params":{"name":"list_symbols","arguments":{}}},
+ {"file":"03_get_kline_unregistered_510300.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510300"}}},
+ {"file":"04_get_kline_legacy_default.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1m","limit":5}}},
+ {"file":"05_get_kline_window_date.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d","from":"2026-08-03","to":"2026-08-10"}}},
+ {"file":"06_get_kline_limit_over.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1m","limit":10001}}},
+ {"file":"07_get_kline_1h.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1h","limit":5}}},
+ {"file":"08_get_kline_rfc3339_window.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d","from":"2026-08-03T00:00:00+08:00","to":"2026-08-06T00:00:00+08:00"}}}
+]

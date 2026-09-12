@@ -1,0 +1,33 @@
+## resolved_fee_to_json call sites (期望：仅响应回显)
+crates/application/src/strategy.rs:701:        let fee_json = crate::fee::resolved_fee_to_json(&resolved);
+crates/application/src/fee.rs:223:pub fn resolved_fee_to_json(r: &ResolvedFee) -> serde_json::Value {
+crates/application/src/fee.rs:536:        let j = resolved_fee_to_json(&r);
+crates/application/src/fee.rs:556:        let je = resolved_fee_to_json(&resolve_fee(Some(&explicit), Some(stock_profile())).unwrap());
+crates/application/src/fee.rs:564:        let jd = resolved_fee_to_json(&resolve_fee(None, None).unwrap());
+crates/application/src/fee.rs:575:        let j = resolved_fee_to_json(&resolve_fee(None, Some(stock_profile())).unwrap());
+crates/application/src/fee.rs:591:        let j = resolved_fee_to_json(&resolve_fee(None, Some(stock_profile())).unwrap());
+crates/application/src/fee.rs:631:        let j = resolved_fee_to_json(&resolve_fee(None, Some(stock_profile())).unwrap());
+crates/application/src/workbench.rs:340:        // 必须向后兼容；两段结构（effective/profile）**只用于响应回显**（`resolved_fee_to_json`），不得混入 config。
+
+## fee_model_to_json call sites (期望：config 钉住/预设往返)
+crates/application/tests/workbench.rs:610:    // R-1：config.fee 必须为扁平 `fee_model_to_json` 形态（两段仅用于响应回显），且可被 `to_fee_model` 无损解析。
+crates/application/tests/workbench.rs:614:    assert_eq!(application::fee::fee_model_to_json(&round), run.config["fee"], "扁平 fee 往返无损");
+crates/application/src/fee.rs:186:pub fn fee_model_to_json(m: &FeeModel) -> serde_json::Value {
+crates/application/src/fee.rs:259:/// **用途**：解析**钉住/预设的扁平 fee**（[`fee_model_to_json`] 的往返形态；如工作台预设 CRUD），
+crates/application/src/workbench.rs:338:        // I-3/D6 + ADR-019 v1.1 R-1：`config.fee` 保持**扁平** [`fee_model_to_json`] 形态
+crates/application/src/workbench.rs:357:            "fee": crate::fee::fee_model_to_json(&fee),
+crates/application/src/workbench.rs:734:            "fee": crate::fee::fee_model_to_json(&fee),
+crates/mcp/src/tools.rs:363:            "description": "回测工作台（统一策略系统 Registry 策略源）：提交多策略 ensemble 回测（异步任务，返回 run_id；bt_get_run 轮询进度/状态，进度另经 web WS 推送）。slots 1..=10，published|archived 版本可运行（archived = 审计重跑，2026-09-10 裁决：代码不可变+sha256 钉住、不触真实资金；config 快照钉住 archived 审计标记；draft 未发布不可运行）；version_id 缺省 = 该策略最新 published（catalog 解析）。fee **省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费免收 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025,5.0,0.05}），**显式对象按字段优先级**（ADR-019 v1.1 R-2：出现字段优先，缺失字段逐字段回退档案→旧默认）；**生效 fee 以扁平形态钉入 config 快照**（`fee_model_to_json`：`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，R-1——预设往返/前端读取兼容），响应回显分 `effective`（引擎实际应用参数 + source=explicit|profile|default）与 `profile`（档案全量事实 + `not_modeled` 显式未建模清单）两段。适用场景：策略组合历史表现验证/参数与阈值对比。",
+
+## to_fee_model call sites
+crates/application/tests/workbench.rs:613:    let round = application::fee::to_fee_model(&run.config["fee"]).expect("钉住 fee 可往返解析");
+crates/application/tests/workbench.rs:964:    application::fee::to_fee_model(&run.config["fee"]).expect("扁平 config.fee 可往返解析");
+crates/application/src/workbench.rs:693:        let fee = to_fee_model(&fee_json).map_err(|e| WorkbenchValidation(e.to_string()))?;
+
+## resolve_fee call sites
+crates/application/src/strategy.rs:698:        let resolved = crate::fee::resolve_fee(req.fee.as_ref(), profile)
+crates/application/src/workbench.rs:280:        let resolved = resolve_fee(req.fee.as_ref(), profile)
+
+## workbench.rs submit config 钉住行
+357:            "fee": crate::fee::fee_model_to_json(&fee),
+734:            "fee": crate::fee::fee_model_to_json(&fee),

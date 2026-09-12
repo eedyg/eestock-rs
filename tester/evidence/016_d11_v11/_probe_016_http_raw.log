@@ -1,0 +1,13 @@
+[POST /api/workbench/runs] 201 13ms ①HTTP:UI三键fee+ETF(510050)
+[POST /api/workbench/runs] 400 0ms HTTP fee={} 契约
+[POST /api/workbench/runs] 400 0ms HTTP fee 缺 min_fee/slippage
+[POST /api/workbench/runs] 400 0ms HTTP fee 缺 rate_pct
+[POST /api/workbench/runs] 201 29ms ②HTTP:fee 省略→profile(ETF)
+[GET /api/workbench/runs/sr_1789225123584_000000] 200 5ms R-1:读回新 run(UI三键+ETF) 钉住 config
+[GET /api/workbench/runs?limit=5] 200 1ms R-1/旧数据:列表透传
+[GET /api/workbench/runs/sr_1789223648181_000000] 200 0ms 旧数据:两段结构 run 读取不崩
+[POST /api/workbench/presets] 201 2ms ③前端路径:用新 run config 建预设→应 200/201
+[POST /api/workbench/presets] 400 0ms 旧数据:两段 config 当预设→400(非 panic)
+[POST /api/workbench/presets] 400 0ms 旧数据:仅 fee 为两段→400
+[GET /api/workbench/presets/sp_1789225140594_000002] 200 5ms 往返:GET 预设确认 fee 无损
+[POST /api/workbench/presets] 201 2ms 往返:不同数值扁平 fee 建预设

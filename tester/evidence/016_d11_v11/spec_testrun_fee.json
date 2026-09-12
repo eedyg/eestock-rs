@@ -1,0 +1,110 @@
+[
+ {
+  "file": "mcp_01_testrun_ui3_etf.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "rate_pct": 0.025,
+     "min_fee": 5.0,
+     "slippage_bp": 2.0
+    }
+   }
+  }
+ },
+ {
+  "file": "mcp_02_testrun_no_fee_etf.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001"
+   }
+  }
+ },
+ {
+  "file": "mcp_03_testrun_stamp007.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "rate_pct": 0.025,
+     "min_fee": 5.0,
+     "slippage_bp": 2.0,
+     "stamp_duty_pct": 0.07
+    }
+   }
+  }
+ },
+ {
+  "file": "mcp_04_testrun_empty_obj.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {}
+   }
+  }
+ },
+ {
+  "file": "mcp_05_testrun_unknown_key.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "foo": 1
+    }
+   }
+  }
+ },
+ {
+  "file": "mcp_06_testrun_partial_rate.json",
+  "method": "tools/call",
+  "params": {
+   "name": "strategy_test_run",
+   "arguments": {
+    "symbol": "510050",
+    "period": "D1",
+    "from": "2026-06-01T00:00:00Z",
+    "to": "2026-08-01T00:00:00Z",
+    "mode": "sim_position",
+    "version_id": "sv_1789013713975_000001",
+    "fee": {
+     "rate_pct": 0.025
+    }
+   }
+  }
+ }
+]
