@@ -79,6 +79,10 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
   volume,amount,source?}]}`——**bars 升序**；1m 经 `KlineRead` 走 `kline_merged` 合并视图
   （准确层优先，ADR-003），5m/15m/1d 连续聚合、1h 由 15m rollup（与 REST /api/kline 同端口同语义）；
   source 仅 1m merge 视图带（cagg 序列化时省略该键）。
+  **I-1（P0，2026-09-12 修）注册成员校验**：code 须在平台 `symbols` 注册表内（经
+  `KlineRead::symbols_with_latest` 判定，**不以「有无 K 线」推断**）；未注册 → 工具错误帧
+  `isError:true` + 消息（含被拒 code 与原因，与「MCP 停用」同形）；已注册但区间无数据 → 正常空
+  `bars:[]`（两种语义由此可区分）。注册表查询失败 → isError（fail-closed，与 sim-live 同口径）。
 - `get_sources_health(window_secs=默认≤604800)`：结果 payload `{"window_secs","sources":[SourceHealth]}`，
   复用 diagnose 聚合口径（成功率分母排除 na / 熔断迁移推导 / 状态灯 95% 边界，05-diagnose §1）；
   window_secs 缺省 = app 配置 `health_window_secs`，钳制 60..604800（与 REST 同口径）。
@@ -370,7 +374,8 @@ mod tests {
 // ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
 // ~/~ begin <<design/07-app-plane/01-mcp.md#crates/mcp/src/tools.rs>>[init]
 //! MCP 工具实现（ADR-009 范围①②）：
-//! - get_kline(code, period, limit)：merge 视图准确层优先（经 domain::ports::KlineRead）
+//! - get_kline(code, period, limit)：merge 视图准确层优先（经 domain::ports::KlineRead）；
+//!   I-1（P0）修复：**未注册代码 → isError**（以平台 symbols 注册表判定，不以「有无 K 线」推断）
 //! - get_sources_health(window_secs?)：源健康卡片数据（经 diagnose::health::HealthService）
 //!
 //! 参数校验失败 → -32602（协议层）；端口/聚合执行失败 → result.isError=true（MCP 工具错误惯例）。
@@ -427,11 +432,11 @@ fn tool_schemas() -> Vec<Value> {
     vec![
         json!({
             "name": "get_kline",
-            "description": "查询标的 K 线（1m 为 merge 视图：准确层优先、raw 补缺；5m/15m/1d 连续聚合；1h 由 15m rollup）。bars 升序返回。",
+            "description": "查询标的 K 线（1m 为 merge 视图：准确层优先、raw 补缺；5m/15m/1d 连续聚合；1h 由 15m rollup）。bars 升序返回。code 须为平台已注册标的：未注册 → isError（与「已注册但区间无数据」的空 bars 区分）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "code": { "type": "string", "description": "6 位标的代码，如 518880" },
+                    "code": { "type": "string", "description": "6 位标的代码，如 518880（须为平台已注册标的）" },
                     "period": { "type": "string", "enum": ["1m", "5m", "15m", "1h", "1d"], "description": "周期，默认 1m" },
                     "limit": { "type": "integer", "description": "根数，默认 240，上限 1000" }
                 },
@@ -893,6 +898,18 @@ struct BarOut {
     source: Option<String>,
 }
 
+/// 注册表成员校验（I-1 / 03-symbols §3 口径）：以平台 `symbols` 注册表为准（经
+/// `KlineRead::symbols_with_latest`），**不以「是否有 K 线」推断**——未注册代码必须显式报错，
+/// 否则调用方会把「标的不存在」误读为「该标的无数据」（P0 静默失败，污染策略研发结论）。
+/// 注册表查询失败 → Err（fail-closed：无法确认注册即拒，与 `application::simlive` 既有口径一致）。
+async fn ensure_registered(st: &McpState, code: &str) -> anyhow::Result<()> {
+    let symbols = st.kline.symbols_with_latest().await
+        .map_err(|e| anyhow::anyhow!("标的注册表查询失败：{e}"))?;
+    if symbols.iter().any(|s| s.code == code) { return Ok(()); }
+    anyhow::bail!("标的 {code} 未注册（不在平台 symbols 注册表内）——已拒绝查询；\
+                   请核对代码（注册标的见 web /api/symbols）")
+}
+
 /// get_kline(code, period=1m, limit=240≤1000)：merge 视图准确层优先（经 domain::ports::KlineRead）。
 async fn get_kline(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let Some(code) = args.get("code").and_then(Value::as_str).filter(|c| !c.is_empty()) else {
@@ -909,6 +926,11 @@ async fn get_kline(st: &McpState, id: Option<Value>, args: &Value) -> Value {
             None => return result_err(id, INVALID_PARAMS, "limit 须为整数"),
         },
     };
+    // I-1（P0）：注册成员校验先于取数（参数校验之后、bars 之前）——未注册 → isError；
+    // 已注册但该区间无数据 → 仍为正常空 bars（两种语义由此可区分）。
+    if let Err(e) = ensure_registered(st, code).await {
+        return tool_fail(id, e);
+    }
     match st.kline.bars(period, code, None, limit).await {
         Ok(bars) => {
             let out: Vec<BarOut> = bars.iter().map(|b| BarOut {
@@ -1795,6 +1817,45 @@ mod tests {
         assert_eq!(r["result"]["isError"], true, "端口失败 → isError=true（非 JSON-RPC 错误帧）");
         let text = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("mock kline failure"));
+    }
+
+    /// I-1（P0）：未注册代码 → 显式 isError（拒绝），且**不落到 K 线查询**
+    /// （以 symbols 注册表判定「标的存在」，不以「有无 K 线」推断）。
+    #[tokio::test]
+    async fn get_kline_unregistered_code_is_tool_error() {
+        let kline = Arc::new(MockKline::with_registered(&["518880", "159985"]));
+        // （注册表只有 518880/159985，无被测的三个未注册 code）
+        let st = test_state(kline.clone(), Arc::new(MockEvents::new()));
+        for code in ["510300", "999999", "ABC123"] {
+            let r = call(&st, "get_kline", json!({ "code": code })).await;
+            assert_eq!(r["result"]["isError"], true, "{code} 未注册 → isError=true（非静默空数组）");
+            assert!(r.get("error").is_none(), "{code} 走工具错误惯例（非 -32602 协议错误帧）");
+            let text = r["result"]["content"][0]["text"].as_str().unwrap();
+            assert!(text.contains(code), "错误消息须含被拒 code：{text}");
+            assert!(text.contains("未注册"), "错误消息须含原因：{text}");
+        }
+        assert!(kline.calls.lock().unwrap().is_empty(),
+            "未注册 code 不得落到 bars 查询（注册表判定，非数据推断）");
+    }
+
+    /// I-1：已注册但区间无数据 → 正常空结果（无 isError），与「未注册」语义可区分。
+    #[tokio::test]
+    async fn get_kline_registered_without_bars_is_empty_not_error() {
+        let st = test_state(Arc::new(MockKline::empty_bars()), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({ "code": "518880" })).await;
+        assert!(r["result"]["isError"].is_null(), "已注册无数据 → 非错误（isError 不出现）");
+        let payload = payload_of(&r);
+        assert_eq!(payload["bars"], json!([]), "正常空结果：已注册标的该区间无数据");
+    }
+
+    /// I-1：注册表查询失败 → fail-closed（无法确认注册即拒，与 sim-live 既有口径一致）。
+    #[tokio::test]
+    async fn get_kline_registry_failure_is_tool_error_fail_closed() {
+        let st = test_state(Arc::new(MockKline::failing_registry()), Arc::new(MockEvents::new()));
+        let r = call(&st, "get_kline", json!({ "code": "518880" })).await;
+        assert_eq!(r["result"]["isError"], true, "注册表不可查 → isError（fail-closed）");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("mock registry failure"), "{text}");
     }
 
     #[tokio::test]
@@ -3184,14 +3245,33 @@ pub struct BarsCall {
 }
 
 /// mock KlineRead：记录调用参数；正常返回两根升序 1m bar（source=tencent_ifzq）；failing → Err。
+/// `registered` = symbols 注册表口径（`symbols_with_latest` 返回；get_kline 注册成员校验输入——
+/// I-1：未注册 code 必须显式 isError，不得静默空）；`empty_bars` = 已注册但区间无数据（bars 空集）；
+/// `registry_fail` = 注册表查询失败（fail-closed 路径）。
 pub struct MockKline {
     pub calls: Mutex<Vec<BarsCall>>,
     pub fail: bool,
+    pub registered: Vec<String>,
+    pub empty_bars: bool,
+    pub registry_fail: bool,
 }
 
 impl MockKline {
-    pub fn new() -> Self { Self { calls: Mutex::new(vec![]), fail: false } }
-    pub fn failing() -> Self { Self { calls: Mutex::new(vec![]), fail: true } }
+    /// 缺省注册表 = ["518880"]（既有用例口径；518880 为平台已注册标的）。
+    pub fn new() -> Self {
+        Self { calls: Mutex::new(vec![]), fail: false, registered: vec!["518880".into()],
+               empty_bars: false, registry_fail: false }
+    }
+    /// 自定义注册表（未注册 / 多标的用例）。
+    pub fn with_registered(codes: &[&str]) -> Self {
+        Self { registered: codes.iter().map(|c| (*c).into()).collect(), ..Self::new() }
+    }
+    /// bars 端口失败（isError 路径）。
+    pub fn failing() -> Self { Self { fail: true, ..Self::new() } }
+    /// 已注册但区间无数据（bars 返回空集——与「未注册」语义必须区分）。
+    pub fn empty_bars() -> Self { Self { empty_bars: true, ..Self::new() } }
+    /// 注册表查询失败（fail-closed：无法确认注册即拒）。
+    pub fn failing_registry() -> Self { Self { registry_fail: true, ..Self::new() } }
 }
 
 /// 两根升序样例 bar（收盘 1.00 / 1.05）。
@@ -3213,10 +3293,19 @@ impl KlineRead for MockKline {
         self.calls.lock().expect("calls poisoned")
             .push(BarsCall { period, code: code.into(), before, limit });
         if self.fail { anyhow::bail!("mock kline failure"); }
+        if self.empty_bars { return Ok(vec![]); }
         Ok(sample_bars(code))
     }
 
-    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> { Ok(vec![]) }
+    /// symbols 注册表口径（I-1：get_kline 以注册表判定「标的存在」，不以「有无 K 线」推断）。
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
+        if self.registry_fail { anyhow::bail!("mock registry failure"); }
+        Ok(self.registered.iter().map(|c| SymbolLatestView {
+            code: c.clone(), name: Some(format!("mock {c}")), interval_secs: 60,
+            settlement: "T1".into(), enabled: true,
+            last_ts: None, last_close: None, prev_close: None,
+        }).collect())
+    }
 }
 
 /// mock HealthEventsRead：记录窗口参数；正常返回一条 mock_src 成功事件；failing → Err。
@@ -3481,7 +3570,13 @@ impl KlineRead for MockKline {
             volume: 100, amount: 105.0, source: Some("tencent_ifzq".into()),
         }])
     }
-    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> { Ok(vec![]) }
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
+        // I-1：get_kline 注册成员校验输入（518880 = 平台已注册标的；本文件用例代码）。
+        Ok(vec![SymbolLatestView {
+            code: "518880".into(), name: None, interval_secs: 60, settlement: "T1".into(),
+            enabled: true, last_ts: None, last_close: None, prev_close: None,
+        }])
+    }
 }
 
 struct MockEvents;
@@ -3711,6 +3806,17 @@ async fn mcp_sse_full_protocol_roundtrip() {
     let resp = next_resp(&mut client).await;
     assert_eq!(resp["error"]["code"], -32602, "缺 code → invalid params");
 
+    // 8b. I-1（P0）：未注册代码 → isError 工具错误帧（经 SSE 下发；非静默空数组）
+    let status = post(&http, &base, &client.endpoint, &json!({
+        "jsonrpc": "2.0", "id": 7, "method": "tools/call",
+        "params": { "name": "get_kline", "arguments": { "code": "999999" } } })).await;
+    assert_eq!(status, 202);
+    let resp = next_resp(&mut client).await;
+    assert_eq!(resp["id"], 7);
+    assert_eq!(resp["result"]["isError"], true, "未注册 999999 → isError（P0 静默失败修复）");
+    let text = resp["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("999999") && text.contains("未注册"), "{text}");
+
     // 9. 断连 → 会话注销（连接泄漏防护：SessionGuard drop；
     //    服务端在下一写帧（保活 ≤15s）时发现写失败而清理，容差 20s）
     sse_close(client);
@@ -3763,11 +3869,38 @@ async fn pool() -> PgPool {
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
 }
 
+/// 注册表垫片：bars/latest_bar 委派真实 KlineReader（数据通路集成保真），仅 `symbols_with_latest`
+/// 换为进程内集合——测试**不写 symbols 控制表**（ADR-017：写 symbols = 控制数据面采集）。
+struct ShimKline {
+    inner: storage::reader::KlineReader,
+    registered: Vec<String>,
+}
+
+#[async_trait::async_trait]
+impl domain::ports::KlineRead for ShimKline {
+    async fn bars(&self, period: domain::types::Period, code: &str,
+                  before: Option<chrono::DateTime<chrono::Utc>>, limit: i64)
+        -> anyhow::Result<Vec<domain::ports::KlineBarView>> {
+        self.inner.bars(period, code, before, limit).await
+    }
+    async fn latest_bar(&self, period: domain::types::Period, code: &str)
+        -> anyhow::Result<Option<domain::ports::KlineBarView>> {
+        self.inner.latest_bar(period, code).await
+    }
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<domain::ports::SymbolLatestView>> {
+        Ok(self.registered.iter().map(|c| domain::ports::SymbolLatestView {
+            code: c.clone(), name: None, interval_secs: 60, settlement: "T1".into(),
+            enabled: true, last_ts: None, last_close: None, prev_close: None,
+        }).collect())
+    }
+}
+
 /// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
 /// storage/sqlx 仅 dev-dependencies（分层红线：cargo tree -p mcp -e normal 无 storage/sqlx）。
-fn state(pool: PgPool) -> Arc<McpState> {
+/// `kline` 由调用方给定（缺省 = 真实 KlineReader；注册表口径可经 ShimKline 注入而不写库）。
+fn state_with_kline(pool: PgPool, kline: Arc<dyn domain::ports::KlineRead>) -> Arc<McpState> {
     Arc::new(McpState {
-        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        kline,
         health: diagnose::health::HealthService::new(
             Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
         // Wave 2 Phase A：MCP④ 质量服务（真实 storage 端口实现）
@@ -3786,6 +3919,12 @@ fn state(pool: PgPool) -> Arc<McpState> {
         workbench: None,
         strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
     })
+}
+
+/// 缺省装配：注册表 = 真实 symbols 表（只读查询）。
+fn state(pool: PgPool) -> Arc<McpState> {
+    let kline = Arc::new(storage::reader::KlineReader::new(pool.clone()));
+    state_with_kline(pool, kline)
 }
 
 async fn call_tool(st: &McpState, name: &str, args: Value) -> Value {
@@ -3829,7 +3968,10 @@ async fn get_kline_merged_accurate_first_via_tool() {
         .bind(CODE).bind(base + chrono::Duration::minutes(1))
         .execute(&pool).await.unwrap();
 
-    let st = state(pool.clone());
+    let st = state_with_kline(pool.clone(), Arc::new(ShimKline {
+        inner: storage::reader::KlineReader::new(pool.clone()),
+        registered: vec![CODE.into()], // 995501 = 测试专用 code（进程内注册，不写平台 symbols 表）
+    }));
     let payload = call_tool(&st, "get_kline",
         json!({ "code": CODE, "period": "1m", "limit": 10 })).await;
     assert_eq!(payload["code"], CODE);
@@ -3915,6 +4057,26 @@ async fn get_data_quality_via_tool() {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(QCODE).execute(&pool).await.unwrap();
     }
+}
+
+/// I-1（P0）端到端：以**真实 symbols 注册表**判定——未注册代码必须 isError（拒绝执行），
+/// 不得静默返回空数组（本测试**只读**：不写任何表；510300/999999/ABC123 均不在 44 注册标的内）。
+#[tokio::test]
+async fn get_kline_unregistered_code_is_tool_error_against_real_registry() {
+    let pool = pool().await;
+    let st = state(pool);
+    let req = |code: &str| RpcRequest { jsonrpc: Some("2.0".into()), id: Some(json!(1)),
+        method: "tools/call".into(),
+        params: Some(json!({ "name": "get_kline", "arguments": { "code": code } })) };
+    for code in ["510300", "999999", "ABC123"] {
+        let resp = dispatch(&st, &req(code)).await.expect("tools/call 有响应");
+        assert_eq!(resp["result"]["isError"], true, "{code} 未注册 → isError=true（非静默空）");
+        let text = resp["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(code) && text.contains("未注册"), "错误须含被拒 code 与原因：{text}");
+    }
+    // 正向对照：已注册 518880 → 非错误（bars 可空，但语义是「该区间无数据」——与未注册可区分）
+    let resp = dispatch(&st, &req("518880")).await.expect("tools/call 有响应");
+    assert!(resp["result"]["isError"].is_null(), "已注册 518880 → 非错误");
 }
 ```
 

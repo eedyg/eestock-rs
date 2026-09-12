@@ -24,14 +24,33 @@ pub struct BarsCall {
 }
 
 /// mock KlineRead：记录调用参数；正常返回两根升序 1m bar（source=tencent_ifzq）；failing → Err。
+/// `registered` = symbols 注册表口径（`symbols_with_latest` 返回；get_kline 注册成员校验输入——
+/// I-1：未注册 code 必须显式 isError，不得静默空）；`empty_bars` = 已注册但区间无数据（bars 空集）；
+/// `registry_fail` = 注册表查询失败（fail-closed 路径）。
 pub struct MockKline {
     pub calls: Mutex<Vec<BarsCall>>,
     pub fail: bool,
+    pub registered: Vec<String>,
+    pub empty_bars: bool,
+    pub registry_fail: bool,
 }
 
 impl MockKline {
-    pub fn new() -> Self { Self { calls: Mutex::new(vec![]), fail: false } }
-    pub fn failing() -> Self { Self { calls: Mutex::new(vec![]), fail: true } }
+    /// 缺省注册表 = ["518880"]（既有用例口径；518880 为平台已注册标的）。
+    pub fn new() -> Self {
+        Self { calls: Mutex::new(vec![]), fail: false, registered: vec!["518880".into()],
+               empty_bars: false, registry_fail: false }
+    }
+    /// 自定义注册表（未注册 / 多标的用例）。
+    pub fn with_registered(codes: &[&str]) -> Self {
+        Self { registered: codes.iter().map(|c| (*c).into()).collect(), ..Self::new() }
+    }
+    /// bars 端口失败（isError 路径）。
+    pub fn failing() -> Self { Self { fail: true, ..Self::new() } }
+    /// 已注册但区间无数据（bars 返回空集——与「未注册」语义必须区分）。
+    pub fn empty_bars() -> Self { Self { empty_bars: true, ..Self::new() } }
+    /// 注册表查询失败（fail-closed：无法确认注册即拒）。
+    pub fn failing_registry() -> Self { Self { registry_fail: true, ..Self::new() } }
 }
 
 /// 两根升序样例 bar（收盘 1.00 / 1.05）。
@@ -53,10 +72,19 @@ impl KlineRead for MockKline {
         self.calls.lock().expect("calls poisoned")
             .push(BarsCall { period, code: code.into(), before, limit });
         if self.fail { anyhow::bail!("mock kline failure"); }
+        if self.empty_bars { return Ok(vec![]); }
         Ok(sample_bars(code))
     }
 
-    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> { Ok(vec![]) }
+    /// symbols 注册表口径（I-1：get_kline 以注册表判定「标的存在」，不以「有无 K 线」推断）。
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
+        if self.registry_fail { anyhow::bail!("mock registry failure"); }
+        Ok(self.registered.iter().map(|c| SymbolLatestView {
+            code: c.clone(), name: Some(format!("mock {c}")), interval_secs: 60,
+            settlement: "T1".into(), enabled: true,
+            last_ts: None, last_close: None, prev_close: None,
+        }).collect())
+    }
 }
 
 /// mock HealthEventsRead：记录窗口参数；正常返回一条 mock_src 成功事件；failing → Err。

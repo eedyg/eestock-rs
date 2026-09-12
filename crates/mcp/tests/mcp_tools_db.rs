@@ -18,11 +18,38 @@ async fn pool() -> PgPool {
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
 }
 
+/// 注册表垫片：bars/latest_bar 委派真实 KlineReader（数据通路集成保真），仅 `symbols_with_latest`
+/// 换为进程内集合——测试**不写 symbols 控制表**（ADR-017：写 symbols = 控制数据面采集）。
+struct ShimKline {
+    inner: storage::reader::KlineReader,
+    registered: Vec<String>,
+}
+
+#[async_trait::async_trait]
+impl domain::ports::KlineRead for ShimKline {
+    async fn bars(&self, period: domain::types::Period, code: &str,
+                  before: Option<chrono::DateTime<chrono::Utc>>, limit: i64)
+        -> anyhow::Result<Vec<domain::ports::KlineBarView>> {
+        self.inner.bars(period, code, before, limit).await
+    }
+    async fn latest_bar(&self, period: domain::types::Period, code: &str)
+        -> anyhow::Result<Option<domain::ports::KlineBarView>> {
+        self.inner.latest_bar(period, code).await
+    }
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<domain::ports::SymbolLatestView>> {
+        Ok(self.registered.iter().map(|c| domain::ports::SymbolLatestView {
+            code: c.clone(), name: None, interval_secs: 60, settlement: "T1".into(),
+            enabled: true, last_ts: None, last_close: None, prev_close: None,
+        }).collect())
+    }
+}
+
 /// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
 /// storage/sqlx 仅 dev-dependencies（分层红线：cargo tree -p mcp -e normal 无 storage/sqlx）。
-fn state(pool: PgPool) -> Arc<McpState> {
+/// `kline` 由调用方给定（缺省 = 真实 KlineReader；注册表口径可经 ShimKline 注入而不写库）。
+fn state_with_kline(pool: PgPool, kline: Arc<dyn domain::ports::KlineRead>) -> Arc<McpState> {
     Arc::new(McpState {
-        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        kline,
         health: diagnose::health::HealthService::new(
             Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
         // Wave 2 Phase A：MCP④ 质量服务（真实 storage 端口实现）
@@ -41,6 +68,12 @@ fn state(pool: PgPool) -> Arc<McpState> {
         workbench: None,
         strategy_tools_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
     })
+}
+
+/// 缺省装配：注册表 = 真实 symbols 表（只读查询）。
+fn state(pool: PgPool) -> Arc<McpState> {
+    let kline = Arc::new(storage::reader::KlineReader::new(pool.clone()));
+    state_with_kline(pool, kline)
 }
 
 async fn call_tool(st: &McpState, name: &str, args: Value) -> Value {
@@ -84,7 +117,10 @@ async fn get_kline_merged_accurate_first_via_tool() {
         .bind(CODE).bind(base + chrono::Duration::minutes(1))
         .execute(&pool).await.unwrap();
 
-    let st = state(pool.clone());
+    let st = state_with_kline(pool.clone(), Arc::new(ShimKline {
+        inner: storage::reader::KlineReader::new(pool.clone()),
+        registered: vec![CODE.into()], // 995501 = 测试专用 code（进程内注册，不写平台 symbols 表）
+    }));
     let payload = call_tool(&st, "get_kline",
         json!({ "code": CODE, "period": "1m", "limit": 10 })).await;
     assert_eq!(payload["code"], CODE);
@@ -170,5 +206,25 @@ async fn get_data_quality_via_tool() {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(QCODE).execute(&pool).await.unwrap();
     }
+}
+
+/// I-1（P0）端到端：以**真实 symbols 注册表**判定——未注册代码必须 isError（拒绝执行），
+/// 不得静默返回空数组（本测试**只读**：不写任何表；510300/999999/ABC123 均不在 44 注册标的内）。
+#[tokio::test]
+async fn get_kline_unregistered_code_is_tool_error_against_real_registry() {
+    let pool = pool().await;
+    let st = state(pool);
+    let req = |code: &str| RpcRequest { jsonrpc: Some("2.0".into()), id: Some(json!(1)),
+        method: "tools/call".into(),
+        params: Some(json!({ "name": "get_kline", "arguments": { "code": code } })) };
+    for code in ["510300", "999999", "ABC123"] {
+        let resp = dispatch(&st, &req(code)).await.expect("tools/call 有响应");
+        assert_eq!(resp["result"]["isError"], true, "{code} 未注册 → isError=true（非静默空）");
+        let text = resp["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(code) && text.contains("未注册"), "错误须含被拒 code 与原因：{text}");
+    }
+    // 正向对照：已注册 518880 → 非错误（bars 可空，但语义是「该区间无数据」——与未注册可区分）
+    let resp = dispatch(&st, &req("518880")).await.expect("tools/call 有响应");
+    assert!(resp["result"]["isError"].is_null(), "已注册 518880 → 非错误");
 }
 // ~/~ end

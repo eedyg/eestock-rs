@@ -28,7 +28,13 @@ impl KlineRead for MockKline {
             volume: 100, amount: 105.0, source: Some("tencent_ifzq".into()),
         }])
     }
-    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> { Ok(vec![]) }
+    async fn symbols_with_latest(&self) -> anyhow::Result<Vec<SymbolLatestView>> {
+        // I-1：get_kline 注册成员校验输入（518880 = 平台已注册标的；本文件用例代码）。
+        Ok(vec![SymbolLatestView {
+            code: "518880".into(), name: None, interval_secs: 60, settlement: "T1".into(),
+            enabled: true, last_ts: None, last_close: None, prev_close: None,
+        }])
+    }
 }
 
 struct MockEvents;
@@ -257,6 +263,17 @@ async fn mcp_sse_full_protocol_roundtrip() {
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     assert_eq!(resp["error"]["code"], -32602, "缺 code → invalid params");
+
+    // 8b. I-1（P0）：未注册代码 → isError 工具错误帧（经 SSE 下发；非静默空数组）
+    let status = post(&http, &base, &client.endpoint, &json!({
+        "jsonrpc": "2.0", "id": 7, "method": "tools/call",
+        "params": { "name": "get_kline", "arguments": { "code": "999999" } } })).await;
+    assert_eq!(status, 202);
+    let resp = next_resp(&mut client).await;
+    assert_eq!(resp["id"], 7);
+    assert_eq!(resp["result"]["isError"], true, "未注册 999999 → isError（P0 静默失败修复）");
+    let text = resp["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("999999") && text.contains("未注册"), "{text}");
 
     // 9. 断连 → 会话注销（连接泄漏防护：SessionGuard drop；
     //    服务端在下一写帧（保活 ≤15s）时发现写失败而清理，容差 20s）
