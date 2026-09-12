@@ -1,0 +1,9 @@
+[
+  {"file":"mcp_23_bt_list_runs.json","method":"tools/call","params":{"name":"bt_list_runs","arguments":{"page_size":5}}},
+  {"file":"mcp_30_kline_unregistered_510300.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510300","period":"1d","limit":5}}},
+  {"file":"mcp_31_kline_limit_over.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d","limit":10001}}},
+  {"file":"mcp_32_kline_legacy_default.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d"}}},
+  {"file":"mcp_33_kline_window_date.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d","from":"2026-08-03","to":"2026-08-10"}}},
+  {"file":"mcp_34_kline_window_rfc3339.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1d","from":"2026-08-03T00:00:00+08:00","to":"2026-08-06T00:00:00+08:00"}}},
+  {"file":"mcp_35_kline_1h.json","method":"tools/call","params":{"name":"get_kline","arguments":{"code":"510050","period":"1h","limit":5}}}
+]

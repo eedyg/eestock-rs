@@ -1,0 +1,15 @@
+200 GET http://127.0.0.1:8081/api/strategies
+200 GET http://127.0.0.1:8081/api/workbench/presets
+200 GET http://127.0.0.1:8081/api/sources/health
+200 GET http://127.0.0.1:8081/api/workbench/runs?limit=50&offset=0
+200 POST http://127.0.0.1:8081/api/workbench/presets/sp_1789226540869_000002/apply
+200 GET http://127.0.0.1:8081/api/symbols
+200 POST http://127.0.0.1:8081/api/workbench/presets/sp_1789226535597_000001/apply
+201 POST http://127.0.0.1:8081/api/workbench/runs
+200 GET http://127.0.0.1:8081/api/workbench/runs?limit=50&offset=0
+200 GET http://127.0.0.1:8081/api/workbench/runs/sr_1789226552437_000003
+200 GET http://127.0.0.1:8081/api/workbench/runs/sr_1789226552437_000003/result
+200 GET http://127.0.0.1:8081/api/kline?code=510050&period=1d&before=2026-08-04T00%3A00%3A00.000Z&limit=68
+200 GET http://127.0.0.1:8081/api/workbench/runs/sr_1789226552437_000003
+200 GET http://127.0.0.1:8081/api/workbench/runs/sr_1789226552437_000003
+200 POST http://127.0.0.1:8081/api/strategies/test-run

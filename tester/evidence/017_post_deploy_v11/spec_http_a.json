@@ -1,0 +1,6 @@
+[
+ {"file":"http_01_healthz.json","method":"GET","path":"/healthz","note":"health"},
+ {"file":"http_02_api_symbols.json","method":"GET","path":"/api/symbols","note":"symbols"},
+ {"file":"http_03_workbench_run_by_id.json","method":"GET","path":"/api/workbench/runs/sr_1789226254329_000000","note":"read back new run config"},
+ {"file":"http_04_workbench_runs_list.json","method":"GET","path":"/api/workbench/runs?page_size=5","note":"runs list"}
+]

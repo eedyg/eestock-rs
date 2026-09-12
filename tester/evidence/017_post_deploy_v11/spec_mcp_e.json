@@ -1,0 +1,6 @@
+[
+  {"file":"mcp_40_testrun_h1.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"symbol":"510050","period":"H1","from":"2026-06-01T00:00:00Z","to":"2026-08-01T00:00:00Z","mode":"sim_position","version_id":"sv_1789013713975_000001"}}},
+  {"file":"mcp_41_testrun_warmup250.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"symbol":"510050","period":"D1","from":"2026-08-01T00:00:00Z","to":"2026-09-12T00:00:00Z","mode":"sim_position","code":"function on_bar(ctx) { return 100; }","warmup_bars":250}}},
+  {"file":"mcp_42_testrun_bad_period.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"symbol":"510050","period":"M7","from":"2026-06-01T00:00:00Z","to":"2026-07-01T00:00:00Z","mode":"sim_position","version_id":"sv_1789013713975_000001"}}},
+  {"file":"mcp_43_testrun_both_code_and_version.json","method":"tools/call","params":{"name":"strategy_test_run","arguments":{"symbol":"510050","period":"D1","from":"2026-06-01T00:00:00Z","to":"2026-07-01T00:00:00Z","mode":"sim_position","version_id":"sv_1789013713975_000001","code":"function on_bar(ctx) { return 0; }"}}}
+]

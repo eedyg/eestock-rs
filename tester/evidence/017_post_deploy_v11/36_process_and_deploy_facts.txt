@@ -1,0 +1,19 @@
+== date ==
+2026-09-12T23:22:51+08:00
+== new process ==
+    PID    PPID                  STARTED     ELAPSED CMD
+3923774 3923709 Sat Sep 12 23:11:22 2026       11:28 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+== exe ==
+lrwxrwxrwx 1 eestock eestock 0 Sep 12 23:11 /proc/3923774/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+98635e74346fba06ef57519d5db4d13846fbf1e05b53e0118f50b6cc04813b33  /proc/3923774/exe
+98635e74346fba06ef57519d5db4d13846fbf1e05b53e0118f50b6cc04813b33  /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+== stdout/stderr fd ==
+l-wx------ 1 eestock eestock 64 Sep 12 23:20 /proc/3923774/fd/1 -> /home/eestock/workspace/git/eestock/eestock-rs/logs/app_dev_8081_redeploy_20260912_231120.log
+l-wx------ 1 eestock eestock 64 Sep 12 23:20 /proc/3923774/fd/2 -> /home/eestock/workspace/git/eestock/eestock-rs/logs/app_dev_8081_redeploy_20260912_231120.log
+== listeners ==
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3923774,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3923774,fd=12)) 
+== old PID 3767395 ==
+not present (killed) OK
+== healthz ==
+{"status":"ok"} HTTP 200

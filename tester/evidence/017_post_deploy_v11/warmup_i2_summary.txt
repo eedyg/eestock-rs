@@ -1,0 +1,7 @@
+bar_count=280 warmup_requested=250 warmup_effective=250
+scores=280 scores_warmup_true=250 first_non_warmup_idx=250
+signals=280 signals_warmup_true=250
+sample_score0={"ts": 1753113600, "score": 100.0, "warmup": true}
+sample_score250={"ts": 1785686400, "score": 100.0, "warmup": false}
+trades=1 trades_opening_in_warmup=0
+first_trade={"close_bar": 279, "close_price": 2.9804038, "close_ts": 1789056000, "commission": 49.827555102157376, "gross_value": 99335.21416019164, "hold_bars": 28, "open_bar": 251, "open_price": 2.9995998, "open_ts": 1785772800, "pnl": -689.6196433484001, "shares": 33329.44823120667, "stamp_duty": 0.0}

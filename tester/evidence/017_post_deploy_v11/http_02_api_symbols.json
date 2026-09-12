@@ -1,0 +1,672 @@
+{
+ "request": {
+  "method": "GET",
+  "path": "/api/symbols",
+  "body": null
+ },
+ "note": "symbols",
+ "http_status": 200,
+ "ms": 17,
+ "response": [
+  {
+   "code": "518880",
+   "name": "华安黄金易ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 8.943,
+    "change_pct": 0.0
+   },
+   "favorite": true,
+   "favorite_sort": 1
+  },
+  {
+   "code": "161226",
+   "name": "国投瑞银白银期货(LOF)A",
+   "type": "lof",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.913,
+    "change_pct": 0.0
+   },
+   "favorite": true,
+   "favorite_sort": 2
+  },
+  {
+   "code": "513310",
+   "name": "华泰柏瑞中韩半导体ETF(QDII)",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 4.73,
+    "change_pct": 0.0
+   },
+   "favorite": true,
+   "favorite_sort": 3
+  },
+  {
+   "code": "159776",
+   "name": "银华中证港股通医药卫生综合ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.142,
+    "change_pct": 0.0
+   },
+   "favorite": true,
+   "favorite_sort": 4
+  },
+  {
+   "code": "159742",
+   "name": "博时恒生科技ETF(QDII)",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.553,
+    "change_pct": 0.0
+   },
+   "favorite": true,
+   "favorite_sort": 5
+  },
+  {
+   "code": "159337",
+   "name": "中证500ETF基金",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.74,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159577",
+   "name": "汇添富MSCI美国50ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.639,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159638",
+   "name": "嘉实中证高端装备细分50ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.852,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159740",
+   "name": "大成恒生科技ETF(QDII)",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.538,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159781",
+   "name": "易方达中证科创创业50ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.033,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159825",
+   "name": "富国中证农业主题ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.748,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159842",
+   "name": "银华中证全指证券公司ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.009,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159869",
+   "name": "华夏中证动漫游戏ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.096,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159870",
+   "name": "鹏华中证细分化工产业ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.773,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159890",
+   "name": "招商中证云计算ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.641,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159980",
+   "name": "大成有色金属期货ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 2.161,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159981",
+   "name": "建信易盛能源化工期货ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.759,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "159985",
+   "name": "华夏饲料豆粕期货ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 2.325,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "160723",
+   "name": "嘉实原油(QDII-LOF)",
+   "type": "lof",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 2.321,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "510050",
+   "name": "华夏上证50ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 2.981,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "510880",
+   "name": "华泰柏瑞上证红利ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 3.419,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "511130",
+   "name": "博时上证30年期国债ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 108.44,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "511220",
+   "name": "海富通上证城投债ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 10.423,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "511360",
+   "name": "海富通中证短融ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 113.912,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "511380",
+   "name": "博时可转债ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 13.257,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "512200",
+   "name": "南方中证房地产ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.186,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "512480",
+   "name": "国联安中证半导体ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.96,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "512670",
+   "name": "鹏华中证国防ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.802,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "512690",
+   "name": "鹏华中证酒ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.412,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "512800",
+   "name": "华宝中证银行ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.847,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "513050",
+   "name": "易方达中概互联50ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.015,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "513690",
+   "name": "博时恒生高股息ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.139,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "513750",
+   "name": "广发中证港股通非银ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.521,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "513920",
+   "name": "华安恒生港股通中国央企红利ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.578,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "513970",
+   "name": "景顺长城恒生消费ETF(QDII)",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T0",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.781,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "515070",
+   "name": "华夏中证人工智能主题ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.072,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "515710",
+   "name": "华宝中证细分食品饮料主题ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.487,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "515790",
+   "name": "华泰柏瑞中证光伏产业ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.793,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "516380",
+   "name": "华宝智能电动汽车ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.807,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "551000",
+   "name": "",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 102.103,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "561910",
+   "name": "招商中证电池主题ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.664,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "562500",
+   "name": "华夏中证机器人ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.91,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "562800",
+   "name": "嘉实中证稀有金属主题ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 0.874,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  },
+  {
+   "code": "588000",
+   "name": "华夏上证科创板50成份ETF",
+   "type": "etf",
+   "interval_secs": 60,
+   "settlement": "T1",
+   "enabled": true,
+   "latest": {
+    "ts": "2026-09-11T07:00:00Z",
+    "last": 1.639,
+    "change_pct": 0.0
+   },
+   "favorite": false,
+   "favorite_sort": null
+  }
+ ]
+}

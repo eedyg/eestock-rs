@@ -1,0 +1,4 @@
+healthz={"status": "ok"} status=200
+api_symbols_count=44 type_dist={'etf': 42, 'lof': 2} type_null=0
+run_by_id_http_status=200 config_fee={"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+runs_list_http_status=200 n=100

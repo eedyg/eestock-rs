@@ -1,0 +1,17 @@
+log=logs/app_dev_8081_redeploy_20260912_231120.log
+lines=64
+level_ERROR=0
+level_WARN=0
+panic=0
+panicked=0
+SIGSEGV_or_SIGABRT=0
+sse_opened=29
+sse_closed=29
+--- non-INFO lines (expect none) ---
+--- startup lines ---
+{"timestamp":"2026-09-12T15:11:23.057735Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T15:11:23.104296Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T15:11:23.105674Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T15:11:23.106694Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T15:11:23.106781Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-12T15:11:23.106814Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}

@@ -1,0 +1,4 @@
+[GET /healthz] 200 4ms health
+[GET /api/symbols] 200 17ms symbols
+[GET /api/workbench/runs/sr_1789226254329_000000] 200 1ms read back new run config
+[GET /api/workbench/runs?page_size=5] 200 6ms runs list

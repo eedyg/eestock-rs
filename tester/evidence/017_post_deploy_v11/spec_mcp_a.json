@@ -1,0 +1,4 @@
+[
+  {"file":"mcp_01_tools_list.json","method":"tools/list","params":{}},
+  {"file":"mcp_02_list_symbols.json","method":"tools/call","params":{"name":"list_symbols","arguments":{}}}
+]

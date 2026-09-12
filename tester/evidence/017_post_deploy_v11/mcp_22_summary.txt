@@ -1,0 +1,8 @@
+run_id=sr_1789226254329_000000
+status=succeeded
+progress=1.0
+config_fee={"min_fee": 5.0, "rate_pct": 0.025, "slippage_bp": 2.0, "stamp_duty_pct": 0.0}
+config_fee_keys=['min_fee', 'rate_pct', 'slippage_bp', 'stamp_duty_pct']
+has_effective=False has_profile=False
+stamp_duty_pct=0.0
+error=None

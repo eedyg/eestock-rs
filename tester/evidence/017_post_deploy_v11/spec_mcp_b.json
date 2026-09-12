@@ -1,0 +1,4 @@
+[
+  {"file":"mcp_03_strategy_list_default.json","method":"tools/call","params":{"name":"strategy_list","arguments":{}}},
+  {"file":"mcp_04_strategy_list_include_source.json","method":"tools/call","params":{"name":"strategy_list","arguments":{"include_source":true}}}
+]

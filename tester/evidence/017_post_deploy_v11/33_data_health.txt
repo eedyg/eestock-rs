@@ -1,0 +1,17 @@
+# 数据面与健康（017，2026-09-12T23:23:21+08:00）
+== /api/symbols ==
+http_status 200 count 44
+type_dist {'etf': 42, 'lof': 2} type_null 0
+== sim-live 启动恢复 ==
+{"timestamp":"2026-09-12T15:11:23.106694Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+== DB（只读） ==
+simsession_total=12 running=0
+fee_profiles=3
+symbols=44 type_null=0
+== 新鲜度（510050） ==
+last_synced_date=2026-09-11
+== core / 崩溃 ==
+0
+no core in repo root
+== MCP SSE 会话配对 ==
+opened=29 closed=29

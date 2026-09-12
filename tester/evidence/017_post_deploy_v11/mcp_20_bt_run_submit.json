@@ -1,0 +1,17 @@
+{
+ "post_status": 202,
+ "isError": false,
+ "text": "{\n  \"run\": {\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"LumpSum\": {\n          \"position_pct\": 1.0\n        }\n      },\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {\n            \"fast\": 5.0,\n            \"slow\": 20.0\n          },\n          \"sha256\": \"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c\",\n          \"strategy_id\": \"st_1789013713975_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789013713975_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 0\n    },\n    \"created_at\": \"2026-09-12T15:17:34.329986Z\",\n    \"error\": null,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-06-01T00:00:00Z\",\n    \"id\": \"sr_1789226254329_000000\",\n    \"name\": \"tester017 post-deploy flat-pin\",\n    \"period\": \"D1\",\n    \"progress\": 0.0,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"510050\",\n    \"to_ts\": \"2026-08-01T00:00:00Z\"\n  },\n  \"run_id\": \"sr_1789226254329_000000\"\n}",
+ "raw": {
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+   "content": [
+    {
+     "text": "{\n  \"run\": {\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"LumpSum\": {\n          \"position_pct\": 1.0\n        }\n      },\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {\n            \"fast\": 5.0,\n            \"slow\": 20.0\n          },\n          \"sha256\": \"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c\",\n          \"strategy_id\": \"st_1789013713975_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789013713975_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 0\n    },\n    \"created_at\": \"2026-09-12T15:17:34.329986Z\",\n    \"error\": null,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-06-01T00:00:00Z\",\n    \"id\": \"sr_1789226254329_000000\",\n    \"name\": \"tester017 post-deploy flat-pin\",\n    \"period\": \"D1\",\n    \"progress\": 0.0,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"510050\",\n    \"to_ts\": \"2026-08-01T00:00:00Z\"\n  },\n  \"run_id\": \"sr_1789226254329_000000\"\n}",
+     "type": "text"
+    }
+   ]
+  }
+ }
+}

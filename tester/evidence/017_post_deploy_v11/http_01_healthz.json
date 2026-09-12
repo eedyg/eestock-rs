@@ -1,0 +1,13 @@
+{
+ "request": {
+  "method": "GET",
+  "path": "/healthz",
+  "body": null
+ },
+ "note": "health",
+ "http_status": 200,
+ "ms": 4,
+ "response": {
+  "status": "ok"
+ }
+}

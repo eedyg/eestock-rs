@@ -1,0 +1,5 @@
+side effects of 017 acceptance:
+  + strategy_run sr_1789226254329_000000 (MCP bt_run_ensemble, item 3)
+  + strategy_run sr_1789226552437_000003 (UI submit, item 4)
+  + strategy_preset sp_1789226535597_000001 / sp_1789226540869_000002 (created for browser preset-apply) -> DELETED after test
+  before=351 runs / 0 presets  after=353 runs / 0 presets

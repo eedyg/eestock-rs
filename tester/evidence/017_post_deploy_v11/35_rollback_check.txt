@@ -1,0 +1,34 @@
+# 回滚可用性核验（017，采集 2026-09-12T23:23:15+08:00）
+## 文件事实
+-rwxrwxr-x 1 eestock eestock 205180096 Sep 12 23:11 /tmp/eestock-app-v1.0-true.bak
+/tmp/eestock-app-v1.0-true.bak: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=7249c2184ce806165039fa94f736aa95a5d6fabf, with debug_info, not stripped
+executable: YES
+
+## sha256
+4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad  /tmp/eestock-app-v1.0-true.bak
+98635e74346fba06ef57519d5db4d13846fbf1e05b53e0118f50b6cc04813b33  target/debug/eestock-app
+98635e74346fba06ef57519d5db4d13846fbf1e05b53e0118f50b6cc04813b33  /proc/3923774/exe
+
+## v1.1 守卫串存在性（grep -c 'rate_pct/min_fee/slippage_bp/stamp_duty_pct'）
+rollback(v1.0-true): 0
+deployed(v1.1):      1
+running exe:         1
+
+## 交叉引用
+rollback sha256 == 015 期旧进程 /proc/3767395/exe（v1.0，行为级 D11 v1.0）
+deployed sha256 == 016 期 v1.1 构建 98635e74…13b33
+
+## 回滚步骤（供架构师执行；本次不执行、不重启）
+# 1) 留档当前 v1.1 现场（可选）
+cp -p eestock-rs/target/debug/eestock-app /tmp/eestock-app-v1.1.current.$(date +%Y%m%d_%H%M%S)
+# 2) kill 新进程并确认端口释放
+kill 3923774        # 5s 未退出则 kill -9 3923774
+ss -ltnp | grep -E ':8081|:8082'   # 期望无输出
+# 3) 恢复 v1.0 回滚件
+cp -p /tmp/eestock-app-v1.0-true.bak eestock-rs/target/debug/eestock-app
+sha256sum eestock-rs/target/debug/eestock-app   # 期望 4183692d2afd5612b7dd19dd60dca275c5c56a6542b3afb230568deb80a1d8ad
+# 4) 以同参数重启
+cd eestock-rs && nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml \
+  >> logs/app_dev_8081_rollback_$(date +%Y%m%d_%H%M%S).log 2>&1 &
+# 5) 验收
+curl -s 127.0.0.1:8081/healthz; curl -s 127.0.0.1:8081/api/symbols | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))'
