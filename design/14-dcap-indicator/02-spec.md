@@ -174,7 +174,7 @@ on_bar(ctx):
 | 小数折叠 | `decimalFold.threshold = 3`（默认） | `0.0048` 点后仅 2 个 0，**不折叠、原样显示**；若值常 ≤ 0.0005 会折成 `0.0{3}48` 形态，必要时把阈值调大 |
 | 断线 | 数据不足返回 `null` ⇒ 线自然断开（figure 值域 `Nullable<D>`） | 表现为"线从第 `n_i+m−1` 根开始" |
 | `calcParams` | `[n_s, n_m, n_l, r_s, r_m, r_l, smooth, m]`（图表不需要 `th`） | klinecharts 数值数组 |
-| 取数 warmup | 前端取数 `limit = viewport_bars + (n_l + m − 1)`，**多取部分仅供计算、不上图** | 否则视口最左侧永远缺一段 |
+| 取数 warmup | **仅当 DCAP 指标开启时**：前端取数 `limit = viewport_bars + (n_l + m − 1)`，**多取部分仅供计算、不上图**；**关闭时 `limit = viewport_bars`（不动 ADR-020 既有取数口径）**。架构裁决 2026-09-13（依据 P3 实现 + 独立验收实测：开 60/3 → 182、关 → 120、服务端 `n_l=200,m=5` → 324） | 否则视口最左侧永远缺一段；关闭时无 dcap 线，不需前置数据，避免无谓扩大取数 |
 
 ---
 

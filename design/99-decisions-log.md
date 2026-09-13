@@ -204,3 +204,19 @@
 - **决策**：①`viewport_days` → **`viewport_bars`**（根数，与周期解耦），默认 **120**、范围 **30–600**（前后端同构）；②**不做旧值兼容**（旧 `{"viewport_days":n}` 视为未配置 → 回 120，不迁移不折算）；③**主图+宫格统一**同一配置（修 `GridCell.tsx:31` 硬编码 120），回测弹窗固定 120 根不读配置；④删除 `BARS_PER_TRADING_DAY`/`defaultPageSizeForPeriod`，`pageSize = viewportBars`；⑤`ResizeObserver` 宽度变化重算 barSpace，**用户手动缩放后不重算**，「回到最新」恢复；⑥夹取仅作安全网 + 结构化留痕（`data-viewport-fit` 属性 + 夹取告警）。
 - **同源缺陷一并处置**：F2 单页 `241×days>1000` 截断致 `hasMore=false` 深翻封死（N≤600 后不可达）；F5 部署级 e2e `dashboard-periods-ma.e2e.ts:40` `INIT_PAGE={1w:30,1mo:24,1d:2,1m:482}` 陈旧口径。
 - **产出物**：`design/06-web/11-kline-viewport-bars.md`（ADR + 接口契约 + TDD 规格 + 观测性）；契约表同步 `design/07-app-plane/00-web-api.md`、`06-web/01-dashboard.md`、`06-web/08-settings.md`。
+
+---
+
+# ADR-021 dcap 指标：镜像产物的单一源约定（2026-09-13，用户批复「按推荐」，方案 A1）
+
+- **权威正文**：`design/14-dcap-indicator/01-adr.md`（同目录：`02-spec.md` 规格契约、`03-test-plan.md` TDD 规格、`04-implementation-plan.md` 派单、`05-issue-drafts.md` 工单草案）。
+- **一句话结论**：dcap 指标的算法正文**只存在一处**（`02-spec.md` 的代码块，ADR-007 事实源），由 entangled 单向生成**两份镜像产物** —— 前端 `web/src/features/indicators/dcap.ts`（klinecharts 副图 `calc` 消费端）与插件 `crates/strategy-core/reference-plugins/dcap.js`（rquickjs 求值 + `reference.rs` 第 8 条播种）—— 靠「CORE 哨兵区间逐字节相同」单测 + 跨运行时黄金样本逐位等价 + `check-tangle` 漂移门禁三重兜底，杜绝「图上那条线与策略里那条线不是同一条线」的静默漂移。
+- **决策要点**：
+  - D1 单一源 = 文档代码块；D2 两份镜像产物（前端模块 + 插件）；
+  - D3 **不改 `entangled.toml`**（JS 是 entangled 2.4.3 内置语言，带文件属性的 JS 代码块开箱可用）+ D3' 首用机制一次性验证（只验不改）；
+  - D4 镜像体断言是**自动化单测**（哨兵区间逐字节相同），不是文档纪律（entangled 一块一文件、无法扇出）；
+  - D5 跨运行时逐位等价（同一组黄金样本驱动两个产物）；D6 纳入既有门禁，**禁止 `--force` 变绿**；
+  - **不改插件 ABI、不改引擎**：dcap 是插件内部实现细节，出口只有 0–100 分，走平台既有聚合与 60/40 阈值（不做「per_bar 留 raw 值」方案）。
+- **落地范围**：插件侧（浮点确定性铁律：禁 `pow/exp/log`、禁增量累加、CORE = 无类型注解 ES2015 子集；`init` 内确定性归一化 `n_m←max(n_m,n_s+1)`、`n_l←max(n_l,n_m+1)`，幂等）；配置面 `GET/PUT /api/config/dcap`（复用 `app_config`，**无新迁移**；非单调 n 严格 400，与插件面「容忍并归一化」**有意不同**）；前端 DCAP 独立副图 + `precision: 5`；`th` 只属策略参数、不进图表接口。
+- **关联**：ADR-007（文学式单一源 / `design/` 即事实源）、ADR-018（门禁硬化：沙箱权威判据 + `--force` 禁令 + 假绿回归）、插件 ABI（`design/12-strategy-system/02-plugin-abi.md`，本 ADR **不改 ABI**）。
+- **产出物**：`design/14-dcap-indicator/**`；镜像产物 `web/src/features/indicators/dcap.ts`、`crates/strategy-core/reference-plugins/dcap.js`（`reference_plugins()` 7→8 条、播种计数 11→12）；编程手册 dcap 章节（`design/12-strategy-system/04-strategy-programming-guide.md` §12）；配置端点行已随 P3 落地（`design/07-app-plane/00-web-api.md`）。
