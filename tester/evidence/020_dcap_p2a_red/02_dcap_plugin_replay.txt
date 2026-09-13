@@ -1,0 +1,31 @@
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-d8eea9d58c3be2f1)
+
+running 3 tests
+[T7-channel] (c) 本次数据集（real518880_m15_64, split=30）的 dcap 快照共 40 个浮点数，全部位级可往返（未命中误舍入样本）——
+             即平台通道**对特定值丢 1 ulp** 的能力存在（(a)/(b) 已证），但本数据集未触发 ⇒ 属**潜在**位级保真缺陷，不是「本数据集已复现」。
+
+thread 't7_channel_probe_channel_is_not_bit_exact' (1610329) panicked at crates/strategy-runtime/tests/dcap_plugin_replay.rs:420:5:
+[T7-channel] 平台状态通道（ABI G3：`save()/load()`）不具备位级保真 ⇒ 架构级问题
+         （03-test-plan T7 明确：若序列化确实丢 1 ulp，必须改为位串/整型编码，或上报为架构级问题；
+         **不得**把断言放成容差）。证据：
+(a) `serde_json` 十进制解析非正确舍入（平台通道 core，见 crates/strategy-runtime/src/quickjs.rs:272-277）：
+  -0.011674411920738925: str::parse=-0.011674411920738925(bf87e8c10b3264c0) serde_json::from_str=-0.011674411920738923(bf87e8c10b3264bf) 差 1 ulp
+  57.329040578513684: str::parse=57.329040578513684(404caa1e006de2f8) serde_json::from_str=57.32904057851368(404caa1e006de2f7) 差 1 ulp
+(b) 平台 `save()→load()` 现场可证伪「位级保真」：
+             起始值=57.329040578513684(404caa1e006de2f8) 经 save→load 后=57.32904057851368(404caa1e006de2f7)，差 1 ulp（快照={"v":57.32904057851368}）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test t7_channel_probe_channel_is_not_bit_exact ... FAILED
+[T7-teeth] 未注入产物 split=30 逐位差异数 = 0（0 = 位级保真；>0 = 产物/通道问题）
+test t7_selftest_missing_save_field_is_detected ... ok
+test t7_replay_continuation_scores_bit_equal ... ok
+
+failures:
+
+failures:
+    t7_channel_probe_channel_is_not_bit_exact
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p strategy-runtime --test dcap_plugin_replay`

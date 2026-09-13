@@ -1,0 +1,34 @@
+### T12 reverse: remove dcap entry -> expect RED
+mutated: removed dcap entry
+assertion `left == right` failed
+  left: 7
+ right: 8
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels stdout ----
+
+thread 'reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels' (1787200) panicked at crates/strategy-core/src/reference.rs:145:14:
+reference_plugins() 必须含 id="dcap"（ADR-021 §8 裁决 A）
+
+
+failures:
+    reference::tests::reference_plugins_match_builtin_order
+    reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --lib`
+MUTATED_EXIT=101
+
+### restore
+crates/strategy-core/src/reference.rs: OK
+### T12 restored -> expect GREEN
+
+running 3 tests
+test reference::tests::official_templates_len_4_and_wellformed ... ok
+test reference::tests::reference_plugins_match_builtin_order ... ok
+test reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+RESTORED_EXIT=0

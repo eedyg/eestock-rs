@@ -1,0 +1,93 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/indicators/dcapInsufficient.test.ts (4 tests) 4ms
+ ❯ src/features/indicators/dcapNormalize.test.ts (5 tests | 4 failed) 8ms
+   × T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-a 非单调三元组 ≡ 归一后三元组（逐位，smooth=1，r≠1） 4ms
+     → T5a-a n_s=n_m=n_l=3（raw=3,3,3 → 归一=3,4,5）：bar 4 字段 m 位串不同（actual=3f919ea6dbf41d35 expected=非数值(null)）: expected '3f919ea6dbf41d35' to be '非数值(null)' // Object.is equality
+   × T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-b 归一后的生效位置 = 各自的 (n_i + m − 1)（独立佐证：不是「都没归一」） 1ms
+     → T5a-b m 线首值下标（4+2−2=4，未归一则为 3）: expected 3 to be 4 // Object.is equality
+   × T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-c 幂等：已归一三元组再进入口 ⇒ 输出不变（逐位） 1ms
+     → T5a-c f(raw) ≡ f(normalized)：bar 8 字段 m 位串不同（actual=3fafa29ab6115368 expected=非数值(null)）: expected '3fafa29ab6115368' to be '非数值(null)' // Object.is equality
+   ✓ T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-d 确定：同输入重复调用逐位相同（无全局状态） 1ms
+   × T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-e smooth=0 时同样按归一后窗口生效（逐位，不减配） 0ms
+     → T5a-e smooth=0：raw(4,4,4) ≡ norm(4,5,6)：bar 3 字段 m 位串不同（actual=bfb00274e2aa58c8 expected=非数值(null)）: expected 'bfb00274e2aa58c8' to be '非数值(null)' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/indicators/dcapNormalize.test.ts > T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-a 非单调三元组 ≡ 归一后三元组（逐位，smooth=1，r≠1）
+AssertionError: T5a-a n_s=n_m=n_l=3（raw=3,3,3 → 归一=3,4,5）：bar 4 字段 m 位串不同（actual=3f919ea6dbf41d35 expected=非数值(null)）: expected '3f919ea6dbf41d35' to be '非数值(null)' // Object.is equality
+
+Expected: [32m"非数值(null)"[39m
+Received: [31m"3f919ea6dbf41d35"[39m
+
+ ❯ assertSeriesBitwiseEqual src/features/indicators/dcapNormalize.test.ts:59:9
+     57|         a[k],
+     58|         `${label}：bar ${i} 字段 ${['s', 'm', 'l'][k]} 位串不同（actual=${a[k]…
+     59|       ).toBe(b[k]);
+       |         ^
+     60|     }
+     61|   }
+ ❯ src/features/indicators/dcapNormalize.test.ts:102:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/features/indicators/dcapNormalize.test.ts > T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-b 归一后的生效位置 = 各自的 (n_i + m − 1)（独立佐证：不是「都没归一」）
+AssertionError: T5a-b m 线首值下标（4+2−2=4，未归一则为 3）: expected 3 to be 4 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 4[39m
+[31m+ 3[39m
+
+ ❯ src/features/indicators/dcapNormalize.test.ts:111:73
+    109|     // 归一后 (n_s, n_m', n_l') = (3, 4, 5) ⇒ 首个有值下标 = n_i + m − 2 = 3 / …
+    110|     expect(firstNonNull(series, 's'), 'T5a-b s 线首值下标（3+2−2=3）').toBe(3…
+    111|     expect(firstNonNull(series, 'm'), 'T5a-b m 线首值下标（4+2−2=4，未归一则为 3）'…
+       |                                                                         ^
+    112|     expect(firstNonNull(series, 'l'), 'T5a-b l 线首值下标（5+2−2=5，未归一则为 3）'…
+    113|     // 反「一刀切」：三线首值位置必须互不相同
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/features/indicators/dcapNormalize.test.ts > T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-c 幂等：已归一三元组再进入口 ⇒ 输出不变（逐位）
+AssertionError: T5a-c f(raw) ≡ f(normalized)：bar 8 字段 m 位串不同（actual=3fafa29ab6115368 expected=非数值(null)）: expected '3fafa29ab6115368' to be '非数值(null)' // Object.is equality
+
+Expected: [32m"非数值(null)"[39m
+Received: [31m"3fafa29ab6115368"[39m
+
+ ❯ assertSeriesBitwiseEqual src/features/indicators/dcapNormalize.test.ts:59:9
+     57|         a[k],
+     58|         `${label}：bar ${i} 字段 ${['s', 'm', 'l'][k]} 位串不同（actual=${a[k]…
+     59|       ).toBe(b[k]);
+       |         ^
+     60|     }
+     61|   }
+ ❯ src/features/indicators/dcapNormalize.test.ts:130:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/features/indicators/dcapNormalize.test.ts > T5a 前端入口归一化（02-spec §2 / §4 铁律 5） > T5a-e smooth=0 时同样按归一后窗口生效（逐位，不减配）
+AssertionError: T5a-e smooth=0：raw(4,4,4) ≡ norm(4,5,6)：bar 3 字段 m 位串不同（actual=bfb00274e2aa58c8 expected=非数值(null)）: expected 'bfb00274e2aa58c8' to be '非数值(null)' // Object.is equality
+
+Expected: [32m"非数值(null)"[39m
+Received: [31m"bfb00274e2aa58c8"[39m
+
+ ❯ assertSeriesBitwiseEqual src/features/indicators/dcapNormalize.test.ts:59:9
+     57|         a[k],
+     58|         `${label}：bar ${i} 字段 ${['s', 'm', 'l'][k]} 位串不同（actual=${a[k]…
+     59|       ).toBe(b[k]);
+       |         ^
+     60|     }
+     61|   }
+ ❯ src/features/indicators/dcapNormalize.test.ts:147:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  4 failed | 5 passed (9)
+   Start at  15:42:43
+   Duration  407ms (transform 39ms, setup 43ms, collect 30ms, tests 12ms, environment 277ms, prepare 244ms)
+

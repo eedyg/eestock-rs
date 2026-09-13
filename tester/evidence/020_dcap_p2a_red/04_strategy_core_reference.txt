@@ -1,0 +1,32 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-ae2be8c1ea9cdd11)
+
+running 3 tests
+test reference::tests::reference_plugins_match_builtin_order ... FAILED
+test reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels ... FAILED
+test reference::tests::official_templates_len_4_and_wellformed ... ok
+
+failures:
+
+---- reference::tests::reference_plugins_match_builtin_order stdout ----
+
+thread 'reference::tests::reference_plugins_match_builtin_order' (1610672) panicked at crates/strategy-core/src/reference.rs:118:9:
+assertion `left == right` failed
+  left: 7
+ right: 8
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels stdout ----
+
+thread 'reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels' (1610673) panicked at crates/strategy-core/src/reference.rs:143:14:
+reference_plugins() 必须含 id="dcap"（ADR-021 §8 裁决 A）
+
+
+failures:
+    reference::tests::reference_plugins_match_builtin_order
+    reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --lib`

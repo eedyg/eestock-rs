@@ -1,0 +1,4 @@
+### plugin effective-window probe for raw (60,26,8)
+plugin effective windows raw=(60,26,8) -> (winS=60, winM=61, winL=62)
+spec section2: n_m'=max(26,60+1)=61 ; n_l'=max(8,61+1)=62 -> (60,61,62)
+EXIT=0

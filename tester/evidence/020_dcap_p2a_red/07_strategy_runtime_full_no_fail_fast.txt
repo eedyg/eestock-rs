@@ -1,0 +1,134 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (target/debug/deps/strategy_runtime-a28e4dc62bba008b)
+
+running 14 tests
+test types::tests::clamp_boundaries ... ok
+test types::tests::default_limits_match_abi ... ok
+test quickjs::tests::load_without_hook_errors ... ok
+test quickjs::tests::malformed_schema_fails_with_schema_error ... ok
+test quickjs::tests::math_legit_functions_still_work ... ok
+test quickjs::tests::syntax_error_fails_instantiate ... ok
+test quickjs::tests::math_random_is_forbidden ... ok
+test quickjs::tests::date_is_absent_from_sandbox ... ok
+test quickjs::tests::duplicate_param_key_is_schema_error ... ok
+test quickjs::tests::missing_on_bar_fails_instantiate ... ok
+test quickjs::tests::non_finite_score_is_invalid ... ok
+test quickjs::tests::params_frozen_and_passed ... ok
+test quickjs::tests::indicators_match_backtest_and_null_when_insufficient ... ok
+test quickjs::tests::save_error_variants_are_reported ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (target/debug/deps/contract-806b6a623bc70377)
+
+running 13 tests
+test contract_position_panorama ... ok
+test contract_log_sink ... ok
+test contract_boundary_clamp ... ok
+test contract_capability_forbidden ... ok
+test contract_params_schema_extraction ... ok
+test contract_save_error_is_reported_not_swallowed ... ok
+test contract_state_round_trip ... ok
+test contract_exception_isolation ... ok
+test contract_forged_guard_messages_are_js_exception ... ok
+test contract_stack_overflow_is_js_exception ... ok
+test contract_determinism_double_run ... ok
+test contract_timeout_circuit_semantics ... ok
+test contract_memory_limit ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/dcap_cross_runtime.rs (target/debug/deps/dcap_cross_runtime-4d07d44a153a3e35)
+
+running 6 tests
+test t4_sample_set_meets_spec ... ok
+test t5a_cross_runtime_nonmonotonic_params_bit_equal ... ok
+test t4_selfcheck_comparator_teeth_one_ulp_and_sandbox_pipeline ... ok
+test t2_plugin_smooth_off_equals_m1_bit_equal ... ok
+test t4_cross_runtime_scores_bit_equal ... ok
+test t4_cross_runtime_raw_series_bit_equal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/dcap_plugin_init.rs (target/debug/deps/dcap_plugin_init-9e743a5cea2690d9)
+
+running 5 tests
+test t6_plugin_all_lines_insufficient_returns_exactly_50_and_no_log_noise ... ok
+test t6_plugin_insufficient_lines_are_excluded_from_n ... ok
+test t5a_plugin_windows_do_not_drift_across_bars ... FAILED
+test t5a_plugin_effective_windows_follow_normalization ... FAILED
+test t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic ... FAILED
+
+failures:
+
+---- t5a_plugin_windows_do_not_drift_across_bars stdout ----
+
+thread 't5a_plugin_windows_do_not_drift_across_bars' (1612441) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:412:5:
+assertion `left == right` failed: [T5a-4] 归一后生效值应为 (8,9,10)
+  left: (8, 8, 8)
+ right: (8, 9, 10)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- t5a_plugin_effective_windows_follow_normalization stdout ----
+
+thread 't5a_plugin_effective_windows_follow_normalization' (1612439) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:320:9:
+assertion `left == right` failed: [T5a-1] n_s=n_m=n_l=26：raw=(26, 26, 26) 经 init 后三线窗口容量必须为归一值 (26, 27, 28)（n_m'=max(n_m,n_s+1)、n_l'=max(n_l,n_m'+1)；02-spec §2/§3）
+  left: (26, 26, 26)
+ right: (26, 27, 28)
+
+---- t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic stdout ----
+
+thread 't5a_plugin_normalization_is_idempotent_and_bitwise_deterministic' (1612440) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:368:5:
+assertion `left == right` failed: [T5a-2] 已归一三元组再 init 必须得到同一生效值（raw=(26, 26, 26) vs 归一后输入=(26, 27, 28)）
+  left: (26, 27, 28)
+ right: (26, 26, 26)
+
+
+failures:
+    t5a_plugin_effective_windows_follow_normalization
+    t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic
+    t5a_plugin_windows_do_not_drift_across_bars
+
+test result: FAILED. 2 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test dcap_plugin_init`
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-d8eea9d58c3be2f1)
+
+running 3 tests
+test t7_channel_probe_channel_is_not_bit_exact ... FAILED
+test t7_selftest_missing_save_field_is_detected ... ok
+test t7_replay_continuation_scores_bit_equal ... ok
+
+failures:
+
+---- t7_channel_probe_channel_is_not_bit_exact stdout ----
+[T7-channel] (c) 本次数据集（real518880_m15_64, split=30）的 dcap 快照共 40 个浮点数，全部位级可往返（未命中误舍入样本）——
+             即平台通道**对特定值丢 1 ulp** 的能力存在（(a)/(b) 已证），但本数据集未触发 ⇒ 属**潜在**位级保真缺陷，不是「本数据集已复现」。
+
+thread 't7_channel_probe_channel_is_not_bit_exact' (1612448) panicked at crates/strategy-runtime/tests/dcap_plugin_replay.rs:420:5:
+[T7-channel] 平台状态通道（ABI G3：`save()/load()`）不具备位级保真 ⇒ 架构级问题
+         （03-test-plan T7 明确：若序列化确实丢 1 ulp，必须改为位串/整型编码，或上报为架构级问题；
+         **不得**把断言放成容差）。证据：
+(a) `serde_json` 十进制解析非正确舍入（平台通道 core，见 crates/strategy-runtime/src/quickjs.rs:272-277）：
+  -0.011674411920738925: str::parse=-0.011674411920738925(bf87e8c10b3264c0) serde_json::from_str=-0.011674411920738923(bf87e8c10b3264bf) 差 1 ulp
+  57.329040578513684: str::parse=57.329040578513684(404caa1e006de2f8) serde_json::from_str=57.32904057851368(404caa1e006de2f7) 差 1 ulp
+(b) 平台 `save()→load()` 现场可证伪「位级保真」：
+             起始值=57.329040578513684(404caa1e006de2f8) 经 save→load 后=57.32904057851368(404caa1e006de2f7)，差 1 ulp（快照={"v":57.32904057851368}）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t7_channel_probe_channel_is_not_bit_exact
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p strategy-runtime --test dcap_plugin_replay`
+   Doc-tests strategy_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 2 targets failed:
+    `-p strategy-runtime --test dcap_plugin_init`
+    `-p strategy-runtime --test dcap_plugin_replay`

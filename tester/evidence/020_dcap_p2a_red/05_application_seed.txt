@@ -1,0 +1,26 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.04s
+     Running tests/strategy.rs (target/debug/deps/strategy-0608b4dff971c643)
+
+running 1 test
+test seed_reference_plugins_seeds_12_and_is_idempotent ... FAILED
+
+failures:
+
+---- seed_reference_plugins_seeds_12_and_is_idempotent stdout ----
+
+thread 'seed_reference_plugins_seeds_12_and_is_idempotent' (1611391) panicked at crates/application/tests/strategy.rs:743:5:
+assertion `left == right` failed: 8 参考插件 + 4 官方模板
+  left: 11
+ right: 12
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    seed_reference_plugins_seeds_12_and_is_idempotent
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p application --test strategy`

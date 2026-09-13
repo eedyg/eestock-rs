@@ -1,0 +1,15 @@
+### frontend entry normalize probe (raw 60/26/8 vs normalized 60/61/62; idempotent)
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stdout | src/features/indicators/zz_p2c_probe.test.ts > zz_p2c_probe > frontend entry normalize raw(60,26,8)->effective(60,61,62)
+firstNN raw(60,26,8): [33m59[39m [33m60[39m [33m61[39m
+
+ ✓ src/features/indicators/zz_p2c_probe.test.ts (1 test) 8ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  17:36:38
+   Duration  380ms (transform 22ms, setup 22ms, collect 11ms, tests 8ms, environment 130ms, prepare 82ms)
+
+EXIT=0

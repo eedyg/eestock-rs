@@ -1,0 +1,9 @@
+### cargo test --workspace (exit 0)
+aggregate: passed=662 failed=0 ignored=1 (result-lines=92)
+FAILED/panicked lines: 0
+the 1 ignored (pre-existing perf_smoke):
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+dcap strategy-runtime suites:
+     Running tests/dcap_cross_runtime.rs (target/debug/deps/dcap_cross_runtime-516201733ce651ec)
+     Running tests/dcap_plugin_init.rs (target/debug/deps/dcap_plugin_init-897afa67372673af)
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-8d02ad6324d9f905)

@@ -1,0 +1,29 @@
+=== git status --porcelain (baseline) ===
+ M Cargo.toml
+ M crates/application/tests/strategy.rs
+ M crates/strategy-core/src/reference.rs
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/report/154_dcap_p1b_core_dual_product_green.md
+?? coder/report/155_dcap_p2b_core_normalize_seed.md
+?? coder/report/156_float_roundtrip_enable_full_regression.md
+?? crates/strategy-core/reference-plugins/dcap.js
+?? crates/strategy-runtime/tests/dcap_cross_runtime.rs
+?? crates/strategy-runtime/tests/dcap_plugin_init.rs
+?? crates/strategy-runtime/tests/dcap_plugin_replay.rs
+?? design/14-dcap-indicator/
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? tester/design/012_dcap_t1_t4_red_design.md
+?? tester/design/013_dcap_p2a_t5a_t6_t7_t12_red_design.md
+?? tester/evidence/018/
+?? tester/evidence/020_dcap_p2a_red/
+?? tester/evidence/021_dcap_p2c/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/
+?? web/src/features/indicators/
+=== HEAD ===
+8745fd52de446efc597e37dcd23cc74c27273dcd

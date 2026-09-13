@@ -1,0 +1,40 @@
+### T7 reverse: mutate save() (drop tailS) -> expect RED
+mutated: removed 'tailS: tailS.slice(), ' from save()
+running 1 test
+test t7_replay_continuation_scores_bit_equal ... FAILED
+
+failures:
+
+---- t7_replay_continuation_scores_bit_equal stdout ----
+
+thread 't7_replay_continuation_scores_bit_equal' (1787033) panicked at crates/strategy-runtime/tests/dcap_plugin_replay.rs:248:13:
+[T7-e2e] real518880_m15_64 split=20：save→load→续跑与连续跑必须**逐位**相同（ABI G3；02-spec §5 内部状态：三条 close 窗口 + 三条 SMA 尾窗全部必须进快照）。
+快照键=Some(["tailL", "tailM", "winL", "winM", "winS"])
+不一致 2 处（最多列 10）：
+bar 20：连续跑=51.48284719528435(4049bdcdefd85b16) 恢复续跑=51.86242356827663(4049ee63e53e861d)
+bar 21：连续跑=52.42961869957857(404a36fdbedc3852) 恢复续跑=52.93950396119883(404a7841aa71e7dd)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t7_replay_continuation_scores_bit_equal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p strategy-runtime --test dcap_plugin_replay`
+MUTATED_EXIT=101
+
+### restore
+crates/strategy-core/reference-plugins/dcap.js: OK
+### T7 restored -> expect GREEN
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-209b6420f0fc20ec)
+
+running 3 tests
+test t7_channel_probe_channel_is_not_bit_exact ... ok
+test t7_selftest_missing_save_field_is_detected ... ok
+test t7_replay_continuation_scores_bit_equal ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+RESTORED_EXIT=0

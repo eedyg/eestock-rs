@@ -1,0 +1,4 @@
+521c269675f5bafd114ab6a84f39ef6f9709c2d37bcbe2d887a5bc57d566fb1f  web/src/features/indicators/dcap.ts
+60bc9b49e38516267c868bae6a3f60ceebc6c0f377aecfd4e2ab73c5bcb8e3c2  crates/strategy-core/reference-plugins/dcap.js
+85525c066b35e22a6f27899d97029a5fe389c44b6c06d9b1e28cea37cb7dc9bb  crates/strategy-core/src/reference.rs
+70ed6b74045e80fb1cf516a69555bf2946d3a4ea7fcfcdbf628786df81c86167  crates/strategy-runtime/tests/dcap_plugin_replay.rs

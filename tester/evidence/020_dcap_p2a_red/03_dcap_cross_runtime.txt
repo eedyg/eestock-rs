@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/dcap_cross_runtime.rs (target/debug/deps/dcap_cross_runtime-4d07d44a153a3e35)
+
+running 6 tests
+test t4_sample_set_meets_spec ... ok
+test t5a_cross_runtime_nonmonotonic_params_bit_equal ... ok
+test t4_selfcheck_comparator_teeth_one_ulp_and_sandbox_pipeline ... ok
+test t2_plugin_smooth_off_equals_m1_bit_equal ... ok
+test t4_cross_runtime_raw_series_bit_equal ... ok
+test t4_cross_runtime_scores_bit_equal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+

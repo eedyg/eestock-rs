@@ -1,0 +1,6 @@
+### cd web && npx tsc -b
+exit=0 (no output)
+
+### cd web && npx vitest run
+ Test Files  52 passed (52)
+      Tests  514 passed (514)

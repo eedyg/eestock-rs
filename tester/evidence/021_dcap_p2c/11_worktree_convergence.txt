@@ -1,0 +1,13 @@
+### git diff --name-status (tracked)
+M	Cargo.toml
+M	crates/application/tests/strategy.rs
+M	crates/strategy-core/src/reference.rs
+
+### git diff --cached --name-status (expect empty)
+(end)
+
+### forbidden-symbol changes in tracked diff
+(none)
+
+### diff touching crates/web or crates/strategy-runtime/src
+(end)

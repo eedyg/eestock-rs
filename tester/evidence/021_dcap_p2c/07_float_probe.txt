@@ -1,0 +1,7 @@
+### float probe (independent: std parse vs serde_json from_str, + roundtrip)
+57.329040578513684: std=404caa1e006de2f8 serde=404caa1e006de2f8 bit_equal=true ulp=0 | roundtrip=404caa1e006de2f8 rt_equal=true
+-0.011674411920738925: std=bf87e8c10b3264c0 serde=bf87e8c10b3264c0 bit_equal=true ulp=0 | roundtrip=bf87e8c10b3264c0 rt_equal=true
+-0.0045787545787545625: std=bf72c12c12c12c00 serde=bf72c12c12c12c00 bit_equal=true ulp=0 | roundtrip=bf72c12c12c12c00 rt_equal=true
+0.0045787545787547845: std=3f72c12c12c12d00 serde=3f72c12c12c12d00 bit_equal=true ulp=0 | roundtrip=3f72c12c12c12d00 rt_equal=true
+ALL_BIT_EQUAL_AND_RT=true
+EXIT=0

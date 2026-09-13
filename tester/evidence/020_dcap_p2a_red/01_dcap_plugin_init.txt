@@ -1,0 +1,36 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/dcap_plugin_init.rs (target/debug/deps/dcap_plugin_init-9e743a5cea2690d9)
+
+running 5 tests
+test t6_plugin_all_lines_insufficient_returns_exactly_50_and_no_log_noise ... ok
+test t6_plugin_insufficient_lines_are_excluded_from_n ... ok
+
+thread 't5a_plugin_windows_do_not_drift_across_bars' (1609292) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:412:5:
+assertion `left == right` failed: [T5a-4] 归一后生效值应为 (8,9,10)
+  left: (8, 8, 8)
+ right: (8, 9, 10)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 't5a_plugin_effective_windows_follow_normalization' (1609290) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:320:9:
+assertion `left == right` failed: [T5a-1] n_s=n_m=n_l=26：raw=(26, 26, 26) 经 init 后三线窗口容量必须为归一值 (26, 27, 28)（n_m'=max(n_m,n_s+1)、n_l'=max(n_l,n_m'+1)；02-spec §2/§3）
+  left: (26, 26, 26)
+ right: (26, 27, 28)
+test t5a_plugin_windows_do_not_drift_across_bars ... FAILED
+test t5a_plugin_effective_windows_follow_normalization ... FAILED
+
+thread 't5a_plugin_normalization_is_idempotent_and_bitwise_deterministic' (1609291) panicked at crates/strategy-runtime/tests/dcap_plugin_init.rs:368:5:
+assertion `left == right` failed: [T5a-2] 已归一三元组再 init 必须得到同一生效值（raw=(26, 26, 26) vs 归一后输入=(26, 27, 28)）
+  left: (26, 27, 28)
+ right: (26, 26, 26)
+test t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic ... FAILED
+
+failures:
+
+failures:
+    t5a_plugin_effective_windows_follow_normalization
+    t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic
+    t5a_plugin_windows_do_not_drift_across_bars
+
+test result: FAILED. 2 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test dcap_plugin_init`

@@ -1,0 +1,14 @@
+ts CORE bytes = 6226 sha256 = db5b3eff73e63615f217ddca77f9bb0319d863714d477b8ed95df4da603c64e7
+js CORE bytes = 6226 sha256 = db5b3eff73e63615f217ddca77f9bb0319d863714d477b8ed95df4da603c64e7
+byte-identical: True
+length>=200: True
+prefix up to CORE equal: False | prefix lens 1473 3205
+  CORE contains b'Math.pow': False
+  CORE contains b'Math.exp': False
+  CORE contains b'Math.log': False
+  CORE contains b'import ': False
+  CORE contains b'export ': False
+  CORE contains b': number': False
+  CORE contains b'const ': False
+  CORE contains b'let ': False
+  CORE contains Math.floor: True | Math.max: True
