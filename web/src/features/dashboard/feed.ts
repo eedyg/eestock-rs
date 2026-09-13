@@ -68,7 +68,8 @@ export class KlineDataFeed {
 
   private readonly pageSize: number;
   private readonly paginationBatch: number;
-  private readonly warmupBars: number;
+  /** 取数 warmup（可变：dcap 参数保存走 `setWarmupBars` 热更新，**不重建 feed** ⇒ 图表不 remount）。 */
+  private warmupBars: number;
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
   private unsubWs: (() => void) | null = null;
@@ -87,6 +88,54 @@ export class KlineDataFeed {
   /** 初始取数上限 = 视口根数 + warmup（warmup 部分仅供指标计算，不上图；§6 取数 warmup）。 */
   get initialLimit(): number {
     return this.pageSize + this.warmupBars;
+  }
+
+  /** 当前目标的加载窗口（视口根数 + warmup）；HOT 更新后随之变化。 */
+  private targetWindow(): number {
+    return this.pageSize + this.warmupBars;
+  }
+
+  /**
+   * 取数 warmup 热更新（dcap 参数保存路径，02-spec §6「配置保存不得重建 pane」）：
+   * - **不重建 feed**（调用方保留同一 feed ⇒ KlineChart 不 remount ⇒ pane 布局/视口不被重置）；
+   * - warmup **增大**时按**差额**以已加载最左 bar 的 ts 为排他游标向前补取（前插），
+   *   使加载窗口回到 `viewportBars + warmup`（= 与「以新 warmup 重新构造 feed」等价的数据面）；
+   * - warmup 减小/不变、尚无数据、已够宽 → 只更新字段、不取数（ADR-020：关 DCAP 不多取）。
+   *
+   * 返回**是否真的补取了更早的 bar**（true ⇒ 调用方需原地重载数据，如 `chart.resetData()`）。
+   * 任何取数失败都不抛（保持既有数据；最左 warmup 段退化为断线，向左滚页会自然补齐）。
+   */
+  async setWarmupBars(warmup: number): Promise<boolean> {
+    const next = Number.isFinite(warmup) && warmup > 0 ? Math.trunc(warmup) : 0;
+    const prev = this.warmupBars;
+    this.warmupBars = next;
+    if (next <= prev) return false;
+    if (this.disposed || this.loadingBefore || this.bars.length === 0) return false;
+    const need = this.targetWindow() - this.bars.length;
+    if (need <= 0) return false;
+    this.loadingBefore = true;
+    try {
+      const before = this.bars[0]!.ts;
+      const older = await this.deps.api.getKline({
+        code: this.deps.code,
+        period: this.deps.period,
+        before,
+        limit: need,
+      });
+      if (this.disposed) return false;
+      this.hasMore = older.length >= need;
+      const existing = new Set(this.bars.map((b) => b.ts));
+      const fresh = older.filter((b) => !existing.has(b.ts));
+      if (fresh.length === 0) return false;
+      this.bars = [...fresh, ...this.bars];
+      this.emit();
+      return true;
+    } catch {
+      // 补取失败：保持既有数据（不回滚 warmup 字段：后续分页/重载仍按新口径）
+      return false;
+    } finally {
+      this.loadingBefore = false;
+    }
   }
 
   /** 默认视口（K 线根数，GET /api/config/kline；缺省 120 兜底）。KlineChart/GridCell 的 fitBarSpace

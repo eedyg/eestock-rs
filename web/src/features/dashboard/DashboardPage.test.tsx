@@ -14,6 +14,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** 参数热更新通道（状态差分：仅启用状态翻转才 create/remove）。 */
+  overrideIndicator: vi.fn(),
+  /** warmup 热更新后的原地数据重载。 */
+  resetData: vi.fn(),
   setStyles: vi.fn(),
   subscribeAction: vi.fn(),
   unsubscribeAction: vi.fn(),
@@ -232,11 +236,16 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     await userEvent.type(screen.getByLabelText('MA 窗口 1'), '7');
     await userEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(saveMaConfig).toHaveBeenCalledWith([7, 10, 20]));
-    // 主图 KlineChart 应用配置窗口（统一配置）
-    expect(chartStub.createIndicator).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'MA', calcParams: [7, 10, 20] }),
-      false,
+    // 主图 KlineChart 应用配置窗口（统一配置）：**参数变化走 overrideIndicator**（原地重算，
+    // 不 remove/create ⇒ 不销毁/重建 pane ⇒ 用户拖拽过的副图高度不被重置）
+    await waitFor(() =>
+      expect(chartStub.overrideIndicator).toHaveBeenCalledWith({ name: 'MA', calcParams: [7, 10, 20] }),
     );
+    const maCreateCalls = chartStub.createIndicator.mock.calls.filter(
+      ([c]) => (c as { name?: string } | undefined)?.name === 'MA',
+    );
+    expect(maCreateCalls).toHaveLength(1); // 只在建图时创建一次
+    expect(maCreateCalls[0]![0]).toMatchObject({ name: 'MA', calcParams: [5, 10, 20] });
   });
 
   // ── 视口口径 ADR-020：单位=K线根数（viewport_bars），主图+宫格统一（R6）──

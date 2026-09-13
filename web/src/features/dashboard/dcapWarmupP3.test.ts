@@ -75,3 +75,81 @@ describe('KlineDataFeed.warmupBars（limit = viewport_bars + (n_l+m−1)）', ()
     feed.dispose();
   });
 });
+
+/** 按请求 `limit` 返回相应根数的 api（**升序** ts：以 `before` 游标为右端向前 1 分钟一根，
+ *  便于断言「前插更早 bar」——与真实 `GET /api/kline` 的升序口径一致）。 */
+function windowApi() {
+  const getKline = vi.fn(async (req: { limit: number; before?: string }) => {
+    const end = req.before ? Date.parse(req.before) : Date.UTC(2026, 0, 5, 0, 0);
+    return Array.from({ length: req.limit }, (_, i) => ({
+      ts: new Date(end - (req.limit - i) * 60_000).toISOString(),
+      open: 1, high: 1, low: 1, close: 1, volume: 1, amount: 1,
+    })) as Bar[];
+  });
+  return { api: { getKline } as unknown as ApiClient, getKline };
+}
+
+/**
+ * 热更新 warmup（dcap 参数保存路径）——**不得重建 feed**：
+ * 图表侧靠 `chart.resetData()` 原地重载既有 + 新补的 bar（pane 布局/视口不受影响）。
+ * 口径：目标加载窗口 = `viewportBars + warmup`；warmup 增大时按**差额**以已加载最左 ts 为游标向前补取。
+ */
+describe('KlineDataFeed.setWarmupBars（dcap 参数保存：向前补取差额，不重建 feed）', () => {
+  it('warmup 增大（62→122）→ 补取差额 60 根并前插：窗口 182→242，返回 true', async () => {
+    const { api, getKline } = windowApi();
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', viewportBars: 120, warmupBars: 62 });
+    await feed.loadInitial();
+    expect(feed.bars).toHaveLength(182);
+    const firstTs = feed.bars[0]!.ts;
+
+    expect(await feed.setWarmupBars(122)).toBe(true);
+
+    // 关键口径：窗口 = viewportBars + warmup = 120 + 122 = 242；差额以最左已加载 bar 为排他游标
+    expect(getKline).toHaveBeenLastCalledWith({ code: '518880', period: '15m', before: firstTs, limit: 60 });
+    expect(feed.bars).toHaveLength(242);
+    expect(feed.initialLimit).toBe(242);
+    // 新 bar 必须**前插**（更早时间），既有 bar 一根不少（不重建、不丢历史）
+    expect(Date.parse(feed.bars[0]!.ts)).toBeLessThan(Date.parse(firstTs));
+    expect(feed.bars.at(-1)!.ts).toBe(new Date(Date.UTC(2026, 0, 4, 23, 59)).toISOString());
+  });
+
+  it('warmup 减小 / 不变 → 不取数（返回 false），仅更新字段（供后续分页/重载用）', async () => {
+    const { api, getKline } = windowApi();
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', viewportBars: 120, warmupBars: 62 });
+    await feed.loadInitial();
+    expect(getKline).toHaveBeenCalledTimes(1);
+
+    expect(await feed.setWarmupBars(62)).toBe(false); // 不变
+    expect(await feed.setWarmupBars(0)).toBe(false); // 减小（DCAP 关：ADR-020 口径）
+    expect(getKline).toHaveBeenCalledTimes(1); // 未多发一次取数
+    expect(feed.initialLimit).toBe(120);
+    expect(feed.bars).toHaveLength(182); // 既有数据保持（多余 warmup 不上图，无损）
+  });
+
+  it('尚未加载数据（bars 空）→ 只更新字段不取数；随后 loadInitial 用新 warmup', async () => {
+    const { api, getKline } = windowApi();
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', viewportBars: 120 });
+    expect(await feed.setWarmupBars(62)).toBe(false);
+    expect(getKline).not.toHaveBeenCalled();
+    await feed.loadInitial();
+    expect(getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: 182 });
+  });
+
+  it('补取失败 → 不抛错（返回 false），既有数据保持（滚左时会自然补齐）', async () => {
+    const getKline = vi
+      .fn()
+      .mockResolvedValueOnce(bars(182) as never)
+      .mockRejectedValueOnce(new Error('network') as never);
+    const feed = new KlineDataFeed({
+      api: { getKline } as unknown as ApiClient,
+      ws,
+      code: '518880',
+      period: '15m',
+      viewportBars: 120,
+      warmupBars: 62,
+    });
+    await feed.loadInitial();
+    await expect(feed.setWarmupBars(122)).resolves.toBe(false);
+    expect(feed.bars).toHaveLength(182);
+  });
+});

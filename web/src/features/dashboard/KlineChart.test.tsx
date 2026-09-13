@@ -10,6 +10,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** 参数热更新通道（状态差分：仅启用状态翻转才 create/remove；参数变化走 overrideIndicator）。 */
+  overrideIndicator: vi.fn(),
+  /** warmup 热更新后的原地数据重载（不得 dispose/init）。 */
+  resetData: vi.fn(),
   setStyles: vi.fn(),
   subscribeAction: vi.fn(),
   unsubscribeAction: vi.fn(),
@@ -151,7 +155,7 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
     );
   });
 
-  it('maWindows 变化 → 重新 sync 应用新 calcParams（统一配置热生效）', () => {
+  it('maWindows 变化 → overrideIndicator 原地更新 calcParams（不重建指标 ⇒ 不重置 pane 布局）', () => {
     const feed = fakeFeed();
     const { rerender } = render(
       <KlineChart
@@ -179,11 +183,14 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
         maWindows={[7, 20, 60]}
       />,
     );
-    // 每次 sync 会 createIndicator 多个指标（MA/VOL…）；MA 是最近一次用新窗口创建
+    // 参数变化走 overrideIndicator（原地重算）；不得 remove/create（销毁会让副图 pane 以布局默认高重建）
+    expect(chartStub.overrideIndicator).toHaveBeenCalledWith({ name: 'MA', calcParams: [7, 20, 60] });
+    expect(chartStub.removeIndicator).not.toHaveBeenCalled();
     const maCalls = chartStub.createIndicator.mock.calls.filter(
       ([c]) => typeof c === 'object' && c !== null && (c as { name?: string }).name === 'MA',
     );
-    expect(maCalls[maCalls.length - 1]![0]).toMatchObject({ name: 'MA', calcParams: [7, 20, 60] });
+    expect(maCalls).toHaveLength(1); // 只在建图时创建一次（不因换参数重建）
+    expect(maCalls[0]![0]).toMatchObject({ name: 'MA', calcParams: [5, 10, 20], paneId: 'candle_pane' });
   });
 });
 

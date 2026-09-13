@@ -30,6 +30,10 @@ import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 export interface KlineChartFeedLike extends KlineDataFeedLike {
   viewportBars?: number;
   onRealtime(cb: (bar: Bar) => void): () => void;
+  /** 取数 warmup 热更新（dcap 参数保存路径；**可选**：仅看板 `KlineDataFeed` 实现，
+   *  区间/工作台 feed 不实现 ⇒ 无此能力时跳过，行为与修复前一致）。
+   *  warmup 增大时向前补取差额更早的 bar（不重建 feed）；返回是否真的补取了数据。 */
+  setWarmupBars?(warmup: number): Promise<boolean>;
 }
 
 /** overlay：满宽价位线（开/平仓标记） */
@@ -74,6 +78,11 @@ export interface KlineChartProps {
   /** dcap 显示参数（统一配置，主图+宫格共用；默认 8/26/60/1/1/1/1/3，从 GET /api/config/dcap 读）。
    *  仅在 `indicators.dcap` 为真时生效（独立副图 pane，见 02-spec §6）。 */
   dcapParams?: DcapParams;
+  /** dcap 取数 warmup 根数（02-spec §6；看板传 `indicators.dcap ? dcapWarmupBars(dcapParams) : 0`）。
+   *  **变化时不得重建图表**：热更新 feed 的 warmup（`feed.setWarmupBars`）并在真的补取了更早 bar 时
+   *  原地重载数据（`chart.resetData()`）——pane 布局/用户拖拽高度/视口均保持（§6 图表契约）。
+   *  缺省 0（不 warmup；区间/工作台等未传的调用方行为不变）。 */
+  warmupBars?: number;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -88,26 +97,77 @@ const INDICATOR_DEFS: Array<{ key: IndicatorName | 'vol'; name: string; calcPara
   { key: 'dcap', name: DCAP_INDICATOR_NAME }, // ADR-021：dcap 三线（独立副图 pane，precision 5）
 ];
 
+/** 已应用指标状态：`name → 已应用的 calcParams`。
+ *  **必须是「本次建图」的组件级持有**（随建图重置）：
+ *  - 不得用模块级 `WeakMap<Chart, …>`——测试里的 chart 桩跨用例共享同一对象，会被污染；
+ *  - 不得用 `chart.getIndicators(...)` 判在场——既有测试桩未提供该 API（会大面积 TypeError）。 */
+type AppliedIndicators = Map<string, number[]>;
+
+function sameParams(a: ReadonlyArray<number>, b: ReadonlyArray<number>): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/** `createIndicator` 参数：目标 calcParams 为空（内置模板指标 VOL/MACD/KDJ/BOLL）时**必须省略该字段**
+ *  —— 传 `calcParams: []` 会覆盖模板默认参数（真渲染实测：VOL 的 calcParams 变 `[]`）。 */
+function createIndicatorValue(name: string, calcParams: number[]): { name: string; calcParams?: number[] } {
+  return calcParams.length > 0 ? { name, calcParams } : { name };
+}
+
+/** 各指标目标 calcParams（MA 取统一配置窗口；DCAP 取 8 参显示参数；其余用内置默认）。 */
+function desiredCalcParams(
+  def: { key: IndicatorName | 'vol'; calcParams?: number[] },
+  maWindows: number[],
+  dcapParams: DcapParams,
+): number[] {
+  if (def.key === 'ma') return maWindows;
+  if (def.key === 'dcap') return dcapCalcParams(dcapParams);
+  return def.calcParams ?? [];
+}
+
+/**
+ * 指标同步：**状态差分**（02-spec §6 图表契约）。
+ * - **仅「启用状态翻转」才 `createIndicator` / `removeIndicator`**（关态不残留空 pane）；
+ * - **参数变化一律走 `overrideIndicator({name, calcParams})`**：原地改 calcParams 并重算，
+ *   **不销毁 pane**（销毁会让 pane 以布局默认高度重建 ⇒ 用户拖拽过的副图高度被重置）；
+ * - 参数无变化 ⇒ 什么都不做（幂等：保存时乐观更新 + 服务端回显两次 commit 均安全）；
+ * - 不依赖 `overrideIndicator` 返回值判成败（库事实：仅 calc 变化时其返回 `false`，但确实生效）。
+ */
 function syncIndicators(
   chart: Chart,
   indicators: Record<IndicatorName, boolean>,
   maWindows: number[],
   dcapParams: DcapParams,
+  applied: AppliedIndicators,
 ) {
   for (const def of INDICATOR_DEFS) {
     const enabled = def.key === 'vol' ? true : indicators[def.key];
-    chart.removeIndicator({ name: def.name });
-    if (enabled) {
-      if (def.key === 'ma') {
-        chart.createIndicator({ name: def.name, calcParams: maWindows, paneId: 'candle_pane' }, false);
-      } else if (def.key === 'dcap') {
-        // ADR-021 §6：**独立副图 pane**（不可叠 candle_pane：dcap 与价格无量纲关系）；
-        // isStack=true ⇒ 新建独立 pane + 独立 Y 轴自动标度；模板显式 precision=5（dcapIndicator.ts）。
-        ensureDcapIndicatorRegistered();
-        chart.createIndicator({ name: def.name, calcParams: dcapCalcParams(dcapParams) }, true);
-      } else {
-        chart.createIndicator({ name: def.name, calcParams: def.calcParams }, true);
+    const desired = desiredCalcParams(def, maWindows, dcapParams);
+    const prev = applied.get(def.name);
+    if (!enabled) {
+      if (prev) {
+        chart.removeIndicator({ name: def.name });
+        applied.delete(def.name);
       }
+      continue;
+    }
+    if (!prev) {
+      if (def.key === 'ma') {
+        chart.createIndicator(
+          { ...createIndicatorValue(def.name, desired), paneId: 'candle_pane' },
+          false,
+        );
+      } else {
+        // ADR-021 §6：DCAP **独立副图 pane**（不可叠 candle_pane：dcap 与价格无量纲关系）；
+        // isStack=true ⇒ 新建独立 pane + 独立 Y 轴自动标度；模板显式 precision=5（dcapIndicator.ts）。
+        if (def.key === 'dcap') ensureDcapIndicatorRegistered();
+        chart.createIndicator(createIndicatorValue(def.name, desired), true);
+      }
+      applied.set(def.name, desired);
+      continue;
+    }
+    if (!sameParams(prev, desired)) {
+      chart.overrideIndicator({ name: def.name, calcParams: desired });
+      applied.set(def.name, desired);
     }
   }
 }
@@ -258,6 +318,8 @@ export function KlineChart(props: KlineChartProps) {
   const programmaticScroll = useRef(false);
   /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
   const manualAdjusted = useRef(false);
+  /** 本次建图已应用的指标状态（启用/calcParams）——「状态差分」的基线；随建图重置（见建图 effect）。 */
+  const appliedRef = useRef<AppliedIndicators | null>(null);
   const followRef = useRef(props.followLatest);
   followRef.current = props.followLatest;
   const onManualZoomRef = useRef(props.onManualZoom);
@@ -320,7 +382,11 @@ export function KlineChart(props: KlineChartProps) {
           const { bars, forward } = await loadBarsForKc(
             feed,
             type === 'forward' ? 'forward' : 'init',
-            type === 'forward' ? null : () => fitBarSpace(chart),
+            // 初始铺满：仅在用户未手动缩放/平移时执行（ADR-020 §2.6）——默认只读之外的原地重载
+            // （warmup 热更新 ⇒ resetData 重跑 init）不得把用户的手动视口重置回配置视口。
+            type === 'forward' ? null : () => {
+              if (!manualAdjusted.current) fitBarSpace(chart);
+            },
           );
           callback(bars, { forward, backward: false });
         } catch {
@@ -338,11 +404,13 @@ export function KlineChart(props: KlineChartProps) {
     chart.setSymbol({ ticker: props.code, pricePrecision: 3, volumePrecision: 0 });
     chart.setPeriod(PERIOD_MAP[props.period]);
     applyDarkTerminalStyles(chart);
+    appliedRef.current = new Map(); // 新图 ⇒ 差分基线重置（不得跨建图复用）
     syncIndicators(
       chart,
       props.indicators,
       props.maWindows ?? DEFAULT_MA_WINDOWS,
       props.dcapParams ?? DEFAULT_DCAP_PARAMS,
+      appliedRef.current,
     );
 
     // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
@@ -381,7 +449,7 @@ export function KlineChart(props: KlineChartProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);
 
-  // 指标勾选/MA 窗口/dcap 参数热切换
+  // 指标勾选/MA 窗口/dcap 参数热切换（状态差分：仅启用状态翻转才 create/remove；参数变化走 overrideIndicator）
   useEffect(() => {
     if (chartRef.current)
       syncIndicators(
@@ -389,8 +457,30 @@ export function KlineChart(props: KlineChartProps) {
         props.indicators,
         props.maWindows ?? DEFAULT_MA_WINDOWS,
         props.dcapParams ?? DEFAULT_DCAP_PARAMS,
+        (appliedRef.current ??= new Map()),
       );
   }, [props.indicators, props.maWindows, props.dcapParams]);
+
+  // dcap 取数 warmup 热更新（02-spec §6 图表契约：**配置保存不得重建 pane**）。
+  // n_l/m（或 DCAP 开关）变化 ⇒ 让 feed 向前补取差额更早 bar，再原地重载数据（resetData 只重跑
+  // DataLoader init：不 dispose/不 init 图表 ⇒ pane 高度/顺序/视口均保持，路径 B 不成立）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    const sync = feed.setWarmupBars;
+    if (!chart || typeof sync !== 'function') return;
+    let cancelled = false;
+    void sync
+      .call(feed, props.warmupBars ?? 0)
+      .then((changed) => {
+        if (changed && !cancelled && chartRef.current === chart) chart.resetData();
+      })
+      .catch(() => {
+        // 补取失败：保持既有数据（最左 warmup 段可能断线，向左翻页会自然补齐），不得打断渲染
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [feed, props.warmupBars]);
 
   // 「回到最新」：followLatest 置 true 时主动滚到最右；false→true 时解除「手动缩放」抑制并重算 barSpace
   // （恢复「可见 ≈ N 根」口径，ADR-020 §2.6）。

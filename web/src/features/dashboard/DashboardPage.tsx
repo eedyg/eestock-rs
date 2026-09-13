@@ -215,9 +215,13 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
 
   // 取数 warmup（02-spec §6；裁决依据见 §8 #19）：开 DCAP 时初始取数 limit = viewport_bars + (n_l + m − 1)，
   // 多取部分仅供 dcap 计算、不上图（否则视口最左永远缺一段）；未开 DCAP 不 warmup（ADR-020 口径不变）。
+  // **注意**：它**不得进 feed 身份（useMemo deps）**——否则保存 n_l/m 会重建 feed ⇒ KlineChart remount
+  // ⇒ 整图 pane 重建、用户拖拽过的副图高度被重置（§6 图表契约「配置保存不得重建 pane」）。
+  // warmup 的变化改由 feed.setWarmupBars 热更新 + 图表原地重载（KlineChart 的 warmupBars prop）。
   const dcapWarmup = indicators.dcap ? dcapWarmupBars(dcapParams) : 0;
 
-  // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅
+  // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅。
+  // `warmupBars` 只取**建 feed 那一刻**的值（构建初值）：后续变化走 setWarmupBars 热更新，故意不入 deps。
   const feed = useMemo(
     () =>
       state.selected
@@ -230,7 +234,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
             warmupBars: dcapWarmup,
           })
         : null,
-    [api, ws, state.selected, state.period, viewportBars, dcapWarmup],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- warmup 故意不入 deps（见上：热更新路径）
+    [api, ws, state.selected, state.period, viewportBars],
   );
   useEffect(() => () => feed?.dispose(), [feed]);
 
@@ -299,6 +304,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
                 onManualZoom={() => store.noteManualZoom()}
                 maWindows={maWindows}
                 dcapParams={dcapParams}
+                warmupBars={dcapWarmup}
               />
             ) : (
               <TimeshareChart api={api} ws={ws} code={state.selected} />

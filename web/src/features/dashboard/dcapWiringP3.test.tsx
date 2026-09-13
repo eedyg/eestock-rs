@@ -28,6 +28,10 @@ const h = vi.hoisted(() => ({
     setPaneOptions: vi.fn(),
     resize: vi.fn(),
     convertToPixel: vi.fn(() => ({ x: 0, y: 0 })),
+    /** 状态差分：参数变化走 overrideIndicator（不 rebuild 指标/pane）。 */
+    overrideIndicator: vi.fn(),
+    /** warmup 热更新后的原地数据重载。 */
+    resetData: vi.fn(),
   },
 }));
 vi.mock('klinecharts', () => ({
@@ -217,6 +221,45 @@ describe('DashboardPage（warmup 取数 + GET/PUT /api/config/dcap + 读取韧�
     );
   }
 
+  /** 按请求 `limit` 回相应根数（**升序** ts，与真实 `GET /api/kline` 同口径）的看板 api——
+   *  用于验证「开 DCAP 后向前补取差额」的窗口口径（真实后端也是按 limit 返回根数）。 */
+  function windowApi(overrides: Partial<ApiClient> = {}): ApiClient {
+    return stubApi({
+      getSymbols: vi.fn(async () => SYMBOLS),
+      getSourcesHealth: vi.fn(async () => ({ window_secs: 3600, sources: [] })),
+      getKline: vi.fn(async (req: { limit: number; before?: string }) => {
+        const end = req.before ? Date.parse(req.before) : Date.UTC(2026, 0, 5, 0, 0);
+        return Array.from({ length: req.limit }, (_, i) => ({
+          ts: new Date(end - (req.limit - i) * 60_000).toISOString(),
+          open: 1, high: 1, low: 1, close: 1, volume: 1, amount: 1,
+        }));
+      }) as unknown as ApiClient['getKline'],
+      ...overrides,
+    });
+  }
+
+  it('保存 dcap 参数（n_l 变化）⇒ **不重建 feed/图表**：setDataLoader 仅一次、只向前补取差额', async () => {
+    // 回归：「保存 dcap 配置不得重置 pane 布局」的根因之一是 warmup 进 feed 身份 → feed 重建 → 整图 remount。
+    const saveDcapConfig = vi.fn(async (p: never) => p);
+    const api = windowApi({ saveDcapConfig: saveDcapConfig as never });
+    await renderPage(api);
+    fireEvent.click(screen.getByRole('button', { name: 'DCAP' })); // 开 DCAP（warmup 62）
+    await waitFor(() => expect(klineLimits(api)).toEqual([120, 62]));
+    expect(h.chartStub.setDataLoader).toHaveBeenCalledTimes(1); // 图表实例唯一
+
+    fireEvent.click(screen.getByRole('button', { name: 'DCAP 配置' }));
+    fireEvent.change(screen.getByTestId('dcap-input-n_l'), { target: { value: '120' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() =>
+      expect(saveDcapConfig).toHaveBeenCalledWith(expect.objectContaining({ n_l: 120, m: 3 })),
+    );
+
+    // n_l 60→120 ⇒ warmup 62→122 ⇒ 窗口 182→242：仅补差额 60（而非整图重建后的再一次全量取数）
+    await waitFor(() => expect(klineLimits(api)).toEqual([120, 62, 60]));
+    // 主图 chart 实例未重建（无 remount ⇒ pane 不被销毁重建 ⇒ 用户拖拽高度保持）
+    expect(h.chartStub.setDataLoader).toHaveBeenCalledTimes(1);
+  });
+
   it('DCAP 默认关 → 不 warmup：初始取数 limit = viewport_bars（120）', async () => {
     const api = fakeApi();
     await renderPage(api);
@@ -225,15 +268,20 @@ describe('DashboardPage（warmup 取数 + GET/PUT /api/config/dcap + 读取韧�
     expect(klineLimits(api).every((l) => l === 120)).toBe(true);
   });
 
-  it('开 DCAP → warmup：limit = viewport_bars + (n_l + m − 1) = 120 + 62', async () => {
-    const api = fakeApi();
+  it('开 DCAP → 补取 warmup：加载窗口 = viewport_bars + (n_l + m − 1) = 120 + 62（不重建 feed）', async () => {
+    const api = windowApi();
     await renderPage(api);
+    expect(klineLimits(api)).toEqual([120]); // 关态口径不变（ADR-020：不因 dcap 扩大取数）
     fireEvent.click(screen.getByRole('button', { name: 'DCAP' }));
-    await waitFor(() => expect(klineLimits(api)).toContain(182));
+    // 不 remount（无又一次 120/182 全量取数）：以已加载最左 ts 为游标向前补取差额 (182 − 120) = 62；
+    // 加载窗口合计 120 + 62 = 182 = viewport_bars + (n_l + m − 1) —— T10 口径（端态）不变。
+    await waitFor(() => expect(klineLimits(api)).toEqual([120, 62]));
+    const calls = (api.getKline as unknown as { mock: { calls: Array<[{ before?: string }]> } }).mock.calls;
+    expect(calls[1]![0].before).toBe('2026-01-04T22:00:00.000Z'); // 最左已加载 bar（升序窗口首根：120 根 → 22:00Z）
   });
 
-  it('warmup 跟随配置：viewport_bars=200 且库中 n_l=250/m=60 → limit = 200 + 309', async () => {
-    const api = fakeApi({
+  it('warmup 跟随配置：viewport_bars=200 且库中 n_l=250/m=60 → 窗口 = 200 + 309', async () => {
+    const api = windowApi({
       getKlineConfig: vi.fn(async () => ({ viewport_bars: 200 })),
       getDcapConfig: vi.fn(async () => ({
         n_s: 8, n_m: 26, n_l: 250, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 60,
@@ -244,7 +292,9 @@ describe('DashboardPage（warmup 取数 + GET/PUT /api/config/dcap + 读取韧�
       expect(screen.getByRole('button', { name: 'DCAP 配置' })).toHaveTextContent('DCAP(8,26,250)'),
     );
     fireEvent.click(screen.getByRole('button', { name: 'DCAP' }));
-    await waitFor(() => expect(klineLimits(api)).toContain(509));
+    // 120 = 默认视口首次取数（配置读回前的 120 兜底），200 = viewport_bars 读回后重建 feed（视图配置变），
+    // 309 = 开 DCAP 后的 warmup 差额（窗口 200 + 309 = 509）
+    await waitFor(() => expect(klineLimits(api)).toEqual([120, 200, 309]));
   });
 
   it('GET /api/config/dcap 读回后回显到面板；保存 → PUT（8 参）并乐观更新摘要', async () => {
