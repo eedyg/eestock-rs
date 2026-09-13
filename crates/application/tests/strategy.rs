@@ -734,17 +734,20 @@ async fn update_meta_happy_trims_name_and_keeps_missing_fields() {
 // ── 播种 ──
 
 #[tokio::test]
-async fn seed_reference_plugins_seeds_11_and_is_idempotent() {
+async fn seed_reference_plugins_seeds_12_and_is_idempotent() {
+    // T12（03-test-plan）：播种集 7 参考插件 + 4 官方模板 → **8 + 4 = 12**。
+    // 依据：ADR-021 §8 裁决 A「dcap 进 `reference_plugins`（第 8 条，可播种/可参测）」⇒
+    //   `reference_plugins()` 7 → 8；模板数不变（4）。故计数 11 → 12、strategy 类 7 → 8。
     let (svc, _) = service(vec![]);
     let report = svc.seed_reference_plugins().await.unwrap();
-    assert_eq!(report.seeded, 11, "7 参考插件 + 4 官方模板");
+    assert_eq!(report.seeded, 12, "8 参考插件 + 4 官方模板");
     assert_eq!(report.skipped, 0);
 
     let strategies = svc.catalog(None, None).await.unwrap();
-    assert_eq!(strategies.len(), 11);
+    assert_eq!(strategies.len(), 12);
     let n_strategy = strategies.iter().filter(|e| e.strategy.kind == StrategyKind::Strategy).count();
     let n_template = strategies.iter().filter(|e| e.strategy.kind == StrategyKind::Template).count();
-    assert_eq!((n_strategy, n_template), (7, 4));
+    assert_eq!((n_strategy, n_template), (8, 4));
     for e in &strategies {
         assert_eq!(e.version.status, StrategyStatus::Published);
         assert_eq!(e.version.version, 1);
@@ -756,7 +759,7 @@ async fn seed_reference_plugins_seeds_11_and_is_idempotent() {
     // 幂等：表非空 → 整体跳过
     let again = svc.seed_reference_plugins().await.unwrap();
     assert_eq!((again.seeded, again.skipped), (0, 0));
-    assert_eq!(svc.catalog(None, None).await.unwrap().len(), 11);
+    assert_eq!(svc.catalog(None, None).await.unwrap().len(), 12);
 }
 
 // ── test_run ──

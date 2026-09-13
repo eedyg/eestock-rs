@@ -1,8 +1,9 @@
 //! 首期参考插件包（ADR `design/12-strategy-system/01-adr.md` §7 D8）+ 官方策略模板（§13.2 D10）。
 //!
-//! - 7 款参考插件：原 Rust 内建策略（`backtest::strategies`）的 JS 1:1 迁移，兼作用户模板与
-//!   测试 fixture；迁移等价性测试 `tests/equivalence.rs` 已随 P4b 删除（旧 Rust 内建策略本体不再存在，
-//!   等价性对照失去参照物）。
+//! - 8 款参考插件：原 Rust 内建策略（`backtest::strategies`）的 JS 1:1 迁移（7 款）+ `dcap`
+//!   指标插件（`design/14-dcap-indicator`，ADR-021 §8 裁决 A：第 8 条，可播种/可参测），
+//!   兼作用户模板与测试 fixture；迁移等价性测试 `tests/equivalence.rs` 已随 P4b 删除
+//!   （旧 Rust 内建策略本体不再存在，等价性对照失去参照物）。
 //! - 4 款官方模板：ABI §4.5（纯评分 / 两态门控 / 定投 / 趋势+止损），编辑器「新建策略」起点。
 //!
 //! ⚠️ 冻结历史记录（架构裁决）：7 个播种插件 JS 文件内注释若仍提及 `equivalence.rs`，属**有意保留**——
@@ -24,7 +25,8 @@ pub struct ReferencePlugin {
     pub code: &'static str,
 }
 
-/// 7 款参考插件（顺序锁定为 ADR §7 名单固定顺序；P4b 后 Rust 内建注册表已删除，顺序由单测硬编码守护）。
+/// 8 款参考插件（顺序锁定为 ADR §7 名单固定顺序 + 追加的 `dcap`；P4b 后 Rust 内建注册表已删除，
+/// 顺序由单测硬编码守护 —— 追加位次依据 ADR-021 §8 裁决 A）。
 pub fn reference_plugins() -> Vec<ReferencePlugin> {
     vec![
         ReferencePlugin {
@@ -69,6 +71,12 @@ pub fn reference_plugins() -> Vec<ReferencePlugin> {
             description: "Donchian 通道突破买卖 + ATR 止损",
             code: include_str!("../reference-plugins/atr_channel.js"),
         },
+        ReferencePlugin {
+            id: "dcap",
+            name: "DCAP 定投收益率",
+            description: "短/中/长三线假想定投收益率（各线自 r）等权映射为 0–100 评分（收益率越高分越低）",
+            code: include_str!("../reference-plugins/dcap.js"),
+        },
     ]
 }
 
@@ -108,13 +116,14 @@ mod tests {
 
     #[test]
     fn reference_plugins_match_builtin_order() {
-        // 7 款、id 唯一、顺序锁定为 ADR §7 名单固定顺序（P4b：Rust 内建注册表已物理删除，
-        // 本清单硬编码保留顺序/唯一性覆盖——等价性已于并存期经 backtest::builtin_strategy_ids() 历史验证）。
-        const BUILTIN_ORDER: [&str; 7] = [
-            "dual_ma", "ma_rsi", "macd", "boll", "kdj", "momentum", "atr_channel",
+        // 8 款、id 唯一、顺序锁定为 ADR §7 名单固定顺序 + dcap（design/14-dcap-indicator，
+        // ADR-021 §8 裁决 A：进 reference_plugins 第 8 条，可播种/可参测）。
+        // P4b：Rust 内建注册表已物理删除，本清单硬编码保留顺序/唯一性覆盖。
+        const BUILTIN_ORDER: [&str; 8] = [
+            "dual_ma", "ma_rsi", "macd", "boll", "kdj", "momentum", "atr_channel", "dcap",
         ];
         let plugins = reference_plugins();
-        assert_eq!(plugins.len(), 7);
+        assert_eq!(plugins.len(), 8);
         let ids: Vec<&str> = plugins.iter().map(|p| p.id).collect();
         assert_eq!(ids, BUILTIN_ORDER);
         let mut seen = std::collections::HashSet::new();
@@ -128,6 +137,40 @@ mod tests {
                 p.id
             );
         }
+    }
+
+    /// T12（03-test-plan）：播种清单含 dcap（第 8 条），且插件面 ABI 钩子/镜像哨兵齐备。
+    /// 依据：`design/14-dcap-indicator/02-spec.md` §5（PARAMS_SCHEMA/init/on_bar/save/load）
+    ///   + ADR-021 D4（CORE 哨兵区间）、§8 裁决 A（进 reference_plugins）。
+    #[test]
+    fn t12_dcap_registered_with_plugin_abi_and_core_sentinels() {
+        let plugins = reference_plugins();
+        let dcap = plugins
+            .iter()
+            .find(|p| p.id == "dcap")
+            .expect("reference_plugins() 必须含 id=\"dcap\"（ADR-021 §8 裁决 A）");
+        // 显示名不属权威口径（02-spec §8 裁决 12 只钉指标名 `dcap` 与三线字段 s/m/l）⇒
+        // 只断言非空（沿用既有通用断言口径），不臆造具体文案。
+        assert!(!dcap.name.is_empty() && !dcap.description.is_empty());
+        // ABI 钩子（02-spec §5）
+        for needle in [
+            "PARAMS_SCHEMA",
+            "function init",
+            "function on_bar",
+            "function save",
+            "function load",
+        ] {
+            assert!(dcap.code.contains(needle), "dcap 插件缺 {needle}（ABI §1/§4/§5）");
+        }
+        // 镜像哨兵（ADR-021 D4；T3 逐字节断言的锚点）
+        assert!(dcap.code.contains("// === DCAP CORE BEGIN ==="), "缺 CORE 起始哨兵");
+        assert!(dcap.code.contains("// === DCAP CORE END ==="), "缺 CORE 结束哨兵");
+        // id 唯一（全表）
+        let mut seen = std::collections::HashSet::new();
+        for p in &plugins {
+            assert!(seen.insert(p.id), "id {} 重复", p.id);
+        }
+        assert_eq!(seen.len(), plugins.len());
     }
 
     #[test]
