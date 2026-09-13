@@ -1,0 +1,58 @@
+ M design/06-web/01-dashboard.md
+ M design/12-strategy-system/04-strategy-programming-guide.md
+ M design/99-decisions-log.md
+ M web/src/api/client.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/dashboard/DashboardPage.tsx
+ M web/src/features/dashboard/KlineChart.test.tsx
+ M web/src/features/dashboard/KlineChart.tsx
+ M web/src/features/dashboard/Toolbar.test.tsx
+ M web/src/features/dashboard/Toolbar.tsx
+ M web/src/features/dashboard/feed.ts
+ M web/src/layouts/DashboardGrid.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/report/157_dcap_p4_programming_guide_adr021.md
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? tester/evidence/018/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? web/src/features/dashboard/dcapWarmupP3.test.ts
+?? web/src/features/dashboard/dcapWiringP3.test.tsx
+?? web/src/features/indicators/DcapParamsPanel.test.tsx
+?? web/src/features/indicators/DcapParamsPanel.tsx
+?? web/src/features/indicators/dcapIndicator.test.ts
+?? web/src/features/indicators/dcapIndicator.ts

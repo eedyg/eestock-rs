@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- T8 渲染 spike 页面（coder 取证用；游离于仓库构建之外，由 run_spike.mjs 用 esbuild 打包 spike.ts 后加载） -->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>dcap T8 render spike</title>
+    <style>
+      body { margin: 0; background: #0b1020; color: #e5e9f2; font: 12px/1.5 ui-sans-serif, system-ui; }
+      h2 { margin: 8px 12px 2px; font-size: 13px; color: #8b93b0; font-weight: 600; }
+      .note { margin: 0 12px 6px; color: #8b93b0; }
+      .chart { width: 1120px; height: 340px; margin: 0 12px 10px; border: 1px solid #263149; }
+    </style>
+  </head>
+  <body>
+    <h2>① 精度对比：0.0045787545787547845（上 DCAP=5 位 / 下 DCAP4=不设 precision=默认 4 位）</h2>
+    <div id="chartA" class="chart"></div>
+    <h2>①b 精度对比：0.0048（5 位渲染 0.00480 / 4 位渲染 0.0048）</h2>
+    <div id="chartB" class="chart"></div>
+    <h2>②③ 数据不足断线 + 三 figure（s/m/l）+ 独立副图与独立 Y 轴（80 根，默认 8/26/60/m=3）</h2>
+    <p class="note">s 从第 9 根起、m 从第 27 根起、l 从第 61 根起有值（null ⇒ 线断开）</p>
+    <div id="chartD" class="chart" style="height: 400px"></div>
+    <h2>④ decimalFold：值 ~0.00048（threshold=3 折叠形态）</h2>
+    <div id="chartC" class="chart"></div>
+    <script src="./bundle.js"></script>
+  </body>
+</html>

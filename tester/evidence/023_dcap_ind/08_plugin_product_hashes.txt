@@ -1,0 +1,13 @@
+=== dcap 产物（本报告全部数值的唯一来源：rquickjs 求值下面这份字节）===
+worktree: /tmp/dcap_ind_wt @ 3f5425c23bd5a940f95b6951a9da0c714fdfc5d4
+
+60bc9b49e38516267c868bae6a3f60ceebc6c0f377aecfd4e2ab73c5bcb8e3c2  /tmp/dcap_ind_wt/crates/strategy-core/reference-plugins/dcap.js
+521c269675f5bafd114ab6a84f39ef6f9709c2d37bcbe2d887a5bc57d566fb1f  /tmp/dcap_ind_wt/web/src/features/indicators/dcap.ts
+
+=== 与主树 HEAD 一致性（产物未被本车道修改）===
+(空 = 与 HEAD 无差异)
+
+=== 口径说明 ===
+本车道读取 dcap.js 的**完整文件字节**交给 rquickjs 求值；CORE 哨兵区间内的
+dcapRoi / smoothSeries / computeDcapSeries / dcapScore 由该运行时直接求值。
+harness 的 JS 粘合层只做「配置 → 调产物函数 → 16 位 hex 位串」取数，不含任何公式复写。

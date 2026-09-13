@@ -1,0 +1,21 @@
+=== 环境 ===
+run_at=2026-09-13T11:52:27Z
+rustc 1.97.1 / cargo 1.97.1
+python /usr/bin/python3.12 = Python 3.12.3（numpy 2.5.2；无 scipy/pandas ⇒ 自实现 Spearman/t 分布/BH-FDR）
+node v22.22.2
+
+=== worktree / target ===
+3f5425c docs(report): dcap P0–P2 实施与验收报告 + 证据（coder 154-156 / tester 038-043）
+?? crates/strategy-runtime/examples/
+CARGO_TARGET_DIR=/tmp/dcap_ind_target
+
+=== 产物哈希（本报告全部 dcap 数值的来源）===
+60bc9b49e38516267c868bae6a3f60ceebc6c0f377aecfd4e2ab73c5bcb8e3c2  /tmp/dcap_ind_wt/crates/strategy-core/reference-plugins/dcap.js
+521c269675f5bafd114ab6a84f39ef6f9709c2d37bcbe2d887a5bc57d566fb1f  /tmp/dcap_ind_wt/web/src/features/indicators/dcap.ts
+
+=== 隔离与禁忌自查 ===
+· 未起 8081/8082：这两个端口由**先前已存在**的 `./target/debug/eestock-app --config /tmp/app_dev_8081.toml`（pid 1315848，启动于 2026-09-13 13:31:46）占用；
+  本车道开工时间 ≈ 19:33，**未启动、未重启、未访问**任何服务端口（全部计算为 in-process / 脚本化）
+· 未运行 entangled tangle（worktree 内 git status 仅新增 example 文件，见上）
+· 未写生产数据面：15m/日线取数全部为只读 SELECT/本地 CSV（见 07_data_snapshot.txt 的 DB 交叉核对）
+· 主树写入范围：仅 tester/report/021_*.md 与 tester/evidence/023_dcap_ind/**（见 19_git_status_main_final.txt）

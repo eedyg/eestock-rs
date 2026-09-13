@@ -1,0 +1,6 @@
+=== P5 harness selftest（harness 正确性自检：数据装载/切分/dcap 逆势语义/买入持有/归一化）===
+run_at=2026-09-13T10:53:21Z
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running `/tmp/dcap_p5_target/release/examples/dcap_sweep --selftest`
+[selftest] all assertions passed
+exit=0

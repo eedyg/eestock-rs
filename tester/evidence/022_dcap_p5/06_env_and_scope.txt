@@ -1,0 +1,45 @@
+=== 环境 ===
+run_at=2026-09-13T10:53:32Z
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo 1.97.1 (c980f4866 2026-06-30)
+Python 3.13.3
+16
+
+=== worktree ===
+3f5425c docs(report): dcap P0–P2 实施与验收报告 + 证据（coder 154-156 / tester 038-043）
+?? crates/strategy-core/examples/
+(worktree 内改动 = 仅新增 example 文件，未 git add)
+
+=== 主树 HEAD ===
+3f5425c docs(report): dcap P0–P2 实施与验收报告 + 证据（coder 154-156 / tester 038-043）
+
+=== 8081/8082 未被本任务启动（未起服务）===
+
+=== 收尾时主树状态对比（证明 P5 主树写入范围）===
+--- 开工基线（18:52）快照行数: 58
+--- 收尾 diff（相对基线的新增行）：
+5a6
+> ?? coder/evidence/dcap_p3/
+7a9,11
+>  M crates/web/src/dto.rs
+>  M crates/web/src/lib.rs
+>  M crates/web/src/rest.rs
+8a13
+>  M design/07-app-plane/00-web-api.md
+10a16
+>  M web/src/api/client.test.ts
+11a18
+>  M web/src/api/mock.test.ts
+22a30
+> ?? tester/evidence/022_dcap_p5/
+23a32
+> ?? tester/report/020_dcap_p5_effectiveness_sweep.md
+
+解读：P5 在主树的新增仅为 tester/evidence/022_dcap_p5/ 与 tester/report/020_dcap_p5_effectiveness_sweep.md；
+      crates/web/src/{dto,lib,rest}.rs、design/07-app-plane/00-web-api.md、web/src/api/*、coder/evidence/dcap_p3/ 属并行车道 P3/P4
+      （开工基线中不存在，收尾时出现；P5 的文件所有权不含这些路径，且 P5 的编辑工具调用只落在 /tmp/dcap_p5_wt 与 tester/ 下）。
+--- staged 文件: 0 个（必须为 0）
+--- worktree 注册表（含 P5 的 /tmp/dcap_p5_wt）:
+/home/eestock/workspace/git/eestock/eestock-rs  3f5425c [master]
+/tmp/dcap_p5_wt                                 3f5425c (detached HEAD)
+/tmp/p4a_baseline                               bf5e0cf (detached HEAD)

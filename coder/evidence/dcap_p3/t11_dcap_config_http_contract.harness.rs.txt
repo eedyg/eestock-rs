@@ -1,0 +1,138 @@
+//! 【临时取证脚本 zz_coder_dcap_scratch】dcap 配置端点 HTTP 级取证（需 TimescaleDB :5433）。
+//! 用途：coder 自证 GET/PUT /api/config/dcap 的 200/400/默认回退行为（T11 的服务端侧），
+//! 装配同 api_ma_config.rs；**运行后即从工作区删除**（T11 正式用例由 tester 落位）。
+//! 运行：DATABASE_URL=postgres://eestock:eestock@127.0.0.1:5433/eestock cargo test -p web --test zz_coder_dcap_scratch -- --nocapture
+
+use serde_json::Value;
+use sqlx::PgPool;
+use std::sync::Arc;
+use web::state::AppState;
+use web::ws::{SubscriptionRegistry, WsHub};
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+/// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-deps）。
+fn state(pool: PgPool) -> Arc<AppState> {
+    let backtest_hub = WsHub::new();
+    Arc::new(AppState {
+        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        health: diagnose::health::HealthService::new(
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
+        config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
+        sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
+        workbench: None, // P3a：回测工作台（行为测试见 api_workbench.rs）
+        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+        health_window_secs: 3600,
+        hub: backtest_hub,
+        subs: SubscriptionRegistry::default(),
+    })
+}
+
+async fn spawn(state: Arc<AppState>) -> String {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, web::build_router(state)).await.unwrap(); });
+    format!("http://{addr}")
+}
+
+async fn clear_key(pool: &PgPool) {
+    sqlx::query("DELETE FROM app_config WHERE key = 'dcap'").execute(pool).await.unwrap();
+}
+
+async fn put_raw_key(pool: &PgPool, value: Value) {
+    sqlx::query("INSERT INTO app_config (key, value) VALUES ('dcap', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value")
+        .bind(value).execute(pool).await.unwrap();
+}
+
+const DEFAULTS: &str = r#"{"n_s":8,"n_m":26,"n_l":60,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}"#;
+
+#[tokio::test]
+async fn dcap_config_http_contract() {
+    let pool = pool().await;
+    clear_key(&pool).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 1) GET 无键 → 默认 8 参（不 500；且不含 th）
+    let r = http.get(format!("{url}/api/config/dcap")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "GET 无键 → 200");
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v, serde_json::from_str::<Value>(DEFAULTS).unwrap(), "GET 无键 → 默认 8 参");
+    assert!(v.get("th").is_none(), "th 不在该接口");
+
+    // 2) PUT 合法 → 200 且回显；GET 读回一致
+    let good = serde_json::json!({"n_s":5,"n_m":10,"n_l":20,"r_s":1.5,"r_m":1.0,"r_l":1.02,"smooth":0,"m":5});
+    let r = http.put(format!("{url}/api/config/dcap")).json(&good).send().await.unwrap();
+    assert_eq!(r.status(), 200);
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v, good, "PUT 回显写入值");
+    let v: Value = http.get(format!("{url}/api/config/dcap")).send().await.unwrap().json().await.unwrap();
+    assert_eq!(v, good, "GET 读回持久化");
+
+    // 3) PUT 400：非单调 n / 越界 / 非整数 / smooth 非法 / 缺字段
+    let bads = [
+        serde_json::json!({"n_s":26,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":8,"n_m":60,"n_l":26,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":20,"n_m":20,"n_l":20,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":1,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":8,"n_m":26,"n_l":251,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":8.5,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":8,"n_m":26,"n_l":60,"r_s":0.49,"r_m":1,"r_l":1,"smooth":1,"m":3}),
+        serde_json::json!({"n_s":8,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":2,"m":3}),
+        serde_json::json!({"n_s":8,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":1,"m":61}),
+        serde_json::json!({"n_s":8,"n_m":26,"n_l":60,"r_s":1,"r_m":1,"r_l":1,"smooth":1}),
+    ];
+    for bad in bads {
+        let r = http.put(format!("{url}/api/config/dcap")).json(&bad).send().await.unwrap();
+        assert_eq!(r.status(), 400, "非法 → 400：{bad}");
+    }
+    // 400 后不落库（仍为 good）
+    let v: Value = http.get(format!("{url}/api/config/dcap")).send().await.unwrap().json().await.unwrap();
+    assert_eq!(v, good, "400 不落库");
+
+    // 4) GET 坏 JSON / 越界旧值 → 默认（不 500）
+    put_raw_key(&pool, serde_json::json!({"viewport_days": 8})).await;
+    let r = http.get(format!("{url}/api/config/dcap")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "坏 JSON → 200 默认（不 500）");
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v, serde_json::from_str::<Value>(DEFAULTS).unwrap(), "坏 JSON → 默认");
+    put_raw_key(&pool, serde_json::json!({"n_s":60,"n_m":8,"n_l":26,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3})).await;
+    let v: Value = http.get(format!("{url}/api/config/dcap")).send().await.unwrap().json().await.unwrap();
+    assert_eq!(v, serde_json::from_str::<Value>(DEFAULTS).unwrap(), "库中越界旧值 → 默认");
+
+    clear_key(&pool).await;
+}

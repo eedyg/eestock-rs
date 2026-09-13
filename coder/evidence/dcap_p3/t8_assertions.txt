@@ -1,0 +1,23 @@
+T8 渲染 spike 断言（真实 klinecharts 10.0.3 + 真实 dcapIndicator.ts/dcap.ts）
+PASS  T8-1a  precision 5 下 0.0045787545787547845 渲染可见第 5 位（0.00458）；不设 precision（默认 4）丢第 5 位（0.0046）
+      → A 区渲染文本含 0.00458=true / 0.0046=true；精确值=0.0045787545787547845
+PASS  T8-1b  precision 5 下 0.0048 渲染为 0.00480；默认 4 位渲染为 0.0048
+      → B 区渲染文本含 0.00480=true / 0.0048=true；精确值=0.0048000000000001375
+PASS  T8-1c  实例化精度：显式 precision:5 的 DCAP=5；不设 precision 的 DCAP4 落到 klinecharts 默认 4
+      → 实例 DCAP=5 / DCAP4=4；模板 precision：DCAP=5 / DCAP4=null（不设）
+PASS  T8-2a  任何异常均不抛出（1 根数据 / 恶意 getter / 空 / 非数组 / 缺参数）
+      → threw={"insufficient_1bar":false,"hostileGetter":false,"empty":false,"notArray":false,"badParams_undefined":false}
+PASS  T8-2b  数据不足 → null 断线（1 根数据三线均 null；恶意 getter 降级全 null）
+      → 1bar=[{"s":null,"m":null,"l":null}] hostile=[{"s":null,"m":null,"l":null},{"s":null,"m":null,"l":null}]
+PASS  T8-3a  三 figure（s/m/l）+ 独立副图 pane（paneId ≠ candle_pane）
+      → figures=["s","m","l"] paneId=indicator_pane_1789296969147_2
+PASS  T8-3b  断线首值位置 = n_i + m − 1（s=9 / m=27 / l=61，0-based）
+      → firstNonNull={"s":9,"m":27,"l":61}
+PASS  T8-3c  两张副图 pane 与 Y 轴彼此独立（paneId/yAxisId 均不同）
+      → paneId=indicator_pane_1789296968984_2,indicator_pane_1789296968985_2 yAxisId=yAxis_1789296968984_3,yAxis_1789296968985_3
+PASS  T8-4  decimalFold threshold=3：0.00048 → 0.0{3}48（0.0048 不折叠）；渲染轴上可见折叠形态
+      → formatFoldDecimal(0.00048,3)=0.0{3}48；(0.0048,3)=0.0048；C 区折叠刻度=["0.0{3}80"]
+PASS  T8-5  600 根 + n_l=250 + m=60：单次 computeDcapSeries < 16ms
+      → min=0.500ms median=0.600ms max=1.800ms（7 次；预算 16ms）
+
+合计 10 项：PASS 10 / FAIL 0

@@ -1,0 +1,98 @@
+=== 主树状态（本车道收尾）===
+HEAD = 3f5425c23bd5a940f95b6951a9da0c714fdfc5d4
+staged 文件数 = 0（必须为 0）
+
+--- 本车道新增/修改（tester/ 之外不应出现）---
+?? tester/evidence/023_dcap_ind/
+?? tester/report/021_dcap_indicator_intrinsic_validation.md
+
+--- 全量 status（含其它车道未提交改动，非本车道所有）---
+ M crates/web/src/dto.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/rest.rs
+ M design/06-web/01-dashboard.md
+ M design/07-app-plane/00-web-api.md
+ M design/12-strategy-system/04-strategy-programming-guide.md
+ M design/14-dcap-indicator/03-test-plan.md
+ M design/99-decisions-log.md
+ M web/src/api/client.test.ts
+ M web/src/api/client.ts
+ M web/src/api/mock.test.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/dashboard/DashboardPage.tsx
+ M web/src/features/dashboard/KlineChart.test.tsx
+ M web/src/features/dashboard/KlineChart.tsx
+ M web/src/features/dashboard/Toolbar.test.tsx
+ M web/src/features/dashboard/Toolbar.tsx
+ M web/src/features/dashboard/feed.ts
+ M web/src/layouts/DashboardGrid.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/dcap_p3/
+?? coder/report/157_dcap_p4_programming_guide_adr021.md
+?? coder/report/158_dcap_p3_frontend_config_warmup_t8.md
+?? logs/
+?? prod_tools_schemas_periphery.txt
+?? tester/evidence/018/
+?? tester/evidence/022_dcap_p5/
+?? tester/evidence/023_dcap_ind/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/report/020_dcap_p5_effectiveness_sweep.md
+?? tester/report/021_dcap_indicator_intrinsic_validation.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/038_dcap_p3_p4_laneB_acceptance_execution.md
+?? web/src/features/dashboard/dcapWarmupP3.test.ts
+?? web/src/features/dashboard/dcapWiringP3.test.tsx
+?? web/src/features/indicators/DcapParamsPanel.test.tsx
+?? web/src/features/indicators/DcapParamsPanel.tsx
+?? web/src/features/indicators/dcapIndicator.test.ts
+?? web/src/features/indicators/dcapIndicator.ts
+
+--- 本车道未触碰的关键文件 ---
+$ git diff --stat HEAD -- crates/strategy-core/reference-plugins/dcap.js web/src/features/indicators/dcap.ts
+（无输出 = 两个 dcap 产物与 HEAD 逐字节一致，本车道未改）
+$ git diff --stat HEAD -- design/14-dcap-indicator/
+ design/14-dcap-indicator/03-test-plan.md | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+解读：03-test-plan.md 的这条改动属**并行车道（P3 前端+配置 API / P4 文档）**——本车道开工前它已在未提交状态
+（任务书明确「主树当前有未提交的 P3 与 P4 改动，均由本轮另一车道在验收；本车道不得修改或回退它们」）。
+本车道对 design/14-dcap-indicator/** 只做过**只读读取**（Read 工具），未写任何内容：
+证据 = 本文件生成时刻与开工时刻该目录的 diffstat 完全一致（同为 20 insertions / 2 deletions）。
+
+--- worktree 注册表 ---
+/home/eestock/workspace/git/eestock/eestock-rs  3f5425c [master]
+/tmp/dcap_ind_wt                                3f5425c (detached HEAD)
+/tmp/dcap_p5_wt                                 3f5425c (detached HEAD)
+/tmp/p4a_baseline                               bf5e0cf (detached HEAD)

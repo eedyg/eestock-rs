@@ -1,0 +1,7 @@
+[crosscheck] etf=159985 bars=1642 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=510050 bars=3568 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=510880 bars=3568 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=512480 bars=1762 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=512800 bars=2212 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=513050 bars=2343 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）
+[crosscheck] etf=518880 bars=3192 cfgs=63 逐位不一致配置数=0 ⇒ ALL PASS（front 与 roll 逐位相同）

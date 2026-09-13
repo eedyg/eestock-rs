@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/zz_coder_dcap_scratch.rs (target/debug/deps/zz_coder_dcap_scratch-4a1fa9aac3da012e)
+
+running 1 test
+test dcap_config_http_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

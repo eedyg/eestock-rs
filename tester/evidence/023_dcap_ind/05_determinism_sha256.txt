@@ -1,0 +1,22 @@
+OK  510050_d1_dcap.f64bin bars=3568 cfg=63 sha=57cbf086c11435b7 plugin=60bc9b49e3851626
+OK  510880_d1_dcap.f64bin bars=3568 cfg=63 sha=2021142a4dfd8e97 plugin=60bc9b49e3851626
+OK  512800_d1_dcap.f64bin bars=2212 cfg=63 sha=718c9cf8f8d88af7 plugin=60bc9b49e3851626
+OK  512480_d1_dcap.f64bin bars=1762 cfg=63 sha=01d89e71b4b3f6b7 plugin=60bc9b49e3851626
+OK  513050_d1_dcap.f64bin bars=2343 cfg=63 sha=e1b44f54dacb669e plugin=60bc9b49e3851626
+OK  518880_d1_dcap.f64bin bars=3192 cfg=63 sha=54d3639c9418292b plugin=60bc9b49e3851626
+OK  159985_d1_dcap.f64bin bars=1642 cfg=63 sha=f980d0209dff548e plugin=60bc9b49e3851626
+OK  510050_d1ns_dcap.f64bin bars=3568 cfg=249 sha=9f55a2b96acacbe1 plugin=60bc9b49e3851626
+OK  510880_d1ns_dcap.f64bin bars=3568 cfg=249 sha=de7da15882353cd9 plugin=60bc9b49e3851626
+OK  512800_d1ns_dcap.f64bin bars=2212 cfg=249 sha=b1ee2f8d31b22d20 plugin=60bc9b49e3851626
+OK  512480_d1ns_dcap.f64bin bars=1762 cfg=249 sha=3407051dc1787a95 plugin=60bc9b49e3851626
+OK  513050_d1ns_dcap.f64bin bars=2343 cfg=249 sha=9a82be8c03cbb110 plugin=60bc9b49e3851626
+OK  518880_d1ns_dcap.f64bin bars=3192 cfg=249 sha=f57cf92d9de2e92e plugin=60bc9b49e3851626
+OK  159985_d1ns_dcap.f64bin bars=1642 cfg=249 sha=a1288e035a5b4955 plugin=60bc9b49e3851626
+OK  510050_m15_dcap.f64bin bars=64206 cfg=63 sha=67292e6c41164caf plugin=60bc9b49e3851626
+OK  510880_m15_dcap.f64bin bars=64206 cfg=63 sha=08d0a7b2e930df2d plugin=60bc9b49e3851626
+OK  512800_m15_dcap.f64bin bars=39798 cfg=63 sha=648526e19aac74a2 plugin=60bc9b49e3851626
+OK  512480_m15_dcap.f64bin bars=31698 cfg=63 sha=f5685cfa6b411850 plugin=60bc9b49e3851626
+OK  513050_m15_dcap.f64bin bars=42156 cfg=63 sha=d7a515012913f5ad plugin=60bc9b49e3851626
+OK  518880_m15_dcap.f64bin bars=57438 cfg=63 sha=8077ef0995d892ef plugin=60bc9b49e3851626
+OK  159985_m15_dcap.f64bin bars=29538 cfg=63 sha=e0d4faae9063fb66 plugin=60bc9b49e3851626
+DETERMINISM: ALL PASS

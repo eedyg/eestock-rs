@@ -1,0 +1,20 @@
+=== 数据快照 sha256（7 标的日线 CSV，扫描期间只读、不重取）===
+aba0edc8218218b4f26c741faa35abd7e9853b06dc062a62af1baa0dc1d04c5c  /tmp/dcap_p5_data/159985.csv
+dbc53193673f152667a8154d94c339fc91bd4391d0176503cc681fe4cf24bdd3  /tmp/dcap_p5_data/510050.csv
+7d92579a29474ba469c3e5bfe07788ce97df6c5ddd748b961abcdbd0aa303ca7  /tmp/dcap_p5_data/510880.csv
+f8d9227bfa4b7d5df8ac70c26c9f755664863b66749f0f6e3ed179d40336999b  /tmp/dcap_p5_data/512480.csv
+d9d65c884655bdb8e35d9a6505d188154b72e1f5f08117f7bb3c58da29a704e8  /tmp/dcap_p5_data/512800.csv
+0d10ad0cf44020e8489492d6e99b578b60e133ad0a51d0dbdb2d3f2ee03efa61  /tmp/dcap_p5_data/513050.csv
+03ab1c675453155791e27807dfe23790b405354b9e1e17acd37b7a91d8cb74a3  /tmp/dcap_p5_data/518880.csv
+
+=== 双跑确定性 sha256 ===
+b5faa86bbc1768974a237eb4dcf6be7d8a5238a471ac8326a3439a3b44787354  /tmp/dcap_p5_out/grid_all_run1.csv
+b5faa86bbc1768974a237eb4dcf6be7d8a5238a471ac8326a3439a3b44787354  /tmp/dcap_p5_out/grid_all_run2.csv
+e387f9cbc459f23bf43c395c27447de891a5f48a495516552cfe02c989c7159a  /tmp/dcap_p5_out/grid_ext_run1.csv
+e387f9cbc459f23bf43c395c27447de891a5f48a495516552cfe02c989c7159a  /tmp/dcap_p5_out/grid_ext_run2.csv
+
+primary: BITWISE_IDENTICAL
+extended: BITWISE_IDENTICAL
+
+=== dcap 插件源码 sha256（slot code_hash）===
+60bc9b49e38516267c868bae6a3f60ceebc6c0f377aecfd4e2ab73c5bcb8e3c2  crates/strategy-core/reference-plugins/dcap.js

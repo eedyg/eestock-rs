@@ -1,0 +1,49 @@
+IS MAR 排序 = ['r1.00|m1', 'r1.05|m1', 'r1.20|m1', 'r1.00|m3', 'r1.05|m3', 'r1.00|m5', 'r1.05|m5', 'r1.20|m3', 'r1.20|m5']
+PASS 冻结 Top-3 = ['r1.00|m1', 'r1.05|m1', 'r1.20|m1']
+PASS r1.00|m1 OOS 收益: got=0.117084 want=0.117100
+PASS r1.00|m1 OOS MAR: got=0.224153 want=0.224200
+PASS r1.05|m1 OOS 收益: got=0.108990 want=0.109000
+PASS r1.05|m1 OOS MAR: got=0.181867 want=0.181900
+PASS r1.20|m1 OOS 收益: got=0.086951 want=0.087000
+PASS r1.20|m1 OOS MAR: got=0.248172 want=0.248200
+PASS BUYHOLD OOS 收益: got=0.141049 want=0.141000
+PASS BUYHOLD OOS 回撤: got=0.305192 want=0.305200
+PASS BUYHOLD OOS MAR: got=0.213472 want=0.213500
+PASS LumpSum 全仓=恒 Buy 插件（交易数）: got=1.000000 want=1.000000
+PASS OOS 最优=r1.00|m5（IS 排名第 6/9）
+PASS r1.00|m5 OOS 收益: got=0.231892 want=0.231900
+PASS r1.00|m5 OOS MAR: got=0.371213 want=0.371200
+PASS IS×OOS MAR Spearman ρ（主网格）: got=0.000000 want=0.000000
+PASS IS r1.05 收益 Δ中位: got=-0.074784 want=-0.074800
+PASS IS r1.05 胜/负 got=4/17 want=4/17
+PASS IS r1.05 sign-test p: got=0.007197 want=0.007000
+PASS IS r1.20 收益 Δ中位: got=-0.086357 want=-0.086400
+PASS IS r1.20 胜/负 got=5/16 want=5/16
+PASS IS r1.20 sign-test p: got=0.026604 want=0.027000
+PASS OOS r0.90 收益 Δ中位: got=0.035116 want=0.035100
+PASS OOS r0.90 胜/负 got=15/6 want=15/6
+PASS OOS r0.90 sign-test p: got=0.078354 want=0.078000
+PASS OOS r0.95 收益 Δ中位: got=0.021895 want=0.021900
+PASS OOS r0.95 胜/负 got=15/6 want=15/6
+PASS OOS r0.95 sign-test p: got=0.078354 want=0.078000
+PASS OOS r1.05 收益 Δ中位: got=-0.004441 want=-0.004400
+PASS OOS r1.05 胜/负 got=9/12 want=9/12
+PASS OOS r1.05 sign-test p: got=0.663624 want=0.664000
+PASS OOS r1.20 收益 Δ中位: got=-0.060362 want=-0.060400
+PASS OOS r1.20 胜/负 got=7/14 want=7/14
+PASS OOS r1.20 sign-test p: got=0.189247 want=0.189000
+PASS IS r0.95 MAR Δ中位: got=0.001695 want=0.001700
+PASS IS r0.95 MAR 胜/负 got=11/10 want=11/10
+PASS OOS r0.90 MAR Δ中位: got=0.099068 want=0.099100
+PASS OOS r0.90 MAR 胜/负 got=15/6 want=15/6
+PASS OOS r0.95 MAR Δ中位: got=0.058845 want=0.058800
+PASS OOS r0.95 MAR 胜/负 got=15/6 want=15/6
+PASS OOS_nowarmup r0.90 Δ中位: got=0.054227 want=0.054200
+PASS OOS_nowarmup r0.90 胜/负 got=16/5 want=16/5
+PASS 预热口径差异下限(pt/100): got=-0.051513 want=-0.051500
+PASS 预热口径差异上限(pt/100): got=0.050223 want=0.050200
+PASS 双跑 sha256 grid_all_run1.csv == grid_all_run2.csv (b5faa86bbc176897…)
+PASS 双跑 sha256 grid_ext_run1.csv == grid_ext_run2.csv (e387f9cbc459f23b…)
+PASS plugin_errors 全为 0（无 G5 熔断）got=['0']
+
+=== 自审结果：ALL PASS ===
