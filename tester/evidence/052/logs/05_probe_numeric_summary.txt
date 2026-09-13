@@ -1,0 +1,39 @@
+== 核心场景（现工作树，含修复）tag=current-fixed base=http://127.0.0.1:18093 inits=1
+基线（拖拽后）渲染高度: {"MA":357,"VOL":179,"DCAP":160}  paneIds={"MA":"candle_pane","VOL":"indicator_pane_1789314634156_3","DCAP":"indicator_pane_1789314638194_2"}
+S1 r_m 1→1.5: calcParams=[8,26,60,1,1.5,1,1,3] heights={"MA":357,"VOL":179,"DCAP":160} idDiff={"MA":{"before":357,"after":357,"delta":0},"VOL":{"before":179,"after":179,"delta":0},"DCAP":{"before":160,"after":160,"delta":0}} churn=0 burst=[overrideIndicator] klineGET=0 dataLen 188->188 敏感度={"l":"nDiff=0,maxAbs=0","m":"nDiff=161,maxAbs=0.019709","s":"nDiff=0,maxAbs=0","zero":"nDiff=0,maxAbs=0"}
+S2 m 3→5（warmup 62→64）: calcParams=[8,26,60,1,1.5,1,1,5] heights={"MA":357,"VOL":179,"DCAP":160} idDiff={"MA":{"before":357,"after":357,"delta":0},"VOL":{"before":179,"after":179,"delta":0},"DCAP":{"before":160,"after":160,"delta":0}} churn=0 burst=[overrideIndicator] klineGET=0 dataLen 188->188 敏感度={"l":"nDiff=127,maxAbs=0.008172","m":"nDiff=161,maxAbs=0.0053885","s":"nDiff=179,maxAbs=0.0086283","zero":"nDiff=0,maxAbs=0"}
+S3 n_l 60→80（warmup 64→84）: calcParams=[8,26,80,1,1.5,1,1,5] heights={"MA":357,"VOL":179,"DCAP":160} idDiff={"MA":{"before":357,"after":357,"delta":0},"VOL":{"before":179,"after":179,"delta":0},"DCAP":{"before":160,"after":160,"delta":0}} churn=0 burst=[overrideIndicator,resetData] klineGET=1 dataLen 188->204 敏感度={"l":"nDiff=125,maxAbs=0.022756","m":"nDiff=159,maxAbs=0.015004","s":"nDiff=177,maxAbs=0.026027","zero":"nDiff=0,maxAbs=0"}
+端态高度={"MA":357,"VOL":179,"DCAP":160} 基线→端态差={"MA":{"before":357,"after":357,"delta":0},"VOL":{"before":179,"after":179,"delta":0},"DCAP":{"before":160,"after":160,"delta":0}}
+端态 DCAP Y 标度=[{"id":"yAxis_1789314638194_3","from":-0.0214656461,"to":0.0200263927}]
+DCAP figures/null 统计(端态): n=204 nullS/M/L/nZero=11/29/83/0
+VOL calcParams(端态)=[5,10,20] (内置默认 [5,10,20] ⇒ 未传空 calcParams)
+
+== 反向证据 A：/tmp 副本退回 HEAD（remove+create churn）tag=mutant-old-churn checks=21/31
+  FAIL: S1-H1, S1-H2, S1-H4, S2-H2, S2-H3, S2-H4, S3-H2, S3-H3, S3-H4, P4
+  基线={"MA":357,"VOL":179,"DCAP":160} 端态={"MA":496,"VOL":100,"DCAP":100} S1 idDiff={"MA":{"before":357,"after":496,"delta":139},"VOL":{"before":179,"after":100,"delta":-79},"DCAP":{"before":160,"after":100,"delta":-60}}
+  S1 churn=18  S2 inits 3->4 (remount)  S3 inits 4->5
+
+== 反向证据 B：overrideIndicator 变 no-op tag=mut-override-noop checks=25/31
+  FAIL: P1, S1-H5, S1-H6, S2-H5, S2-H6, S3-H5
+  S1 heights={"MA":357,"VOL":179,"DCAP":160} chartCalcParams=[8,36,66,1,1,1,1,3] (期望 [8,26,60,1,1.5,1,1,3])
+  S2 heights={"MA":357,"VOL":179,"DCAP":160} chartCalcParams=[8,36,66,1,1,1,1,3] (期望 [8,26,60,1,1.5,1,1,5])
+  S3 heights={"MA":357,"VOL":179,"DCAP":160} chartCalcParams=[8,36,66,1,1,1,1,3] (期望 [8,26,80,1,1.5,1,1,5])
+
+== 离线独立 oracle（CORE dcap.ts computeDcapSeries 复算 vs chart result，期望新参数）
+  current-fixed S1 expect=[8,26,60,1,1.5,1,1,3] chart=[8,26,60,1,1.5,1,1,3] compare=564 mismatch=0 maxAbs=0
+  current-fixed S2 expect=[8,26,60,1,1.5,1,1,5] chart=[8,26,60,1,1.5,1,1,5] compare=564 mismatch=0 maxAbs=0
+  current-fixed S3 expect=[8,26,80,1,1.5,1,1,5] chart=[8,26,80,1,1.5,1,1,5] compare=612 mismatch=0 maxAbs=0
+  mutant-old-churn S1 expect=[8,26,60,1,1.5,1,1,3] chart=[8,26,60,1,1.5,1,1,3] compare=546 mismatch=0 maxAbs=0
+  mutant-old-churn S2 expect=[8,26,60,1,1.5,1,1,5] chart=[8,26,60,1,1.5,1,1,5] compare=552 mismatch=0 maxAbs=0
+  mutant-old-churn S3 expect=[8,26,80,1,1.5,1,1,5] chart=[8,26,80,1,1.5,1,1,5] compare=612 mismatch=0 maxAbs=0
+  mut-override-noop S1 expect=[8,26,60,1,1.5,1,1,3] chart=[8,36,66,1,1,1,1,3] compare=564 mismatch=288 maxAbs=0.021866
+  mut-override-noop S2 expect=[8,26,60,1,1.5,1,1,5] chart=[8,36,66,1,1,1,1,3] compare=564 mismatch=463 maxAbs=0.021621
+  mut-override-noop S3 expect=[8,26,80,1,1.5,1,1,5] chart=[8,36,66,1,1,1,1,3] compare=612 mismatch=507 maxAbs=0.021621
+
+== 回归场景 tag=undefined checks=17/17
+  RA on/off/on 高度: {"MA":357,"VOL":179,"DCAP":160} -> {"MA":518,"VOL":179} -> {"MA":417,"VOL":179,"DCAP":100}
+  RA5 burst=["removeIndicator","createIndicator"]
+  RB MA params [5,10,20]->[7,20,60] 线值diff={"ma1":"184/0.10166","ma2":"179/0.1328","ma3":"169/0.179"}
+  RB 高度 diff={"MA":{"before":306,"after":306,"delta":0},"VOL":{"before":240,"after":240,"delta":0},"DCAP":{"before":150,"after":150,"delta":0}} churn=0 burst=["overrideIndicator"]
+  RC dcap precision=5 figs=["s","m","l","zero"] yRange=[{"id":"yAxis_1789314545196_3","from":-0.0224614572,"to":0.0301034937}] nulls={"n":188,"s":9,"m":37,"l":67,"zero":0}
+  pageErrors core/reg/mut/mo = 0/0/0/0 ; nonGetOther = 0/0/0/0 ; PUT(本地兑现) = 4/1/4/4

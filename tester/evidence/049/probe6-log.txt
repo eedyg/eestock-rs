@@ -1,0 +1,8 @@
+p6-s1-15m-518880 zeroRows=[[{"row":53,"n":430,"frac":0.347}],[]] zeroSpanX=[[0,1153],null] legendBottom=[59,20]
+  colors=[["#ff9600",249,40,87,null,null],["#1677ff",226,42,92,null,null],["#1676ff",216,44,92,null,null],["#925dbd",173,40,91,null,null],["#ff9500",142,41,86,null,null],["#76808f",136,53,53,null,null],["#935dbd",128,40,90,null,null],["#925ebd",103,40,89,null,null],["#935ebd",91,41,75,null,null],["#1576ff",36,42,92,null,null]]
+p6-s2-1m-518880 zeroRows=[[{"row":67,"n":429,"frac":0.346}],[]] zeroSpanX=[[1,1154],null] legendBottom=[59,20]
+  colors=[["#ff9600",437,57,78,null,null],["#76808f",394,67,67,null,null],["#ff9500",250,57,77,null,null],["#1676ff",160,52,80,null,null],["#925dbd",157,58,92,null,null],["#935dbd",118,57,92,null,null],["#1677ff",103,53,79,null,null],["#925ebd",79,59,92,null,null],["#76818e",35,67,67,null,null],["#935ebd",32,58,78,null,null]]
+p6-s3-day-518880 zeroRows=[[{"row":49,"n":431,"frac":0.347}],[]] zeroSpanX=[[0,1154],null] legendBottom=[59,20]
+  colors=[["#1676ff",502,15,92,null,null],["#1677ff",323,16,91,null,null],["#ff9600",183,33,70,null,null],["#925dbd",181,18,81,null,null],["#935dbd",137,17,82,null,null],["#76808f",136,49,49,null,null],["#ff9500",115,34,69,null,null],["#925ebd",99,18,80,null,null],["#935ebd",83,21,73,null,null],["#1477ff",73,15,92,null,null]]
+p6-s4-15m-161226 zeroRows=[[{"row":37,"n":431,"frac":0.347}],[]] zeroSpanX=[[0,1154],null] legendBottom=[58,20]
+  colors=[["#ff9600",178,21,89,null,null],["#1676ff",159,22,87,null,null],["#76808f",136,37,37,null,null],["#ff9500",120,22,80,null,null],["#925dbd",108,24,91,null,null],["#1677ff",101,23,84,null,null],["#935dbd",83,23,92,null,null],["#925ebd",59,24,89,null,null],["#935ebd",32,32,83,null,null],["#1477ff",28,22,85,null,null]]

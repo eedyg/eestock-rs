@@ -1,0 +1,27 @@
+checks: 24/24 passed
+✓ A. 保存 dcap 参数后分隔线位置不变（±1px）
+✓ A. 无整图 remount（图表根元素身份保持 + init 计数不变）
+✓ A. 无残留水平线
+✓ A. 关态保存不误建 DCAP pane（分隔线数不变）
+✓ C. DCAP 开：保存参数后**两条分隔线位置均不变**（±1px）
+✓ C. 无整图 remount（init 计数不变）
+✓ C. pane 数不变（分隔线 2 条：candle|VOL|DCAP）
+✓ C. DCAP 仍为独立副图 pane（paneId 不变、无 paneId=candle_pane）
+✓ C. override 未丢模板属性：precision=5、figures=[s,m,l,zero] 不变
+✓ C. calcParams 已按新 r_s 更新
+✓ C. DCAP 线值按新参数重算（s/m/l 采样变化，zero 恒 0）
+✓ C. pane id 集合不变（无销毁重建）且渲染高度逐值不变（±1px）
+✓ C. 无残留水平线
+✓ B. warmup 变化（m 3→5）后**不 remount**（init 计数不变 + 根元素身份保持）
+✓ B. warmup 变化后分隔线位置不变（±1px）
+✓ B. 触发过一次 /api/kline 补取（warmup 差额，非整图重建）
+✓ M. MA 窗口变化后不 remount（init 计数不变）
+✓ M. MA 指标仍叠主图且 calcParams 已更新
+✓ M. MA 窗口变化后分隔线位置不变（±1px）
+✓ M. DCAP 关 → 分隔线回到 1 条（无空 pane）
+✓ M. DCAP 重开 → 回到 2 条
+✓ M. DCAP 开关全程无残留线
+✓ 全程无页面错误
+✓ 只读保证：无非 GET 外发（PUT /api/config/* 全被本地兑现）
+kline requests: ["/api/kline?code=518880&period=15m&limit=120","/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68","/api/kline?code=518880&period=15m&before=2026-08-28T05%3A15%3A00Z&limit=2"]
+putIntercepted: ["{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.25,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":3}","{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.5,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":3}","{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.5,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}","{\"windows\":[7,10,20]}"]

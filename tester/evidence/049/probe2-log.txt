@@ -1,0 +1,24 @@
+default: panes=2(697,100) seps=1 strays=0 anchor.borderTopWidth=0px
+dragged: panes=559,238 seps=635 strays=0
+injected(default): strays=1 -> [{"y":735.2,"kind":"border-on-element","bt":"1px solid rgb(229, 231, 235)","cls":"pointer-events-none absolute inset-x-0 bottom-0 h-"}]
+injected(dragged): seps=635 strays=[{"y":735.2,"kind":"border-on-element","cls":"pointer-events-none absolute inset-x-0 bottom-0 h-"}]
+p2-s1-15m-518880: panes=596,100,100 seps=2 strays=0 kline=["GET /api/kline?code=518880&period=15m&limit=182"]
+   zero-line rows: [[{"row":436,"n":269,"frac":0.493}],[],[],[],[],[],[],[],[{"row":53,"n":177,"frac":0.324}],[],[],[],[],[]]
+   topColors(DCAP pane): [{"hex":"#8b93b0","n":35,"minRow":9,"maxRow":14},{"hex":"#8b93af","n":30,"minRow":9,"maxRow":16},{"hex":"#8a93b0","n":21,"minRow":10,"maxRow":16},{"hex":"#8b92b0","n":16,"minRow":11,"maxRow":16},{"hex":"#dddddd","n":12,"minRow":0,"maxRow":3},{"hex":"#8a93af","n":7,"minRow":9,"maxRow":16},{"hex":"#8a92af","n":7,"minRow":9,"maxRow":15},{"hex":"#8a92b0","n":6,"minRow":10,"maxRow":14},{"hex":"#8b92af","n":1,"minRow":11,"maxRow":11}]
+   dash: {"medOn":4,"medOff":4,"onRuns":[2,4,4,4,4,4,4,4],"onFrac":0.509}
+p2-s2-1m-518880: panes=596,100,100 seps=2 strays=0 kline=["GET /api/kline?code=518880&period=1m&limit=120","GET /api/kline?code=518880&period=1m&limit=182"]
+   zero-line rows: [[{"row":219,"n":265,"frac":0.485}],[],[],[],[],[],[],[],[{"row":67,"n":175,"frac":0.321}],[],[],[],[],[]]
+   topColors(DCAP pane): [{"hex":"#8b93b0","n":41,"minRow":9,"maxRow":16},{"hex":"#8b93af","n":23,"minRow":11,"maxRow":16},{"hex":"#8b92b0","n":22,"minRow":9,"maxRow":16},{"hex":"#dddddd","n":12,"minRow":0,"maxRow":3},{"hex":"#8a92b0","n":10,"minRow":9,"maxRow":14},{"hex":"#8a93b0","n":10,"minRow":12,"maxRow":16},{"hex":"#8a92af","n":7,"minRow":9,"maxRow":15},{"hex":"#8b92af","n":6,"minRow":9,"maxRow":16},{"hex":"#8a93af","n":4,"minRow":15,"maxRow":16}]
+   dash: {"medOn":4,"medOff":4,"onRuns":[1,1,2,3,4,4,4,4],"onFrac":0.526}
+p2-s3-day-518880: panes=596,100,100 seps=2 strays=0 kline=["GET /api/kline?code=518880&period=1d&limit=120","GET /api/kline?code=518880&period=1d&limit=182"]
+   zero-line rows: [[],[],[],[],[],[],[],[],[{"row":49,"n":176,"frac":0.322}],[],[],[],[],[]]
+   topColors(DCAP pane): [{"hex":"#8b93b0","n":73,"minRow":9,"maxRow":16},{"hex":"#8a93b0","n":57,"minRow":9,"maxRow":16},{"hex":"#8b92b0","n":51,"minRow":9,"maxRow":16},{"hex":"#8b93af","n":37,"minRow":9,"maxRow":15},{"hex":"#8a93af","n":35,"minRow":9,"maxRow":15},{"hex":"#8a92af","n":23,"minRow":10,"maxRow":16},{"hex":"#8a92b0","n":17,"minRow":9,"maxRow":16},{"hex":"#dddddd","n":12,"minRow":0,"maxRow":3},{"hex":"#8b92af","n":7,"minRow":9,"maxRow":16}]
+   dash: {"medOn":5,"medOff":3,"onRuns":[4,5,5,5,5,5,5,5],"onFrac":0.624}
+p2-s4-15m-161226: panes=596,100,100 seps=2 strays=0 kline=["GET /api/kline?code=161226&period=15m&limit=120","GET /api/kline?code=161226&period=15m&limit=182"]
+   zero-line rows: [[{"row":420,"n":268,"frac":0.49}],[],[],[],[],[],[],[],[{"row":37,"n":176,"frac":0.322}],[],[],[],[],[]]
+   topColors(DCAP pane): [{"hex":"#8b93b0","n":35,"minRow":9,"maxRow":14},{"hex":"#8b93af","n":30,"minRow":9,"maxRow":16},{"hex":"#8a93b0","n":21,"minRow":10,"maxRow":16},{"hex":"#8b92b0","n":16,"minRow":11,"maxRow":16},{"hex":"#dddddd","n":12,"minRow":0,"maxRow":3},{"hex":"#8a93af","n":7,"minRow":9,"maxRow":16},{"hex":"#8a92af","n":7,"minRow":9,"maxRow":15},{"hex":"#8a92b0","n":6,"minRow":10,"maxRow":14},{"hex":"#8b92af","n":1,"minRow":11,"maxRow":11}]
+   dash: {"medOn":4,"medOff":4,"onRuns":[2,3,4,4,4,4,4,4],"onFrac":0.51}
+dcap-off: panes=2 zeroRows=[[{"row":510,"n":269,"frac":0.493}],[],[],[],[],[],[],[],[],[]]
+mouse-inside: zeroRows=[[{"row":436,"n":269,"frac":0.493}],[],[],[],[],[],[],[],[{"row":53,"n":177,"frac":0.324}],[],[],[],[],[]] dash=[{"medOn":4,"medOff":4,"onRuns":[2,4,4,4,4,4,4,4],"onFrac":0.509},null,null,null,null,null,null,null,{"medOn":5,"medOff":3,"onRuns":[4,4,5,5,5,5,5,5],"onFrac":0.609},null,null,null,null,null]
+issue2 reverse: injected at canvas row {"row":20,"h":26}; detected rows=[[{"row":436,"n":269,"frac":0.493}],[],[],[],[],[],[],[],[{"row":53,"n":177,"frac":0.324}],[],[],[],[{"row":20,"n":274,"frac":0.502}],[]]
+requests: total=71 nonGET=0

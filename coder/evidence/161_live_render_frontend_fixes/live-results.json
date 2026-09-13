@@ -1,0 +1,475 @@
+{
+  "base": "http://127.0.0.1:8081",
+  "results": [
+    {
+      "name": "①-1 默认态：klinecharts 分隔线恰 1 条",
+      "ok": true,
+      "detail": {
+        "anchor": {
+          "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+          "borderTopWidth": "0px",
+          "borderTopStyle": "solid",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        "seps": [
+          {
+            "bg": "rgb(221, 221, 221)",
+            "top": 597,
+            "h": 1,
+            "w": 1299
+          }
+        ],
+        "stray": []
+      }
+    },
+    {
+      "name": "①-2 默认态：主图区无残留全宽横线（stray == []）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-3 sub-chart 锚点 borderTopWidth == 0px（不再画线）",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "①-4 sub-chart 锚点：border 宽 0 且背景透明、无 border-t 类（不画线）",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "②-0 DCAP 关闭态：无 DCAP 指标/pane",
+      "ok": true,
+      "detail": {
+        "hasDcap": false,
+        "dataLen": 120,
+        "panes": [
+          "candle_pane",
+          "indicator_pane_1789305834125_3",
+          "x_axis_pane"
+        ],
+        "inds": [
+          "MA",
+          "VOL"
+        ]
+      }
+    },
+    {
+      "name": "②-1 figKeys == s/m/l/zero 且 precision == 5",
+      "ok": true,
+      "detail": {
+        "figKeys": [
+          "s",
+          "m",
+          "l",
+          "zero"
+        ],
+        "precision": 5
+      }
+    },
+    {
+      "name": "②-2 每根 bar zero 恒 = 0",
+      "ok": true,
+      "detail": {
+        "zeroNonNull": 182,
+        "resultLen": 182
+      }
+    },
+    {
+      "name": "②-3 真实数据：三线跨越 0（min<0<max）",
+      "ok": true,
+      "detail": {
+        "min": -0.03002103759524344,
+        "max": 0.019163098318514482
+      }
+    },
+    {
+      "name": "②-4 真实数据：副图 Y 轴范围含 0",
+      "ok": true,
+      "detail": {
+        "from": -0.022453669669891384,
+        "to": 0.025246938819260455
+      }
+    },
+    {
+      "name": "②-5 真实数据：0 线 y == pane 内 y(0)，且落在 pane 内",
+      "ok": true,
+      "detail": {
+        "y0": 53,
+        "yAxisY0": 53,
+        "paneH": 100
+      }
+    },
+    {
+      "name": "②-6 真实数据：y(0) 行渲染出 #76808F 虚线像素",
+      "ok": true,
+      "detail": {
+        "row": 53,
+        "gray": 443,
+        "gaps": [
+          1,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    },
+    {
+      "name": "①-5 DCAP 开：分隔线恰 2 条（candle|VOL|DCAP）",
+      "ok": true,
+      "detail": [
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 496,
+          "h": 1,
+          "w": 1299
+        },
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 597,
+          "h": 1,
+          "w": 1299
+        }
+      ]
+    },
+    {
+      "name": "①-6 DCAP 开：主图区仍无残留全宽横线",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "③-1 拖高 VOL 后分隔线条数不变（2）",
+      "ok": true,
+      "detail": [
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 386,
+          "h": 1,
+          "w": 1299
+        },
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 597,
+          "h": 1,
+          "w": 1299
+        }
+      ]
+    },
+    {
+      "name": "③-2 拖高 VOL 后分隔线随 pane 上移（top 减少 >50px）",
+      "ok": true,
+      "detail": {
+        "before": 597,
+        "after": 386
+      }
+    },
+    {
+      "name": "③-3 拖高 VOL 后无僵线（stray == []）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "②-7 形态①(全正)：三线全为正（min>0）",
+      "ok": true,
+      "detail": {
+        "min": 0.008883419975404205,
+        "max": 0.13503313127301797
+      }
+    },
+    {
+      "name": "②-8 形态①(全正)：Y 轴范围仍含 0（range.from ≤ 0 < dataMin）",
+      "ok": true,
+      "detail": {
+        "from": -0.011633337577586379,
+        "to": 0.13960005093103653
+      }
+    },
+    {
+      "name": "②-9 形态①(全正)：0 线 y == y(0) 且在 pane 内",
+      "ok": true,
+      "detail": {
+        "y0": 92,
+        "yAxisY0": 92,
+        "paneH": 100
+      }
+    },
+    {
+      "name": "②-10 形态①(全正)：y(0) 行渲染出 #76808F 虚线像素",
+      "ok": true,
+      "detail": {
+        "gray": 435,
+        "gaps": [
+          1,
+          6
+        ]
+      }
+    },
+    {
+      "name": "②-11 数据不足：三条数据线全 null（断线）",
+      "ok": true,
+      "detail": {
+        "dataNonNull": 0,
+        "resultLen": 5
+      }
+    },
+    {
+      "name": "②-12 数据不足：zero 仍每根 bar 返回 0",
+      "ok": true,
+      "detail": {
+        "zeroNonNull": 5
+      }
+    },
+    {
+      "name": "②-13 数据不足：Y 轴含 0 且 0 线渲染在 y(0)",
+      "ok": true,
+      "detail": {
+        "range": {
+          "from": -0.000048,
+          "to": 0.000056000000000000006
+        },
+        "y0": 54,
+        "gray": 18
+      }
+    },
+    {
+      "name": "只读保证：全程 0 条非 GET 请求",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "infos": {
+    "offInfo": {
+      "hasDcap": false,
+      "dataLen": 120,
+      "panes": [
+        "candle_pane",
+        "indicator_pane_1789305834125_3",
+        "x_axis_pane"
+      ],
+      "inds": [
+        "MA",
+        "VOL"
+      ]
+    },
+    "realInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305836665_12",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l",
+        "zero"
+      ],
+      "dataLen": 182,
+      "resultLen": 182,
+      "dataMin": -0.03002103759524344,
+      "dataMax": 0.019163098318514482,
+      "dataNonNull": 455,
+      "zeroNonNull": 182,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.022453669669891384,
+        "to": 0.025246938819260455
+      },
+      "y0": 53,
+      "yAxisY0": 53,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 53,
+      "gray": 443,
+      "firstGrayXs": [
+        0,
+        1,
+        2,
+        8,
+        9,
+        10,
+        16,
+        17,
+        18,
+        24,
+        25,
+        26
+      ],
+      "grayGaps": [
+        1,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "upInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305836665_12",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l",
+        "zero"
+      ],
+      "dataLen": 200,
+      "resultLen": 200,
+      "dataMin": 0.008883419975404205,
+      "dataMax": 0.13503313127301797,
+      "dataNonNull": 509,
+      "zeroNonNull": 200,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.011633337577586379,
+        "to": 0.13960005093103653
+      },
+      "y0": 92,
+      "yAxisY0": 92,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 92,
+      "gray": 435,
+      "firstGrayXs": [
+        4,
+        5,
+        6,
+        12,
+        13,
+        14,
+        20,
+        21,
+        22,
+        28,
+        29,
+        30
+      ],
+      "grayGaps": [
+        1,
+        6
+      ]
+    },
+    "shortInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305836665_12",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l",
+        "zero"
+      ],
+      "dataLen": 5,
+      "resultLen": 5,
+      "dataMin": null,
+      "dataMax": null,
+      "dataNonNull": 0,
+      "zeroNonNull": 5,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.000048,
+        "to": 0.000056000000000000006
+      },
+      "y0": 54,
+      "yAxisY0": 54,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 54,
+      "gray": 18,
+      "firstGrayXs": [
+        1114,
+        1115,
+        1116,
+        1122,
+        1123,
+        1124,
+        1130,
+        1131,
+        1132,
+        1138,
+        1139,
+        1140
+      ],
+      "grayGaps": [
+        1,
+        6
+      ]
+    }
+  },
+  "probes": {
+    "p0": {
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "seps": [
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 597,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "stray": []
+    },
+    "p1": {
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "seps": [
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 496,
+          "h": 1,
+          "w": 1299
+        },
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 597,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "stray": []
+    },
+    "p2": {
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "seps": [
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 386,
+          "h": 1,
+          "w": 1299
+        },
+        {
+          "bg": "rgb(221, 221, 221)",
+          "top": 597,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "stray": []
+    }
+  }
+}

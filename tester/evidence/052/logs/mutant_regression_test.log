@@ -1,0 +1,198 @@
+
+ RUN  v3.2.7 /tmp/acc3/mut
+
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx (7 tests | 4 failed) 31ms
+   × 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【红】改 dcapParams（真实保存路径的等价 props 变化）后：既有 pane 高度不变（±1px）、pane 不被销毁重建、dcap 线值按新参数更新 14ms
+     → expected 240 to be less than or equal to 1
+   × 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【防回归】MA windows 变化 → overrideIndicator 原地更新（不 remove/create），主图 pane 与各 pane 高度不变 5ms
+     → expected [ …(6) ] to deeply equal []
+   ✓ 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【守卫】MA 勾选开/关仍走 create/remove（关态无残留、主图 pane 不销毁；重开带当前窗口） 3ms
+   × 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【边界】DCAP 关态下改 dcapParams → 不误建 DCAP pane、无 create/remove churn 2ms
+     → expected [ …(4) ] to deeply equal []
+   × 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【防回归】warmup 变化（n_l/m 改变 ⇒ 取数窗口）不得整图重建：init 不增、原地重载（resetData）、pane 高度不变 4ms
+     → expected "spy" to be called with arguments: [ 124 ][90m
+
+Number of calls: [1m0[22m
+[39m
+   ✓ 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【守卫】内置模板指标（VOL/MACD/KDJ/BOLL）创建时**不得携带空 calcParams**（空数组会覆盖模板默认参数） 1ms
+   ✓ 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【守卫】指标启用状态翻转仍必须 create/remove（差分不得吞掉开关语义） 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/KlineChartDcapSaveLayout.test.tsx > 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【红】改 dcapParams（真实保存路径的等价 props 变化）后：既有 pane 高度不变（±1px）、pane 不被销毁重建、dcap 线值按新参数更新
+AssertionError: expected 240 to be less than or equal to 1
+ ❯ expectHeightsClose src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:313:67
+    311| function expectHeightsClose(a: Record<string, number>, b: Record<strin…
+    312|   expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort());
+    313|   for (const k of Object.keys(a)) expect(Math.abs(a[k]! - b[k]!)).toBe…
+       |                                                                   ^
+    314| }
+    315| 
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:360:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/features/dashboard/KlineChartDcapSaveLayout.test.tsx > 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【防回归】MA windows 变化 → overrideIndicator 原地更新（不 remove/create），主图 pane 与各 pane 高度不变
+AssertionError: expected [ …(6) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   {[39m
+[31m+     "api": "removeIndicator",[39m
+[31m+     "arg": "{\"name\":\"MA\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_22",[39m
+[31m+       "indicator_pane_24",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "createIndicator",[39m
+[31m+     "arg": "{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"calcParams\":[7,20,60]}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_22",[39m
+[31m+       "indicator_pane_24",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "removeIndicator",[39m
+[31m+     "arg": "{\"name\":\"VOL\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_24",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "createIndicator",[39m
+[31m+     "arg": "{\"name\":\"VOL\",\"paneId\":\"indicator_pane_27\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_24",[39m
+[31m+       "indicator_pane_27",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "removeIndicator",[39m
+[31m+     "arg": "{\"name\":\"DCAP\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_27",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "createIndicator",[39m
+[31m+     "arg": "{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_29\",\"calcParams\":[8,26,60,1,1,1,1,3]}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_27",[39m
+[31m+       "indicator_pane_29",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:415:93
+    413|     const burst = chart.__log().slice(logLen);
+    414|     // ① 参数变化不得销毁/重建指标（否则副图 pane 以布局默认高度重建）
+    415|     expect(burst.filter((e) => e.api === 'removeIndicator' || e.api ==…
+       |                                                                                             ^
+    416|     // ② 走 overrideIndicator 且带新窗口
+    417|     expect(burst.some((e) => e.api === 'overrideIndicator' && e.arg.in…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/features/dashboard/KlineChartDcapSaveLayout.test.tsx > 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【边界】DCAP 关态下改 dcapParams → 不误建 DCAP pane、无 create/remove churn
+AssertionError: expected [ …(4) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   {[39m
+[31m+     "api": "removeIndicator",[39m
+[31m+     "arg": "{\"name\":\"MA\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_54",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "createIndicator",[39m
+[31m+     "arg": "{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"calcParams\":[5,10,20]}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_54",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "removeIndicator",[39m
+[31m+     "arg": "{\"name\":\"VOL\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+   {[39m
+[31m+     "api": "createIndicator",[39m
+[31m+     "arg": "{\"name\":\"VOL\",\"paneId\":\"indicator_pane_57\"}",[39m
+[31m+     "paneIdsAfter": [[39m
+[31m+       "candle_pane",[39m
+[31m+       "x_axis_pane",[39m
+[31m+       "indicator_pane_57",[39m
+[31m+     ],[39m
+[31m+     "paneIdsBefore": [],[39m
+[31m+   },[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:457:93
+    455| 
+    456|     const burst = chart.__log().slice(logLen);
+    457|     expect(burst.filter((e) => e.api === 'removeIndicator' || e.api ==…
+       |                                                                                             ^
+    458|     expect(chart.getIndicators({ name: 'DCAP' })).toHaveLength(0);
+    459|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/features/dashboard/KlineChartDcapSaveLayout.test.tsx > 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【防回归】warmup 变化（n_l/m 改变 ⇒ 取数窗口）不得整图重建：init 不增、原地重载（resetData）、pane 高度不变
+AssertionError: expected "spy" to be called with arguments: [ 124 ][90m
+
+Number of calls: [1m0[22m
+[39m
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:493:32
+    491|     expect(H.state.charts).toHaveLength(1);
+    492|     // ② feed warmup 热更新到新值（= viewportBars + n_l + m − 1 的口径由看板计算后传入）
+    493|     expect(feed.setWarmupBars).toHaveBeenCalledWith(dcapWarmupBars(P2)…
+       |                                ^
+    494|     expect(dcapWarmupBars(P2)).toBe(124);
+    495|     // ③ 原地重载数据（resetData；不 dispose/不 init）
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed (7)
+   Start at  23:52:31
+   Duration  509ms (transform 66ms, setup 25ms, collect 93ms, tests 31ms, environment 132ms, prepare 35ms)
+

@@ -1,0 +1,227 @@
+{
+ "base": "http://127.0.0.1:18085",
+ "before": {
+  "inits": 2,
+  "logLen": 42,
+  "panes": [
+   {
+    "id": "candle_pane",
+    "optH": 100,
+    "domH": 496,
+    "ind": "MA"
+   },
+   {
+    "id": "indicator_pane_1789313094791_10",
+    "optH": 100,
+    "domH": 100,
+    "ind": "VOL"
+   },
+   {
+    "id": "indicator_pane_1789313094792_2",
+    "optH": 100,
+    "domH": 100,
+    "ind": "DCAP"
+   },
+   {
+    "id": "x_axis_pane",
+    "optH": 100,
+    "domH": 26,
+    "ind": ""
+   }
+  ]
+ },
+ "after": {
+  "inits": 3,
+  "logLen": 73,
+  "panes": [
+   {
+    "id": "candle_pane",
+    "optH": 100,
+    "domH": 496,
+    "ind": "MA"
+   },
+   {
+    "id": "indicator_pane_1789313097077_3",
+    "optH": 100,
+    "domH": 100,
+    "ind": "VOL"
+   },
+   {
+    "id": "indicator_pane_1789313097077_6",
+    "optH": 100,
+    "domH": 100,
+    "ind": "DCAP"
+   },
+   {
+    "id": "x_axis_pane",
+    "optH": 100,
+    "domH": 26,
+    "ind": ""
+   }
+  ]
+ },
+ "seq": [
+  {
+   "seq": 42,
+   "api": "setDataLoader",
+   "arg": "[{}]"
+  },
+  {
+   "seq": 43,
+   "api": "setSymbol",
+   "arg": "[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+  },
+  {
+   "seq": 44,
+   "api": "setPeriod",
+   "arg": "[{\"type\":\"minute\",\"span\":15}]"
+  },
+  {
+   "seq": 45,
+   "api": "setStyles",
+   "arg": "[{\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"up"
+  },
+  {
+   "seq": 46,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MA\"}]"
+  },
+  {
+   "seq": 47,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789313097059_1\",\"yAx"
+  },
+  {
+   "seq": 48,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"VOL\"}]"
+  },
+  {
+   "seq": 49,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789313097059_2\",\"paneId\":\"indicator_pane_1789313097059_3\",\"yAxis"
+  },
+  {
+   "seq": 50,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MACD\"}]"
+  },
+  {
+   "seq": 51,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"KDJ\"}]"
+  },
+  {
+   "seq": 52,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"BOLL\"}]"
+  },
+  {
+   "seq": 53,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"DCAP\"}]"
+  },
+  {
+   "seq": 54,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1.02,1,5],\"id\":\"DCAP_1789313097059_5\",\"paneId\":\""
+  },
+  {
+   "seq": 55,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MA\"}]"
+  },
+  {
+   "seq": 56,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789313097059_8\",\"yAx"
+  },
+  {
+   "seq": 57,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"VOL\"}]"
+  },
+  {
+   "seq": 58,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789313097059_9\",\"paneId\":\"indicator_pane_1789313097059_10\",\"yAxi"
+  },
+  {
+   "seq": 59,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MACD\"}]"
+  },
+  {
+   "seq": 60,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"KDJ\"}]"
+  },
+  {
+   "seq": 61,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"BOLL\"}]"
+  },
+  {
+   "seq": 62,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"DCAP\"}]"
+  },
+  {
+   "seq": 63,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1.02,1,5],\"id\":\"DCAP_1789313097059_12\",\"paneId\":"
+  },
+  {
+   "seq": 64,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MA\"}]"
+  },
+  {
+   "seq": 65,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789313097077_1\",\"yAx"
+  },
+  {
+   "seq": 66,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"VOL\"}]"
+  },
+  {
+   "seq": 67,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789313097077_2\",\"paneId\":\"indicator_pane_1789313097077_3\",\"yAxis"
+  },
+  {
+   "seq": 68,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"MACD\"}]"
+  },
+  {
+   "seq": 69,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"KDJ\"}]"
+  },
+  {
+   "seq": 70,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"BOLL\"}]"
+  },
+  {
+   "seq": 71,
+   "api": "removeIndicator",
+   "arg": "[{\"name\":\"DCAP\"}]"
+  },
+  {
+   "seq": 72,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1.02,1,5],\"id\":\"DCAP_1789313097077_5\",\"paneId\":\""
+  }
+ ],
+ "puts": [
+  "{\"n_s\":8,\"n_m\":26,\"n_l\":60,\"r_s\":1,\"r_m\":1,\"r_l\":1.02,\"smooth\":1,\"m\":5}"
+ ],
+ "putInterceptedOnly": {
+  "putCount": 1,
+  "upstreamWrites": 0
+ }
+}

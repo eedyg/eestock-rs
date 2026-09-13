@@ -1,0 +1,164 @@
+{
+ "base": "http://127.0.0.1:18085",
+ "checks": [
+  {
+   "name": "R1 resetData 未重建 chart（init 次数不变、pane id 集合不变）",
+   "ok": true,
+   "detail": {
+    "inits": [
+     2,
+     2
+    ],
+    "ids": [
+     [
+      "candle_pane",
+      "indicator_pane_1789312934064_10",
+      "indicator_pane_1789312934065_2",
+      "x_axis_pane"
+     ],
+     [
+      "candle_pane",
+      "indicator_pane_1789312934064_10",
+      "indicator_pane_1789312934065_2",
+      "x_axis_pane"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "R2 resetData 重载了数据（/api/kline 重新取数）",
+   "ok": false,
+   "detail": 0
+  },
+  {
+   "name": "R3 resetData 后 pane 渲染高度不变（布局保留）",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": {
+      "domH": 359,
+      "optH": 359
+     },
+     "VOL": {
+      "domH": 237,
+      "optH": 237
+     },
+     "DCAP": {
+      "domH": 100,
+      "optH": 100
+     }
+    },
+    "after": {
+     "MA": {
+      "domH": 359,
+      "optH": 359
+     },
+     "VOL": {
+      "domH": 237,
+      "optH": 237
+     },
+     "DCAP": {
+      "domH": 100,
+      "optH": 100
+     }
+    }
+   }
+  },
+  {
+   "name": "R4 视口/barSpace 记录（供 ADR-020 副作用评估，不判定）",
+   "ok": true,
+   "detail": {
+    "vrBefore": {
+     "from": 68,
+     "to": 182,
+     "realFrom": 76,
+     "realTo": 190
+    },
+    "vrAfter": {
+     "from": 68,
+     "to": 182,
+     "realFrom": 76,
+     "realTo": 190
+    },
+    "bsBefore": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "bsAfter": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "offBefore": 80,
+    "offAfter": 80
+   }
+  }
+ ],
+ "before": {
+  "byInd": {
+   "MA": {
+    "domH": 359,
+    "optH": 359
+   },
+   "VOL": {
+    "domH": 237,
+    "optH": 237
+   },
+   "DCAP": {
+    "domH": 100,
+    "optH": 100
+   }
+  },
+  "inits": 2,
+  "dataLen": 182,
+  "vr": {
+   "from": 68,
+   "to": 182,
+   "realFrom": 76,
+   "realTo": 190
+  },
+  "bs": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "off": 80
+ },
+ "after": {
+  "byInd": {
+   "MA": {
+    "domH": 359,
+    "optH": 359
+   },
+   "VOL": {
+    "domH": 237,
+    "optH": 237
+   },
+   "DCAP": {
+    "domH": 100,
+    "optH": 100
+   }
+  },
+  "inits": 2,
+  "dataLen": 182,
+  "vr": {
+   "from": 68,
+   "to": 182,
+   "realFrom": 76,
+   "realTo": 190
+  },
+  "bs": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "off": 80,
+  "klineGetsDelta": 0
+ },
+ "pageErrors": []
+}

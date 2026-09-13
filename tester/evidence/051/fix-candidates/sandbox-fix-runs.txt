@@ -1,0 +1,22 @@
+### 候选修复 v3（ref 持有已应用状态 + 参数变化走 overrideIndicator；沙箱副本，未改仓库代码）
+命令: npx vitest run --config /tmp/diag51/fixgreen/vitest.v3.config.mjs
+include: 新增红测试(green3.test.tsx) + KlineChart.test.tsx + dcapWiringP3.test.tsx + DashboardPage.test.tsx
+
+ ✓ node_modules/.diag51/green3.test.tsx (2 tests) 18ms
+   × KlineChart（MA 窗口可配置：calcParams 用配置 windows） > maWindows 变化 → 重新 sync 应用新 calcParams（统一配置热生效） 9ms
+   × DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > MA 配置保存：改窗口 → 调 saveMaConfig + 主图 KlineChart 应用新 calcParams 65ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed | 2 passed (4)
+      Tests  2 failed | 51 passed (53)
+
+### 候选修复 v1（用 chart.getIndicators 判在场；沙箱副本）——用于说明副作用面
+命令: npx vitest run --config /tmp/diag51/fixgreen/vitest.regress.config.mjs
+include: KlineChart.test.tsx + dcapWiringP3.test.tsx + DashboardPage.test.tsx
+
+     44     at captureCommitPhaseError (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-dom/cjs/react-dom.development.js:27165:5) TypeError: chart.getIndicators is not a function
+     16      → chart.getIndicators is not a function
+     44 Error: Uncaught [TypeError: chart.getIndicators is not a function]
+      1 ⎯⎯⎯⎯⎯⎯ Failed Tests 44 ⎯⎯⎯⎯⎯⎯⎯
+      1  Test Files  3 failed (3)
+      1       Tests  44 failed | 7 passed (51)
+     30 TypeError: chart.getIndicators is not a function

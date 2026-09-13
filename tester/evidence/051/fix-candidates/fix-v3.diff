@@ -1,0 +1,88 @@
+--- web/src/features/dashboard/KlineChart.tsx	2026-09-13 19:33:17.889952704 +0800
++++ web/node_modules/.diag51/KlineChart.fixed3.tsx	2026-09-13 23:21:36.115859690 +0800
+@@ -88,26 +88,46 @@
+   { key: 'dcap', name: DCAP_INDICATOR_NAME }, // ADR-021：dcap 三线（独立副图 pane，precision 5）
+ ];
+ 
++/** 【修复候选·临时沙箱验证 v3】状态差分：已应用状态由组件持有（每次建图重置），
++ *  既不依赖新 chart API（不破既有测试桩），也不跨渲染复用（不被共享桩的实例身份污染）。 */
++function sameParams(a: number[], b: number[]): boolean {
++  return a.length === b.length && a.every((v, i) => v === b[i]);
++}
++
++export type AppliedIndicators = Map<string, number[]>;
++
+ function syncIndicators(
+   chart: Chart,
+   indicators: Record<IndicatorName, boolean>,
+   maWindows: number[],
+   dcapParams: DcapParams,
++  applied: AppliedIndicators,
+ ) {
+   for (const def of INDICATOR_DEFS) {
+     const enabled = def.key === 'vol' ? true : indicators[def.key];
+-    chart.removeIndicator({ name: def.name });
+-    if (enabled) {
++    const desired =
++      def.key === 'ma' ? maWindows : def.key === 'dcap' ? dcapCalcParams(dcapParams) : (def.calcParams ?? []);
++    const prev = applied.get(def.name);
++    if (!enabled) {
++      if (prev) {
++        chart.removeIndicator({ name: def.name });
++        applied.delete(def.name);
++      }
++      continue;
++    }
++    if (!prev) {
+       if (def.key === 'ma') {
+-        chart.createIndicator({ name: def.name, calcParams: maWindows, paneId: 'candle_pane' }, false);
+-      } else if (def.key === 'dcap') {
+-        // ADR-021 §6：**独立副图 pane**（不可叠 candle_pane：dcap 与价格无量纲关系）；
+-        // isStack=true ⇒ 新建独立 pane + 独立 Y 轴自动标度；模板显式 precision=5（dcapIndicator.ts）。
+-        ensureDcapIndicatorRegistered();
+-        chart.createIndicator({ name: def.name, calcParams: dcapCalcParams(dcapParams) }, true);
++        chart.createIndicator({ name: def.name, calcParams: desired, paneId: 'candle_pane' }, false);
+       } else {
+-        chart.createIndicator({ name: def.name, calcParams: def.calcParams }, true);
++        if (def.key === 'dcap') ensureDcapIndicatorRegistered();
++        chart.createIndicator({ name: def.name, calcParams: desired }, true);
+       }
++      applied.set(def.name, desired);
++      continue;
++    }
++    if (!sameParams(prev, desired)) {
++      chart.overrideIndicator({ name: def.name, calcParams: desired });
++      applied.set(def.name, desired);
+     }
+   }
+ }
+@@ -258,6 +278,7 @@
+   const programmaticScroll = useRef(false);
+   /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
+   const manualAdjusted = useRef(false);
++  const appliedRef = useRef<AppliedIndicators | null>(null);
+   const followRef = useRef(props.followLatest);
+   followRef.current = props.followLatest;
+   const onManualZoomRef = useRef(props.onManualZoom);
+@@ -338,11 +359,13 @@
+     chart.setSymbol({ ticker: props.code, pricePrecision: 3, volumePrecision: 0 });
+     chart.setPeriod(PERIOD_MAP[props.period]);
+     applyDarkTerminalStyles(chart);
++    appliedRef.current = new Map();
+     syncIndicators(
+       chart,
+       props.indicators,
+       props.maWindows ?? DEFAULT_MA_WINDOWS,
+       props.dcapParams ?? DEFAULT_DCAP_PARAMS,
++      appliedRef.current,
+     );
+ 
+     // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
+@@ -389,6 +412,7 @@
+         props.indicators,
+         props.maWindows ?? DEFAULT_MA_WINDOWS,
+         props.dcapParams ?? DEFAULT_DCAP_PARAMS,
++        (appliedRef.current ??= new Map()),
+       );
+   }, [props.indicators, props.maWindows, props.dcapParams]);
+ 

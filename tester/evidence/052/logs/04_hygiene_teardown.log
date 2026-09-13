@@ -1,0 +1,11 @@
+### 环境卫生（阶段 3 收尾，23:53:24）
+-- 临时端口/进程（期望空）
+  (无 1808x/1809x 监听)
+  (无本车道残留进程)
+-- 线上实例（PID 2102695 全程序未动）
+    PID                  STARTED CMD
+2102695 Sun Sep 13 21:21:46 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=12))
+-- 线上 web/dist 未被覆盖（md5 前后逐一比对）
+  dist md5 前后一致 ✓（mtime 仍为 2026-09-13 21:21:03）

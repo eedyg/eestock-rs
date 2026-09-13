@@ -1,0 +1,39 @@
+### 1) 新增红测试（定向）
+   × 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【红】改 dcapParams（真实保存路径的等价 props 变化）后：既有 pane 高度不变（±1px）、pane 不被销毁重建、dcap 线值按新参数更新 13ms
+     → expected 240 to be less than or equal to 1
+   ✓ 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【守卫】指标启用状态翻转仍必须 create/remove（差分不得吞掉开关语义） 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/KlineChartDcapSaveLayout.test.tsx > 保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndicators 差分） > 【红】改 dcapParams（真实保存路径的等价 props 变化）后：既有 pane 高度不变（±1px）、pane 不被销毁重建、dcap 线值按新参数更新
+AssertionError: expected 240 to be less than or equal to 1
+ ❯ expectHeightsClose src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:296:67
+    294| function expectHeightsClose(a: Record<string, number>, b: Record<strin…
+    295|   expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort());
+    296|   for (const k of Object.keys(a)) expect(Math.abs(a[k]! - b[k]!)).toBe…
+       |                                                                   ^
+    297| }
+    298| 
+ ❯ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:343:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  23:23:35
+   Duration  469ms (transform 54ms, setup 23ms, collect 80ms, tests 16ms, environment 131ms, prepare 103ms)
+
+
+### 2) 全量前端测试（基线 56 files/562 tests；现在 57/564，唯一失败 = 新增红测试）
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 56 passed (57)
+      Tests  1 failed | 563 passed (564)
+   Start at  23:23:36
+   Duration  5.46s (transform 2.61s, setup 2.82s, collect 9.40s, tests 20.84s, environment 18.34s, prepare 4.66s)
+
+
+### 3) tsc -b
+tsc: no output above = clean

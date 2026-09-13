@@ -1,0 +1,1980 @@
+{
+  "base": "http://127.0.0.1:18093",
+  "t0": "2026-09-13T15:42:32.209Z",
+  "puts": [
+    {
+      "url": "/api/config/dcap",
+      "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.25,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":3}"
+    },
+    {
+      "url": "/api/config/dcap",
+      "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.5,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":3}"
+    },
+    {
+      "url": "/api/config/dcap",
+      "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.5,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}"
+    },
+    {
+      "url": "/api/config/ma",
+      "body": "{\"windows\":[7,10,20]}"
+    }
+  ],
+  "nonGetOther": [],
+  "kline": [
+    "/api/kline?code=518880&period=15m&limit=120",
+    "/api/kline?code=518880&period=15m&limit=188",
+    "/api/kline?code=518880&period=15m&limit=190",
+    "/api/kline?code=518880&period=15m&limit=120",
+    "/api/kline?code=518880&period=15m&limit=190"
+  ],
+  "scenarios": {
+    "A_dcap_off_save_r_s": {
+      "dcapOff": true,
+      "dragged": true,
+      "before": {
+        "inits": 1,
+        "chartCount": 1,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 569,
+            "dom": 569,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314152365_2",
+            "height": 228,
+            "dom": 228,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314152365_2",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          }
+        ],
+        "dcapResult": null,
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 569,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 1,
+        "dcapHash": "4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC"
+      },
+      "after": {
+        "inits": 1,
+        "chartCount": 1,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 569,
+            "dom": 697,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314154786_2",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314154786_2",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          }
+        ],
+        "dcapResult": null,
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 1,
+        "dcapHash": "4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC"
+      },
+      "heightDelta": 128
+    },
+    "C_dcap_on_save_r_s": {
+      "sepsAfterEnable": 2,
+      "before": {
+        "inits": 2,
+        "chartCount": 2,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 495,
+            "dom": 495,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314155747_10",
+            "height": 120,
+            "dom": 120,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314155747_13",
+            "height": 181,
+            "dom": 181,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314155747_10",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314155747_13",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.25,
+              1,
+              1,
+              1,
+              3
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 188,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0124860301,
+              -0.0193321983,
+              -0.0158299679
+            ],
+            "tail": [
+              0.0022798976,
+              0.0010134777,
+              0.0005764776
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0067518331,
+              -0.0053460223,
+              -0.004099008
+            ],
+            "tail": [
+              -0.0059332617,
+              -0.0062285656,
+              -0.0058481857
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              0.0000286603,
+              0.0019569261,
+              0.0034661621
+            ],
+            "tail": [
+              -0.0080749765,
+              -0.008407398,
+              -0.0080801467
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 495,
+            "h": 1
+          },
+          {
+            "top": 616,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC"
+      },
+      "after": {
+        "inits": 2,
+        "chartCount": 2,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 495,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314158723_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314158723_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314158723_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314158723_6",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              3
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 188,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0105487591,
+              -0.0153914884,
+              -0.0111826973
+            ],
+            "tail": [
+              0.0013924301,
+              0.0004186252,
+              0.0002301179
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0067518331,
+              -0.0053460223,
+              -0.004099008
+            ],
+            "tail": [
+              -0.0059332617,
+              -0.0062285656,
+              -0.0058481857
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              0.0000286603,
+              0.0019569261,
+              0.0034661621
+            ],
+            "tail": [
+              -0.0080749765,
+              -0.008407398,
+              -0.0080801467
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC"
+      },
+      "deltas": [
+        101,
+        81
+      ]
+    },
+    "B_warmup_change_save_m": {
+      "before": {
+        "inits": 2,
+        "chartCount": 2,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 495,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314158723_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314158723_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314158723_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314158723_6",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              3
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 188,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0105487591,
+              -0.0153914884,
+              -0.0111826973
+            ],
+            "tail": [
+              0.0013924301,
+              0.0004186252,
+              0.0002301179
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0067518331,
+              -0.0053460223,
+              -0.004099008
+            ],
+            "tail": [
+              -0.0059332617,
+              -0.0062285656,
+              -0.0058481857
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              0.0000286603,
+              0.0019569261,
+              0.0034661621
+            ],
+            "tail": [
+              -0.0080749765,
+              -0.008407398,
+              -0.0080801467
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC"
+      },
+      "after": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314159902_2",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314159902_5",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314159902_2",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314159902_5",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      },
+      "klineRequestsAfter": [
+        "/api/kline?code=518880&period=15m&limit=190"
+      ],
+      "deltas": [
+        0,
+        0
+      ],
+      "dcapPressed": "true"
+    },
+    "T_builtin_toggle": {
+      "base": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314159902_2",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314159902_5",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314159902_2",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314159902_5",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      },
+      "bollOn": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 495,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162078_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162078_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "BOLL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162079_2",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314162078_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "BOLL",
+            "paneId": "indicator_pane_1789314162078_6",
+            "precision": 3,
+            "calcParams": [
+              20,
+              2
+            ],
+            "figKeys": [
+              "up",
+              "mid",
+              "dn"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314162079_2",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 495,
+            "h": 1
+          },
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 3,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      },
+      "bollInd": {
+        "name": "BOLL",
+        "paneId": "indicator_pane_1789314162078_6",
+        "precision": 3,
+        "calcParams": [
+          20,
+          2
+        ],
+        "figKeys": [
+          "up",
+          "mid",
+          "dn"
+        ]
+      },
+      "bollOff": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162995_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162995_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314162995_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314162995_6",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      }
+    },
+    "M_ma_windows_save": {
+      "before": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162995_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314162995_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314162995_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314162995_6",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      },
+      "after": {
+        "inits": 3,
+        "chartCount": 3,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314164120_3",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314164120_6",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              7,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314164120_3",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314164120_6",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": "1",
+        "kcInDom": true,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      },
+      "deltas": [
+        0,
+        0
+      ],
+      "dcapOff": {
+        "inits": 4,
+        "chartCount": 4,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 697,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314165079_7",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              7,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314165079_7",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          }
+        ],
+        "dcapResult": null,
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 1,
+        "dcapHash": "4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC"
+      },
+      "dcapOnAgain": {
+        "inits": 5,
+        "chartCount": 5,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "dom": 596,
+            "inds": [
+              "MA"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314166296_10",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "VOL"
+            ]
+          },
+          {
+            "id": "indicator_pane_1789314166296_13",
+            "height": 100,
+            "dom": 100,
+            "inds": [
+              "DCAP"
+            ]
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "dom": 26,
+            "inds": []
+          }
+        ],
+        "inds": [
+          {
+            "name": "MA",
+            "paneId": "candle_pane",
+            "precision": 3,
+            "calcParams": [
+              7,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3"
+            ]
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789314166296_10",
+            "precision": 0,
+            "calcParams": [
+              5,
+              10,
+              20
+            ],
+            "figKeys": [
+              "ma1",
+              "ma2",
+              "ma3",
+              "volume"
+            ]
+          },
+          {
+            "name": "DCAP",
+            "paneId": "indicator_pane_1789314166296_13",
+            "precision": 5,
+            "calcParams": [
+              8,
+              36,
+              66,
+              1.5,
+              1,
+              1,
+              1,
+              5
+            ],
+            "figKeys": [
+              "s",
+              "m",
+              "l",
+              "zero"
+            ]
+          }
+        ],
+        "dcapResult": {
+          "n": 190,
+          "s": {
+            "n": 179,
+            "head": [
+              -0.0054162025,
+              -0.0079775317,
+              -0.0101340467
+            ],
+            "tail": [
+              0.0017655381,
+              0.0013743541,
+              0.0009374472
+            ]
+          },
+          "m": {
+            "n": 151,
+            "head": [
+              -0.0073076258,
+              -0.0063534934,
+              -0.0055786467
+            ],
+            "tail": [
+              -0.0069759607,
+              -0.0062386649,
+              -0.005771501
+            ]
+          },
+          "l": {
+            "n": 121,
+            "head": [
+              -0.000721266,
+              0.0005460958,
+              0.0017773333
+            ],
+            "tail": [
+              -0.0091039128,
+              -0.0083954332,
+              -0.0079613771
+            ]
+          },
+          "zeroAllZero": true
+        },
+        "mainH": 824,
+        "kcTagged": null,
+        "kcInDom": false,
+        "hostCount": 1,
+        "separators": [
+          {
+            "top": 596,
+            "h": 1
+          },
+          {
+            "top": 697,
+            "h": 1
+          }
+        ],
+        "strayLines": [],
+        "paneCount": 2,
+        "dcapHash": "4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC"
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "A. 保存 dcap 参数后分隔线位置不变（±1px）",
+      "ok": false,
+      "detail": "[A] {\"dcapOff\":true,\"dragged\":true,\"before\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":569,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314152365_2\",\"height\":228,\"dom\":228,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314152365_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":569,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":697,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314154786_2\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314154786_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"heightDelta\":128}"
+    },
+    {
+      "name": "A. 无整图 remount（图表根元素身份保持 + init 计数不变）",
+      "ok": true,
+      "detail": "inits 1→1"
+    },
+    {
+      "name": "A. 无残留水平线",
+      "ok": true,
+      "detail": "[A] {\"dcapOff\":true,\"dragged\":true,\"before\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":569,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314152365_2\",\"height\":228,\"dom\":228,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314152365_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":569,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":697,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314154786_2\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314154786_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"heightDelta\":128}"
+    },
+    {
+      "name": "A. 关态保存不误建 DCAP pane（分隔线数不变）",
+      "ok": true,
+      "detail": "[A] {\"dcapOff\":true,\"dragged\":true,\"before\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":569,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314152365_2\",\"height\":228,\"dom\":228,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314152365_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":569,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":1,\"chartCount\":1,\"panes\":[{\"id\":\"candle_pane\",\"height\":569,\"dom\":697,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314154786_2\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314154786_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"heightDelta\":128}"
+    },
+    {
+      "name": "A. 内置 VOL 未被空 calcParams 覆盖（保留模板默认 [5,10,20]）",
+      "ok": true,
+      "detail": "{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314154786_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}"
+    },
+    {
+      "name": "A. DCAP 关态：无 DCAP 指标（不残留空 pane）",
+      "ok": true,
+      "detail": "[\"MA\",\"VOL\"]"
+    },
+    {
+      "name": "C. DCAP 开：保存参数后**两条分隔线位置均不变**（±1px）",
+      "ok": false,
+      "detail": "[C] {\"sepsAfterEnable\":2,\"before\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":495,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314155747_10\",\"height\":120,\"dom\":120,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314155747_13\",\"height\":181,\"dom\":181,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314155747_10\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314155747_13\",\"precision\":5,\"calcParams\":[8,36,66,1.25,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0124860301,-0.0193321983,-0.0158299679],\"tail\":[0.0022798976,0.0010134777,0.0005764776]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":495,\"h\":1},{\"top\":616,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314158723_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314158723_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314158723_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314158723_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0105487591,-0.0153914884,-0.0111826973],\"tail\":[0.0013924301,0.0004186252,0.0002301179]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"deltas\":[101,81]}"
+    },
+    {
+      "name": "C. 无整图 remount（init 计数不变）",
+      "ok": true,
+      "detail": "inits 2→2"
+    },
+    {
+      "name": "C. pane 数不变（分隔线 2 条：candle|VOL|DCAP）",
+      "ok": true,
+      "detail": "[C] {\"sepsAfterEnable\":2,\"before\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":495,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314155747_10\",\"height\":120,\"dom\":120,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314155747_13\",\"height\":181,\"dom\":181,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314155747_10\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314155747_13\",\"precision\":5,\"calcParams\":[8,36,66,1.25,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0124860301,-0.0193321983,-0.0158299679],\"tail\":[0.0022798976,0.0010134777,0.0005764776]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":495,\"h\":1},{\"top\":616,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314158723_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314158723_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314158723_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314158723_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0105487591,-0.0153914884,-0.0111826973],\"tail\":[0.0013924301,0.0004186252,0.0002301179]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"deltas\":[101,81]}"
+    },
+    {
+      "name": "C. DCAP 仍为独立副图 pane（paneId 不变、无 paneId=candle_pane）",
+      "ok": false,
+      "detail": "before=indicator_pane_1789314155747_13 after=indicator_pane_1789314158723_6"
+    },
+    {
+      "name": "C. override 未丢模板属性：precision=5、figures=[s,m,l,zero] 不变",
+      "ok": true,
+      "detail": "precision=5 figKeys=[\"s\",\"m\",\"l\",\"zero\"]"
+    },
+    {
+      "name": "C. calcParams 已按新 r_s 更新",
+      "ok": true,
+      "detail": "[8,36,66,1.5,1,1,1,3]"
+    },
+    {
+      "name": "C. DCAP 线值按新参数重算（s/m/l 采样变化，zero 恒 0）",
+      "ok": true,
+      "detail": "before={\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0124860301,-0.0193321983,-0.0158299679],\"tail\":[0.0022798976,0.0010134777,0.0005764776]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true} after={\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0105487591,-0.0153914884,-0.0111826973],\"tail\":[0.0013924301,0.0004186252,0.0002301179]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true}"
+    },
+    {
+      "name": "C. pane id 集合不变（无销毁重建）且渲染高度逐值不变（±1px）",
+      "ok": false,
+      "detail": "before=[{\"id\":\"candle_pane\",\"height\":495,\"dom\":495,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314155747_10\",\"height\":120,\"dom\":120,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314155747_13\",\"height\":181,\"dom\":181,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}] after=[{\"id\":\"candle_pane\",\"height\":495,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314158723_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314158723_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}]"
+    },
+    {
+      "name": "C. 无残留水平线",
+      "ok": true,
+      "detail": "[C] {\"sepsAfterEnable\":2,\"before\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":495,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314155747_10\",\"height\":120,\"dom\":120,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314155747_13\",\"height\":181,\"dom\":181,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314155747_10\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314155747_13\",\"precision\":5,\"calcParams\":[8,36,66,1.25,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0124860301,-0.0193321983,-0.0158299679],\"tail\":[0.0022798976,0.0010134777,0.0005764776]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":495,\"h\":1},{\"top\":616,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314158723_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314158723_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314158723_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314158723_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0105487591,-0.0153914884,-0.0111826973],\"tail\":[0.0013924301,0.0004186252,0.0002301179]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"deltas\":[101,81]}"
+    },
+    {
+      "name": "B. warmup 变化（m 3→5）后**不 remount**（init 计数不变 + 根元素身份保持）",
+      "ok": false,
+      "detail": "inits 2→3"
+    },
+    {
+      "name": "B. warmup 变化后分隔线位置不变（±1px）",
+      "ok": true,
+      "detail": "[B] {\"before\":{\"inits\":2,\"chartCount\":2,\"panes\":[{\"id\":\"candle_pane\",\"height\":495,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314158723_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314158723_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314158723_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314158723_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,3],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":188,\"s\":{\"n\":179,\"head\":[-0.0105487591,-0.0153914884,-0.0111826973],\"tail\":[0.0013924301,0.0004186252,0.0002301179]},\"m\":{\"n\":151,\"head\":[-0.0067518331,-0.0053460223,-0.004099008],\"tail\":[-0.0059332617,-0.0062285656,-0.0058481857]},\"l\":{\"n\":121,\"head\":[0.0000286603,0.0019569261,0.0034661621],\"tail\":[-0.0080749765,-0.008407398,-0.0080801467]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"3966:IIAAAgi0QuD/AAAA///W9sgOAAAABklEQVQDAI8zbKwzXV2iAAAAAElFTkSuQmCC\"},\"after\":{\"inits\":3,\"chartCount\":3,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314159902_2\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314159902_5\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314159902_2\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314159902_5\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":null,\"kcInDom\":false,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"},\"klineRequestsAfter\":[\"/api/kline?code=518880&period=15m&limit=190\"],\"deltas\":[0,0],\"dcapPressed\":\"true\"}"
+    },
+    {
+      "name": "B. 触发过一次 /api/kline 补取（warmup 差额，非整图重建）",
+      "ok": true,
+      "detail": "[\"/api/kline?code=518880&period=15m&limit=190\"]"
+    },
+    {
+      "name": "T. 开 BOLL：保留模板默认 calcParams（非空，未被 [] 覆盖）",
+      "ok": true,
+      "detail": "{\"name\":\"BOLL\",\"paneId\":\"indicator_pane_1789314162078_6\",\"precision\":3,\"calcParams\":[20,2],\"figKeys\":[\"up\",\"mid\",\"dn\"]}"
+    },
+    {
+      "name": "T. 开 BOLL：分隔线 +1（独立副图 pane）且不 remount",
+      "ok": true,
+      "detail": "seps 2→3, inits 3→3"
+    },
+    {
+      "name": "T. 关 BOLL：分隔线回到原值、无空 pane 残留、不 remount",
+      "ok": true,
+      "detail": "seps 2, inits 3"
+    },
+    {
+      "name": "M. MA 窗口变化后不 remount（init 计数不变）",
+      "ok": true,
+      "detail": "inits 3→3"
+    },
+    {
+      "name": "M. MA 指标仍叠主图且 calcParams 已更新",
+      "ok": true,
+      "detail": "{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]}"
+    },
+    {
+      "name": "M. MA 窗口变化后分隔线位置不变（±1px）",
+      "ok": true,
+      "detail": "[M] {\"before\":{\"inits\":3,\"chartCount\":3,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314162995_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314162995_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314162995_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314162995_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"},\"after\":{\"inits\":3,\"chartCount\":3,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314164120_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314164120_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314164120_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314164120_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"},\"deltas\":[0,0]}"
+    },
+    {
+      "name": "M. DCAP 关 → 分隔线回到 1 条（无空 pane）",
+      "ok": true,
+      "detail": "[M-off] {\"inits\":4,\"chartCount\":4,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":697,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314165079_7\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314165079_7\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":null,\"kcInDom\":false,\"hostCount\":1,\"separators\":[{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"}"
+    },
+    {
+      "name": "M. DCAP 重开 → 回到 2 条",
+      "ok": true,
+      "detail": "[M-on] {\"inits\":5,\"chartCount\":5,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314166296_10\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314166296_13\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314166296_10\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314166296_13\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":null,\"kcInDom\":false,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"}"
+    },
+    {
+      "name": "M. DCAP 开关全程无残留线",
+      "ok": true,
+      "detail": "[M] {\"before\":{\"inits\":3,\"chartCount\":3,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314162995_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314162995_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314162995_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314162995_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"},\"after\":{\"inits\":3,\"chartCount\":3,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314164120_3\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314164120_6\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314164120_3\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314164120_6\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":\"1\",\"kcInDom\":true,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"},\"deltas\":[0,0],\"dcapOff\":{\"inits\":4,\"chartCount\":4,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":697,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314165079_7\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314165079_7\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]}],\"dcapResult\":null,\"mainH\":824,\"kcTagged\":null,\"kcInDom\":false,\"hostCount\":1,\"separators\":[{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":1,\"dcapHash\":\"4022:AAIIIIBAFAL/BwAA///I1Y6FAAAABklEQVQDAMcU7axyZ9QfAAAAAElFTkSuQmCC\"},\"dcapOnAgain\":{\"inits\":5,\"chartCount\":5,\"panes\":[{\"id\":\"candle_pane\",\"height\":100,\"dom\":596,\"inds\":[\"MA\"]},{\"id\":\"indicator_pane_1789314166296_10\",\"height\":100,\"dom\":100,\"inds\":[\"VOL\"]},{\"id\":\"indicator_pane_1789314166296_13\",\"height\":100,\"dom\":100,\"inds\":[\"DCAP\"]},{\"id\":\"x_axis_pane\",\"height\":100,\"dom\":26,\"inds\":[]}],\"inds\":[{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"precision\":3,\"calcParams\":[7,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\"]},{\"name\":\"VOL\",\"paneId\":\"indicator_pane_1789314166296_10\",\"precision\":0,\"calcParams\":[5,10,20],\"figKeys\":[\"ma1\",\"ma2\",\"ma3\",\"volume\"]},{\"name\":\"DCAP\",\"paneId\":\"indicator_pane_1789314166296_13\",\"precision\":5,\"calcParams\":[8,36,66,1.5,1,1,1,5],\"figKeys\":[\"s\",\"m\",\"l\",\"zero\"]}],\"dcapResult\":{\"n\":190,\"s\":{\"n\":179,\"head\":[-0.0054162025,-0.0079775317,-0.0101340467],\"tail\":[0.0017655381,0.0013743541,0.0009374472]},\"m\":{\"n\":151,\"head\":[-0.0073076258,-0.0063534934,-0.0055786467],\"tail\":[-0.0069759607,-0.0062386649,-0.005771501]},\"l\":{\"n\":121,\"head\":[-0.000721266,0.0005460958,0.0017773333],\"tail\":[-0.0091039128,-0.0083954332,-0.0079613771]},\"zeroAllZero\":true},\"mainH\":824,\"kcTagged\":null,\"kcInDom\":false,\"hostCount\":1,\"separators\":[{\"top\":596,\"h\":1},{\"top\":697,\"h\":1}],\"strayLines\":[],\"paneCount\":2,\"dcapHash\":\"4278:CEAAAhBoB4H3AQAA///QPDUvAAAABklEQVQDAL62laxZSkH5AAAAAElFTkSuQmCC\"}}"
+    },
+    {
+      "name": "全程无页面错误",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "只读保证：无非 GET 外发（PUT /api/config/* 全被本地兑现）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "t1": "2026-09-13T15:42:47.557Z",
+  "pageErrors": [],
+  "summary": {
+    "total": 29,
+    "failed": 5
+  }
+}

@@ -1,0 +1,27 @@
+=== 只读 SELECT 记录（授权：架构师；仅 SELECT）===
+local 2026-09-13 23:23:29 CST
+utc   2026-09-13 15:23:29
+--- 连接信息来源：/tmp/app_dev_8081.toml → database_url=postgres://eestock:eestock@127.0.0.1:5433/eestock（容器 eestock-timescaledb，非 eestock-data 容器名；5433 映射到其 5432）
+
+Table "public.app_config"
+Column|Type|Collation|Nullable|Default
+key|text||not null|
+value|jsonb||not null|
+updated_at|timestamp with time zone||not null|now()
+Indexes:
+    "app_config_pkey" PRIMARY KEY, btree (key)
+
+key|value|updated_at|db_now
+dcap|{"m": 3, "n_l": 60, "n_m": 26, "n_s": 8, "r_l": 1.02, "r_m": 1.0, "r_s": 1.0, "smooth": 1}|2026-09-13 15:18:59.759956+00|2026-09-13 15:23:29.564704+00
+(1 row)
+
+key|value|updated_at
+dcap|{"m": 3, "n_l": 60, "n_m": 26, "n_s": 8, "r_l": 1.02, "r_m": 1.0, "r_s": 1.0, "smooth": 1}|2026-09-13 15:18:59.759956+00
+kline|{"viewport_bars": 120}|2026-09-13 12:32:39.349965+00
+(2 rows)
+
+--- 复查（probe 全部结束后，证明本车道无写入）---
+utc   2026-09-13 15:23:29
+key|value|updated_at
+dcap|{"m": 3, "n_l": 60, "n_m": 26, "n_s": 8, "r_l": 1.02, "r_m": 1.0, "r_s": 1.0, "smooth": 1}|2026-09-13 15:18:59.759956+00
+(1 row)

@@ -1,0 +1,19 @@
+### date: 2026-09-13 23:53:06 +0800 / UTC 2026-09-13 15:53:06
+### HEAD: d74bfb83dfdc8f2d2f0604065d5ce01314f2d27b
+
+### git diff --cached --name-only (期望空)
+[exit=0 行数=0]
+
+### git diff --name-only (本轮 tracked 改动)
+design/14-dcap-indicator/02-spec.md
+web/src/features/dashboard/DashboardPage.test.tsx
+web/src/features/dashboard/DashboardPage.tsx
+web/src/features/dashboard/KlineChart.test.tsx
+web/src/features/dashboard/KlineChart.tsx
+web/src/features/dashboard/dcapWarmupP3.test.ts
+web/src/features/dashboard/dcapWiringP3.test.tsx
+web/src/features/dashboard/feed.ts
+
+### git status --porcelain --crates (期望空 ⇒ 未触 ABI/引擎/ExecutionPolicy)
+### dcap.ts (tangle 生成物) 状态
+[空 ⇒ 未触]

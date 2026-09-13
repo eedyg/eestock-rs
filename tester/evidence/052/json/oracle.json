@@ -1,0 +1,359 @@
+[
+ {
+  "file": "/tmp/acc3/probe_core.json",
+  "tag": "current-fixed",
+  "mutation": {
+   "disableOverride": false
+  },
+  "perSave": [
+   {
+    "id": "S1",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     3
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     3
+    ],
+    "dataLen": 188,
+    "resultLen": 188,
+    "nCompare": 564,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     179,
+     161,
+     127
+    ]
+   },
+   {
+    "id": "S2",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "dataLen": 188,
+    "resultLen": 188,
+    "nCompare": 564,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     177,
+     159,
+     125
+    ]
+   },
+   {
+    "id": "S3",
+    "expectCalcParams": [
+     8,
+     26,
+     80,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     80,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "dataLen": 204,
+    "resultLen": 204,
+    "nCompare": 612,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     193,
+     175,
+     121
+    ]
+   }
+  ]
+ },
+ {
+  "file": "/tmp/acc3/probe_core_mutant.json",
+  "tag": "mutant-old-churn",
+  "mutation": {
+   "disableOverride": false
+  },
+  "perSave": [
+   {
+    "id": "S1",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     3
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     3
+    ],
+    "dataLen": 182,
+    "resultLen": 182,
+    "nCompare": 546,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     173,
+     155,
+     121
+    ]
+   },
+   {
+    "id": "S2",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "dataLen": 184,
+    "resultLen": 184,
+    "nCompare": 552,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     173,
+     155,
+     121
+    ]
+   },
+   {
+    "id": "S3",
+    "expectCalcParams": [
+     8,
+     26,
+     80,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     26,
+     80,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "dataLen": 204,
+    "resultLen": 204,
+    "nCompare": 612,
+    "nMismatch": 0,
+    "maxAbsDelta": 0,
+    "firstMismatch": null,
+    "zeroOk": true,
+    "oracleNonNull": [
+     193,
+     175,
+     121
+    ]
+   }
+  ]
+ },
+ {
+  "file": "/tmp/acc3/probe_core_mut_override.json",
+  "tag": "mut-override-noop",
+  "mutation": {
+   "disableOverride": true
+  },
+  "perSave": [
+   {
+    "id": "S1",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     3
+    ],
+    "chartCalcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "dataLen": 188,
+    "resultLen": 188,
+    "nCompare": 564,
+    "nMismatch": 288,
+    "maxAbsDelta": 0.021866,
+    "firstMismatch": {
+     "i": 27,
+     "k": "m",
+     "oracle": 0.0004963220877592563,
+     "chart": null
+    },
+    "zeroOk": true,
+    "oracleNonNull": [
+     179,
+     161,
+     127
+    ]
+   },
+   {
+    "id": "S2",
+    "expectCalcParams": [
+     8,
+     26,
+     60,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "dataLen": 188,
+    "resultLen": 188,
+    "nCompare": 564,
+    "nMismatch": 463,
+    "maxAbsDelta": 0.021621,
+    "firstMismatch": {
+     "i": 9,
+     "k": "s",
+     "oracle": null,
+     "chart": -0.014455662928598309
+    },
+    "zeroOk": true,
+    "oracleNonNull": [
+     177,
+     159,
+     125
+    ]
+   },
+   {
+    "id": "S3",
+    "expectCalcParams": [
+     8,
+     26,
+     80,
+     1,
+     1.5,
+     1,
+     1,
+     5
+    ],
+    "chartCalcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "dataLen": 204,
+    "resultLen": 204,
+    "nCompare": 612,
+    "nMismatch": 507,
+    "maxAbsDelta": 0.021621,
+    "firstMismatch": {
+     "i": 9,
+     "k": "s",
+     "oracle": null,
+     "chart": -0.0029420763866740973
+    },
+    "zeroOk": true,
+    "oracleNonNull": [
+     193,
+     175,
+     121
+    ]
+   }
+  ]
+ }
+]

@@ -1,0 +1,13 @@
+### ./scripts/check-tangle.sh (23:53:23)
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+[check-tangle exit=0]
+
+### 工作区在 check-tangle 后仍为同样 8 个 tracked 改动
+design/14-dcap-indicator/02-spec.md
+web/src/features/dashboard/DashboardPage.test.tsx
+web/src/features/dashboard/DashboardPage.tsx
+web/src/features/dashboard/KlineChart.test.tsx
+web/src/features/dashboard/KlineChart.tsx
+web/src/features/dashboard/dcapWarmupP3.test.ts
+web/src/features/dashboard/dcapWiringP3.test.tsx
+web/src/features/dashboard/feed.ts
