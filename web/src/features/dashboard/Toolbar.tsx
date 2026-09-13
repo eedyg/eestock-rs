@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { DASHBOARD_DEFAULTS, type GridMode, type Period } from '@/layouts/DashboardGrid';
 import { Button } from '@/components/ui/button';
+import { DcapParamsPanel } from '@/features/indicators/DcapParamsPanel';
+import { DEFAULT_DCAP_PARAMS, type DcapParams } from '@/features/indicators/dcapIndicator';
 
 export type ChartTab = 'kline' | 'timeshare';
 export type IndicatorName = keyof typeof DASHBOARD_DEFAULTS.indicators;
@@ -20,6 +22,11 @@ export interface ToolbarProps {
   maWindows: number[];
   /** 保存 MA 窗口（乐观更新=由父级在处理内先同步 setMaWindows 再 await 接口；失败回滚） */
   onSaveMaWindows(windows: number[]): Promise<void>;
+  /** dcap 显示参数（统一配置，主图+宫格共用；默认 8/26/60/1/1/1/1/3，从 GET /api/config/dcap 读）。
+   *  缺省 = 默认值（兼容未接线的调用面）。 */
+  dcapParams?: DcapParams;
+  /** 保存 dcap 显示参数（PUT /api/config/dcap；父级乐观更新，失败回滚+rethrow）。缺省 = noop。 */
+  onSaveDcapParams?(params: DcapParams): Promise<void>;
 }
 
 const PERIODS: Array<{ value: Period; label: string }> = [
@@ -42,6 +49,7 @@ const INDICATORS: Array<{ value: IndicatorName; label: string }> = [
   { value: 'macd', label: 'MACD' },
   { value: 'kdj', label: 'KDJ' },
   { value: 'boll', label: 'BOLL' },
+  { value: 'dcap', label: 'DCAP' }, // ADR-021：定投收益率三线（默认关，独立副图）
 ];
 
 const GRID_MODES: Array<{ value: GridMode; label: string }> = [
@@ -192,6 +200,12 @@ export function Toolbar(props: ToolbarProps) {
           </Button>
           {i.value === 'ma' && (
             <MaConfigControl maWindows={props.maWindows} onSaveMaWindows={props.onSaveMaWindows} />
+          )}
+          {i.value === 'dcap' && (
+            <DcapParamsPanel
+              params={props.dcapParams ?? DEFAULT_DCAP_PARAMS}
+              onSave={props.onSaveDcapParams ?? (async () => {})}
+            />
           )}
         </span>
       ))}

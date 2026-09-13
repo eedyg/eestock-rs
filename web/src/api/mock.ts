@@ -37,6 +37,7 @@ import type {
   TushareStatusResponse,
   MaConfigDto,
   KlineConfigDto,
+  DcapConfigDto,
   SimBacktestCompare,
   SimCancelOrderReq,
   SimOrdersResp,
@@ -157,6 +158,31 @@ function assertKlineViewportBars(viewportBars: number): void {
       `HTTP 400: viewport_bars 须为 ${MIN_KLINE_VIEWPORT_BARS}..=${MAX_KLINE_VIEWPORT_BARS} 整数，收到 ${viewportBars}`,
     );
   }
+}
+
+/** 行情看板 dcap 显示参数默认（GET /api/config/dcap 无键/非法时兜底；与后端 `DcapConfigDto::default()` 同构）。
+ *  design/14-dcap-indicator/02-spec.md §2：8/26/60、r=1.0、smooth=1、m=3。 */
+export const DEFAULT_DCAP_CONFIG: DcapConfigDto = {
+  n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3,
+};
+
+/** dcap 显示参数校验（与后端 `validate_dcap_config` 同构：单参数范围 + 跨字段 n_s<n_m<n_l）。
+ *  不合规抛 ApiError(400)（前端 mock 只用于演示/测试，真实 400 由后端给出）。 */
+function assertDcapConfig(p: DcapConfigDto): void {
+  const bad = (msg: string): never => {
+    throw new ApiError(400, `HTTP 400: ${msg}`);
+  };
+  const ns: Array<[string, number]> = [['n_s', p.n_s], ['n_m', p.n_m], ['n_l', p.n_l]];
+  for (const [k, v] of ns) {
+    if (!Number.isInteger(v) || v < 2 || v > 250) bad(`${k} 须为 2..=250 整数，收到 ${v}`);
+  }
+  if (!(p.n_s < p.n_m && p.n_m < p.n_l)) bad('须满足 n_s < n_m < n_l（非单调组合被拒绝）');
+  const rs: Array<[string, number]> = [['r_s', p.r_s], ['r_m', p.r_m], ['r_l', p.r_l]];
+  for (const [k, v] of rs) {
+    if (!Number.isFinite(v) || v < 0.5 || v > 2) bad(`${k} 须在 0.5..=2.0，收到 ${v}`);
+  }
+  if (p.smooth !== 0 && p.smooth !== 1) bad(`smooth 须为 0 或 1，收到 ${p.smooth}`);
+  if (!Number.isInteger(p.m) || p.m < 1 || p.m > 60) bad(`m 须为 1..=60 整数，收到 ${p.m}`);
 }
 
 /** MA 窗口校验 + 归一化（与后端 validate_ma_windows 同构：1-3 条、每条 1-500、去重升序）。
@@ -576,6 +602,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   let maWindows: number[] = [...DEFAULT_MA_WINDOWS];
   /** 行情看板 K线默认视口（GET/PUT /api/config/kline mock 内存态；默认 120 根） */
   let klineViewportBars: number = DEFAULT_KLINE_VIEWPORT_BARS;
+  /** 行情看板 dcap 显示参数（GET/PUT /api/config/dcap mock 内存态；默认 8/26/60/1/1/1/1/3） */
+  let dcapConfig: DcapConfigDto = { ...DEFAULT_DCAP_CONFIG };
   /** 页面⑧ S2 源参数配置 mock 内存态（GET/PATCH /api/config/sources；默认 = 内置源参数） */
   let sourceConfig: SourceConfigItem[] = mockSourceConfig();
   /** 页面⑧ S2 采集参数 mock 内存态（GET/PATCH /api/config/collector；默认 60） */
@@ -980,6 +1008,15 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       assertKlineViewportBars(viewportBars);
       klineViewportBars = viewportBars;
       return { viewport_bars: klineViewportBars };
+    },
+    // ── 行情看板 dcap 显示参数（GET/PUT /api/config/dcap；8 参不含 th；主图/宫格共用同一 key）──
+    async getDcapConfig(): Promise<DcapConfigDto> {
+      return { ...dcapConfig };
+    },
+    async saveDcapConfig(params: DcapConfigDto): Promise<DcapConfigDto> {
+      assertDcapConfig(params);
+      dcapConfig = { ...params };
+      return { ...dcapConfig };
     },
     async purgeRaw(confirm: string): Promise<PurgeRawResult> {
       if (confirm !== 'PURGE') {

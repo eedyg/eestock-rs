@@ -371,6 +371,20 @@ export interface KlineConfigDto {
   viewport_bars: number;
 }
 
+/** GET/PUT /api/config/dcap 响应/请求体：dcap 指标显示参数（**8 个，不含 `th`**；app_config key "dcap"，迁移 0021）。
+ *  范围（design/14-dcap-indicator/02-spec.md §2）与跨字段约束 `n_s < n_m < n_l`：
+ *  PUT 违反 → 400；GET 无键/坏 JSON/越界旧值 → 回默认 8/26/60/1/1/1/1/3（不 500）。 */
+export interface DcapConfigDto {
+  n_s: number;
+  n_m: number;
+  n_l: number;
+  r_s: number;
+  r_m: number;
+  r_l: number;
+  smooth: number;
+  m: number;
+}
+
 // ── 回测/模拟实盘共享读模型（P4b：旧页面⑤ DTO 已退役；Metrics/Trade 为 ensemble 引擎
 //    backtest::BacktestMetrics / backtest::TradeDetail 的 jsonb 形态，页面⑪ 工作台与⑨ sim-live 沿用）──
 

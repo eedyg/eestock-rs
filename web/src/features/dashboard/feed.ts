@@ -50,6 +50,10 @@ export interface KlineDataFeedDeps {
   pageSize?: number; // 显式视口覆盖（优先于 viewportBars；保留给测试/特化），不传则 = viewportBars
   viewportBars?: number; // 默认视口的 K 线根数（GET /api/config/kline 加载；缺省 120 兜底；主图+宫格统一）
   paginationBatch?: number; // 深翻每页 bar 数（默认 = paginationBatchForPeriod(period)）；不传时按周期取批量值
+  /** **取数 warmup**（dcap 指标，design/14-dcap-indicator/02-spec.md §6；裁决依据见 §8 #19）：初始取数
+   *  `limit = viewportBars + warmupBars`；多取部分仅供指标计算、**不上图**（视口最左那根才不断线）。
+   *  缺省 0 = 既有 ADR-020 口径（limit = viewportBars）不变。 */
+  warmupBars?: number;
 }
 
 /**
@@ -64,6 +68,7 @@ export class KlineDataFeed {
 
   private readonly pageSize: number;
   private readonly paginationBatch: number;
+  private readonly warmupBars: number;
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
   private unsubWs: (() => void) | null = null;
@@ -74,6 +79,14 @@ export class KlineDataFeed {
   constructor(private deps: KlineDataFeedDeps) {
     this.pageSize = deps.pageSize ?? deps.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
     this.paginationBatch = deps.paginationBatch ?? paginationBatchForPeriod(deps.period);
+    // 非法 warmup（负数 / NaN / Inf）→ 0（不产生非法 limit）
+    const warmup = deps.warmupBars ?? 0;
+    this.warmupBars = Number.isFinite(warmup) && warmup > 0 ? Math.trunc(warmup) : 0;
+  }
+
+  /** 初始取数上限 = 视口根数 + warmup（warmup 部分仅供指标计算，不上图；§6 取数 warmup）。 */
+  get initialLimit(): number {
+    return this.pageSize + this.warmupBars;
   }
 
   /** 默认视口（K 线根数，GET /api/config/kline；缺省 120 兜底）。KlineChart/GridCell 的 fitBarSpace
@@ -113,11 +126,11 @@ export class KlineDataFeed {
         const bars = await this.deps.api.getKline({
           code: this.deps.code,
           period: this.deps.period,
-          limit: this.pageSize,
+          limit: this.initialLimit,
         });
         if (this.disposed) return;
         this.bars = bars;
-        this.hasMore = bars.length >= this.pageSize;
+        this.hasMore = bars.length >= this.initialLimit;
         this.status = bars.length > 0 ? 'ready' : 'empty';
         this.subscribeRealtime();
       } catch {

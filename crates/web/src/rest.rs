@@ -359,6 +359,35 @@ pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
     }
 }
 
+// ── 行情看板 dcap 显示参数（ADR-021 / design/14-dcap-indicator §7：GET 读 / PUT 写 8 参（不含 th）；
+//    app_config key="dcap"，主图/宫格共用同一 key；宿主自有端点对非单调 n 严格 400）──
+// 校验在 web 层（validate_dcap_config，400）；storage 只存 jsonb（ConfigStore::set），见 §1.1 契约表。
+
+/// app_config 键名（dcap 显示参数；与 settings.rs 的 sources/collector/mcp/kline 同表，迁移 0021）。
+const K_DCAP: &str = "dcap";
+
+/// GET /api/config/dcap —— 读 8 个显示参数；无键/坏 JSON/库中越界旧值 → 默认（**不 500**）。
+pub async fn get_dcap_config(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_DCAP).await {
+        Ok(raw) => Json(dcap_config_or_default(raw)).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/config/dcap —— body = 同 8 参数：校验（单参数范围 + 跳字段 n_s<n_m<n_l）失败 → 400；
+/// 落库（app_config/0021）并回显写入值；500：存储失败。
+pub async fn put_dcap_config(State(st): State<Arc<AppState>>,
+                             Json(req): Json<serde_json::Value>) -> Response {
+    let dto: DcapConfigDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("dcap 请求体非法：{e}")),
+    };
+    if let Err(e) = validate_dcap_config(&dto) { return err(StatusCode::BAD_REQUEST, &e); }
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_DCAP, value).await { return internal(e); }
+    Json(dto).into_response()
+}
+
 // ── 行情看板 MA 可配置（后端 W1：GET /api/config/ma 读 + PUT 写；主图+宫格应用，回测弹窗不动）──
 // 校验在 web 层（validate_ma_windows，400）；storage 只存归一化（升序去重）结果，见 §1.1 契约表。
 

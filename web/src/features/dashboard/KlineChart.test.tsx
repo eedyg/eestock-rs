@@ -47,7 +47,7 @@ async function triggerInitGetBars(): Promise<void> {
   await loader.getBars({ type: 'init', callback: () => {} });
 }
 
-const BASE_INDICATORS = { ma: true, macd: false, kdj: false, boll: false };
+const BASE_INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: false };
 
 function renderChart(overrides: Partial<KlineChartFeedLike> = {}, period: Period = '1d') {
   return render(

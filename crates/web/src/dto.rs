@@ -66,6 +66,65 @@ pub fn validate_ma_windows(windows: &[i32]) -> Result<Vec<i32>, String> {
     Ok(out)
 }
 
+// ── 行情看板 dcap 显示参数（ADR-021 / design/14-dcap-indicator §7：8 参不含 th；app_config key="dcap"）──
+// 形状比照 MA（dto 校验 + rest 端点），落库路径比照 /api/config/kline（ConfigStore/app_config，0021）——
+// 两者是**不同的存储端口**，别混（§7 表）；新增 key 无需迁移（先例 ADR-020 的 kline key）。
+
+/// GET/PUT /api/config/dcap 响应/请求体：dcap 指标**显示参数**（8 个，**不含 `th`**——
+/// `th` 只属策略参数，在 `/strategies` 编辑器内）。字段口径见 design/14-dcap-indicator/02-spec.md §2：
+/// `n_*` 为窗口（Int 2-250，强制 `n_s<n_m<n_l`）、`r_*` 为金额增长比（Float 0.5-2.0）、
+/// `smooth` 为平滑开关（Int 0/1）、`m` 为平滑周期（Int 1-60）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DcapConfigDto {
+    pub n_s: i32,
+    pub n_m: i32,
+    pub n_l: i32,
+    pub r_s: f64,
+    pub r_m: f64,
+    pub r_l: f64,
+    pub smooth: i32,
+    pub m: i32,
+}
+
+impl Default for DcapConfigDto {
+    fn default() -> Self {
+        Self { n_s: 8, n_m: 26, n_l: 60, r_s: 1.0, r_m: 1.0, r_l: 1.0, smooth: 1, m: 3 }
+    }
+}
+
+/// dcap 显示参数校验（纯函数，web handler 层 400 用；口径 design/14-dcap-indicator/02-spec.md §2）：
+/// - `n_s/n_m/n_l` ∈ 2..=250 **且严格单调** `n_s < n_m < n_l`（跨字段约束 —— 宿主自有端点
+///   **严格拒绝**，与插件面「确定归一化」有意不同，见 §2）；
+/// - `r_s/r_m/r_l` ∈ [0.5, 2.0]（且有限）；
+/// - `smooth` ∈ {0,1}；`m` ∈ 1..=60。
+/// 非整数/类型错由 serde 反序列化拒绝（handler 400）；失败返回描述性错误。
+pub fn validate_dcap_config(p: &DcapConfigDto) -> Result<(), String> {
+    for (k, v) in [("n_s", p.n_s), ("n_m", p.n_m), ("n_l", p.n_l)] {
+        if !(2..=250).contains(&v) { return Err(format!("{k} 须为 2..=250 整数，收到 {v}")); }
+    }
+    if !(p.n_s < p.n_m && p.n_m < p.n_l) {
+        return Err(format!("须满足 n_s < n_m < n_l，收到 {}/{}/{}", p.n_s, p.n_m, p.n_l));
+    }
+    for (k, v) in [("r_s", p.r_s), ("r_m", p.r_m), ("r_l", p.r_l)] {
+        if !(v.is_finite() && (0.5..=2.0).contains(&v)) {
+            return Err(format!("{k} 须在 0.5..=2.0，收到 {v}"));
+        }
+    }
+    if p.smooth != 0 && p.smooth != 1 { return Err(format!("smooth 须为 0 或 1，收到 {}", p.smooth)); }
+    if !(1..=60).contains(&p.m) { return Err(format!("m 须为 1..=60 整数，收到 {}", p.m)); }
+    Ok(())
+}
+
+/// GET /api/config/dcap 读落韧性（ADR-020 教训；纯函数便于单测）：无键（None）/ 坏 JSON /
+/// 缺字段 / 库中越界旧值 → **默认 8 参**（**不 500**）。
+pub fn dcap_config_or_default(raw: Option<serde_json::Value>) -> DcapConfigDto {
+    let Some(v) = raw else { return DcapConfigDto::default() };
+    match serde_json::from_value::<DcapConfigDto>(v) {
+        Ok(c) if validate_dcap_config(&c).is_ok() => c,
+        _ => DcapConfigDto::default(),
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BarDto {
     pub ts: DateTime<Utc>,
@@ -526,6 +585,83 @@ mod tests {
         assert_eq!(v["windows"][0], 5);
         let back: MaConfigDto = serde_json::from_value(v).unwrap();
         assert_eq!(back.windows, vec![5, 10, 20]);
+    }
+
+    // ── 行情看板 dcap 显示参数（ADR-021 / design/14-dcap-indicator §7：8 参不含 th；
+    //    GET 读落韧性（无键/坏 JSON/越界旧值 → 默认，不 500）；PUT 单参数范围 + 跨字段 n_s<n_m<n_l 严格 400）──
+
+    #[test]
+    fn dcap_config_default_and_roundtrip() {
+        let d = DcapConfigDto::default();
+        assert_eq!((d.n_s, d.n_m, d.n_l), (8, 26, 60), "默认三段窗口 8/26/60");
+        assert_eq!((d.r_s, d.r_m, d.r_l), (1.0, 1.0, 1.0), "默认 r 全 1（= 遗留 DCAP）");
+        assert_eq!((d.smooth, d.m), (1, 3), "默认平滑开、m=3");
+        let v = serde_json::to_value(&d).unwrap();
+        assert_eq!(v["n_s"], 8);
+        assert!(v.get("th").is_none(), "th 不在此接口（只属策略参数）");
+        let back: DcapConfigDto = serde_json::from_value(v).unwrap();
+        assert_eq!(back, d);
+    }
+
+    #[test]
+    fn dcap_config_validation_ranges_and_monotonic() {
+        assert!(validate_dcap_config(&DcapConfigDto::default()).is_ok(), "默认合法");
+        // 跨字段：非单调 n（§2「强制 n_s<n_m<n_l」：宿主端点严格拒绝）
+        for (s, m, l) in [(26, 26, 60), (8, 60, 26), (20, 20, 20), (60, 8, 26), (8, 26, 26)] {
+            let p = DcapConfigDto { n_s: s, n_m: m, n_l: l, ..Default::default() };
+            assert!(validate_dcap_config(&p).is_err(), "非单调 n={s}/{m}/{l} 必须拒绝");
+        }
+        // 单参数越界（n 2-250 / r 0.5-2.0 / smooth 0|1 / m 1-60）
+        for p in [
+            DcapConfigDto { n_s: 1, ..Default::default() },
+            DcapConfigDto { n_l: 251, ..Default::default() },
+            DcapConfigDto { r_s: 0.49, ..Default::default() },
+            DcapConfigDto { r_l: 2.01, ..Default::default() },
+            DcapConfigDto { smooth: 2, ..Default::default() },
+            DcapConfigDto { m: 0, ..Default::default() },
+            DcapConfigDto { m: 61, ..Default::default() },
+        ] {
+            assert!(validate_dcap_config(&p).is_err(), "越界必须拒绝：{p:?}");
+        }
+        // 边界值合法
+        let edge = DcapConfigDto { n_s: 2, n_m: 3, n_l: 250, r_s: 0.5, r_m: 2.0, r_l: 1.0, smooth: 0, m: 60 };
+        assert!(validate_dcap_config(&edge).is_ok(), "边界值合法");
+    }
+
+    #[test]
+    fn dcap_config_non_integer_or_wrong_type_rejected_at_deserialize() {
+        // 非整数 n/m/smooth（及类型错）→ serde 反序列化失败 ⇒ handler 400（不落库）
+        let base = |over: &str| format!(
+            "{{\"n_s\":8,\"n_m\":26,\"n_l\":60,\"r_s\":1,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":3{over}}}"
+        );
+        for over in [",\"n_s\":8.5", ",\"m\":3.5", ",\"smooth\":true", ",\"r_s\":\"1\""] {
+            let json = base(over);
+            assert!(serde_json::from_str::<DcapConfigDto>(&json).is_err(), "非整数/类型错须拒：{json}");
+        }
+    }
+
+    #[test]
+    fn dcap_config_or_default_falls_back_on_missing_bad_or_out_of_range() {
+        assert_eq!(dcap_config_or_default(None), DcapConfigDto::default(), "GET 无键 → 默认");
+        assert_eq!(
+            dcap_config_or_default(Some(serde_json::json!({"viewport_days": 8}))),
+            DcapConfigDto::default(),
+            "坏 JSON / 缺字段 → 默认（不 500）"
+        );
+        assert_eq!(
+            dcap_config_or_default(Some(serde_json::json!("nonsense"))),
+            DcapConfigDto::default(),
+            "非对象 → 默认"
+        );
+        let stale = serde_json::json!({
+            "n_s": 60, "n_m": 8, "n_l": 26, "r_s": 1.0, "r_m": 1.0, "r_l": 1.0, "smooth": 1, "m": 3
+        });
+        assert_eq!(dcap_config_or_default(Some(stale)), DcapConfigDto::default(), "库中越界旧值 → 默认");
+        let good = serde_json::json!({
+            "n_s": 5, "n_m": 10, "n_l": 20, "r_s": 1.5, "r_m": 1.0, "r_l": 1.0, "smooth": 0, "m": 5
+        });
+        let got = dcap_config_or_default(Some(good));
+        assert_eq!((got.n_s, got.m, got.smooth), (5, 5, 0), "合法值原样返回");
     }
 
     // ── 页面⑧ S2：配置持久化 PATCH 校验纯函数（值域 / 东财末位 ADR-006 / ≥60 / ≥0）──

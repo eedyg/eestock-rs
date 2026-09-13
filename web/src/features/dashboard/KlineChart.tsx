@@ -11,6 +11,13 @@ import { DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { fitBarSpaceToViewport, useBarSpaceFit, type BarSpaceFitResult } from './barSpaceFit';
 import type { Bar, Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
+import {
+  DEFAULT_DCAP_PARAMS,
+  DCAP_INDICATOR_NAME,
+  dcapCalcParams,
+  ensureDcapIndicatorRegistered,
+  type DcapParams,
+} from '@/features/indicators/dcapIndicator';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
 import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 
@@ -64,6 +71,9 @@ export interface KlineChartProps {
   overlays?: KlineOverlay[];
   /** MA 窗口（统一配置，主图+宫格共用；默认 [5,10,20]，从 GET /api/config/ma 读） */
   maWindows?: number[];
+  /** dcap 显示参数（统一配置，主图+宫格共用；默认 8/26/60/1/1/1/1/3，从 GET /api/config/dcap 读）。
+   *  仅在 `indicators.dcap` 为真时生效（独立副图 pane，见 02-spec §6）。 */
+  dcapParams?: DcapParams;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -75,15 +85,26 @@ const INDICATOR_DEFS: Array<{ key: IndicatorName | 'vol'; name: string; calcPara
   { key: 'macd', name: 'MACD' },
   { key: 'kdj', name: 'KDJ' },
   { key: 'boll', name: 'BOLL' },
+  { key: 'dcap', name: DCAP_INDICATOR_NAME }, // ADR-021：dcap 三线（独立副图 pane，precision 5）
 ];
 
-function syncIndicators(chart: Chart, indicators: Record<IndicatorName, boolean>, maWindows: number[]) {
+function syncIndicators(
+  chart: Chart,
+  indicators: Record<IndicatorName, boolean>,
+  maWindows: number[],
+  dcapParams: DcapParams,
+) {
   for (const def of INDICATOR_DEFS) {
     const enabled = def.key === 'vol' ? true : indicators[def.key];
     chart.removeIndicator({ name: def.name });
     if (enabled) {
       if (def.key === 'ma') {
         chart.createIndicator({ name: def.name, calcParams: maWindows, paneId: 'candle_pane' }, false);
+      } else if (def.key === 'dcap') {
+        // ADR-021 §6：**独立副图 pane**（不可叠 candle_pane：dcap 与价格无量纲关系）；
+        // isStack=true ⇒ 新建独立 pane + 独立 Y 轴自动标度；模板显式 precision=5（dcapIndicator.ts）。
+        ensureDcapIndicatorRegistered();
+        chart.createIndicator({ name: def.name, calcParams: dcapCalcParams(dcapParams) }, true);
       } else {
         chart.createIndicator({ name: def.name, calcParams: def.calcParams }, true);
       }
@@ -317,7 +338,12 @@ export function KlineChart(props: KlineChartProps) {
     chart.setSymbol({ ticker: props.code, pricePrecision: 3, volumePrecision: 0 });
     chart.setPeriod(PERIOD_MAP[props.period]);
     applyDarkTerminalStyles(chart);
-    syncIndicators(chart, props.indicators, props.maWindows ?? DEFAULT_MA_WINDOWS);
+    syncIndicators(
+      chart,
+      props.indicators,
+      props.maWindows ?? DEFAULT_MA_WINDOWS,
+      props.dcapParams ?? DEFAULT_DCAP_PARAMS,
+    );
 
     // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
     if (props.overlays && props.overlays.length > 0) {
@@ -355,10 +381,16 @@ export function KlineChart(props: KlineChartProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);
 
-  // 指标勾选/MA 窗口热切换
+  // 指标勾选/MA 窗口/dcap 参数热切换
   useEffect(() => {
-    if (chartRef.current) syncIndicators(chartRef.current, props.indicators, props.maWindows ?? DEFAULT_MA_WINDOWS);
-  }, [props.indicators, props.maWindows]);
+    if (chartRef.current)
+      syncIndicators(
+        chartRef.current,
+        props.indicators,
+        props.maWindows ?? DEFAULT_MA_WINDOWS,
+        props.dcapParams ?? DEFAULT_DCAP_PARAMS,
+      );
+  }, [props.indicators, props.maWindows, props.dcapParams]);
 
   // 「回到最新」：followLatest 置 true 时主动滚到最右；false→true 时解除「手动缩放」抑制并重算 barSpace
   // （恢复「可见 ≈ N 根」口径，ADR-020 §2.6）。

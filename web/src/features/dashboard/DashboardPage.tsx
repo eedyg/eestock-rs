@@ -7,6 +7,11 @@ import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { DashboardStore } from './store';
 import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
+import {
+  DEFAULT_DCAP_PARAMS,
+  dcapWarmupBars,
+  type DcapParams,
+} from '@/features/indicators/dcapIndicator';
 import { SymbolList } from './SymbolList';
 import { Toolbar, type ChartTab, type IndicatorName } from './Toolbar';
 import { KlineChart } from './KlineChart';
@@ -41,6 +46,28 @@ export async function readViewportBars(
     try {
       const cfg = await api.getKlineConfig();
       return cfg.viewport_bars;
+    } catch (e) {
+      if (attempt >= attempts) throw e;
+      await sleep(backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 500);
+    }
+  }
+  throw new Error('unreachable');
+}
+
+/**
+ * 读取 dcap 显示参数（GET /api/config/dcap）并对瞬态失败重试（与 readViewportBars 同口径的
+ * ADR-020 韧性要求：mount 读取必须有重试 + focus 重读，否则会表现为「重启回默认」假象）。
+ */
+export async function readDcapParams(
+  api: ApiClient,
+  opts: ReadViewportBarsOptions = {},
+): Promise<DcapParams> {
+  const attempts = opts.attempts ?? 3;
+  const backoffMs = opts.backoffMs ?? [500, 1000];
+  const sleep = opts.sleep ?? sleepMs;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await api.getDcapConfig();
     } catch (e) {
       if (attempt >= attempts) throw e;
       await sleep(backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 500);
@@ -103,6 +130,39 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, maWindows],
   );
 
+  // dcap 显示参数（统一配置，主图+宫格共用）：默认 8/26/60/1/1/1/1/3，mount 时 GET /api/config/dcap 读
+  // （重试 + focus 重读；失败保持默认，不阻塞看板）；保存走乐观更新 + 失败回滚。
+  const [dcapParams, setDcapParams] = useState<DcapParams>(() => ({ ...DEFAULT_DCAP_PARAMS }));
+  useEffect(() => {
+    let cancelled = false;
+    readDcapParams(api)
+      .then((p) => {
+        if (!cancelled) setDcapParams(p);
+      })
+      .catch(() => {
+        // 读取失败（已重试）保持默认参数（不阻塞看板）
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  /** 保存 dcap 显示参数：乐观更新（先同步 set 再 await 接口）→ 成功用服务端回显，失败回滚并 rethrow。 */
+  const saveDcapParams = useCallback(
+    async (next: DcapParams) => {
+      const prev = dcapParams;
+      setDcapParams({ ...next });
+      try {
+        const cfg = await api.saveDcapConfig(next);
+        setDcapParams(cfg);
+      } catch (e) {
+        setDcapParams(prev);
+        throw e;
+      }
+    },
+    [api, dcapParams],
+  );
+
   // K线默认视口（K 线根数，统一配置，主图+宫格共用）：默认 120，mount 时 GET /api/config/kline 读；
   // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 120 兜底（不再静默吞错）。
   const [viewportBars, setViewportBars] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_BARS);
@@ -120,8 +180,9 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     };
   }, [api]);
 
-  // window focus / visibilitychange(visible) 时重读 getKlineConfig（跨 tab 改配置 / 从后台回来能刷新）；
-  // 重读成功则 setViewportBars（feed 重建，useMemo 已含 viewportBars 依赖）；失败保持当前值不回落默认。
+  // window focus / visibilitychange(visible) 时重读 getKlineConfig / getDcapConfig（跨 tab 改配置 /
+  // 从后台回来能刷新）；重读成功则 setState（feed 重建，useMemo 已含 viewportBars/warmup 依赖）；
+  // 失败保持当前值不回落默认。
   useEffect(() => {
     let cancelled = false;
     const reread = () => {
@@ -131,6 +192,13 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
         })
         .catch(() => {
           // 重读失败保持当前 viewportBars（不重置为默认）
+        });
+      readDcapParams(api)
+        .then((p) => {
+          if (!cancelled) setDcapParams(p);
+        })
+        .catch(() => {
+          // 重读失败保持当前 dcap 参数（不重置为默认）
         });
     };
     const onVisibilityChange = () => {
@@ -145,13 +213,24 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     };
   }, [api]);
 
+  // 取数 warmup（02-spec §6；裁决依据见 §8 #19）：开 DCAP 时初始取数 limit = viewport_bars + (n_l + m − 1)，
+  // 多取部分仅供 dcap 计算、不上图（否则视口最左永远缺一段）；未开 DCAP 不 warmup（ADR-020 口径不变）。
+  const dcapWarmup = indicators.dcap ? dcapWarmupBars(dcapParams) : 0;
+
   // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅
   const feed = useMemo(
     () =>
       state.selected
-        ? new KlineDataFeed({ api, ws, code: state.selected, period: state.period, viewportBars })
+        ? new KlineDataFeed({
+            api,
+            ws,
+            code: state.selected,
+            period: state.period,
+            viewportBars,
+            warmupBars: dcapWarmup,
+          })
         : null,
-    [api, ws, state.selected, state.period, viewportBars],
+    [api, ws, state.selected, state.period, viewportBars, dcapWarmup],
   );
   useEffect(() => () => feed?.dispose(), [feed]);
 
@@ -202,6 +281,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           onBackToLatest={() => store.backToLatest()}
           maWindows={maWindows}
           onSaveMaWindows={saveMaWindows}
+          dcapParams={dcapParams}
+          onSaveDcapParams={saveDcapParams}
         />
       </RegionPortal>
 
@@ -217,6 +298,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
                 indicators={indicators}
                 onManualZoom={() => store.noteManualZoom()}
                 maWindows={maWindows}
+                dcapParams={dcapParams}
               />
             ) : (
               <TimeshareChart api={api} ws={ws} code={state.selected} />

@@ -263,6 +263,35 @@ describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
     await expect(api.saveMaConfig([501])).rejects.toMatchObject({ status: 400 });
   });
 
+  // ── 行情看板 dcap 显示参数（GET/PUT /api/config/dcap；8 参不含 th）──
+
+  it('getDcapConfig 默认 8/26/60/1/1/1/1/3；saveDcapConfig 持久化并回显（含小数 r）', async () => {
+    const api = createMockClient();
+    expect(await api.getDcapConfig()).toEqual({ n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3 });
+    const next = { n_s: 5, n_m: 10, n_l: 20, r_s: 1.5, r_m: 1, r_l: 1.02, smooth: 0, m: 5 };
+    expect(await api.saveDcapConfig(next)).toEqual(next);
+    expect(await api.getDcapConfig()).toEqual(next);
+  });
+
+  it('saveDcapConfig 校验（与后端同构）：非单调 n / 越界 / 非整数 / smooth 非法 → 400', async () => {
+    const api = createMockClient();
+    const base = { n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3 };
+    const bads = [
+      { ...base, n_s: 26, n_m: 26 },
+      { ...base, n_m: 60, n_l: 26 },
+      { ...base, n_l: 251 },
+      { ...base, m: 61 },
+      { ...base, n_s: 8.5 },
+      { ...base, r_s: 0.49 },
+      { ...base, smooth: 2 },
+    ];
+    for (const bad of bads) {
+      await expect(api.saveDcapConfig(bad)).rejects.toMatchObject({ status: 400 });
+    }
+    // 400 不落库（仍为默认）
+    expect(await api.getDcapConfig()).toEqual(base);
+  });
+
   // ── 页面⑨ 模拟实盘（§1.6；与 MCP 共享同一服务）──
 
   it('getSimState 返回活跃会话（账户/持仓/P&L/开关）', async () => {

@@ -213,7 +213,7 @@ min-width: 1280px（桌面优先，不响应式）
 /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
 export const DASHBOARD_DEFAULTS = {
   period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
-  indicators: { ma: true, macd: false, kdj: false, boll: false },
+  indicators: { ma: true, macd: false, kdj: false, boll: false, dcap: false },
   maWindows: [5, 10, 20],
   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
   chartTab: 'kline',                // 'kline' | '分时'(timeshare，1m bar 客户端计算)
@@ -312,7 +312,16 @@ export function DashboardGrid(props: DashboardGridProps) {
 - 周期切换：1m / 5m / 15m / 1h / 日；**默认 15m**（用户拍板）；数据源：1m 读 kline_raw 直查，高周期读对应 cagg
 - 主图：K线 + MA(5/10/20)（默认开）
 - 副图1：成交量（默认开）
-- 可选指标（勾选）：MACD / KDJ / BOLL（默认关）
+- 可选指标（勾选）：MACD / KDJ / BOLL / **DCAP**（默认关）
+  - **DCAP**（ADR-021，`design/14-dcap-indicator/02-spec.md` §6）：假想定投收益率三线 `s`/`m`/`l`，**独立副图 pane**
+    （不可叠主图：与价格无量纲关系，叠上去会压爆主图 Y 轴）；`registerIndicator` 自定义指标，**必须显式 `precision: 5`**
+    （klinecharts 自定义指标默认 4 位 ⇒ `0.004578…` 会丢第 5 位）；`calcParams = [n_s,n_m,n_l,r_s,r_m,r_l,smooth,m]`（图表不需要 `th`）；
+    数据不足 → `null` 断线（表现为线从第 `n_i+m−1` 根开始）；`calc` 任何异常一律降级为断线（不得打断渲染）。
+  - **DCAP 参数面板**：Toolbar 内联面板（形态照 MA windows），8 个显示参数经 `GET/PUT /api/config/dcap` 服务端读写
+    （`app_config` key=`dcap`，无新迁移）；主图/宫格共用同一套参数；默认关。
+  - **取数 warmup**：开 DCAP 时前端初始取数 `limit = viewport_bars + (n_l + m − 1)`（`feed.warmupBars`），
+    多取部分仅供计算、**不上图**；否则视口最左侧永远缺一段。
+    **关闭 DCAP 时 `limit` 严格等于 `viewport_bars`（`warmupBars = 0`）——不因 dcap 扩大关闭态取数**（ADR-020 取数口径不变；口径见 `design/14-dcap-indicator/02-spec.md` §6）。
 - **分时图视图**：切换 Tab「K线 / 分时」；分时=当日价格线+均价线（由 1m bar 客户端计算，零额外接口）
 - 十字光标、图例、涨跌幅着色（红涨绿跌，A 股惯例）
 
@@ -333,8 +342,9 @@ export function DashboardGrid(props: DashboardGridProps) {
 | 用途 | 接口 |
 |---|---|
 | 标列表+最新价 | `GET /api/symbols`（含 latest 快照字段） |
-| 历史 bar | `GET /api/kline?code=&period=&before=&limit=`（merge 视图，准确层优先） |
+| 历史 bar | `GET /api/kline?code=&period=&before=&limit=`（merge 视图，准确层优先）；开 DCAP 时 `limit = 视口根数 + (n_l+m−1)`（warmup，多取不上图）；**关闭 DCAP 时不加 warmup** |
 | 实时推送 | `WS /ws` 订阅 `{type:"bar", code, period}` / `{type:"quote", code}`（quote=**camelCase** `changePct`） |
+| dcap 显示参数 | `GET/PUT /api/config/dcap`（8 参不含 th；默认 8/26/60/1/1/1/1/3；非单调 n/越界 → 400） |
 
 ## 6. 验收（Wave 1）
 

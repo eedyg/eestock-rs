@@ -363,6 +363,28 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect(cfg.windows).toEqual([7, 10, 20]);
   });
 
+  // ── 行情看板 dcap 显示参数（ADR-021：GET/PUT /api/config/dcap；8 参不含 th）──
+
+  it('getDcapConfig → GET /api/config/dcap（8 显示参数，不含 th）', async () => {
+    const f = fetcherReturning({ n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3 });
+    const api = createHttpClient('', f);
+    const cfg = await api.getDcapConfig();
+    expect(lastCall(f).url).toBe('/api/config/dcap');
+    expect(cfg).toEqual({ n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3 });
+  });
+
+  it('saveDcapConfig → PUT /api/config/dcap（body = 同 8 参数，原样上送）', async () => {
+    const params = { n_s: 5, n_m: 10, n_l: 20, r_s: 1.5, r_m: 1, r_l: 1.02, smooth: 0, m: 5 };
+    const f = fetcherReturning(params);
+    const api = createHttpClient('', f);
+    const cfg = await api.saveDcapConfig(params);
+    const { url, init } = lastCall(f);
+    expect(url).toBe('/api/config/dcap');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(String(init.body))).toEqual(params);
+    expect(cfg).toEqual(params);
+  });
+
   it('getTushareStatus → GET /api/tushare/status（quota_remaining 恒 null）', async () => {
     const body = {
       checkpoints: [

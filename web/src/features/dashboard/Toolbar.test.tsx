@@ -10,7 +10,7 @@ function renderToolbar(props?: Partial<Parameters<typeof Toolbar>[0]>) {
     onPeriodChange: vi.fn(),
     chartTab: 'kline' as const,
     onChartTabChange: vi.fn(),
-    indicators: { ma: true, macd: false, kdj: false, boll: false },
+    indicators: { ma: true, macd: false, kdj: false, boll: false, dcap: false },
     onToggleIndicator: vi.fn(),
     gridMode: 'single' as const,
     onGridModeChange: vi.fn(),
@@ -42,7 +42,7 @@ function MaConfigHarness({ saveMaConfig }: { saveMaConfig: (w: number[]) => Prom
       onPeriodChange={() => {}}
       chartTab="kline"
       onChartTabChange={() => {}}
-      indicators={{ ma: true, macd: false, kdj: false, boll: false }}
+      indicators={{ ma: true, macd: false, kdj: false, boll: false, dcap: false }}
       onToggleIndicator={() => {}}
       gridMode="single"
       onGridModeChange={() => {}}

@@ -7,6 +7,7 @@ import type {
   Bar,
   CollectorConfigPatchBody,
   CollectorConfigSnapshot,
+  DcapConfigDto,
   DetailRange,
   DivergenceStat,
   KlineResponse,
@@ -161,6 +162,11 @@ export interface ApiClient {
   getKlineConfig(): Promise<KlineConfigDto>;
   /** 保存 K线默认视口配置（PUT /api/config/kline；后端校验 30-600 整数） */
   saveKlineConfig(viewportBars: number): Promise<KlineConfigDto>;
+  /** dcap 显示参数配置（GET /api/config/dcap；8 参不含 th；缺省 8/26/60/1/1/1/1/3）。
+   *  主图/宫格共用同一 key；GET 读失败重试 + focus 重读（ADR-020 韧性）。 */
+  getDcapConfig(): Promise<DcapConfigDto>;
+  /** 保存 dcap 显示参数（PUT /api/config/dcap；后端强校验：非单调 n / 越界 / 非整数 → 400） */
+  saveDcapConfig(params: DcapConfigDto): Promise<DcapConfigDto>;
   /** 清空 kline_raw（危险；confirm 须为 'PURGE'，缺失/不匹配 → 400） */
   purgeRaw(confirm: string): Promise<PurgeRawResult>;
   /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
@@ -378,6 +384,9 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getKlineConfig: () => get<KlineConfigDto>('/api/config/kline'),
     saveKlineConfig: (viewportBars) =>
       request<KlineConfigDto>('/api/config/kline', { method: 'PUT', body: JSON.stringify({ viewport_bars: viewportBars }) }),
+    getDcapConfig: () => get<DcapConfigDto>('/api/config/dcap'),
+    saveDcapConfig: (params) =>
+      request<DcapConfigDto>('/api/config/dcap', { method: 'PUT', body: JSON.stringify(params) }),
     purgeRaw: (confirm) =>
       request<PurgeRawResult>('/api/system/purge-raw', {
         method: 'POST',
