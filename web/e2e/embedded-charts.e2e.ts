@@ -671,10 +671,14 @@ test('T7 单图回归（网格交互后）：VOL/MA 指标 pane + 分时线/均�
     text: (document.querySelector('[data-region="main-chart"]')?.textContent ?? '').slice(0, 60),
   }));
 
-  // 分时 1m 数据源（limit=482）与 DB 当日对账：当日=最近有数据 CST 日（本周五，休市日今日 0 bar 已在 t0 留证）
+  // 分时 1m 数据源（limit=500，旧 482 口径已废除）与 DB 当日对账：当日=最近有数据 CST 日（本周五，休市日今日 0 bar 已在 t0 留证）
+  // 取数口径：分时固定 `feed.ts TIMESHARE_1M_BARS = 500`（≥ 单个交易日 1m 上限 241，当日全覆盖）。
+  // 用 500 而非旧「2 交易日 = 482」：对账分母是「REST 响应中落在该 CST 日内的 1m 行」，
+  // 500 ≥ 241 保证当日行完整落在响应内，不依赖「恰好覆盖 2 个交易日」的巧合（ADR-020 D7，与 K 线视口解耦）。
+  const TIMESHARE_1M_LIMIT = 500;
   const ts1mHit = hits.filter((h) => {
     const k = hitKey(h.url);
-    return k.period === '1m' && k.limit === 482 && !k.before;
+    return k.period === '1m' && k.limit === TIMESHARE_1M_LIMIT && !k.before;
   });
   let dayReconcile: Record<string, unknown> | null = null;
   if (ts1mHit.length > 0) {

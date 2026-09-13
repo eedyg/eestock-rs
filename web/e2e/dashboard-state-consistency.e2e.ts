@@ -21,7 +21,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   C3  指标开关幂等：MA on→off→on（指纹变化）；MACD/KDJ/BOLL 开/关/合开 pane 计数 10→14→18→22→…→10 精确演进无残留；
  *       与 MA 配置共存（MA(5,10,20) 文本 + GET config 不变）。
  *   C4  缩放/平移后 reload：滚轮 zoom + 拖拽 pan → followLatest=false（回到最新 enabled）→ reload →
- *       回默认（回到最新 disabled、15m init limit=34、canvas 有蜡烛、选中=默认首只）；reload 后 WS bar 注入仍生效。
+ *       回默认（回到最新 disabled、15m init limit=120（= DEFAULT_KLINE_VIEWPORT_BARS，ADR-020 旧 34 已废除）、
+ *       canvas 有蜡烛、选中=默认首只）；reload 后 WS bar 注入仍生效。
  *   C5  WS 实时后状态：quote → 列表价格更新；bar → 实时标记 + canvas 变化；选中(159577)/周期(1m)/指标(MACD)
  *       全程不丢；断线 → 重连（conns≥2 + 订阅帧重发）→ 再注入仍生效。load 计数=1。
  *   全程：pageerror=0 / console.error=0 / 无跳转 / 无意外 reload。
@@ -43,13 +44,17 @@ mkdirSync(SHOT, { recursive: true });
 
 const ENV_TAG = `eestock-app img 3dec9b69f005 · SPA index-B9RewKvL.js (批1c: state-consistency) · ${BASE}`;
 
+/** K 线初始视口根数（ADR-020：单位=K线根数，与周期无关，全周期同值）。
+ *  事实源：`web/src/features/dashboard/feed.ts` → `DEFAULT_KLINE_VIEWPORT_BARS = 120`
+ *  （旧「2 交易日」口径 = 1d 2 / 1w 30 / 1mo 24 / 1m 482 / 15m 34 / 1h 10 已废除）。 */
+const KLINE_VIEWPORT_LIMIT = 120;
 const PERIOD_OF_BTN: Record<string, { key: string; limit: number }> = {
-  日: { key: '1d', limit: 2 },
-  周: { key: '1w', limit: 30 },
-  月: { key: '1mo', limit: 24 },
-  '1m': { key: '1m', limit: 482 },
-  '15m': { key: '15m', limit: 34 },
-  '1h': { key: '1h', limit: 10 },
+  日: { key: '1d', limit: KLINE_VIEWPORT_LIMIT },
+  周: { key: '1w', limit: KLINE_VIEWPORT_LIMIT },
+  月: { key: '1mo', limit: KLINE_VIEWPORT_LIMIT },
+  '1m': { key: '1m', limit: KLINE_VIEWPORT_LIMIT },
+  '15m': { key: '15m', limit: KLINE_VIEWPORT_LIMIT },
+  '1h': { key: '1h', limit: KLINE_VIEWPORT_LIMIT },
 };
 const CANDLE_BASE_CANVAS = 10; // 单图：candle+VOL+底轴（MA 属 overlay 不增 pane）
 const PER_INDICATOR_CANVAS = 4; // 每个非 MA 指标 pane +4 canvas

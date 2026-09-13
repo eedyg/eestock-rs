@@ -279,6 +279,18 @@ async fn clear_kline_config(pool: &PgPool) {
         .unwrap();
 }
 
+/// 直接落库 app_config[kline]（模拟历史遗留结构；ADR-020 §2.3：旧值不兼容、不折算）。
+async fn seed_kline_raw(pool: &PgPool, value: Value) {
+    sqlx::query(
+        "INSERT INTO app_config (key, value) VALUES ('kline', $1) \
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+    )
+    .bind(value)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
 #[tokio::test]
 async fn config_kline_put_get_and_validate() {
     let _guard = config_lock().lock().await; // 与 snapshot/patch 测试互斥（共享 app_config）
@@ -287,29 +299,68 @@ async fn config_kline_put_get_and_validate() {
     let url = spawn(state(pool.clone())).await;
     let http = reqwest::Client::new();
 
-    // 0) 表无 kline 键 → GET 缺省 2
+    // 0) 表无 kline 键 → GET 缺省 120 根（ADR-020：单位=K线根数，默认 120）
     let v: Value = http.get(format!("{url}/api/config/kline"))
         .send().await.unwrap().json().await.unwrap();
-    assert_eq!(v["viewport_days"], 2, "GET 缺省 2（app_config 无 kline 键）");
+    assert_eq!(v["viewport_bars"], 120, "GET 缺省 120（app_config 无 kline 键）");
+    assert!(v.get("viewport_days").is_none(), "响应不得含旧字段 viewport_days");
 
-    // 1) PUT 10 → 200 + GET 读回 10（落库持久化）
+    // 1) PUT 200 → 200 + GET 读回 200（落库持久化）
     let r = http.put(format!("{url}/api/config/kline"))
-        .json(&serde_json::json!({ "viewport_days": 10 })).send().await.unwrap();
+        .json(&serde_json::json!({ "viewport_bars": 200 })).send().await.unwrap();
     assert_eq!(r.status(), 200, "合法 PUT → 200");
     let v: Value = http.get(format!("{url}/api/config/kline"))
         .send().await.unwrap().json().await.unwrap();
-    assert_eq!(v["viewport_days"], 10, "GET 读回持久化（2→10）");
+    assert_eq!(v["viewport_bars"], 200, "GET 读回持久化（120→200）");
 
-    // 2) 0 / 51 / 非整 → 400
+    // 2) 边界 30 / 600 → 200（闭区间端点必须含）
+    for ok in [30, 600] {
+        let r = http.put(format!("{url}/api/config/kline"))
+            .json(&serde_json::json!({ "viewport_bars": ok })).send().await.unwrap();
+        assert_eq!(r.status(), 200, "边界值 {ok} → 200");
+        let v: Value = http.get(format!("{url}/api/config/kline"))
+            .send().await.unwrap().json().await.unwrap();
+        assert_eq!(v["viewport_bars"], ok, "边界值 {ok} 读回一致");
+    }
+
+    // 3) 29 / 601 / 0 / -1 / 非整 / 缺字段 → 400
     for bad in [
-        serde_json::json!({ "viewport_days": 0 }),
-        serde_json::json!({ "viewport_days": 51 }),
-        serde_json::json!({ "viewport_days": 10.5 }),
+        serde_json::json!({ "viewport_bars": 29 }),
+        serde_json::json!({ "viewport_bars": 601 }),
+        serde_json::json!({ "viewport_bars": 0 }),
+        serde_json::json!({ "viewport_bars": -1 }),
+        serde_json::json!({ "viewport_bars": 120.5 }),
+        serde_json::json!({}),
     ] {
         let r = http.put(format!("{url}/api/config/kline"))
             .json(&bad).send().await.unwrap();
         assert_eq!(r.status(), 400, "非法值 {bad} → 400");
     }
+
+    // 3b) 越界 400 为描述性错误（含字段名与合法区间）
+    let body: Value = http.put(format!("{url}/api/config/kline"))
+        .json(&serde_json::json!({ "viewport_bars": 601 })).send().await.unwrap()
+        .json().await.unwrap();
+    let msg = body["error"].as_str().unwrap_or_default();
+    assert!(msg.contains("viewport_bars"), "错误信息含字段名：{msg}");
+    assert!(msg.contains("30") && msg.contains("600"), "错误信息含区间：{msg}");
+
+    // 4) B3 旧结构不兼容：app_config[kline] = {"viewport_days":8} → GET 回默认 120（非 8、非折算值）
+    seed_kline_raw(&pool, serde_json::json!({ "viewport_days": 8 })).await;
+    let v: Value = http.get(format!("{url}/api/config/kline"))
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["viewport_bars"], 120, "旧结构 viewport_days=8 视为未配置 → 回默认 120（不折算）");
+
+    // 4b) PUT 旧结构（缺 viewport_bars）→ 400
+    let r = http.put(format!("{url}/api/config/kline"))
+        .json(&serde_json::json!({ "viewport_days": 8 })).send().await.unwrap();
+    assert_eq!(r.status(), 400, "PUT 旧结构缺 viewport_bars → 400");
+
+    // 4c) 落库值越界（手写脏数据）→ GET 也回默认 120（安全网，不把脏值透出）
+    seed_kline_raw(&pool, serde_json::json!({ "viewport_bars": 9999 })).await;
+    let v: Value = http.get(format!("{url}/api/config/kline"))
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v["viewport_bars"], 120, "落库越界 → 回默认 120");
 
     clear_kline_config(&pool).await;
 }

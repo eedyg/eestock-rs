@@ -6,7 +6,7 @@ import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { DashboardStore } from './store';
-import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
+import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { SymbolList } from './SymbolList';
 import { Toolbar, type ChartTab, type IndicatorName } from './Toolbar';
 import { KlineChart } from './KlineChart';
@@ -16,7 +16,7 @@ import { GridCell } from './GridCell';
 /** 等待实现（指数退避用；测试可注入瞬时 sleep）。 */
 const sleepMs = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export interface ReadViewportDaysOptions {
+export interface ReadViewportBarsOptions {
   /** 最多尝试次数（含首次），默认 3。 */
   attempts?: number;
   /** 每次失败后、下一次尝试前的等待（指数退避），默认 500ms→1s。 */
@@ -26,13 +26,13 @@ export interface ReadViewportDaysOptions {
 }
 
 /**
- * 读取 K线默认视口（GET /api/config/kline）并对瞬态失败重试，直到成功或尝试次数耗尽。
+ * 读取 K线默认视口根数（GET /api/config/kline 的 `viewport_bars`）并对瞬态失败重试，直到成功或尝试次数耗尽。
  * 全部失败则抛出（由调用方决定兜底），避免 mount 时 `getKlineConfig().then(set).catch(()=>{})`
  * 的静默吞错——偶发失败/网络抖动时页面被永久锁定在默认视口、无重试、无收敛。
  */
-export async function readViewportDays(
+export async function readViewportBars(
   api: ApiClient,
-  opts: ReadViewportDaysOptions = {},
+  opts: ReadViewportBarsOptions = {},
 ): Promise<number> {
   const attempts = opts.attempts ?? 3;
   const backoffMs = opts.backoffMs ?? [500, 1000];
@@ -40,7 +40,7 @@ export async function readViewportDays(
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const cfg = await api.getKlineConfig();
-      return cfg.viewport_days;
+      return cfg.viewport_bars;
     } catch (e) {
       if (attempt >= attempts) throw e;
       await sleep(backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 500);
@@ -103,17 +103,17 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, maWindows],
   );
 
-  // K线默认视口（交易日数，统一配置，主图+宫格共用）：默认 2，mount 时 GET /api/config/kline 读；
-  // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 2 兜底（不再静默吞错）。
-  const [viewportDays, setViewportDays] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_DAYS);
+  // K线默认视口（K 线根数，统一配置，主图+宫格共用）：默认 120，mount 时 GET /api/config/kline 读；
+  // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 120 兜底（不再静默吞错）。
+  const [viewportBars, setViewportBars] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_BARS);
   useEffect(() => {
     let cancelled = false;
-    readViewportDays(api)
-      .then((days) => {
-        if (!cancelled) setViewportDays(days);
+    readViewportBars(api)
+      .then((bars) => {
+        if (!cancelled) setViewportBars(bars);
       })
       .catch(() => {
-        // 读取失败（已重试）保持默认 2（不阻塞看板）；至少真实重试，穿越瞬态
+        // 读取失败（已重试）保持默认 120（不阻塞看板）；至少真实重试，穿越瞬态
       });
     return () => {
       cancelled = true;
@@ -121,16 +121,16 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   }, [api]);
 
   // window focus / visibilitychange(visible) 时重读 getKlineConfig（跨 tab 改配置 / 从后台回来能刷新）；
-  // 重读成功则 setViewportDays（feed 重建，useMemo 已含 viewportDays 依赖）；失败保持当前值不回落默认。
+  // 重读成功则 setViewportBars（feed 重建，useMemo 已含 viewportBars 依赖）；失败保持当前值不回落默认。
   useEffect(() => {
     let cancelled = false;
     const reread = () => {
-      readViewportDays(api)
-        .then((days) => {
-          if (!cancelled) setViewportDays(days);
+      readViewportBars(api)
+        .then((bars) => {
+          if (!cancelled) setViewportBars(bars);
         })
         .catch(() => {
-          // 重读失败保持当前 viewportDays（不重置为默认）
+          // 重读失败保持当前 viewportBars（不重置为默认）
         });
     };
     const onVisibilityChange = () => {
@@ -149,9 +149,9 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   const feed = useMemo(
     () =>
       state.selected
-        ? new KlineDataFeed({ api, ws, code: state.selected, period: state.period, viewportDays })
+        ? new KlineDataFeed({ api, ws, code: state.selected, period: state.period, viewportBars })
         : null,
-    [api, ws, state.selected, state.period, viewportDays],
+    [api, ws, state.selected, state.period, viewportBars],
   );
   useEffect(() => () => feed?.dispose(), [feed]);
 
@@ -232,6 +232,7 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
               api={api}
               ws={ws}
               maWindows={maWindows}
+              viewportBars={viewportBars}
               onPick={(code) => {
                 store.selectSymbol(code);
                 store.setGridMode('single');

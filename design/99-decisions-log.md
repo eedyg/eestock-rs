@@ -194,3 +194,13 @@
 # 杂项裁决补记（2026-09-10）
 - **fee wire 增可选 stamp_duty_pct**（缺省 0.05 向后兼容）：原 ADR bt-1「印花税 0.05% 市场常量非用户参数」修订——ETF 现实无印花税，平台数据面大量 ETF 标的，硬编码属平台缺陷；ETF 类回测显式传 0。
 - **T0 做T策略「T0做T·主张段捕获」发布**（st_1789041627252_000079）：16 轮实验+样本外冻结验证，诚实结论未达 50% 稳健年化（豆粕全窗 +23.5% 最可信）；适用边界=MA240 上行高波动 T+0 品种。
+
+---
+
+# ADR-020 看板默认 K 线视口：交易日 → 根数（2026-09-13，用户拍板）
+
+- **触发**：用户报告「默认 K 线视口只影响 15m，其余周期不响应」，并要求改为「默认多少个 bar 且应用于所有 period」。
+- **根因（证据链）**：配置单位=**交易日**（`feed.ts:8-25` `BARS_PER_TRADING_DAY[period]×days`）→ 初始可见根数由 `space = clamp(round(W/target),1,50)`（`KlineChart.tsx:247-255`）反推，而 klinecharts `barSpaceLimit={min:1,max:50}` 为**引擎硬限**且越界**静默 return**（`node_modules/klinecharts/dist/index.esm.js:13249 / 13667`，`visibleBarCount = _totalBarSpace/_barSpace` :13534）→ 可达可见根数恒为 `[W/50, W]`（W≈主图 980px）。target 落在区间外的周期被夹死：1d/1w/1mo 在 1–19 天恒显 ~20 根、1m ≥3 天即饱和且撞后端 `MAX_LIMIT=1000`，仅 15m（默认周期）全程有效 → 与用户观察一致。详见 `design/06-web/11-kline-viewport-bars.md` §1。
+- **决策**：①`viewport_days` → **`viewport_bars`**（根数，与周期解耦），默认 **120**、范围 **30–600**（前后端同构）；②**不做旧值兼容**（旧 `{"viewport_days":n}` 视为未配置 → 回 120，不迁移不折算）；③**主图+宫格统一**同一配置（修 `GridCell.tsx:31` 硬编码 120），回测弹窗固定 120 根不读配置；④删除 `BARS_PER_TRADING_DAY`/`defaultPageSizeForPeriod`，`pageSize = viewportBars`；⑤`ResizeObserver` 宽度变化重算 barSpace，**用户手动缩放后不重算**，「回到最新」恢复；⑥夹取仅作安全网 + 结构化留痕（`data-viewport-fit` 属性 + 夹取告警）。
+- **同源缺陷一并处置**：F2 单页 `241×days>1000` 截断致 `hasMore=false` 深翻封死（N≤600 后不可达）；F5 部署级 e2e `dashboard-periods-ma.e2e.ts:40` `INIT_PAGE={1w:30,1mo:24,1d:2,1m:482}` 陈旧口径。
+- **产出物**：`design/06-web/11-kline-viewport-bars.md`（ADR + 接口契约 + TDD 规格 + 观测性）；契约表同步 `design/07-app-plane/00-web-api.md`、`06-web/01-dashboard.md`、`06-web/08-settings.md`。

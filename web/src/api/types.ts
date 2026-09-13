@@ -364,10 +364,11 @@ export interface MaConfigDto {
   windows: number[];
 }
 
-/** GET/PUT /api/config/kline 响应/请求体：K线默认视口（app_config key "kline"，迁移 0021；缺省 2）。
- *  每周期实际 bar = 该周期每日 bar 数 × viewport_days；主图+宫格应用，回测弹窗不动。 */
+/** GET/PUT /api/config/kline 响应/请求体：K线默认视口（app_config key "kline"，迁移 0021；缺省 120）。
+ *  单位 = **K 线根数**（ADR-020：与周期无关，同一值在任意周期都表示可见 N 根；30..=600 整数）；
+ *  主图+宫格应用同一值，回测弹窗固定 SCOPED_VIEWPORT_BARS=120（不读配置）。 */
 export interface KlineConfigDto {
-  viewport_days: number;
+  viewport_bars: number;
 }
 
 // ── 回测/模拟实盘共享读模型（P4b：旧页面⑤ DTO 已退役；Metrics/Trade 为 ensemble 引擎

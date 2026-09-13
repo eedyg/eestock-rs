@@ -1,6 +1,6 @@
 import type { ApiClient } from '@/api/client';
 import type { Bar, Period } from '@/api/types';
-import { defaultPageSizeForPeriod, DEFAULT_KLINE_VIEWPORT_DAYS, type FeedStatus } from '@/features/dashboard/feed';
+import { paginationBatchForPeriod, type FeedStatus } from '@/features/dashboard/feed';
 
 /** 各周期 bar 时间步长（毫秒）；与 merge 视图 / mock PERIOD_MS 口径一致。 */
 const PERIOD_STEP_MS: Record<Period, number> = {
@@ -13,6 +13,9 @@ const PERIOD_STEP_MS: Record<Period, number> = {
   '1mo': 30 * 86_400_000, // 月线步长（约 30 天；回测周期不含 1mo，仅类型完整性）
 };
 
+/** 回测区间弹窗固定视口（K 线根数；不读配置，ADR-020 §2.4）。 */
+export const SCOPED_VIEWPORT_BARS = 120;
+
 export interface ScopedKlineFeedDeps {
   api: ApiClient;
   code: string;
@@ -23,7 +26,7 @@ export interface ScopedKlineFeedDeps {
   toTs: number;
   /** 区间前后 buffer bar 数（默认 10） */
   buffer?: number;
-  /** 向前分页每页 bar 数（默认 = defaultPageSizeForPeriod(period)，与看板 KlineDataFeed 分页口径一致） */
+  /** 向前分页每页 bar 数（默认 = paginationBatchForPeriod(period)，与看板深翻批量口径一致） */
   pageSize?: number;
 }
 
@@ -43,9 +46,8 @@ export class ScopedKlineFeed {
   bars: Bar[] = [];
   status: FeedStatus = 'idle';
   hasMore = false;
-  /** 默认视口（交易日数）——区间弹窗无 viewport_days 配置，固定缺省 2（KlineChart.fitBarSpace
-   *  铺满目标 = 每日bar数×2 = 旧行为，不因新增字段破坏弹窗）。 */
-  readonly viewportDays: number = DEFAULT_KLINE_VIEWPORT_DAYS;
+  /** 默认视口（K 线根数）——区间弹窗不读 viewport_bars 配置，固定 120（与看板默认同构）。 */
+  readonly viewportBars: number = SCOPED_VIEWPORT_BARS;
 
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
@@ -57,7 +59,7 @@ export class ScopedKlineFeed {
 
   constructor(private deps: ScopedKlineFeedDeps) {
     this.buffer = deps.buffer ?? 10;
-    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period);
+    this.pageSize = deps.pageSize ?? paginationBatchForPeriod(deps.period);
   }
 
   /** 任意状态变更（加载完成/区间就绪） */

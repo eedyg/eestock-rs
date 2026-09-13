@@ -1,31 +1,104 @@
-import { describe, it, expect } from 'vitest';
-import { defaultPageSizeForPeriod, paginationBatchForPeriod, PAGINATION_BATCH, BARS_PER_TRADING_DAY, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  KlineDataFeed,
+  paginationBatchForPeriod,
+  PAGINATION_BATCH,
+  DEFAULT_KLINE_VIEWPORT_BARS,
+  MIN_KLINE_VIEWPORT_BARS,
+  MAX_KLINE_VIEWPORT_BARS,
+  TIMESHARE_1M_BARS,
+} from './feed';
+import type { ApiClient } from '@/api/client';
+import type { Period } from '@/api/types';
+import type { WsClient } from '@/ws/WsClient';
 
-describe('feed defaultPageSizeForPeriod（可配置视口：BARS_PER_TRADING_DAY × viewport_days，缺省 2）', () => {
-  it('常规周期默认 = 每日 bar 数 × DEFAULT_KLINE_VIEWPORT_DAYS(2)', () => {
-    expect(defaultPageSizeForPeriod('1m')).toBe(BARS_PER_TRADING_DAY['1m'] * 2);
-    expect(defaultPageSizeForPeriod('15m')).toBe(BARS_PER_TRADING_DAY['15m'] * 2);
-    expect(defaultPageSizeForPeriod('1d')).toBe(BARS_PER_TRADING_DAY['1d'] * 2);
+const ALL_PERIODS: Period[] = ['1m', '5m', '15m', '1h', '1d', '1w', '1mo'];
+
+function fakeApi(getKline = vi.fn(async () => [])): ApiClient {
+  return { getKline } as unknown as ApiClient;
+}
+const ws = { subscribe: vi.fn(() => () => {}) } as unknown as WsClient;
+
+describe('feed 视口常量（ADR-020 §2.2：默认 120 根 / 区间 30–600）', () => {
+  it('DEFAULT=120、MIN=30、MAX=600，且 MAX < 后端 MAX_LIMIT(1000)（截断路径不可达）', () => {
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBe(120);
+    expect(MIN_KLINE_VIEWPORT_BARS).toBe(30);
+    expect(MAX_KLINE_VIEWPORT_BARS).toBe(600);
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBeGreaterThanOrEqual(MIN_KLINE_VIEWPORT_BARS);
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBeLessThanOrEqual(MAX_KLINE_VIEWPORT_BARS);
+    expect(MAX_KLINE_VIEWPORT_BARS).toBeLessThan(1000);
   });
 
-  it('统一公式：周/月一单位即一根（1×N），不再特殊化 30/24', () => {
-    expect(defaultPageSizeForPeriod('1w')).toBe(BARS_PER_TRADING_DAY['1w'] * 2);
-    expect(defaultPageSizeForPeriod('1mo')).toBe(BARS_PER_TRADING_DAY['1mo'] * 2);
-  });
-
-  it('配置 viewport_days 生效：每周期实际 bar = 每日 bar 数 × viewport_days（1m=241×N、1d=1×N）', () => {
-    expect(defaultPageSizeForPeriod('1m', 10)).toBe(BARS_PER_TRADING_DAY['1m'] * 10);
-    expect(defaultPageSizeForPeriod('1d', 5)).toBe(BARS_PER_TRADING_DAY['1d'] * 5);
-    expect(defaultPageSizeForPeriod('1w', 10)).toBe(10);
-  });
-
-  it('缺省 viewport_days = DEFAULT_KLINE_VIEWPORT_DAYS(2)，用户调大可见更多', () => {
-    expect(defaultPageSizeForPeriod('1m')).toBe(241 * DEFAULT_KLINE_VIEWPORT_DAYS);
-    expect(defaultPageSizeForPeriod('1d', 10)).toBeGreaterThan(defaultPageSizeForPeriod('1d'));
+  it('TIMESHARE_1M_BARS=500 ≥ 一个交易日 1m 上限 241（分时=当日全时段；与视口配置解耦）', () => {
+    expect(TIMESHARE_1M_BARS).toBe(500);
+    expect(TIMESHARE_1M_BARS).toBeGreaterThanOrEqual(241);
+    expect(TIMESHARE_1M_BARS).not.toBe(DEFAULT_KLINE_VIEWPORT_BARS);
+    expect(TIMESHARE_1M_BARS).toBeLessThanOrEqual(1000); // ≤ 后端 MAX_LIMIT，不被截断
   });
 });
 
-describe('feed paginationBatchForPeriod（分页批量 vs 视口 pageSize 分离，问题②修复）', () => {
+describe('feed 视口与周期解耦（R3：pageSize = viewportBars，与 period 无关）', () => {
+  it('viewportBars=200 → 1m/15m/1d 初始 limit 全为 200（不再按每日 bar 数折算）', async () => {
+    for (const period of ['1m', '15m', '1d'] as const) {
+      const api = fakeApi();
+      const feed = new KlineDataFeed({ api, ws, code: '518880', period, viewportBars: 200 });
+      await feed.loadInitial();
+      expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period, limit: 200 });
+      feed.dispose();
+    }
+  });
+
+  it('缺省 viewportBars → 120（DEFAULT_KLINE_VIEWPORT_BARS），任意周期同值', async () => {
+    for (const period of ALL_PERIODS) {
+      const api = fakeApi();
+      const feed = new KlineDataFeed({ api, ws, code: '518880', period });
+      expect(feed.viewportBars).toBe(DEFAULT_KLINE_VIEWPORT_BARS);
+      await feed.loadInitial();
+      expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period, limit: 120 });
+      feed.dispose();
+    }
+  });
+
+  it('viewportBars getter：配置值生效 / 缺省兜底 120', () => {
+    const configured = new KlineDataFeed({ api: fakeApi(), ws, code: '518880', period: '15m', viewportBars: 600 });
+    expect(configured.viewportBars).toBe(600);
+    configured.dispose();
+
+    const defaulted = new KlineDataFeed({ api: fakeApi(), ws, code: '518880', period: '15m' });
+    expect(defaulted.viewportBars).toBe(DEFAULT_KLINE_VIEWPORT_BARS);
+    defaulted.dispose();
+  });
+
+  it('显式 pageSize 仍优先于 viewportBars（测试/特化场景保留覆盖）', async () => {
+    const api = fakeApi();
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', viewportBars: 200, pageSize: 34 });
+    await feed.loadInitial();
+    expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: 34 });
+    // getter 仍报配置视口（供 fitBarSpace 铺满目标使用）
+    expect(feed.viewportBars).toBe(200);
+    feed.dispose();
+  });
+
+  it('深翻用 PAGINATION_BATCH（与视口解耦，不受 viewportBars 影响）', async () => {
+    const bar = (i: number) => ({
+      ts: new Date(1_700_000_000_000 + i * 60_000).toISOString(),
+      open: 1, high: 1, low: 1, close: 1, volume: 1, amount: 1,
+    });
+    // 首屏返回满视口（120 根）→ hasMore=true（同 KlineDataFeed 分页口径）
+    const api = fakeApi(vi.fn(async (q: { before?: string }) => (q.before ? [] : Array.from({ length: 120 }, (_, i) => bar(i)))));
+    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '1m', viewportBars: 120 });
+    await feed.loadInitial();
+    expect(feed.hasMore).toBe(true);
+    await feed.loadBefore();
+    expect(api.getKline).toHaveBeenLastCalledWith(
+      expect.objectContaining({ limit: paginationBatchForPeriod('1m') }),
+    );
+    expect(paginationBatchForPeriod('1m')).toBe(500);
+    feed.dispose();
+  });
+});
+
+describe('feed paginationBatchForPeriod（分页批量，视口解耦后保留不动）', () => {
   it('各周期批量取值正确（约定定稿）', () => {
     expect(paginationBatchForPeriod('1m')).toBe(500);
     expect(paginationBatchForPeriod('5m')).toBe(300);
@@ -36,16 +109,15 @@ describe('feed paginationBatchForPeriod（分页批量 vs 视口 pageSize 分离
     expect(paginationBatchForPeriod('1mo')).toBe(80);
   });
 
-  it('批量 ≥ 视口 pageSize（深翻不退回 2-bar 小页）', () => {
-    // 视口很小（1d=2、1w=30、1mo=24），批量必须大于等于视口，否则深翻依旧每次只几根
-    for (const p of ['1m', '5m', '15m', '1h', '1d', '1w', '1mo'] as const) {
-      expect(paginationBatchForPeriod(p)).toBeGreaterThanOrEqual(defaultPageSizeForPeriod(p));
+  it('PAGINATION_BATCH 与 paginationBatchForPeriod 一致（无双重事实源）', () => {
+    for (const p of ALL_PERIODS) {
+      expect(PAGINATION_BATCH[p]).toBe(paginationBatchForPeriod(p));
     }
   });
 
-  it('PAGINATION_BATCH 与 paginationBatchForPeriod 一致（无双重事实源）', () => {
-    for (const p of ['1m', '5m', '15m', '1h', '1d', '1w', '1mo'] as const) {
-      expect(PAGINATION_BATCH[p]).toBe(paginationBatchForPeriod(p));
+  it('批量 ≤ MAX_LIMIT(1000)（深翻不被后端截断，F2 路径不可达）', () => {
+    for (const p of ALL_PERIODS) {
+      expect(paginationBatchForPeriod(p)).toBeLessThanOrEqual(1000);
     }
   });
 });

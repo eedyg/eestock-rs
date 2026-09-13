@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DashboardStore } from './store';
-import { KlineDataFeed, defaultPageSizeForPeriod, paginationBatchForPeriod, BARS_PER_TRADING_DAY, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
+import { KlineDataFeed, paginationBatchForPeriod, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import type { ApiClient } from '@/api/client';
 import type { Bar, SymbolSnapshot } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
@@ -212,32 +212,33 @@ describe('KlineDataFeed（图表无关的数据流：初始加载/向前分页/�
     feed.dispose();
   });
 
-  it('未传 pageSize 时默认 = 2 个交易日 bar 数（补定稿：15m=2×17=34）', async () => {
+  it('未传 pageSize 时默认 = 视口根数 120（ADR-020：不再按交易日折算，15m 也是 120）', async () => {
     const api = fakeApi({ getKline: vi.fn(async () => []) });
     const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m' });
     await feed.loadInitial();
-    expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: defaultPageSizeForPeriod('15m') });
-    expect(defaultPageSizeForPeriod('15m')).toBe(BARS_PER_TRADING_DAY['15m'] * 2);
+    expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: DEFAULT_KLINE_VIEWPORT_BARS });
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBe(120);
     feed.dispose();
   });
 
-  it('viewportDays 暴露为 getter（fitBarSpace 铺满目标读取依据）：配置值生效 / 缺省 2 兜底', () => {
-    const configured = new KlineDataFeed({ api: fakeApi(), ws, code: '518880', period: '15m', viewportDays: 4 });
-    expect(configured.viewportDays).toBe(4);
+  it('viewportBars 暴露为 getter（fitBarSpace 铺满目标读取依据）：配置值生效 / 缺省 120 兜底', () => {
+    const configured = new KlineDataFeed({ api: fakeApi(), ws, code: '518880', period: '15m', viewportBars: 200 });
+    expect(configured.viewportBars).toBe(200);
     configured.dispose();
 
     const defaulted = new KlineDataFeed({ api: fakeApi(), ws, code: '518880', period: '15m' });
-    expect(defaulted.viewportDays).toBe(DEFAULT_KLINE_VIEWPORT_DAYS);
+    expect(defaulted.viewportBars).toBe(DEFAULT_KLINE_VIEWPORT_BARS);
     defaulted.dispose();
   });
 
-  it('viewportDays=4（15m）→ 未传 pageSize 时 limit=17×4=68，初始可见数≈配置视口', async () => {
-    const api = fakeApi({ getKline: vi.fn(async () => []) });
-    const feed = new KlineDataFeed({ api, ws, code: '518880', period: '15m', viewportDays: 4 });
-    await feed.loadInitial();
-    expect(defaultPageSizeForPeriod('15m', 4)).toBe(BARS_PER_TRADING_DAY['15m'] * 4);
-    expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period: '15m', limit: BARS_PER_TRADING_DAY['15m'] * 4 });
-    feed.dispose();
+  it('viewportBars=200 → 未传 pageSize 时 limit=200，任意周期同值（初始可见数≈配置视口）', async () => {
+    for (const period of ['1m', '15m', '1d'] as const) {
+      const api = fakeApi({ getKline: vi.fn(async () => []) });
+      const feed = new KlineDataFeed({ api, ws, code: '518880', period, viewportBars: 200 });
+      await feed.loadInitial();
+      expect(api.getKline).toHaveBeenCalledWith({ code: '518880', period, limit: 200 });
+      feed.dispose();
+    }
   });
 
   it('loadBefore 用分页批量（非视口 pageSize）向前翻页并去重拼接', async () => {

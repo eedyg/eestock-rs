@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
-import type { ApiClient } from '@/api/client';
+import type { ApiClient, KlineQuery } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
 import type { Bar } from '@/api/types';
 import { TimeshareChart } from './TimeshareChart';
 import { stubApi } from '@/test/apiStub';
 import { shanghaiDayKey } from '@/shell/session';
+import { DEFAULT_KLINE_VIEWPORT_BARS, KlineDataFeed, TIMESHARE_1M_BARS } from './feed';
 
 // 构造落在「今日」上海时段的 bar ts（避免真实时钟跨日边界导致过滤为空）
 function shTodayUtcBase(): number {
@@ -70,5 +71,38 @@ describe('TimeshareChart（O1：盘中实时刷新——订阅 WS bar 帧，价�
     });
     await waitFor(() => expect(screen.getByText('2.900')).toBeInTheDocument());
     expect(screen.queryByText('2.500')).not.toBeInTheDocument();
+  });
+});
+
+// ── ADR-020 D7：分时图取数 = 当日 1m 全时段，与「K 线默认视口根数」解耦 ──
+// 起因：feed.ts 默认 pageSize 由「2 交易日(1m=482)」改为「K 线根数 120」后，分时 Tab 会退化为
+// 最近 ~120 分钟（半个交易日；A 股 1m 单日 ≈241 根）→ 分时线画不满当日。分时不具「视口」语义，
+// 用户改「默认K线根数」不应改变分时 Tab，故固定 TIMESHARE_1M_BARS（≥241，当日全覆盖）。
+describe('TimeshareChart（D7：当日 1m 全时段取数，不随 viewport_bars 配置变化）', () => {
+  it('mount 取数 limit ≥ 一个交易日 1m 上限 241（旧口径 482 → 新默认 120 的退化必红）', async () => {
+    const getKline = vi.fn(async (_q: KlineQuery) => [bar(0, 2.0)]);
+    render(<TimeshareChart api={stubApi({ getKline })} ws={fakeWs()} code="518880" />);
+    await waitFor(() => expect(getKline).toHaveBeenCalled());
+    const q = getKline.mock.calls[0]![0];
+    expect(q.period).toBe('1m');
+    expect(q.limit).toBeGreaterThanOrEqual(241);
+    // 与 K 线视口配置解耦：不得等于随配置变化的默认视口根数
+    expect(q.limit).not.toBe(DEFAULT_KLINE_VIEWPORT_BARS);
+  });
+  it('解耦回归：若跟随 K 线视口（默认 120）则当日仅覆盖 ~半小时 —— 分时固定 500 且 ≥241', async () => {
+    // 反证：跟随视口配置的 feed 请求 limit=120 < 241（当日画不满，属退化）
+    const cfgApi = stubApi({ getKline: vi.fn(async () => []) });
+    const followingFeed = new KlineDataFeed({ api: cfgApi, ws: fakeWs(), code: '518880', period: '1m' });
+    await followingFeed.loadInitial();
+    expect(cfgApi.getKline).toHaveBeenCalledWith(expect.objectContaining({ limit: DEFAULT_KLINE_VIEWPORT_BARS }));
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBeLessThan(241);
+    followingFeed.dispose();
+
+    // 实际分时组件固定 TIMESHARE_1M_BARS（≥241，当日全覆盖；与 viewport_bars 解耦）
+    const getKline = vi.fn(async (_q: KlineQuery) => [bar(0, 2.0)]);
+    render(<TimeshareChart api={stubApi({ getKline })} ws={fakeWs()} code="518880" />);
+    await waitFor(() => expect(getKline).toHaveBeenCalled());
+    expect(TIMESHARE_1M_BARS).toBeGreaterThanOrEqual(241);
+    expect(getKline.mock.calls[0]![0].limit).toBe(TIMESHARE_1M_BARS);
   });
 });

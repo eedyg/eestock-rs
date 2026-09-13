@@ -7,7 +7,8 @@ import {
   type KLineData,
   type OverlayCreateFiguresCallbackParams,
 } from 'klinecharts';
-import { defaultPageSizeForPeriod, DEFAULT_KLINE_VIEWPORT_DAYS } from './feed';
+import { DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
+import { fitBarSpaceToViewport, useBarSpaceFit, type BarSpaceFitResult } from './barSpaceFit';
 import type { Bar, Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
@@ -16,11 +17,11 @@ import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 /** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
  *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
  *  - onRealtime：订阅实时 bar（区间 feed 从不触发，看板 feed 走 WS）。
- *  - viewportDays：默认视口（交易日数，GET /api/config/kline；缺省 2 兜底）。fitBarSpace 铺满目标据此
- *    计算（而非恒用默认 2 视口），使初始可见 K 线数随配置变化。看板 KlineDataFeed 返回配置值，
- *    区间 ScopedKlineFeed 无配置 → 缺省 2（保持弹窗旧行为）。 */
+ *  - viewportBars：默认视口（K 线根数，GET /api/config/kline；缺省 120 兜底）。fitBarSpace 铺满目标据此
+ *    计算（且与周期无关），使初始可见 K 线数随配置变化。看板 KlineDataFeed 返回配置值，
+ *    区间 ScopedKlineFeed 固定 SCOPED_VIEWPORT_BARS=120（不读配置）。 */
 export interface KlineChartFeedLike extends KlineDataFeedLike {
-  viewportDays?: number;
+  viewportBars?: number;
   onRealtime(cb: (bar: Bar) => void): () => void;
 }
 
@@ -234,26 +235,32 @@ export function KlineChart(props: KlineChartProps) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const programmaticScroll = useRef(false);
+  /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
+  const manualAdjusted = useRef(false);
   const followRef = useRef(props.followLatest);
   followRef.current = props.followLatest;
   const onManualZoomRef = useRef(props.onManualZoom);
   onManualZoomRef.current = props.onManualZoom;
   const feed = props.feed;
+  /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
+  const viewportBars = feed.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
+  const fitRef = useRef<(chart: Chart) => BarSpaceFitResult | null>(() => null);
   // 实时 bar 标记：虚线 + 跳动闪烁（补定稿：与已收盘实体直条区分）
   const [rt, setRt] = useState<{ x: number | null; price: number; ts: string } | null>(null);
 
-  /** 横向铺满修复：按容器实际宽度 + 默认视口（2 交易日）设置 barSpace，
-   *  使蜡烛横向铺满图表区、无左右死区（同根因族：原 h-[125%]+flex 导致尺寸/比例错乱）。 */
-  const fitBarSpace = (chart: Chart, extraPx = 0) => {
-    const el = ref.current;
-    const width = el ? el.clientWidth : 0;
-    if (width <= 0) return;
-    // 铺满目标 = 配置视口（viewportDays×每日bar）而非恒 2 视口：feed 按 viewportDays 加载了
-    // BARS_PER_TRADING_DAY×viewportDays 根，barSpace 用同一个 target 才能让初始可见 K 线数随配置变。
-    const target = defaultPageSizeForPeriod(props.period, props.feed.viewportDays ?? DEFAULT_KLINE_VIEWPORT_DAYS);
-    const space = Math.max(1, Math.min(50, Math.round((width - extraPx) / target)));
-    chart.setBarSpace(space);
-  };
+  /** 横向铺满：按容器实际宽度 + 配置视口根数设 barSpace（`clamp(round(W/bars),1,50)`，与周期无关），
+   *  并在容器上写 `data-viewport-fit`（§5 观测性）；宽度 ≤ 0（未布局）→ 不设置。 */
+  const fitBarSpace = (chart: Chart): BarSpaceFitResult | null =>
+    fitBarSpaceToViewport(chart, ref.current, viewportBars);
+  fitRef.current = fitBarSpace;
+
+  // 容器宽度变化（ResizeObserver）按当前视口重算；用户手动缩放/平移后不重算（enabled=false）。
+  useBarSpaceFit({
+    elRef: ref,
+    getChart: () => chartRef.current,
+    viewportBars,
+    enabled: () => !manualAdjusted.current,
+  });
 
   // 建/销 chart 实例 + 数据接线（feed 随 code/period 变化而更换，整图重建）
   useEffect(() => {
@@ -261,6 +268,7 @@ export function KlineChart(props: KlineChartProps) {
     const chart = init(ref.current);
     if (!chart) return;
     chartRef.current = chart;
+    manualAdjusted.current = false; // feed 重建（周期/标的切换）→ 回到自动视口归一
     let rtCallback: ((d: KLineData) => void) | null = null;
 
     const scrollLatest = () => {
@@ -324,7 +332,9 @@ export function KlineChart(props: KlineChartProps) {
       markRealtime(kc, bar.close, bar.ts);
     });
     const manual = () => {
-      if (!programmaticScroll.current) onManualZoomRef.current();
+      if (programmaticScroll.current) return; // 程序化滚动（实时跟随 scrollLatest）不算用户操作
+      manualAdjusted.current = true; // 用户手动缩放/平移 → 尊重手动视口，resize 不再重算（ADR-020 §2.6）
+      onManualZoomRef.current();
     };
     chart.subscribeAction('onZoom', manual);
     chart.subscribeAction('onScroll', manual);
@@ -350,16 +360,23 @@ export function KlineChart(props: KlineChartProps) {
     if (chartRef.current) syncIndicators(chartRef.current, props.indicators, props.maWindows ?? DEFAULT_MA_WINDOWS);
   }, [props.indicators, props.maWindows]);
 
-  // 「回到最新」：followLatest 置 true 时主动滚到最右
+  // 「回到最新」：followLatest 置 true 时主动滚到最右；false→true 时解除「手动缩放」抑制并重算 barSpace
+  // （恢复「可见 ≈ N 根」口径，ADR-020 §2.6）。
+  const prevFollowRef = useRef(props.followLatest);
   useEffect(() => {
     const chart = chartRef.current;
-    if (props.followLatest && chart) {
-      programmaticScroll.current = true;
-      chart.scrollToRealTime();
-      setTimeout(() => {
-        programmaticScroll.current = false;
-      }, 0);
+    const wasFollowing = prevFollowRef.current;
+    prevFollowRef.current = props.followLatest;
+    if (!props.followLatest || !chart) return;
+    if (!wasFollowing) {
+      manualAdjusted.current = false;
+      fitRef.current(chart);
     }
+    programmaticScroll.current = true;
+    chart.scrollToRealTime();
+    setTimeout(() => {
+      programmaticScroll.current = false;
+    }, 0);
   }, [props.followLatest]);
 
   return (

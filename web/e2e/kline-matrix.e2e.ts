@@ -11,7 +11,21 @@ import { gotoPage } from './helpers/pages';
 
 const EVID = '/tmp/kline_evidence';
 const CODE_DEFAULT = ''; // 运行时取列表首标的
-const BARS_PER_DAY: Record<string, number> = { '1m': 241, '5m': 49, '15m': 17, '1h': 5, '1d': 1 };
+/** K 线初始视口根数（ADR-020：单位=K线根数，与周期无关，全周期同值）。
+ *  事实源：`web/src/features/dashboard/feed.ts` → `DEFAULT_KLINE_VIEWPORT_BARS = 120`
+ *  （旧的「2 交易日 × 每日 bar 数」= 1m 482 / 5m 98 / 15m 34 / 1h 10 / 1d 2 口径已废除）。 */
+const KLINE_VIEWPORT_LIMIT = 120;
+/** 各周期初始（未翻页）请求 limit：同一默认视口根数。 */
+const INIT_LIMIT: Record<string, number> = {
+  '1m': KLINE_VIEWPORT_LIMIT,
+  '5m': KLINE_VIEWPORT_LIMIT,
+  '15m': KLINE_VIEWPORT_LIMIT,
+  '1h': KLINE_VIEWPORT_LIMIT,
+  '1d': KLINE_VIEWPORT_LIMIT,
+};
+/** 分时 Tab 1m 取数（= 当日全时段，非视口）。
+ *  事实源：`web/src/features/dashboard/feed.ts` → `TIMESHARE_1M_BARS = 500`（≥ 单个交易日 241 根）。 */
+const TIMESHARE_1M_LIMIT = 500;
 
 function bt(page: Page, name: string) {
   return page.locator('[data-region="toolbar"]').getByRole('button', { name, exact: true });
@@ -166,10 +180,11 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
     // 首标的选中
     const first = (await page.locator('[data-region="symbol-list"] button b').first().innerText()).trim();
     await expect(page.locator('[data-region="symbol-list"] button[data-selected="true"]').first()).toContainText(first);
-    // 初始请求 limit=默认视口（2 交易日）
+    // 初始请求 limit=默认视口根数（ADR-020：120 根，全周期同值）
     const init = kreqs.find((u) => u.includes('period=15m') && !u.includes('before='));
     expect(init).toBeTruthy();
-    expect(init!).toContain('limit=34');
+    expect(init!).toContain(`limit=${INIT_LIMIT['15m']}`);
+    expect(KLINE_VIEWPORT_LIMIT).toBe(120);
     // 蜡烛铺满（无左死区 / ≥80% 覆盖）
     const fill = await candleFill(page);
     expect(fill).not.toBeNull();
@@ -256,12 +271,13 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
     await gotoPage(page, '/');
     await waitChart(page);
     const kreqs = watchKline(page);
+    // 全周期初始 limit = 默认视口根数 120（ADR-020：与周期无关，同一配置值同义）
     const periods: Array<{ btn: string; api: string; limit: number }> = [
-      { btn: '1m', api: '1m', limit: 482 },
-      { btn: '5m', api: '5m', limit: 98 },
-      { btn: '15m', api: '15m', limit: 34 },
-      { btn: '1h', api: '1h', limit: 10 },
-      { btn: '日', api: '1d', limit: 2 },
+      { btn: '1m', api: '1m', limit: INIT_LIMIT['1m']! },
+      { btn: '5m', api: '5m', limit: INIT_LIMIT['5m']! },
+      { btn: '15m', api: '15m', limit: INIT_LIMIT['15m']! },
+      { btn: '1h', api: '1h', limit: INIT_LIMIT['1h']! },
+      { btn: '日', api: '1d', limit: INIT_LIMIT['1d']! },
     ];
     for (const p of periods) {
       await bt(page, p.btn).click();
@@ -290,9 +306,9 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
       await page.waitForTimeout(2500);
       // 切周期重置跟随 → 锁定最右，回到最新按钮禁用
       await expect(backBtn).toBeDisabled();
-      // 请求 limit 与默认视口一致（2 交易日 bar 数）
+      // 请求 limit 与默认视口一致（K 线根数 120，全周期同值）
       const api = p === '日' ? '1d' : p;
-      expect(BARS_PER_DAY[api]).toBeDefined();
+      expect(INIT_LIMIT[api]).toBe(KLINE_VIEWPORT_LIMIT);
     }
     await shot(page, 'B6_viewport_locked');
     expect(errs).toEqual([]);
@@ -358,8 +374,9 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
     const kreqs = watchKline(page);
     await bt(page, '分时').click();
     await expect(bt(page, '分时')).toHaveAttribute('aria-pressed', 'true');
-    // 分时 = 1m REST 当日 bars（零额外接口）；默认视口 = 2 个交易日 = 241×2 = 482（定稿 1d）
-    const hit = kreqs.filter((u) => u.includes('period=1m') && u.includes('limit=482'));
+    // 分时 = 1m REST 当日 bars（零额外接口）；取数固定 TIMESHARE_1M_BARS=500（当日 241 根全覆盖，
+    // 与 K 线视口配置解耦 —— ADR-020 D7；旧「2 交易日 = 482」口径已废除）
+    const hit = kreqs.filter((u) => u.includes('period=1m') && u.includes(`limit=${TIMESHARE_1M_LIMIT}`));
     expect(hit.length).toBeGreaterThan(0);
     const svg = page.locator('[data-region="main-chart"] svg');
     await expect(svg).toBeVisible();

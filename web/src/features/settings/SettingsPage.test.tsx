@@ -173,28 +173,36 @@ describe('SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区
     );
   });
 
-  it('K线视口面板：编辑视口→PUT kline（1-50）乐观更新+回显，非法禁用保存', async () => {
+  it('K线视口面板（ADR-020：「默认K线根数」，30–600，含宫格）：PUT kline 乐观更新+回显，越界/非整禁用保存', async () => {
     const user = userEvent.setup();
     renderPage(api);
-    await waitFor(() => expect(screen.getByText(/默认K线视口/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/默认K线根数/)).toBeInTheDocument());
+    // 文案：根数口径（无「交易日」措辞），声明主图与宫格统一
+    expect(screen.queryByText(/交易日/)).toBeNull();
+    expect(screen.getByText(/主图与宫格统一/)).toBeInTheDocument();
 
-    const input = screen.getByLabelText('默认K线视口(交易日)');
-    // 默认回显 2（mock 底座缺省）
-    expect(input).toHaveValue(2);
-    // 编辑 → 10 → 保存 → PUT /api/config/kline
+    const input = screen.getByLabelText('默认K线根数');
+    // 默认回显 120（mock 底座缺省，与后端 DEFAULT_KLINE_VIEWPORT_BARS 同构）
+    expect(input).toHaveValue(120);
+    // 编辑 → 300 → 保存 → PUT /api/config/kline
     await user.clear(input);
-    await user.type(input, '10');
+    await user.type(input, '300');
     expect(screen.getByTestId('save-kline-config')).toBeEnabled();
     await user.click(screen.getByTestId('save-kline-config'));
-    await waitFor(() => expect(api.saveKlineConfig).toHaveBeenCalledWith(10));
+    await waitFor(() => expect(api.saveKlineConfig).toHaveBeenCalledWith(300));
     await waitFor(() => expect(screen.getByText(/已保存/)).toBeInTheDocument());
 
-    // 非法（0/51）→ 禁用保存
-    await user.clear(input);
-    await user.type(input, '0');
-    expect(screen.getByTestId('save-kline-config')).toBeDisabled();
-    await user.clear(input);
-    await user.type(input, '51');
-    expect(screen.getByTestId('save-kline-config')).toBeDisabled();
+    // 非法（29 / 601 / 非整）→ 禁用保存
+    for (const bad of ['29', '601', '300.5']) {
+      await user.clear(input);
+      await user.type(input, bad);
+      expect(screen.getByTestId('save-kline-config')).toBeDisabled();
+    }
+    // 边界 30 / 600 → 可保存
+    for (const ok of ['30', '600']) {
+      await user.clear(input);
+      await user.type(input, ok);
+      expect(screen.getByTestId('save-kline-config')).toBeEnabled();
+    }
   });
 });

@@ -4,30 +4,26 @@ import type { WsClient, WsMessage } from '@/ws/WsClient';
 
 export type FeedStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 
-/** 每个周期 1 个交易日的 bar 数（A股交易时段 4h=240min + 集合竞价/收盘余量；经真数据核对 1m≈241、5m≈49、15m≈17、1h≈5） */
-export const BARS_PER_TRADING_DAY: Record<Period, number> = {
-  '1m': 241,
-  '5m': 49,
-  '15m': 17,
-  '1h': 5,
-  '1d': 1,
-  '1w': 1, // 周线：一个单位即一根（周/月不再细分为交易日，按单位计 1 根）
-  '1mo': 1, // 月线：同上
-};
+/** 行情看板 K线默认视口（K 线根数，GET /api/config/kline；缺省 120；与周期无关，主图+宫格共用）。
+ *  ADR-020 §2.1：单位由「交易日数」改为「K 线根数」——同一配置值在任何周期都表示可见 N 根。 */
+export const DEFAULT_KLINE_VIEWPORT_BARS = 120;
+/** 视口下界（与后端 MIN_KLINE_VIEWPORT_BARS 同构）。 */
+export const MIN_KLINE_VIEWPORT_BARS = 30;
+/** 视口上界（与后端 MAX_KLINE_VIEWPORT_BARS 同构；< 后端 MAX_LIMIT(1000)，截断路径不可达）。 */
+export const MAX_KLINE_VIEWPORT_BARS = 600;
 
-/** 行情看板 K线默认视口（交易日数，GET /api/config/kline；缺省 2；1-50 整数，可配）。 */
-export const DEFAULT_KLINE_VIEWPORT_DAYS = 2;
-
-/** 默认视口 = viewport_days 个交易日的 bar 数（可配置，默认 2；1m=241×N、1d=1×N 等）。
- *  `viewport_days` 由看板加载配置（GET /api/config/kline）传入；缺省 2 兜底。
- *  划归视口 pageSize，用于初始画面铺满与宫格缩略；深翻（forward）用 PAGINATION_BATCH，与视口分离。 */
-export function defaultPageSizeForPeriod(period: Period, viewportDays: number = DEFAULT_KLINE_VIEWPORT_DAYS): number {
-  return BARS_PER_TRADING_DAY[period] * viewportDays;
-}
+/** 分时图（TimeshareChart）当日 1m 取数根数。
+ *
+ *  ① 语义：「分时图 = 当日 1m 全时段」（价格线 + 均价线覆盖整个交易日，非「视口」概念）；
+ *  ② 取值：必须 ≥ 一个交易日的 1m bar 上限 241（A 股 4h 交易时段 = 240min + 集合竞价/收盘余量，
+ *     经真数据核对 1m≈241/日），取 500 留缓冲（覆盖 2 个交易日，盘中/跨日边界不会截断当日）；
+ *  ③ 解耦：与 `viewport_bars`（K 线默认视口配置）**解耦** —— 分时图不随该配置变化
+ *     （用户改「默认K线根数」只影响 K 线主图/宫格，不应把分时线截成半天）。 */
+export const TIMESHARE_1M_BARS = 500;
 
 /** 分页批量（loadBefore 向前翻页每页 bar 数）——与「视口 pageSize」分离。
- *  视口 pageSize=defaultPageSizeForPeriod（2 交易日，小）只用于初始画面铺满与宫格缩略；
- *  深翻（forward）改用本批量，避免「每翻一次只 2 根、深翻几百次」的低效（问题②根因）。
+ *  视口 pageSize = viewportBars（默认 120 根，小）只用于初始画面铺满与宫格缩略；
+ *  深翻（forward）改用本批量，避免「每翻一次只几根、深翻几百次」的低效（问题②根因）。
  *  取值权衡：批量越大单次往返越大、往返次数越少；给足够深翻的合理量（按周期 bar 总量与滚动坡度）。 */
 export const PAGINATION_BATCH: Record<Period, number> = {
   '1m': 500, // 分钟：1 根/bar，最大批量加速深翻
@@ -51,15 +47,15 @@ export interface KlineDataFeedDeps {
   ws: WsLike;
   code: string;
   period: Period;
-  pageSize?: number; // 视口大小（默认 = viewport_days 个交易日的 bar 数，defaultPageSizeForPeriod+viewportDays；定稿 1d/补定稿）；宫格缩略图显式传小值
-  viewportDays?: number; // 默认视口的交易日数（GET /api/config/kline 加载；缺省 2 兜底；与 pageSize 互斥——显式 pageSize 优先）
+  pageSize?: number; // 显式视口覆盖（优先于 viewportBars；保留给测试/特化），不传则 = viewportBars
+  viewportBars?: number; // 默认视口的 K 线根数（GET /api/config/kline 加载；缺省 120 兜底；主图+宫格统一）
   paginationBatch?: number; // 深翻每页 bar 数（默认 = paginationBatchForPeriod(period)）；不传时按周期取批量值
 }
 
 /**
  * K线数据流（图表库无关）：初始加载 → WS 实时 append/update → 向前游标分页。
  * 图表适配层（KlineChart）把本 feed 接进 klinecharts DataLoader；
- * 宫格缩略图复用同 feed（小 pageSize）。
+ * 宫格缩略图复用同 feed（与主图同一 viewportBars）。
  */
 export class KlineDataFeed {
   bars: Bar[] = [];
@@ -76,14 +72,14 @@ export class KlineDataFeed {
   private disposed = false;
 
   constructor(private deps: KlineDataFeedDeps) {
-    this.pageSize = deps.pageSize ?? defaultPageSizeForPeriod(deps.period, deps.viewportDays);
+    this.pageSize = deps.pageSize ?? deps.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
     this.paginationBatch = deps.paginationBatch ?? paginationBatchForPeriod(deps.period);
   }
 
-  /** 默认视口（交易日数，GET /api/config/kline；缺省 2 兜底）。KlineChart.fitBarSpace 铺满目标据此计算，
-   *  使初始可见 K 线数随配置 viewportDays 变化，而非恒用默认 2 视口。 */
-  get viewportDays(): number {
-    return this.deps.viewportDays ?? DEFAULT_KLINE_VIEWPORT_DAYS;
+  /** 默认视口（K 线根数，GET /api/config/kline；缺省 120 兜底）。KlineChart/GridCell 的 fitBarSpace
+   *  铺满目标据此计算，使初始可见 K 线数随配置变化，且与周期无关（ADR-020 §2.5）。 */
+  get viewportBars(): number {
+    return this.deps.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
   }
 
   /** 任意状态变更（加载完成/分页拼接/实时更新） */

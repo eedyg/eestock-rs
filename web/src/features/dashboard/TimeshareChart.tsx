@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ApiClient } from '@/api/client';
 import type { WsClient } from '@/ws/WsClient';
-import { KlineDataFeed } from './feed';
+import { KlineDataFeed, TIMESHARE_1M_BARS } from './feed';
 import { computeTimeshare, type TimesharePoint } from './timeshare';
 import { shanghaiDayKey } from '@/shell/session';
 
@@ -29,8 +29,13 @@ function polyline(points: TimesharePoint[], min: number, max: number, pick: (p: 
 export function TimeshareChart({ api, ws, code }: { api: ApiClient; ws: WsClient; code: string }) {
   const [points, setPoints] = useState<TimesharePoint[]>([]);
   const [failed, setFailed] = useState(false);
-  // 复用 KlineDataFeed：1m 数据流 + WS 实时 append/update（零额外接口）
-  const feed = useMemo(() => new KlineDataFeed({ api, ws, code, period: '1m' }), [api, ws, code]);
+  // 复用 KlineDataFeed：1m 数据流 + WS 实时 append/update（零额外接口）。
+  // 显式固定当日全时段取数 TIMESHARE_1M_BARS（≥241）；**不传 viewportBars**：分时图不属「视口」语义，
+  // 不随 K 线默认视口配置（viewport_bars）变化（ADR-020 D7）。
+  const feed = useMemo(
+    () => new KlineDataFeed({ api, ws, code, period: '1m', pageSize: TIMESHARE_1M_BARS }),
+    [api, ws, code],
+  );
 
   // 重算：仅取当日 1m bar → 价格线+均价线（当日线收盘价 + 累计成交额/成交量）
   const update = useCallback(() => {

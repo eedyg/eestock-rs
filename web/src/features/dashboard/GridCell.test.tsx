@@ -9,6 +9,7 @@ const chartStub = {
   setSymbol: vi.fn(),
   setPeriod: vi.fn(),
   setDataLoader: vi.fn(),
+  setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
   setStyles: vi.fn(),
@@ -24,17 +25,23 @@ vi.mock('klinecharts', () => ({
   dispose: vi.fn(),
 }));
 
-// KlineDataFeed 整体打桩（数据流行为由 feed/store 测试覆盖；此处只验证渲染）
-vi.mock('./feed', () => ({
-  KlineDataFeed: vi.fn().mockImplementation(() => ({
-    bars: [],
-    status: 'idle',
-    loadInitial: vi.fn().mockResolvedValue(undefined),
-    dispose: vi.fn(),
-  })),
-}));
+// KlineDataFeed 整体打桩（数据流行为由 feed/store 测试覆盖；此处只验证接线与渲染）；
+// 常量（DEFAULT_KLINE_VIEWPORT_BARS 等）保持真值，避免测试与实现双重事实源。
+vi.mock('./feed', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./feed')>();
+  return {
+    ...actual,
+    KlineDataFeed: vi.fn().mockImplementation(() => ({
+      bars: [],
+      status: 'idle',
+      loadInitial: vi.fn().mockResolvedValue(undefined),
+      dispose: vi.fn(),
+    })),
+  };
+});
 
 import { GridCell } from './GridCell';
+import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS, MIN_KLINE_VIEWPORT_BARS, MAX_KLINE_VIEWPORT_BARS } from './feed';
 import { stubApi } from '@/test/apiStub';
 
 function fakeApi(): ApiClient {
@@ -52,6 +59,14 @@ const ENABLED_NO_DATA: SymbolSnapshot = { code: 'TEST_NODATA', name: '无数据�
 
 function renderCell(symbol: SymbolSnapshot) {
   return render(<GridCell symbol={symbol} period="15m" api={fakeApi()} ws={fakeWs()} onPick={vi.fn()} />);
+}
+
+/** 触发 GridCell DataLoader 的 getBars（jsdom + 桩 chart 不会自动调）。 */
+async function triggerGetBars(): Promise<void> {
+  const loader = chartStub.setDataLoader.mock.calls[0]![0] as {
+    getBars: (arg: { callback: (...args: unknown[]) => void }) => Promise<void>;
+  };
+  await loader.getBars({ callback: () => {} });
 }
 
 describe('GridCell（宫格单格：表头 D2 + 布局 R1）', () => {
@@ -126,5 +141,64 @@ describe('GridCell（宫格单格：表头 D2 + 布局 R1）', () => {
       expect.objectContaining({ name: 'MA', calcParams: [7, 20, 60] }),
       false,
     );
+  });
+});
+
+describe('GridCell（R6：宫格视口 = 配置 viewport_bars，不再硬编码 pageSize:120）', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('feed 传 viewportBars（缺省 120）且不再传 pageSize:120', () => {
+    expect(DEFAULT_KLINE_VIEWPORT_BARS).toBe(120);
+    renderCell(ENABLED_DATA_PLUS);
+    expect(KlineDataFeed).toHaveBeenCalledWith(expect.objectContaining({ viewportBars: 120 }));
+    const deps = (KlineDataFeed as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Record<string, unknown>;
+    expect(deps.pageSize).toBeUndefined();
+  });
+
+  it('传 viewportBars=200 → feed 收到 200（主图+宫格统一口径）', () => {
+    render(
+      <GridCell
+        symbol={ENABLED_DATA_PLUS}
+        period="15m"
+        api={fakeApi()}
+        ws={fakeWs()}
+        onPick={vi.fn()}
+        viewportBars={200}
+      />,
+    );
+    expect(KlineDataFeed).toHaveBeenCalledWith(expect.objectContaining({ viewportBars: 200 }));
+  });
+
+  it('复用 barSpaceFit：容器宽 470 / viewportBars=200 → setBarSpace(2) 并写 data-viewport-fit', async () => {
+    const { container } = render(
+      <GridCell
+        symbol={ENABLED_DATA_PLUS}
+        period="15m"
+        api={fakeApi()}
+        ws={fakeWs()}
+        onPick={vi.fn()}
+        viewportBars={200}
+      />,
+    );
+    const chartEl = container.querySelector('[data-grid-chart]') as HTMLElement;
+    expect(chartEl).not.toBeNull();
+    Object.defineProperty(chartEl, 'clientWidth', { configurable: true, value: 470 });
+    await triggerGetBars();
+    expect(chartStub.setBarSpace).toHaveBeenCalledWith(2); // round(470/200)
+    expect(chartEl.getAttribute('data-viewport-fit')).toBe(
+      JSON.stringify({ bars: 200, space: 2, visible: 235, clamped: false }),
+    );
+  });
+
+  it('缺省视口 120：470px 宫格 → space=4（与主图同一公式，仅宽度不同）', async () => {
+    const { container } = renderCell(ENABLED_DATA_PLUS);
+    const chartEl = container.querySelector('[data-grid-chart]') as HTMLElement;
+    Object.defineProperty(chartEl, 'clientWidth', { configurable: true, value: 470 });
+    await triggerGetBars();
+    expect(chartStub.setBarSpace).toHaveBeenCalledWith(4);
+    expect(MIN_KLINE_VIEWPORT_BARS).toBe(30);
+    expect(MAX_KLINE_VIEWPORT_BARS).toBe(600);
   });
 });

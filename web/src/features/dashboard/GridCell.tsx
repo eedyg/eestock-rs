@@ -3,7 +3,8 @@ import { dispose, init, type Chart } from 'klinecharts';
 import type { ApiClient } from '@/api/client';
 import type { Period, SymbolSnapshot } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
-import { KlineDataFeed } from './feed';
+import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
+import { fitBarSpaceToViewport, useBarSpaceFit } from './barSpaceFit';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
 import { cn } from '@/lib/utils';
 
@@ -18,19 +19,38 @@ export interface GridCellProps {
   onPick(code: string): void;
   /** MA 窗口（统一配置，主图+宫格共用；默认 [5,10,20]，从 GET /api/config/ma 读） */
   maWindows?: number[];
+  /** 配置视口（K 线根数，主图+宫格统一；缺省 DEFAULT_KLINE_VIEWPORT_BARS=120）。
+   *  旧实现硬编码 pageSize:120 导致「主图+宫格共用」名不副实（ADR-020 §1.3 F3）。 */
+  viewportBars?: number;
 }
 
 /** grid-view 单格：K线+MA 缩略（无副图），code/名称/涨跌幅表头；点格进单图聚焦 */
-export function GridCell({ symbol, period, api, ws, onPick, maWindows: maWindowsProp = DEFAULT_MA_WINDOWS }: GridCellProps) {
+export function GridCell({
+  symbol,
+  period,
+  api,
+  ws,
+  onPick,
+  maWindows: maWindowsProp = DEFAULT_MA_WINDOWS,
+  viewportBars = DEFAULT_KLINE_VIEWPORT_BARS,
+}: GridCellProps) {
   // D2：与 SymbolList 同口径——停用/无数据标的不伪造 0.00%
   const inactive = !symbol.enabled;
   const hasData = symbol.enabled && symbol.last !== null;
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
   const feed = useMemo(
-    () => new KlineDataFeed({ api, ws, code: symbol.code, period, pageSize: 120 }),
-    [api, ws, symbol.code, period],
+    () => new KlineDataFeed({ api, ws, code: symbol.code, period, viewportBars }),
+    [api, ws, symbol.code, period, viewportBars],
   );
+
+  // 与主图同口径的横向铺满（同模块 DRY）：按格宽 + 配置视口根数设 barSpace。
+  useBarSpaceFit({
+    elRef: chartRef,
+    getChart: () => chartInstanceRef.current,
+    viewportBars,
+    enabled: () => true, // 宫格不做手动缩放跟踪，resize 始终重算
+  });
 
   // 图表/数据流创建销毁。**不把 maWindowsProp 放 deps**：MA 窗口变更仅重刷 MA 指标（见下 effect），
   // 否则会 dispose 掉 memoized feed 后重建（disposed feed 不可复用，grid view 在 MA 保存后会失效）。
@@ -42,6 +62,8 @@ export function GridCell({ symbol, period, api, ws, onPick, maWindows: maWindows
     chart.setDataLoader({
       getBars: async ({ callback }) => {
         await feed.loadInitial();
+        // 初始铺满：按格宽 + 配置视口根数设 barSpace（与主图同一公式，仅宽度不同）。
+        fitBarSpaceToViewport(chart, chartRef.current, viewportBars);
         callback(feed.bars.map(toKcData), false);
       },
     });
@@ -83,7 +105,7 @@ export function GridCell({ symbol, period, api, ws, onPick, maWindows: maWindows
           <span className="ml-auto num text-dim">{inactive ? '已停用' : '无数据'}</span>
         )}
       </div>
-      <div ref={chartRef} className="min-h-0 flex-1" />
+      <div ref={chartRef} data-grid-chart className="min-h-0 flex-1" />
     </div>
   );
 }

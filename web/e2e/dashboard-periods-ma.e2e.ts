@@ -36,9 +36,11 @@ mkdirSync(SHOT, { recursive: true });
 
 const ENV_TAG = `eestock-app img 3dec9b69f005 · SPA index-B9RewKvL.js (b92fc88) · ${BASE}`;
 
-/** 分页批量 / 初始视口 pageSize（feed.ts PAGINATION_BATCH / defaultPageSizeForPeriod，b92fc88 口径） */
+/** 分页批量 / 初始视口 pageSize（feed.ts PAGINATION_BATCH / paginationBatchForPeriod；ADR-020 口径）
+ *  - BATCH：深翻每页批量（loadBefore），与视口解耦，维持 PAGINATION_BATCH 不变；
+ *  - INIT_PAGE：初始视口 = 配置的 K 线根数（默认 120，主图+宫格统一、与周期无关）—— 全周期同值。 */
 const BATCH: Record<string, number> = { '1w': 150, '1mo': 80, '1d': 250, '1m': 500 };
-const INIT_PAGE: Record<string, number> = { '1w': 30, '1mo': 24, '1d': 2, '1m': 482 };
+const INIT_PAGE: Record<string, number> = { '1w': 120, '1mo': 120, '1d': 120, '1m': 120 };
 const BTN: Record<string, string> = { '1w': '周', '1mo': '月', '1d': '日', '1m': '1m' };
 
 /* ───────────────────────────── 通用 helpers ───────────────────────────── */
@@ -414,7 +416,7 @@ test('T1 周线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=150/�
     deltaRule: weeklyDeltaOk,
   });
   // 初始视口 30（周），非 2
-  expect(out.initialPages[0]?.limit, '周线初始视口 limit=30').toBe(INIT_PAGE['1w']);
+  expect(out.initialPages[0]?.limit, '周线初始视口 limit=120（ADR-020 默认根数）').toBe(INIT_PAGE['1w']);
   // 深翻翻页批量 150/页且满页（非「一次 2 根」）
   expect(out.forwardPages.length, '至少 1 个 forward 批页').toBeGreaterThanOrEqual(1);
   expect(out.allForwardBatch, `每个 forward 请求 limit=150 且响应 150 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
@@ -441,7 +443,7 @@ test('T2 月线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=80/�
     maxDrags: 40,
     deltaRule: monthlyDeltaOk,
   });
-  expect(out.initialPages[0]?.limit, '月线初始视口 limit=24').toBe(INIT_PAGE['1mo']);
+  expect(out.initialPages[0]?.limit, '月线初始视口 limit=120（ADR-020 默认根数）').toBe(INIT_PAGE['1mo']);
   expect(out.forwardPages.length, '至少 1 个 forward 批页').toBeGreaterThanOrEqual(1);
   expect(out.allForwardBatch, `每个 forward 请求 limit=80 且响应 80 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
   expect(out.reached, `深翻可达 ${out.earliestTs}（earliest < 2022-01-01）`).toBeTruthy();
@@ -469,7 +471,7 @@ test('T3 日线：连续左翻 ≥2 批页 + 分页批量 limit=250/无缺口/�
     deltaRule: dailyDeltaOk,
   });
   // 初始视口=2 根（定稿 1d 设计），深翻翻页批量 250/页且满页
-  expect(out.initialPages[0]?.limit, '日线初始视口 limit=2').toBe(INIT_PAGE['1d']);
+  expect(out.initialPages[0]?.limit, '日线初始视口 limit=120（ADR-020 默认根数；旧 2 交易日已废除）').toBe(INIT_PAGE['1d']);
   expect(out.forwardPages.length, '日线至少 2 个 forward 批页').toBeGreaterThanOrEqual(2);
   expect(out.allForwardBatch, `每个 forward 请求 limit=250 且响应 250 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
   expect(out.dups, '跨页去重：无重复 ts').toBe(0);
@@ -490,7 +492,7 @@ test('T4 分钟 1m：分页批量 limit=500（非 2）/无重复/深翻推进', 
 
   const out = await deepPan(page, '1m', { minForward: 2, maxDrags: 30, settleMs: 320, tailDrags: 3 });
   // 初始视口=482（2 交易日分钟数），forward 批量=500 且满页
-  expect(out.initialPages[0]?.limit, '1m 初始视口 limit=482').toBe(INIT_PAGE['1m']);
+  expect(out.initialPages[0]?.limit, '1m 初始视口 limit=120（ADR-020 默认根数；旧 482 已废除）').toBe(INIT_PAGE['1m']);
   expect(out.forwardPages.length, '1m 至少 2 个 forward 批页').toBeGreaterThanOrEqual(2);
   expect(out.allForwardBatch, `每个 forward 请求 limit=500 且响应 500 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
   expect(out.dups, '跨页去重：无重复 ts').toBe(0);

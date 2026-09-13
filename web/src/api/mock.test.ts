@@ -610,3 +610,27 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     await expect(api.deleteWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('createMockClient（ADR-020：K线默认视口 = 根数口径 viewport_bars）', () => {
+  it('getKlineConfig 缺省 120（与后端 DEFAULT_KLINE_VIEWPORT_BARS 同构）', async () => {
+    const api = createMockClient();
+    expect(await api.getKlineConfig()).toEqual({ viewport_bars: 120 });
+  });
+
+  it('saveKlineConfig 合法（30/120/600）→ 回显 viewport_bars 且 GET 读回一致', async () => {
+    const api = createMockClient();
+    for (const n of [30, 120, 600]) {
+      expect(await api.saveKlineConfig(n)).toEqual({ viewport_bars: n });
+      expect(await api.getKlineConfig()).toEqual({ viewport_bars: n });
+    }
+  });
+
+  it('saveKlineConfig 越界/非整 → ApiError 400，且内存值不变', async () => {
+    const api = createMockClient();
+    await api.saveKlineConfig(300);
+    for (const bad of [29, 601, 0, -1, 120.5]) {
+      await expect(api.saveKlineConfig(bad)).rejects.toMatchObject({ status: 400 });
+    }
+    expect(await api.getKlineConfig()).toEqual({ viewport_bars: 300 });
+  });
+});
