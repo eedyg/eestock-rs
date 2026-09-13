@@ -169,10 +169,11 @@ on_bar(ctx):
 |---|---|---|
 | 注册 | `registerIndicator` 自定义指标，名 `DCAP`，`shortName` `DCAP` | `index.d.ts:1232` |
 | 副图 | **独立副图 pane**（**不可像 MA 叠主图**：dcap 与价格无量纲关系，叠主图会压爆主图 Y 轴） | MA 走 `paneId:'candle_pane'` |
-| 三线 | 一个指标的 3 个 figure：`s` / `m` / `l` | 与 KDJ 的 K/D/J 同构，`index.d.ts:738` |
+| figure 构成 | **3 个数据 figure**（`s` / `m` / `l`）+ **1 条常驻 0 参考线**（第 4 figure `zero`，值恒 `0`） | 数据三线与 KDJ 的 K/D/J 同构（`index.d.ts:738`）；0 参考线见下行 |
+| 0 参考线 | 第 4 figure `zero`：**每条 bar 都返回值 `0`**（数据不足时三条数据线断线 `null`，**0 线仍返回 0**；异常降级路径同理）。样式：细（`size: 1`）、灰（`#76808F`，暗色主题可读）、虚线（`style: 'dashed'`）——与三条数据线视觉区分。作用：**参与副图 Y 轴自动标度**（klinecharts 副图区间取该 pane 内各 indicator 各 figure 值的 min/max，`index.esm.js:1017-1022` ⇒ 只有把 0 纳入标度，0 线才能在任何时段/缩放（含数据不足段）下始终可见）。**不参与策略口径**（CORE/插件/路由零影响）：`DcapValues` 契约不变，该值由手写层 `dcapIndicator.ts` 的 `calc` 在返回对象上就地扩展（`{ ...values, zero: 0 }`），tangle 生成物零改动。 | 取舍（2026-09-13 已向用户说明）：副图 Y 轴**始终包含 0**；三线整体远离 0 时信号会被压缩。若日后改为「仅当 0 落在自动范围内才画 0 线」，需另行定口径（本阶段不做） |
 | 精度 | **必须显式 `precision: 5`**（且附理由） | 事实：**自定义指标默认 `precision = 4`**（`index.esm.js:3156` `this.precision = 4`；`series` 默认 `'normal'` ⇒ 走不到 `_synchronizeIndicatorSeriesPrecision` 的 price/volume 分支，`index.esm.js:14219-14226`）。`precision = 2` 只出现在**内置模板**里（MA/EMA/BOLL…）。⇒ 默认 4 位时 `0.0048` 能显示，但**丢第 5 位**（`0.004578…` → `0.0046`），故显式设 **5**（`0.0048` 渲染为 `0.00480`） |
 | 小数折叠 | `decimalFold.threshold = 3`（默认） | `0.0048` 点后仅 2 个 0，**不折叠、原样显示**；若值常 ≤ 0.0005 会折成 `0.0{3}48` 形态，必要时把阈值调大 |
-| 断线 | 数据不足返回 `null` ⇒ 线自然断开（figure 值域 `Nullable<D>`） | 表现为"线从第 `n_i+m−1` 根开始" |
+| 断线 | 数据不足返回 `null` ⇒ 线自然断开（figure 值域 `Nullable<D>`）；**0 参考线不参与断线**（恒返回 `0`） | 表现为"线从第 `n_i+m−1` 根开始" |
 | `calcParams` | `[n_s, n_m, n_l, r_s, r_m, r_l, smooth, m]`（图表不需要 `th`） | klinecharts 数值数组 |
 | 取数 warmup | **仅当 DCAP 指标开启时**：前端取数 `limit = viewport_bars + (n_l + m − 1)`，**多取部分仅供计算、不上图**；**关闭时 `limit = viewport_bars`（不动 ADR-020 既有取数口径）**。架构裁决 2026-09-13（依据 P3 实现 + 独立验收实测：开 60/3 → 182、关 → 120、服务端 `n_l=200,m=5` → 324） | 否则视口最左侧永远缺一段；关闭时无 dcap 线，不需前置数据，避免无谓扩大取数 |
 
