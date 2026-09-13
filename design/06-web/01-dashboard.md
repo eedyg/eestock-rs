@@ -276,7 +276,7 @@ export function DashboardGrid(props: DashboardGridProps) {
               {/* <KlineChart/> 或 <TimeshareChart/>（chartTab 切换；经 RegionPortal 挂入本锚点） */}
               {/* sub-chart：成交量副图（klinecharts volume pane 经主图容器 h-full 在底部呈现），
                   随主图数据/三态，无独立交互；绝对定位仅作锚点占位，不占主图布局 */}
-              <div data-region="sub-chart" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t">
+              <div data-region="sub-chart" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/5">
                 {/* <VolumeChart/> */}
               </div>
             </div>

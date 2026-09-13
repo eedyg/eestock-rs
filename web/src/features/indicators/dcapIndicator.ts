@@ -6,23 +6,52 @@
  * 权威口径：  `design/14-dcap-indicator/02-spec.md` §6（图表契约 C）/ §7（配置面）
  *
  * 契约要点（02-spec §6）：
- *  - 名 `DCAP`；一个指标的 3 个 figure（`s` / `m` / `l`，与 KDJ 的 K/D/J 同构）；
+ *  - 名 `DCAP`；一个指标的 **3 个数据 figure**（`s` / `m` / `l`，与 KDJ 的 K/D/J 同构）
+ *    **+ 1 条常驻 0 参考线**（第 4 figure `zero`，值恒 0）：它参与副图 Y 轴自动标度
+ *    （klinecharts 的副图区间取「该 pane 内各 indicator 各 figure 值的 min/max」⇒ 常驻 0 才能让 0 线
+ *    在任何缩放/时段下都可见）；**不参与策略口径**（CORE 与路由/插件不受影响）；
  *  - **独立副图 pane**（不得叠 `candle_pane`：dcap 与价格无量纲关系，叠主图会压爆主图 Y 轴）——
  *    由调用方 `chart.createIndicator({name:'DCAP', ...}, true)`（isStack）建独立 pane，故模板不带 `paneId`；
  *  - **必须显式 `precision: 5`**：klinecharts 自定义指标默认 `precision = 4`，`0.004578…` 会在 4 位下丢第 5 位；
  *  - `calcParams = [n_s, n_m, n_l, r_s, r_m, r_l, smooth, m]`（图表不需要 `th`）；
  *  - 数据不足 → `null`（附图值域 `Nullable<D>` ⇒ 线自然断开）；**任何异常必须降级为断线**，不得抛出打断渲染（§9）。
  */
-import { registerIndicator, type IndicatorTemplate, type KLineData } from 'klinecharts';
+import {
+  registerIndicator,
+  type IndicatorFigureStyle,
+  type IndicatorTemplate,
+  type KLineData,
+} from 'klinecharts';
 import { computeDcapSeries, type DcapParams, type DcapValues } from './dcap';
 
 /** 显示参数（8 个，`th` 除外）—— 复用 tangle 生成物 `dcap.ts` 的契约类型（02-spec §4）。 */
 export type { DcapParams, DcapValues };
 
+/** DCAP 副图的 figure 值域 = 三条数据线（`s`/`m`/`l`，可为 null 断线）**+ 常驻 0 参考线 `zero`**。
+ *
+ * 为什么是手写层的本地类型（而非改 `DcapValues`）：`DcapValues` 是 tangle 生成物
+ * `dcap.ts` 的契约（CORE/插件逐字节镜像），**不得为纯展示需求改动**；故第 4 figure 的值
+ * 在 `calc` 返回对象上就地扩展（`{ ...values, zero: 0 }`），生成物零改动（02-spec §6）。 */
+export interface DcapFigureValues extends DcapValues {
+  zero: 0;
+}
+
 /** 指标名（`registerIndicator` / `createIndicator` / `removeIndicator` 三处口径一致）。 */
 export const DCAP_INDICATOR_NAME = 'DCAP';
 /** 显式精度（02-spec §6：默认 4 位会丢第 5 位，必须钉 5）。 */
 export const DCAP_PRECISION = 5;
+
+/** 0 参考线的 figure key / 标题（02-spec §6：第 4 figure，值恒 0）。 */
+export const DCAP_ZERO_FIGURE_KEY = 'zero';
+export const DCAP_ZERO_FIGURE_TITLE = '0: ';
+/** 0 参考线样式：细（size 1）、灰（暗色主题可读的 `#76808F`）、虚线——与三条数据线视觉区分。 */
+export const DCAP_ZERO_LINE_STYLE: IndicatorFigureStyle = {
+  color: '#76808F',
+  style: 'dashed',
+  size: 1,
+  dashedValue: [4, 4],
+  smooth: false,
+};
 
 /** 显示参数范围（02-spec §2；`th` 属策略参数，不进前端模块，也不进 `/api/config/dcap`）。 */
 export const DCAP_N_MIN = 2;
@@ -98,12 +127,12 @@ export function validateDcapParams(p: DcapParams): string | null {
   return null;
 }
 
-/** 三线全缺的「断线」值（figure 值域 Nullable ⇒ 线在此断开）。 */
-function breakValue(): DcapValues {
-  return { s: null, m: null, l: null };
+/** 三线全缺的「断线」值（figure 值域 Nullable ⇒ 线在此断开）；**0 参考线不受影响，恒为 0**。 */
+function breakValue(): DcapFigureValues {
+  return { s: null, m: null, l: null, zero: 0 };
 }
 
-function breakSeries(len: number): DcapValues[] {
+function breakSeries(len: number): DcapFigureValues[] {
   return Array.from({ length: len }, breakValue);
 }
 
@@ -112,17 +141,21 @@ function finiteOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
-function toDcapValues(v: unknown): DcapValues {
+function toDcapValues(v: unknown): DcapFigureValues {
   const o = (v ?? {}) as Partial<DcapValues>;
-  return { s: finiteOrNull(o.s), m: finiteOrNull(o.m), l: finiteOrNull(o.l) };
+  return { s: finiteOrNull(o.s), m: finiteOrNull(o.m), l: finiteOrNull(o.l), zero: 0 };
 }
 
 /**
- * `calc` 正文：closes → `computeDcapSeries`（CORE，含入口归一化）→ 三线值。
- * **降级纪律（02-spec §9）**：数据不足 → null 断线；任何异常（含读取 bar 字段抛错）→ 全 null 断线；
+ * `calc` 正文：closes → `computeDcapSeries`（CORE，含入口归一化）→ 三线值 + 常驻 0 参考线。
+ * **降级纪律（02-spec §9）**：数据不足 → 三线 null 断线（**0 线仍返回 0**）；
+ * 任何异常（含读取 bar 字段抛错）→ 三线全 null 断线（0 线同样仍在）；
  * 长度恒等于 `dataList.length`（引擎按索引对齐），任何情况下都不得向外抛。
  */
-function calcDcapSeries(dataList: KLineData[], calcParams: readonly number[] | null | undefined): DcapValues[] {
+function calcDcapSeries(
+  dataList: KLineData[],
+  calcParams: readonly number[] | null | undefined,
+): DcapFigureValues[] {
   if (!Array.isArray(dataList)) return [];
   const params = dcapParamsFromCalcParams(calcParams);
   try {
@@ -136,8 +169,9 @@ function calcDcapSeries(dataList: KLineData[], calcParams: readonly number[] | n
   }
 }
 
-/** klinecharts 指标模板（02-spec §6）。`figures` 三线 s/m/l；无 `paneId` ⇒ 由 isStack 建独立副图。 */
-export const DCAP_INDICATOR_TEMPLATE: IndicatorTemplate<DcapValues, number> = {
+/** klinecharts 指标模板（02-spec §6）。`figures` = 3 条数据线 s/m/l + 1 条常驻 0 参考线 zero；
+ *  无 `paneId` ⇒ 由 isStack 建独立副图。第 4 figure 只影响该副图的 Y 轴标度与观感，不进 CORE/插件。 */
+export const DCAP_INDICATOR_TEMPLATE: IndicatorTemplate<DcapFigureValues, number> = {
   name: DCAP_INDICATOR_NAME,
   shortName: DCAP_INDICATOR_NAME,
   precision: DCAP_PRECISION,
@@ -146,6 +180,13 @@ export const DCAP_INDICATOR_TEMPLATE: IndicatorTemplate<DcapValues, number> = {
     { key: 's', title: 'S: ', type: 'line' },
     { key: 'm', title: 'M: ', type: 'line' },
     { key: 'l', title: 'L: ', type: 'line' },
+    // 第 4 figure：常驻 0 参考线（细灰虚线）。值恒 0 ⇒ 副图 Y 轴 min ≤ 0 ≤ max ⇒ 0 线始终可见。
+    {
+      key: DCAP_ZERO_FIGURE_KEY,
+      title: DCAP_ZERO_FIGURE_TITLE,
+      type: 'line',
+      styles: () => DCAP_ZERO_LINE_STYLE,
+    },
   ],
   calc: (dataList, indicator) => calcDcapSeries(dataList, indicator?.calcParams),
 };

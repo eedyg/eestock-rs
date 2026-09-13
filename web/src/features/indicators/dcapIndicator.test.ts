@@ -28,6 +28,7 @@ import {
   dcapWarmupBars,
   ensureDcapIndicatorRegistered,
   validateDcapParams,
+  type DcapFigureValues,
 } from './dcapIndicator';
 import { computeDcapSeries, type DcapValues } from './dcap';
 
@@ -36,23 +37,42 @@ function rampCloses(n: number, start = 100, step = 0.5): number[] {
   return Array.from({ length: n }, (_, i) => start + i * step);
 }
 
-type CalcFn = (dataList: unknown[], indicator: unknown) => DcapValues[];
+type CalcFn = (dataList: unknown[], indicator: unknown) => DcapFigureValues[];
 const calc = DCAP_INDICATOR_TEMPLATE.calc as unknown as CalcFn;
 
-function values(dataList: unknown[], calcParams: number[]): DcapValues[] {
+function values(dataList: unknown[], calcParams: number[]): DcapFigureValues[] {
   return calc(dataList, { calcParams });
 }
 
+/** 三数据线（去掉常驻 0 参考线）——用于与 `computeDcapSeries` 逐位比对（zero 是纯展示层扩展，见问题②）。 */
+function threeLines(v: DcapFigureValues): DcapValues {
+  return { s: v.s, m: v.m, l: v.l };
+}
+
 describe('DCAP 注册面（design/14-dcap-indicator/02-spec.md §6）', () => {
-  it('指标名/短名 = DCAP；3 个 figure = s/m/l（均为 line）；precision 显式 5', () => {
+  it('指标名/短名 = DCAP；3 个数据 figure = s/m/l + 1 条第 4 figure = zero（均为 line）；precision 显式 5', () => {
     expect(DCAP_INDICATOR_NAME).toBe('DCAP');
     expect(DCAP_INDICATOR_TEMPLATE.name).toBe('DCAP');
     expect(DCAP_INDICATOR_TEMPLATE.shortName).toBe('DCAP');
     expect(DCAP_PRECISION).toBe(5);
     expect(DCAP_INDICATOR_TEMPLATE.precision).toBe(5);
     const figures = DCAP_INDICATOR_TEMPLATE.figures!;
-    expect(figures.map((f) => f.key)).toEqual(['s', 'm', 'l']);
+    expect(figures.map((f) => f.key)).toEqual(['s', 'm', 'l', 'zero']);
     expect(figures.every((f) => f.type === 'line')).toBe(true);
+    expect(figures[3]!.title).toBe('0: ');
+  });
+
+  it('第 4 figure `zero` 的样式 = 细灰虚线（#76808F / dashed / size 1），且三条数据线不覆写样式', () => {
+    const figures = DCAP_INDICATOR_TEMPLATE.figures!;
+    // 数据线（s/m/l）保持面板默认样式（round-robin 默认色，不被覆写）
+    for (const f of [figures[0]!, figures[1]!, figures[2]!]) expect(f.styles).toBeUndefined();
+    const zero = figures[3]!;
+    expect(typeof zero.styles).toBe('function');
+    const style = zero.styles!({} as never) as Record<string, unknown>;
+    expect(style.color).toBe('#76808F');
+    expect(style.style).toBe('dashed');
+    expect(style.size).toBe(1);
+    expect(Array.isArray(style.dashedValue)).toBe(true);
   });
 
   it('模板不带 paneId（不得叠 candle_pane：副图 pane 由 createIndicator(isStack=true) 建）', () => {
@@ -84,13 +104,13 @@ describe('DCAP calc 面（数据不足 → null 断线；计算对齐 computeDca
     expect(got).toHaveLength(closes.length);
     expect(want).toHaveLength(closes.length);
     for (let i = 0; i < closes.length; i++) {
-      expect(got[i]).toStrictEqual(want[i]);
+      expect(threeLines(got[i]!)).toStrictEqual(want[i]);
     }
   });
 
   it('数据不足 → null（每线各自 n_i + m − 1 首值：s=9 / m=27 / l=61；l 在 index 60 仍 null）', () => {
     const got = values(dataList, dcapCalcParams(DEFAULT_DCAP_PARAMS));
-    expect(got[0]).toStrictEqual({ s: null, m: null, l: null });
+    expect(got[0]).toStrictEqual({ s: null, m: null, l: null, zero: 0 });
     expect(got[9]!.s).not.toBeNull();
     expect(got[8]!.s).toBeNull();
     expect(got[27]!.m).not.toBeNull();
@@ -131,16 +151,16 @@ describe('DCAP calc 降级面（任何异常 → 断线，不抛、不打断渲�
     expect(values(undefined as unknown as unknown[], [8, 26, 60, 1, 1, 1, 1, 3])).toEqual([]);
   });
 
-  it('bar.close 读取抛异常 → 降级为全 null（长度对齐），不向外抛', () => {
+  it('bar.close 读取抛异常 → 降级为三条数据线全 null（长度对齐）+ zero 仍为 0，不向外抛', () => {
     const evil = [
       { get close(): number { throw new Error('boom'); } },
       { get close(): number { throw new Error('boom'); } },
     ];
-    let got: DcapValues[] = [];
+    let got: DcapFigureValues[] = [];
     expect(() => { got = values(evil, [8, 26, 60, 1, 1, 1, 1, 3]); }).not.toThrow();
     expect(got).toStrictEqual([
-      { s: null, m: null, l: null },
-      { s: null, m: null, l: null },
+      { s: null, m: null, l: null, zero: 0 },
+      { s: null, m: null, l: null, zero: 0 },
     ]);
   });
 
@@ -150,6 +170,41 @@ describe('DCAP calc 降级面（任何异常 → 断线，不抛、不打断渲�
     const got = values(dataList, undefined as unknown as number[]);
     expect(got).toHaveLength(70);
     expect(got[61]!.l).not.toBeNull(); // 默认 n_l=60 → 61 起有值
+  });
+});
+
+describe('DCAP 常驻 0 参考线（问题② / 02-spec §6：第 4 figure zero 使副图 Y 轴自动标度始终包含 0）', () => {
+  const closes = rampCloses(70);
+  const dataList = closes.map((close, i) => ({ timestamp: 1_700_000_000_000 + i * 60_000, close }));
+  const params = dcapCalcParams(DEFAULT_DCAP_PARAMS);
+
+  it('每条 bar 都返回 zero = 0（数据不足的断线段同样有 0 线）', () => {
+    const got = values(dataList, params);
+    expect(got).toHaveLength(closes.length);
+    expect(got.every((v) => v.zero === 0)).toBe(true);
+    // 三线全断的段（首值 s 在 index 9 ⇒ 0..8）同样必须有 zero（0 线不随数据不足消失）
+    const head = got.slice(0, 9);
+    expect(head.every((v) => v.s === null && v.m === null && v.l === null && v.zero === 0)).toBe(true);
+  });
+
+  it('zero 参与 Y 轴标度：恒有 min ≤ 0 ≤ max（三线全 null 时 0 仍在范围内）', () => {
+    const onlyInsufficient = values(dataList.slice(0, 5), params);
+    expect(onlyInsufficient.map((v) => v.zero)).toEqual([0, 0, 0, 0, 0]);
+    expect(onlyInsufficient.every((v) => v.s === null && v.m === null && v.l === null)).toBe(true);
+    const allValues = values(dataList, params)
+      .flatMap((v) => [v.s, v.m, v.l, v.zero])
+      .filter((v): v is number => v !== null);
+    expect(Math.min(...allValues)).toBeLessThanOrEqual(0);
+    expect(Math.max(...allValues)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('异常降级路径同样不抛且 zero 恒 0（close 读取抛异常 / 非数组 / calcParams 非法）', () => {
+    const evil = [{ get close(): number { throw new Error('boom'); } }];
+    expect(values(evil, params)[0]!.zero).toBe(0);
+    expect(values(undefined as unknown as unknown[], params)).toEqual([]);
+    const bad = values(dataList, undefined as unknown as number[]);
+    expect(bad).toHaveLength(70);
+    expect(bad.every((v) => v.zero === 0)).toBe(true);
   });
 });
 
