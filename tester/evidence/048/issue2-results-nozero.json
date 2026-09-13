@@ -1,0 +1,337 @@
+{
+  "base": "http://127.0.0.1:18083",
+  "mode": "nozero",
+  "results": [
+    {
+      "name": "②-0 DCAP 关闭态：无 DCAP 指标/pane ⇒ 无 0 线",
+      "ok": true,
+      "detail": {
+        "hasDcap": false,
+        "dataLen": 120,
+        "panes": [
+          "candle_pane",
+          "indicator_pane_1789305230229_3",
+          "x_axis_pane"
+        ],
+        "inds": [
+          "MA",
+          "VOL"
+        ]
+      }
+    },
+    {
+      "name": "②-1 DCAP figKeys = s/m/l/zero，precision = 5",
+      "ok": false,
+      "detail": {
+        "hasDcap": true,
+        "paneId": "indicator_pane_1789305232474_6",
+        "precision": 5,
+        "figKeys": [
+          "s",
+          "m",
+          "l"
+        ],
+        "dataLen": 182,
+        "resultLen": 182,
+        "dataMin": -0.03002103759524344,
+        "dataMax": 0.019163098318514482,
+        "dataNonNull": 455,
+        "zeroNonNull": 182,
+        "zeroIsAllZero": true,
+        "range": {
+          "from": -0.022453669669891384,
+          "to": 0.025246938819260455
+        },
+        "y0": 53,
+        "yAxisY0": 53,
+        "paneH": 100,
+        "canvasH": 100,
+        "scaleY": 1,
+        "row": 53,
+        "gray": 0,
+        "grayPixels": 0,
+        "firstGrayXs": [],
+        "grayGaps": []
+      }
+    },
+    {
+      "name": "②-2 每根 bar 的 zero 恒 = 0",
+      "ok": true,
+      "detail": {
+        "zeroNonNull": 182,
+        "resultLen": 182
+      }
+    },
+    {
+      "name": "②-3 真实数据：三线跨越 0（min<0<max）",
+      "ok": true,
+      "detail": {
+        "min": -0.03002103759524344,
+        "max": 0.019163098318514482
+      }
+    },
+    {
+      "name": "②-4 真实数据：副图 Y 轴范围含 0",
+      "ok": true,
+      "detail": {
+        "from": -0.022453669669891384,
+        "to": 0.025246938819260455
+      }
+    },
+    {
+      "name": "②-5 真实数据：0 线 y == yAxis y(0) 且落在 pane 内",
+      "ok": true,
+      "detail": {
+        "y0": 53,
+        "yAxisY0": 53,
+        "paneH": 100
+      }
+    },
+    {
+      "name": "②-6 真实数据：canvas 在 y(0) 行渲染出 #76808F 虚线（像素）",
+      "ok": false,
+      "detail": {
+        "row": 53,
+        "gray": 0,
+        "gaps": []
+      }
+    },
+    {
+      "name": "②-7 形态①(全正)：三线全为正（min>0）",
+      "ok": true,
+      "detail": {
+        "min": 0.008883419975404205,
+        "max": 0.13503313127301797,
+        "n": 509
+      }
+    },
+    {
+      "name": "②-8 形态①(全正)：Y 轴范围仍含 0（range.from ≤ 0 < 数据 min）⇒ 0 线在可视范围",
+      "ok": true,
+      "detail": {
+        "range": {
+          "from": -0.0018615756046417523,
+          "to": 0.1378233669359557
+        },
+        "dataMin": 0.008883419975404205
+      }
+    },
+    {
+      "name": "②-9 形态①(全正)：0 线 y == y(0) 映射且落在 pane 内",
+      "ok": true,
+      "detail": {
+        "y0": 99,
+        "paneH": 100
+      }
+    },
+    {
+      "name": "②-10 形态①(全正)：canvas 在 y(0) 行渲染出 #76808F 虚线（像素）",
+      "ok": false,
+      "detail": {
+        "row": 99,
+        "gray": 0,
+        "gaps": []
+      }
+    },
+    {
+      "name": "②-11 形态②(跨 0)：三线存在负值且跨越 0（min<0<max）",
+      "ok": true,
+      "detail": {
+        "min": -0.1124980121374145,
+        "max": 0.12241951752321745
+      }
+    },
+    {
+      "name": "②-12 形态②(跨 0)：Y 轴范围含 0",
+      "ok": true,
+      "detail": {
+        "from": -0.1118791245964454,
+        "to": 0.16501927063588342
+      }
+    },
+    {
+      "name": "②-13 形态②(跨 0)：0 线 y == y(0) 映射且落在 pane 内",
+      "ok": true,
+      "detail": {
+        "y0": 60,
+        "paneH": 100
+      }
+    },
+    {
+      "name": "②-14 形态②(跨 0)：canvas 在 y(0) 行渲染出 #76808F 虚线（像素）",
+      "ok": false,
+      "detail": {
+        "row": 60,
+        "gray": 0,
+        "gaps": []
+      }
+    },
+    {
+      "name": "②-15 数据不足：三条数据线全 null（断线）",
+      "ok": true,
+      "detail": {
+        "dataNonNull": 0,
+        "resultLen": 5
+      }
+    },
+    {
+      "name": "②-16 数据不足：zero 仍每根 bar 返回 0（0 线不随数据不足消失）",
+      "ok": true,
+      "detail": {
+        "zeroNonNull": 5,
+        "resultLen": 5
+      }
+    },
+    {
+      "name": "②-17 数据不足：Y 轴范围含 0 且 0 线渲染在 y(0)",
+      "ok": false,
+      "detail": {
+        "range": {
+          "from": -1,
+          "to": 12
+        },
+        "y0": 92,
+        "gray": 0
+      }
+    }
+  ],
+  "infos": {
+    "offInfo": {
+      "hasDcap": false,
+      "dataLen": 120,
+      "panes": [
+        "candle_pane",
+        "indicator_pane_1789305230229_3",
+        "x_axis_pane"
+      ],
+      "inds": [
+        "MA",
+        "VOL"
+      ]
+    },
+    "realInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305232474_6",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l"
+      ],
+      "dataLen": 182,
+      "resultLen": 182,
+      "dataMin": -0.03002103759524344,
+      "dataMax": 0.019163098318514482,
+      "dataNonNull": 455,
+      "zeroNonNull": 182,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.022453669669891384,
+        "to": 0.025246938819260455
+      },
+      "y0": 53,
+      "yAxisY0": 53,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 53,
+      "gray": 0,
+      "grayPixels": 0,
+      "firstGrayXs": [],
+      "grayGaps": []
+    },
+    "upInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305232474_6",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l"
+      ],
+      "dataLen": 200,
+      "resultLen": 200,
+      "dataMin": 0.008883419975404205,
+      "dataMax": 0.13503313127301797,
+      "dataNonNull": 509,
+      "zeroNonNull": 200,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.0018615756046417523,
+        "to": 0.1378233669359557
+      },
+      "y0": 99,
+      "yAxisY0": 99,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 99,
+      "gray": 0,
+      "grayPixels": 0,
+      "firstGrayXs": [],
+      "grayGaps": []
+    },
+    "mixInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305232474_6",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l"
+      ],
+      "dataLen": 220,
+      "resultLen": 220,
+      "dataMin": -0.1124980121374145,
+      "dataMax": 0.12241951752321745,
+      "dataNonNull": 569,
+      "zeroNonNull": 220,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -0.1118791245964454,
+        "to": 0.16501927063588342
+      },
+      "y0": 60,
+      "yAxisY0": 60,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 60,
+      "gray": 0,
+      "grayPixels": 0,
+      "firstGrayXs": [],
+      "grayGaps": []
+    },
+    "shortInfo": {
+      "hasDcap": true,
+      "paneId": "indicator_pane_1789305232474_6",
+      "precision": 5,
+      "figKeys": [
+        "s",
+        "m",
+        "l"
+      ],
+      "dataLen": 5,
+      "resultLen": 5,
+      "dataMin": null,
+      "dataMax": null,
+      "dataNonNull": 0,
+      "zeroNonNull": 5,
+      "zeroIsAllZero": true,
+      "range": {
+        "from": -1,
+        "to": 12
+      },
+      "y0": 92,
+      "yAxisY0": 92,
+      "paneH": 100,
+      "canvasH": 100,
+      "scaleY": 1,
+      "row": 92,
+      "gray": 0,
+      "grayPixels": 0,
+      "firstGrayXs": [],
+      "grayGaps": []
+    }
+  }
+}

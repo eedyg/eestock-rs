@@ -1,0 +1,1265 @@
+{
+  "variant": "dcap",
+  "cssPath": "/tmp/live.css",
+  "volId": "indicator_pane_1789303856405_3",
+  "volId2": "indicator_pane_1789303857315_3",
+  "steps": [
+    {
+      "label": "default(MA on, VOL on, DCAP off)",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 737,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303854393_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303854393_3"
+        }
+      ],
+      "separatorCount": 1,
+      "separatorCountApi": 1,
+      "expectedSeparatorsByPaneCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "dcap_on#1",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303855194_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303855194_6",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303855194_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303855194_6"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "dcap_off#1",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 737,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303855497_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303855497_3"
+        }
+      ],
+      "separatorCount": 1,
+      "separatorCountApi": 1,
+      "expectedSeparatorsByPaneCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "dcap_on#2",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303855800_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303855800_5",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303855800_2"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303855800_5"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "dcap_off#2",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 737,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303856102_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303856102_3"
+        }
+      ],
+      "separatorCount": 1,
+      "separatorCountApi": 1,
+      "expectedSeparatorsByPaneCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "dcap_on#3(连切3次)",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303856405_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303856405_6",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303856405_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303856405_6"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol240_dcap_on",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 496,
+          "w": 1200
+        },
+        {
+          "topInMain": 497,
+          "h": 240,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303856405_3",
+          "height": 240,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303856405_6",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303856405_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303856405_6"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 496,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol240_dcap_off",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 737,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857011_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303857011_3"
+        }
+      ],
+      "separatorCount": 1,
+      "separatorCountApi": 1,
+      "expectedSeparatorsByPaneCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol240_dcap_on#2",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857315_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857315_6",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303857315_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303857315_6"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol400_dcap_on",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 336,
+          "w": 1200
+        },
+        {
+          "topInMain": 337,
+          "h": 400,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857315_3",
+          "height": 400,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857315_6",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303857315_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303857315_6"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 336,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol400_ma_off",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857920_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303857920_5",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303857920_2"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303857920_5"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    },
+    {
+      "label": "vol400_ma_on",
+      "mainChart": {
+        "h": 864,
+        "w": 1200
+      },
+      "subChartAnchor": {
+        "topInMain": 691.2,
+        "h": 172.8,
+        "w": 1200,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid"
+      },
+      "paneGeomDom": [
+        {
+          "topInMain": 0,
+          "h": 636,
+          "w": 1200
+        },
+        {
+          "topInMain": 637,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 738,
+          "h": 100,
+          "w": 1200
+        },
+        {
+          "topInMain": 838,
+          "h": 26,
+          "w": 1200
+        }
+      ],
+      "paneOptions": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303858221_3",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789303858222_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "emptyPanes": [],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane"
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789303858221_3"
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789303858222_2"
+        }
+      ],
+      "separatorCount": 2,
+      "separatorCountApi": 2,
+      "expectedSeparatorsByPaneCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 691.2,
+          "h": 172.8,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 636,
+          "h": 1,
+          "w": 1200
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 737,
+          "h": 1,
+          "w": 1200
+        }
+      ]
+    }
+  ],
+  "calls": [
+    "init -> id=k_line_chart_1",
+    "removeIndicator {\"name\":\"MA\"} -> false | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303854392_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303854392_1 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> false | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303854392_2\",\"paneId\":\"indicator_pane_1789303854392_3\",\"yAxisId\":\"yAxis_1789303854392_4\"} isStack=true -> VOL_1789303854392_2 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303854393_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303854393_1 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854392_3] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303854393_2\",\"paneId\":\"indicator_pane_1789303854393_3\",\"yAxisId\":\"yAxis_1789303854393_4\"} isStack=true -> VOL_1789303854393_2 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303854393_3]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303854393_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303854393_3,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303855194_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303855194_1 | panesBefore=[candle_pane,indicator_pane_1789303854393_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303854393_3,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303854393_3,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303855194_2\",\"paneId\":\"indicator_pane_1789303855194_3\",\"yAxisId\":\"yAxis_1789303855194_4\"} isStack=true -> VOL_1789303855194_2 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303855194_5\",\"paneId\":\"indicator_pane_1789303855194_6\",\"yAxisId\":\"yAxis_1789303855194_7\"} isStack=true -> DCAP_1789303855194_5 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303855497_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303855497_1 | panesBefore=[candle_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855194_3,indicator_pane_1789303855194_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303855497_2\",\"paneId\":\"indicator_pane_1789303855497_3\",\"yAxisId\":\"yAxis_1789303855497_4\"} isStack=true -> VOL_1789303855497_2 | panesBefore=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3] panesAfter=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3] panesAfter=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3] panesAfter=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855194_6,x_axis_pane,indicator_pane_1789303855497_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855497_3]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855497_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855497_3,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303855799_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303855799_1 | panesBefore=[candle_pane,indicator_pane_1789303855497_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855497_3,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855497_3,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303855800_1\",\"paneId\":\"indicator_pane_1789303855800_2\",\"yAxisId\":\"yAxis_1789303855800_3\"} isStack=true -> VOL_1789303855800_1 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303855800_4\",\"paneId\":\"indicator_pane_1789303855800_5\",\"yAxisId\":\"yAxis_1789303855800_6\"} isStack=true -> DCAP_1789303855800_4 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303856102_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303856102_1 | panesBefore=[candle_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855800_2,indicator_pane_1789303855800_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303856102_2\",\"paneId\":\"indicator_pane_1789303856102_3\",\"yAxisId\":\"yAxis_1789303856102_4\"} isStack=true -> VOL_1789303856102_2 | panesBefore=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3] panesAfter=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3] panesAfter=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3] panesAfter=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303855800_5,x_axis_pane,indicator_pane_1789303856102_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856102_3]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303856102_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856102_3,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303856405_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303856405_1 | panesBefore=[candle_pane,indicator_pane_1789303856102_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856102_3,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303856102_3,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303856405_2\",\"paneId\":\"indicator_pane_1789303856405_3\",\"yAxisId\":\"yAxis_1789303856405_4\"} isStack=true -> VOL_1789303856405_2 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303856405_5\",\"paneId\":\"indicator_pane_1789303856405_6\",\"yAxisId\":\"yAxis_1789303856405_7\"} isStack=true -> DCAP_1789303856405_5 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6]",
+    "setPaneOptions {\"id\":\"indicator_pane_1789303856405_3\",\"height\":240}",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303857011_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303857011_1 | panesBefore=[candle_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303856405_3,indicator_pane_1789303856405_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303857011_2\",\"paneId\":\"indicator_pane_1789303857011_3\",\"yAxisId\":\"yAxis_1789303857011_4\"} isStack=true -> VOL_1789303857011_2 | panesBefore=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3] panesAfter=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3] panesAfter=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3] panesAfter=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303856405_6,x_axis_pane,indicator_pane_1789303857011_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857011_3]",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857011_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857011_3,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303857315_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303857315_1 | panesBefore=[candle_pane,indicator_pane_1789303857011_3,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857011_3,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857011_3,x_axis_pane] panesAfter=[candle_pane,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303857315_2\",\"paneId\":\"indicator_pane_1789303857315_3\",\"yAxisId\":\"yAxis_1789303857315_4\"} isStack=true -> VOL_1789303857315_2 | panesBefore=[candle_pane,x_axis_pane] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> false | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303857315_5\",\"paneId\":\"indicator_pane_1789303857315_6\",\"yAxisId\":\"yAxis_1789303857315_7\"} isStack=true -> DCAP_1789303857315_5 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857315_3,indicator_pane_1789303857315_6]",
+    "setPaneOptions {\"id\":\"indicator_pane_1789303857315_3\",\"height\":400}",
+    "removeIndicator {\"name\":\"MA\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857315_3,indicator_pane_1789303857315_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857315_3,indicator_pane_1789303857315_6,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857315_3,indicator_pane_1789303857315_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303857920_1\",\"paneId\":\"indicator_pane_1789303857920_2\",\"yAxisId\":\"yAxis_1789303857920_3\"} isStack=true -> VOL_1789303857920_1 | panesBefore=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2] panesAfter=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2] panesAfter=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2] panesAfter=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2]",
+    "removeIndicator {\"name\":\"DCAP\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857315_6,x_axis_pane,indicator_pane_1789303857920_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857920_2]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303857920_4\",\"paneId\":\"indicator_pane_1789303857920_5\",\"yAxisId\":\"yAxis_1789303857920_6\"} isStack=true -> DCAP_1789303857920_4 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303857920_2] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5]",
+    "removeIndicator {\"name\":\"MA\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5,x_axis_pane]",
+    "createIndicator {\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789303858221_1\",\"yAxisId\":\"yAxis_1789303854388_1\"} isStack=false -> MA_1789303858221_1 | panesBefore=[candle_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5,x_axis_pane]",
+    "removeIndicator {\"name\":\"VOL\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857920_2,indicator_pane_1789303857920_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane]",
+    "createIndicator {\"name\":\"VOL\",\"id\":\"VOL_1789303858221_2\",\"paneId\":\"indicator_pane_1789303858221_3\",\"yAxisId\":\"yAxis_1789303858221_4\"} isStack=true -> VOL_1789303858221_2 | panesBefore=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane] panesAfter=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3]",
+    "removeIndicator {\"name\":\"MACD\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3] panesAfter=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3]",
+    "removeIndicator {\"name\":\"KDJ\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3] panesAfter=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3]",
+    "removeIndicator {\"name\":\"BOLL\"} -> false | panesBefore=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3] panesAfter=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3]",
+    "removeIndicator {\"name\":\"DCAP\"} -> true | panesBefore=[candle_pane,indicator_pane_1789303857920_5,x_axis_pane,indicator_pane_1789303858221_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303858221_3]",
+    "createIndicator {\"name\":\"DCAP\",\"calcParams\":[8,26,60,1,1,1,1,3],\"id\":\"DCAP_1789303858222_1\",\"paneId\":\"indicator_pane_1789303858222_2\",\"yAxisId\":\"yAxis_1789303858222_3\"} isStack=true -> DCAP_1789303858222_1 | panesBefore=[candle_pane,x_axis_pane,indicator_pane_1789303858221_3] panesAfter=[candle_pane,x_axis_pane,indicator_pane_1789303858221_3,indicator_pane_1789303858222_2]"
+  ],
+  "browserLogs": [
+    "log: %c❤️ Welcome to klinecharts. Version is 10.0.3 border-radius:4px;border:dashed 1px #1677FF;line-height:70px;padding:0 20px;margin:16px 0;font-size:14px;color:#1677FF;    "
+  ]
+}

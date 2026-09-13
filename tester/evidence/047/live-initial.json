@@ -1,0 +1,27 @@
+{
+  "info": {
+    "mainChart": {
+      "top": 76,
+      "h": 824,
+      "w": 1299.3125
+    },
+    "subAnchor": {
+      "topInMain": 659.2,
+      "h": 164.796875,
+      "borderTop": "1px solid rgb(229, 231, 235)",
+      "classList": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t"
+    },
+    "klinechartsSeparators": [
+      {
+        "topInMain": 697,
+        "h": 1,
+        "bg": "rgb(221, 221, 221)"
+      }
+    ],
+    "dcapToggleAriaPressed": "false",
+    "klinechartsInnerHtmlHead": "<div tabindex=\"1\" style=\"position: relative; width: 100%; height: 100%; outline: none; border-style: none; cursor: crosshair; box-sizing: border-box; user-select: none; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-colo"
+  },
+  "methods": [
+    "GET"
+  ]
+}

@@ -1,0 +1,668 @@
+{
+  "base": "http://127.0.0.1:18081",
+  "results": [
+    {
+      "name": "①-1 sub-chart 锚点 computed borderTopWidth == 0px",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "①-2 锚点确实存在（region 契约）且宽度 = 主图区宽",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "①-3 默认态分隔线数 == 内容 pane 数 − 1",
+      "ok": true,
+      "detail": {
+        "seps": 1,
+        "content": 2,
+        "total": 3
+      }
+    },
+    {
+      "name": "①-4 主图区内无「非 klinecharts」全宽水平线（默认态）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-5 默认态 pane：candle_pane(MA) + VOL + x_axis",
+      "ok": true,
+      "detail": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 597
+          }
+        },
+        {
+          "id": "indicator_pane_1789305123638_7",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 598,
+            "h": 100
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ]
+    },
+    {
+      "name": "①-6 DCAP 关态：candle↔VOL 存在可见边界（分隔线落在两 pane 交界）",
+      "ok": true,
+      "detail": {
+        "candle": {
+          "topInMain": 0,
+          "h": 597
+        },
+        "vol": {
+          "topInMain": 598,
+          "h": 100
+        },
+        "sep": {
+          "top": 597,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      }
+    },
+    {
+      "name": "①-7 拖高 VOL 后分隔线数仍 == 内容 pane 数 − 1",
+      "ok": true,
+      "detail": {
+        "seps": 1,
+        "content": 2
+      }
+    },
+    {
+      "name": "①-8 分隔线随 pane 边界上移（top 显著变小）",
+      "ok": true,
+      "detail": {
+        "before": 597,
+        "after": [
+          487
+        ]
+      }
+    },
+    {
+      "name": "①-9 拖高后无「不随 pane 移动」的横线（stray 仍为空）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-10 拖高后锚点仍未画线",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "①-11 拖高后候选边界仍与实测 pane 交界一致（line 属于边界，不是僵线）",
+      "ok": true,
+      "detail": {
+        "candle": {
+          "topInMain": 0,
+          "h": 487
+        },
+        "vol": {
+          "topInMain": 488,
+          "h": 210
+        },
+        "sep": {
+          "top": 487,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      }
+    },
+    {
+      "name": "①-12 DCAP 开后内容 pane 3 ⇒ 分隔线 2",
+      "ok": true,
+      "detail": {
+        "seps": [
+          {
+            "top": 496,
+            "h": 1,
+            "w": 1299,
+            "bg": "rgb(221, 221, 221)"
+          },
+          {
+            "top": 597,
+            "h": 1,
+            "w": 1299,
+            "bg": "rgb(221, 221, 221)"
+          }
+        ],
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "indicatorCount": 1,
+            "indicators": [
+              "MA"
+            ],
+            "dom": {
+              "topInMain": 0,
+              "h": 496
+            }
+          },
+          {
+            "id": "indicator_pane_1789305127210_3",
+            "height": 100,
+            "indicatorCount": 1,
+            "indicators": [
+              "VOL"
+            ],
+            "dom": {
+              "topInMain": 497,
+              "h": 100
+            }
+          },
+          {
+            "id": "indicator_pane_1789305127210_6",
+            "height": 100,
+            "indicatorCount": 1,
+            "indicators": [
+              "DCAP"
+            ],
+            "dom": {
+              "topInMain": 598,
+              "h": 100
+            }
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "indicatorCount": 0,
+            "indicators": [],
+            "dom": {
+              "topInMain": 698,
+              "h": 26
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "①-13 DCAP 开后无残留横线",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-14 DCAP 关后回到内容 pane 2 ⇒ 分隔线 1，无空 pane",
+      "ok": true,
+      "detail": {
+        "seps": [
+          {
+            "top": 597,
+            "h": 1,
+            "w": 1299,
+            "bg": "rgb(221, 221, 221)"
+          }
+        ],
+        "panes": [
+          {
+            "id": "candle_pane",
+            "height": 100,
+            "indicatorCount": 1,
+            "indicators": [
+              "MA"
+            ],
+            "dom": {
+              "topInMain": 0,
+              "h": 597
+            }
+          },
+          {
+            "id": "indicator_pane_1789305128891_7",
+            "height": 100,
+            "indicatorCount": 1,
+            "indicators": [
+              "VOL"
+            ],
+            "dom": {
+              "topInMain": 598,
+              "h": 100
+            }
+          },
+          {
+            "id": "x_axis_pane",
+            "height": 100,
+            "indicatorCount": 0,
+            "indicators": [],
+            "dom": {
+              "topInMain": 698,
+              "h": 26
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "①-15 DCAP 关后仍无残留横线",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-16 全程只发 GET（未改线上状态）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "①-REV(负向) 注入同位置 border-top 后锚点 borderTopWidth 断言变红",
+      "ok": true,
+      "detail": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "1px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "①-REV(负向) 注入后 stray 横线断言变红",
+      "ok": true,
+      "detail": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px solid rgb(229, 231, 235)",
+          "top": 579.2,
+          "h": 144.8,
+          "w": 1299.31
+        }
+      ]
+    }
+  ],
+  "nonGet": [],
+  "states": {
+    "s0": {
+      "main": {
+        "h": 724,
+        "w": 1299.31
+      },
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "paneInfo": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 597
+          }
+        },
+        {
+          "id": "indicator_pane_1789305123638_7",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 598,
+            "h": 100
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ],
+      "separators": [
+        {
+          "top": 597,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      ],
+      "stray": [],
+      "contentPaneCount": 2,
+      "totalPaneCount": 3
+    },
+    "s1": {
+      "main": {
+        "h": 724,
+        "w": 1299.31
+      },
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "paneInfo": [
+        {
+          "id": "candle_pane",
+          "height": 487,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 487
+          }
+        },
+        {
+          "id": "indicator_pane_1789305123638_7",
+          "height": 210,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 488,
+            "h": 210
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ],
+      "separators": [
+        {
+          "top": 487,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      ],
+      "stray": [],
+      "contentPaneCount": 2,
+      "totalPaneCount": 3
+    },
+    "s2": {
+      "main": {
+        "h": 724,
+        "w": 1299.31
+      },
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "paneInfo": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 496
+          }
+        },
+        {
+          "id": "indicator_pane_1789305127210_3",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 497,
+            "h": 100
+          }
+        },
+        {
+          "id": "indicator_pane_1789305127210_6",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "DCAP"
+          ],
+          "dom": {
+            "topInMain": 598,
+            "h": 100
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ],
+      "separators": [
+        {
+          "top": 496,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        },
+        {
+          "top": 597,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      ],
+      "stray": [],
+      "contentPaneCount": 3,
+      "totalPaneCount": 4
+    },
+    "s3": {
+      "main": {
+        "h": 724,
+        "w": 1299.31
+      },
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "0px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "paneInfo": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 597
+          }
+        },
+        {
+          "id": "indicator_pane_1789305128891_7",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 598,
+            "h": 100
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ],
+      "separators": [
+        {
+          "top": 597,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      ],
+      "stray": [],
+      "contentPaneCount": 2,
+      "totalPaneCount": 3
+    },
+    "sRev": {
+      "main": {
+        "h": 724,
+        "w": 1299.31
+      },
+      "anchor": {
+        "classes": "pointer-events-none absolute inset-x-0 bottom-0 h-1/5",
+        "topInMain": 579.2,
+        "h": 144.8,
+        "w": 1299.31,
+        "borderTopWidth": "1px",
+        "borderTopStyle": "solid",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "paneInfo": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "MA"
+          ],
+          "dom": {
+            "topInMain": 0,
+            "h": 597
+          }
+        },
+        {
+          "id": "indicator_pane_1789305128891_7",
+          "height": 100,
+          "indicatorCount": 1,
+          "indicators": [
+            "VOL"
+          ],
+          "dom": {
+            "topInMain": 598,
+            "h": 100
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "indicatorCount": 0,
+          "indicators": [],
+          "dom": {
+            "topInMain": 698,
+            "h": 26
+          }
+        }
+      ],
+      "separators": [
+        {
+          "top": 597,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)"
+        }
+      ],
+      "stray": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px solid rgb(229, 231, 235)",
+          "top": 579.2,
+          "h": 144.8,
+          "w": 1299.31
+        }
+      ],
+      "contentPaneCount": 2,
+      "totalPaneCount": 3
+    }
+  }
+}

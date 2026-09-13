@@ -1,0 +1,181 @@
+{
+  "url": "http://localhost:8081/",
+  "dragged": {
+    "x": 1063.5,
+    "y": 773.5,
+    "sepCount": 1
+  },
+  "toggled": {
+    "before": "false",
+    "label": "DCAP"
+  },
+  "snaps": [
+    {
+      "label": "live:initial",
+      "mainChart": {
+        "h": 824,
+        "w": 1299.31,
+        "top": 76
+      },
+      "subChartAnchor": {
+        "topInMain": 659.2,
+        "h": 164.8,
+        "w": 1299.31,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid",
+        "bottomOffsetFromMainBottom": 0
+      },
+      "klinechartsHostChildren": 1,
+      "klinechartsSeparators": [
+        {
+          "topInMain": 697,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)",
+          "inlineBg": "rgb(221, 221, 221)"
+        }
+      ],
+      "separatorCount": 1,
+      "domSeparatorCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 659.2,
+          "h": 164.8,
+          "w": 1299.31
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 697,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "outerHTML": "<div data-region=\"main-chart\" class=\"relative min-h-0 flex-1\"><div data-region=\"sub-chart\" class=\"pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t\"></div><div data-testid=\"kline-chart\" class=\"relative h-full w-full\" k-line-chart-id=\"k_line_chart_1\" data-viewport-fit=\"{&quot;bars&quot;:120,&quot;space&quot;:11,&quot;visible&quot;:118,&quot;clamped&quot;:false}\"><div tabindex=\"1\" style=\"position: relative; width: 100%; height: 100%; outline: none; border-style: none; cursor: crosshair; box-sizing: border-box; user-select: none; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;\"><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 697px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 697px;\"><canvas width=\"1239\" height=\"697\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 697px;\"></canvas><canvas width=\"1239\" height=\"697\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 697px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 697px;\"><canvas width=\"60\" height=\"697\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 697px;\"></canvas><canvas width=\"60\" height=\"697\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 697px;\"></canvas></div></div><div style=\"width: 1299px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);\"><div style=\"width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize;\"></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 100px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 100px;\"><canvas width=\"1239\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 100px;\"></canvas><canvas width=\"1239\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 100px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 100px;\"><canvas width=\"60\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 100px;\"></canvas><canvas width=\"60\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 100px;\"></canvas></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 26px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ew-resize; left: 0px; width: 1239px; height: 26px;\"><canvas width=\"1239\" height=\"26\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 26px;\"></canvas><canvas width=\"1239\" height=\"26\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 26px;\"></canvas></div></div></div></div></div>"
+    },
+    {
+      "label": "live:after-drag-vol-up",
+      "mainChart": {
+        "h": 824,
+        "w": 1299.31,
+        "top": 76
+      },
+      "subChartAnchor": {
+        "topInMain": 659.2,
+        "h": 164.8,
+        "w": 1299.31,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid",
+        "bottomOffsetFromMainBottom": 0
+      },
+      "klinechartsHostChildren": 1,
+      "klinechartsSeparators": [
+        {
+          "topInMain": 587,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)",
+          "inlineBg": "rgb(221, 221, 221)"
+        }
+      ],
+      "separatorCount": 1,
+      "domSeparatorCount": 1,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 659.2,
+          "h": 164.8,
+          "w": 1299.31
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 587,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "outerHTML": "<div data-region=\"main-chart\" class=\"relative min-h-0 flex-1\"><div data-region=\"sub-chart\" class=\"pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t\"></div><div data-testid=\"kline-chart\" class=\"relative h-full w-full\" k-line-chart-id=\"k_line_chart_1\" data-viewport-fit=\"{&quot;bars&quot;:120,&quot;space&quot;:11,&quot;visible&quot;:118,&quot;clamped&quot;:false}\"><div tabindex=\"1\" style=\"position: relative; width: 100%; height: 100%; outline: none; border-style: none; cursor: crosshair; box-sizing: border-box; user-select: none; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;\"><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 587px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 587px;\"><canvas width=\"1239\" height=\"587\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 587px;\"></canvas><canvas width=\"1239\" height=\"587\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 587px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 587px;\"><canvas width=\"60\" height=\"587\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 587px;\"></canvas><canvas width=\"60\" height=\"587\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 587px;\"></canvas></div></div><div style=\"width: 1299px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);\"><div style=\"width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize; background: rgba(22, 119, 255, 0.08);\"></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 210px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 210px;\"><canvas width=\"1239\" height=\"210\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 210px;\"></canvas><canvas width=\"1239\" height=\"210\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 210px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 210px;\"><canvas width=\"60\" height=\"210\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 210px;\"></canvas><canvas width=\"60\" height=\"210\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 210px;\"></canvas></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 26px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ew-resize; left: 0px; width: 1239px; height: 26px;\"><canvas width=\"1239\" height=\"26\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 26px;\"></canvas><canvas width=\"1239\" height=\"26\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 26px;\"></canvas></div></div></div></div></div>"
+    },
+    {
+      "label": "live:after-dcap-toggle",
+      "mainChart": {
+        "h": 824,
+        "w": 1299.31,
+        "top": 76
+      },
+      "subChartAnchor": {
+        "topInMain": 659.2,
+        "h": 164.8,
+        "w": 1299.31,
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(229, 231, 235)",
+        "borderTopStyle": "solid",
+        "bottomOffsetFromMainBottom": 0
+      },
+      "klinechartsHostChildren": 1,
+      "klinechartsSeparators": [
+        {
+          "topInMain": 596,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)",
+          "inlineBg": "rgb(221, 221, 221)"
+        },
+        {
+          "topInMain": 697,
+          "h": 1,
+          "w": 1299,
+          "bg": "rgb(221, 221, 221)",
+          "inlineBg": "rgb(221, 221, 221)"
+        }
+      ],
+      "separatorCount": 2,
+      "domSeparatorCount": 2,
+      "horizontalLineCandidates": [
+        {
+          "tag": "DIV[data-region=sub-chart]",
+          "kind": "border-top 1px rgb(229, 231, 235)",
+          "topInMain": 659.2,
+          "h": 164.8,
+          "w": 1299.31
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 596,
+          "h": 1,
+          "w": 1299
+        },
+        {
+          "tag": "DIV[klinecharts-separator]",
+          "kind": "klinecharts-separator",
+          "topInMain": 697,
+          "h": 1,
+          "w": 1299
+        }
+      ],
+      "outerHTML": "<div data-region=\"main-chart\" class=\"relative min-h-0 flex-1\"><div data-region=\"sub-chart\" class=\"pointer-events-none absolute inset-x-0 bottom-0 h-1/5 border-t\"></div><div data-testid=\"kline-chart\" class=\"relative h-full w-full\" k-line-chart-id=\"k_line_chart_2\" data-viewport-fit=\"{&quot;bars&quot;:120,&quot;space&quot;:11,&quot;visible&quot;:118,&quot;clamped&quot;:false}\"><div tabindex=\"1\" style=\"position: relative; width: 100%; height: 100%; outline: none; border-style: none; cursor: crosshair; box-sizing: border-box; user-select: none; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;\"><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 596px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 596px;\"><canvas width=\"1239\" height=\"596\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 596px;\"></canvas><canvas width=\"1239\" height=\"596\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 596px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 596px;\"><canvas width=\"60\" height=\"596\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 596px;\"></canvas><canvas width=\"60\" height=\"596\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 596px;\"></canvas></div></div><div style=\"width: 1299px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);\"><div style=\"width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize;\"></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 100px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 100px;\"><canvas width=\"1239\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 100px;\"></canvas><canvas width=\"1239\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 100px;\"></canvas></div><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 1239px; width: 60px; height: 100px;\"><canvas width=\"60\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 100px;\"></canvas><canvas width=\"60\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 60px; height: 100px;\"></canvas></div></div><div style=\"width: 1299px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);\"><div style=\"width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize;\"></div></div><div style=\"width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 100px;\"><div style=\"margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; left: 0px; width: 1239px; height: 100px;\"><canvas width=\"1239\" height=\"100\" style=\"position: absolute; top: 0px; left: 0px; z-index: 2; box-sizing: border-box; width: 1239px; height: 100px;\"></canvas><canvas width=\"1239"
+    }
+  ],
+  "requestMethods": [
+    "GET"
+  ],
+  "sampleRequests": [
+    "GET http://localhost:8081/",
+    "GET http://localhost:8081/assets/index-BcRLZ7uk.js",
+    "GET http://localhost:8081/assets/index-Cm6bbPuq.css",
+    "GET http://localhost:8081/api/symbols",
+    "GET http://localhost:8081/api/config/ma",
+    "GET http://localhost:8081/api/config/dcap",
+    "GET http://localhost:8081/api/config/kline",
+    "GET http://localhost:8081/api/sources/health",
+    "GET http://localhost:8081/api/kline?code=518880&period=15m&limit=120",
+    "GET http://localhost:8081/api/kline?code=518880&period=15m&limit=182"
+  ]
+}
