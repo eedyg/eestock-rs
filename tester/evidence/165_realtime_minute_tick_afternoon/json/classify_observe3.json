@@ -1,0 +1,85 @@
+{
+ "wsFramesIn": 79,
+ "wsOpens": 5,
+ "wsCloses": 5,
+ "creates": [
+  15951,
+  53326,
+  69328,
+  113292,
+  129299
+ ],
+ "closes": [
+  14951,
+  52326,
+  68328,
+  112291,
+  128294
+ ],
+ "fallbackRel": [
+  15953,
+  53327,
+  60013,
+  69329,
+  113294,
+  120034,
+  129300
+ ],
+ "classified": [
+  {
+   "rel": 15953,
+   "comp": "compensation",
+   "deltaFromClose": [
+    1002,
+    -36373,
+    -52375,
+    -96338,
+    -112341
+   ]
+  },
+  {
+   "rel": 53327,
+   "comp": "compensation",
+   "deltaFromClose": [
+    1001,
+    -15001,
+    -58964,
+    -74967
+   ]
+  },
+  {
+   "rel": 60013,
+   "comp": "timer",
+   "deltaFromClose": []
+  },
+  {
+   "rel": 69329,
+   "comp": "compensation",
+   "deltaFromClose": [
+    1001,
+    -42962,
+    -58965
+   ]
+  },
+  {
+   "rel": 113294,
+   "comp": "compensation",
+   "deltaFromClose": [
+    1003,
+    -15000
+   ]
+  },
+  {
+   "rel": 120034,
+   "comp": "timer",
+   "deltaFromClose": []
+  },
+  {
+   "rel": 129300,
+   "comp": "compensation",
+   "deltaFromClose": [
+    1006
+   ]
+  }
+ ]
+}

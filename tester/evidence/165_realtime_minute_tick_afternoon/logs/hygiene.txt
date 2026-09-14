@@ -1,0 +1,17 @@
+== pgrep -x eestock-app ==
+3112540 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+count=1
+== listeners ==
+LISTEN 0      5          127.0.0.1:18465      0.0.0.0:*    users:(("python3",pid=3383589,fd=3))     
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=12))
+== git diff --cached ==
+(empty=0)
+== git status -uno ==
+(empty above)
+== app toml md5 ==
+6fcb509f41b9d128da24153079b2964d  /tmp/app_dev_8081.toml
+== live log mtime/size ==
+2026-09-14 11:52:39.636864461 +0800 1126 logs/app_dev_8081_redeploy_20260914_115233.log
+== ERROR count in live log ==
+0

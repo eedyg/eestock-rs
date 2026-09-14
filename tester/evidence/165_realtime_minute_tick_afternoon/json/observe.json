@@ -1,0 +1,57 @@
+{
+  "startedAtLocal": "Mon Sep 14 2026 13:05:50 GMT+0800 (China Standard Time)",
+  "shanghai": "2026-09-14 13:05:50 +08",
+  "durationSec": 175,
+  "visibilityState": "visible",
+  "title": "eestock · 行情看板",
+  "viewportFit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "nonGetTotal": 0,
+  "blockedWrites": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "fallbackCount": 4,
+  "fallback": [
+    {
+      "rel": 57,
+      "iso": "2026-09-14T05:06:47.271Z",
+      "code": "518880",
+      "period": "15m",
+      "limit": "5",
+      "hasBefore": false
+    },
+    {
+      "rel": 60,
+      "iso": "2026-09-14T05:06:50.062Z",
+      "code": "518880",
+      "period": "15m",
+      "limit": "5",
+      "hasBefore": false
+    },
+    {
+      "rel": 118,
+      "iso": "2026-09-14T05:07:48.303Z",
+      "code": "518880",
+      "period": "15m",
+      "limit": "5",
+      "hasBefore": false
+    },
+    {
+      "rel": 120,
+      "iso": "2026-09-14T05:07:50.085Z",
+      "code": "518880",
+      "period": "15m",
+      "limit": "5",
+      "hasBefore": false
+    }
+  ],
+  "fallbackRawTs": [
+    1789362407271,
+    1789362410062,
+    1789362468303,
+    1789362470085
+  ],
+  "allKlineCount": 4,
+  "methodsSeen": [
+    "GET"
+  ]
+}

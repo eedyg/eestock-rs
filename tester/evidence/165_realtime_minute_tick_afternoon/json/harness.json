@@ -1,0 +1,180 @@
+{
+  "initial": {
+    "dataLen": 120,
+    "rtCount": 0,
+    "follow": true,
+    "stats": {
+      "lastSource": null,
+      "lastWriteAt": null,
+      "lastPollOkAt": null,
+      "pollFailures": 0
+    },
+    "last": "2026-09-14T05:00:00Z",
+    "barsDigest": "3232:1170699280",
+    "canvasSig": "87126:355010554",
+    "range": {
+      "from": 5,
+      "to": 120,
+      "realFrom": 13,
+      "realTo": 129
+    },
+    "domHint": false
+  },
+  "afterPan": {
+    "dataLen": 120,
+    "rtCount": 0,
+    "follow": false,
+    "stats": {
+      "lastSource": null,
+      "lastWriteAt": null,
+      "lastPollOkAt": null,
+      "pollFailures": 0
+    },
+    "last": "2026-09-14T05:00:00Z",
+    "barsDigest": "3232:1170699280",
+    "canvasSig": "82974:172030915",
+    "range": {
+      "from": 5,
+      "to": 120,
+      "realFrom": 37,
+      "realTo": 153
+    },
+    "domHint": false
+  },
+  "afterZoom": {
+    "dataLen": 120,
+    "rtCount": 0,
+    "follow": false,
+    "stats": {
+      "lastSource": null,
+      "lastWriteAt": null,
+      "lastPollOkAt": null,
+      "pollFailures": 0
+    },
+    "last": "2026-09-14T05:00:00Z",
+    "barsDigest": "3232:1170699280",
+    "canvasSig": "85226:454698520",
+    "range": {
+      "from": 15,
+      "to": 120,
+      "realFrom": 42,
+      "realTo": 147
+    },
+    "domHint": false
+  },
+  "fb1": {
+    "dataLen": 120,
+    "rtCount": 0,
+    "follow": false,
+    "stats": {
+      "lastSource": null,
+      "lastWriteAt": null,
+      "lastPollOkAt": 1789362372825,
+      "pollFailures": 0
+    },
+    "last": "2026-09-14T05:00:00Z",
+    "barsDigest": "3232:1170699280",
+    "canvasSig": "85226:454698520",
+    "range": {
+      "from": 15,
+      "to": 120,
+      "realFrom": 42,
+      "realTo": 147
+    },
+    "domHint": false,
+    "rangeIdentical": true
+  },
+  "fb2": {
+    "dataLen": 120,
+    "rtCount": 0,
+    "follow": false,
+    "stats": {
+      "lastSource": null,
+      "lastWriteAt": null,
+      "lastPollOkAt": 1789362373755,
+      "pollFailures": 0
+    },
+    "last": "2026-09-14T05:00:00Z",
+    "barsDigest": "3232:1170699280",
+    "canvasSig": "85226:454698520",
+    "range": {
+      "from": 15,
+      "to": 120,
+      "realFrom": 42,
+      "realTo": 147
+    },
+    "domHint": false
+  },
+  "idempotentRealPoll": {
+    "len": [
+      120,
+      120
+    ],
+    "rt": [
+      0,
+      0
+    ],
+    "digestSame": true,
+    "canvasSame": true
+  },
+  "inject": {
+    "replayExisting": {
+      "before": {
+        "len": 120,
+        "rt": 0
+      },
+      "after": {
+        "len": 120,
+        "rt": 0
+      }
+    },
+    "injectNew": {
+      "before": {
+        "len": 120,
+        "rt": 0,
+        "hint": false
+      },
+      "after": {
+        "len": 121,
+        "rt": 1,
+        "last": "2026-09-14T05:15:00.000Z",
+        "hint": false
+      }
+    },
+    "replayNewTwice": {
+      "before": {
+        "len": 121,
+        "rt": 1
+      },
+      "after": {
+        "len": 121,
+        "rt": 1
+      },
+      "appendedTwice": 0,
+      "reEmitted": 0
+    }
+  },
+  "b_hint": {
+    "rangeBeforeNewBar": {
+      "from": 15,
+      "to": 120,
+      "realFrom": 42,
+      "realTo": 147
+    },
+    "rangeAfterNewBar": {
+      "from": 16,
+      "to": 121,
+      "realFrom": 43,
+      "realTo": 148
+    },
+    "viewportUnchangedWhenHintShown": false,
+    "hintVisible": false,
+    "hintText": null,
+    "afterClickRange": null,
+    "afterClickFollow": null,
+    "hintGoneAfterClick": null,
+    "jumpedToLatest": null
+  },
+  "nonGet": [],
+  "fallbackShapeCount": 3
+}

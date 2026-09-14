@@ -1,0 +1,13 @@
+== final hygiene 2026-09-14 13:15:27 CST ==
+pgrep -x eestock-app count=1
+3112540 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+18xxx:
+none
+8081/8082:
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*          
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*          
+git diff --cached:
+0
+tracked worktree (status -uno):
+0
+temp dir /tmp/livecheck-165 removed: YES

@@ -1,0 +1,415 @@
+{
+  "shanghai": "2026-09-14 13:12:44 +08",
+  "durationSec": 132,
+  "visibilityState": "visible",
+  "nonGetTotal": 0,
+  "fallbackCount": 7,
+  "fallback": [
+    {
+      "rel": 15953,
+      "iso": "2026-09-14T05:12:59.996Z"
+    },
+    {
+      "rel": 53327,
+      "iso": "2026-09-14T05:13:37.370Z"
+    },
+    {
+      "rel": 60013,
+      "iso": "2026-09-14T05:13:44.056Z"
+    },
+    {
+      "rel": 69329,
+      "iso": "2026-09-14T05:13:53.372Z"
+    },
+    {
+      "rel": 113294,
+      "iso": "2026-09-14T05:14:37.337Z"
+    },
+    {
+      "rel": 120034,
+      "iso": "2026-09-14T05:14:44.077Z"
+    },
+    {
+      "rel": 129300,
+      "iso": "2026-09-14T05:14:53.343Z"
+    }
+  ],
+  "fallbackRawTs": [
+    1789362779996,
+    1789362817370,
+    1789362824056,
+    1789362833372,
+    1789362877337,
+    1789362884077,
+    1789362893343
+  ],
+  "wsEvents": [
+    {
+      "ev": "ws-close",
+      "rel": 14951
+    },
+    {
+      "ev": "ws-create",
+      "rel": 15951,
+      "url": "ws://127.0.0.1:8081/ws"
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 17112
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20508
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20508
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20508
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20509
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20509
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20510
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 20510
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 23564
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 23564
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 23565
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 23565
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 23566
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26911
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26911
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26911
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26912
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26912
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26912
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 26913
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30368
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30369
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30369
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30369
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30370
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30370
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 30371
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 33824
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 33824
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 33825
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 33825
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 33826
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37323
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37324
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37324
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37324
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37325
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37325
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37325
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 37325
+    },
+    {
+      "ev": "ws-close",
+      "rel": 52326
+    },
+    {
+      "ev": "ws-create",
+      "rel": 53326,
+      "url": "ws://127.0.0.1:8081/ws"
+    },
+    {
+      "ev": "ws-close",
+      "rel": 68328
+    },
+    {
+      "ev": "ws-create",
+      "rel": 69328,
+      "url": "ws://127.0.0.1:8081/ws"
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 78114
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 78155
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 78155
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81546
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81546
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81546
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81546
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81547
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 81550
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85830
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85831
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85832
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85833
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85833
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85834
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85835
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 85836
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89714
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89714
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89715
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89716
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89716
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 89717
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93486
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93486
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93493
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93493
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93495
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93496
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93497
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 93498
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97282
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97282
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97283
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97284
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97285
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97285
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97286
+    },
+    {
+      "ev": "ws-frame-in",
+      "rel": 97291
+    },
+    {
+      "ev": "ws-close",
+      "rel": 112291
+    },
+    {
+      "ev": "ws-create",
+      "rel": 113292,
+      "url": "ws://127.0.0.1:8081/ws"
+    },
+    {
+      "ev": "ws-close",
+      "rel": 128294
+    },
+    {
+      "ev": "ws-create",
+      "rel": 129299,
+      "url": "ws://127.0.0.1:8081/ws"
+    }
+  ],
+  "wsOpens": 5,
+  "wsCloses": 5,
+  "wsFramesIn": 79,
+  "methodsSeen": [
+    "GET"
+  ]
+}
