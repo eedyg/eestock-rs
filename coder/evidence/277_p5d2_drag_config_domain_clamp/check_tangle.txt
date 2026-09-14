@@ -1,0 +1,5 @@
+# P5-D-2 check-tangle.sh（沙箱内 tangle；不改真实工作区）
+# 命令：./scripts/check-tangle.sh
+
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+check-tangle exit=0

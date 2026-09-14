@@ -1,0 +1,31 @@
+== 时间 ==
+2026-09-15T01:25:08+08:00
+
+== HEAD ==
+78eb68d docs(report): 多周期框架 P3 —— 跨图同步的红测试/实现/两次独立验收 报告与证据
+
+== 线上进程（不得触碰）==
+    PID     ELAPSED CMD
+3112540    13:32:31 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+== 暂存区（必须为空）==
+(空=未 add/commit/stash)
+
+== tracked 改动（本轮不得新增）==
+ M design/15-multi-period/02-spec.md
+ M web/src/features/dashboard/DashboardPage.tsx
+ M web/src/features/dashboard/MultiPeriodChartStack.tsx
+ M web/src/features/dashboard/multiPeriodStore.ts
+
+== 本轮新增（未跟踪）==
+?? tester/evidence/279_p5f1_r1r2_red/
+?? web/src/features/dashboard/multiPeriodLayoutAuthority.test.tsx
+?? web/tester/p5-r1r2-harness/
+
+== 临时实例残留 ==
+-- pgrep（不自匹配写法：[p]attern）--
+无残留进程
+-- /tmp 构建目录 --
+/tmp/p5-r1r2-dist 已删除
+-- 监听端口（本机 node）--
+0 个 node 监听（随机端口实例已拆）

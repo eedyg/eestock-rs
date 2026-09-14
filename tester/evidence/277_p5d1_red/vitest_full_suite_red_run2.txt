@@ -1,0 +1,15 @@
+# 命令: npx vitest run （全量重跑 #2，复核 flake）
+# 时间: 2026-09-15T00:50:55+08:00
+
+       |                                                           ^
+    544|       expect(v, `${p} 必须 ≤ ${HEIGHT_MAX}（配置域上界），收到 ${v}`).toBeLessThan…
+    545|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 79 passed (81)
+      Tests  3 failed | 744 passed (747)
+   Start at  00:50:55
+   Duration  6.40s (transform 2.91s, setup 3.60s, collect 12.84s, tests 30.23s, environment 25.53s, prepare 6.22s)
+

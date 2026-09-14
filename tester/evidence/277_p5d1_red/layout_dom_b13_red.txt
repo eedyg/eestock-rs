@@ -1,0 +1,46 @@
+# 命令: npx vitest run src/features/dashboard/multiPeriodLayoutDom.test.tsx
+# 时间(本地): 2026-09-15T00:50:19+08:00
+# 过滤说明: 已剔除 [multi-period] ChartSyncGroup 未建立 的既有噪声栈 + React Router 警告（与判据无关）
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B1 栈根元素契约：`[data-mp-stack]` + 布局 JSON + 各 pane inline 高度与 JSON 一致
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B2 恰好填满：Σ 各 pane 高度 == 可用高度 600（基准吸收余量/缩小时基准最大）
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B3 每个 pane 内是各自的 chart 宿主（基准 + 各卫星）
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B4 我方分隔条：相邻 pane 之间恰 1 条、role=separator、占位为零（不侵占 pane 空间）
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B5 拖拽改变相邻两者高度、二者之和不变、其它 pane 不变
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B6 拖拽下限：卫星停在 80、基准不低于 200；继续拖不越界
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B7 拖拽防抖持久化：<300ms 不回调、≥300ms 恰 1 次、参数 = 全 pane 布局高度
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B8 连续拖拽合并为一次写入（参数 = 末次结果）
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B9 ②③ 不变量：拖拽后换 dcap 参数 / 换标的 / 强制重渲染 ⇒ 各 pane 高度不变（±1px）
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B11 ADR-020：基准 barSpace 仍由 (宽度, 根数) 决定；改高（拖拽）不改写基准视口
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同
+ ❯ src/features/dashboard/multiPeriodLayoutDom.test.tsx (13 tests | 1 failed) 141ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B1 栈根元素契约：`[data-mp-stack]` + 布局 JSON + 各 pane inline 高度与 JSON 一致 29ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B2 恰好填满：Σ 各 pane 高度 == 可用高度 600（基准吸收余量/缩小时基准最大） 9ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B3 每个 pane 内是各自的 chart 宿主（基准 + 各卫星） 8ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B4 我方分隔条：相邻 pane 之间恰 1 条、role=separator、占位为零（不侵占 pane 空间） 9ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B5 拖拽改变相邻两者高度、二者之和不变、其它 pane 不变 11ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B6 拖拽下限：卫星停在 80、基准不低于 200；继续拖不越界 9ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B7 拖拽防抖持久化：<300ms 不回调、≥300ms 恰 1 次、参数 = 全 pane 布局高度 9ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B8 连续拖拽合并为一次写入（参数 = 末次结果） 11ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B9 ②③ 不变量：拖拽后换 dcap 参数 / 换标的 / 强制重渲染 ⇒ 各 pane 高度不变（±1px） 17ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B10 非法 heights ⇒ 不崩、回退默认（基准 420 / 卫星 180） 7ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B11 ADR-020：基准 barSpace 仍由 (宽度, 根数) 决定；改高（拖拽）不改写基准视口 8ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B12 关闭态零残留：无栈/无 pane/无分隔条（DOM 与现状等价） 4ms
+   × 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同 9ms
+     → 15m 必须 ≥ 80（配置域下界），收到 64: expected 64 to be greater than or equal to 80
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同
+AssertionError: 15m 必须 ≥ 80（配置域下界），收到 64: expected 64 to be greater than or equal to 80
+ ❯ src/features/dashboard/multiPeriodLayoutDom.test.tsx:543:59
+    541|       const v = payload[p]!;
+    542|       expect(Number.isInteger(v), `${p} 必须为整数 px，收到 ${v}`).toBe(true);
+    543|       expect(v, `${p} 必须 ≥ ${HEIGHT_MIN}（配置域下界），收到 ${v}`).toBeGreaterT…
+       |                                                           ^
+    544|       expect(v, `${p} 必须 ≤ ${HEIGHT_MAX}（配置域上界），收到 ${v}`).toBeLessThan…
+    545|     }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  00:50:19
+   Duration  649ms (transform 111ms, setup 22ms, collect 152ms, tests 141ms, environment 131ms, prepare 91ms)

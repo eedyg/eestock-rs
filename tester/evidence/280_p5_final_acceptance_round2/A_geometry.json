@@ -1,0 +1,161 @@
+{
+  "origin": "http://127.0.0.1:47219/",
+  "rows": [
+    {
+      "avail": 600,
+      "dom": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "declared": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "sum": 600,
+      "reason": "shrunk",
+      "shrunk": true,
+      "scrollableAttr": "false",
+      "stackClientHeight": 600,
+      "stackScrollHeight": 600,
+      "mainClientHeight": 600,
+      "mainScrollHeight": 600,
+      "mainOverflow": 0,
+      "base": 264,
+      "sats": [
+        112,
+        112,
+        112
+      ],
+      "declaredEqDom": true
+    },
+    {
+      "avail": 500,
+      "dom": {
+        "15m": 221,
+        "1h": 93,
+        "5m": 93,
+        "1d": 93
+      },
+      "declared": {
+        "15m": 221,
+        "1h": 93,
+        "5m": 93,
+        "1d": 93
+      },
+      "sum": 500,
+      "reason": "shrunk",
+      "shrunk": true,
+      "scrollableAttr": "false",
+      "stackClientHeight": 500,
+      "stackScrollHeight": 500,
+      "mainClientHeight": 500,
+      "mainScrollHeight": 500,
+      "mainOverflow": 0,
+      "base": 221,
+      "sats": [
+        93,
+        93,
+        93
+      ],
+      "declaredEqDom": true
+    },
+    {
+      "avail": 200,
+      "dom": {
+        "15m": 200,
+        "1h": 80,
+        "5m": 80,
+        "1d": 80
+      },
+      "declared": {
+        "15m": 200,
+        "1h": 80,
+        "5m": 80,
+        "1d": 80
+      },
+      "sum": 440,
+      "reason": "min-overflow",
+      "shrunk": true,
+      "scrollableAttr": "true",
+      "stackClientHeight": 200,
+      "stackScrollHeight": 440,
+      "mainClientHeight": 200,
+      "mainScrollHeight": 200,
+      "mainOverflow": 0,
+      "base": 200,
+      "sats": [
+        80,
+        80,
+        80
+      ],
+      "declaredEqDom": true
+    },
+    {
+      "avail": 1000,
+      "dom": {
+        "15m": 460,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "declared": {
+        "15m": 460,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "sum": 1000,
+      "reason": "fit",
+      "shrunk": false,
+      "scrollableAttr": "false",
+      "stackClientHeight": 1000,
+      "stackScrollHeight": 1000,
+      "mainClientHeight": 1000,
+      "mainScrollHeight": 1000,
+      "mainOverflow": 0,
+      "base": 460,
+      "sats": [
+        180,
+        180,
+        180
+      ],
+      "declaredEqDom": true
+    },
+    {
+      "avail": 1800,
+      "dom": {
+        "15m": 1260,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "declared": {
+        "15m": 1260,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "sum": 1800,
+      "reason": "fit",
+      "shrunk": false,
+      "scrollableAttr": "false",
+      "stackClientHeight": 1800,
+      "stackScrollHeight": 1800,
+      "mainClientHeight": 1800,
+      "mainScrollHeight": 1800,
+      "mainOverflow": 0,
+      "base": 1260,
+      "sats": [
+        180,
+        180,
+        180
+      ],
+      "declaredEqDom": true
+    }
+  ],
+  "externalRequests": []
+}

@@ -1,0 +1,15 @@
+import { createRequire } from 'node:module';
+import fs from 'node:fs'; import path from 'node:path';
+const require = createRequire('/home/eestock/workspace/git/eestock/eestock-rs/web/package.json');
+const { chromium } = require('playwright');
+const here = path.dirname(new URL(import.meta.url).pathname);
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+const msgs = []; page.on('console', m=>msgs.push(`[${m.type()}] ${m.text()}`)); page.on('pageerror', e=>msgs.push(`[pageerror] ${e.message}`));
+await page.goto('file://' + path.join(here, 'p7b2.html'));
+await page.waitForFunction(() => window.__DONE === true, null, { timeout: 60000 });
+const result = await page.evaluate(() => window.__RESULT);
+await page.screenshot({ path: path.join(here, 'p7b2.png'), fullPage: true });
+fs.writeFileSync(path.join(here, 'p7b2_result.json'), JSON.stringify({ console: msgs, result }, null, 2));
+console.log(JSON.stringify({ errors: result.errors, consoleTail: msgs.slice(-6) }));
+await browser.close();

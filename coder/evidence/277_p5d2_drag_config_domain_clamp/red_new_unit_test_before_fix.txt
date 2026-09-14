@@ -1,0 +1,33 @@
+# P5-D-2 红证据（新补充单测 D2 在**修复前**实现上失败）
+# 命令：cp 备份→临时还原旧行 sanitizeDragHeight: Math.min(HEIGHT_MAX, round(n)) → vitest run multiPeriodDragDomainClamp.test.ts
+
+   ✓ 拖拽期望值净化（配置域夹取） > D3 上界夹取与非法值兜底不变（回归护栏） 0ms
+   ✓ 拖拽期望值净化（配置域夹取） > D4 不得混同：配置域下界（80）≠ 渲染侧分配下界（基准 200 / 卫星 80，由缩小路径保证） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodDragDomainClamp.test.ts > 拖拽期望值净化（配置域夹取） > D2 **下界夹取**：期望 < 80（含 42px 实测值）⇒ 夹到配置域下界 80
+AssertionError: 基准期望 1 必须夹到 80: expected 1 to be 80 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 80[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/multiPeriodDragDomainClamp.test.ts:43:75
+     41|   it('D2 **下界夹取**：期望 < 80（含 42px 实测值）⇒ 夹到配置域下界 80', () => {
+     42|     for (const v of [1, 42, 79, 79.6]) {
+     43|       expect(sanitizeDragHeight(v, true), `基准期望 ${v} 必须夹到 ${HEIGHT_MIN…
+       |                                                                           ^
+     44|       expect(sanitizeDragHeight(v, false), `卫星期望 ${v} 必须夹到 ${HEIGHT_MI…
+     45|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  00:53:40
+   Duration  369ms (transform 23ms, setup 23ms, collect 11ms, tests 5ms, environment 126ms, prepare 75ms)
+

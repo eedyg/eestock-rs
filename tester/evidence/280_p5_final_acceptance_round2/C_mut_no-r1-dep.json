@@ -1,0 +1,57 @@
+{
+  "mut": "no-r1-dep",
+  "pages": [
+    {
+      "avail": 600,
+      "dom": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "sum": 600,
+      "reason": "shrunk",
+      "scrollable": "false",
+      "mainOverflow": 0,
+      "stackScroll": [
+        600,
+        600
+      ],
+      "r1g3": {
+        "before": {
+          "15m": 264,
+          "1h": 112,
+          "5m": 112,
+          "1d": 112
+        },
+        "after": {
+          "15m": 264,
+          "1h": 112,
+          "5m": 112,
+          "1d": 112
+        },
+        "adopted1h": true,
+        "adopted5m": false,
+        "expectedBase": 294,
+        "actualBase": 264
+      }
+    },
+    {
+      "avail": 500,
+      "dom": {
+        "15m": 221,
+        "1h": 93,
+        "5m": 93,
+        "1d": 93
+      },
+      "sum": 500,
+      "reason": "shrunk",
+      "scrollable": "false",
+      "mainOverflow": 0,
+      "stackScroll": [
+        500,
+        500
+      ]
+    }
+  ]
+}

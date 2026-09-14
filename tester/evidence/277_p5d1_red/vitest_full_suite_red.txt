@@ -1,0 +1,356 @@
+# 命令: npx vitest run （全量 web 单测；探针 zz_p5d1_prefix_probe.test.tsx 已删除后重跑）
+# 时间(本地): 2026-09-15T00:50:37+08:00
+# 过滤说明: 剔除既有 [multi-period] ChartSyncGroup 噪声栈 + 警告
+
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/strategies/StrategiesPage.test.tsx > StrategiesPage（策略列表页 /strategies：manage 列表 + 过滤 + 新建 + 操作） > 表格渲染：名称/kind/最新版本状态徽章/approval 徽章/版本数/更新时间/操作列
+
+stderr | src/features/symbols/SymbolsPage.test.tsx > SymbolsPage（页面③标的管理：表格 + 注册/编辑模态 + 启停） > 骨架区域齐备 + 表格行渲染（code/名称/间隔/启用/今日bar/最新时刻/操作）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B1 栈根元素契约：`[data-mp-stack]` + 布局 JSON + 各 pane inline 高度与 JSON 一致
+
+stderr | src/features/strategies/StrategyEditorPage.test.tsx > StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 加载：头部名称/描述 + 版本下拉默认最新版本（v2 draft）+ 状态徽章 + 代码入编辑器
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B2 恰好填满：Σ 各 pane 高度 == 可用高度 600（基准吸收余量/缩小时基准最大）
+
+stderr | src/features/sources/SourcesPage.test.tsx > SourcesPage（页面②数据源诊断：骨架锚点 + 卡片墙 + 详情 + 三态） > 骨架区域齐备：summary-bar / source-cards / gap-cards / alert-preview（detail 默认折叠）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B3 每个 pane 内是各自的 chart 宿主（基准 + 各卫星）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B4 我方分隔条：相邻 pane 之间恰 1 条、role=separator、占位为零（不侵占 pane 空间）
+
+stderr | src/features/settings/SettingsPage.test.tsx > SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 骨架区域齐备：settings-nav + 内容区（source/collector/mcp/kline/system/log/danger）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B5 拖拽改变相邻两者高度、二者之和不变、其它 pane 不变
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B6 拖拽下限：卫星停在 80、基准不低于 200；继续拖不越界
+
+stderr | src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx > L4 G3 预算护栏（4 周期 × 1 标的） > L4-1 初始化 HTTP=4（每周期恰 1）、WS 订阅=4（各 1 活跃）、每分钟兜底 ≤4 且并发闸 ≤3、不丢请求
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0
+
+stderr | src/features/dashboard/DashboardPage.test.tsx > DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互） > 渲染 tangle 骨架区域锚点（dashboard/symbol-list/toolbar/main-chart/sub-chart）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B7 拖拽防抖持久化：<300ms 不回调、≥300ms 恰 1 次、参数 = 全 pane 布局高度
+
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 页面骨架：配置区 + 运行历史（种子四态）+ 结果占位；订阅 strategy_run
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B8 连续拖拽合并为一次写入（参数 = 末次结果）
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B9 ②③ 不变量：拖拽后换 dcap 参数 / 换标的 / 强制重渲染 ⇒ 各 pane 高度不变（±1px）
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-2 卫星实例高度 = heights[period]（指标 pane 填满实例容器）
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B11 ADR-020：基准 barSpace 仍由 (宽度, 根数) 决定；改高（拖拽）不改写基准视口
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-3 缩放/滚动后仍成立：不重建实例、折叠不回弹、分隔条仍为 0
+
+stderr | src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同
+
+stderr | src/features/dashboard/dcapWiringP3.test.tsx > DashboardPage（warmup 取数 + GET/PUT /api/config/dcap + 读取韧性） > 保存 dcap 参数（n_l 变化）⇒ **不重建 feed/图表**：setDataLoader 仅一次、只向前补取差额
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-1 基准勾选 {MA,MACD,KDJ,BOLL,DCAP} ⇒ 每个卫星各自非空且集合一致
+
+ ❯ src/features/dashboard/multiPeriodLayoutDom.test.tsx (13 tests | 1 failed) 300ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B1 栈根元素契约：`[data-mp-stack]` + 布局 JSON + 各 pane inline 高度与 JSON 一致 49ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B2 恰好填满：Σ 各 pane 高度 == 可用高度 600（基准吸收余量/缩小时基准最大） 15ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B3 每个 pane 内是各自的 chart 宿主（基准 + 各卫星） 16ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B4 我方分隔条：相邻 pane 之间恰 1 条、role=separator、占位为零（不侵占 pane 空间） 21ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B5 拖拽改变相邻两者高度、二者之和不变、其它 pane 不变 23ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B6 拖拽下限：卫星停在 80、基准不低于 200；继续拖不越界 19ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B7 拖拽防抖持久化：<300ms 不回调、≥300ms 恰 1 次、参数 = 全 pane 布局高度 28ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B8 连续拖拽合并为一次写入（参数 = 末次结果） 21ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B9 ②③ 不变量：拖拽后换 dcap 参数 / 换标的 / 强制重渲染 ⇒ 各 pane 高度不变（±1px） 43ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B10 非法 heights ⇒ 不崩、回退默认（基准 420 / 卫星 180） 14ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B11 ADR-020：基准 barSpace 仍由 (宽度, 根数) 决定；改高（拖拽）不改写基准视口 21ms
+   ✓ 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B12 关闭态零残留：无栈/无 pane/无分隔条（DOM 与现状等价） 6ms
+   × 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同 24ms
+     → 15m 必须 ≥ 80（配置域下界），收到 64: expected 64 to be greater than or equal to 80
+ ✓ src/features/strategies/StrategiesPage.test.tsx (13 tests) 597ms
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-2 叠加指标必须走 addOverlayIndicator：所有 createIndicator 显式 isStack=true 且无静默顶掉
+
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > WS strategy_run_progress 推进运行中 run 的进度条（0..1 → %）
+Warning: An update to WorkbenchPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+
+stderr | src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx > L1 卫星初始化失败必须可见（不得静默降级） > L1-1 卫星 1h 取数失败 ⇒ 出现 [data-mp-satellite-error="1h"]；基准图仍在（未降级/未崩）
+
+ ✓ src/features/sources/SourcesPage.test.tsx (10 tests) 688ms
+stderr | src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx > L2 关闭多周期 ⇒ 卫星实例完全销毁（零残留） > L2-1 关闭后：无卫星 DOM、卫星周期订阅释放、静默窗内无新增取数/实例
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C2 乐观更新：PUT 未 resolve 时 DOM 已是拖后高度
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-3 DCAP 逐实例：precision 5 + 0 参考线（zero figure）+ 数据不足断线
+
+ ✓ src/features/dashboard/dcapWiringP3.test.tsx (14 tests) 876ms
+ ✓ src/features/symbols/SymbolsPage.test.tsx (8 tests) 1003ms
+ ❯ src/features/strategies/StrategyEditorPage.test.tsx (17 tests | 1 failed) 1056ms
+   × StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 加载：头部名称/描述 + 版本下拉默认最新版本（v2 draft）+ 状态徽章 + 代码入编辑器 54ms
+     → expected '' to contain 'v2 draft 调整'
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 名称/描述编辑：保存信息 → patchStrategy 124ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > NIT-3：meta 保存成功后回填 trim 后值并复位 metaDirty（保存信息按钮禁用） 89ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > MINOR-2：零版本策略 → 渲染空态提示（非永久骨架屏） 10ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 保存 draft 版本：原地 PUT（outcome=updated），不弹新 draft 提示 48ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > NIT-4：draft 原地保存（outcome=updated）后刷新版本列表 → sha256/schema 摘要即时更新 70ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 保存 published 版本：提示「将自动创建新 draft 版本」→ 确认 → outcome=new_draft 后切到新版本 110ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > MINOR-3：published 保存（自动新 draft）后 mock 重解析 PARAMS_SCHEMA → 参数面板/试算参数即时更新 127ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > NIT-6：版本下拉旁「从此版本派生 draft」——任意版本（含 archived）可派生并切换到新 draft 99ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 发布：draft 版本点发布 → publishStrategyVersion → 状态刷为已发布 27ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 发布门禁失败（400）→ 错误内联展示 55ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 归档：published 版本点归档（confirm）→ archiveStrategyVersion 40ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 参数 schema 面板：只读表格展示 fast/slow（key/类型/默认值/范围/描述） 40ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 文档侧栏顶部「📖 完整编程手册」链接新窗口打开 /api/strategies/guide 28ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 指标 API 文档侧栏：列出 indicators 签名与 position/log/save/load 契约 25ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 版本 diff：选两版本 → diffStrategyVersions → 渲染 add/del 行 101ms
+   ✓ StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 加载未知策略 → 404 错误占位 7ms
+stderr | src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx > L3 切标的 ⇒ 各卫星按新 code/period 重建（不串数据） > L3-1 518880 → 513310：卫星取数/订阅切到新 code，旧 code 卫星订阅释放
+
+ ✓ src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx (6 tests) 1085ms
+   ✓ L2 关闭多周期 ⇒ 卫星实例完全销毁（零残留） > L2-1 关闭后：无卫星 DOM、卫星周期订阅释放、静默窗内无新增取数/实例  395ms
+stderr | src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层）
+
+ ✓ src/features/dashboard/multiPeriodSatellite.test.tsx (10 tests) 1202ms
+ ✓ src/features/simlive/SimLivePage.test.tsx (18 tests) 1329ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (12 tests) 1512ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > DCA policy + 硬止损：表单切换渲染并正确序列化（Dca/StopConfig serde 形态）  336ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：slots 超 10 上限 → 提交前友好提示，不触发 onSubmit（与后端 1..=10 同口径）  442ms
+stderr | src/features/workbench/WorkbenchPage.test.tsx > WorkbenchPage（页面⑪ 回测工作台：配置区 + 运行管理 + 结果视图 + compare） > 结果头部进度叠加 progressMap：running run 选中后 WS 推进实时更新（与 RunList 同模式）
+Warning: An update to WorkbenchPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C3 失败回滚：PUT 拒绝 ⇒ 高度回到拖前值（±1px）、无 unhandled rejection
+
+ ✓ src/features/settings/SettingsPage.test.tsx (11 tests) 1461ms
+ ✓ src/features/dashboard/multiPeriodLayoutHandshake.test.tsx (4 tests) 1585ms
+   ✓ P5 高度权威交还（onHeightsChange 回执语义） > H1 父层 rejected（回滚到**拖前** props）⇒ settle 后反映 props 回滚值（不得保留本地拖拽值）  411ms
+   ✓ P5 高度权威交还（onHeightsChange 回执语义） > H1b 父层 rejected（回滚到**另一**配置）⇒ props 是唯一权威（不保留任何本地拖拽痕迹）  387ms
+   ✓ P5 高度权威交还（onHeightsChange 回执语义） > H2 父层 resolved + 服务端回显（≠ 拖拽值）⇒ 组件采用 props 的回显值  384ms
+   ✓ P5 高度权威交还（onHeightsChange 回执语义） > H3 父层未接管（返回 undefined）⇒ 组件保留本地拖拽结果  401ms
+ ✓ src/features/workbench/WorkbenchPage.test.tsx (14 tests) 1578ms
+stderr | src/features/dashboard/SymbolList.test.tsx > SymbolList（symbol-list 区域） > 渲染 code/名称/最新价/涨跌幅
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+
+stderr | src/features/quality/QualityPage.test.tsx > QualityPage（页面④，骨架 QualityGrid + RegionPortal） > 五区齐备：分歧表+汇总行 / 一致率卡 / sync-panel（按钮置灰）/ 缺口列表 / filter-bar
+
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx (6 tests) 806ms
+ ✓ src/features/dashboard/Toolbar.test.tsx (11 tests) 920ms
+ ✓ src/features/dashboard/SymbolList.test.tsx (16 tests) 455ms
+stderr | src/features/alerts/AlertsPage.test.tsx > AlertsPage（页面⑦，骨架 AlertsGrid + RegionPortal） > WS 实时推送：新告警事件即时入列表顶部
+Warning: An update to AlertsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+
+ ✓ src/features/alerts/AlertsPage.test.tsx (7 tests) 718ms
+stderr | src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 退化场景：基准缩放到 satBS>pane/2 ⇒ 角标出现（含原因指引 + 跨度差）；缩小基准 ⇒ 角标消失且回到正常对齐
+
+ ✓ src/features/workbench/ResultView.test.tsx (10 tests) 685ms
+ ✓ src/features/strategies/TestRunPanel.test.tsx (5 tests) 408ms
+ ✓ src/features/workbench/RunList.test.tsx (3 tests) 449ms
+ ✓ src/features/indicators/DcapParamsPanel.test.tsx (7 tests) 395ms
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+
+ ✓ src/features/workbench/store.test.ts (16 tests) 157ms
+ ✓ src/features/dashboard/store.test.ts (32 tests) 119ms
+stderr | src/shell/AppShell.test.tsx > AppShell（骨架：状态条+导航+页面出口） > 渲染顶部状态条、10 项导航与 Outlet 内容；健康数取 1m 角色源
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C5 ②③ 切标的 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+
+ ✓ src/features/quality/QualityPage.test.tsx (6 tests) 666ms
+stderr | src/shell/AppShell.test.tsx > AppShell（骨架：状态条+导航+页面出口） > critical 告警 WS 推送 → 右上角 toast 强弹；warning 静默（07-alerts §4）
+Warning: An update to AppShell inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+
+ ✓ src/features/dashboard/multiPeriodSyncBadge.test.tsx (2 tests) 222ms
+ ✓ src/shell/AppShell.test.tsx (2 tests) 162ms
+stderr | src/shell/NavBar.test.tsx > NavBar（00-shell：10 项按波次置灰；P4b 起旧 ⑤ 回测页退役） > 渲染 10 个导航项
+
+ ✓ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx (7 tests) 106ms
+ ✓ src/features/sources/store.test.ts (9 tests) 105ms
+ ✓ src/shell/NavBar.test.tsx (3 tests) 121ms
+stderr | src/shell/TopBar.test.tsx > TopBar（顶部状态条 H=40） > 交易时段 pill：标签 + 时间
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C6 ②③ 切周期 ⇒ 各 pane 高度不变（±1px）
+
+ ✓ src/shell/TopBar.test.tsx (5 tests) 52ms
+ ✓ src/api/mock.test.ts (45 tests) 84ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx (8 tests) 80ms
+ ✓ src/features/dashboard/GridCell.test.tsx (12 tests) 101ms
+ ✓ src/features/dashboard/TimeshareChart.test.tsx (5 tests) 92ms
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (14 tests) 51ms
+ ✓ src/features/quality/store.test.ts (7 tests) 31ms
+ ✓ src/features/alerts/store.test.ts (10 tests) 44ms
+ ✓ src/features/strategies/ScoreChart.test.tsx (2 tests) 25ms
+ ✓ src/features/dashboard/KlineChart.test.tsx (12 tests) 57ms
+ ✓ src/ws/WsClient.watchdog.test.ts (8 tests) 13ms
+ ✓ src/features/symbols/store.test.ts (8 tests) 39ms
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C7 ②③ 保存 dcap 参数 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+
+ ✓ src/features/dashboard/KlineChartSwitchLayout.test.tsx (3 tests) 31ms
+ ✓ src/features/indicators/dcapNormalize.test.ts (5 tests) 21ms
+ ✓ src/api/multiPeriodMockParity.test.ts (20 tests) 23ms
+ ✓ src/features/dashboard/multiPeriodLayout.test.ts (15 tests) 37ms
+ ✓ src/features/dashboard/chartSyncDensity.test.ts (6 tests) 15ms
+ ✓ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests) 13ms
+ ✓ src/features/dashboard/realtimePoll.test.ts (3 tests) 19ms
+ ✓ src/features/indicators/dcap.test.ts (10 tests) 15ms
+ ✓ src/api/index.test.ts (4 tests) 21ms
+ ✓ src/api/client.test.ts (39 tests) 18ms
+ ✓ src/features/dashboard/dcapWarmupP3.test.ts (9 tests) 11ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts (7 tests) 28ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (26 tests) 4000ms
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > mount 首次失败 → 重试成功 → feed 用配置根数（穿越瞬态）  558ms
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > 连续失败 → 重试 3 次后仍失败 → 保持默认 120（feed 用默认根数，不静默收敛）  1540ms
+ ✓ src/features/dashboard/multiPeriodNoLocalAggregation.test.ts (5 tests) 16ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts (5 tests) 13ms
+ ✓ src/features/dashboard/feed.test.ts (10 tests) 9ms
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body
+
+ ✓ src/features/simlive/store.test.ts (5 tests) 13ms
+ ✓ src/features/indicators/dcapIndicator.test.ts (19 tests) 15ms
+ ✓ src/features/indicators/dcapInsufficient.test.ts (4 tests) 9ms
+ ✓ src/ws/WsClient.test.ts (13 tests) 18ms
+ ✓ src/features/dashboard/overlayIndicator.test.ts (4 tests) 19ms
+ ✓ src/features/dashboard/barSpaceFit.test.ts (7 tests) 8ms
+ ✓ src/features/dashboard/feedRealtimeReconnect.test.ts (2 tests) 8ms
+ ✓ src/features/indicators/dcapMirror.test.ts (11 tests) 8ms
+ ✓ src/features/backtest/ScopedKlineFeed.test.ts (8 tests) 8ms
+ ✓ src/features/dashboard/indicatorStackTrap.test.ts (4 tests) 7ms
+ ✓ src/features/symbols/validate.test.ts (5 tests) 4ms
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」
+
+ ✓ src/features/dashboard/klineDataLoader.test.ts (3 tests) 6ms
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 4ms
+ ✓ src/features/strategies/diff.test.ts (6 tests) 5ms
+ ✓ src/features/workbench/chartUtils.test.ts (3 tests) 4ms
+ ✓ src/shell/session.test.ts (7 tests) 3ms
+ ✓ src/features/dashboard/timeshare.test.ts (3 tests) 3ms
+ ✓ src/features/backtest/markerSnap.test.ts (7 tests) 3ms
+ ✓ src/features/dashboard/chartCommon.test.ts (3 tests) 3ms
+ ✓ src/features/strategies/format.test.ts (4 tests) 2ms
+ ✓ src/features/backtest/format.test.ts (4 tests) 2ms
+ ✓ src/features/dashboard/indicatorCallGuard.test.ts (4 tests) 2ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 2ms
+ ❯ src/features/dashboard/multiPeriodHeightsPageContract.test.tsx (9 tests | 2 failed) 5076ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置  615ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C2 乐观更新：PUT 未 resolve 时 DOM 已是拖后高度  610ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C3 失败回滚：PUT 拒绝 ⇒ 高度回到拖前值（±1px）、无 unhandled rejection  518ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）  588ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C5 ②③ 切标的 ⇒ 各 pane 高度不变（±1px）且不写多周期配置  546ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C6 ②③ 切周期 ⇒ 各 pane 高度不变（±1px）  608ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C7 ②③ 保存 dcap 参数 ⇒ 各 pane 高度不变（±1px）且不写多周期配置  578ms
+   × 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body 507ms
+     → 15m 必须 ≥ 80（配置域下界），收到 74: expected 74 to be greater than or equal to 80
+   × 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」 505ms
+     → 拖拽产出域外 heights ⇒ 服务端 400（根因：期望值未夹配置域；用户表现为「拖了但没保存」）: expected [ 'heights[1h] 须 ∈ [80,1200]，收到 38' ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body
+AssertionError: 15m 必须 ≥ 80（配置域下界），收到 74: expected 74 to be greater than or equal to 80
+ ❯ src/features/dashboard/multiPeriodHeightsPageContract.test.tsx:437:59
+    435|       const v = body.heights[p];
+    436|       expect(Number.isInteger(v), `${p} 必须为整数 px，收到 ${v}`).toBe(true);
+    437|       expect(v, `${p} 必须 ≥ ${HEIGHT_MIN}（配置域下界），收到 ${v}`).toBeGreaterT…
+       |                                                           ^
+    438|       expect(v, `${p} 必须 ≤ ${HEIGHT_MAX}（配置域上界），收到 ${v}`).toBeLessThan…
+    439|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」
+AssertionError: 拖拽产出域外 heights ⇒ 服务端 400（根因：期望值未夹配置域；用户表现为「拖了但没保存」）: expected [ 'heights[1h] 须 ∈ [80,1200]，收到 38' ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "heights[1h] 须 ∈ [80,1200]，收到 38",[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/multiPeriodHeightsPageContract.test.tsx:467:7
+    465|       rejections,
+    466|       '拖拽产出域外 heights ⇒ 服务端 400（根因：期望值未夹配置域；用户表现为「拖了但没保存」）',
+    467|     ).toEqual([]);
+       |       ^
+    468|     const now = heights(ctx.view.container);
+    469|     expect(now[SAT0]!, '拖后结果必须被服务端接受（不得回滚到拖前）').toBeLessThan(before[SA…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/features/dashboard/multiPeriodLayoutDom.test.tsx > 多周期栈 DOM 契约（P5-A 红：无高度分配/无分隔条/无拖拽） > B13 拖拽期望值必须夹在**配置域** [80,1200] —— 与渲染侧分配下界（基准 200/卫星 80）不得混同
+AssertionError: 15m 必须 ≥ 80（配置域下界），收到 64: expected 64 to be greater than or equal to 80
+ ❯ src/features/dashboard/multiPeriodLayoutDom.test.tsx:543:59
+    541|       const v = payload[p]!;
+    542|       expect(Number.isInteger(v), `${p} 必须为整数 px，收到 ${v}`).toBe(true);
+    543|       expect(v, `${p} 必须 ≥ ${HEIGHT_MIN}（配置域下界），收到 ${v}`).toBeGreaterT…
+       |                                                           ^
+    544|       expect(v, `${p} 必须 ≤ ${HEIGHT_MAX}（配置域上界），收到 ${v}`).toBeLessThan…
+    545|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/features/strategies/StrategyEditorPage.test.tsx > StrategyEditorPage（策略编辑器 /strategies/:id/edit） > 加载：头部名称/描述 + 版本下拉默认最新版本（v2 draft）+ 状态徽章 + 代码入编辑器
+AssertionError: expected '' to contain 'v2 draft 调整'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- v2 draft 调整[39m
+
+ ❯ src/features/strategies/StrategyEditorPage.test.tsx:60:78
+     58|     expect(sel.value).toBe('sv_mock_dual_v2'); // 默认最新版本
+     59|     expect(screen.getByTestId('status-badge')).toHaveTextContent('草稿');
+     60|     expect((screen.getByTestId('code-editor') as HTMLTextAreaElement).…
+       |                                                                              ^
+     61|   });
+     62| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  3 failed | 78 passed (81)
+      Tests  4 failed | 743 passed (747)
+   Start at  00:50:37
+   Duration  6.36s (transform 3.07s, setup 3.55s, collect 12.20s, tests 30.96s, environment 25.71s, prepare 6.38s)
+

@@ -1,0 +1,7 @@
+# 06 后端重建（预期空跑 —— 实测空跑）
+$ cd /home/eestock/workspace/git/eestock/eestock-rs && cargo build -p app
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+CARGO_EXIT=0
+$ sha256sum target/debug/eestock-app
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf   ← 与部署前一致（二进制字节未变）
+⇒ 印证「crates 自 5a016cd 零改动」；本次上线纯前端。

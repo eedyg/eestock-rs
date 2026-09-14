@@ -1,0 +1,21 @@
+# 09 收尾状态（2026-09-14T10:05:01 +0800）
+
+$ ss -lntp | grep -E ':8081|:8082'
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=12))
+$ readlink /proc/2948632/cwd          → /home/eestock/workspace/git/eestock/eestock-rs
+$ tr '\0' ' ' < /proc/2948632/cmdline → ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+$ sha256sum /proc/2948632/exe target/debug/eestock-app /tmp/eestock-app.rollback.20260914_100000
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /proc/2948632/exe
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  target/debug/eestock-app
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /tmp/eestock-app.rollback.20260914_100000
+（三者一致；本次为纯前端上线）
+
+$ curl -s http://127.0.0.1:8081/api/sim-live/sessions → count 12 statuses ['ended']
+
+$ git diff --cached --name-only → 空（无暂存文件；全程未 git add / commit / stash）
+$ git status --porcelain -- web/src web/e2e design → 空（部署未改源码；dist/ 走 .gitignore）
+$ ls *.toml /tmp/app_dev_8081.toml → 未改
+未触碰 8080（data）/ 5433（timescaledb）；未用 scripts/deploy.sh；除旧 PID 2102695（= 8081/8082 本体）外未 kill 任何服务。
+临时实例：本轮**未新建**任何临时端口的服务（渲染取证直接对线上 8081 只读，故无临时实例需要拆除）；
+  仅新增 gitignored 运行产物 web/e2e/artifacts/livecheck/**（探针/JSON/截图/日志）。

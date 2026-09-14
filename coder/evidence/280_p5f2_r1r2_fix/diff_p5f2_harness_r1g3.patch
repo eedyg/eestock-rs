@@ -1,0 +1,41 @@
+--- a/b/web/tester/p5-r1r2-harness/run.mjs	2026-09-15 01:30:37.314710846 +0800
++++ b/web/tester/p5-r1r2-harness/run.mjs	2026-09-15 01:29:14.357969977 +0800
+@@ -167,16 +167,33 @@
+   );
+ 
+   // 依赖完整性：父层**只改卫星高度**（无拖拽）⇒ 渲染必须采用回执值
++  //
++  // ⚠️ **期望值推导（修正算术错误 + 加强判据，架构裁决 2026-09-15 显式授权）**：
++  // 本探针的 `setHeights({1h:112, 5m:82})` 是**合并**进父层当前 props（= 两次拖拽后的载荷
++  // `{15m:294,1h:112,5m:92,1d:102}`）⇒ 请求变为 `{15m:294,1h:112,5m:82,1d:102}`，**Σ请求 = 590 < 可用 600**。
++  // 按 02-spec §6.1「D ≤ H ⇒ 按配置 px 直用，**余量由分配算法吸收**」+ 裁决 ②（`fit` 模式下基准 =
++  // **余量吸收项** = 可用 − Σ卫星）⇒ 基准 = 600 − (112+82+102) = **304**（**不是**回执前的屏幕值 294）。
++  // ⇒ 期望**不得**写成 `{...before, 1h:112, 5m:82}`：那是「旧屏幕基准 + 新卫星回执」的混合态，
++  //    任何满足 §6.1 的实现在此都必然 FAIL（旧断言即此算术错误）。基准必须按余量规则**重算**。
+   const before = await dom(page);
+   await page.evaluate(() => window.__r1r2.setHeights({ '1h': 112, '5m': 82 }));
+   await page.waitForTimeout(400);
+   const after = await dom(page);
+-  raw.R1_onlySatellitePropChange = { before, after };
+-  const expectAdopted = { ...before, '1h': 112, '5m': 82 };
++  // 期望由**请求值**推导（不取自 `after`，避免自我循环）：1h/5m = 回执值；1d = 本探针未改动 ⇒ 保持回执前值。
++  const expectedSats = { '1h': 112, '5m': 82, '1d': before['1d'] };
++  const expectedBase = 600 - (expectedSats['1h'] + expectedSats['5m'] + expectedSats['1d']); // 余量吸收项
++  const expectAdopted = { '15m': expectedBase, ...expectedSats };
++  const g3 = {
++    satsAdopted: Math.abs(after['1h'] - expectedSats['1h']) <= 1 && Math.abs(after['5m'] - expectedSats['5m']) <= 1,
++    baseAbsorbs: Math.abs(after['15m'] - expectedBase) <= 1,
++    sumEqualsAvailable: sumOf(after) === 600,
++  };
++  raw.R1_onlySatellitePropChange = { before, after, expectedSats, expectedBase, expectAdopted, g3 };
+   check(
+-    'R1-G3 依赖完整性：父层只改卫星高度（无拖拽）⇒ 分配必须重算采用回执值（memo 依赖必须含卫星高度）',
+-    maxAbs(after, expectAdopted) <= 1,
+-    `回执前=${JSON.stringify(before)} 期望=${JSON.stringify(expectAdopted)} 实际=${JSON.stringify(after)}`,
++    'R1-G3 依赖完整性：父层只改卫星高度（无拖拽）⇒ 分配必须重算：① 卫星逐值采用回执 ∧ ② 基准 == 可用 − Σ卫星 ∧ ③ Σ分配 == 可用',
++    g3.satsAdopted && g3.baseAbsorbs && g3.sumEqualsAvailable,
++    `回执前=${JSON.stringify(before)} 实际=${JSON.stringify(after)} 判据=${JSON.stringify(g3)}` +
++      `（期望：1h=112, 5m=82, 15m=600−Σ卫星=${expectedBase}, Σ=600；基准必须 ≠ 回执前屏幕值 ${before['15m']}）`,
+   );
+ 
+   const ev = await page.evaluate(() => window.__r1r2.measure());

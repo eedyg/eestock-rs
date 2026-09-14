@@ -1,0 +1,138 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/chartSyncDensity.test.ts (6 tests | 6 failed) 7ms
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3-密度表：D 取**实测密度比**（P0.3 锚定值逐一相等；1d→1w 必须 ≠ 名义比 7） 5ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-密度估计器：卫星 ≤1 根 / 无重叠 ⇒ 失效（null），不得静默按 0 或名义兜底 1ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-静态回退：估计器失效时用锚定静态表，且来源必须可观测（不得静默） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T8bis-①/② 诚实降级：容不下 ≥2 根时取「能容纳 ≥2 根的最大 barSpace」，不得等于推导值 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-右偏移按倍率换算（P0.3 §6-I6）：px 不得直接透传 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+   × chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3-护栏：恒退化组合（1m↔1w / 1m↔1d / 卫星<基准 / 1mo）必须被拒绝（口径 10 + P0.3 量化） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+ ❯ src/features/dashboard/chartSyncGroup.test.ts (12 tests | 12 failed) 12ms
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-1 同周期两实例：20 轮镜像后可见范围**逐字段相等**、相对偏移 0、无回声 6ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期（1m↔5m / 1m↔15m / 1d↔1w）：跨度差 ≤1 根高周期 bar **且**卫星可见 bar ≥2 1ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar） 3ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留） 0ms
+     → Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+stderr | src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 退化场景：基准缩放到 satBS>pane/2 ⇒ 角标出现（含原因指引 + 跨度差）；缩小基准 ⇒ 角标消失且回到正常对齐
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/multiPeriodSyncBadge.test.tsx (2 tests | 2 failed) 89ms
+   × T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 退化场景：基准缩放到 satBS>pane/2 ⇒ 角标出现（含原因指引 + 跨度差）；缩小基准 ⇒ 角标消失且回到正常对齐 66ms
+     → expected 4 to be 260 // Object.is equality
+   × T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 反向（变异必红）：若无角标 DOM 契约，退化状态在页面上不可读 ⇒ 本用例必须失败（锁「不得静默」） 23ms
+     → 退化状态必须可由页面读出（`syncDegraded` + 跨度差）: expected null not to be null
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3-密度表：D 取**实测密度比**（P0.3 锚定值逐一相等；1d→1w 必须 ≠ 名义比 7）
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-密度估计器：卫星 ≤1 根 / 无重叠 ⇒ 失效（null），不得静默按 0 或名义兜底
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-静态回退：估计器失效时用锚定静态表，且来源必须可观测（不得静默）
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T8bis-①/② 诚实降级：容不下 ≥2 根时取「能容纳 ≥2 根的最大 barSpace」，不得等于推导值
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3/边界-右偏移按倍率换算（P0.3 §6-I6）：px 不得直接透传
+ FAIL  src/features/dashboard/chartSyncDensity.test.ts > chartSyncGroup 纯函数面（P3-A 红：模块尚不存在） > T3-护栏：恒退化组合（1m↔1w / 1m↔1d / 卫星<基准 / 1mo）必须被拒绝（口径 10 + P0.3 量化）
+Error: Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncDensity.test.ts'
+ ❯ loadPure src/features/dashboard/chartSyncDensity.test.ts:58:11
+     56| 
+     57| async function loadPure(): Promise<SyncPureApi> {
+     58|   return (await import(/* @vite-ignore */ SYNC_SPECIFIER)) as unknown …
+       |           ^
+     59| }
+     60| 
+ ❯ src/features/dashboard/chartSyncDensity.test.ts:68:30
+
+Caused by: Error: Failed to load url ./chartSyncGroup (resolved id: ./chartSyncGroup). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-1 同周期两实例：20 轮镜像后可见范围**逐字段相等**、相对偏移 0、无回声
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期（1m↔5m / 1m↔15m / 1d↔1w）：跨度差 ≤1 根高周期 bar **且**卫星可见 bar ≥2
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格）
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留）
+Error: Cannot find module './chartSyncGroup' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/chartSyncGroup.test.ts'
+ ❯ loadGroup src/features/dashboard/chartSyncGroup.test.ts:56:16
+     54| 
+     55| async function loadGroup(): Promise<SyncGroupCtor> {
+     56|   const mod = (await import(/* @vite-ignore */ SYNC_SPECIFIER)) as { C…
+       |                ^
+     57|   return mod.ChartSyncGroup;
+     58| }
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:170:28
+
+Caused by: Error: Failed to load url ./chartSyncGroup (resolved id: ./chartSyncGroup). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 退化场景：基准缩放到 satBS>pane/2 ⇒ 角标出现（含原因指引 + 跨度差）；缩小基准 ⇒ 角标消失且回到正常对齐
+AssertionError: expected 4 to be 260 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 260[39m
+[31m+ 4[39m
+
+ ❯ src/features/dashboard/multiPeriodSyncBadge.test.tsx:225:43
+    223| 
+    224|     // ① 卫星 barSpace = 能容纳 ≥2 根的最大值（260），**不得**照用推导值 302
+    225|     expect(asStub(sat).getBarSpace().bar).toBe(260);
+       |                                           ^
+    226|     expect(asStub(sat).getVisibleRange().to - asStub(sat).getVisibleRa…
+    227| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 反向（变异必红）：若无角标 DOM 契约，退化状态在页面上不可读 ⇒ 本用例必须失败（锁「不得静默」）
+AssertionError: 退化状态必须可由页面读出（`syncDegraded` + 跨度差）: expected null not to be null
+ ❯ src/features/dashboard/multiPeriodSyncBadge.test.tsx:282:61
+    280|     // 退化状态的可观测面：角标 + 跨度差（二者缺一即视为静默）
+    281|     const badge = view.container.querySelector('[data-mp-sync-degraded…
+    282|     expect(badge, '退化状态必须可由页面读出（`syncDegraded` + 跨度差）').not.toBeNull();
+       |                                                             ^
+    283|     expect(badge!.getAttribute('data-mp-span-diff-min')).not.toBeNull(…
+    284|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  20 failed (20)
+   Start at  22:56:40
+   Duration  706ms (transform 190ms, setup 74ms, collect 289ms, tests 109ms, environment 424ms, prepare 322ms)
+

@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx (5 tests) 3708ms
+   ✓ R1 父层回执必须成为高度权威（依赖完整性） > R1-B 父层回执只改卫星高度 ⇒ 必须采用回执值（连续两次卫星↔卫星拖拽不得回弹）  920ms
+   ✓ R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-A 连续同向 ≥1px 拖拽 ⇒ 载荷必须每次都变化（不得「拖了载荷不变」）  1374ms
+   ✓ R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-B 越域 + 以真实服务端值重载 ⇒ 屏幕不得跳变（实测 20px）且屏幕-载荷偏差 ≤61px  923ms
+   ✓ R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-C 越域载荷口径：payload == clamp(DOM)、Σ DOM == 可用（渲染分配可越域，载荷恒合法）  462ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  01:30:12
+   Duration  4.24s (transform 112ms, setup 24ms, collect 153ms, tests 3.71s, environment 135ms, prepare 78ms)
+

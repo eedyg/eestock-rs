@@ -1,0 +1,4 @@
+# P5-D-2 tsc -b（web）
+# 命令：cd web && ./node_modules/.bin/tsc -b
+# exit code 捕获如下
+tsc exit=0

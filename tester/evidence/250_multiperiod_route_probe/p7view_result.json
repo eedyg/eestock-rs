@@ -1,0 +1,48 @@
+{
+  "msgs": [],
+  "result": {
+    "hiddenCandle": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "h": 191,
+          "state": "minimize"
+        },
+        {
+          "id": "indicator_pane_1789380708110_2",
+          "h": 100,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789380708111_2",
+          "h": 100,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789380708115_2",
+          "h": 100,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "h": 100,
+          "state": "normal"
+        }
+      ],
+      "candle": 0
+    },
+    "pair": {
+      "A": {
+        "realFrom": 548,
+        "realTo": 609,
+        "spanMin": 51
+      },
+      "B": {
+        "realFrom": 35,
+        "realTo": 40,
+        "spanMin": 60
+      }
+    },
+    "chartPngHiddenCandle": "throws: InvalidStateError zero-size pane (measured separately)"
+  }
+}

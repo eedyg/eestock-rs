@@ -1,0 +1,118 @@
+# P5-E-1 新增用例源码快照（multiPeriodLayoutDom.test.tsx，行号 593-712）
+# 生成时间: 2026-09-15T01:03:12+08:00
+
+  // ── P5-E-1（架构裁决 2026-09-15，02-spec §6.2）：**持久化载荷恒合法，渲染分配可越域** ──────────
+  //  缺陷形态：可用高度 ≥ ~1201px 时 `fit` 路径让**基准吸收余量** ⇒ 分配高度可 > `HEIGHT_MAX = 1200`
+  //  ⇒ 载荷照抄分配 ⇒ `PUT /api/config/multi_period` 被配置面校验（`crates/web/src/dto.rs` 第 5 条）400 拒绝
+  //  （用户表现「调大窗口后拖一下就保存失败」）。
+  //  判据口径（**唯一**）：`payload == clamp(DOM 末次分配高度, HEIGHT_MIN, HEIGHT_MAX)`（分配本就在域内 ⇒ 逐值相等）；
+  //  **且不得**为了把载荷凑进域而夹取**渲染分配**（那会破坏 `Σ == 可用高度` 不变量）。
+
+  it('B14 超宽屏（可用 1800px）⇒ 基准吸收余量使**渲染分配** 1261 > 1200：载荷必须还是 clamp(分配) 且各项 ∈ [80,1200]', async () => {
+    const AVAIL_TALL = 1800;
+    const onHeightsChange = vi.fn();
+    const { container } = render(stackTree({ onHeightsChange, availableHeight: AVAIL_TALL }));
+    await flush();
+
+    // 前置：该夹具确实走「基准吸收余量 ⇒ 分配越域」（否则本用例不构成越域用例）
+    const before = allHeights(container);
+    expect(
+      before[BASE_PERIOD]!,
+      `前置：基准吸收余量后分配必须 > HEIGHT_MAX（收到 ${before[BASE_PERIOD]}）`,
+    ).toBeGreaterThan(HEIGHT_MAX);
+
+    vi.useFakeTimers();
+    dragBy(separatorFor(container, BASE_PERIOD, SAT0), 1);
+    await act(async () => {
+      vi.advanceTimersByTime(DRAG_DEBOUNCE_MS);
+    });
+    expect(onHeightsChange, '拖拽必须恰 1 次回调').toHaveBeenCalledTimes(1);
+
+    const payload = onHeightsChange.mock.calls[0]![0] as Record<string, number>;
+    const dom = allHeights(container);
+
+    // ① 渲染侧不变量：Σ 分配 == 可用高度（**不得**因夹取载荷而破坏）
+    expect(sumHeights(dom), 'Σ 渲染分配 == 可用高度（不变量不得被夹取破坏）').toBe(AVAIL_TALL);
+
+    // ② 载荷域（核心，当前红）：每一项 ∈ [80,1200] ⇒ PUT body 合法（不 400 回滚）
+    expect(Object.keys(payload).sort()).toEqual(periodsAll().sort());
+    for (const p of periodsAll()) {
+      const v = payload[p]!;
+      expect(Number.isInteger(v), `${p} 必须为整数 px，收到 ${v}`).toBe(true);
+      expect(v, `${p} 载荷必须 ≥ ${HEIGHT_MIN}，收到 ${v}`).toBeGreaterThanOrEqual(HEIGHT_MIN);
+      expect(
+        v,
+        `${p} 载荷必须 ≤ ${HEIGHT_MAX}（超宽屏基准吸收余量 ⇒ 回流的是分配值），收到 ${v}；` +
+          `口径要求 payload == clamp(DOM ${dom[p]}, ${HEIGHT_MIN}, ${HEIGHT_MAX}) = ${clampDomain(dom[p]!)}`,
+      ).toBeLessThanOrEqual(HEIGHT_MAX);
+    }
+
+    // ③ 口径等式：payload == clamp(DOM 末次分配高度, 80, 1200)（渲染分配**允许**越域，载荷必须被夹）
+    for (const p of periodsAll()) {
+      expect(payload[p], `${p}：payload 必须 == clamp(DOM 分配, ${HEIGHT_MIN}, ${HEIGHT_MAX})`).toBe(
+        clampDomain(dom[p]!),
+      );
+    }
+    expect(payload[BASE_PERIOD]!, '基准 pane 是越域的那个（前置再现）').toBeGreaterThan(HEIGHT_MAX);
+  });
+
+  it('B15 1400px 容器 + 两颗 80px 卫星 ⇒ 基准分得 1240 > 1200：载荷 == clamp(分配)，Σ 分配仍 == 1400', async () => {
+    const AVAIL_1400 = 1400;
+    const periods = [BASE_PERIOD, SAT0, SAT1];
+    const onHeightsChange = vi.fn();
+    const { container } = render(
+      stackTree({
+        onHeightsChange,
+        availableHeight: AVAIL_1400,
+        // 卫星取配置域下界 80 ⇒ Σ 请求 = 420 + 80 + 80 = 580 ≤ 1400 ⇒ `fit` ⇒ 基准 = 1400 − 160 = 1240
+        panes: [
+          { period: SAT0, height: HEIGHT_MIN },
+          { period: SAT1, height: HEIGHT_MIN },
+        ],
+      }),
+    );
+    await flush();
+
+    const before = heightsOf(container, periods);
+    expect(
+      before[BASE_PERIOD]!,
+      `前置：fit 路径基准吸收余量必须 > HEIGHT_MAX（收到 ${before[BASE_PERIOD]}）`,
+    ).toBeGreaterThan(HEIGHT_MAX);
+    expect(sumHeights(before), '前置：Σ 分配 == 可用高度').toBe(AVAIL_1400);
+
+    vi.useFakeTimers();
+    dragBy(separatorFor(container, BASE_PERIOD, SAT0), 1);
+    await act(async () => {
+      vi.advanceTimersByTime(DRAG_DEBOUNCE_MS);
+    });
+    expect(onHeightsChange, '拖拽必须恰 1 次回调').toHaveBeenCalledTimes(1);
+
+    const payload = onHeightsChange.mock.calls[0]![0] as Record<string, number>;
+    const dom = heightsOf(container, periods);
+
+    expect(Object.keys(payload).sort()).toEqual([...periods].sort());
+    expect(sumHeights(dom), 'Σ 渲染分配 == 可用高度（不变量不得被夹取破坏）').toBe(AVAIL_1400);
+
+    for (const p of periods) {
+      const v = payload[p]!;
+      expect(Number.isInteger(v), `${p} 必须为整数 px，收到 ${v}`).toBe(true);
+      expect(v, `${p} 载荷必须 ≥ ${HEIGHT_MIN}，收到 ${v}`).toBeGreaterThanOrEqual(HEIGHT_MIN);
+      expect(
+        v,
+        `${p} 载荷必须 ≤ ${HEIGHT_MAX}，收到 ${v}；` +
+          `口径要求 payload == clamp(DOM ${dom[p]}, ${HEIGHT_MIN}, ${HEIGHT_MAX}) = ${clampDomain(dom[p]!)}`,
+      ).toBeLessThanOrEqual(HEIGHT_MAX);
+      expect(payload[p], `${p}：payload 必须 == clamp(DOM 分配, ${HEIGHT_MIN}, ${HEIGHT_MAX})`).toBe(
+        clampDomain(dom[p]!),
+      );
+    }
+    expect(dom[BASE_PERIOD]!, '渲染分配允许越域（不得为凑载荷域而夹取分配）').toBeGreaterThan(HEIGHT_MAX);
+  });
+});
+
+function expectHeightsWithin(root: HTMLElement, expected: Record<string, number>, tol: number): void {
+  for (const p of periodsAll()) {
+    const got = paneHeight(root, p, p === BASE_PERIOD);
+    expect(Math.abs(got - expected[p]!), `${p}: ${got} vs ${expected[p]}`).toBeLessThanOrEqual(tol);
+  }
+}

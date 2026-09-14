@@ -1,0 +1,836 @@
+{
+  "url": "file:///home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/200_multiperiod_feasibility/harness.html",
+  "console": [],
+  "result": {
+    "logs": [
+      [
+        "paneIds",
+        {
+          "createIndicatorReturned": {
+            "paneA": "EXT_A_1789376103493_1",
+            "paneB": "EXT_B_1789376103494_1",
+            "paneReg": "EXT_REG_1789376103495_1",
+            "paneDraw": "EXT_DRAW_1789376103495_4",
+            "paneVol": "VOL_1789376103496_1"
+          },
+          "realPaneIds": {
+            "PIDA": "indicator_pane_1789376103493_2",
+            "PIDB": "indicator_pane_1789376103494_2",
+            "PIDR": "indicator_pane_1789376103495_2",
+            "PIDD": "indicator_pane_1789376103495_5",
+            "PIDV": "indicator_pane_1789376103496_2"
+          }
+        }
+      ],
+      [
+        "supportedFigures",
+        [
+          "circle",
+          "line",
+          "polygon",
+          "rect",
+          "text",
+          "arc",
+          "path"
+        ]
+      ],
+      [
+        "supportedOverlays",
+        [
+          "fibonacciLine",
+          "horizontalRayLine",
+          "horizontalSegment",
+          "horizontalStraightLine",
+          "parallelStraightLine",
+          "priceChannelLine",
+          "priceLine",
+          "rayLine",
+          "segment",
+          "straightLine",
+          "verticalRayLine",
+          "verticalSegment",
+          "verticalStraightLine",
+          "simpleAnnotation",
+          "simpleTag",
+          "brush"
+        ]
+      ],
+      [
+        "S1.firstRender",
+        {
+          "tag": "S1",
+          "panes": [
+            {
+              "id": "candle_pane",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103493_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 1,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103494_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 222,
+                "left": 0,
+                "right": 0,
+                "top": 102,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103495_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 325,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103495_5",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 426,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103496_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 87,
+                "left": 0,
+                "right": 0,
+                "top": 527,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "order": 9007199254740991,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 26,
+                "left": 0,
+                "right": 0,
+                "top": 614,
+                "bottom": 0
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "name": "EXT_A",
+              "paneId": "indicator_pane_1789376103493_2",
+              "yAxisId": "yAxis_1789376103493_3",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 4.0765
+              }
+            },
+            {
+              "name": "EXT_B",
+              "paneId": "indicator_pane_1789376103494_2",
+              "yAxisId": "yA_extB",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 8.7798
+              }
+            },
+            {
+              "name": "EXT_REG",
+              "paneId": "indicator_pane_1789376103495_2",
+              "yAxisId": "yAxis_1789376103495_3",
+              "calcParams": [
+                5
+              ],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 4.0765
+              }
+            },
+            {
+              "name": "EXT_DRAW",
+              "paneId": "indicator_pane_1789376103495_5",
+              "yAxisId": "yAxis_1789376103495_6",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": null
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789376103496_2",
+              "yAxisId": "yAxis_1789376103496_3",
+              "calcParams": [
+                5,
+                10,
+                20
+              ],
+              "precision": 0,
+              "resultLen": 600,
+              "firstNonNull": null
+            }
+          ],
+          "yaxes": [
+            {
+              "paneId": "candle_pane",
+              "id": "yAxis_1789376103484_1",
+              "realRange": 0.11180000000000057,
+              "from": 8.8595,
+              "to": 8.971300000000001
+            },
+            {
+              "paneId": "indicator_pane_1789376103493_2",
+              "id": "yAxis_1789376103493_3",
+              "realRange": 2.08754,
+              "from": 0.8401199999999999,
+              "to": 2.92766
+            },
+            {
+              "paneId": "indicator_pane_1789376103494_2",
+              "id": "yA_extB",
+              "realRange": 3.1825300000000007,
+              "from": 1.75669,
+              "to": 4.939220000000001
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_2",
+              "id": "yAxis_1789376103495_3",
+              "realRange": 2.08754,
+              "from": 0.8401199999999999,
+              "to": 2.92766
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_5",
+              "id": "yAxis_1789376103495_6",
+              "realRange": 13,
+              "from": -1,
+              "to": 12
+            },
+            {
+              "paneId": "indicator_pane_1789376103496_2",
+              "id": "yAxis_1789376103496_3",
+              "realRange": 5980,
+              "from": -460,
+              "to": 5520
+            }
+          ],
+          "visibleRange": {
+            "from": 515,
+            "to": 600,
+            "realFrom": 523,
+            "realTo": 609
+          },
+          "pixels": [
+            {
+              "paneId": "indicator_pane_1789376103493_2",
+              "xAtSameTs": -2234,
+              "yAtValue3": -3,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103494_2",
+              "xAtSameTs": -2234,
+              "yAtValue3": 61,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_2",
+              "xAtSameTs": -2234,
+              "yAtValue3": -3,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_5",
+              "xAtSameTs": -2234,
+              "yAtValue3": 69,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103496_2",
+              "xAtSameTs": -2234,
+              "yAtValue3": 92,
+              "paneHeight": 100,
+              "paneWidth": 900
+            }
+          ],
+          "dom": {
+            "canvasCount": 26,
+            "PIDAroot": {
+              "tag": "DIV",
+              "kids": [
+                "DIV",
+                "DIV"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "P1.setPaneHeight",
+        {
+          "target": "indicator_pane_1789376103494_2",
+          "before": {
+            "minHeight": 30,
+            "dragEnabled": true,
+            "order": 0,
+            "height": 222,
+            "state": "normal",
+            "id": "indicator_pane_1789376103494_2"
+          },
+          "after": {
+            "minHeight": 30,
+            "dragEnabled": true,
+            "order": 0,
+            "height": 222,
+            "state": "normal",
+            "id": "indicator_pane_1789376103494_2"
+          },
+          "afterAll": [
+            {
+              "id": "candle_pane",
+              "height": 100,
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "height": 100,
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "height": 222,
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "height": 100,
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "height": 100,
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "height": 100,
+              "order": 0
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "order": 9007199254740991
+            }
+          ],
+          "sizeAfter": {
+            "width": 900,
+            "height": 222,
+            "left": 0,
+            "right": 0,
+            "top": 102,
+            "bottom": 0
+          }
+        }
+      ],
+      [
+        "S2.afterZoomScroll",
+        {
+          "tag": "S2",
+          "panes": [
+            {
+              "id": "candle_pane",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103493_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 1,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103494_2",
+              "height": 222,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 222,
+                "left": 0,
+                "right": 0,
+                "top": 102,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103495_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 325,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103495_5",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 100,
+                "left": 0,
+                "right": 0,
+                "top": 426,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "indicator_pane_1789376103496_2",
+              "height": 100,
+              "order": 0,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 87,
+                "left": 0,
+                "right": 0,
+                "top": 527,
+                "bottom": 0
+              }
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "order": 9007199254740991,
+              "state": "normal",
+              "size": {
+                "width": 900,
+                "height": 26,
+                "left": 0,
+                "right": 0,
+                "top": 614,
+                "bottom": 0
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "name": "EXT_A",
+              "paneId": "indicator_pane_1789376103493_2",
+              "yAxisId": "yAxis_1789376103493_3",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 4.0765
+              }
+            },
+            {
+              "name": "EXT_B",
+              "paneId": "indicator_pane_1789376103494_2",
+              "yAxisId": "yA_extB",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 8.7798
+              }
+            },
+            {
+              "name": "EXT_REG",
+              "paneId": "indicator_pane_1789376103495_2",
+              "yAxisId": "yAxis_1789376103495_3",
+              "calcParams": [
+                5
+              ],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": {
+                "v": 4.0765
+              }
+            },
+            {
+              "name": "EXT_DRAW",
+              "paneId": "indicator_pane_1789376103495_5",
+              "yAxisId": "yAxis_1789376103495_6",
+              "calcParams": [],
+              "precision": 5,
+              "resultLen": 600,
+              "firstNonNull": null
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789376103496_2",
+              "yAxisId": "yAxis_1789376103496_3",
+              "calcParams": [
+                5,
+                10,
+                20
+              ],
+              "precision": 0,
+              "resultLen": 600,
+              "firstNonNull": null
+            }
+          ],
+          "yaxes": [
+            {
+              "paneId": "candle_pane",
+              "id": "yAxis_1789376103484_1",
+              "realRange": 0.09268999999999927,
+              "from": 8.86097,
+              "to": 8.95366
+            },
+            {
+              "paneId": "indicator_pane_1789376103493_2",
+              "id": "yAxis_1789376103493_3",
+              "realRange": 1.03896,
+              "from": 0.9207799999999999,
+              "to": 1.95974
+            },
+            {
+              "paneId": "indicator_pane_1789376103494_2",
+              "id": "yA_extB",
+              "realRange": 2.07779,
+              "from": 1.8416700000000001,
+              "to": 3.91946
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_2",
+              "id": "yAxis_1789376103495_3",
+              "realRange": 1.03896,
+              "from": 0.9207799999999999,
+              "to": 1.95974
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_5",
+              "id": "yAxis_1789376103495_6",
+              "realRange": 13,
+              "from": -1,
+              "to": 12
+            },
+            {
+              "paneId": "indicator_pane_1789376103496_2",
+              "id": "yAxis_1789376103496_3",
+              "realRange": 5980,
+              "from": -460,
+              "to": 5520
+            }
+          ],
+          "visibleRange": {
+            "from": 475,
+            "to": 557,
+            "realFrom": 475,
+            "realTo": 557
+          },
+          "pixels": [
+            {
+              "paneId": "indicator_pane_1789376103493_2",
+              "xAtSameTs": -1807,
+              "yAtValue3": -100,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103494_2",
+              "xAtSameTs": -1807,
+              "yAtValue3": 98,
+              "paneHeight": 222,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_2",
+              "xAtSameTs": -1807,
+              "yAtValue3": -100,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103495_5",
+              "xAtSameTs": -1807,
+              "yAtValue3": 69,
+              "paneHeight": 100,
+              "paneWidth": 900
+            },
+            {
+              "paneId": "indicator_pane_1789376103496_2",
+              "xAtSameTs": -1807,
+              "yAtValue3": 80,
+              "paneHeight": 87,
+              "paneWidth": 900
+            }
+          ],
+          "dom": {
+            "canvasCount": 26,
+            "PIDAroot": {
+              "tag": "DIV",
+              "kids": [
+                "DIV",
+                "DIV"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "P1.heightAfterZoomScroll",
+        {
+          "opt": {
+            "minHeight": 30,
+            "dragEnabled": true,
+            "order": 0,
+            "height": 222,
+            "state": "normal",
+            "id": "indicator_pane_1789376103494_2"
+          },
+          "size": {
+            "width": 900,
+            "height": 222,
+            "left": 0,
+            "right": 0,
+            "top": 102,
+            "bottom": 0
+          },
+          "allHeights": [
+            {
+              "id": "candle_pane",
+              "h": 100
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "h": 100
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "h": 222
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "h": 100
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "h": 100
+            },
+            {
+              "id": "indicator_pane_17893761034",
+              "h": 100
+            },
+            {
+              "id": "x_axis_pane",
+              "h": 100
+            }
+          ]
+        }
+      ],
+      [
+        "P2a.overrideExtendData",
+        {
+          "ret": false,
+          "calcCallsBefore": 1,
+          "calcCallsAfter": 2,
+          "recalced": true,
+          "resultLen": 600,
+          "firstNonNull": {
+            "v": 14.0765
+          }
+        }
+      ],
+      [
+        "P2b.registryReactivity",
+        {
+          "regBefore": "{\"v\":4.0765}",
+          "retSame": false,
+          "regAfterSame": "{\"v\":104.0765}",
+          "regAfterReset": "{\"v\":104.0765}",
+          "recalcWithoutReset": true,
+          "recalcAfterReset": false
+        }
+      ],
+      [
+        "P2c.indicatorDraw",
+        {
+          "drawCalls": 6,
+          "drawLastCoords": {
+            "left": 0,
+            "right": 65,
+            "y0": 92,
+            "y8": 31
+          },
+          "paneDrawPixels": {
+            "err": "no canvas",
+            "domTag": null
+          }
+        }
+      ],
+      [
+        "P2d.overlay",
+        {
+          "polyline": false,
+          "brush": true,
+          "segment": true,
+          "overlays": 2,
+          "overlayNames": [
+            "brush",
+            "segment"
+          ]
+        }
+      ],
+      [
+        "P2a.pixelCheck EXT_A",
+        {
+          "err": "no canvas",
+          "domTag": null
+        }
+      ],
+      [
+        "P2b.pixelCheck EXT_REG",
+        {
+          "err": "no canvas",
+          "domTag": null
+        }
+      ],
+      [
+        "P2a2.pixelCheck EXT_B",
+        {
+          "err": "no canvas",
+          "domTag": null
+        }
+      ]
+    ],
+    "calcCalls": [
+      {
+        "name": "EXT_A",
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 37
+      },
+      {
+        "name": "EXT_B",
+        "extLen": 40,
+        "dataLen": 600,
+        "t": 37
+      },
+      {
+        "name": "EXT_REG",
+        "period": 5,
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 38
+      },
+      {
+        "name": "EXT_A",
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 625
+      },
+      {
+        "name": "EXT_REG",
+        "period": 5,
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 658
+      },
+      {
+        "name": "EXT_A",
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 691
+      },
+      {
+        "name": "EXT_B",
+        "extLen": 40,
+        "dataLen": 600,
+        "t": 692
+      },
+      {
+        "name": "EXT_REG",
+        "period": 5,
+        "extLen": 120,
+        "dataLen": 600,
+        "t": 692
+      }
+    ],
+    "errors": [
+      [
+        "getConvertPictureUrl",
+        "InvalidStateError: Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The image argument is a canvas element with a width or height of 0."
+      ]
+    ],
+    "picLen": 0
+  }
+}

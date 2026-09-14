@@ -1,0 +1,40 @@
+--- a/b/web/src/features/dashboard/MultiPeriodChartStack.tsx	2026-09-15 01:30:37.313869204 +0800
++++ b/web/src/features/dashboard/MultiPeriodChartStack.tsx	2026-09-15 01:29:54.045906960 +0800
+@@ -168,6 +168,11 @@
+   // 基准请求高度来自 `baseHeight`（配置 `heights[periods[0]]`）——DashboardPage 不再给基准 KlineChart
+   // 传 `heightPx`（激活态高度由本栈的 pane 决定；非激活态仍 `h-full` ⇒ 现状等价）。
+   const periodsKey = satellites.map((s) => s.period).join('\u0000');
++  // **依赖完整性（R1 修复；02-spec §6.2 架构裁决 ③）**：`satellites` 数组每次渲染都是新引用 ⇒ 直接入依赖
++  // 会让 memo 每渲染重算；改用「`周期:高度`」**稳定签名**（同样的周期+高度 ⇒ 同样的串 ⇒ 不重算）。
++  // 缺此依赖时，父层回执**只改卫星高度**（基准请求值不变）会被静默忽略 ⇒ 拖拽在回执 settle 后回弹、
++  // 屏幕与服务端配置分叉（P5 最终验收 R1 实测 600px：拖中 `{294,112,82,112}` → 回执后 `{294,97,97,112}`）。
++  const satelliteHeightsKey = satellites.map((s) => `${s.period}:${s.height}`).join('\u0000');
+   const specPanes = useMemo<StackPane[]>(() => {
+     const base: StackPane = {
+       key: basePeriod ?? 'base',
+@@ -176,7 +181,7 @@
+       isBase: true,
+     };
+     return [base, ...satellites.map((s) => ({ key: s.period, period: s.period, requested: s.height, isBase: false }))];
+-  }, [basePeriod, baseHeight, periodsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- satellites 按周期列表比对
++  }, [basePeriod, baseHeight, periodsKey, satelliteHeightsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- satellites 由 periodsKey+satelliteHeightsKey（周期+高度稳定签名）比对
+ 
+   // 拖拽会改写「期望 px」；但**配置/父层回写**（保存成功回显 或 失败回滚）必须重新成为权威
+   // ⇒ 请求高度签名一变即丢弃本地拖拽期望（否则失败回滚回不去；沿用 React 官方「props 变更时调整 state」写法）。
+@@ -241,9 +246,13 @@
+     (upper: string, lower: string, startEvent: { clientY: number; preventDefault?: () => void }) => {
+       startEvent.preventDefault?.();
+       const startY = startEvent.clientY;
+-      // 拖拽基线 = **当前已分配高度**（而非上次拖拽的原始期望值）：否则在缩小路徯后
+-      // （期望值已不属正常区间）二次拖拽会从错位基线出发（B6 实测）。
+-      const seed = paneHeights;
++      // 拖拽基线 = **持久化域内的当前值**（`clamp(当前分配)`，02-spec §6.2 架构裁决 ①，2026-09-15）：
++      // 不是屏幕分配值。越域时（可用 ≥1201px 的 `fit` 路径，基准吸收余量可 > HEIGHT_MAX）两者相差 ≤61px，
++      // 以屏幕值为基线会与「载荷 = clamp(分配)」的持久化口径错位（载荷重复/零反馈、重载跳变）；
++      // 以域内值为基线 ⇒ 每次拖拽都单调改载荷（无死区），屏幕由分配算法决定（裁决 ②：基准在 `fit` 模式
++      // 是余量吸收项，其持久化值仅作记录）。
++      // 同时保留 B6 实测口径：基线取「当前」而非上次拖拽的原始期望值（缩小路径后二次拖拽不得错位）。
++      const seed = toPersistableHeights(paneHeights);
+       let moved = false;
+       const onMove = (ev: MouseEvent) => {
+         const delta = ev.clientY - startY;

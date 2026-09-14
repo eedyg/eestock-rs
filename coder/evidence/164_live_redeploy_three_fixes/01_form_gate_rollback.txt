@@ -1,0 +1,44 @@
+# 01 形态确认（停机前，2026-09-14 10:00 +0800 抓取）+ 停机门禁 + 回滚件
+
+## HEAD / 工作树
+$ git log --oneline -1
+6391a4d docs(report): 切 period/stock 布局重置 —— 诊断 + 修复 + 独立验收报告与证据
+$ git status --porcelain -- web/src web/e2e design   → 空
+$ git diff --stat HEAD -- web crates                 → 空
+$ git diff --stat 5a016cd..HEAD -- crates/           → 空   ← 印证「后端 Rust 自 5a016cd 零改动」
+$ git show --stat 181c35a 7949c0b 5d8eff4            → 三处前端修复（web/** + design 文档）
+
+## 形态确认（旧进程在线）
+$ ss -lntp | grep -E ':8081|:8082'
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=12))
+$ readlink /proc/2102695/cwd
+/home/eestock/workspace/git/eestock/eestock-rs          ← == 仓库根（static_dir=./web/dist 成立）
+$ tr '\0' ' ' < /proc/2102695/cmdline
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+$ readlink /proc/2102695/exe
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+$ sha256sum /proc/2102695/exe target/debug/eestock-app
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /proc/2102695/exe
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  target/debug/eestock-app
+（在线 exe == 磁盘二进制；单进程同时持有 8081 与 8082）
+
+## 配置（/tmp/app_dev_8081.toml，只读）
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "0.0.0.0:8081"
+mcp_listen = "0.0.0.0:8082"
+static_dir = "./web/dist"
+health_window_secs = 3600 / ws_poll_ms = 3000 / alert_eval_ms = 60000
+
+## 停机门禁：sim-live 会话（必须全 ended，否则停手报告）
+$ curl -s http://127.0.0.1:8081/api/sim-live/sessions   → HTTP:200（原始 JSON: 02b_simlive_pre.json）
+count 12 statuses ['ended'] non_ended []
+⇒ 无运行态，允许停机（停机前 10:00:42 复检同样 12/12 ended）
+
+## 回滚件
+$ cp /proc/2102695/exe /tmp/eestock-app.rollback.20260914_100000
+$ sha256sum /tmp/eestock-app.rollback.20260914_100000
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf
+$ ls -l → -rwxrwxr-x 1 eestock eestock 206210368 Sep 14 10:00
+（注：因 crates 自 5a016cd 零改动，回滚二进制与本次部署二进制 sha256 相同 ⇒ 后端侧不存在版本差；
+  真正的「前端回滚件」= 上一版 bundle：/tmp/kl_pre/dist（index.html 32a33a54… / index-DGKMabUW.js 7a05ea2f…，与本轮部署前的线上 web/dist 逐字节相同，见 05_frontend_build.txt））

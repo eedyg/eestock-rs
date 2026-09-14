@@ -1,0 +1,14 @@
+# P5-D-2 进程卫生（0 写请求 / 未重启线上 / 无临时实例残留）
+2026-09-15T00:56:35+08:00
+--- 线上进程 PID 3112540 存活与启动时间（未重启；START 时间应与派单前一致）---
+    PID                  STARTED     ELAPSED CMD
+3112540 Mon Sep 14 11:52:36 2026    13:03:59 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+--- 残留的 vitest/vite/playwright/node 测试与服务进程（应无本轮残留）---
+无 vitest/vite/playwright 残留进程
+--- 监听端口（临时实例应无残留；线上 8081 属既有）---
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                             
+LISTEN 0      4096            [::]:8080          [::]:*                                             
+--- 本轮未执行任何 git add/commit/stash ---
+暂存文件数: 0
+stash 条目数: 0

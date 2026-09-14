@@ -1,0 +1,11 @@
+# P5-E-2 证据：sha256（改动后，未 staged）
+1b94fad0e163f53493386a2a42bdf7bd8c9ac1567b9b11156855693f88222860  src/features/dashboard/multiPeriodLayout.ts
+46f9e63cc82de5dc9d41c26e1bb7a9b23528c4dee48923c5695e4d61d0197516  src/features/dashboard/MultiPeriodChartStack.tsx
+c9113afe86d5c228791eaa70eea8c255856c536e271ecd1603cd4913a5ac7de7  src/features/dashboard/multiPeriodLayoutDom.test.tsx
+
+# git status（相关文件）
+ M web/src/features/dashboard/MultiPeriodChartStack.tsx
+?? web/src/features/dashboard/multiPeriodLayout.ts
+?? web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+
+# staged 文件（应为空）

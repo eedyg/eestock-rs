@@ -1,0 +1,39 @@
+# 05 前端重建（bundle 哈希必须变化 —— 实测变化）
+
+## tsc -b
+$ cd web && npx tsc -b ; echo TSC_EXIT=$?
+TSC_EXIT=0        （输出空 = 无诊断；原始日志 05a_tsc_b.log，0 行）
+
+## npm run build:prod
+$ cd web && npm run build:prod ; echo BUILD_EXIT=$?
+BUILD_EXIT=0      （原始日志 05b_build_prod.log）
+vite v6.4.3 building for production...
+✓ 171 modules transformed.
+dist/index.html                     0.40 kB │ gzip:   0.29 kB
+dist/assets/index-Cm6bbPuq.css     22.01 kB │ gzip:   5.58 kB
+dist/assets/index-CzeoM0It.js   1,177.81 kB │ gzip: 363.05 kB
+（仅 chunk > 500 kB 的常规告警，非错误）
+✓ built in 1.76s
+
+## dist 哈希：BEFORE vs AFTER（本次应变化 —— 实测变化）
+BEFORE（部署前线上 dist，= /tmp/kl_pre/dist 逐字节相同）
+  index.html            → /assets/index-CzeoM0It.js 之前为 index-DGKMabUW.js
+  web/dist/index.html   sha256 32a33a5450514e14b5f39a83e8e1b7a1b71426359febea99081e1afe57655c31  size 397
+  web/dist/assets/index-DGKMabUW.js  sha256 7a05ea2f56e1f2a3d0266b2164fb01c082ec8b726709ee607a324c0ecb867df0  size 1176429
+  web/dist/assets/index-Cm6bbPuq.css sha256 698283dfab325cb2e1ee90c69755fe10bb73280283020d59128f908a2b04e688  size 22007
+AFTER
+  index.html            → /assets/index-CzeoM0It.js + /assets/index-Cm6bbPuq.css
+  web/dist/index.html   sha256 58b277ece7fee63deec82bc22f6331b96a8c9a8707540f55e89f05b52f1bcf63  size 397
+  web/dist/assets/index-CzeoM0It.js  sha256 02e98e1baede4503f218f8ea3f85f6149c1d215c652fbd2581ce21a09c0f38b1  size 1177810
+  web/dist/assets/index-Cm6bbPuq.css sha256 698283dfab325cb2e1ee90c69755fe10bb73280283020d59128f908a2b04e688  size 22007（未变）
+JS 哈希变化 ⇒ 三处修复确已进入线上 bundle；旧 JS 已从 dist/assets 清除（仅余新 JS + CSS）
+
+## bundle 内三处修复痕迹（正向取证，grep 新 bundle）
+① 骨架锚点无 border-t：
+   data-region":"main-chart",className:"relative min-h-0 flex-1",children:…{"data-region":"sub-chart","className":"pointer-events-none absolute inset-x-0 bottom-0 h-1/5"}
+② DCAP 第 4 figure 常驻 0 线（细灰虚线 #76808F）：
+   gm="DCAP",E$=5,M$="zero",A$="0: ",$$={color:"#76808F",style:"dashed",size:1,dashedValue:[4,4],smooth:!1}
+   figures:[{key:"s",…},{key:"m",…},{key:"l",…},{key:A$,title:$$,type:"line",styles:()=>Q$}]
+③ 切 period/stock 原地切换：源侧 KlineChart.tsx 拆 Effect L（仅 mount 建图）+ Effect W（随 feed 换
+   setDataLoader → setSymbol → setPeriod，无 dispose/init）；bundle 内 overrideIndicator / setDataLoader /
+   setSymbol / setPeriod / resetData 均存在（库侧）；行为级取证见 07-live-render/（chart.id 不递增）

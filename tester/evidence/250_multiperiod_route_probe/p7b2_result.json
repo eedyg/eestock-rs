@@ -1,0 +1,179 @@
+{
+  "console": [],
+  "result": {
+    "errors": [],
+    "initLayoutBarSpaceLimit": "min:0.1 max:200000 (passed at init)",
+    "baseline": {
+      "A": {
+        "realFrom": 567,
+        "realTo": 609,
+        "f": 567,
+        "t": 599,
+        "tsF": 1789378020000,
+        "tsT": 1789379940000,
+        "spanMin": 32,
+        "bar": 10
+      },
+      "B": {
+        "realFrom": 7,
+        "realTo": 49,
+        "f": 7,
+        "t": 39,
+        "tsF": 1789350300000,
+        "tsT": 1789379100000,
+        "spanMin": 480,
+        "bar": 10
+      },
+      "C": {
+        "realFrom": 567,
+        "realTo": 609,
+        "f": 567,
+        "t": 599,
+        "tsF": 1789378020000,
+        "tsT": 1789379940000,
+        "spanMin": 32,
+        "bar": 10
+      },
+      "D": {
+        "realFrom": -23,
+        "realTo": 19,
+        "f": 0,
+        "t": 9,
+        "tsF": 1789344000000,
+        "tsT": 1794787200000,
+        "spanMin": 90720,
+        "bar": 10
+      }
+    },
+    "indexAlign_1m_vs_1m": {
+      "A": {
+        "realFrom": 251,
+        "realTo": 302,
+        "f": 251,
+        "t": 302,
+        "tsF": 1789359060000,
+        "tsT": 1789362120000,
+        "spanMin": 51,
+        "bar": 8
+      },
+      "C": {
+        "realFrom": 251,
+        "realTo": 302,
+        "f": 251,
+        "t": 302,
+        "tsF": 1789359060000,
+        "tsT": 1789362120000,
+        "spanMin": 51,
+        "bar": 8
+      },
+      "exactEqual": true
+    },
+    "crossPeriod_naiveTsOnly": {
+      "A": {
+        "realFrom": 251,
+        "realTo": 302,
+        "f": 251,
+        "t": 302,
+        "tsF": 1789359060000,
+        "tsT": 1789362120000,
+        "spanMin": 51,
+        "bar": 8
+      },
+      "B": {
+        "realFrom": 0,
+        "realTo": 22,
+        "f": 0,
+        "t": 22,
+        "tsF": 1789344000000,
+        "tsT": 1789363800000,
+        "spanMin": 330,
+        "bar": 10
+      },
+      "tsRight": 1789362120000
+    },
+    "crossPeriod_scaledBarSpace": {
+      "ratio": 15,
+      "bsA": 8,
+      "targetB": 120,
+      "Bbar": 120,
+      "A": {
+        "realFrom": 251,
+        "realTo": 302,
+        "f": 251,
+        "t": 302,
+        "tsF": 1789359060000,
+        "tsT": 1789362120000,
+        "spanMin": 51,
+        "bar": 8
+      },
+      "B": {
+        "realFrom": 18,
+        "realTo": 22,
+        "f": 18,
+        "t": 22,
+        "tsF": 1789360200000,
+        "tsT": 1789363800000,
+        "spanMin": 60,
+        "bar": 120
+      }
+    },
+    "pixelX_afterSync": {
+      "ts": 1789362120000,
+      "Ax": 410,
+      "Bx": 338
+    },
+    "crossPeriod_1m_vs_1w": {
+      "ratio": 10080,
+      "bsA": 8,
+      "bsNeeded": 80640,
+      "Dbar": 80640,
+      "A": {
+        "realFrom": 251,
+        "realTo": 302,
+        "f": 251,
+        "t": 302,
+        "tsF": 1789359060000,
+        "tsT": 1789362120000,
+        "spanMin": 51,
+        "bar": 8
+      },
+      "D": {
+        "realFrom": 2,
+        "realTo": 3,
+        "f": 2,
+        "t": 3,
+        "tsF": 1790553600000,
+        "tsT": 1791158400000,
+        "spanMin": 10080,
+        "bar": 80640
+      },
+      "Dx": -120562,
+      "Ax": 410
+    },
+    "drift20": {
+      "first": {
+        "k": 0,
+        "ts": 1789362120000,
+        "B": 60,
+        "A": 51
+      },
+      "last": {
+        "k": 19,
+        "ts": 1789362120000,
+        "B": 60,
+        "A": 51
+      },
+      "count": 20
+    },
+    "feedback": {
+      "wallMs": 370,
+      "syncCalls": 1,
+      "reentrantCalls": 1,
+      "evA": 1,
+      "evB": 1
+    },
+    "feedbackNote": "reentrantCalls>0 means target scroll re-entered the source callback (loop risk)",
+    "syncPerf_50ops_ms": 0.2,
+    "syncPerOp_ms": 0
+  }
+}

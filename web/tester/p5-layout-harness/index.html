@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>P5-A 布局与纵向溢出 · 真渲染几何取证（T9 / 溢出面）</title>
+<style>
+  html, body { margin: 0; background: #101418; color: #c9d1d9; font: 12px/1.5 monospace; }
+  #main { padding: 0; }
+  #log { white-space: pre-wrap; padding: 8px; }
+</style>
+</head>
+<body>
+<!--
+  P5-A 布局与纵向溢出：**真实产品组件 + 真实 klinecharts 10.0.3**（Vite 构建 + 本地随机端口 + 合成数据）。
+
+  依据：`design/15-multi-period/02-spec.md` §6（布局契约）、`03-test-plan.md` T9、
+  `04-implementation-plan.md` P5；P2-C 实测 `tester/test/271_p2c_independent_acceptance_execution.md` §9
+  （`#main` clientHeight 600 vs scrollHeight 1140 ⇒ 540px 纵向溢出）。
+  本 harness 设计报告：`tester/design/276_p5_layout_persistence_red_design.md` §3.4。
+
+  性质：**只读几何取证**（`file://`/本地端口 + 合成数据 ⇒ 0 出网、0 写请求；不触碰线上 8081/8082）。
+  样式：**真实 Tailwind**（content 覆盖到产品源码）⇒ 类名语义与生产一致（不手搓工具类子集）。
+
+  用法（须在 `web/` 下运行）：`node tester/p5-layout-harness/run.mjs`
+-->
+<div id="app"></div>
+<div id="log"></div>
+<script type="module" src="./entry.tsx"></script>
+</body>
+</html>

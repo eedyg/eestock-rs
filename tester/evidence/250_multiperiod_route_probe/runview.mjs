@@ -1,0 +1,15 @@
+import { createRequire } from 'node:module'; import fs from 'node:fs'; import path from 'node:path';
+const require=createRequire('/home/eestock/workspace/git/eestock/eestock-rs/web/package.json'); const {chromium}=require('playwright');
+const here=path.dirname(new URL(import.meta.url).pathname);
+const b=await chromium.launch(); const p=await b.newPage({viewport:{width:900,height:900}});
+const msgs=[];p.on('pageerror',e=>msgs.push('pageerror:'+e.message));p.on('console',m=>msgs.push(`[${m.type()}] ${m.text()}`));
+await p.goto('file://'+path.join(here,'p7view.html'));
+await p.waitForFunction(()=>window.__DONE===true,null,{timeout:60000});
+const r=await p.evaluate(()=>window.__RESULT);
+await p.screenshot({path:path.join(here,'p7_view_full.png'),fullPage:true});
+await p.locator('#x1').screenshot({path:path.join(here,'p7a_hidden_candle.png')});
+await p.locator('#m1').screenshot({path:path.join(here,'route2_1m.png')});
+await p.locator('#m2').screenshot({path:path.join(here,'route2_15m.png')});
+fs.writeFileSync(path.join(here,'p7view_result.json'),JSON.stringify({msgs,result:r},null,2));
+console.log(JSON.stringify({msgs,result:r}));
+await b.close();

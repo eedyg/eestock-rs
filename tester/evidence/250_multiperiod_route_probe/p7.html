@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><title>P7 route-probe harness</title>
+<style>
+  html,body{margin:0;background:#101418;color:#eee;font:12px monospace}
+  .wrap{display:block}
+  .box{width:900px;height:520px;margin:6px 0}
+  #log{white-space:pre-wrap;padding:6px}
+  .pair{display:flex;gap:6px}
+  .pair .box{width:445px;height:380px}
+</style>
+</head>
+<body>
+<div id="c1" class="box"></div>
+<div id="c1b" class="box" style="height:300px"></div>
+<div id="p7b" class="pair"><div id="cA" class="box"></div><div id="cB" class="box"></div></div>
+<div id="p7c" class="pair"><div id="cC1" class="box"></div><div id="cC2" class="box"></div><div id="cC3" class="box"></div><div id="cC4" class="box"></div></div>
+<div id="log"></div>
+<script src="../../../web/node_modules/klinecharts/dist/umd/klinecharts.min.js"></script>
+<script>window.__PROBE = { errors: [] };</script>
+<script src="./p7.js"></script>
+</body>
+</html>

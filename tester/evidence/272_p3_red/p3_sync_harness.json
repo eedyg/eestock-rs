@@ -1,0 +1,280 @@
+{
+  "url": "file:///home/eestock/workspace/git/eestock/eestock-rs/web/tester/p3-sync-harness/harness.html",
+  "version": "10.0.3",
+  "errors": [],
+  "console": [],
+  "networkNonFile": [],
+  "checks": [
+    {
+      "name": "F1 库事实：scrollToTimestamp(ts) 把该 ts 的 bar 对齐到右缘（±8 根内，实测偏 2 根）",
+      "ok": true
+    },
+    {
+      "name": "F2 库事实：交互处理器内再**写**图表 API ⇒ 同步嵌套事件（重入存在）",
+      "ok": true
+    },
+    {
+      "name": "F3 密度比镜像：20/20 轮跨度差 ≤1 根高周期 bar",
+      "ok": true
+    },
+    {
+      "name": "F3 镜像无漂移：卫星 barSpace 20 轮恒为同一值（请求值）",
+      "ok": true
+    },
+    {
+      "name": "F3 跨周期卫星可见 bar ≥2",
+      "ok": true
+    },
+    {
+      "name": "F3 反向证据：名义比 7 ⇒ 20 轮跨度差**均** >1 根周 bar（判别力成立）",
+      "ok": true
+    },
+    {
+      "name": "F3 反向证据：名义比 7 的跨度差最小量级 ≥1 根周 bar",
+      "ok": true
+    },
+    {
+      "name": "F4 库事实：基准（默认 max=50）请求 350/5000 被静默吞掉 ⇒ 读回仍 50",
+      "ok": true
+    },
+    {
+      "name": "F4 库事实：卫星放宽到 350 后 350 生效（仅卫星）",
+      "ok": true
+    },
+    {
+      "name": "F5 降级：barSpace=floor(W/2) ⇒ 视口可读且可见 bar ≥2",
+      "ok": true
+    },
+    {
+      "name": "F5 记录（非门禁）：本配置下未复现 NaN（P0.3 §6-I3a 在 1m↔1d/1w 复现）",
+      "ok": true
+    },
+    {
+      "name": "F6 密度估计器：正常窗可算（≈5）",
+      "ok": true
+    },
+    {
+      "name": "F6 密度估计器：无重叠 ⇒ 失效（需静态回退）",
+      "ok": true
+    },
+    {
+      "name": "F6 密度估计器：窗内 ≤1 根 ⇒ 失效（需静态回退）",
+      "ok": true
+    }
+  ],
+  "steps": {
+    "S0_baseline": {
+      "base": {
+        "nan": false,
+        "from": 171,
+        "to": 220,
+        "bars": 50,
+        "fromTs": 1783494000000
+      },
+      "sat": {
+        "nan": false,
+        "from": 11,
+        "to": 60,
+        "bars": 50,
+        "fromTs": 1760338800000
+      },
+      "baseBS": 10,
+      "satBS": 10
+    },
+    "F1_scroll_to_timestamp_right_edge": {
+      "targetIdx": 180,
+      "targetTs": 1784617200000,
+      "range": {
+        "nan": false,
+        "from": 121,
+        "to": 182,
+        "bars": 62,
+        "fromTs": 1777446000000,
+        "toTs": 1784790000000
+      },
+      "rightEdgeOffsetBars": 2,
+      "rightEdgeWithin8Bars": true
+    },
+    "F2_reentrancy": {
+      "programmaticScrollFiredEvents": {
+        "onVisibleRangeChange": 5,
+        "onScroll": 2
+      },
+      "countsBefore": {
+        "onVisibleRangeChange": 3,
+        "onScroll": 1
+      },
+      "writeInHandlerRuns": 2,
+      "readInHandlerRuns": 3,
+      "nestedEvents": 2
+    },
+    "F3_density_estimate": {
+      "ok": true,
+      "density": 5.167,
+      "satBarsInWindow": 12,
+      "baseBarsInWindow": 62
+    },
+    "F3_mirror_20_rounds": {
+      "densityMeasured": 5.167,
+      "nominalRatio": 7,
+      "roundsWithinOneWeek": {
+        "density": 20,
+        "nominal": 0
+      },
+      "densitySatBSDistinct": [
+        41
+      ],
+      "densitySatBarsMin": 14,
+      "nominalSatBarsMin": 11,
+      "maxDensitySpanDiffMs": 518400000,
+      "minNominalSpanDiffMs": 1296000000,
+      "sample": [
+        {
+          "round": 1,
+          "baseBS": 8.0001,
+          "baseSpanMs": 7344000000,
+          "densitySatBS": 41,
+          "densitySatBars": 14,
+          "densitySpanDiffMs": 518400000,
+          "nominalSatBS": 56,
+          "nominalSatBars": 11,
+          "nominalSpanDiffMs": 1296000000
+        },
+        {
+          "round": 2,
+          "baseBS": 8.0002,
+          "baseSpanMs": 7516800000,
+          "densitySatBS": 41,
+          "densitySatBars": 14,
+          "densitySpanDiffMs": 345600000,
+          "nominalSatBS": 56,
+          "nominalSatBars": 11,
+          "nominalSpanDiffMs": 1468800000
+        },
+        {
+          "round": 3,
+          "baseBS": 8.0003,
+          "baseSpanMs": 7344000000,
+          "densitySatBS": 41,
+          "densitySatBars": 14,
+          "densitySpanDiffMs": 518400000,
+          "nominalSatBS": 56,
+          "nominalSatBars": 11,
+          "nominalSpanDiffMs": 1296000000
+        }
+      ]
+    },
+    "F4_bar_space_limits": {
+      "baseAt50": 50,
+      "baseReq350": 50,
+      "baseReq5000": 50,
+      "satReq350": 350,
+      "satReq5000": 350
+    },
+    "F5_nan_and_degrade": {
+      "paneWidth": 520,
+      "scan": [
+        {
+          "requested": 50,
+          "readback": 50,
+          "nan": false,
+          "bars": 12
+        },
+        {
+          "requested": 100,
+          "readback": 100,
+          "nan": false,
+          "bars": 7
+        },
+        {
+          "requested": 200,
+          "readback": 200,
+          "nan": false,
+          "bars": 4
+        },
+        {
+          "requested": 260,
+          "readback": 260,
+          "nan": false,
+          "bars": 4
+        },
+        {
+          "requested": 350,
+          "readback": 350,
+          "nan": false,
+          "bars": 3
+        },
+        {
+          "requested": 520,
+          "readback": 520,
+          "nan": false,
+          "bars": 3
+        },
+        {
+          "requested": 700,
+          "readback": 700,
+          "nan": false,
+          "bars": 3
+        },
+        {
+          "requested": 1040,
+          "readback": 1040,
+          "nan": false,
+          "bars": 2
+        },
+        {
+          "requested": 1512,
+          "readback": 1512,
+          "nan": false,
+          "bars": 2
+        },
+        {
+          "requested": 2880,
+          "readback": 2880,
+          "nan": false,
+          "bars": 2
+        },
+        {
+          "requested": 5000,
+          "readback": 5000,
+          "nan": false,
+          "bars": 2
+        }
+      ],
+      "nanOnsetAt": null,
+      "degradedBarSpace": 260,
+      "degradedRange": {
+        "nan": false,
+        "from": 39,
+        "to": 42,
+        "bars": 4,
+        "fromTs": 1777273200000,
+        "toTs": 1779087600000
+      },
+      "degradedVisibleAtLeast2": true
+    },
+    "F6_density_estimator_failure": {
+      "normal": {
+        "ok": true,
+        "density": 5.167,
+        "satBarsInWindow": 12,
+        "baseBarsInWindow": 62
+      },
+      "disjoint": {
+        "ok": false,
+        "reason": "satBarsInWindow<2",
+        "satBarsInWindow": 0,
+        "baseBarsInWindow": 62
+      },
+      "tooSparseWindow": {
+        "ok": false,
+        "reason": "satBarsInWindow<2",
+        "satBarsInWindow": 0,
+        "baseBarsInWindow": 8
+      }
+    }
+  },
+  "screenshot": "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/272_p3_red/p3_sync_harness.png",
+  "generatedAt": "2026-09-14T14:56:52.796Z",
+  "weekMs": 604800000
+}

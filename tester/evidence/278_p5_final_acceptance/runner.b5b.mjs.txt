@@ -1,0 +1,75 @@
+/**
+ * B5b：越域/卫星间拖拽的「回显后视觉回弹」复现（临时；复用已构建 dist，不重建）。
+ * 位置：/tmp/p5acc/b5b.mjs
+ */
+import { createRequire } from 'node:module';
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+const WEB = '/home/eestock/workspace/git/eestock/eestock-rs/web';
+const require = createRequire(WEB + '/package.json');
+const { chromium } = require('playwright');
+const dist = '/tmp/p5acc/dist';
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const server = http.createServer((req, res) => {
+  const u = new URL(req.url, 'http://x');
+  let p = path.join(dist, decodeURIComponent(u.pathname));
+  if (u.pathname === '/') p = path.join(dist, 'index.html');
+  fs.readFile(p, (e, b) => { if (e) { res.statusCode = 404; res.end('nf'); return; } res.setHeader('content-type', MIME[path.extname(p)] ?? 'application/octet-stream'); res.end(b); });
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const base = `http://127.0.0.1:${server.address().port}/`;
+const browser = await chromium.launch();
+const errors = [];
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+page.on('pageerror', (e) => errors.push(e.message));
+await page.goto(base + '?avail=600&page=1', { waitUntil: 'load' });
+await page.waitForFunction(() => !!(window.__p5 && document.querySelector('[data-mp-stack]')), null, { timeout: 60_000 });
+await page.waitForTimeout(1500);
+const H = () => page.evaluate(() => window.__p5.domHeights());
+const P = () => page.evaluate(() => window.__payloads);
+async function dragStart(key, dy) {
+  const box = await page.locator(`[data-mp-separator="${key}"]`).boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + dy, { steps: 8 });
+  await page.mouse.up();
+}
+const out = { satPair: {}, basePair: {} };
+
+// ① 卫星↔卫星（基准 props 不变）拖 +15 ⇒ 回显后是否回弹
+const b0 = await H();
+await dragStart('1h|5m', 15);
+await page.waitForTimeout(60);
+const during = await H();      // 拖拽刚结束（防抖尚未 flush）
+await page.waitForTimeout(700); // ≥300ms 防抖 + 回显 settle
+const after = await H();
+out.satPair = { before: b0, during, after, payloads: await P(), errors: [...errors] };
+
+// ② 基准↔卫星 拖 +30（基准 props 变化）⇒ 是否保持
+await page.waitForTimeout(600);
+const c0 = await H();
+await dragStart('15m|1h', 30);
+await page.waitForTimeout(60);
+const during2 = await H();
+await page.waitForTimeout(700);
+const after2 = await H();
+out.basePair = { before: c0, during: during2, after: after2, payloads: (await P()).slice(-1), errors: [...errors] };
+
+// ③ 连续两次（第二次仅卫星变化）：基准 props 不变 ⇒ 是否回弹
+await page.waitForTimeout(600);
+const d0 = await H();
+await dragStart('1h|5m', 15);
+await page.waitForTimeout(60);
+const during3 = await H();
+await page.waitForTimeout(700);
+const after3 = await H();
+out.satPair2 = { before: d0, during: during3, after: after3, payloads: (await P()).slice(-1), errors: [...errors] };
+
+await browser.close();
+server.close();
+fs.writeFileSync('/tmp/p5acc/out/b5b.json', JSON.stringify(out, null, 2));
+console.log(JSON.stringify(out, null, 2));
+console.log(`pageerrors=${errors.length}`);

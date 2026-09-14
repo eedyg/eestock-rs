@@ -1,0 +1,34 @@
+# 命令: npx vitest run src/features/dashboard/zz_p5d1_prefix_probe.test.tsx -t C4
+# 时间(本地): 2026-09-15T00:50:11+08:00
+# 过滤说明: 已剔除 [multi-period] ChartSyncGroup 未建立 的既有噪声栈 + React Router 警告（与判据无关）
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+stderr | src/features/dashboard/zz_p5d1_prefix_probe.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+stderr | src/features/dashboard/zz_p5d1_prefix_probe.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+stderr | src/features/dashboard/zz_p5d1_prefix_probe.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+ ❯ src/features/dashboard/zz_p5d1_prefix_probe.test.tsx (9 tests | 1 failed | 8 skipped) 548ms
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C2 乐观更新：PUT 未 resolve 时 DOM 已是拖后高度
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C3 失败回滚：PUT 拒绝 ⇒ 高度回到拖前值（±1px）、无 unhandled rejection
+   × 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px） 547ms
+     → 15m 重进后必须保持: expected 20 to be less than or equal to 1
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C5 ②③ 切标的 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C6 ②③ 切周期 ⇒ 各 pane 高度不变（±1px）
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C7 ②③ 保存 dcap 参数 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body
+   ↓ 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/dashboard/zz_p5d1_prefix_probe.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+AssertionError: 15m 重进后必须保持: expected 20 to be less than or equal to 1
+ ❯ src/features/dashboard/zz_p5d1_prefix_probe.test.tsx:340:66
+    338|     const restored = heights(reopened.view.container);
+    339|     for (const p of ALL) {
+    340|       expect(Math.abs(restored[p]! - saved[p]!), `${p} 重进后必须保持`).toBeL…
+       |                                                                  ^
+    341|     }
+    342|   });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 skipped (9)
+   Start at  00:50:11
+   Duration  1.12s (transform 141ms, setup 22ms, collect 210ms, tests 548ms, environment 128ms, prepare 97ms)

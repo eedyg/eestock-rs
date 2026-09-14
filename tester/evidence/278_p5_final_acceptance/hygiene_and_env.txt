@@ -1,0 +1,13 @@
+# 环境/卫生
+HEAD=78eb68d95d149e091c678a5a2a97aecd872f895f
+date=2026-09-15T01:13:35+08:00
+PID 3112540: 3112540    13:20:58 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+staged: []
+sha256 impl/tests:
+1b94fad0e163f53493386a2a42bdf7bd8c9ac1567b9b11156855693f88222860  web/src/features/dashboard/multiPeriodLayout.ts
+46f9e63cc82de5dc9d41c26e1bb7a9b23528c4dee48923c5695e4d61d0197516  web/src/features/dashboard/MultiPeriodChartStack.tsx
+c9113afe86d5c228791eaa70eea8c255856c536e271ecd1603cd4913a5ac7de7  web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+非本地网络请求(harness) = 0
+残留监听端口(node): 0
+残留 p5acc 进程: 2
+残留 chromium: 0

@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>P3-A 跨图同步 · 真身 klinecharts 几何/事件取证（T3 / T4 / T8bis 前置）</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #101418; color: #c9d1d9; font: 12px/1.5 monospace; }
+  #wrap { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; }
+  .pane { width: 520px; height: 300px; background: #101418; }
+  .small { height: 180px; }
+  .probe { height: 240px; }
+  #log { white-space: pre-wrap; width: 460px; height: 640px; overflow: auto; }
+</style>
+</head>
+<body>
+<!--
+  P3-A 跨图同步：**真身 klinecharts 10.0.3**（本地 file:// + UMD，0 网络请求）几何/事件取证。
+
+  依据：`design/15-multi-period/02-spec.md` §3.2（时间跨度对齐 / 实测密度比 / 卫星 ≥2 bar / 降级）、§3.3（重入抑制）、
+  §3.6（实现要点）、`03-test-plan.md` T3 / T4 / T8bis；实测锚定 `tester/test/260_p03_barspace_anchor_execution.md`（P0.3）。
+
+  性质（诚实标注）：
+   - 本 harness 取证的是**库级几何/事件事实**（与产品实现无关）⇒ 当前即为**绿**（与 P2-A 的 `p2-satellite-harness` 同一性质）；
+   - **产品级**跨图同步（`ChartSyncGroup` 真身驱动）的红测试在
+     `web/src/features/dashboard/{chartSyncGroup,chartSyncDensity,multiPeriodSyncBadge}.test.*`（当前红 ⇒ 实现后转绿）；
+     产品级真实渲染驱动由 P3-C 独立验收承担（Vite + 产品组件，参照 `tester/design/271_*`）。
+   - 合成序列按**交易日 5/7 密度**构造（1d 仅工作日、1w 每周一根）⇒ 实测密度 ≈ 5.0（真实 A 股含节假日 ⇒ P0.3 实测 4.67）；
+     两者都**远小于名义比 7** ⇒ 「不得用名义比」的判别力在本 harness 上同样成立。
+
+  用法（须在 `web/` 下运行以解析 playwright）：`node tester/p3-sync-harness/run.mjs`
+-->
+<div id="wrap">
+  <div id="base" class="pane"></div>
+  <div id="sat" class="pane"></div>
+  <div id="sat2" class="pane small"></div>
+  <div id="sat3" class="pane small"></div>
+  <div id="satShortSlot" class="pane small"></div>
+  <div id="probeA" class="pane probe"></div>
+  <div id="probeB" class="pane probe"></div>
+  <div id="log"></div>
+</div>
+<script src="../../node_modules/klinecharts/dist/umd/klinecharts.min.js"></script>
+<script>
+(function () {
+  var kc = window.klinecharts;
+  var R = { steps: {}, errors: [], version: kc.version || (kc.default && kc.default.version) || 'unknown', supportedIndicators: (kc.getSupportedIndicators ? kc.getSupportedIndicators().length : null) };
+  var log = function (s) { document.getElementById('log').textContent += s + '\n'; };
+  var err = function (e) { R.errors.push(String(e && e.message ? e.message : e)); };
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms || 300); }); };
+
+  // ── 合成序列（确定性） ─────────────────────────────────────────────────────
+  var DAY = 86400000, WEEK = 7 * DAY;
+  var T0 = Date.UTC(2026, 8, 14, 7, 0, 0);
+
+  function minuteBars(count, stepMs, endTs) {
+    var out = [], px = 8.9;
+    for (var i = 0; i < count; i++) {
+      px += Math.sin(i / 13) * 0.002;
+      var ts = endTs - (count - 1 - i) * stepMs;
+      out.push({ timestamp: ts, open: +px.toFixed(4), high: +(px + 0.001).toFixed(4),
+                 low: +(px - 0.001).toFixed(4), close: +(px + 0.0005).toFixed(4), volume: 100 });
+    }
+    return out;
+  }
+  /** 1d：仅工作日（Mon–Fri）。 */
+  function tradingDayBars(count) {
+    var out = [], ts = T0, px = 9.0, n = 0;
+    while (out.length < count) {
+      var dow = new Date(ts).getUTCDay();
+      if (dow >= 1 && dow <= 5) {
+        n++;
+        px += Math.sin(n / 9) * 0.01;
+        out.push({ timestamp: ts, open: +px.toFixed(3), high: +(px + 0.02).toFixed(3),
+                   low: +(px - 0.02).toFixed(3), close: +(px + 0.01).toFixed(3), volume: 1000 });
+      }
+      ts -= DAY;
+    }
+    return out.reverse();
+  }
+  /** 1w：每周一根（周五）。 */
+  function weeklyBars(count, shiftDays) {
+    var out = [], ts = T0 - (shiftDays || 0) * DAY, px = 9.0;
+    for (var i = 0; i < count; i++) {
+      px += Math.sin(i / 5) * 0.03;
+      out.push({ timestamp: ts, open: +px.toFixed(3), high: +(px + 0.05).toFixed(3),
+                 low: +(px - 0.05).toFixed(3), close: +(px + 0.02).toFixed(3), volume: 5000 });
+      ts -= WEEK;
+    }
+    return out.reverse();
+  }
+
+  var bars1d = tradingDayBars(220);
+  var bars1w = weeklyBars(60, 0);
+  var bars1wFar = weeklyBars(60, 4000); // 与基准窗**无重叠**（P0.3 §6-I5）
+
+  // ── 建图 ─────────────────────────────────────────────────────────────────
+  var WIDENED = { layout: { barSpaceLimit: { min: 1, max: 350 } } };   // 仅卫星（口径 9，P0.3 锚定 350）
+  var WIDENED_HUGE = { layout: { barSpaceLimit: { min: 1, max: 1000000 } } }; // 仅用于「超宽 ⇒ NaN」取证
+  function mkChart(id, bars, opts, period) {
+    var chart = kc.init(document.getElementById(id), Object.assign({ styles: 'dark' }, opts || {}));
+    chart.setSymbol({ ticker: '518880', pricePrecision: 3, volumePrecision: 0 });
+    chart.setPeriod(period);
+    chart.setDataLoader({ getBars: function (a) { a.callback(bars, false); }, subscribe: function () {}, unsubscribe: function () {} });
+    chart.resetData();
+    return chart;
+  }
+  function barSpaceOf(c) { try { return c.getBarSpace().bar; } catch (e) { err(e); return null; } }
+  function rangeOf(c) {
+    try {
+      var r = c.getVisibleRange();
+      if (!isFinite(r.from) || !isFinite(r.to)) return { nan: true, raw: { from: String(r.from), to: String(r.to) } };
+      var list = c.getDataList();
+      return { nan: false, from: r.from, to: r.to, bars: r.to - r.from + 1,
+               fromTs: list[r.from] && list[r.from].timestamp, toTs: list[r.to] && list[r.to].timestamp };
+    } catch (e) { err(e); return { nan: true, error: String(e && e.message || e) }; }
+  }
+  function spanMs(r) { return r.nan ? NaN : r.toTs - r.fromTs; }
+
+  /** 事件计数 + **重入**探测（处理器内部再取 `getVisibleRange()` ⇒ 真身会再次 `executeAction('onVisibleRangeChange')`）。 */
+  function instrument(chart, tag) {
+    var stat = { tag: tag, counts: {}, nestedEvents: 0, writeInHandlerRuns: 0, readInHandlerRuns: 0 };
+    var depth = 0;
+    ['onScroll', 'onZoom', 'onVisibleRangeChange'].forEach(function (t) {
+      chart.subscribeAction(t, function () {
+        if (depth > 0) stat.nestedEvents++;                 // 处在其它处理器内部 ⇒ 这是一次重入
+        stat.counts[t] = (stat.counts[t] || 0) + 1;
+        depth++;
+        if (t === 'onScroll' && depth === 1) {
+          // 「在交互处理器内写入图表 API」= 跨图同步镜像的必然形状 ⇒ 引擎同步再发事件（重入）
+          stat.writeInHandlerRuns++;
+          try { chart.setBarSpace(chart.getBarSpace().bar + 0.0001); } catch (e) { err(e); }
+        }
+        if (t === 'onVisibleRangeChange' && depth === 1) {
+          stat.readInHandlerRuns++;
+          try { chart.getVisibleRange(); } catch (e) { err(e); }   // 纯读：实测是否重入（记录事实）
+        }
+        depth--;
+      });
+    });
+    return stat;
+  }
+
+  /** 对齐镜像（按 ts 窗**右缘**对齐；等价 02-spec §3.6 ①「索引窗按 ts 窗求解」的实测落地）。 */
+  function mirror(leader, follower, density) {
+    var baseBS = barSpaceOf(leader);
+    follower.setBarSpace(Math.round(baseBS * density));
+    var r = rangeOf(leader);
+    if (!r.nan) follower.scrollToTimestamp(r.toTs);
+    return { baseBS: baseBS, requestedSatBS: Math.round(baseBS * density), readbackSatBS: barSpaceOf(follower) };
+  }
+  /** 窗口内密度估计器（P0.3 §6-I5：无重叠 / 卫星 ≤1 根 ⇒ 失效）。 */
+  function estimateDensity(base, sat) {
+    var rb = rangeOf(base);
+    if (rb.nan) return { ok: false, reason: 'base-range-nan' };
+    var list = sat.getDataList(), n = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].timestamp >= rb.fromTs && list[i].timestamp <= rb.toTs) n++;
+    if (n < 2) return { ok: false, reason: 'satBarsInWindow<2', satBarsInWindow: n, baseBarsInWindow: rb.bars };
+    return { ok: true, density: +(rb.bars / n).toFixed(3), satBarsInWindow: n, baseBarsInWindow: rb.bars };
+  }
+
+  (async function run() {
+    log('klinecharts ' + R.version);
+    var base1d = mkChart('base', bars1d, null, { span: 1, type: 'day' });
+    var sat1w = mkChart('sat', bars1w, WIDENED, { span: 1, type: 'week' });
+    var satHuge = mkChart('sat2', bars1w, WIDENED_HUGE, { span: 1, type: 'week' });
+    var satFar = mkChart('sat3', bars1wFar, WIDENED, { span: 1, type: 'week' });
+    await wait();
+
+    var inst = instrument(base1d, 'base');
+    var list1d = base1d.getDataList();
+    R.steps.S0_baseline = { base: rangeOf(base1d), sat: rangeOf(sat1w), baseBS: barSpaceOf(base1d), satBS: barSpaceOf(sat1w) };
+
+    // ── F1 库事实：`scrollToTimestamp(ts)` 把该 ts 的 bar 对齐到**右缘**（index.esm.js:15639 ⇒ scrollToDataIndex） ──
+    base1d.setBarSpace(8);
+    await wait();
+    var targetIdx = Math.max(10, list1d.length - 40);
+    var targetTs = list1d[targetIdx].timestamp;
+    base1d.scrollToTimestamp(targetTs);
+    await wait();
+    var rTarget = rangeOf(base1d);
+    R.steps.F1_scroll_to_timestamp_right_edge = {
+      targetIdx: targetIdx, targetTs: targetTs, range: rTarget,
+      // 实测：右缘落在目标 ±数根之内（默认右偏移；本次实测偏 2 根）——「右缘对齐」= 量级而非逐像素
+      rightEdgeOffsetBars: rTarget.nan ? null : Math.round(Math.abs(rTarget.toTs - targetTs) / DAY),
+      rightEdgeWithin8Bars: rTarget.nan ? false : Math.abs(rTarget.toTs - targetTs) <= 8 * DAY,
+    };
+
+    // ── F2 库事实：**重入**（处理器内部再读 ⇒ 嵌套事件） ──
+    var countsBefore = JSON.parse(JSON.stringify(inst.counts));
+    base1d.scrollToDataIndex(Math.max(10, list1d.length - 60));
+    await wait();
+    var countsAfterScroll = JSON.parse(JSON.stringify(inst.counts));
+    base1d.executeAction('onScroll', { x: 100, y: 100, paneId: 'candle_pane' }); // 确定性进入处理器
+    await wait(80);
+    R.steps.F2_reentrancy = {
+      programmaticScrollFiredEvents: countsAfterScroll,
+      countsBefore: countsBefore,
+      writeInHandlerRuns: inst.writeInHandlerRuns,
+      readInHandlerRuns: inst.readInHandlerRuns,
+      nestedEvents: inst.nestedEvents,
+    };
+
+    // ── F3 密度比 vs 名义比 + 20 轮镜像稳定性（1d→1w） ──
+    base1d.setBarSpace(8);
+    await wait();
+    var est0 = estimateDensity(base1d, sat1w);
+    R.steps.F3_density_estimate = est0;
+    var DENS = est0.ok ? est0.density : 5;
+    var NOMINAL = 7;
+
+    var rounds = [];
+    for (var i = 0; i < 20; i++) {
+      base1d.scrollToDataIndex(Math.max(20, list1d.length - 40 - i * 3));
+      await wait(60);
+      var rb = rangeOf(base1d);
+      var dens = mirror(base1d, sat1w, DENS);
+      var rs = rangeOf(sat1w);
+      var nom = mirror(base1d, sat1w, NOMINAL);
+      var rn = rangeOf(sat1w);
+      rounds.push({
+        round: i + 1, baseBS: barSpaceOf(base1d), baseSpanMs: spanMs(rb),
+        densitySatBS: dens.readbackSatBS, densitySatBars: rs.bars,
+        densitySpanDiffMs: Math.abs(spanMs(rb) - spanMs(rs)),
+        nominalSatBS: nom.readbackSatBS, nominalSatBars: rn.bars,
+        nominalSpanDiffMs: Math.abs(spanMs(rb) - spanMs(rn)),
+      });
+    }
+    var densWithin = rounds.filter(function (r) { return r.densitySpanDiffMs <= WEEK; }).length;
+    var nomWithin = rounds.filter(function (r) { return r.nominalSpanDiffMs <= WEEK; }).length;
+    var satBSSet = {}; rounds.forEach(function (r) { satBSSet[r.densitySatBS] = true; });
+    R.steps.F3_mirror_20_rounds = {
+      densityMeasured: DENS, nominalRatio: NOMINAL,
+      roundsWithinOneWeek: { density: densWithin, nominal: nomWithin },
+      densitySatBSDistinct: Object.keys(satBSSet).map(Number),
+      densitySatBarsMin: Math.min.apply(null, rounds.map(function (r) { return r.densitySatBars; })),
+      nominalSatBarsMin: Math.min.apply(null, rounds.map(function (r) { return r.nominalSatBars; })),
+      maxDensitySpanDiffMs: Math.max.apply(null, rounds.map(function (r) { return r.densitySpanDiffMs; })),
+      minNominalSpanDiffMs: Math.min.apply(null, rounds.map(function (r) { return r.nominalSpanDiffMs; })),
+      sample: rounds.slice(0, 3),
+    };
+
+    // ── F4 库事实：barSpaceLimit 越界**静默吞掉**；放宽只作用于卫星（不泄漏到基准） ──
+    base1d.setBarSpace(50); var baseAt50 = barSpaceOf(base1d);
+    base1d.setBarSpace(350); var baseReq350 = barSpaceOf(base1d);
+    base1d.setBarSpace(5000); var baseReq5000 = barSpaceOf(base1d);
+    sat1w.setBarSpace(350); var satReq350 = barSpaceOf(sat1w);
+    sat1w.setBarSpace(5000); var satReq5000 = barSpaceOf(sat1w);
+    await wait();
+    R.steps.F4_bar_space_limits = {
+      baseAt50: baseAt50, baseReq350: baseReq350, baseReq5000: baseReq5000,
+      satReq350: satReq350, satReq5000: satReq5000,
+    };
+
+    // ── F5 库事实：`satBS ≫ pane 宽` ⇒ `getVisibleRange()` 失效（NaN）；降级 barSpace(=W/2) 可读且 ≥2 根 ──
+    var W = document.getElementById('sat').clientWidth;
+    var scan = [];
+    [50, 100, 200, 260, 350, 520, 700, 1040, 1512, 2880, 5000].forEach(function (bs) {
+      satHuge.setBarSpace(bs);
+      var r = rangeOf(satHuge);
+      scan.push({ requested: bs, readback: barSpaceOf(satHuge), nan: r.nan, bars: r.bars || 0 });
+    });
+    sat1w.setBarSpace(Math.floor(W / 2));
+    await wait();
+    var degraded = rangeOf(sat1w);
+    R.steps.F5_nan_and_degrade = {
+      paneWidth: W,
+      scan: scan,
+      nanOnsetAt: (function () { for (var i = 0; i < scan.length; i++) if (scan[i].nan) return scan[i].requested; return null; })(),
+      degradedBarSpace: barSpaceOf(sat1w),
+      degradedRange: degraded,
+      degradedVisibleAtLeast2: !degraded.nan && degraded.bars >= 2,
+    };
+
+    // ── F6 库事实：密度估计器在「无重叠 / 卫星窗内 ≤1 根」时失效（需静态回退） ──
+    base1d.setBarSpace(8);
+    base1d.scrollToTimestamp(list1d[list1d.length - 40].timestamp);
+    await wait();
+    var normalEst = estimateDensity(base1d, sat1w);
+    var disjoint = estimateDensity(base1d, satFar);
+    // 「窗内 ≤1 根」：用**短历史**的卫星序列（仅最近 20 周）+ 基准滚到最早窗 ⇒ 窗内无周 bar
+    var satShort = mkChart('satShortSlot', bars1w.slice(-20), WIDENED, { span: 1, type: 'week' });
+    base1d.scrollToTimestamp(list1d[5].timestamp);
+    await wait();
+    var sparse = estimateDensity(base1d, satShort);
+    R.steps.F6_density_estimator_failure = { normal: normalEst, disjoint: disjoint, tooSparseWindow: sparse };
+
+    // ── F7 库事实：`scrollToTimestamp` 落点**距右缘固定 ≥2 根**，`setOffsetRightDistance(0)` **无法消除** ──
+    // 复刻 P3-C 独立验收 PROBE（`tester/evidence/273_p3c_acceptance/p3c_harness.json` → `scenarios.PROBE`）；
+    // 与忠实桩 `web/src/test/syncChartStub.ts` 的 `REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS` **同源** ⇒
+    // 「jsdom 桩下的 G1/T3-2/T8bis 红」不是桩内构造，而是真身手感的同一量。
+    var probeBars = minuteBars(600, 60000, T0);
+    var probeA = mkChart('probeA', probeBars, null, { span: 1, type: 'minute' });
+    var probeB = mkChart('probeB', probeBars, null, { span: 1, type: 'minute' });
+    probeA.setBarSpace(8); probeB.setBarSpace(8);
+    await wait();
+    var probeOffsetBefore = probeA.getOffsetRightDistance();
+    probeA.setOffsetRightDistance(0); probeB.setOffsetRightDistance(0);
+    await wait();
+    var probeOffsetAfterZero = probeA.getOffsetRightDistance();
+    probeA.scrollToDataIndex(300);
+    probeB.scrollToDataIndex(300);
+    await wait();
+    var pA = rangeOf(probeA);
+    var pB = rangeOf(probeB);
+    probeB.scrollToTimestamp(pA.toTs);
+    await wait();
+    var pB2 = rangeOf(probeB);
+    var gapIndex = pA.nan || pB2.nan ? null : pB2.to - pA.to;
+    var gapTsMs = pA.nan || pB2.nan ? null : pB2.toTs - pA.toTs;
+    R.steps.F7_scroll_to_timestamp_gap = {
+      offsetBefore: probeOffsetBefore,
+      offsetAfterZero: probeOffsetAfterZero,
+      sameIndexScrollRangeEqual: !pA.nan && !pB.nan && pA.to === pB.to,
+      rangeAfterScrollToDataIndex_a: pA,
+      rangeAfterScrollToDataIndex_b: pB,
+      rangeAfterScrollToTimestamp_b: pB2,
+      edgeGapIndexBars: gapIndex,
+      edgeGapTsMs: gapTsMs,
+      gapBarsAtLeast2: gapIndex !== null && gapIndex >= 2,
+      gapUnremovableByZeroRightOffset: probeOffsetAfterZero === 0 && gapIndex !== null && gapIndex >= 2,
+    };
+
+    R.ok = R.errors.length === 0;
+    window.__RESULT = R;
+    window.__DONE = true;
+  })().catch(function (e) { err(e); R.ok = false; window.__RESULT = R; window.__DONE = true; });
+})();
+</script>
+</body>
+</html>

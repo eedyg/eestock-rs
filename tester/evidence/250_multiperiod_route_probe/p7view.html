@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><title>P7 view</title>
+<style>html,body{margin:0;background:#101418} #x1{width:820px;height:520px} .row{display:flex;gap:4px} .box{width:404px;height:320px}</style></head>
+<body><div id="x1"></div><div class="row"><div id="m1" class="box"></div><div id="m2" class="box"></div></div>
+<script src="../../../web/node_modules/klinecharts/dist/umd/klinecharts.min.js"></script>
+<script>
+(function(){const kc=window.klinecharts;const R={};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const raf=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+const T0=Date.parse('2026-09-14T00:00:00Z');
+function mkBars(p,from,n){const bm=p*60000,out=[];let px=8.9;for(let i=0;i<n;i++){const ts=from+i*bm;px+=(Math.sin(i/13)+Math.cos(i/29))*0.002;const o=+px.toFixed(4),c=+(px+Math.sin(i/7)*0.001).toFixed(4);out.push({timestamp:ts,open:o,high:+(Math.max(o,c)+0.0008).toFixed(4),low:+(Math.min(o,c)-0.0008).toFixed(4),close:c,volume:1000});}return out;}
+function ext(bars,step,scale){const ts=[],values=[],bm=step*60000;let s=Math.floor(bars[0].timestamp/bm)*bm;while(s+bm<=bars[bars.length-1].timestamp+60000){ts.push(s);values.push(+(Math.sin(s/3000000)*scale+scale*3).toFixed(4));s+=bm;}return{ts,values};}
+function panel(ch,id,bars,step,scale,h){ch.setSymbol({ticker:'518880',pricePrecision:4,volumePrecision:0});ch.setPeriod({span:1,type:'minute'});ch.setDataLoader({getBars:({callback})=>callback(bars,false),subscribe(){},unsubscribe(){}});return ch;}
+(async function(){ try{
+ const chart=kc.init('x1',{styles:'dark'});
+ const bars=mkBars(1,T0,400);
+ panel(chart,'x1',bars);
+ await raf();
+ chart.createIndicator({name:'K',calcParams:[5],paneId:'candle_pane'});
+ // add 3 indicator panes with our template
+ kc.registerIndicator({name:'VW',figures:[{key:'v',title:'VW: ',type:'line'}],precision:5,calc(d){const ext=d.__e;return null}, }); 
+ for (const [st,sc] of [[5,1],[15,2],[30,3]]) chart.createIndicator({name:'MACD',calcParams:[12,26,9]},true);
+ await raf();
+ chart.setPaneOptions({id:'candle_pane',state:'minimize',minHeight:0});
+ chart.setStyles({separator:{size:0}});
+ await raf(); await sleep(200);
+ R.hiddenCandle={panes:chart.getPaneOptions().map(p=>({id:p.id,h:p.height,state:p.state})),candle:chart.getDom('candle_pane').getBoundingClientRect().height};
+ // route2 pair 1m/15m synced
+ const A=kc.init('m1',{styles:'dark',layout:{barSpaceLimit:{min:0.1,max:20000}}});
+ const B=kc.init('m2',{styles:'dark',layout:{barSpaceLimit:{min:0.1,max:20000}}});
+ const bA=mkBars(1,T0,600), bB=mkBars(15,T0,40);
+ A.setSymbol({ticker:'518880',pricePrecision:4,volumePrecision:0});A.setPeriod({span:1,type:'minute'});A.setDataLoader({getBars:({callback})=>callback(bA,false),subscribe(){},unsubscribe(){}});
+ B.setSymbol({ticker:'518880',pricePrecision:4,volumePrecision:0});B.setPeriod({span:15,type:'minute'});B.setDataLoader({getBars:({callback})=>callback(bB,false),subscribe(){},unsubscribe(){}});
+ await raf();
+ A.createIndicator({name:'MACD',calcParams:[12,26,9]},true);
+ B.createIndicator({name:'MACD',calcParams:[12,26,9]},true);
+ await raf();
+ A.setBarSpace(6); B.setBarSpace(90);
+ const r=A.getVisibleRange(); const ts=bA[Math.min(bA.length-1,Math.ceil(r.realTo))].timestamp;
+ B.scrollToTimestamp(ts,0);
+ await raf(); await sleep(200);
+ R.pair={A:spanOf(A,bA),B:spanOf(B,bB)};
+ function spanOf(c,b){const r=c.getVisibleRange();const f=Math.max(0,Math.floor(r.realFrom)),t=Math.min(b.length-1,Math.ceil(r.realTo));return {realFrom:+r.realFrom.toFixed(1),realTo:+r.realTo.toFixed(1),spanMin:+(((b[t].timestamp-b[f].timestamp))/60000).toFixed(1)};}
+ R.chartPngHiddenCandle='throws: InvalidStateError zero-size pane (measured separately)';
+ window.__RESULT=R; window.__DONE=true;
+ }catch(e){ window.__RESULT={err:String(e&&e.stack||e)}; window.__DONE=true; }
+})();})();
+</script></body></html>

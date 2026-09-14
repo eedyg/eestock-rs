@@ -1,0 +1,31 @@
+# 04 配置基线比对（架构师只读抓取基线 vs 部署后实测）—— 要求逐字节一致
+
+架构师基线（部署后必须逐字节一致）：
+  kline = {"viewport_bars":120}
+  dcap  = {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}
+  ma    = {"windows":[5,10,20]}
+
+## 部署前（10:00:05，停机前只读 GET）
+PRE /api/config/kline: {"viewport_bars":120} HTTP:200
+PRE /api/config/dcap: {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3} HTTP:200
+PRE /api/config/ma: {"windows":[5,10,20]} HTTP:200
+
+## 部署后（10:01，重启后只读 GET）
+/api/config/kline: {"viewport_bars":120} HTTP:200
+/api/config/dcap: {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3} HTTP:200
+/api/config/ma: {"windows":[5,10,20]} HTTP:200
+
+## 机器比对（逐字节）
+pre/post 三行 diff（去掉前缀标签）：IDENTICAL
+基线字面量比对：
+PRE  kline EXACT / dcap EXACT / ma EXACT
+POST kline EXACT / dcap EXACT / ma EXACT
+⇒ 配置基线 3/3 字段逐字节一致：**PASS**（含用户实时编辑中的 dcap 参数，未被本轮触碰）
+
+## 渲染取证结束后再复读（Node 直连，不经浏览器；证明「浏览器侧本地兑现 PUT」确无写入）
+config after (Node 直连):
+{"kline":{"status":200,"body":"{\"viewport_bars\":120}"},
+ "dcap":{"status":200,"body":"{\"n_s\":8,\"n_m\":36,\"n_l\":66,\"r_s\":1.0,\"r_m\":1.0,\"r_l\":1.0,\"smooth\":1,\"m\":3}"},
+ "ma":{"status":200,"body":"{\"windows\":[5,10,20]}"}}
+⇒ 与基线逐字节一致；本轮全程 **0 条写请求落到后端**（PUT /api/config/dcap ×2 由 Playwright route 本地兑现，
+   `nonGetOther=[]`、`pageErrors=[]`）。

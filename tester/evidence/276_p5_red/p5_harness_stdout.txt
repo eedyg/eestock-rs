@@ -1,0 +1,14 @@
+main clientHeight=600 scrollHeight=1140 ⇒ 溢出 540px
+现状（基准 + 卫星）高度和 = 1140（可用 600）
+pane 数 = 0，分隔条数 = 0，Σ pane = 0
+FAIL  G1 栈契约存在（`[data-mp-stack]`；P5 高度分配面）
+FAIL  G2 pane 契约存在（`[data-mp-pane]` 数 == 4：基准 + 3 卫星）
+FAIL  G3 恰好填满：Σ 各 pane 高度 == 可用高度 600（±1px）
+FAIL  G4 **无纵向溢出**：主图区 scrollHeight <= clientHeight（现状实测 1140 > 600 = 540px 溢出）
+FAIL  G5 栈自身无纵向溢出（scrollHeight <= clientHeight）
+FAIL  G6 各 pane 真实渲染高度 == 声明高度（±1px）且 > 0
+FAIL  G7 我方分隔条存在且覆盖每个相邻 pane 对（4 pane ⇒ 3 条；`role=separator`）
+PASS  G8 零写请求（持久化路径不被 harness 触发）
+pageerrors/console = ["[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21418:17)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21984:21\n    at Object.register (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22008:9)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22253:25\n    at Qj (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:5027:23)\n    at Hk (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6262:21)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6132:7\n    at J (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:446:21)\n    at MessagePort.R (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:474:15)","[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21418:17)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21984:21\n    at Object.register (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22008:9)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22253:25\n    at Qj (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:5027:23)\n    at Hk (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6262:21)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6132:7\n    at J (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:446:21)\n    at MessagePort.R (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:474:15)","[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21418:17)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:21984:21\n    at Object.register (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22008:9)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:22253:25\n    at Qj (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:5027:23)\n    at Hk (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6262:21)\n    at http://127.0.0.1:43445/assets/index-DAH7ujpK.js:6132:7\n    at J (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:446:21)\n    at MessagePort.R (http://127.0.0.1:43445/assets/index-DAH7ujpK.js:474:15)"]
+非本地端口请求 = 0；写请求 = 0
+evidence = /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/276_p5_red/p5_layout_harness.json

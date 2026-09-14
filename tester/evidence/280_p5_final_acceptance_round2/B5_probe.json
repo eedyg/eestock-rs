@@ -1,0 +1,126 @@
+{
+  "origin": "http://127.0.0.1:43469/",
+  "checks": [
+    {
+      "name": "B5a 往返精确：+20 再 −20 ⇒ 逐值回到初值（±1px）且 Σ 恒 == 600",
+      "ok": true,
+      "detail": "初始={\"15m\":264,\"1h\":112,\"5m\":112,\"1d\":112} 去={\"15m\":284,\"1h\":92,\"5m\":112,\"1d\":112} 回={\"15m\":264,\"1h\":112,\"5m\":112,\"1d\":112} Σ回=600"
+    },
+    {
+      "name": "B5b 防抖：每次拖拽恰 1 次 onHeightsChange（累计 2 次拖拽 ⇒ 载荷 2 条）",
+      "ok": true,
+      "detail": "拖1后=1 拖2后=2"
+    },
+    {
+      "name": "B5c 载荷恒合法：桩「PUT」收到 0 条域外 heights（每项 ∈ [80,1200] 整数）",
+      "ok": true,
+      "detail": "payloadErrors=[] 越域项=[]"
+    },
+    {
+      "name": "B5d 写失败（假 400）⇒ 回滚：DOM 逐值回到拖前（±1px），且回滚后仍恰 1 次写（载荷 3 条）",
+      "ok": true,
+      "detail": "拖前={\"15m\":264,\"1h\":112,\"5m\":112,\"1d\":112} 拖中={\"15m\":279,\"1h\":97,\"5m\":112,\"1d\":112} 回滚后={\"15m\":264,\"1h\":112,\"5m\":112,\"1d\":112} 载荷数=3"
+    },
+    {
+      "name": "B5e 零 pageerror（写失败不抛穿页面）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "HY 零出网 / 零真实写请求（非本地请求 == 0）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "raw": {
+    "initial": {
+      "15m": 264,
+      "1h": 112,
+      "5m": 112,
+      "1d": 112
+    },
+    "roundtrip": {
+      "initial": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "forward": {
+        "during": {
+          "15m": 284,
+          "1h": 92,
+          "5m": 112,
+          "1d": 112
+        },
+        "after": {
+          "15m": 284,
+          "1h": 92,
+          "5m": 112,
+          "1d": 112
+        }
+      },
+      "back": {
+        "during": {
+          "15m": 264,
+          "1h": 112,
+          "5m": 112,
+          "1d": 112
+        },
+        "after": {
+          "15m": 264,
+          "1h": 112,
+          "5m": 112,
+          "1d": 112
+        }
+      },
+      "payloadsAfter1": 1,
+      "payloadsAfter2": 2
+    },
+    "payloadsLegal": {
+      "payloads": [
+        [
+          284,
+          92,
+          112,
+          112
+        ],
+        [
+          264,
+          112,
+          112,
+          112
+        ]
+      ],
+      "perr": [],
+      "illegal": []
+    },
+    "rollback": {
+      "beforeFail": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "during": {
+        "15m": 279,
+        "1h": 97,
+        "5m": 112,
+        "1d": 112
+      },
+      "after": {
+        "15m": 264,
+        "1h": 112,
+        "5m": 112,
+        "1d": 112
+      },
+      "payloadsAfter3": 3
+    }
+  },
+  "externalRequests": [],
+  "console": [
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43469/assets/index-ClguhFuM.js:21418:17)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:21984:21\n    at Object.register (http://127.0.0.1:43469/assets/index-ClguhFuM.js:22008:9)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:22253:25\n    at Qj (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5028:23)\n    at Hk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6263:21)\n    at Ek (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5827:5)\n    at jg (http://127.0.0.1:43469/assets/index-ClguhFuM.js:2741:17)\n    at Wk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6167:5)\n    at Pk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43469/assets/index-ClguhFuM.js:21418:17)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:21984:21\n    at Object.register (http://127.0.0.1:43469/assets/index-ClguhFuM.js:22008:9)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:22253:25\n    at Qj (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5028:23)\n    at Hk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6263:21)\n    at Ek (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5827:5)\n    at jg (http://127.0.0.1:43469/assets/index-ClguhFuM.js:2741:17)\n    at Wk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6167:5)\n    at Pk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:43469/assets/index-ClguhFuM.js:21418:17)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:21984:21\n    at Object.register (http://127.0.0.1:43469/assets/index-ClguhFuM.js:22008:9)\n    at http://127.0.0.1:43469/assets/index-ClguhFuM.js:22253:25\n    at Qj (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5028:23)\n    at Hk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6263:21)\n    at Ek (http://127.0.0.1:43469/assets/index-ClguhFuM.js:5827:5)\n    at jg (http://127.0.0.1:43469/assets/index-ClguhFuM.js:2741:17)\n    at Wk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6167:5)\n    at Pk (http://127.0.0.1:43469/assets/index-ClguhFuM.js:6110:36)"
+  ]
+}

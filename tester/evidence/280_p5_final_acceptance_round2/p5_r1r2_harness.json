@@ -1,0 +1,386 @@
+{
+  "url": "http://127.0.0.1:49103/",
+  "generatedAt": "2026-09-14T17:32:33.584Z",
+  "available": {
+    "short": 600,
+    "tall": 1800
+  },
+  "checks": [
+    {
+      "name": "R1-G0 前置：服务端配置（持久化布局）⇒ 逐值渲染（±1px）",
+      "ok": true,
+      "detail": "A={\"15m\":294,\"1h\":97,\"5m\":97,\"1d\":112} B={\"15m\":294,\"1h\":97,\"5m\":97,\"1d\":112}"
+    },
+    {
+      "name": "R1-G1 父层回执只改卫星高度 ⇒ 拖中与回执后必须一致（600px；P5 验收实测 during{294,112,82,112} → after{294,97,97,112} 回弹）",
+      "ok": true,
+      "detail": "拖中={\"15m\":294,\"1h\":112,\"5m\":82,\"1d\":112} 回执后={\"15m\":294,\"1h\":112,\"5m\":82,\"1d\":112} 差=0px"
+    },
+    {
+      "name": "R1-G2 连续第二次「卫星↔卫星」拖拽 ⇒ 拖中与回执后必须一致（不得回弹到请求前分配）",
+      "ok": true,
+      "detail": "拖中={\"15m\":294,\"1h\":112,\"5m\":92,\"1d\":102} 回执后={\"15m\":294,\"1h\":112,\"5m\":92,\"1d\":102} 差=0px"
+    },
+    {
+      "name": "R1-G3 依赖完整性：父层只改卫星高度（无拖拽）⇒ 分配必须重算：① 卫星逐值采用回执 ∧ ② 基准 == 可用 − Σ卫星 ∧ ③ Σ分配 == 可用",
+      "ok": true,
+      "detail": "回执前={\"15m\":294,\"1h\":112,\"5m\":92,\"1d\":102} 实际={\"15m\":304,\"1h\":112,\"5m\":82,\"1d\":102} 判据={\"satsAdopted\":true,\"baseAbsorbs\":true,\"sumEqualsAvailable\":true}（期望：1h=112, 5m=82, 15m=600−Σ卫星=304, Σ=600；基准必须 ≠ 回执前屏幕值 294）"
+    },
+    {
+      "name": "R2-G0 前置：越域（1800 − 3×180 = 1260 > 1200：基准吸收余量）",
+      "ok": true,
+      "detail": "初始={\"15m\":1260,\"1h\":180,\"5m\":180,\"1d\":180} Σ=1800"
+    },
+    {
+      "name": "R2-G1 越域：连续同向 ≥1px 拖拽 ⇒ 载荷必须每次都变化（不得「拖了载荷不变」＝死区）",
+      "ok": true,
+      "detail": "载荷 1h 序列=[179,178,177]（期望 [179,178,177]；载荷序列=[{\"15m\":1200,\"1h\":179,\"5m\":180,\"1d\":180},{\"15m\":1200,\"1h\":178,\"5m\":180,\"1d\":180},{\"15m\":1200,\"1h\":177,\"5m\":180,\"1d\":180}]）"
+    },
+    {
+      "name": "R2-G1b 载荷 #2 必须 ≠ 载荷 #1（任何 ≥1px 拖拽都不得零效果）",
+      "ok": true,
+      "detail": "{\"15m\":1200,\"1h\":178,\"5m\":180,\"1d\":180,\"__dom\":{\"15m\":1262,\"1h\":178,\"5m\":180,\"1d\":180},\"__at\":1789407149775}"
+    },
+    {
+      "name": "R2-G1b 载荷 #3 必须 ≠ 载荷 #2（任何 ≥1px 拖拽都不得零效果）",
+      "ok": true,
+      "detail": "{\"15m\":1200,\"1h\":177,\"5m\":180,\"1d\":180,\"__dom\":{\"15m\":1263,\"1h\":177,\"5m\":180,\"1d\":180},\"__at\":1789407150708}"
+    },
+    {
+      "name": "R2-G2 以真实服务端值重载 ⇒ 屏幕不得跳变（P5 验收实测 20px；裁决 ② 只允许「屏幕 vs 载荷」≤61px 的偏差）",
+      "ok": true,
+      "detail": "拖后屏幕={\"15m\":1243,\"1h\":197,\"5m\":180,\"1d\":180} 服务端值={\"15m\":1200,\"1h\":197,\"5m\":180,\"1d\":180} 重载屏幕={\"15m\":1243,\"1h\":197,\"5m\":180,\"1d\":180} 跳变=0px"
+    },
+    {
+      "name": "R2-G3 已知且允许的偏差：屏幕分配 vs 持久化载荷 ≤61px（记录实测值）",
+      "ok": true,
+      "detail": "实测偏差=43px（屏幕={\"15m\":1243,\"1h\":197,\"5m\":180,\"1d\":180} 载荷={\"15m\":1200,\"1h\":197,\"5m\":180,\"1d\":180}）"
+    },
+    {
+      "name": "R2-G4 载荷恒合法：桩「PUT」不得收到域外 heights",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "HY1 零出网 / 零写请求：非本地请求 == 0（桩「PUT」只进页面内存）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "HY2 零 pageerror（拖拽/回执不得抛穿页面）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "raw": {
+    "R1_initial": {
+      "15m": 294,
+      "1h": 97,
+      "5m": 97,
+      "1d": 112
+    },
+    "R1_drag1": {
+      "during": {
+        "15m": 294,
+        "1h": 112,
+        "5m": 82,
+        "1d": 112
+      },
+      "after": {
+        "15m": 294,
+        "1h": 112,
+        "5m": 82,
+        "1d": 112
+      }
+    },
+    "R1_drag2": {
+      "during": {
+        "15m": 294,
+        "1h": 112,
+        "5m": 92,
+        "1d": 102
+      },
+      "after": {
+        "15m": 294,
+        "1h": 112,
+        "5m": 92,
+        "1d": 102
+      }
+    },
+    "R1_onlySatellitePropChange": {
+      "before": {
+        "15m": 294,
+        "1h": 112,
+        "5m": 92,
+        "1d": 102
+      },
+      "after": {
+        "15m": 304,
+        "1h": 112,
+        "5m": 82,
+        "1d": 102
+      },
+      "expectedSats": {
+        "1h": 112,
+        "5m": 82,
+        "1d": 102
+      },
+      "expectedBase": 304,
+      "expectAdopted": {
+        "15m": 304,
+        "1h": 112,
+        "5m": 82,
+        "1d": 102
+      },
+      "g3": {
+        "satsAdopted": true,
+        "baseAbsorbs": true,
+        "sumEqualsAvailable": true
+      }
+    },
+    "R1_measure": {
+      "available": 600,
+      "domHeights": {
+        "15m": 304,
+        "1h": 112,
+        "5m": 82,
+        "1d": 102
+      },
+      "declaredHeights": {
+        "15m": 304,
+        "1h": 112,
+        "5m": 82,
+        "1d": 102
+      },
+      "main": {
+        "clientHeight": 600,
+        "scrollHeight": 600
+      },
+      "stack": {
+        "clientHeight": 600,
+        "scrollHeight": 600
+      },
+      "payloads": 2,
+      "writes": 0
+    },
+    "R2_initial": {
+      "15m": 1260,
+      "1h": 180,
+      "5m": 180,
+      "1d": 180
+    },
+    "R2_drags": [
+      {
+        "during": {
+          "15m": 1261,
+          "1h": 179,
+          "5m": 180,
+          "1d": 180
+        },
+        "after": {
+          "15m": 1261,
+          "1h": 179,
+          "5m": 180,
+          "1d": 180
+        }
+      },
+      {
+        "during": {
+          "15m": 1262,
+          "1h": 178,
+          "5m": 180,
+          "1d": 180
+        },
+        "after": {
+          "15m": 1262,
+          "1h": 178,
+          "5m": 180,
+          "1d": 180
+        }
+      },
+      {
+        "during": {
+          "15m": 1263,
+          "1h": 177,
+          "5m": 180,
+          "1d": 180
+        },
+        "after": {
+          "15m": 1263,
+          "1h": 177,
+          "5m": 180,
+          "1d": 180
+        }
+      }
+    ],
+    "R2_payloads_monotonic": [
+      {
+        "15m": 1200,
+        "1h": 179,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1261,
+          "1h": 179,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407148842
+      },
+      {
+        "15m": 1200,
+        "1h": 178,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1262,
+          "1h": 178,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407149775
+      },
+      {
+        "15m": 1200,
+        "1h": 177,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1263,
+          "1h": 177,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407150708
+      }
+    ],
+    "R2_drag_diverging": {
+      "during": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "after": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      }
+    },
+    "R2_payloads": [
+      {
+        "15m": 1200,
+        "1h": 179,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1261,
+          "1h": 179,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407148842
+      },
+      {
+        "15m": 1200,
+        "1h": 178,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1262,
+          "1h": 178,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407149775
+      },
+      {
+        "15m": 1200,
+        "1h": 177,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1263,
+          "1h": 177,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407150708
+      },
+      {
+        "15m": 1200,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180,
+        "__dom": {
+          "15m": 1243,
+          "1h": 197,
+          "5m": 180,
+          "1d": 180
+        },
+        "__at": 1789407151689
+      }
+    ],
+    "R2_measure": {
+      "available": 1800,
+      "domHeights": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "declaredHeights": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "main": {
+        "clientHeight": 1800,
+        "scrollHeight": 1800
+      },
+      "stack": {
+        "clientHeight": 1800,
+        "scrollHeight": 1800
+      },
+      "payloads": 4,
+      "writes": 0
+    },
+    "R2_reload": {
+      "serverValue": {
+        "15m": 1200,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "screenAfterDrag": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "screenReloaded": {
+        "15m": 1243,
+        "1h": 197,
+        "5m": 180,
+        "1d": 180
+      },
+      "jump": 0
+    },
+    "R2_deviation": 43
+  },
+  "externalRequests": [],
+  "console": [
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)",
+    "[warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new ChartSyncGroup (http://127.0.0.1:49103/assets/index-D3WEQR98.js:21418:17)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:21984:21\n    at Object.register (http://127.0.0.1:49103/assets/index-D3WEQR98.js:22008:9)\n    at http://127.0.0.1:49103/assets/index-D3WEQR98.js:22253:25\n    at Qj (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5028:23)\n    at Hk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6263:21)\n    at Ek (http://127.0.0.1:49103/assets/index-D3WEQR98.js:5827:5)\n    at jg (http://127.0.0.1:49103/assets/index-D3WEQR98.js:2741:17)\n    at Wk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6167:5)\n    at Pk (http://127.0.0.1:49103/assets/index-D3WEQR98.js:6110:36)"
+  ],
+  "screenshotDir": "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/280_p5_final_acceptance_round2"
+}

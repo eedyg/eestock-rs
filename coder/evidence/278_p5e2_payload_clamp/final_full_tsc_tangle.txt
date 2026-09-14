@@ -1,0 +1,17 @@
+## 复跑 2/3：全量 vitest run
+
+ Test Files  82 passed (82)
+      Tests  753 passed (753)
+   Start at  01:06:47
+   Duration  6.58s (transform 3.32s, setup 3.98s, collect 12.94s, tests 31.53s, environment 27.13s, prepare 7.00s)
+
+
+## 复跑 3/3：tsc -b
+tsc exit=0
+
+## 门禁：scripts/check-tangle.sh
+tangle exit=1
+
+## 门禁复跑（从仓库根，绝对路径调用；上一行的 exit=1 是调用姿势错误：web/ 内用相对路径 ../scripts 触发脚本自身 cd 基准问题，非门禁红）
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+tangle exit=0

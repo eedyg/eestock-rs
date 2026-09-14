@@ -1,0 +1,33 @@
+== timestamp ==
+2026-09-15T01:03:08+08:00
+
+== HEAD ==
+78eb68d95d149e091c678a5a2a97aecd872f895f
+
+== staged files (must be empty) ==
+(empty = no staged files)
+
+== ONLY file touched by Tester this round ==
+-rw-rw-r-- 1 eestock eestock 32209 2026-09-15T01:02:13 web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+09a79cabb046e50f91c7f93d1e694cfedb1f985c4d89cd6895b5d5459d51eb9f  web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+(git status shows ?? = untracked; all P5 impl files are also untracked/uncommitted)
+
+== new cases added (test file only) ==
+150:  /** 可用高度覆盖（P5-E-1：超宽屏夹具；缺省 = `AVAILABLE` 600px）。 */
+152:  /** pane 索引覆盖（P5-E-1：更少/更高的 pane 能以更小可用高度触发基准吸收余量）；缺省 = 4 pane 夹具。 */
+237:/** 指定周期集合的 pane 分配高度（P5-E-1：非 4-pane 夹具共用读数口径）。 */
+459:    // P5-E-1 口径注记（仅注释，断言不变；02-spec §6.2）：
+593:  // ── P5-E-1（架构裁决 2026-09-15，02-spec §6.2）：**持久化载荷恒合法，渲染分配可越域** ──────────
+600:  it('B14 超宽屏（可用 1800px）⇒ 基准吸收余量使**渲染分配** 1261 > 1200：载荷必须还是 clamp(分配) 且各项 ∈ [80,1200]', async () => {
+648:  it('B15 1400px 容器 + 两颗 80px 卫星 ⇒ 基准分得 1240 > 1200：载荷 == clamp(分配)，Σ 分配仍 == 1400', async () => {
+
+== product code: 0 edits by Tester this round ==
+
+== generated-code sync tool NOT run (no live process; toml untouched) ==
+live-matching processes: 0
+3c1751c1938f1a4ca1f871dcc438ec238f0d78bbe758299479d1efbf1ba58f01  entangled.toml
+-rw-rw-r-- 1 eestock eestock 940 2026-09-03T23:39:40 entangled.toml
+
+== process / instance teardown ==
+no service or temp instance started this round (no temp port, nothing to tear down)
+live PID 3112540 untouched; 0 write requests (all local vitest+jsdom; PUT is a vi.fn stub)

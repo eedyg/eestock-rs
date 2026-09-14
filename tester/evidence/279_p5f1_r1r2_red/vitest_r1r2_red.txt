@@ -1,0 +1,104 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx (5 tests | 4 failed) 3256ms
+   × R1 父层回执必须成为高度权威（依赖完整性） > R1-A 依赖完整性：父层只改卫星高度 ⇒ 分配必须重算（不得沿用旧卫星请求） 31ms
+     → 父层 props 是高度权威（§6.3）：仅卫星高度变化也必须重算分配；返回旧卫星请求（97/97/112）即「依赖缺卫星高度」缺陷: expected { Object (15m, 1h, ...) } to deeply equal { '15m': 294, '1h': 112, …(2) }
+   × R1 父层回执必须成为高度权威（依赖完整性） > R1-B 父层回执只改卫星高度 ⇒ 必须采用回执值（连续两次卫星↔卫星拖拽不得回弹） 466ms
+     → 回执 settle 后必须采用回执值（不得回弹到请求前的分配）[回执前={"15m":294,"1h":97,"5m":97,"1d":112} 拖中={"15m":294,"1h":112,"5m":82,"1d":112} 回执后={"15m":294,"1h":97,"5m":97,"1d":112} after−during={"15m":0,"1h":-15,"5m":15,"1d":0}]: expected { Object (15m, 1h, ...) } to deeply equal { '15m': 294, '1h': 112, …(2) }
+   × R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-A 连续同向 ≥1px 拖拽 ⇒ 载荷必须每次都变化（不得「拖了载荷不变」） 1372ms
+     → 第 3 次拖拽后的载荷必须继续变化（收到 178）⇒ 不得「拖了载荷不变」；载荷序列=[{"15m":1200,"1h":179,"5m":180,"1d":180},{"15m":1200,"1h":178,"5m":180,"1d":180},{"15m":1200,"1h":178,"5m":180,"1d":180}]: expected 178 to be 177 // Object.is equality
+   × R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-B 越域 + 以真实服务端值重载 ⇒ 屏幕不得跳变（实测 20px）且屏幕-载荷偏差 ≤61px 924ms
+     → 以真实服务端值重载后屏幕必须与拖后一致（±1px，不得跳变）：拖后屏幕={"15m":1261,"1h":179,"5m":180,"1d":180} 重载屏幕={"15m":1241,"1h":199,"5m":180,"1d":180} 跳变=20px（P5 验收实测 20px）: expected 20 to be less than or equal to 1
+   ✓ R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-C 越域载荷口径：payload == clamp(DOM)、Σ DOM == 可用（渲染分配可越域，载荷恒合法）  461ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodLayoutAuthority.test.tsx > R1 父层回执必须成为高度权威（依赖完整性） > R1-A 依赖完整性：父层只改卫星高度 ⇒ 分配必须重算（不得沿用旧卫星请求）
+AssertionError: 父层 props 是高度权威（§6.3）：仅卫星高度变化也必须重算分配；返回旧卫星请求（97/97/112）即「依赖缺卫星高度」缺陷: expected { Object (15m, 1h, ...) } to deeply equal { '15m': 294, '1h': 112, …(2) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[2m    "15m": 294,[22m
+[2m    "1d": 112,[22m
+[32m-   "1h": 112,[39m
+[32m-   "5m": 82,[39m
+[31m+   "1h": 97,[39m
+[31m+   "5m": 97,[39m
+[2m  }[22m
+
+ ❯ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:322:7
+    320|       '父层 props 是高度权威（§6.3）：仅卫星高度变化也必须重算分配；' +
+    321|         '返回旧卫星请求（97/97/112）即「依赖缺卫星高度」缺陷',
+    322|     ).toEqual({ [BASE_PERIOD]: 294, '1h': 112, '5m': 82, '1d': 112 });
+       |       ^
+    323|   });
+    324| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/features/dashboard/multiPeriodLayoutAuthority.test.tsx > R1 父层回执必须成为高度权威（依赖完整性） > R1-B 父层回执只改卫星高度 ⇒ 必须采用回执值（连续两次卫星↔卫星拖拽不得回弹）
+AssertionError: 回执 settle 后必须采用回执值（不得回弹到请求前的分配）[回执前={"15m":294,"1h":97,"5m":97,"1d":112} 拖中={"15m":294,"1h":112,"5m":82,"1d":112} 回执后={"15m":294,"1h":97,"5m":97,"1d":112} after−during={"15m":0,"1h":-15,"5m":15,"1d":0}]: expected { Object (15m, 1h, ...) } to deeply equal { '15m': 294, '1h': 112, …(2) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[2m    "15m": 294,[22m
+[2m    "1d": 112,[22m
+[32m-   "1h": 112,[39m
+[32m-   "5m": 82,[39m
+[31m+   "1h": 97,[39m
+[31m+   "5m": 97,[39m
+[2m  }[22m
+
+ ❯ assertEchoAdopted src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:289:63
+    287|   expect(s.during[upper]!, `上 pane 必须随拖拽增大 ${detail}`).toBeGreaterThan…
+    288|   expect(s.during[lower]!, `下 pane 必须随拖拽减小 ${detail}`).toBeLessThan(be…
+    289|   expect(s.after, `回执 settle 后必须采用回执值（不得回弹到请求前的分配）${detail}`).toEqual(…
+       |                                                               ^
+    290|   expect(sum(s.after), `Σ 分配 == 可用高度 ${detail}`).toBe(available);
+    291| }
+ ❯ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:345:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/features/dashboard/multiPeriodLayoutAuthority.test.tsx > R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-A 连续同向 ≥1px 拖拽 ⇒ 载荷必须每次都变化（不得「拖了载荷不变」）
+AssertionError: 第 3 次拖拽后的载荷必须继续变化（收到 178）⇒ 不得「拖了载荷不变」；载荷序列=[{"15m":1200,"1h":179,"5m":180,"1d":180},{"15m":1200,"1h":178,"5m":180,"1d":180},{"15m":1200,"1h":178,"5m":180,"1d":180}]: expected 178 to be 177 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 177[39m
+[31m+ 178[39m
+
+ ❯ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:396:7
+    394|       `第 3 次拖拽后的载荷必须继续变化（收到 ${payloads[2]!['1h']}）⇒ 不得「拖了载荷不变」；` +
+    395|         `载荷序列=${JSON.stringify(payloads)}`,
+    396|     ).toBe(177);
+       |       ^
+    397|     // 每次载荷都必须与上一次不同（更强、更贴契约本身：任何 ≥1px 拖拽都不得零效果）
+    398|     for (let i = 1; i < payloads.length; i++) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/features/dashboard/multiPeriodLayoutAuthority.test.tsx > R2 越域（可用 1800px）载荷无死区、重载无跳变 > R2-B 越域 + 以真实服务端值重载 ⇒ 屏幕不得跳变（实测 20px）且屏幕-载荷偏差 ≤61px
+AssertionError: 以真实服务端值重载后屏幕必须与拖后一致（±1px，不得跳变）：拖后屏幕={"15m":1261,"1h":179,"5m":180,"1d":180} 重载屏幕={"15m":1241,"1h":199,"5m":180,"1d":180} 跳变=20px（P5 验收实测 20px）: expected 20 to be less than or equal to 1
+ ❯ src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:450:7
+    448|         `拖后屏幕=${JSON.stringify(s2.after)} 重载屏幕=${JSON.stringify(screen…
+    449|         `跳变=${jump}px（P5 验收实测 20px）`,
+    450|     ).toBeLessThanOrEqual(1);
+       |       ^
+    451|     // 重载后各项仍 ∈ 载荷域内、且 Σ == 可用（重载不得改变分配口径）
+    452|     expect(sum(screenReloaded), '重载后 Σ 分配 == 可用高度').toBe(AVAIL_TALL);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  01:24:09
+   Duration  3.77s (transform 111ms, setup 22ms, collect 151ms, tests 3.26s, environment 132ms, prepare 111ms)
+

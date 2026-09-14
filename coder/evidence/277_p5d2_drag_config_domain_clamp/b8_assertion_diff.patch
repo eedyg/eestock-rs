@@ -1,0 +1,30 @@
+--- /tmp/dom_orig.tsx	2026-09-15 00:55:27.649850039 +0800
++++ web/src/features/dashboard/multiPeriodLayoutDom.test.tsx	2026-09-15 00:55:51.952590346 +0800
+@@ -425,8 +425,25 @@
+ 
+     expect(onHeightsChange, '连续拖拽只写一次').toHaveBeenCalledTimes(1);
+     const payload = onHeightsChange.mock.calls[0]![0] as Record<string, number>;
+-    expect(payload[BASE_PERIOD]).toBe(before[BASE_PERIOD]! + 70);
+-    expect(payload[SAT0]).toBe(before[SAT0]! - 70);
++    // P5-D-2（架构裁决 2026-09-15，授权最小编辑本用例数值断言）：
++    //  原断言 `payload[15m] == before+70 == 334` / `payload[1h] == before−70 == 42` 属**契约变更前**的遗留口径：
++    //  42 已在配置域 `[80,1200]` 之外（会被 `PUT /api/config/multi_period` 400 拒绝），与 B13/C8/C9 **互斥**
++    //  （Σ==600 ⇒ base+1h == 376 固定 ⇒ 只要 1h ≥ 80 则 base ≤ 296 ≠ 334）⇒ 原数值断言数学上不可满足。
++    //  **不得**据此回退域夹取（`sanitizeDragHeight` 夹配置域）；以下新口径**更强**：末次结果 == DOM、
++    //  Σ == 可用高度、每项 ∈ 配置域、且被压的一方**恰好触到配置域下界** 80。
++    expect(payload, 'payload == 末次分配结果（与 DOM 逐项一致）').toEqual(allHeights(container));
++    expect(Object.values(payload).reduce((a, b) => a + b, 0), 'Σ == 可用高度').toBe(AVAILABLE);
++    expect(payload[BASE_PERIOD]!, '方向不变：基准增大').toBeGreaterThan(before[BASE_PERIOD]!);
++    expect(payload[SAT0]!, '方向不变：被压的卫星减小').toBeLessThan(before[SAT0]!);
++    for (const p of periodsAll()) {
++      expect(payload[p]!, `${p} 必须 ∈ 配置域 [${HEIGHT_MIN},${HEIGHT_MAX}]`).toBeGreaterThanOrEqual(HEIGHT_MIN);
++      expect(payload[p]!, `${p} 必须 ∈ 配置域 [${HEIGHT_MIN},${HEIGHT_MAX}]`).toBeLessThanOrEqual(HEIGHT_MAX);
++    }
++    expect(payload[SAT0]!, '被狠拖的一方恰好停在配置域下界（边界成为显式断言）').toBe(HEIGHT_MIN);
++    expect(payload[SAT1], '未被拖拽的两颗卫星保持相等（分配对称性）').toBe(payload[SAT2]);
++    expect(payload[BASE_PERIOD]!, '基准 = 可用 − 其余三项（由等式推导，不写死 334）').toBe(
++      AVAILABLE - HEIGHT_MIN - payload[SAT1]! - payload[SAT2]!,
++    );
+   });
+ 
+   it('B9 ②③ 不变量：拖拽后换 dcap 参数 / 换标的 / 强制重渲染 ⇒ 各 pane 高度不变（±1px）', async () => {

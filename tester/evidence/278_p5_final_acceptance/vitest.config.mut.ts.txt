@@ -1,0 +1,62 @@
+/// <reference types="vitest/config" />
+/**
+ * P5 变异探针 vitest 配置（tester 临时；仓库文件不改动）。
+ * 位置：/tmp/p5acc/vitest.config.ts
+ * root = 仓库 web/（只读）；变异 = 内存 transform（同一测试文件、同一环境 ⇒ 反向证据可复现）。
+ */
+import { defineConfig } from 'vite';
+import react from '/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@vitejs/plugin-react/dist/index.js';
+
+const WEB = '/home/eestock/workspace/git/eestock/eestock-rs/web';
+const MUT = process.env.MUT ?? '';
+
+function mutatePlugin() {
+  return {
+    name: 'p5-mut',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (!MUT || !id.includes('multiPeriodLayout.ts')) return null;
+      const cut = (fn: string) => {
+        const i = code.indexOf(fn);
+        return i < 0 ? null : [code.slice(0, i), code.slice(i)];
+      };
+      if (MUT === 'no-shrink') {
+        const a = 'if (requestedTotal <= H) {';
+        if (!code.includes(a)) throw new Error('MUT no-shrink: anchor missing');
+        return code.replace(a, 'if (true) {');
+      }
+      if (MUT === 'no-drag-clamp') {
+        const c = cut('export function sanitizeDragHeight');
+        if (!c) throw new Error('MUT no-drag-clamp: anchor missing');
+        return c[0] + c[1].replace('return clamp(Math.round(n), HEIGHT_MIN, HEIGHT_MAX);', 'return Math.round(n);');
+      }
+      if (MUT === 'no-payload-clamp') {
+        const c = cut('export function toPersistableHeights');
+        if (!c) throw new Error('MUT no-payload-clamp: anchor missing');
+        return c[0] + c[1].replace(
+          'out[period] = clamp(Math.round(heights[period]!), HEIGHT_MIN, HEIGHT_MAX);',
+          'out[period] = Math.round(heights[period]!);',
+        );
+      }
+      return null;
+    },
+  };
+}
+
+export default defineConfig({
+  root: WEB,
+  plugins: [mutatePlugin(), react()],
+  resolve: { alias: { '@': WEB + '/src' } },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: [WEB + '/src/test/setup.ts'],
+    css: false,
+    include: [
+      'src/features/dashboard/multiPeriodLayout.test.ts',
+      'src/features/dashboard/multiPeriodLayoutDom.test.tsx',
+      'src/features/dashboard/multiPeriodDragDomainClamp.test.ts',
+    ],
+    reporters: ['default'],
+  },
+});

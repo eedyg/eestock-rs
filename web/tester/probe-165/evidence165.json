@@ -1,0 +1,1385 @@
+{
+  "ts": "2026-09-14T10:16:20.888Z",
+  "klinechartsVersion": "10.0.3",
+  "consoleMsgs": [],
+  "scenarios": [
+    {
+      "scenario": "A: MA alone on candle_pane(isStack=false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380975290_1\",\"yAxisId\":\"yAxis_1789380975222_1\"} isStack=false",
+          "ret": "MA_1789380975290_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380975290_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380975290_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 177
+    },
+    {
+      "scenario": "B: EMA alone on candle_pane(isStack=false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"EMA\",\"calcParams\":[12,26],\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380975604_1\",\"yAxisId\":\"yAxis_1789380975543_1\"} isStack=false",
+          "ret": "EMA_1789380975604_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380975604_1",
+              "calcParams": [
+                12,
+                26
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "EMA",
+          "paneId": "candle_pane",
+          "id": "EMA_1789380975604_1",
+          "calcParams": [
+            12,
+            26
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "EMA(12,26)",
+        "EMA12: ",
+        "EMA26: "
+      ],
+      "drawnTextCount": 64,
+      "strokes": 351
+    },
+    {
+      "scenario": "C: BOLL alone on candle_pane(isStack=false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"BOLL\",\"paneId\":\"candle_pane\",\"id\":\"BOLL_1789380975917_1\",\"yAxisId\":\"yAxis_1789380975856_1\"} isStack=false",
+          "ret": "BOLL_1789380975917_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "id": "BOLL_1789380975917_1",
+              "calcParams": [
+                20,
+                2
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "BOLL",
+          "paneId": "candle_pane",
+          "id": "BOLL_1789380975917_1",
+          "calcParams": [
+            20,
+            2
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "BOLL(20,2)"
+      ],
+      "drawnTextCount": 67,
+      "strokes": 528
+    },
+    {
+      "scenario": "D: MA then EMA (both candle_pane,false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380976230_1\",\"yAxisId\":\"yAxis_1789380976169_1\"} isStack=false",
+          "ret": "MA_1789380976230_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380976230_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"EMA\",\"calcParams\":[12,26],\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380976230_2\",\"yAxisId\":\"yAxis_1789380976169_1\"} isStack=false",
+          "ret": "EMA_1789380976230_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380976230_2",
+              "calcParams": [
+                12,
+                26
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "EMA",
+          "paneId": "candle_pane",
+          "id": "EMA_1789380976230_2",
+          "calcParams": [
+            12,
+            26
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "EMA(12,26)",
+        "EMA12: ",
+        "EMA26: "
+      ],
+      "drawnTextCount": 64,
+      "strokes": 702
+    },
+    {
+      "scenario": "E: EMA then MA (both candle_pane,false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"EMA\",\"calcParams\":[12,26],\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380976543_1\",\"yAxisId\":\"yAxis_1789380976482_1\"} isStack=false",
+          "ret": "EMA_1789380976543_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380976543_1",
+              "calcParams": [
+                12,
+                26
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380976543_2\",\"yAxisId\":\"yAxis_1789380976482_1\"} isStack=false",
+          "ret": "MA_1789380976543_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380976543_2",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380976543_2",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 879
+    },
+    {
+      "scenario": "F: MA then BOLL (both candle_pane,false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380976855_1\",\"yAxisId\":\"yAxis_1789380976794_1\"} isStack=false",
+          "ret": "MA_1789380976855_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380976855_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"BOLL\",\"paneId\":\"candle_pane\",\"id\":\"BOLL_1789380976855_2\",\"yAxisId\":\"yAxis_1789380976794_1\"} isStack=false",
+          "ret": "BOLL_1789380976855_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "id": "BOLL_1789380976855_2",
+              "calcParams": [
+                20,
+                2
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "BOLL",
+          "paneId": "candle_pane",
+          "id": "BOLL_1789380976855_2",
+          "calcParams": [
+            20,
+            2
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "BOLL(20,2)"
+      ],
+      "drawnTextCount": 67,
+      "strokes": 1056
+    },
+    {
+      "scenario": "G: BOLL then MA (both candle_pane,false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"BOLL\",\"paneId\":\"candle_pane\",\"id\":\"BOLL_1789380977167_1\",\"yAxisId\":\"yAxis_1789380977106_1\"} isStack=false",
+          "ret": "BOLL_1789380977167_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "id": "BOLL_1789380977167_1",
+              "calcParams": [
+                20,
+                2
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380977167_2\",\"yAxisId\":\"yAxis_1789380977106_1\"} isStack=false",
+          "ret": "MA_1789380977167_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977167_2",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380977167_2",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 1233
+    },
+    {
+      "scenario": "H: app order MA(candle_pane,false) then VOL/MACD/KDJ/BOLL(isStack=true)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380977479_1\",\"yAxisId\":\"yAxis_1789380977419_1\"} isStack=false",
+          "ret": "MA_1789380977479_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977479_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"VOL\" isStack=true",
+          "ret": "VOL_1789380977480_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977479_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977480_2",
+              "id": "VOL_1789380977480_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"MACD\" isStack=true",
+          "ret": "MACD_1789380977480_4",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977479_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977480_2",
+              "id": "VOL_1789380977480_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977480_5",
+              "id": "MACD_1789380977480_4",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"KDJ\" isStack=true",
+          "ret": "KDJ_1789380977481_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977479_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977480_2",
+              "id": "VOL_1789380977480_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977480_5",
+              "id": "MACD_1789380977480_4",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380977481_2",
+              "id": "KDJ_1789380977481_1",
+              "calcParams": [
+                9,
+                3,
+                3
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"BOLL\" isStack=true",
+          "ret": "BOLL_1789380977482_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977479_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977480_2",
+              "id": "VOL_1789380977480_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977480_5",
+              "id": "MACD_1789380977480_4",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380977481_2",
+              "id": "KDJ_1789380977481_1",
+              "calcParams": [
+                9,
+                3,
+                3
+              ]
+            },
+            {
+              "name": "BOLL",
+              "paneId": "indicator_pane_1789380977482_2",
+              "id": "BOLL_1789380977482_1",
+              "calcParams": [
+                20,
+                2
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380977479_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789380977480_2",
+          "id": "VOL_1789380977480_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        },
+        {
+          "name": "MACD",
+          "paneId": "indicator_pane_1789380977480_5",
+          "id": "MACD_1789380977480_4",
+          "calcParams": [
+            12,
+            26,
+            9
+          ]
+        },
+        {
+          "name": "KDJ",
+          "paneId": "indicator_pane_1789380977481_2",
+          "id": "KDJ_1789380977481_1",
+          "calcParams": [
+            9,
+            3,
+            3
+          ]
+        },
+        {
+          "name": "BOLL",
+          "paneId": "indicator_pane_1789380977482_2",
+          "id": "BOLL_1789380977482_1",
+          "calcParams": [
+            20,
+            2
+          ]
+        }
+      ],
+      "canvasCount": 22,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: ",
+        "VOL(5,10,20)",
+        "MA5: ",
+        "MA10: ",
+        "MA20: ",
+        "VOLUME: ",
+        "BOLL(20,2)"
+      ],
+      "drawnTextCount": 103,
+      "strokes": 1493
+    },
+    {
+      "scenario": "I: app order reversed (副图先，MA 最后)",
+      "steps": [
+        {
+          "call": "\"VOL\" isStack=true",
+          "ret": "VOL_1789380977794_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977794_2",
+              "id": "VOL_1789380977794_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"MACD\" isStack=true",
+          "ret": "MACD_1789380977796_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977794_2",
+              "id": "VOL_1789380977794_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977796_2",
+              "id": "MACD_1789380977796_1",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"KDJ\" isStack=true",
+          "ret": "KDJ_1789380977796_4",
+          "err": null,
+          "indicators": [
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977794_2",
+              "id": "VOL_1789380977794_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977796_2",
+              "id": "MACD_1789380977796_1",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380977796_5",
+              "id": "KDJ_1789380977796_4",
+              "calcParams": [
+                9,
+                3,
+                3
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "\"BOLL\" isStack=true",
+          "ret": "BOLL_1789380977796_7",
+          "err": null,
+          "indicators": [
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977794_2",
+              "id": "VOL_1789380977794_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977796_2",
+              "id": "MACD_1789380977796_1",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380977796_5",
+              "id": "KDJ_1789380977796_4",
+              "calcParams": [
+                9,
+                3,
+                3
+              ]
+            },
+            {
+              "name": "BOLL",
+              "paneId": "indicator_pane_1789380977796_8",
+              "id": "BOLL_1789380977796_7",
+              "calcParams": [
+                20,
+                2
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380977796_10\",\"yAxisId\":\"yAxis_1789380977733_1\"} isStack=false",
+          "ret": "MA_1789380977796_10",
+          "err": null,
+          "indicators": [
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789380977794_2",
+              "id": "VOL_1789380977794_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380977796_2",
+              "id": "MACD_1789380977796_1",
+              "calcParams": [
+                12,
+                26,
+                9
+              ]
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380977796_5",
+              "id": "KDJ_1789380977796_4",
+              "calcParams": [
+                9,
+                3,
+                3
+              ]
+            },
+            {
+              "name": "BOLL",
+              "paneId": "indicator_pane_1789380977796_8",
+              "id": "BOLL_1789380977796_7",
+              "calcParams": [
+                20,
+                2
+              ]
+            },
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380977796_10",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789380977794_2",
+          "id": "VOL_1789380977794_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        },
+        {
+          "name": "MACD",
+          "paneId": "indicator_pane_1789380977796_2",
+          "id": "MACD_1789380977796_1",
+          "calcParams": [
+            12,
+            26,
+            9
+          ]
+        },
+        {
+          "name": "KDJ",
+          "paneId": "indicator_pane_1789380977796_5",
+          "id": "KDJ_1789380977796_4",
+          "calcParams": [
+            9,
+            3,
+            3
+          ]
+        },
+        {
+          "name": "BOLL",
+          "paneId": "indicator_pane_1789380977796_8",
+          "id": "BOLL_1789380977796_7",
+          "calcParams": [
+            20,
+            2
+          ]
+        },
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380977796_10",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 22,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: ",
+        "VOL(5,10,20)",
+        "MA5: ",
+        "MA10: ",
+        "MA20: ",
+        "VOLUME: ",
+        "BOLL(20,2)"
+      ],
+      "drawnTextCount": 103,
+      "strokes": 1753
+    },
+    {
+      "scenario": "J: MA alone with isStack=true (no paneId)",
+      "steps": [
+        {
+          "call": "\"MA\" isStack=true",
+          "ret": "MA_1789380978109_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "indicator_pane_1789380978109_2",
+              "id": "MA_1789380978109_1",
+              "calcParams": [
+                5,
+                10,
+                30,
+                60
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "indicator_pane_1789380978109_2",
+          "id": "MA_1789380978109_1",
+          "calcParams": [
+            5,
+            10,
+            30,
+            60
+          ]
+        }
+      ],
+      "canvasCount": 10,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA60: "
+      ],
+      "drawnTextCount": 71,
+      "strokes": 1943
+    },
+    {
+      "scenario": "K: MA duplicate twice (same name/calcParams, candle_pane,false)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380978422_1\",\"yAxisId\":\"yAxis_1789380978361_1\"} isStack=false",
+          "ret": "MA_1789380978422_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380978422_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380978422_2\",\"yAxisId\":\"yAxis_1789380978361_1\"} isStack=false",
+          "ret": "MA_1789380978422_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380978422_2",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380978422_2",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 2120
+    },
+    {
+      "scenario": "L: MA(candle_pane,false) with isStack=true",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380978734_1\",\"yAxisId\":\"yAxis_1789380978673_1\"} isStack=true",
+          "ret": "MA_1789380978734_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380978734_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380978734_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 2297
+    },
+    {
+      "scenario": "M: MA created BEFORE data arrives (grid timing)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380978986_1\",\"yAxisId\":\"yAxis_1789380978985_1\"} isStack=false",
+          "ret": "MA_1789380978986_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380978986_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380978986_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 37,
+      "strokes": 2387
+    },
+    {
+      "scenario": "N: MA by string name (built-in defaults, candle_pane)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"paneId\":\"candle_pane\",\"id\":\"MA_1789380979381_1\",\"yAxisId\":\"yAxis_1789380979320_1\"} isStack=false",
+          "ret": "MA_1789380979381_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380979381_1",
+              "calcParams": [
+                5,
+                10,
+                30,
+                60
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380979381_1",
+          "calcParams": [
+            5,
+            10,
+            30,
+            60
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA60: "
+      ],
+      "drawnTextCount": 69,
+      "strokes": 2565
+    },
+    {
+      "scenario": "P: MA(candle_pane,false) then EMA(candle_pane,isStack=true)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380979693_1\",\"yAxisId\":\"yAxis_1789380979632_1\"} isStack=false",
+          "ret": "MA_1789380979693_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380979693_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"EMA\",\"calcParams\":[12,26],\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380979693_2\",\"yAxisId\":\"yAxis_1789380979632_1\"} isStack=true",
+          "ret": "EMA_1789380979693_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380979693_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380979693_2",
+              "calcParams": [
+                12,
+                26
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380979693_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        },
+        {
+          "name": "EMA",
+          "paneId": "candle_pane",
+          "id": "EMA_1789380979693_2",
+          "calcParams": [
+            12,
+            26
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: ",
+        "EMA(12,26)",
+        "EMA12: ",
+        "EMA26: "
+      ],
+      "drawnTextCount": 72,
+      "strokes": 2744
+    },
+    {
+      "scenario": "Q: MA(candle_pane,false) then EMA(candle_pane,false) then MA again",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380980005_1\",\"yAxisId\":\"yAxis_1789380979944_1\"} isStack=false",
+          "ret": "MA_1789380980005_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380980005_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"EMA\",\"calcParams\":[12,26],\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380980005_2\",\"yAxisId\":\"yAxis_1789380979944_1\"} isStack=false",
+          "ret": "EMA_1789380980005_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380980005_2",
+              "calcParams": [
+                12,
+                26
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380980005_3\",\"yAxisId\":\"yAxis_1789380979944_1\"} isStack=false",
+          "ret": "MA_1789380980005_3",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380980005_3",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380980005_3",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 2921
+    },
+    {
+      "scenario": "R: MA(candle_pane,false) then EMA(string name, no paneId, isStack omitted)",
+      "steps": [
+        {
+          "call": "{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789380980317_1\",\"yAxisId\":\"yAxis_1789380980256_1\"} isStack=false",
+          "ret": "MA_1789380980317_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380980317_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        },
+        {
+          "call": "{\"name\":\"EMA\",\"paneId\":\"candle_pane\",\"id\":\"EMA_1789380980317_2\",\"yAxisId\":\"yAxis_1789380980256_1\"} isStack=undefined",
+          "ret": "EMA_1789380980317_2",
+          "err": null,
+          "indicators": [
+            {
+              "name": "EMA",
+              "paneId": "candle_pane",
+              "id": "EMA_1789380980317_2",
+              "calcParams": [
+                6,
+                12,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "EMA",
+          "paneId": "candle_pane",
+          "id": "EMA_1789380980317_2",
+          "calcParams": [
+            6,
+            12,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "EMA(6,12,20)",
+        "EMA6: ",
+        "EMA12: ",
+        "EMA20: "
+      ],
+      "drawnTextCount": 66,
+      "strokes": 3096
+    },
+    {
+      "scenario": "O: MA alone + grid-effect removeIndicator({name:MA}) then create",
+      "steps": [
+        {
+          "call": "grid-effect:removeIndicator({name:MA})+createIndicator",
+          "ret": "MA_1789380980629_1",
+          "err": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "id": "MA_1789380980629_1",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "canvases": 6
+        }
+      ],
+      "finalIndicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "id": "MA_1789380980629_1",
+          "calcParams": [
+            5,
+            10,
+            20
+          ]
+        }
+      ],
+      "canvasCount": 6,
+      "drawnTexts": [
+        "MA5: ",
+        "MA10: ",
+        "MA20: "
+      ],
+      "drawnTextCount": 67,
+      "strokes": 3273
+    }
+  ]
+}

@@ -1,0 +1,967 @@
+{
+  "url": "file:///home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/250_multiperiod_route_probe/p7.html",
+  "console": [],
+  "result": {
+    "version": "10.0.3",
+    "p7a": {
+      "chartInitOk": true,
+      "panesBaseline": [
+        {
+          "id": "candle_pane",
+          "h": 100,
+          "minH": 30,
+          "state": "normal",
+          "order": 0
+        },
+        {
+          "id": "x_axis_pane",
+          "h": 100,
+          "minH": 30,
+          "state": "normal",
+          "order": 9007199254740991
+        }
+      ],
+      "sizeCandleBaseline": {
+        "width": 900,
+        "height": 394,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "createIndicatorReturn": "P7EXT_1789380571540_1",
+      "getIndicators": [
+        {
+          "name": "P7EXT",
+          "paneId": "indicator_pane_1789380571540_2",
+          "yAxisId": "yAxis_1789380571540_3",
+          "visible": true
+        }
+      ],
+      "getDomOfIndicatorReturn": false,
+      "indPaneId": "indicator_pane_1789380571540_2",
+      "panesAfterIndicator": [
+        {
+          "id": "candle_pane",
+          "h": 100,
+          "minH": 30,
+          "state": "normal",
+          "order": 0
+        },
+        {
+          "id": "indicator_pane_1789380571540_2",
+          "h": 100,
+          "minH": 30,
+          "state": "normal",
+          "order": 0
+        },
+        {
+          "id": "x_axis_pane",
+          "h": 100,
+          "minH": 30,
+          "state": "normal",
+          "order": 9007199254740991
+        }
+      ],
+      "sizeIndBaseline": {
+        "width": 900,
+        "height": 100,
+        "left": 0,
+        "right": 0,
+        "top": 394,
+        "bottom": 0
+      },
+      "attempt_height0": {
+        "paneOpt": {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 0,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        "sizeCandle": {
+          "width": 900,
+          "height": 394,
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "sizeInd": {
+          "width": 900,
+          "height": 100,
+          "left": 0,
+          "right": 0,
+          "top": 394,
+          "bottom": 0
+        },
+        "rectCandle": {
+          "top": 6,
+          "bottom": 399,
+          "height": 393,
+          "left": 0,
+          "width": 900
+        },
+        "rectInd": {
+          "top": 400,
+          "bottom": 500,
+          "height": 100,
+          "left": 0,
+          "width": 900
+        },
+        "domGapPx": 1,
+        "gapPx_liveRefBogus": 394
+      },
+      "attempt_minimize": {
+        "paneOpt": {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 0,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        "sizeCandle": {
+          "width": 900,
+          "height": 394,
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "sizeInd": {
+          "width": 900,
+          "height": 100,
+          "left": 0,
+          "right": 0,
+          "top": 394,
+          "bottom": 0
+        },
+        "rectCandle": {
+          "top": 6,
+          "bottom": 6,
+          "height": 0,
+          "left": 0,
+          "width": 900
+        },
+        "rectInd": {
+          "top": 7,
+          "bottom": 500,
+          "height": 493,
+          "left": 0,
+          "width": 900
+        },
+        "domGapPx": 1,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "h": 0,
+            "minH": 0,
+            "state": "minimize",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380571540_2",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "x_axis_pane",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 9007199254740991
+          }
+        ]
+      },
+      "attempt_minimize_sep0": {
+        "sizeCandle": {
+          "width": 900,
+          "height": 394,
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "sizeInd": {
+          "width": 900,
+          "height": 100,
+          "left": 0,
+          "right": 0,
+          "top": 394,
+          "bottom": 0
+        },
+        "rectCandle": {
+          "top": 6,
+          "bottom": 6,
+          "height": 0,
+          "left": 0,
+          "width": 900
+        },
+        "rectInd": {
+          "top": 6,
+          "bottom": 500,
+          "height": 494,
+          "left": 0,
+          "width": 900
+        },
+        "domGapPx": 0
+      },
+      "xSharedPixels": {
+        "candle": {
+          "x": -1228
+        },
+        "ind": {
+          "x": -1228
+        }
+      },
+      "yIndependentPixels": {
+        "candle_px_for_9": {
+          "y": 0
+        },
+        "ind_px_for_9": {
+          "y": -947
+        }
+      },
+      "yAxes": [
+        {
+          "id": "yAxis_1789380571540_3",
+          "range": {
+            "from": -0.2437,
+            "to": 2.9244,
+            "range": 3.1681,
+            "realFrom": -0.2437,
+            "realTo": 2.9244,
+            "realRange": 3.1681,
+            "displayFrom": -0.2437,
+            "displayTo": 2.9244,
+            "displayRange": 3.1681
+          }
+        }
+      ],
+      "afterZoomScroll": {
+        "sizeCandle": {
+          "width": 900,
+          "height": 394,
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "sizeInd": {
+          "width": 900,
+          "height": 100,
+          "left": 0,
+          "right": 0,
+          "top": 394,
+          "bottom": 0
+        },
+        "rectCandle": {
+          "top": 6,
+          "bottom": 6,
+          "height": 0,
+          "left": 0,
+          "width": 900
+        },
+        "rectInd": {
+          "top": 6,
+          "bottom": 500,
+          "height": 494,
+          "left": 0,
+          "width": 900
+        },
+        "domGapPx": 0,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "h": 0,
+            "minH": 0,
+            "state": "minimize",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380571540_2",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "x_axis_pane",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 9007199254740991
+          }
+        ],
+        "visible": {
+          "from": 346,
+          "to": 400,
+          "realFrom": 349,
+          "realTo": 404
+        }
+      },
+      "restoreNormal": {
+        "sizeCandle": {
+          "width": 900,
+          "height": 394,
+          "left": 0,
+          "right": 0,
+          "top": 0,
+          "bottom": 0
+        },
+        "sizeInd": {
+          "width": 900,
+          "height": 100,
+          "left": 0,
+          "right": 0,
+          "top": 394,
+          "bottom": 0
+        },
+        "rectCandle": {
+          "top": 6,
+          "bottom": 400,
+          "height": 394,
+          "left": 0,
+          "width": 900
+        },
+        "rectInd": {
+          "top": 400,
+          "bottom": 500,
+          "height": 100,
+          "left": 0,
+          "width": 900
+        },
+        "panes": [
+          {
+            "id": "candle_pane",
+            "h": 0,
+            "minH": 30,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380571540_2",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "x_axis_pane",
+            "h": 100,
+            "minH": 30,
+            "state": "normal",
+            "order": 9007199254740991
+          }
+        ]
+      }
+    },
+    "p7b": {
+      "api": {
+        "getVisibleRange": "function",
+        "setVisibleRange": "undefined",
+        "scrollToTimestamp": "function",
+        "scrollToDataIndex": "function",
+        "zoomAtTimestamp": "function",
+        "zoomAtDataIndex": "function",
+        "setBarSpace": "function",
+        "getBarSpace": "function",
+        "setOffsetRightDistance": "function",
+        "subscribeAction": "function",
+        "onVisibleRangeChangeSupported": "onVisibleRangeChange",
+        "getSize": "function"
+      },
+      "eventsA": [
+        [
+          "onScroll",
+          -120
+        ],
+        [
+          "onZoom",
+          1.4
+        ]
+      ],
+      "rangeEventA": [
+        [
+          559,
+          600,
+          579,
+          621
+        ],
+        [
+          571,
+          600,
+          585,
+          615
+        ]
+      ],
+      "spanBefore": {
+        "A": {
+          "realFrom": 585,
+          "realTo": 615,
+          "from": 585,
+          "to": 599,
+          "tsFrom": 1789379100000,
+          "tsTo": 1789379940000,
+          "spanMin": 14
+        },
+        "B": {
+          "realFrom": 7,
+          "realTo": 49,
+          "from": 7,
+          "to": 39,
+          "tsFrom": 1789350300000,
+          "tsTo": 1789379100000,
+          "spanMin": 480
+        },
+        "barSpaceA": {
+          "bar": 14,
+          "halfBar": 7,
+          "gapBar": 11,
+          "halfGapBar": 5
+        },
+        "barSpaceB": {
+          "bar": 10,
+          "halfBar": 5,
+          "gapBar": 7,
+          "halfGapBar": 3
+        },
+        "width_A": 445,
+        "width_B": 445
+      },
+      "mirrorMs": 233.3,
+      "spanAfterCrossPeriod": {
+        "A": {
+          "realFrom": 585,
+          "realTo": 615,
+          "from": 585,
+          "to": 599,
+          "tsFrom": 1789379100000,
+          "tsTo": 1789379940000,
+          "spanMin": 14
+        },
+        "B": {
+          "realFrom": null,
+          "realTo": null,
+          "from": null,
+          "to": null,
+          "spanMin": null
+        },
+        "barSpaceA": {
+          "bar": 14,
+          "halfBar": 7,
+          "gapBar": 11,
+          "halfGapBar": 5
+        },
+        "barSpaceB": {
+          "bar": null,
+          "halfBar": null,
+          "gapBar": null,
+          "halfGapBar": null
+        }
+      },
+      "naiveTimestampOnly": {
+        "B": {
+          "realFrom": null,
+          "realTo": null,
+          "from": null,
+          "to": null,
+          "spanMin": null
+        },
+        "C": {
+          "realFrom": 19,
+          "realTo": 40,
+          "from": 19,
+          "to": 39,
+          "tsFrom": 1789361100000,
+          "tsTo": 1789379100000,
+          "spanMin": 300
+        }
+      },
+      "feedback": {
+        "before": {
+          "syncCalls": 0,
+          "evA": 2,
+          "evB": 0
+        },
+        "after": {
+          "syncCalls": 1,
+          "evA": 4,
+          "evB": 1
+        },
+        "rangeA": {
+          "from": 571,
+          "to": 600,
+          "realFrom": 596,
+          "realTo": 626
+        },
+        "rangeB": {
+          "from": null,
+          "to": null,
+          "realFrom": null,
+          "realTo": null
+        }
+      },
+      "indexAlignSamePeriod": {
+        "A": {
+          "realFrom": 251,
+          "realTo": 302,
+          "from": 251,
+          "to": 302,
+          "tsFrom": 1789359060000,
+          "tsTo": 1789362120000,
+          "spanMin": 51
+        },
+        "D": {
+          "realFrom": 276,
+          "realTo": 302,
+          "from": 276,
+          "to": 302,
+          "tsFrom": 1789360560000,
+          "tsTo": 1789362120000,
+          "spanMin": 26
+        },
+        "barSpaceA": {
+          "bar": 8,
+          "halfBar": 4,
+          "gapBar": 5,
+          "halfGapBar": 2
+        },
+        "barSpaceD": {
+          "bar": 8,
+          "halfBar": 4,
+          "gapBar": 5,
+          "halfGapBar": 2
+        }
+      },
+      "indexAlignExact": {
+        "A": {
+          "from": 251,
+          "to": 302,
+          "realFrom": 251,
+          "realTo": 302
+        },
+        "D": {
+          "from": 276,
+          "to": 302,
+          "realFrom": 276,
+          "realTo": 302
+        }
+      }
+    },
+    "p7c": {
+      "createMs_total": 166.7,
+      "perInstance": [
+        {
+          "period": 1,
+          "indicatorCount": 4,
+          "indicators": [
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380573253_3",
+              "yAxisId": "yAxis_1789380573253_4"
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380573254_2",
+              "yAxisId": "yAxis_1789380573254_3"
+            },
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "yAxisId": "yAxis_1789380573220_1"
+            },
+            {
+              "name": "P7EXT",
+              "paneId": "indicator_pane_1789380573255_2",
+              "yAxisId": "yAxis_1789380573255_3"
+            }
+          ],
+          "paneCount": 5,
+          "hasCandleData": 400
+        },
+        {
+          "period": 5,
+          "indicatorCount": 4,
+          "indicators": [
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380573287_2",
+              "yAxisId": "yAxis_1789380573287_3"
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380573287_5",
+              "yAxisId": "yAxis_1789380573287_6"
+            },
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "yAxisId": "yAxis_1789380573256_1"
+            },
+            {
+              "name": "P7EXT",
+              "paneId": "indicator_pane_1789380573288_2",
+              "yAxisId": "yAxis_1789380573288_3"
+            }
+          ],
+          "paneCount": 5,
+          "hasCandleData": 400
+        },
+        {
+          "period": 15,
+          "indicatorCount": 4,
+          "indicators": [
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380573320_3",
+              "yAxisId": "yAxis_1789380573320_4"
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380573320_6",
+              "yAxisId": "yAxis_1789380573320_7"
+            },
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "yAxisId": "yAxis_1789380573288_4"
+            },
+            {
+              "name": "P7EXT",
+              "paneId": "indicator_pane_1789380573320_10",
+              "yAxisId": "yAxis_1789380573320_11"
+            }
+          ],
+          "paneCount": 5,
+          "hasCandleData": 400
+        },
+        {
+          "period": 30,
+          "indicatorCount": 4,
+          "indicators": [
+            {
+              "name": "MACD",
+              "paneId": "indicator_pane_1789380573353_3",
+              "yAxisId": "yAxis_1789380573353_4"
+            },
+            {
+              "name": "KDJ",
+              "paneId": "indicator_pane_1789380573353_6",
+              "yAxisId": "yAxis_1789380573353_7"
+            },
+            {
+              "name": "BOLL",
+              "paneId": "candle_pane",
+              "yAxisId": "yAxis_1789380573321_1"
+            },
+            {
+              "name": "P7EXT",
+              "paneId": "indicator_pane_1789380573354_2",
+              "yAxisId": "yAxis_1789380573354_3"
+            }
+          ],
+          "paneCount": 5,
+          "hasCandleData": 400
+        }
+      ],
+      "createLog": [
+        {
+          "k": 0,
+          "period": 1,
+          "returns": {
+            "MA": "MA_1789380573253_1",
+            "MACD": "MACD_1789380573253_2",
+            "KDJ": "KDJ_1789380573254_1",
+            "BOLL": "BOLL_1789380573254_4",
+            "P7EXT": "P7EXT_1789380573255_1"
+          }
+        },
+        {
+          "k": 1,
+          "period": 5,
+          "returns": {
+            "MA": "MA_1789380573286_1",
+            "MACD": "MACD_1789380573287_1",
+            "KDJ": "KDJ_1789380573287_4",
+            "BOLL": "BOLL_1789380573287_7",
+            "P7EXT": "P7EXT_1789380573288_1"
+          }
+        },
+        {
+          "k": 2,
+          "period": 15,
+          "returns": {
+            "MA": "MA_1789380573320_1",
+            "MACD": "MACD_1789380573320_2",
+            "KDJ": "KDJ_1789380573320_5",
+            "BOLL": "BOLL_1789380573320_8",
+            "P7EXT": "P7EXT_1789380573320_9"
+          }
+        },
+        {
+          "k": 3,
+          "period": 30,
+          "returns": {
+            "MA": "MA_1789380573353_1",
+            "MACD": "MACD_1789380573353_2",
+            "KDJ": "KDJ_1789380573353_5",
+            "BOLL": "BOLL_1789380573353_8",
+            "P7EXT": "P7EXT_1789380573354_1"
+          }
+        }
+      ],
+      "calcCallsPerInstance": [
+        {
+          "len": 80,
+          "dataLen": 400
+        },
+        {
+          "len": 400,
+          "dataLen": 400
+        },
+        {
+          "len": 399,
+          "dataLen": 400
+        },
+        {
+          "len": 399,
+          "dataLen": 400
+        },
+        {
+          "len": 399,
+          "dataLen": 400
+        }
+      ],
+      "resetAndReloadMs_4instances": 233.2,
+      "heap": {
+        "before": 10000000,
+        "after": 10000000,
+        "delta": 0
+      },
+      "paneHeightMemory": [
+        {
+          "id": "indicator_pane_1789380573253_3",
+          "applied": 120,
+          "size": {
+            "width": 246,
+            "height": 120,
+            "left": 0,
+            "right": 0,
+            "top": 32,
+            "bottom": 0
+          }
+        },
+        {
+          "id": "indicator_pane_1789380573287_2",
+          "applied": 120,
+          "size": {
+            "width": 245,
+            "height": 120,
+            "left": 0,
+            "right": 0,
+            "top": 32,
+            "bottom": 0
+          }
+        },
+        {
+          "id": "indicator_pane_1789380573320_3",
+          "applied": 120,
+          "size": {
+            "width": 245,
+            "height": 120,
+            "left": 0,
+            "right": 0,
+            "top": 32,
+            "bottom": 0
+          }
+        },
+        {
+          "id": "indicator_pane_1789380573353_3",
+          "applied": 120,
+          "size": {
+            "width": 245,
+            "height": 120,
+            "left": 0,
+            "right": 0,
+            "top": 32,
+            "bottom": 0
+          }
+        }
+      ]
+    },
+    "p7d": {
+      "route1_singleChart_3indPanes": {
+        "panes": [
+          {
+            "id": "candle_pane",
+            "h": 100,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380573686_2",
+            "h": 100,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380573687_2",
+            "h": 100,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "indicator_pane_1789380573687_5",
+            "h": 100,
+            "state": "normal",
+            "order": 0
+          },
+          {
+            "id": "x_axis_pane",
+            "h": 100,
+            "state": "normal",
+            "order": 9007199254740991
+          }
+        ],
+        "sizes": [
+          {
+            "id": "candle_pane",
+            "rect": {
+              "top": 532,
+              "bottom": 532,
+              "height": 0,
+              "left": 0,
+              "width": 900
+            }
+          },
+          {
+            "id": "indicator_pane_1789380573686_2",
+            "rect": {
+              "top": 533,
+              "bottom": 633,
+              "height": 100,
+              "left": 0,
+              "width": 900
+            }
+          },
+          {
+            "id": "indicator_pane_1789380573687_2",
+            "rect": {
+              "top": 634,
+              "bottom": 734,
+              "height": 100,
+              "left": 0,
+              "width": 900
+            }
+          },
+          {
+            "id": "indicator_pane_1789380573687_5",
+            "rect": {
+              "top": 735,
+              "bottom": 806,
+              "height": 71,
+              "left": 0,
+              "width": 900
+            }
+          },
+          {
+            "id": "x_axis_pane",
+            "rect": {
+              "top": 806,
+              "bottom": 832,
+              "height": 26,
+              "left": 0,
+              "width": 900
+            }
+          }
+        ],
+        "separatorStrips": [
+          1,
+          1,
+          1,
+          0
+        ]
+      },
+      "paneHeightPersist": {
+        "id": "indicator_pane_1789380573687_2",
+        "afterSet_andResize": {
+          "opt": 123,
+          "size": 123
+        }
+      },
+      "route2_hiddenCandleStrip": {
+        "candleRect": {
+          "top": 1236,
+          "bottom": 1236,
+          "height": 0,
+          "left": 503.34,
+          "width": 245.33
+        },
+        "indRect": {
+          "top": 1237,
+          "bottom": 1590,
+          "height": 353,
+          "left": 503.34,
+          "width": 245.33
+        },
+        "domGapPx": 1,
+        "panes": [
+          {
+            "id": "candle_pane",
+            "h": 253,
+            "state": "minimize"
+          },
+          {
+            "id": "indicator_pane_1789380573853_2",
+            "h": 100,
+            "state": "normal"
+          },
+          {
+            "id": "x_axis_pane",
+            "h": 100,
+            "state": "normal"
+          }
+        ],
+        "getDomIndicatorReturnIsNull": true
+      }
+    },
+    "source": {
+      "supportedBuiltins": [
+        "AVP",
+        "AO",
+        "BIAS",
+        "BOLL",
+        "BRAR",
+        "BBI",
+        "CCI",
+        "CR",
+        "DMA",
+        "DMI",
+        "EMV",
+        "EMA",
+        "MTM",
+        "MA",
+        "MACD",
+        "OBV",
+        "PVT",
+        "PSY",
+        "ROC",
+        "RSI",
+        "SMA",
+        "KDJ",
+        "SAR",
+        "TRIX",
+        "VOL",
+        "VR",
+        "WR",
+        "P7EXT"
+      ]
+    },
+    "errors": []
+  }
+}

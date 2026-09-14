@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/dashboard-pane-separator.e2e.ts:141:3 › 问题① 期望的 pane/分隔线形态（当前必红） › 单图看板：K线 与 VOL 之间只应有 klinecharts 自带的 pane 分隔线（无骨架残留线） (5.0s)
+
+  1 passed (5.3s)

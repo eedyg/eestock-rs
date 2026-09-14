@@ -1,0 +1,15 @@
+# 进程卫生（本轮：未启动任何临时实例/未重启线上；仅跑 vitest/tsc）
+# 时间: 2026-09-15T00:51:07+08:00
+
+## 线上主进程 PID 3112540（必须存活且未被重启）
+    PID                  STARTED     ELAPSED CMD
+3112540 Mon Sep 14 11:52:36 2026    12:58:30 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+## 残留 vitest/node 进程（应为空；用不自匹配写法）
+(无)
+
+## 监听 8080/8081/8082/5173 的进程（本轮不得新增）
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                             
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=12))
+LISTEN 0      4096            [::]:8080          [::]:*                                             

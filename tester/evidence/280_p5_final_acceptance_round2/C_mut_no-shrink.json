@@ -1,0 +1,39 @@
+{
+  "mut": "no-shrink",
+  "pages": [
+    {
+      "avail": 600,
+      "dom": {
+        "15m": 200,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "sum": 740,
+      "reason": "fit",
+      "scrollable": "false",
+      "mainOverflow": 140,
+      "stackScroll": [
+        600,
+        740
+      ]
+    },
+    {
+      "avail": 500,
+      "dom": {
+        "15m": 200,
+        "1h": 180,
+        "5m": 180,
+        "1d": 180
+      },
+      "sum": 740,
+      "reason": "fit",
+      "scrollable": "false",
+      "mainOverflow": 240,
+      "stackScroll": [
+        500,
+        740
+      ]
+    }
+  ]
+}

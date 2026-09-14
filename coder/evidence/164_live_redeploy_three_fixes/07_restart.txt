@@ -1,0 +1,28 @@
+# 07 重启（kill 旧 PID → 3s → 仓库根 nohup 启动）
+
+$ kill 2102695 ; echo kill_rc=$?
+kill_rc=0
+$ sleep 3 ; ss -lntp | grep -E ':8081|:8082'
+（无输出 ⇒ 8081/8082 已释放）
+$ ps -p 2102695 → OLD gone
+
+$ cd /home/eestock/workspace/git/eestock/eestock-rs
+$ nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml >> logs/app_dev_8081_redeploy_20260914_100042.log 2>&1 &
+$ ss -lntp | grep -E ':8081|:8082'
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=12))
+
+$ readlink /proc/2948632/cwd          → /home/eestock/workspace/git/eestock/eestock-rs   ✓（= 仓库根）
+$ tr '\0' ' ' < /proc/2948632/cmdline → ./target/debug/eestock-app --config /tmp/app_dev_8081.toml   ✓
+$ sha256sum /proc/2948632/exe         → 8eb98376…（== 磁盘二进制 == 回滚件）   ✓
+$ grep SigIgn /proc/2948632/status    → SigIgn: 0000000000001007（含 SIGHUP，bit1 置位 ⇒ nohup 生效）
+$ ps -o pid,ppid,cmd -p 2948632       → PPID=1（已 reparent 到 init，独立于工具 shell）
+
+## 启动日志全文（logs/app_dev_8081_redeploy_20260914_100042.log；ERROR=0 / WARN=0）
+{"timestamp":"2026-09-14T02:00:45.622159Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T02:00:45.669721Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T02:00:45.671176Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T02:00:45.672097Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T02:00:45.672172Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T02:00:45.672195Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-14T02:00:48.592649Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"8dc183b35b3b08f3cd10159e3d4a6f37"},"target":"mcp::server"}

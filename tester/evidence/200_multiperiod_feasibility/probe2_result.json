@@ -1,0 +1,180 @@
+{
+  "errs": [],
+  "result": {
+    "logs": [
+      [
+        "indicatorsRaw",
+        [
+          {
+            "name": "EXT_A",
+            "paneId": "indicator_pane_1789376154510_2",
+            "yAxisId": "yAxis_1789376154510_3",
+            "resultLen": 600
+          },
+          {
+            "name": "VOL",
+            "paneId": "indicator_pane_1789376154511_2",
+            "yAxisId": "yAxis_1789376154511_3",
+            "resultLen": 600
+          }
+        ]
+      ],
+      [
+        "paneIds",
+        {
+          "PID": "indicator_pane_1789376154510_2",
+          "PIDV": "indicator_pane_1789376154511_2"
+        }
+      ],
+      [
+        "heights.default",
+        [
+          [
+            "candle_pane",
+            100,
+            412
+          ],
+          [
+            "9376154510_2",
+            100,
+            100
+          ],
+          [
+            "9376154511_2",
+            100,
+            100
+          ],
+          [
+            "x_axis_pane",
+            100,
+            26
+          ]
+        ]
+      ],
+      [
+        "heights.afterSet333",
+        [
+          [
+            "candle_pane",
+            100,
+            179
+          ],
+          [
+            "9376154510_2",
+            333,
+            333
+          ],
+          [
+            "9376154511_2",
+            100,
+            100
+          ],
+          [
+            "x_axis_pane",
+            100,
+            26
+          ]
+        ]
+      ],
+      [
+        "heights.afterZoomScroll",
+        [
+          [
+            "candle_pane",
+            100,
+            179
+          ],
+          [
+            "9376154510_2",
+            333,
+            333
+          ],
+          [
+            "9376154511_2",
+            100,
+            100
+          ],
+          [
+            "x_axis_pane",
+            100,
+            26
+          ]
+        ]
+      ],
+      [
+        "visRangeAfterZoomScroll",
+        {
+          "from": 458,
+          "to": 600,
+          "realFrom": 486,
+          "realTo": 629
+        }
+      ],
+      [
+        "canvas",
+        {
+          "w": 847,
+          "h": 333
+        }
+      ],
+      [
+        "pixel.redLineHit",
+        {
+          "idx": 489,
+          "ts": 1789362600000,
+          "value": 1.506,
+          "coord": {
+            "x": 16,
+            "y": 227
+          },
+          "redHits": 0,
+          "sample": []
+        }
+      ],
+      [
+        "paneRedPixelCount",
+        0
+      ],
+      [
+        "paneNonBgCount",
+        3546
+      ],
+      [
+        "xSync",
+        [
+          {
+            "idx": 472,
+            "xCandle": -86,
+            "xPane": -86,
+            "same": true
+          },
+          {
+            "idx": 501,
+            "xCandle": 88,
+            "xPane": 88,
+            "same": true
+          },
+          {
+            "idx": 529,
+            "xCandle": 256,
+            "xPane": 256,
+            "same": true
+          },
+          {
+            "idx": 557,
+            "xCandle": 424,
+            "xPane": 424,
+            "same": true
+          },
+          {
+            "idx": 586,
+            "xCandle": 598,
+            "xPane": 598,
+            "same": true
+          }
+        ]
+      ]
+    ],
+    "errors": []
+  }
+}

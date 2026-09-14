@@ -1,0 +1,11 @@
+# 命令: npx vitest run src/features/strategies/StrategyEditorPage.test.tsx （单独跑，验证是否为既有 flake）
+# 时间: 2026-09-15T00:50:54+08:00
+
+
+ ✓ src/features/strategies/StrategyEditorPage.test.tsx (17 tests) 456ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  00:50:54
+   Duration  1.01s (transform 105ms, setup 23ms, collect 187ms, tests 456ms, environment 129ms, prepare 85ms)
+

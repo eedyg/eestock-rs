@@ -1,0 +1,37 @@
+# 08 冒烟（逐项原始输出，2026-09-14T10:05:49+08:00）
+
+## GET /healthz
+{"status":"ok"} HTTP:200
+
+## GET /api/config/{kline,dcap,ma}（唯一 GET，绝无 PUT）
+/api/config/kline: {"viewport_bars":120} HTTP:200
+/api/config/dcap: {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3} HTTP:200
+/api/config/ma: {"windows":[5,10,20]} HTTP:200
+
+## GET /api/symbols
+HTTP:200
+count 44
+first {"code": "518880", "name": "华安黄金易ETF", "type": "etf", "interval_secs": 60, "settlement": "T0", "enabled": true, "latest": {"ts": "2026-09-14T02:06:00Z", "last": 8.938, "change_pct": -0.05590965000557985}, "favorite": true, "favorite_sort": 1}
+
+## GET /api/kline?code=518880&period=15m&limit=3
+{"code":"518880","period":"15m","bars":[{"ts":"2026-09-14T01:30:00Z","open":8.907,"high":8.929,"low":8.899,"close":8.913,"volume":17984600,"amount":152560.0},{"ts":"2026-09-14T01:45:00Z","open":8.919,"high":8.942,"low":8.918,"close":8.941,"volume":12381200,"amount":60543575.313599996},{"ts":"2026-09-14T02:00:00Z","open":8.947,"high":8.948,"low":8.936,"close":8.938,"volume":4996400,"amount":22647492.3391}],"next_before":"2026-09-14T01:30:00Z"} HTTP:200
+
+## GET / 的 bundle 引用 == web/dist/index.html 引用
+served : index-Cm6bbPuq.css index-CzeoM0It.js 
+dist   : index-Cm6bbPuq.css index-CzeoM0It.js 
+
+## served /assets/<bundle> 与 dist 文件逐字节一致（sha256 + cmp）
+02e98e1baede4503f218f8ea3f85f6149c1d215c652fbd2581ce21a09c0f38b1  /tmp/served_js
+02e98e1baede4503f218f8ea3f85f6149c1d215c652fbd2581ce21a09c0f38b1  web/dist/assets/index-CzeoM0It.js
+698283dfab325cb2e1ee90c69755fe10bb73280283020d59128f908a2b04e688  /tmp/served_css
+698283dfab325cb2e1ee90c69755fe10bb73280283020d59128f908a2b04e688  web/dist/assets/index-Cm6bbPuq.css
+cmp JS OK
+cmp CSS OK
+cmp index.html OK
+js  HTTP:200 type:text/javascript
+css HTTP:200 type:text/css
+
+## 启动日志 ERROR/WARN 计数
+log=logs/app_dev_8081_redeploy_20260914_100042.log
+ERROR=0
+WARN=0

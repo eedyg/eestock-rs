@@ -1,0 +1,265 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/multiPeriodDragDomainClamp.test.ts (4 tests) 3ms
+ ✓ src/features/dashboard/multiPeriodLayout.test.ts (15 tests) 11ms
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C2 乐观更新：PUT 未 resolve 时 DOM 已是拖后高度
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C3 失败回滚：PUT 拒绝 ⇒ 高度回到拖前值（±1px）、无 unhandled rejection
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C5 ②③ 切标的 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C6 ②③ 切周期 ⇒ 各 pane 高度不变（±1px）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C7 ②③ 保存 dcap 参数 ⇒ 各 pane 高度不变（±1px）且不写多周期配置
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/multiPeriodHeightsPageContract.test.tsx > 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+ ✓ src/features/dashboard/multiPeriodHeightsPageContract.test.tsx (9 tests) 4444ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C1 拖拽 ⇒ 防抖后恰 1 次 PUT /api/config/multi_period，且 periods/indicators/enabled 原样不重置  518ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C2 乐观更新：PUT 未 resolve 时 DOM 已是拖后高度  483ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C3 失败回滚：PUT 拒绝 ⇒ 高度回到拖前值（±1px）、无 unhandled rejection  482ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C4 刷新/重进后保持：拖拽持久化成功 ⇒ 重新挂载（GET 回显新 heights）⇒ 高度不变（±1px）  502ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C5 ②③ 切标的 ⇒ 各 pane 高度不变（±1px）且不写多周期配置  481ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C6 ②③ 切周期 ⇒ 各 pane 高度不变（±1px）  515ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C7 ②③ 保存 dcap 参数 ⇒ 各 pane 高度不变（±1px）且不写多周期配置  502ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body  478ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」  481ms
+
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+   Start at  01:02:29
+   Duration  5.08s (transform 190ms, setup 69ms, collect 289ms, tests 4.46s, environment 435ms, prepare 375ms)
+
