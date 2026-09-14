@@ -1,0 +1,13 @@
+[02:01:50.004] ### A 段：跟随态（无交互）
+[02:01:52.007] A 等待首帧… true
+[02:01:53.511] A 收到 bar: "2026-09-14T02:02:00Z" follow(回到最新 disabled)= true
+[02:01:53.513] A 几何: {"container":{"left":414,"right":1713,"w":1299},"mainCanvas":{"left":414,"right":1665,"w":1251,"pxW":1251},"fit":"{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}","markerLeft":1582,"rtX":1168}
+[02:01:55.917] ### B 段：手动缩放/平移后（followLatest=false）
+[02:02:40.965] B 等待缩放后的新 bar 帧… true
+[02:02:42.469] B 收到 bar: "2026-09-14T02:03:00Z" follow(回到最新 enabled)= true
+[02:02:42.470] B 几何: {"container":{"left":414,"right":1713,"w":1299},"mainCanvas":{"left":414,"right":1665,"w":1251,"pxW":1251},"fit":"{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}","markerLeft":2579,"rtX":2165}
+[02:02:42.513] ### B2：点「回到最新」后（scrollToRealTime 是否把新 bar 带回可见区）
+[02:02:44.044] B2 几何: {"container":{"left":-608,"right":691,"w":1299},"mainCanvas":{"left":-608,"right":643,"w":1251,"pxW":1251},"fit":"{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}","markerLeft":1557,"rtX":2165}
+[02:02:44.091] === bar frames ===
+[02:02:44.091]    02:01:51.841 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T02:02:00Z","open":8.944,"high":8.944,"low":8.943,"close":8.943,"volume":529200,"amount":4732946.4604,"
+[02:02:44.091]    02:02:40.760 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T02:03:00Z","open":8.947,"high":8.947,"low":8.943,"close":8.945,"volume":1289200,"amount":10930.0,"sour

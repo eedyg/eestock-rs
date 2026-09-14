@@ -1,0 +1,42 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+ ✓ src/shell/session.test.ts (7 tests) 2ms
+ ✓ src/features/dashboard/barSpaceFit.test.ts (7 tests) 8ms
+ ✓ src/ws/WsClient.test.ts (13 tests) 18ms
+ ✓ src/features/dashboard/feedRealtimeReconnect.test.ts (2 tests) 12ms
+ ✓ src/features/dashboard/feed.test.ts (10 tests) 8ms
+ ✓ src/features/dashboard/realtimePoll.test.ts (3 tests) 19ms
+ ✓ src/ws/WsClient.watchdog.test.ts (8 tests) 19ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts (7 tests) 15ms
+ ✓ src/features/dashboard/dcapWarmupP3.test.ts (9 tests) 10ms
+ ✓ src/features/dashboard/KlineChart.test.tsx (12 tests) 41ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx (8 tests) 45ms
+ ✓ src/features/dashboard/KlineChartSwitchLayout.test.tsx (3 tests) 21ms
+ ✓ src/features/dashboard/KlineChartDcapSaveLayout.test.tsx (7 tests) 95ms
+stderr | src/features/dashboard/dcapWiringP3.test.tsx > DashboardPage（warmup 取数 + GET/PUT /api/config/dcap + 读取韧性） > 保存 dcap 参数（n_l 变化）⇒ **不重建 feed/图表**：setDataLoader 仅一次、只向前补取差额
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/dcapWiringP3.test.tsx (14 tests) 290ms
+
+
+ Test Files  14 passed (14)
+      Tests  110 passed (110)
+   Start at  11:45:38
+   Duration  1.33s (transform 757ms, setup 757ms, collect 2.01s, tests 602ms, environment 4.87s, prepare 1.84s)
+

@@ -1,0 +1,54 @@
+[01:51:15.157] before manual zoom: followLatest disabled(回到最新 disabled)= true
+[01:51:17.811] after manual zoom/pan: 回到最新 enabled= true (true ⇒ followLatest=false)
+[01:51:17.820] T+0s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=null markerChanged=null barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:21.832] T+4s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:25.842] T+8s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:29.850] T+12s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:33.858] T+16s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:37.870] T+20s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:41.884] T+24s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:45.893] T+28s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:49.905] T+32s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:53.917] T+36s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:51:57.929] T+40s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:01.941] T+44s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:05.952] T+48s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:09.961] T+52s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:13.970] T+56s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:17.978] T+60s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:21.988] T+64s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:26.000] T+68s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:30.013] T+72s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:34.025] T+76s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:38.038] T+80s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:42.050] T+84s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:46.062] T+88s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:50.073] T+92s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:54.085] T+96s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:52:58.098] T+100s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:02.110] T+104s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:06.123] T+108s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:10.135] T+112s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:14.147] T+116s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:18.159] T+120s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:22.168] T+124s marker="8.928" markerLeftPx=2099/1299 candles=48 canvasChanged=false markerChanged=false barsRecv=1 lastBarTs=2026-09-14T01:52:00Z close=8.928
+[01:53:26.177] T+128s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=true markerChanged=true barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:30.185] T+132s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:34.194] T+136s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:38.206] T+140s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:42.218] T+144s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:46.230] T+148s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:50.243] T+152s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:54.255] T+156s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:53:58.266] T+160s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:02.280] T+164s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:06.291] T+168s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:10.302] T+172s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:14.311] T+176s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:18.321] T+181s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:22.333] T+185s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:26.342] T+189s marker="8.935" markerLeftPx=2579/1299 candles=25 canvasChanged=false markerChanged=false barsRecv=2 lastBarTs=2026-09-14T01:54:00Z close=8.935
+[01:54:30.400] === BAR FRAMES ===
+[01:54:30.400]    01:51:15.906 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:52:00Z","open":8.927,"high":8.929,"low":8.927,"close":8.928,"volume":437000,"amount":3901613.3227,"source":"sina_jsonp"}}
+[01:54:30.400]    01:53:22.652 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:54:00Z","open":8.935,"high":8.935,"low":8.934,"close":8.935,"volume":156700,"amount":1400108.5662,"source":"sina_jsonp"}}
+[01:54:30.400]    01:54:29.765 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:55:00Z","open":8.934,"high":8.935,"low":8.934,"close":8.935,"volume":395800,"amount":3360.0,"source":"tencent_ifzq"}}

@@ -1,0 +1,5 @@
+[probe] open, subs=bar1m+bar15m+quote+health at 2026-09-14T03:10:36.855Z
+[probe] done: total=57 -> obs1_all.json
+[probe]   quote: count=45 first=2.496s last=85.003s gaps=[0.04,0,0,21.018,3.43,0,0,0,0,0,3.426,0.001,0,0,0,3.445,0,0,0,0,0,3.415,0,0,0,0,3.422,0,0,0,0,0,3.429,0,0,3.424,0,0,0,3.416,0,0,34.04,0.001]
+[probe]   health: count=11 first=2.536s last=85.012s gaps=[21.028,3.43,3.426,3.446,3.415,3.421,3.43,3.423,3.417,34.04]
+[probe]   bar:1m: count=1 first=47.532s last=47.532s gaps=[]

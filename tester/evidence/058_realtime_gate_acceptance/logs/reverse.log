@@ -1,0 +1,25 @@
+=== PRISTINE baseline (gate+merge) ===
+[ok  ] PRISTINE 非交易时段静默 20s：不得重连（门控 300s）且状态仍 open :: {"wsEvents":1,"status":"open","conns":1}
+[ok  ] PRISTINE 交易时段静默 16s：必须离开 open（对照） :: {"status":"closed","conns":1}
+
+[PRISTINE] checks: 2/2 passed; failed=none
+[ok  ] PRISTINE 同 ts 且 OHLCV 完全一致：不写、不 emit（长度与 rtCount 均不变） :: {"before":{"len":120,"rt":0},"after":{"len":120,"rt":0,"close":8.911}}
+[ok  ] PRISTINE 同 ts 值变：必须覆盖（rtCount +1、长度不变、close 更新）（对照） :: {"before":{"len":120,"rt":0,"close":8.911},"after":{"len":120,"rt":1,"close":8.931}}
+
+[PRISTINE] checks: 2/2 passed; failed=none
+[FAIL] MUTANT-A 非交易时段静默 20s：不得重连（门控 300s）且状态仍 open :: {"wsEvents":1,"status":"closed","conns":1}
+[ok  ] MUTANT-A 交易时段静默 16s：必须离开 open（对照） :: {"status":"closed","conns":1}
+
+[MUTANT-A] checks: 1/2 passed; failed=非交易时段静默 20s：不得重连（门控 300s）且状态仍 open
+[FAIL] MUTANT-B 同 ts 且 OHLCV 完全一致：不写、不 emit（长度与 rtCount 均不变） :: {"before":{"len":120,"rt":0},"after":{"len":120,"rt":1,"close":8.911}}
+[ok  ] MUTANT-B 同 ts 值变：必须覆盖（rtCount +1、长度不变、close 更新）（对照） :: {"before":{"len":120,"rt":1,"close":8.911},"after":{"len":120,"rt":2,"close":8.931}}
+
+[MUTANT-B] checks: 1/2 passed; failed=同 ts 且 OHLCV 完全一致：不写、不 emit（长度与 rtCount 均不变）
+[ok  ] AFTER-RESTORE 非交易时段静默 20s：不得重连（门控 300s）且状态仍 open :: {"wsEvents":1,"status":"open","conns":1}
+[ok  ] AFTER-RESTORE 交易时段静默 16s：必须离开 open（对照） :: {"status":"closed","conns":1}
+
+[AFTER-RESTORE] checks: 2/2 passed; failed=none
+[ok  ] AFTER-RESTORE 同 ts 且 OHLCV 完全一致：不写、不 emit（长度与 rtCount 均不变） :: {"before":{"len":120,"rt":0},"after":{"len":120,"rt":0,"close":8.91}}
+[ok  ] AFTER-RESTORE 同 ts 值变：必须覆盖（rtCount +1、长度不变、close 更新）（对照） :: {"before":{"len":120,"rt":0,"close":8.91},"after":{"len":120,"rt":1,"close":8.93}}
+
+[AFTER-RESTORE] checks: 2/2 passed; failed=none

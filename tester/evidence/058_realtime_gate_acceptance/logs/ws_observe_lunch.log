@@ -1,0 +1,50 @@
+[0.002s] OPEN ws://127.0.0.1:18211/ws
+[0.002s] SENT 3 subscribe frames
+[1.976s] RECV type=bar code=518880 period=15m barTs=2026-09-14T03:30:00Z
+[2.016s] RECV type=quote code=159337 period= barTs=
+[2.016s] RECV type=quote code=159577 period= barTs=
+[2.016s] RECV type=quote code=159638 period= barTs=
+[2.016s] RECV type=quote code=159740 period= barTs=
+[2.016s] RECV type=quote code=159742 period= barTs=
+[2.016s] RECV type=quote code=159776 period= barTs=
+[2.016s] RECV type=quote code=159781 period= barTs=
+[2.016s] RECV type=quote code=159825 period= barTs=
+[2.017s] RECV type=quote code=159842 period= barTs=
+[2.017s] RECV type=quote code=159869 period= barTs=
+[2.017s] RECV type=quote code=159870 period= barTs=
+[2.017s] RECV type=quote code=159890 period= barTs=
+[2.017s] RECV type=quote code=159980 period= barTs=
+[2.017s] RECV type=quote code=159981 period= barTs=
+[2.017s] RECV type=quote code=159985 period= barTs=
+[2.017s] RECV type=quote code=160723 period= barTs=
+[2.017s] RECV type=quote code=161226 period= barTs=
+[2.017s] RECV type=quote code=510050 period= barTs=
+[2.017s] RECV type=quote code=510880 period= barTs=
+[2.017s] RECV type=quote code=511130 period= barTs=
+[2.017s] RECV type=quote code=511220 period= barTs=
+[2.017s] RECV type=quote code=511360 period= barTs=
+[2.017s] RECV type=quote code=511380 period= barTs=
+[2.017s] RECV type=quote code=512200 period= barTs=
+[2.017s] RECV type=quote code=512480 period= barTs=
+[2.017s] RECV type=quote code=512670 period= barTs=
+[2.017s] RECV type=quote code=512690 period= barTs=
+[2.017s] RECV type=quote code=512800 period= barTs=
+[2.017s] RECV type=quote code=513050 period= barTs=
+[2.017s] RECV type=quote code=513310 period= barTs=
+[2.017s] RECV type=quote code=513690 period= barTs=
+[2.017s] RECV type=quote code=513750 period= barTs=
+[2.017s] RECV type=quote code=513920 period= barTs=
+[2.017s] RECV type=quote code=513970 period= barTs=
+[2.017s] RECV type=quote code=515070 period= barTs=
+[2.017s] RECV type=quote code=515710 period= barTs=
+[2.017s] RECV type=quote code=515790 period= barTs=
+[2.017s] RECV type=quote code=516380 period= barTs=
+[2.017s] RECV type=quote code=518880 period= barTs=
+[2.017s] RECV type=quote code=551000 period= barTs=
+[2.017s] RECV type=quote code=561910 period= barTs=
+[2.017s] RECV type=quote code=562500 period= barTs=
+[2.017s] RECV type=quote code=562800 period= barTs=
+[2.017s] RECV type=quote code=588000 period= barTs=
+[2.017s] RECV type=health code= period= barTs=
+SUMMARY frames=46 byType={"bar":1,"quote":44,"health":1}
+first=1.976s last=2.017s

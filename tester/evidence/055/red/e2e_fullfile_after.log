@@ -1,0 +1,52 @@
+
+Running 21 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/kline-matrix.e2e.ts:291:3 › K线组件交互验收矩阵 A–H › A1 默认加载：15m / 首标的 / 主图蜡烛横向铺满无死区 (1.5s)
+  ✓   2 [chromium] › e2e/kline-matrix.e2e.ts:315:3 › K线组件交互验收矩阵 A–H › A2 主图 MA(5/10/20) + 副图成交量默认显示 (2.7s)
+  ✓   3 [chromium] › e2e/kline-matrix.e2e.ts:338:3 › K线组件交互验收矩阵 A–H › A3 红涨绿跌着色 + 十字光标 tooltip (2.6s)
+  ✓   4 [chromium] › e2e/kline-matrix.e2e.ts:361:3 › K线组件交互验收矩阵 A–H › A4 主图高度/比例正常 + canvas 有界（非 33M） (1.4s)
+  ✓   5 [chromium] › e2e/kline-matrix.e2e.ts:387:3 › K线组件交互验收矩阵 A–H › B5 周期逐一切换（1m/5m/15m/1h/日）按钮高亮+数据源+重绘 (14.3s)
+  ✓   6 [chromium] › e2e/kline-matrix.e2e.ts:416:3 › K线组件交互验收矩阵 A–H › B6 周期切换后默认视口仍≈当日+前一交易日（跟随锁定最新） (14.1s)
+  ✓   7 [chromium] › e2e/kline-matrix.e2e.ts:435:3 › K线组件交互验收矩阵 A–H › C7 指标勾选热切换：MACD/KDJ/BOLL pane 出现/消失，MA 联动不丢主图量副图 (7.1s)
+  ✓   8 [chromium] › e2e/kline-matrix.e2e.ts:463:3 › K线组件交互验收矩阵 A–H › C8 组合开 2-3 个副图 indicator 布局不溢出可渲染 (4.0s)
+  ✓   9 [chromium] › e2e/kline-matrix.e2e.ts:488:3 › K线组件交互验收矩阵 A–H › D9 切分时：当日价格线+均价线正确无缺口；切回K线恢复 (2.4s)
+  ✓  10 [chromium] › e2e/kline-matrix.e2e.ts:521:3 › K线组件交互验收矩阵 A–H › D10 分时在数据动态时正确（WS 注入模拟盘中） (4.3s)
+  ✓  11 [chromium] › e2e/kline-matrix.e2e.ts:546:3 › K线组件交互验收矩阵 A–H › E11 宫格 2×2 / 2×3 / 回单图无状态丢失 (11.1s)
+  ✘  12 [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） (6.1s)
+  ✓  13 [chromium] › e2e/kline-matrix.e2e.ts:614:3 › K线组件交互验收矩阵 A–H › F13 滚轮/拖拽缩放 → 停止强拉跟随；回到最新恢复锁定 (6.8s)
+  ✓  14 [chromium] › e2e/kline-matrix.e2e.ts:654:3 › K线组件交互验收矩阵 A–H › F14 平移查看历史：向前滚动分页 ?before= 无重复/缺口（可达≥10 交易日） (48.7s)
+  ✓  15 [chromium] › e2e/kline-matrix.e2e.ts:699:3 › K线组件交互验收矩阵 A–H › F15 缩放到底/到顶边界行为不崩 (10.7s)
+  ✓  16 [chromium] › e2e/kline-matrix.e2e.ts:725:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 (4.4s)
+  ✓  17 [chromium] › e2e/kline-matrix.e2e.ts:766:3 › K线组件交互验收矩阵 A–H › G17 实时注入 ≥60s 连续运行不崩 / 无 console error / 内存有界 (1.1m)
+  ✓  18 [chromium] › e2e/kline-matrix.e2e.ts:790:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 (3.4s)
+  ✓  19 [chromium] › e2e/kline-matrix.e2e.ts:826:3 › K线组件交互验收矩阵 A–H › H19 搜索过滤 code/名称 命中与无结果 + 点击切换标的更新主图 (6.2s)
+  ✓  20 [chromium] › e2e/kline-matrix.e2e.ts:861:3 › K线组件交互验收矩阵 A–H › H20 切换标的期间快速连点不崩溃、请求正确 (6.2s)
+K1_EVIDENCE defect=false listVisible=true chartVisible=true errs=[]
+  ✓  21 [chromium] › e2e/kline-matrix.e2e.ts:885:3 › K线组件交互验收矩阵 A–H › K1 缺陷复现：服务端 WS quote 帧(change_pct) → 看板崩溃 (2.9s)
+
+
+  1) [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected substring: "-5.55"
+    Received string:    "161226|国投瑞银白银期货(LOF)A|-0.78%"
+
+      601 |     await page.waitForTimeout(1200);
+      602 |     const cell2After = (await page.locator('[data-grid-cell]').nth(1).innerText()).replace(/\n/g, '|');
+    > 603 |     expect(cell2After).toContain('-5.55');
+          |                        ^
+      604 |     await shot(page, 'E12_cell_quote_jump');
+      605 |     // 点第 2 格 → 单图聚焦该标的
+      606 |     await page.locator('[data-grid-cell]').nth(1).click();
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/kline-matrix.e2e.ts:603:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/kline-matrix.e2e.ts-K线组件交互-6a751-子进单图聚焦该标的-格内最新价跳动（quote-注入）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/kline-matrix.e2e.ts-K线组件交互-6a751-子进单图聚焦该标的-格内最新价跳动（quote-注入）-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） 
+  20 passed (3.8m)

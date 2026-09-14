@@ -1,0 +1,472 @@
+[01:47:34.241] WS OPEN ws://127.0.0.1:18099/ws
+[01:47:34.243] WS SENT {"type":"subscribe","topic":"quote"}
+[01:47:34.243] WS SENT {"type":"subscribe","topic":"health"}
+[01:47:34.243] WS SENT {"type":"subscribe","topic":"alert"}
+[01:47:34.347] WS SENT {"type":"subscribe","topic":"bar","code":"518880","period":"15m"}
+[01:47:34.809] WS RECV {"type":"quote","code":"159740","ts":"2026-09-14T01:48:00Z","last":0.533,"changePct":-0.9293680297397777}
+[01:47:34.848] WS RECV {"type":"quote","code":"159985","ts":"2026-09-14T01:48:00Z","last":2.312,"changePct":-0.5591397849462513}
+[01:47:34.848] WS RECV {"type":"quote","code":"160723","ts":"2026-09-14T01:48:00Z","last":2.354,"changePct":1.4218009478672948}
+[01:47:36.836] selected symbol = 518880
+[01:47:36.862] WS SENT {"type":"unsubscribe","topic":"bar","code":"518880","period":"15m"}
+[01:47:37.693] WS SENT {"type":"subscribe","topic":"bar","code":"518880","period":"1m"}
+[01:47:38.975] WS RECV {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:48:00Z","open":8.925,"high":8.925,"low":8.925,"close":8.925,"volume":344700,"amount":2920.0,"source":"tencent_ifzq"}}
+[01:47:39.044] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:47:39.366] period=1m active = true
+[01:47:39.380] T+0s marker="8.925" canvases=10 hashChanged=n/a barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:47:44.392] T+5s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:47:49.409] T+10s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:47:54.420] T+15s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:47:59.434] T+20s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:02.841] WS RECV {"type":"quote","code":"512670","ts":"2026-09-14T01:48:00Z","last":0.787,"changePct":-1.870324189526186}
+[01:48:02.845] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:04.447] T+25s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:06.594] WS RECV {"type":"quote","code":"159869","ts":"2026-09-14T01:49:00Z","last":1.087,"changePct":-0.8211678832116897}
+[01:48:06.594] WS RECV {"type":"quote","code":"161226","ts":"2026-09-14T01:49:00Z","last":1.895,"changePct":-0.9409304756926301}
+[01:48:06.594] WS RECV {"type":"quote","code":"511220","ts":"2026-09-14T01:48:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:48:06.596] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:09.462] T+30s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:10.367] WS RECV {"type":"quote","code":"159980","ts":"2026-09-14T01:49:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:48:10.368] WS RECV {"type":"quote","code":"513920","ts":"2026-09-14T01:49:00Z","last":1.58,"changePct":0.12674271229404319}
+[01:48:10.368] WS RECV {"type":"quote","code":"561910","ts":"2026-09-14T01:49:00Z","last":0.673,"changePct":1.355421686746989}
+[01:48:10.372] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:14.113] WS RECV {"type":"quote","code":"512480","ts":"2026-09-14T01:48:00Z","last":0.945,"changePct":-1.5625000000000013}
+[01:48:14.113] WS RECV {"type":"quote","code":"515790","ts":"2026-09-14T01:48:00Z","last":0.793,"changePct":0.0}
+[01:48:14.116] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:14.473] T+35s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:17.871] WS RECV {"type":"quote","code":"159577","ts":"2026-09-14T01:49:00Z","last":1.636,"changePct":-0.18303843807200207}
+[01:48:17.871] WS RECV {"type":"quote","code":"159842","ts":"2026-09-14T01:49:00Z","last":1.001,"changePct":-0.792864222001983}
+[01:48:17.872] WS RECV {"type":"quote","code":"510050","ts":"2026-09-14T01:48:00Z","last":2.967,"changePct":-0.46964106004695705}
+[01:48:17.875] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:19.486] T+40s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:21.642] WS RECV {"type":"quote","code":"159337","ts":"2026-09-14T01:49:00Z","last":1.731,"changePct":-0.517241379310339}
+[01:48:21.643] WS RECV {"type":"quote","code":"511360","ts":"2026-09-14T01:49:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:48:21.643] WS RECV {"type":"quote","code":"512690","ts":"2026-09-14T01:49:00Z","last":0.413,"changePct":0.24271844660194197}
+[01:48:21.644] WS RECV {"type":"quote","code":"513050","ts":"2026-09-14T01:49:00Z","last":1.007,"changePct":-0.7881773399014786}
+[01:48:21.645] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:24.501] T+45s marker="8.925" canvases=10 hashChanged=false barsRecv=1 lastBarTs=2026-09-14T01:48:00Z close=8.925 code=518880 period=1m
+[01:48:25.390] WS RECV {"type":"quote","code":"159740","ts":"2026-09-14T01:49:00Z","last":0.533,"changePct":-0.9293680297397777}
+[01:48:25.390] WS RECV {"type":"quote","code":"512800","ts":"2026-09-14T01:49:00Z","last":0.854,"changePct":0.8264462809917362}
+[01:48:25.391] WS RECV {"type":"quote","code":"562800","ts":"2026-09-14T01:49:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:48:25.391] WS RECV {"type":"quote","code":"588000","ts":"2026-09-14T01:49:00Z","last":1.615,"changePct":-1.4643075045759621}
+[01:48:25.393] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:48:29.347] WS RECV {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:49:00Z","open":8.929,"high":8.936,"low":8.929,"close":8.936,"volume":2380000,"amount":20190.0,"source":"tencent_ifzq"}}
+[01:48:29.390] WS RECV {"type":"quote","code":"159742","ts":"2026-09-14T01:49:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:48:29.390] WS RECV {"type":"quote","code":"512200","ts":"2026-09-14T01:49:00Z","last":1.181,"changePct":-0.4215851602023519}
+[01:48:29.390] WS RECV {"type":"quote","code":"515070","ts":"2026-09-14T01:49:00Z","last":1.055,"changePct":-1.5858208955223996}
+[01:48:29.390] WS RECV {"type":"quote","code":"518880","ts":"2026-09-14T01:49:00Z","last":8.936,"changePct":-0.0782735100078237}
+[01:48:29.393] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:48:29.511] T+50s marker="8.936" canvases=10 hashChanged=true barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:33.404] WS RECV {"type":"quote","code":"159638","ts":"2026-09-14T01:49:00Z","last":0.838,"changePct":-1.6431924882629123}
+[01:48:33.404] WS RECV {"type":"quote","code":"159776","ts":"2026-09-14T01:49:00Z","last":1.138,"changePct":-0.3502626970227674}
+[01:48:33.404] WS RECV {"type":"quote","code":"159870","ts":"2026-09-14T01:49:00Z","last":0.77,"changePct":-0.38809831824062124}
+[01:48:33.405] WS RECV {"type":"quote","code":"160723","ts":"2026-09-14T01:49:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:48:33.408] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:48:34.524] T+55s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:37.423] WS RECV {"type":"quote","code":"159781","ts":"2026-09-14T01:49:00Z","last":1.017,"changePct":-1.5488867376573103}
+[01:48:37.423] WS RECV {"type":"quote","code":"159825","ts":"2026-09-14T01:49:00Z","last":0.744,"changePct":-0.5347593582887705}
+[01:48:37.424] WS RECV {"type":"quote","code":"510880","ts":"2026-09-14T01:49:00Z","last":3.426,"changePct":0.2047382275519192}
+[01:48:37.424] WS RECV {"type":"quote","code":"562500","ts":"2026-09-14T01:49:00Z","last":0.913,"changePct":0.32967032967032994}
+[01:48:37.426] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:48:39.536] T+60s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:41.168] WS RECV {"type":"quote","code":"511380","ts":"2026-09-14T01:49:00Z","last":13.272,"changePct":0.11314777098891582}
+[01:48:41.169] WS RECV {"type":"quote","code":"513750","ts":"2026-09-14T01:49:00Z","last":1.501,"changePct":-1.31492439184747}
+[01:48:41.169] WS RECV {"type":"quote","code":"515710","ts":"2026-09-14T01:49:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:48:41.172] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:48:44.551] T+65s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:44.932] WS RECV {"type":"quote","code":"513310","ts":"2026-09-14T01:49:00Z","last":4.636,"changePct":-1.987315010570831}
+[01:48:44.932] WS RECV {"type":"quote","code":"513690","ts":"2026-09-14T01:49:00Z","last":1.133,"changePct":-0.5267778753292367}
+[01:48:44.932] WS RECV {"type":"quote","code":"516380","ts":"2026-09-14T01:49:00Z","last":0.807,"changePct":0.0}
+[01:48:44.935] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:48:49.563] T+70s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:54.574] T+75s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:48:59.590] T+80s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:49:00.193] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:49:04.172] WS RECV {"type":"quote","code":"511130","ts":"2026-09-14T01:49:00Z","last":108.496,"changePct":0.05164146071560069}
+[01:49:04.172] WS RECV {"type":"quote","code":"511220","ts":"2026-09-14T01:49:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:49:04.173] WS RECV {"type":"quote","code":"512480","ts":"2026-09-14T01:49:00Z","last":0.945,"changePct":-1.5625000000000013}
+[01:49:04.173] WS RECV {"type":"quote","code":"512670","ts":"2026-09-14T01:49:00Z","last":0.787,"changePct":-1.870324189526186}
+[01:49:04.173] WS RECV {"type":"quote","code":"515790","ts":"2026-09-14T01:49:00Z","last":0.793,"changePct":0.0}
+[01:49:04.175] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":310,"successes":207,"success_rate":0.667741935483871,"p50_ms":7255.0,"p95_ms":18242.899999999998,"circuit_state":"closed
+[01:49:04.602] T+85s marker="8.936" canvases=10 hashChanged=false barsRecv=2 lastBarTs=2026-09-14T01:49:00Z close=8.936 code=518880 period=1m
+[01:49:07.884] WS RECV {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:50:00Z","open":8.933,"high":8.934,"low":8.933,"close":8.934,"volume":9600,"amount":85758.2983,"source":"sina_jsonp"}}
+[01:49:07.915] WS RECV {"type":"quote","code":"161226","ts":"2026-09-14T01:50:00Z","last":1.894,"changePct":-0.9932043910088932}
+[01:49:07.915] WS RECV {"type":"quote","code":"513050","ts":"2026-09-14T01:50:00Z","last":1.008,"changePct":-0.6896551724137828}
+[01:49:07.915] WS RECV {"type":"quote","code":"515710","ts":"2026-09-14T01:50:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:49:07.915] WS RECV {"type":"quote","code":"516380","ts":"2026-09-14T01:50:00Z","last":0.807,"changePct":0.0}
+[01:49:07.916] WS RECV {"type":"quote","code":"518880","ts":"2026-09-14T01:50:00Z","last":8.934,"changePct":-0.10063737001006756}
+[01:49:07.918] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":315,"successes":210,"success_rate":0.6666666666666666,"p50_ms":7241.5,"p95_ms":18231.35,"circuit_state":"open","status":
+[01:49:09.614] T+90s marker="8.934" canvases=10 hashChanged=true barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:11.756] WS RECV {"type":"quote","code":"510050","ts":"2026-09-14T01:49:00Z","last":2.966,"changePct":-0.503186850050308}
+[01:49:11.757] WS RECV {"type":"quote","code":"562800","ts":"2026-09-14T01:50:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:49:11.757] WS RECV {"type":"quote","code":"588000","ts":"2026-09-14T01:50:00Z","last":1.616,"changePct":-1.4032946918852904}
+[01:49:11.760] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":319,"successes":211,"success_rate":0.6614420062695925,"p50_ms":7248.0,"p95_ms":18227.5,"circuit_state":"open","status":"
+[01:49:14.628] T+95s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:15.601] WS RECV {"type":"quote","code":"159638","ts":"2026-09-14T01:50:00Z","last":0.837,"changePct":-1.7605633802816916}
+[01:49:15.601] WS RECV {"type":"quote","code":"159842","ts":"2026-09-14T01:50:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:49:15.601] WS RECV {"type":"quote","code":"511360","ts":"2026-09-14T01:50:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:49:15.601] WS RECV {"type":"quote","code":"513970","ts":"2026-09-14T01:49:00Z","last":0.777,"changePct":-0.512163892445583}
+[01:49:15.605] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":323,"successes":213,"success_rate":0.6594427244582043,"p50_ms":7255.0,"p95_ms":18219.8,"circuit_state":"open","status":"
+[01:49:19.448] WS RECV {"type":"quote","code":"159742","ts":"2026-09-14T01:50:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:49:19.448] WS RECV {"type":"quote","code":"159869","ts":"2026-09-14T01:50:00Z","last":1.088,"changePct":-0.7299270072992706}
+[01:49:19.448] WS RECV {"type":"quote","code":"512200","ts":"2026-09-14T01:50:00Z","last":1.181,"changePct":-0.4215851602023519}
+[01:49:19.449] WS RECV {"type":"quote","code":"512800","ts":"2026-09-14T01:50:00Z","last":0.853,"changePct":0.7083825265643453}
+[01:49:19.449] WS RECV {"type":"quote","code":"515070","ts":"2026-09-14T01:50:00Z","last":1.055,"changePct":-1.5858208955223996}
+[01:49:19.450] WS RECV {"type":"quote","code":"561910","ts":"2026-09-14T01:50:00Z","last":0.673,"changePct":1.355421686746989}
+[01:49:19.451] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":327,"successes":215,"success_rate":0.6574923547400612,"p50_ms":7271.0,"p95_ms":18212.1,"circuit_state":"open","status":"
+[01:49:19.639] T+100s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:23.318] WS RECV {"type":"quote","code":"159870","ts":"2026-09-14T01:50:00Z","last":0.772,"changePct":-0.1293661060802071}
+[01:49:23.318] WS RECV {"type":"quote","code":"159980","ts":"2026-09-14T01:50:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:49:23.318] WS RECV {"type":"quote","code":"159981","ts":"2026-09-14T01:50:00Z","last":1.792,"changePct":1.876065946560554}
+[01:49:23.319] WS RECV {"type":"quote","code":"159985","ts":"2026-09-14T01:50:00Z","last":2.312,"changePct":-0.5591397849462513}
+[01:49:23.319] WS RECV {"type":"quote","code":"510880","ts":"2026-09-14T01:50:00Z","last":3.422,"changePct":0.08774495466511008}
+[01:49:23.323] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:49:24.650] T+105s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:27.166] WS RECV {"type":"quote","code":"159740","ts":"2026-09-14T01:50:00Z","last":0.534,"changePct":-0.7434944237918222}
+[01:49:27.166] WS RECV {"type":"quote","code":"159776","ts":"2026-09-14T01:50:00Z","last":1.14,"changePct":-0.1751313485113837}
+[01:49:27.166] WS RECV {"type":"quote","code":"160723","ts":"2026-09-14T01:50:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:49:27.169] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:49:29.663] T+110s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:31.017] WS RECV {"type":"quote","code":"159337","ts":"2026-09-14T01:50:00Z","last":1.732,"changePct":-0.4597701149425292}
+[01:49:31.017] WS RECV {"type":"quote","code":"159577","ts":"2026-09-14T01:50:00Z","last":1.636,"changePct":-0.18303843807200207}
+[01:49:31.017] WS RECV {"type":"quote","code":"159781","ts":"2026-09-14T01:50:00Z","last":1.017,"changePct":-1.5488867376573103}
+[01:49:31.017] WS RECV {"type":"quote","code":"551000","ts":"2026-09-14T01:50:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:49:31.021] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:49:34.677] T+115s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:34.871] WS RECV {"type":"quote","code":"159825","ts":"2026-09-14T01:50:00Z","last":0.741,"changePct":-0.9358288770053483}
+[01:49:34.871] WS RECV {"type":"quote","code":"159890","ts":"2026-09-14T01:50:00Z","last":1.642,"changePct":0.06093845216330834}
+[01:49:34.874] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:49:39.693] T+120s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:44.709] T+125s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:49.725] T+130s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:54.741] T+135s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:49:59.757] T+140s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:50:01.077] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:04.772] T+145s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:50:04.814] WS RECV {"type":"quote","code":"512670","ts":"2026-09-14T01:50:00Z","last":0.786,"changePct":-1.9950124688279318}
+[01:50:04.814] WS RECV {"type":"quote","code":"513920","ts":"2026-09-14T01:50:00Z","last":1.579,"changePct":0.06337135614701456}
+[01:50:04.815] WS RECV {"type":"quote","code":"513970","ts":"2026-09-14T01:50:00Z","last":0.777,"changePct":-0.512163892445583}
+[01:50:04.818] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:08.574] WS RECV {"type":"quote","code":"159337","ts":"2026-09-14T01:51:00Z","last":1.732,"changePct":-0.4597701149425292}
+[01:50:08.574] WS RECV {"type":"quote","code":"511130","ts":"2026-09-14T01:51:00Z","last":108.485,"changePct":0.04149760236075406}
+[01:50:08.574] WS RECV {"type":"quote","code":"513750","ts":"2026-09-14T01:50:00Z","last":1.503,"changePct":-1.183431952662723}
+[01:50:08.577] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:09.784] T+150s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:50:12.341] WS RECV {"type":"quote","code":"159781","ts":"2026-09-14T01:51:00Z","last":1.018,"changePct":-1.4520813165537176}
+[01:50:12.341] WS RECV {"type":"quote","code":"510050","ts":"2026-09-14T01:50:00Z","last":2.966,"changePct":-0.503186850050308}
+[01:50:12.341] WS RECV {"type":"quote","code":"512480","ts":"2026-09-14T01:51:00Z","last":0.946,"changePct":-1.4583333333333348}
+[01:50:12.344] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:14.797] T+155s marker="8.934" canvases=10 hashChanged=false barsRecv=3 lastBarTs=2026-09-14T01:50:00Z close=8.934 code=518880 period=1m
+[01:50:16.091] WS RECV {"type":"quote","code":"562800","ts":"2026-09-14T01:51:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:50:16.095] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:19.526] WS RECV {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:51:00Z","open":8.931,"high":8.931,"low":8.929,"close":8.929,"volume":62800,"amount":530.0,"source":"tencent_ifzq"}}
+[01:50:19.812] T+160s marker="8.929" canvases=10 hashChanged=true barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:19.922] WS RECV {"type":"quote","code":"159842","ts":"2026-09-14T01:51:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:50:19.922] WS RECV {"type":"quote","code":"512690","ts":"2026-09-14T01:51:00Z","last":0.412,"changePct":0.0}
+[01:50:19.922] WS RECV {"type":"quote","code":"518880","ts":"2026-09-14T01:51:00Z","last":8.929,"changePct":-0.1565470200156474}
+[01:50:19.922] WS RECV {"type":"quote","code":"562500","ts":"2026-09-14T01:51:00Z","last":0.913,"changePct":0.32967032967032994}
+[01:50:19.926] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:23.669] WS RECV {"type":"quote","code":"511380","ts":"2026-09-14T01:51:00Z","last":13.277,"changePct":0.15086369465187882}
+[01:50:23.669] WS RECV {"type":"quote","code":"512800","ts":"2026-09-14T01:51:00Z","last":0.852,"changePct":0.5903187721369545}
+[01:50:23.669] WS RECV {"type":"quote","code":"515070","ts":"2026-09-14T01:51:00Z","last":1.057,"changePct":-1.3992537313432951}
+[01:50:23.670] WS RECV {"type":"quote","code":"588000","ts":"2026-09-14T01:51:00Z","last":1.617,"changePct":-1.342281879194632}
+[01:50:23.673] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:50:24.824] T+165s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:27.423] WS RECV {"type":"quote","code":"159980","ts":"2026-09-14T01:51:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:50:27.424] WS RECV {"type":"quote","code":"159985","ts":"2026-09-14T01:51:00Z","last":2.311,"changePct":-0.6021505376344186}
+[01:50:27.424] WS RECV {"type":"quote","code":"513690","ts":"2026-09-14T01:51:00Z","last":1.131,"changePct":-0.7023705004389822}
+[01:50:27.424] WS RECV {"type":"quote","code":"515790","ts":"2026-09-14T01:51:00Z","last":0.792,"changePct":-0.1261034047919295}
+[01:50:27.427] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":332,"successes":216,"success_rate":0.6506024096385542,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"half_open","sta
+[01:50:29.838] T+170s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:31.168] WS RECV {"type":"quote","code":"159740","ts":"2026-09-14T01:51:00Z","last":0.534,"changePct":-0.7434944237918222}
+[01:50:31.168] WS RECV {"type":"quote","code":"159981","ts":"2026-09-14T01:51:00Z","last":1.795,"changePct":2.04661739624787}
+[01:50:31.168] WS RECV {"type":"quote","code":"161226","ts":"2026-09-14T01:51:00Z","last":1.894,"changePct":-0.9932043910088932}
+[01:50:31.171] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:50:34.852] T+175s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:34.927] WS RECV {"type":"quote","code":"159638","ts":"2026-09-14T01:51:00Z","last":0.837,"changePct":-1.7605633802816916}
+[01:50:34.927] WS RECV {"type":"quote","code":"159869","ts":"2026-09-14T01:51:00Z","last":1.086,"changePct":-0.9124087591240884}
+[01:50:34.927] WS RECV {"type":"quote","code":"159890","ts":"2026-09-14T01:51:00Z","last":1.643,"changePct":0.12187690432663022}
+[01:50:34.927] WS RECV {"type":"quote","code":"511220","ts":"2026-09-14T01:51:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:50:34.930] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:50:38.672] WS RECV {"type":"quote","code":"159742","ts":"2026-09-14T01:51:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:50:38.672] WS RECV {"type":"quote","code":"510880","ts":"2026-09-14T01:51:00Z","last":3.418,"changePct":-0.029248318221699033}
+[01:50:38.672] WS RECV {"type":"quote","code":"515710","ts":"2026-09-14T01:51:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:50:38.672] WS RECV {"type":"quote","code":"516380","ts":"2026-09-14T01:51:00Z","last":0.809,"changePct":0.24783147459727406}
+[01:50:38.676] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:50:39.864] T+180s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:42.424] WS RECV {"type":"quote","code":"159776","ts":"2026-09-14T01:51:00Z","last":1.142,"changePct":0.0}
+[01:50:42.425] WS RECV {"type":"quote","code":"512200","ts":"2026-09-14T01:51:00Z","last":1.179,"changePct":-0.5902192242832964}
+[01:50:42.425] WS RECV {"type":"quote","code":"513310","ts":"2026-09-14T01:51:00Z","last":4.638,"changePct":-1.9450317124735839}
+[01:50:42.425] WS RECV {"type":"quote","code":"551000","ts":"2026-09-14T01:51:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:50:42.428] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:50:44.876] T+186s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:46.177] WS RECV {"type":"quote","code":"511360","ts":"2026-09-14T01:51:00Z","last":113.912,"changePct":0.0}
+[01:50:46.180] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:50:49.886] T+191s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:54.902] T+196s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:50:59.918] T+201s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:51:01.259] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":336,"successes":217,"success_rate":0.6458333333333334,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:04.932] T+206s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:51:05.023] WS RECV {"type":"quote","code":"511130","ts":"2026-09-14T01:52:00Z","last":108.488,"changePct":0.044264109184804334}
+[01:51:08.776] WS RECV {"type":"quote","code":"159740","ts":"2026-09-14T01:52:00Z","last":0.532,"changePct":-1.1152416356877333}
+[01:51:08.776] WS RECV {"type":"quote","code":"161226","ts":"2026-09-14T01:52:00Z","last":1.892,"changePct":-1.0977522216414077}
+[01:51:08.776] WS RECV {"type":"quote","code":"510050","ts":"2026-09-14T01:51:00Z","last":2.964,"changePct":-0.5702784300570246}
+[01:51:08.776] WS RECV {"type":"quote","code":"512800","ts":"2026-09-14T01:52:00Z","last":0.853,"changePct":0.7083825265643453}
+[01:51:08.777] WS RECV {"type":"quote","code":"513050","ts":"2026-09-14T01:52:00Z","last":1.007,"changePct":-0.7881773399014786}
+[01:51:08.777] WS RECV {"type":"quote","code":"515070","ts":"2026-09-14T01:52:00Z","last":1.056,"changePct":-1.492537313432837}
+[01:51:08.780] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":344,"successes":220,"success_rate":0.6395348837209303,"p50_ms":7263.0,"p95_ms":18192.85,"circuit_state":"open","status":
+[01:51:09.943] T+211s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:51:12.524] WS RECV {"type":"quote","code":"159638","ts":"2026-09-14T01:52:00Z","last":0.834,"changePct":-2.1126760563380302}
+[01:51:12.524] WS RECV {"type":"quote","code":"510880","ts":"2026-09-14T01:52:00Z","last":3.416,"changePct":-0.08774495466511008}
+[01:51:12.524] WS RECV {"type":"quote","code":"511360","ts":"2026-09-14T01:52:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:51:12.525] WS RECV {"type":"quote","code":"511380","ts":"2026-09-14T01:52:00Z","last":13.268,"changePct":0.08297503205854272}
+[01:51:12.525] WS RECV {"type":"quote","code":"513690","ts":"2026-09-14T01:52:00Z","last":1.131,"changePct":-0.7023705004389822}
+[01:51:12.525] WS RECV {"type":"quote","code":"513920","ts":"2026-09-14T01:51:00Z","last":1.578,"changePct":0.0}
+[01:51:12.525] WS RECV {"type":"quote","code":"562500","ts":"2026-09-14T01:52:00Z","last":0.912,"changePct":0.21978021978021994}
+[01:51:12.527] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":348,"successes":223,"success_rate":0.6408045977011494,"p50_ms":7334.0,"p95_ms":18187.6,"circuit_state":"open","status":"
+[01:51:14.956] T+216s marker="8.929" canvases=10 hashChanged=false barsRecv=4 lastBarTs=2026-09-14T01:51:00Z close=8.929 code=518880 period=1m
+[01:51:15.906] WS RECV {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:52:00Z","open":8.927,"high":8.929,"low":8.927,"close":8.928,"volume":437000,"amount":3901613.3227,"source":"sina_jsonp"}}
+[01:51:15.922] WS RECV {"type":"quote","code":"512200","ts":"2026-09-14T01:52:00Z","last":1.18,"changePct":-0.5059021922428335}
+[01:51:15.922] WS RECV {"type":"quote","code":"513750","ts":"2026-09-14T01:52:00Z","last":1.502,"changePct":-1.2491781722550892}
+[01:51:15.923] WS RECV {"type":"quote","code":"513970","ts":"2026-09-14T01:51:00Z","last":0.776,"changePct":-0.6402048655569789}
+[01:51:15.923] WS RECV {"type":"quote","code":"518880","ts":"2026-09-14T01:52:00Z","last":8.928,"changePct":-0.1677289500167594}
+[01:51:15.926] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":351,"successes":224,"success_rate":0.6381766381766382,"p50_ms":7686.0,"p95_ms":18186.9,"circuit_state":"open","status":"
+[01:51:19.314] WS RECV {"type":"quote","code":"159842","ts":"2026-09-14T01:52:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:51:19.314] WS RECV {"type":"quote","code":"159980","ts":"2026-09-14T01:52:00Z","last":2.134,"changePct":-1.249421564090705}
+[01:51:19.314] WS RECV {"type":"quote","code":"512670","ts":"2026-09-14T01:52:00Z","last":0.784,"changePct":-2.2443890274314233}
+[01:51:19.315] WS RECV {"type":"quote","code":"512690","ts":"2026-09-14T01:52:00Z","last":0.412,"changePct":0.0}
+[01:51:19.318] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":355,"successes":226,"success_rate":0.6366197183098592,"p50_ms":8070.0,"p95_ms":18185.5,"circuit_state":"open","status":"
+[01:51:19.968] T+221s marker="8.928" canvases=10 hashChanged=true barsRecv=5 lastBarTs=2026-09-14T01:52:00Z close=8.928 code=518880 period=1m
+[01:51:22.722] WS RECV {"type":"quote","code":"159742","ts":"2026-09-14T01:52:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:51:22.722] WS RECV {"type":"quote","code":"159981","ts":"2026-09-14T01:52:00Z","last":1.792,"changePct":1.876065946560554}
+[01:51:22.722] WS RECV {"type":"quote","code":"511220","ts":"2026-09-14T01:52:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:51:22.722] WS RECV {"type":"quote","code":"516380","ts":"2026-09-14T01:52:00Z","last":0.809,"changePct":0.24783147459727406}
+[01:51:22.723] WS RECV {"type":"quote","code":"561910","ts":"2026-09-14T01:52:00Z","last":0.672,"changePct":1.2048192771084347}
+[01:51:22.726] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":358,"successes":228,"success_rate":0.6368715083798883,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:24.981] T+226s marker="8.928" canvases=10 hashChanged=false barsRecv=5 lastBarTs=2026-09-14T01:52:00Z close=8.928 code=518880 period=1m
+[01:51:26.129] WS RECV {"type":"quote","code":"159337","ts":"2026-09-14T01:52:00Z","last":1.733,"changePct":-0.40229885057470666}
+[01:51:26.130] WS RECV {"type":"quote","code":"159781","ts":"2026-09-14T01:52:00Z","last":1.018,"changePct":-1.4520813165537176}
+[01:51:26.130] WS RECV {"type":"quote","code":"160723","ts":"2026-09-14T01:52:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:51:26.135] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:29.542] WS RECV {"type":"quote","code":"159776","ts":"2026-09-14T01:52:00Z","last":1.139,"changePct":-0.26269702276706586}
+[01:51:29.543] WS RECV {"type":"quote","code":"159825","ts":"2026-09-14T01:52:00Z","last":0.738,"changePct":-1.3368983957219263}
+[01:51:29.543] WS RECV {"type":"quote","code":"159870","ts":"2026-09-14T01:52:00Z","last":0.769,"changePct":-0.5174644243208284}
+[01:51:29.543] WS RECV {"type":"quote","code":"551000","ts":"2026-09-14T01:52:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:51:29.546] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:29.992] T+231s marker="8.928" canvases=10 hashChanged=false barsRecv=5 lastBarTs=2026-09-14T01:52:00Z close=8.928 code=518880 period=1m
+[01:51:32.940] WS RECV {"type":"quote","code":"159577","ts":"2026-09-14T01:52:00Z","last":1.637,"changePct":-0.12202562538133019}
+[01:51:32.940] WS RECV {"type":"quote","code":"159890","ts":"2026-09-14T01:52:00Z","last":1.644,"changePct":0.18281535648993855}
+[01:51:32.941] WS RECV {"type":"quote","code":"159985","ts":"2026-09-14T01:52:00Z","last":2.308,"changePct":-0.7311827956989396}
+[01:51:32.944] WS RECV {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:35.003] T+236s marker="8.928" canvases=10 hashChanged=false barsRecv=5 lastBarTs=2026-09-14T01:52:00Z close=8.928 code=518880 period=1m
+[01:51:40.004] === SUMMARY ===
+[01:51:40.004] sent frames: 6
+[01:51:40.004]   SENT {"type":"subscribe","topic":"quote"}
+[01:51:40.004]   SENT {"type":"subscribe","topic":"health"}
+[01:51:40.004]   SENT {"type":"subscribe","topic":"alert"}
+[01:51:40.004]   SENT {"type":"subscribe","topic":"bar","code":"518880","period":"15m"}
+[01:51:40.004]   SENT {"type":"unsubscribe","topic":"bar","code":"518880","period":"15m"}
+[01:51:40.004]   SENT {"type":"subscribe","topic":"bar","code":"518880","period":"1m"}
+[01:51:40.005] recv frames: 203 of which bar: 5
+[01:51:40.005]   RECV 01:47:34.809 {"type":"quote","code":"159740","ts":"2026-09-14T01:48:00Z","last":0.533,"changePct":-0.9293680297397777}
+[01:51:40.005]   RECV 01:47:34.848 {"type":"quote","code":"159985","ts":"2026-09-14T01:48:00Z","last":2.312,"changePct":-0.5591397849462513}
+[01:51:40.005]   RECV 01:47:34.848 {"type":"quote","code":"160723","ts":"2026-09-14T01:48:00Z","last":2.354,"changePct":1.4218009478672948}
+[01:51:40.005]   RECV 01:47:38.975 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:48:00Z","open":8.925,"high":8.925,"low":8.925,"close":8.925,"volume":344700,"amount":2920.0,"source":"tencent_ifzq"}}
+[01:51:40.005]   RECV 01:47:39.044 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:02.841 {"type":"quote","code":"512670","ts":"2026-09-14T01:48:00Z","last":0.787,"changePct":-1.870324189526186}
+[01:51:40.005]   RECV 01:48:02.845 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:06.594 {"type":"quote","code":"159869","ts":"2026-09-14T01:49:00Z","last":1.087,"changePct":-0.8211678832116897}
+[01:51:40.005]   RECV 01:48:06.594 {"type":"quote","code":"161226","ts":"2026-09-14T01:49:00Z","last":1.895,"changePct":-0.9409304756926301}
+[01:51:40.005]   RECV 01:48:06.594 {"type":"quote","code":"511220","ts":"2026-09-14T01:48:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:51:40.005]   RECV 01:48:06.596 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:10.367 {"type":"quote","code":"159980","ts":"2026-09-14T01:49:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:51:40.005]   RECV 01:48:10.368 {"type":"quote","code":"513920","ts":"2026-09-14T01:49:00Z","last":1.58,"changePct":0.12674271229404319}
+[01:51:40.005]   RECV 01:48:10.368 {"type":"quote","code":"561910","ts":"2026-09-14T01:49:00Z","last":0.673,"changePct":1.355421686746989}
+[01:51:40.005]   RECV 01:48:10.372 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:14.113 {"type":"quote","code":"512480","ts":"2026-09-14T01:48:00Z","last":0.945,"changePct":-1.5625000000000013}
+[01:51:40.005]   RECV 01:48:14.113 {"type":"quote","code":"515790","ts":"2026-09-14T01:48:00Z","last":0.793,"changePct":0.0}
+[01:51:40.005]   RECV 01:48:14.116 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:17.871 {"type":"quote","code":"159577","ts":"2026-09-14T01:49:00Z","last":1.636,"changePct":-0.18303843807200207}
+[01:51:40.005]   RECV 01:48:17.871 {"type":"quote","code":"159842","ts":"2026-09-14T01:49:00Z","last":1.001,"changePct":-0.792864222001983}
+[01:51:40.005]   RECV 01:48:17.872 {"type":"quote","code":"510050","ts":"2026-09-14T01:48:00Z","last":2.967,"changePct":-0.46964106004695705}
+[01:51:40.005]   RECV 01:48:17.875 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:21.642 {"type":"quote","code":"159337","ts":"2026-09-14T01:49:00Z","last":1.731,"changePct":-0.517241379310339}
+[01:51:40.005]   RECV 01:48:21.643 {"type":"quote","code":"511360","ts":"2026-09-14T01:49:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:51:40.005]   RECV 01:48:21.643 {"type":"quote","code":"512690","ts":"2026-09-14T01:49:00Z","last":0.413,"changePct":0.24271844660194197}
+[01:51:40.005]   RECV 01:48:21.644 {"type":"quote","code":"513050","ts":"2026-09-14T01:49:00Z","last":1.007,"changePct":-0.7881773399014786}
+[01:51:40.005]   RECV 01:48:21.645 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:25.390 {"type":"quote","code":"159740","ts":"2026-09-14T01:49:00Z","last":0.533,"changePct":-0.9293680297397777}
+[01:51:40.005]   RECV 01:48:25.390 {"type":"quote","code":"512800","ts":"2026-09-14T01:49:00Z","last":0.854,"changePct":0.8264462809917362}
+[01:51:40.005]   RECV 01:48:25.391 {"type":"quote","code":"562800","ts":"2026-09-14T01:49:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:51:40.005]   RECV 01:48:25.391 {"type":"quote","code":"588000","ts":"2026-09-14T01:49:00Z","last":1.615,"changePct":-1.4643075045759621}
+[01:51:40.005]   RECV 01:48:25.393 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":303,"successes":204,"success_rate":0.6732673267326733,"p50_ms":7686.0,"p95_ms":18254.45,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:48:29.347 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:49:00Z","open":8.929,"high":8.936,"low":8.929,"close":8.936,"volume":2380000,"amount":20190.0,"source":"tencent_ifzq"}}
+[01:51:40.005]   RECV 01:48:29.390 {"type":"quote","code":"159742","ts":"2026-09-14T01:49:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:51:40.005]   RECV 01:48:29.390 {"type":"quote","code":"512200","ts":"2026-09-14T01:49:00Z","last":1.181,"changePct":-0.4215851602023519}
+[01:51:40.005]   RECV 01:48:29.390 {"type":"quote","code":"515070","ts":"2026-09-14T01:49:00Z","last":1.055,"changePct":-1.5858208955223996}
+[01:51:40.005]   RECV 01:48:29.390 {"type":"quote","code":"518880","ts":"2026-09-14T01:49:00Z","last":8.936,"changePct":-0.0782735100078237}
+[01:51:40.005]   RECV 01:48:29.393 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:48:33.404 {"type":"quote","code":"159638","ts":"2026-09-14T01:49:00Z","last":0.838,"changePct":-1.6431924882629123}
+[01:51:40.005]   RECV 01:48:33.404 {"type":"quote","code":"159776","ts":"2026-09-14T01:49:00Z","last":1.138,"changePct":-0.3502626970227674}
+[01:51:40.005]   RECV 01:48:33.404 {"type":"quote","code":"159870","ts":"2026-09-14T01:49:00Z","last":0.77,"changePct":-0.38809831824062124}
+[01:51:40.005]   RECV 01:48:33.405 {"type":"quote","code":"160723","ts":"2026-09-14T01:49:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:51:40.005]   RECV 01:48:33.408 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:48:37.423 {"type":"quote","code":"159781","ts":"2026-09-14T01:49:00Z","last":1.017,"changePct":-1.5488867376573103}
+[01:51:40.005]   RECV 01:48:37.423 {"type":"quote","code":"159825","ts":"2026-09-14T01:49:00Z","last":0.744,"changePct":-0.5347593582887705}
+[01:51:40.005]   RECV 01:48:37.424 {"type":"quote","code":"510880","ts":"2026-09-14T01:49:00Z","last":3.426,"changePct":0.2047382275519192}
+[01:51:40.005]   RECV 01:48:37.424 {"type":"quote","code":"562500","ts":"2026-09-14T01:49:00Z","last":0.913,"changePct":0.32967032967032994}
+[01:51:40.005]   RECV 01:48:37.426 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:48:41.168 {"type":"quote","code":"511380","ts":"2026-09-14T01:49:00Z","last":13.272,"changePct":0.11314777098891582}
+[01:51:40.005]   RECV 01:48:41.169 {"type":"quote","code":"513750","ts":"2026-09-14T01:49:00Z","last":1.501,"changePct":-1.31492439184747}
+[01:51:40.005]   RECV 01:48:41.169 {"type":"quote","code":"515710","ts":"2026-09-14T01:49:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:51:40.005]   RECV 01:48:41.172 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:48:44.932 {"type":"quote","code":"513310","ts":"2026-09-14T01:49:00Z","last":4.636,"changePct":-1.987315010570831}
+[01:51:40.005]   RECV 01:48:44.932 {"type":"quote","code":"513690","ts":"2026-09-14T01:49:00Z","last":1.133,"changePct":-0.5267778753292367}
+[01:51:40.005]   RECV 01:48:44.932 {"type":"quote","code":"516380","ts":"2026-09-14T01:49:00Z","last":0.807,"changePct":0.0}
+[01:51:40.005]   RECV 01:48:44.935 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:49:00.193 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":306,"successes":205,"success_rate":0.6699346405228758,"p50_ms":7334.0,"p95_ms":18250.6,"circuit_state":"closed","status"
+[01:51:40.005]   RECV 01:49:04.172 {"type":"quote","code":"511130","ts":"2026-09-14T01:49:00Z","last":108.496,"changePct":0.05164146071560069}
+[01:51:40.005]   RECV 01:49:04.172 {"type":"quote","code":"511220","ts":"2026-09-14T01:49:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:51:40.005]   RECV 01:49:04.173 {"type":"quote","code":"512480","ts":"2026-09-14T01:49:00Z","last":0.945,"changePct":-1.5625000000000013}
+[01:51:40.005]   RECV 01:49:04.173 {"type":"quote","code":"512670","ts":"2026-09-14T01:49:00Z","last":0.787,"changePct":-1.870324189526186}
+[01:51:40.005]   RECV 01:49:04.173 {"type":"quote","code":"515790","ts":"2026-09-14T01:49:00Z","last":0.793,"changePct":0.0}
+[01:51:40.005]   RECV 01:49:04.175 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":310,"successes":207,"success_rate":0.667741935483871,"p50_ms":7255.0,"p95_ms":18242.899999999998,"circuit_state":"closed
+[01:51:40.005]   RECV 01:49:07.884 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:50:00Z","open":8.933,"high":8.934,"low":8.933,"close":8.934,"volume":9600,"amount":85758.2983,"source":"sina_jsonp"}}
+[01:51:40.005]   RECV 01:49:07.915 {"type":"quote","code":"161226","ts":"2026-09-14T01:50:00Z","last":1.894,"changePct":-0.9932043910088932}
+[01:51:40.005]   RECV 01:49:07.915 {"type":"quote","code":"513050","ts":"2026-09-14T01:50:00Z","last":1.008,"changePct":-0.6896551724137828}
+[01:51:40.005]   RECV 01:49:07.915 {"type":"quote","code":"515710","ts":"2026-09-14T01:50:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:51:40.005]   RECV 01:49:07.915 {"type":"quote","code":"516380","ts":"2026-09-14T01:50:00Z","last":0.807,"changePct":0.0}
+[01:51:40.005]   RECV 01:49:07.916 {"type":"quote","code":"518880","ts":"2026-09-14T01:50:00Z","last":8.934,"changePct":-0.10063737001006756}
+[01:51:40.005]   RECV 01:49:07.918 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":315,"successes":210,"success_rate":0.6666666666666666,"p50_ms":7241.5,"p95_ms":18231.35,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:49:11.756 {"type":"quote","code":"510050","ts":"2026-09-14T01:49:00Z","last":2.966,"changePct":-0.503186850050308}
+[01:51:40.005]   RECV 01:49:11.757 {"type":"quote","code":"562800","ts":"2026-09-14T01:50:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:51:40.005]   RECV 01:49:11.757 {"type":"quote","code":"588000","ts":"2026-09-14T01:50:00Z","last":1.616,"changePct":-1.4032946918852904}
+[01:51:40.005]   RECV 01:49:11.760 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":319,"successes":211,"success_rate":0.6614420062695925,"p50_ms":7248.0,"p95_ms":18227.5,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:49:15.601 {"type":"quote","code":"159638","ts":"2026-09-14T01:50:00Z","last":0.837,"changePct":-1.7605633802816916}
+[01:51:40.005]   RECV 01:49:15.601 {"type":"quote","code":"159842","ts":"2026-09-14T01:50:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:51:40.005]   RECV 01:49:15.601 {"type":"quote","code":"511360","ts":"2026-09-14T01:50:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:51:40.005]   RECV 01:49:15.601 {"type":"quote","code":"513970","ts":"2026-09-14T01:49:00Z","last":0.777,"changePct":-0.512163892445583}
+[01:51:40.005]   RECV 01:49:15.605 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":323,"successes":213,"success_rate":0.6594427244582043,"p50_ms":7255.0,"p95_ms":18219.8,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:49:19.448 {"type":"quote","code":"159742","ts":"2026-09-14T01:50:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:51:40.005]   RECV 01:49:19.448 {"type":"quote","code":"159869","ts":"2026-09-14T01:50:00Z","last":1.088,"changePct":-0.7299270072992706}
+[01:51:40.005]   RECV 01:49:19.448 {"type":"quote","code":"512200","ts":"2026-09-14T01:50:00Z","last":1.181,"changePct":-0.4215851602023519}
+[01:51:40.005]   RECV 01:49:19.449 {"type":"quote","code":"512800","ts":"2026-09-14T01:50:00Z","last":0.853,"changePct":0.7083825265643453}
+[01:51:40.005]   RECV 01:49:19.449 {"type":"quote","code":"515070","ts":"2026-09-14T01:50:00Z","last":1.055,"changePct":-1.5858208955223996}
+[01:51:40.005]   RECV 01:49:19.450 {"type":"quote","code":"561910","ts":"2026-09-14T01:50:00Z","last":0.673,"changePct":1.355421686746989}
+[01:51:40.005]   RECV 01:49:19.451 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":327,"successes":215,"success_rate":0.6574923547400612,"p50_ms":7271.0,"p95_ms":18212.1,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:49:23.318 {"type":"quote","code":"159870","ts":"2026-09-14T01:50:00Z","last":0.772,"changePct":-0.1293661060802071}
+[01:51:40.005]   RECV 01:49:23.318 {"type":"quote","code":"159980","ts":"2026-09-14T01:50:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:51:40.005]   RECV 01:49:23.318 {"type":"quote","code":"159981","ts":"2026-09-14T01:50:00Z","last":1.792,"changePct":1.876065946560554}
+[01:51:40.005]   RECV 01:49:23.319 {"type":"quote","code":"159985","ts":"2026-09-14T01:50:00Z","last":2.312,"changePct":-0.5591397849462513}
+[01:51:40.005]   RECV 01:49:23.319 {"type":"quote","code":"510880","ts":"2026-09-14T01:50:00Z","last":3.422,"changePct":0.08774495466511008}
+[01:51:40.005]   RECV 01:49:23.323 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:49:27.166 {"type":"quote","code":"159740","ts":"2026-09-14T01:50:00Z","last":0.534,"changePct":-0.7434944237918222}
+[01:51:40.005]   RECV 01:49:27.166 {"type":"quote","code":"159776","ts":"2026-09-14T01:50:00Z","last":1.14,"changePct":-0.1751313485113837}
+[01:51:40.005]   RECV 01:49:27.166 {"type":"quote","code":"160723","ts":"2026-09-14T01:50:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:51:40.005]   RECV 01:49:27.169 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:49:31.017 {"type":"quote","code":"159337","ts":"2026-09-14T01:50:00Z","last":1.732,"changePct":-0.4597701149425292}
+[01:51:40.005]   RECV 01:49:31.017 {"type":"quote","code":"159577","ts":"2026-09-14T01:50:00Z","last":1.636,"changePct":-0.18303843807200207}
+[01:51:40.005]   RECV 01:49:31.017 {"type":"quote","code":"159781","ts":"2026-09-14T01:50:00Z","last":1.017,"changePct":-1.5488867376573103}
+[01:51:40.005]   RECV 01:49:31.017 {"type":"quote","code":"551000","ts":"2026-09-14T01:50:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:51:40.005]   RECV 01:49:31.021 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:49:34.871 {"type":"quote","code":"159825","ts":"2026-09-14T01:50:00Z","last":0.741,"changePct":-0.9358288770053483}
+[01:51:40.005]   RECV 01:49:34.871 {"type":"quote","code":"159890","ts":"2026-09-14T01:50:00Z","last":1.642,"changePct":0.06093845216330834}
+[01:51:40.005]   RECV 01:49:34.874 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:01.077 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:04.814 {"type":"quote","code":"512670","ts":"2026-09-14T01:50:00Z","last":0.786,"changePct":-1.9950124688279318}
+[01:51:40.005]   RECV 01:50:04.814 {"type":"quote","code":"513920","ts":"2026-09-14T01:50:00Z","last":1.579,"changePct":0.06337135614701456}
+[01:51:40.005]   RECV 01:50:04.815 {"type":"quote","code":"513970","ts":"2026-09-14T01:50:00Z","last":0.777,"changePct":-0.512163892445583}
+[01:51:40.005]   RECV 01:50:04.818 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:08.574 {"type":"quote","code":"159337","ts":"2026-09-14T01:51:00Z","last":1.732,"changePct":-0.4597701149425292}
+[01:51:40.005]   RECV 01:50:08.574 {"type":"quote","code":"511130","ts":"2026-09-14T01:51:00Z","last":108.485,"changePct":0.04149760236075406}
+[01:51:40.005]   RECV 01:50:08.574 {"type":"quote","code":"513750","ts":"2026-09-14T01:50:00Z","last":1.503,"changePct":-1.183431952662723}
+[01:51:40.005]   RECV 01:50:08.577 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:12.341 {"type":"quote","code":"159781","ts":"2026-09-14T01:51:00Z","last":1.018,"changePct":-1.4520813165537176}
+[01:51:40.005]   RECV 01:50:12.341 {"type":"quote","code":"510050","ts":"2026-09-14T01:50:00Z","last":2.966,"changePct":-0.503186850050308}
+[01:51:40.005]   RECV 01:50:12.341 {"type":"quote","code":"512480","ts":"2026-09-14T01:51:00Z","last":0.946,"changePct":-1.4583333333333348}
+[01:51:40.005]   RECV 01:50:12.344 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:16.091 {"type":"quote","code":"562800","ts":"2026-09-14T01:51:00Z","last":0.87,"changePct":-0.4576659038901606}
+[01:51:40.005]   RECV 01:50:16.095 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:19.526 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:51:00Z","open":8.931,"high":8.931,"low":8.929,"close":8.929,"volume":62800,"amount":530.0,"source":"tencent_ifzq"}}
+[01:51:40.005]   RECV 01:50:19.922 {"type":"quote","code":"159842","ts":"2026-09-14T01:51:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:51:40.005]   RECV 01:50:19.922 {"type":"quote","code":"512690","ts":"2026-09-14T01:51:00Z","last":0.412,"changePct":0.0}
+[01:51:40.005]   RECV 01:50:19.922 {"type":"quote","code":"518880","ts":"2026-09-14T01:51:00Z","last":8.929,"changePct":-0.1565470200156474}
+[01:51:40.005]   RECV 01:50:19.922 {"type":"quote","code":"562500","ts":"2026-09-14T01:51:00Z","last":0.913,"changePct":0.32967032967032994}
+[01:51:40.005]   RECV 01:50:19.926 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:23.669 {"type":"quote","code":"511380","ts":"2026-09-14T01:51:00Z","last":13.277,"changePct":0.15086369465187882}
+[01:51:40.005]   RECV 01:50:23.669 {"type":"quote","code":"512800","ts":"2026-09-14T01:51:00Z","last":0.852,"changePct":0.5903187721369545}
+[01:51:40.005]   RECV 01:50:23.669 {"type":"quote","code":"515070","ts":"2026-09-14T01:51:00Z","last":1.057,"changePct":-1.3992537313432951}
+[01:51:40.005]   RECV 01:50:23.670 {"type":"quote","code":"588000","ts":"2026-09-14T01:51:00Z","last":1.617,"changePct":-1.342281879194632}
+[01:51:40.005]   RECV 01:50:23.673 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":331,"successes":216,"success_rate":0.6525679758308157,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:50:27.423 {"type":"quote","code":"159980","ts":"2026-09-14T01:51:00Z","last":2.135,"changePct":-1.20314669134661}
+[01:51:40.005]   RECV 01:50:27.424 {"type":"quote","code":"159985","ts":"2026-09-14T01:51:00Z","last":2.311,"changePct":-0.6021505376344186}
+[01:51:40.005]   RECV 01:50:27.424 {"type":"quote","code":"513690","ts":"2026-09-14T01:51:00Z","last":1.131,"changePct":-0.7023705004389822}
+[01:51:40.005]   RECV 01:50:27.424 {"type":"quote","code":"515790","ts":"2026-09-14T01:51:00Z","last":0.792,"changePct":-0.1261034047919295}
+[01:51:40.005]   RECV 01:50:27.427 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":332,"successes":216,"success_rate":0.6506024096385542,"p50_ms":7302.5,"p95_ms":18208.25,"circuit_state":"half_open","sta
+[01:51:40.005]   RECV 01:50:31.168 {"type":"quote","code":"159740","ts":"2026-09-14T01:51:00Z","last":0.534,"changePct":-0.7434944237918222}
+[01:51:40.005]   RECV 01:50:31.168 {"type":"quote","code":"159981","ts":"2026-09-14T01:51:00Z","last":1.795,"changePct":2.04661739624787}
+[01:51:40.005]   RECV 01:50:31.168 {"type":"quote","code":"161226","ts":"2026-09-14T01:51:00Z","last":1.894,"changePct":-0.9932043910088932}
+[01:51:40.005]   RECV 01:50:31.171 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:50:34.927 {"type":"quote","code":"159638","ts":"2026-09-14T01:51:00Z","last":0.837,"changePct":-1.7605633802816916}
+[01:51:40.005]   RECV 01:50:34.927 {"type":"quote","code":"159869","ts":"2026-09-14T01:51:00Z","last":1.086,"changePct":-0.9124087591240884}
+[01:51:40.005]   RECV 01:50:34.927 {"type":"quote","code":"159890","ts":"2026-09-14T01:51:00Z","last":1.643,"changePct":0.12187690432663022}
+[01:51:40.005]   RECV 01:50:34.927 {"type":"quote","code":"511220","ts":"2026-09-14T01:51:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:51:40.005]   RECV 01:50:34.930 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:50:38.672 {"type":"quote","code":"159742","ts":"2026-09-14T01:51:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:51:40.005]   RECV 01:50:38.672 {"type":"quote","code":"510880","ts":"2026-09-14T01:51:00Z","last":3.418,"changePct":-0.029248318221699033}
+[01:51:40.005]   RECV 01:50:38.672 {"type":"quote","code":"515710","ts":"2026-09-14T01:51:00Z","last":0.488,"changePct":0.20533880903490778}
+[01:51:40.005]   RECV 01:50:38.672 {"type":"quote","code":"516380","ts":"2026-09-14T01:51:00Z","last":0.809,"changePct":0.24783147459727406}
+[01:51:40.005]   RECV 01:50:38.676 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:50:42.424 {"type":"quote","code":"159776","ts":"2026-09-14T01:51:00Z","last":1.142,"changePct":0.0}
+[01:51:40.005]   RECV 01:50:42.425 {"type":"quote","code":"512200","ts":"2026-09-14T01:51:00Z","last":1.179,"changePct":-0.5902192242832964}
+[01:51:40.005]   RECV 01:50:42.425 {"type":"quote","code":"513310","ts":"2026-09-14T01:51:00Z","last":4.638,"changePct":-1.9450317124735839}
+[01:51:40.005]   RECV 01:50:42.425 {"type":"quote","code":"551000","ts":"2026-09-14T01:51:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:51:40.005]   RECV 01:50:42.428 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:50:46.177 {"type":"quote","code":"511360","ts":"2026-09-14T01:51:00Z","last":113.912,"changePct":0.0}
+[01:51:40.005]   RECV 01:50:46.180 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":334,"successes":217,"success_rate":0.6497005988023952,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:51:01.259 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":336,"successes":217,"success_rate":0.6458333333333334,"p50_ms":7271.0,"p95_ms":18204.399999999998,"circuit_state":"close
+[01:51:40.005]   RECV 01:51:05.023 {"type":"quote","code":"511130","ts":"2026-09-14T01:52:00Z","last":108.488,"changePct":0.044264109184804334}
+[01:51:40.005]   RECV 01:51:08.776 {"type":"quote","code":"159740","ts":"2026-09-14T01:52:00Z","last":0.532,"changePct":-1.1152416356877333}
+[01:51:40.005]   RECV 01:51:08.776 {"type":"quote","code":"161226","ts":"2026-09-14T01:52:00Z","last":1.892,"changePct":-1.0977522216414077}
+[01:51:40.005]   RECV 01:51:08.776 {"type":"quote","code":"510050","ts":"2026-09-14T01:51:00Z","last":2.964,"changePct":-0.5702784300570246}
+[01:51:40.005]   RECV 01:51:08.776 {"type":"quote","code":"512800","ts":"2026-09-14T01:52:00Z","last":0.853,"changePct":0.7083825265643453}
+[01:51:40.005]   RECV 01:51:08.777 {"type":"quote","code":"513050","ts":"2026-09-14T01:52:00Z","last":1.007,"changePct":-0.7881773399014786}
+[01:51:40.005]   RECV 01:51:08.777 {"type":"quote","code":"515070","ts":"2026-09-14T01:52:00Z","last":1.056,"changePct":-1.492537313432837}
+[01:51:40.005]   RECV 01:51:08.780 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":344,"successes":220,"success_rate":0.6395348837209303,"p50_ms":7263.0,"p95_ms":18192.85,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:51:12.524 {"type":"quote","code":"159638","ts":"2026-09-14T01:52:00Z","last":0.834,"changePct":-2.1126760563380302}
+[01:51:40.005]   RECV 01:51:12.524 {"type":"quote","code":"510880","ts":"2026-09-14T01:52:00Z","last":3.416,"changePct":-0.08774495466511008}
+[01:51:40.005]   RECV 01:51:12.524 {"type":"quote","code":"511360","ts":"2026-09-14T01:52:00Z","last":113.913,"changePct":0.0008778706369746506}
+[01:51:40.005]   RECV 01:51:12.525 {"type":"quote","code":"511380","ts":"2026-09-14T01:52:00Z","last":13.268,"changePct":0.08297503205854272}
+[01:51:40.005]   RECV 01:51:12.525 {"type":"quote","code":"513690","ts":"2026-09-14T01:52:00Z","last":1.131,"changePct":-0.7023705004389822}
+[01:51:40.005]   RECV 01:51:12.525 {"type":"quote","code":"513920","ts":"2026-09-14T01:51:00Z","last":1.578,"changePct":0.0}
+[01:51:40.005]   RECV 01:51:12.525 {"type":"quote","code":"562500","ts":"2026-09-14T01:52:00Z","last":0.912,"changePct":0.21978021978021994}
+[01:51:40.005]   RECV 01:51:12.527 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":348,"successes":223,"success_rate":0.6408045977011494,"p50_ms":7334.0,"p95_ms":18187.6,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:51:15.906 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:52:00Z","open":8.927,"high":8.929,"low":8.927,"close":8.928,"volume":437000,"amount":3901613.3227,"source":"sina_jsonp"}}
+[01:51:40.005]   RECV 01:51:15.922 {"type":"quote","code":"512200","ts":"2026-09-14T01:52:00Z","last":1.18,"changePct":-0.5059021922428335}
+[01:51:40.005]   RECV 01:51:15.922 {"type":"quote","code":"513750","ts":"2026-09-14T01:52:00Z","last":1.502,"changePct":-1.2491781722550892}
+[01:51:40.005]   RECV 01:51:15.923 {"type":"quote","code":"513970","ts":"2026-09-14T01:51:00Z","last":0.776,"changePct":-0.6402048655569789}
+[01:51:40.005]   RECV 01:51:15.923 {"type":"quote","code":"518880","ts":"2026-09-14T01:52:00Z","last":8.928,"changePct":-0.1677289500167594}
+[01:51:40.005]   RECV 01:51:15.926 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":351,"successes":224,"success_rate":0.6381766381766382,"p50_ms":7686.0,"p95_ms":18186.9,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:51:19.314 {"type":"quote","code":"159842","ts":"2026-09-14T01:52:00Z","last":1.0,"changePct":-0.8919722497522199}
+[01:51:40.005]   RECV 01:51:19.314 {"type":"quote","code":"159980","ts":"2026-09-14T01:52:00Z","last":2.134,"changePct":-1.249421564090705}
+[01:51:40.005]   RECV 01:51:19.314 {"type":"quote","code":"512670","ts":"2026-09-14T01:52:00Z","last":0.784,"changePct":-2.2443890274314233}
+[01:51:40.005]   RECV 01:51:19.315 {"type":"quote","code":"512690","ts":"2026-09-14T01:52:00Z","last":0.412,"changePct":0.0}
+[01:51:40.005]   RECV 01:51:19.318 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":355,"successes":226,"success_rate":0.6366197183098592,"p50_ms":8070.0,"p95_ms":18185.5,"circuit_state":"open","status":"
+[01:51:40.005]   RECV 01:51:22.722 {"type":"quote","code":"159742","ts":"2026-09-14T01:52:00Z","last":0.548,"changePct":-0.904159132007234}
+[01:51:40.005]   RECV 01:51:22.722 {"type":"quote","code":"159981","ts":"2026-09-14T01:52:00Z","last":1.792,"changePct":1.876065946560554}
+[01:51:40.005]   RECV 01:51:22.722 {"type":"quote","code":"511220","ts":"2026-09-14T01:52:00Z","last":10.425,"changePct":0.019188333493242518}
+[01:51:40.005]   RECV 01:51:22.722 {"type":"quote","code":"516380","ts":"2026-09-14T01:52:00Z","last":0.809,"changePct":0.24783147459727406}
+[01:51:40.005]   RECV 01:51:22.723 {"type":"quote","code":"561910","ts":"2026-09-14T01:52:00Z","last":0.672,"changePct":1.2048192771084347}
+[01:51:40.005]   RECV 01:51:22.726 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":358,"successes":228,"success_rate":0.6368715083798883,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:51:26.129 {"type":"quote","code":"159337","ts":"2026-09-14T01:52:00Z","last":1.733,"changePct":-0.40229885057470666}
+[01:51:40.005]   RECV 01:51:26.130 {"type":"quote","code":"159781","ts":"2026-09-14T01:52:00Z","last":1.018,"changePct":-1.4520813165537176}
+[01:51:40.005]   RECV 01:51:26.130 {"type":"quote","code":"160723","ts":"2026-09-14T01:52:00Z","last":2.352,"changePct":1.3356311934510854}
+[01:51:40.005]   RECV 01:51:26.135 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:51:29.542 {"type":"quote","code":"159776","ts":"2026-09-14T01:52:00Z","last":1.139,"changePct":-0.26269702276706586}
+[01:51:40.005]   RECV 01:51:29.543 {"type":"quote","code":"159825","ts":"2026-09-14T01:52:00Z","last":0.738,"changePct":-1.3368983957219263}
+[01:51:40.005]   RECV 01:51:29.543 {"type":"quote","code":"159870","ts":"2026-09-14T01:52:00Z","last":0.769,"changePct":-0.5174644243208284}
+[01:51:40.005]   RECV 01:51:29.543 {"type":"quote","code":"551000","ts":"2026-09-14T01:52:00Z","last":102.143,"changePct":0.039176126068779814}
+[01:51:40.005]   RECV 01:51:29.546 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":
+[01:51:40.005]   RECV 01:51:32.940 {"type":"quote","code":"159577","ts":"2026-09-14T01:52:00Z","last":1.637,"changePct":-0.12202562538133019}
+[01:51:40.005]   RECV 01:51:32.940 {"type":"quote","code":"159890","ts":"2026-09-14T01:52:00Z","last":1.644,"changePct":0.18281535648993855}
+[01:51:40.005]   RECV 01:51:32.941 {"type":"quote","code":"159985","ts":"2026-09-14T01:52:00Z","last":2.308,"changePct":-0.7311827956989396}
+[01:51:40.005]   RECV 01:51:32.944 {"type":"health","window_secs":3600,"sources":[{"source":"sina_jsonp","window_secs":3600,"attempts":359,"successes":228,"success_rate":0.6350974930362117,"p50_ms":8107.0,"p95_ms":18266.65,"circuit_state":"open","status":

@@ -1,0 +1,91 @@
+
+Running 21 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/_ab_old_g16g18.e2e.ts:173:3 › K线组件交互验收矩阵 A–H › A1 默认加载：15m / 首标的 / 主图蜡烛横向铺满无死区 (1.5s)
+  ✓   2 [chromium] › e2e/_ab_old_g16g18.e2e.ts:197:3 › K线组件交互验收矩阵 A–H › A2 主图 MA(5/10/20) + 副图成交量默认显示 (2.7s)
+  ✓   3 [chromium] › e2e/_ab_old_g16g18.e2e.ts:220:3 › K线组件交互验收矩阵 A–H › A3 红涨绿跌着色 + 十字光标 tooltip (2.6s)
+  ✓   4 [chromium] › e2e/_ab_old_g16g18.e2e.ts:243:3 › K线组件交互验收矩阵 A–H › A4 主图高度/比例正常 + canvas 有界（非 33M） (1.4s)
+  ✓   5 [chromium] › e2e/_ab_old_g16g18.e2e.ts:269:3 › K线组件交互验收矩阵 A–H › B5 周期逐一切换（1m/5m/15m/1h/日）按钮高亮+数据源+重绘 (14.3s)
+  ✓   6 [chromium] › e2e/_ab_old_g16g18.e2e.ts:298:3 › K线组件交互验收矩阵 A–H › B6 周期切换后默认视口仍≈当日+前一交易日（跟随锁定最新） (14.1s)
+  ✓   7 [chromium] › e2e/_ab_old_g16g18.e2e.ts:317:3 › K线组件交互验收矩阵 A–H › C7 指标勾选热切换：MACD/KDJ/BOLL pane 出现/消失，MA 联动不丢主图量副图 (7.1s)
+  ✓   8 [chromium] › e2e/_ab_old_g16g18.e2e.ts:345:3 › K线组件交互验收矩阵 A–H › C8 组合开 2-3 个副图 indicator 布局不溢出可渲染 (4.0s)
+  ✓   9 [chromium] › e2e/_ab_old_g16g18.e2e.ts:370:3 › K线组件交互验收矩阵 A–H › D9 切分时：当日价格线+均价线正确无缺口；切回K线恢复 (2.4s)
+  ✓  10 [chromium] › e2e/_ab_old_g16g18.e2e.ts:403:3 › K线组件交互验收矩阵 A–H › D10 分时在数据动态时正确（WS 注入模拟盘中） (4.3s)
+  ✓  11 [chromium] › e2e/_ab_old_g16g18.e2e.ts:428:3 › K线组件交互验收矩阵 A–H › E11 宫格 2×2 / 2×3 / 回单图无状态丢失 (11.1s)
+  ✓  12 [chromium] › e2e/_ab_old_g16g18.e2e.ts:461:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） (8.3s)
+  ✓  13 [chromium] › e2e/_ab_old_g16g18.e2e.ts:496:3 › K线组件交互验收矩阵 A–H › F13 滚轮/拖拽缩放 → 停止强拉跟随；回到最新恢复锁定 (6.8s)
+  ✓  14 [chromium] › e2e/_ab_old_g16g18.e2e.ts:536:3 › K线组件交互验收矩阵 A–H › F14 平移查看历史：向前滚动分页 ?before= 无重复/缺口（可达≥10 交易日） (48.6s)
+  ✓  15 [chromium] › e2e/_ab_old_g16g18.e2e.ts:581:3 › K线组件交互验收矩阵 A–H › F15 缩放到底/到顶边界行为不崩 (10.7s)
+  ✘  16 [chromium] › e2e/_ab_old_g16g18.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 (6.4s)
+  ✓  17 [chromium] › e2e/_ab_old_g16g18.e2e.ts:639:3 › K线组件交互验收矩阵 A–H › G17 实时注入 ≥60s 连续运行不崩 / 无 console error / 内存有界 (1.1m)
+  ✘  18 [chromium] › e2e/_ab_old_g16g18.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 (6.4s)
+  ✓  19 [chromium] › e2e/_ab_old_g16g18.e2e.ts:685:3 › K线组件交互验收矩阵 A–H › H19 搜索过滤 code/名称 命中与无结果 + 点击切换标的更新主图 (6.3s)
+  ✓  20 [chromium] › e2e/_ab_old_g16g18.e2e.ts:720:3 › K线组件交互验收矩阵 A–H › H20 切换标的期间快速连点不崩溃、请求正确 (6.2s)
+K1_EVIDENCE defect=false listVisible=true chartVisible=true errs=[]
+  ✓  21 [chromium] › e2e/_ab_old_g16g18.e2e.ts:744:3 › K线组件交互验收矩阵 A–H › K1 缺陷复现：服务端 WS quote 帧(change_pct) → 看板崩溃 (2.9s)
+
+
+  1) [chromium] › e2e/_ab_old_g16g18.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-realtime-marker]')
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      617 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:00:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.15, volume: 100, amount: 100 } });
+      618 |     }, code);
+    > 619 |     await expect(marker).toHaveCount(1, { timeout: 5000 });
+          |                          ^
+      620 |     await expect(marker).toContainText('9.15');
+      621 |     // 虚线标记样式（进行中 bar）
+      622 |     const dashed = await marker.locator('div').first().evaluate((el) => getComputedStyle(el).borderLeftStyle);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/_ab_old_g16g18.e2e.ts:619:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/_ab_old_g16g18.e2e.ts-K线组件-39f52-ts-updateBar-进行中-bar-虚线跳动标记-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/_ab_old_g16g18.e2e.ts-K线组件-39f52-ts-updateBar-进行中-bar-虚线跳动标记-chromium/error-context.md
+
+  2) [chromium] › e2e/_ab_old_g16g18.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 ────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-realtime-marker]')
+    Expected substring: "9.17"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+
+
+      671 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:15:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.17, volume: 100, amount: 100 } });
+      672 |     }, code);
+    > 673 |     await expect(marker).toContainText('9.17', { timeout: 5000 });
+          |                          ^
+      674 |     // 切 1m → 实时叠加
+      675 |     await bt(page, '1m').click();
+      676 |     await page.waitForTimeout(4000);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/_ab_old_g16g18.e2e.ts:673:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/_ab_old_g16g18.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/_ab_old_g16g18.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/_ab_old_g16g18.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 
+    [chromium] › e2e/_ab_old_g16g18.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 ─────────
+  19 passed (3.9m)

@@ -1,0 +1,3 @@
+[probe] open, subs=bar1m+bar15m at 2026-09-14T03:17:30.251Z
+[probe] done: total=5 -> obs2_bar_only.json
+[probe]   bar:1m: count=5 first=2.332s last=288.574s gaps=[54.426,102.522,78.241,51.053]

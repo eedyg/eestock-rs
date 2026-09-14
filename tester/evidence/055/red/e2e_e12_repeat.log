@@ -1,0 +1,12 @@
+=== E12 RUN 1 ===
+Running 1 test using 1 worker
+  ✓  1 [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） (8.4s)
+  1 passed (8.8s)
+=== E12 RUN 2 ===
+Running 1 test using 1 worker
+  ✓  1 [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） (8.3s)
+  1 passed (8.7s)
+=== E12 RUN 3 ===
+Running 1 test using 1 worker
+  ✓  1 [chromium] › e2e/kline-matrix.e2e.ts:579:3 › K线组件交互验收矩阵 A–H › E12 点击宫格格子进单图聚焦该标的 + 格内最新价跳动（quote 注入） (8.3s)
+  1 passed (8.7s)

@@ -1,0 +1,27 @@
+[ok  ] T1 初始：单真实 WS 连接 + 状态 open（订阅帧已发出；通道静默 = 真实半开场景） :: {"phase":"initial","realT":1789357395336,"wsConns":1,"frames":0,"sent":1,"lastFrameAgoMs":null,"status":"open","dataLen":120,"stats":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":null,"pollFailures":0},"connTimeline":[{"n":1,"recv":0,"sent":1}]}
+[ok  ] T1 交易时段静默 14s：不得重连（阈值 15s） :: {"conns":1,"status":"open"}
+[ok  ] T1 交易时段静默 >15s：状态离开 open（看门狗主动 close） :: {"status":"closed","timeline":[{"t":1789351200000,"s":"connecting"},{"t":1789351200000,"s":"open"},{"t":1789351216000,"s":"closed"}]}
+[ok  ] T1 越过阈值时尚未重连（退避 1s 未到） :: {"conns":1}
+[ok  ] T1 退避 1s 后自动重连（第 2 条真实 WS 连接，状态回 open） :: {"conns":2,"status":"open","connTimeline":[{"n":1,"recv":0,"sent":1},{"n":2,"recv":0,"sent":1}]}
+[ok  ] T1 重连后重发全部订阅帧（bar 订阅在列） :: {"conn2Sent":["{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"]}
+[ok  ] T2 看门狗 → 主动 close → 退避重连 → 重连成功后 1 次 HTTP 增量补偿（limit=5、无 before） :: {"L0Len":120,"afterTruncLen":117,"afterFillLen":120,"closedStatus":"closed","fillStatus":"open","compensationRequests":[{"at":1789357399506,"method":"GET","url":"/api/kline?code=518880&period=15m&limit=5"}],"allKlineReqsInWindow":["/api/kline?code=518880&period=15m&limit=5"],"framesInWindow":0,"exac
+[ok  ] T2 断口补齐：数据面完全还原为断口前（无空洞/无重复/严格递增；丢掉 3 根由补偿补回） :: {"L0":120,"after":120,"truncLen":117,"exactRestore":true,"uniq":true,"sorted":true}
+[ok  ] T2 兜底窗口对齐真实后端最新 bar（末根 ts = 后端最新） :: {"feedLast":"2026-09-14T03:30:00.000Z","gtLast":"2026-09-14T03:30:00.000Z"}
+[ok  ] T2 无页面异常 :: []
+[ok  ] T4 health 帧复位静默计时（13s 注入 ⇒ 27s 不 close；注入后 15s 才 close） :: {"kind":"health","injected":true,"connsBefore":1,"afterInject":{"status":"open","conns":1},"after14s":{"status":"open","conns":1},"after16s":{"status":"closed","conns":1}}
+[ok  ] T4 quote 帧复位静默计时 :: {"kind":"quote","injected":true,"connsBefore":2,"afterInject":{"status":"open","conns":2},"after14s":{"status":"open","conns":2},"after16s":{"status":"closed","conns":2}}
+[ok  ] T4 bar 帧复位静默计时 :: {"kind":"bar","injected":true,"connsBefore":3,"afterInject":{"status":"open","conns":3},"after14s":{"status":"open","conns":3},"after16s":{"status":"closed","conns":3}}
+[ok  ] T3 非交易时段静默 15s：**不得**重连（门控 300s，15s 口径不适用） :: {"label":"15s","simulatedSecTotal":15,"sec":15,"conns":1,"status":"open"}
+[ok  ] T3 非交易时段静默 298s：仍不得重连 :: {"label":"累计 298s","simulatedSecTotal":298,"sec":223,"conns":1,"status":"open"}
+[ok  ] T3 累计 ~300s 才自愈（证明阈值确为 300s 而非 15s） :: {"status":"closed","timeline":[{"t":1789178400000,"s":"connecting"},{"t":1789178400000,"s":"open"},{"t":1789178700000,"s":"closed"}]}
+[ok  ] T3 300s 后重连成功（第 2 条连接） :: {"conns":2}
+[ok  ] T3 非交易时段空转受限：模拟 1 小时新增重连 ≤ 12+2（≈1 次/5 分钟，无 15s 空转） :: {"added":12}
+[ok  ] T3 非交易时段：无「分钟兜底」HTTP（0 次）；出现的 limit=5 请求全部 = 重连补偿，次数恰等于重连次数 :: {"limit5Count":13,"reconnects":13,"note":"口径 4：重连成功后一次 HTTP 增量补偿（非分钟兜底）"}
+[ok  ] A 真实看板：初始单真实 WS 连接（订阅帧已发出） :: {"conns":1,"frames":0,"lastFrameAt":null}
+[ok  ] A 真实看板：静默 14s 内不重连、顶栏 pill 不出现断开态 :: {"conns":1,"pillAt14":0}
+[ok  ] A 真实看板：静默 >15s ⇒ 顶栏出现「WS 断开，重连中…」（状态离开 open，不谎报） :: {"pillAfter":1,"timelineMs":1789357439388}
+[ok  ] A 真实看板：看门狗重连后自动重订阅 + 1 次 HTTP 增量补偿（limit=5、无 before） :: {"first":{"conns":1,"frames":0,"lastFrameAt":null},"conns":[{"n":1,"at":"2026-09-14T03:43:54.389Z","recv":0,"sent":4},{"n":2,"at":"2026-09-14T03:43:59.390Z","recv":0,"sent":4}],"reSubConn2":["{\"type\":\"subscribe\",\"topic\":\"quote\"}","{\"type\":\"subscribe\",\"topic\":\"health\"}","{\"type\":\"s
+[ok  ] A 真实看板：数据面无重复、严格递增，末根与后端最新一致 :: {"len":120,"sortedTs":true,"chartLast":"2026-09-14T03:30:00.000Z","gtLast":"2026-09-14T03:30:00Z"}
+[ok  ] A 真实看板：无页面异常 :: []
+
+checks: 25/25 passed; failed=none

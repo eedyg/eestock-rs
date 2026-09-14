@@ -1,0 +1,11 @@
+## A. 181c35a 是否触及 WS 通路文件（feed.ts / KlineChart.tsx / WsClient.ts）
+(空 = 未触及)
+
+## B. 7949c0b 是否触及 WsClient / 实时订阅函数
+(空 = 未触及 WsClient)
+
+## C. 7949c0b 对 feed.ts 的实时相关函数 diff（subscribeRealtime/applyRealtime/onRealtime）
+(空 = 实时函数未改)
+
+## D. 7949c0b 对 KlineChart.tsx 的实时相关行 diff
+(空 = 实时接线未改)

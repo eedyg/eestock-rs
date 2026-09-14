@@ -1,0 +1,30 @@
+=== FINAL HYGIENE 2026-09-14T11:49:11+08:00 ===
+--- tracked modified ---
+ M design/06-web/01-dashboard.md
+ M web/e2e/kline-matrix.e2e.ts
+ M web/src/features/dashboard/KlineChart.tsx
+ M web/src/features/dashboard/feed.ts
+ M web/src/ws/WsClient.ts
+--- staged ---
+(空=无暂存)
+--- online ---
+    PID                  STARTED CMD
+2948632 Mon Sep 14 10:00:45 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+6fcb509f41b9d128da24153079b2964d  /tmp/app_dev_8081.toml
+f09dd2a7c6b49c3c5769f0f723859859  web/dist/index.html
+7f312b284f7dcf75025df35f123f3f19  web/dist/assets/index-CBm_5q76.js
+cdb88f5194ac7ea5d23f4069eea8d4c8  web/dist/assets/index-LiEzF-e0.css
+--- ports ---
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=12))
+--- worktrees ---
+/home/eestock/workspace/git/eestock/eestock-rs  6391a4d [master]
+/tmp/dcap_ind_wt                                3f5425c (detached HEAD)
+/tmp/dcap_p5_wt                                 3f5425c (detached HEAD)
+/tmp/p4a_baseline                               bf5e0cf (detached HEAD)
+--- harness removed ---
+ls: cannot access 'web/__acc_harness__': No such file or directory
+--- report self-location ---
+3:- **本文件自身路径（self-location）**：`tester/test/058_realtime_gate_phase3_independent_acceptance_execution.md`
+--- verdict ---
+**VERDICT: PASS**

@@ -1,0 +1,18 @@
+[ok  ] P1 每分钟恰 1 次兜底请求（虚拟 2 分钟 ⇒ 2 次 limit=5、无 before） :: {"initialReq":"/api/kline?code=518880&period=15m&limit=120","minute1":["/api/kline?code=518880&period=15m&limit=5"],"minute2":["/api/kline?code=518880&period=15m&limit=5","/api/kline?code=518880&period=15m&limit=5"],"statsBefore":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":null,"pollFailures":0},"statsAfter1Min":{"lastSource":nul
+[ok  ] P1 stats 前进：lastPollOkAt 每次成功兜底后更新、pollFailures=0 :: {"s0":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":null,"pollFailures":0},"s1":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":1789351260000,"pollFailures":0},"s2":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":1789351320000,"pollFailures":0}}
+[ok  ] P4 真实 HTTP 兜底重复取回同一根：长度不变、不重发（幂等 ignore） :: {"pollOk":true,"lenBefore":120,"lenAfter":120,"rtBefore":0,"rtAfter":0}
+[ok  ] P4 同 ts 且 OHLCV 完全一致（WS 重复帧）：不写、不 emit（长度+rtCount 均不变） :: {"len":120,"rt":0}
+[ok  ] P4 同 ts 值变：原地覆盖（长度不变、rtCount +1、末根 close 更新） :: {"len":120,"rt":1,"close":8.923,"want":8.923}
+[ok  ] P4 更晚 ts：append（长度 +1、rtCount +1、末根 ts = 注入 ts） :: {"len":121,"rt":2,"lastTs":"2026-09-14T03:45:00.000Z"}
+[ok  ] P1/P4 无页面异常（虚拟时钟推进 >15s 触发看门狗重连属预期，不计入失败） :: {"conns":2,"errs":[]}
+[ok  ] P2 document.hidden：虚拟 2 分钟 0 次兜底 HTTP（初始加载 limit=120 除外） :: {"visibilityState":"hidden","initial":["/api/kline?code=518880&period=15m&limit=120"],"after2Min":[],"stats":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":null,"pollFailures":0}}
+[ok  ] P3 非交易时段（周六）：虚拟 2 分钟 0 次兜底 HTTP、且无重连（无补偿） :: {"after2Min":[],"conns":1,"stats":{"lastSource":null,"lastWriteAt":null,"lastPollOkAt":null,"pollFailures":0}}
+[ok  ] P5 同一 (code,period) 3 图并发兜底 ⇒ 合并为 1 次 HTTP（3 图 1 请求；6 图共 4 请求 ≠ 6） :: {"reqs":["/api/kline?code=518880&period=15m&limit=5","/api/kline?code=161226&period=15m&limit=5","/api/kline?code=513310&period=15m&limit=5","/api/kline?code=159915&period=15m&limit=5"],"count":4,"results":[true,true,true,true,true,true]}
+[ok  ] P5 6 个不同标的并发兜底 ⇒ 6 次 HTTP（各自 1 次、无重复），全部成功 :: ["/api/kline?code=161226&period=15m&limit=5","/api/kline?code=513310&period=15m&limit=5","/api/kline?code=159915&period=15m&limit=5","/api/kline?code=510050&period=15m&limit=5","/api/kline?code=512480&period=15m&limit=5","/api/kline?code=513050&period=15m&limit=5"]
+[ok  ] N1 非跟随态 + 新 bar 到屏外（像素 x > 容器宽）：出现「有新数据」提示 :: {"containerWidth":1200,"follow":false,"vrBefore":{"from":137,"to":252,"realFrom":137,"realTo":252},"vrAfter":{"from":137,"to":252,"realFrom":137,"realTo":252},"lastBarPxBefore":2025,"lastBarPxAfter":2035,"chartLen":[340,341],"hint":1,"rtCount":[0,1],"dataLen":[340,341]}
+[ok  ] N1 提示出现时视口坐标前后不变（from/to/realFrom/realTo 相同） :: {"before":{"from":137,"to":252,"realFrom":137,"realTo":252},"after":{"from":137,"to":252,"realFrom":137,"realTo":252}}
+[ok  ] N1 点击提示后：提示消失且视口跳到最新（可见区间右端 = 最后一根） :: {"vrAfterClick":{"from":226,"to":341,"realFrom":234,"realTo":350},"hintAfterClick":0,"chartLen":341,"lastBarPxAfterClick":1055}
+[ok  ] N2 followLatest 态：无提示且视口跟随最右（可见区间右端 ≥ 最后一根） :: {"follow":true,"vrBefore":{"from":226,"to":341,"realFrom":234,"realTo":350},"vrAfter":{"from":227,"to":342,"realFrom":235,"realTo":351},"chartLenAfter":342,"hint":0,"rtCount":[1,2]}
+[ok  ] N1/N2 无重连（阈内未静默超时）、无页面异常 :: {"conns":1,"errs":[]}
+
+checks: 16/16 passed; failed=none

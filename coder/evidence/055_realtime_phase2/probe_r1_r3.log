@@ -1,0 +1,77 @@
+{
+  "base": "http://127.0.0.1:18111",
+  "initialLoad": [
+    {
+      "at": 100,
+      "url": "/api/kline?code=518880&period=15m&limit=120"
+    }
+  ],
+  "dropWindow": {
+    "from": 2132,
+    "to": 22132
+  },
+  "socketsAtStart": 1,
+  "socketsTotal": 2,
+  "wsTimeline": [
+    {
+      "t": 49,
+      "ev": "open-socket#1"
+    },
+    {
+      "t": 16360,
+      "ev": "close-called"
+    },
+    {
+      "t": 17360,
+      "ev": "open-socket#2"
+    }
+  ],
+  "compensationRequestsInHalfOpenWindow": [
+    {
+      "at": 17365,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+  ],
+  "minuteFallbackRequests_55to75s": [
+    {
+      "at": 60122,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+  ],
+  "steadyWindow": {
+    "fromS": 120018,
+    "toS": 240042,
+    "seconds": 120,
+    "reconnects": 0
+  },
+  "allKlineRequests": [
+    {
+      "at": 100,
+      "url": "/api/kline?code=518880&period=15m&limit=120"
+    },
+    {
+      "at": 17365,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "at": 60122,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "at": 120146,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "at": 180165,
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+  ],
+  "consoleErrors": [],
+  "verdict": {
+    "watchdogReconnected": true,
+    "compensationOnce": true,
+    "minuteFallback": true,
+    "noChurnInSteadyWindow": true,
+    "clean": true
+  }
+}

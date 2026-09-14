@@ -1,0 +1,151 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/kline-matrix.e2e.ts:403:3 › K线组件交互验收矩阵 A–H › D10 分时在数据动态时正确（WS 注入模拟盘中） (5.1s)
+  ✘  2 [chromium] › e2e/kline-matrix.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 (7.1s)
+  ✘  3 [chromium] › e2e/kline-matrix.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 (retry #1) (6.6s)
+  ✓  4 [chromium] › e2e/kline-matrix.e2e.ts:639:3 › K线组件交互验收矩阵 A–H › G17 实时注入 ≥60s 连续运行不崩 / 无 console error / 内存有界 (1.1m)
+  ✘  5 [chromium] › e2e/kline-matrix.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 (6.4s)
+  ✘  6 [chromium] › e2e/kline-matrix.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 (retry #1) (6.6s)
+
+
+  1) [chromium] › e2e/kline-matrix.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-realtime-marker]')
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      617 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:00:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.15, volume: 100, amount: 100 } });
+      618 |     }, code);
+    > 619 |     await expect(marker).toHaveCount(1, { timeout: 5000 });
+          |                          ^
+      620 |     await expect(marker).toContainText('9.15');
+      621 |     // 虚线标记样式（进行中 bar）
+      622 |     const dashed = await marker.locator('div').first().evaluate((el) => getComputedStyle(el).borderLeftStyle);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/kline-matrix.e2e.ts:619:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-realtime-marker]')
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      617 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:00:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.15, volume: 100, amount: 100 } });
+      618 |     }, code);
+    > 619 |     await expect(marker).toHaveCount(1, { timeout: 5000 });
+          |                          ^
+      620 |     await expect(marker).toContainText('9.15');
+      621 |     // 虚线标记样式（进行中 bar）
+      622 |     const dashed = await marker.locator('div').first().evaluate((el) => getComputedStyle(el).borderLeftStyle);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/kline-matrix.e2e.ts:619:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互-4efc1-ts-updateBar-进行中-bar-虚线跳动标记-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/kline-matrix.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 ──────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-realtime-marker]')
+    Expected substring: "9.17"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+
+
+      671 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:15:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.17, volume: 100, amount: 100 } });
+      672 |     }, code);
+    > 673 |     await expect(marker).toContainText('9.17', { timeout: 5000 });
+          |                          ^
+      674 |     // 切 1m → 实时叠加
+      675 |     await bt(page, '1m').click();
+      676 |     await page.waitForTimeout(4000);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/kline-matrix.e2e.ts:673:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-realtime-marker]')
+    Expected substring: "9.17"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('[data-realtime-marker]')
+
+
+      671 |       window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:15:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.17, volume: 100, amount: 100 } });
+      672 |     }, code);
+    > 673 |     await expect(marker).toContainText('9.17', { timeout: 5000 });
+          |                          ^
+      674 |     // 切 1m → 实时叠加
+      675 |     await bt(page, '1m').click();
+      676 |     await page.waitForTimeout(4000);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/kline-matrix.e2e.ts:673:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../../tmp/kl_diag/pw-head/kline-matrix.e2e.ts-K线组件交互验收矩阵-A–H-G18-实时叠加在-15m-与-1m-都生效-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e/kline-matrix.e2e.ts:607:3 › K线组件交互验收矩阵 A–H › G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记 
+    [chromium] › e2e/kline-matrix.e2e.ts:663:3 › K线组件交互验收矩阵 A–H › G18 实时叠加在 15m 与 1m 都生效 ───────────
+  2 passed (1.6m)

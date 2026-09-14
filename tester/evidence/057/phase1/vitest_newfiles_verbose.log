@@ -1,0 +1,36 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/feedRealtimeReconnect.test.ts > T-R2 重连后 HTTP 增量补偿（断口不残留空洞） > T-R2-a 断线期间错过 3 根 bar → 重连后 dataList 补齐到最新（无空洞、无重复） 4ms
+ ✓ src/features/dashboard/feedRealtimeReconnect.test.ts > T-R2 重连后 HTTP 增量补偿（断口不残留空洞） > T-R2-b 补偿窗口只含已知 bar（同 ts 同 OHLC）→ 幂等：不重复、不改变既有数据 1ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-a 静默达阈值 → 主动 close() 并进入既有指数退避重连（重连后重发全部 subscribe 帧） 5ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-b 半开连接（readyState 已 CLOSING、onclose 永不到来）→ 仍必须重连，不得早退 1ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-c 持续有入站帧 → 不得误触发看门狗（阈值以「最近一次入站帧」为基准） 1ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1-d 自愈后必须做一次 HTTP 增量补偿（口径②：与兜底同一最新窗口口径） > 静默 15s → 主动重连 → 对当前 (code, period) 拉一次最新窗口（无 before 游标） 1ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1-e 静默阈值自适应（阶段 2 加强：慢节奏/零帧不空转重连） > T-R1-e1 零帧静默：阈值按 15→30→60→120→240→300s 升级（封顶 300s） 1ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1-e 静默阈值自适应（阶段 2 加强：慢节奏/零帧不空转重连） > T-R1-e2 慢节奏（帧间隔 20s > 15s 基线）不得被误判失联：阈值随节奏放大到 50s 0ms
+ ✓ src/ws/WsClient.watchdog.test.ts > T-R1-f 重连补偿接线边界（阶段 2 加强） > 订阅时 WS 已 open ⇒ 首次重连必须补偿（最新窗口、无 before 游标） 1ms
+ ✓ src/features/dashboard/realtimePoll.test.ts > realtimePoll 兜底取数合并 + 限流 > 同一 (code, period) 在途请求合并为一次 HTTP；完成后不复用旧结果 3ms
+ ✓ src/features/dashboard/realtimePoll.test.ts > realtimePoll 兜底取数合并 + 限流 > 不同 (code, period) 不合并；超过并发上限的请求排队而不丢失 8ms
+ ✓ src/features/dashboard/realtimePoll.test.ts > realtimePoll 兜底取数合并 + 限流 > 失败的请求同样释放并发名额（不产生死锁） 6ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a 每 60s 恰一次：GET /api/kline 最新窗口（limit 3~5、无 before 游标） 4ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a2 合并 = 同一 applyRealtime：更晚 append / 同 ts 覆盖 / 更早忽略（且经同一实时通路下发） 2ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-b 与 WS 不重复写入：同 ts 同 OHLC 的兜底结果不产生第二次写入（spy 计数） 1ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-d 非交易时段跳过兜底（午间休市 / 周末均不得轮询） 1ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-d2 页面不可见时暂停兜底，回到可见后恢复 1ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3-e 兜底失败退避 1→2→4→8→60s（成功复位、不弹错） > T-R3-e1 连续失败按 1/2/4/8/60s 退避（60s 封顶），不改变既有 bars、不抛错 3ms
+ ✓ src/features/dashboard/feedRealtimePoll.test.ts > T-R3-e 兜底失败退避 1→2→4→8→60s（成功复位、不弹错） > T-R3-e2 守护：兜底返回空数组 / 失败均不得清空或重建既有数据 1ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R4 rtCallback 启动竞态（subscribeBar 注册前到达的实时 bar 不得静默丢弃） > T-R4-a 注册前到达的 bar 必须缓冲、注册后按序补投；其后到达的直投 14ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R4 rtCallback 启动竞态（subscribeBar 注册前到达的实时 bar 不得静默丢弃） > T-R4-b 守卫：无竞态（先注册 subscribeBar，再到达）时不得重复投递 2ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R3-c 只有 followLatest && !manualAdjusted 才 scrollToRealTime > T-R3-c1 守卫：非跟随态实时 bar 到达不得滚动（口径①：绝不把非跟随视口拉回最右） 2ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R3-c 只有 followLatest && !manualAdjusted 才 scrollToRealTime > T-R3-c2 用户已手动缩放/平移（manualAdjusted）时即使 followLatest=true 也不得滚动 1ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-a 新 bar 落在视口之外 → 出现「新数据」提示，且视口不变（不 scrollToRealTime） 8ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-b 点击提示 → 跳转到最新（scrollToRealTime） 4ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-c 守卫：跟随态（followLatest=true）不得出现提示 2ms
+ ✓ src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-d 守卫：非跟随态但新 bar 落在可见区内 → 不得提示 1ms
+
+ Test Files  5 passed (5)
+      Tests  27 passed (27)
+   Start at  11:07:53
+   Duration  647ms (transform 161ms, setup 154ms, collect 301ms, tests 81ms, environment 951ms, prepare 559ms)
+

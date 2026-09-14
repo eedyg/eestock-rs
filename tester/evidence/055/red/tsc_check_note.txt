@@ -1,0 +1,5 @@
+command: cd web && npx tsc -b
+exit: 0
+stdout/stderr: (empty)
+note: tsconfig.app.json include=["src"] => 新增的 4 个测试文件也在类型检查范围内；通过。
+      运行时间 2026-09-14 10:25 前后（本轮最后一次 tsc 全绿）。

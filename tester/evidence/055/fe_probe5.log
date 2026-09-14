@@ -1,0 +1,25 @@
+[02:01:07.822] WS OPEN #1 ws://127.0.0.1:18099/ws
+[02:01:10.914] === 1) 正常态 ===
+[02:02:51.046] 正常 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:02:51.046] === 2) 离线 12s → 在线 ===
+[02:03:03.059] network back online
+[02:03:03.059] === 3) 恢复后观察 100s（是否重连/是否有帧）===
+[02:03:03.061] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:03:13.074] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:03:23.083] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:03:33.095] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:03:43.103] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:03:53.112] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:04:03.121] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:04:13.134] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:04:23.146] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:04:33.151] 恢复中 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=8.943
+[02:04:43.161] === 4) 切 Tab：分时 → K线（切周期/标的 之外的另一条 UI 路径）===
+[02:04:49.228] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:04:59.233] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:05:09.236] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:05:19.241] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:05:29.253] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:05:39.264] 切Tab后 pill=(无 WS 异常 pill = 显示已连接) barFrames=1 marker=null
+[02:05:49.275] TOTAL: websocket opens=1 closes=0 barFrames=1
+[02:05:49.275]   BAR 02:01:10.616 2026-09-14T02:02:00Z

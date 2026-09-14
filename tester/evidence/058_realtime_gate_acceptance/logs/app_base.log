@@ -1,0 +1,9 @@
+{"timestamp":"2026-09-14T03:47:06.358865Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/acc_rec/app_base.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:47:06.402350Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:47:06.403722Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:47:06.404622Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:47:06.404713Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18213","static_dir":"/tmp/acc_rec/dist_base"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:47:06.404734Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18214"},"target":"mcp::server"}
+{"timestamp":"2026-09-14T03:47:28.877198Z","level":"WARN","fields":{"message":"rest handler failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::rest"}
+{"timestamp":"2026-09-14T03:47:32.091904Z","level":"WARN","fields":{"message":"rest handler failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::rest"}
+{"timestamp":"2026-09-14T03:47:32.181365Z","level":"WARN","fields":{"message":"rest handler failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::rest"}

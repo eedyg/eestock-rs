@@ -1,0 +1,21 @@
+# connect ws://127.0.0.1:18099/ws code=513310 dur=300.0s t0=09:46:12
+[   0.02] SENT {"type": "subscribe", "topic": "bar", "code": "513310", "period": "1m"}
+[   0.02] SENT {"type": "subscribe", "topic": "bar", "code": "513310", "period": "5m"}
+[   0.02] SENT {"type": "subscribe", "topic": "bar", "code": "513310", "period": "15m"}
+[   0.02] SENT {"type": "subscribe", "topic": "bar", "code": "513310", "period": "1h"}
+[   0.02] SENT {"type": "subscribe", "topic": "bar", "code": "513310", "period": "1d"}
+[   0.02] SENT quote subscribe
+[   0.39] BAR   code=513310 period=1d bar.ts=2026-09-10T16:00:00Z o=4.734 h=4.769 l=4.673 c=4.73 v=1770203119 src=tushare
+[   0.70] BAR   code=513310 period=1m bar.ts=2026-09-14T01:46:00Z o=4.627 h=4.627 l=4.62 c=4.624 v=5950700 src=tencent_ifzq
+[   0.72] BAR   code=513310 period=15m bar.ts=2026-09-14T01:45:00Z o=4.627 h=4.629 l=4.62 c=4.624 v=7448900 src=None
+[   0.75] BAR   code=513310 period=5m bar.ts=2026-09-14T01:45:00Z o=4.627 h=4.629 l=4.62 c=4.624 v=7448900 src=None
+[   0.76] BAR   code=513310 period=1h bar.ts=2026-09-14T01:00:00Z o=4.603 h=4.645 l=4.603 c=4.624 v=70067708 src=None
+[   0.78] QUOTE code=513310 ts=2026-09-14T01:46:00Z last=4.624 changePct=-2.2410147991543496
+[  61.93] BAR   code=513310 period=1m bar.ts=2026-09-14T01:48:00Z o=4.628 h=4.629 l=4.628 c=4.629 v=596500 src=tencent_ifzq
+[  61.97] QUOTE code=513310 ts=2026-09-14T01:48:00Z last=4.629 changePct=-2.135306553911223
+[ 152.74] BAR   code=513310 period=1m bar.ts=2026-09-14T01:49:00Z o=4.637 h=4.638 l=4.636 c=4.636 v=8186600 src=tencent_ifzq
+[ 152.76] QUOTE code=513310 ts=2026-09-14T01:49:00Z last=4.636 changePct=-1.987315010570831
+[ 270.21] BAR   code=513310 period=1m bar.ts=2026-09-14T01:51:00Z o=4.634 h=4.638 l=4.634 c=4.638 v=3714500 src=tencent_ifzq
+[ 270.23] BAR   code=513310 period=5m bar.ts=2026-09-14T01:50:00Z o=4.635 h=4.638 l=4.63 c=4.638 v=11888100 src=None
+[ 270.25] QUOTE code=513310 ts=2026-09-14T01:51:00Z last=4.638 changePct=-1.9450317124735839
+# done t1=09:51:12 elapsed=300.0s

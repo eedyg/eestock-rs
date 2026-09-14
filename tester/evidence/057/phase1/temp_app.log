@@ -1,0 +1,11 @@
+{"timestamp":"2026-09-14T03:08:44.734630Z","level":"INFO","fields":{"message":"eestock-app starting","config":"tester/evidence/057/phase1/temp_app.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:08:44.777289Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:08:44.778467Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:08:44.779415Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:08:44.779485Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18099","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:08:44.779524Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18098"},"target":"mcp::server"}
+{"timestamp":"2026-09-14T03:08:45.266703Z","level":"WARN","fields":{"message":"alert evaluator tick failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::alerts"}
+{"timestamp":"2026-09-14T03:11:45.343326Z","level":"WARN","fields":{"message":"alert evaluator tick failed","error":"error returned from database: cannot execute UPDATE in a read-only transaction"},"target":"web::alerts"}
+{"timestamp":"2026-09-14T03:12:45.367804Z","level":"WARN","fields":{"message":"alert evaluator tick failed","error":"error returned from database: cannot execute UPDATE in a read-only transaction"},"target":"web::alerts"}
+{"timestamp":"2026-09-14T03:14:45.413999Z","level":"WARN","fields":{"message":"alert evaluator tick failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::alerts"}
+{"timestamp":"2026-09-14T03:21:45.582626Z","level":"WARN","fields":{"message":"alert evaluator tick failed","error":"error returned from database: cannot execute INSERT in a read-only transaction"},"target":"web::alerts"}

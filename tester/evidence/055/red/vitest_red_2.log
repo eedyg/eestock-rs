@@ -1,0 +1,315 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+ ❯ src/features/dashboard/feedRealtimeReconnect.test.ts (2 tests | 1 failed) 8ms
+   × T-R2 重连后 HTTP 增量补偿（断口不残留空洞） > T-R2-a 断线期间错过 3 根 bar → 重连后 dataList 补齐到最新（无空洞、无重复） 6ms
+     → expected [ '2026-09-14T01:50:00Z', …(3) ] to deeply equal [ '2026-09-14T01:50:00Z', …(6) ]
+   ✓ T-R2 重连后 HTTP 增量补偿（断口不残留空洞） > T-R2-b 补偿窗口只含已知 bar（同 ts 同 OHLC）→ 幂等：不重复、不改变既有数据 1ms
+ ❯ src/ws/WsClient.watchdog.test.ts (4 tests | 4 failed) 8ms
+   × T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-a 静默达阈值 → 主动 close() 并进入既有指数退避重连（重连后重发全部 subscribe 帧） 5ms
+     → expected +0 to be 1 // Object.is equality
+   × T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-b 半开连接（readyState 已 CLOSING、onclose 永不到来）→ 仍必须重连，不得早退 1ms
+     → expected +0 to be 1 // Object.is equality
+   × T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-c 持续有入站帧 → 不得误触发看门狗（阈值以「最近一次入站帧」为基准） 1ms
+     → expected +0 to be 1 // Object.is equality
+   × T-R1-d 自愈后必须做一次 HTTP 增量补偿（口径②：与兜底同一最新窗口口径） > 静默 15s → 主动重连 → 对当前 (code, period) 拉一次最新窗口（无 before 游标） 1ms
+     → expected +0 to be 1 // Object.is equality
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts (7 tests | 5 failed) 14ms
+   × T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a 每 60s 恰一次：GET /api/kline 最新窗口（limit 3~5、无 before 游标） 5ms
+     → expected "spy" to be called 2 times, but got 1 times
+   × T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a2 合并 = 同一 applyRealtime：更晚 append / 同 ts 覆盖 / 更早忽略（且经同一实时通路下发） 2ms
+     → expected [ '2026-09-14T01:50:00Z', …(2) ] to deeply equal [ '2026-09-14T01:50:00Z', …(3) ]
+   × T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-b 与 WS 不重复写入：同 ts 同 OHLC 的兜底结果不产生第二次写入（spy 计数） 1ms
+     → expected 1.5 to be 1.7 // Object.is equality
+   ✓ T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-d 非交易时段跳过兜底（午间休市 / 周末均不得轮询） 2ms
+   × T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-d2 页面不可见时暂停兜底，回到可见后恢复 1ms
+     → expected 1 to be greater than 1
+   × T-R3-e 兜底失败退避 1→2→4→8→60s（成功复位、不弹错） > T-R3-e1 连续失败按 1/2/4/8/60s 退避（60s 封顶），不改变既有 bars、不抛错 1ms
+     → expected 1 to be 2 // Object.is equality
+   ✓ T-R3-e 兜底失败退避 1→2→4→8→60s（成功复位、不弹错） > T-R3-e2 守护：兜底返回空数组 / 失败均不得清空或重建既有数据 0ms
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx (8 tests | 4 failed) 32ms
+   × T-R4 rtCallback 启动竞态（subscribeBar 注册前到达的实时 bar 不得静默丢弃） > T-R4-a 注册前到达的 bar 必须缓冲、注册后按序补投；其后到达的直投 14ms
+     → expected "spy" to be called 2 times, but got 0 times
+   ✓ T-R4 rtCallback 启动竞态（subscribeBar 注册前到达的实时 bar 不得静默丢弃） > T-R4-b 守卫：无竞态（先注册 subscribeBar，再到达）时不得重复投递 2ms
+   ✓ T-R3-c 只有 followLatest && !manualAdjusted 才 scrollToRealTime > T-R3-c1 守卫：非跟随态实时 bar 到达不得滚动（口径①：绝不把非跟随视口拉回最右） 2ms
+   × T-R3-c 只有 followLatest && !manualAdjusted 才 scrollToRealTime > T-R3-c2 用户已手动缩放/平移（manualAdjusted）时即使 followLatest=true 也不得滚动 2ms
+     → expected 2 to be 1 // Object.is equality
+   × T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-a 新 bar 落在视口之外 → 出现「新数据」提示，且视口不变（不 scrollToRealTime） 7ms
+     → expected 0 to be greater than 0
+   × T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-b 点击提示 → 跳转到最新（scrollToRealTime） 2ms
+     → expected undefined to be truthy
+   ✓ T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-c 守卫：跟随态（followLatest=true）不得出现提示 2ms
+   ✓ T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-d 守卫：非跟随态但新 bar 落在可见区内 → 不得提示 1ms
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-a 静默达阈值 → 主动 close() 并进入既有指数退避重连（重连后重发全部 subscribe 帧）
+AssertionError: expected +0 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/ws/WsClient.watchdog.test.ts:131:27
+    129|     // 达阈值 → 必须主动 close（当前实现无看门狗 ⇒ 此断言红）
+    130|     vi.advanceTimersByTime(1_000);
+    131|     expect(s0.closeCalls).toBe(1);
+       |                           ^
+    132|     // 不得继续自称已连接（用户症状：顶栏 pill 始终「已连接」）
+    133|     expect(client.connectionStatus).not.toBe('open');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-b 半开连接（readyState 已 CLOSING、onclose 永不到来）→ 仍必须重连，不得早退
+AssertionError: expected +0 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/ws/WsClient.watchdog.test.ts:156:27
+    154| 
+    155|     vi.advanceTimersByTime(SILENCE_MS);
+    156|     expect(s0.closeCalls).toBe(1); // 看门狗必须主动 close
+       |                           ^
+    157|     expect(s0.readyState).toBe(2); // CLOSING：onclose 不会来
+    158|     expect(client.connectionStatus).not.toBe('open');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  src/ws/WsClient.watchdog.test.ts > T-R1 WS 入站静默自愈（看门狗 → 主动重连） > T-R1-c 持续有入站帧 → 不得误触发看门狗（阈值以「最近一次入站帧」为基准）
+AssertionError: expected +0 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/ws/WsClient.watchdog.test.ts:187:27
+    185|     // 再静默 5s（自最后一帧起恰好 15s）→ 必须关闭
+    186|     vi.advanceTimersByTime(5_000);
+    187|     expect(s0.closeCalls).toBe(1);
+       |                           ^
+    188|     client.close();
+    189|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  src/ws/WsClient.watchdog.test.ts > T-R1-d 自愈后必须做一次 HTTP 增量补偿（口径②：与兜底同一最新窗口口径） > 静默 15s → 主动重连 → 对当前 (code, period) 拉一次最新窗口（无 before 游标）
+AssertionError: expected +0 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/ws/WsClient.watchdog.test.ts:223:27
+    221|     // 静默到阈值 → 看门狗主动 close
+    222|     await vi.advanceTimersByTimeAsync(SILENCE_MS);
+    223|     expect(s0.closeCalls).toBe(1);
+       |                           ^
+    224| 
+    225|     // 退避 1s 后重连并 open
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  src/features/dashboard/KlineChart.realtime.test.tsx > T-R4 rtCallback 启动竞态（subscribeBar 注册前到达的实时 bar 不得静默丢弃） > T-R4-a 注册前到达的 bar 必须缓冲、注册后按序补投；其后到达的直投
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx:152:16
+    150| 
+    151|     // 缓冲的两根必须补投（当前实现 `rtCallback?.(kc)` 直接丢弃 ⇒ 此断言红）
+    152|     expect(cb).toHaveBeenCalledTimes(2);
+       |                ^
+    153|     const delivered = cb.mock.calls.map((c) => c[0] as { timestamp: nu…
+    154|     expect(delivered.map((d) => d.timestamp)).toEqual([Date.parse(TS1)…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  src/features/dashboard/KlineChart.realtime.test.tsx > T-R3-c 只有 followLatest && !manualAdjusted 才 scrollToRealTime > T-R3-c2 用户已手动缩放/平移（manualAdjusted）时即使 followLatest=true 也不得滚动
+AssertionError: expected 2 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 2[39m
+
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx:208:58
+    206|       emit(mkBar(TS1, 1.5));
+    207|     });
+    208|     expect(chartStub.scrollToRealTime.mock.calls.length).toBe(before);
+       |                                                          ^
+    209|   });
+    210| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-a 新 bar 落在视口之外 → 出现「新数据」提示，且视口不变（不 scrollToRealTime）
+AssertionError: expected 0 to be greater than 0
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx:228:60
+    226|     });
+    227| 
+    228|     expect(within(container).queryAllByText(/新数据/).length).toBeGreater…
+       |                                                            ^
+    229|     expect(chartStub.scrollToRealTime.mock.calls.length).toBe(before);
+    230|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  src/features/dashboard/KlineChart.realtime.test.tsx > T-R5 非跟随态可见性提示（有新数据，且不改变视口；点击后才跳转最新） > T-R5-b 点击提示 → 跳转到最新（scrollToRealTime）
+AssertionError: expected undefined to be truthy
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx:240:18
+    238|     });
+    239|     const hint = within(container).queryAllByText(/新数据/)[0];
+    240|     expect(hint).toBeTruthy();
+       |                  ^
+    241|     const before = chartStub.scrollToRealTime.mock.calls.length;
+    242|     await act(async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a 每 60s 恰一次：GET /api/kline 最新窗口（limit 3~5、无 before 游标）
+AssertionError: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts:115:26
+    113| 
+    114|     await vi.advanceTimersByTimeAsync(1);
+    115|     expect(ctx.getKline).toHaveBeenCalledTimes(2);
+       |                          ^
+    116|     const q = ctx.getKline.mock.calls[1]![0] as KlineQuery;
+    117|     expect(q.code).toBe(CODE);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-a2 合并 = 同一 applyRealtime：更晚 append / 同 ts 覆盖 / 更早忽略（且经同一实时通路下发）
+AssertionError: expected [ '2026-09-14T01:50:00Z', …(2) ] to deeply equal [ '2026-09-14T01:50:00Z', …(3) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "2026-09-14T01:50:00Z",[22m
+[2m    "2026-09-14T01:51:00Z",[22m
+[2m    "2026-09-14T01:52:00Z",[22m
+[32m-   "2026-09-14T01:53:00Z",[39m
+[2m  ][22m
+
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts:145:44
+    143|     await vi.advanceTimersByTimeAsync(0);
+    144| 
+    145|     expect(ctx.feed.bars.map((b) => b.ts)).toEqual([T(50), T(51), T(52…
+       |                                            ^
+    146|     expect(ctx.feed.bars).toHaveLength(4); // 更早的 T(49) 未插入
+    147|     expect(ctx.feed.bars.at(-1)!.close).toBe(1.3);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-b 与 WS 不重复写入：同 ts 同 OHLC 的兜底结果不产生第二次写入（spy 计数）
+AssertionError: expected 1.5 to be 1.7 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1.7[39m
+[31m+ 1.5[39m
+
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts:178:41
+    176|     await vi.advanceTimersByTimeAsync(60_000);
+    177|     expect(ctx.feed.bars).toHaveLength(4);
+    178|     expect(ctx.feed.bars.at(-1)!.close).toBe(1.7);
+       |                                         ^
+    179|     expect(rt).toHaveBeenCalledTimes(2);
+    180|     ctx.feed.dispose();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimePoll.test.ts > T-R3 每分钟兜底增量（交易时段 / 可见时每 60s，取最新窗口） > T-R3-d2 页面不可见时暂停兜底，回到可见后恢复
+AssertionError: expected 1 to be greater than 1
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts:210:46
+    208|       document.dispatchEvent(new Event('visibilitychange'));
+    209|       await vi.advanceTimersByTimeAsync(120_000);
+    210|       expect(ctx.getKline.mock.calls.length).toBeGreaterThan(1); // 恢复…
+       |                                              ^
+    211|       ctx.feed.dispose();
+    212|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimePoll.test.ts > T-R3-e 兜底失败退避 1→2→4→8→60s（成功复位、不弹错） > T-R3-e1 连续失败按 1/2/4/8/60s 退避（60s 封顶），不改变既有 bars、不抛错
+AssertionError: expected 1 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/feedRealtimePoll.test.ts:251:21
+    249|     // 常规 60s 触发第 1 次兜底 → 失败
+    250|     await vi.advanceTimersByTimeAsync(60_000);
+    251|     expect(calls()).toBe(2);
+       |                     ^
+    252|     // 退避 1s
+    253|     await vi.advanceTimersByTimeAsync(999);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/14]⎯
+
+ FAIL  src/features/dashboard/feedRealtimeReconnect.test.ts > T-R2 重连后 HTTP 增量补偿（断口不残留空洞） > T-R2-a 断线期间错过 3 根 bar → 重连后 dataList 补齐到最新（无空洞、无重复）
+AssertionError: expected [ '2026-09-14T01:50:00Z', …(3) ] to deeply equal [ '2026-09-14T01:50:00Z', …(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "2026-09-14T01:50:00Z",[22m
+[2m    "2026-09-14T01:51:00Z",[22m
+[2m    "2026-09-14T01:52:00Z",[22m
+[2m    "2026-09-14T01:53:00Z",[22m
+[32m-   "2026-09-14T01:54:00Z",[39m
+[32m-   "2026-09-14T01:55:00Z",[39m
+[32m-   "2026-09-14T01:56:00Z",[39m
+[2m  ][22m
+
+ ❯ src/features/dashboard/feedRealtimeReconnect.test.ts:127:16
+    125|     // 断口补齐：01:50 … 01:56 连续（无缺失、无重复、升序）
+    126|     const ts = feed.bars.map((b) => b.ts);
+    127|     expect(ts).toEqual([T(50), T(51), T(52), T(53), T(54), T(55), T(56…
+       |                ^
+    128|     expect(new Set(ts).size).toBe(ts.length);
+    129|     expect(feed.bars.at(-1)!.ts).toBe(T(56)); // 已追到最新
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  14 failed | 7 passed (21)
+   Start at  10:23:51
+   Duration  527ms (transform 127ms, setup 100ms, collect 206ms, tests 62ms, environment 605ms, prepare 377ms)
+

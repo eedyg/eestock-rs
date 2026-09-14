@@ -1,0 +1,7 @@
+6fcb509f41b9d128da24153079b2964d  /tmp/app_dev_8081.toml
+-rw-rw-r-- 1 eestock eestock 211 Sep 10 12:14 /tmp/app_dev_8081.toml
+f09dd2a7c6b49c3c5769f0f723859859  web/dist/index.html
+7f312b284f7dcf75025df35f123f3f19  web/dist/assets/index-CBm_5q76.js
+cdb88f5194ac7ea5d23f4069eea8d4c8  web/dist/assets/index-LiEzF-e0.css
+    PID                  STARTED CMD
+2948632 Mon Sep 14 10:00:45 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml

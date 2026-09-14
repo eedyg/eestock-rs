@@ -1,0 +1,64 @@
+[01:55:16.277] WS OPEN ws://127.0.0.1:18099/ws
+[01:55:21.863] ### Phase A: 无任何交互（观察 followLatest 是否自发翻转）
+[01:55:21.873] A T+0s 回到最新disabled(follow=true) marker=null x=null/1299 barsRecv=0
+[01:55:25.882] A T+4s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:29.894] A T+8s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:33.902] A T+12s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:37.914] A T+16s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:41.923] A T+20s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:45.931] A T+24s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:49.944] A T+28s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:53.956] A T+32s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:55:57.967] A T+36s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:56:01.976] A T+40s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:56:05.987] A T+44s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:56:09.996] A T+48s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:56:14.006] A T+52s 回到最新disabled(follow=true) marker="8.931" x=1582/1299 barsRecv=1 lastBarTs=2026-09-14T01:56:00Z
+[01:56:18.015] A T+56s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:22.024] A T+60s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:26.032] A T+64s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:30.042] A T+68s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:34.053] A T+72s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:38.064] A T+76s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:42.072] A T+80s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:46.080] A T+84s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:50.089] A T+88s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:54.101] A T+92s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:56:58.105] ### Phase B: 离线 12s → 在线（检验重连后是否重新 subscribe）
+[01:57:10.126] B T+0s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:14.135] B T+4s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:18.144] B T+8s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:22.155] B T+12s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:26.166] B T+16s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:30.177] B T+20s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:34.185] B T+24s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:38.198] B T+28s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:42.202] ### Phase C: 恢复后再观测 70s
+[01:57:42.210] C T+0s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:46.222] C T+4s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:50.230] C T+8s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:54.242] C T+12s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:57:58.250] C T+16s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:02.262] C T+20s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:06.273] C T+24s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:10.285] C T+28s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:14.296] C T+32s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:18.307] C T+36s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:22.318] C T+40s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:26.330] C T+44s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:30.339] C T+48s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:34.350] C T+52s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:38.359] C T+56s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:42.370] C T+60s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:46.381] C T+64s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:50.393] C T+68s 回到最新disabled(follow=true) marker="8.935" x=1582/1299 barsRecv=2 lastBarTs=2026-09-14T01:57:00Z
+[01:58:54.397] === SENT frames (subscribe/unsubscribe 时序) ===
+[01:58:54.397]    01:55:16.278 {"type":"subscribe","topic":"quote"}
+[01:58:54.397]    01:55:16.278 {"type":"subscribe","topic":"health"}
+[01:58:54.397]    01:55:16.278 {"type":"subscribe","topic":"alert"}
+[01:58:54.397]    01:55:16.325 {"type":"subscribe","topic":"bar","code":"518880","period":"15m"}
+[01:58:54.397]    01:55:18.861 {"type":"unsubscribe","topic":"bar","code":"518880","period":"15m"}
+[01:58:54.397]    01:55:19.228 {"type":"subscribe","topic":"bar","code":"518880","period":"1m"}
+[01:58:54.397] === BAR frames ===
+[01:58:54.397]    01:55:23.251 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:56:00Z","open":8.934,"high":8.935,"low":8.93,"close":8.931,"volume":842700,"amount":7527180.3782,"s
+[01:58:54.397]    01:56:17.737 {"type":"bar","code":"518880","period":"1m","bar":{"ts":"2026-09-14T01:57:00Z","open":8.933,"high":8.935,"low":8.933,"close":8.935,"volume":9800,"amount":80.0,"source":"t

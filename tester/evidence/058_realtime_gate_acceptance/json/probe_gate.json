@@ -1,0 +1,943 @@
+{
+ "base": "http://127.0.0.1:18211",
+ "t0": "2026-09-14T03:43:12.214Z",
+ "checks": [
+  {
+   "name": "T1 初始：单真实 WS 连接 + 状态 open（订阅帧已发出；通道静默 = 真实半开场景）",
+   "ok": true,
+   "detail": {
+    "phase": "initial",
+    "realT": 1789357395336,
+    "wsConns": 1,
+    "frames": 0,
+    "sent": 1,
+    "lastFrameAgoMs": null,
+    "status": "open",
+    "dataLen": 120,
+    "stats": {
+     "lastSource": null,
+     "lastWriteAt": null,
+     "lastPollOkAt": null,
+     "pollFailures": 0
+    },
+    "connTimeline": [
+     {
+      "n": 1,
+      "recv": 0,
+      "sent": 1
+     }
+    ],
+    "afterReconnect": {
+     "status": "open",
+     "conns": 2,
+     "sentConn2": [
+      "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"
+     ],
+     "timeline": [
+      {
+       "t": 1789351200000,
+       "s": "connecting"
+      },
+      {
+       "t": 1789351200000,
+       "s": "open"
+      },
+      {
+       "t": 1789351216000,
+       "s": "closed"
+      },
+      {
+       "t": 1789351217000,
+       "s": "connecting"
+      },
+      {
+       "t": 1789351217000,
+       "s": "open"
+      }
+     ]
+    },
+    "realElapsedMs": {
+     "toFirstClose": 3563,
+     "note": "真实等待仅 ~1.5s；阈值推进由 page.clock.fastForward 驱动"
+    }
+   }
+  },
+  {
+   "name": "T1 交易时段静默 14s：不得重连（阈值 15s）",
+   "ok": true,
+   "detail": {
+    "conns": 1,
+    "status": "open"
+   }
+  },
+  {
+   "name": "T1 交易时段静默 >15s：状态离开 open（看门狗主动 close）",
+   "ok": true,
+   "detail": {
+    "status": "closed",
+    "timeline": [
+     {
+      "t": 1789351200000,
+      "s": "connecting"
+     },
+     {
+      "t": 1789351200000,
+      "s": "open"
+     },
+     {
+      "t": 1789351216000,
+      "s": "closed"
+     }
+    ]
+   }
+  },
+  {
+   "name": "T1 越过阈值时尚未重连（退避 1s 未到）",
+   "ok": true,
+   "detail": {
+    "conns": 1
+   }
+  },
+  {
+   "name": "T1 退避 1s 后自动重连（第 2 条真实 WS 连接，状态回 open）",
+   "ok": true,
+   "detail": {
+    "conns": 2,
+    "status": "open",
+    "connTimeline": [
+     {
+      "n": 1,
+      "recv": 0,
+      "sent": 1
+     },
+     {
+      "n": 2,
+      "recv": 0,
+      "sent": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "T1 重连后重发全部订阅帧（bar 订阅在列）",
+   "ok": true,
+   "detail": {
+    "conn2Sent": [
+     "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"
+    ]
+   }
+  },
+  {
+   "name": "T2 看门狗 → 主动 close → 退避重连 → 重连成功后 1 次 HTTP 增量补偿（limit=5、无 before）",
+   "ok": true,
+   "detail": {
+    "L0Len": 120,
+    "afterTruncLen": 117,
+    "afterFillLen": 120,
+    "closedStatus": "closed",
+    "fillStatus": "open",
+    "compensationRequests": [
+     {
+      "at": 1789357399506,
+      "method": "GET",
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+     }
+    ],
+    "allKlineReqsInWindow": [
+     "/api/kline?code=518880&period=15m&limit=5"
+    ],
+    "framesInWindow": 0,
+    "exactRestoreOfL0": true,
+    "unique": true,
+    "strictlyIncreasing": true,
+    "restoresAllL0Ts": true,
+    "gtLastTs": "2026-09-14T03:30:00.000Z",
+    "feedLastTs": "2026-09-14T03:30:00.000Z",
+    "stats": {
+     "lastSource": "poll",
+     "lastWriteAt": 1789351233000,
+     "lastPollOkAt": 1789351233000,
+     "pollFailures": 0
+    },
+    "conns": 3
+   }
+  },
+  {
+   "name": "T2 断口补齐：数据面完全还原为断口前（无空洞/无重复/严格递增；丢掉 3 根由补偿补回）",
+   "ok": true,
+   "detail": {
+    "L0": 120,
+    "after": 120,
+    "truncLen": 117,
+    "exactRestore": true,
+    "uniq": true,
+    "sorted": true
+   }
+  },
+  {
+   "name": "T2 兜底窗口对齐真实后端最新 bar（末根 ts = 后端最新）",
+   "ok": true,
+   "detail": {
+    "feedLast": "2026-09-14T03:30:00.000Z",
+    "gtLast": "2026-09-14T03:30:00.000Z"
+   }
+  },
+  {
+   "name": "T2 无页面异常",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "name": "T4 health 帧复位静默计时（13s 注入 ⇒ 27s 不 close；注入后 15s 才 close）",
+   "ok": true,
+   "detail": {
+    "kind": "health",
+    "injected": true,
+    "connsBefore": 1,
+    "afterInject": {
+     "status": "open",
+     "conns": 1
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 1
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 1
+    }
+   }
+  },
+  {
+   "name": "T4 quote 帧复位静默计时",
+   "ok": true,
+   "detail": {
+    "kind": "quote",
+    "injected": true,
+    "connsBefore": 2,
+    "afterInject": {
+     "status": "open",
+     "conns": 2
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 2
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 2
+    }
+   }
+  },
+  {
+   "name": "T4 bar 帧复位静默计时",
+   "ok": true,
+   "detail": {
+    "kind": "bar",
+    "injected": true,
+    "connsBefore": 3,
+    "afterInject": {
+     "status": "open",
+     "conns": 3
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 3
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 3
+    }
+   }
+  },
+  {
+   "name": "T3 非交易时段静默 15s：**不得**重连（门控 300s，15s 口径不适用）",
+   "ok": true,
+   "detail": {
+    "label": "15s",
+    "simulatedSecTotal": 15,
+    "sec": 15,
+    "conns": 1,
+    "status": "open"
+   }
+  },
+  {
+   "name": "T3 非交易时段静默 298s：仍不得重连",
+   "ok": true,
+   "detail": {
+    "label": "累计 298s",
+    "simulatedSecTotal": 298,
+    "sec": 223,
+    "conns": 1,
+    "status": "open"
+   }
+  },
+  {
+   "name": "T3 累计 ~300s 才自愈（证明阈值确为 300s 而非 15s）",
+   "ok": true,
+   "detail": {
+    "status": "closed",
+    "timeline": [
+     {
+      "t": 1789178400000,
+      "s": "connecting"
+     },
+     {
+      "t": 1789178400000,
+      "s": "open"
+     },
+     {
+      "t": 1789178700000,
+      "s": "closed"
+     }
+    ]
+   }
+  },
+  {
+   "name": "T3 300s 后重连成功（第 2 条连接）",
+   "ok": true,
+   "detail": {
+    "conns": 2
+   }
+  },
+  {
+   "name": "T3 非交易时段空转受限：模拟 1 小时新增重连 ≤ 12+2（≈1 次/5 分钟，无 15s 空转）",
+   "ok": true,
+   "detail": {
+    "added": 12
+   }
+  },
+  {
+   "name": "T3 非交易时段：无「分钟兜底」HTTP（0 次）；出现的 limit=5 请求全部 = 重连补偿，次数恰等于重连次数",
+   "ok": true,
+   "detail": {
+    "limit5Count": 13,
+    "reconnects": 13,
+    "note": "口径 4：重连成功后一次 HTTP 增量补偿（非分钟兜底）"
+   }
+  },
+  {
+   "name": "A 真实看板：初始单真实 WS 连接（订阅帧已发出）",
+   "ok": true,
+   "detail": {
+    "conns": 1,
+    "frames": 0,
+    "lastFrameAt": null
+   }
+  },
+  {
+   "name": "A 真实看板：静默 14s 内不重连、顶栏 pill 不出现断开态",
+   "ok": true,
+   "detail": {
+    "conns": 1,
+    "pillAt14": 0
+   }
+  },
+  {
+   "name": "A 真实看板：静默 >15s ⇒ 顶栏出现「WS 断开，重连中…」（状态离开 open，不谎报）",
+   "ok": true,
+   "detail": {
+    "pillAfter": 1,
+    "timelineMs": 1789357439388
+   }
+  },
+  {
+   "name": "A 真实看板：看门狗重连后自动重订阅 + 1 次 HTTP 增量补偿（limit=5、无 before）",
+   "ok": true,
+   "detail": {
+    "first": {
+     "conns": 1,
+     "frames": 0,
+     "lastFrameAt": null
+    },
+    "conns": [
+     {
+      "n": 1,
+      "at": "2026-09-14T03:43:54.389Z",
+      "recv": 0,
+      "sent": 4
+     },
+     {
+      "n": 2,
+      "at": "2026-09-14T03:43:59.390Z",
+      "recv": 0,
+      "sent": 4
+     }
+    ],
+    "reSubConn2": [
+     "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+     "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+     "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+     "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"
+    ],
+    "compensation": [
+     {
+      "at": 1789357439391,
+      "method": "GET",
+      "url": "/api/kline?code=518880&period=15m&limit=5"
+     }
+    ],
+    "allNewKlineReqs": [
+     "/api/kline?code=518880&period=15m&limit=5"
+    ],
+    "chartDataLen": 120,
+    "strictlyIncreasing": true,
+    "uniq": true,
+    "chartLastTs": "2026-09-14T03:30:00.000Z",
+    "gtLastTs": "2026-09-14T03:30:00Z",
+    "pageErrors": []
+   }
+  },
+  {
+   "name": "A 真实看板：数据面无重复、严格递增，末根与后端最新一致",
+   "ok": true,
+   "detail": {
+    "len": 120,
+    "sortedTs": true,
+    "chartLast": "2026-09-14T03:30:00.000Z",
+    "gtLast": "2026-09-14T03:30:00Z"
+   }
+  },
+  {
+   "name": "A 真实看板：无页面异常",
+   "ok": true,
+   "detail": []
+  }
+ ],
+ "scenarios": {
+  "T1": {
+   "phase": "initial",
+   "realT": 1789357395336,
+   "wsConns": 1,
+   "frames": 0,
+   "sent": 1,
+   "lastFrameAgoMs": null,
+   "status": "open",
+   "dataLen": 120,
+   "stats": {
+    "lastSource": null,
+    "lastWriteAt": null,
+    "lastPollOkAt": null,
+    "pollFailures": 0
+   },
+   "connTimeline": [
+    {
+     "n": 1,
+     "recv": 0,
+     "sent": 1
+    }
+   ],
+   "afterReconnect": {
+    "status": "open",
+    "conns": 2,
+    "sentConn2": [
+     "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"
+    ],
+    "timeline": [
+     {
+      "t": 1789351200000,
+      "s": "connecting"
+     },
+     {
+      "t": 1789351200000,
+      "s": "open"
+     },
+     {
+      "t": 1789351216000,
+      "s": "closed"
+     },
+     {
+      "t": 1789351217000,
+      "s": "connecting"
+     },
+     {
+      "t": 1789351217000,
+      "s": "open"
+     }
+    ]
+   },
+   "realElapsedMs": {
+    "toFirstClose": 3563,
+    "note": "真实等待仅 ~1.5s；阈值推进由 page.clock.fastForward 驱动"
+   }
+  },
+  "T2": {
+   "L0Len": 120,
+   "afterTruncLen": 117,
+   "afterFillLen": 120,
+   "closedStatus": "closed",
+   "fillStatus": "open",
+   "compensationRequests": [
+    {
+     "at": 1789357399506,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+   ],
+   "allKlineReqsInWindow": [
+    "/api/kline?code=518880&period=15m&limit=5"
+   ],
+   "framesInWindow": 0,
+   "exactRestoreOfL0": true,
+   "unique": true,
+   "strictlyIncreasing": true,
+   "restoresAllL0Ts": true,
+   "gtLastTs": "2026-09-14T03:30:00.000Z",
+   "feedLastTs": "2026-09-14T03:30:00.000Z",
+   "stats": {
+    "lastSource": "poll",
+    "lastWriteAt": 1789351233000,
+    "lastPollOkAt": 1789351233000,
+    "pollFailures": 0
+   },
+   "conns": 3
+  },
+  "T4": [
+   {
+    "kind": "health",
+    "injected": true,
+    "connsBefore": 1,
+    "afterInject": {
+     "status": "open",
+     "conns": 1
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 1
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 1
+    }
+   },
+   {
+    "kind": "quote",
+    "injected": true,
+    "connsBefore": 2,
+    "afterInject": {
+     "status": "open",
+     "conns": 2
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 2
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 2
+    }
+   },
+   {
+    "kind": "bar",
+    "injected": true,
+    "connsBefore": 3,
+    "afterInject": {
+     "status": "open",
+     "conns": 3
+    },
+    "after14s": {
+     "status": "open",
+     "conns": 3
+    },
+    "after16s": {
+     "status": "closed",
+     "conns": 3
+    }
+   }
+  ],
+  "T3": {
+   "steps": [
+    {
+     "label": "15s",
+     "simulatedSecTotal": 15,
+     "sec": 15,
+     "conns": 1,
+     "status": "open"
+    },
+    {
+     "label": "+60s",
+     "simulatedSecTotal": 75,
+     "sec": 60,
+     "conns": 1,
+     "status": "open"
+    },
+    {
+     "label": "累计 298s",
+     "simulatedSecTotal": 298,
+     "sec": 223,
+     "conns": 1,
+     "status": "open"
+    },
+    {
+     "label": "累计 300s",
+     "simulatedSecTotal": 300,
+     "sec": 2,
+     "conns": 1,
+     "status": "closed"
+    }
+   ],
+   "connsAfterHourSim": 14,
+   "connsAddedInHour": 12,
+   "maxExpected": 14,
+   "totalKlineReqs": [
+    "/api/kline?code=518880&period=15m&limit=120",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5",
+    "/api/kline?code=518880&period=15m&limit=5"
+   ],
+   "statuses": [
+    {
+     "t": 1789178400000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789178400000,
+     "s": "open"
+    },
+    {
+     "t": 1789178700000,
+     "s": "closed"
+    },
+    {
+     "t": 1789178701000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789178701000,
+     "s": "open"
+    },
+    {
+     "t": 1789179001000,
+     "s": "closed"
+    },
+    {
+     "t": 1789179002000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789179002000,
+     "s": "open"
+    },
+    {
+     "t": 1789179302000,
+     "s": "closed"
+    },
+    {
+     "t": 1789179303000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789179303000,
+     "s": "open"
+    },
+    {
+     "t": 1789179603000,
+     "s": "closed"
+    },
+    {
+     "t": 1789179604000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789179604000,
+     "s": "open"
+    },
+    {
+     "t": 1789179904000,
+     "s": "closed"
+    },
+    {
+     "t": 1789179905000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789179905000,
+     "s": "open"
+    },
+    {
+     "t": 1789180205000,
+     "s": "closed"
+    },
+    {
+     "t": 1789180206000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789180206000,
+     "s": "open"
+    },
+    {
+     "t": 1789180506000,
+     "s": "closed"
+    },
+    {
+     "t": 1789180507000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789180507000,
+     "s": "open"
+    },
+    {
+     "t": 1789180807000,
+     "s": "closed"
+    },
+    {
+     "t": 1789180808000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789180808000,
+     "s": "open"
+    },
+    {
+     "t": 1789181108000,
+     "s": "closed"
+    },
+    {
+     "t": 1789181109000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789181109000,
+     "s": "open"
+    },
+    {
+     "t": 1789181409000,
+     "s": "closed"
+    },
+    {
+     "t": 1789181410000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789181410000,
+     "s": "open"
+    },
+    {
+     "t": 1789181710000,
+     "s": "closed"
+    },
+    {
+     "t": 1789181711000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789181711000,
+     "s": "open"
+    },
+    {
+     "t": 1789182011000,
+     "s": "closed"
+    },
+    {
+     "t": 1789182012000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789182012000,
+     "s": "open"
+    },
+    {
+     "t": 1789182312000,
+     "s": "closed"
+    },
+    {
+     "t": 1789182313000,
+     "s": "connecting"
+    },
+    {
+     "t": 1789182313000,
+     "s": "open"
+    }
+   ],
+   "limit5Reqs": [
+    {
+     "at": 1789357418466,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357420721,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357421874,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357423027,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357424180,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357425333,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357426487,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357427639,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357428795,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357429946,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357431099,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357432252,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+     "at": 1789357433406,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+   ]
+  },
+  "A": {
+   "first": {
+    "conns": 1,
+    "frames": 0,
+    "lastFrameAt": null
+   },
+   "conns": [
+    {
+     "n": 1,
+     "at": "2026-09-14T03:43:54.389Z",
+     "recv": 0,
+     "sent": 4
+    },
+    {
+     "n": 2,
+     "at": "2026-09-14T03:43:59.390Z",
+     "recv": 0,
+     "sent": 4
+    }
+   ],
+   "reSubConn2": [
+    "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}"
+   ],
+   "compensation": [
+    {
+     "at": 1789357439391,
+     "method": "GET",
+     "url": "/api/kline?code=518880&period=15m&limit=5"
+    }
+   ],
+   "allNewKlineReqs": [
+    "/api/kline?code=518880&period=15m&limit=5"
+   ],
+   "chartDataLen": 120,
+   "strictlyIncreasing": true,
+   "uniq": true,
+   "chartLastTs": "2026-09-14T03:30:00.000Z",
+   "gtLastTs": "2026-09-14T03:30:00Z",
+   "pageErrors": []
+  }
+ },
+ "wsEvents": [
+  {
+   "page": "harness-T1T2",
+   "conns": [
+    {
+     "n": 1,
+     "at": "2026-09-14T03:43:12.301Z",
+     "recv": 0,
+     "sent": 1
+    },
+    {
+     "n": 2,
+     "at": "2026-09-14T03:43:16.397Z",
+     "recv": 0,
+     "sent": 1
+    },
+    {
+     "n": 3,
+     "at": "2026-09-14T03:43:19.505Z",
+     "recv": 0,
+     "sent": 1
+    }
+   ]
+  },
+  {
+   "page": "harness-T4",
+   "conns": [
+    {
+     "n": 1,
+     "at": "2026-09-14T03:43:22.094Z",
+     "recv": 0
+    },
+    {
+     "n": 2,
+     "at": "2026-09-14T03:43:25.671Z",
+     "recv": 0
+    },
+    {
+     "n": 3,
+     "at": "2026-09-14T03:43:28.684Z",
+     "recv": 0
+    },
+    {
+     "n": 4,
+     "at": "2026-09-14T03:43:31.715Z",
+     "recv": 0
+    }
+   ]
+  },
+  {
+   "page": "app",
+   "conns": [
+    {
+     "n": 1,
+     "at": "2026-09-14T03:43:54.389Z",
+     "recv": 0,
+     "sent": 4
+    },
+    {
+     "n": 2,
+     "at": "2026-09-14T03:43:59.390Z",
+     "recv": 0,
+     "sent": 4
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,66 @@
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/dashboard-pane-separator.e2e.ts:141:3 › 问题① 期望的 pane/分隔线形态（当前必红） › 单图看板：K线 与 VOL 之间只应有 klinecharts 自带的 pane 分隔线（无骨架残留线） (5.0s)
+  ✓  2 [chromium] › e2e/dashboard-periods-ma.e2e.ts:407:1 › T1 周线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=150/无空档/无重复 (10.6s)
+  ✘  3 [chromium] › e2e/dashboard-periods-ma.e2e.ts:435:1 › T2 月线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=80/无空档/无重复 (10.5s)
+  ✓  4 [chromium] › e2e/dashboard-periods-ma.e2e.ts:461:1 › T3 日线：连续左翻 ≥2 批页 + 分页批量 limit=250/无缺口/无重复 (14.2s)
+  ✓  5 [chromium] › e2e/dashboard-periods-ma.e2e.ts:487:1 › T4 分钟 1m：分页批量 limit=500（非 2）/无重复/深翻推进 (22.1s)
+  ✘  6 [chromium] › e2e/dashboard-periods-ma.e2e.ts:505:1 › T5 MA 配置：[3,7,21] 主图+宫格生效/切周期保持/reload 持久/非法零 PUT/恢复默认 (2.9s)
+
+
+  1) [chromium] › e2e/dashboard-periods-ma.e2e.ts:435:1 › T2 月线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=80/无空档/无重复 
+
+    Error: 每个 forward 请求 limit=80 且响应 80 根（非 2）: [{"limit":80,"n":39,"before":"2016-09-30T16:00:00Z"}]
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      446 |   expect(out.initialPages[0]?.limit, '月线初始视口 limit=120（ADR-020 默认根数）').toBe(INIT_PAGE['1mo']);
+      447 |   expect(out.forwardPages.length, '至少 1 个 forward 批页').toBeGreaterThanOrEqual(1);
+    > 448 |   expect(out.allForwardBatch, `每个 forward 请求 limit=80 且响应 80 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
+          |                                                                                                            ^
+      449 |   expect(out.reached, `深翻可达 ${out.earliestTs}（earliest < 2022-01-01）`).toBeTruthy();
+      450 |   expect(Date.parse(out.earliestTs!), 'earliest ts < 2024-01-01').toBeLessThan(Date.parse('2024-01-01T00:00:00Z'));
+      451 |   expect(out.year2022_2023, 'union 含 2022/2023 蜡烛（<2024 目标区在档）').toBeTruthy();
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/dashboard-periods-ma.e2e.ts:448:108
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-e487f-2024）-分页批量-limit-80-无空档-无重复-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-e487f-2024）-分页批量-limit-80-无空档-无重复-chromium/error-context.md
+
+    Error Context: e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-e487f-2024）-分页批量-limit-80-无空档-无重复-chromium/error-context.md
+
+  2) [chromium] › e2e/dashboard-periods-ma.e2e.ts:505:1 › T5 MA 配置：[3,7,21] 主图+宫格生效/切周期保持/reload 持久/非法零 PUT/恢复默认 
+
+    Error: PUT /api/config/ma 200
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      556 |   await saveEditor();
+      557 |   const putRes = await putDone;
+    > 558 |   expect(putRes.status(), 'PUT /api/config/ma 200').toBe(200);
+          |                                                     ^
+      559 |   expect(JSON.parse(putRes.request().postData() ?? '{}').windows, 'PUT body windows=[3,7,21]').toEqual([3, 7, 21]);
+      560 |   await expect(maBtn(page)).toContainText('MA(3,7,21)', { timeout: 10_000 });
+      561 |   await expect.poll(() => putOkCount(), { timeout: 10_000 }).toBe(1);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/dashboard-periods-ma.e2e.ts:558:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-77782-周期保持-reload-持久-非法零-PUT-恢复默认-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-77782-周期保持-reload-持久-非法零-PUT-恢复默认-chromium/error-context.md
+
+    Error Context: e2e/artifacts/test-results/dashboard-periods-ma.e2e.t-77782-周期保持-reload-持久-非法零-PUT-恢复默认-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/dashboard-periods-ma.e2e.ts:435:1 › T2 月线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=80/无空档/无重复 
+    [chromium] › e2e/dashboard-periods-ma.e2e.ts:505:1 › T5 MA 配置：[3,7,21] 主图+宫格生效/切周期保持/reload 持久/非法零 PUT/恢复默认 
+  4 passed (1.1m)
