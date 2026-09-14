@@ -31,6 +31,8 @@ vi.mock('klinecharts', () => ({
 }));
 
 import { DashboardPage, readViewportBars } from './DashboardPage';
+// 图表实例生命周期断言（阶段2 防回归：切周期不得整图 remount）
+import { init } from 'klinecharts';
 
 const SYMBOLS = [
   { code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 },
@@ -200,6 +202,9 @@ describe('DashboardPage（页面①集成：骨架锚点 + 数据流 + 交互）
     await waitFor(() => {
       expect(api.getKline).toHaveBeenCalledWith(expect.objectContaining({ code: '518880', period: '1h' }));
     });
+    // 加强（阶段2 防回归）：切周期 = 数据面变化 ⇒ 主图 chart 实例**不得重建**
+    // （`dispose`+`init` 会把全部 pane 重置为布局默认高 = 用户拖拽过的副图高度丢失）。
+    expect(vi.mocked(init)).toHaveBeenCalledTimes(1);
   });
 
   it('周期切 周/月 → 触发 1w/1mo 数据加载（KlineChart 按新周期）', async () => {

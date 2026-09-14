@@ -276,7 +276,8 @@ function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
 
 /** 创建开/平仓 B/S bar 标记 overlay（klinecharts 内置 simpleAnnotation：竖线 + 箭头 + 文本 B/S）。
  *  marker ts 先经 snapTsToBars 吸附/钳位到「已加载 bar」再锚定，保证跨周期 On-Screen；
- *  周期切换（feed 变 → 整图重建）后重新 createOverlay，回到当前周期已加载 bar 重新吸附。
+ *  数据面变化（切周期/切标的 ⇒ feed 身份变化）后由 Effect W 先清旧 overlay 再重建，回到当前周期
+ *  已加载 bar 重新吸附（同一 chart 实例，`resetData` 不清 overlay）。
  *  无已加载 bar（bars 空）则跳过（无可吸附对象，避免锚定到屏外）。 */
 function createMarkerOverlays(
   chart: Chart,
@@ -318,7 +319,7 @@ export function KlineChart(props: KlineChartProps) {
   const programmaticScroll = useRef(false);
   /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
   const manualAdjusted = useRef(false);
-  /** 本次建图已应用的指标状态（启用/calcParams）——「状态差分」的基线；随建图重置（见建图 effect）。 */
+  /** 本次建图已应用的指标状态（启用/calcParams）——「状态差分」的基线；随建图重置（见 Effect L）。 */
   const appliedRef = useRef<AppliedIndicators | null>(null);
   const followRef = useRef(props.followLatest);
   followRef.current = props.followLatest;
@@ -345,13 +346,46 @@ export function KlineChart(props: KlineChartProps) {
     enabled: () => !manualAdjusted.current,
   });
 
-  // 建/销 chart 实例 + 数据接线（feed 随 code/period 变化而更换，整图重建）
+  // Effect L —— 图表生命周期（**仅 mount 一次**）：容器不变 ⇒ chart 实例不重建。
+  // 切 period / 切 stock / 改视口配置都是「数据面变化」，由下面的 Effect W 在同一实例上接线
+  // ⇒ 指标视图布局天然保持：用户拖拽过的副图高度是 pane 的唯一记忆，`dispose`+`init` 会让全部 pane
+  // 回布局默认高 `100`（02-spec §6「不得重建 pane」）。
   useEffect(() => {
     if (!ref.current) return;
     const chart = init(ref.current);
     if (!chart) return;
     chartRef.current = chart;
-    manualAdjusted.current = false; // feed 重建（周期/标的切换）→ 回到自动视口归一
+    applyDarkTerminalStyles(chart);
+    appliedRef.current = new Map(); // 新图 ⇒ 差分基线重置（不得跨建图复用）
+    // 手动缩放/平移判定只依赖 ref，与数据面无关 ⇒ 生命周期内订阅一次即可（避免每次换 feed 重复订阅）。
+    const manual = () => {
+      if (programmaticScroll.current) return; // 程序化滚动（实时跟随 scrollLatest）不算用户操作
+      manualAdjusted.current = true; // 用户手动缩放/平移 → 尊重手动视口，resize 不再重算（ADR-020 §2.6）
+      onManualZoomRef.current();
+    };
+    chart.subscribeAction('onZoom', manual);
+    chart.subscribeAction('onScroll', manual);
+    return () => {
+      dispose(chart);
+      chartRef.current = null;
+      setRt(null);
+    };
+  }, []);
+
+  // Effect W —— 数据接线（`feed` 身份变化 = 数据面变化：切 period / 切 stock / 视口配置变化）。
+  // **同一 chart 实例上原地切换**（换 DataLoader + `setSymbol` + `setPeriod`；数据重载由引擎在这三步
+  // 内部的 `store.resetData()` 完成）：
+  //  - pane id / pane 顺序 / 用户拖拽高度全部保持（不 dispose、不 init ⇒ 指标不重建、差分基线不重置）；
+  //  - **数据确实重置**：DataLoader 换成新 feed，init 回调整体替换 dataList（旧标的/旧周期的 bar 不残留）；
+  //  - `manualAdjusted` 显式清 false ⇒ 保留 ADR-020 口径「切周期后可见根数仍 ≈ viewport_bars」
+  //    （init 回调里的 `fitBarSpace` 只在非手动缩放态生效）。
+  // 顺序要点：**先把新 loader 装上去**再 `setSymbol`/`setPeriod` —— 三者各自内部都会 `resetData()` 触发
+  // 一次 init 取数，loader 在前可保证每一次取数都走新 feed（否则先触发的取数可能用旧 loader 回灌旧数据）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    manualAdjusted.current = false; // 数据面变化（周期/标的切换）→ 回到自动视口归一
+    let cancelled = false;
     let rtCallback: ((d: KLineData) => void) | null = null;
 
     const scrollLatest = () => {
@@ -403,17 +437,18 @@ export function KlineChart(props: KlineChartProps) {
     });
     chart.setSymbol({ ticker: props.code, pricePrecision: 3, volumePrecision: 0 });
     chart.setPeriod(PERIOD_MAP[props.period]);
-    applyDarkTerminalStyles(chart);
-    appliedRef.current = new Map(); // 新图 ⇒ 差分基线重置（不得跨建图复用）
-    syncIndicators(
-      chart,
-      props.indicators,
-      props.maWindows ?? DEFAULT_MA_WINDOWS,
-      props.dcapParams ?? DEFAULT_DCAP_PARAMS,
-      appliedRef.current,
-    );
+    // **数据重置由引擎在上述三步内部完成**（库事实：`setDataLoader`/`setSymbol`(对象身份永不等 ⇒ 必走)
+    // /`setPeriod` 各自调用 `store.resetData()` ⇒ `_processDataLoad('init')`，`index.esm.js:13518-13524 /
+    // 13410-13434`）：三次 init 取数共用同一 feed `loadInitial` 的 loadPromise ⇒ **只发一次 HTTP**，
+    // 最后一次回调整体替换 dataList（`_clearData` + `_dataList = data`）。
+    // 这里不再额外 `chart.resetData()`：它只会多一次幂等的`_addData('init')` 重绘，不带来额外价值；
+    // 且保持既有测试桩（未提供该 API 的工作台图）无需补齐。
 
-    // overlay（开/平仓价位线 + 区间高亮）：看板不传则跳过，保持默认行为不变
+    // overlay（开/平仓价位线 + 区间高亮）：同一 chart 实例跨 feed ⇒ 必须先清旧再按新数据重建。
+    // `resetData` 只清/换数据、**不清 overlay**（实测：原地切换后 `getOverlays().length` 不变），
+    // 否则切标的/周期后残留上一份 overlay（工作台 B/S 标记/价位线）。
+    // `typeof` 能力检查：测试环境 klinecharts 打桩（无 removeOverlay）时行为与修复前一致。
+    if (typeof chart.removeOverlay === 'function') chart.removeOverlay();
     if (props.overlays && props.overlays.length > 0) {
       createChartOverlays(chart, props.overlays);
     }
@@ -425,26 +460,19 @@ export function KlineChart(props: KlineChartProps) {
       if (followRef.current) scrollLatest();
       markRealtime(kc, bar.close, bar.ts);
     });
-    const manual = () => {
-      if (programmaticScroll.current) return; // 程序化滚动（实时跟随 scrollLatest）不算用户操作
-      manualAdjusted.current = true; // 用户手动缩放/平移 → 尊重手动视口，resize 不再重算（ADR-020 §2.6）
-      onManualZoomRef.current();
-    };
-    chart.subscribeAction('onZoom', manual);
-    chart.subscribeAction('onScroll', manual);
     // 幂等兜底（DataLoader 路径之外保证加载）；加载完成后依「已加载 bar」吸附/钳位创建 B/S 标记
-    // （跨周期 On-Screen）。仅在本 chart 仍存活时创建（防周期切换/卸载后仍回打点）。
+    // （跨周期 On-Screen）。仅在本 chart 仍存活**且本次接线未被换掉**时创建（防旧 feed 的迟到回调
+    // 把上一份标记打在已换数据的新图上）。
     void feed.loadInitial().then(() => {
-      if (chartRef.current === chart) {
+      if (!cancelled && chartRef.current === chart) {
         createMarkerOverlays(chart, props.overlays ?? [], feed.bars);
       }
     });
 
     return () => {
+      cancelled = true;
       offRt();
-      dispose(chart);
-      chartRef.current = null;
-      setRt(null);
+      setRt(null); // 旧实时标记随旧 feed 失效（数据面已换）
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);

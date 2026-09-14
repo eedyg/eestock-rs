@@ -30,6 +30,8 @@ vi.mock('klinecharts', () => ({
 import { KlineChart } from './KlineChart';
 import type { KlineChartFeedLike } from './KlineChart';
 import { DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
+// 图表实例生命周期断言（阶段2 防回归：数据面变化不得 remount）
+import { init, dispose } from 'klinecharts';
 
 function fakeFeed(overrides: Partial<KlineChartFeedLike> = {}): KlineChartFeedLike {
   return {
@@ -309,6 +311,10 @@ describe('KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢�
     expect(chartStub.setBarSpace).toHaveBeenCalledTimes(1);
 
     rerender(false, fakeFeed({ viewportBars: 120 }));
+    // 加强（阶段2 防回归）：「feed 重建」= 切周期/切标的 = 数据面变化 ⇒ **不得整图 remount**
+    // （`dispose`+`init` 会让全部 pane 以布局默认高重建 = 用户拖拽的副图高度被重置）。
+    expect(vi.mocked(init)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(dispose)).not.toHaveBeenCalled();
     fireResize();
     expect(chartStub.setBarSpace).toHaveBeenLastCalledWith(8);
   });
