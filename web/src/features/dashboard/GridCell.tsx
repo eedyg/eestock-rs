@@ -6,6 +6,7 @@ import type { WsClient } from '@/ws/WsClient';
 import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { fitBarSpaceToViewport, useBarSpaceFit } from './barSpaceFit';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
+import { addOverlayIndicator } from './overlayIndicator';
 import { cn } from '@/lib/utils';
 
 /** grid-view 单格 MA 默认窗口（与后端默认 [5,10,20] 同构；未传 maWindows 时兜底） */
@@ -82,8 +83,13 @@ export function GridCell({
   useEffect(() => {
     const chart = chartInstanceRef.current;
     if (!chart) return;
-    chart.removeIndicator({ name: 'MA' });
-    chart.createIndicator({ name: 'MA', calcParams: maWindowsProp, paneId: 'candle_pane' }, false);
+    // P0.1（ADR-022 §4.3）：MA 叠加在 candle_pane 上必须走入口（显式 isStack=true + 非空断言）。
+    // 旧实现传 `false`（整 pane 替换，index.esm.js:14162-14165）：任何后续叠加都会静默顶掉 MA。
+    addOverlayIndicator(
+      chart,
+      { name: 'MA', calcParams: maWindowsProp, paneId: 'candle_pane' },
+      'MA',
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maWindowsProp, period, symbol.code]);
 

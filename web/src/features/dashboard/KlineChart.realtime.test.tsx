@@ -29,6 +29,7 @@
  *    点击该提示 ⇒ 跳转到最新（`chart.scrollToRealTime()`）。提示的视口判定同时满足两种宽度读取方式
  *    （`clientWidth` 与 `getBoundingClientRect()` 均已打桩）。
  */
+import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent, within } from '@testing-library/react';
 import type { Bar } from '@/api/types';
@@ -44,6 +45,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** P0.1-D 补桩：`addOverlayIndicator` 的非空断言需要 `getIndicators({ name })`；
+   *  由 create/remove 调用记录派生（语义见 `@/test/chartStoreStub`），不引入跨用例状态。 */
+  getIndicators: vi.fn((filter?: IndicatorViewFilter) =>
+    indicatorViewFromCalls(chartStub.createIndicator, chartStub.removeIndicator, filter ?? {})),
   overrideIndicator: vi.fn(),
   resetData: vi.fn(),
   setStyles: vi.fn(),

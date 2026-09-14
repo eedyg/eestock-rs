@@ -1,3 +1,4 @@
+import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -14,6 +15,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** P0.1-D 补桩：`addOverlayIndicator` 的非空断言需要 `getIndicators({ name })`；
+   *  由 create/remove 调用记录派生（语义见 `@/test/chartStoreStub`），不引入跨用例状态。 */
+  getIndicators: vi.fn((filter?: IndicatorViewFilter) =>
+    indicatorViewFromCalls(chartStub.createIndicator, chartStub.removeIndicator, filter ?? {})),
   /** 参数热更新通道（状态差分：仅启用状态翻转才 create/remove）。 */
   overrideIndicator: vi.fn(),
   /** warmup 热更新后的原地数据重载。 */

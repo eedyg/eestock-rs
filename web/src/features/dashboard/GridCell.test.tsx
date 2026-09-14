@@ -1,3 +1,4 @@
+import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ApiClient } from '@/api/client';
@@ -12,6 +13,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** P0.1-D 补桩：`addOverlayIndicator` 的非空断言需要 `getIndicators({ name })`；
+   *  由 create/remove 调用记录派生（语义见 `@/test/chartStoreStub`），不引入跨用例状态。 */
+  getIndicators: vi.fn((filter?: IndicatorViewFilter) =>
+    indicatorViewFromCalls(chartStub.createIndicator, chartStub.removeIndicator, filter ?? {})),
   setStyles: vi.fn(),
   subscribeAction: vi.fn(),
   unsubscribeAction: vi.fn(),
@@ -120,9 +125,15 @@ describe('GridCell（宫格单格：表头 D2 + 布局 R1）', () => {
   // ── W2：MA 可配置（统一）——GridCell 应用配置窗口 calcParams ──
   it('默认 maWindows → 图表 MA calcParams=[5,10,20]', () => {
     renderCell(ENABLED_DATA_PLUS);
+    // P0.1-D 同步新契约：宫的 MA 亦走唯一入口 `addOverlayIndicator` ⇒ isStack=**true**（追加），
+    // 且入口先显式 removeIndicator({ name: 'MA' })（旧断言编码的是 isStack=false 的替换语义）。
     expect(chartStub.createIndicator).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'MA', calcParams: [5, 10, 20] }),
-      false,
+      expect.objectContaining({ name: 'MA', calcParams: [5, 10, 20], paneId: 'candle_pane' }),
+      true,
+    );
+    expect(chartStub.removeIndicator).toHaveBeenCalledWith({ name: 'MA' });
+    expect(chartStub.removeIndicator.mock.invocationCallOrder[0]!).toBeLessThan(
+      chartStub.createIndicator.mock.invocationCallOrder[0]!,
     );
   });
 
@@ -139,7 +150,7 @@ describe('GridCell（宫格单格：表头 D2 + 布局 R1）', () => {
     );
     expect(chartStub.createIndicator).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'MA', calcParams: [7, 20, 60] }),
-      false,
+      true, // P0.1-D 同步：入口 only ⇒ isStack=true
     );
   });
 });

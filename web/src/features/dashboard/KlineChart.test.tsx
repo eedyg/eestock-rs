@@ -1,3 +1,4 @@
+import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { Bar, Period } from '@/api/types';
@@ -10,6 +11,10 @@ const chartStub = {
   setBarSpace: vi.fn(),
   createIndicator: vi.fn(),
   removeIndicator: vi.fn(),
+  /** P0.1-D 补桩：`addOverlayIndicator` 的非空断言需要 `getIndicators({ name })`；
+   *  由 create/remove 调用记录派生（语义见 `@/test/chartStoreStub`），不引入跨用例状态。 */
+  getIndicators: vi.fn((filter?: IndicatorViewFilter) =>
+    indicatorViewFromCalls(chartStub.createIndicator, chartStub.removeIndicator, filter ?? {})),
   /** 参数热更新通道（状态差分：仅启用状态翻转才 create/remove；参数变化走 overrideIndicator）。 */
   overrideIndicator: vi.fn(),
   /** warmup 热更新后的原地数据重载（不得 dispose/init）。 */
@@ -133,9 +138,15 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
         onManualZoom={() => {}}
       />,
     );
+    // P0.1-D 同步新契约：MA 经唯一入口 `addOverlayIndicator` ⇒ isStack=**true**（追加），
+    // 且入口先显式 removeIndicator({ name: 'MA' })（旧断言编码的是 isStack=false 的替换语义）。
     expect(chartStub.createIndicator).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'MA', calcParams: [5, 10, 20] }),
-      false,
+      true,
+    );
+    expect(chartStub.removeIndicator).toHaveBeenCalledWith({ name: 'MA' });
+    expect(chartStub.removeIndicator.mock.invocationCallOrder[0]!).toBeLessThan(
+      chartStub.createIndicator.mock.invocationCallOrder[0]!,
     );
   });
 
@@ -153,7 +164,7 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
     );
     expect(chartStub.createIndicator).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'MA', calcParams: [7, 20, 60] }),
-      false,
+      true, // P0.1-D 同步：入口 only ⇒ isStack=true
     );
   });
 
@@ -172,7 +183,7 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
     );
     expect(chartStub.createIndicator).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'MA', calcParams: [5, 10, 20] }),
-      false,
+      true, // P0.1-D 同步：入口 only ⇒ isStack=true
     );
     rerender(
       <KlineChart
@@ -187,7 +198,14 @@ describe('KlineChart（MA 窗口可配置：calcParams 用配置 windows）', ()
     );
     // 参数变化走 overrideIndicator（原地重算）；不得 remove/create（销毁会让副图 pane 以布局默认高重建）
     expect(chartStub.overrideIndicator).toHaveBeenCalledWith({ name: 'MA', calcParams: [7, 20, 60] });
-    expect(chartStub.removeIndicator).not.toHaveBeenCalled();
+    // P0.1-D 同步（旧断言为「removeIndicator 从未调用」= 旧 isStack=false 契约）：
+    // 新契约下建图时入口**必须**先 removeIndicator({ name: 'MA' }) 再 createIndicator(spec, true)；
+    // 参数变化仍只走 overrideIndicator ⇒ 不得出现第 2 次 remove/create（不重建、不重置 pane 布局）。
+    expect(chartStub.removeIndicator).toHaveBeenCalledTimes(1);
+    expect(chartStub.removeIndicator).toHaveBeenCalledWith({ name: 'MA' });
+    expect(chartStub.removeIndicator.mock.invocationCallOrder[0]!).toBeLessThan(
+      chartStub.createIndicator.mock.invocationCallOrder[0]!,
+    );
     const maCalls = chartStub.createIndicator.mock.calls.filter(
       ([c]) => typeof c === 'object' && c !== null && (c as { name?: string }).name === 'MA',
     );

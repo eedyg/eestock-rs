@@ -20,6 +20,7 @@ import {
 } from '@/features/indicators/dcapIndicator';
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
 import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
+import { addOverlayIndicator } from './overlayIndicator';
 
 /** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
  *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
@@ -152,9 +153,13 @@ function syncIndicators(
     }
     if (!prev) {
       if (def.key === 'ma') {
-        chart.createIndicator(
+        // P0.1（ADR-022 §4.3）：MA 叠加在 candle_pane 上**必须**走入口 ⇒ 显式 isStack=true + 非空断言。
+        // 旧实现传 `false`（整 pane 替换语义）：当前恰好只有 MA 才「看起来正常」，一旦再有叠加指标
+        // 就会静默顶掉 MA（index.esm.js:14162-14165，零告警）。
+        addOverlayIndicator(
+          chart,
           { ...createIndicatorValue(def.name, desired), paneId: 'candle_pane' },
-          false,
+          def.name,
         );
       } else {
         // ADR-021 §6：DCAP **独立副图 pane**（不可叠 candle_pane：dcap 与价格无量纲关系）；

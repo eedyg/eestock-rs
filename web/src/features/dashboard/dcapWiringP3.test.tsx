@@ -5,6 +5,7 @@
  * 契约：`design/14-dcap-indicator/02-spec.md` §6（图表 C）/ §7（配置面 D）；`03-test-plan.md` T10/T11
  * 运行：cd web && npx vitest run src/features/dashboard/dcapWiringP3.test.tsx
  */
+import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -21,6 +22,10 @@ const h = vi.hoisted(() => ({
     setBarSpace: vi.fn(),
     createIndicator: vi.fn(),
     removeIndicator: vi.fn(),
+  /** P0.1-D 补桩：`addOverlayIndicator` 的非空断言需要 `getIndicators({ name })`；
+   *  由 create/remove 调用记录派生（语义见 `@/test/chartStoreStub`），不引入跨用例状态。 */
+  getIndicators: vi.fn((filter?: IndicatorViewFilter) =>
+    indicatorViewFromCalls(h.chartStub.createIndicator, h.chartStub.removeIndicator, filter ?? {})),
     setStyles: vi.fn(),
     subscribeAction: vi.fn(),
     unsubscribeAction: vi.fn(),
