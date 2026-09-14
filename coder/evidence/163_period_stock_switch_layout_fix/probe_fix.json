@@ -1,0 +1,1726 @@
+{
+ "base": "http://127.0.0.1:18098",
+ "t0": "2026-09-14T01:36:35.215Z",
+ "putIntercepted": [],
+ "nonGetOther": [],
+ "klineGets": 6,
+ "klineUrls": [
+  "/api/kline?code=518880&period=15m&limit=120",
+  "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68",
+  "/api/kline?code=518880&period=1h&limit=188",
+  "/api/kline?code=518880&period=15m&limit=188",
+  "/api/kline?code=161226&period=15m&limit=188",
+  "/api/kline?code=161226&period=1h&limit=188"
+ ],
+ "wsFrames": [
+  {
+   "url": "ws://127.0.0.1:18098/ws",
+   "sent": [
+    "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"161226\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"161226\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"161226\",\"period\":\"1h\"}"
+   ],
+   "received": 42
+  }
+ ],
+ "scenarios": {
+  "mount": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 5,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "domH": 597,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 120,
+     "resultTail": {
+      "ma1": 8.934800000000005,
+      "ma2": 8.930199999999996,
+      "ma3": 8.917799999999998
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 120,
+     "resultTail": {
+      "volume": 8495400,
+      "open": 8.907,
+      "close": 8.91,
+      "ma1": 23412920.8,
+      "ma2": 28919780.4,
+      "ma3": 23104906.1
+     }
+    }
+   ],
+   "vr": {
+    "from": 6,
+    "to": 120,
+    "realFrom": 14,
+    "realTo": 128
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 120,
+   "firstTs": 1788405300000,
+   "lastTs": 1789349400000,
+   "firstClose": 9.113,
+   "lastClose": 8.91,
+   "head3": [
+    {
+     "ts": 1788405300000,
+     "close": 9.113
+    },
+    {
+     "ts": 1788406200000,
+     "close": 9.116
+    },
+    {
+     "ts": 1788411600000,
+     "close": 9.115
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "dcap_on": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 7,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "domH": 496,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349799438_1",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "ma1": 8.934800000000005,
+      "ma2": 8.930199999999996,
+      "ma3": 8.917800000000002
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "volume": 8495400,
+      "open": 8.907,
+      "close": 8.91,
+      "ma1": 23412920.8,
+      "ma2": 28919780.4,
+      "ma3": 23104906.1
+     }
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789349799437_1",
+     "paneId": "indicator_pane_1789349799438_1",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "s": -0.0002953531755085133,
+      "m": -0.006534333808136246,
+      "l": -0.008847663307353648,
+      "zero": 0
+     }
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 188,
+   "firstTs": 1787895000000,
+   "lastTs": 1789349400000,
+   "firstClose": 9.4,
+   "lastClose": 8.91,
+   "head3": [
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    },
+    {
+     "ts": 1787896800000,
+     "close": 9.415
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "A_before": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 7,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "domH": 357,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 199,
+     "domH": 199,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349799438_1",
+     "optH": 140,
+     "domH": 140,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "ma1": 8.934800000000005,
+      "ma2": 8.930199999999996,
+      "ma3": 8.917800000000002
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "volume": 8495400,
+      "open": 8.907,
+      "close": 8.91,
+      "ma1": 23412920.8,
+      "ma2": 28919780.4,
+      "ma3": 23104906.1
+     }
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789349799437_1",
+     "paneId": "indicator_pane_1789349799438_1",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "s": -0.0002953531755085133,
+      "m": -0.006534333808136246,
+      "l": -0.008847663307353648,
+      "zero": 0
+     }
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 188,
+   "firstTs": 1787895000000,
+   "lastTs": 1789349400000,
+   "firstClose": 9.4,
+   "lastClose": 8.91,
+   "head3": [
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    },
+    {
+     "ts": 1787896800000,
+     "close": 9.415
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "A_after": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 10,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "hour",
+    "span": 1
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "domH": 357,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 199,
+     "domH": 199,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349799438_1",
+     "optH": 140,
+     "domH": 140,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "ma1": 8.918599999999994,
+      "ma2": 8.964400000000001,
+      "ma3": 8.99905
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "volume": 8495400,
+      "open": 8.907,
+      "close": 8.91,
+      "ma1": 70210289.6,
+      "ma2": 85466466.6,
+      "ma3": 75888529.4
+     }
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789349799437_1",
+     "paneId": "indicator_pane_1789349799438_1",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "s": -0.002403724843886401,
+      "m": -0.013168686305957208,
+      "l": -0.01717287039555504,
+      "zero": 0
+     }
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 188,
+   "firstTs": 1785394800000,
+   "lastTs": 1789347600000,
+   "firstClose": 8.36,
+   "lastClose": 8.91,
+   "head3": [
+    {
+     "ts": 1785394800000,
+     "close": 8.36
+    },
+    {
+     "ts": 1785459600000,
+     "close": 8.45
+    },
+    {
+     "ts": 1785463200000,
+     "close": 8.43
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "B_before": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 13,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "domH": 357,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 199,
+     "domH": 199,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349799438_1",
+     "optH": 140,
+     "domH": 140,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "ma1": 8.934800000000005,
+      "ma2": 8.930199999999996,
+      "ma3": 8.917800000000002
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "volume": 8495400,
+      "open": 8.907,
+      "close": 8.91,
+      "ma1": 23412920.8,
+      "ma2": 28919780.4,
+      "ma3": 23104906.1
+     }
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789349799437_1",
+     "paneId": "indicator_pane_1789349799438_1",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "s": -0.0002953531755085133,
+      "m": -0.006534333808136246,
+      "l": -0.008847663307353648,
+      "zero": 0
+     }
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 188,
+   "firstTs": 1787895000000,
+   "lastTs": 1789349400000,
+   "firstClose": 9.4,
+   "lastClose": 8.91,
+   "head3": [
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    },
+    {
+     "ts": 1787896800000,
+     "close": 9.415
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "B_after": {
+   "inits": 1,
+   "chartCount": 1,
+   "logLen": 16,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "domH": 357,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349795374_3",
+     "optH": 199,
+     "domH": 199,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789349799438_1",
+     "optH": 140,
+     "domH": 140,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789349795374_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "ma1": 1.909000000000002,
+      "ma2": 1.9083999999999999,
+      "ma3": 1.902450000000001
+     }
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789349795374_2",
+     "paneId": "indicator_pane_1789349795374_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "volume": 6420600,
+      "open": 1.891,
+      "close": 1.887,
+      "ma1": 4401426.2,
+      "ma2": 4552589.9,
+      "ma3": 5256205.9
+     }
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789349799437_1",
+     "paneId": "indicator_pane_1789349799438_1",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultLen": 188,
+     "resultTail": {
+      "s": -0.0034499723094864785,
+      "m": -0.013750217457863792,
+      "l": -0.01817824523395739,
+      "zero": 0
+     }
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 81,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "dataLen": 188,
+   "firstTs": 1787895000000,
+   "lastTs": 1789349400000,
+   "firstClose": 2.01,
+   "lastClose": 1.887,
+   "head3": [
+    {
+     "ts": 1787895000000,
+     "close": 2.01
+    },
+    {
+     "ts": 1787895900000,
+     "close": 2.011
+    },
+    {
+     "ts": 1787896800000,
+     "close": 2.019
+    }
+   ],
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  }
+ },
+ "checks": [
+  {
+   "name": "mount：只有 1 个 chart 实例（inits=1）",
+   "ok": true,
+   "detail": {
+    "inits": 1,
+    "chartCount": 1
+   }
+  },
+  {
+   "name": "mount：DCAP 默认关（无 DCAP pane）",
+   "ok": true,
+   "detail": [
+    "MA",
+    "VOL",
+    ""
+   ]
+  },
+  {
+   "name": "DCAP 独立副图 pane（不叠 candle_pane）",
+   "ok": true,
+   "detail": {
+    "name": "DCAP",
+    "id": "DCAP_1789349799437_1",
+    "paneId": "indicator_pane_1789349799438_1",
+    "precision": 5,
+    "calcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "figKeys": [
+     "s",
+     "m",
+     "l",
+     "zero"
+    ],
+    "resultLen": 188,
+    "resultTail": {
+     "s": -0.0002953531755085133,
+     "m": -0.006534333808136246,
+     "l": -0.008847663307353648,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "name": "DCAP precision=5 且含常驻 zero figure",
+   "ok": true,
+   "detail": {
+    "name": "DCAP",
+    "id": "DCAP_1789349799437_1",
+    "paneId": "indicator_pane_1789349799438_1",
+    "precision": 5,
+    "calcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "figKeys": [
+     "s",
+     "m",
+     "l",
+     "zero"
+    ],
+    "resultLen": 188,
+    "resultTail": {
+     "s": -0.0002953531755085133,
+     "m": -0.006534333808136246,
+     "l": -0.008847663307353648,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "name": "DCAP 开启不重建图（inits 仍 1）",
+   "ok": true,
+   "detail": {
+    "inits": 1
+   }
+  },
+  {
+   "name": "DCAP warmup 差额补取口径不变（初始 120 + 差额补取 68 ⇒ 窗口 188）",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=15m&limit=120",
+    "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68"
+   ]
+  },
+  {
+   "name": "A 切 period：既有 pane 高度 ±1px 不变",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 357,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 199,
+     "after": 199,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 140,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "A 切 period：pane id 不变",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789349795374_3",
+     "DCAP": "indicator_pane_1789349799438_1"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789349795374_3",
+     "DCAP": "indicator_pane_1789349799438_1"
+    }
+   }
+  },
+  {
+   "name": "A 切 period：不 remount（inits 不递增）",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "A 切 period：burst 无 create/removeIndicator",
+   "ok": true,
+   "detail": [
+    {
+     "seq": 7,
+     "api": "setDataLoader",
+     "arg": "[{}]"
+    },
+    {
+     "seq": 8,
+     "api": "setSymbol",
+     "arg": "[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+    },
+    {
+     "seq": 9,
+     "api": "setPeriod",
+     "arg": "[{\"type\":\"hour\",\"span\":1}]"
+    }
+   ]
+  },
+  {
+   "name": "A 切 period：数据确实重置为 1h",
+   "ok": true,
+   "detail": {
+    "lenBefore": 188,
+    "lenAfter": 188,
+    "firstBefore": "2026-08-28T05:30:00.000Z",
+    "firstAfter": "2026-07-30T07:00:00.000Z",
+    "lastBefore": "2026-09-14T01:30:00.000Z",
+    "lastAfter": "2026-09-14T01:00:00.000Z",
+    "closeBefore": 8.91,
+    "closeAfter": 8.91
+   }
+  },
+  {
+   "name": "A 切 period：/api/kline GET 不膨胀（≤2）且窗口口径 = viewport_bars+warmup",
+   "ok": true,
+   "detail": {
+    "gets": 1,
+    "urls": [
+     "/api/kline?code=518880&period=15m&limit=120",
+     "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68",
+     "/api/kline?code=518880&period=1h&limit=188"
+    ]
+   }
+  },
+  {
+   "name": "A 切 period：视口回到配置根数（ADR-020，fit 重算 ≈120）",
+   "ok": true,
+   "detail": {
+    "fitBefore": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "fitAfter": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "visibleBefore": 115,
+    "visibleAfter": 115,
+    "bsBefore": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "bsAfter": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    }
+   }
+  },
+  {
+   "name": "B 切 stock：既有 pane 高度 ±1px 不变",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 357,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 199,
+     "after": 199,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 140,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "B 切 stock：pane id 不变",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789349795374_3",
+     "DCAP": "indicator_pane_1789349799438_1"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789349795374_3",
+     "DCAP": "indicator_pane_1789349799438_1"
+    }
+   }
+  },
+  {
+   "name": "B 切 stock：不 remount（inits 不递增）",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "B 切 stock：burst 无 create/removeIndicator",
+   "ok": true,
+   "detail": [
+    {
+     "seq": 13,
+     "api": "setDataLoader",
+     "arg": "[{}]"
+    },
+    {
+     "seq": 14,
+     "api": "setSymbol",
+     "arg": "[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+    },
+    {
+     "seq": 15,
+     "api": "setPeriod",
+     "arg": "[{\"type\":\"minute\",\"span\":15}]"
+    }
+   ]
+  },
+  {
+   "name": "B 切 stock：数据确实重置为 161226",
+   "ok": true,
+   "detail": {
+    "lenBefore": 188,
+    "lenAfter": 188,
+    "firstBefore": "2026-08-28T05:30:00.000Z",
+    "firstAfter": "2026-08-28T05:30:00.000Z",
+    "closeBefore": 8.91,
+    "closeAfter": 1.887,
+    "headBefore": [
+     {
+      "ts": 1787895000000,
+      "close": 9.4
+     },
+     {
+      "ts": 1787895900000,
+      "close": 9.405
+     },
+     {
+      "ts": 1787896800000,
+      "close": 9.415
+     }
+    ],
+    "headAfter": [
+     {
+      "ts": 1787895000000,
+      "close": 2.01
+     },
+     {
+      "ts": 1787895900000,
+      "close": 2.011
+     },
+     {
+      "ts": 1787896800000,
+      "close": 2.019
+     }
+    ]
+   }
+  },
+  {
+   "name": "B 切 stock：/api/kline GET 不膨胀（≤2）",
+   "ok": true,
+   "detail": {
+    "gets": 1,
+    "urls": [
+     "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68",
+     "/api/kline?code=518880&period=1h&limit=188",
+     "/api/kline?code=518880&period=15m&limit=188",
+     "/api/kline?code=161226&period=15m&limit=188"
+    ]
+   }
+  },
+  {
+   "name": "C 真实 wheel 改变了 barSpace（确认进入手动视口态）",
+   "ok": true,
+   "detail": {
+    "manual": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "before": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    }
+   }
+  },
+  {
+   "name": "C 手动缩放后切 period：仍回自动视口归一（可见 ≈120，ADR-020 口径不变）",
+   "ok": true,
+   "detail": {
+    "bsBeforeWheelRef": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "bsAfterWheel": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "bsAfterSwitch": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "visibleAfterWheel": 105,
+    "visibleAfterSwitch": 115,
+    "fitAfterSwitch": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "diffs": {
+     "MA": {
+      "before": 357,
+      "after": 357,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 199,
+      "after": 199,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 140,
+      "after": 140,
+      "delta": 0
+     }
+    },
+    "within1px": true,
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "klineGetsDuring": 1,
+    "heightsBefore": {
+     "MA": 357,
+     "VOL": 199,
+     "DCAP": 140
+    },
+    "heightsAfter": {
+     "MA": 357,
+     "VOL": 199,
+     "DCAP": 140
+    }
+   }
+  },
+  {
+   "name": "C 手动缩放后切 period：pane 高度仍 ±1px 不变",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 357,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 199,
+     "after": 199,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 140,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "C 手动缩放后切 period：仍不 remount",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "D DCAP 关 → pane 数减少 1、开 → 恢复（无空 pane 残留）",
+   "ok": true,
+   "detail": {
+    "before": 3,
+    "off": 2,
+    "on": 3
+   }
+  },
+  {
+   "name": "D DCAP 关/开不 remount",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "off": 1,
+    "on": 1
+   }
+  },
+  {
+   "name": "E 全程无非 GET 请求（未改线上状态）",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "name": "E 无页面异常/崩溃",
+   "ok": true,
+   "detail": []
+  }
+ ],
+ "A": {
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 357,
+    "delta": 0
+   },
+   "VOL": {
+    "before": 199,
+    "after": 199,
+    "delta": 0
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 140,
+    "delta": 0
+   }
+  },
+  "within1px": true,
+  "idsBefore": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789349795374_3",
+   "DCAP": "indicator_pane_1789349799438_1"
+  },
+  "idsAfter": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789349795374_3",
+   "DCAP": "indicator_pane_1789349799438_1"
+  },
+  "idsSame": true,
+  "initsBefore": 1,
+  "initsAfter": 1,
+  "period": {
+   "before": {
+    "type": "minute",
+    "span": 15
+   },
+   "after": {
+    "type": "hour",
+    "span": 1
+   }
+  },
+  "symbol": {
+   "before": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "after": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   }
+  },
+  "data": {
+   "lenBefore": 188,
+   "lenAfter": 188,
+   "firstBefore": "2026-08-28T05:30:00.000Z",
+   "firstAfter": "2026-07-30T07:00:00.000Z",
+   "lastBefore": "2026-09-14T01:30:00.000Z",
+   "lastAfter": "2026-09-14T01:00:00.000Z",
+   "closeBefore": 8.91,
+   "closeAfter": 8.91
+  },
+  "dataReset": true,
+  "viewport": {
+   "fitBefore": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "fitAfter": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "visibleBefore": 115,
+   "visibleAfter": 115,
+   "bsBefore": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "bsAfter": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   }
+  },
+  "klineGetsDuring": 1,
+  "logBurst": [
+   {
+    "seq": 7,
+    "api": "setDataLoader",
+    "arg": "[{}]"
+   },
+   {
+    "seq": 8,
+    "api": "setSymbol",
+    "arg": "[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+   },
+   {
+    "seq": 9,
+    "api": "setPeriod",
+    "arg": "[{\"type\":\"hour\",\"span\":1}]"
+   }
+  ]
+ },
+ "B": {
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 357,
+    "delta": 0
+   },
+   "VOL": {
+    "before": 199,
+    "after": 199,
+    "delta": 0
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 140,
+    "delta": 0
+   }
+  },
+  "within1px": true,
+  "idsBefore": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789349795374_3",
+   "DCAP": "indicator_pane_1789349799438_1"
+  },
+  "idsAfter": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789349795374_3",
+   "DCAP": "indicator_pane_1789349799438_1"
+  },
+  "idsSame": true,
+  "initsBefore": 1,
+  "initsAfter": 1,
+  "symbol": {
+   "before": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "after": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   }
+  },
+  "data": {
+   "lenBefore": 188,
+   "lenAfter": 188,
+   "firstBefore": "2026-08-28T05:30:00.000Z",
+   "firstAfter": "2026-08-28T05:30:00.000Z",
+   "closeBefore": 8.91,
+   "closeAfter": 1.887,
+   "headBefore": [
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    },
+    {
+     "ts": 1787896800000,
+     "close": 9.415
+    }
+   ],
+   "headAfter": [
+    {
+     "ts": 1787895000000,
+     "close": 2.01
+    },
+    {
+     "ts": 1787895900000,
+     "close": 2.011
+    },
+    {
+     "ts": 1787896800000,
+     "close": 2.019
+    }
+   ]
+  },
+  "dataReset": true,
+  "klineGetsDuring": 1,
+  "logBurst": [
+   {
+    "seq": 13,
+    "api": "setDataLoader",
+    "arg": "[{}]"
+   },
+   {
+    "seq": 14,
+    "api": "setSymbol",
+    "arg": "[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+   },
+   {
+    "seq": 15,
+    "api": "setPeriod",
+    "arg": "[{\"type\":\"minute\",\"span\":15}]"
+   }
+  ]
+ },
+ "C": {
+  "bsBeforeWheelRef": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "bsAfterWheel": {
+   "bar": 12.1,
+   "halfBar": 6.05,
+   "gapBar": 9,
+   "halfGapBar": 4
+  },
+  "bsAfterSwitch": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "visibleAfterWheel": 105,
+  "visibleAfterSwitch": 115,
+  "fitAfterSwitch": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 357,
+    "delta": 0
+   },
+   "VOL": {
+    "before": 199,
+    "after": 199,
+    "delta": 0
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 140,
+    "delta": 0
+   }
+  },
+  "within1px": true,
+  "initsBefore": 1,
+  "initsAfter": 1,
+  "klineGetsDuring": 1,
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  }
+ },
+ "D": {
+  "panes": {
+   "before": 3,
+   "off": 2,
+   "on": 3
+  },
+  "inits": {
+   "before": 1,
+   "off": 1,
+   "on": 1
+  },
+  "dcapAfterReopen": {
+   "name": "DCAP",
+   "id": "DCAP_1789349819985_1",
+   "paneId": "indicator_pane_1789349819985_2",
+   "precision": 5,
+   "calcParams": [
+    8,
+    36,
+    66,
+    1,
+    1,
+    1,
+    1,
+    3
+   ],
+   "figKeys": [
+    "s",
+    "m",
+    "l",
+    "zero"
+   ],
+   "resultLen": 188,
+   "resultTail": {
+    "s": -0.005716716069754324,
+    "m": -0.0227611076192068,
+    "l": -0.028599059165400953,
+    "zero": 0
+   }
+  }
+ },
+ "pageErrors": []
+}

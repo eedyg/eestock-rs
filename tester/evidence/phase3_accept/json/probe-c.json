@@ -1,0 +1,3684 @@
+{
+ "base": "http://127.0.0.1:18093",
+ "t0": "2026-09-14T01:49:23.434Z",
+ "putIntercepted": [
+  {
+   "method": "PUT",
+   "url": "/api/config/dcap",
+   "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":70,\"r_s\":1,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}",
+   "action": "fulfilled-locally(未发往后端/DB)"
+  }
+ ],
+ "nonGetOther": [],
+ "klineUrls": [
+  "/api/kline?code=518880&period=15m&limit=120",
+  "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A30%3A00Z&limit=68",
+  "/api/kline?code=518880&period=1h&limit=188",
+  "/api/kline?code=518880&period=1m&limit=188",
+  "/api/kline?code=518880&period=15m&limit=188",
+  "/api/kline?code=161226&period=15m&limit=188",
+  "/api/kline?code=513310&period=15m&limit=188",
+  "/api/kline?code=513310&period=1h&limit=188",
+  "/api/kline?code=513310&period=15m&limit=188",
+  "/api/kline?code=513310&period=15m&before=2026-08-28T05%3A45%3A00Z&limit=4"
+ ],
+ "klineGets": 10,
+ "checks": [
+  {
+   "name": "mount: 单 chart 实例（inits=1）",
+   "ok": true,
+   "detail": {
+    "inits": 1,
+    "chartCount": 1
+   }
+  },
+  {
+   "name": "mount: DCAP 默认关（无 DCAP pane）",
+   "ok": true,
+   "detail": [
+    "MA",
+    "VOL"
+   ]
+  },
+  {
+   "name": "mount: DCAP 关时初始取数 limit=120（ADR-020 口径）",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=15m&limit=120"
+   ]
+  },
+  {
+   "name": "R_dcap: 独立副图 pane（paneId != candle_pane）",
+   "ok": true,
+   "detail": {
+    "paneId": "indicator_pane_1789350567657_2"
+   }
+  },
+  {
+   "name": "R_dcap: precision=5",
+   "ok": true,
+   "detail": {
+    "precision": 5
+   }
+  },
+  {
+   "name": "R_dcap: figures 含 s,m,l,zero",
+   "ok": true,
+   "detail": {
+    "figKeys": [
+     "s",
+     "m",
+     "l",
+     "zero"
+    ]
+   }
+  },
+  {
+   "name": "R_dcap: 开 DCAP 不重建图（inits 仍 1）",
+   "ok": true,
+   "detail": {
+    "inits": 1
+   }
+  },
+  {
+   "name": "R_dcap_warmup: 开 DCAP 差额补取（limit=68 ⇒ 窗口 188）",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=15m&limit=120",
+    "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A30%3A00Z&limit=68"
+   ]
+  },
+  {
+   "name": "R_dcap_insufficient: 数据不足处三线为 null（断线）且其后有数值（l 线首非空索引 > 0）",
+   "ok": true,
+   "detail": {
+    "len": 188,
+    "firstNonNull_s": 9,
+    "firstNonNull_m": 37,
+    "firstNonNull_l": 67,
+    "nNumericL": 121
+   }
+  },
+  {
+   "name": "drag: 已拖到非默认高度（VOL/DCAP 均 != 100 且互异）",
+   "ok": true,
+   "detail": {
+    "MA": 457,
+    "VOL": 179,
+    "DCAP": 160
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 457,
+     "after": 457,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "P1_15m_to_1h:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "518880",
+    "want": "518880"
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "hour",
+     "span": 1
+    },
+    "want": "1h"
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "hour",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-07-30T07:00:00.000Z",
+    "gtLast": "2026-09-14T01:00:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 52,
+     "valueAgree": 11,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 52,
+    "valueAgree": 11,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "P1_15m_to_1h:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=1h&limit=188"
+   ]
+  },
+  {
+   "name": "P2_1h_to_1m:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 457,
+     "after": 457,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay",
+    "scrollToRealTime"
+   ]
+  },
+  {
+   "name": "P2_1h_to_1m:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "518880",
+    "want": "518880"
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "minute",
+     "span": 1
+    },
+    "want": "1m"
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "hour",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 189,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:50:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-09-11T02:44:00.000Z",
+    "gtLast": "2026-09-14T01:50:00.000Z",
+    "windowMatch": {
+     "chartLen": 189,
+     "gtLen": 188,
+     "overlap": 15,
+     "valueAgree": 2,
+     "minLen": 188,
+     "driftAbs": 1,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 15,
+    "valueAgree": 2,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "P2_1h_to_1m:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=1m&limit=188"
+   ]
+  },
+  {
+   "name": "P3_1m_to_15m:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 457,
+     "after": 457,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "P3_1m_to_15m:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "518880",
+    "want": "518880"
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "minute",
+     "span": 15
+    },
+    "want": "15m"
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:D_data_window_matches_GT",
+   "ok": true,
+   "detail": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "minute",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 189,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:50:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 188,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": true
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:D_data_values_match_GT",
+   "ok": true,
+   "detail": {
+    "overlap": 188,
+    "valueAgree": 188,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "P3_1m_to_15m:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=518880&period=15m&limit=188"
+   ]
+  },
+  {
+   "name": "S1_518880_to_161226:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 457,
+     "after": 457,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "S1_518880_to_161226:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "161226",
+    "want": "161226"
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "minute",
+     "span": 15
+    },
+    "want": "15m"
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "518880",
+    "symbolAfter": "161226",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 188,
+    "valueAgree": 0,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "S1_518880_to_161226:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=161226&period=15m&limit=188"
+   ]
+  },
+  {
+   "name": "S2_161226_to_513310:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 457,
+     "after": 457,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "S2_161226_to_513310:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "513310",
+    "want": "513310"
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "minute",
+     "span": 15
+    },
+    "want": "15m"
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "161226",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 188,
+    "valueAgree": 0,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "S2_161226_to_513310:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=513310&period=15m&limit=188"
+   ]
+  },
+  {
+   "name": "R_viewport: 切周期后 data-viewport-fit.bars == 120（ADR-020 视口=根数）",
+   "ok": true,
+   "detail": {
+    "bars": 120,
+    "space": 11,
+    "visible": 118,
+    "clamped": false
+   }
+  },
+  {
+   "name": "R_viewport: space = clamp(round(W/120),1,50) 且 ∈[1,50]",
+   "ok": true,
+   "detail": {
+    "fit": {
+     "bars": 120,
+     "space": 11,
+     "visible": 118,
+     "clamped": false
+    },
+    "expectSpace": 11
+   }
+  },
+  {
+   "name": "R_viewport: 可见根数 ≈ viewport_bars（±15%）",
+   "ok": true,
+   "detail": {
+    "fitVisible": 118,
+    "vrVisible": 115
+   }
+  },
+  {
+   "name": "R_viewport: 真实 wheel 改变了 barSpace（进入手动视口态）",
+   "ok": true,
+   "detail": {
+    "before": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "after": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    }
+   }
+  },
+  {
+   "name": "R_manual_zoom: 手动缩放后 resize 不重算 barSpace（ADR-020 §2.6）",
+   "ok": true,
+   "detail": {
+    "afterWheel": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "afterResize": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    }
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 417,
+     "after": 417,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "513310",
+    "want": "513310"
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "hour",
+     "span": 1
+    },
+    "want": "1h"
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "513310",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "hour",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-07-30T07:00:00.000Z",
+    "gtLast": "2026-09-14T01:00:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 52,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 52,
+    "valueAgree": 0,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "P4_manualzoom_15m_to_1h:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=513310&period=1h&limit=188"
+   ]
+  },
+  {
+   "name": "R_manual_zoom: 手动缩放后切周期仍回自动视口归一（≈120）",
+   "ok": true,
+   "detail": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  {
+   "name": "P5_1h_to_15m:H_heights_within_1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 417,
+     "after": 417,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:H_pane_ids_same",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:H_no_remount(inits)",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:H_no_dispose",
+   "ok": true,
+   "detail": {
+    "before": 0,
+    "after": 0
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:H_no_create_remove_churn",
+   "ok": true,
+   "detail": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ]
+  },
+  {
+   "name": "P5_1h_to_15m:D_symbol_updated",
+   "ok": true,
+   "detail": {
+    "got": "513310",
+    "want": "513310"
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:D_period_updated",
+   "ok": true,
+   "detail": {
+    "got": {
+     "type": "minute",
+     "span": 15
+    },
+    "want": "15m"
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:D_data_window_matches_GT",
+   "ok": false,
+   "detail": {
+    "symbolBefore": "513310",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "hour",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:D_data_values_match_GT",
+   "ok": false,
+   "detail": {
+    "overlap": 188,
+    "valueAgree": 0,
+    "lastCloseAfter": 8.934
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:D_data_changed_from_before",
+   "ok": false,
+   "detail": {
+    "before": "2026-08-28T05:45:00.000Z",
+    "after": "2026-08-28T05:45:00.000Z",
+    "closeBefore": 8.934,
+    "closeAfter": 8.934
+   }
+  },
+  {
+   "name": "P5_1h_to_15m:D_request_hit_new_code_period",
+   "ok": true,
+   "detail": [
+    "/api/kline?code=513310&period=15m&limit=188"
+   ]
+  },
+  {
+   "name": "R_ws: 实时 bar 追加（dataLen +1 且末根 ts = 推送 ts）",
+   "ok": true,
+   "detail": {
+    "dataLenBefore": 188,
+    "dataLenAfter": 189,
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T02:00:00.000Z",
+    "expectTs": "2026-09-14T02:00:00.000Z",
+    "burst": [
+     "scrollToRealTime"
+    ],
+    "marker": true,
+    "followLatest": true
+   }
+  },
+  {
+   "name": "R_ws_follow: followLatest=true 时滚动到最新（scrollToRealTime 被调用）",
+   "ok": true,
+   "detail": [
+    "scrollToRealTime"
+   ]
+  },
+  {
+   "name": "R_ws_marker: 实时标记渲染（data-realtime-marker）",
+   "ok": true,
+   "detail": {
+    "marker": true
+   }
+  },
+  {
+   "name": "R_ws_nofollow: followLatest=false 时仍追加但不强拉（无 scrollToRealTime）",
+   "ok": true,
+   "detail": {
+    "dataLenBefore": 189,
+    "dataLenAfter": 190,
+    "expectTs": "2026-09-14T02:15:00.000Z",
+    "lastTsAfter": "2026-09-14T02:15:00.000Z",
+    "burst": []
+   }
+  },
+  {
+   "name": "R_prev_fix: 保存 dcap 参数不重建 pane（inits 不变、无 dispose）",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 1,
+    "disp": 0
+   }
+  },
+  {
+   "name": "R_prev_fix: 保存后 pane 高度 ±1px 不变、pane id 不变",
+   "ok": true,
+   "detail": {
+    "diffs": {
+     "MA": {
+      "before": 417,
+      "after": 417,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    }
+   }
+  },
+  {
+   "name": "R_prev_fix: 参数确实生效（DCAP calcParams 更新为含 70/5）",
+   "ok": true,
+   "detail": {
+    "before": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "after": [
+     8,
+     36,
+     70,
+     1,
+     1,
+     1,
+     1,
+     5
+    ]
+   }
+  },
+  {
+   "name": "R_prev_fix: 无 create/remove churn（走 overrideIndicator）",
+   "ok": true,
+   "detail": [
+    {
+     "api": "overrideIndicator",
+     "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,36,70,1,1,1,1,5]}]"
+    },
+    {
+     "api": "resetData",
+     "arg": "[]"
+    }
+   ]
+  },
+  {
+   "name": "R_prev_fix: 保存的 PUT 请求被浏览器侧本地兑现（未发往后端）",
+   "ok": true,
+   "detail": [
+    {
+     "method": "PUT",
+     "url": "/api/config/dcap",
+     "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":70,\"r_s\":1,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}",
+     "action": "fulfilled-locally(未发往后端/DB)"
+    }
+   ]
+  },
+  {
+   "name": "E: 全程无非 GET 请求（未改线上状态）",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "name": "E: 无页面异常/崩溃",
+   "ok": true,
+   "detail": []
+  }
+ ],
+ "scenarios": {
+  "mount": {
+   "inits": 1,
+   "disposes": 0,
+   "chartCount": 1,
+   "logLen": 7,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "domH": 697,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789350563597_3",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "indicators": [
+    {
+     "name": "MA",
+     "id": "MA_1789350563597_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ]
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789350563597_2",
+     "paneId": "indicator_pane_1789350563597_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ]
+    }
+   ],
+   "dcap": null,
+   "overlays": 0,
+   "dataLen": 120,
+   "firstTs": 1788406200000,
+   "lastTs": 1789350300000,
+   "firstClose": 9.116,
+   "lastClose": 8.934,
+   "head3": [
+    {
+     "ts": 1788406200000,
+     "close": 9.116
+    },
+    {
+     "ts": 1788411600000,
+     "close": 9.115
+    },
+    {
+     "ts": 1788412500000,
+     "close": 9.102
+    }
+   ],
+   "vr": {
+    "from": 6,
+    "to": 120,
+    "realFrom": 14,
+    "realTo": 128
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "marker": false
+  },
+  "dcap_on": {
+   "inits": 1,
+   "disposes": 0,
+   "chartCount": 1,
+   "logLen": 9,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "domH": 596,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789350563597_3",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789350567657_2",
+     "optH": 100,
+     "domH": 100,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "domH": 26,
+     "indicators": []
+    }
+   ],
+   "indicators": [
+    {
+     "name": "MA",
+     "id": "MA_1789350563597_1",
+     "paneId": "candle_pane",
+     "precision": 3,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ]
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789350563597_2",
+     "paneId": "indicator_pane_1789350563597_3",
+     "precision": 0,
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ]
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789350567657_1",
+     "paneId": "indicator_pane_1789350567657_2",
+     "precision": 5,
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ]
+    }
+   ],
+   "dcap": {
+    "paneId": "indicator_pane_1789350567657_2",
+    "precision": 5,
+    "calcParams": [
+     8,
+     36,
+     66,
+     1,
+     1,
+     1,
+     1,
+     3
+    ],
+    "figKeys": [
+     "s",
+     "m",
+     "l",
+     "zero"
+    ],
+    "result": [
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": null,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.022171096272458946,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.020599712257564146,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.016500307071433833,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.011988158757293458,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0056286569761498555,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0016011784153564894,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0004265330256859971,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0014587962863021886,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0021403998187023245,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.002830143496635721,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0018501886340774505,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0010941419603280877,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.00044915994377547896,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0005264001504901769,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0004665456596755953,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0005663575014004755,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0006527249803608045,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0009903097196222177,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0008396837308923821,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0001556682690559604,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00024116790186889947,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0005557588329164383,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0003870373364068073,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.000706222979586039,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0010984584668135566,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0014271543994579157,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0009070294538467971,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00016793322027064406,
+      "m": null,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0003339505592937127,
+      "m": -0.00409900795917965,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00011804547618473234,
+      "m": -0.00379579114081785,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0003828408400815553,
+      "m": -0.003350361391514863,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0004833760834117573,
+      "m": -0.0026619610366312627,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00043319680454412257,
+      "m": -0.001705103494630526,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00810002809325927,
+      "m": -0.009489077134389623,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.015993330727471482,
+      "m": -0.01884619299504542,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.022172837892187786,
+      "m": -0.02788827605922506,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.01893269032372254,
+      "m": -0.02768880155120908,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.013653287066851316,
+      "m": -0.02530580124857984,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00967721712949702,
+      "m": -0.02411759116066899,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.006411172926521195,
+      "m": -0.023624004496316003,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.0040094459251489205,
+      "m": -0.02404160891585953,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.001900783329224202,
+      "m": -0.02369783389683903,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": -0.00017176104595306718,
+      "m": -0.022410745482398704,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.001040609699340093,
+      "m": -0.020259018541888125,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0025211764990915597,
+      "m": -0.017551975703382405,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.003174324501030871,
+      "m": -0.015723422913183627,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.003686182533355472,
+      "m": -0.014006960960530964,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0033852622417224567,
+      "m": -0.013040781734952414,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0027970126750880286,
+      "m": -0.012199162495400059,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0015377099529716443,
+      "m": -0.011999160932742522,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.0005369564591901262,
+      "m": -0.011635511626909198,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.004865862907649787,
+      "m": -0.005635452769496507,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.009774695082640394,
+      "m": 0.0013396915354881855,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.013991714724437943,
+      "m": 0.008146445777053776,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.012269897699972518,
+      "m": 0.009011407178611153,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.010042339268532707,
+      "m": 0.009337943335638052,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.008175640104258086,
+      "m": 0.010048851740110868,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.006951062213223169,
+      "m": 0.011601621522591588,
+      "l": null,
+      "zero": 0
+     },
+     {
+      "s": 0.005145181023357963,
+      "m": 0.012723437023870021,
+      "l": 0.003466162115926282,
+      "zero": 0
+     },
+     {
+      "s": 0.0036729889754672693,
+      "m": 0.013553469611938965,
+      "l": 0.004719393688348801,
+      "zero": 0
+     },
+     {
+      "s": 0.002262393191288995,
+      "m": 0.01358897402731237,
+      "l": 0.005213111983631909,
+      "zero": 0
+     },
+     {
+      "s": 0.0013357988653358577,
+      "m": 0.013209636743107897,
+      "l": 0.005337937402674371,
+      "zero": 0
+     },
+     {
+      "s": 0.000863003405374004,
+      "m": 0.013208097838656618,
+      "l": 0.0058583021401154385,
+      "zero": 0
+     },
+     {
+      "s": 0.0006053497731273542,
+      "m": 0.013440127844416727,
+      "l": 0.006458283076109368,
+      "zero": 0
+     },
+     {
+      "s": 0.0005543190245757742,
+      "m": 0.013859475997373583,
+      "l": 0.0070605747990412455,
+      "zero": 0
+     },
+     {
+      "s": -0.00016408973812009897,
+      "m": 0.013352039215007938,
+      "l": 0.006552841592885272,
+      "zero": 0
+     },
+     {
+      "s": -0.0004934261877823642,
+      "m": 0.013064071380469203,
+      "l": 0.006240204541399619,
+      "zero": 0
+     },
+     {
+      "s": -0.0005894207930556838,
+      "m": 0.012886295081709761,
+      "l": 0.005999736674352126,
+      "zero": 0
+     },
+     {
+      "s": -0.00030595140481222877,
+      "m": 0.013110252887988802,
+      "l": 0.006157156408014064,
+      "zero": 0
+     },
+     {
+      "s": 0.002465735860849305,
+      "m": 0.015962429486488256,
+      "l": 0.009211165617149852,
+      "zero": 0
+     },
+     {
+      "s": 0.005515990420607908,
+      "m": 0.019186547166984386,
+      "l": 0.013005840362193396,
+      "zero": 0
+     },
+     {
+      "s": 0.00810486976657998,
+      "m": 0.022016578179549755,
+      "l": 0.01675065142472428,
+      "zero": 0
+     },
+     {
+      "s": 0.006894928439747853,
+      "m": 0.020935273664368276,
+      "l": 0.016629111758457087,
+      "zero": 0
+     },
+     {
+      "s": 0.005099495068058364,
+      "m": 0.01932685770933773,
+      "l": 0.015938490511178127,
+      "zero": 0
+     },
+     {
+      "s": 0.003617340752418633,
+      "m": 0.01807205927831605,
+      "l": 0.01559412715935471,
+      "zero": 0
+     },
+     {
+      "s": 0.0023590410625842217,
+      "m": 0.01707031916510826,
+      "l": 0.015526480541536195,
+      "zero": 0
+     },
+     {
+      "s": 0.0011192902319082283,
+      "m": 0.016032865639542686,
+      "l": 0.01545215010951854,
+      "zero": 0
+     },
+     {
+      "s": -0.0000222432579675876,
+      "m": 0.01465885382314173,
+      "l": 0.015048284040857155,
+      "zero": 0
+     },
+     {
+      "s": -0.0007060561533192752,
+      "m": 0.01323778796754079,
+      "l": 0.014571459944322815,
+      "zero": 0
+     },
+     {
+      "s": -0.0008919492004848909,
+      "m": 0.01183262822265537,
+      "l": 0.014069513381072504,
+      "zero": 0
+     },
+     {
+      "s": -0.0007063224756377329,
+      "m": 0.010853620948082362,
+      "l": 0.013939787156480735,
+      "zero": 0
+     },
+     {
+      "s": -0.0004255714094953585,
+      "m": 0.010086814876954545,
+      "l": 0.01399735894140286,
+      "zero": 0
+     },
+     {
+      "s": -0.00038037709201917586,
+      "m": 0.009132653842529667,
+      "l": 0.013839875430016116,
+      "zero": 0
+     },
+     {
+      "s": -0.0005118639903736918,
+      "m": 0.00797512354526527,
+      "l": 0.013472797225074995,
+      "zero": 0
+     },
+     {
+      "s": -0.0008565400044734014,
+      "m": 0.0065476677051053605,
+      "l": 0.012820474851450436,
+      "zero": 0
+     },
+     {
+      "s": -0.0014190434288334774,
+      "m": 0.004839836975759404,
+      "l": 0.011878489242378073,
+      "zero": 0
+     },
+     {
+      "s": -0.0019179081580957085,
+      "m": 0.0031470453658500506,
+      "l": 0.010945306417476338,
+      "zero": 0
+     },
+     {
+      "s": -0.005249344534534221,
+      "m": -0.0015890781169743962,
+      "l": 0.006726293144633059,
+      "zero": 0
+     },
+     {
+      "s": -0.007556208727952707,
+      "m": -0.005453465174795391,
+      "l": 0.003153011081041638,
+      "zero": 0
+     },
+     {
+      "s": -0.009970067284690817,
+      "m": -0.009667850878423626,
+      "l": -0.0010234291665652446,
+      "zero": 0
+     },
+     {
+      "s": -0.008365992744869821,
+      "m": -0.009847500925079614,
+      "l": -0.001161238533704978,
+      "zero": 0
+     },
+     {
+      "s": -0.006413280412575421,
+      "m": -0.009626144572579117,
+      "l": -0.0009066117509715088,
+      "zero": 0
+     },
+     {
+      "s": -0.004328563436140372,
+      "m": -0.009145695531040573,
+      "l": -0.00039750228015448624,
+      "zero": 0
+     },
+     {
+      "s": -0.0026573518225309067,
+      "m": -0.008920402864023846,
+      "l": -0.00017546052121268177,
+      "zero": 0
+     },
+     {
+      "s": -0.0014917903735545874,
+      "m": -0.00909503759991511,
+      "l": -0.00038314647315007555,
+      "zero": 0
+     },
+     {
+      "s": -0.0005183641937963612,
+      "m": -0.008920296619437754,
+      "l": -0.0002680440860994097,
+      "zero": 0
+     },
+     {
+      "s": -0.00038152913722529674,
+      "m": -0.009171153778671615,
+      "l": -0.0005944561409942928,
+      "zero": 0
+     },
+     {
+      "s": -0.000432138614010628,
+      "m": -0.009101683064232646,
+      "l": -0.0005918420295470591,
+      "zero": 0
+     },
+     {
+      "s": -0.0007265773718067395,
+      "m": -0.009278501586029941,
+      "l": -0.0008418640234600187,
+      "zero": 0
+     },
+     {
+      "s": -0.000989028017149211,
+      "m": -0.009475886384179769,
+      "l": -0.00125786899649268,
+      "zero": 0
+     },
+     {
+      "s": -0.001665727673140475,
+      "m": -0.010219702348668055,
+      "l": -0.002407310435786162,
+      "zero": 0
+     },
+     {
+      "s": -0.0020756638502752445,
+      "m": -0.010809343687336548,
+      "l": -0.0035498845576461178,
+      "zero": 0
+     },
+     {
+      "s": -0.0018088136427094985,
+      "m": -0.01071031305288613,
+      "l": -0.004000807699848452,
+      "zero": 0
+     },
+     {
+      "s": -0.0014916118209939988,
+      "m": -0.010577927666367226,
+      "l": -0.004386300931917608,
+      "zero": 0
+     },
+     {
+      "s": -0.0011512019650740484,
+      "m": -0.010366441051728422,
+      "l": -0.004689507865011618,
+      "zero": 0
+     },
+     {
+      "s": 0.0017641536356564809,
+      "m": -0.007225002183243586,
+      "l": -0.002101001611005312,
+      "zero": 0
+     },
+     {
+      "s": 0.004657044213304595,
+      "m": -0.0036308181362672,
+      "l": 0.0008580097545013432,
+      "zero": 0
+     },
+     {
+      "s": 0.006563976875704129,
+      "m": -0.0005916515067948177,
+      "l": 0.003179796152089187,
+      "zero": 0
+     },
+     {
+      "s": 0.005255119377870783,
+      "m": -0.0006487377776988786,
+      "l": 0.0023919388862357525,
+      "zero": 0
+     },
+     {
+      "s": 0.0033703916034591628,
+      "m": -0.0012799904557893038,
+      "l": 0.0010538478485082603,
+      "zero": 0
+     },
+     {
+      "s": 0.0021668883263220215,
+      "m": -0.0012507017147685613,
+      "l": 0.0004125841839260162,
+      "zero": 0
+     },
+     {
+      "s": 0.0012109832118298858,
+      "m": -0.0009630368701886161,
+      "l": 0.00004595716693922558,
+      "zero": 0
+     },
+     {
+      "s": 0.0007368252719305671,
+      "m": -0.00013928906445185665,
+      "l": 0.00023772253189550488,
+      "zero": 0
+     },
+     {
+      "s": 0.0004981076041174296,
+      "m": 0.0005911987514929015,
+      "l": 0.00035397039902584915,
+      "zero": 0
+     },
+     {
+      "s": 0.0003348620303627037,
+      "m": 0.0009790082887767653,
+      "l": 0.0001415319011400055,
+      "zero": 0
+     },
+     {
+      "s": -0.000040829310600676294,
+      "m": 0.0007467800233107447,
+      "l": -0.0006931083527019025,
+      "zero": 0
+     },
+     {
+      "s": -0.0002378515405181044,
+      "m": 0.0007060033517297301,
+      "l": -0.0013448468908059767,
+      "zero": 0
+     },
+     {
+      "s": -0.0007691478114846643,
+      "m": 0.00039277021968190756,
+      "l": -0.0021960477862981533,
+      "zero": 0
+     },
+     {
+      "s": -0.0014196021223178423,
+      "m": -0.0000841919636287806,
+      "l": -0.003116589768385062,
+      "zero": 0
+     },
+     {
+      "s": -0.002839981495539582,
+      "m": -0.0015108331580196976,
+      "l": -0.004896717332539861,
+      "zero": 0
+     },
+     {
+      "s": -0.0033623468804867183,
+      "m": -0.002225705972649742,
+      "l": -0.005954875934856034,
+      "zero": 0
+     },
+     {
+      "s": -0.00334020958921033,
+      "m": -0.0025418709147331984,
+      "l": -0.0065978015566854715,
+      "zero": 0
+     },
+     {
+      "s": -0.0025437763957436577,
+      "m": -0.002112984361306136,
+      "l": -0.006465163830512617,
+      "zero": 0
+     },
+     {
+      "s": -0.003911540095352735,
+      "m": -0.004125295613668478,
+      "l": -0.008654895545958441,
+      "zero": 0
+     },
+     {
+      "s": -0.0051934483010058026,
+      "m": -0.006352119894236785,
+      "l": -0.010974593566181134,
+      "zero": 0
+     },
+     {
+      "s": -0.005982790433856485,
+      "m": -0.008341493839339983,
+      "l": -0.012956582000522446,
+      "zero": 0
+     },
+     {
+      "s": -0.004956424974093469,
+      "m": -0.008453675761516344,
+      "l": -0.013067186535166439,
+      "zero": 0
+     },
+     {
+      "s": -0.0038866218131420327,
+      "m": -0.008302426465396437,
+      "l": -0.012926551378277548,
+      "zero": 0
+     },
+     {
+      "s": -0.0026192987032037283,
+      "m": -0.007779897899029257,
+      "l": -0.012424348157339282,
+      "zero": 0
+     },
+     {
+      "s": -0.0013787478897352434,
+      "m": -0.007155244168954078,
+      "l": -0.011815688086047457,
+      "zero": 0
+     },
+     {
+      "s": -0.00021254226913480778,
+      "m": -0.006586848840966608,
+      "l": -0.01124384826874573,
+      "zero": 0
+     },
+     {
+      "s": 0.00009945218269698704,
+      "m": -0.0066012769509727525,
+      "l": -0.01126307941709855,
+      "zero": 0
+     },
+     {
+      "s": 0.0010991518935703493,
+      "m": -0.005547277378525968,
+      "l": -0.010200546471442973,
+      "zero": 0
+     },
+     {
+      "s": 0.0017111532015787005,
+      "m": -0.004520960906570097,
+      "l": -0.009154708680092716,
+      "zero": 0
+     },
+     {
+      "s": 0.002623955336729692,
+      "m": -0.0030277817226325165,
+      "l": -0.007613681022863195,
+      "zero": 0
+     },
+     {
+      "s": 0.0028311924797902823,
+      "m": -0.0021577276883461374,
+      "l": -0.006625022515576877,
+      "zero": 0
+     },
+     {
+      "s": 0.0032006373926801355,
+      "m": -0.0010870613798255786,
+      "l": -0.00533799359311508,
+      "zero": 0
+     },
+     {
+      "s": 0.0026446811166359976,
+      "m": -0.001001098537684893,
+      "l": -0.004948919999548089,
+      "zero": 0
+     },
+     {
+      "s": 0.00202362007503587,
+      "m": -0.0010298189664095976,
+      "l": -0.004669080827472194,
+      "zero": 0
+     },
+     {
+      "s": 0.0014067699583582745,
+      "m": -0.001025806904542829,
+      "l": -0.004361088590085586,
+      "zero": 0
+     },
+     {
+      "s": 0.0012203479196053468,
+      "m": -0.0006656097241255118,
+      "l": -0.0036953490055725937,
+      "zero": 0
+     },
+     {
+      "s": 0.0012877186294294092,
+      "m": -0.000021291136604058753,
+      "l": -0.00281767980149783,
+      "zero": 0
+     },
+     {
+      "s": 0.0015173891466303175,
+      "m": 0.0007700570405116217,
+      "l": -0.0018763143543146048,
+      "zero": 0
+     },
+     {
+      "s": 0.0019869519294256253,
+      "m": 0.001869393475427324,
+      "l": -0.0006962423934456785,
+      "zero": 0
+     },
+     {
+      "s": 0.0020511207679885235,
+      "m": 0.0024664441355627766,
+      "l": -0.000006350239223240628,
+      "zero": 0
+     },
+     {
+      "s": 0.0021978331479418265,
+      "m": 0.003167362834007944,
+      "l": 0.0008154599078741646,
+      "zero": 0
+     },
+     {
+      "s": 0.0019761011367749326,
+      "m": 0.003520286090935206,
+      "l": 0.0013014220457761756,
+      "zero": 0
+     },
+     {
+      "s": 0.001496758698325958,
+      "m": 0.003613128608349466,
+      "l": 0.0015315171537286048,
+      "zero": 0
+     },
+     {
+      "s": 0.00045213615977268695,
+      "m": 0.0030380465708358026,
+      "l": 0.00107146678722921,
+      "zero": 0
+     },
+     {
+      "s": -0.0003023637859606391,
+      "m": 0.002636855620234968,
+      "l": 0.0007619249289963678,
+      "zero": 0
+     },
+     {
+      "s": -0.0003579513844655935,
+      "m": 0.00286252812325268,
+      "l": 0.001067742455125827,
+      "zero": 0
+     },
+     {
+      "s": 0.00001418297912307113,
+      "m": 0.0034294528367770916,
+      "l": 0.001721314490157333,
+      "zero": 0
+     },
+     {
+      "s": 0.001093799505951602,
+      "m": 0.004763067783577046,
+      "l": 0.003152703807433784,
+      "zero": 0
+     },
+     {
+      "s": 0.001704850207867814,
+      "m": 0.005613421066009853,
+      "l": 0.004066142145344731,
+      "zero": 0
+     },
+     {
+      "s": 0.0016043021275534326,
+      "m": 0.005700644357101344,
+      "l": 0.004186740364659307,
+      "zero": 0
+     },
+     {
+      "s": 0.0006264117519902227,
+      "m": 0.004766419150848374,
+      "l": 0.003261649060860202,
+      "zero": 0
+     },
+     {
+      "s": 0.00015787867520729767,
+      "m": 0.004363846019249144,
+      "l": 0.0028900143603113695,
+      "zero": 0
+     },
+     {
+      "s": 0.0002126108249889865,
+      "m": 0.0045606400103472096,
+      "l": 0.003142212331772735,
+      "zero": 0
+     },
+     {
+      "s": 0.00034081876250472803,
+      "m": 0.004858882648308471,
+      "l": 0.003504907744002065,
+      "zero": 0
+     },
+     {
+      "s": -0.006071431759853289,
+      "m": -0.002230091478416204,
+      "l": -0.00353425485073385,
+      "zero": 0
+     },
+     {
+      "s": -0.011245834738402053,
+      "m": -0.008975389374673756,
+      "l": -0.010253215277034674,
+      "zero": 0
+     },
+     {
+      "s": -0.015232171509243683,
+      "m": -0.015339106116485035,
+      "l": -0.01661395586055625,
+      "zero": 0
+     },
+     {
+      "s": -0.01244017236968542,
+      "m": -0.014897051211626397,
+      "l": -0.01617265972097237,
+      "zero": 0
+     },
+     {
+      "s": -0.010297911767560933,
+      "m": -0.015036108794887223,
+      "l": -0.016316515779451663,
+      "zero": 0
+     },
+     {
+      "s": -0.008209071312891428,
+      "m": -0.015227280222839515,
+      "l": -0.016532162732716887,
+      "zero": 0
+     },
+     {
+      "s": -0.006254634279028393,
+      "m": -0.015645272041005336,
+      "l": -0.01700094802168332,
+      "zero": 0
+     },
+     {
+      "s": -0.004294167932612132,
+      "m": -0.016176581327998967,
+      "l": -0.01761907807516831,
+      "zero": 0
+     },
+     {
+      "s": -0.0032686237259924957,
+      "m": -0.016868751739904615,
+      "l": -0.018417999461442736,
+      "zero": 0
+     },
+     {
+      "s": -0.001127127812781718,
+      "m": -0.015494361506235807,
+      "l": -0.017167642145474615,
+      "zero": 0
+     },
+     {
+      "s": 0.0006549289443953388,
+      "m": -0.013476888893364292,
+      "l": -0.01528009850493739,
+      "zero": 0
+     },
+     {
+      "s": 0.002774866821533791,
+      "m": -0.010891654634491746,
+      "l": -0.012836480778991133,
+      "zero": 0
+     },
+     {
+      "s": 0.0035063664224469124,
+      "m": -0.009496486958898228,
+      "l": -0.011546555986474694,
+      "zero": 0
+     },
+     {
+      "s": 0.004762252955605506,
+      "m": -0.007309703605644795,
+      "l": -0.009422383376884206,
+      "zero": 0
+     },
+     {
+      "s": 0.004635767304693135,
+      "m": -0.006323827957363896,
+      "l": -0.008449633778537802,
+      "zero": 0
+     },
+     {
+      "s": 0.0037820071842235383,
+      "m": -0.005933261653362091,
+      "l": -0.00807497652575869,
+      "zero": 0
+     },
+     {
+      "s": 0.002153646074014729,
+      "m": -0.006228565626937262,
+      "l": -0.008407398025757259,
+      "zero": 0
+     },
+     {
+      "s": 0.0013168965999315052,
+      "m": -0.005848185651053088,
+      "l": -0.00808014668235102,
+      "zero": 0
+     },
+     {
+      "s": -0.0001974767702687489,
+      "m": -0.0064261770246360666,
+      "l": -0.008738360563162906,
+      "zero": 0
+     },
+     {
+      "s": -0.0007531643735755692,
+      "m": -0.006346087168357051,
+      "l": -0.008755359499045268,
+      "zero": 0
+     }
+    ]
+   },
+   "overlays": 0,
+   "dataLen": 188,
+   "firstTs": 1787895900000,
+   "lastTs": 1789350300000,
+   "firstClose": 9.405,
+   "lastClose": 8.934,
+   "head3": [
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    },
+    {
+     "ts": 1787896800000,
+     "close": 9.415
+    },
+    {
+     "ts": 1787897700000,
+     "close": 9.423
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "marker": false
+  },
+  "separators": 2,
+  "dragged": {
+   "heights": {
+    "MA": 457,
+    "VOL": 179,
+    "DCAP": 160
+   },
+   "panes": [
+    {
+     "indicators": [
+      "MA"
+     ],
+     "domH": 457
+    },
+    {
+     "indicators": [
+      "VOL"
+     ],
+     "domH": 179
+    },
+    {
+     "indicators": [
+      "DCAP"
+     ],
+     "domH": 160
+    },
+    {
+     "indicators": [],
+     "domH": 26
+    }
+   ]
+  },
+  "P1_15m_to_1h": {
+   "kind": "period",
+   "target": "1h",
+   "expectCode": "518880",
+   "expectPeriod": "1h",
+   "H": {
+    "heightsBefore": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 457,
+      "after": 457,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "hour",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-07-30T07:00:00.000Z",
+    "gtLast": "2026-09-14T01:00:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 52,
+     "valueAgree": 11,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=518880&period=1h&limit=188"
+   ]
+  },
+  "P2_1h_to_1m": {
+   "kind": "period",
+   "target": "1m",
+   "expectCode": "518880",
+   "expectPeriod": "1m",
+   "H": {
+    "heightsBefore": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 457,
+      "after": 457,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "hour",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 189,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:50:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-09-11T02:44:00.000Z",
+    "gtLast": "2026-09-14T01:50:00.000Z",
+    "windowMatch": {
+     "chartLen": 189,
+     "gtLen": 188,
+     "overlap": 15,
+     "valueAgree": 2,
+     "minLen": 188,
+     "driftAbs": 1,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay",
+    "scrollToRealTime"
+   ],
+   "newUrls": [
+    "/api/kline?code=518880&period=1m&limit=188"
+   ]
+  },
+  "P3_1m_to_15m": {
+   "kind": "period",
+   "target": "15m",
+   "expectCode": "518880",
+   "expectPeriod": "15m",
+   "H": {
+    "heightsBefore": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 457,
+      "after": 457,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "518880",
+    "symbolAfter": "518880",
+    "periodBefore": {
+     "type": "minute",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 189,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:50:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 188,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": true
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": true,
+    "valuesMatchGT": true,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=518880&period=15m&limit=188"
+   ]
+  },
+  "S1_518880_to_161226": {
+   "kind": "stock",
+   "target": "161226",
+   "expectCode": "161226",
+   "expectPeriod": "15m",
+   "H": {
+    "heightsBefore": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 457,
+      "after": 457,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "518880",
+    "symbolAfter": "161226",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=161226&period=15m&limit=188"
+   ]
+  },
+  "S2_161226_to_513310": {
+   "kind": "stock",
+   "target": "513310",
+   "expectCode": "513310",
+   "expectPeriod": "15m",
+   "H": {
+    "heightsBefore": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 457,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 457,
+      "after": 457,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "161226",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=513310&period=15m&limit=188"
+   ]
+  },
+  "viewport_fit": {
+   "fit": {
+    "bars": 120,
+    "space": 11,
+    "visible": 118,
+    "clamped": false
+   },
+   "W": 1299.3125,
+   "expectSpace": 11,
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "visible": 115,
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   }
+  },
+  "after_wheel": {
+   "bs": {
+    "bar": 12.1,
+    "halfBar": 6.05,
+    "gapBar": 9,
+    "halfGapBar": 4
+   },
+   "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "visible": 104
+  },
+  "resize_after_manual": {
+   "bs": {
+    "bar": 12.1,
+    "halfBar": 6.05,
+    "gapBar": 9,
+    "halfGapBar": 4
+   },
+   "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "P4_manualzoom_15m_to_1h": {
+   "kind": "period",
+   "target": "1h",
+   "expectCode": "513310",
+   "expectPeriod": "1h",
+   "H": {
+    "heightsBefore": {
+     "MA": 417,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 417,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 417,
+      "after": 417,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "513310",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "minute",
+     "span": 15
+    },
+    "periodAfter": {
+     "type": "hour",
+     "span": 1
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-07-30T07:00:00.000Z",
+    "gtLast": "2026-09-14T01:00:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 52,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=513310&period=1h&limit=188"
+   ]
+  },
+  "P5_1h_to_15m": {
+   "kind": "period",
+   "target": "15m",
+   "expectCode": "513310",
+   "expectPeriod": "15m",
+   "H": {
+    "heightsBefore": {
+     "MA": 417,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "heightsAfter": {
+     "MA": 417,
+     "VOL": 179,
+     "DCAP": 160
+    },
+    "diffs": {
+     "MA": {
+      "before": 417,
+      "after": 417,
+      "delta": 0
+     },
+     "VOL": {
+      "before": 179,
+      "after": 179,
+      "delta": 0
+     },
+     "DCAP": {
+      "before": 160,
+      "after": 160,
+      "delta": 0
+     }
+    },
+    "idsBefore": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "idsAfter": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789350563597_3",
+     "DCAP": "indicator_pane_1789350567657_2"
+    },
+    "initsBefore": 1,
+    "initsAfter": 1,
+    "disposesBefore": 0,
+    "disposesAfter": 0
+   },
+   "Hok": {
+    "within1px": true,
+    "idsSame": true,
+    "noRemount": true,
+    "noDispose": true,
+    "noChurn": true
+   },
+   "D": {
+    "symbolBefore": "513310",
+    "symbolAfter": "513310",
+    "periodBefore": {
+     "type": "hour",
+     "span": 1
+    },
+    "periodAfter": {
+     "type": "minute",
+     "span": 15
+    },
+    "dataLenBefore": 188,
+    "dataLenAfter": 188,
+    "firstTsBefore": "2026-08-28T05:45:00.000Z",
+    "firstTsAfter": "2026-08-28T05:45:00.000Z",
+    "lastTsBefore": "2026-09-14T01:45:00.000Z",
+    "lastTsAfter": "2026-09-14T01:45:00.000Z",
+    "lastCloseBefore": 8.934,
+    "lastCloseAfter": 8.934,
+    "gtLen": 188,
+    "gtFirst": "2026-08-28T05:45:00.000Z",
+    "gtLast": "2026-09-14T01:45:00.000Z",
+    "windowMatch": {
+     "chartLen": 188,
+     "gtLen": 188,
+     "overlap": 188,
+     "valueAgree": 0,
+     "minLen": 188,
+     "driftAbs": 0,
+     "ok": false
+    },
+    "dedup": true,
+    "changedFromBefore": false
+   },
+   "Dok": {
+    "symbolUpdated": true,
+    "periodUpdated": true,
+    "windowMatchesGT": false,
+    "valuesMatchGT": false,
+    "changedFromBefore": false,
+    "requestHitNewCodePeriod": true
+   },
+   "burst": [
+    "setDataLoader",
+    "setSymbol",
+    "setPeriod",
+    "removeOverlay"
+   ],
+   "newUrls": [
+    "/api/kline?code=513310&period=15m&limit=188"
+   ]
+  },
+  "ws_follow": {
+   "dataLenBefore": 188,
+   "dataLenAfter": 189,
+   "lastTsBefore": "2026-09-14T01:45:00.000Z",
+   "lastTsAfter": "2026-09-14T02:00:00.000Z",
+   "expectTs": "2026-09-14T02:00:00.000Z",
+   "burst": [
+    "scrollToRealTime"
+   ],
+   "marker": true,
+   "followLatest": true
+  },
+  "ws_nofollow": {
+   "dataLenBefore": 189,
+   "dataLenAfter": 190,
+   "expectTs": "2026-09-14T02:15:00.000Z",
+   "lastTsAfter": "2026-09-14T02:15:00.000Z",
+   "burst": []
+  },
+  "dcap_save": {
+   "err": null,
+   "heightsBefore": {
+    "MA": 417,
+    "VOL": 179,
+    "DCAP": 160
+   },
+   "heightsAfter": {
+    "MA": 417,
+    "VOL": 179,
+    "DCAP": 160
+   },
+   "diffs": {
+    "MA": {
+     "before": 417,
+     "after": 417,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 179,
+     "after": 179,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 160,
+     "after": 160,
+     "delta": 0
+    }
+   },
+   "inits": {
+    "before": 1,
+    "after": 1
+   },
+   "idsBefore": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789350563597_3",
+    "DCAP": "indicator_pane_1789350567657_2"
+   },
+   "idsAfter": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789350563597_3",
+    "DCAP": "indicator_pane_1789350567657_2"
+   },
+   "dcapCalcParamsBefore": [
+    8,
+    36,
+    66,
+    1,
+    1,
+    1,
+    1,
+    3
+   ],
+   "dcapCalcParamsAfter": [
+    8,
+    36,
+    70,
+    1,
+    1,
+    1,
+    1,
+    5
+   ],
+   "burst": [
+    {
+     "api": "overrideIndicator",
+     "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,36,70,1,1,1,1,5]}]"
+    },
+    {
+     "api": "resetData",
+     "arg": "[]"
+    }
+   ],
+   "putIntercepted": [
+    {
+     "method": "PUT",
+     "url": "/api/config/dcap",
+     "body": "{\"n_s\":8,\"n_m\":36,\"n_l\":70,\"r_s\":1,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}",
+     "action": "fulfilled-locally(未发往后端/DB)"
+    }
+   ]
+  }
+ },
+ "wsDispatch": [
+  {
+   "code": "513310",
+   "ts": "2026-09-14T02:00:00.000Z"
+  }
+ ],
+ "label": "C(MUTANT/不换数据)",
+ "pageErrors": []
+}

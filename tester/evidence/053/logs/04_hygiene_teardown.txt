@@ -1,0 +1,17 @@
+== 2026-09-14 01:18:06 UTC ==
+-- HEAD --
+ece1d9dbda501183bb4d04bb6578fdbac800aeb9
+-- staged (must be empty) --
+-- tracked modifications (must be empty) --
+-- new untracked in this lane --
+?? tester/design/017_period_stock_switch_layout_red_test_design.md
+?? tester/evidence/053/
+?? tester/test/053_period_stock_switch_layout_diagnosis_execution.md
+?? web/src/features/dashboard/KlineChartSwitchLayout.test.tsx
+-- 18097 --
+released
+-- 8081/8082 (PID 2102695 must be alive) --
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=12))
+-- dcap.ts untouched --
+0

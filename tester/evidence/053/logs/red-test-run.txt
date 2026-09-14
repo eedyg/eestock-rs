@@ -1,0 +1,56 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/KlineChartSwitchLayout.test.tsx (3 tests | 2 failed) 17ms
+   × 切换 period / stock 不得重置指标视图布局（KlineChart 建图 effect 身份） > 【红】切换 period：既有 pane 高度 ±1px 不变、pane id 不变、无 create/remove；数据确实换成新周期 12ms
+     → 切 period 不得 dispose+init 重建 chart（否则 pane 全部回默认高度）: expected 2 to be 1 // Object.is equality
+   × 切换 period / stock 不得重置指标视图布局（KlineChart 建图 effect 身份） > 【红】切换 stock：既有 pane 高度 ±1px 不变、pane id 不变、无 create/remove；数据确实换成新标的 2ms
+     → 切 stock 不得 dispose+init 重建 chart: expected 2 to be 1 // Object.is equality
+   ✓ 切换 period / stock 不得重置指标视图布局（KlineChart 建图 effect 身份） > 【防回归】同一 feed 的 rerender（如指标/参数变化）不得重建 chart（基线，当前绿） 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/KlineChartSwitchLayout.test.tsx > 切换 period / stock 不得重置指标视图布局（KlineChart 建图 effect 身份） > 【红】切换 period：既有 pane 高度 ±1px 不变、pane id 不变、无 create/remove；数据确实换成新周期
+AssertionError: 切 period 不得 dispose+init 重建 chart（否则 pane 全部回默认高度）: expected 2 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 2[39m
+
+ ❯ src/features/dashboard/KlineChartSwitchLayout.test.tsx:380:83
+    378| 
+    379|     // ① 不得整图重建（当前实现：init 再调一次 ⇒ charts().length === 2，必红）
+    380|     expect(charts().length, '切 period 不得 dispose+init 重建 chart（否则 pane…
+       |                                                                                   ^
+    381|     // ② 所有既有 pane 渲染高度 ±1px 不变
+    382|     expectHeightsClose(lastChart().__renderedByIndicator(), before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/dashboard/KlineChartSwitchLayout.test.tsx > 切换 period / stock 不得重置指标视图布局（KlineChart 建图 effect 身份） > 【红】切换 stock：既有 pane 高度 ±1px 不变、pane id 不变、无 create/remove；数据确实换成新标的
+AssertionError: 切 stock 不得 dispose+init 重建 chart: expected 2 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 2[39m
+
+ ❯ src/features/dashboard/KlineChartSwitchLayout.test.tsx:420:65
+    418|     });
+    419| 
+    420|     expect(charts().length, '切 stock 不得 dispose+init 重建 chart').toBe(1…
+       |                                                                 ^
+    421|     expectHeightsClose(lastChart().__renderedByIndicator(), before);
+    422|     expect(lastChart().__paneIds()).toEqual(beforeIds);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  09:15:18
+   Duration  477ms (transform 60ms, setup 32ms, collect 88ms, tests 17ms, environment 130ms, prepare 97ms)
+

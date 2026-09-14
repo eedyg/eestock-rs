@@ -1,0 +1,329 @@
+checks: 19/27 passed
+[ok  ] mount：只有 1 个 chart 实例（inits=1） :: {"inits":1,"chartCount":1}
+[ok  ] mount：DCAP 默认关（无 DCAP pane） :: ["MA","VOL",""]
+[ok  ] DCAP 独立副图 pane（不叠 candle_pane） :: {"name":"DCAP","id":"DCAP_1789349627011_1","paneId":"indicator_pane_1789349627011_2","precision":5,"calcParams":[8,36,66,1,1,1,1,3],"figKeys":["s","m","l","zero"],"resultLen":188,"resultTail":{"s":-0.000621607859641086,"m":-0.006894856419803623,"l":-0.009212005787989344,"zero":0}}
+[ok  ] DCAP precision=5 且含常驻 zero figure :: {"name":"DCAP","id":"DCAP_1789349627011_1","paneId":"indicator_pane_1789349627011_2","precision":5,"calcParams":[8,36,66,1,1,1,1,3],"figKeys":["s","m","l","zero"],"resultLen":188,"resultTail":{"s":-0.000621607859641086,"m":-0.006894856419803623,"l":-0.009212005787989344,"zero":0}}
+[ok  ] DCAP 开启不重建图（inits 仍 1） :: {"inits":1}
+[ok  ] DCAP warmup 差额补取口径不变（初始 120 + 差额补取 68 ⇒ 窗口 188） :: ["/api/kline?code=518880&period=15m&limit=120","/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68"]
+[FAIL] A 切 period：既有 pane 高度 ±1px 不变 :: {"MA":{"before":357,"after":496,"delta":139},"VOL":{"before":199,"after":100,"delta":-99},"DCAP":{"before":140,"after":100,"delta":-40}}
+[FAIL] A 切 period：pane id 不变 :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789349622951_3","DCAP":"indicator_pane_1789349627011_2"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789349631445_3","DCAP":"indicator_pane_1789349631445_6"}}
+[FAIL] A 切 period：不 remount（inits 不递增） :: {"before":1,"after":2}
+[FAIL] A 切 period：burst 无 create/removeIndicator :: [{"seq":7,"api":"setDataLoader","arg":"[{}]"},{"seq":8,"api":"setSymbol","arg":"[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]"},{"seq":9,"api":"setPeriod","arg":"[{\"type\":\"hour\",\"span\":1}]"},{"seq":10,"api":"createIndicator","arg":"[{\"name\":\"MA\",\"calcParams\":[5,10,
+[ok  ] A 切 period：数据确实重置为 1h :: {"lenBefore":188,"lenAfter":188,"firstBefore":"2026-08-28T05:30:00.000Z","firstAfter":"2026-07-30T07:00:00.000Z","lastBefore":"2026-09-14T01:30:00.000Z","lastAfter":"2026-09-14T01:00:00.000Z","closeBefore":8.9,"closeAfter":8.9}
+[ok  ] A 切 period：/api/kline GET 不膨胀（≤2）且窗口口径 = viewport_bars+warmup :: {"gets":1,"urls":["/api/kline?code=518880&period=15m&limit=120","/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68","/api/kline?code=518880&period=1h&limit=188"]}
+[ok  ] A 切 period：视口回到配置根数（ADR-020，fit 重算 ≈120） :: {"fitBefore":"{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}","fitAfter":"{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}","visibleBefore":115,"visibleAfter":115,"bsBefore":{"bar":11,"halfBar":5.5,"gapBar":8,"halfGapBar":4},"bsAfter":{"bar":11,"halfBar":5.5,"gapBar":8,"h
+[ok  ] B 切 stock：既有 pane 高度 ±1px 不变 :: {"MA":{"before":496,"after":496,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] B 切 stock：pane id 不变 :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789349634477_3","DCAP":"indicator_pane_1789349634478_2"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789349637510_3","DCAP":"indicator_pane_1789349637510_6"}}
+[FAIL] B 切 stock：不 remount（inits 不递增） :: {"before":3,"after":4}
+[FAIL] B 切 stock：burst 无 create/removeIndicator :: [{"seq":19,"api":"setDataLoader","arg":"[{}]"},{"seq":20,"api":"setSymbol","arg":"[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]"},{"seq":21,"api":"setPeriod","arg":"[{\"type\":\"minute\",\"span\":15}]"},{"seq":22,"api":"createIndicator","arg":"[{\"name\":\"MA\",\"calcParams\":
+[ok  ] B 切 stock：数据确实重置为 161226 :: {"lenBefore":188,"lenAfter":188,"firstBefore":"2026-08-28T05:30:00.000Z","firstAfter":"2026-08-28T05:30:00.000Z","closeBefore":8.9,"closeAfter":1.891,"headBefore":[{"ts":1787895000000,"close":9.4},{"ts":1787895900000,"close":9.405},{"ts":1787896800000,"close":9.415}],"headAfter":[{"ts":1787895000000
+[ok  ] B 切 stock：/api/kline GET 不膨胀（≤2） :: {"gets":1,"urls":["/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68","/api/kline?code=518880&period=1h&limit=188","/api/kline?code=518880&period=15m&limit=188","/api/kline?code=161226&period=15m&limit=188"]}
+[ok  ] C 真实 wheel 改变了 barSpace（确认进入手动视口态） :: {"manual":{"bar":12.1,"halfBar":6.05,"gapBar":9,"halfGapBar":4},"before":{"bar":11,"halfBar":5.5,"gapBar":8,"halfGapBar":4}}
+[ok  ] C 手动缩放后切 period：仍回自动视口归一（可见 ≈120，ADR-020 口径不变） :: {"bsBeforeWheelRef":{"bar":11,"halfBar":5.5,"gapBar":8,"halfGapBar":4},"bsAfterWheel":{"bar":12.1,"halfBar":6.05,"gapBar":9,"halfGapBar":4},"bsAfterSwitch":{"bar":11,"halfBar":5.5,"gapBar":8,"halfGapBar":4},"visibleAfterWheel":105,"visibleAfterSwitch":115,"fitAfterSwitch":"{\"bars\":120,\"space\":11
+[ok  ] C 手动缩放后切 period：pane 高度仍 ±1px 不变 :: {"MA":{"before":496,"after":496,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] C 手动缩放后切 period：仍不 remount :: {"before":4,"after":5}
+[ok  ] D DCAP 关 → pane 数减少 1、开 → 恢复（无空 pane 残留） :: {"before":3,"off":2,"on":3}
+[ok  ] D DCAP 关/开不 remount :: {"before":5,"off":5,"on":5}
+[ok  ] E 全程无非 GET 请求（未改线上状态） :: []
+[ok  ] E 无页面异常/崩溃 :: []
+A: {
+ "heightsBefore": {
+  "MA": 357,
+  "VOL": 199,
+  "DCAP": 140
+ },
+ "heightsAfter": {
+  "MA": 496,
+  "VOL": 100,
+  "DCAP": 100
+ },
+ "diffs": {
+  "MA": {
+   "before": 357,
+   "after": 496,
+   "delta": 139
+  },
+  "VOL": {
+   "before": 199,
+   "after": 100,
+   "delta": -99
+  },
+  "DCAP": {
+   "before": 140,
+   "after": 100,
+   "delta": -40
+  }
+ },
+ "within1px": false,
+ "idsBefore": {
+  "MA": "candle_pane",
+  "VOL": "indicator_pane_1789349622951_3",
+  "DCAP": "indicator_pane_1789349627011_2"
+ },
+ "idsAfter": {
+  "MA": "candle_pane",
+  "VOL": "indicator_pane_1789349631445_3",
+  "DCAP": "indicator_pane_1789349631445_6"
+ },
+ "idsSame": false,
+ "initsBefore": 1,
+ "initsAfter": 2,
+ "period": {
+  "before": {
+   "type": "minute",
+   "span": 15
+  },
+  "after": {
+   "type": "hour",
+   "span": 1
+  }
+ },
+ "symbol": {
+  "before": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "518880"
+  },
+  "after": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "518880"
+  }
+ },
+ "data": {
+  "lenBefore": 188,
+  "lenAfter": 188,
+  "firstBefore": "2026-08-28T05:30:00.000Z",
+  "firstAfter": "2026-07-30T07:00:00.000Z",
+  "lastBefore": "2026-09-14T01:30:00.000Z",
+  "lastAfter": "2026-09-14T01:00:00.000Z",
+  "closeBefore": 8.9,
+  "closeAfter": 8.9
+ },
+ "dataReset": true,
+ "viewport": {
+  "fitBefore": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "fitAfter": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "visibleBefore": 115,
+  "visibleAfter": 115,
+  "bsBefore": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "bsAfter": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  }
+ },
+ "klineGetsDuring": 1,
+ "logBurst": [
+  {
+   "seq": 7,
+   "api": "setDataLoader",
+   "arg": "[{}]"
+  },
+  {
+   "seq": 8,
+   "api": "setSymbol",
+   "arg": "[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+  },
+  {
+   "seq": 9,
+   "api": "setPeriod",
+   "arg": "[{\"type\":\"hour\",\"span\":1}]"
+  },
+  {
+   "seq": 10,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789349631445_1\",\"yAxisId\":\"yAxis_1789349631444_1\"}"
+  },
+  {
+   "seq": 11,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789349631445_2\",\"paneId\":\"indicator_pane_1789349631445_3\",\"yAxisId\":\"yAxis_1789349631445_4\"},t"
+  },
+  {
+   "seq": 12,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,36,66,1,1,1,1,3],\"id\":\"DCAP_1789349631445_5\",\"paneId\":\"indicator_pane_1789349631445_
+B: {
+ "heightsBefore": {
+  "MA": 496,
+  "VOL": 100,
+  "DCAP": 100
+ },
+ "heightsAfter": {
+  "MA": 496,
+  "VOL": 100,
+  "DCAP": 100
+ },
+ "diffs": {
+  "MA": {
+   "before": 496,
+   "after": 496,
+   "delta": 0
+  },
+  "VOL": {
+   "before": 100,
+   "after": 100,
+   "delta": 0
+  },
+  "DCAP": {
+   "before": 100,
+   "after": 100,
+   "delta": 0
+  }
+ },
+ "within1px": true,
+ "idsBefore": {
+  "MA": "candle_pane",
+  "VOL": "indicator_pane_1789349634477_3",
+  "DCAP": "indicator_pane_1789349634478_2"
+ },
+ "idsAfter": {
+  "MA": "candle_pane",
+  "VOL": "indicator_pane_1789349637510_3",
+  "DCAP": "indicator_pane_1789349637510_6"
+ },
+ "idsSame": false,
+ "initsBefore": 3,
+ "initsAfter": 4,
+ "symbol": {
+  "before": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "518880"
+  },
+  "after": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "161226"
+  }
+ },
+ "data": {
+  "lenBefore": 188,
+  "lenAfter": 188,
+  "firstBefore": "2026-08-28T05:30:00.000Z",
+  "firstAfter": "2026-08-28T05:30:00.000Z",
+  "closeBefore": 8.9,
+  "closeAfter": 1.891,
+  "headBefore": [
+   {
+    "ts": 1787895000000,
+    "close": 9.4
+   },
+   {
+    "ts": 1787895900000,
+    "close": 9.405
+   },
+   {
+    "ts": 1787896800000,
+    "close": 9.415
+   }
+  ],
+  "headAfter": [
+   {
+    "ts": 1787895000000,
+    "close": 2.01
+   },
+   {
+    "ts": 1787895900000,
+    "close": 2.011
+   },
+   {
+    "ts": 1787896800000,
+    "close": 2.019
+   }
+  ]
+ },
+ "dataReset": true,
+ "klineGetsDuring": 1,
+ "logBurst": [
+  {
+   "seq": 19,
+   "api": "setDataLoader",
+   "arg": "[{}]"
+  },
+  {
+   "seq": 20,
+   "api": "setSymbol",
+   "arg": "[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]"
+  },
+  {
+   "seq": 21,
+   "api": "setPeriod",
+   "arg": "[{\"type\":\"minute\",\"span\":15}]"
+  },
+  {
+   "seq": 22,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789349637510_1\",\"yAxisId\":\"yAxis_1789349637509_1\"}"
+  },
+  {
+   "seq": 23,
+   "api": "createIndicator",
+   "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789349637510_2\",\"paneId\":\"indicator_pane_1789349637510_3\",\"yAxisId\":\"yAxis_1789349637510_4\"},t"
+  },
+  {
+   "seq": 24,
+   "ap
+C: {
+ "bsBeforeWheelRef": {
+  "bar": 11,
+  "halfBar": 5.5,
+  "gapBar": 8,
+  "halfGapBar": 4
+ },
+ "bsAfterWheel": {
+  "bar": 12.1,
+  "halfBar": 6.05,
+  "gapBar": 9,
+  "halfGapBar": 4
+ },
+ "bsAfterSwitch": {
+  "bar": 11,
+  "halfBar": 5.5,
+  "gapBar": 8,
+  "halfGapBar": 4
+ },
+ "visibleAfterWheel": 105,
+ "visibleAfterSwitch": 115,
+ "fitAfterSwitch": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+ "diffs": {
+  "MA": {
+   "before": 496,
+   "after": 496,
+   "delta": 0
+  },
+  "VOL": {
+   "before": 100,
+   "after": 100,
+   "delta": 0
+  },
+  "DCAP": {
+   "before": 100,
+   "after": 100,
+   "delta": 0
+  }
+ },
+ "within1px": true,
+ "initsBefore": 4,
+ "initsAfter": 5,
+ "klineGetsDuring": 1,
+ "heightsBefore": {
+  "MA": 496,
+  "VOL": 100,
+  "DCAP": 100
+ },
+ "heightsAfter": {
+  "MA": 496,
+  "VOL": 100,
+  "DCAP": 100
+ }
+}
+klineUrls: ["/api/kline?code=518880&period=15m&limit=120","/api/kline?code=518880&period=15m&before=2026-09-03T03%3A15%3A00Z&limit=68","/api/kline?code=518880&period=1h&limit=188","/api/kline?code=518880&period=15m&limit=188","/api/kline?code=161226&period=15m&limit=188","/api/kline?code=161226&period=1h&limit=188"]
+OUT=/tmp/fix2/probe_old.json

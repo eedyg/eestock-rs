@@ -1,0 +1,15 @@
+=== HYGIENE 2026-09-14T09:51:56+08:00 ===
+--- PID 2102695 (online 8081/8082) ---
+    PID                  STARTED     ELAPSED CMD
+2102695 Sun Sep 13 21:21:46 2026    12:30:09 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+--- online configs re-GET (只读) ---
+kline: {"viewport_bars":120}
+dcap : {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}
+ma   : {"windows":[5,10,20]}
+--- online web/dist hash (对比 baseline) ---
+6e18ff174430104a3333978c2e19c7d5  web/dist/index.html
+00325b46435612ab9dca04aec782f204  -
+--- probes: 非 GET / PUT 证据 ---
+/tmp/acc3/probe-a.json A(fix/工作树) nonGetOther= [] putIntercepted= [('PUT', '/api/config/dcap', 'fulfilled-locally(未发往后端/DB)')]
+/tmp/acc3/probe-b.json B(HEAD/旧行为) nonGetOther= [] putIntercepted= [('PUT', '/api/config/dcap', 'fulfilled-locally(未发往后端/DB)')]
+/tmp/acc3/probe-c.json C(MUTANT/不换数据) nonGetOther= [] putIntercepted= [('PUT', '/api/config/dcap', 'fulfilled-locally(未发往后端/DB)')]

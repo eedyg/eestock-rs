@@ -1,0 +1,237 @@
+{
+ "base": "http://127.0.0.1:18097",
+ "t0": "2026-09-14T01:13:12.492Z",
+ "putIntercepted": [],
+ "nonGetOther": [],
+ "klineUrls": [
+  "/api/kline?code=518880&period=15m&limit=120",
+  "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68",
+  "/api/kline?code=518880&period=1m&limit=188",
+  "/api/kline?code=518880&period=15m&limit=188",
+  "/api/kline?code=161226&period=1h&limit=120",
+  "/api/kline?code=161226&period=1h&limit=120",
+  "/api/kline?code=161226&period=1h&limit=120",
+  "/api/kline?code=161226&period=1h&limit=120"
+ ],
+ "wsFrames": [],
+ "checks": [
+  {
+   "name": "1m→15m：pane 高度被重置",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 496,
+     "delta": 139
+    },
+    "VOL": {
+     "before": 199,
+     "after": 100,
+     "delta": -99
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 100,
+     "delta": -40
+    }
+   }
+  },
+  {
+   "name": "1m→15m：整图 remount",
+   "ok": true,
+   "detail": {
+    "before": 2,
+    "after": 3
+   }
+  },
+  {
+   "name": "1m→15m：数据确实重置",
+   "ok": false,
+   "detail": {
+    "lenBefore": 188,
+    "lenAfter": 188,
+    "lastBefore": 1789110000000,
+    "lastAfter": 1789110000000
+   }
+  },
+  {
+   "name": "真实 wheel 改变了 barSpace（手动视口态）",
+   "ok": true,
+   "detail": {
+    "bsBefore": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "bsAfterWheel": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "visibleBefore": 114,
+    "visibleAfterWheel": 103,
+    "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "afterNoRemountSwitch": {
+     "bs": {
+      "bar": 12.1,
+      "halfBar": 6.05,
+      "gapBar": 9,
+      "halfGapBar": 4
+     },
+     "visible": 103,
+     "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+     "heights": {
+      "MA": 496,
+      "VOL": 100,
+      "DCAP": 100
+     },
+     "inits": 3,
+     "symbol": {
+      "pricePrecision": 3,
+      "volumePrecision": 0,
+      "ticker": "161226"
+     },
+     "period": {
+      "type": "hour",
+      "span": 1
+     }
+    },
+    "switchKeptManualViewport": true
+   }
+  },
+  {
+   "name": "不 remount 切换后手动 barSpace 被保持（fit 不重算）",
+   "ok": true,
+   "detail": {
+    "bsBefore": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "bsAfterWheel": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "visibleBefore": 114,
+    "visibleAfterWheel": 103,
+    "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "afterNoRemountSwitch": {
+     "bs": {
+      "bar": 12.1,
+      "halfBar": 6.05,
+      "gapBar": 9,
+      "halfGapBar": 4
+     },
+     "visible": 103,
+     "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+     "heights": {
+      "MA": 496,
+      "VOL": 100,
+      "DCAP": 100
+     },
+     "inits": 3,
+     "symbol": {
+      "pricePrecision": 3,
+      "volumePrecision": 0,
+      "ticker": "161226"
+     },
+     "period": {
+      "type": "hour",
+      "span": 1
+     }
+    },
+    "switchKeptManualViewport": true
+   }
+  }
+ ],
+ "klineGets": null,
+ "switch_1m_to_15m": {
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 496,
+   "VOL": 100,
+   "DCAP": 100
+  },
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 496,
+    "delta": 139
+   },
+   "VOL": {
+    "before": 199,
+    "after": 100,
+    "delta": -99
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 100,
+    "delta": -40
+   }
+  },
+  "within1px": false,
+  "initsBefore": 2,
+  "initsAfter": 3,
+  "remount": true,
+  "dataReset": false,
+  "data": {
+   "lenBefore": 188,
+   "lenAfter": 188,
+   "lastBefore": 1789110000000,
+   "lastAfter": 1789110000000
+  }
+ },
+ "manual_zoom": {
+  "bsBefore": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "bsAfterWheel": {
+   "bar": 12.1,
+   "halfBar": 6.05,
+   "gapBar": 9,
+   "halfGapBar": 4
+  },
+  "visibleBefore": 114,
+  "visibleAfterWheel": 103,
+  "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "afterNoRemountSwitch": {
+   "bs": {
+    "bar": 12.1,
+    "halfBar": 6.05,
+    "gapBar": 9,
+    "halfGapBar": 4
+   },
+   "visible": 103,
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "heights": {
+    "MA": 496,
+    "VOL": 100,
+    "DCAP": 100
+   },
+   "inits": 3,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   },
+   "period": {
+    "type": "hour",
+    "span": 1
+   }
+  },
+  "switchKeptManualViewport": true
+ },
+ "pageErrors": []
+}

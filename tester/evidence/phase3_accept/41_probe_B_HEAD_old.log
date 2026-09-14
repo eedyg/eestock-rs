@@ -1,0 +1,106 @@
+[B(HEAD/旧行为)] checks: 75/104 passed
+[ok  ] mount: 单 chart 实例（inits=1） :: {"inits":1,"chartCount":1}
+[ok  ] mount: DCAP 默认关（无 DCAP pane） :: ["MA","VOL"]
+[ok  ] mount: DCAP 关时初始取数 limit=120（ADR-020 口径） :: ["/api/kline?code=518880&period=15m&limit=120"]
+[ok  ] R_dcap: 独立副图 pane（paneId != candle_pane） :: {"paneId":"indicator_pane_1789350520576_2"}
+[ok  ] R_dcap: precision=5 :: {"precision":5}
+[ok  ] R_dcap: figures 含 s,m,l,zero :: {"figKeys":["s","m","l","zero"]}
+[ok  ] R_dcap: 开 DCAP 不重建图（inits 仍 1） :: {"inits":1}
+[ok  ] R_dcap_warmup: 开 DCAP 差额补取（limit=68 ⇒ 窗口 188） :: ["/api/kline?code=518880&period=15m&limit=120","/api/kline?code=518880&period=15m&before=2026-09-03T03%3A30%3A00Z&limit=68"]
+[ok  ] R_dcap_insufficient: 数据不足处三线为 null（断线）且其后有数值（l 线首非空索引 > 0） :: {"len":188,"firstNonNull_s":9,"firstNonNull_m":37,"firstNonNull_l":67,"nNumericL":121}
+[ok  ] drag: 已拖到非默认高度（VOL/DCAP 均 != 100 且互异） :: {"MA":457,"VOL":179,"DCAP":160}
+[FAIL] P1_15m_to_1h:H_heights_within_1px :: {"MA":{"before":457,"after":596,"delta":139},"VOL":{"before":179,"after":100,"delta":-79},"DCAP":{"before":160,"after":100,"delta":-60}}
+[FAIL] P1_15m_to_1h:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350516502_3","DCAP":"indicator_pane_1789350520576_2"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350525342_4","DCAP":"indicator_pane_1789350525343_2"}}
+[FAIL] P1_15m_to_1h:H_no_remount(inits) :: {"before":1,"after":2}
+[FAIL] P1_15m_to_1h:H_no_dispose :: {"before":0,"after":1}
+[FAIL] P1_15m_to_1h:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] P1_15m_to_1h:D_symbol_updated :: {"got":"518880","want":"518880"}
+[ok  ] P1_15m_to_1h:D_period_updated :: {"got":{"type":"hour","span":1},"want":"1h"}
+[ok  ] P1_15m_to_1h:D_data_window_matches_GT :: {"symbolBefore":"518880","symbolAfter":"518880","periodBefore":{"type":"minute","span":15},"periodAfter":{"type":"hour","span":1},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-08-28T05:45:00.000Z","firstTsAfter":"2026-07-30T07:00:00.000Z","lastT
+[ok  ] P1_15m_to_1h:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":8.936}
+[ok  ] P1_15m_to_1h:D_data_changed_from_before :: {"before":"2026-08-28T05:45:00.000Z","after":"2026-07-30T07:00:00.000Z","closeBefore":8.936,"closeAfter":8.936}
+[ok  ] P1_15m_to_1h:D_request_hit_new_code_period :: ["/api/kline?code=518880&period=1h&limit=188"]
+[ok  ] P2_1h_to_1m:H_heights_within_1px :: {"MA":{"before":596,"after":596,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] P2_1h_to_1m:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350525342_4","DCAP":"indicator_pane_1789350525343_2"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350528925_3","DCAP":"indicator_pane_1789350528925_6"}}
+[FAIL] P2_1h_to_1m:H_no_remount(inits) :: {"before":2,"after":3}
+[FAIL] P2_1h_to_1m:H_no_dispose :: {"before":1,"after":2}
+[FAIL] P2_1h_to_1m:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator","scrollToRealTime"]
+[ok  ] P2_1h_to_1m:D_symbol_updated :: {"got":"518880","want":"518880"}
+[ok  ] P2_1h_to_1m:D_period_updated :: {"got":{"type":"minute","span":1},"want":"1m"}
+[ok  ] P2_1h_to_1m:D_data_window_matches_GT :: {"symbolBefore":"518880","symbolAfter":"518880","periodBefore":{"type":"hour","span":1},"periodAfter":{"type":"minute","span":1},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-07-30T07:00:00.000Z","firstTsAfter":"2026-09-11T02:43:00.000Z","lastTs
+[ok  ] P2_1h_to_1m:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":8.936}
+[ok  ] P2_1h_to_1m:D_data_changed_from_before :: {"before":"2026-07-30T07:00:00.000Z","after":"2026-09-11T02:43:00.000Z","closeBefore":8.936,"closeAfter":8.936}
+[ok  ] P2_1h_to_1m:D_request_hit_new_code_period :: ["/api/kline?code=518880&period=1m&limit=188"]
+[ok  ] P3_1m_to_15m:H_heights_within_1px :: {"MA":{"before":596,"after":596,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] P3_1m_to_15m:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350528925_3","DCAP":"indicator_pane_1789350528925_6"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350532842_3","DCAP":"indicator_pane_1789350532842_6"}}
+[FAIL] P3_1m_to_15m:H_no_remount(inits) :: {"before":3,"after":4}
+[FAIL] P3_1m_to_15m:H_no_dispose :: {"before":2,"after":3}
+[FAIL] P3_1m_to_15m:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] P3_1m_to_15m:D_symbol_updated :: {"got":"518880","want":"518880"}
+[ok  ] P3_1m_to_15m:D_period_updated :: {"got":{"type":"minute","span":15},"want":"15m"}
+[ok  ] P3_1m_to_15m:D_data_window_matches_GT :: {"symbolBefore":"518880","symbolAfter":"518880","periodBefore":{"type":"minute","span":1},"periodAfter":{"type":"minute","span":15},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-09-11T02:43:00.000Z","firstTsAfter":"2026-08-28T05:45:00.000Z","las
+[ok  ] P3_1m_to_15m:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":8.936}
+[ok  ] P3_1m_to_15m:D_data_changed_from_before :: {"before":"2026-09-11T02:43:00.000Z","after":"2026-08-28T05:45:00.000Z","closeBefore":8.936,"closeAfter":8.936}
+[ok  ] P3_1m_to_15m:D_request_hit_new_code_period :: ["/api/kline?code=518880&period=15m&limit=188"]
+[ok  ] S1_518880_to_161226:H_heights_within_1px :: {"MA":{"before":596,"after":596,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] S1_518880_to_161226:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350532842_3","DCAP":"indicator_pane_1789350532842_6"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350536425_3","DCAP":"indicator_pane_1789350536425_6"}}
+[FAIL] S1_518880_to_161226:H_no_remount(inits) :: {"before":4,"after":5}
+[FAIL] S1_518880_to_161226:H_no_dispose :: {"before":3,"after":4}
+[FAIL] S1_518880_to_161226:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] S1_518880_to_161226:D_symbol_updated :: {"got":"161226","want":"161226"}
+[ok  ] S1_518880_to_161226:D_period_updated :: {"got":{"type":"minute","span":15},"want":"15m"}
+[ok  ] S1_518880_to_161226:D_data_window_matches_GT :: {"symbolBefore":"518880","symbolAfter":"161226","periodBefore":{"type":"minute","span":15},"periodAfter":{"type":"minute","span":15},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-08-28T05:45:00.000Z","firstTsAfter":"2026-08-28T05:45:00.000Z","la
+[ok  ] S1_518880_to_161226:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":1.895}
+[ok  ] S1_518880_to_161226:D_data_changed_from_before :: {"before":"2026-08-28T05:45:00.000Z","after":"2026-08-28T05:45:00.000Z","closeBefore":8.936,"closeAfter":1.895}
+[ok  ] S1_518880_to_161226:D_request_hit_new_code_period :: ["/api/kline?code=161226&period=15m&limit=188"]
+[ok  ] S2_161226_to_513310:H_heights_within_1px :: {"MA":{"before":596,"after":596,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] S2_161226_to_513310:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350536425_3","DCAP":"indicator_pane_1789350536425_6"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350539992_3","DCAP":"indicator_pane_1789350539992_6"}}
+[FAIL] S2_161226_to_513310:H_no_remount(inits) :: {"before":5,"after":6}
+[FAIL] S2_161226_to_513310:H_no_dispose :: {"before":4,"after":5}
+[FAIL] S2_161226_to_513310:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] S2_161226_to_513310:D_symbol_updated :: {"got":"513310","want":"513310"}
+[ok  ] S2_161226_to_513310:D_period_updated :: {"got":{"type":"minute","span":15},"want":"15m"}
+[ok  ] S2_161226_to_513310:D_data_window_matches_GT :: {"symbolBefore":"161226","symbolAfter":"513310","periodBefore":{"type":"minute","span":15},"periodAfter":{"type":"minute","span":15},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-08-28T05:45:00.000Z","firstTsAfter":"2026-08-28T05:45:00.000Z","la
+[ok  ] S2_161226_to_513310:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":4.636}
+[ok  ] S2_161226_to_513310:D_data_changed_from_before :: {"before":"2026-08-28T05:45:00.000Z","after":"2026-08-28T05:45:00.000Z","closeBefore":1.895,"closeAfter":4.636}
+[ok  ] S2_161226_to_513310:D_request_hit_new_code_period :: ["/api/kline?code=513310&period=15m&limit=188"]
+[ok  ] R_viewport: 切周期后 data-viewport-fit.bars == 120（ADR-020 视口=根数） :: {"bars":120,"space":11,"visible":118,"clamped":false}
+[ok  ] R_viewport: space = clamp(round(W/120),1,50) 且 ∈[1,50] :: {"fit":{"bars":120,"space":11,"visible":118,"clamped":false},"expectSpace":11}
+[ok  ] R_viewport: 可见根数 ≈ viewport_bars（±15%） :: {"fitVisible":118,"vrVisible":115}
+[ok  ] R_viewport: 真实 wheel 改变了 barSpace（进入手动视口态） :: {"before":{"bar":11,"halfBar":5.5,"gapBar":8,"halfGapBar":4},"after":{"bar":12.1,"halfBar":6.05,"gapBar":9,"halfGapBar":4}}
+[ok  ] R_manual_zoom: 手动缩放后 resize 不重算 barSpace（ADR-020 §2.6） :: {"afterWheel":{"bar":12.1,"halfBar":6.05,"gapBar":9,"halfGapBar":4},"afterResize":{"bar":12.1,"halfBar":6.05,"gapBar":9,"halfGapBar":4}}
+[ok  ] P4_manualzoom_15m_to_1h:H_heights_within_1px :: {"MA":{"before":556,"after":556,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] P4_manualzoom_15m_to_1h:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350539992_3","DCAP":"indicator_pane_1789350539992_6"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350545324_4","DCAP":"indicator_pane_1789350545324_7"}}
+[FAIL] P4_manualzoom_15m_to_1h:H_no_remount(inits) :: {"before":6,"after":7}
+[FAIL] P4_manualzoom_15m_to_1h:H_no_dispose :: {"before":5,"after":6}
+[FAIL] P4_manualzoom_15m_to_1h:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] P4_manualzoom_15m_to_1h:D_symbol_updated :: {"got":"513310","want":"513310"}
+[ok  ] P4_manualzoom_15m_to_1h:D_period_updated :: {"got":{"type":"hour","span":1},"want":"1h"}
+[ok  ] P4_manualzoom_15m_to_1h:D_data_window_matches_GT :: {"symbolBefore":"513310","symbolAfter":"513310","periodBefore":{"type":"minute","span":15},"periodAfter":{"type":"hour","span":1},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-08-28T05:45:00.000Z","firstTsAfter":"2026-07-30T07:00:00.000Z","lastT
+[ok  ] P4_manualzoom_15m_to_1h:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":4.636}
+[ok  ] P4_manualzoom_15m_to_1h:D_data_changed_from_before :: {"before":"2026-08-28T05:45:00.000Z","after":"2026-07-30T07:00:00.000Z","closeBefore":4.636,"closeAfter":4.636}
+[ok  ] P4_manualzoom_15m_to_1h:D_request_hit_new_code_period :: ["/api/kline?code=513310&period=1h&limit=188"]
+[ok  ] R_manual_zoom: 手动缩放后切周期仍回自动视口归一（≈120） :: "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+[ok  ] P5_1h_to_15m:H_heights_within_1px :: {"MA":{"before":556,"after":556,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}}
+[FAIL] P5_1h_to_15m:H_pane_ids_same :: {"before":{"MA":"candle_pane","VOL":"indicator_pane_1789350545324_4","DCAP":"indicator_pane_1789350545324_7"},"after":{"MA":"candle_pane","VOL":"indicator_pane_1789350548891_4","DCAP":"indicator_pane_1789350548891_7"}}
+[FAIL] P5_1h_to_15m:H_no_remount(inits) :: {"before":7,"after":8}
+[FAIL] P5_1h_to_15m:H_no_dispose :: {"before":6,"after":7}
+[FAIL] P5_1h_to_15m:H_no_create_remove_churn :: ["dispose","setDataLoader","setSymbol","setPeriod","createIndicator","createIndicator","createIndicator"]
+[ok  ] P5_1h_to_15m:D_symbol_updated :: {"got":"513310","want":"513310"}
+[ok  ] P5_1h_to_15m:D_period_updated :: {"got":{"type":"minute","span":15},"want":"15m"}
+[ok  ] P5_1h_to_15m:D_data_window_matches_GT :: {"symbolBefore":"513310","symbolAfter":"513310","periodBefore":{"type":"hour","span":1},"periodAfter":{"type":"minute","span":15},"dataLenBefore":188,"dataLenAfter":188,"firstTsBefore":"2026-07-30T07:00:00.000Z","firstTsAfter":"2026-08-28T05:45:00.000Z","lastT
+[ok  ] P5_1h_to_15m:D_data_values_match_GT :: {"overlap":188,"valueAgree":188,"lastCloseAfter":4.636}
+[ok  ] P5_1h_to_15m:D_data_changed_from_before :: {"before":"2026-07-30T07:00:00.000Z","after":"2026-08-28T05:45:00.000Z","closeBefore":4.636,"closeAfter":4.636}
+[ok  ] P5_1h_to_15m:D_request_hit_new_code_period :: ["/api/kline?code=513310&period=15m&limit=188"]
+[ok  ] R_ws: 实时 bar 追加（dataLen +1 且末根 ts = 推送 ts） :: {"dataLenBefore":188,"dataLenAfter":189,"lastTsBefore":"2026-09-14T01:45:00.000Z","lastTsAfter":"2026-09-14T02:00:00.000Z","expectTs":"2026-09-14T02:00:00.000Z","burst":["scrollToRealTime"],"marker":true,"followLatest":true}
+[ok  ] R_ws_follow: followLatest=true 时滚动到最新（scrollToRealTime 被调用） :: ["scrollToRealTime"]
+[ok  ] R_ws_marker: 实时标记渲染（data-realtime-marker） :: {"marker":true}
+[ok  ] R_ws_nofollow: followLatest=false 时仍追加但不强拉（无 scrollToRealTime） :: {"dataLenBefore":189,"dataLenAfter":190,"expectTs":"2026-09-14T02:15:00.000Z","lastTsAfter":"2026-09-14T02:15:00.000Z","burst":[]}
+[ok  ] R_prev_fix: 保存 dcap 参数不重建 pane（inits 不变、无 dispose） :: {"before":8,"after":8,"disp":7}
+[ok  ] R_prev_fix: 保存后 pane 高度 ±1px 不变、pane id 不变 :: {"diffs":{"MA":{"before":556,"after":556,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":100,"after":100,"delta":0}},"idsBefore":{"MA":"candle_pane","VOL":"indicator_pane_1789350548891_4","DCAP":"indicator_pane_1789350548891_7"},"idsAfte
+[ok  ] R_prev_fix: 参数确实生效（DCAP calcParams 更新为含 70/5） :: {"before":[8,36,66,1,1,1,1,3],"after":[8,36,70,1,1,1,1,5]}
+[ok  ] R_prev_fix: 无 create/remove churn（走 overrideIndicator） :: [{"api":"overrideIndicator","arg":"[{\"name\":\"DCAP\",\"calcParams\":[8,36,70,1,1,1,1,5]}]"},{"api":"resetData","arg":"[]"}]
+[ok  ] R_prev_fix: 保存的 PUT 请求被浏览器侧本地兑现（未发往后端） :: [{"method":"PUT","url":"/api/config/dcap","body":"{\"n_s\":8,\"n_m\":36,\"n_l\":70,\"r_s\":1,\"r_m\":1,\"r_l\":1,\"smooth\":1,\"m\":5}","action":"fulfilled-locally(未发往后端/DB)"}]
+[ok  ] E: 全程无非 GET 请求（未改线上状态） :: []
+[ok  ] E: 无页面异常/崩溃 :: []
+OUT=/tmp/acc3/probe-b.json

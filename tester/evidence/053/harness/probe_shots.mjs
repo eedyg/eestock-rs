@@ -1,0 +1,27 @@
+/** 诊断车道（阶段 1）截图证据：拖高 VOL/DCAP → 切 period/stock 前后。 */
+import { chromium, installRoutes, openPage, dragSeparator } from '/tmp/diag53/lib.mjs';
+const BASE = process.env.BASE ?? 'http://127.0.0.1:18097';
+const EV = '/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/053/shots';
+const out = { putIntercepted: [], nonGetOther: [] };
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await installRoutes(page, out, BASE);
+await openPage(page, BASE);
+await page.getByRole('button', { name: 'DCAP', exact: true }).click();
+await page.waitForTimeout(2500);
+await dragSeparator(page, 0, -150);
+await dragSeparator(page, 1, -40);
+await page.screenshot({ path: `${EV}/P1-dragged-15m.png` });
+await page.getByRole('button', { name: '1h', exact: true }).click();
+await page.waitForTimeout(3000);
+await page.screenshot({ path: `${EV}/P2-after-period-switch-1h.png` });
+await page.getByRole('button', { name: '15m', exact: true }).click();
+await page.waitForTimeout(3000);
+await dragSeparator(page, 0, -150);
+await dragSeparator(page, 1, -40);
+await page.screenshot({ path: `${EV}/P3-dragged-before-stock.png` });
+await page.getByText('161226', { exact: true }).first().click();
+await page.waitForTimeout(3500);
+await page.screenshot({ path: `${EV}/P4-after-stock-switch-161226.png` });
+console.log('shots done; nonGet=', JSON.stringify(out.nonGetOther), 'put=', JSON.stringify(out.putIntercepted));
+await browser.close();

@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>acc3 harness</title>
+<style>
+  html,body{margin:0;background:#0b0e14}
+  #host{width:1000px;height:640px}
+  /* 无 tailwind：直接给出等效尺寸，保证真实 pane 高度 */
+  [data-testid="kline-chart"]{width:1000px;height:640px;position:relative}
+</style>
+</head>
+<body>
+  <div id="host"></div>
+  <script type="module" src="/main.tsx"></script>
+</body></html>

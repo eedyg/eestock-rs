@@ -1,0 +1,18 @@
+[H] checks: 16/16 passed
+[ok  ] H1: overlay 创建 = 3（price-line + range + marker） :: {"overlays":3,"detail":["simpleTag","tradeRange","simpleAnnotation"]}
+[ok  ] H1: marker overlay 名称 simpleAnnotation :: ["simpleTag","tradeRange","simpleAnnotation"]
+[ok  ] H1: 单 chart 实例（inits=1） :: {"inits":1}
+[ok  ] H2: 切 feed 后 overlay 数 = 2（旧 3 个已清，非 5） :: {"overlays":2,"names":["simpleTag","simpleAnnotation"]}
+[ok  ] H2: 切 feed 调用 removeOverlay（先清后建） :: ["setDataLoader","setSymbol","setPeriod","removeOverlay","createOverlay","createOverlay"]
+[ok  ] H2: 切 feed 不重建图（inits 不变、无 dispose） :: {"initsBefore":1,"initsAfter":1,"disposes":0}
+[ok  ] H2: pane 高度 ±1px 不变 :: {"MA":{"before":513,"after":513,"delta":0},"VOL":{"before":100,"after":100,"delta":0}}
+[ok  ] H2: 数据换新（dataLen 80→70） :: {"before":80,"after":70}
+[ok  ] H3: 实时 bar 追加（dataLen +1、末根 ts = 推送 ts） :: {"dataLenBefore":70,"dataLenAfter":71,"lastTs":1709503200000,"expectTs":1709503200000,"burst":["scrollToRealTime"]}
+[ok  ] H3: followLatest=true ⇒ scrollToRealTime :: ["scrollToRealTime"]
+[ok  ] H4: DCAP 数据不足 ⇒ 三线 null 断线（10 根 ⇒ l 线全 null） :: {"len":10,"numericL":0,"firstNumericL":-1,"precision":5,"figKeys":["s","m","l","zero"],"sample":[{"s":null,"m":null,"l":null,"zero":0},{"s":null,"m":null,"l":null,"zero":0},{"s":null,"m":null,"l":null,"zero":0}]}
+[ok  ] H4: DCAP precision=5 且 figures 含 s,m,l,zero :: {"precision":5,"figKeys":["s","m","l","zero"]}
+[ok  ] H5: 参数变化不重建图、不重建 pane（inits 不变、无 create/remove churn） :: {"inits":1,"burst":["overrideIndicator"]}
+[ok  ] H5: 走 overrideIndicator 且 calcParams 更新（n_l 60→70、m 3→5） :: {"burst":["overrideIndicator"],"calcParams":[8,26,70,1,1,1,1,5]}
+[ok  ] H5: 拖高后的 DCAP pane 高度 ±1px 保持（220） :: {"MA":{"before":292,"after":292,"delta":0},"VOL":{"before":100,"after":100,"delta":0},"DCAP":{"before":220,"after":220,"delta":0}}
+[ok  ] E: 无页面异常/崩溃 :: []
+OUT=/tmp/acc3/probe-h.json

@@ -1,0 +1,23 @@
+=== POST-TEARDOWN 2026-09-14T09:52:33+08:00 ===
+--- listening ports ---
+LISTEN 0      128        127.0.0.1:18099      0.0.0.0:*    users:(("eestock-app",pid=2925884,fd=11))
+LISTEN 0      128        127.0.0.1:18098      0.0.0.0:*    users:(("eestock-app",pid=2925884,fd=12))
+LISTEN 0      128        127.0.0.1:18097      0.0.0.0:*    users:(("eestock-app",pid=2934705,fd=11))
+LISTEN 0      128        127.0.0.1:18096      0.0.0.0:*    users:(("eestock-app",pid=2934705,fd=12))
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2102695,fd=12))
+--- online PID check ---
+    PID                  STARTED CMD
+2102695 Sun Sep 13 21:21:46 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+--- online configs (unchanged?) ---
+{"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}
+--- web/dist hash ---
+6e18ff174430104a3333978c2e19c7d5  web/dist/index.html
+00325b46435612ab9dca04aec782f204  -
+--- git diff --cached (empty?) ---
+(end)
+--- tracked changes ---
+design/14-dcap-indicator/02-spec.md
+web/src/features/dashboard/DashboardPage.test.tsx
+web/src/features/dashboard/KlineChart.test.tsx
+web/src/features/dashboard/KlineChart.tsx

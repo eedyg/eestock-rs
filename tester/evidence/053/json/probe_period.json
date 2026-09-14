@@ -1,0 +1,1896 @@
+{
+ "base": "http://127.0.0.1:18097",
+ "t0": "2026-09-14T01:10:55.175Z",
+ "putIntercepted": [],
+ "nonGetOther": [],
+ "klineGets": 9,
+ "wsFrames": [
+  {
+   "url": "ws://127.0.0.1:18097/ws",
+   "sent": [
+    "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"161226\",\"period\":\"15m\"}"
+   ],
+   "received": 0
+  }
+ ],
+ "scenarios": {
+  "A_before_period": {
+   "inits": 1,
+   "logLen": 7,
+   "chartCount": 1,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 357,
+     "domTop": 76,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348255353_3",
+     "optH": 199,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 199,
+     "domTop": 434,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348259416_2",
+     "optH": 140,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 140,
+     "domTop": 634,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 26,
+     "domTop": 774,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789348255353_1",
+     "paneId": "candle_pane",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 3,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultTail": {
+      "ma1": 8.944400000000003,
+      "ma2": 8.925299999999996,
+      "ma3": 8.9265
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789348255353_2",
+     "paneId": "indicator_pane_1789348255353_3",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 0,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultTail": {
+      "volume": 2912700,
+      "open": 8.943,
+      "close": 8.943,
+      "ma1": 27729520.8,
+      "ma2": 28079950.4,
+      "ma3": 24665341.1
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789348259416_1",
+     "paneId": "indicator_pane_1789348259416_2",
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "precision": 5,
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultTail": {
+      "s": 0.0013168965999315052,
+      "m": -0.005848185651053088,
+      "l": -0.00808014668235102,
+      "zero": 0
+     },
+     "resultLen": 188
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "offsetRight": 80,
+   "dataLen": 188,
+   "firstTs": 1787894100000,
+   "lastTs": 1789110000000,
+   "firstClose": 9.416,
+   "lastClose": 8.943,
+   "head3": [
+    {
+     "ts": 1787894100000,
+     "close": 9.416
+    },
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    }
+   ],
+   "tail2": [
+    {
+     "ts": 1789109100000,
+     "close": 8.942
+    },
+    {
+     "ts": 1789110000000,
+     "close": 8.943
+    }
+   ]
+  },
+  "A_after_period": {
+   "inits": 2,
+   "logLen": 13,
+   "chartCount": 1,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "hour",
+    "span": 1
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 496,
+     "domTop": 76,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348263816_3",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 100,
+     "domTop": 573,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348263816_6",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 100,
+     "domTop": 674,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 26,
+     "domTop": 774,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789348263816_1",
+     "paneId": "candle_pane",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 3,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultTail": {
+      "ma1": 8.914599999999997,
+      "ma2": 8.9795,
+      "ma3": 9.00595
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789348263816_2",
+     "paneId": "indicator_pane_1789348263816_3",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 0,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultTail": {
+      "volume": 2912700,
+      "open": 8.943,
+      "close": 8.943,
+      "ma1": 95957561.4,
+      "ma2": 88013736.6,
+      "ma3": 81310300.85
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789348263816_5",
+     "paneId": "indicator_pane_1789348263816_6",
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "precision": 5,
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultTail": {
+      "s": -0.003518174222836771,
+      "m": -0.012882868713797771,
+      "l": -0.01705813046663851,
+      "zero": 0
+     },
+     "resultLen": 188
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "offsetRight": 80,
+   "dataLen": 188,
+   "firstTs": 1785391200000,
+   "lastTs": 1789110000000,
+   "firstClose": 8.364,
+   "lastClose": 8.943,
+   "head3": [
+    {
+     "ts": 1785391200000,
+     "close": 8.364
+    },
+    {
+     "ts": 1785394800000,
+     "close": 8.36
+    },
+    {
+     "ts": 1785459600000,
+     "close": 8.45
+    }
+   ],
+   "tail2": [
+    {
+     "ts": 1789106400000,
+     "close": 8.942
+    },
+    {
+     "ts": 1789110000000,
+     "close": 8.943
+    }
+   ]
+  },
+  "D_remembered": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "B_before_stock": {
+   "inits": 3,
+   "logLen": 22,
+   "chartCount": 1,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 357,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 357,
+     "domTop": 76,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348266865_4",
+     "optH": 199,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 199,
+     "domTop": 434,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348266866_2",
+     "optH": 140,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 140,
+     "domTop": 634,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 26,
+     "domTop": 774,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789348266865_2",
+     "paneId": "candle_pane",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 3,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultTail": {
+      "ma1": 8.944400000000003,
+      "ma2": 8.925299999999996,
+      "ma3": 8.9265
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789348266865_3",
+     "paneId": "indicator_pane_1789348266865_4",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 0,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultTail": {
+      "volume": 2912700,
+      "open": 8.943,
+      "close": 8.943,
+      "ma1": 27729520.8,
+      "ma2": 28079950.4,
+      "ma3": 24665341.1
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789348266866_1",
+     "paneId": "indicator_pane_1789348266866_2",
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "precision": 5,
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultTail": {
+      "s": 0.0013168965999315052,
+      "m": -0.005848185651053088,
+      "l": -0.00808014668235102,
+      "zero": 0
+     },
+     "resultLen": 188
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "offsetRight": 80,
+   "dataLen": 188,
+   "firstTs": 1787894100000,
+   "lastTs": 1789110000000,
+   "firstClose": 9.416,
+   "lastClose": 8.943,
+   "head3": [
+    {
+     "ts": 1787894100000,
+     "close": 9.416
+    },
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    }
+   ],
+   "tail2": [
+    {
+     "ts": 1789109100000,
+     "close": 8.942
+    },
+    {
+     "ts": 1789110000000,
+     "close": 8.943
+    }
+   ]
+  },
+  "B_after_stock": {
+   "inits": 4,
+   "logLen": 28,
+   "chartCount": 1,
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "panes": [
+    {
+     "id": "candle_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 496,
+     "domTop": 76,
+     "indicators": [
+      "MA"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348271748_4",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 100,
+     "domTop": 573,
+     "indicators": [
+      "VOL"
+     ]
+    },
+    {
+     "id": "indicator_pane_1789348271748_7",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 100,
+     "domTop": 674,
+     "indicators": [
+      "DCAP"
+     ]
+    },
+    {
+     "id": "x_axis_pane",
+     "optH": 100,
+     "minHeight": 30,
+     "state": "normal",
+     "domH": 26,
+     "domTop": 774,
+     "indicators": []
+    }
+   ],
+   "inds": [
+    {
+     "name": "MA",
+     "id": "MA_1789348271748_2",
+     "paneId": "candle_pane",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 3,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3"
+     ],
+     "resultTail": {
+      "ma1": 1.9158000000000022,
+      "ma2": 1.9083999999999999,
+      "ma3": 1.906300000000001
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "VOL",
+     "id": "VOL_1789348271748_3",
+     "paneId": "indicator_pane_1789348271748_4",
+     "calcParams": [
+      5,
+      10,
+      20
+     ],
+     "precision": 0,
+     "figKeys": [
+      "ma1",
+      "ma2",
+      "ma3",
+      "volume"
+     ],
+     "resultTail": {
+      "volume": 1409050,
+      "open": 1.913,
+      "close": 1.913,
+      "ma1": 3773866.8,
+      "ma2": 3919019.9,
+      "ma3": 5150365.3
+     },
+     "resultLen": 188
+    },
+    {
+     "name": "DCAP",
+     "id": "DCAP_1789348271748_6",
+     "paneId": "indicator_pane_1789348271748_7",
+     "calcParams": [
+      8,
+      36,
+      66,
+      1,
+      1,
+      1,
+      1,
+      3
+     ],
+     "precision": 5,
+     "figKeys": [
+      "s",
+      "m",
+      "l",
+      "zero"
+     ],
+     "resultTail": {
+      "s": 0.001897014827762759,
+      "m": -0.009938833161627839,
+      "l": -0.013929325925670607,
+      "zero": 0
+     },
+     "resultLen": 188
+    }
+   ],
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 81,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "offsetRight": 80,
+   "dataLen": 188,
+   "firstTs": 1787894100000,
+   "lastTs": 1789110000000,
+   "firstClose": 2.015,
+   "lastClose": 1.913,
+   "head3": [
+    {
+     "ts": 1787894100000,
+     "close": 2.015
+    },
+    {
+     "ts": 1787895000000,
+     "close": 2.01
+    },
+    {
+     "ts": 1787895900000,
+     "close": 2.011
+    }
+   ],
+   "tail2": [
+    {
+     "ts": 1789109100000,
+     "close": 1.914
+    },
+    {
+     "ts": 1789110000000,
+     "close": 1.913
+    }
+   ]
+  },
+  "C_before": {
+   "heights": {
+    "MA": 306,
+    "VOL": 220,
+    "DCAP": 170
+   },
+   "ids": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789348271748_4",
+    "DCAP": "indicator_pane_1789348271748_7"
+   },
+   "inits": 4,
+   "data": {
+    "len": 188,
+    "firstTs": "2026-08-28T05:15:00.000Z",
+    "last": "2026-09-11T07:00:00.000Z",
+    "close": 1.913
+   },
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   },
+   "period": {
+    "type": "minute",
+    "span": 15
+   },
+   "vr": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 81,
+    "realTo": 196
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   }
+  },
+  "C_after": {
+   "heights": {
+    "MA": 306,
+    "VOL": 220,
+    "DCAP": 170
+   },
+   "ids": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789348271748_4",
+    "DCAP": "indicator_pane_1789348271748_7"
+   },
+   "inits": 4,
+   "data": {
+    "len": 120,
+    "firstTs": "2026-08-17T01:00:00.000Z",
+    "last": "2026-09-11T07:00:00.000Z",
+    "close": 1.913
+   },
+   "symbol": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   },
+   "period": {
+    "type": "hour",
+    "span": 1
+   },
+   "vr": {
+    "from": 6,
+    "to": 120,
+    "realFrom": 14,
+    "realTo": 128
+   },
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   }
+  }
+ },
+ "checks": [
+  {
+   "name": "DCAP 打开后存在独立 DCAP pane",
+   "ok": true,
+   "detail": [
+    "MA:candle_pane",
+    "VOL:indicator_pane_1789348255353_3",
+    "DCAP:indicator_pane_1789348259416_2",
+    ":x_axis_pane"
+   ]
+  },
+  {
+   "name": "A 切 period 后 pane 高度被重置（= 缺陷）",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 496,
+     "delta": 139
+    },
+    "VOL": {
+     "before": 199,
+     "after": 100,
+     "delta": -99
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 100,
+     "delta": -40
+    }
+   }
+  },
+  {
+   "name": "A 切 period 触发整图 remount（init 计数 +1）",
+   "ok": true,
+   "detail": {
+    "before": 1,
+    "after": 2
+   }
+  },
+  {
+   "name": "A 切 period 数据确实重置",
+   "ok": true,
+   "detail": {
+    "lenBefore": 188,
+    "lenAfter": 188,
+    "firstBefore": "2026-08-28T05:15:00.000Z",
+    "firstAfter": "2026-07-30T06:00:00.000Z",
+    "lastBefore": "2026-09-11T07:00:00.000Z",
+    "lastAfter": "2026-09-11T07:00:00.000Z",
+    "closeBefore": 8.943,
+    "closeAfter": 8.943
+   }
+  },
+  {
+   "name": "D 回放 setPaneOptions 能恢复被重置的高度",
+   "ok": true,
+   "detail": {
+    "before": {
+     "candle_pane": 496,
+     "indicator_pane_1789348263816_3": 100,
+     "indicator_pane_1789348263816_6": 100
+    },
+    "applied": {
+     "MA": {
+      "paneId": "candle_pane",
+      "height": 357
+     },
+     "VOL": {
+      "paneId": "indicator_pane_1789348263816_3",
+      "height": 199
+     },
+     "DCAP": {
+      "paneId": "indicator_pane_1789348263816_6",
+      "height": 140
+     }
+    },
+    "after": {
+     "candle_pane": {
+      "optH": 357,
+      "domH": 496
+     },
+     "indicator_pane_1789348263816_3": {
+      "optH": 199,
+      "domH": 100
+     },
+     "indicator_pane_1789348263816_6": {
+      "optH": 140,
+      "domH": 100
+     }
+    }
+   }
+  },
+  {
+   "name": "B 切 stock 后 pane 高度被重置（= 缺陷）",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 496,
+     "delta": 139
+    },
+    "VOL": {
+     "before": 199,
+     "after": 100,
+     "delta": -99
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 100,
+     "delta": -40
+    }
+   }
+  },
+  {
+   "name": "B 切 stock 触发整图 remount",
+   "ok": true,
+   "detail": {
+    "before": 3,
+    "after": 4
+   }
+  },
+  {
+   "name": "B 切 stock 数据确实重置",
+   "ok": false,
+   "detail": {
+    "lenBefore": 188,
+    "lenAfter": 188,
+    "firstBefore": "2026-08-28T05:15:00.000Z",
+    "firstAfter": "2026-08-28T05:15:00.000Z",
+    "lastBefore": "2026-09-11T07:00:00.000Z",
+    "lastAfter": "2026-09-11T07:00:00.000Z",
+    "closeBefore": 8.943,
+    "closeAfter": 1.913,
+    "headBefore": [
+     {
+      "ts": 1787894100000,
+      "close": 9.416
+     },
+     {
+      "ts": 1787895000000,
+      "close": 9.4
+     },
+     {
+      "ts": 1787895900000,
+      "close": 9.405
+     }
+    ],
+    "headAfter": [
+     {
+      "ts": 1787894100000,
+      "close": 2.015
+     },
+     {
+      "ts": 1787895000000,
+      "close": 2.01
+     },
+     {
+      "ts": 1787895900000,
+      "close": 2.011
+     }
+    ]
+   }
+  },
+  {
+   "name": "C 首选方案：pane 高度天然保持不变（±1px）",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 306,
+     "after": 306,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 220,
+     "after": 220,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 170,
+     "after": 170,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "C 首选方案：pane id 不变",
+   "ok": true,
+   "detail": {
+    "before": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789348271748_4",
+     "DCAP": "indicator_pane_1789348271748_7"
+    },
+    "after": {
+     "MA": "candle_pane",
+     "VOL": "indicator_pane_1789348271748_4",
+     "DCAP": "indicator_pane_1789348271748_7"
+    }
+   }
+  },
+  {
+   "name": "C 首选方案：不 remount（init 计数不变）",
+   "ok": true,
+   "detail": {
+    "before": 4,
+    "after": 4
+   }
+  },
+  {
+   "name": "C 首选方案：数据确实换成新标的/周期",
+   "ok": true,
+   "detail": {
+    "before": {
+     "len": 188,
+     "first": "2026-08-28T05:15:00.000Z",
+     "last": "2026-09-11T07:00:00.000Z"
+    },
+    "after": {
+     "len": 120,
+     "first": "2026-08-17T01:00:00.000Z",
+     "last": "2026-09-11T07:00:00.000Z"
+    }
+   }
+  }
+ ],
+ "mountInits": 1,
+ "dragHandles": {},
+ "A": {
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 496,
+   "VOL": 100,
+   "DCAP": 100
+  },
+  "idsBefore": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348255353_3",
+   "DCAP": "indicator_pane_1789348259416_2"
+  },
+  "idsAfter": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348263816_3",
+   "DCAP": "indicator_pane_1789348263816_6"
+  },
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 496,
+    "delta": 139
+   },
+   "VOL": {
+    "before": 199,
+    "after": 100,
+    "delta": -99
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 100,
+    "delta": -40
+   }
+  },
+  "within1px": false,
+  "initsBefore": 1,
+  "initsAfter": 2,
+  "remount": true,
+  "period": {
+   "before": {
+    "type": "minute",
+    "span": 15
+   },
+   "after": {
+    "type": "hour",
+    "span": 1
+   }
+  },
+  "symbol": {
+   "before": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "after": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   }
+  },
+  "data": {
+   "lenBefore": 188,
+   "lenAfter": 188,
+   "firstBefore": "2026-08-28T05:15:00.000Z",
+   "firstAfter": "2026-07-30T06:00:00.000Z",
+   "lastBefore": "2026-09-11T07:00:00.000Z",
+   "lastAfter": "2026-09-11T07:00:00.000Z",
+   "closeBefore": 8.943,
+   "closeAfter": 8.943
+  },
+  "viewport": {
+   "vrBefore": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "vrAfter": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 82,
+    "realTo": 196
+   },
+   "bsBefore": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "bsAfter": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "offsetBefore": 80,
+   "offsetAfter": 80
+  },
+  "dataReset": true,
+  "logBurst": [
+   {
+    "seq": 7,
+    "api": "setDataLoader",
+    "arg": "[{}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 8,
+    "api": "setSymbol",
+    "arg": "[{\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 9,
+    "api": "setPeriod",
+    "arg": "[{\"type\":\"hour\",\"span\":1}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 10,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789348263816_1\",\"yAxisId\":\"yAxis_1789348263815_1\"}",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 11,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789348263816_2\",\"paneId\":\"indicator_pane_1789348263816_3\",\"yAxisId\":\"yAxis_1789348263816_4\"},t",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane",
+     "indicator_pane_1789348263816_3"
+    ]
+   },
+   {
+    "seq": 12,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,36,66,1,1,1,1,3],\"id\":\"DCAP_1789348263816_5\",\"paneId\":\"indicator_pane_1789348263816_6\",\"",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane",
+     "indicator_pane_1789348263816_3",
+     "indicator_pane_1789348263816_6"
+    ]
+   }
+  ]
+ },
+ "D_replay": {
+  "before": {
+   "candle_pane": 496,
+   "indicator_pane_1789348263816_3": 100,
+   "indicator_pane_1789348263816_6": 100
+  },
+  "applied": {
+   "MA": {
+    "paneId": "candle_pane",
+    "height": 357
+   },
+   "VOL": {
+    "paneId": "indicator_pane_1789348263816_3",
+    "height": 199
+   },
+   "DCAP": {
+    "paneId": "indicator_pane_1789348263816_6",
+    "height": 140
+   }
+  },
+  "after": {
+   "candle_pane": {
+    "optH": 357,
+    "domH": 496
+   },
+   "indicator_pane_1789348263816_3": {
+    "optH": 199,
+    "domH": 100
+   },
+   "indicator_pane_1789348263816_6": {
+    "optH": 140,
+    "domH": 100
+   }
+  }
+ },
+ "B": {
+  "heightsBefore": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "heightsAfter": {
+   "MA": 496,
+   "VOL": 100,
+   "DCAP": 100
+  },
+  "idsBefore": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348266865_4",
+   "DCAP": "indicator_pane_1789348266866_2"
+  },
+  "idsAfter": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348271748_4",
+   "DCAP": "indicator_pane_1789348271748_7"
+  },
+  "diffs": {
+   "MA": {
+    "before": 357,
+    "after": 496,
+    "delta": 139
+   },
+   "VOL": {
+    "before": 199,
+    "after": 100,
+    "delta": -99
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 100,
+    "delta": -40
+   }
+  },
+  "within1px": false,
+  "initsBefore": 3,
+  "initsAfter": 4,
+  "remount": true,
+  "symbol": {
+   "before": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "518880"
+   },
+   "after": {
+    "pricePrecision": 3,
+    "volumePrecision": 0,
+    "ticker": "161226"
+   }
+  },
+  "data": {
+   "lenBefore": 188,
+   "lenAfter": 188,
+   "firstBefore": "2026-08-28T05:15:00.000Z",
+   "firstAfter": "2026-08-28T05:15:00.000Z",
+   "lastBefore": "2026-09-11T07:00:00.000Z",
+   "lastAfter": "2026-09-11T07:00:00.000Z",
+   "closeBefore": 8.943,
+   "closeAfter": 1.913,
+   "headBefore": [
+    {
+     "ts": 1787894100000,
+     "close": 9.416
+    },
+    {
+     "ts": 1787895000000,
+     "close": 9.4
+    },
+    {
+     "ts": 1787895900000,
+     "close": 9.405
+    }
+   ],
+   "headAfter": [
+    {
+     "ts": 1787894100000,
+     "close": 2.015
+    },
+    {
+     "ts": 1787895000000,
+     "close": 2.01
+    },
+    {
+     "ts": 1787895900000,
+     "close": 2.011
+    }
+   ]
+  },
+  "dataReset": false,
+  "logBurst": [
+   {
+    "seq": 22,
+    "api": "setDataLoader",
+    "arg": "[{}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 23,
+    "api": "setSymbol",
+    "arg": "[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 24,
+    "api": "setPeriod",
+    "arg": "[{\"type\":\"minute\",\"span\":15}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 25,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\",\"id\":\"MA_1789348271748_2\",\"yAxisId\":\"yAxis_1789348271748_1\"}",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 26,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"VOL\",\"id\":\"VOL_1789348271748_3\",\"paneId\":\"indicator_pane_1789348271748_4\",\"yAxisId\":\"yAxis_1789348271748_5\"},t",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane",
+     "indicator_pane_1789348271748_4"
+    ]
+   },
+   {
+    "seq": 27,
+    "api": "createIndicator",
+    "arg": "[{\"name\":\"DCAP\",\"calcParams\":[8,36,66,1,1,1,1,3],\"id\":\"DCAP_1789348271748_6\",\"paneId\":\"indicator_pane_1789348271748_7\",\"",
+    "paneIdsAfter": [
+     "candle_pane",
+     "x_axis_pane",
+     "indicator_pane_1789348271748_4",
+     "indicator_pane_1789348271748_7"
+    ]
+   }
+  ]
+ },
+ "C_switch": {
+  "timeline": [
+   {
+    "label": "pre",
+    "t": 0,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "after-setDataLoader",
+    "t": 0.5,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "after-setSymbol",
+    "t": 0.8,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "after-setPeriod",
+    "t": 0.9,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "after-resetData(sync)",
+    "t": 0.9,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "t+50",
+    "t": 51.1,
+    "dataLen": 188,
+    "firstTs": 1787894100000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "t+150",
+    "t": 201.2,
+    "dataLen": 120,
+    "firstTs": 1786928400000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "t+400",
+    "t": 601.4,
+    "dataLen": 120,
+    "firstTs": 1786928400000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "t+1000",
+    "t": 1601.5,
+    "dataLen": 120,
+    "firstTs": 1786928400000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   },
+   {
+    "label": "t+2000",
+    "t": 3601.7,
+    "dataLen": 120,
+    "firstTs": 1786928400000,
+    "lastTs": 1789110000000,
+    "lastClose": 1.913,
+    "panes": [
+     {
+      "id": "candle_pane",
+      "optH": 100,
+      "domH": 306
+     },
+     {
+      "id": "indicator_pane_1789348271748_4",
+      "optH": 220,
+      "domH": 220
+     },
+     {
+      "id": "indicator_pane_1789348271748_7",
+      "optH": 170,
+      "domH": 170
+     },
+     {
+      "id": "x_axis_pane",
+      "optH": 100,
+      "domH": 26
+     }
+    ]
+   }
+  ],
+  "symbol": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "161226"
+  },
+  "period": {
+   "type": "hour",
+   "span": 1
+  },
+  "dataLen": 120,
+  "firstTs": 1786928400000,
+  "lastTs": 1789110000000,
+  "lastClose": 1.913,
+  "head3": [
+   {
+    "ts": 1786928400000,
+    "close": 1.881
+   },
+   {
+    "ts": 1786932000000,
+    "close": 1.884
+   },
+   {
+    "ts": 1786935600000,
+    "close": 1.884
+   }
+  ],
+  "panes": [
+   {
+    "id": "candle_pane",
+    "optH": 100,
+    "domH": 306,
+    "inds": [
+     "MA"
+    ]
+   },
+   {
+    "id": "indicator_pane_1789348271748_4",
+    "optH": 220,
+    "domH": 220,
+    "inds": [
+     "VOL"
+    ]
+   },
+   {
+    "id": "indicator_pane_1789348271748_7",
+    "optH": 170,
+    "domH": 170,
+    "inds": [
+     "DCAP"
+    ]
+   },
+   {
+    "id": "x_axis_pane",
+    "optH": 100,
+    "domH": 26,
+    "inds": []
+   }
+  ]
+ },
+ "C": {
+  "diffs": {
+   "MA": {
+    "before": 306,
+    "after": 306,
+    "delta": 0
+   },
+   "VOL": {
+    "before": 220,
+    "after": 220,
+    "delta": 0
+   },
+   "DCAP": {
+    "before": 170,
+    "after": 170,
+    "delta": 0
+   }
+  },
+  "within1px": true,
+  "idsSame": true,
+  "initsBefore": 4,
+  "initsAfter": 4,
+  "remount": false,
+  "klineGetsDuring": 4,
+  "symbolAfter": {
+   "pricePrecision": 3,
+   "volumePrecision": 0,
+   "ticker": "161226"
+  },
+  "periodAfter": {
+   "type": "hour",
+   "span": 1
+  },
+  "dataReplaced": true,
+  "viewport": {
+   "vrBefore": {
+    "from": 74,
+    "to": 188,
+    "realFrom": 81,
+    "realTo": 196
+   },
+   "vrAfter": {
+    "from": 6,
+    "to": 120,
+    "realFrom": 14,
+    "realTo": 128
+   },
+   "bsBefore": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "bsAfter": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   }
+  },
+  "logBurst": [
+   {
+    "seq": 30,
+    "api": "setDataLoader",
+    "arg": "[{}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "indicator_pane_1789348271748_4",
+     "indicator_pane_1789348271748_7",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 31,
+    "api": "setSymbol",
+    "arg": "[{\"ticker\":\"161226\",\"pricePrecision\":3,\"volumePrecision\":0}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "indicator_pane_1789348271748_4",
+     "indicator_pane_1789348271748_7",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 32,
+    "api": "setPeriod",
+    "arg": "[{\"type\":\"hour\",\"span\":1}]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "indicator_pane_1789348271748_4",
+     "indicator_pane_1789348271748_7",
+     "x_axis_pane"
+    ]
+   },
+   {
+    "seq": 33,
+    "api": "resetData",
+    "arg": "[]",
+    "paneIdsAfter": [
+     "candle_pane",
+     "indicator_pane_1789348271748_4",
+     "indicator_pane_1789348271748_7",
+     "x_axis_pane"
+    ]
+   }
+  ]
+ },
+ "regression": {
+  "wsFrameCount": 1,
+  "wsSent": [
+   "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+   "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+   "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+   "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+   "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"161226\",\"period\":\"15m\"}"
+  ],
+  "klineGets": 9,
+  "nonGetOther": [],
+  "putIntercepted": []
+ },
+ "pageErrors": []
+}

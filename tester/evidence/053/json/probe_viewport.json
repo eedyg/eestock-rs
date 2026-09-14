@@ -1,0 +1,102 @@
+{
+ "base": "http://127.0.0.1:18097",
+ "t0": "2026-09-14T01:13:48.335Z",
+ "scenarios": {
+  "before": {
+   "heights": {
+    "MA": 357,
+    "VOL": 199,
+    "DCAP": 140
+   },
+   "inits": 1,
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "fitAttr": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "klineCfgCalls": 1
+  },
+  "afterFocusReread": {
+   "heights": {
+    "MA": 496,
+    "VOL": 100,
+    "DCAP": 100
+   },
+   "ids": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789348436923_3",
+    "DCAP": "indicator_pane_1789348436923_6"
+   },
+   "inits": 2,
+   "bs": {
+    "bar": 6,
+    "halfBar": 3,
+    "gapBar": 5,
+    "halfGapBar": 2
+   },
+   "fitAttr": "{\"bars\":200,\"space\":6,\"visible\":216,\"clamped\":false}",
+   "klineCfgCalls": 2
+  }
+ },
+ "checks": [
+  {
+   "name": "viewportBars 变化（focus 重读拿到新配置）也触发整图 remount",
+   "ok": true,
+   "detail": {
+    "initsBefore": 1,
+    "initsAfter": 2,
+    "klineCfgCalls": 2
+   }
+  },
+  {
+   "name": "viewportBars 变化导致 pane 高度被重置",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 496,
+     "delta": 139
+    },
+    "VOL": {
+     "before": 199,
+     "after": 100,
+     "delta": -99
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 100,
+     "delta": -40
+    }
+   }
+  },
+  {
+   "name": "新 viewportBars 生效（fit 属性变 200）",
+   "ok": true,
+   "detail": {
+    "before": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "after": "{\"bars\":200,\"space\":6,\"visible\":216,\"clamped\":false}"
+   }
+  }
+ ],
+ "diffs": {
+  "MA": {
+   "before": 357,
+   "after": 496,
+   "delta": 139
+  },
+  "VOL": {
+   "before": 199,
+   "after": 100,
+   "delta": -99
+  },
+  "DCAP": {
+   "before": 140,
+   "after": 100,
+   "delta": -40
+  }
+ },
+ "remount": true,
+ "pageErrors": []
+}

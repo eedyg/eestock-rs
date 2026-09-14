@@ -1,0 +1,409 @@
+{
+ "base": "http://127.0.0.1:18097",
+ "t0": "2026-09-14T01:12:26.562Z",
+ "putIntercepted": [],
+ "nonGetOther": [],
+ "klineUrls": [
+  {
+   "t": 1789348346726,
+   "url": "/api/kline?code=518880&period=15m&limit=120"
+  },
+  {
+   "t": 1789348350765,
+   "url": "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68"
+  },
+  {
+   "t": 1789348355998,
+   "url": "/api/kline?code=518880&period=1h&limit=188"
+  },
+  {
+   "t": 1789348359031,
+   "url": "/api/kline?code=518880&period=15m&limit=188"
+  },
+  {
+   "t": 1789348363913,
+   "url": "/api/kline?code=518880&period=1h&limit=188"
+  },
+  {
+   "t": 1789348368224,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348368224,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348368224,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348368224,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348370730,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348370730,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  },
+  {
+   "t": 1789348370730,
+   "url": "/api/kline?code=161226&period=1h&limit=120"
+  }
+ ],
+ "wsFrames": [
+  {
+   "url": "ws://127.0.0.1:18097/ws",
+   "sent": [
+    "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+    "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}"
+   ],
+   "received": 0
+  }
+ ],
+ "checks": [
+  {
+   "name": "warmup：DCAP 关时取数 limit = viewport_bars(120)",
+   "ok": true,
+   "detail": {
+    "dcapOffUrls": [
+     {
+      "t": 1789348346726,
+      "url": "/api/kline?code=518880&period=15m&limit=120"
+     }
+    ],
+    "dcapOnUrls": [
+     {
+      "t": 1789348350765,
+      "url": "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68"
+     }
+    ],
+    "onlineDcap": {
+     "n_s": 8,
+     "n_m": 36,
+     "n_l": 66,
+     "r_s": 1,
+     "r_m": 1,
+     "r_l": 1,
+     "smooth": 1,
+     "m": 3
+    },
+    "onlineKline": {
+     "viewport_bars": 120
+    },
+    "expectedOn": 188,
+    "expectedOff": 120,
+    "observedOff": "120",
+    "observedOn": "68"
+   }
+  },
+  {
+   "name": "warmup：DCAP 开时取数 limit = viewport + (n_l+m−1)",
+   "ok": false,
+   "detail": {
+    "dcapOffUrls": [
+     {
+      "t": 1789348346726,
+      "url": "/api/kline?code=518880&period=15m&limit=120"
+     }
+    ],
+    "dcapOnUrls": [
+     {
+      "t": 1789348350765,
+      "url": "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68"
+     }
+    ],
+    "onlineDcap": {
+     "n_s": 8,
+     "n_m": 36,
+     "n_l": 66,
+     "r_s": 1,
+     "r_m": 1,
+     "r_l": 1,
+     "smooth": 1,
+     "m": 3
+    },
+    "onlineKline": {
+     "viewport_bars": 120
+    },
+    "expectedOn": 188,
+    "expectedOff": 120,
+    "observedOff": "120",
+    "observedOn": "68"
+   }
+  },
+  {
+   "name": "手动 wheel 改变了 barSpace（进入手动视口态）",
+   "ok": true,
+   "detail": {
+    "before": {
+     "bar": 11,
+     "halfBar": 5.5,
+     "gapBar": 8,
+     "halfGapBar": 4
+    },
+    "afterZoom": {
+     "bar": 12.1,
+     "halfBar": 6.05,
+     "gapBar": 9,
+     "halfGapBar": 4
+    },
+    "fitBefore": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+    "fitAfter": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+   }
+  },
+  {
+   "name": "ADR-020：UI 切 period（remount）后 barSpace 被重算回 fit（可见 ≈ viewport_bars）",
+   "ok": true,
+   "detail": {
+    "before": {
+     "bs": {
+      "bar": 11,
+      "halfBar": 5.5,
+      "gapBar": 8,
+      "halfGapBar": 4
+     },
+     "visible": 114,
+     "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+    },
+    "afterZoom": {
+     "bs": {
+      "bar": 12.1,
+      "halfBar": 6.05,
+      "gapBar": 9,
+      "halfGapBar": 4
+     },
+     "visible": 103,
+     "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+    },
+    "afterPeriodSwitch_uiRemount": {
+     "bs": {
+      "bar": 11,
+      "halfBar": 5.5,
+      "gapBar": 8,
+      "halfGapBar": 4
+     },
+     "visible": 114,
+     "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+     "heights": {
+      "MA": 496,
+      "VOL": 100,
+      "DCAP": 100
+     },
+     "inits": 2
+    }
+   }
+  },
+  {
+   "name": "备选 D：remount 后回放 setPaneOptions 能把高度恢复到 ±1px",
+   "ok": true,
+   "detail": {
+    "MA": {
+     "before": 357,
+     "after": 357,
+     "delta": 0
+    },
+    "VOL": {
+     "before": 199,
+     "after": 199,
+     "delta": 0
+    },
+    "DCAP": {
+     "before": 140,
+     "after": 140,
+     "delta": 0
+    }
+   }
+  },
+  {
+   "name": "备选 D 固有缺陷：pane id 在 remount 后全部更换",
+   "ok": true,
+   "detail": {
+    "MA": "candle_pane",
+    "VOL": "indicator_pane_1789348363911_3",
+    "DCAP": "indicator_pane_1789348363911_6"
+   }
+  },
+  {
+   "name": "overlay：不 remount 原地切换后旧 overlay 仍残留（需显式清理）",
+   "ok": true,
+   "detail": {
+    "before": 2,
+    "noRemountSwitchAfter": 2
+   }
+  }
+ ],
+ "klineGets": null,
+ "warmup": {
+  "dcapOffUrls": [
+   {
+    "t": 1789348346726,
+    "url": "/api/kline?code=518880&period=15m&limit=120"
+   }
+  ],
+  "dcapOnUrls": [
+   {
+    "t": 1789348350765,
+    "url": "/api/kline?code=518880&period=15m&before=2026-09-03T03%3A00%3A00Z&limit=68"
+   }
+  ],
+  "onlineDcap": {
+   "n_s": 8,
+   "n_m": 36,
+   "n_l": 66,
+   "r_s": 1,
+   "r_m": 1,
+   "r_l": 1,
+   "smooth": 1,
+   "m": 3
+  },
+  "onlineKline": {
+   "viewport_bars": 120
+  },
+  "expectedOn": 188,
+  "expectedOff": 120,
+  "observedOff": "120",
+  "observedOn": "68"
+ },
+ "zoom": {
+  "before": {
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "visible": 114,
+   "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "afterZoom": {
+   "bs": {
+    "bar": 12.1,
+    "halfBar": 6.05,
+    "gapBar": 9,
+    "halfGapBar": 4
+   },
+   "visible": 103,
+   "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+  },
+  "afterPeriodSwitch_uiRemount": {
+   "bs": {
+    "bar": 11,
+    "halfBar": 5.5,
+    "gapBar": 8,
+    "halfGapBar": 4
+   },
+   "visible": 114,
+   "fit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+   "heights": {
+    "MA": 496,
+    "VOL": 100,
+    "DCAP": 100
+   },
+   "inits": 2
+  }
+ },
+ "replay": {
+  "memo": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "before": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "afterRemount": {
+   "MA": 496,
+   "VOL": 100,
+   "DCAP": 100
+  },
+  "afterReplay": {
+   "MA": 357,
+   "VOL": 199,
+   "DCAP": 140
+  },
+  "idsBeforeRemount": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348359029_3",
+   "DCAP": "indicator_pane_1789348359029_6"
+  },
+  "idsAfterRemount": {
+   "MA": "candle_pane",
+   "VOL": "indicator_pane_1789348363911_3",
+   "DCAP": "indicator_pane_1789348363911_6"
+  },
+  "replayDiffVsBefore": {
+   "MA": {
+    "before": 357,
+    "after": 357,
+    "delta": 0
+   },
+   "VOL": {
+    "before": 199,
+    "after": 199,
+    "delta": 0
+   },
+   "DCAP": {
+    "before": 140,
+    "after": 140,
+    "delta": 0
+   }
+  }
+ },
+ "overlay": {
+  "before": 2,
+  "noRemountSwitchAfter": 2
+ },
+ "manualNoRemount": {
+  "beforeBs": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "afterZoomBs": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "afterSwitchBs": {
+   "bar": 11,
+   "halfBar": 5.5,
+   "gapBar": 8,
+   "halfGapBar": 4
+  },
+  "zoomChanged": false,
+  "switchKeptZoom": true
+ },
+ "fitAttrs": {
+  "r0": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "z1": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+  "m1": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+ },
+ "wsSent": [
+  "{\"type\":\"subscribe\",\"topic\":\"quote\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"health\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"alert\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+  "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+  "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+  "{\"type\":\"unsubscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"15m\"}",
+  "{\"type\":\"subscribe\",\"topic\":\"bar\",\"code\":\"518880\",\"period\":\"1h\"}"
+ ],
+ "pageErrors": []
+}
