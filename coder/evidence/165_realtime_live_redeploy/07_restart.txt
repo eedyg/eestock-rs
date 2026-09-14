@@ -1,0 +1,26 @@
+### STEP7 重启 2026-09-14 11:52:33 CST
+-- 停机前再审 sim-live gate:
+count 12 statuses ["ended"] non_ended []
+-- 旧 PID 2948632 kill
+-- 复查旧 PID:
+已退出
+-- 复查端口:
+8081/8082 已释放
+-- 启动新进程 (cwd=/home/eestock/workspace/git/eestock/eestock-rs):
+-- 新监听:
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=12))
+-- 新进程属性:
+NEWPID=3112540
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+/home/eestock/workspace/git/eestock/eestock-rs
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /proc/3112540/exe
+-- 启动日志全文:
+{"timestamp":"2026-09-14T03:52:36.660061Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:52:36.701458Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:52:36.702598Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:52:36.703374Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:52:36.703442Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T03:52:36.703463Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-14T03:52:39.637949Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"7a06d984a5a03b36d9377810590c218a"},"target":"mcp::server"}

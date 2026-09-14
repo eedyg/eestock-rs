@@ -1,0 +1,7 @@
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "0.0.0.0:8081"
+mcp_listen = "0.0.0.0:8082"
+static_dir = "./web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 60000

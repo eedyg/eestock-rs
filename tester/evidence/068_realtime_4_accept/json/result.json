@@ -1,0 +1,365 @@
+{
+  "harness": {
+    "initial": {
+      "dataLen": 120,
+      "rtCount": 0,
+      "status": "open",
+      "conns": 1,
+      "follow": true,
+      "stats": {
+        "lastSource": null,
+        "lastWriteAt": null,
+        "lastPollOkAt": null,
+        "pollFailures": 0
+      },
+      "last": "2026-09-14T03:30:00Z",
+      "barsKeyLen": 3232,
+      "barsDigest": "3232:-1054514119",
+      "canvasSig": "87098:-1885154950",
+      "range": {
+        "from": 5,
+        "to": 120,
+        "realFrom": 13,
+        "realTo": 129
+      },
+      "domHint": false,
+      "viewportFit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}"
+    },
+    "a_gestures": {
+      "afterPan": {
+        "range": {
+          "from": 5,
+          "to": 120,
+          "realFrom": 37,
+          "realTo": 153
+        },
+        "follow": false
+      },
+      "afterZoom": {
+        "range": {
+          "from": 15,
+          "to": 120,
+          "realFrom": 42,
+          "realTo": 147
+        },
+        "follow": false
+      }
+    },
+    "a_viewportInvariance": {
+      "rangeBeforeUpdate": {
+        "from": 15,
+        "to": 120,
+        "realFrom": 42,
+        "realTo": 147
+      },
+      "rangeAfterRealDataUpdate": {
+        "from": 15,
+        "to": 120,
+        "realFrom": 42,
+        "realTo": 147
+      },
+      "rangeIdentical": true,
+      "followBefore": false,
+      "followAfterRealDataUpdate": false,
+      "realtimeStatsAfterUpdate": {
+        "lastSource": null,
+        "lastWriteAt": null,
+        "lastPollOkAt": 1789359924329,
+        "pollFailures": 0
+      }
+    },
+    "c_realFetchIdempotency": {
+      "len": [
+        120,
+        120
+      ],
+      "rtCount": [
+        0,
+        0
+      ],
+      "barsDigest": [
+        "3232:-1054514119",
+        "3232:-1054514119"
+      ],
+      "canvasSig": [
+        "86214:-1954148280",
+        "86214:-1954148280"
+      ],
+      "lenStable": true,
+      "digestStable": true,
+      "noReEmit": true,
+      "canvasStable": true
+    },
+    "b_hint": {
+      "inject": {
+        "replayExisting": {
+          "before": {
+            "len": 120,
+            "rt": 0
+          },
+          "after": {
+            "len": 120,
+            "rt": 1
+          }
+        },
+        "injectNew": {
+          "before": {
+            "len": 120,
+            "rt": 1,
+            "hint": false
+          },
+          "after": {
+            "len": 121,
+            "rt": 2,
+            "last": "2026-09-14T03:45:00.000Z",
+            "hint": false
+          }
+        },
+        "replayNewTwice": {
+          "before": {
+            "len": 121,
+            "rt": 2
+          },
+          "after": {
+            "len": 121,
+            "rt": 2
+          },
+          "appendedTwice": 0,
+          "reEmitted": 0
+        }
+      },
+      "rangeBeforeNewBar": {
+        "from": 15,
+        "to": 120,
+        "realFrom": 42,
+        "realTo": 147
+      },
+      "rangeAfterNewBar": {
+        "from": 16,
+        "to": 121,
+        "realFrom": 43,
+        "realTo": 148
+      },
+      "viewportUnchangedWhenHintShown": false,
+      "hintVisible": false,
+      "afterClickRange": null,
+      "afterClickFollow": null,
+      "hintGoneAfterClick": null,
+      "jumpedToLatest": null
+    },
+    "d_grid2x2": {
+      "images": 4,
+      "returned": [
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "klineHttpRequests": 1,
+      "urls": [
+        "/api/kline?code=518880&period=15m&limit=5"
+      ],
+      "withinImageLimit": true
+    },
+    "d_multi6": {
+      "images": 6,
+      "returned": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "klineHttpRequests": 4,
+      "withinImageLimit": true
+    },
+    "final": {
+      "dataLen": 121,
+      "rtCount": 2,
+      "status": "open",
+      "conns": 1,
+      "follow": false,
+      "stats": {
+        "lastSource": "ws",
+        "lastWriteAt": 1789359926204,
+        "lastPollOkAt": 1789359925257,
+        "pollFailures": 0
+      },
+      "last": "2026-09-14T03:45:00.000Z",
+      "barsKeyLen": 3263,
+      "barsDigest": "3263:-1054514119",
+      "canvasSig": "89446:1805724790",
+      "range": {
+        "from": 16,
+        "to": 121,
+        "realFrom": 43,
+        "realTo": 148
+      },
+      "domHint": false,
+      "viewportFit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}"
+    },
+    "framesRecorded": 0
+  },
+  "realPage": {
+    "served": {
+      "title": "eestock · 行情看板",
+      "scripts": [
+        "/assets/index-DgTTwVw8.js"
+      ],
+      "css": [
+        "/assets/index-LiEzF-e0.css"
+      ],
+      "viewportFit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}",
+      "canvasCount": 10,
+      "hasRoot": true
+    }
+  },
+  "requests": [
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/?code=518880&period=15m&bars=120"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/assets/index-CzkUJQOd.js"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/assets/index-bSAJPuNT.css"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=120"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=161226&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=513310&period=15m&limit=5"
+    },
+    {
+      "tag": "harness",
+      "mode": "proxy",
+      "method": "GET",
+      "url": "http://127.0.0.1:18441/api/kline?code=159915&period=15m&limit=5"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/assets/index-DgTTwVw8.js"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/assets/index-LiEzF-e0.css"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/symbols"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/ma"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/dcap"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/kline"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/sources/health"
+    },
+    {
+      "tag": "realPage",
+      "mode": "passthrough",
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/kline?code=518880&period=15m&limit=120"
+    }
+  ],
+  "nonGet": 0,
+  "writeSummary": {
+    "totalRequests": 20,
+    "nonGet": 0,
+    "blockedWrites": 0,
+    "klineRequests": 9,
+    "nonGetKlineFallbackShape": 9,
+    "uniqueUrlShapes": [
+      "GET /",
+      "GET /?code=518880&period=15m&bars=120",
+      "GET /api/config/dcap",
+      "GET /api/config/kline",
+      "GET /api/config/ma",
+      "GET /api/kline?code=159915&period=15m&limit=N",
+      "GET /api/kline?code=161226&period=15m&limit=N",
+      "GET /api/kline?code=513310&period=15m&limit=N",
+      "GET /api/kline?code=518880&period=15m&limit=N",
+      "GET /api/sources/health",
+      "GET /api/symbols",
+      "GET /assets/index-CzkUJQOd.js",
+      "GET /assets/index-DgTTwVw8.js",
+      "GET /assets/index-LiEzF-e0.css",
+      "GET /assets/index-bSAJPuNT.css"
+    ]
+  }
+}

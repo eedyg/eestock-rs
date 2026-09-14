@@ -1,0 +1,60 @@
+{
+ "shell_curl_requests_issued_vs_live": [
+  "GET /healthz",
+  "GET /api/config/kline",
+  "GET /api/config/dcap",
+  "GET /api/config/ma",
+  "GET /",
+  "GET /assets/index-DgTTwVw8.js",
+  "GET /assets/index-LiEzF-e0.css"
+ ],
+ "browser_mediated_requests_live_8081": {
+  "GET harness /?code=518880&period=15m&bars=120": 1,
+  "GET harness /assets/index-CzkUJQOd.js": 1,
+  "GET harness /assets/index-bSAJPuNT.css": 1,
+  "GET harness /api/kline?code=518880&period=15m&limit=120": 1,
+  "GET harness /api/kline?code=518880&period=15m&limit=5": 4,
+  "GET harness /api/kline?code=161226&period=15m&limit=5": 1,
+  "GET harness /api/kline?code=513310&period=15m&limit=5": 1,
+  "GET harness /api/kline?code=159915&period=15m&limit=5": 1,
+  "GET realPage /": 1,
+  "GET realPage /assets/index-DgTTwVw8.js": 1,
+  "GET realPage /assets/index-LiEzF-e0.css": 1,
+  "GET realPage /api/symbols": 1,
+  "GET realPage /api/config/ma": 1,
+  "GET realPage /api/config/dcap": 1,
+  "GET realPage /api/config/kline": 1,
+  "GET realPage /api/sources/health": 1,
+  "GET realPage /api/kline?code=518880&period=15m&limit=120": 1
+ },
+ "methods_seen": [
+  "GET"
+ ],
+ "non_get_total": 0,
+ "blocked_writes": [],
+ "unique_browser_request_shapes": [
+  "GET /",
+  "GET /?code=518880&period=15m&bars=120",
+  "GET /api/config/dcap",
+  "GET /api/config/kline",
+  "GET /api/config/ma",
+  "GET /api/kline?code=159915&period=15m&limit=N",
+  "GET /api/kline?code=161226&period=15m&limit=N",
+  "GET /api/kline?code=513310&period=15m&limit=N",
+  "GET /api/kline?code=518880&period=15m&limit=N",
+  "GET /api/sources/health",
+  "GET /api/symbols",
+  "GET /assets/index-CzkUJQOd.js",
+  "GET /assets/index-DgTTwVw8.js",
+  "GET /assets/index-LiEzF-e0.css",
+  "GET /assets/index-bSAJPuNT.css"
+ ],
+ "idle_window_requests": [],
+ "kline_get_counts": {
+  "run_mjs": 9,
+  "focus_b2": 1,
+  "focus_bc": 3
+ },
+ "kline_fallback_shape_limit5_no_before": 9,
+ "note": "全部 GET；浏览器侧对非 GET 一律 abort 并记录（blockedWrites 为空=无写尝试）；70s 空闲窗内 0 请求"
+}

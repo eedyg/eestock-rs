@@ -1,0 +1,23 @@
+{
+  "idleSeconds": 70,
+  "harnessFollow": false,
+  "harnessStatus": "open",
+  "harnessConns": 1,
+  "harnessStats": {
+    "lastSource": null,
+    "lastWriteAt": null,
+    "lastPollOkAt": null,
+    "pollFailures": 0
+  },
+  "harnessFrames": 0,
+  "idleRequests": [],
+  "idleFallbackNoBefore": 0,
+  "idleAnyKline": 0,
+  "nonGet": 0,
+  "sessionNow": {
+    "shanghai": "12:29",
+    "day": 1,
+    "session": "lunch"
+  },
+  "livePageViewportFit": "{\"bars\":120,\"space\":11,\"visible\":118,\"clamped\":false}"
+}

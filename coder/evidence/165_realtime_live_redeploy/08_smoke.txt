@@ -1,0 +1,27 @@
+### STEP8 冒烟 2026-09-14 11:52:45 CST
+-- 1) /healthz:
+{"status":"ok"}
+[HTTP 200]
+-- 2) 三个配置端点 vs 架构师基线（逐字节）:
+  kline: BYTE-IDENTICAL ✓  {"viewport_bars":120}
+  dcap: BYTE-IDENTICAL ✓  {"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}
+  ma: BYTE-IDENTICAL ✓  {"windows":[5,10,20]}
+-- 3) /api/symbols:
+  HTTP 200 bytes=10668
+  count= 44  first= {"code":"518880","name":"华安黄金易ETF","type":"etf","interval_secs":60,"settlement":"T0","enabled":true,"latest":{"ts":"2026-09-14T03:30:00Z","last":8.911,"change_p
+-- 4) /api/kline 取样 (518880:15m limit=5):
+  HTTP 200 bytes=682
+  bars= 5
+  head= {"ts":"2026-09-14T02:30:00Z","open":8.941,"high":8.948,"low":8.926,"close":8.936,"volume":16290500,"amount":138180}
+  tail= {"ts":"2026-09-14T03:30:00Z","open":8.91,"high":8.911,"low":8.909,"close":8.911,"volume":262543,"amount":2339259.5237}
+-- 5) GET / 引用 bundle vs dist/index.html:
+  served=index-DgTTwVw8.js dist=index-DgTTwVw8.js ✓
+-- 6) /assets/<bundle> vs dist 文件（sha256 + cmp）:
+31dedacc5fc23c806509cdfac30697baf7e13154c8e3cea1cba1d3e40b5d735d  /tmp/served_bundle_165.js
+31dedacc5fc23c806509cdfac30697baf7e13154c8e3cea1cba1d3e40b5d735d  web/dist/assets/index-DgTTwVw8.js
+  cmp: BYTE-IDENTICAL ✓
+0efde58240c13980cbda1fd8586e8b876adef8621721f412b6d1bfb4c3acae3c  /tmp/served_css_165.css
+0efde58240c13980cbda1fd8586e8b876adef8621721f412b6d1bfb4c3acae3c  web/dist/assets/index-LiEzF-e0.css
+  css cmp: BYTE-IDENTICAL ✓
+-- 7) 启动日志 ERROR/WARN 计数 (log=logs/app_dev_8081_redeploy_20260914_115233.log):
+  ERROR: 0  WARN: 0

@@ -1,0 +1,48 @@
+### STEP1 形态确认  2026-09-14 11:51:34 CST
+-- git HEAD:
+ce87766 docs(report): 实时更新补齐 —— 诊断/红测试/状态评估/简化/独立验收 报告与证据
+-- ss -lntp | grep 8081/8082/1811x:
+LISTEN 0      128        127.0.0.1:18112      0.0.0.0:*    users:(("eestock-app",pid=3013641,fd=12))
+LISTEN 0      128        127.0.0.1:18111      0.0.0.0:*    users:(("eestock-app",pid=3013641,fd=11))
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2948632,fd=12))
+-- 线上 PID 2948632:
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+/home/eestock/workspace/git/eestock/eestock-rs
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+-- sha256 /proc/2948632/exe:
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /proc/2948632/exe
+-- sha256 target/debug/eestock-app:
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  target/debug/eestock-app
+
+### STEP2 遗留临时实例身份确认 2026-09-14 11:51:34 CST
+-- PID 3013641 cmdline:
+./target/debug/eestock-app --config /tmp/rt055/app.toml 
+-- PID 3013641 cwd:
+/home/eestock/workspace/git/eestock/eestock-rs
+-- PID 3013641 exe:
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+-- PID 3013641 owner/start:
+3013641 eestock  Mon Sep 14 10:44:23 2026    01:07:10
+-- config = /tmp/rt055/app.toml (内容):
+# 临时实例（阶段 2 自测用；只读库 + 临时端口；收尾全拆）
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock?options=-c%20default_transaction_read_only%3Don"
+listen = "127.0.0.1:18111"
+static_dir = "/home/eestock/workspace/git/eestock/eestock-rs/web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+mcp_listen = "127.0.0.1:18112"
+alert_eval_ms = 60000
+### STEP2b 遗留临时实例处置  2026-09-14 11:51:38 CST
+-- 处置前 ESTABLISHED 连接（18111/18112）：
+(none)
+-- 处置前 /api/healthz 探测（确认它确为我们可识别的实例）：
+HTTP 200
+-- kill 3013641 (SIGTERM)
+-- 复查进程:
+PID 3013641 已退出
+-- 复查端口:
+18111/18112 已释放 ✓
+-- 复查残留同名进程:
+3111298 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && EV=coder/evidence/165_realtime_live_redeploy && { echo "### STEP2b 遗留临时实例处置  $(date '+%F %T %Z')" echo "-- 处置前 ESTABLISHED 连接（18111/18112）："; ss -tnp | grep -E '18111|18112' || echo "(none)" echo "-- 处置前 /api/healthz 探测（确认它确为我们可识别的实例）："; curl -s -m 3 -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:18111/healthz echo "-- kill 3013641 (SIGTERM)"; kill 3013641; sleep 3 echo "-- 复查进程:"; ps -p 3013641 -o pid=,stat=,cmd= || echo "PID 3013641 已退出" echo "-- 复查端口:"; ss -lntp | grep -E ':18111|:18112' && echo "!! 端口仍占用" || echo "18111/18112 已释放 ✓" echo "-- 复查残留同名进程:"; pgrep -af 'rt055' || echo "(无 rt055 残留)" } 2>&1 | tee -a $EV/01_form_gate_leftover.txt
+3111299 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && EV=coder/evidence/165_realtime_live_redeploy && { echo "### STEP2b 遗留临时实例处置  $(date '+%F %T %Z')" echo "-- 处置前 ESTABLISHED 连接（18111/18112）："; ss -tnp | grep -E '18111|18112' || echo "(none)" echo "-- 处置前 /api/healthz 探测（确认它确为我们可识别的实例）："; curl -s -m 3 -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:18111/healthz echo "-- kill 3013641 (SIGTERM)"; kill 3013641; sleep 3 echo "-- 复查进程:"; ps -p 3013641 -o pid=,stat=,cmd= || echo "PID 3013641 已退出" echo "-- 复查端口:"; ss -lntp | grep -E ':18111|:18112' && echo "!! 端口仍占用" || echo "18111/18112 已释放 ✓" echo "-- 复查残留同名进程:"; pgrep -af 'rt055' || echo "(无 rt055 残留)" } 2>&1 | tee -a $EV/01_form_gate_leftover.txt

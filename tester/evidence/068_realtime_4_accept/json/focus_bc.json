@@ -1,0 +1,90 @@
+{
+  "zoomed": {
+    "follow": false,
+    "len": 120,
+    "rt": 0,
+    "last": "2026-09-14T03:30:00Z",
+    "xLast": null,
+    "width": 1200,
+    "range": {
+      "from": 33,
+      "to": 120,
+      "realFrom": 39,
+      "realTo": 126
+    },
+    "hint": false
+  },
+  "steps": [],
+  "preconditionOk": false,
+  "afterNew": {
+    "follow": false,
+    "len": 121,
+    "rt": 1,
+    "last": "2026-09-14T03:45:00.000Z",
+    "xLast": null,
+    "width": 1200,
+    "range": {
+      "from": 34,
+      "to": 121,
+      "realFrom": 40,
+      "realTo": 127
+    },
+    "hint": false
+  },
+  "injected": {
+    "before": {
+      "len": 120,
+      "rt": 0,
+      "hint": false
+    },
+    "after": {
+      "len": 121,
+      "rt": 1,
+      "last": "2026-09-14T03:45:00.000Z",
+      "hint": false
+    }
+  },
+  "hintVisible": false,
+  "idempotency": {
+    "realPollTwice": {
+      "len": [
+        121,
+        121
+      ],
+      "rt": [
+        1,
+        1
+      ],
+      "digestSame": true
+    },
+    "replayFullExistingBar": {
+      "len": [
+        121,
+        121
+      ],
+      "rt": [
+        1,
+        1
+      ],
+      "digestSame": true
+    },
+    "sameNewBarThrice": {
+      "appended": 1,
+      "emitted": 1,
+      "len": 122,
+      "rt": 2
+    }
+  },
+  "stats": {
+    "lastSource": "ws",
+    "lastWriteAt": 1789359996229,
+    "lastPollOkAt": 1789359994829,
+    "pollFailures": 0
+  },
+  "requests": [
+    "GET http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=120",
+    "GET http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5",
+    "GET http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=5"
+  ],
+  "nonGet": 0
+}

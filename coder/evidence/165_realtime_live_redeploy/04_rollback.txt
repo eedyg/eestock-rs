@@ -1,0 +1,4 @@
+TS=20260914_115152
+-- rollback file: /tmp/eestock-app.rollback.20260914_115152
+8eb98376daf76381b335183714ecf94e191d256774a0b33b8e0fea00a2e367cf  /tmp/eestock-app.rollback.20260914_115152
+-rwxrwxr-x 1 eestock eestock 206210368 Sep 14 11:51 /tmp/eestock-app.rollback.20260914_115152

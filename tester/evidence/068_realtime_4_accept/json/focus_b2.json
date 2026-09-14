@@ -1,0 +1,92 @@
+{
+  "trace": [
+    {
+      "step": "start",
+      "follow": true,
+      "len": 120,
+      "rt": 0,
+      "last": "2026-09-14T03:30:00Z",
+      "xLast": 1055,
+      "width": 1200,
+      "range": {
+        "from": 5,
+        "to": 120,
+        "realFrom": 13,
+        "realTo": 129
+      },
+      "fit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}",
+      "hint": false
+    }
+  ],
+  "preconditionOffViewport": true,
+  "pre": {
+    "follow": false,
+    "len": 120,
+    "rt": 0,
+    "last": "2026-09-14T03:30:00Z",
+    "xLast": 1216,
+    "width": 1200,
+    "range": {
+      "from": 27,
+      "to": 114,
+      "realFrom": 27,
+      "realTo": 114
+    },
+    "fit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}",
+    "hint": false
+  },
+  "injected": {
+    "before": {
+      "len": 120,
+      "rt": 0,
+      "hint": false
+    },
+    "after": {
+      "len": 121,
+      "rt": 1,
+      "last": "2026-09-14T03:45:00.000Z",
+      "hint": true
+    }
+  },
+  "post": {
+    "follow": false,
+    "len": 121,
+    "rt": 1,
+    "last": "2026-09-14T03:45:00.000Z",
+    "xLast": 1229,
+    "width": 1200,
+    "range": {
+      "from": 27,
+      "to": 114,
+      "realFrom": 27,
+      "realTo": 114
+    },
+    "fit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}",
+    "hint": true
+  },
+  "hintVisible": true,
+  "hintText": "有新数据",
+  "afterClick": {
+    "follow": false,
+    "len": 121,
+    "rt": 1,
+    "last": "2026-09-14T03:45:00.000Z",
+    "xLast": 1053,
+    "width": 1200,
+    "range": {
+      "from": 34,
+      "to": 121,
+      "realFrom": 40,
+      "realTo": 128
+    },
+    "fit": "{\"bars\":120,\"space\":10,\"visible\":120,\"clamped\":false}",
+    "hint": false
+  },
+  "hintGoneAfterClick": true,
+  "jumpedToLatest": true,
+  "followAfterClick": false,
+  "nonGet": 0,
+  "klineRequests": [
+    "GET http://127.0.0.1:18441/api/kline?code=518880&period=15m&limit=120"
+  ]
+}

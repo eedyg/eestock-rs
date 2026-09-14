@@ -1,0 +1,57 @@
+### STEP5 BEFORE dist 哈希 2026-09-14 11:51:56 CST
+total 16
+drwxrwxr-x 3 eestock eestock 4096 Sep 14 11:06 .
+drwxrwxr-x 8 eestock eestock 4096 Sep 14 11:48 ..
+drwxrwxr-x 2 eestock eestock 4096 Sep 14 11:06 assets
+-rw-rw-r-- 1 eestock eestock  397 Sep 14 11:06 index.html
+-- dist/index.html:
+index-CBm_5q76.js
+-- dist/assets 哈希:
+a08904d9e842d09ba3966bbbf3781e0bd9e7de8f720a8937581699c96dec4f0e  dist/assets/index-CBm_5q76.js
+-- index.html sha256:
+d6397479e740b29adab8cc9128b64eee92d8cc40339637504b24810f8430e657  dist/index.html
+### 5a npx tsc -b  2026-09-14 11:52:14 CST
+tsc -b exit=0
+### 5b npm run build:prod  2026-09-14 11:52:20 CST
+build:prod exit=0
+
+### 5c AFTER dist 哈希 2026-09-14 11:52:25 CST
+dist/:
+total 16
+drwxrwxr-x 3 eestock eestock 4096 Sep 14 11:52 .
+drwxrwxr-x 8 eestock eestock 4096 Sep 14 11:48 ..
+drwxrwxr-x 2 eestock eestock 4096 Sep 14 11:52 assets
+-rw-rw-r-- 1 eestock eestock  397 Sep 14 11:52 index.html
+
+dist/assets/:
+total 1188
+drwxrwxr-x 2 eestock eestock    4096 Sep 14 11:52 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 14 11:52 ..
+-rw-rw-r-- 1 eestock eestock 1181681 Sep 14 11:52 index-DgTTwVw8.js
+-rw-rw-r-- 1 eestock eestock   22171 Sep 14 11:52 index-LiEzF-e0.css
+-- dist/index.html:
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>eestock · 行情看板</title>
+    <script type="module" crossorigin src="/assets/index-DgTTwVw8.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-LiEzF-e0.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+-- index.html sha256:
+6c4c45695baaad1bb129574fa72b6ec305f7fd8d952a3e369f8151fe4f69a404  dist/index.html
+-- assets sha256:
+31dedacc5fc23c806509cdfac30697baf7e13154c8e3cea1cba1d3e40b5d735d  dist/assets/index-DgTTwVw8.js
+0efde58240c13980cbda1fd8586e8b876adef8621721f412b6d1bfb4c3acae3c  dist/assets/index-LiEzF-e0.css
+-- bundle ④ 痕迹计数:
+有新数据             1
+kline-new-data-hint      1
+pollIncrement            1
+visibilityState          2
+realtime                 2

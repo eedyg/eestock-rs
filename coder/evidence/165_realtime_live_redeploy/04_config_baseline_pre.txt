@@ -1,0 +1,10 @@
+### PRE 配置基线抓取 2026-09-14 11:51:52 CST
+--- GET /api/config/kline
+HTTP 200
+{"viewport_bars":120}
+--- GET /api/config/dcap
+HTTP 200
+{"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3}
+--- GET /api/config/ma
+HTTP 200
+{"windows":[5,10,20]}
