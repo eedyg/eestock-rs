@@ -20,8 +20,18 @@ export interface MultiPeriodState {
   indicators: string[];
   /** T8bis：同步降级（「对齐受限」）标志；无同步 ⇒ false。 */
   syncDegraded: boolean;
+  /**
+   * P3-D-2 可观测：最近一次降级的**跟随者周期**（正常 null）。
+   * **base 作为 follower 降级时此处即基准周期** —— 角标仍只渲染在卫星 pane（已知限制），
+   * 但降级必须能从 store/stats 读出（严禁静默虚假对齐）。
+   */
+  syncDegradedPeriod: string | null;
   /** T8bis：最近一次对齐跨度差（分钟）；无记录 ⇒ null（不得伪造 0）。 */
   lastSpanDiffMinutes: number | null;
+  /** P3 可观测（02-spec §9）：成功对齐广播次数（`syncApplied`）。 */
+  syncApplied: number;
+  /** P3 可观测（02-spec §9）：重入抑制/程序化回传被丢弃的事件数（`syncSuppressed`）。 */
+  syncSuppressed: number;
   /**
    * **基准周期口径（用户裁决 A，2026-09-14）**：基准（K 线）周期由配置 `periods[0]` 决定，
    * **仅当确实存在卫星（`enabled && periods.length > 1`）**；否则一律沿用工具栏/状态里的周期。
@@ -73,7 +83,10 @@ function toState(cfg: MultiPeriodConfigDto): MultiPeriodState {
     heights: { ...cfg.heights },
     indicators: [...cfg.indicators],
     syncDegraded: false,
+    syncDegradedPeriod: null,
     lastSpanDiffMinutes: null,
+    syncApplied: 0,
+    syncSuppressed: 0,
     ...basePeriodDerivation(cfg.enabled, cfg.periods),
   };
 }
@@ -129,7 +142,46 @@ export class MultiPeriodStore {
   /** 乐观更新开关（同步）。关闭 ⇒ 运行态归零（T11 零残留）；开启（P2 起建实例）本轮仍单图。 */
   setEnabled(enabled: boolean): void {
     if (enabled) this.patch({ enabled: true });
-    else this.patch({ enabled: false, syncDegraded: false, lastSpanDiffMinutes: null });
+    else
+      this.patch({
+        enabled: false,
+        syncDegraded: false,
+        syncDegradedPeriod: null,
+        lastSpanDiffMinutes: null,
+        syncApplied: 0,
+        syncSuppressed: 0,
+      });
+  }
+
+  /**
+   * 同步统计镜像（P3 可观测，02-spec §9；`ChartSyncGroup.stats` → store）：**只镜像可观测字段**，
+   * 不驱动任何同步行为（同步原语在 `chartSyncGroup.ts`，本 store 不持数据流）。
+   * 值未变化的调用**不 patch**（滚动期间避免无谓的 store 通知/页面重渲染）。
+   */
+  applySyncStats(stats: {
+    applied?: number;
+    suppressed?: number;
+    degraded: boolean;
+    degradedPeriod: string | null;
+    lastSpanDiffMinutes: number | null;
+  }): void {
+    const next = {
+      syncDegraded: stats.degraded,
+      syncDegradedPeriod: stats.degraded ? (stats.degradedPeriod ?? null) : null,
+      lastSpanDiffMinutes: stats.lastSpanDiffMinutes,
+      syncApplied: stats.applied ?? this.current.syncApplied,
+      syncSuppressed: stats.suppressed ?? this.current.syncSuppressed,
+    };
+    if (
+      next.syncDegraded === this.current.syncDegraded &&
+      next.syncDegradedPeriod === this.current.syncDegradedPeriod &&
+      next.lastSpanDiffMinutes === this.current.lastSpanDiffMinutes &&
+      next.syncApplied === this.current.syncApplied &&
+      next.syncSuppressed === this.current.syncSuppressed
+    ) {
+      return;
+    }
+    this.patch(next);
   }
 
   /** 服务端回显 / 失败回滚入口（DashboardPage 乐观更新用）。 */

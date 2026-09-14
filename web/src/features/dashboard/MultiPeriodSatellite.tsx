@@ -6,6 +6,7 @@ import { KlineChart } from './KlineChart';
 import { KlineDataFeed, type FeedStatus } from './feed';
 import type { IndicatorName } from './Toolbar';
 import { dcapWarmupBars, type DcapParams } from '@/features/indicators/dcapIndicator';
+import { SATELLITE_MAX_BAR_SPACE } from './chartSyncGroup';
 
 /**
  * 多周期**卫星实例**（`design/15-multi-period/02-spec.md` §3.4/§4.1/§5/§9；实施计划 P2）。
@@ -42,6 +43,10 @@ export interface MultiPeriodSatelliteProps {
   /** 基准周期与来源（裁决 A 的显式可观测面；`toolbar` ⇒ 未被配置覆盖）。 */
   basePeriod: Period;
   basePeriodSource: 'config' | 'toolbar';
+  /** 「对齐受限」降级（T8bis-④；用户裁决方案 1：诚实降级 + UI 标注）。 */
+  syncDegraded?: boolean;
+  /** 最近一次对齐的跨度差（分钟；降级原因的可读量化）。 */
+  syncSpanDiffMinutes?: number | null;
 }
 
 export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
@@ -101,6 +106,19 @@ export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
           </span>
         )}
       </div>
+      {/* T8bis-④/⑤「对齐受限」角标（诚实降级：绝不静默虚假对齐）。
+          hover/点击给原因（title）+ 跨度差可读（data-mp-span-diff-min）——两者缺一即视为静默。 */}
+      {props.syncDegraded && (
+        <div
+          data-mp-sync-degraded={period}
+          data-mp-span-diff-min={String(props.syncSpanDiffMinutes ?? 0)}
+          role="status"
+          className="absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow"
+          title={`对齐受限：本 pane（${period}）无法在容纳 ≥2 根 bar 的同时与基准图（${basePeriod}）时间跨度一致（当前跨度差 ${props.syncSpanDiffMinutes ?? '未知'} 分钟）。原因：基准图缩放过大 ⇒ 请缩小基准图，或改选周期。`}
+        >
+          <span>对齐受限</span>
+        </div>
+      )}
       {failed && (
         <div
           data-mp-satellite-error={period}
@@ -134,6 +152,9 @@ export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
           dcapParams={dcapParams}
           warmupBars={warmupBars}
           hideCandles
+          /* 口径 9：卫星 `barSpaceLimit` 必须在 init 放宽（无运行时 setter）；默认 50 会**静默吞掉**
+             大倍率（P0.3 §2.3）。基准实例**不传**该 prop ⇒ 保持 ADR-020 的 {1,50}（放宽不泄漏）。 */
+          barSpaceLimit={{ min: 1, max: SATELLITE_MAX_BAR_SPACE }}
           onInitError={() => setInitError(true)}
         />
       </div>

@@ -361,6 +361,9 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
             followLatest={state.followLatest}
             basePeriod={basePeriod}
             basePeriodSource={base.source}
+            /* P3 可观测（02-spec §9）：同步统计镜像入 store（syncApplied/syncSuppressed/
+               syncDegraded/最近一次跨度差），与页面角标同源；关闭态/组销毁 ⇒ 归零（零残留）。 */
+            onSyncStats={(stats) => mpStore.applySyncStats(stats)}
           >
             {state.selected &&
               (chartTab === 'kline' && feed ? (

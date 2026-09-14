@@ -21,6 +21,7 @@ import {
 import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
 import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 import { addOverlayIndicator } from './overlayIndicator';
+import { useChartSyncRegistry } from './chartSyncContext';
 
 /** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
  *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
@@ -96,6 +97,12 @@ export interface KlineChartProps {
   /** 实例容器高度 px（多周期基准/卫星按配置 `heights[period]` 渲染，02-spec §6）；缺省 ⇒ `h-full`
    *  （单图/宫格/工作台现状等价）。拖拽改高与持久化属 P5，本轮只渲染不动手。 */
   heightPx?: number;
+  /**
+   * `init({layout:{barSpaceLimit}})`（**仅卫星**传；口径 9 + ADR-022 §2.3）。
+   * klinecharts **无运行时 setBarSpaceLimit** ⇒ 放宽只能建图时给定；缺省（基准/宫格/工作台）⇒
+   * `init(el)` 不传 options ⇒ 引擎默认 `{min:1,max:50}`（ADR-020 严格，**放宽不得泄漏到基准**）。
+   */
+  barSpaceLimit?: { min?: number; max?: number };
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -344,6 +351,12 @@ export function KlineChart(props: KlineChartProps) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const programmaticScroll = useRef(false);
+  /** 跨图同步注册表（P3）：无 provider（单图/宫格/工作台/关闭态）⇒ no-op，零副作用。 */
+  const syncRegistry = useChartSyncRegistry();
+  const syncRegistryRef = useRef(syncRegistry);
+  syncRegistryRef.current = syncRegistry;
+  const barSpaceLimitRef = useRef(props.barSpaceLimit);
+  barSpaceLimitRef.current = props.barSpaceLimit;
   /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
   const manualAdjusted = useRef(false);
   /** 本次建图已应用的指标状态（启用/calcParams）——「状态差分」的基线；随建图重置（见 Effect L）。 */
@@ -387,8 +400,14 @@ export function KlineChart(props: KlineChartProps) {
   useEffect(() => {
     if (!ref.current) return;
     let chart: Chart | null = null;
+    // 口径 9：卫星的 `barSpaceLimit` 只能在建图时给定（无运行时 setter）；未传 ⇒ 引擎默认 {1,50}。
+    const limit = barSpaceLimitRef.current;
     try {
-      chart = init(ref.current);
+      chart = limit
+        ? init(ref.current, {
+            layout: { barSpaceLimit: { min: limit.min ?? 1, max: limit.max ?? 50 } },
+          })
+        : init(ref.current);
     } catch {
       chart = null;
     }
@@ -414,6 +433,16 @@ export function KlineChart(props: KlineChartProps) {
       setRt(null);
     };
   }, []);
+
+  // Effect S —— 跨图同步成员注册（P3，02-spec §3.1）。仅多周期栈内挂 provider 时生效：
+  // 基准实例（`hideCandles=false`）与卫星实例（`hideCandles=true`）各自注册；切周期 ⇒ 注销后重注册
+  // （同一 chart 实例在原地换周期，见 Effect W）；卸载 ⇒ 注销 ⇒ 组内零残留。
+  // 无 provider ⇒ no-op 注册表 ⇒ 单图/宫格/工作台/关闭态**不建组、不订阅、零副作用**。
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    return syncRegistry.register({ chart, period: props.period, isBase: !hideCandles });
+  }, [syncRegistry, props.period, hideCandles]);
 
   // Effect H —— 卫星实例隐藏 K 线（P2，02-spec §3.4 唯一可行手段）。
   // 必须在 Effect L 之后（此时 chart 已 init）：`state:'minimize' + minHeight:0` 折叠 candle pane，
@@ -451,10 +480,14 @@ export function KlineChart(props: KlineChartProps) {
       // `scrollToRealTime` 会**同步**派发 `onScroll`（klinecharts `ChartImp.scrollToRealTime` →
       // `StoreImp.scroll` → `executeAction('onScroll')`）——故程序化标记只在本调用期间为真：
       // 既不让程序化滚动被当成「用户手动调整」，也不会在调用之后留下长窗（否则紧随其后的真手势被误吞）。
+      // 跨图同步同理：程序化滚动**不是用户交互**，不得作为 leader 驱动其它 pane（否则跨周期实时
+      // 跟随会互相拉扯 = 违反 ④ 非跟随态不滚动契约）。
       programmaticScroll.current = true;
+      syncRegistryRef.current.beginProgrammatic();
       try {
         chart.scrollToRealTime();
       } finally {
+        syncRegistryRef.current.endProgrammatic();
         programmaticScroll.current = false;
       }
     };
@@ -605,9 +638,11 @@ export function KlineChart(props: KlineChartProps) {
     }
     setPendingNew(0); // 回到跟随态：提示失效（视口已锚最右）
     programmaticScroll.current = true;
+    syncRegistryRef.current.beginProgrammatic();
     try {
       chart.scrollToRealTime();
     } finally {
+      syncRegistryRef.current.endProgrammatic();
       programmaticScroll.current = false;
     }
   }, [props.followLatest]);
