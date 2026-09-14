@@ -1,0 +1,6 @@
+DIFF-vs-HEAD crates/web/src/dto.rs
+DIFF-vs-HEAD crates/web/src/lib.rs
+DIFF-vs-HEAD crates/web/src/rest.rs
+DIFF-vs-HEAD design/07-app-plane/00-web-api.md
+DIFF-vs-HEAD design/15-multi-period/02-spec.md
+DIFF-vs-HEAD design/15-multi-period/03-test-plan.md

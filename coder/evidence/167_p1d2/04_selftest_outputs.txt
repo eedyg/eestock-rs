@@ -1,0 +1,75 @@
+# P1-D-2 自测输出（2026-09-14 21:01:43 +0800）
+
+## 1) cargo test -p web --test multi_period_pane_budget
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-cfd87b4898c92a75)
+
+running 8 tests
+test d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted ... ok
+test d1_pane_count_uses_deduped_indicator_set_not_raw_length ... ok
+test d2_dimension_predicate_boundary_is_pinned ... ok
+test over_budget_must_be_rejected_with_explicit_error_not_silent_truncation ... ok
+test d2_over_budget_error_names_the_rejected_dimension ... ok
+test pane_budget_cap_is_12 ... ok
+test pane_budget_boundary_is_inclusive_at_12_and_rejects_13 ... ok
+test pane_count_formula_is_base_plus_per_satellite_panes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+## 2) cargo test -p web --test api_multi_period_config
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-7e2585c918f8c555)
+
+running 17 tests
+test t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values ... ok
+test t6_put_rejects_duplicate_periods ... ok
+test t6_put_rejects_1w_when_base_below_1d ... ok
+test t6_put_rejects_base_1mo ... ok
+test d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200 ... ok
+test t6_get_without_key_returns_defaults_200 ... ok
+test d1_duplicate_indicators_are_normalized_200_and_readback_deduped ... ok
+test t6_put_rejects_satellite_1mo ... ok
+test t6_put_rejects_heights_keys_mismatching_periods ... ok
+test t6_put_rejects_more_than_4_periods_without_silent_truncation ... ok
+test t6_put_rejects_heights_out_of_range ... ok
+test t6_put_rejects_satellite_below_base ... ok
+test t6_put_rejects_unsupported_indicators ... ok
+test t6_max_legal_config_is_accepted ... ok
+test t6_put_valid_1d_base_with_1w_satellite_is_accepted ... ok
+test t6_put_valid_roundtrip_200_and_readback_identical ... ok
+test t6_zz_cleanup_leaves_no_multi_period_key ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+
+
+## 3) cargo test -p web --no-fail-fast （全 crate）
+     Running unittests src/lib.rs (target/debug/deps/web-7c9b2fafa139edf5)
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/api_admin.rs (target/debug/deps/api_admin-175bc4145d5ba69f)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-7740e09f741b7c1e)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-d67b81ca9f552d03)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-26795f62c670403d)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-abea2f283494fe44)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-7e2585c918f8c555)
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+     Running tests/api_quality.rs (target/debug/deps/api_quality-51ea7f3176ab33b6)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+     Running tests/api_rest.rs (target/debug/deps/api_rest-7c86225cadb94b3d)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
+     Running tests/api_settings.rs (target/debug/deps/api_settings-00632d2768830011)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-ca942a0ab2b1d977)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.30s
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-49de5b3213f35389)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-cfd87b4898c92a75)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-edfec691b7372e16)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

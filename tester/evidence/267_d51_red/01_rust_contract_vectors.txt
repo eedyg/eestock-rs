@@ -1,0 +1,16 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.43s
+     Running tests/multi_period_contract_vectors.rs (target/debug/deps/multi_period_contract_vectors-c9b4d14c1cb418a0)
+
+running 4 tests
+test pane_count_after_dedup_matches_backend_pure_function ... ok
+test contract_vectors_cover_required_rules ... ok
+test pane_guard_error_names_dimension_for_over_limit_vectors ... ok
+test all_contract_vectors_match_backend_validation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+real	0m0.469s
+user	0m0.535s
+sys	0m0.195s

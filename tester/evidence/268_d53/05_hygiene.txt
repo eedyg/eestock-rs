@@ -1,0 +1,76 @@
+# D5-3 独立验收证据 ⑤：卫生（共享库键 / staged / 进程与端口 / 归因）
+## 生成时间: 2026-09-14T21:23:51+08:00
+
+## A. 共享库 app_config key=multi_period 收尾复核
+##    注：cargo test -p web 内含 crates/web/tests/api_multi_period_config.rs，该 binary 会在用例内 PUT/清键（全部落库 enabled=false）⇒ 跑完必须 psql 复核 0 行。
+$ psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -c "select key,value from app_config where key='multi_period';"
+key | value 
+-----+-------
+(0 rows)
+multi_period_rows=0
+  ⇒ 0 行（键不存在）
+
+## B. 未 stage / 未 commit / 未 stash（HEAD 未变）
+$ git diff --cached --stat
+  （空）
+$ git rev-parse HEAD
+  d6462da229f9264777e414be827d9d1017600778  （= 派单 HEAD d6462da）
+$ git stash list
+  （空）
+
+## C. tracked 改动归因（mtime + 车道）
+2026-09-14 20:59:48.668358353 +0800 crates/web/src/dto.rs
+2026-09-14 20:38:43.428564274 +0800 crates/web/src/lib.rs
+2026-09-14 20:59:48.673061747 +0800 crates/web/src/rest.rs
+2026-09-14 20:59:37.078320079 +0800 design/07-app-plane/00-web-api.md
+2026-09-14 20:49:20.336482994 +0800 design/15-multi-period/02-spec.md
+2026-09-14 20:26:58.533152656 +0800 design/15-multi-period/03-test-plan.md
+2026-09-14 20:39:39.900289876 +0800 web/src/api/client.ts
+2026-09-14 21:14:53.452923774 +0800 web/src/api/mock.test.ts
+2026-09-14 21:15:01.059036352 +0800 web/src/api/mock.ts
+2026-09-14 20:39:34.780249963 +0800 web/src/api/types.ts
+2026-09-14 20:40:32.565708586 +0800 web/src/features/dashboard/DashboardPage.tsx
+2026-09-14 20:40:23.572636072 +0800 web/src/features/dashboard/Toolbar.tsx
+  ⇒ 20:26–20:59 的 10 个文件 = P1 车道（后端 dto/rest/lib + 设计文档 + 前端接线）
+  ⇒ 21:14:53 mock.test.ts / 21:15:01 mock.ts = 本轮 D5-2 车道（mock 口径对齐；+44/−0 与 +92/−0 相对 HEAD，纯新增）
+$ stat -c '%y %n'（D5-1 新增交付物）
+2026-09-14 21:12:57.669296687 +0800 web/src/api/multiPeriodMockParity.test.ts
+2026-09-14 21:12:24.677675625 +0800 design/15-multi-period/contract-vectors.json
+2026-09-14 21:12:38.003880926 +0800 crates/web/tests/multi_period_contract_vectors.rs
+
+## D. 线上实例未被触碰（未重启、未发任何请求）
+PID     ELAPSED CMD
+3112540    09:31:14 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=12))
+  ⇒ PID 3112540 存活、etime ≈9h30m（验收开始时 09:25:33，结束 09:30:42 ⇒ 未重启）
+  ⇒ 本验收对 8081/8082 **0 请求**（0 写请求；亦未读）⇒ 不干扰线上显示
+
+## E. 临时实例/端口/进程收尾（pgrep 用不自匹配写法，且命令外置为脚本以免自匹配）
+$ pgrep -af '[v]ites[t]|[c]heck-tangl[e]|[c]argo tes[t]|[r]ust_prob[e]|[p]arity_prob[e]'
+  none（无残留 vitest / check-tangle / cargo test / 探针进程）
+$ ss -ltnp（本机 LISTEN；逐条核对 Owner PID 是否测试进程）
+LISTEN 0      128          0.0.0.0:1420       0.0.0.0:*    users:(("scrylink-web",pid=996198,fd=17))
+LISTEN 0      4096         0.0.0.0:5433       0.0.0.0:*                                             
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=11))
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                             
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=3112540,fd=12))
+LISTEN 0      128        127.0.0.1:5037       0.0.0.0:*    users:(("adb",pid=3071165,fd=8))         
+LISTEN 0      10         127.0.0.1:9222       0.0.0.0:*    users:(("chrome",pid=1248835,fd=79))     
+LISTEN 0      4096            [::]:5433          [::]:*                                             
+LISTEN 0      4096            [::]:8080          [::]:*
+  ⇒ listener 归属：8080/8081/8082 = 线上 eestock-app(3112540)、5433 = postgres、1420 = scrylink-web、9222 = chrome、5037 = adb；
+    无任何 listener 属于测试/探针进程（cargo 集成测试用 127.0.0.1:0 随机端口，进程退出即释放）。
+  ⇒ 本验收**未自建常驻临时实例**：parity 在纯函数层（真实后端 crate）+ mock 层取证，不需要临时 HTTP 服务 ⇒ 无端口需拆。
+
+## F. 仓库文件全程未被修改（向量/实现/沙箱还原校验）
+$ sha256sum design/15-multi-period/contract-vectors.json
+8c72c601755297451a1532e6846aa33db365fb6ec701eeda5dd02b465929eb20  design/15-multi-period/contract-vectors.json
+$ sha256sum web/src/api/mock.ts /tmp/d53_sb/web/src/api/mock.ts
+5562e531bf22453d75430fc42df2590e12775a6da035330cb03faa402818797c  web/src/api/mock.ts
+5562e531bf22453d75430fc42df2590e12775a6da035330cb03faa402818797c  /tmp/d53_sb/web/src/api/mock.ts
+$ diff -rq web/src /tmp/d53_sb/web/src（沙箱副本 vs 仓库）
+  （无差异）
+$ sha256sum design/15-multi-period/contract-vectors.json（再次，收尾）
+8c72c601755297451a1532e6846aa33db365fb6ec701eeda5dd02b465929eb20  design/15-multi-period/contract-vectors.json
+  ⇒ 变异全部发生在 /tmp 副本；仓库向量/实现 sha256 与验收开始时一致。

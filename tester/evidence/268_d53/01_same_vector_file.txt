@@ -1,0 +1,30 @@
+# D5-3 独立验收证据 ①：两侧是否消费同一向量文件（不得各写一份）
+## 生成时间: 2026-09-14T21:21:50+08:00
+
+## find . -name "*contract-vectors*" -not -path "*/node_modules/*" -not -path "./target/*"
+./design/15-multi-period/contract-vectors.json
+
+## grep -rn "contract-vectors.json"（消费点）
+./web/src/api/mock.ts:243:  // 见 design/15-multi-period/contract-vectors.json 的 dedup-* 向量）；错误串含被拒维度名 `indicators`（P1-C D2）。
+./web/src/api/multiPeriodMockParity.test.ts:4: * 单一真相：`design/15-multi-period/contract-vectors.json`（两侧共用；`entangled.toml` 的 watch_list
+./web/src/api/multiPeriodMockParity.test.ts:32:const VECTORS_PATH = resolve(HERE, '../../../design/15-multi-period/contract-vectors.json');
+./web/src/api/multiPeriodMockParity.test.ts:34:/** 契约向量单条（与 Rust 侧同构；见 design/15-multi-period/contract-vectors.json） */
+./web/src/api/multiPeriodMockParity.test.ts:69:describe('mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json）', () => {
+./crates/web/tests/multi_period_contract_vectors.rs:3://! 单一真相：`design/15-multi-period/contract-vectors.json`（两侧共用；`.json` 不被 tangle 监听，
+./crates/web/tests/multi_period_contract_vectors.rs:53:    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../design/15-multi-period/contract-vectors.json")
+
+## 两侧路径解析（同一 inode？同 sha256？）
+TS_RESOLVED  = /home/eestock/workspace/git/eestock/eestock-rs/design/15-multi-period/contract-vectors.json
+RUST_RESOLVED= /home/eestock/workspace/git/eestock/eestock-rs/design/15-multi-period/contract-vectors.json
+REALPATH     = /home/eestock/workspace/git/eestock/eestock-rs/design/15-multi-period/contract-vectors.json
+STAT         = 66315:94662163 (dev:inode) 9757 bytes mtime=2026-09-14 21:12:24.677675625 +0800
+SHA256       = 8c72c601755297451a1532e6846aa33db365fb6ec701eeda5dd02b465929eb20
+JSON_VECTORS = 19 条
+
+## entangled watch_list（.json 不被 tangle 监听 ⇒ 向量文件不会被生成物覆盖）
+6:watch_list = ["design/**/*.md"]
+
+## mock.ts 是否 tangle 目标（design 内 file= 块）
+  design/06-web/11-kline-viewport-bars.md:119:// web/src/api/mock.ts    assertKlineViewportBars（30..600，非整/越界 → ApiError 400）；缺省 120
+  design/06-web/09-frontend.md:32:后端 Phase A 并行开发中，前端按契约先行。决策：**手写 mock client**（`web/src/api/mock.ts`），理由：
+  ⇒ design 内仅散文提及，无 file= 块；/home/eestock/workspace/git/eestock/eestock-rs/scripts/check-tangle.sh 亦绿（见 04）

@@ -1,0 +1,24 @@
+# D5-3 独立验收证据 ③b：反向证据（削弱向量文件不得让门禁变绿）
+## 生成时间: 2026-09-14T21:22:07+08:00
+## 变异（沙箱副本 vectors_mutant.json，仓库向量文件未改）：
+  - dedup-two-identical-indicators: expect {"status": 200, "normalized": {"enabled": true, "periods": ["1m", "5m"], "heights": {"1m": 420, "5m": 180}, "indicators": ["dcap"]}, "paneCountAfterDedup": 2} -> {"status": 200, "normalized": {"enabled": true, "periods": ["1m", "5m"], "heights": {"1m": 420, "5m": 180}, "indicators": ["dcap", "dcap"]}, "paneCountAfterDedup": 2}
+  - dedup-n-identical-indicators-cannot-forge-over-12-panes: expect {"status": 200, "normalized": {"enabled": true, "periods": ["1m", "5m", "15m", "1h"], "heights": {"1m": 420, "5m": 180, "15m": 180, "1h": 180}, "indicators": ["dcap"]}, "paneCountAfterDedup": 4} -> {"status": 400, "errorMustContain": "indicators"}
+
+## TS 消费侧（把变异向量放回沙箱 design 路径后跑仓库 parity 测试）
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-two-identical-indicators（expect 200） 3ms
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 400） 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+
+## backend 消费侧（同一变异期望 vs 真实后端 crate 实际结论；compare_mutant.py）
+reject-heights-above-max                                    expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-unsupported-indicator                                expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-unsupported-indicator-among-supported                expect=400 rust=400 mock=400 normalizeMatch=True  OK
+PARITY_SUMMARY vectors=19 mismatches=2 names=['dedup-two-identical-indicators', 'dedup-n-identical-indicators-cannot-forge-over-12-panes']
+
+## 沙箱向量还原校验
+OK: 沙箱向量 == 仓库向量（仓库向量文件全程未被修改）
+
+## 结论：削弱向量 ⇒ 两侧都红（TS 2 failed；backend 2 mismatch）⇒ 「改向量转绿」不成立；
+##       向量内容本身无 hash 钉死，仅靠 Rust 侧 19 名称覆盖守卫 + 两侧真实实现投票（见执行报告残留风险 R2）。

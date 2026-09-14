@@ -1,0 +1,34 @@
+# 改动面与「只碰测试文件」证明（时间: 2026-09-14T20:57:22+08:00；HEAD=d6462da229f9264777e414be827d9d1017600778）
+
+## 1) 本轮编辑的 3 个文件（全部为 P1 未跟踪测试文件；sha256 + 行数）
+5e2aac28032bfaa857d7f3a3a1f946730cede2bcc5e36e7368bacce3302bd851  crates/web/tests/multi_period_pane_budget.rs  lines=217  mtime=2026-09-14 20:57:00.049108241 +0800
+1ac11f1ce55fa18939f04541ca8c7d444da9e6a48dfd391206de4dab8ae77a91  crates/web/tests/api_multi_period_config.rs  lines=636  mtime=2026-09-14 20:53:00.553151708 +0800
+d0b595b08403c68d3b235160ec68df10a327ad5f0e1b3c120be458a4debd84be  web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx  lines=408  mtime=2026-09-14 20:54:03.815397897 +0800
+
+## 2) 新增/加强的用例名（grep 取证）
+crates/web/tests/multi_period_pane_budget.rs:123:fn d1_pane_count_uses_deduped_indicator_set_not_raw_length() {
+crates/web/tests/multi_period_pane_budget.rs:150:fn d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted() {
+crates/web/tests/multi_period_pane_budget.rs:173:fn d2_over_budget_error_names_the_rejected_dimension() {
+crates/web/tests/multi_period_pane_budget.rs:197:fn d2_dimension_predicate_boundary_is_pinned() {
+crates/web/tests/api_multi_period_config.rs:501:async fn d1_duplicate_indicators_are_normalized_200_and_readback_deduped() {
+crates/web/tests/api_multi_period_config.rs:540:async fn d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200() {
+284:describe('D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留）', () => {
+7://! ### 为什么用纯函数而不是 HTTP 负例（**修订版：P1-D-1 D3 修正**，原论断已被 P1-C 反证）
+crates/web/tests/api_multi_period_config.rs:8://! **P1-D-1 追加（P1-C 缺陷 D1：`indicators` 未按 §2-6 去重）**：见本文件 `d1_*` 两个用例 ——
+web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx:28: * **P1-D-1 追加（P1-C 缺陷 D4：「Toolbar 开关缺 UI 级测试」）**：文件末尾 `D4` describe 段补齐
+
+## 3) P1 既有 tracked 改动（11 个 M）mtime：全部早于本轮首批写入 ⇒ 本轮未触碰产品/设计/生成物
+2026-09-14 20:26:58.533152656 +0800  design/15-multi-period/03-test-plan.md
+2026-09-14 20:38:38.085818113 +0800  design/07-app-plane/00-web-api.md
+2026-09-14 20:38:43.428564274 +0800  crates/web/src/lib.rs
+2026-09-14 20:38:43.429631557 +0800  crates/web/src/dto.rs
+2026-09-14 20:38:43.431894985 +0800  crates/web/src/rest.rs
+2026-09-14 20:39:34.780249963 +0800  web/src/api/types.ts
+2026-09-14 20:39:39.900289876 +0800  web/src/api/client.ts
+2026-09-14 20:39:50.834375598 +0800  web/src/api/mock.ts
+2026-09-14 20:40:23.572636072 +0800  web/src/features/dashboard/Toolbar.tsx
+2026-09-14 20:40:32.565708586 +0800  web/src/features/dashboard/DashboardPage.tsx
+2026-09-14 20:49:20.336482994 +0800  design/15-multi-period/02-spec.md
+
+## 4) 暂存区（必须为空：禁 git add/commit/stash）
+git diff --cached 行数 = 0

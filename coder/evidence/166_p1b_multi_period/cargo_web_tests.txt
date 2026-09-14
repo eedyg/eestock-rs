@@ -1,0 +1,47 @@
+# cargo test -p web
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/web-7c9b2fafa139edf5)
+running 49 tests
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/api_admin.rs (target/debug/deps/api_admin-175bc4145d5ba69f)
+running 3 tests
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-7740e09f741b7c1e)
+running 3 tests
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-d67b81ca9f552d03)
+running 2 tests
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-26795f62c670403d)
+running 1 test
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-abea2f283494fe44)
+running 1 test
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-7e2585c918f8c555)
+running 15 tests
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+     Running tests/api_quality.rs (target/debug/deps/api_quality-51ea7f3176ab33b6)
+running 1 test
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+     Running tests/api_rest.rs (target/debug/deps/api_rest-7c86225cadb94b3d)
+running 2 tests
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+     Running tests/api_settings.rs (target/debug/deps/api_settings-00632d2768830011)
+running 6 tests
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-ca942a0ab2b1d977)
+running 9 tests
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-49de5b3213f35389)
+running 6 tests
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.30s
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-cfd87b4898c92a75)
+running 4 tests
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-edfec691b7372e16)
+running 1 test
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+cargo_exit=0

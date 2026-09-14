@@ -1,0 +1,63 @@
+########## 基线：仓库原样 mock（沙箱副本） ##########
+$ vitest run src/api/multiPeriodMockParity.test.ts
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+$ node probe_mut.mjs contract-vectors.json
+PROBE_SUMMARY total=19 mismatched=0 names=[]
+
+########## 变异 A：去掉「去重落库/回显」（仅计数仍去重） ##########
+--- patch ---
+--- mock.ts.orig	2026-09-14 21:21:57.854505833 +0800
++++ web/src/api/mock.ts	2026-09-14 21:21:58.533344998 +0800
+@@ -246,7 +246,7 @@
+     bad(`indicators 去重后总 pane 数 ${panes} 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）`);
+   }
+   // §2 校验 6 归一化：去重（保留首次出现顺序）⇒ 返回规范形态，供落库/回显
+-  return { enabled: cfg.enabled, periods: [...cfg.periods], heights: { ...cfg.heights }, indicators: normalizedIndicators };
++  return { enabled: cfg.enabled, periods: [...cfg.periods], heights: { ...cfg.heights }, indicators: [...cfg.indicators] };
+ }
+ 
+ /** MA 窗口校验 + 归一化（与后端 validate_ma_windows 同构：1-3 条、每条 1-500、去重升序）。
+--- mock.ts 与仓库 diff（应非空）---
+Files /tmp/d53_sb/web/src/api/mock.ts and /home/eestock/workspace/git/eestock/eestock-rs/web/src/api/mock.ts differ
+--- $ vitest run src/api/multiPeriodMockParity.test.ts（必须变红）---
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-two-identical-indicators（expect 200） 3ms
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 200） 1ms
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-makes-legal-repeated-indicators-over-raw-pane-budget（expect 200） 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 17 passed (20)
+--- $ node probe_mut.mjs（独立探针：mock 实际结论 vs 向量期望，必须出现 MISMATCH）---
+{"name":"valid-single-base-default","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":false,"periods":["1m"],"heights":{"1m":420},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-two-identical-indicators","expect":200,"mock":200,"statusMatch":true,"normMatch":false,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m"],"heights":{"1m":420,"5m":180},"indicators":["dcap","dcap"]},"mockIndicators":["dcap","dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-n-identical-indicators-cannot-forge-over-12-panes","expect":200,"mock":200,"statusMatch":true,"normMatch":false,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m","15m","1h"],"heights":{"1m":420,"5m":180,"15m":180,"1h":180},"indicators":["dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap"]},"mockIndicators":["dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap","dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-makes-legal-repeated-indicators-over-raw-pane-budget","expect":200,"mock":200,"statusMatch":true,"normMatch":false,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m","15m","1h"],"heights":{"1m":420,"5m":180,"15m":180,"1h":180},"indicators":["dcap","dcap","dcap","dcap","dcap"]},"mockIndicators":["dcap","dcap","dcap","dcap","dcap"],"expectIndicators":["dcap"],"mockError":null}
+PROBE_SUMMARY total=19 mismatched=3 names=["dedup-two-identical-indicators","dedup-n-identical-indicators-cannot-forge-over-12-panes","dedup-makes-legal-repeated-indicators-over-raw-pane-budget"]
+
+########## 变异 B：pane 计数改回原始数组长度 ##########
+--- patch ---
+--- mock.ts.orig	2026-09-14 21:21:57.854505833 +0800
++++ web/src/api/mock.ts	2026-09-14 21:21:59.191922338 +0800
+@@ -241,7 +241,7 @@
+   const normalizedIndicators = normalizeMultiPeriodIndicators(cfg.indicators);
+   // §7.4：总 pane 预算 —— **计数必须基于去重后的 indicators 集合**（按原始数组长度计会把 `["dcap"]×11` 误判 400，
+   // 见 design/15-multi-period/contract-vectors.json 的 dedup-* 向量）；错误串含被拒维度名 `indicators`（P1-C D2）。
+-  const panes = 1 + Math.max(0, cfg.periods.length - 1) * normalizedIndicators.length;
++  const panes = 1 + Math.max(0, cfg.periods.length - 1) * cfg.indicators.length;
+   if (panes > 12) {
+     bad(`indicators 去重后总 pane 数 ${panes} 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）`);
+   }
+--- $ vitest run src/api/multiPeriodMockParity.test.ts（必须变红）---
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 200） 4ms
+ × src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-makes-legal-repeated-indicators-over-raw-pane-budget（expect 200） 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+--- $ node probe_mut.mjs（独立探针：mock 实际结论 vs 向量期望，必须出现 MISMATCH）---
+{"name":"valid-single-base-default","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":false,"periods":["1m"],"heights":{"1m":420},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-n-identical-indicators-cannot-forge-over-12-panes","expect":200,"mock":400,"statusMatch":false,"normMatch":false,"errMatch":null,"mockNormalized":null,"mockIndicators":null,"expectIndicators":["dcap"],"mockError":"HTTP 400: indicators 去重后总 pane 数 34 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）"}
+{"name":"dedup-makes-legal-repeated-indicators-over-raw-pane-budget","expect":200,"mock":400,"statusMatch":false,"normMatch":false,"errMatch":null,"mockNormalized":null,"mockIndicators":null,"expectIndicators":["dcap"],"mockError":"HTTP 400: indicators 去重后总 pane 数 16 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）"}
+PROBE_SUMMARY total=19 mismatched=2 names=["dedup-n-identical-indicators-cannot-forge-over-12-panes","dedup-makes-legal-repeated-indicators-over-raw-pane-budget"]
+
+########## 沙箱还原校验 ##########
+OK: 沙箱 mock.ts == 仓库 mock.ts（仓库文件全程未被修改）

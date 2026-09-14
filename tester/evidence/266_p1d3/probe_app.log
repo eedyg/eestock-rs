@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-14T13:05:10.793762Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/p1d3/probe.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T13:05:10.826322Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T13:05:10.829417Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T13:05:10.831644Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T13:05:10.832380Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18147","static_dir":"/home/eestock/workspace/git/eestock/eestock-rs/web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-14T13:05:10.832767Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18146"},"target":"mcp::server"}

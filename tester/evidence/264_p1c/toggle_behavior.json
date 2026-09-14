@@ -1,0 +1,146 @@
+{
+  "steps": [
+    {
+      "label": "t0 初始",
+      "pressed": "false",
+      "initCalls": 1,
+      "wsTopics": {
+        "bar:518880:15m": 1,
+        "quote": 1
+      },
+      "klineCalls": 1,
+      "saveCalls": 0,
+      "satNodes": 0,
+      "chartCalls": [
+        "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+        "createIndicator({\"name\":\"VOL\"},true)",
+        "getIndicators({\"name\":\"MA\"})",
+        "removeIndicator({\"name\":\"MA\"})",
+        "removeOverlay()",
+        "scrollToRealTime()",
+        "setDataLoader({})",
+        "setPeriod({\"type\":\"minute\",\"span\":15})",
+        "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+        "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+        "subscribeAction(\"onScroll\",)",
+        "subscribeAction(\"onZoom\",)"
+      ]
+    },
+    {
+      "label": "t1 点击后(PUT 未决)",
+      "pressed": "true",
+      "initCalls": 1,
+      "wsTopics": {
+        "bar:518880:15m": 1,
+        "quote": 1
+      },
+      "klineCalls": 1,
+      "saveCalls": 1,
+      "satNodes": 0,
+      "chartCalls": [
+        "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+        "createIndicator({\"name\":\"VOL\"},true)",
+        "getIndicators({\"name\":\"MA\"})",
+        "removeIndicator({\"name\":\"MA\"})",
+        "removeOverlay()",
+        "scrollToRealTime()",
+        "setDataLoader({})",
+        "setPeriod({\"type\":\"minute\",\"span\":15})",
+        "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+        "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+        "subscribeAction(\"onScroll\",)",
+        "subscribeAction(\"onZoom\",)"
+      ]
+    },
+    {
+      "label": "t2 PUT 失败后",
+      "pressed": "false",
+      "initCalls": 1,
+      "wsTopics": {
+        "bar:518880:15m": 1,
+        "quote": 1
+      },
+      "klineCalls": 1,
+      "saveCalls": 1,
+      "satNodes": 0,
+      "chartCalls": [
+        "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+        "createIndicator({\"name\":\"VOL\"},true)",
+        "getIndicators({\"name\":\"MA\"})",
+        "removeIndicator({\"name\":\"MA\"})",
+        "removeOverlay()",
+        "scrollToRealTime()",
+        "setDataLoader({})",
+        "setPeriod({\"type\":\"minute\",\"span\":15})",
+        "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+        "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+        "subscribeAction(\"onScroll\",)",
+        "subscribeAction(\"onZoom\",)"
+      ]
+    },
+    {
+      "label": "t3 PUT 成功后(enabled=true 单周期)",
+      "pressed": "true",
+      "initCalls": 1,
+      "wsTopics": {
+        "bar:518880:15m": 1,
+        "quote": 1
+      },
+      "klineCalls": 1,
+      "saveCalls": 2,
+      "satNodes": 0,
+      "chartCalls": [
+        "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+        "createIndicator({\"name\":\"VOL\"},true)",
+        "getIndicators({\"name\":\"MA\"})",
+        "removeIndicator({\"name\":\"MA\"})",
+        "removeOverlay()",
+        "scrollToRealTime()",
+        "setDataLoader({})",
+        "setPeriod({\"type\":\"minute\",\"span\":15})",
+        "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+        "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+        "subscribeAction(\"onScroll\",)",
+        "subscribeAction(\"onZoom\",)"
+      ]
+    },
+    {
+      "label": "t4 关闭后",
+      "pressed": "false",
+      "initCalls": 1,
+      "wsTopics": {
+        "bar:518880:15m": 1,
+        "quote": 1
+      },
+      "klineCalls": 1,
+      "saveCalls": 3,
+      "satNodes": 0,
+      "chartCalls": [
+        "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+        "createIndicator({\"name\":\"VOL\"},true)",
+        "getIndicators({\"name\":\"MA\"})",
+        "removeIndicator({\"name\":\"MA\"})",
+        "removeOverlay()",
+        "scrollToRealTime()",
+        "setDataLoader({})",
+        "setPeriod({\"type\":\"minute\",\"span\":15})",
+        "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+        "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+        "subscribeAction(\"onScroll\",)",
+        "subscribeAction(\"onZoom\",)"
+      ]
+    }
+  ],
+  "putBody": {
+    "enabled": true,
+    "periods": [
+      "1m"
+    ],
+    "heights": {
+      "1m": 420
+    },
+    "indicators": [
+      "dcap"
+    ]
+  }
+}

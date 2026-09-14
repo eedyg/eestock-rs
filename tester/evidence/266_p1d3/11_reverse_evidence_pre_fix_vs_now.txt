@@ -1,0 +1,42 @@
+# 反向证据（历史对照）：P1-C 修复前，同一输入的实测响应
+# 来源：tester/evidence/264_p1c/t6_http_responses.txt 第 319–357 行（P1-C 独立验收，2026-09-14 20:43–20:48，修复前构建）
+ },
+ {
+  "case": "S7.4 11×dcap 经 HTTP 被 indicators 拒",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180
+   },
+   "indicators": [
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "indicators",
+  "field_present": false,
+  "ok": false,
+  "resp": "{\"error\":\"总 pane 数 23 超上限 12（基准 1 + Σ_卫星指标 pane）\"}"
+ },
+ {
+
+# 本轮（P1-D-3）同一输入的实测：200 + 归一化读回 ['dcap']（见 probe_out.json: D1_dup_n_4periods_200）

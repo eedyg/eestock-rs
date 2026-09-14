@@ -1,0 +1,5 @@
+D1 case pane_count(4p, [dcap]x11)=4 ok=true
+BOUNDARY 12 -> true ; 13 -> false
+S74_RED: 16 pane 未被拒绝（护栏被放宽/失效）
+D2 predicate selfcheck old_string_names_dimension=false
+HARNESS fail_count=1

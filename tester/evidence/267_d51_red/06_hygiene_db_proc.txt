@@ -1,0 +1,37 @@
+== app_config.multi_period 行数（只读） ==
+0
+== app_config 现有键 ==
+dcap
+== 线上进程 3112540 ==
+    PID     ELAPSED CMD
+3112540    09:20:45 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+== 测试进程残留 ==
+   5018 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1002/doc
+   9796 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1001/doc
+ 105614 node /opt/wrapper/dist/index.js
+ 105748 node /opt/godot-mcp/server/build/index.js
+ 106570 /usr/local/bin/node /root/.pi/agent/npm/node_modules/tsx/dist/cli.mjs /root/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+ 106581 /usr/local/bin/node --require /root/.pi/agent/npm/node_modules/tsx/dist/preflight.cjs --import file:///root/.pi/agent/npm/node_modules/tsx/dist/loader.mjs /root/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+ 106590 /root/.pi/agent/npm/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.28.1 --ping
+ 128007 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node --dns-result-order=ipv4first /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+ 128019 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/bootstrap-fork --type=fileWatcher
+ 128092 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=128007
+ 155175 node /opt/wrapper/dist/index.js
+ 158863 /usr/local/bin/node /root/.pi/agent/npm/node_modules/tsx/dist/cli.mjs /root/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+ 158876 /usr/local/bin/node --require /root/.pi/agent/npm/node_modules/tsx/dist/preflight.cjs --import file:///root/.pi/agent/npm/node_modules/tsx/dist/loader.mjs /root/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+ 158884 /root/.pi/agent/npm/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.28.1 --ping
+ 188990 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+ 625813 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=1256296
+1256060 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/server-main.js --start-server --host=127.0.0.1 --port=0 --connection-token-file /home/mdb/.devin-server/.e2b252e21dd5cdfd88fce58f49477260e90294bc.token --telemetry-level off --enable-remote-auto-shutdown --accept-server-license-terms
+1256296 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node --dns-result-order=ipv4first /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+1256302 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/bootstrap-fork --type=fileWatcher
+1258104 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/out/bootstrap-fork --type=ptyHost --logsPath /home/mdb/.devin-server/data/logs/20260909T150543
+1259140 /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/node /home/mdb/.devin-server/bin/e2b252e21dd5cdfd88fce58f49477260e90294bc/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=1256296
+1295642 /usr/bin/node /home/eestock/.pi/agent/npm/node_modules/tsx/dist/cli.mjs /home/eestock/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+1295653 /usr/bin/node --require /home/eestock/.pi/agent/npm/node_modules/tsx/dist/preflight.cjs --import file:///home/eestock/.pi/agent/npm/node_modules/tsx/dist/loader.mjs /home/eestock/.pi/agent/npm/node_modules/pi-intercom/broker/broker.ts
+1439757 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/index_trae.js --start-server --host=127.0.0.1 --port=0 --connection-token-file /home/mdb/.trae-cn-server/.stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-525296b0.token --telemetry-level all --enable-remote-auto-shutdown --accept-server-license-terms --default-folder /home/mdb --server-data-dir /home/mdb/.trae-cn-server --logsPath /home/mdb/.trae-cn-server/manager-logs/1789383860231_076223
+1439778 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node ./out/server-main.js --start-server --host=127.0.0.1 --connection-token-file /home/mdb/.trae-cn-server/.stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-525296b0.token --telemetry-level all --enable-remote-auto-shutdown --accept-server-license-terms --default-folder /home/mdb --server-data-dir /home/mdb/.trae-cn-server --logsPath /home/mdb/.trae-cn-server/manager-logs/1789383860231_076223 --port 45663
+1439938 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/extensions/ai-completion/resource/aiserver/cue.js --use-electron-aha-ipc=false
+1439970 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node --dns-result-order=ipv4first /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/out/bootstrap-fork --type=extensionHost --transformURIs --max-old-space-size=4096 --useHostProxy=false
+1439978 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/out/vs/platform/observability/node/remoteProcessMonitor/remoteProcessMonitorWorker.js --type=process-monitor
+1439995 /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/node /home/mdb/.trae-cn-server/bin/stable-102f15ad4407629728f75c60fc6cc2aa37296e1f-debian10/out/bootstrap-fork --type=fileWatcher

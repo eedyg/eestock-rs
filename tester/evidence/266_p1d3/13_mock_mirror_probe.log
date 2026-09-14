@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 /tmp/p1d3/wt/web
+
+stdout | src/features/dashboard/zzz_p1d3_mock_probe.test.ts > P1-D-3 mock 镜像一致性探针 > mock saveMultiPeriodConfig(["dcap"]×11, 3 周期) —— 后端 200（去重后 3 pane），mock 呢？
+MOCK_PROBE_PANE {"caughtStatus":400,"msg":"HTTP 400: 总 pane 数 23 超上限 12","indicatorsAfter11":["dcap"]}
+
+stdout | src/features/dashboard/zzz_p1d3_mock_probe.test.ts > P1-D-3 mock 镜像一致性探针 > mock saveMultiPeriodConfig(["dcap","dcap"]) —— 后端归一化为 ["dcap"]，mock 呢？
+MOCK_PROBE_DEDUP {"caught":"","indicatorsAfterDup":["dcap","dcap"]}
+
+ ✓ src/features/dashboard/zzz_p1d3_mock_probe.test.ts (2 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  21:09:04
+   Duration  499ms (transform 75ms, setup 29ms, collect 56ms, tests 4ms, environment 148ms, prepare 56ms)
+

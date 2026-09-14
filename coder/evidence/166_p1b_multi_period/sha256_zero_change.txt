@@ -1,0 +1,11 @@
+=== sha256 manifest diff (baseline vs after): only 3 generated files changed ===
+93,95c93,95
+< d6bb8be18cfcd6c53dec711d3a5c0622d7f25dc2713b460f9edab26bdb68b828  crates/web/src/dto.rs
+< fdb0230996168cb4b5fc26a3f02e65052d2a16f001835241e1e24d46abc169a2  crates/web/src/lib.rs
+< bf3a4ff557b0bbcef5f3e675c1e1ada380d58f258c91d4ceb48e05d49a1e2a1c  crates/web/src/rest.rs
+---
+> 3736511bec06b49abb72e30c92967116d06f74903992ffe943ee69226e1e4f8b  crates/web/src/dto.rs
+> cefedb813f8d73ade1fd165964e35ca1542e8f38db39b99c4f629a118f61eba8  crates/web/src/lib.rs
+> 22bfb3be83de03d108ded539260c78e98e24dc08b8f4ee72d6672d0efa868977  crates/web/src/rest.rs
+---
+total generated targets: 139  changed: 3  unchanged: 136

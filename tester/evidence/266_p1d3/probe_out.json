@@ -1,0 +1,707 @@
+{
+ "results": [
+  {
+   "id": "GET_default_no_key",
+   "req": "GET",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m"
+    ],
+    "heights": {
+     "1m": 420
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200 {enabled:false,periods:['1m'],heights:{'1m':420},indicators:['dcap']}",
+   "pass": true
+  },
+  {
+   "id": "D1_dup2_echo_dedup",
+   "req": "PUT periods=[1m,5m,15m] indicators=[dcap,dcap]",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m",
+     "5m",
+     "15m"
+    ],
+    "heights": {
+     "15m": 180,
+     "1m": 420,
+     "5m": 180
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200 + echo.indicators==['dcap']（§2-6 去重）",
+   "pass": true
+  },
+  {
+   "id": "D1_dup2_readback_dedup",
+   "req": "GET（上一步之后）",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m",
+     "5m",
+     "15m"
+    ],
+    "heights": {
+     "15m": 180,
+     "1m": 420,
+     "5m": 180
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200 且 == 归一化后的完整配置（去重必须落库）",
+   "pass": true
+  },
+  {
+   "id": "D1_dup_n_4periods_200",
+   "req": "PUT 4周期 × ['dcap']×n (n=3,11,12,24) + GET",
+   "status": [
+    200,
+    200,
+    200,
+    200
+   ],
+   "body": {
+    "observed": [
+     [
+      3,
+      200,
+      [
+       "dcap"
+      ],
+      4,
+      [
+       "dcap"
+      ]
+     ],
+     [
+      11,
+      200,
+      [
+       "dcap"
+      ],
+      4,
+      [
+       "dcap"
+      ]
+     ],
+     [
+      12,
+      200,
+      [
+       "dcap"
+      ],
+      4,
+      [
+       "dcap"
+      ]
+     ],
+     [
+      24,
+      200,
+      [
+       "dcap"
+      ],
+      4,
+      [
+       "dcap"
+      ]
+     ]
+    ]
+   },
+   "expect": "每个 n: 200 + echo.indicators=['dcap'] + 读回 periods=4 + indicators=['dcap']（重复项不得伪造 >12 pane）",
+   "pass": true
+  },
+  {
+   "id": "D1_pane_count_equivalent",
+   "req": "PUT ['dcap'] vs ['dcap']×3（同 4 周期）",
+   "status": [
+    200,
+    200,
+    200
+   ],
+   "body": {
+    "one": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+     ],
+     "heights": {
+      "15m": 180,
+      "1h": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    },
+    "three": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+     ],
+     "heights": {
+      "15m": 180,
+      "1h": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    },
+    "get": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+     ],
+     "heights": {
+      "15m": 180,
+      "1h": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    }
+   },
+   "expect": "两次 PUT 均 200 且回显/读回逐字节相同（去重后 pane 计数一致 ⇒ 无 400）",
+   "pass": true
+  },
+  {
+   "id": "D1_4periods_legal_200",
+   "req": "PUT 4 周期 × ['dcap']",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m",
+     "5m",
+     "15m",
+     "1h"
+    ],
+    "heights": {
+     "15m": 180,
+     "1h": 180,
+     "1m": 420,
+     "5m": 180
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200（v1 最大合法形态）",
+   "pass": true
+  },
+  {
+   "id": "D1_no_http_over12_via_dups",
+   "req": "PUT 4周期 × ['dcap']×n (n∈1..40)",
+   "status": {
+    "non200": []
+   },
+   "body": {
+    "non200": []
+   },
+   "expect": "无任何 n 触发 400（v1 去重后总 pane ≤ 4 ⇒ HTTP 不可达 >12；若有 400 即误拒）",
+   "pass": true
+  },
+  {
+   "id": "D2_pane_error_names_dimension",
+   "req": "源码抽取 verify_multi_period_panes 错误串模板",
+   "status": "n/a",
+   "body": {
+    "template": "indicators 去重后总 pane 数 {n} 超上限 {MULTI_PERIOD_MAX_PANES}\\\n             （基准 1 + Σ_卫星(去重后指标) pane）",
+    "rendered_n16": "indicators 去重后总 pane 数 16 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）"
+   },
+   "expect": "渲染后含被拒维度名 `indicators`（§7.4）",
+   "pass": true
+  },
+  {
+   "id": "S2_1_base_1mo",
+   "req": "PUT 基准 1mo",
+   "status": 400,
+   "body": {
+    "error": "periods 基准周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：1mo"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_1_sat_1mo",
+   "req": "PUT 基准 1m + 卫星 1mo",
+   "status": 400,
+   "body": {
+    "error": "periods 卫星周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：1mo"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_2_sat_below_base",
+   "req": "PUT [5m,1m]",
+   "status": 400,
+   "body": {
+    "error": "periods 卫星周期 1m 须 ≥ 基准 5m"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_2_sat_below_base2",
+   "req": "PUT [1d,1h]",
+   "status": 400,
+   "body": {
+    "error": "periods 卫星周期 1h 须 ≥ 基准 1d"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_3_1w_base_1h",
+   "req": "PUT [1h,1w]",
+   "status": 400,
+   "body": {
+    "error": "periods 含 1w 时基准须 ≥ 1d，收到基准 1h"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_3_1w_base_1d_positive",
+   "req": "PUT [1d,1w]（正向）",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1d",
+     "1w"
+    ],
+    "heights": {
+     "1d": 420,
+     "1w": 180
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200（基准 ≥1d 时 1w 合法）",
+   "pass": true
+  },
+  {
+   "id": "S2_4_5periods",
+   "req": "PUT 5 周期",
+   "status": 400,
+   "body": {
+    "error": "periods 最多 4 个，收到 5"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_4_no_silent_truncation",
+   "req": "GET（5 周期被拒后）",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m",
+     "5m",
+     "15m"
+    ],
+    "heights": {
+     "15m": 180,
+     "1m": 420,
+     "5m": 180
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200 且 == 前置 3 周期配置（不得截断为 4）",
+   "pass": true
+  },
+  {
+   "id": "S2_5_height_missing_key",
+   "req": "PUT heights 缺 5m 键",
+   "status": 400,
+   "body": {
+    "error": "heights 键必须与 periods 一一对应：periods=[\"1m\", \"5m\"] heights键=[\"1m\"]"
+   },
+   "expect": "400 且 error 含被拒字段名 `heights`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_5_height_extra_key",
+   "req": "PUT heights 多 5m 键",
+   "status": 400,
+   "body": {
+    "error": "heights 键必须与 periods 一一对应：periods=[\"1m\"] heights键=[\"1m\", \"5m\"]"
+   },
+   "expect": "400 且 error 含被拒字段名 `heights`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_5_height_79",
+   "req": "PUT heights[1m]=79",
+   "status": 400,
+   "body": {
+    "error": "heights[1m] 须 ∈ [80,1200]，收到 79"
+   },
+   "expect": "400 且 error 含被拒字段名 `heights`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_5_height_1201",
+   "req": "PUT heights[5m]=1201",
+   "status": 400,
+   "body": {
+    "error": "heights[5m] 须 ∈ [80,1200]，收到 1201"
+   },
+   "expect": "400 且 error 含被拒字段名 `heights`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_5_height_boundary_80_1200",
+   "req": "PUT heights 80/1200（边界）",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m",
+     "5m"
+    ],
+    "heights": {
+     "1m": 80,
+     "5m": 1200
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200（边界合法，不得误拒）",
+   "pass": true
+  },
+  {
+   "id": "S2_6_unsupported_macd",
+   "req": "PUT indicators=[macd]",
+   "status": 400,
+   "body": {
+    "error": "indicators 含未支持项：macd（受支持：[\"dcap\"]）"
+   },
+   "expect": "400 且 error 含被拒字段名 `indicators`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_6_unsupported_boll",
+   "req": "PUT indicators=[dcap,boll]",
+   "status": 400,
+   "body": {
+    "error": "indicators 含未支持项：boll（受支持：[\"dcap\"]）"
+   },
+   "expect": "400 且 error 含被拒字段名 `indicators`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_7_dup_periods",
+   "req": "PUT periods=[1m,1m]",
+   "status": 400,
+   "body": {
+    "error": "periods 重复：1m"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "S2_7_dup_periods2",
+   "req": "PUT periods=[1m,5m,5m]",
+   "status": 400,
+   "body": {
+    "error": "periods 重复：5m"
+   },
+   "expect": "400 且 error 含被拒字段名 `periods`、不回显配置字段",
+   "pass": true
+  },
+  {
+   "id": "body_shape_invalid_400",
+   "req": "PUT heights 为数组",
+   "status": 400,
+   "body": {
+    "error": "multi_period 请求体非法：invalid type: sequence, expected a map"
+   },
+   "expect": "400（不得 500）",
+   "pass": true
+  },
+  {
+   "id": "PUT_valid_roundtrip",
+   "req": "PUT 合法 + GET",
+   "status": [
+    200,
+    200
+   ],
+   "body": {
+    "echo": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m"
+     ],
+     "heights": {
+      "15m": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    },
+    "readback": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m"
+     ],
+     "heights": {
+      "15m": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    }
+   },
+   "expect": "PUT 200 且回显 == 请求；GET == 请求",
+   "pass": true
+  },
+  {
+   "id": "PUT_negative_not_persisted",
+   "req": "PUT 非法（5 周期）+ GET",
+   "status": [
+    400,
+    200
+   ],
+   "body": {
+    "bad_status": 400,
+    "readback": {
+     "enabled": false,
+     "periods": [
+      "1m",
+      "5m",
+      "15m"
+     ],
+     "heights": {
+      "15m": 180,
+      "1m": 420,
+      "5m": 180
+     },
+     "indicators": [
+      "dcap"
+     ]
+    }
+   },
+   "expect": "非法 PUT 400；GET 仍 == 上一步被接受的配置（不落库）",
+   "pass": true
+  },
+  {
+   "id": "GET_bad_stored_falls_back_default",
+   "req": "seed 坏值 7 例后逐个 GET",
+   "status": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "body": {
+    "observed": [
+     [
+      "scalar",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "missing_fields",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "height_out_of_range",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "periods_5",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "dup_periods",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "contains_1mo",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ],
+     [
+      "unsupported_ind",
+      200,
+      {
+       "enabled": false,
+       "periods": [
+        "1m"
+       ],
+       "heights": {
+        "1m": 420
+       },
+       "indicators": [
+        "dcap"
+       ]
+      }
+     ]
+    ]
+   },
+   "expect": "每例 200 且回默认（不 500）",
+   "pass": true
+  },
+  {
+   "id": "GET_out_of_range_enabled_true_falls_back",
+   "req": "seed 越界 + enabled=true 后 GET",
+   "status": 200,
+   "body": {
+    "enabled": false,
+    "periods": [
+     "1m"
+    ],
+    "heights": {
+     "1m": 420
+    },
+    "indicators": [
+     "dcap"
+    ]
+   },
+   "expect": "200 且 enabled=false（越界旧值回默认）",
+   "pass": true
+  },
+  {
+   "id": "cleanup_key_removed",
+   "req": "DELETE key + psql count + GET",
+   "status": 200,
+   "body": {
+    "psql_count": "0",
+    "get": {
+     "enabled": false,
+     "periods": [
+      "1m"
+     ],
+     "heights": {
+      "1m": 420
+     },
+     "indicators": [
+      "dcap"
+     ]
+    }
+   },
+   "expect": "psql count=0 且 GET 回默认",
+   "pass": true
+  }
+ ],
+ "total": 31,
+ "passed": 31,
+ "failed": []
+}

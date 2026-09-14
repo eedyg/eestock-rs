@@ -1,0 +1,31 @@
+# D4 反向证据（变异检验）：仓库**零改动**，全部在 /tmp 沙箱副本上进行
+# 沙箱: /tmp/p1d1_d4m（src/ 副本 + node_modules 软链 + vite.config.ts 副本；未触碰仓库）
+# 时间: 2026-09-14T20:55:43+08:00
+
+## 变异 M1：删除 DashboardPage.toggleMultiPeriod 的失败回滚（catch 分支置空）
+## 命令: vitest run --root /tmp/p1d1_d4m src/features/dashboard/multiPeriodClosedEquivalence.test.tsx
+
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层） 38ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态记账等价：1 个图表实例 / 1 个 bar: 订阅 / 仅基准周期 1 次取数（无多余 feed/订阅/请求） 12ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态容器透明：MultiPeriodChartStack(enabled=false) 直接透传 children，且不创建任何图表实例 1ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态零残留：页面无任何「卫星」标记元素；静默窗内无新增请求/订阅；开关默认关 162ms
+   × D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 点击 ⇒ 乐观 aria-pressed=true；PUT 失败 ⇒ 回滚 false 且无副作用（实例/订阅/取数不变） 2039ms
+   ✓ D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 成功 ⇒ true；再点击关闭 ⇒ false 且零残留（实例/订阅/请求计数与初态一致） 164ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 点击 ⇒ 乐观 aria-pressed=true；PUT 失败 ⇒ 回滚 false 且无副作用（实例/订阅/取数不变）
+      Tests  1 failed | 5 passed (6)
+
+## 还原 M1，注入变异 M2：非乐观（先 await PUT 再更新状态）
+
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层） 38ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态记账等价：1 个图表实例 / 1 个 bar: 订阅 / 仅基准周期 1 次取数（无多余 feed/订阅/请求） 12ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态容器透明：MultiPeriodChartStack(enabled=false) 直接透传 children，且不创建任何图表实例 1ms
+   ✓ T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态零残留：页面无任何「卫星」标记元素；静默窗内无新增请求/订阅；开关默认关 161ms
+   × D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 点击 ⇒ 乐观 aria-pressed=true；PUT 失败 ⇒ 回滚 false 且无副作用（实例/订阅/取数不变） 35ms
+   × D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 成功 ⇒ true；再点击关闭 ⇒ false 且零残留（实例/订阅/请求计数与初态一致） 26ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 点击 ⇒ 乐观 aria-pressed=true；PUT 失败 ⇒ 回滚 false 且无副作用（实例/订阅/取数不变）
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 成功 ⇒ true；再点击关闭 ⇒ false 且零残留（实例/订阅/请求计数与初态一致）
+      Tests  2 failed | 4 passed (6)
+
+# 沙箱已拆除：/tmp/p1d1_d4m（验证：不存在）

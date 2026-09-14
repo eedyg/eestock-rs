@@ -1,0 +1,76 @@
+== git diff --cached (行数) ==
+0
+== git status（短） ==
+ M crates/web/src/dto.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/rest.rs
+ M design/07-app-plane/00-web-api.md
+ M design/15-multi-period/02-spec.md
+ M design/15-multi-period/03-test-plan.md
+ M web/src/api/client.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/dashboard/DashboardPage.tsx
+ M web/src/features/dashboard/Toolbar.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/164_live_redeploy_three_fixes/
+?? coder/evidence/166_p1b_multi_period/
+?? coder/evidence/167_p1d2/
+?? coder/report/164_app_rebuild_restart_three_fixes.md
+?? coder/report/166_p1b_multi_period_config_frontend_skeleton.md
+?? coder/report/167_p1d2_d1_dedup_d2_error_string.md
+?? crates/web/tests/api_multi_period_config.rs
+?? crates/web/tests/multi_period_contract_vectors.rs
+?? crates/web/tests/multi_period_pane_budget.rs
+?? design/15-multi-period/contract-vectors.json
+?? prod_tools_schemas_periphery.txt
+?? tester/design/017_period_stock_switch_layout_red_test_design.md
+?? tester/design/191_multi_period_indicator_feasibility_design.md
+?? tester/design/250_multiperiod_route_probe_design.md
+?? tester/design/263_p1a_multiperiod_config_red_design.md
+?? tester/design/264_p1c_independent_acceptance_design.md
+?? tester/design/265_p1d1_red_tests_design.md
+?? tester/evidence/018/
+?? tester/evidence/200_multiperiod_feasibility/
+?? tester/evidence/250_multiperiod_route_probe/
+?? tester/evidence/263_p1a_multiperiod_config_red/
+?? tester/evidence/264_p1c/
+?? tester/evidence/265_p1d1_red/
+?? tester/evidence/266_p1d3/
+?? tester/evidence/267_d51_red/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+== 本轮新增/改动文件 mtime + sha256 ==
+-rw-rw-r-- 1 eestock eestock 8982 2026-09-14_21:12:38 crates/web/tests/multi_period_contract_vectors.rs
+-rw-rw-r-- 1 eestock eestock 9757 2026-09-14_21:12:24 design/15-multi-period/contract-vectors.json
+-rw-rw-r-- 1 eestock eestock 5128 2026-09-14_21:12:57 web/src/api/multiPeriodMockParity.test.ts
+8c72c601755297451a1532e6846aa33db365fb6ec701eeda5dd02b465929eb20  design/15-multi-period/contract-vectors.json
+8fc298e0ace2c992f502997b8a0e1623cd9f6c2b41f9b6969368e0dc6ab65ac0  crates/web/tests/multi_period_contract_vectors.rs
+2d68ca2578101f86080b8c511abc1a604faa01f0562b1c70f2880955502be214  web/src/api/multiPeriodMockParity.test.ts
+== 产品文件 mtime（应早于本轮写入） ==
+-rw------- 1 eestock eestock 48997 2026-09-14_20:59:48 crates/web/src/dto.rs
+-rw------- 1 eestock eestock 21375 2026-09-14_20:59:48 crates/web/src/rest.rs
+-rw-rw-r-- 1 eestock eestock 12319 2026-09-14_20:49:20 design/15-multi-period/02-spec.md
+-rw-rw-r-- 1 eestock eestock 29788 2026-09-14_20:39:39 web/src/api/client.ts
+-rw-rw-r-- 1 eestock eestock 91964 2026-09-14_20:39:50 web/src/api/mock.ts

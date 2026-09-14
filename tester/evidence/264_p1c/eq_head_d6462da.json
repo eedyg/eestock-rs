@@ -1,0 +1,69 @@
+{
+  "label": "HEAD",
+  "mainFound": true,
+  "mainFP": "0:div[data-region=main-chart]\n1:div[data-region=sub-chart]\n1:div[data-testid=kline-chart]",
+  "mainHTML": "<div data-region=\"sub-chart\" class=\"pointer-events-none absolute inset-x-0 bottom-0 h-1/5\"></div><div data-testid=\"kline-chart\" class=\"relative h-full w-full\"></div>",
+  "subHTML": "",
+  "containerHTML": "<div class=\"flex min-w-0 flex-1\"><div data-region=\"dashboard\" class=\"flex min-w-[1280px] flex-1\"><aside data-region=\"symbol-list\" class=\"w-60 border-r\"><div class=\"flex h-full flex-col p-3\"><input placeholder=\"⌕ 搜索 code / 名称…\" class=\"mb-2.5 h-8 shrink-0 rounded-[10px] border border-line bg-panel2 px-3 text-xs text-txt outline-none placeholder:text-dim focus:border-acc1/50\" value=\"\"><div class=\"min-h-0 flex-1 overflow-y-auto\"><button type=\"button\" data-selected=\"true\" class=\"mb-1 flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left hover:bg-white/5 bg-acc1/10 outline outline-1 outline-acc1/40\"><span role=\"button\" data-star=\"518880\" aria-label=\"收藏 518880\" class=\"cursor-pointer text-sm leading-none text-dim\">☆</span><span class=\"flex-1\"><b class=\"num block text-[13px] font-semibold\">518880</b><small class=\"block text-[11px] text-dim\">黄金ETF</small></span><span class=\"shrink-0 text-right text-xs\"><span class=\"num block text-up\">2.431</span><span class=\"num block text-up\">+0.62%</span></span></button><button type=\"button\" data-selected=\"false\" class=\"mb-1 flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left hover:bg-white/5\"><span role=\"button\" data-star=\"513310\" aria-label=\"收藏 513310\" class=\"cursor-pointer text-sm leading-none text-dim\">☆</span><span class=\"flex-1\"><b class=\"num block text-[13px] font-semibold\">513310</b><small class=\"block text-[11px] text-dim\">纳指ETF</small></span><span class=\"shrink-0 text-right text-xs\"><span class=\"num block text-down\">1.587</span><span class=\"num block text-down\">-0.31%</span></span></button></div></div></aside><main data-region=\"main-area\" class=\"flex min-h-0 flex-1 flex-col\"><div data-region=\"toolbar\" class=\"h-9 shrink-0 border-b\"><div class=\"flex h-full items-center gap-1.5 px-3.5\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">1m</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">5m</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">15m</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">1h</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">日</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">周</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">月</button><span class=\"mx-1.5 h-4 w-px bg-line\"></span><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">K线</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">分时</button><span class=\"mx-1.5 h-4 w-px bg-line\"></span><span class=\"flex items-center gap-1\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">MA</button><div class=\"relative\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\" aria-expanded=\"false\" aria-label=\"MA 配置\">MA(5,10,20)<span class=\"ml-1 text-dim\">▾</span></button></div></span><span class=\"flex items-center gap-1\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">MACD</button></span><span class=\"flex items-center gap-1\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">KDJ</button></span><span class=\"flex items-center gap-1\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">BOLL</button></span><span class=\"flex items-center gap-1\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">DCAP</button><div class=\"relative\"><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\" aria-expanded=\"false\" aria-label=\"DCAP 配置\">DCAP(,,)<span class=\"ml-1 text-dim\">▾</span></button></div></span><span class=\"mx-1.5 h-4 w-px bg-line\"></span><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">单图</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">2×2</button><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">2×3</button><span class=\"flex-1\"></span><button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" disabled=\"\">回到最新</button></div></div><div data-region=\"main-chart\" class=\"relative min-h-0 flex-1\"><div data-region=\"sub-chart\" class=\"pointer-events-none absolute inset-x-0 bottom-0 h-1/5\"></div><div data-testid=\"kline-chart\" class=\"relative h-full w-full\"></div></div></main></div></div>",
+  "initCalls": 1,
+  "disposeCalls": 0,
+  "apiCounts": {
+    "getSymbols": 1,
+    "getMaConfig": 1,
+    "getDcapConfig": 1,
+    "getKlineConfig": 1,
+    "getKline": 1
+  },
+  "apiCallsSorted": [
+    "getDcapConfig()",
+    "getKline({\"code\":\"518880\",\"period\":\"15m\",\"limit\":120})",
+    "getKlineConfig()",
+    "getMaConfig()",
+    "getSymbols()"
+  ],
+  "wsTopics": {
+    "bar:518880:15m": 1,
+    "quote": 1
+  },
+  "chartCounts": {
+    "setStyles": 1,
+    "subscribeAction": 2,
+    "setDataLoader": 1,
+    "setSymbol": 1,
+    "setPeriod": 1,
+    "removeOverlay": 1,
+    "removeIndicator": 1,
+    "createIndicator": 2,
+    "getIndicators": 1,
+    "scrollToRealTime": 1
+  },
+  "chartCalls": [
+    "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+    "subscribeAction(\"onZoom\",)",
+    "subscribeAction(\"onScroll\",)",
+    "setDataLoader({})",
+    "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+    "setPeriod({\"type\":\"minute\",\"span\":15})",
+    "removeOverlay()",
+    "removeIndicator({\"name\":\"MA\"})",
+    "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+    "getIndicators({\"name\":\"MA\"})",
+    "createIndicator({\"name\":\"VOL\"},true)",
+    "scrollToRealTime()"
+  ],
+  "chartCallsSorted": [
+    "createIndicator({\"name\":\"MA\",\"calcParams\":[5,10,20],\"paneId\":\"candle_pane\"},true)",
+    "createIndicator({\"name\":\"VOL\"},true)",
+    "getIndicators({\"name\":\"MA\"})",
+    "removeIndicator({\"name\":\"MA\"})",
+    "removeOverlay()",
+    "scrollToRealTime()",
+    "setDataLoader({})",
+    "setPeriod({\"type\":\"minute\",\"span\":15})",
+    "setStyles({\"candle\":{\"bar\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\",\"upBorderColor\":\"#ff5c6c\",\"downBorderColor\":\"#00e0a4\",\"noChangeBorderColor\":\"#8b93b0\",\"upWickColor\":\"#ff5c6c\",\"downWickColor\":\"#00e0a4\",\"noChangeWickColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"indicator\":{\"ohlc\":{\"upColor\":\"#ff5c6c\",\"downColor\":\"#00e0a4\",\"noChangeColor\":\"#8b93b0\"},\"tooltip\":{\"title\":{\"color\":\"#8b93b0\"},\"legend\":{\"color\":\"#8b93b0\"}}},\"grid\":{\"horizontal\":{\"color\":\"rgba(255,255,255,.07)\"},\"vertical\":{\"color\":\"rgba(255,255,255,.07)\"}},\"xAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"yAxis\":{\"tickText\":{\"color\":\"#8b93b0\"},\"axisLine\":{\"color\":\"rgba(255,255,255,.07)\"}},\"crosshair\":{\"horizontal\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}},\"vertical\":{\"line\":{\"color\":\"#38bdf8\"},\"text\":{\"color\":\"#e5e9f2\"}}}})",
+    "setSymbol({\"ticker\":\"518880\",\"pricePrecision\":3,\"volumePrecision\":0})",
+    "subscribeAction(\"onScroll\",)",
+    "subscribeAction(\"onZoom\",)"
+  ],
+  "hasMultiPeriodToggle": false
+}

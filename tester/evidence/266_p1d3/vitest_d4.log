@@ -1,0 +1,24 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11-1 关闭态默认：enabled=false / 周期=单基准 / 高度与周期同键 / indicators=["dcap"] 11ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > load() 镜像服务端配置（不在前端硬编码；读回原样、不改写） 2ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T8bis 降级可观测字段存在且可读出（syncDegraded / lastSpanDiffMinutes）——不测 UI 角标 1ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > 关闭态零副作用：store 不发起 K 线请求、不创建任何订阅；配置读取失败保持默认关闭且不崩 1ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11 开关往返零残留：setEnabled(true) → setEnabled(false) ⇒ 运行态归零、不新增请求 1ms
+stderr | src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层） 64ms
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态记账等价：1 个图表实例 / 1 个 bar: 订阅 / 仅基准周期 1 次取数（无多余 feed/订阅/请求） 26ms
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态容器透明：MultiPeriodChartStack(enabled=false) 直接透传 children，且不创建任何图表实例 2ms
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态零残留：页面无任何「卫星」标记元素；静默窗内无新增请求/订阅；开关默认关 184ms
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 点击 ⇒ 乐观 aria-pressed=true；PUT 失败 ⇒ 回滚 false 且无副作用（实例/订阅/取数不变） 45ms
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > D4 Toolbar「多周期」开关 UI 级（乐观更新 / 失败回滚 / 关闭零残留） > 成功 ⇒ true；再点击关闭 ⇒ false 且零残留（实例/订阅/请求计数与初态一致） 172ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  21:06:50
+   Duration  1.52s (transform 255ms, setup 82ms, collect 417ms, tests 511ms, environment 407ms, prepare 395ms)
+

@@ -1,0 +1,119 @@
+# D5-3 独立验收证据 ②：parity 逐条比对（同一向量文件，19 条）
+## 生成时间: 2026-09-14T21:22:13+08:00
+## 数据来源（两侧均为「实际结论」，非测试断言转述）：
+##  - mock 侧：/tmp 沙箱副本里用 esbuild 打包独立探针 probe/parity_probe.ts（**不经仓库测试文件**），调用 createMockClient().saveMultiPeriodConfig（即 assertMultiPeriodConfig 的 PUT 路径）
+##  - backend 侧：rustc 直接链接**仓库已编译的真实 crate** target/debug/deps/libweb-161b6ed0ad648e47.rlib，调用 web::dto::validate_multi_period_config / multi_period_pane_count / verify_multi_period_panes（无重编译、无 repo 写入）
+##  - 期望：design/15-multi-period/contract-vectors.json（sha256 8c72c601…，两侧同一 inode；见 01）
+
+## 逐条矩阵（expect=向量期望 status；rust/mock=两侧实际 status；normalizeMatch=归一化/错误串亦一致）
+valid-single-base-default                                   expect=200 rust=200 mock=200 normalizeMatch=True  OK
+valid-four-periods-max-legal-v1                             expect=200 rust=200 mock=200 normalizeMatch=True  OK
+valid-1w-satellite-with-1d-base                             expect=200 rust=200 mock=200 normalizeMatch=True  OK
+valid-empty-indicators                                      expect=200 rust=200 mock=200 normalizeMatch=True  OK
+dedup-two-identical-indicators                              expect=200 rust=200 mock=200 normalizeMatch=True  OK
+dedup-n-identical-indicators-cannot-forge-over-12-panes     expect=200 rust=200 mock=200 normalizeMatch=True  OK
+dedup-makes-legal-repeated-indicators-over-raw-pane-budget  expect=200 rust=200 mock=200 normalizeMatch=True  OK
+pane-over-limit-after-dedup-names-dimension                 expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-empty-periods                                        expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-more-than-4-periods                                  expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-duplicate-periods                                    expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-1mo-period                                           expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-satellite-below-base                                 expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-1w-with-base-below-1d                                expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-heights-key-mismatch                                 expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-heights-below-min                                    expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-heights-above-max                                    expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-unsupported-indicator                                expect=400 rust=400 mock=400 normalizeMatch=True  OK
+reject-unsupported-indicator-among-supported                expect=400 rust=400 mock=400 normalizeMatch=True  OK
+PARITY_SUMMARY vectors=19 mismatches=0 names=[]
+
+## mock 侧原始结论（19 行 JSON）
+{"name":"valid-single-base-default","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":false,"periods":["1m"],"heights":{"1m":420},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"valid-four-periods-max-legal-v1","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m","15m","1h"],"heights":{"1m":420,"5m":180,"15m":180,"1h":180},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"valid-1w-satellite-with-1d-base","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1d","1w"],"heights":{"1d":420,"1w":180},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"valid-empty-indicators","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m"],"heights":{"1m":420,"5m":180},"indicators":[]},"mockIndicators":[],"expectIndicators":[],"mockError":null}
+{"name":"dedup-two-identical-indicators","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m"],"heights":{"1m":420,"5m":180},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-n-identical-indicators-cannot-forge-over-12-panes","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m","15m","1h"],"heights":{"1m":420,"5m":180,"15m":180,"1h":180},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"dedup-makes-legal-repeated-indicators-over-raw-pane-budget","expect":200,"mock":200,"statusMatch":true,"normMatch":true,"errMatch":null,"mockNormalized":{"enabled":true,"periods":["1m","5m","15m","1h"],"heights":{"1m":420,"5m":180,"15m":180,"1h":180},"indicators":["dcap"]},"mockIndicators":["dcap"],"expectIndicators":["dcap"],"mockError":null}
+{"name":"pane-over-limit-after-dedup-names-dimension","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: indicators 含未支持项：macd"}
+{"name":"reject-empty-periods","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 不能为空"}
+{"name":"reject-more-than-4-periods","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 最多 4 个，收到 5"}
+{"name":"reject-duplicate-periods","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 重复"}
+{"name":"reject-1mo-period","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 卫星周期非法：1mo"}
+{"name":"reject-satellite-below-base","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 卫星周期 1h 须 ≥ 基准 1d"}
+{"name":"reject-1w-with-base-below-1d","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: periods 含 1w 时基准须 ≥ 1d，收到基准 1m"}
+{"name":"reject-heights-key-mismatch","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: heights 键必须与 periods 一一对应"}
+{"name":"reject-heights-below-min","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: heights[5m] 须 ∈ [80,1200]，收到 40"}
+{"name":"reject-heights-above-max","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: heights[5m] 须 ∈ [80,1200]，收到 1201"}
+{"name":"reject-unsupported-indicator","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: indicators 含未支持项：ma"}
+{"name":"reject-unsupported-indicator-among-supported","expect":400,"mock":400,"statusMatch":true,"normMatch":null,"errMatch":true,"mockNormalized":null,"mockIndicators":null,"expectIndicators":null,"mockError":"HTTP 400: indicators 含未支持项：macd"}
+PROBE_SUMMARY total=19 mismatched=0 names=[]
+
+## backend 侧原始结论（真实后端 crate 的纯函数输出）
+VECTOR	valid-single-base-default	200	enabled=false periods=1m heights=1m=420 indicators=dcap	pane=1	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	valid-four-periods-max-legal-v1	200	enabled=true periods=1m,5m,15m,1h heights=15m=180;1h=180;1m=420;5m=180 indicators=dcap	pane=4	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	valid-1w-satellite-with-1d-base	200	enabled=true periods=1d,1w heights=1d=420;1w=180 indicators=dcap	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	valid-empty-indicators	200	enabled=true periods=1m,5m heights=1m=420;5m=180 indicators=	pane=1	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	dedup-two-identical-indicators	200	enabled=true periods=1m,5m heights=1m=420;5m=180 indicators=dcap	pane=2	paneExpect=Some(2)	guard=ok	guardExpect=None
+VECTOR	dedup-n-identical-indicators-cannot-forge-over-12-panes	200	enabled=true periods=1m,5m,15m,1h heights=15m=180;1h=180;1m=420;5m=180 indicators=dcap	pane=4	paneExpect=Some(4)	guard=ok	guardExpect=None
+VECTOR	dedup-makes-legal-repeated-indicators-over-raw-pane-budget	200	enabled=true periods=1m,5m,15m,1h heights=15m=180;1h=180;1m=420;5m=180 indicators=dcap	pane=4	paneExpect=Some(4)	guard=ok	guardExpect=None
+VECTOR	pane-over-limit-after-dedup-names-dimension	400	err=indicators 含未支持项：macd（受支持：["dcap"]）	pane=13	paneExpect=Some(13)	guard=err=indicators 去重后总 pane 数 13 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）	guardExpect=Some("indicators")
+VECTOR	reject-empty-periods	400	err=periods 不能为空	pane=1	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-more-than-4-periods	400	err=periods 最多 4 个，收到 5	pane=5	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-duplicate-periods	400	err=periods 重复：1m	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-1mo-period	400	err=periods 卫星周期非法（须 ∈ ["1m", "5m", "15m", "1h", "1d", "1w"]）：1mo	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-satellite-below-base	400	err=periods 卫星周期 1h 须 ≥ 基准 1d	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-1w-with-base-below-1d	400	err=periods 含 1w 时基准须 ≥ 1d，收到基准 1m	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-heights-key-mismatch	400	err=heights 键必须与 periods 一一对应：periods=["1m", "5m"] heights键=["15m", "1m"]	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-heights-below-min	400	err=heights[5m] 须 ∈ [80,1200]，收到 40	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-heights-above-max	400	err=heights[5m] 须 ∈ [80,1200]，收到 1201	pane=2	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-unsupported-indicator	400	err=indicators 含未支持项：ma（受支持：["dcap"]）	pane=1	paneExpect=None	guard=ok	guardExpect=None
+VECTOR	reject-unsupported-indicator-among-supported	400	err=indicators 含未支持项：macd（受支持：["dcap"]）	pane=3	paneExpect=None	guard=ok	guardExpect=None
+RUST_PROBE_SUMMARY total=19 paneOrGuardMismatch=0
+
+## 比较脚本 compare.py
+import json, re, sys
+V=json.load(open('/home/eestock/workspace/git/eestock/eestock-rs/design/15-multi-period/contract-vectors.json'))
+mock={}
+for l in open('/tmp/d53_sb/probe/mock_actuals_final.jsonl'):
+    if l.startswith('{'):
+        r=json.loads(l); mock[r['name']]=r
+rust={}
+for l in open('/tmp/d53_sb/rust_probe/rust_actuals.txt'):
+    if not l.startswith('VECTOR'): continue
+    f=l.rstrip('\n').split('\t')
+    name, status, line = f[1], int(f[2]), f[3]
+    d={'status':status,'pane':f[4],'guard':f[6]}
+    if status==200:
+        m=re.match(r'enabled=(\w+) periods=(\S*) heights=(\S*) indicators=(\S*)$', line)
+        heights = dict(kv.split('=') for kv in m.group(3).split(';')) if m.group(3) else {}
+        d['norm']={'enabled':m.group(1)=='true','periods':m.group(2).split(',') if m.group(2) else [],
+                   'heights':{k:int(v) for k,v in heights.items()},
+                   'indicators':m.group(4).split(',') if m.group(4) else []}
+    else:
+        d['err']=line[len('err='):]
+    rust[name]=d
+def stable(x):
+    def n(y):
+        if isinstance(y,list): return [n(i) for i in y]
+        if isinstance(y,dict): return {k:n(y[k]) for k in sorted(y)}
+        return y
+    return json.dumps(n(x), sort_keys=True)
+bad=[];rows=[]
+for v in V:
+    nm=v['name']; e=v['expect']; r=rust[nm]; m=mock[nm]
+    agree_status = int(r['status'])==int(m['mock'])
+    rust_ok = int(r['status'])==int(e['status']); mock_ok = int(m['mock'])==int(e['status'])
+    if int(e['status'])==200:
+        want=stable(e['normalized'])
+        norm_agree = ('norm' in r and stable(r['norm'])==want) and (m.get('mockNormalized') is not None and stable(m['mockNormalized'])==want)
+    else:
+        need=e['errorMustContain']
+        norm_agree = (need in r.get('err','')) and (need in (m.get('mockError') or ''))
+    ok = agree_status and rust_ok and mock_ok and norm_agree
+    if not ok: bad.append(nm)
+    rows.append((nm,int(e['status']),int(r['status']),int(m['mock']),norm_agree,'OK' if ok else 'MISMATCH'))
+w=max(len(x[0]) for x in rows)
+for nm,es,rs,ms,na,st in rows:
+    print(f"{nm:<{w}}  expect={es} rust={rs} mock={ms} normalizeMatch={na}  {st}")
+print(f"PARITY_SUMMARY vectors={len(rows)} mismatches={len(bad)} names={bad}")

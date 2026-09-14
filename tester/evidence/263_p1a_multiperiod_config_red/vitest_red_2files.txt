@@ -1,0 +1,71 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/multiPeriodStore.test.ts (5 tests | 5 failed) 8ms
+   × multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11-1 关闭态默认：enabled=false / 周期=单基准 / 高度与周期同键 / indicators=["dcap"] 5ms
+     → Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+   × multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > load() 镜像服务端配置（不在前端硬编码；读回原样、不改写） 2ms
+     → Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+   × multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T8bis 降级可观测字段存在且可读出（syncDegraded / lastSpanDiffMinutes）——不测 UI 角标 0ms
+     → Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+   × multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > 关闭态零副作用：store 不发起 K 线请求、不创建任何订阅；配置读取失败保持默认关闭且不崩 0ms
+     → Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+   × multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11 开关往返零残留：setEnabled(true) → setEnabled(false) ⇒ 运行态归零、不新增请求 0ms
+     → Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+ ❯ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx (4 tests | 4 failed) 5ms
+   × T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层） 3ms
+     → Cannot find module './MultiPeriodChartStack' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx'
+   × T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态记账等价：1 个图表实例 / 1 个 bar: 订阅 / 仅基准周期 1 次取数（无多余 feed/订阅/请求） 0ms
+     → Cannot find module './MultiPeriodChartStack' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx'
+   × T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态容器透明：MultiPeriodChartStack(enabled=false) 直接透传 children，且不创建任何图表实例 0ms
+     → Cannot find module './MultiPeriodChartStack' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx'
+   × T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态零残留：页面无任何「卫星」标记元素；静默窗内无新增请求/订阅；开关默认关 0ms
+     → Cannot find module './MultiPeriodChartStack' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层）
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态记账等价：1 个图表实例 / 1 个 bar: 订阅 / 仅基准周期 1 次取数（无多余 feed/订阅/请求）
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态容器透明：MultiPeriodChartStack(enabled=false) 直接透传 children，且不创建任何图表实例
+ FAIL  src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态零残留：页面无任何「卫星」标记元素；静默窗内无新增请求/订阅；开关默认关
+Error: Cannot find module './MultiPeriodChartStack' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodClosedEquivalence.test.tsx'
+ ❯ loadStack src/features/dashboard/multiPeriodClosedEquivalence.test.tsx:61:16
+     59| 
+     60| async function loadStack(): Promise<React.ComponentType<any>> {
+     61|   const mod = (await import(/* @vite-ignore */ STACK_SPECIFIER)) as {
+       |                ^
+     62|     MultiPeriodChartStack: React.ComponentType<any>;
+     63|   };
+ ❯ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx:176:5
+
+Caused by: Error: Failed to load url ./MultiPeriodChartStack (resolved id: ./MultiPeriodChartStack). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11-1 关闭态默认：enabled=false / 周期=单基准 / 高度与周期同键 / indicators=["dcap"]
+ FAIL  src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > load() 镜像服务端配置（不在前端硬编码；读回原样、不改写）
+ FAIL  src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T8bis 降级可观测字段存在且可读出（syncDegraded / lastSpanDiffMinutes）——不测 UI 角标
+ FAIL  src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > 关闭态零副作用：store 不发起 K 线请求、不创建任何订阅；配置读取失败保持默认关闭且不崩
+ FAIL  src/features/dashboard/multiPeriodStore.test.ts > multiPeriodStore（P1 配置面/store 契约；红：store 尚不存在） > T11 开关往返零残留：setEnabled(true) → setEnabled(false) ⇒ 运行态归零、不新增请求
+Error: Cannot find module './multiPeriodStore' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodStore.test.ts'
+ ❯ loadStoreClass src/features/dashboard/multiPeriodStore.test.ts:51:16
+     49| 
+     50| async function loadStoreClass(): Promise<new (deps: { api: ApiClient }…
+     51|   const mod = (await import(/* @vite-ignore */ STORE_SPECIFIER)) as {
+       |                ^
+     52|     MultiPeriodStore: new (deps: { api: ApiClient }) => MultiPeriodSto…
+     53|   };
+ ❯ src/features/dashboard/multiPeriodStore.test.ts:80:30
+
+Caused by: Error: Failed to load url ./multiPeriodStore (resolved id: ./multiPeriodStore). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed (9)
+   Start at  20:33:53
+   Duration  567ms (transform 138ms, setup 48ms, collect 211ms, tests 13ms, environment 265ms, prepare 168ms)
+

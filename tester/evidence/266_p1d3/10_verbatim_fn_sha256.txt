@@ -1,0 +1,2 @@
+150a7eaaa5b5da316cd1483107a6cf2c12acb48ee6a028cc7ce75ee9c4364517  fn_body.rs
+fab9d2ce2445d3a20c301f2fa04bbf455b71c1ff414bccab79b126d49dab0435  /home/eestock/workspace/git/eestock/eestock-rs/crates/web/src/dto.rs

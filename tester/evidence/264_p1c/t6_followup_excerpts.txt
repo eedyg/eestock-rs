@@ -1,0 +1,14 @@
+# T6 补充序列（同一临时实例 127.0.0.1:18099，取自 2026-09-14 20:46 命令输出；实例已拆除）
+PUT A(1m,5m/enabled=false) -> 200
+GET -> {"enabled":false,"periods":["1m","5m"],"heights":{"1m":420,"5m":180},"indicators":["dcap"]}
+PUT invalid(5 periods) -> 400 {"error":"periods 最多 4 个，收到 5"}
+GET after invalid -> {"enabled":false,"periods":["1m","5m"],"heights":{"1m":420,"5m":180},"indicators":["dcap"]}   # 负例未落库
+PUT indicators=["dcap","dcap"] -> 200
+GET after dup -> {"enabled":false,...,"indicators":["dcap","dcap"]}   # 未去重（规格 §2.6 声称去重）
+psql app_config(key='multi_period') value -> {"enabled": false, "heights": {"1m": 420, "5m": 180}, "periods": ["1m", "5m"], "indicators": ["dcap", "dcap"]}
+PUT 11×"dcap" -> 400 {"error":"总 pane 数 23 超上限 12（基准 1 + Σ_卫星指标 pane）"}   # §7.4 经 HTTP 可达（实现方测试文件头称不可达）
+PUT heights=[420]（形状非法） -> 400 {"error":"multi_period 请求体非法：invalid type: sequence, expected a map"}
+GET 坏值①非对象 JSON（SQL 置 '"oops"'） -> 200 {"enabled":false,"periods":["1m"],...}   # 回默认不 500
+GET 坏值②越界旧值（periods=["1mo"], height 9999, indicators=["nope"]） -> 200 默认
+GET 坏值③缺字段（{"enabled":true}） -> 200 默认
+清理：DELETE app_config where key='multi_period' -> DELETE 1；psql count(*) = 0；GET -> 200 默认（基线：无键 ⇒ count=0，已复核）

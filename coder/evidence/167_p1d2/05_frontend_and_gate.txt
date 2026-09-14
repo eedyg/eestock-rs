@@ -1,0 +1,22 @@
+# 前端自测 + 门禁 + 卫生（2026-09-14 21:02:00 +0800）
+
+## 4) cd web && npx vitest run
+
+ Test Files  68 passed (68)
+      Tests  628 passed (628)
+   Start at  21:02:00
+   Duration  5.31s (transform 2.94s, setup 3.03s, collect 10.61s, tests 21.90s, environment 21.68s, prepare 5.51s)
+
+
+## 5) cd web && ./node_modules/.bin/tsc -b
+tsc exit=0
+
+## 6) ./scripts/check-tangle.sh
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+check-tangle exit=0
+
+## 7) 卫生
+app_config[multi_period] 行数 = 0
+app_config 现存键 = dcap
+线上 PID 3112540 = 3112540 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+git staged = 

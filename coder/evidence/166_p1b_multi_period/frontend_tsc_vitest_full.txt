@@ -1,0 +1,13 @@
+# npx tsc -b
+tsc_exit=0
+
+# npx vitest run (full)
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > mount 首次失败 → 重试成功 → feed 用配置根数（穿越瞬态）  526ms
+   ✓ DashboardPage（K线视口配置：失败重试与重读收敛到配置值） > 连续失败 → 重试 3 次后仍失败 → 保持默认 120（feed 用默认根数，不静默收敛）  1551ms
+
+ Test Files  68 passed (68)
+      Tests  626 passed (626)
+   Start at  20:41:21
+   Duration  5.33s (transform 2.88s, setup 3.28s, collect 10.60s, tests 22.04s, environment 21.97s, prepare 5.60s)
+
+vitest_exit=0

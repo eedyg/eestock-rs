@@ -1,0 +1,6 @@
+D1 case pane_count(4p, [dcap]x11)=4 ok=true
+BOUNDARY 12 -> true ; 13 -> true
+S74 negative err=总 pane 数 16 超上限 12（基准 1 + Σ_卫星(去重后指标) pane） names_dimension=false
+D2_RED: 错误串未含被拒维度名
+D2 predicate selfcheck old_string_names_dimension=false
+HARNESS fail_count=1

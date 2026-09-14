@@ -1,0 +1,13 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+error[E0432]: unresolved imports `web::dto::multi_period_pane_count`, `web::dto::verify_multi_period_panes`, `web::dto::MULTI_PERIOD_MAX_PANES`
+  --> crates/web/tests/multi_period_pane_budget.rs:19:16
+   |
+19 | use web::dto::{multi_period_pane_count, verify_multi_period_panes, MULTI_PERIOD_MAX_PANES};
+   |                ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^ no `MULTI_PERIOD_MAX_PANES` in `dto`
+   |                |                        |
+   |                |                        no `verify_multi_period_panes` in `dto`
+   |                no `multi_period_pane_count` in `dto`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `web` (test "multi_period_pane_budget") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

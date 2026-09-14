@@ -1,0 +1,64 @@
+# D5-3 独立验收证据 ④：回归（vitest / tsc -b / cargo test -p web / check-tangle）
+## 生成时间: 2026-09-14T21:22:23+08:00
+## HEAD: d6462da（未 stage/commit/stash）
+
+## [1/5] cd web && vitest run（全量）
+
+ Test Files  69 passed (69)
+      Tests  651 passed (651)
+   Start at  21:22:24
+   Duration  5.29s (transform 2.97s, setup 3.26s, collect 10.58s, tests 23.10s, environment 22.19s, prepare 6.05s)
+
+
+## [2/5] cd web && vitest run（关注文件清单：parity / mock / P1 契约）
+stderr | src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层）
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx (6 tests) 806ms
+ ✓ src/api/mock.test.ts (45 tests) 92ms
+ ✓ src/api/client.test.ts (39 tests) 21ms
+ ✓ src/api/multiPeriodMockParity.test.ts (20 tests) 37ms
+ ✓ src/features/dashboard/multiPeriodStore.test.ts (5 tests) 9ms
+ ✓ src/api/index.test.ts (4 tests) 14ms
+
+## [3/5] cd web && tsc -b
+tsc -b exit=0
+
+## [4/5] cargo test -p web（逐 binary 汇总）
+     Running unittests src/lib.rs (target/debug/deps/web-7c9b2fafa139edf5)
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/api_admin.rs (target/debug/deps/api_admin-175bc4145d5ba69f)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-7740e09f741b7c1e)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-d67b81ca9f552d03)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-26795f62c670403d)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-abea2f283494fe44)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-7e2585c918f8c555)
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+     Running tests/api_quality.rs (target/debug/deps/api_quality-51ea7f3176ab33b6)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+     Running tests/api_rest.rs (target/debug/deps/api_rest-7c86225cadb94b3d)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
+     Running tests/api_settings.rs (target/debug/deps/api_settings-00632d2768830011)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-ca942a0ab2b1d977)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-49de5b3213f35389)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+     Running tests/multi_period_contract_vectors.rs (target/debug/deps/multi_period_contract_vectors-c9b4d14c1cb418a0)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-cfd87b4898c92a75)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-edfec691b7372e16)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+passed_total=113 failed_total=0
+
+## [5/5] ./scripts/check-tangle.sh
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+check-tangle exit=0
+
+## ℹ️ 注：cargo test -p web 内含 crates/web/tests/api_multi_period_config.rs，会写共享 dev 库 app_config key=multi_period（用例内自清，全部落库 enabled=false）；
+##    收尾 psql 复核 0 行见 05_hygiene.txt。

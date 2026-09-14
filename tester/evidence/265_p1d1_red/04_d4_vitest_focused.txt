@@ -1,0 +1,18 @@
+# 命令: npx vitest run src/features/dashboard/multiPeriodClosedEquivalence.test.tsx（D4 新用例）
+# 时间: 2026-09-14T20:55:29+08:00
+
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/multiPeriodClosedEquivalence.test.tsx > T11 关闭态等价（P1：容器/store 尚不存在 ⇒ 红） > 关闭态 DOM 结构等价：main-chart 子树指纹 == 现状冻结指纹（不得新增包裹层）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/multiPeriodClosedEquivalence.test.tsx (6 tests) 423ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  20:55:29
+   Duration  1.00s (transform 135ms, setup 24ms, collect 213ms, tests 423ms, environment 133ms, prepare 97ms)
+
+# exit=0

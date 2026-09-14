@@ -1,0 +1,9 @@
+# 沙箱重新生成 vs 工作树 pre-change 基线（仅列出内容不同的生成物）
+# 时间: 2026-09-14 21:01:39 +0800  沙箱: /tmp/p1d2_tangle.3XDoOb
+# 命令: 对 139 个 file= 生成物逐项 cmp 沙箱重生成 <-> pre-change 基线
+
+CHANGED  crates/web/src/dto.rs
+CHANGED  crates/web/src/rest.rs
+
+# CHANGED 计数 = 2 （应为 2：crates/web/src/dto.rs + crates/web/src/rest.rs）
+# 其余 137 个既有生成物：cmp 逐字节一致 ⇒ sha256 零变化

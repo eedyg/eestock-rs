@@ -1,0 +1,46 @@
+# 命令: cargo test -p web --test multi_period_pane_budget
+# 时间: 2026-09-14T20:57:04+08:00  HEAD=d6462da229f9264777e414be827d9d1017600778
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-cfd87b4898c92a75)
+
+running 8 tests
+test d1_pane_count_uses_deduped_indicator_set_not_raw_length ... FAILED
+test d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted ... FAILED
+test d2_dimension_predicate_boundary_is_pinned ... ok
+test d2_over_budget_error_names_the_rejected_dimension ... FAILED
+test pane_budget_boundary_is_inclusive_at_12_and_rejects_13 ... ok
+test over_budget_must_be_rejected_with_explicit_error_not_silent_truncation ... ok
+test pane_budget_cap_is_12 ... ok
+test pane_count_formula_is_base_plus_per_satellite_panes ... ok
+
+failures:
+
+---- d1_pane_count_uses_deduped_indicator_set_not_raw_length stdout ----
+
+thread 'd1_pane_count_uses_deduped_indicator_set_not_raw_length' (1678840) panicked at crates/web/tests/multi_period_pane_budget.rs:130:9:
+assertion `left == right` failed: D1：["dcap"]×2 与 ["dcap"] 语义等价 ⇒ 总 pane 计数结果必须相同（基于去重后集合，不得按原始数组长度计数）
+  left: 7
+ right: 4
+
+---- d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted stdout ----
+
+thread 'd1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted' (1678839) panicked at crates/web/tests/multi_period_pane_budget.rs:155:9:
+D1：去重后总 pane = 34 ≤ 12 ⇒ 必须允许保存（重复 11 次不得伪造 >12 pane、不得误拒）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- d2_over_budget_error_names_the_rejected_dimension stdout ----
+
+thread 'd2_over_budget_error_names_the_rejected_dimension' (1678842) panicked at crates/web/tests/multi_period_pane_budget.rs:178:5:
+D2：pane 预算错误串必须含**可定位的被拒维度名**——`indicators`（请求字段），或字段标记形式的 `pane`（`pane:` / `pane：` / `pane=` / `"pane"` / `[pane]` / 句首 `pane`）；仅中文算式里出现「pane」字样不算（P1-C D2 判定）。收到：总 pane 数 16 超上限 12（基准 1 + Σ_卫星指标 pane）
+
+
+failures:
+    d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted
+    d1_pane_count_uses_deduped_indicator_set_not_raw_length
+    d2_over_budget_error_names_the_rejected_dimension
+
+test result: FAILED. 5 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test multi_period_pane_budget`
+# exit=101

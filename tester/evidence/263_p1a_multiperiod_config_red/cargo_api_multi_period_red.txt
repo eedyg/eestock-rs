@@ -1,0 +1,142 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-7e2585c918f8c555)
+
+running 15 tests
+test t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values ... FAILED
+test t6_get_without_key_returns_defaults_200 ... FAILED
+test t6_max_legal_config_is_accepted ... FAILED
+test t6_put_rejects_1w_when_base_below_1d ... FAILED
+test t6_put_rejects_base_1mo ... FAILED
+test t6_put_rejects_duplicate_periods ... FAILED
+test t6_put_rejects_heights_keys_mismatching_periods ... FAILED
+test t6_put_rejects_heights_out_of_range ... FAILED
+test t6_put_rejects_more_than_4_periods_without_silent_truncation ... FAILED
+test t6_put_rejects_satellite_1mo ... FAILED
+test t6_put_rejects_satellite_below_base ... FAILED
+test t6_put_rejects_unsupported_indicators ... FAILED
+test t6_put_valid_1d_base_with_1w_satellite_is_accepted ... FAILED
+test t6_put_valid_roundtrip_200_and_readback_identical ... FAILED
+test t6_zz_cleanup_leaves_no_multi_period_key ... ok
+
+failures:
+
+---- t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values stdout ----
+
+thread 't6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values' (1626036) panicked at crates/web/tests/api_multi_period_config.rs:249:9:
+assertion `left == right` failed: 【存量 字段类型错(enabled/periods)】GET 必须 200（**不 500**），收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- t6_get_without_key_returns_defaults_200 stdout ----
+
+thread 't6_get_without_key_returns_defaults_200' (1626038) panicked at crates/web/tests/api_multi_period_config.rs:186:5:
+assertion `left == right` failed: GET 无键 ⇒ 200（不得 500）
+  left: 404
+ right: 200
+
+---- t6_max_legal_config_is_accepted stdout ----
+
+thread 't6_max_legal_config_is_accepted' (1626040) panicked at crates/web/tests/api_multi_period_config.rs:500:5:
+assertion `left == right` failed: 4 周期 × 1 指标（pane 4 ≤ 12）⇒ 必须 200，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 200
+
+---- t6_put_rejects_1w_when_base_below_1d stdout ----
+
+thread 't6_put_rejects_1w_when_base_below_1d' (1626042) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【1m+1w】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_base_1mo stdout ----
+
+thread 't6_put_rejects_base_1mo' (1626044) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【基准 1mo】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_duplicate_periods stdout ----
+
+thread 't6_put_rejects_duplicate_periods' (1626046) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【重复 1m,1m】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_heights_keys_mismatching_periods stdout ----
+
+thread 't6_put_rejects_heights_keys_mismatching_periods' (1626048) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【heights 缺 5m 键】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_heights_out_of_range stdout ----
+
+thread 't6_put_rejects_heights_out_of_range' (1626050) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【heights 79 (<80)】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_more_than_4_periods_without_silent_truncation stdout ----
+
+thread 't6_put_rejects_more_than_4_periods_without_silent_truncation' (1626052) panicked at crates/web/tests/api_multi_period_config.rs:373:5:
+assertion `left == right` failed: 前置合法配置必须 200
+  left: 404
+ right: 200
+
+---- t6_put_rejects_satellite_1mo stdout ----
+
+thread 't6_put_rejects_satellite_1mo' (1626057) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【卫星 1mo】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_satellite_below_base stdout ----
+
+thread 't6_put_rejects_satellite_below_base' (1626059) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【5m+卫星 1m】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_rejects_unsupported_indicators stdout ----
+
+thread 't6_put_rejects_unsupported_indicators' (1626061) panicked at crates/web/tests/api_multi_period_config.rs:163:5:
+assertion `left == right` failed: 【indicators=[macd]】必须 400，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 400
+
+---- t6_put_valid_1d_base_with_1w_satellite_is_accepted stdout ----
+
+thread 't6_put_valid_1d_base_with_1w_satellite_is_accepted' (1626063) panicked at crates/web/tests/api_multi_period_config.rs:294:5:
+assertion `left == right` failed: 基准 1d + 卫星 1w ⇒ 必须 200，收到 404 Not Found，body={"error":"not found"}
+  left: 404
+ right: 200
+
+---- t6_put_valid_roundtrip_200_and_readback_identical stdout ----
+
+thread 't6_put_valid_roundtrip_200_and_readback_identical' (1626065) panicked at crates/web/tests/api_multi_period_config.rs:271:5:
+assertion `left == right` failed: PUT 合法 ⇒ 200
+  left: 404
+ right: 200
+
+
+failures:
+    t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values
+    t6_get_without_key_returns_defaults_200
+    t6_max_legal_config_is_accepted
+    t6_put_rejects_1w_when_base_below_1d
+    t6_put_rejects_base_1mo
+    t6_put_rejects_duplicate_periods
+    t6_put_rejects_heights_keys_mismatching_periods
+    t6_put_rejects_heights_out_of_range
+    t6_put_rejects_more_than_4_periods_without_silent_truncation
+    t6_put_rejects_satellite_1mo
+    t6_put_rejects_satellite_below_base
+    t6_put_rejects_unsupported_indicators
+    t6_put_valid_1d_base_with_1w_satellite_is_accepted
+    t6_put_valid_roundtrip_200_and_readback_identical
+
+test result: FAILED. 1 passed; 14 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+error: test failed, to rerun pass `-p web --test api_multi_period_config`

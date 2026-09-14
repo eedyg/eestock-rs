@@ -1,0 +1,12 @@
+### TS parity vectors (multiPeriodMockParity) + strengthened mock.test.ts
+ ✓ src/api/multiPeriodMockParity.test.ts (20 tests) 14ms
+ ✓ src/api/mock.test.ts (45 tests) 41ms
+
+ Test Files  2 passed (2)
+      Tests  65 passed (65)
+   Start at  21:16:02
+   Duration  625ms (transform 107ms, setup 50ms, collect 139ms, tests 55ms, environment 345ms, prepare 281ms)
+
+
+### tsc -b
+tsc exit=0

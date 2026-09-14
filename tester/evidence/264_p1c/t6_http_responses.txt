@@ -1,0 +1,444 @@
+[
+ {
+  "case": "GET 无键 ⇒ 200 默认",
+  "method": "GET",
+  "body": null,
+  "status": 200,
+  "expect": 200,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"enabled\":false,\"periods\":[\"1m\"],\"heights\":{\"1m\":420},\"indicators\":[\"dcap\"]}",
+  "resp_default_enabled_false": true
+ },
+ {
+  "case": "S2-1 基准=1mo",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1mo",
+    "5m"
+   ],
+   "heights": {
+    "1mo": 420,
+    "5m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "periods",
+  "field_present": true,
+  "ok": true,
+  "resp": "{\"error\":\"periods 基准周期非法（须 ∈ [\\\"1m\\\", \\\"5m\\\", \\\"15m\\\", \\\"1h\\\", \\\"1d\\\", \\\"1w\\\"]）：1mo\"}"
+ },
+ {
+  "case": "S2-1 卫星=1mo",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "1mo"
+   ],
+   "heights": {
+    "1m": 420,
+    "1mo": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "periods",
+  "field_present": true,
+  "ok": true,
+  "resp": "{\"error\":\"periods 卫星周期非法（须 ∈ [\\\"1m\\\", \\\"5m\\\", \\\"15m\\\", \\\"1h\\\", \\\"1d\\\", \\\"1w\\\"]）：1mo\"}"
+ },
+ {
+  "case": "S2-2 卫星<基准(15m→5m)",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "15m",
+    "5m"
+   ],
+   "heights": {
+    "15m": 420,
+    "5m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "periods",
+  "field_present": true,
+  "ok": true,
+  "resp": "{\"error\":\"periods 卫星周期 5m 须 ≥ 基准 15m\"}"
+ },
+ {
+  "case": "S2-3 含1w但基准=1h",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1h",
+    "1w"
+   ],
+   "heights": {
+    "1h": 420,
+    "1w": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "periods",
+  "field_present": true,
+  "ok": true,
+  "resp": "{\"error\":\"periods 含 1w 时基准须 ≥ 1d，收到基准 1h\"}"
+ },
+ {
+  "case": "S2-3 正向 基准=1d+1w",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1d",
+    "1w"
+   ],
+   "heights": {
+    "1d": 420,
+    "1w": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 200,
+  "expect": 200,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"enabled\":false,\"periods\":[\"1d\",\"1w\"],\"heights\":{\"1d\":420,\"1w\":180},\"indicators\":[\"dcap\"]}"
+ },
+ {
+  "case": "S2-4 周期数5>4",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m",
+    "1h",
+    "1d"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180,
+    "1h": 180,
+    "1d": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"periods 最多 4 个，收到 5\"}"
+ },
+ {
+  "case": "S2-5 heights键缺项",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"heights 键必须与 periods 一一对应：periods=[\\\"1m\\\", \\\"5m\\\", \\\"15m\\\"] heights键=[\\\"1m\\\", \\\"5m\\\"]\"}"
+ },
+ {
+  "case": "S2-5 heights键多项",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180,
+    "1d": 100
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"heights 键必须与 periods 一一对应：periods=[\\\"1m\\\", \\\"5m\\\", \\\"15m\\\"] heights键=[\\\"15m\\\", \\\"1d\\\", \\\"1m\\\", \\\"5m\\\"]\"}"
+ },
+ {
+  "case": "S2-5 height=79",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 79,
+    "5m": 180,
+    "15m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"heights[1m] 须 ∈ [80,1200]，收到 79\"}"
+ },
+ {
+  "case": "S2-5 height=1201",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 1201,
+    "15m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"heights[5m] 须 ∈ [80,1200]，收到 1201\"}"
+ },
+ {
+  "case": "S2-5 边界 80/1200 合法",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 80,
+    "5m": 180,
+    "15m": 1200
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 200,
+  "expect": 200,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"enabled\":false,\"periods\":[\"1m\",\"5m\",\"15m\"],\"heights\":{\"15m\":1200,\"1m\":80,\"5m\":180},\"indicators\":[\"dcap\"]}"
+ },
+ {
+  "case": "S2-6 indicators=macd",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180
+   },
+   "indicators": [
+    "macd"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "indicators",
+  "field_present": true,
+  "ok": true,
+  "resp": "{\"error\":\"indicators 含未支持项：macd（受支持：[\\\"dcap\\\"]）\"}"
+ },
+ {
+  "case": "S7.4 11×dcap 经 HTTP 被 indicators 拒",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180
+   },
+   "indicators": [
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap",
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": "indicators",
+  "field_present": false,
+  "ok": false,
+  "resp": "{\"error\":\"总 pane 数 23 超上限 12（基准 1 + Σ_卫星指标 pane）\"}"
+ },
+ {
+  "case": "S2-7 周期重复",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "1m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 400,
+  "expect": 400,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"error\":\"periods 重复：1m\"}"
+ },
+ {
+  "case": "负例后 GET 仍默认（未落库）",
+  "status": 200,
+  "resp": "{\"enabled\":false,\"periods\":[\"1m\",\"5m\",\"15m\"],\"heights\":{\"15m\":1200,\"1m\":80,\"5m\":180},\"indicators\":[\"dcap\"]}",
+  "ok": false
+ },
+ {
+  "case": "边界：v1 最大合法形态（4 周期）PUT",
+  "status": 200,
+  "ok": true,
+  "resp": "{\"enabled\":false,\"periods\":[\"1m\",\"5m\",\"15m\",\"1h\"],\"heights\":{\"15m\":180,\"1h\":180,\"1m\":420,\"5m\":180},\"indicators\":[\"dcap\"]}",
+  "readback_identical": true
+ },
+ {
+  "case": "S2-6 indicators 重复（去重 or 400）",
+  "method": "PUT",
+  "body": {
+   "enabled": false,
+   "periods": [
+    "1m",
+    "5m",
+    "15m"
+   ],
+   "heights": {
+    "1m": 420,
+    "5m": 180,
+    "15m": 180
+   },
+   "indicators": [
+    "dcap",
+    "dcap"
+   ]
+  },
+  "status": 200,
+  "expect": 200,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"enabled\":false,\"periods\":[\"1m\",\"5m\",\"15m\"],\"heights\":{\"15m\":180,\"1m\":420,\"5m\":180},\"indicators\":[\"dcap\",\"dcap\"]}"
+ },
+ {
+  "case": "enabled=true 单基准 合法",
+  "method": "PUT",
+  "body": {
+   "enabled": true,
+   "periods": [
+    "1m"
+   ],
+   "heights": {
+    "1m": 420
+   },
+   "indicators": [
+    "dcap"
+   ]
+  },
+  "status": 200,
+  "expect": 200,
+  "expect_field": null,
+  "field_present": null,
+  "ok": true,
+  "resp": "{\"enabled\":true,\"periods\":[\"1m\"],\"heights\":{\"1m\":420},\"indicators\":[\"dcap\"]}"
+ }
+]
+TOTAL 19 FAILED 2

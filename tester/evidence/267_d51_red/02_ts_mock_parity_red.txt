@@ -1,0 +1,82 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/api/multiPeriodMockParity.test.ts (20 tests | 3 failed) 18ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > 向量文件可读且为数组（两侧单一真相） 2ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-single-base-default（expect 200） 2ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-four-periods-max-legal-v1（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-1w-satellite-with-1d-base（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-empty-indicators（expect 200） 0ms
+   × mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-two-identical-indicators（expect 200） 3ms
+     → [dedup-two-identical-indicators] mock 归一化输出必须与后端一致（含 indicators 去重）；note=重复 indicators 去重（2 个）：02-spec §2 校验 6「去重」⇒ 归一化后 ["dcap"]。当前 mock 原样回显 ⇒ 预期红。: expected '{"enabled":true,"heights":{"1m":420,"…' to be '{"enabled":true,"heights":{"1m":420,"…' // Object.is equality
+   × mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 200） 3ms
+     → HTTP 400: 总 pane 数 34 超上限 12
+   × mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-makes-legal-repeated-indicators-over-raw-pane-budget（expect 200） 2ms
+     → HTTP 400: 总 pane 数 16 超上限 12
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > pane-over-limit-after-dedup-names-dimension（expect 400） 1ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-empty-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-more-than-4-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-duplicate-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-1mo-period（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-satellite-below-base（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-1w-with-base-below-1d（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-key-mismatch（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-below-min（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-above-max（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-unsupported-indicator（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-unsupported-indicator-among-supported（expect 400） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-two-identical-indicators（expect 200）
+AssertionError: [dedup-two-identical-indicators] mock 归一化输出必须与后端一致（含 indicators 去重）；note=重复 indicators 去重（2 个）：02-spec §2 校验 6「去重」⇒ 归一化后 ["dcap"]。当前 mock 原样回显 ⇒ 预期红。: expected '{"enabled":true,"heights":{"1m":420,"…' to be '{"enabled":true,"heights":{"1m":420,"…' // Object.is equality
+
+Expected: [32m"{"enabled":true,"heights":{"1m":420,"5m":180},"indicators":["dcap"],"periods":["1m","5m"]}"[39m
+Received: [31m"{"enabled":true,"heights":{"1m":420,"5m":180},"indicators":["dcap"[7m,"dcap"[27m],"periods":["1m","5m"]}"[39m
+
+ ❯ src/api/multiPeriodMockParity.test.ts:88:11
+     86|           stable(out),
+     87|           `[${v.name}] mock 归一化输出必须与后端一致（含 indicators 去重）；note=${v.not…
+     88|         ).toBe(stable(v.expect.normalized));
+       |           ^
+     89|       } else {
+     90|         let err: unknown = null;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 200）
+ApiError: HTTP 400: 总 pane 数 34 超上限 12
+ ❯ bad src/api/mock.ts:202:11
+    200| function assertMultiPeriodConfig(cfg: MultiPeriodConfigDto): void {
+    201|   const bad = (msg: string): never => {
+    202|     throw new ApiError(400, `HTTP 400: ${msg}`);
+       |           ^
+    203|   };
+    204|   const order = ['1m', '5m', '15m', '1h', '1d', '1w'];
+ ❯ assertMultiPeriodConfig src/api/mock.ts:231:19
+ ❯ Object.saveMultiPeriodConfig src/api/mock.ts:1079:7
+ ❯ src/api/multiPeriodMockParity.test.ts:84:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-makes-legal-repeated-indicators-over-raw-pane-budget（expect 200）
+ApiError: HTTP 400: 总 pane 数 16 超上限 12
+ ❯ bad src/api/mock.ts:202:11
+    200| function assertMultiPeriodConfig(cfg: MultiPeriodConfigDto): void {
+    201|   const bad = (msg: string): never => {
+    202|     throw new ApiError(400, `HTTP 400: ${msg}`);
+       |           ^
+    203|   };
+    204|   const order = ['1m', '5m', '15m', '1h', '1d', '1w'];
+ ❯ assertMultiPeriodConfig src/api/mock.ts:231:19
+ ❯ Object.saveMultiPeriodConfig src/api/mock.ts:1079:7
+ ❯ src/api/multiPeriodMockParity.test.ts:84:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 17 passed (20)
+   Start at  21:13:00
+   Duration  482ms (transform 63ms, setup 23ms, collect 58ms, tests 18ms, environment 142ms, prepare 97ms)
+
