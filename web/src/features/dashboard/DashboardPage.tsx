@@ -3,13 +3,13 @@ import { DashboardGrid, DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
 import { defaultApi } from '@/api';
 import { defaultWs } from '@/ws';
 import type { ApiClient } from '@/api/client';
-import type { MultiPeriodConfigDto } from '@/api/types';
+import type { MultiPeriodConfigDto, Period } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { DashboardStore } from './store';
 import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
-import { MultiPeriodStore } from './multiPeriodStore';
-import { MultiPeriodChartStack } from './MultiPeriodChartStack';
+import { MultiPeriodStore, resolveBasePeriod } from './multiPeriodStore';
+import { MultiPeriodChartStack, DEFAULT_SATELLITE_HEIGHT } from './MultiPeriodChartStack';
 import {
   DEFAULT_DCAP_PARAMS,
   dcapWarmupBars,
@@ -253,7 +253,27 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   // warmup 的变化改由 feed.setWarmupBars 热更新 + 图表原地重载（KlineChart 的 warmupBars prop）。
   const dcapWarmup = indicators.dcap ? dcapWarmupBars(dcapParams) : 0;
 
+  // 基准（K 线）周期口径（用户裁决 A）：仅当启用且**确实存在卫星**（periods.length > 1）时，
+  // 基准周期由配置 `periods[0]` 决定；否则一律沿用工具栏/状态周期 state.period（单周期配置不存在
+  // 多周期视图 ⇒ 「启用」不得静默改写用户选的 K 线周期；T11/D4 已锁死该等价性）。
+  // 被配置覆盖时必须**显式可观测**（`basePeriodSource==='config'` ⇒ 页面“基准 x”徽标，禁止静默不一致）。
+  const base = resolveBasePeriod(mpState, state.period);
+  const basePeriod = base.period;
+
+  // 卫星实例定义（配置 `periods[1..]`；高度本轮取 `heights[period]`，拖拽持久化属 P5）。
+  // 仅单图 + K 线页签 + 启用 + 有选中标的时才有卫星（宫格/分时不受影响，02-spec §7.1）。
+  const satellites = useMemo(() => {
+    if (!mpState.enabled || chartTab !== 'kline' || !state.selected) return [];
+    if (mpState.periods.length <= 1) return [];
+    return mpState.periods.slice(1).map((p) => ({
+      period: p as Period,
+      height: mpState.heights[p] ?? DEFAULT_SATELLITE_HEIGHT,
+    }));
+  }, [mpState.enabled, mpState.periods, mpState.heights, chartTab, state.selected]);
+
   // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅。
+  // **基准周期用 basePeriod（口径 A）**：deps 里放 basePeriod（而非 enabled/periods）⇒ 「启用但无卫星」
+  // 时 feed 身份不变（不新建实例/订阅/取数，P1 等价性保持）。
   // `warmupBars` 只取**建 feed 那一刻**的值（构建初值）：后续变化走 setWarmupBars 热更新，故意不入 deps。
   const feed = useMemo(
     () =>
@@ -262,13 +282,13 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
             api,
             ws,
             code: state.selected,
-            period: state.period,
+            period: basePeriod,
             viewportBars,
             warmupBars: dcapWarmup,
           })
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps -- warmup 故意不入 deps（见上：热更新路径）
-    [api, ws, state.selected, state.period, viewportBars],
+    [api, ws, state.selected, basePeriod, viewportBars],
   );
   useEffect(() => () => feed?.dispose(), [feed]);
 
@@ -328,19 +348,37 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
 
       {state.gridMode === 'single' ? (
         <RegionPortal root={rootRef} region="main-chart">
-          <MultiPeriodChartStack enabled={mpState.enabled}>
+          <MultiPeriodChartStack
+            enabled={mpState.enabled}
+            satellites={satellites}
+            api={api}
+            ws={ws}
+            code={state.selected}
+            indicators={indicators}
+            maWindows={maWindows}
+            dcapParams={dcapParams}
+            viewportBars={viewportBars}
+            followLatest={state.followLatest}
+            basePeriod={basePeriod}
+            basePeriodSource={base.source}
+          >
             {state.selected &&
               (chartTab === 'kline' && feed ? (
                 <KlineChart
                   feed={feed}
                   code={state.selected}
-                  period={state.period}
+                  period={basePeriod}
                   followLatest={state.followLatest}
                   indicators={indicators}
                   onManualZoom={() => store.noteManualZoom()}
                   maWindows={maWindows}
                   dcapParams={dcapParams}
                   warmupBars={dcapWarmup}
+                  // 多周期（存在卫星）时基准实例也按配置高度渲染（`heights[periods[0]]`，02-spec §6）；
+                  // 常规单图保持 `h-full`（现状等价）。
+                  heightPx={
+                    satellites.length > 0 ? (mpState.heights[basePeriod] ?? undefined) : undefined
+                  }
                 />
               ) : (
                 <TimeshareChart api={api} ws={ws} code={state.selected} />

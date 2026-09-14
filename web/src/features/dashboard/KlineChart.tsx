@@ -84,6 +84,18 @@ export interface KlineChartProps {
    *  原地重载数据（`chart.resetData()`）——pane 布局/用户拖拽高度/视口均保持（§6 图表契约）。
    *  缺省 0（不 warmup；区间/工作台等未传的调用方行为不变）。 */
   warmupBars?: number;
+  /**
+   * 卫星实例（多周期指标同显，`design/15-multi-period/02-spec.md` §3.4）：
+   *  **隐藏 K 线**（只留指标 pane）。唯一可行手段是 `setPaneOptions({id:'candle_pane', state:'minimize',
+   *  minHeight:0})` + `setStyles({separator:{size:0}})`；`height:0` 会被 klinecharts 静默忽略
+   *  （`index.esm.js:15421` 守卫）。缺省 false ⇒ 既有调用方（看板基准图/宫格/工作台）行为不变。
+   *  副作用：零高 pane 存在时 `getConvertPictureUrl()` 抛 `InvalidStateError` ⇒ 禁止图表导出截图。 */
+  hideCandles?: boolean;
+  /** 图表初始化失败回调（`init()` 返回空/抛错）。卫星用它做「失败可见」（不得静默降级为空白 pane）。 */
+  onInitError?: () => void;
+  /** 实例容器高度 px（多周期基准/卫星按配置 `heights[period]` 渲染，02-spec §6）；缺省 ⇒ `h-full`
+   *  （单图/宫格/工作台现状等价）。拖拽改高与持久化属 P5，本轮只渲染不动手。 */
+  heightPx?: number;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -340,6 +352,9 @@ export function KlineChart(props: KlineChartProps) {
   followRef.current = props.followLatest;
   const onManualZoomRef = useRef(props.onManualZoom);
   onManualZoomRef.current = props.onManualZoom;
+  const onInitErrorRef = useRef(props.onInitError);
+  onInitErrorRef.current = props.onInitError;
+  const hideCandles = props.hideCandles ?? false;
   const feed = props.feed;
   /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
   const viewportBars = feed.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
@@ -371,8 +386,17 @@ export function KlineChart(props: KlineChartProps) {
   // 回布局默认高 `100`（02-spec §6「不得重建 pane」）。
   useEffect(() => {
     if (!ref.current) return;
-    const chart = init(ref.current);
-    if (!chart) return;
+    let chart: Chart | null = null;
+    try {
+      chart = init(ref.current);
+    } catch {
+      chart = null;
+    }
+    if (!chart) {
+      // 初始化失败必须**可见报错**（卫星实例走 onInitError ⇒ 页面横幅），不得静默留白。
+      onInitErrorRef.current?.();
+      return;
+    }
     chartRef.current = chart;
     applyDarkTerminalStyles(chart);
     appliedRef.current = new Map(); // 新图 ⇒ 差分基线重置（不得跨建图复用）
@@ -390,6 +414,17 @@ export function KlineChart(props: KlineChartProps) {
       setRt(null);
     };
   }, []);
+
+  // Effect H —— 卫星实例隐藏 K 线（P2，02-spec §3.4 唯一可行手段）。
+  // 必须在 Effect L 之后（此时 chart 已 init）：`state:'minimize' + minHeight:0` 折叠 candle pane，
+  // 并用 `separator:{size:0}` 消除零高 pane 的残留分隔条；**不得**依赖 `height:0`（被库静默忽略）。
+  // 只作用于本实例（基准实例 hideCandles=false ⇒ 一条调用都不发，T2-1 ⑥）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !hideCandles) return;
+    chart.setPaneOptions({ id: 'candle_pane', state: 'minimize', minHeight: 0 });
+    chart.setStyles({ separator: { size: 0 } });
+  }, [hideCandles]);
 
   // Effect W —— 数据接线（`feed` 身份变化 = 数据面变化：切 period / 切 stock / 视口配置变化）。
   // **同一 chart 实例上原地切换**（换 DataLoader + `setSymbol` + `setPeriod`；数据重载由引擎在这三步
@@ -578,7 +613,12 @@ export function KlineChart(props: KlineChartProps) {
   }, [props.followLatest]);
 
   return (
-    <div ref={ref} data-testid="kline-chart" className="relative h-full w-full">
+    <div
+      ref={ref}
+      data-testid="kline-chart"
+      style={props.heightPx != null ? { height: `${props.heightPx}px` } : undefined}
+      className="relative h-full w-full"
+    >
       {/* R2：非跟随态下新 bar 落在视口之外 ⇒ 「有新数据」提示（轻量、非侵入）。
           **不改变视口**；点击才 `scrollToRealTime()` 跳最新（诊断 §6(a)2）。 */}
       {pendingNew > 0 && (

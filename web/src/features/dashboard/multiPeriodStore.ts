@@ -1,5 +1,5 @@
 import type { ApiClient } from '@/api/client';
-import type { MultiPeriodConfigDto } from '@/api/types';
+import type { MultiPeriodConfigDto, Period } from '@/api/types';
 
 /**
  * 多周期指标同显运行态（`design/15-multi-period/02-spec.md` §1「multiPeriodStore（新）」）。
@@ -22,6 +22,38 @@ export interface MultiPeriodState {
   syncDegraded: boolean;
   /** T8bis：最近一次对齐跨度差（分钟）；无记录 ⇒ null（不得伪造 0）。 */
   lastSpanDiffMinutes: number | null;
+  /**
+   * **基准周期口径（用户裁决 A，2026-09-14）**：基准（K 线）周期由配置 `periods[0]` 决定，
+   * **仅当确实存在卫星（`enabled && periods.length > 1`）**；否则一律沿用工具栏/状态里的周期。
+   * 理由：单周期配置下不存在多周期视图，「启用」不得静默改写用户选的 K 线周期
+   * （P1 已验收契约：`enabled=false` 与「enabled=true 但无卫星」都必须与现状等价）。
+   * 该覆盖必须是**显式可观测**的（禁止静默不一致；P5 的周期选择器会同时写 `periods[0]` 与状态周期）。
+   */
+  basePeriodOverridden: boolean;
+  /** 基准周期来源：`config`（被 `periods[0]` 覆盖）| `toolbar`（沿用工具栏/状态周期）。 */
+  basePeriodSource: 'config' | 'toolbar';
+}
+
+/** 基准周期口径推导（纯函数，裁决 A）：存在卫星时由配置决定，否则沿用调用方周期。 */
+export function basePeriodDerivation(
+  enabled: boolean,
+  periods: readonly string[],
+): { basePeriodOverridden: boolean; basePeriodSource: 'config' | 'toolbar' } {
+  const basePeriodOverridden = enabled && periods.length > 1;
+  return { basePeriodOverridden, basePeriodSource: basePeriodOverridden ? 'config' : 'toolbar' };
+}
+
+/** 解析基准（K 线）周期：仅当「启用且存在卫星」时 = `periods[0]`，否则 = 工具栏/状态周期。 */
+export function resolveBasePeriod(
+  state: Pick<MultiPeriodState, 'enabled' | 'periods'>,
+  toolbarPeriod: Period,
+): { period: Period; source: 'config' | 'toolbar'; overridden: boolean } {
+  const { basePeriodOverridden, basePeriodSource } = basePeriodDerivation(state.enabled, state.periods);
+  return {
+    period: (basePeriodOverridden ? (state.periods[0] as Period) : toolbarPeriod),
+    source: basePeriodSource,
+    overridden: basePeriodOverridden,
+  };
 }
 
 /** 服务端默认（GET /api/config/multi_period 无键/坏值时后端兜底；此处为前端初始态，同构）。
@@ -42,6 +74,7 @@ function toState(cfg: MultiPeriodConfigDto): MultiPeriodState {
     indicators: [...cfg.indicators],
     syncDegraded: false,
     lastSpanDiffMinutes: null,
+    ...basePeriodDerivation(cfg.enabled, cfg.periods),
   };
 }
 
@@ -74,7 +107,9 @@ export class MultiPeriodStore {
 
   private patch(p: Partial<MultiPeriodState>): void {
     if (this.disposed) return;
-    this.current = { ...this.current, ...p };
+    // 派生字段（基准周期口径）在每次变更后重算：调用方无需（也不得）手工维护，避免静默不一致。
+    const merged = { ...this.current, ...p };
+    this.current = { ...merged, ...basePeriodDerivation(merged.enabled, merged.periods) };
     this.listeners.forEach((l) => l());
   }
 
