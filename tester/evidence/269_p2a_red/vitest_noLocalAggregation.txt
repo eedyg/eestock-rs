@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/multiPeriodNoLocalAggregation.test.ts (5 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  21:39:35
+   Duration  547ms (transform 27ms, setup 40ms, collect 15ms, tests 10ms, environment 169ms, prepare 111ms)
+

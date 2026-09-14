@@ -1,0 +1,51 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx (10 tests | 1 failed) 436ms
+   ✓ T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0 45ms
+   ✓ T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-2 卫星实例高度 = heights[period]（指标 pane 填满实例容器） 14ms
+   ✓ T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-3 缩放/滚动后仍成立：不重建实例、折叠不回弹、分隔条仍为 0 18ms
+   ✓ T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-1 基准勾选 {MA,MACD,KDJ,BOLL,DCAP} ⇒ 每个卫星各自非空且集合一致 86ms
+   ✓ T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-2 叠加指标必须走 addOverlayIndicator：所有 createIndicator 显式 isStack=true 且无静默顶掉 58ms
+   ✓ T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-3 DCAP 逐实例：precision 5 + 0 参考线（zero figure）+ 数据不足断线 49ms
+   ✓ T8 数据与预算（G3：4 周期 × 1 标的） > T8-1 每实例 1 个 KlineDataFeed：4 次 init / 每周期各 1 次初始化 HTTP / 4 个 bar: 订阅 14ms
+   × T8 数据与预算（G3：4 周期 × 1 标的） > T8-2 每分钟兜底 ≤4、按 (code,period) 各自成 key（不跨周期合并）、并发闸 ≤3 86ms
+     → 兜底必须覆盖全部 4 个周期（每周期 ≤1 次/分钟）: expected [ '15m', '1m', '5m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+   ✓ T8 数据与预算（G3：4 周期 × 1 标的） > T8-3 warmup 口径：DCAP 显示时每实例都必须 warmup（窗口 limit = viewport+warmup 或 before 游标补取） 50ms
+   ✓ T8 数据与预算（G3：4 周期 × 1 标的） > T8-4 禁止本地聚合（行为级）：每周期请求命中各自 period，不得用基准周期聚合替代 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T8 数据与预算（G3：4 周期 × 1 标的） > T8-2 每分钟兜底 ≤4、按 (code,period) 各自成 key（不跨周期合并）、并发闸 ≤3
+AssertionError: 兜底必须覆盖全部 4 个周期（每周期 ≤1 次/分钟）: expected [ '15m', '1m', '5m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "15m",[22m
+[32m-   "1h",[39m
+[2m    "1m",[22m
+[2m    "5m",[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:654:60
+    652|     ).toBe(polls.length);
+    653|     expect(polls.length, '每分钟兜底请求数 ≤ 4（4 周期 × 1 标的）').toBeLessThanOrEq…
+    654|     expect(pollKeys.sort(), '兜底必须覆盖全部 4 个周期（每周期 ≤1 次/分钟）').toEqual([
+       |                                                            ^
+    655|       '15m',
+    656|       '1h',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  21:52:43
+   Duration  1.03s (transform 143ms, setup 23ms, collect 214ms, tests 436ms, environment 132ms, prepare 94ms)
+

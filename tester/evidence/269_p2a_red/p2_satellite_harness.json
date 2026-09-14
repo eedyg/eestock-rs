@@ -1,0 +1,259 @@
+{
+  "url": "file:///home/eestock/workspace/git/eestock/eestock-rs/web/tester/p2-satellite-harness/harness.html",
+  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+  "errors": [],
+  "console": [],
+  "networkNonFile": [],
+  "checks": [
+    {
+      "name": "L1 库事实：setPaneOptions({height:0}) 单独使用不会把高度变 0（被静默忽略）",
+      "ok": true
+    },
+    {
+      "name": "L1b 库事实：height:0 后高度确实**不是** 0",
+      "ok": true
+    },
+    {
+      "name": "L2 state:minimize+minHeight:0 ⇒ candle pane rect 高度 = 0",
+      "ok": true
+    },
+    {
+      "name": "L2b 指标 pane 填满实例容器",
+      "ok": true
+    },
+    {
+      "name": "L3 separator.size=0 ⇒ 相邻 pane 间隙 = 0",
+      "ok": true
+    },
+    {
+      "name": "L4 缩放/滚动后 candle pane 仍为 0 高",
+      "ok": true
+    },
+    {
+      "name": "L4b 缩放/滚动后间隙仍为 0",
+      "ok": true
+    },
+    {
+      "name": "L5 零高 pane 下 getConvertPictureUrl() 抛错（⇒ G4 禁用图表导出）",
+      "ok": true
+    },
+    {
+      "name": "L6 指标确实被绘制（画布 fillText 打点阳性对照）",
+      "ok": true
+    },
+    {
+      "name": "L6b 0 参考线图例被绘制",
+      "ok": true
+    },
+    {
+      "name": "L7 state:normal 可还原",
+      "ok": true
+    }
+  ],
+  "steps": {
+    "S0_baseline": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "rectCandle": {
+        "top": 8,
+        "bottom": 502,
+        "height": 494,
+        "width": 894.92
+      }
+    },
+    "S1_indicator_pane": {
+      "createReturn": "P2SAT_1789393118961_1",
+      "indicatorPaneId": "indicator_pane_1789393118961_2",
+      "panes": [
+        {
+          "id": "candle_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "indicator_pane_1789393118961_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "rectInd": {
+        "top": 402,
+        "bottom": 502,
+        "height": 100,
+        "width": 895
+      },
+      "rectCandle": {
+        "top": 8,
+        "bottom": 401,
+        "height": 393,
+        "width": 895
+      }
+    },
+    "S2_height0_alone": {
+      "paneOpt": {
+        "minHeight": 30,
+        "dragEnabled": true,
+        "order": 0,
+        "height": 393,
+        "state": "normal",
+        "id": "candle_pane"
+      },
+      "rectCandleBefore": {
+        "top": 8,
+        "bottom": 401,
+        "height": 393,
+        "width": 895
+      },
+      "rectCandleAfter": {
+        "top": 8,
+        "bottom": 401,
+        "height": 393,
+        "width": 895
+      },
+      "heightUnchanged": true,
+      "heightIsZero": false
+    },
+    "S3_minimize": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "height": 393,
+          "minHeight": 0,
+          "state": "minimize"
+        },
+        {
+          "id": "indicator_pane_1789393118961_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "rectCandle": {
+        "top": 8,
+        "bottom": 8,
+        "height": 0,
+        "width": 895
+      },
+      "rectInd": {
+        "top": 9,
+        "bottom": 502,
+        "height": 493,
+        "width": 895
+      },
+      "candleHeightIsZero": true,
+      "indFillsContainer": true
+    },
+    "S4_separator0": {
+      "gapPx": 0,
+      "rectCandle": {
+        "top": 8,
+        "bottom": 8,
+        "height": 0,
+        "width": 895
+      },
+      "rectInd": {
+        "top": 8,
+        "bottom": 502,
+        "height": 494,
+        "width": 895
+      }
+    },
+    "S5_zoom_scroll": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "height": 393,
+          "minHeight": 0,
+          "state": "minimize"
+        },
+        {
+          "id": "indicator_pane_1789393118961_2",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        },
+        {
+          "id": "x_axis_pane",
+          "height": 100,
+          "minHeight": 30,
+          "state": "normal"
+        }
+      ],
+      "rectCandle": {
+        "top": 8,
+        "bottom": 8,
+        "height": 0,
+        "width": 895
+      },
+      "rectInd": {
+        "top": 8,
+        "bottom": 502,
+        "height": 494,
+        "width": 895
+      },
+      "gapPx": 0,
+      "candleHeightStillZero": true,
+      "gapStillZero": true
+    },
+    "S6_export_throws": {
+      "threw": true,
+      "name": "InvalidStateError",
+      "message": "Failed to execute 'drawImage' on 'CanvasRenderingContext2D': The image argument is a canvas element with a width or height of 0."
+    },
+    "S7_drawn_texts": {
+      "fillTextCount": 199,
+      "hasIndicatorLegend": true,
+      "zeroLineLegend": true,
+      "sample": [
+        "4.00000",
+        "5.00000",
+        "6.00000",
+        "7.00000",
+        "8.00000",
+        "9.00000",
+        "10.00000",
+        "11:06",
+        "11:12",
+        "11:18",
+        "11:24",
+        "11:30"
+      ]
+    },
+    "S8_restore_normal": {
+      "rectCandle": {
+        "top": 8,
+        "bottom": 402,
+        "height": 394,
+        "width": 895
+      },
+      "restored": true
+    }
+  },
+  "screenshot": "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/269_p2a_red/p2_satellite_harness.png"
+}

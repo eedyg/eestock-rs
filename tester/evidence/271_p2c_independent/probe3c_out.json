@@ -1,0 +1,1578 @@
+{
+  "port": 47767,
+  "nonLocalRequests": [],
+  "logs": [
+    "[warning] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "[warning] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "[warning] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently",
+    "[warning] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently"
+  ],
+  "result": {
+    "__queriesByPeriod": {
+      "15m": [
+        {
+          "limit": 120,
+          "before": null
+        },
+        {
+          "limit": 182,
+          "before": null
+        },
+        {
+          "limit": 120,
+          "before": null
+        },
+        {
+          "limit": 120,
+          "before": null
+        }
+      ],
+      "1m": [
+        {
+          "limit": 182,
+          "before": null
+        }
+      ],
+      "5m": [
+        {
+          "limit": 182,
+          "before": null
+        }
+      ],
+      "1h": [
+        {
+          "limit": 182,
+          "before": null
+        }
+      ]
+    },
+    "__paneDetail": {
+      "paneId": "indicator_pane_1789394405596_6",
+      "canvases": [
+        {
+          "w": 1383,
+          "h": 100,
+          "zeroPixels": 495,
+          "zeroRows": [
+            {
+              "y": 55,
+              "n": 487
+            },
+            {
+              "y": 52,
+              "n": 3
+            },
+            {
+              "y": 59,
+              "n": 3
+            },
+            {
+              "y": 60,
+              "n": 2
+            }
+          ]
+        },
+        {
+          "w": 1383,
+          "h": 100,
+          "zeroPixels": 172,
+          "zeroRows": [
+            {
+              "y": 17,
+              "n": 30
+            },
+            {
+              "y": 12,
+              "n": 27
+            },
+            {
+              "y": 18,
+              "n": 26
+            },
+            {
+              "y": 11,
+              "n": 22
+            },
+            {
+              "y": 13,
+              "n": 18
+            },
+            {
+              "y": 14,
+              "n": 17
+            }
+          ]
+        },
+        {
+          "w": 57,
+          "h": 100,
+          "zeroPixels": 0,
+          "zeroRows": []
+        },
+        {
+          "w": 57,
+          "h": 100,
+          "zeroPixels": 0,
+          "zeroRows": []
+        }
+      ],
+      "texts": [
+        {
+          "text": "S: ",
+          "x": 149.001953125,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.0{3}74",
+          "x": 162.009765625,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "M: ",
+          "x": 222.529296875,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.00338",
+          "x": 239.533203125,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "L: ",
+          "x": 294.533203125,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.00560",
+          "x": 308.197265625,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0: ",
+          "x": 363.197265625,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.00000",
+          "x": 375.53125,
+          "y": 10,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "-0.00400",
+          "x": 8,
+          "y": 77,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.00000",
+          "x": 8,
+          "y": 49,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        },
+        {
+          "text": "0.00400",
+          "x": 8,
+          "y": 21,
+          "bl": "top",
+          "font": "12px \"Helvetica Neue\""
+        }
+      ]
+    },
+    "base:baseline": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 0,
+            "h": 192,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405594_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 193,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405594_6",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 294,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 394,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405594_3",
+          "precision": 0
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789394405594_6",
+          "precision": 5
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405594_3",
+        "indicator_pane_1789394405594_6"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 0,
+            "h": 192,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 192
+            },
+            {
+              "w": 1383,
+              "h": 192
+            },
+            {
+              "w": 57,
+              "h": 192
+            },
+            {
+              "w": 57,
+              "h": 192
+            }
+          ],
+          "upHits": 1050,
+          "downHits": 708,
+          "axisHits": 2649,
+          "zeroHits": 200,
+          "coloredHits": 10076,
+          "zeroRows": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            180,
+            181,
+            182
+          ]
+        },
+        "indicator_pane_1789394405594_3": {
+          "rect": {
+            "top": 193,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 430,
+          "zeroHits": 3040,
+          "coloredHits": 65159,
+          "zeroRows": [
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        "indicator_pane_1789394405594_6": {
+          "rect": {
+            "top": 294,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 934,
+          "zeroHits": 659,
+          "coloredHits": 4929,
+          "zeroRows": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            55
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 394,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 26
+            },
+            {
+              "w": 1383,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 660,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": "indicator_pane_1789394405594_6",
+      "maPane": "candle_pane"
+    },
+    "sat:1m": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "minimize",
+          "height": 137,
+          "minHeight": 0,
+          "rect": {
+            "top": 436.8,
+            "h": 0,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405596_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 436.8,
+            "h": 37,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405596_6",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 473.8,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 573.8,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405596_3",
+          "precision": 0
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789394405596_6",
+          "precision": 5
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405596_3",
+        "indicator_pane_1789394405596_6"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 436.8,
+            "h": 0,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 0,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        },
+        "indicator_pane_1789394405596_3": {
+          "rect": {
+            "top": 436.8,
+            "h": 37,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 302,
+          "zeroHits": 1080,
+          "coloredHits": 24543,
+          "zeroRows": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "indicator_pane_1789394405596_6": {
+          "rect": {
+            "top": 473.8,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 934,
+          "zeroHits": 667,
+          "coloredHits": 5990,
+          "zeroRows": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            55
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 573.8,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 26
+            },
+            {
+              "w": 1383,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 746,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": "indicator_pane_1789394405596_6",
+      "maPane": "candle_pane"
+    },
+    "sat:5m": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "minimize",
+          "height": 137,
+          "minHeight": 0,
+          "rect": {
+            "top": 616.8,
+            "h": 0,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405601_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 616.8,
+            "h": 37,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405601_6",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 653.8,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 753.8,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405601_3",
+          "precision": 0
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789394405601_6",
+          "precision": 5
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405601_3",
+        "indicator_pane_1789394405601_6"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 616.8,
+            "h": 0,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 0,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        },
+        "indicator_pane_1789394405601_3": {
+          "rect": {
+            "top": 616.8,
+            "h": 37,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 302,
+          "zeroHits": 1080,
+          "coloredHits": 24543,
+          "zeroRows": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "indicator_pane_1789394405601_6": {
+          "rect": {
+            "top": 653.8,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 934,
+          "zeroHits": 667,
+          "coloredHits": 5990,
+          "zeroRows": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            55
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 753.8,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 26
+            },
+            {
+              "w": 1383,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 694,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": "indicator_pane_1789394405601_6",
+      "maPane": "candle_pane"
+    },
+    "sat:15m": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "minimize",
+          "height": 137,
+          "minHeight": 0,
+          "rect": {
+            "top": 796.8,
+            "h": 0,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405602_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 796.8,
+            "h": 37,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405602_6",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 833.8,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 933.8,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405602_3",
+          "precision": 0
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789394405602_6",
+          "precision": 5
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405602_3",
+        "indicator_pane_1789394405602_6"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 796.8,
+            "h": 0,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 0,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        },
+        "indicator_pane_1789394405602_3": {
+          "rect": {
+            "top": 796.8,
+            "h": 37,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 302,
+          "zeroHits": 1080,
+          "coloredHits": 24543,
+          "zeroRows": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "indicator_pane_1789394405602_6": {
+          "rect": {
+            "top": 833.8,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 934,
+          "zeroHits": 667,
+          "coloredHits": 5990,
+          "zeroRows": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            55
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 933.8,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 26
+            },
+            {
+              "w": 1383,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 695,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": "indicator_pane_1789394405602_6",
+      "maPane": "candle_pane"
+    },
+    "sat:1h": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "minimize",
+          "height": 137,
+          "minHeight": 0,
+          "rect": {
+            "top": 976.8,
+            "h": 0,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405603_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 976.8,
+            "h": 37,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405603_6",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1013.8,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1113.8,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405603_3",
+          "precision": 0
+        },
+        {
+          "name": "DCAP",
+          "paneId": "indicator_pane_1789394405603_6",
+          "precision": 5
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405603_3",
+        "indicator_pane_1789394405603_6"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 976.8,
+            "h": 0,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 1383,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            },
+            {
+              "w": 57,
+              "h": 0
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 0,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        },
+        "indicator_pane_1789394405603_3": {
+          "rect": {
+            "top": 976.8,
+            "h": 37,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 1383,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            },
+            {
+              "w": 57,
+              "h": 37
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 302,
+          "zeroHits": 1080,
+          "coloredHits": 24543,
+          "zeroRows": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        "indicator_pane_1789394405603_6": {
+          "rect": {
+            "top": 1013.8,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 1383,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            },
+            {
+              "w": 57,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 934,
+          "zeroHits": 667,
+          "coloredHits": 5990,
+          "zeroRows": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            55
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 1113.8,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1383,
+              "h": 26
+            },
+            {
+              "w": 1383,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 1489,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": "indicator_pane_1789394405603_6",
+      "maPane": "candle_pane"
+    },
+    "base:candle-visible": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1140,
+            "h": 53,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405604_4",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1194,
+            "h": 100,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1294,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405604_4",
+          "precision": 0
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405604_4"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 1140,
+            "h": 53,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1399,
+              "h": 53
+            },
+            {
+              "w": 1399,
+              "h": 53
+            },
+            {
+              "w": 41,
+              "h": 53
+            },
+            {
+              "w": 41,
+              "h": 53
+            }
+          ],
+          "upHits": 489,
+          "downHits": 272,
+          "axisHits": 1931,
+          "zeroHits": 80,
+          "coloredHits": 7485,
+          "zeroRows": [
+            0,
+            1,
+            2,
+            3,
+            52
+          ]
+        },
+        "indicator_pane_1789394405604_4": {
+          "rect": {
+            "top": 1194,
+            "h": 100,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1399,
+              "h": 100
+            },
+            {
+              "w": 1399,
+              "h": 100
+            },
+            {
+              "w": 41,
+              "h": 100
+            },
+            {
+              "w": 41,
+              "h": 100
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 430,
+          "zeroHits": 3040,
+          "coloredHits": 66011,
+          "zeroRows": [
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 1294,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1399,
+              "h": 26
+            },
+            {
+              "w": 1399,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 660,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": null,
+      "maPane": "candle_pane"
+    },
+    "base:dcap-off": {
+      "panes": [
+        {
+          "id": "candle_pane",
+          "state": "minimize",
+          "height": 154,
+          "minHeight": 0,
+          "rect": {
+            "top": 1320,
+            "h": 0,
+            "w": 1440
+          }
+        },
+        {
+          "id": "indicator_pane_1789394405605_3",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1320,
+            "h": 154,
+            "w": 1440
+          }
+        },
+        {
+          "id": "x_axis_pane",
+          "state": "normal",
+          "height": 100,
+          "minHeight": 30,
+          "rect": {
+            "top": 1474,
+            "h": 26,
+            "w": 1440
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "name": "MA",
+          "paneId": "candle_pane",
+          "precision": 3
+        },
+        {
+          "name": "VOL",
+          "paneId": "indicator_pane_1789394405605_3",
+          "precision": 0
+        }
+      ],
+      "paneIds": [
+        "candle_pane",
+        "indicator_pane_1789394405605_3"
+      ],
+      "perPane": {
+        "candle_pane": {
+          "rect": {
+            "top": 1320,
+            "h": 0,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1403,
+              "h": 0
+            },
+            {
+              "w": 1403,
+              "h": 0
+            },
+            {
+              "w": 37,
+              "h": 0
+            },
+            {
+              "w": 37,
+              "h": 0
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 0,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        },
+        "indicator_pane_1789394405605_3": {
+          "rect": {
+            "top": 1320,
+            "h": 154,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1403,
+              "h": 154
+            },
+            {
+              "w": 1403,
+              "h": 154
+            },
+            {
+              "w": 37,
+              "h": 154
+            },
+            {
+              "w": 37,
+              "h": 154
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 430,
+          "zeroHits": 4680,
+          "coloredHits": 100572,
+          "zeroRows": [
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34
+          ]
+        },
+        "x_axis_pane": {
+          "rect": {
+            "top": 1474,
+            "h": 26,
+            "w": 1440
+          },
+          "canvases": [
+            {
+              "w": 1403,
+              "h": 26
+            },
+            {
+              "w": 1403,
+              "h": 26
+            }
+          ],
+          "upHits": 0,
+          "downHits": 0,
+          "axisHits": 660,
+          "zeroHits": 0,
+          "coloredHits": 0,
+          "zeroRows": []
+        }
+      },
+      "dcapPane": null,
+      "maPane": "candle_pane"
+    }
+  }
+}

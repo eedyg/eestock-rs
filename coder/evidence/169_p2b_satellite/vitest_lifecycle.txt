@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx > L4 G3 预算护栏（4 周期 × 1 标的） > L4-1 初始化 HTTP=4（每周期恰 1）、WS 订阅=4（各 1 活跃）、每分钟兜底 ≤4 且并发闸 ≤3、不丢请求
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx (6 tests) 579ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  21:52:44
+   Duration  1.16s (transform 141ms, setup 23ms, collect 221ms, tests 579ms, environment 131ms, prepare 92ms)
+

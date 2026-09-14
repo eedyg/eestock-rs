@@ -1,0 +1,193 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx (10 tests | 10 failed) 546ms
+   × T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0 62ms
+     → 每个实例各 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+   × T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-2 卫星实例高度 = heights[period]（指标 pane 填满实例容器） 19ms
+     → 卫星实例数 = periods[1..] 长度（1）: expected +0 to be 1 // Object.is equality
+   × T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-3 缩放/滚动后仍成立：不重建实例、折叠不回弹、分隔条仍为 0 23ms
+     → 缩放/滚动不得重建实例（init 计数不变）: expected "spy" to be called 2 times, but got 1 times
+   × T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-1 基准勾选 {MA,MACD,KDJ,BOLL,DCAP} ⇒ 每个卫星各自非空且集合一致 109ms
+     → 实例数 = 1 基准 + 1 卫星: expected 1 to be 2 // Object.is equality
+   × T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-2 叠加指标必须走 addOverlayIndicator：所有 createIndicator 显式 isStack=true 且无静默顶掉 84ms
+     → 前置：每实例 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+   × T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-3 DCAP 逐实例：precision 5 + 0 参考线（zero figure）+ 数据不足断线 64ms
+     → 前置：每实例 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+   × T8 数据与预算（G3：4 周期 × 1 标的） > T8-1 每实例 1 个 KlineDataFeed：4 次 init / 每周期各 1 次初始化 HTTP / 4 个 bar: 订阅 17ms
+     → 4 周期 ⇒ 4 个 chart 实例（每实例一个 feed）: expected "spy" to be called 4 times, but got 1 times
+   × T8 数据与预算（G3：4 周期 × 1 标的） > T8-2 每分钟兜底 ≤4、按 (code,period) 各自成 key（不跨周期合并）、并发闸 ≤3 84ms
+     → 前置：4 实例已建: expected "spy" to be called 4 times, but got 1 times
+   × T8 数据与预算（G3：4 周期 × 1 标的） > T8-3 warmup 口径：DCAP 显示时每实例都必须 warmup（窗口 limit = viewport+warmup 或 before 游标补取） 65ms
+     → 前置：4 个实例都必须有取数记录: expected [ '15m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+   × T8 数据与预算（G3：4 周期 × 1 标的） > T8-4 禁止本地聚合（行为级）：每周期请求命中各自 period，不得用基准周期聚合替代 18ms
+     → expected [ '15m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-1 卫星 candle_pane 必须用 state:"minimize"+minHeight:0 折叠、separator.size=0；且不得依赖 height:0
+AssertionError: 每个实例各 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:321:49
+    319| 
+    320|     // ① 实例数 = 1 基准 + 1 卫星
+    321|     expect(init, '每个实例各 1 次 init（基准 1 + 卫星 1）').toHaveBeenCalledTimes(…
+       |                                                 ^
+    322|     expect(satellitePeriods(view.container), '卫星根元素必须带 data-mp-satelli…
+    323|       '1h',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-2 卫星实例高度 = heights[period]（指标 pane 填满实例容器）
+AssertionError: 卫星实例数 = periods[1..] 长度（1）: expected +0 to be 1 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:365:54
+    363|     const { view } = await renderEnabled(MP_2);
+    364|     const els = satelliteEls(view.container);
+    365|     expect(els.length, '卫星实例数 = periods[1..] 长度（1）').toBe(1);
+       |                                                      ^
+    366|     for (const el of els) {
+    367|       const period = el.getAttribute('data-mp-satellite')!;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T2 卫星实例隐藏 K 线（state:minimize + separator:0） > T2-3 缩放/滚动后仍成立：不重建实例、折叠不回弹、分隔条仍为 0
+AssertionError: 缩放/滚动不得重建实例（init 计数不变）: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:397:44
+    395|     });
+    396| 
+    397|     expect(init, '缩放/滚动不得重建实例（init 计数不变）').toHaveBeenCalledTimes(2);
+       |                                            ^
+    398|     expect(satellitePeriods(view.container), '卫星实例不得消失/重建').toEqual(['…
+    399| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-1 基准勾选 {MA,MACD,KDJ,BOLL,DCAP} ⇒ 每个卫星各自非空且集合一致
+AssertionError: 实例数 = 1 基准 + 1 卫星: expected 1 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:450:46
+    448| 
+    449|     const idxs = [baseIndex(), ...satelliteIndexes()];
+    450|     expect(idxs.length, '实例数 = 1 基准 + 1 卫星').toBe(2);
+       |                                              ^
+    451| 
+    452|     for (const i of idxs) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-2 叠加指标必须走 addOverlayIndicator：所有 createIndicator 显式 isStack=true 且无静默顶掉
+AssertionError: 前置：每实例 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:474:50
+    472| 
+    473|     // 前置：卫星实例必须在（否则本用例只覆盖基准实例 ⇒ 断言空洞）
+    474|     expect(init, '前置：每实例 1 次 init（基准 1 + 卫星 1）').toHaveBeenCalledTimes…
+       |                                                  ^
+    475|     expect(satellitePeriods(view.container), '前置：卫星实例存在').toEqual(['1h…
+    476| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T5 指标继承（每实例各自渲染基准勾选集合；除 LIVE 段） > T5-3 DCAP 逐实例：precision 5 + 0 参考线（zero figure）+ 数据不足断线
+AssertionError: 前置：每实例 1 次 init（基准 1 + 卫星 1）: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:518:50
+    516|     const idxs = [baseIndex(), ...satelliteIndexes()];
+    517|     // 前置：逐实例 = 基准 + 每个卫星（否则只验基准实例 ⇒ 断言空洞）
+    518|     expect(init, '前置：每实例 1 次 init（基准 1 + 卫星 1）').toHaveBeenCalledTimes…
+       |                                                  ^
+    519|     expect(satellitePeriods(view.container), '前置：卫星实例存在').toEqual(['1h…
+    520|     expect(idxs.length, '前置：实例数 = 2').toBe(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T8 数据与预算（G3：4 周期 × 1 标的） > T8-1 每实例 1 个 KlineDataFeed：4 次 init / 每周期各 1 次初始化 HTTP / 4 个 bar: 订阅
+AssertionError: 4 周期 ⇒ 4 个 chart 实例（每实例一个 feed）: expected "spy" to be called 4 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:594:53
+    592|     const { ws, getKline } = await renderEnabled(MP_4);
+    593| 
+    594|     expect(init, '4 周期 ⇒ 4 个 chart 实例（每实例一个 feed）').toHaveBeenCalledTi…
+       |                                                     ^
+    595|     expect(
+    596|       satellitePeriods(document.querySelector('[data-region="main-char…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T8 数据与预算（G3：4 周期 × 1 标的） > T8-2 每分钟兜底 ≤4、按 (code,period) 各自成 key（不跨周期合并）、并发闸 ≤3
+AssertionError: 前置：4 实例已建: expected "spy" to be called 4 times, but got 1 times
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:632:31
+    630| 
+    631|     const { getKline } = await renderEnabled(MP_4);
+    632|     expect(init, '前置：4 实例已建').toHaveBeenCalledTimes(4);
+       |                               ^
+    633| 
+    634|     // 让兜底请求**挂起**（不 resolve）⇒ 观测并发闸与排队行为
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T8 数据与预算（G3：4 周期 × 1 标的） > T8-3 warmup 口径：DCAP 显示时每实例都必须 warmup（窗口 limit = viewport+warmup 或 before 游标补取）
+AssertionError: 前置：4 个实例都必须有取数记录: expected [ '15m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "15m",[22m
+[32m-   "1h",[39m
+[32m-   "1m",[39m
+[32m-   "5m",[39m
+[2m  ][22m
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:694:60
+    692|     // 前置：4 个周期都必须有取数（否则本用例对「卫星是否 warmup」空洞）
+    693|     const grouped = byPeriod(nonPollQueries(getKline));
+    694|     expect([...grouped.keys()].sort(), '前置：4 个实例都必须有取数记录').toEqual([
+       |                                                            ^
+    695|       '15m',
+    696|       '1h',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSatellite.test.tsx > T8 数据与预算（G3：4 周期 × 1 标的） > T8-4 禁止本地聚合（行为级）：每周期请求命中各自 period，不得用基准周期聚合替代
+AssertionError: expected [ '15m' ] to deeply equal [ '15m', '1h', '1m', '5m' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "15m",[22m
+[32m-   "1h",[39m
+[32m-   "1m",[39m
+[32m-   "5m",[39m
+[2m  ][22m
+
+ ❯ src/features/dashboard/multiPeriodSatellite.test.tsx:723:50
+    721| 
+    722|     // ① 请求的 period 集合恰 = 配置周期集合（没有「只取 1m 再自行聚合」的痕迹：卫星周期必须真取后端）
+    723|     expect([...byPeriod(queries).keys()].sort()).toEqual(['15m', '1h',…
+       |                                                  ^
+    724|     // ② 不得出现「同一周期被多实例重复取数」（本地聚合实现通常会取低周期再派生 ⇒ 低周期被多取）
+    725|     const counts = [...byPeriod(queries).values()].map((v) => v.length…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+   Start at  21:39:34
+   Duration  1.55s (transform 250ms, setup 32ms, collect 375ms, tests 546ms, environment 203ms, prepare 122ms)
+
