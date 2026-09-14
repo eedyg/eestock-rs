@@ -15,6 +15,7 @@ import {
   dcapWarmupBars,
   type DcapParams,
 } from '@/features/indicators/dcapIndicator';
+import { DEFAULT_BASE_HEIGHT } from './multiPeriodLayout';
 import { SymbolList } from './SymbolList';
 import { Toolbar, type ChartTab, type IndicatorName } from './Toolbar';
 import { KlineChart } from './KlineChart';
@@ -196,6 +197,28 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, mpStore],
   );
 
+  /** 保存多周期**布局高度**（P5；T9）：乐观更新（同步 `mpStore.setHeights`）→ `PUT /api/config/multi_period`
+   *  （body = 当前 `enabled`/`periods`/`indicators` **原样** + 新 `heights`）→ 成功用服务端回显，
+   *  失败**回滚**到拖拽前高度（DOM 随 store 回滚）且不抛穿页面。形态照既有 MA/dcap 写法的乐观更新 + 失败回滚。 */
+  const saveMultiPeriodHeights = useCallback(
+    async (heights: Record<string, number>) => {
+      const prev: MultiPeriodConfigDto = {
+        enabled: mpStore.state.enabled,
+        periods: [...mpStore.state.periods],
+        heights: { ...mpStore.state.heights },
+        indicators: [...mpStore.state.indicators],
+      };
+      mpStore.setHeights(heights); // 乐观更新（拖拽期间 DOM 已是本地高度，此处只把期望值落到配置态）
+      try {
+        const cfg = await api.saveMultiPeriodConfig({ ...prev, heights: { ...heights } });
+        mpStore.applyServerConfig(cfg);
+      } catch {
+        mpStore.applyServerConfig(prev); // 失败回滚（不抛穿：拖拽不得炸页面）
+      }
+    },
+    [api, mpStore],
+  );
+
   // K线默认视口（K 线根数，统一配置，主图+宫格共用）：默认 120，mount 时 GET /api/config/kline 读；
   // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 120 兜底（不再静默吞错）。
   const [viewportBars, setViewportBars] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_BARS);
@@ -361,6 +384,12 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
             followLatest={state.followLatest}
             basePeriod={basePeriod}
             basePeriodSource={base.source}
+            /* P5（T9）：基准 pane 的**请求高度**（配置 `heights[periods[0]]`）与拖拽持久化回调；
+               基准实例的实际高度由栈容器按可用高度统一分配（基准吸收余量）。 */
+            baseHeight={mpState.heights[basePeriod] ?? DEFAULT_BASE_HEIGHT}
+            /* P5（T9）：拖拽持久化回执 —— 返回 Promise 告知父层**已接管**该布局（成功回显/失败回滚均已落盘），
+               本组件随后交还高度权威给 props（避免失败回滚被本地拖拽期望掩盖）。 */
+            onHeightsChange={saveMultiPeriodHeights}
             /* P3 可观测（02-spec §9）：同步统计镜像入 store（syncApplied/syncSuppressed/
                syncDegraded/最近一次跨度差），与页面角标同源；关闭态/组销毁 ⇒ 归零（零残留）。 */
             onSyncStats={(stats) => mpStore.applySyncStats(stats)}
@@ -377,11 +406,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
                   maWindows={maWindows}
                   dcapParams={dcapParams}
                   warmupBars={dcapWarmup}
-                  // 多周期（存在卫星）时基准实例也按配置高度渲染（`heights[periods[0]]`，02-spec §6）；
-                  // 常规单图保持 `h-full`（现状等价）。
-                  heightPx={
-                    satellites.length > 0 ? (mpState.heights[basePeriod] ?? undefined) : undefined
-                  }
+                  /* P5：**不再**传 `heightPx` —— 激活态（有卫星）基准高度由栈的基准 pane 决定
+                     （避免「h-full 拉满容器 + 卫星追加」⇒ 540px 纵向溢出）；非激活态仍 `h-full`。 */
                 />
               ) : (
                 <TimeshareChart api={api} ws={ws} code={state.selected} />

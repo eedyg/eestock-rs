@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>P5-F-1 R1/R2 · 真渲染几何取证（父层回执权威 + 越域无死区）</title>
+<style>
+  html, body { margin: 0; background: #101418; color: #c9d1d9; font: 12px/1.5 monospace; }
+  #main { padding: 0; }
+  #log { white-space: pre-wrap; padding: 8px; }
+</style>
+</head>
+<body>
+<!--
+  P5-F-1：把 P5 最终独立验收的 R1/R2 落成**真渲染几何判据**（真实产品组件 + 真实 Tailwind/klinecharts）。
+
+  与 `web/tester/p5-layout-harness/`（P5-A：溢出/契约/分配）**互补**：本 harness 额外挂一层
+  **页面内父层桩**（复刻 `DashboardPage.saveMultiPeriodHeights`：乐观写 → 桩「服务端」→ 成功回显成 props，
+  返回 Promise ⇒ §6.3「父层接管高度权威」），从而能真渲染地复现：
+    - R1：父层回执只改卫星高度 ⇒ 拖拽回弹 / 屏幕与服务端分叉；
+    - R2：越域（可用 1800px）⇒ payload=clamp(分配) 的死区、以真实服务端值重载的跳变。
+
+  性质：**只读 + 页面内桩**（本地随机端口静态服务 + 合成数据 ⇒ 0 出网、**0 写请求**；
+  不触碰线上 8081/8082，不重启 PID）。
+  依据：`design/15-multi-period/02-spec.md` §6.2/§6.3（架构裁决 2026-09-15）；
+  P5 最终验收：`tester/test/278_p5_final_independent_acceptance_execution.md`（FAIL(5) 根因 R1/R2）；
+  本 harness 的设计报告：`tester/design/279_p5f1_r1r2_red_design.md`。
+
+  用法（须在 `web/` 下运行）：`node tester/p5-r1r2-harness/run.mjs`
+-->
+<div id="app"></div>
+<div id="log"></div>
+<script type="module" src="./entry.tsx"></script>
+</body>
+</html>

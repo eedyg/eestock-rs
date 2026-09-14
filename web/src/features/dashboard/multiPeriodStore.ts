@@ -189,6 +189,16 @@ export class MultiPeriodStore {
     this.patch(toState(cfg));
   }
 
+  /**
+   * 布局高度乐观写（P5；T9）：只替换 `heights`，**不动** `enabled`/`periods`/`indicators`
+   * （拖拽持久化不得重置任何其它配置字段；切周期/切标的/保存 dcap 均不得重置高度）。
+   * 页面路径：乐观 `setHeights(拖后全表)` → `PUT /api/config/multi_period` → 成功 `applyServerConfig(回显)`
+   * / 失败 `applyServerConfig(拖前快照)`（回滚）。
+   */
+  setHeights(heights: Record<string, number>): void {
+    this.patch({ heights: { ...heights } });
+  }
+
   dispose(): void {
     this.disposed = true;
     this.listeners.clear();
