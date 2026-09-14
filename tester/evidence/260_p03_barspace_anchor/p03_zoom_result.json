@@ -1,0 +1,107 @@
+{
+  "out": {
+    "steps": [
+      {
+        "name": "baseline sync (baseBs 8, D-mul, mirror)",
+        "satBs": 37.333333333333336,
+        "errInSatBars": 2.2857142857142856,
+        "snap": {
+          "baseBs": 8,
+          "satBs": 37.333333333333336,
+          "baseOffset": 64,
+          "satOffset": 64,
+          "baseSpanMin": 118080,
+          "satSpanMin": 141120,
+          "satIdxSpan": 14
+        }
+      },
+      {
+        "name": "satellite self-zoom to 350 then re-sync",
+        "satBsAfterSelfZoom": 350,
+        "satBsAfterResync": 37.333333333333336,
+        "errInSatBars": 2.2857142857142856,
+        "snap": {
+          "baseBs": 8,
+          "satBs": 37.333333333333336,
+          "baseOffset": 64,
+          "satOffset": 64,
+          "baseSpanMin": 118080,
+          "satSpanMin": 141120,
+          "satIdxSpan": 14
+        }
+      },
+      {
+        "name": "base zoom to 20 -> satellite follow",
+        "satBs": 93.33333333333334,
+        "expect": 93.33333333333334,
+        "errInSatBars": 1.4285714285714286,
+        "snap": {
+          "baseBs": 20,
+          "satBs": 93.33333333333334,
+          "baseOffset": 160,
+          "satOffset": 160,
+          "baseSpanMin": 46080,
+          "satSpanMin": 60480,
+          "satIdxSpan": 6
+        }
+      },
+      {
+        "name": "satellite scrolled away then re-sync",
+        "satIdxSpanAfterScroll": 6,
+        "errInSatBars": 1.4285714285714286,
+        "snap": {
+          "baseBs": 20,
+          "satBs": 93.33333333333334,
+          "baseOffset": 160,
+          "satOffset": 160,
+          "baseSpanMin": 46080,
+          "satSpanMin": 60480,
+          "satIdxSpan": 6
+        }
+      },
+      {
+        "name": "5x scroll(base)+resync",
+        "trail": [
+          {
+            "i": 0,
+            "satBs": 93.33333333333334,
+            "errInSatBars": 1.8571428571428572,
+            "satIdxSpan": 7
+          },
+          {
+            "i": 1,
+            "satBs": 93.33333333333334,
+            "errInSatBars": 0.7142857142857143,
+            "satIdxSpan": 7
+          },
+          {
+            "i": 2,
+            "satBs": 93.33333333333334,
+            "errInSatBars": 0.8571428571428571,
+            "satIdxSpan": 7
+          },
+          {
+            "i": 3,
+            "satBs": 93.33333333333334,
+            "errInSatBars": 2,
+            "satIdxSpan": 7
+          },
+          {
+            "i": 4,
+            "satBs": 93.33333333333334,
+            "errInSatBars": 2,
+            "satIdxSpan": 7
+          }
+        ]
+      },
+      {
+        "name": "limit isolation (real data)",
+        "base_req60": 20,
+        "sat_req350": 350,
+        "base_req350": 20
+      }
+    ],
+    "D": 4.666666666666667
+  },
+  "console": []
+}

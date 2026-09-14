@@ -1,0 +1,39 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/indicatorStackTrap.test.ts (4 tests) 5ms
+ ✓ src/features/dashboard/overlayIndicator.test.ts (4 tests) 8ms
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts (4 tests | 1 failed) 5ms
+   × 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 扫描器自身有效性：至少扫到 KlineChart.tsx / GridCell.tsx 的调用点（防空扫通过） 4ms
+     → expected false to be true // Object.is equality
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 源码内不存在 createIndicator(..., false) —— 当前 KlineChart.tsx / GridCell.tsx 违规（必红） 0ms
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 源码内不存在省略 isStack 的 createIndicator —— 省略即 false，必须显式 isStack=true 0ms
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 入口模块 overlayIndicator.ts 存在，且其 createIndicator 显式以 isStack=true 追加 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/indicatorCallGuard.test.ts > 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 扫描器自身有效性：至少扫到 KlineChart.tsx / GridCell.tsx 的调用点（防空扫通过）
+AssertionError: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts:182:58
+    180|     const files = new Set(ALL_CALLS.map((site) => site.file));
+    181|     expect(files.has('features/dashboard/KlineChart.tsx')).toBe(true);
+    182|     expect(files.has('features/dashboard/GridCell.tsx')).toBe(true);
+       |                                                          ^
+    183|   });
+    184| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 11 passed (12)
+   Start at  19:27:58
+   Duration  451ms (transform 45ms, setup 80ms, collect 70ms, tests 17ms, environment 467ms, prepare 317ms)
+

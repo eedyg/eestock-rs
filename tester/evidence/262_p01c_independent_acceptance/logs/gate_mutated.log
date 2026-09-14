@@ -1,0 +1,56 @@
+
+ RUN  v3.2.7 /tmp/p01c/rev/web
+
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts (4 tests | 2 failed) 6ms
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 扫描器自身有效性：白名单文件均扫到调用点，且扫描范围未塌缩（防空扫通过） 1ms
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 调用点只能出现在白名单文件（新增叠加指标必须走入口 overlayIndicator.ts） 0ms
+   × 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 每个 createIndicator 调用点都必须**显式** isStack=true（false / 省略 / 变量一律判红） 4ms
+     → 只有显式 true 才是「追加」；false 与省略都会整 pane 替换（index.esm.js:14162-14165），传变量则无法静态判定 ⇒ 一律禁止: expected [ Array(1) ] to deeply equal []
+   × 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 入口模块 overlayIndicator.ts：显式 isStack=true 追加 + 先 remove 后 create + getIndicators 非空断言 1ms
+     → features/dashboard/overlayIndicator.ts:29  isStack=false —— 入口必须以 true 追加: expected 'false' to be 'true' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/indicatorCallGuard.test.ts > 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 每个 createIndicator 调用点都必须**显式** isStack=true（false / 省略 / 变量一律判红）
+AssertionError: 只有显式 true 才是「追加」；false 与省略都会整 pane 替换（index.esm.js:14162-14165），传变量则无法静态判定 ⇒ 一律禁止: expected [ Array(1) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "features/dashboard/overlayIndicator.ts:29  isStack=false",[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts:230:7
+    228|       '只有显式 true 才是「追加」；false 与省略都会整 pane 替换（index.esm.js:14162-14165）…
+    229|         '传变量则无法静态判定 ⇒ 一律禁止',
+    230|     ).toEqual([]);
+       |       ^
+    231|   });
+    232| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/dashboard/indicatorCallGuard.test.ts > 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 入口模块 overlayIndicator.ts：显式 isStack=true 追加 + 先 remove 后 create + getIndicators 非空断言
+AssertionError: features/dashboard/overlayIndicator.ts:29  isStack=false —— 入口必须以 true 追加: expected 'false' to be 'true' // Object.is equality
+
+Expected: [32m"[7mtru[27me"[39m
+Received: [31m"[7mfals[27me"[39m
+
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts:238:73
+    236|     expect(calls.length, '入口模块必须真的调用 createIndicator').toBeGreaterThan…
+    237|     for (const site of calls) {
+    238|       expect(site.isStackArg, `${describeCall(site)} —— 入口必须以 true 追加`…
+       |                                                                         ^
+    239|     }
+    240|     // 入口必须带「非空断言」，否则"静默不生效"无法被发现（02-spec §4.3）
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  19:41:55
+   Duration  335ms (transform 26ms, setup 21ms, collect 23ms, tests 6ms, environment 128ms, prepare 37ms)
+

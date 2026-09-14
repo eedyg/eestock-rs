@@ -1,0 +1,20 @@
+{
+  "dcapId": "DCAP_1789386129214_1",
+  "precision": 5,
+  "paneId": "dcap_pane",
+  "figures": [
+    "s",
+    "m",
+    "l",
+    "zero"
+  ],
+  "canvas": {
+    "w": 843,
+    "h": 100
+  },
+  "magentaTotal": 0,
+  "magentaRows": [],
+  "magentaRowCount": 0,
+  "maxRowMagenta": 0,
+  "firstDataLineColumnX": 0
+}

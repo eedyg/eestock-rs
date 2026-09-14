@@ -1,0 +1,111 @@
+{
+  "dcapSupported": true,
+  "dcapReturnedId": "DCAP_1789386099325_1",
+  "dcapNonNull": true,
+  "dcapPrecision": 5,
+  "dcapFigureKeys": [
+    "s",
+    "m",
+    "l",
+    "zero"
+  ],
+  "dcapFigureZeroStyles": [
+    {}
+  ],
+  "dcapPaneId": "dcap_pane",
+  "candlePaneNames": [
+    "MA"
+  ],
+  "pixMain": {
+    "px": "847x394",
+    "maRed": 4627,
+    "candleGreen": 4493,
+    "textPixels": 3778
+  },
+  "canvasCount": 10,
+  "canvases": [
+    {
+      "i": 0,
+      "px": "843x293",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 263
+    },
+    {
+      "i": 1,
+      "px": "843x293",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 2344
+    },
+    {
+      "i": 2,
+      "px": "57x293",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 1071
+    },
+    {
+      "i": 3,
+      "px": "57x293",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 0
+    },
+    {
+      "i": 4,
+      "px": "843x100",
+      "orange": 1173,
+      "purple": 1226,
+      "blue": 1173,
+      "zeroGrey": 461
+    },
+    {
+      "i": 5,
+      "px": "843x100",
+      "orange": 245,
+      "purple": 246,
+      "blue": 216,
+      "zeroGrey": 747
+    },
+    {
+      "i": 6,
+      "px": "57x100",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 393
+    },
+    {
+      "i": 7,
+      "px": "57x100",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 0
+    },
+    {
+      "i": 8,
+      "px": "843x26",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 1481
+    },
+    {
+      "i": 9,
+      "px": "843x26",
+      "orange": 0,
+      "purple": 0,
+      "blue": 0,
+      "zeroGrey": 0
+    }
+  ],
+  "warnings": [
+    "log: %c❤️ Welcome to klinecharts. Version is 10.0.3 border-radius:4px;border:dashed 1px #1677FF;line-height:70px;padding:0 20px;margin:16px 0;font-size:14px;color:#1677FF;    "
+  ]
+}

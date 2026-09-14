@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/settings/SettingsPage.test.tsx > SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 骨架区域齐备：settings-nav + 内容区（source/collector/mcp/kline/system/log/danger）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/settings/SettingsPage.test.tsx (11 tests) 568ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  19:38:49
+   Duration  1.09s (transform 99ms, setup 23ms, collect 162ms, tests 568ms, environment 128ms, prepare 84ms)
+

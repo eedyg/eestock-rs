@@ -1,0 +1,103 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/indicatorStackTrap.test.ts (4 tests | 1 failed) 6ms
+   ✓ [证据] 库陷阱指纹：同 pane 第二个 isStack=false 会静默顶掉先建指标 > A(false) → B(false)：A 消失、B 在，且两次 createIndicator 都返回了 id（零告警） 2ms
+   ✓ [证据] 库陷阱指纹：同 pane 第二个 isStack=false 会静默顶掉先建指标 > 对照：省略 isStack 与 isStack=false 等价（同样顶掉 A） 0ms
+   ✓ [证据] 库陷阱指纹：同 pane 第二个 isStack=false 会静默顶掉先建指标 > 对照：A(false) → B(true) ⇒ A 存活（isStack=true 才是“追加/叠加”） 0ms
+   × [防护] 走 addOverlayIndicator：先建 A 再建 B ⇒ A 必须存活 > 同 pane 追加第二个指标后，先建的 A 仍在 getIndicators 中 3ms
+     → Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/indicatorStackTrap.test.ts'
+ ❯ src/features/dashboard/overlayIndicator.test.ts (4 tests | 4 failed) 6ms
+   × addOverlayIndicator（框架入口契约；红：入口尚不存在） > 正常路径：先 removeIndicator({name}) 再 createIndicator(spec, true)，且 getIndicators({name}).length > 0 5ms
+     → Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.test.ts'
+   × addOverlayIndicator（框架入口契约；红：入口尚不存在） > 重复调用幂等：连调两次仍只有 1 个同名指标；每次都以 isStack=true 追加 0ms
+     → Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.test.ts'
+   × addOverlayIndicator（框架入口契约；红：入口尚不存在） > 桩令 getIndicators 返回空 ⇒ 必须抛错（不得静默返回） 0ms
+     → Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.test.ts'
+   × addOverlayIndicator（框架入口契约；红：入口尚不存在） > 抛错信息包含指标名（可定位，与 02-spec §4.3 口径一致） 0ms
+     → Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.test.ts'
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts (4 tests | 2 failed) 6ms
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 扫描器自身有效性：至少扫到 KlineChart.tsx / GridCell.tsx 的调用点（防空扫通过） 1ms
+   × 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 源码内不存在 createIndicator(..., false) —— 当前 KlineChart.tsx / GridCell.tsx 违规（必红） 4ms
+     → isStack=false 的语义是「替换整个 pane」（index.esm.js:14162-14164），会静默顶掉先建指标: expected [ …(2) ] to deeply equal []
+   ✓ 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 源码内不存在省略 isStack 的 createIndicator —— 省略即 false，必须显式 isStack=true 0ms
+   × 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 入口模块 overlayIndicator.ts 存在，且其 createIndicator 显式以 isStack=true 追加 0ms
+     → ENOENT: no such file or directory, open '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.ts'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/indicatorCallGuard.test.ts > 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 源码内不存在 createIndicator(..., false) —— 当前 KlineChart.tsx / GridCell.tsx 违规（必红）
+AssertionError: isStack=false 的语义是「替换整个 pane」（index.esm.js:14162-14164），会静默顶掉先建指标: expected [ …(2) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "features/dashboard/GridCell.tsx:86  isStack=false",[39m
+[31m+   "features/dashboard/KlineChart.tsx:155  isStack=false",[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts:190:7
+    188|       violations.map(describeCall),
+    189|       'isStack=false 的语义是「替换整个 pane」（index.esm.js:14162-14164），会静默顶掉先建…
+    190|     ).toEqual([]);
+       |       ^
+    191|   });
+    192| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/features/dashboard/indicatorCallGuard.test.ts > 指标调用门禁：禁止在已有 pane 上以 isStack=false 创建指标（G2 静默消失防护） > 入口模块 overlayIndicator.ts 存在，且其 createIndicator 显式以 isStack=true 追加
+Error: ENOENT: no such file or directory, open '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.ts'
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts:204:17
+    202| 
+    203|   it('入口模块 overlayIndicator.ts 存在，且其 createIndicator 显式以 isStack=true …
+    204|     const src = readFileSync(ENTRY_MODULE, 'utf8');
+       |                 ^
+    205|     const calls = collectCreateIndicatorCalls('features/dashboard/over…
+    206|     expect(calls.length, '入口模块必须真的调用 createIndicator').toBeGreaterThan…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/features/dashboard/indicatorStackTrap.test.ts > [防护] 走 addOverlayIndicator：先建 A 再建 B ⇒ A 必须存活 > 同 pane 追加第二个指标后，先建的 A 仍在 getIndicators 中
+Error: Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/indicatorStackTrap.test.ts'
+ ❯ loadEntry src/features/dashboard/indicatorStackTrap.test.ts:23:16
+     21| 
+     22| async function loadEntry(): Promise<AddOverlayIndicator> {
+     23|   const mod = (await import(/* @vite-ignore */ ENTRY_SPECIFIER)) as {
+       |                ^
+     24|     addOverlayIndicator: AddOverlayIndicator;
+     25|   };
+ ❯ src/features/dashboard/indicatorStackTrap.test.ts:77:33
+
+Caused by: Error: Failed to load url ./overlayIndicator (resolved id: ./overlayIndicator). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/features/dashboard/overlayIndicator.test.ts > addOverlayIndicator（框架入口契约；红：入口尚不存在） > 正常路径：先 removeIndicator({name}) 再 createIndicator(spec, true)，且 getIndicators({name}).length > 0
+ FAIL  src/features/dashboard/overlayIndicator.test.ts > addOverlayIndicator（框架入口契约；红：入口尚不存在） > 重复调用幂等：连调两次仍只有 1 个同名指标；每次都以 isStack=true 追加
+ FAIL  src/features/dashboard/overlayIndicator.test.ts > addOverlayIndicator（框架入口契约；红：入口尚不存在） > 桩令 getIndicators 返回空 ⇒ 必须抛错（不得静默返回）
+ FAIL  src/features/dashboard/overlayIndicator.test.ts > addOverlayIndicator（框架入口契约；红：入口尚不存在） > 抛错信息包含指标名（可定位，与 02-spec §4.3 口径一致）
+Error: Cannot find module './overlayIndicator' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/overlayIndicator.test.ts'
+ ❯ loadEntry src/features/dashboard/overlayIndicator.test.ts:26:16
+     24| 
+     25| async function loadEntry(): Promise<AddOverlayIndicator> {
+     26|   const mod = (await import(/* @vite-ignore */ ENTRY_SPECIFIER)) as {
+       |                ^
+     27|     addOverlayIndicator: AddOverlayIndicator;
+     28|   };
+ ❯ src/features/dashboard/overlayIndicator.test.ts:42:33
+
+Caused by: Error: Failed to load url ./overlayIndicator (resolved id: ./overlayIndicator). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  7 failed | 5 passed (12)
+   Start at  19:09:29
+   Duration  423ms (transform 43ms, setup 72ms, collect 59ms, tests 17ms, environment 444ms, prepare 282ms)
+

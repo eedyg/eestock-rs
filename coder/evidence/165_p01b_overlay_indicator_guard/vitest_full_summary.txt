@@ -1,0 +1,11 @@
+ Test Files  8 failed | 58 passed (66)
+      Tests  75 failed | 542 passed (617)
+--- failing files ---
+ ❯ src/features/dashboard/DashboardPage.test.tsx (26 tests | 23 failed) 27268ms
+ ❯ src/features/dashboard/dcapWiringP3.test.tsx (14 tests | 10 failed) 6351ms
+ ❯ src/features/dashboard/GridCell.test.tsx (12 tests | 12 failed) 91ms
+ ❯ src/features/dashboard/indicatorCallGuard.test.ts (4 tests | 1 failed) 19ms
+ ❯ src/features/dashboard/KlineChart.realtime.test.tsx (8 tests | 8 failed) 47ms
+ ❯ src/features/dashboard/KlineChart.test.tsx (12 tests | 12 failed) 63ms
+ ❯ src/features/workbench/ResultView.test.tsx (10 tests | 6 failed) 308ms
+ ❯ src/features/workbench/WorkbenchPage.test.tsx (14 tests | 3 failed) 4230ms
