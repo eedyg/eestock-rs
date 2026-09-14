@@ -72,6 +72,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
         // 行情看板 dcap 显示参数（ADR-021：GET 读 / PUT 写 8 参（不含 th）；app_config key="dcap"；非单调 n/越界 → 400）
         .route("/api/config/dcap", get(rest::get_dcap_config).put(rest::put_dcap_config))
+        // 多周期指标同显（ADR-022：GET 读 / PUT 写；app_config key="multi_period"；7 条校验 + 总 pane ≤12 → 400）
+        .route("/api/config/multi_period", get(rest::get_multi_period_config).put(rest::put_multi_period_config))
         // 12-strategy-system / P2a+P2b：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
         .route("/api/strategies", get(strategies::catalog).post(strategies::create_strategy))
         .route("/api/strategies/test-run", post(strategies::test_run))

@@ -2563,6 +2563,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/config/kline", get(settings::get_config_kline).put(settings::put_config_kline))
         // 行情看板 dcap 显示参数（ADR-021：GET 读 / PUT 写 8 参（不含 th）；app_config key="dcap"；非单调 n/越界 → 400）
         .route("/api/config/dcap", get(rest::get_dcap_config).put(rest::put_dcap_config))
+        // 多周期指标同显（ADR-022：GET 读 / PUT 写；app_config key="multi_period"；7 条校验 + 总 pane ≤12 → 400）
+        .route("/api/config/multi_period", get(rest::get_multi_period_config).put(rest::put_multi_period_config))
         // 12-strategy-system / P2a+P2b：策略 Registry（§1.7；handlers 在 strategies.rs，非 tangle 手写）
         .route("/api/strategies", get(strategies::catalog).post(strategies::create_strategy))
         .route("/api/strategies/test-run", post(strategies::test_run))
@@ -2716,6 +2718,173 @@ pub fn dcap_config_or_default(raw: Option<serde_json::Value>) -> DcapConfigDto {
     match serde_json::from_value::<DcapConfigDto>(v) {
         Ok(c) if validate_dcap_config(&c).is_ok() => c,
         _ => DcapConfigDto::default(),
+    }
+}
+
+// ── 多周期指标同显（ADR-022 / design/15-multi-period/02-spec.md §2/§7：app_config key="multi_period"）──
+// 形状比照 dcap/MA（dto 校验 + rest 端点 + ConfigStore/app_config，0021；**无需迁移**，先例 kline/dcap）。
+// `periods[0]` = 基准（K 线）周期，其后 = 卫星指标周期；`heights` 键与 `periods` 一一对应；
+// `indicators` = 卫星继承的指标集合（首版 ["dcap"]；通用框架下逐项扩展）。
+// PUT 严格 400（7 条校验 + §7.4 总 pane ≤12，**基于去重后 `indicators` 计数**，错误信息含被拒字段名）；
+// 校验通过后按 §2 校验 6 **归一化**（`indicators` 去重、保留首次出现顺序）落库/回显；GET 无键/坏 JSON/越界旧值 → 默认（不 500）。
+
+/// 全部可选周期（`1mo` 用户裁决不提供；ADR-022 §2.5）。
+pub const MULTI_PERIOD_ALLOWED: &[&str] = &["1m", "5m", "15m", "1h", "1d", "1w"];
+
+/// 受支持指标集合（首版仅 dcap；02-spec §2 校验 6）。
+pub const MULTI_PERIOD_SUPPORTED_INDICATORS: &[&str] = &["dcap"];
+
+/// 总 pane 上限（02-spec §7.4：基准 1 + Σ_卫星(卫星指标 pane 数) ≤ 12）。
+pub const MULTI_PERIOD_MAX_PANES: usize = 12;
+
+/// 每实例高度默认（02-spec §6：基准 420 / 卫星 180）与合法区间（§2 校验 5）。
+pub const MULTI_PERIOD_DEFAULT_BASE_HEIGHT: i64 = 420;
+pub const MULTI_PERIOD_DEFAULT_SATELLITE_HEIGHT: i64 = 180;
+pub const MULTI_PERIOD_HEIGHT_MIN: i64 = 80;
+pub const MULTI_PERIOD_HEIGHT_MAX: i64 = 1200;
+
+/// 周期序（越小越短；判「卫星 ≥ 基准」用）；`1mo` 返回 None（不提供）。
+fn multi_period_rank(p: &str) -> Option<u8> {
+    match p {
+        "1m" => Some(0),
+        "5m" => Some(1),
+        "15m" => Some(2),
+        "1h" => Some(3),
+        "1d" => Some(4),
+        "1w" => Some(5),
+        _ => None,
+    }
+}
+
+/// 基准 ≥ 1d（口径 10：含 `1w` 的前提）。
+fn multi_period_at_least_1d(p: &str) -> bool {
+    matches!(p, "1d" | "1w")
+}
+
+/// GET/PUT /api/config/multi_period 响应/请求体：多周期显示配置
+/// （`periods[0]` = 基准；`heights` 键与 `periods` 一一对应；`indicators` = 卫星继承的指标集合）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MultiPeriodConfigDto {
+    pub enabled: bool,
+    pub periods: Vec<String>,
+    pub heights: std::collections::BTreeMap<String, i64>,
+    pub indicators: Vec<String>,
+}
+
+impl Default for MultiPeriodConfigDto {
+    fn default() -> Self {
+        let mut heights = std::collections::BTreeMap::new();
+        heights.insert("1m".to_string(), MULTI_PERIOD_DEFAULT_BASE_HEIGHT);
+        Self {
+            enabled: false,
+            periods: vec!["1m".to_string()],
+            heights,
+            indicators: vec!["dcap".to_string()],
+        }
+    }
+}
+
+/// `indicators` 归一化：**去重（保留首次出现顺序）**（02-spec §2 校验 6「去重」）。
+/// §7.4 的总 pane 计数与落库形态都以该去重集合为准（`["dcap"]×n` 与 `["dcap"]` 语义等价）。
+pub fn normalize_multi_period_indicators(indicators: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for ind in indicators {
+        if !out.contains(ind) { out.push(ind.clone()); }
+    }
+    out
+}
+
+/// 总 pane 数（02-spec §7.4）：`1`（基准 candle）+ `Σ_卫星(去重后指标 pane 数)`，每受支持指标占 1 个 pane。
+/// **计数必须基于去重后的 `indicators` 集合**（P1-C D1：按原始数组长度计数会把 `["dcap"]×11` 误判）。
+pub fn multi_period_pane_count(periods: &[String], indicators: &[String]) -> usize {
+    let n_inds = normalize_multi_period_indicators(indicators).len();
+    1 + periods.len().saturating_sub(1) * n_inds
+}
+
+/// 总 pane 预算护栏（02-spec §7.4）：`> MULTI_PERIOD_MAX_PANES` ⇒ `Err`
+/// （**明确报错、不得静默截断**；错误信息含**被拒维度名** `indicators`/`pane`——P1-C D2）。
+pub fn verify_multi_period_panes(periods: &[String], indicators: &[String]) -> Result<(), String> {
+    let n = multi_period_pane_count(periods, indicators);
+    if n > MULTI_PERIOD_MAX_PANES {
+        return Err(format!(
+            "indicators 去重后总 pane 数 {n} 超上限 {MULTI_PERIOD_MAX_PANES}\
+             （基准 1 + Σ_卫星(去重后指标) pane）"
+        ));
+    }
+    Ok(())
+}
+
+/// 多周期配置校验 + 归一化（纯函数，web handler 层 400 用；口径 02-spec §2 七条 + §7 护栏）。
+/// 失败返回描述性错误（**含被拒字段名**：`periods` / `heights` / `indicators`），handler `err(400, e)`；
+/// 成功返回**规范形态**（§2 校验 6 归一化：`indicators` 去重、保留首次出现顺序）——
+/// 调用方（PUT 落库/回显、GET 读落）一律使用该返回值，保证「去重落库」而非只在计数时去重（P1-C D1）。
+pub fn validate_multi_period_config(cfg: &MultiPeriodConfigDto)
+    -> Result<MultiPeriodConfigDto, String> {
+    // 1/4/7：周期清单非空、总周期 ≤4、去重
+    //（去重先于 heights 键校验，保证「重复周期」报 periods 而非 heights——键集会因此不一致）。
+    if cfg.periods.is_empty() { return Err("periods 不能为空".into()); }
+    if cfg.periods.len() > 4 { return Err(format!("periods 最多 4 个，收到 {}", cfg.periods.len())); }
+    let mut seen = std::collections::HashSet::new();
+    for p in &cfg.periods {
+        if !seen.insert(p.as_str()) { return Err(format!("periods 重复：{p}")); }
+    }
+    // 1/2：基准与卫星周期合法（1mo 不提供），且卫星 ≥ 基准
+    let base = cfg.periods[0].as_str();
+    let Some(base_rank) = multi_period_rank(base) else {
+        return Err(format!("periods 基准周期非法（须 ∈ {MULTI_PERIOD_ALLOWED:?}）：{base}"));
+    };
+    for p in &cfg.periods[1..] {
+        let Some(r) = multi_period_rank(p) else {
+            return Err(format!("periods 卫星周期非法（须 ∈ {MULTI_PERIOD_ALLOWED:?}）：{p}"));
+        };
+        if r < base_rank { return Err(format!("periods 卫星周期 {p} 须 ≥ 基准 {base}")); }
+    }
+    // 3（口径 10）：含 1w ⇒ 基准必须 ≥ 1d
+    if cfg.periods.iter().any(|p| p == "1w") && !multi_period_at_least_1d(base) {
+        return Err(format!("periods 含 1w 时基准须 ≥ 1d，收到基准 {base}"));
+    }
+    // 5：heights 键必须与 periods 一致，每值 ∈ [80,1200]
+    if cfg.heights.len() != cfg.periods.len()
+        || !cfg.periods.iter().all(|p| cfg.heights.contains_key(p))
+    {
+        return Err(format!(
+            "heights 键必须与 periods 一一对应：periods={:?} heights键={:?}",
+            cfg.periods,
+            cfg.heights.keys().collect::<Vec<_>>()
+        ));
+    }
+    for (k, v) in &cfg.heights {
+        if !(MULTI_PERIOD_HEIGHT_MIN..=MULTI_PERIOD_HEIGHT_MAX).contains(v) {
+            return Err(format!(
+                "heights[{k}] 须 ∈ [{MULTI_PERIOD_HEIGHT_MIN},{MULTI_PERIOD_HEIGHT_MAX}]，收到 {v}"
+            ));
+        }
+    }
+    // 6：indicators ⊆ 受支持集合（首版仅 dcap）
+    for ind in &cfg.indicators {
+        if !MULTI_PERIOD_SUPPORTED_INDICATORS.contains(&ind.as_str()) {
+            return Err(format!(
+                "indicators 含未支持项：{ind}（受支持：{MULTI_PERIOD_SUPPORTED_INDICATORS:?}）"
+            ));
+        }
+    }
+    // §7.4：总 pane 预算（**基于去重后集合**计数；超限明确拒绝保存，不静默截断）
+    verify_multi_period_panes(&cfg.periods, &cfg.indicators)?;
+    // §2 校验 6 归一化：indicators 去重（保留首次出现顺序）⇒ 返回规范形态，供落库/回显（P1-C D1）
+    let mut normalized = cfg.clone();
+    normalized.indicators = normalize_multi_period_indicators(&cfg.indicators);
+    Ok(normalized)
+}
+
+/// GET /api/config/multi_period 读落韧性（ADR-020 教训；纯函数便于单测）：无键（None）/ 坏 JSON /
+/// 缺字段 / 库中越界旧值 → **默认**（`enabled=false` + 单基准 + 高度 420 + `["dcap"]`）（**不 500**）。
+pub fn multi_period_config_or_default(raw: Option<serde_json::Value>) -> MultiPeriodConfigDto {
+    let Some(v) = raw else { return MultiPeriodConfigDto::default() };
+    match serde_json::from_value::<MultiPeriodConfigDto>(v) {
+        // 合法存量 → 返回**规范形态**（`indicators` 去重），与 PUT 落库口径一致（P1-C D1）
+        Ok(c) => validate_multi_period_config(&c)
+            .unwrap_or_else(|_| MultiPeriodConfigDto::default()),
+        Err(_) => MultiPeriodConfigDto::default(),
     }
 }
 
@@ -3943,6 +4112,40 @@ pub async fn put_dcap_config(State(st): State<Arc<AppState>>,
     if let Err(e) = validate_dcap_config(&dto) { return err(StatusCode::BAD_REQUEST, &e); }
     let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
     if let Err(e) = st.config.set(K_DCAP, value).await { return internal(e); }
+    Json(dto).into_response()
+}
+
+// ── 多周期指标同显（ADR-022 / design/15-multi-period/02-spec.md §2/§7：GET 读 / PUT 写；
+//    app_config key="multi_period"（无需迁移，先例 kline/dcap）；PUT 严格 400，GET 坏值回默认不 500）──
+// 校验在 web 层（validate_multi_period_config，400）；storage 只存 jsonb（ConfigStore::set），见 §1.1 契约表。
+
+/// app_config 键名（多周期显示配置；与 dcap/kline 同表，迁移 0021）。
+const K_MULTI_PERIOD: &str = "multi_period";
+
+/// GET /api/config/multi_period —— 读多周期配置；无键/坏 JSON/库中越界旧值 → 默认（**不 500**）。
+pub async fn get_multi_period_config(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_MULTI_PERIOD).await {
+        Ok(raw) => Json(multi_period_config_or_default(raw)).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/config/multi_period —— body = 多周期配置（enabled/periods/heights/indicators）：
+/// 校验（02-spec §2 七条 + §7.4 总 pane ≤12，**基于去重后 `indicators` 计数**）失败 → 400
+/// （含被拒字段名，**不静默截断**）；通过后按 §2 校验 6 归一化（`indicators` 去重、保留首次出现顺序）
+/// 落库（app_config/0021）并回显**归一化后**的值；500：存储失败。
+pub async fn put_multi_period_config(State(st): State<Arc<AppState>>,
+                                     Json(req): Json<serde_json::Value>) -> Response {
+    let dto: MultiPeriodConfigDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("multi_period 请求体非法：{e}")),
+    };
+    let dto = match validate_multi_period_config(&dto) {
+        Ok(normalized) => normalized,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &e),
+    };
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_MULTI_PERIOD, value).await { return internal(e); }
     Json(dto).into_response()
 }
 

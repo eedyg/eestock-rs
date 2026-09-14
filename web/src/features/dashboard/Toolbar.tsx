@@ -27,6 +27,10 @@ export interface ToolbarProps {
   dcapParams?: DcapParams;
   /** 保存 dcap 显示参数（PUT /api/config/dcap；父级乐观更新，失败回滚+rethrow）。缺省 = noop。 */
   onSaveDcapParams?(params: DcapParams): Promise<void>;
+  /** 多周期开关态（统一配置，落服务端 config；缺省 = false ⇒ 与现状等价）。 */
+  multiPeriodEnabled?: boolean;
+  /** 切换多周期开关（父级乐观更新 + 失败回滚；缺省 = noop）。 */
+  onToggleMultiPeriod?(enabled: boolean): void;
 }
 
 const PERIODS: Array<{ value: Period; label: string }> = [
@@ -221,6 +225,15 @@ export function Toolbar(props: ToolbarProps) {
         </Button>
       ))}
       <span className="flex-1" />
+      {/* 多周期开关入口（ADR-022 口径 4/§7.1：仅单图模式可用；宫格侧限制属 P2） */}
+      <Button
+        aria-pressed={props.multiPeriodEnabled ?? false}
+        variant={props.multiPeriodEnabled ? 'primary' : 'ghost'}
+        onClick={() => props.onToggleMultiPeriod?.(!(props.multiPeriodEnabled ?? false))}
+      >
+        多周期
+      </Button>
+      <Sep />
       <Button disabled={props.followLatest} onClick={props.onBackToLatest}>
         回到最新
       </Button>

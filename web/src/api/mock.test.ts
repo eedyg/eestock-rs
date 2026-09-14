@@ -663,3 +663,47 @@ describe('createMockClient（ADR-020：K线默认视口 = 根数口径 viewport_
     expect(await api.getKlineConfig()).toEqual({ viewport_bars: 300 });
   });
 });
+
+describe('多周期配置 mock（D5-2：与后端口径一致 —— indicators 归一化去重 + 基于去重集合计 pane）', () => {
+  it('saveMultiPeriodConfig 归一化去重：["dcap","dcap"] ⇒ 回显/落库均为 ["dcap"]（GET 同）', async () => {
+    const api = createMockClient();
+    const cfg = {
+      enabled: true,
+      periods: ['1m', '5m'],
+      heights: { '1m': 420, '5m': 180 },
+      indicators: ['dcap', 'dcap'],
+    };
+    const out = await api.saveMultiPeriodConfig(cfg);
+    expect(out.indicators).toEqual(['dcap']);
+    // 落库形态也必须是归一化后的（非仅计数时去重）：GET 与 PUT 回显一致（02-spec §2 校验 6 / §7.4）
+    expect(await api.getMultiPeriodConfig()).toEqual(out);
+    expect((await api.getMultiPeriodConfig()).indicators).toEqual(['dcap']);
+  });
+
+  it('pane 计数基于去重后集合：4 周期 × ["dcap"]×5（原始 16 pane）⇒ 200 且归一化 ["dcap"]', async () => {
+    const api = createMockClient();
+    const cfg = {
+      enabled: true,
+      periods: ['1m', '5m', '15m', '1h'],
+      heights: { '1m': 420, '5m': 180, '15m': 180, '1h': 180 },
+      indicators: ['dcap', 'dcap', 'dcap', 'dcap', 'dcap'],
+    };
+    const out = await api.saveMultiPeriodConfig(cfg);
+    expect(out.indicators).toEqual(['dcap']);
+    expect((await api.getMultiPeriodConfig()).indicators).toEqual(['dcap']);
+  });
+
+  it('失败不改内存态：未支持指标 400 后 GET 仍为上一次成功落库值', async () => {
+    const api = createMockClient();
+    const ok = await api.saveMultiPeriodConfig({
+      enabled: true,
+      periods: ['1m', '5m'],
+      heights: { '1m': 420, '5m': 180 },
+      indicators: ['dcap', 'dcap'],
+    });
+    await expect(
+      api.saveMultiPeriodConfig({ ...ok, indicators: ['dcap', 'macd'] }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await api.getMultiPeriodConfig()).toEqual(ok);
+  });
+});

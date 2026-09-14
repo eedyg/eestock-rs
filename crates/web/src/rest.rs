@@ -388,6 +388,40 @@ pub async fn put_dcap_config(State(st): State<Arc<AppState>>,
     Json(dto).into_response()
 }
 
+// ── 多周期指标同显（ADR-022 / design/15-multi-period/02-spec.md §2/§7：GET 读 / PUT 写；
+//    app_config key="multi_period"（无需迁移，先例 kline/dcap）；PUT 严格 400，GET 坏值回默认不 500）──
+// 校验在 web 层（validate_multi_period_config，400）；storage 只存 jsonb（ConfigStore::set），见 §1.1 契约表。
+
+/// app_config 键名（多周期显示配置；与 dcap/kline 同表，迁移 0021）。
+const K_MULTI_PERIOD: &str = "multi_period";
+
+/// GET /api/config/multi_period —— 读多周期配置；无键/坏 JSON/库中越界旧值 → 默认（**不 500**）。
+pub async fn get_multi_period_config(State(st): State<Arc<AppState>>) -> Response {
+    match st.config.get(K_MULTI_PERIOD).await {
+        Ok(raw) => Json(multi_period_config_or_default(raw)).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// PUT /api/config/multi_period —— body = 多周期配置（enabled/periods/heights/indicators）：
+/// 校验（02-spec §2 七条 + §7.4 总 pane ≤12，**基于去重后 `indicators` 计数**）失败 → 400
+/// （含被拒字段名，**不静默截断**）；通过后按 §2 校验 6 归一化（`indicators` 去重、保留首次出现顺序）
+/// 落库（app_config/0021）并回显**归一化后**的值；500：存储失败。
+pub async fn put_multi_period_config(State(st): State<Arc<AppState>>,
+                                     Json(req): Json<serde_json::Value>) -> Response {
+    let dto: MultiPeriodConfigDto = match serde_json::from_value(req) {
+        Ok(d) => d,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &format!("multi_period 请求体非法：{e}")),
+    };
+    let dto = match validate_multi_period_config(&dto) {
+        Ok(normalized) => normalized,
+        Err(e) => return err(StatusCode::BAD_REQUEST, &e),
+    };
+    let value = match serde_json::to_value(&dto) { Ok(v) => v, Err(e) => return internal(e.into()) };
+    if let Err(e) = st.config.set(K_MULTI_PERIOD, value).await { return internal(e); }
+    Json(dto).into_response()
+}
+
 // ── 行情看板 MA 可配置（后端 W1：GET /api/config/ma 读 + PUT 写；主图+宫格应用，回测弹窗不动）──
 // 校验在 web 层（validate_ma_windows，400）；storage 只存归一化（升序去重）结果，见 §1.1 契约表。
 

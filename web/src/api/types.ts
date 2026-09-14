@@ -385,6 +385,17 @@ export interface DcapConfigDto {
   m: number;
 }
 
+/** GET/PUT /api/config/multi_period 响应/请求体：多周期指标同显配置（ADR-022 / design/15-multi-period/02-spec.md §2）。
+ *  `periods[0]` = 基准（K 线）周期，其后 = 卫星指标周期（≤4、不含 `1mo`、卫星 ≥ 基准、含 `1w` 时基准 ≥ `1d`）；
+ *  `heights` 键与 `periods` 一一对应（[80,1200] px）；`indicators` ⊆ {`dcap`}（首版）。
+ *  PUT 违反 → 400；GET 无键/坏 JSON/越界旧值 → 回默认 `enabled=false` + 单基准 + 高度 420 + `["dcap"]`（不 500）。 */
+export interface MultiPeriodConfigDto {
+  enabled: boolean;
+  periods: string[];
+  heights: Record<string, number>;
+  indicators: string[];
+}
+
 // ── 回测/模拟实盘共享读模型（P4b：旧页面⑤ DTO 已退役；Metrics/Trade 为 ensemble 引擎
 //    backtest::BacktestMetrics / backtest::TradeDetail 的 jsonb 形态，页面⑪ 工作台与⑨ sim-live 沿用）──
 

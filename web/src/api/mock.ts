@@ -38,6 +38,7 @@ import type {
   MaConfigDto,
   KlineConfigDto,
   DcapConfigDto,
+  MultiPeriodConfigDto,
   SimBacktestCompare,
   SimCancelOrderReq,
   SimOrdersResp,
@@ -183,6 +184,69 @@ function assertDcapConfig(p: DcapConfigDto): void {
   }
   if (p.smooth !== 0 && p.smooth !== 1) bad(`smooth 须为 0 或 1，收到 ${p.smooth}`);
   if (!Number.isInteger(p.m) || p.m < 1 || p.m > 60) bad(`m 须为 1..=60 整数，收到 ${p.m}`);
+}
+
+/** 多周期指标同显配置默认（GET /api/config/multi_period 无键/非法时兜底；与后端 `MultiPeriodConfigDto::default()` 同构）。
+ *  design/15-multi-period/02-spec.md §2：关闭 + 单基准 + 基准高度 420 + `["dcap"]`。 */
+export const DEFAULT_MULTI_PERIOD_CONFIG: MultiPeriodConfigDto = {
+  enabled: false,
+  periods: ['1m'],
+  heights: { '1m': 420 },
+  indicators: ['dcap'],
+};
+
+/** `indicators` 归一化：**去重（保留首次出现顺序）**（02-spec §2 校验 6；与后端
+ *  `dto::normalize_multi_period_indicators` 同构）。§7.4 的 pane 计数与落库/回显形态均以该去重集合为准。 */
+function normalizeMultiPeriodIndicators(indicators: string[]): string[] {
+  const out: string[] = [];
+  for (const ind of indicators) if (!out.includes(ind)) out.push(ind);
+  return out;
+}
+
+/** 多周期配置校验 + 归一化（与后端 `validate_multi_period_config` 同构：7 条校验 + §7.4 总 pane ≤12）。
+ *  不合规抛 ApiError(400)（错误串含被拒维度名；前端 mock 只用于演示/测试，真实 400 由后端给出）。
+ *  通过则返回**规范形态**（§2 校验 6：`indicators` 去重、保留首次出现顺序）——调用方（PUT 落库/回显）
+ *  必须使用返回值，保证「去重落库」而非只在计数时去重（P1-C D1）。 */
+function assertMultiPeriodConfig(cfg: MultiPeriodConfigDto): MultiPeriodConfigDto {
+  const bad = (msg: string): never => {
+    throw new ApiError(400, `HTTP 400: ${msg}`);
+  };
+  const order = ['1m', '5m', '15m', '1h', '1d', '1w'];
+  const rank = (p: string): number => order.indexOf(p);
+  if (cfg.periods.length === 0) bad('periods 不能为空');
+  if (cfg.periods.length > 4) bad(`periods 最多 4 个，收到 ${cfg.periods.length}`);
+  if (new Set(cfg.periods).size !== cfg.periods.length) bad('periods 重复');
+  const base = cfg.periods[0];
+  if (base === undefined || rank(base) < 0) bad(`periods 基准周期非法：${base}`);
+  const baseRank = rank(base!);
+  for (const p of cfg.periods.slice(1)) {
+    if (rank(p) < 0) bad(`periods 卫星周期非法：${p}`);
+    if (rank(p) < baseRank) bad(`periods 卫星周期 ${p} 须 ≥ 基准 ${base}`);
+  }
+  if (cfg.periods.includes('1w') && base !== '1d' && base !== '1w') {
+    bad(`periods 含 1w 时基准须 ≥ 1d，收到基准 ${base}`);
+  }
+  const keys = Object.keys(cfg.heights);
+  if (keys.length !== cfg.periods.length || !cfg.periods.every((p) => p in cfg.heights)) {
+    bad('heights 键必须与 periods 一一对应');
+  }
+  for (const [k, v] of Object.entries(cfg.heights)) {
+    if (!Number.isInteger(v) || v < 80 || v > 1200) bad(`heights[${k}] 须 ∈ [80,1200]，收到 ${v}`);
+  }
+  const supported = new Set(['dcap']);
+  for (const ind of cfg.indicators) {
+    if (!supported.has(ind)) bad(`indicators 含未支持项：${ind}`);
+  }
+  // §2 校验 6：`indicators` 去重（保序）；pane 计数与落库/回显都基于该集合
+  const normalizedIndicators = normalizeMultiPeriodIndicators(cfg.indicators);
+  // §7.4：总 pane 预算 —— **计数必须基于去重后的 indicators 集合**（按原始数组长度计会把 `["dcap"]×11` 误判 400，
+  // 见 design/15-multi-period/contract-vectors.json 的 dedup-* 向量）；错误串含被拒维度名 `indicators`（P1-C D2）。
+  const panes = 1 + Math.max(0, cfg.periods.length - 1) * normalizedIndicators.length;
+  if (panes > 12) {
+    bad(`indicators 去重后总 pane 数 ${panes} 超上限 12（基准 1 + Σ_卫星(去重后指标) pane）`);
+  }
+  // §2 校验 6 归一化：去重（保留首次出现顺序）⇒ 返回规范形态，供落库/回显
+  return { enabled: cfg.enabled, periods: [...cfg.periods], heights: { ...cfg.heights }, indicators: normalizedIndicators };
 }
 
 /** MA 窗口校验 + 归一化（与后端 validate_ma_windows 同构：1-3 条、每条 1-500、去重升序）。
@@ -604,6 +668,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   let klineViewportBars: number = DEFAULT_KLINE_VIEWPORT_BARS;
   /** 行情看板 dcap 显示参数（GET/PUT /api/config/dcap mock 内存态；默认 8/26/60/1/1/1/1/3） */
   let dcapConfig: DcapConfigDto = { ...DEFAULT_DCAP_CONFIG };
+  /** 多周期指标同显配置（GET/PUT /api/config/multi_period mock 内存态；默认关闭 + 单基准 + ["dcap"]） */
+  let multiPeriodConfig: MultiPeriodConfigDto = { ...DEFAULT_MULTI_PERIOD_CONFIG };
   /** 页面⑧ S2 源参数配置 mock 内存态（GET/PATCH /api/config/sources；默认 = 内置源参数） */
   let sourceConfig: SourceConfigItem[] = mockSourceConfig();
   /** 页面⑧ S2 采集参数 mock 内存态（GET/PATCH /api/config/collector；默认 60） */
@@ -1017,6 +1083,32 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       assertDcapConfig(params);
       dcapConfig = { ...params };
       return { ...dcapConfig };
+    },
+    // ── 多周期指标同显（GET/PUT /api/config/multi_period；app_config key="multi_period"）──
+    async getMultiPeriodConfig(): Promise<MultiPeriodConfigDto> {
+      return {
+        ...multiPeriodConfig,
+        periods: [...multiPeriodConfig.periods],
+        heights: { ...multiPeriodConfig.heights },
+        indicators: [...multiPeriodConfig.indicators],
+      };
+    },
+    async saveMultiPeriodConfig(cfg: MultiPeriodConfigDto): Promise<MultiPeriodConfigDto> {
+      // 校验并取**规范形态**（indicators 去重、保序）⇒ 落库/回显均用归一化结果，与后端
+      // `put_multi_period_config`（`validate_multi_period_config` 返回值落库）一致（P1-C D1）。
+      const normalized = assertMultiPeriodConfig(cfg);
+      multiPeriodConfig = {
+        enabled: normalized.enabled,
+        periods: [...normalized.periods],
+        heights: { ...normalized.heights },
+        indicators: [...normalized.indicators],
+      };
+      return {
+        ...multiPeriodConfig,
+        periods: [...multiPeriodConfig.periods],
+        heights: { ...multiPeriodConfig.heights },
+        indicators: [...multiPeriodConfig.indicators],
+      };
     },
     async purgeRaw(confirm: string): Promise<PurgeRawResult> {
       if (confirm !== 'PURGE') {

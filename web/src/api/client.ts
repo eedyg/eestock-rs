@@ -15,6 +15,7 @@ import type {
   MaConfigDto,
   McpConfigPatchBody,
   McpConfigSnapshot,
+  MultiPeriodConfigDto,
   MetricPoint,
   Period,
   PurgeRawResult,
@@ -167,6 +168,10 @@ export interface ApiClient {
   getDcapConfig(): Promise<DcapConfigDto>;
   /** 保存 dcap 显示参数（PUT /api/config/dcap；后端强校验：非单调 n / 越界 / 非整数 → 400） */
   saveDcapConfig(params: DcapConfigDto): Promise<DcapConfigDto>;
+  /** 多周期指标同显配置（GET /api/config/multi_period；app_config key "multi_period"；默认关闭）。 */
+  getMultiPeriodConfig(): Promise<MultiPeriodConfigDto>;
+  /** 保存多周期配置（PUT /api/config/multi_period；后端 7 条校验 + 总 pane ≤12 → 400） */
+  saveMultiPeriodConfig(cfg: MultiPeriodConfigDto): Promise<MultiPeriodConfigDto>;
   /** 清空 kline_raw（危险；confirm 须为 'PURGE'，缺失/不匹配 → 400） */
   purgeRaw(confirm: string): Promise<PurgeRawResult>;
   /** 全部源熔断状态重置（危险；confirm 须匹配，缺失/不匹配 → 400） */
@@ -387,6 +392,9 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getDcapConfig: () => get<DcapConfigDto>('/api/config/dcap'),
     saveDcapConfig: (params) =>
       request<DcapConfigDto>('/api/config/dcap', { method: 'PUT', body: JSON.stringify(params) }),
+    getMultiPeriodConfig: () => get<MultiPeriodConfigDto>('/api/config/multi_period'),
+    saveMultiPeriodConfig: (cfg) =>
+      request<MultiPeriodConfigDto>('/api/config/multi_period', { method: 'PUT', body: JSON.stringify(cfg) }),
     purgeRaw: (confirm) =>
       request<PurgeRawResult>('/api/system/purge-raw', {
         method: 'POST',

@@ -3,10 +3,13 @@ import { DashboardGrid, DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
 import { defaultApi } from '@/api';
 import { defaultWs } from '@/ws';
 import type { ApiClient } from '@/api/client';
+import type { MultiPeriodConfigDto } from '@/api/types';
 import type { WsClient } from '@/ws/WsClient';
 import { RegionPortal } from '@/components/RegionPortal';
 import { DashboardStore } from './store';
 import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
+import { MultiPeriodStore } from './multiPeriodStore';
+import { MultiPeriodChartStack } from './MultiPeriodChartStack';
 import {
   DEFAULT_DCAP_PARAMS,
   dcapWarmupBars,
@@ -89,6 +92,15 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   }, [store]);
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
+  // 多周期指标同显运行态（ADR-022；P1 仅骨架与隔离）。配置落服务端（口径 12）；
+  // `enabled=false` 时与现状逐字节等价（T11）——本 store 只持配置态，不建 feed / 不订阅 WS。
+  const mpStore = useMemo(() => new MultiPeriodStore({ api }), [api]);
+  useEffect(() => {
+    void mpStore.load();
+    return () => mpStore.dispose();
+  }, [mpStore]);
+  const mpState = useSyncExternalStore(mpStore.subscribe, mpStore.getSnapshot);
+
   // chartTab / 指标勾选为页面本地状态（骨架 Props 未覆盖，默认值取 DASHBOARD_DEFAULTS）
   const [chartTab, setChartTab] = useState<ChartTab>(
     DASHBOARD_DEFAULTS.chartTab === 'kline' ? 'kline' : 'timeshare',
@@ -161,6 +173,27 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
       }
     },
     [api, dcapParams],
+  );
+
+  /** 切换多周期开关：乐观更新（同步 setEnabled）+ PUT 服务端 config；成功用服务端回显，失败回滚。
+   *  照既有 MA/dcap 写法的乐观更新 + 失败回滚。 */
+  const toggleMultiPeriod = useCallback(
+    async (enabled: boolean) => {
+      const prev: MultiPeriodConfigDto = {
+        enabled: mpStore.state.enabled,
+        periods: [...mpStore.state.periods],
+        heights: { ...mpStore.state.heights },
+        indicators: [...mpStore.state.indicators],
+      };
+      mpStore.setEnabled(enabled); // 乐观更新
+      try {
+        const cfg = await api.saveMultiPeriodConfig({ ...prev, enabled });
+        mpStore.applyServerConfig(cfg);
+      } catch {
+        mpStore.applyServerConfig(prev); // 失败回滚
+      }
+    },
+    [api, mpStore],
   );
 
   // K线默认视口（K 线根数，统一配置，主图+宫格共用）：默认 120，mount 时 GET /api/config/kline 读；
@@ -288,27 +321,31 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           onSaveMaWindows={saveMaWindows}
           dcapParams={dcapParams}
           onSaveDcapParams={saveDcapParams}
+          multiPeriodEnabled={mpState.enabled}
+          onToggleMultiPeriod={toggleMultiPeriod}
         />
       </RegionPortal>
 
       {state.gridMode === 'single' ? (
         <RegionPortal root={rootRef} region="main-chart">
-          {state.selected &&
-            (chartTab === 'kline' && feed ? (
-              <KlineChart
-                feed={feed}
-                code={state.selected}
-                period={state.period}
-                followLatest={state.followLatest}
-                indicators={indicators}
-                onManualZoom={() => store.noteManualZoom()}
-                maWindows={maWindows}
-                dcapParams={dcapParams}
-                warmupBars={dcapWarmup}
-              />
-            ) : (
-              <TimeshareChart api={api} ws={ws} code={state.selected} />
-            ))}
+          <MultiPeriodChartStack enabled={mpState.enabled}>
+            {state.selected &&
+              (chartTab === 'kline' && feed ? (
+                <KlineChart
+                  feed={feed}
+                  code={state.selected}
+                  period={state.period}
+                  followLatest={state.followLatest}
+                  indicators={indicators}
+                  onManualZoom={() => store.noteManualZoom()}
+                  maWindows={maWindows}
+                  dcapParams={dcapParams}
+                  warmupBars={dcapWarmup}
+                />
+              ) : (
+                <TimeshareChart api={api} ws={ws} code={state.selected} />
+              ))}
+          </MultiPeriodChartStack>
         </RegionPortal>
       ) : (
         <RegionPortal root={rootRef} region="grid-view">
