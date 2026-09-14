@@ -1,0 +1,18 @@
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+const require = createRequire('/home/eestock/workspace/git/eestock/eestock-rs/web/package.json');
+const { chromium } = require('playwright');
+const PORT = process.env.P3D2_PORT || '18377';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 900, height: 1200 } });
+const msgs = [];
+page.on('pageerror', (e) => msgs.push(`[pageerror] ${e.message}`));
+await page.goto(`http://127.0.0.1:${PORT}/index-dbg.html`, { waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => window.__DONE === true, null, { timeout: 180000 });
+const r = await page.evaluate(() => window.__RESULT);
+await browser.close();
+fs.writeFileSync('/tmp/p3d2-harness/dbg.json', JSON.stringify(r, null, 2));
+console.log('errors', JSON.stringify(r.errors), JSON.stringify(msgs));
+console.log('afterAlign', JSON.stringify(r.afterAlign, null, 1));
+console.log('trace', JSON.stringify(r.trace, null, 1));
+console.log('barCountProbe', JSON.stringify(r.barCountProbe, null, 1));

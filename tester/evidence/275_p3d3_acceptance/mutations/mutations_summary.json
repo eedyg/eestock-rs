@@ -1,0 +1,103 @@
+[
+ {
+  "tag": "M1a_remove_probe",
+  "exit": 1,
+  "summary": "1 failed | 25 passed (26)",
+  "failedCases": [
+   "ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉）",
+   "src/features/dashboard/chartSyncGroup.test.ts"
+  ],
+  "red": true
+ },
+ {
+  "tag": "M1b_direct_degrade",
+  "exit": 1,
+  "summary": "7 failed | 19 passed (26)",
+  "failedCases": [
+   "ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测",
+   "ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 可对齐的降级 barSpace（容量受限但跨度可达）⇒ 仍必须完成对齐（fail-closed：先尝试完整对齐）",
+   "ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 降级路径（容差不可达）：可见 ≥2 根 + 右端差 ≤1 根 + 实测可达下界记录 + 原因可读（fail-closed）",
+   "ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1d↔1w：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声",
+   "ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔15m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声",
+   "ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔5m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声",
+   "ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常",
+   "src/features/dashboard/chartSyncAlignClosedLoop.test.ts",
+   "src/features/dashboard/chartSyncGroup.test.ts"
+  ],
+  "red": true,
+  "harness": {
+   "tag": "M1b_direct_degrade",
+   "exit": 1,
+   "failedChecks": [
+    "FAIL  A1 1m↔1m 20 轮 maxDrift ≤1 根（期望 0）",
+    "FAIL  A2 1m↔5m：跨度差 ≤1 根且右端差 ≤1 根高周期 bar、卫星 ≥2 根",
+    "FAIL  A2 1m↔15m：同判据",
+    "FAIL  A2 1d↔1w：同判据",
+    "FAIL  A3 降级路径（1m↔1h）：degraded/degradedPeriod + 卫星 ≥2 根 + 右端差 ≤1 根 + 可达下界已记录 + 角标(store)可读",
+    "FAIL  A3 降级路径：跨度差**不适用** ≤1 根（记录实测下界 >1 根）",
+    "FAIL  A3 缩小基准 ⇒ 回到成功路径判据（degraded=false、跨度/右端差 ≤1 根、unaligned=0）",
+    "FAIL  A5 可观测：被跳过的 follower 计数 + 原因可读（不再静默）+ 残差/微调字段可读"
+   ],
+   "summary": "SUMMARY: 5 PASS / 8 FAIL",
+   "red": true
+  }
+ },
+ {
+  "tag": "M2_base_as_follower",
+  "exit": 1,
+  "summary": "1 failed | 25 passed (26)",
+  "failedCases": [
+   "ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 【硬约束】基准永不作为 follower：卫星做 leader ⇒ 基准 barSpace/可见范围**逐字段不变**（反向变异必红）",
+   "src/features/dashboard/chartSyncAlignClosedLoop.test.ts"
+  ],
+  "red": true
+ },
+ {
+  "tag": "M3a_exact_stub",
+  "exit": 1,
+  "summary": "3 failed | 23 passed (26)",
+  "failedCases": [
+   "src/features/dashboard/chartSyncStubFidelity.test.ts",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]）",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试）"
+  ],
+  "red": true
+ },
+ {
+  "tag": "M3b_exact_stub_plus_timestamp",
+  "exit": 1,
+  "summary": "3 failed | 23 passed (26)",
+  "failedCases": [
+   "src/features/dashboard/chartSyncStubFidelity.test.ts",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]）",
+   "syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试）"
+  ],
+  "red": true,
+  "harness": {
+   "tag": "M3b_exact_stub_plus_timestamp",
+   "exit": 0,
+   "failedChecks": [],
+   "summary": "SUMMARY: 13 PASS / 0 FAIL",
+   "red": false
+  }
+ },
+ {
+  "tag": "M4_unbounded",
+  "exit": 1,
+  "summary": "1 failed | 25 passed (26)",
+  "failedCases": [
+   "ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测",
+   "src/features/dashboard/chartSyncAlignClosedLoop.test.ts"
+  ],
+  "red": true,
+  "harness": {
+   "tag": "M4_unbounded",
+   "exit": 0,
+   "failedChecks": [],
+   "summary": "SUMMARY: 13 PASS / 0 FAIL",
+   "red": false
+  }
+ }
+]

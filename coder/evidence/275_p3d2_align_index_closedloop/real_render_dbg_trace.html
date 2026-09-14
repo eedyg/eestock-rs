@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><title>P3-D-2 调试 · 1m↔15m 调用轨迹</title>
+<style>html,body{margin:0;background:#101418;color:#c9d1d9;font:12px/1.4 monospace}.pane{width:520px;height:240px}</style></head>
+<body><div id="stage"></div><pre id="log"></pre>
+<script src="./klinecharts.min.js"></script>
+<script type="module">
+import { ChartSyncGroup } from './chartSyncGroup.mjs';
+const kc = window.klinecharts;
+const R = { errors: [], events: [], trace: [] };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms || 100));
+const err = (e) => R.errors.push(String(e && e.message ? e.message : e));
+const MIN = 60000, T0 = Date.UTC(2026, 8, 14, 7, 0, 0);
+function series(count, stepMs, endTs) { const out = []; let px = 8.9; for (let i = 0; i < count; i++) { px += Math.sin(i / 13) * 0.002; out.push({ timestamp: endTs - (count - 1 - i) * stepMs, open: +px.toFixed(4), high: +(px + .001).toFixed(4), low: +(px - .001).toFixed(4), close: +(px + .0005).toFixed(4), volume: 100 }); } return out; }
+let paneN = 0;
+function pane() { const d = document.createElement('div'); d.className = 'pane'; d.id = 'p' + (paneN++); document.getElementById('stage').appendChild(d); return d; }
+function mkChart(bars, opts, period) { const el = pane(); const chart = kc.init(el, Object.assign({ styles: 'dark' }, opts || {})); chart.setSymbol({ ticker: '518880', pricePrecision: 3, volumePrecision: 0 }); chart.setPeriod(period); chart.setDataLoader({ getBars: (a) => a.callback(bars.slice(), false), subscribe: () => {}, unsubscribe: () => {} }); chart.resetData(); return chart; }
+const WIDENED = { layout: { barSpaceLimit: { min: 1, max: 350 } } };
+function rr(c) { const r = c.getVisibleRange(); const list = c.getDataList(); const cf = Math.max(0, Math.min(list.length - 1, r.from)), ct = Math.max(0, Math.min(list.length - 1, r.to)); return { from: r.from, to: r.to, realFrom: r.realFrom, realTo: r.realTo, bars: r.to - r.from + 1, realBars: r.realTo - r.realFrom + 1, fromTs: list[cf] && list[cf].timestamp, toTs: list[ct] && list[ct].timestamp }; }
+function proxy(c, label) {
+  const wrap = (name) => (typeof c[name] === 'function' ? (...args) => { const out = c[name](...args); R.trace.push({ who: label, call: name, args, ret: name === 'getVisibleRange' ? rr(c) : (name === 'getBarSpace' ? c.getBarSpace() : undefined) }); return out; } : c[name]);
+  return new Proxy(c, { get(t, p) { if (typeof p === 'string' && ['setBarSpace', 'scrollToDataIndex', 'scrollToTimestamp', 'getVisibleRange', 'getBarSpace', 'setOffsetRightDistance', 'scrollToRealTime'].includes(p)) return wrap(p); const v = Reflect.get(t, p); return typeof v === 'function' ? v.bind(t) : v; } });
+}
+async function run() {
+  const base = mkChart(series(6000, 15 * MIN / 12.2, T0), null, { span: 1, type: 'minute' });
+  const sat = mkChart(series(600, 15 * MIN, T0), WIDENED, { span: 1, type: 'minute' });
+  const satP = proxy(sat, 'sat');
+  const g = new ChartSyncGroup([{ id: 'base', chart: base, period: '1m', isBase: true }, { id: 'sat', chart: satP, period: '15m', isBase: false }]);
+  g.start(); await wait(150);
+  base.setBarSpace(8); await wait(200);
+  R.trace.length = 0;
+  base.scrollToDataIndex(3000); await wait(400);
+  R.afterAlign = { satBS: sat.getBarSpace().bar, range: rr(sat), stats: JSON.parse(JSON.stringify(g.stats)) };
+  // 静态探测：不同 barSpace 下的真实可见根数（用于判断 targetBars 可达性）
+  const probe = [];
+  for (const bs of [98, 137, 157, 175, 200, 233, 260]) { sat.setBarSpace(bs); await wait(180); const r = rr(sat); probe.push({ bs, from: r.from, to: r.to, bars: r.bars, realBars: r.realBars }); }
+  R.barCountProbe = probe;
+  R.errors = R.errors.concat([]);
+  window.__RESULT = R; window.__DONE = true;
+}
+run().catch((e) => { err(e); window.__RESULT = R; window.__DONE = true; });
+</script>
+</body></html>

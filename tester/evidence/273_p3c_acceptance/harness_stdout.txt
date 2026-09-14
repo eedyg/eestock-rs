@@ -1,0 +1,496 @@
+klinecharts undefined
+errors []
+non-local requests []
+
+== PROBE ==
+{
+ "offsetBefore": 64,
+ "offsetAfterZero": 0,
+ "sizeA": {
+  "width": 520,
+  "height": 240,
+  "left": 0,
+  "right": 0,
+  "top": 0,
+  "bottom": 0
+ },
+ "sameIndexScroll_a": {
+  "from": 241,
+  "to": 302,
+  "toTs": 1789351380000
+ },
+ "sameIndexScroll_b": {
+  "from": 241,
+  "to": 302
+ },
+ "scrollToTimestamp_on_b": {
+  "from": 243,
+  "to": 304
+ },
+ "deltaTs_toTs": 120000
+}
+
+== S1_g1_nodrift ==
+{
+ "rounds": 20,
+ "maxDrift": 2,
+ "samples": [
+  {
+   "round": 1,
+   "base": [
+    253,
+    302
+   ],
+   "sat": [
+    255,
+    304
+   ],
+   "drift": 2
+  },
+  {
+   "round": 2,
+   "base": [
+    258,
+    307
+   ],
+   "sat": [
+    260,
+    309
+   ],
+   "drift": 2
+  },
+  {
+   "round": 3,
+   "base": [
+    263,
+    312
+   ],
+   "sat": [
+    265,
+    314
+   ],
+   "drift": 2
+  },
+  {
+   "round": 4,
+   "base": [
+    268,
+    317
+   ],
+   "sat": [
+    270,
+    319
+   ],
+   "drift": 2
+  },
+  {
+   "round": 5,
+   "base": [
+    273,
+    322
+   ],
+   "sat": [
+    275,
+    324
+   ],
+   "drift": 2
+  },
+  {
+   "round": 6,
+   "base": [
+    278,
+    327
+   ],
+   "sat": [
+    280,
+    329
+   ],
+   "drift": 2
+  },
+  {
+   "round": 7,
+   "base": [
+    283,
+    332
+   ],
+   "sat": [
+    285,
+    334
+   ],
+   "drift": 2
+  },
+  {
+   "round": 8,
+   "base": [
+    288,
+    337
+   ],
+   "sat": [
+    290,
+    339
+   ],
+   "drift": 2
+  },
+  {
+   "round": 9,
+   "base": [
+    293,
+    342
+   ],
+   "sat": [
+    295,
+    344
+   ],
+   "drift": 2
+  },
+  {
+   "round": 10,
+   "base": [
+    298,
+    347
+   ],
+   "sat": [
+    300,
+    349
+   ],
+   "drift": 2
+  },
+  {
+   "round": 11,
+   "base": [
+    303,
+    352
+   ],
+   "sat": [
+    305,
+    354
+   ],
+   "drift": 2
+  },
+  {
+   "round": 12,
+   "base": [
+    308,
+    357
+   ],
+   "sat": [
+    310,
+    359
+   ],
+   "drift": 2
+  },
+  {
+   "round": 13,
+   "base": [
+    313,
+    362
+   ],
+   "sat": [
+    315,
+    364
+   ],
+   "drift": 2
+  },
+  {
+   "round": 14,
+   "base": [
+    318,
+    367
+   ],
+   "sat": [
+    320,
+    369
+   ],
+   "drift": 2
+  },
+  {
+   "round": 15,
+   "base": [
+    323,
+    372
+   ],
+   "sat": [
+    325,
+    374
+   ],
+   "drift": 2
+  },
+  {
+   "round": 16,
+   "base": [
+    328,
+    377
+   ],
+   "sat": [
+    330,
+    379
+   ],
+   "drift": 2
+  },
+  {
+   "round": 17,
+   "base": [
+    333,
+    382
+   ],
+   "sat": [
+    335,
+    384
+   ],
+   "drift": 2
+  },
+  {
+   "round": 18,
+   "base": [
+    338,
+    387
+   ],
+   "sat": [
+    340,
+    389
+   ],
+   "drift": 2
+  },
+  {
+   "round": 19,
+   "base": [
+    343,
+    392
+   ],
+   "sat": [
+    345,
+    394
+   ],
+   "drift": 2
+  },
+  {
+   "round": 20,
+   "base": [
+    348,
+    397
+   ],
+   "sat": [
+    350,
+    399
+   ],
+   "drift": 2
+  }
+ ],
+ "baseOffsetPx": 0,
+ "satOffsetPx": 0,
+ "stats": {
+  "applied": 41,
+  "suppressed": 64,
+  "echoEvents": 0,
+  "lastSpanDiffMinutes": 0,
+  "degraded": false,
+  "degradedPeriod": null
+ },
+ "pass": false,
+ "reverse": {
+  "stats": {
+   "applied": 11,
+   "suppressed": 0,
+   "echoEvents": 17,
+   "lastSpanDiffMinutes": 0,
+   "degraded": false,
+   "degradedPeriod": null
+  },
+  "drift": 2,
+  "pass": true
+ }
+}
+
+== S2_cross_period ==
+{
+ "1m↔5m": {
+  "baseBS": 8,
+  "satBS": 38,
+  "expectedSatBS": 38,
+  "baseWindow": [
+   1941,
+   2002
+  ],
+  "satWindow": [
+   362,
+   376
+  ],
+  "satBars": 15,
+  "spanBaseMs": 3953617.0212402344,
+  "spanSatMs": 4500000,
+  "spanDiffMs": 546382.9787597656,
+  "toleranceMs": 300000,
+  "rightEdgeDiffMs": 568085.1064453125,
+  "degraded": false,
+  "suppressed": 9,
+  "echo": 0,
+  "spansPass": false,
+  "barsPass": true,
+  "edgePass": false,
+  "pass": false
+ },
+ "1m↔15m": {
+  "baseBS": 8,
+  "satBS": 98,
+  "expectedSatBS": 98,
+  "baseWindow": [
+   2941,
+   3002
+  ],
+  "satWindow": [
+   349,
+   355
+  ],
+  "satBars": 7,
+  "spanBaseMs": 4560000,
+  "spanSatMs": 6300000,
+  "spanDiffMs": 1740000,
+  "toleranceMs": 900000,
+  "rightEdgeDiffMs": 1490163.9343261719,
+  "degraded": false,
+  "suppressed": 9,
+  "echo": 0,
+  "spansPass": false,
+  "barsPass": true,
+  "edgePass": false,
+  "pass": false
+ },
+ "1d↔1w": {
+  "baseBS": 8,
+  "satBS": 37,
+  "expectedSatBS": 37,
+  "baseWindow": [
+   241,
+   302
+  ],
+  "satWindow": [
+   43,
+   57
+  ],
+  "satBars": 15,
+  "spanBaseMs": 7900017173.44751,
+  "spanSatMs": 9072000000,
+  "spanDiffMs": 1171982826.5524902,
+  "toleranceMs": 604800000,
+  "rightEdgeDiffMs": 966125910.064209,
+  "degraded": false,
+  "suppressed": 9,
+  "echo": 0,
+  "spansPass": false,
+  "barsPass": true,
+  "edgePass": false,
+  "pass": false
+ }
+}
+
+== S3_t4 ==
+{
+ "baseLastTs": 1789369200000,
+ "satLastTs": 1789369200000,
+ "baseRange": {
+  "from": 3939,
+  "to": 4000,
+  "toTs": 1789369200000
+ },
+ "satRange": {
+  "from": 786,
+  "to": 800,
+  "toTs": 1789369200000
+ },
+ "baseOffsetPx": 0,
+ "satOffsetPx": 0,
+ "baseBsBar": 8,
+ "satBsBar": 38,
+ "rightEdgeDiffMs": 0,
+ "pass": true
+}
+
+== S4_t8bis ==
+{
+ "ideal": 302,
+ "satBS": 260,
+ "capacity": 260,
+ "satBars": 4,
+ "degraded": true,
+ "degradedPeriod": "1h",
+ "lastSpanDiffMinutes": 142.2,
+ "spanDiffMs": 8530476.190673828,
+ "rightEdgeDiffMs": 6266666.666748047,
+ "toleranceMs": 3600000,
+ "snapshots": 4,
+ "lastSnapshotDegraded": true,
+ "pass": false,
+ "shrink": {
+  "satBS": 151,
+  "expected": 151,
+  "degraded": false,
+  "degradedPeriod": null,
+  "satBars": 5,
+  "rightEdgeDiffMs": 6266666.666748047,
+  "spanDiffMs": 6416190.476318359,
+  "lastSnapshotDegraded": false,
+  "pass": true
+ },
+ "reverseDerived": {
+  "satBS": 302,
+  "satBars": 4,
+  "violatesAtLeast2": false,
+  "pass": false
+ }
+}
+
+== S5_boundary ==
+{
+ "nan": {
+  "afterGroupSatBS": 260,
+  "afterGroupNan": false,
+  "afterGroupBars": 4,
+  "instrument1512_bs": 260,
+  "instrument1512_nan": false,
+  "afterRepair_nan": false,
+  "afterRepair_bs": 260,
+  "afterRepairBars": 4,
+  "degraded": true,
+  "pass": false
+ },
+ "staticDensity": {
+  "satBS": 38,
+  "expectedStatic": 38,
+  "nominalRatio7": 56,
+  "pass": true
+ },
+ "isolation": {
+  "baseAt50": 50,
+  "baseReq350": 50,
+  "baseReq5000": 50,
+  "satReq350": 350,
+  "pass": true
+ }
+}
+
+== S6_sat_to_sat ==
+{
+ "bs15": 8,
+ "bs1h": 25,
+ "bsBase": 1,
+ "expected1h": 25,
+ "expectedBase": 1,
+ "windows": {
+  "r15": [
+   241,
+   302
+  ],
+  "r1h": [
+   106,
+   126
+  ],
+  "base": [
+   4714,
+   5194
+  ]
+ },
+ "degraded": false,
+ "degradedPeriod": null,
+ "echo": 0,
+ "pass": true
+}

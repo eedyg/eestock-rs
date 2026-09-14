@@ -1,0 +1,64 @@
+
+ RUN  v3.2.7 /tmp/p3d3/mut
+
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 2ms
+ ✓ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests) 6ms
+ ❯ src/features/dashboard/chartSyncGroup.test.ts (14 tests | 1 failed) 25ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > G1/T3-1 同周期（1m↔1m）：≥20 轮镜像后**相对偏移 ≤1 根**、无回声（真渲染口径） 13ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔5m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔15m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1d↔1w：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标） 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口 0ms
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉） 4ms
+     → 必须按已知上限取 50（若盲目写 113 会被静默吞掉、留在旧值）: expected 23 to be 50 // Object.is equality
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格） 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留） 0ms
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 25 passed (26)
+   Start at  23:49:11
+   Duration  474ms (transform 80ms, setup 67ms, collect 88ms, tests 34ms, environment 453ms, prepare 193ms)
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉）
+AssertionError: 必须按已知上限取 50（若盲目写 113 会被静默吞掉、留在旧值）: expected 23 to be 50 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 50[39m
+[31m+ 23[39m
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:463:72
+    461|     base.scrollToDataIndex(300);
+    462|     // 推导 113（≤260 ⇒ 非 pane 退化），但卫星上限只有 50 ⇒ 必须显式降级（默认 50 静默吞掉是 P0.3 §…
+    463|     expect(sat.getBarSpace().bar, '必须按已知上限取 50（若盲目写 113 会被静默吞掉、留在旧值）')…
+       |                                                                        ^
+    464|     expect(g.stats.degraded).toBe(true);
+    465|     expect(g.stats.degradedPeriod).toBe('1h');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,12 @@
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (12 tests) 18ms
+stderr | src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 退化场景：基准缩放到 satBS>pane/2 ⇒ 角标出现（含原因指引 + 跨度差）；缩小基准 ⇒ 角标消失且回到正常对齐
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/multiPeriodSyncBadge.test.tsx (2 tests) 90ms
+
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+   Start at  23:10:07
+   Duration  709ms (transform 168ms, setup 80ms, collect 282ms, tests 124ms, environment 440ms, prepare 306ms)
+

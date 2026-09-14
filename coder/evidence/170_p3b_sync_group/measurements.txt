@@ -1,0 +1,35 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stdout | src/features/dashboard/__tmp_sync_measure.test.ts > measure > M1 同周期 20 轮镜像漂移
+[M1] 同周期 1m↔1m 20 轮：逐轮 drift 汇总
+#1 base[236,300] sat[236,300] drift=0
+#2 base[241,305] sat[241,305] drift=0
+#3 base[246,310] sat[246,310] drift=0
+#19 base[326,390] sat[326,390] drift=0
+#20 base[331,395] sat[331,395] drift=0
+[M1] maxDrift=0 applied=40 suppressed=42 echo=0
+
+stdout | src/features/dashboard/__tmp_sync_measure.test.ts > measure > M2 跨周期 20 轮跨度差（分钟）+ 可见根数 + 右端差 + 抑制
+[M2] 1m↔5m: spanDiff(min/max)=4.09/4.09 min (容差=5 min) minSatBars=13 maxRightEdgeDiff=127659.57446289062ms (容差=300000ms) satBS=38 degraded=false applied=40 suppressed=42 echo=0 offsetSat=0px(BS=38)
+[M2] 1m↔15m: spanDiff(min/max)=4.69/4.69 min (容差=15 min) minSatBars=5 maxRightEdgeDiff=442622.9509277344ms (容差=900000ms) satBS=98 degraded=false applied=40 suppressed=26 echo=0 offsetSat=0px(BS=98)
+[M2] 1d↔1w: spanDiff(min/max)=1538.67/1538.67 min (容差=10080 min) minSatBars=14 maxRightEdgeDiff=259014989.29345703ms (容差=604800000ms) satBS=37 degraded=false applied=26 suppressed=26 echo=0 offsetSat=0px(BS=37)
+
+stdout | src/features/dashboard/__tmp_sync_measure.test.ts > measure > M3 降级场景（1m↔1h）
+[M3] 退化: satBS=260(ideal=302) satBars=2 spanDiff=17.4min degraded=true/1h rightEdge=1409523.8095703125ms minSpanDiff=17.41min
+[M3] 正常: satBS=151 satBars=3 degraded=false spanDiff=25.8min |spanDiff实算|=25.76min (容差=60min) rightEdge=1409523.8095703125ms
+
+stdout | src/features/dashboard/__tmp_sync_measure.test.ts > measure > M4 抑制开关双向 + 上限不足探测
+[M4] 抑制关: echo=8 suppressed=0 applied=6
+[M4] 抑制开: echo=0 suppressed=4 applied=2
+[M4] 上限不足(声明上限 350/真实 50): 推导 ideal=113 实际 satBS=50 degraded=true/1h 探测后 cap 生效
+[M4] NaN 路径: 推导 ideal=1512 实际 satBS=260 pane=520 NaN?=false degraded=true
+[M4] 纯函数抽查: {"idealBarSpace":302,"barSpace":260,"degraded":true,"degradedReason":"base-zoom","visibleBars":2}
+
+ ✓ src/features/dashboard/__tmp_sync_measure.test.ts (4 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:08:06
+   Duration  406ms (transform 37ms, setup 22ms, collect 29ms, tests 7ms, environment 133ms, prepare 102ms)
+

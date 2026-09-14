@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>P3-C 独立验收 · 真身 klinecharts 10.0.3 + 真 ChartSyncGroup (calibrated)</title>
+<style>
+  html, body { margin: 0; background:#101418; color:#c9d1d9; font:12px/1.4 monospace; }
+  .pane { width: 520px; height: 240px; }
+  #log { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<pre id="log"></pre>
+<script src="./klinecharts.min.js"></script>
+<script type="module">
+import { ChartSyncGroup } from './chartSyncGroup.mjs';
+
+const kc = window.klinecharts;
+const R = { version: (kc.version || (kc.default && kc.default.version) || 'unknown'), errors: [], scenarios: {} };
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms || 100));
+const err = (e) => R.errors.push(String(e && e.message ? e.message : e));
+
+const MIN = 60000, DAY = 86400000, WEEK = 7 * DAY;
+const T0 = Date.UTC(2026, 8, 14, 7, 0, 0);
+function series(count, stepMs, endTs) {
+  const out = []; let px = 8.9;
+  for (let i = 0; i < count; i++) { px += Math.sin(i / 13) * 0.002; const ts = endTs - (count - 1 - i) * stepMs;
+    out.push({ timestamp: ts, open: +px.toFixed(4), high: +(px + .001).toFixed(4), low: +(px - .001).toFixed(4), close: +(px + .0005).toFixed(4), volume: 100 }); }
+  return out;
+}
+let paneN = 0;
+function pane() { const d = document.createElement('div'); d.className = 'pane'; d.id = 'p' + (paneN++); document.getElementById('stage').appendChild(d); return d; }
+function mkChart(bars, opts, period) {
+  const el = pane();
+  const chart = kc.init(el, Object.assign({ styles: 'dark' }, opts || {}));
+  chart.setSymbol({ ticker: '518880', pricePrecision: 3, volumePrecision: 0 });
+  chart.setPeriod(period);
+  chart.setDataLoader({ getBars: (a) => a.callback(bars.slice(), false), subscribe: () => {}, unsubscribe: () => {} });
+  chart.resetData();
+  return chart;
+}
+const WIDENED = { layout: { barSpaceLimit: { min: 1, max: 350 } } };
+const HUGE = { layout: { barSpaceLimit: { min: 1, max: 1000000 } } };
+function bsOf(c) { try { return c.getBarSpace().bar; } catch (e) { err(e); return null; } }
+function rangeOf(c) {
+  try { const r = c.getVisibleRange(); const list = c.getDataList();
+    if (!isFinite(r.from) || !isFinite(r.to) || !isFinite(r.realFrom) || !isFinite(r.realTo)) return { nan: true, raw: [r.from, r.to, r.realFrom, r.realTo] };
+    const last = list.length - 1;
+    const cf = Math.max(0, Math.min(last, r.from)), ct = Math.max(0, Math.min(last, r.to));
+    return { nan: false, from: r.from, to: r.to, realFrom: r.realFrom, realTo: r.realTo, bars: r.to - r.from + 1,
+      cf, ct, fromTs: list[cf] && list[cf].timestamp, toTs: list[ct] && list[ct].timestamp }; }
+  catch (e) { return { nan: true, error: String(e.message) }; }
+}
+function reg(chart, period, isBase) { return { id: (isBase ? 'base:' : 'sat:') + period + ':' + Math.random().toString(36).slice(2, 6), chart, period, isBase }; }
+
+/** 按实测密度比校准：base 间距 = satBucket / D（同 design 夹具口径） */
+function pair(name, basePeriod, density, satPeriod, satBucket, baseCount, satCount) {
+  const baseSpacing = satBucket / density;
+  const base = mkChart(series(baseCount, baseSpacing, T0), null, { span: 1, type: 'minute' });
+  const sat = mkChart(series(satCount, satBucket, T0), WIDENED, { span: 1, type: 'minute' });
+  return { name, base, sat, satBucket, baseSpacing };
+}
+
+async function run() {
+  log('klinecharts ' + R.version);
+  // PROBE（无组）：真身偏移归零 + 同构实例 + scrollToTimestamp 落点
+  {
+    const bars = series(600, MIN, T0);
+    const a = mkChart(bars, null, { span: 1, type: 'minute' });
+    const b = mkChart(bars, null, { span: 1, type: 'minute' });
+    a.setBarSpace(8); b.setBarSpace(8); await wait(150);
+    const offsetBefore = a.getOffsetRightDistance();
+    a.setOffsetRightDistance(0); await wait(80);
+    const offsetAfterZero = a.getOffsetRightDistance();
+    a.scrollToDataIndex(300); await wait(150);
+    const ra = rangeOf(a);
+    b.setOffsetRightDistance(0); await wait(60);
+    b.scrollToDataIndex(300); await wait(150);
+    const rb = rangeOf(b);
+    b.scrollToTimestamp(ra.toTs); await wait(150);
+    const rb2 = rangeOf(b);
+    R.scenarios.PROBE = {
+      offsetBefore, offsetAfterZero, sizeA: a.getSize(),
+      sameIndexScroll_a: { from: ra.from, to: ra.to, toTs: ra.toTs }, sameIndexScroll_b: { from: rb.from, to: rb.to },
+      scrollToTimestamp_on_b: { from: rb2.from, to: rb2.to },
+      deltaTs_toTs: rb2.toTs - ra.toTs,
+    };
+  }
+
+  // S1 G1 1m↔1m 20 轮
+  {
+    const bars = series(600, MIN, T0);
+    const base = mkChart(bars, null, { span: 1, type: 'minute' });
+    const sat = mkChart(bars, null, { span: 1, type: 'minute' });
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '1m', false)]);
+    g.start(); await wait(120);
+    const rows = []; let maxDrift = 0;
+    for (let r = 0; r < 20; r++) {
+      base.scrollToDataIndex(300 + r * 5); await wait(120);
+      const rb = rangeOf(base), rs = rangeOf(sat);
+      const d = Math.max(Math.abs(rs.from - rb.from), Math.abs(rs.to - rb.to));
+      if (d > maxDrift) maxDrift = d;
+      if (r < 3 || d !== 0) rows.push({ round: r + 1, base: [rb.from, rb.to], sat: [rs.from, rs.to], drift: d });
+    }
+    R.scenarios.S1_g1_nodrift = {
+      rounds: 20, maxDrift, samples: rows,
+      baseOffsetPx: base.getOffsetRightDistance(), satOffsetPx: sat.getOffsetRightDistance(),
+      stats: { ...g.stats },
+      pass: maxDrift === 0 && g.stats.suppressed > 0 && g.stats.echoEvents === 0,
+    };
+    g.stop();
+    const base2 = mkChart(bars, null, { span: 1, type: 'minute' });
+    const sat2 = mkChart(bars, null, { span: 1, type: 'minute' });
+    const gOff = new ChartSyncGroup([reg(base2, '1m', true), reg(sat2, '1m', false)], { reentrySuppression: false });
+    gOff.start(); await wait(120);
+    base2.scrollToDataIndex(300); await wait(200);
+    const rb2 = rangeOf(base2), rs2 = rangeOf(sat2);
+    R.scenarios.S1_g1_nodrift.reverse = { stats: { ...gOff.stats }, drift: Math.max(Math.abs(rs2.from - rb2.from), Math.abs(rs2.to - rb2.to)), pass: gOff.stats.echoEvents > 0 };
+    gOff.stop();
+  }
+
+  // S2 跨周期（校准间距）
+  {
+    const combos = [
+      ['1m↔5m', '1m', 4.7, '5m', 5 * MIN, 4000, 800, 2000],
+      ['1m↔15m', '1m', 12.2, '15m', 15 * MIN, 6000, 600, 3000],
+      ['1d↔1w', '1d', 4.67, '1w', WEEK, 600, 120, 300],
+    ];
+    const out = {};
+    for (const [name, bp, dens, sp, sbucket, bc, sc, mid] of combos) {
+      const p = pair(name, bp, dens, sp, sbucket, bc, sc);
+      const g = new ChartSyncGroup([reg(p.base, bp, true), reg(p.sat, sp, false)]);
+      g.start(); p.base.setBarSpace(8); await wait(200);
+      p.base.scrollToDataIndex(mid); await wait(300);
+      const rb = rangeOf(p.base), rs = rangeOf(p.sat);
+      const spanB = rb.nan ? NaN : (rb.toTs - rb.fromTs) + MIN;
+      const spanS = rs.nan ? NaN : (rs.toTs - rs.fromTs) + sbucket;
+      out[name] = {
+        baseBS: bsOf(p.base), satBS: bsOf(p.sat), expectedSatBS: Math.round(8 * dens),
+        baseWindow: [rb.from, rb.to], satWindow: [rs.from, rs.to], satBars: rs.bars,
+        spanBaseMs: spanB, spanSatMs: spanS, spanDiffMs: Math.abs(spanS - spanB), toleranceMs: sbucket,
+        rightEdgeDiffMs: Math.abs(rs.toTs - rb.toTs),
+        degraded: g.stats.degraded, suppressed: g.stats.suppressed, echo: g.stats.echoEvents,
+        spansPass: Math.abs(spanS - spanB) <= sbucket, barsPass: rs.bars >= 2, edgePass: Math.abs(rs.toTs - rb.toTs) <= sbucket,
+      };
+      out[name].pass = out[name].spansPass && out[name].barsPass && out[name].edgePass;
+      g.stop();
+    }
+    R.scenarios.S2_cross_period = out;
+  }
+
+  // S3 T4 scrollAllToLatest
+  {
+    const p = pair('1m↔5m', '1m', 4.7, '5m', 5 * MIN, 4000, 800, 2000);
+    const g = new ChartSyncGroup([reg(p.base, '1m', true), reg(p.sat, '5m', false)]);
+    g.start(); p.base.setBarSpace(8); await wait(200);
+    p.base.scrollToDataIndex(2000); p.sat.scrollToDataIndex(50); await wait(250);
+    g.scrollAllToLatest(); await wait(300);
+    const rb = rangeOf(p.base), rs = rangeOf(p.sat);
+    const out = {
+      baseLastTs: p.base.getDataList().slice(-1)[0].timestamp, satLastTs: p.sat.getDataList().slice(-1)[0].timestamp,
+      baseRange: rb.nan ? { nan: true, raw: rb.raw, error: rb.error } : { from: rb.from, to: rb.to, toTs: rb.toTs },
+      satRange: rs.nan ? { nan: true, raw: rs.raw, error: rs.error } : { from: rs.from, to: rs.to, toTs: rs.toTs },
+      baseOffsetPx: p.base.getOffsetRightDistance(), satOffsetPx: p.sat.getOffsetRightDistance(),
+      baseBsBar: bsOf(p.base), satBsBar: bsOf(p.sat),
+    };
+    out.rightEdgeDiffMs = Math.abs(rs.toTs - rb.toTs);
+    out.pass = out.rightEdgeDiffMs <= 5 * MIN && out.baseOffsetPx <= out.baseBsBar && out.satOffsetPx <= out.satBsBar;
+    g.stop();
+    R.scenarios.S3_t4 = out;
+  }
+
+  // S4 T8bis 1m↔1h（校准：base 间距 = 60min/37.8）
+  {
+    const p = pair('1m↔1h', '1m', 37.8, '1h', 60 * MIN, 8000, 300, 4000);
+    const g = new ChartSyncGroup([reg(p.base, '1m', true), reg(p.sat, '1h', false)]);
+    const snaps = []; g.onChange((st) => snaps.push(st));
+    g.start(); p.base.setBarSpace(8); await wait(200);
+    p.base.scrollToDataIndex(4000); await wait(300);
+    const rb = rangeOf(p.base), rs = rangeOf(p.sat);
+    const out = {
+      ideal: Math.round(8 * 37.8), satBS: bsOf(p.sat), capacity: Math.floor(p.sat.getSize().width / 2),
+      satBars: rs.bars, degraded: g.stats.degraded, degradedPeriod: g.stats.degradedPeriod,
+      lastSpanDiffMinutes: g.stats.lastSpanDiffMinutes,
+      spanDiffMs: rs.nan || rb.nan ? null : Math.abs(((rs.toTs - rs.fromTs) + 60 * MIN) - ((rb.toTs - rb.fromTs) + MIN)),
+      rightEdgeDiffMs: Math.abs(rs.toTs - rb.toTs), toleranceMs: 60 * MIN,
+      snapshots: snaps.length, lastSnapshotDegraded: snaps.length ? snaps[snaps.length - 1].degraded : null,
+    };
+    out.pass = out.satBS === out.capacity && out.satBars >= 2 && out.degraded === true && out.degradedPeriod === '1h' && out.snapshots > 0 && out.lastSnapshotDegraded === true;
+    p.base.setBarSpace(4); await wait(300);
+    const nb = rangeOf(p.base), ns = rangeOf(p.sat);
+    out.shrink = {
+      satBS: bsOf(p.sat), expected: Math.round(4 * 37.8), degraded: g.stats.degraded, degradedPeriod: g.stats.degradedPeriod,
+      satBars: ns.bars, rightEdgeDiffMs: Math.abs(ns.toTs - nb.toTs),
+      spanDiffMs: Math.abs(((ns.toTs - ns.fromTs) + 60 * MIN) - ((nb.toTs - nb.fromTs) + MIN)),
+      lastSnapshotDegraded: snaps.length ? snaps[snaps.length - 1].degraded : null,
+    };
+    out.shrink.pass = out.shrink.satBS === out.shrink.expected && out.shrink.degraded === false && out.shrink.satBars >= 2 && out.shrink.lastSnapshotDegraded === false;
+    p.sat.setBarSpace(302); await wait(120);
+    const rc = rangeOf(p.sat);
+    out.reverseDerived = { satBS: bsOf(p.sat), satBars: rc.bars, violatesAtLeast2: rc.bars < 2, pass: rc.bars < 2 };
+    out.pass = out.pass && out.shrink.pass && out.reverseDerived.pass;
+    g.stop();
+    R.scenarios.S4_t8bis = out;
+  }
+
+  // S5 边界：NaN / 静态密度 / 不泄漏
+  {
+    const out = {};
+    const p = pair('1m↔1h', '1m', 37.8, '1h', 60 * MIN, 8000, 300, 4000);
+    // 用 HUGE 上限卫星替换（独立建图）以取证「推导值硬塞 ⇒ NaN」
+    const base = mkChart(series(8000, 60 * MIN / 37.8, T0), null, { span: 1, type: 'minute' });
+    const sat = mkChart(series(300, 60 * MIN, T0), HUGE, { span: 1, type: 'minute' });
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '1h', false)]);
+    g.start(); base.setBarSpace(40); await wait(200);
+    base.scrollToDataIndex(4000); await wait(300);
+    const rDeg = rangeOf(sat);
+    sat.setBarSpace(1512); await wait(150);
+    const rNan = rangeOf(sat);
+    base.scrollToDataIndex(4001); await wait(300);
+    const rBack = rangeOf(sat);
+    out.nan = {
+      afterGroupSatBS: bsOf(sat), afterGroupNan: rDeg.nan, afterGroupBars: rDeg.bars,
+      instrument1512_bs: bsOf(sat), instrument1512_nan: rNan.nan,
+      afterRepair_nan: rBack.nan, afterRepair_bs: bsOf(sat), afterRepairBars: rBack.bars, degraded: g.stats.degraded,
+      pass: rDeg.nan === false && rDeg.bars >= 2 && rNan.nan === true && rBack.nan === false && rBack.bars >= 2,
+    };
+    g.stop();
+    const p2 = pair('1m↔5m', '1m', 4.7, '5m', 5 * MIN, 4000, 800, 2000);
+    const g2 = new ChartSyncGroup([reg(p2.base, '1m', true), reg(p2.sat, '5m', false)]);
+    g2.start(); p2.base.setBarSpace(8); await wait(200); p2.base.scrollToDataIndex(2000); await wait(250);
+    out.staticDensity = { satBS: bsOf(p2.sat), expectedStatic: 38, nominalRatio7: 56, pass: bsOf(p2.sat) === 38 };
+    p2.base.setBarSpace(50); const b50 = bsOf(p2.base); p2.base.setBarSpace(350); const b350 = bsOf(p2.base); p2.base.setBarSpace(5000); const b5000 = bsOf(p2.base);
+    p2.sat.setBarSpace(350); const s350 = bsOf(p2.sat);
+    out.isolation = { baseAt50: b50, baseReq350: b350, baseReq5000: b5000, satReq350: s350, pass: b50 === 50 && b350 === 50 && b5000 === 50 && s350 === 350 };
+    g2.stop();
+    R.scenarios.S5_boundary = out;
+  }
+
+  // S6 卫星↔卫星（15m leader → 1h follower / base follower）
+  {
+    const base = mkChart(series(8000, 60 * MIN / 37.8, T0), null, { span: 1, type: 'minute' });
+    const s15 = mkChart(series(600, 15 * MIN, T0), WIDENED, { span: 1, type: 'minute' });
+    const s1h = mkChart(series(200, 60 * MIN, T0), WIDENED, { span: 1, type: 'minute' });
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(s15, '15m', false), reg(s1h, '1h', false)]);
+    g.start(); s15.setBarSpace(8); await wait(250);
+    s15.scrollToDataIndex(300); await wait(350);
+    const r15 = rangeOf(s15), r1h = rangeOf(s1h), rb = rangeOf(base);
+    R.scenarios.S6_sat_to_sat = {
+      bs15: bsOf(s15), bs1h: bsOf(s1h), bsBase: bsOf(base),
+      expected1h: Math.round(bsOf(s15) * (37.8 / 12.2)), expectedBase: Math.round(bsOf(s15) / 12.2),
+      windows: { r15: [r15.from, r15.to], r1h: [r1h.from, r1h.to], base: [rb.from, rb.to] },
+      degraded: g.stats.degraded, degradedPeriod: g.stats.degradedPeriod,
+      echo: g.stats.echoEvents,
+      pass: bsOf(s1h) === Math.round(bsOf(s15) * (37.8 / 12.2)),
+    };
+    g.stop();
+  }
+
+  R.ok = R.errors.length === 0;
+  window.__RESULT = R;
+  window.__DONE = true;
+}
+run().catch((e) => { err(e); R.ok = false; window.__RESULT = R; window.__DONE = true; });
+</script>
+</body>
+</html>

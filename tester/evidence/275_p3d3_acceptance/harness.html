@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8" />
+<title>P3-D-3 独立验收 · 真身 klinecharts 10.0.3 + 生产 ChartSyncGroup</title>
+<style>html,body{margin:0;background:#101418;color:#c9d1d9;font:12px/1.4 monospace}.pane{width:520px;height:240px}#log{white-space:pre-wrap;max-width:600px} #wrap{display:flex;gap:8px}</style>
+</head><body>
+<div id="wrap"><div id="stage"></div><pre id="log"></pre></div>
+<script src="./klinecharts.min.js"></script>
+<script type="module">
+import { ChartSyncGroup } from './chartSyncGroup.mjs';
+import { MultiPeriodStore } from './multiPeriodStore.mjs';
+
+const kc = window.klinecharts;
+const R = { version: (kc.version || (kc.default && kc.default.version) || 'unknown'), errors: [], scenarios: {} };
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms || 120));
+const err = (e) => R.errors.push(String(e && e.message ? e.message : e));
+
+const MIN = 60000, HOUR = 60 * MIN, DAY = 86400000, WEEK = 7 * DAY;
+const T0 = Date.UTC(2026, 8, 14, 7, 0, 0);
+
+function series(count, stepMs, endTs) {
+  const out = []; let px = 8.9;
+  for (let i = 0; i < count; i++) { px += Math.sin(i / 13) * 0.002; const ts = endTs - (count - 1 - i) * stepMs;
+    out.push({ timestamp: ts, open: +px.toFixed(4), high: +(px + .001).toFixed(4), low: +(px - .001).toFixed(4), close: +(px + .0005).toFixed(4), volume: 100 }); }
+  return out;
+}
+let paneN = 0;
+function mkChart(bars, opts) {
+  const d = document.createElement('div'); d.className = 'pane'; d.id = 'p' + (paneN++);
+  document.getElementById('stage').appendChild(d);
+  const chart = kc.init(d, Object.assign({ styles: 'dark' }, opts || {}));
+  chart.setSymbol({ ticker: '518880', pricePrecision: 3, volumePrecision: 0 });
+  chart.setPeriod({ span: 1, type: 'minute' });
+  chart.setDataLoader({ getBars: (a) => a.callback(bars.slice(), false), subscribe: () => {}, unsubscribe: () => {} });
+  chart.resetData();
+  return chart;
+}
+const WIDENED = { layout: { barSpaceLimit: { min: 1, max: 350 } } };
+function reg(chart, period, isBase) { return { id: (isBase ? 'base:' : 'sat:') + period + ':' + Math.random().toString(36).slice(2, 6), chart, period, isBase }; }
+function bsOf(c) { try { return c.getBarSpace().bar; } catch (e) { err(e); return null; } }
+function rangeOf(c) {
+  try { const r = c.getVisibleRange(); const list = c.getDataList();
+    if (!isFinite(r.from) || !isFinite(r.to) || !isFinite(r.realFrom) || !isFinite(r.realTo)) return { nan: true, raw: [r.from, r.to, r.realFrom, r.realTo] };
+    const last = list.length - 1;
+    const cf = Math.max(0, Math.min(last, r.from)), ct = Math.max(0, Math.min(last, r.realTo));
+    return { nan: false, from: r.from, to: r.realTo, bars: r.realTo - r.realFrom + 1, fromTs: list[cf] && list[cf].timestamp, toTs: list[ct] && list[ct].timestamp };
+  } catch (e) { return { nan: true, error: String(e.message) }; }
+}
+/** `barSpace` 写入探针（真渲染下观测实现写了几次、每步幅度）。 */
+function probeBarSpaceWrites(chart) {
+  const writes = [];
+  const orig = chart.setBarSpace.bind(chart);
+  chart.setBarSpace = (v) => { writes.push(v); return orig(v); };
+  return writes;
+}
+function stepRatios(writes) { const out = []; for (let i = 1; i < writes.length; i++) { const a = writes[i - 1], b = writes[i]; if (a > 0) out.push(Math.abs(b - a) / a); } return out; }
+const statsOf = (g) => JSON.parse(JSON.stringify(g.stats));
+
+async function run() {
+  log('klinecharts ' + R.version);
+
+  log('START PROBE');
+  // ── PROBE：库事实锚定（对标 P3-C） ────────────────────────────────────────
+  {
+    const bars = series(600, MIN, T0);
+    const a = mkChart(bars), b = mkChart(bars);
+    a.setBarSpace(8); b.setBarSpace(8); await wait(150);
+    a.setOffsetRightDistance(0); await wait(60);
+    a.scrollToDataIndex(300); await wait(150);
+    const ra = rangeOf(a);
+    b.setOffsetRightDistance(0); await wait(60);
+    b.scrollToDataIndex(300); await wait(150);
+    const rb = rangeOf(b);
+    b.scrollToTimestamp(ra.toTs); await wait(150);
+    const rb2 = rangeOf(b);
+    R.scenarios.PROBE = { sameIndexEqual: ra.from === rb.from && ra.to === rb.to, sameIndex: [ra.from, ra.to, rb.from, rb.to],
+      scrollToTimestampRange: [rb2.from, rb2.to], edgeGapBars: rb2.to - ra.to, kcVersion: R.version };
+  }
+
+  log('START A1');
+  // ── A1：1m↔1m 20 轮相对漂移 ─────────────────────────────────────────────
+  {
+    const bars = series(600, MIN, T0);
+    const base = mkChart(bars), sat = mkChart(bars);
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '1m', false)]);
+    g.start(); await wait(150);
+    const rows = []; let maxDrift = 0, maxEdgeBars = 0;
+    for (let r = 0; r < 20; r++) {
+      base.scrollToDataIndex(300 + r * 5); await wait(150);
+      const rb = rangeOf(base), rs = rangeOf(sat);
+      const d = Math.max(Math.abs(rs.from - rb.from), Math.abs(rs.to - rb.to));
+      const edgeBars = Math.abs(rs.toTs - rb.toTs) / MIN;
+      if (d > maxDrift) maxDrift = d;
+      if (edgeBars > maxEdgeBars) maxEdgeBars = edgeBars;
+      rows.push({ round: r + 1, base: [rb.from, rb.to], sat: [rs.from, rs.to], drift: d, edgeDiffBars: edgeBars });
+    }
+    R.scenarios.A1_same_period_20rounds = { rounds: 20, maxDrift, maxEdgeDiffBars: maxEdgeBars, samples: rows.slice(0, 4),
+      stats: statsOf(g),
+      pass: maxDrift <= 1 && maxEdgeBars <= 1 && g.stats.suppressed > 0 && g.stats.echoEvents === 0 };
+    g.stop();
+  }
+
+  log('START A2');
+  // ── A2：跨周期成功路径（跨度差 / 右端差 各 ≤1 根高周期 bar、卫星 ≥2 根） ──
+  {
+    const combos = [
+      { name: '1m↔5m', bp: '1m', dens: 4.7, sp: '5m', satBucket: 5 * MIN, baseCount: 4000, satCount: 800, mid: 2000 },
+      { name: '1m↔15m', bp: '1m', dens: 12.2, sp: '15m', satBucket: 15 * MIN, baseCount: 6000, satCount: 600, mid: 3000 },
+      { name: '1d↔1w', bp: '1d', dens: 4.67, sp: '1w', satBucket: WEEK, baseCount: 600, satCount: 120, mid: 300 },
+    ];
+    const out = {};
+    for (const c of combos) {
+      const baseSpacing = c.satBucket / c.dens;
+      const base = mkChart(series(c.baseCount, baseSpacing, T0));
+      const sat = mkChart(series(c.satCount, c.satBucket, T0), WIDENED);
+      const g = new ChartSyncGroup([reg(base, c.bp, true), reg(sat, c.sp, false)]);
+      const writes = probeBarSpaceWrites(sat);
+      g.start(); base.setBarSpace(8); await wait(250);
+      base.scrollToDataIndex(c.mid); await wait(400);
+      const rb = rangeOf(base), rs = rangeOf(sat);
+      const spanBaseMs = rb.nan ? NaN : (rb.toTs - rb.fromTs) + baseSpacing;
+      const spanSatMs = rs.nan ? NaN : (rs.toTs - rs.fromTs) + c.satBucket;
+      const spanBars = Math.abs(spanSatMs - spanBaseMs) / c.satBucket;
+      const edgeBars = Math.abs(rs.toTs - rb.toTs) / c.satBucket;
+      out[c.name] = { baseBS: bsOf(base), satBS: bsOf(sat), idealSatBS: Math.round(8 * c.dens), satBars: rs.bars, baseBars: rb.bars,
+        satWindow: [rs.from, rs.to], baseWindow: [rb.from, rb.to], spanBaseMs, spanSatMs, spanDiffBars: spanBars, edgeDiffBars: edgeBars,
+        stats: statsOf(g), barSpaceWrites: writes,
+        pass: spanBars <= 1 && edgeBars <= 1 && rs.bars >= 2 && g.stats.suppressed > 0 && g.stats.echoEvents === 0 && g.stats.unalignedFollowers === 0 };
+      g.stop();
+    }
+    R.scenarios.A2_cross_period = out;
+  }
+
+  log('START A3');
+  // ── A3：降级路径（1m↔1h 容量受限）+ 缩小基准回到成功路径 ────────────────
+  {
+    const baseSpacing = HOUR / 37.8;
+    const base = mkChart(series(8000, baseSpacing, T0));
+    const sat = mkChart(series(300, HOUR, T0), WIDENED);
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '1h', false)]);
+    const writes = probeBarSpaceWrites(sat);
+    const store = new MultiPeriodStore({ api: {} });
+    const snaps = []; g.onChange((st) => { snaps.push(st); store.applySyncStats(st); });
+    g.start(); base.setBarSpace(8); await wait(250);
+    base.scrollToDataIndex(4000); await wait(400);
+    const rb = rangeOf(base), rs = rangeOf(sat);
+    const spanBars = rs.nan || rb.nan ? null : Math.abs(((rs.toTs - rs.fromTs) + HOUR) - ((rb.toTs - rb.fromTs) + baseSpacing)) / HOUR;
+    const edgeBars = rs.nan || rb.nan ? null : Math.abs(rs.toTs - rb.toTs) / HOUR;
+    const snap = store.getSnapshot();
+    const degraded = {
+      baseBS: bsOf(base), satBS: bsOf(sat), capacity: Math.floor(sat.getSize().width / 2), satBars: rs.bars,
+      spanDiffBars_measured: spanBars, edgeDiffBars: edgeBars, stats: statsOf(g),
+      store: { syncDegraded: snap.syncDegraded, syncDegradedPeriod: snap.syncDegradedPeriod, lastSpanDiffMinutes: snap.lastSpanDiffMinutes },
+      barSpaceWrites: [...writes], snapshots: snaps.length,
+      snapshotsDegradedAll: snaps.every((s) => s.degraded === true),
+      pass: g.stats.degraded === true && g.stats.degradedPeriod === '1h' && rs.bars >= 2 && edgeBars !== null && edgeBars <= 1 &&
+        snap.syncDegraded === true && snap.syncDegradedPeriod === '1h' && g.stats.spanResidualBars !== null && g.stats.spanResidualBars > 1 &&
+        g.stats.lastCorrectionIterations <= 3 && g.stats.unalignedFollowers >= 1 && /^1h:/.test(g.stats.lastUnalignedReason || ''),
+    };
+    R.scenarios.A3_degrade_1m1h = { degradedCase: degraded, bounded: { iterations: g.stats.lastCorrectionIterations, iterationsLiteralLE3: g.stats.lastCorrectionIterations <= 3, writes: [...writes], maxStepRatio: stepRatios(writes).length ? Math.max(...stepRatios(writes)) : 0 } };
+    // 缩小基准 ⇒ 回到成功路径判据
+    const w0 = writes.length;
+    base.setBarSpace(4); await wait(400);
+    const rb2 = rangeOf(base), rs2 = rangeOf(sat);
+    const spanBars2 = rs2.nan || rb2.nan ? null : Math.abs(((rs2.toTs - rs2.fromTs) + HOUR) - ((rb2.toTs - rb2.fromTs) + (HOUR / 37.8))) / HOUR;
+    const edgeBars2 = rs2.nan || rb2.nan ? null : Math.abs(rs2.toTs - rb2.toTs) / HOUR;
+    R.scenarios.A3_degrade_1m1h.shrink = { baseBS: bsOf(base), satBS: bsOf(sat), satBars: rs2.bars, spanDiffBars_measured: spanBars2, edgeDiffBars: edgeBars2,
+      stats: statsOf(g), store: { syncDegraded: store.getSnapshot().syncDegraded, syncDegradedPeriod: store.getSnapshot().syncDegradedPeriod },
+      writesAfterShrink: writes.slice(w0),
+      pass: g.stats.degraded === false && store.getSnapshot().syncDegraded === false && rs2.bars >= 2 && spanBars2 !== null && spanBars2 <= 1 && edgeBars2 !== null && edgeBars2 <= 1 && g.stats.unalignedFollowers === 0 };
+    g.stop();
+  }
+
+  log('START A4');
+  // ── A4：基准冻结（卫星作 leader；naive 对照） ────────────────────────────
+  {
+    const base = mkChart(series(600, WEEK / 4.67, T0));
+    const sat = mkChart(series(120, WEEK, T0), WIDENED);
+    const g = new ChartSyncGroup([reg(base, '1d', true), reg(sat, '1w', false)]);
+    const baseWrites = probeBarSpaceWrites(base);
+    g.start(); base.setBarSpace(8); await wait(250);
+    base.scrollToDataIndex(300); await wait(300);
+    const before = { bs: bsOf(base), range: rangeOf(base), offset: base.getOffsetRightDistance() };
+    const writesBeforeGesture = baseWrites.length; // 探针基线（排除本轮建图后的显式 setBarSpace 手势）
+    // 卫星作 leader：拖动 + 缩放（`setBarSpace` 模拟缩放手势，`scrollToDataIndex` 模拟拖动手势）
+    sat.setBarSpace(300); await wait(250);
+    sat.scrollToDataIndex(40); await wait(400);
+    const after = { bs: bsOf(base), range: rangeOf(base), offset: base.getOffsetRightDistance() };
+    const naiveWouldWrite = Math.min(Math.round(bsOf(sat) / 4.67), 50); // 若基准被当 follower：推导 64 > 基准上限 50 ⇒ 写成 50
+    R.scenarios.A4_base_freeze = {
+      baseBsBefore: before.bs, baseBsAfter: after.bs, baseWritesTotal: baseWrites.length, baseWritesAfterGesture: baseWrites.slice(writesBeforeGesture), baseWrites: [...baseWrites],
+      baseRangeBefore: [before.range.from, before.range.to], baseRangeAfter: [after.range.from, after.range.to],
+      baseOffsetBefore: before.offset, baseOffsetAfter: after.offset,
+      satBS: bsOf(sat), naiveWouldWriteBaseBS: naiveWouldWrite, satRange: rangeOf(sat) && [rangeOf(sat).from, rangeOf(sat).to],
+      stats: statsOf(g),
+      pass: before.bs === after.bs && baseWrites.length === writesBeforeGesture && before.range.from === after.range.from && before.range.to === after.range.to && before.offset === after.offset && naiveWouldWrite === 50,
+    };
+    g.stop();
+  }
+
+  log('START A5');
+  // ── A5：可观测（被跳过的 follower 不再静默） ─────────────────────────────
+  {
+    const base = mkChart(series(4000, (5 * MIN) / 4.7, T0));
+    const sat = mkChart(series(800, 5 * MIN, T0), WIDENED);
+    const satChart = mkChart(series(800, 5 * MIN, T0), WIDENED);
+    const strippred = Object.create(satChart, { setBarSpace: { value: undefined } }); // 缺 barSpace 面 ⇒ 必须计数 + 记因
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '5m', false), reg(strippred, '5m', false)]);
+    g.start(); base.setBarSpace(8); await wait(250);
+    base.scrollToDataIndex(2000); await wait(400);
+    const rs = rangeOf(sat);
+    R.scenarios.A5_observability = { stats: statsOf(g), satBars: rs.bars,
+      pass: g.stats.unalignedFollowers >= 1 && /^5m:/.test(g.stats.lastUnalignedReason || '') && rs.bars >= 2 &&
+        typeof g.stats.spanResidualBars === 'number' && typeof g.stats.edgeResidualBars === 'number' && typeof g.stats.barSpaceAdjust === 'number' };
+    g.stop();
+  }
+
+  log('START A6');
+  // ── A6：有界性（迭代/步长；放大上限的变异必红） ──────────────────────────
+  {
+    const baseSpacing = HOUR / 37.8;
+    const base = mkChart(series(8000, baseSpacing, T0));
+    const sat = mkChart(series(300, HOUR, T0), WIDENED);
+    const g = new ChartSyncGroup([reg(base, '1m', true), reg(sat, '1h', false)]);
+    const writes = probeBarSpaceWrites(sat);
+    g.start(); base.setBarSpace(40); await wait(250);
+    base.scrollToDataIndex(4000); await wait(500);
+    const ratios = stepRatios(writes);
+    R.scenarios.A6_bounded = { iterations: g.stats.lastCorrectionIterations, iterationsLiteralLE3: g.stats.lastCorrectionIterations <= 3,
+      writes: [...writes], maxStepRatio: ratios.length ? Math.max(...ratios) : 0, stats: statsOf(g),
+      pass: g.stats.lastCorrectionIterations <= 3 && ratios.every((r) => r <= 0.5) };
+    g.stop();
+  }
+
+  R.ok = R.errors.length === 0;
+  window.__RESULT = R; window.__DONE = true;
+}
+run().catch((e) => { err(e); R.ok = false; window.__RESULT = R; window.__DONE = true; });
+</script>
+</body></html>

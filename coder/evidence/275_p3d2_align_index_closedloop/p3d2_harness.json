@@ -1,0 +1,435 @@
+{
+  "url": "http://127.0.0.1:18377/index.html",
+  "errors": [],
+  "console": [],
+  "networkNonLocal": [],
+  "scenarios": {
+    "S0_landing_probe": {
+      "offsetRightPx": 0,
+      "scrollToDataIndex": [
+        {
+          "requestedIndex": 300,
+          "from": 241,
+          "to": 302,
+          "landedOffsetBars": 2
+        },
+        {
+          "requestedIndex": 302,
+          "from": 243,
+          "to": 304,
+          "landedOffsetBars": 2
+        },
+        {
+          "requestedIndex": 250,
+          "from": 191,
+          "to": 252,
+          "landedOffsetBars": 2
+        }
+      ],
+      "scrollToTimestamp_300": {
+        "from": 241,
+        "to": 302,
+        "toTsMinusTarget": 120000
+      }
+    },
+    "S1_g1_nodrift": {
+      "rounds": 20,
+      "maxDrift": 0,
+      "driftSeries": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "samples": [
+        {
+          "round": 1,
+          "base": [
+            253,
+            302
+          ],
+          "sat": [
+            253,
+            302
+          ],
+          "drift": 0
+        },
+        {
+          "round": 2,
+          "base": [
+            258,
+            307
+          ],
+          "sat": [
+            258,
+            307
+          ],
+          "drift": 0
+        },
+        {
+          "round": 3,
+          "base": [
+            263,
+            312
+          ],
+          "sat": [
+            263,
+            312
+          ],
+          "drift": 0
+        }
+      ],
+      "baseOffsetPx": 0,
+      "satOffsetPx": 0,
+      "stats": {
+        "applied": 41,
+        "suppressed": 164,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 0,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 0,
+        "lastUnalignedReason": null,
+        "lastCorrectionIterations": 2,
+        "spanResidualBars": 0,
+        "edgeResidualBars": 0,
+        "barSpaceAdjust": 0
+      },
+      "pass": true
+    },
+    "S2_cross_period": {
+      "1m↔5m": {
+        "baseBS": 8,
+        "satBS": 44,
+        "expectedSatBS": 38,
+        "baseWindow": [
+          1941,
+          2002
+        ],
+        "satWindow": [
+          362,
+          374
+        ],
+        "satBars": 13,
+        "spanDiffMs": 53617.021,
+        "spanDiffBars": 0.179,
+        "edgeDiffMs": 31914.894,
+        "edgeDiffBars": 0.106,
+        "toleranceMs": 300000,
+        "spansPass": true,
+        "barsPass": true,
+        "edgePass": true,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unaligned": 0,
+        "iterations": 2,
+        "spanResidualBars": 0.179,
+        "edgeResidualBars": 0.106,
+        "barSpaceAdjust": 6,
+        "adjustVsIdealBS": 6,
+        "suppressed": 20,
+        "echo": 0,
+        "pass": true
+      },
+      "1m↔15m": {
+        "baseBS": 8,
+        "satBS": 137,
+        "expectedSatBS": 98,
+        "baseWindow": [
+          2941,
+          3002
+        ],
+        "satWindow": [
+          349,
+          353
+        ],
+        "satBars": 5,
+        "spanDiffMs": 60000,
+        "spanDiffBars": 0.067,
+        "edgeDiffMs": 309836.066,
+        "edgeDiffBars": 0.344,
+        "toleranceMs": 900000,
+        "spansPass": true,
+        "barsPass": true,
+        "edgePass": true,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unaligned": 0,
+        "iterations": 2,
+        "spanResidualBars": 0.067,
+        "edgeResidualBars": 0.344,
+        "barSpaceAdjust": 39,
+        "adjustVsIdealBS": 39,
+        "suppressed": 20,
+        "echo": 0,
+        "pass": true
+      },
+      "1d↔1w": {
+        "baseBS": 8,
+        "satBS": 43,
+        "expectedSatBS": 37,
+        "baseWindow": [
+          241,
+          302
+        ],
+        "satWindow": [
+          43,
+          55
+        ],
+        "satBars": 13,
+        "spanDiffMs": 37617173.448,
+        "spanDiffBars": 0.062,
+        "edgeDiffMs": 243474089.936,
+        "edgeDiffBars": 0.403,
+        "toleranceMs": 604800000,
+        "spansPass": true,
+        "barsPass": true,
+        "edgePass": true,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unaligned": 0,
+        "iterations": 2,
+        "spanResidualBars": 0.205,
+        "edgeResidualBars": 0.403,
+        "barSpaceAdjust": 6,
+        "adjustVsIdealBS": 6,
+        "suppressed": 20,
+        "echo": 0,
+        "pass": true
+      }
+    },
+    "S4_t8bis": {
+      "ideal": 302,
+      "satBS": 260,
+      "capacity": 260,
+      "satBars": 4,
+      "degraded": true,
+      "degradedPeriod": "1h",
+      "lastSpanDiffMinutes": 142.2,
+      "iterations": 2,
+      "spanDiffMs": 8530476.191,
+      "spanDiffBars": 2.37,
+      "edgeDiffMs": 933333.333,
+      "edgeDiffBars": 0.259,
+      "toleranceMs": 3600000,
+      "spansPass": false,
+      "edgePass": true,
+      "snapshots": 4,
+      "lastSnapshotDegraded": true,
+      "pass": false,
+      "shrink": {
+        "satBS": 227,
+        "expected": 151,
+        "degraded": false,
+        "degradedPeriod": null,
+        "satBars": 4,
+        "iterations": 2,
+        "unaligned": 0,
+        "spanDiffMs": 2816190.476,
+        "spanDiffBars": 0.782,
+        "edgeDiffMs": 933333.333,
+        "edgeDiffBars": 0.259,
+        "spansPass": true,
+        "edgePass": true,
+        "lastSnapshotDegraded": false,
+        "pass": true
+      }
+    },
+    "S6_base_never_follower": {
+      "baseBsBefore": 10,
+      "baseBsAfter": 10,
+      "baseBsUnchanged": true,
+      "baseRangeUnchanged": true,
+      "baseOffsetUnchanged": true,
+      "wouldNaiveWrite": 64,
+      "note": "若实现错误地把基准当 follower：推导 round(300/4.67)=64 > 基准上限 50 ⇒ 基准会被改写 ⇒ baseBsUnchanged/baseRangeUnchanged 必红",
+      "stats": {
+        "applied": 1,
+        "suppressed": 5,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 5834,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 0,
+        "lastUnalignedReason": null,
+        "lastCorrectionIterations": 0,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": 0
+      },
+      "pass": true
+    },
+    "S6_sat_to_sat": {
+      "bs15": 8,
+      "bs1h": 35,
+      "expected1h": 25,
+      "baseBs": 10,
+      "baseBsUnchanged": true,
+      "baseRangeUnchanged": true,
+      "baseOffsetUnchanged": true,
+      "spanDiffBars1h": 0.5,
+      "edgeDiffBars1h": 0.25,
+      "unaligned": 0,
+      "degraded": false,
+      "degradedPeriod": null,
+      "echos": 0,
+      "iterations": 3,
+      "spanResidualBars": 0.5,
+      "edgeResidualBars": 0.25,
+      "barSpaceAdjust": 10,
+      "pass": true
+    },
+    "S8_degraded_lower_bound": {
+      "satBS": 260,
+      "satBars": 4,
+      "degraded": true,
+      "degradedPeriod": "1h",
+      "unalignedFollowers": 1,
+      "lastUnalignedReason": "1h:no-improvement",
+      "iterations": 2,
+      "spanResidualBars_recorded": 2.37,
+      "edgeResidualBars_recorded": 0.259,
+      "barSpaceAdjust": -42,
+      "lastSpanDiffMinutes": 142.2,
+      "note": "降级路径判据 = 可见 ≥2 根 + 右端差 ≤1 根 + degraded/degradedPeriod + 角标/统计可读 + 可达下界记录；跨度差 ≤1 根在本组合不可达（见 S7）",
+      "pass": true
+    },
+    "S7_reachability_probe": {
+      "follower1h_barsVsBarSpace": [
+        {
+          "requested": 151,
+          "readbackBS": 151,
+          "bars": 5,
+          "from": 148,
+          "to": 152,
+          "spanMs": 18000000
+        },
+        {
+          "requested": 200,
+          "readbackBS": 200,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 260,
+          "readbackBS": 260,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 300,
+          "readbackBS": 300,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 400,
+          "readbackBS": 300,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 520,
+          "readbackBS": 300,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 1000,
+          "readbackBS": 300,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        },
+        {
+          "requested": 5000,
+          "readbackBS": 300,
+          "bars": 4,
+          "from": 149,
+          "to": 152,
+          "spanMs": 14400000
+        }
+      ],
+      "engineClampPxPerBar": 260,
+      "follower1d_barsVsBarSpace": [
+        {
+          "bs": 16,
+          "bars": 32,
+          "spanBars": 32,
+          "from": 271,
+          "to": 302
+        },
+        {
+          "bs": 17,
+          "bars": 30,
+          "spanBars": 30,
+          "from": 273,
+          "to": 302
+        },
+        {
+          "bs": 18,
+          "bars": 29,
+          "spanBars": 29,
+          "from": 274,
+          "to": 302
+        },
+        {
+          "bs": 19,
+          "bars": 27,
+          "spanBars": 27,
+          "from": 276,
+          "to": 302
+        },
+        {
+          "bs": 20,
+          "bars": 26,
+          "spanBars": 26,
+          "from": 277,
+          "to": 302
+        },
+        {
+          "bs": 21,
+          "bars": 25,
+          "spanBars": 25,
+          "from": 278,
+          "to": 302
+        },
+        {
+          "bs": 50,
+          "bars": 12,
+          "spanBars": 12,
+          "from": 291,
+          "to": 302
+        }
+      ]
+    }
+  },
+  "generatedAt": "2026-09-14T15:39:23.603Z"
+}

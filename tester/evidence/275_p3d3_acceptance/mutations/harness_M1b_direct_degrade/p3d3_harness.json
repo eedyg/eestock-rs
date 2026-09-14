@@ -1,0 +1,436 @@
+{
+  "url": "file:///tmp/p3d3/h_M1b_direct_degrade/harness.html",
+  "errors": [],
+  "console": [],
+  "networkNonFile": [],
+  "checks": [
+    {
+      "name": "PROBE 库事实：同索引定位两图范围精确相等 / scrollToTimestamp 落点仍偏 2 根",
+      "ok": true
+    },
+    {
+      "name": "A1 1m↔1m 20 轮 maxDrift ≤1 根（期望 0）",
+      "ok": false
+    },
+    {
+      "name": "A1 无回声（echoEvents=0）且抑制生效（suppressed>0）",
+      "ok": true
+    },
+    {
+      "name": "A2 1m↔5m：跨度差 ≤1 根且右端差 ≤1 根高周期 bar、卫星 ≥2 根",
+      "ok": false
+    },
+    {
+      "name": "A2 1m↔15m：同判据",
+      "ok": false
+    },
+    {
+      "name": "A2 1d↔1w：同判据",
+      "ok": false
+    },
+    {
+      "name": "A3 降级路径（1m↔1h）：degraded/degradedPeriod + 卫星 ≥2 根 + 右端差 ≤1 根 + 可达下界已记录 + 角标(store)可读",
+      "ok": false
+    },
+    {
+      "name": "A3 降级路径：跨度差**不适用** ≤1 根（记录实测下界 >1 根）",
+      "ok": false
+    },
+    {
+      "name": "A3 缩小基准 ⇒ 回到成功路径判据（degraded=false、跨度/右端差 ≤1 根、unaligned=0）",
+      "ok": false
+    },
+    {
+      "name": "A4 基准冻结：卫星作 leader ⇒ 基准 barSpace/可见范围/右偏移逐项不变且基准 0 次 barSpace 写入",
+      "ok": true
+    },
+    {
+      "name": "A4 对照：naive 路径会把基准写成 50（实测对照值）",
+      "ok": true
+    },
+    {
+      "name": "A5 可观测：被跳过的 follower 计数 + 原因可读（不再静默）+ 残差/微调字段可读",
+      "ok": false
+    },
+    {
+      "name": "A6 有界性：迭代 ≤3（字面量）且 barSpace 单步幅度 ≤50%",
+      "ok": true
+    }
+  ],
+  "scenarios": {
+    "PROBE": {
+      "sameIndexEqual": true,
+      "sameIndex": [
+        241,
+        302,
+        241,
+        302
+      ],
+      "scrollToTimestampRange": [
+        243,
+        304
+      ],
+      "edgeGapBars": 2
+    },
+    "A1_same_period_20rounds": {
+      "rounds": 20,
+      "maxDrift": 2,
+      "maxEdgeDiffBars": 2,
+      "samples": [
+        {
+          "round": 1,
+          "base": [
+            253,
+            302
+          ],
+          "sat": [
+            255,
+            304
+          ],
+          "drift": 2,
+          "edgeDiffBars": 2
+        },
+        {
+          "round": 2,
+          "base": [
+            258,
+            307
+          ],
+          "sat": [
+            260,
+            309
+          ],
+          "drift": 2,
+          "edgeDiffBars": 2
+        },
+        {
+          "round": 3,
+          "base": [
+            263,
+            312
+          ],
+          "sat": [
+            265,
+            314
+          ],
+          "drift": 2,
+          "edgeDiffBars": 2
+        },
+        {
+          "round": 4,
+          "base": [
+            268,
+            317
+          ],
+          "sat": [
+            270,
+            319
+          ],
+          "drift": 2,
+          "edgeDiffBars": 2
+        }
+      ],
+      "stats": {
+        "applied": 41,
+        "suppressed": 64,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": null,
+        "degraded": true,
+        "degradedPeriod": "1m",
+        "unalignedFollowers": 1,
+        "lastUnalignedReason": "1m:unreachable",
+        "lastCorrectionIterations": 1,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": 0
+      },
+      "pass": false
+    },
+    "A2_cross_period": {
+      "1m↔5m": {
+        "baseBS": 8,
+        "satBS": 38,
+        "idealSatBS": 38,
+        "satBars": 15,
+        "baseBars": 62,
+        "satWindow": [
+          362,
+          376
+        ],
+        "baseWindow": [
+          1941,
+          2002
+        ],
+        "spanBaseMs": 3957446.808474277,
+        "spanSatMs": 4500000,
+        "spanDiffBars": 1.808510638419076,
+        "edgeDiffBars": 1.893617021484375,
+        "stats": {
+          "applied": 4,
+          "suppressed": 9,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": null,
+          "degraded": true,
+          "degradedPeriod": "5m",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "5m:unreachable",
+          "lastCorrectionIterations": 1,
+          "spanResidualBars": null,
+          "edgeResidualBars": null,
+          "barSpaceAdjust": 0
+        },
+        "barSpaceWrites": [
+          38,
+          38,
+          38,
+          38
+        ],
+        "pass": false
+      },
+      "1m↔15m": {
+        "baseBS": 8,
+        "satBS": 98,
+        "idealSatBS": 98,
+        "satBars": 7,
+        "baseBars": 62,
+        "satWindow": [
+          349,
+          355
+        ],
+        "baseWindow": [
+          2941,
+          3002
+        ],
+        "spanBaseMs": 4573770.491803279,
+        "spanSatMs": 6300000,
+        "spanDiffBars": 1.9180327868852454,
+        "edgeDiffBars": 1.6557377048068576,
+        "stats": {
+          "applied": 4,
+          "suppressed": 9,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": null,
+          "degraded": true,
+          "degradedPeriod": "15m",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "15m:unreachable",
+          "lastCorrectionIterations": 1,
+          "spanResidualBars": null,
+          "edgeResidualBars": null,
+          "barSpaceAdjust": 0
+        },
+        "barSpaceWrites": [
+          98,
+          98,
+          98,
+          98
+        ],
+        "pass": false
+      },
+      "1d↔1w": {
+        "baseBS": 8,
+        "satBS": 37,
+        "idealSatBS": 37,
+        "satBars": 15,
+        "baseBars": 62,
+        "satWindow": [
+          43,
+          57
+        ],
+        "baseWindow": [
+          241,
+          302
+        ],
+        "spanBaseMs": 8029464668.094191,
+        "spanSatMs": 9072000000,
+        "spanDiffBars": 1.7237687366167485,
+        "edgeDiffBars": 1.5974304068521974,
+        "stats": {
+          "applied": 4,
+          "suppressed": 9,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": null,
+          "degraded": true,
+          "degradedPeriod": "1w",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "1w:unreachable",
+          "lastCorrectionIterations": 1,
+          "spanResidualBars": null,
+          "edgeResidualBars": null,
+          "barSpaceAdjust": 0
+        },
+        "barSpaceWrites": [
+          37,
+          37,
+          37,
+          37
+        ],
+        "pass": false
+      }
+    },
+    "A3_degrade_1m1h": {
+      "degradedCase": {
+        "baseBS": 8,
+        "satBS": 260,
+        "capacity": 260,
+        "satBars": 4,
+        "spanDiffBars_measured": 2.359788359843259,
+        "edgeDiffBars": 1.7407407407633464,
+        "stats": {
+          "applied": 4,
+          "suppressed": 9,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": null,
+          "degraded": true,
+          "degradedPeriod": "1h",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "1h:unreachable",
+          "lastCorrectionIterations": 1,
+          "spanResidualBars": null,
+          "edgeResidualBars": null,
+          "barSpaceAdjust": -42
+        },
+        "store": {
+          "syncDegraded": true,
+          "syncDegradedPeriod": "1h",
+          "lastSpanDiffMinutes": null
+        },
+        "barSpaceWrites": [
+          260,
+          260,
+          260,
+          260
+        ],
+        "snapshots": 4,
+        "snapshotsDegradedAll": true,
+        "pass": false
+      },
+      "bounded": {
+        "iterations": 1,
+        "iterationsLiteralLE3": true,
+        "writes": [
+          260,
+          260,
+          260,
+          260
+        ],
+        "maxStepRatio": 0
+      },
+      "shrink": {
+        "baseBS": 4,
+        "satBS": 151,
+        "satBars": 5,
+        "spanDiffBars_measured": 1.7724867725222957,
+        "edgeDiffBars": 1.7407407407633464,
+        "stats": {
+          "applied": 5,
+          "suppressed": 11,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": null,
+          "degraded": true,
+          "degradedPeriod": "1h",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "1h:unreachable",
+          "lastCorrectionIterations": 1,
+          "spanResidualBars": null,
+          "edgeResidualBars": null,
+          "barSpaceAdjust": 0
+        },
+        "store": {
+          "syncDegraded": true,
+          "syncDegradedPeriod": "1h"
+        },
+        "writesAfterShrink": [
+          151
+        ],
+        "pass": false
+      }
+    },
+    "A4_base_freeze": {
+      "baseBsBefore": 8,
+      "baseBsAfter": 8,
+      "baseWritesTotal": 1,
+      "baseWritesAfterGesture": [],
+      "baseWrites": [
+        8
+      ],
+      "baseRangeBefore": [
+        241,
+        302
+      ],
+      "baseRangeAfter": [
+        241,
+        302
+      ],
+      "baseOffsetBefore": 0,
+      "baseOffsetAfter": 0,
+      "satBS": 300,
+      "naiveWouldWriteBaseBS": 50,
+      "satRange": [
+        39,
+        42
+      ],
+      "stats": {
+        "applied": 4,
+        "suppressed": 9,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": null,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 0,
+        "lastUnalignedReason": null,
+        "lastCorrectionIterations": 0,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": 0
+      },
+      "pass": true
+    },
+    "A5_observability": {
+      "stats": {
+        "applied": 4,
+        "suppressed": 11,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": null,
+        "degraded": true,
+        "degradedPeriod": "5m",
+        "unalignedFollowers": 2,
+        "lastUnalignedReason": "5m:no-barspace-api",
+        "lastCorrectionIterations": 1,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": 0
+      },
+      "satBars": 15,
+      "pass": false
+    },
+    "A6_bounded": {
+      "iterations": 1,
+      "iterationsLiteralLE3": true,
+      "writes": [
+        260,
+        260,
+        260,
+        260
+      ],
+      "maxStepRatio": 0,
+      "stats": {
+        "applied": 4,
+        "suppressed": 9,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": null,
+        "degraded": true,
+        "degradedPeriod": "1h",
+        "unalignedFollowers": 1,
+        "lastUnalignedReason": "1h:unreachable",
+        "lastCorrectionIterations": 1,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": -1252
+      },
+      "pass": true
+    }
+  },
+  "screenshot": "/tmp/p3d3/mutations/harness_M1b_direct_degrade/p3d3_harness.png",
+  "generatedAt": "2026-09-14T15:49:22.838Z"
+}

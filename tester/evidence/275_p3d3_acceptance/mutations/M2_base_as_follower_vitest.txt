@@ -1,0 +1,57 @@
+
+ RUN  v3.2.7 /tmp/p3d3/mut
+
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 2ms
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (14 tests) 32ms
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests | 1 failed) 12ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测 2ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者未布局（pane 宽 0）⇒ 跳过必须**可观测**（unalignedFollowers + 原因），不得静默 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者无数据 ⇒ 无法索引定位 ⇒ 跳过必须可观测（不得静默） 0ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 容差不可达（1h 跟随者只能显示 2 根，无法覆盖基准跨度）⇒ 有界停手 + 置 degraded（禁止无界重试） 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 降级路径（容差不可达）：可见 ≥2 根 + 右端差 ≤1 根 + 实测可达下界记录 + 原因可读（fail-closed） 2ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 可对齐的降级 barSpace（容量受限但跨度可达）⇒ 仍必须完成对齐（fail-closed：先尝试完整对齐） 1ms
+   × ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 【硬约束】基准永不作为 follower：卫星做 leader ⇒ 基准 barSpace/可见范围**逐字段不变**（反向变异必红） 4ms
+     → 基准 barSpace 不得被卫星同步反向改写（ADR-020）: expected 50 to be 8 // Object.is equality
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 25 passed (26)
+   Start at  23:49:23
+   Duration  484ms (transform 96ms, setup 65ms, collect 84ms, tests 45ms, environment 454ms, prepare 130ms)
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncAlignClosedLoop.test.ts > ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 【硬约束】基准永不作为 follower：卫星做 leader ⇒ 基准 barSpace/可见范围**逐字段不变**（反向变异必红）
+AssertionError: 基准 barSpace 不得被卫星同步反向改写（ADR-020）: expected 50 to be 8 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 8[39m
+[31m+ 50[39m
+
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts:238:72
+    236|     sat.scrollToDataIndex(60);
+    237| 
+    238|     expect(base.getBarSpace().bar, '基准 barSpace 不得被卫星同步反向改写（ADR-020）')…
+       |                                                                        ^
+    239|     expect(base.getBarSpace().bar, '基准不得被写成密度推导值/上限 50').not.toBe(50);
+    240|     expect(base.getVisibleRange(), '基准可见范围（视口）必须逐字段不变').toEqual(baseRa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

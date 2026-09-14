@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /tmp/p3c/web
+
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (12 tests | 11 skipped) 11ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 11 skipped (12)
+   Start at  23:17:40
+   Duration  421ms (transform 44ms, setup 22ms, collect 26ms, tests 11ms, environment 135ms, prepare 43ms)
+

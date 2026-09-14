@@ -1,0 +1,19 @@
+klinecharts version = undefined
+PASS  PROBE 库事实：同索引定位两图范围精确相等 / scrollToTimestamp 落点仍偏 2 根
+PASS  A1 1m↔1m 20 轮 maxDrift ≤1 根（期望 0）
+PASS  A1 无回声（echoEvents=0）且抑制生效（suppressed>0）
+PASS  A2 1m↔5m：跨度差 ≤1 根且右端差 ≤1 根高周期 bar、卫星 ≥2 根
+PASS  A2 1m↔15m：同判据
+PASS  A2 1d↔1w：同判据
+PASS  A3 降级路径（1m↔1h）：degraded/degradedPeriod + 卫星 ≥2 根 + 右端差 ≤1 根 + 可达下界已记录 + 角标(store)可读
+PASS  A3 降级路径：跨度差**不适用** ≤1 根（记录实测下界 >1 根）
+PASS  A3 缩小基准 ⇒ 回到成功路径判据（degraded=false、跨度/右端差 ≤1 根、unaligned=0）
+PASS  A4 基准冻结：卫星作 leader ⇒ 基准 barSpace/可见范围/右偏移逐项不变且基准 0 次 barSpace 写入
+PASS  A4 对照：naive 路径会把基准写成 50（实测对照值）
+PASS  A5 可观测：被跳过的 follower 计数 + 原因可读（不再静默）+ 残差/微调字段可读
+PASS  A6 有界性：迭代 ≤3（字面量）且 barSpace 单步幅度 ≤50%
+errors = []
+pageerrors/console = none
+non-file network requests = 0
+SUMMARY: 13 PASS / 0 FAIL
+evidence = /tmp/p3d3/mutations/harness_M4_unbounded/p3d3_harness.json

@@ -1,0 +1,50 @@
+
+ RUN  v3.2.7 /tmp/p3d3/mut
+
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 2ms
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (14 tests) 29ms
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests | 1 failed) 9ms
+   × ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测 5ms
+     → expected 50 to be less than or equal to 3
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者未布局（pane 宽 0）⇒ 跳过必须**可观测**（unalignedFollowers + 原因），不得静默 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者无数据 ⇒ 无法索引定位 ⇒ 跳过必须可观测（不得静默） 0ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 容差不可达（1h 跟随者只能显示 2 根，无法覆盖基准跨度）⇒ 有界停手 + 置 degraded（禁止无界重试） 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 降级路径（容差不可达）：可见 ≥2 根 + 右端差 ≤1 根 + 实测可达下界记录 + 原因可读（fail-closed） 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 可对齐的降级 barSpace（容量受限但跨度可达）⇒ 仍必须完成对齐（fail-closed：先尝试完整对齐） 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 【硬约束】基准永不作为 follower：卫星做 leader ⇒ 基准 barSpace/可见范围**逐字段不变**（反向变异必红） 0ms
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 25 passed (26)
+   Start at  23:49:35
+   Duration  483ms (transform 87ms, setup 74ms, collect 107ms, tests 40ms, environment 443ms, prepare 142ms)
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncAlignClosedLoop.test.ts > ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测
+AssertionError: expected 50 to be less than or equal to 3
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts:65:45
+     63|     ).toBeGreaterThanOrEqual(1);
+     64|     expect(g.stats.lastCorrectionIterations).toBeLessThanOrEqual(MAX_A…
+     65|     expect(MAX_ALIGN_CORRECTION_ITERATIONS).toBeLessThanOrEqual(3);
+       |                                             ^
+     66|   });
+     67| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

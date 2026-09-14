@@ -1,0 +1,446 @@
+{
+  "url": "file:///tmp/p3d3/h_M3b_exact_stub_plus_timestamp/harness.html",
+  "errors": [],
+  "console": [],
+  "networkNonFile": [],
+  "checks": [
+    {
+      "name": "PROBE 库事实：同索引定位两图范围精确相等 / scrollToTimestamp 落点仍偏 2 根",
+      "ok": true
+    },
+    {
+      "name": "A1 1m↔1m 20 轮 maxDrift ≤1 根（期望 0）",
+      "ok": true
+    },
+    {
+      "name": "A1 无回声（echoEvents=0）且抑制生效（suppressed>0）",
+      "ok": true
+    },
+    {
+      "name": "A2 1m↔5m：跨度差 ≤1 根且右端差 ≤1 根高周期 bar、卫星 ≥2 根",
+      "ok": true
+    },
+    {
+      "name": "A2 1m↔15m：同判据",
+      "ok": true
+    },
+    {
+      "name": "A2 1d↔1w：同判据",
+      "ok": true
+    },
+    {
+      "name": "A3 降级路径（1m↔1h）：degraded/degradedPeriod + 卫星 ≥2 根 + 右端差 ≤1 根 + 可达下界已记录 + 角标(store)可读",
+      "ok": true
+    },
+    {
+      "name": "A3 降级路径：跨度差**不适用** ≤1 根（记录实测下界 >1 根）",
+      "ok": true
+    },
+    {
+      "name": "A3 缩小基准 ⇒ 回到成功路径判据（degraded=false、跨度/右端差 ≤1 根、unaligned=0）",
+      "ok": true
+    },
+    {
+      "name": "A4 基准冻结：卫星作 leader ⇒ 基准 barSpace/可见范围/右偏移逐项不变且基准 0 次 barSpace 写入",
+      "ok": true
+    },
+    {
+      "name": "A4 对照：naive 路径会把基准写成 50（实测对照值）",
+      "ok": true
+    },
+    {
+      "name": "A5 可观测：被跳过的 follower 计数 + 原因可读（不再静默）+ 残差/微调字段可读",
+      "ok": true
+    },
+    {
+      "name": "A6 有界性：迭代 ≤3（字面量）且 barSpace 单步幅度 ≤50%",
+      "ok": true
+    }
+  ],
+  "scenarios": {
+    "PROBE": {
+      "sameIndexEqual": true,
+      "sameIndex": [
+        241,
+        302,
+        241,
+        302
+      ],
+      "scrollToTimestampRange": [
+        243,
+        304
+      ],
+      "edgeGapBars": 2
+    },
+    "A1_same_period_20rounds": {
+      "rounds": 20,
+      "maxDrift": 0,
+      "maxEdgeDiffBars": 0,
+      "samples": [
+        {
+          "round": 1,
+          "base": [
+            253,
+            302
+          ],
+          "sat": [
+            253,
+            302
+          ],
+          "drift": 0,
+          "edgeDiffBars": 0
+        },
+        {
+          "round": 2,
+          "base": [
+            258,
+            307
+          ],
+          "sat": [
+            258,
+            307
+          ],
+          "drift": 0,
+          "edgeDiffBars": 0
+        },
+        {
+          "round": 3,
+          "base": [
+            263,
+            312
+          ],
+          "sat": [
+            263,
+            312
+          ],
+          "drift": 0,
+          "edgeDiffBars": 0
+        },
+        {
+          "round": 4,
+          "base": [
+            268,
+            317
+          ],
+          "sat": [
+            268,
+            317
+          ],
+          "drift": 0,
+          "edgeDiffBars": 0
+        }
+      ],
+      "stats": {
+        "applied": 41,
+        "suppressed": 164,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 0,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 0,
+        "lastUnalignedReason": null,
+        "lastCorrectionIterations": 2,
+        "spanResidualBars": 0,
+        "edgeResidualBars": 0,
+        "barSpaceAdjust": 0
+      },
+      "pass": true
+    },
+    "A2_cross_period": {
+      "1m↔5m": {
+        "baseBS": 8,
+        "satBS": 44,
+        "idealSatBS": 38,
+        "satBars": 13,
+        "baseBars": 62,
+        "satWindow": [
+          362,
+          374
+        ],
+        "baseWindow": [
+          1941,
+          2002
+        ],
+        "spanBaseMs": 3957446.808474277,
+        "spanSatMs": 3900000,
+        "spanDiffBars": 0.19148936158092383,
+        "edgeDiffBars": 0.106382978515625,
+        "stats": {
+          "applied": 4,
+          "suppressed": 20,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": 0.9,
+          "degraded": false,
+          "degradedPeriod": null,
+          "unalignedFollowers": 0,
+          "lastUnalignedReason": null,
+          "lastCorrectionIterations": 2,
+          "spanResidualBars": 0.17872340413411458,
+          "edgeResidualBars": 0.106382978515625,
+          "barSpaceAdjust": 6
+        },
+        "barSpaceWrites": [
+          38,
+          38,
+          41,
+          38,
+          44,
+          38,
+          44
+        ],
+        "pass": true
+      },
+      "1m↔15m": {
+        "baseBS": 8,
+        "satBS": 137,
+        "idealSatBS": 98,
+        "satBars": 5,
+        "baseBars": 62,
+        "satWindow": [
+          349,
+          353
+        ],
+        "baseWindow": [
+          2941,
+          3002
+        ],
+        "spanBaseMs": 4573770.491803279,
+        "spanSatMs": 4500000,
+        "spanDiffBars": 0.0819672131147546,
+        "edgeDiffBars": 0.3442622951931424,
+        "stats": {
+          "applied": 4,
+          "suppressed": 20,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": 1,
+          "degraded": false,
+          "degradedPeriod": null,
+          "unalignedFollowers": 0,
+          "lastUnalignedReason": null,
+          "lastCorrectionIterations": 2,
+          "spanResidualBars": 0.06666666666666667,
+          "edgeResidualBars": 0.3442622951931424,
+          "barSpaceAdjust": 39
+        },
+        "barSpaceWrites": [
+          98,
+          98,
+          118,
+          98,
+          137,
+          98,
+          137
+        ],
+        "pass": true
+      },
+      "1d↔1w": {
+        "baseBS": 8,
+        "satBS": 43,
+        "idealSatBS": 37,
+        "satBars": 13,
+        "baseBars": 62,
+        "satWindow": [
+          43,
+          55
+        ],
+        "baseWindow": [
+          241,
+          302
+        ],
+        "spanBaseMs": 8029464668.094191,
+        "spanSatMs": 7862400000,
+        "spanDiffBars": 0.27623126338325166,
+        "edgeDiffBars": 0.4025695931478026,
+        "stats": {
+          "applied": 4,
+          "suppressed": 20,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": 2066,
+          "degraded": false,
+          "degradedPeriod": null,
+          "unalignedFollowers": 0,
+          "lastUnalignedReason": null,
+          "lastCorrectionIterations": 2,
+          "spanResidualBars": 0.20495564392776086,
+          "edgeResidualBars": 0.4025695931478026,
+          "barSpaceAdjust": 6
+        },
+        "barSpaceWrites": [
+          37,
+          37,
+          40,
+          37,
+          43,
+          37,
+          43
+        ],
+        "pass": true
+      }
+    },
+    "A3_degrade_1m1h": {
+      "degradedCase": {
+        "baseBS": 8,
+        "satBS": 260,
+        "capacity": 260,
+        "satBars": 4,
+        "spanDiffBars_measured": 2.359788359843259,
+        "edgeDiffBars": 0.25925925923665366,
+        "stats": {
+          "applied": 4,
+          "suppressed": 14,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": 142.2,
+          "degraded": true,
+          "degradedPeriod": "1h",
+          "unalignedFollowers": 1,
+          "lastUnalignedReason": "1h:no-improvement",
+          "lastCorrectionIterations": 2,
+          "spanResidualBars": 2.369576719631619,
+          "edgeResidualBars": 0.25925925923665366,
+          "barSpaceAdjust": -42
+        },
+        "store": {
+          "syncDegraded": true,
+          "syncDegradedPeriod": "1h",
+          "lastSpanDiffMinutes": 142.2
+        },
+        "barSpaceWrites": [
+          260,
+          260,
+          260,
+          260
+        ],
+        "snapshots": 4,
+        "snapshotsDegradedAll": true,
+        "pass": true
+      },
+      "bounded": {
+        "iterations": 2,
+        "iterationsLiteralLE3": true,
+        "writes": [
+          260,
+          260,
+          260,
+          260
+        ],
+        "maxStepRatio": 0
+      },
+      "shrink": {
+        "baseBS": 4,
+        "satBS": 227,
+        "satBars": 4,
+        "spanDiffBars_measured": 0.7724867725222956,
+        "edgeDiffBars": 0.25925925923665366,
+        "stats": {
+          "applied": 5,
+          "suppressed": 20,
+          "echoEvents": 0,
+          "lastSpanDiffMinutes": 46.9,
+          "degraded": false,
+          "degradedPeriod": null,
+          "unalignedFollowers": 0,
+          "lastUnalignedReason": null,
+          "lastCorrectionIterations": 2,
+          "spanResidualBars": 0.7822751323106554,
+          "edgeResidualBars": 0.25925925923665366,
+          "barSpaceAdjust": 76
+        },
+        "store": {
+          "syncDegraded": false,
+          "syncDegradedPeriod": null
+        },
+        "writesAfterShrink": [
+          151,
+          227
+        ],
+        "pass": true
+      }
+    },
+    "A4_base_freeze": {
+      "baseBsBefore": 8,
+      "baseBsAfter": 8,
+      "baseWritesTotal": 1,
+      "baseWritesAfterGesture": [],
+      "baseWrites": [
+        8
+      ],
+      "baseRangeBefore": [
+        241,
+        302
+      ],
+      "baseRangeAfter": [
+        241,
+        302
+      ],
+      "baseOffsetBefore": 0,
+      "baseOffsetAfter": 0,
+      "satBS": 300,
+      "naiveWouldWriteBaseBS": 50,
+      "satRange": [
+        39,
+        42
+      ],
+      "stats": {
+        "applied": 4,
+        "suppressed": 20,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 2066,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 0,
+        "lastUnalignedReason": null,
+        "lastCorrectionIterations": 0,
+        "spanResidualBars": null,
+        "edgeResidualBars": null,
+        "barSpaceAdjust": 0
+      },
+      "pass": true
+    },
+    "A5_observability": {
+      "stats": {
+        "applied": 4,
+        "suppressed": 22,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 0.9,
+        "degraded": false,
+        "degradedPeriod": null,
+        "unalignedFollowers": 1,
+        "lastUnalignedReason": "5m:no-barspace-api",
+        "lastCorrectionIterations": 2,
+        "spanResidualBars": 0.17872340413411458,
+        "edgeResidualBars": 0.106382978515625,
+        "barSpaceAdjust": 6
+      },
+      "satBars": 13,
+      "pass": true
+    },
+    "A6_bounded": {
+      "iterations": 2,
+      "iterationsLiteralLE3": true,
+      "writes": [
+        260,
+        260,
+        260,
+        260
+      ],
+      "maxStepRatio": 0,
+      "stats": {
+        "applied": 4,
+        "suppressed": 14,
+        "echoEvents": 0,
+        "lastSpanDiffMinutes": 218.4,
+        "degraded": true,
+        "degradedPeriod": "1h",
+        "unalignedFollowers": 1,
+        "lastUnalignedReason": "1h:no-improvement",
+        "lastCorrectionIterations": 2,
+        "spanResidualBars": 3.6394179894341363,
+        "edgeResidualBars": 0.25925925923665366,
+        "barSpaceAdjust": -1252
+      },
+      "pass": true
+    }
+  },
+  "screenshot": "/tmp/p3d3/mutations/harness_M3b_exact_stub_plus_timestamp/p3d3_harness.png",
+  "generatedAt": "2026-09-14T15:49:34.993Z"
+}

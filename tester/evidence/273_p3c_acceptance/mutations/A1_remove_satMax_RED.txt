@@ -1,0 +1,45 @@
+
+ RUN  v3.2.7 /tmp/p3c/web
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts (12 tests | 1 failed | 11 skipped) 16ms
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-1 同周期两实例：20 轮镜像后可见范围**逐字段相等**、相对偏移 0、无回声
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期（1m↔5m / 1m↔15m / 1d↔1w）：跨度差 ≤1 根高周期 bar **且**卫星可见 bar ≥2
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口 15ms
+     → expected false to be true // Object.is equality
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留）
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口
+AssertionError: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:409:54
+    407|     // 仪器证明（P0.3 §6-I3a）：把推导值硬塞进去 ⇒ 视口确实失效（NaN）
+    408|     sat.setBarSpace(1512);
+    409|     expect(Number.isNaN(sat.getVisibleRange().from)).toBe(true);
+       |                                                      ^
+    410| 
+    411|     // 再次交互 ⇒ 组把它拉回可读的降级视口
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  23:17:40
+   Duration  460ms (transform 44ms, setup 22ms, collect 21ms, tests 16ms, environment 144ms, prepare 52ms)
+

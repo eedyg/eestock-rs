@@ -1,0 +1,20 @@
+klinecharts version = 10.0.3 (indicators=27)
+PASS  F1 库事实：scrollToTimestamp(ts) 把该 ts 的 bar 对齐到右缘（±8 根内，实测偏 2 根）
+PASS  F2 库事实：交互处理器内再**写**图表 API ⇒ 同步嵌套事件（重入存在）
+PASS  F3 密度比镜像：20/20 轮跨度差 ≤1 根高周期 bar
+PASS  F3 镜像无漂移：卫星 barSpace 20 轮恒为同一值（请求值）
+PASS  F3 跨周期卫星可见 bar ≥2
+PASS  F3 反向证据：名义比 7 ⇒ 20 轮跨度差**均** >1 根周 bar（判别力成立）
+PASS  F3 反向证据：名义比 7 的跨度差最小量级 ≥1 根周 bar
+PASS  F4 库事实：基准（默认 max=50）请求 350/5000 被静默吞掉 ⇒ 读回仍 50
+PASS  F4 库事实：卫星放宽到 350 后 350 生效（仅卫星）
+PASS  F5 降级：barSpace=floor(W/2) ⇒ 视口可读且可见 bar ≥2
+PASS  F5 记录（非门禁）：本配置下未复现 NaN（P0.3 §6-I3a 在 1m↔1d/1w 复现）
+PASS  F6 密度估计器：正常窗可算（≈5）
+PASS  F6 密度估计器：无重叠 ⇒ 失效（需静态回退）
+PASS  F6 密度估计器：窗内 ≤1 根 ⇒ 失效（需静态回退）
+PASS  F7 库事实：`scrollToTimestamp` 落点距右缘固定 ≥2 根，且 `setOffsetRightDistance(0)` **无法消除**（P3-C PROBE 同源）
+PASS  F7 对照：同 `scrollToDataIndex` 两同构实例范围**精确相等**（缺口不在该原语上（PROBE 实测 [241,302]==[241,302]））
+pageerrors/console = none
+non-file network requests = 0
+evidence = /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/274_p3d1_faithful_stub/p3_sync_harness.json

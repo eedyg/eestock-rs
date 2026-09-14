@@ -1,0 +1,25 @@
+    225|     expect(asStub(sat).getBarSpace().bar).toBe(260);
+       |                                           ^
+    226|     expect(asStub(sat).getVisibleRange().to - asStub(sat).getVisibleRa…
+    227| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/features/dashboard/multiPeriodSyncBadge.test.tsx > T8bis-④/⑤「对齐受限」角标与降级可观测字段（P3-A 红：同步尚未实现） > 反向（变异必红）：若无角标 DOM 契约，退化状态在页面上不可读 ⇒ 本用例必须失败（锁「不得静默」）
+AssertionError: 退化状态必须可由页面读出（`syncDegraded` + 跨度差）: expected null not to be null
+ ❯ src/features/dashboard/multiPeriodSyncBadge.test.tsx:282:61
+    280|     // 退化状态的可观测面：角标 + 跨度差（二者缺一即视为静默）
+    281|     const badge = view.container.querySelector('[data-mp-sync-degraded…
+    282|     expect(badge, '退化状态必须可由页面读出（`syncDegraded` + 跨度差）').not.toBeNull();
+       |                                                             ^
+    283|     expect(badge!.getAttribute('data-mp-span-diff-min')).not.toBeNull(…
+    284|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  20 failed (20)
+   Start at  23:04:53
+   Duration  749ms (transform 207ms, setup 69ms, collect 319ms, tests 101ms, environment 457ms, prepare 371ms)
+

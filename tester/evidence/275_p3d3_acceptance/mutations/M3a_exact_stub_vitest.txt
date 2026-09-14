@@ -1,0 +1,88 @@
+
+ RUN  v3.2.7 /tmp/p3d3/mut
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests | 3 failed) 6ms
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除 4ms
+     → 归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）: expected +0 to be 2 // Object.is equality
+   ✓ syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F2 同构双实例：`scrollToDataIndex` 精确对齐（缺口不在该原语上） 0ms
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]） 0ms
+     → 跨图镜像的右缘索引差必须复刻真身实测的 2 根（PROBE: 304 - 302）: expected +0 to be 2 // Object.is equality
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试） 0ms
+     → 补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）: expected 2 to be less than or equal to 1
+   ✓ syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F5 保真度诚实标注：桩与真身的**已知**残余差异（绝对窗口 / 可见根数） 0ms
+ ✓ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests) 7ms
+ ✓ src/features/dashboard/chartSyncGroup.test.ts (14 tests) 30ms
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  3 failed | 23 passed (26)
+   Start at  23:49:23
+   Duration  488ms (transform 95ms, setup 71ms, collect 106ms, tests 43ms, environment 453ms, prepare 169ms)
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除
+AssertionError: 归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）: expected +0 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:58:7
+     56|       a.__rightIndex() - PROBE_INDEX,
+     57|       '归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）',
+     58|     ).toBe(REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS);
+       |       ^
+     59|   });
+     60| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]）
+AssertionError: 跨图镜像的右缘索引差必须复刻真身实测的 2 根（PROBE: 304 - 302）: expected +0 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:89:7
+     87|       edgeIndexGap,
+     88|       `跨图镜像的右缘索引差必须复刻真身实测的 ${REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS} …
+     89|     ).toBe(REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS);
+       |       ^
+     90| 
+     91|     const leaderTo = base.__bars[base.getVisibleRange().to] as number;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试）
+AssertionError: 补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）: expected 2 to be less than or equal to 1
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:117:7
+    115|       Math.abs(follower.__rightIndex() - base.__rightIndex()),
+    116|       '补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）',
+    117|     ).toBeLessThanOrEqual(1);
+       |       ^
+    118|   });
+    119| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+

@@ -1,0 +1,51 @@
+
+ RUN  v3.2.7 /tmp/p3c/web
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts (12 tests | 2 failed | 10 skipped) 14ms
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-1 同周期两实例：20 轮镜像后可见范围**逐字段相等**、相对偏移 0、无回声
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期（1m↔5m / 1m↔15m / 1d↔1w）：跨度差 ≤1 根高周期 bar **且**卫星可见 bar ≥2 12ms
+     → 1m↔5m：跟随者右偏移必须被补偿（≤1 根自身 bar），否则跨周期右端无法对齐: expected 304 to be less than or equal to 38
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐）
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar） 1ms
+     → 回到最新后卫星右偏移必须被补偿（≤1 根自身 bar；否则跨周期右端必错位）: expected 304 to be less than or equal to 38
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格）
+   ↓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留）
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期（1m↔5m / 1m↔15m / 1d↔1w）：跨度差 ≤1 根高周期 bar **且**卫星可见 bar ≥2
+AssertionError: 1m↔5m：跟随者右偏移必须被补偿（≤1 根自身 bar），否则跨周期右端无法对齐: expected 304 to be less than or equal to 38
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:222:9
+    220|         sat.getOffsetRightDistance(),
+    221|         `${label}：跟随者右偏移必须被补偿（≤1 根自身 bar），否则跨周期右端无法对齐`,
+    222|       ).toBeLessThanOrEqual(sat.getBarSpace().bar);
+       |         ^
+    223|       expect(g.stats.suppressed, `${label}：重入必须被抑制`).toBeGreaterThan(0…
+    224|       expect(g.stats.echoEvents, `${label}：不得出现回声循环`).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar）
+AssertionError: 回到最新后卫星右偏移必须被补偿（≤1 根自身 bar；否则跨周期右端必错位）: expected 304 to be less than or equal to 38
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:317:7
+    315|       sat.getOffsetRightDistance(),
+    316|       '回到最新后卫星右偏移必须被补偿（≤1 根自身 bar；否则跨周期右端必错位）',
+    317|     ).toBeLessThanOrEqual(sat.getBarSpace().bar);
+       |       ^
+    318|     expect(
+    319|       base.getOffsetRightDistance(),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 10 skipped (12)
+   Start at  23:17:41
+   Duration  424ms (transform 45ms, setup 22ms, collect 25ms, tests 14ms, environment 129ms, prepare 42ms)
+

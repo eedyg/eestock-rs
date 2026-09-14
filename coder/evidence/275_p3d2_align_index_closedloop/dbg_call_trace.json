@@ -1,0 +1,383 @@
+{
+  "errors": [],
+  "events": [],
+  "trace": [
+    {
+      "who": "sat",
+      "call": "setBarSpace",
+      "args": [
+        98
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 98,
+        "halfBar": 49,
+        "gapBar": 78,
+        "halfGapBar": 39
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 98,
+        "halfBar": 49,
+        "gapBar": 78,
+        "halfGapBar": 39
+      }
+    },
+    {
+      "who": "sat",
+      "call": "scrollToDataIndex",
+      "args": [
+        353
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 349,
+        "to": 355,
+        "realFrom": 349,
+        "realTo": 355,
+        "bars": 7,
+        "realBars": 7,
+        "fromTs": 1789144200000,
+        "toTs": 1789149600000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "scrollToDataIndex",
+      "args": [
+        351
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 347,
+        "to": 353,
+        "realFrom": 347,
+        "realTo": 353,
+        "bars": 7,
+        "realBars": 7,
+        "fromTs": 1789142400000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "setBarSpace",
+      "args": [
+        98
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 98,
+        "halfBar": 49,
+        "gapBar": 78,
+        "halfGapBar": 39
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 98,
+        "halfBar": 49,
+        "gapBar": 78,
+        "halfGapBar": 39
+      }
+    },
+    {
+      "who": "sat",
+      "call": "scrollToDataIndex",
+      "args": [
+        353
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 349,
+        "to": 355,
+        "realFrom": 349,
+        "realTo": 355,
+        "bars": 7,
+        "realBars": 7,
+        "fromTs": 1789144200000,
+        "toTs": 1789149600000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "scrollToDataIndex",
+      "args": [
+        351
+      ]
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 347,
+        "to": 353,
+        "realFrom": 347,
+        "realTo": 353,
+        "bars": 7,
+        "realBars": 7,
+        "fromTs": 1789142400000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 349,
+        "to": 353,
+        "realFrom": 349,
+        "realTo": 353,
+        "bars": 5,
+        "realBars": 5,
+        "fromTs": 1789144200000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 137,
+        "halfBar": 68.5,
+        "gapBar": 109,
+        "halfGapBar": 54
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 349,
+        "to": 353,
+        "realFrom": 349,
+        "realTo": 353,
+        "bars": 5,
+        "realBars": 5,
+        "fromTs": 1789144200000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 157,
+        "halfBar": 78.5,
+        "gapBar": 125,
+        "halfGapBar": 62
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 349,
+        "to": 353,
+        "realFrom": 349,
+        "realTo": 353,
+        "bars": 5,
+        "realBars": 5,
+        "fromTs": 1789144200000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 175,
+        "halfBar": 87.5,
+        "gapBar": 140,
+        "halfGapBar": 70
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 350,
+        "to": 353,
+        "realFrom": 350,
+        "realTo": 353,
+        "bars": 4,
+        "realBars": 4,
+        "fromTs": 1789145100000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 200,
+        "halfBar": 100,
+        "gapBar": 160,
+        "halfGapBar": 80
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 350,
+        "to": 353,
+        "realFrom": 350,
+        "realTo": 353,
+        "bars": 4,
+        "realBars": 4,
+        "fromTs": 1789145100000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 233,
+        "halfBar": 116.5,
+        "gapBar": 186,
+        "halfGapBar": 93
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getVisibleRange",
+      "args": [],
+      "ret": {
+        "from": 350,
+        "to": 353,
+        "realFrom": 350,
+        "realTo": 353,
+        "bars": 4,
+        "realBars": 4,
+        "fromTs": 1789145100000,
+        "toTs": 1789147800000
+      }
+    },
+    {
+      "who": "sat",
+      "call": "getBarSpace",
+      "args": [],
+      "ret": {
+        "bar": 260,
+        "halfBar": 130,
+        "gapBar": 208,
+        "halfGapBar": 104
+      }
+    }
+  ],
+  "afterAlign": {
+    "satBS": 98,
+    "range": {
+      "from": 347,
+      "to": 353,
+      "realFrom": 347,
+      "realTo": 353,
+      "bars": 7,
+      "realBars": 7,
+      "fromTs": 1789142400000,
+      "toTs": 1789147800000
+    },
+    "stats": {
+      "applied": 4,
+      "suppressed": 18,
+      "echoEvents": 0,
+      "lastSpanDiffMinutes": 29,
+      "degraded": true,
+      "degradedPeriod": "15m",
+      "unalignedFollowers": 1,
+      "lastUnalignedReason": "15m:no-improvement",
+      "lastCorrectionIterations": 2
+    }
+  },
+  "barCountProbe": [
+    {
+      "bs": 98,
+      "from": 347,
+      "to": 353,
+      "bars": 7,
+      "realBars": 7
+    },
+    {
+      "bs": 137,
+      "from": 349,
+      "to": 353,
+      "bars": 5,
+      "realBars": 5
+    },
+    {
+      "bs": 157,
+      "from": 349,
+      "to": 353,
+      "bars": 5,
+      "realBars": 5
+    },
+    {
+      "bs": 175,
+      "from": 349,
+      "to": 353,
+      "bars": 5,
+      "realBars": 5
+    },
+    {
+      "bs": 200,
+      "from": 350,
+      "to": 353,
+      "bars": 4,
+      "realBars": 4
+    },
+    {
+      "bs": 233,
+      "from": 350,
+      "to": 353,
+      "bars": 4,
+      "realBars": 4
+    },
+    {
+      "bs": 260,
+      "from": 350,
+      "to": 353,
+      "bars": 4,
+      "realBars": 4
+    }
+  ]
+}

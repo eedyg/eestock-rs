@@ -1,0 +1,235 @@
+
+ RUN  v3.2.7 /tmp/p3d3/mut
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests | 3 failed) 6ms
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除 4ms
+     → 归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）: expected +0 to be 2 // Object.is equality
+   ✓ syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F2 同构双实例：`scrollToDataIndex` 精确对齐（缺口不在该原语上） 0ms
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]） 0ms
+     → 跨图镜像的右缘索引差必须复刻真身实测的 2 根（PROBE: 304 - 302）: expected +0 to be 2 // Object.is equality
+   × syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试） 0ms
+     → 补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）: expected 2 to be less than or equal to 1
+   ✓ syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F5 保真度诚实标注：桩与真身的**已知**残余差异（绝对窗口 / 可见根数） 0ms
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts (7 tests | 3 failed) 11ms
+   × ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测 5ms
+     → 两侧均被对齐 ⇒ 未对齐计数必须为 0: expected 1 to be +0 // Object.is equality
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者未布局（pane 宽 0）⇒ 跳过必须**可观测**（unalignedFollowers + 原因），不得静默 1ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 跟随者无数据 ⇒ 无法索引定位 ⇒ 跳过必须可观测（不得静默） 0ms
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 容差不可达（1h 跟随者只能显示 2 根，无法覆盖基准跨度）⇒ 有界停手 + 置 degraded（禁止无界重试） 1ms
+   × ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 降级路径（容差不可达）：可见 ≥2 根 + 右端差 ≤1 根 + 实测可达下界记录 + 原因可读（fail-closed） 2ms
+     → actual value must be number or bigint, received "object"
+   × ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 可对齐的降级 barSpace（容量受限但跨度可达）⇒ 仍必须完成对齐（fail-closed：先尝试完整对齐） 1ms
+     → 降级 ≠ 跳过：barSpace 虽降级，跨度可达时仍必须完成对齐（fail-closed）: expected 1 to be +0 // Object.is equality
+   ✓ ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 【硬约束】基准永不作为 follower：卫星做 leader ⇒ 基准 barSpace/可见范围**逐字段不变**（反向变异必红） 1ms
+ ❯ src/features/dashboard/chartSyncGroup.test.ts (14 tests | 4 failed) 34ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > G1/T3-1 同周期（1m↔1m）：≥20 轮镜像后**相对偏移 ≤1 根**、无回声（真渲染口径） 19ms
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔5m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 5ms
+     → 1m↔5m：非退化组合不得被标为降级: expected true to be false // Object.is equality
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔15m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 2ms
+     → 1m↔15m：非退化组合不得被标为降级: expected true to be false // Object.is equality
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1d↔1w：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声 1ms
+     → 1d↔1w：非退化组合不得被标为降级: expected true to be false // Object.is equality
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 反向（变异必红）：1d↔1w 若用**名义比 7** ⇒ 跨度差必超 1 根周 bar（密度比 4.67 才达标） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-3 重入抑制的反向证据：禁用抑制 ⇒ 出现回声（`echoEvents>0`）；开启 ⇒ 回声 0 且 suppressed>0 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar） 1ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 尊重手动视口：手动缩放/平移后**新 bar 到达不得自动回滚**（非跟随态不滚动） 1ms
+   × ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常 1ms
+     → actual value must be number or bigint, received "object"
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-NaN 降级路径：`satBS ≫ pane 宽` 会让 `getVisibleRange()` 失效 ⇒ 必须显式降级为可读视口 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-上限不足：卫星 barSpaceLimit 太小时必须**显式降级**（不得让 setBarSpace 静默吞掉） 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > 边界-放宽不泄漏到基准：基准实例始终被 `barSpaceLimit{1,50}` 夹紧（ADR-020 严格） 0ms
+   ✓ ChartSyncGroup（P3-A 红：模块尚不存在） > T4-2 补充：`stop()` 后不得再镜像（解除订阅/停止广播，零残留） 0ms
+
+
+ Test Files  3 failed (3)
+      Tests  10 failed | 16 passed (26)
+   Start at  23:49:45
+   Duration  490ms (transform 86ms, setup 78ms, collect 100ms, tests 51ms, environment 444ms, prepare 139ms)
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/chartSyncAlignClosedLoop.test.ts > ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 1m↔5m：索引定位后闭环在 ≤3 次迭代内收敛；未对齐计数为 0；迭代次数可观测
+AssertionError: 两侧均被对齐 ⇒ 未对齐计数必须为 0: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts:58:63
+     56|     base.scrollToDataIndex(400);
+     57| 
+     58|     expect(g.stats.unalignedFollowers, '两侧均被对齐 ⇒ 未对齐计数必须为 0').toBe(0);
+       |                                                               ^
+     59|     expect(g.stats.lastUnalignedReason).toBeNull();
+     60|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncAlignClosedLoop.test.ts > ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 降级路径（容差不可达）：可见 ≥2 根 + 右端差 ≤1 根 + 实测可达下界记录 + 原因可读（fail-closed）
+TypeError: actual value must be number or bigint, received "object"
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts:169:7
+    167|       g.stats.spanResidualBars,
+    168|       '降级路径必须记录实测可达下界（以自身 bar 为单位）',
+    169|     ).toBeGreaterThan(1);
+       |       ^
+    170|     // ③ 降级路径的其余判据：可见 ≥2 根（口径 8 的虚假通过防线）
+    171|     const r = sat.getVisibleRange();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncAlignClosedLoop.test.ts > ChartSyncGroup 有界闭环校正 + 未对齐可观测（P3-D-2 增补） > 可对齐的降级 barSpace（容量受限但跨度可达）⇒ 仍必须完成对齐（fail-closed：先尝试完整对齐）
+AssertionError: 降级 ≠ 跳过：barSpace 虽降级，跨度可达时仍必须完成对齐（fail-closed）: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/chartSyncAlignClosedLoop.test.ts:202:7
+    200|       g.stats.unalignedFollowers,
+    201|       '降级 ≠ 跳过：barSpace 虽降级，跨度可达时仍必须完成对齐（fail-closed）',
+    202|     ).toBe(0);
+       |       ^
+    203|     expect(g.stats.spanResidualBars).toBeLessThanOrEqual(1);
+    204|     expect(g.stats.edgeResidualBars).toBeLessThanOrEqual(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔5m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声
+AssertionError: 1m↔5m：非退化组合不得被标为降级: expected true to be false // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:235:57
+    233|       expect(g.stats.suppressed, `${label}：重入必须被抑制`).toBeGreaterThan(0…
+    234|       expect(g.stats.echoEvents, `${label}：不得出现回声循环`).toBe(0);
+    235|       expect(g.stats.degraded, `${label}：非退化组合不得被标为降级`).toBe(false);
+       |                                                         ^
+    236|       // 真实渲染事实（P3-C PROBE + harness F1）：`scrollToTimestamp` 落点距右缘**固定…
+    237|       // 且 `setOffsetRightDistance(0)` **无法消除** ⇒ 跨周期右端对齐必须按 ts 逐边补偿；
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1m↔15m：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声
+AssertionError: 1m↔15m：非退化组合不得被标为降级: expected true to be false // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:235:57
+    233|       expect(g.stats.suppressed, `${label}：重入必须被抑制`).toBeGreaterThan(0…
+    234|       expect(g.stats.echoEvents, `${label}：不得出现回声循环`).toBe(0);
+    235|       expect(g.stats.degraded, `${label}：非退化组合不得被标为降级`).toBe(false);
+       |                                                         ^
+    236|       // 真实渲染事实（P3-C PROBE + harness F1）：`scrollToTimestamp` 落点距右缘**固定…
+    237|       // 且 `setOffsetRightDistance(0)` **无法消除** ⇒ 跨周期右端对齐必须按 ts 逐边补偿；
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T3-2 跨周期 1d↔1w：跨度差 ≤1 根高周期 bar **且** 右端差 ≤1 根高周期 bar、可见 ≥2 根、无回声
+AssertionError: 1d↔1w：非退化组合不得被标为降级: expected true to be false // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:235:57
+    233|       expect(g.stats.suppressed, `${label}：重入必须被抑制`).toBeGreaterThan(0…
+    234|       expect(g.stats.echoEvents, `${label}：不得出现回声循环`).toBe(0);
+    235|       expect(g.stats.degraded, `${label}：非退化组合不得被标为降级`).toBe(false);
+       |                                                         ^
+    236|       // 真实渲染事实（P3-C PROBE + harness F1）：`scrollToTimestamp` 落点距右缘**固定…
+    237|       // 且 `setOffsetRightDistance(0)` **无法消除** ⇒ 跨周期右端对齐必须按 ts 逐边补偿；
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncGroup.test.ts > ChartSyncGroup（P3-A 红：模块尚不存在） > T8bis 诚实降级 + 角标可观测字段：退化 ⇒ barSpace=能容纳≥2 根的最大值、右端对齐、syncDegraded 可读；缩小基准 ⇒ 恢复正常
+TypeError: actual value must be number or bigint, received "object"
+ ❯ src/features/dashboard/chartSyncGroup.test.ts:407:57
+    405|     expect(g.stats.degraded).toBe(true);
+    406|     expect(g.stats.degradedPeriod).toBe('1h');
+    407|     expect(g.stats.lastSpanDiffMinutes, '跨度差必须可读出（分钟）').toBeGreaterTha…
+       |                                                         ^
+    408|     expect(
+    409|       g.stats.lastSpanDiffMinutes as number,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F1 右偏移可归零（读回 0）——但落点缺口**不是**右偏移，归零无法消除
+AssertionError: 归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）: expected +0 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:58:7
+     56|       a.__rightIndex() - PROBE_INDEX,
+     57|       '归零右偏移后落点缺口仍为 2 根（真身 PROBE：[243,304] vs 目标索引 302）',
+     58|     ).toBe(REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS);
+       |       ^
+     59|   });
+     60| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F3 `scrollToTimestamp(leader.toTs)` ⇒ 右缘 = 目标索引 + 2 根（= 真身 PROBE 的 [243,304]）
+AssertionError: 跨图镜像的右缘索引差必须复刻真身实测的 2 根（PROBE: 304 - 302）: expected +0 to be 2 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 0[39m
+
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:89:7
+     87|       edgeIndexGap,
+     88|       `跨图镜像的右缘索引差必须复刻真身实测的 ${REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS} …
+     89|     ).toBe(REAL_SCROLL_TO_TIMESTAMP_RIGHT_GAP_BARS);
+       |       ^
+     90| 
+     91|     const leaderTo = base.__bars[base.getVisibleRange().to] as number;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  src/features/dashboard/chartSyncStubFidelity.test.ts > syncChartStub 保真度：`scrollToTimestamp` 落点 = 距右缘 2 根（真身 PROBE 复刻） > F4 可满足性反向对照：**补偿 2 根缺口**后相对偏移 ≤1 根（判据非空、可满足、非不可能测试）
+AssertionError: 补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）: expected 2 to be less than or equal to 1
+ ❯ src/features/dashboard/chartSyncStubFidelity.test.ts:117:7
+    115|       Math.abs(follower.__rightIndex() - base.__rightIndex()),
+    116|       '补偿 2 根缺口后相对偏移为 0 ⇒ G1 的「≤1 根」判据可满足（不是不可能测试）',
+    117|     ).toBeLessThanOrEqual(1);
+       |       ^
+    118|   });
+    119| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
