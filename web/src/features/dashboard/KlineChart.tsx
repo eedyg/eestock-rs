@@ -305,6 +305,16 @@ function createMarkerOverlays(
   }
 }
 
+/** 实时 bar 像素 x 是否落在视口（容器宽度）之外 —— R2「非跟随态有新数据看不见」判据。
+ *  两种宽度读取方式都兼容（`clientWidth` / `getBoundingClientRect().width`）；宽度不可测（≤0，如未布局）
+ *  或像素不可得（`null`）一律判为「不算视口外」，避免误报。（诊断 §3.5 实测：跟随态 rtX∈绘图区；
+ *  非跟随态 rtX 跑到绘图区右侧 914px 外。） */
+export function isOffViewport(el: HTMLElement | null, x: number | null): boolean {
+  if (x == null || !el) return false;
+  const width = el.clientWidth || el.getBoundingClientRect().width || 0;
+  return width > 0 && (x < 0 || x > width);
+}
+
 /**
  * main-chart/sub-chart 承接组件：klinecharts 单实例（candle pane + VOL 副图 pane）。
  * 容器 h-full 填满 main-chart 区域（骨架已改 relative min-h-0 flex-1，见 01-dashboard.md §1 L3），
@@ -329,8 +339,12 @@ export function KlineChart(props: KlineChartProps) {
   /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
   const viewportBars = feed.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
   const fitRef = useRef<(chart: Chart) => BarSpaceFitResult | null>(() => null);
+  // 「回到最新」的执行入口（Effect W 内定义；供非跟随态「有新数据」提示点击时复用）
+  const scrollLatestRef = useRef<() => void>(() => {});
   // 实时 bar 标记：虚线 + 跳动闪烁（补定稿：与已收盘实体直条区分）
   const [rt, setRt] = useState<{ x: number | null; price: number; ts: string } | null>(null);
+  /** R2：非跟随态下落在视口外的新 bar 计数（「有新数据」提示；**不改变视口**，点击后才跳最新）。 */
+  const [pendingNew, setPendingNew] = useState(0);
 
   /** 横向铺满：按容器实际宽度 + 配置视口根数设 barSpace（`clamp(round(W/bars),1,50)`，与周期无关），
    *  并在容器上写 `data-viewport-fit`（§5 观测性）；宽度 ≤ 0（未布局）→ 不设置。 */
@@ -387,25 +401,38 @@ export function KlineChart(props: KlineChartProps) {
     manualAdjusted.current = false; // 数据面变化（周期/标的切换）→ 回到自动视口归一
     let cancelled = false;
     let rtCallback: ((d: KLineData) => void) | null = null;
+    /** 启动竞态缓冲（诊断 §3.3 / T-R4）：引擎尚未 `subscribeBar` 时到达的实时 bar 不得静默丢弃。
+     *  上限保护：引擎短时间内不注册也不会无界增长（注册时按序冲刷）。 */
+    let rtBuffer: KLineData[] = [];
+    const RT_BUFFER_MAX = 300;
+    setPendingNew(0); // 数据面变化：旧数据的「有新数据」提示失效
 
     const scrollLatest = () => {
+      // `scrollToRealTime` 会**同步**派发 `onScroll`（klinecharts `ChartImp.scrollToRealTime` →
+      // `StoreImp.scroll` → `executeAction('onScroll')`）——故程序化标记只在本调用期间为真：
+      // 既不让程序化滚动被当成「用户手动调整」，也不会在调用之后留下长窗（否则紧随其后的真手势被误吞）。
       programmaticScroll.current = true;
-      chart.scrollToRealTime();
-      setTimeout(() => {
+      try {
+        chart.scrollToRealTime();
+      } finally {
         programmaticScroll.current = false;
-      }, 0);
+      }
     };
+    scrollLatestRef.current = scrollLatest;
 
-    // 实时 bar 标记：更新最近一根 bar 的像素 x 以定位虚线/闪烁
-    const markRealtime = (kc: KLineData, price: number, ts: string) => {
+    // 实时 bar 标记：更新最近一根 bar 的像素 x 以定位虚线/闪烁；返回像素 x（供可见性判定）
+    const markRealtime = (kc: KLineData, price: number, ts: string): number | null => {
+      let x: number | null = null;
       try {
         const px = chart.convertToPixel({ timestamp: kc.timestamp }, { paneId: 'candle_pane' }) as
           | { x: number; y: number }
           | undefined;
-        setRt({ x: px ? px.x + 2 : null, price, ts });
+        x = px ? px.x + 2 : null;
       } catch {
-        setRt({ x: null, price, ts });
+        x = null;
       }
+      setRt({ x, price, ts });
+      return x;
     };
 
     chart.setDataLoader({
@@ -430,6 +457,12 @@ export function KlineChart(props: KlineChartProps) {
       },
       subscribeBar: ({ callback }) => {
         rtCallback = callback;
+        // 冲刷启动竞态缓冲：`subscribeBar` 注册前到达的 bar 按序补投（诊断 §3.3 / T-R4）
+        if (rtBuffer.length > 0) {
+          const buffered = rtBuffer;
+          rtBuffer = [];
+          for (const kc of buffered) callback(kc);
+        }
       },
       unsubscribeBar: () => {
         rtCallback = null;
@@ -453,12 +486,20 @@ export function KlineChart(props: KlineChartProps) {
       createChartOverlays(chart, props.overlays);
     }
 
-    // WS 实时：appendBar/updateBar → DataLoader subscribeBar 回调；跟随最新则锁定视口最右
+    // WS 实时：appendBar/updateBar → DataLoader subscribeBar 回调；
+    // 滚动门控 = `followLatest && !manualAdjusted`（口径①：非跟随态/用户手动缩放后**绝不**拉回最右）；
+    // 非跟随态且新 bar 落在视口之外 ⇒ 只计数并出「有新数据」提示（点击才跳最新，诊断 R2）。
     const offRt = feed.onRealtime((bar) => {
       const kc = toKcData(bar);
-      rtCallback?.(kc);
-      if (followRef.current) scrollLatest();
-      markRealtime(kc, bar.close, bar.ts);
+      if (rtCallback) rtCallback(kc);
+      else {
+        rtBuffer.push(kc);
+        if (rtBuffer.length > RT_BUFFER_MAX) rtBuffer.shift();
+      }
+      // 先定视口（跟随态则滚到最右），再测像素 x（与修复前同序：标记位置不受旧视口影响）
+      if (followRef.current && !manualAdjusted.current) scrollLatest();
+      const x = markRealtime(kc, bar.close, bar.ts);
+      if (!followRef.current && isOffViewport(ref.current, x)) setPendingNew((n) => n + 1);
     });
     // 幂等兜底（DataLoader 路径之外保证加载）；加载完成后依「已加载 bar」吸附/钳位创建 B/S 标记
     // （跨周期 On-Screen）。仅在本 chart 仍存活**且本次接线未被换掉**时创建（防旧 feed 的迟到回调
@@ -522,15 +563,33 @@ export function KlineChart(props: KlineChartProps) {
       manualAdjusted.current = false;
       fitRef.current(chart);
     }
+    setPendingNew(0); // 回到跟随态：提示失效（视口已锚最右）
     programmaticScroll.current = true;
-    chart.scrollToRealTime();
-    setTimeout(() => {
+    try {
+      chart.scrollToRealTime();
+    } finally {
       programmaticScroll.current = false;
-    }, 0);
+    }
   }, [props.followLatest]);
 
   return (
     <div ref={ref} data-testid="kline-chart" className="relative h-full w-full">
+      {/* R2：非跟随态下新 bar 落在视口之外 ⇒ 「有新数据」提示（轻量、非侵入）。
+          **不改变视口**；点击才 `scrollToRealTime()` 跳最新（诊断 §6(a)2）。 */}
+      {pendingNew > 0 && (
+        <button
+          type="button"
+          data-testid="kline-new-data-hint"
+          onClick={() => {
+            setPendingNew(0);
+            scrollLatestRef.current();
+          }}
+          className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded border border-acc1/40 bg-panel/95 px-2 py-0.5 text-[10px] text-sky-300 shadow-lg hover:border-acc1/70 hover:text-sky-200"
+        >
+          <span>有新数据</span>
+          {pendingNew > 1 && <span className="num opacity-80">{pendingNew}</span>}
+        </button>
+      )}
       {/* 实时 bar 标记（补定稿）：虚线竖线 + 跳动闪烁；定位到最近一根（进行中）bar 的像素 x */}
       {rt && rt.x != null && (
         <div data-realtime-marker className="pointer-events-none absolute inset-y-0 z-10" style={{ left: rt.x }}>

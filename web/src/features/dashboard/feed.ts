@@ -1,6 +1,8 @@
 import type { ApiClient } from '@/api/client';
 import type { Bar, Period } from '@/api/types';
 import type { WsClient, WsMessage } from '@/ws/WsClient';
+import { tradingSession } from '@/shell/session';
+import { pollLatestWindow } from './realtimePoll';
 
 export type FeedStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 
@@ -39,8 +41,44 @@ export function paginationBatchForPeriod(period: Period): number {
   return PAGINATION_BATCH[period];
 }
 
+// ── 实时更新口径（诊断 055 R1/R2/R3；架构师裁决①②③④）────────────────────────────────
 
-type WsLike = Pick<WsClient, 'subscribe'>;
+/** 每分钟兜底间隔（交易时段 + 页面可见）；与 WS 共用同一 `applyRealtime`（口径②）。 */
+export const REALTIME_POLL_INTERVAL_MS = 60_000;
+/** 兜底取数根数：覆盖「采集侧跳标签 / 偶发缺行」造成的 1–2 根缺口（诊断 §6(b) 建议 3~5）。 */
+export const REALTIME_POLL_LIMIT = 5;
+/** 兜底失败退避序列：1→2→4→8→60s（封顶 60s）；任一通路成功即复位（口径④）。 */
+export const REALTIME_POLL_BACKOFF_MS: readonly number[] = [1_000, 2_000, 4_000, 8_000, 60_000];
+
+/** 实时写入来源：WS 推送 / 每分钟兜底（含重连补偿，同为 HTTP 取数）。 */
+export type RealtimeSource = 'ws' | 'poll';
+
+/** 实时通路可观测面（诊断 §6(b)「可观测性」）：最近来源 / 最近写入与成功取数时间 / 连续失败数。 */
+export interface RealtimeStats {
+  /** 最近一次实时写入（append/update）的来源 */
+  lastSource: RealtimeSource | null;
+  /** 最近一次实时写入时间（epoch ms） */
+  lastWriteAt: number | null;
+  /** 最近一次成功 HTTP 取数（兜底/重连补偿）时间（epoch ms） */
+  lastPollOkAt: number | null;
+  /** 连续兜底失败次数（成功复位 0；退避序列按其取值） */
+  pollFailures: number;
+}
+
+/** 同 ts 且 OHLCV 完全一致 ⇒ 视为同一根 bar（幂等：不写、不 emit；口径②「同 ts 覆盖」的严格形式）。 */
+function sameBarValues(a: Bar, b: Bar): boolean {
+  return (
+    a.open === b.open &&
+    a.high === b.high &&
+    a.low === b.low &&
+    a.close === b.close &&
+    a.volume === b.volume &&
+    a.amount === b.amount
+  );
+}
+
+type WsLike = Pick<WsClient, 'subscribe'> &
+  Partial<Pick<WsClient, 'onStatusChange' | 'connectionStatus'>>;
 
 export interface KlineDataFeedDeps {
   api: ApiClient;
@@ -73,9 +111,17 @@ export class KlineDataFeed {
   private listeners = new Set<() => void>();
   private rtListeners = new Set<(bar: Bar) => void>();
   private unsubWs: (() => void) | null = null;
+  private unsubWsStatus: (() => void) | null = null;
   private loadPromise: Promise<void> | null = null;
   private loadingBefore = false;
   private disposed = false;
+  /** 每分钟兜底定时器（自 re-arm：退避期间不得再叠加固定 60s 触发）。 */
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  /** 兜底/补偿取数互斥（避免并发覆盖；与 `loadingBefore` 独立）。 */
+  private pollBusy = false;
+  /** WS 是否曾经 open 过：首次 open 不算重连（初始 HTTP 取数已覆盖），其后每次 open 才补偿。 */
+  private wsEverOpen = false;
+  private stats: RealtimeStats = { lastSource: null, lastWriteAt: null, lastPollOkAt: null, pollFailures: 0 };
 
   constructor(private deps: KlineDataFeedDeps) {
     this.pageSize = deps.pageSize ?? deps.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
@@ -144,6 +190,11 @@ export class KlineDataFeed {
     return this.deps.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
   }
 
+  /** 实时通路可观测面（诊断 §6(b)）：最近来源 / 最近写入时间 / 最近成功取数 / 连续失败数。 */
+  get realtimeStats(): Readonly<RealtimeStats> {
+    return this.stats;
+  }
+
   /** 任意状态变更（加载完成/分页拼接/实时更新） */
   onChange(cb: () => void): () => void {
     this.listeners.add(cb);
@@ -182,6 +233,7 @@ export class KlineDataFeed {
         this.hasMore = bars.length >= this.initialLimit;
         this.status = bars.length > 0 ? 'ready' : 'empty';
         this.subscribeRealtime();
+        this.startRealtimePoll();
       } catch {
         if (!this.disposed) this.status = 'error';
       } finally {
@@ -227,13 +279,98 @@ export class KlineDataFeed {
     this.unsubWs = this.deps.ws.subscribe(
       `bar:${this.deps.code}:${this.deps.period}`,
       (msg: WsMessage) => {
-        if (msg.type === 'bar' && msg.bar) this.applyRealtime(msg.bar as Bar);
+        if (msg.type === 'bar' && msg.bar) this.applyRealtime(msg.bar as Bar, 'ws');
       },
+    );
+    // 重连补偿（诊断 §6(a)1「书签式补偿」）：WS 掉线期间的新 bar 只靠重连会永久缺失
+    // （`applyRealtime` 只能接上最新一根）⇒ 重连成功后做一次最新窗口 HTTP 增量。
+    const onStatusChange = this.deps.ws.onStatusChange?.bind(this.deps.ws);
+    if (onStatusChange) {
+      // 订阅时 WS 已处于 open（先建连接后加载数据的常规时序）⇒ 那是「首连」不是「重连」，不得误当补偿点。
+      if (this.deps.ws.connectionStatus === 'open') this.wsEverOpen = true;
+      this.unsubWsStatus = onStatusChange((s) => {
+        if (s !== 'open') return;
+        if (!this.wsEverOpen) {
+          this.wsEverOpen = true; // 首次连接：初始取数已覆盖，不重复补偿
+          return;
+        }
+        void this.pollIncrement('poll'); // 补偿失败只计入退避，不弹错
+      });
+    }
+  }
+
+  /** 启动每分钟兜底轮询（loadInitial 成功后自动调度；交易时段/可见性在轮询体内判定）。 */
+  private startRealtimePoll(): void {
+    if (this.disposed || this.pollTimer) return;
+    this.schedulePoll(REALTIME_POLL_INTERVAL_MS);
+  }
+
+  /** 自 re-arm 定时器（每次调度先清旧，退避期间不会叠加固定 60s 触发）。 */
+  private schedulePoll(delayMs: number): void {
+    if (this.disposed) return;
+    if (this.pollTimer) clearTimeout(this.pollTimer);
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null;
+      void this.pollTick();
+    }, delayMs);
+  }
+
+  /** 轮询体：交易时段 + 页面可见才发请求（口径③）；否则只重排定时器（0 HTTP）。 */
+  private async pollTick(): Promise<void> {
+    if (this.disposed) return;
+    if (!this.shouldPollNow()) {
+      this.schedulePoll(REALTIME_POLL_INTERVAL_MS);
+      return;
+    }
+    const ok = await this.pollIncrement('poll');
+    if (this.disposed) return;
+    const failures = this.stats.pollFailures;
+    this.schedulePoll(
+      ok
+        ? REALTIME_POLL_INTERVAL_MS // 成功 ⇒ 复位为常规 60s 节奏
+        : (REALTIME_POLL_BACKOFF_MS[Math.min(failures - 1, REALTIME_POLL_BACKOFF_MS.length - 1)] ??
+            REALTIME_POLL_INTERVAL_MS),
     );
   }
 
-  /** WS 实时（定稿 1c）：更晚 ts → appendBar；同 ts → updateBar 闪动替换；更早 → 忽略 */
-  applyRealtime(bar: Bar): 'append' | 'update' | 'ignore' {
+  /** 是否该真正发兜底请求：页面可见（`document.hidden` 抑制）+ 交易时段（口径③）。
+   *  交易时段判定复用宿主既有能力 `@/shell/session`（02-sources §L2 写死口径：工作日 09:30-11:30 / 13:00-15:00）。 */
+  private shouldPollNow(): boolean {
+    if (this.disposed || this.pollBusy) return false;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+    return tradingSession(new Date()) === 'trading';
+  }
+
+  /**
+   * 增量取数 + 合并（每分钟兜底 / WS 重连补偿共用，口径②）：取最新窗口（无 `before`）→ 逐根走**同一** `applyRealtime`
+   * （更晚 append / 同 ts 覆盖 / 更早忽略；同 ts 且 OHLCV 一致则不写不 emit ⇒ 与 WS 天然不重复）。
+   * 永不抛错（失败计入退避、不清空、不弹错）；返回是否成功。
+   */
+  async pollIncrement(source: RealtimeSource = 'poll'): Promise<boolean> {
+    if (this.disposed || this.pollBusy) return false;
+    this.pollBusy = true;
+    try {
+      const bars = await pollLatestWindow(
+        this.deps.api,
+        this.deps.code,
+        this.deps.period,
+        REALTIME_POLL_LIMIT,
+      );
+      if (this.disposed) return false;
+      for (const bar of bars) this.applyRealtime(bar, source);
+      this.stats = { ...this.stats, lastPollOkAt: Date.now(), pollFailures: 0 };
+      return true;
+    } catch {
+      this.stats = { ...this.stats, pollFailures: this.stats.pollFailures + 1 };
+      return false;
+    } finally {
+      this.pollBusy = false;
+    }
+  }
+
+  /** WS 实时 / 兜底增量合并（定稿 1c；口径②）：更晚 ts → appendBar；同 ts（值变）→ updateBar 闪动替换；
+   *  更早 → 忽略；同 ts 且 OHLCV 一致 → 忽略（幂等，不重复写入/不重烩）。`source` 仅用于可观测面。 */
+  applyRealtime(bar: Bar, source: RealtimeSource = 'ws'): 'append' | 'update' | 'ignore' {
     const last = this.bars.at(-1);
     const t = Date.parse(bar.ts);
     let result: 'append' | 'update' | 'ignore';
@@ -242,12 +379,14 @@ export class KlineDataFeed {
       if (this.status === 'empty') this.status = 'ready';
       result = 'append';
     } else if (t === Date.parse(last.ts)) {
+      if (sameBarValues(last, bar)) return 'ignore'; // 幂等：与兜底/重连补偿重复取回同一根
       this.bars = [...this.bars.slice(0, -1), bar];
       result = 'update';
     } else {
       result = 'ignore';
     }
     if (result !== 'ignore') {
+      this.stats = { ...this.stats, lastSource: source, lastWriteAt: Date.now() };
       this.rtListeners.forEach((cb) => cb(bar));
       this.emit();
     }
@@ -256,8 +395,14 @@ export class KlineDataFeed {
 
   dispose(): void {
     this.disposed = true;
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
     this.unsubWs?.();
     this.unsubWs = null;
+    this.unsubWsStatus?.();
+    this.unsubWsStatus = null;
     this.listeners.clear();
     this.rtListeners.clear();
   }

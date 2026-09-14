@@ -31,18 +31,48 @@ function bt(page: Page, name: string) {
   return page.locator('[data-region="toolbar"]').getByRole('button', { name, exact: true });
 }
 
-/** WS 注入底座（addInitScript 注入）：捕获 app 的 socket，暴露 __push 供测试推送服务端形状帧 */
+/**
+ * WS 注入底座（addInitScript 注入）：捕获 app 的 socket，暴露 __push 供测试推送服务端形状帧。
+ *
+ * 追加能力（G16/G18 时间炸弹修复用；对既有用例零影响，默认全关）：
+ *  - `__sent`：记录 app 实际发出的帧（供 `waitSubscribed` 确定性等待订阅建立，替代固定 sleep）；
+ *  - `__isolateBarStream(true)`：**丢弃真实 WS 的 bar 帧**（health/quote 等其它帧仍放行），
+ *    使注入用例与真实串流隔离——注入帧经 `__push` 直投 app 的原始 onmessage，不受隔离影响。
+ *    只丢弃 bar 帧而非全部帧：连接活性/看门狗判定仍能收到入站流量，不改变连接语义。
+ */
 const WS_HARNESS = `
 (() => {
   const Real = window.WebSocket;
   window.__sock = null;
   window.__pusherr = null;
+  window.__sent = [];
+  window.__dropBarFrames = false;
+  window.__isolateBarStream = (v) => { window.__dropBarFrames = v === true; };
   window.__push = (obj) => {
     try { if (window.__sock && window.__sock.readyState === 1) window.__sock.onmessage({ data: JSON.stringify(obj) }); }
     catch (e) { window.__pusherr = String(e); }
   };
+  const onmsgDesc = Object.getOwnPropertyDescriptor(Real.prototype, 'onmessage');
   window.WebSocket = class extends Real {
-    constructor(...a) { super(...a); window.__sock = this; }
+    constructor(...a) {
+      super(...a);
+      window.__sock = this;
+      window.__sent = [];
+      this.__rawHandler = null;
+    }
+    send(data) { try { window.__sent.push(String(data)); } catch (e) { /* 记录失败不影响发送 */ } return super.send(data); }
+    get onmessage() { return this.__rawHandler; }
+    set onmessage(handler) {
+      this.__rawHandler = handler;
+      const wrapped = (ev) => {
+        if (window.__dropBarFrames) {
+          try { const msg = JSON.parse(String(ev.data)); if (msg && msg.type === 'bar') return; } catch (e) { /* 非 JSON：放行 */ }
+        }
+        if (typeof handler === 'function') handler.call(this, ev);
+      };
+      if (onmsgDesc && onmsgDesc.set) onmsgDesc.set.call(this, wrapped);
+      else this.addEventListener('message', wrapped);
+    }
   };
 })();
 `;
@@ -163,6 +193,94 @@ function watchKline(page: Page) {
     if (u.includes('/api/kline')) reqs.push(u.replace(/^https?:\/\/[^/]+/, ''));
   });
   return reqs;
+}
+
+/**
+ * 只读取某 code/period 最新一根 bar 的 ts（`GET /api/kline`，limit=3；只读，不写库）。
+ * 注入用例的时间戳必须**相对化**：历史硬编码时间戳（如 `2026-09-04T08:00:00Z`）在数据推进后会被
+ * `applyRealtime` 判为「更早 ts → 忽略」，使断言失败（既有时间炸弹缺陷，见
+ * tester/report/055_kline_realtime_bar_append_diagnosis.md §5）。
+ */
+async function latestBarTs(page: Page, code: string, period: string): Promise<string> {
+  const resp = await page.request.get(`/api/kline?code=${encodeURIComponent(code)}&period=${period}&limit=3`);
+  expect(resp.ok()).toBeTruthy();
+  const body = (await resp.json()) as { bars: Array<{ ts: string }> };
+  expect(body.bars.length).toBeGreaterThan(0);
+  return body.bars[body.bars.length - 1]!.ts;
+}
+
+/** 周期步长（毫秒）——注入帧 ts = 已加载最新 bar ts + n × 步长 */
+const PERIOD_STEP_MS: Record<string, number> = { '1m': 60_000, '5m': 300_000, '15m': 900_000, '1h': 3_600_000 };
+
+/** 相对时间戳：最新 bar ts + n 个周期步长（ISO 8601 UTC） */
+function nextTs(lastTs: string, period: string, steps = 1): string {
+  const step = PERIOD_STEP_MS[period];
+  expect(step).toBeTruthy();
+  return new Date(Date.parse(lastTs) + steps * step!).toISOString();
+}
+
+/** 隔离真实 WS bar 串流（本测试只断言注入帧的效果；health/quote 仍放行，连接活性判定不受影响） */
+async function isolateBarStream(page: Page) {
+  await page.addInitScript(() => {
+    (window as unknown as { __isolateBarStream?: (v: boolean) => void }).__isolateBarStream?.(true);
+  });
+}
+
+/** 确定性等待 app 已对某 (topic, code?, period?) 发出 subscribe 帧（替代固定 sleep 猜时序） */
+async function waitSubscribed(
+  page: Page,
+  topic: string,
+  filter: { code?: string; period?: string } = {},
+  timeout = 20_000,
+): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          ({ t, code, period }) => {
+            const frames = (window as unknown as { __sent?: string[] }).__sent ?? [];
+            return frames.some((f) => {
+              try {
+                const o = JSON.parse(f) as { type?: string; topic?: string; code?: string; period?: string };
+                return (
+                  o.type === 'subscribe' &&
+                  o.topic === t &&
+                  (code === undefined || o.code === code) &&
+                  (period === undefined || o.period === period)
+                );
+              } catch {
+                return false;
+              }
+            });
+          },
+          { t: topic, code: filter.code, period: filter.period },
+        ),
+      { timeout },
+    )
+    .toBe(true);
+}
+
+/**
+ * 注入一帧并等待实时标记显示预期价。
+ * 允许同一帧重发若干次：仅覆盖「DataLoader subscribeBar 尚未注册」的启动竞态（诊断 §3.3 / T-R4），
+ * 不放松断言——最终仍必须让标记显示**注入帧**的价格。
+ */
+async function pushBarExpectMarker(
+  page: Page,
+  marker: ReturnType<Page['locator']>,
+  frame: unknown,
+  expectText: string,
+  attempts = 4,
+): Promise<void> {
+  for (let i = 1; i <= attempts; i++) {
+    await page.evaluate((o) => (window as unknown as { __push: (o: unknown) => void }).__push(o), frame);
+    try {
+      await expect(marker).toContainText(expectText, { timeout: 1500 });
+      return;
+    } catch {
+      if (i === attempts) throw new Error(`注入帧未在 ${attempts} 次尝试内生效（期望标记文本 ${expectText}）`);
+    }
+  }
 }
 
 test.beforeEach(async ({ page }) => {
@@ -606,18 +724,25 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
 
   test('G16 WS 新 bar appendBar + 同 ts updateBar + 进行中 bar 虚线跳动标记', async ({ page }) => {
     const errs = watchErrors(page);
+    // 与真实流隔离（只丢弃真实 bar 帧）+ 时间戳相对化：修既有「时间炸弹」缺陷（诊断 §5），不放宽断言
+    await isolateBarStream(page);
     await gotoPage(page, '/');
     await waitChart(page);
     const code = (await page.locator('[data-region="symbol-list"] button b').first().innerText()).trim();
+    await waitSubscribed(page, 'bar', { code, period: '15m' }); // 确定性等待该 code/period 的 feed 订阅建立
+    await page.waitForTimeout(500);
+    const ts = nextTs(await latestBarTs(page, code, '15m'), '15m'); // 已加载最新 ts + 1 个 15m 周期
     const marker = page.locator('[data-realtime-marker]');
     await expect(marker).toHaveCount(0);
     // append：更晚 ts → appendBar 追加，画布重绘
     const h0 = await canvasHashAll(page);
-    await page.evaluate((code) => {
-      window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:00:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.15, volume: 100, amount: 100 } });
-    }, code);
-    await expect(marker).toHaveCount(1, { timeout: 5000 });
-    await expect(marker).toContainText('9.15');
+    await pushBarExpectMarker(
+      page,
+      marker,
+      { type: 'bar', code, period: '15m', bar: { ts, open: 9.1, high: 9.2, low: 9.0, close: 9.15, volume: 100, amount: 100 } },
+      '9.15',
+    );
+    await expect(marker).toHaveCount(1);
     // 虚线标记样式（进行中 bar）
     const dashed = await marker.locator('div').first().evaluate((el) => getComputedStyle(el).borderLeftStyle);
     expect(dashed).toBe('dashed');
@@ -625,10 +750,12 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
     const h1 = await canvasHashAll(page);
     expect(h1).not.toBe(h0); // appendBar → 画布重绘
     // update：同 ts → updateBar 闪动替换（feed.applyRealtime 'update' 路径）
-    await page.evaluate((code) => {
-      window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:00:00Z', open: 9.1, high: 9.3, low: 9.0, close: 9.28, volume: 200, amount: 200 } });
-    }, code);
-    await expect(marker).toContainText('9.28', { timeout: 5000 });
+    await pushBarExpectMarker(
+      page,
+      marker,
+      { type: 'bar', code, period: '15m', bar: { ts, open: 9.1, high: 9.3, low: 9.0, close: 9.28, volume: 200, amount: 200 } },
+      '9.28',
+    );
     await page.waitForTimeout(1200);
     const h2 = await canvasHashAll(page);
     expect(h2).not.toBe(h1); // updateBar → 画布重绘（闪动）
@@ -662,22 +789,36 @@ test.describe('K线组件交互验收矩阵 A–H', () => {
 
   test('G18 实时叠加在 15m 与 1m 都生效', async ({ page }) => {
     const errs = watchErrors(page);
+    await isolateBarStream(page); // 同 G16：与真实 bar 串流隔离
     await gotoPage(page, '/');
     await waitChart(page);
     const code = (await page.locator('[data-region="symbol-list"] button b').first().innerText()).trim();
     const marker = page.locator('[data-realtime-marker]');
-    // 15m 实时生效
-    await page.evaluate((code) => {
-      window.__push({ type: 'bar', code, period: '15m', bar: { ts: '2026-09-04T08:15:00Z', open: 9.1, high: 9.2, low: 9.0, close: 9.17, volume: 100, amount: 100 } });
-    }, code);
-    await expect(marker).toContainText('9.17', { timeout: 5000 });
-    // 切 1m → 实时叠加
+    // 15m 实时生效（相对时间戳）
+    await waitSubscribed(page, 'bar', { code, period: '15m' });
+    await page.waitForTimeout(500);
+    await pushBarExpectMarker(
+      page,
+      marker,
+      { type: 'bar', code, period: '15m', bar: { ts: nextTs(await latestBarTs(page, code, '15m'), '15m'), open: 9.1, high: 9.2, low: 9.0, close: 9.17, volume: 100, amount: 100 } },
+      '9.17',
+    );
+    // 切 1m → 实时叠加：等 1m 取数响应 + 订阅建立（替代固定 sleep 猜时序）
+    const k1 = page.waitForResponse(
+      (r) => decodeURIComponent(r.url()).includes('/api/kline') && r.url().includes('period=1m'),
+      { timeout: 30_000 },
+    );
     await bt(page, '1m').click();
-    await page.waitForTimeout(4000);
-    await page.evaluate((code) => {
-      window.__push({ type: 'bar', code, period: '1m', bar: { ts: '2026-09-04T08:01:00Z', open: 9.11, high: 9.21, low: 9.01, close: 9.19, volume: 100, amount: 100 } });
-    }, code);
-    await expect(marker).toContainText('9.19', { timeout: 5000 });
+    await k1;
+    await waitSubscribed(page, 'bar', { code, period: '1m' });
+    await page.waitForTimeout(500);
+    // 1m 注入用 +2 分钟：避开采集侧「1m 行标签领先墙钟 45–60s」的窗口（诊断 §2.4）
+    await pushBarExpectMarker(
+      page,
+      marker,
+      { type: 'bar', code, period: '1m', bar: { ts: nextTs(await latestBarTs(page, code, '1m'), '1m', 2), open: 9.11, high: 9.21, low: 9.01, close: 9.19, volume: 100, amount: 100 } },
+      '9.19',
+    );
     await shot(page, 'G18_realtime_1m');
     expect(errs).toEqual([]);
   });

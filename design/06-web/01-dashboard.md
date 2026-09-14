@@ -332,6 +332,25 @@ export function DashboardGrid(props: DashboardGridProps) {
 - **quote 契约单一化（K1，2026-09-04）**：`WS {type:"quote"}` 载荷字段定为 **camelCase** `changePct`（与 REST `/api/symbols` 客户端归一化后一致）；`DashboardStore` 容错归一化 `msg.change_pct ?? msg.changePct`，防空值 `toFixed` 崩溃双保险（历史帧/其他源再踩不崩）。
 - **分时盘中自动刷新（O1，2026-09-04）**：`TimeshareChart` 复用 `KlineDataFeed`（period `1m`）的 `onChange`/`onRealtime`，订阅 `WS {type:"bar", code, period:"1m"}`；当日价格线 + 均价线随新 1m bar `appendBar`（更晚 ts）/`updateBar`（同 ts 未成型当根）实时前进，零额外接口。仅当日 bar 参与计算，跨周期/跨日 bar 忽略。
 
+### 补定稿（2026-09-14）：实时更新口径（R1 自愈 / R2 可见性 / R3 分钟兜底）
+
+> 背景与实测证据：`tester/report/055_kline_realtime_bar_append_diagnosis.md`（R1 WS 半开连接永不重连；
+> R2 非跟随态新 bar 被追加到可见区之外；R3 推送只有 bar 边界、没有进行中 bar 的 OHLC 更新）。
+> 本节为**权威口径**；实现落位见 `web/src/ws/WsClient.ts`、`web/src/features/dashboard/{feed.ts,realtimePoll.ts,KlineChart.tsx}`。
+
+1. **数据通路 = WS 为主 + 每分钟 HTTP 兜底**。兜底在交易时段且页面可见时每 60s 取一次**最新窗口**（`GET /api/kline`，`limit=5`、**不带 `before` 游标**），用于补上「推送只有 bar 边界、进行中那根 OHLC 不随实时价变化」以及「采集侧跳标签/偶发缺行」造成的缺口。
+2. **合并语义（幂等，唯一键 = bar 的 `ts`）**：WS 推送与兜底/补偿**共用同一 `applyRealtime`** —— 更晚 `ts` → append（appendBar）；同 `ts` 且 OHLCV 有变化 → 覆盖（updateBar 闪动）；同 `ts` 且 OHLCV 完全一致 → **不写、不 emit**（同一条数据被两条通路取回不会重复上行/重复渲染）；更早 `ts` → 忽略。因此兜底与 WS 天然不重复，无需额外去重表。
+3. **绝不强拉视口**：只有 `followLatest && !manualAdjusted` 才 `scrollToRealTime()`。用户手动缩放/平移后（`followLatest=false`），新 bar 照常进数据面但**不改变视口**；若新 bar 落在可见区之外，图内出现「有新数据」轻量提示（计数，点击才跳最新）——`manualAdjusted` 只用于「resize 是否重算 barSpace」与实时滚动门控，两条通路都不再触发自动滚动。
+4. **WS 静默自愈**：不引入应用层心跳帧（协议不变更），改为**入站静默看门狗** —— 自「最近一次入站帧」（无帧则自连接建立）起算，静默超过阈值即判定失联（半开连接 `readyState` 仍 `OPEN`、`onclose` 永不到来也能兜住），主动 `close()` 并走既有指数退避重连（`minRetryMs=1s`→`maxRetryMs=30s`），连接状态立刻离开 `open`（顶栏 pill 不再谎报「已连接」），重连成功后续订阅行为不变。**重连成功后必须做一次 HTTP 增量补偿**（同口径 1/2 的最新窗口合并），否则「重连上了但断口仍缺一段」。
+   - **阈值口径（阶段 2 简化：门控固定阈值）**：阈值按交易时段（复用同口径 5 的 `@/shell/session` `tradingSession()`）二选一取**固定值** —— **交易时段 15s / 非交易时段 300s**；任一入站帧都把静默计时复位。15s 的理由：交易时段推送活跃，要求快速自愈（半开连接最迟 15s 内被发现）；非交易时段放宽到 5 分钟的理由：背后是**数据驱动推送**（Poller 仅在数据推进时发布；实测盘中约 1 帧/分钟、非交易时段 0 帧），固定 15s 会把「本来就没数据可推」误判为失联而空转重连。自愈上限：非交易时段最差 5 分钟一次重连；即使 WS 通路失效，图的 bar 仍由每分钟 HTTP 兜底保证不落后 >60s。**不做协议级心跳**（评估实测：`AppShell` 恒订阅 `source_health`、store 恒订阅 `quote` ⇒ 活跃期 health 帧 ≈3.4s 一张，真实运行中几乎永远有帧，无需应用层心跳帧）。
+5. **交易时段判定复用宿主既有能力**：按 `@/shell/session` 的 `tradingSession()`（02-sources §L2 写死口径：工作日 09:30–11:30 / 13:00–15:00，Asia/Shanghai，节假日不区分）—— 仅 `trading` 才发**分钟兜底**请求；盘前/午间休市/收盘/周末只重排定时器、**分钟兜底 0 次 HTTP**。页面 `document.hidden` 时同样暂停（不做后台标签页的分钟轮询）。
+   - **例外（架构裁决 2026-09-14，验收 O-1 澄清）**：**WS 重连成功后的增量补偿不受上述门控**（每次重连最多 1 次 `limit=5`；非交易时段因阈值放宽为 300s，实际≈1 次/5 分钟）。理由：①非交易时段仍有数据面写入节点（日增量 18:00/00:00/08:00）⇒ 重连补一帧对"切回页面能看到刚补上的数据"有真实价值；②次数极少、payload 极小（5 根）。⇒ 「**0 次 HTTP**」严格指**分钟兜底**这条通路，不包含重连补偿。
+6. **宫格合并与限流**：兜底取数经进程级协调器（`realtimePoll.ts`）—— 同一 `(code, period)` 的在途请求共享同一 Promise（主图与宫格同标的同周期每个 60s 窗口只发 1 次），全局在途上限 3 个、超出排队不丢请求；避免 2×3 宫格每小时 360 次 HTTP 且同时打满后端。
+7. **失败退避与不打扰**：单次兜底失败**不弹错、不清空、不打断渲染**，退避 1→2→4→8→60s（60s 封顶），任一通路成功即复位为常规 60s 节奏；调度必须是自 re-arm 定时器（退避期间不得再叠加固定 60s 触发）。任何图侧副作用（清 overlay / `resetData()` / 重建 feed）在兜底路径**一律不做**（保住 pane 布局契约）。
+8. **启动竞态不得丢 bar**：引擎（klinecharts DataLoader）尚未调用 `subscribeBar`（`rtCallback === null`）时到达的实时 bar 先缓冲，`subscribeBar` 注册时按序补投（有上限保护），此后到达的直投；不得静默丢弃。
+9. **可观测面**：`KlineDataFeed.realtimeStats` 暴露 `lastSource`（`ws`/`poll`）、`lastWriteAt`、`lastPollOkAt`、`pollFailures`（连续失败数），供 e2e 与人工排查。
+10. **数据面边界（不得误解）**：兜底**不能创造数据** —— `1d/w/mo` 在 cagg 里当日无进行中桶（`forming` 为空），日线盘中本就不动；采集侧未写入的行也不会凭兜底出现。
+
 ## 4. 数据范围（定稿 1d）
 
 - 默认加载：当日 + 前一交易日；用户向前滚动/缩小时按需向前分页加载（REST `?before=<ts>&limit=`）
