@@ -15,12 +15,17 @@
 | **G3 请求/订阅预算** | 4 周期 × 1 标的：每分钟兜底次数 ≤ 4、WS 订阅数 ≤ 4、初始化 HTTP 次数 ≤ 4（+warmup 合并） | 请求/订阅计数原始日志 |
 | **G4 像素级渲染取证** | 每个卫星的指标线**在画布上确实被画出**（像素证据，不只 `getIndicators()`） | 页面截图 + 画布像素采样（**禁用 `getConvertPictureUrl`**，零高 pane 会抛错） |
 
+> **G4 取证前置声明（P2 落地）**：像素级证据**统一由阶段 3（独立验收）用页面截图 + 画布像素采样完成**，不得在阶段 1/2 的用例里提前声称；**禁用图表导出**（`getConvertPictureUrl()`/`getConvertPictureUrl(true)`）——零高 pane 存在时必抛 `InvalidStateError`（实测：`Failed to execute 'drawImage' … width or height of 0`，证据 `tester/evidence/269_p2a_red/p2_satellite_harness.json` 的 `S6_export_throws`）。T2 的隐藏 K 线属**库级事实**，已由真身 klinecharts harness（`web/tester/p2-satellite-harness/`）在 P2-A 阶段固定为回归，不替代 G4 的产品级像素证据。
+
 ---
 
 ## 2. 测试清单
 
 ### T1 单实例骨架（基准图）
-- 基准实例周期 = `periods[0]`；K 线可见；ADR-020 口径成立：`visible ≈ viewport_bars`、`barSpace ∈ [1,50]`、手动缩放后 resize 不重算。
+- 基准实例周期按 **02-spec §2.1**：`enabled && periods.length > 1 ? periods[0] : state.period`；
+  - **单周期配置（`length===1`）**：行为与现状**逐字节等价**（不新增订阅/取数/实例、`init` 不递增）—— 不得因“启用”而改写用户工具栏选的 K 线周期；
+  - **存在卫星（`length>1`）**：基准周期 = `periods[0]`，且基准被覆盖时 `basePeriodOverridden` 等可观测字段必须为真（不得静默）。
+- K 线可见；ADR-020 口径成立：`visible ≈ viewport_bars`、`barSpace ∈ [1,50]`、手动缩放后 resize 不重算。
 - 反向：把 `barSpaceLimit` 放宽到基准 ⇒ 断言必须红（证明基准未被放宽）。
 
 ### T2 卫星实例（隐藏 K 线）

@@ -40,6 +40,16 @@
   7. 去重后周期不重复。
 - 与 `GET /api/config/dcap` 的关系：多周期**不新增参数**，共用同一套 8 参数（口径 5）。
 
+### 2.1 基准周期规则（架构裁决 2026-09-14，方案 A）
+
+```
+basePeriod = enabled && periods.length > 1 ? periods[0] : 工具栏/state.period
+```
+
+- **只有实际存在卫星（`periods.length > 1`）时，基准周期才由配置决定**（即 `periods[0]`，与用户口径 5「先选 K 线周期」一致）；
+- **单周期配置（`length === 1`，即启用但未选卫星）不得改变任何现状行为** —— 不新增订阅/取数/实例、`init` 不递增（即 P1 已验证的等价性契约）；**不得静默改写用户工具栏选的 K 线周期**；
+- 当基准周期**因配置而被覆盖**（`length > 1` 且 `periods[0] !== state.period`）时，必须**显式可观测**（如 `basePeriodOverridden: true` + 基准周期来源字段），**禁止静默不一致**；待 P5 两步选择器落地时，由选择器同时写 `periods[0]` 与 `state.period` 来消除该状态。
+
 ## 3. 同步契约（`ChartSyncGroup`）
 
 ### 3.1 API
