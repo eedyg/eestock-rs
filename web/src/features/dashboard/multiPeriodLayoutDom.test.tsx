@@ -141,7 +141,7 @@ function feedFor(code: string): KlineDataFeed {
   return f;
 }
 
-const INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: true };
+const INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: true };
 
 function stackTree(opts: {
   code?: string;

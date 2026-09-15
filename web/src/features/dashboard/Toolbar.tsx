@@ -59,6 +59,7 @@ const TABS: Array<{ value: ChartTab; label: string }> = [
 
 const INDICATORS: Array<{ value: IndicatorName; label: string }> = [
   { value: 'ma', label: 'MA' },
+  { value: 'vol', label: 'VOL' }, // 成交量副图：与 MA/MACD/KDJ/BOLL/DCAP 并列的开关（默认开，会话态）
   { value: 'macd', label: 'MACD' },
   { value: 'kdj', label: 'KDJ' },
   { value: 'boll', label: 'BOLL' },

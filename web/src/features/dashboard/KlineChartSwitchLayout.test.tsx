@@ -335,7 +335,7 @@ function expectHeightsClose(a: Record<string, number>, b: Record<string, number>
 
 const FEED_A_BARS = bars('A', '2024-01-01T00:00:00Z', 10, 10, 60_000, 1);
 const FEED_B_BARS = bars('B', '2024-02-01T00:00:00Z', 6, 100, 3_600_000, 2);
-const INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: true };
+const INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: true };
 
 function tree(feed: KlineChartFeedLike, code: string, period: '15m' | '1h') {
   return <KlineChart feed={feed} code={code} period={period} followLatest={false} indicators={INDICATORS} onManualZoom={() => {}} maWindows={[5, 10, 20]} />;

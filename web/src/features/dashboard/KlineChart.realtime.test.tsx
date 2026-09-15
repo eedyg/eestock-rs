@@ -68,7 +68,7 @@ vi.mock('klinecharts', () => ({
 
 import { KlineChart } from './KlineChart';
 
-const BASE_INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: false };
+const BASE_INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: false };
 
 function mkBar(ts: string, close = 1): Bar {
   return { ts, open: close, high: close + 0.01, low: close - 0.01, close, volume: 100, amount: 100 };

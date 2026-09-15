@@ -71,6 +71,7 @@ export interface MultiPeriodChartStackProps {
 /** 指标勾选兜底（与 `DASHBOARD_DEFAULTS.indicators` 同构）。 */
 const DEFAULT_INDICATORS: Record<IndicatorName, boolean> = {
   ma: true,
+  vol: true,
   macd: false,
   kdj: false,
   boll: false,
@@ -79,12 +80,28 @@ const DEFAULT_INDICATORS: Record<IndicatorName, boolean> = {
 const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
 const DEFAULT_VIEWPORT_BARS = 120;
 
-/** 「对齐受限」角标状态（降级卫星周期 + 最近一次跨度差分钟；非降级 ⇒ period=null）。 */
+/** 「对齐受限」角标状态（降级卫星周期 + 最近一次跨度差分钟；非降级 ⇒ period=null）+ 287 排除/建组状态。 */
 interface SyncBadgeState {
   period: string | null;
   spanDiffMinutes: number | null;
+  /** 287 口径 C：被排除的卫星（周期 + 原因码）——页面角标的数据源。 */
+  excluded: Array<{ period: string; reason: string }>;
+  /** 287 口径 B：整组未建立原因（已建立/无组 ⇒ null ⇒ 不渲染「整组未建立」）。 */
+  groupReason: 'missing-base' | 'no-syncable-follower' | null;
 }
-const NO_BADGE: SyncBadgeState = { period: null, spanDiffMinutes: null };
+const NO_BADGE: SyncBadgeState = { period: null, spanDiffMinutes: null, excluded: [], groupReason: null };
+
+/** 排除列表等价判定（值相等 ⇒ 不触发重渲染；滚动期间不得因新数组引用而 churn）。 */
+function sameExcluded(
+  a: ReadonlyArray<{ period: string; reason: string }>,
+  b: ReadonlyArray<{ period: string; reason: string }>,
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.period !== b[i]?.period || a[i]?.reason !== b[i]?.reason) return false;
+  }
+  return true;
+}
 
 /**
  * 多周期图表容器（`design/15-multi-period/02-spec.md` §1；P2 挂载卫星实例）。
@@ -120,17 +137,25 @@ export function MultiPeriodChartStack({
 }: MultiPeriodChartStackProps) {
   const active = enabled && satellites.length > 0 && !!api && !!ws && !!code;
 
-  // 同步降级角标（T8bis-④/⑤）：只把「角标相关」的变化推给 React（非降级态的滚动不触发重渲染）。
+  // 同步状态角标（T8bis-④/⑤ 降级 + 287 口径 C 被排除/整组未建立）：
+  // 只把「角标相关」的变化推给 React（非降级态的滚动不触发重渲染）。
   const [syncBadge, setSyncBadge] = useState<SyncBadgeState>(NO_BADGE);
   const handleSyncStats = useCallback(
     (stats: SyncStats) => {
       onSyncStats?.(stats);
       setSyncBadge((prev) => {
         const period = stats.degraded ? stats.degradedPeriod : null;
-        if (prev.period === period && (period === null || prev.spanDiffMinutes === stats.lastSpanDiffMinutes)) {
+        const excluded = stats.excludedSatellites ?? [];
+        const groupReason = stats.groupReason ?? null;
+        if (
+          prev.period === period &&
+          prev.groupReason === groupReason &&
+          sameExcluded(prev.excluded, excluded) &&
+          (period === null || prev.spanDiffMinutes === stats.lastSpanDiffMinutes)
+        ) {
           return prev;
         }
-        return { period, spanDiffMinutes: stats.lastSpanDiffMinutes };
+        return { period, spanDiffMinutes: stats.lastSpanDiffMinutes, excluded, groupReason };
       });
     },
     [onSyncStats],
@@ -315,7 +340,7 @@ export function MultiPeriodChartStack({
         data-mp-stack=""
         data-mp-stack-scrollable={layout.scrollable ? 'true' : 'false'}
         data-mp-stack-layout={layoutJson}
-        className="flex h-full w-full min-h-0 flex-col"
+        className="relative flex h-full w-full min-h-0 flex-col"
         style={layout.scrollable ? { overflowY: 'auto' } : undefined}
       >
         {/* 基准 pane：children 仍为 Provider 的第一个子节点（不得前置节点 ⇒ 不得 remount 基准实例）。
@@ -355,10 +380,29 @@ export function MultiPeriodChartStack({
                 basePeriodSource={basePeriodSource}
                 syncDegraded={syncBadge.period === s.period}
                 syncSpanDiffMinutes={syncBadge.period === s.period ? syncBadge.spanDiffMinutes : null}
+                syncExcludedReason={
+                  syncBadge.excluded.find((e) => e.period === s.period)?.reason ?? null
+                }
               />
             </div>
           </Fragment>
         ))}
+        {/* 287 口径 C：「整组未建立」也必须有**页面可见状态**（不得只 console.warn）。
+            仅 `groupReason !== null`（= 确实建过组但未建立）时存在；无组/已建立 ⇒ 不存在（不得残留）。
+            绝对定位 ⇒ 不参与 flex 布局（「Σ pane == 可用高度」不变量不变）。 */}
+        {syncBadge.groupReason !== null && (
+          <div
+            data-mp-sync-group-unestablished=""
+            data-mp-sync-group-reason={syncBadge.groupReason}
+            role="status"
+            className="absolute left-1 top-1 z-30 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow"
+            title={`跨图同步未建立（${syncBadge.groupReason}）：当前图例不满足同步条件（需基准存在且至少 1 个可同步的跟随 pane）。处置建议：检查基准周期，或把各 pane 的周期改为同锚点可用组合（如 5m 基准选 15m/1h）。已排除：${syncBadge.excluded.map((e) => `${e.period}(${e.reason})`).join('、') || '无'}。`}
+          >
+            <span>
+              {syncBadge.groupReason === 'missing-base' ? '跨图同步未建立（基准缺失）' : '跨图同步未建立（无可同步周期）'}
+            </span>
+          </div>
+        )}
       </div>
     </ChartSyncContext.Provider>
   );

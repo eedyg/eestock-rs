@@ -20,7 +20,10 @@ import {
   type SyncStats,
 } from './chartSyncGroup';
 
-/** 无同步组时的统计（关闭态/组销毁 ⇒ 页面角标必须归零，不得残留上一次读数）。 */
+/** 无同步组时的统计（关闭态/组销毁 ⇒ 页面角标必须归零，不得残留上一次读数）。
+ *  287 新增字段同样归零：`excludedSatellites: []` / `syncableFollowerCount: 0` /
+ *  `groupEstablished: false` / `groupReason: null`（null ⇒ 页面**不**渲染「整组未建立」，
+ *  与「组未建立但确实存在（groupReason 非 null）」可区分）/ `densityByFollower: {}`。 */
 export const EMPTY_SYNC_STATS: SyncStats = {
   applied: 0,
   suppressed: 0,
@@ -34,6 +37,11 @@ export const EMPTY_SYNC_STATS: SyncStats = {
   spanResidualBars: null,
   edgeResidualBars: null,
   barSpaceAdjust: 0,
+  excludedSatellites: [],
+  syncableFollowerCount: 0,
+  groupEstablished: false,
+  groupReason: null,
+  densityByFollower: {},
 };
 
 /** 图表实例向同步组的注册载荷（`KlineChart` 在 init 后/周期变化时调用）。 */
@@ -80,7 +88,9 @@ export interface UseChartSyncGroupOptions {
  * 建立/销毁 `ChartSyncGroup`（provider 侧薄封装）。
  *
  * 成员集合变化（图表挂载/卸载/切周期）⇒ 重建组（旧组 `stop()` ⇒ 订阅/监听零残留）；
- * 组合不可用（配置面应已拦截）⇒ **不建组**并 `console.warn`：不做任何对齐（**禁止静默虚假对齐**）。
+ * 组合不可用（指**单个卫星**周期不可同步）⇒ 该卫星被 `ChartSyncGroup` **排除并记录**（口径 B），
+ * 其余成员照常同步；仅「基准缺失 / 无可同步跟随者」⇒ 不建立组，但**同样必须显式上报**：
+ * 组（重）建后总是调用 `publishStats()` 至少广播一次（口径 C：**禁止只 console.warn**）。
  */
 export function useChartSyncGroup(options: UseChartSyncGroupOptions = {}): ChartSyncRegistry {
   const membersRef = useRef(new Map<number, SyncMember>());
@@ -116,8 +126,12 @@ export function useChartSyncGroup(options: UseChartSyncGroupOptions = {}): Chart
       unsubStatsRef.current = group.onChange((stats) => onStatsRef.current?.(stats));
       group.start();
       groupRef.current = group;
+      // 口径 C：组（重）建后**至少广播一次**（使页面在任何交互之前就能显示「被排除 / 整组未建立」）。
+      group.publishStats();
     } catch (err) {
-      console.warn('[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐）', err);
+      // 兜底（287 后构造函数已不再因单个卫星抛错）：仍不得静默 —— 广播归零态并保留告警。
+      console.warn('[multi-period] ChartSyncGroup 未建立（异常，禁止静默虚假对齐）', err);
+      onStatsRef.current?.({ ...EMPTY_SYNC_STATS });
     }
   }, [disposeGroup, satMax]);
 

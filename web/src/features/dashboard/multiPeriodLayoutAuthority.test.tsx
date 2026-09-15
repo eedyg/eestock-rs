@@ -98,7 +98,7 @@ const SAT1: Period = '5m';
 const SAT2: Period = '1d';
 const SATS: Period[] = [SAT0, SAT1, SAT2];
 const ALL: Period[] = [BASE_PERIOD, ...SATS];
-const INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: true };
+const INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: true };
 const CODE = '518880';
 
 type Heights = Record<string, number>;

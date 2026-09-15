@@ -294,7 +294,7 @@ function warmupFeed(): KlineChartFeedLike & { setWarmupBars: (w: number) => Prom
   return { ...fakeFeed(), setWarmupBars: vi.fn(async () => true) };
 }
 
-const BASE_INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: true };
+const BASE_INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: true };
 const P0: DcapParams = { n_s: 8, n_m: 26, n_l: 60, r_s: 1, r_m: 1, r_l: 1, smooth: 1, m: 3 };
 const P1: DcapParams = { ...P0, r_s: 1.3, smooth: 0 };
 
@@ -507,7 +507,7 @@ describe('保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndica
         code="518880"
         period="15m"
         followLatest
-        indicators={{ ma: true, macd: true, kdj: true, boll: true, dcap: false }}
+        indicators={{ ma: true, vol: true, macd: true, kdj: true, boll: true, dcap: false }}
         onManualZoom={() => {}}
         maWindows={[5, 10, 20]}
         dcapParams={P0}
@@ -530,7 +530,7 @@ describe('保存 dcap 配置不得重置 pane 布局（KlineChart ⇄ syncIndica
 
   it('【守卫】指标启用状态翻转仍必须 create/remove（差分不得吞掉开关语义）', () => {
     const feed = fakeFeed();
-    const tree = (indicators: Record<'ma' | 'macd' | 'kdj' | 'boll' | 'dcap', boolean>) => (
+    const tree = (indicators: Record<'ma' | 'vol' | 'macd' | 'kdj' | 'boll' | 'dcap', boolean>) => (
       <KlineChart feed={feed} code="518880" period="15m" followLatest indicators={indicators} onManualZoom={() => {}} maWindows={[5, 10, 20]} dcapParams={P0} />
     );
     const { rerender } = render(tree(BASE_INDICATORS));

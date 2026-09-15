@@ -64,7 +64,7 @@ const ws = {
   onStatusChange: () => () => {},
 } as unknown as WsClient;
 
-const INDICATORS = { ma: true, macd: false, kdj: false, boll: false, dcap: true };
+const INDICATORS = { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: true };
 const BASE = '15m';
 const SATS = ['1h', '5m', '1d'];
 const ALL = [BASE, ...SATS];

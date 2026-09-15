@@ -108,9 +108,9 @@ export interface KlineChartProps {
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
 const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
 
-const INDICATOR_DEFS: Array<{ key: IndicatorName | 'vol'; name: string; calcParams?: number[] }> = [
+const INDICATOR_DEFS: Array<{ key: IndicatorName; name: string; calcParams?: number[] }> = [
   { key: 'ma', name: 'MA' }, // 定稿 1b：主图 MA 默认开；calcParams 取 maWindows（统一配置）
-  { key: 'vol', name: 'VOL' }, // 副图1 成交量默认开（无开关）
+  { key: 'vol', name: 'VOL' }, // 副图1 成交量：与其它指标并列的开关（默认开，见 DASHBOARD_DEFAULTS.indicators）
   { key: 'macd', name: 'MACD' },
   { key: 'kdj', name: 'KDJ' },
   { key: 'boll', name: 'BOLL' },
@@ -135,7 +135,7 @@ function createIndicatorValue(name: string, calcParams: number[]): { name: strin
 
 /** 各指标目标 calcParams（MA 取统一配置窗口；DCAP 取 8 参显示参数；其余用内置默认）。 */
 function desiredCalcParams(
-  def: { key: IndicatorName | 'vol'; calcParams?: number[] },
+  def: { key: IndicatorName; calcParams?: number[] },
   maWindows: number[],
   dcapParams: DcapParams,
 ): number[] {
@@ -160,7 +160,7 @@ function syncIndicators(
   applied: AppliedIndicators,
 ) {
   for (const def of INDICATOR_DEFS) {
-    const enabled = def.key === 'vol' ? true : indicators[def.key];
+    const enabled = indicators[def.key];
     const desired = desiredCalcParams(def, maWindows, dcapParams);
     const prev = applied.get(def.name);
     if (!enabled) {

@@ -47,6 +47,11 @@ export interface MultiPeriodSatelliteProps {
   syncDegraded?: boolean;
   /** 最近一次对齐的跨度差（分钟；降级原因的可读量化）。 */
   syncSpanDiffMinutes?: number | null;
+  /**
+   * 287 口径 C：本卫星被**排除出跨图同步**的原因码（`null`/未传 ⇒ 参与同步，不渲染角标）。
+   * 不可同步的卫星不再让整组静默失效 ⇒ 必须在本 pane 渲染**可见角标**（含周期与原因 + 可行动 title）。
+   */
+  syncExcludedReason?: string | null;
 }
 
 export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
@@ -85,6 +90,7 @@ export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
   }, [feed]);
 
   const failed = initError || status === 'error';
+  const excludedReason = props.syncExcludedReason ?? null;
 
   return (
     <div
@@ -106,6 +112,19 @@ export function MultiPeriodSatellite(props: MultiPeriodSatelliteProps) {
           </span>
         )}
       </div>
+      {/* 287 口径 C：**被排除的卫星必须渲染可见角标**（新 DOM 属性 data-mp-sync-excluded；
+          title 含可行动处置建议）。非排除态 ⇒ 本元素**不存在**（不得残留）。 */}
+      {excludedReason !== null && (
+        <div
+          data-mp-sync-excluded={period}
+          data-mp-sync-excluded-reason={excludedReason}
+          role="status"
+          className="absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow"
+          title={`未同步：本 pane（周期 ${period}）与基准周期 ${basePeriod} 的组合不可用（原因：${excludedReason}）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。`}
+        >
+          <span>未同步（{period}）</span>
+        </div>
+      )}
       {/* T8bis-④/⑤「对齐受限」角标（诚实降级：绝不静默虚假对齐）。
           hover/点击给原因（title）+ 跨度差可读（data-mp-span-diff-min）——两者缺一即视为静默。 */}
       {props.syncDegraded && (

@@ -5,7 +5,7 @@
 /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
 export const DASHBOARD_DEFAULTS = {
   period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
-  indicators: { ma: true, macd: false, kdj: false, boll: false, dcap: false },
+  indicators: { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: false },
   maWindows: [5, 10, 20],
   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
   chartTab: 'kline',                // 'kline' | '分时'(timeshare，1m bar 客户端计算)

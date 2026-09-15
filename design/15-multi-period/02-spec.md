@@ -90,6 +90,24 @@ class ChartSyncGroup {
 | 1h→1w | 168 | 24 | +1,980 min | 1 | ❌ baseBS>11 时退化 |
 | 1m→1d / 1m→1w | 1440 / 10080 | 120.5 / 无重叠 | 失效 | 1 | ❌ 恒退化 |
 
+**密度取值口径与来源可观测（287 修复，父级裁决 2026-09-15）**：`ChartSyncGroup` 的有效密度比按
+**固定优先级**解析，且**来源必须可区分可读**（`stats.densityByFollower[<跟随者周期>].source`）：
+
+1. **实测锚定表命中**（上表，正/反向）⇒ `source='static'`；
+2. **同锚点合成**（本修复新增的放行面）⇒ `source='composed'`，
+   `D(base→sat) = D(锚→sat) / D(锚→base)`（锚 = 实测表中共同的上游基准）：
+   `D(5m→15m) = 12.2/4.7 ≈ 2.596`、`D(5m→1h) = 37.8/4.7 ≈ 8.043`、`D(15m→1h) = 37.8/12.2 ≈ 3.098`；
+   表内组合也可由同锚点还原（`D(1d→1w) = 4.67`，同周期 ⇒ `1`）；
+3. **运行时估计**（同一交叠 ts 窗内 `baseBarCount / satBarCount`）⇒ `source='measured'`；
+4. 三者皆不可用 ⇒ `source='none'`（**真无公共锚点**：`5m/15m/1m/1h ↔ 1d`、`5m/1m ↔ 1w`、含 `1mo` 等）
+   ⇒ 该卫星**不可同步**（按 §7.6 排除 + 可见角标），**禁止**按名义周期比兜底。
+
+守门口径随之统一（口径 10 的运行时面）：`isSyncCombinationAllowed(base, sat) === true` **当且仅当**
+「同周期 ∪ 实测表命中 ∪ 同锚点合成可用」；**既有护栏全部不变**（卫星周期 < 基准 ⇒ false；含 `1mo`/
+未知周期 ⇒ false；`1w` 需基准 ≥ `1d` ⇒ false）。组合判定与「排除原因码」同源：
+`unsupported-period` > `satellite-lower-than-base` > `week-requires-day-or-above` > `no-shared-anchor`。
+**来源诚实性**：实测表命中**不得**被标注为 `composed`（反之亦然）—— 页面/日志据此可区分「实测」「合成」「估计」。
+
 3. **卫星 `barSpaceLimit.max` 必须放宽**（默认 50 会**静默吞掉**大倍率：实测 req 350 被忽略、零告警）：建议 **max = 350**（1d→1w 实测需 satBS≈42–45 px/bar，即 ≈5.0×baseBS）；**放宽仅作用于卫星，不得泄漏到基准**（实测：req 60/350/5000 在基准读回仍为 50）。
 4. **新增硬约束（P0.3 发现）：卫星可见 bar ≥ 2**。口径 8 的"跨度差 ≤1 根高周期 bar"在退化状态（卫星仅 1 根 bar）会被**虚假满足**（实测 0.54–1.00 周 bar）⇒ 不得只看跨度判据。
 5. **降级策略（用户裁决 2026-09-14，方案 1：诚实降级 + UI 标注）**：当推导出的 `satBS > paneWidth/2`（即无法容纳 ≥2 根 bar）时：
@@ -215,6 +233,21 @@ function addOverlayIndicator(chart: Chart, spec: IndicatorCreate, expectName: st
 4. **总 pane 数上限 ≤ 12**（= 基准 1 + Σ卫星的指标 pane 数）：**计数必须基于「归一化（去重）后」的 `indicators` 集合**（P1-C D1 实测：按原始数组长度计数会把语义等价的 `["dcap"]×11` 误判为 23 pane）；超限时**明确报错并拒绝保存**（不静默截断），且错误信息**必须包含被拒维度名**（`indicators`/`pane`）；
    - 注：v1 受支持指标仅 `dcap` 且去重后 ⇒ 总 pane ≤ 4，**HTTP 层在 v1 无法构造 >12**（P1-C 已反证：未去重时的 400 是假象）；故该护栏先以 `web::dto` 纯函数测试守护，**P2 起受支持指标集合扩张后必须补 HTTP 级负例**。
 5. 关闭多周期开关 ⇒ **完全回到现状**（单实例、单周期），不得有残留实例/订阅/请求。
+6. **运行时同步护栏（287 修复，父级裁决 2026-09-15；替代「周期组合不可用即整组拒绝」）**：
+   `ChartSyncGroup` 构造函数**不得**因单个卫星组合不可用而抛错（旧行为 + `console.warn` ⇒ 整组静默失效）：
+   - 不可同步的卫星**只排除自己**：既不作为 leader、**也不被写入**（不 `setBarSpace`、不 `scrollToDataIndex`/
+     `scrollToTimestamp`、不 `setOffsetRightDistance`），并从同步目标与右偏移归零集合中剔除；
+   - 排除项（**周期 + 原因码**）必须可从 `SyncStats.excludedSatellites` 读出，且页面必须为**每个被排除卫星**
+     渲染**可见角标**：`[data-mp-sync-excluded="<period>"]` + `data-mp-sync-excluded-reason="<reason>"`，
+     文案含「未同步」、`title` 含可行动处置建议；非排除 ⇒ 该元素**不存在**（不得残留）；
+   - 仅「**基准缺失**」或「**可同步跟随者 < 2**」才**不建立组**，且该情形必须有**页面可见状态**：
+     `[data-mp-sync-group-unestablished]` + `data-mp-sync-group-reason="missing-base"|"no-syncable-follower"`
+     —— **禁止只 `console.warn`**（旧行为的静默失效即缺陷根因）；
+   - 原因码优先级（钉死）：`unsupported-period` > `satellite-lower-than-base` >
+     `week-requires-day-or-above` > `no-shared-anchor`。
+   既有硬约束**逐条不回退**：基准永不作为 follower、重入抑制（`SUPPRESSION_WINDOW_MS`）、有界闭环校正
+   （`MAX_ALIGN_CORRECTION_ITERATIONS` / `MAX_BAR_SPACE_STEP_RATIO`）、诚实降级（`degraded`/`degradedPeriod`/
+   `unalignedFollowers`）。
 
 ## 8. 明确不做（本轮范围外）
 
@@ -228,4 +261,17 @@ function addOverlayIndicator(chart: Chart, spec: IndicatorCreate, expectName: st
 
 - 每实例 `KlineDataFeed.realtimeStats`（既有）+ 聚合面板：每周期 `lastSource/lastWriteAt/lastPollOkAt/pollFailures`；
 - 同步统计：`syncApplied` / `syncSuppressed`（重入抑制次数）/ 最近一次对齐误差（分钟）；
+- **同步覆盖率与来源（287 修复，口径 C；禁止静默）**，`SyncStats` 新增字段：
+  - `excludedSatellites: Array<{ period, reason }>` —— 被排除出同步的卫星（周期 + 原因码，空数组 = 无排除）；
+  - `syncableFollowerCount: number` —— 可同步的跟随者数（不含基准）；
+  - `groupEstablished: boolean` / `groupReason: 'missing-base' | 'no-syncable-follower' | null`
+    —— 组是否建立与未建立原因（**未建立必须显式上报**，不得只 `console.warn`）；
+  - `densityByFollower: Record<period, { ratio, source }>`，`source ∈ measured | static | composed | none`
+    —— **每次对齐**记录各跟随者实际使用的密度比与来源（`5m↔1h` 必须为 `composed`；表内命中必须为 `static`）；
+  - 组**（重）建后必须至少广播一次**统计快照（页面在任何用户交互之前即可显示「被排除 / 整组未建立」）；
+    关闭态/组销毁 ⇒ 归零（`excludedSatellites: []`、`groupEstablished: false`、`groupReason: null`、`densityByFollower: {}`）；
+- 页面可见状态（`web/`）：
+  - 被排除卫星角标 `[data-mp-sync-excluded="<period>"]`（含 `data-mp-sync-excluded-reason`，文案含「未同步」，title 给处置建议）；
+  - 整组未建立 `[data-mp-sync-group-unestablished]`（含 `data-mp-sync-group-reason`）；
+  - 既有「对齐受限」角标 `[data-mp-sync-degraded="<period>"]` 语义**不变**（与上述角标并存，互不替代）；
 - 失败可见：任一卫星初始化失败必须**可见报错**（不得静默降级为单图）。

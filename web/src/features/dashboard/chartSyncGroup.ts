@@ -111,6 +111,49 @@ export interface SyncStats {
    * 密度值是**初始估计**而非契约：闭环为把残差压到最小会在**受限**范围内微调（≤2 次、每步幅度受限、确定性）。
    */
   barSpaceAdjust: number;
+  /**
+   * 287 可观测（口径 C）：**被排除出同步的卫星**（周期 + 原因码；空数组 = 无排除）。
+   * 被排除卫星**既不作为 leader，也不被写入**（口径 D）——此字段是页面可见角标的数据源，
+   * 也是「不可同步配置」不再静默失效的唯一凭据。
+   */
+  excludedSatellites: SyncSatelliteExclusion[];
+  /** 287 可观测：**可同步的跟随者数**（不含基准）。 */
+  syncableFollowerCount: number;
+  /** 287 可观测（口径 B）：组是否建立（基准存在 **且** 基准 + 可同步跟随者 ≥ 2）。 */
+  groupEstablished: boolean;
+  /** 287 可观测（口径 B）：未建立原因；已建立 ⇒ null。**未建立必须显式上报**（不得只 console.warn）。 */
+  groupReason: SyncGroupFailureReason | null;
+  /**
+   * 287 可观测（口径 C）：最近一次对齐里各跟随者的**有效密度比与来源**（键 = 跟随者周期）。
+   * `source` 必须如实区分：实测表命中 ⇒ `static`；同锚点合成 ⇒ `composed`；运行时估计 ⇒ `measured`；
+   * 不可用 ⇒ `none`（**禁止把合成值伪装成实测值**）。
+   */
+  densityByFollower: Record<string, FollowerDensityReading>;
+}
+
+/**
+ * 287 口径 B/A：卫星被排除出同步的**原因码**（优先级自上而下：
+ * 先判周期合法性/顺序/`1w` 护栏，再判「是否有可用密度锚点」）。
+ */
+export type SyncExclusionReason =
+  | 'unsupported-period' // 含 1mo / 未知周期
+  | 'satellite-lower-than-base' // 卫星周期 < 基准
+  | 'week-requires-day-or-above' // 卫星 = 1w 且基准 < 1d
+  | 'no-shared-anchor'; // 通过上述护栏但无可用密度（同锚点合成也为 null ⇒ 真无重叠）
+
+/** 被排除卫星（周期 + 原因码）。 */
+export interface SyncSatelliteExclusion {
+  period: string;
+  reason: SyncExclusionReason;
+}
+
+/** 287 口径 B：整组未建立的原因（已建立 ⇒ null）。 */
+export type SyncGroupFailureReason = 'missing-base' | 'no-syncable-follower';
+
+/** 某跟随者最近一次实际使用的密度比及其**来源**（口径 C：来源必须可区分）。 */
+export interface FollowerDensityReading {
+  ratio: number;
+  source: 'measured' | 'static' | 'composed' | 'none';
 }
 
 /**
@@ -281,17 +324,36 @@ function periodOrder(period: string): number | null {
 }
 
 /**
- * 组合护栏（口径 10 + P0.3 量化）：拒绝 `1m↔1w`（恒退化：任何基准缩放下卫星仅 1 根）、`1m↔1d`
- * （无重叠）、卫星周期 < 基准、含 `1mo`；`1w` 仅基准 ≥1d 开放；表内锚定组合与同周期放行。
+ * 组合护栏判定（口径 10 + P0.3 量化 + 287 口径 A）：返回**排除原因码**，可同步 ⇒ null。
+ *
+ * 优先级自上而下（钉死，供页面角标与测试判别）：
+ *  1. `unsupported-period`：含 `1mo` / 未知周期；
+ *  2. `satellite-lower-than-base`：卫星周期 < 基准；
+ *  3. `week-requires-day-or-above`：卫星 = `1w` 且基准 < `1d`（**不得因同锚点合成而放宽**）；
+ *  4. `no-shared-anchor`：通过上述护栏但既不在实测表内、也**无同锚点合成**（真无重叠）。
  */
-export function isSyncCombinationAllowed(basePeriod: string, satellitePeriod: string): boolean {
+export function syncExclusionReason(
+  basePeriod: string,
+  satellitePeriod: string,
+): SyncExclusionReason | null {
   const a = periodOrder(basePeriod);
   const b = periodOrder(satellitePeriod);
-  if (a === null || b === null) return false; // 含 1mo / 未知周期
-  if (b < a) return false; // 卫星周期必须 ≥ 基准
-  if (satellitePeriod === '1w' && a < (periodOrder('1d') as number)) return false; // 1w ⇒ 基准 ≥ 1d
-  if (basePeriod === satellitePeriod) return true; // 口径 2：允许等于基准
-  return densityRatio(basePeriod, satellitePeriod) !== null;
+  if (a === null || b === null) return 'unsupported-period'; // 含 1mo / 未知周期
+  if (b < a) return 'satellite-lower-than-base'; // 卫星周期必须 ≥ 基准
+  if (satellitePeriod === '1w' && a < (periodOrder('1d') as number)) return 'week-requires-day-or-above';
+  if (basePeriod === satellitePeriod) return null; // 口径 2：允许等于基准
+  if (densityRatio(basePeriod, satellitePeriod) !== null) return null; // 实测表命中
+  if (composeDensity(basePeriod, satellitePeriod) !== null) return null; // 同锚点合成可用（287 口径 A）
+  return 'no-shared-anchor';
+}
+
+/**
+ * 组合护栏（口径 10 + P0.3 量化 + 287 口径 A）：拒绝 `1m↔1w`（恒退化：任何基准缩放下卫星仅 1 根）、
+ * `1m↔1d`（无重叠）、卫星周期 < 基准、含 `1mo`；`1w` 仅基准 ≥1d 开放；
+ * 实测表命中 **或同锚点合成可用** 的组合与同周期放行（例：`5m↔1h` = `D(1m→1h)/D(1m→5m)` ≈ 8.04）。
+ */
+export function isSyncCombinationAllowed(basePeriod: string, satellitePeriod: string): boolean {
+  return syncExclusionReason(basePeriod, satellitePeriod) === null;
 }
 
 /** 周期 → 各锚点密度因子（用于跨卫星组合的密度合成；同一锚点内才可比）。 */
@@ -311,8 +373,13 @@ function densityFactors(): Record<string, Record<string, number>> {
   return factors;
 }
 
-/** 同锚点密度合成（例：15m→1h = D(1m→1h)/D(1m→15m)）；无公共锚点 ⇒ null。 */
-function composeDensity(basePeriod: string, satellitePeriod: string): number | null {
+/**
+ * 同锚点密度合成（例：15m→1h = D(1m→1h)/D(1m→15m)）；**无公共锚点 ⇒ null**（禁止按名义比兜底）。
+ *
+ * 287 口径 A：此函数即守门的第二只手 —— `isSyncCombinationAllowed` 在实测表之外**只**认它；
+ * 因此它必须**可被测试直接调用**（`export`）。同周期 ⇒ 1。
+ */
+export function composeDensity(basePeriod: string, satellitePeriod: string): number | null {
   const factors = densityFactors();
   const a = factors[basePeriod];
   const b = factors[satellitePeriod];
@@ -381,14 +448,18 @@ const SYNC_ACTIONS: readonly string[] = ['onScroll', 'onZoom', 'onVisibleRangeCh
 /**
  * 跨图同步组。**无 UI**；只读写 klinecharts 公开面。
  *
- * 生命周期：`new ChartSyncGroup(members)`（成员组合不可用 ⇒ 构造即抛错）→ `start()` → `stop()`。
- * 可观测：`stats` + `onChange(cb)`（UI 角标/store 的数据源）。
+ * 生命周期：`new ChartSyncGroup(members)`（**287 口径 B：构造不再因单个卫星抛错** —— 不可同步的卫星
+ * 从同步目标中**排除**并记录「周期 + 原因」；仅「基准缺失 / 可同步成员 < 2」才**不建立组**，
+ * 且该情形经 `stats.groupEstablished`/`groupReason` **显式上报**）→ `start()` → `stop()`。
+ * 可观测：`stats` + `onChange(cb)` + `publishStats()`（UI 角标/store 的数据源）。
  */
 export class ChartSyncGroup {
   private readonly members: SyncMember[];
   private readonly satelliteMaxBarSpace: number;
   private readonly suppressionEnabled: boolean;
   private readonly extraDensityTable: Record<string, number>;
+  /** 287 口径 B：**参与同步**的卫星成员 id（被排除者不入集合 ⇒ 既非 leader 也不被写入）。 */
+  private readonly syncableIds = new Set<string>();
   private readonly statsObj: SyncStats = {
     applied: 0,
     suppressed: 0,
@@ -402,6 +473,11 @@ export class ChartSyncGroup {
     spanResidualBars: null,
     edgeResidualBars: null,
     barSpaceAdjust: 0,
+    excludedSatellites: [],
+    syncableFollowerCount: 0,
+    groupEstablished: false,
+    groupReason: null,
+    densityByFollower: {},
   };
   private readonly listeners = new Set<(stats: SyncStats) => void>();
   /** 成员 id → 已知 `barSpace` 上限（基准恒 50；卫星首次被静默吞掉时**探测**真实上限）。 */
@@ -421,19 +497,35 @@ export class ChartSyncGroup {
     this.suppressionEnabled = options.reentrySuppression !== false;
     this.extraDensityTable = { ...(options.densityTable ?? {}) };
 
-    // 护栏：基准 ↔ 每个卫星的周期组合必须可用（恒退化组合直接拒绝，禁止静默虚假对齐）。
+    // 护栏（287 口径 A/B；**语义变更，父级裁决**）：不可同步的卫星**只排除自己**并记录「周期 + 原因」，
+    // 其余成员照常同步。旧行为（任一卫星组合不可用 ⇒ 构造函数抛错 ⇒ 接线层只 console.warn ⇒ 整组静默失效）
+    // 已废止：仅「基准缺失」或「可同步成员 < 2」才不建立组，且必须**显式上报**（groupEstablished/groupReason）。
     const base = this.members.find((m) => m.isBase);
-    if (base) {
+    if (!base) {
+      this.statsObj.groupEstablished = false;
+      this.statsObj.groupReason = 'missing-base';
+    } else {
       for (const m of this.members) {
         if (m === base) continue;
-        if (!isSyncCombinationAllowed(base.period, m.period)) {
-          throw new Error(
-            `多周期同步组合不可用：基准 ${base.period} ↔ 卫星 ${m.period} 恒退化/无重叠（禁止静默虚假对齐）`,
-          );
-        }
+        const reason = syncExclusionReason(base.period, m.period);
+        if (reason === null) this.syncableIds.add(m.id);
+        else this.statsObj.excludedSatellites.push({ period: m.period, reason });
+      }
+      this.statsObj.syncableFollowerCount = this.syncableIds.size;
+      if (this.syncableIds.size === 0) {
+        this.statsObj.groupEstablished = false;
+        this.statsObj.groupReason = 'no-syncable-follower';
+      } else {
+        this.statsObj.groupEstablished = true;
+        this.statsObj.groupReason = null;
       }
     }
     for (const m of this.members) this.caps.set(m.id, m.isBase ? BASE_MAX_BAR_SPACE : this.satelliteMaxBarSpace);
+  }
+
+  /** 该成员是否参与同步（基准恒参与；被排除的卫星恒不参与）。 */
+  private isParticipant(m: SyncMember): boolean {
+    return m.isBase || this.syncableIds.has(m.id);
   }
 
   get stats(): SyncStats {
@@ -446,6 +538,14 @@ export class ChartSyncGroup {
     return () => {
       this.listeners.delete(cb);
     };
+  }
+
+  /**
+   * 显式广播当前统计（287 口径 C：组**（重）建后必须至少广播一次**，使页面在用户任何交互之前
+   * 就能显示「被排除/整组未建立」，**禁止只 console.warn**）。
+   */
+  publishStats(): void {
+    this.broadcast();
   }
 
   /**
@@ -463,7 +563,10 @@ export class ChartSyncGroup {
   start(): void {
     if (this.started) return;
     this.started = true;
+    // 组未建立（基准缺失 / 无可同步跟随者）⇒ 不订阅、零写入；状态经 stats 显式上报（口径 B/C）。
+    if (!this.statsObj.groupEstablished) return;
     for (const m of this.members) {
+      if (!this.isParticipant(m)) continue; // 被排除的卫星：既不作为 leader，也不被写入（口径 D）
       const chart = m.chart;
       if (typeof chart.subscribeAction !== 'function') continue;
       for (const type of SYNC_ACTIONS) {
@@ -504,8 +607,10 @@ export class ChartSyncGroup {
   scrollAllToLatest(): void {
     this.applyDepth += 1;
     try {
-      this.zeroRightOffsets(this.members);
-      for (const m of this.members) {
+      // 只对**参与同步**的成员生效：被排除的卫星不得被写入（口径 D）。
+      const participants = this.members.filter((m) => this.isParticipant(m));
+      this.zeroRightOffsets(participants);
+      for (const m of participants) {
         const chart = m.chart;
         if (typeof chart.getDataList !== 'function') continue;
         const list = chart.getDataList();
@@ -530,6 +635,8 @@ export class ChartSyncGroup {
 
   private handleEvent(member: SyncMember): void {
     if (!this.started) return;
+    // 被排除的卫星（口径 B/D）：既不作为 leader 驱动对齐，也不因自身交互被写入。
+    if (!this.isParticipant(member)) return;
     if (this.programmaticDepth > 0) {
       // 程序化写入（非用户交互）⇒ 不作为 leader（否则跨周期实时跟随会互相拉扯）
       this.statsObj.suppressed += 1;
@@ -573,7 +680,10 @@ export class ChartSyncGroup {
       // 【硬约束（架构裁决 2026-09-14）】**基准实例永不作为 follower**：
       // 基准图（ADR-020）的视口只由容器宽/视口根数与**用户手势**决定，不得被卫星同步**反向改写**。
       // 用户在**卫星**上拖动/缩放 ⇒ 以该卫星为 leader，仅对齐**其它卫星**，基准保持不动。
-      const targets = this.members.filter((m) => m !== leader && !m.isBase);
+      // 287 口径 B/D：被排除的卫星**不进入 targets**（既不写入，也不进 zeroRightOffsets）。
+      const targets = this.members.filter(
+        (m) => m !== leader && !m.isBase && this.syncableIds.has(m.id),
+      );
       // 右偏移归零必须在**读取 leader 窗口之前**：真身 `scrollToDataIndex` 按 `_lastBarRightSideDiffBarCount`
       // 定位 ⇒ 偏移不为 0 时"最右可见 bar"不等于右缘 bar（P0.3 §6-I6）。
       // 未参与本次对齐的成员（如卫星做 leader 时的基准）**不写**（基准保持不动）。
@@ -592,9 +702,12 @@ export class ChartSyncGroup {
         this.statsObj.spanResidualBars = null;
         this.statsObj.edgeResidualBars = null;
         this.statsObj.barSpaceAdjust = 0;
+        this.statsObj.densityByFollower = {}; // 本次未使用任何密度（不得留下上一次的陈旧读数）
         return;
       }
 
+      // 287 口径 C：本次对齐中各跟随者**实际使用**的密度比与来源（诚实标注，禁止伪装）。
+      const densityByFollower: Record<string, FollowerDensityReading> = {};
       for (const f of targets) {
         if (typeof f.chart.setBarSpace !== 'function' || typeof f.chart.getBarSpace !== 'function') {
           unaligned += 1;
@@ -608,13 +721,16 @@ export class ChartSyncGroup {
           lastUnalignedReason = `${f.period}:no-layout`;
           continue;
         }
-        const density = this.effectiveDensity(leader, f);
+        const densityReading = this.effectiveDensity(leader, f);
+        const density = densityReading.ratio;
         if (!isNum(density) || density <= 0) {
           // 无可用密度（含卫星↔卫星无公共锚点）⇒ **计数并记因**（禁止静默跳过）
           unaligned += 1;
           lastUnalignedReason = `${f.period}:no-density-anchor`;
+          densityByFollower[f.period] = { ratio: Number.NaN, source: 'none' };
           continue;
         }
+        densityByFollower[f.period] = densityReading;
 
         const cap = f.isBase ? BASE_MAX_BAR_SPACE : this.caps.get(f.id) ?? this.satelliteMaxBarSpace;
         let result = alignSatelliteBarSpace({
@@ -686,6 +802,7 @@ export class ChartSyncGroup {
       this.statsObj.spanResidualBars = spanResidualBars;
       this.statsObj.edgeResidualBars = edgeResidualBars;
       this.statsObj.barSpaceAdjust = barSpaceAdjust;
+      this.statsObj.densityByFollower = densityByFollower;
       // 最近一次对齐的跨度差（读不到窗口 ⇒ 保留上一次读数，不得伪造 0）
       if (spanDiffMinutes !== null) this.statsObj.lastSpanDiffMinutes = spanDiffMinutes;
       if (applied) this.statsObj.applied += 1;
@@ -854,17 +971,22 @@ export class ChartSyncGroup {
     return false;
   }
 
-  /** 有效密度比：静态锚定表（正/反向）→ 同锚点合成 → 运行时估计（仅两侧窗口非退化）。 */
-  private effectiveDensity(leader: SyncMember, follower: SyncMember): number | null {
+  /**
+   * 有效密度比**及其来源**（287 口径 C：来源必须可区分）。解析顺序：
+   * 静态锚定表（正/反向，`static`）→ 同锚点合成（`composed`）→ 运行时估计（`measured`）→ 不可用（`none`）。
+   * 解析顺序即**判定优先级**：实测表命中不得被标注为 `composed`。
+   */
+  private effectiveDensity(leader: SyncMember, follower: SyncMember): FollowerDensityReading {
     const table = { ...MEASURED_DENSITY_TABLE, ...this.extraDensityTable };
     const direct = this.lookupDensity(leader.period, follower.period, table);
-    if (direct !== null) return direct;
+    if (direct !== null) return { ratio: direct, source: 'static' };
     const reverse = this.lookupDensity(follower.period, leader.period, table);
-    if (reverse !== null && reverse > 0) return 1 / reverse;
+    if (reverse !== null && reverse > 0) return { ratio: 1 / reverse, source: 'static' };
     const composed = composeDensity(leader.period, follower.period);
-    if (composed !== null && composed > 0) return composed;
+    if (composed !== null && composed > 0) return { ratio: composed, source: 'composed' };
     const measured = this.measureDensity(leader, follower);
-    return resolveDensityRatio(leader.period, follower.period, measured).ratio;
+    if (isNum(measured) && measured > 0) return { ratio: measured, source: 'measured' };
+    return { ratio: Number.NaN, source: 'none' };
   }
 
   private lookupDensity(base: string, sat: string, table: Record<string, number>): number | null {

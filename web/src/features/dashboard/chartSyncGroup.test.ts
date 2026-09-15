@@ -36,6 +36,14 @@ interface SyncStatsLike {
   lastSpanDiffMinutes: number | null;
   degraded: boolean;
   degradedPeriod: string | null;
+  /** 287 新增（口径 B/C）：
+   *  - `excludedSatellites` = 被排除的卫星（周期 + 原因码）；
+   *  - `syncableFollowerCount` = 可同步跟随者数（不含基准）；
+   *  - `groupEstablished` / `groupReason` = 组是否建立 + 未建立原因（禁止静默）。 */
+  excludedSatellites: Array<{ period: string; reason: string }>;
+  syncableFollowerCount: number;
+  groupEstablished: boolean;
+  groupReason: 'missing-base' | 'no-syncable-follower' | null;
 }
 
 interface SyncGroupLike {
@@ -303,7 +311,12 @@ describe('ChartSyncGroup（P3-A 红：模块尚不存在）', () => {
     expect(gOn.stats.echoEvents).toBeLessThan(gOff.stats.echoEvents);
   });
 
-  it('T3-4 护栏：1m↔1w（恒退化）必须**拒绝**该组合（构造/启动即抛错，禁止静默虚假对齐）', async () => {
+  // ⚠️ 287 语义变更（父级裁决 B；原断言：构造/启动对不可用组合**必须抛错**）。
+  // 依据：`tester/design/287_sync_coverage_red_design.md` §1-B/§6.2 + §2.1，以及本仓库「严禁静默失效」口径：
+  // 单个卫星组合不可用**不得**拖垮整组（旧行为 ⇒ chartSyncContext 只 console.warn ⇒ 跨图同步完全静默失效）。
+  // 新口径：该卫星被**排除并记录**（周期 + 原因），其余成员照常同步；仅「基准缺失 / 可同步成员 < 2」
+  // 才不建立组，且必须显式上报（groupEstablished/groupReason）。护栏强度**未削弱**：1m↔1w 仍不可同步。
+  it('T3-4 护栏：1m↔1w（恒退化）必须**排除该卫星**（不抛错 + 排除/未建立可观测；287-B 语义变更）', async () => {
     const ChartSyncGroup = await loadGroup();
     const base = createSyncChartStub({
       bars: makeSeries({ count: 600, spacingMs: 60_000, endTs: END_TS }),
@@ -317,10 +330,26 @@ describe('ChartSyncGroup（P3-A 红：模块尚不存在）', () => {
       limit: { min: 1, max: SATELLITE_MAX },
     });
 
-    expect(() => {
-      const g = new ChartSyncGroup(members(base, sat, '1m', '1w'));
-      g.start();
-    }, '1m↔1w 是不可用组合（口径 10 + P0.3 量化：任何基准缩放下卫星仅 1 根）').toThrow(/1m|1w|不可用|退化|reject|unsupported/i);
+    const g = new ChartSyncGroup(members(base, sat, '1m', '1w'));
+    expect(() => g.start(), '287-B：组构建/启动不得抛错（不可同步卫星应被排除，而非整组失败）').not.toThrow();
+    expect(g.stats.excludedSatellites, '1w 需基准 ≥1d ⇒ 必须被排除且原因码可读').toEqual([
+      { period: '1w', reason: 'week-requires-day-or-above' },
+    ]);
+    expect(g.stats.syncableFollowerCount, '唯一跟随者被排除 ⇒ 0').toBe(0);
+    expect(g.stats.groupEstablished, '可同步成员 < 2 ⇒ 不得建立组').toBe(false);
+    expect(
+      g.stats.groupReason,
+      '「整组未建立」必须显式上报（不得只 console.warn）',
+    ).toBe('no-syncable-follower');
+
+    // 口径 D：被排除的卫星在基准交互时**零写入**（既不被对齐，也不被静默虚假对齐）。
+    base.scrollToDataIndex(500);
+    const writeMethods = ['setBarSpace', 'scrollToDataIndex', 'scrollToTimestamp', 'setOffsetRightDistance'];
+    expect(
+      sat.__log.filter((c) => writeMethods.includes(c.method)).map((c) => c.method),
+      '被排除卫星的写方法必须一次都没被调用',
+    ).toEqual([]);
+    g.stop();
   });
 
   it('T4-1 回到最新：`scrollAllToLatest()` ⇒ 各实例右端对齐（误差 ≤1 根高周期 bar）', async () => {
