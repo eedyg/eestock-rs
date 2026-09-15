@@ -1,0 +1,102 @@
+# A0 环境与被验对象（只读取证）
+采集时间(UTC)：2026-09-15T14:37:20Z  本地：2026-09-15 22:37:20 +0800
+
+## 8081 持有者
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1247798,fd=11))
+LISTEN 0      511        127.0.0.1:48081      0.0.0.0:*                                             
+
+## cmdline
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+## 启动时间
+1247798 Tue Sep 15 22:27:42 2026       09:37 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+## 服务端配置 static_dir / listen
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/eestock"
+listen = "0.0.0.0:8081"
+mcp_listen = "0.0.0.0:8082"
+static_dir = "./web/dist"
+
+## 服务端日志（启动段，无请求日志能力）
+{"timestamp":"2026-09-15T14:27:43.116695Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-15T14:27:43.158875Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-15T14:27:43.160014Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-15T14:27:43.160848Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-15T14:27:43.160924Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-15T14:27:43.160936Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-15T14:27:46.126682Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"8ec85618a69e3200c840bcfc00adfe1e"},"target":"mcp::server"}
+
+## 线上 index.html
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>eestock · 行情看板</title>
+    <script type="module" crossorigin src="/assets/index-dH4SuwMy.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BpQVDpqf.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+## dist 产物 mtime
+total 1220
+drwxrwxr-x 2 eestock eestock    4096 2026-09-15 22:27:23.637443342 +0800 .
+drwxrwxr-x 3 eestock eestock    4096 2026-09-15 22:27:23.636443330 +0800 ..
+-rw-rw-r-- 1 eestock eestock   22931 2026-09-15 22:27:23.637443342 +0800 index-BpQVDpqf.css
+-rw-rw-r-- 1 eestock eestock 1214792 2026-09-15 22:27:23.637443342 +0800 index-dH4SuwMy.js
+
+## 工作区源码完整性（验收未改任何源码）
+497791f76b53609c878753ff2c725b54  web/src/features/dashboard/KlineChart.tsx
+0a257ca3201845348ce333465c69b96b  web/src/features/dashboard/Toolbar.tsx
+5c61df59e07458fad69aaede18a48b51  web/src/features/dashboard/MultiPeriodChartStack.tsx
+add09cee19b2973de9629fc1f6715dab  web/src/features/dashboard/MultiPeriodSatellite.tsx
+8161b46d22ee3b732f8f59258377c10b  web/src/layouts/DashboardGrid.tsx
+2026-09-15 22:18:33.282161643 +0800  web/src/features/dashboard/KlineChart.tsx
+2026-09-15 22:18:33.282161643 +0800  web/src/features/dashboard/Toolbar.tsx
+
+## 本次验收写过的路径（git status）
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/design/286_vol_toggle_red_design.md
+?? tester/evidence/018/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/evidence/285_redeploy/
+?? tester/evidence/286_vol_acceptance/
+?? tester/evidence/286_vol_red/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? tester/test/285_p5.5_redeploy_acceptance.md
+?? tester/test/286_vol_toggle_red.md

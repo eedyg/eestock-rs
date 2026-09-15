@@ -1,0 +1,96 @@
+# A5 沙箱变异反证（**严禁在用户工作区做变异** —— 本项全程在 /tmp 副本内）
+
+## 沙箱路径
+  副本根目录：/tmp/vol286_sandbox/web
+  构建方式：rsync -a --exclude node_modules --exclude dist --exclude e2e/artifacts \
+            /home/eestock/workspace/git/eestock/eestock-rs/web/ /tmp/vol286_sandbox/web/
+  node_modules：符号链接 → /home/eestock/workspace/git/eestock/eestock-rs/web/node_modules
+  原始副本备份（未变异）：/tmp/vol286_sandbox/KlineChart.orig.tsx
+
+## 变异（等价变异：把 VOL 判定改成恒 true）
+  文件：/tmp/vol286_sandbox/web/src/features/dashboard/KlineChart.tsx（第 163 行，syncIndicators 内）
+```diff
+--- /tmp/vol286_sandbox/KlineChart.orig.tsx	2026-09-15 22:35:42.282425520 +0800
++++ src/features/dashboard/KlineChart.tsx	2026-09-15 22:35:58.081359558 +0800
+@@ -160,7 +160,7 @@
+   applied: AppliedIndicators,
+ ) {
+   for (const def of INDICATOR_DEFS) {
+-    const enabled = indicators[def.key];
++    const enabled = def.key === 'vol' ? true : indicators[def.key]; // MUTATION(286-A5)
+     const desired = desiredCalcParams(def, maWindows, dcapParams);
+     const prev = applied.get(def.name);
+     if (!enabled) {
+```
+
+## 运行命令
+```console
+cd /tmp/vol286_sandbox/web && ./node_modules/.bin/vitest run src/features/dashboard/volToggle.test.tsx
+```
+
+## 变异前（沙箱未变异）—— 必须绿
+```
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  22:35:57
+   Duration  814ms (transform 173ms, setup 22ms, collect 253ms, tests 163ms, environment 130ms, prepare 42ms)
+
+```
+  exit code = 0（Test Files 1 passed / Tests 14 passed）
+
+## 变异后（VOL 恒 true）—— 必须红
+```
+
+ RUN  v3.2.7 /tmp/vol286_sandbox/web
+
+stderr | src/features/dashboard/volToggle.test.tsx > R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/volToggle.test.tsx (14 tests | 6 failed) 167ms
+   ✓ R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-1 indicators.vol === true（默认开，与 ma/macd/kdj/boll/dcap 并列） 1ms
+   ✓ R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-2 开关集合 = {ma,macd,kdj,boll,dcap,vol}（VOL 是一个**并列**开关，不是隐藏特权） 0ms
+   ✓ R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-1 VOL 开关存在（文本含 VOL），且既有 5 个开关仍在（并列，不是替换） 61ms
+   ✓ R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-2 默认开：indicators.vol=true ⇒ VOL 开关 aria-pressed="true" 10ms
+   ✓ R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-3 关态：indicators.vol=false ⇒ VOL 开关 aria-pressed="false" 8ms
+   ✓ R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-4 点击 VOL ⇒ onToggleIndicator 收到 "vol" 19ms
+   × R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-1 初始即 vol:false ⇒ 无 VOL 指标、无残留 VOL 副图 pane，且其它指标不受影响 6ms
+     → vol:false 时不得创建 VOL 指标: expected 1 to be +0 // Object.is equality
+   × R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-2 true ⇒ false（会话内关掉）⇒ VOL 副图消失；MA/MACD 不被动到 2ms
+     → vol 由 true 翻到 false ⇒ VOL 必须被移除: expected 1 to be +0 // Object.is equality
+   ✓ R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-3 vol:true ⇒ 有且仅有一个 VOL（独立副图 pane，不叠 candle_pane、不重复创建） 1ms
+   × R4 vol 翻转不得重建其它 pane、不得重置用户拖拽过的既有高度 > R4-1 true→false→true：非 VOL pane 的 id/顺序不变、拖拽高度保持、无其它指标 churn 2ms
+     → vol:false ⇒ VOL 副图必须消失: expected 1 to be +0 // Object.is equality
+   × R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-1 MultiPeriodSatellite（indicators.vol=false）⇒ 卫星不创建 VOL，MA 仍在 7ms
+     → 卫星必须继承 vol=false（不得有 VOL 副图）: expected 1 to be +0 // Object.is equality
+   × R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-2 MultiPeriodChartStack 透传 vol=false ⇒ 卫星同样不创建 VOL 6ms
+     → 栈透传 vol=false ⇒ 卫星不得创建 VOL: expected 1 to be +0 // Object.is equality
+   ✓ R6 兜底默认：MultiPeriodChartStack 未收到 indicators ⇒ 兜底默认仍须含 vol:true > R6-1 不传 indicators prop ⇒ 卫星仍会创建 VOL（兜底默认 vol:true） 5ms
+   × R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口 40ms
+     → 关掉 VOL ⇒ 主图不再有 VOL 副图: expected 1 to be +0 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-1 初始即 vol:false ⇒ 无 VOL 指标、无残留 VOL 副图 pane，且其它指标不受影响
+AssertionError: vol:false 时不得创建 VOL 指标: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+```
+  exit code = 1（Test Files 1 failed / Tests 6 failed | 8 passed）
+
+## 失败用例名（6 条）
+FAIL  src/features/dashboard/volToggle.test.tsx > R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-1 初始即 vol:false ⇒ 无 VOL 指标、无残留 VOL 副图 pane，且其它指标不受影响
+FAIL  src/features/dashboard/volToggle.test.tsx > R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-2 true ⇒ false（会话内关掉）⇒ VOL 副图消失；MA/MACD 不被动到
+FAIL  src/features/dashboard/volToggle.test.tsx > R4 vol 翻转不得重建其它 pane、不得重置用户拖拽过的既有高度 > R4-1 true→false→true：非 VOL pane 的 id/顺序不变、拖拽高度保持、无其它指标 churn
+FAIL  src/features/dashboard/volToggle.test.tsx > R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-1 MultiPeriodSatellite（indicators.vol=false）⇒ 卫星不创建 VOL，MA 仍在
+FAIL  src/features/dashboard/volToggle.test.tsx > R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-2 MultiPeriodChartStack 透传 vol=false ⇒ 卫星同样不创建 VOL
+FAIL  src/features/dashboard/volToggle.test.tsx > R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口
+
+## 工作区未受影响
+  /home/.../web/src/features/dashboard/KlineChart.tsx 第 163 行仍为：  const enabled = indicators[def.key];
+  md5=497791f76b53609c878753ff2c725b54  mtime=2026-09-15 22:18:33 +0800（早于本次验收开始 22:29）

@@ -1,0 +1,256 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/volToggle.test.tsx > R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/volToggle.test.tsx (14 tests | 12 failed) 164ms
+   × R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-1 indicators.vol === true（默认开，与 ma/macd/kdj/boll/dcap 并列） 4ms
+     → DASHBOARD_DEFAULTS.indicators.vol 必须为 true（默认开）: expected undefined to be true // Object.is equality
+   × R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-2 开关集合 = {ma,macd,kdj,boll,dcap,vol}（VOL 是一个**并列**开关，不是隐藏特权） 2ms
+     → VOL 必须成为与 MA/MACD/KDJ/BOLL/DCAP 并列的开关项: expected [ 'boll', 'dcap', 'kdj', 'ma', 'macd' ] to deeply equal [ 'boll', 'dcap', 'kdj', 'ma', …(2) ]
+   × R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-1 VOL 开关存在（文本含 VOL），且既有 5 个开关仍在（并列，不是替换） 61ms
+     → 工具栏必须渲染出 VOL 开关（元素文本含 VOL）: expected null not to be null
+   × R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-2 默认开：indicators.vol=true ⇒ VOL 开关 aria-pressed="true" 13ms
+     → VOL 默认开 ⇒ 开关须为按下态: expected undefined to be 'true' // Object.is equality
+   × R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-3 关态：indicators.vol=false ⇒ VOL 开关 aria-pressed="false" 10ms
+     → VOL 关 ⇒ 开关须为未按下态: expected undefined to be 'false' // Object.is equality
+   × R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-4 点击 VOL ⇒ onToggleIndicator 收到 "vol" 10ms
+     → 前置：VOL 开关必须存在: expected null not to be null
+   × R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-1 初始即 vol:false ⇒ 无 VOL 指标、无残留 VOL 副图 pane，且其它指标不受影响 4ms
+     → vol:false 时不得创建 VOL 指标: expected 1 to be +0 // Object.is equality
+   × R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-2 true ⇒ false（会话内关掉）⇒ VOL 副图消失；MA/MACD 不被动到 2ms
+     → vol 由 true 翻到 false ⇒ VOL 必须被移除: expected 1 to be +0 // Object.is equality
+   ✓ R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-3 vol:true ⇒ 有且仅有一个 VOL（独立副图 pane，不叠 candle_pane、不重复创建） 1ms
+   × R4 vol 翻转不得重建其它 pane、不得重置用户拖拽过的既有高度 > R4-1 true→false→true：非 VOL pane 的 id/顺序不变、拖拽高度保持、无其它指标 churn 2ms
+     → vol:false ⇒ VOL 副图必须消失: expected 1 to be +0 // Object.is equality
+   × R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-1 MultiPeriodSatellite（indicators.vol=false）⇒ 卫星不创建 VOL，MA 仍在 10ms
+     → 卫星必须继承 vol=false（不得有 VOL 副图）: expected 1 to be +0 // Object.is equality
+   × R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-2 MultiPeriodChartStack 透传 vol=false ⇒ 卫星同样不创建 VOL 7ms
+     → 栈透传 vol=false ⇒ 卫星不得创建 VOL: expected 1 to be +0 // Object.is equality
+   ✓ R6 兜底默认：MultiPeriodChartStack 未收到 indicators ⇒ 兜底默认仍须含 vol:true > R6-1 不传 indicators prop ⇒ 卫星仍会创建 VOL（兜底默认 vol:true） 6ms
+   × R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口 33ms
+     → 前置：工具栏必须渲染出 VOL 开关: expected null not to be null
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-1 indicators.vol === true（默认开，与 ma/macd/kdj/boll/dcap 并列）
+AssertionError: DASHBOARD_DEFAULTS.indicators.vol 必须为 true（默认开）: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/features/dashboard/volToggle.test.tsx:451:80
+    449|     // 索引访问而非 `.vol`：tangle 生成物当前**没有** vol 键 ⇒ 属性访问会变成 TS 编译错（红测试不得靠编…
+    450|     const defaults: Record<string, boolean> = DASHBOARD_DEFAULTS.indic…
+    451|     expect(defaults['vol'], 'DASHBOARD_DEFAULTS.indicators.vol 必须为 tru…
+       |                                                                                ^
+    452|   });
+    453| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R1 默认值：DASHBOARD_DEFAULTS.indicators 必须含 vol 且默认 true > R1-2 开关集合 = {ma,macd,kdj,boll,dcap,vol}（VOL 是一个**并列**开关，不是隐藏特权）
+AssertionError: VOL 必须成为与 MA/MACD/KDJ/BOLL/DCAP 并列的开关项: expected [ 'boll', 'dcap', 'kdj', 'ma', 'macd' ] to deeply equal [ 'boll', 'dcap', 'kdj', 'ma', …(2) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -2,7 +2,6 @@[39m
+[2m    "boll",[22m
+[2m    "dcap",[22m
+[2m    "kdj",[22m
+[2m    "ma",[22m
+[2m    "macd",[22m
+[32m-   "vol",[39m
+[2m  ][22m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:456:84
+    454|   it('R1-2 开关集合 = {ma,macd,kdj,boll,dcap,vol}（VOL 是一个**并列**开关，不是隐藏特权）'…
+    455|     const defaults: Record<string, boolean> = DASHBOARD_DEFAULTS.indic…
+    456|     expect(Object.keys(defaults).sort(), 'VOL 必须成为与 MA/MACD/KDJ/BOLL/D…
+       |                                                                                    ^
+    457|       'boll',
+    458|       'dcap',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-1 VOL 开关存在（文本含 VOL），且既有 5 个开关仍在（并列，不是替换）
+AssertionError: 工具栏必须渲染出 VOL 开关（元素文本含 VOL）: expected null not to be null
+ ❯ src/features/dashboard/volToggle.test.tsx:500:59
+    498|       expect(screen.queryByRole('button', { name }), `${name} 开关必须仍在工具…
+    499|     }
+    500|     expect(volToggle(), '工具栏必须渲染出 VOL 开关（元素文本含 VOL）').not.toBeNull();
+       |                                                           ^
+    501|   });
+    502| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-2 默认开：indicators.vol=true ⇒ VOL 开关 aria-pressed="true"
+AssertionError: VOL 默认开 ⇒ 开关须为按下态: expected undefined to be 'true' // Object.is equality
+
+[32m- Expected:[39m 
+"true"
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/features/dashboard/volToggle.test.tsx:505:76
+    503|   it('R2-2 默认开：indicators.vol=true ⇒ VOL 开关 aria-pressed="true"', () =…
+    504|     renderToolbar(indicators({ vol: true }));
+    505|     expect(volToggle()?.getAttribute('aria-pressed'), 'VOL 默认开 ⇒ 开关须为按…
+       |                                                                            ^
+    506|   });
+    507| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-3 关态：indicators.vol=false ⇒ VOL 开关 aria-pressed="false"
+AssertionError: VOL 关 ⇒ 开关须为未按下态: expected undefined to be 'false' // Object.is equality
+
+[32m- Expected:[39m 
+"false"
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/features/dashboard/volToggle.test.tsx:510:75
+    508|   it('R2-3 关态：indicators.vol=false ⇒ VOL 开关 aria-pressed="false"', () …
+    509|     renderToolbar(indicators({ vol: false }));
+    510|     expect(volToggle()?.getAttribute('aria-pressed'), 'VOL 关 ⇒ 开关须为未按下…
+       |                                                                           ^
+    511|   });
+    512| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R2 工具栏开关：VOL 渲染为可点的指标开关 > R2-4 点击 VOL ⇒ onToggleIndicator 收到 "vol"
+AssertionError: 前置：VOL 开关必须存在: expected null not to be null
+ ❯ src/features/dashboard/volToggle.test.tsx:516:41
+    514|     const { onToggleIndicator } = renderToolbar();
+    515|     const toggle = volToggle();
+    516|     expect(toggle, '前置：VOL 开关必须存在').not.toBeNull();
+       |                                         ^
+    517|     await userEvent.click(toggle!);
+    518|     expect(onToggleIndicator).toHaveBeenCalledWith('vol');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-1 初始即 vol:false ⇒ 无 VOL 指标、无残留 VOL 副图 pane，且其它指标不受影响
+AssertionError: vol:false 时不得创建 VOL 指标: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:545:83
+    543|     renderKline(indicators({ vol: false, macd: true }));
+    544|     const chart = lastChart();
+    545|     expect(chart.getIndicators({ name: 'VOL' }).length, 'vol:false 时不得…
+       |                                                                                   ^
+    546|     expect(chart.__renderedByIndicator()['VOL'], 'vol:false 时不得残留空 VOL…
+    547|     expect(chart.getIndicators({ name: 'MA' }).length, 'MA（主图叠加）不受 VOL…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R3 图表生效：indicators.vol=false ⇒ 不创建 VOL；true ⇒ 有且仅有一个 VOL > R3-2 true ⇒ false（会话内关掉）⇒ VOL 副图消失；MA/MACD 不被动到
+AssertionError: vol 由 true 翻到 false ⇒ VOL 必须被移除: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:570:92
+    568| 
+    569|     act(() => rerender(tree(false)));
+    570|     expect(chart.getIndicators({ name: 'VOL' }).length, 'vol 由 true 翻到…
+       |                                                                                            ^
+    571|     expect(chart.__renderedByIndicator()['VOL'], '关闭后不得残留空 VOL pane').…
+    572|     expect(chart.getIndicators({ name: 'MA' }).length, '关 VOL 不得连带移除 M…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R4 vol 翻转不得重建其它 pane、不得重置用户拖拽过的既有高度 > R4-1 true→false→true：非 VOL pane 的 id/顺序不变、拖拽高度保持、无其它指标 churn
+AssertionError: vol:false ⇒ VOL 副图必须消失: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:630:83
+    628|     // ① 关掉 VOL（会话态翻转）
+    629|     act(() => rerender(tree(false)));
+    630|     expect(chart.getIndicators({ name: 'VOL' }).length, 'vol:false ⇒ V…
+       |                                                                                   ^
+    631|     expect(chart.__paneIds(), '关 VOL：MACD pane 的 id 必须原样保留（不得销毁重建）').t…
+    632|     expect(chart.__paneIdOf('MACD'), '关 VOL：MACD 仍在原 pane').toBe(macdP…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-1 MultiPeriodSatellite（indicators.vol=false）⇒ 卫星不创建 VOL，MA 仍在
+AssertionError: 卫星必须继承 vol=false（不得有 VOL 副图）: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:715:87
+    713|     await flush();
+    714|     const sat = satelliteChart();
+    715|     expect(sat.getIndicators({ name: 'VOL' }).length, '卫星必须继承 vol=fals…
+       |                                                                                       ^
+    716|     expect(sat.getIndicators({ name: 'MA' }).length, '卫星其它继承指标不受影响').t…
+    717|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R5 卫星继承：indicators.vol=false ⇒ 卫星同样无 VOL > R5-2 MultiPeriodChartStack 透传 vol=false ⇒ 卫星同样不创建 VOL
+AssertionError: 栈透传 vol=false ⇒ 卫星不得创建 VOL: expected 1 to be +0 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1[39m
+
+ ❯ src/features/dashboard/volToggle.test.tsx:736:85
+    734|     await flush();
+    735|     const sat = satelliteChart();
+    736|     expect(sat.getIndicators({ name: 'VOL' }).length, '栈透传 vol=false ⇒…
+       |                                                                                     ^
+    737|   });
+    738| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  src/features/dashboard/volToggle.test.tsx > R7（附加）页面级：工具栏 VOL 开关驱动主图，且不落服务端配置（会话态） > R7-1 点击 VOL ⇒ 主图 VOL 副图消失；不调用任何配置写接口
+AssertionError: 前置：工具栏必须渲染出 VOL 开关: expected null not to be null
+ ❯ src/features/dashboard/volToggle.test.tsx:812:46
+    810| 
+    811|     const toggle = screen.queryByRole('button', { name: /VOL/ });
+    812|     expect(toggle, '前置：工具栏必须渲染出 VOL 开关').not.toBeNull();
+       |                                              ^
+    813|     await userEvent.click(toggle!);
+    814|     await flush();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 2 passed (14)
+   Start at  22:16:43
+   Duration  771ms (transform 158ms, setup 23ms, collect 240ms, tests 164ms, environment 134ms, prepare 99ms)
+

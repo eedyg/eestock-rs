@@ -1,0 +1,11 @@
+--- /tmp/287_sandbox/chartSyncGroup.ts.orig	2026-09-15 23:10:19.911455312 +0800
++++ /tmp/287_sandbox/web/src/features/dashboard/chartSyncGroup.ts	2026-09-15 23:10:19.921194388 +0800
+@@ -343,7 +343,7 @@
+   if (satellitePeriod === '1w' && a < (periodOrder('1d') as number)) return 'week-requires-day-or-above';
+   if (basePeriod === satellitePeriod) return null; // 口径 2：允许等于基准
+   if (densityRatio(basePeriod, satellitePeriod) !== null) return null; // 实测表命中
+-  if (composeDensity(basePeriod, satellitePeriod) !== null) return null; // 同锚点合成可用（287 口径 A）
++  // 变异（287 B6 反证）：恢复旧行为 —— 守门只认实测表，取消「同锚点合成」放行。
+   return 'no-shared-anchor';
+ }
+ 

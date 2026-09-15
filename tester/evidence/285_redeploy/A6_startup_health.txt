@@ -1,0 +1,33 @@
+# item: A6_startup_health   (最新 redeploy 日志 ERROR 计数 / panic / healthz)
+$ ls -la logs/app_dev_8081_redeploy_*.log | tail -3
+-rw-rw-r-- 1 eestock eestock  11146 Sep 14 21:37 logs/app_dev_8081_redeploy_20260914_115233.log
+-rw-rw-r-- 1 eestock eestock   2596 Sep 15 13:54 logs/app_dev_8081_redeploy_20260915_092116.log
+-rw-rw-r-- 1 eestock eestock   1126 Sep 15 21:28 logs/app_dev_8081_redeploy_20260915_212820.log
+LOG=logs/app_dev_8081_redeploy_20260915_212820.log  (mtime 2026-09-15 21:28:26.321589218 +0800, bytes 1126)
+
+$ grep -ci error logs/app_dev_8081_redeploy_20260915_212820.log
+0
+exit=1
+$ grep -ni error logs/app_dev_8081_redeploy_20260915_212820.log   # 原文（若无输出则无命中）
+exit=1
+$ grep -ciE 'panic|backtrace|RUST_BACKTRACE' logs/app_dev_8081_redeploy_20260915_212820.log
+0
+exit=1
+
+$ cat -A logs/app_dev_8081_redeploy_20260915_212820.log
+{"timestamp":"2026-09-15T13:28:23.296354Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}$
+{"timestamp":"2026-09-15T13:28:23.342558Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}$
+{"timestamp":"2026-09-15T13:28:23.343994Z","level":"INFO","fields":{"message":"strategy registry M-eM-^PM-/M-eM-^JM-(M-fM-^RM--M-gM-'M-^MM-eM-.M-^LM-fM-^HM-^P","seeded":"0","skipped":"0"},"target":"eestock_app"}$
+{"timestamp":"2026-09-15T13:28:23.344880Z","level":"INFO","fields":{"message":"sim-live M-eM-^PM-/M-eM-^JM-(M-fM-^AM-"M-eM-$M-^MM-eM-.M-^LM-fM-^HM-^P","recovered":"0","degraded":"0"},"target":"eestock_app"}$
+{"timestamp":"2026-09-15T13:28:23.344952Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}$
+{"timestamp":"2026-09-15T13:28:23.344975Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}$
+{"timestamp":"2026-09-15T13:28:26.323467Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"d3f8cebbb403cf474b5e01165568888c"},"target":"mcp::server"}$
+
+$ curl -s -o /tmp/285_healthz.txt -w 'HTTP=%{http_code}' http://127.0.0.1:8081/healthz ; cat /tmp/285_healthz.txt
+HTTP=200
+{"status":"ok"}
+
+$ curl -s -w ' HTTP=%{http_code}' http://127.0.0.1:8081/api/sim-live/sessions | python3 -c <status counter>
+count= 12
+status_counts= {'ended': 12}
+# 日志中 'sim-live 启动恢复完成' recovered=0 degraded=0 ⇒ 无会话状态被本次重启改写

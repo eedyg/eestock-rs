@@ -1,0 +1,48 @@
+# A4 再点开 VOL ⇒ 恢复；多周期栈 pane 高度逐值对比
+抓取时间：2026-09-15T14:35:06.022Z
+
+## 多周期栈 [data-mp-pane] inline 高度 逐值对比（A2 基线 vs A4 再打开）
+  基线：5m=364px,1h=180px,1d=180px
+  再开：5m=364px,1h=180px,1d=180px
+  ⇒ 逐值一致（PASS）
+
+## [data-mp-pane] 声明属性 data-mp-pane-height 对比
+  基线：5m=364,1h=180,1d=180
+  再开：5m=364,1h=180,1d=180
+  ⇒ 逐值一致（PASS）
+
+## pane 顺序（childIndex）对比
+  基线：5m@0,1h@2,1d@4
+  再开：5m@0,1h@2,1d@4
+  ⇒ 一致（PASS）
+
+## 栈级分隔条 key 对比
+  基线：5m|1h,1h|1d
+  再开：5m|1h,1h|1d
+  ⇒ 一致（PASS）
+
+## 单图内 candle pane 与 VOL pane 的像素高度变化（引擎重分配，非缺陷）
+  实例 k_line_chart_1
+  VOL 开（A2 基线）      : panes = ["237px","100px"]（[candle, VOL]）
+  VOL 关（A3）           : panes = ["338px"]（[candle]；原 VOL 空间归还 candle）
+  VOL 再开（A4）         : panes = ["237px","100px"]
+
+## 各实例 pane 数 / separator 数（A2 / A3 / A4）
+  k_line_chart_1: A2 paneCount=2 sep=1 | A3 paneCount=1 sep=0 | A4 paneCount=2 sep=1
+  k_line_chart_2: A2 paneCount=2 sep=1 | A3 paneCount=1 sep=0 | A4 paneCount=2 sep=1
+  k_line_chart_3: A2 paneCount=2 sep=1 | A3 paneCount=1 sep=0 | A4 paneCount=2 sep=1
+
+## 0 高 / 重叠 / 残留分隔条 / pane 数异常 检查（A4 态原始观测）
+  基准 pane 与卫星 rect<=0 的元素：[]
+  卫星 candle pane 内联高度（设计为 0，minimize；非异常）：["0px","135px"] / ["0px","135px"]
+  栈级分隔条：[{"key":"5m|1h","sepHeightAttr":"0","rectHeight":0,"rectTop":440},{"key":"1h|1d","sepHeightAttr":"0","rectHeight":0,"rectTop":620}]
+  klinecharts separator 元素：{"k_line_chart_1":{"sepCount":1,"seps":["1px"]},"k_line_chart_2":{"sepCount":1,"seps":["0px"]},"k_line_chart_3":{"sepCount":1,"seps":["0px"]}}
+
+## 再开后的 VOL 图例（应恢复）
+{"k_line_chart_1|pane#2|100px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_2|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_3|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]}}
+
+## 截图
+  A4_vol_on_again_full.png
+  A4_vol_on_again_base_pane.png
+  A4_vol_on_again_satellite_1h.png
+  A4_vol_on_again_satellite_1d.png

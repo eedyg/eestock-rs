@@ -1,0 +1,60 @@
+# B4 多周期 pane DOM 不变量 —— 逐观测点（含 5 次主图手势 + VOL 往返）
+采集时间(UTC)：2026-09-15T15:12:59.048Z
+
+## T00(基线)
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## T01
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## T02
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## T03
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## T04
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## T05
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## VOL关
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## VOL再开(终态)
+  panes: 5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+  separators: 5m|1h@1(h=0) | 1h|1d@3(h=0)
+  stack children: div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+  sat: 1h: inline=180px rect=180 | 1d: inline=180px rect=180 | order=1h,1d
+  layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## 结论：8 个观测点的不变量与基线逐字段完全一致

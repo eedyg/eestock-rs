@@ -1,0 +1,53 @@
+# B3 被排除卫星（运行时配置）可见角标 DOM 原文 + 不随动证据
+采集时间(UTC)：2026-09-15T15:12:59.050Z
+
+## 运行时多周期配置（GET /api/config/multi_period）
+{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+
+## 各卫星角标现状（末次观测 T05）
+  卫星 1h：excluded=null  degraded=20200min  error=null
+  卫星 1d：excluded=no-shared-anchor  degraded=null  error=null
+
+## 被排除卫星角标 outerHTML（原文）
+<div data-mp-sync-excluded="1d" data-mp-sync-excluded-reason="no-shared-anchor" role="status" class="absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow" title="未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。"><span>未同步（1d）</span></div>
+
+## 属性/文案
+  data-mp-sync-excluded        = 1d
+  data-mp-sync-excluded-reason = no-shared-anchor
+  textContent                  = "未同步（1d）"
+  title                        = "未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。"
+  role                         = status
+  可见（offsetParent!=null）    = true
+  boundingRect                 = {"x":1931,"y":937,"w":65,"h":16}
+
+## 「不随动」证据（各观测点该卫星的窗口读数）
+  T00_baseline: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T01_pan_right_250px: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T02_pan_left_450px: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T03_wheel_zoom_in: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T04_wheel_zoom_out: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T05_wheel_zoom_out_more: bar=13 off=80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+
+## 同时给出基准与可同步卫星的同表读数（对照）
+  T00_baseline k_line_chart_1: bar=13 from=2026-09-11 13:45 CST to=2026-09-15 15:00 CST spanMin=5835
+  T00_baseline k_line_chart_2: bar=52 from=2026-09-09 09:00 CST to=2026-09-15 15:00 CST spanMin=9000
+  T00_baseline k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T01_pan_right_250px k_line_chart_1: bar=13 from=2026-09-11 10:45 CST to=2026-09-15 13:30 CST spanMin=5925
+  T01_pan_right_250px k_line_chart_2: bar=52 from=2026-09-08 13:00 CST to=2026-09-15 13:00 CST spanMin=10080
+  T01_pan_right_250px k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T02_pan_left_450px k_line_chart_1: bar=13 from=2026-09-11 13:45 CST to=2026-09-15 15:00 CST spanMin=5835
+  T02_pan_left_450px k_line_chart_2: bar=52 from=2026-09-09 09:00 CST to=2026-09-15 15:00 CST spanMin=9000
+  T02_pan_left_450px k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T03_wheel_zoom_in k_line_chart_1: bar=17.303 from=2026-09-11 15:00 CST to=2026-09-15 14:00 CST spanMin=5700
+  T03_wheel_zoom_in k_line_chart_2: bar=34 from=2026-09-04 13:00 CST to=2026-09-15 15:00 CST spanMin=15960
+  T03_wheel_zoom_in k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T04_wheel_zoom_out k_line_chart_1: bar=9.195523623000001 from=2026-09-10 13:55 CST to=2026-09-15 15:00 CST spanMin=7265
+  T04_wheel_zoom_out k_line_chart_2: bar=37 from=2026-09-07 10:00 CST to=2026-09-15 15:00 CST spanMin=11820
+  T04_wheel_zoom_out k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+  T05_wheel_zoom_out_more k_line_chart_1: bar=3.2062808327703407 from=2026-09-02 13:45 CST to=2026-09-15 15:00 CST spanMin=18795
+  T05_wheel_zoom_out_more k_line_chart_2: bar=13 from=2026-08-19 14:00 CST to=2026-09-15 15:00 CST spanMin=38940
+  T05_wheel_zoom_out_more k_line_chart_3: bar=13 from=2026-04-07 00:00 CST to=2026-09-14 00:00 CST spanMin=230400
+
+## 截图
+  B1_T00_baseline_full.png / B1_T00_sat_*.png（基线，含角标）
+  B1_T05_wheel_zoom_out_more_full.png / B1_T05_sat_*.png（大幅缩放后，角标仍在且窗口不变）

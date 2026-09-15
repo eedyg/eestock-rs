@@ -1,0 +1,187 @@
+# A2 基线取证（VOL 默认开）
+抓取时间：2026-09-15T14:34:58.741Z
+
+## 多周期配置（运行时 GET /api/config/multi_period）
+{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+⇒ 基准 pane = 5m；卫星 = 1h, 1d
+
+## [data-mp-pane] inline 高度（多周期栈）
+  5m  role=base  attr=364  inline=364px  rect=364  childIndex=0
+  1h  role=satellite  attr=180  inline=180px  rect=180  childIndex=2
+  1d  role=satellite  attr=180  inline=180px  rect=180  childIndex=4
+
+## [data-mp-separator]（栈级分隔条）
+  5m|1h  data-mp-sep-height=0  rect=0
+  1h|1d  data-mp-sep-height=0  rect=0
+
+## 每个 klinecharts 实例（DOM）：pane 内联高度 / separator 数 / x 轴
+  k_line_chart_1: panes=["237px","100px"] sepCount=1 seps=["1px"] xAxis=["26px"] hostRect=1522x364
+  k_line_chart_2: panes=["0px","135px"] sepCount=1 seps=["0px"] xAxis=["26px"] hostRect=1522x161
+  k_line_chart_3: panes=["0px","135px"] sepCount=1 seps=["0px"] xAxis=["26px"] hostRect=1522x161
+
+## 每个 pane 的图例原文（canvas fillText 捕获，排除纯数字刻度）
+  k_line_chart_1|pane#0|237px: ["518880 · 5","Time: ","2026-09-15 15:00","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_1|pane#2|100px: ["VOL(5,10,20)","MA5: ","MA10: ","MA20: ","VOLUME: "]
+  k_line_chart_1|pane#3|26px: ["14:45","10:30","13:15","14:35","10:20","13:05","14:25"]
+  k_line_chart_2|pane#0|0px: ["518880 · 1H","Time: ","2026-09-15 15:00","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_2|pane#2|135px: ["VOL(5,10,20)","MA5: ","MA10: ","MA20: ","VOLUME: "]
+  k_line_chart_2|pane#3|26px: ["08-21 14:00","08-26 11:00","08-31 09:00","09-02 14:00","09-07 11:00","09-10 09:00","09-14 14:00"]
+  k_line_chart_3|pane#0|0px: ["518880 · 1D","Time: ","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_3|pane#2|135px: ["VOL(5,10,20)","MA5: ","MA10: ","MA20: ","VOLUME: "]
+  k_line_chart_3|pane#3|26px: []
+
+## 引擎侧指标（chart.getIndicators()，通过 React fiber 取实例）
+[
+ {
+  "hostId": "k_line_chart_1",
+  "found": true,
+  "acceptMark": null,
+  "indicators": [
+   {
+    "name": "MA",
+    "paneId": "candle_pane",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   },
+   {
+    "name": "VOL",
+    "paneId": "indicator_pane_1789482892999_2",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   }
+  ],
+  "paneOptions": [
+   {
+    "id": "candle_pane",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 0
+   },
+   {
+    "id": "indicator_pane_1789482892999_2",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 0
+   },
+   {
+    "id": "x_axis_pane",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 9007199254740991
+   }
+  ]
+ },
+ {
+  "hostId": "k_line_chart_2",
+  "found": true,
+  "acceptMark": null,
+  "indicators": [
+   {
+    "name": "MA",
+    "paneId": "candle_pane",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   },
+   {
+    "name": "VOL",
+    "paneId": "indicator_pane_1789482893001_3",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   }
+  ],
+  "paneOptions": [
+   {
+    "id": "candle_pane",
+    "height": 135,
+    "minHeight": 0,
+    "state": "minimize",
+    "order": 0
+   },
+   {
+    "id": "indicator_pane_1789482893001_3",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 0
+   },
+   {
+    "id": "x_axis_pane",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 9007199254740991
+   }
+  ]
+ },
+ {
+  "hostId": "k_line_chart_3",
+  "found": true,
+  "acceptMark": null,
+  "indicators": [
+   {
+    "name": "MA",
+    "paneId": "candle_pane",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   },
+   {
+    "name": "VOL",
+    "paneId": "indicator_pane_1789482893002_3",
+    "calcParams": [
+     5,
+     10,
+     20
+    ]
+   }
+  ],
+  "paneOptions": [
+   {
+    "id": "candle_pane",
+    "height": 135,
+    "minHeight": 0,
+    "state": "minimize",
+    "order": 0
+   },
+   {
+    "id": "indicator_pane_1789482893002_3",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 0
+   },
+   {
+    "id": "x_axis_pane",
+    "height": 100,
+    "minHeight": 30,
+    "state": "normal",
+    "order": 9007199254740991
+   }
+  ]
+ }
+]
+
+## 含 VOL 图例行的 pane：{"k_line_chart_1|pane#2|100px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_2|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_3|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]}}
+
+## 截图
+  A2_baseline_full.png（整页）
+  A2_baseline_base_pane.png（基准 pane 5m）
+  A2_baseline_satellite_1h.png（卫星 1h）
+  A2_baseline_satellite_1d.png（卫星 1d）

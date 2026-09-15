@@ -1,0 +1,346 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished），且先于任何交互
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:554:22
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:47:24
+    at act [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact[24m/cjs/react.development.js:2512:16[90m)[39m
+    at Proxy.<anonymous> [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:46:25[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:553:5
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:26
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:557:22
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:47:24
+    at act [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact[24m/cjs/react.development.js:2512:16[90m)[39m
+    at Proxy.<anonymous> [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:46:25[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:556:5
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:26
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9-2 base=5m + 仅卫星 1d ⇒ onStats 必须上报「整组未建立」原因（禁止静默）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1d 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:583:22
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:47:24
+    at act [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact[24m/cjs/react.development.js:2512:16[90m)[39m
+    at Proxy.<anonymous> [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@testing-library/react[24m/dist/act-compat.js:46:25[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/syncCoverage.test.ts:582:5
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:26
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10-H （夹具自检，绿侧）允许组合 1m + 5m/15m：页面链路把两卫星都写入（证明夹具可用）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标（含周期与原因），1h 不得有
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10-2 base=5m + 仅卫星 1d：整组未建立也必须有页面可见状态（含原因）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1d 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts (17 tests | 13 failed) 118ms
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true（当前均 false ⇒ 必红） 4ms
+     → 同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行: expected false to be true // Object.is equality
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1-2 契约（A）：composeDensity 可直接调用，返回值 = 同锚点合成比（无公共锚点 ⇒ null） 1ms
+     → 契约（A）：`composeDensity(base, sat)` 必须导出/可测（同锚点密度合成；无公共锚点 ⇒ null）: expected 'undefined' to be 'function' // Object.is equality
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U2 无公共锚点仍拒绝：(5m,1d)/(15m,1d)/(1m,1d)/(1h,1d) 均为 false（绿侧防护，不得回退） 0ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U3 既有护栏不回退（绿侧防护）：卫星<基准 / 含 1mo / 1w 需基准≥1d / 同周期 / 表内组合 0ms
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U3-2 （补充）构造期排除原因码可读且优先级固定：卫星<基准 / 1w 需基准≥1d 1ms
+     → 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1m 恒退化/无重叠（禁… to be null
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U4 构造不抛错：base=5m + [1h,1d] ⇒ 构造/start/stop 成功；排除列表含 1d、不含 1h；原因可读 1ms
+     → 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5 无可同步跟随者：base=5m + 仅卫星 1d ⇒ 不抛错，且「无可同步跟随者」作为可观测状态可读 0ms
+     → 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1d 恒退化/无重叠（禁… to be null
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5-2 （补充）基准缺失：无 isBase 成员 ⇒ 不抛错，且 groupReason === "missing-base" 0ms
+     → 无基准 ⇒ 不得建立组: expected undefined to be false // Object.is equality
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U6 被排除成员零写入：对齐发生时 excluded 卫星的写方法一次都没被调用，而同组可同步卫星被调用 0ms
+     → 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7 密度来源可观测：base=5m + 卫星 1h 的对齐使用**合成**密度（≈8.04），且 barSpace 由它推导 0ms
+     → 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7-2 来源可区分（static vs composed）：表内组合 1m→5m 的读数来源必须是 static 1ms
+     → 表内组合的密度读数必须可读: expected undefined to be defined
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U8 基准永不作为 follower（绿侧防护）：卫星做 leader ⇒ 基准 barSpace/视口/右偏移逐字段不变 1ms
+   × 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished），且先于任何交互 7ms
+     → 契约（C）：组（重）建后必须**至少广播一次**统计快照（否则页面无法在交互前显示「未同步/未建立」）: expected undefined to be defined
+   × 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9-2 base=5m + 仅卫星 1d ⇒ onStats 必须上报「整组未建立」原因（禁止静默） 1ms
+     → 组未建立同样必须广播（不得只 console.warn）: expected undefined to be defined
+   ✓ 287 页面级可见状态（口径 C：禁止静默） > U10-H （夹具自检，绿侧）允许组合 1m + 5m/15m：页面链路把两卫星都写入（证明夹具可用） 70ms
+   × 287 页面级可见状态（口径 C：禁止静默） > U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标（含周期与原因），1h 不得有 17ms
+     → 口径 C：被排除的卫星必须渲染**可见角标**（`[data-mp-sync-excluded="<period>"]`，不得静默）: expected null not to be null
+   × 287 页面级可见状态（口径 C：禁止静默） > U10-2 base=5m + 仅卫星 1d：整组未建立也必须有页面可见状态（含原因） 12ms
+     → 口径 C：「整组未建立」必须有页面可见状态（`[data-mp-sync-group-unestablished]`，不得静默）: expected null not to be null
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true（当前均 false ⇒ 必红）
+AssertionError: 同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:268:7
+    266|       isSyncCombinationAllowed('5m', '15m'),
+    267|       '同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行',
+    268|     ).toBe(true);
+       |       ^
+    269|     expect(
+    270|       isSyncCombinationAllowed('5m', '1h'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1-2 契约（A）：composeDensity 可直接调用，返回值 = 同锚点合成比（无公共锚点 ⇒ null）
+AssertionError: 契约（A）：`composeDensity(base, sat)` 必须导出/可测（同锚点密度合成；无公共锚点 ⇒ null）: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: [32m"[7mf[27mun[7mction[27m"[39m
+Received: [31m"un[7mdefined[27m"[39m
+
+ ❯ requireComposeDensity src/features/dashboard/syncCoverage.test.ts:111:5
+    109|     typeof fn,
+    110|     '契约（A）：`composeDensity(base, sat)` 必须导出/可测（同锚点密度合成；无公共锚点 ⇒ null）',
+    111|   ).toBe('function');
+       |     ^
+    112|   return fn as ComposeFn;
+    113| }
+ ❯ src/features/dashboard/syncCoverage.test.ts:280:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U3-2 （补充）构造期排除原因码可读且优先级固定：卫星<基准 / 1w 需基准≥1d
+AssertionError: 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1m 恒退化/无重叠（禁… to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+Error {
+  "message": "多周期同步组合不可用：基准 5m ↔ 卫星 1m 恒退化/无重叠（禁止静默虚假对齐）",
+}
+
+ ❯ buildGroup src/features/dashboard/syncCoverage.test.ts:199:5
+    197|     error,
+    198|     '契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）',
+    199|   ).toBeNull();
+       |     ^
+    200|   expect(group, '契约（B）：构造必须返回可用的组对象').not.toBeNull();
+    201|   return group as CoverageGroupLike;
+ ❯ src/features/dashboard/syncCoverage.test.ts:356:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U4 构造不抛错：base=5m + [1h,1d] ⇒ 构造/start/stop 成功；排除列表含 1d、不含 1h；原因可读
+AssertionError: 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+Error {
+  "message": "多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）",
+}
+
+ ❯ buildGroup src/features/dashboard/syncCoverage.test.ts:199:5
+    197|     error,
+    198|     '契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）',
+    199|   ).toBeNull();
+       |     ^
+    200|   expect(group, '契约（B）：构造必须返回可用的组对象').not.toBeNull();
+    201|   return group as CoverageGroupLike;
+ ❯ src/features/dashboard/syncCoverage.test.ts:375:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5 无可同步跟随者：base=5m + 仅卫星 1d ⇒ 不抛错，且「无可同步跟随者」作为可观测状态可读
+AssertionError: 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1d 恒退化/无重叠（禁… to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+Error {
+  "message": "多周期同步组合不可用：基准 5m ↔ 卫星 1d 恒退化/无重叠（禁止静默虚假对齐）",
+}
+
+ ❯ buildGroup src/features/dashboard/syncCoverage.test.ts:199:5
+    197|     error,
+    198|     '契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）',
+    199|   ).toBeNull();
+       |     ^
+    200|   expect(group, '契约（B）：构造必须返回可用的组对象').not.toBeNull();
+    201|   return group as CoverageGroupLike;
+ ❯ src/features/dashboard/syncCoverage.test.ts:397:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5-2 （补充）基准缺失：无 isBase 成员 ⇒ 不抛错，且 groupReason === "missing-base"
+AssertionError: 无基准 ⇒ 不得建立组: expected undefined to be false // Object.is equality
+
+[32m- Expected:[39m 
+false
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:415:53
+    413|     startGroup(g);
+    414| 
+    415|     expect(g.stats.groupEstablished, '无基准 ⇒ 不得建立组').toBe(false);
+       |                                                     ^
+    416|     expect(g.stats.groupReason, '基准缺失必须显式上报').toBe('missing-base');
+    417|     expect(g.stats.syncableFollowerCount).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U6 被排除成员零写入：对齐发生时 excluded 卫星的写方法一次都没被调用，而同组可同步卫星被调用
+AssertionError: 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+Error {
+  "message": "多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）",
+}
+
+ ❯ buildGroup src/features/dashboard/syncCoverage.test.ts:199:5
+    197|     error,
+    198|     '契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）',
+    199|   ).toBeNull();
+       |     ^
+    200|   expect(group, '契约（B）：构造必须返回可用的组对象').not.toBeNull();
+    201|   return group as CoverageGroupLike;
+ ❯ src/features/dashboard/syncCoverage.test.ts:427:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7 密度来源可观测：base=5m + 卫星 1h 的对齐使用**合成**密度（≈8.04），且 barSpace 由它推导
+AssertionError: 契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）: expected Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁… to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+Error {
+  "message": "多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）",
+}
+
+ ❯ buildGroup src/features/dashboard/syncCoverage.test.ts:199:5
+    197|     error,
+    198|     '契约（B）：`ChartSyncGroup` 构造函数**不得抛错**（不可同步卫星应被排除并记录，而非整组失败 ⇒ 静默失效）',
+    199|   ).toBeNull();
+       |     ^
+    200|   expect(group, '契约（B）：构造必须返回可用的组对象').not.toBeNull();
+    201|   return group as CoverageGroupLike;
+ ❯ src/features/dashboard/syncCoverage.test.ts:456:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7-2 来源可区分（static vs composed）：表内组合 1m→5m 的读数来源必须是 static
+AssertionError: 表内组合的密度读数必须可读: expected undefined to be defined
+ ❯ src/features/dashboard/syncCoverage.test.ts:494:38
+    492|     const readings = g.stats.densityByFollower as Record<string, Follo…
+    493|     const reading = readings?.['5m'];
+    494|     expect(reading, '表内组合的密度读数必须可读').toBeDefined();
+       |                                      ^
+    495|     expect(reading?.source, '实测表命中 ⇒ source 必须是 static（与 composed 可区分）…
+    496|     expect(reading?.source, '不得把表内命中误标为 composed/measured').not.toBe('…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished），且先于任何交互
+AssertionError: 契约（C）：组（重）建后必须**至少广播一次**统计快照（否则页面无法在交互前显示「未同步/未建立」）: expected undefined to be defined
+ ❯ src/features/dashboard/syncCoverage.test.ts:564:7
+    562|       last,
+    563|       '契约（C）：组（重）建后必须**至少广播一次**统计快照（否则页面无法在交互前显示「未同步/未建立」）',
+    564|     ).toBeDefined();
+       |       ^
+    565|     expect(readExcluded(last as CoverageStatsLike)).toEqual([{ period:…
+    566|     expect((last as CoverageStatsLike).groupEstablished, '1h 可同步 ⇒ 组建立…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9-2 base=5m + 仅卫星 1d ⇒ onStats 必须上报「整组未建立」原因（禁止静默）
+AssertionError: 组未建立同样必须广播（不得只 console.warn）: expected undefined to be defined
+ ❯ src/features/dashboard/syncCoverage.test.ts:587:50
+    585| 
+    586|     const last = snapshots[snapshots.length - 1];
+    587|     expect(last, '组未建立同样必须广播（不得只 console.warn）').toBeDefined();
+       |                                                  ^
+    588|     expect((last as CoverageStatsLike).groupEstablished).toBe(false);
+    589|     expect((last as CoverageStatsLike).groupReason).toBe('no-syncable-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标（含周期与原因），1h 不得有
+AssertionError: 口径 C：被排除的卫星必须渲染**可见角标**（`[data-mp-sync-excluded="<period>"]`，不得静默）: expected null not to be null
+ ❯ src/features/dashboard/syncCoverage.test.ts:849:11
+    847|       badge,
+    848|       '口径 C：被排除的卫星必须渲染**可见角标**（`[data-mp-sync-excluded="<period>"]`，不得…
+    849|     ).not.toBeNull();
+       |           ^
+    850|     expect(
+    851|       badge?.getAttribute('data-mp-sync-excluded-reason'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10-2 base=5m + 仅卫星 1d：整组未建立也必须有页面可见状态（含原因）
+AssertionError: 口径 C：「整组未建立」必须有页面可见状态（`[data-mp-sync-group-unestablished]`，不得静默）: expected null not to be null
+ ❯ src/features/dashboard/syncCoverage.test.ts:884:11
+    882|       state,
+    883|       '口径 C：「整组未建立」必须有页面可见状态（`[data-mp-sync-group-unestablished]`，不得静默…
+    884|     ).not.toBeNull();
+       |           ^
+    885|     expect(
+    886|       state?.getAttribute('data-mp-sync-group-reason'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed | 4 passed (17)
+   Start at  22:53:07
+   Duration  653ms (transform 115ms, setup 24ms, collect 162ms, tests 118ms, environment 133ms, prepare 112ms)
+

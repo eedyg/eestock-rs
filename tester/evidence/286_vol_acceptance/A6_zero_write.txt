@@ -1,0 +1,134 @@
+# A6 零配置写入证据
+
+## 验收窗口：2026-09-15T14:34:52.818Z → 2026-09-15T14:35:23.991Z
+
+## 开始读取（A6_config_start.txt）
+  GET /api/config/multi_period ⇒ {"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  GET /api/config/kline ⇒ {"viewport_bars":120}
+  GET /api/config/ma ⇒ {"windows":[5,10,20]}
+
+## 结束读取（A6_config_end.txt）
+  GET /api/config/multi_period ⇒ {"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  GET /api/config/kline ⇒ {"viewport_bars":120}
+  GET /api/config/ma ⇒ {"windows":[5,10,20]}
+
+## 逐字段对比 ⇒ 两次完全相同（PASS：验收过程零写入）
+
+## app_config 表 updated_at（只读 SELECT，交叉核对部署窗口）
+```
+key|updated_at|value
+dcap|2026-09-13 15:27:38.121703+00|{"m": 3, "n_l": 66, "n_m": 36, "n_s": 8, "r_l": 1.0, "r_m": 1.0, "r_s": 1.0, "smooth": 1}
+multi_period|2026-09-15 14:30:35.055312+00|{"enabled": true, "heights": {"1d": 180, "1h": 180, "5m": 231}, "periods": ["5m", "1h", "1d"], "indicators": ["dcap"]}
+```
+  部署窗口（eestock-app 进程启动）= Tue Sep 15 22:27:42 2026 +0800；dist 产物 mtime = 2026-09-15 22:27 +0800
+  本脚本启动时间 = 2026-09-15T14:34:52.818Z（UTC，= +0800 减 8h）
+
+## 失败请求 / 页面异常
+  pageerror：[]
+  requestfailed：[]
+
+## console error/warning
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37089)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41851)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+  [warning] [multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528
+    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)
+    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526
+    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)
+    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)
+    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37089)
+    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)
+    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41851)
+    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816) (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:71)
+
+## 本次页面会话内所有 /api/ 请求（方法+状态）
+  GET 200 http://127.0.0.1:8081/api/config/ma
+  GET 200 http://127.0.0.1:8081/api/config/dcap
+  GET 200 http://127.0.0.1:8081/api/config/multi_period
+  GET 200 http://127.0.0.1:8081/api/config/kline
+  GET 200 http://127.0.0.1:8081/api/sources/health
+  GET 200 http://127.0.0.1:8081/api/symbols
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1m&limit=500
+  GET 200 http://127.0.0.1:8081/api/kline?code=513310&period=15m&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=159776&period=15m&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=161226&period=15m&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=15m&limit=120

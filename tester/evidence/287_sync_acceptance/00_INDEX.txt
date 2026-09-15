@@ -1,0 +1,58 @@
+# 287 独立验收证据索引（tester/evidence/287_sync_acceptance/）
+
+被验对象：线上 http://127.0.0.1:8081/（title「eestock · 行情看板」，bundle /assets/index-BGPCHS0j.js）
+仓库：/home/eestock/workspace/git/eestock/eestock-rs @ 8828d4621d9536687a380462f567590d5fc3ea3b（master）
+报告：tester/test/287_sync_coverage_acceptance.md
+
+## 运行环境
+- node v22.22.2 / @playwright/test 1.62.1（chromium）/ 视口 2000x1100（多周期栈 x=414 宽 1522，≥1936 宽才无裁剪）
+- 运行时多周期配置：{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+- 线上 bundle md5 = f493b2be9ca2dfa1acbf07d65366d016（== 工作区 web/dist；== 沙箱用当前源码重建的产物）
+- 采集时间：2026-09-15 23:12–23:13 CST（休市，无新 bar 干扰）
+
+## 验收脚本（复现入口）
+- `287_acceptance.mjs` — B1–B5 真渲染验收（只 GET；不拖 separator；手势仅在主图 candle 绘图区）
+- `287_B6_mutation_sandbox.sh` — B6 沙箱变异反证（/tmp 副本）
+
+## 文件清单（sha256 见下）
+| 文件 | 内容 |
+|---|---|
+| `A0_env.txt` | HEAD/分支/node/日期/视口/bundle md5/关键标记计数 |
+| `A0_geometry.json` | 主图 candle 绘图区几何 + 手势点 |
+| `A5_config_start.txt` / `A5_config_end.txt` | 验收开始/结束的 GET /api/config/{multi_period,kline,ma} 原文 |
+| `B1_windows.txt` / `B1_windows.json` | B1：6 个观测点 × 3 实例的可见时间窗（bar/右偏移/realFrom/realTo/时间戳/跨度） |
+| `B1_axis_ticks.txt` / `B1_axis_ticks.json` | B1：x 轴刻度文本集合（frame + gesture）、集合差异、同标签横向位移 |
+| `B1_T0*.png`（24 张） | B1：每个观测点的整页 + 主图 pane + 1h pane + 1d pane 截图 |
+| `B2_console.txt` | B2：console 全文（0 条）+「ChartSyncGroup 未建立」命中 0 |
+| `B3_excluded_badge.txt` | B3：被排除卫星角标 outerHTML/属性/文案/title + 各观测点窗口（不随动） |
+| `B4_layout_and_vol.txt` | B4：pane inline 高度/顺序不变量 + VOL 往返图例原文 |
+| `B4_dom_invariants_per_step.txt` | B4：8 个观测点（含 5 次手势 + VOL 往返）的不变量逐字段对比 |
+| `B4_vol_off_full.png` / `B4_vol_on_again_full.png` | B4：VOL 关闭 / 恢复截图 |
+| `B5_zero_write_and_errors.txt` | B5：配置前后逐字段对比 + /api/ 方法集合 + console/pageerror/requestfailed |
+| `B6_sandbox.txt` | B6：沙箱路径、sha256、步骤与结论汇总 |
+| `B6_mutation.diff` | B6：变异 diff（1 行，恢复旧行为） |
+| `B6_sandbox_baseline_green.txt` | B6：变异前基线（17 passed，exit 0） |
+| `B6_sandbox_mutation_red.txt` | B6：变异后（6 failed | 11 passed，exit 1） |
+| `B6_build_from_current_source.txt` | B6 附带：沙箱用当前源码构建 ⇒ 与线上 bundle md5 相同 |
+| `B6_sandbox_original_chartSyncGroup.ts.txt` / `B6_sandbox_mutated_chartSyncGroup.ts.txt` | B6：变异前/后源码原文 |
+| `287_results.json` | 全部结构化结果 |
+| `287_run.log` | 脚本运行日志 |
+
+## sha256（关键证据）
+```
+17eba7974b605e8ba6c71d6d481d6c61dd11e3763480951162979bb2600b1c98  287_acceptance.mjs
+303f5d4627f88e26121bfadbdeae7442d1fa6b9cefff762e2f52668a18f347e1  287_B6_mutation_sandbox.sh
+10e4a13aa4dd73b3ab650cd22eafeded3d2ee5e570c8974f3c22544b80468947  287_results.json
+27576d13077dd4c7ba4ef75d39c7514f9dd525ba1e73e2eaf4dc2520a75187fa  B1_windows.txt
+35c61e45a4834b57d5e2d80cead9661c11a628fa205b85a78506c55975f6c52f  B1_axis_ticks.txt
+8bc8055f12fae6558f871d2df8106dfc4ee755f39eabe213408bd72b6f17fdb5  B2_console.txt
+2a43501c5f124460d6238d32422aabf6d99162ec020470b6325731fbc35ff504  B3_excluded_badge.txt
+9e5e360f25439262c8839473547d1b2d205b86d935de6b236ef06e9390839242  B4_layout_and_vol.txt
+c397462d17a11942a9b1597eb129a4850f8103f1984fa07eddaab48033627df4  B4_dom_invariants_per_step.txt
+f0ac582ae1f38a4cdcb2822f81ada84e51e10b85c401a5973271df69567003c8  B5_zero_write_and_errors.txt
+02a910fc4a1869baa22bf7de13b83a6fc0aa55164018086c84405a604b43ea91  B6_mutation.diff
+b153fb4fe2a4d2b3c9795709f101c4b85955bf4a5905c1d7c4d084797ea89d9a  B6_sandbox_mutation_red.txt
+4e787cd496753ad54b83b87fad26656ef14679ee23b57c8cfbd989f13eec604d  B6_sandbox_baseline_green.txt
+8b30d654ccca36f9a8bc8222be935a0f805000d72e3f7dbf60e2c0f3dcbffae1  B6_build_from_current_source.txt
+391bd3d5c5ba1e68297524a20f2bd559a0684e4b7ed817b16bf255cf5c3b569f  B6_sandbox.txt
+```

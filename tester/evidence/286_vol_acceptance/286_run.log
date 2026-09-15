@@ -1,0 +1,9 @@
+[A6] 验收窗口开始：GET /api/config/* 已读取（multi_period={"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}）
+[pre] 线上 index.html bundle = /assets/index-dH4SuwMy.js
+[A1] PASS VOL 开关 aria-pressed=true
+[A2] 基线：基准=5m 卫星=[1h,1d]；含 VOL 图例的 pane=k_line_chart_1|pane#2|100px | k_line_chart_2|pane#2|135px | k_line_chart_3|pane#2|135px
+[A3] PASS aria-pressed=false；含 VOL 图例的 pane（关闭后）=(空)
+[A4] PASS layoutStable=true volRestored=true；candle/VOL pane 高度：["237px","100px"] → ["338px"] → ["237px","100px"]
+[A7a] VOL 关态切换前=false 切回后=false（分时态 kline 实例数=0）
+[A7] PASS a7a=true a7b=true
+[A6] 两次配置读取 PASS（逐字段相同）；页面 /api/ 方法集合=["GET"]；pageerror=0 requestfailed=0 console err/warn=8

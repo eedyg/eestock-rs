@@ -1,0 +1,35 @@
+# B5 零配置写入 / 仅 GET / console error & pageerror & requestfailed
+验收窗口(UTC)：2026-09-15T15:12:30.088Z → 2026-09-15T15:12:59.054Z
+
+## 开始读取（A5_config_start.txt）
+  GET /api/config/multi_period ⇒ {"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  GET /api/config/kline ⇒ {"viewport_bars":120}
+  GET /api/config/ma ⇒ {"windows":[5,10,20]}
+
+## 结束读取（A5_config_end.txt）
+  GET /api/config/multi_period ⇒ {"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  GET /api/config/kline ⇒ {"viewport_bars":120}
+  GET /api/config/ma ⇒ {"windows":[5,10,20]}
+
+## 逐字段对比 ⇒ 两次完全相同（零写入）
+
+## 页面会话内 /api/ 请求方法集合 = ["GET"]；非 GET 方法 = []
+## 去重后的 /api/ 请求（方法+状态+URL）：
+  GET 200 http://127.0.0.1:8081/api/config/multi_period
+  GET 200 http://127.0.0.1:8081/api/config/kline
+  GET 200 http://127.0.0.1:8081/api/config/dcap
+  GET 200 http://127.0.0.1:8081/api/config/ma
+  GET 200 http://127.0.0.1:8081/api/sources/health
+  GET 200 http://127.0.0.1:8081/api/symbols
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&limit=120
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&before=2026-09-11T05%3A25%3A00Z&limit=300
+  GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&before=2026-09-03T05%3A25%3A00Z&limit=300
+
+## console error/warning 计数 = 0
+  （无）
+## pageerror 计数 = 0
+  （无）
+## requestfailed 计数 = 0
+  （无）

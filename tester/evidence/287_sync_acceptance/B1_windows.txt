@@ -1,0 +1,56 @@
+# B1 主图拖动/缩放后各实例「可见时间窗」客观读数
+采集时间(UTC)：2026-09-15T15:12:59.048Z
+
+说明：窗口 = `chart.getVisibleRange()`（realFrom/realTo）映射到 `chart.getDataList()` 的 timestamp；
+      `spanMin` = 右缘 ts − 左缘 ts（分钟）；`bar` = `getBarSpace().bar`（px/bar）；`off` = `getOffsetRightDistance()`。
+      `resizeStable` = 强制重绘（chart.resize()）前后窗口是否逐字段相同（用于证明取刻度文本的动作不扰动窗口）。
+      时间一律为 Asia/Shanghai（CST，UTC+8）；括号内为 epoch 毫秒。
+
+## T00_baseline（2026-09-15T15:12:36.362Z）  resizeStable=true
+  k_line_chart_1   bar=  13 off=   0 realFrom=4 realTo=121 from=2026-09-11 13:45 CST(1789105500000) to=2026-09-15 15:00 CST(1789455600000) spanMin=5835 realBars=118 listLen=120
+  k_line_chart_2   bar=  52 off=   0 realFrom=90 realTo=121 from=2026-09-09 09:00 CST(1788915600000) to=2026-09-15 15:00 CST(1789455600000) spanMin=9000 realBars=32 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":0,"spanResidualMin":3165,"barSpace":52,"baseBarSpace":13,"ratioVsBase":4,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2340,"spanResidualMin":224565,"barSpace":13,"baseBarSpace":13,"ratioVsBase":1,"offsetRight":80}}
+  相对上一观测点是否变化：{}
+  卫星角标：1h: excluded=- degraded=spanDiff=3220 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+
+## T01_pan_right_250px（2026-09-15T15:12:39.178Z）  resizeStable=true
+  k_line_chart_1   bar=  13 off=   0 realFrom=285 realTo=401 from=2026-09-11 10:45 CST(1789094700000) to=2026-09-15 13:30 CST(1789450200000) spanMin=5925 realBars=117 listLen=420
+  k_line_chart_2   bar=  52 off=   0 realFrom=87 realTo=117 from=2026-09-08 13:00 CST(1788843600000) to=2026-09-15 13:00 CST(1789448400000) spanMin=10080 realBars=31 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":-30,"spanResidualMin":4155,"barSpace":52,"baseBarSpace":13,"ratioVsBase":4,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2250,"spanResidualMin":224475,"barSpace":13,"baseBarSpace":13,"ratioVsBase":1,"offsetRight":80}}
+  相对上一观测点是否变化：{"k_line_chart_1":true,"k_line_chart_2":true,"k_line_chart_3":false}
+  卫星角标：1h: excluded=- degraded=spanDiff=4210 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+
+## T02_pan_left_450px（2026-09-15T15:12:42.028Z）  resizeStable=true
+  k_line_chart_1   bar=  13 off=   0 realFrom=304 realTo=421 from=2026-09-11 13:45 CST(1789105500000) to=2026-09-15 15:00 CST(1789455600000) spanMin=5835 realBars=118 listLen=420
+  k_line_chart_2   bar=  52 off=   0 realFrom=90 realTo=121 from=2026-09-09 09:00 CST(1788915600000) to=2026-09-15 15:00 CST(1789455600000) spanMin=9000 realBars=32 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":0,"spanResidualMin":3165,"barSpace":52,"baseBarSpace":13,"ratioVsBase":4,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2340,"spanResidualMin":224565,"barSpace":13,"baseBarSpace":13,"ratioVsBase":1,"offsetRight":80}}
+  相对上一观测点是否变化：{"k_line_chart_1":true,"k_line_chart_2":true,"k_line_chart_3":false}
+  卫星角标：1h: excluded=- degraded=spanDiff=3220 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+
+## T03_wheel_zoom_in（2026-09-15T15:12:44.911Z）  resizeStable=true
+  k_line_chart_1   bar=17.303 off=   0 realFrom=319 realTo=407 from=2026-09-11 15:00 CST(1789110000000) to=2026-09-15 14:00 CST(1789452000000) spanMin=5700 realBars=89 listLen=420
+  k_line_chart_2   bar=  34 off=   0 realFrom=75 realTo=120 from=2026-09-04 13:00 CST(1788498000000) to=2026-09-15 15:00 CST(1789455600000) spanMin=15960 realBars=46 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":60,"spanResidualMin":10260,"barSpace":34,"baseBarSpace":17.303,"ratioVsBase":1.965,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2280,"spanResidualMin":224700,"barSpace":13,"baseBarSpace":17.303,"ratioVsBase":0.751,"offsetRight":80}}
+  相对上一观测点是否变化：{"k_line_chart_1":true,"k_line_chart_2":true,"k_line_chart_3":false}
+  卫星角标：1h: excluded=- degraded=spanDiff=10315 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+
+## T04_wheel_zoom_out（2026-09-15T15:12:48.261Z）  resizeStable=true
+  k_line_chart_1   bar=9.195523623000001 off=   0 realFrom=256 realTo=421 from=2026-09-10 13:55 CST(1789019700000) to=2026-09-15 15:00 CST(1789455600000) spanMin=7265 realBars=166 listLen=420
+  k_line_chart_2   bar=  37 off=   0 realFrom=79 realTo=121 from=2026-09-07 10:00 CST(1788746400000) to=2026-09-15 15:00 CST(1789455600000) spanMin=11820 realBars=43 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":0,"spanResidualMin":4555,"barSpace":37,"baseBarSpace":9.195523623000001,"ratioVsBase":4.024,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2340,"spanResidualMin":223135,"barSpace":13,"baseBarSpace":9.195523623000001,"ratioVsBase":1.414,"offsetRight":80}}
+  相对上一观测点是否变化：{"k_line_chart_1":true,"k_line_chart_2":true,"k_line_chart_3":false}
+  卫星角标：1h: excluded=- degraded=spanDiff=4610 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+
+## T05_wheel_zoom_out_more（2026-09-15T15:12:52.194Z）  resizeStable=true
+  k_line_chart_1   bar=3.2062808327703407 off=   0 realFrom=254 realTo=721 from=2026-09-02 13:45 CST(1788327900000) to=2026-09-15 15:00 CST(1789455600000) spanMin=18795 realBars=468 listLen=720
+  k_line_chart_2   bar=  13 off=   0 realFrom=4 realTo=121 from=2026-08-19 14:00 CST(1787119200000) to=2026-09-15 15:00 CST(1789455600000) spanMin=38940 realBars=118 listLen=120
+  k_line_chart_3   bar=  13 off=  80 realFrom=9 realTo=127 from=2026-04-07 00:00 CST(1775491200000) to=2026-09-14 00:00 CST(1789315200000) spanMin=230400 realBars=119 listLen=120
+  同步检查（基准=第一个实例）：{"k_line_chart_2":{"edgeResidualMin":0,"spanResidualMin":20145,"barSpace":13,"baseBarSpace":3.2062808327703407,"ratioVsBase":4.055,"offsetRight":0},"k_line_chart_3":{"edgeResidualMin":-2340,"spanResidualMin":211605,"barSpace":13,"baseBarSpace":3.2062808327703407,"ratioVsBase":4.055,"offsetRight":80}}
+  相对上一观测点是否变化：{"k_line_chart_1":true,"k_line_chart_2":true,"k_line_chart_3":false}
+  卫星角标：1h: excluded=- degraded=spanDiff=20200 | 1d: excluded=no-shared-anchor degraded=-；整组未建立角标=无
+

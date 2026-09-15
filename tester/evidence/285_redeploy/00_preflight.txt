@@ -1,0 +1,5 @@
+# item: 00_preflight
+# collected_at_utc: 2026-09-15T13:29:55Z  (local: 2026-09-15 21:29:55 CST)
+# cwd: /home/eestock/workspace/git/eestock/eestock-rs
+# HEAD: 8828d4621d9536687a380462f567590d5fc3ea3b  8828d46 docs(adr): 选择器实现落位口径（派生观测，无快照字段）+ 台账 D7/D8
+# acceptance_items: A1-A7   read-only: only GET used; no PUT/POST issued

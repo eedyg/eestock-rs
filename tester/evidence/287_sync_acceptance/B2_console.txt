@@ -1,0 +1,8 @@
+# B2 console 全文（含「ChartSyncGroup 未建立」检索）
+采集时间(UTC)：2026-09-15T15:12:59.054Z
+
+## 命中「ChartSyncGroup 未建立」的 console 条目数 = 0（0 = PASS）
+  （无）
+
+## console 全部条目（共 0 条；error/warning 共 0 条）
+  （无任何 console 消息）

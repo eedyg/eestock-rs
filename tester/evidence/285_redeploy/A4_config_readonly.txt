@@ -1,0 +1,35 @@
+# item: A4_config_readonly   (GET-only; 与基线逐字段比对)
+$ curl -s -w ' HTTP=%{http_code}' http://127.0.0.1:8081/api/config/multi_period
+{"enabled":true,"periods":["1m","5m","15m"],"heights":{"15m":292,"1m":630,"5m":231},"indicators":["dcap"]} HTTP=200
+$ curl -s -w ' HTTP=%{http_code}' http://127.0.0.1:8081/api/config/kline
+{"viewport_bars":120} HTTP=200
+$ curl -s -w ' HTTP=%{http_code}' http://127.0.0.1:8081/api/config/ma
+{"windows":[5,10,20]} HTTP=200
+
+## 规范序（sort_keys）逐字段比对 vs 父级给定基线
+got  = {"enabled": true, "heights": {"15m": 292, "1m": 630, "5m": 231}, "indicators": ["dcap"], "periods": ["1m", "5m", "15m"]}
+base = {"enabled": true, "heights": {"15m": 292, "1m": 630, "5m": 231}, "indicators": ["dcap"], "periods": ["1m", "5m", "15m"]}
+FIELD_EQUAL = True
+keys_equal  = True
+heights_equal = True
+periods_equal = True
+indicators_equal = True
+enabled_equal = True
+NOTE: 原始字节序不同（heights 键序 15m,1m,5m vs 1m,5m,15m）—— JSON 对象键序无语义，字段级完全一致
+
+kline got= {"viewport_bars": 120} | equal_to_viewport_bars_120 = True
+ma    got= {"windows": [5, 10, 20]} | equal_to_windows_5_10_20 = True
+
+$ curl -s -w ' HTTP=%{http_code}' http://127.0.0.1:8081/api/config/dcap   # 基线参考（app_config 中另有 dcap 行）
+{"n_s":8,"n_m":36,"n_l":66,"r_s":1.0,"r_m":1.0,"r_l":1.0,"smooth":1,"m":3} HTTP=200
+
+## 只读 DB 交叉核对 app_config.updated_at（部署窗口 ~2026-09-15 21:28:19-21:28:22 local = 13:28:19-13:28:22 UTC）
+$ PGPASSWORD=*** psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -c 'SET default_transaction_read_only = on;' -c 'SELECT key, value, updated_at FROM app_config ORDER BY key;'
+SET
+     key      |                                                          value                                                           |          updated_at           
+--------------+--------------------------------------------------------------------------------------------------------------------------+-------------------------------
+ dcap         | {"m": 3, "n_l": 66, "n_m": 36, "n_s": 8, "r_l": 1.0, "r_m": 1.0, "r_s": 1.0, "smooth": 1}                                | 2026-09-13 15:27:38.121703+00
+ multi_period | {"enabled": true, "heights": {"1m": 630, "5m": 231, "15m": 292}, "periods": ["1m", "5m", "15m"], "indicators": ["dcap"]} | 2026-09-15 13:17:52.643072+00
+(2 rows)
+
+# 结论: app_config 最后写入 = 2026-09-15 13:17:52 UTC (= 21:17:52 local)，早于部署窗口 ⇒ 部署本身未写入 app_config

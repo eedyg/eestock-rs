@@ -1,0 +1,39 @@
+# A3 点击 VOL 关闭 ⇒ 主图 + 全部卫星 pane 内 VOL 图例消失
+抓取时间：2026-09-15T14:35:02.390Z
+
+## 开关态：aria-pressed=false（点击前 = true）
+## outerHTML：<button class="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3" aria-pressed="false">VOL</button>
+
+## 关闭前（A2 基线）含 VOL 图例的 pane
+{"k_line_chart_1|pane#2|100px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_2|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]},"k_line_chart_3|pane#2|135px":{"legendLine":["VOL(5,10,20)"],"label":["VOLUME: "]}}
+
+## 关闭后含 VOL 图例的 pane（必须为空）
+{}
+
+## 关闭后每个 pane 的图例原文
+  k_line_chart_1|pane#0|338px: ["518880 · 5","Time: ","2026-09-15 15:00","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_1|pane#1|26px: ["14:45","10:30","13:15","14:35","10:20","13:05","14:25"]
+  k_line_chart_2|pane#0|0px: ["518880 · 1H","Time: ","2026-09-15 15:00","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_2|pane#1|26px: ["08-21 14:00","08-26 11:00","08-31 09:00","09-02 14:00","09-07 11:00","09-10 09:00","09-14 14:00"]
+  k_line_chart_3|pane#0|0px: ["518880 · 1D","Time: ","Open: ","High: ","Low: ","Close: ","Volume: ","MA(5,10,20)","MA5: ","MA10: ","MA20: "]
+  k_line_chart_3|pane#1|26px: []
+
+## 关闭前后 separator 数 / pane 数对比（klinecharts DOM）
+  k_line_chart_1: 前 panes=["237px","100px"] sep=1/["1px"]  ⇒  后 panes=["338px"] sep=0/[]
+  k_line_chart_2: 前 panes=["0px","135px"] sep=1/["0px"]  ⇒  后 panes=["0px"] sep=0/[]
+  k_line_chart_3: 前 panes=["0px","135px"] sep=1/["0px"]  ⇒  后 panes=["0px"] sep=0/[]
+
+## 关闭后 [data-mp-pane] inline 高度（应与基线一致）
+  5m role=base attr=364 inline=364px rect=364
+  1h role=satellite attr=180 inline=180px rect=180
+  1d role=satellite attr=180 inline=180px rect=180
+
+## chart 实例身份（mark 打点证明未重建）
+  打点（点击前）：{"hosts":[{"hostId":"k_line_chart_1","mark":"A3-h0"},{"hostId":"k_line_chart_2","mark":"A3-h1"},{"hostId":"k_line_chart_3","mark":"A3-h2"}],"charts":[{"hostId":"k_line_chart_1","mark":"A3-c0"},{"hostId":"k_line_chart_2","mark":"A3-c1"},{"hostId":"k_line_chart_3","mark":"A3-c2"}]}
+  点击后实例：[{"hostId":"k_line_chart_1","acceptMark":"A3-c0","indicators":["MA"]},{"hostId":"k_line_chart_2","acceptMark":"A3-c1","indicators":["MA"]},{"hostId":"k_line_chart_3","acceptMark":"A3-c2","indicators":["MA"]}]
+
+## 截图
+  A3_vol_off_full.png（整页）
+  A3_vol_off_base_pane.png（基准 pane）
+  A3_vol_off_satellite_1h.png（卫星 1h）
+  A3_vol_off_satellite_1d.png（卫星 1d）

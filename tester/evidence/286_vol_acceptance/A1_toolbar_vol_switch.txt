@@ -1,0 +1,23 @@
+# A1 工具栏 VOL 开关（默认开）DOM 契约
+抓取时间：2026-09-15T14:34:56.760Z
+
+## VOL 开关 outerHTML（原文）
+<button class="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3" aria-pressed="true">VOL</button>
+
+## 属性
+text            = VOL
+aria-pressed    = true
+visible         = true
+className       = inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3
+
+## 指标开关行（顺序 + 各自 aria-pressed，证明 VOL 与 MA/MACD/KDJ/BOLL/DCAP 并列）
+  MA     aria-pressed=true
+  VOL    aria-pressed=true
+  MACD   aria-pressed=false
+  KDJ    aria-pressed=false
+  BOLL   aria-pressed=false
+  DCAP   aria-pressed=false
+
+## 截图
+  A1_toolbar_vol_default_on.png（工具栏区域）
+  A1_fullpage_default_on.png（整页）

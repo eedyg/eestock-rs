@@ -1,0 +1,87 @@
+{
+  "geometry": {
+    "doc": {
+      "scrollWidth": 2000,
+      "clientWidth": 2000
+    },
+    "baseChartChildren": [
+      {
+        "i": 0,
+        "h": "537px",
+        "bg": null,
+        "cursor": "",
+        "top": 76,
+        "bottom": 613,
+        "left": 448,
+        "width": 1552
+      },
+      {
+        "i": 1,
+        "h": "1px",
+        "bg": "rgb(221, 221, 221)",
+        "cursor": "ns-resize",
+        "top": 613,
+        "bottom": 614,
+        "left": 448,
+        "width": 1552
+      },
+      {
+        "i": 2,
+        "h": "100px",
+        "bg": null,
+        "cursor": "",
+        "top": 614,
+        "bottom": 714,
+        "left": 448,
+        "width": 1552
+      },
+      {
+        "i": 3,
+        "h": "26px",
+        "bg": null,
+        "cursor": "ew-resize",
+        "top": 714,
+        "bottom": 740,
+        "left": 448,
+        "width": 1552
+      }
+    ],
+    "hosts": [
+      {
+        "id": "k_line_chart_1",
+        "x": 448,
+        "y": 76,
+        "w": 1552,
+        "h": 664
+      },
+      {
+        "id": "k_line_chart_2",
+        "x": 448,
+        "y": 759,
+        "w": 1552,
+        "h": 161
+      },
+      {
+        "id": "k_line_chart_3",
+        "x": 448,
+        "y": 939,
+        "w": 1552,
+        "h": 161
+      }
+    ]
+  },
+  "baseCandlePane": {
+    "i": 0,
+    "h": "537px",
+    "bg": null,
+    "cursor": "",
+    "top": 76,
+    "bottom": 613,
+    "left": 448,
+    "width": 1552
+  },
+  "gesturePoint": {
+    "x": 1224,
+    "y": 345
+  }
+}

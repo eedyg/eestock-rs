@@ -1,0 +1,46 @@
+# item: A7_footprint   (部署足迹最小性)
+## web/dist/ 清单 + mtime（全部产物同一构建时刻 21:28:05）
+$ find web/dist -type f -printf '%T+ %10s %p\n' | sort
+2026-09-15+21:28:05.0687818660    1214769 web/dist/assets/index-DVcJC1GO.js
+2026-09-15+21:28:05.0687818660      22931 web/dist/assets/index-BpQVDpqf.css
+2026-09-15+21:28:05.0687818660        397 web/dist/index.html
+
+## 部署窗口内被修改的仓库文件（排除 target/.git/node_modules 与本次报告产物）
+$ find . -path ./target -prune -o -path ./.git -prune -o ... -newermt '2026-09-15 21:20' -print
+./logs/app_dev_8081_redeploy_20260915_212820.log
+./web/dist/assets/index-BpQVDpqf.css
+./web/dist/assets/index-DVcJC1GO.js
+./web/dist/index.html
+
+## migrations：无新增（最新仍为 0025，Sep 12）
+$ ls -la migrations/ | tail -4
+-rw-r--r--  1 eestock eestock 4806 Sep  9 16:52 0022_strategy_registry.sql
+-rw-r--r--  1 eestock eestock 2587 Sep  9 18:44 0023_strategy_workbench.sql
+-rw-r--r--  1 eestock eestock  614 Sep 10 08:42 0024_drop_legacy_backtest_tables.sql
+-rw-r--r--  1 eestock eestock 6947 Sep 12 21:15 0025_symbol_type_fee_profiles.sql
+$ find migrations -type f -newermt '2026-09-15 00:00'
+(无输出=无新 migration)
+
+## 配置文件未被动过
+$ stat -c '%y %s %n' /tmp/app_dev_8081.toml
+2026-09-10 12:14:46.360245452 +0800 211 /tmp/app_dev_8081.toml
+
+## web/src/crates 源码在部署窗口内无改动（最新 mtime 09:53:43，早于 21:28 部署）
+$ find web/src crates -newermt '2026-09-15 15:00' -type f -printf '%T+ %p\n' | sort
+(无输出=部署窗口内无源码写入)
+
+## app_config 无写入证据（见 A4 的只读 psql 交叉核对）
+# app_config.updated_at 最大 = 2026-09-15 13:17:52 UTC (21:17:52 local) < 部署窗口 21:28:19-21:28:22 local
+# 后端日志 sim-live 启动恢复完成 recovered=0 degraded=0 ⇒ 无状态回写
+
+## 产物形态（仅 dist 三文件；无 srcmap / 无新增源码文件）
+$ ls -la web/dist/
+total 16
+drwxrwxr-x 3 eestock eestock 4096 Sep 15 21:28 .
+drwxrwxr-x 8 eestock eestock 4096 Sep 14 11:48 ..
+drwxrwxr-x 2 eestock eestock 4096 Sep 15 21:28 assets
+-rw-rw-r-- 1 eestock eestock  397 Sep 15 21:28 index.html
+$ git status --porcelain --untracked-files=all -- web/dist
+(无输出=web/dist 未由 git 跟踪，非代码变更)
+$ git ls-files web/dist | wc -l
+0

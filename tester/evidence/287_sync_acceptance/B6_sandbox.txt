@@ -1,0 +1,59 @@
+# B6 变异反证（沙箱 /tmp，禁改工作区）
+采集时间(UTC)：2026-09-15T15:10Z 前后（本机 2026-09-15 23:10 CST）
+
+## 0. 沙箱
+  路径            = /tmp/287_sandbox（web/ 的完整拷贝；node_modules 为**真实拷贝**，非 symlink，
+                    以确保 vitest/vite 的任何缓存写入都落在 /tmp，工作区零共享写入）
+  拷贝方式        = rsync -a --exclude node_modules --exclude dist --exclude 'e2e/artifacts' <repo>/web/ /tmp/287_sandbox/web/
+                    + cp -a <repo>/web/node_modules /tmp/287_sandbox/web/node_modules
+  文件数          = 289（web/ 源文件）+ node_modules（157M）
+  与工作区差异    = 变异前 `diff -rq /tmp/287_sandbox/web/src <repo>/web/src` ⇒ 无差异（逐字节相同）
+                    变异后 ⇒ 仅 chartSyncGroup.ts 一处差异
+
+## 1. 被验文件 sha256（沙箱 == 工作区）
+  5fff99f744bed995fc243d0b70e48e3671ff4323b96e64534e280879ac9bf184  web/src/features/dashboard/chartSyncGroup.ts
+  319b16eb55cccb37c0afa8cc0e9276a37c7c43c89376ae2dc318131ebf90ccfd  web/src/features/dashboard/syncCoverage.test.ts
+  （工具链：node v22.22.2 / vitest 3.2.7 / vite 6.3.5，均取自沙箱自身的 node_modules）
+
+## 2. 基线（未变异）——必须全绿
+  命令：cd /tmp/287_sandbox/web && ./node_modules/.bin/vitest run src/features/dashboard/syncCoverage.test.ts
+  结果：`Test Files 1 passed (1)` / `Tests 17 passed (17)`，exit code = 0
+  证据：B6_sandbox_baseline_green.txt
+
+## 3. 附带反证：沙箱用**当前源码**构建 ⇒ 与线上 bundle 逐字节相同
+  命令：cd /tmp/287_sandbox/web && VITE_API_MOCK=0 ./node_modules/.bin/vite build
+  产物：dist/assets/index-BGPCHS0j.js（1,217,684 B）md5 = f493b2be9ca2dfa1acbf07d65366d016
+  线上：http://127.0.0.1:8081/assets/index-BGPCHS0j.js md5 = f493b2be9ca2dfa1acbf07d65366d016（相同）
+  ⇒ 8081 所服务的 bundle 与当前工作区源码一致（构建在 /tmp 完成，工作区 web/dist 未被改动）
+  证据：B6_build_from_current_source.txt
+
+## 4. 变异（沙箱内）
+  变异内容：把守门 `isSyncCombinationAllowed` 恢复成「只认实测表」= 删除 syncExclusionReason 中的
+            `if (composeDensity(...) !== null) return null;` 放行分支（即回到修复前旧行为）。
+  变异文件 sha256：02b4ee6cf65ca7dd1425dd0a210ef71e2141c4d827df3bebc57922985e07141d
+  变异 diff（1 行）：B6_mutation.diff
+  变异前/后源码原文：B6_sandbox_original_chartSyncGroup.ts.txt / B6_sandbox_mutated_chartSyncGroup.ts.txt
+
+## 5. 变异后执行 —— 必须变红（实测变红）
+  命令：cd /tmp/287_sandbox/web && ./node_modules/.bin/vitest run src/features/dashboard/syncCoverage.test.ts
+  结果：`Test Files 1 failed (1)` / `Tests 6 failed | 11 passed (17)`，exit code = 1
+  失败用例（6）：
+    U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true
+       AssertionError: 同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行: expected false to be true
+    U4 构造不抛错：base=5m + [1h,1d] ⇒ 排除列表含 1d、不含 1h；原因可读
+       AssertionError: expected [ '1h', '1d' ] to deeply equal [ '1d' ]
+    U6 被排除成员零写入：对齐发生时 excluded 卫星零写入，而同组可同步卫星被写入
+       AssertionError: 可同步卫星必须被写入 barSpace: expected false to be true
+    U7 密度来源可观测：base=5m + 卫星 1h 的对齐使用**合成**密度（≈8.04）
+       AssertionError: base=5m + 跟随者 1h 的密度读数必须可读: expected undefined to be defined
+    U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished）
+       AssertionError: expected [ { period: '1h', …(1) }, …(1) ] to deeply equal [ { period: '1d', …(1) } ]
+    U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标，1h 不得有
+       AssertionError（1h 被误排除 ⇒ 角标集合错误）
+  崩溃 / core dump：无（全部为 AssertionError，无进程崩溃、无 core 文件）
+  证据：B6_sandbox_mutation_red.txt（全文）
+
+## 6. 一致性（禁改工作区）
+  工作区 `web/src/features/dashboard/chartSyncGroup.ts` sha256 变异前后均为
+  5fff99f744bed995fc243d0b70e48e3671ff4323b96e64534e280879ac9bf184（未变）；
+  工作区 web/dist 未重建（mtime 仍为 2026-09-15 23:02:05 +0800）。

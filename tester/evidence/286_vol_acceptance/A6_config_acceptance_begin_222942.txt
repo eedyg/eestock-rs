@@ -1,0 +1,10 @@
+timestamp_utc=20260915T142942Z
+--- GET /api/config/multi_period ---
+{"enabled":true,"periods":["5m","15m","1h"],"heights":{"15m":180,"1h":180,"5m":231},"indicators":["dcap"]}
+HTTP_CODE=200
+--- GET /api/config/kline ---
+{"viewport_bars":120}
+HTTP_CODE=200
+--- GET /api/config/ma ---
+{"windows":[5,10,20]}
+HTTP_CODE=200

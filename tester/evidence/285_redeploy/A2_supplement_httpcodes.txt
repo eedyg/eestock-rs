@@ -1,0 +1,16 @@
+# item: A2_static_consistency / supplement — HTTP 状态码、大小、Content-Type
+/                            -> HTTP=200 bytes=397 ct=text/html; charset=utf-8
+/assets/index-DVcJC1GO.js    -> HTTP=200 bytes=1214769 ct=text/javascript
+/assets/index-BpQVDpqf.css   -> HTTP=200 bytes=22931 ct=text/css
+/healthz                     -> HTTP=200 bytes=15 ct=application/json
+
+# 注意：旧 bundle 路径静态兜底（SPA fallback），返回 index.html 而非旧 bundle 本体
+/assets/index-vF0gMhC3.js    -> HTTP=200 bytes=397 ct=text/html; charset=utf-8
+$ diff <(curl -s http://127.0.0.1:8081/assets/index-vF0gMhC3.js) web/dist/index.html ; echo exit=$?
+exit=0
+# ⇒ exit=0：该 200/397B 响应与 index.html 逐字节相同，是静态目录兜底（content-type: text/html），
+#   不是旧 bundle 本体。判定旧 bundle 是否下线以文件系统证据（A3 的 ls）为准，不以 HTTP 码为准。
+
+$ curl -s -D - -o /dev/null http://127.0.0.1:8081/assets/index-DVcJC1GO.js | grep -iE 'content-type|content-length'
+content-type: text/javascript
+content-length: 1214769

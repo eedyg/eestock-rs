@@ -1,0 +1,40 @@
+# item: A3_p5_5_markers   (线上 bundle 标记 grep -c; 部署前 mp-periods-open/mp-picker 均为 0)
+## 线上（HTTP 取回的 bundle，先落盘 /tmp 再 grep）
+$ curl -s http://127.0.0.1:8081/assets/index-DVcJC1GO.js > /tmp/285_served_bundle.js
+bytes=1214769
+$ grep -c -- mp-periods-open /tmp/285_served_bundle.js
+1
+$ grep -c -- mp-picker /tmp/285_served_bundle.js
+1
+$ grep -c -- mp-base-period /tmp/285_served_bundle.js
+1
+
+## 本地 dist 产物
+$ grep -c -- mp-periods-open web/dist/assets/index-DVcJC1GO.js
+1
+$ grep -c -- mp-picker web/dist/assets/index-DVcJC1GO.js
+1
+$ grep -c -- mp-base-period web/dist/assets/index-DVcJC1GO.js
+1
+
+## 相关衍生标记（同一 bundle）
+grep -c mp-base-period-source = 1
+grep -c mp-picker-confirm = 1
+grep -c mp-picker-error = 1
+grep -c mp-picker-hint = 1
+
+## 源码独有中文字串（证明真实 UI 代码已进产物，而非仅测试 id 名）
+grep -c 两步周期选择器 = 1
+grep -c 指标周期 = 1
+grep -c K 线周期 = 1
+
+## 旧 bundle 是否仍在 web/dist/assets/
+$ ls -la web/dist/assets/index-vF0gMhC3.js
+ls: cannot access 'web/dist/assets/index-vF0gMhC3.js': No such file or directory
+exit=2
+$ ls -la web/dist/assets/
+total 1220
+drwxrwxr-x 2 eestock eestock    4096 Sep 15 21:28 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 15 21:28 ..
+-rw-rw-r-- 1 eestock eestock   22931 Sep 15 21:28 index-BpQVDpqf.css
+-rw-rw-r-- 1 eestock eestock 1214769 Sep 15 21:28 index-DVcJC1GO.js

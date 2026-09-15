@@ -1,0 +1,40 @@
+# A9（附加）像素级渲染证据（页面截图，非图表导出）
+
+## 截图尺寸
+  A1_fullpage_default_on.png: 1280x800
+  A2_baseline_full.png: 1280x800
+  A3_vol_off_full.png: 1280x800
+  A4_vol_on_again_full.png: 1280x800
+  A2_baseline_base_pane.png: 1523x364
+  A3_vol_off_base_pane.png: 1523x364
+  A4_vol_on_again_base_pane.png: 1523x364
+  A2_baseline_satellite_1h.png: 1523x180
+  A3_vol_off_satellite_1h.png: 1523x180
+  A4_vol_on_again_satellite_1h.png: 1523x180
+  A2_baseline_satellite_1d.png: 1523x180
+  A3_vol_off_satellite_1d.png: 1523x180
+  A4_vol_on_again_satellite_1d.png: 1523x180
+
+## 基准 pane 截图（A2 基线：candle 0-236px / separator 237px / VOL 238-337px / x轴 338-363px）
+  高度=364
+  candle(0-236): ink 占比 A2=0.1344 A3=0.1238 A4=0.1344  (A2背景色=(11, 14, 23))
+  sep(237): ink 占比 A2=0.0000 A3=0.0342 A4=0.0000  (A2背景色=(221, 221, 221))
+  VOL(238-337): ink 占比 A2=0.2165 A3=0.0513 A4=0.2165  (A2背景色=(11, 14, 23))
+  xAxis(338-363): ink 占比 A2=0.0583 A3=0.0586 A4=0.0583  (A2背景色=(11, 14, 23))
+
+## 基准 pane 逐像素差异（VOL 关/开 对基线）
+  A3 vs A2 全图差异像素占比 = 0.1485
+  A4 vs A2 全图差异像素占比 = 0.0000（0 ⇒ 逐像素一致）
+  A3 vs A2 仅 VOL 带(238-337) 差异占比 = 0.2599
+
+## 卫星 1h / 1d 截图（VOL 只在指标 pane 内，pane 高 135px；关掉后该 pane 消失 ⇒ 指标区应变空白）
+  1h: size=1523x180 ink A2=0.1533 A3=0.0195 A4=0.1533
+      A3 vs A2 差异占比=0.1556 ; A4 vs A2 差异占比=0.0000（0 ⇒ 逐像素一致）
+  1d: size=1523x180 ink A2=0.2365 A3=0.0192 A4=0.2365
+      A3 vs A2 差异占比=0.2382 ; A4 vs A2 差异占比=0.0000（0 ⇒ 逐像素一致）
+
+## 整页截图指纹（逐像素一致则 md5 相同）
+  A1_fullpage_default_on.png: md5=c88b0e7f480ab2bbd9a077fb24578f1f
+  A2_baseline_full.png: md5=c88b0e7f480ab2bbd9a077fb24578f1f
+  A3_vol_off_full.png: md5=bfcbb352a7148025ff2cc42c9f0e0aad
+  A4_vol_on_again_full.png: md5=c88b0e7f480ab2bbd9a077fb24578f1f

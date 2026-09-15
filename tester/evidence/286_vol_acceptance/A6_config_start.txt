@@ -1,0 +1,10 @@
+# GET /api/config/* (start) — 只读，无任何写请求
+--- GET /api/config/multi_period ---
+HTTP 200
+{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+--- GET /api/config/kline ---
+HTTP 200
+{"viewport_bars":120}
+--- GET /api/config/ma ---
+HTTP 200
+{"windows":[5,10,20]}

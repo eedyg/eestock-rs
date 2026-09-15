@@ -1,0 +1,39 @@
+# B4 回归：多周期 pane DOM inline 高度/顺序不变量 + VOL 开关往返
+采集时间(UTC)：2026-09-15T15:12:59.048Z
+
+## 不变量逐字段对比（验收开始 T00 基线 vs VOL 两次点击之后）
+  [data-mp-pane] inline 高度/角色/声明属性/childIndex
+    基线：5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+    终态：5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4
+    ⇒ 逐值一致
+  [data-mp-separator] 顺序/高度
+    基线：5m|1h@1(h=0) | 1h|1d@3(h=0)
+    终态：5m|1h@1(h=0) | 1h|1d@3(h=0)
+    ⇒ 一致
+  [data-mp-stack] children 顺序
+    基线：div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+    终态：div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]
+    ⇒ 一致
+  卫星 pane 顺序：基线=1h,1d 终态=1h,1d
+  卫星 pane 高度：基线=1h: inline=180px rect=180 | 1d: inline=180px rect=180 终态=1h: inline=180px rect=180 | 1d: inline=180px rect=180
+  stack layout={"reason":"fit","total":1024,"shrunk":false,"scrollable":false,"available":1024,"heights":{"5m":664,"1h":180,"1d":180}} scrollable=false
+
+## VOL 开关（点击前 / 点击后 / 再点击）
+  点击前 aria-pressed=true
+  点击后 aria-pressed=false
+  再点击 aria-pressed=true
+  outerHTML（点击前）：<button class="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3" aria-pressed="true">VOL</button>
+
+## VOL 图例原文（canvas fillText 捕获；含 VOL( 或 VOLUME: 的画布）
+  点击前（默认开）：{"k_line_chart_1|1492x100@top614":["VOL(5,10,20)","VOLUME: "],"k_line_chart_2|1492x135@top759":["VOL(5,10,20)","VOLUME: "],"k_line_chart_3|1507x135@top939":["VOL(5,10,20)","VOLUME: "]}
+  点击关闭后：{}
+  再点开：{"k_line_chart_1|1492x100@top614":["VOL(5,10,20)","VOLUME: "],"k_line_chart_2|1492x135@top759":["VOL(5,10,20)","VOLUME: "],"k_line_chart_3|1507x135@top939":["VOL(5,10,20)","VOLUME: "]}
+
+## 判定
+  pane inline/顺序不变量：PASS
+  VOL 关闭后 VOL 图例命中画布数（应为 0）：0
+  VOL 再开后 VOL 图例命中（应 ≥ 点击前）：3
+
+## 截图
+  B4_vol_off_full.png（VOL 关闭）
+  B4_vol_on_again_full.png（VOL 恢复）

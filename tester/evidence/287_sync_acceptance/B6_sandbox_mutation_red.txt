@@ -1,0 +1,169 @@
+
+ RUN  v3.2.7 /tmp/287_sandbox/web
+
+stderr | src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10-H （夹具自检，绿侧）允许组合 1m + 5m/15m：页面链路把两卫星都写入（证明夹具可用）
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/syncCoverage.test.ts (17 tests | 6 failed) 117ms
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true（当前均 false ⇒ 必红） 4ms
+     → 同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行: expected false to be true // Object.is equality
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1-2 契约（A）：composeDensity 可直接调用，返回值 = 同锚点合成比（无公共锚点 ⇒ null） 1ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U2 无公共锚点仍拒绝：(5m,1d)/(15m,1d)/(1m,1d)/(1h,1d) 均为 false（绿侧防护，不得回退） 0ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U3 既有护栏不回退（绿侧防护）：卫星<基准 / 含 1mo / 1w 需基准≥1d / 同周期 / 表内组合 0ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U3-2 （补充）构造期排除原因码可读且优先级固定：卫星<基准 / 1w 需基准≥1d 1ms
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U4 构造不抛错：base=5m + [1h,1d] ⇒ 构造/start/stop 成功；排除列表含 1d、不含 1h；原因可读 1ms
+     → expected [ '1h', '1d' ] to deeply equal [ '1d' ]
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5 无可同步跟随者：base=5m + 仅卫星 1d ⇒ 不抛错，且「无可同步跟随者」作为可观测状态可读 0ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U5-2 （补充）基准缺失：无 isBase 成员 ⇒ 不抛错，且 groupReason === "missing-base" 0ms
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U6 被排除成员零写入：对齐发生时 excluded 卫星的写方法一次都没被调用，而同组可同步卫星被调用 1ms
+     → 可同步卫星必须被写入 barSpace: expected false to be true // Object.is equality
+   × 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7 密度来源可观测：base=5m + 卫星 1h 的对齐使用**合成**密度（≈8.04），且 barSpace 由它推导 0ms
+     → base=5m + 跟随者 1h 的密度读数必须可读: expected undefined to be defined
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7-2 来源可区分（static vs composed）：表内组合 1m→5m 的读数来源必须是 static 1ms
+   ✓ 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U8 基准永不作为 follower（绿侧防护）：卫星做 leader ⇒ 基准 barSpace/视口/右偏移逐字段不变 1ms
+   × 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished），且先于任何交互 6ms
+     → expected [ { period: '1h', …(1) }, …(1) ] to deeply equal [ { period: '1d', …(1) } ]
+   ✓ 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9-2 base=5m + 仅卫星 1d ⇒ onStats 必须上报「整组未建立」原因（禁止静默） 1ms
+   ✓ 287 页面级可见状态（口径 C：禁止静默） > U10-H （夹具自检，绿侧）允许组合 1m + 5m/15m：页面链路把两卫星都写入（证明夹具可用） 70ms
+   × 287 页面级可见状态（口径 C：禁止静默） > U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标（含周期与原因），1h 不得有 16ms
+     → 1h 与 5m 同锚点合成可用 ⇒ 不得出现「未同步」角标: expected <div …(5)><span></span></div> to be null
+   ✓ 287 页面级可见状态（口径 C：禁止静默） > U10-2 base=5m + 仅卫星 1d：整组未建立也必须有页面可见状态（含原因） 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true（当前均 false ⇒ 必红）
+AssertionError: 同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:268:7
+    266|       isSyncCombinationAllowed('5m', '15m'),
+    267|       '同锚点合成 D(1m→15m)/D(1m→5m) ≈ 2.596 可用 ⇒ 必须放行',
+    268|     ).toBe(true);
+       |       ^
+    269|     expect(
+    270|       isSyncCombinationAllowed('5m', '1h'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U4 构造不抛错：base=5m + [1h,1d] ⇒ 构造/start/stop 成功；排除列表含 1d、不含 1h；原因可读
+AssertionError: expected [ '1h', '1d' ] to deeply equal [ '1d' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[31m+   "1h",[39m
+[2m    "1d",[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:379:43
+    377| 
+    378|     const excluded = readExcluded(g.stats);
+    379|     expect(excluded.map((e) => e.period)).toEqual(['1d']);
+       |                                           ^
+    380|     expect(excluded.some((e) => e.period === '1h'), '1h 与 5m 同锚点（合成可用）…
+    381|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U6 被排除成员零写入：对齐发生时 excluded 卫星的写方法一次都没被调用，而同组可同步卫星被调用
+AssertionError: 可同步卫星必须被写入 barSpace: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:440:71
+    438| 
+    439|     const syncWrites = writeCalls(sat1h);
+    440|     expect(syncWrites.includes('setBarSpace'), '可同步卫星必须被写入 barSpace').…
+       |                                                                       ^
+    441|     expect(
+    442|       syncWrites.some((m) => m === 'scrollToDataIndex' || m === 'scrol…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 跨图同步覆盖（红：当前配置 5m+1h/1d 静默失效） > U7 密度来源可观测：base=5m + 卫星 1h 的对齐使用**合成**密度（≈8.04），且 barSpace 由它推导
+AssertionError: base=5m + 跟随者 1h 的密度读数必须可读: expected undefined to be defined
+ ❯ src/features/dashboard/syncCoverage.test.ts:466:51
+    464|     ).toBe(true);
+    465|     const reading = (readings as Record<string, FollowerDensityLike> |…
+    466|     expect(reading, 'base=5m + 跟随者 1h 的密度读数必须可读').toBeDefined();
+       |                                                   ^
+    467|     expect(
+    468|       reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 接线层：不可同步配置必须显式上报（chartSyncContext） > U9 base=5m + [1h,1d] ⇒ onStats 必须广播（含 excludedSatellites / groupEstablished），且先于任何交互
+AssertionError: expected [ { period: '1h', …(1) }, …(1) ] to deeply equal [ { period: '1d', …(1) } ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    {[22m
+[31m+     "period": "1h",[39m
+[31m+     "reason": "no-shared-anchor",[39m
+[31m+   },[39m
+[31m+   {[39m
+[2m      "period": "1d",[22m
+[2m      "reason": "no-shared-anchor",[22m
+[2m    },[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:565:53
+    563|       '契约（C）：组（重）建后必须**至少广播一次**统计快照（否则页面无法在交互前显示「未同步/未建立」）',
+    564|     ).toBeDefined();
+    565|     expect(readExcluded(last as CoverageStatsLike)).toEqual([{ period:…
+       |                                                     ^
+    566|     expect((last as CoverageStatsLike).groupEstablished, '1h 可同步 ⇒ 组建立…
+    567|     expect((last as CoverageStatsLike).syncableFollowerCount).toBe(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/features/dashboard/syncCoverage.test.ts > 287 页面级可见状态（口径 C：禁止静默） > U10 base=5m + [1h,1d]：被排除卫星（1d）必须有可见角标（含周期与原因），1h 不得有
+AssertionError: 1h 与 5m 同锚点合成可用 ⇒ 不得出现「未同步」角标: expected <div …(5)><span></span></div> to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+<div
+  class="absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow"
+  data-mp-sync-excluded="1h"
+  data-mp-sync-excluded-reason="no-shared-anchor"
+  role="status"
+  title="未同步：本 pane（周期 1h）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。"
+>
+  <span>
+    未同步（
+    1h
+    ）
+  </span>
+</div>
+
+ ❯ src/features/dashboard/syncCoverage.test.ts:862:7
+    860|       container.querySelector('[data-mp-sync-excluded="1h"]'),
+    861|       '1h 与 5m 同锚点合成可用 ⇒ 不得出现「未同步」角标',
+    862|     ).toBeNull();
+       |       ^
+    863|     expect(
+    864|       container.querySelector('[data-mp-sync-group-unestablished]'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 11 passed (17)
+   Start at  23:10:23
+   Duration  624ms (transform 117ms, setup 21ms, collect 163ms, tests 117ms, environment 128ms, prepare 57ms)
+

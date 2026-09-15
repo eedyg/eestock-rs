@@ -1,0 +1,18 @@
+# 287 证据索引 — 跨图同步「当前配置静默失效」修复：先红规格
+# 采集时间（本地 UTC+8）：2026-09-15 22:53:03
+
+## 环境
+  HEAD            : 8828d4621d9536687a380462f567590d5fc3ea3b
+  branch          : master
+  node            : v22.22.2
+  vitest          : vitest/3.2.7 linux-x64 node-v22.22.2
+  新增红测试文件  : web/src/features/dashboard/syncCoverage.test.ts
+  sha256          : 319b16eb55cccb37c0afa8cc0e9276a37c7c43c89376ae2dc318131ebf90ccfd
+
+## 文件
+  A0_env.txt                                    环境/HEAD/hash/工作区状态
+  A1_syncCoverage_RED.txt                       新用例文件单独运行（红：13 failed | 4 passed）
+  A2_full_suite_WITH_new_file.txt               全量（含新文件）：1 failed file | 13 failed | 793 passed
+  A3_full_suite_baseline_excl_new_file.txt      全量基线（排除新文件）：85 files / 789 tests 全绿
+  A4_existing_T3-4_conflict.txt                 既有 chartSyncGroup.test.ts T3-4「必须抛错」与修复口径 B 的冲突原文
+  A5_workspace_untouched.txt                    工作区/暂存区未被本工作改动（14 个已暂存文件列表）

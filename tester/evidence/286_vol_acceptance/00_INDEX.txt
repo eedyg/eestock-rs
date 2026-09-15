@@ -1,0 +1,42 @@
+# 286 VOL 开关独立验收 — 证据索引
+# 采集时间（本地 UTC+8）：2026-09-15 22:29 ~ 22:38
+
+## 环境 / 被验对象
+  A0_env.txt                     进程 8081、cmdline、日志、index.html、dist mtime、工作区源码 md5
+
+## 验收项 → 证据
+  A1  A1_toolbar_vol_switch.txt      工具栏 VOL 开关 DOM 契约（outerHTML/aria-pressed/class）
+      A1_toolbar_vol_default_on.png  工具栏区域截图（VOL 默认按下态）
+      A1_fullpage_default_on.png     整页截图（默认开）
+  A2  A2_baseline.txt                基线截图说明 + pane 高度/图例/separator 原始数据
+      A2_baseline_full.png           整页
+      A2_baseline_base_pane.png      基准 pane（5m）
+      A2_baseline_satellite_1h.png   卫星 1h
+      A2_baseline_satellite_1d.png   卫星 1d
+  A3  A3_vol_off.txt                 关闭后图例原文对比 + separator 数变化
+      A3_vol_off_full.png / A3_vol_off_base_pane.png / A3_vol_off_satellite_1h.png / A3_vol_off_satellite_1d.png
+  A4  A4_vol_on_again_layout.txt     多周期 pane 高度逐值对比 + candle/VOL 像素高度变化
+      A4_vol_on_again_full.png / A4_vol_on_again_base_pane.png / A4_vol_on_again_satellite_1h.png / A4_vol_on_again_satellite_1d.png
+  A5  A5_sandbox_mutation.diff       沙箱变异 diff（/tmp 副本，非工作区）
+      A5_sandbox_baseline_green.txt   沙箱未变异基线：14 passed
+      A5_sandbox_mutant_red.txt       沙箱变异后：6 failed | 8 passed
+  A6  A6_config_start.txt / A6_config_end.txt        验收窗口首尾 GET /api/config/*
+      A6_config_acceptance_begin_222942.txt          验收开始时（22:29:42）的基线（与任务前提一致：15m/1h）
+      A6_zero_write.txt                              逐字段对比 + app_config.updated_at + console/network 原文
+  A7  A7_frontend_regression.txt     分时↔K线、宫格↔单图
+      A7a_timeshare.png / A7a_back_to_kline.png / A7b_grid2x2.png / A7b_back_to_single.png
+  A8  A8_session_state.txt（附加）    默认开 / 点击关 / 刷新回默认开 / 零非 GET 请求
+      A8_vol_off_before_reload.png / A8_after_reload_default_on.png
+  A9  A9_pixel_evidence.txt（附加）   截图像素统计（ink 占比 / 逐像素差异 / md5）
+
+## 脚本（可复跑）
+  286_acceptance.mjs                       主验收（A1–A7 + A6 收尾）
+  286_supplementary_session_state.mjs      A8 会话态补充
+  286_pixel_evidence.py                    A9 像素统计
+  286_results.json                         主验收结构化结果
+  286_run.log                              主验收运行日志
+
+## 铁律遵守
+  - 对 /api/* 只发 GET（A6_zero_write.txt「本次页面会话内所有 /api/ 请求」全为 GET）；未点周期选择器确定按钮；
+  - 未做图表导出截图（一律 page.screenshot）；未改工作区任何源码/配置/产物（A0_env.txt md5 + mtime）；
+  - 变异实验仅在 /tmp/vol286_sandbox/ 副本内进行；未 git add/commit。

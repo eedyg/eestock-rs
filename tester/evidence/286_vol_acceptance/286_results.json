@@ -1,0 +1,1312 @@
+{
+  "startedAt": "2026-09-15T14:34:52.818Z",
+  "items": {
+    "A1": {
+      "pass": true,
+      "volButton": {
+        "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">VOL</button>",
+        "text": "VOL",
+        "ariaPressed": "true",
+        "className": "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3",
+        "visible": true
+      },
+      "indicatorRow": [
+        {
+          "text": "MA",
+          "ariaPressed": "true",
+          "ariaLabel": null
+        },
+        {
+          "text": "VOL",
+          "ariaPressed": "true",
+          "ariaLabel": null
+        },
+        {
+          "text": "MACD",
+          "ariaPressed": "false",
+          "ariaLabel": null
+        },
+        {
+          "text": "KDJ",
+          "ariaPressed": "false",
+          "ariaLabel": null
+        },
+        {
+          "text": "BOLL",
+          "ariaPressed": "false",
+          "ariaLabel": null
+        },
+        {
+          "text": "DCAP",
+          "ariaPressed": "false",
+          "ariaLabel": null
+        }
+      ]
+    },
+    "A2": {
+      "satellitePeriods": [
+        "1h",
+        "1d"
+      ],
+      "basePeriodFromStackPane": "5m",
+      "snapshot": {
+        "charts": {
+          "k_line_chart_1": {
+            "hostMark": null,
+            "paneCount": 2,
+            "panes": [
+              "237px",
+              "100px"
+            ],
+            "sepCount": 1,
+            "seps": [
+              "1px"
+            ],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 364,
+            "hostRectW": 1522,
+            "domId": null
+          },
+          "k_line_chart_2": {
+            "hostMark": null,
+            "paneCount": 2,
+            "panes": [
+              "0px",
+              "135px"
+            ],
+            "sepCount": 1,
+            "seps": [
+              "0px"
+            ],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 161,
+            "hostRectW": 1522,
+            "domId": null
+          },
+          "k_line_chart_3": {
+            "hostMark": null,
+            "paneCount": 2,
+            "panes": [
+              "0px",
+              "135px"
+            ],
+            "sepCount": 1,
+            "seps": [
+              "0px"
+            ],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 161,
+            "hostRectW": 1522,
+            "domId": null
+          }
+        },
+        "chartIds": [
+          "k_line_chart_1",
+          "k_line_chart_2",
+          "k_line_chart_3"
+        ],
+        "mpPanes": [
+          {
+            "period": "5m",
+            "role": "base",
+            "attrHeight": "364",
+            "inlineHeight": "364px",
+            "rectHeight": 364,
+            "childIndex": 0
+          },
+          {
+            "period": "1h",
+            "role": "satellite",
+            "attrHeight": "180",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "childIndex": 2
+          },
+          {
+            "period": "1d",
+            "role": "satellite",
+            "attrHeight": "180",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "childIndex": 4
+          }
+        ],
+        "mpSeps": [
+          {
+            "key": "5m|1h",
+            "sepHeightAttr": "0",
+            "rectHeight": 0,
+            "rectTop": 440
+          },
+          {
+            "key": "1h|1d",
+            "sepHeightAttr": "0",
+            "rectHeight": 0,
+            "rectTop": 620
+          }
+        ],
+        "sats": [
+          {
+            "period": "1h",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "basePeriod": "5m",
+            "basePeriodSource": "config",
+            "chartHostIds": [
+              "k_line_chart_2"
+            ]
+          },
+          {
+            "period": "1d",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "basePeriod": "5m",
+            "basePeriodSource": "config",
+            "chartHostIds": [
+              "k_line_chart_3"
+            ]
+          }
+        ],
+        "stack": {
+          "layout": "{\"reason\":\"fit\",\"total\":724,\"shrunk\":false,\"scrollable\":false,\"available\":724,\"heights\":{\"5m\":364,\"1h\":180,\"1d\":180}}",
+          "scrollable": "false",
+          "clientHeight": 724,
+          "childCount": 5,
+          "children": [
+            {
+              "tag": "div",
+              "mpPane": "5m",
+              "mpSep": null,
+              "inlineHeight": "364px"
+            },
+            {
+              "tag": "div",
+              "mpPane": null,
+              "mpSep": "5m|1h",
+              "inlineHeight": ""
+            },
+            {
+              "tag": "div",
+              "mpPane": "1h",
+              "mpSep": null,
+              "inlineHeight": "180px"
+            },
+            {
+              "tag": "div",
+              "mpPane": null,
+              "mpSep": "1h|1d",
+              "inlineHeight": ""
+            },
+            {
+              "tag": "div",
+              "mpPane": "1d",
+              "mpSep": null,
+              "inlineHeight": "180px"
+            }
+          ]
+        },
+        "volButton": {
+          "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">VOL</button>",
+          "text": "VOL",
+          "ariaPressed": "true",
+          "className": "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3",
+          "visible": true
+        },
+        "toolbarBtns": [
+          {
+            "text": "1m",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "5m",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "15m",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "1h",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "日",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "周",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "月",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "K线",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "分时",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "MA",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "MA(5,10,20)▾",
+            "ariaPressed": "false",
+            "ariaLabel": "MA 配置"
+          },
+          {
+            "text": "VOL",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "MACD",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "KDJ",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "BOLL",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "DCAP",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "DCAP(8,36,66)▾",
+            "ariaPressed": "false",
+            "ariaLabel": "DCAP 配置"
+          },
+          {
+            "text": "单图",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "2×2",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "2×3",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "周期选择",
+            "ariaPressed": null,
+            "ariaLabel": "选择 K 线/指标周期"
+          },
+          {
+            "text": "多周期",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "回到最新",
+            "ariaPressed": null,
+            "ariaLabel": null
+          }
+        ]
+      },
+      "volLegendPanes": {
+        "k_line_chart_1|pane#2|100px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        },
+        "k_line_chart_2|pane#2|135px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        },
+        "k_line_chart_3|pane#2|135px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        }
+      },
+      "legends": {
+        "k_line_chart_1|pane#0|237px": [
+          "8.950",
+          "8.815",
+          "518880 · 5",
+          "Time: ",
+          "2026-09-15 15:00",
+          "Open: ",
+          "8.829",
+          "High: ",
+          "Low: ",
+          "Close: ",
+          "Volume: ",
+          "0",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.826",
+          "MA10: ",
+          "8.824",
+          "MA20: ",
+          "8.827",
+          "8.820",
+          "8.840",
+          "8.860",
+          "8.880",
+          "8.900",
+          "8.920",
+          "8.940",
+          "8.960"
+        ],
+        "k_line_chart_1|pane#2|100px": [
+          "VOL(5,10,20)",
+          "MA5: ",
+          "4.635M",
+          "MA10: ",
+          "5.283M",
+          "MA20: ",
+          "4.593M",
+          "VOLUME: ",
+          "0",
+          "2M",
+          "8M",
+          "14M"
+        ],
+        "k_line_chart_1|pane#3|26px": [
+          "14:45",
+          "10:30",
+          "13:15",
+          "14:35",
+          "10:20",
+          "13:05",
+          "14:25"
+        ],
+        "k_line_chart_2|pane#0|0px": [
+          "9.620",
+          "8.814",
+          "518880 · 1H",
+          "Time: ",
+          "2026-09-15 15:00",
+          "Open: ",
+          "8.829",
+          "High: ",
+          "Low: ",
+          "Close: ",
+          "Volume: ",
+          "1.439M",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.843",
+          "MA10: ",
+          "8.864",
+          "MA20: ",
+          "8.906"
+        ],
+        "k_line_chart_2|pane#2|135px": [
+          "VOL(5,10,20)",
+          "MA5: ",
+          "66.781M",
+          "MA10: ",
+          "66.102M",
+          "MA20: ",
+          "80.578M",
+          "VOLUME: ",
+          "1.439M",
+          "60M",
+          "180M",
+          "300M"
+        ],
+        "k_line_chart_2|pane#3|26px": [
+          "08-21 14:00",
+          "08-26 11:00",
+          "08-31 09:00",
+          "09-02 14:00",
+          "09-07 11:00",
+          "09-10 09:00",
+          "09-14 14:00"
+        ],
+        "k_line_chart_3|pane#0|0px": [
+          "10.150",
+          "8.224",
+          "518880 · 1D",
+          "Time: ",
+          "2026-09-14",
+          "Open: ",
+          "8.907",
+          "High: ",
+          "8.950",
+          "Low: ",
+          "8.875",
+          "Close: ",
+          "Volume: ",
+          "454.825M",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.998",
+          "MA10: ",
+          "9.030",
+          "MA20: ",
+          "9.182"
+        ],
+        "k_line_chart_3|pane#2|135px": [
+          "VOL(5,10,20)",
+          "MA5: ",
+          "475.354M",
+          "MA10: ",
+          "529.171M",
+          "MA20: ",
+          "591.084M",
+          "VOLUME: ",
+          "454.825M",
+          "200M",
+          "600M",
+          "1B"
+        ],
+        "k_line_chart_3|pane#3|26px": [
+          "2026-04-16",
+          "2026-05-13",
+          "2026-06-04",
+          "2026-06-29",
+          "2026-07-21",
+          "2026-08-12",
+          "2026-09-03"
+        ]
+      },
+      "instances": [
+        {
+          "hostId": "k_line_chart_1",
+          "found": true,
+          "acceptMark": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789482892999_2",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "paneOptions": [
+            {
+              "id": "candle_pane",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_1789482892999_2",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 0
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 9007199254740991
+            }
+          ]
+        },
+        {
+          "hostId": "k_line_chart_2",
+          "found": true,
+          "acceptMark": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789482893001_3",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "paneOptions": [
+            {
+              "id": "candle_pane",
+              "height": 135,
+              "minHeight": 0,
+              "state": "minimize",
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_1789482893001_3",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 0
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 9007199254740991
+            }
+          ]
+        },
+        {
+          "hostId": "k_line_chart_3",
+          "found": true,
+          "acceptMark": null,
+          "indicators": [
+            {
+              "name": "MA",
+              "paneId": "candle_pane",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            },
+            {
+              "name": "VOL",
+              "paneId": "indicator_pane_1789482893002_3",
+              "calcParams": [
+                5,
+                10,
+                20
+              ]
+            }
+          ],
+          "paneOptions": [
+            {
+              "id": "candle_pane",
+              "height": 135,
+              "minHeight": 0,
+              "state": "minimize",
+              "order": 0
+            },
+            {
+              "id": "indicator_pane_1789482893002_3",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 0
+            },
+            {
+              "id": "x_axis_pane",
+              "height": 100,
+              "minHeight": 30,
+              "state": "normal",
+              "order": 9007199254740991
+            }
+          ]
+        }
+      ]
+    },
+    "A3": {
+      "pass": true,
+      "volButton": {
+        "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">VOL</button>",
+        "text": "VOL",
+        "ariaPressed": "false",
+        "className": "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3",
+        "visible": true
+      },
+      "volLegendPanes": {},
+      "snapshot": {
+        "charts": {
+          "k_line_chart_1": {
+            "hostMark": "A3-h0",
+            "paneCount": 1,
+            "panes": [
+              "338px"
+            ],
+            "sepCount": 0,
+            "seps": [],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 364,
+            "hostRectW": 1522,
+            "domId": null
+          },
+          "k_line_chart_2": {
+            "hostMark": "A3-h1",
+            "paneCount": 1,
+            "panes": [
+              "0px"
+            ],
+            "sepCount": 0,
+            "seps": [],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 161,
+            "hostRectW": 1522,
+            "domId": null
+          },
+          "k_line_chart_3": {
+            "hostMark": "A3-h2",
+            "paneCount": 1,
+            "panes": [
+              "0px"
+            ],
+            "sepCount": 0,
+            "seps": [],
+            "axis": [
+              "26px"
+            ],
+            "hostRectH": 161,
+            "hostRectW": 1522,
+            "domId": null
+          }
+        },
+        "chartIds": [
+          "k_line_chart_1",
+          "k_line_chart_2",
+          "k_line_chart_3"
+        ],
+        "mpPanes": [
+          {
+            "period": "5m",
+            "role": "base",
+            "attrHeight": "364",
+            "inlineHeight": "364px",
+            "rectHeight": 364,
+            "childIndex": 0
+          },
+          {
+            "period": "1h",
+            "role": "satellite",
+            "attrHeight": "180",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "childIndex": 2
+          },
+          {
+            "period": "1d",
+            "role": "satellite",
+            "attrHeight": "180",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "childIndex": 4
+          }
+        ],
+        "mpSeps": [
+          {
+            "key": "5m|1h",
+            "sepHeightAttr": "0",
+            "rectHeight": 0,
+            "rectTop": 440
+          },
+          {
+            "key": "1h|1d",
+            "sepHeightAttr": "0",
+            "rectHeight": 0,
+            "rectTop": 620
+          }
+        ],
+        "sats": [
+          {
+            "period": "1h",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "basePeriod": "5m",
+            "basePeriodSource": "config",
+            "chartHostIds": [
+              "k_line_chart_2"
+            ]
+          },
+          {
+            "period": "1d",
+            "inlineHeight": "180px",
+            "rectHeight": 180,
+            "basePeriod": "5m",
+            "basePeriodSource": "config",
+            "chartHostIds": [
+              "k_line_chart_3"
+            ]
+          }
+        ],
+        "stack": {
+          "layout": "{\"reason\":\"fit\",\"total\":724,\"shrunk\":false,\"scrollable\":false,\"available\":724,\"heights\":{\"5m\":364,\"1h\":180,\"1d\":180}}",
+          "scrollable": "false",
+          "clientHeight": 724,
+          "childCount": 5,
+          "children": [
+            {
+              "tag": "div",
+              "mpPane": "5m",
+              "mpSep": null,
+              "inlineHeight": "364px"
+            },
+            {
+              "tag": "div",
+              "mpPane": null,
+              "mpSep": "5m|1h",
+              "inlineHeight": ""
+            },
+            {
+              "tag": "div",
+              "mpPane": "1h",
+              "mpSep": null,
+              "inlineHeight": "180px"
+            },
+            {
+              "tag": "div",
+              "mpPane": null,
+              "mpSep": "1h|1d",
+              "inlineHeight": ""
+            },
+            {
+              "tag": "div",
+              "mpPane": "1d",
+              "mpSep": null,
+              "inlineHeight": "180px"
+            }
+          ]
+        },
+        "volButton": {
+          "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">VOL</button>",
+          "text": "VOL",
+          "ariaPressed": "false",
+          "className": "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3",
+          "visible": true
+        },
+        "toolbarBtns": [
+          {
+            "text": "1m",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "5m",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "15m",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "1h",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "日",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "周",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "月",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "K线",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "分时",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "MA",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "MA(5,10,20)▾",
+            "ariaPressed": "false",
+            "ariaLabel": "MA 配置"
+          },
+          {
+            "text": "VOL",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "MACD",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "KDJ",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "BOLL",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "DCAP",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "DCAP(8,36,66)▾",
+            "ariaPressed": "false",
+            "ariaLabel": "DCAP 配置"
+          },
+          {
+            "text": "单图",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "2×2",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "2×3",
+            "ariaPressed": "false",
+            "ariaLabel": null
+          },
+          {
+            "text": "周期选择",
+            "ariaPressed": null,
+            "ariaLabel": "选择 K 线/指标周期"
+          },
+          {
+            "text": "多周期",
+            "ariaPressed": "true",
+            "ariaLabel": null
+          },
+          {
+            "text": "回到最新",
+            "ariaPressed": null,
+            "ariaLabel": null
+          }
+        ]
+      },
+      "legends": {
+        "k_line_chart_1|pane#0|338px": [
+          "8.958",
+          "8.815",
+          "518880 · 5",
+          "Time: ",
+          "2026-09-15 15:00",
+          "Open: ",
+          "8.829",
+          "High: ",
+          "Low: ",
+          "Close: ",
+          "Volume: ",
+          "0",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.826",
+          "MA10: ",
+          "8.824",
+          "MA20: ",
+          "8.827",
+          "8.820",
+          "8.840",
+          "8.860",
+          "8.880",
+          "8.900",
+          "8.920",
+          "8.940",
+          "8.960"
+        ],
+        "k_line_chart_1|pane#1|26px": [
+          "14:45",
+          "10:30",
+          "13:15",
+          "14:35",
+          "10:20",
+          "13:05",
+          "14:25"
+        ],
+        "k_line_chart_2|pane#0|0px": [
+          "9.620",
+          "8.814",
+          "518880 · 1H",
+          "Time: ",
+          "2026-09-15 15:00",
+          "Open: ",
+          "8.829",
+          "High: ",
+          "Low: ",
+          "Close: ",
+          "Volume: ",
+          "1.439M",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.843",
+          "MA10: ",
+          "8.864",
+          "MA20: ",
+          "8.906"
+        ],
+        "k_line_chart_2|pane#1|26px": [
+          "08-21 14:00",
+          "08-26 11:00",
+          "08-31 09:00",
+          "09-02 14:00",
+          "09-07 11:00",
+          "09-10 09:00",
+          "09-14 14:00"
+        ],
+        "k_line_chart_3|pane#0|0px": [
+          "10.150",
+          "8.224",
+          "518880 · 1D",
+          "Time: ",
+          "2026-09-14",
+          "Open: ",
+          "8.907",
+          "High: ",
+          "8.950",
+          "Low: ",
+          "8.875",
+          "Close: ",
+          "Volume: ",
+          "454.825M",
+          "MA(5,10,20)",
+          "MA5: ",
+          "8.998",
+          "MA10: ",
+          "9.030",
+          "MA20: ",
+          "9.182"
+        ],
+        "k_line_chart_3|pane#1|26px": [
+          "2026-04-16",
+          "2026-05-13",
+          "2026-06-04",
+          "2026-06-29",
+          "2026-07-21",
+          "2026-08-12",
+          "2026-09-03"
+        ]
+      }
+    },
+    "A4": {
+      "pass": true,
+      "layoutStable": true,
+      "volRestored": true,
+      "mpInlineBaseline": "5m=364px,1h=180px,1d=180px",
+      "mpInlineAfter": "5m=364px,1h=180px,1d=180px",
+      "mpAttrBaseline": "5m=364,1h=180,1d=180",
+      "mpAttrAfter": "5m=364,1h=180,1d=180",
+      "mpOrderBaseline": "5m@0,1h@2,1d@4",
+      "mpOrderAfter": "5m@0,1h@2,1d@4",
+      "mpSepKeysBaseline": "5m|1h,1h|1d",
+      "mpSepKeysAfter": "5m|1h,1h|1d",
+      "heightsDetail": {
+        "chartId": "k_line_chart_1",
+        "withVolOn": [
+          "237px",
+          "100px"
+        ],
+        "withVolOff": [
+          "338px"
+        ],
+        "withVolOnAgain": [
+          "237px",
+          "100px"
+        ]
+      },
+      "volLegendPanes": {
+        "k_line_chart_1|pane#2|100px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        },
+        "k_line_chart_2|pane#2|135px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        },
+        "k_line_chart_3|pane#2|135px": {
+          "legendLine": [
+            "VOL(5,10,20)"
+          ],
+          "label": [
+            "VOLUME: "
+          ]
+        }
+      },
+      "zeroHeightAnomaly": []
+    },
+    "A7": {
+      "pass": true,
+      "a7aPass": true,
+      "a7bPass": true,
+      "volStateBeforeTab": "false",
+      "volAfterTab": "false",
+      "volAfterGrid": "false",
+      "gridInfo": {
+        "gridCharts": 4,
+        "mpStack": false,
+        "multiPeriodButton": false,
+        "volButton": true
+      },
+      "afterGridSats": [
+        "1h",
+        "1d"
+      ],
+      "afterGridMpInline": "5m=364px,1h=180px,1d=180px"
+    },
+    "A6": {
+      "pass": true,
+      "sameConfig": true,
+      "startCanonical": {
+        "multi_period": {
+          "enabled": true,
+          "periods": [
+            "5m",
+            "1h",
+            "1d"
+          ],
+          "heights": {
+            "1d": 180,
+            "1h": 180,
+            "5m": 231
+          },
+          "indicators": [
+            "dcap"
+          ]
+        },
+        "kline": {
+          "viewport_bars": 120
+        },
+        "ma": {
+          "windows": [
+            5,
+            10,
+            20
+          ]
+        }
+      },
+      "endCanonical": {
+        "multi_period": {
+          "enabled": true,
+          "periods": [
+            "5m",
+            "1h",
+            "1d"
+          ],
+          "heights": {
+            "1d": 180,
+            "1h": 180,
+            "5m": 231
+          },
+          "indicators": [
+            "dcap"
+          ]
+        },
+        "kline": {
+          "viewport_bars": 120
+        },
+        "ma": {
+          "windows": [
+            5,
+            10,
+            20
+          ]
+        }
+      },
+      "dbRow": "dcap|2026-09-13 15:27:38.121703+00|{\"m\": 3, \"n_l\": 66, \"n_m\": 36, \"n_s\": 8, \"r_l\": 1.0, \"r_m\": 1.0, \"r_s\": 1.0, \"smooth\": 1}\nmulti_period|2026-09-15 14:30:35.055312+00|{\"enabled\": true, \"heights\": {\"1d\": 180, \"1h\": 180, \"5m\": 231}, \"periods\": [\"5m\", \"1h\", \"1d\"], \"indicators\": [\"dcap\"]}",
+      "pageErrors": [],
+      "consoleErrorsWarnings": [
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41790)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37352)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37089)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41851)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        },
+        {
+          "type": "warning",
+          "text": "[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 5m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）\n    at new UN (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:244496)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254528\n    at Object.register (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:254966)\n    at http://127.0.0.1:8081/assets/index-dH4SuwMy.js:72:258526\n    at eu (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:24542)\n    at _a (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:43045)\n    at A0 (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:37089)\n    at zi (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:38:3274)\n    at GT (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:41851)\n    at Ns (http://127.0.0.1:8081/assets/index-dH4SuwMy.js:40:40816)",
+          "loc": {
+            "url": "http://127.0.0.1:8081/assets/index-dH4SuwMy.js",
+            "line": 71,
+            "column": 254726,
+            "lineNumber": 71,
+            "columnNumber": 254726
+          }
+        }
+      ],
+      "failedRequests": [],
+      "apiResponses": [
+        "GET 200 http://127.0.0.1:8081/api/config/ma",
+        "GET 200 http://127.0.0.1:8081/api/config/dcap",
+        "GET 200 http://127.0.0.1:8081/api/config/multi_period",
+        "GET 200 http://127.0.0.1:8081/api/config/kline",
+        "GET 200 http://127.0.0.1:8081/api/sources/health",
+        "GET 200 http://127.0.0.1:8081/api/symbols",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1m&limit=500",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=513310&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=159776&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=161226&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=513310&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=159776&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=161226&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=15m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&limit=120"
+      ],
+      "writtenRequestsByTest": "本脚本只发 GET（node fetch + 页面自身初始化）；未发任何 PUT/POST/PATCH/DELETE"
+    }
+  },
+  "summary": {
+    "A1": true,
+    "A2": "基线已取证（基准=5m，卫星=[1h,1d]，含 VOL 图例 pane=3）",
+    "A3": true,
+    "A4": true,
+    "A6": true,
+    "A7": true,
+    "nonGetApiMethods": [],
+    "servedBundle": "/assets/index-dH4SuwMy.js"
+  }
+}

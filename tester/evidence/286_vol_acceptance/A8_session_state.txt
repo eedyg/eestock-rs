@@ -1,0 +1,18 @@
+# A8（附加）会话态：默认开 · 点击关 · 刷新回默认开 · 零配置写
+
+## 首次加载后 VOL aria-pressed = true（期望 true = 默认开）
+## 点击 VOL 后 aria-pressed = false（期望 false）
+## 刷新页面后 aria-pressed = true（期望 true = 刷新回默认开，证明不落服务端配置）
+
+## 非 GET 的 /api/ 请求（必须为空）
+  (无)
+
+## GET /api/config/multi_period 对比（脚本前 / 脚本后）
+  前：{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  后：{"enabled":true,"periods":["5m","1h","1d"],"heights":{"1d":180,"1h":180,"5m":231},"indicators":["dcap"]}
+  ⇒ 逐字段相同（零写入）
+
+## 会话内所有 /api/ 请求（去重）
+  GET 200 http://127.0.0.1:8081/api/config/multi_period
+
+## 结论：默认开=true  点击关=true  刷新回默认开=true  非 GET 请求数=0

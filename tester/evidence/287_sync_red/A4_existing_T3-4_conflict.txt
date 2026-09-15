@@ -1,0 +1,19 @@
+=== 既有用例（web/src/features/dashboard/chartSyncGroup.test.ts:316-324）要求 1m↔1w **构造即抛错** ===
+
+      barSpace: 10,
+      limit: { min: 1, max: SATELLITE_MAX },
+    });
+
+    expect(() => {
+      const g = new ChartSyncGroup(members(base, sat, '1m', '1w'));
+      g.start();
+    }, '1m↔1w 是不可用组合（口径 10 + P0.3 量化：任何基准缩放下卫星仅 1 根）').toThrow(/1m|1w|不可用|退化|reject|unsupported/i);
+  });
+
+=== 而修复口径 B（父级裁决）：构造函数**不抛错** ⇒ 该既有断言在实现后必红 ===
+
+grep 既有断言：
+323:    }, '1m↔1w 是不可用组合（口径 10 + P0.3 量化：任何基准缩放下卫星仅 1 根）').toThrow(/1m|1w|不可用|退化|reject|unsupported/i);
+
+grep 现有守门实现（只认实测表）：
+294:  return densityRatio(basePeriod, satellitePeriod) !== null;

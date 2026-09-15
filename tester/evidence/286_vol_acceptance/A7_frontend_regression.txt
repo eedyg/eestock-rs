@@ -1,0 +1,16 @@
+# A7 纯前端回归（无配置写）：分时↔K线、宫格↔单图
+抓取时间：2026-09-15T14:35:23.963Z
+
+## A7a 分时 tab 往返
+  切走前 VOL aria-pressed = false（人工置为关态，用于检查会话态是否保持）
+  分时态 kline 实例数 = 0
+  切回 K线后 VOL aria-pressed = false
+  ⇒ PASS（状态保持）
+  截图：A7a_timeshare.png / A7a_back_to_kline.png
+
+## A7b 宫格 2×2 往返
+  宫格态：kline 实例数=4  [data-mp-stack] 存在=false  「多周期」按钮存在=false  VOL 按钮存在=true
+  切回单图：卫星=["1h","1d"]  VOL aria-pressed=false
+  切回单图 [data-mp-pane] inline：5m=364px,1h=180px,1d=180px
+  ⇒ PASS
+  截图：A7b_grid2x2.png / A7b_back_to_single.png

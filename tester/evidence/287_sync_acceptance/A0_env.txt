@@ -1,0 +1,17 @@
+# 287 独立验收 — 环境
+repo            = /home/eestock/workspace/git/eestock/eestock-rs
+HEAD            = 8828d4621d9536687a380462f567590d5fc3ea3b
+branch          = master
+node            = v22.22.2
+date(local)     = Tue Sep 15 11:12:30 PM CST 2026
+dist mtime      = 2026-09-15 23:02:05.020638638 +0800
+script sha256   = 17eba7974b605e8ba6c71d6d481d6c61dd11e3763480951162979bb2600b1c98
+viewport        = 2000x1100（多周期栈 x=414 宽 1522 ⇒ 需 ≥1936 宽才无裁剪）
+served bundle   = /assets/index-BGPCHS0j.js
+served js md5   = f493b2be9ca2dfa1acbf07d65366d016
+local  js md5   = f493b2be9ca2dfa1acbf07d65366d016
+marker "no-shared-anchor" in served js = 1
+marker "data-mp-sync-excluded" in served js = 2
+marker "未同步" in served js = 4
+marker "excludedSatellites" in served js = 4
+marker "ChartSyncGroup 未建立" in served js = 1

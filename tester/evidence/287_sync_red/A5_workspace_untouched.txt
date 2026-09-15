@@ -1,0 +1,39 @@
+=== 本工作：未 git add / 未 git commit / 未改任何已暂存文件 ===
+
+git status --short（前 14 行 = 287 之前已暂存的 VOL 改动，**未动**）：
+M  design/06-web/01-dashboard.md
+M  web/src/features/dashboard/KlineChart.realtime.test.tsx
+M  web/src/features/dashboard/KlineChart.test.tsx
+M  web/src/features/dashboard/KlineChart.tsx
+M  web/src/features/dashboard/KlineChartDcapSaveLayout.test.tsx
+M  web/src/features/dashboard/KlineChartSwitchLayout.test.tsx
+M  web/src/features/dashboard/MultiPeriodChartStack.tsx
+M  web/src/features/dashboard/Toolbar.test.tsx
+M  web/src/features/dashboard/Toolbar.tsx
+M  web/src/features/dashboard/multiPeriodLayoutAuthority.test.tsx
+M  web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+M  web/src/features/dashboard/multiPeriodLayoutHandshake.test.tsx
+A  web/src/features/dashboard/volToggle.test.tsx
+M  web/src/layouts/DashboardGrid.tsx
+
+已暂存文件（git diff --cached --name-status，未变）：
+M	design/06-web/01-dashboard.md
+M	web/src/features/dashboard/KlineChart.realtime.test.tsx
+M	web/src/features/dashboard/KlineChart.test.tsx
+M	web/src/features/dashboard/KlineChart.tsx
+M	web/src/features/dashboard/KlineChartDcapSaveLayout.test.tsx
+M	web/src/features/dashboard/KlineChartSwitchLayout.test.tsx
+M	web/src/features/dashboard/MultiPeriodChartStack.tsx
+M	web/src/features/dashboard/Toolbar.test.tsx
+M	web/src/features/dashboard/Toolbar.tsx
+M	web/src/features/dashboard/multiPeriodLayoutAuthority.test.tsx
+M	web/src/features/dashboard/multiPeriodLayoutDom.test.tsx
+M	web/src/features/dashboard/multiPeriodLayoutHandshake.test.tsx
+A	web/src/features/dashboard/volToggle.test.tsx
+M	web/src/layouts/DashboardGrid.tsx
+
+本工作新增（未跟踪）：
+?? tester/evidence/287_sync_red/
+?? web/src/features/dashboard/syncCoverage.test.ts
+
+未跟踪文件数：57

@@ -1,0 +1,19 @@
+# item: A1_process_ports   (新进程：新 PID != 3300395，同一 PID 持 8081+8082)
+$ ss -lntp | grep -E ':8081|:8082'
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1080097,fd=11))
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1080097,fd=12))
+
+$ ps -ef | grep -E 'eestock-app' | grep -v grep
+eestock  1080097 1080073  0 21:28 ?        00:00:00 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+$ tr '\0' ' ' < /proc/1080097/cmdline
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+
+$ ps -o pid,lstart,etime,cmd -p 1080097
+    PID                  STARTED     ELAPSED CMD
+1080097 Tue Sep 15 21:28:22 2026       01:32 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+$ ls -la --time-style=full-iso target/debug/eestock-app   # 后端二进制；证明未在部署窗口重建
+-rwxrwxr-x 2 eestock eestock 207065864 2026-09-14 21:03:59.524996814 +0800 target/debug/eestock-app
+
+# 判定: 新 PID = 1080097 (≠ 3300395); fd=11:8081 fd=12:8082 同一 PID; cmdline 匹配; 二进制 mtime 2026-09-14 21:03:59（早于部署）

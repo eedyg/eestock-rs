@@ -1,0 +1,32 @@
+# item: A5_git_immutability   (代码零改动)
+$ git status --short -- web/src crates/web
+exit=0 (无输出=空)
+$ git status --porcelain --untracked-files=all -- web/src crates/web
+exit=0 (无输出=空)
+$ git diff --stat -- web/src crates/web
+exit=0 (无输出=空)
+$ git diff --stat HEAD -- web/src crates/web
+exit=0 (无输出=空)
+$ git log --oneline -1
+8828d46 docs(adr): 选择器实现落位口径（派生观测，无快照字段）+ 台账 D7/D8
+$ git rev-parse HEAD
+8828d4621d9536687a380462f567590d5fc3ea3b
+$ git stash list
+exit=0 (无输出=空)
+
+$ git log --oneline -3
+8828d46 docs(adr): 选择器实现落位口径（派生观测，无快照字段）+ 台账 D7/D8
+0da2c34 docs(report): 多周期两步选择器（P5.5）—— 红测试/实现/独立验收 报告与证据
+d8dd539 feat(web): 多周期两步周期选择器（P5.5）—— 补齐 UI 可用性缺口
+$ git log -1 --format='%H %ci %s'
+8828d4621d9536687a380462f567590d5fc3ea3b 2026-09-15 10:10:53 +0800 docs(adr): 选择器实现落位口径（派生观测，无快照字段）+ 台账 D7/D8
+$ git log -1 --format='%H %ci %s' d8dd539   # 被验前端变更
+d8dd53900c566cf6609903a01723d1deb90ce686 2026-09-15 10:10:33 +0800 feat(web): 多周期两步周期选择器（P5.5）—— 补齐 UI 可用性缺口
+
+$ git merge-base --is-ancestor d8dd539 HEAD && echo YES || echo NO
+YES
+$ git log --oneline HEAD ^d8dd539   # d8dd539 之后的提交（不含其后代=本部署未产生新提交）
+8828d46 docs(adr): 选择器实现落位口径（派生观测，无快照字段）+ 台账 D7/D8
+0da2c34 docs(report): 多周期两步选择器（P5.5）—— 红测试/实现/独立验收 报告与证据
+
+# 判定: 无 tracked 改动、无 untracked 新文件（web/src, crates/web）、无 stash、HEAD 仍为 8828d46、d8dd539 已在历史中

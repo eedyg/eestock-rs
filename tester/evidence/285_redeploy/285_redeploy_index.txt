@@ -1,0 +1,22 @@
+# item mapping (each file is labelled by its own '# item:' header)
+# 00_preflight.txt        -> 采集环境/时间/HEAD
+# A1_process_ports.txt   -> A1
+# A2_static_consistency.txt -> A2
+# A2_supplement_httpcodes.txt -> A2 (补充: HTTP码/大小/Content-Type/SPA兜底辨析)
+# A3_p5_5_markers.txt    -> A3
+# A4_config_readonly.txt -> A4 (+ 只读 DB 交叉核对)
+# A5_git_immutability.txt-> A5
+# A6_startup_health.txt  -> A6
+# A7_footprint.txt       -> A7
+# 285_redeploy_index.sha256 -> 本目录清单哈希
+
+# sha256 (排除本索引文件自身)
+2790d4bc7e35132a764cdf240186b4202c6b487341bd32683d15fbf07c91cdcf  tester/evidence/285_redeploy/00_preflight.txt
+af47c8ce6a1cb2a774affb0113ad62f7f3270aa8216f374d43363dc455b465d9  tester/evidence/285_redeploy/A1_process_ports.txt
+707202ee79599d8dad3c81fec2cb505d9f334c4f046a5ea96047bc880e485096  tester/evidence/285_redeploy/A2_static_consistency.txt
+6b50a302e239705fa280d8ec92f4cc14009d7374bb75599012f7f60bf5578c0d  tester/evidence/285_redeploy/A2_supplement_httpcodes.txt
+d6e9919affa53b19110d932fe7c981eaf31c6b632e257308dec4c6c063aeacbc  tester/evidence/285_redeploy/A3_p5_5_markers.txt
+185c584065ba374e475af9f0041af74f68b7cca48f862016e4851eb9e2796192  tester/evidence/285_redeploy/A4_config_readonly.txt
+4ab1b6e56fe3664bfd47de3a358531465e6bf8ea53ce5d8d84315d9e5b56f81c  tester/evidence/285_redeploy/A5_git_immutability.txt
+7ca3659fa0757ef138ffdecc41d7f77a9b253fd8cdf1ba1b65988a4e263ff3a6  tester/evidence/285_redeploy/A6_startup_health.txt
+bc952ee9be8bcf29ace3bcc91f434c48f6f19804f862d478e0cbea087d932f11  tester/evidence/285_redeploy/A7_footprint.txt

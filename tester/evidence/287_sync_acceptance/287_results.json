@@ -1,0 +1,585 @@
+{
+  "startedAt": "2026-09-15T15:12:30.088Z",
+  "viewport": {
+    "width": 2000,
+    "height": 1100
+  },
+  "items": {
+    "B1": {
+      "steps": {
+        "T00": {
+          "tag": "T00_baseline",
+          "at": "2026-09-15T15:12:36.362Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 13,
+              "offsetRight": 0,
+              "realFrom": 4,
+              "realTo": 121,
+              "from": "2026-09-11 13:45 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1789105500000,
+              "toTs": 1789455600000,
+              "spanMin": 5835,
+              "realBars": 118,
+              "listLen": 120
+            },
+            "k_line_chart_2": {
+              "bar": 52,
+              "offsetRight": 0,
+              "realFrom": 90,
+              "realTo": 121,
+              "from": "2026-09-09 09:00 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1788915600000,
+              "toTs": 1789455600000,
+              "spanMin": 9000,
+              "realBars": 32,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "3220"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        },
+        "T01": {
+          "tag": "T01_pan_right_250px",
+          "at": "2026-09-15T15:12:39.178Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 13,
+              "offsetRight": 0,
+              "realFrom": 285,
+              "realTo": 401,
+              "from": "2026-09-11 10:45 CST",
+              "to": "2026-09-15 13:30 CST",
+              "fromTs": 1789094700000,
+              "toTs": 1789450200000,
+              "spanMin": 5925,
+              "realBars": 117,
+              "listLen": 420
+            },
+            "k_line_chart_2": {
+              "bar": 52,
+              "offsetRight": 0,
+              "realFrom": 87,
+              "realTo": 117,
+              "from": "2026-09-08 13:00 CST",
+              "to": "2026-09-15 13:00 CST",
+              "fromTs": 1788843600000,
+              "toTs": 1789448400000,
+              "spanMin": 10080,
+              "realBars": 31,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "4210"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        },
+        "T02": {
+          "tag": "T02_pan_left_450px",
+          "at": "2026-09-15T15:12:42.028Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 13,
+              "offsetRight": 0,
+              "realFrom": 304,
+              "realTo": 421,
+              "from": "2026-09-11 13:45 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1789105500000,
+              "toTs": 1789455600000,
+              "spanMin": 5835,
+              "realBars": 118,
+              "listLen": 420
+            },
+            "k_line_chart_2": {
+              "bar": 52,
+              "offsetRight": 0,
+              "realFrom": 90,
+              "realTo": 121,
+              "from": "2026-09-09 09:00 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1788915600000,
+              "toTs": 1789455600000,
+              "spanMin": 9000,
+              "realBars": 32,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "3220"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        },
+        "T03": {
+          "tag": "T03_wheel_zoom_in",
+          "at": "2026-09-15T15:12:44.911Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 17.303,
+              "offsetRight": 0,
+              "realFrom": 319,
+              "realTo": 407,
+              "from": "2026-09-11 15:00 CST",
+              "to": "2026-09-15 14:00 CST",
+              "fromTs": 1789110000000,
+              "toTs": 1789452000000,
+              "spanMin": 5700,
+              "realBars": 89,
+              "listLen": 420
+            },
+            "k_line_chart_2": {
+              "bar": 34,
+              "offsetRight": 0,
+              "realFrom": 75,
+              "realTo": 120,
+              "from": "2026-09-04 13:00 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1788498000000,
+              "toTs": 1789455600000,
+              "spanMin": 15960,
+              "realBars": 46,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "10315"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        },
+        "T04": {
+          "tag": "T04_wheel_zoom_out",
+          "at": "2026-09-15T15:12:48.261Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 9.195523623000001,
+              "offsetRight": 0,
+              "realFrom": 256,
+              "realTo": 421,
+              "from": "2026-09-10 13:55 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1789019700000,
+              "toTs": 1789455600000,
+              "spanMin": 7265,
+              "realBars": 166,
+              "listLen": 420
+            },
+            "k_line_chart_2": {
+              "bar": 37,
+              "offsetRight": 0,
+              "realFrom": 79,
+              "realTo": 121,
+              "from": "2026-09-07 10:00 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1788746400000,
+              "toTs": 1789455600000,
+              "spanMin": 11820,
+              "realBars": 43,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "4610"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        },
+        "T05": {
+          "tag": "T05_wheel_zoom_out_more",
+          "at": "2026-09-15T15:12:52.194Z",
+          "windows": {
+            "k_line_chart_1": {
+              "bar": 3.2062808327703407,
+              "offsetRight": 0,
+              "realFrom": 254,
+              "realTo": 721,
+              "from": "2026-09-02 13:45 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1788327900000,
+              "toTs": 1789455600000,
+              "spanMin": 18795,
+              "realBars": 468,
+              "listLen": 720
+            },
+            "k_line_chart_2": {
+              "bar": 13,
+              "offsetRight": 0,
+              "realFrom": 4,
+              "realTo": 121,
+              "from": "2026-08-19 14:00 CST",
+              "to": "2026-09-15 15:00 CST",
+              "fromTs": 1787119200000,
+              "toTs": 1789455600000,
+              "spanMin": 38940,
+              "realBars": 118,
+              "listLen": 120
+            },
+            "k_line_chart_3": {
+              "bar": 13,
+              "offsetRight": 80,
+              "realFrom": 9,
+              "realTo": 127,
+              "from": "2026-04-07 00:00 CST",
+              "to": "2026-09-14 00:00 CST",
+              "fromTs": 1775491200000,
+              "toTs": 1789315200000,
+              "spanMin": 230400,
+              "realBars": 119,
+              "listLen": 120
+            }
+          },
+          "resizeStable": true,
+          "domBadges": [
+            {
+              "period": "1h",
+              "excluded": null,
+              "degradedSpanDiffMin": "20200"
+            },
+            {
+              "period": "1d",
+              "excluded": "no-shared-anchor",
+              "degradedSpanDiffMin": null
+            }
+          ]
+        }
+      }
+    },
+    "B2": {
+      "syncWarnCount": 0,
+      "syncWarn": [],
+      "consoleCount": 0,
+      "errWarnCount": 0,
+      "errWarn": [],
+      "consoleAll": []
+    },
+    "B3": {
+      "excludedSatellite": {
+        "period": "1d",
+        "reason": "no-shared-anchor",
+        "text": "未同步（1d）",
+        "title": "未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。",
+        "outerHTML": "<div data-mp-sync-excluded=\"1d\" data-mp-sync-excluded-reason=\"no-shared-anchor\" role=\"status\" class=\"absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow\" title=\"未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。\"><span>未同步（1d）</span></div>",
+        "visible": true,
+        "rect": {
+          "x": 1931,
+          "y": 937,
+          "w": 65,
+          "h": 16
+        }
+      },
+      "allSatBadges": [
+        {
+          "period": "1h",
+          "excluded": null,
+          "degraded": {
+            "outerHTML": "<div data-mp-sync-degraded=\"1h\" data-mp-span-diff-min=\"20200\" role=\"status\" class=\"absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow\" title=\"对齐受限：本 pane（1h）无法在容纳 ≥2 根 bar 的同时与基准图（5m）时间跨度一致（当前跨度差 20200 分钟）。原因：基准图缩放过大 ⇒ 请缩小基准图，或改选周期。\"><span>对齐受限</span></div>",
+            "attrPeriod": "1h",
+            "spanDiffMin": "20200",
+            "text": "对齐受限",
+            "title": "对齐受限：本 pane（1h）无法在容纳 ≥2 根 bar 的同时与基准图（5m）时间跨度一致（当前跨度差 20200 分钟）。原因：基准图缩放过大 ⇒ 请缩小基准图，或改选周期。"
+          },
+          "error": null
+        },
+        {
+          "period": "1d",
+          "excluded": {
+            "outerHTML": "<div data-mp-sync-excluded=\"1d\" data-mp-sync-excluded-reason=\"no-shared-anchor\" role=\"status\" class=\"absolute right-1 top-4 z-20 cursor-help rounded border border-acc1/50 bg-panel/95 px-1 text-[9px] text-amber-300 shadow\" title=\"未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。\"><span>未同步（1d）</span></div>",
+            "attrPeriod": "1d",
+            "attrReason": "no-shared-anchor",
+            "text": "未同步（1d）",
+            "title": "未同步：本 pane（周期 1d）与基准周期 5m 的组合不可用（原因：no-shared-anchor）⇒ 不参与跨图同步。处置建议：把该 pane 的周期改为与基准同锚点（如 5m 基准选 15m/1h）或调整基准周期。",
+            "rect": {
+              "x": 1931,
+              "y": 937,
+              "w": 65,
+              "h": 16
+            },
+            "role": "status",
+            "visible": true
+          },
+          "degraded": null,
+          "error": null
+        }
+      ]
+    },
+    "B4": {
+      "layoutStable": true,
+      "invariantsBefore": {
+        "mpPanesInline": "5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4",
+        "mpSeps": "5m|1h@1(h=0) | 1h|1d@3(h=0)",
+        "stackChildren": "div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]",
+        "stackLayout": "{\"reason\":\"fit\",\"total\":1024,\"shrunk\":false,\"scrollable\":false,\"available\":1024,\"heights\":{\"5m\":664,\"1h\":180,\"1d\":180}}",
+        "stackScrollable": "false",
+        "satHeights": "1h: inline=180px rect=180 | 1d: inline=180px rect=180",
+        "satOrder": "1h,1d"
+      },
+      "invariantsAfter": {
+        "mpPanesInline": "5m: role=base attr=664 inline=664px idx=0 | 1h: role=satellite attr=180 inline=180px idx=2 | 1d: role=satellite attr=180 inline=180px idx=4",
+        "mpSeps": "5m|1h@1(h=0) | 1h|1d@3(h=0)",
+        "stackChildren": "div[pane=5m|sep=-|h=664px] -> div[pane=-|sep=5m|1h|h=] -> div[pane=1h|sep=-|h=180px] -> div[pane=-|sep=1h|1d|h=] -> div[pane=1d|sep=-|h=180px]",
+        "stackLayout": "{\"reason\":\"fit\",\"total\":1024,\"shrunk\":false,\"scrollable\":false,\"available\":1024,\"heights\":{\"5m\":664,\"1h\":180,\"1d\":180}}",
+        "stackScrollable": "false",
+        "satHeights": "1h: inline=180px rect=180 | 1d: inline=180px rect=180",
+        "satOrder": "1h,1d"
+      },
+      "volButton": {
+        "before": {
+          "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">VOL</button>",
+          "ariaPressed": "true",
+          "text": "VOL"
+        },
+        "off": {
+          "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3\" aria-pressed=\"false\">VOL</button>",
+          "ariaPressed": "false",
+          "text": "VOL"
+        },
+        "on": {
+          "outerHTML": "<button class=\"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3\" aria-pressed=\"true\">VOL</button>",
+          "ariaPressed": "true",
+          "text": "VOL"
+        }
+      },
+      "volLegend": {
+        "on": {
+          "k_line_chart_1|1492x100@top614": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ],
+          "k_line_chart_2|1492x135@top759": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ],
+          "k_line_chart_3|1507x135@top939": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ]
+        },
+        "off": {},
+        "onAgain": {
+          "k_line_chart_1|1492x100@top614": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ],
+          "k_line_chart_2|1492x135@top759": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ],
+          "k_line_chart_3|1507x135@top939": [
+            "VOL(5,10,20)",
+            "VOLUME: "
+          ]
+        }
+      }
+    },
+    "B5": {
+      "sameConfig": true,
+      "startCanonical": {
+        "multi_period": {
+          "enabled": true,
+          "periods": [
+            "5m",
+            "1h",
+            "1d"
+          ],
+          "heights": {
+            "1d": 180,
+            "1h": 180,
+            "5m": 231
+          },
+          "indicators": [
+            "dcap"
+          ]
+        },
+        "kline": {
+          "viewport_bars": 120
+        },
+        "ma": {
+          "windows": [
+            5,
+            10,
+            20
+          ]
+        }
+      },
+      "endCanonical": {
+        "multi_period": {
+          "enabled": true,
+          "periods": [
+            "5m",
+            "1h",
+            "1d"
+          ],
+          "heights": {
+            "1d": 180,
+            "1h": 180,
+            "5m": 231
+          },
+          "indicators": [
+            "dcap"
+          ]
+        },
+        "kline": {
+          "viewport_bars": 120
+        },
+        "ma": {
+          "windows": [
+            5,
+            10,
+            20
+          ]
+        }
+      },
+      "apiMethods": [
+        "GET"
+      ],
+      "nonGet": [],
+      "apiResponses": [
+        "GET 200 http://127.0.0.1:8081/api/config/multi_period",
+        "GET 200 http://127.0.0.1:8081/api/config/kline",
+        "GET 200 http://127.0.0.1:8081/api/config/dcap",
+        "GET 200 http://127.0.0.1:8081/api/config/ma",
+        "GET 200 http://127.0.0.1:8081/api/sources/health",
+        "GET 200 http://127.0.0.1:8081/api/symbols",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1d&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=1h&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&limit=120",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&before=2026-09-11T05%3A25%3A00Z&limit=300",
+        "GET 200 http://127.0.0.1:8081/api/kline?code=518880&period=5m&before=2026-09-03T05%3A25%3A00Z&limit=300"
+      ],
+      "errWarnCount": 0,
+      "pageErrors": [],
+      "failedRequests": [],
+      "env": [
+        "repo            = /home/eestock/workspace/git/eestock/eestock-rs",
+        "HEAD            = 8828d4621d9536687a380462f567590d5fc3ea3b",
+        "branch          = master",
+        "node            = v22.22.2",
+        "date(local)     = Tue Sep 15 11:12:30 PM CST 2026",
+        "dist mtime      = 2026-09-15 23:02:05.020638638 +0800",
+        "script sha256   = 17eba7974b605e8ba6c71d6d481d6c61dd11e3763480951162979bb2600b1c98",
+        "viewport        = 2000x1100（多周期栈 x=414 宽 1522 ⇒ 需 ≥1936 宽才无裁剪）",
+        "served bundle   = /assets/index-BGPCHS0j.js",
+        "served js md5   = f493b2be9ca2dfa1acbf07d65366d016",
+        "local  js md5   = f493b2be9ca2dfa1acbf07d65366d016",
+        "marker \"no-shared-anchor\" in served js = 1",
+        "marker \"data-mp-sync-excluded\" in served js = 2",
+        "marker \"未同步\" in served js = 4",
+        "marker \"excludedSatellites\" in served js = 4",
+        "marker \"ChartSyncGroup 未建立\" in served js = 1"
+      ]
+    }
+  }
+}
