@@ -1,0 +1,375 @@
+/**
+ * **独立验收（P5.5-C）临时夹具** —— 不属于交付物；验收跑完即删除（见 tester/test/284_*）。
+ * 自己写断言（不复用 `multiPeriodPicker.test.tsx` 的断言文本），验证：
+ *  1. 两步流程 + 候选收窄；2. 护栏（pane>12 / >4 周期 / 服务端 400 可见）；3. 提交一致性 + 回滚；
+ *  4. 真渲染（页面级 jsdom 渲染，含卫星 DOM 与零残留）。
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import type { ApiClient } from '@/api/client';
+import type { WsClient } from '@/ws/WsClient';
+import { ApiError } from '@/api/types';
+import { stubApi } from '@/test/apiStub';
+import { resetRealtimePollGateForTest } from './realtimePoll';
+
+vi.mock('klinecharts', async () => {
+  const { createChartStoreStub } = await import('@/test/chartStoreStub');
+  return {
+    init: vi.fn(() => ({
+      ...createChartStoreStub(),
+      setSymbol: vi.fn(),
+      setPeriod: vi.fn(),
+      setDataLoader: vi.fn(),
+      setBarSpace: vi.fn(),
+      overrideIndicator: vi.fn(),
+      resetData: vi.fn(),
+      setStyles: vi.fn(),
+      resize: vi.fn(),
+      setPaneOptions: vi.fn(),
+      scrollToRealTime: vi.fn(),
+      scrollToDataIndex: vi.fn(),
+      getVisibleRange: vi.fn(() => ({ from: 0, to: 10 })),
+      getSize: vi.fn(() => ({ width: 980, height: 600 })),
+      convertToPixel: vi.fn(() => ({ x: 0, y: 0 })),
+      createOverlay: vi.fn(),
+      removeOverlay: vi.fn(),
+      subscribeAction: vi.fn(),
+      unsubscribeAction: vi.fn(),
+    })),
+    dispose: vi.fn(),
+    registerIndicator: vi.fn(),
+  };
+});
+
+import { DashboardPage } from './DashboardPage';
+import {
+  MULTI_PERIOD_PICKER_PERIODS,
+  MAX_INDICATOR_PERIODS,
+  indicatorPeriodOptions,
+  multiPeriodPaneCount,
+  validatePickerSelection,
+  MultiPeriodPeriodPicker,
+} from './multiPeriodPicker';
+
+const AVAILABLE = 600;
+class RoMock {
+  static instances: RoMock[] = [];
+  constructor(public cb: ResizeObserverCallback) {
+    RoMock.instances.push(this);
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+async function reportSize(): Promise<void> {
+  const entry = { contentRect: { height: AVAILABLE, width: 980 } } as unknown as ResizeObserverEntry;
+  for (const ro of RoMock.instances) {
+    await act(async () => {
+      ro.cb([entry], ro as unknown as ResizeObserver);
+    });
+  }
+}
+
+const SYMBOLS = [{ code: '518880', name: '黄金ETF', enabled: true, last: 2.431, changePct: 0.62 }];
+const BAR = { ts: '2026-09-15T02:00:00Z', open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 100, amount: 105 };
+
+function fakeWs() {
+  const handlers = new Map<string, Set<(m: unknown) => void>>();
+  return {
+    handlers,
+    subscribe: vi.fn((topic: string, h: (m: unknown) => void) => {
+      if (!handlers.has(topic)) handlers.set(topic, new Set());
+      handlers.get(topic)!.add(h);
+      return () => handlers.get(topic)?.delete(h);
+    }),
+  };
+}
+const subCount = (ws: ReturnType<typeof fakeWs>, topic: string): number => ws.handlers.get(topic)?.size ?? 0;
+
+async function flush(times = 4): Promise<void> {
+  for (let i = 0; i < times; i++) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  }
+}
+
+let serverCfg: Record<string, unknown> = {};
+function setUserConfig(cfg: Record<string, unknown>): void {
+  serverCfg = JSON.parse(JSON.stringify(cfg)) as Record<string, unknown>;
+}
+
+interface Ctx {
+  api: ApiClient;
+  ws: ReturnType<typeof fakeWs>;
+  getKline: ReturnType<typeof vi.fn>;
+  save: ReturnType<typeof vi.fn>;
+  view: ReturnType<typeof render>;
+}
+
+async function setup(opts: { onSave?: (c: unknown) => Promise<unknown> } = {}): Promise<Ctx> {
+  const save = vi.fn(async (cfg: unknown) => {
+    const out = opts.onSave ? await opts.onSave(cfg) : cfg;
+    Object.assign(serverCfg, out as Record<string, unknown>);
+    return serverCfg;
+  });
+  const getKline = vi.fn(async () => [BAR]);
+  const api = stubApi({
+    getSymbols: vi.fn(async () => SYMBOLS),
+    getKline,
+    getKlineConfig: vi.fn(async () => ({ viewport_bars: 120 })),
+    getMultiPeriodConfig: vi.fn(async () => ({ ...serverCfg })),
+    saveMultiPeriodConfig: save,
+  } as unknown as Partial<ApiClient>);
+  const ws = fakeWs();
+  const view = render(
+    <MemoryRouter>
+      <DashboardPage api={api} ws={ws as unknown as WsClient} />
+    </MemoryRouter>,
+  );
+  await waitFor(() => expect(screen.getByText('黄金ETF')).toBeInTheDocument());
+  await flush();
+  await reportSize();
+  await flush();
+  return { api, ws, getKline, save, view };
+}
+
+const sats = (ctx: Ctx): string[] =>
+  Array.from(ctx.view.container.querySelectorAll<HTMLElement>('[data-mp-satellite]')).map(
+    (e) => e.getAttribute('data-mp-satellite') ?? '',
+  );
+const basePane = (ctx: Ctx): string | null =>
+  ctx.view.container.querySelector('[data-mp-pane-role="base"]')?.getAttribute('data-mp-pane') ?? null;
+const pickerErr = (ctx: Ctx): string =>
+  (
+    ctx.view.container.querySelector('[data-testid="mp-picker-error"], [data-mp-picker-error]')
+      ?.textContent ?? ''
+  ).trim();
+
+async function openPicker(ctx: Ctx): Promise<HTMLElement> {
+  const btn = ctx.view.container.querySelector<HTMLElement>('[data-testid="mp-periods-open"]');
+  expect(btn, '入口 mp-periods-open 必须存在').not.toBeNull();
+  await userEvent.click(btn!);
+  await flush(2);
+  const panel = ctx.view.container.querySelector<HTMLElement>('[data-testid="mp-picker"]');
+  expect(panel, '面板 mp-picker 必须出现').not.toBeNull();
+  return panel!;
+}
+const ibtn = (root: HTMLElement, p: string): HTMLButtonElement | null =>
+  root.querySelector<HTMLButtonElement>(`[data-mp-indicator-period="${p}"]`);
+const ireason = (root: HTMLElement, p: string): string =>
+  (root.querySelector(`[data-mp-indicator-reason="${p}"]`)?.textContent ?? '').trim();
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  RoMock.instances = [];
+  vi.stubGlobal('ResizeObserver', RoMock);
+  resetRealtimePollGateForTest();
+});
+afterEach(() => vi.unstubAllGlobals());
+
+// ── 1. 两步流程 + 候选收窄（纯函数，独立断言）──────────────────────────────
+describe('AC-1 两步流程与候选收窄', () => {
+  it('AC1.1 步骤 1 全集 = 6 个周期且不含 1mo', () => {
+    expect(MULTI_PERIOD_PICKER_PERIODS).toEqual(['1m', '5m', '15m', '1h', '1d', '1w']);
+    expect(MULTI_PERIOD_PICKER_PERIODS).not.toContain('1mo');
+  });
+
+  it('AC1.2 base=1m ⇒ 候选全部 ≥1m、1w 出现但禁用且有原因', () => {
+    const opts = indicatorPeriodOptions('1m');
+    expect(opts.map((o) => o.period)).toEqual(['1m', '5m', '15m', '1h', '1d', '1w']);
+    const w = opts.find((o) => o.period === '1w')!;
+    expect(w.enabled).toBe(false);
+    expect((w.reason ?? '').trim()).not.toBe('');
+  });
+
+  it('AC1.3 base=1d ⇒ 1w 可选且候选不含 <1d 周期', () => {
+    const opts = indicatorPeriodOptions('1d');
+    expect(opts.map((o) => o.period)).toEqual(['1d', '1w']);
+    expect(opts.every((o) => o.enabled)).toBe(true);
+    expect(indicatorPeriodOptions('5m').map((o) => o.period)).not.toContain('1m');
+  });
+
+  it('AC1.4 组件：点 1m ⇒ 1w 仍渲染为禁用按钮 + 原因；切 1d ⇒ 变可选', async () => {
+    const { container } = render(
+      <MultiPeriodPeriodPicker basePeriod="15m" indicators={['dcap']} onConfirm={() => {}} />,
+    );
+    await userEvent.click(container.querySelector('[data-mp-base-period="1m"]')!);
+    const w1 = ibtn(container, '1w')!;
+    expect(w1).not.toBeNull();
+    expect(w1.disabled).toBe(true);
+    expect(ireason(container, '1w')).not.toBe('');
+    await userEvent.click(container.querySelector('[data-mp-base-period="1d"]')!);
+    await flush(2);
+    expect(ibtn(container, '1w')!.disabled).toBe(false);
+  });
+});
+
+// ── 2. 护栏（独立断言）───────────────────────────────────────────────────
+describe('AC-2 护栏', () => {
+  it('AC2.1 总周期 >4 / 指标 >3 ⇒ 拒绝且报错含维度 periods', () => {
+    const v = validatePickerSelection({
+      base: '1m',
+      indicatorPeriods: ['1m', '5m', '15m', '1h'],
+      indicators: ['dcap'],
+    });
+    expect(v.ok).toBe(false);
+    expect(v.issues.some((i) => i.dimension === 'periods' && /最多/.test(i.message))).toBe(true);
+    expect(MAX_INDICATOR_PERIODS).toBe(3);
+  });
+
+  it('AC2.2 pane >12（去重后计数）⇒ 拒绝且报错含被拒维度 pane；去重计数口径正确', () => {
+    expect(multiPeriodPaneCount(['1m', '5m'], ['dcap', 'dcap'])).toBe(2);
+    const v = validatePickerSelection({
+      base: '1m',
+      indicatorPeriods: ['5m', '15m', '1h'],
+      indicators: ['dcap', 'ma', 'macd', 'kdj', 'boll'],
+    });
+    expect(v.ok).toBe(false);
+    const paneIssue = v.issues.find((i) => i.dimension === 'pane');
+    expect(paneIssue, '必须有 pane 维度的报错').toBeTruthy();
+    expect((paneIssue!.message ?? '').trim()).not.toBe('');
+    expect(multiPeriodPaneCount(['1m', '5m', '15m', '1h'], ['dcap', 'ma', 'macd', 'kdj', 'boll'])).toBe(16);
+  });
+
+  it('AC2.3 组件：pane 越限组合 ⇒ 可见报错且 0 次提交（不静默截断）', async () => {
+    const onConfirm = vi.fn();
+    const { container } = render(
+      <MultiPeriodPeriodPicker
+        basePeriod="1m"
+        indicators={['dcap', 'ma', 'macd', 'kdj', 'boll']}
+        onConfirm={onConfirm}
+      />,
+    );
+    for (const p of ['5m', '15m', '1h']) await userEvent.click(ibtn(container, p)!);
+    await act(async () => {
+      fireEvent.click(container.querySelector('[data-testid="mp-picker-confirm"]')!);
+    });
+    await flush(2);
+    const err = container.querySelector('[data-testid="mp-picker-error"]');
+    expect(err, '越限必须就地报错').not.toBeNull();
+    expect((err!.textContent ?? '').trim()).not.toBe('');
+    expect(onConfirm, '被拒组合不得提交（不得静默截断）').not.toHaveBeenCalled();
+  });
+
+  it('AC2.4 服务端 400（绕过前端校验）⇒ 前端可见报错，不静默', async () => {
+    const onConfirm = vi.fn(() => Promise.reject(new ApiError(400, 'HTTP 400: periods 卫星周期 1h 须 ≥ 基准 15m')));
+    const { container } = render(
+      <MultiPeriodPeriodPicker basePeriod="15m" indicators={['dcap']} onConfirm={onConfirm} />,
+    );
+    await userEvent.click(ibtn(container, '1h')!);
+    await act(async () => {
+      fireEvent.click(container.querySelector('[data-testid="mp-picker-confirm"]')!);
+    });
+    await flush(2);
+    const err = container.querySelector('[data-testid="mp-picker-error"]');
+    expect(err).not.toBeNull();
+    expect(err!.textContent).toContain('400');
+    expect(container.querySelector('[data-testid="mp-picker"]'), '失败后保持打开可重试').not.toBeNull();
+  });
+
+  it('AC2.5 指标候选在选满 3 个后第 4 个禁用并给出原因', async () => {
+    const { container } = render(
+      <MultiPeriodPeriodPicker basePeriod="1m" indicators={['dcap']} onConfirm={() => {}} />,
+    );
+    for (const p of ['5m', '15m', '1h']) await userEvent.click(ibtn(container, p)!);
+    await flush(2);
+    const d = ibtn(container, '1d')!;
+    expect(d.disabled).toBe(true);
+    expect(ireason(container, '1d')).not.toBe('');
+  });
+});
+
+// ── 3. 提交与一致性（页面级）─────────────────────────────────────────────
+describe('AC-3 提交与一致性', () => {
+  it('AC3.1 确认 ⇒ PUT 载荷规范；periods[0]==state.period；覆盖徽标消失', async () => {
+    setUserConfig({ enabled: true, periods: ['1m', '5m'], heights: { '1m': 420, '5m': 180 }, indicators: ['dcap'] });
+    const ctx = await setup();
+    expect(basePane(ctx), '前置：配置基准 1m 覆盖工具栏 15m').toBe('1m');
+    expect(ctx.view.container.querySelector('[data-mp-base-override]'), '前置：覆盖徽标可见').not.toBeNull();
+
+    // 关键：基准取 **1m**（≠ 工具栏当前 15m）⇒ 若不写 state.period，覆盖态仍可观测（可区分 M2 变异）
+    const panel = await openPicker(ctx);
+    await userEvent.click(panel.querySelector('[data-mp-base-period="1m"]')!);
+    await userEvent.click(ibtn(panel, '5m')!);
+    await act(async () => {
+      fireEvent.click(panel.querySelector('[data-testid="mp-picker-confirm"]')!);
+    });
+    await flush(4);
+
+    expect(ctx.save).toHaveBeenCalledTimes(1);
+    const body = ctx.save.mock.calls[0]![0] as Record<string, unknown>;
+    expect(body.periods).toEqual(['1m', '5m']);
+    expect(body.heights).toEqual({ '1m': 420, '5m': 180 });
+    expect(body.indicators).toEqual(['dcap']);
+    await waitFor(() => expect(basePane(ctx)).toBe('1m'));
+    expect(sats(ctx)).toEqual(['5m']);
+    expect(
+      ctx.view.container.querySelector('[data-mp-satellite="5m"]')!.getAttribute('data-mp-base-period-source'),
+    ).toBe('toolbar');
+    expect(ctx.view.container.querySelector('[data-mp-base-override]'), '覆盖徽标必须消失').toBeNull();
+    // state.period 同步的行为证据：基准取数周期 = 1m
+    expect(ctx.getKline.mock.calls.some((c) => (c[0] as { period?: string }).period === '1m')).toBe(true);
+    // 工具栏周期必须显示 1m（不是残留 15m）
+    expect(
+      Array.from(ctx.view.container.querySelectorAll('[data-region="toolbar"] button[aria-pressed="true"]')).map(
+        (b) => b.textContent?.trim(),
+      ),
+    ).toContain('1m');
+  });
+
+  it('AC3.2 失败注入（400）⇒ 乐观更新回滚，UI 与服务端一致 + 可见报错', async () => {
+    setUserConfig({ enabled: true, periods: ['1m', '5m'], heights: { '1m': 420, '5m': 180 }, indicators: ['dcap'] });
+    const ctx = await setup({ onSave: () => Promise.reject(new ApiError(400, 'HTTP 400: 拒绝')) });
+    const panel = await openPicker(ctx);
+    await userEvent.click(panel.querySelector('[data-mp-base-period="15m"]')!);
+    await userEvent.click(ibtn(panel, '1h')!);
+    await act(async () => {
+      fireEvent.click(panel.querySelector('[data-testid="mp-picker-confirm"]')!);
+    });
+    await flush(4);
+
+    expect(ctx.save).toHaveBeenCalledTimes(1);
+    expect(sats(ctx), '回滚到提交前').toEqual(['5m']);
+    expect(basePane(ctx), '回滚到提交前基准').toBe('1m');
+    expect(pickerErr(ctx), '错误必须可见').not.toBe('');
+    const get = (ctx.api.getMultiPeriodConfig as unknown as ReturnType<typeof vi.fn>).mock.results.length;
+    expect(get).toBeGreaterThan(0);
+    expect(serverCfg['periods'], '服务端未被改写').toEqual(['1m', '5m']);
+  });
+});
+
+// ── 4. 真渲染（页面级 DOM） + 零残留 ────────────────────────────────────
+describe('AC-4 真渲染与零残留', () => {
+  it('AC4.1 开启多周期 ⇒ 卫星 DOM 出现、pane 高度和 == 可用、无残留取数/订阅', async () => {
+    setUserConfig({ enabled: true, periods: ['1m', '5m', '15m'], heights: { '1m': 420, '5m': 180, '15m': 180 }, indicators: ['dcap'] });
+    const ctx = await setup();
+    expect(sats(ctx)).toEqual(['5m', '15m']);
+    const panes = Array.from(ctx.view.container.querySelectorAll<HTMLElement>('[data-mp-pane]'));
+    expect(panes).toHaveLength(3);
+    expect(
+      panes.map((p) => Number(p.getAttribute('data-mp-pane-height'))).reduce((a, b) => a + b, 0),
+    ).toBe(AVAILABLE);
+  });
+
+  it('AC4.2 关闭多周期 ⇒ 零卫星 / 零卫星周期订阅与取数', async () => {
+    setUserConfig({ enabled: true, periods: ['1m', '5m'], heights: { '1m': 420, '5m': 180 }, indicators: ['dcap'] });
+    const ctx = await setup();
+    const before = ctx.getKline.mock.calls.filter((c) => (c[0] as { period?: string }).period === '5m').length;
+    expect(before).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '多周期' }));
+    });
+    await flush(4);
+    await waitFor(() => expect(sats(ctx)).toEqual([]));
+    expect(
+      ctx.getKline.mock.calls.filter((c) => (c[0] as { period?: string }).period === '5m').length,
+      '关闭后不得再为卫星周期取数',
+    ).toBe(before);
+    expect(subCount(ctx.ws, 'bar:518880:5m'), '卫星订阅必须释放').toBe(0);
+    expect(subCount(ctx.ws, 'bar:518880:1m'), '旧基准（1m）订阅必须释放').toBe(0);
+    expect(subCount(ctx.ws, 'bar:518880:15m'), '仅剩工具栏周期订阅').toBe(1);
+  });
+});

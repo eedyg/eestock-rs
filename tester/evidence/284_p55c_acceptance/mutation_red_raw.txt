@@ -1,0 +1,73 @@
+
+ RUN  v3.2.7 /tmp/p55c_mut
+
+stderr | src/features/dashboard/p55c_acceptance.test.tsx > AC-3 提交与一致性 > AC3.1 确认 ⇒ PUT 载荷规范；periods[0]==state.period；覆盖徽标消失
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ❯ src/features/dashboard/p55c_acceptance.test.tsx (13 tests | 2 failed) 314ms
+   ✓ AC-1 两步流程与候选收窄 > AC1.1 步骤 1 全集 = 6 个周期且不含 1mo 1ms
+   ✓ AC-1 两步流程与候选收窄 > AC1.2 base=1m ⇒ 候选全部 ≥1m、1w 出现但禁用且有原因 0ms
+   × AC-1 两步流程与候选收窄 > AC1.3 base=1d ⇒ 1w 可选且候选不含 <1d 周期 4ms
+     → expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ '1d', '1w' ]
+   ✓ AC-1 两步流程与候选收窄 > AC1.4 组件：点 1m ⇒ 1w 仍渲染为禁用按钮 + 原因；切 1d ⇒ 变可选 55ms
+   ✓ AC-2 护栏 > AC2.1 总周期 >4 / 指标 >3 ⇒ 拒绝且报错含维度 periods 0ms
+   ✓ AC-2 护栏 > AC2.2 pane >12（去重后计数）⇒ 拒绝且报错含被拒维度 pane；去重计数口径正确 0ms
+   ✓ AC-2 护栏 > AC2.3 组件：pane 越限组合 ⇒ 可见报错且 0 次提交（不静默截断） 29ms
+   ✓ AC-2 护栏 > AC2.4 服务端 400（绕过前端校验）⇒ 前端可见报错，不静默 14ms
+   ✓ AC-2 护栏 > AC2.5 指标候选在选满 3 个后第 4 个禁用并给出原因 24ms
+   × AC-3 提交与一致性 > AC3.1 确认 ⇒ PUT 载荷规范；periods[0]==state.period；覆盖徽标消失 67ms
+     → expected 'config' to be 'toolbar' // Object.is equality
+   ✓ AC-3 提交与一致性 > AC3.2 失败注入（400）⇒ 乐观更新回滚，UI 与服务端一致 + 可见报错 54ms
+   ✓ AC-4 真渲染与零残留 > AC4.1 开启多周期 ⇒ 卫星 DOM 出现、pane 高度和 == 可用、无残留取数/订阅 22ms
+   ✓ AC-4 真渲染与零残留 > AC4.2 关闭多周期 ⇒ 零卫星 / 零卫星周期订阅与取数 41ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/p55c_acceptance.test.tsx > AC-1 两步流程与候选收窄 > AC1.3 base=1d ⇒ 1w 可选且候选不含 <1d 周期
+AssertionError: expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ '1d', '1w' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[31m+   "1m",[39m
+[31m+   "5m",[39m
+[31m+   "15m",[39m
+[31m+   "1h",[39m
+[2m    "1d",[22m
+[2m    "1w",[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/p55c_acceptance.test.tsx:190:39
+    188|   it('AC1.3 base=1d ⇒ 1w 可选且候选不含 <1d 周期', () => {
+    189|     const opts = indicatorPeriodOptions('1d');
+    190|     expect(opts.map((o) => o.period)).toEqual(['1d', '1w']);
+       |                                       ^
+    191|     expect(opts.every((o) => o.enabled)).toBe(true);
+    192|     expect(indicatorPeriodOptions('5m').map((o) => o.period)).not.toCo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/dashboard/p55c_acceptance.test.tsx > AC-3 提交与一致性 > AC3.1 确认 ⇒ PUT 载荷规范；periods[0]==state.period；覆盖徽标消失
+AssertionError: expected 'config' to be 'toolbar' // Object.is equality
+
+Expected: [32m"toolbar"[39m
+Received: [31m"config"[39m
+
+ ❯ src/features/dashboard/p55c_acceptance.test.tsx:311:7
+    309|     expect(
+    310|       ctx.view.container.querySelector('[data-mp-satellite="5m"]')!.ge…
+    311|     ).toBe('toolbar');
+       |       ^
+    312|     expect(ctx.view.container.querySelector('[data-mp-base-override]')…
+    313|     // state.period 同步的行为证据：基准取数周期 = 1m
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  10:09:04
+   Duration  934ms (transform 155ms, setup 22ms, collect 230ms, tests 314ms, environment 130ms, prepare 46ms)
+

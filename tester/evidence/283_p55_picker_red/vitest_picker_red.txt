@@ -1,0 +1,145 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+stderr | src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：两步选择器提交语义（写 periods[0] 与 state.period） > C1 确认 ⇒ PUT /api/config/multi_period（periods/heights 键/indicators/enabled）；基准 pane = 步骤1 选择，且「基准被配置覆盖」消除
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+stderr | src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C6 heights 兼容：新增/移除周期 ⇒ 键随之增删（保留既有值）+ 不破坏 P5 分配契约（Σ == 可用）
+[multi-period] ChartSyncGroup 未建立（周期组合不可用，禁止静默虚假对齐） Error: 多周期同步组合不可用：基准 15m ↔ 卫星 1h 恒退化/无重叠（禁止静默虚假对齐）
+    at new ChartSyncGroup [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncGroup.ts:430:17[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:111:21
+    at Object.register [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/chartSyncContext.ts:136:9[90m)[39m
+    at [90m/home/eestock/workspace/git/eestock/eestock-rs/web/[39msrc/features/dashboard/KlineChart.tsx:444:25
+    at commitHookEffectListMount [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:23189:26[90m)[39m
+    at commitPassiveMountOnFiber [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24970:11[90m)[39m
+    at commitPassiveMountEffects_complete [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24930:9[90m)[39m
+    at commitPassiveMountEffects_begin [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24917:7[90m)[39m
+    at commitPassiveMountEffects [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:24905:3[90m)[39m
+    at flushPassiveEffectsImpl [90m(/home/eestock/workspace/git/eestock/eestock-rs/web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom.development.js:27078:3[90m)[39m
+
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx (17 tests | 16 failed) 265ms
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A1 步骤 1 全集 = 全部周期 \ {1mo}（顺序 1m/5m/15m/1h/1d/1w） 6ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A2 步骤 2 候选自动收窄为 {P ≥ 步骤1} \ {1mo}：base=1d ⇒ {1d,1w}；小于基准的一律不出现 2ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A3 1w 护栏：base ≥1d ⇒ 可选；base <1d ⇒ 出现但不可选且给出原因（不得静默消失）；base=1w ⇒ 仅自身 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A4 最多 3 个指标周期（总周期 ≤4）：第 4 个 ⇒ 校验拒绝且错误含维度名 periods 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A5 总 pane 预算 ≤12：计数基于**去重后** indicators；越限 ⇒ 拒绝且错误含被拒维度名（不静默截断） 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A6 非法组合（卫星 < 基准 / 含 1mo / 含 1w 且基准 <1d）⇒ 校验拒绝且含维度名 periods 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A7 heights 键随周期增删（新增用默认 420/180；保留既有值；移除不留残键） 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B1 步骤 1 渲染全集（无 1mo）；点 1d ⇒ 步骤 2 候选收窄为 {1d,1w}（5m 不出现） 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B2 base=5m（<1d）⇒ 1w 出现在步骤 2 但禁用，且原因可读（不得静默隐藏） 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B3 指标周期至多 3 个：选满 3 后第 4 个候选禁用并给出原因；确认载荷恰 3 个卫星 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B4 确认载荷 = {basePeriod, 按秩升序的指标周期集合}（选中顺序不影响规范序） 0ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B5 服务端 400（onConfirm 失败）⇒ 选择器可见报错且保留选择（不静默关闭、不截断） 3ms
+     → Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+   × C. 页面级：两步选择器提交语义（写 periods[0] 与 state.period） > C1 确认 ⇒ PUT /api/config/multi_period（periods/heights 键/indicators/enabled）；基准 pane = 步骤1 选择，且「基准被配置覆盖」消除 55ms
+     → 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+   × C. 页面级：两步选择器提交语义（写 periods[0] 与 state.period） > C2 失败回滚（PUT 400 拒绝）⇒ 卫星/基准回到提交前 + 可见报错（不静默） 23ms
+     → 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+   × C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C4 宫格模式 ⇒ 多周期强制关闭/入口隐藏：零卫星、零卫星周期订阅 103ms
+     → 宫格模式下多周期入口必须为关闭态（隐藏或强制关闭）: expected 'true' to be 'false' // Object.is equality
+   ✓ C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C5 关闭多周期开关 ⇒ 零残留（卫星归零、卫星周期无新增取数/订阅） 41ms
+   × C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C6 heights 兼容：新增/移除周期 ⇒ 键随之增删（保留既有值）+ 不破坏 P5 分配契约（Σ == 可用） 30ms
+     → 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A1 步骤 1 全集 = 全部周期 \ {1mo}（顺序 1m/5m/15m/1h/1d/1w）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A2 步骤 2 候选自动收窄为 {P ≥ 步骤1} \ {1mo}：base=1d ⇒ {1d,1w}；小于基准的一律不出现
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A3 1w 护栏：base ≥1d ⇒ 可选；base <1d ⇒ 出现但不可选且给出原因（不得静默消失）；base=1w ⇒ 仅自身
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A4 最多 3 个指标周期（总周期 ≤4）：第 4 个 ⇒ 校验拒绝且错误含维度名 periods
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A5 总 pane 预算 ≤12：计数基于**去重后** indicators；越限 ⇒ 拒绝且错误含被拒维度名（不静默截断）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A6 非法组合（卫星 < 基准 / 含 1mo / 含 1w 且基准 <1d）⇒ 校验拒绝且含维度名 periods
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > A. 两步选择器的纯函数契约（步骤收窄 + 护栏） > A7 heights 键随周期增删（新增用默认 420/180；保留既有值；移除不留残键）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B1 步骤 1 渲染全集（无 1mo）；点 1d ⇒ 步骤 2 候选收窄为 {1d,1w}（5m 不出现）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B2 base=5m（<1d）⇒ 1w 出现在步骤 2 但禁用，且原因可读（不得静默隐藏）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B3 指标周期至多 3 个：选满 3 后第 4 个候选禁用并给出原因；确认载荷恰 3 个卫星
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B4 确认载荷 = {basePeriod, 按秩升序的指标周期集合}（选中顺序不影响规范序）
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > B. 两步选择器组件（步骤 1 ⇒ 步骤 2 候选收窄） > B5 服务端 400（onConfirm 失败）⇒ 选择器可见报错且保留选择（不静默关闭、不截断）
+Error: Cannot find module './multiPeriodPicker' imported from '/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/multiPeriodPicker.test.tsx'
+ ❯ loadPicker src/features/dashboard/multiPeriodPicker.test.tsx:113:11
+    111| 
+    112| async function loadPicker(): Promise<PickerModule> {
+    113|   return (await import(/* @vite-ignore */ PICKER_SPECIFIER)) as unknow…
+       |           ^
+    114| }
+    115| 
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx:151:15
+
+Caused by: Error: Failed to load url ./multiPeriodPicker (resolved id: ./multiPeriodPicker). Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：两步选择器提交语义（写 periods[0] 与 state.period） > C1 确认 ⇒ PUT /api/config/multi_period（periods/heights 键/indicators/enabled）；基准 pane = 步骤1 选择，且「基准被配置覆盖」消除
+AssertionError: 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+ ❯ openPicker src/features/dashboard/multiPeriodPicker.test.tsx:508:72
+    506| async function openPicker(ctx: Ctx): Promise<void> {
+    507|   const open = ctx.view.container.querySelector<HTMLElement>('[data-te…
+    508|   expect(open, '启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）').not…
+       |                                                                        ^
+    509|   await userEvent.click(open!);
+    510|   await flush(2);
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx:564:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：两步选择器提交语义（写 periods[0] 与 state.period） > C2 失败回滚（PUT 400 拒绝）⇒ 卫星/基准回到提交前 + 可见报错（不静默）
+AssertionError: 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+ ❯ openPicker src/features/dashboard/multiPeriodPicker.test.tsx:508:72
+    506| async function openPicker(ctx: Ctx): Promise<void> {
+    507|   const open = ctx.view.container.querySelector<HTMLElement>('[data-te…
+    508|   expect(open, '启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）').not…
+       |                                                                        ^
+    509|   await userEvent.click(open!);
+    510|   await flush(2);
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx:613:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C4 宫格模式 ⇒ 多周期强制关闭/入口隐藏：零卫星、零卫星周期订阅
+AssertionError: 宫格模式下多周期入口必须为关闭态（隐藏或强制关闭）: expected 'true' to be 'false' // Object.is equality
+
+Expected: [32m"[7mfals[27me"[39m
+Received: [31m"[7mtru[27me"[39m
+
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx:646:9
+    644|         toggle.getAttribute('aria-pressed'),
+    645|         '宫格模式下多周期入口必须为关闭态（隐藏或强制关闭）',
+    646|       ).toBe('false');
+       |         ^
+    647|     }
+    648|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  src/features/dashboard/multiPeriodPicker.test.tsx > C. 页面级：开关与模式（仅单图可用）+ 关闭零残留 + heights 兼容 > C6 heights 兼容：新增/移除周期 ⇒ 键随之增删（保留既有值）+ 不破坏 P5 分配契约（Σ == 可用）
+AssertionError: 启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）: expected null not to be null
+ ❯ openPicker src/features/dashboard/multiPeriodPicker.test.tsx:508:72
+    506| async function openPicker(ctx: Ctx): Promise<void> {
+    507|   const open = ctx.view.container.querySelector<HTMLElement>('[data-te…
+    508|   expect(open, '启用多周期后必须有打开选择器的入口（data-testid="mp-periods-open"）').not…
+       |                                                                        ^
+    509|   await userEvent.click(open!);
+    510|   await flush(2);
+ ❯ src/features/dashboard/multiPeriodPicker.test.tsx:695:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 1 passed (17)
+   Start at  09:46:35
+   Duration  967ms (transform 192ms, setup 30ms, collect 295ms, tests 265ms, environment 140ms, prepare 91ms)
+

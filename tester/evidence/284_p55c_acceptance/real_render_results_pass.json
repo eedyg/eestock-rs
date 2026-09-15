@@ -1,0 +1,143 @@
+{
+  "base": "http://127.0.0.1:5392",
+  "results": [
+    {
+      "id": "R0.基础渲染",
+      "ok": true,
+      "detail": "canvas=20；pageerror=0"
+    },
+    {
+      "id": "R1.入口与前置覆盖态",
+      "ok": true,
+      "detail": "入口=1；卫星=[\"5m\"]；覆盖徽标=1"
+    },
+    {
+      "id": "R2.步骤1全集",
+      "ok": true,
+      "detail": "step1=[\"1m\",\"5m\",\"15m\",\"1h\",\"1d\",\"1w\"]"
+    },
+    {
+      "id": "R3.base=1m候选收窄",
+      "ok": true,
+      "detail": "候选=[{\"p\":\"1m\",\"disabled\":false},{\"p\":\"5m\",\"disabled\":false},{\"p\":\"15m\",\"disabled\":false},{\"p\":\"1h\",\"disabled\":false},{\"p\":\"1d\",\"disabled\":false},{\"p\":\"1w\",\"disabled\":true}]；1w 原因=\"1w 需基准 ≥ 1d（避免恒退化）\""
+    },
+    {
+      "id": "R4.base=1d出现1w",
+      "ok": true,
+      "detail": "候选=[{\"p\":\"1d\",\"disabled\":false},{\"p\":\"1w\",\"disabled\":false}]"
+    },
+    {
+      "id": "R5.上限3第4禁用",
+      "ok": true,
+      "detail": "第4禁用=true；原因=\"已达上限 3 个指标周期（总周期 ≤ 4）\"；提示=\"已选 3/3；总 pane 4/12（剩余 8）；候选已按步骤 1 收窄为 ≥ 1m，`1mo` 不提供。\""
+    },
+    {
+      "id": "R6.提交一致性与往返",
+      "ok": true,
+      "detail": "卫星=[\"5m\",\"15m\",\"1h\"]；基准pane=1m；覆盖徽标=0；PUT body={\"enabled\":true,\"periods\":[\"1m\",\"5m\",\"15m\",\"1h\"],\"heights\":{\"1m\":420,\"5m\":180,\"15m\":180,\"1h\":180},\"indicators\":[\"dcap\"]}；工具栏选中=[\"1m\",\"K线\",\"MA\",\"单图\",\"多周期\"]"
+    },
+    {
+      "id": "R7.布局与DCAP渲染",
+      "ok": true,
+      "detail": "{\"stackScrollable\":\"false\",\"stackOverflow\":0,\"paneSum\":824,\"paneCount\":4,\"satCanvas\":10,\"allSatCanvas\":30,\"docOverflow\":0}"
+    },
+    {
+      "id": "R8.关闭零残留",
+      "ok": true,
+      "detail": "卫星=0；pane=0；stack=0；PUT body={\"enabled\":false,\"periods\":[\"1m\",\"5m\",\"15m\",\"1h\"],\"heights\":{\"1m\":420,\"5m\":180,\"15m\":180,\"1h\":180},\"indicators\":[\"dcap\"]}"
+    },
+    {
+      "id": "R9.宫格隐藏多周期",
+      "ok": true,
+      "detail": "宫格下「多周期」按钮数=0"
+    },
+    {
+      "id": "R10.失败注入回滚+可见报错",
+      "ok": true,
+      "detail": "报错=\"HTTP 400 /api/config/multi_period: HTTP 400: injected server rejection（验收注入）\"；失败后卫星=[\"5m\",\"15m\",\"1h\"]（提交前=[\"5m\",\"15m\",\"1h\"]）；基准pane=1m；选择器仍开=1；注入 PUT body={\"enabled\":true,\"periods\":[\"15m\",\"1h\"],\"heights\":{\"15m\":180,\"1h\":180},\"indicators\":[\"dcap\"]}"
+    },
+    {
+      "id": "R11.无 page error",
+      "ok": true,
+      "detail": "pageerrors=[]"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "WebSocket connection to 'ws://127.0.0.1:5392/ws' failed: Connection closed before receiving a handshake response",
+    "WebSocket connection to 'ws://127.0.0.1:5392/ws' failed: Connection closed before receiving a handshake response",
+    "WebSocket connection to 'ws://127.0.0.1:5392/ws' failed: Connection closed before receiving a handshake response",
+    "WebSocket connection to 'ws://127.0.0.1:5392/ws' failed: Connection closed before receiving a handshake response",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+  ],
+  "puts": [
+    {
+      "enabled": true,
+      "periods": [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ],
+      "heights": {
+        "1m": 420,
+        "5m": 180,
+        "15m": 180,
+        "1h": 180
+      },
+      "indicators": [
+        "dcap"
+      ]
+    },
+    {
+      "enabled": false,
+      "periods": [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ],
+      "heights": {
+        "1m": 420,
+        "5m": 180,
+        "15m": 180,
+        "1h": 180
+      },
+      "indicators": [
+        "dcap"
+      ]
+    },
+    {
+      "enabled": true,
+      "periods": [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ],
+      "heights": {
+        "1m": 420,
+        "5m": 180,
+        "15m": 180,
+        "1h": 180
+      },
+      "indicators": [
+        "dcap"
+      ]
+    },
+    {
+      "enabled": true,
+      "periods": [
+        "15m",
+        "1h"
+      ],
+      "heights": {
+        "15m": 180,
+        "1h": 180
+      },
+      "indicators": [
+        "dcap"
+      ]
+    }
+  ]
+}
