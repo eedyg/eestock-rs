@@ -1,0 +1,4 @@
+2026-09-15 09:56:37 CST
+HEAD=64f3271
+Purpose: read-only verification whether the SERVED 1m series for today == vendor final or == first-seen raw snapshot.
+Constraints: GET /api/kline + read-only SELECT + read-only vendor GET only. No writes, no restart, no git add/commit.

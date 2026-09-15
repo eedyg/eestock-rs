@@ -1,0 +1,2 @@
+2://! raw 层（kline_raw）写入：ON CONFLICT DO NOTHING（首写胜出，ADR-002）。
+38:        qb.push(" ON CONFLICT (code, ts) DO NOTHING");

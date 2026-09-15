@@ -1,0 +1,9 @@
+5://! - 1m：MERGED_1M_SQL 双侧 (code,ts) 索引 DESC LIMIT 合并（准确层优先语义等价 kline_merged，ADR-003）；5m/15m/1h/1d/w/m：merged_sql(accurate_<P> UNION ALL 兜底 反连接)
+26:/// 1m 统一读源（MERGED_1M_SQL，ADR-003 准确层优先语义等价 kline_merged）。
+33:const MERGED_1M_SQL: &str = r#"
+44:     FROM kline_raw f
+46:       AND NOT EXISTS (SELECT 1 FROM kline_accurate a
+72:      AND NOT EXISTS (SELECT 1 FROM {accurate} a WHERE a.code = f.code AND a.ts = f.ts)
+102:/// 周期 → 统一读源 SQL（1m 用 MERGED_1M_SQL 双侧索引 DESC LIMIT 合并；其余按 accurate 表 + 兜底片段）。
+105:        Period::M1 => MERGED_1M_SQL.to_string(),
+137:/// 旧版直查 kline_merged 视图（UNION ALL + NOT EXISTS 反连接阻断裂索引下推，实测 15-20s/次，

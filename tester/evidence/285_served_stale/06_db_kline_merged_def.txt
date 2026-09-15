@@ -1,0 +1,31 @@
+                                pg_get_viewdef                                
+------------------------------------------------------------------------------
+  SELECT kline_accurate.code,                                                +
+     kline_accurate.ts,                                                      +
+     kline_accurate.open,                                                    +
+     kline_accurate.high,                                                    +
+     kline_accurate.low,                                                     +
+     kline_accurate.close,                                                   +
+     kline_accurate.volume,                                                  +
+     kline_accurate.amount,                                                  +
+     kline_accurate.source,                                                  +
+     kline_accurate.synced_at                                                +
+    FROM kline_accurate                                                      +
+   WHERE kline_accurate.period = 'M1'::text                                  +
+ UNION ALL                                                                   +
+  SELECT r.code,                                                             +
+     r.ts,                                                                   +
+     r.open,                                                                 +
+     r.high,                                                                 +
+     r.low,                                                                  +
+     r.close,                                                                +
+     r.volume,                                                               +
+     r.amount,                                                               +
+     r.source,                                                               +
+     r.ingested_at AS synced_at                                              +
+    FROM kline_raw r                                                         +
+   WHERE NOT (EXISTS ( SELECT 1                                              +
+            FROM kline_accurate a                                            +
+           WHERE a.code = r.code AND a.ts = r.ts AND a.period = 'M1'::text));
+(1 row)
+

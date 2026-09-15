@@ -1,0 +1,3 @@
+31:const M1_RANGE_SQL: &str = r#"
+33:FROM kline_merged
+80:        Period::M1 => M1_RANGE_SQL.to_string(),
