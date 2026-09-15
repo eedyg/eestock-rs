@@ -55,6 +55,7 @@ basePeriod = enabled && periods.length > 1 ? periods[0] : 工具栏/state.period
     ```
     即**必须比较 `periods[0]` 与 `state.period`**，不能只看 `length > 1`（否则双写后覆盖态**永远为 true**、`[data-mp-base-override]` 徽标永不消失、§2.1 的一致态无法达成）；
   - 徽标语义：它用于暴露**外部造成的**不一致（例：另一终端改了配置），**不是**选择器自身提交动作的产物 ⇒ 选择器提交后 `overridden` 必须为 **false**。
+  - **实现落位（P5.5 落地，架构裁定）**：`MultiPeriodState` **不再持有** `basePeriodOverridden`/`basePeriodSource` 快照字段（快照会过期）；改由 `resolveBasePeriod(periods, toolbarPeriod)` 在读处**现算**。**可观测性仍成立**：由 DOM 徽标 `[data-mp-base-override]` 携带（tester 已用变异验证：去掉 `state.period` 双写 ⇒ 徽标 = 3 ⇒ 可区分），故**不要求**持久化快照字段。
 
 ## 3. 同步契约（`ChartSyncGroup`）
 
