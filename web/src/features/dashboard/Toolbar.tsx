@@ -27,10 +27,19 @@ export interface ToolbarProps {
   dcapParams?: DcapParams;
   /** 保存 dcap 显示参数（PUT /api/config/dcap；父级乐观更新，失败回滚+rethrow）。缺省 = noop。 */
   onSaveDcapParams?(params: DcapParams): Promise<void>;
-  /** 多周期开关态（统一配置，落服务端 config；缺省 = false ⇒ 与现状等价）。 */
+  /** 多周期开关态（统一配置，落服务端 config；缺省 = false ⇒ 与现状等价）。
+   *  **宫格模式必须为 false**（§7.1「仅单图可用」：宫格隐藏入口/强制关闭，由页面传入）。 */
   multiPeriodEnabled?: boolean;
-  /** 切换多周期开关（父级乐观更新 + 失败回滚；缺省 = noop）。 */
+  /** 切换多周期开关（父级乐观更新 + 失败回滚；缺省 = noop）。宫格模式应传 `undefined`（禁用入口）。 */
   onToggleMultiPeriod?(enabled: boolean): void;
+  /** 多周期区域是否可用（仅单图模式；缺省 = true）。false ⇒ **隐藏**开关与选择器入口（§7.1 宫格模式）。 */
+  multiPeriodAvailable?: boolean;
+  /** 两步周期选择器入口是否可用（仅 单图 + 已启用多周期）；false ⇒ 入口隐藏。 */
+  multiPeriodPickerAvailable?: boolean;
+  /** 选择器打开态（`aria-expanded`）。 */
+  multiPeriodPickerOpen?: boolean;
+  /** 打开两步周期选择器（缺省 = noop）。 */
+  onOpenMultiPeriodPicker?(): void;
 }
 
 const PERIODS: Array<{ value: Period; label: string }> = [
@@ -225,14 +234,31 @@ export function Toolbar(props: ToolbarProps) {
         </Button>
       ))}
       <span className="flex-1" />
-      {/* 多周期开关入口（ADR-022 口径 4/§7.1：仅单图模式可用；宫格侧限制属 P2） */}
-      <Button
-        aria-pressed={props.multiPeriodEnabled ?? false}
-        variant={props.multiPeriodEnabled ? 'primary' : 'ghost'}
-        onClick={() => props.onToggleMultiPeriod?.(!(props.multiPeriodEnabled ?? false))}
-      >
-        多周期
-      </Button>
+      {/* 多周期区域（§7.1「仅单图可用」）：宫格模式 ⇒ **整体隐藏**（入口隐藏 + 强制关闭，不留无效按钮）。 */}
+      {(props.multiPeriodAvailable ?? true) && (
+        <>
+          {/* 两步周期选择器入口（P5.5；仅单图 + 已启用多周期时可用） */}
+          {props.multiPeriodPickerAvailable && (
+            <Button
+              data-testid="mp-periods-open"
+              aria-expanded={props.multiPeriodPickerOpen ?? false}
+              aria-label="选择 K 线/指标周期"
+              variant="ghost"
+              onClick={() => props.onOpenMultiPeriodPicker?.()}
+            >
+              周期选择
+            </Button>
+          )}
+          {/* 多周期开关入口（ADR-022 口径 4/§7.1：仅单图模式可用；宫格模式强制关闭） */}
+          <Button
+            aria-pressed={props.multiPeriodEnabled ?? false}
+            variant={props.multiPeriodEnabled ? 'primary' : 'ghost'}
+            onClick={() => props.onToggleMultiPeriod?.(!(props.multiPeriodEnabled ?? false))}
+          >
+            多周期
+          </Button>
+        </>
+      )}
       <Sep />
       <Button disabled={props.followLatest} onClick={props.onBackToLatest}>
         回到最新

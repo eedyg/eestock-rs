@@ -32,33 +32,42 @@ export interface MultiPeriodState {
   syncApplied: number;
   /** P3 可观测（02-spec §9）：重入抑制/程序化回传被丢弃的事件数（`syncSuppressed`）。 */
   syncSuppressed: number;
-  /**
-   * **基准周期口径（用户裁决 A，2026-09-14）**：基准（K 线）周期由配置 `periods[0]` 决定，
-   * **仅当确实存在卫星（`enabled && periods.length > 1`）**；否则一律沿用工具栏/状态里的周期。
-   * 理由：单周期配置下不存在多周期视图，「启用」不得静默改写用户选的 K 线周期
-   * （P1 已验收契约：`enabled=false` 与「enabled=true 但无卫星」都必须与现状等价）。
-   * 该覆盖必须是**显式可观测**的（禁止静默不一致；P5 的周期选择器会同时写 `periods[0]` 与状态周期）。
-   */
-  basePeriodOverridden: boolean;
-  /** 基准周期来源：`config`（被 `periods[0]` 覆盖）| `toolbar`（沿用工具栏/状态周期）。 */
-  basePeriodSource: 'config' | 'toolbar';
+  // 说明（P5.5）：基准周期口径（`basePeriodOverridden` / `basePeriodSource`）**不再存于本快照**。
+  // 它需要同时比较 `periods[0]` 与**工具栏/状态周期 `state.period`**（02-spec §2.1 专项裁定 2026-09-15），
+  // 而 `state.period` 属 `DashboardStore`（本 store 不持该数据流）。存快照会让「被覆盖」永远为 true、
+  // `[data-mp-base-override]` 徽标永不消失 ⇒ §2.1 的一致态无法达成。故改为**在读处**由 `resolveBasePeriod`
+  // 用调用方传入的 `toolbarPeriod` 现算（单一权威、无静默不一致）。
 }
 
-/** 基准周期口径推导（纯函数，裁决 A）：存在卫星时由配置决定，否则沿用调用方周期。 */
+/**
+ * 基准周期口径推导（纯函数，用户裁决 A + 02-spec §2.1 专项裁定 2026-09-15）：
+ * 仅当「启用 **且** 确实存在卫星（`periods.length > 1`）**且** `periods[0] !== toolbarPeriod`」时，
+ * 基准周期才由配置 `periods[0]` 覆盖（`source='config'`，显式可观测）；否则沿用工具栏/状态周期。
+ *
+ * **必须比较 `periods[0]` 与 `state.period`**：否则选择器「同时写 `periods[0]` 与 `state.period`」后覆盖态仍为 true，
+ * 徽标永不消失、§2.1 的可观测不一致永远无法消除（P5.5-A 红测试发现的缺陷）。
+ * 单周期配置（`length === 1`）下不存在多周期视图 ⇒ 「启用」不得静默改写用户选的 K 线周期。
+ */
 export function basePeriodDerivation(
   enabled: boolean,
   periods: readonly string[],
+  toolbarPeriod: Period,
 ): { basePeriodOverridden: boolean; basePeriodSource: 'config' | 'toolbar' } {
-  const basePeriodOverridden = enabled && periods.length > 1;
+  const basePeriodOverridden = enabled && periods.length > 1 && periods[0] !== toolbarPeriod;
   return { basePeriodOverridden, basePeriodSource: basePeriodOverridden ? 'config' : 'toolbar' };
 }
 
-/** 解析基准（K 线）周期：仅当「启用且存在卫星」时 = `periods[0]`，否则 = 工具栏/状态周期。 */
+/** 解析基准（K 线）周期：仅当「启用且存在卫星且 `periods[0] !== state.period`」时 = `periods[0]`，
+ *  否则 = 工具栏/状态周期（`state.period`）。 */
 export function resolveBasePeriod(
   state: Pick<MultiPeriodState, 'enabled' | 'periods'>,
   toolbarPeriod: Period,
 ): { period: Period; source: 'config' | 'toolbar'; overridden: boolean } {
-  const { basePeriodOverridden, basePeriodSource } = basePeriodDerivation(state.enabled, state.periods);
+  const { basePeriodOverridden, basePeriodSource } = basePeriodDerivation(
+    state.enabled,
+    state.periods,
+    toolbarPeriod,
+  );
   return {
     period: (basePeriodOverridden ? (state.periods[0] as Period) : toolbarPeriod),
     source: basePeriodSource,
@@ -87,7 +96,6 @@ function toState(cfg: MultiPeriodConfigDto): MultiPeriodState {
     lastSpanDiffMinutes: null,
     syncApplied: 0,
     syncSuppressed: 0,
-    ...basePeriodDerivation(cfg.enabled, cfg.periods),
   };
 }
 
@@ -120,9 +128,7 @@ export class MultiPeriodStore {
 
   private patch(p: Partial<MultiPeriodState>): void {
     if (this.disposed) return;
-    // 派生字段（基准周期口径）在每次变更后重算：调用方无需（也不得）手工维护，避免静默不一致。
-    const merged = { ...this.current, ...p };
-    this.current = { ...merged, ...basePeriodDerivation(merged.enabled, merged.periods) };
+    this.current = { ...this.current, ...p };
     this.listeners.forEach((l) => l());
   }
 

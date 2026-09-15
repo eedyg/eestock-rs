@@ -10,6 +10,7 @@ import { DashboardStore } from './store';
 import { KlineDataFeed, DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { MultiPeriodStore, resolveBasePeriod } from './multiPeriodStore';
 import { MultiPeriodChartStack, DEFAULT_SATELLITE_HEIGHT } from './MultiPeriodChartStack';
+import { MultiPeriodPeriodPicker, heightsForSelection, type MultiPeriodPickerSelection } from './multiPeriodPicker';
 import {
   DEFAULT_DCAP_PARAMS,
   dcapWarmupBars,
@@ -109,6 +110,8 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   const [indicators, setIndicators] = useState<Record<IndicatorName, boolean>>({
     ...DASHBOARD_DEFAULTS.indicators,
   });
+  /** 两步周期选择器打开态（P5.5；入口仅在单图 + 已启用多周期时可用）。 */
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // MA 窗口（统一配置，主图+宫格共用）：默认 [5,10,20]，mount 时 GET /api/config/ma 读；保存走乐观更新
   const [maWindows, setMaWindows] = useState<number[]>(() => [...DASHBOARD_DEFAULTS.maWindows]);
@@ -219,6 +222,57 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
     [api, mpStore],
   );
 
+  /**
+   * 两步周期选择器确认（P5.5；02-spec §2.1/§2.4 硬口径）：
+   *  ① `periods = [基准, ...指标周期]`（秩升序、去重）与 `heights = heightsForSelection(...)`（键随周期增删）；
+   *  ② **原子地乐观写**配置（`mpStore`）**并且** `store.setPeriod(基准)` —— 这是「同时写 `periods[0]` 与
+   *     `state.period`」的直接要求（消除 §2.1 的「基准被配置覆盖」可观测不一致）；
+   *  ③ `PUT /api/config/multi_period`；成功 ⇒ 采用服务端回显；失败 ⇒ **回滚**（配置 + 工具栏周期）并
+   *     **rethrow**（选择器据此显示可见报错并保持打开，可重试）。
+   *  heights 键直接取自 `heightsForSelection`（同一次去重）⇒ 与 `periods` 逐键一一对应。
+   */
+  const confirmMultiPeriodPicker = useCallback(
+    async (sel: MultiPeriodPickerSelection) => {
+      const prevCfg: MultiPeriodConfigDto = {
+        enabled: mpStore.state.enabled,
+        periods: [...mpStore.state.periods],
+        heights: { ...mpStore.state.heights },
+        indicators: [...mpStore.state.indicators],
+      };
+      const prevPeriod = store.state.period;
+      const heights = heightsForSelection(
+        { base: sel.basePeriod, indicatorPeriods: sel.indicatorPeriods },
+        prevCfg.heights,
+      );
+      const next: MultiPeriodConfigDto = {
+        enabled: true,
+        periods: Object.keys(heights) as Period[], // 键序 = 去重后的 [基准, ...指标周期]（秩升序）
+        heights,
+        indicators: [...prevCfg.indicators],
+      };
+      mpStore.applyServerConfig(next); // 乐观更新（配置）
+      store.setPeriod(sel.basePeriod); // 同时写 state.period ⇒ 消除 §2.1 覆盖态（basePeriodSource ⇒ toolbar）
+      try {
+        const cfg = await api.saveMultiPeriodConfig(next);
+        mpStore.applyServerConfig(cfg);
+      } catch (e) {
+        mpStore.applyServerConfig(prevCfg); // 失败回滚（配置）
+        store.setPeriod(prevPeriod); // 失败回滚（工具栏周期）
+        throw e; // 交给选择器显示可见报错（不得静默）
+      }
+    },
+    [api, mpStore, store],
+  );
+
+  /** 选择器确认包装：成功 ⇒ 关闭面板；失败 ⇒ 保持打开（由选择器展示报错，可重试）。 */
+  const handlePickerConfirm = useCallback(
+    async (sel: MultiPeriodPickerSelection) => {
+      await confirmMultiPeriodPicker(sel);
+      setPickerOpen(false);
+    },
+    [confirmMultiPeriodPicker],
+  );
+
   // K线默认视口（K 线根数，统一配置，主图+宫格共用）：默认 120，mount 时 GET /api/config/kline 读；
   // 读失败重试（最多 3 次、指数退避 500ms/1s），耗尽仍失败用默认 120 兜底（不再静默吞错）。
   const [viewportBars, setViewportBars] = useState<number>(() => DEFAULT_KLINE_VIEWPORT_BARS);
@@ -280,19 +334,25 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
   // 基准周期由配置 `periods[0]` 决定；否则一律沿用工具栏/状态周期 state.period（单周期配置不存在
   // 多周期视图 ⇒ 「启用」不得静默改写用户选的 K 线周期；T11/D4 已锁死该等价性）。
   // 被配置覆盖时必须**显式可观测**（`basePeriodSource==='config'` ⇒ 页面“基准 x”徽标，禁止静默不一致）。
-  const base = resolveBasePeriod(mpState, state.period);
+  // 护栏（02-spec §7.1）：多周期仅在**单图模式**可用；宫格模式下开关强制为关闭态、选择器入口隐藏。
+  // 同时：宫格/非单图时**基准周期不得被配置覆盖**（否则基准 feed 会以 `periods[0]` 订阅/取数，残留卫星周期订阅）。
+  const multiPeriodUsable = state.gridMode === 'single';
+  const base = multiPeriodUsable
+    ? resolveBasePeriod(mpState, state.period)
+    : { period: state.period, source: 'toolbar' as const, overridden: false };
   const basePeriod = base.period;
 
   // 卫星实例定义（配置 `periods[1..]`；高度本轮取 `heights[period]`，拖拽持久化属 P5）。
   // 仅单图 + K 线页签 + 启用 + 有选中标的时才有卫星（宫格/分时不受影响，02-spec §7.1）。
+  // 宫格模式强制关闭（§7.1）：不计卫星 ⇒ 零卫星 / 零卫星周期订阅。
   const satellites = useMemo(() => {
-    if (!mpState.enabled || chartTab !== 'kline' || !state.selected) return [];
+    if (!mpState.enabled || state.gridMode !== 'single' || chartTab !== 'kline' || !state.selected) return [];
     if (mpState.periods.length <= 1) return [];
     return mpState.periods.slice(1).map((p) => ({
       period: p as Period,
       height: mpState.heights[p] ?? DEFAULT_SATELLITE_HEIGHT,
     }));
-  }, [mpState.enabled, mpState.periods, mpState.heights, chartTab, state.selected]);
+  }, [mpState.enabled, mpState.periods, mpState.heights, chartTab, state.gridMode, state.selected]);
 
   // bar 数据流随 选中标的+周期 重建；旧 feed 释放 WS 订阅。
   // **基准周期用 basePeriod（口径 A）**：deps 里放 basePeriod（而非 enabled/periods）⇒ 「启用但无卫星」
@@ -349,24 +409,42 @@ export function DashboardPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
       </RegionPortal>
 
       <RegionPortal root={rootRef} region="toolbar">
-        <Toolbar
-          period={state.period}
-          onPeriodChange={(p) => store.setPeriod(p)}
-          chartTab={chartTab}
-          onChartTabChange={setChartTab}
-          indicators={indicators}
-          onToggleIndicator={(name) => setIndicators((s) => ({ ...s, [name]: !s[name] }))}
-          gridMode={state.gridMode}
-          onGridModeChange={(m) => store.setGridMode(m)}
-          followLatest={state.followLatest}
-          onBackToLatest={() => store.backToLatest()}
-          maWindows={maWindows}
-          onSaveMaWindows={saveMaWindows}
-          dcapParams={dcapParams}
-          onSaveDcapParams={saveDcapParams}
-          multiPeriodEnabled={mpState.enabled}
-          onToggleMultiPeriod={toggleMultiPeriod}
-        />
+        <div className="relative h-full">
+          <Toolbar
+            period={state.period}
+            onPeriodChange={(p) => store.setPeriod(p)}
+            chartTab={chartTab}
+            onChartTabChange={setChartTab}
+            indicators={indicators}
+            onToggleIndicator={(name) => setIndicators((s) => ({ ...s, [name]: !s[name] }))}
+            gridMode={state.gridMode}
+            onGridModeChange={(m) => store.setGridMode(m)}
+            followLatest={state.followLatest}
+            onBackToLatest={() => store.backToLatest()}
+            maWindows={maWindows}
+            onSaveMaWindows={saveMaWindows}
+            dcapParams={dcapParams}
+            onSaveDcapParams={saveDcapParams}
+            /* 宫格护栏（§7.1）：宫格模式下多周期区域整体隐藏（含开关与选择器入口）。 */
+            multiPeriodAvailable={multiPeriodUsable}
+            multiPeriodEnabled={multiPeriodUsable && mpState.enabled}
+            onToggleMultiPeriod={multiPeriodUsable ? toggleMultiPeriod : undefined}
+            /* 两步周期选择器入口（仅单图 + 已启用多周期）。 */
+            multiPeriodPickerAvailable={multiPeriodUsable && mpState.enabled}
+            multiPeriodPickerOpen={pickerOpen}
+            onOpenMultiPeriodPicker={() => setPickerOpen((v) => !v)}
+          />
+          {pickerOpen && multiPeriodUsable && mpState.enabled && (
+            <div className="absolute right-2 top-full z-30 mt-1">
+              <MultiPeriodPeriodPicker
+                basePeriod={basePeriod}
+                indicators={mpState.indicators}
+                onConfirm={handlePickerConfirm}
+                onCancel={() => setPickerOpen(false)}
+              />
+            </div>
+          )}
+        </div>
       </RegionPortal>
 
       {state.gridMode === 'single' ? (
