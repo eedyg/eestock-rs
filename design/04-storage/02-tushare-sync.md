@@ -13,12 +13,17 @@
 | `fund_weekly` | ❌ 接口不存在 | — |
 
 **结论**：tushare 原生仅 `stk_mins` 可用 → `supported_periods()` 实报 `[M1]`。
-M5/M15/H1/D1 全部标注「本地衍生」：D1 由 `kline_accurate` 的连续聚合 `kline_accurate_1d` 生成（父级裁决：派生数据不物化落行，走 cagg 自动维护，符合 ADR-004 单一事实源哲学）。
+M5/M15/M30/H1/D1 全部标注「本地衍生」：D1 由 `kline_accurate` 的连续聚合 `kline_accurate_1d` 生成（父级裁决：派生数据不物化落行，走 cagg 自动维护，符合 ADR-004 单一事实源哲学）。
 
 ## 2. 迁移 0005：同步检查点 + 准确层日级 cagg
 
-⚠️ 工作流注记：initdb 仅在空数据卷首次启动时执行；0005 随本次重建卷生效，
-**之后的迁移一律走 sqlx migrate**，不再享受免费 initdb。
+⚠️ 工作流注记：initdb 仅在空数据卷首次启动时执行；0005 随本次重建卷生效。
+**现网库上无 `_sqlx_migrations` 台账**（迁移由 initdb 或手工 psql 应用落地），sqlx migrate 无法直接重放；
+app 启动只做 schema 自检（见 03 §3），**不再享受免费 initdb**。
+
+⚠️ 运维注记：**现网增量迁移只能以手工方式应用**（无台账、sqlx migrate 不可重放）：
+`psql -v ON_ERROR_STOP=1 -f migrations/<NNNN>_<name>.sql`
+（不加 `--single-transaction`：cagg 建视图与 refresh 不可在显式事务块内）。
 
 ⚠️ 运维注记：cagg 刷新策略只覆盖近期窗口（start_offset 3 days），
 **大批量历史回填后需手动全量刷新一次**：
@@ -281,7 +286,7 @@ impl HistoricalDataProvider for TushareClient {
                            -> Result<Vec<Bar>, ProviderError> {
         if period != Period::M1 {
             return Err(ProviderError::Parse(
-                "tushare 原生仅 M1；M5/M15/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
+                "tushare 原生仅 M1；M5/M15/M30/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
         }
         let ts_code = to_ts_code(code)?;
         let start_d = start.with_timezone(&cst()).date_naive();
@@ -520,6 +525,7 @@ pub struct AccurateWriter {
 
 pub fn period_str(p: Period) -> &'static str {
     match p { Period::M1 => "M1", Period::M5 => "M5", Period::M15 => "M15",
+              Period::M30 => "M30",
               Period::H1 => "H1", Period::D1 => "D1",
               Period::W1 => "W1", Period::MO1 => "MO1" }
 }

@@ -90,7 +90,9 @@ psql postgres://eestock:eestock@localhost:5433/eestock
 
 - 数据卷：bind mount `./data/timescaledb`（用户裁决 2026-09-03，已入 .gitignore）。
 - `migrations/*.sql` 挂载为 initdb 脚本，**仅首次初始化空卷时**自动执行；
-  后续增量迁移走 sqlx migrate 运维流程；`data` 服务启动时做 schema 自检（storage::migrate_check）。
+  现网增量迁移只能**手工**应用：`psql -v ON_ERROR_STOP=1 -f migrations/00XX.sql`（对 127.0.0.1:5433）。
+  活库无 `_sqlx_migrations` 表（本项目未使用 sqlx migrate 运维流程）；`data` 服务启动时只做 schema 自检
+  （`storage::migrate_check`，校验 `EXPECTED_RELATIONS` 是否齐全，**不执行迁移**）——故新增关系须**先落迁移、再重启 app**。
 
 ## 启动数据面全栈（Wave 0，ADR-017）
 

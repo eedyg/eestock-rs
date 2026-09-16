@@ -46,6 +46,7 @@ const PERIODS: Array<{ value: Period; label: string }> = [
   { value: '1m', label: '1m' },
   { value: '5m', label: '5m' },
   { value: '15m', label: '15m' },
+  { value: '30m', label: '30m' }, // 30m（ADR-023：1m 本地衍生 cagg；主图周期档）
   { value: '1h', label: '1h' },
   { value: '1d', label: '日' },
   { value: '1w', label: '周' }, // 周线（周期切 1w，chart 按新周期加载）

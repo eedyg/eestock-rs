@@ -92,12 +92,14 @@ impl EventSink for PgEventSink {
 }
 ```
 
-## 3. 启动自检（ADR-017：sqlx migrate 自检的落地口径）
+## 3. 启动自检（ADR-017：app 启动 schema 自检的落地口径）
 
 背景约束：`migrations/0001–0006` 由 compose initdb 在空卷首次启动时执行（02 §2 注记：
 之后不再享受免费 initdb），库上无 `_sqlx_migrations` 台账，sqlx migrate 无法直接重放。
-因此 Wave 0 启动自检落地为**关键关系 + hypertable 存在性校验**（缺任一并列明缺失项、拒绝启动）；
-0007+ 迁移的台账化接入随首个增量迁移一并设计（Wave 1 边界，见 wave-0.md「明确不做」无冲突）。
+因此启动自检落地为**关键关系 + hypertable 存在性校验**（缺任一并列明缺失项、拒绝启动）；
+app 启动**只做该 schema 自检，不代管迁移台账**。**现网增量迁移只能以手工方式应用**：
+`psql -v ON_ERROR_STOP=1 -f migrations/<NNNN>_<name>.sql`（不加 `--single-transaction`：
+cagg 建视图与 refresh 不可在显式事务块内）。
 
 ``` {.rust file=crates/storage/src/migrate_check.rs}
 //! 启动 schema 自检：关键关系与 hypertable 存在性校验（ADR-017）。
@@ -112,6 +114,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "kline_merged", "kline_5m", "kline_15m", "kline_1d", "kline_accurate_1d",
     // Wave 3 (0010)：统一读源 accurate 连续聚合（5m/15m/1h；D1 复用 kline_accurate_1d）
     "kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h",
+    // ADR-023（0026）：30m 档（1m 本地衍生 cagg；兜底为 kline_15m 查询期 rollup）
+    "kline_accurate_30m",
     // Wave 1 Phase C 加法：熔断复位 DB 控制通道表（0007）
     "circuit_reset_requests",
     // Wave 2 Phase A 加法：交易日历节假日表（0008；数据面 collector 日历读 + 应用面质量报告共用）

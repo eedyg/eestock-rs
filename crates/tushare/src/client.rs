@@ -107,7 +107,7 @@ impl HistoricalDataProvider for TushareClient {
                            -> Result<Vec<Bar>, ProviderError> {
         if period != Period::M1 {
             return Err(ProviderError::Parse(
-                "tushare 原生仅 M1；M5/M15/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
+                "tushare 原生仅 M1；M5/M15/M30/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
         }
         let ts_code = to_ts_code(code)?;
         let start_d = start.with_timezone(&cst()).date_naive();

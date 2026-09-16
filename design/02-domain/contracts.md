@@ -51,7 +51,7 @@ impl Code {
 /// ⚠️ W1/MO1（看板周/月线，用户定稿）：仅看板读源扩展，回测周期不扩（backtest::Period 独立枚举）——
 /// W1=A股交易周（Asia/Shanghai 周一为界）、MO1=自然月（Asia/Shanghai 月界）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Period { M1, M5, M15, H1, D1, W1, MO1 }
+pub enum Period { M1, M5, M15, M30, H1, D1, W1, MO1 }
 
 /// 一根 K线 bar（真实 OHLCV）。
 /// ts 用 DateTime<Utc>（⚠️ 审查修正：NaiveDateTime 配 timestamptz 是时区炸弹）；

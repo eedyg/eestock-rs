@@ -61,6 +61,13 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 30m 兜底：kline_15m 查询期 rollup（与 reader.rs FALLBACK_30M 同义；2 个 15m 桶 = 1 个 30m 桶）。
+const FALLBACK_30M: &str = r#"
+(SELECT code, time_bucket('30 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_15m GROUP BY code, time_bucket('30 minutes', ts))"#;
+
 /// 周线 W1 兜底：kline_1d 查询期 rollup（与 reader.rs FALLBACK_1W 同义；周=A股交易周周一为界）。
 const FALLBACK_1W: &str = r#"
 (SELECT code, time_bucket('1 week', ts, 'Asia/Shanghai') AS ts,
@@ -80,6 +87,9 @@ fn period_range_sql(p: Period) -> String {
         Period::M1 => M1_RANGE_SQL.to_string(),
         Period::M5 => range_sql("kline_accurate_5m", "kline_5m"),
         Period::M15 => range_sql("kline_accurate_15m", "kline_15m"),
+        // ADR-023（仅保 match 全穷尽）：30m 亦为看板扩展周期，application::bar_map::parse_period 仍拒绝 30m
+        // （backtest::Period 无 30m 变体）⇒ 实际回测不会以 M30 入队；读源与 reader.rs 的 M30 保持一致。
+        Period::M30 => range_sql("kline_accurate_30m", FALLBACK_30M),
         Period::H1 => range_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => range_sql("kline_accurate_1d", "kline_1d"),
         // ⚠️ W1/MO1 仅看板读源扩展（domain::Period 增变体以保 match 全穷尽）；回测周期不扩——

@@ -1425,6 +1425,14 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 30m 兜底（ADR-023 §2.2）：kline_15m 查询期 rollup（schema 未建 raw 层 30m cagg，采 1h 风格；
+/// 15m 桶在 :00/:15/:30/:45 ⇒ 2 个 15m 桶 = 1 个 30m 桶，与 accurate_30m 同 time_bucket 对齐）。
+const FALLBACK_30M: &str = r#"
+(SELECT code, time_bucket('30 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_15m GROUP BY code, time_bucket('30 minutes', ts))"#;
+
 /// 周线 W1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1w cagg；与 accurate_1w 同 time_bucket 对齐）。
 /// 周=A股交易周（Asia/Shanghai 周一为界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
 const FALLBACK_1W: &str = r#"
@@ -1447,6 +1455,7 @@ fn period_merged_sql(p: Period) -> String {
         Period::M1 => MERGED_1M_SQL.to_string(),
         Period::M5 => merged_sql("kline_accurate_5m", "kline_5m"),
         Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
+        Period::M30 => merged_sql("kline_accurate_30m", FALLBACK_30M),
         Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
         Period::W1 => merged_sql("kline_accurate_1w", FALLBACK_1W),
@@ -1455,12 +1464,13 @@ fn period_merged_sql(p: Period) -> String {
 }
 
 /// 当前 forming（未闭合）桶聚合 SQL：从 kline_raw 实时聚合周期桶，供 live 图表右缘随最新 raw 1m 前进。
-/// 仅对日内周期 M5/M15/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
+/// 仅对日内周期 M5/M15/M30/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
 /// bucket 用 `time_bucket(interval, now())`——只产**当前**未闭合桶（≤1 行）；`source` 记 NULL（与兜底分支同型）。
 fn forming_sql(period: Period) -> Option<String> {
     let interval = match period {
         Period::M5 => "5 minutes",
         Period::M15 => "15 minutes",
+        Period::M30 => "30 minutes",
         Period::H1 => "1 hour",
         _ => return None,
     };
@@ -2619,13 +2629,15 @@ pub struct KlineQuery {
     pub limit: i64,
 }
 
-/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
+/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/30m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
 /// ⚠️ 1m 已=分钟，故周/月用 1w/1mo（避免与 1m 混淆）；domain 变体名为 W1/MO1。仅看板读源，回测周期不扩。
+/// ADR-023 增 30m（第 8 档，1m 本地衍生 cagg + kline_15m rollup 兜底）。
 pub fn parse_period(s: &str) -> Option<Period> {
     match s {
         "1m" => Some(Period::M1),
         "5m" => Some(Period::M5),
         "15m" => Some(Period::M15),
+        "30m" => Some(Period::M30),
         "1h" => Some(Period::H1),
         "1d" => Some(Period::D1),
         "1w" => Some(Period::W1),
@@ -2728,8 +2740,8 @@ pub fn dcap_config_or_default(raw: Option<serde_json::Value>) -> DcapConfigDto {
 // PUT 严格 400（7 条校验 + §7.4 总 pane ≤12，**基于去重后 `indicators` 计数**，错误信息含被拒字段名）；
 // 校验通过后按 §2 校验 6 **归一化**（`indicators` 去重、保留首次出现顺序）落库/回显；GET 无键/坏 JSON/越界旧值 → 默认（不 500）。
 
-/// 全部可选周期（`1mo` 用户裁决不提供；ADR-022 §2.5）。
-pub const MULTI_PERIOD_ALLOWED: &[&str] = &["1m", "5m", "15m", "1h", "1d", "1w"];
+/// 全部可选周期（`1mo` 用户裁决不提供；ADR-022 §2.5；ADR-023 §2.5 追加 `30m`）。
+pub const MULTI_PERIOD_ALLOWED: &[&str] = &["1m", "5m", "15m", "30m", "1h", "1d", "1w"];
 
 /// 受支持指标集合（首版仅 dcap；02-spec §2 校验 6）。
 pub const MULTI_PERIOD_SUPPORTED_INDICATORS: &[&str] = &["dcap"];
@@ -2744,14 +2756,16 @@ pub const MULTI_PERIOD_HEIGHT_MIN: i64 = 80;
 pub const MULTI_PERIOD_HEIGHT_MAX: i64 = 1200;
 
 /// 周期序（越小越短；判「卫星 ≥ 基准」用）；`1mo` 返回 None（不提供）。
+/// ADR-023 §2.5：`30m` 插在 `15m`(2) 与 `1h`(3) 之间，其后档位顺延（保持「越小越短」）。
 fn multi_period_rank(p: &str) -> Option<u8> {
     match p {
         "1m" => Some(0),
         "5m" => Some(1),
         "15m" => Some(2),
-        "1h" => Some(3),
-        "1d" => Some(4),
-        "1w" => Some(5),
+        "30m" => Some(3),
+        "1h" => Some(4),
+        "1d" => Some(5),
+        "1w" => Some(6),
         _ => None,
     }
 }
@@ -3758,7 +3772,7 @@ pub async fn healthz() -> Json<serde_json::Value> {
 pub async fn get_kline(State(st): State<Arc<AppState>>, Query(q): Query<KlineQuery>) -> Response {
     if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
     let Some(period) = parse_period(&q.period) else {
-        return err(StatusCode::BAD_REQUEST, "period 须为 1m/5m/15m/1h/1d");
+        return err(StatusCode::BAD_REQUEST, "period 须为 1m/5m/15m/30m/1h/1d/1w/1mo");
     };
     let before = match q.before.as_deref() {
         None => None,

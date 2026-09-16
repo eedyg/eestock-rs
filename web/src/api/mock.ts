@@ -93,6 +93,7 @@ const PERIOD_MS: Record<Period, number> = {
   '1m': 60_000,
   '5m': 300_000,
   '15m': 900_000,
+  '30m': 1_800_000, // ADR-023：30m 档（1m 本地衍生 cagg）
   '1h': 3_600_000,
   '1d': 86_400_000,
   '1w': 7 * 86_400_000, // 周线步长（约 7 天）
@@ -203,6 +204,12 @@ function normalizeMultiPeriodIndicators(indicators: string[]): string[] {
   return out;
 }
 
+/** 多周期周期序（**与前端契约 `MULTI_PERIOD_PICKER_PERIODS`（`web/src/features/dashboard/multiPeriodPicker.tsx`）
+ *  / 后端 `MULTI_PERIOD_ALLOWED` 逐项相等**；全集 = `1m,5m,15m,30m,1h,1d,1w`，`1mo` 不提供；
+ *  ADR-023 §2.5：`30m` 插在 `15m` 与 `1h` 之间）。
+ *  导出仅供 `web/src/api/multiPeriodMockParity.test.ts` 做 mock↔契约 parity 断言，消除「周期集合的第二真相源」漂移。 */
+export const MOCK_MULTI_PERIOD_ORDER: string[] = ['1m', '5m', '15m', '30m', '1h', '1d', '1w'];
+
 /** 多周期配置校验 + 归一化（与后端 `validate_multi_period_config` 同构：7 条校验 + §7.4 总 pane ≤12）。
  *  不合规抛 ApiError(400)（错误串含被拒维度名；前端 mock 只用于演示/测试，真实 400 由后端给出）。
  *  通过则返回**规范形态**（§2 校验 6：`indicators` 去重、保留首次出现顺序）——调用方（PUT 落库/回显）
@@ -211,7 +218,7 @@ function assertMultiPeriodConfig(cfg: MultiPeriodConfigDto): MultiPeriodConfigDt
   const bad = (msg: string): never => {
     throw new ApiError(400, `HTTP 400: ${msg}`);
   };
-  const order = ['1m', '5m', '15m', '1h', '1d', '1w'];
+  const order = MOCK_MULTI_PERIOD_ORDER;
   const rank = (p: string): number => order.indexOf(p);
   if (cfg.periods.length === 0) bad('periods 不能为空');
   if (cfg.periods.length > 4) bad(`periods 最多 4 个，收到 ${cfg.periods.length}`);

@@ -199,7 +199,7 @@ min-width: 1280px（桌面优先，不响应式）
 | 区域 id | 内容 | 数据源 | loading/空/错误态 | 交互 |
 |---|---|---|---|---|
 | `symbol-list` | 注册集合：code+名称+最新价+涨跌幅 | `GET /api/symbols`（含 latest 快照）+ WS `{type:"quote"}` | 骨架行 / 「未注册标的，去标的管理」引导链 / 顶部错误条+重试 | 点击切主图；搜索框过滤（code/名称模糊） |
-| `toolbar` | 周期(1m/5m/15m/1h/日，默认15m)、K线/分时 Tab、指标勾选(MA默认开；MACD/KDJ/BOLL默认关)、宫格切换、回到最新 | 本地状态 | 不可能空（静态控件）/ — / — | 见 §2/§3 行为 |
+| `toolbar` | 周期(1m/5m/15m/30m/1h/日/周/月，默认15m)、K线/分时 Tab、指标勾选(MA默认开；MACD/KDJ/BOLL默认关)、宫格切换、回到最新 | 本地状态 | 不可能空（静态控件）/ — / — | 见 §2/§3 行为 |
 | `main-chart` | K线+MA(5/10/20)；分时 Tab=当日价格线+均价线（1m bar 客户端计算） | `GET /api/kline`（merge 视图）+ WS `{type:"bar"}`；1m 读 raw、高周期读 cagg | 骨架图 / 「该时段无数据」占位 / 错误占位+重试 | 十字光标；缩放/平移（手动后不强拉）；向前翻页 `?before=&limit=` |
 | `sub-chart` | 成交量副图（默认开） | 同 main-chart | 随主图 / 随主图 / 随主图 | 无独立交互 |
 | `grid-view` | 2×2 / 2×3 宫格缩略图 | 同 main-chart，每格独立订阅 | 每格独立骨架/无数据/错误 | 点格进单图聚焦；工具栏切回 |
@@ -212,7 +212,7 @@ min-width: 1280px（桌面优先，不响应式）
 
 /** 已定稿默认值（定稿 1b/1c/1d，勿改常量改文档） */
 export const DASHBOARD_DEFAULTS = {
-  period: '15m',                    // 周期：1m/5m/15m/1h/1d/1w(周)/1mo(月)，默认 15m
+  period: '15m',                    // 周期：1m/5m/15m/30m/1h/1d/1w(周)/1mo(月)，默认 15m
   indicators: { ma: true, vol: true, macd: false, kdj: false, boll: false, dcap: false },
   maWindows: [5, 10, 20],
   view: 'single',                   // 'single' | 'grid2x2' | 'grid2x3'
@@ -220,7 +220,7 @@ export const DASHBOARD_DEFAULTS = {
   initialRange: 'today+prevTradingDay',
 } as const;
 
-export type Period = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1mo';
+export type Period = '1m' | '5m' | '15m' | '30m' | '1h' | '1d' | '1w' | '1mo';
 export type GridMode = 'single' | 'grid2x2' | 'grid2x3';
 
 /** 标快照（GET /api/symbols 含 latest 字段 + WS {type:"quote"} 增量）
@@ -309,7 +309,7 @@ export function DashboardGrid(props: DashboardGridProps) {
 > `sub-chart` 作为 region 锚点以绝对定位占位（region 契约不变）。
 
 - 图表库：**klinecharts**
-- 周期切换：1m / 5m / 15m / 1h / 日；**默认 15m**（用户拍板）；数据源：1m 读 kline_raw 直查，高周期读对应 cagg
+- 周期切换：1m / 5m / 15m / 30m / 1h / 日 / 周 / 月；**默认 15m**（用户拍板）；数据源：1m 读 kline_raw 直查，高周期读对应 cagg（ADR-023 新增 30m）
 - 主图：K线 + MA(5/10/20)（默认开）
 - 副图1：成交量（默认开）
 - 可选指标（勾选）：MACD / KDJ / BOLL / **DCAP**（默认关）

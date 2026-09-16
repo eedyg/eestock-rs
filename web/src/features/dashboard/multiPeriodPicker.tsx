@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button';
  * `onConfirm` 返回 Promise ⇒ 本组件 await；**reject ⇒ 显示可见报错并保持打开（可重试）**。
  */
 
-/** 周期秩升序全集（**不含 `1mo`**；ADR-022 §2.5 用户裁决：`1mo` 不提供）。 */
-export const MULTI_PERIOD_PICKER_PERIODS: Period[] = ['1m', '5m', '15m', '1h', '1d', '1w'];
+/** 周期秩升序全集（**不含 `1mo`**；ADR-022 §2.5 用户裁决：`1mo` 不提供）。
+ *  ADR-023 §2.5：`30m` 插在 `15m` 与 `1h` 之间（与后端 `multi_period_rank` 同步，共 7 档）。 */
+export const MULTI_PERIOD_PICKER_PERIODS: Period[] = ['1m', '5m', '15m', '30m', '1h', '1d', '1w'];
 
 /** 指标（卫星）周期上限 ⇒ 总周期 ≤4（ADR-022 口径 2）。 */
 export const MAX_INDICATOR_PERIODS = 3;

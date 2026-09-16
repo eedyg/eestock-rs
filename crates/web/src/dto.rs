@@ -23,13 +23,15 @@ pub struct KlineQuery {
     pub limit: i64,
 }
 
-/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
+/// 前端周期口径（06-web/01-dashboard 定稿）：1m/5m/15m/30m/1h/1d；看板 W1 增 1w/1mo（周/月，用户定稿）。
 /// ⚠️ 1m 已=分钟，故周/月用 1w/1mo（避免与 1m 混淆）；domain 变体名为 W1/MO1。仅看板读源，回测周期不扩。
+/// ADR-023 增 30m（第 8 档，1m 本地衍生 cagg + kline_15m rollup 兜底）。
 pub fn parse_period(s: &str) -> Option<Period> {
     match s {
         "1m" => Some(Period::M1),
         "5m" => Some(Period::M5),
         "15m" => Some(Period::M15),
+        "30m" => Some(Period::M30),
         "1h" => Some(Period::H1),
         "1d" => Some(Period::D1),
         "1w" => Some(Period::W1),
@@ -132,8 +134,8 @@ pub fn dcap_config_or_default(raw: Option<serde_json::Value>) -> DcapConfigDto {
 // PUT 严格 400（7 条校验 + §7.4 总 pane ≤12，**基于去重后 `indicators` 计数**，错误信息含被拒字段名）；
 // 校验通过后按 §2 校验 6 **归一化**（`indicators` 去重、保留首次出现顺序）落库/回显；GET 无键/坏 JSON/越界旧值 → 默认（不 500）。
 
-/// 全部可选周期（`1mo` 用户裁决不提供；ADR-022 §2.5）。
-pub const MULTI_PERIOD_ALLOWED: &[&str] = &["1m", "5m", "15m", "1h", "1d", "1w"];
+/// 全部可选周期（`1mo` 用户裁决不提供；ADR-022 §2.5；ADR-023 §2.5 追加 `30m`）。
+pub const MULTI_PERIOD_ALLOWED: &[&str] = &["1m", "5m", "15m", "30m", "1h", "1d", "1w"];
 
 /// 受支持指标集合（首版仅 dcap；02-spec §2 校验 6）。
 pub const MULTI_PERIOD_SUPPORTED_INDICATORS: &[&str] = &["dcap"];
@@ -148,14 +150,16 @@ pub const MULTI_PERIOD_HEIGHT_MIN: i64 = 80;
 pub const MULTI_PERIOD_HEIGHT_MAX: i64 = 1200;
 
 /// 周期序（越小越短；判「卫星 ≥ 基准」用）；`1mo` 返回 None（不提供）。
+/// ADR-023 §2.5：`30m` 插在 `15m`(2) 与 `1h`(3) 之间，其后档位顺延（保持「越小越短」）。
 fn multi_period_rank(p: &str) -> Option<u8> {
     match p {
         "1m" => Some(0),
         "5m" => Some(1),
         "15m" => Some(2),
-        "1h" => Some(3),
-        "1d" => Some(4),
-        "1w" => Some(5),
+        "30m" => Some(3),
+        "1h" => Some(4),
+        "1d" => Some(5),
+        "1w" => Some(6),
         _ => None,
     }
 }

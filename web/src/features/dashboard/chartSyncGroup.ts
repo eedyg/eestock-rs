@@ -193,6 +193,7 @@ export const PERIOD_BUCKET_MS: Readonly<Record<string, number>> = {
   '1m': 60_000,
   '5m': 300_000,
   '15m': 900_000,
+  '30m': 1_800_000,
   '1h': 3_600_000,
   '1d': 86_400_000,
   '1w': 604_800_000,
@@ -208,6 +209,14 @@ export const MEASURED_DENSITY_TABLE: Readonly<Record<string, number>> = {
   '1m:1h': 37.8,
   '1d:1w': 4.67,
   '1h:1w': 24,
+  // ADR-023 §2.5（D2）：30m 与 {1m,5m,15m,1h} 的**四条直接实测条目**（冻结值）。
+  // 同 P0.3 口径真渲染、pane 520px、多取样逐位一致；**禁**按名义周期比兜底。
+  // 理由：`effectiveDensity` 解析序 static→composed→measured 会把 `composed` 当缩放比且优先于运行时实测，
+  // 缺直接条目会静默采用合成值（15m→30m 合成 1.9754 vs 实测 1.800 = +9.7% 错对齐，ADR §6.1 第 7 条）。
+  '1m:30m': 24.1,
+  '5m:30m': 5.0,
+  '15m:30m': 1.8,
+  '30m:1h': 1.67,
 };
 
 /** 周期桶宽（未知周期 ⇒ null；调用方不得按名义比兜底）。 */
@@ -316,9 +325,10 @@ function periodOrder(period: string): number | null {
     '1m': 1,
     '5m': 2,
     '15m': 3,
-    '1h': 4,
-    '1d': 5,
-    '1w': 6,
+    '30m': 4, // ADR-023 §2.5：30m 插在 15m 与 1h 之间（否则 30m 会被误判 unsupported-period）
+    '1h': 5,
+    '1d': 6,
+    '1w': 7,
   };
   return order[period] ?? null;
 }

@@ -31,7 +31,7 @@ pub async fn healthz() -> Json<serde_json::Value> {
 pub async fn get_kline(State(st): State<Arc<AppState>>, Query(q): Query<KlineQuery>) -> Response {
     if q.code.is_empty() { return err(StatusCode::BAD_REQUEST, "code 必填"); }
     let Some(period) = parse_period(&q.period) else {
-        return err(StatusCode::BAD_REQUEST, "period 须为 1m/5m/15m/1h/1d");
+        return err(StatusCode::BAD_REQUEST, "period 须为 1m/5m/15m/30m/1h/1d/1w/1mo");
     };
     let before = match q.before.as_deref() {
         None => None,

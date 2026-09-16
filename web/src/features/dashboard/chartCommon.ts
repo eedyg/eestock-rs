@@ -6,6 +6,7 @@ export const PERIOD_MAP: Record<Period, KcPeriod> = {
   '1m': { type: 'minute', span: 1 },
   '5m': { type: 'minute', span: 5 },
   '15m': { type: 'minute', span: 15 },
+  '30m': { type: 'minute', span: 30 }, // ADR-023：30m 档（klinecharts minute 周期，同 15m 风格）
   '1h': { type: 'hour', span: 1 },
   '1d': { type: 'day', span: 1 },
   '1w': { type: 'week', span: 1 },   // 周线（klinecharts week 周期）

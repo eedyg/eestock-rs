@@ -1145,6 +1145,88 @@ ON CONFLICT (type) DO NOTHING;
   code 未注册 / `type IS NULL` / 该 type 无档案行 → `Ok(None)`（调用方回退旧默认，不报错）。
 
 
+## 4.3.17 30m 档 + accurate cagg 刷新窗口根治（ADR-023，0026；架构裁决 2026-09-16）
+
+**变更**（ADR-023 §2.2 / §2.4）：
+1. 新增第 8 档 **30m** 的准确层连续聚合 `kline_accurate_30m`：源 `kline_accurate` 的 M1 行 + `time_bucket('30 minutes', ts)`
+   + `first/max/min/last/sum`，**全历史**（**禁止**加时间下界过滤——0017 的 2024 截断教训）。
+2. **根治**准确层 intraday cagg 刷新窗口缺陷（§4.4 注记 8 记录；0020 仅以「回填后全量刷」临时规避，2026-09-07 起
+   `kline_accurate_5m` 逐交易日 0 行复现）：`kline_accurate_5m` / `_15m` / `_30m` / `_1h` 四者的 `start_offset` 统一放大为
+   `INTERVAL '3 days'`（ADR-023 §2.4.4；覆盖最坏实测落库延迟 17h + 周末/节假日空档）；
+   `end_offset` 与 `schedule_interval` 保持现值（5m/15m = `1 minute`，30m/1h = `1 hour`）。
+3. 迁移内**一次性全量刷新**（`CALL refresh_continuous_aggregate(…, NULL, NULL)`）`kline_accurate_30m`（新建物化）
+   及 `_5m`/`_15m`（补齐 9/7 以来的空缺）；`_1h` 无已知缺口，仅改策略、不做全量刷。
+
+**口径**：30m 取 **1m 本地衍生**（不取 tushare 原生 `30min`，避免形成第二口径，ADR-004 单一事实源）；
+**不新建** raw 层 30m cagg —— 兜底走 `crates/storage/src/reader.rs` 的 `kline_15m` 查询期 rollup
+（`time_bucket('30 minutes', ts)`；15m 桶在 `:00/:15/:30/:45` ⇒ **2 个 15m 桶 = 1 个 30m 桶**，桶边界严格对齐；
+A 股 09:30 开盘 ⇒ **8 桶/交易日**）。
+
+**策略变更须 remove + re-add**（TimescaleDB 无 in-place 修改 API）：
+`remove_continuous_aggregate_policy(…, if_exists => true)` 后再 `add_continuous_aggregate_policy(…)`。
+
+**幂等与应用**：`CREATE MATERIALIZED VIEW IF NOT EXISTS` + `remove_…_policy(if_exists => true)` ⇒ 重复执行安全
+（输出 NOTICE 属正常）；`CALL refresh_continuous_aggregate` 重跑为等价重物化。应用方式：
+`psql -v ON_ERROR_STOP=1 -f migrations/0026_period_30m.sql`（**不得**加 `-1/--single-transaction`：
+建连续聚合视图与 `refresh` 不可置于显式事务块）。⚠️ **顺序硬约束**：新二进制把 `kline_accurate_30m` 纳入启动自检
+（`crates/storage/src/migrate_check.rs` 的 `EXPECTED_RELATIONS`）⇒ **先落迁移、再重启 app**（ADR-023 §4.1）。
+
+``` {.sql file=migrations/0026_period_30m.sql}
+-- 0026_period_30m.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- ADR-023（架构裁决 2026-09-16）：① 新增第 8 档 30m 的准确层连续聚合；
+-- ② 根治 intraday accurate cagg 刷新窗口：5m/15m/30m/1h 的 start_offset 统一 INTERVAL '3 days'；
+-- ③ 迁移内一次性全量刷新三个 intraday cagg（补齐 2026-09-07 以来 kline_accurate_5m 的空缺）。
+-- 口径：30m = 1m 本地衍生（源 kline_accurate 的 M1 行，全历史），不取 tushare 原生 30min
+--       （避免第二口径，ADR-004 单一事实源）。
+-- 幂等：CREATE MATERIALIZED VIEW IF NOT EXISTS +
+--       remove_continuous_aggregate_policy(if_exists => true) + refresh 重跑为等价重物化
+--       ⇒ 重复执行不报错（NOTICE 属正常）。
+-- 应用：psql -v ON_ERROR_STOP=1 -f migrations/0026_period_30m.sql
+--       不得加 -1/--single-transaction（建连续聚合视图与 refresh 不可置于显式事务块）。
+-- 顺序：先落本迁移再重启 app（新二进制启动自检含 kline_accurate_30m，缺关系会拒绝启动）。
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS kline_accurate_30m
+WITH (timescaledb.continuous) AS
+SELECT code, time_bucket('30 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume) AS volume, sum(amount) AS amount
+FROM kline_accurate WHERE period = 'M1'
+GROUP BY code, time_bucket('30 minutes', ts);
+
+-- 刷新策略根治（ADR-023 §2.4.4）：无 in-place 修改 API ⇒ 先 remove（if_exists 幂等）再 add；
+-- start_offset 由 2h/6h/2d（5m/15m/1h）统一放大到 3 days；end_offset/schedule_interval 保持现值。
+SELECT remove_continuous_aggregate_policy('kline_accurate_5m', if_exists => true);
+SELECT remove_continuous_aggregate_policy('kline_accurate_15m', if_exists => true);
+SELECT remove_continuous_aggregate_policy('kline_accurate_30m', if_exists => true);
+SELECT remove_continuous_aggregate_policy('kline_accurate_1h', if_exists => true);
+
+-- 5m：start_offset 3 days（原 2h）
+SELECT add_continuous_aggregate_policy('kline_accurate_5m',
+    start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 minute',
+    schedule_interval => INTERVAL '1 minute');
+
+-- 15m：start_offset 3 days（原 6h）
+SELECT add_continuous_aggregate_policy('kline_accurate_15m',
+    start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 minute',
+    schedule_interval => INTERVAL '1 minute');
+
+-- 30m（新建）：即写入 3 days（禁止照抄 0017 的旧窗口值）
+SELECT add_continuous_aggregate_policy('kline_accurate_30m',
+    start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
+-- 1h：start_offset 3 days（原 2 days）——与 1d（0010/0016）同值，形成「intraday accurate cagg 统一 3 days」规则
+SELECT add_continuous_aggregate_policy('kline_accurate_1h',
+    start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
+-- 一次性全量刷新（全历史；参数 NULL, NULL = 无界）。重跑为等价重物化，幂等。
+-- 注：1h 无已知缺口（策略窗口 2d 已覆盖），不在此全量刷。
+CALL refresh_continuous_aggregate('kline_accurate_30m', NULL, NULL);
+CALL refresh_continuous_aggregate('kline_accurate_5m', NULL, NULL);
+CALL refresh_continuous_aggregate('kline_accurate_15m', NULL, NULL);
+```
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）
@@ -1154,4 +1236,4 @@ ON CONFLICT (type) DO NOTHING;
 5. **压缩事故复盘（2026-09-03，证据修正版）**：真问题是 0003 设计遗漏——kline_accurate 从未配压缩（16M 行 3GB 裸奔）。排查弯路：误判"旧语法静默失效"（reloptions 为空所致）——**2.29 中压缩设置存目录表而非 reloptions，information 视图标志位是可信的**。已用新语法（enable_columnstore/segmentby/orderby，前向兼容）统一四表并实测：kline_accurate 760 chunks 压缩 3044MB→446MB（6.8x）。对策：①compose 镜像 pin 2.29.2-pg16（滚动 latest 仍有 API 漂移风险）；②压缩验收=视图标志位 + compress_chunk 冒烟 + 实测体积
 6. **交易日历（0008）**：节假日表为 A 股法定休市日唯一事实源；交易日判定 = 工作日 ∧ ¬holidays。2026 数据内嵌于迁移（来源见块头注释）；每年末按当年官方通知追加下一年度（或 tushare trade_cal 复核导入）
 7. **amount 量纲锁定（Wave 2 Phase A D4 结案，实盘查证 2026-09-04）**：`kline_raw.amount` 与 `kline_accurate.amount` **均为元**（tushare stk_mins 解析直取、实盘校验 amount ≈ close×volume 成立；sina_jsonp raw 行同口径 ✓）。⚠️ 已知缺陷：**tencent_ifzq 源 amount 不可信**——实盘签名：raw(tencent) amount ≈ 真实值/10³~10⁴ 且比值随标的不恒定（588000≈1/885、518880≈1/1044、159337≈1/4.9，golden 样本同签名），非固定量纲比，无法视图层换算；根因是 tencent ifzq m1 响应第 7 字段对基金/ETF 的口径与「万元」假设不符（providers 红线，本轮不改解析，留待数据面专项）。对策：①准确层（tushare）数值正确，merge 视图对已同步日天然掩盖（ADR-003 语义正常工作）；②质量对照（分歧率）**只比 close**，amount 不参与跨层比对；③当日未覆盖时段的 tencent 行 amount 及下游 cagg 聚合值低估为已知泄漏，前端/消费方不应据此口径决策
-8. **accurate cagg 物化滞后根因（0020）**：cagg 刷新策略 start_offset（5m=2h/15m=6h）小于单次 tushare 回填批次跨度，大批量回填时**旧桶不落入刷新窗口** → 物化 watermark 停在回填边界。当前以「回填后全量刷新」作为运维惯例规避（0020 固化）；根治选项=加大 start_offset 覆盖单次回填批次（建议 5m/15m ≥ 2d），属策略参数调整，未随 0020 一并改动
+8. **accurate cagg 物化滞后根因（0020）**：cagg 刷新策略 start_offset（5m=2h/15m=6h）小于单次 tushare 回填批次跨度，大批量回填时**旧桶不落入刷新窗口** → 物化 watermark 停在回填边界。当前以「回填后全量刷新」作为运维惯例规避（0020 固化）；根治选项=加大 start_offset 覆盖单次回填批次（建议 5m/15m ≥ 2d），属策略参数调整，未随 0020 一并改动。**（2026-09-16 ADR-023 §2.4 根治：`kline_accurate_5m` / `_15m` / `_30m` / `_1h` 的 `start_offset` 统一 `INTERVAL '3 days'`，5m/15m/30m 并随迁移 0026 一次性全量刷新；见 §4.3.17）**

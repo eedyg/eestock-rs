@@ -39,6 +39,8 @@ pub fn warmup_lookback(period: &domain::types::Period, warmup_bars: usize) -> ch
         domain::types::Period::M1 => 60,
         domain::types::Period::M5 => 300,
         domain::types::Period::M15 => 900,
+        // ADR-023：30m（1_800s）；看板扩展周期，回测 gate（parse_period）仍拒绝 30m，此处仅保 match 穷尽。
+        domain::types::Period::M30 => 1_800,
         domain::types::Period::H1 => 3_600,
         domain::types::Period::D1 => 86_400,
         // 看板扩展周期（不入回测）：保守按日线占位。

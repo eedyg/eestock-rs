@@ -83,6 +83,14 @@ const FALLBACK_1H: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_15m GROUP BY code, time_bucket('1 hour', ts))"#;
 
+/// 30m 兜底（ADR-023 §2.2）：kline_15m 查询期 rollup（schema 未建 raw 层 30m cagg，采 1h 风格；
+/// 15m 桶在 :00/:15/:30/:45 ⇒ 2 个 15m 桶 = 1 个 30m 桶，与 accurate_30m 同 time_bucket 对齐）。
+const FALLBACK_30M: &str = r#"
+(SELECT code, time_bucket('30 minutes', ts) AS ts,
+       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+ FROM kline_15m GROUP BY code, time_bucket('30 minutes', ts))"#;
+
 /// 周线 W1 兜底：kline_1d 查询期 rollup（schema 未建 kline_1w cagg；与 accurate_1w 同 time_bucket 对齐）。
 /// 周=A股交易周（Asia/Shanghai 周一为界，time_bucket 三参形式）；first/last 为 timescaledb 聚合。
 const FALLBACK_1W: &str = r#"
@@ -105,6 +113,7 @@ fn period_merged_sql(p: Period) -> String {
         Period::M1 => MERGED_1M_SQL.to_string(),
         Period::M5 => merged_sql("kline_accurate_5m", "kline_5m"),
         Period::M15 => merged_sql("kline_accurate_15m", "kline_15m"),
+        Period::M30 => merged_sql("kline_accurate_30m", FALLBACK_30M),
         Period::H1 => merged_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => merged_sql("kline_accurate_1d", "kline_1d"),
         Period::W1 => merged_sql("kline_accurate_1w", FALLBACK_1W),
@@ -113,12 +122,13 @@ fn period_merged_sql(p: Period) -> String {
 }
 
 /// 当前 forming（未闭合）桶聚合 SQL：从 kline_raw 实时聚合周期桶，供 live 图表右缘随最新 raw 1m 前进。
-/// 仅对日内周期 M5/M15/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
+/// 仅对日内周期 M5/M15/M30/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
 /// bucket 用 `time_bucket(interval, now())`——只产**当前**未闭合桶（≤1 行）；`source` 记 NULL（与兜底分支同型）。
 fn forming_sql(period: Period) -> Option<String> {
     let interval = match period {
         Period::M5 => "5 minutes",
         Period::M15 => "15 minutes",
+        Period::M30 => "30 minutes",
         Period::H1 => "1 hour",
         _ => return None,
     };
