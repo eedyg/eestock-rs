@@ -1,0 +1,19 @@
+=== MUTATED 0026 (30m block) ===
+    schedule_interval => INTERVAL '1 minute');
+
+-- 30m（新建）：即写入 3 days（禁止照抄 0017 的旧窗口值）
+SELECT add_continuous_aggregate_policy('kline_accurate_30m',
+    start_offset => INTERVAL '2 hours', end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
+-- 1h：start_offset 3 days（原 2 days）——与 1d（0010/0016）同值，形成「intraday accurate cagg 统一 3 days」规则
+SELECT add_continuous_aggregate_policy('kline_accurate_1h',
+    start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour');
+
+-- 一次性全量刷新（全历史；参数 NULL, NULL = 无界）。重跑为等价重物化，幂等。
+=== diff vs original ===
+42c42
+<     start_offset => INTERVAL '3 days', end_offset => INTERVAL '1 hour',
+---
+>     start_offset => INTERVAL '2 hours', end_offset => INTERVAL '1 hour',

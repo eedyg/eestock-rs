@@ -1,0 +1,69 @@
+=== A2b rerun 0026 (idempotency) ===
+psql:migrations/0026_period_30m.sql:21: NOTICE:  continuous aggregate "kline_accurate_30m" already exists, skipping
+CREATE MATERIALIZED VIEW
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1023
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1024
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1025
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1026
+(1 row)
+
+psql:migrations/0026_period_30m.sql:52: NOTICE:  continuous aggregate "kline_accurate_30m" is already up-to-date
+CALL
+psql:migrations/0026_period_30m.sql:53: NOTICE:  continuous aggregate "kline_accurate_5m" is already up-to-date
+CALL
+psql:migrations/0026_period_30m.sql:54: NOTICE:  continuous aggregate "kline_accurate_15m" is already up-to-date
+CALL
+rerun_rc=0
+=== post-rerun cagg count + jobs ===
+10
+1|policy_telemetry|24:00:00||
+3|policy_job_stat_history_retention|06:00:00||
+1000|policy_refresh_continuous_aggregate|00:01:00|01:00:00|00:01:00
+1001|policy_refresh_continuous_aggregate|00:01:00|02:00:00|00:01:00
+1002|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1003|policy_compression|12:00:00||
+1004|policy_compression|12:00:00||
+1005|policy_retention|1 day||
+1006|policy_compression|12:00:00||
+1007|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1008|policy_compression|12:00:00||
+1014|policy_refresh_continuous_aggregate|01:00:00|30 days|1 day
+1015|policy_refresh_continuous_aggregate|01:00:00|120 days|1 day
+1023|policy_refresh_continuous_aggregate|00:01:00|3 days|00:01:00
+1024|policy_refresh_continuous_aggregate|00:01:00|3 days|00:01:00
+1025|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1026|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00

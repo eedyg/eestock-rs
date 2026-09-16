@@ -1,0 +1,42 @@
+=== A7-1 HEAD ===
+3094018f352dae25752340d78b5e108c284aeecc
+3094018f352dae25752340d78b5e108c284aeecc
+=== A7-2 status 与开工前逐字节比对 ===
+STATUS_IDENTICAL
+=== A7-3 staged 必须为空 ===
+0
+=== A7-4 tracked/untracked 哈希 ===
+bdcc3df4c5c99d3e73fd94673abd09e706b7a2001bd2a783d79b75b02af1affb  -
+bdcc3df4c5c99d3e73fd94673abd09e706b7a2001bd2a783d79b75b02af1affb  -
+b45ef1075aa718825f5f11417c7f2058c9d2a0d3e09731abff3cae0f24b3a779  -
+b45ef1075aa718825f5f11417c7f2058c9d2a0d3e09731abff3cae0f24b3a779  -
+=== A7-5 活库 app_config（只读）===
+dcap|{"m": 3, "n_l": 66, "n_m": 36, "n_s": 8, "r_l": 1.0, "r_m": 1.0, "r_s": 1.0, "smooth": 1}|2026-09-13 15:27:38.121703+00
+dcap|{"m": 3, "n_l": 66, "n_m": 36, "n_s": 8, "r_l": 1.0, "r_m": 1.0, "r_s": 1.0, "smooth": 1}|2026-09-13 15:27:38.121703+00
+=== A7-6 在线 app / 端口 ===
+  68833       46:35 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      4096              0.0.0.0:5433       0.0.0.0:*          
+LISTEN 0      128               0.0.0.0:8081       0.0.0.0:*          
+LISTEN 0      128               0.0.0.0:8082       0.0.0.0:*          
+LISTEN 0      4096                 [::]:5433          [::]:*          
+=== A7-7 仓库内新残留（mtime 晚于开工，排除 gitignore 目录）===
+find: ‘./data/timescaledb’: Permission denied
+=== A7-8 gitignore 的缓存目录状态（测试运行必然触碰）===
+drwxrwxr-x 4 eestock eestock 4096 Sep  9 17:43 web/node_modules/.vite
+web/node_modules/.vite
+web/node_modules/.vite/vitest
+web/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709
+web/node_modules/.vite/deps
+web/node_modules/.vite/deps/klinecharts.js
+.gitignore:5:node_modules/	web/node_modules/.vite
+=== 残留检查（排除 ./data、target、node_modules、dist、.git）===
+(以上为空 = 无残留)
+=== stash 列表（只读）===
+0
+=== node_modules/.vite 内 mtime（缓存，gitignore）===
+web/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+=== .git 索引 mtime ===
+-rw-rw-r-- 1 eestock eestock 468544 2026-09-16 00:00:32.226775874 +0800 .git/index
+=== 临时文件 /tmp 下我方产物 ===
+/tmp/adr023-d2-verify-offline-20260916T155256Z
+/tmp/adr023-d2-verify-offline-20260916T155256Z/mutant

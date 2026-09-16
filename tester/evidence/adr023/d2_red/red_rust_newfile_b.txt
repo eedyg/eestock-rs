@@ -1,0 +1,53 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s
+     Running tests/period30m_d2_multiperiod_red.rs (target/debug/deps/period30m_d2_multiperiod_red-ecb80e202e38449c)
+
+running 6 tests
+test d2a_multi_period_allowed_contains_30m_between_15m_and_1h ... FAILED
+test d2d_pane_count_and_dedup_semantics_unchanged_with_30m ... ok
+test d2f_1mo_still_not_offered_after_30m_lands ... ok
+test d2c_validate_accepts_config_containing_30m_and_echoes_it ... FAILED
+test d2b_rank_30m_is_between_15m_and_1h_via_validate ... FAILED
+test d2e_put_multi_period_with_30m_must_not_be_400 ... FAILED
+
+failures:
+
+---- d2a_multi_period_allowed_contains_30m_between_15m_and_1h stdout ----
+
+thread 'd2a_multi_period_allowed_contains_30m_between_15m_and_1h' (127994) panicked at crates/web/tests/period30m_d2_multiperiod_red.rs:118:5:
+ADR-023 §2.5：D2 必须把 "30m" 加入 MULTI_PERIOD_ALLOWED；实际 = ["1m", "5m", "15m", "1h", "1d", "1w"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- d2c_validate_accepts_config_containing_30m_and_echoes_it stdout ----
+
+thread 'd2c_validate_accepts_config_containing_30m_and_echoes_it' (127996) panicked at crates/web/tests/period30m_d2_multiperiod_red.rs:176:5:
+ADR-023 §2.5：PUT/校验路径必须接受含 30m 的配置；实际 = Err("periods 卫星周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：30m")
+
+---- d2b_rank_30m_is_between_15m_and_1h_via_validate stdout ----
+
+thread 'd2b_rank_30m_is_between_15m_and_1h_via_validate' (127995) panicked at crates/web/tests/period30m_d2_multiperiod_red.rs:137:5:
+ADR-023 §2.5：基准 15m + 卫星 30m 必须合法（rank(30m) ≥ rank(15m)）；实际 = Err("periods 卫星周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：30m")
+
+---- d2e_put_multi_period_with_30m_must_not_be_400 stdout ----
+[R4 守卫] 活库快照（只读）：value=Some("{\"enabled\": true, \"heights\": {\"1m\": 420}, \"periods\": [\"1m\"], \"indicators\": [\"dcap\"]}") updated_at=Some("2026-09-16 15:18:09.178116+00")
+[证据] PUT /api/config/multi_period periods=[15m,30m] 实际状态码 = 400 body = {"error":"periods 卫星周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：30m"}
+[R4 守卫] 活库快照（只读）：value=Some("{\"enabled\": true, \"heights\": {\"1m\": 420}, \"periods\": [\"1m\"], \"indicators\": [\"dcap\"]}") updated_at=Some("2026-09-16 15:18:09.178116+00")
+[R4 守卫] 活库 app_config.multi_period 逐字节未变（value/updated_at 均相同）✔
+
+thread 'd2e_put_multi_period_with_30m_must_not_be_400' (127998) panicked at crates/web/tests/period30m_d2_multiperiod_red.rs:358:5:
+assertion `left != right` failed: ADR-023 §2.5：含 30m 的配置必须通过 PUT 校验门（400 = `periods` 校验把 30m 判为非法）；body = {"error":"periods 卫星周期非法（须 ∈ [\"1m\", \"5m\", \"15m\", \"1h\", \"1d\", \"1w\"]）：30m"}
+  left: 400
+ right: 400
+
+
+failures:
+    d2a_multi_period_allowed_contains_30m_between_15m_and_1h
+    d2b_rank_30m_is_between_15m_and_1h_via_validate
+    d2c_validate_accepts_config_containing_30m_and_echoes_it
+    d2e_put_multi_period_with_30m_must_not_be_400
+
+test result: FAILED. 2 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.04s
+
+error: test failed, to rerun pass `-p web --test period30m_d2_multiperiod_red`
+error: 1 target failed:
+    `-p web --test period30m_d2_multiperiod_red`

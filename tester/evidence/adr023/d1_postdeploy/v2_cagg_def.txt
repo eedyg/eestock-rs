@@ -1,0 +1,15 @@
+                      view_definition                      
+-----------------------------------------------------------
+  SELECT code,                                            +
+     time_bucket('00:30:00'::interval, ts) AS ts,         +
+     first(open, ts) AS open,                             +
+     max(high) AS high,                                   +
+     min(low) AS low,                                     +
+     last(close, ts) AS close,                            +
+     sum(volume) AS volume,                               +
+     sum(amount) AS amount                                +
+    FROM kline_accurate                                   +
+   WHERE (period = 'M1'::text)                            +
+   GROUP BY code, (time_bucket('00:30:00'::interval, ts));
+(1 row)
+

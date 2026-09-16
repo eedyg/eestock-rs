@@ -1,0 +1,2439 @@
+{
+ "5m:30m": {
+  "samples": [
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-03T03:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 96,
+    "satBarSpace": 5.0526,
+    "satIters": 1,
+    "nSatVis": 96,
+    "satIdx": [
+     904,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-03T03:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1137300000,
+    "satSpanMs": 1137600000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 97,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.9485
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-03T03:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 96,
+    "satBarSpace": 5.0526,
+    "satIters": 1,
+    "nSatVis": 96,
+    "satIdx": [
+     904,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-03T03:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1137300000,
+    "satSpanMs": 1137600000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 97,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.9485
+   },
+   {
+    "rep": 3,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-03T03:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 96,
+    "satBarSpace": 5.0526,
+    "satIters": 1,
+    "nSatVis": 96,
+    "satIdx": [
+     904,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-03T03:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1137300000,
+    "satSpanMs": 1137600000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 97,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.9485
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 2,
+    "nBaseVis": 240,
+    "baseIdx": [
+     760,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-10T02:20:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 48,
+    "satBarSpace": 10.2128,
+    "satIters": 1,
+    "nSatVis": 48,
+    "satIdx": [
+     952,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-10T02:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 535500000,
+    "satSpanMs": 536400000,
+    "spanDiffMs": 900000,
+    "edgeDiffMs": [
+     600000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 49,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.898
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 2,
+    "nBaseVis": 240,
+    "baseIdx": [
+     760,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-10T02:20:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 48,
+    "satBarSpace": 10.2128,
+    "satIters": 1,
+    "nSatVis": 48,
+    "satIdx": [
+     952,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-10T02:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 535500000,
+    "satSpanMs": 536400000,
+    "spanDiffMs": 900000,
+    "edgeDiffMs": [
+     600000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 49,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.898
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 4,
+    "nBaseVis": 121,
+    "baseIdx": [
+     879,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-14T05:20:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 24,
+    "satBarSpace": 21.0435,
+    "satIters": 1,
+    "nSatVis": 24,
+    "satIdx": [
+     976,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-14T05:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 179100000,
+    "satSpanMs": 180000000,
+    "spanDiffMs": 900000,
+    "edgeDiffMs": [
+     600000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 25,
+    "D_render": 5.0417,
+    "D_sameWindow": 5.0417,
+    "D_sameWindowFloor": 4.84
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 4,
+    "nBaseVis": 121,
+    "baseIdx": [
+     879,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-14T05:20:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 24,
+    "satBarSpace": 21.0435,
+    "satIters": 1,
+    "nSatVis": 24,
+    "satIdx": [
+     976,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-14T05:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 179100000,
+    "satSpanMs": 180000000,
+    "spanDiffMs": 900000,
+    "edgeDiffMs": [
+     600000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 25,
+    "D_render": 5.0417,
+    "D_sameWindow": 5.0417,
+    "D_sameWindowFloor": 4.84
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 1.5,
+    "nBaseVis": 320,
+    "baseIdx": [
+     680,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-08T05:25:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 64,
+    "satBarSpace": 7.619,
+    "satIters": 1,
+    "nSatVis": 64,
+    "satIdx": [
+     936,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-08T05:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 697200000,
+    "satSpanMs": 698400000,
+    "spanDiffMs": 1200000,
+    "edgeDiffMs": [
+     300000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 65,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 4.9231
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 2.5,
+    "nBaseVis": 193,
+    "baseIdx": [
+     807,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-11T02:05:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 38,
+    "satBarSpace": 13.0405,
+    "satIters": 1,
+    "nSatVis": 38,
+    "satIdx": [
+     962,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-11T02:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 450000000,
+    "satSpanMs": 450000000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1500000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 39,
+    "D_render": 5.0789,
+    "D_sameWindow": 5.0789,
+    "D_sameWindowFloor": 4.9487
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 3,
+    "nBaseVis": 161,
+    "baseIdx": [
+     839,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-11T06:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 32,
+    "satBarSpace": 15.5806,
+    "satIters": 1,
+    "nSatVis": 32,
+    "satIdx": [
+     968,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-11T06:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 435300000,
+    "satSpanMs": 435600000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 33,
+    "D_render": 5.0313,
+    "D_sameWindow": 5.0313,
+    "D_sameWindowFloor": 4.8788
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 5,
+    "nBaseVis": 97,
+    "baseIdx": [
+     903,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-15T01:45:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 19,
+    "satBarSpace": 26.9444,
+    "satIters": 1,
+    "nSatVis": 19,
+    "satIdx": [
+     981,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-15T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 105600000,
+    "satSpanMs": 106200000,
+    "spanDiffMs": 600000,
+    "edgeDiffMs": [
+     900000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 20,
+    "D_render": 5.1053,
+    "D_sameWindow": 5.1053,
+    "D_sameWindowFloor": 4.85
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 6,
+    "nBaseVis": 81,
+    "baseIdx": [
+     919,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-15T03:05:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 16,
+    "satBarSpace": 32.4,
+    "satIters": 1,
+    "nSatVis": 16,
+    "satIdx": [
+     984,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-15T03:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 100800000,
+    "satSpanMs": 100800000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1500000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 17,
+    "D_render": 5.0625,
+    "D_sameWindow": 5.0625,
+    "D_sameWindowFloor": 4.7647
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 8,
+    "nBaseVis": 61,
+    "baseIdx": [
+     939,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-15T06:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 12,
+    "satBarSpace": 44.3636,
+    "satIters": 1,
+    "nSatVis": 12,
+    "satIdx": [
+     988,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-15T06:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 89700000,
+    "satSpanMs": 90000000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 13,
+    "D_render": 5.0833,
+    "D_sameWindow": 5.0833,
+    "D_sameWindowFloor": 4.6923
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 10,
+    "nBaseVis": 49,
+    "baseIdx": [
+     951,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T01:35:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 9,
+    "satBarSpace": 61.25,
+    "satIters": 1,
+    "nSatVis": 9,
+    "satIdx": [
+     991,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-16T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 19800000,
+    "satSpanMs": 19800000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1500000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 10,
+    "D_render": 5.4444,
+    "D_sameWindow": 5.4444,
+    "D_sameWindowFloor": 4.9
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 12,
+    "nBaseVis": 41,
+    "baseIdx": [
+     959,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T02:15:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 8,
+    "satBarSpace": 70.2857,
+    "satIters": 1,
+    "nSatVis": 8,
+    "satIdx": [
+     992,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-16T02:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 17400000,
+    "satSpanMs": 18000000,
+    "spanDiffMs": 600000,
+    "edgeDiffMs": [
+     900000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 9,
+    "D_render": 5.125,
+    "D_sameWindow": 5.125,
+    "D_sameWindowFloor": 4.5556
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 16,
+    "nBaseVis": 31,
+    "baseIdx": [
+     969,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T03:05:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 6,
+    "satBarSpace": 99.2,
+    "satIters": 1,
+    "nSatVis": 6,
+    "satIdx": [
+     994,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-16T03:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 14400000,
+    "satSpanMs": 14400000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1500000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 7,
+    "D_render": 5.1667,
+    "D_sameWindow": 5.1667,
+    "D_sameWindowFloor": 4.4286
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 20,
+    "nBaseVis": 25,
+    "baseIdx": [
+     975,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T05:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 5,
+    "satBarSpace": 125,
+    "satIters": 1,
+    "nSatVis": 5,
+    "satIdx": [
+     995,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-16T05:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 7500000,
+    "satSpanMs": 9000000,
+    "spanDiffMs": 1500000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 5,
+    "D_render": 5,
+    "D_sameWindow": 5,
+    "D_sameWindowFloor": 5
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 30,
+    "nBaseVis": 17,
+    "baseIdx": [
+     983,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T05:40:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 3,
+    "satBarSpace": 255,
+    "satIters": 1,
+    "nSatVis": 3,
+    "satIdx": [
+     997,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-16T06:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 5100000,
+    "satSpanMs": 5400000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     1200000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 4,
+    "D_render": 5.6667,
+    "D_sameWindow": 5.6667,
+    "D_sameWindowFloor": 4.25
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 50,
+    "nBaseVis": 11,
+    "baseIdx": [
+     989,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-16T06:10:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 2,
+    "satBarSpace": 550,
+    "satIters": 1,
+    "nSatVis": 2,
+    "satIdx": [
+     997,
+     998
+    ],
+    "satWinTs": [
+     "2026-09-16T06:00:00.000Z",
+     "2026-09-16T06:30:00.000Z"
+    ],
+    "baseSpanMs": 3300000,
+    "satSpanMs": 3600000,
+    "spanDiffMs": 300000,
+    "edgeDiffMs": [
+     -600000,
+     -1800000
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 3,
+    "D_render": 5.5,
+    "D_sameWindow": 5.5,
+    "D_sameWindowFloor": 3.6667
+   }
+  ],
+  "kStats": {
+   "K8": {
+    "K": 8,
+    "ratios": [
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5.1379
+    ],
+    "validCount": 8,
+    "min": 5,
+    "max": 5.137931034482759,
+    "median": 5,
+    "mean": 5.0172,
+    "detail": [
+     {
+      "k": 0,
+      "from": "2026-08-20T01:30:00.000Z",
+      "to": "2026-08-23T11:11:15.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 1,
+      "from": "2026-08-23T11:11:15.000Z",
+      "to": "2026-08-26T20:52:30.000Z",
+      "nB": 150,
+      "nS": 30,
+      "r": 5
+     },
+     {
+      "k": 2,
+      "from": "2026-08-26T20:52:30.000Z",
+      "to": "2026-08-30T06:33:45.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 3,
+      "from": "2026-08-30T06:33:45.000Z",
+      "to": "2026-09-02T16:15:00.000Z",
+      "nB": 150,
+      "nS": 30,
+      "r": 5
+     },
+     {
+      "k": 4,
+      "from": "2026-09-02T16:15:00.000Z",
+      "to": "2026-09-06T01:56:15.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 5,
+      "from": "2026-09-06T01:56:15.000Z",
+      "to": "2026-09-09T11:37:30.000Z",
+      "nB": 150,
+      "nS": 30,
+      "r": 5
+     },
+     {
+      "k": 6,
+      "from": "2026-09-09T11:37:30.000Z",
+      "to": "2026-09-12T21:18:45.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 7,
+      "from": "2026-09-12T21:18:45.000Z",
+      "to": "2026-09-16T07:00:00.000Z",
+      "nB": 149,
+      "nS": 29,
+      "r": 5.1379
+     }
+    ]
+   },
+   "K16": {
+    "K": 16,
+    "ratios": [
+     5,
+     null,
+     5,
+     5,
+     5,
+     null,
+     5,
+     5,
+     5,
+     null,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5.2105
+    ],
+    "validCount": 13,
+    "min": 5,
+    "max": 5.2105263157894735,
+    "median": 5,
+    "mean": 5.0162,
+    "detail": [
+     {
+      "k": 0,
+      "from": "2026-08-20T01:30:00.000Z",
+      "to": "2026-08-21T18:20:37.500Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 1,
+      "from": "2026-08-21T18:20:37.500Z",
+      "to": "2026-08-23T11:11:15.000Z",
+      "nB": 0,
+      "nS": 0,
+      "r": null
+     },
+     {
+      "k": 2,
+      "from": "2026-08-23T11:11:15.000Z",
+      "to": "2026-08-25T04:01:52.500Z",
+      "nB": 75,
+      "nS": 15,
+      "r": 5
+     },
+     {
+      "k": 3,
+      "from": "2026-08-25T04:01:52.500Z",
+      "to": "2026-08-26T20:52:30.000Z",
+      "nB": 75,
+      "nS": 15,
+      "r": 5
+     },
+     {
+      "k": 4,
+      "from": "2026-08-26T20:52:30.000Z",
+      "to": "2026-08-28T13:43:07.500Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 5,
+      "from": "2026-08-28T13:43:07.500Z",
+      "to": "2026-08-30T06:33:45.000Z",
+      "nB": 0,
+      "nS": 0,
+      "r": null
+     },
+     {
+      "k": 6,
+      "from": "2026-08-30T06:33:45.000Z",
+      "to": "2026-08-31T23:24:22.500Z",
+      "nB": 50,
+      "nS": 10,
+      "r": 5
+     },
+     {
+      "k": 7,
+      "from": "2026-08-31T23:24:22.500Z",
+      "to": "2026-09-02T16:15:00.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 8,
+      "from": "2026-09-02T16:15:00.000Z",
+      "to": "2026-09-04T09:05:37.500Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 9,
+      "from": "2026-09-04T09:05:37.500Z",
+      "to": "2026-09-06T01:56:15.000Z",
+      "nB": 0,
+      "nS": 0,
+      "r": null
+     },
+     {
+      "k": 10,
+      "from": "2026-09-06T01:56:15.000Z",
+      "to": "2026-09-07T18:46:52.500Z",
+      "nB": 50,
+      "nS": 10,
+      "r": 5
+     },
+     {
+      "k": 11,
+      "from": "2026-09-07T18:46:52.500Z",
+      "to": "2026-09-09T11:37:30.000Z",
+      "nB": 100,
+      "nS": 20,
+      "r": 5
+     },
+     {
+      "k": 12,
+      "from": "2026-09-09T11:37:30.000Z",
+      "to": "2026-09-11T04:28:07.500Z",
+      "nB": 75,
+      "nS": 15,
+      "r": 5
+     },
+     {
+      "k": 13,
+      "from": "2026-09-11T04:28:07.500Z",
+      "to": "2026-09-12T21:18:45.000Z",
+      "nB": 25,
+      "nS": 5,
+      "r": 5
+     },
+     {
+      "k": 14,
+      "from": "2026-09-12T21:18:45.000Z",
+      "to": "2026-09-14T14:09:22.500Z",
+      "nB": 50,
+      "nS": 10,
+      "r": 5
+     },
+     {
+      "k": 15,
+      "from": "2026-09-14T14:09:22.500Z",
+      "to": "2026-09-16T07:00:00.000Z",
+      "nB": 99,
+      "nS": 19,
+      "r": 5.2105
+     }
+    ]
+   }
+  },
+  "panes": {
+   "baseSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "satSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "baseElW": 520
+  },
+  "diag": {
+   "baseDataLen": 1000,
+   "satDataLen": 1000,
+   "initRange": {
+    "from": 951,
+    "to": 1000,
+    "realFrom": 951,
+    "realTo": 1001
+   }
+  },
+  "meta": {
+   "basePeriod": "5m",
+   "satPeriod": "30m",
+   "nBase": 1000,
+   "nSat": 1000,
+   "baseFrom": "2026-08-20T01:30:00Z",
+   "baseTo": "2026-09-16T07:00:00Z",
+   "satFrom": "2026-04-24T01:30:00Z",
+   "satTo": "2026-09-16T07:00:00Z"
+  },
+  "perDayCounts": {
+   "base": {
+    "2026-08-20": 50,
+    "2026-08-21": 50,
+    "2026-08-24": 50,
+    "2026-08-25": 50,
+    "2026-08-26": 50,
+    "2026-08-27": 50,
+    "2026-08-28": 50,
+    "2026-08-31": 50,
+    "2026-09-01": 50,
+    "2026-09-02": 50,
+    "2026-09-03": 50,
+    "2026-09-04": 50,
+    "2026-09-07": 50,
+    "2026-09-08": 50,
+    "2026-09-09": 50,
+    "2026-09-10": 50,
+    "2026-09-11": 50,
+    "2026-09-14": 50,
+    "2026-09-15": 50,
+    "2026-09-16": 50
+   },
+   "sat": {
+    "2026-04-24": 10,
+    "2026-04-27": 10,
+    "2026-04-28": 10,
+    "2026-04-29": 10,
+    "2026-04-30": 10,
+    "2026-05-06": 10,
+    "2026-05-07": 10,
+    "2026-05-08": 10,
+    "2026-05-11": 10,
+    "2026-05-12": 10,
+    "2026-05-13": 10,
+    "2026-05-14": 10,
+    "2026-05-15": 10,
+    "2026-05-18": 10,
+    "2026-05-19": 10,
+    "2026-05-20": 10,
+    "2026-05-21": 10,
+    "2026-05-22": 10,
+    "2026-05-25": 10,
+    "2026-05-26": 10,
+    "2026-05-27": 10,
+    "2026-05-28": 10,
+    "2026-05-29": 10,
+    "2026-06-01": 10,
+    "2026-06-02": 10,
+    "2026-06-03": 10,
+    "2026-06-04": 10,
+    "2026-06-05": 10,
+    "2026-06-08": 10,
+    "2026-06-09": 10,
+    "2026-06-10": 10,
+    "2026-06-11": 10,
+    "2026-06-12": 10,
+    "2026-06-15": 10,
+    "2026-06-16": 10,
+    "2026-06-17": 10,
+    "2026-06-18": 10,
+    "2026-06-22": 10,
+    "2026-06-23": 10,
+    "2026-06-24": 10,
+    "2026-06-25": 10,
+    "2026-06-26": 10,
+    "2026-06-29": 10,
+    "2026-06-30": 10,
+    "2026-07-01": 10,
+    "2026-07-02": 10,
+    "2026-07-03": 10,
+    "2026-07-06": 10,
+    "2026-07-07": 10,
+    "2026-07-08": 10,
+    "2026-07-09": 10,
+    "2026-07-10": 10,
+    "2026-07-13": 10,
+    "2026-07-14": 10,
+    "2026-07-15": 10,
+    "2026-07-16": 10,
+    "2026-07-17": 10,
+    "2026-07-20": 10,
+    "2026-07-21": 10,
+    "2026-07-22": 10,
+    "2026-07-23": 10,
+    "2026-07-24": 10,
+    "2026-07-27": 10,
+    "2026-07-28": 10,
+    "2026-07-29": 10,
+    "2026-07-30": 10,
+    "2026-07-31": 10,
+    "2026-08-03": 10,
+    "2026-08-04": 10,
+    "2026-08-05": 10,
+    "2026-08-06": 10,
+    "2026-08-07": 10,
+    "2026-08-10": 10,
+    "2026-08-11": 10,
+    "2026-08-12": 10,
+    "2026-08-13": 10,
+    "2026-08-14": 10,
+    "2026-08-17": 10,
+    "2026-08-18": 10,
+    "2026-08-19": 10,
+    "2026-08-20": 10,
+    "2026-08-21": 10,
+    "2026-08-24": 10,
+    "2026-08-25": 10,
+    "2026-08-26": 10,
+    "2026-08-27": 10,
+    "2026-08-28": 10,
+    "2026-08-31": 10,
+    "2026-09-01": 10,
+    "2026-09-02": 10,
+    "2026-09-03": 10,
+    "2026-09-04": 10,
+    "2026-09-07": 10,
+    "2026-09-08": 10,
+    "2026-09-09": 10,
+    "2026-09-10": 10,
+    "2026-09-11": 10,
+    "2026-09-14": 10,
+    "2026-09-15": 10,
+    "2026-09-16": 10
+   }
+  },
+  "summary": {
+   "samplesOk": 19,
+   "D_ceil_median": 5.0417,
+   "D_ceil_min": 5,
+   "D_ceil_max": 5.6667,
+   "D_floor_median": 4.8788,
+   "D_floor_min": 3.6667,
+   "D_floor_max": 5,
+   "D_mid_median": 4.95505
+  },
+  "pageErrors": [],
+  "externalRequests": []
+ },
+ "30m:1h": {
+  "samples": [
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-07-13T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 287,
+    "satBarSpace": 1.6725,
+    "satIters": 0,
+    "nSatVis": 287,
+    "satIdx": [
+     713,
+     999
+    ],
+    "satWinTs": [
+     "2026-07-13T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 5637600000,
+    "satSpanMs": 5637600000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 288,
+    "D_render": 1.6725,
+    "D_sameWindow": 1.6725,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-07-13T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 287,
+    "satBarSpace": 1.6725,
+    "satIters": 0,
+    "nSatVis": 287,
+    "satIdx": [
+     713,
+     999
+    ],
+    "satWinTs": [
+     "2026-07-13T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 5637600000,
+    "satSpanMs": 5637600000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 288,
+    "D_render": 1.6725,
+    "D_sameWindow": 1.6725,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 3,
+    "stage": "ok",
+    "baseBarSpace": 1,
+    "nBaseVis": 480,
+    "baseIdx": [
+     520,
+     999
+    ],
+    "baseWinTs": [
+     "2026-07-13T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 287,
+    "satBarSpace": 1.6725,
+    "satIters": 0,
+    "nSatVis": 287,
+    "satIdx": [
+     713,
+     999
+    ],
+    "satWinTs": [
+     "2026-07-13T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 5637600000,
+    "satSpanMs": 5637600000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 288,
+    "D_render": 1.6725,
+    "D_sameWindow": 1.6725,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 2,
+    "nBaseVis": 240,
+    "baseIdx": [
+     760,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-14T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 143,
+    "satBarSpace": 3.3803,
+    "satIters": 1,
+    "nSatVis": 143,
+    "satIdx": [
+     857,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-14T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 2872800000,
+    "satSpanMs": 2872800000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 144,
+    "D_render": 1.6783,
+    "D_sameWindow": 1.6783,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 2,
+    "nBaseVis": 240,
+    "baseIdx": [
+     760,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-14T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 143,
+    "satBarSpace": 3.3803,
+    "satIters": 1,
+    "nSatVis": 143,
+    "satIdx": [
+     857,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-14T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 2872800000,
+    "satSpanMs": 2872800000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 144,
+    "D_render": 1.6783,
+    "D_sameWindow": 1.6783,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 4,
+    "nBaseVis": 121,
+    "baseIdx": [
+     879,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-31T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 73,
+    "satBarSpace": 6.6301,
+    "satIters": 0,
+    "nSatVis": 73,
+    "satIdx": [
+     927,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-31T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1384200000,
+    "satSpanMs": 1386000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 73,
+    "D_render": 1.6575,
+    "D_sameWindow": 1.6575,
+    "D_sameWindowFloor": 1.6575
+   },
+   {
+    "rep": 2,
+    "stage": "ok",
+    "baseBarSpace": 4,
+    "nBaseVis": 121,
+    "baseIdx": [
+     879,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-31T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 73,
+    "satBarSpace": 6.6301,
+    "satIters": 0,
+    "nSatVis": 73,
+    "satIdx": [
+     927,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-31T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1384200000,
+    "satSpanMs": 1386000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 73,
+    "D_render": 1.6575,
+    "D_sameWindow": 1.6575,
+    "D_sameWindowFloor": 1.6575
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 1.5,
+    "nBaseVis": 320,
+    "baseIdx": [
+     680,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-04T01:30:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 191,
+    "satBarSpace": 2.5263,
+    "satIters": 1,
+    "nSatVis": 191,
+    "satIdx": [
+     809,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-04T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 3736800000,
+    "satSpanMs": 3736800000,
+    "spanDiffMs": 0,
+    "edgeDiffMs": [
+     1800000,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 192,
+    "D_render": 1.6754,
+    "D_sameWindow": 1.6754,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 2.5,
+    "nBaseVis": 193,
+    "baseIdx": [
+     807,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-20T06:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 116,
+    "satBarSpace": 4.1595,
+    "satIters": 0,
+    "nSatVis": 116,
+    "satIdx": [
+     884,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-20T06:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 2338200000,
+    "satSpanMs": 2340000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 116,
+    "D_render": 1.6638,
+    "D_sameWindow": 1.6638,
+    "D_sameWindowFloor": 1.6638
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 3,
+    "nBaseVis": 161,
+    "baseIdx": [
+     839,
+     999
+    ],
+    "baseWinTs": [
+     "2026-08-25T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 97,
+    "satBarSpace": 4.9794,
+    "satIters": 0,
+    "nSatVis": 97,
+    "satIdx": [
+     903,
+     999
+    ],
+    "satWinTs": [
+     "2026-08-25T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1902600000,
+    "satSpanMs": 1904400000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 97,
+    "D_render": 1.6598,
+    "D_sameWindow": 1.6598,
+    "D_sameWindowFloor": 1.6598
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 5,
+    "nBaseVis": 97,
+    "baseIdx": [
+     903,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-03T03:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 58,
+    "satBarSpace": 8.3621,
+    "satIters": 0,
+    "nSatVis": 58,
+    "satIdx": [
+     942,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-03T03:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1139400000,
+    "satSpanMs": 1141200000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 58,
+    "D_render": 1.6724,
+    "D_sameWindow": 1.6724,
+    "D_sameWindowFloor": 1.6724
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 6,
+    "nBaseVis": 81,
+    "baseIdx": [
+     919,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-04T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 49,
+    "satBarSpace": 9.9184,
+    "satIters": 0,
+    "nSatVis": 49,
+    "satIdx": [
+     951,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-04T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 1038600000,
+    "satSpanMs": 1040400000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 49,
+    "D_render": 1.6531,
+    "D_sameWindow": 1.6531,
+    "D_sameWindowFloor": 1.6531
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 8,
+    "nBaseVis": 61,
+    "baseIdx": [
+     939,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-08T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 37,
+    "satBarSpace": 13.1892,
+    "satIters": 0,
+    "nSatVis": 37,
+    "satIdx": [
+     963,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-08T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 693000000,
+    "satSpanMs": 694800000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 37,
+    "D_render": 1.6486,
+    "D_sameWindow": 1.6486,
+    "D_sameWindowFloor": 1.6486
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 10,
+    "nBaseVis": 49,
+    "baseIdx": [
+     951,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-10T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 29,
+    "satBarSpace": 16.8966,
+    "satIters": 0,
+    "nSatVis": 29,
+    "satIdx": [
+     971,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-10T02:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 538200000,
+    "satSpanMs": 540000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 29,
+    "D_render": 1.6897,
+    "D_sameWindow": 1.6897,
+    "D_sameWindowFloor": 1.6897
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 12,
+    "nBaseVis": 41,
+    "baseIdx": [
+     959,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-10T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 25,
+    "satBarSpace": 19.68,
+    "satIters": 0,
+    "nSatVis": 25,
+    "satIdx": [
+     975,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-10T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 520200000,
+    "satSpanMs": 522000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 25,
+    "D_render": 1.64,
+    "D_sameWindow": 1.64,
+    "D_sameWindowFloor": 1.64
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 16,
+    "nBaseVis": 31,
+    "baseIdx": [
+     969,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-11T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 19,
+    "satBarSpace": 26.1053,
+    "satIters": 0,
+    "nSatVis": 19,
+    "satIdx": [
+     981,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-11T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 433800000,
+    "satSpanMs": 435600000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 19,
+    "D_render": 1.6316,
+    "D_sameWindow": 1.6316,
+    "D_sameWindowFloor": 1.6316
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 20,
+    "nBaseVis": 25,
+    "baseIdx": [
+     975,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-14T05:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 15,
+    "satBarSpace": 33.3333,
+    "satIters": 0,
+    "nSatVis": 15,
+    "satIdx": [
+     985,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-14T05:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 181800000,
+    "satSpanMs": 183600000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 15,
+    "D_render": 1.6667,
+    "D_sameWindow": 1.6667,
+    "D_sameWindowFloor": 1.6667
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 30,
+    "nBaseVis": 17,
+    "baseIdx": [
+     983,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-15T03:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 10,
+    "satBarSpace": 51,
+    "satIters": 0,
+    "nSatVis": 10,
+    "satIdx": [
+     990,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-15T03:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 102600000,
+    "satSpanMs": 104400000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 10,
+    "D_render": 1.7,
+    "D_sameWindow": 1.7,
+    "D_sameWindowFloor": 1.7
+   },
+   {
+    "rep": 1,
+    "stage": "ok",
+    "baseBarSpace": 50,
+    "nBaseVis": 11,
+    "baseIdx": [
+     989,
+     999
+    ],
+    "baseWinTs": [
+     "2026-09-15T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "nSatTarget": 7,
+    "satBarSpace": 78.5714,
+    "satIters": 0,
+    "nSatVis": 7,
+    "satIdx": [
+     993,
+     999
+    ],
+    "satWinTs": [
+     "2026-09-15T07:00:00.000Z",
+     "2026-09-16T07:00:00.000Z"
+    ],
+    "baseSpanMs": 88200000,
+    "satSpanMs": 90000000,
+    "spanDiffMs": 1800000,
+    "edgeDiffMs": [
+     0,
+     0
+    ],
+    "sameWindowEdges": true,
+    "nSatSameWinFloor": 7,
+    "D_render": 1.5714,
+    "D_sameWindow": 1.5714,
+    "D_sameWindowFloor": 1.5714
+   }
+  ],
+  "kStats": {
+   "K8": {
+    "K": 8,
+    "ratios": [
+     1.6842,
+     1.675,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6753
+    ],
+    "validCount": 8,
+    "min": 1.6666666666666667,
+    "max": 1.6842105263157894,
+    "median": 1.6666666666666667,
+    "mean": 1.671,
+    "detail": [
+     {
+      "k": 0,
+      "from": "2026-04-24T01:30:00.000Z",
+      "to": "2026-05-12T05:11:15.000Z",
+      "nB": 96,
+      "nS": 57,
+      "r": 1.6842
+     },
+     {
+      "k": 1,
+      "from": "2026-05-12T05:11:15.000Z",
+      "to": "2026-05-30T08:52:30.000Z",
+      "nB": 134,
+      "nS": 80,
+      "r": 1.675
+     },
+     {
+      "k": 2,
+      "from": "2026-05-30T08:52:30.000Z",
+      "to": "2026-06-17T12:33:45.000Z",
+      "nB": 130,
+      "nS": 78,
+      "r": 1.6667
+     },
+     {
+      "k": 3,
+      "from": "2026-06-17T12:33:45.000Z",
+      "to": "2026-07-05T16:15:00.000Z",
+      "nB": 110,
+      "nS": 66,
+      "r": 1.6667
+     },
+     {
+      "k": 4,
+      "from": "2026-07-05T16:15:00.000Z",
+      "to": "2026-07-23T19:56:15.000Z",
+      "nB": 140,
+      "nS": 84,
+      "r": 1.6667
+     },
+     {
+      "k": 5,
+      "from": "2026-07-23T19:56:15.000Z",
+      "to": "2026-08-10T23:37:30.000Z",
+      "nB": 120,
+      "nS": 72,
+      "r": 1.6667
+     },
+     {
+      "k": 6,
+      "from": "2026-08-10T23:37:30.000Z",
+      "to": "2026-08-29T03:18:45.000Z",
+      "nB": 140,
+      "nS": 84,
+      "r": 1.6667
+     },
+     {
+      "k": 7,
+      "from": "2026-08-29T03:18:45.000Z",
+      "to": "2026-09-16T07:00:00.000Z",
+      "nB": 129,
+      "nS": 77,
+      "r": 1.6753
+     }
+    ]
+   },
+   "K16": {
+    "K": 16,
+    "ratios": [
+     1.7241,
+     1.6429,
+     1.6818,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6667,
+     1.6279,
+     1.7073,
+     1.6471,
+     1.6977
+    ],
+    "validCount": 16,
+    "min": 1.627906976744186,
+    "max": 1.7241379310344827,
+    "median": 1.6666666666666667,
+    "mean": 1.6705,
+    "detail": [
+     {
+      "k": 0,
+      "from": "2026-04-24T01:30:00.000Z",
+      "to": "2026-05-03T03:20:37.500Z",
+      "nB": 50,
+      "nS": 29,
+      "r": 1.7241
+     },
+     {
+      "k": 1,
+      "from": "2026-05-03T03:20:37.500Z",
+      "to": "2026-05-12T05:11:15.000Z",
+      "nB": 46,
+      "nS": 28,
+      "r": 1.6429
+     },
+     {
+      "k": 2,
+      "from": "2026-05-12T05:11:15.000Z",
+      "to": "2026-05-21T07:01:52.500Z",
+      "nB": 74,
+      "nS": 44,
+      "r": 1.6818
+     },
+     {
+      "k": 3,
+      "from": "2026-05-21T07:01:52.500Z",
+      "to": "2026-05-30T08:52:30.000Z",
+      "nB": 60,
+      "nS": 36,
+      "r": 1.6667
+     },
+     {
+      "k": 4,
+      "from": "2026-05-30T08:52:30.000Z",
+      "to": "2026-06-08T10:43:07.500Z",
+      "nB": 60,
+      "nS": 36,
+      "r": 1.6667
+     },
+     {
+      "k": 5,
+      "from": "2026-06-08T10:43:07.500Z",
+      "to": "2026-06-17T12:33:45.000Z",
+      "nB": 70,
+      "nS": 42,
+      "r": 1.6667
+     },
+     {
+      "k": 6,
+      "from": "2026-06-17T12:33:45.000Z",
+      "to": "2026-06-26T14:24:22.500Z",
+      "nB": 60,
+      "nS": 36,
+      "r": 1.6667
+     },
+     {
+      "k": 7,
+      "from": "2026-06-26T14:24:22.500Z",
+      "to": "2026-07-05T16:15:00.000Z",
+      "nB": 50,
+      "nS": 30,
+      "r": 1.6667
+     },
+     {
+      "k": 8,
+      "from": "2026-07-05T16:15:00.000Z",
+      "to": "2026-07-14T18:05:37.500Z",
+      "nB": 70,
+      "nS": 42,
+      "r": 1.6667
+     },
+     {
+      "k": 9,
+      "from": "2026-07-14T18:05:37.500Z",
+      "to": "2026-07-23T19:56:15.000Z",
+      "nB": 70,
+      "nS": 42,
+      "r": 1.6667
+     },
+     {
+      "k": 10,
+      "from": "2026-07-23T19:56:15.000Z",
+      "to": "2026-08-01T21:46:52.500Z",
+      "nB": 60,
+      "nS": 36,
+      "r": 1.6667
+     },
+     {
+      "k": 11,
+      "from": "2026-08-01T21:46:52.500Z",
+      "to": "2026-08-10T23:37:30.000Z",
+      "nB": 60,
+      "nS": 36,
+      "r": 1.6667
+     },
+     {
+      "k": 12,
+      "from": "2026-08-10T23:37:30.000Z",
+      "to": "2026-08-20T01:28:07.500Z",
+      "nB": 70,
+      "nS": 43,
+      "r": 1.6279
+     },
+     {
+      "k": 13,
+      "from": "2026-08-20T01:28:07.500Z",
+      "to": "2026-08-29T03:18:45.000Z",
+      "nB": 70,
+      "nS": 41,
+      "r": 1.7073
+     },
+     {
+      "k": 14,
+      "from": "2026-08-29T03:18:45.000Z",
+      "to": "2026-09-07T05:09:22.500Z",
+      "nB": 56,
+      "nS": 34,
+      "r": 1.6471
+     },
+     {
+      "k": 15,
+      "from": "2026-09-07T05:09:22.500Z",
+      "to": "2026-09-16T07:00:00.000Z",
+      "nB": 73,
+      "nS": 43,
+      "r": 1.6977
+     }
+    ]
+   }
+  },
+  "panes": {
+   "baseSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "satSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "baseElW": 520
+  },
+  "diag": {
+   "baseDataLen": 1000,
+   "satDataLen": 1000,
+   "initRange": {
+    "from": 951,
+    "to": 1000,
+    "realFrom": 951,
+    "realTo": 1001
+   }
+  },
+  "meta": {
+   "basePeriod": "30m",
+   "satPeriod": "1h",
+   "nBase": 1000,
+   "nSat": 1000,
+   "baseFrom": "2026-04-24T01:30:00Z",
+   "baseTo": "2026-09-16T07:00:00Z",
+   "satFrom": "2026-01-12T03:00:00Z",
+   "satTo": "2026-09-16T07:00:00Z"
+  },
+  "perDayCounts": {
+   "base": {
+    "2026-04-24": 10,
+    "2026-04-27": 10,
+    "2026-04-28": 10,
+    "2026-04-29": 10,
+    "2026-04-30": 10,
+    "2026-05-06": 10,
+    "2026-05-07": 10,
+    "2026-05-08": 10,
+    "2026-05-11": 10,
+    "2026-05-12": 10,
+    "2026-05-13": 10,
+    "2026-05-14": 10,
+    "2026-05-15": 10,
+    "2026-05-18": 10,
+    "2026-05-19": 10,
+    "2026-05-20": 10,
+    "2026-05-21": 10,
+    "2026-05-22": 10,
+    "2026-05-25": 10,
+    "2026-05-26": 10,
+    "2026-05-27": 10,
+    "2026-05-28": 10,
+    "2026-05-29": 10,
+    "2026-06-01": 10,
+    "2026-06-02": 10,
+    "2026-06-03": 10,
+    "2026-06-04": 10,
+    "2026-06-05": 10,
+    "2026-06-08": 10,
+    "2026-06-09": 10,
+    "2026-06-10": 10,
+    "2026-06-11": 10,
+    "2026-06-12": 10,
+    "2026-06-15": 10,
+    "2026-06-16": 10,
+    "2026-06-17": 10,
+    "2026-06-18": 10,
+    "2026-06-22": 10,
+    "2026-06-23": 10,
+    "2026-06-24": 10,
+    "2026-06-25": 10,
+    "2026-06-26": 10,
+    "2026-06-29": 10,
+    "2026-06-30": 10,
+    "2026-07-01": 10,
+    "2026-07-02": 10,
+    "2026-07-03": 10,
+    "2026-07-06": 10,
+    "2026-07-07": 10,
+    "2026-07-08": 10,
+    "2026-07-09": 10,
+    "2026-07-10": 10,
+    "2026-07-13": 10,
+    "2026-07-14": 10,
+    "2026-07-15": 10,
+    "2026-07-16": 10,
+    "2026-07-17": 10,
+    "2026-07-20": 10,
+    "2026-07-21": 10,
+    "2026-07-22": 10,
+    "2026-07-23": 10,
+    "2026-07-24": 10,
+    "2026-07-27": 10,
+    "2026-07-28": 10,
+    "2026-07-29": 10,
+    "2026-07-30": 10,
+    "2026-07-31": 10,
+    "2026-08-03": 10,
+    "2026-08-04": 10,
+    "2026-08-05": 10,
+    "2026-08-06": 10,
+    "2026-08-07": 10,
+    "2026-08-10": 10,
+    "2026-08-11": 10,
+    "2026-08-12": 10,
+    "2026-08-13": 10,
+    "2026-08-14": 10,
+    "2026-08-17": 10,
+    "2026-08-18": 10,
+    "2026-08-19": 10,
+    "2026-08-20": 10,
+    "2026-08-21": 10,
+    "2026-08-24": 10,
+    "2026-08-25": 10,
+    "2026-08-26": 10,
+    "2026-08-27": 10,
+    "2026-08-28": 10,
+    "2026-08-31": 10,
+    "2026-09-01": 10,
+    "2026-09-02": 10,
+    "2026-09-03": 10,
+    "2026-09-04": 10,
+    "2026-09-07": 10,
+    "2026-09-08": 10,
+    "2026-09-09": 10,
+    "2026-09-10": 10,
+    "2026-09-11": 10,
+    "2026-09-14": 10,
+    "2026-09-15": 10,
+    "2026-09-16": 10
+   },
+   "sat": {
+    "2026-01-12": 4,
+    "2026-01-13": 6,
+    "2026-01-14": 6,
+    "2026-01-15": 6,
+    "2026-01-16": 6,
+    "2026-01-19": 6,
+    "2026-01-20": 6,
+    "2026-01-21": 6,
+    "2026-01-22": 6,
+    "2026-01-23": 6,
+    "2026-01-26": 6,
+    "2026-01-27": 6,
+    "2026-01-28": 6,
+    "2026-01-29": 6,
+    "2026-01-30": 6,
+    "2026-02-02": 6,
+    "2026-02-03": 6,
+    "2026-02-04": 6,
+    "2026-02-05": 6,
+    "2026-02-06": 6,
+    "2026-02-09": 6,
+    "2026-02-10": 6,
+    "2026-02-11": 6,
+    "2026-02-12": 6,
+    "2026-02-13": 6,
+    "2026-02-24": 6,
+    "2026-02-25": 6,
+    "2026-02-26": 6,
+    "2026-02-27": 6,
+    "2026-03-02": 6,
+    "2026-03-03": 6,
+    "2026-03-04": 6,
+    "2026-03-05": 6,
+    "2026-03-06": 6,
+    "2026-03-09": 6,
+    "2026-03-10": 6,
+    "2026-03-11": 6,
+    "2026-03-12": 6,
+    "2026-03-13": 6,
+    "2026-03-16": 6,
+    "2026-03-17": 6,
+    "2026-03-18": 6,
+    "2026-03-19": 6,
+    "2026-03-20": 6,
+    "2026-03-23": 6,
+    "2026-03-24": 6,
+    "2026-03-25": 6,
+    "2026-03-26": 6,
+    "2026-03-27": 6,
+    "2026-03-30": 6,
+    "2026-03-31": 6,
+    "2026-04-01": 6,
+    "2026-04-02": 6,
+    "2026-04-03": 6,
+    "2026-04-07": 6,
+    "2026-04-08": 6,
+    "2026-04-09": 6,
+    "2026-04-10": 6,
+    "2026-04-13": 6,
+    "2026-04-14": 6,
+    "2026-04-15": 6,
+    "2026-04-16": 6,
+    "2026-04-17": 6,
+    "2026-04-20": 6,
+    "2026-04-21": 6,
+    "2026-04-22": 6,
+    "2026-04-23": 6,
+    "2026-04-24": 6,
+    "2026-04-27": 6,
+    "2026-04-28": 6,
+    "2026-04-29": 6,
+    "2026-04-30": 6,
+    "2026-05-06": 6,
+    "2026-05-07": 6,
+    "2026-05-08": 6,
+    "2026-05-11": 6,
+    "2026-05-12": 6,
+    "2026-05-13": 6,
+    "2026-05-14": 6,
+    "2026-05-15": 6,
+    "2026-05-18": 6,
+    "2026-05-19": 6,
+    "2026-05-20": 6,
+    "2026-05-21": 6,
+    "2026-05-22": 6,
+    "2026-05-25": 6,
+    "2026-05-26": 6,
+    "2026-05-27": 6,
+    "2026-05-28": 6,
+    "2026-05-29": 6,
+    "2026-06-01": 6,
+    "2026-06-02": 6,
+    "2026-06-03": 6,
+    "2026-06-04": 6,
+    "2026-06-05": 6,
+    "2026-06-08": 6,
+    "2026-06-09": 6,
+    "2026-06-10": 6,
+    "2026-06-11": 6,
+    "2026-06-12": 6,
+    "2026-06-15": 6,
+    "2026-06-16": 6,
+    "2026-06-17": 6,
+    "2026-06-18": 6,
+    "2026-06-22": 6,
+    "2026-06-23": 6,
+    "2026-06-24": 6,
+    "2026-06-25": 6,
+    "2026-06-26": 6,
+    "2026-06-29": 6,
+    "2026-06-30": 6,
+    "2026-07-01": 6,
+    "2026-07-02": 6,
+    "2026-07-03": 6,
+    "2026-07-06": 6,
+    "2026-07-07": 6,
+    "2026-07-08": 6,
+    "2026-07-09": 6,
+    "2026-07-10": 6,
+    "2026-07-13": 6,
+    "2026-07-14": 6,
+    "2026-07-15": 6,
+    "2026-07-16": 6,
+    "2026-07-17": 6,
+    "2026-07-20": 6,
+    "2026-07-21": 6,
+    "2026-07-22": 6,
+    "2026-07-23": 6,
+    "2026-07-24": 6,
+    "2026-07-27": 6,
+    "2026-07-28": 6,
+    "2026-07-29": 6,
+    "2026-07-30": 6,
+    "2026-07-31": 6,
+    "2026-08-03": 6,
+    "2026-08-04": 6,
+    "2026-08-05": 6,
+    "2026-08-06": 6,
+    "2026-08-07": 6,
+    "2026-08-10": 6,
+    "2026-08-11": 6,
+    "2026-08-12": 6,
+    "2026-08-13": 6,
+    "2026-08-14": 6,
+    "2026-08-17": 6,
+    "2026-08-18": 6,
+    "2026-08-19": 6,
+    "2026-08-20": 6,
+    "2026-08-21": 6,
+    "2026-08-24": 6,
+    "2026-08-25": 6,
+    "2026-08-26": 6,
+    "2026-08-27": 6,
+    "2026-08-28": 6,
+    "2026-08-31": 6,
+    "2026-09-01": 6,
+    "2026-09-02": 6,
+    "2026-09-03": 6,
+    "2026-09-04": 6,
+    "2026-09-07": 6,
+    "2026-09-08": 6,
+    "2026-09-09": 6,
+    "2026-09-10": 6,
+    "2026-09-11": 6,
+    "2026-09-14": 6,
+    "2026-09-15": 6,
+    "2026-09-16": 6
+   }
+  },
+  "summary": {
+   "samplesOk": 19,
+   "D_ceil_median": 1.6667,
+   "D_ceil_min": 1.5714,
+   "D_ceil_max": 1.7,
+   "D_floor_median": 1.6667,
+   "D_floor_min": 1.5714,
+   "D_floor_max": 1.7,
+   "D_mid_median": 1.6667
+  },
+  "pageErrors": [],
+  "externalRequests": []
+ }
+}

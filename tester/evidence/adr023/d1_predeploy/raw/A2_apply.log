@@ -1,0 +1,297 @@
+=== migrations/0001_init.sql rc=0 ===
+psql:migrations/0001_init.sql:3: NOTICE:  extension "timescaledb" already exists, skipping
+CREATE EXTENSION
+CREATE TABLE
+   create_hypertable    
+------------------------
+ (1,public,kline_raw,t)
+(1 row)
+
+CREATE TABLE
+      create_hypertable      
+-----------------------------
+ (2,public,kline_accurate,t)
+(1 row)
+
+CREATE VIEW
+CREATE TABLE
+CREATE TABLE
+         create_hypertable         
+-----------------------------------
+ (3,public,source_health_events,t)
+(1 row)
+=== migrations/0002_caggs.sql rc=0 ===
+psql:migrations/0002_caggs.sql:9: NOTICE:  continuous aggregate "kline_5m" is already up-to-date
+CREATE MATERIALIZED VIEW
+psql:migrations/0002_caggs.sql:16: NOTICE:  continuous aggregate "kline_15m" is already up-to-date
+CREATE MATERIALIZED VIEW
+psql:migrations/0002_caggs.sql:23: NOTICE:  continuous aggregate "kline_1d" is already up-to-date
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1000
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1001
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1002
+(1 row)
+=== migrations/0003_compression.sql rc=0 ===
+ALTER TABLE
+ add_compression_policy 
+------------------------
+                   1003
+(1 row)
+
+ALTER TABLE
+ add_compression_policy 
+------------------------
+                   1004
+(1 row)
+
+ add_retention_policy 
+----------------------
+                 1005
+(1 row)
+=== migrations/0004_metrics.sql rc=0 ===
+CREATE TABLE
+  create_hypertable   
+----------------------
+ (7,public,metrics,t)
+(1 row)
+
+psql:migrations/0004_metrics.sql:15: WARNING:  column "period" should be used for segmenting or ordering
+ALTER TABLE
+ add_compression_policy 
+------------------------
+                   1006
+(1 row)
+
+CREATE TABLE
+CREATE TABLE
+=== migrations/0005_sync_checkpoints.sql rc=0 ===
+CREATE TABLE
+psql:migrations/0005_sync_checkpoints.sql:19: NOTICE:  continuous aggregate "kline_accurate_1d" is already up-to-date
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1007
+(1 row)
+=== migrations/0006_accurate_compression.sql rc=0 ===
+ALTER TABLE
+ add_compression_policy 
+------------------------
+                   1008
+(1 row)
+=== migrations/0007_circuit_reset.sql rc=0 ===
+CREATE TABLE
+CREATE INDEX
+=== migrations/0008_holidays.sql rc=0 ===
+CREATE TABLE
+INSERT 0 34
+=== migrations/0009_alert_engine.sql rc=0 ===
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+INSERT 0 4
+=== migrations/0010_accurate_caggs.sql rc=0 ===
+psql:migrations/0010_accurate_caggs.sql:12: NOTICE:  refreshing continuous aggregate "kline_accurate_5m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0010_accurate_caggs.sql:20: NOTICE:  refreshing continuous aggregate "kline_accurate_15m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0010_accurate_caggs.sql:28: NOTICE:  refreshing continuous aggregate "kline_accurate_1h"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1009
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1010
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1011
+(1 row)
+=== migrations/0011_backtest.sql rc=0 ===
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+=== migrations/0012_backtest_run_extend.sql rc=0 ===
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+=== migrations/0013_favorite_symbols.sql rc=0 ===
+CREATE TABLE
+=== migrations/0014_weekly_monthly_caggs.sql rc=0 ===
+psql:migrations/0014_weekly_monthly_caggs.sql:13: NOTICE:  refreshing continuous aggregate "kline_accurate_1w"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0014_weekly_monthly_caggs.sql:21: NOTICE:  refreshing continuous aggregate "kline_accurate_1mo"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1012
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1013
+(1 row)
+=== migrations/0015_ma_config.sql rc=0 ===
+CREATE TABLE
+INSERT 0 1
+=== migrations/0016_weekly_monthly_full_history.sql rc=0 ===
+DROP MATERIALIZED VIEW
+DROP MATERIALIZED VIEW
+psql:migrations/0016_weekly_monthly_full_history.sql:16: NOTICE:  refreshing continuous aggregate "kline_accurate_1w"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0016_weekly_monthly_full_history.sql:24: NOTICE:  refreshing continuous aggregate "kline_accurate_1mo"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1014
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1015
+(1 row)
+=== migrations/0017_minute_caggs_full_history.sql rc=0 ===
+DROP MATERIALIZED VIEW
+DROP MATERIALIZED VIEW
+DROP MATERIALIZED VIEW
+psql:migrations/0017_minute_caggs_full_history.sql:17: NOTICE:  refreshing continuous aggregate "kline_accurate_5m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0017_minute_caggs_full_history.sql:25: NOTICE:  refreshing continuous aggregate "kline_accurate_15m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+psql:migrations/0017_minute_caggs_full_history.sql:33: NOTICE:  refreshing continuous aggregate "kline_accurate_1h"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1016
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1017
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1018
+(1 row)
+=== migrations/0018_sim_session.sql rc=0 ===
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+=== migrations/0019_sim_session_state.sql rc=0 ===
+CREATE TABLE
+=== migrations/0020_accurate_cagg_refresh.sql rc=0 ===
+psql:migrations/0020_accurate_cagg_refresh.sql:6: NOTICE:  continuous aggregate "kline_accurate_5m" is already up-to-date
+CALL
+psql:migrations/0020_accurate_cagg_refresh.sql:7: NOTICE:  continuous aggregate "kline_accurate_15m" is already up-to-date
+CALL
+psql:migrations/0020_accurate_cagg_refresh.sql:8: NOTICE:  continuous aggregate "kline_accurate_1h" is already up-to-date
+CALL
+CALL
+=== migrations/0021_app_config.sql rc=0 ===
+CREATE TABLE
+=== migrations/0022_strategy_registry.sql rc=0 ===
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TRIGGER
+=== migrations/0023_strategy_workbench.sql rc=0 ===
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+=== migrations/0024_drop_legacy_backtest_tables.sql rc=0 ===
+DROP TABLE
+DROP TABLE
+=== migrations/0025_symbol_type_fee_profiles.sql rc=0 ===
+ALTER TABLE
+DO
+UPDATE 0
+CREATE TABLE
+INSERT 0 3
+=== migrations/0026_period_30m.sql rc=0 ===
+psql:migrations/0026_period_30m.sql:21: NOTICE:  refreshing continuous aggregate "kline_accurate_30m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+psql:migrations/0026_period_30m.sql:27: NOTICE:  continuous aggregate policy not found for "kline_accurate_30m", skipping
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1019
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1020
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1021
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1022
+(1 row)
+
+psql:migrations/0026_period_30m.sql:52: NOTICE:  continuous aggregate "kline_accurate_30m" is already up-to-date
+CALL
+psql:migrations/0026_period_30m.sql:53: NOTICE:  continuous aggregate "kline_accurate_5m" is already up-to-date
+CALL
+psql:migrations/0026_period_30m.sql:54: NOTICE:  continuous aggregate "kline_accurate_15m" is already up-to-date
+CALL
+RC_ALL=0

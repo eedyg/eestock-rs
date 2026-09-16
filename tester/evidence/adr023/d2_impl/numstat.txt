@@ -1,0 +1,6 @@
+10	6	crates/web/src/dto.rs
+22	8	design/07-app-plane/00-web-api.md
+2	1	design/15-multi-period/02-spec.md
+13	3	web/src/features/dashboard/chartSyncGroup.ts
+5	5	web/src/features/dashboard/multiPeriodPicker.test.tsx
+3	2	web/src/features/dashboard/multiPeriodPicker.tsx

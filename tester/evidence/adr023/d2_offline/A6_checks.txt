@@ -1,0 +1,71 @@
+=== A6-1 既有 5 条密度值：HEAD vs 工作区（提取表体逐行比对）===
+--- HEAD ---
+export const MEASURED_DENSITY_TABLE: Readonly<Record<string, number>> = {
+  '1m:5m': 4.7,
+  '1m:15m': 12.2,
+  '1m:1h': 37.8,
+  '1d:1w': 4.67,
+  '1h:1w': 24,
+};
+--- WORK ---
+export const MEASURED_DENSITY_TABLE: Readonly<Record<string, number>> = {
+  '1m:5m': 4.7,
+  '1m:15m': 12.2,
+  '1m:1h': 37.8,
+  '1d:1w': 4.67,
+  '1h:1w': 24,
+  // ADR-023 §2.5（D2）：30m 与 {1m,5m,15m,1h} 的**四条直接实测条目**（冻结值）。
+  // 同 P0.3 口径真渲染、pane 520px、多取样逐位一致；**禁**按名义周期比兜底。
+  // 理由：`effectiveDensity` 解析序 static→composed→measured 会把 `composed` 当缩放比且优先于运行时实测，
+  // 缺直接条目会静默采用合成值（15m→30m 合成 1.9754 vs 实测 1.800 = +9.7% 错对齐，ADR §6.1 第 7 条）。
+  '1m:30m': 24.1,
+  '5m:30m': 5.0,
+  '15m:30m': 1.8,
+  '30m:1h': 1.67,
+};
+--- diff (HEAD -> WORK) ---
+6a7,14
+>   // ADR-023 §2.5（D2）：30m 与 {1m,5m,15m,1h} 的**四条直接实测条目**（冻结值）。
+>   // 同 P0.3 口径真渲染、pane 520px、多取样逐位一致；**禁**按名义周期比兜底。
+>   // 理由：`effectiveDensity` 解析序 static→composed→measured 会把 `composed` 当缩放比且优先于运行时实测，
+>   // 缺直接条目会静默采用合成值（15m→30m 合成 1.9754 vs 实测 1.800 = +9.7% 错对齐，ADR §6.1 第 7 条）。
+>   '1m:30m': 24.1,
+>   '5m:30m': 5.0,
+>   '15m:30m': 1.8,
+>   '30m:1h': 1.67,
+
+=== A6-2 01-adr.md 是否被改动 ===
+c83fc31bd633d495548f57ca9ba1ef57e86870d6b89be1e5a9f896f836d37605  -
+c83fc31bd633d495548f57ca9ba1ef57e86870d6b89be1e5a9f896f836d37605  design/15-multi-period/01-adr.md
+
+=== A6-3 effectiveDensity / composeDensity 与 HEAD 比对 ===
+979:  private effectiveDensity(leader: SyncMember, follower: SyncMember): FollowerDensityReading {
+980-    const table = { ...MEASURED_DENSITY_TABLE, ...this.extraDensityTable };
+981-    const direct = this.lookupDensity(leader.period, follower.period, table);
+982-    if (direct !== null) return { ratio: direct, source: 'static' };
+983-    const reverse = this.lookupDensity(follower.period, leader.period, table);
+984-    if (reverse !== null && reverse > 0) return { ratio: 1 / reverse, source: 'static' };
+985-    const composed = composeDensity(leader.period, follower.period);
+986-    if (composed !== null && composed > 0) return { ratio: composed, source: 'composed' };
+987-    const measured = this.measureDensity(leader, follower);
+988-    if (isNum(measured) && measured > 0) return { ratio: measured, source: 'measured' };
+989-    return { ratio: Number.NaN, source: 'none' };
+990-  }
+991-
+--- WORK ---
+989:  private effectiveDensity(leader: SyncMember, follower: SyncMember): FollowerDensityReading {
+990-    const table = { ...MEASURED_DENSITY_TABLE, ...this.extraDensityTable };
+991-    const direct = this.lookupDensity(leader.period, follower.period, table);
+992-    if (direct !== null) return { ratio: direct, source: 'static' };
+993-    const reverse = this.lookupDensity(follower.period, leader.period, table);
+994-    if (reverse !== null && reverse > 0) return { ratio: 1 / reverse, source: 'static' };
+995-    const composed = composeDensity(leader.period, follower.period);
+996-    if (composed !== null && composed > 0) return { ratio: composed, source: 'composed' };
+997-    const measured = this.measureDensity(leader, follower);
+998-    if (isNum(measured) && measured > 0) return { ratio: measured, source: 'measured' };
+999-    return { ratio: Number.NaN, source: 'none' };
+1000-  }
+1001-
+--- composeDensity HEAD vs WORK ---
+4889ecae7c1c8e04e770027a7fb89a58517dfd52827aac8a9c4bc6949489172d  -
+4889ecae7c1c8e04e770027a7fb89a58517dfd52827aac8a9c4bc6949489172d  -

@@ -1,0 +1,279 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/dashboard/period30mD2.test.ts (21 tests | 16 failed) 11ms
+   × D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 含 '30m' 且完整顺序 = 1m/5m/15m/30m/1h/1d/1w 4ms
+     → ADR-023 §3.2：D2 必须把 '30m' 加入 MULTI_PERIOD_PICKER_PERIODS；实际 = ["1m","5m","15m","1h","1d","1w"]: expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ Array(7) ]
+   × D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 30m 严格位于 15m 与 1h 之间（不得落到其它位置） 0ms
+     → ADR-023 §2.5/§3.2：索引必须满足 15m < 30m < 1h；实际 = 2/-1/3: expected -1 to be greater than 2
+   ✓ D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > periodBucketMs('30m') == 1800000（既有 D1 交付，不得回退） 0ms
+   × D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['1m:30m'] == 24.1（真渲染实测，非名义比 30） 0ms
+     → 表内必须新增实测直接条目 '1m:30m'；实际 = undefined: expected undefined not to be undefined
+   × D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['5m:30m'] == 5（真渲染实测，非名义比 6） 0ms
+     → 表内必须新增实测直接条目 '5m:30m'；实际 = undefined: expected undefined not to be undefined
+   × D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['15m:30m'] == 1.8（真渲染实测，非名义比 2） 0ms
+     → 表内必须新增实测直接条目 '15m:30m'；实际 = undefined: expected undefined not to be undefined
+   × D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['30m:1h'] == 1.67（真渲染实测，非名义比 2） 0ms
+     → 表内必须新增实测直接条目 '30m:1h'；实际 = undefined: expected undefined not to be undefined
+   × D2 · 实测密度表：30m 的**四条直接条目** > 四条**齐备**（缺任一条 ⇒ 会静默落回 composeDensity 造成错对齐） 1ms
+     → 30m 的四条直接条目必须齐备；缺 = ["1m:30m","5m:30m","15m:30m","30m:1h"]: expected [ '1m:30m', '5m:30m', '15m:30m', …(1) ] to deeply equal []
+   × D2 · composeDensity 对 30m 同族组合 > 15m↔30m / 5m↔30m / 30m↔1h 均必须返回非 null 正值 0ms
+     → composeDensity('15m','30m') 必须非 null（同 1m 锚点）；实际 = null: expected null not to be null
+   × D2 · composeDensity 对 30m 同族组合 > ⚠️ 合成值**不得**被 30m 配对采用（漂移已实测：15m→30m 合成 1.9754 vs 实测 1.800 = +9.7%） 0ms
+     → 15m→30m 的合成值（1m 锚点）必须可算（非 null）: expected null not to be null
+   × D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 1m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 24.1 1ms
+     → 无法读到 1m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+   × D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 5m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 5 0ms
+     → 无法读到 5m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+   × D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 15m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.8 0ms
+     → 无法读到 15m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+   × D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 30m:1h：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.67 0ms
+     → 无法读到 30m:1h 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+   ✓ D2 · 30m 跨族护栏（诚实降级 + 原因码） > isSyncCombinationAllowed 拒绝 30m↔1d 与 30m↔1w 0ms
+   × D2 · 30m 跨族护栏（诚实降级 + 原因码） > 拒绝必须给出**原因码**（不得静默：既不是 null 也不是 unsupported-period） 0ms
+     → 30m 已进入周期集 ⇒ 原因不得是 'unsupported-period'（那说明 periodOrder 未纳入 30m）；实际 = unsupported-period: expected 'unsupported-period' not to be 'unsupported-period' // Object.is equality
+   × D2 · 30m 跨族护栏（诚实降级 + 原因码） > 卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝） 1ms
+     → 卫星 30m < 基准 1h: expected 'unsupported-period' to be 'satellite-lower-than-base' // Object.is equality
+   × D2 · 反向护栏（既有语义不得放宽） > 既有 5 条实测密度值逐字不变（D2 只许**新增** 30m 的 4 条） 1ms
+     → D2 只许新增 30m 的 4 条（既有 5 条 + 4 = 9）；实际键 = ["1m:5m","1m:15m","1m:1h","1d:1w","1h:1w"]: expected 5 to be 9 // Object.is equality
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 1m↔1d / 1m↔1w / 含 1mo 的既有拒绝**仍成立** 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 既有口径 10 不得放宽：1h↔1w 仍拒绝（原因码 'week-requires-day-or-above'） 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 既有可用组合仍可用（D2 不得把守门收得更紧） 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 含 '30m' 且完整顺序 = 1m/5m/15m/30m/1h/1d/1w
+AssertionError: ADR-023 §3.2：D2 必须把 '30m' 加入 MULTI_PERIOD_PICKER_PERIODS；实际 = ["1m","5m","15m","1h","1d","1w"]: expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ Array(7) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "1m",[22m
+[2m    "5m",[22m
+[2m    "15m",[22m
+[32m-   "30m",[39m
+[2m    "1h",[22m
+[2m    "1d",[22m
+[2m    "1w",[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:94:7
+     92|       MULTI_PERIOD_PICKER_PERIODS,
+     93|       `ADR-023 §3.2：D2 必须把 '30m' 加入 MULTI_PERIOD_PICKER_PERIODS；实际 = $…
+     94|     ).toEqual(EXPECTED_PICKER);
+       |       ^
+     95|   });
+     96| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 30m 严格位于 15m 与 1h 之间（不得落到其它位置）
+AssertionError: ADR-023 §2.5/§3.2：索引必须满足 15m < 30m < 1h；实际 = 2/-1/3: expected -1 to be greater than 2
+ ❯ src/features/dashboard/period30mD2.test.ts:104:7
+    102|       i30,
+    103|       `ADR-023 §2.5/§3.2：索引必须满足 15m < 30m < 1h；实际 = ${i15}/${i30}/${i1…
+    104|     ).toBeGreaterThan(i15);
+       |       ^
+    105|     expect(i30).toBeLessThan(i1h);
+    106|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['1m:30m'] == 24.1（真渲染实测，非名义比 30）
+AssertionError: 表内必须新增实测直接条目 '1m:30m'；实际 = undefined: expected undefined not to be undefined
+ ❯ src/features/dashboard/period30mD2.test.ts:122:64
+    120|     it(`MEASURED_DENSITY_TABLE['${key}'] == ${want}（真渲染实测，非名义比 ${nomin…
+    121|       const v = MEASURED_DENSITY_TABLE[key];
+    122|       expect(v, `表内必须新增实测直接条目 '${key}'；实际 = ${String(v)}`).not.toBeUnd…
+       |                                                                ^
+    123|       expect(
+    124|         Math.abs((v as number) - want) <= DIRECT_VALUE_TOLERANCE,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['5m:30m'] == 5（真渲染实测，非名义比 6）
+AssertionError: 表内必须新增实测直接条目 '5m:30m'；实际 = undefined: expected undefined not to be undefined
+ ❯ src/features/dashboard/period30mD2.test.ts:122:64
+    120|     it(`MEASURED_DENSITY_TABLE['${key}'] == ${want}（真渲染实测，非名义比 ${nomin…
+    121|       const v = MEASURED_DENSITY_TABLE[key];
+    122|       expect(v, `表内必须新增实测直接条目 '${key}'；实际 = ${String(v)}`).not.toBeUnd…
+       |                                                                ^
+    123|       expect(
+    124|         Math.abs((v as number) - want) <= DIRECT_VALUE_TOLERANCE,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['15m:30m'] == 1.8（真渲染实测，非名义比 2）
+AssertionError: 表内必须新增实测直接条目 '15m:30m'；实际 = undefined: expected undefined not to be undefined
+ ❯ src/features/dashboard/period30mD2.test.ts:122:64
+    120|     it(`MEASURED_DENSITY_TABLE['${key}'] == ${want}（真渲染实测，非名义比 ${nomin…
+    121|       const v = MEASURED_DENSITY_TABLE[key];
+    122|       expect(v, `表内必须新增实测直接条目 '${key}'；实际 = ${String(v)}`).not.toBeUnd…
+       |                                                                ^
+    123|       expect(
+    124|         Math.abs((v as number) - want) <= DIRECT_VALUE_TOLERANCE,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['30m:1h'] == 1.67（真渲染实测，非名义比 2）
+AssertionError: 表内必须新增实测直接条目 '30m:1h'；实际 = undefined: expected undefined not to be undefined
+ ❯ src/features/dashboard/period30mD2.test.ts:122:64
+    120|     it(`MEASURED_DENSITY_TABLE['${key}'] == ${want}（真渲染实测，非名义比 ${nomin…
+    121|       const v = MEASURED_DENSITY_TABLE[key];
+    122|       expect(v, `表内必须新增实测直接条目 '${key}'；实际 = ${String(v)}`).not.toBeUnd…
+       |                                                                ^
+    123|       expect(
+    124|         Math.abs((v as number) - want) <= DIRECT_VALUE_TOLERANCE,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > 四条**齐备**（缺任一条 ⇒ 会静默落回 composeDensity 造成错对齐）
+AssertionError: 30m 的四条直接条目必须齐备；缺 = ["1m:30m","5m:30m","15m:30m","30m:1h"]: expected [ '1m:30m', '5m:30m', '15m:30m', …(1) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "1m:30m",[39m
+[31m+   "5m:30m",[39m
+[31m+   "15m:30m",[39m
+[31m+   "30m:1h",[39m
+[31m+ ][39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:137:71
+    135|   it('四条**齐备**（缺任一条 ⇒ 会静默落回 composeDensity 造成错对齐）', () => {
+    136|     const missing = D30_DIRECT_ENTRIES.map(([k]) => k).filter((k) => M…
+    137|     expect(missing, `30m 的四条直接条目必须齐备；缺 = ${JSON.stringify(missing)}`).…
+       |                                                                       ^
+    138|   });
+    139| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · composeDensity 对 30m 同族组合 > 15m↔30m / 5m↔30m / 30m↔1h 均必须返回非 null 正值
+AssertionError: composeDensity('15m','30m') 必须非 null（同 1m 锚点）；实际 = null: expected null not to be null
+ ❯ src/features/dashboard/period30mD2.test.ts:149:90
+    147|     for (const [b, s] of [['15m', '30m'], ['5m', '30m'], ['30m', '1h']…
+    148|       const d = composeDensity(b, s);
+    149|       expect(d, `composeDensity('${b}','${s}') 必须非 null（同 1m 锚点）；实际 = …
+       |                                                                                          ^
+    150|       expect(typeof d === 'number' && d > 0, `合成值必须为正数；实际 = ${String(d…
+    151|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · composeDensity 对 30m 同族组合 > ⚠️ 合成值**不得**被 30m 配对采用（漂移已实测：15m→30m 合成 1.9754 vs 实测 1.800 = +9.7%）
+AssertionError: 15m→30m 的合成值（1m 锚点）必须可算（非 null）: expected null not to be null
+ ❯ src/features/dashboard/period30mD2.test.ts:159:61
+    157|     // `composed` 放在 `static` 之前，落差会真实生效（下一条不变量用例负责把它变成响亮失败）。
+    158|     const composed = composeDensity('15m', '30m') as number;
+    159|     expect(composed, "15m→30m 的合成值（1m 锚点）必须可算（非 null）").not.toBeNull();
+       |                                                             ^
+    160|     expect(
+    161|       Math.abs(composed - 1.8) / 1.8,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 1m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 24.1
+AssertionError: 无法读到 1m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 5m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 5
+AssertionError: 无法读到 5m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 15m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.8
+AssertionError: 无法读到 15m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 30m:1h：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.67
+AssertionError: 无法读到 30m:1h 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 30m 跨族护栏（诚实降级 + 原因码） > 拒绝必须给出**原因码**（不得静默：既不是 null 也不是 unsupported-period）
+AssertionError: 30m 已进入周期集 ⇒ 原因不得是 'unsupported-period'（那说明 periodOrder 未纳入 30m）；实际 = unsupported-period: expected 'unsupported-period' not to be 'unsupported-period' // Object.is equality
+ ❯ src/features/dashboard/period30mD2.test.ts:251:11
+    249|       r1d,
+    250|       `30m 已进入周期集 ⇒ 原因不得是 'unsupported-period'（那说明 periodOrder 未纳入 30m…
+    251|     ).not.toBe('unsupported-period');
+       |           ^
+    252|     expect(r1d, `30m↔1d 的真实原因应为无公共锚点；实际 = ${String(r1d)}`).toBe('no-sh…
+    253| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 30m 跨族护栏（诚实降级 + 原因码） > 卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝）
+AssertionError: 卫星 30m < 基准 1h: expected 'unsupported-period' to be 'satellite-lower-than-base' // Object.is equality
+
+Expected: [32m"satellite-lower-than-base"[39m
+Received: [31m"unsupported-period"[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:261:64
+    259| 
+    260|   it('卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝）', () => {
+    261|     expect(syncExclusionReason('1h', '30m'), "卫星 30m < 基准 1h").toBe('s…
+       |                                                                ^
+    262|     expect(syncExclusionReason('1d', '30m'), "卫星 30m < 基准 1d").toBe('s…
+    263|     expect(isSyncCombinationAllowed('15m', '30m'), '15m→30m 必须放行').toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 反向护栏（既有语义不得放宽） > 既有 5 条实测密度值逐字不变（D2 只许**新增** 30m 的 4 条）
+AssertionError: D2 只许新增 30m 的 4 条（既有 5 条 + 4 = 9）；实际键 = ["1m:5m","1m:15m","1m:1h","1d:1w","1h:1w"]: expected 5 to be 9 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 9[39m
+[31m+ 5[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:282:7
+    280|       Object.keys(MEASURED_DENSITY_TABLE).length,
+    281|       `D2 只许新增 30m 的 4 条（既有 5 条 + 4 = 9）；实际键 = ${JSON.stringify(Object…
+    282|     ).toBe(9);
+       |       ^
+    283|   });
+    284| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 5 passed (21)
+   Start at  23:36:19
+   Duration  450ms (transform 49ms, setup 23ms, collect 52ms, tests 11ms, environment 129ms, prepare 110ms)
+

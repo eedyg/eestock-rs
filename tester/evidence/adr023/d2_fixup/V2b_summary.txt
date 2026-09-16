@@ -1,0 +1,3 @@
+dist/assets/index-BpQVDpqf.css     22.93 kB │ gzip:   5.76 kB
+dist/assets/index-J50SI06a.js   1,217.84 kB │ gzip: 375.83 kB
+✓ built in 1.88s

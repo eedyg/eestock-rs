@@ -1,0 +1,18 @@
+=== A2c/A10 jobs after first apply ===
+1|policy_telemetry|24:00:00||
+3|policy_job_stat_history_retention|06:00:00||
+1000|policy_refresh_continuous_aggregate|00:01:00|01:00:00|00:01:00
+1001|policy_refresh_continuous_aggregate|00:01:00|02:00:00|00:01:00
+1002|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1003|policy_compression|12:00:00||
+1004|policy_compression|12:00:00||
+1005|policy_retention|1 day||
+1006|policy_compression|12:00:00||
+1007|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1008|policy_compression|12:00:00||
+1014|policy_refresh_continuous_aggregate|01:00:00|30 days|1 day
+1015|policy_refresh_continuous_aggregate|01:00:00|120 days|1 day
+1019|policy_refresh_continuous_aggregate|00:01:00|3 days|00:01:00
+1020|policy_refresh_continuous_aggregate|00:01:00|3 days|00:01:00
+1021|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00
+1022|policy_refresh_continuous_aggregate|01:00:00|3 days|01:00:00

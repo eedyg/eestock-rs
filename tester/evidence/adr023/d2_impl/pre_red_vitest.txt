@@ -1,0 +1,80 @@
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/18]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 15m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.8
+AssertionError: 无法读到 15m:30m 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/18]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 30m:1h：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.67
+AssertionError: 无法读到 30m:1h 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期: expected undefined to be defined
+ ❯ src/features/dashboard/period30mD2.test.ts:214:9
+    212|         reading,
+    213|         `无法读到 ${key} 的密度读数（卫星被排除/组未建立/未对齐）⇒ 30m 未真正进入多周期`,
+    214|       ).toBeDefined();
+       |         ^
+    215|       expect(
+    216|         reading?.source,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/18]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 30m 跨族护栏（诚实降级 + 原因码） > 拒绝必须给出**原因码**（不得静默：既不是 null 也不是 unsupported-period）
+AssertionError: 30m 已进入周期集 ⇒ 原因不得是 'unsupported-period'（那说明 periodOrder 未纳入 30m）；实际 = unsupported-period: expected 'unsupported-period' not to be 'unsupported-period' // Object.is equality
+ ❯ src/features/dashboard/period30mD2.test.ts:251:11
+    249|       r1d,
+    250|       `30m 已进入周期集 ⇒ 原因不得是 'unsupported-period'（那说明 periodOrder 未纳入 30m…
+    251|     ).not.toBe('unsupported-period');
+       |           ^
+    252|     expect(r1d, `30m↔1d 的真实原因应为无公共锚点；实际 = ${String(r1d)}`).toBe('no-sh…
+    253| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/18]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 30m 跨族护栏（诚实降级 + 原因码） > 卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝）
+AssertionError: 卫星 30m < 基准 1h: expected 'unsupported-period' to be 'satellite-lower-than-base' // Object.is equality
+
+Expected: [32m"satellite-lower-than-base"[39m
+Received: [31m"unsupported-period"[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:261:64
+    259| 
+    260|   it('卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝）', () => {
+    261|     expect(syncExclusionReason('1h', '30m'), "卫星 30m < 基准 1h").toBe('s…
+       |                                                                ^
+    262|     expect(syncExclusionReason('1d', '30m'), "卫星 30m < 基准 1d").toBe('s…
+    263|     expect(isSyncCombinationAllowed('15m', '30m'), '15m→30m 必须放行').toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/18]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 反向护栏（既有语义不得放宽） > 既有 5 条实测密度值逐字不变（D2 只许**新增** 30m 的 4 条）
+AssertionError: D2 只许新增 30m 的 4 条（既有 5 条 + 4 = 9）；实际键 = ["1m:5m","1m:15m","1m:1h","1d:1w","1h:1w"]: expected 5 to be 9 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 9[39m
+[31m+ 5[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:282:7
+    280|       Object.keys(MEASURED_DENSITY_TABLE).length,
+    281|       `D2 只许新增 30m 的 4 条（既有 5 条 + 4 = 9）；实际键 = ${JSON.stringify(Object…
+    282|     ).toBe(9);
+       |       ^
+    283|   });
+    284| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/18]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  18 failed | 12 passed (30)
+   Start at  23:41:10
+   Duration  716ms (transform 174ms, setup 46ms, collect 285ms, tests 143ms, environment 270ms, prepare 129ms)
+

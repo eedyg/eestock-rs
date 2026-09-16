@@ -1,0 +1,75 @@
+
+ RUN  v3.2.7 /tmp/adr023-d2-verify-offline-20260916T155256Z/mutant/web
+
+ ❯ src/features/dashboard/period30mD2.test.ts (21 tests | 2 failed) 9ms
+   ✓ D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 含 '30m' 且完整顺序 = 1m/5m/15m/30m/1h/1d/1w 1ms
+   ✓ D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > 30m 严格位于 15m 与 1h 之间（不得落到其它位置） 0ms
+   ✓ D2 · 选择器清单（MULTI_PERIOD_PICKER_PERIODS） > periodBucketMs('30m') == 1800000（既有 D1 交付，不得回退） 0ms
+   ✓ D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['1m:30m'] == 24.1（真渲染实测，非名义比 30） 0ms
+   ✓ D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['5m:30m'] == 5（真渲染实测，非名义比 6） 0ms
+   × D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['15m:30m'] == 1.8（真渲染实测，非名义比 2） 3ms
+     → '15m:30m' 必须 == 1.8（±0.01；同估计器取整容差）；实际 = 1.9754: expected false to be true // Object.is equality
+   ✓ D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['30m:1h'] == 1.67（真渲染实测，非名义比 2） 0ms
+   ✓ D2 · 实测密度表：30m 的**四条直接条目** > 四条**齐备**（缺任一条 ⇒ 会静默落回 composeDensity 造成错对齐） 0ms
+   ✓ D2 · composeDensity 对 30m 同族组合 > 15m↔30m / 5m↔30m / 30m↔1h 均必须返回非 null 正值 0ms
+   ✓ D2 · composeDensity 对 30m 同族组合 > ⚠️ 合成值**不得**被 30m 配对采用（漂移已实测：15m→30m 合成 1.9754 vs 实测 1.800 = +9.7%） 0ms
+   ✓ D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 1m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 24.1 1ms
+   ✓ D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 5m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 5 0ms
+   × D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 15m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.8 1ms
+     → 15m:30m 的解析比值必须 == 直接实测 1.8（±0.01）；实际 = 1.9754: expected false to be true // Object.is equality
+   ✓ D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 30m:1h：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.67 0ms
+   ✓ D2 · 30m 跨族护栏（诚实降级 + 原因码） > isSyncCombinationAllowed 拒绝 30m↔1d 与 30m↔1w 0ms
+   ✓ D2 · 30m 跨族护栏（诚实降级 + 原因码） > 拒绝必须给出**原因码**（不得静默：既不是 null 也不是 unsupported-period） 0ms
+   ✓ D2 · 30m 跨族护栏（诚实降级 + 原因码） > 卫星 < 基准 的既有语义对 30m 同样成立（1h↔30m / 1d↔30m 拒绝） 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 既有 5 条实测密度值逐字不变（D2 只许**新增** 30m 的 4 条） 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 1m↔1d / 1m↔1w / 含 1mo 的既有拒绝**仍成立** 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 既有口径 10 不得放宽：1h↔1w 仍拒绝（原因码 'week-requires-day-or-above'） 0ms
+   ✓ D2 · 反向护栏（既有语义不得放宽） > 既有可用组合仍可用（D2 不得把守门收得更紧） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 实测密度表：30m 的**四条直接条目** > MEASURED_DENSITY_TABLE['15m:30m'] == 1.8（真渲染实测，非名义比 2）
+AssertionError: '15m:30m' 必须 == 1.8（±0.01；同估计器取整容差）；实际 = 1.9754: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:126:9
+    124|         Math.abs((v as number) - want) <= DIRECT_VALUE_TOLERANCE,
+    125|         `'${key}' 必须 == ${want}（±${DIRECT_VALUE_TOLERANCE}；同估计器取整容差）；实…
+    126|       ).toBe(true);
+       |         ^
+    127|       expect(
+    128|         (v as number) >= lo && (v as number) <= hi,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/dashboard/period30mD2.test.ts > D2 · 不变量：30m 配对**永不**使用 composed（防静默错对齐） > 15m:30m：effectiveDensity 必须解析为 source='static' 且 == 直接实测 1.8
+AssertionError: 15m:30m 的解析比值必须 == 直接实测 1.8（±0.01）；实际 = 1.9754: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ src/features/dashboard/period30mD2.test.ts:224:9
+    222|         Math.abs((reading?.ratio ?? Number.NaN) - want) <= DIRECT_VALU…
+    223|         `${key} 的解析比值必须 == 直接实测 ${want}（±${DIRECT_VALUE_TOLERANCE}）；实际…
+    224|       ).toBe(true);
+       |         ^
+    225|     });
+    226|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 19 passed (21)
+   Start at  23:56:00
+   Duration  443ms (transform 54ms, setup 22ms, collect 51ms, tests 9ms, environment 128ms, prepare 40ms)
+
+EXIT=1

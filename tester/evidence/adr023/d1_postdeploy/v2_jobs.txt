@@ -1,0 +1,21 @@
+ job_id |              application_name              | schedule_interval |   hypertable_name    |                                         config                                         
+--------+--------------------------------------------+-------------------+----------------------+----------------------------------------------------------------------------------------
+      1 | Telemetry Reporter [1]                     | 24:00:00          |                      | 
+      3 | Job History Log Retention Policy [3]       | 06:00:00          |                      | {"drop_after": "1 month", "max_failures_per_job": 1000, "max_successes_per_job": 1000}
+   1000 | Refresh Continuous Aggregate Policy [1000] | 00:01:00          | kline_5m             | {"end_offset": "00:01:00", "start_offset": "01:00:00", "mat_hypertable_id": 4}
+   1001 | Refresh Continuous Aggregate Policy [1001] | 00:01:00          | kline_15m            | {"end_offset": "00:01:00", "start_offset": "02:00:00", "mat_hypertable_id": 5}
+   1002 | Refresh Continuous Aggregate Policy [1002] | 01:00:00          | kline_1d             | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 6}
+   1033 | Columnstore Policy [1033]                  | 12:00:00          | kline_raw            | {"hypertable_id": 1, "compress_after": "7 days"}
+   1034 | Columnstore Policy [1034]                  | 12:00:00          | source_health_events | {"hypertable_id": 3, "compress_after": "7 days"}
+   1035 | Retention Policy [1035]                    | 1 day             | source_health_events | {"drop_after": "90 days", "hypertable_id": 3}
+   1036 | Columnstore Policy [1036]                  | 12:00:00          | metrics              | {"hypertable_id": 34, "compress_after": "7 days"}
+   1037 | Refresh Continuous Aggregate Policy [1037] | 01:00:00          | kline_accurate_1d    | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 35}
+   1038 | Columnstore Policy [1038]                  | 12:00:00          | kline_accurate       | {"hypertable_id": 2, "compress_after": "7 days"}
+   1046 | Refresh Continuous Aggregate Policy [1046] | 01:00:00          | kline_accurate_1w    | {"end_offset": "1 day", "start_offset": "30 days", "mat_hypertable_id": 43}
+   1047 | Refresh Continuous Aggregate Policy [1047] | 01:00:00          | kline_accurate_1mo   | {"end_offset": "1 day", "start_offset": "120 days", "mat_hypertable_id": 44}
+   1051 | Refresh Continuous Aggregate Policy [1051] | 00:01:00          | kline_accurate_5m    | {"end_offset": "00:01:00", "start_offset": "3 days", "mat_hypertable_id": 45}
+   1052 | Refresh Continuous Aggregate Policy [1052] | 00:01:00          | kline_accurate_15m   | {"end_offset": "00:01:00", "start_offset": "3 days", "mat_hypertable_id": 46}
+   1053 | Refresh Continuous Aggregate Policy [1053] | 01:00:00          | kline_accurate_30m   | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 48}
+   1054 | Refresh Continuous Aggregate Policy [1054] | 01:00:00          | kline_accurate_1h    | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 47}
+(17 rows)
+

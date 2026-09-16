@@ -1,0 +1,12 @@
+
+ RUN  v3.2.7 /tmp/adr023-d2-verify-offline-20260916T155256Z/mutant/web
+
+ ✓ src/features/dashboard/period30mD2.test.ts (21 tests) 6ms
+ ✓ src/api/multiPeriodMockParity.test.ts (23 tests) 25ms
+
+ Test Files  2 passed (2)
+      Tests  44 passed (44)
+   Start at  23:55:48
+   Duration  488ms (transform 104ms, setup 46ms, collect 146ms, tests 31ms, environment 269ms, prepare 100ms)
+
+EXIT=0

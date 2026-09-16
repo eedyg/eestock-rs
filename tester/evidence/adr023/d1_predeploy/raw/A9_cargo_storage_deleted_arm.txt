@@ -1,0 +1,24 @@
+    Checking sqlx-core v0.8.6
+    Checking sqlx-postgres v0.8.6
+    Checking sqlx v0.8.6
+    Checking storage v0.1.0 (/tmp/adr023-mut/crates/storage)
+error[E0004]: non-exhaustive patterns: `domain::types::Period::M30` not covered
+  --> crates/storage/src/backtest.rs:86:11
+   |
+86 |     match p {
+   |           ^ pattern `domain::types::Period::M30` not covered
+   |
+note: `domain::types::Period` defined here
+  --> crates/domain/src/types.rs:47:1
+   |
+47 | pub enum Period { M1, M5, M15, M30, H1, D1, W1, MO1 }
+   | ^^^^^^^^^^^^^^^                --- not covered
+   = note: the matched value is of type `domain::types::Period`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
+   |
+97 ~         Period::MO1 => range_sql("kline_accurate_1mo", FALLBACK_1MO),
+98 ~         domain::types::Period::M30 => todo!(),
+   |
+
+For more information about this error, try `rustc --explain E0004`.
+error: could not compile `storage` (lib) due to 1 previous error

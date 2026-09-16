@@ -1,0 +1,20 @@
+--- A3c-1: cagg vs independent manual aggregation (independent bucket expr) ---
+       diff        | count 
+-------------------+-------
+ cagg_minus_manual |     0
+ manual_minus_cagg |     0
+(2 rows)
+
+--- A3c-2: cagg vs pure arithmetic expectation from generator formula ---
+       diff       | count 
+------------------+-------
+ cagg_minus_arith |     0
+ arith_minus_cagg |     0
+(2 rows)
+
+--- A3b: bucket boundary alignment (all buckets minute in {0,30}, sec=0) ---
+ buckets | aligned |    first_bucket     |     last_bucket     
+---------+---------+---------------------+---------------------
+      10 |      10 | 2026-09-15 09:30:00 | 2026-09-15 15:00:00
+(1 row)
+

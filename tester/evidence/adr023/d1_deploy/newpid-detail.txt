@@ -1,0 +1,6 @@
+PID=68833
+    PID    PPID                  STARTED     ELAPSED CMD
+  68833       1 Wed Sep 16 23:10:21 2026       00:12 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+/home/eestock/workspace/git/eestock/eestock-rs

@@ -1,0 +1,3 @@
+935e8bff272dc3ab3b23c51d7910799cb3e2bdcc94a663b8c1d912999fda5a95  web/dist/assets/index-BpQVDpqf.css
+980ea937b3a3ab0837fed2a4e39ec3588c02b4db251b47ea4094668e0e67b8b9  web/dist/assets/index-J50SI06a.js
+80a4de47fd9d32b62b13d446860b8a20a335815353ee471fbfd4240956c79688  web/dist/index.html

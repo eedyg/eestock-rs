@@ -1,0 +1,92 @@
+{
+  "startedAt": "2026-09-16T15:18:05.000Z",
+  "opener_found": true,
+  "picker_present": 1,
+  "picker": {
+    "groups": [
+      {
+        "label": "K 线周期",
+        "buttons": [
+          "1m",
+          "5m",
+          "15m",
+          "1h",
+          "1d",
+          "1w"
+        ]
+      },
+      {
+        "label": "指标周期",
+        "buttons": [
+          "15m",
+          "1h",
+          "1d",
+          "1w"
+        ]
+      }
+    ],
+    "innerText": "步骤 1：K 线（基准）周期\n1m\n5m\n15m\n1h\n1d\n1w\n步骤 2：指标周期（≥ 15m；最多 3 个）\n15m\n1h\n1d\n1w\n1w 需基准 ≥ 1d（避免恒退化）\n已选 0/3；总 pane 1/12（剩余 11）；候选已按步骤 1 收窄为 ≥ 15m，`1mo` 不提供。\n确定\n取消"
+  },
+  "console_errors": [],
+  "method_histogram": {
+    "GET": 11,
+    "PUT": 1
+  },
+  "write_requests": [
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:8081/api/config/multi_period"
+    }
+  ],
+  "finishedAt": "2026-09-16T15:18:13.276Z",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/assets/index-CB06bOVO.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/assets/index-BpQVDpqf.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/symbols"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/multi_period"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/ma"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/dcap"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/config/kline"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/sources/health"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/kline?code=518880&period=15m&limit=120"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:8081/api/kline?code=518880&period=15m&before=2026-09-08T03%3A00%3A00Z&limit=220"
+    },
+    {
+      "method": "PUT",
+      "url": "http://127.0.0.1:8081/api/config/multi_period"
+    }
+  ]
+}

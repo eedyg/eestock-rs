@@ -1,0 +1,10 @@
+=== T0 raw DB snapshot (read-only) ===
+=== all app_config keys (context) ===
+dcap|2026-09-13 15:27:38.121703+00
+=== T0 API GET /api/config/multi_period ===
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 77
+date: Wed, 16 Sep 2026 16:01:36 GMT
+
+{"enabled":false,"periods":["1m"],"heights":{"1m":420},"indicators":["dcap"]}

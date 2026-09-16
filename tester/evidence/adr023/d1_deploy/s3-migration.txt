@@ -1,0 +1,63 @@
+### S3 command: psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -v ON_ERROR_STOP=1 -c '\timing on' -f migrations/0026_period_30m.sql
+### (no -1/--single-transaction)
+Timing is on.
+psql:migrations/0026_period_30m.sql:21: NOTICE:  refreshing continuous aggregate "kline_accurate_30m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+CREATE MATERIALIZED VIEW
+Time: 37641.245 ms (00:37.641)
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+Time: 8.411 ms
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+Time: 2.602 ms
+psql:migrations/0026_period_30m.sql:27: NOTICE:  continuous aggregate policy not found for "kline_accurate_30m", skipping
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+Time: 0.353 ms
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+Time: 2.099 ms
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1051
+(1 row)
+
+Time: 2.481 ms
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1052
+(1 row)
+
+Time: 1.642 ms
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1053
+(1 row)
+
+Time: 1.640 ms
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1054
+(1 row)
+
+Time: 1.662 ms
+psql:migrations/0026_period_30m.sql:52: NOTICE:  continuous aggregate "kline_accurate_30m" is already up-to-date
+CALL
+Time: 1026.422 ms (00:01.026)
+CALL
+Time: 1145.264 ms (00:01.145)
+CALL
+Time: 495.487 ms

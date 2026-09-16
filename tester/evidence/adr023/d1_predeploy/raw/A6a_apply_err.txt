@@ -1,0 +1,6 @@
+psql:migrations/0026_period_30m.sql:21: NOTICE:  refreshing continuous aggregate "kline_accurate_30m"
+HINT:  Use WITH NO DATA if you do not want to refresh the continuous aggregate on creation.
+psql:migrations/0026_period_30m.sql:27: NOTICE:  continuous aggregate policy not found for "kline_accurate_30m", skipping
+psql:migrations/0026_period_30m.sql:52: NOTICE:  continuous aggregate "kline_accurate_30m" is already up-to-date
+psql:migrations/0026_period_30m.sql:53: NOTICE:  continuous aggregate "kline_accurate_5m" is already up-to-date
+psql:migrations/0026_period_30m.sql:54: NOTICE:  continuous aggregate "kline_accurate_15m" is already up-to-date

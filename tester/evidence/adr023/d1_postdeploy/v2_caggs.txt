@@ -1,0 +1,4 @@
+ matviewname 
+-------------
+(0 rows)
+

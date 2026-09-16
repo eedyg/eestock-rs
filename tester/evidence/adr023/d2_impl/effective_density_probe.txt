@@ -1,0 +1,20 @@
+TABLE 1m:5m = 4.7
+TABLE 1m:15m = 12.2
+TABLE 1m:1h = 37.8
+TABLE 1d:1w = 4.67
+TABLE 1h:1w = 24
+TABLE 1m:30m = 24.1
+TABLE 5m:30m = 5
+TABLE 15m:30m = 1.8
+TABLE 30m:1h = 1.67
+EFFECTIVE 1m:30m -> ratio=24.1 source=static
+EFFECTIVE 5m:30m -> ratio=5 source=static
+EFFECTIVE 15m:30m -> ratio=1.8 source=static
+EFFECTIVE 30m:1h -> ratio=1.67 source=static
+REASON 30m->1d = no-shared-anchor allowed=false
+REASON 30m->1w = week-requires-day-or-above allowed=false
+REASON 1h->30m = satellite-lower-than-base allowed=false
+REASON 1d->30m = satellite-lower-than-base allowed=false
+REASON 15m->30m = null allowed=true
+ Test Files  1 passed (1)
+      Tests  1 passed (1)

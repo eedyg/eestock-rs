@@ -1,0 +1,7 @@
+export const MEASURED_DENSITY_TABLE: Readonly<Record<string, number>> = {
+  '1m:5m': 4.7,
+  '1m:15m': 12.2,
+  '1m:1h': 37.8,
+  '1d:1w': 4.67,
+  '1h:1w': 24,
+};

@@ -1,0 +1,5 @@
+=== A12b programmatic proof: strip all '!' and compare ===
+IDENTICAL after stripping '!' -> only non-null assertions added
+=== count of added '!' occurrences ===
+current: 6
+backup:  3

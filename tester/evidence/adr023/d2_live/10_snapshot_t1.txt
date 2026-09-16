@@ -1,0 +1,15 @@
+=== T1 DB snapshot (read-only) ===
+multi_period|{"enabled": true, "heights": {"15m": 420, "30m": 180}, "periods": ["15m", "30m"], "indicators": ["dcap"]}|2026-09-16 16:06:17.320858+00|2026-09-16 16:06:17.320858 UTC
+=== T1 API GET ===
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 94
+date: Wed, 16 Sep 2026 16:06:41 GMT
+
+{"enabled":true,"periods":["15m","30m"],"heights":{"15m":420,"30m":180},"indicators":["dcap"]}=== HEAD ===
+3094018f352dae25752340d78b5e108c284aeecc
+=== PID/port ===
+LISTEN 0      128               0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=178558,fd=11))  
+=== git status porcelain count + hash ===
+93
+859e60224c6e2216dc88ab26cf3e352f7f00a2b12f6252bff9ed20bbedd02a7b  /tmp/adr023-d2-verify-live-20260917-000127/11_git_status_after.txt

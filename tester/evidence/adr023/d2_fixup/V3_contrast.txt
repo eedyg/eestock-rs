@@ -1,0 +1,19 @@
+===== baseline (both restored) =====
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+===== MUTATION A: mock order 去掉 30m =====
+mock order = MOCK_MULTI_PERIOD_ORDER: string[] = ['1m', '5m', '15m', '1h', '1d', '1w'];
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 周期序逐项相等 MULTI_PERIOD_PICKER_PERIODS（含 30m，不含 1mo）
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 接受集合 == 契约集合（逐档反证：含 30m 接受、含 1mo 拒绝）
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 顺序语义 == 契约（{P ≥ base} + 1w 需基准 ≥ 1d）逐对反证
+ Test Files  1 failed (1)
+      Tests  3 failed | 20 passed (23)
+===== MUTATION B: parity 断言期望改错（漏 30m）=====
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 周期序逐项相等 MULTI_PERIOD_PICKER_PERIODS（含 30m，不含 1mo）
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+===== restored after mutation =====
+ Test Files  1 passed (1)
+      Tests  23 passed (23)

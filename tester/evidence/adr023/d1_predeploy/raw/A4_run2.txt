@@ -1,0 +1,58 @@
+### A4 CLEAN RERUN (code=VERIFYLATE2)
+### STEP 1: old policy start_offset=2 hours, late M1 delivered, run_job
+          now_utc           |        late_ts         |          age          
+----------------------------+------------------------+-----------------------
+ 2026-09-16 15:03:20.148659 | 2026-09-15 01:30:00+00 | 1 day 13:33:20.148659
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1031
+(1 row)
+
+ job_id | old_start_offset | end_offset 
+--------+------------------+------------
+   1031 | 02:00:00         | 01:00:00
+(1 row)
+
+INSERT 0 240
+ late_m1_rows 
+--------------
+          240
+(1 row)
+
+DO
+ buckets_after_2h_policy 
+-------------------------
+                       0
+(1 row)
+
+step1_rc=0
+### STEP 2: new policy start_offset=3 days, run same job
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1032
+(1 row)
+
+ new_job_id | new_start_offset | end_offset 
+------------+------------------+------------
+       1032 | 3 days           | 01:00:00
+(1 row)
+
+DO
+ buckets_after_3d_policy_v2 
+----------------------------
+                          8
+(1 row)
+
+step2_rc=0

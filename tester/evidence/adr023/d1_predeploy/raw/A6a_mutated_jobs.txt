@@ -1,0 +1,15 @@
+all migrations applied with MUTATED 0026
+        cagg        | start_off | end_off  |  sched   
+--------------------+-----------+----------+----------
+ kline_15m          | 02:00:00  | 00:01:00 | 00:01:00
+ kline_1d           | 3 days    | 01:00:00 | 01:00:00
+ kline_5m           | 01:00:00  | 00:01:00 | 00:01:00
+ kline_accurate_15m | 3 days    | 00:01:00 | 00:01:00
+ kline_accurate_1d  | 3 days    | 01:00:00 | 01:00:00
+ kline_accurate_1h  | 3 days    | 01:00:00 | 01:00:00
+ kline_accurate_1mo | 120 days  | 1 day    | 01:00:00
+ kline_accurate_1w  | 30 days   | 1 day    | 01:00:00
+ kline_accurate_30m | 02:00:00  | 01:00:00 | 01:00:00
+ kline_accurate_5m  | 3 days    | 00:01:00 | 00:01:00
+(10 rows)
+

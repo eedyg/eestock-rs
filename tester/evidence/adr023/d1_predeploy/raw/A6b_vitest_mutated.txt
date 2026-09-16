@@ -1,0 +1,979 @@
+
+ RUN  v3.2.7 /tmp/adr023-mut/web
+
+stderr | src/features/dashboard/period30m.test.tsx > J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 周期按钮按 DOM 序严格为 8 档（30m 插在 15m 与 1h 之间，ADR-023 §3.2）
+Warning: Encountered two children with the same key, `1h`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at Toolbar (/tmp/adr023-mut/web/src/features/dashboard/Toolbar.tsx:192:13)
+
+stderr | src/features/dashboard/period30m.test.tsx > J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 点击 30m 按钮 → onPeriodChange("30m")（控件层契约）
+Warning: Encountered two children with the same key, `1h`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at Toolbar (/tmp/adr023-mut/web/src/features/dashboard/Toolbar.tsx:192:13)
+
+stderr | src/features/dashboard/period30m.test.tsx > J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+Warning: Encountered two children with the same key, `1h`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at Toolbar (/tmp/adr023-mut/web/src/features/dashboard/Toolbar.tsx:192:13)
+    at div
+    at RegionPortal (/tmp/adr023-mut/web/src/components/RegionPortal.tsx:5:3)
+    at div
+    at DashboardPage (/tmp/adr023-mut/web/src/features/dashboard/DashboardPage.tsx:55:26)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+stderr | src/features/dashboard/period30m.test.tsx > J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言
+Warning: Encountered two children with the same key, `1h`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at Toolbar (/tmp/adr023-mut/web/src/features/dashboard/Toolbar.tsx:192:13)
+    at div
+    at RegionPortal (/tmp/adr023-mut/web/src/components/RegionPortal.tsx:5:3)
+    at div
+    at DashboardPage (/tmp/adr023-mut/web/src/features/dashboard/DashboardPage.tsx:55:26)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+stderr | src/features/dashboard/period30m.test.tsx > J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言
+Warning: Encountered two children with the same key, `1h`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at Toolbar (/tmp/adr023-mut/web/src/features/dashboard/Toolbar.tsx:192:13)
+    at div
+    at RegionPortal (/tmp/adr023-mut/web/src/components/RegionPortal.tsx:5:3)
+    at div
+    at DashboardPage (/tmp/adr023-mut/web/src/features/dashboard/DashboardPage.tsx:55:26)
+    at Router (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1203:17)
+    at MemoryRouter (/home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/react-router/dist/umd/react-router.development.js:1097:7)
+
+ ❯ src/features/dashboard/period30m.test.tsx (8 tests | 3 failed) 140ms
+   ✓ J8-a：DashboardGrid 的 type Period 含 30m（主图周期档） > type Period 含 '30m'，且既有 7 档一档不丢（纯加法） 2ms
+   ✓ J8-a：DashboardGrid 的 type Period 含 30m（主图周期档） > 前端 Period 类型（api/types 再导出）可用 '30m' 赋值（编译期同源断言） 0ms
+   × J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 周期按钮按 DOM 序严格为 8 档（30m 插在 15m 与 1h 之间，ADR-023 §3.2） 27ms
+     → 工具栏周期按钮必须是 8 档且顺序 1m,5m,15m,30m,1h,日,周,月: expected [ '1m', '5m', '15m', '1h', '1h', …(3) ] to deeply equal [ Array(8) ]
+   × J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 点击 30m 按钮 → onPeriodChange("30m")（控件层契约） 70ms
+     → Unable to find an accessible element with the role "button" and name "30m"
+
+Here are the accessible roles:
+
+  button:
+
+  Name "1m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "5m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "15m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "1h":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "1h":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "日":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "周":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "月":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "K线":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "分时":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MA":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MA 配置":
+  [36m<button[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"MA 配置"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "VOL":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MACD":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "KDJ":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "BOLL":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "DCAP":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "DCAP 配置":
+  [36m<button[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"DCAP 配置"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "单图":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "2×2":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "2×3":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "多周期":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "回到最新":
+  [36m<button[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+    [33mdisabled[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-full items-center gap-1.5 px-3.5"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m5m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"true"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+      [36m>[39m
+        [0m15m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1h[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1h[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m日[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m周[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m月[0m
+      [36m</button>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"mx-1.5 h-4 w-px bg-line"[39m
+      [36m/>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"true"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+      [36m>[39m
+        [0mK线[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m分时[0m
+      [36m</button>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"mx-1.5 h-4 w-px bg-line"[39m
+      [36m/>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+        [36m>[39m
+          [0mMA[0m
+        [36m</button>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"relative"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-expanded[39m=[32m"false"[39m
+            [33maria-label[39m=[32m"MA 配置"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+          [36m>[39m
+            [0mMA([0m
+            [0m5,10,20[0m
+            [0m)[0m
+            [36m<span[39m
+              [33mclass[39m=[32m"ml-1 text-dim"[39m
+            [36m>[39m
+              [0m▾[0m
+            [36m</span>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+        [36m>[39m
+          [0mVOL[0m
+        [36m</button>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+        [36m>[39m
+          [0mMACD[0m
+        [36m</button>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+  ...
+   × J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言 40ms
+     → Found multiple elements with the role "button" and name "1h"
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<button[39m
+  [33maria-pressed[39m=[32m"false"[39m
+  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+[36m>[39m
+  [0m1h[0m
+[36m</button>[39m
+
+Ignored nodes: comments, script, style
+[36m<button[39m
+  [33maria-pressed[39m=[32m"false"[39m
+  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+[36m>[39m
+  [0m1h[0m
+[36m</button>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-1"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-[1280px] flex-1"[39m
+        [33mdata-region[39m=[32m"dashboard"[39m
+      [36m>[39m
+        [36m<aside[39m
+          [33mclass[39m=[32m"w-60 border-r"[39m
+          [33mdata-region[39m=[32m"symbol-list"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-full flex-col p-3"[39m
+          [36m>[39m
+            [36m<input[39m
+              [33mclass[39m=[32m"mb-2.5 h-8 shrink-0 rounded-[10px] border border-line bg-panel2 px-3 text-xs text-txt outline-none placeholder:text-dim focus:border-acc1/50"[39m
+              [33mplaceholder[39m=[32m"⌕ 搜索 code / 名称…"[39m
+              [33mvalue[39m=[32m""[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-h-0 flex-1 overflow-y-auto"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"mb-1 flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left hover:bg-white/5 bg-acc1/10 outline outline-1 outline-acc1/40"[39m
+                [33mdata-selected[39m=[32m"true"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"收藏 518880"[39m
+                  [33mclass[39m=[32m"cursor-pointer text-sm leading-none text-dim"[39m
+                  [33mdata-star[39m=[32m"518880"[39m
+                  [33mrole[39m=[32m"button"[39m
+                [36m>[39m
+                  [0m☆[0m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"flex-1"[39m
+                [36m>[39m
+                  [36m<b[39m
+                    [33mclass[39m=[32m"num block text-[13px] font-semibold"[39m
+                  [36m>[39m
+                    [0m518880[0m
+                  [36m</b>[39m
+                  [36m<small[39m
+                    [33mclass[39m=[32m"block text-[11px] text-dim"[39m
+                  [36m>[39m
+                    [0m黄金ETF[0m
+                  [36m</small>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"shrink-0 text-right text-xs"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"num block text-up"[39m
+                  [36m>[39m
+                    [0m2.431[0m
+                  [36m</span>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"num block text-up"[39m
+                  [36m>[39m
+                    [0m+0.62%[0m
+                  [36m</span>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</aside>[39m
+        [36m<main[39m
+          [33mclass[39m=[32m"flex min-h-0 flex-1 flex-col"[39m
+          [33mdata-region[39m=[32m"main-area"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"h-9 shrink-0 border-b"[39m
+            [33mdata-region[39m=[32m"toolbar"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"relative h-full"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex h-full items-center gap-1.5 px-3.5"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m5m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+                [36m>[39m
+                  [0m15m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1h[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1h[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m日[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m周[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transi...
+   ✓ J9：本轮范围边界（反向断言，防越界实现） > 前端 MULTI_PERIOD_PICKER_PERIODS 本轮**不含** 30m（多周期接入属 D2） 0ms
+   ✓ J9：本轮范围边界（反向断言，防越界实现） > chartSyncGroup 的 PERIOD_BUCKET_MS 含 30m = 1800000（本轮**必须**有） 0ms
+   ✓ J9：本轮范围边界（反向断言，防越界实现） > 30m 桶宽与 15m 桶宽严格 2:1（桶边界对齐 ≥ 前提） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/period30m.test.tsx > J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 周期按钮按 DOM 序严格为 8 档（30m 插在 15m 与 1h 之间，ADR-023 §3.2）
+AssertionError: 工具栏周期按钮必须是 8 档且顺序 1m,5m,15m,30m,1h,日,周,月: expected [ '1m', '5m', '15m', '1h', '1h', …(3) ] to deeply equal [ Array(8) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "1m",[22m
+[2m    "5m",[22m
+[2m    "15m",[22m
+[32m-   "30m",[39m
+[31m+   "1h",[39m
+[2m    "1h",[22m
+[2m    "日",[22m
+[2m    "周",[22m
+[2m    "月",[22m
+[2m  ][22m
+
+ ❯ src/features/dashboard/period30m.test.tsx:111:61
+    109|       .map((b) => (b.textContent ?? '').trim())
+    110|       .filter((t) => PERIOD_LABELS.includes(t));
+    111|     expect(got, '工具栏周期按钮必须是 8 档且顺序 1m,5m,15m,30m,1h,日,周,月').toEqual([
+       |                                                             ^
+    112|       '1m', '5m', '15m', '30m', '1h', '日', '周', '月',
+    113|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/features/dashboard/period30m.test.tsx > J8-b：Toolbar 周期按钮 = 8 档，顺序 1m,5m,15m,30m,1h,1d,1w,1mo > 点击 30m 按钮 → onPeriodChange("30m")（控件层契约）
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "30m"
+
+Here are the accessible roles:
+
+  button:
+
+  Name "1m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "5m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "15m":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "1h":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "1h":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "日":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "周":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "月":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "K线":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "分时":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MA":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MA 配置":
+  [36m<button[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"MA 配置"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "VOL":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "MACD":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "KDJ":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "BOLL":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "DCAP":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "DCAP 配置":
+  [36m<button[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"DCAP 配置"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "单图":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "2×2":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "2×3":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "多周期":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+  [36m/>[39m
+
+  Name "回到最新":
+  [36m<button[39m
+    [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+    [33mdisabled[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-full items-center gap-1.5 px-3.5"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m5m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"true"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+      [36m>[39m
+        [0m15m[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1h[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m1h[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m日[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m周[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m月[0m
+      [36m</button>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"mx-1.5 h-4 w-px bg-line"[39m
+      [36m/>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"true"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+      [36m>[39m
+        [0mK线[0m
+      [36m</button>[39m
+      [36m<button[39m
+        [33maria-pressed[39m=[32m"false"[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+      [36m>[39m
+        [0m分时[0m
+      [36m</button>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"mx-1.5 h-4 w-px bg-line"[39m
+      [36m/>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+        [36m>[39m
+          [0mMA[0m
+        [36m</button>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"relative"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-expanded[39m=[32m"false"[39m
+            [33maria-label[39m=[32m"MA 配置"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+          [36m>[39m
+            [0mMA([0m
+            [0m5,10,20[0m
+            [0m)[0m
+            [36m<span[39m
+              [33mclass[39m=[32m"ml-1 text-dim"[39m
+            [36m>[39m
+              [0m▾[0m
+            [36m</span>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+        [36m>[39m
+          [0mVOL[0m
+        [36m</button>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+        [36m>[39m
+          [0mMACD[0m
+        [36m</button>[39m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+  ...
+ ❯ Object.getElementError ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/features/dashboard/period30m.test.tsx:134:34
+    132|       />,
+    133|     );
+    134|     await userEvent.click(screen.getByRole('button', { name: '30m' }));
+       |                                  ^
+    135|     expect(onPeriodChange).toHaveBeenCalledWith('30m');
+    136|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/features/dashboard/period30m.test.tsx > J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言
+TestingLibraryElementError: Found multiple elements with the role "button" and name "1h"
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<button[39m
+  [33maria-pressed[39m=[32m"false"[39m
+  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+[36m>[39m
+  [0m1h[0m
+[36m</button>[39m
+
+Ignored nodes: comments, script, style
+[36m<button[39m
+  [33maria-pressed[39m=[32m"false"[39m
+  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+[36m>[39m
+  [0m1h[0m
+[36m</button>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-1"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-[1280px] flex-1"[39m
+        [33mdata-region[39m=[32m"dashboard"[39m
+      [36m>[39m
+        [36m<aside[39m
+          [33mclass[39m=[32m"w-60 border-r"[39m
+          [33mdata-region[39m=[32m"symbol-list"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-full flex-col p-3"[39m
+          [36m>[39m
+            [36m<input[39m
+              [33mclass[39m=[32m"mb-2.5 h-8 shrink-0 rounded-[10px] border border-line bg-panel2 px-3 text-xs text-txt outline-none placeholder:text-dim focus:border-acc1/50"[39m
+              [33mplaceholder[39m=[32m"⌕ 搜索 code / 名称…"[39m
+              [33mvalue[39m=[32m""[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"min-h-0 flex-1 overflow-y-auto"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"mb-1 flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left hover:bg-white/5 bg-acc1/10 outline outline-1 outline-acc1/40"[39m
+                [33mdata-selected[39m=[32m"true"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-label[39m=[32m"收藏 518880"[39m
+                  [33mclass[39m=[32m"cursor-pointer text-sm leading-none text-dim"[39m
+                  [33mdata-star[39m=[32m"518880"[39m
+                  [33mrole[39m=[32m"button"[39m
+                [36m>[39m
+                  [0m☆[0m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"flex-1"[39m
+                [36m>[39m
+                  [36m<b[39m
+                    [33mclass[39m=[32m"num block text-[13px] font-semibold"[39m
+                  [36m>[39m
+                    [0m518880[0m
+                  [36m</b>[39m
+                  [36m<small[39m
+                    [33mclass[39m=[32m"block text-[11px] text-dim"[39m
+                  [36m>[39m
+                    [0m黄金ETF[0m
+                  [36m</small>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"shrink-0 text-right text-xs"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"num block text-up"[39m
+                  [36m>[39m
+                    [0m2.431[0m
+                  [36m</span>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"num block text-up"[39m
+                  [36m>[39m
+                    [0m+0.62%[0m
+                  [36m</span>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</aside>[39m
+        [36m<main[39m
+          [33mclass[39m=[32m"flex min-h-0 flex-1 flex-col"[39m
+          [33mdata-region[39m=[32m"main-area"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"h-9 shrink-0 border-b"[39m
+            [33mdata-region[39m=[32m"toolbar"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"relative h-full"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex h-full items-center gap-1.5 px-3.5"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m5m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-transparent bg-gradient-to-br from-acc1 to-acc2 text-white shadow-[0_2px_10px_rgba(56,189,248,.35)] h-7 px-3"[39m
+                [36m>[39m
+                  [0m15m[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1h[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m1h[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m日[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transition-colors disabled:pointer-events-none disabled:opacity-40 border border-line text-dim hover:text-txt hover:bg-white/5 h-7 px-3"[39m
+                [36m>[39m
+                  [0m周[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-pressed[39m=[32m"false"[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs transi...
+ ❯ Object.getElementError ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getElementError ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ❯ getMultipleElementsFoundError ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ❯ ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ❯ ../../../home/eestock/workspace/git/eestock/eestock-rs/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/features/dashboard/period30m.test.tsx:183:34
+    181| 
+    182|     // 对照组：既有档位 '1h' 点击 → period:'1h'（证明本夹具/装配可用 ⇒ 30m 失败不是夹具问题）
+    183|     await userEvent.click(screen.getByRole('button', { name: '1h' }));
+       |                                  ^
+    184|     await waitFor(() => {
+    185|       expect(api.getKline).toHaveBeenCalledWith(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  23:04:03
+   Duration  1.06s (transform 329ms, setup 30ms, collect 408ms, tests 140ms, environment 167ms, prepare 82ms)
+
+rc=1

@@ -1,0 +1,106 @@
+
+ RUN  v3.2.7 /tmp/adr023-d2-verify-offline-20260916T155256Z/mutant/web
+
+ ❯ src/api/multiPeriodMockParity.test.ts (23 tests | 3 failed) 20ms
+   × mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 周期序逐项相等 MULTI_PERIOD_PICKER_PERIODS（含 30m，不含 1mo） 4ms
+     → mock 的周期序必须与前端契约逐项相等；契约 = ["1m","5m","15m","30m","1h","1d","1w"]: expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ Array(7) ]
+   × mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 接受集合 == 契约集合（逐档反证：含 30m 接受、含 1mo 拒绝） 6ms
+     → promise rejected "ApiError: HTTP 400: periods 基准周期非法：30m { status: … }" instead of resolving
+   × mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 顺序语义 == 契约（{P ≥ base} + 1w 需基准 ≥ 1d）逐对反证 1ms
+     → promise rejected "ApiError: HTTP 400: periods 卫星周期非法：30m { status: … }" instead of resolving
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > 向量文件可读且为数组（两侧单一真相） 1ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-single-base-default（expect 200） 2ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-four-periods-max-legal-v1（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-1w-satellite-with-1d-base（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > valid-empty-indicators（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-two-identical-indicators（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-n-identical-indicators-cannot-forge-over-12-panes（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > dedup-makes-legal-repeated-indicators-over-raw-pane-budget（expect 200） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > pane-over-limit-after-dedup-names-dimension（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-empty-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-more-than-4-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-duplicate-periods（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-1mo-period（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-satellite-below-base（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-1w-with-base-below-1d（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-key-mismatch（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-below-min（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-heights-above-max（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-unsupported-indicator（expect 400） 0ms
+   ✓ mock ↔ backend 多周期契约向量 parity（design/15-multi-period/contract-vectors.json） > reject-unsupported-indicator-among-supported（expect 400） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 周期序逐项相等 MULTI_PERIOD_PICKER_PERIODS（含 30m，不含 1mo）
+AssertionError: mock 的周期序必须与前端契约逐项相等；契约 = ["1m","5m","15m","30m","1h","1d","1w"]: expected [ '1m', '5m', '15m', '1h', '1d', '1w' ] to deeply equal [ Array(7) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "1m",[22m
+[2m    "5m",[22m
+[2m    "15m",[22m
+[32m-   "30m",[39m
+[2m    "1h",[22m
+[2m    "1d",[22m
+[2m    "1w",[22m
+[2m  ][22m
+
+ ❯ src/api/multiPeriodMockParity.test.ts:97:7
+     95|       MOCK_MULTI_PERIOD_ORDER,
+     96|       `mock 的周期序必须与前端契约逐项相等；契约 = ${JSON.stringify(MULTI_PERIOD_PICKER_…
+     97|     ).toEqual(MULTI_PERIOD_PICKER_PERIODS);
+       |       ^
+     98|     expect(MOCK_MULTI_PERIOD_ORDER, '1mo 不提供').not.toContain('1mo');
+     99|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 接受集合 == 契约集合（逐档反证：含 30m 接受、含 1mo 拒绝）
+AssertionError: promise rejected "ApiError: HTTP 400: periods 基准周期非法：30m { status: … }" instead of resolving
+ ❯ src/api/multiPeriodMockParity.test.ts:109:9
+    107|           api.saveMultiPeriodConfig(cfgFor([p])),
+    108|           `[${p}] ∈ 契约 ⇒ mock 必须接受（200），不得判 400`,
+    109|         ).resolves.toBeTruthy();
+       |         ^
+    110|       } else {
+    111|         await expect(
+
+Caused by: ApiError: HTTP 400: periods 基准周期非法：30m
+ ❯ bad src/api/mock.ts:219:11
+ ❯ assertMultiPeriodConfig src/api/mock.ts:227:45
+ ❯ Object.saveMultiPeriodConfig src/api/mock.ts:1106:26
+ ❯ src/api/multiPeriodMockParity.test.ts:107:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 400 }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/api/multiPeriodMockParity.test.ts > mock ↔ 契约：多周期周期集合与顺序 parity（MULTI_PERIOD_PICKER_PERIODS） > mock 顺序语义 == 契约（{P ≥ base} + 1w 需基准 ≥ 1d）逐对反证
+AssertionError: promise rejected "ApiError: HTTP 400: periods 卫星周期非法：30m { status: … }" instead of resolving
+ ❯ src/api/multiPeriodMockParity.test.ts:132:11
+    130|             api.saveMultiPeriodConfig(cfgFor([a, b])),
+    131|             `契约 ${a}→${b} 应放行（卫星 ≥ 基准）`,
+    132|           ).resolves.toBeTruthy();
+       |           ^
+    133|         } else {
+    134|           await expect(
+
+Caused by: ApiError: HTTP 400: periods 卫星周期非法：30m
+ ❯ bad src/api/mock.ts:219:11
+ ❯ assertMultiPeriodConfig src/api/mock.ts:230:22
+ ❯ Object.saveMultiPeriodConfig src/api/mock.ts:1106:26
+ ❯ src/api/multiPeriodMockParity.test.ts:130:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 400 }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 20 passed (23)
+   Start at  23:55:56
+   Duration  490ms (transform 71ms, setup 23ms, collect 71ms, tests 20ms, environment 129ms, prepare 36ms)
+
+EXIT=1

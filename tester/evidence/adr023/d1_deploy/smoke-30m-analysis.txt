@@ -1,0 +1,6 @@
+period field: 30m
+bars count: 120
+ts strictly monotonic increasing: True
+first ts: 2026-09-01T01:30:00Z
+last ts : 2026-09-16T07:00:00Z
+sample keys: ['amount', 'close', 'high', 'low', 'open', 'source', 'ts', 'volume']

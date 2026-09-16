@@ -1,0 +1,9 @@
+Refresh Continuous Aggregate Policy [1000]|00:01:00|01:00:00|00:01:00
+Refresh Continuous Aggregate Policy [1001]|00:01:00|02:00:00|00:01:00
+Refresh Continuous Aggregate Policy [1002]|01:00:00|3 days|01:00:00
+Refresh Continuous Aggregate Policy [1037]|01:00:00|3 days|01:00:00
+Refresh Continuous Aggregate Policy [1046]|01:00:00|30 days|1 day
+Refresh Continuous Aggregate Policy [1047]|01:00:00|120 days|1 day
+Refresh Continuous Aggregate Policy [1048]|00:01:00|02:00:00|00:01:00
+Refresh Continuous Aggregate Policy [1049]|00:01:00|06:00:00|00:01:00
+Refresh Continuous Aggregate Policy [1050]|01:00:00|2 days|01:00:00

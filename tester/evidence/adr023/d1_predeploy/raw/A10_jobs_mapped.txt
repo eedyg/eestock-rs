@@ -1,0 +1,14 @@
+ job_id |        cagg        |  sched   | start_off | end_off  
+--------+--------------------+----------+-----------+----------
+   1001 | kline_15m          | 00:01:00 | 02:00:00  | 00:01:00
+   1002 | kline_1d           | 01:00:00 | 3 days    | 01:00:00
+   1000 | kline_5m           | 00:01:00 | 01:00:00  | 00:01:00
+   1024 | kline_accurate_15m | 00:01:00 | 3 days    | 00:01:00
+   1007 | kline_accurate_1d  | 01:00:00 | 3 days    | 01:00:00
+   1026 | kline_accurate_1h  | 01:00:00 | 3 days    | 01:00:00
+   1015 | kline_accurate_1mo | 01:00:00 | 120 days  | 1 day
+   1014 | kline_accurate_1w  | 01:00:00 | 30 days   | 1 day
+   1025 | kline_accurate_30m | 01:00:00 | 3 days    | 01:00:00
+   1023 | kline_accurate_5m  | 00:01:00 | 3 days    | 00:01:00
+(10 rows)
+

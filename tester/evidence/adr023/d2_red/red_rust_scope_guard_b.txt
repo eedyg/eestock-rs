@@ -1,0 +1,34 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-aee5e5a20c925525)
+
+running 3 tests
+test d2_backend_multi_period_allowed_still_excludes_1mo ... ok
+test d2_backend_multi_period_allowed_contains_30m_between_15m_and_1h ... FAILED
+test d2_backend_multi_period_allowed_keeps_all_six_existing_tiers ... FAILED
+
+failures:
+
+---- d2_backend_multi_period_allowed_contains_30m_between_15m_and_1h stdout ----
+
+thread 'd2_backend_multi_period_allowed_contains_30m_between_15m_and_1h' (129178) panicked at crates/web/tests/period30m_scope_guard.rs:21:5:
+D2 契约（ADR-023 §2.5）：`"30m"` 必须在 MULTI_PERIOD_ALLOWED；实际 = ["1m", "5m", "15m", "1h", "1d", "1w"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- d2_backend_multi_period_allowed_keeps_all_six_existing_tiers stdout ----
+
+thread 'd2_backend_multi_period_allowed_keeps_all_six_existing_tiers' (129179) panicked at crates/web/tests/period30m_scope_guard.rs:57:5:
+assertion `left == right` failed: D2 白名单必须恰为 7 档（既有 6 + 30m）；实际 = ["1m", "5m", "15m", "1h", "1d", "1w"]
+  left: 6
+ right: 7
+
+
+failures:
+    d2_backend_multi_period_allowed_contains_30m_between_15m_and_1h
+    d2_backend_multi_period_allowed_keeps_all_six_existing_tiers
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test period30m_scope_guard`
+error: 1 target failed:
+    `-p web --test period30m_scope_guard`

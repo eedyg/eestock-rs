@@ -1,0 +1,47 @@
+### A4 STEP 1 (2h old window)
+          now_utc           |        late_ts         |          age          
+----------------------------+------------------------+-----------------------
+ 2026-09-16 15:03:11.072756 | 2026-09-15 01:30:00+00 | 1 day 13:33:11.072756
+(1 row)
+
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1029
+(1 row)
+
+ job_id | old_start_offset | end_offset 
+--------+------------------+------------
+   1029 | 02:00:00         | 01:00:00
+(1 row)
+
+psql:/tmp/adr023-verify-1789570824/raw/A4_step1.sql:16: ERROR:  duplicate key value violates unique constraint "1_kline_accurate_pkey"
+DETAIL:  Key (code, ts, period)=(VERIFYLATE, 2026-09-15 01:30:00+00, M1) already exists.
+step1_rc=3
+### A4 STEP 2 (3 days new window)
+ remove_continuous_aggregate_policy 
+------------------------------------
+ 
+(1 row)
+
+ add_continuous_aggregate_policy 
+---------------------------------
+                            1030
+(1 row)
+
+ new_job_id | new_start_offset | end_offset 
+------------+------------------+------------
+       1030 | 3 days           | 01:00:00
+(1 row)
+
+DO
+ buckets_after_3d_policy 
+-------------------------
+                       8
+(1 row)
+
+step2_rc=0

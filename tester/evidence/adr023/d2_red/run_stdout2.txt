@@ -1,0 +1,155 @@
+{
+ "1m:30m": {
+  "meta": {
+   "basePeriod": "1m",
+   "satPeriod": "30m",
+   "nBase": 1000,
+   "nSat": 1000,
+   "baseFrom": "2026-09-10T06:25:00Z",
+   "baseTo": "2026-09-16T07:00:00Z",
+   "satFrom": "2026-04-24T01:30:00Z",
+   "satTo": "2026-09-16T07:00:00Z"
+  },
+  "panes": {
+   "baseSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "satSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "baseElW": 520
+  },
+  "pageErrors": [],
+  "externalRequests": [],
+  "kStats": {
+   "K8": {
+    "K": 8,
+    "validCount": 5,
+    "min": 18,
+    "max": 26.666666666666668,
+    "median": 24.1,
+    "mean": 23.3933
+   },
+   "K16": {
+    "K": 16,
+    "validCount": 6,
+    "min": 18,
+    "max": 26.666666666666668,
+    "median": 24.1,
+    "mean": 23.5111
+   }
+  }
+ },
+ "15m:30m": {
+  "meta": {
+   "basePeriod": "15m",
+   "satPeriod": "30m",
+   "nBase": 1000,
+   "nSat": 1000,
+   "baseFrom": "2026-07-01T03:30:00Z",
+   "baseTo": "2026-09-16T07:00:00Z",
+   "satFrom": "2026-04-24T01:30:00Z",
+   "satTo": "2026-09-16T07:00:00Z"
+  },
+  "panes": {
+   "baseSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "satSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "baseElW": 520
+  },
+  "pageErrors": [],
+  "externalRequests": [],
+  "kStats": {
+   "K8": {
+    "K": 8,
+    "validCount": 8,
+    "min": 1.7894736842105263,
+    "max": 1.8101265822784811,
+    "median": 1.8,
+    "mean": 1.7999
+   },
+   "K16": {
+    "K": 16,
+    "validCount": 16,
+    "min": 1.7692307692307692,
+    "max": 1.8275862068965518,
+    "median": 1.8,
+    "mean": 1.7998
+   }
+  }
+ },
+ "1m:15m": {
+  "meta": {
+   "basePeriod": "1m",
+   "satPeriod": "15m",
+   "nBase": 1000,
+   "nSat": 1000,
+   "baseFrom": "2026-09-10T06:25:00Z",
+   "baseTo": "2026-09-16T07:00:00Z",
+   "satFrom": "2026-07-01T03:30:00Z",
+   "satTo": "2026-09-16T07:00:00Z"
+  },
+  "panes": {
+   "baseSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "satSize": {
+    "width": 520,
+    "height": 420,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+   },
+   "baseElW": 520
+  },
+  "pageErrors": [],
+  "externalRequests": [],
+  "kStats": {
+   "K8": {
+    "K": 8,
+    "validCount": 5,
+    "min": 12,
+    "max": 14.117647058823529,
+    "median": 13.38888888888889,
+    "mean": 13.2569
+   },
+   "K16": {
+    "K": 16,
+    "validCount": 6,
+    "min": 12,
+    "max": 14.117647058823529,
+    "median": 13.38888888888889,
+    "mean": 13.2789
+   }
+  }
+ }
+}

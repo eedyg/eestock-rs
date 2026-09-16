@@ -1,0 +1,13 @@
+--- A3 supplementary: idealized 240-bar session (09:30..11:29 + 13:00..14:59) ---
+INSERT 0 240
+ bars_240 
+----------
+      240
+(1 row)
+
+CALL
+ buckets_240 
+-------------
+           8
+(1 row)
+

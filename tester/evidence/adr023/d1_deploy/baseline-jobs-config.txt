@@ -1,0 +1,13 @@
+ job_id |  hypertable_name   |              proc_name              |                                     config                                      
+--------+--------------------+-------------------------------------+---------------------------------------------------------------------------------
+   1000 | kline_5m           | policy_refresh_continuous_aggregate | {"end_offset": "00:01:00", "start_offset": "01:00:00", "mat_hypertable_id": 4}
+   1001 | kline_15m          | policy_refresh_continuous_aggregate | {"end_offset": "00:01:00", "start_offset": "02:00:00", "mat_hypertable_id": 5}
+   1002 | kline_1d           | policy_refresh_continuous_aggregate | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 6}
+   1037 | kline_accurate_1d  | policy_refresh_continuous_aggregate | {"end_offset": "01:00:00", "start_offset": "3 days", "mat_hypertable_id": 35}
+   1046 | kline_accurate_1w  | policy_refresh_continuous_aggregate | {"end_offset": "1 day", "start_offset": "30 days", "mat_hypertable_id": 43}
+   1047 | kline_accurate_1mo | policy_refresh_continuous_aggregate | {"end_offset": "1 day", "start_offset": "120 days", "mat_hypertable_id": 44}
+   1048 | kline_accurate_5m  | policy_refresh_continuous_aggregate | {"end_offset": "00:01:00", "start_offset": "02:00:00", "mat_hypertable_id": 45}
+   1049 | kline_accurate_15m | policy_refresh_continuous_aggregate | {"end_offset": "00:01:00", "start_offset": "06:00:00", "mat_hypertable_id": 46}
+   1050 | kline_accurate_1h  | policy_refresh_continuous_aggregate | {"end_offset": "01:00:00", "start_offset": "2 days", "mat_hypertable_id": 47}
+(9 rows)
+

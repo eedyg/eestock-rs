@@ -1,0 +1,23 @@
+
+ RUN  v3.2.7 /tmp/adr023-d2-verify-offline-20260916T155256Z/mutant/web
+
+stdout | src/__verifyA1.verify.test.ts > A1(b) 契约推导 vs 实现输出（独立复算） > 步骤 1 全集 = 7 档（顺序与契约逐项相等；不含 1mo）
+[A1] step1 = ["1m","5m","15m","30m","1h","1d","1w"]
+
+stdout | src/__verifyA1.verify.test.ts > A1(b) 契约推导 vs 实现输出（独立复算） > base=15m ⇒ enabled = 契约推导 [15m,30m,1h,1d]（1w 出现但禁用）
+[A1] base=15m enabled = ["15m","30m","1h","1d"] ; all = ["15m","30m","1h","1d","1w"]
+
+stdout | src/__verifyA1.verify.test.ts > A1(b) 契约推导 vs 实现输出（独立复算） > base=1d ⇒ enabled = [1d,1w]（不受 D2 影响；与契约推导一致）
+[A1] base=1d enabled = ["1d","1w"]
+
+stdout | src/__verifyA1.verify.test.ts > A1(b) 契约推导 vs 实现输出（独立复算） > 全基准档位×契约推导一致（7 档全覆盖）
+[A1] all bases = 1m=>[1m,5m,15m,30m,1h,1d] 5m=>[5m,15m,30m,1h,1d] 15m=>[15m,30m,1h,1d] 30m=>[30m,1h,1d] 1h=>[1h,1d] 1d=>[1d,1w] 1w=>[1w]
+
+ ✓ src/__verifyA1.verify.test.ts (4 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:56:50
+   Duration  417ms (transform 38ms, setup 22ms, collect 32ms, tests 3ms, environment 136ms, prepare 52ms)
+
+EXIT=0

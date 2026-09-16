@@ -1,0 +1,12 @@
+=== A8 drop isolated DBs ===
+DROP DATABASE
+DROP DATABASE
+=== DB list after drop ===
+eestock
+eestock_d11_probe
+postgres
+template0
+template1
+=== leftover artifacts in live DB? (read-only) ===
+0
+0

@@ -1,0 +1,24 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running tests/period30m_d2_multiperiod_red.rs (target/debug/deps/period30m_d2_multiperiod_red-ecb80e202e38449c)
+
+running 6 tests
+test d2a_multi_period_allowed_contains_30m_between_15m_and_1h ... ok
+test d2f_1mo_still_not_offered_after_30m_lands ... ok
+test d2b_rank_30m_is_between_15m_and_1h_via_validate ... ok
+test d2c_validate_accepts_config_containing_30m_and_echoes_it ... ok
+test d2d_pane_count_and_dedup_semantics_unchanged_with_30m ... ok
+test d2e_put_multi_period_with_30m_must_not_be_400 ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.11s
+
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-aee5e5a20c925525)
+
+running 3 tests
+test d2_backend_multi_period_allowed_contains_30m_between_15m_and_1h ... ok
+test d2_backend_multi_period_allowed_keeps_all_six_existing_tiers ... ok
+test d2_backend_multi_period_allowed_still_excludes_1mo ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0

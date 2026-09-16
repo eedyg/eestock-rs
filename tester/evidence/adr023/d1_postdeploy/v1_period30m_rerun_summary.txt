@@ -1,0 +1,15 @@
+     Running tests/period30m_contract.rs (target/debug/deps/period30m_contract-3cb7ed8d3a3d0ec1)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_expected_relations.rs (target/debug/deps/period30m_expected_relations-a9249713b48d85c0)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_migration.rs (target/debug/deps/period30m_migration-54a4e7a99d7bf9ee)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_period_str.rs (target/debug/deps/period30m_period_str-32776706307c1e62)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_read_source.rs (target/debug/deps/period30m_read_source-f8cd62df34c4d0ef)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_api_contract.rs (target/debug/deps/period30m_api_contract-26ab5f80782250d9)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-aee5e5a20c925525)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+EXIT=0

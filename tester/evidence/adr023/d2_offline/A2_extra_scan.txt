@@ -1,0 +1,31 @@
+=== 全域扫描：仍编码旧 6 档集合的位置（不含 30m 的相邻档位列表）===
+web/src/api/mock.test.ts:687:      periods: ['1m', '5m', '15m', '1h'],
+web/src/features/dashboard/Toolbar.test.tsx:58:  it('周期按钮组 1m/5m/15m/1h/日/周/月，当前周期高亮', () => {
+web/src/features/dashboard/Toolbar.test.tsx:60:    for (const p of ['1m', '5m', '15m', '1h', '日', '周', '月']) {
+web/src/features/dashboard/feed.test.ts:15:const ALL_PERIODS: Period[] = ['1m', '5m', '15m', '1h', '1d', '1w', '1mo'];
+web/src/features/dashboard/chartCommon.test.ts:5:  it('已有周期映射保持（1m/5m/15m/1h/1d）', () => {
+web/src/features/dashboard/chartSyncGroup.ts:212:  // ADR-023 §2.5（D2）：30m 与 {1m,5m,15m,1h} 的**四条直接实测条目**（冻结值）。
+web/src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx:91:  periods: ['15m', '1h'],
+web/src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx:99:  periods: ['1m', '5m', '15m', '1h'],
+web/src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx:193:      expect([...new Set(initQueries.map((q) => q.period))].sort()).toEqual(['15m', '1h', '1m', '5m']);
+web/src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx:195:      for (const p of ['1m', '5m', '15m', '1h']) {
+web/src/features/dashboard/multiPeriodSatelliteLifecycle.test.tsx:227:      expect([...new Set(after.map((q) => q.period))].sort()).toEqual(['15m', '1h', '1m', '5m']);
+web/src/features/dashboard/syncCoverage.test.ts:263:  it('U1 合成可用即放行：isSyncCombinationAllowed(5m,15m)/(5m,1h)/(15m,1h) === true（当前均 false ⇒ 必红）', () => {
+web/src/features/dashboard/syncCoverage.test.ts:274:      isSyncCombinationAllowed('15m', '1h'),
+web/src/features/dashboard/syncCoverage.test.ts:343:    for (const p of ['1m', '5m', '15m', '1h', '1d', '1w']) {
+web/src/features/dashboard/period30mD2.test.ts:29: *    ⇒ 对 30m 与 `{1m,5m,15m,1h}` 的每一对，`densityByFollower['30m'].source` 必须是 **`'static'`**，
+web/src/features/dashboard/period30mD2.test.ts:305:    for (const [b, s] of [['1m', '5m'], ['1m', '15m'], ['1m', '1h'], ['5m', '1h'], ['15m', '1h'], ['1d', '1w'], ['1m', '1m']] as const) {
+web/src/features/dashboard/multiPeriodSatellite.test.tsx:571:/** 4 周期 × 1 标的（基准 1m；卫星 5m/15m/1h，均 ≥ 基准且不含 1mo）。 */
+web/src/features/dashboard/multiPeriodSatellite.test.tsx:574:  periods: ['1m', '5m', '15m', '1h'],
+web/src/features/dashboard/multiPeriodSatellite.test.tsx:597:      '卫星实例 = periods[1..]（5m/15m/1h）',
+web/src/features/dashboard/multiPeriodSatellite.test.tsx:598:    ).toEqual(['5m', '15m', '1h']);
+--- (空 = 无残留旧序) ---
+=== parity 测试 it( 计数 BEFORE/AFTER ===
+2
+5
+=== mock.ts 周期序常量 ===
+211:export const MOCK_MULTI_PERIOD_ORDER: string[] = ['1m', '5m', '15m', '30m', '1h', '1d', '1w'];
+221:  const order = MOCK_MULTI_PERIOD_ORDER;
+=== 1mo 仍不提供（关键处）===
+100:  '1mo': 30 * 86_400_000, // 月线步长（约 30 天）
+208: *  / 后端 `MULTI_PERIOD_ALLOWED` 逐项相等**；全集 = `1m,5m,15m,30m,1h,1d,1w`，`1mo` 不提供；

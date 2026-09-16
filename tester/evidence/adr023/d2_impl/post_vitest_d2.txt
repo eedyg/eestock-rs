@@ -1,0 +1,15 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/dashboard/period30mD2.test.ts (21 tests) 6ms
+stderr | src/features/dashboard/period30m.test.tsx > J8-c：点击 30m → 数据层发出 kline 请求 period=30m（DashboardPage 集成） > 对照组（证明夹具可用）+ 30m 断言
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/features/dashboard/period30m.test.tsx (9 tests) 126ms
+
+ Test Files  2 passed (2)
+      Tests  30 passed (30)
+   Start at  23:42:53
+   Duration  731ms (transform 175ms, setup 51ms, collect 291ms, tests 131ms, environment 267ms, prepare 238ms)
+

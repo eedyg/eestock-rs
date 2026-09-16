@@ -1,0 +1,92 @@
+ M README.md
+ M crates/application/src/bar_map.rs
+ M crates/domain/src/types.rs
+ M crates/storage/src/accurate.rs
+ M crates/storage/src/backtest.rs
+ M crates/storage/src/migrate_check.rs
+ M crates/storage/src/reader.rs
+ M crates/tushare/src/client.rs
+ M crates/web/src/dto.rs
+ M crates/web/src/rest.rs
+ M design/02-domain/contracts.md
+ M design/04-storage/02-tushare-sync.md
+ M design/04-storage/03-raw-writer.md
+ M design/04-storage/schema.md
+ M design/06-web/01-dashboard.md
+ M design/07-app-plane/00-web-api.md
+ M design/15-multi-period/02-spec.md
+ M web/src/api/mock.ts
+ M web/src/api/multiPeriodMockParity.test.ts
+ M web/src/features/backtest/ScopedKlineFeed.ts
+ M web/src/features/dashboard/Toolbar.tsx
+ M web/src/features/dashboard/chartCommon.ts
+ M web/src/features/dashboard/chartSyncGroup.ts
+ M web/src/features/dashboard/feed.ts
+ M web/src/features/dashboard/multiPeriodPicker.test.tsx
+ M web/src/features/dashboard/multiPeriodPicker.tsx
+ M web/src/layouts/DashboardGrid.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/289_adr023_period30m_d1_impl.md
+?? coder/report/290_adr023_period30m_d1_deploy.md
+?? coder/report/291_adr023_period30m_d2_impl.md
+?? coder/report/292_adr023_d2_fixup.md
+?? crates/domain/tests/period30m_contract.rs
+?? crates/storage/tests/period30m_expected_relations.rs
+?? crates/storage/tests/period30m_migration.rs
+?? crates/storage/tests/period30m_period_str.rs
+?? crates/storage/tests/period30m_read_source.rs
+?? crates/web/tests/period30m_api_contract.rs
+?? crates/web/tests/period30m_d2_multiperiod_red.rs
+?? crates/web/tests/period30m_scope_guard.rs
+?? design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+?? migrations/0026_period_30m.sql
+?? prod_tools_schemas_periphery.txt
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/design/288_adr023_period30m_red_design.md
+?? tester/design/289_adr023_d2_density_and_red_design.md
+?? tester/evidence/018/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? tester/test/288_adr023_period30m_red_execution.md
+?? tester/test/289_adr023_d2_density_and_red_execution.md
+?? web/src/features/dashboard/period30m.test.tsx
+?? web/src/features/dashboard/period30mD2.test.ts

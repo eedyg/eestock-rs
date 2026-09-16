@@ -1,0 +1,14 @@
+     view_name      | materialized_only | materialization_hypertable_name 
+--------------------+-------------------+---------------------------------
+ kline_15m          | t                 | _materialized_hypertable_5
+ kline_1d           | t                 | _materialized_hypertable_6
+ kline_5m           | t                 | _materialized_hypertable_4
+ kline_accurate_15m | t                 | _materialized_hypertable_46
+ kline_accurate_1d  | t                 | _materialized_hypertable_35
+ kline_accurate_1h  | t                 | _materialized_hypertable_47
+ kline_accurate_1mo | t                 | _materialized_hypertable_44
+ kline_accurate_1w  | t                 | _materialized_hypertable_43
+ kline_accurate_30m | t                 | _materialized_hypertable_48
+ kline_accurate_5m  | t                 | _materialized_hypertable_45
+(10 rows)
+

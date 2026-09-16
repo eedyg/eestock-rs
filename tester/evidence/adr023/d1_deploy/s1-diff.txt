@@ -1,0 +1,73 @@
+diff --git a/design/04-storage/02-tushare-sync.md b/design/04-storage/02-tushare-sync.md
+index f2635fd..7e2ec1b 100644
+--- a/design/04-storage/02-tushare-sync.md
++++ b/design/04-storage/02-tushare-sync.md
+@@ -13,12 +13,17 @@
+ | `fund_weekly` | ❌ 接口不存在 | — |
+ 
+ **结论**：tushare 原生仅 `stk_mins` 可用 → `supported_periods()` 实报 `[M1]`。
+-M5/M15/H1/D1 全部标注「本地衍生」：D1 由 `kline_accurate` 的连续聚合 `kline_accurate_1d` 生成（父级裁决：派生数据不物化落行，走 cagg 自动维护，符合 ADR-004 单一事实源哲学）。
++M5/M15/M30/H1/D1 全部标注「本地衍生」：D1 由 `kline_accurate` 的连续聚合 `kline_accurate_1d` 生成（父级裁决：派生数据不物化落行，走 cagg 自动维护，符合 ADR-004 单一事实源哲学）。
+ 
+ ## 2. 迁移 0005：同步检查点 + 准确层日级 cagg
+ 
+-⚠️ 工作流注记：initdb 仅在空数据卷首次启动时执行；0005 随本次重建卷生效，
+-**之后的迁移一律走 sqlx migrate**，不再享受免费 initdb。
++⚠️ 工作流注记：initdb 仅在空数据卷首次启动时执行；0005 随本次重建卷生效。
++**现网库上无 `_sqlx_migrations` 台账**（迁移由 initdb 或手工 psql 应用落地），sqlx migrate 无法直接重放；
++app 启动只做 schema 自检（见 03 §3），**不再享受免费 initdb**。
++
++⚠️ 运维注记：**现网增量迁移只能以手工方式应用**（无台账、sqlx migrate 不可重放）：
++`psql -v ON_ERROR_STOP=1 -f migrations/<NNNN>_<name>.sql`
++（不加 `--single-transaction`：cagg 建视图与 refresh 不可在显式事务块内）。
+ 
+ ⚠️ 运维注记：cagg 刷新策略只覆盖近期窗口（start_offset 3 days），
+ **大批量历史回填后需手动全量刷新一次**：
+@@ -281,7 +286,7 @@ impl HistoricalDataProvider for TushareClient {
+                            -> Result<Vec<Bar>, ProviderError> {
+         if period != Period::M1 {
+             return Err(ProviderError::Parse(
+-                "tushare 原生仅 M1；M5/M15/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
++                "tushare 原生仅 M1；M5/M15/M30/H1/D1 由 kline_accurate cagg 衍生（§1 裁决）".into()));
+         }
+         let ts_code = to_ts_code(code)?;
+         let start_d = start.with_timezone(&cst()).date_naive();
+@@ -520,6 +525,7 @@ pub struct AccurateWriter {
+ 
+ pub fn period_str(p: Period) -> &'static str {
+     match p { Period::M1 => "M1", Period::M5 => "M5", Period::M15 => "M15",
++              Period::M30 => "M30",
+               Period::H1 => "H1", Period::D1 => "D1",
+               Period::W1 => "W1", Period::MO1 => "MO1" }
+ }
+diff --git a/design/04-storage/03-raw-writer.md b/design/04-storage/03-raw-writer.md
+index 63894a7..51980ae 100644
+--- a/design/04-storage/03-raw-writer.md
++++ b/design/04-storage/03-raw-writer.md
+@@ -92,12 +92,14 @@ impl EventSink for PgEventSink {
+ }
+ ```
+ 
+-## 3. 启动自检（ADR-017：sqlx migrate 自检的落地口径）
++## 3. 启动自检（ADR-017：app 启动 schema 自检的落地口径）
+ 
+ 背景约束：`migrations/0001–0006` 由 compose initdb 在空卷首次启动时执行（02 §2 注记：
+ 之后不再享受免费 initdb），库上无 `_sqlx_migrations` 台账，sqlx migrate 无法直接重放。
+-因此 Wave 0 启动自检落地为**关键关系 + hypertable 存在性校验**（缺任一并列明缺失项、拒绝启动）；
+-0007+ 迁移的台账化接入随首个增量迁移一并设计（Wave 1 边界，见 wave-0.md「明确不做」无冲突）。
++因此启动自检落地为**关键关系 + hypertable 存在性校验**（缺任一并列明缺失项、拒绝启动）；
++app 启动**只做该 schema 自检，不代管迁移台账**。**现网增量迁移只能以手工方式应用**：
++`psql -v ON_ERROR_STOP=1 -f migrations/<NNNN>_<name>.sql`（不加 `--single-transaction`：
++cagg 建视图与 refresh 不可在显式事务块内）。
+ 
+ ``` {.rust file=crates/storage/src/migrate_check.rs}
+ //! 启动 schema 自检：关键关系与 hypertable 存在性校验（ADR-017）。
+@@ -112,6 +114,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
+     "kline_merged", "kline_5m", "kline_15m", "kline_1d", "kline_accurate_1d",
+     // Wave 3 (0010)：统一读源 accurate 连续聚合（5m/15m/1h；D1 复用 kline_accurate_1d）
+     "kline_accurate_5m", "kline_accurate_15m", "kline_accurate_1h",
++    // ADR-023（0026）：30m 档（1m 本地衍生 cagg；兜底为 kline_15m 查询期 rollup）
++    "kline_accurate_30m",
+     // Wave 1 Phase C 加法：熔断复位 DB 控制通道表（0007）
+     "circuit_reset_requests",
+     // Wave 2 Phase A 加法：交易日历节假日表（0008；数据面 collector 日历读 + 应用面质量报告共用）

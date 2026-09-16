@@ -1,0 +1,8 @@
+total 52
+drwxrwxr-x  3 eestock eestock  4096 Sep 16 23:42 .
+drwxrwxr-x 17 eestock eestock  4096 Sep 13 15:25 ..
+-rw-------  1 eestock eestock 39533 Sep 16 23:42 filedb.json
+-rw-rw-r--  1 eestock eestock     0 Sep 16 23:42 filedb.lock
+drwxrwxr-x  2 eestock eestock  4096 Sep 16 23:42 tmp
+2026-09-16 23:42:24.240328066 +0800 crates/web/src/dto.rs
+2026-09-16 23:42:17.567760924 +0800 design/07-app-plane/00-web-api.md

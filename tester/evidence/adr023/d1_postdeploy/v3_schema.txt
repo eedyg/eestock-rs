@@ -1,0 +1,12 @@
+                  View "public.kline_accurate_30m"
+ Column |           Type           | Collation | Nullable | Default 
+--------+--------------------------+-----------+----------+---------
+ code   | text                     |           |          | 
+ ts     | timestamp with time zone |           |          | 
+ open   | double precision         |           |          | 
+ high   | double precision         |           |          | 
+ low    | double precision         |           |          | 
+ close  | double precision         |           |          | 
+ volume | numeric                  |           |          | 
+ amount | double precision         |           |          | 
+

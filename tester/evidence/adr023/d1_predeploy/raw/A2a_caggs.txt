@@ -1,0 +1,12 @@
+=== A2a cagg count/list ===
+10
+kline_15m
+kline_1d
+kline_5m
+kline_accurate_15m
+kline_accurate_1d
+kline_accurate_1h
+kline_accurate_1mo
+kline_accurate_1w
+kline_accurate_30m
+kline_accurate_5m

@@ -1,0 +1,70 @@
+     Running tests/period30m_contract.rs (target/debug/deps/period30m_contract-adaa6bcb230667ce)
+running 1 test
+test j1_period_enum_contains_m30_variant ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/mcp-d8c1a100f2fcfba8)
+running 65 tests
+test state::tests::session_lifecycle_and_id_shape ... ok
+test rpc::tests::initialize_returns_protocol_capabilities_serverinfo ... ok
+test rpc::tests::id_echo_string_and_numeric_and_ping ... ok
+-----
+     Running tests/period30m_expected_relations.rs (target/debug/deps/period30m_expected_relations-d5f6253f2fd83f73)
+running 2 tests
+test j6_expected_relations_contains_kline_accurate_30m ... ok
+test j6_existing_relations_not_removed ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_migration.rs (target/debug/deps/period30m_migration-0da414385d0bc20c)
+running 5 tests
+test j7a_migration_0026_exists_with_expected_name ... ok
+test j7c_no_historical_truncation_filter ... ok
+-----
+     Running tests/period30m_migration.rs (target/debug/deps/period30m_migration-0da414385d0bc20c)
+running 5 tests
+test j7a_migration_0026_exists_with_expected_name ... ok
+test j7c_no_historical_truncation_filter ... ok
+test j7b_cagg_definition_is_full_history_30m_over_accurate_m1 ... ok
+test j7d_start_offset_is_3_days ... ok
+test j7e_full_refresh_call_present ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_period_str.rs (target/debug/deps/period30m_period_str-cd74fc484c280c04)
+-----
+     Running tests/period30m_period_str.rs (target/debug/deps/period30m_period_str-cd74fc484c280c04)
+running 2 tests
+test j3_existing_period_str_mappings_unchanged ... ok
+test j3_period_str_m30_is_uppercase_m30 ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/period30m_read_source.rs (target/debug/deps/period30m_read_source-75cc3b1d7ef62c7a)
+running 5 tests
+test j4a_merged_sql_m30_uses_accurate_30m_relation ... ok
+test j4c_forming_sql_m30_is_30_minutes ... ok
+-----
+     Running tests/period30m_read_source.rs (target/debug/deps/period30m_read_source-75cc3b1d7ef62c7a)
+running 5 tests
+test j4a_merged_sql_m30_uses_accurate_30m_relation ... ok
+test j4c_forming_sql_m30_is_30_minutes ... ok
+test j4b_fallback_is_30m_rollup_over_kline_15m ... ok
+test j4d_existing_forming_and_non_intraday_none_unchanged ... ok
+test j4e_no_raw_layer_kline_30m_reference ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/raw_writer.rs (target/debug/deps/raw_writer-9c5067e85f502476)
+-----
+     Running tests/period30m_api_contract.rs (target/debug/deps/period30m_api_contract-bea964cdc5b4e5ea)
+running 2 tests
+test j5b_unknown_period_400_message_lists_all_eight_tiers ... ok
+test j5a_api_kline_period_30m_must_not_be_400 ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-2036fc4b8ef733c9)
+running 3 tests
+test j9_backend_multi_period_allowed_must_not_contain_30m_in_d1 ... ok
+test j9_backend_multi_period_allowed_still_excludes_1mo ... ok
+-----
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-2036fc4b8ef733c9)
+running 3 tests
+test j9_backend_multi_period_allowed_must_not_contain_30m_in_d1 ... ok
+test j9_backend_multi_period_allowed_still_excludes_1mo ... ok
+test j9_backend_multi_period_allowed_unchanged_six_tiers ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-8657acb3c7c5b397)
+running 1 test
+test poller_publishes_increments_only ... ok
+-----

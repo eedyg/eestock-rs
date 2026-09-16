@@ -1,0 +1,27 @@
+### A12b diff: worker backup (pre-fix) vs current repo file
+--- /tmp/adr023-impl-20260916-224717/backup/period30m.test.tsx	2026-09-16 22:49:59.656148069 +0800
++++ web/src/features/dashboard/period30m.test.tsx	2026-09-16 22:54:17.293500011 +0800
+@@ -60,7 +60,7 @@
+     const src = read('src/layouts/DashboardGrid.tsx');
+     const m = src.match(/export\s+type\s+Period\s*=\s*([^;]+);/);
+     expect(m, 'DashboardGrid.tsx 必须导出 `type Period = ...;`').not.toBeNull();
+-    const tiers = m![1]
++    const tiers = m![1]!
+       .split('|')
+       .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
+       .filter(Boolean);
+@@ -219,6 +219,6 @@
+   });
+ 
+   it('30m 桶宽与 15m 桶宽严格 2:1（桶边界对齐 ≥ 前提）', () => {
+-    expect(PERIOD_BUCKET_MS['30m'] / PERIOD_BUCKET_MS['15m']).toBe(2);
++    expect(PERIOD_BUCKET_MS['30m']! / PERIOD_BUCKET_MS['15m']!).toBe(2);
+   });
+ });
+diff_rc=1
+
+### A12b diff: red-tree sandbox copy vs current repo file
+diff_rc=0
+
+### A12b: count of changed lines / added non-null assertions
+0

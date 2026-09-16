@@ -1,0 +1,38 @@
+=== A9b: M30 read source consistency backtest.rs vs reader.rs ===
+88:const FALLBACK_30M: &str = r#"
+89-(SELECT code, time_bucket('30 minutes', ts) AS ts,
+90-       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+91-       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+92- FROM kline_15m GROUP BY code, time_bucket('30 minutes', ts))"#;
+93-
+---
+65:const FALLBACK_30M: &str = r#"
+65:const FALLBACK_30M: &str = r#"
+66-(SELECT code, time_bucket('30 minutes', ts) AS ts,
+67-       first(open, ts) AS open, max(high) AS high, min(low) AS low,
+68-       last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
+69- FROM kline_15m GROUP BY code, time_bucket('30 minutes', ts))"#;
+70-
+=== A9c: bar_map::parse_period rejects literal M30 ===
+8-use anyhow::anyhow;
+9-
+10-/// 周期字符串 → `(domain::types::Period, backtest::Period)`。
+11:pub fn parse_period(s: &str) -> anyhow::Result<(domain::types::Period, backtest::Period)> {
+12-    match s {
+13-        "M1" => Ok((domain::types::Period::M1, backtest::Period::M1)),
+14-        "M5" => Ok((domain::types::Period::M5, backtest::Period::M5)),
+15-        "M15" => Ok((domain::types::Period::M15, backtest::Period::M15)),
+16-        "H1" => Ok((domain::types::Period::H1, backtest::Period::H1)),
+17-        "D1" => Ok((domain::types::Period::D1, backtest::Period::D1)),
+18-        other => Err(anyhow!("未知周期: {other}")),
+19-    }
+20-}
+21-
+22-/// `domain::types::Bar -> backtest::Bar`（ts 转 Unix 秒；volume 转 f64）。
+23-pub(crate) fn to_bt_bar(b: &domain::types::Bar) -> backtest::Bar {
+24-    backtest::Bar {
+25-        ts: b.ts.timestamp(),
+=== A9d: reader.rs merged arm + forming ===
+116:        Period::M30 => merged_sql("kline_accurate_30m", FALLBACK_30M),
+125:/// 仅对日内周期 M5/M15/M30/H1 生效（D1/W1/MO1 由既有 cagg/rollup 承载其闭合桶）；非日内周期返回 None。
+131:        Period::M30 => "30 minutes",
