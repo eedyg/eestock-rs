@@ -105,7 +105,7 @@ fn synth(len: usize) -> Vec<f64> {
 
 /// 真实 15m closes（数据面**只读**抽样，冻结；与 `crates/strategy-runtime/tests/dcap_cross_runtime.rs`
 /// 同源同值，抽样命令见该文件头）：
-/// `psql "postgres://eestock:eestock@127.0.0.1:5433/eestock" -At -c "SET extra_float_digits=3;
+/// `psql "$EESTOCK_TEST_DATABASE_URL" -At -c "SET extra_float_digits=3;
 ///  SELECT ts::text||'|'||close::text FROM kline_accurate_15m WHERE code='518880'
 ///  ORDER BY ts DESC LIMIT 64"`（只读 SELECT；未写库、未起服务）。
 const REAL_518880_M15_64: [f64; 64] = [

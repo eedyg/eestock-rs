@@ -18,9 +18,8 @@ const SRC: &str = "webalert_test_src";
 const EVAL_SRC: &str = "webalert_eval_src";
 
 async fn pool() -> PgPool {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    test_support::test_pool().await
 }
 
 /// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-dependencies）。

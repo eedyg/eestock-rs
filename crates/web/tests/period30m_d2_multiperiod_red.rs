@@ -240,21 +240,10 @@ struct LiveSnapshot {
     updated_at: Option<String>,
 }
 
-/// 只读快照（**绝不写入**；连接失败/查询失败 ⇒ `db=None` 并打印，不阻断用例）。
+/// 只读快照（**绝不写入**；查询失败 ⇒ `db=None` 并打印，不阻断用例）。
 async fn live_snapshot() -> LiveSnapshot {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    let pool = match sqlx::postgres::PgPoolOptions::new()
-        .max_connections(1)
-        .acquire_timeout(std::time::Duration::from_secs(3))
-        .connect(&url).await
-    {
-        Ok(p) => p,
-        Err(e) => {
-            println!("[R4 守卫] 活库不可达（{url}）：{e} ⇒ 跳过活库快照守卫");
-            return LiveSnapshot { db: None, value: None, updated_at: None };
-        }
-    };
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    let pool = test_support::test_pool().await;
     let row: Result<Option<(String, String)>, _> = sqlx::query_as(
         "select value::text, updated_at::text from app_config where key = $1")
         .bind(LIVE_MULTI_PERIOD_KEY)

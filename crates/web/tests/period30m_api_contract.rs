@@ -18,7 +18,10 @@ use web::state::AppState;
 use web::ws::{SubscriptionRegistry, WsHub};
 
 /// 不可达端口（**不是**活库 5433）：确保本测试文件永不连接 eestock 数据库。
-const UNREACHABLE_DB: &str = "postgres://eestock:eestock@127.0.0.1:59999/eestock";
+///
+/// 连接串集中自 dev-only crate `test-support`（门禁 R1：任何构造池的测试文件必须经 `test_support::`
+/// 统一入口，不许自造 URL 落点）。
+const UNREACHABLE_DB: &str = test_support::UNREACHABLE_TEST_DB_URL;
 
 fn lazy_pool() -> PgPool {
     sqlx::postgres::PgPoolOptions::new()

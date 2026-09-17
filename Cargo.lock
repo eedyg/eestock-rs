@@ -1091,6 +1091,7 @@ dependencies = [
  "sqlx",
  "storage",
  "strategy-core",
+ "test-support",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -2077,6 +2078,7 @@ dependencies = [
  "domain",
  "serde_json",
  "sqlx",
+ "test-support",
  "tokio",
 ]
 
@@ -2157,6 +2159,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "test-support"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
 ]
 
 [[package]]
@@ -2668,6 +2677,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "storage",
+ "test-support",
  "tokio",
  "tracing",
 ]

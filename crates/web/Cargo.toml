@@ -22,6 +22,8 @@ tracing.workspace = true
 anyhow.workspace = true
 
 [dev-dependencies]
+# ADR-023 E6b：集成测试统一测试库入口（dev-only path crate，不进运行时依赖图）
+test-support = { path = "../test-support" }
 # 集成测试需要具体实现做装配与造数；仅 dev 侧，正常依赖图不含（cargo tree -p web -e normal 验证）
 storage = { path = "../storage" }
 sqlx.workspace = true

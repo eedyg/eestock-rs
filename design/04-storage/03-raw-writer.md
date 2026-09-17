@@ -193,9 +193,8 @@ fn bar(code: &str, close: f64, src: SourceId) -> Bar {
 }
 
 async fn pool() -> PgPool {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    test_support::test_pool().await
 }
 
 #[tokio::test]
@@ -244,9 +243,8 @@ use sqlx::PgPool;
 use storage::events::PgEventSink;
 
 async fn pool() -> PgPool {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    test_support::test_pool().await
 }
 
 #[tokio::test]
@@ -364,9 +362,8 @@ use storage::kline::RawKlineWriter;
 use storage::symbols::PgSymbolRegistry;
 
 async fn pool() -> PgPool {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    test_support::test_pool().await
 }
 
 #[tokio::test]

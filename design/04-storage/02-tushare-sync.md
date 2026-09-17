@@ -651,9 +651,8 @@ fn bar(close: f64) -> Bar {
 
 #[tokio::test]
 async fn conflict_updates_row_not_keeps_first() {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    let pool = PgPool::connect(&url).await.expect("TimescaleDB :5433 可用");
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    let pool: PgPool = test_support::test_pool().await;
     let w = AccurateWriter::new(pool.clone());
 
     w.upsert_batch(&[bar(1.0)]).await.unwrap();
@@ -671,9 +670,8 @@ async fn conflict_updates_row_not_keeps_first() {
 
 #[tokio::test]
 async fn checkpoints_roundtrip() {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
-    let pool = PgPool::connect(&url).await.unwrap();
+    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+    let pool: PgPool = test_support::test_pool().await;
     let d = chrono::NaiveDate::from_ymd_opt(2025, 8, 1).unwrap();
     assert_eq!(storage::accurate::get_checkpoint(&pool, "999999", "M1").await.unwrap(), None);
     storage::accurate::set_checkpoint(&pool, "999999", "M1", d).await.unwrap();

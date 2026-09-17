@@ -1,0 +1,10 @@
+# dev-only crate：只被各 crate 的 [dev-dependencies] 引用，不进运行时依赖图、不进 Dockerfile。
+# ADR-023 §6.1 第 8 条 / §6.3 第 12 条：集成测试必须指向测试库，未设环境变量即响亮失败。
+[package]
+name = "test-support"
+description = "dev-only：集成测试统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验）"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sqlx.workspace = true

@@ -94,6 +94,57 @@ psql postgres://eestock:eestock@localhost:5433/eestock
   活库无 `_sqlx_migrations` 表（本项目未使用 sqlx migrate 运维流程）；`data` 服务启动时只做 schema 自检
   （`storage::migrate_check`，校验 `EXPECTED_RELATIONS` 是否齐全，**不执行迁移**）——故新增关系须**先落迁移、再重启 app**。
 
+## 跑集成测试的前置步骤（ADR-023 E6b）
+
+集成测试**不再**连共享 dev 库（活库 `eestock`），只连专用测试库。前置三步：
+
+```bash
+scripts/testdb-init.sh        # ① 幂等建测试库 + 按序应用 migrations/*.sql + 建哨兵表（默认库名 eestock_test）
+eval "$(scripts/testdb-init.sh)"   # ② 导出 EESTOCK_TEST_DATABASE_URL（stdout 只有这一行 export）
+cargo test --workspace --tests     # ③ 跑集成测试
+```
+
+- 覆盖库名/端口/账号：`EESTOCK_TEST_DB_NAME`（默认 `eestock_test`）、`EESTOCK_TEST_DB_PORT`（默认 `5433`）、
+  `EESTOCK_TEST_DB_HOST` / `EESTOCK_TEST_DB_USER` / `EESTOCK_TEST_DB_PASSWORD`。脚本拒绝在活库 `eestock` 上操作。
+- **未设 `EESTOCK_TEST_DATABASE_URL` 时集成测试会「响亮失败」（panic 并点名该变量）——这是刻意设计**，
+  不是环境配置疏漏：历史上测试直连共享 dev 库，桩数据经 cagg 物化后残留进生产数据
+  （ADR-023 §6.1 第 8 条 / §6.3 第 12 条）。禁止任何「兜底默认回退活库」的写法。
+- 建池后还会断言哨兵表 `_eestock_test_db`（值恒为 `test`）；把变量误指向活库会被哨兵拦下（panic）。
+- 统一入口在 **dev-only crate `crates/test-support`**（各 crate 以 `[dev-dependencies]` 引用；
+  不进运行时依赖图、不进 Dockerfile 镜像）。
+- 清理测试库：`dropdb -h 127.0.0.1 -p 5433 -U eestock <库名>`（测试库可保留，随时可重建）。
+
+### 播种契约（测试库 = 活库的**只读快照**，只播最小基线）
+
+`scripts/testdb-init.sh` 的播种只覆盖集成测试真正依赖的**最小基线**：**只播 4 张表**
+（活库 `public` 共 **37** 张关系 = 26 表 + 11 视图；测试库**不是**活库克隆）：
+
+| 表 | 实测行数 | 反推的用例 |
+|---|---|---|
+| `symbols` | 44 | fee_profile_store / symbol_type_fee_migration / mcp list_symbols |
+| `strategy` | 23 | mcp `strategy_list`（真实 published Registry 体量） |
+| `strategy_version` | 24 | 同上 |
+| `kline_accurate` | **1,631,088** | 仅 `518880` / `510050` 的 **M1**（1m 性能门禁需 ≥500 根） |
+| `kline_accurate_1d`（由上述 M1 全量 `refresh_continuous_aggregate(NULL,NULL)` **派生**，非直采） | 6,768 | d11_fee_profile_e2e（D1 区间） |
+
+（活库 `kline_accurate` 全量 16,344,861 行、`kline_raw` 114,841 行 —— **均不播**；上表行数为本次实测值。）
+
+- 播种**从活库只读快照**：源连接强制 `PGOPTIONS='-c default_transaction_read_only=on'`，对源库**零写**。
+- **目标表非空即跳过**（幂等：不会覆盖/重复已供应好的测试库）。
+- **源库不可达** ⇒ `exit 3` 且**不留任何新库**（源可达性检查在建库**之前**，避免留下 schema-only 脏库）。
+- **活库演进后需重新供应**：测试库是**快照**，不自动跟随活库；活库结构或数据变化后
+  `dropdb … <库名>` + 重跑本脚本 = 重新播种。
+
+### 活库孤儿守卫的归属变更（M3 登记）
+
+原「orphan / live_snapshot」类用例查的是**活库**；ADR-023 E6b 起它们只查**测试库**（测试不碰生产），
+故 **活库孤儿守卫已从「测试套件」迁移为「运维检查」**：
+
+- 判据 = 部署后对**在线实例**调 `GET /api/quality/orphans`，响应应为 `rows: 0`（`by_table` 逐表全 0）。
+- 当前状态：该端点**尚未部署**（线上仍 404，见 ADR-023 R-4）⇒ 该守卫目前**无人自动执行**；
+  需运维在部署后手工执行并登记结果。
+- 不得把孤儿用例改回查活库（那会重新违反「测试不碰生产」）。
+
 ## 启动数据面全栈（Wave 0，ADR-017）
 
 ```bash
