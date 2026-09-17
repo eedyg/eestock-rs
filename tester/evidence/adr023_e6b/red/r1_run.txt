@@ -1,0 +1,36 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running tests/kline_reader.rs (target/debug/deps/kline_reader-04b5138f1cf9d84a)
+
+running 15 tests
+test holidays_reader_reads_0008_seed ... ok
+test merged_1m_branch_index_limit_performance ... FAILED
+test window_events_filters_window_and_maps_fields ... ok
+test events_between_and_sync_checkpoints ... ok
+test high_period_forming_bucket_included_on_latest ... ok
+test divergence_rows_join_code_filter_and_range ... ok
+test merged_1m_accurate_first_and_cursor_pagination ... ok
+test merged_1m_branch_limit_merge_correctness ... ok
+test unified_read_deep_history_to_2024 ... ok
+test weekly_monthly_deep_scroll_before_2024 ... ok
+test merged_periods_accurate_first_and_1h_rollup ... ok
+test symbols_latest_d3_merge_tail_semantics ... ok
+test weekly_monthly_periods_aggregate ... ok
+test symbols_with_latest_snapshot ... ok
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... ok
+
+failures:
+
+---- merged_1m_branch_index_limit_performance stdout ----
+
+thread 'merged_1m_branch_index_limit_performance' (1125178) panicked at crates/storage/tests/kline_reader.rs:289:13:
+数据前提不满足（期望 500 根 M1，实得 0 根）→ 门禁无法测量：518880 的 M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    merged_1m_branch_index_limit_performance
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.17s
+
+error: test failed, to rerun pass `-p storage --test kline_reader`
+R1_EXIT=101

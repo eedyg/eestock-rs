@@ -1,0 +1,12 @@
+=== DB list BEFORE drop ===
+adr023_e6b_gate_iso
+adr023_e6b_v3_test
+e6b_red_iso
+e6b_red_iso2
+e6b_verify_iso
+e6b_verify_unreach_iso
+eestock
+eestock_d11_probe
+postgres
+template0
+template1

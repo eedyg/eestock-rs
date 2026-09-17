@@ -1,0 +1,1 @@
+vitest EXIT=0

@@ -1,0 +1,5 @@
+############ R3 shell gate test ############
+== R3: scripts/testdb-init.sh 存在 / 可执行 / 幂等 / export 行 ==
+  FAIL R3-1 scripts/testdb-init.sh 不存在（红：缺幂等初始化入口）
+VERDICT: RED (R3-1)  PASS=0 FAIL=1
+R3_SHELL_EXIT=1

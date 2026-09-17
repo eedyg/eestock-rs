@@ -1,0 +1,166 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr023_e6b_testdb_env_gate_red.rs (target/debug/deps/adr023_e6b_testdb_env_gate_red-5870d9a9232043c5)
+
+running 5 tests
+test r3_init_script_exists_executable_and_covers_contract ... FAILED
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... FAILED
+test r2_static_every_test_pool_must_assert_sentinel_table ... FAILED
+test r1_static_every_test_pool_must_read_eestock_test_database_url ... FAILED
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... FAILED
+
+failures:
+
+---- r3_init_script_exists_executable_and_covers_contract stdout ----
+
+thread 'r3_init_script_exists_executable_and_covers_contract' (1137382) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:159:5:
+R3 红：`scripts/testdb-init.sh` 不存在（缺幂等建库 + 迁移 + 哨兵 + export 的一键入口）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r4_static_no_hardcoded_live_db_url_in_test_sources stdout ----
+
+thread 'r4_static_no_hardcoded_live_db_url_in_test_sources' (1137383) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:146:5:
+R4 红：活库 URL 字面量在 crates/*/tests 下仍有 35 处（其中 `unwrap_or_else` 兜底默认 33 处）：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs:27
+  - crates/mcp/tests/mcp_tools_db.rs:17
+  - crates/storage/tests/accurate_upsert.rs:22
+  - crates/storage/tests/accurate_upsert.rs:42
+  - crates/storage/tests/alert_store.rs:19
+  - crates/storage/tests/backtest.rs:18
+  - crates/storage/tests/config_store.rs:12
+  - crates/storage/tests/event_sink.rs:12
+  - crates/storage/tests/favorite_store.rs:28
+  - crates/storage/tests/fee_profile_store.rs:12
+  - crates/storage/tests/kline_reader.rs:28
+  - crates/storage/tests/ma_config_store.rs:13
+  - crates/storage/tests/raw_writer.rs:21
+  - crates/storage/tests/sim_store.rs:19
+  - crates/storage/tests/strategy_store.rs:17
+  - crates/storage/tests/symbol_admin.rs:20
+  - crates/storage/tests/symbol_type_fee_migration.rs:20
+  - crates/storage/tests/symbols_registry.rs:13
+  - crates/storage/tests/workbench_store.rs:17
+  - crates/strategy-runtime/tests/dcap_cross_runtime.rs:204
+  - crates/strategy-runtime/tests/dcap_plugin_replay.rs:108
+  - crates/web/tests/api_admin.rs:20
+  - crates/web/tests/api_alerts.rs:22
+  - crates/web/tests/api_favorites.rs:21
+  - crates/web/tests/api_kline_period.rs:17
+  - crates/web/tests/api_ma_config.rs:15
+  - crates/web/tests/api_multi_period_config.rs:43
+  - crates/web/tests/api_quality.rs:18
+  - crates/web/tests/api_rest.rs:19
+  - crates/web/tests/api_settings.rs:12
+  - crates/web/tests/api_strategies.rs:19
+  - crates/web/tests/api_workbench.rs:21
+  - crates/web/tests/orphan_probe/mod.rs:21
+  - crates/web/tests/period30m_d2_multiperiod_red.rs:246
+  - crates/web/tests/ws_poller.rs:17
+
+---- r2_static_every_test_pool_must_assert_sentinel_table stdout ----
+
+thread 'r2_static_every_test_pool_must_assert_sentinel_table' (1137381) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:117:5:
+R2 红：32/32 个「会连库」的测试文件无哨兵表 `_eestock_test_db` 断言（误指活库不会被拦）。
+违规清单：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs
+  - crates/mcp/tests/mcp_tools_db.rs
+  - crates/storage/tests/accurate_upsert.rs
+  - crates/storage/tests/alert_store.rs
+  - crates/storage/tests/backtest.rs
+  - crates/storage/tests/config_store.rs
+  - crates/storage/tests/event_sink.rs
+  - crates/storage/tests/favorite_store.rs
+  - crates/storage/tests/fee_profile_store.rs
+  - crates/storage/tests/kline_reader.rs
+  - crates/storage/tests/ma_config_store.rs
+  - crates/storage/tests/raw_writer.rs
+  - crates/storage/tests/sim_store.rs
+  - crates/storage/tests/strategy_store.rs
+  - crates/storage/tests/symbol_admin.rs
+  - crates/storage/tests/symbol_type_fee_migration.rs
+  - crates/storage/tests/symbols_registry.rs
+  - crates/storage/tests/workbench_store.rs
+  - crates/web/tests/api_admin.rs
+  - crates/web/tests/api_alerts.rs
+  - crates/web/tests/api_favorites.rs
+  - crates/web/tests/api_kline_period.rs
+  - crates/web/tests/api_ma_config.rs
+  - crates/web/tests/api_multi_period_config.rs
+  - crates/web/tests/api_quality.rs
+  - crates/web/tests/api_rest.rs
+  - crates/web/tests/api_settings.rs
+  - crates/web/tests/api_strategies.rs
+  - crates/web/tests/api_workbench.rs
+  - crates/web/tests/orphan_probe/mod.rs
+  - crates/web/tests/period30m_d2_multiperiod_red.rs
+  - crates/web/tests/ws_poller.rs
+
+---- r1_static_every_test_pool_must_read_eestock_test_database_url stdout ----
+
+thread 'r1_static_every_test_pool_must_read_eestock_test_database_url' (1137380) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:104:5:
+R1 红：32/32 个「会连库」的测试文件未从 EESTOCK_TEST_DATABASE_URL 取 URL（无该变量名 ⇒ 无法「未设即响亮失败」）。
+违规清单：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs
+  - crates/mcp/tests/mcp_tools_db.rs
+  - crates/storage/tests/accurate_upsert.rs
+  - crates/storage/tests/alert_store.rs
+  - crates/storage/tests/backtest.rs
+  - crates/storage/tests/config_store.rs
+  - crates/storage/tests/event_sink.rs
+  - crates/storage/tests/favorite_store.rs
+  - crates/storage/tests/fee_profile_store.rs
+  - crates/storage/tests/kline_reader.rs
+  - crates/storage/tests/ma_config_store.rs
+  - crates/storage/tests/raw_writer.rs
+  - crates/storage/tests/sim_store.rs
+  - crates/storage/tests/strategy_store.rs
+  - crates/storage/tests/symbol_admin.rs
+  - crates/storage/tests/symbol_type_fee_migration.rs
+  - crates/storage/tests/symbols_registry.rs
+  - crates/storage/tests/workbench_store.rs
+  - crates/web/tests/api_admin.rs
+  - crates/web/tests/api_alerts.rs
+  - crates/web/tests/api_favorites.rs
+  - crates/web/tests/api_kline_period.rs
+  - crates/web/tests/api_ma_config.rs
+  - crates/web/tests/api_multi_period_config.rs
+  - crates/web/tests/api_quality.rs
+  - crates/web/tests/api_rest.rs
+  - crates/web/tests/api_settings.rs
+  - crates/web/tests/api_strategies.rs
+  - crates/web/tests/api_workbench.rs
+  - crates/web/tests/orphan_probe/mod.rs
+  - crates/web/tests/period30m_d2_multiperiod_red.rs
+  - crates/web/tests/ws_poller.rs
+
+---- r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable stdout ----
+
+thread 'r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable' (1137379) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:214:5:
+R1 红：未设 EESTOCK_TEST_DATABASE_URL 时参照测试二进制未点名该变量（无「未设即响亮失败」门禁）。
+探针：/home/eestock/workspace/git/eestock/eestock-rs/target/debug/deps/kline_reader-6f8949196b1b62d8（exit=Some(101)）
+输出节选：
+
+running 15 tests
+test divergence_rows_join_code_filter_and_range ... FAILED
+test weekly_monthly_deep_scroll_before_2024 ... FAILED
+test symbols_latest_d3_merge_tail_semantics ... FAILED
+test high_period_forming_bucket_included_on_latest ... FAILED
+test merged_periods_accurate_first_and_1h_rollup ... FAILED
+test merged_1m_branch_index_limit_performance ... FAILED
+test window_events_filters_window_and_maps_fields ... FAILED
+test symbols_with_latest_snapshot ... FAILED
+test holidays_reader_reads_0008_seed ... FAILED
+test events_between_and_sync_checkpoints ... FAILED
+
+
+failures:
+    r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable
+    r1_static_every_test_pool_must_read_eestock_test_database_url
+    r2_static_every_test_pool_must_assert_sentinel_table
+    r3_init_script_exists_executable_and_covers_contract
+    r4_static_no_hardcoded_live_db_url_in_test_sources
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.01s
+
+error: test failed, to rerun pass `-p storage --test adr023_e6b_testdb_env_gate_red`
+error: 1 target failed:
+    `-p storage --test adr023_e6b_testdb_env_gate_red`

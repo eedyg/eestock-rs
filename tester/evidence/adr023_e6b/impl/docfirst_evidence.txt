@@ -1,0 +1,16 @@
+=== doc-first: 13 files grep + mtime ===
+crates/storage/tests/kline_reader.rs test_support=1 literal=0 mtime=1789617275
+crates/web/tests/api_rest.rs test_support=1 literal=0 mtime=1789617275
+crates/web/tests/ws_poller.rs test_support=1 literal=0 mtime=1789617275
+crates/storage/tests/symbol_admin.rs test_support=1 literal=0 mtime=1789617275
+crates/web/tests/api_admin.rs test_support=1 literal=0 mtime=1789617275
+crates/web/tests/api_quality.rs test_support=1 literal=0 mtime=1789617275
+crates/mcp/tests/mcp_tools_db.rs test_support=1 literal=0 mtime=1789617275
+crates/storage/tests/alert_store.rs test_support=1 literal=0 mtime=1789617275
+crates/web/tests/api_alerts.rs test_support=1 literal=0 mtime=1789617275
+crates/storage/tests/accurate_upsert.rs test_support=2 literal=0 mtime=1789617275
+crates/storage/tests/raw_writer.rs test_support=1 literal=0 mtime=1789617275
+crates/storage/tests/event_sink.rs test_support=1 literal=0 mtime=1789617275
+crates/storage/tests/symbols_registry.rs test_support=1 literal=0 mtime=1789617275
+=== tangle wrote exactly 13 ===
+13

@@ -1,0 +1,39 @@
+
+running 5 tests
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... ok
+test r1_static_every_test_pool_must_read_eestock_test_database_url ... FAILED
+test r2_static_every_test_pool_must_assert_sentinel_table ... FAILED
+test r3_init_script_exists_executable_and_covers_contract ... ok
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... FAILED
+
+failures:
+
+---- r1_static_every_test_pool_must_read_eestock_test_database_url stdout ----
+
+thread 'r1_static_every_test_pool_must_read_eestock_test_database_url' (1238795) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:110:5:
+R1 红：1/1 个「会连库」的测试文件未从 EESTOCK_TEST_DATABASE_URL 取 URL（无该变量名 ⇒ 无法「未设即响亮失败」）。
+违规清单：
+  - crates/web/tests/zz_mut1_eager_pgpool_connect_literal.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r2_static_every_test_pool_must_assert_sentinel_table stdout ----
+
+thread 'r2_static_every_test_pool_must_assert_sentinel_table' (1238796) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:123:5:
+R2 红：1/1 个「会连库」的测试文件无哨兵表 `_eestock_test_db` 断言（误指活库不会被拦）。
+违规清单：
+  - crates/web/tests/zz_mut1_eager_pgpool_connect_literal.rs
+
+---- r4_static_no_hardcoded_live_db_url_in_test_sources stdout ----
+
+thread 'r4_static_no_hardcoded_live_db_url_in_test_sources' (1238798) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:152:5:
+R4 红：活库 URL 字面量在 crates/*/tests 下仍有 1 处（其中 `unwrap_or_else` 兜底默认 0 处）：
+  - crates/web/tests/zz_mut1_eager_pgpool_connect_literal.rs:4
+
+
+failures:
+    r1_static_every_test_pool_must_read_eestock_test_database_url
+    r2_static_every_test_pool_must_assert_sentinel_table
+    r4_static_no_hardcoded_live_db_url_in_test_sources
+
+test result: FAILED. 2 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

@@ -1,0 +1,3 @@
+### V4b pointed at LIVE db
+exit=101
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist

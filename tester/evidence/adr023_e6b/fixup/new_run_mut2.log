@@ -1,0 +1,24 @@
+
+running 5 tests
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... ok
+test r1_static_every_test_file_that_builds_a_pool_must_use_test_support_entry ... FAILED
+test r2_static_every_connecting_test_file_must_carry_sentinel_gate ... ok
+test r3_init_script_exists_executable_and_covers_contract ... ok
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... ok
+
+failures:
+
+---- r1_static_every_test_file_that_builds_a_pool_must_use_test_support_entry stdout ----
+
+thread 'r1_static_every_test_file_that_builds_a_pool_must_use_test_support_entry' (1239153) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:225:5:
+R1 红：1/3 个「构造池」的测试文件未走统一建池入口（`test_support::` / `test_support::test_pool`）；检测面含 `PgPool::connect(` / `Pool::connect(` / `PgPoolOptions|PoolOptions … .connect` / `connect_lazy(`，判定基于**去注释**源码（注释提及不算）。
+违规清单：
+  - crates/web/tests/zz_mut2_connect_lazy_format_splice.rs（构造池但未引用 `test_support::` 统一入口）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r1_static_every_test_file_that_builds_a_pool_must_use_test_support_entry
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

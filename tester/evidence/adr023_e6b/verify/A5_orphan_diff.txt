@@ -1,0 +1,17 @@
+=== orphan_probe/mod.rs diff ===
+diff --git a/crates/web/tests/orphan_probe/mod.rs b/crates/web/tests/orphan_probe/mod.rs
+index 9ce6797..27acafe 100644
+--- a/crates/web/tests/orphan_probe/mod.rs
++++ b/crates/web/tests/orphan_probe/mod.rs
+@@ -17,9 +17,8 @@ pub const CAGGS: [&str; 10] = [
+ ];
+ 
+ pub async fn pool() -> PgPool {
+-    let url = std::env::var("DATABASE_URL")
+-        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+-    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
++    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
++    test_support::test_pool().await
+ }
+ 
+ /// 装配（复制 crates/web/tests/api_quality.rs 的 state()：web 无 test-support 装配器）。

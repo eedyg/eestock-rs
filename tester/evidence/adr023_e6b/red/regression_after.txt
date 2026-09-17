@@ -1,0 +1,429 @@
+############ post-change regression: cargo test -p storage (iso) ############
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/storage-730d1c8273c7c7ce)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/accurate_upsert.rs (target/debug/deps/accurate_upsert-fd78fb9d127b397f)
+
+running 2 tests
+test checkpoints_roundtrip ... ok
+test conflict_updates_row_not_keeps_first ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/adr023_e6b_testdb_env_gate_red.rs (target/debug/deps/adr023_e6b_testdb_env_gate_red-5870d9a9232043c5)
+
+running 5 tests
+test r3_init_script_exists_executable_and_covers_contract ... FAILED
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... FAILED
+test r2_static_every_test_pool_must_assert_sentinel_table ... FAILED
+test r1_static_every_test_pool_must_read_eestock_test_database_url ... FAILED
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... FAILED
+
+failures:
+
+---- r3_init_script_exists_executable_and_covers_contract stdout ----
+
+thread 'r3_init_script_exists_executable_and_covers_contract' (1132880) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:159:5:
+R3 红：`scripts/testdb-init.sh` 不存在（缺幂等建库 + 迁移 + 哨兵 + export 的一键入口）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r4_static_no_hardcoded_live_db_url_in_test_sources stdout ----
+
+thread 'r4_static_no_hardcoded_live_db_url_in_test_sources' (1132881) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:146:5:
+R4 红：活库 URL 字面量在 crates/*/tests 下仍有 35 处（其中 `unwrap_or_else` 兜底默认 33 处）：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs:27
+  - crates/mcp/tests/mcp_tools_db.rs:17
+  - crates/storage/tests/accurate_upsert.rs:22
+  - crates/storage/tests/accurate_upsert.rs:42
+  - crates/storage/tests/alert_store.rs:19
+  - crates/storage/tests/backtest.rs:18
+  - crates/storage/tests/config_store.rs:12
+  - crates/storage/tests/event_sink.rs:12
+  - crates/storage/tests/favorite_store.rs:28
+  - crates/storage/tests/fee_profile_store.rs:12
+  - crates/storage/tests/kline_reader.rs:28
+  - crates/storage/tests/ma_config_store.rs:13
+  - crates/storage/tests/raw_writer.rs:21
+  - crates/storage/tests/sim_store.rs:19
+  - crates/storage/tests/strategy_store.rs:17
+  - crates/storage/tests/symbol_admin.rs:20
+  - crates/storage/tests/symbol_type_fee_migration.rs:20
+  - crates/storage/tests/symbols_registry.rs:13
+  - crates/storage/tests/workbench_store.rs:17
+  - crates/strategy-runtime/tests/dcap_cross_runtime.rs:204
+  - crates/strategy-runtime/tests/dcap_plugin_replay.rs:108
+  - crates/web/tests/api_admin.rs:20
+  - crates/web/tests/api_alerts.rs:22
+  - crates/web/tests/api_favorites.rs:21
+  - crates/web/tests/api_kline_period.rs:17
+  - crates/web/tests/api_ma_config.rs:15
+  - crates/web/tests/api_multi_period_config.rs:43
+  - crates/web/tests/api_quality.rs:18
+  - crates/web/tests/api_rest.rs:19
+  - crates/web/tests/api_settings.rs:12
+  - crates/web/tests/api_strategies.rs:19
+  - crates/web/tests/api_workbench.rs:21
+  - crates/web/tests/orphan_probe/mod.rs:21
+  - crates/web/tests/period30m_d2_multiperiod_red.rs:246
+  - crates/web/tests/ws_poller.rs:17
+
+---- r2_static_every_test_pool_must_assert_sentinel_table stdout ----
+
+thread 'r2_static_every_test_pool_must_assert_sentinel_table' (1132879) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:117:5:
+R2 红：32/32 个「会连库」的测试文件无哨兵表 `_eestock_test_db` 断言（误指活库不会被拦）。
+违规清单：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs
+  - crates/mcp/tests/mcp_tools_db.rs
+  - crates/storage/tests/accurate_upsert.rs
+  - crates/storage/tests/alert_store.rs
+  - crates/storage/tests/backtest.rs
+  - crates/storage/tests/config_store.rs
+  - crates/storage/tests/event_sink.rs
+  - crates/storage/tests/favorite_store.rs
+  - crates/storage/tests/fee_profile_store.rs
+  - crates/storage/tests/kline_reader.rs
+  - crates/storage/tests/ma_config_store.rs
+  - crates/storage/tests/raw_writer.rs
+  - crates/storage/tests/sim_store.rs
+  - crates/storage/tests/strategy_store.rs
+  - crates/storage/tests/symbol_admin.rs
+  - crates/storage/tests/symbol_type_fee_migration.rs
+  - crates/storage/tests/symbols_registry.rs
+  - crates/storage/tests/workbench_store.rs
+  - crates/web/tests/api_admin.rs
+  - crates/web/tests/api_alerts.rs
+  - crates/web/tests/api_favorites.rs
+  - crates/web/tests/api_kline_period.rs
+  - crates/web/tests/api_ma_config.rs
+  - crates/web/tests/api_multi_period_config.rs
+  - crates/web/tests/api_quality.rs
+  - crates/web/tests/api_rest.rs
+  - crates/web/tests/api_settings.rs
+  - crates/web/tests/api_strategies.rs
+  - crates/web/tests/api_workbench.rs
+  - crates/web/tests/orphan_probe/mod.rs
+  - crates/web/tests/period30m_d2_multiperiod_red.rs
+  - crates/web/tests/ws_poller.rs
+
+---- r1_static_every_test_pool_must_read_eestock_test_database_url stdout ----
+
+thread 'r1_static_every_test_pool_must_read_eestock_test_database_url' (1132878) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:104:5:
+R1 红：32/32 个「会连库」的测试文件未从 EESTOCK_TEST_DATABASE_URL 取 URL（无该变量名 ⇒ 无法「未设即响亮失败」）。
+违规清单：
+  - crates/mcp/tests/d11_fee_profile_e2e.rs
+  - crates/mcp/tests/mcp_tools_db.rs
+  - crates/storage/tests/accurate_upsert.rs
+  - crates/storage/tests/alert_store.rs
+  - crates/storage/tests/backtest.rs
+  - crates/storage/tests/config_store.rs
+  - crates/storage/tests/event_sink.rs
+  - crates/storage/tests/favorite_store.rs
+  - crates/storage/tests/fee_profile_store.rs
+  - crates/storage/tests/kline_reader.rs
+  - crates/storage/tests/ma_config_store.rs
+  - crates/storage/tests/raw_writer.rs
+  - crates/storage/tests/sim_store.rs
+  - crates/storage/tests/strategy_store.rs
+  - crates/storage/tests/symbol_admin.rs
+  - crates/storage/tests/symbol_type_fee_migration.rs
+  - crates/storage/tests/symbols_registry.rs
+  - crates/storage/tests/workbench_store.rs
+  - crates/web/tests/api_admin.rs
+  - crates/web/tests/api_alerts.rs
+  - crates/web/tests/api_favorites.rs
+  - crates/web/tests/api_kline_period.rs
+  - crates/web/tests/api_ma_config.rs
+  - crates/web/tests/api_multi_period_config.rs
+  - crates/web/tests/api_quality.rs
+  - crates/web/tests/api_rest.rs
+  - crates/web/tests/api_settings.rs
+  - crates/web/tests/api_strategies.rs
+  - crates/web/tests/api_workbench.rs
+  - crates/web/tests/orphan_probe/mod.rs
+  - crates/web/tests/period30m_d2_multiperiod_red.rs
+  - crates/web/tests/ws_poller.rs
+
+---- r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable stdout ----
+
+thread 'r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable' (1132877) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:214:5:
+R1 红：未设 EESTOCK_TEST_DATABASE_URL 时参照测试二进制未点名该变量（无「未设即响亮失败」门禁）。
+探针：/home/eestock/workspace/git/eestock/eestock-rs/target/debug/deps/kline_reader-6f8949196b1b62d8（exit=Some(101)）
+输出节选：
+
+running 15 tests
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... FAILED
+test unified_read_deep_history_to_2024 ... FAILED
+test merged_1m_branch_index_limit_performance ... FAILED
+test weekly_monthly_deep_scroll_before_2024 ... FAILED
+test symbols_latest_d3_merge_tail_semantics ... FAILED
+test merged_1m_accurate_first_and_cursor_pagination ... FAILED
+test high_period_forming_bucket_included_on_latest ... FAILED
+test divergence_rows_join_code_filter_and_range ... FAILED
+test symbols_with_latest_snapshot ... FAILED
+test events_between_and_sync_checkpoints ... FAILED
+
+
+failures:
+    r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable
+    r1_static_every_test_pool_must_read_eestock_test_database_url
+    r2_static_every_test_pool_must_assert_sentinel_table
+    r3_init_script_exists_executable_and_covers_contract
+    r4_static_no_hardcoded_live_db_url_in_test_sources
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.01s
+
+error: test failed, to rerun pass `-p storage --test adr023_e6b_testdb_env_gate_red`
+     Running tests/alert_store.rs (target/debug/deps/alert_store-e9f97e43be5e49ba)
+
+running 4 tests
+test rules_seeded_and_patch_roundtrip ... ok
+test list_events_filters ... ok
+test eval_read_window_and_latest_of ... ok
+test incident_state_machine_primitives ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/backtest.rs (target/debug/deps/backtest-3cff96a8a3a1af8a)
+
+running 1 test
+test bar_read_m1_accurate_first_in_range ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/config_store.rs (target/debug/deps/config_store-14be70e9e49b32ff)
+
+running 1 test
+test config_store_get_set_override_and_isolated_key ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/event_sink.rs (target/debug/deps/event_sink-0c8ec1ab940d6246)
+
+running 3 tests
+test missing_relations_detected ... ok
+test verify_schema_passes_on_migrated_db ... ok
+test event_roundtrip_na_and_circuit_kinds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/favorite_store.rs (target/debug/deps/favorite_store-97f5eb88e3120f6f)
+
+running 5 tests
+test star_and_unstar_unknown_symbol_noop ... ok
+test delete_symbol_cascades_favorite ... ok
+test star_autotop_then_idempotent_unstar ... ok
+test favorite_map_excludes_non_favorites ... ok
+test reorder_updates_sort_order_by_index ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/fee_profile_store.rs (target/debug/deps/fee_profile_store-35bb56e41919651e)
+
+running 1 test
+test for_symbol_resolves_profile_by_type_and_misses_fail_soft ... FAILED
+
+failures:
+
+---- for_symbol_resolves_profile_by_type_and_misses_fail_soft stdout ----
+
+thread 'for_symbol_resolves_profile_by_type_and_misses_fail_soft' (1133454) panicked at crates/storage/tests/fee_profile_store.rs:22:57:
+510050 应解析到 etf 档案
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    for_symbol_resolves_profile_by_type_and_misses_fail_soft
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p storage --test fee_profile_store`
+     Running tests/kline_reader.rs (target/debug/deps/kline_reader-04b5138f1cf9d84a)
+
+running 15 tests
+test holidays_reader_reads_0008_seed ... ok
+test merged_1m_branch_index_limit_performance ... FAILED
+test window_events_filters_window_and_maps_fields ... ok
+test events_between_and_sync_checkpoints ... ok
+test high_period_forming_bucket_included_on_latest ... ok
+test divergence_rows_join_code_filter_and_range ... ok
+test merged_1m_accurate_first_and_cursor_pagination ... ok
+test merged_1m_branch_limit_merge_correctness ... ok
+test unified_read_deep_history_to_2024 ... ok
+test symbols_latest_d3_merge_tail_semantics ... ok
+test weekly_monthly_deep_scroll_before_2024 ... ok
+test merged_periods_accurate_first_and_1h_rollup ... ok
+test weekly_monthly_periods_aggregate ... ok
+test symbols_with_latest_snapshot ... ok
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... ok
+
+failures:
+
+---- merged_1m_branch_index_limit_performance stdout ----
+
+thread 'merged_1m_branch_index_limit_performance' (1133462) panicked at crates/storage/tests/kline_reader.rs:289:13:
+数据前提不满足（期望 500 根 M1，实得 0 根）→ 门禁无法测量：518880 的 M1 数据缺失或不足。本测试不得静默通过（vacuous pass = 假绿），请修复数据或显式另择 code。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    merged_1m_branch_index_limit_performance
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.45s
+
+error: test failed, to rerun pass `-p storage --test kline_reader`
+     Running tests/ma_config_store.rs (target/debug/deps/ma_config_store-ee36c18d6fec19bf)
+
+running 1 test
+test ma_config_get_set_override_single_row ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/period30m_expected_relations.rs (target/debug/deps/period30m_expected_relations-a9249713b48d85c0)
+
+running 2 tests
+test j6_expected_relations_contains_kline_accurate_30m ... ok
+test j6_existing_relations_not_removed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/period30m_migration.rs (target/debug/deps/period30m_migration-54a4e7a99d7bf9ee)
+
+running 5 tests
+test j7a_migration_0026_exists_with_expected_name ... ok
+test j7b_cagg_definition_is_full_history_30m_over_accurate_m1 ... ok
+test j7c_no_historical_truncation_filter ... ok
+test j7d_start_offset_is_3_days ... ok
+test j7e_full_refresh_call_present ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/period30m_period_str.rs (target/debug/deps/period30m_period_str-32776706307c1e62)
+
+running 2 tests
+test j3_existing_period_str_mappings_unchanged ... ok
+test j3_period_str_m30_is_uppercase_m30 ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/period30m_read_source.rs (target/debug/deps/period30m_read_source-f8cd62df34c4d0ef)
+
+running 5 tests
+test j4a_merged_sql_m30_uses_accurate_30m_relation ... ok
+test j4b_fallback_is_30m_rollup_over_kline_15m ... ok
+test j4c_forming_sql_m30_is_30_minutes ... ok
+test j4d_existing_forming_and_non_intraday_none_unchanged ... ok
+test j4e_no_raw_layer_kline_30m_reference ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raw_writer.rs (target/debug/deps/raw_writer-25d054867ee20d5d)
+
+running 3 tests
+test empty_batch_writes_zero ... ok
+test approx_source_marker_persisted ... ok
+test first_write_wins_and_row_count_asserted ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/sim_store.rs (target/debug/deps/sim_store-40cfb4e7e348c5c3)
+
+running 6 tests
+test create_and_get_session_roundtrip ... ok
+test mark_end_writes_result_and_transitions_status ... ok
+test list_sessions_returns_desc_by_start_ts ... ok
+test delete_session_cascades_children ... ok
+test append_trade_and_update_positions ... ok
+test list_trades_and_upsert_get_state_roundtrip ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/strategy_store.rs (target/debug/deps/strategy_store-68880b88ec537495)
+
+running 16 tests
+test mark_published_requires_draft_and_expected_code ... ok
+test create_get_roundtrip_and_next_version ... ok
+test unique_strategy_version_enforced ... ok
+test catalog_filters_level_set_before_latest_published ... ok
+test find_version_by_name_sha_for_seed_idempotency ... ok
+test update_draft_only_draft ... ok
+test published_immutable_update_trigger ... ok
+test delete_strategy_all_draft_succeeds_and_cascades ... ok
+test published_delete_trigger_blocks_delete_and_cascade ... ok
+test trigger_status_machine_and_published_frozen_fields ... ok
+test update_meta_updates_fields_and_advances_updated_at ... ok
+test update_draft_advances_strategy_updated_at ... ok
+test catalog_filters_level_kind_and_latest_published ... ok
+test manage_list_deletable_flag ... ok
+test delete_strategy_blocked_with_published_or_archived_history ... ok
+test manage_list_includes_draft_only_and_aggregates ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/symbol_admin.rs (target/debug/deps/symbol_admin-d991c79b2110d01b)
+
+running 3 tests
+test reset_channel_write_take_consume_once ... ok
+test register_update_roundtrip_and_conflict ... ok
+test today_stats_counts_shanghai_day_window ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/symbol_type_fee_migration.rs (target/debug/deps/symbol_type_fee_migration-98f6c1f286d25563)
+
+running 1 test
+test migration_0025_idempotent_backfill_and_seed_in_rolled_back_tx ... FAILED
+
+failures:
+
+---- migration_0025_idempotent_backfill_and_seed_in_rolled_back_tx stdout ----
+
+thread 'migration_0025_idempotent_backfill_and_seed_in_rolled_back_tx' (1133649) panicked at crates/storage/tests/symbol_type_fee_migration.rs:120:14:
+called `Result::unwrap()` on an `Err` value: RowNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    migration_0025_idempotent_backfill_and_seed_in_rolled_back_tx
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p storage --test symbol_type_fee_migration`
+     Running tests/symbols_registry.rs (target/debug/deps/symbols_registry-2e20ce4c4b16be94)
+
+running 2 tests
+test symbols_upsert_read_disable ... ok
+test existing_ts_returns_written_bars_cst_day ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/workbench_store.rs (target/debug/deps/workbench_store-4fab32eb30029079)
+
+running 9 tests
+test mark_failed_terminal_guards ... ok
+test result_cascade_delete_with_run ... ok
+test mark_started_atomic_claim ... ok
+test update_progress_only_running ... ok
+test mark_succeeded_writes_result_transactionally ... ok
+test run_create_get_roundtrip ... ok
+test run_list_order_filter_pagination ... ok
+test mark_canceled_semantics ... ok
+test preset_crud_and_unique_name ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+   Doc-tests storage
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 4 targets failed:
+    `-p storage --test adr023_e6b_testdb_env_gate_red`
+    `-p storage --test fee_profile_store`
+    `-p storage --test kline_reader`
+    `-p storage --test symbol_type_fee_migration`
+EXIT=101

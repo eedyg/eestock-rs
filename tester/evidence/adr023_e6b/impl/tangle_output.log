@@ -1,0 +1,14 @@
+[11:54:35] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/storage/tests/accurate_upsert.rs`
+           INFO     write `crates/storage/tests/raw_writer.rs`
+           INFO     write `crates/storage/tests/event_sink.rs`
+           INFO     write `crates/storage/tests/symbols_registry.rs`
+           INFO     write `crates/storage/tests/kline_reader.rs`
+           INFO     write `crates/web/tests/api_rest.rs`
+           INFO     write `crates/web/tests/ws_poller.rs`
+           INFO     write `crates/storage/tests/symbol_admin.rs`
+           INFO     write `crates/web/tests/api_admin.rs`
+           INFO     write `crates/web/tests/api_quality.rs`
+           INFO     write `crates/mcp/tests/mcp_tools_db.rs`
+           INFO     write `crates/storage/tests/alert_store.rs`
+           INFO     write `crates/web/tests/api_alerts.rs`

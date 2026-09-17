@@ -1,0 +1,34 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running tests/adr023_e6b_testdb_env_gate_red.rs (/tmp/e6b_mut_target/debug/deps/adr023_e6b_testdb_env_gate_red-eaeb277aac62320f)
+
+running 5 tests
+test r3_init_script_exists_executable_and_covers_contract ... ok
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... FAILED
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... ok
+test r2_static_every_test_pool_must_assert_sentinel_table ... FAILED
+test r1_static_every_test_pool_must_read_eestock_test_database_url ... ok
+
+failures:
+
+---- r4_static_no_hardcoded_live_db_url_in_test_sources stdout ----
+
+thread 'r4_static_no_hardcoded_live_db_url_in_test_sources' (1193666) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:146:5:
+R4 红：活库 URL 字面量在 crates/*/tests 下仍有 1 处（其中 `unwrap_or_else` 兜底默认 0 处）：
+  - crates/storage/tests/mutation_hardcoded_live_pool.rs:8
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r2_static_every_test_pool_must_assert_sentinel_table stdout ----
+
+thread 'r2_static_every_test_pool_must_assert_sentinel_table' (1193664) panicked at crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs:117:5:
+R2 红：1/1 个「会连库」的测试文件无哨兵表 `_eestock_test_db` 断言（误指活库不会被拦）。
+违规清单：
+  - crates/storage/tests/mutation_hardcoded_live_pool.rs
+
+
+failures:
+    r2_static_every_test_pool_must_assert_sentinel_table
+    r4_static_no_hardcoded_live_db_url_in_test_sources
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p storage --test adr023_e6b_testdb_env_gate_red`

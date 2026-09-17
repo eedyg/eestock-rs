@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr023_e6b_testdb_env_gate_red.rs (/home/eestock/workspace/git/eestock/eestock-rs/target/debug/deps/adr023_e6b_testdb_env_gate_red-eaeb277aac62320f)
+
+running 5 tests
+test r3_init_script_exists_executable_and_covers_contract ... ok
+test r4_static_no_hardcoded_live_db_url_in_test_sources ... ok
+test r1_behaviour_unset_env_var_must_fail_loudly_naming_the_variable ... ok
+test r2_static_every_test_pool_must_assert_sentinel_table ... ok
+test r1_static_every_test_pool_must_read_eestock_test_database_url ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

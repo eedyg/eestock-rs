@@ -1,0 +1,1 @@
+export EESTOCK_TEST_DATABASE_URL='postgres://eestock:eestock@127.0.0.1:5433/adr023_e6b_fixup_test'

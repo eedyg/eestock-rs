@@ -1,0 +1,72 @@
+=== doc-first files (entangled markers in tests) ===
+crates/alert/tests/engine.rs
+crates/app/tests/app_config.rs
+crates/app/tests/config_healthz.rs
+crates/collector/tests/calendar_test.rs
+crates/collector/tests/circuit_test.rs
+crates/collector/tests/common/mod.rs
+crates/collector/tests/executor_test.rs
+crates/collector/tests/gapfill_test.rs
+crates/collector/tests/probe_test.rs
+crates/collector/tests/reset_test.rs
+crates/collector/tests/scheduler_test.rs
+crates/collector/tests/standby_test.rs
+crates/diagnose/tests/health_agg.rs
+crates/diagnose/tests/quality.rs
+crates/domain/tests/contracts_test.rs
+crates/mcp/tests/mcp_protocol.rs
+crates/mcp/tests/mcp_tools_db.rs
+crates/providers/tests/golden_parse.rs
+crates/providers/tests/http_behavior.rs
+crates/storage/tests/accurate_upsert.rs
+crates/storage/tests/alert_store.rs
+crates/storage/tests/event_sink.rs
+crates/storage/tests/kline_reader.rs
+crates/storage/tests/raw_writer.rs
+crates/storage/tests/symbol_admin.rs
+crates/storage/tests/symbols_registry.rs
+crates/tushare/tests/daily_sync.rs
+crates/tushare/tests/golden_parse.rs
+crates/tushare/tests/sync_plan.rs
+crates/web/tests/api_admin.rs
+crates/web/tests/api_alerts.rs
+crates/web/tests/api_quality.rs
+crates/web/tests/api_rest.rs
+crates/web/tests/ws_poller.rs
+count=34
+
+=== mtimes ===
+2026-09-12 21:17:17.771614275 +0800 crates/alert/tests/engine.rs
+2026-09-12 18:51:12.722930940 +0800 crates/app/tests/app_config.rs
+2026-09-12 18:51:12.722930940 +0800 crates/app/tests/config_healthz.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/calendar_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/circuit_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/common/mod.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/executor_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/gapfill_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/probe_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/reset_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/scheduler_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/collector/tests/standby_test.rs
+2026-09-12 18:51:12.722930940 +0800 crates/diagnose/tests/health_agg.rs
+2026-09-12 18:51:12.722930940 +0800 crates/diagnose/tests/quality.rs
+2026-09-12 18:51:12.722930940 +0800 crates/domain/tests/contracts_test.rs
+2026-09-12 21:17:17.768216591 +0800 crates/mcp/tests/mcp_protocol.rs
+2026-09-17 11:54:35.393949225 +0800 crates/mcp/tests/mcp_tools_db.rs
+2026-09-12 18:51:12.722930940 +0800 crates/providers/tests/golden_parse.rs
+2026-09-12 18:51:12.722930940 +0800 crates/providers/tests/http_behavior.rs
+2026-09-17 11:54:35.381605593 +0800 crates/storage/tests/accurate_upsert.rs
+2026-09-17 11:54:35.395160558 +0800 crates/storage/tests/alert_store.rs
+2026-09-17 11:54:35.384298674 +0800 crates/storage/tests/event_sink.rs
+2026-09-17 11:54:35.386606277 +0800 crates/storage/tests/kline_reader.rs
+2026-09-17 11:54:35.383055940 +0800 crates/storage/tests/raw_writer.rs
+2026-09-17 11:54:35.390356307 +0800 crates/storage/tests/symbol_admin.rs
+2026-09-17 11:54:35.385308893 +0800 crates/storage/tests/symbols_registry.rs
+2026-09-12 18:51:12.722930940 +0800 crates/tushare/tests/daily_sync.rs
+2026-09-12 18:51:12.722930940 +0800 crates/tushare/tests/golden_parse.rs
+2026-09-12 18:51:12.722930940 +0800 crates/tushare/tests/sync_plan.rs
+2026-09-17 11:54:35.391696673 +0800 crates/web/tests/api_admin.rs
+2026-09-17 11:54:35.396486692 +0800 crates/web/tests/api_alerts.rs
+2026-09-17 11:54:35.392887325 +0800 crates/web/tests/api_quality.rs
+2026-09-17 11:54:35.387745058 +0800 crates/web/tests/api_rest.rs
+2026-09-17 11:54:35.389139114 +0800 crates/web/tests/ws_poller.rs

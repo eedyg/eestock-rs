@@ -1,0 +1,122 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running tests/kline_reader.rs (target/debug/deps/kline_reader-4e3008e0cd71206c)
+
+running 15 tests
+test weekly_monthly_deep_scroll_before_2024 ... FAILED
+test holidays_reader_reads_0008_seed ... FAILED
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... FAILED
+test divergence_rows_join_code_filter_and_range ... FAILED
+test merged_1m_accurate_first_and_cursor_pagination ... FAILED
+test high_period_forming_bucket_included_on_latest ... FAILED
+test merged_periods_accurate_first_and_1h_rollup ... FAILED
+test merged_1m_branch_limit_merge_correctness ... FAILED
+test symbols_latest_d3_merge_tail_semantics ... FAILED
+test window_events_filters_window_and_maps_fields ... FAILED
+test symbols_with_latest_snapshot ... FAILED
+test merged_1m_branch_index_limit_performance ... FAILED
+test unified_read_deep_history_to_2024 ... FAILED
+test weekly_monthly_periods_aggregate ... FAILED
+test events_between_and_sync_checkpoints ... FAILED
+
+failures:
+
+---- weekly_monthly_deep_scroll_before_2024 stdout ----
+
+thread 'weekly_monthly_deep_scroll_before_2024' (1145605) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- holidays_reader_reads_0008_seed stdout ----
+
+thread 'holidays_reader_reads_0008_seed' (1145596) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- symbols_latest_prev_close_is_prev_trading_day_d1 stdout ----
+
+thread 'symbols_latest_prev_close_is_prev_trading_day_d1' (1145602) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- divergence_rows_join_code_filter_and_range stdout ----
+
+thread 'divergence_rows_join_code_filter_and_range' (1145593) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- merged_1m_accurate_first_and_cursor_pagination stdout ----
+
+thread 'merged_1m_accurate_first_and_cursor_pagination' (1145597) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- high_period_forming_bucket_included_on_latest stdout ----
+
+thread 'high_period_forming_bucket_included_on_latest' (1145595) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- merged_periods_accurate_first_and_1h_rollup stdout ----
+
+thread 'merged_periods_accurate_first_and_1h_rollup' (1145600) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- merged_1m_branch_limit_merge_correctness stdout ----
+
+thread 'merged_1m_branch_limit_merge_correctness' (1145599) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- symbols_latest_d3_merge_tail_semantics stdout ----
+
+thread 'symbols_latest_d3_merge_tail_semantics' (1145601) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- window_events_filters_window_and_maps_fields stdout ----
+
+thread 'window_events_filters_window_and_maps_fields' (1145607) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- symbols_with_latest_snapshot stdout ----
+
+thread 'symbols_with_latest_snapshot' (1145603) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- merged_1m_branch_index_limit_performance stdout ----
+
+thread 'merged_1m_branch_index_limit_performance' (1145598) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- unified_read_deep_history_to_2024 stdout ----
+
+thread 'unified_read_deep_history_to_2024' (1145604) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- weekly_monthly_periods_aggregate stdout ----
+
+thread 'weekly_monthly_periods_aggregate' (1145606) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+---- events_between_and_sync_checkpoints stdout ----
+
+thread 'events_between_and_sync_checkpoints' (1145594) panicked at crates/test-support/src/lib.rs:55:19:
+哨兵表 `_eestock_test_db` 不存在/查询失败：`EESTOCK_TEST_DATABASE_URL` 很可能指向活库 `eestock`（哨兵拦截）。: error returned from database: relation "_eestock_test_db" does not exist
+
+
+failures:
+    divergence_rows_join_code_filter_and_range
+    events_between_and_sync_checkpoints
+    high_period_forming_bucket_included_on_latest
+    holidays_reader_reads_0008_seed
+    merged_1m_accurate_first_and_cursor_pagination
+    merged_1m_branch_index_limit_performance
+    merged_1m_branch_limit_merge_correctness
+    merged_periods_accurate_first_and_1h_rollup
+    symbols_latest_d3_merge_tail_semantics
+    symbols_latest_prev_close_is_prev_trading_day_d1
+    symbols_with_latest_snapshot
+    unified_read_deep_history_to_2024
+    weekly_monthly_deep_scroll_before_2024
+    weekly_monthly_periods_aggregate
+    window_events_filters_window_and_maps_fields
+
+test result: FAILED. 0 passed; 15 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

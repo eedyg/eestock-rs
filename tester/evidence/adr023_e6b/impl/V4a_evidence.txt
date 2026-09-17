@@ -1,0 +1,3 @@
+### V4a unset EESTOCK_TEST_DATABASE_URL
+exit=101
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。

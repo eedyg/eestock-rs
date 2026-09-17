@@ -1,0 +1,11 @@
+### R3 可达性探针（等价于 testdb-init.sh 的目标流程，手工在一次性库 e6b_red_iso 上推演）
+[1] 建哨兵表 + 值 test
+CREATE TABLE
+DELETE 0
+INSERT 0 1
+test
+[2] 导出风格环境变量后跑写测试 raw_writer
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+[3] 结论：门禁落地后 raw_writer 在「有哨兵的测试库」上可跑通 ⇒ R3 的可达性成立（当前缺的是 scripts/testdb-init.sh 本身）

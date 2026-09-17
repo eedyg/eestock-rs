@@ -1,0 +1,5 @@
+=== test DB stub codes present (proves tests wrote here) ===
+kline_raw|0
+kline_accurate|1631088
+symbols_all|44
+app_config|0

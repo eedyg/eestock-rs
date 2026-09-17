@@ -1,0 +1,74 @@
+--- 近 25 分钟内被修改的仓库文件（排除 target/ .git/ data/ logs/）：
+./Cargo.lock
+./coder/report/295_adr023_e6b_impl_testdb_env_gate.md
+./crates/mcp/Cargo.toml
+./crates/mcp/tests/d11_fee_profile_e2e.rs
+./crates/mcp/tests/mcp_tools_db.rs
+./crates/storage/Cargo.toml
+./crates/storage/tests/accurate_upsert.rs
+./crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs
+./crates/storage/tests/alert_store.rs
+./crates/storage/tests/backtest.rs
+./crates/storage/tests/config_store.rs
+./crates/storage/tests/event_sink.rs
+./crates/storage/tests/favorite_store.rs
+./crates/storage/tests/fee_profile_store.rs
+./crates/storage/tests/kline_reader.rs
+./crates/storage/tests/ma_config_store.rs
+./crates/storage/tests/raw_writer.rs
+./crates/storage/tests/sim_store.rs
+./crates/storage/tests/strategy_store.rs
+./crates/storage/tests/symbol_admin.rs
+./crates/storage/tests/symbols_registry.rs
+./crates/storage/tests/symbol_type_fee_migration.rs
+./crates/storage/tests/workbench_store.rs
+./crates/strategy-runtime/tests/dcap_cross_runtime.rs
+./crates/strategy-runtime/tests/dcap_plugin_replay.rs
+./crates/test-support/Cargo.toml
+./crates/test-support/src/lib.rs
+./crates/web/Cargo.toml
+./crates/web/tests/api_admin.rs
+./crates/web/tests/api_alerts.rs
+./crates/web/tests/api_favorites.rs
+./crates/web/tests/api_kline_period.rs
+./crates/web/tests/api_ma_config.rs
+./crates/web/tests/api_multi_period_config.rs
+./crates/web/tests/api_quality.rs
+./crates/web/tests/api_rest.rs
+./crates/web/tests/api_settings.rs
+./crates/web/tests/api_strategies.rs
+./crates/web/tests/api_workbench.rs
+./crates/web/tests/orphan_probe/mod.rs
+./crates/web/tests/period30m_api_contract.rs
+./crates/web/tests/period30m_d2_multiperiod_red.rs
+./crates/web/tests/ws_poller.rs
+./design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+./design/04-storage/02-tushare-sync.md
+./design/04-storage/03-raw-writer.md
+./design/07-app-plane/00-web-api.md
+./design/07-app-plane/01-mcp.md
+./design/07-app-plane/02-alerts.md
+./.entangled/filedb.json
+./.entangled/filedb.lock
+./README.md
+./scripts/testdb-init.sh
+./web/dist/assets/index-BpQVDpqf.css
+./web/dist/assets/index-J50SI06a.js
+./web/dist/index.html
+./web/node_modules/.tmp/tsconfig.app.tsbuildinfo
+./web/node_modules/.tmp/tsconfig.node.tsbuildinfo
+./web/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+
+--- 本任务涉及文件的行数变化（vs HEAD 仅对已跟踪；未跟踪文件给绝对行数）：
+  202 README.md
+  172 scripts/testdb-init.sh
+  356 crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs
+   65 crates/test-support/src/lib.rs
+  121 crates/web/tests/period30m_api_contract.rs
+  916 total
+
+--- gate 文件 md5（原 vs 现）：
+a93bc9aedea7d75aa33c264a1c09d268  crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs
+537bd03025bf30a4e1381c6c0b4b7370  crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs
+porcelain lines now: 98 (baseline: 97)
+98

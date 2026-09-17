@@ -1,0 +1,5 @@
+=== A4(1): count pool-building test files per gate logic (PgPool::connect( or PgPoolOptions+.connect() ===
+count=0
+=== test files using test_support::test_pool ===
+33
+=== hardcoded live URL in crates/**/tests (excl gate file) ===

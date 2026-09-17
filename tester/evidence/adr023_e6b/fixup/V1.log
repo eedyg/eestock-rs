@@ -1,0 +1,7 @@
+## AFTER (fixed script)
+exit=3
+--- stderr:
+[testdb-init] ❌ 源库 `eestock_nonexistent_xyz` 不可达：无法播种测试基线（测试库必须可用，否则集成测试会以难解方式失败）。
+[testdb-init]    如源库不在默认位置，设 EESTOCK_TEST_DB_HOST/PORT/USER/PASSWORD 或 EESTOCK_LIVE_DB_NAME。
+--- stdout:
+--- db list after:

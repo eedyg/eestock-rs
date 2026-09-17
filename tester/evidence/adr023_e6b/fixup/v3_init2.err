@@ -1,0 +1,9 @@
+[testdb-init] 库 `adr023_e6b_fixup_test` 已存在（跳过建库）
+NOTICE:  relation "_eestock_test_migrations" already exists, skipping
+[testdb-init] 迁移应用完成（账本 26 条）
+NOTICE:  relation "_eestock_test_db" already exists, skipping
+[testdb-init] 哨兵表 `_eestock_test_db` 就绪（value=test）
+[testdb-init] 跳过播种 symbols（目标已有 44 行）
+[testdb-init] 跳过播种 strategy（目标已有 23 行）
+[testdb-init] 跳过播种 strategy_version（目标已有 24 行）
+[testdb-init] 跳过播种 kline_accurate（目标已有 518880/510050 的 M1）

@@ -1,0 +1,12 @@
+=== A8: online PID ===
+    PID     ELAPSED CMD
+ 178558    12:10:12 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+scrylink-14bbed4d-455c-482a-b394-a87468c7497b Up 27 hours
+scrylink-8c08155f-cf85-446b-9f9e-75acbea75c47 Up 4 days
+scrylink-023c0fda-392a-4f0a-bed4-3253ef8c2cb2 Up 4 days
+scrylink-godot-023c0fda-392a-4f0a-bed4-3253ef8c2cb2 Up 4 days
+eestock-timescaledb Up 12 days (healthy)
+eestock-data Up 12 days (healthy)
+97
+204cb77a2f345c7163b5a93da4540cd5c66f2d6f
+0

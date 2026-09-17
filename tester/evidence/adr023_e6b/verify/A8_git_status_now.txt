@@ -1,0 +1,98 @@
+=== current git status (tracked changes) ===
+ M Cargo.lock
+ M README.md
+ M crates/mcp/Cargo.toml
+ M crates/mcp/tests/d11_fee_profile_e2e.rs
+ M crates/mcp/tests/mcp_tools_db.rs
+ M crates/storage/Cargo.toml
+ M crates/storage/tests/accurate_upsert.rs
+ M crates/storage/tests/alert_store.rs
+ M crates/storage/tests/backtest.rs
+ M crates/storage/tests/config_store.rs
+ M crates/storage/tests/event_sink.rs
+ M crates/storage/tests/favorite_store.rs
+ M crates/storage/tests/fee_profile_store.rs
+ M crates/storage/tests/kline_reader.rs
+ M crates/storage/tests/ma_config_store.rs
+ M crates/storage/tests/raw_writer.rs
+ M crates/storage/tests/sim_store.rs
+ M crates/storage/tests/strategy_store.rs
+ M crates/storage/tests/symbol_admin.rs
+ M crates/storage/tests/symbol_type_fee_migration.rs
+ M crates/storage/tests/symbols_registry.rs
+ M crates/storage/tests/workbench_store.rs
+ M crates/strategy-runtime/tests/dcap_cross_runtime.rs
+ M crates/strategy-runtime/tests/dcap_plugin_replay.rs
+ M crates/web/Cargo.toml
+ M crates/web/tests/api_admin.rs
+ M crates/web/tests/api_alerts.rs
+ M crates/web/tests/api_favorites.rs
+ M crates/web/tests/api_kline_period.rs
+ M crates/web/tests/api_ma_config.rs
+ M crates/web/tests/api_multi_period_config.rs
+ M crates/web/tests/api_quality.rs
+ M crates/web/tests/api_rest.rs
+ M crates/web/tests/api_settings.rs
+ M crates/web/tests/api_strategies.rs
+ M crates/web/tests/api_workbench.rs
+ M crates/web/tests/orphan_probe/mod.rs
+ M crates/web/tests/period30m_d2_multiperiod_red.rs
+ M crates/web/tests/ws_poller.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/04-storage/02-tushare-sync.md
+ M design/04-storage/03-raw-writer.md
+ M design/07-app-plane/00-web-api.md
+ M design/07-app-plane/01-mcp.md
+ M design/07-app-plane/02-alerts.md
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/295_adr023_e6b_impl_testdb_env_gate.md
+?? crates/storage/tests/adr023_e6b_testdb_env_gate_red.rs
+?? crates/test-support/
+?? prod_tools_schemas_periphery.txt
+?? scripts/testdb-init.sh
+?? scripts/tests/test_adr023_e6b_testdb_gate.sh
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/design/292_adr023_e6b_testdb_env_gate_red_design.md
+?? tester/evidence/018/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? tester/test/293_adr023_e6b_testdb_env_gate_red_execution.md

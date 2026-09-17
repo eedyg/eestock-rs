@@ -1,0 +1,29 @@
+### V4 活库只读快照（after 全部测试运行）
+Thu Sep 17 04:18:04 AM UTC 2026
+symbols=44 strategy=23 strategy_version=24 kline_accurate=16344861 kline_accurate_M1_518880_510050=1631088 kline_raw=114841
+--- app_config:
+dcap => {"m": 3, "n_l": 66, "n_m": 36, "n_s": 8, "r_l": 1.0, "r_m": 1.0, "r_s": 1.0, "smooth": 1}
+--- cagg 孤儿行（code 不在 symbols）：
+     table_name     | orphan_rows 
+--------------------+-------------
+ kline_accurate_5m  |           0
+ kline_accurate_15m |           0
+ kline_accurate_30m |           0
+ kline_accurate_1h  |           0
+ kline_accurate_1d  |           0
+ kline_accurate_1w  |           0
+ kline_accurate_1mo |           0
+ kline_5m           |           0
+ kline_15m          |           0
+ kline_1d           |           0
+(10 rows)
+
+TOTAL_ORPHANS=0
+GET http://127.0.0.1:8081/api/quality/orphans -> 404
+{"error":"not found"}
+GET http://127.0.0.1:8080/api/quality/orphans -> 404
+{"error":"not found"}
+### 最终只读复核（Thu Sep 17 04:24:12 AM UTC 2026）
+symbols=44 kline_accurate=16344861 kline_raw=114841
+TOTAL_ORPHANS=0
+adr023_e6b_gate_iso adr023_e6b_v3_test e6b_red_iso e6b_red_iso2 eestock eestock_d11_probe postgres template0 template1 

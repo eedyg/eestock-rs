@@ -1,0 +1,71 @@
+=== modified test files ===
+crates/mcp/tests/d11_fee_profile_e2e.rs
+crates/mcp/tests/mcp_tools_db.rs
+crates/storage/tests/accurate_upsert.rs
+crates/storage/tests/alert_store.rs
+crates/storage/tests/backtest.rs
+crates/storage/tests/config_store.rs
+crates/storage/tests/event_sink.rs
+crates/storage/tests/favorite_store.rs
+crates/storage/tests/fee_profile_store.rs
+crates/storage/tests/kline_reader.rs
+crates/storage/tests/ma_config_store.rs
+crates/storage/tests/raw_writer.rs
+crates/storage/tests/sim_store.rs
+crates/storage/tests/strategy_store.rs
+crates/storage/tests/symbol_admin.rs
+crates/storage/tests/symbol_type_fee_migration.rs
+crates/storage/tests/symbols_registry.rs
+crates/storage/tests/workbench_store.rs
+crates/strategy-runtime/tests/dcap_cross_runtime.rs
+crates/strategy-runtime/tests/dcap_plugin_replay.rs
+crates/web/tests/api_admin.rs
+crates/web/tests/api_alerts.rs
+crates/web/tests/api_favorites.rs
+crates/web/tests/api_kline_period.rs
+crates/web/tests/api_ma_config.rs
+crates/web/tests/api_multi_period_config.rs
+crates/web/tests/api_quality.rs
+crates/web/tests/api_rest.rs
+crates/web/tests/api_settings.rs
+crates/web/tests/api_strategies.rs
+crates/web/tests/api_workbench.rs
+crates/web/tests/orphan_probe/mod.rs
+crates/web/tests/period30m_d2_multiperiod_red.rs
+crates/web/tests/ws_poller.rs
+
+file                                                       T_head  T_now A_head  A_now L_head  L_now
+crates/mcp/tests/d11_fee_profile_e2e.rs                         1      1     20     20    126    125
+crates/mcp/tests/mcp_tools_db.rs                                8      8     43     43    362    361
+crates/storage/tests/accurate_upsert.rs                         2      2      6      6     56     54
+crates/storage/tests/alert_store.rs                             4      4     49     49    210    209
+crates/storage/tests/backtest.rs                                1      1      8      8     60     59
+crates/storage/tests/config_store.rs                            1      1      7      7     60     59
+crates/storage/tests/event_sink.rs                              3      3      4      4     55     54
+crates/storage/tests/favorite_store.rs                          5      5     21     21    163    162
+crates/storage/tests/fee_profile_store.rs                       1      1     15     15     47     46
+crates/storage/tests/kline_reader.rs                           15     15    101    101    806    805
+crates/storage/tests/ma_config_store.rs                         1      1      5      5     47     46
+crates/storage/tests/raw_writer.rs                              3      3      6      6     59     58
+crates/storage/tests/sim_store.rs                               6      6     45     45    268    267
+crates/storage/tests/strategy_store.rs                         16     16     92     92    545    544
+crates/storage/tests/symbol_admin.rs                            3      3     20     20    132    131
+crates/storage/tests/symbol_type_fee_migration.rs               1      1     25     25    235    234
+crates/storage/tests/symbols_registry.rs                        2      2      6      6     53     52
+crates/storage/tests/workbench_store.rs                         9      9     56     56    312    311
+crates/strategy-runtime/tests/dcap_cross_runtime.rs             6      6     17     17   1032   1032
+crates/strategy-runtime/tests/dcap_plugin_replay.rs             3      3      6      6    455    455
+crates/web/tests/api_admin.rs                                   3      3     37     37    250    249
+crates/web/tests/api_alerts.rs                                  3      3     34     34    249    248
+crates/web/tests/api_favorites.rs                               2      2     19     19    193    192
+crates/web/tests/api_kline_period.rs                            1      1     11     11    139    138
+crates/web/tests/api_ma_config.rs                               1      1      7      7    120    119
+crates/web/tests/api_multi_period_config.rs                    17     17     28     28    636    635
+crates/web/tests/api_quality.rs                                 1      1     32     32    230    229
+crates/web/tests/api_rest.rs                                    2      2     23     23    258    257
+crates/web/tests/api_settings.rs                                6      6     51     51    366    365
+crates/web/tests/api_strategies.rs                              9      9    106    106    565    564
+crates/web/tests/api_workbench.rs                               6      6     90     90    591    590
+crates/web/tests/orphan_probe/mod.rs                            0      0      0      0    110    109
+crates/web/tests/period30m_d2_multiperiod_red.rs                6      6     21     21    376    365
+crates/web/tests/ws_poller.rs                                   1      1      6      6    141    140

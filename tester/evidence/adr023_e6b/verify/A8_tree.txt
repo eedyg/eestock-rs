@@ -1,0 +1,4 @@
+=== A8: cargo tree -e normal test-support ===
+test-support v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/test-support)
+1
+=== Dockerfile test-support ===

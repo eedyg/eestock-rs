@@ -1,0 +1,25 @@
+### R5 变异反证（/tmp 副本；机制级模拟，因实现尚未存在）
+
+[A] 探针基准：未设 EESTOCK_TEST_DATABASE_URL
+FATAL: 环境变量 EESTOCK_TEST_DATABASE_URL 未设置：测试必须显式指定测试库（拒绝静默写生产/活库）。
+exit=2
+
+[B] 门禁版 + 无哨兵库（iso2）
+FATAL: 目标库缺少哨兵表 _eestock_test_db（期望值 'test'，实得 'ERROR:  relation "_eestock_test_db" does not exist
+LINE 1: select value from _eestock_test_db
+                          ^'）：拒绝在非测试库上运行（防误指活库）。
+exit=2
+
+[C] 变异版（哨兵检查注掉）+ 同一无哨兵库（iso2）
+OK: 门禁通过，已在测试库上执行代表写（insert 1 行）
+exit=0
+  写入证据(_e6b_probe_rows 行数)=1
+
+[D] 门禁版 + 建了哨兵的库（iso2 加哨兵后）
+NOTICE:  relation "_e6b_probe_rows" already exists, skipping
+OK: 门禁通过，已在测试库上执行代表写（insert 1 行）
+exit=0
+
+[E] 反例：哨兵值非 test（防假绿）
+FATAL: 目标库缺少哨兵表 _eestock_test_db（期望值 'test'，实得 'prod'）：拒绝在非测试库上运行（防误指活库）。
+exit=2

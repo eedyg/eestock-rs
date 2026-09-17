@@ -1,0 +1,10 @@
+kline_15m orphan=0
+kline_1d orphan=0
+kline_5m orphan=0
+kline_accurate_15m orphan=0
+kline_accurate_1d orphan=0
+kline_accurate_1h orphan=0
+kline_accurate_1mo orphan=0
+kline_accurate_1w orphan=0
+kline_accurate_30m orphan=0
+kline_accurate_5m orphan=0

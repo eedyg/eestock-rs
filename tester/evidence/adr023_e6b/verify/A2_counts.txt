@@ -1,0 +1,15 @@
+=== before run2 counts ===
+symbols = 44
+strategy = 23
+strategy_version = 24
+kline_accurate = 1631088
+kline_accurate_1d = 6768
+_eestock_test_migrations = 26
+_eestock_test_db = 1
+
+=== after run2 counts ===
+symbols = 44
+strategy = 23
+strategy_version = 24
+kline_accurate = 1631088
+kline_accurate_1d = 6768

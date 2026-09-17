@@ -1,0 +1,34 @@
+== R3: scripts/testdb-init.sh 存在 / 可执行 / 幂等 / export 行 ==
+  ok   R3-1 scripts/testdb-init.sh 存在
+  ok   R3-2 scripts/testdb-init.sh 可执行
+  ---- run[1] exit=0
+       [testdb-init] 库 `adr023_e6b_gate_iso` 已存在（跳过建库）
+       NOTICE:  relation "_eestock_test_migrations" already exists, skipping
+       [testdb-init] 迁移应用完成（账本 26 条）
+       NOTICE:  relation "_eestock_test_db" already exists, skipping
+       [testdb-init] 哨兵表 `_eestock_test_db` 就绪（value=test）
+       [testdb-init] 播种 symbols（源 eestock，只读）...
+       [testdb-init]   symbols 播种完成：目标现有 44 行
+       [testdb-init] 播种 strategy（源 eestock，只读）...
+       [testdb-init]   strategy 播种完成：目标现有 23 行
+       [testdb-init] 播种 strategy_version（源 eestock，只读）...
+       [testdb-init]   strategy_version 播种完成：目标现有 24 行
+       [testdb-init] 播种 kline_accurate（518880 + 510050 的 M1；源 eestock，只读）...
+  ok   R3-3 首次运行 exit 0
+  ---- run[2] exit=0
+       [testdb-init] 库 `adr023_e6b_gate_iso` 已存在（跳过建库）
+       NOTICE:  relation "_eestock_test_migrations" already exists, skipping
+       [testdb-init] 迁移应用完成（账本 26 条）
+       NOTICE:  relation "_eestock_test_db" already exists, skipping
+       [testdb-init] 哨兵表 `_eestock_test_db` 就绪（value=test）
+       [testdb-init] 跳过播种 symbols（目标已有 44 行）
+       [testdb-init] 跳过播种 strategy（目标已有 23 行）
+       [testdb-init] 跳过播种 strategy_version（目标已有 24 行）
+       [testdb-init] 跳过播种 kline_accurate（目标已有 518880/510050 的 M1）
+       export EESTOCK_TEST_DATABASE_URL='postgres://eestock:eestock@127.0.0.1:5433/adr023_e6b_gate_iso'
+  ok   R3-4 二次运行 exit 0（幂等）
+  ok   R3-5 打印 export 行：export EESTOCK_TEST_DATABASE_URL='postgres://eestock:eestock@127.0.0.1:5433/adr023_e6b_gate_iso'
+  ok   R3-6 按 export 行设置后写测试通过（raw_writer）
+  ok   R3-7 哨兵表 _eestock_test_db 值 = test
+PASS=7 FAIL=0
+VERDICT: GREEN

@@ -1,0 +1,15 @@
+=== A7 after full test: cagg orphans ===
+kline_15m orphan=0
+kline_1d orphan=0
+kline_5m orphan=0
+kline_accurate_15m orphan=0
+kline_accurate_1d orphan=0
+kline_accurate_1h orphan=0
+kline_accurate_1mo orphan=0
+kline_accurate_1w orphan=0
+kline_accurate_30m orphan=0
+kline_accurate_5m orphan=0
+symbols=44 fp=ed61bd8d72b74c685f4685911efe0693
+app_config_fp=fe3dbcbdf7a18743245cd8175d1b2b98
+kline_accurate=16344861|2026-09-16 07:00:00+00
+kline_raw=114841|2026-09-17 03:30:00+00
