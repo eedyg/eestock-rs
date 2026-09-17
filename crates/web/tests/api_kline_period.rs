@@ -74,6 +74,17 @@ async fn spawn(state: Arc<AppState>) -> String {
 async fn clean(pool: &PgPool) {
     sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    // 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿。
+    // 窗口按**桶边界**取值（refresh 只重算完全落入窗口的桶；CST 日/周/月边界在 UTC 恒为 16:00）：
+    //   本测试夹具 = 2026-08-31(一) 两根 + 2026-09-07(一) 一根 M1 ⇒
+    //     周桶 [08-30 16:00Z, 09-06 16:00Z) 与 [09-06 16:00Z, 09-13 16:00Z)；
+    //     月桶 [07-31 16:00Z, 08-31 16:00Z) 与 [08-31 16:00Z, 09-30 16:00Z)。
+    //   窗口 = [2026-07-31 16:00Z, 2026-10-31 16:00Z)：两端均为 CST 月桶起点（含 8/9/10 月桶与其中全部周桶）。
+    for v in ["kline_accurate_1w", "kline_accurate_1mo"] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '2026-07-31 16:00:00+00', '2026-10-31 16:00:00+00')"))
+            .execute(pool).await.unwrap();
+    }
 }
 
 #[tokio::test]

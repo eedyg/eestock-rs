@@ -42,6 +42,7 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/divergence", get(rest::get_quality_divergence))
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
+        .route("/api/quality/orphans", get(rest::get_quality_orphans))
         .route("/api/tushare/status", get(rest::get_tushare_status))
         // 11-sim-live / L3b：模拟实盘 web 面板（§1.6；handlers 在 simlive.rs，与 MCP 共享同一 SimLiveService）
         .route("/api/sim-live/state", get(simlive::state))

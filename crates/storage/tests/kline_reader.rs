@@ -1,7 +1,7 @@
 // ~/~ begin <<design/07-app-plane/00-web-api.md#crates/storage/tests/kline_reader.rs>>[init]
 //! KlineReader 只读集成测试（需 TimescaleDB :5433）：merge 准确层优先、游标分页、cagg/1h rollup、最新快照。
 
-use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Utc};
 use domain::ports::{HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead, KlineRead,
     QualityRead, TushareStatusRead};
 use domain::types::Period;
@@ -29,11 +29,56 @@ async fn pool() -> PgPool {
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
 }
 
+/// CST 日桶起点（UTC 表示）：CST 日界在 UTC 恒为**前一日 16:00**（ADR-023 §6.2 教训）。
+fn cst_day_start(t: DateTime<Utc>) -> DateTime<Utc> {
+    let d = domain::tz::utc_to_cst(t).date();
+    domain::tz::cst_to_utc(d.and_hms_opt(0, 0, 0).unwrap())
+}
+
+/// CST 月桶起点（UTC 表示）；`plus` 为月偏移（0 = 所在月首，1 = 次月首…）。
+fn cst_month_start(t: DateTime<Utc>, plus: u32) -> DateTime<Utc> {
+    let d = domain::tz::utc_to_cst(t).date();
+    let (mut y, mut m) = (d.year(), d.month());
+    for _ in 0..plus {
+        if m == 12 { y += 1; m = 1; } else { m += 1; }
+    }
+    domain::tz::cst_to_utc(NaiveDate::from_ymd_opt(y, m, 1).unwrap().and_hms_opt(0, 0, 0).unwrap())
+}
+
 async fn clean(pool: &PgPool, code: &str) {
+    // 删前先取本 code 夹具在源表的时间跨度（删后无从得知）⇒ 重算窗口只覆盖**本夹具落入的桶**。
+    let span: (Option<DateTime<Utc>>, Option<DateTime<Utc>>) = sqlx::query_as(
+        "SELECT min(ts), max(ts) FROM (SELECT ts FROM kline_accurate WHERE code = $1 \
+         UNION ALL SELECT ts FROM kline_raw WHERE code = $1) u")
+        .bind(code).fetch_one(pool).await.unwrap();
     for t in ["kline_raw", "kline_accurate", "symbols"] {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(code).execute(pool).await.unwrap();
     }
+    let (Some(lo), Some(hi)) = span else { return };
+    // 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿
+    // （997711/997721/…）。窗口逐字符按**桶边界**取值（refresh 只重算**完全落入窗口**的桶；
+    // CST 日/周/月边界在 UTC 恒为 16:00），且**不扩大到无关窗口**——否则会顺手物化别的测试
+    // 刻意保持未物化的桶（实测：全局宽窗会让 `symbols_latest_prev_close_is_prev_trading_day_d1`
+    // 的 CODE_D1_NEW 取出非 NULL 昨收）。故窗口由**本夹具跨度**推导：
+    //   • intraday + D1 cagg（5m/15m/1h/1d 与 raw 派生 5m/15m/1d）：日桶边界
+    //     [lo 所在 CST 日, hi 所在 CST 日 + 1 日)——CST 日 = 整 24h，是 5m/15m/1h 桶的整数倍且端点对齐；
+    //   • W/MO：月桶边界 [lo 所在 CST 月首, hi 所在 CST 月 + 2 个月首)——整周/整月桶须**完全**落窗。
+    // 表清单 = 本仓测试实际 refresh 过的全部 cagg（漏一张就留孤儿：实测漏 intraday 后全量跑一次留 48 行）。
+    let d1 = (cst_day_start(lo), cst_day_start(hi) + Duration::days(1));
+    let wm = (cst_month_start(lo, 0), cst_month_start(hi, 2));
+    let _g = cagg_refresh_lock().lock().await;
+    for (v, (from, to)) in [
+        ("kline_accurate_5m", d1), ("kline_accurate_15m", d1), ("kline_accurate_1h", d1),
+        ("kline_accurate_1d", d1), ("kline_5m", d1), ("kline_15m", d1), ("kline_1d", d1),
+        ("kline_accurate_1w", wm), ("kline_accurate_1mo", wm),
+    ] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '{}', '{}')",
+            from.format("%Y-%m-%d %H:%M:%S+00"), to.format("%Y-%m-%d %H:%M:%S+00")))
+            .execute(pool).await.unwrap();
+    }
+    drop(_g);
 }
 
 /// cagg refresh 串行化锁：TimescaleDB 对同 cagg 重叠窗口的并发 refresh 报 55P03

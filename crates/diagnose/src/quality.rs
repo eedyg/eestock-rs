@@ -6,8 +6,8 @@ use anyhow::Result;
 use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Timelike, Utc};
 use domain::calendar::{is_weekday, trading_minute_labels};
 use domain::ports::{
-    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, QualityRead,
-    RawBarReader, SyncCheckpointView, TushareStatusRead,
+    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, OrphanReport,
+    QualityRead, RawBarReader, SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Code;
 use domain::tz::{cst_to_utc, utc_to_cst};
@@ -316,6 +316,12 @@ impl QualityService {
             checkpoints: cps,
             last_event,
         })
+    }
+
+    /// GET /api/quality/orphans 数据源（ADR-023 §6.3 第 12 条）：cagg 孤儿行总数 + 逐表分解。
+    /// 检测 SQL 与其覆盖表清单属基础设施（schema 知识）⇒ 本层只消费类型化结果，不内联口径。
+    pub async fn orphan_rows(&self) -> Result<OrphanReport> {
+        self.quality.orphan_rows().await
     }
 
     /// MCP 工具④ get_data_quality(code, date)：单日质量卡（缺口 + 分歧汇总）。

@@ -92,9 +92,30 @@ async fn seed_bars(pool: &PgPool, code: &str, n: i64) {
     }
 }
 
+/// cagg refresh 串行化锁：TimescaleDB 对**同 cagg 重叠窗口**的并发 refresh 报 55P03
+/// （"due to a concurrent refresh"，实锤）。同 binary 测试并行执行（本文件两测试都会重算 kline_1d），
+/// 所有 refresh 调用须经此锁（与 storage/tests/kline_reader.rs 同口径）。
+fn cagg_refresh_lock() -> &'static tokio::sync::Mutex<()> {
+    static L: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    L.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
 // 两测试并行执行：各自的 clean 只碰自己的 code/source（共享清理会互删，实锤踩坑）。
+// 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿，
+// 必须对**该夹具涉及的 cagg 窗口**显式 refresh。窗口按**桶边界**取值（refresh 只重算完全落入窗口的桶）：
+//   • kline_5m：5m 桶 = UTC 5 分钟边界；base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；
+//   • kline_1d：CST 日界桶（日界 UTC 恒为前一 16:00）⇒ 2026-09-03 CST 桶 = [09-02 16:00Z, 09-03 16:00Z)。
 async fn clean_kline(pool: &PgPool) {
     sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    let _g = cagg_refresh_lock().lock().await;
+    for (v, from, to) in [
+        ("kline_5m", "2026-09-03 01:30:00+00", "2026-09-03 01:35:00+00"),
+        ("kline_1d", "2026-09-02 16:00:00+00", "2026-09-03 16:00:00+00"),
+    ] {
+        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', '{from}', '{to}')"))
+            .execute(pool).await.unwrap();
+    }
+    drop(_g);
 }
 
 async fn clean_sym(pool: &PgPool) {
@@ -102,6 +123,11 @@ async fn clean_sym(pool: &PgPool) {
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(SCODE).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM source_health_events WHERE source = $1").bind(HSRC)
         .execute(pool).await.unwrap();
+    // 删完即重算：SCODE 夹具落在 2026-09-03 CST 日桶 ⇒ 同口径窗口（日界 UTC 16:00）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 16:00:00+00', '2026-09-03 16:00:00+00')")
+        .execute(pool).await.unwrap();
+    drop(_g);
 }
 
 #[tokio::test]
@@ -147,9 +173,12 @@ async fn kline_cursor_pagination_cagg_and_validation() {
         .query(&[("code", CODE), ("before", "not-a-time")]).send().await.unwrap();
     assert_eq!(r.status(), 400, "非法 before → 400");
 
-    // cagg 周期（5m 桶：开 1 收 5 量 500）
-    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', NULL, NULL)")
+    // cagg 周期（5m 桶：开 1 收 5 量 500）。窗口按桶边界（5m 桶 = UTC 5 分钟边界）：
+    // base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；禁 NULL,NULL 全量刷（ADR-023 §6.1 第 8 条）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', '2026-09-03 01:30:00+00', '2026-09-03 01:35:00+00')")
         .execute(&pool).await.unwrap();
+    drop(_g);
     let v5: Value = http.get(format!("{url}/api/kline"))
         .query(&[("code", CODE), ("period", "5m")]).send().await.unwrap().json().await.unwrap();
     let bars5 = v5["bars"].as_array().unwrap();
@@ -173,8 +202,10 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
     // （kline_1d 兜底，须显式物化 base() 日桶）。last=2.0、昨收=2.0 → 0.0；
     // 日界/空档/NULL 口径由 storage symbols_latest_prev_close_is_prev_trading_day_d1 锁定，
     // 本测试只验证 REST 链路接线（prev_close → change_pct 同一路径）。
+    let _g = cagg_refresh_lock().lock().await;
     sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')")
         .execute(&pool).await.unwrap();
+    drop(_g);
     for i in 0..3 {
         sqlx::query("INSERT INTO source_health_events (ts, source, ok, latency_ms) \
                      VALUES (now() - make_interval(secs => $1), $2, true, 120)")

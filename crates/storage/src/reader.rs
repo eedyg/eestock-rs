@@ -14,8 +14,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, Utc};
 use domain::ports::{
     DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead,
-    KlineBarView, KlineRead, QualityRead, SymbolLatestView, SymbolStatView, SymbolStatsRead,
-    SyncCheckpointView, TushareStatusRead,
+    KlineBarView, KlineRead, OrphanReport, QualityRead, SymbolLatestView, SymbolStatView,
+    SymbolStatsRead, SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Period;
 use sqlx::PgPool;
@@ -321,6 +321,50 @@ WHERE ($1::text IS NULL OR r.code = $1)
 ORDER BY r.ts
 "#;
 
+/// 孤儿行审计覆盖的 cagg（ADR-023 §6.3 第 12 条）：7 张 accurate + 3 张 raw 派生，顺序固定。
+pub const ORPHAN_TABLES: [&str; 10] = [
+    "kline_accurate_5m", "kline_accurate_15m", "kline_accurate_30m", "kline_accurate_1h",
+    "kline_accurate_1d", "kline_accurate_1w", "kline_accurate_1mo",
+    "kline_5m", "kline_15m", "kline_1d",
+];
+
+/// 孤儿行检测 SQL（**单一事实源**：全仓只在本处定义一次；顶层端点 `GET /api/quality/orphans`
+/// 经 `diagnose::quality::QualityService::orphan_rows` → 本文件 `QualityRead::orphan_rows` 走同一份）。
+/// 口径（ADR-023 §6.3 第 12 条）：cagg 物化行的 `code` 不在 symbols 里 = 源行已删、cagg 不回删的
+/// 测试残留（桩码 997711/997721/997732/997733/997751/997752/997773 即此类）。
+/// 列固定 `table_name text, orphan_rows bigint`，与 [`ORPHAN_TABLES`] 同序（缺表会导致端点 by_table 缺键）。
+pub const ORPHAN_ROWS_SQL: &str = r#"
+SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_5m', count(*) FROM kline_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_15m', count(*) FROM kline_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_1d', count(*) FROM kline_1d
+  WHERE code NOT IN (SELECT code FROM symbols)
+"#;
+
 #[async_trait]
 impl QualityRead for KlineReader {
     async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
@@ -331,6 +375,14 @@ impl QualityRead for KlineReader {
         Ok(rows.into_iter().map(|(ts, code, raw_close, accurate_close, raw_source)|
             DivergenceRow { ts, code, raw_close, accurate_close, raw_source: Some(raw_source) }
         ).collect())
+    }
+
+    /// 孤儿行审计：执行本文件唯一的 `ORPHAN_ROWS_SQL`（口径不在 diagnose/web 另抄一份）。
+    async fn orphan_rows(&self) -> Result<OrphanReport> {
+        let rows: Vec<(String, i64)> = sqlx::query_as(ORPHAN_ROWS_SQL).fetch_all(&self.pool).await?;
+        let by_table: std::collections::HashMap<String, i64> = rows.into_iter().collect();
+        let rows = by_table.values().sum();
+        Ok(OrphanReport { rows, by_table })
     }
 }
 

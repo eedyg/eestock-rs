@@ -574,12 +574,31 @@ pub struct DivergenceRow {
     pub raw_source: Option<String>,
 }
 
+/// 孤儿行审计读模型（ADR-023 §6.3 第 12 条）：cagg 物化行的 `code` **不在 symbols 里** ⇒ 测试残留。
+/// `by_table` 覆盖 10 张 cagg（7 张 accurate + 3 张 raw 派生），键 = cagg 表名（缺表须补 0）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OrphanReport {
+    /// 各表孤儿行数之和（并集计数口径）。
+    pub rows: i64,
+    /// 逐 cagg 分解：表名 → 孤儿行数。
+    pub by_table: std::collections::HashMap<String, i64>,
+}
+
 /// 质量对照只读端口（diagnose::quality::QualityService 输入；storage 实现）。
 #[async_trait]
 pub trait QualityRead: Send + Sync {
     /// [from, to) 内 raw ⋈ accurate(M1) 双侧行（code=None 全标的；ts 升序）。
     async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
         -> anyhow::Result<Vec<DivergenceRow>>;
+
+    /// 孤儿行审计（ADR-023 §6.3 第 12 条）：逐 cagg 统计「code 不在 symbols 里」的行数。
+    /// 检测谓词与
+    /// 覆盖表清单是 **schema 知识（基础设施）** ⇒ 定义在 storage 侧的 QualityRead 实现里且只定义一次；
+    /// 端口只搬运**类型化结果**（Application/Presentation 层不得出现该检测 SQL 文本）。
+    /// 默认实现：测试替身/纯内存实现无需提供（被调用即报错，不静默返回空）。
+    async fn orphan_rows(&self) -> anyhow::Result<OrphanReport> {
+        anyhow::bail!("QualityRead::orphan_rows 未实现（仅真库实现 storage::reader::KlineReader 提供）")
+    }
 }
 
 /// 节假日只读端口（0008 holidays 表；collector HolidayCalendar 刷新与 diagnose 缺口报告共用）。

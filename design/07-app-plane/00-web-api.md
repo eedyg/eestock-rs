@@ -67,6 +67,7 @@
 | `GET /api/quality/divergence`（Wave 2 Phase A） | `code`（必填）、`from`/`to`（YYYY-MM-DD 必填，按 CST 日界闭区间，跨度钳制 ≤62 天）、`threshold_pct`（默认 0.5 = 页面④ `QUALITY_DEFAULTS.consistencyThresholdPct` 定稿口径） | `{"code","from","to","threshold_pct","summary":{"compared_bars","divergent_bars","divergence_rate","consistency_rate","max_deviation_pct"},"rows":[{"ts,raw_close,accurate_close,deviation_pct,raw_source}]}`；rows 按 \|偏差\| 降序；**只比 close**（D4 结案：amount 不跨层比对，04-storage §4.4 注记 7）；无比对数据 → rows 空 + summary 全 null/0 | `kline_raw ⋈ kline_accurate(period='M1')`（diagnose::quality） | 400：code 空 / from、to 非法或 from>to / threshold_pct 非正；500 |
 | `GET /api/quality/source-accuracy`（Wave 2 Phase A） | `from`/`to`、`threshold_pct`（同上） | `{"from","to","threshold_pct","sources":[{"source,samples,consistency_rate,avg_deviation_pct,max_deviation_pct}]}`（一致率降序） | 同上（全标的对照行按 raw_source 归组） | 400/500 同上 |
 | `GET /api/quality/gaps`（Wave 2 Phase A） | `code`（必填）、`from`/`to`（同上） | `{"code","from","to","days":[{"date","expected_bars","actual_bars","missing_bars","segments":[{"start","end","count","class"}]}]}`；仅含**有缺口的交易日**（周末 ∪ holidays[0008] 整日排除；未来分钟不算缺口）；start/end 为 CST "HH:MM"；class ∈ `source_fault`（窗口内有失败/陈旧/熔断事件）/ `upstream_no_data`（源可达但无该分钟数据：na 或仅成功事件）/ `system_gap`（邻近无事件：采集停摆/事件空窗，D5 口径） | 交易日历（0008 + 周末）× 241 分钟标签 − `kline_raw` 已有 ts；分类证据 = `source_health_events` 区间 | 400/500 同上 |
+| `GET /api/quality/orphans`（ADR-023 §6.3 第 12 条） | — | `{"rows":<i64>,"by_table":{"<cagg 表名>":<i64>,×10}}`；`rows` = 各表之和；by_table 恒 10 键（7 accurate + 3 raw 派生，缺表补 0）；无孤儿 ⇒ 全 0 | 10 张 cagg 物化表反连 `symbols`（唯一 SQL 定义在 `storage::reader::ORPHAN_ROWS_SQL`） | 500 |
 | `GET /api/tushare/status`（Wave 2 Phase A） | — | `{"checkpoints":[{"code,period,last_synced_date,updated_at}],"covered_codes","last_updated_at","last_event":{"ts","ok","err_kind"}\|null,"quota_remaining":null}`（积分余额未入库 → 恒 null，待 tushare 账户侧可查后单开） | `sync_checkpoints`（0005）+ `source_health_events` 最近 7 日 source='tushare' 事件 | 500 |
 | `GET /api/config/ma`（看板 MA 可配置，后端 W1） | — | `{"windows":[5,10,20]}`（归一化升序去重；主图+宫格应用，回测弹窗不动） | `ma_config`（0015，应用面自有表；表空 → 默认 [5,10,20]） | 500 |
 | `PUT /api/config/ma`（看板 MA 可配置，后端 W1） | body `{"windows":[5,10,20]}` | 200 `{"windows":[...]}`（校验+归一化升序去重后写回并返回） | 同上 | 400：1-3 条 / 每条 1-500 整数；500 |
@@ -665,8 +666,8 @@ use anyhow::Result;
 use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Timelike, Utc};
 use domain::calendar::{is_weekday, trading_minute_labels};
 use domain::ports::{
-    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, QualityRead,
-    RawBarReader, SyncCheckpointView, TushareStatusRead,
+    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, OrphanReport,
+    QualityRead, RawBarReader, SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Code;
 use domain::tz::{cst_to_utc, utc_to_cst};
@@ -975,6 +976,12 @@ impl QualityService {
             checkpoints: cps,
             last_event,
         })
+    }
+
+    /// GET /api/quality/orphans 数据源（ADR-023 §6.3 第 12 条）：cagg 孤儿行总数 + 逐表分解。
+    /// 检测 SQL 与其覆盖表清单属基础设施（schema 知识）⇒ 本层只消费类型化结果，不内联口径。
+    pub async fn orphan_rows(&self) -> Result<OrphanReport> {
+        self.quality.orphan_rows().await
     }
 
     /// MCP 工具④ get_data_quality(code, date)：单日质量卡（缺口 + 分歧汇总）。
@@ -1356,8 +1363,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, Utc};
 use domain::ports::{
     DivergenceRow, HealthEventRow, HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead,
-    KlineBarView, KlineRead, QualityRead, SymbolLatestView, SymbolStatView, SymbolStatsRead,
-    SyncCheckpointView, TushareStatusRead,
+    KlineBarView, KlineRead, OrphanReport, QualityRead, SymbolLatestView, SymbolStatView,
+    SymbolStatsRead, SyncCheckpointView, TushareStatusRead,
 };
 use domain::types::Period;
 use sqlx::PgPool;
@@ -1663,6 +1670,50 @@ WHERE ($1::text IS NULL OR r.code = $1)
 ORDER BY r.ts
 "#;
 
+/// 孤儿行审计覆盖的 cagg（ADR-023 §6.3 第 12 条）：7 张 accurate + 3 张 raw 派生，顺序固定。
+pub const ORPHAN_TABLES: [&str; 10] = [
+    "kline_accurate_5m", "kline_accurate_15m", "kline_accurate_30m", "kline_accurate_1h",
+    "kline_accurate_1d", "kline_accurate_1w", "kline_accurate_1mo",
+    "kline_5m", "kline_15m", "kline_1d",
+];
+
+/// 孤儿行检测 SQL（**单一事实源**：全仓只在本处定义一次；顶层端点 `GET /api/quality/orphans`
+/// 经 `diagnose::quality::QualityService::orphan_rows` → 本文件 `QualityRead::orphan_rows` 走同一份）。
+/// 口径（ADR-023 §6.3 第 12 条）：cagg 物化行的 `code` 不在 symbols 里 = 源行已删、cagg 不回删的
+/// 测试残留（桩码 997711/997721/997732/997733/997751/997752/997773 即此类）。
+/// 列固定 `table_name text, orphan_rows bigint`，与 [`ORPHAN_TABLES`] 同序（缺表会导致端点 by_table 缺键）。
+pub const ORPHAN_ROWS_SQL: &str = r#"
+SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_5m', count(*) FROM kline_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_15m', count(*) FROM kline_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_1d', count(*) FROM kline_1d
+  WHERE code NOT IN (SELECT code FROM symbols)
+"#;
+
 #[async_trait]
 impl QualityRead for KlineReader {
     async fn divergence_rows(&self, code: Option<&str>, from: DateTime<Utc>, to: DateTime<Utc>)
@@ -1673,6 +1724,14 @@ impl QualityRead for KlineReader {
         Ok(rows.into_iter().map(|(ts, code, raw_close, accurate_close, raw_source)|
             DivergenceRow { ts, code, raw_close, accurate_close, raw_source: Some(raw_source) }
         ).collect())
+    }
+
+    /// 孤儿行审计：执行本文件唯一的 `ORPHAN_ROWS_SQL`（口径不在 diagnose/web 另抄一份）。
+    async fn orphan_rows(&self) -> Result<OrphanReport> {
+        let rows: Vec<(String, i64)> = sqlx::query_as(ORPHAN_ROWS_SQL).fetch_all(&self.pool).await?;
+        let by_table: std::collections::HashMap<String, i64> = rows.into_iter().collect();
+        let rows = by_table.values().sum();
+        Ok(OrphanReport { rows, by_table })
     }
 }
 
@@ -1734,7 +1793,7 @@ impl HolidayCalendarRead for HolidaysReader {
 ``` {.rust file=crates/storage/tests/kline_reader.rs}
 //! KlineReader 只读集成测试（需 TimescaleDB :5433）：merge 准确层优先、游标分页、cagg/1h rollup、最新快照。
 
-use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Utc};
 use domain::ports::{HealthEventsRangeRead, HealthEventsRead, HolidayCalendarRead, KlineRead,
     QualityRead, TushareStatusRead};
 use domain::types::Period;
@@ -1762,11 +1821,56 @@ async fn pool() -> PgPool {
     PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
 }
 
+/// CST 日桶起点（UTC 表示）：CST 日界在 UTC 恒为**前一日 16:00**（ADR-023 §6.2 教训）。
+fn cst_day_start(t: DateTime<Utc>) -> DateTime<Utc> {
+    let d = domain::tz::utc_to_cst(t).date();
+    domain::tz::cst_to_utc(d.and_hms_opt(0, 0, 0).unwrap())
+}
+
+/// CST 月桶起点（UTC 表示）；`plus` 为月偏移（0 = 所在月首，1 = 次月首…）。
+fn cst_month_start(t: DateTime<Utc>, plus: u32) -> DateTime<Utc> {
+    let d = domain::tz::utc_to_cst(t).date();
+    let (mut y, mut m) = (d.year(), d.month());
+    for _ in 0..plus {
+        if m == 12 { y += 1; m = 1; } else { m += 1; }
+    }
+    domain::tz::cst_to_utc(NaiveDate::from_ymd_opt(y, m, 1).unwrap().and_hms_opt(0, 0, 0).unwrap())
+}
+
 async fn clean(pool: &PgPool, code: &str) {
+    // 删前先取本 code 夹具在源表的时间跨度（删后无从得知）⇒ 重算窗口只覆盖**本夹具落入的桶**。
+    let span: (Option<DateTime<Utc>>, Option<DateTime<Utc>>) = sqlx::query_as(
+        "SELECT min(ts), max(ts) FROM (SELECT ts FROM kline_accurate WHERE code = $1 \
+         UNION ALL SELECT ts FROM kline_raw WHERE code = $1) u")
+        .bind(code).fetch_one(pool).await.unwrap();
     for t in ["kline_raw", "kline_accurate", "symbols"] {
         sqlx::query(&format!("DELETE FROM {t} WHERE code = $1"))
             .bind(code).execute(pool).await.unwrap();
     }
+    let (Some(lo), Some(hi)) = span else { return };
+    // 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿
+    // （997711/997721/…）。窗口逐字符按**桶边界**取值（refresh 只重算**完全落入窗口**的桶；
+    // CST 日/周/月边界在 UTC 恒为 16:00），且**不扩大到无关窗口**——否则会顺手物化别的测试
+    // 刻意保持未物化的桶（实测：全局宽窗会让 `symbols_latest_prev_close_is_prev_trading_day_d1`
+    // 的 CODE_D1_NEW 取出非 NULL 昨收）。故窗口由**本夹具跨度**推导：
+    //   • intraday + D1 cagg（5m/15m/1h/1d 与 raw 派生 5m/15m/1d）：日桶边界
+    //     [lo 所在 CST 日, hi 所在 CST 日 + 1 日)——CST 日 = 整 24h，是 5m/15m/1h 桶的整数倍且端点对齐；
+    //   • W/MO：月桶边界 [lo 所在 CST 月首, hi 所在 CST 月 + 2 个月首)——整周/整月桶须**完全**落窗。
+    // 表清单 = 本仓测试实际 refresh 过的全部 cagg（漏一张就留孤儿：实测漏 intraday 后全量跑一次留 48 行）。
+    let d1 = (cst_day_start(lo), cst_day_start(hi) + Duration::days(1));
+    let wm = (cst_month_start(lo, 0), cst_month_start(hi, 2));
+    let _g = cagg_refresh_lock().lock().await;
+    for (v, (from, to)) in [
+        ("kline_accurate_5m", d1), ("kline_accurate_15m", d1), ("kline_accurate_1h", d1),
+        ("kline_accurate_1d", d1), ("kline_5m", d1), ("kline_15m", d1), ("kline_1d", d1),
+        ("kline_accurate_1w", wm), ("kline_accurate_1mo", wm),
+    ] {
+        sqlx::query(&format!(
+            "CALL refresh_continuous_aggregate('{v}', '{}', '{}')",
+            from.format("%Y-%m-%d %H:%M:%S+00"), to.format("%Y-%m-%d %H:%M:%S+00")))
+            .execute(pool).await.unwrap();
+    }
+    drop(_g);
 }
 
 /// cagg refresh 串行化锁：TimescaleDB 对同 cagg 重叠窗口的并发 refresh 报 55P03
@@ -2543,6 +2647,7 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/quality/divergence", get(rest::get_quality_divergence))
         .route("/api/quality/source-accuracy", get(rest::get_quality_source_accuracy))
         .route("/api/quality/gaps", get(rest::get_quality_gaps))
+        .route("/api/quality/orphans", get(rest::get_quality_orphans))
         .route("/api/tushare/status", get(rest::get_tushare_status))
         // 11-sim-live / L3b：模拟实盘 web 面板（§1.6；handlers 在 simlive.rs，与 MCP 共享同一 SimLiveService）
         .route("/api/sim-live/state", get(simlive::state))
@@ -4085,6 +4190,19 @@ pub async fn get_quality_gaps(State(st): State<Arc<AppState>>,
     }
 }
 
+/// GET /api/quality/orphans —— cagg 孤儿行（`code` 不在 `symbols` 里）总数 + 逐表分解。
+/// ADR-023 §6.3 第 12 条：测试残留可污染生产 cagg（源行已删、cagg 不回删）⇒ 常态检测端点。
+/// 口径单一事实源在 **storage 侧 `QualityRead::orphan_rows`**（本层只搬运类型化结果，不内联 SQL）。
+pub async fn get_quality_orphans(State(st): State<Arc<AppState>>) -> Response {
+    match st.quality.orphan_rows().await {
+        Ok(rep) => Json(serde_json::json!({
+            "rows": rep.rows,
+            "by_table": rep.by_table,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
 /// GET /api/tushare/status —— 页面④ sync-panel 状态区。
 /// quota_remaining 恒 null：tushare 积分余额未入库（§1.1 注明，待账户侧可查后单开）。
 pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
@@ -4821,9 +4939,30 @@ async fn seed_bars(pool: &PgPool, code: &str, n: i64) {
     }
 }
 
+/// cagg refresh 串行化锁：TimescaleDB 对**同 cagg 重叠窗口**的并发 refresh 报 55P03
+/// （"due to a concurrent refresh"，实锤）。同 binary 测试并行执行（本文件两测试都会重算 kline_1d），
+/// 所有 refresh 调用须经此锁（与 storage/tests/kline_reader.rs 同口径）。
+fn cagg_refresh_lock() -> &'static tokio::sync::Mutex<()> {
+    static L: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    L.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
 // 两测试并行执行：各自的 clean 只碰自己的 code/source（共享清理会互删，实锤踩坑）。
+// 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿，
+// 必须对**该夹具涉及的 cagg 窗口**显式 refresh。窗口按**桶边界**取值（refresh 只重算完全落入窗口的桶）：
+//   • kline_5m：5m 桶 = UTC 5 分钟边界；base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；
+//   • kline_1d：CST 日界桶（日界 UTC 恒为前一 16:00）⇒ 2026-09-03 CST 桶 = [09-02 16:00Z, 09-03 16:00Z)。
 async fn clean_kline(pool: &PgPool) {
     sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    let _g = cagg_refresh_lock().lock().await;
+    for (v, from, to) in [
+        ("kline_5m", "2026-09-03 01:30:00+00", "2026-09-03 01:35:00+00"),
+        ("kline_1d", "2026-09-02 16:00:00+00", "2026-09-03 16:00:00+00"),
+    ] {
+        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', '{from}', '{to}')"))
+            .execute(pool).await.unwrap();
+    }
+    drop(_g);
 }
 
 async fn clean_sym(pool: &PgPool) {
@@ -4831,6 +4970,11 @@ async fn clean_sym(pool: &PgPool) {
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(SCODE).execute(pool).await.unwrap();
     sqlx::query("DELETE FROM source_health_events WHERE source = $1").bind(HSRC)
         .execute(pool).await.unwrap();
+    // 删完即重算：SCODE 夹具落在 2026-09-03 CST 日桶 ⇒ 同口径窗口（日界 UTC 16:00）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 16:00:00+00', '2026-09-03 16:00:00+00')")
+        .execute(pool).await.unwrap();
+    drop(_g);
 }
 
 #[tokio::test]
@@ -4876,9 +5020,12 @@ async fn kline_cursor_pagination_cagg_and_validation() {
         .query(&[("code", CODE), ("before", "not-a-time")]).send().await.unwrap();
     assert_eq!(r.status(), 400, "非法 before → 400");
 
-    // cagg 周期（5m 桶：开 1 收 5 量 500）
-    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', NULL, NULL)")
+    // cagg 周期（5m 桶：开 1 收 5 量 500）。窗口按桶边界（5m 桶 = UTC 5 分钟边界）：
+    // base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；禁 NULL,NULL 全量刷（ADR-023 §6.1 第 8 条）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', '2026-09-03 01:30:00+00', '2026-09-03 01:35:00+00')")
         .execute(&pool).await.unwrap();
+    drop(_g);
     let v5: Value = http.get(format!("{url}/api/kline"))
         .query(&[("code", CODE), ("period", "5m")]).send().await.unwrap().json().await.unwrap();
     let bars5 = v5["bars"].as_array().unwrap();
@@ -4902,8 +5049,10 @@ async fn symbols_latest_healthz_spa_and_sources_health() {
     // （kline_1d 兜底，须显式物化 base() 日桶）。last=2.0、昨收=2.0 → 0.0；
     // 日界/空档/NULL 口径由 storage symbols_latest_prev_close_is_prev_trading_day_d1 锁定，
     // 本测试只验证 REST 链路接线（prev_close → change_pct 同一路径）。
+    let _g = cagg_refresh_lock().lock().await;
     sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')")
         .execute(&pool).await.unwrap();
+    drop(_g);
     for i in 0..3 {
         sqlx::query("INSERT INTO source_health_events (ts, source, ok, latency_ms) \
                      VALUES (now() - make_interval(secs => $1), $2, true, 120)")

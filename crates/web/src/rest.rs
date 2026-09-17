@@ -344,6 +344,19 @@ pub async fn get_quality_gaps(State(st): State<Arc<AppState>>,
     }
 }
 
+/// GET /api/quality/orphans —— cagg 孤儿行（`code` 不在 `symbols` 里）总数 + 逐表分解。
+/// ADR-023 §6.3 第 12 条：测试残留可污染生产 cagg（源行已删、cagg 不回删）⇒ 常态检测端点。
+/// 口径单一事实源在 **storage 侧 `QualityRead::orphan_rows`**（本层只搬运类型化结果，不内联 SQL）。
+pub async fn get_quality_orphans(State(st): State<Arc<AppState>>) -> Response {
+    match st.quality.orphan_rows().await {
+        Ok(rep) => Json(serde_json::json!({
+            "rows": rep.rows,
+            "by_table": rep.by_table,
+        })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
 /// GET /api/tushare/status —— 页面④ sync-panel 状态区。
 /// quota_remaining 恒 null：tushare 积分余额未入库（§1.1 注明，待账户侧可查后单开）。
 pub async fn get_tushare_status(State(st): State<Arc<AppState>>) -> Response {
