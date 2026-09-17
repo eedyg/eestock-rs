@@ -1,0 +1,12 @@
+### R5 静态判据 shell 复核
+$ grep -rn "refresh_continuous_aggregate" crates/*/tests | wc -l
+24
+$ grep -rn "refresh_continuous_aggregate([^)]*NULL, NULL" crates/*/tests
+crates/web/tests/api_rest.rs:151:    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', NULL, NULL)")
+crates/web/tests/orphan_detect_endpoint_red.rs:138:/// 扫描单个文件里的「refresh_continuous_aggregate(..., NULL, NULL)」调用（注释行不计）。
+crates/web/tests/orphan_detect_endpoint_red.rs:178:/// R5（静态）：crates 下测试文件内**禁止** refresh_continuous_aggregate(NULL, NULL)。
+crates/web/tests/orphan_detect_endpoint_red.rs:198:        "R5: 测试内禁 refresh_continuous_aggregate(NULL, NULL)（全量刷）；违规点：{viol:?}");
+$ grep -rn "refresh_continuous_aggregate([^)]*NULL, NULL" crates/*/tests | wc -l
+4
+$ grep -rn "refresh_continuous_aggregate([^)]*NULL, NULL" crates/*/tests | grep -v orphan_detect_endpoint_red.rs | wc -l
+crates/web/tests/api_rest.rs:151:    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', NULL, NULL)")

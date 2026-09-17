@@ -1,0 +1,19 @@
+=== ADR-023 mtime (证明我未改：早于本轮开工 09:12) ===
+2026-09-17 09:03:33.745985567 +0800 design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+
+=== 断言结构计数（HEAD vs 工作区）===
+crates/web/tests/api_rest.rs  HEAD_assert_lines=23  WORKTREE_assert_lines=23
+crates/storage/tests/kline_reader.rs  HEAD_assert_lines=101  WORKTREE_assert_lines=101
+crates/web/tests/api_kline_period.rs  HEAD_assert_lines=11  WORKTREE_assert_lines=11
+
+=== 断言行逐条比对（工作区断言行集合 == HEAD 断言行集合 + 新增？）===
+--- crates/web/tests/api_rest.rs
+  (断言行逐字相同)
+--- crates/storage/tests/kline_reader.rs
+  (断言行逐字相同)
+--- crates/web/tests/api_kline_period.rs
+  (断言行逐字相同)
+
+=== 非 clean/refresh/注释 的行为改动（工作区 vs HEAD 的删行）===
+-use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
+-    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', NULL, NULL)")

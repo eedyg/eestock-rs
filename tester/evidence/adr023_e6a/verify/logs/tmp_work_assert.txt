@@ -1,0 +1,11 @@
+119:    assert_eq!(v["period"], "1w");
+121:    assert_eq!(bars.len(), 2, "1w 返回两个交易周");
+122:    assert_eq!(bars[0]["open"], 1.0, "1w 首周 open=first(open)");
+123:    assert_eq!(bars[0]["close"], 2.0, "1w 首周 close=last(close)");
+124:    assert_eq!(bars[0]["volume"], 200);
+125:    assert_eq!(bars[1]["open"], 3.0);
+131:    assert_eq!(v["period"], "1mo");
+133:    assert_eq!(bars.len(), 2, "1mo 返回两个自然月");
+134:    assert_eq!(bars[0]["open"], 1.0);
+135:    assert_eq!(bars[0]["close"], 2.0);
+136:    assert_eq!(bars[1]["open"], 3.0);

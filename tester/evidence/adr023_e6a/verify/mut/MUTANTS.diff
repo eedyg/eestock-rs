@@ -1,0 +1,120 @@
+### m1  (base -> m1)
+--- a/crates/diagnose/src/quality.rs	2026-09-17 09:18:18.641625682 +0800
++++ b/crates/diagnose/src/quality.rs	2026-09-17 09:35:11.475300511 +0800
+@@ -465,3 +465,35 @@
+     }
+ }
+ // ~/~ end
++
++// MUTANT M1: verbatim copy of the production orphan-detection SQL into the application layer
++pub const MUTANT_ORPHAN_SQL: &str = r#"SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_5m', count(*) FROM kline_5m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_15m', count(*) FROM kline_15m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_1d', count(*) FROM kline_1d
++  WHERE code NOT IN (SELECT code FROM symbols)
++"#;
+### m2  (base -> m2)
+--- a/crates/web/src/rest.rs	2026-09-17 09:18:18.647380818 +0800
++++ b/crates/web/src/rest.rs	2026-09-17 09:35:11.475432544 +0800
+@@ -460,3 +460,35 @@
+     }
+ }
+ // ~/~ end
++
++// MUTANT M2: verbatim copy of the production orphan-detection SQL into the web layer
++pub const MUTANT_ORPHAN_SQL: &str = r#"SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_5m', count(*) FROM kline_5m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_15m', count(*) FROM kline_15m
++  WHERE code NOT IN (SELECT code FROM symbols)
++UNION ALL
++SELECT 'kline_1d', count(*) FROM kline_1d
++  WHERE code NOT IN (SELECT code FROM symbols)
++"#;
+### m3  (base -> m3)
+--- a/crates/diagnose/src/quality.rs	2026-09-17 09:18:18.641625682 +0800
++++ b/crates/diagnose/src/quality.rs	2026-09-17 09:35:11.475530786 +0800
+@@ -465,3 +465,15 @@
+     }
+ }
+ // ~/~ end
++
++// MUTANT M3: semantically-equivalent hand-written NOT EXISTS copy (predicate wording differs)
++pub const MUTANT_ORPHAN_SQL2: &str = r#"SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_5m', count(*) FROM kline_5m c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_15m', count(*) FROM kline_15m c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)
++UNION ALL SELECT 'kline_1d', count(*) FROM kline_1d c WHERE NOT EXISTS (SELECT 1 FROM symbols s WHERE s.code = c.code)"#;
+### m4  (base -> m4)
+--- a/crates/web/src/rest.rs	2026-09-17 09:18:18.647380818 +0800
++++ b/crates/web/src/rest.rs	2026-09-17 09:35:11.475613718 +0800
+@@ -460,3 +460,6 @@
+     }
+ }
+ // ~/~ end
++
++// MUTANT M4: prose comment only — mentions kline_5m / kline_accurate_15m / kline_1d but NO SQL
++// (mirrors the existing web/src/dto.rs:28 case that motivated narrowing (f) to SQL form)
+### m5  (base -> m5)
+--- a/crates/web/src/rest.rs	2026-09-17 09:18:18.647380818 +0800
++++ b/crates/web/src/rest.rs	2026-09-17 09:35:11.475686949 +0800
+@@ -460,3 +460,9 @@
+     }
+ }
+ // ~/~ end
++
++// MUTANT M5: fully dynamic composition — neither the literal predicate nor `from <table>` appears.
++pub fn mutant_dynamic_orphan(table: &str) -> String {
++    let sym = "symbols";
++    format!("SELECT count(*) FROM {} WHERE code NOT IN (SELECT code FROM {})", table, sym)
++}

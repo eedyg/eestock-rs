@@ -1,0 +1,17 @@
+=== tester 红测试文件：用例名与断言计数（不得新增/删除用例）===
+--- crates/web/tests/orphan_detect_endpoint_red.rs
+  用例: 9 test-attrs=4
+  26:async fn r1_orphan_endpoint_exists_and_reports_zero_on_clean_db() {
+  64:fn r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint() {
+  138:fn r4a_clean_functions_refresh_affected_cagg_windows() {
+  174:fn null_null_refresh_lines(src: &str) -> Vec<usize> {
+  215:fn r5_no_full_range_refresh_in_test_sources() {
+  assert 行数: 17
+--- crates/web/tests/orphan_detect_sql_constant_red.rs
+  用例: 4 test-attrs=2
+  21:fn r2_shared_sql_constant_shape() {
+  35:async fn r2_sql_result_equals_endpoint_payload() {
+  assert 行数: 8
+
+=== 端点红测试：被改动的 assert 行（应仅 R2 内）===
+32 41 43 46 47 49 92 97 100 107 110 117 120 129 131 170 232 

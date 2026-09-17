@@ -1,0 +1,55 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-b5ea0e874192e549)
+
+running 4 tests
+test r4a_clean_functions_refresh_affected_cagg_windows ... FAILED
+test r5_no_full_range_refresh_in_test_sources ... FAILED
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+test r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint ... FAILED
+
+failures:
+
+---- r4a_clean_functions_refresh_affected_cagg_windows stdout ----
+
+thread 'r4a_clean_functions_refresh_affected_cagg_windows' (787708) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:135:5:
+R4(a) 结构判据未达成:
+crates/web/tests/api_kline_period.rs::async fn clean(: 无 refresh_continuous_aggregate ⇒ 只删不重算（孤儿根因）
+crates/web/tests/api_rest.rs::async fn clean_kline(: 无 refresh_continuous_aggregate ⇒ 只删不重算（孤儿根因）
+crates/web/tests/api_rest.rs::async fn clean_sym(: 无 refresh_continuous_aggregate ⇒ 只删不重算（孤儿根因）
+crates/storage/tests/kline_reader.rs::async fn clean(: 无 refresh_continuous_aggregate ⇒ 只删不重算（孤儿根因）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r5_no_full_range_refresh_in_test_sources stdout ----
+R5 grep 命令: grep -rn "refresh_continuous_aggregate" crates/*/tests | grep -c NULL
+R5 refresh 调用点计数 = 24；NULL,NULL 违规点 = ["crates/web/tests/api_rest.rs:151"]
+
+thread 'r5_no_full_range_refresh_in_test_sources' (787709) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:197:5:
+assertion `left == right` failed: R5: 测试内禁 refresh_continuous_aggregate(NULL, NULL)（全量刷）；违规点：["crates/web/tests/api_rest.rs:151"]
+  left: ["crates/web/tests/api_rest.rs:151"]
+ right: []
+
+---- r1_orphan_endpoint_exists_and_reports_zero_on_clean_db stdout ----
+
+thread 'r1_orphan_endpoint_exists_and_reports_zero_on_clean_db' (787706) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:31:5:
+assertion `left == right` failed: R1: GET /api/quality/orphans 必须存在并返回 200（当前实现缺失 ⇒ 404）
+  left: 404
+ right: 200
+
+---- r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint stdout ----
+
+thread 'r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint' (787707) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:89:5:
+assertion `left == right` failed: R2: 检测 SQL 必须在 crates/*/src 下**恰有一处**可复用定义（当前 0 处：[]）
+  left: 0
+ right: 1
+
+
+failures:
+    r1_orphan_endpoint_exists_and_reports_zero_on_clean_db
+    r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint
+    r4a_clean_functions_refresh_affected_cagg_windows
+    r5_no_full_range_refresh_in_test_sources
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`

@@ -1,0 +1,20 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.46s
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-b5ea0e874192e549)
+
+running 4 tests
+test r4a_clean_functions_refresh_affected_cagg_windows ... ok
+test r5_no_full_range_refresh_in_test_sources ... ok
+test r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint ... ok
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-f3129e995a208339)
+
+running 2 tests
+test r2_shared_sql_constant_shape ... ok
+test r2_sql_result_equals_endpoint_payload ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.69s
+

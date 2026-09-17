@@ -1,0 +1,25 @@
+ ✓ src/features/dashboard/overlayIndicator.test.ts (4 tests) 39ms
+ ✓ src/features/strategies/diff.test.ts (6 tests) 8ms
+ ✓ src/features/backtest/ScopedKlineFeed.test.ts (8 tests) 9ms
+ ✓ src/features/dashboard/feedRealtimeReconnect.test.ts (2 tests) 9ms
+ ✓ src/features/indicators/dcapMirror.test.ts (11 tests) 11ms
+ ✓ src/features/workbench/chartUtils.test.ts (3 tests) 12ms
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 12ms
+ ✓ src/features/dashboard/period30mD2.test.ts (21 tests) 52ms
+ ✓ src/features/dashboard/timeshare.test.ts (3 tests) 14ms
+ ✓ src/features/dashboard/klineDataLoader.test.ts (3 tests) 10ms
+ ✓ src/shell/session.test.ts (7 tests) 6ms
+ ✓ src/features/dashboard/multiPeriodDragDomainClamp.test.ts (4 tests) 4ms
+ ✓ src/features/symbols/validate.test.ts (5 tests) 15ms
+ ✓ src/features/dashboard/indicatorCallGuard.test.ts (4 tests) 3ms
+ ✓ src/features/backtest/markerSnap.test.ts (7 tests) 4ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 8ms
+ ✓ src/features/strategies/format.test.ts (4 tests) 5ms
+ ✓ src/features/backtest/format.test.ts (4 tests) 3ms
+ ✓ src/features/dashboard/chartCommon.test.ts (3 tests) 3ms
+
+ Test Files  88 passed (88)
+      Tests  839 passed (839)
+   Start at  09:18:57
+   Duration  13.64s (transform 8.13s, setup 8.14s, collect 32.24s, tests 59.31s, environment 53.26s, prepare 17.12s)
+

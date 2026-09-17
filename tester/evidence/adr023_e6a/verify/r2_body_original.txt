@@ -1,0 +1,71 @@
+fn r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint() {
+    let root = repo_root();
+    // 统一谓词（归一化小写后比对）：code not in (select code from symbols)
+    const PREDICATE: &str = "not in (select code from symbols)";
+    // SQL 文本的 FROM 形态：表名作为 FROM 目标出现（比裸词表名严格得多：doc 注释里提表名不算）。
+    let from_forms: Vec<String> = CAGGS.iter().map(|t| format!("from {t}")).collect();
+
+    let mut defs: Vec<(std::path::PathBuf, usize)> = vec![];
+    let mut files = rs_files(&root.join("crates"));
+    files.retain(|p| p.to_string_lossy().contains("/src/"));
+    for f in &files {
+        let Ok(src) = std::fs::read_to_string(f) else { continue };
+        let flat = src.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
+        if !flat.contains(PREDICATE) { continue; }
+        // 「检测式定义处」= 10 张 cagg 各自**至少有一处**作为 FROM 目标且其后 ~120 字符内出现该谓词
+        // （同一文件内可能有别的同名 FROM 出现在别的 SQL 里 ⇒ 逐处扫描而非只看首次命中）。
+        let hits = from_forms.iter().filter(|ff| {
+            let mut s = flat.as_str();
+            while let Some(i) = s.find(ff.as_str()) {
+                let seg = &s[i..(i + 120).min(s.len())];
+                if seg.contains(PREDICATE) { return true; }
+                s = &s[i + ff.len()..];
+            }
+            false
+        }).count();
+        defs.push((f.clone(), hits));
+    }
+    // (a) 全仓恰一处定义
+    assert_eq!(defs.len(), 1,
+        "R2(a): 孤儿检测谓词在全仓 crates/*/src 下必须**恰有一处**定义（当前 {} 处：{:?}）",
+        defs.len(), defs.iter().map(|(p, _)| p).collect::<Vec<_>>());
+    let (path, hits) = &defs[0];
+    // 归属：schema 知识（谓词 + 表清单）属**基础设施**，钉在 storage 侧 QualityRead 实现
+    assert!(path.to_string_lossy().ends_with("crates/storage/src/reader.rs"),
+        "R2: 定义归属钉死为 crates/storage/src/reader.rs（schema 知识属基础设施），实际 {path:?}");
+    // (b) 覆盖全部 10 张 cagg
+    assert_eq!(hits, &10, "R2(b): 定义必须覆盖全部 10 张 cagg；{path:?} 只命中 {hits}");
+
+    // (c)+(f) 端点/应用层不得内联该口径（谓词或 `from <cagg>` 形态都不得出现在 web/diagnose 的 src）
+    for sub in ["crates/web/src", "crates/diagnose/src"] {
+        for f in rs_files(&root.join(sub)) {
+            let src = std::fs::read_to_string(&f).unwrap();
+            let flat = src.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
+            assert!(!flat.contains(PREDICATE),
+                "R2(f): {} 不得出现孤儿检测谓词（SQL 归属基础设施）", f.display());
+            for ff in &from_forms {
+                assert!(!flat.contains(ff.as_str()),
+                    "R2(f): {} 不得内联 cagg 检测 SQL（命中 `{ff}`）", f.display());
+            }
+        }
+    }
+    // (c) 端点只能经类型化链路取数：web handler → diagnose::quality::QualityService::orphan_rows
+    let rest = std::fs::read_to_string(root.join("crates/web/src/rest.rs")).unwrap();
+    assert!(rest.contains("st.quality.orphan_rows()"),
+        "R2(c): crates/web/src/rest.rs 必须经 `st.quality.orphan_rows()` 取孤儿数（同一条链路）");
+    let svc = std::fs::read_to_string(root.join("crates/diagnose/src/quality.rs")).unwrap();
+    assert!(svc.contains("self.quality.orphan_rows()"),
+        "R2(c): crates/diagnose/src/quality.rs 必须转发 `self.quality.orphan_rows()`（端口链路）");
+
+    // (d)(e) 零新依赖边：storage 不得依赖 diagnose；domain 不得依赖 sqlx
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    for (pkg, forbidden, tag) in [("storage", "diagnose", "d"), ("domain", "sqlx", "e")] {
+        let out = std::process::Command::new(&cargo)
+            .args(["tree", "-e", "normal", "-p", pkg])
+            .current_dir(&root).output().expect("cargo tree 可执行");
+        assert!(out.status.success(), "R2({tag}): cargo tree -e normal -p {pkg} 失败");
+        let tree = String::from_utf8_lossy(&out.stdout).to_lowercase();
+        assert!(!tree.contains(forbidden),
+            "R2({tag}): cargo tree -e normal -p {pkg} 不得含 `{forbidden}`（分层红线）：\n{tree}");
+    }
+}

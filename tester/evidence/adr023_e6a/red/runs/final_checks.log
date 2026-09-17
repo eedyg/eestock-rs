@@ -1,0 +1,9 @@
+### HEAD
+d3c2092ff34af5edd117f877d547b393c5080e50
+### app PID 178558 存活
+    PID     ELAPSED CMD
+ 178558    09:12:41 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### 活库只读快照（孤儿总数）
+live_total=0
+### staged
+0

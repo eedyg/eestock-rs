@@ -1,0 +1,59 @@
+### cargo tree -e normal -p storage | grep -i diagnose
+exit_of_grep=1 (1 = no match = GOOD)
+
+### cargo tree -e normal -p domain | grep -i sqlx
+exit_of_grep=1 (1 = no match = GOOD)
+
+### cargo tree -e normal -p storage (head)
+storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+├── anyhow v1.0.104
+├── async-trait v0.1.92 (proc-macro)
+│   ├── proc-macro2 v1.0.107
+│   │   └── unicode-ident v1.0.24
+│   ├── quote v1.0.47
+│   │   └── proc-macro2 v1.0.107 (*)
+│   └── syn v3.0.4
+│       ├── proc-macro2 v1.0.107 (*)
+│       ├── quote v1.0.47 (*)
+│       └── unicode-ident v1.0.24
+├── chrono v0.4.45
+│   ├── iana-time-zone v0.1.65
+│   ├── num-traits v0.2.19
+│   └── serde v1.0.229
+│       ├── serde_core v1.0.229
+│       └── serde_derive v1.0.229 (proc-macro)
+│           ├── proc-macro2 v1.0.107 (*)
+│           ├── quote v1.0.47 (*)
+│           └── syn v3.0.4 (*)
+├── domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+│   ├── anyhow v1.0.104
+│   ├── async-trait v0.1.92 (proc-macro) (*)
+│   ├── chrono v0.4.45 (*)
+│   ├── rand v0.8.8
+│   │   ├── libc v0.2.189
+│   │   ├── rand_chacha v0.3.1
+│   │   │   ├── ppv-lite86 v0.2.21
+│   │   │   │   └── zerocopy v0.8.56
+│   │   │   └── rand_core v0.6.4
+
+### cargo tree -e normal -p domain (head)
+domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+├── anyhow v1.0.104
+├── async-trait v0.1.92 (proc-macro)
+│   ├── proc-macro2 v1.0.107
+│   │   └── unicode-ident v1.0.24
+│   ├── quote v1.0.47
+│   │   └── proc-macro2 v1.0.107 (*)
+│   └── syn v3.0.4
+│       ├── proc-macro2 v1.0.107 (*)
+│       ├── quote v1.0.47 (*)
+│       └── unicode-ident v1.0.24
+├── chrono v0.4.45
+│   ├── iana-time-zone v0.1.65
+│   ├── num-traits v0.2.19
+│   └── serde v1.0.229
+│       ├── serde_core v1.0.229
+│       └── serde_derive v1.0.229 (proc-macro)
+│           ├── proc-macro2 v1.0.107 (*)
+│           ├── quote v1.0.47 (*)
+│           └── syn v3.0.4 (*)

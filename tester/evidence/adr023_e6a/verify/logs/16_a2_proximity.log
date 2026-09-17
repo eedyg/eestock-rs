@@ -1,0 +1,26 @@
+independent recomputation of the (b) proximity criterion (window = 120 chars after `from <t>`)
+  kline_accurate_5m      from_form_found=True  predicate_within_120=True
+  kline_accurate_15m     from_form_found=True  predicate_within_120=True
+  kline_accurate_30m     from_form_found=True  predicate_within_120=True
+  kline_accurate_1h      from_form_found=True  predicate_within_120=True
+  kline_accurate_1d      from_form_found=True  predicate_within_120=True
+  kline_accurate_1w      from_form_found=True  predicate_within_120=True
+  kline_accurate_1mo     from_form_found=True  predicate_within_120=True
+  kline_5m               from_form_found=True  predicate_within_120=True
+  kline_15m              from_form_found=True  predicate_within_120=True
+  kline_1d               from_form_found=True  predicate_within_120=True
+hits = 10 (assertion requires == 10)
+branches(UNION ALL / first SELECT) = 10
+distinct table_name labels = 0
+predicate occurrences in the constant = 10
+--- window distances (chars from `from <t>` to predicate) ---
+  kline_accurate_5m      distance=34
+  kline_accurate_15m     distance=35
+  kline_accurate_30m     distance=35
+  kline_accurate_1h      distance=34
+  kline_accurate_1d      distance=34
+  kline_accurate_1w      distance=34
+  kline_accurate_1mo     distance=35
+  kline_5m               distance=25
+  kline_15m              distance=26
+  kline_1d               distance=25

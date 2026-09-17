@@ -1,0 +1,30 @@
+crates/application/tests/simlive.rs:2065:    assert!(report.degraded.is_empty(), "有运行态 → 不降级");
+crates/application/tests/simlive.rs:2132:    assert_eq!(report.degraded, vec![id.clone()], "无状态 → 降级标记 ended");
+crates/application/tests/simlive.rs:2134:    // 会话已 ended（降级），标记结果写入。
+crates/application/tests/simlive.rs:2136:    assert_eq!(view.status, SimSessionStatus::Ended, "降级会话标记 ended");
+crates/application/tests/simlive.rs:2141:        .expect("降级结果已落库");
+crates/application/tests/simlive.rs:2144:        "降级结果带注解"
+crates/application/tests/simlive.rs:2243:    assert!(report.degraded.is_empty(), "有运行态 → 不降级");
+crates/application/tests/simlive.rs:2635:/// 恢复失败（P4a 口径）：钉住版本被 archived → recover 降级 ended + 告警（不打崩）。
+crates/application/tests/simlive.rs:2646:    // 版本 archived（published→archived 合法流转）→ 恢复应失败降级。
+crates/application/tests/simlive.rs:2651:    assert!(report.degraded.contains(&sid), "降级 ended");
+crates/application/tests/simlive.rs:2655:    assert!(result.metrics.to_string().contains("中断"), "降级注解留痕");
+crates/application/tests/simlive.rs:2658:/// 恢复失败（P4a 口径）：切源前旧形状 strategy_configs（数组非空）→ 降级 ended。
+crates/application/tests/simlive.rs:2696:    assert!(report.degraded.contains(&sid), "旧形状降级 ended");
+crates/application/tests/simlive.rs:2956:/// SimLiveService 记错误事件 + 会话降级 ended（不毒化服务，裁决契约 ② 端到端）。
+crates/application/tests/simlive.rs:2975:    // 会话降级 ended：内存 + 落库一致。
+crates/application/tests/simlive.rs:2976:    assert!(svc.current_session_id().is_none(), "降级后无 running 会话");
+crates/application/tests/simlive.rs:2978:    assert_eq!(detail.session.status, SimSessionStatus::Ended, "降级 ended");
+crates/application/tests/simlive.rs:2979:    // 降级错误事件入流（诊断留痕）。
+crates/application/tests/simlive.rs:2982:        events.iter().any(|e| matches!(e, simlive::SessionEvent::PluginError { error, .. } if error.contains("降级"))),
+crates/application/tests/simlive.rs:2983:        "降级事件入流：{events:?}"
+crates/application/tests/simlive.rs:2985:    // 降级后再 feed → 明确错误（编排器已 drop），服务不崩。
+crates/collector/tests/standby_test.rs:2://! StandbyReserve：近似 bar 合成 / 乱序轮询 / Tier2 指数退避 / 降级集管理。
+crates/collector/tests/probe_test.rs:130:    // tester 004 §3c 全链路装配级复现：双杀降级 → 恢复 → 探测闭合 → 正常链回切
+crates/collector/tests/probe_test.rs:153:    // 双杀：3 轮全链失败（装配路径驱动熔断，非直调 report_failure）→ 标的降级
+crates/collector/tests/probe_test.rs:163:    // 回切（degraded_loop 既有口径）：健康池非空 → 正常链探测成功 → 标的退出降级
+crates/domain/tests/contracts_test.rs:56:    // 03 §6：降级模式近似 bar 以 *_approx 标记，与真实 bar 物理可区分
+crates/storage/tests/kline_reader.rs:62:    // 刻意保持未物化的桶（实测：全局宽窗会让 `symbols_latest_prev_close_is_prev_trading_day_d1`
+crates/storage/tests/raw_writer.rs:50:    assert_eq!(source, "tencent_qt_approx", "03 §6：降级模式近似 bar 与真实 bar 物理可区分");
+crates/web/tests/period30m_d2_multiperiod_red.rs:236:/// 活库 `app_config.multi_period` 的**只读**快照（`db=None` ⇒ 活库不可达 ⇒ 守卫降级为 SKIP）。
+crates/web/tests/period30m_d2_multiperiod_red.rs:336:    // ⚠️ 顺序刻意如此：**先**跑 R4 零写守卫**再**跑契约断言 —— 这样即使契约断言在本阶段（红）失败，

@@ -1,0 +1,9 @@
+=== crates/web/tests/api_rest.rs ===
+HEAD=23 WORK=23
+  ASSERTION CONTENT IDENTICAL (逐字) — only line numbers shifted
+=== crates/storage/tests/kline_reader.rs ===
+HEAD=101 WORK=101
+  ASSERTION CONTENT IDENTICAL (逐字) — only line numbers shifted
+=== crates/web/tests/api_kline_period.rs ===
+HEAD=11 WORK=11
+  ASSERTION CONTENT IDENTICAL (逐字) — only line numbers shifted

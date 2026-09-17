@@ -1,0 +1,69 @@
+--- 0. 建隔离库 adr023_orphan_red_010949
+CREATE DATABASE
+--- 1. 按序应用 migrations/0001..最新（psql -f，逐文件、ON_ERROR_STOP，非单事务）
+migrate exit=0（0=全部成功）
+10
+--- 2. R3-1：插 2 行孤儿 fixture（998801/998802，period=M1，两个 5m 桶）→ refresh kline_accurate_5m → 同一份检测 SQL 计数
+kline_accurate_5m|2
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+R3-1 rows=2
+--- 3. R3-2：删掉这 2 行 → refresh 同一窗口 → 计数必须 0
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+R3-2 rows=0
+--- 4. R4(b)-A：插入 → refresh → 删除 → 不再 refresh ⇒ 孤儿残留（证明「只删不重算」留毒）
+kline_accurate_5m|2
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+R4(b)-A: after_insert_refresh=2  after_delete_no_refresh=2（期望 2）
+--- 5. R4(b)-B：插入 → refresh → 删除 → 再 refresh 同窗口 ⇒ 0（证明修法有效）
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+R4(b)-B: after_insert_refresh=2  after_delete_and_refresh=0（期望 0）
+--- 6. 收尾：活库 eestock 孤儿数（只读，必须仍为 0）+ DROP DATABASE + 无残留证明
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+live_total=0
+DROP DATABASE
+residual_databases=0（期望 0）
+residual_tables_in_live=0
+SEMANTIC_EXPERIMENT_EXIT=0（0=全部期望达成）

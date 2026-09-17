@@ -1,0 +1,258 @@
+// ~/~ begin <<design/07-app-plane/00-web-api.md#crates/web/tests/api_rest.rs>>[init]
+//! REST/SPA 集成测试（需 TimescaleDB :5433）：真实起 axum server + reqwest 断言。
+
+use chrono::{DateTime, Duration, TimeZone, Utc};
+use serde_json::Value;
+use sqlx::PgPool;
+use std::sync::Arc;
+use web::state::AppState;
+use web::ws::{SubscriptionRegistry, WsHub};
+
+const CODE: &str = "996601";
+const SCODE: &str = "996602";
+const HSRC: &str = "web_test_src";
+
+fn base() -> DateTime<Utc> { Utc.with_ymd_and_hms(2026, 9, 3, 1, 30, 0).unwrap() }
+
+async fn pool() -> PgPool {
+    let url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://eestock:eestock@127.0.0.1:5433/eestock".into());
+    PgPool::connect(&url).await.expect("TimescaleDB :5433 可用")
+}
+
+/// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
+/// storage/sqlx 仅出现在 dev-dependencies（正常依赖图不含，cargo tree -e normal 验证）。
+fn state(pool: PgPool) -> Arc<AppState> {
+    let backtest_hub = WsHub::new();
+    Arc::new(AppState {
+        kline: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        health: diagnose::health::HealthService::new(
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone()))),
+        // Phase C：symbols 写 / 当日统计 / 熔断复位 DB 通道
+        symbols_admin: Arc::new(storage::admin::PgSymbolAdmin::new(pool.clone())),
+        symbol_stats: Arc::new(storage::reader::KlineReader::new(pool.clone())),
+        resets: Arc::new(storage::admin::PgResetStore::new(pool.clone())),
+        // Wave 2 Phase B：告警引擎装配（02-alerts.md；本文件不涉及行为，仅装配齐全）
+        alerts: alert::engine::AlertService::new(
+            Arc::new(storage::alerts::PgAlertEval::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::alerts::PgAlertStore::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // Wave 2 Phase A：数据质量服务（quality 端口组；仅装配齐全，行为测试见 api_quality.rs）
+        quality: diagnose::quality::QualityService::new(
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(storage::kline::RawKlineWriter::new(pool.clone())),
+            Arc::new(storage::reader::HealthEventReader::new(pool.clone())),
+            Arc::new(storage::reader::HolidaysReader::new(pool.clone())),
+            Arc::new(storage::reader::KlineReader::new(pool.clone())),
+            Arc::new(domain::ports::SystemClock),
+        ),
+        // 页面⑧ S1：设置页新增字段（装配齐全；行为测试见 api_settings.rs）
+        system_info: web::settings::SystemInfoSource {
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            crate_versions: web::dto::CrateVersions {
+                collector: "0.1.0".into(), storage: "0.1.0".into(), diagnose: "0.1.0".into(),
+            },
+            db: storage::system::system_info(pool.clone()),
+            started_at: std::time::Instant::now(),
+        },
+        raw_purge: storage::system::raw_purge(pool.clone()),
+        // Wave 3 页面①：看板收藏（装配齐全；行为测试见 api_favorites.rs）
+        favorites: Arc::new(storage::favorite::PgFavoriteStore::new(pool.clone())),
+        // 行情看板 MA 可配置（装配齐全；行为测试见 api_ma_config.rs）
+        ma_config: Arc::new(storage::ma_config::PgMaConfigStore::new(pool.clone())),
+        config: Arc::new(storage::config_store::PgConfigStore::new(pool.clone())),
+        sim: None,
+        strategies: None, // P2a：策略 Registry（行为测试见 api_strategies.rs）
+        workbench: None, // P3a：回测工作台（行为测试见 api_workbench.rs）
+        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+        health_window_secs: 3600,
+        hub: backtest_hub,
+        subs: SubscriptionRegistry::default(),
+    })
+}
+
+async fn spawn(state: Arc<AppState>) -> String {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, web::build_router(state)).await.unwrap(); });
+    format!("http://{addr}")
+}
+
+/// n 根 1m raw bar（收盘 1..n）。
+async fn seed_bars(pool: &PgPool, code: &str, n: i64) {
+    for i in 0..n {
+        let c = 1.0 + i as f64;
+        sqlx::query("INSERT INTO kline_raw (code, ts, open, high, low, close, volume, amount, source) \
+                     VALUES ($1, $2, $3, $3, $3, $3, 100, 100.0, 'tencent_ifzq') ON CONFLICT DO NOTHING")
+            .bind(code).bind(base() + Duration::minutes(i)).bind(c)
+            .execute(pool).await.unwrap();
+    }
+}
+
+/// cagg refresh 串行化锁：TimescaleDB 对**同 cagg 重叠窗口**的并发 refresh 报 55P03
+/// （"due to a concurrent refresh"，实锤）。同 binary 测试并行执行（本文件两测试都会重算 kline_1d），
+/// 所有 refresh 调用须经此锁（与 storage/tests/kline_reader.rs 同口径）。
+fn cagg_refresh_lock() -> &'static tokio::sync::Mutex<()> {
+    static L: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    L.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
+// 两测试并行执行：各自的 clean 只碰自己的 code/source（共享清理会互删，实锤踩坑）。
+// 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：cagg 不随源行删除回删物化行 ⇒ 残留成孤儿，
+// 必须对**该夹具涉及的 cagg 窗口**显式 refresh。窗口按**桶边界**取值（refresh 只重算完全落入窗口的桶）：
+//   • kline_5m：5m 桶 = UTC 5 分钟边界；base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；
+//   • kline_1d：CST 日界桶（日界 UTC 恒为前一 16:00）⇒ 2026-09-03 CST 桶 = [09-02 16:00Z, 09-03 16:00Z)。
+async fn clean_kline(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(CODE).execute(pool).await.unwrap();
+    let _g = cagg_refresh_lock().lock().await;
+    for (v, from, to) in [
+        ("kline_5m", "2026-09-03 01:30:00+00", "2026-09-03 01:35:00+00"),
+        ("kline_1d", "2026-09-02 16:00:00+00", "2026-09-03 16:00:00+00"),
+    ] {
+        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', '{from}', '{to}')"))
+            .execute(pool).await.unwrap();
+    }
+    drop(_g);
+}
+
+async fn clean_sym(pool: &PgPool) {
+    sqlx::query("DELETE FROM kline_raw WHERE code = $1").bind(SCODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(SCODE).execute(pool).await.unwrap();
+    sqlx::query("DELETE FROM source_health_events WHERE source = $1").bind(HSRC)
+        .execute(pool).await.unwrap();
+    // 删完即重算：SCODE 夹具落在 2026-09-03 CST 日桶 ⇒ 同口径窗口（日界 UTC 16:00）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 16:00:00+00', '2026-09-03 16:00:00+00')")
+        .execute(pool).await.unwrap();
+    drop(_g);
+}
+
+#[tokio::test]
+async fn kline_cursor_pagination_cagg_and_validation() {
+    let pool = pool().await;
+    clean_kline(&pool).await;
+    seed_bars(&pool, CODE, 5).await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // 第 1 页：limit=2 → 最新 2 根升序 [4,5]
+    let v: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "1m"), ("limit", "2")])
+        .send().await.unwrap().json().await.unwrap();
+    let bars = v["bars"].as_array().unwrap();
+    assert_eq!(bars.len(), 2);
+    assert_eq!(bars[0]["close"], 4.0);
+    assert_eq!(bars[1]["close"], 5.0);
+    let cursor = v["next_before"].as_str().expect("还有更早页").to_string();
+
+    // 第 2 页：before=游标 → [2,3]，无重叠
+    let v2: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "1m"), ("limit", "2"), ("before", &cursor)])
+        .send().await.unwrap().json().await.unwrap();
+    let closes: Vec<f64> = v2["bars"].as_array().unwrap()
+        .iter().map(|b| b["close"].as_f64().unwrap()).collect();
+    assert_eq!(closes, vec![2.0, 3.0], "游标页无重复/缺漏");
+    let cursor2 = v2["next_before"].as_str().unwrap().to_string();
+
+    // 第 3 页：[1]，next_before=null（前端停拉信号）
+    let v3: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "1m"), ("limit", "2"), ("before", &cursor2)])
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(v3["bars"].as_array().unwrap().len(), 1);
+    assert!(v3["next_before"].is_null());
+
+    // 参数校验
+    for q in [[("code", CODE), ("period", "3m")], [("code", CODE), ("period", "M1")]] {
+        let r = http.get(format!("{url}/api/kline")).query(&q).send().await.unwrap();
+        assert_eq!(r.status(), 400, "非法 period → 400");
+    }
+    let r = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("before", "not-a-time")]).send().await.unwrap();
+    assert_eq!(r.status(), 400, "非法 before → 400");
+
+    // cagg 周期（5m 桶：开 1 收 5 量 500）。窗口按桶边界（5m 桶 = UTC 5 分钟边界）：
+    // base()=2026-09-03 01:30Z 的 5 根 1m ⇒ 桶 [01:30, 01:35)；禁 NULL,NULL 全量刷（ADR-023 §6.1 第 8 条）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_5m', '2026-09-03 01:30:00+00', '2026-09-03 01:35:00+00')")
+        .execute(&pool).await.unwrap();
+    drop(_g);
+    let v5: Value = http.get(format!("{url}/api/kline"))
+        .query(&[("code", CODE), ("period", "5m")]).send().await.unwrap().json().await.unwrap();
+    let bars5 = v5["bars"].as_array().unwrap();
+    assert_eq!(bars5.len(), 1);
+    assert_eq!(bars5[0]["open"], 1.0);
+    assert_eq!(bars5[0]["close"], 5.0);
+    assert_eq!(bars5[0]["volume"], 500);
+    assert!(bars5[0].get("source").is_none(), "cagg 无 source 键");
+    clean_kline(&pool).await;
+}
+
+#[tokio::test]
+async fn symbols_latest_healthz_spa_and_sources_health() {
+    let pool = pool().await;
+    clean_sym(&pool).await;
+    sqlx::query("INSERT INTO symbols (code, name) VALUES ($1, '测试ETF') \
+                 ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name")
+        .bind(SCODE).execute(&pool).await.unwrap();
+    seed_bars(&pool, SCODE, 2).await;   // 收盘 1,2（2026-09-03，须早于运行日）
+    // 涨跌幅语义修复（2026-09-11）：change_pct=(last−昨收)/昨收；昨收=前一交易日 D1 收盘
+    // （kline_1d 兜底，须显式物化 base() 日桶）。last=2.0、昨收=2.0 → 0.0；
+    // 日界/空档/NULL 口径由 storage symbols_latest_prev_close_is_prev_trading_day_d1 锁定，
+    // 本测试只验证 REST 链路接线（prev_close → change_pct 同一路径）。
+    let _g = cagg_refresh_lock().lock().await;
+    sqlx::query("CALL refresh_continuous_aggregate('kline_1d', '2026-09-02 00:00:00+00', '2026-09-04 00:00:00+00')")
+        .execute(&pool).await.unwrap();
+    drop(_g);
+    for i in 0..3 {
+        sqlx::query("INSERT INTO source_health_events (ts, source, ok, latency_ms) \
+                     VALUES (now() - make_interval(secs => $1), $2, true, 120)")
+            .bind(10 + i).bind(HSRC).execute(&pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO source_health_events (ts, source, ok, err_kind) \
+                 VALUES (now(), $1, false, 'timeout')")
+        .bind(HSRC).execute(&pool).await.unwrap();
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+
+    // /api/symbols 含 latest 快照字段
+    let v: Value = http.get(format!("{url}/api/symbols")).send().await.unwrap()
+        .json().await.unwrap();
+    let s = v.as_array().unwrap().iter().find(|x| x["code"] == SCODE).expect("含测试标的");
+    assert_eq!(s["latest"]["last"], 2.0);
+    assert!((s["latest"]["change_pct"].as_f64().unwrap() - 0.0).abs() < 1e-6,
+        "change_pct=(last−昨收)/昨收=(2.0−2.0)/2.0=0.0（旧口径相对上一根 M1 会得 +100）");
+
+    // /api/sources/health：3 成功 + 1 失败 → 成功率 0.75、degraded
+    let v: Value = http.get(format!("{url}/api/sources/health"))
+        .query(&[("window_secs", "3600")]).send().await.unwrap().json().await.unwrap();
+    let h = v["sources"].as_array().unwrap().iter()
+        .find(|x| x["source"] == HSRC).expect("含测试源");
+    assert_eq!(h["attempts"], 4);
+    assert!((h["success_rate"].as_f64().unwrap() - 0.75).abs() < 1e-9);
+    assert_eq!(h["status"], "degraded");
+    assert_eq!(h["last_error"]["err_kind"], "timeout");
+
+    // /healthz
+    let v: Value = http.get(format!("{url}/healthz")).send().await.unwrap()
+        .json().await.unwrap();
+    assert_eq!(v["status"], "ok");
+
+    // SPA：/ 与深链均回退占位 index.html
+    for path in ["/", "/symbols", "/assets/nonexistent.js"] {
+        let body = http.get(format!("{url}{path}")).send().await.unwrap().text().await.unwrap();
+        assert!(body.contains("eestock"), "{path} 回退 index.html");
+    }
+    // 目录穿越：编码形式不做百分比解码，"..%2F.." 只是普通文件名 → 回退 index.html，
+    // 绝不会读到 dist 之外（sanitize 拒绝的是解码后语义中的 ".." 段，即字面段）。
+    let r = http.get(format!("{url}/..%2F..%2Fetc%2Fpasswd")).send().await.unwrap();
+    let body = r.text().await.unwrap();
+    assert!(body.contains("eestock") && !body.contains("root:"), "穿越尝试只能拿到 SPA 页");
+    // 字面 ".." 段（构造未经客户端规范化的路径）→ sanitize 拒绝 → 400
+    let r = http.get(format!("{url}/assets/%2e%2e")).send().await.unwrap();
+    assert!(r.status() != 500);
+    clean_sym(&pool).await;
+}
+// ~/~ end

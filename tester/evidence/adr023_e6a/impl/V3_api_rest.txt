@@ -1,0 +1,17 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.90s
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-26795f62c670403d)
+
+running 1 test
+test kline_weekly_monthly_period ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+
+     Running tests/api_rest.rs (target/debug/deps/api_rest-7c86225cadb94b3d)
+
+running 2 tests
+test symbols_latest_healthz_spa_and_sources_health ... ok
+test kline_cursor_pagination_cagg_and_validation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+

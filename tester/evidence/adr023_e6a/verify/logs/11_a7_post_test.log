@@ -1,0 +1,38 @@
+### A7 1) post-test orphan counts (read-only)
+kline_15m|0
+kline_1d|0
+kline_5m|0
+kline_accurate_15m|0
+kline_accurate_1d|0
+kline_accurate_1h|0
+kline_accurate_1mo|0
+kline_accurate_1w|0
+kline_accurate_30m|0
+kline_accurate_5m|0
+### A7 2) residual test fixture codes left in live DB (read-only)
+symbols_99xxxx_9xxxxx=0
+kline_accurate_stub=0
+### A7 3) HEAD / staged / stash / Cargo changes
+HEAD=d3c2092ff34af5edd117f877d547b393c5080e50
+staged=[]
+stash=[]
+cargo_changes=[]
+### A7 4) tracked-modified files after test run
+ M crates/diagnose/src/quality.rs
+ M crates/domain/src/ports.rs
+ M crates/storage/src/reader.rs
+ M crates/storage/tests/kline_reader.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/rest.rs
+ M crates/web/tests/api_kline_period.rs
+ M crates/web/tests/api_rest.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/02-domain/contracts.md
+ M design/07-app-plane/00-web-api.md
+### A7 5) app pid + containers
+    PID     ELAPSED CMD
+ 178558    09:34:26 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+eestock-timescaledb timescale/timescaledb:2.29.2-pg16 Up 11 days (healthy)
+eestock-data eestock-rs_data Up 11 days (healthy)
+### A7 6) isolated DB residual
+0

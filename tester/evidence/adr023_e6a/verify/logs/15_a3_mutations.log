@@ -1,0 +1,22 @@
+=== m1 ===
+HARNESS_VERDICT=RED    (R2 断言失败 ⇒ 变异被抓住)
+panic message: assertion `left == right` failed: R2(a): 孤儿检测谓词在全仓 crates/*/src 下必须**恰有一处**定义（当前 2 处：["/tmp/adr023-e6a-verify-20260917-013013/mut/m1/crates/diagnose/src/quality.rs", "/tmp/adr023-e6a-verify-20260917-013013/mut/m1/crates/storage/src/reader.rs"]）
+  left: 2
+ right: 1
+harness_exit=0
+=== m2 ===
+HARNESS_VERDICT=RED    (R2 断言失败 ⇒ 变异被抓住)
+panic message: assertion `left == right` failed: R2(a): 孤儿检测谓词在全仓 crates/*/src 下必须**恰有一处**定义（当前 2 处：["/tmp/adr023-e6a-verify-20260917-013013/mut/m2/crates/storage/src/reader.rs", "/tmp/adr023-e6a-verify-20260917-013013/mut/m2/crates/web/src/rest.rs"]）
+  left: 2
+ right: 1
+harness_exit=0
+=== m3 ===
+HARNESS_VERDICT=RED    (R2 断言失败 ⇒ 变异被抓住)
+panic message: R2(f): /tmp/adr023-e6a-verify-20260917-013013/mut/m3/crates/diagnose/src/quality.rs 不得内联 cagg 检测 SQL（命中 `from kline_accurate_5m`）
+harness_exit=0
+=== m4 ===
+HARNESS_VERDICT=GREEN  (R2 断言全部通过)
+harness_exit=0
+=== m5 ===
+HARNESS_VERDICT=GREEN  (R2 断言全部通过)
+harness_exit=0

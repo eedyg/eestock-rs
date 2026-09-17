@@ -1,0 +1,58 @@
+### STEP 1: extract the SINGLE source of truth ORPHAN_ROWS_SQL straight out of crates/storage/src/reader.rs
+29 /tmp/adr023-e6a-verify-20260917-013013/orphan_rows_sql_extracted.sql
+SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+--- explicit window variant (uncovered-window sentinel probe, A8): only 5m branch over a window that will NOT be refreshed
+### STEP 2: CREATE DATABASE eestock_e6a_verify_ep_20260917 + migrations 0001..0026
+CREATE DATABASE
+migrate_all=OK caggs=10
+### STEP 3: insert 2 orphan rows + materialize (refresh)
+materialized_rows=2
+### STEP 4: run the ACTUAL production SQL constant (extracted verbatim) on the isolated DB
+psql: warning: extra command-line argument "/tmp/adr023-e6a-verify-20260917-013013/orphan_rows_sql_extracted.sql" ignored
+ERROR:  syntax error at or near "-"
+LINE 1: -f
+        ^
+--- total = 2
+### STEP 5: A8/A4 — endpoint (real port chain) on isolated DB with orphans: R1 must go RED (left 2 / right 0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-b5ea0e874192e549)
+
+running 1 test
+
+thread 'r1_orphan_endpoint_exists_and_reports_zero_on_clean_db' (852532) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:47:5:
+assertion `left == right` failed: R1: 当前活库无孤儿（2026-09-17 清理后 0）⇒ rows 必须为 0
+  left: 2
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+
+failures:
+
+failures:
+    r1_orphan_endpoint_exists_and_reports_zero_on_clean_db
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`
+r1_with_orphans_shell_exit=101
+### STEP 5b: A4 — same payload as SQL constant: r2_sql_result_equals_endpoint_payload must PASS on isolated DB (endpoint == single SQL source)
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-f3129e995a208339)
+
+running 2 tests
+test r2_shared_sql_constant_shape ... ok
+test r2_sql_result_equals_endpoint_payload ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+### STEP 6: A8 — construct an UNCOVERED-window orphan probe (5m branch only) after delete+refresh of a DIFFERENT window
+--- after delete WITHOUT refresh of that window: probe (uncovered orphan) =>
+kline_accurate_5m|3
+--- now refresh that window (the clean() pattern) =>
+kline_accurate_5m|2
+### STEP 7: cleanup + residual proof
+DROP DATABASE
+residual_db_count=0
+live_db_exists=1
+A4EP_SCRIPT_END

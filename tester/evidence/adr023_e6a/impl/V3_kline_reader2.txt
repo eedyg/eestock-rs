@@ -1,0 +1,6 @@
+test weekly_monthly_deep_scroll_before_2024 ... ok
+test symbols_with_latest_snapshot ... ok
+test symbols_latest_prev_close_is_prev_trading_day_d1 ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.59s
+

@@ -1,0 +1,19 @@
+   Compiling domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+   Compiling diagnose v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/diagnose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.72s
+     Running unittests src/lib.rs (target/debug/deps/diagnose-71e87bdd0cfedc6e)
+
+running 10 tests
+test health::tests::circuit_state_mapping ... ok
+test health::tests::percentile_cont_pg_linear_interpolation ... ok
+test health::tests::status_light_matrix ... ok
+test health::tests::success_rate_denominator_semantics ... ok
+test quality::tests::classify_gap_minute_matrix ... ok
+test quality::tests::deviation_pct_guards_and_sign ... ok
+test quality::tests::accuracy_by_source_grouped_and_sorted ... ok
+test quality::tests::segments_merge_consecutive_same_class_and_break_lunch ... ok
+test quality::tests::summarize_rates_and_deviation_desc_order ... ok
+test quality::tests::validate_range_and_day_range_utc ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

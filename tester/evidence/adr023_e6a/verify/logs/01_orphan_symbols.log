@@ -1,0 +1,18 @@
+crates/diagnose/src/quality.rs:9:    Clock, DivergenceRow, HealthEventRow, HealthEventsRangeRead, HolidayCalendarRead, OrphanReport,
+crates/diagnose/src/quality.rs:323:    pub async fn orphan_rows(&self) -> Result<OrphanReport> {
+crates/diagnose/src/quality.rs:324:        self.quality.orphan_rows().await
+crates/web/src/rest.rs:349:/// 口径单一事实源在 **storage 侧 `QualityRead::orphan_rows`**（本层只搬运类型化结果，不内联 SQL）。
+crates/web/src/rest.rs:351:    match st.quality.orphan_rows().await {
+crates/storage/src/reader.rs:17:    KlineBarView, KlineRead, OrphanReport, QualityRead, SymbolLatestView, SymbolStatView,
+crates/storage/src/reader.rs:325:pub const ORPHAN_TABLES: [&str; 10] = [
+crates/storage/src/reader.rs:332:/// 经 `diagnose::quality::QualityService::orphan_rows` → 本文件 `QualityRead::orphan_rows` 走同一份）。
+crates/storage/src/reader.rs:335:/// 列固定 `table_name text, orphan_rows bigint`，与 [`ORPHAN_TABLES`] 同序（缺表会导致端点 by_table 缺键）。
+crates/storage/src/reader.rs:336:pub const ORPHAN_ROWS_SQL: &str = r#"
+crates/storage/src/reader.rs:337:SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
+crates/storage/src/reader.rs:380:    /// 孤儿行审计：执行本文件唯一的 `ORPHAN_ROWS_SQL`（口径不在 diagnose/web 另抄一份）。
+crates/storage/src/reader.rs:381:    async fn orphan_rows(&self) -> Result<OrphanReport> {
+crates/storage/src/reader.rs:382:        let rows: Vec<(String, i64)> = sqlx::query_as(ORPHAN_ROWS_SQL).fetch_all(&self.pool).await?;
+crates/storage/src/reader.rs:385:        Ok(OrphanReport { rows, by_table })
+crates/domain/src/ports.rs:297:pub struct OrphanReport {
+crates/domain/src/ports.rs:316:    async fn orphan_rows(&self) -> anyhow::Result<OrphanReport> {
+crates/domain/src/ports.rs:317:        anyhow::bail!("QualityRead::orphan_rows 未实现（仅真库实现 storage::reader::KlineReader 提供）")

@@ -1,0 +1,21 @@
+=== sha256 of touched products ===
+65101cfeef5a0185877a2e929bd5a6a8f6f35bc6b768309e4cf0f119dd38923f  crates/domain/src/ports.rs
+60ef27a546827a0d02380a8886901eb040154bbd3d727269573bdd8eab7fcaa9  crates/diagnose/src/quality.rs
+e12338705ad0f6e3b266f868aeb4eb2ef0d689951cab583b449cb2aa79f198b0  crates/storage/src/reader.rs
+9258236a7719f90ff31322e98a621b5da07fe2925cd2cce37a05751792787eaf  crates/web/src/rest.rs
+1f1c4ec4a7888fd2eb2a9599e516386ef1ebedd25ba199888757a400c77ba206  crates/web/src/lib.rs
+35efb3b824f24a39fb83b2e94eead072fe4335a7e526b1a5b68206c04a27a6bf  crates/storage/tests/kline_reader.rs
+8a832e64451c6ddb81780e3901fdfacd3d640695a4222ce1c578d58d216dc9b0  crates/web/tests/api_rest.rs
+883d3fc7a32ff09705062e443907fde3256e9c26da7058b518c6da080c93e1d1  crates/web/tests/api_kline_period.rs
+9c5c8c815f4ae2081b7c5a7f466292bb69db8fdb33005afbcefcb5b64bb77b9c  crates/web/tests/orphan_detect_endpoint_red.rs
+796d6ca9441fb8e541a16f6a2d30857efa16e7225468d99dbbbccb75c97607ac  crates/web/tests/orphan_detect_sql_constant_red.rs
+
+=== tangle re-run (idempotent) ===
+[09:28:48] INFO     Welcome to Entangled v2.4.3!
+           INFO     Nothing to be done.
+
+=== cargo tree layering proof ===
+0
+storage contains diagnose: ^ (0=期望)
+0
+domain contains sqlx: ^ (0=期望)

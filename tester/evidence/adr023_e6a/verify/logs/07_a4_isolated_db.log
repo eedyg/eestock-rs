@@ -1,0 +1,97 @@
+### STEP 0: pre-state (read-only): residual isolated DBs from prior runs
+### STEP 1: CREATE DATABASE eestock_e6a_verify_20260917
+CREATE DATABASE
+create_exit=0
+### STEP 2: apply migrations 0001..0026 in order (psql -f, ON_ERROR_STOP=1, NOT single-transaction)
+0001_init.sql exit=0
+0002_caggs.sql exit=0
+0003_compression.sql exit=0
+0004_metrics.sql exit=0
+0005_sync_checkpoints.sql exit=0
+0006_accurate_compression.sql exit=0
+0007_circuit_reset.sql exit=0
+0008_holidays.sql exit=0
+0009_alert_engine.sql exit=0
+0010_accurate_caggs.sql exit=0
+0011_backtest.sql exit=0
+0012_backtest_run_extend.sql exit=0
+0013_favorite_symbols.sql exit=0
+0014_weekly_monthly_caggs.sql exit=0
+0015_ma_config.sql exit=0
+0016_weekly_monthly_full_history.sql exit=0
+0017_minute_caggs_full_history.sql exit=0
+0018_sim_session.sql exit=0
+0019_sim_session_state.sql exit=0
+0020_accurate_cagg_refresh.sql exit=0
+0021_app_config.sql exit=0
+0022_strategy_registry.sql exit=0
+0023_strategy_workbench.sql exit=0
+0024_drop_legacy_backtest_tables.sql exit=0
+0025_symbol_type_fee_profiles.sql exit=0
+0026_period_30m.sql exit=0
+migrate_all_exit=0
+### STEP 3: cagg inventory in isolated DB (expect 10)
+kline_15m
+kline_1d
+kline_5m
+kline_accurate_15m
+kline_accurate_1d
+kline_accurate_1h
+kline_accurate_1mo
+kline_accurate_1w
+kline_accurate_30m
+kline_accurate_5m
+### STEP 4: baseline orphan detection on isolated DB (expect all 0)
+kline_15m|0
+kline_1d|0
+kline_5m|0
+kline_accurate_15m|0
+kline_accurate_1d|0
+kline_accurate_1h|0
+kline_accurate_1mo|0
+kline_accurate_1w|0
+kline_accurate_30m|0
+kline_accurate_5m|0
+### STEP 5: insert 2 orphan fixture rows (period='M1', code 998801/998802 NOT in symbols)
+INSERT 0 1
+ins1_exit=0
+INSERT 0 1
+ins2_exit=0
+source_rows=2
+symbols_rows_for_stub=0
+### STEP 6: refresh kline_accurate_5m [2026-09-03 01:00:00+00, 2026-09-03 02:00:00+00) => materialize
+CALL
+refresh1_exit=0
+materialized_rows=2
+### STEP 7: detection after refresh (expect kline_accurate_5m = 2, total 2)
+kline_15m|0
+kline_1d|0
+kline_5m|0
+kline_accurate_15m|0
+kline_accurate_1d|0
+kline_accurate_1h|0
+kline_accurate_1mo|0
+kline_accurate_1w|0
+kline_accurate_30m|0
+kline_accurate_5m|2
+### STEP 8: delete 2 rows + refresh SAME window (expect 0)
+DELETE 2
+delete_exit=0
+CALL
+refresh2_exit=0
+kline_15m|0
+kline_1d|0
+kline_5m|0
+kline_accurate_15m|0
+kline_accurate_1d|0
+kline_accurate_1h|0
+kline_accurate_1mo|0
+kline_accurate_1w|0
+kline_accurate_30m|0
+kline_accurate_5m|0
+### STEP 9: DROP DATABASE (WITH FORCE) + residual proof
+DROP DATABASE
+drop_exit=0
+residual_db_count=0
+live_db_still_exists=1
+A4_SCRIPT_END_EXIT=0

@@ -1,0 +1,29 @@
+SELECT 'kline_accurate_5m' AS table_name, count(*) AS orphan_rows FROM kline_accurate_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_15m', count(*) FROM kline_accurate_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_30m', count(*) FROM kline_accurate_30m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1h', count(*) FROM kline_accurate_1h
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1d', count(*) FROM kline_accurate_1d
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1w', count(*) FROM kline_accurate_1w
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_accurate_1mo', count(*) FROM kline_accurate_1mo
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_5m', count(*) FROM kline_5m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_15m', count(*) FROM kline_15m
+  WHERE code NOT IN (SELECT code FROM symbols)
+UNION ALL
+SELECT 'kline_1d', count(*) FROM kline_1d
+  WHERE code NOT IN (SELECT code FROM symbols)

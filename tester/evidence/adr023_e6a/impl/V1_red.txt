@@ -1,0 +1,12 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+error[E0432]: unresolved imports `diagnose::quality::ORPHAN_ROWS_SQL`, `diagnose::quality::ORPHAN_TABLES`
+  --> crates/web/tests/orphan_detect_sql_constant_red.rs:15:25
+   |
+15 | use diagnose::quality::{ORPHAN_ROWS_SQL, ORPHAN_TABLES};
+   |                         ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^ no `ORPHAN_TABLES` in `quality`
+   |                         |
+   |                         no `ORPHAN_ROWS_SQL` in `quality`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `web` (test "orphan_detect_sql_constant_red") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

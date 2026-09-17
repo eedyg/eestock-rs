@@ -1,0 +1,4 @@
+crates/diagnose/src/quality.rs:323:    pub async fn orphan_rows(&self) -> Result<OrphanReport> {
+crates/diagnose/src/quality.rs:324:        self.quality.orphan_rows().await
+crates/web/src/rest.rs:349:/// 口径单一事实源在 **storage 侧 `QualityRead::orphan_rows`**（本层只搬运类型化结果，不内联 SQL）。
+crates/web/src/rest.rs:351:    match st.quality.orphan_rows().await {
