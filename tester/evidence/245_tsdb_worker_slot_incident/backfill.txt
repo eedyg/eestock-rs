@@ -1,0 +1,25 @@
+# 手工回填（2026-09-18T02:34:34Z）
+[CMD] CALL refresh_continuous_aggregate('kline_5m','2026-09-17 00:00:00+00', now());
+CALL
+  -> wall=0.09s
+[CMD] CALL refresh_continuous_aggregate('kline_15m','2026-09-17 00:00:00+00', now());
+CALL
+  -> wall=0.06s
+[CMD] CALL refresh_continuous_aggregate('kline_accurate_5m','2026-09-16 00:00:00+00', now());
+CALL
+  -> wall=0.03s
+[CMD] CALL refresh_continuous_aggregate('kline_accurate_15m','2026-09-16 00:00:00+00', now());
+CALL
+  -> wall=0.04s
+[CMD] CALL refresh_continuous_aggregate('kline_accurate_30m','2026-09-16 00:00:00+00', now());
+CALL
+  -> wall=0.03s
+[CMD] CALL refresh_continuous_aggregate('kline_accurate_1h','2026-09-16 00:00:00+00', now());
+CALL
+  -> wall=0.03s
+[CMD] CALL refresh_continuous_aggregate('kline_1d','2026-09-16 16:00:00+00', now());
+CALL
+  -> wall=0.03s
+[CMD] CALL refresh_continuous_aggregate('kline_accurate_1d','2026-09-16 16:00:00+00', now());
+CALL
+  -> wall=0.03s

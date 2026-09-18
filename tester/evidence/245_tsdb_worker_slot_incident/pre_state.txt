@@ -1,0 +1,37 @@
+# 删除前现场存档（ADR-024 外事故：TSDB worker 槽位耗尽）
+captured_at_utc: 2026-09-18T02:32:04Z
+host: eedy
+
+## 1. 库清单与大小
+       datname       |  size   
+---------------------+---------
+ eestock             | 2450 MB
+ adr023_e6b_v3_test  | 1582 MB
+ adr023_e6b_gate_iso | 1562 MB
+ e6b_red_iso2        | 1051 MB
+ e6b_red_iso         | 1033 MB
+ eestock_d11_probe   | 955 MB
+ eestock_test        | 429 MB
+ postgres            | 7519 kB
+(8 rows)
+
+## 2. TSDB 后台 worker 占用
+       datname       |              backend_type               |   pid   |         backend_start         
+---------------------+-----------------------------------------+---------+-------------------------------
+                     | TimescaleDB Background Worker Launcher  |  688867 | 2026-09-10 08:06:28.119304+00
+ eestock             | TimescaleDB Background Worker Scheduler |  688869 | 2026-09-10 08:06:28.122607+00
+ eestock_d11_probe   | TimescaleDB Background Worker Scheduler |  998137 | 2026-09-12 13:35:48.744767+00
+ e6b_red_iso         | TimescaleDB Background Worker Scheduler | 1635343 | 2026-09-17 03:47:10.773558+00
+ e6b_red_iso2        | TimescaleDB Background Worker Scheduler | 1635991 | 2026-09-17 03:50:36.003645+00
+ adr023_e6b_gate_iso | TimescaleDB Background Worker Scheduler | 1636806 | 2026-09-17 03:56:17.954411+00
+ adr023_e6b_v3_test  | TimescaleDB Background Worker Scheduler | 1638791 | 2026-09-17 04:02:48.168463+00
+(7 rows)
+
+## 3. max_worker_processes / tsdb 配置
+                name                | setting 
+------------------------------------+---------
+ max_parallel_workers               | 8
+ max_worker_processes               | 8
+ timescaledb.max_background_workers | 16
+(3 rows)
+

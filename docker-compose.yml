@@ -10,7 +10,12 @@ services:
     # EV-1（续）：并发 kline 仍 500（out of shared memory）——根因是 PG 并行 worker 的 per-query
     # DSA 共享内存预算在 kline 并发下耗尽（kline 为 (code,ts) 索引点查，并行无益且正是 DSA 主体）。
     # 禁用并行 worker 消除 DSA 分配；dynamic_shared_memory_type=mmap（文件后备）兜底。
-    command: ["postgres", "-c", "max_parallel_workers_per_gather=0", "-c", "dynamic_shared_memory_type=mmap", "-c", "max_locks_per_transaction=512"]
+    # EV-2（2026-09-18 事故根治）：`max_worker_processes` 默认 8 < `timescaledb.max_background_workers`(16)，
+    # 而 TimescaleDB **每库一个常驻 scheduler** 都消耗 worker 槽位。遗留测试库增多到 6 个带 TSDB 的库后，
+    # 槽位 7/8 被常驻占满 ⇒ 全部 job `failed to start a background worker` ⇒ 生产 5m/15m cagg 停摆 22.6h、
+    # 日涨跌幅昨收被冻结。提高到 32（≥ 16 + max_parallel_workers 8 + 余量）。需重启才生效（postmaster 级参数）。
+    # 证据：tester/evidence/245_tsdb_worker_slot_incident/EVIDENCE.md
+    command: ["postgres", "-c", "max_parallel_workers_per_gather=0", "-c", "dynamic_shared_memory_type=mmap", "-c", "max_locks_per_transaction=512", "-c", "max_worker_processes=32"]
     ports:
       # 宿主机 5433，避免与本机既有 PostgreSQL(5432) 冲突
       - "5433:5432"

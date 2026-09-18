@@ -1,0 +1,30 @@
+# 配置对齐后验证（2026-09-18T04:17:15Z）
+                name                | setting 
+------------------------------------+---------
+ max_parallel_workers               | 8
+ max_worker_processes               | 32
+ timescaledb.max_background_workers | 16
+(3 rows)
+
+## 槽位占用
+ 已占用 
+--------
+      3
+(1 row)
+
+   datname    |              backend_type               
+--------------+-----------------------------------------
+              | TimescaleDB Background Worker Launcher
+ eestock      | TimescaleDB Background Worker Scheduler
+ eestock_test | TimescaleDB Background Worker Scheduler
+(3 rows)
+
+## 作业状态
+ job_id | last_run_status |    last_successful_finish     
+--------+-----------------+-------------------------------
+   1000 | Success         | 2026-09-18 04:16:24.501348+00
+   1001 | Success         | 2026-09-18 04:16:23.948698+00
+   1051 | Success         | 2026-09-18 04:16:24.696372+00
+   1052 | Success         | 2026-09-18 04:16:24.693119+00
+(4 rows)
+

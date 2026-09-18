@@ -1,0 +1,8 @@
+# 配置对齐（2026-09-18T04:16:20Z）
+[CMD] docker compose up -d timescaledb
+ Container eestock-timescaledb  Recreate
+ Container eestock-timescaledb  Recreated
+ Container eestock-timescaledb  Starting
+ Container eestock-timescaledb  Started
+[等待健康]
+healthy after 30s

@@ -1,0 +1,17 @@
+# 删除后现场（2026-09-18T02:32:26Z）
+## 库清单
+   datname    
+--------------
+ eestock
+ eestock_test
+ postgres
+(3 rows)
+
+## TSDB 后台 worker
+   datname    |              backend_type               |   pid   
+--------------+-----------------------------------------+---------
+              | TimescaleDB Background Worker Launcher  |  688867
+ eestock      | TimescaleDB Background Worker Scheduler |  688869
+ eestock_test | TimescaleDB Background Worker Scheduler | 1767123
+(3 rows)
+
