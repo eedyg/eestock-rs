@@ -88,7 +88,7 @@ sha256sum target/debug/eestock-app; ps -o pid,lstart,args -C eestock-app
 | C9 | **`/bars` 分页**：`?kind=per_bar&offset=0&limit=5000` | 200；`has_more`/`next_offset` 正确 |
 | C10 | **结构化错误**：故意传非法 period | `{"error":{"code":…,"message":…,"detail":{…}}}`（`error` 为**对象**） |
 | C11 | **前端真渲染**：工作台结果页（长区间 run） | 图表有数据（非空）、事件日志有覆盖提示、K 线买卖标记完整（来自 fills） |
-| C12 | **收尾** | 冒烟产生的 run 记录删除（回读为 0）；库清单仍 `{eestock, postgres}` |
+| C12 | **收尾** | 冒烟产生的 run **必须先到终态再删**（或先 `cancel`）——**禁止在 running 期间删除父行**（否则后台分块写入会报 FK 约束失败 ERROR；2026-09-18 实测教训）；删除后回读为 0，库清单仍 `{eestock, postgres}` |
 
 ---
 
@@ -115,4 +115,4 @@ sha256sum target/debug/eestock-app; ps -o pid,lstart,args -C eestock-app
 1. 记录部署批次（HEAD、staged 摘要、二进制 sha256、`web/dist` sha256、时间窗）。
 2. **刷新 GitNexus 索引**（用仓内 runner：`node .gitnexus/run.cjs analyze`；**不要**用 `npx gitnexus analyze`）。
 3. 观察 24h：`strategy_run` 状态分布、`/curve` `/bars` `/fills` 错误率、cagg 作业状态（ADR-025 D2 的监控若已落地则直接看告警）。
-4. 本手册执行记录归档：`tester/evidence/<NNN>_adr024_deploy/`。
+4. 本手册执行记录归档：`tester/evidence/256_adr024_deploy/DEPLOY.md`（含二进制/dist 哈希、12 项冒烟结果、唯一 ERROR 的归因）。
