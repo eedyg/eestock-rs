@@ -777,6 +777,16 @@ pub trait RawPurgePort: Send + Sync {
 // ⚠️ Bar 类型归属：端口返回 domain::types::Bar（storage 直接产）；application 层负责
 // domain::Bar -> backtest::Bar 映射（backtest crate 刻意不依赖 domain，见 crates/backtest/src/types.rs 注释）。
 
+/// 可得区间（服务口径并集：accurate ∪ 兜底；ADR-024 D3）。
+///
+/// **半开** `[from, to)`：`from` = 可得最早 bar 的 ts；`to` = 可得最晚 bar 的 ts **之后**
+/// （保证该最晚 bar 落在 `[from, to)` 内，与 `BacktestBarRead::bars` 的半开口径一致）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AvailableRange {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+}
+
 /// 回测 K线读取端口（storage 实现）。统一读源 = accurate 优先 + cagg 兜底（ADR-003 推广），
 /// 复用 KlineReader 口径（period 对应 accurate/cagg 表映射）。返回 [from, to) 区间 bar，ts 升序。
 /// 返回 domain::Bar；application 层映射为 backtest::Bar（ADR 08-backtest §3）。
@@ -784,6 +794,32 @@ pub trait RawPurgePort: Send + Sync {
 pub trait BacktestBarRead: Send + Sync {
     async fn bars(&self, code: &str, period: &Period, from: DateTime<Utc>, to: DateTime<Utc>)
         -> anyhow::Result<Vec<Bar>>;
+
+    /// 可得区间（**服务口径并集**：accurate ∪ 兜底，与 `merged_sql` 一致；ADR-024 D3）。
+    /// 无任何数据 → `Ok(None)`（调用方据此 400 `range_empty`，禁止产出 0 bar 的「成功」run）。
+    ///
+    /// **默认实现**由 `bars()` 在 `[MIN_UTC, MAX_UTC)` 全窗口派生（正确但对 mock/兼容调用点低效）；
+    /// 生产实现（`storage::backtest::BacktestBarReader`）**必须覆写**为轻量 min/max 查询。
+    async fn available_range(&self, code: &str, period: &Period)
+        -> anyhow::Result<Option<AvailableRange>> {
+        let all = self
+            .bars(code, period, DateTime::<Utc>::MIN_UTC, DateTime::<Utc>::MAX_UTC)
+            .await?;
+        Ok(match (all.first(), all.last()) {
+            (Some(f), Some(l)) => Some(AvailableRange {
+                from: f.ts,
+                to: l.ts + chrono::Duration::seconds(1),
+            }),
+            _ => None,
+        })
+    }
+
+    /// 区间内 bar 数（ADR-024 D12 进度/资源护栏预扫描：`count(*)`，走索引）。
+    /// **默认实现** = `bars()` 长度（mock/兼容）；生产实现覆写为轻量 `count(*)`。
+    async fn count_bars(&self, code: &str, period: &Period, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<i64> {
+        Ok(self.bars(code, period, from, to).await?.len() as i64)
+    }
 }
 
 // ── Wave 3 页面① 看板收藏（置顶+排序）端口（用户定稿 2026-09-05；favorite_symbols 表，迁移 0013）──
@@ -1188,20 +1224,75 @@ pub struct NewStrategyRun {
     pub id: String,
     pub name: String,
     pub symbol: String,
-    pub period: String,           // M1/M5/M15/D1
+    pub period: String,           // M1/M5/M15/M30/H1/D1（ADR-024 P0：单一事实源 application::bar_map::supported_backtest_periods）
     pub from_ts: DateTime<Utc>,   // 区间起点（闭）
     pub to_ts: DateTime<Utc>,     // 区间终点（开，[from, to) 半开）
     pub config: serde_json::Value,
 }
 
+// ── ADR-024 P4 / D8：结果分块（strategy_run_bars，迁移 0027）──
+
+/// 结果存储格式判别列取值：旧 run 内联 `strategy_run_result` 三列（per_bar/net_value/drawdown）。
+pub const RESULT_FORMAT_LEGACY: &str = "legacy_single";
+/// 结果存储格式判别列取值：新 run 分块落 `strategy_run_bars`（per_bar/net_value/drawdown/fills）。
+pub const RESULT_FORMAT_CHUNKED: &str = "chunked_v1";
+
+/// 结果分块种类（`strategy_run_bars.kind`）。
+///
+/// ADR-024 P6：新增 `Fills` —— 成交明细的**有界精确源**（单块 `seq=0`）。
+/// 用途：K 线买卖标记与成交核对。**禁止**用抽样曲线或 `trades` 代替：
+/// ① 抽样曲线会丢真实成交；② `trades` 仅在**完全平仓**时合成（`apply_sell` 的
+/// `qty >= holding.qty`）⇒ 部分买入/加仓（DCA、`position_pct < 1`）与部分卖出**不进** `trades`。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResultKind { PerBar, NetValue, Drawdown, Fills }
+
+impl ResultKind {
+    pub fn as_str(&self) -> &'static str {
+        match self { ResultKind::PerBar => "per_bar", ResultKind::NetValue => "net_value",
+                     ResultKind::Drawdown => "drawdown", ResultKind::Fills => "fills" }
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        match s { "per_bar" => Some(ResultKind::PerBar), "net_value" => Some(ResultKind::NetValue),
+                  "drawdown" => Some(ResultKind::Drawdown), "fills" => Some(ResultKind::Fills),
+                  _ => None }
+    }
+    /// `fills` 是**事实源**（成交明细）：不得进入抽样/区间/分页曲线路径（ADR-024 P6 硬约束）。
+    /// 专用端点 `/runs/{id}/fills` 分页读。
+    pub fn is_sampleable(&self) -> bool {
+        !matches!(self, ResultKind::Fills)
+    }
+}
+
+/// 结果分块（`strategy_run_bars` 行；ADR-024 D8：`seq` 由应用层自 0 单调递增，
+/// `ts_from`/`ts_to` 为本块首/末 bar ts（闭））。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ResultChunk {
+    pub kind: ResultKind,
+    pub seq: i32,
+    pub ts_from: DateTime<Utc>,
+    pub ts_to: DateTime<Utc>,
+    pub payload: serde_json::Value, // 本块数组（chunk=5000 根）
+}
+
 /// 策略运行结果（strategy_run_result 五 jsonb 列聚合；ADR §13.4 全量粒度，后端不做有损预处理）。
+///
+/// ADR-024 P4 / D8：新增判别列 `result_format`（`legacy_single` | `chunked_v1`）。
+/// **读取路径一律以 `result_format` 判别**：`legacy_single` 时 per_bar/net_value/drawdown 为全量；
+/// `chunked_v1` 时三列为 `[]` 占位（数据在 `strategy_run_bars`），**禁止把占位当数据**（禁止静默读空）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StrategyRunResult {
-    pub per_bar: serde_json::Value,   // 各策略分+聚合分+信号+订单+事件全量
+    pub per_bar: serde_json::Value,   // 各策略分+聚合分+信号+订单+事件全量（chunked_v1 = [] 占位）
     pub trades: serde_json::Value,    // 成交明细
-    pub net_value: serde_json::Value, // 净值序列 [(ts, equity)]
-    pub drawdown: serde_json::Value,  // 回撤序列 [(ts, dd)]
+    pub net_value: serde_json::Value, // 净值序列 [(ts, equity)]（chunked_v1 = [] 占位）
+    pub drawdown: serde_json::Value,  // 回撤序列 [(ts, dd)]（chunked_v1 = [] 占位）
     pub metrics: serde_json::Value,   // 8 项绩效指标
+    pub result_format: String,        // legacy_single | chunked_v1（迁移 0027 判别列）
+}
+
+impl StrategyRunResult {
+    /// 是否为分块存储（数据在 `strategy_run_bars`，三 jsonb 列为占位）。
+    pub fn is_chunked(&self) -> bool { self.result_format == RESULT_FORMAT_CHUNKED }
 }
 
 /// 策略运行读模型（strategy_run 行；**结果不内联**——列表/详情走轻量 SELECT，
@@ -1212,7 +1303,9 @@ pub struct StrategyRunView {
     pub name: String,
     pub symbol: String,
     pub period: String,
+    /// **生效**区间起点（收缩后；闭）。ADR-024 D2/D3：`from_ts`/`to_ts` 存 effective（非 requested）。
     pub from_ts: DateTime<Utc>,
+    /// **生效**区间终点（收缩后；开，[from, to) 半开）。
     pub to_ts: DateTime<Utc>,
     pub config: serde_json::Value,
     pub status: StrategyRunStatus,
@@ -1221,6 +1314,22 @@ pub struct StrategyRunView {
     pub created_at: DateTime<Utc>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
+
+    // ── ADR-024 P5 §3.1：提交校验/收缩回显（审计与复现前提） ──
+    /// 用户**原始**请求起点（收缩前）；与 `from_ts`（effective）区分。
+    pub requested_from: DateTime<Utc>,
+    /// 用户**原始**请求终点（收缩前）。
+    pub requested_to: DateTime<Utc>,
+    /// effective != requested（发生收缩）。
+    pub clamped: bool,
+    /// 收缩原因（`"data_range"` | null）。
+    pub clamp_reason: Option<String>,
+    /// 提交时预估 bar 数（ADR-024 D12 `count(*)` 预扫描；扫描失败/降级 = null）。
+    pub estimated_bars: Option<i64>,
+    /// 执行后精确 bar 数（P4：由 `/brief` 的 chunk 计数提供；run 行轻量 SELECT **不**内联结果 ⇒ 恒 null）。
+    pub bars_total: Option<i64>,
+    /// 结果存储格式（P4：由 `/brief`/`/result` 提供；run 行恒 null）。
+    pub result_format: Option<String>,
 }
 
 /// 策略运行列表过滤（GET /api/workbench/runs）。limit/offset 分页（默认 limit=100/offset=0）；
@@ -1264,6 +1373,24 @@ pub trait StrategyRunStore: Send + Sync {
     async fn mark_canceled(&self, id: &str, finished_at: DateTime<Utc>) -> anyhow::Result<Option<bool>>;
     /// 读结果（strategy_run_result）；未知 run / 未成功 → Ok(None)。
     async fn get_result(&self, run_id: &str) -> anyhow::Result<Option<StrategyRunResult>>;
+
+    // ── ADR-024 P4 / D8：结果分块端口（strategy_run_bars，迁移 0027）──
+    /// 追加一个结果分块（边跑边写）。`seq` 由调用方单调递增（同 kind 内 0 起）。
+    /// 失败 ⇒ 调用方须将 run 落 `failed`（不得留半截结果当 succeeded）。
+    async fn append_result_chunk(&self, run_id: &str, chunk: &ResultChunk) -> anyhow::Result<()>;
+
+    /// 按**分块序号**范围读分块（分页）。`offset`/`limit` 为 chunk 序号窗口（非 bar 序号）。
+    async fn result_chunks(&self, run_id: &str, kind: ResultKind,
+                           offset: i64, limit: i64) -> anyhow::Result<Vec<ResultChunk>>;
+
+    /// 按**时间区间**读分块（跨 chunk 查询）。返回与 `[from, to]` 相交的**整块**
+    /// （可能含 chunk 外沿，调用方在块内按 ts 精确过滤）。
+    async fn result_chunks_in_range(&self, run_id: &str, kind: ResultKind,
+                                    from: DateTime<Utc>, to: DateTime<Utc>)
+        -> anyhow::Result<Vec<ResultChunk>>;
+
+    /// 分块计数（进度/分页元信息）。
+    async fn result_chunk_count(&self, run_id: &str, kind: ResultKind) -> anyhow::Result<i64>;
 }
 
 /// 组合预设行（strategy_preset；ADR §13.5 组合预设，config 同 strategy_run.config 形状）。

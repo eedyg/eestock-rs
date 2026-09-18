@@ -1,3 +1,5 @@
+import { ApiError } from '@/api/types';
+import { errorDisplayText } from '@/api/errorMessages';
 import type {
   StrategyCatalogEntry,
   SymbolSnapshot,
@@ -46,6 +48,10 @@ export interface WorkbenchState {
   progressMap: Record<string, ProgressInfo>;
   submitting: boolean;
   submitError: string | null;
+  /** ADR-024 P5 §5.2：提交响应 `clamped:true` ⇒ 显著提示条（不弹确认框）。 */
+  clampNotice: { requestedFrom: string; requestedTo: string; effectiveFrom: string; effectiveTo: string } | null;
+  /** ADR-024 P5 §5.2：`resource_guard` 二次确认（预估 bar 数/耗时；confirm 后带 `confirm:true` 重提）。 */
+  guardPrompt: { bars: number; secs: number } | null;
 }
 
 type WsLike = Pick<WsClient, 'subscribe'>;
@@ -81,7 +87,11 @@ export class WorkbenchStore {
     progressMap: {},
     submitting: false,
     submitError: null,
+    clampNotice: null,
+    guardPrompt: null,
   };
+  /** 待二次确认的提交请求（resource_guard 后保留；confirm 上屏后重提）。 */
+  private pendingConfirmReq: WorkbenchSubmitReq | null = null;
   /** 分页单页 limit（后端 limit/offset 契约；条数==limit 即还有更多）。
    *  50/页：首屏 DOM 有界（不一次性渲染全部历史），余量走「加载更多」。 */
   private runLimit = 50;
@@ -322,13 +332,55 @@ export class WorkbenchStore {
     this.patch({ submitting: true, submitError: null });
     try {
       const run = await this.deps.api.submitWorkbenchRun(req);
+      // ADR-024 P5：clamped:true ⇒ 显著提示条（不弹确认框）。
+      this.patch({
+        clampNotice: run.clamped
+          ? {
+              requestedFrom: run.requested_from ?? req.from,
+              requestedTo: run.requested_to ?? req.to,
+              effectiveFrom: run.from_ts,
+              effectiveTo: run.to_ts,
+            }
+          : null,
+        guardPrompt: null,
+      });
       await this.refreshRuns();
       await this.selectRun(run.id);
     } catch (e) {
-      this.patch({ submitError: (e as Error).message });
+      // ADR-024 P5 §3.1.1：结构化错误可编程消费——resource_guard（可确认）⇒ 二次确认流程。
+      if (
+        e instanceof ApiError &&
+        e.code === 'resource_guard' &&
+        e.detail?.confirmable !== false
+      ) {
+        this.pendingConfirmReq = req;
+        this.patch({
+          guardPrompt: {
+            bars: Number(e.detail?.requested_bars ?? 0),
+            secs: Number(e.detail?.estimated_secs ?? 0),
+          },
+        });
+      } else {
+        // ADR-024 P5 整改 N1：错误展示**按 `code` 分支**（已知码 → 中文提示；未知码回退 message）。
+        this.patch({ submitError: errorDisplayText(e as ApiError) });
+      }
     } finally {
       this.patch({ submitting: false });
     }
+  }
+
+  /** ADR-024 P5 §5.2：确认二次护栏 → 带 `confirm:true` 重提。 */
+  async confirmGuard(): Promise<void> {
+    const req = this.pendingConfirmReq;
+    this.pendingConfirmReq = null;
+    this.patch({ guardPrompt: null });
+    if (req) await this.submit({ ...req, confirm: true });
+  }
+
+  /** 取消二次确认（保留表单，不提交）。 */
+  dismissGuard(): void {
+    this.pendingConfirmReq = null;
+    this.patch({ guardPrompt: null });
   }
 
   // ── 组合预设（ADR §13.5；与 sim-live 共用下拉的数据源）──

@@ -3,6 +3,11 @@
 export type { Period, GridMode, SymbolSnapshot } from '@/layouts/DashboardGrid';
 export type { DetailRange } from '@/layouts/SourcesGrid';
 export type { Settlement, FormMode, SymbolFormValues } from '@/layouts/SymbolsGrid';
+// ADR-024 P0 §5.1：回测周期白名单的**前端镜像常量/类型**（单一事实源，见该文件注释）。
+// 回测周期与看板读源周期（上方 `Period`）不同源，不得混用。
+import { SUPPORTED_BACKTEST_PERIODS, type BacktestPeriod } from '@/features/backtest/periods';
+export { SUPPORTED_BACKTEST_PERIODS };
+export type { BacktestPeriod };
 
 /** 历史 bar（GET /api/kline 响应 bars 项，merge 视图，升序） */
 export interface Bar {
@@ -765,10 +770,13 @@ export interface StrategyTestRunReq {
   versionId?: string;
   params?: Record<string, number | string>;
   symbol: string;
-  period: 'M1' | 'M5' | 'M15' | 'D1';
+  period: BacktestPeriod;
   from: string; // RFC3339
   to: string; // RFC3339
   mode: StrategyTestMode;
+  /** ADR-024 P5 §3.1.1：资源护栏二次确认（预估 bar 数 ≥ 阈值时需 `true` 重提放行）；
+   *  与后端 `TestRunReq.confirm` 同语义（缺省 false）。 */
+  confirm?: boolean;
 }
 
 /** 试算评分点（score=null：插件熔断停用后的 bar） */
@@ -854,17 +862,56 @@ export interface StrategyTestRunResp {
   truncated: { scores: boolean; events: boolean; trades: boolean };
   /** 响应回显的生效费用（两段形状，见 {@link ResolvedFee}）；旧 fixture/后端省略时可缺。 */
   fee?: ResolvedFee;
+  // ── ADR-024 P5 §3.1：试算同口径（去档 + 收缩回显 + 均匀抽样标记）──
+  /** 评分/信号序列是否经**均匀抽样**（保首尾）；旧后端可缺。 */
+  downsampled?: boolean;
+  /** 抽样前原始评分数；旧后端可缺。 */
+  original_points?: number;
+  requested_from?: string;
+  requested_to?: string;
+  effective_from?: string;
+  effective_to?: string;
+  clamped?: boolean;
+  clamp_reason?: string | null;
+  estimated_bars?: number | null;
 }
 
-/** 后端错误线格式 {error: string} → 前端 ApiError */
+/** ADR-024 §3.1.1 结构化错误体 `{error:{code,message,detail}}` 的 detail（部分字段）。 */
+export interface ApiErrorDetail {
+  symbol?: string;
+  period?: string;
+  requested_from?: string;
+  requested_to?: string;
+  available_from?: string | null;
+  available_to?: string | null;
+  requested_bars?: number;
+  limit_bars?: number;
+  confirm_bars?: number;
+  estimated_secs?: number;
+  confirmable?: boolean;
+  [k: string]: unknown;
+}
+
+/** 后端错误线格式 `{error: string}`（旧）或 `{error:{code,message,detail}}`（ADR-024 P5 结构化）→ 前端 ApiError。
+ *  结构化错误可被**编程**消费：`e.code`/`e.detail`（如 range_empty 展示可用区间、resource_guard 走二次确认）。 */
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
+    public detail?: ApiErrorDetail,
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** `GET /api/workbench/available_range`（ADR-024 P5 §5.2）：日期控件 min/max 联动数据源。 */
+export interface WorkbenchAvailableRange {
+  symbol: string;
+  period: string;
+  available_from: string | null;
+  available_to: string | null;
 }
 
 // ── 页面⑪ 回测工作台（12-strategy-system / P3b；07-app-plane/00-web-api.md §1.8）──
@@ -906,7 +953,7 @@ export interface WorkbenchFee {
 export interface WorkbenchSubmitReq {
   name?: string;
   symbol: string;
-  period: string; // M1/M5/M15/D1
+  period: string; // M1/M5/M15/M30/H1/D1（ADR-024 P0：单一事实源见 SUPPORTED_BACKTEST_PERIODS）
   from: string;
   to: string;
   slots: WorkbenchSlotReq[];
@@ -916,6 +963,8 @@ export interface WorkbenchSubmitReq {
   stop?: WorkbenchStop | null;
   initial_capital?: number;
   fee: WorkbenchFee;
+  /** ADR-024 P5 §3.1.1：资源护栏二次确认（预估 bar 数 ≥ 阈值时需 `true` 重提放行）。 */
+  confirm?: boolean;
 }
 
 /** 钉住槽位（config.slots 项；submit 时快照 strategy_id/version/sha256，params 按 schema 缺省填充） */
@@ -944,9 +993,9 @@ export interface WorkbenchRunView {
   id: string; // sr_ 前缀
   name: string;
   symbol: string;
-  period: string; // M1/M5/M15/D1
-  from_ts: string; // RFC3339
-  to_ts: string;
+  period: string; // M1/M5/M15/M30/H1/D1（ADR-024 P0）
+  from_ts: string; // RFC3339 —— **生效**区间起（收缩后）
+  to_ts: string; // **生效**区间止（收缩后）
   config: WorkbenchRunConfig;
   status: WorkbenchRunStatus;
   progress: number; // 0..1
@@ -954,6 +1003,20 @@ export interface WorkbenchRunView {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  // ── ADR-024 P5 §3.1：收缩/预估回显（旧后端可缺 ⇒ 容差消费）──
+  /** 用户**原始**请求区间起（收缩前）。 */
+  requested_from?: string;
+  requested_to?: string;
+  /** effective != requested。 */
+  clamped?: boolean;
+  /** `"data_range"` | null。 */
+  clamp_reason?: string | null;
+  /** 提交时 `count(*)` 预扫描的 bar 数（降级 = null）。 */
+  estimated_bars?: number | null;
+  /** 执行后精确 bar 数（P4：由 /brief 提供；run 行可缺）。 */
+  bars_total?: number | null;
+  /** 结果存储格式（P4：由 /brief/result 提供；run 行可缺）。 */
+  result_format?: WorkbenchResultFormat | null;
 }
 
 /** per_bar 单 slot 评分（score 恒有值——插件错误 bar 记中立 50，error 字段携带错误文本） */
@@ -990,16 +1053,112 @@ export interface WorkbenchBarRecord {
 /** 8 项绩效（backtest::BacktestMetrics serde 形状，与既有 Metrics 同构） */
 export type WorkbenchMetrics = Metrics;
 
-/** StrategyRunResult（GET /api/workbench/runs/{id}/result；五 jsonb 列聚合） */
+/** 结果存储格式判别列（ADR-024 D8 / §3.2）：后端以它判别读取路径。
+ *  `legacy_single` = `/result` 内联三列全量（旧 run，双读不回填）；
+ *  `chunked_v1` = 数据在 `strategy_run_bars` 分块（图表走 `/curve`、明细走 `/bars`、成交走 `/fills`）。 */
+export type WorkbenchResultFormat = 'legacy_single' | 'chunked_v1';
+
+/** GET /api/workbench/runs/{id}/brief（轻量摘要；列表/轮询用，避免拉大包）。
+ *  P5 字段（effective_from·effective_to·clamped·estimated_bars）在 P4 为先占位真值，前端只读展示不推导。 */
+export interface WorkbenchResultBrief {
+  id: string;
+  name: string;
+  symbol: string;
+  period: string;
+  status: WorkbenchRunStatus;
+  progress: number;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  requested_from: string;
+  requested_to: string;
+  effective_from: string;
+  effective_to: string;
+  clamped: boolean;
+  estimated_bars: number | null;
+  /** per_bar 总根数（chunked = 分块推得；legacy = 内联长度）。 */
+  bars_total: number;
+  /** legacy_single | chunked_v1；无结果行为 null。 */
+  result_format: WorkbenchResultFormat | null;
+  /** per_bar 分块数（legacy = 0）。 */
+  chunk_count: number;
+  metrics: WorkbenchMetrics | null;
+}
+
+/** 显式抽样曲线（`GET …/curve`）：`downsampled`/`original_bars` 必带（ADR-024 D10）。
+ *  ⚠ 后端**不做隐式/未标注的有损**：凡 `downsampled=true`，UI 必须显式标注抽样点数与原始根数。 */
+export interface WorkbenchCurveResponse<T = unknown> {
+  kind: string;
+  points: T[];
+  downsampled: boolean;
+  original_bars: number;
+  k: number;
+}
+
+/** `GET …/bars`（分页或区间读）：`has_more`/`next_offset` 必须被消费（D9 禁静默截断）。 */
+export interface WorkbenchBarsResponse {
+  kind: string;
+  bars: WorkbenchBarRecord[];
+  total: number;
+  has_more: boolean;
+  next_offset: number | null;
+  /** 序号分页回声（区间读为 0）。 */
+  offset: number;
+  limit: number;
+  /** 区间读回声（序号分页缺省）。 */
+  from?: string;
+  to?: string;
+}
+
+/** 成交明细条目（`EngineEvent::Fill` 投影 + 所在 bar 的 ts，K 线标记锚点）。 */
+export interface WorkbenchRunFill {
+  type: 'fill';
+  bar_index: number;
+  /** 所在 bar 的 epoch 秒（K 线标记锚定用）。 */
+  ts: number;
+  side: 'Buy' | 'Sell';
+  qty: number;
+  price: number;
+  reason: 'Policy' | 'StopTrigger' | 'ForceClose';
+}
+
+/** `GET …/fills`（成交明细分页读；ADR-024 P6 有界精确源，**禁止抽样**）。
+ *  K 线买卖标记的**唯一**数据源（不用 `trades`：`TradeDetail` 仅完全平仓时合成
+ *  ⇒ 部分买入/加仓与部分卖出不进 `trades`）。 */
+export interface WorkbenchFillsResponse {
+  run_id: string;
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+  next_offset: number | null;
+  /** `false` = 该 chunked run 无 fills 块（「未写」，与「无成交」`true`+`total=0` 可区分）。 */
+  recorded: boolean;
+  fills: WorkbenchRunFill[];
+}
+
+/** StrategyRunResult（GET /api/workbench/runs/{id}/result；ADR-024 §3.2 **兼容** 形状）。
+ *  `legacy_single` ⇒ 三列全量 + `has_more:false`；
+ *  `chunked_v1` ⇒ `summary` + 首页 per_bar + `has_more` + `next_offset`（**显式**截断非静默），
+ *  `net_value`/`drawdown` 为空（图表改走 `/curve`）。 */
 export interface WorkbenchRunResult {
+  /** 判别列：前端**必须**据此分流（禁止把占位 `net_value: []` 当数据）。 */
+  result_format: WorkbenchResultFormat;
+  /** chunked_v1 的轻量摘要（legacy 时为 null/缺省）。 */
+  summary?: WorkbenchResultBrief | null;
   per_bar: WorkbenchBarRecord[];
   trades: Trade[];
   net_value: Array<[number, number]>; // [ts_unix_sec, equity]
   drawdown: Array<[number, number]>; // [ts_unix_sec, dd]
   metrics: WorkbenchMetrics;
+  /** chunked_v1：per_bar 是否还有更多页（**必须**消费，不得静默只显首页）。 */
+  has_more?: boolean;
+  next_offset?: number | null;
 }
 
-/** CompareItem（POST /api/workbench/runs/compare；输入序，未知/未成功 run 被后端跳过） */
+/** CompareItem（POST /api/workbench/runs/compare；输入序，未知/未成功 run 被后端跳过）。
+ *  ADR-024 D9/D10：`net_value` 为**服务端抽样后**的曲线，`downsampled`/`original_bars` 必须回显。 */
 export interface WorkbenchCompareItem {
   run_id: string;
   name: string;
@@ -1007,6 +1166,10 @@ export interface WorkbenchCompareItem {
   period: string;
   net_value: Array<[number, number]>;
   metrics: WorkbenchMetrics;
+  /** 净值是否经服务端抽样（false = 全量）。 */
+  downsampled: boolean;
+  /** 抽样前净值点数（`downsampled=true` 时用于标注）。 */
+  original_bars: number;
 }
 
 /** StrategyPresetRow（组合预设；config 为钉住形态） */

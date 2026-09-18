@@ -40,7 +40,12 @@ export function WorkbenchPage({ api = defaultApi, ws = defaultWs }: { api?: ApiC
           presets={state.presets.data}
           submitting={state.submitting}
           submitError={state.submitError}
+          clampNotice={state.clampNotice}
+          guardPrompt={state.guardPrompt}
+          loadAvailableRange={(symbol, period) => api.getWorkbenchAvailableRange(symbol, period)}
           onSubmit={(req) => void store.submit(req)}
+          onConfirmGuard={() => void store.confirmGuard()}
+          onDismissGuard={() => store.dismissGuard()}
           onApplyPreset={(id) => store.applyPreset(id)}
           onCreatePreset={(name, config) => store.createPreset(name, config)}
           onUpdatePreset={(id, name, config) => store.updatePreset(id, name, config)}

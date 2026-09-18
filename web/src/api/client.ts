@@ -60,9 +60,14 @@ import type {
   StrategyTestRunResp,
   StrategyUpdateOutcome,
   StrategyVersionRowDto,
+  WorkbenchAvailableRange,
+  WorkbenchBarsResponse,
   WorkbenchCompareItem,
+  WorkbenchCurveResponse,
+  WorkbenchFillsResponse,
   WorkbenchPresetConfigInput,
   WorkbenchPresetRow,
+  WorkbenchResultBrief,
   WorkbenchRunConfig,
   WorkbenchRunResult,
   WorkbenchRunStatus,
@@ -70,12 +75,22 @@ import type {
   WorkbenchSubmitReq,
 } from './types';
 import { ApiError } from './types';
+import type { ApiErrorDetail } from './types';
 
 export interface KlineQuery {
   code: string;
   period: Period;
   before?: string; // 游标：排他上界 ts（向前翻页）
   limit?: number;
+}
+
+/** 页面⑪ 结果取数：`/bars` 查询参数（`kind` 缺省 per_bar；`offset/limit` 与 `from/to` 互斥）。 */
+export interface WorkbenchBarsQuery {
+  kind?: 'per_bar' | 'net_value' | 'drawdown';
+  offset?: number;
+  limit?: number;
+  from?: string; // RFC3339
+  to?: string; // RFC3339
 }
 
 /** 页面④ 日期范围查询（from/to 为 YYYY-MM-DD，闭区间；thresholdPct 缺省由后端兜底 0.5） */
@@ -235,6 +250,8 @@ export interface ApiClient {
   // ── 页面⑪ 回测工作台（12-strategy-system / P3b；07-app-plane §1.8）──
   /** 提交 ensemble 运行（POST /api/workbench/runs；201 queued 行含钉住 config 快照） */
   submitWorkbenchRun(req: WorkbenchSubmitReq): Promise<WorkbenchRunView>;
+  /** 可得区间（GET /api/workbench/available_range；ADR-024 P5 §5.2：日期控件 min/max 联动） */
+  getWorkbenchAvailableRange(symbol: string, period: string): Promise<WorkbenchAvailableRange>;
   /** 运行历史（GET /api/workbench/runs；status 过滤 + limit/offset 分页；轻量不含结果） */
   listWorkbenchRuns(filter?: {
     status?: WorkbenchRunStatus;
@@ -243,12 +260,25 @@ export interface ApiClient {
   }): Promise<WorkbenchRunView[]>;
   /** 单 run 详情（GET /api/workbench/runs/{id}；404 未知 id） */
   getWorkbenchRun(id: string): Promise<WorkbenchRunView>;
-  /** 运行结果（GET /api/workbench/runs/{id}/result；per_bar 全量五 jsonb；404 未知/未成功） */
+  /** 运行结果（GET /api/workbench/runs/{id}/result；ADR-024 §3.2 **兼容**：legacy 全量；
+   *  chunked_v1 ⇒ summary + 首页 per_bar + has_more/next_offset；404 未知/未成功） */
   getWorkbenchResult(id: string): Promise<WorkbenchRunResult>;
+  /** 轻量摘要（GET /api/workbench/runs/{id}/brief；列表/轮询用；404 未知） */
+  getWorkbenchBrief(id: string): Promise<WorkbenchResultBrief>;
+  /** 分页/区间读 bar（GET /api/workbench/runs/{id}/bars；`offset/limit` 与 `from/to` **互斥**） */
+  getWorkbenchBars(id: string, q?: WorkbenchBarsQuery): Promise<WorkbenchBarsResponse>;
+  /** 显式抽样曲线（GET /api/workbench/runs/{id}/curve；`downsampled`/`original_bars` 必带） */
+  getWorkbenchCurve(
+    id: string,
+    q: { kind: 'per_bar' | 'net_value' | 'drawdown'; k?: number },
+  ): Promise<WorkbenchCurveResponse>;
+  /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
+  getWorkbenchFills(id: string, q?: { offset?: number; limit?: number }): Promise<WorkbenchFillsResponse>;
   /** 协作式取消（POST /api/workbench/runs/{id}/cancel；409 已终态/404 未知） */
   cancelWorkbenchRun(id: string): Promise<WorkbenchRunView>;
-  /** 多 run 并排对比（POST /api/workbench/runs/compare body {ids}；输入序；未知/未成功跳过） */
-  compareWorkbenchRuns(ids: string[]): Promise<WorkbenchCompareItem[]>;
+  /** 多 run 并排对比（POST /api/workbench/runs/compare body {ids, k?}；**服务端抽样**净值；
+   *  输入序；未知/未成功跳过） */
+  compareWorkbenchRuns(ids: string[], k?: number): Promise<WorkbenchCompareItem[]>;
   /** 组合预设列表（GET /api/workbench/presets；created_at ASC） */
   listWorkbenchPresets(): Promise<WorkbenchPresetRow[]>;
   /** 预设详情（GET /api/workbench/presets/{id}；404） */
@@ -295,13 +325,24 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status} ${path}`;
+      let code: string | undefined;
+      let detail: ApiErrorDetail | undefined;
       try {
-        const body = (await res.json()) as { error?: string };
-        if (body.error) msg = `${msg}: ${body.error}`;
+        const body = (await res.json()) as {
+          error?: string | { code?: string; message?: string; detail?: ApiErrorDetail };
+        };
+        if (typeof body.error === 'string') {
+          msg = `${msg}: ${body.error}`;
+        } else if (body.error && typeof body.error === 'object') {
+          // ADR-024 P5 §3.1.1：结构化错误可**编程**消费（code/detail）。
+          code = body.error.code;
+          detail = body.error.detail;
+          msg = `${msg}: ${body.error.message ?? body.error.code ?? 'error'}`;
+        }
       } catch {
         // 非 JSON 错误体忽略
       }
-      throw new ApiError(res.status, msg);
+      throw new ApiError(res.status, msg, code, detail);
     }
     if (res.status === 204) return undefined as T; // 204 No Content（删除类端点）无体
     return (await res.json()) as T;
@@ -500,6 +541,10 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     // ── 页面⑪ 回测工作台（§1.8）──
     submitWorkbenchRun: (req) =>
       request<WorkbenchRunView>('/api/workbench/runs', { method: 'POST', body: JSON.stringify(req) }),
+    getWorkbenchAvailableRange: (symbol, period) => {
+      const qs = new URLSearchParams({ symbol, period }).toString();
+      return get<WorkbenchAvailableRange>(`/api/workbench/available_range?${qs}`);
+    },
     listWorkbenchRuns: (filter) => {
       const params = new URLSearchParams();
       if (filter?.status) params.set('status', filter.status);
@@ -511,12 +556,42 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getWorkbenchRun: (id) => get<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}`),
     getWorkbenchResult: (id) =>
       get<WorkbenchRunResult>(`/api/workbench/runs/${encodeURIComponent(id)}/result`),
+    getWorkbenchBrief: (id) =>
+      get<WorkbenchResultBrief>(`/api/workbench/runs/${encodeURIComponent(id)}/brief`),
+    getWorkbenchBars: (id, q) => {
+      const params = new URLSearchParams();
+      if (q?.kind) params.set('kind', q.kind);
+      if (q?.offset != null) params.set('offset', String(q.offset));
+      if (q?.limit != null) params.set('limit', String(q.limit));
+      if (q?.from) params.set('from', q.from);
+      if (q?.to) params.set('to', q.to);
+      const qs = params.toString();
+      return get<WorkbenchBarsResponse>(
+        `/api/workbench/runs/${encodeURIComponent(id)}/bars${qs ? `?${qs}` : ''}`,
+      );
+    },
+    getWorkbenchCurve: (id, q) => {
+      const params = new URLSearchParams({ kind: q.kind });
+      if (q.k != null) params.set('k', String(q.k));
+      return get<WorkbenchCurveResponse>(
+        `/api/workbench/runs/${encodeURIComponent(id)}/curve?${params.toString()}`,
+      );
+    },
+    getWorkbenchFills: (id, q) => {
+      const params = new URLSearchParams();
+      if (q?.offset != null) params.set('offset', String(q.offset));
+      if (q?.limit != null) params.set('limit', String(q.limit));
+      const qs = params.toString();
+      return get<WorkbenchFillsResponse>(
+        `/api/workbench/runs/${encodeURIComponent(id)}/fills${qs ? `?${qs}` : ''}`,
+      );
+    },
     cancelWorkbenchRun: (id) =>
       request<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
-    compareWorkbenchRuns: (ids) =>
+    compareWorkbenchRuns: (ids, k) =>
       request<WorkbenchCompareItem[]>('/api/workbench/runs/compare', {
         method: 'POST',
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify(k == null ? { ids } : { ids, k }),
       }),
     listWorkbenchPresets: () => get<WorkbenchPresetRow[]>('/api/workbench/presets'),
     getWorkbenchPreset: (id) =>

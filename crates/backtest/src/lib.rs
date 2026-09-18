@@ -16,6 +16,6 @@ pub mod types;
 
 // 常用类型再导出，方便应用层 `use backtest::*;`。
 pub use fee::{BuyExecution, FeeModel, SellExecution};
-pub use indicators::{BollValue, Indicators, KdjValue, MacdValue};
+pub use indicators::{BollValue, Indicators, KdjValue, MacdValue, OnlineIndicators};
 pub use metrics::{compute_drawdown, compute_metrics, BacktestMetrics};
 pub use types::{Bar, ParamDef, ParamKind, ParamValue, Period, StrategyParams, TradeDetail};

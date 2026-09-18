@@ -29,10 +29,14 @@ use application::strategy::{
     CreateStrategyInput, StrategyInvalidTransition, StrategyNotFound, StrategyService,
     StrategyValidation, TestRunMode, TestRunRequest, TestRunSource, UpdateDraftOutcome,
 };
+use application::error::codes;
 use domain::strategy_state::{ApprovalLevel, StrategyKind};
 
 use crate::state::AppState;
 
+/// 非 400 的错误体（404/409/500/503）。
+///
+/// ⚠️ ADR-024 P5 整改 N1：**只允许**用于非 400；本模块内所有 400 一律走 [`structured`]。
 fn err(status: StatusCode, msg: &str) -> Response {
     (status, Json(serde_json::json!({ "error": msg }))).into_response()
 }
@@ -42,17 +46,48 @@ fn internal(e: anyhow::Error) -> Response {
     err(StatusCode::INTERNAL_SERVER_ERROR, "internal error")
 }
 
+/// ADR-024 §3.1.1：结构化 400 `{"error":{"code","message","detail"}}`（`detail` 恒为对象）。
+fn structured(code: &str, message: &str, detail: serde_json::Value) -> Response {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({
+            "error": { "code": code, "message": message, "detail": detail }
+        })),
+    )
+        .into_response()
+}
+
+/// application 层结构化错误（`range_empty`/`resource_guard`）→ 结构化 400。
+fn structured_err(e: &application::error::StructuredError, ctx: &serde_json::Value) -> Response {
+    let mut detail = e.detail.clone();
+    if let (Some(d), Some(c)) = (detail.as_object_mut(), ctx.as_object()) {
+        for (k, v) in c {
+            d.entry(k.clone()).or_insert_with(|| v.clone());
+        }
+    }
+    structured(&e.code, &e.message, detail)
+}
+
 /// 服务错误 → HTTP 语义（404/409/400/500）。
-fn map_svc_err(e: anyhow::Error) -> Response {
-    if let Some(x) = e.downcast_ref::<StrategyNotFound>() {
+///
+/// ADR-024 §3.1.1：400 一律结构化；`StrategyValidation` 的 `code` **由 application 校验点同源给出**
+/// （web 不做消息解析），`ctx` 为请求上下文（如 `period`）。
+fn map_svc_err_ctx(e: anyhow::Error, ctx: serde_json::Value) -> Response {
+    if let Some(x) = e.downcast_ref::<application::error::StructuredError>() {
+        structured_err(x, &ctx)
+    } else if let Some(x) = e.downcast_ref::<StrategyValidation>() {
+        structured(x.code(), x.message(), ctx)
+    } else if let Some(x) = e.downcast_ref::<StrategyNotFound>() {
         err(StatusCode::NOT_FOUND, &x.0)
     } else if let Some(x) = e.downcast_ref::<StrategyInvalidTransition>() {
         err(StatusCode::CONFLICT, &x.0)
-    } else if let Some(x) = e.downcast_ref::<StrategyValidation>() {
-        err(StatusCode::BAD_REQUEST, &x.0)
     } else {
         internal(e)
     }
+}
+
+fn map_svc_err(e: anyhow::Error) -> Response {
+    map_svc_err_ctx(e, serde_json::json!({}))
 }
 
 /// 取注入的 StrategyService；未装配（None）→ 503（与 AppState.sim 同模式）。
@@ -152,6 +187,9 @@ pub struct TestRunReq {
     /// I-3/D6：初始资金（缺省 100000）。
     #[serde(default)]
     pub initial_capital: Option<f64>,
+    /// ADR-024 P5 §3.1.1：资源护栏二次确认（预估 bar 数 ≥ 阈值时需 `true` 重提放行）。
+    #[serde(default)]
+    pub confirm: bool,
 }
 
 /// 试算缺省前置预热根数（I-2/D6 架构师裁决；与 MCP 同值）。
@@ -170,14 +208,26 @@ pub async fn catalog(State(st): State<Arc<AppState>>, Query(q): Query<CatalogQue
         None => None,
         Some(s) => match ApprovalLevel::parse(s) {
             Some(l) => Some(l),
-            None => return err(StatusCode::BAD_REQUEST, "level 须为 backtest_ok/sim_ok/live_approved"),
+            None => {
+                return structured(
+                    codes::LEVEL_INVALID,
+                    "level 须为 backtest_ok/sim_ok/live_approved",
+                    serde_json::json!({ "level": s }),
+                )
+            }
         },
     };
     let kind = match q.kind.as_deref() {
         None => None,
         Some(s) => match StrategyKind::parse(s) {
             Some(k) => Some(k),
-            None => return err(StatusCode::BAD_REQUEST, "kind 须为 strategy/template"),
+            None => {
+                return structured(
+                    codes::KIND_INVALID,
+                    "kind 须为 strategy/template",
+                    serde_json::json!({ "kind": s }),
+                )
+            }
         },
     };
     match svc.catalog(level, kind).await {
@@ -193,16 +243,22 @@ pub async fn create_strategy(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.name.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "name 必填");
+        return structured(codes::NAME_REQUIRED, "name 必填", serde_json::json!({}));
     }
     if req.code.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "code 必填");
+        return structured(codes::CODE_REQUIRED, "code 必填", serde_json::json!({}));
     }
     let kind = match req.kind.as_deref() {
         None => StrategyKind::Strategy,
         Some(s) => match StrategyKind::parse(s) {
             Some(k) => k,
-            None => return err(StatusCode::BAD_REQUEST, "kind 须为 strategy/template"),
+            None => {
+                return structured(
+                    codes::KIND_INVALID,
+                    "kind 须为 strategy/template",
+                    serde_json::json!({ "kind": s }),
+                )
+            }
         },
     };
     let input = CreateStrategyInput {
@@ -230,7 +286,13 @@ pub async fn manage_list(State(st): State<Arc<AppState>>, Query(q): Query<Manage
         None => None,
         Some(s) => match StrategyKind::parse(s) {
             Some(k) => Some(k),
-            None => return err(StatusCode::BAD_REQUEST, "kind 须为 strategy/template"),
+            None => {
+                return structured(
+                    codes::KIND_INVALID,
+                    "kind 须为 strategy/template",
+                    serde_json::json!({ "kind": s }),
+                )
+            }
         },
     };
     match svc.manage_list(kind).await {
@@ -297,7 +359,7 @@ pub async fn create_draft_from(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.from_version_id.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "from_version_id 必填");
+        return structured(codes::SOURCE_INVALID, "from_version_id 必填", serde_json::json!({}));
     }
     match svc.create_draft_from(&id, &req.from_version_id).await {
         Ok(v) => (StatusCode::CREATED, Json(v)).into_response(),
@@ -314,7 +376,7 @@ pub async fn update_draft(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.code.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "code 必填");
+        return structured(codes::CODE_REQUIRED, "code 必填", serde_json::json!({}));
     }
     match svc.update_draft(&vid, &req.code).await {
         Ok(UpdateDraftOutcome::Updated(v)) => {
@@ -352,7 +414,7 @@ pub async fn archive_version(State(st): State<Arc<AppState>>, Path(vid): Path<St
 pub async fn diff_versions(State(st): State<Arc<AppState>>, Query(q): Query<DiffQuery>) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     let (Some(from), Some(to)) = (q.from.as_deref(), q.to.as_deref()) else {
-        return err(StatusCode::BAD_REQUEST, "from/to 查询参数必填（版本 id）");
+        return structured(codes::REQUEST_INVALID, "from/to 查询参数必填（版本 id）", serde_json::json!({}));
     };
     match svc.diff(from, to).await {
         Ok((from, to)) => Json(serde_json::json!({
@@ -373,26 +435,54 @@ pub async fn test_run(State(st): State<Arc<AppState>>, Json(req): Json<TestRunRe
     let source = match (&req.code, &req.version_id) {
         (Some(code), None) => TestRunSource::Inline(code.clone()),
         (None, Some(vid)) => TestRunSource::VersionId(vid.clone()),
-        _ => return err(StatusCode::BAD_REQUEST, "code 与 version_id 须且仅须提供一个"),
+        _ => {
+            return structured(
+                codes::SOURCE_INVALID,
+                "code 与 version_id 须且仅须提供一个",
+                serde_json::json!({}),
+            )
+        }
     };
     if req.symbol.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "symbol（标的代码）必填");
+        return structured(codes::SYMBOL_REQUIRED, "symbol（标的代码）必填", serde_json::json!({}));
     }
     let mode = match req.mode.as_str() {
         "pure_score" => TestRunMode::PureScore,
         "sim_position" => TestRunMode::SimPosition,
-        _ => return err(StatusCode::BAD_REQUEST, "mode 须为 pure_score/sim_position"),
+        _ => {
+            return structured(
+                codes::MODE_INVALID,
+                "mode 须为 pure_score/sim_position",
+                serde_json::json!({ "mode": req.mode }),
+            )
+        }
     };
     let from = match DateTime::parse_from_rfc3339(&req.from) {
         Ok(t) => t.with_timezone(&Utc),
-        Err(_) => return err(StatusCode::BAD_REQUEST, "from 须为 RFC3339 时间戳"),
+        Err(_) => {
+            return structured(
+                codes::TIMESTAMP_INVALID,
+                "from 须为 RFC3339 时间戳",
+                serde_json::json!({ "field": "from", "value": req.from }),
+            )
+        }
     };
     let to = match DateTime::parse_from_rfc3339(&req.to) {
         Ok(t) => t.with_timezone(&Utc),
-        Err(_) => return err(StatusCode::BAD_REQUEST, "to 须为 RFC3339 时间戳"),
+        Err(_) => {
+            return structured(
+                codes::TIMESTAMP_INVALID,
+                "to 须为 RFC3339 时间戳",
+                serde_json::json!({ "field": "to", "value": req.to }),
+            )
+        }
     };
     if from >= to {
-        return err(StatusCode::BAD_REQUEST, "from 须早于 to");
+        return structured(
+            codes::FROM_AFTER_TO,
+            "from 须早于 to",
+            serde_json::json!({ "from": req.from, "to": req.to }),
+        );
     }
     let run = TestRunRequest {
         source,
@@ -410,9 +500,10 @@ pub async fn test_run(State(st): State<Arc<AppState>>, Json(req): Json<TestRunRe
             .clone()
             .unwrap_or_else(|| serde_json::json!({"LumpSum": {"position_pct": 1.0}})),
         initial_capital: req.initial_capital.unwrap_or(DEFAULT_TEST_RUN_CAPITAL),
+        confirm: req.confirm,
     };
     match svc.test_run(&run).await {
         Ok(resp) => Json(resp).into_response(),
-        Err(e) => map_svc_err(e),
+        Err(e) => map_svc_err_ctx(e, serde_json::json!({ "period": req.period })),
     }
 }

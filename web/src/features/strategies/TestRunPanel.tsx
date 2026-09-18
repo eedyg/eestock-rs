@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ApiClient } from '@/api/client';
+import { ApiError } from '@/api/types';
+import { errorDisplayText } from '@/api/errorMessages';
 import type {
   StrategyParamDef,
   StrategyTestMode,
   StrategyTestRunResp,
 } from '@/api/types';
+// ADR-024 P0 §5.1：试算周期下拉由单一事实源（前端镜像常量）生成。
+import { SUPPORTED_BACKTEST_PERIODS, type BacktestPeriod } from '@/features/backtest/periods';
 import { ScoreChart } from './ScoreChart';
 import { formatDateTime } from './format';
 
@@ -13,7 +17,8 @@ function toDateInput(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-/** 默认试算区间：近一年（日线语义；分钟级区间上限 3 个月由后端校验兜底 400 友好展示） */
+/** 默认试算区间：近一年（**无日历天数档**：P5 起区间只受“数据可得范围”与资源护栏约束；
+ *  长区间/无交集由后端结构化 400 按 `code` 友好展示） */
 function defaultRange(): { from: string; to: string } {
   const to = new Date();
   const from = new Date();
@@ -26,7 +31,7 @@ function dayToIso(day: string): string {
 }
 
 /**
- * 试算面板（ADR §13.5 双模式）：symbol / 周期 M1/M5/M15/D1 / 区间 / 参数（按 schema 渲染）/
+ * 试算面板（ADR §13.5 双模式）：symbol / 周期（ADR-024 P0：单一事实源 M1/M5/M15/M30/H1/D1）/ 区间 / 参数（按 schema 渲染）/
  * 模式 pure_score|sim_position → POST /api/strategies/test-run（内联 code，即写即跑）。
  * 结果：评分曲线（ScoreChart）+ sim_position 成交表/事件列表 + 截断提示；
  * 错误（400 参数越界/区间超限）内联友好展示。
@@ -41,7 +46,7 @@ export function TestRunPanel({
   schema: StrategyParamDef[];
 }) {
   const [symbol, setSymbol] = useState('518880');
-  const [period, setPeriod] = useState<'M1' | 'M5' | 'M15' | 'D1'>('D1');
+  const [period, setPeriod] = useState<BacktestPeriod>('D1');
   const [dateFrom, setDateFrom] = useState(() => defaultRange().from);
   const [dateTo, setDateTo] = useState(() => defaultRange().to);
   const [mode, setMode] = useState<StrategyTestMode>('pure_score');
@@ -107,7 +112,8 @@ export function TestRunPanel({
       });
       setResult(resp);
     } catch (e) {
-      setRunError(e instanceof Error ? e.message : '试算失败');
+      // ADR-024 P5 整改 N1：错误展示**按 `code` 分支**（已知码 → 中文提示；未知码回退 message）。
+      setRunError(e instanceof ApiError || e instanceof Error ? errorDisplayText(e as ApiError) : '试算失败');
       setResult(null);
     } finally {
       setRunning(false);
@@ -121,6 +127,9 @@ export function TestRunPanel({
         result.truncated.trades ? '成交明细' : null,
       ].filter(Boolean) as string[])
     : [];
+  // ADR-024 P5/D11：评分/信号序列改为**均匀抽样（保首尾）**（`downsampled` + `original_points`），
+  // 旧「仅展示前段」措辞只适用于事件/成交的真截断（不再用于评分）。
+  const sampled = result?.downsampled === true;
 
   return (
     <div className="flex flex-col gap-3 overflow-auto p-3 text-xs" data-testid="testrun-panel">
@@ -143,10 +152,9 @@ export function TestRunPanel({
             onChange={(e) => setPeriod(e.target.value as typeof period)}
             data-testid="tr-period"
           >
-            <option value="M1">M1</option>
-            <option value="M5">M5</option>
-            <option value="M15">M15</option>
-            <option value="D1">D1</option>
+            {SUPPORTED_BACKTEST_PERIODS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
           </select>
         </label>
         <label className="block text-dim">
@@ -233,6 +241,11 @@ export function TestRunPanel({
             {result.symbol} / {result.period} / {result.bar_count} bar
             （{result.mode === 'pure_score' ? '纯评分' : '模拟持仓'}）
           </div>
+          {sampled && (
+            <div className="rounded-lg border border-acc2/40 bg-acc2/10 p-2 text-acc2" data-testid="tr-sampled">
+              评分序列已均匀抽样（保留首尾；原始 {result.original_points ?? '?'} 点）
+            </div>
+          )}
           {truncatedHints.length > 0 && (
             <div className="rounded-lg border border-acc2/40 bg-acc2/10 p-2 text-acc2" data-testid="tr-truncated">
               结果已截断（{truncatedHints.join('、')}超出上限，仅展示前段）

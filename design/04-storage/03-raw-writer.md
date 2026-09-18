@@ -133,6 +133,8 @@ pub const EXPECTED_RELATIONS: &[&str] = &[
     "strategy", "strategy_version",
     // 12-strategy-system / P3a：回测工作台表（0023；应用面自有）
     "strategy_run", "strategy_run_result", "strategy_preset",
+    // ADR-024 P4 / D8：结果分块表（0027；应用面自有，"边跑边写" per_bar/net_value/drawdown）
+    "strategy_run_bars",
     // ADR-019 / D11：费率档案表（0025；按 type 主键，symbols.type 为其解析键）
     "fee_profiles",
 ];

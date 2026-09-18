@@ -121,6 +121,45 @@ describe('createHttpClient（Phase C 起对齐 07-app-plane §1.1 真实线格�
     expect((err as ApiError).message).toContain('boom');
   });
 
+  // ── ADR-024 P5 §3.1.1：结构化错误可**编程**消费（code/detail） ──
+  it('结构化错误体 {error:{code,message,detail}} → ApiError.code/detail（不丢失机器可读增量）', async () => {
+    const f = fetcherReturning(
+      {
+        error: {
+          code: 'resource_guard',
+          message: '预估 bar 数达到二次确认阈值',
+          detail: { requested_bars: 290000, limit_bars: 2000000, estimated_secs: 182.3, confirmable: true },
+        },
+      },
+      false,
+      400,
+    );
+    const api = createHttpClient('', f);
+    const err = (await api.getWorkbenchAvailableRange('518880', 'D1').catch((e) => e)) as ApiError;
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(400);
+    expect(err.code).toBe('resource_guard');
+    expect(err.detail?.requested_bars).toBe(290000);
+    expect(err.detail?.confirmable).toBe(true);
+    expect(err.message).toContain('二次确认');
+  });
+
+  it('getWorkbenchAvailableRange → GET /api/workbench/available_range?symbol=&period=', async () => {
+    const f = fetcherReturning({
+      symbol: '518880',
+      period: 'D1',
+      available_from: '2012-01-04T01:30:00Z',
+      available_to: '2026-09-16T00:00:00Z',
+    });
+    const api = createHttpClient('', f);
+    const r = await api.getWorkbenchAvailableRange('518880', 'D1');
+    expect(r.available_to).toBe('2026-09-16T00:00:00Z');
+    const { url } = lastCall(f);
+    expect(url).toContain('/api/workbench/available_range?');
+    expect(url).toContain('symbol=518880');
+    expect(url).toContain('period=D1');
+  });
+
   // ── Phase C：标的管理写端点 ──
 
   it('getSymbolsAdmin → GET /api/symbols?with_stats=1', async () => {
@@ -570,7 +609,7 @@ describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8
     expect(c.init.method).toBe('POST');
   });
 
-  it('compareWorkbenchRuns → POST /api/workbench/runs/compare（body {ids}）', async () => {
+  it('compareWorkbenchRuns → POST /api/workbench/runs/compare（body {ids}；可传 k）', async () => {
     const f = fetcherReturning([]);
     const api = createHttpClient('', f);
     await api.compareWorkbenchRuns(['sr_1', 'sr_2']);
@@ -578,6 +617,38 @@ describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8
     expect(url).toBe('/api/workbench/runs/compare');
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({ ids: ['sr_1', 'sr_2'] });
+    await api.compareWorkbenchRuns(['sr_1'], 500);
+    expect(JSON.parse(String(lastCall(f).init.body))).toEqual({ ids: ['sr_1'], k: 500 });
+  });
+
+  it('ADR-024 P6 结果取数端点 URL 契约：/brief /bars /curve /fills', async () => {
+    const f = fetcherReturning({ bars: [], points: [], fills: [] });
+    const api = createHttpClient('', f);
+
+    await api.getWorkbenchBrief('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/brief');
+
+    // 分页读（offset/limit）
+    await api.getWorkbenchBars('sr_9', { kind: 'per_bar', offset: 5000, limit: 5000 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/bars?kind=per_bar&offset=5000&limit=5000');
+    // 缺省（不带 query）
+    await api.getWorkbenchBars('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/bars');
+    // 区间读（from/to；RFC3339 需 encode）
+    await api.getWorkbenchBars('sr_9', { kind: 'per_bar', from: '2026-01-01T00:00:00Z', to: '2026-02-01T00:00:00Z' });
+    expect(lastCall(f).url).toBe(
+      '/api/workbench/runs/sr_9/bars?kind=per_bar&from=2026-01-01T00%3A00%3A00Z&to=2026-02-01T00%3A00%3A00Z',
+    );
+
+    await api.getWorkbenchCurve('sr_9', { kind: 'net_value', k: 2000 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/curve?kind=net_value&k=2000');
+    await api.getWorkbenchCurve('sr_9', { kind: 'per_bar' });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/curve?kind=per_bar');
+
+    await api.getWorkbenchFills('sr_9', { offset: 0, limit: 5000 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/fills?offset=0&limit=5000');
+    await api.getWorkbenchFills('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/fills');
   });
 
   it('presets CRUD + apply URL/method/body 契约', async () => {

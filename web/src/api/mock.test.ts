@@ -1,5 +1,29 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createMockClient } from './mock';
+import { SUPPORTED_BACKTEST_PERIODS } from '@/features/backtest/periods';
+import type { StrategyTestRunResp } from './types';
+
+/** 单一事实源：`design/16-backtest-scalability/contract-vectors.json`（ADR-024 §5.4）。
+ *  mock 的区间语义（去日历档 / 收缩 / range_empty / resource_guard）**与该向量的
+ *  `span_limit_semantics` 段绑定**：向量改（例：把 `calendar_day_cap` 设回数值、改 `clamp.mode`、
+ *  删 `echo_fields`）⇒ 本文件断言必红。 */
+const HERE = dirname(fileURLToPath(import.meta.url));
+const VECTORS = JSON.parse(
+  readFileSync(resolve(HERE, '../../../design/16-backtest-scalability/contract-vectors.json'), 'utf8'),
+) as {
+  backtest_periods: string[];
+  span_limit_semantics: {
+    calendar_day_cap: number | null;
+    deleted_constants: string[];
+    clamp: { mode: string; echo_fields: string[]; gap_policy: string };
+    empty_intersection: { http: number; code: string };
+    resource_guard: { code: string; requires_confirmation: boolean };
+  };
+};
+const SPAN = VECTORS.span_limit_semantics;
 
 describe('createMockClient（后端 Phase A 并行期的契约 mock）', () => {
   it('getSymbols 返回注册集合 4 标的（含 latest 快照字段 + enabled）', async () => {
@@ -484,25 +508,105 @@ function on_bar(ctx) { return 50; }
     expect(none.version.params_schema).toEqual([]);
   });
 
-  it('MINOR-4：试算区间上限对齐后端（D1≤5年 / 分钟级≤3个月）超限 → 400', async () => {
+  it('N2-MINOR-4（重写）：试算无日历档——与 contract-vectors.json::span_limit_semantics 绑定', async () => {
     const api = createMockClient();
     const base = { code: 'function on_bar(ctx){return 50;}', symbol: '518880', mode: 'pure_score' as const };
-    // D1 五年内存量 OK（1826 天 ≤ 1830）
-    await expect(
-      api.runStrategyTest({ ...base, period: 'D1', from: '2021-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
-    ).resolves.toBeTruthy();
-    // D1 超 5 年 → 400
-    await expect(
-      api.runStrategyTest({ ...base, period: 'D1', from: '2019-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
-    ).rejects.toMatchObject({ status: 400 });
-    // M1 + 1 年区间 → 400（分钟级上限 3 个月）
-    await expect(
-      api.runStrategyTest({ ...base, period: 'M1', from: '2025-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' }),
-    ).rejects.toMatchObject({ status: 400 });
-    // M1 三个月内 OK
-    await expect(
-      api.runStrategyTest({ ...base, period: 'M1', from: '2026-01-01T00:00:00Z', to: '2026-03-01T00:00:00Z' }),
-    ).resolves.toBeTruthy();
+
+    // ① 向量绑定：日历档已删（`calendar_day_cap = null` + 删除的常量名）
+    expect(SPAN.calendar_day_cap).toBeNull();
+    expect(SPAN.deleted_constants).toContain('MINUTE_MAX_SPAN_DAYS');
+    expect(SPAN.deleted_constants).toContain('D1_MAX_SPAN_DAYS');
+
+    // ② D1 七年跨度（旧档 5 年 ⇒ 旧 mock 必 400）⇒ 新语义：**受理**（数据范围内的长区间不收缩）
+    const d1 = await api.runStrategyTest({
+      ...base, period: 'D1', from: '2019-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z',
+    });
+    expect(d1.mode).toBe('pure_score');
+    expect(d1.requested_from).toBe('2019-01-01T00:00:00.000Z');
+    expect(d1.requested_to).toBe('2026-01-01T00:00:00.000Z');
+    expect(d1.clamped).toBe(false);
+    expect(d1.clamp_reason).toBeNull();
+
+    // ②b 起点早于可得数据 ⇒ 收缩回显（`clamp.mode = intersect_available_range`）
+    expect(SPAN.clamp.mode).toBe('intersect_available_range');
+    const c = await api.runStrategyTest({
+      ...base, period: 'D1', from: '2010-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z',
+    });
+    expect(c.clamped).toBe(true);
+    expect(c.clamp_reason).toBe('data_range');
+    expect(Date.parse(c.effective_from!)).toBeGreaterThan(Date.parse(c.requested_from!));
+    expect(Date.parse(c.effective_to!)).toBe(Date.parse(c.requested_to!));
+
+    // ④ `clamp.echo_fields` 全部必须回显（向量增字段 ⇒ 本断言红）
+    const resp = c as unknown as Record<string, unknown>;
+    for (const f of SPAN.clamp.echo_fields) {
+      expect(Object.prototype.hasOwnProperty.call(resp, f), `回显字段 ${f}`).toBe(true);
+    }
+
+    // ⑤ M1 × 1 年：**不再**按日历档拒绝；改由资源护栏（与后端同阈值镜像）二次确认
+    const guardCode = SPAN.resource_guard.code;
+    expect(SPAN.resource_guard.requires_confirmation).toBe(true);
+    const err = await api
+      .runStrategyTest({ ...base, period: 'M1', from: '2025-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z' })
+      .then(() => null)
+      .catch((e: unknown) => e as { status: number; code?: string; detail?: Record<string, unknown> });
+    expect(err, 'M1 × 1 年（约 52.6 万 bar）应触发资源护栏').not.toBeNull();
+    expect(err!.status).toBe(400);
+    expect(err!.code).toBe(guardCode);
+    expect(typeof err!.detail?.estimated_secs).toBe('number');
+    expect(err!.detail?.confirmable).toBe(true);
+    // confirm 语义：带 confirm=true 重提 ⇒ 放行
+    const ok = await api.runStrategyTest({
+      ...base, period: 'M1', from: '2025-01-01T00:00:00Z', to: '2026-01-01T00:00:00Z', confirm: true,
+    });
+    expect(ok.bar_count).toBeGreaterThan(0);
+
+    // ⑥ 无数据/无交集 ⇒ `empty_intersection.code`（带可用区间回显）
+    expect(SPAN.empty_intersection.http).toBe(400);
+    const empty = await api
+      .runStrategyTest({ ...base, symbol: '999999', period: 'M1', from: '2026-01-01T00:00:00Z', to: '2026-03-01T00:00:00Z' })
+      .then(() => null)
+      .catch((e: unknown) => e as { status: number; code?: string; detail?: Record<string, unknown> });
+    expect(empty!.status).toBe(SPAN.empty_intersection.http);
+    expect(empty!.code).toBe(SPAN.empty_intersection.code);
+    expect(empty!.detail).toHaveProperty('available_from');
+
+    // ⑦ 短区间仍受理（回归保护：mock 不得对正常区间变苛刻）
+    const short = await api.runStrategyTest({
+      ...base, period: 'M1', from: '2026-01-01T00:00:00Z', to: '2026-03-01T00:00:00Z',
+    });
+    expect(short.bar_count).toBeGreaterThan(0);
+    expect(short.clamped).toBe(false);
+  });
+
+  it('N2-防漂移（源码级）：mock 不得再实现日历天数档常量/分支', () => {
+    const src = readFileSync(resolve(HERE, './mock.ts'), 'utf8');
+    for (const c of SPAN.deleted_constants) {
+      // 只禁**代码**（常量声明/使用），文档注释中提及已删常量名属允许（历史说明）。
+      expect(new RegExp(`(const|let|var)\\s+\\w*${c}`).test(src), `mock 不得复活已删常量 ${c}`).toBe(false);
+      expect(new RegExp(`${c}\\s*:`).test(src)).toBe(false);
+    }
+    expect(src.includes('试算区间超限')).toBe(false);
+    expect(src.includes('跨度')).toBe(false);
+  });
+
+  it('N2-回显：P5 抽样/预估字段在试算响应可见（D11/§3.1）', async () => {
+    const api = createMockClient();
+    const r: StrategyTestRunResp = await api.runStrategyTest({
+      code: 'function on_bar(ctx){return 50;}', symbol: '518880', period: 'D1',
+      from: '2026-01-01T00:00:00Z', to: '2026-01-31T00:00:00Z', mode: 'pure_score',
+    });
+    expect(r.downsampled).toBe(false);
+    expect(r.original_points).toBe(30);
+    expect(r.estimated_bars).toBe(30);
+    expect(r.clamp_reason).toBeNull();
+    // 抽样语义镜像：预估点数 > mock 点数 ⇒ downsampled=true（保首尾与后端同语义，见 §1.6）
+    const long = await api.runStrategyTest({
+      code: 'function on_bar(ctx){return 50;}', symbol: '518880', period: 'D1',
+      from: '2026-01-01T00:00:00Z', to: '2026-06-01T00:00:00Z', mode: 'pure_score',
+    });
+    expect(long.downsampled).toBe(true);
+    expect(long.original_points).toBeGreaterThan(30);
   });
 
   it('NIT-1：patch 校验顺序对齐后端——先 400（空 patch / name trim 后空）后 404（未知 id）', async () => {
@@ -547,7 +651,9 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
   it('submit 校验：symbol 未注册/period 非法/from≥to/slots 空/weight≤0/阈值倒挂/fee 缺键 → 400；version 未知 404、非 published 400', async () => {
     const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), symbol: '999999' })).rejects.toMatchObject({ status: 400 });
-    await expect(api.submitWorkbenchRun({ ...validSubmit(), period: 'H1' })).rejects.toMatchObject({ status: 400 });
+    // ADR-024 P0：周期白名单收敛为单一事实源——H1/M30 已为合法回测档位，
+    // 非法样例改用看板扩展周期 W1（与后端 api_workbench.rs 同类样例一致）。
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), period: 'W1' })).rejects.toMatchObject({ status: 400 });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), from: '2026-04-01T00:00:00Z', to: '2026-01-01T00:00:00Z' })).rejects.toMatchObject({ status: 400 });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [] })).rejects.toMatchObject({ status: 400 });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_mock_dual_v1', weight: 0 }] })).rejects.toMatchObject({ status: 400 });
@@ -555,6 +661,15 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     await expect(api.submitWorkbenchRun({ ...validSubmit(), fee: { rate_pct: 0.025 } as never })).rejects.toMatchObject({ status: 400 });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_nope', weight: 1 }] })).rejects.toMatchObject({ status: 404 });
     await expect(api.submitWorkbenchRun({ ...validSubmit(), slots: [{ version_id: 'sv_mock_dual_v2', weight: 1 }] })).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('ADR-024 P0：submit 接受 SSOT 全集（含 M30/H1）而不再拒绝 H1；W1 仍 400', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    for (const period of SUPPORTED_BACKTEST_PERIODS) {
+      const run = await api.submitWorkbenchRun({ ...validSubmit(), period });
+      expect(run.period).toBe(period);
+    }
+    await expect(api.submitWorkbenchRun({ ...validSubmit(), period: 'W1' })).rejects.toMatchObject({ status: 400 });
   });
 
   it('submit 校验：params 未知键 → 400（对齐后端 fill_and_validate_params 拒绝语义）；已知键正常填充缺省', async () => {
@@ -586,14 +701,90 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     expect(run.config.buy_threshold).toBe(60);
     expect(run.config.sell_threshold).toBe(40);
     expect(run.config.initial_capital).toBe(100000);
-    // mock 同步完成（对齐旧回测 mock 即时终态先例）：结果经 result 端点可取
+    // ADR-024 P6：新提交 run = `chunked_v1` ⇒ `/result` 回 summary + 首页 per_bar + has_more/next_offset
+    // （net_value/drawdown 为空——图表改走 `/curve`；禁止把占位当数据）。
     const res = await api.getWorkbenchResult(run.id);
+    expect(res.result_format).toBe('chunked_v1');
     expect(res.per_bar.length).toBeGreaterThan(0);
     expect(res.per_bar[0]).toMatchObject({ ts: expect.any(Number), aggregate: expect.any(Number), signal: expect.stringMatching(/Buy|Sell|Hold/) });
     expect(res.per_bar[0]!.scores[0]).toMatchObject({ slot_idx: 0, score: expect.any(Number) });
-    expect(res.net_value[0]).toHaveLength(2);
+    expect(res.has_more).toBe(false); // 60 根 ≤ 页 5000
+    expect(res.summary?.bars_total).toBe(res.per_bar.length);
+    expect(res.summary?.result_format).toBe('chunked_v1');
+    expect(res.net_value).toEqual([]); // 契约：chunked 不在 /result 内联净值
+    expect(res.drawdown).toEqual([]);
     expect(res.metrics).toMatchObject({ net_profit: expect.any(Number), trade_count: expect.any(Number) });
     expect(res.trades.length).toBeGreaterThan(0);
+
+    // `/curve` 是图表取数路径（显式抽样 + downsampled/original_bars）
+    const nv = await api.getWorkbenchCurve(run.id, { kind: 'net_value', k: 10 });
+    expect(nv.original_bars).toBeGreaterThan(0);
+    expect(nv.downsampled).toBe(nv.points.length < nv.original_bars);
+    expect(nv.points[0]).toHaveLength(2);
+  });
+
+  it('ADR-024 P6：/brief /bars /fills 契约形状（分页字段与 recorded 语义）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await api.submitWorkbenchRun(validSubmit());
+
+    const brief = await api.getWorkbenchBrief(run.id);
+    expect(brief).toMatchObject({
+      id: run.id, status: 'succeeded', result_format: 'chunked_v1', clamped: false,
+    });
+    expect(brief.bars_total).toBeGreaterThan(0);
+    await expect(api.getWorkbenchBrief('sr_nope')).rejects.toMatchObject({ status: 404 });
+
+    // /bars 分页：has_more/next_offset 必须可用（消费方禁止静默只显首页）
+    const all = await api.getWorkbenchBars(run.id, { kind: 'per_bar', offset: 0, limit: 5000 });
+    expect(all.kind).toBe('per_bar');
+    expect(all.bars.length).toBe(all.total);
+    expect(all.has_more).toBe(false);
+    expect(all.next_offset).toBeNull();
+    const p1 = await api.getWorkbenchBars(run.id, { kind: 'per_bar', offset: 0, limit: 2 });
+    expect(p1.bars).toHaveLength(2);
+    expect(p1.has_more).toBe(true);
+    expect(p1.next_offset).toBe(2);
+    expect(p1.total).toBe(all.total);
+    // 区间读（服务端按 ts 过滤）
+    const from = new Date(all.bars[1]!.ts * 1000).toISOString();
+    const to = new Date(all.bars[3]!.ts * 1000).toISOString();
+    const rg = await api.getWorkbenchBars(run.id, { kind: 'per_bar', from, to });
+    expect(rg.bars).toHaveLength(3);
+
+    // /fills：有界精确源（TREND 之外的 CONST 插件可能 0 笔，但 recorded 必为 true）
+    const fills = await api.getWorkbenchFills(run.id, { limit: 5000 });
+    expect(fills).toMatchObject({ run_id: run.id, recorded: true, offset: 0, limit: 5000 });
+    expect(fills.fills).toHaveLength(fills.total);
+    for (const x of fills.fills) {
+      expect(x).toMatchObject({ type: 'fill', ts: expect.any(Number), reason: expect.any(String) });
+    }
+    // 分页
+    const fp = await api.getWorkbenchFills(run.id, { offset: 0, limit: 1 });
+    expect(fp.fills.length).toBe(Math.min(1, fills.total));
+    expect(fp.has_more).toBe(fills.total > 1);
+    await expect(api.getWorkbenchFills('sr_nope')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('ADR-024 P6：长区间（>5000 根）chunked ⇒ /result 首页 + has_more/next_offset（显式截断）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchResultBars: 12_000 });
+    const run = await api.submitWorkbenchRun(validSubmit());
+    const res = await api.getWorkbenchResult(run.id);
+    expect(res.result_format).toBe('chunked_v1');
+    expect(res.per_bar).toHaveLength(5000);
+    expect(res.has_more).toBe(true);
+    expect(res.next_offset).toBe(5000);
+    // 逐页拉完 = 全量（不静默截断）
+    const p2 = await api.getWorkbenchBars(run.id, { kind: 'per_bar', offset: 5000, limit: 5000 });
+    expect(p2.bars).toHaveLength(5000);
+    expect(p2.next_offset).toBe(10000);
+    expect(p2.total).toBe(12_000);
+    const p3 = await api.getWorkbenchBars(run.id, { kind: 'per_bar', offset: 10000, limit: 5000 });
+    expect(p3.bars).toHaveLength(2000);
+    expect(p3.has_more).toBe(false);
+    // /curve 抽样（默认 k=2000 < 12000 ⇒ downsampled）
+    const nv = await api.getWorkbenchCurve(run.id, { kind: 'net_value' });
+    expect(nv.downsampled).toBe(true);
+    expect(nv.original_bars).toBe(12_000);
   });
 
   it('cancel：running/queued → canceled；终态 → 409；未知 → 404', async () => {
@@ -705,5 +896,43 @@ describe('多周期配置 mock（D5-2：与后端口径一致 —— indicators 
       api.saveMultiPeriodConfig({ ...ok, indicators: ['dcap', 'macd'] }),
     ).rejects.toMatchObject({ status: 400 });
     expect(await api.getMultiPeriodConfig()).toEqual(ok);
+  });
+});
+
+// ─────────────── ADR-024 P5 §5.2：可得区间 mock（日期控件 min/max 联动数据源） ───────────────
+
+describe('createMockClient（ADR-024 P5：available_range / 收缩回显）', () => {
+  it('getWorkbenchAvailableRange：已注册标的 → RFC3339 区间；非法 period → 400', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const r = await api.getWorkbenchAvailableRange('518880', 'D1');
+    expect(r.symbol).toBe('518880');
+    expect(r.period).toBe('D1');
+    expect(r.available_from).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(r.available_to).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    await expect(api.getWorkbenchAvailableRange('518880', 'W1')).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('未注册标的 → available_from/to 为 null（前端据此提示无数据）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const r = await api.getWorkbenchAvailableRange('999999', 'D1');
+    expect(r.available_from).toBeNull();
+    expect(r.available_to).toBeNull();
+  });
+
+  it('submitWorkbenchRun 回显 requested/effective/estimated_bars（P5 新增字段不缺）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await api.submitWorkbenchRun({
+      symbol: '518880',
+      period: 'D1',
+      from: '2026-06-01T00:00:00Z',
+      to: '2026-09-01T00:00:00Z',
+      slots: [{ version_id: 'sv_mock_dual_v1', params: {}, weight: 1 }],
+      policy: { LumpSum: { position_pct: 1 } },
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+    });
+    expect(run.clamped).toBe(false);
+    expect(run.requested_from).toBe('2026-06-01T00:00:00.000Z');
+    expect(typeof run.estimated_bars).toBe('number');
+    expect(run.result_format).toBe('chunked_v1');
   });
 });

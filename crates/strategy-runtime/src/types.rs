@@ -10,6 +10,8 @@ use std::time::Duration;
 use backtest::Bar;
 use serde::{Deserialize, Serialize};
 
+use crate::history::BarHistory;
+
 /// 运行时限额（ABI §3 G2；RunConfig 级可配，测试可收紧）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuntimeLimits {
@@ -51,8 +53,13 @@ pub struct PositionSnapshot {
 
 /// `on_bar` 的宿主侧上下文（对应 ABI §2 注入的 JS `ctx` 对象）。
 ///
-/// - `bars` 为**全量历史序列**（至少到 `index`），指标按 `bars[0..=index]` 惰性计算，
+/// - `bars` 为**历史序列**（至少覆盖到当前 `index`），指标按 `bars[0..=index]` 惰性计算，
 ///   口径与 `backtest::Indicators` 完全一致（插件不可自行取数，G1）。
+///   **ADR-024 P2 语义澄清**：`bars` = 「从第 0 根到当前 index 的全量历史」。
+///   引擎会话路径（[`BarCtx::with_history`]）下长度恰为 `index + 1`（**不含未来 bar**，禁止前视）；
+///   兼容路径（[`BarCtx::new`]）下长度 = 调用方传入切片长度（改造前行为，未变）。
+/// - `history`（可选）为**共享历史缓冲**句柄（ADR-024 P2/D7）：注入后指标闭包直接引用该缓冲，
+///   不再逐 bar 复制 `bars[..=index]`（零 ABI 变更：JS `ctx` 暴露面不变）。
 /// - `logs` 为 `ctx.log(msg)` 的宿主侧归集 sink（ABI §2：log 是插件唯一副作用通道，
 ///   落 run 事件流；不在 JS 内直接 tracing）。调用方在 `on_bar` 返回后 [`BarCtx::take_logs`] 取走。
 #[derive(Debug)]
@@ -61,10 +68,12 @@ pub struct BarCtx<'a> {
     pub index: usize,
     /// 当前 bar（OHLCV + ts，Unix 秒）。
     pub bar: Bar,
-    /// 全量 bar 序列（指标窗口取 `bars[0..=index]`）。
+    /// 历史 bar 序列（指标窗口取 `bars[0..=index]`）。
     pub bars: &'a [Bar],
     /// 持仓全景；纯评分试算模式恒 `None`（ABI §2.5）。
     pub position: Option<PositionSnapshot>,
+    /// 共享历史缓冲句柄（ADR-024 P2/D7）：`None` = 兼容路径（行为与改造前一致）。
+    history: Option<Rc<BarHistory>>,
     /// 日志 sink 用 `Rc<RefCell>`：JS 侧 `ctx.log` 闭包需持有 'static 句柄
     /// （rquickjs 回调生命周期约束），宿主与沙箱共享同一归集缓冲。
     logs: Rc<RefCell<Vec<String>>>,
@@ -78,7 +87,41 @@ impl<'a> BarCtx<'a> {
             bar,
             bars,
             position,
+            history: None,
             logs: Rc::new(RefCell::new(Vec::new())),
+        }
+    }
+
+    /// 注入**共享历史缓冲**（ADR-024 P2/D7，引擎会话路径）。
+    ///
+    /// 约定（引擎侧担保）：`history` 必须是**同一 run 的同一增长式缓冲**，且调用时
+    /// `history.len() == index + 1`（即缓冲恰好含 `bars[0..=index]`）。
+    pub fn with_history(mut self, history: Rc<BarHistory>) -> Self {
+        debug_assert_eq!(
+            history.len(),
+            self.index + 1,
+            "共享历史缓冲长度必须恰为 index+1（ADR-024 P2 会话契约）"
+        );
+        debug_assert!(
+            history.with_slice(|s| s[self.index] == self.bar),
+            "共享历史缓冲的当前 bar 必须与 ctx.bar 一致"
+        );
+        self.history = Some(history);
+        self
+    }
+
+    /// 共享历史缓冲句柄（若有）。
+    pub fn shared_history(&self) -> Option<&Rc<BarHistory>> {
+        self.history.as_ref()
+    }
+
+    /// 运行时构建指标闭包用的历史缓冲句柄：
+    /// 有共享句柄 → 克隆句柄（**零复制**）；无 → 按 `bars[..=index]` 建一次性等价缓冲
+    /// （兼容路径，行为与改造前一致）。
+    pub fn history(&self) -> Rc<BarHistory> {
+        match &self.history {
+            Some(h) => h.clone(),
+            None => BarHistory::from_bars(&self.bars[..=self.index]),
         }
     }
 

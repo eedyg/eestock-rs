@@ -1,11 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ApiClient } from '@/api/client';
 import type { StrategyTestRunResp } from '@/api/types';
 import { ApiError } from '@/api/types';
 import { stubApi } from '@/test/apiStub';
 import { TestRunPanel } from './TestRunPanel';
+
+// ADR-024 P0 §5.1 —— 周期下拉的**独立期望**：取自契约向量（**不是**被测常量自身，否则是同义反复）。
+// 单一真相：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`。
+// 该期望与产出解耦：删掉常量里的 'M30'、或组件改成手写第二份白名单，本用例都必须变红。
+// web/src/features/strategies → 仓库根
+const HERE = dirname(fileURLToPath(import.meta.url));
+const CONTRACT_VECTORS = JSON.parse(
+  readFileSync(resolve(HERE, '../../../../design/16-backtest-scalability/contract-vectors.json'), 'utf8'),
+) as { backtest_periods: string[] };
 
 const SCHEMA = [
   { key: 'fast', type: 'int' as const, default: 5, min: 1, max: 250, description: '快线周期' },
@@ -19,6 +31,14 @@ describe('TestRunPanel（试算面板：双模式表单 → test-run → 结果�
   beforeEach(() => {
     vi.clearAllMocks();
     api = stubApi();
+  });
+
+  // ADR-024 P0：周期下拉必须覆盖回测单一事实源全集（含 M30），不得手写第二份。
+  // 期望 = 契约向量（独立期望）；对 M30 成员资格**敏感**（删常量里的 M30 即红）。
+  it('周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）', () => {
+    render(<TestRunPanel api={api} code={CODE} schema={SCHEMA} />);
+    const sel = screen.getByTestId('tr-period') as HTMLSelectElement;
+    expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECTORS.backtest_periods);
   });
 
   it('表单校验：标的为空 → 内联错误，不调 test-run', async () => {

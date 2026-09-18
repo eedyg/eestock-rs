@@ -35,7 +35,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use backtest::{Bar, Indicators, ParamValue, StrategyParams};
+use backtest::{ParamValue, StrategyParams};
 use rquickjs::context::intrinsic::{Eval, Json, MapSet, TypedArrays};
 use rquickjs::{
     Coerced, Context, Ctx, FromJs, Function, IntoJs, Object, Persistent, Runtime, Value,
@@ -43,6 +43,7 @@ use rquickjs::{
 use serde::Deserialize;
 
 use crate::error::PluginError;
+use crate::history::BarHistory;
 use crate::runtime::{PluginInstance, PluginRuntime};
 use crate::types::{clamp_score, BarCtx, ParamDef, ParamKind, RuntimeLimits};
 
@@ -373,18 +374,22 @@ fn triple_or_null<'js>(
 /// indicators 命名空间：ma/ema/macd(12,26,9)/kdj(9,3,3)/boll/rsi/atr。
 /// macd 返回 `{dif, dea, macd}`（ABI §2 字段名；对应 backtest MacdValue.hist）。
 ///
-/// 实现注记：rquickjs 注入闭包须满足其生命周期约束（不可借用 `BarCtx` 引用），
-/// 故每 bar 将指标窗口 `bars[0..=index]` 复制入 `Rc<Vec<Bar>>` 供 7 个指标闭包共享
-/// （复制成本 O(index)；P1 引擎侧如需优化可改传共享历史缓冲，口径不变）。
+/// 实现注记（ADR-024 P2 / D7，**零 ABI 变更**）：rquickjs 注入闭包须满足其生命周期约束
+/// （不可借用 `BarCtx` 引用），故闭包共享一个 `Rc<BarHistory>` **历史缓冲句柄**：
+/// - 引擎会话路径：句柄即会话的增长式共享缓冲（每个 slot × 每 bar **零复制**，消灭
+///   `bars[..=index].to_vec()` 的 O(index) 复制与分配）；
+/// - 兼容路径（试算 / sim-live / 单测）：按 `bars[..=index]` 建一次性等价缓冲（改造前口径不变）。
+///
+/// 指标取值委托 `BarHistory` → `backtest::OnlineIndicators`（增量状态），与切片视图位级一致。
 fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js>, PluginError> {
-    let hist: Rc<Vec<Bar>> = Rc::new(bctx.bars[..=bctx.index].to_vec());
+    let hist: Rc<BarHistory> = bctx.history();
     let index = bctx.index;
     let obj = Object::new(ctx.clone()).map_err(rt_err)?;
 
     let c = ctx.clone();
     let h = hist.clone();
     let f = Function::new(ctx.clone(), move |n: f64| {
-        num_or_null(&c, Indicators::new(&h, index).ma(n.max(0.0) as usize))
+        num_or_null(&c, h.ma(index, n.max(0.0) as usize))
     })
     .map_err(rt_err)?;
     obj.set("ma", f).map_err(rt_err)?;
@@ -392,7 +397,7 @@ fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js
     let c = ctx.clone();
     let h = hist.clone();
     let f = Function::new(ctx.clone(), move |n: f64| {
-        num_or_null(&c, Indicators::new(&h, index).ema(n.max(0.0) as usize))
+        num_or_null(&c, h.ema(index, n.max(0.0) as usize))
     })
     .map_err(rt_err)?;
     obj.set("ema", f).map_err(rt_err)?;
@@ -402,9 +407,7 @@ fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js
     let f = Function::new(ctx.clone(), move || {
         triple_or_null(
             &c,
-            Indicators::new(&h, index)
-                .macd(12, 26, 9)
-                .map(|m| (m.dif, m.dea, m.hist)),
+            h.macd(index, 12, 26, 9).map(|m| (m.dif, m.dea, m.hist)),
             ("dif", "dea", "macd"),
         )
     })
@@ -416,7 +419,7 @@ fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js
     let f = Function::new(ctx.clone(), move || {
         triple_or_null(
             &c,
-            Indicators::new(&h, index).kdj(9, 3, 3).map(|k| (k.k, k.d, k.j)),
+            h.kdj(index, 9, 3, 3).map(|k| (k.k, k.d, k.j)),
             ("k", "d", "j"),
         )
     })
@@ -428,8 +431,7 @@ fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js
     let f = Function::new(ctx.clone(), move |n: f64, mult: f64| {
         triple_or_null(
             &c,
-            Indicators::new(&h, index)
-                .boll(n.max(0.0) as usize, mult)
+            h.boll(index, n.max(0.0) as usize, mult)
                 .map(|b| (b.mid, b.upper, b.lower)),
             ("mid", "upper", "lower"),
         )
@@ -440,14 +442,14 @@ fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js
     let c = ctx.clone();
     let h = hist.clone();
     let f = Function::new(ctx.clone(), move |n: f64| {
-        num_or_null(&c, Indicators::new(&h, index).rsi(n.max(0.0) as usize))
+        num_or_null(&c, h.rsi(index, n.max(0.0) as usize))
     })
     .map_err(rt_err)?;
     obj.set("rsi", f).map_err(rt_err)?;
 
     let c = ctx.clone();
     let f = Function::new(ctx.clone(), move |n: f64| {
-        num_or_null(&c, Indicators::new(&hist, index).atr(n.max(0.0) as usize))
+        num_or_null(&c, hist.atr(index, n.max(0.0) as usize))
     })
     .map_err(rt_err)?;
     obj.set("atr", f).map_err(rt_err)?;
@@ -698,7 +700,7 @@ mod tests {
     use super::*;
     use crate::runtime::PluginRuntime;
     use crate::types::BarCtx;
-    use backtest::Bar;
+    use backtest::{Bar, Indicators};
 
     fn bars(n: usize) -> Vec<Bar> {
         (0..n)

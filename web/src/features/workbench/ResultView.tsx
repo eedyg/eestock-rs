@@ -8,6 +8,7 @@ import { SlotScoresChart } from './SlotScoresChart';
 import { EquityDrawdownChart } from './EquityDrawdownChart';
 import { PerBarTable } from './PerBarTable';
 import { EventLog } from './EventLog';
+import { useRunSeries } from './useRunSeries';
 
 type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
 
@@ -117,6 +118,9 @@ export function ResultView({
   progressMap?: Record<string, { progress: number; barTs: string | null }>;
 }) {
   const [tab, setTab] = useState<TabKey>('trades');
+  // ADR-024 P6：结果取数**单一入口**（曲线 /curve、明细 /bars 分页、成交 /fills；
+  // legacy_single 从 `/result` 内联列同步派生 ⇒ 旧行为零回归）。
+  const series = useRunSeries({ api, run, result });
 
   if (!run) {
     return (
@@ -160,14 +164,47 @@ export function ResultView({
         </div>
       ) : run.status === 'succeeded' && result ? (
         <>
-          <KlineResultChart run={run} result={result} api={api} />
-          <AggregateScoreChart
-            perBar={result.per_bar}
-            buyThreshold={run.config.buy_threshold}
-            sellThreshold={run.config.sell_threshold}
-          />
-          <SlotScoresChart perBar={result.per_bar} slots={run.config.slots} catalog={catalog} />
-          <EquityDrawdownChart netValue={result.net_value} drawdown={result.drawdown} />
+          <KlineResultChart run={run} fills={series.fills} api={api} />
+          {series.curvesError && (
+            <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-series-error">
+              <span>曲线加载失败：{series.curvesError}</span>
+              <button
+                type="button"
+                onClick={series.reload}
+                className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt"
+              >
+                重试
+              </button>
+            </div>
+          )}
+          {series.curvesLoading ? (
+            <div
+              className="flex h-32 items-center justify-center rounded-lg border border-line bg-panel2 text-xs text-dim"
+              data-testid="wb-series-skeleton"
+            >
+              曲线加载中（`/curve` 显式抽样）…
+            </div>
+          ) : (
+            <>
+              <AggregateScoreChart
+                perBar={series.perBar.points}
+                sampling={series.perBar}
+                buyThreshold={run.config.buy_threshold}
+                sellThreshold={run.config.sell_threshold}
+              />
+              <SlotScoresChart
+                perBar={series.perBar.points}
+                sampling={series.perBar}
+                slots={run.config.slots}
+                catalog={catalog}
+              />
+              <EquityDrawdownChart
+                netValue={series.netValue.points}
+                drawdown={series.drawdown.points}
+                sampling={{ netValue: series.netValue, drawdown: series.drawdown }}
+              />
+            </>
+          )}
           <div className="rounded-lg border border-line bg-panel2">
             <div className="flex gap-1 border-b border-line px-2 pt-1">
               {TABS.map((t) => (
@@ -185,8 +222,25 @@ export function ResultView({
             <div className="p-2">
               {tab === 'trades' && <TradesTable result={result} />}
               {tab === 'metrics' && <MetricsTable result={result} />}
-              {tab === 'perbar' && <PerBarTable perBar={result.per_bar} slotCount={run.config.slots.length} />}
-              {tab === 'events' && <EventLog perBar={result.per_bar} />}
+              {tab === 'perbar' && (
+                <PerBarTable
+                  bars={series.bars}
+                  slotCount={run.config.slots.length}
+                  onLoadMore={series.loadMore}
+                  onJumpRange={series.jumpToRange}
+                  onResetRange={series.resetRange}
+                />
+              )}
+              {tab === 'events' && (
+                <EventLog
+                  perBar={series.bars.rows}
+                  total={series.bars.total}
+                  hasMore={series.bars.hasMore}
+                  loadingMore={series.bars.loadingMore}
+                  onLoadMore={series.loadMore}
+                  range={series.bars.range}
+                />
+              )}
             </div>
           </div>
         </>

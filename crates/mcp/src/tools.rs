@@ -328,14 +328,14 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "strategy_test_run",
-            "description": "统一策略系统 Registry：在线试算（同步，单标的区间）。双模式：pure_score 裸评分（position 恒 null，看原始反应）/ sim_position 模拟持仓（默认 60/40 阈值 + LumpSum 全仓 + 默认费用，逐 bar 信号+成交）。code 内联源码与 version_id 已存版本二选一（恰一个）。区间上限：D1/H1≤5年 / 分钟级≤3个月。适用场景：发布前验证插件行为/调参。",
+            "description": "统一策略系统 Registry：在线试算（同步，单标的区间）。双模式：pure_score 裸评分（position 恒 null，看原始反应）/ sim_position 模拟持仓（默认 60/40 阈值 + LumpSum 全仓 + 默认费用，逐 bar 信号+成交）。code 内联源码与 version_id 已存版本二选一（恰一个）。**ADR-024 P5**：无日历天数上限；区间按数据可得范围自动收缩（响应回显 requested/effective/clamped）；评分/信号超上限改为**均匀抽样（保首尾）**，响应带 `downsampled`/`original_points`；预估 bar 数 ≥ 20 万返回 `resource_guard`（带 `confirm:true` 重提可放行；>200 万硬拒）。适用场景：发布前验证插件行为/调参。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "code": { "type": "string", "description": "内联插件源码（与 version_id 二选一）" },
                     "version_id": { "type": "string", "description": "已存版本 id（sv_ 前缀；draft/published 均可试算）" },
                     "symbol": { "type": "string", "description": "6 位标的代码" },
-                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "H1", "D1"], "description": "周期（I-6：补 H1，与数据层 cagg 1h 口径对齐）" },
+                    "period": { "type": "string", "enum": application::bar_map::supported_backtest_periods(), "description": "回测周期（ADR-024 §5.1：由单一事实源 application::bar_map::supported_backtest_periods() 生成；M1/M5/M15/M30/H1/D1）" },
                     "from": { "type": "string", "description": "区间起点 RFC3339（闭）" },
                     "to": { "type": "string", "description": "区间终点 RFC3339（开）" },
                     "mode": { "type": "string", "enum": ["pure_score", "sim_position"], "description": "试算模式" },
@@ -343,7 +343,8 @@ fn tool_schemas() -> Vec<Value> {
                     "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；历史不足时响应回显 warmup_effective < warmup_requested。" },
                     "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税不征 0、过户费 0、经手费/证管费按全佣口径已含于佣金 → 列 0；stock 印花税 0.05；type 未设/无档案 → 旧默认 {0.025, 5.0, 0.05}）。**显式对象按字段优先级（ADR-019 v1.1 R-2）**：出现的字段以其值（并校验，stamp 值域 [0,1]）为准，缺失字段逐字段回退档案→旧默认（如 UI 三键 fee 无 stamp + ETF 档案 → stamp=0）；`source` 取最高优先级来源（任一字段来自显式 → explicit，R-3）。**v1.1 补守卫**：显式对象**存在但无可识别字段**（`{}`/全未知键）→ **报错（isError，消息含可识别字段集与当前收到键）**；含 ≥1 可识别字段（rate_pct/min_fee/slippage_bp/stamp_duty_pct）即放行（缺失字段逐级回退）。响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + source=explicit|profile|default）与 `fee.profile`（档案**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单——这三项**引擎未建模、未计入成本**，不得出现在 effective 段）。" },
                     "policy": { "type": "object", "description": "ExecutionPolicy（与 bt_run_ensemble 同 JSON 口径）：{\"LumpSum\":{\"position_pct\":0..1}} 或 {\"Dca\":{\"tranches\":..,\"mode\":..,\"amount\":..,\"interval\":..}}；缺省 LumpSum 全仓。" },
-                    "capital": { "type": "number", "description": "初始资金，默认 100000（与回测 ADR §4 一致）。" }
+                    "capital": { "type": "number", "description": "初始资金，默认 100000（与回测 ADR §4 一致）。" },
+                    "confirm": { "type": "boolean", "description": "ADR-024 P5 资源护栏二次确认：预估 bar 数 ≥ 20 万时需 true 重提放行（>200 万硬拒）。" }
                 },
                 "required": ["symbol", "period", "from", "to", "mode"]
             }
@@ -364,9 +365,9 @@ fn tool_schemas() -> Vec<Value> {
                 "properties": {
                     "name": { "type": "string", "description": "运行名（可空）" },
                     "symbol": { "type": "string", "description": "6 位标的代码（须已注册启用）" },
-                    "period": { "type": "string", "enum": ["M1", "M5", "M15", "H1", "D1"], "description": "周期（I-6：补 H1，与数据层 cagg 1h 口径对齐）" },
+                    "period": { "type": "string", "enum": application::bar_map::supported_backtest_periods(), "description": "回测周期（ADR-024 §5.1：由单一事实源 application::bar_map::supported_backtest_periods() 生成；M1/M5/M15/M30/H1/D1）" },
                     "from": { "type": "string", "description": "区间起点 RFC3339（闭）" },
-                    "to": { "type": "string", "description": "区间终点 RFC3339（开）；D1/H1≤5年 / 分钟级≤3个月" },
+                    "to": { "type": "string", "description": "区间终点 RFC3339（开）；ADR-024 P5：无日历天数上限，区间按数据可得范围自动收缩（响应回显 requested/effective/clamped）" },
                     "slots": { "type": "array", "description": "策略槽位 1..=10", "items": { "type": "object", "properties": {
                         "strategy_id": { "type": "string", "description": "策略 id（st_ 前缀）" },
                         "version_id": { "type": "string", "description": "版本 id（缺省 = 该策略最新 published）" },
@@ -379,7 +380,8 @@ fn tool_schemas() -> Vec<Value> {
                     "stop": { "type": "object", "description": "硬止损（可空）：{\"kind\":\"FixedPct|Trailing|Atr\", \"value\":>0, \"trigger\":\"Intrabar|CloseBasis\"}" },
                     "initial_capital": { "type": "number", "description": "初始资金，默认 100000" },
                     "fee": { "type": "object", "description": "{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}；**省略 = 按标的 type 查 fee_profiles 解析**（ADR-019 D11-3：etf/lof 印花税 0/过户费 0；stock 0.05；无档案 → 旧默认）；**显式对象按字段优先级**（ADR-019 v1.1 R-2：出现字段优先，缺失字段逐字段回退档案→旧默认）；**v1.1 补守卫**：显式对象存在但**无可识别字段**（`{}`/全未知键）→ isError（消息含可识别字段集与收到键）；stamp_duty_pct 值域 [0,1]。**config 快照钉入生效 fee 的扁平形态**（R-1：`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，不含两段结构）；两段（`effective`+source / `profile`+`not_modeled`）仅出现在试算/回测的**响应回显**。" },
-                    "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；warmup 段不执行 Policy、不计净值/绩效；config 钉住 warmup_requested/effective 并逐 bar 标记 warmup。" }
+                    "warmup_bars": { "type": "integer", "description": "前置预热根数（I-2/D6；默认 250，0=不预热）。服务层向前多取历史后按 from 切分；warmup 段不执行 Policy、不计净值/绩效；config 钉住 warmup_requested/effective 并逐 bar 标记 warmup。" },
+                    "confirm": { "type": "boolean", "description": "ADR-024 P5 资源护栏二次确认：预估 bar 数 ≥ 20 万时需 true 重提放行（>200 万硬拒）。" }
                 },
                 "required": ["symbol", "period", "from", "to", "slots", "policy"]
             }
@@ -397,11 +399,12 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_get_run_result",
-            "description": "回测工作台：读取运行结果（per_bar 各策略分+聚合分+信号+订单+事件全量 / 成交明细 / 净值 / 回撤 / 8 项绩效）。未成功或无结果 → isError（先 bt_get_run 确认 succeeded）。",
+            "description": "回测工作台：读取运行结果（兼容 ADR-024 §3.2：legacy_single 全量；chunked_v1 返回 summary + 首页 per_bar + has_more/next_offset，**显式截断非静默**；可传 limit 分页）。大区间建议改用 web 的 /bars 分页或 /curve 抽样。未成功或无结果 → isError（先 bt_get_run 确认 succeeded）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" }
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
+                    "limit": { "type": "integer", "description": "首页 per_bar 条数（缺省 5000/上限 20000）" }
                 },
                 "required": ["run_id"]
             }
@@ -1014,10 +1017,15 @@ fn req_str<'a>(args: &'a Value, key: &str) -> Option<&'a str> {
     args.get(key).and_then(Value::as_str).filter(|s| !s.is_empty())
 }
 
-/// 回测/试算周期口径（M1/M5/M15/H1/D1；与 application::bar_map::parse_period 同集；
-/// I-6/D3：补 H1 与数据层 cagg 1h 对齐；W1/MO1 不入回测）。
+/// 回测/试算周期口径（**由单一事实源 `application::bar_map::supported_backtest_periods()` 生成**；
+/// ADR-024 §5.1：M1/M5/M15/M30/H1/D1，不得手写第二份；W1/MO1 为看板读源扩展，不入回测）。
 fn valid_bt_period(s: &str) -> bool {
-    matches!(s, "M1" | "M5" | "M15" | "H1" | "D1")
+    application::bar_map::supported_backtest_periods().contains(&s)
+}
+
+/// 错误文案用的周期档位串（与 `valid_bt_period` 同源，防文案漂移）。
+fn bt_periods_label() -> String {
+    application::bar_map::supported_backtest_periods().join("/")
 }
 
 /// RFC3339 时间戳解析（非法 → None → -32602；与 get_data_quality date 校验同层口径）。
@@ -1178,10 +1186,10 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
         return result_err(id, INVALID_PARAMS, "symbol 必填（非空 string）");
     };
     let Some(period) = args.get("period").and_then(Value::as_str) else {
-        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/H1/D1）");
+        return result_err(id, INVALID_PARAMS, &format!("period 必填（{}）", bt_periods_label()));
     };
     if !valid_bt_period(period) {
-        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/H1/D1");
+        return result_err(id, INVALID_PARAMS, &format!("period 须为 {}", bt_periods_label()));
     }
     let Some(from_s) = args.get("from").and_then(Value::as_str) else {
         return result_err(id, INVALID_PARAMS, "from 必填（RFC3339 时间戳）");
@@ -1236,9 +1244,17 @@ async fn strategy_test_run(st: &McpState, id: Option<Value>, args: &Value) -> Va
             _ => return result_err(id, INVALID_PARAMS, "capital 须为正有限数值"),
         },
     };
+    // ADR-024 P5：资源护栏二次确认（缺省 false；非法类型 → isError）。
+    let confirm = match args.get("confirm") {
+        None => false,
+        Some(v) => match v.as_bool() {
+            Some(b) => b,
+            None => return result_err(id, INVALID_PARAMS, "confirm 须为 boolean"),
+        },
+    };
     let req = TestRunRequest {
         source, params, symbol: symbol.to_string(), period: period.to_string(), from, to, mode,
-        warmup_bars, fee, policy, initial_capital: capital,
+        warmup_bars, fee, policy, initial_capital: capital, confirm,
     };
     match svc.test_run(&req).await {
         Ok(resp) => tool_ok(id, &resp),
@@ -1270,10 +1286,10 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
         return result_err(id, INVALID_PARAMS, "symbol 必填（非空 string）");
     };
     let Some(period) = args.get("period").and_then(Value::as_str) else {
-        return result_err(id, INVALID_PARAMS, "period 必填（M1/M5/M15/H1/D1）");
+        return result_err(id, INVALID_PARAMS, &format!("period 必填（{}）", bt_periods_label()));
     };
     if !valid_bt_period(period) {
-        return result_err(id, INVALID_PARAMS, "period 须为 M1/M5/M15/H1/D1");
+        return result_err(id, INVALID_PARAMS, &format!("period 须为 {}", bt_periods_label()));
     }
     let Some(from) = args.get("from").and_then(Value::as_str).and_then(parse_rfc3339_utc) else {
         return result_err(id, INVALID_PARAMS, "from 必填（RFC3339 时间戳）");
@@ -1366,10 +1382,19 @@ async fn bt_run_ensemble(st: &McpState, id: Option<Value>, args: &Value) -> Valu
             None => return result_err(id, INVALID_PARAMS, "warmup_bars 须为非负整数"),
         },
     };
+    // ADR-024 P5：资源护栏二次确认（缺省 false；非法类型 → isError）。
+    let confirm = match args.get("confirm") {
+        None => false,
+        Some(v) => match v.as_bool() {
+            Some(b) => b,
+            None => return result_err(id, INVALID_PARAMS, "confirm 须为 boolean"),
+        },
+    };
     let req = SubmitRunReq {
         name, symbol: symbol.to_string(), period: period.to_string(), from, to, slots,
         buy_threshold, sell_threshold, policy,
         stop: args.get("stop").cloned(), initial_capital, fee, warmup_bars,
+        confirm,
     };
     match wb.submit(req).await {
         Ok(run) => tool_ok(id, &json!({ "run_id": run.id, "run": run })),
@@ -1389,13 +1414,20 @@ async fn bt_get_run(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     }
 }
 
-/// bt_get_run_result(run_id)：五 jsonb 结果（未成功 → isError）。
+/// bt_get_run_result(run_id)：结果读取（ADR-024 §3.2/§4 兼容）。
+/// `legacy_single` 全量；`chunked_v1` 返回 `summary` + 首页 per_bar + `has_more`/`next_offset`
+/// （**显式**截断非静默）；未成功 → isError。
 async fn bt_get_run_result(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
     let Some(run_id) = req_str(args, "run_id") else {
         return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
     };
-    match wb.get_result(run_id).await {
+    let limit = args
+        .get("limit")
+        .and_then(Value::as_i64)
+        .unwrap_or(application::workbench::BARS_LIMIT_DEFAULT)
+        .clamp(1, application::workbench::BARS_LIMIT_MAX);
+    match wb.result_compat(run_id, limit).await {
         Ok(result) => tool_ok(id, &result),
         Err(e) => tool_fail(id, e),
     }
@@ -2512,6 +2544,15 @@ mod tests {
     struct MockStrategyBars;
     #[async_trait::async_trait]
     impl BacktestBarRead for MockStrategyBars {
+        /// ADR-024 P5：可得区间给宽值（mock 返回固定 bar，与请求窗口无必然交集，
+        /// 否则区间收缩会把 sim-live 对比请求判为空集）。
+        async fn available_range(&self, _: &str, _: &Period)
+            -> anyhow::Result<Option<domain::ports::AvailableRange>> {
+            Ok(Some(domain::ports::AvailableRange {
+                from: Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap(),
+                to: Utc.with_ymd_and_hms(2100, 1, 1, 0, 0, 0).unwrap(),
+            }))
+        }
         async fn bars(&self, _: &str, _: &Period, _: DateTime<Utc>, _: DateTime<Utc>)
             -> anyhow::Result<Vec<domain::types::Bar>> {
             Ok(p3c_bars())
@@ -2677,6 +2718,7 @@ mod tests {
     struct MockStrategyRunStore {
         runs: std::sync::Mutex<std::collections::HashMap<String, domain::ports::StrategyRunView>>,
         results: std::sync::Mutex<std::collections::HashMap<String, domain::ports::StrategyRunResult>>,
+        chunks: std::sync::Mutex<Vec<(String, domain::ports::ResultChunk)>>,
     }
 
     impl MockStrategyRunStore {
@@ -2687,6 +2729,8 @@ mod tests {
                 from_ts: p3c_now(), to_ts: p3c_now(), config: json!({}),
                 status: domain::ports::StrategyRunStatus::Queued, progress: 0.0, error: None,
                 created_at: p3c_now(), started_at: None, finished_at: None,
+                requested_from: p3c_now(), requested_to: p3c_now(), clamped: false,
+                clamp_reason: None, estimated_bars: None, bars_total: None, result_format: None,
             });
         }
     }
@@ -2699,6 +2743,8 @@ mod tests {
                 period: run.period.clone(), from_ts: run.from_ts, to_ts: run.to_ts,
                 config: run.config.clone(), status: domain::ports::StrategyRunStatus::Queued,
                 progress: 0.0, error: None, created_at: p3c_now(), started_at: None, finished_at: None,
+                requested_from: run.from_ts, requested_to: run.to_ts, clamped: false,
+                clamp_reason: None, estimated_bars: None, bars_total: None, result_format: None,
             };
             self.runs.lock().unwrap().insert(run.id.clone(), view.clone());
             Ok(view)
@@ -2758,6 +2804,32 @@ mod tests {
         }
         async fn get_result(&self, run_id: &str) -> anyhow::Result<Option<domain::ports::StrategyRunResult>> {
             Ok(self.results.lock().unwrap().get(run_id).cloned())
+        }
+        async fn append_result_chunk(&self, run_id: &str, chunk: &domain::ports::ResultChunk) -> anyhow::Result<()> {
+            self.chunks.lock().unwrap().push((run_id.to_string(), chunk.clone()));
+            Ok(())
+        }
+        async fn result_chunks(&self, run_id: &str, kind: domain::ports::ResultKind,
+                               offset: i64, limit: i64) -> anyhow::Result<Vec<domain::ports::ResultChunk>> {
+            let g = self.chunks.lock().unwrap();
+            let mut v: Vec<_> = g.iter().filter(|(r, c)| r == run_id && c.kind == kind)
+                .map(|(_, c)| c.clone()).collect();
+            v.sort_by_key(|c| c.seq);
+            Ok(v.into_iter().skip(offset.max(0) as usize).take(limit.max(0) as usize).collect())
+        }
+        async fn result_chunks_in_range(&self, run_id: &str, kind: domain::ports::ResultKind,
+                                        from: DateTime<Utc>, to: DateTime<Utc>)
+            -> anyhow::Result<Vec<domain::ports::ResultChunk>> {
+            let g = self.chunks.lock().unwrap();
+            let mut v: Vec<_> = g.iter().filter(|(r, c)| r == run_id && c.kind == kind
+                && c.ts_from <= to && c.ts_to >= from)
+                .map(|(_, c)| c.clone()).collect();
+            v.sort_by_key(|c| c.seq);
+            Ok(v)
+        }
+        async fn result_chunk_count(&self, run_id: &str, kind: domain::ports::ResultKind) -> anyhow::Result<i64> {
+            let g = self.chunks.lock().unwrap();
+            Ok(g.iter().filter(|(r, c)| r == run_id && c.kind == kind).count() as i64)
         }
     }
 

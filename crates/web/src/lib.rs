@@ -90,10 +90,15 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
         // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}
+        .route("/api/workbench/available_range", get(workbench::available_range))
         .route("/api/workbench/runs", get(workbench::list_runs).post(workbench::submit_run))
         .route("/api/workbench/runs/compare", post(workbench::compare_runs))
         .route("/api/workbench/runs/{id}", get(workbench::get_run))
         .route("/api/workbench/runs/{id}/result", get(workbench::get_result))
+        .route("/api/workbench/runs/{id}/brief", get(workbench::get_brief))
+        .route("/api/workbench/runs/{id}/bars", get(workbench::get_bars))
+        .route("/api/workbench/runs/{id}/curve", get(workbench::get_curve))
+        .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
         .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
         .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
         .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))

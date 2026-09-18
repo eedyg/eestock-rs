@@ -29,12 +29,14 @@
 //! Bar / Indicators / StrategyParams / ParamValue（参照 simlive 做法，保持指标口径一致）。
 
 pub mod error;
+pub mod history;
 pub mod quickjs;
 pub mod runtime;
 pub mod types;
 
 // 常用类型再导出，方便应用层 `use strategy_runtime::*;`。
 pub use error::PluginError;
+pub use history::BarHistory;
 pub use quickjs::{QuickJsInstance, QuickJsRuntime};
 pub use runtime::{PluginInstance, PluginRuntime};
 pub use types::{BarCtx, ParamDef, ParamKind, PositionSnapshot, RuntimeLimits};

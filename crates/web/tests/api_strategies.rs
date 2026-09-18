@@ -216,7 +216,9 @@ async fn publish_gate_rejects_bad_code_400() {
     let r = http.post(format!("{url}/api/strategies/versions/{vid}/publish")).send().await.unwrap();
     assert_eq!(r.status(), 400, "无 on_bar 应被发布门禁拒绝");
     let body: Value = r.json().await.unwrap();
-    assert!(body["error"].as_str().unwrap().contains("发布门禁"));
+    // ADR-024 P5 整改 N1：400 恒为结构化 `{error:{code,message,detail}}`。
+    assert_eq!(body["error"]["code"], json!("code_invalid"), "发布门禁码: {body}");
+    assert!(body["error"]["message"].as_str().unwrap().contains("发布门禁"));
 
     clean_strategies(&pool, &p).await;
 }
@@ -464,13 +466,39 @@ async fn test_run_both_modes_and_errors() {
                        "from": from, "to": to, "mode": "pure_score" }))
         .send().await.unwrap();
     assert_eq!(r.status(), 404);
-    // 区间超限（D1 > 5 年）→ 400
+    // ── N3（ADR-024 P5 整改）：旧「区间超限（D1 > 5 年）⇒ 400」断言已按契约推导改写 ──
+    // 旧形态之所以「仍绿」，是因为 400 换源为 `range_empty`（合成标的无 D1 数据）⇒ 掩盖语义。
+    // 新判据（反假绿：若日历档回归，本条必红）——用**真库 518880 D1 真数据**（临时库基线已供应）：
+    //   (a) 长区间（`2020→2026` = 6 年 > 旧 5 年档）+ **有数据** ⇒ 受理（200）+ 真 bar 数 + 回显；
+    //   (b) 无交集（`2030→2031`）⇒ 400 `range_empty` 且回显可用区间（契约 §3.1.1）。
     let r = http.post(format!("{url}/api/strategies/test-run"))
-        .json(&json!({ "code": CONST_SCORE, "symbol": code, "period": "D1",
+        .json(&json!({ "code": CONST_SCORE, "symbol": "518880", "period": "D1",
                        "from": "2020-01-01T00:00:00Z", "to": "2026-01-01T00:00:00Z",
                        "mode": "pure_score" }))
         .send().await.unwrap();
-    assert_eq!(r.status(), 400, "D1 超 5 年应 400");
+    assert_eq!(r.status(), 200, "6 年 D1 + 有数据 ⇒ 应受理（日历档已删）: {:?}", r.text().await);
+    let resp: Value = r.json().await.unwrap();
+    assert!(
+        resp["bar_count"].as_i64().unwrap() > 1000,
+        "真跑出 D1 bar（非仅校验通过）: {}",
+        resp["bar_count"]
+    );
+    assert_eq!(resp["requested_from"], "2020-01-01T00:00:00Z");
+    assert_eq!(resp["requested_to"], "2026-01-01T00:00:00Z");
+    assert_eq!(resp["clamped"], false, "区间在可得范围内 ⇒ 不收缩: {resp}");
+    assert_eq!(resp["effective_from"], resp["requested_from"]);
+    assert_eq!(resp["effective_to"], resp["requested_to"]);
+    // (b) 无交集 ⇒ range_empty + 回显可用区间（**不是**「区间超限」语义）
+    let r = http.post(format!("{url}/api/strategies/test-run"))
+        .json(&json!({ "code": CONST_SCORE, "symbol": "518880", "period": "D1",
+                       "from": "2030-01-01T00:00:00Z", "to": "2031-01-01T00:00:00Z",
+                       "mode": "pure_score" }))
+        .send().await.unwrap();
+    assert_eq!(r.status(), 400, "无交集 ⇒ 400");
+    let body: Value = r.json().await.unwrap();
+    assert_eq!(body["error"]["code"], json!("range_empty"), "{body}");
+    assert!(body["error"]["detail"]["available_from"].is_string(), "须回显可用区间: {body}");
+    assert!(body["error"]["detail"]["available_to"].is_string(), "须回显可用区间: {body}");
     // 非法参数（未知键）→ 400
     let r = http.post(format!("{url}/api/strategies/test-run"))
         .json(&json!({ "code": CONST_SCORE, "params": {"nope": 1}, "symbol": code,

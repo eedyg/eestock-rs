@@ -20,6 +20,7 @@
 //! - **参考插件播种**：strategy 表为空时将 strategy-core::reference 的 7 款插件 + 4 模板
 //!   以 published 入库（幂等：按 name+sha256 存在则跳过）。
 
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -35,12 +36,15 @@ use domain::ports::{
 };
 use domain::strategy_state::{validate_transition, ApprovalLevel, StrategyKind, StrategyStatus};
 use strategy_runtime::{
-    BarCtx, ParamDef, PluginRuntime, QuickJsRuntime, RuntimeLimits, StrategyParams,
+    BarCtx, BarHistory, ParamDef, PluginRuntime, QuickJsRuntime, RuntimeLimits, StrategyParams,
 };
 
-// 复用回测/试算的周期解析口径（`crate::bar_map::parse_period`：M1/M5/M15/H1/D1；
-// I-6/D3 起 H1 已支持，W1/MO1 为看板读源扩展、不入回测）。
+// 复用回测/试算的周期解析口径（`crate::bar_map::parse_period`：唯一事实源
+// `bar_map::supported_backtest_periods()` = M1/M5/M15/M30/H1/D1；
+// I-6/D3 起 H1 已支持，ADR-024 P0 起 M30 已支持；W1/MO1 为看板读源扩展、不入回测）。
 pub use crate::bar_map::parse_period;
+
+use crate::error::codes;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -48,16 +52,16 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 pub const TEST_RUN_PER_CALL_TIMEOUT_MS: u64 = 20;
 pub const TEST_RUN_MEMORY_LIMIT: usize = 32 * 1024 * 1024;
 
-/// 试算返回截断上限（防巨包）：评分点 50_000（覆盖 1m×3个月 ≈ 2.2 万 bar 上限全量）、
-/// 事件 1_000、成交 5_000。截断口径：超出上限即丢弃尾部并在 `truncated` 标记。
+/// 试算评分点**抽样目标** `k`（防巨包；ADR-024 P5/D11）。
+/// **语义变更**：旧行为 = 超出即「丢弃尾部」（长区间曲线只画前半段，形状骗人）；
+/// 新行为 = **均匀抽样（保首尾）**，响应带 `downsampled` + `original_points`。
+/// 事件 1_000 / 成交 5_000 仍为**截断**上限（非抽样：事实/时序精确序列不宜抽样）。
 pub const MAX_SCORE_POINTS: usize = 50_000;
 pub const MAX_EVENTS: usize = 1_000;
 pub const MAX_TRADES: usize = 5_000;
 
-/// 试算区间上限：日线 ≤ 5 年（366×5 天含闰年冗余）/ 分钟级（M1/M5/M15）≤ 3 个月（93 天）。
-/// H1（I-6/D3）归入日线档（同上限）——小时级数据量远低于分钟级，详见 test_run 区间校验。
-pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
-pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+// ADR-024 P5/D1：试算**删除**一切日历天数档（原 `D1_MAX_SPAN_DAYS`/`MINUTE_MAX_SPAN_DAYS`）。
+// 区间按数据真实范围收缩（D2/D3）+ 与工作台同一资源护栏（D1）。
 
 /// sim_position 试算默认初始资金（与回测 ADR §4 默认一致）。
 pub const DEFAULT_TEST_RUN_CAPITAL: f64 = 100_000.0;
@@ -107,12 +111,36 @@ impl std::fmt::Display for StrategyInvalidTransition {
 }
 impl std::error::Error for StrategyInvalidTransition {}
 
-/// 校验失败（入参/发布门禁/区间上限）。web 映射 400。
+/// 校验失败（入参/发布门禁/区间）。web 映射 400。
+///
+/// ADR-024 §3.1.1：携带 `code`（错误码，与**产生该消息的校验点**同源）+ `message`。
+/// web 侧一律取 [`StrategyValidation::code`] 组装 `{error:{code,message,detail}}`；**禁止**解析消息文本。
 #[derive(Debug, Clone, PartialEq)]
-pub struct StrategyValidation(pub String);
+pub struct StrategyValidation {
+    pub code: &'static str,
+    pub message: String,
+}
+
+impl StrategyValidation {
+    /// 构造（`code` 取 `crate::error::codes` 常量）。
+    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
+        Self { code, message: message.into() }
+    }
+
+    /// 错误码（ADR-024 §3.1.1；稳定标识）。
+    pub fn code(&self) -> &'static str {
+        self.code
+    }
+
+    /// 人类可读消息。
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
 impl std::fmt::Display for StrategyValidation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.message)
     }
 }
 impl std::error::Error for StrategyValidation {}
@@ -177,6 +205,8 @@ pub struct TestRunRequest {
     pub policy: serde_json::Value,
     /// I-3/D6：初始资金（缺省 100_000，与回测 ADR §4 / 工作台一致）。
     pub initial_capital: f64,
+    /// ADR-024 P5 / D1：资源护栏二次确认（预估 bar 数 ≥ `GUARD_CONFIRM_BARS` 时需 `true` 放行）。
+    pub confirm: bool,
 }
 
 /// 评分点（score=None：插件熔断停用后的 bar）。
@@ -207,6 +237,8 @@ pub struct TestRunEvent {
 }
 
 /// 截断标记（true = 该项超出上限被截尾）。
+/// ADR-024 P5：`scores` **不再**用于「丢尾部」——评分点改为均匀抽样（见 [`TestRunResponse::downsampled`]）；
+/// 该位保留为恒 `false`（向后兼容旧消费者，避免语义漂移）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 pub struct Truncation {
     pub scores: bool,
@@ -235,6 +267,24 @@ pub struct TestRunResponse {
     pub fee: serde_json::Value,
     pub events: Vec<TestRunEvent>,
     pub truncated: Truncation,
+    /// ADR-024 P5/D11：评分/信号序列是否经**均匀抽样**（保首尾；`truncated.scores` 不再表达丢尾）。
+    pub downsampled: bool,
+    /// 抽样前的原始评分数（`bar_count`；`downsampled=true` 时供前端提示）。
+    pub original_points: usize,
+
+    // ── ADR-024 P5 §3.1：区间收缩回显（与工作台同口径；MCP `strategy_test_run` 消费）──
+    /// 用户**原始**请求区间（收缩前）。
+    pub requested_from: DateTime<Utc>,
+    pub requested_to: DateTime<Utc>,
+    /// 生效区间（按可得区间收缩 + 执行时以真实首末 bar 为准；D2/D3）。
+    pub effective_from: DateTime<Utc>,
+    pub effective_to: DateTime<Utc>,
+    /// effective != requested。
+    pub clamped: bool,
+    /// 收缩原因（`"data_range"` | null）。
+    pub clamp_reason: Option<String>,
+    /// D12 预估 bar 数（`count(*)` 预扫描；降级 = None）。
+    pub estimated_bars: Option<i64>,
 }
 
 /// 播种报告。
@@ -377,10 +427,10 @@ impl StrategyService {
         input: &CreateStrategyInput,
     ) -> anyhow::Result<(StrategyRow, StrategyVersionRow)> {
         if input.name.trim().is_empty() {
-            return Err(StrategyValidation("name 必填".into()).into());
+            return Err(StrategyValidation::new(codes::NAME_REQUIRED, "name 必填").into());
         }
         if input.code.trim().is_empty() {
-            return Err(StrategyValidation("code 必填".into()).into());
+            return Err(StrategyValidation::new(codes::CODE_REQUIRED, "code 必填").into());
         }
         let now = self.clock.now();
         let sha = sha256_hex(&input.code);
@@ -444,9 +494,10 @@ impl StrategyService {
         self.get_strategy(strategy_id).await?;
         let src = self.get_version(from_version_id).await?;
         if src.strategy_id != strategy_id {
-            return Err(StrategyValidation(format!(
-                "版本 {from_version_id} 不属于策略 {strategy_id}"
-            ))
+            return Err(StrategyValidation::new(
+                codes::SOURCE_INVALID,
+                format!("版本 {from_version_id} 不属于策略 {strategy_id}"),
+            )
             .into());
         }
         let now = self.clock.now();
@@ -477,7 +528,7 @@ impl StrategyService {
         code: &str,
     ) -> anyhow::Result<UpdateDraftOutcome> {
         if code.trim().is_empty() {
-            return Err(StrategyValidation("code 必填".into()).into());
+            return Err(StrategyValidation::new(codes::CODE_REQUIRED, "code 必填").into());
         }
         let v = self.get_version(version_id).await?;
         let sha = sha256_hex(code);
@@ -534,7 +585,7 @@ impl StrategyService {
         let smoke_sha = sha.clone();
         let schema = blocking(move || publish_smoke(&smoke_code, &smoke_sha))
             .await?
-            .map_err(StrategyValidation)?;
+            .map_err(|m| StrategyValidation::new(codes::CODE_INVALID, m))?;
         // 乐观并发（TOCTOU 防护）：传入冒烟过的 code 原文；0 行命中 = 版本已被并发修改 → 409。
         let row = self
             .store
@@ -606,11 +657,11 @@ impl StrategyService {
         description: Option<&str>,
     ) -> anyhow::Result<StrategyRow> {
         if name.is_none() && description.is_none() {
-            return Err(StrategyValidation("name/description 至少提供一个".into()).into());
+            return Err(StrategyValidation::new(codes::NAME_REQUIRED, "name/description 至少提供一个").into());
         }
         if let Some(n) = name {
             if n.trim().is_empty() {
-                return Err(StrategyValidation("name trim 后为空".into()).into());
+                return Err(StrategyValidation::new(codes::NAME_REQUIRED, "name trim 后为空").into());
             }
         }
         let cur = self.get_strategy(id).await?; // 未知 id → 404
@@ -636,22 +687,22 @@ impl StrategyService {
     /// 在线试算（同步执行；ADR §13.5 双模式 + 区间上限 + 收紧限额）。
     pub async fn test_run(&self, req: &TestRunRequest) -> anyhow::Result<TestRunResponse> {
         if req.symbol.trim().is_empty() {
-            return Err(StrategyValidation("symbol（标的代码）必填".into()).into());
+            return Err(StrategyValidation::new(codes::SYMBOL_REQUIRED, "symbol（标的代码）必填").into());
         }
         if req.from >= req.to {
-            return Err(StrategyValidation("from 须早于 to".into()).into());
+            return Err(StrategyValidation::new(codes::FROM_AFTER_TO, "from 须早于 to").into());
         }
         // 代码 + schema 来源：内联代码须先过冒烟（坏代码 → 400）；版本取库存 code/schema。
         let (code, schema) = match &req.source {
             TestRunSource::Inline(code) => {
                 if code.trim().is_empty() {
-                    return Err(StrategyValidation("code 必填".into()).into());
+                    return Err(StrategyValidation::new(codes::CODE_REQUIRED, "code 必填").into());
                 }
                 let sha = sha256_hex(code);
                 let smoke_code = code.clone();
                 let schema = blocking(move || publish_smoke(&smoke_code, &sha))
                     .await?
-                    .map_err(StrategyValidation)?;
+                    .map_err(|m| StrategyValidation::new(codes::CODE_INVALID, m))?;
                 (code.clone(), schema)
             }
             TestRunSource::VersionId(vid) => {
@@ -663,32 +714,45 @@ impl StrategyService {
                     let smoke_code = v.code.clone();
                     blocking(move || publish_smoke(&smoke_code, &sha))
                         .await?
-                        .map_err(StrategyValidation)?
+                        .map_err(|m| StrategyValidation::new(codes::CODE_INVALID, m))?
                 } else {
                     schema
                 };
                 (v.code, schema)
             }
         };
-        let params = fill_and_validate_params(&schema, &req.params).map_err(StrategyValidation)?;
+        let params = fill_and_validate_params(&schema, &req.params)
+            .map_err(|m| StrategyValidation::new(codes::PARAMS_INVALID, m))?;
 
         let (domain_period, bt_period) = crate::bar_map::parse_period(&req.period)
-            .map_err(|e| StrategyValidation(e.to_string()))?;
-        // 区间上限（400）：D1 ≤ 5 年；分钟级（M1/M5/M15）≤ 3 个月；
-        // H1（I-6/D3）按日线档（5 年）——小时线 5 年 ≈ 5k bar，远低于评分点截断上限，
-        // 且低于 M1×3 个月 bar 量；数据层 cagg 1h 覆盖全历史。
-        let span_days = (req.to - req.from).num_days();
-        let limit_days = match domain_period {
-            domain::types::Period::D1 | domain::types::Period::H1 => D1_MAX_SPAN_DAYS,
-            _ => MINUTE_MAX_SPAN_DAYS,
+            .map_err(|e| StrategyValidation::new(codes::PERIOD_INVALID, e.to_string()))?;
+        // ── ADR-024 P5（D1/D2/D3）：试算与工作台**同口径**——删日历天数档 + 按可得区间收缩 ──
+        let requested_from = req.from;
+        let requested_to = req.to;
+        let Some(avail) = self.bar_read.available_range(req.symbol.trim(), &domain_period).await?
+        else {
+            return Err(crate::workbench::range_empty_error(
+                req.symbol.trim(),
+                &req.period,
+                requested_from,
+                requested_to,
+                None,
+            )
+            .into());
         };
-        if span_days > limit_days {
-            return Err(StrategyValidation(format!(
-                "试算区间超限：{period} 跨度 {span_days} 天 > 上限 {limit_days} 天",
-                period = req.period
-            ))
+        let mut eff_from = requested_from.max(avail.from);
+        let mut eff_to = requested_to.min(avail.to);
+        if eff_from >= eff_to {
+            return Err(crate::workbench::range_empty_error(
+                req.symbol.trim(),
+                &req.period,
+                requested_from,
+                requested_to,
+                Some(avail),
+            )
             .into());
         }
+        let clamped = eff_from != requested_from || eff_to != requested_to;
 
         // I-3/D6 + ADR-019 D11-3：fee 三层解析（显式 > 按标的 type 查 fee_profiles > 旧 ADR bt-1 默认）。
         let profile = match &self.fee_profiles {
@@ -696,57 +760,115 @@ impl StrategyService {
             None => None,
         };
         let resolved = crate::fee::resolve_fee(req.fee.as_ref(), profile)
-            .map_err(|e| StrategyValidation(e.to_string()))?;
+            .map_err(|e| StrategyValidation::new(codes::FEE_INVALID, e.to_string()))?;
         let fee = resolved.model;
         let fee_json = crate::fee::resolved_fee_to_json(&resolved);
         let policy: strategy_core::ExecutionPolicy = serde_json::from_value(req.policy.clone())
-            .map_err(|e| StrategyValidation(format!("policy 非法: {e}")))?;
-        policy.validate().map_err(StrategyValidation)?;
+            .map_err(|e| StrategyValidation::new(codes::POLICY_INVALID, format!("policy 非法: {e}")))?;
+        policy
+            .validate()
+            .map_err(|m| StrategyValidation::new(crate::error::classify_config_error(&m), m))?;
         if !req.initial_capital.is_finite() || req.initial_capital <= 0.0 {
-            return Err(StrategyValidation(format!(
-                "capital 须为正有限值，got {}",
-                req.initial_capital
-            ))
+            return Err(StrategyValidation::new(
+                codes::CAPITAL_INVALID,
+                format!("capital 须为正有限值，got {}", req.initial_capital),
+            )
             .into());
         }
 
-        // I-2/D6：一次性拉取 [warmup_start, to)，再按 `from` 切分为 warmup 前缀 + in-range。
-        // 只截取 `from` 之前最近 `warmup_requested` 根作预热（前面多取的丢弃）。
+        // ── ADR-024 P5（D12）：`count(*)` 预扫描 + D1 资源护栏（与工作台同口径）──
+        let (estimated_bars, prescan_caliber) = match self
+            .bar_read
+            .count_bars(req.symbol.trim(), &domain_period, eff_from, eff_to)
+            .await
+        {
+            Ok(n) if n >= 0 => (Some(n as usize), "count"),
+            Ok(_) => (None, "ts_norm"),
+            Err(e) => {
+                tracing::warn!(
+                    symbol = %req.symbol, period = %req.period, error = %e,
+                    "ADR-024 D12 试算进度预扫描失败：退化为按 ts 归一化口径（prescan=ts_norm）"
+                );
+                (None, "ts_norm")
+            }
+        };
+        let _ = prescan_caliber;
+        if let Some(n) = estimated_bars {
+            if let Some(err) = crate::workbench::guard_bars(
+                n,
+                req.confirm,
+                &req.period,
+                req.symbol.trim(),
+                Some((avail.from, avail.to)),
+            ) {
+                return Err(err.into());
+            }
+        }
+
+        // I-2/D6：一次性拉取 [warmup_start, eff_to)，再按 `eff_from` 切分为 warmup 前缀 + in-range。
+        // 只截取 `eff_from` 之前最近 `warmup_requested` 根作预热（前面多取的丢弃）。
         let warmup_requested = req.warmup_bars;
         let warmup_start = if warmup_requested == 0 {
-            req.from
+            eff_from
         } else {
-            req.from - crate::bar_map::warmup_lookback(&domain_period, warmup_requested)
+            eff_from - crate::bar_map::warmup_lookback(&domain_period, warmup_requested)
         };
         let all: Vec<backtest::Bar> = self
             .bar_read
-            .bars(req.symbol.trim(), &domain_period, warmup_start, req.to)
+            .bars(req.symbol.trim(), &domain_period, warmup_start, eff_to)
             .await?
             .iter()
             .map(to_bt_bar)
             .collect();
-        // bars 按 ts 升序：split = 首个 ts >= from 的下标，也即 from 之前可得 bar 数。
+        // bars 按 ts 升序：split = 首个 ts >= eff_from 的下标，也即 eff_from 之前可得 bar 数。
         let split = all
             .iter()
-            .position(|b| b.ts >= req.from.timestamp())
+            .position(|b| b.ts >= eff_from.timestamp())
             .unwrap_or(all.len());
         let warmup_effective = split.min(warmup_requested);
         let slice_start = split - warmup_effective;
         let bars: Vec<backtest::Bar> = all[slice_start..].to_vec();
-        let range_bars = bars.len() - warmup_effective;
-        if range_bars == 0 {
-            return Err(StrategyValidation(format!(
-                "区间内无 K 线数据（{} {} {}~{}）",
-                req.symbol, req.period, req.from, req.to
-            ))
+        let in_range: &[backtest::Bar] = &bars[warmup_effective..];
+        if in_range.is_empty() {
+            return Err(crate::workbench::range_empty_error(
+                req.symbol.trim(),
+                &req.period,
+                requested_from,
+                requested_to,
+                Some(avail),
+            )
             .into());
+        }
+        // D3：执行时以真实取到的首末 bar 为准（仅在提交时被夹取的端上收窄）。
+        if clamped {
+            let actual_from = DateTime::from_timestamp(in_range[0].ts, 0).unwrap_or(eff_from);
+            let actual_to =
+                DateTime::from_timestamp(in_range[in_range.len() - 1].ts + 1, 0).unwrap_or(eff_to);
+            if actual_from > eff_from {
+                eff_from = actual_from;
+            }
+            if actual_to < eff_to {
+                eff_to = actual_to;
+            }
+        }
+        // 预扫描失败时以实际 bar 数兜底护栏。
+        if estimated_bars.is_none() {
+            if let Some(err) = crate::workbench::guard_bars(
+                in_range.len(),
+                req.confirm,
+                &req.period,
+                req.symbol.trim(),
+                Some((avail.from, avail.to)),
+            ) {
+                return Err(err.into());
+            }
         }
 
         // 以下为同步引擎段：经 spawn_blocking 执行（QuickJS 非 Send 实例在闭包内创建/drop）。
         let code_hash = sha256_hex(&code);
         let mode = req.mode;
         let req_owned = req.clone();
-        blocking(move || match mode {
+        let mut resp = blocking(move || match mode {
             TestRunMode::PureScore => Ok(run_pure_score(
                 &req_owned,
                 &code,
@@ -771,7 +893,16 @@ impl StrategyService {
                 &policy,
             ),
         })
-        .await?
+        .await??;
+        // ADR-024 P5 §3.1：回填区间收缩/预估回显（引擎闭包内拿不到这些 async 上下文值）。
+        resp.requested_from = requested_from;
+        resp.requested_to = requested_to;
+        resp.effective_from = eff_from;
+        resp.effective_to = eff_to;
+        resp.clamped = clamped;
+        resp.clamp_reason = clamped.then_some("data_range".to_string());
+        resp.estimated_bars = estimated_bars.map(|n| n as i64);
+        Ok(resp)
     }
 
     /// 参考插件播种（启动时）：strategy 表为空 → 7 参考插件（kind=strategy）+ 4 官方模板
@@ -842,9 +973,35 @@ impl StrategyService {
     }
 }
 
+/// 构建试算逐 bar 的宿主侧 `BarCtx`（ADR-024 P2b / D7 修订）。
+///
+/// - **宿主侧无「可读未来」**：无论调用方传入多长的 `bars`，`ctx.bars` 一律收窄为
+///   `bars[..=index]`（前缀，`len == index + 1`），与引擎会话路径同口径；
+/// - **零复制**：注入同一 run 的**增长式共享缓冲** `hist`（每 bar 摊销 O(1)），替代兼容路径
+///   `BarCtx::new` 的「每 bar 按 `bars[..=index]` 建一次性等价缓冲」（O(index) 复制 ——
+///   P2 引擎路径已消除的同源二次项，见 tester P2 验收 §9 R2）。
+fn tryrun_bar_ctx<'a>(
+    index: usize,
+    bar: &backtest::Bar,
+    bars: &'a [backtest::Bar],
+    hist: &Rc<BarHistory>,
+) -> BarCtx<'a> {
+    // ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为 `bars[..=index]`
+    // （前缀，`len == index + 1`；仅 debug 生效，release 零成本）。
+    // 反向证据：把 `ctx_bars` 退回全量 `bars`（改造前口径）⇒ 本断言立即 panic。
+    let ctx_bars: &'a [backtest::Bar] = &bars[..=index];
+    debug_assert_eq!(
+        ctx_bars.len(),
+        index + 1,
+        "P2c 前视自检（试算）：ctx.bars 必须恰为 bars[..=index]（len == index+1）"
+    );
+    BarCtx::new(index, bar.clone(), ctx_bars, None).with_history(hist.clone())
+}
+
 /// pure_score 试算：逐 bar on_bar（position 恒 None）；G5 语义——错误 bar 中立分 50 +
 /// 错误事件，连续 10 次熔断停用（后续 bar score=None）。
 /// I-2/D6：前 `warmup_effective` 根为预热段（仍评分，逐 bar 标记 warmup=true）。
+/// ADR-024 P2b：逐 bar 共享同一 `Rc<BarHistory>`（**不再每 bar 复制 `bars[..=index]`**）。
 #[allow(clippy::too_many_arguments)]
 fn run_pure_score(
     req: &TestRunRequest,
@@ -856,7 +1013,9 @@ fn run_pure_score(
     warmup_requested: usize,
     fee_json: &serde_json::Value,
 ) -> TestRunResponse {
-    let mut scores = Vec::with_capacity(bars.len());
+    // ADR-024 P5/D11：评分点**均匀抽样（保首尾）**，不再丢尾部（`truncated.scores` 恒 false）。
+    let (mask, downsampled) = sample_mask(bars.len(), MAX_SCORE_POINTS);
+    let mut scores = Vec::new();
     let mut events = Vec::new();
     let mut truncated = Truncation::default();
     let mut consecutive_errors = 0u32;
@@ -885,24 +1044,37 @@ fn run_pure_score(
                 fee: fee_json.clone(),
                 events,
                 truncated,
+                downsampled,
+                original_points: bars.len(),
+                requested_from: req.from,
+                requested_to: req.to,
+                effective_from: req.from,
+                effective_to: req.to,
+                clamped: false,
+                clamp_reason: None,
+                estimated_bars: None,
             };
         }
     };
 
+    // ADR-024 P2b：同一 run 的**增长式共享缓冲**（插件指标闭包共享同一句柄；逐 bar 摊销 O(1)）。
+    // 语义与改造前兼容路径等价：`hist` 恰含已喂入的 `bars[0..=i]`。
+    let hist = BarHistory::with_capacity(bars.len());
+
     for (i, bar) in bars.iter().enumerate() {
-        if scores.len() >= MAX_SCORE_POINTS {
-            truncated.scores = true;
-            break;
-        }
+        hist.push(bar.clone());
         if disabled {
-            scores.push(ScorePoint {
-                ts: bar.ts,
-                score: None,
-                warmup: i < warmup_effective,
-            });
+            // 熔断后仍逐 bar 推进（插件状态），仅按抽样掩码记录。
+            if mask[i] {
+                scores.push(ScorePoint {
+                    ts: bar.ts,
+                    score: None,
+                    warmup: i < warmup_effective,
+                });
+            }
             continue;
         }
-        let ctx = BarCtx::new(i, bar.clone(), bars, None);
+        let ctx = tryrun_bar_ctx(i, bar, bars, &hist);
         let out = inst.on_bar(&ctx);
         for msg in ctx.take_logs() {
             if events.len() >= MAX_EVENTS {
@@ -918,11 +1090,13 @@ fn run_pure_score(
         match out {
             Ok(score) => {
                 consecutive_errors = 0;
-                scores.push(ScorePoint {
-                    ts: bar.ts,
-                    score: Some(score),
-                    warmup: i < warmup_effective,
-                });
+                if mask[i] {
+                    scores.push(ScorePoint {
+                        ts: bar.ts,
+                        score: Some(score),
+                        warmup: i < warmup_effective,
+                    });
+                }
             }
             Err(e) => {
                 consecutive_errors += 1;
@@ -935,11 +1109,13 @@ fn run_pure_score(
                         message: e.to_string(),
                     });
                 }
-                scores.push(ScorePoint {
-                    ts: bar.ts,
-                    score: Some(strategy_core::NEUTRAL_SCORE),
-                    warmup: i < warmup_effective,
-                });
+                if mask[i] {
+                    scores.push(ScorePoint {
+                        ts: bar.ts,
+                        score: Some(strategy_core::NEUTRAL_SCORE),
+                        warmup: i < warmup_effective,
+                    });
+                }
                 if consecutive_errors >= strategy_core::CIRCUIT_BREAKER_THRESHOLD {
                     disabled = true;
                     if events.len() >= MAX_EVENTS {
@@ -969,7 +1145,33 @@ fn run_pure_score(
         fee: fee_json.clone(),
         events,
         truncated,
+        downsampled,
+        original_points: bars.len(),
+        // 真实收缩回显由 `test_run` 在引擎返回后回填（此处仅占位）。
+        requested_from: req.from,
+        requested_to: req.to,
+        effective_from: req.from,
+        effective_to: req.to,
+        clamped: false,
+        clamp_reason: None,
+        estimated_bars: None,
     }
+}
+
+/// 均匀抽样下标掩码（保首尾；ADR-024 P5/D11）：返回 `(mask, downsampled)`。
+/// `n <= k` → 全选（`downsampled=false`）。
+fn sample_mask(n: usize, k: usize) -> (Vec<bool>, bool) {
+    if n <= k || k == 0 {
+        return (vec![true; n], false);
+    }
+    let mut mask = vec![false; n];
+    for i in 0..k {
+        let idx = ((i as f64) * ((n - 1) as f64) / ((k - 1) as f64)).round() as usize;
+        mask[idx.min(n - 1)] = true;
+    }
+    mask[0] = true;
+    mask[n - 1] = true;
+    (mask, true)
 }
 
 /// sim_position 试算：单 slot EnsembleEngine（默认 60/40 阈值 + 可配 ExecutionPolicy + 可配 fee，
@@ -989,7 +1191,7 @@ fn run_sim_position(
     policy: &strategy_core::ExecutionPolicy,
 ) -> anyhow::Result<TestRunResponse> {
     let slot = strategy_core::StrategySlot::new(code, code_hash, params.clone(), 1.0)
-        .map_err(StrategyValidation)?;
+        .map_err(|m| StrategyValidation::new(codes::PARAMS_INVALID, m))?;
     let cfg = strategy_core::EnsembleConfig {
         slots: vec![slot],
         buy_threshold: strategy_core::DEFAULT_BUY_THRESHOLD,
@@ -1003,32 +1205,32 @@ fn run_sim_position(
         runtime_limits: test_run_limits(),
     };
     let result = strategy_core::engine::run_ensemble_with_quickjs(&cfg, bars)
-        .map_err(|e| StrategyValidation(format!("试算运行失败: {e}")))?;
+        .map_err(|e| StrategyValidation::new(codes::REQUEST_INVALID, format!("试算运行失败: {e}")))?;
 
+    // ADR-024 P5/D11：评分/信号**均匀抽样（保首尾）**，不再丢尾部。
+    let (mask, downsampled) = sample_mask(result.per_bar.len(), MAX_SCORE_POINTS);
     let mut truncated = Truncation::default();
-    let mut scores = Vec::with_capacity(result.per_bar.len());
-    let mut signals = Vec::with_capacity(result.per_bar.len());
+    let mut scores = Vec::new();
+    let mut signals = Vec::new();
     let mut events = Vec::new();
-    for rec in &result.per_bar {
-        if scores.len() >= MAX_SCORE_POINTS {
-            truncated.scores = true;
-            break;
+    for (i, rec) in result.per_bar.iter().enumerate() {
+        if mask[i] {
+            scores.push(ScorePoint {
+                ts: rec.ts,
+                score: Some(rec.aggregate),
+                warmup: rec.warmup,
+            });
+            signals.push(SignalPoint {
+                ts: rec.ts,
+                signal: match rec.signal {
+                    strategy_core::TradeSignal::Buy => "buy",
+                    strategy_core::TradeSignal::Sell => "sell",
+                    strategy_core::TradeSignal::Hold => "hold",
+                }
+                .to_string(),
+                warmup: rec.warmup,
+            });
         }
-        scores.push(ScorePoint {
-            ts: rec.ts,
-            score: Some(rec.aggregate),
-            warmup: rec.warmup,
-        });
-        signals.push(SignalPoint {
-            ts: rec.ts,
-            signal: match rec.signal {
-                strategy_core::TradeSignal::Buy => "buy",
-                strategy_core::TradeSignal::Sell => "sell",
-                strategy_core::TradeSignal::Hold => "hold",
-            }
-            .to_string(),
-            warmup: rec.warmup,
-        });
         for ev in &rec.events {
             let (kind, bar_index, message) = match ev {
                 strategy_core::EngineEvent::PluginLog { bar_index, msg, .. } => {
@@ -1070,5 +1272,122 @@ fn run_sim_position(
         fee: fee_json.clone(),
         events,
         truncated,
+        downsampled,
+        original_points: result.per_bar.len(),
+        requested_from: req.from,
+        requested_to: req.to,
+        effective_from: req.from,
+        effective_to: req.to,
+        clamped: false,
+        clamp_reason: None,
+        estimated_bars: None,
     })
+}
+
+// ---------------------------------------------------------------------------
+// ADR-024 P2b 定向单测（试算路径线性化）
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod p2b_tests {
+    use super::*;
+
+    /// 确定性 bar 序列（非恒定 ⇒ 指标取值有鉴别力）。
+    fn series(n: usize) -> Vec<backtest::Bar> {
+        let mut state: u64 = 0x2545_F491_4F6C_DD1D;
+        let mut close = 12.5_f64;
+        (0..n)
+            .map(|i| {
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let step = ((state >> 33) % 41) as f64 - 20.0;
+                close = (close + step * 0.01).max(0.5);
+                backtest::Bar {
+                    ts: 1_700_000_000 + i as i64 * 60,
+                    open: close - 0.05,
+                    high: close + 0.2,
+                    low: (close - 0.2).max(0.01),
+                    close,
+                    volume: 10_000.0,
+                }
+            })
+            .collect()
+    }
+
+    /// P2b 附带项（D7 遗留）——**试算路径宿主侧 `ctx.bars` 必须恰为前缀**（`len == index + 1`，
+    /// 无 `index` 之外的可读 bar）且注入同一 run 的增长式共享缓冲（零复制）。
+    ///
+    /// 反向证据：把 `tryrun_bar_ctx` 里的 `&bars[..=index]` 退回 `bars`（改造前口径）⇒ 本测变红；
+    /// 去掉 `.with_history(...)` ⇒ `shared_history()` 为 `None` ⇒ 本测变红。
+    #[test]
+    fn tryrun_bar_ctx_narrows_to_prefix_and_shares_history() {
+        let bars = series(8);
+        let hist = BarHistory::with_capacity(bars.len());
+        for (i, bar) in bars.iter().enumerate() {
+            hist.push(bar.clone());
+            // 故意传「全量」bars（含未来 bar）——helper 必须收窄为前缀。
+            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist);
+            assert_eq!(
+                ctx.bars.len(),
+                ctx.index + 1,
+                "bar {i}: 宿主侧 ctx.bars 必须恰为 bars[..=index]（P2b：无可读未来）"
+            );
+            assert_eq!(ctx.bars[ctx.index], ctx.bar, "bar {i}: ctx.bars[index] 必须等于 ctx.bar");
+            assert!(
+                ctx.shared_history().is_some(),
+                "bar {i}: 必须注入共享历史缓冲句柄（兼容路径每 bar 复制 bars[..=index]）"
+            );
+        }
+        // 共享句柄跨 bar 恒等（同一增长式缓冲被复用 ⇒ 零复制）。
+        let mut ptrs = Vec::new();
+        let hist2 = BarHistory::with_capacity(bars.len());
+        for (i, bar) in bars.iter().enumerate() {
+            hist2.push(bar.clone());
+            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist2);
+            let h = ctx.shared_history().expect("共享句柄").clone();
+            ptrs.push(std::rc::Rc::as_ptr(&h) as usize);
+        }
+        assert!(ptrs.iter().all(|p| *p == ptrs[0]), "共享缓冲句柄必须跨 bar 恒等");
+
+        // 断言输出（可复核）：每 bar 一行（本库测试路径 = 试算 `tryrun_bar_ctx` 构造点）。
+        println!("[P2b/tryrun] ctx.bars 可见面（n={}）：", bars.len());
+        let hist3 = BarHistory::with_capacity(bars.len());
+        let mut viol = 0usize;
+        for (i, bar) in bars.iter().enumerate() {
+            hist3.push(bar.clone());
+            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist3);
+            let ok = ctx.bars.len() == ctx.index + 1
+                && ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar)
+                && ctx.shared_history().is_some();
+            if !ok {
+                viol += 1;
+            }
+            println!(
+                "  idx={} bars_len={} cur_eq_ctx_bar={} shared_handle={}",
+                ctx.index,
+                ctx.bars.len(),
+                ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar),
+                ctx.shared_history().is_some()
+            );
+        }
+        assert_eq!(viol, 0, "ctx.bars 可见面违例（bars_len != index+1 / 句柄缺失）");
+    }
+
+    /// ADR-024 P5/D11：**均匀抽样（保首尾）** 替代「丢尾部」——`sample_mask` 契约。
+    #[test]
+    fn sample_mask_uniform_preserves_first_and_last() {
+        let (m, ds) = sample_mask(1_000, 10);
+        assert!(ds, "n>k ⇒ downsampled");
+        assert_eq!(m.iter().filter(|b| **b).count(), 10, "恰 k 个下标");
+        assert!(m[0], "保留首");
+        assert!(m[999], "保留尾");
+        // 近似等距（首个样本区间不含长尾空洞）。
+        let idx: Vec<usize> = (0..m.len()).filter(|i| m[*i]).collect();
+        assert!(idx.windows(2).all(|w| w[1] - w[0] <= 150), "样本间距均匀: {idx:?}");
+        // n<=k ⇒ 全选、不标记抽样。
+        let (m2, ds2) = sample_mask(5, 10);
+        assert!(!ds2);
+        assert!(m2.iter().all(|b| *b));
+    }
 }

@@ -289,12 +289,17 @@ BacktestBarRead 复用回测取数口径 kline_accurate 优先）装入 `AppStat
 
 | 方法/路径 | 参数 | 响应 | 错误态 |
 |---|---|---|---|
-| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight,archived}`；`archived` 为审计标记，见下方 submit 口径；`config.fee` 为**扁平生效形态** `{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`——ADR-019 **v1.1 R-1**：两段回显（`effective`/`profile`）**仅用于响应**，不得混入 config；预设往返/前端读取兼容） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、区间超限（D1>5年/分钟级>3个月）、slots 空或 >10、weight≤0、版本为 draft（未发布代码不可运行；published|archived 可运行）、params 越 schema、阈值倒挂、policy/stop/fee 非法、区间无 bar、bar 数 >20 万；404：version_id 未知；503；500 |
+| `POST /api/workbench/runs` | body `{name?, symbol, period, from, to, slots:[{version_id, params?, weight}], buy_threshold?, sell_threshold?, policy, stop?, initial_capital?, fee:{rate_pct,min_fee,slippage_bp,stamp_duty_pct?}, warmup_bars?, confirm?}` | 201 `StrategyRunView`（queued 行；config 为钉住快照——slots 展开为 `{strategy_id,version_id,version,sha256,params,weight,archived}`；`archived` 为审计标记，见下方 submit 口径；`config.fee` 为**扁平生效形态** `{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`——ADR-019 **v1.1 R-1**：两段回显（`effective`/`profile`）**仅用于响应**，不得混入 config；预设往返/前端读取兼容。**ADR-024 P5**：响应/详情增 `requested_from`/`requested_to`/`from_ts`·`to_ts`(=effective)/`clamped`/`clamp_reason`/`estimated_bars`（`bars_total`/`result_format` 由 `/brief`·`/result` 提供）） | 400：symbol 空/未注册、period 非法、from/to 非 RFC3339 或 from≥to、**区间无交集 `range_empty`（带回显可用区间；ADR-024 D2/D3）**、**资源护栏 `resource_guard`（预估/实际 bar 数 ≥ 20 万需 `confirm:true`；>200 万硬拒；D1）**、slots 空或 >10、weight≤0、版本为 draft（未发布代码不可运行；published|archived 可运行）、params 越 schema、阈值倒挂、policy/stop/fee 非法；404：version_id 未知；503；500。**已删除**：日历天数档（原 D1>5年/分钟级>3个月）与 `bar 数 >20 万` 硬拒。**结构化错误**见 `design/16-backtest-scalability/02-spec.md` §3.1.1（`{"error":{code,message,detail}}`） |
+| `GET /api/workbench/available_range` | `symbol`、`period`（均必填；period ∈ 回测白名单） | 200 `{symbol, period, available_from, available_to}`（ADR-024 P5 §5.2：服务口径并集 accurate ∪ 兜底；无数据 → 两字段为 null）；供前端日期控件 min/max 联动 | 400：symbol 空、period 非法；503；500 |
 | `GET /api/workbench/runs` | `status=queued\|running\|succeeded\|failed\|canceled`、`limit`（默认 100，封顶 500）、`offset`（默认 0）（均可选） | `[StrategyRunView]`（**轻量：不含结果**；created_at DESC, id DESC） | 400：status 非法；503；500 |
 | `GET /api/workbench/runs/{id}` | — | `StrategyRunView` | 404：id 未知；503；500 |
-| `GET /api/workbench/runs/{id}/result` | — | `StrategyRunResult`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics 五 jsonb，ADR §13.4） | 404：id 未知或未成功（无结果）；503；500 |
+| `GET /api/workbench/runs/{id}/result` | — | **兼容**（ADR-024 §3.2）：`legacy_single` 全量 `RunResultCompat`（per_bar 全量[ts/scores/aggregate/signal/orders/events] + trades + net_value + drawdown + metrics + result_format）；`chunked_v1` ⇒ `summary`（brief 形状）+ 首页 per_bar + `has_more` + `next_offset`（默认页 5000，**显式**截断非静默；net_value/drawdown 本端点为空，图表改走 `/curve`） | 404：id 未知或未成功（无结果）；503；500 |
+| `GET /api/workbench/runs/{id}/brief` | — | 200 `ResultBrief`（轻量：status/progress/error/metrics/requested_from·to/effective_from·to/clamped/estimated_bars/bars_total/result_format/chunk_count；ADR-024 P5 起 `estimated_bars` 为提交时 `count(*)` 预扫描值，降级为 null） | 404：id 未知；503；500 |
+| `GET /api/workbench/runs/{id}/bars` | `kind=per_bar\|net_value\|drawdown`（缺省 per_bar）、`offset`（默认 0）、`limit`（默认 5000/上限 20000）**或** `from`+`to`（RFC3339，互斥） | 200 `BarsResponse`（`{kind,bars,total,has_more,next_offset,offset,limit[,from,to]}`；区间读可能含 chunk 外沿并由服务端按 ts 过滤） | 400：kind 非法、offset/limit 与 from/to 同时给、from/to 缺一或非 RFC3339、from>to；404：id 未知或未成功；503；500 |
+| `GET /api/workbench/runs/{id}/curve` | `k`（目标点数，默认 2000/上限 20000）、`kind`（缺省 net_value） | 200 `CurveResponse`（`{kind,points,downsampled,original_bars,k}`；**显式抽样**均匀保首尾，ADR-024 D10） | 400：kind 非法；404：id 未知或未成功；503；500 |
+| `GET /api/workbench/runs/{id}/fills` | `offset`（默认 0）、`limit`（默认 5000/上限 20000） | 200 `FillsResponse`（`{run_id,total,offset,limit,has_more,next_offset,recorded,fills:[{type,bar_index,ts,side,qty,price,reason}]}`；**成交明细有界精确源**（ADR-024 P6）：chunked = `strategy_run_bars.kind='fills'` 单块 `seq=0`（无成交也写空数组块）；legacy = 由内联 per_bar 的 `fill` 事件派生（双读不回填）；`recorded=false` = 该 chunked run 无 fills 块（**「未写」**，与「无成交」`recorded=true,total=0` 可区分）。**禁止**用 `/curve` 抽样（丢真实成交）或 `trades`（仅完全平仓时合成 ⇒ 部分买入/加仓/部分卖出不进 `trades`）代替；用于 K 线买卖标记与成交核对） | 404：id 未知或未成功；503；500 |
 | `POST /api/workbench/runs/{id}/cancel` | — | 200 `StrategyRunView`（canceled 行） | 404：id 未知；409：已终态；503；500 |
-| `POST /api/workbench/runs/compare` | body `{ids:["sr_..", ...]}`（必填非空） | 200 `[CompareItem]`（`{run_id,name,symbol,period,net_value,metrics}` 并排；输入序；未知/未成功 run 跳过） | 400：ids 空；503；500 |
+| `POST /api/workbench/runs/compare` | body `{ids:["sr_..", ...], k?}`（ids 必填非空；`k` 净值抽样目标点数默认 2000） | 200 `[CompareItem]`（`{run_id,name,symbol,period,net_value,metrics,downsampled,original_bars}`；净值**抽样**（ADR-024 D9/D10：禁止 N × 全量净值）；输入序；未知/未成功 run 跳过） | 400：ids 空；503；500 |
 | `POST /api/workbench/presets` | body `{name, config}`（config 同 strategy_run.config 形状） | 201 `StrategyPresetRow`（config 经校验+钉住——slots 展开含 sha256/version/params 缺省填充） | 400：name 空/配置非法（同 submit 配置口径）；409：name 重名；503；500 |
 | `GET /api/workbench/presets` | — | `[StrategyPresetRow]`（created_at ASC, id ASC） | 503；500 |
 | `GET /api/workbench/presets/{id}` | — | `StrategyPresetRow` | 404；503；500 |
@@ -2694,10 +2699,15 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/strategies/{id}/versions", get(strategies::list_versions).post(strategies::create_draft_from))
         // 12-strategy-system / P3a：回测工作台（§1.8；handlers 在 workbench.rs，非 tangle 手写）
         // 静态段优先于 {id} 参数段（axum matchit 保证）：compare/presets 先于 /runs/{id}
+        .route("/api/workbench/available_range", get(workbench::available_range))
         .route("/api/workbench/runs", get(workbench::list_runs).post(workbench::submit_run))
         .route("/api/workbench/runs/compare", post(workbench::compare_runs))
         .route("/api/workbench/runs/{id}", get(workbench::get_run))
         .route("/api/workbench/runs/{id}/result", get(workbench::get_result))
+        .route("/api/workbench/runs/{id}/brief", get(workbench::get_brief))
+        .route("/api/workbench/runs/{id}/bars", get(workbench::get_bars))
+        .route("/api/workbench/runs/{id}/curve", get(workbench::get_curve))
+        .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
         .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
         .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
         .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))

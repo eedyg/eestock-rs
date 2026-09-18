@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type {
   StrategyCatalogEntry,
   StrategyParamDef,
   SymbolSnapshot,
+  WorkbenchAvailableRange,
   WorkbenchPinnedSlot,
   WorkbenchPolicy,
   WorkbenchPresetConfigInput,
@@ -11,6 +12,8 @@ import type {
   WorkbenchStop,
   WorkbenchSubmitReq,
 } from '@/api/types';
+// ADR-024 P0 §5.1：周期下拉由单一事实源（前端镜像常量）生成，不得手写第二份。
+import { SUPPORTED_BACKTEST_PERIODS } from '@/features/backtest/periods';
 
 /** 表单内 slot 状态（数值字段以文本持有，提交时统一 parse/校验——与 TestRunPanel 同模式）。 */
 interface SlotForm {
@@ -30,9 +33,18 @@ function dayToIso(day: string): string {
   return `${day}T00:00:00Z`;
 }
 
+const noop = (): void => {};
+
 function todayPlus(days: number): string {
   const d = new Date(Date.now() + days * 86_400_000);
   return d.toISOString().slice(0, 10);
+}
+
+/** RFC3339 → `input[type=date]` 的 `yyyy-mm-dd`（null/非法 → undefined；ADR-024 P5 §5.2）。 */
+function isoToDay(iso: string | null | undefined): string | undefined {
+  if (!iso) return undefined;
+  const d = iso.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined;
 }
 
 /** catalog 版本 → 新 slot（schema 默认值预填）。 */
@@ -141,7 +153,12 @@ export function ConfigPanel({
   presets,
   submitting,
   submitError,
+  clampNotice = null,
+  guardPrompt = null,
+  loadAvailableRange,
   onSubmit,
+  onConfirmGuard = noop,
+  onDismissGuard = noop,
   onApplyPreset,
   onCreatePreset,
   onUpdatePreset,
@@ -156,7 +173,15 @@ export function ConfigPanel({
   presets: WorkbenchPresetRow[] | null;
   submitting: boolean;
   submitError: string | null;
+  /** ADR-024 P5 §5.2：提交响应 `clamped:true` ⇒ 显著提示条（不弹确认框）。 */
+  clampNotice?: { requestedFrom: string; requestedTo: string; effectiveFrom: string; effectiveTo: string } | null;
+  /** ADR-024 P5 §5.2：`resource_guard` 二次确认（展示预估 bar 数/耗时）。 */
+  guardPrompt?: { bars: number; secs: number } | null;
+  /** 可得区间加载器（日期控件 min/max 随「标的+周期」联动）；未注入 → 不拉取、不设边界。 */
+  loadAvailableRange?: (symbol: string, period: string) => Promise<WorkbenchAvailableRange | null>;
   onSubmit: (req: WorkbenchSubmitReq) => void;
+  onConfirmGuard?: () => void;
+  onDismissGuard?: () => void;
   onApplyPreset: (id: string) => Promise<WorkbenchRunConfig>;
   onCreatePreset: (name: string, config: WorkbenchPresetConfigInput) => Promise<void>;
   /** MINOR-2：presetSel 非空且表单偏离预设时「保存」走 PUT 就地更新（当前表单 config）。 */
@@ -194,6 +219,26 @@ export function ConfigPanel({
   const [presetMsg, setPresetMsg] = useState<string | null>(null);
   /** MINOR-2 脏检测基线：最近一次成功应用/就地更新的预设 config 规范化串（null = 无基线）。 */
   const [appliedJson, setAppliedJson] = useState<string | null>(null);
+  /** ADR-024 P5 §5.2：可得区间（随「标的+周期」联动 → 日期控件 min/max）。 */
+  const [availRange, setAvailRange] = useState<WorkbenchAvailableRange | null>(null);
+
+  useEffect(() => {
+    if (!loadAvailableRange) return;
+    let alive = true;
+    loadAvailableRange(symbol, period)
+      .then((r) => {
+        if (alive) setAvailRange(r);
+      })
+      .catch(() => {
+        if (alive) setAvailRange(null); // 加载失败 → 不设边界（不阻断表单）
+      });
+    return () => {
+      alive = false;
+    };
+  }, [symbol, period, loadAvailableRange]);
+
+  const minDay = isoToDay(availRange?.available_from);
+  const maxDay = isoToDay(availRange?.available_to);
 
   const addable = (catalog ?? []).filter((e) => !slots.some((s) => s.versionId === e.version.id));
 
@@ -583,10 +628,9 @@ export function ConfigPanel({
         <label className={LABEL}>
           周期
           <select className={INPUT} value={period} onChange={(e) => setPeriod(e.target.value)} data-testid="wb-period">
-            <option value="M1">M1</option>
-            <option value="M5">M5</option>
-            <option value="M15">M15</option>
-            <option value="D1">D1</option>
+            {SUPPORTED_BACKTEST_PERIODS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
           </select>
         </label>
         <label className={LABEL}>
@@ -595,13 +639,36 @@ export function ConfigPanel({
         </label>
         <label className={LABEL}>
           起始
-          <input type="date" className={INPUT} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} data-testid="wb-date-from" />
+          <input type="date" className={INPUT} value={dateFrom} min={minDay} max={maxDay} onChange={(e) => setDateFrom(e.target.value)} data-testid="wb-date-from" />
         </label>
         <label className={LABEL}>
           截止
-          <input type="date" className={INPUT} value={dateTo} onChange={(e) => setDateTo(e.target.value)} data-testid="wb-date-to" />
+          <input type="date" className={INPUT} value={dateTo} min={minDay} max={maxDay} onChange={(e) => setDateTo(e.target.value)} data-testid="wb-date-to" />
         </label>
       </div>
+
+      {/* ADR-024 P5 §5.2：可得区间（日期控件 min/max 随「标的+周期」联动） */}
+      {minDay && maxDay && (
+        <div className="text-[11px] text-dim" data-testid="wb-available-range">
+          可用区间：{minDay} ~ {maxDay}
+        </div>
+      )}
+      {/* ADR-024 P5：clamped:true ⇒ 显著提示条（不弹确认框） */}
+      {clampNotice && (
+        <div className="rounded-lg border border-up/40 bg-up/10 px-2 py-1 text-up" role="status" data-testid="wb-clamp-notice">
+          已按实际数据范围收缩：{clampNotice.effectiveFrom.slice(0, 10)} ~ {clampNotice.effectiveTo.slice(0, 10)}（原因：数据可得范围）
+        </div>
+      )}
+      {/* ADR-024 P5：resource_guard ⇒ 二次确认（展示预估 bar 数/耗时） */}
+      {guardPrompt && (
+        <div className="rounded-lg border border-up/40 bg-up/10 px-2 py-1 text-up" role="alert" data-testid="wb-guard-prompt">
+          <div>预估 {guardPrompt.bars} 根 bar（约 {guardPrompt.secs.toFixed(1)} 秒），达到二次确认阈值。</div>
+          <div className="mt-1 flex gap-2">
+            <button type="button" className="h-7 rounded-lg bg-acc1 px-2 text-xs font-medium text-white" onClick={onConfirmGuard} data-testid="wb-guard-confirm">仍要提交</button>
+            <button type="button" className="h-7 rounded-lg border border-line px-2 text-xs" onClick={onDismissGuard} data-testid="wb-guard-cancel">取消</button>
+          </div>
+        </div>
+      )}
 
       {/* 聚合阈值 */}
       <div className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-panel2 p-2">

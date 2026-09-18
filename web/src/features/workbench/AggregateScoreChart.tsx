@@ -6,19 +6,29 @@ const W = 1000;
 const H = 160;
 const PAD = 8;
 
+/** 曲线抽样标注（后端 `/curve` 的 `downsampled`/`original_bars`；ADR-024 D10 禁止隐式有损）。 */
+export interface CurveSampling {
+  downsampled: boolean;
+  originalBars: number;
+}
+
 /**
  * 总分曲线（ADR §13.5）：聚合分 0-100 折线 + buy/sell 阈值虚线 + 三区着色
  * （≥buy 买入区绿 tint / 中间持有区 / ≤sell 卖出区红 tint）。
- * per_bar 全量数据经 downsample 抽样渲染（ADR §13.4 UI 端抽样）。
+ *
+ * ADR-024 P6：数据来自 `/curve?kind=per_bar`（**显式抽样**）；渲染时标注抽样点数与原始根数
+ * （沿用既有「抽样 N 点」文案模式 + `original_bars`），禁止隐式有损（D10）。
  */
 export function AggregateScoreChart({
   perBar,
   buyThreshold,
   sellThreshold,
+  sampling,
 }: {
   perBar: WorkbenchBarRecord[];
   buyThreshold: number;
   sellThreshold: number;
+  sampling?: CurveSampling;
 }) {
   const pts = useMemo(
     () => downsample(perBar.map((r) => [r.ts, r.aggregate] as [number, number])),
@@ -43,8 +53,13 @@ export function AggregateScoreChart({
         <span>
           聚合总分 0-100（虚线 = 买入阈 {buyThreshold} / 卖出阈 {sellThreshold}；三区 = 买/持/卖）
         </span>
-        <span>
-          {perBar.length} bar{pts.length < perBar.length ? `（抽样 ${pts.length} 点）` : ''}
+        <span data-testid="wb-aggregate-sampling">
+          共 {sampling?.originalBars ?? perBar.length} bar
+          {sampling?.downsampled
+            ? `（服务端抽样 ${perBar.length} 点）`
+            : pts.length < perBar.length
+              ? `（抽样 ${pts.length} 点）`
+              : ''}
         </span>
       </div>
     </div>

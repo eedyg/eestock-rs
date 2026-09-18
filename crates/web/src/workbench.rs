@@ -22,15 +22,54 @@ use std::sync::Arc;
 
 use application::workbench::{
     SlotReq, SubmitRunReq, WorkbenchConflict, WorkbenchNotFound, WorkbenchService,
-    WorkbenchValidation,
+    WorkbenchValidation, BARS_LIMIT_DEFAULT, BARS_LIMIT_MAX, BarsWindow, COMPARE_K_DEFAULT,
 };
-use domain::ports::{StrategyRunFilter, StrategyRunProgressSink, StrategyRunStatus};
+use application::error::StructuredError;
+use application::error::codes;
+use application::bar_map;
+use domain::ports::{ResultKind, StrategyRunFilter, StrategyRunProgressSink, StrategyRunStatus};
 
 use crate::state::AppState;
 use crate::ws::{PushMsg, WsHub};
 
+/// 非 400 的错误体（404/409/500/503）。
+///
+/// ⚠️ ADR-024 P5 整改 N1：**只允许**用于非 400；本模块内所有 400 一律走 [`structured`]，
+/// 使 `error` 字段在 400 上恒为对象（禁两种类型混用）。
 fn err(status: StatusCode, msg: &str) -> Response {
     (status, Json(serde_json::json!({ "error": msg }))).into_response()
+}
+
+/// ADR-024 §3.1.1：结构化错误体 `{"error":{"code","message","detail"}}`（前端可**编程**消费）。
+/// `detail` 恒为对象（无补充信息时 `{}`）。
+fn structured(status: StatusCode, code: &str, message: &str, detail: serde_json::Value) -> Response {
+    (
+        status,
+        Json(serde_json::json!({
+            "error": { "code": code, "message": message, "detail": detail }
+        })),
+    )
+        .into_response()
+}
+
+/// 结构化 400 的 `detail`：application 专属字段 + 请求上下文（如 `period`）。
+fn merge_detail(mut detail: serde_json::Value, ctx: &serde_json::Value) -> serde_json::Value {
+    if let (Some(d), Some(c)) = (detail.as_object_mut(), ctx.as_object()) {
+        for (k, v) in c {
+            d.entry(k.clone()).or_insert_with(|| v.clone());
+        }
+    }
+    detail
+}
+
+/// application 层结构化错误（`range_empty`/`resource_guard`）→ 结构化 400。
+fn structured_err(e: &StructuredError, ctx: &serde_json::Value) -> Response {
+    structured(
+        StatusCode::BAD_REQUEST,
+        &e.code,
+        &e.message,
+        merge_detail(e.detail.clone(), ctx),
+    )
 }
 
 fn internal(e: anyhow::Error) -> Response {
@@ -39,16 +78,25 @@ fn internal(e: anyhow::Error) -> Response {
 }
 
 /// 服务错误 → HTTP 语义（404/409/400/500）。
-fn map_svc_err(e: anyhow::Error) -> Response {
-    if let Some(x) = e.downcast_ref::<WorkbenchNotFound>() {
+///
+/// ADR-024 §3.1.1：400 一律结构化；`WorkbenchValidation` 的 `code` **由 application 校验点同源给出**
+/// （web 不做消息解析），`ctx` 为请求上下文（如 `period`）。
+fn map_svc_err_ctx(e: anyhow::Error, ctx: serde_json::Value) -> Response {
+    if let Some(x) = e.downcast_ref::<StructuredError>() {
+        structured_err(x, &ctx)
+    } else if let Some(x) = e.downcast_ref::<WorkbenchValidation>() {
+        structured(StatusCode::BAD_REQUEST, x.code(), x.message(), ctx)
+    } else if let Some(x) = e.downcast_ref::<WorkbenchNotFound>() {
         err(StatusCode::NOT_FOUND, &x.0)
     } else if let Some(x) = e.downcast_ref::<WorkbenchConflict>() {
         err(StatusCode::CONFLICT, &x.0)
-    } else if let Some(x) = e.downcast_ref::<WorkbenchValidation>() {
-        err(StatusCode::BAD_REQUEST, &x.0)
     } else {
         internal(e)
     }
+}
+
+fn map_svc_err(e: anyhow::Error) -> Response {
+    map_svc_err_ctx(e, serde_json::json!({}))
 }
 
 /// 取注入的 WorkbenchService；未装配（None）→ 503（与 AppState.strategies 同模式）。
@@ -100,6 +148,16 @@ pub struct WorkbenchSubmitReq {
     /// I-2/D6：前置预热根数（缺省 250）；0 = 无预热。
     #[serde(default)]
     pub warmup_bars: Option<usize>,
+    /// ADR-024 P5 §3.1.1：资源护栏二次确认（预估 bar 数 ≥ 阈值时需 `true` 重提放行）。
+    #[serde(default)]
+    pub confirm: bool,
+}
+
+/// `GET /api/workbench/available_range` 查询参数（ADR-024 P5 §5.2：日期控件 min/max 联动）。
+#[derive(Debug, Deserialize)]
+pub struct AvailableRangeQuery {
+    pub symbol: String,
+    pub period: String,
 }
 
 /// GET /api/workbench/runs 查询参数（status 可选；limit 默认 100 封顶 500，offset 默认 0）。
@@ -119,10 +177,54 @@ fn default_limit() -> i64 {
 /// 列表单页上限（handler 以 `limit.clamp(1, MAX_WORKBENCH_LIMIT)` 归一；与回测同口径）。
 pub const MAX_WORKBENCH_LIMIT: i64 = 500;
 
-/// POST /api/workbench/runs/compare 请求体。
+/// POST /api/workbench/runs/compare 请求体（`k`：净值抽样目标点数，缺省 2000）。
 #[derive(Debug, Deserialize)]
 pub struct WorkbenchCompareReq {
     pub ids: Vec<String>,
+    #[serde(default)]
+    pub k: Option<usize>,
+}
+
+/// GET /api/workbench/runs/{id}/bars 查询参数。
+/// `kind` 缺省 `per_bar`；`offset/limit`（序号分页）与 `from/to`（时间区间）**互斥**。
+#[derive(Debug, Deserialize)]
+pub struct BarsQuery {
+    pub kind: Option<String>,
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+}
+
+/// GET /api/workbench/runs/{id}/curve 查询参数（`kind` 缺省 `net_value`；`k` 缺省 2000/上限 20000）。
+#[derive(Debug, Deserialize)]
+pub struct CurveQuery {
+    pub kind: Option<String>,
+    pub k: Option<usize>,
+}
+
+/// GET /api/workbench/runs/{id}/fills 查询参数（`offset` 缺省 0；`limit` 缺省 5000/上限 20000）。
+#[derive(Debug, Deserialize)]
+pub struct FillsQuery {
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+/// 抽样/区间/分页曲线可接受的 kind（`fills` 是**事实源**：专用 `/fills` 端点分页读，禁止抽样，见 ADR-024 P6）。
+/// `default` 为未传 `kind` 时的缺省值（`/bars` = per_bar；`/curve` = net_value）。
+fn parse_series_kind(s: Option<&str>, default: ResultKind) -> Result<ResultKind, Response> {
+    match s {
+        None => Ok(default),
+        Some("per_bar") => Ok(ResultKind::PerBar),
+        Some("net_value") => Ok(ResultKind::NetValue),
+        Some("drawdown") => Ok(ResultKind::Drawdown),
+        _ => Err(structured(
+            StatusCode::BAD_REQUEST,
+            codes::KIND_INVALID,
+            "kind 须为 per_bar/net_value/drawdown（fills 请用专用端点 /fills）",
+            serde_json::json!({}),
+        )),
+    }
 }
 
 /// POST/PUT /api/workbench/presets 请求体。
@@ -143,35 +245,76 @@ pub async fn submit_run(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.symbol.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "symbol 必填");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::SYMBOL_REQUIRED,
+            "symbol 必填",
+            serde_json::json!({}),
+        );
     }
-    if !matches!(req.period.as_str(), "M1" | "M5" | "M15" | "H1" | "D1") {
-        return err(StatusCode::BAD_REQUEST, "period 须为 M1/M5/M15/H1/D1");
+    // ADR-024 P0 §5.1：周期白名单收敛为单一事实源——删手写 `matches!` 白名单，改调
+    // `application::bar_map::parse_period`（与 MCP / 试算同源）；400 语义与可读消息保留。
+    if let Err(e) = application::bar_map::parse_period(&req.period) {
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::PERIOD_INVALID,
+            &format!(
+                "period 须为 {}（{e}）",
+                application::bar_map::supported_backtest_periods().join("/")
+            ),
+            serde_json::json!({ "period": req.period, "supported": application::bar_map::supported_backtest_periods() }),
+        );
     }
     let from = match DateTime::parse_from_rfc3339(&req.from) {
         Ok(t) => t.with_timezone(&Utc),
-        Err(_) => return err(StatusCode::BAD_REQUEST, "from 须为 RFC3339 时间戳"),
+        Err(_) => {
+            return structured(
+                StatusCode::BAD_REQUEST,
+                codes::TIMESTAMP_INVALID,
+                "from 须为 RFC3339 时间戳",
+                serde_json::json!({ "field": "from", "value": req.from }),
+            )
+        }
     };
     let to = match DateTime::parse_from_rfc3339(&req.to) {
         Ok(t) => t.with_timezone(&Utc),
-        Err(_) => return err(StatusCode::BAD_REQUEST, "to 须为 RFC3339 时间戳"),
+        Err(_) => {
+            return structured(
+                StatusCode::BAD_REQUEST,
+                codes::TIMESTAMP_INVALID,
+                "to 须为 RFC3339 时间戳",
+                serde_json::json!({ "field": "to", "value": req.to }),
+            )
+        }
     };
     if from >= to {
-        return err(StatusCode::BAD_REQUEST, "from 须早于 to");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::FROM_AFTER_TO,
+            "from 须早于 to",
+            serde_json::json!({ "from": req.from, "to": req.to }),
+        );
     }
     if req.slots.is_empty() {
-        return err(StatusCode::BAD_REQUEST, "slots 必填（1..=10）");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::SLOTS_INVALID,
+            "slots 必填（1..=10）",
+            serde_json::json!({ "got": 0 }),
+        );
     }
     // fee 缺省（None）= 按标的 type 解析（ADR-019 D11-3）→ 仅显式传入时做形状校验。
     if let Some(fee) = &req.fee {
         if let Err(e) = crate::dto::validate_backtest_fee(fee) {
             return match e {
                 crate::dto::FieldError::BadRequest(m) | crate::dto::FieldError::Unprocessable(m) => {
-                    err(StatusCode::BAD_REQUEST, &m)
+                    structured(StatusCode::BAD_REQUEST, codes::FEE_INVALID, &m, serde_json::json!({}))
                 }
             };
         }
     }
+    // 400 上下文（ADR-024 §3.1.1：detail 至少含 `period`（有则））；`req.period` 随后被移入 submit。
+    let period_ctx = serde_json::json!({ "period": req.period.clone() });
     let submit = SubmitRunReq {
         name: req.name.unwrap_or_default(),
         symbol: req.symbol,
@@ -193,9 +336,48 @@ pub async fn submit_run(
             .warmup_bars
             .unwrap_or(application::workbench::DEFAULT_WARMUP_BARS),
         fee: req.fee,
+        confirm: req.confirm,
     };
     match svc.submit(submit).await {
         Ok(run) => (StatusCode::CREATED, Json(run)).into_response(),
+        Err(e) => map_svc_err_ctx(e, period_ctx),
+    }
+}
+
+/// GET /api/workbench/available_range?symbol=&period= —— 可得区间（ADR-024 P5 §5.2）。
+/// 供前端日期控件 min/max 随「标的+周期」联动；无数据 → 200 且 `available_from/to` 为 null。
+pub async fn available_range(
+    State(st): State<Arc<AppState>>,
+    Query(q): Query<AvailableRangeQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    if q.symbol.trim().is_empty() {
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::SYMBOL_REQUIRED,
+            "symbol 必填",
+            serde_json::json!({}),
+        );
+    }
+    if let Err(e) = bar_map::parse_period(&q.period) {
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::PERIOD_INVALID,
+            &format!(
+                "period 须为 {}（{e}）",
+                bar_map::supported_backtest_periods().join("/")
+            ),
+            serde_json::json!({ "period": q.period }),
+        );
+    }
+    match svc.available_range(&q.symbol, &q.period).await {
+        Ok(range) => Json(serde_json::json!({
+            "symbol": q.symbol.trim(),
+            "period": q.period,
+            "available_from": range.map(|r| r.from.to_rfc3339()),
+            "available_to": range.map(|r| r.to.to_rfc3339()),
+        }))
+        .into_response(),
         Err(e) => map_svc_err(e),
     }
 }
@@ -211,9 +393,11 @@ pub async fn list_runs(
         Some(s) => match StrategyRunStatus::parse(s) {
             Some(v) => Some(v),
             None => {
-                return err(
+                return structured(
                     StatusCode::BAD_REQUEST,
+                    codes::STATUS_INVALID,
                     "status 须为 queued/running/succeeded/failed/canceled",
+                    serde_json::json!({ "status": s }),
                 )
             }
         },
@@ -238,11 +422,135 @@ pub async fn get_run(State(st): State<Arc<AppState>>, Path(id): Path<String>) ->
     }
 }
 
-/// GET /api/workbench/runs/{id}/result —— 运行结果（per_bar 全量五 jsonb；未成功/未知 → 404）。
+/// GET /api/workbench/runs/{id}/result —— 运行结果（**兼容**）。
+/// `legacy_single`：全量返回（旧前端不破）；`chunked_v1`：`summary` + 首页 per_bar + `has_more`
+/// + `next_offset`（默认页 5000，**显式**截断非静默）。未成功/未知 → 404。
 pub async fn get_result(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
-    match svc.get_result(&id).await {
+    match svc.result_compat(&id, BARS_LIMIT_DEFAULT).await {
         Ok(res) => Json(res).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/brief —— 轻量摘要（status/progress/metrics/result_format/
+/// chunk_count/bars_total 等；列表/轮询用）。未成功但有 run 行也返回（result_format=None）。
+pub async fn get_brief(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    match svc.result_brief(&id).await {
+        Ok(b) => Json(b).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/bars?kind=&offset=&limit= 或 ...&from=&to= —— 分页/区间读。
+/// `kind ∈ per_bar|net_value|drawdown`（缺省 per_bar；`fills` 走专用端点）；
+/// `offset/limit` 与 `from/to` **互斥**（同给 ⇒ 400）；
+/// `limit` 缺省 5000/上限 20000；区间读可能含 chunk 外沿并由服务端按 ts 过滤。
+pub async fn get_bars(
+    State(st): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(q): Query<BarsQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let kind = match parse_series_kind(q.kind.as_deref(), ResultKind::PerBar) {
+        Ok(k) => k,
+        Err(r) => return r,
+    };
+    let has_paging = q.offset.is_some() || q.limit.is_some();
+    let has_range = q.from.is_some() || q.to.is_some();
+    if has_paging && has_range {
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::REQUEST_INVALID,
+            "offset/limit 与 from/to 互斥，不得同时给",
+            serde_json::json!({}),
+        );
+    }
+    let window = if has_range {
+        let (Some(from_s), Some(to_s)) = (q.from.as_deref(), q.to.as_deref()) else {
+            return structured(
+                StatusCode::BAD_REQUEST,
+                codes::REQUEST_INVALID,
+                "区间读须同时给 from 与 to",
+                serde_json::json!({}),
+            );
+        };
+        let from = match DateTime::parse_from_rfc3339(from_s) {
+            Ok(t) => t.with_timezone(&Utc),
+            Err(_) => {
+                return structured(
+                    StatusCode::BAD_REQUEST,
+                    codes::TIMESTAMP_INVALID,
+                    "from 须为 RFC3339 时间戳",
+                    serde_json::json!({ "field": "from", "value": from_s }),
+                )
+            }
+        };
+        let to = match DateTime::parse_from_rfc3339(to_s) {
+            Ok(t) => t.with_timezone(&Utc),
+            Err(_) => {
+                return structured(
+                    StatusCode::BAD_REQUEST,
+                    codes::TIMESTAMP_INVALID,
+                    "to 须为 RFC3339 时间戳",
+                    serde_json::json!({ "field": "to", "value": to_s }),
+                )
+            }
+        };
+        if from > to {
+            return structured(
+                StatusCode::BAD_REQUEST,
+                codes::FROM_AFTER_TO,
+                "from 须不晚于 to",
+                serde_json::json!({ "from": from_s, "to": to_s }),
+            );
+        }
+        BarsWindow::Range { from, to }
+    } else {
+        let offset = q.offset.unwrap_or(0).max(0);
+        let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
+        BarsWindow::Offset { offset, limit }
+    };
+    match svc.result_bars(&id, kind, window).await {
+        Ok(b) => Json(b).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/curve?k=&kind= —— **显式抽样**曲线（均匀保首尾）。
+/// 响应带 `downsampled` + `original_bars`（ADR-024 D10；`kind` 缺省 net_value）。
+pub async fn get_curve(
+    State(st): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(q): Query<CurveQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let kind = match parse_series_kind(q.kind.as_deref(), ResultKind::NetValue) {
+        Ok(k) => k,
+        Err(r) => return r,
+    };
+    match svc.result_curve(&id, kind, q.k).await {
+        Ok(c) => Json(c).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/fills?offset=&limit= —— **成交明细分页读**（ADR-024 P6）。
+/// 有界精确源：`kind='fills'` 单块（chunked）/ 内联 per_bar 事件派生（legacy）；
+/// `limit` 缺省 5000/上限 20000；响应含 `total` 与 `recorded`（区分「无成交」与「未写」）。
+/// 用于 **K 线买卖标记**与成交核对；**禁止**用抽样曲线（丢真实成交）或 `trades`
+/// （仅完全平仓时合成 ⇒ 部分买入/加仓/部分卖出不进 `trades`）代替。
+pub async fn get_fills(
+    State(st): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(q): Query<FillsQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let offset = q.offset.unwrap_or(0).max(0);
+    let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
+    match svc.result_fills(&id, offset, limit).await {
+        Ok(b) => Json(b).into_response(),
         Err(e) => map_svc_err(e),
     }
 }
@@ -256,16 +564,23 @@ pub async fn cancel_run(State(st): State<Arc<AppState>>, Path(id): Path<String>)
     }
 }
 
-/// POST /api/workbench/runs/compare —— 多 run 并排对比（net_value+metrics；输入序；未知/未成功跳过）。
+/// POST /api/workbench/runs/compare —— 多 run 并排对比（净值**抽样**默认 k=2000 + 绩效；输入序；
+/// 未知/未成功跳过）。ADR-024 D9/D10：禁止 N × 全量净值，响应带 `downsampled`/`original_bars`。
 pub async fn compare_runs(
     State(st): State<Arc<AppState>>,
     Json(req): Json<WorkbenchCompareReq>,
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.ids.is_empty() {
-        return err(StatusCode::BAD_REQUEST, "ids 必填（run id 数组）");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::IDS_REQUIRED,
+            "ids 必填（run id 数组）",
+            serde_json::json!({}),
+        );
     }
-    match svc.compare(&req.ids).await {
+    let k = req.k.unwrap_or(COMPARE_K_DEFAULT).clamp(1, application::workbench::CURVE_K_MAX);
+    match svc.compare_sampled(&req.ids, k).await {
         Ok(items) => Json(items).into_response(),
         Err(e) => internal(e),
     }
@@ -280,7 +595,12 @@ pub async fn create_preset(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.name.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "name 必填");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::NAME_REQUIRED,
+            "name 必填",
+            serde_json::json!({}),
+        );
     }
     match svc.create_preset(&req.name, &req.config).await {
         Ok(row) => (StatusCode::CREATED, Json(row)).into_response(),
@@ -314,7 +634,12 @@ pub async fn update_preset(
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     if req.name.trim().is_empty() {
-        return err(StatusCode::BAD_REQUEST, "name 必填");
+        return structured(
+            StatusCode::BAD_REQUEST,
+            codes::NAME_REQUIRED,
+            "name 必填",
+            serde_json::json!({}),
+        );
     }
     match svc.update_preset(&id, &req.name, &req.config).await {
         Ok(row) => Json(row).into_response(),

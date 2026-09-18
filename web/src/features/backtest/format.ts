@@ -1,16 +1,16 @@
 // 页面⑤ 回测工作台展示格式化（深色交易终端风；指标↔字符串，统一口径）。
 import type { Period } from '@/api/types';
 
-/** 后端口径周期代码 → 前端标签（M1/M5/M15/D1 → 1m/5m/15m/日）。 */
+/** 后端口径周期代码 → 前端标签（M1/M5/M15/M30/H1/D1 → 1m/5m/15m/30m/1h/日）。 */
 export function periodLabel(code: string | undefined): string {
-  const map: Record<string, string> = { M1: '1m', M5: '5m', M15: '15m', D1: '日' };
+  const map: Record<string, string> = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', D1: '日' };
   return map[code ?? ''] ?? (code || '—');
 }
 
-/** 后端口径周期代码 → 前端 Period（M1/M5/M15/D1 → 1m/5m/15m/1d；未识别兜底 1d）。
- *  供弹窗 K 线默认周期与看板 KlineChart 周期切换复用。 */
+/** 后端口径周期代码 → 前端 Period（M1/M5/M15/M30/H1/D1 → 1m/5m/15m/30m/1h/1d；未识别兜底 1d）。
+ *  供弹窗 K 线默认周期与看板 KlineChart 周期切换复用（ADR-024 P0 补 M30/H1）。 */
 export function periodCodeToPeriod(code: string | undefined | null): Period {
-  const map: Record<string, Period> = { M1: '1m', M5: '5m', M15: '15m', D1: '1d' };
+  const map: Record<string, Period> = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', D1: '1d' };
   return map[code ?? ''] ?? '1d';
 }
 
@@ -37,6 +37,8 @@ const PERIOD_DAY_FACTOR: Record<string, number> = {
   M1: 1 / (24 * 60),
   M5: 5 / (24 * 60),
   M15: 15 / (24 * 60),
+  M30: 30 / (24 * 60), // ADR-024 P0：30min 档
+  H1: 1 / 24, // ADR-024 P0：1h 档（回测白名单 H1）
   D1: 1,
 };
 

@@ -1,11 +1,13 @@
 import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { WorkbenchBarRecord, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import type { ApiClient } from '@/api/client';
 import { createMockClient } from '@/api/mock';
 import { ResultView } from './ResultView';
 import { buildMarkers } from './KlineResultChart';
+import { fillsFromPerBar } from './useRunSeries';
 
 // jsdom 无 canvas：klinecharts 整体打桩（与 BacktestPage.test 同模式）
 const chartStub = {
@@ -36,19 +38,33 @@ vi.mock('klinecharts', () => ({
 
 const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
 
-async function seedRunAndResult(): Promise<{ run: WorkbenchRunView; result: WorkbenchRunResult }> {
-  const run = await api.submitWorkbenchRun({
+const SUBMIT_BASE = {
+  symbol: '518880',
+  period: 'D1',
+  from: '2026-01-01T00:00:00Z',
+  to: '2026-04-01T00:00:00Z',
+  policy: { LumpSum: { position_pct: 1 } } as const,
+  fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+};
+
+/** 提交 run（mock 新提交 run = `chunked_v1`，ADR-024 P4 语义）并取回 `/result` 兼容响应。 */
+async function seedRunAndResult(
+  client: ApiClient = api,
+): Promise<{ run: WorkbenchRunView; result: WorkbenchRunResult }> {
+  const run = await client.submitWorkbenchRun({
+    ...SUBMIT_BASE,
     name: '结果测试',
-    symbol: '518880',
-    period: 'D1',
-    from: '2026-01-01T00:00:00Z',
-    to: '2026-04-01T00:00:00Z',
     slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
     stop: { kind: 'FixedPct', value: 0.08, trigger: 'Intrabar' },
-    policy: { LumpSum: { position_pct: 1 } },
-    fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
   });
-  const result = await api.getWorkbenchResult(run.id);
+  const result = await client.getWorkbenchResult(run.id);
+  return { run, result };
+}
+
+/** 种子 run（= 旧 `legacy_single` run，双读不回填）→ 用于 legacy 路径零回归用例。 */
+async function seededLegacyRun(client: ApiClient = api): Promise<{ run: WorkbenchRunView; result: WorkbenchRunResult }> {
+  const run = await client.getWorkbenchRun('sr_mock_seed1');
+  const result = await client.getWorkbenchResult(run.id);
   return { run, result };
 }
 
@@ -73,8 +89,6 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-result-empty')).toBeInTheDocument();
     unmount();
 
-    const { result } = await seedRunAndResult();
-    void result;
     const failedRun = (await api.listWorkbenchRuns({ status: 'failed' }))[0]!;
     render(<ResultView {...mkProps(failedRun, null)} />);
     expect(screen.getByTestId('wb-run-error')).toHaveTextContent('mock 引擎错误');
@@ -84,8 +98,8 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     const { run, result } = await seedRunAndResult();
     render(<ResultView {...mkProps(run, result)} />);
     expect(screen.getByTestId('wb-kline-chart')).toBeInTheDocument();
-    // 总分曲线：60/40 阈值线 + buy/hold/sell 三区着色
-    expect(screen.getByTestId('wb-aggregate-chart')).toBeInTheDocument();
+    // ADR-024 P6：chunked ⇒ 曲线经 /curve 异步取数（显式抽样）
+    expect(await screen.findByTestId('wb-aggregate-chart')).toBeInTheDocument();
     expect(screen.getByTestId('threshold-buy')).toBeInTheDocument();
     expect(screen.getByTestId('threshold-sell')).toBeInTheDocument();
     expect(screen.getByTestId('zone-buy')).toBeInTheDocument();
@@ -117,10 +131,22 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(log).toHaveTextContent('plugin_error');
   });
 
-  it('逐bar评分表分页：>100 行分页器可见且翻页', async () => {
+  it('legacy_single 路径零回归：从 /result 内联列同步派生，且不请求 /curve', async () => {
+    const spy = vi.spyOn(api, 'getWorkbenchCurve');
+    const { run, result } = await seededLegacyRun();
+    expect(result.result_format).toBe('legacy_single');
+    render(<ResultView {...mkProps(run, result)} />);
+    // 同步渲染（无 await）
+    expect(screen.getByTestId('wb-aggregate-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-equity-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-aggregate-sampling')).toHaveTextContent('共 60 bar');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('逐bar评分表分页：>100 行分页器可见且翻页（legacy 全量内联列路径）', async () => {
     const user = userEvent.setup();
     const { run, result } = await seedRunAndResult();
-    // 合成 250 bar（mock 结果为 60 bar；分页行为用合成数据锁定）
+    // 合成 250 bar 的 **legacy** 结果（chunked 由 /bars 分页，见「长区间」用例）
     const perBar: WorkbenchBarRecord[] = Array.from({ length: 250 }, (_, i) => ({
       ts: result.per_bar[0]!.ts + i * 86_400,
       scores: [{ slot_idx: 0, score: i % 101 }],
@@ -129,9 +155,15 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
       orders: [],
       events: [],
     }));
-    render(<ResultView {...mkProps(run, { ...result, per_bar: perBar })} />);
+    render(
+      <ResultView
+        {...mkProps(run, { ...result, result_format: 'legacy_single', per_bar: perBar })}
+      />,
+    );
     await user.click(screen.getByTestId('wb-tab-perbar'));
     expect(screen.getByTestId('wb-perbar-page-info')).toHaveTextContent('1 / 3');
+    expect(screen.getByTestId('wb-perbar-coverage')).toHaveTextContent('已加载 250 根');
+    expect(screen.queryByTestId('wb-perbar-more-note')).toBeNull(); // legacy 全量 ⇒ 无更多
     expect(screen.getAllByTestId(/^wb-perbar-row-/).length).toBe(100);
     await user.click(screen.getByTestId('wb-perbar-next'));
     expect(screen.getByTestId('wb-perbar-page-info')).toHaveTextContent('2 / 3');
@@ -141,15 +173,16 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     const user = userEvent.setup();
     const { run, result } = await seedRunAndResult();
     render(<ResultView {...mkProps(run, result)} />);
-    const chart = screen.getByTestId('wb-slot-chart');
+    const chart = await screen.findByTestId('wb-slot-chart');
     expect(chart.querySelectorAll('polyline').length).toBe(1);
     await user.click(screen.getByTestId('legend-slot-0'));
     expect(chart.querySelectorAll('polyline').length).toBe(0);
   });
 
-  it('buildMarkers：fill 事件 → B/S 标记；StopTrigger → ⊗ 不同图标', async () => {
+  it('buildMarkers：成交事实源 → B/S 标记；StopTrigger → ⊗ 不同图标', async () => {
     const { result } = await seedRunAndResult();
-    const markers = buildMarkers(result.per_bar);
+    const fills = fillsFromPerBar(result.per_bar);
+    const markers = buildMarkers(fills);
     expect(markers.length).toBeGreaterThan(0);
     const buy = markers.find((m) => m.text === 'B');
     const stop = markers.find((m) => m.text === '⊗');
@@ -158,6 +191,8 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(stop!.color).not.toBe(buy!.color);
     // 普通平仓 S（mock 期末 ForceClose 或 Sell 信号）
     expect(markers.some((m) => m.text === 'S')).toBe(true);
+    // 标记数与成交事实源一一对应（不抽样、不漏）
+    expect(markers.length).toBe(fills.length);
   });
 
   it('loading 骨架；结果 404（未成功）→ 错误+重试', async () => {
@@ -174,25 +209,17 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
 
   it('切换 run（无中间 loading 重挂载）：图例勾选态不跨 run 泄漏，默认前 3 按新 run slots 重新生效', async () => {
     const user = userEvent.setup();
-    const base = {
-      symbol: '518880',
-      period: 'D1',
-      from: '2026-01-01T00:00:00Z',
-      to: '2026-04-01T00:00:00Z',
-      policy: { LumpSum: { position_pct: 1 } } as const,
-      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
-    };
-    // runA 双 slot / runB 单 slot（slot 数不同）
+    // 本用例锁定「图例 reconcile」语义（与取数路径无关）→ 用 legacy 形态保持同步渲染。
     const runA = await api.submitWorkbenchRun({
-      ...base,
+      ...SUBMIT_BASE,
       slots: [
         { version_id: 'sv_mock_dual_v1', weight: 1 },
         { version_id: 'sv_mock_tpl_v1', weight: 2 },
       ],
     });
-    const resultA = await api.getWorkbenchResult(runA.id);
-    const runB = await api.submitWorkbenchRun({ ...base, slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }] });
-    const resultB = await api.getWorkbenchResult(runB.id);
+    const resultA = { ...(await api.getWorkbenchResult(runA.id)), result_format: 'legacy_single' as const };
+    const runB = await api.submitWorkbenchRun({ ...SUBMIT_BASE, slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }] });
+    const resultB = { ...(await api.getWorkbenchResult(runB.id)), result_format: 'legacy_single' as const };
     const { rerender } = render(<ResultView {...mkProps(runA, resultA)} />);
     expect((screen.getByTestId('legend-slot-0') as HTMLInputElement).checked).toBe(true);
     await user.click(screen.getByTestId('legend-slot-0'));
@@ -209,20 +236,15 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
 
   it('自定义阈值 70/30：阈值线/三区着色按 70/30 渲染（非默认 60/40）', async () => {
     const run = await api.submitWorkbenchRun({
+      ...SUBMIT_BASE,
       name: '阈值测试',
-      symbol: '518880',
-      period: 'D1',
-      from: '2026-01-01T00:00:00Z',
-      to: '2026-04-01T00:00:00Z',
       slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
       buy_threshold: 70,
       sell_threshold: 30,
-      policy: { LumpSum: { position_pct: 1 } },
-      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
     });
     const result = await api.getWorkbenchResult(run.id);
     render(<ResultView {...mkProps(run, result)} />);
-    const chart = screen.getByTestId('wb-aggregate-chart');
+    const chart = await screen.findByTestId('wb-aggregate-chart');
     expect(chart).toHaveTextContent('买入阈 70 / 卖出阈 30');
     // 阈值线 y 位置按 70/30 映射（H=160, PAD=8：y(s)=8+(1-s/100)*144）
     const yBuy = Number(screen.getByTestId('threshold-buy').getAttribute('y1'));
@@ -249,5 +271,91 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
       />,
     );
     expect(screen.getByTestId('wb-run-progress')).toHaveTextContent('87%');
+  });
+
+  // ── ADR-024 P6 前端契约（取数路径改造） ──
+
+  it('P6-关键：长区间（12000 根 chunked）不得静默截断 —— 必须出现 has_more 提示与加载入口', async () => {
+    const user = userEvent.setup();
+    const bigApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchResultBars: 12_000 });
+    const run = await bigApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: '长区间',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    });
+    const result = await bigApi.getWorkbenchResult(run.id);
+    // 契约：`/result` 只回首页 5000 + **显式** has_more/next_offset（非静默）
+    expect(result.result_format).toBe('chunked_v1');
+    expect(result.per_bar).toHaveLength(5000);
+    expect(result.has_more).toBe(true);
+    expect(result.next_offset).toBe(5000);
+
+    render(<ResultView {...mkProps(run, result, { api: bigApi })} />);
+    // 曲线：服务端显式抽样 + 原始根数标注
+    expect(await screen.findByTestId('wb-aggregate-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-aggregate-sampling')).toHaveTextContent('共 12000 bar');
+    expect(screen.getByTestId('wb-aggregate-sampling')).toHaveTextContent('服务端抽样 2000 点');
+    expect(screen.getByTestId('wb-equity-sampling')).toHaveTextContent('共 12000 bar');
+
+    // 逐 bar 表：**必须**给出「已加载 N / 共 M」与加载入口，而不是只渲染 5000 行
+    await user.click(screen.getByTestId('wb-tab-perbar'));
+    const note = await screen.findByTestId('wb-perbar-more-note');
+    expect(note).toHaveTextContent('已加载 5000 / 共 12000 根');
+    expect(note).toHaveTextContent('未加载 7000 根');
+    const more = screen.getByTestId('wb-perbar-load-more');
+    expect(more).toBeInTheDocument();
+
+    // 消费 next_offset：点两次 → 加载满 12000，提示消失
+    await user.click(more);
+    await waitFor(() => expect(screen.getByTestId('wb-perbar-loaded')).toHaveTextContent('10000'));
+    await user.click(screen.getByTestId('wb-perbar-load-more'));
+    await waitFor(() => expect(screen.getByTestId('wb-perbar-loaded')).toHaveTextContent('12000'));
+    await waitFor(() => expect(screen.queryByTestId('wb-perbar-more-note')).toBeNull());
+    expect(screen.getByTestId('wb-perbar-coverage')).toHaveTextContent('共 12000 bar');
+  });
+
+  it('P6：事件日志覆盖范围显式标注 + 加载更多（禁抽样）', async () => {
+    const user = userEvent.setup();
+    const bigApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchResultBars: 12_000 });
+    const run = await bigApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: '长区间事件',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    });
+    const result = await bigApi.getWorkbenchResult(run.id);
+    render(<ResultView {...mkProps(run, result, { api: bigApi })} />);
+    await user.click(screen.getByTestId('wb-tab-events'));
+    const cov = await screen.findByTestId('wb-event-log-coverage');
+    expect(cov).toHaveTextContent('覆盖 已加载 5000 / 共 12000 根 bar');
+    expect(screen.getByTestId('wb-event-log-load-more')).toBeInTheDocument();
+    await user.click(screen.getByTestId('wb-event-log-load-more'));
+    await waitFor(() =>
+      expect(screen.getByTestId('wb-event-log-coverage')).toHaveTextContent('已加载 10000 / 共 12000 根 bar'),
+    );
+  });
+
+  it('P6：K 线买卖标记来自 /fills 精确源（不用 trades、不用抽样 per_bar）', async () => {
+    const spy = vi.spyOn(api, 'getWorkbenchFills');
+    const { run, result } = await seedRunAndResult();
+    render(<ResultView {...mkProps(run, result)} />);
+    const note = await screen.findByTestId('wb-fills-note');
+    expect(spy).toHaveBeenCalledWith(run.id, { limit: 5000 });
+    expect(note).toHaveTextContent('精确源 /fills');
+    // 精确源条数 = per_bar fill 事件数（不漏不加）
+    const expected = fillsFromPerBar(result.per_bar).length;
+    expect(note).toHaveTextContent(`成交 ${expected} 笔`);
+  });
+
+  it('P6：/fills 回 recorded=false（P6 前的 chunked run）⇒ 显式提示，不静默少标记', async () => {
+    const missApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchFillsMissing: true });
+    const run = await missApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: '无 fills 块',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    });
+    const result = await missApi.getWorkbenchResult(run.id);
+    render(<ResultView {...mkProps(run, result, { api: missApi })} />);
+    const note = await screen.findByTestId('wb-fills-note');
+    expect(note).toHaveTextContent('未记录成交明细');
   });
 });

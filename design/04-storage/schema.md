@@ -1227,6 +1227,54 @@ CALL refresh_continuous_aggregate('kline_accurate_5m', NULL, NULL);
 CALL refresh_continuous_aggregate('kline_accurate_15m', NULL, NULL);
 ```
 
+## 4.3.18 结果分块落库（ADR-024 P4 / D8，0027；结果读取端点见 16-backtest-scalability/02-spec.md §3.2）
+
+**上下文**：ADR-024 D8（`design/16-backtest-scalability/01-adr.md`）——结果统一分块：
+`per_bar` / `net_value` / `drawdown` 三序列**边跑边写**进 `strategy_run_bars`（chunk = 5,000 根，
+与区间长度解耦）；`strategy_run_result` 保留有界列 `trades` / `metrics`，并新增**判别列**
+`result_format ∈ {legacy_single, chunked_v1}`。
+
+**P6 追加（ADR-024 P6 / `/runs/{id}/fills`）**：`kind` 增 `fills` —— 成交明细的**有界精确源**
+（单块 `seq=0`，payload = `EngineEvent::Fill` 投影数组，无成交时写空数组块）。它与前三条的语义差别：
+`per_bar` 是**明细事实**、`net_value`/`drawdown` 是**可显式抽样**的曲线、`fills` 是**不可抽样的事实源**
+（抽样会丢真实成交；`trades` 只在完全平仓时合成 ⇒ 部分买入/加仓与部分卖出不进 `trades`）。
+
+**判别列硬约束**：禁止用「空 `[]`」表达「数据在别处」（那会造成静默读空）；读取路径一律以
+`result_format` 判别：`legacy_single` 读 `strategy_run_result` 内联三列（旧 run 双读、**不回填**），
+`chunked_v1` 读 `strategy_run_bars` 分块。
+
+**双读不回填**：旧 run 体量小（现网最大 40 KB），回填无收益却需动生产库；审计要求旧 run 可读
+⇒ 旧数据保留 `legacy_single` 形态不迁移。
+
+**顺序硬约束**：先落本迁移、再重启 app（启动自检 `migrate_check` 的 `EXPECTED_RELATIONS` 含
+`strategy_run_bars`，缺关系会拒绝启动，与 ADR-023 §4.1 同型）。
+
+``` {.sql file=migrations/0027_strategy_run_result_chunks.sql}
+-- 0027_strategy_run_result_chunks.sql —— 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- ADR-024 / D8：结果统一分块（per_bar / net_value / drawdown 边跑边写，与区间长度解耦）。
+-- ADR-024 / P6：kind 增 'fills'（成交明细**有界精确源**，单块 seq=0；见 16-backtest-scalability/02-spec.md §3.2）。
+
+ALTER TABLE strategy_run_result
+    ADD COLUMN IF NOT EXISTS result_format text NOT NULL DEFAULT 'legacy_single';
+
+-- 判别列硬约束：不得用空 jsonb 表达「数据在别处」（静默读空）。
+
+CREATE TABLE IF NOT EXISTS strategy_run_bars (
+    run_id   text        NOT NULL REFERENCES strategy_run(id) ON DELETE CASCADE,
+    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown','fills')),
+    seq      integer     NOT NULL,             -- 0 起单调递增（应用层生成）
+    ts_from  timestamptz NOT NULL,             -- 本块首根 bar ts（闭）
+    ts_to    timestamptz NOT NULL,             -- 本块末根 bar ts（闭）
+    payload  jsonb       NOT NULL,             -- 本块数组（chunk=5000 根）
+    PRIMARY KEY (run_id, kind, seq)
+);
+CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_seq_idx ON strategy_run_bars (run_id, kind, seq);
+CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_ts_idx  ON strategy_run_bars (run_id, kind, ts_from, ts_to);
+```
+
+**应用方式**：`psql -v ON_ERROR_STOP=1 -f migrations/0027_strategy_run_result_chunks.sql`（本迁移无 cagg，
+可用单事务；仍按既有惯例记录应用证据）。
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

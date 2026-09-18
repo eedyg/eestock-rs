@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { StrategyCatalogEntry, WorkbenchBarRecord, WorkbenchPinnedSlot } from '@/api/types';
 import { downsample } from './chartUtils';
+import type { CurveSampling } from './AggregateScoreChart';
 
 const W = 1000;
 const H = 160;
@@ -35,10 +36,12 @@ export function SlotScoresChart({
   perBar,
   slots,
   catalog,
+  sampling,
 }: {
   perBar: WorkbenchBarRecord[];
   slots: WorkbenchPinnedSlot[];
   catalog: StrategyCatalogEntry[] | null;
+  sampling?: CurveSampling;
 }) {
   const [visible, setVisible] = useState<Record<number, boolean>>(() => defaultVisible(slots));
   const [slotsKey, setSlotsKey] = useState(() => slotsKeyOf(slots));
@@ -98,7 +101,10 @@ export function SlotScoresChart({
             : null,
         )}
       </svg>
-      <div className="px-1 text-[10px] text-dim">各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）</div>
+      <div className="px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
+        各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 共 {sampling?.originalBars ?? perBar.length} bar
+        {sampling?.downsampled ? `（服务端抽样 ${perBar.length} 点）` : ''}
+      </div>
     </div>
   );
 }

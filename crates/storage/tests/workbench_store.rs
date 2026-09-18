@@ -6,8 +6,9 @@
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use domain::ports::{
-    NewStrategyPreset, NewStrategyRun, StrategyPresetStore, StrategyRunFilter, StrategyRunResult,
-    StrategyRunStatus, StrategyRunStore,
+    NewStrategyPreset, NewStrategyRun, ResultChunk, ResultKind, StrategyPresetStore,
+    StrategyRunFilter, StrategyRunResult, StrategyRunStatus, StrategyRunStore,
+    RESULT_FORMAT_CHUNKED, RESULT_FORMAT_LEGACY,
 };
 use sqlx::PgPool;
 use storage::workbench::{PgStrategyPresetStore, PgStrategyRunStore};
@@ -53,6 +54,18 @@ fn sample_result() -> StrategyRunResult {
         net_value: serde_json::json!([[1, 100000.0]]),
         drawdown: serde_json::json!([[1, 0.0]]),
         metrics: serde_json::json!({"total_return_pct": 0.0}),
+        // mark_succeeded 会强制写 chunked_v1（新 run 语义）；此字段不影响落库结果。
+        result_format: RESULT_FORMAT_CHUNKED.to_string(),
+    }
+}
+
+fn chunk(kind: ResultKind, seq: i32, from: i64, to: i64, payload: serde_json::Value) -> ResultChunk {
+    ResultChunk {
+        kind,
+        seq,
+        ts_from: DateTime::from_timestamp(from, 0).unwrap(),
+        ts_to: DateTime::from_timestamp(to, 0).unwrap(),
+        payload,
     }
 }
 
@@ -186,8 +199,16 @@ async fn mark_succeeded_writes_result_transactionally() {
     assert_eq!(got.progress, 1.0, "成功进度应钉 1");
     assert_eq!(got.finished_at, Some(ts(2)));
 
+    // ADR-024 P4 / D8：新 run 写 chunked_v1 —— per_bar/net_value/drawdown 为 **占位 []**，
+    // trades/metrics 保留；读取路径以 result_format 判别（禁止把占位当数据）。
     let res = store.get_result(&id).await.unwrap().expect("结果应存在");
-    assert_eq!(res, sample_result(), "五 jsonb 列 roundtrip");
+    assert_eq!(res.result_format, RESULT_FORMAT_CHUNKED, "新 run 判别列 = chunked_v1");
+    assert!(res.is_chunked());
+    assert_eq!(res.per_bar, serde_json::json!([]), "三列写 [] 占位（数据在 strategy_run_bars）");
+    assert_eq!(res.net_value, serde_json::json!([]));
+    assert_eq!(res.drawdown, serde_json::json!([]));
+    assert_eq!(res.trades, sample_result().trades, "trades 保留");
+    assert_eq!(res.metrics, sample_result().metrics, "metrics 保留");
     // 幂等防护：已 succeeded → 再 mark_succeeded 为 false
     assert!(!store.mark_succeeded(&id, &sample_result(), ts(3)).await.unwrap());
     clean_run(&pool, &id).await;
@@ -243,6 +264,143 @@ async fn result_cascade_delete_with_run() {
     assert!(store.get_result(&id).await.unwrap().is_some());
     clean_run(&pool, &id).await; // DELETE run → result 级联
     assert!(store.get_result(&id).await.unwrap().is_none(), "FK 级联删除结果");
+}
+
+// ── ADR-024 P4 / D8：结果分块（strategy_run_bars） ──
+
+/// 分块追加 + 序号分页 + 计数（跨块 + 超末尾边界）。
+#[tokio::test]
+async fn chunks_append_page_and_count() {
+    let pool = pool().await;
+    let store = PgStrategyRunStore::new(pool.clone());
+    let id = pid("_chunk");
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+
+    // 空 run：计数 0，分页空
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 0);
+    assert!(store.result_chunks(&id, ResultKind::PerBar, 0, 100).await.unwrap().is_empty());
+
+    // 追加 3 块（ts 递增，seq 0/1/2）
+    for s in 0..3i32 {
+        let from = ts(10 + s as i64 * 2).timestamp();
+        let to = ts(11 + s as i64 * 2).timestamp();
+        store.append_result_chunk(&id, &chunk(
+            ResultKind::PerBar, s, from, to,
+            serde_json::json!([{"ts": from, "tag": s}, {"ts": to, "tag": s}]),
+        )).await.unwrap();
+    }
+    // 另一 kind（净値）独立序号
+    store.append_result_chunk(&id, &chunk(
+        ResultKind::NetValue, 0, ts(10).timestamp(), ts(11).timestamp(),
+        serde_json::json!([[ts(10).timestamp(), 1.0]]),
+    )).await.unwrap();
+
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 3);
+    assert_eq!(store.result_chunk_count(&id, ResultKind::NetValue).await.unwrap(), 1);
+    assert_eq!(store.result_chunk_count(&id, ResultKind::Drawdown).await.unwrap(), 0);
+
+    // 分页：offset=0/limit=2 → 前两块；offset=2/limit=2 → 第三块（跨块/超末尾）
+    let p0 = store.result_chunks(&id, ResultKind::PerBar, 0, 2).await.unwrap();
+    assert_eq!(p0.len(), 2);
+    assert_eq!(p0[0].seq, 0);
+    assert_eq!(p0[1].seq, 1);
+    let p1 = store.result_chunks(&id, ResultKind::PerBar, 2, 2).await.unwrap();
+    assert_eq!(p1.len(), 1, "最后一页不足 limit 仍返回剩余");
+    assert_eq!(p1[0].seq, 2);
+    assert!(store.result_chunks(&id, ResultKind::PerBar, 3, 2).await.unwrap().is_empty(),
+        "超末尾 → 空");
+    // 排序：seq 升序
+    let all = store.result_chunks(&id, ResultKind::PerBar, 0, 100).await.unwrap();
+    assert!(all.windows(2).all(|w| w[0].seq < w[1].seq), "seq 升序");
+    assert_eq!(all[0].payload.as_array().unwrap().len(), 2, "payload 数组 roundtrip");
+    clean_run(&pool, &id).await;
+}
+
+/// 区间读：返回与 [from,to] **相交的整块**（含外沿），由调用方块内过滤。
+#[tokio::test]
+async fn chunks_in_range_returns_intersecting_chunks() {
+    let pool = pool().await;
+    let store = PgStrategyRunStore::new(pool.clone());
+    let id = pid("_range");
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+    // 三块：[10,11] [12,13] [14,15]
+    for s in 0..3i32 {
+        store.append_result_chunk(&id, &chunk(
+            ResultKind::PerBar, s,
+            ts(10 + s as i64 * 2).timestamp(), ts(11 + s as i64 * 2).timestamp(),
+            serde_json::json!([]),
+        )).await.unwrap();
+    }
+    // 命中中间块（12~13）
+    let mid = store.result_chunks_in_range(
+        &id, ResultKind::PerBar, ts(12), ts(13)).await.unwrap();
+    assert_eq!(mid.len(), 1);
+    assert_eq!(mid[0].seq, 1);
+    // 跨越三块（9~16）
+    let all = store.result_chunks_in_range(
+        &id, ResultKind::PerBar, ts(9), ts(16)).await.unwrap();
+    assert_eq!(all.len(), 3, "区间覆盖全部块");
+    // 相交边界：from 落在块内（10.5）→ 仍返回块 0（含外沿，调用方按 ts 过滤）
+    let edge = store.result_chunks_in_range(
+        &id, ResultKind::PerBar, ts(10) + Duration::hours(12), ts(12)).await.unwrap();
+    assert!(edge.iter().any(|c| c.seq == 0), "部分重叠的块也返回（外沿由调用方过滤）");
+    // 区间完全在数据之后 → 空
+    let none = store.result_chunks_in_range(
+        &id, ResultKind::PerBar, ts(100), ts(200)).await.unwrap();
+    assert!(none.is_empty());
+    clean_run(&pool, &id).await;
+}
+
+/// 级联：删 run → 分块一并删除。
+#[tokio::test]
+async fn chunks_cascade_delete_with_run() {
+    let pool = pool().await;
+    let store = PgStrategyRunStore::new(pool.clone());
+    let id = pid("_chunk_cascade");
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+    store.append_result_chunk(&id, &chunk(
+        ResultKind::PerBar, 0, ts(1).timestamp(), ts(2).timestamp(),
+        serde_json::json!([{"ts": 1}]),
+    )).await.unwrap();
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 1);
+    clean_run(&pool, &id).await;
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 0,
+        "FK 级联删除分块");
+}
+
+/// D8 双读：`legacy_single` 旧 run 全量内联列原样可读（不回填；result_format 默认值）。
+#[tokio::test]
+async fn legacy_single_dual_read_unchanged() {
+    let pool = pool().await;
+    let store = PgStrategyRunStore::new(pool.clone());
+    let id = pid("_legacy");
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+    // 直插旧形态（不写 result_format → 迁移默认 'legacy_single'），模拟迁移前的历史 run。
+    sqlx::query(
+        "INSERT INTO strategy_run_result (run_id, per_bar, trades, net_value, drawdown, metrics) \
+         VALUES ($1, $2, $3, $4, $5, $6)")
+        .bind(&id)
+        .bind(serde_json::json!([{"ts": 7, "signal": "Buy"}]))
+        .bind(serde_json::json!([{"pnl": 1}]))
+        .bind(serde_json::json!([[7, 100001.0]]))
+        .bind(serde_json::json!([[7, -0.001]]))
+        .bind(serde_json::json!({"total_return_pct": 1e-5}))
+        .execute(&pool).await.unwrap();
+
+    let res = store.get_result(&id).await.unwrap().expect("旧 run 可读");
+    assert_eq!(res.result_format, RESULT_FORMAT_LEGACY, "默认判别列 = legacy_single");
+    assert!(!res.is_chunked());
+    assert_eq!(res.per_bar.as_array().unwrap().len(), 1, "legacy per_bar 逐値可读");
+    assert_eq!(res.per_bar[0]["signal"], serde_json::json!("Buy"));
+    assert_eq!(res.net_value, serde_json::json!([[7, 100001.0]]));
+    assert_eq!(res.drawdown, serde_json::json!([[7, -0.001]]));
+    // 旧 run 无分块行（不回填）
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 0);
+    clean_run(&pool, &id).await;
 }
 
 // ── strategy_preset ──
@@ -308,4 +466,47 @@ async fn preset_crud_and_unique_name() {
     assert!(store.delete_preset(&id).await.unwrap());
     assert!(!store.delete_preset(&id).await.unwrap(), "二次删除 false");
     clean_preset(&pool, &id2).await;
+}
+
+/// ADR-024 P6：`kind='fills'` 单块 round-trip（CHECK 接受 'fills'；读取按 kind 隔离）。
+#[tokio::test]
+async fn chunks_kind_fills_round_trip() {
+    let pool = pool().await;
+    let store = PgStrategyRunStore::new(pool.clone());
+    let id = pid("_fills");
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+
+    // 无成交：写空数组块（P6 选择：恒写块 ⇒ 读侧「有块 = 已记录」可判定）。
+    store.append_result_chunk(&id, &chunk(
+        ResultKind::Fills, 0, ts(0).timestamp(), ts(5).timestamp(),
+        serde_json::json!([]),
+    )).await.unwrap();
+    let empty = store.result_chunks(&id, ResultKind::Fills, 0, 10).await.unwrap();
+    assert_eq!(empty.len(), 1, "空成交块照样持久化（与「未写」区分）");
+    assert_eq!(empty[0].kind, ResultKind::Fills);
+    assert_eq!(empty[0].seq, 0);
+    assert_eq!(empty[0].payload.as_array().unwrap().len(), 0);
+    assert_eq!(store.result_chunk_count(&id, ResultKind::Fills).await.unwrap(), 1);
+    // kind 隔离：不影响其它 kind
+    assert_eq!(store.result_chunk_count(&id, ResultKind::PerBar).await.unwrap(), 0);
+
+    // 有成交：单块内容 round-trip 逐值一致
+    let payload = serde_json::json!([
+        {"type": "fill", "bar_index": 1, "ts": ts(1).timestamp(), "side": "Buy",
+         "qty": 100.0, "price": 7.5, "reason": "Policy"},
+        {"type": "fill", "bar_index": 2, "ts": ts(2).timestamp(), "side": "Sell",
+         "qty": 100.0, "price": 8.0, "reason": "ForceClose"},
+    ]);
+    clean_run(&pool, &id).await;
+    store.create_run(&new_run(&id, "600000")).await.unwrap();
+    store.append_result_chunk(&id, &chunk(
+        ResultKind::Fills, 0, ts(1).timestamp(), ts(2).timestamp(), payload.clone(),
+    )).await.unwrap();
+    let got = store.result_chunks(&id, ResultKind::Fills, 0, 10).await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].payload, payload, "fills payload round-trip 逐值一致");
+    assert_eq!(got[0].ts_from, ts(1));
+    assert_eq!(got[0].ts_to, ts(2));
+    clean_run(&pool, &id).await;
 }

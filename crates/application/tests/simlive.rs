@@ -1611,6 +1611,13 @@ impl StrategyRunStore for MockRunStore {
             created_at: fixed_now(),
             started_at: None,
             finished_at: None,
+            requested_from: run.from_ts,
+            requested_to: run.to_ts,
+            clamped: false,
+            clamp_reason: None,
+            estimated_bars: None,
+            bars_total: None,
+            result_format: None,
         };
         self.created.lock().unwrap().push(run.clone());
         self.runs.lock().unwrap().insert(run.id.clone(), view.clone());
@@ -1639,6 +1646,21 @@ impl StrategyRunStore for MockRunStore {
     }
     async fn get_result(&self, _: &str) -> Result<Option<StrategyRunResult>> {
         Ok(None)
+    }
+    async fn append_result_chunk(&self, _: &str, _: &domain::ports::ResultChunk) -> Result<()> {
+        Ok(())
+    }
+    async fn result_chunks(&self, _: &str, _: domain::ports::ResultKind, _: i64, _: i64)
+        -> Result<Vec<domain::ports::ResultChunk>> {
+        Ok(Vec::new())
+    }
+    async fn result_chunks_in_range(&self, _: &str, _: domain::ports::ResultKind,
+                                    _: DateTime<Utc>, _: DateTime<Utc>)
+        -> Result<Vec<domain::ports::ResultChunk>> {
+        Ok(Vec::new())
+    }
+    async fn result_chunk_count(&self, _: &str, _: domain::ports::ResultKind) -> Result<i64> {
+        Ok(0)
     }
 }
 
@@ -1669,6 +1691,18 @@ impl StrategyPresetStore for MockPresetStore {
 struct MockCompareBars;
 #[async_trait]
 impl BacktestBarRead for MockCompareBars {
+    /// ADR-024 P5：可得区间（mock 的 bars 相对 `from` 生成 ⇒ 必须显式给宽区间，否则默认派生的
+    /// min/max 落在 `MIN_UTC` 会让区间收缩判定为无交集）。
+    async fn available_range(
+        &self,
+        _: &str,
+        _: &domain::types::Period,
+    ) -> Result<Option<domain::ports::AvailableRange>> {
+        Ok(Some(domain::ports::AvailableRange {
+            from: Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap(),
+            to: Utc.with_ymd_and_hms(2100, 1, 1, 0, 0, 0).unwrap(),
+        }))
+    }
     async fn bars(
         &self,
         code: &str,

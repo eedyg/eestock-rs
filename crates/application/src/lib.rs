@@ -9,6 +9,8 @@
 //! **不依赖 web/storage**（差异在哪层均不反向依赖基础设施，DI 由 app bin 装配）。
 
 pub mod bar_map;
+// ADR-024 P5 §3.1.1：结构化应用层错误（`{"error":{code,message,detail}}`；手写，非 tangle）。
+pub mod error;
 pub mod fee;
 pub mod simlive; // 11-sim-live / L1：模拟实盘服务（SimLiveService，手写，非 tangle）
 pub mod simlive_orch; // 12-strategy-system / P4a：插件编排器 worker 线程承载壳（actor 模式，手写，非 tangle）

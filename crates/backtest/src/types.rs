@@ -7,7 +7,7 @@
 //! 信号/上下文口径由 strategy-core `TradeSignal` 与 strategy-runtime `BarCtx` 等自有类型承载。
 //!
 //! 口径说明（ADR 08-backtest §1-§6，已批复 6 决策按推荐）：
-//! - 本 crate 定义**精简**的 `Bar`（`{ts,open,high,low,close,volume}`）与 `Period`（M1/M5/M15/D1），
+//! - 本 crate 定义**精简**的 `Bar`（`{ts,open,high,low,close,volume}`）与 `Period`（M1/M5/M15/M30/H1/D1），
 //!   与 `domain::Bar`（含 code/period/amount/source 采集字段）解耦。application 层的端口适配器负责
 //!   `domain::Bar -> backtest::Bar` 映射（本 crate 无 IO/无 DB，不依赖 domain）。
 //! - `ts` 使用 Unix 秒（i64），方便纯逻辑单测；web 层负责转 datetime 展示。
@@ -40,14 +40,18 @@ pub struct Bar {
     pub volume: f64,
 }
 
-/// 回测周期（ADR §3；UI：1m/5m/15m/1h/日）。
+/// 回测周期（ADR §3；UI：1m/5m/15m/30m/1h/日）。
 /// I-6/D3（2026-09-12 用户批准）：补 H1——与数据层 cagg 小时线口径对齐，
 /// 消除「get_kline 支持 1h 但引擎拒绝 H1」的双口径。
+/// ADR-024 P0（2026-09）：补 M30 —— 打通回测/试算/MCP 的 30min 档
+/// （数据层 `kline_accurate_30m` 早已就绪，见 ADR-023 §2.4；周期白名单收敛为单一事实源
+/// `application::bar_map::supported_backtest_periods()`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Period {
     M1,
     M5,
     M15,
+    M30,
     H1,
     D1,
 }
@@ -55,11 +59,16 @@ pub enum Period {
 impl Period {
     /// 年化折返因子（ADR bt-3 推荐：日线 252；1m √(252×240) 等）。
     /// 交易时段假设 A 股 4 小时 = 240 分钟，年 252 个交易日。
+    ///
+    /// ADR-024 P0：M30 = 252×8 = 2016（**名义口径**，与 H1/M15 同型）。
+    /// 注：ADR-023 实测 A 股 30m 桶 ≈ 10/日；名义值与实测的差异是 H1/M15 共有的既有债，本次不动
+    /// （见 `design/16-backtest-scalability/contract-vectors.json` `m30.note`）。
     pub fn bars_per_year(&self) -> f64 {
         match self {
             Period::M1 => 252.0 * 240.0,
             Period::M5 => 252.0 * 48.0,
             Period::M15 => 252.0 * 16.0,
+            Period::M30 => 252.0 * 8.0,
             Period::H1 => 252.0 * 4.0,
             Period::D1 => 252.0,
         }
@@ -125,5 +134,12 @@ mod tests {
         assert_eq!(Period::M15.bars_per_year(), 252.0 * 16.0);
         assert_eq!(Period::H1.bars_per_year(), 252.0 * 4.0);
         assert_eq!(Period::D1.bars_per_year(), 252.0);
+    }
+
+    /// ADR-024 P0 / contract-vectors.json `m30.bars_per_year_nominal`：M30 = 252×8 = 2016（名义口径）。
+    #[test]
+    fn bars_per_year_m30_is_2016_nominal() {
+        assert_eq!(Period::M30.bars_per_year(), 2016.0);
+        assert_eq!(Period::M30.bars_per_year(), 252.0 * 8.0);
     }
 }

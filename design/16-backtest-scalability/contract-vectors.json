@@ -1,0 +1,46 @@
+{
+  "$comment": "ADR-024 契约向量：前后端/MCP 共用的防漂移断言输入。任何一处改动必须引起断言测试变红。",
+  "adr": "ADR-024",
+  "generated_at": "2026-09",
+  "backtest_periods": ["M1", "M5", "M15", "M30", "H1", "D1"],
+  "dashboard_periods": ["1m", "5m", "15m", "30m", "1h", "1d", "1w", "1mo"],
+  "span_limit_semantics": {
+    "calendar_day_cap": null,
+    "deleted_constants": ["MINUTE_MAX_SPAN_DAYS", "D1_MAX_SPAN_DAYS"],
+    "clamp": {
+      "mode": "intersect_available_range",
+      "available_range_source": "merged_serving_view",
+      "echo_fields": ["requested_from", "requested_to", "effective_from", "effective_to", "clamped", "clamp_reason"],
+      "gap_policy": "no_truncation_internal_gaps"
+    },
+    "empty_intersection": { "http": 400, "code": "range_empty" },
+    "resource_guard": { "hard_reject": false, "requires_confirmation": true, "code": "resource_guard", "max_bars_guard": 2000000, "confirm_bars": 500000, "note": "ADR-024 D1 修订（2026-09-18 用户「按推荐」）：confirm 阈值由 200000 提到 500000（≈M1 五年）；硬上界 2000000 不变（M1 全历史≈86 万 bar ⇒ 合法请求永不触发）。两值必须与 application::error::{MAX_BARS_GUARD, GUARD_CONFIRM_BARS} 一致（防漂移断言）。" }
+  },
+  "sampling": {
+    "explicit_only": true,
+    "must_mark": ["downsampled", "original_bars"],
+    "default_k": 2000,
+    "max_k": 20000,
+    "keep_first_last": true
+  },
+  "result": {
+    "formats": ["legacy_single", "chunked_v1"],
+    "kinds": ["per_bar", "net_value", "drawdown"],
+    "chunk_bars": 5000,
+    "default_page_limit": 5000,
+    "max_page_limit": 20000
+  },
+  "m30": {
+    "domain_variant": "M30",
+    "dashboard_code": "30m",
+    "minutes": 30,
+    "bars_per_year_nominal": 2016,
+    "measured_buckets_per_day": 10,
+    "note": "名义 2016 与实测 10 桶/日的差异为既有债（M15/H1 同），本次不动"
+  },
+  "progress": {
+    "primary": "count_prescan",
+    "fallback": "ts_normalized",
+    "cancel_granularity": "per_bar"
+  }
+}

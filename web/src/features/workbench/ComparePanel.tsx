@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { WorkbenchCompareItem, WorkbenchMetrics } from '@/api/types';
 import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, periodLabel } from '@/features/backtest/format';
-import { areaBelow, downsample, extentOf, lineFrom, mapLine } from './chartUtils';
+import { areaBelow, extentOf, lineFrom, mapLine } from './chartUtils';
 
 const W = 1000;
 const H = 220;
@@ -22,6 +22,8 @@ const METRIC_ROWS: Array<{ key: keyof WorkbenchMetrics; label: string; deco: (m:
 /**
  * compare 模式（ADR §13.5：≤4 个已完成 run → 净值叠加图 + 绩效并排表）。
  * 数据源 POST /api/workbench/runs/compare（输入序；未知/未成功 run 后端已跳过）。
+ * ADR-024 D9/D10：净值由**服务端抽样**（默认 k=2000）并回显 `downsampled`/`original_bars`，
+ * 前端只做显式标注（不再客户端全量抽样）。
  */
 export function ComparePanel({
   items,
@@ -38,9 +40,11 @@ export function ComparePanel({
 }) {
   const rows = items ?? [];
   const seriesOf = useMemo(() => {
-    const sampled = rows.map((r) => downsample(r.net_value));
-    const { min, max } = extentOf(sampled.flatMap((s) => s.map((p) => p[1])));
-    return sampled.map((s) => mapLine(s, min, max, W, H, PAD));
+    // ADR-024 D9/D10：净值已由**服务端显式抽样**（禁止 N × 全量净值）；
+    // 不再在客户端 `downsample(r.net_value)`（那会假设 /compare 回全量）。
+    const all = rows.map((r) => r.net_value);
+    const { min, max } = extentOf(all.flatMap((s) => s.map((p) => p[1])));
+    return all.map((s) => mapLine(s, min, max, W, H, PAD));
   }, [rows]);
 
   if (error) {
@@ -78,6 +82,8 @@ export function ComparePanel({
         {rows.map((r, i) => (
           <span key={r.run_id} className="num" style={{ color: COLORS[i % COLORS.length] }}>
             {r.name || r.run_id} · {r.symbol} {periodLabel(r.period)}
+            {/* 抽样标注：服务端 `downsampled` + `original_bars`（D10 禁止隐式有损） */}
+            {r.downsampled ? `（净值抽样 ${r.net_value.length} / 共 ${r.original_bars} bar）` : `（净值全量 ${r.original_bars} bar）`}
           </span>
         ))}
       </div>

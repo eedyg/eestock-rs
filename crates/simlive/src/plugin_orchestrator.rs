@@ -26,10 +26,11 @@
 //! 恢复场景残差注明）。
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::rc::Rc;
 
 use backtest::{Bar, StrategyParams};
 use strategy_runtime::{
-    BarCtx, PluginInstance, PluginRuntime, PositionSnapshot, QuickJsRuntime, RuntimeLimits,
+    BarCtx, BarHistory, PluginInstance, PluginRuntime, PositionSnapshot, QuickJsRuntime, RuntimeLimits,
 };
 
 use crate::fill::{Side, SimTrade};
@@ -114,8 +115,10 @@ struct PluginStrategyRuntime {
 /// 插件策略编排器（**!Send**：QuickJS 实例内含 Rc；应用层以专用 worker 线程承载）。
 pub struct PluginStrategyOrchestrator {
     strategies: Vec<PluginStrategyRuntime>,
-    /// code → 累计 bar 序列（BarCtx 全量历史，指标口径与 backtest::Indicators 一致）。
-    bars: BTreeMap<String, Vec<Bar>>,
+    /// code → **增长式共享历史缓冲**（`BarCtx` 全量历史 = 前缀 `bars[0..=index]`，指标口径与
+    /// `backtest::Indicators` 位级一致）。ADR-024 P2b：逐 bar `push` + 注入 `BarCtx::with_history`
+    /// ⇒ **不再每 bar 复制 `bars[..=index]`**（同源二次项；tester P2 验收 §9 R2）。
+    bars: BTreeMap<String, Rc<BarHistory>>,
     /// code → 最近一次评估（查询用）。
     latest: BTreeMap<String, StockEvaluation>,
     buy_long_threshold: f64,
@@ -229,24 +232,29 @@ impl PluginStrategyOrchestrator {
         bar: Bar,
         position: Option<PositionInput>,
     ) -> Option<StockEvaluation> {
-        self.bars.entry(code.to_string()).or_default().push(bar);
+        // ADR-024 P2b：共享历史缓冲**跨 bar 常驻**（每 code 一个增长式缓冲）。
+        self.bars
+            .entry(code.to_string())
+            .or_insert_with(BarHistory::new)
+            .push(bar);
         self.evaluate(code, position)
     }
 
     /// 对某标的按最新 bar 重新评估（feed 后内部调用）。
     fn evaluate(&mut self, code: &str, position: Option<PositionInput>) -> Option<StockEvaluation> {
-        let bars = self.bars.get(code)?;
-        if bars.is_empty() || !self.covers(code) {
+        // ADR-024 P2b：取共享缓冲句柄（`Rc` 克隆仅增引用计数，非数据复制）。
+        let history = self.bars.get(code)?.clone();
+        if history.is_empty() || !self.covers(code) {
             return None;
         }
-        let idx = bars.len() - 1;
-        let latest_bar = bars[idx].clone();
+        let idx = history.len() - 1;
+        let latest_bar = history.with_slice(|bars| bars[idx].clone());
         // ABI §2.5 持仓快照：空仓 → None（插件见 null）。
         let snapshot = position.map(|p| PositionSnapshot {
             qty: p.qty,
             avg_cost: p.avg_cost,
             entry_ts: p.entry_ts,
-            bars_since_entry: bars_since_entry(bars, idx, p.entry_ts),
+            bars_since_entry: history.with_slice(|bars| bars_since_entry(bars, idx, p.entry_ts)),
             unrealized_pnl: p.qty * (latest_bar.close - p.avg_cost),
         });
 
@@ -261,9 +269,25 @@ impl PluginStrategyOrchestrator {
             if slot.disabled {
                 continue; // 熔断停用 → 按「无覆盖」处理（G5 引擎语义）。
             }
-            let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot);
-            let out = slot.instance.on_bar(&ctx);
-            drop(ctx); // 插件日志（ctx.log）本期不归集（P4a 范围外，决策点 3 仅插件错误/熔断入流）。
+            // ADR-024 P2b：在共享缓冲的只读借用下构建 ctx（`ctx.bars` 即缓冲前缀 `bars[0..=index]`
+            // ⇒ 宿主侧无可读未来，与引擎会话路径同口径），并注入同一缓冲句柄（零复制；
+            // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
+            let out = history.with_slice(|bars| {
+                // ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为共享缓冲前缀
+                // `bars[0..=idx]`（仅 debug 生效，release 零成本；退化 ⇒ 构造点立即 panic）。
+                let ctx_bars: &[Bar] = bars;
+                debug_assert_eq!(
+                    ctx_bars.len(),
+                    idx + 1,
+                    "P2c 前视自检（sim-live）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）"
+                );
+                let ctx = BarCtx::new(idx, latest_bar.clone(), ctx_bars, snapshot)
+                    .with_history(history.clone());
+                // 插件日志（ctx.log）本期不归集（P4a 范围外，决策点 3 仅插件错误/熔断入流）。
+                let out = slot.instance.on_bar(&ctx);
+                drop(ctx);
+                out
+            });
             match out {
                 Ok(score) => {
                     slot.consecutive_errors = 0; // 成功即清零（G5）。

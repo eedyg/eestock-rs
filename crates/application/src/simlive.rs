@@ -1566,6 +1566,8 @@ impl SimLiveService {
                     fee: Some(fee.clone()),
                     // sim-live 回测对比：不预热（会话评分历史由 live bar 累积，与既有对比口径一致）。
                     warmup_bars: 0,
+                    // ADR-024 P5：sim-live 对比为内部短区间调用，不带护栏二次确认。
+                    confirm: false,
                 })
                 .await?;
             run_ids.push(run.id);
@@ -1841,6 +1843,10 @@ fn bt_bar_seconds(period: Period) -> i64 {
         Period::M1 => 60,
         Period::M5 => 300,
         Period::M15 => 900,
+        // ADR-024 P0：`backtest::Period` 新增 M30 变体 → 补穷尽分支（30m = 1_800s）。
+        // 注：sim-live 会话周期仍只支持 M1/M5/M15/H1/D1（`bt_period_from_str` 未扩），
+        // 该分支当前不可达，仅为匹配穷尽性；扩 sim-live 周期档不在本阶段范围。
+        Period::M30 => 1_800,
         Period::H1 => 3_600,
         Period::D1 => 86_400,
     }

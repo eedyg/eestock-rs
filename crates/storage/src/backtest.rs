@@ -11,8 +11,8 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use domain::ports::BacktestBarRead;
+use chrono::{DateTime, Duration, Utc};
+use domain::ports::{AvailableRange, BacktestBarRead};
 use domain::types::{Bar, Code, Period, SourceId};
 use sqlx::PgPool;
 
@@ -82,13 +82,47 @@ const FALLBACK_1MO: &str = r#"
        last(close, ts) AS close, sum(volume)::bigint AS volume, sum(amount) AS amount
  FROM kline_1d GROUP BY code, time_bucket('1 month', ts, 'Asia/Shanghai'))"#;
 
+/// 单层 + 兜底并集（`code` 绑定 `$1`）的 min/max：可得区间判定（ADR-024 D3 **服务口径并集**）。
+///
+/// 硬约束：**不得**只查 accurate 层 —— accurate cagg 已知滞后（ADR-023 §2.4 实测：
+/// `kline_accurate_5m` 曾整周 0 行、长期靠兜底在服务），单层判定会切掉兜底本可服务的最新数据。
+fn union_avail_sql(accurate: &str, fallback: &str) -> String {
+    format!(
+        "SELECT min(ts) AS mn, max(ts) AS mx FROM (\
+           SELECT ts FROM {accurate} WHERE code = $1 \
+           UNION ALL SELECT ts FROM {fallback} WHERE code = $1) u",
+        accurate = accurate, fallback = fallback
+    )
+}
+
+/// 可得区间 SQL：`code` 绑定 `$1`，返回 `(min_ts, max_ts)`（无数据 → NULL）。
+/// 口径与 [`period_range_sql`] 逐层对应（accurate ∪ 兜底）。
+fn period_avail_sql(p: Period) -> String {
+    match p {
+        // M1：`kline_merged` 已是 accurate 优先 + raw 兜底（ADR-003），本身即并集口径。
+        Period::M1 => "SELECT min(ts) AS mn, max(ts) AS mx FROM kline_merged WHERE code = $1".to_string(),
+        Period::M5 => union_avail_sql("kline_accurate_5m", "kline_5m"),
+        Period::M15 => union_avail_sql("kline_accurate_15m", "kline_15m"),
+        Period::M30 => union_avail_sql("kline_accurate_30m", FALLBACK_30M),
+        Period::H1 => union_avail_sql("kline_accurate_1h", FALLBACK_1H),
+        Period::D1 => union_avail_sql("kline_accurate_1d", "kline_1d"),
+        Period::W1 => union_avail_sql("kline_accurate_1w", FALLBACK_1W),
+        Period::MO1 => union_avail_sql("kline_accurate_1mo", FALLBACK_1MO),
+    }
+}
+
+/// 区间 bar 计数 SQL（ADR-024 D12 预扫描；与 [`period_range_sql`] 同源，`$1/$2/$3 = code/from/to`）。
+fn period_count_sql(p: Period) -> String {
+    format!("SELECT count(*) FROM ({}) c", period_range_sql(p))
+}
+
 fn period_range_sql(p: Period) -> String {
     match p {
         Period::M1 => M1_RANGE_SQL.to_string(),
         Period::M5 => range_sql("kline_accurate_5m", "kline_5m"),
         Period::M15 => range_sql("kline_accurate_15m", "kline_15m"),
-        // ADR-023（仅保 match 全穷尽）：30m 亦为看板扩展周期，application::bar_map::parse_period 仍拒绝 30m
-        // （backtest::Period 无 30m 变体）⇒ 实际回测不会以 M30 入队；读源与 reader.rs 的 M30 保持一致。
+        // ADR-023 增 30m 读源（accurate cagg + 15m rollup 兜底）；ADR-024 P0 起 M30 已入回测白名单
+        // （backtest::Period 有 M30 变体，application::bar_map::parse_period 接受 "M30"）⇒ 回测可以 M30 入队。
         Period::M30 => range_sql("kline_accurate_30m", FALLBACK_30M),
         Period::H1 => range_sql("kline_accurate_1h", FALLBACK_1H),
         Period::D1 => range_sql("kline_accurate_1d", "kline_1d"),
@@ -123,6 +157,31 @@ impl BacktestBarRead for BacktestBarReader {
                 source: source.as_deref().and_then(SourceId::parse).unwrap_or(SourceId::Tushare),
             }
         }).collect())
+    }
+
+    /// 可得区间（**服务口径并集**：accurate ∪ 兜底；ADR-024 D3）。
+    ///
+    /// 单条轻量 min/max（`code` 走 `(code, ts)` 索引）；**不**只查 accurate 层（其 cagg 已知滞后）。
+    /// 无数据 → `Ok(None)`。`to` = 最晚 bar ts + 1s（半开，保证该 bar 落在区间内）。
+    async fn available_range(&self, code: &str, period: &Period)
+        -> Result<Option<AvailableRange>> {
+        let sql = period_avail_sql(*period);
+        let (mn, mx): (Option<DateTime<Utc>>, Option<DateTime<Utc>>) =
+            sqlx::query_as(&sql).bind(code).fetch_one(&self.pool).await?;
+        Ok(match (mn, mx) {
+            (Some(from), Some(to)) => Some(AvailableRange { from, to: to + Duration::seconds(1) }),
+            _ => None,
+        })
+    }
+
+    /// 区间内 bar 数（ADR-024 D12 预扫描；`count(*)` 与取数同源口径）。
+    async fn count_bars(&self, code: &str, period: &Period, from: DateTime<Utc>, to: DateTime<Utc>)
+        -> Result<i64> {
+        let sql = period_count_sql(*period);
+        let (n,): (i64,) = sqlx::query_as(&sql)
+            .bind(code).bind(from).bind(to)
+            .fetch_one(&self.pool).await?;
+        Ok(n)
     }
 }
 

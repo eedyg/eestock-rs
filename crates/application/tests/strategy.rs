@@ -456,7 +456,8 @@ async fn publish_gate_rejects_bad_code() {
     let (_, v) = svc.create_strategy(&input("bad1", NO_ON_BAR)).await.unwrap();
     let e = svc.publish(&v.id).await.unwrap_err();
     let ve = e.downcast_ref::<StrategyValidation>().expect("应为校验失败");
-    assert!(ve.0.contains("发布门禁"), "{}", ve.0);
+    assert!(ve.message.contains("发布门禁"), "{}", ve.message);
+    assert_eq!(ve.code(), application::error::codes::CODE_INVALID, "发布门禁失败码");
     assert_eq!(svc.get_version(&v.id).await.unwrap().status, StrategyStatus::Draft);
 
     // 语法错误 → 同样拒绝
@@ -779,6 +780,7 @@ fn test_req(source: TestRunSource, mode: TestRunMode, from: DateTime<Utc>, to: D
         fee: Some(serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0})),
         policy: serde_json::json!({"LumpSum": {"position_pct": 1.0}}),
         initial_capital: DEFAULT_TEST_RUN_CAPITAL,
+        confirm: false,
     }
 }
 
@@ -838,24 +840,65 @@ async fn test_run_sim_position_produces_signals_and_trade() {
     assert_eq!(trades.len(), 1, "一买一卖合成一笔交易");
 }
 
+/// ADR-024 P5：**试算同口径去档** —— 旧「D1 >5年 / M1 >3月 → 400」断言按新契约改写为「可提交」
+/// （反假绿条款 #4：不得简单删除）；且响应回显区间收缩（clamped/effective）。
 #[tokio::test]
-async fn test_run_interval_limits() {
+async fn test_run_interval_limits_removed_same_caliber_as_workbench() {
     let (svc, _) = service(trend_bars());
-    // D1 超过 5 年 → 400
+    // D1 超 5 年 → 现在**可试算**（不再 400）。
     let (from, to) = span(366 * 5 + 10);
     let req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
-    let e = svc.test_run(&req).await.unwrap_err();
-    assert!(e.downcast_ref::<StrategyValidation>().unwrap().0.contains("区间超限"));
-    // M1 超过 3 个月 → 400
+    let resp = svc.test_run(&req).await.expect("D1>5y 必须可试算（旧 400 已撤销）");
+    assert_eq!(resp.scores.len(), resp.bar_count);
+    // M1 超 3 个月 → 现在可试算，且回显收缩。
     let (from, to) = span(100);
     let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
     req.period = "M1".into();
-    assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
-    // 非法周期 → 400
+    let resp = svc.test_run(&req).await.expect("M1>3月 可试算");
+    assert_eq!(resp.requested_from, from, "回显原始请求区间");
+    assert!(resp.clamped, "请求超出可得数据 → clamped=true");
+    assert_eq!(resp.clamp_reason.as_deref(), Some("data_range"));
+    assert!(resp.estimated_bars.is_some(), "D12：预扫描回显");
+    // 非法周期 → 400（基础校验保留）。
     let (from, to) = span(10);
     let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
     req.period = "W1".into();
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
+}
+
+/// ADR-024 P5/D11：试算评分点**均匀抽样（保首尾）**——超 `MAX_SCORE_POINTS` 不再丢尾部，
+/// 响应带 `downsampled`/`original_points`，且首尾点保留。
+#[tokio::test]
+async fn test_run_pure_score_uniform_sampling() {
+    use application::strategy::MAX_SCORE_POINTS;
+    let n = MAX_SCORE_POINTS + 50;
+    let bars: Vec<_> = (0..n as i64).map(|i| dbar(i, 100.0)).collect();
+    let (svc, _) = service(bars.clone());
+    let (from, to) = span(366 * 5 + 10);
+    let req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
+    let resp = svc.test_run(&req).await.expect("可试算");
+    assert_eq!(resp.original_points, n, "原始点数回显");
+    assert_eq!(resp.scores.len(), MAX_SCORE_POINTS, "抽样到 k 点");
+    assert!(resp.downsampled, "标记 downsampled");
+    assert!(!resp.truncated.scores, "不再以 truncated.scores 表达丢尾");
+    // 保首尾（旧「丢尾部」会丢失末段）。
+    assert_eq!(resp.scores.first().unwrap().ts, bars[0].ts.timestamp());
+    assert_eq!(
+        resp.scores.last().unwrap().ts,
+        bars[n - 1].ts.timestamp(),
+        "尾部保留（旧实现会丢）"
+    );
+}
+
+/// ADR-024 P5：试算无交集 → 结构化 400 `range_empty`（与工作台同口径）。
+#[tokio::test]
+async fn test_run_range_empty_is_structured() {
+    let (svc, _) = service(vec![]);
+    let (from, to) = span(30);
+    let req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
+    let e = svc.test_run(&req).await.unwrap_err();
+    let e = e.downcast_ref::<application::error::StructuredError>().expect("结构化 400");
+    assert_eq!(e.code, "range_empty");
 }
 
 /// I-6/D3：试算引擎支持 H1（与数据层 cagg 1h 口径对齐）；区间档位与数据量同 D1 档。
@@ -876,12 +919,12 @@ async fn test_run_h1_period_supported() {
     let resp = svc.test_run(&req).await.unwrap();
     assert_eq!(resp.period, "H1");
     assert_eq!(resp.signals.len(), 6);
-    // H1 跨 5 年（小时线量级 ~5k bar）在档内；超 5 年 → 400。
+    // H1 跨 5 年：ADR-024 P5 起无日历天数档 ⇒ 可试算（旧 400 已撤销）。
     let (from, to) = span(366 * 5 + 10);
     let mut req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
     req.period = "H1".into();
-    let e = svc.test_run(&req).await.unwrap_err();
-    assert!(e.downcast_ref::<StrategyValidation>().unwrap().0.contains("区间超限"));
+    let resp = svc.test_run(&req).await.expect("H1 超 5 年可试算");
+    assert_eq!(resp.period, "H1");
 }
 
 // ── I-2/D6：warmup 契约（架构师 2026-09-12 裁决 = 方案 A）──
@@ -1104,11 +1147,12 @@ async fn test_run_version_source_and_bad_inputs() {
     // 坏代码（内联）→ 400（冒烟前置拒绝）
     let req = test_req(TestRunSource::Inline(NO_ON_BAR.into()), TestRunMode::PureScore, from, to);
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());
-    // 空区间数据 → 400
+    // 空区间数据 → 结构化 400 range_empty（ADR-024 P5，替代旧字符串断言）
     let (svc_empty, _) = service(vec![]);
     let req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, from, to);
     let e = svc_empty.test_run(&req).await.unwrap_err();
-    assert!(e.downcast_ref::<StrategyValidation>().unwrap().0.contains("无 K 线数据"));
+    let e = e.downcast_ref::<application::error::StructuredError>().expect("结构化 400");
+    assert_eq!(e.code, "range_empty");
     // from >= to → 400
     let req = test_req(TestRunSource::Inline(CONST_SCORE.into()), TestRunMode::PureScore, to, from);
     assert!(svc.test_run(&req).await.unwrap_err().downcast_ref::<StrategyValidation>().is_some());

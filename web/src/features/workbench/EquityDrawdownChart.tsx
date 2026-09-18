@@ -8,14 +8,18 @@ const PAD = 10;
 
 /**
  * 净值 + 回撤双曲线（ADR §13.5；与页面⑤ ResultOverview 同风格：净值面积线 + 回撤着色区）。
- * 序列经 downsample 抽样渲染（ADR §13.4）。
+ * ADR-024 P6：数据来自 `/curve?kind=net_value|drawdown`（**显式抽样**）；`downsampled`/`original_bars`
+ * 在右下角显式标注（禁止静默有损，D10）。
  */
 export function EquityDrawdownChart({
   netValue,
   drawdown,
+  sampling,
 }: {
   netValue: Array<[number, number]>;
   drawdown: Array<[number, number]>;
+  /** 后端抽样标注（`/curve` 的 `downsampled`/`original_bars`；ADR-024 D10）。 */
+  sampling?: { netValue: { downsampled: boolean; originalBars: number }; drawdown: { downsampled: boolean; originalBars: number } };
 }) {
   const series = useMemo(() => downsample(netValue), [netValue]);
   const dd = useMemo(() => downsample(drawdown), [drawdown]);
@@ -65,7 +69,15 @@ export function EquityDrawdownChart({
           {fmtPct(retPct)}
         </div>
       </div>
-      <div className="absolute bottom-2 left-3 text-[10px] text-dim">回撤（最大 −{fmtPct(ddMax)}，着色区间）</div>
+      <div className="absolute bottom-2 left-3 text-[10px] text-dim">
+        回撤（最大 −{fmtPct(ddMax)}，着色区间）
+      </div>
+      <div className="absolute bottom-2 right-3 text-[10px] text-dim" data-testid="wb-equity-sampling">
+        净值 共 {sampling?.netValue.originalBars ?? netValue.length} bar
+        {sampling?.netValue.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
+        {' · '}回撤 共 {sampling?.drawdown.originalBars ?? drawdown.length} bar
+        {sampling?.drawdown.downsampled ? `（服务端抽样 ${dd.length} 点）` : ''}
+      </div>
     </div>
   );
 }

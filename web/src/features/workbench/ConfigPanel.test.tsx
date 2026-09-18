@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { StrategyCatalogEntry, WorkbenchPresetConfigInput, WorkbenchPresetRow, WorkbenchRunConfig } from '@/api/types';
 import { createMockClient } from '@/api/mock';
 import { ConfigPanel } from './ConfigPanel';
+
+// ADR-024 P0 §5.1 —— 周期下拉的**独立期望**：取自契约向量（**不是**被测常量自身，否则是同义反复）。
+// 单一真相：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`。
+// 该期望与产出解耦：删掉 constants 里的 'M30'、或组件改成手写第二份白名单，本用例都必须变红。
+// web/src/features/workbench → 仓库根
+const HERE = dirname(fileURLToPath(import.meta.url));
+const CONTRACT_VECTORS = JSON.parse(
+  readFileSync(resolve(HERE, '../../../../design/16-backtest-scalability/contract-vectors.json'), 'utf8'),
+) as { backtest_periods: string[] };
 
 const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
 let catalogCache: StrategyCatalogEntry[] | null = null;
@@ -38,6 +50,14 @@ describe('ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/
   beforeEach(async () => {
     vi.clearAllMocks();
     await loadCatalog();
+  });
+
+  // ADR-024 P0：周期下拉必须覆盖回测单一事实源全集（含 M30），不得手写第二份。
+  // 期望 = 契约向量（独立期望）；对 M30 成员资格**敏感**（删常量里的 M30 即红）。
+  it('周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）', () => {
+    render(<ConfigPanel {...mkProps()} />);
+    const sel = screen.getByTestId('wb-period') as HTMLSelectElement;
+    expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECTORS.backtest_periods);
   });
 
   it('catalog 渲染到策略下拉；添加策略 → slot 卡片（权重 + schema 参数表单）', async () => {
@@ -316,5 +336,73 @@ describe('ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/
     await user.selectOptions(screen.getByTestId('wb-preset-select'), 'sp_1');
     await waitFor(() => expect(screen.getByTestId('wb-preset-msg')).toHaveTextContent('预设应用失败'));
     expect((screen.getByTestId('wb-preset-select') as HTMLSelectElement).value).toBe('');
+  });
+});
+
+// ─────────────── ADR-024 P5 §5.2/§5.3：可得区间联动 + 收缩提示条 + 资源护栏二次确认 ───────────────
+
+describe('ConfigPanel（ADR-024 P5：区间联动 / 收缩提示 / resource_guard 二次确认）', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await loadCatalog();
+  });
+
+  it('日期控件 min/max 随可得区间联动 + 展示可用区间', async () => {
+    const loadAvailableRange = vi.fn(async () => ({
+      symbol: '518880',
+      period: 'D1',
+      available_from: '2012-01-04T01:30:00Z',
+      available_to: '2026-09-16T00:00:00Z',
+    }));
+    render(<ConfigPanel {...mkProps({ loadAvailableRange })} />);
+    await waitFor(() => {
+      expect((screen.getByTestId('wb-date-from') as HTMLInputElement).min).toBe('2012-01-04');
+    });
+    expect((screen.getByTestId('wb-date-from') as HTMLInputElement).max).toBe('2026-09-16');
+    expect((screen.getByTestId('wb-date-to') as HTMLInputElement).min).toBe('2012-01-04');
+    expect((screen.getByTestId('wb-date-to') as HTMLInputElement).max).toBe('2026-09-16');
+    expect(screen.getByTestId('wb-available-range').textContent).toContain('2012-01-04');
+    expect(screen.getByTestId('wb-available-range').textContent).toContain('2026-09-16');
+    expect(loadAvailableRange).toHaveBeenCalledWith('518880', 'D1');
+  });
+
+  it('clamped:true ⇒ 显著提示条可见（不弹确认框）', () => {
+    render(
+      <ConfigPanel
+        {...mkProps({
+          clampNotice: {
+            requestedFrom: '2012-01-01T00:00:00Z',
+            requestedTo: '2026-12-31T00:00:00Z',
+            effectiveFrom: '2012-01-04T01:30:00Z',
+            effectiveTo: '2026-09-16T00:00:00Z',
+          },
+        })}
+      />,
+    );
+    const notice = screen.getByTestId('wb-clamp-notice');
+    expect(notice.textContent).toContain('收缩');
+    expect(notice.textContent).toContain('2026-09-16');
+  });
+
+  it('resource_guard ⇒ 二次确认（展示预估 bar 数/耗时；确认/取消回调）', async () => {
+    const user = userEvent.setup();
+    const onConfirmGuard = vi.fn();
+    const onDismissGuard = vi.fn();
+    render(
+      <ConfigPanel
+        {...mkProps({
+          guardPrompt: { bars: 290000, secs: 182.35 },
+          onConfirmGuard,
+          onDismissGuard,
+        })}
+      />,
+    );
+    const prompt = screen.getByTestId('wb-guard-prompt');
+    expect(prompt.textContent).toContain('290000');
+    expect(prompt.textContent).toContain('182.3'); // 182.35.toFixed(1) === '182.3'（JS 浮点舍入）
+    await user.click(screen.getByTestId('wb-guard-confirm'));
+    expect(onConfirmGuard).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByTestId('wb-guard-cancel'));
+    expect(onDismissGuard).toHaveBeenCalledTimes(1);
   });
 });

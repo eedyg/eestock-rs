@@ -25,10 +25,15 @@
 //! 期末仍持仓 → 最后 close 强制平仓（沿用 backtest 引擎口径，净值最后一点修正为已实现净值）。
 //! 绩效 = `backtest::metrics::compute_metrics`（8 项）+ `compute_drawdown`，与内建回测一致。
 
-use backtest::{compute_drawdown, compute_metrics, Bar, FeeModel, Indicators, Period, TradeDetail};
+use std::rc::Rc;
+
+use backtest::{
+    compute_drawdown, compute_metrics, Bar, FeeModel, OnlineIndicators, Period, TradeDetail,
+};
 use serde::{Deserialize, Serialize};
 use strategy_runtime::{
-    BarCtx, PluginError, PluginInstance, PluginRuntime, PositionSnapshot, RuntimeLimits,
+    BarCtx, BarHistory, PluginError, PluginInstance, PluginRuntime, PositionSnapshot,
+    RuntimeLimits,
 };
 
 use crate::aggregate::{aggregate, classify, StrategySlot, TradeSignal, NEUTRAL_SCORE};
@@ -317,352 +322,493 @@ pub fn run_ensemble(
 /// `observer` 在每 bar 末（步骤 8 记录后）恰调用一次，参数 `(bar_index, total)`；
 /// 返回 [`LoopControl::Break`] → 引擎**立即跳出循环**（不做期末强平、不产出结果），
 /// 返回 [`EnsembleError::Canceled`]（协作式取消，供 application 层进度回调点检查取消标记）。
+///
+/// **ADR-024 P2**：签名/行为零变更 —— 本函数现为 [`EnsembleSession`] 的薄封装
+/// （构造会话 → `set_total_hint(bars.len())` → `push_batch(bars, observer)` → `finish()`）。
 pub fn run_ensemble_with_observer(
     cfg: &EnsembleConfig,
     bars: &[Bar],
     rt: &mut dyn PluginRuntime,
     observer: &mut dyn FnMut(usize, usize) -> LoopControl,
 ) -> Result<EnsembleResult, EnsembleError> {
-    cfg.validate()
-        .map_err(|e| PluginError::SchemaError(format!("EnsembleConfig 非法: {e}")))?;
+    let mut session = EnsembleSession::new(cfg, rt)?;
+    session.set_total_hint(bars.len());
+    session.push_batch(bars, observer)?;
+    Ok(session.finish())
+}
 
-    let mut slots: Vec<SlotState> = cfg
-        .slots
-        .iter()
-        .map(|s| {
-            Ok(SlotState {
-                instance: rt.instantiate(s.code_hash(), s.code(), s.params())?,
-                code_hash: s.code_hash().to_string(),
-                weight: s.weight(),
-                consecutive_errors: 0,
-                disabled: false,
+/// 会话式 Ensemble 运行（ADR-024 P2 / D5：批式函数 → 会话，持仓 / Policy / Trailing /
+/// 插件实例常驻；`push(bar)` 逐 bar 喂入）。
+///
+/// 口径与批式入口**完全一致**（同一条步骤 1–8 序列；ADR D5「顺序即口径，勿调」）：
+/// [`run_ensemble`] / [`run_ensemble_with_observer`] / [`run_ensemble_with_quickjs_observed`]
+/// 全部是本会话的薄封装，调用方零改动。会话化**不引入新语义**，只把「入参切片」换成「喂入」：
+/// - 会话不要求预先知道总 bar 数；`is_warmup = i < cfg.warmup_bars`（与批式 `min(warmup, n)` 等价）；
+/// - 协作式取消仍是**每 bar** 检查（[`LoopControl::Break`] → 立即停止、不产出结果）；
+/// - 期末仍在最后一个 close 强平（[`EnsembleSession::finish`]）。
+///
+/// 共享历史缓冲（ADR-024 D7）：会话持有**单一增长式** [`BarHistory`]，每 bar `push` 后经
+/// [`BarCtx::with_history`] 注入；插件指标闭包共享同一句柄按 `index` 取值
+/// （消灭改造前每 slot × 每 bar 的 `bars[..=index].to_vec()` 整段复制）。
+pub struct EnsembleSession {
+    cfg: EnsembleConfig,
+    slots: Vec<SlotState>,
+    /// 单一增长式共享历史缓冲（`bars[0..=i]` = 截至当前 bar 的全量历史）。
+    shared: Rc<BarHistory>,
+    /// 引擎自用指标状态（步骤 2/6 的 ATR(14) 止损线）：增量递推（ADR-024 D6）。
+    online: OnlineIndicators,
+    cash: f64,
+    holding: Option<Holding>,
+    pending: Option<Pending>,
+    policy_state: PolicyState,
+    trailing: TrailingState,
+    /// 已喂入 bar 数（= 下一根 bar 的 `index`）。
+    bars_seen: usize,
+    /// observer 的 `total` 参数（批式入口 = `bars.len()`；流式未声明时退化为已喂入数）。
+    total_hint: usize,
+    per_bar: Vec<BarRecord>,
+    nav: Vec<(i64, f64)>,
+    trades: Vec<TradeDetail>,
+}
+
+impl EnsembleSession {
+    /// 构造会话：校验配置 + 实例化全部 slot（与批式入口同一启动口径；实例化失败直接 `Err`）。
+    pub fn new(cfg: &EnsembleConfig, rt: &mut dyn PluginRuntime) -> Result<Self, EnsembleError> {
+        cfg.validate()
+            .map_err(|e| PluginError::SchemaError(format!("EnsembleConfig 非法: {e}")))?;
+
+        let slots: Vec<SlotState> = cfg
+            .slots
+            .iter()
+            .map(|s| {
+                Ok(SlotState {
+                    instance: rt.instantiate(s.code_hash(), s.code(), s.params())?,
+                    code_hash: s.code_hash().to_string(),
+                    weight: s.weight(),
+                    consecutive_errors: 0,
+                    disabled: false,
+                })
             })
+            .collect::<Result<_, EnsembleError>>()?;
+
+        Ok(Self {
+            cash: cfg.initial_capital,
+            cfg: cfg.clone(),
+            slots,
+            shared: BarHistory::new(),
+            online: OnlineIndicators::new(),
+            holding: None,
+            pending: None,
+            policy_state: PolicyState::new(),
+            trailing: TrailingState::new(),
+            bars_seen: 0,
+            total_hint: 0,
+            per_bar: Vec::new(),
+            nav: Vec::new(),
+            trades: Vec::new(),
         })
-        .collect::<Result<_, EnsembleError>>()?;
+    }
 
-    let fee = &cfg.fee;
-    let n = bars.len();
-    // I-2/D6：前置 warmup 段长度（截断到 bars 长度；0 = 旧行为）。
-    let warmup = cfg.warmup_bars.min(n);
-    let mut cash = cfg.initial_capital;
-    let mut holding: Option<Holding> = None;
-    let mut pending: Option<Pending> = None;
-    let mut policy_state = PolicyState::new();
-    let mut trailing = TrailingState::new();
+    /// 声明预期总 bar 数（observer 的 `total` 参数；同时按该规模预留结果缓冲，避免增长期重分配）。
+    pub fn set_total_hint(&mut self, total: usize) {
+        self.total_hint = total;
+        self.per_bar.reserve(total);
+        self.nav.reserve(total);
+    }
 
-    let mut per_bar: Vec<BarRecord> = Vec::with_capacity(n);
-    let mut nav: Vec<(i64, f64)> = Vec::with_capacity(n);
-    let mut trades: Vec<TradeDetail> = Vec::new();
+    /// 已喂入 bar 数（= 下一次 [`EnsembleSession::push`] 的 `bar_index`）。
+    pub fn bars_seen(&self) -> usize {
+        self.bars_seen
+    }
 
-    for i in 0..n {
-        let bar = &bars[i];
-        let is_warmup = i < warmup;
-        let mut events: Vec<EngineEvent> = Vec::new();
-        let mut orders: Vec<OrderIntent> = Vec::new();
+    /// 已产出但未取走的 per-bar 记录（分块落库用，ADR-024 P4）。
+    pub fn records(&self) -> &[BarRecord] {
+        &self.per_bar
+    }
 
-        // 1) 执行上一 bar 挂单（本 bar open 成交）。
-        //    I-2/D6：warmup 段不执行任何挂单（warmup 段本身也不产挂单，此处为显式隔离）。
-        if !is_warmup {
-            if let Some(p) = pending.take() {
-                match p {
-                    Pending::BuyDelta { qty, reason } => {
-                        if qty > 0.0 && cash > 0.0 {
-                            // 预算上限 = min(目标股数所需预算, 可用现金)；FeeModel.buy 将佣金折入，
-                            // 保证现金不因费用透支（与 backtest 引擎口径一致）。
-                            let need =
-                                qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
-                            let exec = fee.buy(need.min(cash), bar.open);
-                            if exec.shares > 0.0 {
-                                cash -= exec.total_cost;
-                                match &mut holding {
-                                    Some(h) => {
-                                        h.qty += exec.shares;
-                                        h.cost_basis += exec.total_cost;
-                                        h.value_basis += exec.trade_value;
-                                        h.buy_commission += exec.commission;
+    /// 取走已产出的 per-bar 记录（分块落库；`finish()` 产出剩余部分）。
+    pub fn drain_records(&mut self) -> Vec<BarRecord> {
+        std::mem::take(&mut self.per_bar)
+    }
+
+    /// 喂入一根 bar：执行步骤 1–8（原批式循环体逐字搬运），返回本 bar 记录。
+    ///
+    /// 注：返回值为会话内部记录的克隆（便利 API）；高频路径请用
+    /// [`EnsembleSession::push_batch`]（零复制）。
+    pub fn push(&mut self, bar: &Bar) -> BarRecord {
+        self.step(bar);
+        self.per_bar
+            .last()
+            .expect("step 必产一条 per_bar 记录")
+            .clone()
+    }
+
+    /// 批量喂入（chunk 粒度由调用方决定）：每 bar 末调用 `observer`（参数 `(bar_index, total)`），
+    /// 返回 [`LoopControl::Break`] → **立即停止**并返回 [`EnsembleError::Canceled`]
+    /// （不做期末强平、不产出结果）。
+    pub fn push_batch(
+        &mut self,
+        bars: &[Bar],
+        observer: &mut dyn FnMut(usize, usize) -> LoopControl,
+    ) -> Result<(), EnsembleError> {
+        for bar in bars {
+            self.step(bar);
+            let i = self.bars_seen - 1;
+            let total = if self.total_hint > 0 {
+                self.total_hint
+            } else {
+                self.bars_seen
+            };
+            if observer(i, total) == LoopControl::Break {
+                return Err(EnsembleError::Canceled);
+            }
+        }
+        Ok(())
+    }
+
+    /// 期末收尾：最后 close 强平（沿用 backtest 引擎口径，净值最后一点修正为已实现净值）
+    /// + 绩效（8 项）+ 回撤，产出 [`EnsembleResult`]。
+    pub fn finish(mut self) -> EnsembleResult {
+        if let Some(h) = self.holding {
+            let n = self.bars_seen;
+            let bar = self
+                .shared
+                .with_slice(|s| s.last().cloned().expect("bars_seen > 0 ⇒ 共享缓冲非空"));
+            let fee = self.cfg.fee;
+            let exec = fee.sell(h.qty, bar.close);
+            self.cash += exec.proceeds;
+            if let Some(last) = self.per_bar.last_mut() {
+                last.events.push(EngineEvent::Fill {
+                    bar_index: n - 1,
+                    side: OrderSide::Sell,
+                    qty: h.qty,
+                    price: exec.effective_price,
+                    reason: OrderReason::ForceClose,
+                });
+            }
+            apply_sell(
+                &mut self.holding,
+                &mut self.trades,
+                &mut self.trailing,
+                h.qty,
+                bar.ts,
+                n - 1,
+                &exec,
+            );
+            if let Some(last) = self.nav.last_mut() {
+                last.1 = self.cash;
+            }
+        }
+
+        let drawdown = compute_drawdown(&self.nav);
+        let metrics = compute_metrics(
+            &self.nav,
+            &self.trades,
+            self.cfg.initial_capital,
+            self.cfg.period,
+        );
+
+        EnsembleResult {
+            per_bar: self.per_bar,
+            trades: self.trades,
+            net_value: self.nav,
+            drawdown,
+            metrics,
+        }
+    }
+
+    /// 单 bar 管线（步骤 1–8；**与原批式循环体逐字一致**，仅把「入参切片」换成「已喂入历史」）。
+    fn step(&mut self, bar: &Bar) {
+        let i = self.bars_seen;
+        // ADR-024 P2/D7：共享历史缓冲增长（摊销 O(1)；48B/bar 一次拷贝，替代改造前每 bar O(index) 复制）。
+        self.shared.push(bar.clone());
+        let shared = self.shared.clone();
+        shared.with_slice(|bars| {
+            let bar = &bars[i];
+            let is_warmup = i < self.cfg.warmup_bars;
+            let mut events: Vec<EngineEvent> = Vec::new();
+            let mut orders: Vec<OrderIntent> = Vec::new();
+
+            // 1) 执行上一 bar 挂单（本 bar open 成交）。
+            //    I-2/D6：warmup 段不执行任何挂单（warmup 段本身也不产挂单，此处为显式隔离）。
+            if !is_warmup {
+                if let Some(p) = self.pending.take() {
+                    match p {
+                        Pending::BuyDelta { qty, reason } => {
+                            if qty > 0.0 && self.cash > 0.0 {
+                                // 预算上限 = min(目标股数所需预算, 可用现金)；FeeModel.buy 将佣金折入，
+                                // 保证现金不因费用透支（与 backtest 引擎口径一致）。
+                                let fee = self.cfg.fee;
+                                let need =
+                                    qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
+                                let exec = fee.buy(need.min(self.cash), bar.open);
+                                if exec.shares > 0.0 {
+                                    self.cash -= exec.total_cost;
+                                    match &mut self.holding {
+                                        Some(h) => {
+                                            h.qty += exec.shares;
+                                            h.cost_basis += exec.total_cost;
+                                            h.value_basis += exec.trade_value;
+                                            h.buy_commission += exec.commission;
+                                        }
+                                        None => {
+                                            self.holding = Some(Holding {
+                                                qty: exec.shares,
+                                                cost_basis: exec.total_cost,
+                                                value_basis: exec.trade_value,
+                                                buy_commission: exec.commission,
+                                                entry_ts: bar.ts,
+                                                entry_bar: i,
+                                            });
+                                            self.trailing.on_entry(bar.open);
+                                        }
                                     }
-                                    None => {
-                                        holding = Some(Holding {
-                                            qty: exec.shares,
-                                            cost_basis: exec.total_cost,
-                                            value_basis: exec.trade_value,
-                                            buy_commission: exec.commission,
-                                            entry_ts: bar.ts,
-                                            entry_bar: i,
-                                        });
-                                        trailing.on_entry(bar.open);
-                                    }
-                                }
-                                events.push(EngineEvent::Fill {
-                                    bar_index: i,
-                                    side: OrderSide::Buy,
-                                    qty: exec.shares,
-                                    price: exec.effective_price,
-                                    reason,
-                                });
-                                // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
-                                // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
-                                if reason == OrderReason::Policy {
-                                    if let Some(h) = &holding {
-                                        policy_state.clamp_lump_frozen(h.qty);
+                                    events.push(EngineEvent::Fill {
+                                        bar_index: i,
+                                        side: OrderSide::Buy,
+                                        qty: exec.shares,
+                                        price: exec.effective_price,
+                                        reason,
+                                    });
+                                    // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
+                                    // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
+                                    if reason == OrderReason::Policy {
+                                        if let Some(h) = &self.holding {
+                                            self.policy_state.clamp_lump_frozen(h.qty);
+                                        }
                                     }
                                 }
                             }
                         }
+                        Pending::SellQty { qty, reason } => {
+                            if let Some(h) = self.holding {
+                                let q = qty.min(h.qty);
+                                if q > 0.0 {
+                                    let exec = self.cfg.fee.sell(q, bar.open);
+                                    self.cash += exec.proceeds;
+                                    events.push(EngineEvent::Fill {
+                                        bar_index: i,
+                                        side: OrderSide::Sell,
+                                        qty: q,
+                                        price: exec.effective_price,
+                                        reason,
+                                    });
+                                    apply_sell(
+                                        &mut self.holding,
+                                        &mut self.trades,
+                                        &mut self.trailing,
+                                        q,
+                                        bar.ts,
+                                        i,
+                                        &exec,
+                                    );
+                                }
+                            }
+                        }
                     }
-                    Pending::SellQty { qty, reason } => {
-                        if let Some(h) = holding {
-                            let q = qty.min(h.qty);
-                            if q > 0.0 {
-                                let exec = fee.sell(q, bar.open);
-                                cash += exec.proceeds;
+                }
+            }
+
+            // 2) Intrabar 硬止损（当 bar 成交，口径唯一例外，ADR §13.3）。
+            if let Some(stop) = &self.cfg.stop {
+                if stop.trigger == StopTrigger::Intrabar {
+                    if let Some(h) = self.holding {
+                        // MINOR-1 裁决：ATR 线用截至上一 bar 数据（当 bar close 在 bar 内
+                        // 尚不可知，避免前视）；i=0 → 数据不足 → 不触发。
+                        // ADR-024 P2/D6：增量 ATR 状态（与原 `Indicators::atr` 位级一致）。
+                        let atr14 = self
+                            .online
+                            .atr(bars, i.saturating_sub(1), 14);
+                        if let Some(line) = stop.stop_line(h.avg_cost(), self.trailing.peak(), atr14)
+                        {
+                            if stop.intrabar_triggered(line, bar) {
+                                // 按止损价 ×(1−slippage) 当 bar 成交（fee.sell 内含滑点）。
+                                let exec = self.cfg.fee.sell(h.qty, line);
+                                self.cash += exec.proceeds;
                                 events.push(EngineEvent::Fill {
                                     bar_index: i,
                                     side: OrderSide::Sell,
-                                    qty: q,
+                                    qty: h.qty,
                                     price: exec.effective_price,
-                                    reason,
+                                    reason: OrderReason::StopTrigger,
                                 });
                                 apply_sell(
-                                    &mut holding,
-                                    &mut trades,
-                                    &mut trailing,
-                                    q,
+                                    &mut self.holding,
+                                    &mut self.trades,
+                                    &mut self.trailing,
+                                    h.qty,
                                     bar.ts,
                                     i,
                                     &exec,
                                 );
+                                // MAJOR-2 裁决：强平 = 外部中断 → 重置 PolicyState
+                                //（与 trailing.reset() 并列）；次个 Buy 重新计数批次/重新快照。
+                                self.policy_state.reset();
                             }
                         }
                     }
                 }
             }
-        }
 
-        // 2) Intrabar 硬止损（当 bar 成交，口径唯一例外，ADR §13.3）。
-        if let Some(stop) = &cfg.stop {
-            if stop.trigger == StopTrigger::Intrabar {
-                if let Some(h) = holding {
-                    // MINOR-1 裁决：ATR 线用截至上一 bar 数据（当 bar close 在 bar 内
-                    // 尚不可知，避免前视）；i=0 → 数据不足 → 不触发。
-                    let atr14 = Indicators::new(bars, i.saturating_sub(1)).atr(14);
-                    if let Some(line) = stop.stop_line(h.avg_cost(), trailing.peak(), atr14) {
-                        if stop.intrabar_triggered(line, bar) {
-                            // 按止损价 ×(1−slippage) 当 bar 成交（fee.sell 内含滑点）。
-                            let exec = fee.sell(h.qty, line);
-                            cash += exec.proceeds;
-                            events.push(EngineEvent::Fill {
-                                bar_index: i,
-                                side: OrderSide::Sell,
-                                qty: h.qty,
-                                price: exec.effective_price,
-                                reason: OrderReason::StopTrigger,
-                            });
-                            apply_sell(
-                                &mut holding,
-                                &mut trades,
-                                &mut trailing,
-                                h.qty,
-                                bar.ts,
-                                i,
-                                &exec,
-                            );
-                            // MAJOR-2 裁决：强平 = 外部中断 → 重置 PolicyState
-                            //（与 trailing.reset() 并列）；次个 Buy 重新计数批次/重新快照。
-                            policy_state.reset();
-                        }
+            // 3) 构建 BarCtx（含只读持仓全景；空仓 → None，ABI §2.5）。
+            //    ADR-024 P2/D7：注入共享历史缓冲句柄（插件指标闭包共享同一缓冲，零复制）。
+            //    ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为共享缓冲前缀
+            //    `bars[0..=i]`（仅 debug 生效，release 零成本；退化 ⇒ 构造点立即 panic）。
+            let ctx_bars: &[Bar] = bars;
+            debug_assert_eq!(
+                ctx_bars.len(),
+                i + 1,
+                "P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）"
+            );
+            let position = self.holding.map(|h| h.snapshot(i, bar.close));
+            let ctx = BarCtx::new(i, bar.clone(), ctx_bars, position).with_history(shared.clone());
+
+            // 4) 各活跃 slot 评分（错误走 G5）。
+            let mut scores: Vec<SlotScore> = Vec::with_capacity(self.slots.len());
+            for (idx, s) in self.slots.iter_mut().enumerate() {
+                if s.disabled {
+                    continue; // 已熔断 → 按「无覆盖」处理
+                }
+                match s.instance.on_bar(&ctx) {
+                    Ok(score) => {
+                        s.consecutive_errors = 0;
+                        scores.push(SlotScore {
+                            slot_idx: idx,
+                            score,
+                            outcome: SlotScoreOutcome::Ok(score),
+                        });
                     }
-                }
-            }
-        }
-
-        // 3) 构建 BarCtx（含只读持仓全景；空仓 → None，ABI §2.5）。
-        let position = holding.map(|h| h.snapshot(i, bar.close));
-        let ctx = BarCtx::new(i, bar.clone(), bars, position);
-
-        // 4) 各活跃 slot 评分（错误走 G5）。
-        let mut scores: Vec<SlotScore> = Vec::with_capacity(slots.len());
-        for (idx, s) in slots.iter_mut().enumerate() {
-            if s.disabled {
-                continue; // 已熔断 → 按「无覆盖」处理
-            }
-            match s.instance.on_bar(&ctx) {
-                Ok(score) => {
-                    s.consecutive_errors = 0;
-                    scores.push(SlotScore {
-                        slot_idx: idx,
-                        score,
-                        outcome: SlotScoreOutcome::Ok(score),
-                    });
-                }
-                Err(e) => {
-                    s.consecutive_errors += 1;
-                    events.push(EngineEvent::PluginError {
-                        slot_idx: idx,
-                        code_hash: s.code_hash.clone(),
-                        bar_index: i,
-                        error: e.clone(),
-                    });
-                    if s.consecutive_errors >= CIRCUIT_BREAKER_THRESHOLD {
-                        s.disabled = true;
-                        events.push(EngineEvent::CircuitBreaker {
+                    Err(e) => {
+                        s.consecutive_errors += 1;
+                        events.push(EngineEvent::PluginError {
                             slot_idx: idx,
                             code_hash: s.code_hash.clone(),
                             bar_index: i,
+                            error: e.clone(),
+                        });
+                        if s.consecutive_errors >= CIRCUIT_BREAKER_THRESHOLD {
+                            s.disabled = true;
+                            events.push(EngineEvent::CircuitBreaker {
+                                slot_idx: idx,
+                                code_hash: s.code_hash.clone(),
+                                bar_index: i,
+                            });
+                        }
+                        scores.push(SlotScore {
+                            slot_idx: idx,
+                            score: NEUTRAL_SCORE,
+                            outcome: SlotScoreOutcome::Err(e),
                         });
                     }
-                    scores.push(SlotScore {
+                }
+                // 插件日志落 run 事件流（ABI §2 log 通道，ADR §10）。
+                for msg in ctx.take_logs() {
+                    events.push(EngineEvent::PluginLog {
                         slot_idx: idx,
-                        score: NEUTRAL_SCORE,
-                        outcome: SlotScoreOutcome::Err(e),
+                        bar_index: i,
+                        msg,
                     });
                 }
             }
-            // 插件日志落 run 事件流（ABI §2 log 通道，ADR §10）。
-            for msg in ctx.take_logs() {
-                events.push(EngineEvent::PluginLog {
-                    slot_idx: idx,
-                    bar_index: i,
-                    msg,
-                });
-            }
-        }
 
-        // 5) 聚合（仅活跃 slot；无覆盖 → 中立 50）→ 信号。
-        let agg = aggregate(
-            &scores
-                .iter()
-                .map(|s| (slots[s.slot_idx].weight, s.score))
-                .collect::<Vec<_>>(),
-        );
-        let signal = classify(agg, cfg.buy_threshold, cfg.sell_threshold);
+            // 5) 聚合（仅活跃 slot；无覆盖 → 中立 50）→ 信号。
+            let agg = aggregate(
+                &scores
+                    .iter()
+                    .map(|s| (self.slots[s.slot_idx].weight, s.score))
+                    .collect::<Vec<_>>(),
+            );
+            let signal = classify(agg, self.cfg.buy_threshold, self.cfg.sell_threshold);
 
-        // 6) CloseBasis 硬止损（收盘判定 → 次 bar open 成交；绕过 Policy）。
-        //    ATR 线含当前 bar（收盘后判定，无前视，MINOR-1 裁决口径）。
-        let mut stop_order = false;
-        if let Some(stop) = &cfg.stop {
-            if stop.trigger == StopTrigger::CloseBasis {
-                if let Some(h) = holding {
-                    let atr14 = Indicators::new(bars, i).atr(14);
-                    if let Some(line) = stop.stop_line(h.avg_cost(), trailing.peak(), atr14) {
-                        if stop.close_triggered(line, bar) {
-                            orders.push(OrderIntent {
-                                side: OrderSide::Sell,
-                                qty: h.qty,
-                                reason: OrderReason::StopTrigger,
-                            });
-                            pending = Some(Pending::SellQty {
-                                qty: h.qty,
-                                reason: OrderReason::StopTrigger,
-                            });
-                            stop_order = true;
-                            // MAJOR-2 裁决：触发即重置 PolicyState（强平挂单已排定，
-                            // 次 bar open 成交）；强平后首个 Buy 重新计数批次/重新快照。
-                            policy_state.reset();
+            // 6) CloseBasis 硬止损（收盘判定 → 次 bar open 成交；绕过 Policy）。
+            //    ATR 线含当前 bar（收盘后判定，无前视，MINOR-1 裁决口径）。
+            let mut stop_order = false;
+            if let Some(stop) = &self.cfg.stop {
+                if stop.trigger == StopTrigger::CloseBasis {
+                    if let Some(h) = self.holding {
+                        let atr14 = self.online.atr(bars, i, 14);
+                        if let Some(line) = stop.stop_line(h.avg_cost(), self.trailing.peak(), atr14)
+                        {
+                            if stop.close_triggered(line, bar) {
+                                orders.push(OrderIntent {
+                                    side: OrderSide::Sell,
+                                    qty: h.qty,
+                                    reason: OrderReason::StopTrigger,
+                                });
+                                self.pending = Some(Pending::SellQty {
+                                    qty: h.qty,
+                                    reason: OrderReason::StopTrigger,
+                                });
+                                stop_order = true;
+                                // MAJOR-2 裁决：触发即重置 PolicyState（强平挂单已排定，
+                                // 次 bar open 成交）；强平后首个 Buy 重新计数批次/重新快照。
+                                self.policy_state.reset();
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // 7) Policy：信号 → 目标仓位（幂等）→ 订单 = 目标 − 当前。
-        //    I-2/D6：warmup 段不执行 Policy（不产订单），from 起从空仓开始。
-        if !stop_order && !is_warmup {
-            let current_qty = holding.map(|h| h.qty).unwrap_or(0.0);
-            let equity = cash + current_qty * bar.close;
-            let target =
-                policy_state.target_qty(&cfg.policy, signal, equity, bar.close, current_qty);
-            let delta = target - current_qty;
-            const EPS: f64 = 1e-9;
-            if delta > EPS {
-                orders.push(OrderIntent {
-                    side: OrderSide::Buy,
-                    qty: delta,
-                    reason: OrderReason::Policy,
-                });
-                pending = Some(Pending::BuyDelta {
-                    qty: delta,
-                    reason: OrderReason::Policy,
-                });
-            } else if delta < -EPS {
-                orders.push(OrderIntent {
-                    side: OrderSide::Sell,
-                    qty: -delta,
-                    reason: OrderReason::Policy,
-                });
-                pending = Some(Pending::SellQty {
-                    qty: -delta,
-                    reason: OrderReason::Policy,
-                });
+            // 7) Policy：信号 → 目标仓位（幂等）→ 订单 = 目标 − 当前。
+            //    I-2/D6：warmup 段不执行 Policy（不产订单），from 起从空仓开始。
+            if !stop_order && !is_warmup {
+                let current_qty = self.holding.map(|h| h.qty).unwrap_or(0.0);
+                let equity = self.cash + current_qty * bar.close;
+                let target = self.policy_state.target_qty(
+                    &self.cfg.policy,
+                    signal,
+                    equity,
+                    bar.close,
+                    current_qty,
+                );
+                let delta = target - current_qty;
+                const EPS: f64 = 1e-9;
+                if delta > EPS {
+                    orders.push(OrderIntent {
+                        side: OrderSide::Buy,
+                        qty: delta,
+                        reason: OrderReason::Policy,
+                    });
+                    self.pending = Some(Pending::BuyDelta {
+                        qty: delta,
+                        reason: OrderReason::Policy,
+                    });
+                } else if delta < -EPS {
+                    orders.push(OrderIntent {
+                        side: OrderSide::Sell,
+                        qty: -delta,
+                        reason: OrderReason::Policy,
+                    });
+                    self.pending = Some(Pending::SellQty {
+                        qty: -delta,
+                        reason: OrderReason::Policy,
+                    });
+                }
             }
-        }
 
-        // 8) Trailing 峰值更新（持仓中每 bar 末并入当前 close；清仓已重置）+ 净值/记录。
-        //    I-2/D6：warmup 段不计净值（绩效序列仅含 in-range）；per_bar 仍全量记录并标记 warmup。
-        if holding.is_some() {
-            trailing.on_bar_close(bar.close);
-        }
-        if !is_warmup {
-            nav.push((
-                bar.ts,
-                cash + holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
-            ));
-        }
-        per_bar.push(BarRecord {
-            ts: bar.ts,
-            warmup: is_warmup,
-            scores,
-            aggregate: agg,
-            signal,
-            orders,
-            events,
-        });
-
-        // 9) 观察者钩子（每 bar 末恰一次；P3a 裁决）：Break → 协作式取消，
-        //    立即跳出（不做期末强平、不产出结果）。
-        if observer(i, n) == LoopControl::Break {
-            return Err(EnsembleError::Canceled);
-        }
-    }
-
-    // 期末强制平仓（沿用 backtest 引擎口径：最后 close 成交，净值最后一点修正为已实现净值）。
-    if let Some(h) = holding {
-        let bar = &bars[n - 1];
-        let exec = fee.sell(h.qty, bar.close);
-        cash += exec.proceeds;
-        if let Some(last) = per_bar.last_mut() {
-            last.events.push(EngineEvent::Fill {
-                bar_index: n - 1,
-                side: OrderSide::Sell,
-                qty: h.qty,
-                price: exec.effective_price,
-                reason: OrderReason::ForceClose,
+            // 8) Trailing 峰值更新（持仓中每 bar 末并入当前 close；清仓已重置）+ 净值/记录。
+            //    I-2/D6：warmup 段不计净值（绩效序列仅含 in-range）；per_bar 仍全量记录并标记 warmup。
+            if self.holding.is_some() {
+                self.trailing.on_bar_close(bar.close);
+            }
+            if !is_warmup {
+                self.nav.push((
+                    bar.ts,
+                    self.cash + self.holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
+                ));
+            }
+            self.per_bar.push(BarRecord {
+                ts: bar.ts,
+                warmup: is_warmup,
+                scores,
+                aggregate: agg,
+                signal,
+                orders,
+                events,
             });
-        }
-        apply_sell(
-            &mut holding,
-            &mut trades,
-            &mut trailing,
-            h.qty,
-            bar.ts,
-            n - 1,
-            &exec,
-        );
-        if let Some(last) = nav.last_mut() {
-            last.1 = cash;
-        }
+        });
+        self.bars_seen += 1;
     }
-
-    let drawdown = compute_drawdown(&nav);
-    let metrics = compute_metrics(&nav, &trades, cfg.initial_capital, cfg.period);
-
-    Ok(EnsembleResult {
-        per_bar,
-        trades,
-        net_value: nav,
-        drawdown,
-        metrics,
-    })
 }
 
 /// 便捷入口：按 `cfg.runtime_limits` 构造 `QuickJsRuntime` 并运行。

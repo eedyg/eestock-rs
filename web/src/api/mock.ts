@@ -71,16 +71,28 @@ import type {
   StrategyUpdateOutcome,
   StrategyVersionRowDto,
   WorkbenchBarRecord,
+  WorkbenchBarsResponse,
   WorkbenchCompareItem,
+  WorkbenchCurveResponse,
+  WorkbenchFillsResponse,
   WorkbenchPinnedSlot,
   WorkbenchPresetRow,
+  WorkbenchAvailableRange,
+  WorkbenchResultBrief,
+  WorkbenchResultFormat,
   WorkbenchRunConfig,
+  WorkbenchRunFill,
   WorkbenchRunResult,
   WorkbenchRunStatus,
   WorkbenchRunView,
   WorkbenchSubmitReq,
 } from './types';
-import { ApiError } from './types';
+import { ApiError, SUPPORTED_BACKTEST_PERIODS } from './types';
+
+/** `GET /bars` 缺省页大小（与后端 `BARS_LIMIT_DEFAULT` 一致：一个分块 = 5000）。 */
+const BARS_PAGE_DEFAULT = 5000;
+/** `GET /curve` 缺省目标点数（与后端 `CURVE_K_DEFAULT` 一致）。 */
+const CURVE_K_DEFAULT = 2000;
 
 /**
  * 手写契约 mock（09-frontend.md §4）：后端联调/测试用。
@@ -312,6 +324,11 @@ function healthItem(
 
 export interface MockOptions {
   now?: Date; // 测试注入固定时刻，保证可复现
+  /** 页面⑪：mock 生成的 run 结果 bar 数（缺省 60）。
+   *  置 >5000 可构造「首页只回 5000 + has_more」的 chunked 场景（P6 长区间不得静默截断用例）。 */
+  workbenchResultBars?: number;
+  /** 页面⑪：`GET /fills` 是否回 `recorded=false`（模拟 P6 之前的 chunked run 无 fills 块）。 */
+  workbenchFillsMissing?: boolean;
 }
 
 /** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一）。
@@ -433,9 +450,37 @@ function mockExtractParamsSchema(code: string): StrategyParamDef[] {
   return out;
 }
 
-/** 试算区间上限（与后端 application::strategy 同口径：D1 ≤ 366*5 天；分钟级 M1/M5/M15 ≤ 93 天）。 */
-const MOCK_TESTRUN_D1_MAX_SPAN_DAYS = 366 * 5;
-const MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS = 93;
+/**
+ * ADR-024 P5/D1：**无日历天数档**。
+ *
+ * 旧 `MOCK_TESTRUN_D1_MAX_SPAN_DAYS` / `MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS` 及其超限分支已**物理删除**
+ * ——与 `design/16-backtest-scalability/contract-vectors.json`
+ * `span_limit_semantics.calendar_day_cap = null` / `deleted_constants` 一致（旧行为 = 用户可见事故类：
+ * 「指定范围却被 400」在 mock/前端开发面复活）。
+ *
+ * 取而代之：① **没有日历档**；② **可得区间收缩**（`intersect_available_range`）；
+ * ③ 无数据/无交集 ⇒ `range_empty`；④ 资源护栏（`resource_guard`，`confirm` 语义）。
+ * mock 无真实数据面，故可得区间取**桩口径**：自 518880 真库起点（2013-07-29）至客户端 now。
+ */
+const MOCK_DATA_FROM_MS = Date.parse('2013-07-29T01:30:00Z');
+
+/** ADR-024 D1 资源护栏阈值——**后端常量镜像**（`application::error`）。
+ *  `MAX_BARS_GUARD = 2_000_000` / `GUARD_CONFIRM_BARS = 200_000`；改名/改值必须同步本处。 */
+const MOCK_MAX_BARS_GUARD = 2_000_000;
+const MOCK_GUARD_CONFIRM_BARS = 200_000;
+
+/** 每根 bar 的毫秒数（周期 → 预估口径；与后端 `count_bars` 同义）。 */
+const MOCK_PERIOD_MS: Record<string, number> = {
+  M1: 60_000,
+  M5: 300_000,
+  M15: 900_000,
+  M30: 1_800_000,
+  H1: 3_600_000,
+  D1: 86_400_000,
+};
+
+/** mock 评分点上限（确定性序列长度；预估点数超出 ⇒ `downsampled`，与后端均匀抽样保首尾同语义）。 */
+const MOCK_SCORE_POINTS = 30;
 
 interface MockStrategyStore {
   strategies: StrategyRowDto[];
@@ -501,8 +546,9 @@ function mockWorkbenchResult(
   config: WorkbenchRunConfig,
   fromMs: number,
   toMs: number,
-): WorkbenchRunResult {
-  const N = 60;
+  n = 60,
+): MockFullResult {
+  const N = n;
   const stepSec = Math.max(60, Math.floor((toMs - fromMs) / 1000 / N));
   const startSec = Math.floor(fromMs / 1000);
   const totalWeight = config.slots.reduce((s, x) => s + x.weight, 0) || 1;
@@ -592,11 +638,88 @@ function mockWorkbenchResult(
   return { per_bar: perBar, trades, net_value: netValue, drawdown, metrics: mockBacktestMetrics(seed) };
 }
 
-/** 种子工作台 runs（succeeded/running/failed 三态；config 钉住形状与 submit 同构）。 */
+/** mock 存储的**全量**结果（相当于后端 `strategy_run_bars` 全部分块 + 有界列）。
+ *  对外响应由读取端点按 `format` 投影（legacy 全量 / chunked 首页），故此处不带判别列。 */
+type MockFullResult = Omit<
+  WorkbenchRunResult,
+  'result_format' | 'summary' | 'has_more' | 'next_offset'
+>;
+
+/** mock run 内存条目：结果以「全量数组」存储（= 后端 `strategy_run_bars` 全部分块），
+ *  按 `format` 模拟两条真实读取路径（legacy 内联全量 / chunked 首页 + has_more）。 */
+interface MockRunEntry {
+  view: WorkbenchRunView;
+  result: MockFullResult | null;
+  format: WorkbenchResultFormat;
+}
+
+/** 均匀抽样下标（**保首尾**；与后端 `sample_indices` 同口径，ADR-024 D10）。 */
+export function sampleIndices(n: number, k: number): number[] {
+  if (n === 0) return [];
+  if (k >= n) return Array.from({ length: n }, (_, i) => i);
+  const out: number[] = [];
+  for (let i = 0; i < k; i++) {
+    const idx = Math.round((i * (n - 1)) / (k - 1 || 1));
+    if (out[out.length - 1] !== idx) out.push(idx);
+  }
+  if (out[out.length - 1] !== n - 1) out.push(n - 1);
+  return out;
+}
+
+/** mock 轻量摘要（`GET /brief`；与后端 `ResultBrief` 同字段；P5 字段先占位）。 */
+function mockBriefOf(r: MockRunEntry): WorkbenchResultBrief {
+  const perBar = r.result?.per_bar ?? [];
+  const chunked = r.format === 'chunked_v1';
+  return {
+    id: r.view.id,
+    name: r.view.name,
+    symbol: r.view.symbol,
+    period: r.view.period,
+    status: r.view.status,
+    progress: r.view.progress,
+    error: r.view.error,
+    created_at: r.view.created_at,
+    started_at: r.view.started_at,
+    finished_at: r.view.finished_at,
+    requested_from: r.view.requested_from ?? r.view.from_ts,
+    requested_to: r.view.requested_to ?? r.view.to_ts,
+    effective_from: r.view.from_ts,
+    effective_to: r.view.to_ts,
+    clamped: r.view.clamped ?? false,
+    estimated_bars: r.view.estimated_bars ?? null,
+    bars_total: perBar.length,
+    result_format: r.result ? r.format : null,
+    chunk_count: r.result && chunked ? Math.max(1, Math.ceil(perBar.length / BARS_PAGE_DEFAULT)) : 0,
+    metrics: r.result ? r.result.metrics : null,
+  };
+}
+
+/** 由 per_bar 的 `fill` 事件派生成交明细（与后端 legacy 双读同口径；`ts` 取所在 bar）。 */
+export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
+  const out: WorkbenchRunFill[] = [];
+  for (const rec of perBar) {
+    for (const ev of rec.events) {
+      if (ev.type !== 'fill') continue;
+      out.push({
+        type: 'fill',
+        bar_index: ev.bar_index,
+        ts: rec.ts,
+        side: ev.side,
+        qty: ev.qty,
+        price: ev.price,
+        reason: ev.reason,
+      });
+    }
+  }
+  return out;
+}
+
+/** 页面⑪ 种子工作台 runs（succeeded/running/failed 三态；config 钉住形状与 submit 同构）。 */
 function seedWorkbenchRuns(
   anchor: number,
   store: MockStrategyStore,
-): Map<string, { view: WorkbenchRunView; result: WorkbenchRunResult | null }> {
+  bars = 60,
+): Map<string, MockRunEntry> {
   const iso = (offMs: number) => new Date(anchor - offMs).toISOString();
   const dual = store.versions.find((v) => v.id === 'sv_mock_dual_v1')!;
   const tpl = store.versions.find((v) => v.id === 'sv_mock_tpl_v1')!;
@@ -621,7 +744,7 @@ function seedWorkbenchRuns(
     id: string,
     over: Partial<WorkbenchRunView>,
     config: WorkbenchRunConfig,
-  ): { view: WorkbenchRunView; result: WorkbenchRunResult | null } => {
+  ): MockRunEntry => {
     const fromMs = anchor - 90 * 86_400_000;
     const view: WorkbenchRunView = {
       id,
@@ -637,13 +760,22 @@ function seedWorkbenchRuns(
       created_at: iso(3_600_000),
       started_at: null,
       finished_at: null,
+      // ADR-024 P5：收缩/预估回显（种子 run 无收缩）。
+      requested_from: new Date(fromMs).toISOString(),
+      requested_to: iso(0),
+      clamped: false,
+      clamp_reason: null,
+      estimated_bars: null,
+      bars_total: null,
+      result_format: null,
       ...over,
     };
     const result =
-      view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor) : null;
-    return { view, result };
+      view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor, bars) : null;
+    // 种子 run = 旧 run（`legacy_single`）—— 与后端双读不回填同口径；新提交 run 走 `chunked_v1`。
+    return { view, result, format: 'legacy_single' };
   };
-  const map = new Map<string, { view: WorkbenchRunView; result: WorkbenchRunResult | null }>();
+  const map = new Map<string, MockRunEntry>();
   map.set('sr_mock_seed1', mk('sr_mock_seed1', {
     name: '种子·双均线', status: 'succeeded', progress: 1,
     created_at: iso(7_200_000), started_at: iso(7_200_000), finished_at: iso(7_100_000),
@@ -700,6 +832,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
   const strategyStore = seedStrategyStore(anchorNow);
   /** 页面⑪ 回测工作台 mock 内存态（runs 含结果 / presets；§1.8 行为可闭环验证）。 */
   const workbenchRuns = seedWorkbenchRuns(anchorNow, strategyStore);
+  /** 页面⑪：mock 生成的 run 结果 bar 数（缺省 60；>5000 可构造长区间首页/更多页场景）。 */
+  const workbenchResultBars = opts.workbenchResultBars ?? 60;
   let workbenchSeq = 100;
   const workbenchPresets = new Map<string, WorkbenchPresetRow>();
   let workbenchPresetSeq = 1;
@@ -1440,14 +1574,71 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       if (Number.isNaN(fromMs) || Number.isNaN(toMs) || fromMs >= toMs) {
         throw new ApiError(400, 'HTTP 400: from 须早于 to');
       }
-      // 区间上限校验（复刻后端：D1 ≤ 5 年 / 分钟级 ≤ 3 个月 → 400）
-      const spanDays = Math.round((toMs - fromMs) / 86_400_000);
-      const limitDays =
-        req.period === 'D1' ? MOCK_TESTRUN_D1_MAX_SPAN_DAYS : MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS;
-      if (spanDays > limitDays) {
+      // ── ADR-024 P5（D1/D2/D3，与后端同口径）：**无日历档** + 可得区间收缩 ──
+      // 旧「分钟级≤N 天 / D1≤N 年 ⇒ 400」的日历档校验已**物理删除**（不是调值）。
+      // 可得区间：mock 桩口径 =「注册标的 + 数据自 2013-07-29 起」至客户端 now；无数据 → range_empty。
+      const availableFromMs = MOCK_DATA_FROM_MS;
+      const availableToMs = anchorNow;
+      const availableFrom = new Date(availableFromMs).toISOString();
+      const availableTo = new Date(availableToMs).toISOString();
+      const hasData = symbols.some((s) => s.code === req.symbol);
+      if (!hasData) {
         throw new ApiError(
           400,
-          `HTTP 400: 试算区间超限：${req.period} 跨度 ${spanDays} 天 > 上限 ${limitDays} 天`,
+          `HTTP 400: 该标的该周期无数据（${req.symbol} ${req.period}）`,
+          'range_empty',
+          {
+            symbol: req.symbol,
+            period: req.period,
+            requested_from: new Date(fromMs).toISOString(),
+            requested_to: new Date(toMs).toISOString(),
+            available_from: null,
+            available_to: null,
+          },
+        );
+      }
+      const effFromMs = Math.max(fromMs, availableFromMs);
+      const effToMs = Math.min(toMs, availableToMs);
+      if (effFromMs >= effToMs) {
+        throw new ApiError(
+          400,
+          `HTTP 400: 请求区间与可得区间无交集（${req.symbol} ${req.period} 可用区间：${availableFrom} ~ ${availableTo}）`,
+          'range_empty',
+          {
+            symbol: req.symbol,
+            period: req.period,
+            requested_from: new Date(fromMs).toISOString(),
+            requested_to: new Date(toMs).toISOString(),
+            available_from: availableFrom,
+            available_to: availableTo,
+          },
+        );
+      }
+      const clamped = effFromMs !== fromMs || effToMs !== toMs;
+      const clampReason = clamped ? 'data_range' : null;
+      // D12 预估（count 同义）+ D1 资源护栏（阈值 = 后端常量镜像；`confirm` 语义同上）。
+      const periodMs = MOCK_PERIOD_MS[req.period] ?? 60_000;
+      const estimatedBars = Math.max(0, Math.floor((effToMs - effFromMs) / periodMs));
+      const estimatedSecs = Math.round((0.85 + estimatedBars * 6.25e-4) * 1000) / 1000;
+      if (estimatedBars > MOCK_MAX_BARS_GUARD || (estimatedBars >= MOCK_GUARD_CONFIRM_BARS && req.confirm !== true)) {
+        const hard = estimatedBars > MOCK_MAX_BARS_GUARD;
+        throw new ApiError(
+          400,
+          hard
+            ? `HTTP 400: 预估 ${estimatedBars} 根 bar 超过硬上界 ${MOCK_MAX_BARS_GUARD} 根（资源护栏；不可放行）`
+            : `HTTP 400: 预估 ${estimatedBars} 根 bar（≈${estimatedSecs.toFixed(1)} 秒）达到二次确认阈值 ${MOCK_GUARD_CONFIRM_BARS} 根；如仍要提交，带 confirm=true 重提`,
+          'resource_guard',
+          {
+            symbol: req.symbol,
+            period: req.period,
+            requested_bars: estimatedBars,
+            limit_bars: MOCK_MAX_BARS_GUARD,
+            confirm_bars: MOCK_GUARD_CONFIRM_BARS,
+            estimated_secs: estimatedSecs,
+            confirmable: !hard,
+            available_from: availableFrom,
+            available_to: availableTo,
+          },
         );
       }
       if (req.versionId && !strategyStore.versions.some((x) => x.id === req.versionId)) {
@@ -1456,11 +1647,12 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       const code = req.code ?? strategyStore.versions.find((x) => x.id === req.versionId)!.code;
       if (!code.includes('on_bar')) throw new ApiError(400, 'HTTP 400: 插件缺少 on_bar');
       // 确定性评分序列（由 code+symbol 哈希驱动，30 点），sim_position 补信号/成交/事件
+      // ADR-024 P5/D11：序列在**生效区间**上生成（试算与工作台同口径）；预估点数超出 30 ⇒ `downsampled`。
       const seed = `${code.length}:${req.symbol}`;
-      const n = 30;
-      const step = Math.max(60, Math.floor((toMs - fromMs) / 1000 / n));
+      const n = MOCK_SCORE_POINTS;
+      const step = Math.max(60, Math.floor((effToMs - effFromMs) / 1000 / n));
       const scores = Array.from({ length: n }, (_, i) => ({
-        ts: Math.floor(fromMs / 1000) + i * step,
+        ts: Math.floor(effFromMs / 1000) + i * step,
         score: Math.round(rand01(`${seed}:${i}`) * 100),
       }));
       const signals = req.mode === 'sim_position'
@@ -1484,6 +1676,16 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         trades,
         events,
         truncated: { scores: false, events: false, trades: false },
+        // ── ADR-024 P5 §3.1（回显面，与后端同口径；`clamp.echo_fields` 全覆盖）──
+        downsampled: estimatedBars > n,
+        original_points: estimatedBars,
+        requested_from: new Date(fromMs).toISOString(),
+        requested_to: new Date(toMs).toISOString(),
+        effective_from: new Date(effFromMs).toISOString(),
+        effective_to: new Date(effToMs).toISOString(),
+        clamped,
+        clamp_reason: clampReason,
+        estimated_bars: estimatedBars,
       };
     },
     // ── 页面⑪ 回测工作台（§1.8；mock 行为与后端契约同构）──
@@ -1494,8 +1696,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       if (!symbols.some((s) => s.code === req.symbol)) {
         throw new ApiError(400, `HTTP 400: symbol ${req.symbol} 未注册`);
       }
-      if (!['M1', 'M5', 'M15', 'D1'].includes(req.period)) {
-        throw new ApiError(400, 'HTTP 400: period 须为 M1/M5/M15/D1');
+      if (!(SUPPORTED_BACKTEST_PERIODS as readonly string[]).includes(req.period)) {
+        throw new ApiError(400, `HTTP 400: period 须为 ${SUPPORTED_BACKTEST_PERIODS.join('/')}`);
       }
       const fromMs = Date.parse(req.from);
       const toMs = Date.parse(req.to);
@@ -1568,9 +1770,38 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         created_at: nowIso,
         started_at: nowIso,
         finished_at: nowIso,
+        // ADR-024 P5：mock 无收缩（可再用 over 覆盖）；预估值 = 预期 bar 数（M1 逐分钟）。
+        requested_from: new Date(fromMs).toISOString(),
+        requested_to: new Date(toMs).toISOString(),
+        clamped: false,
+        clamp_reason: null,
+        estimated_bars: Math.max(0, Math.floor((toMs - fromMs) / 60_000)),
+        bars_total: null,
+        result_format: 'chunked_v1',
       };
-      workbenchRuns.set(id, { view, result: mockWorkbenchResult(id, config, fromMs, toMs) });
+      workbenchRuns.set(id, {
+        view,
+        result: mockWorkbenchResult(id, config, fromMs, toMs, workbenchResultBars),
+        // 新提交 run = `chunked_v1`（与后端 `mark_succeeded` 新语义同口径）。
+        format: 'chunked_v1',
+      });
       return { ...view };
+    },
+    async getWorkbenchAvailableRange(symbol: string, period: string): Promise<WorkbenchAvailableRange> {
+      // ADR-024 P5 §5.2：与后端同构（symbol/period 校验；无数据 → null）。
+      if (!symbol.trim()) throw new ApiError(400, 'HTTP 400: symbol 必填');
+      if (!(SUPPORTED_BACKTEST_PERIODS as readonly string[]).includes(period)) {
+        throw new ApiError(400, `HTTP 400: period 须为 ${SUPPORTED_BACKTEST_PERIODS.join('/')}`);
+      }
+      if (!symbols.some((s) => s.code === symbol)) {
+        return { symbol, period, available_from: null, available_to: null };
+      }
+      return {
+        symbol,
+        period,
+        available_from: new Date(anchorNow - 90 * 86_400_000).toISOString(),
+        available_to: new Date(anchorNow).toISOString(),
+      };
     },
     async listWorkbenchRuns(filter?: {
       status?: WorkbenchRunStatus;
@@ -1595,7 +1826,81 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       if (!r || r.view.status !== 'succeeded' || !r.result) {
         throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
       }
-      return r.result;
+      // ADR-024 §3.2 兼容：legacy ⇒ 三列全量；chunked ⇒ summary + 首页 per_bar + has_more/next_offset。
+      if (r.format === 'legacy_single') {
+        return { ...r.result, result_format: 'legacy_single', summary: null, has_more: false, next_offset: null };
+      }
+      const first = r.result.per_bar.slice(0, BARS_PAGE_DEFAULT);
+      const hasMore = first.length < r.result.per_bar.length;
+      return {
+        result_format: 'chunked_v1',
+        summary: mockBriefOf(r),
+        per_bar: first,
+        net_value: [],
+        drawdown: [],
+        trades: r.result.trades,
+        metrics: r.result.metrics,
+        has_more: hasMore,
+        next_offset: hasMore ? first.length : null,
+      };
+    },
+    async getWorkbenchBrief(id: string): Promise<WorkbenchResultBrief> {
+      const r = workbenchRuns.get(id);
+      if (!r) throw new ApiError(404, `HTTP 404: run ${id} 不存在`);
+      return mockBriefOf(r);
+    },
+    async getWorkbenchBars(id: string, q): Promise<WorkbenchBarsResponse> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      const kind = q?.kind ?? 'per_bar';
+      if (kind !== 'per_bar') throw new ApiError(400, 'HTTP 400: mock 仅支持 kind=per_bar');
+      if (q?.from && q?.to) {
+        const [fs, ts] = [Date.parse(q.from) / 1000, Date.parse(q.to) / 1000];
+        const bars = r.result.per_bar.filter((b) => b.ts >= fs && b.ts <= ts);
+        return { kind, bars, total: bars.length, has_more: false, next_offset: null, offset: 0, limit: 0, from: q.from, to: q.to };
+      }
+      const offset = Math.max(0, q?.offset ?? 0);
+      const limit = q?.limit ?? BARS_PAGE_DEFAULT;
+      const all = r.result.per_bar;
+      const bars = all.slice(offset, offset + limit);
+      const next = offset + bars.length;
+      const hasMore = next < all.length;
+      return {
+        kind, bars, total: all.length, has_more: hasMore,
+        next_offset: hasMore ? next : null, offset, limit,
+      };
+    },
+    async getWorkbenchCurve(id, q): Promise<WorkbenchCurveResponse> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      const k = q.k ?? CURVE_K_DEFAULT;
+      const all: unknown[] =
+        q.kind === 'per_bar' ? r.result.per_bar : q.kind === 'net_value' ? r.result.net_value : r.result.drawdown;
+      const idx = sampleIndices(all.length, k);
+      const points = idx.map((i) => all[i]);
+      return { kind: q.kind, points, downsampled: points.length < all.length, original_bars: all.length, k };
+    },
+    async getWorkbenchFills(id, q): Promise<WorkbenchFillsResponse> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      const offset = Math.max(0, q?.offset ?? 0);
+      const limit = q?.limit ?? BARS_PAGE_DEFAULT;
+      // `recorded=false` 模拟 P6 之前的 chunked run（无 fills 块）——与「无成交」（true, total=0）可区分。
+      const recorded = !(opts.workbenchFillsMissing && r.format === 'chunked_v1');
+      const all = recorded ? fillsOf(r.result.per_bar) : [];
+      const fills = all.slice(offset, offset + limit);
+      const next = offset + fills.length;
+      const hasMore = next < all.length;
+      return {
+        run_id: id, total: all.length, offset, limit, has_more: hasMore,
+        next_offset: hasMore ? next : null, recorded, fills,
+      };
     },
     async cancelWorkbenchRun(id: string): Promise<WorkbenchRunView> {
       const r = workbenchRuns.get(id);
@@ -1606,19 +1911,26 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       r.view = { ...r.view, status: 'canceled', finished_at: new Date(anchorNow).toISOString() };
       return { ...r.view };
     },
-    async compareWorkbenchRuns(ids: string[]): Promise<WorkbenchCompareItem[]> {
+    async compareWorkbenchRuns(ids: string[], k?: number): Promise<WorkbenchCompareItem[]> {
       if (ids.length === 0) throw new ApiError(400, 'HTTP 400: ids 必填（run id 数组）');
+      const kv = k ?? CURVE_K_DEFAULT;
       const out: WorkbenchCompareItem[] = [];
       for (const id of ids) {
         const r = workbenchRuns.get(id);
         if (!r || r.view.status !== 'succeeded' || !r.result) continue; // 未知/未成功跳过
+        // ADR-024 D9/D10：净值由后端**显式抽样**（禁止 N × 全量净值）。
+        const all = r.result.net_value;
+        const idx = sampleIndices(all.length, kv);
+        const sampled = idx.map((i) => all[i]!);
         out.push({
           run_id: id,
           name: r.view.name,
           symbol: r.view.symbol,
           period: r.view.period,
-          net_value: r.result.net_value,
+          net_value: sampled,
           metrics: r.result.metrics,
+          downsampled: sampled.length < all.length,
+          original_bars: all.length,
         });
       }
       return out;

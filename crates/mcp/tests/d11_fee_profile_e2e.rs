@@ -50,6 +50,7 @@ fn request(symbol: &str, from: DateTime<Utc>, to: DateTime<Utc>, fee: Option<ser
         fee,
         policy: json!({"LumpSum": {"position_pct": 1.0}}),
         initial_capital: 100_000.0,
+        confirm: false,
     }
 }
 
