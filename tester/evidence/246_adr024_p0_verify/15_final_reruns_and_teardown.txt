@@ -1,0 +1,84 @@
+### 15 — P0 定向测试最终复跑（复原后工作区） @ 2026-09-18T12:52:10+08:00
+$ cargo test -p backtest --lib
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+$ cargo test -p application --test backtest_periods_ssot
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+$ cargo test -p mcp --test adr024_period_ssot_drift
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+$ cargo test -p web --test adr024_workbench_period_ssot
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+
+### 16 — 前端 P0 定向测试最终复跑 @ 2026-09-18T12:52:12+08:00
+$ npx vitest run src/features/backtest/periods.test.ts src/features/backtest/format.test.ts src/api/mock.test.ts src/features/workbench/ConfigPanel.test.tsx src/features/strategies/TestRunPanel.test.tsx
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/backtest/format.test.ts (9 tests) 3ms
+ ✓ src/api/mock.test.ts (46 tests) 40ms
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 171ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 711ms
+
+ Test Files  5 passed (5)
+      Tests  77 passed (77)
+   Start at  12:52:13
+   Duration  1.27s (transform 223ms, setup 177ms, collect 396ms, tests 927ms, environment 833ms, prepare 608ms)
+
+
+### 17 — 线上服务最终健康 + 零足迹门禁探针（M30 过门禁但 symbol 空 ⇒ 400 symbol 必填） @ 2026-09-18T12:52:14+08:00
+online pid=4083225  exe sha=f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc  (must equal target/debug/eestock-app: f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc)
+{"status":"ok"}
+HTTP=200
+{"error":"symbol 必填"}
+HTTP=400
+(期望 400 symbol 必填 ⇒ 证明 M30 未在 period 门禁被拒，且未产生任何 run)
+
+### 18 — 收尾：残留 run 计数 + 库清单（ADR-025 D3 正向断言）
+strategy_run name LIKE 'ADR024-P0-verify-%' count = 0
+strategy_run 总行数 = 374
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+库数 = 2  (期望 2)
+
+### 19 — 工作区终态（必须与 worker 交付一致，仅 2 处既有未 staged 文件）
+M  crates/application/src/bar_map.rs
+M  crates/application/src/simlive.rs
+M  crates/application/src/strategy.rs
+A  crates/application/tests/backtest_periods_ssot.rs
+M  crates/backtest/src/types.rs
+M  crates/domain/src/ports.rs
+M  crates/mcp/src/tools.rs
+A  crates/mcp/tests/adr024_period_ssot_drift.rs
+M  crates/storage/src/backtest.rs
+M  crates/web/src/workbench.rs
+A  crates/web/tests/adr024_workbench_period_ssot.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M  design/02-domain/contracts.md
+M  design/07-app-plane/01-mcp.md
+M  web/src/api/mock.test.ts
+M  web/src/api/mock.ts
+M  web/src/api/types.ts
+M  web/src/features/backtest/format.test.ts
+M  web/src/features/backtest/format.ts
+A  web/src/features/backtest/periods.ts
+M  web/src/features/strategies/TestRunPanel.test.tsx
+M  web/src/features/strategies/TestRunPanel.tsx
+M  web/src/features/workbench/ConfigPanel.test.tsx
+M  web/src/features/workbench/ConfigPanel.tsx
+?? design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md
+?? design/16-backtest-scalability/
+?? web/src/features/backtest/periods.test.ts
+---
+ design/01-architecture/adr/ADR-023-period-set-extension-30m.md | 7 ++++++-
+ docker-compose.yml                                             | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)

@@ -1,0 +1,988 @@
+# ===== ADR-024 P1 规模曲线：改造前基线（run_scale.sh） =====
+# date_utc      : 2026-09-18T05:22:52Z
+# engine_commit : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# binary        : /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness
+# binary_sha256 : 92311e82079d1eec3a2733ba759cb3e682f933f9535183892d672802afc08e7e
+# cargo_locked  : tester/harness/adr024_harness/Cargo.lock
+# data          : /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl (200000 bars, 20M)
+# data_sha256   : 0c5598203a1965c4ef9f274fc4587d6bade39425bf9315e4744722eed1f45150
+# cpu           : 16 cores; AMD Ryzen 7 9700X 8-Core Processor
+# mem           : 47758 MB total, 14495 MB available
+# timeout       : per single run 600s (timeout -k 5)
+# measurement   : /usr/bin/time -v (外部墙钟/CPU/峰值 RSS) + harness 内部墙钟 + 计数分配器 (allocs/bytes)
+
+### —— 系列 A：真实参考插件 dual_ma(fast=5,slow=20)（生产插件字节）——
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1 
+POINT tag=dual_ma_n1000_s1 plugin=dual_ma bars=1000 slots=1 warmup=0 rep=1 wall_ms=3 wall_s=0.003 bars_per_s=291197.1 peak_rss_kb=23044 allocs=19156 alloc_bytes=770234 deallocs=18038 reallocs=22 trades=29 per_bar=1000 load_ms=5
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23044
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5416
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1 
+POINT tag=dual_ma_n1000_s1 plugin=dual_ma bars=1000 slots=1 warmup=0 rep=1 wall_ms=3 wall_s=0.003 bars_per_s=293433.3 peak_rss_kb=23232 allocs=19156 alloc_bytes=770234 deallocs=18038 reallocs=22 trades=29 per_bar=1000 load_ms=4
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23232
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5416
+	Voluntary context switches: 3
+	Involuntary context switches: 2
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1 
+POINT tag=dual_ma_n1000_s1 plugin=dual_ma bars=1000 slots=1 warmup=0 rep=1 wall_ms=3 wall_s=0.003 bars_per_s=292669.8 peak_rss_kb=23204 allocs=19156 alloc_bytes=770234 deallocs=18038 reallocs=22 trades=29 per_bar=1000 load_ms=4
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 1 --repeat 1 --tag dual_ma_n1000_s1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 87%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23204
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5418
+	Voluntary context switches: 3
+	Involuntary context switches: 2
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3 
+POINT tag=dual_ma_n1000_s3 plugin=dual_ma bars=1000 slots=3 warmup=0 rep=1 wall_ms=9 wall_s=0.010 bars_per_s=103927.2 peak_rss_kb=23280 allocs=51216 alloc_bytes=1673006 deallocs=50098 reallocs=36 trades=29 per_bar=1000 load_ms=4
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 92%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.01
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23280
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5481
+	Voluntary context switches: 3
+	Involuntary context switches: 3
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3 
+POINT tag=dual_ma_n1000_s3 plugin=dual_ma bars=1000 slots=3 warmup=0 rep=1 wall_ms=9 wall_s=0.010 bars_per_s=100925.2 peak_rss_kb=23032 allocs=51216 alloc_bytes=1673006 deallocs=50098 reallocs=36 trades=29 per_bar=1000 load_ms=5
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 93%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.01
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23032
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5483
+	Voluntary context switches: 3
+	Involuntary context switches: 3
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3 
+POINT tag=dual_ma_n1000_s3 plugin=dual_ma bars=1000 slots=3 warmup=0 rep=1 wall_ms=9 wall_s=0.010 bars_per_s=101459.5 peak_rss_kb=23292 allocs=51216 alloc_bytes=1673006 deallocs=50098 reallocs=36 trades=29 per_bar=1000 load_ms=4
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 1000 --slots 3 --repeat 1 --tag dual_ma_n1000_s3"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.01
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23292
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5483
+	Voluntary context switches: 2
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1 
+POINT tag=dual_ma_n5000_s1 plugin=dual_ma bars=5000 slots=1 warmup=0 rep=1 wall_ms=16 wall_s=0.016 bars_per_s=303974.8 peak_rss_kb=23464 allocs=95617 alloc_bytes=4119930 deallocs=90038 reallocs=32 trades=144 per_bar=5000 load_ms=6
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23464
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5763
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1 
+POINT tag=dual_ma_n5000_s1 plugin=dual_ma bars=5000 slots=1 warmup=0 rep=1 wall_ms=16 wall_s=0.016 bars_per_s=310729.7 peak_rss_kb=23468 allocs=95617 alloc_bytes=4119930 deallocs=90038 reallocs=32 trades=144 per_bar=5000 load_ms=7
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 95%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23468
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5764
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1 
+POINT tag=dual_ma_n5000_s1 plugin=dual_ma bars=5000 slots=1 warmup=0 rep=1 wall_ms=16 wall_s=0.017 bars_per_s=295202.1 peak_rss_kb=23492 allocs=95617 alloc_bytes=4119930 deallocs=90038 reallocs=32 trades=144 per_bar=5000 load_ms=6
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 1 --repeat 1 --tag dual_ma_n5000_s1"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 95%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23492
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5764
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3 
+POINT tag=dual_ma_n5000_s3 plugin=dual_ma bars=5000 slots=3 warmup=0 rep=1 wall_ms=49 wall_s=0.049 bars_per_s=101871.5 peak_rss_kb=23460 allocs=255677 alloc_bytes=8542702 deallocs=250098 reallocs=46 trades=144 per_bar=5000 load_ms=6
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3"
+	User time (seconds): 0.05
+	System time (seconds): 0.00
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23460
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5967
+	Voluntary context switches: 3
+	Involuntary context switches: 5
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3 
+POINT tag=dual_ma_n5000_s3 plugin=dual_ma bars=5000 slots=3 warmup=0 rep=1 wall_ms=47 wall_s=0.048 bars_per_s=104347.7 peak_rss_kb=23364 allocs=255677 alloc_bytes=8542702 deallocs=250098 reallocs=46 trades=144 per_bar=5000 load_ms=7
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3"
+	User time (seconds): 0.05
+	System time (seconds): 0.00
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23364
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5969
+	Voluntary context switches: 3
+	Involuntary context switches: 6
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3 
+POINT tag=dual_ma_n5000_s3 plugin=dual_ma bars=5000 slots=3 warmup=0 rep=1 wall_ms=47 wall_s=0.048 bars_per_s=104974.5 peak_rss_kb=23464 allocs=255677 alloc_bytes=8542702 deallocs=250098 reallocs=46 trades=144 per_bar=5000 load_ms=6
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 5000 --slots 3 --repeat 1 --tag dual_ma_n5000_s3"
+	User time (seconds): 0.04
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23464
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5968
+	Voluntary context switches: 3
+	Involuntary context switches: 6
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1 
+POINT tag=dual_ma_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=64 wall_s=0.065 bars_per_s=307996.3 peak_rss_kb=24132 allocs=382634 alloc_bytes=16509690 deallocs=360038 reallocs=41 trades=648 per_bar=20000 load_ms=12
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1"
+	User time (seconds): 0.07
+	System time (seconds): 0.00
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24132
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7031
+	Voluntary context switches: 3
+	Involuntary context switches: 3
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1 
+POINT tag=dual_ma_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=64 wall_s=0.064 bars_per_s=311085.5 peak_rss_kb=24000 allocs=382634 alloc_bytes=16509690 deallocs=360038 reallocs=41 trades=648 per_bar=20000 load_ms=11
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1"
+	User time (seconds): 0.07
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24000
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7030
+	Voluntary context switches: 3
+	Involuntary context switches: 5
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1 
+POINT tag=dual_ma_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=64 wall_s=0.064 bars_per_s=310639.2 peak_rss_kb=24252 allocs=382634 alloc_bytes=16509690 deallocs=360038 reallocs=41 trades=648 per_bar=20000 load_ms=11
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag dual_ma_n20000_s1"
+	User time (seconds): 0.07
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24252
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7032
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3 
+POINT tag=dual_ma_n20000_s3 plugin=dual_ma bars=20000 slots=3 warmup=0 rep=1 wall_ms=195 wall_s=0.196 bars_per_s=102217.8 peak_rss_kb=24028 allocs=1022694 alloc_bytes=34132462 deallocs=1000098 reallocs=55 trades=648 per_bar=20000 load_ms=11
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3"
+	User time (seconds): 0.20
+	System time (seconds): 0.00
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.20
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24028
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7713
+	Voluntary context switches: 3
+	Involuntary context switches: 19
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3 
+POINT tag=dual_ma_n20000_s3 plugin=dual_ma bars=20000 slots=3 warmup=0 rep=1 wall_ms=201 wall_s=0.202 bars_per_s=99150.8 peak_rss_kb=24000 allocs=1022694 alloc_bytes=34132462 deallocs=1000098 reallocs=55 trades=648 per_bar=20000 load_ms=12
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3"
+	User time (seconds): 0.20
+	System time (seconds): 0.00
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24000
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7718
+	Voluntary context switches: 3
+	Involuntary context switches: 9
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3 
+POINT tag=dual_ma_n20000_s3 plugin=dual_ma bars=20000 slots=3 warmup=0 rep=1 wall_ms=188 wall_s=0.189 bars_per_s=105963.5 peak_rss_kb=24168 allocs=1022694 alloc_bytes=34132462 deallocs=1000098 reallocs=55 trades=648 per_bar=20000 load_ms=12
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 3 --repeat 1 --tag dual_ma_n20000_s3"
+	User time (seconds): 0.19
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.20
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24168
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7714
+	Voluntary context switches: 3
+	Involuntary context switches: 6
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1 
+POINT tag=dual_ma_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=1 wall_ms=164 wall_s=0.165 bars_per_s=303735.4 peak_rss_kb=25540 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=23
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1"
+	User time (seconds): 0.18
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 25540
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 9572
+	Voluntary context switches: 3
+	Involuntary context switches: 4
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1 
+POINT tag=dual_ma_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=1 wall_ms=165 wall_s=0.165 bars_per_s=302915.8 peak_rss_kb=25308 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=23
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1"
+	User time (seconds): 0.18
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 25308
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 9572
+	Voluntary context switches: 3
+	Involuntary context switches: 7
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1 
+POINT tag=dual_ma_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=1 wall_ms=167 wall_s=0.168 bars_per_s=297938.3 peak_rss_kb=25576 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=22
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 1 --repeat 1 --tag dual_ma_n50000_s1"
+	User time (seconds): 0.18
+	System time (seconds): 0.00
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 25576
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 9567
+	Voluntary context switches: 3
+	Involuntary context switches: 5
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3 
+POINT tag=dual_ma_n50000_s3 plugin=dual_ma bars=50000 slots=3 warmup=0 rep=1 wall_ms=484 wall_s=0.485 bars_per_s=103121.8 peak_rss_kb=27712 allocs=2556673 alloc_bytes=83617326 deallocs=2500098 reallocs=59 trades=1643 per_bar=50000 load_ms=23
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3"
+	User time (seconds): 0.50
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.51
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 27532
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 11172
+	Voluntary context switches: 3
+	Involuntary context switches: 7
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3 
+POINT tag=dual_ma_n50000_s3 plugin=dual_ma bars=50000 slots=3 warmup=0 rep=1 wall_ms=486 wall_s=0.487 bars_per_s=102693.7 peak_rss_kb=27756 allocs=2556673 alloc_bytes=83617326 deallocs=2500098 reallocs=59 trades=1643 per_bar=50000 load_ms=23
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3"
+	User time (seconds): 0.50
+	System time (seconds): 0.01
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.51
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 27324
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 11172
+	Voluntary context switches: 3
+	Involuntary context switches: 17
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3 
+POINT tag=dual_ma_n50000_s3 plugin=dual_ma bars=50000 slots=3 warmup=0 rep=1 wall_ms=480 wall_s=0.480 bars_per_s=104161.2 peak_rss_kb=27740 allocs=2556673 alloc_bytes=83617326 deallocs=2500098 reallocs=59 trades=1643 per_bar=50000 load_ms=23
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 50000 --slots 3 --repeat 1 --tag dual_ma_n50000_s3"
+	User time (seconds): 0.49
+	System time (seconds): 0.00
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.50
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 27528
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 11175
+	Voluntary context switches: 3
+	Involuntary context switches: 9
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1 
+POINT tag=dual_ma_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=632 wall_s=0.633 bars_per_s=316004.2 peak_rss_kb=69704 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=76
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1"
+	User time (seconds): 0.70
+	System time (seconds): 0.01
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 69512
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21683
+	Voluntary context switches: 3
+	Involuntary context switches: 11
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1 
+POINT tag=dual_ma_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=610 wall_s=0.611 bars_per_s=327332.9 peak_rss_kb=69780 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=77
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1"
+	User time (seconds): 0.68
+	System time (seconds): 0.01
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.69
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 69212
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21684
+	Voluntary context switches: 3
+	Involuntary context switches: 21
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1 
+POINT tag=dual_ma_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=614 wall_s=0.614 bars_per_s=325588.4 peak_rss_kb=69776 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=79
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag dual_ma_n200000_s1"
+	User time (seconds): 0.68
+	System time (seconds): 0.01
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 69472
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21684
+	Voluntary context switches: 3
+	Involuntary context switches: 11
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3 
+POINT tag=dual_ma_n200000_s3 plugin=dual_ma bars=200000 slots=3 warmup=0 rep=1 wall_ms=1922 wall_s=1.922 bars_per_s=104054.3 peak_rss_kb=92864 allocs=10213836 alloc_bytes=330589294 deallocs=10000098 reallocs=64 trades=2442 per_bar=200000 load_ms=76
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3"
+	User time (seconds): 1.98
+	System time (seconds): 0.02
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 92364
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 27464
+	Voluntary context switches: 3
+	Involuntary context switches: 49
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3 
+POINT tag=dual_ma_n200000_s3 plugin=dual_ma bars=200000 slots=3 warmup=0 rep=1 wall_ms=1889 wall_s=1.890 bars_per_s=105837.4 peak_rss_kb=92908 allocs=10213836 alloc_bytes=330589294 deallocs=10000098 reallocs=64 trades=2442 per_bar=200000 load_ms=76
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3"
+	User time (seconds): 1.95
+	System time (seconds): 0.01
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.97
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 92392
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 27465
+	Voluntary context switches: 3
+	Involuntary context switches: 39
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3 
+POINT tag=dual_ma_n200000_s3 plugin=dual_ma bars=200000 slots=3 warmup=0 rep=1 wall_ms=1881 wall_s=1.881 bars_per_s=106300.6 peak_rss_kb=92896 allocs=10213836 alloc_bytes=330589294 deallocs=10000098 reallocs=64 trades=2442 per_bar=200000 load_ms=79
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 3 --repeat 1 --tag dual_ma_n200000_s3"
+	User time (seconds): 1.94
+	System time (seconds): 0.02
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 92428
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 27463
+	Voluntary context switches: 3
+	Involuntary context switches: 31
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+### —— 系列 B：隔离探针 constant_score（无指标调用；把成本归因到「每 bar 上下文构造 + 历史复制」）——
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=53 wall_s=0.054 bars_per_s=372828.5 peak_rss_kb=24116 allocs=380035 alloc_bytes=15790734 deallocs=360032 reallocs=20 trades=0 per_bar=20000 load_ms=11
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.05
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.06
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24116
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7019
+	Voluntary context switches: 3
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=52 wall_s=0.053 bars_per_s=380070.2 peak_rss_kb=24196 allocs=380035 alloc_bytes=15790734 deallocs=360032 reallocs=20 trades=0 per_bar=20000 load_ms=12
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.05
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.06
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24196
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7023
+	Voluntary context switches: 3
+	Involuntary context switches: 2
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n20000_s1 plugin=dual_ma bars=20000 slots=1 warmup=0 rep=1 wall_ms=53 wall_s=0.053 bars_per_s=376696.9 peak_rss_kb=24112 allocs=380035 alloc_bytes=15790734 deallocs=360032 reallocs=20 trades=0 per_bar=20000 load_ms=12
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 20000 --slots 1 --repeat 1 --tag ctrl_n20000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.06
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.06
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 24112
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7024
+	Voluntary context switches: 3
+	Involuntary context switches: 7
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=553 wall_s=0.553 bars_per_s=361363.1 peak_rss_kb=67116 allocs=3800035 alloc_bytes=151570830 deallocs=3600032 reallocs=23 trades=0 per_bar=200000 load_ms=78
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.62
+	System time (seconds): 0.01
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.64
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 66588
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21011
+	Voluntary context switches: 3
+	Involuntary context switches: 11
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=535 wall_s=0.535 bars_per_s=373813.8 peak_rss_kb=67056 allocs=3800035 alloc_bytes=151570830 deallocs=3600032 reallocs=23 trades=0 per_bar=200000 load_ms=78
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.60
+	System time (seconds): 0.02
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 66956
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21007
+	Voluntary context switches: 3
+	Involuntary context switches: 6
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+[CMD] /usr/bin/time -v timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42
+POINT tag=ctrl_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=539 wall_s=0.540 bars_per_s=370429.5 peak_rss_kb=67116 allocs=3800035 alloc_bytes=151570830 deallocs=3600032 reallocs=23 trades=0 per_bar=200000 load_ms=78
+	Command being timed: "timeout -k 5 600 /home/eestock/workspace/git/eestock/eestock-rs/target/release/adr024_harness scale --bars-file /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl --limit 200000 --slots 1 --repeat 1 --tag ctrl_n200000_s1 --plugin-file /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/tests/fixtures/constant_score.js --params score=42"
+	User time (seconds): 0.61
+	System time (seconds): 0.01
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 66612
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 21012
+	Voluntary context switches: 3
+	Involuntary context switches: 15
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+[EXIT] 0
+
+### —— 结束：改造后（P2）复跑入口为同一脚本 + raw_post.txt（见 fit.md §复跑入口）——

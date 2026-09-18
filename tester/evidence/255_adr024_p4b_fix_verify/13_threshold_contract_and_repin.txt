@@ -1,0 +1,67 @@
+### [④] 阈值与契约 —— tester 资产重钉前后 + 常量/向量绑定
+# 2026-09-18T09:53:05Z
+
+--- (0) 常量与向量（源码取证）---
+142:pub const MAX_BARS_GUARD: usize = 2_000_000;
+150:pub const GUARD_CONFIRM_BARS: usize = 500_000;
+contract-vectors.json span_limit_semantics.resource_guard = {"hard_reject": false, "requires_confirmation": true, "code": "resource_guard", "max_bars_guard": 2000000, "confirm_bars": 500000, "note": "ADR-024 D1 修订（2026-09-18 用户「按推荐」）：confirm 阈值由 200000 提到 500000（≈M1 五年）；硬上界 2000000 不变（M1 全历史≈86 万 bar ⇒ 合法请求永不触发）。两值必须与 application::error::{MAX_BARS_GUARD, GUARD_CONFIRM_BARS} 一致（防漂移断言）。"}
+
+--- (1) coder 向量绑定测试（改常量前应绿）---
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.57s
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+
+running 3 tests
+test confirm_bars_matches_contract_vector ... ok
+test guard_bars_runtime_thresholds_match_contract_vector ... ok
+test max_bars_guard_matches_contract_vector ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+--- (2) tester 资产重钉后：tester_p5_indep ④ 资源护栏 ---
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.46s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+[④] estimated=199999 ⇒ 放行（run=sr_1789725191396_000000）
+[④] code=resource_guard detail={"available_from":"2025-03-03T01:30:00+00:00","available_to":"2025-03-10T02:29:01+00:00","confirm_bars":500000,"confirmable":true,"estimated_secs":313.35,"limit_bars":2000000,"period":"M1","requested_bars":500000,"symbol":"832068"}
+[④] estimated_secs=313.35（须含每 run 固定成本项 ⇒ > 0.85s）
+[④] confirm=true ⇒ 放行（run id=sr_1789725191429_000001 status=Queued）
+[④] 落库 config.estimated_bars=500000 progress_prescan="count"
+[④] 硬拒 code=resource_guard confirmable=false message=预估 2000001 根 bar 超过硬上界 2000000 根（资源护栏；不可放行）
+test t_p5_resource_guard_thresholds_and_confirm ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.13s
+
+
+--- (3) tester 资产：旧常量文案断言 ---
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+test t_p5_old_span_cap_text_absent_in_impl ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+
+--- (4) tester 资产 ⑤ HTTP resource_guard ---
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+[⑤] 序列化={"code":"range_empty","detail":{"available_from":"2025-01-01T00:00:00Z"},"message":"无数据"}
+test t_p5_structured_error_serializes_as_object ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+

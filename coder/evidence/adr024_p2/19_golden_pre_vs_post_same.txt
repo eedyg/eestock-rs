@@ -1,0 +1,4 @@
+同类比：改造前后 golden 比对报告逐字节相同（VERDICT PASS，dev=0）
+5c181bf276a72f93a8e8473e76f0675f63d0e90ad2989a4f33c57bcfec845da2  coder/evidence/adr024_p2/00_golden_pre.txt
+5c181bf276a72f93a8e8473e76f0675f63d0e90ad2989a4f33c57bcfec845da2  coder/evidence/adr024_p2/10_golden_post.txt
+5c181bf276a72f93a8e8473e76f0675f63d0e90ad2989a4f33c57bcfec845da2  tester/evidence/240_adr024_golden_baseline/compare_report.txt

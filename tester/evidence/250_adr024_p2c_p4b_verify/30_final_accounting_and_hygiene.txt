@@ -1,0 +1,74 @@
+===== ⑨ 收尾：实验增量核算 + 现场复原 + 纪律自查 =====
+# date_utc 2026-09-18T06:29:00.335Z
+
+--- [1] pg_stat_user_tables(strategy_run) 累计（开工基线 vs 收尾；后续引用须扣除本车增量）---
+开工 (00_baseline_state.txt): 371235|2365|1992
+收尾: 382747|2378|2005
+本车 Δ 实测（逐段，见 04/05 证据）：
+  段A ①等价对照 6 run（pre-P4b 3 + 仪表 3）：371235 -> 376235  Δupd = 5000  （理论 2×2500 = 5000 ✓）
+  段B ②三档串行 3 run                        ：376235 -> 378735  Δupd = 2500  （理论 (492+2)+(1001+2)+(1001+2) = 2500 ✓）
+  段C ②并发 4×M5 3500                        ：378735 -> 382747  Δupd = 4012  （理论 4×1003 = 4012 ✓）
+  合计 Δupd = 11512（= 5000+2500+4012）；Δins = 13（13 run）；Δdel = 13（清理 13 run）
+  理论/实测**逐段精确闭合**。
+  ⇒ 后续任何引用该累计值的车道须扣除：+11,512 upd / +13 ins / +13 del（P1c +6,655、P4b-worker +6,512 为前序先例）。
+
+--- [2] 实验 run 残留（前缀 T250-）---
+T250-% 残留 run 行: 0
+孤儿结果行: 0
+strategy_run 总行数: 374 / result: 374
+
+--- [3] alert_events（我的两个实例启动各做一次告警评估；核对是否产生写入）---
+count|triggered|sum_fire_count|max_last_fired = 448|39|607|2026-09-18 06:21:42.54686+00
+  worker 收尾值(24_p4b_cleanup.txt): 446|40|605|2026-09-18 06:11:42.257861+00
+
+--- [4] 端口/进程（我的实例已停；prod 8081 未受影响）---
+LISTEN 0      128                                             0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=11)) 
+4083225 Fri Sep 18 12:47:37 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+  prod 8081 /proc/exe sha256: f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc（开工时 f4d07dcc…；未重启）
+  8081 healthz=200
+
+--- [5] 主 worktree 生产源码纪律自查（tester 未留任何改动）---
+  crates/application/src/strategy.rs                   worktree=a0a279c4ac186395 index=a0a279c4ac186395 与交付态一致
+  crates/strategy-core/src/engine.rs                   worktree=9b334eb3478001d7 index=9b334eb3478001d7 与交付态一致
+  crates/simlive/src/plugin_orchestrator.rs            worktree=d5ae4947225e05e2 index=d5ae4947225e05e2 与交付态一致
+  crates/application/tests/workbench.rs                worktree=c7e6916805b9d8a4 index=d76bf5ff3d729964 已被他车道改动
+  crates/application/src/workbench.rs: worktree=4f85ecdc7fc2b4bc index=0a5045ad1072dc0a（差异来自并发车道 ADR-024 P4，非 tester）
+
+--- [6] tester 侧产物清单 ---
+  00_baseline_state.txt
+  01_p4b_workbench_diff.txt
+  02_behavior_order_counts.txt
+  03_eq_binary_instr_sha.txt
+  03_eq_binary_prep4b_sha.txt
+  04_equivalence_prep4b_vs_instr.txt
+  05_baseline_reproduction_raw.txt
+  06_baseline_app_json_log.txt
+  07_baseline_table_parsed.txt
+  08b_observation_parent_fields.txt
+  08_observation_selfconsistency.txt
+  09_reverse_R1_tryrun_panic.txt
+  10_reverse_R2_engine_panic.txt
+  11_restore_R2_green.txt
+  12_reverse_R3_simlive_panic.txt
+  13_restore_R3_green.txt
+  14_p2c_with_history_untouched.txt
+  15_p2c_isolated_net_diff.txt
+  16_scope_and_regression_scope.txt
+  17_delivered_index_snapshot.txt
+  19_concurrent_lane_evidence.txt
+  20_nonblocked_crate_tests.txt
+  21_isolated_application_tests.txt
+  22_reverse_R1_tryrun_panic.txt
+  23_restore_R1_green.txt
+  24_concurrency_stability.txt
+  25_p4b_unit_capture.txt
+  26_isolated_workspace_tests.txt
+  27_isolated_application_tests_with_assets.txt
+  28_isolated_workspace_tests_final.txt
+  29_behavior_change_surface.txt
+  30_final_accounting_and_hygiene.txt
+  delivered_index_state
+  probe_baseline_250.sh
+  probe_equiv_250.sh
+  tester 是否 git add/commit: HEAD 未变: 18d1b9a
+（未执行任何 git add/commit）

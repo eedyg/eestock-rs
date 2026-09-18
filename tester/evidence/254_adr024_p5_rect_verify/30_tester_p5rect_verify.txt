@@ -1,0 +1,80 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+     Running tests/tester_p5rect_verify.rs (target/debug/deps/tester_p5rect_verify-ff0d5ed099fba369)
+
+running 4 tests
+[N1-静态] workbench.rs: 21 处 StatusCode::BAD_REQUEST，全部位于 structured( 调用内
+[N1-静态] strategies.rs: 1 处 StatusCode::BAD_REQUEST，全部位于 structured( 调用内
+[N1-前端] codes::ALL 全部码在 errorMessages.ts 有中文映射
+[N1-前端] 两条消费路径（workbench/store.ts、strategies/TestRunPanel.tsx）均接入 errorDisplayText
+test t_n1_frontend_code_map_covers_backend_codes ... ok
+[N1-静态] workbench.rs: 无 classify_config_error / contains / starts_with —— 零消息解析
+[N1-静态] strategies.rs: 无 classify_config_error / contains / starts_with —— 零消息解析
+[N1-静态] web 层引用码 15 个，全部在 codes::ALL（27 个）内：["CODE_REQUIRED", "FEE_INVALID", "FROM_AFTER_TO", "IDS_REQUIRED", "KIND_INVALID", "LEVEL_INVALID", "MODE_INVALID", "NAME_REQUIRED", "PERIOD_INVALID", "REQUEST_INVALID", "SLOTS_INVALID", "SOURCE_INVALID", "STATUS_INVALID", "SYMBOL_REQUIRED", "TIMESTAMP_INVALID"]
+test t_n1_static_audit ... ok
+[runs/symbol_required] code=symbol_required detail={} <<< N1-r: 无 detail.period
+[runs/period_invalid] code=period_invalid detail.period="W1"
+[runs/from_bad] code=timestamp_invalid detail={"field":"from","value":"not-a-ts"} <<< N1-r: 无 detail.period
+[runs/to_bad] code=timestamp_invalid detail={"field":"to","value":"not-a-ts"} <<< N1-r: 无 detail.period
+[runs/from_after_to] code=from_after_to detail={"from":"2025-02-01T00:00:00Z","to":"2025-01-01T00:00:00Z"} <<< N1-r: 无 detail.period
+[runs/slots_empty] code=slots_invalid detail={"got":0} <<< N1-r: 无 detail.period
+[runs/fee_invalid] code=fee_invalid detail={} <<< N1-r: 无 detail.period
+[runs/symbol_unregistered] code=symbol_unregistered detail.period="M1"
+[N3-a] 6 年 D1 有数据 ⇒ 200 bar_count=1705 clamped=false requested==effective
+[N3-b] 无交集 ⇒ 400 range_empty available=["2013-07-28T16:00:00+00:00" .. "2026-09-16T16:00:01+00:00"] message=请求区间与可得区间无交集（518880 D1 可用区间：2013-07-28T16:00:00+00:00 ~ 2026-09-16T16:00:01+00:00）
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+[runs/version_not_runnable] code=version_not_runnable detail.period="M1"
+[runs/weight_invalid] code=weight_invalid detail.period="M1"
+[runs/slot_vid_empty] code=slots_invalid detail.period="M1"
+[runs/policy_invalid] code=policy_invalid detail.period="M1"
+[runs/stop_invalid] code=stop_invalid detail.period="M1"
+[runs/threshold_invalid] code=threshold_invalid detail.period="M1"
+[runs/capital_invalid] code=capital_invalid detail.period="M1"
+[runs/params_invalid] code=params_invalid detail.period="M1"
+[runs/range_empty] code=range_empty detail.period="M1"
+[runs/resource_guard(confirm=false)] code=resource_guard detail.period="M1"
+[available_range/symbol_required] code=symbol_required detail={}
+[available_range/period_invalid] code=period_invalid detail={"period":"W1"}
+[list_runs/status_invalid] code=status_invalid detail={"status":"bogus"}
+[bars/kind_invalid] code=kind_invalid detail={}
+[curve/kind_invalid] code=kind_invalid detail={}
+[bars/paging_and_range] code=request_invalid detail={}
+[bars/range_missing_to] code=request_invalid detail={}
+[bars/from_bad] code=timestamp_invalid detail={"field":"from","value":"bad"}
+[bars/to_bad] code=timestamp_invalid detail={"field":"to","value":"bad"}
+[bars/from_after_to] code=from_after_to detail={"from":"2025-02-01T00:00:00Z","to":"2025-01-01T00:00:00Z"}
+[compare/ids_required] code=ids_required detail={}
+[presets/name_required] code=name_required detail={}
+[presets/put_name_required] code=name_required detail={}
+[presets/config_invalid] code=config_invalid detail={}
+[strategies/level_invalid] code=level_invalid detail={"level":"bogus"}
+[strategies/kind_invalid] code=kind_invalid detail={"kind":"bogus"}
+[strategies/name_required] code=name_required detail={}
+[strategies/code_required] code=code_required detail={}
+[strategies/create_kind_invalid] code=kind_invalid detail={"kind":"bogus"}
+[strategies/manage_kind_invalid] code=kind_invalid detail={"kind":"bogus"}
+[strategies/draft_source_invalid] code=source_invalid detail={}
+[strategies/update_code_required] code=code_required detail={}
+[strategies/diff_missing_params] code=request_invalid detail={}
+[test-run/source_invalid] code=source_invalid detail={} <<< N1-r: 无 detail.period
+[test-run/symbol_required] code=symbol_required detail={} <<< N1-r: 无 detail.period
+[test-run/mode_invalid] code=mode_invalid detail={"mode":"bogus"} <<< N1-r: 无 detail.period
+[test-run/from_bad] code=timestamp_invalid detail={"field":"from","value":"bad"} <<< N1-r: 无 detail.period
+[test-run/to_bad] code=timestamp_invalid detail={"field":"to","value":"bad"} <<< N1-r: 无 detail.period
+[test-run/from_after_to] code=from_after_to detail={"from":"2021-01-01T00:00:00Z","to":"2020-01-01T00:00:00Z"} <<< N1-r: 无 detail.period
+[test-run/period_invalid] code=period_invalid detail.period="W1"
+[test-run/code_invalid] code=code_invalid detail.period="D1"
+[test-run/policy_invalid] code=policy_invalid detail.period="D1"
+[test-run/capital_invalid] code=capital_invalid detail.period="D1"
+[test-run/range_empty] code=range_empty detail.period="D1"
+[test-run/resource_guard(confirm=false)] code=resource_guard detail.period="M1"
+[N1-HTTP] 53 条 400 用例全部结构化（error 为对象 + code + message + detail 对象）
+[N1-HTTP] 其中 18 条（提交/试算）回显 detail.period
+[N1-r] web 层早退 400（无 detail.period）12 条：["runs/symbol_required(symbol_required)", "runs/from_bad(timestamp_invalid)", "runs/to_bad(timestamp_invalid)", "runs/from_after_to(from_after_to)", "runs/slots_empty(slots_invalid)", "runs/fee_invalid(fee_invalid)", "test-run/source_invalid(source_invalid)", "test-run/symbol_required(symbol_required)", "test-run/mode_invalid(mode_invalid)", "test-run/from_bad(timestamp_invalid)", "test-run/to_bad(timestamp_invalid)", "test-run/from_after_to(from_after_to)"]
+[N1-HTTP] 覆盖码 27 个: ["capital_invalid", "code_invalid", "code_required", "config_invalid", "fee_invalid", "from_after_to", "ids_required", "kind_invalid", "level_invalid", "mode_invalid", "name_required", "params_invalid", "period_invalid", "policy_invalid", "range_empty", "request_invalid", "resource_guard", "slots_invalid", "source_invalid", "status_invalid", "stop_invalid", "symbol_required", "symbol_unregistered", "threshold_invalid", "timestamp_invalid", "version_not_runnable", "weight_invalid"]
+[N1-guard] 提交路径 confirm=true ⇒ 201 run="sr_1789722757705_000000"
+[N1-guard] 试算路径 confirm=true ⇒ 200 bar_count=292342
+test t_n1_http_every_400_is_structured_object ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.63s
+

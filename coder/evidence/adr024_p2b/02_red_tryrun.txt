@@ -1,0 +1,21 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+
+running 2 tests
+test tryrun_per_bar_allocation_does_not_grow_with_index ... P2b-tryrun alloc/bar（bytes）: n=2000 50474.7 → n=4000 98470.0 (ratio=1.951)
+
+thread 'tryrun_per_bar_allocation_does_not_grow_with_index' (91279) panicked at crates/application/tests/adr024_p2b_tryrun.rs:352:5:
+每 bar 分配字节不得随 index 增长：n=2000 50474.7 B/bar vs n=4000 98470.0 B/bar （ratio=1.951；改造前每 bar 复制 bars[..=index] 使该比值 ≈2.0）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test tryrun_pure_score_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+failures:
+    tryrun_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
+
+error: test failed, to rerun pass `-p application --test adr024_p2b_tryrun`

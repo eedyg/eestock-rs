@@ -1,0 +1,192 @@
+=== 04-A: git diff --cached --name-only (FULL, freeze surface) 2026-09-18T13:03:47+08:00 ===
+$ git diff --cached --name-only | wc -l
+55
+
+coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+coder/evidence/adr024_p0_m30/11_red_frontend.txt
+coder/evidence/adr024_p0_m30/12_green_frontend.txt
+coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+coder/evidence/adr024_p0_m30/16_frontend_build.txt
+coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+coder/evidence/adr024_p0_m30/20_tangle_check.txt
+coder/evidence/adr024_p0_m30/21_frontend_final.txt
+coder/evidence/adr024_p0_m30/22_backend_final.txt
+coder/report/adr024_p0_m30.md
+coder/report/adr024_p0_rectification.md
+crates/application/src/bar_map.rs
+crates/application/src/simlive.rs
+crates/application/src/strategy.rs
+crates/application/tests/backtest_periods_ssot.rs
+crates/backtest/src/types.rs
+crates/domain/src/ports.rs
+crates/mcp/src/tools.rs
+crates/mcp/tests/adr024_period_ssot_drift.rs
+crates/storage/src/backtest.rs
+crates/web/src/workbench.rs
+crates/web/tests/adr024_workbench_period_ssot.rs
+design/02-domain/contracts.md
+design/07-app-plane/01-mcp.md
+design/16-backtest-scalability/01-adr.md
+design/16-backtest-scalability/02-spec.md
+design/16-backtest-scalability/03-test-plan.md
+design/16-backtest-scalability/04-implementation-plan.md
+design/16-backtest-scalability/contract-vectors.json
+web/src/api/mock.test.ts
+web/src/api/mock.ts
+web/src/api/types.ts
+web/src/features/backtest/format.test.ts
+web/src/features/backtest/format.ts
+web/src/features/backtest/periods.test.ts
+web/src/features/backtest/periods.ts
+web/src/features/strategies/TestRunPanel.test.tsx
+web/src/features/strategies/TestRunPanel.tsx
+web/src/features/workbench/ConfigPanel.test.tsx
+web/src/features/workbench/ConfigPanel.tsx
+
+--- A.2 category counts ---
+coder/**              : 26
+design/16-.../**      : 5
+design/02-domain/     : 1
+design/07-app-plane/  : 1
+design/ (other)       : 0
+crates/**             : 11
+web/**                : 11
+other                 : 0
+
+--- A.3 design/ files in index (full) ---
+M	design/02-domain/contracts.md
+M	design/07-app-plane/01-mcp.md
+A	design/16-backtest-scalability/01-adr.md
+A	design/16-backtest-scalability/02-spec.md
+A	design/16-backtest-scalability/03-test-plan.md
+A	design/16-backtest-scalability/04-implementation-plan.md
+A	design/16-backtest-scalability/contract-vectors.json
+
+--- A.4 name-status of everything ---
+A	coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+A	coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+A	coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+A	coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+A	coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+A	coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+A	coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+A	coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+A	coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+A	coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+A	coder/evidence/adr024_p0_m30/11_red_frontend.txt
+A	coder/evidence/adr024_p0_m30/12_green_frontend.txt
+A	coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+A	coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+A	coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+A	coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+A	coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+A	coder/evidence/adr024_p0_m30/16_frontend_build.txt
+A	coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+A	coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+A	coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+A	coder/evidence/adr024_p0_m30/20_tangle_check.txt
+A	coder/evidence/adr024_p0_m30/21_frontend_final.txt
+A	coder/evidence/adr024_p0_m30/22_backend_final.txt
+A	coder/report/adr024_p0_m30.md
+A	coder/report/adr024_p0_rectification.md
+M	crates/application/src/bar_map.rs
+M	crates/application/src/simlive.rs
+M	crates/application/src/strategy.rs
+A	crates/application/tests/backtest_periods_ssot.rs
+M	crates/backtest/src/types.rs
+M	crates/domain/src/ports.rs
+M	crates/mcp/src/tools.rs
+A	crates/mcp/tests/adr024_period_ssot_drift.rs
+M	crates/storage/src/backtest.rs
+M	crates/web/src/workbench.rs
+A	crates/web/tests/adr024_workbench_period_ssot.rs
+M	design/02-domain/contracts.md
+M	design/07-app-plane/01-mcp.md
+A	design/16-backtest-scalability/01-adr.md
+A	design/16-backtest-scalability/02-spec.md
+A	design/16-backtest-scalability/03-test-plan.md
+A	design/16-backtest-scalability/04-implementation-plan.md
+A	design/16-backtest-scalability/contract-vectors.json
+M	web/src/api/mock.test.ts
+M	web/src/api/mock.ts
+M	web/src/api/types.ts
+M	web/src/features/backtest/format.test.ts
+M	web/src/features/backtest/format.ts
+A	web/src/features/backtest/periods.test.ts
+A	web/src/features/backtest/periods.ts
+M	web/src/features/strategies/TestRunPanel.test.tsx
+M	web/src/features/strategies/TestRunPanel.tsx
+M	web/src/features/workbench/ConfigPanel.test.tsx
+M	web/src/features/workbench/ConfigPanel.tsx
+
+--- A.5 numstat (line counts) ---
+21	0	coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+30	0	coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+30	0	coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+14	0	coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+14	0	coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+40	0	coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+12	0	coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+4	0	coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+48	0	coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+13	0	coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+242	0	coder/evidence/adr024_p0_m30/11_red_frontend.txt
+14	0	coder/evidence/adr024_p0_m30/12_green_frontend.txt
+30	0	coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+35	0	coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+12	0	coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+10	0	coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+25	0	coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+18	0	coder/evidence/adr024_p0_m30/16_frontend_build.txt
+17	0	coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+84	0	coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+20	0	coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+1	0	coder/evidence/adr024_p0_m30/20_tangle_check.txt
+14	0	coder/evidence/adr024_p0_m30/21_frontend_final.txt
+51	0	coder/evidence/adr024_p0_m30/22_backend_final.txt
+393	0	coder/report/adr024_p0_m30.md
+718	0	coder/report/adr024_p0_rectification.md
+23	2	crates/application/src/bar_map.rs
+4	0	crates/application/src/simlive.rs
+6	4	crates/application/src/strategy.rs
+97	0	crates/application/tests/backtest_periods_ssot.rs
+18	2	crates/backtest/src/types.rs
+1	1	crates/domain/src/ports.rs
+14	9	crates/mcp/src/tools.rs
+151	0	crates/mcp/tests/adr024_period_ssot_drift.rs
+2	2	crates/storage/src/backtest.rs
+10	2	crates/web/src/workbench.rs
+180	0	crates/web/tests/adr024_workbench_period_ssot.rs
+1	1	design/02-domain/contracts.md
+14	9	design/07-app-plane/01-mcp.md
+266	0	design/16-backtest-scalability/01-adr.md
+248	0	design/16-backtest-scalability/02-spec.md
+148	0	design/16-backtest-scalability/03-test-plan.md
+143	0	design/16-backtest-scalability/04-implementation-plan.md
+46	0	design/16-backtest-scalability/contract-vectors.json
+13	1	web/src/api/mock.test.ts
+5	4	web/src/api/mock.ts
+8	3	web/src/api/types.ts
+38	1	web/src/features/backtest/format.test.ts
+7	5	web/src/features/backtest/format.ts
+39	0	web/src/features/backtest/periods.test.ts
+20	0	web/src/features/backtest/periods.ts
+20	0	web/src/features/strategies/TestRunPanel.test.tsx
+7	6	web/src/features/strategies/TestRunPanel.tsx
+20	0	web/src/features/workbench/ConfigPanel.test.tsx
+5	4	web/src/features/workbench/ConfigPanel.tsx

@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/backtest/format.test.ts (9 tests) 3ms
+ ✓ src/api/mock.test.ts (46 tests) 41ms
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 169ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 711ms
+
+ Test Files  5 passed (5)
+      Tests  77 passed (77)
+   Start at  12:41:59
+   Duration  1.24s (transform 222ms, setup 145ms, collect 416ms, tests 926ms, environment 811ms, prepare 463ms)
+

@@ -1,0 +1,50 @@
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+test t_p5_http_structured_error_shape ... FAILED
+
+failures:
+
+---- t_p5_http_structured_error_shape stdout ----
+[⑤-http range_empty] status=400 Bad Request raw_body={"error":{"code":"range_empty","detail":{"available_from":"2026-09-09T01:30:00+00:00","available_to":"2026-09-09T01:35:01+00:00","period":"M1","requested_from":"2026-09-19T01:30:00+00:00","requested_to":"2026-09-29T01:30:00+00:00","symbol":"833591"},"message":"请求区间与可得区间无交集（833591 M1 可用区间：2026-09-09T01:30:00+00:00 ~ 2026-09-09T01:35:01+00:00）"}}
+[⑤-http range_empty] body={"error":{"code":"range_empty","detail":{"available_from":"2026-09-09T01:30:00+00:00","available_to":"2026-09-09T01:35:01+00:00","period":"M1","requested_from":"2026-09-19T01:30:00+00:00","requested_to":"2026-09-29T01:30:00+00:00","symbol":"833591"},"message":"请求区间与可得区间无交集（833591 M1 可用区间：2026-09-09T01:30:00+00:00 ~ 2026-09-09T01:35:01+00:00）"}}
+[⑤-http resource_guard] status=400 Bad Request raw_body={"error":{"code":"resource_guard","detail":{"available_from":"2013-07-29T01:30:00+00:00","available_to":"2026-09-17T07:00:01+00:00","confirm_bars":200000,"confirmable":true,"estimated_secs":482.398,"limit_bars":2000000,"period":"M1","requested_bars":770477,"symbol":"518880"},"message":"预估 770477 根 bar（≈482.4 秒）达到二次确认阈值 200000 根；如仍要提交，带 confirm=true 重提"}}
+[⑤-http period_invalid] status=400 Bad Request raw_body={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}
+[⑤-http from_after_to] status=400 Bad Request raw_body={"error":"from 须早于 to"}
+[⑤-http 结构化缺口] period_invalid: 实得 raw={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}（error 是**字符串**，无 code/detail） | from_after_to: 实得 raw={"error":"from 须早于 to"}（error 是**字符串**，无 code/detail）
+
+thread 't_p5_http_structured_error_shape' (1133588) panicked at crates/web/tests/tester_p5_indep.rs:657:5:
+契约 §3.1.1 要求 period_invalid/from_after_to 亦为 {error:{code,message,detail}}（前端按 code 分支）
+period_invalid: 实得 raw={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}（error 是**字符串**，无 code/detail）
+from_after_to: 实得 raw={"error":"from 须早于 to"}（error 是**字符串**，无 code/detail）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t_p5_http_structured_error_shape
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.91s
+
+error: test failed, to rerun pass `-p web --test tester_p5_indep`

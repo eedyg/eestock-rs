@@ -1,0 +1,19 @@
+### 变异点: useRunSeries.ts 曲线映射 downsampled:false / originalBars=已抽样点数 —— 模拟「隐式未标注的有损」
+### 目标用例: ResultView > P6-关键：长区间（12000 根 chunked）不得静默截断（断言抽样标注）
+### cmd: npx vitest run src/features/workbench/ResultView.test.tsx -t 长区间
+   ↓ ResultView（ADR §13.5 结果页布局） > 未选中 run → 占位；failed run → error 展示；结果加载失败 → 错误+重试
+   ↓ ResultView（ADR §13.5 结果页布局） > 图例开关：取消勾选 → 该策略曲线移除
+   ↓ ResultView（ADR §13.5 结果页布局） > buildMarkers：成交事实源 → B/S 标记；StopTrigger → ⊗ 不同图标
+   ↓ ResultView（ADR §13.5 结果页布局） > loading 骨架；结果 404（未成功）→ 错误+重试
+   × ResultView（ADR §13.5 结果页布局） > P6-关键：长区间（12000 根 chunked）不得静默截断 —— 必须出现 has_more 提示与加载入口 913ms
+     → [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+
+### 还原后复跑（期望绿）：
+ ✓ src/features/workbench/ResultView.test.tsx (15 tests | 14 skipped) 1030ms
+   ✓ ResultView（ADR §13.5 结果页布局） > P6-关键：长区间（12000 根 chunked）不得静默截断 —— 必须出现 has_more 提示与加载入口  1029ms
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+RESTORED: web/src/features/workbench/useRunSeries.ts 与原文件逐字节一致

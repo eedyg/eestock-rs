@@ -1,0 +1,4 @@
+      1 warning: `application` (lib) generated 1 warning (run `cargo clippy --fix --lib -p application -- ` to apply 1 suggestion)
+      1 warning: `application` (lib test) generated 1 warning (1 duplicate)
+      1 warning: using `clone` on type `FeeModel` which implements the `Copy` trait
+--- exit=0 ---

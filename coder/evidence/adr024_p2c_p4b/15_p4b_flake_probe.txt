@@ -1,0 +1,38 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 18 tests
+test submit_rejects_span_limits_400 ... ok
+test submit_marks_published_version_not_archived ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test preset_crud_and_apply ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_rejects_unknown_version_404 ... ok
+test submit_rejects_draft_version_400 ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test cancel_unknown_run_404_and_terminal_409 ... ok
+test run_success_end_to_end ... ok
+test p4b_run_summary_counters_are_self_consistent ... FAILED
+test compare_returns_side_by_side_net_value_and_metrics ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+failures:
+
+---- p4b_run_summary_counters_are_self_consistent stdout ----
+
+thread 'p4b_run_summary_counters_are_self_consistent' (164306) panicked at crates/application/tests/workbench.rs:1157:10:
+缺提交侧事件 p4b.submit（P4b 未落地）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    p4b_run_summary_counters_are_self_consistent
+
+test result: FAILED. 17 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `-p application --test workbench`

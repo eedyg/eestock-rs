@@ -1,0 +1,76 @@
+### [D] WS 帧判定 / 取消检查 / 顺序 —— 静态核对（tester 自出，2026-09-18T09:49:22Z）
+
+--- D1. 取消每 bar 检查（预筛）---
+[pre-fix:250 快照]
+1008:            if flag2.load(Ordering::Relaxed) {
+[current]
+1775:            if flag2.load(Ordering::Relaxed) {
+
+--- D2. 帧判定式 ---
+[pre-fix:250 快照]
+1014:            if milli != last_milli || i + 1 == total {
+[current]
+1781:            if milli != last_milli || i + 1 == tot {
+[PROGRESS_THROTTLE_MILLI 定义]
+ pre-fix: 60:const PROGRESS_THROTTLE_MILLI: f64 = 1000.0;
+ current: 79:const PROGRESS_THROTTLE_MILLI: f64 = 1000.0;
+
+--- D3. tx.send(RunMsg::Progress...) 调用点 ---
+[pre-fix:250 快照] (需按源码位置)
+1017:                engine_p4b.frames_produced.fetch_add(1, Ordering::Relaxed);
+1018-                let _ = tx.send((progress, DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default()));
+1019-            }
+1020-            LoopControl::Continue
+1021-        };
+--
+1134:    let global_frames = P4B_GLOBAL.frames_produced.fetch_add(produced, Ordering::Relaxed) + produced;
+1135-    let global_writes = P4B_GLOBAL.db_writes.fetch_add(writes, Ordering::Relaxed) + writes;
+1136-    let db_write_us = p4b.db_write_us.load(Ordering::Relaxed);
+1137-    let global_db_write_ms =
+1138-        p4b_ms(P4B_GLOBAL.db_write_us.fetch_add(db_write_us, Ordering::Relaxed) + db_write_us);
+[current]
+1784:                engine_p4b.frames_produced.fetch_add(1, Ordering::Relaxed);
+1785-                let _ = tx.send(RunMsg::Progress(
+1786-                    progress,
+1787-                    DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default(),
+1788-                ));
+1789-            }
+--
+1979:    let global_frames = P4B_GLOBAL.frames_produced.fetch_add(produced, Ordering::Relaxed) + produced;
+1980-    let global_writes = P4B_GLOBAL.db_writes.fetch_add(writes, Ordering::Relaxed) + writes;
+1981-    let db_write_us = p4b.db_write_us.load(Ordering::Relaxed);
+1982-    let global_db_write_ms =
+1983-        p4b_ms(P4B_GLOBAL.db_write_us.fetch_add(db_write_us, Ordering::Relaxed) + db_write_us);
+1984-    let global_hold_ms =
+
+--- D4. sink.send 出现次数（WS 推送） ---
+ pre-fix: 2   current: 3
+
+--- D5. unbounded_channel 出现次数 ---
+ pre-fix: 1   current: 1
+ current 行: 1662:    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<RunMsg>();
+
+--- D6. 排水顺序：report_task.await 必须早于 mark_succeeded ---
+[pre-fix:250 快照]  report_task.await @ 1043   mark_succeeded @ 1083
+[current]          report_task.await @ 1872   mark_succeeded @ 1923
+  current report_task.await 原文:
+1870-        tracing::info_span!("p4b.segment", segment = "progress_drain_tail", run_id = %run_id);
+1871-    let t_tail = Instant::now();
+1872:    let chunk_err = match report_task.await {
+1873-        Ok(e) => e,
+1874-        Err(e) => Some(anyhow!("结果 writer 任务 panic: {e}")),
+1875-    };
+  current mark_succeeded 原文:
+1922-                let written = store
+1923:                    .mark_succeeded(&run_id, &result, clock.now())
+1924-                    .instrument(write_span.clone())
+1925-                    .await;
+
+--- D7. 状态迁移调用点顺序（排水之后）---
+1647:            let _ = store.mark_failed(&run_id, &e.to_string(), clock.now()).await;
+1872:    let chunk_err = match report_task.await {
+1902:                    .mark_failed(&run_id, &format!("结果分块落库失败: {e}"), clock.now())
+1923:                    .mark_succeeded(&run_id, &result, clock.now())
+1948:            let _ = store.mark_canceled(&run_id, clock.now()).await;
+1951:            let _ = store.mark_failed(&run_id, &msg, clock.now()).await;
+1954:            let _ = store.mark_failed(&run_id, &e.to_string(), clock.now()).await;

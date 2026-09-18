@@ -1,0 +1,29 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+test indicators::tests::online_rsi_matches_slice_view ... FAILED
+
+failures:
+
+---- indicators::tests::online_rsi_matches_slice_view stdout ----
+
+thread 'indicators::tests::online_rsi_matches_slice_view' (4190506) panicked at crates/backtest/src/indicators.rs:808:35:
+assertion `left == right` failed: rsi(3) @i=6: 位级不一致 got=66.233766233766 want=77.73019271948596
+  left: 4634361203888896968
+ right: 4635170192983227916
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    indicators::tests::online_rsi_matches_slice_view
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p backtest --lib`
+    online_indicators_match_slice_view_on_golden_fixture
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test online_indicators_fixture`

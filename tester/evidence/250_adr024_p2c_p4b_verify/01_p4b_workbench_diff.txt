@@ -1,0 +1,478 @@
+diff --git a/crates/application/src/workbench.rs b/crates/application/src/workbench.rs
+index b0826c9..aeb49a8 100644
+--- a/crates/application/src/workbench.rs
++++ b/crates/application/src/workbench.rs
+@@ -27,13 +27,15 @@
+ //!   重名 409——预检查 find_preset_by_name，DB UNIQUE 兜底）。
+ 
+ use std::collections::HashMap;
+-use std::sync::atomic::{AtomicBool, Ordering};
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+ use std::sync::{Arc, Mutex};
++use std::time::Instant;
+ 
+ use anyhow::anyhow;
+ use chrono::{DateTime, Utc};
+ use serde::Serialize;
+ use tokio::sync::Semaphore;
++use tracing::Instrument;
+ 
+ use domain::ports::{
+     BacktestBarRead, Clock, NewStrategyPreset, NewStrategyRun, StrategyPresetRow,
+@@ -294,6 +296,21 @@ impl WorkbenchService {
+         };
+         probe.validate().map_err(WorkbenchValidation)?;
+ 
++        // ── P4b（D15）观测：每 run 一条 `trace_id` + 一段父 span `workbench_run` ──
++        // 父 span 早于取数创建（取数段是它的子 span），run_id/bars_total 以 `Empty` 声明后 record；
++        // `trace_id` 沿用既有观测约定（`domain::new_trace_id()` 32 位十六进制），
++        // 贯穿 submit → mark_started → 引擎 → 进度落库 → 结果落库。
++        let trace_id = domain::types::new_trace_id();
++        let run_span = tracing::info_span!(
++            "workbench_run",
++            trace_id = %trace_id,
++            symbol = %symbol,
++            period = %req.period,
++            run_id = tracing::field::Empty,
++            bars_total = tracing::field::Empty,
++        );
++        let p4b = Arc::new(P4bRunCounters::default());
++
+         // 读 bar + 数量护栏（提交时拒绝：空区间 / >20 万 bar → 400）。
+         // I-2/D6：一次性拉取 [warmup_start, to)（前置预热），再按 from 切分。
+         let warmup_requested = req.warmup_bars;
+@@ -302,13 +319,33 @@ impl WorkbenchService {
+         } else {
+             req.from - crate::bar_map::warmup_lookback(&domain_period, warmup_requested)
+         };
++        let fetch_span =
++            tracing::info_span!(
++                parent: &run_span,
++                "p4b.segment",
++                segment = "fetch",
++                trace_id = %trace_id
++            );
++        let t_fetch = Instant::now();
+         let all: Vec<backtest::Bar> = self
+             .bar_read
+             .bars(&symbol, &domain_period, warmup_start, req.to)
++            .instrument(fetch_span.clone())
+             .await?
+             .iter()
+             .map(crate::bar_map::to_bt_bar)
+             .collect();
++        let fetch_us = p4b_add_us(&p4b.fetch_us, t_fetch);
++        fetch_span.in_scope(|| {
++            tracing::info!(
++                trace_id = %trace_id,
++                symbol = %symbol,
++                period = %req.period,
++                elapsed_us = fetch_us,
++                bars_fetched = all.len(),
++                "p4b.segment"
++            )
++        });
+         let split = all
+             .iter()
+             .position(|b| b.ts >= req.from.timestamp())
+@@ -332,6 +369,9 @@ impl WorkbenchService {
+         }
+         // I-2/D6：引擎按 warmup_effective 标记前缀（不执行/不计绩效）。
+         probe.warmup_bars = warmup_effective;
++        // P4b：本 run bar 数（父 span 字段 + 汇总事件口径）。
++        p4b.bars_total.store(bars.len() as u64, Ordering::Relaxed);
++        run_span.record("bars_total", bars.len() as u64);
+ 
+         // 钉住快照（复现前提）：slots 全字段 + 阈值 + policy/stop 原文 + 资金 + **生效** fee。
+         // `archived` 为审计标记（2026-09-10 裁决：archived 版本可审计重跑，避免误解为「在用策略」）。
+@@ -373,6 +413,20 @@ impl WorkbenchService {
+             })
+             .await?;
+ 
++        // P4b：父 span 补全 run_id + 提交侧事件（与引擎/落库段同一 `trace_id`，可串成一条链）。
++        run_span.record("run_id", run.id.as_str());
++        tracing::info!(
++            trace_id = %trace_id,
++            run_id = %run.id,
++            symbol = %req.symbol,
++            period = %req.period,
++            bars_total = bars.len(),
++            warmup_effective,
++            submit_fetch_ms = p4b_ms(fetch_us),
++            "p4b.submit"
++        );
++        let run_span2 = run_span.clone();
++
+         // 后台任务（与 BacktestService 同模式：入队即 spawn，Semaphore 在任务内阻塞限并发）。
+         let run_store = Arc::clone(&self.run_store);
+         let progress = Arc::clone(&self.progress);
+@@ -380,13 +434,23 @@ impl WorkbenchService {
+         let cancel_flags = Arc::clone(&self.cancel_flags);
+         let clock = Arc::clone(&self.clock);
+         let id = run.id.clone();
+-        tokio::spawn(async move {
+-            let _permit = semaphore.acquire().await.expect("semaphore closed");
+-            execute_run(
+-                run_store, progress, cancel_flags, clock, id, probe, slots, bars,
+-            )
+-            .await;
+-        });
++        let trace_id2 = trace_id.clone();
++        let p4b2 = Arc::clone(&p4b);
++        tokio::spawn(
++            async move {
++                // P4b：排队等 permit（**不**计入持有）；获取后立即进入 execute_run。
++                let t_wait = Instant::now();
++                let _permit = semaphore.acquire().await.expect("semaphore closed");
++                p4b2.permit_wait_us
++                    .store(t_wait.elapsed().as_micros() as u64, Ordering::Relaxed);
++                execute_run(
++                    run_store, progress, cancel_flags, clock, id, trace_id2, p4b2, probe, slots,
++                    bars,
++                )
++                .await;
++            }
++            .instrument(run_span2),
++        );
+         Ok(run)
+     }
+ 
+@@ -737,10 +801,94 @@ impl WorkbenchService {
+     }
+ }
+ 
++// ── P4b（ADR-024 D15）每 run 固定开销仪表：**只加观测、不改行为** ───────────────
++//
++// 口径（时间一律以 µs 累计，汇总时换算 ms）：
++// - `progress_frames_produced`：引擎 observer 内**入队**帧数（与 `tx.send` 同一判定分支）；
++// - `progress_db_writes`：`store.update_progress` 实际调用次数（report 任务内）；
++// - `progress_db_write_ms`：上述调用累计耗时（含 await 往返与 PG fsync）；
++// - `progress_ws_send_ms`：`sink.send`（WS 推送）累计耗时；
++// - 分段（permit 持有或 submit 阶段）：fetch / mark_started / engine / progress_drain（report
++//   任务自存活）/ progress_drain_tail（引擎结束后等排水）/ result_serialize / result_write；
++// - `permit_hold_us`：`Semaphore` permit 获取成功 → `execute_run` 返回（permit 随即 drop）；
++// - `permit_wait_us`：submit → permit 获取前的排队等待（**不**计入持有）。
++//
++// 并发性说明（判读约束）：report 任务与引擎**并行**（observer 只入队、不等待）
++// ⇒ `progress_*` 段与 `engine_ms` 可重叠；**只有 `progress_drain_tail_ms` 是不重叠的等待**。
++// 故不得把各段直接相加当作 permit 持有；permit 持有是各段的上界。
++
++/// 每 run 仪表计数器（不经端口、不进 DB schema：观测面 = 既有 tracing）。
++#[derive(Default)]
++struct P4bRunCounters {
++    bars_total: AtomicU64,
++    frames_produced: AtomicU64,
++    db_writes: AtomicU64,
++    db_write_us: AtomicU64,
++    ws_send_us: AtomicU64,
++    fetch_us: AtomicU64,
++    permit_wait_us: AtomicU64,
++    permit_hold_us: AtomicU64,
++    mark_started_us: AtomicU64,
++    engine_us: AtomicU64,
++    drain_total_us: AtomicU64,
++    drain_tail_us: AtomicU64,
++    serialize_us: AtomicU64,
++    result_write_us: AtomicU64,
++}
++
++/// 进程级累计计数器（P4b：「按 run + 全局累计」的全局半边；随每 run 汇总事件一并落日志）。
++#[derive(Default)]
++struct P4bGlobalCounters {
++    runs: AtomicU64,
++    frames_produced: AtomicU64,
++    db_writes: AtomicU64,
++    db_write_us: AtomicU64,
++    permit_hold_us: AtomicU64,
++}
++
++impl P4bGlobalCounters {
++    const fn new() -> Self {
++        Self {
++            runs: AtomicU64::new(0),
++            frames_produced: AtomicU64::new(0),
++            db_writes: AtomicU64::new(0),
++            db_write_us: AtomicU64::new(0),
++            permit_hold_us: AtomicU64::new(0),
++        }
++    }
++}
++
++/// P4b 进程级累计（进程生命周期内累加；纯观测，无同步语义 ⇒ `Relaxed`）。
++static P4B_GLOBAL: P4bGlobalCounters = P4bGlobalCounters::new();
++
++/// 记录一段耗时（µs，`Relaxed`）并返回本次耗时。
++fn p4b_add_us(counter: &AtomicU64, t0: Instant) -> u64 {
++    let us = t0.elapsed().as_micros() as u64;
++    counter.fetch_add(us, Ordering::Relaxed);
++    us
++}
++
++/// µs → ms（观测输出口径）。
++fn p4b_ms(us: u64) -> f64 {
++    us as f64 / 1000.0
++}
++
++/// 分段占比（vs permit 持有；持有为 0 时返回 0.0）。
++fn p4b_share_pct(part_ms: f64, hold_ms: f64) -> f64 {
++    if hold_ms <= 0.0 {
++        0.0
++    } else {
++        (part_ms / hold_ms * 10000.0).round() / 100.0
++    }
++}
++
+ /// 后台执行单个 run（任务制，与 BacktestService::execute_run 同模式）：
+ /// mark_started 原子认领（queued→running；失败 = 排队期被取消，放弃执行）→
+ /// spawn_blocking 跑引擎（observer：进度上报 + 协作式取消检查）→
+ /// 成功 mark_succeeded（同事务落结果）/ Canceled mark_canceled / 插件错误 mark_failed。
++///
++/// ADR-024 P4b：同一流程内加**分段计时 + 计数器 + 子 span**（只观测）；`trace_id` 由 submit
++/// 生成并贯穿 submit → mark_started → 引擎 → 进度落库 → 结果落库（每 run 一条汇总事件）。
+ #[allow(clippy::too_many_arguments)]
+ async fn execute_run(
+     store: Arc<dyn StrategyRunStore>,
+@@ -748,12 +896,33 @@ async fn execute_run(
+     cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+     clock: Arc<dyn Clock>,
+     run_id: String,
++    trace_id: String,
++    p4b: Arc<P4bRunCounters>,
+     probe: EnsembleConfig,
+     slots: Vec<ValidatedSlot>,
+     bars: Vec<backtest::Bar>,
+ ) {
++    // P4b：permit 持有起点（spawn 闭包内 permit 获取成功后立即调用本函数；返回后 permit 随即 drop）。
++    let t_permit_hold = Instant::now();
++
+     // 原子认领：queued→running（排队期被取消 → 0 行 → 放弃执行）。
+-    match store.mark_started(&run_id, clock.now()).await {
++    let started_span =
++        tracing::info_span!("p4b.segment", segment = "mark_started", run_id = %run_id);
++    let t_mark_started = Instant::now();
++    let claimed = store
++        .mark_started(&run_id, clock.now())
++        .instrument(started_span.clone())
++        .await;
++    let mark_started_us = p4b_add_us(&p4b.mark_started_us, t_mark_started);
++    started_span.in_scope(|| {
++        tracing::info!(
++            trace_id = %trace_id,
++            run_id = %run_id,
++            elapsed_us = mark_started_us,
++            "p4b.segment"
++        )
++    });
++    match claimed {
+         Ok(true) => {}
+         Ok(false) => {
+             tracing::info!(run_id, "运行已被并发取消/迁移，放弃执行");
+@@ -779,12 +948,38 @@ async fn execute_run(
+     let sink = Arc::clone(&progress);
+     let store2 = Arc::clone(&store);
+     let id2 = run_id.clone();
+-    let report_task = tokio::spawn(async move {
+-        while let Some((progress, ts)) = rx.recv().await {
+-            let _ = sink.send(&id2, progress, Some(ts)).await;
+-            let _ = store2.update_progress(&id2, progress).await;
++    // P4b：进度排水段（report 任务自存活周期）+ 计数；该 span 上下文覆盖
++    // `store.update_progress` 调用点 ⇒ trace_id 可检索至「落库段」。
++    let report_p4b = Arc::clone(&p4b);
++    let report_trace = trace_id.clone();
++    let drain_span =
++        tracing::info_span!("p4b.segment", segment = "progress_drain", run_id = %run_id);
++    let drain_span2 = drain_span.clone();
++    let t_drain_total = Instant::now();
++    let report_task = tokio::spawn(
++        async move {
++            while let Some((progress, ts)) = rx.recv().await {
++                let t = Instant::now();
++                let _ = sink.send(&id2, progress, Some(ts)).await;
++                p4b_add_us(&report_p4b.ws_send_us, t);
++                let t = Instant::now();
++                let _ = store2.update_progress(&id2, progress).await;
++                p4b_add_us(&report_p4b.db_write_us, t);
++                report_p4b.db_writes.fetch_add(1, Ordering::Relaxed);
++            }
++            drain_span2.in_scope(|| {
++                tracing::info!(
++                    trace_id = %report_trace,
++                    run_id = %id2,
++                    progress_db_writes = report_p4b.db_writes.load(Ordering::Relaxed),
++                    progress_db_write_ms = p4b_ms(report_p4b.db_write_us.load(Ordering::Relaxed)),
++                    progress_ws_send_ms = p4b_ms(report_p4b.ws_send_us.load(Ordering::Relaxed)),
++                    "p4b.segment"
++                )
++            });
+         }
+-    });
++        .instrument(drain_span.clone()),
++    );
+ 
+     // 引擎配置：钉住槽位（code + sha256 + params + weight）。
+     let mut cfg = probe;
+@@ -802,6 +997,10 @@ async fn execute_run(
+         .collect();
+ 
+     let flag2 = Arc::clone(&flag);
++    let engine_p4b = Arc::clone(&p4b);
++    let engine_span = tracing::info_span!("p4b.segment", segment = "engine", run_id = %run_id);
++    let engine_bars_total = bars.len();
++    let t_engine = Instant::now();
+     let outcome = tokio::task::spawn_blocking(move || {
+         let mut last_milli: i64 = -1;
+         let mut observer = |i: usize, total: usize| -> LoopControl {
+@@ -814,24 +1013,86 @@ async fn execute_run(
+             let milli = (progress * PROGRESS_THROTTLE_MILLI) as i64;
+             if milli != last_milli || i + 1 == total {
+                 last_milli = milli;
++                // P4b：帧产生计数（与 `tx.send` 同一判定分支 ⇒ 口径 = 实际入队帧数）。
++                engine_p4b.frames_produced.fetch_add(1, Ordering::Relaxed);
+                 let _ = tx.send((progress, DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default()));
+             }
+             LoopControl::Continue
+         };
+         strategy_core::run_ensemble_with_quickjs_observed(&cfg, &bars, &mut observer)
+     })
++    .instrument(engine_span.clone())
+     .await
+     .map_err(|e| anyhow!("引擎任务 panic: {e}"));
++    let engine_us = p4b_add_us(&p4b.engine_us, t_engine);
++    engine_span.in_scope(|| {
++        tracing::info!(
++            trace_id = %trace_id,
++            run_id = %run_id,
++            elapsed_us = engine_us,
++            bars_total = engine_bars_total,
++            "p4b.segment"
++        )
++    });
+ 
+     // 引擎结束（含 Break）后 drop 发送端；等报告任务排空（进度/落库完成，确定可复现）。
++    // ⚠ P4b 纪律：**排水顺序不变**（仍在 `mark_succeeded` 之前），本批不改行为。
++    let tail_span =
++        tracing::info_span!("p4b.segment", segment = "progress_drain_tail", run_id = %run_id);
++    let t_tail = Instant::now();
+     let _ = report_task.await;
++    let tail_us = p4b_add_us(&p4b.drain_tail_us, t_tail);
++    let drain_total_us = p4b_add_us(&p4b.drain_total_us, t_drain_total);
++    tail_span.in_scope(|| {
++        tracing::info!(
++            trace_id = %trace_id,
++            run_id = %run_id,
++            elapsed_us = tail_us,
++            progress_drain_total_ms = p4b_ms(drain_total_us),
++            "p4b.segment"
++        )
++    });
+     // 摘销取消标记。
+     cancel_flags.lock().expect("flags poisoned").remove(&run_id);
+ 
++    let outcome_label = match &outcome {
++        Ok(Ok(_)) => "succeeded",
++        Ok(Err(EnsembleError::Canceled)) => "canceled",
++        Ok(Err(EnsembleError::Plugin(_))) => "failed_plugin",
++        Err(_) => "failed_panic",
++    };
+     match outcome {
+         Ok(Ok(res)) => {
++            let serialize_span =
++                tracing::info_span!("p4b.segment", segment = "result_serialize", run_id = %run_id);
++            let t_serialize = Instant::now();
+             let result = to_run_result(res);
+-            match store.mark_succeeded(&run_id, &result, clock.now()).await {
++            let serialize_us = p4b_add_us(&p4b.serialize_us, t_serialize);
++            serialize_span.in_scope(|| {
++                tracing::info!(
++                    trace_id = %trace_id,
++                    run_id = %run_id,
++                    elapsed_us = serialize_us,
++                    "p4b.segment"
++                )
++            });
++            let write_span =
++                tracing::info_span!("p4b.segment", segment = "result_write", run_id = %run_id);
++            let t_write = Instant::now();
++            let written = store
++                .mark_succeeded(&run_id, &result, clock.now())
++                .instrument(write_span.clone())
++                .await;
++            let write_us = p4b_add_us(&p4b.result_write_us, t_write);
++            write_span.in_scope(|| {
++                tracing::info!(
++                    trace_id = %trace_id,
++                    run_id = %run_id,
++                    elapsed_us = write_us,
++                    "p4b.segment"
++                )
++            });
++            match written {
+                 Ok(true) => {}
+                 Ok(false) => {
+                     tracing::info!(run_id, "运行完成但已被并发迁移（如取消），结果不落库")
+@@ -850,6 +1111,65 @@ async fn execute_run(
+             let _ = store.mark_failed(&run_id, &e.to_string(), clock.now()).await;
+         }
+     }
++
++    // ── P4b 每 run 汇总（自洽性：`progress_frames_produced == progress_db_writes`）──
++    let hold_us = {
++        let us = t_permit_hold.elapsed().as_micros() as u64;
++        p4b.permit_hold_us.store(us, Ordering::Relaxed);
++        us
++    };
++    let bars_total = p4b.bars_total.load(Ordering::Relaxed);
++    let produced = p4b.frames_produced.load(Ordering::Relaxed);    let writes = p4b.db_writes.load(Ordering::Relaxed);
++    let db_write_ms = p4b_ms(p4b.db_write_us.load(Ordering::Relaxed));
++    let ws_send_ms = p4b_ms(p4b.ws_send_us.load(Ordering::Relaxed));
++    let hold_ms = p4b_ms(hold_us);
++    let engine_ms = p4b_ms(p4b.engine_us.load(Ordering::Relaxed));
++    let serialize_ms = p4b_ms(p4b.serialize_us.load(Ordering::Relaxed));
++    let result_write_ms = p4b_ms(p4b.result_write_us.load(Ordering::Relaxed));
++    let drain_tail_ms = p4b_ms(p4b.drain_tail_us.load(Ordering::Relaxed));
++    let drain_total_ms = p4b_ms(p4b.drain_total_us.load(Ordering::Relaxed));
++    let mark_started_ms = p4b_ms(p4b.mark_started_us.load(Ordering::Relaxed));
++    let frame_avg_ms = if writes > 0 { db_write_ms / writes as f64 } else { 0.0 };
++    let global_runs = P4B_GLOBAL.runs.fetch_add(1, Ordering::Relaxed) + 1;
++    let global_frames = P4B_GLOBAL.frames_produced.fetch_add(produced, Ordering::Relaxed) + produced;
++    let global_writes = P4B_GLOBAL.db_writes.fetch_add(writes, Ordering::Relaxed) + writes;
++    let db_write_us = p4b.db_write_us.load(Ordering::Relaxed);
++    let global_db_write_ms =
++        p4b_ms(P4B_GLOBAL.db_write_us.fetch_add(db_write_us, Ordering::Relaxed) + db_write_us);
++    let global_hold_ms =
++        p4b_ms(P4B_GLOBAL.permit_hold_us.fetch_add(hold_us, Ordering::Relaxed) + hold_us);
++    tracing::info!(
++        run_id = %run_id,
++        trace_id = %trace_id,
++        outcome = outcome_label,
++        bars_total,
++        progress_frames_produced = produced,
++        progress_db_writes = writes,
++        progress_db_write_ms = db_write_ms,
++        progress_ws_send_ms = ws_send_ms,
++        progress_frame_avg_ms = frame_avg_ms,
++        permit_hold_ms = hold_ms,
++        permit_wait_ms = p4b_ms(p4b.permit_wait_us.load(Ordering::Relaxed)),
++        fetch_ms = p4b_ms(p4b.fetch_us.load(Ordering::Relaxed)),
++        mark_started_ms,
++        engine_ms,
++        progress_drain_total_ms = drain_total_ms,
++        progress_drain_tail_ms = drain_tail_ms,
++        result_serialize_ms = serialize_ms,
++        result_write_ms,
++        engine_share_pct = p4b_share_pct(engine_ms, hold_ms),
++        progress_db_share_pct = p4b_share_pct(db_write_ms, hold_ms),
++        progress_tail_share_pct = p4b_share_pct(drain_tail_ms, hold_ms),
++        result_write_share_pct = p4b_share_pct(result_write_ms, hold_ms),
++        result_serialize_share_pct = p4b_share_pct(serialize_ms, hold_ms),
++        mark_started_share_pct = p4b_share_pct(mark_started_ms, hold_ms),
++        global_runs_total = global_runs,
++        global_frames_total = global_frames,
++        global_db_writes_total = global_writes,
++        global_db_write_ms_total = global_db_write_ms,
++        global_permit_hold_ms_total = global_hold_ms,
++        "p4b.run_summary"
++    );
+ }
+ 
+ /// `strategy_core::EnsembleResult -> domain::StrategyRunResult`（五 jsonb 列；per_bar 全量，ADR §13.4）。

@@ -1,0 +1,125 @@
+### 20 — 禁改项客观核验（git diff --cached，值级） @ 2026-09-18T12:49:44+08:00
+--- 20.1 git diff --cached --stat (summary) ---
+ .../evidence/adr024_p0_m30/01_red_backtest_m30.txt |  21 ++
+ .../adr024_p0_m30/02_green_backtest_m30.txt        |  30 ++
+ .../03_application_nonexhaustive_match.txt         |  30 ++
+ .../adr024_p0_m30/04_red_application_ssot.txt      |  14 +
+ .../adr024_p0_m30/05_green_application_ssot.txt    |  14 +
+ .../adr024_p0_m30/06_red_web_period_gate.txt       |  40 +++
+ .../adr024_p0_m30/07_green_web_period_gate.txt     |  12 +
+ .../adr024_p0_m30/08_web_period_gate_nocapture.txt |   4 +
+ coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt  |  48 +++
+ .../evidence/adr024_p0_m30/10_green_mcp_drift.txt  |  13 +
+ coder/evidence/adr024_p0_m30/11_red_frontend.txt   | 242 ++++++++++++++
+ coder/evidence/adr024_p0_m30/12_green_frontend.txt |  14 +
+ .../adr024_p0_m30/13a_reverse_rust_red.txt         |  30 ++
+ .../evidence/adr024_p0_m30/13b_reverse_ts_red.txt  |  35 ++
+ .../adr024_p0_m30/14_restore_green_rust.txt        |  12 +
+ .../adr024_p0_m30/14b_restore_green_ts.txt         |  10 +
+ .../adr024_p0_m30/15_frontend_full_suite.txt       |  25 ++
+ coder/evidence/adr024_p0_m30/16_frontend_build.txt |  18 +
+ .../adr024_p0_m30/17_backend_check_all_targets.txt |  17 +
+ .../adr024_p0_m30/18_backend_targeted_tests.txt    |  84 +++++
+ .../adr024_p0_m30/19_backend_lib_tests.txt         |  20 ++
+ coder/evidence/adr024_p0_m30/20_tangle_check.txt   |   1 +
+ coder/evidence/adr024_p0_m30/21_frontend_final.txt |  14 +
+ coder/evidence/adr024_p0_m30/22_backend_final.txt  |  51 +++
+ coder/report/adr024_p0_m30.md                      | 368 +++++++++++++++++++++
+ crates/application/src/bar_map.rs                  |  25 +-
+ crates/application/src/simlive.rs                  |   4 +
+ crates/application/src/strategy.rs                 |  10 +-
+ crates/application/tests/backtest_periods_ssot.rs  |  97 ++++++
+ crates/backtest/src/types.rs                       |  20 +-
+ crates/domain/src/ports.rs                         |   2 +-
+ crates/mcp/src/tools.rs                            |  23 +-
+ crates/mcp/tests/adr024_period_ssot_drift.rs       | 151 +++++++++
+ crates/storage/src/backtest.rs                     |   4 +-
+ crates/web/src/workbench.rs                        |  12 +-
+ crates/web/tests/adr024_workbench_period_ssot.rs   | 180 ++++++++++
+ design/02-domain/contracts.md                      |   2 +-
+ design/07-app-plane/01-mcp.md                      |  23 +-
+ web/src/api/mock.test.ts                           |  14 +-
+ web/src/api/mock.ts                                |   9 +-
+ web/src/api/types.ts                               |  11 +-
+ web/src/features/backtest/format.test.ts           |  39 ++-
+ web/src/features/backtest/format.ts                |  12 +-
+ web/src/features/backtest/periods.ts               |  20 ++
+ web/src/features/strategies/TestRunPanel.test.tsx  |   8 +
+ web/src/features/strategies/TestRunPanel.tsx       |  13 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |   8 +
+ web/src/features/workbench/ConfigPanel.tsx         |   9 +-
+ 48 files changed, 1807 insertions(+), 56 deletions(-)
+--- 20.2 常数「值」是否被改：MINUTE_MAX_SPAN_DAYS / D1_MAX_SPAN_DAYS / MAX_BARS ---
+$ git diff --cached -U0 -- crates/ | grep -E '^[-+].*(MINUTE_MAX_SPAN_DAYS|D1_MAX_SPAN_DAYS|MAX_BARS)'
+(no +/- lines mentioning those constants)
+
+--- 20.3 这三处的现存定义（工作区当前值） ---
+crates/application/src/strategy.rs:61:pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+crates/application/src/strategy.rs:62:pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+crates/application/src/workbench.rs:55:pub const MAX_BARS: usize = 200_000;
+
+--- 20.4 禁改路径（staged 改动必须为空） ---
+$ git diff --cached -- crates/strategy-core
+   (EMPTY — 无 staged 改动)
+$ git diff --cached -- crates/strategy-runtime
+   (EMPTY — 无 staged 改动)
+$ git diff --cached -- crates/storage/src/workbench.rs
+   (EMPTY — 无 staged 改动)
+$ git diff --cached -- docker-compose.yml
+   (EMPTY — 无 staged 改动)
+
+--- 20.5 禁改路径（含未 staged 的工作区改动，一并披露） ---
+$ git diff HEAD -- crates/strategy-core | wc -l  →  0
+$ git diff HEAD -- crates/strategy-runtime | wc -l  →  0
+$ git diff HEAD -- crates/storage/src/workbench.rs | wc -l  →  0
+$ git diff HEAD -- docker-compose.yml | wc -l  →  18
+
+--- 20.6 全部 staged 文件清单（name-status） ---
+A	coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+A	coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+A	coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+A	coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+A	coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+A	coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+A	coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+A	coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+A	coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+A	coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+A	coder/evidence/adr024_p0_m30/11_red_frontend.txt
+A	coder/evidence/adr024_p0_m30/12_green_frontend.txt
+A	coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+A	coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+A	coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+A	coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+A	coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+A	coder/evidence/adr024_p0_m30/16_frontend_build.txt
+A	coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+A	coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+A	coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+A	coder/evidence/adr024_p0_m30/20_tangle_check.txt
+A	coder/evidence/adr024_p0_m30/21_frontend_final.txt
+A	coder/evidence/adr024_p0_m30/22_backend_final.txt
+A	coder/report/adr024_p0_m30.md
+M	crates/application/src/bar_map.rs
+M	crates/application/src/simlive.rs
+M	crates/application/src/strategy.rs
+A	crates/application/tests/backtest_periods_ssot.rs
+M	crates/backtest/src/types.rs
+M	crates/domain/src/ports.rs
+M	crates/mcp/src/tools.rs
+A	crates/mcp/tests/adr024_period_ssot_drift.rs
+M	crates/storage/src/backtest.rs
+M	crates/web/src/workbench.rs
+A	crates/web/tests/adr024_workbench_period_ssot.rs
+M	design/02-domain/contracts.md
+M	design/07-app-plane/01-mcp.md
+M	web/src/api/mock.test.ts
+M	web/src/api/mock.ts
+M	web/src/api/types.ts
+M	web/src/features/backtest/format.test.ts
+M	web/src/features/backtest/format.ts
+A	web/src/features/backtest/periods.ts
+M	web/src/features/strategies/TestRunPanel.test.tsx
+M	web/src/features/strategies/TestRunPanel.tsx
+M	web/src/features/workbench/ConfigPanel.test.tsx
+M	web/src/features/workbench/ConfigPanel.tsx

@@ -1,0 +1,3 @@
+    Checking domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `release` profile [optimized] target(s) in 3.88s

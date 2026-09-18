@@ -1,0 +1,76 @@
+== GitNexus 图谱工具不可用（留存原始错误）==
+$ node .gitnexus/run.cjs impact build_indicators --direction upstream --repo .
+{"error":"LadybugDB unavailable for eestock-rs. ... Database file version: 43, Current build storage version: 40","risk":"UNKNOWN"}
+
+== 替代口径：文本级上游调用方枚举（grep，排除 target/node_modules/.git/data）==
+
+--- build_indicators ---
+  crates/strategy-core/tests/session_alloc.rs:9://! - 改造前（`build_indicators` 逐 bar `bars[..=index].to_vec()` + 指标从 bar 0 重算）
+  crates/strategy-runtime/tests/shared_history_alloc.rs:6://! 测量对象 = **插件调用路径**（`build_indicators` 的历史缓冲构造），两条路径对照：
+  crates/strategy-runtime/src/quickjs.rs:333:    obj.set("indicators", build_indicators(ctx, bctx)?)
+  crates/strategy-runtime/src/quickjs.rs:384:fn build_indicators<'js>(ctx: &Ctx<'js>, bctx: &BarCtx<'_>) -> Result<Object<'js>, PluginError> {
+  crates/strategy-runtime/src/history.rs:4://! `quickjs.rs::build_indicators` 原实现每 **slot × 每 bar** 执行
+
+--- BarCtx::new ---
+  crates/strategy-core/src/engine.rs:656:            let ctx = BarCtx::new(i, bar.clone(), bars, position).with_history(shared.clone());
+  crates/application/src/strategy.rs:907:        let ctx = BarCtx::new(i, bar.clone(), bars, None);
+  crates/simlive/src/plugin_orchestrator.rs:264:            let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot);
+  crates/strategy-runtime/tests/shared_history_alloc.rs:8://! - **兼容路径**（`BarCtx::new`，试算/sim-live/单测）：保持改造前行为（每 bar 复制
+  crates/strategy-runtime/tests/shared_history_alloc.rs:99:        let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+  crates/strategy-runtime/tests/shared_history_alloc.rs:118:        let ctx = BarCtx::new(i, bar.clone(), bars, None);
+  crates/strategy-runtime/tests/shared_history.rs:11://! 3. 共享句柄路径与兼容路径（`BarCtx::new` 逐 bar 复制）的插件评分**位级一致**；
+  crates/strategy-runtime/tests/shared_history.rs:154:        let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+  crates/strategy-runtime/tests/shared_history.rs:167:/// 兼容路径（`BarCtx::new`，无共享句柄）语义不变：`bars` 为调用方传入的切片，取值仍正确。
+  crates/strategy-runtime/tests/shared_history.rs:173:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+  crates/strategy-runtime/tests/shared_history.rs:199:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None).with_history(hist.clone());
+  crates/strategy-runtime/tests/shared_history.rs:208:    let ctx_compat = BarCtx::new(0, bars[0].clone(), &bars, None);
+
+--- run_ensemble_with_observer ---
+  crates/strategy-core/tests/session.rs:9://! 既有批式入口（`run_ensemble` / `run_ensemble_with_observer` / `run_ensemble_with_quickjs_observed`）
+  crates/strategy-core/tests/session.rs:16:    run_ensemble_with_observer, EnsembleConfig, EnsembleError, EnsembleSession, EnsembleResult,
+  crates/strategy-core/tests/session.rs:150:    let err2 = run_ensemble_with_observer(&cfg, &bars, &mut rt2, &mut |i, _t| {
+  crates/strategy-core/tests/observer.rs:3://! 契约：`run_ensemble_with_observer(cfg, bars, rt, observer)`——observer 在每 bar 末
+  crates/strategy-core/tests/observer.rs:10:    run_ensemble, run_ensemble_with_observer, EnsembleConfig, EnsembleError, ExecutionPolicy,
+  crates/strategy-core/tests/observer.rs:57:    let res = run_ensemble_with_observer(&cfg, &bars, &mut rt, &mut |i, total| {
+  crates/strategy-core/tests/observer.rs:76:    let err = run_ensemble_with_observer(&cfg, &bars, &mut rt, &mut |i, _total| {
+  crates/strategy-core/tests/observer.rs:96:    let err = run_ensemble_with_observer(&cfg, &bars, &mut rt, &mut |_i, _t| LoopControl::Break)
+  crates/strategy-core/tests/observer.rs:109:    let got = run_ensemble_with_observer(&cfg, &bars, &mut rt2, &mut |_i, _t| {
+  crates/strategy-core/tests/observer.rs:123:    let err = run_ensemble_with_observer(&cfg, &bars, &mut rt, &mut |_i, _t| {
+  crates/strategy-core/src/engine.rs:306:/// [`run_ensemble_with_observer`]；`EnsembleError::Canceled` 对 no-op observer 不可达
+  crates/strategy-core/src/engine.rs:313:    match run_ensemble_with_observer(cfg, bars, rt, &mut |_i, _total| LoopControl::Continue) {
+
+--- run_ensemble_with_quickjs_observed ---
+  crates/strategy-core/tests/session.rs:9://! 既有批式入口（`run_ensemble` / `run_ensemble_with_observer` / `run_ensemble_with_quickjs_observed`）
+  crates/strategy-core/src/engine.rs:344:/// [`run_ensemble`] / [`run_ensemble_with_observer`] / [`run_ensemble_with_quickjs_observed`]
+  crates/strategy-core/src/engine.rs:818:pub fn run_ensemble_with_quickjs_observed(
+  crates/strategy-core/src/lib.rs:69:    run_ensemble, run_ensemble_with_observer, run_ensemble_with_quickjs_observed, BarRecord,
+  crates/application/src/workbench.rs:10://!   `strategy_core::run_ensemble_with_quickjs_observed`（QuickJS 非 Send 实例在闭包内创建/drop）→
+  crates/application/src/workbench.rs:821:        strategy_core::run_ensemble_with_quickjs_observed(&cfg, &bars, &mut observer)
+
+--- run_ensemble_with_quickjs ---
+  crates/strategy-core/tests/session.rs:9://! 既有批式入口（`run_ensemble` / `run_ensemble_with_observer` / `run_ensemble_with_quickjs_observed`）
+  crates/strategy-core/tests/session.rs:14:use strategy_core::engine::run_ensemble_with_quickjs;
+  crates/strategy-core/tests/session.rs:92:    let expected = run_ensemble_with_quickjs(&cfg, &bars).expect("批式入口应成功");
+  crates/strategy-core/tests/session.rs:167:    let expected: EnsembleResult = run_ensemble_with_quickjs(&cfg, &bars).expect("一次性喂入");
+  crates/strategy-core/tests/session.rs:209:        let expected = run_ensemble_with_quickjs(&cfg, &bars).expect("批式入口应成功");
+  crates/strategy-core/tests/session.rs:240:    let expected = run_ensemble_with_quickjs(&cfg2, &bars).expect("批式入口应成功");
+  crates/strategy-core/tests/session.rs:289:    let expected = run_ensemble_with_quickjs(&cfg, &bars).expect("批式入口应成功");
+  crates/strategy-core/tests/session.rs:302:        let res = run_ensemble_with_quickjs(&cfg, &bars).expect("批式入口应成功");
+  crates/strategy-core/tests/templates.rs:7:use strategy_core::engine::run_ensemble_with_quickjs;
+  crates/strategy-core/tests/templates.rs:63:    run_ensemble_with_quickjs(&cfg, bars)
+  crates/strategy-core/tests/templates.rs:147:    let res = run_ensemble_with_quickjs(&cfg, &bars).expect("运行成功");
+  crates/strategy-core/tests/session_alloc.rs:19:use strategy_core::engine::run_ensemble_with_quickjs;
+
+--- Indicators::new ---
+  crates/strategy-core/tests/engine.rs:527:    let atr14 = backtest::Indicators::new(&bars, 16)
+  crates/strategy-core/tests/engine.rs:1061:    let atr_prev = backtest::Indicators::new(&bars, 13)
+  crates/strategy-core/tests/engine.rs:1064:    let atr_incl = backtest::Indicators::new(&bars, 14)
+  crates/strategy-core/src/engine.rs:399:            online: OnlineIndicators::new(),
+  crates/strategy-runtime/tests/shared_history.rs:292:    let mut online = OnlineIndicators::new();
+  crates/strategy-runtime/tests/shared_history.rs:317:        let m_slice = Indicators::new(&bars, i).macd(12, 26, 9).map(|m| m.dif);
+  crates/strategy-runtime/tests/shared_history.rs:323:        let k_slice = Indicators::new(&bars, i).kdj(9, 3, 3).map(|k| k.k);
+  crates/strategy-runtime/tests/shared_history.rs:329:        let b_slice = Indicators::new(&bars, i).boll(20, 2.0).map(|b| b.mid);
+  crates/strategy-runtime/tests/shared_history.rs:347:    Indicators::new(bars, i).ma(period)
+  crates/strategy-runtime/tests/online_indicators_fixture.rs:107:        let mut online = OnlineIndicators::new();
+  crates/strategy-runtime/tests/online_indicators_fixture.rs:113:            let slice = Indicators::new(&bars, i);
+  crates/strategy-runtime/src/quickjs.rs:848:            let expected = Indicators::new(&bs, i).ma(3).map_or(0.0, |v| v); // -1 clamp 到 0

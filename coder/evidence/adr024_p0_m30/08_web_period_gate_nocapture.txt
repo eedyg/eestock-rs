@@ -1,0 +1,4 @@
+[证据] POST /api/workbench/runs period=W1 状态码 = 400 body = {"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}
+[证据] POST /api/workbench/runs period=M300 状态码 = 400 body = {"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: M300）"}
+[证据] POST /api/workbench/runs period=M30 状态码 = 500（无库 ⇒ 预期 500 亦合规）body = {"error":"internal error"}
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s

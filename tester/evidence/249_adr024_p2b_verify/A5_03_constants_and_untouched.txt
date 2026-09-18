@@ -1,0 +1,64 @@
+===== A5-3: 区间护栏常量（P2b 不得改动）=====
+--- crates/application/src/strategy.rs (HEAD vs worktree) ---
+  HEAD  53:pub const MAX_SCORE_POINTS: usize = 50_000;
+  HEAD  54:pub const MAX_EVENTS: usize = 1_000;
+  HEAD  55:pub const MAX_TRADES: usize = 5_000;
+  HEAD  59:pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  HEAD  60:pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  HEAD  682:            domain::types::Period::D1 | domain::types::Period::H1 => D1_MAX_SPAN_DAYS,
+  HEAD  683:            _ => MINUTE_MAX_SPAN_DAYS,
+  HEAD  893:        if scores.len() >= MAX_SCORE_POINTS {
+  HEAD  908:            if events.len() >= MAX_EVENTS {
+  HEAD  929:                if events.len() >= MAX_EVENTS {
+  HEAD  945:                    if events.len() >= MAX_EVENTS {
+  HEAD  1013:        if scores.len() >= MAX_SCORE_POINTS {
+  HEAD  1046:            if events.len() >= MAX_EVENTS {
+  HEAD  1053:    let trades = if result.trades.len() > MAX_TRADES {
+  HEAD  1055:        serde_json::to_value(&result.trades[..MAX_TRADES]).expect("trades 可序列化")
+  WORK  55:pub const MAX_SCORE_POINTS: usize = 50_000;
+  WORK  56:pub const MAX_EVENTS: usize = 1_000;
+  WORK  57:pub const MAX_TRADES: usize = 5_000;
+  WORK  62:pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  WORK  63:pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  WORK  685:            domain::types::Period::D1 | domain::types::Period::H1 => D1_MAX_SPAN_DAYS,
+  WORK  686:            _ => MINUTE_MAX_SPAN_DAYS,
+  WORK  918:        if scores.len() >= MAX_SCORE_POINTS {
+  WORK  933:            if events.len() >= MAX_EVENTS {
+  WORK  954:                if events.len() >= MAX_EVENTS {
+  WORK  970:                    if events.len() >= MAX_EVENTS {
+  WORK  1038:        if scores.len() >= MAX_SCORE_POINTS {
+  WORK  1071:            if events.len() >= MAX_EVENTS {
+  WORK  1078:    let trades = if result.trades.len() > MAX_TRADES {
+  WORK  1080:        serde_json::to_value(&result.trades[..MAX_TRADES]).expect("trades 可序列化")
+--- crates/application/src/bar_map.rs (HEAD vs worktree) ---
+--- crates/web/src/workbench.rs (HEAD vs worktree) ---
+--- crates/mcp/src/tools.rs (HEAD vs worktree) ---
+--- crates/storage/src/backtest.rs (HEAD vs worktree) ---
+
+===== A5-4: 未触碰面（P2b 声称）—— 文件 sha256 与 mtime =====
+# mtime 窗口：P2b 证据目录 coder/evidence/adr024_p2b/ 的创建时间
+tester/evidence/249_adr024_p2b_verify                          2026-09-18 13:53:18.585323285 +0800
+coder/evidence/adr024_p2b                                      2026-09-18 13:47:07.485931250 +0800
+coder/report/adr024_p2b_tryrun_simlive_linearization.md        2026-09-18 13:47:11.186240988 +0800
+crates/application/src/strategy.rs                             2026-09-18 13:52:46.679339010 +0800
+crates/simlive/src/plugin_orchestrator.rs                      2026-09-18 13:52:58.446497445 +0800
+crates/application/tests/adr024_p2b_tryrun.rs                  2026-09-18 13:45:25.358497155 +0800
+crates/simlive/tests/adr024_p2b_orchestrator.rs                2026-09-18 13:45:39.428121200 +0800
+design/16-backtest-scalability/01-adr.md                       2026-09-18 13:37:46.433443561 +0800
+docker-compose.yml                                             2026-09-18 12:16:18.367374541 +0800
+design/99-decisions-log.md                                     2026-09-18 13:00:54.614197964 +0800
+crates/storage/src/backtest.rs                                 2026-09-18 12:44:06.637930299 +0800
+crates/web/src/workbench.rs                                    2026-09-18 12:52:00.052664169 +0800
+crates/mcp/src/tools.rs                                        2026-09-18 12:40:03.786384010 +0800
+crates/simlive/src/session.rs                                  2026-09-12 18:51:12.722930940 +0800
+crates/simlive/src/fill.rs                                     2026-09-12 18:51:12.722930940 +0800
+crates/simlive/src/account.rs                                  2026-09-12 18:51:12.722930940 +0800
+crates/simlive/src/strategy_orchestrator.rs                    2026-09-12 18:51:12.722930940 +0800
+crates/application/src/simlive.rs                              2026-09-18 12:38:31.616651157 +0800
+crates/application/src/bar_map.rs                              2026-09-18 12:38:52.011804736 +0800
+
+===== A5-5: sim-live 业务逻辑（session/fill/account/strategy_orchestrator）HEAD vs worktree =====
+crates/simlive/src/session.rs                        HEAD=3dd908065254 WORK=3dd908065254  相同
+crates/simlive/src/fill.rs                           HEAD=acdf7332a0c8 WORK=acdf7332a0c8  相同
+crates/simlive/src/account.rs                        HEAD=0091627e2ca0 WORK=0091627e2ca0  相同
+crates/simlive/src/strategy_orchestrator.rs          HEAD=896be560cc8d WORK=896be560cc8d  相同

@@ -1,0 +1,14 @@
+test chunks_cascade_delete_with_run ... ok
+test run_create_get_roundtrip ... ok
+test chunks_append_page_and_count ... ok
+test mark_canceled_semantics ... ok
+test mark_failed_terminal_guards ... ok
+test result_cascade_delete_with_run ... ok
+test mark_started_atomic_claim ... ok
+test chunks_in_range_returns_intersecting_chunks ... ok
+test legacy_single_dual_read_unchanged ... ok
+test update_progress_only_running ... ok
+test mark_succeeded_writes_result_transactionally ... ok
+test run_list_order_filter_pagination ... ok
+test preset_crud_and_unique_name ... ok
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s

@@ -1,0 +1,31 @@
+### [③-R1] 反向证据：关闭时间窗节流（PROGRESS_DB_MIN_INTERVAL 250ms→0ms ⇒ due 恒真 = 逐帧落库）
+# 2026-09-18T09:52:42Z
+# 反向态 sha256: b2614c7c86231db9a8e1d6ebb553ef499b606ff0910c45ec44be18bea966240f
+
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.58s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 1 test
+
+thread 'p4b_progress_db_time_window_throttle_reduces_writes' (1939492) panicked at crates/application/tests/workbench.rs:1504:5:
+时间窗节流应显著减少落库：writes=1001 produced=1001（相等 ⇒ 节流未生效）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test p4b_progress_db_time_window_throttle_reduces_writes ... FAILED
+
+failures:
+
+failures:
+    p4b_progress_db_time_window_throttle_reduces_writes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `-p application --test workbench`
+EXIT=101
+
+### R1 复原
+复原后 sha256: 2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528
+期望值         : 2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528
+git diff 行数（应 0）: 0
+TESTER- 残留标记（应 0）: 0
+

@@ -1,0 +1,30 @@
+{
+  "case_id": "m1_1slot_stop",
+  "symbol": "510880",
+  "period": "M1",
+  "bars_count": 3000,
+  "slots": [
+    {
+      "plugin": "dual_ma",
+      "params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "weight": 1.0
+    }
+  ],
+  "buy_threshold": 60.0,
+  "sell_threshold": 40.0,
+  "policy": {
+    "kind": "LumpSum",
+    "position_pct": 1.0
+  },
+  "stop": {
+    "kind": "Atr",
+    "value": 2.0,
+    "trigger": "Intrabar"
+  },
+  "initial_capital": 100000.0,
+  "warmup_bars": 30,
+  "note": "contain 用例：真实订单 + Intrabar ATR(2.0) 硬止损触发 + warmup_bars=30（覆盖 warmup 段标记/trades/events 非空路径）"
+}

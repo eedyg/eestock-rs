@@ -1,0 +1,22 @@
+### ④ 写路径语义（P4 复跑 + P6 fills 定点）
+TS=2026-09-18T15:20:30+08:00 DB=tmp_p4p6_20260918151821
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tester_p4_writepath_indep.rs (target/debug/deps/tester_p4_writepath_indep-36fa1ad9cfd10345)
+
+running 6 tests
+test t_p4_cancel_after_chunks_written_never_succeeds ... [probe] cancel 竞态胜出：status=canceled chunks_per_bar=1
+ok
+test t_p4_chunk_write_failure_marks_run_failed_not_succeeded ... [probe] fail_at=1: status=failed chunks_per_bar=0 error=Some("结果分块落库失败: [tester 注入] 第 1 次 append_result_chunk 强制失败")
+[probe] fail_at=2: status=failed chunks_per_bar=1 error=Some("结果分块落库失败: [tester 注入] 第 2 次 append_result_chunk 强制失败")
+ok
+test t_p4_cooperative_cancel_never_marks_succeeded ... [probe] 协作式取消：status=canceled chunks_per_bar=0（0..k 均可，只需不落 succeeded）
+ok
+test t_p4_success_path_writes_all_chunks_before_result_row ... ok
+test t_p6_fills_chunk_single_block_and_result_row_coexist ... [probe] fills 单块：seq=0 ts_from=2026-09-01 01:30:00 UTC ts_to=2056-10-12 01:30:00 UTC n=2
+ok
+test t_p6_fills_chunk_write_failure_marks_failed_and_precedes_success ... [probe] fills 写失败：status=failed per_bar_chunks=3 error=Some("结果分块落库失败: [tester 注入] kind=Fills 的 append_result_chunk 强制失败")
+ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.67s
+
+EXIT=0

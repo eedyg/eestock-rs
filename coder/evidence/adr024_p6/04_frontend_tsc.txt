@@ -1,0 +1,3 @@
+### ADR-024 P6 前端类型检查
+### cmd: npx tsc -b
+tsc exit=0

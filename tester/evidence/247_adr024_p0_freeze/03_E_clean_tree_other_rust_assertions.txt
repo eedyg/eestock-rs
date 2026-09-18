@@ -1,0 +1,57 @@
+=== 03-E: clean-tree runs of the other 2 Rust assertions (2026-09-18T13:03:18+08:00) ===
+$ cd /tmp/adr024_clean_frz01
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p mcp --test adr024_period_ssot_drift
+   Compiling application v0.1.0 (/tmp/adr024_clean_frz01/crates/application)
+   Compiling tokio-stream v0.1.19
+   Compiling tower-http v0.6.11
+   Compiling sqlx-core v0.8.6
+   Compiling hyper-util v0.1.20
+   Compiling axum v0.8.9
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.12.28
+   Compiling sqlx-postgres v0.8.6
+   Compiling mcp v0.1.0 (/tmp/adr024_clean_frz01/crates/mcp)
+   Compiling sqlx v0.8.6
+   Compiling test-support v0.1.0 (/tmp/adr024_clean_frz01/crates/test-support)
+   Compiling storage v0.1.0 (/tmp/adr024_clean_frz01/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.67s
+     Running tests/adr024_period_ssot_drift.rs (/tmp/adr024_clean_target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... ok
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+CLEAN_TREE_MCP_EXIT=0
+
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p web --test adr024_workbench_period_ssot
+   Compiling tungstenite v0.29.0
+   Compiling tower v0.5.3
+   Compiling sqlx-core v0.8.6
+   Compiling hyper-util v0.1.20
+   Compiling tokio-tungstenite v0.29.0
+   Compiling tower-http v0.6.11
+   Compiling hyper-rustls v0.27.9
+   Compiling axum v0.8.9
+   Compiling reqwest v0.12.28
+   Compiling sqlx-postgres v0.8.6
+   Compiling web v0.1.0 (/tmp/adr024_clean_frz01/crates/web)
+   Compiling sqlx v0.8.6
+   Compiling test-support v0.1.0 (/tmp/adr024_clean_frz01/crates/test-support)
+   Compiling storage v0.1.0 (/tmp/adr024_clean_frz01/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.58s
+     Running tests/adr024_workbench_period_ssot.rs (/tmp/adr024_clean_target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+CLEAN_TREE_WEB_EXIT=0

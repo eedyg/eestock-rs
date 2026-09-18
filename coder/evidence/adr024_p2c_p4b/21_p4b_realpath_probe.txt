@@ -1,0 +1,53 @@
+# ===== ADR-024 P4b 仪表阶段：真路径基线（app=18081 仪表二进制；DB=活库 eestock）=====
+# date_utc : 2026-09-18T06:10:02.865Z
+# commit   : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f (+ staged)
+# app pid  : 174667
+# engine   : /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+
+### [0] 前置闲置对照（不提交 run；观察 prod 告警节拍 70s 与表级统计漂移）
+IDLE strategy_run(tup_upd|ins|del): 364723|2358|1985 -> 364723|2358|1985
+IDLE alert_events(count|open|sum_fire_count|max_last_fired): 446|40|604|2026-09-18 06:06:42.124318+00 -> 446|39|604|2026-09-18 06:06:42.124318+00
+
+### [1] 真路径单次 run ×3（小/中/大 三档，串行）
+[SUBMIT t1_small_d1_492] [http=201 wall=0.052995s]
+[RUNID  t1_small_d1_492] sr_1789711873069_000000
+[TERM   t1_small_d1_492] status=succeeded t_submit=2026-09-18T06:11:13.025Z t_terminal=2026-09-18T06:11:13.560Z
+t1_small_d1_492|row|sr_1789711873069_000000|D1|518880|succeeded|progress=1|bars=492|dur_s=0.453815|started=2026-09-18 06:11:13.081945+00|finished=2026-09-18 06:11:13.53576+00
+[SUBMIT t2_medium_m5_3500] [http=201 wall=0.053527s]
+[RUNID  t2_medium_m5_3500] sr_1789711873646_000001
+[TERM   t2_medium_m5_3500] status=succeeded t_submit=2026-09-18T06:11:13.591Z t_terminal=2026-09-18T06:11:14.570Z
+t2_medium_m5_3500|row|sr_1789711873646_000001|M5|159740|succeeded|progress=1|bars=3500|dur_s=0.875764|started=2026-09-18 06:11:13.648268+00|finished=2026-09-18 06:11:14.524032+00
+[SUBMIT t3_large_m1_16155] [http=201 wall=0.814526s]
+[RUNID  t3_large_m1_16155] sr_1789711875421_000002
+[TERM   t3_large_m1_16155] status=succeeded t_submit=2026-09-18T06:11:14.605Z t_terminal=2026-09-18T06:11:16.535Z
+t3_large_m1_16155|row|sr_1789711875421_000002|M1|518880|succeeded|progress=1|bars=16155|dur_s=0.925676|started=2026-09-18 06:11:15.423752+00|finished=2026-09-18 06:11:16.349428+00
+
+### [2] 并发吞吐探针：4 条 M5 中档并发提交（MAX_CONCURRENT=4）
+[SUBMIT c4_1] [http=201 wall=0.038413s]
+[RUNID  c4_1] sr_1789711876609_000003
+[SUBMIT c4_2] [http=201 wall=0.038754s]
+[RUNID  c4_2] sr_1789711876642_000004
+[SUBMIT c4_3] [http=201 wall=0.035807s]
+[RUNID  c4_3] sr_1789711876695_000005
+[SUBMIT c4_4] [http=201 wall=0.027710s]
+[RUNID  c4_4] sr_1789711876731_000006
+[TERM   c4_1] status=succeeded t_submit=2026-09-18T06:11:16.568Z t_terminal=2026-09-18T06:11:18.383Z
+c4_1|row|sr_1789711876609_000003|M5|159740|succeeded|progress=1|bars=3500|dur_s=1.722537|started=2026-09-18 06:11:16.611001+00|finished=2026-09-18 06:11:18.333538+00
+[TERM   c4_2] status=succeeded t_submit=2026-09-18T06:11:16.568Z t_terminal=2026-09-18T06:11:18.456Z
+c4_2|row|sr_1789711876642_000004|M5|159740|succeeded|progress=1|bars=3500|dur_s=1.737311|started=2026-09-18 06:11:16.656075+00|finished=2026-09-18 06:11:18.393386+00
+[TERM   c4_3] status=succeeded t_submit=2026-09-18T06:11:16.568Z t_terminal=2026-09-18T06:11:18.498Z
+c4_3|row|sr_1789711876695_000005|M5|159740|succeeded|progress=1|bars=3500|dur_s=1.731879|started=2026-09-18 06:11:16.698085+00|finished=2026-09-18 06:11:18.429964+00
+[TERM   c4_4] status=succeeded t_submit=2026-09-18T06:11:16.568Z t_terminal=2026-09-18T06:11:18.536Z
+c4_4|row|sr_1789711876731_000006|M5|159740|succeeded|progress=1|bars=3500|dur_s=1.696251|started=2026-09-18 06:11:16.732481+00|finished=2026-09-18 06:11:18.428732+00
+[CONC4] wall_total=1.998s  runs=4  throughput=2.0022 run/s
+
+### [3] 后置：表级统计沉降（每 5s 采样，连续 3 次相同即停；上限 120s）
+  settle[2026-09-18T06:11:18.682Z] 369729|2365|1985
+  settle[2026-09-18T06:11:23.716Z] 369729|2365|1985
+  settle[2026-09-18T06:11:28.755Z] 371235|2365|1985
+  settle[2026-09-18T06:11:33.793Z] 371235|2365|1985
+  settle[2026-09-18T06:11:38.834Z] 371235|2365|1985
+  settle[2026-09-18T06:11:43.868Z] 371235|2365|1985
+POST strategy_run(tup_upd|ins|del): 369729|2365|1985 -> 371235|2365|1985
+POST alert_events(count|open|sum_fire_count|max_last_fired): 446|39|604|2026-09-18 06:06:42.124318+00 -> 447|40|605|2026-09-18 06:11:42.257861+00
+### —— 结束 ——

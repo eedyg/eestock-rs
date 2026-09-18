@@ -1,0 +1,16 @@
+### ①-c 独立沙箱复算（空 filedb + entangled tangle -f）
+TS=2026-09-18T15:17:14+08:00
+SBX=/tmp/t252.D91MI9
+           INFO     create `crates/web/src/alerts.rs`
+           INFO     create `crates/web/tests/api_alerts.rs`
+           INFO     create `web/src/features/indicators/dcap.ts`
+           INFO     create `crates/strategy-core/reference-plugins/dcap.js`
+           WARNING  conflicts found, but continuing anyway
+--- 复算产物 sha256 vs 仓库产物 ---
+2b3aee666518e8f8eaa6acfebced550834c28f9dbf4db223dce99de305cde080  /tmp/t252.D91MI9/migrations/0027_strategy_run_result_chunks.sql
+2b3aee666518e8f8eaa6acfebced550834c28f9dbf4db223dce99de305cde080  migrations/0027_strategy_run_result_chunks.sql
+SANDBOX_REGEN_BYTE_IDENTICAL
+
+--- 判别力反向对照：沙箱内删掉 'fills' 再复算 ⇒ 产物必须与仓库不同 ---
+20592214e04353fd2fb8e4fed1ffc7b1c7e64ffb456d61ed9b6215ff8c090c23  /tmp/t252.D91MI9/migrations/0027_strategy_run_result_chunks.sql
+TAMPER_DETECTED_OK

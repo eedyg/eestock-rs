@@ -1,0 +1,11 @@
+### 变异点: application/src/workbench.rs fills_all —— 无 fills 块也回 recorded=true（抹掉「未写」语义）
+### 目标用例: application > p6_fills_unrecorded_distinguished
+### cmd: cargo test -p application --test workbench p6_fills_unrecorded
+test p6_fills_unrecorded_distinguished ... FAILED
+thread 'p6_fills_unrecorded_distinguished' (522094) panicked at crates/application/tests/workbench.rs:1747:5:
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.01s
+
+### 还原后复跑（期望绿）：
+test p6_fills_unrecorded_distinguished ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.01s
+RESTORED: crates/application/src/workbench.rs 与原文件逐字节一致

@@ -1,0 +1,9 @@
+run_id                 	bars_total	progress_frames_produced	progress_db_writes	progress_db_throttled	progress_db_write_ms	progress_db_share_pct	permit_hold_ms	progress_drain_tail_ms	engine_ms	outcome 
+sr_1789725227589_000000	16397     	300                     	300               	0                    	102.93              	94.84                	108.532       	42.885                	63.529   	canceled
+sr_1789725228691_000001	16397     	468                     	468               	0                    	153.08              	74.75                	204.795       	79.744                	123.11   	canceled
+sr_1789725229808_000002	16397     	610                     	610               	0                    	241.331             	70.0                 	344.748       	147.325               	195.074  	canceled
+sr_1789725246639_000003	16397     	305                     	305               	0                    	81.098              	60.43                	134.199       	45.021                	87.194   	canceled
+sr_1789725247583_000004	16397     	508                     	508               	0                    	153.385             	76.21                	201.26        	75.752                	123.631  	canceled
+sr_1789725248588_000005	16397     	663                     	663               	0                    	218.101             	70.29                	310.308       	125.497               	183.057  	canceled
+sr_1789725249652_000006	16397     	915                     	915               	0                    	290.502             	68.2                 	425.977       	159.232               	264.777  	canceled
+# rows=7

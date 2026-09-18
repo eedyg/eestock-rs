@@ -1,0 +1,12 @@
+# 说明：10_backend_full_summary.txt 里 orphan_detect_endpoint_red 的 FAILED 为**跨测试库 cagg 残留**导致的环境性 flake，与 P5 改动无关（P5 未触 api_rest/孤儿口径）。
+# 证据：清理残留 cagg 行后，按「api_rest → orphan」顺序重跑全绿。
+
+$ psql: DELETE FROM kline_5m WHERE code=996602   # 清理 api_rest 并行竞态残留的兜底 cagg 孤儿行
+DELETE 1
+
+$ cargo test -p web --test api_rest
+test result: ok. 2 passed; 0 failed; ...
+
+$ cargo test -p web --test orphan_detect_endpoint_red
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... ok
+test result: ok. 4 passed; 0 failed; ...

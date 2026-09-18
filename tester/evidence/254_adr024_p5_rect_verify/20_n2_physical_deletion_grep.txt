@@ -1,0 +1,14 @@
+## N2 物理删除核查（工作区）
+
+$ grep -n 'MOCK_TESTRUN_\|MAX_SPAN_DAYS\|试算区间超限' web/src/api/mock.ts
+456: * 旧 `MOCK_TESTRUN_D1_MAX_SPAN_DAYS` / `MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS` 及其超限分支已**物理删除**
+
+$ grep -rn 'MOCK_TESTRUN_{D1,MINUTE}_MAX_SPAN_DAYS' web/src（含注释；注释内出现 = 文档，非活常量）
+web/src/api/mock.ts:456: * 旧 `MOCK_TESTRUN_D1_MAX_SPAN_DAYS` / `MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS` 及其超限分支已**物理删除**
+
+## 活代码（去注释）核查：旧常量是否仍被定义/引用
+0
+（上一个数字 = 去注释后含 MAX_SPAN_DAYS 的行数，期望 0）
+
+## 旧常量在当前工作区的"活定义"（crates/application 与 web）
+(无 — PASS)

@@ -1,0 +1,63 @@
+===== B: compare.sh（13 例，含新增 m30_1slot / m30_3slots）=====
+命令：bash tester/evidence/240_adr024_golden_baseline/compare.sh
+[cmd] cargo run --offline --release --quiet --manifest-path /home/eestock/workspace/git/eestock/eestock-rs/tester/harness/adr024_harness/Cargo.toml -- compare --baseline /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline --out /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline/compare_report.txt
+== ADR-024 golden compare (P1b) ==
+# B 层判据（唯一事实源）：PASS ⇔ |Δ| ≤ max(1e-12, 1e-9×|expected|)   [对照·旧判据 P1：abs ≤ 1e-9 或 rel ≤ 1e-9]
+# A 层 bitwise 含：result 的整数/结构字段 + 派生序列 derived.{ledger,position,trades_replay}（全部叶节点逐位）
+case_id                     bars    A_ck    B_ck  max_abs_dev  max_rel_dev   dev>0  ledger_ck    ledger  layer
+d1_1slot                     500    3239    2189      0.000e0      0.000e0       0       3736      PASS  A/B PASS
+d1_3slots                    500    4728    3555      0.000e0      0.000e0       0       4028      PASS  A/B PASS
+h1_1slot                     800    5175    3493      0.000e0      0.000e0       0       5796      PASS  A/B PASS
+h1_3slots                    800    7476    5628      0.000e0      0.000e0       0       6392      PASS  A/B PASS
+m15_1slot                   1000    6407    4318      0.000e0      0.000e0       0       7356      PASS  A/B PASS
+m15_3slots                  1000    9433    7101      0.000e0      0.000e0       0       8028      PASS  A/B PASS
+m1_1slot                    1500    9815    6630      0.000e0      0.000e0       0      10652      PASS  A/B PASS
+m1_1slot_stop               3000   19324   13030      0.000e0      0.000e0       0      20020      PASS  A/B PASS
+m1_3slots                   1500   14334   10790      0.000e0      0.000e0       0      12036      PASS  A/B PASS
+m30_1slot                   1000    6443    4345      0.000e0      0.000e0       0       7176      PASS  A/B PASS
+m30_3slots                  1000    9377    7055      0.000e0      0.000e0       0       7936      PASS  A/B PASS
+m5_1slot                    1200    7828    5287      0.000e0      0.000e0       0       9076      PASS  A/B PASS
+m5_3slots                   1200   11282    8493      0.000e0      0.000e0       0       9528      PASS  A/B PASS
+
+# [B′] 逐字段枚举：所有 dev>0 条目（field, expected, actual, abs, rel）（合计 0 条）
+[B′-dev] d1_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] d1_3slots: 无 dev>0 条目（逐位相等）
+[B′-dev] h1_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] h1_3slots: 无 dev>0 条目（逐位相等）
+[B′-dev] m15_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] m15_3slots: 无 dev>0 条目（逐位相等）
+[B′-dev] m1_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] m1_1slot_stop: 无 dev>0 条目（逐位相等）
+[B′-dev] m1_3slots: 无 dev>0 条目（逐位相等）
+[B′-dev] m30_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] m30_3slots: 无 dev>0 条目（逐位相等）
+[B′-dev] m5_1slot: 无 dev>0 条目（逐位相等）
+[B′-dev] m5_3slots: 无 dev>0 条目（逐位相等）
+
+# 容差收紧对照（1e-9 → 1e-12 绝对下限）：按新判据 FAIL 而按旧判据 PASS 的条目数 = 0
+
+# [台账] 派生序列 A 层 bitwise 比较（derived.ledger / derived.position / derived.trades_replay；
+#        合计 111760 个叶节点）+ 自证「replay trades ↔ payload trades」（合计 9144 个叶节点）
+[台账] d1_1slot: ledger_checks=3736 fills=28 replayed_trades=14 payload_trades=14 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] d1_3slots: ledger_checks=4028 fills=87 replayed_trades=41 payload_trades=41 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] h1_1slot: ledger_checks=5796 fills=44 replayed_trades=22 payload_trades=22 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] h1_3slots: ledger_checks=6392 fills=127 replayed_trades=63 payload_trades=63 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m15_1slot: ledger_checks=7356 fills=48 replayed_trades=24 payload_trades=24 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m15_3slots: ledger_checks=8028 fills=169 replayed_trades=84 payload_trades=84 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m1_1slot: ledger_checks=10652 fills=96 replayed_trades=48 payload_trades=48 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m1_1slot_stop: ledger_checks=20020 fills=174 replayed_trades=87 payload_trades=87 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m1_3slots: ledger_checks=12036 fills=275 replayed_trades=137 payload_trades=137 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m30_1slot: ledger_checks=7176 fills=52 replayed_trades=26 payload_trades=26 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m30_3slots: ledger_checks=7936 fills=163 replayed_trades=80 payload_trades=80 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m5_1slot: ledger_checks=9076 fills=74 replayed_trades=37 payload_trades=37 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+[台账] m5_3slots: ledger_checks=9528 fills=198 replayed_trades=99 payload_trades=99 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+
+
+A/B 层：13 用例，失败 0 用例
+全局 max_abs_dev = 0.000000e0 @ m5_3slots (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+全局 max_rel_dev = 0.000000e0 @ m5_3slots (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(500, 0.0), (500, 0.0), (800, 0.0), (800, 0.0), (1000, 0.0), (1000, 0.0), (1500, 0.0), (3000, 0.0), (1500, 0.0), (1000, 0.0), (1000, 0.0), (1200, 0.0), (1200, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0
+exit=0

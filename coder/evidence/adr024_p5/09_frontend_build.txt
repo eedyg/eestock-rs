@@ -1,0 +1,13 @@
+$ npm run build   # tsc -b && vite build
+✓ 182 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.40 kB │ gzip:   0.29 kB
+dist/assets/index-CeUPb4uk.css     22.97 kB │ gzip:   5.77 kB
+dist/assets/index-CA6tDwta.js   1,230.38 kB │ gzip: 379.40 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.13s

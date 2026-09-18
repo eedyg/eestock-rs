@@ -1,0 +1,9 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 1 test
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+

@@ -1,0 +1,27 @@
+# N1 静态枚举：两模块内所有 400 出口（ 时点工作区）
+
+## workbench.rs 中 StatusCode::BAD_REQUEST 的全部出现
+68:        StatusCode::BAD_REQUEST,
+88:        structured(StatusCode::BAD_REQUEST, x.code(), x.message(), ctx)
+222:            StatusCode::BAD_REQUEST,
+249:            StatusCode::BAD_REQUEST,
+259:            StatusCode::BAD_REQUEST,
+272:                StatusCode::BAD_REQUEST,
+283:                StatusCode::BAD_REQUEST,
+292:            StatusCode::BAD_REQUEST,
+300:            StatusCode::BAD_REQUEST,
+311:                    structured(StatusCode::BAD_REQUEST, codes::FEE_INVALID, &m, serde_json::json!({}))
+356:            StatusCode::BAD_REQUEST,
+364:            StatusCode::BAD_REQUEST,
+397:                    StatusCode::BAD_REQUEST,
+464:            StatusCode::BAD_REQUEST,
+473:                StatusCode::BAD_REQUEST,
+483:                    StatusCode::BAD_REQUEST,
+494:                    StatusCode::BAD_REQUEST,
+503:                StatusCode::BAD_REQUEST,
+576:            StatusCode::BAD_REQUEST,
+599:            StatusCode::BAD_REQUEST,
+638:            StatusCode::BAD_REQUEST,
+
+## strategies.rs 中 StatusCode::BAD_REQUEST 的全部出现
+52:        StatusCode::BAD_REQUEST,

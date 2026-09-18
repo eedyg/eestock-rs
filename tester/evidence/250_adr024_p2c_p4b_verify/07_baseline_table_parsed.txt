@@ -1,0 +1,30 @@
+run_id                       bars frames writes    db_ms frame_ms  hold_msengine_ms  tail_ms  ser_ms write_ms fetch_ms wait_msdrain_total_ms  outcome
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+sr_1789712380517_000000       492    492    492   431.20    0.876   443.58     7.06   426.13    2.38     5.70     7.26   0.002      433.31  succeeded
+sr_1789712381060_000001      3500   1001   1001   827.57    0.827   895.80    49.14   781.80   20.60    38.36    49.85   0.002      831.12  succeeded
+sr_1789712382656_000002     16155   1001   1001   830.95    0.830  1108.30   208.98   625.44   88.20   163.69   653.50   0.004      834.59  succeeded
+sr_1789712399110_000004      3500   1001   1001  1661.13    1.659  1728.69    46.30  1618.69   18.11    39.40    25.73   0.001     1665.14  succeeded
+sr_1789712399075_000003      3500   1001   1001  1700.32    1.699  1768.51    46.30  1658.01   19.43    38.93    62.59   0.003     1704.46  succeeded
+sr_1789712399175_000005      3500   1001   1001  1710.76    1.709  1776.52    46.58  1668.01   19.18    36.70    32.27   0.001     1714.71  succeeded
+sr_1789712399225_000006      3500   1001   1001  1674.75    1.673  1740.68    45.48  1633.07   17.24    37.77    38.88   0.001     1678.69  succeeded
+
+自洽性 produced == writes == min(1001,bars):
+  sr_1789712380517_000000 bars=492 expected=492 produced=492 writes=492 -> OK
+  sr_1789712381060_000001 bars=3500 expected=1001 produced=1001 writes=1001 -> OK
+  sr_1789712382656_000002 bars=16155 expected=1001 produced=1001 writes=1001 -> OK
+  sr_1789712399110_000004 bars=3500 expected=1001 produced=1001 writes=1001 -> OK
+  sr_1789712399075_000003 bars=3500 expected=1001 produced=1001 writes=1001 -> OK
+  sr_1789712399175_000005 bars=3500 expected=1001 produced=1001 writes=1001 -> OK
+  sr_1789712399225_000006 bars=3500 expected=1001 produced=1001 writes=1001 -> OK
+
+permit 持有各段占比（%）：
+  sr_1789712380517_000000 engine=1.59% db_write=97.21% drain_tail=96.06% result_write=1.28% serialize=0.54% mark_started=0.32%
+  sr_1789712381060_000001 engine=5.49% db_write=92.38% drain_tail=87.27% result_write=4.28% serialize=2.30% mark_started=0.12%
+  sr_1789712382656_000002 engine=18.86% db_write=74.98% drain_tail=56.43% result_write=14.77% serialize=7.96% mark_started=0.13%
+  sr_1789712399110_000004 engine=2.68% db_write=96.09% drain_tail=93.64% result_write=2.28% serialize=1.05% mark_started=0.08%
+  sr_1789712399075_000003 engine=2.62% db_write=96.14% drain_tail=93.75% result_write=2.20% serialize=1.10% mark_started=0.06%
+  sr_1789712399175_000005 engine=2.62% db_write=96.30% drain_tail=93.89% result_write=2.07% serialize=1.08% mark_started=0.07%
+  sr_1789712399225_000006 engine=2.61% db_write=96.21% drain_tail=93.82% result_write=2.17% serialize=0.99% mark_started=0.07%
+
+最后一条汇总的进程级累计: {'global_runs_total': 7, 'global_frames_total': 6498, 'global_db_writes_total': 6498, 'global_db_write_ms_total': 8836.687, 'global_permit_hold_ms_total': 9462.08}
+Σ frames(本进程 7 run) = 6498

@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+P2-alloc: per_bar_bytes n=2000: 947.3  n=4000: 944.6  ratio=0.997
+P2-alloc: per_bar_allocs n=2000: 20.25 n=4000: 20.23 ratio=0.999
+test engine_per_bar_allocation_does_not_grow_with_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

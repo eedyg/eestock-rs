@@ -1,0 +1,25 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.86s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-3954ee17ee87b183)
+
+running 1 test
+test test_run_both_modes_and_errors ... FAILED
+
+failures:
+
+---- test_run_both_modes_and_errors stdout ----
+
+thread 'test_run_both_modes_and_errors' (1282532) panicked at crates/web/tests/api_strategies.rs:479:5:
+assertion `left == right` failed: 6 年 D1 + 有数据 ⇒ 应受理（日历档已删）: Ok("{\"error\":{\"code\":\"request_invalid\",\"detail\":{\"period\":\"D1\"},\"message\":\"试算区间超限：D1 > 5 年\"}}")
+  left: 400
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    test_run_both_modes_and_errors
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.07s
+
+error: test failed, to rerun pass `-p web --test api_strategies`

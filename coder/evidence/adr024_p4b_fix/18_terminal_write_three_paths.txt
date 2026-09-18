@@ -1,0 +1,26 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.44s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 4 tests
+test p4b_progress_db_time_window_throttle_reduces_writes ... [D15-throttle] bars=3000 frames=1001 writes=2 throttled=999 ws_frames=1001 db_ms=0.004 hold_ms=56.45 last_update_progress=Some(1.0)
+ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... [D15-terminal/cancel] status=Canceled frames=313 writes=3 throttled=311 sink_last_frame=0.312 last_update_progress=Some(0.312)
+ok
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... [D15-terminal/failed] status=Failed frames=1001 writes=2 throttled=999 last_update_progress=Some(1.0)
+ok
+test p4b_run_summary_counters_are_self_consistent ... [P4b/capture] 事件数=33 span 数=28
+[P4b/capture] p4b.segment spans=["p4b.segment"] fields={"bars_fetched": "300", "elapsed_us": "25", "period": "D1", "symbol": "600000", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.submit spans=[] fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000003", "submit_fetch_ms": "0.025", "symbol": "600000", "trace_id": "900fe029984c1b67936038f5668cc0a3", "warmup_effective": "0"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "1", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.segment spans=["p4b.segment", "p4b.segment"] fields={"chunk_write_ms": "0.197", "chunk_writes": "4", "progress_db_throttled": "298", "progress_db_write_ms": "0.001", "progress_db_writes": "2", "progress_ws_send_ms": "0.002", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"bars_total": "300", "elapsed_us": "6061", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "2", "progress_drain_total_ms": "6.076", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "0", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "9", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] p4b.run_summary spans=["workbench_run"] fields={"bars_total": "300", "engine_ms": "6.061", "engine_share_pct": "99.15", "fetch_ms": "0.025", "global_db_write_ms_total": "0.011", "global_db_writes_total": "9", "global_frames_total": "2615", "global_permit_hold_ms_total": "368.689", "global_runs_total": "4", "mark_started_ms": "0.001", "mark_started_share_pct": "0.02", "outcome": "succeeded", "permit_hold_ms": "6.113", "permit_wait_ms": "0.001", "progress_db_share_pct": "0.02", "progress_db_throttled": "298", "progress_db_write_ms": "0.001", "progress_db_writes": "2", "progress_drain_tail_ms": "0.002", "progress_drain_total_ms": "6.076", "progress_frame_avg_ms": "0.0005", "progress_frames_produced": "300", "progress_tail_share_pct": "0.03", "progress_ws_send_ms": "0.002", "result_serialize_ms": "0", "result_serialize_share_pct": "0", "result_write_ms": "0.009", "result_write_share_pct": "0.15", "run_id": "sr_1788915600000_000003", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+[P4b/capture] span workbench_run fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000003", "symbol": "600000", "trace_id": "900fe029984c1b67936038f5668cc0a3"}
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.42s
+

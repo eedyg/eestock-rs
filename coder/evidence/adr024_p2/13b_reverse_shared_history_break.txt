@@ -1,0 +1,31 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+test bar_history_grows_as_exact_prefix ... ok
+test compat_path_ctx_bars_unchanged ... ok
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... FAILED
+test bar_history_indicators_match_slice_view ... ok
+
+failures:
+
+---- shared_history_scores_bitwise_equal_to_compat_path stdout ----
+
+thread 'shared_history_scores_bitwise_equal_to_compat_path' (4191348) panicked at crates/strategy-runtime/tests/shared_history.rs:248:9:
+assertion `left == right` failed: bar 19: 共享缓冲路径 50.0 与兼容路径 68.51890308337977 位级不一致
+  left: 4632233691727265792
+ right: 4634522006099278392
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shared_history_scores_bitwise_equal_to_compat_path
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p strategy-runtime --test shared_history`

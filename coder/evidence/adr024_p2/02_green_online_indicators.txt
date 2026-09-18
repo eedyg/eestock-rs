@@ -1,0 +1,38 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 31 tests
+test fee::tests::buy_respects_min_commission_branch ... ok
+test fee::tests::buy_uses_proportional_commission_and_total_equals_budget ... ok
+test fee::tests::commission_proportional_and_min ... ok
+test fee::tests::default_matches_adr_bt1 ... ok
+test fee::tests::sell_charges_commission_and_stamp ... ok
+test fee::tests::sell_roundtrip_golden_pnl ... ok
+test fee::tests::slippage_prices ... ok
+test fee::tests::stamp_only_sell_side ... ok
+test indicators::tests::atr_wilder ... ok
+test indicators::tests::boll_population_std ... ok
+test indicators::tests::ema_recursive ... ok
+test indicators::tests::kdj_smoothing ... ok
+test indicators::tests::ma_simple ... ok
+test indicators::tests::macd_dif_dea_hist ... ok
+test metrics::tests::drawdown_series_known ... ok
+test types::tests::bars_per_year_known_factors ... ok
+test indicators::tests::online_ma_matches_slice_view ... ok
+test indicators::tests::true_range_definition ... ok
+test metrics::tests::max_drawdown_only_wins_no_loss_gives_infinity_profit_factor ... ok
+test metrics::tests::metrics_known_sequence ... ok
+test indicators::tests::rsi_wilder ... ok
+test metrics::tests::no_trades_degenerate ... ok
+test types::tests::bars_per_year_m30_is_2016_nominal ... ok
+test indicators::tests::online_out_of_range_index_is_none ... ok
+test indicators::tests::online_handles_non_monotone_requests ... ok
+test indicators::tests::online_boll_matches_slice_view ... ok
+test indicators::tests::online_ema_matches_slice_view ... ok
+test indicators::tests::online_macd_matches_slice_view ... ok
+test indicators::tests::online_rsi_matches_slice_view ... ok
+test indicators::tests::online_atr_matches_slice_view ... ok
+test indicators::tests::online_kdj_matches_slice_view ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+

@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/adr024_structured_errors.rs (target/debug/deps/adr024_structured_errors-83c23e3ee295648b)
+
+running 1 test
+test every_400_path_is_structured_with_code ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.99s
+

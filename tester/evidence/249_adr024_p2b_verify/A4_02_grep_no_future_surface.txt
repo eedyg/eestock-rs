@@ -1,0 +1,95 @@
+# A4：全仓「构造 ctx 时传入含未来 bar 的全量切片 + 每 bar to_vec()」写法枚举
+# 命令：grep -rn --include=*.rs --exclude-dir=target,node_modules,.git,data -E 'BarCtx::new' crates/
+
+## [1] BarCtx::new 全部构造点
+crates/strategy-core/src/engine.rs:656:            let ctx = BarCtx::new(i, bar.clone(), bars, position).with_history(shared.clone());
+crates/application/tests/adr024_p2b_tryrun.rs:310:    // 改造前口径复刻：每 bar 传**全量切片**给兼容路径（`BarCtx::new`，运行时内部按
+crates/application/tests/adr024_p2b_tryrun.rs:318:        let ctx = strategy_runtime::BarCtx::new(i, bar.clone(), &bt_bars, None);
+crates/application/src/strategy.rs:853:///   `BarCtx::new` 的「每 bar 按 `bars[..=index]` 建一次性等价缓冲」（O(index) 复制 ——
+crates/application/src/strategy.rs:861:    BarCtx::new(index, bar.clone(), &bars[..=index], None).with_history(hist.clone())
+crates/simlive/tests/adr024_p2b_orchestrator.rs:267:    // 改造前口径复刻：每 bar 传**全量累计切片**给兼容路径（`BarCtx::new` + 运行时内部
+crates/simlive/tests/adr024_p2b_orchestrator.rs:278:        let ctx = BarCtx::new(idx, b.clone(), &accumulated, None);
+crates/simlive/src/plugin_orchestrator.rs:274:            // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
+crates/simlive/src/plugin_orchestrator.rs:276:                let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot)
+crates/strategy-runtime/tests/shared_history_alloc.rs:8://! - **兼容路径**（`BarCtx::new`，试算/sim-live/单测）：保持改造前行为（每 bar 复制
+crates/strategy-runtime/tests/shared_history_alloc.rs:99:        let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+crates/strategy-runtime/tests/shared_history_alloc.rs:118:        let ctx = BarCtx::new(i, bar.clone(), bars, None);
+crates/strategy-runtime/tests/shared_history.rs:11://! 3. 共享句柄路径与兼容路径（`BarCtx::new` 逐 bar 复制）的插件评分**位级一致**；
+crates/strategy-runtime/tests/shared_history.rs:154:        let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+crates/strategy-runtime/tests/shared_history.rs:167:/// 兼容路径（`BarCtx::new`，无共享句柄）语义不变：`bars` 为调用方传入的切片，取值仍正确。
+crates/strategy-runtime/tests/shared_history.rs:173:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/shared_history.rs:199:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None).with_history(hist.clone());
+crates/strategy-runtime/tests/shared_history.rs:208:    let ctx_compat = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/shared_history.rs:231:        let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+crates/strategy-runtime/tests/shared_history.rs:242:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/shared_history.rs:271:    let ctx = BarCtx::new(9, bars[9].clone(), &bars, Some(pos)).with_history(hist.clone());
+crates/strategy-runtime/tests/shared_history.rs:282:    assert!(BarCtx::new(0, bars[0].clone(), &bars, None)
+crates/strategy-runtime/tests/dcap_plugin_init.rs:183:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/dcap_plugin_init.rs:198:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:66:            let ctx = BarCtx::new(i, bar.clone(), bars, None);
+crates/strategy-runtime/tests/contract.rs:79:        let ctx = BarCtx::new(i, bar.clone(), bars, None);
+crates/strategy-runtime/tests/contract.rs:162:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:164:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:220:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:237:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:251:    let ctx = BarCtx::new(1, bars[1].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:284:        let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:330:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:333:    let ctx = BarCtx::new(1, bars[1].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:336:    let ctx = BarCtx::new(2, bars[2].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:343:    let ctx = BarCtx::new(3, bars[3].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:363:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:398:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:406:    let ctx = BarCtx::new(1, bars[1].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:430:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:447:    let ctx = BarCtx::new(1, bars[1].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:476:        let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:560:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/contract.rs:571:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, Some(pos));
+crates/strategy-runtime/tests/contract.rs:587:    let ctx = BarCtx::new(1, bars[1].clone(), &bars, None);
+crates/strategy-runtime/tests/dcap_plugin_replay.rs:151:            let ctx = BarCtx::new(i, bars[i].clone(), bars, None);
+crates/strategy-runtime/tests/dcap_plugin_replay.rs:372:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/dcap_plugin_replay.rs:377:    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None);
+crates/strategy-runtime/tests/dcap_cross_runtime.rs:409:            let ctx = BarCtx::new(i, bar.clone(), &bars, None);
+crates/strategy-runtime/src/quickjs.rs:728:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:743:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:752:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:826:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:846:            let ctx = BarCtx::new(i, bar.clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:852:        let ctx = BarCtx::new(2, bs[2].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:867:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/types.rs:60:///   兼容路径（[`BarCtx::new`]）下长度 = 调用方传入切片长度（改造前行为，未变）。
+crates/strategy-runtime/src/history.rs:14://! - 无共享句柄的调用方（试算 / sim-live / 单测走 [`crate::BarCtx::new`] 的兼容路径）行为与改造前**完全一致**
+crates/strategy-runtime/src/history.rs:32:///     let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], position).with_history(hist.clone());
+
+## [2] to_vec()/from_bars 与 bars 切片（潜在 O(index) 复制点）
+crates/strategy-core/tests/session_alloc.rs:9://! - 改造前（`build_indicators` 逐 bar `bars[..=index].to_vec()` + 指标从 bar 0 重算）
+crates/strategy-core/src/engine.rs:352:/// （消灭改造前每 slot × 每 bar 的 `bars[..=index].to_vec()` 整段复制）。
+crates/strategy-runtime/tests/shared_history.rs:141:    let one = BarHistory::from_bars(&bars[..1]);
+crates/strategy-runtime/src/quickjs.rs:380:///   `bars[..=index].to_vec()` 的 O(index) 复制与分配）；
+crates/strategy-runtime/src/types.rs:124:            None => BarHistory::from_bars(&self.bars[..=self.index]),
+crates/strategy-runtime/src/history.rs:5://! `Rc::new(bctx.bars[..=bctx.index].to_vec())`（O(index) 复制 + 大额分配）⇒ 整机 O(n²)。
+crates/strategy-runtime/src/history.rs:172:        let a = BarHistory::from_bars(&bars);
+
+## [3] ctx.bars 之外的 index 访问（bars[index+..] / bars.last() / bars[bars.len()-1]）
+crates/tushare/src/bin/tushare_sync.rs:133:        if let Some(first) = bars.last() {
+crates/storage/tests/kline_reader.rs:792:    let last = bars.last().expect("非空：forming 桶");
+crates/storage/src/reader.rs:246:                let last_ts = bars.last().map(|b| b.ts);
+crates/application/tests/adr024_p2b_tryrun.rs:277:    let to = bars[bars.len() - 1].ts + Duration::minutes(1);
+
+## [4] ctx.bars 读取点（get/iter/len/first/last）
+crates/application/src/strategy.rs:1146:                ctx.bars.len(),
+crates/application/src/strategy.rs:1174:            let ok = ctx.bars.len() == ctx.index + 1
+crates/application/src/strategy.rs:1175:                && ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar)
+crates/application/src/strategy.rs:1183:                ctx.bars.len(),
+crates/application/src/strategy.rs:1184:                ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar),
+crates/simlive/tests/adr024_p2b_orchestrator.rs:159:            bars_len: ctx.bars.len(),
+crates/simlive/tests/adr024_p2b_orchestrator.rs:160:            cur_eq_ctx_bar: ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar),
+crates/simlive/tests/adr024_p2b_orchestrator.rs:161:            ahead_visible: ctx.bars.len() > ctx.index + 1,
+
+## [5] strategy-runtime 内 bars[..=index] 的等价缓冲（兼容路径单点）
+crates/strategy-core/tests/session_alloc.rs:9://! - 改造前（`build_indicators` 逐 bar `bars[..=index].to_vec()` + 指标从 bar 0 重算）
+crates/strategy-core/src/engine.rs:352:/// （消灭改造前每 slot × 每 bar 的 `bars[..=index].to_vec()` 整段复制）。
+crates/strategy-runtime/src/quickjs.rs:380:///   `bars[..=index].to_vec()` 的 O(index) 复制与分配）；
+crates/strategy-runtime/src/types.rs:124:            None => BarHistory::from_bars(&self.bars[..=self.index]),
+crates/strategy-runtime/src/history.rs:5://! `Rc::new(bctx.bars[..=bctx.index].to_vec())`（O(index) 复制 + 大额分配）⇒ 整机 O(n²)。

@@ -1,0 +1,26 @@
+{
+  "case_id": "d1_1slot",
+  "symbol": "510880",
+  "period": "D1",
+  "bars_count": 500,
+  "slots": [
+    {
+      "plugin": "dual_ma",
+      "params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "weight": 1.0
+    }
+  ],
+  "buy_threshold": 60.0,
+  "sell_threshold": 40.0,
+  "policy": {
+    "kind": "LumpSum",
+    "position_pct": 1.0
+  },
+  "stop": null,
+  "initial_capital": 100000.0,
+  "warmup_bars": 0,
+  "note": "D1；1 slot"
+}

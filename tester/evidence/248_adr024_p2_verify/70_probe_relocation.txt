@@ -1,0 +1,43 @@
+== 探针包位置迁移（tester 资产完整性修复）==
+# 时间：2026-09-18T05:36:47Z
+# 问题：把探针作为第二个 bin 放进 tester/harness/adr024_harness/src/bin/ 后，
+#       cargo run --manifest-path tester/harness/adr024_harness/Cargo.toml -- 报：
+#       error: `cargo run` could not determine which binary to run. ... available binaries: adr024_harness, p2_probe  (exit 101)
+#       ⇒ 会破坏 P1 冻结入口 compare.sh / run_scale.sh（二者无 --bin）。
+# 处置：探针独立成包 tester/harness/adr024_p2_probe/（独立 workspace + 独立 Cargo.lock），
+#       删除 adr024_harness/src/bin/p2_probe.rs；adr024_harness 恢复 byte-identical。
+
+$ sha256sum tester/harness/adr024_harness/{Cargo.toml,src/main.rs}  （迁移后，与最初一致）
+8d8cd5ae41d5fa9dba082e29a4aeb804f3bd8c34b783194448ecc2aef1adbb63  tester/harness/adr024_harness/Cargo.toml
+4602b8e76592bd9d814c5fe30c4ba410c9f23d385037666c82b05868e1d58749  tester/harness/adr024_harness/src/main.rs
+  （00_env 期观测值：Cargo.toml 8d8cd5ae41d5fa9dba082e29a4aeb804f3bd8c34b783194448ecc2aef1adbb63 / src/main.rs 4602b8e76592bd9d814c5fe30c4ba410c9f23d385037666c82b05868e1d58749）
+
+$ find tester/harness/adr024_harness -type f | sort
+tester/harness/adr024_harness/Cargo.lock
+tester/harness/adr024_harness/Cargo.toml
+tester/harness/adr024_harness/src/main.rs
+
+$ cargo run --manifest-path tester/harness/adr024_harness/Cargo.toml --   （应恢复为单 binary = 打印自身用法）
+用法: adr024_harness <run|compare|scale|selftest|tolprobe> [flags]
+[exit 64 = 64 即正常用法错误，说明 cargo 已能唯一判定 binary]
+
+$ bash tester/evidence/240_adr024_golden_baseline/compare.sh m5_1slot   （冻结入口冒烟：单用例、只写 stdout）
+# [台账] 派生序列 A 层 bitwise 比较（derived.ledger / derived.position / derived.trades_replay；
+#        合计 9076 个叶节点）+ 自证「replay trades ↔ payload trades」（合计 444 个叶节点）
+[台账] m5_1slot: ledger_checks=9076 fills=74 replayed_trades=37 payload_trades=37 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+
+
+A/B 层：1 用例，失败 0 用例
+全局 max_abs_dev = 0.000000e0 @ m5_1slot (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+全局 max_rel_dev = 0.000000e0 @ m5_1slot (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1200, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0
+
+$ 迁移后探针输出与迁移前证据逐字节一致校验
+  （见下：与 /tmp/p2probe_rerun 的 prev 副本 cmp）
+  10_lookahead.txt : IDENTICAL
+  11_lookahead_large_n.txt : IDENTICAL
+  20_session.txt : IDENTICAL
+  25_boundary.txt : IDENTICAL

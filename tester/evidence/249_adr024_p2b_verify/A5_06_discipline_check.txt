@@ -1,0 +1,72 @@
+===== 纪律核查：本批 tester 是否产生 staged 变更（必须：0 条新增 staged）=====
+--- git status --short（截取 tester/ + 两个新测试 + harness/baseline）---
+A  crates/application/tests/adr024_p2b_tryrun.rs
+A  crates/application/tests/backtest_periods_ssot.rs
+A  crates/simlive/tests/adr024_p2b_orchestrator.rs
+?? crates/application/tests/tester_p2b_tryrun_indep.rs
+?? crates/simlive/tests/tester_p2b_orchestrator_indep.rs
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/evidence/018/
+?? tester/evidence/240_adr024_golden_baseline/
+?? tester/evidence/241_adr024_scale_curve/
+?? tester/evidence/242_adr024_baseline_extension/
+?? tester/evidence/243_adr024_attribution/
+?? tester/evidence/244_adr024_fixedcost_realpath/
+?? tester/evidence/245_tsdb_worker_slot_incident/
+?? tester/evidence/246_adr024_p0_verify/
+?? tester/evidence/247_adr024_p0_freeze/
+?? tester/evidence/248_adr024_p2_verify/
+?? tester/evidence/249_adr024_p2b_verify/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/harness/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/report/adr024_p0_freeze_verification.md
+?? tester/report/adr024_p0_m30_verification.md
+?? tester/report/adr024_p1_baseline_and_curve.md
+?? tester/report/adr024_p1b_baseline_extension.md
+?? tester/report/adr024_p1c_fixed_cost_realpath.md
+?? tester/report/adr024_p2_verification.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? tester/test/295_adr024_p1_evidence_execution.md
+?? tester/test/296_adr024_p1b_execution.md
+?? tester/test/297_adr024_p1c_execution.md
+?? tester/test/298_adr024_p0_verification_execution.md
+?? tester/test/299_adr024_p2_verification_execution.md
+
+--- git diff --cached --name-only | grep -E 'tester|tester_p2b' （应为空 ⇒ 本批 tester 未 git add）---
+(空：tester 本批未 git add 任何文件)
+
+--- 工作树是否被我改动的生产文件（应为空）---
+(空 ⇒ 生产代码 worktree == index)

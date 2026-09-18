@@ -1,0 +1,70 @@
+===== 反向对照 R-C：sim-live 让 ctx.bars 暴露 index 之外的一根 bar =====
+改动：crates/simlive/src/plugin_orchestrator.rs::evaluate 内把 ctx.bars 换成 bars + [当前 bar]
+备份 sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87
+退化后 sha256：9d1c4c069136b2c60bff6d95c3e5416f8a0fb867f3cccf1a698d2b7b0bab02ba
+
+--- [R-C-1] worker 探针断言 ---
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running tests/adr024_p2b_orchestrator.rs (target/debug/deps/adr024_p2b_orchestrator-d9ce500227a2f7d4)
+
+running 3 tests
+test orchestrator_ctx_bars_is_prefix_shared_and_has_no_future ... 
+thread 'orchestrator_ctx_bars_is_prefix_shared_and_has_no_future' (126484) panicked at crates/simlive/tests/adr024_p2b_orchestrator.rs:211:9:
+assertion `left == right` failed: bar 0: 宿主侧 ctx.bars 必须恰为 bars[..=index]（P2b：无可读未来）
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test orchestrator_per_bar_allocation_does_not_grow_with_index ... P2b-simlive alloc/bar（bytes）: n=2000 145132.2 → n=4000 289130.8 (ratio=1.992)
+P2b-simlive wall（ms）: n=2000 76.0 → n=4000 231.1 (ratio=3.041)
+
+thread 'orchestrator_per_bar_allocation_does_not_grow_with_index' (126485) panicked at crates/simlive/tests/adr024_p2b_orchestrator.rs:321:5:
+每 bar 分配字节不得随 index 增长：n=2000 145132.2 B/bar vs n=4000 289130.8 B/bar （ratio=1.992；改造前每 bar 复制 bars[..=index] 使该比值 ≈2.0）
+FAILED
+test orchestrator_scores_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+failures:
+    orchestrator_ctx_bars_is_prefix_shared_and_has_no_future
+    orchestrator_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `-p simlive --test adr024_p2b_orchestrator`
+exit=101
+
+--- [R-C-2] tester 独立探针断言 ---
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running tests/tester_p2b_orchestrator_indep.rs (target/debug/deps/tester_p2b_orchestrator_indep-fac8029a376fccac)
+
+running 1 test
+test indep_orchestrator_ctx_prefix_and_position_fields ... 
+thread 'indep_orchestrator_ctx_prefix_and_position_fields' (126638) panicked at crates/simlive/tests/tester_p2b_orchestrator_indep.rs:276:9:
+assertion `left == right` failed: bar 0: 宿主侧 ctx.bars 必须恰为 bars[..=index]
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    indep_orchestrator_ctx_prefix_and_position_fields
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p simlive --test tester_p2b_orchestrator_indep`
+exit=101
+
+--- [R-C-3] 复原 ---
+复原后 sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87
+备份   sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87
+[与 git index 逐字节相同]
+git diff -- crates/simlive/src/plugin_orchestrator.rs （应为空）：
+
+--- [R-C-4] 复原后复跑（应全绿）---
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s

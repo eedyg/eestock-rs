@@ -1,0 +1,25 @@
+
+     Running tests/adr024_p2b_orchestrator.rs (target/debug/deps/adr024_p2b_orchestrator-d9ce500227a2f7d4)
+
+running 3 tests
+test orchestrator_ctx_bars_is_prefix_shared_and_has_no_future ... ok
+test orchestrator_per_bar_allocation_does_not_grow_with_index ... ok
+test orchestrator_scores_bitwise_equal_to_compat_path ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/tester_p2b_orchestrator_indep.rs (target/debug/deps/tester_p2b_orchestrator_indep-fac8029a376fccac)
+
+running 3 tests
+test indep_orchestrator_alloc_flat_vs_growing_compat ... ok
+test indep_orchestrator_ctx_prefix_and_position_fields ... ok
+test indep_orchestrator_scores_bitwise_vs_prechange_replica_with_positions ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+   Doc-tests simlive
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,17 @@
+### BEFORE 实例配置
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/tmp_p4bviv_1789724951"
+listen = "127.0.0.1:18085"
+mcp_listen = "127.0.0.1:18086"
+static_dir = "/home/eestock/workspace/git/eestock/eestock-rs/web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 3600000
+
+### AFTER 实例配置
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/tmp_p4bviv_1789724951"
+listen = "127.0.0.1:18087"
+mcp_listen = "127.0.0.1:18088"
+static_dir = "/home/eestock/workspace/git/eestock/eestock-rs/web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 3600000

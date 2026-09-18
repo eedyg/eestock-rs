@@ -1,0 +1,19 @@
+=== 01-A: PRE-PERTURBATION GREEN (baseline, TestRunPanel) 2026-09-18T13:01:22+08:00 ===
+$ pwd; npx vitest --version
+/home/eestock/workspace/git/eestock/eestock-rs/web
+vitest/3.2.7 linux-x64 node-v22.22.2
+$ sed -n '17p' ../web/src/features/backtest/periods.ts
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;
+
+$ npx vitest run src/features/strategies/TestRunPanel.test.tsx
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 158ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  13:01:23
+   Duration  614ms (transform 69ms, setup 23ms, collect 102ms, tests 158ms, environment 129ms, prepare 94ms)
+
+PRE_EXIT=0

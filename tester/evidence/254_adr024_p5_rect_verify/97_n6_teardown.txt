@@ -1,0 +1,21 @@
+# N6 环境卫生（本题自行清理）
+时间：2026-09-18T17:11:50+08:00
+
+## 1) 进程
+app 残留计数 = 0；vite 残留计数 = 0（见下回读）
+
+## 2) DROP 临时库（WITH (FORCE)）
+$ DROP DATABASE IF EXISTS "tmp_p5rv_1789721514" WITH (FORCE)
+DROP DATABASE
+$ DROP DATABASE IF EXISTS "tmp_p5rv2_1789722163" WITH (FORCE)
+DROP DATABASE
+
+## 3) 回读库清单（业务库须只剩 eestock/postgres）
+eestock|2452 MB
+postgres|7519 kB
+template0|7361 kB
+template1|7361 kB
+
+## 4) 残留进程回读
+0
+（期望 0）

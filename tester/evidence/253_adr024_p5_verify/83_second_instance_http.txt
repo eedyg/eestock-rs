@@ -1,0 +1,14 @@
+# tester 第二实例（临时库）HTTP 会话摘录（原始输出见下方；实例随后已 kill）
+# 启动：DATABASE_URL=...tmp_p5_1789718551 APP_LISTEN=127.0.0.1:18099 MCP_LISTEN=127.0.0.1:18098 RUST_LOG=info ./target/debug/eestock-app
+#        （构建输出：tester/evidence/253_adr024_p5_verify/42_app_build.txt；运行日志：80_second_instance.log）
+
+$ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:18099/
+503                        # ← SPA 静态目录 = /app/dist（config/app.toml 容器口径），本地不存在 ⇒ 真渲染改走 vite dev（82_playwright_p5.txt）
+
+$ curl -s "http://127.0.0.1:18099/api/workbench/available_range?symbol=518880&period=M1"
+{"available_from":"2013-07-29T01:30:00+00:00","available_to":"2026-09-17T07:00:01+00:00","period":"M1","symbol":"518880"}
+# ↑ P5 新端点（§5.2 日期控件联动数据源）在真库上返回并集口径区间
+
+$ tail -2 tester/evidence/253_adr024_p5_verify/80_second_instance.log
+{"timestamp":"2026-09-18T08:09:57.157017Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18099","static_dir":"/app/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T08:09:57.157034Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18098"},"target":"mcp::server"}

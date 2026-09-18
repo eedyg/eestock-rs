@@ -1,0 +1,85 @@
+staged 总: 217
+
+[A] P4+P6 共有路径 (11):
+    crates/application/src/workbench.rs
+    crates/application/tests/workbench.rs
+    crates/domain/src/ports.rs
+    crates/storage/tests/workbench_store.rs
+    crates/web/src/lib.rs
+    crates/web/src/workbench.rs
+    crates/web/tests/api_workbench.rs
+    design/02-domain/contracts.md
+    design/04-storage/schema.md
+    design/07-app-plane/00-web-api.md
+    migrations/0027_strategy_run_result_chunks.sql
+
+[B] 仅 P4 自述路径 (6):
+    crates/application/tests/simlive.rs
+    crates/mcp/src/tools.rs
+    crates/storage/src/migrate_check.rs
+    crates/storage/src/workbench.rs
+    design/04-storage/03-raw-writer.md
+    design/07-app-plane/01-mcp.md
+
+[C] 仅 P6 自述路径 (16):
+    web/src/api/client.test.ts
+    web/src/api/client.ts
+    web/src/api/mock.test.ts
+    web/src/api/mock.ts
+    web/src/api/types.ts
+    web/src/features/workbench/AggregateScoreChart.tsx
+    web/src/features/workbench/ComparePanel.tsx
+    web/src/features/workbench/EquityDrawdownChart.tsx
+    web/src/features/workbench/EventLog.tsx
+    web/src/features/workbench/KlineResultChart.tsx
+    web/src/features/workbench/PerBarTable.tsx
+    web/src/features/workbench/ResultView.test.tsx
+    web/src/features/workbench/ResultView.tsx
+    web/src/features/workbench/SlotScoresChart.tsx
+    web/src/features/workbench/useRunSeries.test.ts
+    web/src/features/workbench/useRunSeries.ts
+
+[D] design/16-backtest-scalability/** (架构师所有，非 worker 自述路径) (5):
+    design/16-backtest-scalability/01-adr.md
+    design/16-backtest-scalability/02-spec.md
+    design/16-backtest-scalability/03-test-plan.md
+    design/16-backtest-scalability/04-implementation-plan.md
+    design/16-backtest-scalability/contract-vectors.json
+
+[E] 其它车道/历史批 (32):
+    crates/application/src/bar_map.rs
+    crates/application/src/simlive.rs
+    crates/application/src/strategy.rs
+    crates/application/tests/adr024_p2b_tryrun.rs
+    crates/application/tests/backtest_periods_ssot.rs
+    crates/backtest/src/indicators.rs
+    crates/backtest/src/lib.rs
+    crates/backtest/src/types.rs
+    crates/mcp/tests/adr024_period_ssot_drift.rs
+    crates/simlive/src/plugin_orchestrator.rs
+    crates/simlive/tests/adr024_p2b_orchestrator.rs
+    crates/storage/src/backtest.rs
+    crates/strategy-core/src/engine.rs
+    crates/strategy-core/src/lib.rs
+    crates/strategy-core/tests/session.rs
+    crates/strategy-core/tests/session_alloc.rs
+    crates/strategy-runtime/src/history.rs
+    crates/strategy-runtime/src/lib.rs
+    crates/strategy-runtime/src/quickjs.rs
+    crates/strategy-runtime/src/types.rs
+    crates/strategy-runtime/tests/online_indicators_fixture.rs
+    crates/strategy-runtime/tests/shared_history.rs
+    crates/strategy-runtime/tests/shared_history_alloc.rs
+    crates/web/tests/adr024_workbench_period_ssot.rs
+    web/src/features/backtest/format.test.ts
+    web/src/features/backtest/format.ts
+    web/src/features/backtest/periods.test.ts
+    web/src/features/backtest/periods.ts
+    web/src/features/strategies/TestRunPanel.test.tsx
+    web/src/features/strategies/TestRunPanel.tsx
+    web/src/features/workbench/ConfigPanel.test.tsx
+    web/src/features/workbench/ConfigPanel.tsx
+
+[F] coder 证据/报告 (147)
+
+断言：worker 自述路径 ∩ design/16 = ['crates/application/tests/simlive.rs', 'crates/mcp/src/tools.rs', 'crates/storage/src/migrate_check.rs', 'crates/storage/src/workbench.rs', 'design/04-storage/03-raw-writer.md', 'design/07-app-plane/01-mcp.md', 'web/src/api/client.test.ts', 'web/src/api/client.ts', 'web/src/api/mock.test.ts', 'web/src/api/mock.ts', 'web/src/api/types.ts', 'web/src/features/workbench/AggregateScoreChart.tsx', 'web/src/features/workbench/ComparePanel.tsx', 'web/src/features/workbench/EquityDrawdownChart.tsx', 'web/src/features/workbench/EventLog.tsx', 'web/src/features/workbench/KlineResultChart.tsx', 'web/src/features/workbench/PerBarTable.tsx', 'web/src/features/workbench/ResultView.test.tsx', 'web/src/features/workbench/ResultView.tsx', 'web/src/features/workbench/SlotScoresChart.tsx', 'web/src/features/workbench/useRunSeries.test.ts', 'web/src/features/workbench/useRunSeries.ts']

@@ -1,0 +1,42 @@
+===== 19 并发车道证据（在飞编辑导致 application 无法编译：P4b 之外的干扰面） =====
+# date_utc 2026-09-18T06:24:03.154Z
+
+--- [1] cargo test -p application --lib --no-run（worktree = 交付态 + 其他车道在飞改动）---
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.18s
+  Executable unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+EXIT=0
+
+--- [2] 报错点归属：这两处字段/结构来自 ADR-024 P4（分块结果 D8-D10），非 P2c/P4b ---
+919:pub const RESULT_FORMAT_CHUNKED: &str = "chunked_v1";
+940:pub struct ResultChunk {
+965:    pub fn is_chunked(&self) -> bool { self.result_format == RESULT_FORMAT_CHUNKED }
+  migrations/0027_strategy_run_result_chunks.sql: -rw------- 1 eestock eestock 1340 14:19:51 migrations/0027_strategy_run_result_chunks.sql
+
+--- [3] worktree-index 差异（其他车道的在飞改动）---
+ crates/application/src/workbench.rs                | 773 +++++++++++++++++++--
+ crates/domain/src/ports.rs                         |  68 +-
+ crates/storage/src/migrate_check.rs                |   2 +
+ crates/storage/src/workbench.rs                    |  98 ++-
+ crates/web/src/lib.rs                              |   3 +
+ crates/web/src/workbench.rs                        | 121 +++-
+ .../adr/ADR-023-period-set-extension-30m.md        |   7 +-
+ design/02-domain/contracts.md                      |  68 +-
+ design/04-storage/03-raw-writer.md                 |   2 +
+ design/04-storage/schema.md                        |  42 ++
+ .../04-implementation-plan.md                      |   5 +-
+ design/99-decisions-log.md                         |  23 +
+ docker-compose.yml                                 |   7 +-
+ 13 files changed, 1119 insertions(+), 100 deletions(-)
+
+--- [4] 相关 mtime 时间线（本批窗口 14:00–14:13 vs 并发车道 ≥14:19）---
+-rw-rw-r-- 1 eestock eestock 79740 14:23:03 crates/application/src/workbench.rs
+-rw-rw-r-- 1 eestock eestock 53817 14:07:50 crates/application/tests/workbench.rs
+-rw------- 1 eestock eestock 58092 14:20:05 crates/domain/src/ports.rs
+-rw------- 1 eestock eestock  3791 14:20:08 crates/storage/src/migrate_check.rs
+-rw-rw-r-- 1 eestock eestock 14121 14:20:32 crates/storage/src/workbench.rs
+-rw-rw-r-- 1 eestock eestock 20149 14:23:20 crates/web/src/workbench.rs
+-rw------- 1 eestock eestock  1340 14:19:51 migrations/0027_strategy_run_result_chunks.sql
+
+--- [5] 其他车道改动的内容标记（取自 worktree vs index diff 的头部）---
+100

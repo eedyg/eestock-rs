@@ -1,0 +1,13 @@
+warning: using `clone` on type `FeeModel` which implements the `Copy` trait
+    --> crates/application/src/strategy.rs:1025:14
+     |
+1025 |         fee: fee.clone(),
+     |              ^^^^^^^^^^^ help: try dereferencing it: `*fee`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#clone_on_copy
+     = note: `#[warn(clippy::clone_on_copy)]` on by default
+
+warning: `application` (lib) generated 1 warning (run `cargo clippy --fix --lib -p application -- ` to apply 1 suggestion)
+warning: `application` (lib test) generated 1 warning (1 duplicate)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s

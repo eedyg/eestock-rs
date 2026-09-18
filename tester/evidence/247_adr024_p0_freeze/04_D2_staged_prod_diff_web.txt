@@ -1,0 +1,212 @@
+=== 04-D.2 staged diff of web PRODUCTION sources + the 4 assertion files 2026-09-18T13:04:09+08:00 ===
+--- web production ---
+diff --git a/web/src/api/mock.ts b/web/src/api/mock.ts
+index 1005212..15f7b9d 100644
+--- a/web/src/api/mock.ts
++++ b/web/src/api/mock.ts
+@@ -80,7 +80,7 @@ import type {
+   WorkbenchRunView,
+   WorkbenchSubmitReq,
+ } from './types';
+-import { ApiError } from './types';
++import { ApiError, SUPPORTED_BACKTEST_PERIODS } from './types';
+ 
+ /**
+  * 手写契约 mock（09-frontend.md §4）：后端联调/测试用。
+@@ -433,7 +433,8 @@ function mockExtractParamsSchema(code: string): StrategyParamDef[] {
+   return out;
+ }
+ 
+-/** 试算区间上限（与后端 application::strategy 同口径：D1 ≤ 366*5 天；分钟级 M1/M5/M15 ≤ 93 天）。 */
++/** 试算区间上限（与后端 application::strategy 同口径：D1 ≤ 366*5 天；分钟级 M1/M5/M15/M30 ≤ 93 天）。
++ *  ADR-024 P0：M30 属分钟级档，本阶段仍受该日历上限约束（摘档为 P5 目标）。 */
+ const MOCK_TESTRUN_D1_MAX_SPAN_DAYS = 366 * 5;
+ const MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS = 93;
+ 
+@@ -1494,8 +1495,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
+       if (!symbols.some((s) => s.code === req.symbol)) {
+         throw new ApiError(400, `HTTP 400: symbol ${req.symbol} 未注册`);
+       }
+-      if (!['M1', 'M5', 'M15', 'D1'].includes(req.period)) {
+-        throw new ApiError(400, 'HTTP 400: period 须为 M1/M5/M15/D1');
++      if (!(SUPPORTED_BACKTEST_PERIODS as readonly string[]).includes(req.period)) {
++        throw new ApiError(400, `HTTP 400: period 须为 ${SUPPORTED_BACKTEST_PERIODS.join('/')}`);
+       }
+       const fromMs = Date.parse(req.from);
+       const toMs = Date.parse(req.to);
+diff --git a/web/src/api/types.ts b/web/src/api/types.ts
+index bb78add..97cd9a1 100644
+--- a/web/src/api/types.ts
++++ b/web/src/api/types.ts
+@@ -3,6 +3,11 @@
+ export type { Period, GridMode, SymbolSnapshot } from '@/layouts/DashboardGrid';
+ export type { DetailRange } from '@/layouts/SourcesGrid';
+ export type { Settlement, FormMode, SymbolFormValues } from '@/layouts/SymbolsGrid';
++// ADR-024 P0 §5.1：回测周期白名单的**前端镜像常量/类型**（单一事实源，见该文件注释）。
++// 回测周期与看板读源周期（上方 `Period`）不同源，不得混用。
++import { SUPPORTED_BACKTEST_PERIODS, type BacktestPeriod } from '@/features/backtest/periods';
++export { SUPPORTED_BACKTEST_PERIODS };
++export type { BacktestPeriod };
+ 
+ /** 历史 bar（GET /api/kline 响应 bars 项，merge 视图，升序） */
+ export interface Bar {
+@@ -765,7 +770,7 @@ export interface StrategyTestRunReq {
+   versionId?: string;
+   params?: Record<string, number | string>;
+   symbol: string;
+-  period: 'M1' | 'M5' | 'M15' | 'D1';
++  period: BacktestPeriod;
+   from: string; // RFC3339
+   to: string; // RFC3339
+   mode: StrategyTestMode;
+@@ -906,7 +911,7 @@ export interface WorkbenchFee {
+ export interface WorkbenchSubmitReq {
+   name?: string;
+   symbol: string;
+-  period: string; // M1/M5/M15/D1
++  period: string; // M1/M5/M15/M30/H1/D1（ADR-024 P0：单一事实源见 SUPPORTED_BACKTEST_PERIODS）
+   from: string;
+   to: string;
+   slots: WorkbenchSlotReq[];
+@@ -944,7 +949,7 @@ export interface WorkbenchRunView {
+   id: string; // sr_ 前缀
+   name: string;
+   symbol: string;
+-  period: string; // M1/M5/M15/D1
++  period: string; // M1/M5/M15/M30/H1/D1（ADR-024 P0）
+   from_ts: string; // RFC3339
+   to_ts: string;
+   config: WorkbenchRunConfig;
+diff --git a/web/src/features/backtest/format.ts b/web/src/features/backtest/format.ts
+index 90d9f93..aa69ab3 100644
+--- a/web/src/features/backtest/format.ts
++++ b/web/src/features/backtest/format.ts
+@@ -1,16 +1,16 @@
+ // 页面⑤ 回测工作台展示格式化（深色交易终端风；指标↔字符串，统一口径）。
+ import type { Period } from '@/api/types';
+ 
+-/** 后端口径周期代码 → 前端标签（M1/M5/M15/D1 → 1m/5m/15m/日）。 */
++/** 后端口径周期代码 → 前端标签（M1/M5/M15/M30/H1/D1 → 1m/5m/15m/30m/1h/日）。 */
+ export function periodLabel(code: string | undefined): string {
+-  const map: Record<string, string> = { M1: '1m', M5: '5m', M15: '15m', D1: '日' };
++  const map: Record<string, string> = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', D1: '日' };
+   return map[code ?? ''] ?? (code || '—');
+ }
+ 
+-/** 后端口径周期代码 → 前端 Period（M1/M5/M15/D1 → 1m/5m/15m/1d；未识别兜底 1d）。
+- *  供弹窗 K 线默认周期与看板 KlineChart 周期切换复用。 */
++/** 后端口径周期代码 → 前端 Period（M1/M5/M15/M30/H1/D1 → 1m/5m/15m/30m/1h/1d；未识别兜底 1d）。
++ *  供弹窗 K 线默认周期与看板 KlineChart 周期切换复用（ADR-024 P0 补 M30/H1）。 */
+ export function periodCodeToPeriod(code: string | undefined | null): Period {
+-  const map: Record<string, Period> = { M1: '1m', M5: '5m', M15: '15m', D1: '1d' };
++  const map: Record<string, Period> = { M1: '1m', M5: '5m', M15: '15m', M30: '30m', H1: '1h', D1: '1d' };
+   return map[code ?? ''] ?? '1d';
+ }
+ 
+@@ -37,6 +37,8 @@ const PERIOD_DAY_FACTOR: Record<string, number> = {
+   M1: 1 / (24 * 60),
+   M5: 5 / (24 * 60),
+   M15: 15 / (24 * 60),
++  M30: 30 / (24 * 60), // ADR-024 P0：30min 档
++  H1: 1 / 24, // ADR-024 P0：1h 档（回测白名单 H1）
+   D1: 1,
+ };
+ 
+diff --git a/web/src/features/backtest/periods.ts b/web/src/features/backtest/periods.ts
+new file mode 100644
+index 0000000..799c18c
+--- /dev/null
++++ b/web/src/features/backtest/periods.ts
+@@ -0,0 +1,20 @@
++/**
++ * ADR-024 P0 §5.1 —— 回测周期白名单的**前端镜像常量**（唯一前端事实源）。
++ *
++ * 后端权威事实源：`application::bar_map::supported_backtest_periods()`。
++ * 本常量必须与以下三者**逐字相等**（防漂移断言）：
++ * - 后端：`crates/application/src/bar_map.rs::supported_backtest_periods()`
++ * - MCP：`crates/mcp/src/tools.rs` 的 `bt_run_ensemble` / `strategy_test_run` `period.enum`
++ * - 契约向量：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`
++ *
++ * 断言消费方：
++ * - Rust 跨层断言 `crates/mcp/tests/adr024_period_ssot_drift.rs`（读取本文件字面量）；
++ * - 前端 vitest `web/src/features/backtest/periods.test.ts`（与本文件 + 向量比对）。
++ *
++ * 用途：工作台/试算周期下拉、mock 白名单——不得在任何消费点再手写第二份。
++ * 注：看板读源的小写档位（`1m`/`30m`/…）由 `@/layouts/DashboardGrid` 的 `Period` 承载，与此不同源。
++ */
++export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;
++
++/** 回测周期档位类型（由镜像常量派生，避免第二处联合类型）。 */
++export type BacktestPeriod = (typeof SUPPORTED_BACKTEST_PERIODS)[number];
+diff --git a/web/src/features/strategies/TestRunPanel.tsx b/web/src/features/strategies/TestRunPanel.tsx
+index 8b8b5a3..52792ce 100644
+--- a/web/src/features/strategies/TestRunPanel.tsx
++++ b/web/src/features/strategies/TestRunPanel.tsx
+@@ -5,6 +5,8 @@ import type {
+   StrategyTestMode,
+   StrategyTestRunResp,
+ } from '@/api/types';
++// ADR-024 P0 §5.1：试算周期下拉由单一事实源（前端镜像常量）生成。
++import { SUPPORTED_BACKTEST_PERIODS, type BacktestPeriod } from '@/features/backtest/periods';
+ import { ScoreChart } from './ScoreChart';
+ import { formatDateTime } from './format';
+ 
+@@ -26,7 +28,7 @@ function dayToIso(day: string): string {
+ }
+ 
+ /**
+- * 试算面板（ADR §13.5 双模式）：symbol / 周期 M1/M5/M15/D1 / 区间 / 参数（按 schema 渲染）/
++ * 试算面板（ADR §13.5 双模式）：symbol / 周期（ADR-024 P0：单一事实源 M1/M5/M15/M30/H1/D1）/ 区间 / 参数（按 schema 渲染）/
+  * 模式 pure_score|sim_position → POST /api/strategies/test-run（内联 code，即写即跑）。
+  * 结果：评分曲线（ScoreChart）+ sim_position 成交表/事件列表 + 截断提示；
+  * 错误（400 参数越界/区间超限）内联友好展示。
+@@ -41,7 +43,7 @@ export function TestRunPanel({
+   schema: StrategyParamDef[];
+ }) {
+   const [symbol, setSymbol] = useState('518880');
+-  const [period, setPeriod] = useState<'M1' | 'M5' | 'M15' | 'D1'>('D1');
++  const [period, setPeriod] = useState<BacktestPeriod>('D1');
+   const [dateFrom, setDateFrom] = useState(() => defaultRange().from);
+   const [dateTo, setDateTo] = useState(() => defaultRange().to);
+   const [mode, setMode] = useState<StrategyTestMode>('pure_score');
+@@ -143,10 +145,9 @@ export function TestRunPanel({
+             onChange={(e) => setPeriod(e.target.value as typeof period)}
+             data-testid="tr-period"
+           >
+-            <option value="M1">M1</option>
+-            <option value="M5">M5</option>
+-            <option value="M15">M15</option>
+-            <option value="D1">D1</option>
++            {SUPPORTED_BACKTEST_PERIODS.map((p) => (
++              <option key={p} value={p}>{p}</option>
++            ))}
+           </select>
+         </label>
+         <label className="block text-dim">
+diff --git a/web/src/features/workbench/ConfigPanel.tsx b/web/src/features/workbench/ConfigPanel.tsx
+index fa8fea3..502f34d 100644
+--- a/web/src/features/workbench/ConfigPanel.tsx
++++ b/web/src/features/workbench/ConfigPanel.tsx
+@@ -11,6 +11,8 @@ import type {
+   WorkbenchStop,
+   WorkbenchSubmitReq,
+ } from '@/api/types';
++// ADR-024 P0 §5.1：周期下拉由单一事实源（前端镜像常量）生成，不得手写第二份。
++import { SUPPORTED_BACKTEST_PERIODS } from '@/features/backtest/periods';
+ 
+ /** 表单内 slot 状态（数值字段以文本持有，提交时统一 parse/校验——与 TestRunPanel 同模式）。 */
+ interface SlotForm {
+@@ -583,10 +585,9 @@ export function ConfigPanel({
+         <label className={LABEL}>
+           周期
+           <select className={INPUT} value={period} onChange={(e) => setPeriod(e.target.value)} data-testid="wb-period">
+-            <option value="M1">M1</option>
+-            <option value="M5">M5</option>
+-            <option value="M15">M15</option>
+-            <option value="D1">D1</option>
++            {SUPPORTED_BACKTEST_PERIODS.map((p) => (
++              <option key={p} value={p}>{p}</option>
++            ))}
+           </select>
+         </label>
+         <label className={LABEL}>

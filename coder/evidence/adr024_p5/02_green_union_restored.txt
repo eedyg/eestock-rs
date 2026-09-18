@@ -1,0 +1,12 @@
+$ cargo test -p storage --test backtest   # 恢复 union（并集口径）
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.63s
+     Running tests/backtest.rs (target/debug/deps/backtest-d2344510494c61f4)
+
+running 3 tests
+test available_range_none_when_no_data ... ok
+test available_range_is_service_union_accurate_plus_fallback ... ok
+test bar_read_m1_accurate_first_in_range ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+

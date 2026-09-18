@@ -1,0 +1,20 @@
+   ✓ tester·N2 mock：日历档**物理删除**（源码级 + 行为级） > 源码级：mock.ts 不得再定义/引用 MAX_SPAN_DAYS 常量或「区间超限」文案 1ms
+   × tester·N2 mock：日历档**物理删除**（源码级 + 行为级） > 行为级：D1 七年跨度（旧档 5 年 ⇒ 旧 mock 必 400）⇒ 受理 2ms
+     → expected 1830 to be null
+   ✓ tester·N2 mock：日历档**物理删除**（源码级 + 行为级） > 行为级：M1 104 天跨度（旧档 93 天 ⇒ 旧 mock 必 400；< 200k bar 不触护栏）⇒ 受理 2ms
+   × tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > 收缩回显：起点早于可得数据 ⇒ clamped=true + clamp_reason=data_range + echo_fields 全覆盖 1ms
+     → 回显缺字段 non_existent_echo: expected { mode: 'pure_score', …(17) } to have property "non_existent_echo"
+   ✓ tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > 无交集 ⇒ 400 range_empty（码取自向量）+ 回显可用区间 0ms
+   ✓ tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > 未注册标的 ⇒ range_empty（向量码）+ available 为 null（无可得数据） 0ms
+   ✓ tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > resource_guard 二次确认：阈值区间 ⇒ 400 向量码；confirm=true ⇒ 放行 1ms
+   ✓ tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > 短区间回归保护：区间内（可达）⇒ clamped=false 且 requested==effective 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/api/tester_p5rect_mock_n2.test.ts > tester·N2 mock：日历档**物理删除**（源码级 + 行为级） > 行为级：D1 七年跨度（旧档 5 年 ⇒ 旧 mock 必 400）⇒ 受理
+AssertionError: expected 1830 to be null
+[32m- Expected:[39m 
+[31m+ Received:[39m 
+     79|     expect(S.calendar_day_cap).toBeNull(); // 期望来源 = 向量：无日历档
+ FAIL  src/api/tester_p5rect_mock_n2.test.ts > tester·N2 mock：可得区间收缩 / range_empty / resource_guard（期望取自向量） > 收缩回显：起点早于可得数据 ⇒ clamped=true + clamp_reason=data_range + echo_fields 全覆盖
+AssertionError: 回显缺字段 non_existent_echo: expected { mode: 'pure_score', …(17) } to have property "non_existent_echo"
+     98|       expect(resp, `回显缺字段 ${f}`).toHaveProperty(f);
+      Tests  2 failed | 6 passed (8)

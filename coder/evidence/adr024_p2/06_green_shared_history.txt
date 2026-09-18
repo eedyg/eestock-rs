@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+test bar_history_grows_as_exact_prefix ... ok
+test compat_path_ctx_bars_unchanged ... ok
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+test bar_history_indicators_match_slice_view ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/shared_history_alloc.rs (target/debug/deps/shared_history_alloc-b3a4132438113fa9)
+
+running 1 test
+P2-shared-buffer alloc/bar（bytes）: 共享句柄 n=2000 575.2 → n=4000 575.6 (ratio=1.001)；兼容路径（改造前口径）n=2000 50242.6 → n=4000 98243.3 (ratio=1.955)
+P2-shared-buffer alloc/bar（次数）: 共享句柄 17.99 → 18.00 (ratio=1.000)；兼容路径 24.99 → 25.00 (ratio=1.000)
+test shared_history_per_bar_allocation_is_flat_in_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+

@@ -1,0 +1,58 @@
+### 变异点: crates/application/src/workbench.rs 引擎闭包 —— fills 单块永不写出（模拟 fills 事实源缺失）
+### 变异 diff:
+### 1c1
+### <         if let (Some(first), Some(last)) = (bars.first(), bars.last()) {
+### ---
+### >         if let (Some(first), Some(last)) = (bars.first().filter(|_| false), bars.last().filter(|_| false)) {
+### 目标用例: p6_fills_block_single_seq_and_content / p6_fills_paging_and_recorded
+### cmd: cargo test -p application --test workbench p6_fills_
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 5 tests
+test p6_fills_curve_sampling_rejected ... ok
+test p6_fills_block_single_seq_and_content ... FAILED
+test p6_fills_paging_and_recorded ... FAILED
+test p6_fills_unrecorded_distinguished ... ok
+test p6_fills_legacy_derived_from_inline_per_bar ... ok
+
+failures:
+
+---- p6_fills_block_single_seq_and_content stdout ----
+
+thread 'p6_fills_block_single_seq_and_content' (524937) panicked at crates/application/tests/workbench.rs:1666:5:
+assertion `left == right` failed: fills 恒为单块（seq=0）
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- p6_fills_paging_and_recorded stdout ----
+
+thread 'p6_fills_paging_and_recorded' (524940) panicked at crates/application/tests/workbench.rs:1712:5:
+chunked run 有 fills 块 ⇒ recorded=true
+
+
+failures:
+    p6_fills_block_single_seq_and_content
+    p6_fills_paging_and_recorded
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p application --test workbench`
+
+### 还原后复跑（期望绿）：
+### cmd: cargo test -p application --test workbench p6_fills_
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 5 tests
+test p6_fills_unrecorded_distinguished ... ok
+test p6_fills_curve_sampling_rejected ... ok
+test p6_fills_paging_and_recorded ... ok
+test p6_fills_legacy_derived_from_inline_per_bar ... ok
+test p6_fills_block_single_seq_and_content ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.01s
+

@@ -1,0 +1,48 @@
+=== P4/P6 未回退断言（实现侧存在性）===
+173:/// GET /api/workbench/runs/{id}/fills 查询参数（`offset` 缺省 0；`limit` 缺省 5000/上限 20000）。
+180:/// 抽样/区间/分页曲线可接受的 kind（`fills` 是**事实源**：专用 `/fills` 端点分页读，禁止抽样，见 ADR-024 P6）。
+190:            "kind 须为 per_bar/net_value/drawdown（fills 请用专用端点 /fills）",
+370:/// `kind ∈ per_bar|net_value|drawdown`（缺省 per_bar；`fills` 走专用端点）；
+433:/// GET /api/workbench/runs/{id}/fills?offset=&limit= —— **成交明细分页读**（ADR-024 P6）。
+crates/web/src/workbench.rs:435:/// `limit` 缺省 5000/上限 20000；响应含 `total` 与 `recorded`（区分「无成交」与「未写」）。
+crates/application/src/workbench.rs:249:    pub recorded: bool,
+crates/application/src/workbench.rs:878:    /// 返回 `(fills, recorded)`：`recorded=false` = 「未写」（P6 之前的 chunked run）。
+crates/application/src/workbench.rs:909:        let (all, recorded) = self.fills_all(run_id, &res).await?;
+crates/application/src/workbench.rs:924:            recorded,
+--- 分块写路径 ---
+crates/application/src/workbench.rs:44:    RESULT_FORMAT_CHUNKED, RESULT_FORMAT_LEGACY,
+crates/application/src/workbench.rs:1207:                result_format: RESULT_FORMAT_CHUNKED.to_string(),
+crates/application/src/workbench.rs:1591:    // 到异步 writer 任务（WS sink + update_progress + append_result_chunk）。
+crates/application/src/workbench.rs:1598:    // `store.update_progress` / `store.append_result_chunk` 调用点 ⇒ trace_id 可检索至「落库段」。
+crates/application/src/workbench.rs:1622:                            if let Err(e) = store2.append_result_chunk(&id2, &chunk).await {
+--- P4B_GLOBAL ---
+crates/application/src/workbench.rs:1507:static P4B_GLOBAL: P4bGlobalCounters = P4bGlobalCounters::new();
+crates/application/src/workbench.rs:1888:    let global_runs = P4B_GLOBAL.runs.fetch_add(1, Ordering::Relaxed) + 1;
+crates/application/src/workbench.rs:1889:    let global_frames = P4B_GLOBAL.frames_produced.fetch_add(produced, Ordering::Relaxed) + produced;
+crates/application/src/workbench.rs:1890:    let global_writes = P4B_GLOBAL.db_writes.fetch_add(writes, Ordering::Relaxed) + writes;
+--- SSOT 防漂移 ---
+crates/application/tests/backtest_periods_ssot.rs
+crates/mcp/tests/adr024_period_ssot_drift.rs
+crates/web/tests/adr024_workbench_period_ssot.rs
+web/src/features/backtest/periods.ts
+--- periods.ts 内容 ---
+/**
+ * ADR-024 P0 §5.1 —— 回测周期白名单的**前端镜像常量**（唯一前端事实源）。
+ *
+ * 后端权威事实源：`application::bar_map::supported_backtest_periods()`。
+ * 本常量必须与以下三者**逐字相等**（防漂移断言）：
+ * - 后端：`crates/application/src/bar_map.rs::supported_backtest_periods()`
+ * - MCP：`crates/mcp/src/tools.rs` 的 `bt_run_ensemble` / `strategy_test_run` `period.enum`
+ * - 契约向量：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`
+ *
+ * 断言消费方：
+ * - Rust 跨层断言 `crates/mcp/tests/adr024_period_ssot_drift.rs`（读取本文件字面量）；
+ * - 前端 vitest `web/src/features/backtest/periods.test.ts`（与本文件 + 向量比对）。
+ *
+ * 用途：工作台/试算周期下拉、mock 白名单——不得在任何消费点再手写第二份。
+ * 注：看板读源的小写档位（`1m`/`30m`/…）由 `@/layouts/DashboardGrid` 的 `Period` 承载，与此不同源。
+ */
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;
+
+/** 回测周期档位类型（由镜像常量派生，避免第二处联合类型）。 */
+export type BacktestPeriod = (typeof SUPPORTED_BACKTEST_PERIODS)[number];

@@ -1,0 +1,13 @@
+=== 02-C: cargo test -p web --test adr024_workbench_period_ssot  (2026-09-18T13:01:57+08:00) ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+EXIT=0

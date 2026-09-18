@@ -1,0 +1,106 @@
+===== 4 observation self-consistency: span parent/child + trace_id (tester-run instance JSON log) =====
+events: 69  log: /tmp/app_tester_instr_18081.json.log (copy 06_baseline_app_json_log.txt)
+trace_id groups: 7
+
+--- [1] per-run event chain + segment coverage ---
+
+  run=sr_1789712380517_000000 trace_id=82762ab359d3efe8be76789a43558784
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=518880 period=D1 run_id=None bars_total=None trace_id=82762ab359d3efe8be76789a43558784 complete=False
+      2026-09-18T06:19:40.516971Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:40.518579Z  spans=[]  p4b.submit
+      2026-09-18T06:19:40.520264Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:40.527456Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:19:40.953553Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:19:40.953680Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:19:40.956166Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:19:40.961957Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:19:40.962395Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712381060_000001 trace_id=92062b7378476947040e6793d53732e5
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=159740 period=M5 run_id=None bars_total=None trace_id=92062b7378476947040e6793d53732e5 complete=False
+      2026-09-18T06:19:41.059804Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:41.061462Z  spans=[]  p4b.submit
+      2026-09-18T06:19:41.062785Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:41.112044Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:19:41.893825Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:19:41.893996Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:19:41.914729Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:19:41.953242Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:19:41.957502Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712382656_000002 trace_id=47f38d415aed105265194d5fd068acb9
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=518880 period=M1 run_id=None bars_total=None trace_id=47f38d415aed105265194d5fd068acb9 complete=False
+      2026-09-18T06:19:42.655915Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:42.658127Z  spans=[]  p4b.submit
+      2026-09-18T06:19:42.659880Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:42.869026Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:19:43.494438Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:19:43.494603Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:19:43.582909Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:19:43.746744Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:19:43.766738Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712399075_000003 trace_id=5b1f391bdf886482fc9ffce4972231a5
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=159740 period=M5 run_id=None bars_total=None trace_id=5b1f391bdf886482fc9ffce4972231a5 complete=False
+      2026-09-18T06:19:59.074764Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:59.076455Z  spans=[]  p4b.submit
+      2026-09-18T06:19:59.077749Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:59.124178Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:20:00.782220Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:20:00.782310Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:20:00.801809Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:20:00.840850Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:20:00.845225Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712399110_000004 trace_id=a185e18a47a57cee1cb31fd1072e048b
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=159740 period=M5 run_id=None bars_total=None trace_id=a185e18a47a57cee1cb31fd1072e048b complete=False
+      2026-09-18T06:19:59.110750Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:59.113099Z  spans=[]  p4b.submit
+      2026-09-18T06:19:59.114655Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:59.161087Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:20:00.779763Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:20:00.779897Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:20:00.798094Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:20:00.837603Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:20:00.842011Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712399175_000005 trace_id=3a77ed3448f702b6249b14021f15b9e2
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=159740 period=M5 run_id=None bars_total=None trace_id=3a77ed3448f702b6249b14021f15b9e2 complete=False
+      2026-09-18T06:19:59.175409Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:59.177572Z  spans=[]  p4b.submit
+      2026-09-18T06:19:59.179054Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:59.225740Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:20:00.893718Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:20:00.893850Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:20:00.913127Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:20:00.949953Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:20:00.954294Z  spans=['workbench_run']  p4b.run_summary
+
+  run=sr_1789712399225_000006 trace_id=8f72179956df499a01582eae322e5834
+    events=9 segments=['fetch', 'mark_started', 'engine', 'progress_drain', 'progress_drain_tail', 'result_serialize', 'result_write']
+    parent span workbench_run: symbol=159740 period=M5 run_id=None bars_total=None trace_id=8f72179956df499a01582eae322e5834 complete=False
+      2026-09-18T06:19:59.225097Z  spans=['workbench_run', 'p4b.segment{fetch}']  p4b.segment
+      2026-09-18T06:19:59.227657Z  spans=[]  p4b.submit
+      2026-09-18T06:19:59.229163Z  spans=['workbench_run', 'p4b.segment{mark_started}']  p4b.segment
+      2026-09-18T06:19:59.274765Z  spans=['workbench_run', 'p4b.segment{engine}']  p4b.segment
+      2026-09-18T06:20:00.907805Z  spans=['workbench_run', 'p4b.segment{progress_drain}']  p4b.segment
+      2026-09-18T06:20:00.907955Z  spans=['workbench_run', 'p4b.segment{progress_drain_tail}']  p4b.segment
+      2026-09-18T06:20:00.925295Z  spans=['workbench_run', 'p4b.segment{result_serialize}']  p4b.segment
+      2026-09-18T06:20:00.963191Z  spans=['workbench_run', 'p4b.segment{result_write}']  p4b.segment
+      2026-09-18T06:20:00.968564Z  spans=['workbench_run']  p4b.run_summary
+
+--- [2] parent judgement: every p4b.segment spans[0] == this run's workbench_run (same trace_id) ---
+  segment events=49 bad=0 -> ALL OK
+
+--- [3] trace_id uniqueness + submit event placement ---
+  runs=7 unique trace_ids=7 -> ALL UNIQUE
+  p4b.submit spans = []
+
+--- [4] process-global counters vs sum ---
+  global_runs_total=7 runs=7  global_frames_total=6498 sum_frames=6498  global_db_writes_total=6498 sum_writes=6498

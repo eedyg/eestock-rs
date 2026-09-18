@@ -1,0 +1,18 @@
+# ADR-024 P2 coder 初筛（phase=post，大 n 点；对照 tester 的改造前实测）
+# 改造前（tester evidence 241/242）：dual_ma 50k=1.13 s、200k=14.87~16.29 s（1 slot）；heavy 50k=14.99 s、200k=239.7 s
+[CMD] scale --limit 50000 --slots 1 --repeat 3 tag=post_dual_n50000_s1 
+POINT tag=post_dual_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=1 wall_ms=166 wall_s=0.167 bars_per_s=299543.7 peak_rss_kb=25604 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=22
+POINT tag=post_dual_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=2 wall_ms=163 wall_s=0.163 bars_per_s=306469.5 peak_rss_kb=25604 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=22
+POINT tag=post_dual_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=3 wall_ms=162 wall_s=0.162 bars_per_s=307753.2 peak_rss_kb=25604 allocs=956613 alloc_bytes=39594554 deallocs=900038 reallocs=45 trades=1643 per_bar=50000 load_ms=22
+[CMD] scale --limit 50000 --slots 1 --repeat 3 tag=post_heavy_n50000_s1 --plugin-file tester/evidence/242_adr024_baseline_extension/fixtures/indicator_heavy.js
+POINT tag=post_heavy_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=1 wall_ms=180 wall_s=0.180 bars_per_s=277249.2 peak_rss_kb=25668 allocs=950745 alloc_bytes=38088623 deallocs=900032 reallocs=36 trades=171 per_bar=50000 load_ms=21
+POINT tag=post_heavy_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=2 wall_ms=188 wall_s=0.189 bars_per_s=265230.2 peak_rss_kb=25668 allocs=950745 alloc_bytes=38088623 deallocs=900032 reallocs=36 trades=171 per_bar=50000 load_ms=21
+POINT tag=post_heavy_n50000_s1 plugin=dual_ma bars=50000 slots=1 warmup=0 rep=3 wall_ms=176 wall_s=0.177 bars_per_s=282669.4 peak_rss_kb=25668 allocs=950745 alloc_bytes=38088623 deallocs=900032 reallocs=36 trades=171 per_bar=50000 load_ms=21
+[CMD] scale --limit 200000 --slots 1 --repeat 3 tag=post_dual_n200000_s1 
+POINT tag=post_dual_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=618 wall_s=0.618 bars_per_s=323396.7 peak_rss_kb=69628 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=77
+POINT tag=post_dual_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=2 wall_ms=635 wall_s=0.635 bars_per_s=314918.2 peak_rss_kb=77360 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=77
+POINT tag=post_dual_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=3 wall_ms=612 wall_s=0.612 bars_per_s=326779.1 peak_rss_kb=78920 allocs=3813776 alloc_bytes=154566522 deallocs=3600038 reallocs=50 trades=2442 per_bar=200000 load_ms=77
+[CMD] scale --limit 200000 --slots 1 --repeat 3 tag=post_heavy_n200000_s1 --plugin-file tester/evidence/242_adr024_baseline_extension/fixtures/indicator_heavy.js
+POINT tag=post_heavy_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=1 wall_ms=726 wall_s=0.726 bars_per_s=275398.0 peak_rss_kb=67500 allocs=3802992 alloc_bytes=152350959 deallocs=3600032 reallocs=44 trades=726 per_bar=200000 load_ms=74
+POINT tag=post_heavy_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=2 wall_ms=719 wall_s=0.720 bars_per_s=277921.6 peak_rss_kb=67564 allocs=3802992 alloc_bytes=152350959 deallocs=3600032 reallocs=44 trades=726 per_bar=200000 load_ms=74
+POINT tag=post_heavy_n200000_s1 plugin=dual_ma bars=200000 slots=1 warmup=0 rep=3 wall_ms=725 wall_s=0.725 bars_per_s=275729.4 peak_rss_kb=67564 allocs=3802992 alloc_bytes=152350959 deallocs=3600032 reallocs=44 trades=726 per_bar=200000 load_ms=74

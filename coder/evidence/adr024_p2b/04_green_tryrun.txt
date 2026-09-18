@@ -1,0 +1,11 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.58s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+
+running 2 tests
+test tryrun_per_bar_allocation_does_not_grow_with_index ... P2b-tryrun alloc/bar（bytes）: n=2000 855.5 → n=4000 850.4 (ratio=0.994)
+ok
+test tryrun_pure_score_bitwise_equal_to_compat_path ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

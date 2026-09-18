@@ -1,0 +1,297 @@
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p6_fills_indep.rs:33:7
+   |
+33 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `seed_symbol_and_m1` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:117:10
+    |
+117 | async fn seed_symbol_and_m1(pool: &PgPool, code: &str, n: i64) {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `expect_ts` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:165:4
+    |
+165 | fn expect_ts(n: i64) -> Vec<DateTime<Utc>> {
+    |    ^^^^^^^^^
+
+warning: function `rfc` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:173:4
+    |
+173 | fn rfc(t: DateTime<Utc>) -> String {
+    |    ^^^
+
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:188:4
+    |
+188 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.76s
+     Running unittests src/lib.rs (target/debug/deps/web-fa28072e0007cce2)
+
+running 49 tests
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::collector_interval_validation ... ok
+test dto::tests::dcap_config_default_and_roundtrip ... ok
+test dto::tests::dcap_config_validation_ranges_and_monotonic ... ok
+test dto::tests::dcap_config_non_integer_or_wrong_type_rejected_at_deserialize ... ok
+test dto::tests::dcap_config_or_default_falls_back_on_missing_bad_or_out_of_range ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::symbol_type_validation_enum_and_optional ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+test settings::tests::kline_viewport_bars_constants ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test settings::tests::kline_viewport_bars_validation ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test spa::tests::mime_mapping ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/adr024_structured_errors.rs (target/debug/deps/adr024_structured_errors-83c23e3ee295648b)
+
+running 1 test
+test every_400_path_is_structured_with_code ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.27s
+
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running tests/api_admin.rs (target/debug/deps/api_admin-cb615ccb7362c720)
+
+running 3 tests
+test reset_endpoint_enqueues_db_control_row ... ok
+test symbols_type_optional_register_and_patch ... ok
+test symbols_register_edit_disable_and_stats ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-180711b67b3e1308)
+
+running 3 tests
+test rules_list_patch_and_validation ... ok
+test alerts_list_filters_and_ack_lifecycle ... ok
+test evaluator_fires_incident_and_publishes_ws ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-298a354f4a512367)
+
+running 2 tests
+test favorite_not_found_and_reorder_validation ... ok
+test favorite_star_unstar_reorder_and_symbols_order ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-9b7df218da5bdd80)
+
+running 1 test
+test kline_weekly_monthly_period ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-abfed7ab455ea0a1)
+
+running 1 test
+test ma_config_get_default_put_normalize_and_validate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-ea6e4039a2979396)
+
+running 17 tests
+test t6_put_rejects_base_1mo ... ok
+test t6_put_rejects_1w_when_base_below_1d ... ok
+test t6_get_without_key_returns_defaults_200 ... ok
+test t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values ... ok
+test d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200 ... ok
+test t6_put_rejects_duplicate_periods ... ok
+test d1_duplicate_indicators_are_normalized_200_and_readback_deduped ... ok
+test t6_max_legal_config_is_accepted ... ok
+test t6_put_rejects_heights_keys_mismatching_periods ... ok
+test t6_put_rejects_more_than_4_periods_without_silent_truncation ... ok
+test t6_put_rejects_satellite_1mo ... ok
+test t6_put_rejects_heights_out_of_range ... ok
+test t6_put_rejects_satellite_below_base ... ok
+test t6_put_rejects_unsupported_indicators ... ok
+test t6_put_valid_roundtrip_200_and_readback_identical ... ok
+test t6_put_valid_1d_base_with_1w_satellite_is_accepted ... ok
+test t6_zz_cleanup_leaves_no_multi_period_key ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/api_quality.rs (target/debug/deps/api_quality-2fb6ae3c98712b71)
+
+running 1 test
+test quality_endpoints_full_flow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+
+     Running tests/api_rest.rs (target/debug/deps/api_rest-b0e3d2c832f6f56e)
+
+running 2 tests
+test symbols_latest_healthz_spa_and_sources_health ... ok
+test kline_cursor_pagination_cagg_and_validation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests/api_settings.rs (target/debug/deps/api_settings-5cf37eb453f94fae)
+
+running 6 tests
+test system_info_returns_version_db_and_uptime ... ok
+test reset_circuits_rejects_missing_or_mismatched_confirm ... ok
+test purge_raw_rejects_missing_or_mismatched_confirm ... ok
+test config_patch_persists_get_reads_back_and_validates ... ok
+test config_kline_put_get_and_validate ... ok
+test config_snapshots_return_readonly_defaults ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-3954ee17ee87b183)
+
+running 9 tests
+test guide_endpoint_returns_markdown_full_text ... ok
+test create_validation_400 ... ok
+test patch_meta_update_and_error_semantics ... ok
+test publish_gate_rejects_bad_code_400 ... ok
+test catalog_filters_and_validation ... ok
+test registry_lifecycle_end_to_end ... ok
+test delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 ... ok
+test manage_endpoint_lists_all_strategies_with_aggregates ... ok
+test test_run_both_modes_and_errors ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-6dd4f6c81c20a70c)
+
+running 9 tests
+test cancel_run_semantics ... ok
+test submit_run_lifecycle_end_to_end ... ok
+test p6_fills_endpoint ... ok
+test submit_archived_version_audit_rerun_201 ... ok
+test p5_available_range_endpoint_and_structured_errors ... ok
+test preset_crud_apply_end_to_end ... ok
+test compare_endpoint_side_by_side ... ok
+test p4_result_read_endpoints ... ok
+test submit_validation_error_matrix ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.87s
+
+     Running tests/multi_period_contract_vectors.rs (target/debug/deps/multi_period_contract_vectors-c910288e45088f51)
+
+running 4 tests
+test contract_vectors_cover_required_rules ... ok
+test pane_guard_error_names_dimension_for_over_limit_vectors ... ok
+test pane_count_after_dedup_matches_backend_pure_function ... ok
+test all_contract_vectors_match_backend_validation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-13aa9289126025a1)
+
+running 8 tests
+test d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted ... ok
+test d1_pane_count_uses_deduped_indicator_set_not_raw_length ... ok
+test over_budget_must_be_rejected_with_explicit_error_not_silent_truncation ... ok
+test d2_over_budget_error_names_the_rejected_dimension ... ok
+test pane_budget_boundary_is_inclusive_at_12_and_rejects_13 ... ok
+test pane_budget_cap_is_12 ... ok
+test d2_dimension_predicate_boundary_is_pinned ... ok
+test pane_count_formula_is_base_plus_per_satellite_panes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-48dc5d4c00a36f49)
+
+running 4 tests
+test r4a_clean_functions_refresh_affected_cagg_windows ... ok
+test r5_no_full_range_refresh_in_test_sources ... ok
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+test r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint ... ok
+
+failures:
+
+---- r1_orphan_endpoint_exists_and_reports_zero_on_clean_db stdout ----
+
+thread 'r1_orphan_endpoint_exists_and_reports_zero_on_clean_db' (1262229) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:47:5:
+assertion `left == right` failed: R1: 当前活库无孤儿（2026-09-17 清理后 0）⇒ rows 必须为 0
+  left: 4
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r1_orphan_endpoint_exists_and_reports_zero_on_clean_db
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`

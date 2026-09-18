@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+[真渲染] available_range 请求= ["http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1","http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1","http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1","http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=M1"]
+[真渲染] 可用区间文案= 可用区间：2013-07-29 ~ 2026-09-17
+[真渲染] 切 M15 后 available_range 文案= 可用区间：2023-01-03 ~ 2026-09-17
+  ✘  1 [chromium] › e2e-tester-p5/p5_real_render.e2e.ts:4:1 › P5 真渲染：available_range 联动 min/max + clamped 提示条 + resource_guard 二次确认 (21.0s)
+
+
+  1) [chromium] › e2e-tester-p5/p5_real_render.e2e.ts:4:1 › P5 真渲染：available_range 联动 min/max + clamped 提示条 + resource_guard 二次确认 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 1
+    Received:   1
+
+    Call Log:
+    - Timeout 20000ms exceeded while waiting on the predicate
+
+      28 |   await page.getByTestId('wb-period').selectOption('M1');
+      29 |   const addSel = page.getByTestId('wb-add-strategy');
+    > 30 |   await expect.poll(async () => addSel.locator('option').count(), { timeout: 20_000 }).toBeGreaterThan(1);
+         |                                                                                        ^
+      31 |   const opts = await addSel.locator('option').count();
+      32 |   console.log('[真渲染] 策略下拉 option 数=', opts);
+      33 |   await addSel.selectOption({ index: 1 });
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e-tester-p5/p5_real_render.e2e.ts:30:88
+
+    Error Context: e2e-tester-p5/pw-artifacts/p5_real_render.e2e.ts-P5-真-97dc1-ped-提示条-resource-guard-二次确认-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e-tester-p5/p5_real_render.e2e.ts:4:1 › P5 真渲染：available_range 联动 min/max + clamped 提示条 + resource_guard 二次确认 

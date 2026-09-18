@@ -1,0 +1,12 @@
+### ⑥-1 构建 app 二进制（含 P6 改动）
+TS=2026-09-18T15:21:59+08:00
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling providers v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/providers)
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+   Compiling tushare v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/tushare)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.38s
+EXIT=0
+-rwxrwxr-x 2 eestock eestock 211681144 Sep 18 15:22 target/debug/eestock-app

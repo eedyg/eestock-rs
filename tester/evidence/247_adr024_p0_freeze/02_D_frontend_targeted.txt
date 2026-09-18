@@ -1,0 +1,17 @@
+=== 02-D: npx vitest run periods.test.ts TestRunPanel.test.tsx ConfigPanel.test.tsx  (2026-09-18T13:02:01+08:00) ===
+$ pwd
+/home/eestock/workspace/git/eestock/eestock-rs/web
+$ npx vitest run src/features/backtest/periods.test.ts src/features/strategies/TestRunPanel.test.tsx src/features/workbench/ConfigPanel.test.tsx
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 164ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 697ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  13:02:01
+   Duration  1.19s (transform 129ms, setup 67ms, collect 253ms, tests 863ms, environment 429ms, prepare 272ms)
+
+EXIT=0

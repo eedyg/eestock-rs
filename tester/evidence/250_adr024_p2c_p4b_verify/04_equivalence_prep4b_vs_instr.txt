@@ -1,0 +1,48 @@
+# ===== ADR-024 P2c/P4b ① 仪表前后结果等价：pre-P4b 二进制 vs 仪表二进制 =====
+# date_utc : 2026-09-18T06:18:44.231Z
+# pre-P4b binary : /tmp/eestock-app-prep4b-250  sha256=47d4d1765941a749fa5e6c218341633b0f5d6be6b33770371807e6bd8b95eb4b
+# instr  binary  : /tmp/eestock-app-instr-250   sha256=e738fc71293821c1edcdade09d8476a6d5201c3c093ac68171547eba7981b5d3
+# pre-P4b 源码 = git show HEAD:crates/application/src/workbench.rs（sha256 f97f26d6b97b97707f255075f82ad052b41bdeb019f3eb393b8f14b5e0f9a24d）
+# 仪表源码     = 本批交付态（sha256 0a5045ad1072dc0a0967daf5ca32ba284a226ea806e4da540b4a835b8b6f4e52）
+
+[BOOT] starting pre-P4b on 18091 ...
+[BOOT] starting instr  on 18092 ...
+[BOOT] 18091 healthz=200
+[BOOT] 18092 healthz=200
+
+### CASE small_d1_492 (518880 D1 2025-09-01T00:00:00Z ~ 2026-09-01T00:00:00Z)
+[SUBMIT prep4b-small_d1_492] [http=201 wall=0.055937s]
+[SUBMIT instr-small_d1_492] [http=201 wall=0.042328s]
+[TERM   prep4b-small_d1_492] status=succeeded rid=sr_1789712325210_000000
+[TERM   instr-small_d1_492] status=succeeded rid=sr_1789712325258_000000
+  rid_pre=sr_1789712325210_000000  rid_instr=sr_1789712325258_000000
+  FP_pre   : succeeded|progress=1|perbar_n=492|trades_n=6|net_n=242|dd_n=242|md5_per_bar=44fb0b77a1349cd96696f1400bfb261b|md5_trades=e4b66c031108cdeb58f02654989e9add|md5_net=8af551928c7d30c548216e4ec40ea966|md5_dd=886cbe957d9f09ec6ea888f132349dad|md5_metrics=cb45892b4b96cb4b3c22401a0a47090f|metrics={"sharpe": 0.9498856501691408, "win_rate": 0.5, "net_profit": 18631.823962323077, "trade_count": 6, "max_drawdown": 0.16666798883466485, "avg_hold_bars": 18.333333333333332, "profit_factor": 7.6527287642652375, "annualized_return": 0.19472340938191213}
+  FP_instr : succeeded|progress=1|perbar_n=492|trades_n=6|net_n=242|dd_n=242|md5_per_bar=44fb0b77a1349cd96696f1400bfb261b|md5_trades=e4b66c031108cdeb58f02654989e9add|md5_net=8af551928c7d30c548216e4ec40ea966|md5_dd=886cbe957d9f09ec6ea888f132349dad|md5_metrics=cb45892b4b96cb4b3c22401a0a47090f|metrics={"sharpe": 0.9498856501691408, "win_rate": 0.5, "net_profit": 18631.823962323077, "trade_count": 6, "max_drawdown": 0.16666798883466485, "avg_hold_bars": 18.333333333333332, "profit_factor": 7.6527287642652375, "annualized_return": 0.19472340938191213}
+  ==> 判定：EQ SAME（逐字节相同）
+
+### CASE medium_m5_3500 (159740 M5 2026-06-10T00:00:00Z ~ 2026-09-10T00:00:00Z)
+[SUBMIT prep4b-medium_m5_3500] [http=201 wall=0.033627s]
+[SUBMIT instr-medium_m5_3500] [http=201 wall=0.039403s]
+[TERM   prep4b-medium_m5_3500] status=succeeded rid=sr_1789712326147_000001
+[TERM   instr-medium_m5_3500] status=succeeded rid=sr_1789712326192_000001
+  rid_pre=sr_1789712326147_000001  rid_instr=sr_1789712326192_000001
+  FP_pre   : succeeded|progress=1|perbar_n=3500|trades_n=105|net_n=3250|dd_n=3250|md5_per_bar=56163a2c2592f340ad06ed4a3c7ee742|md5_trades=247bb080c4080fca377d8956004981ef|md5_net=54cbbf1439b5c5ffc80e8ddd1a5f9998|md5_dd=3e58ca1a581ef006d69d035e3f0b735b|md5_metrics=e8941382a8d4048070ecac8b7fba78d7|metrics={"sharpe": -3.2347497774335734, "win_rate": 0.2857142857142857, "net_profit": -16024.765809383956, "trade_count": 105, "max_drawdown": 0.16024765809383956, "avg_hold_bars": 13.952380952380953, "profit_factor": 1.2929517274348705, "annualized_return": -0.47796151147440724}
+  FP_instr : succeeded|progress=1|perbar_n=3500|trades_n=105|net_n=3250|dd_n=3250|md5_per_bar=56163a2c2592f340ad06ed4a3c7ee742|md5_trades=247bb080c4080fca377d8956004981ef|md5_net=54cbbf1439b5c5ffc80e8ddd1a5f9998|md5_dd=3e58ca1a581ef006d69d035e3f0b735b|md5_metrics=e8941382a8d4048070ecac8b7fba78d7|metrics={"sharpe": -3.2347497774335734, "win_rate": 0.2857142857142857, "net_profit": -16024.765809383956, "trade_count": 105, "max_drawdown": 0.16024765809383956, "avg_hold_bars": 13.952380952380953, "profit_factor": 1.2929517274348705, "annualized_return": -0.47796151147440724}
+  ==> 判定：EQ SAME（逐字节相同）
+
+### CASE large_m1_16155 (518880 M1 2026-06-09T01:30:00Z ~ 2026-09-09T07:00:00Z)
+[SUBMIT prep4b-large_m1_16155] [http=201 wall=0.809553s]
+[SUBMIT instr-large_m1_16155] [http=201 wall=0.630169s]
+[TERM   prep4b-large_m1_16155] status=succeeded rid=sr_1789712328771_000002
+[TERM   instr-large_m1_16155] status=succeeded rid=sr_1789712329407_000002
+  rid_pre=sr_1789712328771_000002  rid_instr=sr_1789712329407_000002
+  FP_pre   : succeeded|progress=1|perbar_n=16155|trades_n=480|net_n=15905|dd_n=15905|md5_per_bar=579d8f2fe1c540168bae3a543bfc9d33|md5_trades=3fd384db83a1d560aec6291e3f97b7af|md5_net=178d8839bb1ae3e8e806500d77877382|md5_dd=d168f7ab118a7e52f29d10f692634b30|md5_metrics=3ae022fb08174bc21d201d224cee5bc8|metrics={"sharpe": -6.1469006160929425, "win_rate": 0.18958333333333333, "net_profit": -26646.694905664583, "trade_count": 480, "max_drawdown": 0.2905092130533714, "avg_hold_bars": 16.458333333333332, "profit_factor": 2.3148778866499606, "annualized_return": -0.6922146902451458}
+  FP_instr : succeeded|progress=1|perbar_n=16155|trades_n=480|net_n=15905|dd_n=15905|md5_per_bar=579d8f2fe1c540168bae3a543bfc9d33|md5_trades=3fd384db83a1d560aec6291e3f97b7af|md5_net=178d8839bb1ae3e8e806500d77877382|md5_dd=d168f7ab118a7e52f29d10f692634b30|md5_metrics=3ae022fb08174bc21d201d224cee5bc8|metrics={"sharpe": -6.1469006160929425, "win_rate": 0.18958333333333333, "net_profit": -26646.694905664583, "trade_count": 480, "max_drawdown": 0.2905092130533714, "avg_hold_bars": 16.458333333333332, "profit_factor": 2.3148778866499606, "annualized_return": -0.6922146902451458}
+  ==> 判定：EQ SAME（逐字节相同）
+
+### 清理（按前缀删除本次对照 run；级联删结果行）
+DELETE 6
+残留 T250-EQ-%: 0  结果孤儿: 0
+strategy_run 行数回位: 374 / result: 374
+[STOP] 残进程: 2
+### —— 结束 ——

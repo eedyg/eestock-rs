@@ -1,0 +1,25 @@
+### [246] ADR-024 P0 独立验收 — preflight snapshot
+2026-09-18T12:47:03+08:00
+--- git ---
+18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+112
+--- listening 8081/8082 (ss -lntp) ---
+LISTEN 0      128                                             0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=178558,fd=11))  
+LISTEN 0      128                                             0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=178558,fd=12))  
+--- online app process ---
+ 178558 Wed Sep 16 23:59:28 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+/home/eestock/workspace/git/eestock/eestock-rs
+d6fed24ef8a3d6839bb0191aeb881b323b256733f6ed9e6ec462475cb85f78d0  /proc/178558/exe
+a044626d7816c8deadfc4a5d02213fddba8819d2e9780a75edf88bc8858a48f0  target/debug/eestock-app
+0
+--- online binary stale-check: M30 accepted? ---
+HTTP=400
+{"error":"period 须为 M1/M5/M15/H1/D1"}
+--- db list (BEFORE) ---
+eestock
+postgres
+--- sim-live gate ---
+[{"session":{"id":"s_1789042836_0","name":"T0做T-豆粕浸泡","cash_init":1000000.0,"strategy_set":["st_1789041627252_000079"],"stock_set":["159985"],"period":"M5","start_ts":"2026-09-10T12:20:36.567277Z","end_ts":"2026-09-10T12:43:04.604185Z","status":"ended","source":"mcp"},"metrics":{"annualized_return":0.0,"avg_hold_bars":0.0,"max_drawdown":0.0,"net_profit":0.0,"profit_factor":0.0,"sharpe":0.0,"trade_count":0,"win_rate":0.0}},{"session":{"id":"s_1788880758_0","name":"手动会话","cash_init":200000.0,"strategy_set":["momentum","kdj","boll"],"stock_set":["518880","161226","513310","15977
+--- strategy_run rows with verify prefix (BEFORE) ---
+0

@@ -1,0 +1,13 @@
+### [①-e] 节流相关单测在全新库全量里的逐条结果（coder 的 3 条 + 既有自洽）
+
+test p4b_run_summary_counters_are_self_consistent ... ok
+test p4b_progress_db_time_window_throttle_reduces_writes ... ok
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... ok
+
+--- workbench 目标汇总 ---
+test p4b_run_summary_counters_are_self_consistent ... ok
+test p4b_progress_db_time_window_throttle_reduces_writes ... ok
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... ok
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s

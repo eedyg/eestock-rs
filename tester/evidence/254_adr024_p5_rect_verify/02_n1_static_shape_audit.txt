@@ -1,0 +1,15 @@
+## err( 调用点（应为非 400：404/409/500/503）
+crates/web/src/workbench.rs:77:    err(StatusCode::INTERNAL_SERVER_ERROR, "internal error")
+crates/web/src/workbench.rs:90:        err(StatusCode::NOT_FOUND, &x.0)
+crates/web/src/workbench.rs:92:        err(StatusCode::CONFLICT, &x.0)
+crates/web/src/workbench.rs:107:        .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "workbench 未配置（AppState.workbench=None）"))
+crates/web/src/strategies.rs:46:    err(StatusCode::INTERNAL_SERVER_ERROR, "internal error")
+crates/web/src/strategies.rs:81:        err(StatusCode::NOT_FOUND, &x.0)
+crates/web/src/strategies.rs:83:        err(StatusCode::CONFLICT, &x.0)
+crates/web/src/strategies.rs:99:        .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "strategy registry 未配置（AppState.strategies=None）"))
+
+## 是否存在 err(StatusCode::BAD_REQUEST（应为空）
+(无 — PASS)
+
+## web 层按消息内容判码（应为空）
+(无 — PASS)

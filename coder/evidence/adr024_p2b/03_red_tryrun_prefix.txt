@@ -1,0 +1,33 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+error[E0433]: cannot find type `BarHistory` in this scope
+    --> crates/application/src/strategy.rs:1117:20
+     |
+1117 |         let hist = BarHistory::with_capacity(bars.len());
+     |                    ^^^^^^^^^^ use of undeclared type `BarHistory`
+
+error[E0425]: cannot find function `tryrun_bar_ctx` in this scope
+    --> crates/application/src/strategy.rs:1121:23
+     |
+1121 |             let ctx = tryrun_bar_ctx(i, bar, &bars, &hist);
+     |                       ^^^^^^^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `BarHistory` in this scope
+    --> crates/application/src/strategy.rs:1135:21
+     |
+1135 |         let hist2 = BarHistory::with_capacity(bars.len());
+     |                     ^^^^^^^^^^ use of undeclared type `BarHistory`
+
+error[E0425]: cannot find function `tryrun_bar_ctx` in this scope
+    --> crates/application/src/strategy.rs:1138:23
+     |
+1138 |             let ctx = tryrun_bar_ctx(i, bar, &bars, &hist2);
+     |                       ^^^^^^^^^^^^^^ not found in this scope
+
+warning: unused import: `super`
+    --> crates/application/src/strategy.rs:1084:9
+     |
+1084 |     use super::*;
+     |         ^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+

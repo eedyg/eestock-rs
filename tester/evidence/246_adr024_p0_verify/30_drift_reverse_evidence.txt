@@ -1,0 +1,174 @@
+### 30 — 防漂移断言独立性：自造反向证据（由 tester 独立执行） @ 2026-09-18T12:50:50+08:00
+--- 30.1 baseline identity ---
+$ sha256sum web/src/features/backtest/periods.ts
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+$ git rev-parse :web/src/features/backtest/periods.ts  (staged blob)
+799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44
+$ git status --porcelain -- web/src/features/backtest/periods.ts
+A  web/src/features/backtest/periods.ts
+   (空 = 工作区与 index 一致)
+
+--- 30.2 MUTATION: 从 SUPPORTED_BACKTEST_PERIODS 删掉 'M30' ---
+17:export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'H1', 'D1'] as const;
+
+--- 30.3 RUST 断言（crates/mcp/tests/adr024_period_ssot_drift.rs）必须变红 ---
+$ cargo test -p mcp --test adr024_period_ssot_drift
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... FAILED
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... FAILED
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+failures:
+
+---- backend_ssot_matches_frontend_mirror stdout ----
+
+thread 'backend_ssot_matches_frontend_mirror' (4098833) panicked at crates/mcp/tests/adr024_period_ssot_drift.rs:109:5:
+assertion `left == right` failed: supported_backtest_periods() != web/src/features/backtest/periods.ts 的前端镜像常量
+  left: ["M1", "M5", "M15", "M30", "H1", "D1"]
+ right: ["M1", "M5", "M15", "H1", "D1"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- all_four_period_sources_are_byte_equal stdout ----
+
+thread 'all_four_period_sources_are_byte_equal' (4098831) panicked at crates/mcp/tests/adr024_period_ssot_drift.rs:125:5:
+assertion `left == right` failed: backend != frontend mirror
+  left: ["M1", "M5", "M15", "M30", "H1", "D1"]
+ right: ["M1", "M5", "M15", "H1", "D1"]
+
+
+failures:
+    all_four_period_sources_are_byte_equal
+    backend_ssot_matches_frontend_mirror
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --test adr024_period_ssot_drift`
+RUST_EXIT=101
+
+--- 30.4 TS 断言（web/src/features/backtest/periods.test.ts）必须变红 ---
+$ npx vitest run src/features/backtest/periods.test.ts
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/backtest/periods.test.ts (3 tests | 2 failed) 5ms
+   × ADR-024 P0 前端周期镜像常量（单一事实源） > SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_periods（逐字相等） 4ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   × ADR-024 P0 前端周期镜像常量（单一事实源） > 集合为契约六档（含 M30），顺序即展示序 1ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   ✓ ADR-024 P0 前端周期镜像常量（单一事实源） > 契约向量声明 m30（domain_variant=M30 / dashboard_code=30m / bars_per_year_nominal=2016） 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/backtest/periods.test.ts > ADR-024 P0 前端周期镜像常量（单一事实源） > SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_periods（逐字相等）
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/backtest/periods.test.ts:27:45
+     25| describe('ADR-024 P0 前端周期镜像常量（单一事实源）', () => {
+     26|   it('SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_pe…
+     27|     expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(VECTORS.backtest_p…
+       |                                             ^
+     28|   });
+     29| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/backtest/periods.test.ts > ADR-024 P0 前端周期镜像常量（单一事实源） > 集合为契约六档（含 M30），顺序即展示序
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/backtest/periods.test.ts:31:45
+     29| 
+     30|   it('集合为契约六档（含 M30），顺序即展示序', () => {
+     31|     expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(['M1', 'M5', 'M15'…
+       |                                             ^
+     32|   });
+     33| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:50:50
+   Duration  373ms (transform 19ms, setup 22ms, collect 9ms, tests 5ms, environment 130ms, prepare 82ms)
+
+TS_EXIT=1
+
+--- 30.5 RESTORE ---
+$ sha256sum web/src/features/backtest/periods.ts (must equal baseline)
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+$ git status --porcelain -- web/src/features/backtest/periods.ts (must be empty)
+A  web/src/features/backtest/periods.ts
+   <end>
+$ git diff -- web/src/features/backtest/periods.ts (must be empty)
+   <end>
+$ git rev-parse :web/src/features/backtest/periods.ts (staged blob, must be unchanged)
+799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44
+### 30.6 RESTORE → 回绿复验 @ 2026-09-18T12:50:55+08:00
+$ sha256sum web/src/features/backtest/periods.ts
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+$ git diff -- web/src/features/backtest/periods.ts  (must be empty)
+   <end: empty>
+
+$ cargo test -p mcp --test adr024_period_ssot_drift
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_contract_vectors ... ok
+test backend_ssot_matches_frontend_mirror ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+RUST_EXIT=0
+
+$ npx vitest run src/features/backtest/periods.test.ts
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 1ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  12:50:55
+   Duration  361ms (transform 19ms, setup 22ms, collect 8ms, tests 1ms, environment 126ms, prepare 97ms)
+
+TS_EXIT=0
+
+### 30.7 交付一致性复核（复原后）
+$ git diff --stat  (worktree vs index, 全仓：必须只含 ADR-023 md 与 docker-compose.yml 两处既有未 staged 改动)
+ design/01-architecture/adr/ADR-023-period-set-extension-30m.md | 7 ++++++-
+ docker-compose.yml                                             | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)

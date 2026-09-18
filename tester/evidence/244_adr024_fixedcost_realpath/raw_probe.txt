@@ -1,0 +1,38 @@
+# ---- idle drift control (no run submitted; 10s) ----
+IDLE before=357386 after=357386 delta=0  db(tup_updated|xact_commit) before=634890|3190042 after=634890|3190070
+[SUBMIT t1_small_d1_490] t=2026-09-17T16:42:12.518Z pre_tup_upd=357386 pre_db(tup_updated|xact_commit)=634890|3190076 inflight_before=0
+[RESP   t1_small_d1_490] {"id":"sr_1789663332534_000000","name":"ADR024-P1c-probe-t1_small_d1_490","symbol":"518880","period":"D1","from_ts":"2025-09-01T00:00:00Z","to_ts":"2026-09-01T00:00:00Z","config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-17T16:42:12.535034Z","started_at":null,"finished_at":null}
+[http=201 wall=0.016755s]
+[RUNID  t1_small_d1_490] sr_1789663332534_000000
+[TERM   t1_small_d1_490] status=succeeded term_t=2026-09-17T16:42:14.437Z post_t=2026-09-17T16:42:15.438Z
+[DELTA  t1_small_d1_490] tup_upd: 357386 -> 357612 (Δ=226)   db: 634890|3190076 -> 635116|3190343
+t1_small_d1_490|row|sr_1789663332534_000000|D1|518880|2025-09-01 00:00:00+00|2026-09-01 00:00:00+00|succeeded|1|started=2026-09-17 16:42:12.537592+00|finished=2026-09-17 16:42:14.378503+00
+t1_small_d1_490|bars|run_id=sr_1789663332534_000000|bars=492|trades=6|dur_s=1.840911|result_bytes=5170
+t1_small_d1_490|concurrency|window=[2026-09-17T16:42:12.452Z,2026-09-17T16:42:15.438Z]|overlapping_other_runs=0
+[TAG   t1_small_d1_490] done
+
+[SUBMIT t2_medium_m5_3250] t=2026-09-17T16:42:15.688Z pre_tup_upd=357612 pre_db(tup_updated|xact_commit)=635116|3190355 inflight_before=0
+[RESP   t2_medium_m5_3250] {"id":"sr_1789663335760_000001","name":"ADR024-P1c-probe-t2_medium_m5_3250","symbol":"159740","period":"M5","from_ts":"2026-06-10T00:00:00Z","to_ts":"2026-09-10T00:00:00Z","config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-17T16:42:15.760801Z","started_at":null,"finished_at":null}
+[http=201 wall=0.072101s]
+[RUNID  t2_medium_m5_3250] sr_1789663335760_000001
+[TERM   t2_medium_m5_3250] status=succeeded term_t=2026-09-17T16:42:18.307Z post_t=2026-09-17T16:42:19.308Z
+[DELTA  t2_medium_m5_3250] tup_upd: 357612 -> 358743 (Δ=1131)   db: 635116|3190355 -> 636247|3191563
+t2_medium_m5_3250|row|sr_1789663335760_000001|M5|159740|2026-06-10 00:00:00+00|2026-09-10 00:00:00+00|succeeded|1|started=2026-09-17 16:42:15.763014+00|finished=2026-09-17 16:42:18.218754+00
+t2_medium_m5_3250|bars|run_id=sr_1789663335760_000001|bars=3500|trades=105|dur_s=2.455740|result_bytes=44033
+t2_medium_m5_3250|concurrency|window=[2026-09-17T16:42:15.628Z,2026-09-17T16:42:19.308Z]|overlapping_other_runs=0
+[TAG   t2_medium_m5_3250] done
+
+[SUBMIT t3_large_m1_15900] t=2026-09-17T16:42:19.568Z pre_tup_upd=358743 pre_db(tup_updated|xact_commit)=636247|3191575 inflight_before=0
+[RESP   t3_large_m1_15900] {"id":"sr_1789663340174_000002","name":"ADR024-P1c-probe-t3_large_m1_15900","symbol":"518880","period":"M1","from_ts":"2026-06-09T01:30:00Z","to_ts":"2026-09-09T07:00:00Z","config":{"buy_threshold":60.0,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-17T16:42:20.174581Z","started_at":null,"finished_at":null}
+[http=201 wall=0.606135s]
+[RUNID  t3_large_m1_15900] sr_1789663340174_000002
+[TERM   t3_large_m1_15900] status=succeeded term_t=2026-09-17T16:42:22.972Z post_t=2026-09-17T16:42:23.973Z
+[DELTA  t3_large_m1_15900] tup_upd: 358743 -> 359814 (Δ=1071)   db: 636247|3191575 -> 637318|3192710
+t3_large_m1_15900|row|sr_1789663340174_000002|M1|518880|2026-06-09 01:30:00+00|2026-09-09 07:00:00+00|succeeded|1|started=2026-09-17 16:42:20.176882+00|finished=2026-09-17 16:42:22.769484+00
+t3_large_m1_15900|bars|run_id=sr_1789663340174_000002|bars=16155|trades=480|dur_s=2.592602|result_bytes=187352
+t3_large_m1_15900|concurrency|window=[2026-09-17T16:42:19.506Z,2026-09-17T16:42:23.973Z]|overlapping_other_runs=0
+[TAG   t3_large_m1_15900] done
+
+# ---- post-probe idle drift control (10s) ----
+IDLE2 before=359814 after=359886 delta=72
+TOTAL n_tup_upd=359886 n_tup_ins=2352 n_tup_del=1976

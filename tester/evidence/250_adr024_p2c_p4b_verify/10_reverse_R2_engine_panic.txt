@@ -1,0 +1,79 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 7 tests
+test session_shared_history_exposes_current_bar_to_plugin ... FAILED
+test session_finish_force_closes_open_position ... FAILED
+test session_observer_called_per_bar_and_break_is_immediate ... FAILED
+test session_chunked_feed_matches_single_feed ... FAILED
+test session_warmup_marker_is_exact ... FAILED
+test session_push_matches_batch_entry_bitwise ... FAILED
+test session_handles_empty_single_and_warmup_overflow ... FAILED
+
+failures:
+
+---- session_shared_history_exposes_current_bar_to_plugin stdout ----
+
+thread 'session_shared_history_exposes_current_bar_to_plugin' (257644) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- session_finish_force_closes_open_position stdout ----
+
+thread 'session_finish_force_closes_open_position' (257640) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- session_observer_called_per_bar_and_break_is_immediate stdout ----
+
+thread 'session_observer_called_per_bar_and_break_is_immediate' (257642) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- session_chunked_feed_matches_single_feed stdout ----
+
+thread 'session_chunked_feed_matches_single_feed' (257639) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- session_warmup_marker_is_exact stdout ----
+
+thread 'session_warmup_marker_is_exact' (257645) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- session_push_matches_batch_entry_bitwise stdout ----
+
+thread 'session_push_matches_batch_entry_bitwise' (257643) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- session_handles_empty_single_and_warmup_overflow stdout ----
+
+thread 'session_handles_empty_single_and_warmup_overflow' (257641) panicked at crates/strategy-core/src/engine.rs:661:13:
+assertion `left == right` failed: P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+
+failures:
+    session_chunked_feed_matches_single_feed
+    session_finish_force_closes_open_position
+    session_handles_empty_single_and_warmup_overflow
+    session_observer_called_per_bar_and_break_is_immediate
+    session_push_matches_batch_entry_bitwise
+    session_shared_history_exposes_current_bar_to_plugin
+    session_warmup_marker_is_exact
+
+test result: FAILED. 0 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test session`
+EXIT=101

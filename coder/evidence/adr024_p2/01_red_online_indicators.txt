@@ -1,0 +1,57 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:407:22
+    |
+407 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:434:22
+    |
+434 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:460:22
+    |
+460 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:485:22
+    |
+485 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:518:22
+    |
+518 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:547:22
+    |
+547 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:578:22
+    |
+578 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:604:22
+    |
+604 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+error[E0433]: cannot find type `OnlineIndicators` in this scope
+   --> crates/backtest/src/indicators.rs:652:22
+    |
+652 |         let mut on = OnlineIndicators::new();
+    |                      ^^^^^^^^^^^^^^^^ use of undeclared type `OnlineIndicators`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `backtest` (lib test) due to 9 previous errors

@@ -1,0 +1,55 @@
+### ①-a 契约 SQL 三方逐字比对（02-spec.md §2 代码块 / schema.md §4.3.18 块 / migrations/0027 产物）
+TS=2026-09-18T14:38:19+08:00  HOST=eedy
+
+02-spec §2 代码块行数: 19
+schema.md §4.3.18 块行数: 19
+0027 产物（去 ~/~ 包裹行）行数: 19
+spec == schema.md : True
+spec == 0027 产物  : True
+schema == 0027 产物: True
+
+### ①-b 关键 DDL 元素逐条点名（grep 原文 + 行号）
+--- columns / types / PK ---
+6:    ADD COLUMN IF NOT EXISTS result_format text NOT NULL DEFAULT 'legacy_single';
+11:    run_id   text        NOT NULL REFERENCES strategy_run(id) ON DELETE CASCADE,
+12:    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown')),
+13:    seq      integer     NOT NULL,             -- 0 起单调递增（应用层生成）
+14:    ts_from  timestamptz NOT NULL,             -- 本块首根 bar ts（闭）
+15:    ts_to    timestamptz NOT NULL,             -- 本块末根 bar ts（闭）
+16:    payload  jsonb       NOT NULL,             -- 本块数组（chunk=5000 根）
+17:    PRIMARY KEY (run_id, kind, seq)
+20:CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_ts_idx  ON strategy_run_bars (run_id, kind, ts_from, ts_to);
+--- CHECK ---
+12:    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown')),
+--- FK + 级联 ---
+11:    run_id   text        NOT NULL REFERENCES strategy_run(id) ON DELETE CASCADE,
+--- IF NOT EXISTS ---
+6:    ADD COLUMN IF NOT EXISTS result_format text NOT NULL DEFAULT 'legacy_single';
+10:CREATE TABLE IF NOT EXISTS strategy_run_bars (
+19:CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_seq_idx ON strategy_run_bars (run_id, kind, seq);
+20:CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_ts_idx  ON strategy_run_bars (run_id, kind, ts_from, ts_to);
+--- 索引 ---
+19:CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_seq_idx ON strategy_run_bars (run_id, kind, seq);
+20:CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_ts_idx  ON strategy_run_bars (run_id, kind, ts_from, ts_to);
+--- SQL 注释（含中文说明） ---
+1:-- ~/~ begin <<design/04-storage/schema.md#migrations/0027_strategy_run_result_chunks.sql>>[init]
+2:-- 0027_strategy_run_result_chunks.sql —— 由 design/04-storage/schema.md tangle 生成，禁止手改
+3:-- ADR-024 / D8：结果统一分块（per_bar / net_value / drawdown 边跑边写，与区间长度解耦）。
+8:-- 判别列硬约束：不得用空 jsonb 表达「数据在别处」（静默读空）。
+13:    seq      integer     NOT NULL,             -- 0 起单调递增（应用层生成）
+14:    ts_from  timestamptz NOT NULL,             -- 本块首根 bar ts（闭）
+15:    ts_to    timestamptz NOT NULL,             -- 本块末根 bar ts（闭）
+16:    payload  jsonb       NOT NULL,             -- 本块数组（chunk=5000 根）
+21:-- ~/~ end
+
+### ①-c 产物 == 暂存区版本（git show :<file>）
+OK: 工作区文件与 git 暂存区逐字节一致（无未暂存手改）
+ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837  /tmp/p4v/staged_0027.sql
+ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837  migrations/0027_strategy_run_result_chunks.sql
+d5ce7b748aeadb06ba4467da8dd4c164403b0339a2232cae390f4770e482a1c5  /tmp/p4v/staged_schema.md
+d5ce7b748aeadb06ba4467da8dd4c164403b0339a2232cae390f4770e482a1c5  design/04-storage/schema.md
+OK: schema.md 暂存==工作区
+
+### ①-d 产物首尾包裹行（tangle 标记）
+-- ~/~ begin <<design/04-storage/schema.md#migrations/0027_strategy_run_result_chunks.sql>>[init]
+-- ~/~ end

@@ -1,0 +1,50 @@
+===== B: M30 输入数据健全性（必须真是 30 分钟粒度，不是 M15/M1 冒充）=====
+m30_1slot: bars=1000 首=1777253400 末=1789628400 ts 步长集合(秒)=[1800, 5400, 66600, 239400, 325800, 498600]
+m30_3slots: bars=1000 首=1777253400 末=1789628400 ts 步长集合(秒)=[1800, 5400, 66600, 239400, 325800, 498600]
+m15_1slot: bars=1000 首=1782876600 末=1789542000 ts 步长集合(秒)=[900, 5400, 66600, 239400]
+
+===== B: expected.json 元数据（P2 后基线标注）=====
+--- m30_1slot ---
+ engine_commit = 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+ captured_at   = 2026-09-18T05:54:35Z
+ baseline_kind = 'post_p2_regression'
+ source_state  = 'HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f + staged P0(M30)/P2(engine)/P2b(tryrun+simlive)'
+ bars_count    = 1000  payload_sha256 = 8b1b9f9b18c5d6d7aabb6143633b0e4ec9f39c7317a24d3058e4bb3f6ce7d4bd
+ metrics       = {"annualized_return": 0.05093518970364452, "avg_hold_bars": 17.923076923076923, "max_drawdown": 0.06740843201787314, "net_profit": 2494.921782030782, "profit_factor": 2.2216203052736714, "sharpe": 0.48955513932118355, "trade_count": 26, "win_rate": 0.34615384615384615}
+--- m30_3slots ---
+ engine_commit = 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+ captured_at   = 2026-09-18T05:54:36Z
+ baseline_kind = 'post_p2_regression'
+ source_state  = 'HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f + staged P0(M30)/P2(engine)/P2b(tryrun+simlive)'
+ bars_count    = 1000  payload_sha256 = 720751fc9efd209c1d1465652126e938b5ca90878facf41e590159bb597e178d
+ metrics       = {"annualized_return": -0.16512490923382528, "avg_hold_bars": 6.175, "max_drawdown": 0.12397348791870609, "net_profit": -8563.040218376715, "profit_factor": 1.5976079215309877, "sharpe": -1.3324042308376745, "trade_count": 80, "win_rate": 0.3125}
+--- m15_1slot ---
+ engine_commit = 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+ captured_at   = 2026-09-17T16:23:40Z
+ baseline_kind = None
+ source_state  = None
+ bars_count    = 1000  payload_sha256 = fa0d53e2bc33ab9da0b781ff9c09182831c5d21e7b7009e450e7ce28b4a75ec8
+ metrics       = {"annualized_return": 0.240671012580421, "avg_hold_bars": 21.541666666666668, "max_drawdown": 0.03415092366393612, "net_profit": 5494.139056348678, "profit_factor": 2.2275597724526555, "sharpe": 1.8959775056733266, "trade_count": 24, "win_rate": 0.4166666666666667}
+
+===== B: 最终 13 例比对复跑（编辑 README/compare.sh 注释后）=====
+d1_1slot                     500    3239    2189      0.000e0      0.000e0       0       3736      PASS  A/B PASS
+d1_3slots                    500    4728    3555      0.000e0      0.000e0       0       4028      PASS  A/B PASS
+h1_1slot                     800    5175    3493      0.000e0      0.000e0       0       5796      PASS  A/B PASS
+h1_3slots                    800    7476    5628      0.000e0      0.000e0       0       6392      PASS  A/B PASS
+m15_1slot                   1000    6407    4318      0.000e0      0.000e0       0       7356      PASS  A/B PASS
+m15_3slots                  1000    9433    7101      0.000e0      0.000e0       0       8028      PASS  A/B PASS
+m1_1slot                    1500    9815    6630      0.000e0      0.000e0       0      10652      PASS  A/B PASS
+m1_1slot_stop               3000   19324   13030      0.000e0      0.000e0       0      20020      PASS  A/B PASS
+m1_3slots                   1500   14334   10790      0.000e0      0.000e0       0      12036      PASS  A/B PASS
+m30_1slot                   1000    6443    4345      0.000e0      0.000e0       0       7176      PASS  A/B PASS
+m30_3slots                  1000    9377    7055      0.000e0      0.000e0       0       7936      PASS  A/B PASS
+m5_1slot                    1200    7828    5287      0.000e0      0.000e0       0       9076      PASS  A/B PASS
+m5_3slots                   1200   11282    8493      0.000e0      0.000e0       0       9528      PASS  A/B PASS
+A/B 层：13 用例，失败 0 用例
+全局 max_abs_dev = 0.000000e0 @ m5_3slots (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+全局 max_rel_dev = 0.000000e0 @ m5_3slots (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(500, 0.0), (500, 0.0), (800, 0.0), (800, 0.0), (1000, 0.0), (1000, 0.0), (1500, 0.0), (3000, 0.0), (1500, 0.0), (1000, 0.0), (1000, 0.0), (1200, 0.0), (1200, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0
+compare_report.txt sha256 = cd755596f011a15888c401804e60ac64843ee6a12cc72806c3db934af79626f0

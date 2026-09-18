@@ -1,0 +1,75 @@
+===== ③-隔离证据：P2c 净改动 = 三处断言（用「P2b 交付态」blob 反推）=====
+# 方法：tester P2b 验收（249/00_baseline_hashes.txt）记录的三文件 sha256 = P2b 交付态（pre-P2c）。
+#       这些 blob 仍存在于对象库（未被 gc），可按 sha256 精确取出 ⇒ diff 即 P2c 净改动。
+
+--- [A] strategy.rs: blob d89e9e21 (sha256 6d31ad10… = P2b 交付态) vs worktree (a0a279c4…) ---
+--- /tmp/pre_p2c_strategy.rs	2026-09-18 14:23:21.930176520 +0800
++++ crates/application/src/strategy.rs	2026-09-18 14:21:41.483584132 +0800
+@@ -858,7 +858,16 @@
+     bars: &'a [backtest::Bar],
+     hist: &Rc<BarHistory>,
+ ) -> BarCtx<'a> {
+-    BarCtx::new(index, bar.clone(), &bars[..=index], None).with_history(hist.clone())
++    // ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为 `bars[..=index]`
++    // （前缀，`len == index + 1`；仅 debug 生效，release 零成本）。
++    // 反向证据：把 `ctx_bars` 退回全量 `bars`（改造前口径）⇒ 本断言立即 panic。
++    let ctx_bars: &'a [backtest::Bar] = &bars[..=index];
++    debug_assert_eq!(
++        ctx_bars.len(),
++        index + 1,
++        "P2c 前视自检（试算）：ctx.bars 必须恰为 bars[..=index]（len == index+1）"
++    );
++    BarCtx::new(index, bar.clone(), ctx_bars, None).with_history(hist.clone())
+ }
+ 
+ /// pure_score 试算：逐 bar on_bar（position 恒 None）；G5 语义——错误 bar 中立分 50 +
+  diff 行数: 13
+
+--- [B] engine.rs: blob 8b80d899 (sha256 dfa827a9… = P2 交付态, P2b 未触) vs worktree (9b334eb3…) ---
+--- /tmp/pre_p2c_engine.rs	2026-09-18 14:23:21.936176656 +0800
++++ crates/strategy-core/src/engine.rs	2026-09-18 14:22:05.782443961 +0800
+@@ -652,8 +652,16 @@
+ 
+             // 3) 构建 BarCtx（含只读持仓全景；空仓 → None，ABI §2.5）。
+             //    ADR-024 P2/D7：注入共享历史缓冲句柄（插件指标闭包共享同一缓冲，零复制）。
++            //    ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为共享缓冲前缀
++            //    `bars[0..=i]`（仅 debug 生效，release 零成本；退化 ⇒ 构造点立即 panic）。
++            let ctx_bars: &[Bar] = bars;
++            debug_assert_eq!(
++                ctx_bars.len(),
++                i + 1,
++                "P2c 前视自检（引擎会话）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）"
++            );
+             let position = self.holding.map(|h| h.snapshot(i, bar.close));
+-            let ctx = BarCtx::new(i, bar.clone(), bars, position).with_history(shared.clone());
++            let ctx = BarCtx::new(i, bar.clone(), ctx_bars, position).with_history(shared.clone());
+ 
+             // 4) 各活跃 slot 评分（错误走 G5）。
+             let mut scores: Vec<SlotScore> = Vec::with_capacity(self.slots.len());
+  diff 行数: 13
+
+--- [C] plugin_orchestrator.rs: blob 981b035b (sha256 b901affe… = P2b 交付态) vs worktree (d5ae4947…) ---
+--- /tmp/pre_p2c_orch.rs	2026-09-18 14:23:21.941176769 +0800
++++ crates/simlive/src/plugin_orchestrator.rs	2026-09-18 14:22:15.204338069 +0800
+@@ -273,7 +273,15 @@
+             // ⇒ 宿主侧无可读未来，与引擎会话路径同口径），并注入同一缓冲句柄（零复制；
+             // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
+             let out = history.with_slice(|bars| {
+-                let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot)
++                // ADR-024 P2c：宿主侧**无前视自检** —— 送入 `BarCtx` 的切片必须恰为共享缓冲前缀
++                // `bars[0..=idx]`（仅 debug 生效，release 零成本；退化 ⇒ 构造点立即 panic）。
++                let ctx_bars: &[Bar] = bars;
++                debug_assert_eq!(
++                    ctx_bars.len(),
++                    idx + 1,
++                    "P2c 前视自检（sim-live）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）"
++                );
++                let ctx = BarCtx::new(idx, latest_bar.clone(), ctx_bars, snapshot)
+                     .with_history(history.clone());
+                 // 插件日志（ctx.log）本期不归集（P4a 范围外，决策点 3 仅插件错误/熔断入流）。
+                 let out = slot.instance.on_bar(&ctx);
+  diff 行数: 12
+
+--- [D] 判读 ---
+  三处 P2c 净改动均只含：①注释 ②let ctx_bars = <送入 BarCtx 的那一个切片> ③debug_assert_eq!(ctx_bars.len(), index+1, ...) ④把实参换成 ctx_bars；无其他行改动。
+  strategy-runtime（BarCtx::with_history 本体所在 crate）：本批 0 diff（见 14_p2c_with_history_untouched.txt §[4]）。

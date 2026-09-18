@@ -1,0 +1,11 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.28s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 3 tests
+test p4b_progress_db_time_window_throttle_reduces_writes ... ok
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.31s
+

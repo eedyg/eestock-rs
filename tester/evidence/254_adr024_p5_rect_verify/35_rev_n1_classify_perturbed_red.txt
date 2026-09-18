@@ -1,0 +1,11 @@
+[runs/stop_invalid] code=stop_invalid detail.period="M1"
+
+thread 't_n1_http_every_400_is_structured_object' (1509067) panicked at crates/web/tests/tester_p5rect_verify.rs:516:9:
+assertion `left == right` failed: [runs/threshold_invalid] code 不符；body={"error":{"code":"request_invalid","detail":{"period":"M1"},"message":"buy_threshold 必须严格大于 sell_threshold，got 40 <= 60"}}
+  left: "request_invalid"
+ right: "threshold_invalid"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t_n1_http_every_400_is_structured_object

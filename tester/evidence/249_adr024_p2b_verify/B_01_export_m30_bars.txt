@@ -1,0 +1,7 @@
+===== B: M30 用例输入导出（活库 → bars.jsonl；口径同 export_bars.sh）=====
+[export] m30_1slot <- kline_accurate_30m code=510880 n=1000 落盘 1000 行
+[export] m30_3slots <- kline_accurate_30m code=510880 n=1000 落盘 1000 行
+
+[bars 窗口]
+m30_1slot: 行数=1000 首={"ts" : 1777253400, "open" : 3.27, "high" : 3.293, "low" : 3.264, "close" : 3.28, "volume" : 27032600} 末={"ts" : 1789628400, "open" : 3.347, "high" : 3.347, "low" : 3.347, "close" : 3.347, "volume" : 352500} sha256=4a0f289b9da9cd702a491b54e455af9d40a028bb06017384718963195931df9d
+m30_3slots: 行数=1000 首={"ts" : 1777253400, "open" : 3.27, "high" : 3.293, "low" : 3.264, "close" : 3.28, "volume" : 27032600} 末={"ts" : 1789628400, "open" : 3.347, "high" : 3.347, "low" : 3.347, "close" : 3.347, "volume" : 352500} sha256=4a0f289b9da9cd702a491b54e455af9d40a028bb06017384718963195931df9d

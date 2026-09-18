@@ -1,0 +1,68 @@
+# ===== ADR-024 P2 coder 初筛（phase=post）=====
+# date_utc      : 2026-09-18T05:18:34Z
+# engine_commit : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# git_dirty     : 137 项未提交改动
+# bars          : /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl (200000 bars)
+# cpu           : 16 cores; AMD Ryzen 7 9700X 8-Core Processor
+# cmd           : cargo run --offline --release -p adr024_harness (path deps = 当前工作树) -- scale ...
+# 注：POINT 行由 harness 计数分配器给 allocs/alloc_bytes（O(n²) 复制的直接指纹）。
+
+### 系列 1：dual_ma（生产参考插件）1 slot
+[CMD] scale --limit 2000 --slots 1 --repeat 3
+POINT tag=post_dual_ma_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=1 wall_ms=6 wall_s=0.007 bars_per_s=300509.3 peak_rss_kb=23224 allocs=38255 alloc_bytes=1526202 deallocs=36038 reallocs=26 trades=53 per_bar=2000 load_ms=4
+POINT tag=post_dual_ma_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=2 wall_ms=6 wall_s=0.007 bars_per_s=305990.6 peak_rss_kb=23224 allocs=38255 alloc_bytes=1526202 deallocs=36038 reallocs=26 trades=53 per_bar=2000 load_ms=4
+POINT tag=post_dual_ma_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=3 wall_ms=6 wall_s=0.006 bars_per_s=307822.3 peak_rss_kb=23224 allocs=38255 alloc_bytes=1526202 deallocs=36038 reallocs=26 trades=53 per_bar=2000 load_ms=4
+[EXIT] 0
+[CMD] scale --limit 4000 --slots 1 --repeat 3
+POINT tag=post_dual_ma_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=1 wall_ms=13 wall_s=0.013 bars_per_s=305194.5 peak_rss_kb=23460 allocs=76498 alloc_bytes=3047162 deallocs=72038 reallocs=30 trades=114 per_bar=4000 load_ms=5
+POINT tag=post_dual_ma_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=2 wall_ms=13 wall_s=0.013 bars_per_s=306993.4 peak_rss_kb=23460 allocs=76498 alloc_bytes=3047162 deallocs=72038 reallocs=30 trades=114 per_bar=4000 load_ms=5
+POINT tag=post_dual_ma_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=3 wall_ms=13 wall_s=0.013 bars_per_s=304287.4 peak_rss_kb=23460 allocs=76498 alloc_bytes=3047162 deallocs=72038 reallocs=30 trades=114 per_bar=4000 load_ms=5
+[EXIT] 0
+[CMD] scale --limit 8000 --slots 1 --repeat 3
+POINT tag=post_dual_ma_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=1 wall_ms=25 wall_s=0.026 bars_per_s=307972.1 peak_rss_kb=23552 allocs=152982 alloc_bytes=6088442 deallocs=144038 reallocs=34 trades=235 per_bar=8000 load_ms=7
+POINT tag=post_dual_ma_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=2 wall_ms=25 wall_s=0.026 bars_per_s=312145.1 peak_rss_kb=23552 allocs=152982 alloc_bytes=6088442 deallocs=144038 reallocs=34 trades=235 per_bar=8000 load_ms=7
+POINT tag=post_dual_ma_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=3 wall_ms=25 wall_s=0.026 bars_per_s=310929.9 peak_rss_kb=23552 allocs=152982 alloc_bytes=6088442 deallocs=144038 reallocs=34 trades=235 per_bar=8000 load_ms=7
+[EXIT] 0
+[CMD] scale --limit 16000 --slots 1 --repeat 3
+POINT tag=post_dual_ma_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=1 wall_ms=53 wall_s=0.054 bars_per_s=298340.9 peak_rss_kb=23940 allocs=306101 alloc_bytes=12298426 deallocs=288038 reallocs=39 trades=515 per_bar=16000 load_ms=10
+POINT tag=post_dual_ma_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=2 wall_ms=52 wall_s=0.053 bars_per_s=303950.3 peak_rss_kb=23940 allocs=306101 alloc_bytes=12298426 deallocs=288038 reallocs=39 trades=515 per_bar=16000 load_ms=10
+POINT tag=post_dual_ma_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=3 wall_ms=51 wall_s=0.052 bars_per_s=309041.7 peak_rss_kb=23940 allocs=306101 alloc_bytes=12298426 deallocs=288038 reallocs=39 trades=515 per_bar=16000 load_ms=10
+[EXIT] 0
+
+### 系列 2：indicator_heavy（macd+rsi(14)+atr(14) 每 bar 各一次）1 slot
+[CMD] scale --limit 2000 --slots 1 --repeat 3 --plugin-file indicator_heavy.js
+POINT tag=post_heavy_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=1 wall_ms=7 wall_s=0.007 bars_per_s=267282.1 peak_rss_kb=23216 allocs=38075 alloc_bytes=1478575 deallocs=36032 reallocs=17 trades=8 per_bar=2000 load_ms=5
+POINT tag=post_heavy_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=2 wall_ms=7 wall_s=0.007 bars_per_s=276027.0 peak_rss_kb=23216 allocs=38075 alloc_bytes=1478575 deallocs=36032 reallocs=17 trades=8 per_bar=2000 load_ms=5
+POINT tag=post_heavy_n2000_s1 plugin=dual_ma bars=2000 slots=1 warmup=0 rep=3 wall_ms=7 wall_s=0.007 bars_per_s=278209.5 peak_rss_kb=23216 allocs=38075 alloc_bytes=1478575 deallocs=36032 reallocs=17 trades=8 per_bar=2000 load_ms=5
+[EXIT] 0
+[CMD] scale --limit 4000 --slots 1 --repeat 3 --plugin-file indicator_heavy.js
+POINT tag=post_heavy_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=1 wall_ms=14 wall_s=0.015 bars_per_s=275386.4 peak_rss_kb=23428 allocs=76102 alloc_bytes=2945903 deallocs=72032 reallocs=21 trades=14 per_bar=4000 load_ms=5
+POINT tag=post_heavy_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=2 wall_ms=14 wall_s=0.014 bars_per_s=277943.9 peak_rss_kb=23428 allocs=76102 alloc_bytes=2945903 deallocs=72032 reallocs=21 trades=14 per_bar=4000 load_ms=5
+POINT tag=post_heavy_n4000_s1 plugin=dual_ma bars=4000 slots=1 warmup=0 rep=3 wall_ms=14 wall_s=0.014 bars_per_s=280887.8 peak_rss_kb=23428 allocs=76102 alloc_bytes=2945903 deallocs=72032 reallocs=21 trades=14 per_bar=4000 load_ms=5
+[EXIT] 0
+[CMD] scale --limit 8000 --slots 1 --repeat 3 --plugin-file indicator_heavy.js
+POINT tag=post_heavy_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=1 wall_ms=28 wall_s=0.028 bars_per_s=282560.2 peak_rss_kb=23676 allocs=152167 alloc_bytes=5883311 deallocs=144032 reallocs=26 trades=30 per_bar=8000 load_ms=7
+POINT tag=post_heavy_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=2 wall_ms=28 wall_s=0.028 bars_per_s=285488.4 peak_rss_kb=23676 allocs=152167 alloc_bytes=5883311 deallocs=144032 reallocs=26 trades=30 per_bar=8000 load_ms=7
+POINT tag=post_heavy_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=3 wall_ms=28 wall_s=0.028 bars_per_s=285264.2 peak_rss_kb=23676 allocs=152167 alloc_bytes=5883311 deallocs=144032 reallocs=26 trades=30 per_bar=8000 load_ms=7
+[EXIT] 0
+[CMD] scale --limit 16000 --slots 1 --repeat 3 --plugin-file indicator_heavy.js
+POINT tag=post_heavy_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=1 wall_ms=56 wall_s=0.057 bars_per_s=281406.0 peak_rss_kb=24036 allocs=304257 alloc_bytes=11749935 deallocs=288032 reallocs=30 trades=52 per_bar=16000 load_ms=10
+POINT tag=post_heavy_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=2 wall_ms=56 wall_s=0.057 bars_per_s=282569.7 peak_rss_kb=24036 allocs=304257 alloc_bytes=11749935 deallocs=288032 reallocs=30 trades=52 per_bar=16000 load_ms=10
+POINT tag=post_heavy_n16000_s1 plugin=dual_ma bars=16000 slots=1 warmup=0 rep=3 wall_ms=59 wall_s=0.059 bars_per_s=270341.9 peak_rss_kb=24036 allocs=304257 alloc_bytes=11749935 deallocs=288032 reallocs=30 trades=52 per_bar=16000 load_ms=10
+[EXIT] 0
+
+### 系列 3：slots 放大（8000 bar，3 slots，dual_ma / heavy）
+POINT tag=post_dual_ma_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=1 wall_ms=75 wall_s=0.076 bars_per_s=105416.9 peak_rss_kb=23656 allocs=409042 alloc_bytes=13151214 deallocs=400098 reallocs=48 trades=235 per_bar=8000 load_ms=6
+POINT tag=post_dual_ma_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=2 wall_ms=78 wall_s=0.078 bars_per_s=102214.8 peak_rss_kb=23656 allocs=409042 alloc_bytes=13151214 deallocs=400098 reallocs=48 trades=235 per_bar=8000 load_ms=6
+POINT tag=post_dual_ma_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=3 wall_ms=77 wall_s=0.077 bars_per_s=103378.5 peak_rss_kb=23656 allocs=409042 alloc_bytes=13151214 deallocs=400098 reallocs=48 trades=235 per_bar=8000 load_ms=6
+[EXIT] 0
+POINT tag=post_heavy_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=1 wall_ms=86 wall_s=0.086 bars_per_s=92964.0 peak_rss_kb=23620 allocs=408209 alloc_bytes=12939349 deallocs=400074 reallocs=40 trades=30 per_bar=8000 load_ms=7
+POINT tag=post_heavy_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=2 wall_ms=85 wall_s=0.085 bars_per_s=93890.4 peak_rss_kb=23620 allocs=408209 alloc_bytes=12939349 deallocs=400074 reallocs=40 trades=30 per_bar=8000 load_ms=7
+POINT tag=post_heavy_n8000_s3 plugin=dual_ma bars=8000 slots=3 warmup=0 rep=3 wall_ms=85 wall_s=0.085 bars_per_s=93601.9 peak_rss_kb=23620 allocs=408209 alloc_bytes=12939349 deallocs=400074 reallocs=40 trades=30 per_bar=8000 load_ms=7
+[EXIT] 0
+
+### 系列 4：隔离探针 constant_score（无指标调用；归因「每 bar 上下文构造 + 历史复制」）8000 bar 1 slot
+POINT tag=post_ctrl_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=1 wall_ms=21 wall_s=0.022 bars_per_s=368765.2 peak_rss_kb=23604 allocs=152035 alloc_bytes=5847438 deallocs=144032 reallocs=18 trades=0 per_bar=8000 load_ms=7
+POINT tag=post_ctrl_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=2 wall_ms=21 wall_s=0.021 bars_per_s=375067.3 peak_rss_kb=23604 allocs=152035 alloc_bytes=5847438 deallocs=144032 reallocs=18 trades=0 per_bar=8000 load_ms=7
+POINT tag=post_ctrl_n8000_s1 plugin=dual_ma bars=8000 slots=1 warmup=0 rep=3 wall_ms=21 wall_s=0.021 bars_per_s=378920.6 peak_rss_kb=23604 allocs=152035 alloc_bytes=5847438 deallocs=144032 reallocs=18 trades=0 per_bar=8000 load_ms=7
+[EXIT] 0

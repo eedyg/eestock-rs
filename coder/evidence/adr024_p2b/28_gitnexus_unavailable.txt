@@ -1,0 +1,26 @@
+$ node .gitnexus/run.cjs impact run_pure_score --direction upstream --repo .
+{
+  "error": "LadybugDB unavailable for eestock-rs. Another process may be rebuilding the index. Retry later. (Runtime exception: Trying to read a database file with a different version. Database file version: 43, Current build storage version: 40)",
+  "target": {
+    "name": "run_pure_score"
+  },
+  "direction": "upstream",
+  "impactedCount": 0,
+  "risk": "UNKNOWN",
+  "suggestion": "The graph query failed — try gitnexus context <symbol> as a fallback"
+}
+
+$ node .gitnexus/run.cjs detect-changes --scope all --repo .
+file:///usr/lib/node_modules/gitnexus/dist/core/lbug/pool-adapter.js:325
+            throw new Error(`LadybugDB unavailable for ${repoId}. Another process may be rebuilding the index. ` +
+                  ^
+
+Error: LadybugDB unavailable for eestock-rs. Another process may be rebuilding the index. Retry later. (Runtime exception: Trying to read a database file with a different version. Database file version: 43, Current build storage version: 40)
+    at doInitLbug (file:///usr/lib/node_modules/gitnexus/dist/core/lbug/pool-adapter.js:325:19)
+    at async initLbug (file:///usr/lib/node_modules/gitnexus/dist/core/lbug/pool-adapter.js:268:9)
+    at async LocalBackend.ensureInitialized (file:///usr/lib/node_modules/gitnexus/dist/mcp/local/local-backend.js:415:13)
+    at async LocalBackend.detectChanges (file:///usr/lib/node_modules/gitnexus/dist/mcp/local/local-backend.js:1749:9)
+    at async detectChangesCommand (file:///usr/lib/node_modules/gitnexus/dist/cli/tool.js:163:20)
+    at async Command.<anonymous> (file:///usr/lib/node_modules/gitnexus/dist/cli/lazy-action.js:16:9)
+
+Node.js v22.22.2

@@ -1,0 +1,12 @@
+### ①-b check-tangle 门禁 + ①-d 活库未迁移
+TS=2026-09-18T15:17:03+08:00
+$ ./scripts/check-tangle.sh
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+exit=0
+
+--- 活库 eestock 回读（strategy_run_bars / result_format 必须不存在）---
+<NULL: table absent>
+0
+--- 库清单 ---
+eestock
+postgres

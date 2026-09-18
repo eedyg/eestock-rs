@@ -1,0 +1,2 @@
+[fixture] catalog 现有条目 = 23
+[fixture] 无需夹具（已有 published 版本）

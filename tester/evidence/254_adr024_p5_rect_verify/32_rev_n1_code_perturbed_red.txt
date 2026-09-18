@@ -1,0 +1,11 @@
+[test-run/symbol_required] code=symbol_required detail={} <<< N1-r: 无 detail.period
+
+thread 't_n1_http_every_400_is_structured_object' (1507926) panicked at crates/web/tests/tester_p5rect_verify.rs:516:9:
+assertion `left == right` failed: [test-run/mode_invalid] code 不符；body={"error":{"code":"request_invalid","detail":{"mode":"bogus"},"message":"mode 须为 pure_score/sim_position"}}
+  left: "request_invalid"
+ right: "mode_invalid"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t_n1_http_every_400_is_structured_object

@@ -1,0 +1,58 @@
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+error[E0432]: unresolved import `strategy_runtime::BarHistory`
+  --> crates/strategy-runtime/tests/shared_history_alloc.rs:18:32
+   |
+18 | use strategy_runtime::{BarCtx, BarHistory, PluginRuntime, QuickJsRuntime, RuntimeLimits};
+   |                                ^^^^^^^^^^ no `BarHistory` in the root
+
+error[E0432]: unresolved import `strategy_runtime::BarHistory`
+  --> crates/strategy-runtime/tests/shared_history.rs:16:13
+   |
+16 |     BarCtx, BarHistory, ParamDef, PluginError, PluginInstance, PluginRuntime,
+   |             ^^^^^^^^^^ no `BarHistory` in the root
+
+error[E0599]: no method named `with_history` found for struct `BarCtx<'a>` in the current scope
+  --> crates/strategy-runtime/tests/shared_history_alloc.rs:99:66
+   |
+99 |         let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+   |                                                                  ^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+
+error[E0599]: no method named `with_history` found for struct `BarCtx<'a>` in the current scope
+   --> crates/strategy-runtime/tests/shared_history.rs:154:66
+    |
+154 |         let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+    |                                                                  ^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+
+error[E0599]: no method named `with_history` found for struct `BarCtx<'a>` in the current scope
+   --> crates/strategy-runtime/tests/shared_history.rs:199:60
+    |
+199 |     let ctx = BarCtx::new(0, bars[0].clone(), &bars, None).with_history(hist.clone());
+    |                                                            ^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+
+Some errors have detailed explanations: E0432, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error[E0599]: no method named `with_history` found for struct `BarCtx<'a>` in the current scope
+   --> crates/strategy-runtime/tests/shared_history.rs:231:66
+    |
+231 |         let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], None).with_history(hist.clone());
+    |                                                                  ^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+
+error: could not compile `strategy-runtime` (test "shared_history_alloc") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error[E0599]: no method named `with_history` found for struct `BarCtx<'a>` in the current scope
+   --> crates/strategy-runtime/tests/shared_history.rs:271:65
+    |
+271 |     let ctx = BarCtx::new(9, bars[9].clone(), &bars, Some(pos)).with_history(hist.clone());
+    |                                                                 ^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+
+error[E0599]: no method named `shared_history` found for struct `BarCtx<'a>` in the current scope
+   --> crates/strategy-runtime/tests/shared_history.rs:283:10
+    |
+282 |       assert!(BarCtx::new(0, bars[0].clone(), &bars, None)
+    |  _____________-
+283 | |         .shared_history()
+    | |         -^^^^^^^^^^^^^^ method not found in `BarCtx<'_>`
+    | |_________|
+    |
+
+error: could not compile `strategy-runtime` (test "shared_history") due to 6 previous errors

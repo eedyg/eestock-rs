@@ -1,0 +1,33 @@
+# ADR-024 P2 独立验收 —— 环境元数据（tester）
+# date_utc      : 2026-09-18T05:22:34Z
+# cwd           : /home/eestock/workspace/git/eestock/eestock-rs
+# git HEAD      : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# git branch    : master
+# git status -s | wc -l : 168
+# rustc         : rustc 1.97.1 (8bab26f4f 2026-07-14)
+# cargo         : cargo 1.97.1 (c980f4866 2026-06-30)
+# node          : v22.22.2
+# pnpm/npm      : 10.9.7
+# cpu           : 16 cores; AMD Ryzen 7 9700X 8-Core Processor
+# mem           : 47758 MB total, 14446 MB available
+# loadavg       : 1.20 1.50 1.82 2/3027 27668
+
+## 受影响 P2 源文件 sha256（工作树，本验收开始时快照）
+d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+abe5056bc545b454b4981d2f25ad2bd22d9822dc479a752e64c40413a78cfaad  crates/backtest/src/lib.rs
+6840f8540ed380146268e82b604e96f846fad1dd7459f8bda6182a3ca3b6b3a4  crates/strategy-runtime/src/history.rs
+c77ef2444efbecc93108e5583d0338ae18f3c9080b64490f318e4789747898e3  crates/strategy-runtime/src/types.rs
+c9aef73c60e65266186597002d4c0286967b7c25a7480ea5f53eddc72025d1f9  crates/strategy-runtime/src/quickjs.rs
+2140100d29c4f025f4e093affe38b053c78675c3164fb530e27e0a3a347be9a2  crates/strategy-runtime/src/lib.rs
+dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+58b586b71fb4449dc7a5f63c401702cc7b721373a587fda0f5a125f30996ebcd  crates/strategy-core/src/lib.rs
+c4cc3e932a53196b36edc12cfee578d9daadb6bbfbd385d49614ff4dbef473d9  crates/strategy-core/tests/session.rs
+0fbfdbee5cb8271d4183d87a12ea7bc93e9fb6d1779875cf6a74a8ab8ce7a03b  crates/strategy-core/tests/session_alloc.rs
+6688f837585401425eb45981870be995470f3cf28b916cfdbf3c7072e88c05bc  crates/strategy-runtime/tests/shared_history.rs
+70fb55fbf688c81c29060f78733975f1e40cce0fae16d076324c10c1d9218fc6  crates/strategy-runtime/tests/shared_history_alloc.rs
+c21989c3bd02c9994efde58d34963fbee4573ccabe46b49820e0bb8640991bfe  crates/strategy-runtime/tests/online_indicators_fixture.rs
+
+## 只读基线资产 sha256
+5c181bf276a72f93a8e8473e76f0675f63d0e90ad2989a4f33c57bcfec845da2  tester/evidence/240_adr024_golden_baseline/compare_report.txt
+6e2aa84df47041a78bd5bb07f9ab63e14ebbc3b2e280f5e414ac251672f8fd8f  tester/evidence/242_adr024_baseline_extension/compare_p1b_report.txt
+7ec9482a61cae7a99a5cc89934cb6e9cf2938e77c673945ecc9bed34f7444634  tester/evidence/241_adr024_scale_curve/raw_pre.txt

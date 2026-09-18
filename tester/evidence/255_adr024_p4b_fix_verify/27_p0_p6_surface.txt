@@ -1,0 +1,37 @@
+### [⑤-f] P0–P6 面点名核对（明细取自 19 号全新库全量输出 + 本段补跑 P2 引擎面）
+# 2026-09-18T09:58:54Z
+
+--- (1) 点名测试目标（来自 19 号输出）---
+[backtest_periods_ssot] test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[adr024_workbench_period_ssot] test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+[multi_period_contract_vectors] test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[period30m_api_contract] test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+[period30m_d2_multiperiod_red] test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.09s
+[period30m_scope_guard] test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[api_workbench] test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
+[tester_p4_endpoints_indep] test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.74s
+[tester_p6_fills_indep] test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+[tester_p4_writepath_indep] test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+[tester_p5_indep] test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+[adr024_structured_errors] test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.79s
+
+--- (2) P2 引擎线性化/会话等价（crates/backtest + strategy-core；本批未触碰）---
+     Running unittests src/lib.rs (target/debug/deps/backtest-7a004127ec463d4d)
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/engine.rs (target/debug/deps/engine-14ef3ff72e954382)
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+     Running tests/observer.rs (target/debug/deps/observer-5ed881eae7031f13)
+test ensemble_error_is_std_error ... ok
+test plugin_error_wraps_into_ensemble_error ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/templates.rs (target/debug/deps/templates-c15ca349a91d9e15)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+EXIT=0

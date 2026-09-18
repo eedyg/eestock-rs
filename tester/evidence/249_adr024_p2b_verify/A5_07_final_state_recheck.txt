@@ -1,0 +1,20 @@
+===== 最终状态复核（报告定稿后）=====
+--- 生产代码 worktree vs index（应全空）---
+--- sha256（应与 00_baseline_hashes.txt 相同）---
+6d31ad101e6338a70f62db7910481bdaa327800da2e124813c22054c6efc77fe  crates/application/src/strategy.rs
+b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87  crates/simlive/src/plugin_orchestrator.rs
+177048cb84a2005563e5cdafc5f52787dc98eb407bfefdc1b99d870e83717b97  crates/backtest/src/types.rs
+--- 目标测试最终复跑 ---
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+--- 13 例比对最终复跑 ---
+A/B 层：13 用例，失败 0 用例
+== VERDICT: PASS ==
+--- 临时目录残留检查（应无 zztmp）---
+(无残留)
+(git status 无 zztmp)
+--- tester 是否 git add（应空）---
+(空)

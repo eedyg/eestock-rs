@@ -1,0 +1,132 @@
+=== 01-B-bonus: periods.test.ts + ConfigPanel.test.tsx in SAME perturbed window (M30 removed) 2026-09-18T13:01:38+08:00 ===
+$ sed -n '17p' src/features/backtest/periods.ts
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'H1', 'D1'] as const;
+$ npx vitest run src/features/backtest/periods.test.ts src/features/workbench/ConfigPanel.test.tsx
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/backtest/periods.test.ts (3 tests | 2 failed) 5ms
+   × ADR-024 P0 前端周期镜像常量（单一事实源） > SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_periods（逐字相等） 4ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   × ADR-024 P0 前端周期镜像常量（单一事实源） > 集合为契约六档（含 M30），顺序即展示序 1ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   ✓ ADR-024 P0 前端周期镜像常量（单一事实源） > 契约向量声明 m30（domain_variant=M30 / dashboard_code=30m / bars_per_year_nominal=2016） 0ms
+ ❯ src/features/workbench/ConfigPanel.test.tsx (13 tests | 1 failed) 716ms
+   × ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望） 24ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > catalog 渲染到策略下拉；添加策略 → slot 卡片（权重 + schema 参数表单） 49ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：空 slots 提交 → 内联错误，不触发 onSubmit 11ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：阈值倒挂（buy ≤ sell）→ 内联错误 61ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：schema 参数越界 / 权重 ≤0 → 内联错误 79ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 默认提交：LumpSum + 无止损 + 60/40 + fee snake_case + RFC3339 区间 29ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > DCA policy + 硬止损：表单切换渲染并正确序列化（Dca/StopConfig serde 形态） 129ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 预设：选中应用 → 表单回填（slots/阈值/policy/止损）；保存为预设 → onCreatePreset 当前配置 52ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 预设管理：重命名 / 删除回调 46ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > catalog 加载失败 → 错误占位 + 重试 7ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 校验：slots 超 10 上限 → 提交前友好提示，不触发 onSubmit（与后端 1..=10 同口径） 182ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 预设就地更新：应用后改参 → 脏标记可见 + 保存走 onUpdatePreset（PUT）；应用失败 → presetSel 回退不落选中态 36ms
+   ✓ ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 预设应用失败：presetSel 回退原值（不落选中态），错误提示可见 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/backtest/periods.test.ts > ADR-024 P0 前端周期镜像常量（单一事实源） > SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_periods（逐字相等）
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/backtest/periods.test.ts:27:45
+     25| describe('ADR-024 P0 前端周期镜像常量（单一事实源）', () => {
+     26|   it('SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_pe…
+     27|     expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(VECTORS.backtest_p…
+       |                                             ^
+     28|   });
+     29| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/features/backtest/periods.test.ts > ADR-024 P0 前端周期镜像常量（单一事实源） > 集合为契约六档（含 M30），顺序即展示序
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/backtest/periods.test.ts:31:45
+     29| 
+     30|   it('集合为契约六档（含 M30），顺序即展示序', () => {
+     31|     expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(['M1', 'M5', 'M15'…
+       |                                             ^
+     32|   });
+     33| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/features/workbench/ConfigPanel.test.tsx > ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/Policy/止损/预设） > 周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/workbench/ConfigPanel.test.tsx:60:50
+     58|     render(<ConfigPanel {...mkProps()} />);
+     59|     const sel = screen.getByTestId('wb-period') as HTMLSelectElement;
+     60|     expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECT…
+       |                                                  ^
+     61|   });
+     62| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 13 passed (16)
+   Start at  13:01:38
+   Duration  1.21s (transform 92ms, setup 47ms, collect 136ms, tests 721ms, environment 267ms, prepare 216ms)
+
+BONUS_RED_EXIT=1
+
+=== 01-C: RESTORE + GREEN ===
+$ cp /tmp/adr024_frz/periods.ts.baseline ../web/src/features/backtest/periods.ts
+$ sed -n '17p' src/features/backtest/periods.ts
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;
+$ sha256sum src/features/backtest/periods.ts (restored)
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  src/features/backtest/periods.ts
+$ npx vitest run src/features/strategies/TestRunPanel.test.tsx
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 161ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  13:01:39
+   Duration  635ms (transform 70ms, setup 22ms, collect 106ms, tests 161ms, environment 130ms, prepare 114ms)
+
+GREEN_EXIT=0

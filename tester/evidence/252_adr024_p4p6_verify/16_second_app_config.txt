@@ -1,0 +1,18 @@
+database_url = "postgres://eestock:eestock@127.0.0.1:5433/tmp_p4p6_20260918151821"
+listen = "127.0.0.1:18083"
+mcp_listen = "127.0.0.1:18084"
+static_dir = "/home/eestock/workspace/git/eestock/eestock-rs/web/dist"
+health_window_secs = 3600
+ws_poll_ms = 3000
+alert_eval_ms = 60000
+--- 启动日志 ---
+{"timestamp":"2026-09-18T07:22:10.895444Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_p4p6.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T07:22:10.938442Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T07:22:10.939933Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T07:22:10.940789Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T07:22:10.940908Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"127.0.0.1:18083","static_dir":"/home/eestock/workspace/git/eestock/eestock-rs/web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T07:22:10.940940Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"127.0.0.1:18084"},"target":"mcp::server"}
+--- healthz ---
+{"status":"ok"}
+--- 关键：schema self-check 通过（临时库含 0027）---
+1

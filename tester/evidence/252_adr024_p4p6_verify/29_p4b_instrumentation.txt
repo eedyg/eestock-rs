@@ -1,0 +1,12 @@
+### ⑦-j P4b 仪表仍在位（grep 复核 + 自洽测试结论）
+TS=2026-09-18T15:26:30+08:00
+P4B_GLOBAL                 1426:static P4B_GLOBAL: P4bGlobalCounters = P4bGlobalCounters::new(); 1807:    let global_runs = P4B_GLOBAL.runs.fetch_add(1, Ordering::Relaxed) + 1; 
+P4bRunCounters             482:        let p4b = Arc::new(P4bRunCounters::default()); 1384:struct P4bRunCounters { 
+P4bGlobalCounters          1405:struct P4bGlobalCounters { 1413:impl P4bGlobalCounters { 
+p4b.run_summary            1845:        "p4b.run_summary" 
+permit_hold_us             1375:// - `permit_hold_us`：`Semaphore` permit 获取成功 → `execute_run` 返回（permit 随即 drop）； 1392:    permit_hold_us: AtomicU64, 
+p4b.segment                495:                "p4b.segment", 516:                "p4b.segment" 
+progress_frames_produced   1369:// - `progress_frames_produced`：引擎 observer 内**入队**帧数（与 `tx.send` 同一判定分支）； 1789:    // ── P4b 每 run 汇总（自洽性：`progress_frames_produced == progress_db_writes`）── 
+chunk_writes               1399:    chunk_writes: AtomicU64, 1546:                            report_p4b.chunk_writes.fetch_add(1, Ordering::Relaxed); 
+
+自洽测试（见 22_p4b_and_check.txt）：p4b_run_summary_counters_are_self_consistent ... ok

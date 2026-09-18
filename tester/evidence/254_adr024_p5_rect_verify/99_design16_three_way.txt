@@ -1,0 +1,97 @@
+=== 02-spec.md : frozen(tar) vs index ===
+--- /tmp/p5rv_frozen/design/16-backtest-scalability/02-spec.md	2026-09-18 14:31:37.000000000 +0800
++++ /tmp/idx_02-spec.md	2026-09-18 17:04:14.735043774 +0800
+@@ -40,7 +40,7 @@
+ pub const RESULT_FORMAT_LEGACY: &str = "legacy_single";
+ pub const RESULT_FORMAT_CHUNKED: &str = "chunked_v1";
+ 
+-pub enum ResultKind { PerBar, NetValue, Drawdown }
++pub enum ResultKind { PerBar, NetValue, Drawdown, Fills }
+ 
+ pub struct ResultChunk {
+     pub kind: ResultKind,
+@@ -93,7 +93,7 @@
+ 
+ CREATE TABLE IF NOT EXISTS strategy_run_bars (
+     run_id   text        NOT NULL REFERENCES strategy_run(id) ON DELETE CASCADE,
+-    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown')),
++    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown','fills')),
+     seq      integer     NOT NULL,             -- 0 起单调递增（应用层生成）
+     ts_from  timestamptz NOT NULL,             -- 本块首根 bar ts（闭）
+     ts_to    timestamptz NOT NULL,             -- 本块末根 bar ts（闭）
+@@ -161,6 +161,7 @@
+ | `GET /api/workbench/runs/{id}/bars?kind=per_bar&offset=0&limit=5000` | **分页**读（`offset/limit`，`limit` 默认 5,000、上限 20,000） | `kind ∈ per_bar`（明细表/逐 bar 评分） |
+ | `GET /api/workbench/runs/{id}/bars?kind=per_bar&from=...&to=...` | **区间**读（跨 chunk；可能返回部分 chunk 外沿，调用方按 ts 过滤） | 与 `offset/limit` 互斥（同时给 → 400） |
+ | `GET /api/workbench/runs/{id}/curve?k=2000&kind=net_value` | **显式抽样**曲线（`k` = 目标点数，默认 2,000、上限 20,000；均匀抽样**保首尾**） | 响应带 `downsampled:true` + `original_bars`（D10） |
++| `GET /api/workbench/runs/{id}/fills?offset=0&limit=5000` | **成交明细分页读**（**有界精确源**，`kind='fills'` 单块；`limit` 默认 5,000/上限 20,000；响应含 `total`） | 用于 **K 线买卖标记**与成交核对。**禁止**用抽样曲线或 `trades` 代替：① 抽样会**丢真实成交**；② `TradeDetail` 仅在**完全平仓**时合成（部分买入/加仓/DCA 与部分卖出不进 `trades`）⇒ 会漏标记。0046 审定（P6 升级裁决） |
+
+=== 02-spec.md : index vs work ===
+--- /tmp/idx_02-spec.md	2026-09-18 17:04:14.735043774 +0800
++++ design/16-backtest-scalability/02-spec.md	2026-09-18 16:17:25.210552150 +0800
+@@ -123,6 +123,8 @@
+ 3. `from < to`
+ 4. **删除** 日历天数档校验 ← 原 `workbench.rs:229-240`
+ 5. **区间收缩**：`available_range(symbol, period)` → 无交集 ⇒ 400 `range_empty`；有交集 ⇒ `effective = [max(from, avail.from), min(to, avail.to))`
++   - **执行时以真实取到的首末 bar 为准（D3，P5 验收 N5 定稿）**：若**任一端**被夹（`clamped=true`），则两端**都**按区间内真实首/末 bar 收窄；`effective_from = 首根 in-range bar ts`，`effective_to = 末根 in-range bar ts + 1s`（半开）。理由：`clamped` 一次就是「本区间不是你要的区间」的声明，此时报“精确到 bar”的真实覆盖范围比报一个混入请求值的半成品边界更诚实；**不得影响嗂给引擎的 bar 集合**（取数仍先于该调整，集合以真实 in-range bar 为准）。
++   - 该调整会反映到落库 `strategy_run.from_ts/to_ts` 与回显 `effective_*`（差异 ≤1 根 bar）。
+ 6. slots / 版本 / params / 阈值 / policy / stop / fee（不变）
+ 7. **资源护栏**（D1，值待 ② 规模曲线定）：预估 bar 数/耗时超阈值 ⇒ 400 `resource_guard`（带 `confirm_token` 语义见 3.1.1）
+ 
+@@ -161,7 +163,7 @@
+ | `GET /api/workbench/runs/{id}/bars?kind=per_bar&offset=0&limit=5000` | **分页**读（`offset/limit`，`limit` 默认 5,000、上限 20,000） | `kind ∈ per_bar`（明细表/逐 bar 评分） |
+ | `GET /api/workbench/runs/{id}/bars?kind=per_bar&from=...&to=...` | **区间**读（跨 chunk；可能返回部分 chunk 外沿，调用方按 ts 过滤） | 与 `offset/limit` 互斥（同时给 → 400） |
+ | `GET /api/workbench/runs/{id}/curve?k=2000&kind=net_value` | **显式抽样**曲线（`k` = 目标点数，默认 2,000、上限 20,000；均匀抽样**保首尾**） | 响应带 `downsampled:true` + `original_bars`（D10） |
+-| `GET /api/workbench/runs/{id}/fills?offset=0&limit=5000` | **成交明细分页读**（**有界精确源**，`kind='fills'` 单块；`limit` 默认 5,000/上限 20,000；响应含 `total`） | 用于 **K 线买卖标记**与成交核对。**禁止**用抽样曲线或 `trades` 代替：① 抽样会**丢真实成交**；② `TradeDetail` 仅在**完全平仓**时合成（部分买入/加仓/DCA 与部分卖出不进 `trades`）⇒ 会漏标记。0046 审定（P6 升级裁决） |
++| `GET /api/workbench/runs/{id}/fills?offset=0&limit=5000` | **成交明细分页读**（**有界精确源**，`kind='fills'` 单块；`limit` 默认 5,000/上限 20,000）。响应：`{run_id, total, offset, limit, has_more, next_offset, recorded, fills:[…]}`；其中 **`recorded` 承载「无成交」与「未写」的判别**（`false` = 该 run 无 fills 块，仅 P6 之前的 chunked run 可达） | 用于 **K 线买卖标记**与成交核对。**禁止**用抽样曲线或 `trades` 代替：① 抽样会**丢真实成交**；② `TradeDetail` 仅在**完全平仓**时合成（部分买入/加仓/DCA 与部分卖出不进 `trades`）⇒ 会漏标记。实证（tester `252`）：含 `position_pct=0.5` + 部分卖出的 run ⇒ fills 3 笔 vs trades 1 行；7953 bar 真实 run ⇒ fills 200 vs trades 100 |
+ | `POST /api/workbench/runs/compare` | 返回**抽样后**净值曲线（默认 `k=2000`，可传 `k`）+ 绩效并排 | 禁止 N × 全量净值 |
+ 
+ **向后兼容矩阵**：
+
+=== 04-implementation-plan.md : frozen(tar) vs index ===
+--- /tmp/p5rv_frozen/design/16-backtest-scalability/04-implementation-plan.md	2026-09-18 14:31:37.000000000 +0800
++++ /tmp/idx_04-implementation-plan.md	2026-09-18 17:04:14.737043823 +0800
+@@ -13,10 +13,12 @@
+ | **P1** | golden 基线冻结 + 规模曲线取证 | tester | P0（M30 用例需在基线内） | 只产出证据，无生产改动 | 1 天 |
+ | **P1b** | 基线补完（持仓派生序列 + 容差裁定 + 逐字段枚举）+ 指标重插件曲线 + 耗时口径分解 + 预估算子标定 | tester | P1；M30 用例待 P0 | 只产出证据，无生产改动 | 1 天 |
+ | **P2** | **引擎线性化**：会话化 + 共享缓冲 **+ 指标增量**（P2/P3 **同批交付、同一 gate**） ✅ **已冻结（2026-09-18）** | coder → tester | P1/P1b（golden + 曲线） | 引擎契约切换点，`git revert` | 3–4 天 |
+-| **P2b** | **试算 / sim-live 路径线性化**（同源二次项收尾）：`application/src/strategy.rs:894` 试算逐 bar 评分循环、`simlive/src/plugin_orchestrator.rs:242` sim-live bars 视图 —— 两者仍走兼容路径、每 bar 复制 `bars[..=index]`（tester R2 发现）。修法同 P2：各持 `Rc<BarHistory>`。**P5 的前置**（D11 要求试算放开前先线性化） | coder → tester | P2 | 各调用点独立可回退 | 0.5–1 天 |
++| **P2b** | **试算 / sim-live 路径线性化**（同源二次项收尾）：`application/src/strategy.rs:894` 试算逐 bar 评分循环、`simlive/src/plugin_orchestrator.rs:242` sim-live bars 视图 —— 两者仍走兼容路径、每 bar 复制 `bars[..=index]`（tester R2 发现）。修法同 P2：各持 `Rc<BarHistory>`。**P5 的前置**（D11 要求试算放开前先线性化） ✅ **已冻结（2026-09-18）** | coder → tester | P2 | 各调用点独立可回退 | 0.5–1 天 |
++| **P2c（微批）** | **生产构造点的无前视自检**（tester P2b 验收 R1 裁定）：在三个生产构造点（引擎会话、`tryrun_bar_ctx`、sim-live `evaluate`）分别加 `debug_assert!(bars.len() == index+1)`；**不得**加在 `BarCtx::with_history` 本体（那会破坏 P2 的两个反向测试资产 `shared_history.rs:199/271`） | coder → tester | P2b | 单行、可回退 | 0.2 天 |
+ | **P3** | ~~指标增量（同序递推）~~ **已并入 P2**（P1b 实测：指标二次项是复制项的 16.2× ⇒ 只做 P2 等于只做 1/16，不可拆） | — | — | — | — |
+ | **P4b** | **每 run 固定开销治理**（先仪表后优化）：真路径计数器/span → 定位 → 方案 → 前后对比 | coder → tester | 任意（与 P2 同触 `workbench.rs` ⇒ **排 P2 之后**） | 仅观测+进度写入路径，可单独回退 | 1–2 天 |
+-| **P4** | 分块落库 + 双读 + `/brief /bars /curve` | coder → tester | P2；P4b（结果写入路径避免冲突） | 双读保证向后兼容；新表可留 | 2 天 |
++| **P4** | 分块落库 + 双读 + `/brief /bars /curve` ✅ **已冻结（2026-09-18，条件式）** | coder → tester | P2；P4b（结果写入路径避免冲突） | 双读保证向后兼容；新表可留 | 2 天 |
++| **\u26d4 上线硬门槛** | **`0027` + P4 不得单独上线**：P4 将新 run 改为 `chunked_v1`，而前端对 `has_more`/`next_offset`/`/bars`/`/curve`/`result_format` **零消费**（tester 证据 `251/13_frontend_gap.txt`）⇒ 单独上线会「净值/回撤图静默空 + 逐 bar 表只显示前 5000 根」。⇒ **部署批次 = 迁移 0027 + P4 + P6（至少 P6 的取数路径改造）** | tester P4 验收 §前端缺口确认 | — | — | — |
+ | **P5** | 区间收缩 + 摘护栏 + 试算放开 + 结构化错误 | coder → tester | **P2（含指标）+ P4 + P4b**（硬依赖） | **安全态**：护栏仍在 → 可停在 P4 | 2 天 |
+ | **P6** | 前端（周期 30m、曲线抽样取数、分页明细、收缩提示、预估确认） | coder → tester（真渲染） | P4/P5 | 前端可与后端版本解耦（兼容旧 `/result`） | 2–3 天 |
+ | **P7** | 文档/ADR 修订收口 | coder（机械执行）→ 我评审 | 各自对应阶段 | 无 | 0.5 天 |
+@@ -72,6 +74,8 @@
+ - **Gate（三层同时过）**：① golden 11 例 A/B/C + B′（台账位级含 `derived`）+ 分块喂入等价 + 取消仍每 bar 生效；② **指标等价报告**（含 `ma` 偏差实值 + 「偏差不随 n 增长」）；③ **改造后曲线用两个插件各跑一次**（`dual_ma` 与 `indicator_heavy`），**两者渐近斜率均 ∈ [0.9, 1.1] 且 `alloc_bytes` 塌缩为 O(n)** —— 只看 `dual_ma` 会**误判已线性化**（D6 教训）。
+ 
+ ### P4b — 每 run 固定开销治理（**机制已定位，仍先仪表后优化**）
++> **分两阶段派单（架构师 2026-09-18）**：**① 仪表阶段**（计数器 + span + 改动前基线数字）**已派单**；
++> **② 修复阶段必须等用户确认**（D15 ③ 的候选方案会改进度写入频率/语义，属产品可感变更）。
+ - **背景（真路径实测，P1c）**：每 run 固定 **1003 次 `UPDATE strategy_run`**（1001 进度帧 + 2 状态迁移），帧数**封顶 1001、与 bars 无关**；端到端时长 ≈ `1003 × 每帧写库延迟`（0.86 ms 历史中位 → 3.45 ms 本轮 I/O）。
+ - **推翻项**：架构师先前推断的「背压/合并/丢弃」**不成立**（`unbounded_channel` + Δ 精确闭合 1003）⇒ **不要**按“丢帧”方向设计。
+
+=== 04-implementation-plan.md : index vs work ===
+--- /tmp/idx_04-implementation-plan.md	2026-09-18 17:04:14.737043823 +0800
++++ design/16-backtest-scalability/04-implementation-plan.md	2026-09-18 16:00:09.421334612 +0800
+@@ -20,7 +20,7 @@
+ | **P4** | 分块落库 + 双读 + `/brief /bars /curve` ✅ **已冻结（2026-09-18，条件式）** | coder → tester | P2；P4b（结果写入路径避免冲突） | 双读保证向后兼容；新表可留 | 2 天 |
+ | **\u26d4 上线硬门槛** | **`0027` + P4 不得单独上线**：P4 将新 run 改为 `chunked_v1`，而前端对 `has_more`/`next_offset`/`/bars`/`/curve`/`result_format` **零消费**（tester 证据 `251/13_frontend_gap.txt`）⇒ 单独上线会「净值/回撤图静默空 + 逐 bar 表只显示前 5000 根」。⇒ **部署批次 = 迁移 0027 + P4 + P6（至少 P6 的取数路径改造）** | tester P4 验收 §前端缺口确认 | — | — | — |
+ | **P5** | 区间收缩 + 摘护栏 + 试算放开 + 结构化错误 | coder → tester | **P2（含指标）+ P4 + P4b**（硬依赖） | **安全态**：护栏仍在 → 可停在 P4 | 2 天 |
+-| **P6** | 前端（周期 30m、曲线抽样取数、分页明细、收缩提示、预估确认） | coder → tester（真渲染） | P4/P5 | 前端可与后端版本解耦（兼容旧 `/result`） | 2–3 天 |
++| **P6** | 前端（周期 30m、曲线抽样取数、分页明细、收缩提示、预估确认） ✅ **已冻结（2026-09-18）**——含架构师裁决新增的 **`/fills` 有界精确源**（K 线标记）+ 单一取数入口 + 事件日志分页 | coder → tester（真渲染） | P4/P5 | 前端可与后端版本解耦（兼容旧 `/result`） | 2–3 天 |
+ | **P7** | 文档/ADR 修订收口 | coder（机械执行）→ 我评审 | 各自对应阶段 | 无 | 0.5 天 |
+ 
+ **关键依赖**：`P5 摘护栏 ⇐ P2（含指标增量）+ **P2b** + P4 + P4b`（否则用户吃到**无解释的长时等待**；实测轻插件 34–105 s、指标重插件 ~8 分钟量级，详见 `01-adr.md` §2.5/§2.6）。P6 可并行启动（后端契约 P4 已定）。
+@@ -155,6 +155,8 @@
+ | R6 | 前端长区间内存爆 | 结果页卡死/白屏 | 曲线走 `/curve`、明细走 `/bars`；真渲染验收 | coder/tester |
+ | R7 | 白名单漂移复发 | 后端集合 ≠ 前端集合 | 防漂移断言测试（单点） | coder |
+ | R8 | 磁盘增长 | 水位监控告警 | 手动删除端点 + 水位监控（量级：单 run 4–6 MB） | coder |
++| R9 | **`/curve` 服务端先全量物化再抽样**（tester `252` F4）：大 run 的服务器内存/耗时未优化 | 观测到 `/curve` 耗时随 run 大小线性增长时 | 归入 **P4c/后续专项**（分块级采样或流式抽样） | coder |
++| R10 | ~~取数耗时可疑~~ **已由实测推翻（2026-09-18，P5）**：取数随 n **次线性** —— n=5k→56 µs/bar、20k→24、100k→6.9、500k→3.96、**满历史 861,093 bar → 3,500 ms（4.06 µs/bar）** ⇒ **取数不是瓶颈**（全历史 M1 仅 3.5 s）。架构师此前从 debug 口径 809 ms/16k 外推的「~40 s」**被实证推翻**，本项**关闭**（仅留记录） | P5 实测 `coder/evidence/adr024_p5/03_r10_fetch_scaling.txt` | 无（已关闭） | — |
+ 
+ ---
+ 

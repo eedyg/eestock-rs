@@ -1,0 +1,87 @@
+### 32 — 测试有效性抽查：crates/web/tests/adr024_workbench_period_ssot.rs 的可证伪性（临时扰动 + 复原） @ 2026-09-18T12:51:58+08:00
+--- 32.0 baseline ---
+34909888143174459bed7e17e1e6ef952a116ea75d05509ffe97157d559c65d9  crates/web/src/workbench.rs
+6b21cb7ef5df0ee263952875b00ad23128b6c454
+M  crates/web/src/workbench.rs
+
+--- 32.1 扰动：把 P0 删掉的硬编码白名单临时加回（模拟回退） ---
+inserted legacy hardcoded whitelist before parse_period call
+    if req.symbol.trim().is_empty() {
+        return err(StatusCode::BAD_REQUEST, "symbol 必填");
+    }
+    if !matches!(req.period.as_str(), "M1" | "M5" | "M15" | "H1" | "D1") {
+        return err(StatusCode::BAD_REQUEST, "period 须为 M1/M5/M15/H1/D1");
+    }
+    // ADR-024 P0 §5.1：周期白名单收敛为单一事实源——删手写 `matches!` 白名单，改调
+    // `application::bar_map::parse_period`（与 MCP / 试算同源）；400 语义与可读消息保留。
+    if let Err(e) = application::bar_map::parse_period(&req.period) {
+        return err(
+            StatusCode::BAD_REQUEST,
+            &format!(
+                "period 须为 {}（{e}）",
+                application::bar_map::supported_backtest_periods().join("/")
+            ),
+        );
+
+--- 32.2 期望：该测试文件变红 ---
+$ cargo test -p web --test adr024_workbench_period_ssot -- --nocapture
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.48s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+
+thread 'web_source_has_no_hardcoded_period_whitelist' (4116756) panicked at crates/web/tests/adr024_workbench_period_ssot.rs:172:5:
+crates/web/src/workbench.rs 仍含硬编码 period 白名单（双事实源回归，ADR-024 §5.1）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test web_source_has_no_hardcoded_period_whitelist ... FAILED
+[证据] POST /api/workbench/runs period=M300 状态码 = 400 body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+[证据] POST /api/workbench/runs period=M30 状态码 = 400（无库 ⇒ 预期 500 亦合规）body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+
+thread 'm30_passes_web_period_gate_not_400' (4116753) panicked at crates/web/tests/adr024_workbench_period_ssot.rs:142:5:
+assertion `left != right` failed: ADR-024 P0：period=M30 被 web 硬编码白名单 400 拒绝；body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+  left: 400
+ right: 400
+[证据] POST /api/workbench/runs period=W1 状态码 = 400 body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... FAILED
+
+failures:
+
+failures:
+    m30_passes_web_period_gate_not_400
+    web_source_has_no_hardcoded_period_whitelist
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test adr024_workbench_period_ssot`
+RED_EXIT=101
+
+--- 32.3 复原 ---
+34909888143174459bed7e17e1e6ef952a116ea75d05509ffe97157d559c65d9  crates/web/src/workbench.rs
+$ git diff -- crates/web/src/workbench.rs (must be empty)
+   <end: empty>
+$ git rev-parse :crates/web/src/workbench.rs (staged blob, must be unchanged)
+6b21cb7ef5df0ee263952875b00ad23128b6c454
+
+--- 32.4 复原后必须回绿 ---
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.30s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+GREEN_EXIT=0
+
+$ git diff --stat (must show only the 2 pre-existing unstaged files)
+ design/01-architecture/adr/ADR-023-period-set-extension-30m.md | 7 ++++++-
+ docker-compose.yml                                             | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)

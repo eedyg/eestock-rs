@@ -1,0 +1,16 @@
+############ ADR-025 D3 测试载体 teardown ############
+载体库名: tmp_p4_202609181428（命名规则 tmp_<lane>_<ts>）
+
+--- 存续期核对（teardown 前：载体存在）---
+tmp_p4_202609181428
+
+--- DROP DATABASE ... WITH (FORCE) ---
+DROP DATABASE
+
+--- 正向断言（ADR-025 D3#3）：本车道载体已不存在 ---
+count(tmp_p4_202609181428) = 0（期望 0）
+TEARDOWN_OK: 载体已销毁
+
+--- 库清单回读（期望恰为 {eestock, postgres}）---
+eestock
+postgres

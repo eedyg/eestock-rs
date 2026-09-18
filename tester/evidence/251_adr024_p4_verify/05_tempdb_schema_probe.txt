@@ -1,0 +1,77 @@
+### ④-b 临时库 tmp_p4verify_20260918143844 上的 0027 落地形态（服务端元数据 + 约束行为）
+TS=2026-09-18T14:39:10+08:00
+--- 列 / 类型 / NOT NULL / 默认（strategy_run_result.result_format） ---
+  column_name  | data_type | is_nullable |    column_default     
+---------------+-----------+-------------+-----------------------
+ result_format | text      | NO          | 'legacy_single'::text
+(1 row)
+
+--- strategy_run_bars 列 ---
+ ordinal_position | column_name |        data_type         | is_nullable 
+------------------+-------------+--------------------------+-------------
+                1 | run_id      | text                     | NO
+                2 | kind        | text                     | NO
+                3 | seq         | integer                  | NO
+                4 | ts_from     | timestamp with time zone | NO
+                5 | ts_to       | timestamp with time zone | NO
+                6 | payload     | jsonb                    | NO
+(6 rows)
+
+--- PK / 唯一约束 ---
+            conname            | contype |                                        def                                         
+-------------------------------+---------+------------------------------------------------------------------------------------
+ strategy_run_bars_kind_check  | c       | CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text])))
+ strategy_run_bars_pkey        | p       | PRIMARY KEY (run_id, kind, seq)
+ strategy_run_bars_run_id_fkey | f       | FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+(3 rows)
+
+--- 索引 ---
+             indexname              |                                                       indexdef                                                        
+------------------------------------+-----------------------------------------------------------------------------------------------------------------------
+ strategy_run_bars_pkey             | CREATE UNIQUE INDEX strategy_run_bars_pkey ON public.strategy_run_bars USING btree (run_id, kind, seq)
+ strategy_run_bars_run_kind_seq_idx | CREATE INDEX strategy_run_bars_run_kind_seq_idx ON public.strategy_run_bars USING btree (run_id, kind, seq)
+ strategy_run_bars_run_kind_ts_idx  | CREATE INDEX strategy_run_bars_run_kind_ts_idx ON public.strategy_run_bars USING btree (run_id, kind, ts_from, ts_to)
+(3 rows)
+
+--- CHECK 约束定义（kind 枚举） ---
+           conname            |                                pg_get_constraintdef                                
+------------------------------+------------------------------------------------------------------------------------
+ strategy_run_bars_kind_check | CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text])))
+(1 row)
+
+--- FK 及级联动作 ---
+            conname            | on_delete_code | confupdtype |                        pg_get_constraintdef                        
+-------------------------------+----------------+-------------+--------------------------------------------------------------------
+ strategy_run_bars_run_id_fkey | c              | a           | FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+(1 row)
+
+--- 负向：非法 kind 应被 CHECK 拒绝 ---
+NOTICE:  OK check_violation 已拒绝 bogus kind
+DO
+--- 负向：result_format NOT NULL 默认值生效（插入不含该列的行） ---
+ has_default | is_nullable 
+-------------+-------------
+ t           | NO
+(1 row)
+
+
+### ④-c FK 级联删除行为（独立探针：建 run → 写 chunk → 删 run → chunk 应为 0）
+INSERT 0 1
+INSERT 0 1
+ chunks_before_delete 
+----------------------
+                    1
+(1 row)
+
+DELETE 1
+ chunks_after_delete 
+---------------------
+                   0
+(1 row)
+
+--- 收尾回读：探针 run 行应为 0 ---
+ probe_run_rows 
+----------------
+              0
+(1 row)
+

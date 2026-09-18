@@ -1,0 +1,45 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+warning: constant `PROGRESS_DB_MIN_INTERVAL` is never used
+  --> crates/application/src/workbench.rs:92:7
+   |
+92 | const PROGRESS_DB_MIN_INTERVAL: Duration = Duration::from_millis(250);
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.33s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 3 tests
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... FAILED
+test p4b_progress_db_time_window_throttle_reduces_writes ... FAILED
+test p4b_progress_terminal_frame_persisted_on_cancel ... FAILED
+
+failures:
+
+---- p4b_progress_terminal_frame_persisted_on_chunk_write_failure stdout ----
+
+thread 'p4b_progress_terminal_frame_persisted_on_chunk_write_failure' (1852779) panicked at crates/application/tests/workbench.rs:1535:5:
+节流生效：writes=1001 produced=1001
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- p4b_progress_db_time_window_throttle_reduces_writes stdout ----
+
+thread 'p4b_progress_db_time_window_throttle_reduces_writes' (1852777) panicked at crates/application/tests/workbench.rs:1504:5:
+时间窗节流应显著减少落库：writes=1001 produced=1001（相等 ⇒ 节流未生效）
+
+---- p4b_progress_terminal_frame_persisted_on_cancel stdout ----
+
+thread 'p4b_progress_terminal_frame_persisted_on_cancel' (1852778) panicked at crates/application/tests/workbench.rs:1576:5:
+取消路径同样受时间窗节流：writes=201 produced=201
+
+
+failures:
+    p4b_progress_db_time_window_throttle_reduces_writes
+    p4b_progress_terminal_frame_persisted_on_cancel
+    p4b_progress_terminal_frame_persisted_on_chunk_write_failure
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.26s
+
+error: test failed, to rerun pass `-p application --test workbench`

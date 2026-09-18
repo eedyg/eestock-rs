@@ -1,0 +1,21 @@
+### 变异点: useRunSeries.ts（chunked 首页）hasMore:false / nextOffset:null —— 模拟忽略 has_more（静默截断）
+### 目标用例: ResultView > P6-关键：长区间（12000 根 chunked）不得静默截断
+### cmd: npx vitest run src/features/workbench/ResultView.test.tsx -t 长区间
+   ↓ ResultView（ADR §13.5 结果页布局） > 未选中 run → 占位；failed run → error 展示；结果加载失败 → 错误+重试
+   ↓ ResultView（ADR §13.5 结果页布局） > 图例开关：取消勾选 → 该策略曲线移除
+   ↓ ResultView（ADR §13.5 结果页布局） > buildMarkers：成交事实源 → B/S 标记；StopTrigger → ⊗ 不同图标
+   ↓ ResultView（ADR §13.5 结果页布局） > loading 骨架；结果 404（未成功）→ 错误+重试
+   × ResultView（ADR §13.5 结果页布局） > P6-关键：长区间（12000 根 chunked）不得静默截断 —— 必须出现 has_more 提示与加载入口 1960ms
+     → Unable to find an element by: [data-testid="wb-perbar-more-note"]
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+### 红？见上（期望 × / Tests 1 failed）
+
+### 还原后复跑（期望绿）：
+### cmd: npx vitest run src/features/workbench/ResultView.test.tsx -t 长区间
+ ✓ src/features/workbench/ResultView.test.tsx (15 tests | 14 skipped) 1101ms
+   ✓ ResultView（ADR §13.5 结果页布局） > P6-关键：长区间（12000 根 chunked）不得静默截断 —— 必须出现 has_more 提示与加载入口  1100ms
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+RESTORED: web/src/features/workbench/useRunSeries.ts 与原文件逐字节一致

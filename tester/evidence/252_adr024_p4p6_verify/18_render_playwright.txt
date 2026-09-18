@@ -1,0 +1,20 @@
+### ⑥ 真渲染（Playwright + 第二 app 实例 :18083 + 临时库 sr_1789716153346_000002）
+TS=2026-09-18T15:23:09+08:00
+RID=sr_1789716153346_000002 BASE=http://127.0.0.1:18083
+[render] PASS 结果页标题可见
+[render] PASS 总分曲线标注「共 N bar」
+[render] PASS 净值曲线标注「共 N bar」
+[render] PASS 服务端抽样标注可读
+[render] PASS K线成交笔数来自 /fills（精确源）
+[render] PASS 长区间出现 has_more 覆盖提示
+[render] PASS 提示含未加载根数
+[render] PASS 首屏只渲染 5000 行（未静默全量）
+[render] PASS 加载更多后拉满 7953 且提示消失
+[render] PASS 事件日志覆盖范围显式标注
+[render] 网络命中 {"curve":3,"bars":2,"fills":1,"result":1}
+[render] PASS 页面真实调用 /curve
+[render] PASS 页面真实调用 /bars?kind=per_bar
+[render] PASS 页面真实调用 /fills
+[render] PASS 无 console 错误
+RENDER_PASS
+EXIT=0

@@ -1,0 +1,7 @@
+$ date: 2026-09-18T06:12:41Z
+$ ps aux | grep app_p4b | grep -v grep
+(无匹配进程)
+$ curl 18081/healthz
+http=000
+$ curl 8081/healthz（prod 未受影响）
+http=200

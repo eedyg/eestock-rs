@@ -1,0 +1,26 @@
+[0] 控制组（同 bars/同配置重跑）→ PASS（预期）（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0）
+[1] 扰动 slot0.weight ×(1+1e-6)（slots=3）→ FAIL（A-FAIL 8 / B-FAIL 1860；max_abs_dev=1.849e3；max_rel_dev=3.353e0）
+    期望=FAIL（多 slot：权重改变聚合加权平均，必须被捕获）⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.drawdown[411][1]: expected=9.69632863567003872e-2 actual=1.13895682139290383e-1 abs=1.693e-2 rel=1.746e-1 tol=9.696e-11
+    B-FAIL 浮点偏差超限 @result.drawdown[412][1]: expected=9.63551808256275372e-2 actual=1.13895682139290383e-1 abs=1.754e-2 rel=1.820e-1 tol=9.636e-11
+[close] bars[12].close ×1.001（中段/持仓中）→ FAIL（A-FAIL 0 / B-FAIL 2；max_abs_dev=1.003e2；max_rel_dev=1.000e-3）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.metrics.sharpe: expected=-1.33240423083767445e0 actual=-1.33249538458291439e0 abs=9.115e-5 rel=6.841e-5 tol=1.332e-9
+    B-FAIL 浮点偏差超限 @result.net_value[12][1]: expected=1.00320036603558212e5 actual=1.00420356640161757e5 abs=1.003e2 rel=1.000e-3 tol=1.003e-4
+[close] bars[999].close ×1.001（末根）→ FAIL（A-FAIL 0 / B-FAIL 12；max_abs_dev=9.151e1；max_rel_dev=7.137e-1）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.drawdown[999][1]: expected=1.02695305379296400e-1 actual=1.01798000684675538e-1 abs=8.973e-4 rel=8.738e-3 tol=1.027e-10
+    B-FAIL 浮点偏差超限 @result.metrics.annualized_return: expected=-1.65124909233825279e-1 actual=-1.63440946027324396e-1 abs=1.684e-3 rel=1.020e-2 tol=1.651e-10
+[close] bars[12].close ×1.000001（中段/持仓中·1e-6 量级）→ FAIL（A-FAIL 0 / B-FAIL 2；max_abs_dev=1.003e-1；max_rel_dev=1.000e-6）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.metrics.sharpe: expected=-1.33240423083767445e0 actual=-1.33240449887738821e0 abs=2.680e-7 rel=2.012e-7 tol=1.332e-9
+    B-FAIL 浮点偏差超限 @result.net_value[12][1]: expected=1.00320036603558212e5 actual=1.00320136923594808e5 abs=1.003e-1 rel=1.000e-6 tol=1.003e-4
+[L1] expected.derived.ledger[last].cash 微扰（≈1 ulp）→ bitwise FAIL（1/4000 叶节点不等）
+    期望=FAIL ⇒ 符合预期
+    LED-A-FAIL 位级不等 @derived.ledger[999].cash: expected=91436.95978162339 actual=91436.95978162329 (abs=1.019e-10 rel=1.114e-15)
+[L2] 位级语义合成对：+0.0 vs -0.0 → FAIL（必须 FAIL）；1.0 vs 1.0 → PASS（必须 PASS）
+    期望=FAIL/PASS ⇒ 符合预期（位级语义生效；±0.0 可区分，等值不误报）
+[L3] 自证（replay trades ↔ payload trades）人为扰动 pnl ×(1+1e-6) → FAIL（A-FAIL 0 / B-FAIL 1 / dev>0 1）
+    期望=FAIL ⇒ 符合预期
+[L0] 自证控制组（同源 replay，未扰动）→ PASS（预期）
+== SELFTEST VERDICT: PASS（控制组不误报 + 权重/close 扰动均被捕获） ==

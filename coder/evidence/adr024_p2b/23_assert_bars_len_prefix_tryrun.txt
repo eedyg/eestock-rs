@@ -1,0 +1,18 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 1 test
+[P2b/tryrun] ctx.bars 可见面（n=8）：
+  idx=0 bars_len=1 cur_eq_ctx_bar=true shared_handle=true
+  idx=1 bars_len=2 cur_eq_ctx_bar=true shared_handle=true
+  idx=2 bars_len=3 cur_eq_ctx_bar=true shared_handle=true
+  idx=3 bars_len=4 cur_eq_ctx_bar=true shared_handle=true
+  idx=4 bars_len=5 cur_eq_ctx_bar=true shared_handle=true
+  idx=5 bars_len=6 cur_eq_ctx_bar=true shared_handle=true
+  idx=6 bars_len=7 cur_eq_ctx_bar=true shared_handle=true
+  idx=7 bars_len=8 cur_eq_ctx_bar=true shared_handle=true
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+

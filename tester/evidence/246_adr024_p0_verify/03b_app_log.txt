@@ -1,0 +1,8 @@
+### app startup log (new pid 4083225) — first/last lines
+{"timestamp":"2026-09-18T04:47:38.118219Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T04:47:38.162881Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T04:47:38.164220Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T04:47:38.165155Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+...
+7
+ERROR=0

@@ -1,0 +1,8 @@
+### ADR-024 P6 后端构建门禁
+### cmd: cargo check --workspace --all-targets
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Checking web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Checking app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.08s
+check exit=0

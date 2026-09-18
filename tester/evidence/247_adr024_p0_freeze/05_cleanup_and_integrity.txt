@@ -1,0 +1,42 @@
+=== 05: CLEANUP of temporary verification artifacts 2026-09-18T13:04:40+08:00 ===
+$ du -sh /tmp/adr024_clean_frz01 /tmp/adr024_clean_target
+129M	/tmp/adr024_clean_frz01
+2.1G	/tmp/adr024_clean_target
+$ rm -rf /tmp/adr024_clean_frz01 /tmp/adr024_clean_target /tmp/adr024_frz
+$ ls -d /tmp/adr024_* 2>&1
+/tmp/adr024_p1b
+  (leftover: none)
+
+=== 05.2 post-cleanup integrity: worktree still == the frozen index 2026-09-18T13:04:41+08:00 ===
+$ git diff --cached --name-only | wc -l
+55
+$ git diff --name-status
+M	design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M	design/99-decisions-log.md
+M	docker-compose.yml
+$ git diff --cached | sha256sum
+8f70a57a8db5ae9f0ff4105ffc2255856f39e919932088648f354199156c095b  -
+$ sha256sum web/src/features/backtest/periods.ts design/16-backtest-scalability/contract-vectors.json
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+838530eeb02edcefa315cbc5ae1d485fe44e8bde51e43c1cf06c9f00a520281d  design/16-backtest-scalability/contract-vectors.json
+$ git status --porcelain -- web/ crates/ test coder/ 2>/dev/null | head
+A  coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+A  coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+A  coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/11_red_frontend.txt
+A  coder/evidence/adr024_p0_m30/12_green_frontend.txt
+A  coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+A  coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+A  coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+A  coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+A  coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+A  coder/evidence/adr024_p0_m30/16_frontend_build.txt
+A  coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+A  coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt

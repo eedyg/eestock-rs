@@ -1,0 +1,31 @@
+$ cargo test -p application --test workbench p5 -- --nocapture   # P5 应用层测试（绿）
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 7 tests
+test p5_estimator_includes_fixed_run_cost ... ok
+test p5_structured_error_shape_json ... ok
+test p5_clamp_no_intersection_is_range_empty ... ok
+test p5_brief_estimated_bars_echo ... ok
+test p5_resource_guard_confirm_and_hard_reject ... ok
+test p5_prescan_degraded_path_visible ... ok
+test p5_clamp_left_right_both_and_exact ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s
+
+
+$ cargo test -p application --test strategy -- test_run_interval_limits_removed_same_caliber_as_workbench test_run_pure_score_uniform_sampling test_run_range_empty_is_structured
+test test_run_param_validation ... ok
+test test_run_version_source_and_bad_inputs ... ok
+test test_run_pure_score_defaults_fill_and_neutral_on_error ... ok
+test test_run_interval_limits_removed_same_caliber_as_workbench ... ok
+test test_run_fee_echo_and_stamp_duty_effect ... ok
+test test_run_h1_period_supported ... ok
+test test_run_policy_and_capital_effect ... ok
+test test_run_warmup_reports_shortfall ... ok
+test test_run_fee_resolves_by_symbol_type_when_absent ... ok
+test test_run_events_truncation_cap ... ok
+test test_run_pure_score_uniform_sampling ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.52s
+

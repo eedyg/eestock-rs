@@ -1,0 +1,33 @@
+===== B 反向证据 B-R2：M30 基线对**真实价格扰动**敏感（非空跑）=====
+# 做法：复用官方比对器 —— 把 m30_1slot 的 bars.jsonl 中第 860 根（**持仓区间 846..880 内**）
+#       close ×1.001 放进临时 case（case_id=m30_1slot_probe，expected.json = 冻结基线原样），
+#       再 run compare ⇒ 扰动输入 vs 冻结期望必须 FAIL ⇒ 退出码 2。
+
+[B′-dev] m30_1slot_probe: field=result.drawdown[860][1] expected=1.23725104669983096e-2 actual=1.13848829774652275e-2 abs=9.876275e-4 rel=7.982434e-2 verdict=FAIL old_verdict=FAIL
+[B′-dev] m30_1slot_probe: field=result.metrics.sharpe expected=4.89555139321183552e-1 actual=4.89763368228950446e-1 abs=2.082289e-4 rel=4.253431e-4 verdict=FAIL old_verdict=FAIL
+[B′-dev] m30_1slot_probe: field=result.net_value[860][1] expected=1.01265360826094329e5 actual=1.01366626186920432e5 abs=1.012654e2 rel=1.000000e-3 verdict=FAIL old_verdict=FAIL
+
+# 容差收紧对照（1e-9 → 1e-12 绝对下限）：按新判据 FAIL 而按旧判据 PASS 的条目数 = 0
+
+# [台账] 派生序列 A 层 bitwise 比较（derived.ledger / derived.position / derived.trades_replay；
+#        合计 7176 个叶节点）+ 自证「replay trades ↔ payload trades」（合计 312 个叶节点）
+[台账] m30_1slot_probe: ledger_checks=7176 fills=52 replayed_trades=26 payload_trades=26 final_qty_bits=0 bitwise=FAIL self_proof=PASS（self_proof dev>0 0 条）
+
+[B-FAIL] m30_1slot_probe: 浮点偏差超限 @result.drawdown[860][1]: expected=1.23725104669983096e-2 actual=1.13848829774652275e-2 abs=9.876e-4 rel=7.982e-2 tol=1.237e-11
+[B-FAIL] m30_1slot_probe: 浮点偏差超限 @result.metrics.sharpe: expected=4.89555139321183552e-1 actual=4.89763368228950446e-1 abs=2.082e-4 rel=4.253e-4 tol=4.896e-10
+[B-FAIL] m30_1slot_probe: 浮点偏差超限 @result.net_value[860][1]: expected=1.01265360826094329e5 actual=1.01366626186920432e5 abs=1.013e2 rel=1.000e-3 tol=1.013e-4
+[A-FAIL·台账位级] m30_1slot_probe: 位级不等 @derived.position[860].unrealized_pnl: expected=159.094080525334 actual=260.35944135143654 (abs=1.013e2 rel=6.365e-1)
+
+A/B 层：1 用例，失败 1 用例
+全局 max_abs_dev = 1.012654e2 @ m30_1slot_probe (result.net_value[860][1]; expected=1.01265360826094329e5 actual=1.01366626186920432e5)
+全局 max_rel_dev = 7.982434e-2 @ m30_1slot_probe (result.drawdown[860][1]; expected=1.23725104669983096e-2 actual=1.13848829774652275e-2)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 101.26536082610255)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 1 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: FAIL ==
+[exit] 2
+
+--- 控制组：原 m30_1slot（未扰动）应 PASS ---
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0

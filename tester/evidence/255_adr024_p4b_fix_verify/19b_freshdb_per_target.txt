@@ -1,0 +1,44 @@
+### [⑤-a-明细] 全新临时库 `cargo test -p application -p web --no-fail-fast` 逐目标结果
+
+| # | test target | passed | failed |
+|---|---|---:|---:|
+| 1 | `unittests:src/lib.rs` | 28 | 0 |
+| 2 | `adr024_p2b_tryrun` | 2 | 0 |
+| 3 | `backtest_periods_ssot` | 6 | 0 |
+| 4 | `resource_guard_contract_vectors` | 3 | 0 |
+| 5 | `simlive` | 55 | 0 |
+| 6 | `strategy` | 41 | 0 |
+| 7 | `tester_p2b_tryrun_indep` | 3 | 0 |
+| 8 | `workbench` | 43 | 0 |
+| 9 | `unittests:src/lib.rs` | 49 | 0 |
+| 10 | `adr024_structured_errors` | 2 | 0 |
+| 11 | `adr024_workbench_period_ssot` | 4 | 0 |
+| 12 | `api_admin` | 3 | 0 |
+| 13 | `api_alerts` | 3 | 0 |
+| 14 | `api_favorites` | 2 | 0 |
+| 15 | `api_kline_period` | 1 | 0 |
+| 16 | `api_ma_config` | 1 | 0 |
+| 17 | `api_multi_period_config` | 17 | 0 |
+| 18 | `api_quality` | 1 | 0 |
+| 19 | `api_rest` | 2 | 0 |
+| 20 | `api_settings` | 6 | 0 |
+| 21 | `api_strategies` | 9 | 0 |
+| 22 | `api_workbench` | 9 | 0 |
+| 23 | `multi_period_contract_vectors` | 4 | 0 |
+| 24 | `multi_period_pane_budget` | 8 | 0 |
+| 25 | `orphan_detect_endpoint_red` | 4 | 0 |
+| 26 | `orphan_detect_sql_constant_red` | 2 | 0 |
+| 27 | `period30m_api_contract` | 2 | 0 |
+| 28 | `period30m_d2_multiperiod_red` | 6 | 0 |
+| 29 | `period30m_scope_guard` | 3 | 0 |
+| 30 | `tester_p4_endpoints_indep` | 3 | 0 |
+| 31 | `tester_p4_writepath_indep` | 6 | 0 |
+| 32 | `tester_p5_indep` | 13 | 0 |
+| 33 | `tester_p5rect_verify` ❌ | 3 | 1 |
+| 34 | `tester_p6_fills_indep` | 4 | 0 |
+| 35 | `ws_poller` | 1 | 0 |
+| 36 | `ws_poller` | 0 | 0 |
+| 37 | `ws_poller` | 0 | 0 |
+| | **合计（37 个目标）** | **349** | **1** |
+
+失败 1 例：`tester_p5rect_verify::t_n1_http_every_400_is_structured_object`（阈值漂移，见 24 号证据；非产品回归）。

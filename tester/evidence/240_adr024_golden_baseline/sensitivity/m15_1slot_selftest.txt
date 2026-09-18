@@ -1,0 +1,24 @@
+[0] 控制组（同 bars/同配置重跑）→ PASS（预期）（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0）
+[1] 扰动 slot0.weight ×(1+1e-6)（slots=1）→ PASS（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0；max_rel_dev=0.000e0）
+    期望=PASS（单 slot：权重在 aggregate=(w·s)/w 中被约掉，属无操作输入（信息性探针））⇒ 符合预期
+[close] bars[84].close ×1.001（中段/持仓中）→ FAIL（A-FAIL 0 / B-FAIL 3；max_abs_dev=1.005e2；max_rel_dev=2.204e-1）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.drawdown[84][1]: expected=4.51758631816726389e-3 actual=3.52210390448555889e-3 abs=9.955e-4 rel=2.204e-1 tol=4.518e-12
+    B-FAIL 浮点偏差超限 @result.metrics.sharpe: expected=1.89597750567332657e0 actual=1.89780295497920704e0 abs=1.825e-3 rel=9.628e-4 tol=1.896e-9
+[close] bars[999].close ×1.001（末根）→ FAIL（A-FAIL 0 / B-FAIL 12；max_abs_dev=1.056e2；max_rel_dev=7.137e-1）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.drawdown[999][1]: expected=1.69151266581753466e-2 actual=1.59320417848336712e-2 abs=9.831e-4 rel=5.812e-2 tol=1.692e-11
+    B-FAIL 浮点偏差超限 @result.metrics.annualized_return: expected=2.40671012580421007e-1 actual=2.45680986857558681e-1 abs=5.010e-3 rel=2.082e-2 tol=2.407e-10
+[close] bars[84].close ×1.000001（中段/持仓中·1e-6 量级）→ FAIL（A-FAIL 0 / B-FAIL 3；max_abs_dev=1.005e-1；max_rel_dev=2.204e-4）
+    期望=FAIL ⇒ 符合预期
+    B-FAIL 浮点偏差超限 @result.drawdown[84][1]: expected=4.51758631816726389e-3 actual=4.51659083575361477e-3 abs=9.955e-7 rel=2.204e-4 tol=4.518e-12
+    B-FAIL 浮点偏差超限 @result.metrics.sharpe: expected=1.89597750567332657e0 actual=1.89597984521372998e0 abs=2.340e-6 rel=1.234e-6 tol=1.896e-9
+[L1] expected.derived.ledger[last].cash 微扰（≈1 ulp）→ bitwise FAIL（1/4000 叶节点不等）
+    期望=FAIL ⇒ 符合预期
+    LED-A-FAIL 位级不等 @derived.ledger[999].cash: expected=105494.1390563488 actual=105494.13905634868 (abs=1.164e-10 rel=1.104e-15)
+[L2] 位级语义合成对：+0.0 vs -0.0 → FAIL（必须 FAIL）；1.0 vs 1.0 → PASS（必须 PASS）
+    期望=FAIL/PASS ⇒ 符合预期（位级语义生效；±0.0 可区分，等值不误报）
+[L3] 自证（replay trades ↔ payload trades）人为扰动 pnl ×(1+1e-6) → FAIL（A-FAIL 0 / B-FAIL 1 / dev>0 1）
+    期望=FAIL ⇒ 符合预期
+[L0] 自证控制组（同源 replay，未扰动）→ PASS（预期）
+== SELFTEST VERDICT: PASS（控制组不误报 + 权重/close 扰动均被捕获） ==

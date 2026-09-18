@@ -1,0 +1,51 @@
+===== cargo check --workspace --all-targets =====
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+EXIT=0
+===== cargo test -p backtest --lib =====
+test types::tests::bars_per_year_known_factors ... ok
+test metrics::tests::no_trades_degenerate ... ok
+test types::tests::bars_per_year_m30_is_2016_nominal ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+===== cargo test -p application --test backtest_periods_ssot =====
+test ssot_has_no_duplicates ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+===== cargo test -p application --lib =====
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+EXIT=0
+===== cargo test -p web --test adr024_workbench_period_ssot =====
+test w1_still_rejected_400_with_period_message ... ok
+test unknown_period_still_rejected_400 ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+EXIT=0
+===== cargo test -p mcp --test adr024_period_ssot_drift =====
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+===== cargo test -p mcp --lib =====
+test tools::tests::strategy_test_run_inline_and_version_modes ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+test tools::tests::bt_run_ensemble_archived_version_audit_rerun ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+EXIT=0

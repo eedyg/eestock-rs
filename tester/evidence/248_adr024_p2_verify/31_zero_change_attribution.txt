@@ -1,0 +1,118 @@
+== ⑥ 零改动证明 —— 归因分析（tester 独立）==
+
+### A. 命令判定
+$ git diff HEAD -- crates/application crates/web crates/storage  →  **非空**（7 文件 / +322 −10）
+   ⇒ 但**全部 hunk 可逐条归因到 P0（ADR-024 M30 打通 + 周期白名单单一事实源）**，与 P2（引擎线性化）无关：
+   crates/application/src/bar_map.rs                    +supported_backtest_periods() 唯一事实源；parse_period 增 "M30"；warmup_lookback 注释（P0）
+   crates/application/src/simlive.rs                    bt_bar_seconds 补 Period::M30 穷尽分支（P0）
+   crates/application/src/strategy.rs                   M30 归入分钟级档注释（P0）
+   crates/application/tests/backtest_periods_ssot.rs    新增：P0 单一事实源断言（P0）
+   crates/storage/src/backtest.rs                       period_range_sql 的 M30 注释更新（P0）
+   crates/web/src/workbench.rs                          删除手写 period 白名单，改调 parse_period（P0）
+   crates/web/tests/adr024_workbench_period_ssot.rs     新增：P0 web 门禁断言（P0）
+
+   同一命令放宽到所有 P2 范围外目录，另见：
+   crates/mcp/src/tools.rs + tests/adr024_period_ssot_drift.rs P0（周期 enum 漂移断言）
+   crates/domain/src/ports.rs                           P0（注释）
+   docker-compose.yml                                   并发/基础设施（E6b / TSDB worker 槽位事故），与 ADR-024 无关
+
+### B. 独立于 worker 的客观证据（P2 未触碰调用方）
+B1. mtime（**说明**：被扰动文件在 ⑧ 复原时被 `touch`，故下表 P2 三文件的 mtime 已是 13:31:32；
+    下表 P2 范围外文件的 mtime **未受本次验收影响**，仍为其原本写入时间）
+    本验收**开始前**（13:22，未做任何扰动时）观测到的 P2 三文件 mtime = 13:17:17 / 13:17:24 / 13:18:12
+    ⇒ P2 源码写入窗口 ≈ 13:17:17–13:18:12，**晚于**下列所有 P2 范围外文件的 mtime。
+   2026-09-18 12:38:52.011804736 +0800  crates/application/src/bar_map.rs
+   2026-09-18 12:38:31.616651157 +0800  crates/application/src/simlive.rs
+   2026-09-18 12:43:08.391244049 +0800  crates/application/src/strategy.rs
+   2026-09-18 12:38:42.057729145 +0800  crates/application/tests/backtest_periods_ssot.rs
+   2026-09-18 12:44:06.637930299 +0800  crates/storage/src/backtest.rs
+   2026-09-18 12:52:00.052664169 +0800  crates/web/src/workbench.rs
+   2026-09-18 12:39:10.709949970 +0800  crates/web/tests/adr024_workbench_period_ssot.rs
+   2026-09-18 12:40:03.786384010 +0800  crates/mcp/src/tools.rs
+   2026-09-18 12:43:08.391244049 +0800  crates/domain/src/ports.rs
+   2026-09-18 12:16:18.367374541 +0800  docker-compose.yml
+   P2 三文件（对照）：
+   2026-09-18 13:31:32.105034057 +0800  crates/strategy-core/src/engine.rs
+   2026-09-18 13:31:32.105849650 +0800  crates/strategy-runtime/src/history.rs
+   2026-09-18 13:31:32.104216784 +0800  crates/backtest/src/indicators.rs
+
+B2. worktree vs index：P2 范围外文件**全部无未暂存改动**（即工作树内容 == index 内容），
+    说明本轮没有发生「改了但没 add」或「add 后又改」的越界；
+    唯一的未暂存改动是 4 个与 ADR-024 P2 无关的文件：
+M	design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M	design/16-backtest-scalability/04-implementation-plan.md
+M	design/99-decisions-log.md
+M	docker-compose.yml
+
+B3. 与 P0 冻结快照交叉引用（tester/evidence/247_adr024_p0_freeze/06_post_deliverable_integrity.txt，13:05:30）
+    - 该时刻 index = 55 项，sha256(git diff --cached) = 8f70a57a8db5ae9f0ff4105ffc2255856f39e919932088648f354199156c095b
+    - 该时刻的未暂存清单 = design/01-architecture/adr/ADR-023-*.md / design/99-decisions-log.md / docker-compose.yml
+    - 本轮开始/结束的未暂存清单 = 上述 3 项 + design/16-backtest-scalability/04-implementation-plan.md（架构师 13:06:33 追加的 P2 范围裁定）
+    - 即：P0 冻结后**新增的唯一未暂存项**是架构师的 P2 范围说明；P2 代码本身全部 staged 且不触碰上述目录。
+
+   注（非阻塞，如实记录）：04-implementation-plan.md 的该段 P2 范围裁定**未入 index**；若按 index 交付，
+   该说明会随 index 缺失（与 247 报告 §5 观察 O1 同类问题），建议架构师确认是否补 add。
+
+### C. design/16-backtest-scalability/** 未被 P2 改动（架构师所有）
+C1. 5 个文件的 git 状态：
+A  design/16-backtest-scalability/01-adr.md
+A  design/16-backtest-scalability/02-spec.md
+A  design/16-backtest-scalability/03-test-plan.md
+AM design/16-backtest-scalability/04-implementation-plan.md
+A  design/16-backtest-scalability/contract-vectors.json
+C2. mtime：
+   2026-09-18 00:53:01.111791569 +0800  design/16-backtest-scalability/01-adr.md
+   2026-09-17 23:58:21.520682915 +0800  design/16-backtest-scalability/02-spec.md
+   2026-09-18 00:39:42.015298732 +0800  design/16-backtest-scalability/03-test-plan.md
+   2026-09-18 13:06:33.314775202 +0800  design/16-backtest-scalability/04-implementation-plan.md
+   2026-09-17 23:59:02.004432450 +0800  design/16-backtest-scalability/contract-vectors.json
+   ⇒ 01/02/03/contract-vectors 的 mtime 为 09-17 23:58 – 09-18 00:53（架构师产出期）；
+     04-implementation-plan.md 为 13:06:33（架构师 P2 范围追加），**均早于** P2 代码写入窗口 13:17:17+。
+   ⇒ P2 交付期间 design/** 零写入（P2 的 worker 报告亦声明未触碰 design/**）。
+
+### D. 旧切片实现未删（客观 grep 计数）
+D1. `pub struct Indicators` 仍在：
+50:pub struct Indicators<'a> {
+D2. Indicators impl 块的 pub fn 清单（7 指标 + true_range_at）：
+2:    pub fn new(bars: &'a [Bar], index: usize) -> Self {
+6:    pub fn index(&self) -> usize {
+11:    pub fn ma(&self, period: usize) -> Option<f64> {
+24:    pub fn ema(&self, period: usize) -> Option<f64> {
+37:    pub fn rsi(&self, period: usize) -> Option<f64> {
+68:    pub fn macd(&self, fast: usize, slow: usize, signal: usize) -> Option<MacdValue> {
+105:    pub fn kdj(&self, n: usize, k_period: usize, d_period: usize) -> Option<KdjValue> {
+130:    pub fn boll(&self, period: usize, k: f64) -> Option<BollValue> {
+147:    pub fn atr(&self, period: usize) -> Option<f64> {
+165:    pub fn true_range_at(&self, i: usize) -> f64 {
+D3. 逐函数定义位置（crates/backtest/src/indicators.rs）：
+56:    pub fn new(bars: &'a [Bar], index: usize) -> Self {
+60:    pub fn index(&self) -> usize {
+65:    pub fn ma(&self, period: usize) -> Option<f64> {
+78:    pub fn ema(&self, period: usize) -> Option<f64> {
+91:    pub fn rsi(&self, period: usize) -> Option<f64> {
+122:    pub fn macd(&self, fast: usize, slow: usize, signal: usize) -> Option<MacdValue> {
+159:    pub fn kdj(&self, n: usize, k_period: usize, d_period: usize) -> Option<KdjValue> {
+184:    pub fn boll(&self, period: usize, k: f64) -> Option<BollValue> {
+201:    pub fn atr(&self, period: usize) -> Option<f64> {
+219:    pub fn true_range_at(&self, i: usize) -> f64 {
+251:    pub fn new() -> Self {
+256:    pub fn ma(&mut self, bars: &[Bar], index: usize, period: usize) -> Option<f64> {
+264:    pub fn ema(&mut self, bars: &[Bar], index: usize, period: usize) -> Option<f64> {
+274:    pub fn rsi(&mut self, bars: &[Bar], index: usize, period: usize) -> Option<f64> {
+284:    pub fn macd(
+305:    pub fn kdj(
+325:    pub fn boll(&mut self, bars: &[Bar], index: usize, period: usize, k: f64) -> Option<BollValue> {
+333:    pub fn atr(&mut self, bars: &[Bar], index: usize, period: usize) -> Option<f64> {
+D4. 本批对 indicators.rs 的 diff 只有新增行（删除行数 = 0 ⇒ 未删任何旧代码）：
+769	0	crates/backtest/src/indicators.rs
+D5. 旧 Indicators 的黄金样本单测仍在（8 条）：
+687:    fn ma_simple() {
+698:    fn ema_recursive() {
+705:    fn rsi_wilder() {
+714:    fn macd_dif_dea_hist() {
+723:    fn kdj_smoothing() {
+736:    fn boll_population_std() {
+745:    fn atr_wilder() {
+754:    fn true_range_definition() {
+D6. lib.rs 同时导出新旧两套：
+19:pub use indicators::{BollValue, Indicators, KdjValue, MacdValue, OnlineIndicators};

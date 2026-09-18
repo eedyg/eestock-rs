@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  12:42:18
+   Duration  379ms (transform 19ms, setup 24ms, collect 9ms, tests 2ms, environment 132ms, prepare 96ms)
+

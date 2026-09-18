@@ -1,0 +1,24 @@
+### [⑥-d] **冻结/上线阻塞点**：index 快照与工作区**不一致**（向量数据只改了工作区）
+# 2026-09-18T10:00:13Z
+
+| 版本 | `span_limit_semantics.resource_guard` |
+|---|---|
+| **index（`git show :…`）** | `{"hard_reject": false, "requires_confirmation": true, "code": "resource_guard"}` |
+| **工作区（architect 未 add）** | `{"hard_reject": false, "requires_confirmation": true, "code": "resource_guard", "max_bars_guard": 2000000, "confirm_bars": 500000, "note": "ADR-024 D1 修订（2026-0…` |
+
+- index 版含 `max_bars_guard`：**False**；含 `confirm_bars`：**False**
+
+**后果**：`crates/application/tests/resource_guard_contract_vectors.rs` **已入 index**，其 `guard_field()` 在键缺失时
+直接 `panic!("contract-vectors.json 缺 `span_limit_semantics.resource_guard.{key}`（整数）")`。
+⇒ 只按 index 快照检出/提交（不带上工作区的 design/16 改动）⇒ **3 条向量绑定断言全红**（不是常量不一致，而是**数据文件缺键**）。
+
+证据复现（只读，不改任何文件）：
+```
+$ git show :design/16-backtest-scalability/contract-vectors.json | grep -c max_bars_guard
+0
+$ grep -c max_bars_guard design/16-backtest-scalability/contract-vectors.json
+1
+```
+
+**处置建议（交架构师/父级）**：本批结项时把 `design/16-backtest-scalability/contract-vectors.json`（以及 `02-spec.md` 的 D3 收窄段）
+与 index 一并 add/commit —— 交付物 = index + 该工作区改动；否则 index 单独不可过测试。

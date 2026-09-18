@@ -1,0 +1,31 @@
+{
+  "case_id": "m30_1slot",
+  "symbol": "510880",
+  "period": "M30",
+  "bars_count": 1000,
+  "slots": [
+    {
+      "plugin": "dual_ma",
+      "params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "weight": 1.0
+    }
+  ],
+  "buy_threshold": 60.0,
+  "sell_threshold": 40.0,
+  "policy": {
+    "kind": "LumpSum",
+    "position_pct": 1.0
+  },
+  "stop": null,
+  "initial_capital": 100000.0,
+  "warmup_bars": 0,
+  "note": "M30；1 slot；【P2 后基线】baseline_kind=post_p2_regression（不得作为跨 P2 等价证据）",
+  "baseline_kind": "post_p2_regression",
+  "baseline_reason": "pre-P2 的 M30 不可捕获（P0 才打通 M30）；引擎路径与周期无关，跨 P2 等价由既有 5 周期 11 例覆盖",
+  "source_state": "HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f + staged P0(M30 打通)/P2(引擎线性化)/P2b(试算/sim-live 线性化)",
+  "data_view": "kline_accurate_30m",
+  "bar_window_utc": ["2026-04-27T05:30:00Z", "2026-09-17T07:00:00Z"]
+}

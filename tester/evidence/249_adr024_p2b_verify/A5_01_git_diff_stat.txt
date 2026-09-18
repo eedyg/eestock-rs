@@ -1,0 +1,175 @@
+===== A5-1: git diff HEAD --stat（全量，含 P0/P2/P2b）=====
+HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+ .../evidence/adr024_p0_m30/01_red_backtest_m30.txt |  21 +
+ .../adr024_p0_m30/02_green_backtest_m30.txt        |  30 +
+ .../03_application_nonexhaustive_match.txt         |  30 +
+ .../adr024_p0_m30/04_red_application_ssot.txt      |  14 +
+ .../adr024_p0_m30/05_green_application_ssot.txt    |  14 +
+ .../adr024_p0_m30/06_red_web_period_gate.txt       |  40 ++
+ .../adr024_p0_m30/07_green_web_period_gate.txt     |  12 +
+ .../adr024_p0_m30/08_web_period_gate_nocapture.txt |   4 +
+ coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt  |  48 ++
+ .../evidence/adr024_p0_m30/10_green_mcp_drift.txt  |  13 +
+ coder/evidence/adr024_p0_m30/11_red_frontend.txt   | 242 +++++++
+ coder/evidence/adr024_p0_m30/12_green_frontend.txt |  14 +
+ .../adr024_p0_m30/13a_reverse_rust_red.txt         |  30 +
+ .../evidence/adr024_p0_m30/13b_reverse_ts_red.txt  |  35 +
+ .../adr024_p0_m30/14_restore_green_rust.txt        |  12 +
+ .../adr024_p0_m30/14b_restore_green_ts.txt         |  10 +
+ .../adr024_p0_m30/15_frontend_full_suite.txt       |  25 +
+ coder/evidence/adr024_p0_m30/16_frontend_build.txt |  18 +
+ .../adr024_p0_m30/17_backend_check_all_targets.txt |  17 +
+ .../adr024_p0_m30/18_backend_targeted_tests.txt    |  84 +++
+ .../adr024_p0_m30/19_backend_lib_tests.txt         |  20 +
+ coder/evidence/adr024_p0_m30/20_tangle_check.txt   |   1 +
+ coder/evidence/adr024_p0_m30/21_frontend_final.txt |  14 +
+ coder/evidence/adr024_p0_m30/22_backend_final.txt  |  51 ++
+ coder/evidence/adr024_p2/00_golden_pre.txt         |  52 ++
+ .../adr024_p2/01_red_online_indicators.txt         |  57 ++
+ .../adr024_p2/02_green_online_indicators.txt       |  38 +
+ .../adr024_p2/03_red_engine_alloc_flatness.txt     |  21 +
+ coder/evidence/adr024_p2/04_red_session_equiv.txt  |  15 +
+ coder/evidence/adr024_p2/05_red_shared_history.txt |  58 ++
+ .../evidence/adr024_p2/06_green_shared_history.txt |  23 +
+ .../evidence/adr024_p2/07_green_session_equiv.txt  |  12 +
+ coder/evidence/adr024_p2/08_green_engine_alloc.txt |  10 +
+ coder/evidence/adr024_p2/09_green_p2_crates.txt    | 262 +++++++
+ coder/evidence/adr024_p2/10_golden_post.txt        |  52 ++
+ coder/evidence/adr024_p2/11_post_large_n.txt       |  18 +
+ .../adr024_p2/12_green_indicator_fixture.txt       | 193 ++++++
+ .../adr024_p2/13a_reverse_indicator_break.txt      |  29 +
+ .../adr024_p2/13b_reverse_shared_history_break.txt |  31 +
+ .../adr024_p2/13c_reverse_no_shared_history.txt    |  25 +
+ .../adr024_p2/13d_reverse_warmup_break.txt         | 240 +++++++
+ coder/evidence/adr024_p2/13e_reverse_ma_offset.txt |  65 ++
+ .../evidence/adr024_p2/14_green_all_p2_crates.txt  | 273 ++++++++
+ .../adr024_p2/15_green_application_tests.txt       | 180 +++++
+ coder/evidence/adr024_p2/16_tangle_check.txt       |   1 +
+ coder/evidence/adr024_p2/17_prepost_table.txt      |  30 +
+ .../adr024_p2/18_application_web_unchanged.txt     |   1 +
+ .../adr024_p2/19_golden_pre_vs_post_same.txt       |   4 +
+ coder/evidence/adr024_p2/20_impact_manual.txt      |  76 ++
+ .../adr024_p2/application_web_hashes_after.txt     |  44 ++
+ .../adr024_p2/application_web_hashes_before.txt    |  44 ++
+ coder/evidence/adr024_p2/post_scale.txt            |  68 ++
+ coder/evidence/adr024_p2/pre_scale.txt             |  68 ++
+ coder/evidence/adr024_p2/run_preflight.sh          |  56 ++
+ coder/evidence/adr024_p2b/01_red_simlive.txt       |  26 +
+ coder/evidence/adr024_p2b/02_red_tryrun.txt        |  21 +
+ coder/evidence/adr024_p2b/03_red_tryrun_prefix.txt |  33 +
+ coder/evidence/adr024_p2b/04_green_tryrun.txt      |  11 +
+ coder/evidence/adr024_p2b/05_green_simlive.txt     |  12 +
+ .../adr024_p2b/06_green_application_all.txt        | 191 +++++
+ coder/evidence/adr024_p2b/07_green_simlive_all.txt |  63 ++
+ .../adr024_p2b/08_reverse_simlive_no_history.txt   |  26 +
+ .../adr024_p2b/09_restore_simlive_green.txt        |  63 ++
+ .../adr024_p2b/10_reverse_tryrun_expose_future.txt |  25 +
+ .../11_reverse_tryrun_no_history_unit.txt          |  31 +
+ .../12_reverse_tryrun_no_history_alloc.txt         |  30 +
+ .../adr024_p2b/13_restore_tryrun_green.txt         |  11 +
+ coder/evidence/adr024_p2b/14_green_tryrun_wall.txt |  12 +
+ .../evidence/adr024_p2b/15_green_simlive_wall.txt  |  13 +
+ .../adr024_p2b/16_pre_state_tryrun_full.txt        |  32 +
+ .../adr024_p2b/17_pre_state_simlive_full.txt       |  27 +
+ .../adr024_p2b/18_green_application_all_final.txt  | 190 +++++
+ .../adr024_p2b/19_workspace_check_all_targets.txt  |   9 +
+ coder/evidence/adr024_p2b/20_clippy.txt            |  13 +
+ .../adr024_p2b/21_green_simlive_all_final.txt      |  62 ++
+ coder/evidence/adr024_p2b/22_no_future_surface.txt |  33 +
+ .../23_assert_bars_len_prefix_tryrun.txt           |  18 +
+ .../24_assert_bars_len_prefix_simlive.txt          |  18 +
+ coder/evidence/adr024_p2b/25_tangle_check.txt      |   1 +
+ coder/evidence/adr024_p2b/26_git_diff_targets.txt  | 252 +++++++
+ .../adr024_p2b/27_green_p2_layer_crates.txt        | 270 ++++++++
+ .../adr024_p2b/28_gitnexus_unavailable.txt         |  26 +
+ coder/report/adr024_p0_m30.md                      | 393 +++++++++++
+ coder/report/adr024_p0_rectification.md            | 718 +++++++++++++++++++
+ coder/report/adr024_p2_engine_linearization.md     | 396 +++++++++++
+ .../adr024_p2b_tryrun_simlive_linearization.md     | 333 +++++++++
+ crates/application/src/bar_map.rs                  |  25 +-
+ crates/application/src/simlive.rs                  |   4 +
+ crates/application/src/strategy.rs                 | 128 +++-
+ crates/application/tests/adr024_p2b_tryrun.rs      | 362 ++++++++++
+ crates/application/tests/backtest_periods_ssot.rs  |  97 +++
+ crates/backtest/src/indicators.rs                  | 769 +++++++++++++++++++++
+ crates/backtest/src/lib.rs                         |   2 +-
+ crates/backtest/src/types.rs                       |  20 +-
+ crates/domain/src/ports.rs                         |   2 +-
+ crates/mcp/src/tools.rs                            |  23 +-
+ crates/mcp/tests/adr024_period_ssot_drift.rs       | 151 ++++
+ crates/simlive/src/plugin_orchestrator.rs          |  40 +-
+ crates/simlive/tests/adr024_p2b_orchestrator.rs    | 326 +++++++++
+ crates/storage/src/backtest.rs                     |   4 +-
+ crates/strategy-core/src/engine.rs                 | 730 +++++++++++--------
+ crates/strategy-core/src/lib.rs                    |   4 +-
+ crates/strategy-core/tests/session.rs              | 320 +++++++++
+ crates/strategy-core/tests/session_alloc.rs        | 145 ++++
+ crates/strategy-runtime/src/history.rs             | 195 ++++++
+ crates/strategy-runtime/src/lib.rs                 |   2 +
+ crates/strategy-runtime/src/quickjs.rs             |  34 +-
+ crates/strategy-runtime/src/types.rs               |  47 +-
+ .../tests/online_indicators_fixture.rs             | 238 +++++++
+ crates/strategy-runtime/tests/shared_history.rs    | 348 ++++++++++
+ .../strategy-runtime/tests/shared_history_alloc.rs | 160 +++++
+ crates/web/src/workbench.rs                        |  12 +-
+ crates/web/tests/adr024_workbench_period_ssot.rs   | 180 +++++
+ .../adr/ADR-023-period-set-extension-30m.md        |   7 +-
+ design/02-domain/contracts.md                      |   2 +-
+ design/07-app-plane/01-mcp.md                      |  23 +-
+ design/16-backtest-scalability/01-adr.md           | 273 ++++++++
+ design/16-backtest-scalability/02-spec.md          | 248 +++++++
+ design/16-backtest-scalability/03-test-plan.md     | 148 ++++
+ .../04-implementation-plan.md                      | 152 ++++
+ .../16-backtest-scalability/contract-vectors.json  |  46 ++
+ design/99-decisions-log.md                         |  23 +
+ docker-compose.yml                                 |   7 +-
+ web/src/api/mock.test.ts                           |  14 +-
+ web/src/api/mock.ts                                |   9 +-
+ web/src/api/types.ts                               |  11 +-
+ web/src/features/backtest/format.test.ts           |  39 +-
+ web/src/features/backtest/format.ts                |  12 +-
+ web/src/features/backtest/periods.test.ts          |  39 ++
+ web/src/features/backtest/periods.ts               |  20 +
+ web/src/features/strategies/TestRunPanel.test.tsx  |  20 +
+ web/src/features/strategies/TestRunPanel.tsx       |  13 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |  20 +
+ web/src/features/workbench/ConfigPanel.tsx         |   9 +-
+ 134 files changed, 11318 insertions(+), 389 deletions(-)
+
+===== A5-2: P2b 净改动（worktree vs index；P2b 开工前 P0/P2 已在 index）=====
+# 注意：P2b worker 已把本批也 git add ⇒ 本仓当前 worktree==index，
+#        故 P2b 净改动需用「本批声明文件」+ 「index vs HEAD 中的 P0/P2 归属」两段读。
+26	0	coder/evidence/adr024_p2b/01_red_simlive.txt
+21	0	coder/evidence/adr024_p2b/02_red_tryrun.txt
+33	0	coder/evidence/adr024_p2b/03_red_tryrun_prefix.txt
+11	0	coder/evidence/adr024_p2b/04_green_tryrun.txt
+12	0	coder/evidence/adr024_p2b/05_green_simlive.txt
+191	0	coder/evidence/adr024_p2b/06_green_application_all.txt
+63	0	coder/evidence/adr024_p2b/07_green_simlive_all.txt
+26	0	coder/evidence/adr024_p2b/08_reverse_simlive_no_history.txt
+63	0	coder/evidence/adr024_p2b/09_restore_simlive_green.txt
+25	0	coder/evidence/adr024_p2b/10_reverse_tryrun_expose_future.txt
+31	0	coder/evidence/adr024_p2b/11_reverse_tryrun_no_history_unit.txt
+30	0	coder/evidence/adr024_p2b/12_reverse_tryrun_no_history_alloc.txt
+11	0	coder/evidence/adr024_p2b/13_restore_tryrun_green.txt
+12	0	coder/evidence/adr024_p2b/14_green_tryrun_wall.txt
+13	0	coder/evidence/adr024_p2b/15_green_simlive_wall.txt
+32	0	coder/evidence/adr024_p2b/16_pre_state_tryrun_full.txt
+27	0	coder/evidence/adr024_p2b/17_pre_state_simlive_full.txt
+190	0	coder/evidence/adr024_p2b/18_green_application_all_final.txt
+9	0	coder/evidence/adr024_p2b/19_workspace_check_all_targets.txt
+13	0	coder/evidence/adr024_p2b/20_clippy.txt
+62	0	coder/evidence/adr024_p2b/21_green_simlive_all_final.txt
+33	0	coder/evidence/adr024_p2b/22_no_future_surface.txt
+18	0	coder/evidence/adr024_p2b/23_assert_bars_len_prefix_tryrun.txt
+18	0	coder/evidence/adr024_p2b/24_assert_bars_len_prefix_simlive.txt
+1	0	coder/evidence/adr024_p2b/25_tangle_check.txt
+252	0	coder/evidence/adr024_p2b/26_git_diff_targets.txt
+270	0	coder/evidence/adr024_p2b/27_green_p2_layer_crates.txt
+26	0	coder/evidence/adr024_p2b/28_gitnexus_unavailable.txt
+333	0	coder/report/adr024_p2b_tryrun_simlive_linearization.md
+122	6	crates/application/src/strategy.rs
+362	0	crates/application/tests/adr024_p2b_tryrun.rs
+28	12	crates/simlive/src/plugin_orchestrator.rs
+326	0	crates/simlive/tests/adr024_p2b_orchestrator.rs

@@ -1,0 +1,37 @@
+############ 反向证据（mutation probes）############
+
+=== [R1] 去掉区间读的 ts 过滤（application bars_range）⇒ p4_bars_range_client_filters_chunk_edges 应红 ===
+test p4_bars_range_client_filters_chunk_edges ... FAILED
+thread 'p4_bars_range_client_filters_chunk_edges' (363197) panicked at crates/application/tests/workbench.rs:1470:5:
+assertion `left == right` failed: 闭区间 [4998,5002] = 5 根（非整块 10000 根）
+  left: 10000
+ right: 5
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.24s
+
+=== [R2] 关闭均匀抽样（sample_indices 恒返回全量）⇒ p4_curve_downsampling_marks_and_endpoints 应红 ===
+test p4_curve_downsampling_marks_and_endpoints ... FAILED
+thread 'p4_curve_downsampling_marks_and_endpoints' (363739) panicked at crates/application/tests/workbench.rs:1492:5:
+assertion `left == right` failed: 目标点数 k=100
+  left: 11000
+ right: 100
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.21s
+
+=== [R3] 去掉分块区间相交条件（storage result_chunks_in_range）⇒ chunks_in_range_returns_intersecting_chunks 应红 ===
+test chunks_in_range_returns_intersecting_chunks ... FAILED
+thread 'chunks_in_range_returns_intersecting_chunks' (364141) panicked at crates/storage/tests/workbench_store.rs:339:5:
+assertion `left == right` failed
+  left: 2
+ right: 1
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.05s
+
+=== [R4] 占位列写入非空数据（storage mark_succeeded 用 $3 替占位）⇒ mark_succeeded_writes_result_transactionally 应红 ===
+test mark_succeeded_writes_result_transactionally ... FAILED
+thread 'mark_succeeded_writes_result_transactionally' (364527) panicked at crates/storage/tests/workbench_store.rs:207:5:
+assertion `left == right` failed: 三列写 [] 占位（数据在 strategy_run_bars）
+  left: Object {"total_return_pct": Number(0.0)}
+ right: Array []
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.05s
+
+=== 确认已还原（与备份逐字节一致）===
+application/src/workbench.rs: RESTORED
+storage/src/workbench.rs: RESTORED

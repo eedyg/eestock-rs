@@ -1,0 +1,39 @@
+### ⑦-i 生产源码未被 tester 改动（范围核验）
+TS=2026-09-18T15:25:47+08:00
+--- worktree vs index：非 tester 路径的差异（应仅他车道/架构师既存改动）---
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+design/16-backtest-scalability/02-spec.md
+design/16-backtest-scalability/04-implementation-plan.md
+design/99-decisions-log.md
+docker-compose.yml
+--- tester 新增/改动（未 stage）---
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/design/283_adr024_p2b_independent_design.md
+?? tester/design/293_adr024_p4_verify_design.md
+?? tester/evidence/018/
+?? tester/evidence/240_adr024_golden_baseline/
+?? tester/evidence/241_adr024_scale_curve/
+?? tester/evidence/242_adr024_baseline_extension/
+?? tester/evidence/243_adr024_attribution/
+?? tester/evidence/244_adr024_fixedcost_realpath/
+?? tester/evidence/245_tsdb_worker_slot_incident/
+?? tester/evidence/246_adr024_p0_verify/
+?? tester/evidence/247_adr024_p0_freeze/
+?? tester/evidence/248_adr024_p2_verify/
+?? tester/evidence/249_adr024_p2b_verify/
+?? tester/evidence/250_adr024_p2c_p4b_verify/
+?? tester/evidence/251_adr024_p4_verify/
+?? tester/evidence/252_adr024_p4p6_verify/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+
+--- 被测源文件 sha256（交付态，应与 coder 报告一致）---
+05be06ff3742bb96939f6f3ca945f125f9715bc96c35d6a8411a8663ab5d4318  web/src/features/workbench/useRunSeries.ts
+41ae267f8502bda887037db48f8e4b3f48da5f1ec63dd43ea090923cb44af7d0  crates/application/src/workbench.rs
+535c9e72ba363f330910025e8b64a898f605863a6cb9ac369e1906b45a80e5ae  crates/domain/src/ports.rs
+2b3aee666518e8f8eaa6acfebced550834c28f9dbf4db223dce99de305cde080  migrations/0027_strategy_run_result_chunks.sql
+
+--- core dump 检查 ---
+0
+(无输出 = 无 core)

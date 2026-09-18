@@ -1,0 +1,30 @@
+test backend_ssot_matches_frontend_mirror ... FAILED
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... FAILED
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+failures:
+
+---- backend_ssot_matches_frontend_mirror stdout ----
+
+thread 'backend_ssot_matches_frontend_mirror' (4054377) panicked at crates/mcp/tests/adr024_period_ssot_drift.rs:109:5:
+assertion `left == right` failed: supported_backtest_periods() != web/src/features/backtest/periods.ts 的前端镜像常量
+  left: ["M1", "M5", "M15", "M30", "H1", "D1"]
+ right: ["M1", "M5", "M15", "H1", "D1"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- all_four_period_sources_are_byte_equal stdout ----
+
+thread 'all_four_period_sources_are_byte_equal' (4054375) panicked at crates/mcp/tests/adr024_period_ssot_drift.rs:125:5:
+assertion `left == right` failed: backend != frontend mirror
+  left: ["M1", "M5", "M15", "M30", "H1", "D1"]
+ right: ["M1", "M5", "M15", "H1", "D1"]
+
+
+failures:
+    all_four_period_sources_are_byte_equal
+    backend_ssot_matches_frontend_mirror
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --test adr024_period_ssot_drift`

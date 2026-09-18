@@ -1,0 +1,9 @@
+===== 17 交付态快照（index 版）一致性校验 =====
+# date_utc 2026-09-18T06:23:57.012Z  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# 说明：并发车道（ADR-024 P4 分块结果）正在同一 worktree 改动 workbench.rs 等文件（见 19_concurrent_lane_evidence.txt），
+#       故 tester 在本批文件上取「index = 交付态」的逐字节快照，作为本次验收的冻结对象。
+crates/application/src/workbench.rs                  index=0a5045ad1072dc0a saved=0a5045ad1072dc0a OK
+crates/application/tests/workbench.rs                index=d76bf5ff3d729964 saved=d76bf5ff3d729964 OK
+crates/application/src/strategy.rs                   index=a0a279c4ac186395 saved=a0a279c4ac186395 OK
+crates/strategy-core/src/engine.rs                   index=9b334eb3478001d7 saved=9b334eb3478001d7 OK
+crates/simlive/src/plugin_orchestrator.rs            index=d5ae4947225e05e2 saved=d5ae4947225e05e2 OK

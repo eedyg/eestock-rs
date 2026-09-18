@@ -1,0 +1,20 @@
+### ①-a 独立验收（tester 自建）：storage 分块端口（真实 DB）
+TS=2026-09-18T14:48:20+08:00  DB=tmp_p4verify_20260918143844  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+命令：cargo test -p storage --test tester_p4_store_indep -- --nocapture
+文件：crates/storage/tests/tester_p4_store_indep.rs（tester 新增，未 git add）
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running tests/tester_p4_store_indep.rs (target/debug/deps/tester_p4_store_indep-211f47a72fa42c76)
+
+running 6 tests
+[probe] append to unknown run → Err: error returned from database: insert or update on table "strategy_run_bars" violates foreign key constraint "strategy_run_bars_run_id_fkey"
+[probe] duplicate (kind,seq) → Err: error returned from database: duplicate key value violates unique constraint "strategy_run_bars_pkey"
+test t_p4_legacy_single_default_discriminator_and_no_backfill ... ok
+test t_p4_append_result_chunk_errors_are_surfaced ... ok
+test t_p4_result_chunks_in_range_intersection_matrix ... ok
+test t_p4_mark_succeeded_guard_blocks_non_running_and_writes_no_result ... ok
+test t_p4_mark_succeeded_forces_chunked_placeholders_and_keeps_trades ... ok
+test t_p4_result_chunks_paging_boundaries_and_kind_isolation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+

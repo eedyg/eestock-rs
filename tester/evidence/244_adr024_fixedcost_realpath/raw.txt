@@ -1,0 +1,449 @@
+# ============================================================================
+# ADR-024 P1c — raw.txt（全部原始命令 + 原始输出；结论见 STATUS.md / tester/report/adr024_p1c_fixed_cost_realpath.md）
+# 文件位置: tester/evidence/244_adr024_fixedcost_realpath/raw.txt
+# 组装时间: 2026-09-17T16:51:34Z  commit: 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# 段落: [1] 真路径每 run Δ 测量(v2 短沉降, 已判定不可用) [2] 长窗口精确测量(lag 特征化) [3] pg 结构证据 [4] ③ 重拟合 [5] 测试 run 清理
+# ============================================================================
+
+########## [1] 真路径每 run Δ（短沉降协议，测量学教训见 STATUS.md ③）##########
+# ===== ADR-024 P1c ① 真路径每 run UPDATE 计数 ===== (v2 settle)
+# date_utc      : 2026-09-17T16:43:38Z
+# engine_commit : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# app binary    : /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+# app pid       : 178558  cmdline=./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+# db            : postgres://eestock@127.0.0.1:5433/eestock (app config /tmp/app_dev_8081.toml)
+# API           : http://127.0.0.1:8081 (现网 REST = 生产真路径)
+
+### —— 前置：闲置漂移对照（不提交任何 run）——
+IDLE before=359886 after=359886 Δ=0  db before=637403|3193026 after=637403|3193051
+
+[SUBMIT t1_small_d1_492] pre_t=2026-09-17T16:43:55.700Z pre_tup_upd=359886 pre_tup_ins=2352 pre_db(tup_updated|xact_commit)=637403|3193069 inflight_before=0
+[RESPID t1_small_d1_492] "id":"sr_1789663435710_000003"  [http=201 wall=0.009938s]
+[RUNID  t1_small_d1_492] sr_1789663435710_000003
+[TERM   t1_small_d1_492] status=succeeded term_t=2026-09-17T16:43:57.068Z post_t=2026-09-17T16:44:00.382Z
+[DELTA  t1_small_d1_492] tup_upd: 359886 -> 360358  Δ_upd=472   tup_ins: 2352 -> 2353 (Δ=1)
+[DELTA  t1_small_d1_492] db: 637403|3193069 -> 637875|3193603
+t1_small_d1_492|row|sr_1789663435710_000003|D1|518880|succeeded|progress=1|started=2026-09-17 16:43:55.713633+00|finished=2026-09-17 16:43:57.018577+00
+t1_small_d1_492|bars|id=sr_1789663435710_000003|bars_per_bar=492|trades=6|dur_s=1.304944|per_bar_bytes=5170
+t1_small_d1_492|concurrency|window=[2026-09-17T16:43:55.700Z,2026-09-17T16:44:00.382Z]|overlapping_other_runs=0
+[TAG   t1_small_d1_492] done
+
+[SUBMIT t4_small2_m5_650] pre_t=2026-09-17T16:44:03.287Z pre_tup_upd=360380 pre_tup_ins=2353 pre_db(tup_updated|xact_commit)=637897|3193685 inflight_before=0
+[RESPID t4_small2_m5_650] "id":"sr_1789663443311_000004"  [http=201 wall=0.025036s]
+[RUNID  t4_small2_m5_650] sr_1789663443311_000004
+[TERM   t4_small2_m5_650] status=succeeded term_t=2026-09-17T16:44:05.103Z post_t=2026-09-17T16:44:09.468Z
+[DELTA  t4_small2_m5_650] tup_upd: 360380 -> 360877  Δ_upd=497   tup_ins: 2353 -> 2354 (Δ=1)
+[DELTA  t4_small2_m5_650] db: 637897|3193685 -> 638394|3194244
+t4_small2_m5_650|row|sr_1789663443311_000004|M5|159740|succeeded|progress=1|started=2026-09-17 16:44:03.31526+00|finished=2026-09-17 16:44:05.040822+00
+t4_small2_m5_650|bars|id=sr_1789663443311_000004|bars_per_bar=650|trades=15|dur_s=1.725562|per_bar_bytes=7366
+t4_small2_m5_650|concurrency|window=[2026-09-17T16:44:03.287Z,2026-09-17T16:44:09.468Z]|overlapping_other_runs=0
+[TAG   t4_small2_m5_650] done
+
+[SUBMIT t2_medium_m5_3500] pre_t=2026-09-17T16:44:12.374Z pre_tup_upd=360941 pre_tup_ins=2354 pre_db(tup_updated|xact_commit)=638458|3194341 inflight_before=0
+[RESPID t2_medium_m5_3500] "id":"sr_1789663452400_000005"  [http=201 wall=0.025486s]
+[RUNID  t2_medium_m5_3500] sr_1789663452400_000005
+[TERM   t2_medium_m5_3500] status=succeeded term_t=2026-09-17T16:44:15.070Z post_t=2026-09-17T16:44:18.363Z
+[DELTA  t2_medium_m5_3500] tup_upd: 360941 -> 361881  Δ_upd=940   tup_ins: 2354 -> 2355 (Δ=1)
+[DELTA  t2_medium_m5_3500] db: 638458|3194341 -> 639398|3195359
+t2_medium_m5_3500|row|sr_1789663452400_000005|M5|159740|succeeded|progress=1|started=2026-09-17 16:44:12.403279+00|finished=2026-09-17 16:44:14.995538+00
+t2_medium_m5_3500|bars|id=sr_1789663452400_000005|bars_per_bar=3500|trades=105|dur_s=2.592259|per_bar_bytes=44033
+t2_medium_m5_3500|concurrency|window=[2026-09-17T16:44:12.374Z,2026-09-17T16:44:18.363Z]|overlapping_other_runs=0
+[TAG   t2_medium_m5_3500] done
+
+[SUBMIT t3_large_m1_16155] pre_t=2026-09-17T16:44:21.266Z pre_tup_upd=361960 pre_tup_ins=2355 pre_db(tup_updated|xact_commit)=639477|3195466 inflight_before=0
+[RESPID t3_large_m1_16155] "id":"sr_1789663461850_000006"  [http=201 wall=0.583605s]
+[RUNID  t3_large_m1_16155] sr_1789663461850_000006
+[TERM   t3_large_m1_16155] status=succeeded term_t=2026-09-17T16:44:24.634Z post_t=2026-09-17T16:44:26.881Z
+[DELTA  t3_large_m1_16155] tup_upd: 361960 -> 363025  Δ_upd=1065   tup_ins: 2355 -> 2356 (Δ=1)
+[DELTA  t3_large_m1_16155] db: 639477|3195466 -> 640542|3196606
+t3_large_m1_16155|row|sr_1789663461850_000006|M1|518880|succeeded|progress=1|started=2026-09-17 16:44:21.85351+00|finished=2026-09-17 16:44:24.431377+00
+t3_large_m1_16155|bars|id=sr_1789663461850_000006|bars_per_bar=16155|trades=480|dur_s=2.577867|per_bar_bytes=187352
+t3_large_m1_16155|concurrency|window=[2026-09-17T16:44:21.266Z,2026-09-17T16:44:26.881Z]|overlapping_other_runs=0
+[TAG   t3_large_m1_16155] done
+
+### —— 后置：闲置漂移对照 ——
+IDLE2 before=363025 after=363038 Δ=13
+TOTAL n_tup_upd=363038 n_tup_ins=2356 n_tup_del=1976
+### —— 结束 ——
+
+########## [2] 长窗口精确测量（前置 90s guard + 后置 240s 采样）##########
+# ===== 统计 flush 滞后特征化（长窗口）=====
+# date_utc : 2026-09-17T16:44:56Z
+
+## 阶段 0：闲置 guard 90s（每 2s 采样；确认无 pending 残留）
+t=+000s value=363038 (Δ0)
+t=+002s value=363038 (Δ0)
+t=+004s value=363038 (Δ0)
+t=+006s value=363038 (Δ0)
+t=+008s value=363038 (Δ0)
+t=+010s value=363038 (Δ0)
+t=+012s value=363038 (Δ0)
+t=+014s value=363038 (Δ0)
+t=+016s value=363038 (Δ0)
+t=+018s value=363038 (Δ0)
+t=+020s value=363038 (Δ0)
+t=+022s value=363038 (Δ0)
+t=+024s value=363038 (Δ0)
+t=+026s value=363038 (Δ0)
+t=+028s value=363038 (Δ0)
+t=+030s value=363038 (Δ0)
+t=+032s value=363038 (Δ0)
+t=+034s value=363038 (Δ0)
+t=+036s value=363038 (Δ0)
+t=+038s value=363038 (Δ0)
+t=+040s value=363038 (Δ0)
+t=+042s value=363038 (Δ0)
+t=+044s value=363038 (Δ0)
+t=+046s value=363038 (Δ0)
+t=+048s value=363038 (Δ0)
+t=+050s value=363038 (Δ0)
+t=+052s value=363038 (Δ0)
+t=+054s value=363038 (Δ0)
+t=+056s value=363038 (Δ0)
+t=+058s value=363038 (Δ0)
+t=+060s value=363038 (Δ0)
+t=+062s value=363038 (Δ0)
+t=+064s value=363038 (Δ0)
+t=+066s value=363038 (Δ0)
+t=+068s value=363038 (Δ0)
+t=+070s value=363038 (Δ0)
+t=+072s value=363038 (Δ0)
+t=+074s value=363038 (Δ0)
+t=+076s value=363038 (Δ0)
+t=+078s value=363038 (Δ0)
+t=+080s value=363038 (Δ0)
+t=+082s value=363038 (Δ0)
+t=+084s value=363038 (Δ0)
+t=+086s value=363038 (Δ0)
+t=+088s value=363038 (Δ0)
+t=+090s value=363038 (Δ0)
+[PRE] 2026-09-17T16:46:28.336Z n_tup_upd=363038
+
+## 阶段 1：提交单次受控 run（M5 3250+250=3500 bar）
+[RESP] [http=201] run_id=sr_1789663588369_000007
+[TERM] 2026-09-17T16:46:31.908Z status=succeeded
+row|sr_1789663588369_000007|M5|159740|started=2026-09-17 16:46:28.372586+00|finished=2026-09-17 16:46:31.83131+00
+bars|3500|dur_s=3.458724
+
+## 阶段 2：终态后每 2s 采样 240s（找 flush 滞后上界）
+t=+003s value=363883 (Δpre=845  自上一采样Δ=?)
+t=+005s value=363923 (Δpre=885  自上一采样Δ=?)
+t=+007s value=364001 (Δpre=963  自上一采样Δ=?)
+t=+009s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+011s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+013s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+015s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+017s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+019s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+021s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+023s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+025s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+027s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+029s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+031s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+033s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+035s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+037s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+039s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+041s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+043s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+045s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+047s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+049s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+051s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+053s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+055s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+058s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+060s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+062s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+064s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+066s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+068s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+070s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+072s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+074s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+076s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+078s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+080s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+082s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+084s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+086s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+088s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+090s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+092s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+094s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+096s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+098s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+100s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+102s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+104s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+106s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+108s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+110s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+113s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+115s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+117s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+119s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+121s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+123s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+125s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+127s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+129s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+131s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+133s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+135s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+137s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+139s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+141s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+143s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+145s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+147s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+149s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+151s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+153s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+155s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+157s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+159s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+161s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+163s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+165s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+168s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+170s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+172s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+174s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+176s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+178s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+180s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+182s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+184s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+186s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+188s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+190s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+192s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+194s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+196s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+198s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+200s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+202s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+204s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+206s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+208s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+210s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+212s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+214s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+216s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+218s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+220s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+222s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+225s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+227s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+229s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+231s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+233s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+235s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+237s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+239s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+241s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+243s value=364041 (Δpre=1003  自上一采样Δ=?)
+t=+245s value=364041 (Δpre=1003  自上一采样Δ=?)
+[POST] 2026-09-17T16:50:36.396Z n_tup_upd=364041  Δ(pre→post)=1003
+concurrency|overlapping_other_runs=0
+### end
+
+########## [3] pg 侧结构证据（只读 SQL + 代码锚点行号）##########
+# ===== ADR-024 P1c ② pg 侧结构证据（只读） =====
+# date_utc: 2026-09-17T16:51:29Z   commit: 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+[CMD] psql -c "SELECT relname,n_tup_ins,n_tup_upd,n_tup_del,n_tup_hot_upd,n_live_tup,n_dead_tup FROM pg_stat_user_tables WHERE relname IN ('strategy_run','strategy_run_result') ORDER BY relname"
+       relname       | n_tup_ins | n_tup_upd | n_tup_del | n_tup_hot_upd | n_live_tup | n_dead_tup 
+---------------------+-----------+-----------+-----------+---------------+------------+------------
+ strategy_run        |      2357 |    364041 |      1984 |        336458 |        374 |         57
+ strategy_run_result |      1481 |         0 |      1108 |             0 |        374 |         50
+(2 rows)
+
+[CMD] psql -c "SELECT count(*) AS alive_runs FROM strategy_run"
+ alive_runs | succeeded 
+------------+-----------
+        374 |       374
+(1 row)
+
+[CMD] psql -c "SHOW synchronous_commit; SHOW fsync; SHOW wal_sync_method; SHOW wal_level; SHOW max_wal_size"
+ synchronous_commit 
+--------------------
+ on
+(1 row)
+
+ fsync 
+-------
+ on
+(1 row)
+
+ wal_sync_method 
+-----------------
+ fdatasync
+(1 row)
+
+ wal_level 
+-----------
+ replica
+(1 row)
+
+ max_wal_size 
+--------------
+ 1GB
+(1 row)
+
+# 统计未被重置的证据：n_tup_ins(2357，含本轮 8 条已删) ≈ 存活 374 + 历史删除 1984 ⇒ 覆盖全表历史
+
+[CMD] grep -rn 'UPDATE strategy_run' crates/storage/src/workbench.rs
+107:            "UPDATE strategy_run SET status = 'running', started_at = $2 \
+116:            "UPDATE strategy_run SET progress = $2 WHERE id = $1 AND status = 'running'")
+131:            "UPDATE strategy_run SET status = 'succeeded', progress = 1, finished_at = $2 \
+152:            "UPDATE strategy_run SET status = 'failed', error = $2, finished_at = $3 \
+169:            "UPDATE strategy_run SET status = 'canceled', finished_at = $2 \
+
+# update_progress 的唯一调用点（进度帧 → DB）
+[CMD] grep -n 'update_progress' crates/application/src/workbench.rs crates/storage/src/workbench.rs
+crates/storage/src/workbench.rs:9://! - `update_progress` 仅 running 行生效（终态行静默忽略）。
+crates/storage/src/workbench.rs:114:    async fn update_progress(&self, id: &str, progress: f64) -> Result<()> {
+crates/application/src/workbench.rs:12://!   （WS sink + store.update_progress，0..1，按 0.1% 粒度节流）；②**协作式取消**——
+crates/application/src/workbench.rs:777:    //（WS sink + store.update_progress），与 BacktestService 同模式。
+crates/application/src/workbench.rs:785:            let _ = store2.update_progress(&id2, progress).await;
+
+# 进度桥接结构事实（原样摘录，不做根因结论）：
+[CMD] sed -n '775,790p;806,826p' crates/application/src/workbench.rs
+
+    // 进度桥接：引擎 observer 为同步回调（spawn_blocking 内），经 mpsc 到异步报告任务
+    //（WS sink + store.update_progress），与 BacktestService 同模式。
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(f64, DateTime<Utc>)>();
+    let sink = Arc::clone(&progress);
+    let store2 = Arc::clone(&store);
+    let id2 = run_id.clone();
+    let report_task = tokio::spawn(async move {
+        while let Some((progress, ts)) = rx.recv().await {
+            let _ = sink.send(&id2, progress, Some(ts)).await;
+            let _ = store2.update_progress(&id2, progress).await;
+        }
+    });
+
+    // 引擎配置：钉住槽位（code + sha256 + params + weight）。
+    let mut cfg = probe;
+  ...
+        let mut last_milli: i64 = -1;
+        let mut observer = |i: usize, total: usize| -> LoopControl {
+            // 协作式取消检查点（每 bar 末）。
+            if flag2.load(Ordering::Relaxed) {
+                return LoopControl::Break;
+            }
+            let progress = (i + 1) as f64 / total as f64;
+            // 节流：0.1% 粒度前进或最后一 bar 才发帧（防 20 万帧洪泛 WS/DB）。
+            let milli = (progress * PROGRESS_THROTTLE_MILLI) as i64;
+            if milli != last_milli || i + 1 == total {
+                last_milli = milli;
+                let _ = tx.send((progress, DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default()));
+            }
+            LoopControl::Continue
+        };
+        strategy_core::run_ensemble_with_quickjs_observed(&cfg, &bars, &mut observer)
+    })
+    .await
+    .map_err(|e| anyhow!("引擎任务 panic: {e}"));
+
+    // 引擎结束（含 Break）后 drop 发送端；等报告任务排空（进度/落库完成，确定可复现）。
+
+[CMD] grep -n 'unbounded_channel\|tokio::spawn\|report_task.await\|sink.send' crates/application/src/workbench.rs
+778:    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(f64, DateTime<Utc>)>();
+782:    let report_task = tokio::spawn(async move {
+784:            let _ = sink.send(&id2, progress, Some(ts)).await;
+827:    let _ = report_task.await;
+
+########## [4] ③ ⑤ 重拟合（并发协变量）##########
+#!/usr/bin/env bash
+# ADR-024 P1c ③ —— ⑤ 重拟合（排除并发混杂）：只读 SQL 导出 + 纯本地拟合。
+# 不改任何探测脚本；数据源 = 活库 374 条 succeeded run（与 243_.../calibration/runs_prod.csv 同口径 + concurrent 列）。
+set -uo pipefail
+docker exec -i eestock-timescaledb psql -U eestock -d eestock -Atc "\copy (WITH r AS (SELECT s.id, s.period, s.symbol, s.started_at, s.finished_at, jsonb_array_length(res.per_bar) AS bars, jsonb_array_length(s.config->'slots') AS slots, EXTRACT(EPOCH FROM (s.finished_at - s.started_at)) AS dur_s FROM strategy_run s JOIN strategy_run_result res ON res.run_id = s.id WHERE s.status='succeeded' AND s.started_at IS NOT NULL AND s.finished_at IS NOT NULL) SELECT a.id, a.period, a.symbol, a.bars, a.slots, a.dur_s, (SELECT count(*) FROM r b WHERE b.id <> a.id AND b.started_at < a.finished_at AND b.finished_at > a.started_at) AS concurrent, a.started_at FROM r a ORDER BY a.started_at) TO STDOUT WITH CSV HEADER" > runs_p1c.csv
+echo "[csv] rows=$(wc -l < runs_p1c.csv)"
+
+== 样本 ==
+历史 succeeded run: N=374  bars=[29..3250] median=999.0
+  dur: median=0.854s mean=1.042s
+  concurrent 分布: {0: 268, 1: 2, 3: 9, 4: 13, 5: 39, 6: 43}
+本轮 P1c 自建 run: N=8（不参与历史拟合）
+  同刻无并发(concurrent=0) N=268  有并发 N=106
+
+== 上轮 fit.txt 基线（全样本）复现/对照 ==
+A  dur ~ bars (全样本, 上轮口径)                            N=374  dur = 1.0205 + 1.65839e-05*bars   R2=0.0007 rmse=0.4487s
+B  dur ~ bars*slots (全样本, 上轮口径)                      N=374  dur = 0.9539 + 5.85669e-05*bars*slots   R2=0.0209 rmse=0.4441s
+
+== ③ 新模型：每 run 固定成本（帧数）===
+C  dur ~ min(1001,bars)      (全样本)                   N=374  dur = -0.0911 + 0.00122597*frames   R2=0.2773 rmse=0.3816s
+D  dur ~ min(1001,bars)+2    (全样本)                   N=374  dur = -0.0935 + 0.00122597*frames+2   R2=0.2773 rmse=0.3816s
+C' dur ~ min(1001,bars)      (无并发子集)                 N=268  dur = 0.0418 + 0.000825135*frames   R2=0.9053 rmse=0.0576s
+D' dur ~ min(1001,bars)+2    (无并发子集)                 N=268  dur = 0.0402 + 0.000825135*frames+2   R2=0.9053 rmse=0.0576s
+
+== ③ 协变量：并发度 / slots ==
+E  dur ~ frames2 + concurrent        (全样本)           N=374  dur = 0.0222 + 0.000859357*frames+2 + 0.156775*concurrent   R2=0.9217 rmse=0.1256s
+E' dur ~ frames2 + concurrent + slots(全样本)           N=374  dur = -0.0354 + 0.000851198*frames+2 + 0.154397*concurrent + 0.0603847*slots   R2=0.9260 rmse=0.1221s
+F  dur ~ bars + concurrent           (全样本)           N=374  dur = 0.6552 + 0.00010478*bars + 0.175542*concurrent   R2=0.8191 rmse=0.1909s
+
+== ③ 分周期（无并发子集 vs 全样本）==
+  D1   all N=185 c0=-0.2765s c1=  1492.6us/bar R2=0.6229 | clean N= 99 c0=+0.0414s c1=   829.7us/bar R2=0.9227
+  H1   all N= 21 c0=-0.0392s c1=   990.1us/bar R2=0.7638 | clean N= 21 c0=-0.0392s c1=   990.1us/bar R2=0.7638
+  M15  all N= 83 c0=+1.4818s c1=  -472.7us/bar R2=0.0688 | clean N= 63 c0=+0.7058s c1=   104.5us/bar R2=0.6030
+  M5   all N= 85 c0=+0.8950s c1=   -13.2us/bar R2=0.0264 | clean N= 85 c0=+0.8950s c1=   -13.2us/bar R2=0.0264
+
+== ③ 无并发子集：分档 dur vs 帧数预测（c1 由 D' 给出）==
+  帧数[0,600] N= 37 中位 dur=0.506s 预测=0.535s
+  帧数[601,1001] N=121 中位 dur=0.851s 预测=0.866s
+
+== 每帧成本 c1 汇总（dur / (min(1001,bars)+2)）==
+  全样本 N=374 中位=0.862 ms/帧  均值=1.116 ms/帧  p10=0.837 p90=1.723 ms/帧
+  无并发 N=268 中位=0.854 ms/帧
+
+== 本轮 P1c 真路径自建 run（长窗口协议实测 Δ）==
+  sr_1789663332534_000000 D1  bars=   492 dur=1.841s 帧数= 494 dur/帧=3.73 ms  concurrent=0
+  sr_1789663335760_000001 M5  bars=  3500 dur=2.456s 帧数=1003 dur/帧=2.45 ms  concurrent=0
+  sr_1789663340174_000002 M1  bars= 16155 dur=2.593s 帧数=1003 dur/帧=2.58 ms  concurrent=0
+  sr_1789663435710_000003 D1  bars=   492 dur=1.305s 帧数= 494 dur/帧=2.64 ms  concurrent=0
+  sr_1789663443311_000004 M5  bars=   650 dur=1.726s 帧数= 652 dur/帧=2.65 ms  concurrent=0
+  sr_1789663452400_000005 M5  bars=  3500 dur=2.592s 帧数=1003 dur/帧=2.58 ms  concurrent=0
+  sr_1789663461850_000006 M1  bars= 16155 dur=2.578s 帧数=1003 dur/帧=2.57 ms  concurrent=0
+  sr_1789663588369_000007 M5  bars=  3500 dur=3.459s 帧数=1003 dur/帧=3.45 ms  concurrent=0
+
+########## [5] 本轮自建测试 run 清理 ##########
+# ===== ADR-024 P1c 测试 run 清理（级联删 result）=====
+# date_utc: 2026-09-17T16:51:25Z
+[CMD] psql -c "SELECT id,name,period,symbol,status FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+           id            |                name                | period | symbol |  status   | dur_s 
+-------------------------+------------------------------------+--------+--------+-----------+-------
+ sr_1789663332534_000000 | ADR024-P1c-probe-t1_small_d1_490   | D1     | 518880 | succeeded | 1.841
+ sr_1789663335760_000001 | ADR024-P1c-probe-t2_medium_m5_3250 | M5     | 159740 | succeeded | 2.456
+ sr_1789663340174_000002 | ADR024-P1c-probe-t3_large_m1_15900 | M1     | 518880 | succeeded | 2.593
+ sr_1789663435710_000003 | ADR024-P1c-probe-t1_small_d1_492   | D1     | 518880 | succeeded | 1.305
+ sr_1789663443311_000004 | ADR024-P1c-probe-t4_small2_m5_650  | M5     | 159740 | succeeded | 1.726
+ sr_1789663452400_000005 | ADR024-P1c-probe-t2_medium_m5_3500 | M5     | 159740 | succeeded | 2.592
+ sr_1789663461850_000006 | ADR024-P1c-probe-t3_large_m1_16155 | M1     | 518880 | succeeded | 2.578
+ sr_1789663588369_000007 | ADR024-P1c-lagprobe                | M5     | 159740 | succeeded | 3.459
+(8 rows)
+
+[CMD] psql -c "SELECT count(*) pre_delete FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+pre_delete_runs=8
+pre_delete_results=8
+[CMD] psql -c "DELETE FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+DELETE 8
+[CMD] psql -c "SELECT count(*) post_delete ..."
+post_delete_runs=0
+post_delete_results=0
+[CMD] psql -c "SELECT count(*) total_runs, count(*) FILTER (WHERE status='succeeded') succeeded FROM strategy_run"
+ total_runs | succeeded 
+------------+-----------
+        374 |       374
+(1 row)
+
+[CMD] psql -c "SELECT n_tup_ins,n_tup_upd,n_tup_del FROM pg_stat_user_tables WHERE relname='strategy_run'"
+ n_tup_ins | n_tup_upd | n_tup_del | n_live_tup 
+-----------+-----------+-----------+------------
+      2357 |    364041 |      1984 |        374
+(1 row)
+

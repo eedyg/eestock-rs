@@ -1,0 +1,54 @@
+### ③ 活库未被迁移（只读断言；严禁对活库应用 0027）
+TS=2026-09-18T14:38:37+08:00
+--- 库清单 ---
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+--- 断言1：strategy_run_bars 不存在 ---
+ strategy_run_bars_regclass 
+----------------------------
+ 
+(1 row)
+
+--- 断言2：strategy_run_result.result_format 不存在 ---
+ result_format_column_count 
+----------------------------
+                          0
+(1 row)
+
+--- 佐证：strategy_run_result 现有列 ---
+ ordinal_position | column_name | data_type | is_nullable | column_default 
+------------------+-------------+-----------+-------------+----------------
+                1 | run_id      | text      | NO          | 
+                2 | per_bar     | jsonb     | NO          | 
+                3 | trades      | jsonb     | NO          | 
+                4 | net_value   | jsonb     | NO          | 
+                5 | drawdown    | jsonb     | NO          | 
+                6 | metrics     | jsonb     | NO          | 
+(6 rows)
+
+--- 佐证：strategy_run 现有列（period 注释） ---
+   attname   | comment 
+-------------+---------
+ id          | 
+ name        | 
+ symbol      | 
+ period      | 
+ from_ts     | 
+ to_ts       | 
+ config      | 
+ status      | 
+ progress    | 
+ error       | 
+ created_at  | 
+ started_at  | 
+ finished_at | 
+(13 rows)
+
+--- 佐证：迁移账本（若存在）末 5 条 ---
+ERROR:  relation "_sqlx_migrations" does not exist
+LINE 1: SELECT version, description, success FROM _sqlx_migrations O...
+                                                  ^

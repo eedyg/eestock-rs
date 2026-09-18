@@ -1,0 +1,35 @@
+===== B: M30 用例冻结（仅两例；不得覆盖既有 11 例 pre-P2 基线）=====
+[11 例 pre-P2 基线冻结前 payload_sha256]
+m1_1slot bd8e6820777ba810c69e6b8a96a6b65e424099465ad820e2c74e33b2e3f64297
+m1_3slots 295aab1128312fa8bade4c1ca684299636292293e90c09ff8ff9f9782f4dfa62
+m5_1slot dd3ae397f3e1d147c98b7a06e4872443ddb5f9e529e946b02d6f367385e7c330
+m5_3slots 7083b9b29abb389eedaa47e48189c851ff1c3f7a403338797a511253e6bcc7b9
+m15_1slot fa0d53e2bc33ab9da0b781ff9c09182831c5d21e7b7009e450e7ce28b4a75ec8
+m15_3slots 7b2339ddb5fb419f365cbed5cd0f675314b59b36723d3c7538af7e08d2457443
+h1_1slot 4b786364ff841d2631b4d2e3aef949da1f5ed79f509593828ff1200ffa1e9f3e
+h1_3slots 0d2f39df5aba2d01ca56faa1c1b23d4ba3971eae6ed027ea521ab08fd23d89d5
+d1_1slot 014d6b240b49fdd5d1feaaffccc99ba0a2c6546825d7fc8d68a4214fe4e3ee95
+d1_3slots d54e83ba91cee6d2fcc2590fb2580235ba233e17df1d8465a585eab34f001d4e
+m1_1slot_stop 8d9f334e1dafc2f31f50348dd692af15e95ca6394c6367218f96a6c244745084
+
+# engine_commit=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f captured_at=2026-09-18T05:54:35Z
+[cmd] cargo run --offline --release --quiet --manifest-path /home/eestock/workspace/git/eestock/eestock-rs/tester/harness/adr024_harness/Cargo.toml -- run --case /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline/m30_1slot/ --out /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline/m30_1slot/expected.json --engine-commit 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f --captured-at 2026-09-18T05:54:35Z --baseline-kind post_p2_regression --source-state HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f + staged P0(M30)/P2(engine)/P2b(tryrun+simlive)
+[run] m30_1slot bars=1000 slots=1 wall_ms=3 trades=26 orders=52 events=52 payload_sha256=8b1b9f9b18c5d6d7aabb6143633b0e4ec9f39c7317a24d3058e4bb3f6ce7d4bd
+[ledger] m30_1slot fills=52 replayed_trades=26 payload_trades=26 final_qty_bits=0 ledger_checks=1000 self_proof=PASS (A-FAIL 0 / B-FAIL 0 / dev>0 0)
+# engine_commit=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f captured_at=2026-09-18T05:54:36Z
+[cmd] cargo run --offline --release --quiet --manifest-path /home/eestock/workspace/git/eestock/eestock-rs/tester/harness/adr024_harness/Cargo.toml -- run --case /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline/m30_3slots/ --out /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/240_adr024_golden_baseline/m30_3slots/expected.json --engine-commit 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f --captured-at 2026-09-18T05:54:36Z --baseline-kind post_p2_regression --source-state HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f + staged P0(M30)/P2(engine)/P2b(tryrun+simlive)
+[run] m30_3slots bars=1000 slots=3 wall_ms=10 trades=80 orders=162 events=163 payload_sha256=720751fc9efd209c1d1465652126e938b5ca90878facf41e590159bb597e178d
+[ledger] m30_3slots fills=163 replayed_trades=80 payload_trades=80 final_qty_bits=0 ledger_checks=1000 self_proof=PASS (A-FAIL 0 / B-FAIL 0 / dev>0 0)
+
+[11 例 pre-P2 基线冻结后 payload_sha256（必须逐例未变）]
+m1_1slot bd8e6820777ba810c69e6b8a96a6b65e424099465ad820e2c74e33b2e3f64297
+m1_3slots 295aab1128312fa8bade4c1ca684299636292293e90c09ff8ff9f9782f4dfa62
+m5_1slot dd3ae397f3e1d147c98b7a06e4872443ddb5f9e529e946b02d6f367385e7c330
+m5_3slots 7083b9b29abb389eedaa47e48189c851ff1c3f7a403338797a511253e6bcc7b9
+m15_1slot fa0d53e2bc33ab9da0b781ff9c09182831c5d21e7b7009e450e7ce28b4a75ec8
+m15_3slots 7b2339ddb5fb419f365cbed5cd0f675314b59b36723d3c7538af7e08d2457443
+h1_1slot 4b786364ff841d2631b4d2e3aef949da1f5ed79f509593828ff1200ffa1e9f3e
+h1_3slots 0d2f39df5aba2d01ca56faa1c1b23d4ba3971eae6ed027ea521ab08fd23d89d5
+d1_1slot 014d6b240b49fdd5d1feaaffccc99ba0a2c6546825d7fc8d68a4214fe4e3ee95
+d1_3slots d54e83ba91cee6d2fcc2590fb2580235ba233e17df1d8465a585eab34f001d4e
+m1_1slot_stop 8d9f334e1dafc2f31f50348dd692af15e95ca6394c6367218f96a6c244745084

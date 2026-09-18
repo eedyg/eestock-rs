@@ -1,0 +1,14 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.43s
+     Running tests/backtest_periods_ssot.rs (target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+
+running 6 tests
+test every_ssot_period_parses_roundtrip ... ok
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test m30_maps_to_both_m30_variants ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

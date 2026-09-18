@@ -1,0 +1,22 @@
+### ①-补 02-spec §2 SQL 块 vs schema.md §4.3.18 块 vs migrations/0027
+TS=2026-09-18T15:17:14+08:00
+--- 02-spec §2 代码块中的 CREATE TABLE / ALTER / CHECK 行 ---
+56:    //       mark_succeeded 语义变更：新 run 写 trades/metrics + result_format='chunked_v1'，
+58:    //       读取路径一律以 result_format 判别，禁止把占位当数据）。
+90:    ADD COLUMN IF NOT EXISTS result_format text NOT NULL DEFAULT 'legacy_single';
+94:CREATE TABLE IF NOT EXISTS strategy_run_bars (
+96:    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown','fills')),
+139:  "result_format": "chunked_v1"
+160:| `GET /api/workbench/runs/{id}/brief` | 轻量：`status/progress/metrics/effective_from/to/clamped/estimated_bars/bars_total/result_format/chunk_count` | 列表/轮询用，避免拉大包 |
+186:| `bt_list_runs` | 增 `bars_total`/`result_format` 摘要字段（列表轻量，不含结果） |
+240:| 3 | `strategy_run_result.result_format` | 迁移 0027（加法，默认 `legacy_single`） | 兼容 |
+
+--- 对比：0027 中对应行 ---
+7:    ADD COLUMN IF NOT EXISTS result_format text NOT NULL DEFAULT 'legacy_single';
+11:CREATE TABLE IF NOT EXISTS strategy_run_bars (
+13:    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown','fills')),
+
+--- 核心断言：'fills' 三处（spec/schema/migration）均出现 ---
+design/16-backtest-scalability/02-spec.md                    fills=2
+design/04-storage/schema.md                                  fills=4
+migrations/0027_strategy_run_result_chunks.sql               fills=2

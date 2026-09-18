@@ -1,0 +1,20 @@
+================= cargo test -p mcp --lib =================
+test tools::tests::sim_tool_unconfigured_returns_is_error ... ok
+test tools::tests::strategy_test_run_fee_policy_capital_channel ... ok
+test tools::tests::sim_start_session_with_strategies_wires_orchestrator ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+test tools::tests::bt_run_ensemble_archived_version_audit_rerun ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+EXIT=0
+================= cargo test -p application --lib =================
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+EXIT=0

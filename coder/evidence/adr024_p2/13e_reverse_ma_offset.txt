@@ -1,0 +1,65 @@
+=== 人为破坏：BarHistory.ma 窗口错位（前一根 bar）===
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+test compat_path_ctx_bars_unchanged ... ok
+test bar_history_grows_as_exact_prefix ... ok
+test bar_history_indicators_match_slice_view ... FAILED
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+---- bar_history_indicators_match_slice_view stdout ----
+
+thread 'bar_history_indicators_match_slice_view' (3146) panicked at crates/strategy-runtime/tests/shared_history.rs:296:13:
+assertion `left == right` failed: ma(1) @i=1
+  left: Some(4615063718147915776)
+ right: Some(4615062592248008933)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    bar_history_indicators_match_slice_view
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test shared_history`
+error: 1 target failed:
+    `-p strategy-runtime --test shared_history`
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 7 tests
+test session_shared_history_exposes_current_bar_to_plugin ... FAILED
+test session_finish_force_closes_open_position ... ok
+test session_observer_called_per_bar_and_break_is_immediate ... ok
+test session_warmup_marker_is_exact ... ok
+test session_handles_empty_single_and_warmup_overflow ... ok
+test session_chunked_feed_matches_single_feed ... ok
+test session_push_matches_batch_entry_bitwise ... ok
+
+failures:
+
+---- session_shared_history_exposes_current_bar_to_plugin stdout ----
+
+thread 'session_shared_history_exposes_current_bar_to_plugin' (3378) panicked at crates/strategy-core/tests/session.rs:280:9:
+assertion `left == right` failed: bar 1: ma(1) 必须等于当前 bar 收盘价（共享缓冲须含且仅含 bars[0..=i]）
+  left: 4615058088648381563
+ right: 4615056962748474720
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    session_shared_history_exposes_current_bar_to_plugin
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p strategy-core --test session`
+error: 1 target failed:
+    `-p strategy-core --test session`

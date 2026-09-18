@@ -1,0 +1,30 @@
+[session] bars=tester/evidence/240_adr024_golden_baseline/m1_1slot/bars.jsonl n=600 limit=600
+
+### 1. 分块喂入 vs 批式入口（同一配置 3 slots/权重 1.0/0.5/1.5 + ATR 止损 + warmup=30）
+  批式: per_bar=600 trades=72 nav=570 warmup_marks=30
+  chunk=1     (n%chunk=  0) 逐位等价=SAME  per_bar=600 trades=72 nav=570
+  chunk=2     (n%chunk=  0) 逐位等价=SAME  per_bar=600 trades=72 nav=570
+  chunk=3     (n%chunk=  0) 逐位等价=SAME  per_bar=600 trades=72 nav=570
+  chunk=7     (n%chunk=  5) 逐位等价=SAME  per_bar=600 trades=72 nav=570
+  chunk=5000  (n%chunk=600) 逐位等价=SAME  per_bar=600 trades=72 nav=570
+
+### 2. warmup 绝对口径（分块不得让 warmup 重新计数）
+  批式: warmup 标记下标 = "[0..30)"（计数=30）nav 长度=570
+  chunk=1     warmup 标记计数=30 与批式一致=YES nav_len=570 (期望 570)
+  chunk=2     warmup 标记计数=30 与批式一致=YES nav_len=570 (期望 570)
+  chunk=3     warmup 标记计数=30 与批式一致=YES nav_len=570 (期望 570)
+  chunk=7     warmup 标记计数=30 与批式一致=YES nav_len=570 (期望 570)
+  chunk=5000  warmup 标记计数=30 与批式一致=YES nav_len=570 (期望 570)
+  warmup=0               批式 warmup 标记=0（期望 0）| nav_len=600 trades=73 | 分块 1/7 与批式逐位等价=true
+  warmup=n（全部 warmup）    批式 warmup 标记=600（期望 600）| nav_len=0 trades=0 | 分块 1/7 与批式逐位等价=true
+  warmup=n+50（> n）       批式 warmup 标记=600（期望 600）| nav_len=0 trades=0 | 分块 1/7 与批式逐位等价=true
+
+### 3. 取消语义（observer 每 bar 调用；Break ⇒ 立即跳出 / 不产结果 / Canceled）
+  会话: err=Err(Canceled) 回调次数=8 序列==(0..=7,total)=true records=8 ForceClose 成交=0
+        ⇒ 立即跳出（无 finish/无强平/无结果）: YES
+  批式 run_ensemble_with_observer: err=Err(Canceled) 回调次数=8（期望 8）
+  无取消（Continue 全程）: 回调次数=600 序列==(0..n-1,total=n)=true per_bar=600
+  流式（未 set_total_hint）total 退化: [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)] ⇒ OK
+  分块(7) observer index 全局单调: OK（len=600）
+
+== session VERDICT: PASS ==

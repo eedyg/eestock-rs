@@ -1,0 +1,53 @@
+=== 03-A: CLEAN-CHECKOUT SIMULATION via git checkout-index (2026-09-18T13:02:31+08:00) ===
+$ rm -rf /tmp/adr024_clean_frz01 && mkdir -p /tmp/adr024_clean_frz01 && git checkout-index -a --prefix=/tmp/adr024_clean_frz01/
+[done, EXIT=0]
+$ du -sh /tmp/adr024_clean_frz01
+129M	/tmp/adr024_clean_frz01
+
+--- A.1 required RUNTIME INPUTS of the 4 assertions: test -f (per item) ---
+test -f design/16-backtest-scalability/contract-vectors.json  => PRESENT  (1678 bytes)
+test -f crates/application/tests/backtest_periods_ssot.rs  => PRESENT  (4184 bytes)
+test -f crates/mcp/tests/adr024_period_ssot_drift.rs  => PRESENT  (6184 bytes)
+test -f web/src/features/backtest/periods.test.ts  => PRESENT  (1846 bytes)
+
+--- A.2 transitive runtime inputs (files the assertions read at RUNTIME) ---
+test -f web/src/features/strategies/TestRunPanel.test.tsx  => PRESENT  (6127 bytes)
+test -f web/src/features/workbench/ConfigPanel.test.tsx  => PRESENT  (18472 bytes)
+test -f web/src/features/backtest/periods.ts  => PRESENT  (1264 bytes)
+test -f crates/application/src/bar_map.rs  => PRESENT  (4181 bytes)
+test -f crates/mcp/src/tools.rs  => PRESENT  (202322 bytes)
+test -f crates/web/src/workbench.rs  => PRESENT  (15435 bytes)
+test -f crates/web/tests/adr024_workbench_period_ssot.rs  => PRESENT  (8533 bytes)
+
+--- A.3 gitignored/untracked (NOT in index => absent from clean checkout; note only) ---
+test -e web/dist  => ABSENT (expected for ignored/untracked)
+test -e web/node_modules  => ABSENT (expected for ignored/untracked)
+test -e target  => ABSENT (expected for ignored/untracked)
+test -e Cargo.lock  => present
+
+--- A.4 export-tree blob == index blob (byte identity vs what will be committed) ---
+design/16-backtest-scalability/contract-vectors.json                   export=4bcaf35085da20145695b4e0fba14555a2dcd4ee index=4bcaf35085da20145695b4e0fba14555a2dcd4ee SAME=YES
+crates/application/tests/backtest_periods_ssot.rs                      export=7de0f1f47e29f06237400a488e3ec2102a189d4a index=7de0f1f47e29f06237400a488e3ec2102a189d4a SAME=YES
+crates/mcp/tests/adr024_period_ssot_drift.rs                           export=b5586ad488463de50194713cfe76f49c720ff4f8 index=b5586ad488463de50194713cfe76f49c720ff4f8 SAME=YES
+web/src/features/backtest/periods.test.ts                              export=8eb8c80f95961ea3392792632b1052d1e700c181 index=8eb8c80f95961ea3392792632b1052d1e700c181 SAME=YES
+web/src/features/strategies/TestRunPanel.test.tsx                      export=fe91ef400623a3588c995ecef74780ca2e794d32 index=fe91ef400623a3588c995ecef74780ca2e794d32 SAME=YES
+web/src/features/workbench/ConfigPanel.test.tsx                        export=a96358690c9bcc36c0223228d82e6af8858fd0a9 index=a96358690c9bcc36c0223228d82e6af8858fd0a9 SAME=YES
+web/src/features/backtest/periods.ts                                   export=799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44 index=799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44 SAME=YES
+
+--- A.5 path resolution used by the Rust assertions (compile-time manifest dir + relative) ---
+crates/application/tests/backtest_periods_ssot.rs:19:    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+crates/mcp/tests/adr024_period_ssot_drift.rs:20:const FRONTEND_MIRROR: &str = "../../web/src/features/backtest/periods.ts";
+crates/mcp/tests/adr024_period_ssot_drift.rs:22:const CONTRACT_VECTORS: &str = "../../design/16-backtest-scalability/contract-vectors.json";
+crates/mcp/tests/adr024_period_ssot_drift.rs:31:    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(CONTRACT_VECTORS);
+crates/mcp/tests/adr024_period_ssot_drift.rs:46:    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FRONTEND_MIRROR);
+crates/mcp/tests/adr024_period_ssot_drift.rs:138:    let src = include_str!("../src/tools.rs");
+crates/web/tests/adr024_workbench_period_ssot.rs:95:        static_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../web/dist"),
+crates/web/tests/adr024_workbench_period_ssot.rs:171:    let src = include_str!("../src/workbench.rs");
+
+--- A.6 resolved absolute path exists INSIDE the export tree (same expression as the test) ---
+expected app-test path = /tmp/adr024_clean_frz01/crates/application/../../design/16-backtest-scalability/contract-vectors.json
+/tmp/adr024_clean_frz01/design/16-backtest-scalability/contract-vectors.json
+  -> realpath -e OK (file resolvable from the clean tree)
+expected mcp-test path = /tmp/adr024_clean_frz01/crates/mcp/../../design/16-backtest-scalability/contract-vectors.json
+/tmp/adr024_clean_frz01/design/16-backtest-scalability/contract-vectors.json
+  -> realpath -e OK

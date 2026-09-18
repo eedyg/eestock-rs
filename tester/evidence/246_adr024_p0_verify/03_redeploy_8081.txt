@@ -1,0 +1,108 @@
+### 03 — redeploy 8081/8082 (skill: rebuild-restart-app-8081) @ 2026-09-18T12:47:34+08:00
+--- 3.1 provenance (BEFORE restart) ---
+$ git rev-parse HEAD
+18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+$ git diff --cached --stat | tail -3
+ web/src/features/workbench/ConfigPanel.test.tsx    |   8 +
+ web/src/features/workbench/ConfigPanel.tsx         |   9 +-
+ 48 files changed, 1807 insertions(+), 56 deletions(-)
+$ git status --porcelain (unstaged only)
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M docker-compose.yml
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md
+?? design/16-backtest-scalability/
+?? prod_tools_schemas_periphery.txt
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/evidence/018/
+?? tester/evidence/240_adr024_golden_baseline/
+?? tester/evidence/241_adr024_scale_curve/
+?? tester/evidence/242_adr024_baseline_extension/
+?? tester/evidence/243_adr024_attribution/
+?? tester/evidence/244_adr024_fixedcost_realpath/
+?? tester/evidence/245_tsdb_worker_slot_incident/
+?? tester/evidence/246_adr024_p0_verify/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/harness/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/report/adr024_p1_baseline_and_curve.md
+?? tester/report/adr024_p1b_baseline_extension.md
+?? tester/report/adr024_p1c_fixed_cost_realpath.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? tester/test/295_adr024_p1_evidence_execution.md
+?? tester/test/296_adr024_p1b_execution.md
+?? tester/test/297_adr024_p1c_execution.md
+?? web/src/features/backtest/periods.test.ts
+--- 3.2 old pid / exe ---
+ 178558 Wed Sep 16 23:59:28 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+$ readlink /proc/178558/exe
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+$ sha256sum /proc/178558/exe
+d6fed24ef8a3d6839bb0191aeb881b323b256733f6ed9e6ec462475cb85f78d0  /proc/178558/exe
+--- 3.3 rollback artifact ---
+$ cp /proc/178558/exe /tmp/eestock-app.rollback.20260918_124734  EXIT=0
+d6fed24ef8a3d6839bb0191aeb881b323b256733f6ed9e6ec462475cb85f78d0  /tmp/eestock-app.rollback.20260918_124734
+-rwxrwxr-x 1 eestock eestock 207067000 2026-09-18 12:47:34.249011775 +0800 /tmp/eestock-app.rollback.20260918_124734
+--- 3.4 new artifact on disk (built from worktree HEAD+P0 staged diff) ---
+-rwxrwxr-x 2 eestock eestock 207560064 2026-09-18 12:47:16.528806519 +0800 target/debug/eestock-app
+f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc  target/debug/eestock-app
+$ strings target/debug/eestock-app | grep -c 'M1/M5/M15/M30/H1/D1'
+1
+--- 3.5 stop gate (sim-live) ---
+count 12
+non_ended []
+--- 3.6 kill + restart ---
+$ ss -lntp | grep ':808'
+(no listener — old pid gone)
+nohup pid=4083225
+--- 3.7 post-restart shape ---
+LISTEN 0      128                                             0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=11)) 
+LISTEN 0      128                                             0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=12)) 
+NEWPID=4083225
+4083225 Fri Sep 18 12:47:37 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+$ readlink /proc/4083225/cwd
+/home/eestock/workspace/git/eestock/eestock-rs
+$ sha256sum /proc/4083225/exe target/debug/eestock-app
+f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc  /proc/4083225/exe
+f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc  target/debug/eestock-app
+$ strings /proc/4083225/exe | grep -c 'M1/M5/M15/M30/H1/D1'
+1
+LOG=logs/app_dev_8081_redeploy_20260918_124734.log

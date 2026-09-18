@@ -1,0 +1,92 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.56s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 13 tests
+test t_p5_clamp_left_right_both_and_exact ... [②左超] requested=[2025-02-01 01:30:00 UTC, 2025-03-03 02:30:00 UTC) eff=[2025-03-03 01:30:00 UTC, 2025-03-03 02:29:01 UTC) clamped=true reason=Some("data_range")
+[②左超-右端观察] requested_to=2025-03-03 02:30:00 UTC 实际 eff_to=2025-03-03 02:29:01 UTC（= 区间内末 bar(02:29:00)+1s）
+[②右超] eff=[2025-03-10 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=true
+[②右超-左端观察] requested_from=2025-03-07 01:30:00 UTC 实际 eff_from=2025-03-10 01:30:00 UTC（= 区间内首 bar）
+[②两端超] eff=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=true
+[②恰端点] eff=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=false
+[②观察:请求终点在缺口内] requested_to=2025-03-03 02:30:00 UTC eff=[2025-03-03 01:30:00 UTC, 2025-03-03 02:30:00 UTC) clamped=false
+ok
+test t_p5_exec_time_clamp_uses_real_first_last_bar ... [③] 请求=[2025-02-26 01:30:00 UTC, 2025-03-30 02:29:00 UTC] 缓存=[2025-03-01 01:30:00 UTC, 2025-03-20 02:29:00 UTC] 实取真实首末=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:00 UTC]
+[③] 提交端响应 eff=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=true；落库 eff=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC)
+[③] config.requested_from="2025-02-26T01:30:00+00:00" requested_to="2025-03-30T02:29:00+00:00"
+ok
+test t_p5_gap_in_middle_not_truncated ... [②缺口] 请求=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) 落库 eff=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) 跨度=7 天 clamped=false config.clamped=false
+ok
+test t_p5_http_d1_six_year_span_accepted_independent ... [①-D1] 518880 D1 2020-01-01→2026-01-01（>5 年）status=200 OK body={"mode":"pure_score","symbol":"518880","period":"D1","bar_count":1705,"warmup_requested":250,"warmup_effective":250,"scores":[{"ts":1545321600,"score":42.0,"warmup":true},{"ts":1545580800,"score":42.0,"warmup":true},{"ts":1545667200,"score":42.0,"warmup":true},{"ts":1545753600,"score":42.0,"warmup":true},{"ts":1545840000,"score":42.0,"warmup":true},{"ts":1545926400,"score":42.0,"warmup":true},{"ts
+[①-D1] bar_count=1705 effective=["2020-01-01T00:00:00Z", "2026-01-01T00:00:00Z") clamped=false estimated_bars=Number(1455)
+ok
+test t_p5_http_structured_error_shape ... [⑤-http range_empty] status=400 Bad Request raw_body={"error":{"code":"range_empty","detail":{"available_from":"2026-09-09T01:30:00+00:00","available_to":"2026-09-09T01:35:01+00:00","period":"M1","requested_from":"2026-09-19T01:30:00+00:00","requested_to":"2026-09-29T01:30:00+00:00","symbol":"830057"},"message":"请求区间与可得区间无交集（830057 M1 可用区间：2026-09-09T01:30:00+00:00 ~ 2026-09-09T01:35:01+00:00）"}}
+[⑤-http range_empty] body={"error":{"code":"range_empty","detail":{"available_from":"2026-09-09T01:30:00+00:00","available_to":"2026-09-09T01:35:01+00:00","period":"M1","requested_from":"2026-09-19T01:30:00+00:00","requested_to":"2026-09-29T01:30:00+00:00","symbol":"830057"},"message":"请求区间与可得区间无交集（830057 M1 可用区间：2026-09-09T01:30:00+00:00 ~ 2026-09-09T01:35:01+00:00）"}}
+[⑤-http resource_guard] status=400 Bad Request raw_body={"error":{"code":"resource_guard","detail":{"available_from":"2013-07-29T01:30:00+00:00","available_to":"2026-09-17T07:00:01+00:00","confirm_bars":200000,"confirmable":true,"estimated_secs":482.398,"limit_bars":2000000,"period":"M1","requested_bars":770477,"symbol":"518880"},"message":"预估 770477 根 bar（≈482.4 秒）达到二次确认阈值 200000 根；如仍要提交，带 confirm=true 重提"}}
+[⑤-http period_invalid] status=400 Bad Request raw_body={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}
+[⑤-http from_after_to] status=400 Bad Request raw_body={"error":"from 须早于 to"}
+[⑤-http 结构化缺口] period_invalid: 实得 raw={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}（error 是**字符串**，无 code/detail） | from_after_to: 实得 raw={"error":"from 须早于 to"}（error 是**字符串**，无 code/detail）
+
+thread 't_p5_http_structured_error_shape' (950074) panicked at crates/web/tests/tester_p5_indep.rs:657:5:
+契约 §3.1.1 要求 period_invalid/from_after_to 亦为 {error:{code,message,detail}}（前端按 code 分支）
+period_invalid: 实得 raw={"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}（error 是**字符串**，无 code/detail）
+from_after_to: 实得 raw={"error":"from 须早于 to"}（error 是**字符串**，无 code/detail）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test t_p5_no_calendar_span_cap_m15_m1_m30 ... [①] period=M15 span_days=259 ⇒ 201/Queued effective=[2025-03-03 01:30:00 UTC, 2025-11-17 01:30:00 UTC) clamped=false
+[①] period=M1 span_days=365 ⇒ 201/Queued effective=[2025-03-03 01:30:00 UTC, 2026-03-03 01:30:00 UTC) clamped=false
+[①] period=M30 span_days=730 ⇒ 201/Queued effective=[2025-03-03 01:30:00 UTC, 2027-03-03 01:30:00 UTC) clamped=false
+ok
+test t_p5_no_intersection_range_empty_400 ... [②无交集] code=range_empty message=请求区间与可得区间无交集（830065 M1 可用区间：2025-03-03T01:30:00+00:00 ~ 2025-03-10T02:29:01+00:00） detail={"available_from":"2025-03-03T01:30:00+00:00","available_to":"2025-03-10T02:29:01+00:00","period":"M1","requested_from":"2025-04-09T02:29:00+00:00","requested_to":"2025-05-09T02:29:00+00:00","symbol":"830065"}
+ok
+test t_p5_old_span_cap_text_absent_in_impl ... ok
+test t_p5_prescan_count_and_degraded_path_visible ... [⑦count] estimated_bars=Some(1234) config.progress_prescan="count"
+[⑦降级] estimated_bars=None config.progress_prescan="ts_norm" （并伴随 tracing::warn，见 src 行 489-492）
+ok
+test t_p5_resource_guard_thresholds_and_confirm ... [④] estimated=199999 ⇒ 放行（run=sr_1789718965993_000012）
+[④] code=resource_guard detail={"available_from":"2025-03-03T01:30:00+00:00","available_to":"2025-03-10T02:29:01+00:00","confirm_bars":200000,"confirmable":true,"estimated_secs":125.85,"limit_bars":2000000,"period":"M1","requested_bars":200000,"symbol":"830056"}
+[④] estimated_secs=125.85（须含每 run 固定成本项 ⇒ > 0.85s）
+[④] confirm=true ⇒ 放行（run id=sr_1789718966012_000013 status=Queued）
+[④] 落库 config.estimated_bars=200000 progress_prescan="count"
+[④] 硬拒 code=resource_guard confirmable=false message=预估 2000001 根 bar 超过硬上界 2000000 根（资源护栏；不可放行）
+ok
+test t_p5_structured_error_serializes_as_object ... [⑤] 序列化={"code":"range_empty","detail":{"available_from":"2025-01-01T00:00:00Z"},"message":"无数据"}
+ok
+test t_p5_testrun_same_caliber_and_uniform_sampling ... [⑥同口径-试算] requested=[2025-02-21 01:30:00 UTC, 2025-03-20 02:29:00 UTC] effective=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=true reason=Some("data_range") estimated=Some(180)
+[⑥同口径-工作台] effective=[2025-03-03 01:30:00 UTC, 2025-03-10 02:29:01 UTC) clamped=true
+[⑥试算无交集] code=range_empty detail={"available_from":"2025-03-03T01:30:00+00:00","available_to":"2025-03-10T02:29:01+00:00","period":"M1","requested_from":"2025-04-09T02:29:00+00:00","requested_to":"2025-05-09T02:29:00+00:00","symbol":"830058"}
+[⑥抽样] bar_count=50050 scores=50000 downsampled=true original_points=50050 truncated.scores=false 首=1740965400 末=1743968340
+ok
+test t_p5_union_available_range_live_accurate_lags_fallback ... [②并集] available_range=(2025-06-02 05:00:00 UTC, 2025-06-02 07:30:01 UTC) accurate 单层 max=Some(2025-06-02T05:30:00Z) 兜底 30m 桶=2025-06-02 07:30:00 UTC
+[②并集] count(*)=4（期望 4：accurate 30m 2 桶(05:00/05:30) + 兜底 15m rollup 2 桶(07:00/07:30)）
+ok
+
+failures:
+
+failures:
+    t_p5_http_structured_error_shape
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.21s
+
+error: test failed, to rerun pass `-p web --test tester_p5_indep`

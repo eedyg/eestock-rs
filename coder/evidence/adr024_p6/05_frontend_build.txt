@@ -1,0 +1,17 @@
+### ADR-024 P6 前端构建
+### cmd: npx vite build
+vite v6.4.3 building for production...
+transforming...
+✓ 182 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.40 kB │ gzip:   0.29 kB
+dist/assets/index-CeUPb4uk.css     22.97 kB │ gzip:   5.77 kB
+dist/assets/index-W2CP3XMF.js   1,227.58 kB │ gzip: 378.44 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.17s
+build exit=0

@@ -1,0 +1,51 @@
+### 41-1 失败靶与失败原因抽查（证明 137 项失败均为 DB 环境缺失，与 P2 无关）
+$ grep -c '^test result: FAILED' 
+33
+
+$ 失败靶清单（33 条）与 P0 基线逐条一致
+
+$ 非 DB 相关失败（应为空）：grep 'panicked at' 中不含 连接/connection/DATABASE 的行
+537:thread 'real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins' (49585) panicked at crates/test-support/src/lib.rs:32:14:
+574:thread 'get_kline_unregistered_code_is_tool_error_against_real_registry' (49593) panicked at crates/test-support/src/lib.rs:32:14:
+581:thread 'strategy_list_slim_reduces_payload_against_real_registry' (49596) panicked at crates/test-support/src/lib.rs:32:14:
+588:thread 'get_sources_health_aggregation_via_tool' (49594) panicked at crates/test-support/src/lib.rs:32:14:
+595:thread 'strategy_test_run_unregistered_symbol_against_real_registry' (49597) panicked at crates/test-support/src/lib.rs:32:14:
+602:thread 'list_symbols_matches_real_symbols_registry' (49595) panicked at crates/test-support/src/lib.rs:32:14:
+609:thread 'get_data_quality_via_tool' (49590) panicked at crates/test-support/src/lib.rs:32:14:
+616:thread 'get_kline_from_to_and_limit_cap_against_real_data' (49591) panicked at crates/test-support/src/lib.rs:32:14:
+623:thread 'get_kline_merged_accurate_first_via_tool' (49592) panicked at crates/test-support/src/lib.rs:32:14:
+737:thread 'conflict_updates_row_not_keeps_first' (49665) panicked at crates/test-support/src/lib.rs:32:14:
+744:thread 'checkpoints_roundtrip' (49664) panicked at crates/test-support/src/lib.rs:32:14:
+781:thread 'eval_read_window_and_latest_of' (49689) panicked at crates/test-support/src/lib.rs:32:14:
+789:thread 'rules_seeded_and_patch_roundtrip' (49692) panicked at crates/test-support/src/lib.rs:32:14:
+796:thread 'list_events_filters' (49691) panicked at crates/test-support/src/lib.rs:32:14:
+803:thread 'incident_state_machine_primitives' (49690) panicked at crates/test-support/src/lib.rs:32:14:
+827:thread 'bar_read_m1_accurate_first_in_range' (49694) panicked at crates/test-support/src/lib.rs:32:14:
+849:thread 'config_store_get_set_override_and_isolated_key' (49696) panicked at crates/test-support/src/lib.rs:32:14:
+873:thread 'event_roundtrip_na_and_circuit_kinds' (49698) panicked at crates/test-support/src/lib.rs:32:14:
+880:thread 'verify_schema_passes_on_migrated_db' (49700) panicked at crates/test-support/src/lib.rs:32:14:
+888:thread 'missing_relations_detected' (49699) panicked at crates/test-support/src/lib.rs:32:14:
+(以上为空则全部失败均指向 DB 连接)
+
+$ 失败靶所属 crate 分布
+      2     `-p mcp
+     16     `-p storage
+     15     `-p web
+
+$ P2 三 crate（backtest/strategy-core/strategy-runtime）+ application 是否出现在失败靶中
+(无 ⇒ P2 及调用方 crate 零失败)
+
+$ application 靶结果（P2 调用方回归）
+72:     Running unittests src/lib.rs (target/debug/deps/application-f60986817f736cde)
+
+$ 新增 P2 测试靶结果
+1724:     Running tests/session.rs (target/debug/deps/session-43d232b79805de1f)
+1737:     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b7ca53e474127485)
+1827:     Running tests/online_indicators_fixture.rs (target/debug/deps/online_indicators_fixture-c4682d98c498d31e)
+1834:     Running tests/shared_history.rs (target/debug/deps/shared_history-2ad5a8b7536a272f)
+1847:     Running tests/shared_history_alloc.rs (target/debug/deps/shared_history_alloc-cdb938d007300b7e)
+
+$ 每个 P2 靶的 test result 行
+
+$ backtest lib 靶 test result
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s

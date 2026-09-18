@@ -1,0 +1,18 @@
+test submit_marks_published_version_not_archived ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test preset_crud_and_apply ... ok
+test submit_rejects_unknown_version_404 ... ok
+test submit_rejects_span_limits_400 ... ok
+test cancel_unknown_run_404_and_terminal_409 ... ok
+test run_success_end_to_end ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test compare_returns_side_by_side_net_value_and_metrics ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test p4b_run_summary_counters_are_self_consistent ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+

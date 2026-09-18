@@ -1,0 +1,49 @@
+===== A4-3: 「构造 ctx 时传入含未来 bar 的全量切片 + 每 bar to_vec()」写法枚举（工作树 vs index 一致态）=====
+
+## [1] 全部 BarCtx::new 构造点（crates/，排除 target/node_modules/.git/data）
+crates/application/src/strategy.rs:853:///   `BarCtx::new` 的「每 bar 按 `bars[..=index]` 建一次性等价缓冲」（O(index) 复制 ——
+crates/application/src/strategy.rs:861:    BarCtx::new(index, bar.clone(), &bars[..=index], None).with_history(hist.clone())
+crates/simlive/src/plugin_orchestrator.rs:274:            // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
+crates/simlive/src/plugin_orchestrator.rs:276:                let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot)
+crates/strategy-core/src/engine.rs:656:            let ctx = BarCtx::new(i, bar.clone(), bars, position).with_history(shared.clone());
+crates/strategy-runtime/src/history.rs:14://! - 无共享句柄的调用方（试算 / sim-live / 单测走 [`crate::BarCtx::new`] 的兼容路径）行为与改造前**完全一致**
+crates/strategy-runtime/src/history.rs:32:///     let ctx = BarCtx::new(i, bar.clone(), &bars[..=i], position).with_history(hist.clone());
+crates/strategy-runtime/src/quickjs.rs:728:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:743:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:752:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:826:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:846:            let ctx = BarCtx::new(i, bar.clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:852:        let ctx = BarCtx::new(2, bs[2].clone(), &bs, None);
+crates/strategy-runtime/src/quickjs.rs:867:        let ctx = BarCtx::new(0, bs[0].clone(), &bs, None);
+crates/strategy-runtime/src/types.rs:60:///   兼容路径（[`BarCtx::new`]）下长度 = 调用方传入切片长度（改造前行为，未变）。
+
+## [2] 目标两文件内的 ctx 构造点（生产代码）与切片实参
+crates/application/src/strategy.rs:853:///   `BarCtx::new` 的「每 bar 按 `bars[..=index]` 建一次性等价缓冲」（O(index) 复制 ——
+crates/application/src/strategy.rs:861:    BarCtx::new(index, bar.clone(), &bars[..=index], None).with_history(hist.clone())
+crates/simlive/src/plugin_orchestrator.rs:274:            // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
+crates/simlive/src/plugin_orchestrator.rs:276:                let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot)
+
+## [3] run_pure_score 体内 ctx 构造点计数（应恰 1 处，且为 helper）
+  run_pure_score 内第 49:        hist.push(bar.clone());
+  run_pure_score 内第 62:        let ctx = tryrun_bar_ctx(i, bar, bars, &hist);
+
+## [4] bars[..=index].to_vec() / Rc<Vec<Bar>> 残留（生产代码）
+crates/application/src/strategy.rs:738:        let bars: Vec<backtest::Bar> = all[slice_start..].to_vec();
+crates/application/src/workbench.rs:318:        let bars: Vec<backtest::Bar> = all[slice_start..].to_vec();
+crates/strategy-core/src/engine.rs:352:/// （消灭改造前每 slot × 每 bar 的 `bars[..=index].to_vec()` 整段复制）。
+crates/strategy-runtime/src/quickjs.rs:380:///   `bars[..=index].to_vec()` 的 O(index) 复制与分配）；
+crates/strategy-runtime/src/history.rs:5://! `Rc::new(bctx.bars[..=bctx.index].to_vec())`（O(index) 复制 + 大额分配）⇒ 整机 O(n²)。
+
+## [5] 引擎路径 ctx.bars 口径（P2，非本批）：with_slice 内切片长度 = 已喂入前缀
+        // ADR-024 P2/D7：共享历史缓冲增长（摊销 O(1)；48B/bar 一次拷贝，替代改造前每 bar O(index) 复制）。
+        self.shared.push(bar.clone());
+        let shared = self.shared.clone();
+        shared.with_slice(|bars| {
+            let bar = &bars[i];
+            let is_warmup = i < self.cfg.warmup_bars;
+            let mut events: Vec<EngineEvent> = Vec::new();
+            let mut orders: Vec<OrderIntent> = Vec::new();
+            //    ADR-024 P2/D7：注入共享历史缓冲句柄（插件指标闭包共享同一缓冲，零复制）。
+            let position = self.holding.map(|h| h.snapshot(i, bar.close));
+            let ctx = BarCtx::new(i, bar.clone(), bars, position).with_history(shared.clone());
+

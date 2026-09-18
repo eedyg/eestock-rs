@@ -1,0 +1,207 @@
+### P4b 修复静态核对（tester 自出）
+# date: 2026-09-18T09:49:11Z
+# HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# 当前文件 sha256: 2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528
+# 250 轮 P4b 仪表交付态快照 sha256: 0a5045ad1072dc0a0967daf5ca32ba284a226ea806e4da540b4a835b8b6f4e52
+
+=== [A] 改动前（250 轮交付态快照）report 任务 consumer 主体 ===
+    let report_task = tokio::spawn(
+        async move {
+            while let Some((progress, ts)) = rx.recv().await {
+                let t = Instant::now();
+                let _ = sink.send(&id2, progress, Some(ts)).await;
+                p4b_add_us(&report_p4b.ws_send_us, t);
+                let t = Instant::now();
+                let _ = store2.update_progress(&id2, progress).await;
+                p4b_add_us(&report_p4b.db_write_us, t);
+                report_p4b.db_writes.fetch_add(1, Ordering::Relaxed);
+            }
+            drain_span2.in_scope(|| {
+                tracing::info!(
+                    trace_id = %report_trace,
+                    run_id = %id2,
+                    progress_db_writes = report_p4b.db_writes.load(Ordering::Relaxed),
+                    progress_db_write_ms = p4b_ms(report_p4b.db_write_us.load(Ordering::Relaxed)),
+                    progress_ws_send_ms = p4b_ms(report_p4b.ws_send_us.load(Ordering::Relaxed)),
+                    "p4b.segment"
+                )
+            });
+        }
+        .instrument(drain_span.clone()),
+
+=== [B] 当前 report 任务 consumer 主体 ===
+    // 进度/结果分块桥接：引擎 observer（同步）与分块产出均在 spawn_blocking 内，经**单一** mpsc
+    // 到异步 writer 任务（WS sink + update_progress + append_result_chunk）。
+    // ADR-024 P4/D8：分块**边跑边写**，先于 `mark_succeeded`；分块写失败 ⇒ run 落 failed。
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<RunMsg>();
+    let sink = Arc::clone(&progress);
+    let store2 = Arc::clone(&store);
+    let id2 = run_id.clone();
+    // P4b：进度排水段（report 任务自存活周期）+ 计数；该 span 上下文覆盖
+    // `store.update_progress` / `store.append_result_chunk` 调用点 ⇒ trace_id 可检索至「落库段」。
+    let report_p4b = Arc::clone(&p4b);
+    let report_trace = trace_id.clone();
+    let drain_span =
+        tracing::info_span!("p4b.segment", segment = "progress_drain", run_id = %run_id);
+    let drain_span2 = drain_span.clone();
+    let t_drain_total = Instant::now();
+    let report_task = tokio::spawn(
+        async move {
+            let mut chunk_err: Option<anyhow::Error> = None;
+            // ADR-024 D15：时间窗节流状态 —— 上次落库时刻 + 最近一帧未落库的进度（终态补写用）。
+            let mut last_db_write: Option<Instant> = None;
+            let mut pending: Option<f64> = None;
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    RunMsg::Progress(progress, ts) => {
+                        // WS 帧粒度不变：每帧仍推送（UI 流畅与落库降频解耦）。
+                        let t = Instant::now();
+                        let _ = sink.send(&id2, progress, Some(ts)).await;
+                        p4b_add_us(&report_p4b.ws_send_us, t);
+                        // 时间窗节流：距上次落库 ≥ `PROGRESS_DB_MIN_INTERVAL` 才写；
+                        // 完成帧（progress>=1.0）无条件写（终态必写之一）。
+                        let due = last_db_write
+                            .is_none_or(|t0| t0.elapsed() >= PROGRESS_DB_MIN_INTERVAL);
+                        if due || progress >= 1.0 {
+                            p4b_write_progress(&store2, &id2, progress, &report_p4b).await;
+                            last_db_write = Some(Instant::now());
+                            pending = None;
+                        } else {
+                            report_p4b.db_throttled.fetch_add(1, Ordering::Relaxed);
+                            pending = Some(progress);
+                        }
+                    }
+                    RunMsg::Chunk(chunk) => {
+                        if chunk_err.is_none() {
+                            let t = Instant::now();
+                            if let Err(e) = store2.append_result_chunk(&id2, &chunk).await {
+                                tracing::error!(run_id = %id2, error = %e, "结果分块落库失败");
+                                chunk_err = Some(e);
+                            }
+                            p4b_add_us(&report_p4b.chunk_write_us, t);
+                            report_p4b.chunk_writes.fetch_add(1, Ordering::Relaxed);
+                        }
+                    }
+                }
+            }
+            // 终态必写：通道关闭（引擎结束）后补写最后一帧（若它因时间窗未落库）。
+            // 完成帧已由 `progress>=1.0` 分支落库；取消/中途失败时末帧 < 1.0 ⇒ 靠此处收口，
+            // 保证「完成/失败/取消」三条路径的最终进度写入都不会被时间窗节流吞掉。
+            if let Some(progress) = pending {
+                p4b_write_progress(&store2, &id2, progress, &report_p4b).await;
+            }
+            drain_span2.in_scope(|| {
+                tracing::info!(
+                    trace_id = %report_trace,
+                    run_id = %id2,
+                    progress_db_writes = report_p4b.db_writes.load(Ordering::Relaxed),
+                    progress_db_throttled = report_p4b.db_throttled.load(Ordering::Relaxed),
+                    chunk_writes = report_p4b.chunk_writes.load(Ordering::Relaxed),
+                    chunk_write_ms = p4b_ms(report_p4b.chunk_write_us.load(Ordering::Relaxed)),
+                    progress_db_write_ms = p4b_ms(report_p4b.db_write_us.load(Ordering::Relaxed)),
+                    progress_ws_send_ms = p4b_ms(report_p4b.ws_send_us.load(Ordering::Relaxed)),
+                    "p4b.segment"
+                )
+            });
+            chunk_err
+        }
+        .instrument(drain_span.clone()),
+    );
+
+    // 引擎配置：钉住槽位（code + sha256 + params + weight）。
+    let mut cfg = probe;
+    cfg.slots = slots
+        .iter()
+        .map(|s| {
+            strategy_core::StrategySlot::new(
+                s.code.clone(),
+                s.sha256.clone(),
+                s.params.clone(),
+
+=== [C] diff(A,B) —— 逐行分类见下 ===
+0a1,15
+>     // 进度/结果分块桥接：引擎 observer（同步）与分块产出均在 spawn_blocking 内，经**单一** mpsc
+>     // 到异步 writer 任务（WS sink + update_progress + append_result_chunk）。
+>     // ADR-024 P4/D8：分块**边跑边写**，先于 `mark_succeeded`；分块写失败 ⇒ run 落 failed。
+>     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<RunMsg>();
+>     let sink = Arc::clone(&progress);
+>     let store2 = Arc::clone(&store);
+>     let id2 = run_id.clone();
+>     // P4b：进度排水段（report 任务自存活周期）+ 计数；该 span 上下文覆盖
+>     // `store.update_progress` / `store.append_result_chunk` 调用点 ⇒ trace_id 可检索至「落库段」。
+>     let report_p4b = Arc::clone(&p4b);
+>     let report_trace = trace_id.clone();
+>     let drain_span =
+>         tracing::info_span!("p4b.segment", segment = "progress_drain", run_id = %run_id);
+>     let drain_span2 = drain_span.clone();
+>     let t_drain_total = Instant::now();
+3,10c18,59
+<             while let Some((progress, ts)) = rx.recv().await {
+<                 let t = Instant::now();
+<                 let _ = sink.send(&id2, progress, Some(ts)).await;
+<                 p4b_add_us(&report_p4b.ws_send_us, t);
+<                 let t = Instant::now();
+<                 let _ = store2.update_progress(&id2, progress).await;
+<                 p4b_add_us(&report_p4b.db_write_us, t);
+<                 report_p4b.db_writes.fetch_add(1, Ordering::Relaxed);
+---
+>             let mut chunk_err: Option<anyhow::Error> = None;
+>             // ADR-024 D15：时间窗节流状态 —— 上次落库时刻 + 最近一帧未落库的进度（终态补写用）。
+>             let mut last_db_write: Option<Instant> = None;
+>             let mut pending: Option<f64> = None;
+>             while let Some(msg) = rx.recv().await {
+>                 match msg {
+>                     RunMsg::Progress(progress, ts) => {
+>                         // WS 帧粒度不变：每帧仍推送（UI 流畅与落库降频解耦）。
+>                         let t = Instant::now();
+>                         let _ = sink.send(&id2, progress, Some(ts)).await;
+>                         p4b_add_us(&report_p4b.ws_send_us, t);
+>                         // 时间窗节流：距上次落库 ≥ `PROGRESS_DB_MIN_INTERVAL` 才写；
+>                         // 完成帧（progress>=1.0）无条件写（终态必写之一）。
+>                         let due = last_db_write
+>                             .is_none_or(|t0| t0.elapsed() >= PROGRESS_DB_MIN_INTERVAL);
+>                         if due || progress >= 1.0 {
+>                             p4b_write_progress(&store2, &id2, progress, &report_p4b).await;
+>                             last_db_write = Some(Instant::now());
+>                             pending = None;
+>                         } else {
+>                             report_p4b.db_throttled.fetch_add(1, Ordering::Relaxed);
+>                             pending = Some(progress);
+>                         }
+>                     }
+>                     RunMsg::Chunk(chunk) => {
+>                         if chunk_err.is_none() {
+>                             let t = Instant::now();
+>                             if let Err(e) = store2.append_result_chunk(&id2, &chunk).await {
+>                                 tracing::error!(run_id = %id2, error = %e, "结果分块落库失败");
+>                                 chunk_err = Some(e);
+>                             }
+>                             p4b_add_us(&report_p4b.chunk_write_us, t);
+>                             report_p4b.chunk_writes.fetch_add(1, Ordering::Relaxed);
+>                         }
+>                     }
+>                 }
+>             }
+>             // 终态必写：通道关闭（引擎结束）后补写最后一帧（若它因时间窗未落库）。
+>             // 完成帧已由 `progress>=1.0` 分支落库；取消/中途失败时末帧 < 1.0 ⇒ 靠此处收口，
+>             // 保证「完成/失败/取消」三条路径的最终进度写入都不会被时间窗节流吞掉。
+>             if let Some(progress) = pending {
+>                 p4b_write_progress(&store2, &id2, progress, &report_p4b).await;
+16a66,68
+>                     progress_db_throttled = report_p4b.db_throttled.load(Ordering::Relaxed),
+>                     chunk_writes = report_p4b.chunk_writes.load(Ordering::Relaxed),
+>                     chunk_write_ms = p4b_ms(report_p4b.chunk_write_us.load(Ordering::Relaxed)),
+21a74
+>             chunk_err
+23a77,87
+>     );
+> 
+>     // 引擎配置：钉住槽位（code + sha256 + params + weight）。
+>     let mut cfg = probe;
+>     cfg.slots = slots
+>         .iter()
+>         .map(|s| {
+>             strategy_core::StrategySlot::new(
+>                 s.code.clone(),
+>                 s.sha256.clone(),
+>                 s.params.clone(),

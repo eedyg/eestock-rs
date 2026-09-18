@@ -1,0 +1,31 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+
+running 3 tests
+test max_bars_guard_matches_contract_vector ... ok
+test confirm_bars_matches_contract_vector ... FAILED
+test guard_bars_runtime_thresholds_match_contract_vector ... FAILED
+
+failures:
+
+---- confirm_bars_matches_contract_vector stdout ----
+
+thread 'confirm_bars_matches_contract_vector' (1790543) panicked at crates/application/tests/resource_guard_contract_vectors.rs:51:5:
+assertion `left == right` failed: GUARD_CONFIRM_BARS(200000) != contract-vectors.json `resource_guard.confirm_bars`(500000)
+  left: 200000
+ right: 500000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- guard_bars_runtime_thresholds_match_contract_vector stdout ----
+
+thread 'guard_bars_runtime_thresholds_match_contract_vector' (1790544) panicked at crates/application/tests/resource_guard_contract_vectors.rs:68:5:
+confirm_bars - 1 = 499999 必须放行（无护栏）
+
+
+failures:
+    confirm_bars_matches_contract_vector
+    guard_bars_runtime_thresholds_match_contract_vector
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test resource_guard_contract_vectors`

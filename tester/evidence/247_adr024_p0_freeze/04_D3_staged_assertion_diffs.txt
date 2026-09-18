@@ -1,0 +1,132 @@
+=== 04-D.3 staged diff of the 3 WEB ASSERTION files (D1/D2 fix visibility) 2026-09-18T13:04:11+08:00 ===
+diff --git a/web/src/features/backtest/periods.test.ts b/web/src/features/backtest/periods.test.ts
+new file mode 100644
+index 0000000..8eb8c80
+--- /dev/null
++++ b/web/src/features/backtest/periods.test.ts
+@@ -0,0 +1,39 @@
++/**
++ * ADR-024 P0 §5.1 —— 前端镜像常量 ↔ 契约向量「逐字相等」防漂移断言（**手写**）。
++ *
++ * 单一真相：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`。
++ * 本文件断言 `SUPPORTED_BACKTEST_PERIODS`（前端唯一镜像）与之逐字相等；
++ * 后端/MCP 侧的同一断言见 `crates/mcp/tests/adr024_period_ssot_drift.rs`（读取本文件字面量）。
++ */
++import { describe, it, expect } from 'vitest';
++import { readFileSync } from 'node:fs';
++import { dirname, resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { SUPPORTED_BACKTEST_PERIODS } from './periods';
++
++// web/src/features/backtest → 仓库根
++const HERE = dirname(fileURLToPath(import.meta.url));
++const VECTORS_PATH = resolve(HERE, '../../../../design/16-backtest-scalability/contract-vectors.json');
++
++interface ContractVectors {
++  backtest_periods: string[];
++  m30?: { domain_variant?: string; dashboard_code?: string; bars_per_year_nominal?: number };
++}
++
++const VECTORS: ContractVectors = JSON.parse(readFileSync(VECTORS_PATH, 'utf8')) as ContractVectors;
++
++describe('ADR-024 P0 前端周期镜像常量（单一事实源）', () => {
++  it('SUPPORTED_BACKTEST_PERIODS == contract-vectors.json::backtest_periods（逐字相等）', () => {
++    expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(VECTORS.backtest_periods);
++  });
++
++  it('集合为契约六档（含 M30），顺序即展示序', () => {
++    expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(['M1', 'M5', 'M15', 'M30', 'H1', 'D1']);
++  });
++
++  it('契约向量声明 m30（domain_variant=M30 / dashboard_code=30m / bars_per_year_nominal=2016）', () => {
++    expect(VECTORS.m30?.domain_variant).toBe('M30');
++    expect(VECTORS.m30?.dashboard_code).toBe('30m');
++    expect(VECTORS.m30?.bars_per_year_nominal).toBe(2016);
++  });
++});
+diff --git a/web/src/features/strategies/TestRunPanel.test.tsx b/web/src/features/strategies/TestRunPanel.test.tsx
+index 529f83b..fe91ef4 100644
+--- a/web/src/features/strategies/TestRunPanel.test.tsx
++++ b/web/src/features/strategies/TestRunPanel.test.tsx
+@@ -1,12 +1,24 @@
+ import { describe, it, expect, vi, beforeEach } from 'vitest';
+ import { render, screen, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
++import { readFileSync } from 'node:fs';
++import { dirname, resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
+ import type { ApiClient } from '@/api/client';
+ import type { StrategyTestRunResp } from '@/api/types';
+ import { ApiError } from '@/api/types';
+ import { stubApi } from '@/test/apiStub';
+ import { TestRunPanel } from './TestRunPanel';
+ 
++// ADR-024 P0 §5.1 —— 周期下拉的**独立期望**：取自契约向量（**不是**被测常量自身，否则是同义反复）。
++// 单一真相：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`。
++// 该期望与产出解耦：删掉常量里的 'M30'、或组件改成手写第二份白名单，本用例都必须变红。
++// web/src/features/strategies → 仓库根
++const HERE = dirname(fileURLToPath(import.meta.url));
++const CONTRACT_VECTORS = JSON.parse(
++  readFileSync(resolve(HERE, '../../../../design/16-backtest-scalability/contract-vectors.json'), 'utf8'),
++) as { backtest_periods: string[] };
++
+ const SCHEMA = [
+   { key: 'fast', type: 'int' as const, default: 5, min: 1, max: 250, description: '快线周期' },
+   { key: 'slow', type: 'int' as const, default: 20, min: 2, max: 250, description: '慢线周期' },
+@@ -21,6 +33,14 @@ describe('TestRunPanel（试算面板：双模式表单 → test-run → 结果
+     api = stubApi();
+   });
+ 
++  // ADR-024 P0：周期下拉必须覆盖回测单一事实源全集（含 M30），不得手写第二份。
++  // 期望 = 契约向量（独立期望）；对 M30 成员资格**敏感**（删常量里的 M30 即红）。
++  it('周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）', () => {
++    render(<TestRunPanel api={api} code={CODE} schema={SCHEMA} />);
++    const sel = screen.getByTestId('tr-period') as HTMLSelectElement;
++    expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECTORS.backtest_periods);
++  });
++
+   it('表单校验：标的为空 → 内联错误，不调 test-run', async () => {
+     const user = userEvent.setup();
+     render(<TestRunPanel api={api} code={CODE} schema={SCHEMA} />);
+diff --git a/web/src/features/workbench/ConfigPanel.test.tsx b/web/src/features/workbench/ConfigPanel.test.tsx
+index c0fbbbf..a963586 100644
+--- a/web/src/features/workbench/ConfigPanel.test.tsx
++++ b/web/src/features/workbench/ConfigPanel.test.tsx
+@@ -1,10 +1,22 @@
+ import { describe, it, expect, vi, beforeEach } from 'vitest';
+ import { render, screen, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
++import { readFileSync } from 'node:fs';
++import { dirname, resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
+ import type { StrategyCatalogEntry, WorkbenchPresetConfigInput, WorkbenchPresetRow, WorkbenchRunConfig } from '@/api/types';
+ import { createMockClient } from '@/api/mock';
+ import { ConfigPanel } from './ConfigPanel';
+ 
++// ADR-024 P0 §5.1 —— 周期下拉的**独立期望**：取自契约向量（**不是**被测常量自身，否则是同义反复）。
++// 单一真相：`design/16-backtest-scalability/contract-vectors.json::backtest_periods`。
++// 该期望与产出解耦：删掉 constants 里的 'M30'、或组件改成手写第二份白名单，本用例都必须变红。
++// web/src/features/workbench → 仓库根
++const HERE = dirname(fileURLToPath(import.meta.url));
++const CONTRACT_VECTORS = JSON.parse(
++  readFileSync(resolve(HERE, '../../../../design/16-backtest-scalability/contract-vectors.json'), 'utf8'),
++) as { backtest_periods: string[] };
++
+ const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+ let catalogCache: StrategyCatalogEntry[] | null = null;
+ async function loadCatalog(): Promise<StrategyCatalogEntry[]> {
+@@ -40,6 +52,14 @@ describe('ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/
+     await loadCatalog();
+   });
+ 
++  // ADR-024 P0：周期下拉必须覆盖回测单一事实源全集（含 M30），不得手写第二份。
++  // 期望 = 契约向量（独立期望）；对 M30 成员资格**敏感**（删常量里的 M30 即红）。
++  it('周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）', () => {
++    render(<ConfigPanel {...mkProps()} />);
++    const sel = screen.getByTestId('wb-period') as HTMLSelectElement;
++    expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECTORS.backtest_periods);
++  });
++
+   it('catalog 渲染到策略下拉；添加策略 → slot 卡片（权重 + schema 参数表单）', async () => {
+     const user = userEvent.setup();
+     const props = mkProps();

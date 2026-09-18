@@ -1,0 +1,25 @@
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 1 test
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... FAILED
+
+failures:
+
+---- strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history stdout ----
+
+thread 'strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history' (96976) panicked at crates/application/src/strategy.rs:1145:13:
+assertion `left == right` failed: bar 0: 宿主侧 ctx.bars 必须恰为 bars[..=index]（P2b：无可读未来）
+  left: 8
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`

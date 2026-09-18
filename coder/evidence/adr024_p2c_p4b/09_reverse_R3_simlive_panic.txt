@@ -1,0 +1,30 @@
+---- plugin_orchestrator::tests::partial_sell_keeps_entry_ts_and_bars_since_entry_monotonic stdout ----
+
+thread 'plugin_orchestrator::tests::partial_sell_keeps_entry_ts_and_bars_since_entry_monotonic' (156722) panicked at crates/simlive/src/plugin_orchestrator.rs:281:17:
+assertion `left == right` failed: P2c 前视自检（sim-live）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+---- plugin_orchestrator::tests::position_snapshot_fields_bars_since_entry stdout ----
+
+thread 'plugin_orchestrator::tests::position_snapshot_fields_bars_since_entry' (156725) panicked at crates/simlive/src/plugin_orchestrator.rs:281:17:
+assertion `left == right` failed: P2c 前视自检（sim-live）：ctx.bars 必须恰为 bars[0..=index]（len == index+1）
+  left: 2
+ right: 1
+
+
+failures:
+    plugin_orchestrator::tests::circuit_breaker_alert_event_on_threshold
+    plugin_orchestrator::tests::g5_consecutive_errors_reset_on_success
+    plugin_orchestrator::tests::g5_error_neutral_score_events_and_circuit_breaker
+    plugin_orchestrator::tests::partial_sell_keeps_entry_ts_and_bars_since_entry_monotonic
+    plugin_orchestrator::tests::plugin_scores_pass_through_and_aggregate_weighted
+    plugin_orchestrator::tests::position_injection_real_quickjs
+    plugin_orchestrator::tests::position_snapshot_fields_bars_since_entry
+    plugin_orchestrator::tests::position_snapshot_fields_full
+    plugin_orchestrator::tests::stock_weights_override_default_weight
+    plugin_orchestrator::tests::uncovered_stock_not_evaluated
+
+test result: FAILED. 30 passed; 10 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p simlive --lib`

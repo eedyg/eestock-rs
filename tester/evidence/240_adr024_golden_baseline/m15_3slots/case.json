@@ -1,0 +1,44 @@
+{
+  "case_id": "m15_3slots",
+  "symbol": "510880",
+  "period": "M15",
+  "bars_count": 1000,
+  "slots": [
+    {
+      "plugin": "dual_ma",
+      "params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "weight": 1.0
+    },
+    {
+      "plugin": "macd",
+      "params": {
+        "fast": 12,
+        "slow": 26,
+        "signal": 9
+      },
+      "weight": 0.5
+    },
+    {
+      "plugin": "kdj",
+      "params": {
+        "n": 9,
+        "k_period": 3,
+        "d_period": 3
+      },
+      "weight": 1.5
+    }
+  ],
+  "buy_threshold": 60.0,
+  "sell_threshold": 40.0,
+  "policy": {
+    "kind": "LumpSum",
+    "position_pct": 1.0
+  },
+  "stop": null,
+  "initial_capital": 100000.0,
+  "warmup_bars": 0,
+  "note": "M15；3 slot"
+}

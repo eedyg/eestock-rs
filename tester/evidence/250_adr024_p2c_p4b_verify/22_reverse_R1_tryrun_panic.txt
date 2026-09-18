@@ -1,0 +1,27 @@
+########## ③ R1 反向对照（试算构造点）—— 隔离树 index 交付态 ##########
+# 退化：strategy.rs tryrun_bar_ctx: &bars[..=index] -> bars（全量，含未来）
+   Compiling application v0.1.0 (/tmp/tree250/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 1 test
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... FAILED
+
+failures:
+
+---- strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history stdout ----
+
+thread 'strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history' (279471) panicked at crates/application/src/strategy.rs:865:5:
+assertion `left == right` failed: P2c 前视自检（试算）：ctx.bars 必须恰为 bars[..=index]（len == index+1）
+  left: 8
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`
+EXIT=101

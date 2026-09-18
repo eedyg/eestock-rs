@@ -1,0 +1,81 @@
+### [③-R2] 反向证据：GUARD_CONFIRM_BARS 500_000 → 200_000 ⇒ 向量绑定断言必红
+# 2026-09-18T09:53:21Z
+# 反向前 error.rs sha256: 5d4af7047788684b70d2b82dfb8c0ed5059a64186d0c36825e11685f421bd5b9
+# 反向态: 150:pub const GUARD_CONFIRM_BARS: usize = 200_000; // TESTER-R2-REVERSE
+
+--- (R2-1) coder 向量绑定测试 ---
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+
+running 3 tests
+test max_bars_guard_matches_contract_vector ... ok
+test confirm_bars_matches_contract_vector ... FAILED
+test guard_bars_runtime_thresholds_match_contract_vector ... FAILED
+
+failures:
+
+---- confirm_bars_matches_contract_vector stdout ----
+
+thread 'confirm_bars_matches_contract_vector' (1943276) panicked at crates/application/tests/resource_guard_contract_vectors.rs:51:5:
+assertion `left == right` failed: GUARD_CONFIRM_BARS(200000) != contract-vectors.json `resource_guard.confirm_bars`(500000)
+  left: 200000
+ right: 500000
+
+---- guard_bars_runtime_thresholds_match_contract_vector stdout ----
+
+thread 'guard_bars_runtime_thresholds_match_contract_vector' (1943277) panicked at crates/application/tests/resource_guard_contract_vectors.rs:68:5:
+confirm_bars - 1 = 499999 必须放行（无护栏）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    confirm_bars_matches_contract_vector
+    guard_bars_runtime_thresholds_match_contract_vector
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test resource_guard_contract_vectors`
+EXIT=101
+
+--- (R2-2) tester 重钉后资产 tester_p5_indep ④ ---
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+test t_p5_resource_guard_thresholds_and_confirm ... FAILED
+
+failures:
+
+---- t_p5_resource_guard_thresholds_and_confirm stdout ----
+
+thread 't_p5_resource_guard_thresholds_and_confirm' (1944120) panicked at crates/web/tests/tester_p5_indep.rs:528:10:
+499_999 < 500_000 ⇒ 放行: [resource_guard] 预估 499999 根 bar（≈313.3 秒）达到二次确认阈值 200000 根；如仍要提交，带 confirm=true 重提
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t_p5_resource_guard_thresholds_and_confirm
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p web --test tester_p5_indep`
+EXIT=101
+
+### R2 复原
+复原后 error.rs sha256: 5d4af7047788684b70d2b82dfb8c0ed5059a64186d0c36825e11685f421bd5b9
+期望值 (反向前)      : 5d4af7047788684b70d2b82dfb8c0ed5059a64186d0c36825e11685f421bd5b9
+git diff 行数（应 0）: 0
+TESTER- 残留标记（应 0）: 0
+
+--- 复原后复绿：coder 向量绑定 ---
+test confirm_bars_matches_contract_vector ... ok
+test max_bars_guard_matches_contract_vector ... ok
+test guard_bars_runtime_thresholds_match_contract_vector ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+--- 复原后复绿：tester_p5_indep ④ ---
+running 1 test
+test t_p5_resource_guard_thresholds_and_confirm ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.11s
+

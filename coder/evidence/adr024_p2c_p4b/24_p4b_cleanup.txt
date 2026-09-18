@@ -1,0 +1,25 @@
+### P4b 基线受控 run 清理（name LIKE 'ADR024-P4b-base-%'）
+$ date: 2026-09-18T06:12:11Z
+
+$ psql: SELECT ... WHERE name LIKE 'ADR024-P4b-base-%'
+           id            |               name                | symbol | period |  status   | progress 
+-------------------------+-----------------------------------+--------+--------+-----------+----------
+ sr_1789711873069_000000 | ADR024-P4b-base-t1_small_d1_492   | 518880 | D1     | succeeded |        1
+ sr_1789711873646_000001 | ADR024-P4b-base-t2_medium_m5_3500 | 159740 | M5     | succeeded |        1
+ sr_1789711875421_000002 | ADR024-P4b-base-t3_large_m1_16155 | 518880 | M1     | succeeded |        1
+ sr_1789711876609_000003 | ADR024-P4b-base-c4_1              | 159740 | M5     | succeeded |        1
+ sr_1789711876642_000004 | ADR024-P4b-base-c4_2              | 159740 | M5     | succeeded |        1
+ sr_1789711876695_000005 | ADR024-P4b-base-c4_3              | 159740 | M5     | succeeded |        1
+ sr_1789711876731_000006 | ADR024-P4b-base-c4_4              | 159740 | M5     | succeeded |        1
+(7 rows)
+
+$ psql: DELETE
+DELETE 7
+$ psql: 回读残留
+0
+$ psql: 结果表残留（外键 CASCADE）
+0
+$ psql: 全表状态恢复校验
+374 | 374
+$ psql: pg_stat 累计（不可回滚，如实报告）
+n_tup_upd=371235 n_tup_ins=2365 n_tup_del=1992

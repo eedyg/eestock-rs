@@ -1,0 +1,15 @@
+### [①-c] 真路径终端进度 · 完成 / 取消（after 二进制，WS 帧捕获）
+# 2026-09-18T09:51:58Z
+
+--- complete（M1 2026-03-02→2026-06-09，≈16k bar）---
+# 2026-09-18T09:51:58.044Z WS connected + subscribed strategy_run(wildcard)
+# 2026-09-18T09:51:58.920Z submit http=201 id=sr_1789725118913_000003 wall_ms=876
+# 2026-09-18T09:51:59.892Z terminal status=succeeded db_progress=1 ws_frames=1001 ws_last=1
+RESULT {"scenario":"complete","run_id":"sr_1789725118913_000003","http_submit":201,"cancel":null,"status":"succeeded","progress_in_db":1,"error":null,"wall_submit_to_terminal_ms":1448,"ws_frames":1001,"ws_last_progress":1,"ws_first_progress":0.000060986765871805816,"ws_has_1_0":true,"ws_duplicate_consecutive":0}
+
+--- cancel（同区间；提交后 120ms 调 cancel）---
+# 2026-09-18T09:51:59.930Z WS connected + subscribed strategy_run(wildcard)
+# 2026-09-18T09:52:00.532Z submit http=201 id=sr_1789725120523_000004 wall_ms=602
+# 2026-09-18T09:52:00.662Z cancel http=200 at_ms=732 body={"id":"sr_1789725120523_000004","name":"T255-WS-cancel-1789725119930","symbol":"518880","period":"M1","from_ts":"2026-03-02T00:00:00Z","to_ts":"2026-06-09T00:00:00Z","config":{"buy_threshold":60.0,"cl
+# 2026-09-18T09:52:01.066Z terminal status=canceled db_progress=0.000060986765871805816 ws_frames=407 ws_last=0.40604988717448315
+RESULT {"scenario":"cancel","run_id":"sr_1789725120523_000004","http_submit":201,"cancel":{"status":200,"body":"{\"id\":\"sr_1789725120523_000004\",\"name\":\"T255-WS-cancel-1789725119930\",\"symbol\":\"518880\",\"period\":\"M1\",\"from_ts\":\"2026-03-02T00:00:00Z\",\"to_ts\":\"2026-06-09T00:00:00Z\",\"config\":{\"buy_threshold\":60.0,\"clamp_reason\":null,\"clamped\":false,\"estimated_bars\":16147,\"fee\":{\"min_fee\":5.0,\"rate_pct\":0.025,\"slippage_bp\":2.0,\"stamp_duty_pct\":0.0},\"initial_capital\":100000.0,\"policy\":{\"LumpSum\":{\"position_pct\":1}},\"progress_prescan\":\"count\",\"requested_from\":\"2026-03-02T00:00:00+00:00\",\"requested_to\":\"2026-06-09T00:00:00+00:00\",\"sell_threshold\":40.0,\"slots\":[{\"archived\":false,\"params\":{\"fast\":5.0,\"slow\":20.0},\"sha256\":\"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c\",\"strategy_id\":\"st_1789013713975_000000\",\"version\":1,\"version_id\":\"sv_1789013713975_000001\",\"weight\":1.0}],\"stop\":null,\"warmup_effective\":250,\"warmup_requested\":250},\"status\":\"canceled\",\"progress\":0.000060986765871805816,\"error\":null,\"created_at\":\"2026-09-18T09:52:00.524357Z\",\"started_at\":\"2026-09-18T09:52:00.529334Z\",\"finished_at\":\"2026-09-18T09:52:00.655268Z\",\"requested_from\":\"2026-03-02T00:00:00Z\",\"requested_to\":\"2026-06-09T00:00:00Z\",\"clamped\":false,\"clamp_reason\":null,\"estimated_bars\":16147,\"bars_total\":null,\"result_format\":null}"},"status":"canceled","progress_in_db":0.000060986765871805816,"error":null,"wall_submit_to_terminal_ms":735,"ws_frames":407,"ws_last_progress":0.40604988717448315,"ws_first_progress":0.000060986765871805816,"ws_has_1_0":false,"ws_duplicate_consecutive":0}

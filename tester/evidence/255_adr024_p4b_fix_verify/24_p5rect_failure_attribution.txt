@@ -1,0 +1,28 @@
+### [⑤-g] 失败归因：tester_p5rect_verify 的 400 期望 ⇒ 由 confirm 阈值上移引起（因果验证）
+# 2026-09-18T09:58:04Z
+
+--- (a) 现行 500_000：该表项期望 400，实得 201（estimated_bars=292092 < 500000）---
+assertion `left == right` failed: [runs/resource_guard(confirm=false)] 期望 400，实得 201；body={"bars_total":null,"clamp_reason":null,"clamped":false,"config":{"buy_threshold":60.0,"clamp_reason":null,"clamped":false,"estimated_bars":292092,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"progress_prescan":"count","requested_from":"2021-01-01T00:00:00+00:00","requested_to":"2026-01-01T00:00:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"created_at":"2026-09-18T09:57:55.254737Z","error":null,"estimated_bars":292092,"finished_at":null,"from_ts":"2021-01-01T00:00:00Z","id":"sr_1789725475253_000000","name":"","period":"M1","progress":0.0,"requested_from":"2021-01-01T00:00:00Z","requested_to":"2026-01-01T00:00:00Z","result_format":null,"started_at":null,"status":"queued","symbol":"518880","to_ts":"2026-01-01T00:00:00Z"}
+  left: 201
+ right: 400
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+--- (b) 临时把常量改回 200_000 ⇒ 该测试应复绿（证明失败**仅**由阈值上移引起）---
+150:pub const GUARD_CONFIRM_BARS: usize = 200_000; // TESTER-R3-CAUSATION
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.27s
+     Running tests/tester_p5rect_verify.rs (target/debug/deps/tester_p5rect_verify-ff0d5ed099fba369)
+
+running 4 tests
+test t_n1_frontend_code_map_covers_backend_codes ... ok
+test t_n1_static_audit ... ok
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+test t_n1_http_every_400_is_structured_object ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.82s
+
+EXIT=0
+
+复原后 error.rs sha256: 5d4af7047788684b70d2b82dfb8c0ed5059a64186d0c36825e11685f421bd5b9
+期望 (反向前)        : 5d4af7047788684b70d2b82dfb8c0ed5059a64186d0c36825e11685f421bd5b9
+git diff 行数（应 0）: 0

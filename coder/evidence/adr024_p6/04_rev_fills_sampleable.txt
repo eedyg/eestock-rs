@@ -1,0 +1,12 @@
+### 变异点: application/src/workbench.rs result_curve —— 去掉 fills 不可抽样守卫（模拟事实源被抽样）
+### 目标用例: application > p6_fills_curve_sampling_rejected
+### cmd: cargo test -p application --test workbench p6_fills_curve_sampling_rejected
+test p6_fills_curve_sampling_rejected ... FAILED
+thread 'p6_fills_curve_sampling_rejected' (520941) panicked at crates/application/tests/workbench.rs:1790:71:
+called `Result::unwrap_err()` on an `Ok` value: CurveResponse { kind: "fills", points: [Object {"bar_index": Number(3), "price": Number(110.02199999999999), "qty": Number(908.6819567762619), "reason": String("Policy"), "side": String("Buy"), "ts": Number(1788485400), "type": String("fill")}, Object {"bar_index": Number(5), "price": Number(99.98), "qty": Number(908.6819567762619), "reason": String("Policy"), "side": String("Sell"), "ts": Number(1788658200), "type": String("fill")}], downsampled: false, original_bars: 2, k: 1 }
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.01s
+
+### 还原后复跑（期望绿）：
+test p6_fills_curve_sampling_rejected ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.01s
+RESTORED: crates/application/src/workbench.rs 与原文件逐字节一致

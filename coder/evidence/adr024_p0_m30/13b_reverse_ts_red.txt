@@ -1,0 +1,35 @@
+     29| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/backtest/periods.test.ts > ADR-024 P0 前端周期镜像常量（单一事实源） > 集合为契约六档（含 M30），顺序即展示序
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/backtest/periods.test.ts:31:45
+     29| 
+     30|   it('集合为契约六档（含 M30），顺序即展示序', () => {
+     31|     expect([...SUPPORTED_BACKTEST_PERIODS]).toEqual(['M1', 'M5', 'M15'…
+       |                                             ^
+     32|   });
+     33| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:42:15
+   Duration  381ms (transform 19ms, setup 23ms, collect 9ms, tests 5ms, environment 137ms, prepare 108ms)
+

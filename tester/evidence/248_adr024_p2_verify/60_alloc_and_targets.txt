@@ -1,0 +1,57 @@
+2026-09-18T05:31:50Z
+CMD: cargo test -p strategy-core --test session_alloc -- --nocapture   （tester 独立复跑 worker §1.5 的分配量断言）
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+P2-alloc: per_bar_bytes n=2000: 947.3  n=4000: 944.6  ratio=0.997
+P2-alloc: per_bar_allocs n=2000: 20.25 n=4000: 20.23 ratio=0.999
+test engine_per_bar_allocation_does_not_grow_with_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+EXIT=0
+
+CMD: cargo test -p backtest -p strategy-runtime -p strategy-core --no-fail-fast  （全部 P2 靶）
+     Running unittests src/lib.rs (target/debug/deps/backtest-7a004127ec463d4d)
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/engine.rs (target/debug/deps/engine-14ef3ff72e954382)
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+     Running tests/observer.rs (target/debug/deps/observer-5ed881eae7031f13)
+test ensemble_error_is_std_error ... ok
+test plugin_error_wraps_into_ensemble_error ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/templates.rs (target/debug/deps/templates-c15ca349a91d9e15)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/strategy_runtime-4d7e8a01856d9163)
+test quickjs::tests::load_without_hook_errors ... ok
+test quickjs::tests::duplicate_param_key_is_schema_error ... ok
+test quickjs::tests::malformed_schema_fails_with_schema_error ... ok
+test quickjs::tests::syntax_error_fails_instantiate ... ok
+test quickjs::tests::save_error_variants_are_reported ... ok
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/contract.rs (target/debug/deps/contract-35c9b5b509ca6897)
+test contract_save_error_is_reported_not_swallowed ... ok
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+     Running tests/dcap_cross_runtime.rs (target/debug/deps/dcap_cross_runtime-bc519b058305ab41)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+     Running tests/dcap_plugin_init.rs (target/debug/deps/dcap_plugin_init-6d8a3c8ca53f9ffc)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-209b6420f0fc20ec)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/online_indicators_fixture.rs (target/debug/deps/online_indicators_fixture-2b3a36fbe8b29e3b)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/shared_history_alloc.rs (target/debug/deps/shared_history_alloc-b3a4132438113fa9)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.71s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+EXIT=0

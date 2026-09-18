@@ -1,0 +1,20 @@
+### 04 — post-restart smoke + M30 negative controls @ 2026-09-18T12:47:48+08:00
+--- 4.1 healthz ---
+{"status":"ok"}
+HTTP=200
+--- 4.2 symbols ---
+HTTP=200
+len = 44
+518880 in symbols = True
+--- 4.3 kline 1d 518880 last 5 ---
+{"code":"518880","period":"1d","bars":[{"ts":"2026-09-10T16:00:00Z","open":8.895,"high":8.963,"low":8.852,"close":8.943,"volume":617832329,"amount":5504843800.0,"source":"tushare"},{"ts":"2026-09-13T16:00:00Z","open":8.907,"high":8.95,"low":8.875,"close":8.875,"volume":454825043,"amount":4054072488.0,"source":"tushare"},{"ts":"2026-09-14T16:00:00Z","open":8.849,"high":8.879,"low":8.814,"close":8.829,"volume":411399421,"amount":3637561794.0,"source":"tushare"},{"ts":"2026-09-15T16:00:00Z","open":8.828,"high":8.924,"low":8.804,"close":8.905,"volume":557027113,"amount":4945405163.0,"source":"tushare"},{"ts":"2026-09-16T16:00:00Z","open":8.86,"high":8.888,"low":8.787,"close":8.856,"volume":572748159,"amount":5062606690.0,"source":"tushare"}],"next_before":"2026-09-10T16:00:00Z"}
+HTTP=200
+
+--- 4.4 NEGATIVE CONTROL: period=W1 must still be 400 ---
+{"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: W1）"}
+HTTP=400
+--- 4.5 NEGATIVE CONTROL: period=M300 must still be 400 ---
+{"error":"period 须为 M1/M5/M15/M30/H1/D1（未知周期: M300）"}
+HTTP=400
+--- 4.6 startup log ERROR/WARN counts ---
+ERROR=0  WARN=0

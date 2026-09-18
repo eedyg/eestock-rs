@@ -1,0 +1,9 @@
+2026-09-18T12:50:44+08:00
+CMD: cargo check --all-targets
+    Checking storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Checking tushare v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/tushare)
+    Checking web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Checking app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.90s
+EXIT=0

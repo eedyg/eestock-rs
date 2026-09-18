@@ -1,0 +1,16 @@
+$ npx vitest run src/features/workbench/ConfigPanel.test.tsx src/api/client.test.ts src/api/mock.test.ts   # P5 前端配套
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/api/client.test.ts (42 tests) 11ms
+ ✓ src/api/mock.test.ts (51 tests) 59ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (16 tests) 733ms
+
+ Test Files  3 passed (3)
+      Tests  109 passed (109)
+   Start at  15:57:21
+   Duration  1.23s (transform 180ms, setup 69ms, collect 277ms, tests 803ms, environment 431ms, prepare 292ms)
+
+
+$ npx tsc -b   # 前端类型检查
+tsc exit=0

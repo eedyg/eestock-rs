@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 1 test
+[P4b/capture] 事件数=9 span 数=8
+[P4b/capture] p4b.segment spans=["p4b.segment"] fields={"bars_fetched": "300", "elapsed_us": "28", "period": "D1", "symbol": "600000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.submit spans=[] fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000000", "submit_fetch_ms": "0.028", "symbol": "600000", "trace_id": "489ab3d527625b963288d5e1d4dae307", "warmup_effective": "0"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "2", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.segment spans=["p4b.segment", "p4b.segment"] fields={"chunk_write_ms": "0.38", "chunk_writes": "4", "progress_db_throttled": "298", "progress_db_write_ms": "0.009", "progress_db_writes": "2", "progress_ws_send_ms": "0.015", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"bars_total": "300", "elapsed_us": "7615", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "3", "progress_drain_total_ms": "7.638", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "0", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "18", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] p4b.run_summary spans=["workbench_run"] fields={"bars_total": "300", "engine_ms": "7.615", "engine_share_pct": "98.99", "fetch_ms": "0.028", "global_db_write_ms_total": "0.009", "global_db_writes_total": "2", "global_frames_total": "300", "global_permit_hold_ms_total": "7.693", "global_runs_total": "1", "mark_started_ms": "0.002", "mark_started_share_pct": "0.03", "outcome": "succeeded", "permit_hold_ms": "7.693", "permit_wait_ms": "0.002", "progress_db_share_pct": "0.12", "progress_db_throttled": "298", "progress_db_write_ms": "0.009", "progress_db_writes": "2", "progress_drain_tail_ms": "0.003", "progress_drain_total_ms": "7.638", "progress_frame_avg_ms": "0.0045", "progress_frames_produced": "300", "progress_tail_share_pct": "0.04", "progress_ws_send_ms": "0.015", "result_serialize_ms": "0", "result_serialize_share_pct": "0", "result_write_ms": "0.018", "result_write_share_pct": "0.23", "run_id": "sr_1788915600000_000000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+[P4b/capture] span workbench_run fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000000", "symbol": "600000", "trace_id": "489ab3d527625b963288d5e1d4dae307"}
+test p4b_run_summary_counters_are_self_consistent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.01s
+

@@ -1,0 +1,29 @@
+### [④-a] tester 资产重钉**前**（旧 200_000 硬断言）⇒ 必红（新契约下）
+# 2026-09-18T09:53:16Z
+# 重钉前 sha256: f463cc653f7adc635dc743cf7fce0c439b9d038b60060495a32e55dfc8ede949
+
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.77s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+[④] estimated=199999 ⇒ 放行（run=sr_1789725197714_000000）
+
+thread 't_p5_resource_guard_thresholds_and_confirm' (1942764) panicked at crates/web/tests/tester_p5_indep.rs:533:16:
+≥200_000 且无 confirm ⇒ 必须 400
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test t_p5_resource_guard_thresholds_and_confirm ... FAILED
+
+failures:
+
+failures:
+    t_p5_resource_guard_thresholds_and_confirm
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p web --test tester_p5_indep`
+EXIT=101
+
+复原为重钉后：sha256=2ea7a9a6b530a6e02e4b93d7ed54e6130b7aa3a0167ec5b8824ec5947d4f1181

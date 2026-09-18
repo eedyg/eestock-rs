@@ -1,0 +1,57 @@
+### ②-a 门禁 ./scripts/check-tangle.sh（仓库脚本原始输出）
+TS=2026-09-18T14:38:23+08:00
+18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+check-tangle exit=0
+
+### ②-b 独立复算：沙箱内 entangled tangle -f 重新生成 → 逐字节比对 0027 产物
+（不修改工作区：拷贝 design/ + 目标文件到 mktemp 沙箱，清空 .entangled filedb）
+           INFO     create `crates/web/src/alerts.rs`
+           INFO     create `crates/web/tests/api_alerts.rs`
+           INFO     create `web/src/features/indicators/dcap.ts`
+           INFO     create `crates/strategy-core/reference-plugins/dcap.js`
+           WARNING  conflicts found, but continuing anyway
+--- 沙箱重新生成结果 ---
+total 116
+-rw------- 1 eestock eestock 3641 Sep 18 14:38 0001_init.sql
+-rw------- 1 eestock eestock 2027 Sep 18 14:38 0002_caggs.sql
+-rw------- 1 eestock eestock  941 Sep 18 14:38 0003_compression.sql
+-rw------- 1 eestock eestock 1440 Sep 18 14:38 0004_metrics.sql
+-rw------- 1 eestock eestock 1247 Sep 18 14:38 0005_sync_checkpoints.sql
+-rw------- 1 eestock eestock  710 Sep 18 14:38 0006_accurate_compression.sql
+-rw------- 1 eestock eestock  845 Sep 18 14:38 0007_circuit_reset.sql
+-rw------- 1 eestock eestock 2047 Sep 18 14:38 0008_holidays.sql
+-rw------- 1 eestock eestock 2888 Sep 18 14:38 0009_alert_engine.sql
+-rw------- 1 eestock eestock 2241 Sep 18 14:38 0010_accurate_caggs.sql
+-rw------- 1 eestock eestock 2019 Sep 18 14:38 0011_backtest.sql
+-rw------- 1 eestock eestock 1448 Sep 18 14:38 0012_backtest_run_extend.sql
+-rw------- 1 eestock eestock  575 Sep 18 14:38 0013_favorite_symbols.sql
+-rw------- 1 eestock eestock 2123 Sep 18 14:38 0014_weekly_monthly_caggs.sql
+-rw------- 1 eestock eestock  768 Sep 18 14:38 0015_ma_config.sql
+-rw------- 1 eestock eestock 1996 Sep 18 14:38 0016_weekly_monthly_full_history.sql
+-rw------- 1 eestock eestock 2828 Sep 18 14:38 0017_minute_caggs_full_history.sql
+-rw------- 1 eestock eestock 2454 Sep 18 14:38 0018_sim_session.sql
+-rw------- 1 eestock eestock  632 Sep 18 14:38 0019_sim_session_state.sql
+-rw------- 1 eestock eestock  845 Sep 18 14:38 0020_accurate_cagg_refresh.sql
+-rw------- 1 eestock eestock  711 Sep 18 14:38 0021_app_config.sql
+-rw------- 1 eestock eestock 4806 Sep 18 14:38 0022_strategy_registry.sql
+-rw------- 1 eestock eestock 2587 Sep 18 14:38 0023_strategy_workbench.sql
+-rw------- 1 eestock eestock  614 Sep 18 14:38 0024_drop_legacy_backtest_tables.sql
+-rw------- 1 eestock eestock 6947 Sep 18 14:38 0025_symbol_type_fee_profiles.sql
+-rw------- 1 eestock eestock 3545 Sep 18 14:38 0026_period_30m.sql
+-rw------- 1 eestock eestock 1340 Sep 18 14:19 0027_strategy_run_result_chunks.sql
+ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837  /tmp/p4verify-tangle.oyW7Nu/migrations/0027_strategy_run_result_chunks.sql
+ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837  migrations/0027_strategy_run_result_chunks.sql
+OK: 沙箱重新生成 == 仓库产物（0027 为 tangle 产物，未经手改）
+--- 反向对照（判别力）：沙箱内手改一行后是否仍能识别为不同 ---
+PROBE_OK: 篡改被检出（比对有判别力，反向对照）
+沙箱已删除
+
+### ②-c 判别力加强探针：篡改沙箱产物 → tangle -f 是否回写为文档内容（证明产物由文档生成，而非偶合）
+篡改后 sha256（沙箱）: 1a007f0687a49fb409922e6e358b2a194955023986f84a9143baf2735ae14b4e
+tangle -f 后 sha256（沙箱）: ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837
+仓库产物 sha256          : ed972b0d506a7a89791d4aff09791c3aeff594602709dd00f549e28ffd1bf837
+PROBE_OK: tangle 回写抹掉了手改行 ⇒ 仓库产物内容确由 design 文档块生成（非偶合相等）
+0
+（TAMPER 行已消失：grep 命中 0）
+沙箱已删除

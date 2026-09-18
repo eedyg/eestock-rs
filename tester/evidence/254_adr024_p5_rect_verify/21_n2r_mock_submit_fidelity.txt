@@ -1,0 +1,36 @@
+## N2-r（残余·LOW）：mock 的**工作台提交**路径未镜像 P5 收缩/护栏（仅试算路径镜像）
+
+$ grep -n 'async submitWorkbenchRun' -A 6 web/src/api/mock.ts
+1693:    async submitWorkbenchRun(req: WorkbenchSubmitReq): Promise<WorkbenchRunView> {
+1694-      // web 层预校验同构（workbench.rs submit_run）：symbol 空/未注册、period、from/to、slots、fee
+1695-      if (!req.symbol.trim()) throw new ApiError(400, 'HTTP 400: symbol 必填');
+1696-      if (!symbols.some((s) => s.code === req.symbol)) {
+1697-        throw new ApiError(400, `HTTP 400: symbol ${req.symbol} 未注册`);
+1698-      }
+1699-      if (!(SUPPORTED_BACKTEST_PERIODS as readonly string[]).includes(req.period)) {
+
+$ grep -n "clamped: false\|clamp_reason: null" web/src/api/mock.ts
+766:      clamped: false,
+767:      clamp_reason: null,
+1776:        clamped: false,
+1777:        clamp_reason: null,
+
+$ workbench 提交路径的 400 是否带 code（grep 'throw new ApiError(400' 在 submitWorkbenchRun 区间内）
+3:      if (!req.symbol.trim()) throw new ApiError(400, 'HTTP 400: symbol 必填');
+5:        throw new ApiError(400, `HTTP 400: symbol ${req.symbol} 未注册`);
+8:        throw new ApiError(400, `HTTP 400: period 须为 ${SUPPORTED_BACKTEST_PERIODS.join('/')}`);
+12:      if (Number.isNaN(fromMs) || Number.isNaN(toMs)) throw new ApiError(400, 'HTTP 400: from/to 须为 RFC3339');
+13:      if (fromMs >= toMs) throw new ApiError(400, 'HTTP 400: from 须早于 to');
+15:        throw new ApiError(400, 'HTTP 400: slots 必填（1..=10）');
+18:        if (typeof req.fee?.[key] !== 'number') throw new ApiError(400, `HTTP 400: fee.${key} 缺失或应为数值`);
+23:      if (buy <= sell) throw new ApiError(400, 'HTTP 400: 阈值倒挂（buy_threshold 须 > sell_threshold）');
+25:        if (!(s.weight > 0)) throw new ApiError(400, 'HTTP 400: weight 须 > 0');
+27:        if (!v) throw new ApiError(404, `HTTP 404: 版本 ${s.version_id} 不存在`);
+28:        if (v.status !== 'published') throw new ApiError(400, `HTTP 400: 版本 ${s.version_id} 非 published`);
+32:            throw new ApiError(400, `HTTP 400: 未知参数键: ${k}（schema 未声明）`);
+38:          if (typeof val !== 'number' || Number.isNaN(val)) throw new ApiError(400, `HTTP 400: 参数 ${p.key} 须为数值`);
+40:            throw new ApiError(400, `HTTP 400: 参数 ${p.key} 越 schema 范围`);
+54:      if (!policy || (!policy.LumpSum && !policy.Dca)) throw new ApiError(400, 'HTTP 400: policy 非法');
+
+⇒ 结论：mock 提交路径的 400 仍为**字符串形状**（无 code/detail），且无 range_empty / resource_guard / 收缩回显；
+   该路径在 N2 判据（日历档删除 + 向量绑定 + 试算同口径）之**外**，登记为残余观察项（dev-mock 保真度）。

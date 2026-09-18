@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/adr024_p2b_orchestrator.rs (target/debug/deps/adr024_p2b_orchestrator-d9ce500227a2f7d4)
+
+running 3 tests
+test orchestrator_ctx_bars_is_prefix_shared_and_has_no_future ... [P2b/sim-live] ctx.bars 可见面探针：rows=20 违例=0
+  idx=0 bars_len=1 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true history_ptr=0x7c5bd40018d0
+  idx=1 bars_len=2 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true history_ptr=0x7c5bd40018d0
+  idx=2 bars_len=3 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true history_ptr=0x7c5bd40018d0
+  共享句柄身份跨 bar 恒等 = true
+ok
+test orchestrator_per_bar_allocation_does_not_grow_with_index ... P2b-simlive alloc/bar（bytes）: n=2000 1060.2 → n=4000 1058.8 (ratio=0.999)
+P2b-simlive wall（ms）: n=2000 34.2 → n=4000 67.8 (ratio=1.981)
+ok
+test orchestrator_scores_bitwise_equal_to_compat_path ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+exit=0

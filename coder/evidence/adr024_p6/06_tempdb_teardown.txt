@@ -1,0 +1,7 @@
+### ADR-024 P6 临时库 teardown（ADR-025 D3）
+### 库名: tmp_p6_20260918150131
+### cmd: DROP DATABASE "tmp_p6_20260918150131" WITH (FORCE);
+DROP DATABASE
+### 回读库清单（期望只剩 eestock / postgres）:
+eestock
+postgres

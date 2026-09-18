@@ -1,0 +1,28 @@
+### [⑤-c] cargo check --all-targets
+# 2026-09-18T09:56:57Z
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.97s
+EXIT=0

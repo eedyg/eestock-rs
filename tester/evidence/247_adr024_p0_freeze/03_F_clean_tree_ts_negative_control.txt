@@ -1,0 +1,23 @@
+=== 03-F: TS negative control inside clean tree (hide exported contract-vectors.json) 2026-09-18T13:03:41+08:00 ===
+$ mv ../design/16-backtest-scalability/contract-vectors.json /tmp/adr024_frz/cv.json.hidden2
+$ npx vitest run src/features/backtest/periods.test.ts src/features/strategies/TestRunPanel.test.tsx src/features/workbench/ConfigPanel.test.tsx
+ FAIL  src/features/backtest/periods.test.ts [ src/features/backtest/periods.test.ts ]
+Error: ENOENT: no such file or directory, open '<CLEAN_TREE>/design/16-backtest-scalability/contract-vectors.json'
+ FAIL  src/features/strategies/TestRunPanel.test.tsx [ src/features/strategies/TestRunPanel.test.tsx ]
+Error: ENOENT: no such file or directory, open '<CLEAN_TREE>/design/16-backtest-scalability/contract-vectors.json'
+ FAIL  src/features/workbench/ConfigPanel.test.tsx [ src/features/workbench/ConfigPanel.test.tsx ]
+Error: ENOENT: no such file or directory, open '<CLEAN_TREE>/design/16-backtest-scalability/contract-vectors.json'
+ Test Files  3 failed (3)
+      Tests  no tests
+TS_NEGATIVE_EXIT=1
+
+--- restore ---
+$ npx vitest run (same 3 files) after restore
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 724ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  13:03:42
+   Duration  1.24s (transform 125ms, setup 71ms, collect 239ms, tests 892ms, environment 433ms, prepare 157ms)
+
+TS_RESTORE_EXIT=0

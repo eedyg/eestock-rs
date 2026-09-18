@@ -1,0 +1,10 @@
+   Compiling alert v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/alert)
+   Compiling collector v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/collector)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling providers v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/providers)
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling tushare v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/tushare)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.35s

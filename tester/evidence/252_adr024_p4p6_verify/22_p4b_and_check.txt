@@ -1,0 +1,26 @@
+### ⑦-e P4b 仪表仍在位（自洽测试）
+TS=2026-09-18T15:24:29+08:00
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "1", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.segment spans=["p4b.segment", "p4b.segment"] fields={"chunk_write_ms": "0.397", "chunk_writes": "4", "progress_db_write_ms": "0.006", "progress_db_writes": "300", "progress_ws_send_ms": "0.019", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"bars_total": "300", "elapsed_us": "7698", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "4", "progress_drain_total_ms": "7.719", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "0", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "11", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] p4b.run_summary spans=["workbench_run"] fields={"bars_total": "300", "engine_ms": "7.698", "engine_share_pct": "99.19", "fetch_ms": "0.035", "global_db_write_ms_total": "0.006", "global_db_writes_total": "300", "global_frames_total": "300", "global_permit_hold_ms_total": "7.761", "global_runs_total": "1", "mark_started_ms": "0.001", "mark_started_share_pct": "0.01", "outcome": "succeeded", "permit_hold_ms": "7.761", "permit_wait_ms": "0.002", "progress_db_share_pct": "0.08", "progress_db_write_ms": "0.006", "progress_db_writes": "300", "progress_drain_tail_ms": "0.004", "progress_drain_total_ms": "7.719", "progress_frame_avg_ms": "0.00002", "progress_frames_produced": "300", "progress_tail_share_pct": "0.05", "progress_ws_send_ms": "0.019", "result_serialize_ms": "0", "result_serialize_share_pct": "0", "result_write_ms": "0.011", "result_write_share_pct": "0.14", "run_id": "sr_1788915600000_000000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+[P4b/capture] span workbench_run fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000000", "symbol": "600000", "trace_id": "993c0e80f3a4adb629e01f899ceb7df6"}
+test p4b_run_summary_counters_are_self_consistent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.02s
+
+EXIT=0
+
+### ⑦-f cargo check --workspace --all-targets
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:188:4
+    |
+188 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.50s
+EXIT=0

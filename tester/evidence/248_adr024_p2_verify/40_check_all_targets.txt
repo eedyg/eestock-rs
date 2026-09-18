@@ -1,0 +1,11 @@
+$ cargo check --workspace --all-targets
+    Checking backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Checking strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Checking strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Checking simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Checking web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Checking app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.93s
+[exit 0]

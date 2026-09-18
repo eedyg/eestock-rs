@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 5 tests
+test session_finish_force_closes_open_position ... ok
+test session_observer_called_per_bar_and_break_is_immediate ... ok
+test session_handles_empty_single_and_warmup_overflow ... ok
+test session_chunked_feed_matches_single_feed ... ok
+test session_push_matches_batch_entry_bitwise ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

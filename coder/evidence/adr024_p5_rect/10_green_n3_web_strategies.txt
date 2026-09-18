@@ -1,0 +1,18 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.72s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-3954ee17ee87b183)
+
+running 9 tests
+test guide_endpoint_returns_markdown_full_text ... ok
+test create_validation_400 ... ok
+test publish_gate_rejects_bad_code_400 ... ok
+test manage_endpoint_lists_all_strategies_with_aggregates ... ok
+test registry_lifecycle_end_to_end ... ok
+test patch_meta_update_and_error_semantics ... ok
+test catalog_filters_and_validation ... ok
+test delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 ... ok
+test test_run_both_modes_and_errors ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+

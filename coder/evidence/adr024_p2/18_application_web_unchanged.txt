@@ -1,0 +1,1 @@
+ZERO-DIFF: crates/application/** 与 crates/web/** 逐文件 sha256 未变（本批 P2 未触碰调用方）

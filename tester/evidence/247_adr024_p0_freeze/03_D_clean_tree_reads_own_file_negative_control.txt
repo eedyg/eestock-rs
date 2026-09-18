@@ -1,0 +1,50 @@
+=== 03-D: PROOF the clean-tree test binary reads the CLEAN TREE's contract vectors (not the workspace copy) ===
+$ strings -a /tmp/adr024_clean_target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e | grep -m3 'adr024_clean_frz01\|eestock-rs/crates/application'
+This indicates a bug in the program. This Undefined Behavior check is optional, and cannot be relied on for safety./tmp/adr024_clean_frz01/crates/application../../design/16-backtest-scalability/contract-vectors.jsondashboard_and_non_backtest_tiers_still_rejectedcrates/application/tests/backtest_periods_ssot.rsevery_ssot_period_parses_roundtripm30_maps_to_both_m30_variantsssot_has_no_duplicatesssot_is_the_canonical_six_tier_setssot_matches_contract_vectors_backtest_periodssupported_backtest_periods() 
+/tmp/adr024_clean_frz01
+  -> baked CARGO_MANIFEST_DIR points INTO the clean export tree => runtime read targets the exported file
+
+--- D.2 NEGATIVE CONTROL: hide the exported contract-vectors.json -> same clean-tree test MUST hard-fail ---
+$ mv /tmp/adr024_clean_frz01/design/16-backtest-scalability/contract-vectors.json /tmp/adr024_frz/cv.json.hidden
+$ test -f design/16-backtest-scalability/contract-vectors.json
+ABSENT (as intended for the negative control)
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p application --test backtest_periods_ssot
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/backtest_periods_ssot.rs (/tmp/adr024_clean_target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+
+running 6 tests
+test every_ssot_period_parses_roundtrip ... ok
+test m30_maps_to_both_m30_variants ... ok
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_matches_contract_vectors_backtest_periods ... FAILED
+
+failures:
+
+---- ssot_matches_contract_vectors_backtest_periods stdout ----
+
+thread 'ssot_matches_contract_vectors_backtest_periods' (4156313) panicked at crates/application/tests/backtest_periods_ssot.rs:26:29:
+契约向量文件不可读 /tmp/adr024_clean_frz01/crates/application/../../design/16-backtest-scalability/contract-vectors.json：No such file or directory (os error 2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    ssot_matches_contract_vectors_backtest_periods
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test backtest_periods_ssot`
+NEGATIVE_CONTROL_EXIT=101
+
+--- D.3 restore inside export tree and re-run (green again) ---
+$ git -C /home/eestock/workspace/git/eestock/eestock-rs hash-object /tmp/adr024_clean_frz01/design/16-backtest-scalability/contract-vectors.json  (must == index blob 4bcaf350...)
+4bcaf35085da20145695b4e0fba14555a2dcd4ee
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p application --test backtest_periods_ssot
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+RESTORE_EXIT=0

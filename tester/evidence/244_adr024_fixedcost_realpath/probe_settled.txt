@@ -1,0 +1,59 @@
+# ===== ADR-024 P1c ① 真路径每 run UPDATE 计数 ===== (v2 settle)
+# date_utc      : 2026-09-17T16:43:38Z
+# engine_commit : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+# app binary    : /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+# app pid       : 178558  cmdline=./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+# db            : postgres://eestock@127.0.0.1:5433/eestock (app config /tmp/app_dev_8081.toml)
+# API           : http://127.0.0.1:8081 (现网 REST = 生产真路径)
+
+### —— 前置：闲置漂移对照（不提交任何 run）——
+IDLE before=359886 after=359886 Δ=0  db before=637403|3193026 after=637403|3193051
+
+[SUBMIT t1_small_d1_492] pre_t=2026-09-17T16:43:55.700Z pre_tup_upd=359886 pre_tup_ins=2352 pre_db(tup_updated|xact_commit)=637403|3193069 inflight_before=0
+[RESPID t1_small_d1_492] "id":"sr_1789663435710_000003"  [http=201 wall=0.009938s]
+[RUNID  t1_small_d1_492] sr_1789663435710_000003
+[TERM   t1_small_d1_492] status=succeeded term_t=2026-09-17T16:43:57.068Z post_t=2026-09-17T16:44:00.382Z
+[DELTA  t1_small_d1_492] tup_upd: 359886 -> 360358  Δ_upd=472   tup_ins: 2352 -> 2353 (Δ=1)
+[DELTA  t1_small_d1_492] db: 637403|3193069 -> 637875|3193603
+t1_small_d1_492|row|sr_1789663435710_000003|D1|518880|succeeded|progress=1|started=2026-09-17 16:43:55.713633+00|finished=2026-09-17 16:43:57.018577+00
+t1_small_d1_492|bars|id=sr_1789663435710_000003|bars_per_bar=492|trades=6|dur_s=1.304944|per_bar_bytes=5170
+t1_small_d1_492|concurrency|window=[2026-09-17T16:43:55.700Z,2026-09-17T16:44:00.382Z]|overlapping_other_runs=0
+[TAG   t1_small_d1_492] done
+
+[SUBMIT t4_small2_m5_650] pre_t=2026-09-17T16:44:03.287Z pre_tup_upd=360380 pre_tup_ins=2353 pre_db(tup_updated|xact_commit)=637897|3193685 inflight_before=0
+[RESPID t4_small2_m5_650] "id":"sr_1789663443311_000004"  [http=201 wall=0.025036s]
+[RUNID  t4_small2_m5_650] sr_1789663443311_000004
+[TERM   t4_small2_m5_650] status=succeeded term_t=2026-09-17T16:44:05.103Z post_t=2026-09-17T16:44:09.468Z
+[DELTA  t4_small2_m5_650] tup_upd: 360380 -> 360877  Δ_upd=497   tup_ins: 2353 -> 2354 (Δ=1)
+[DELTA  t4_small2_m5_650] db: 637897|3193685 -> 638394|3194244
+t4_small2_m5_650|row|sr_1789663443311_000004|M5|159740|succeeded|progress=1|started=2026-09-17 16:44:03.31526+00|finished=2026-09-17 16:44:05.040822+00
+t4_small2_m5_650|bars|id=sr_1789663443311_000004|bars_per_bar=650|trades=15|dur_s=1.725562|per_bar_bytes=7366
+t4_small2_m5_650|concurrency|window=[2026-09-17T16:44:03.287Z,2026-09-17T16:44:09.468Z]|overlapping_other_runs=0
+[TAG   t4_small2_m5_650] done
+
+[SUBMIT t2_medium_m5_3500] pre_t=2026-09-17T16:44:12.374Z pre_tup_upd=360941 pre_tup_ins=2354 pre_db(tup_updated|xact_commit)=638458|3194341 inflight_before=0
+[RESPID t2_medium_m5_3500] "id":"sr_1789663452400_000005"  [http=201 wall=0.025486s]
+[RUNID  t2_medium_m5_3500] sr_1789663452400_000005
+[TERM   t2_medium_m5_3500] status=succeeded term_t=2026-09-17T16:44:15.070Z post_t=2026-09-17T16:44:18.363Z
+[DELTA  t2_medium_m5_3500] tup_upd: 360941 -> 361881  Δ_upd=940   tup_ins: 2354 -> 2355 (Δ=1)
+[DELTA  t2_medium_m5_3500] db: 638458|3194341 -> 639398|3195359
+t2_medium_m5_3500|row|sr_1789663452400_000005|M5|159740|succeeded|progress=1|started=2026-09-17 16:44:12.403279+00|finished=2026-09-17 16:44:14.995538+00
+t2_medium_m5_3500|bars|id=sr_1789663452400_000005|bars_per_bar=3500|trades=105|dur_s=2.592259|per_bar_bytes=44033
+t2_medium_m5_3500|concurrency|window=[2026-09-17T16:44:12.374Z,2026-09-17T16:44:18.363Z]|overlapping_other_runs=0
+[TAG   t2_medium_m5_3500] done
+
+[SUBMIT t3_large_m1_16155] pre_t=2026-09-17T16:44:21.266Z pre_tup_upd=361960 pre_tup_ins=2355 pre_db(tup_updated|xact_commit)=639477|3195466 inflight_before=0
+[RESPID t3_large_m1_16155] "id":"sr_1789663461850_000006"  [http=201 wall=0.583605s]
+[RUNID  t3_large_m1_16155] sr_1789663461850_000006
+[TERM   t3_large_m1_16155] status=succeeded term_t=2026-09-17T16:44:24.634Z post_t=2026-09-17T16:44:26.881Z
+[DELTA  t3_large_m1_16155] tup_upd: 361960 -> 363025  Δ_upd=1065   tup_ins: 2355 -> 2356 (Δ=1)
+[DELTA  t3_large_m1_16155] db: 639477|3195466 -> 640542|3196606
+t3_large_m1_16155|row|sr_1789663461850_000006|M1|518880|succeeded|progress=1|started=2026-09-17 16:44:21.85351+00|finished=2026-09-17 16:44:24.431377+00
+t3_large_m1_16155|bars|id=sr_1789663461850_000006|bars_per_bar=16155|trades=480|dur_s=2.577867|per_bar_bytes=187352
+t3_large_m1_16155|concurrency|window=[2026-09-17T16:44:21.266Z,2026-09-17T16:44:26.881Z]|overlapping_other_runs=0
+[TAG   t3_large_m1_16155] done
+
+### —— 后置：闲置漂移对照 ——
+IDLE2 before=363025 after=363038 Δ=13
+TOTAL n_tup_upd=363038 n_tup_ins=2356 n_tup_del=1976
+### —— 结束 ——

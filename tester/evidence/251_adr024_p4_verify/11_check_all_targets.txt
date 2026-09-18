@@ -1,0 +1,21 @@
+### ⑦-c cargo check --all-targets（工作区全 target）
+TS=2026-09-18T14:46:23+08:00 HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+    Checking domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+    Checking strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Checking simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Checking storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+    Checking application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Checking diagnose v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/diagnose)
+    Checking alert v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/alert)
+    Checking collector v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/collector)
+    Checking providers v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/providers)
+    Checking web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Checking mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Checking tushare v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/tushare)
+    Checking app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.62s
+
+real	0m3.665s
+user	0m24.985s
+sys	0m4.501s
+check exit=0

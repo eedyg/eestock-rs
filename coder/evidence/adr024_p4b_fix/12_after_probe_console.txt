@@ -1,0 +1,23 @@
+# ===== ADR-024 D15 任务一：时间窗节流前后对照（真路径；临时库 tmp_p4bfix_1789724479）=====
+# date_utc : 2026-09-18T09:44:21.939Z
+# app      : http://127.0.0.1:18085
+# app log  : /tmp/p4bfix_after_app.log
+
+### 串行三档 run
+[SUBMIT small_d1_483] [http=201 wall=0.026666s]
+[TERM small_d1_483] status=succeeded t_submit=2026-09-18T09:44:21.972Z t_terminal=2026-09-18T09:44:22.002Z rid=sr_1789724661967_000000
+small_d1_483|row|sr_1789724661967_000000|D1|518880|succeeded|progress=1|bars=0|dur_s=0.028636
+[SUBMIT medium_m1_3615] [http=201 wall=0.469019s]
+[TERM medium_m1_3615] status=succeeded t_submit=2026-09-18T09:44:22.497Z t_terminal=2026-09-18T09:44:22.624Z rid=sr_1789724662489_000001
+medium_m1_3615|row|sr_1789724662489_000001|M1|518880|succeeded|progress=1|bars=0|dur_s=0.116901
+[SUBMIT large_m1_16147] [http=201 wall=0.432505s]
+[TERM large_m1_16147] status=succeeded t_submit=2026-09-18T09:44:23.082Z t_terminal=2026-09-18T09:44:23.494Z rid=sr_1789724663078_000002
+large_m1_16147|row|sr_1789724663078_000002|M1|518880|succeeded|progress=1|bars=0|dur_s=0.384372
+
+### 提取 p4b.run_summary（每 run 一行）
+run_id	bars_total	progress_frames_produced	progress_db_writes	progress_db_throttled	progress_db_write_ms	progress_db_share_pct	permit_hold_ms	progress_drain_tail_ms	engine_ms	outcome
+sr_1789724661967_000000	733	733	2	731	2.685	8.67	30.967	12.457	14.202	succeeded
+sr_1789724662489_000001	3865	1001	2	999	2.625	2.19	119.768	44.863	70.362	succeeded
+sr_1789724663078_000002	16397	1001	3	998	3.73	0.95	393.244	98.44	284.291	succeeded
+
+### —— 结束 ——

@@ -1,0 +1,7 @@
+test missing_relations_detected ... ok
+test verify_schema_passes_on_migrated_db ... ok
+test event_roundtrip_na_and_circuit_kinds ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test j6_expected_relations_contains_kline_accurate_30m ... ok
+test j6_existing_relations_not_removed ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

@@ -1,0 +1,18 @@
+=== TASK0: baseline capture 2026-09-18T13:01:20+08:00 ===
+--- HEAD ---
+18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+master
+--- sha256 (disk) baseline ---
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+e5ce37bb4ad0ff77f849c50b43e63b82044f7f97df0982d512950bd921bd14ab  web/src/features/strategies/TestRunPanel.test.tsx
+8c8b819c1c75672a3761ef3ecdc4a4ad551d51cae8c84b126706e9b22d3c0788  web/src/features/workbench/ConfigPanel.test.tsx
+2dea0ea48cc032985bcce66137e9f7cb1205f990f04fe99425f717ae034410af  web/src/features/backtest/periods.test.ts
+838530eeb02edcefa315cbc5ae1d485fe44e8bde51e43c1cf06c9f00a520281d  design/16-backtest-scalability/contract-vectors.json
+--- git blob hash (disk vs index) baseline ---
+web/src/features/backtest/periods.ts                                 idx=799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44 disk=799c18cc4aeea82a568f0a89ecb4fb3a2fe22a44
+web/src/features/strategies/TestRunPanel.test.tsx                    idx=fe91ef400623a3588c995ecef74780ca2e794d32 disk=fe91ef400623a3588c995ecef74780ca2e794d32
+web/src/features/workbench/ConfigPanel.test.tsx                      idx=a96358690c9bcc36c0223228d82e6af8858fd0a9 disk=a96358690c9bcc36c0223228d82e6af8858fd0a9
+web/src/features/backtest/periods.test.ts                            idx=8eb8c80f95961ea3392792632b1052d1e700c181 disk=8eb8c80f95961ea3392792632b1052d1e700c181
+design/16-backtest-scalability/contract-vectors.json                 idx=4bcaf35085da20145695b4e0fba14555a2dcd4ee disk=4bcaf35085da20145695b4e0fba14555a2dcd4ee
+--- periods.ts line 17 ---
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;

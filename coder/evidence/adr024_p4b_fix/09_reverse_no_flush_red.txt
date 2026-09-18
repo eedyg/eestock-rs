@@ -1,0 +1,27 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.19s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 3 tests
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... ok
+test p4b_progress_db_time_window_throttle_reduces_writes ... ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... FAILED
+
+failures:
+
+---- p4b_progress_terminal_frame_persisted_on_cancel stdout ----
+
+thread 'p4b_progress_terminal_frame_persisted_on_cancel' (1853700) panicked at crates/application/tests/workbench.rs:1580:5:
+assertion `left == right` failed: 取消路径：末帧（<1.0）必须经排水补写入库（节流不得吞掉终态）——
+sink 末帧=0.316 但 update_progress 末次=Some(0.301)（writes=2/produced=317）
+  left: Some(0.301)
+ right: Some(0.316)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    p4b_progress_terminal_frame_persisted_on_cancel
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.31s
+
+error: test failed, to rerun pass `-p application --test workbench`

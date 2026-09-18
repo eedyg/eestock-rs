@@ -1,0 +1,21 @@
+### 残留行复核（临时库，将被销毁）
+            id            |              name              | symbol |  status   
+--------------------------+--------------------------------+--------+-----------
+ sr_1789713789626_000002  |                                | 824568 | succeeded
+ sr_1789713797132_000002  |                                | 824945 | succeeded
+ sr_1789713810883_000002  |                                | 825368 | succeeded
+ sr_1789713818635_000002  |                                | 825754 | succeeded
+ tp4w434568_craft_chunked | tp4w434568_craft-chunked       | 834568 | succeeded
+ tp4w434568_craft_legacy  | tp4w434568_craft-legacy        | 834568 | succeeded
+ tp4m436417_chunked       | tester-mcp-tp4m436417_chunked  | 999999 | succeeded
+ tp4m436417_legacy        | tester-mcp-tp4m436417_legacy   | 999999 | succeeded
+ tp4m436417_noresult      | tester-mcp-tp4m436417_noresult | 999999 | running
+ tp4m436663_chunked       | tester-mcp-tp4m436663_chunked  | 999999 | succeeded
+ tp4m436663_legacy        | tester-mcp-tp4m436663_legacy   | 999999 | succeeded
+ tp4m436663_noresult      | tester-mcp-tp4m436663_noresult | 999999 | running
+(12 rows)
+
+--- tester 自清理复核：tester 造出的 run 是否已删净 ---
+tester 残留 run 数（期望 0）: 12
+临时库 strategy_run_bars 行数: 30
+临时库 strategy_run_result 行数: 10

@@ -1,0 +1,5 @@
+run_id                 	bars_total	progress_frames_produced	progress_db_writes	progress_db_throttled	progress_db_write_ms	progress_db_share_pct	permit_hold_ms	progress_drain_tail_ms	engine_ms	outcome  
+sr_1789724544535_000000	733       	733                     	733               	                     	624.132             	97.1                 	642.757       	624.745               	14.279   	succeeded
+sr_1789724545694_000001	3865      	1001                    	1001              	                     	853.79              	93.79                	910.276       	834.786               	70.41    	succeeded
+sr_1789724547117_000002	16397     	1001                    	1001              	                     	825.748             	79.75                	1035.404      	725.598               	298.639  	succeeded
+# rows=3

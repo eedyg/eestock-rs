@@ -1,0 +1,14 @@
+
+Running 3 tests using 1 worker
+
+[⑤-A] P5RV_EXPECT=stuck /api/strategies 200 次数=2 option 数=1 恒卡=true 第1项="加载中…"
+  ✓  1 [chromium] › blast_radius.e2e.ts:55:1 › ⑤-A 首屏：下拉状态（prod=healthy 期望 / dev=stuck 期望） (20.2s)
+[⑤-B] 首挂 option 数=1 恒卡=true
+[⑤-B] 往返后 option 数=1 恒卡=true 第1项="加载中…"（/api/strategies 200 次数=4）
+  ✓  2 [chromium] › blast_radius.e2e.ts:73:1 › ⑤-B 生产可达性探针：SPA 路由往返（卸载 → dispose → 重建） (40.7s)
+[⑤-C] 第 1 次往返 option 数=1 恒卡=true
+[⑤-C] 第 2 次往返 option 数=1 恒卡=true
+[⑤-C] reload 后 option 数=1 恒卡=true
+  ✓  3 [chromium] › blast_radius.e2e.ts:102:1 › ⑤-C 生产可达性探针：二次往返 + 整页重载 (1.3m)
+
+  3 passed (2.4m)

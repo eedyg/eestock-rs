@@ -1,0 +1,4 @@
+### ADR-024 P6 tangle 门禁（设计↔生成物一致）
+### cmd: ./scripts/check-tangle.sh
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+exit=0

@@ -1,0 +1,17 @@
+
+Running 4 tests using 1 worker
+
+[N4①] 策略下拉 option 数 = 19
+[N4①] 第 1 项文案 = 添加策略…
+  ✓  1 [chromium] › prod_real_render.e2e.ts:12:1 › N4① 策略下拉非空（catalog 真加载） (187ms)
+[N4②] 渲染文案 = 提交失败：该标的该周期无数据（可用区间：2013-07-28T16:00:00+00:00 ~ 2026-09-16T16:00:01+00:00）（HTTP 400 /api/workbench/runs: 请求区间与可得区间无交集（518880 D1 可用区间：2013-07-28T16:00:00+00:00 ~ 2026-09-16T16:00:01+00:00））
+[N4②] 原始 400 body = {"error":{"code":"range_empty","detail":{"available_from":"2013-07-28T16:00:00+00:00","available_to":"2026-09-16T16:00:01+00:00","period":"D1","requested_from":"2010-01-01T00:00:00+00:00","requested_to":"2010-02-01T00:00:00+00:00","symbol":"518880"},"message":"请求区间与可得区间无交集（518880 D1 可用区间：2013-07-28T16:00:00+00:00 ~ 2026-09-16T16:00:01+00:00）"}}
+  ✓  2 [chromium] › prod_real_render.e2e.ts:23:1 › N4② range_empty 按 code 渲染 (359ms)
+[N4③] 提示条文案 = 已按实际数据范围收缩：2013-07-28 ~ 2013-08-04（原因：数据可得范围）
+  ✓  3 [chromium] › prod_real_render.e2e.ts:59:1 › N4③ clamped 提示条 (330ms)
+[N4④] 确认前 run 行数 = 6
+[N4④] 二次确认文案 = 预估 770236 根 bar（约 482.2 秒），达到二次确认阈值。 仍要提交 取消
+[N4④] 确认后 run 行数 = 7
+  ✓  4 [chromium] › prod_real_render.e2e.ts:80:1 › N4④ resource_guard 二次确认 → 确认后 201 + 新 run 入历史 (6.5s)
+
+  4 passed (7.8s)

@@ -1,0 +1,38 @@
+### ⑤-a 缺口 grep 重跑（P4 报告 13_frontend_gap.txt 的 0 命中项必须非 0）
+TS=2026-09-18T15:20:42+08:00
+has_more         hits=34
+next_offset      hits=30
+downsampled      hits=37
+original_bars    hits=22
+result_format    hits=18
+bars_total       hits=4
+chunk_count      hits=2
+recorded         hits=20
+--- URL 级端点 ---
+runs/${        hits=7
+/brief         hits=7
+/bars          hits=27
+/curve         hits=27
+/fills         hits=20
+--- 命中明细（端点 URL）---
+85:/** 页面⑪ 结果取数：`/bars` 查询参数（`kind` 缺省 per_bar；`offset/limit` 与 `from/to` 互斥）。 */
+249:  /** 提交 ensemble 运行（POST /api/workbench/runs；201 queued 行含钉住 config 快照） */
+251:  /** 运行历史（GET /api/workbench/runs；status 过滤 + limit/offset 分页；轻量不含结果） */
+257:  /** 单 run 详情（GET /api/workbench/runs/{id}；404 未知 id） */
+259:  /** 运行结果（GET /api/workbench/runs/{id}/result；ADR-024 §3.2 **兼容**：legacy 全量；
+262:  /** 轻量摘要（GET /api/workbench/runs/{id}/brief；列表/轮询用；404 未知） */
+264:  /** 分页/区间读 bar（GET /api/workbench/runs/{id}/bars；`offset/limit` 与 `from/to` **互斥**） */
+266:  /** 显式抽样曲线（GET /api/workbench/runs/{id}/curve；`downsampled`/`original_bars` 必带） */
+271:  /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
+273:  /** 协作式取消（POST /api/workbench/runs/{id}/cancel；409 已终态/404 未知） */
+275:  /** 多 run 并排对比（POST /api/workbench/runs/compare body {ids, k?}；**服务端抽样**净值；
+528:      request<WorkbenchRunView>('/api/workbench/runs', { method: 'POST', body: JSON.stringify(req) }),
+535:      return get<WorkbenchRunView[]>(`/api/workbench/runs${qs ? `?${qs}` : ''}`);
+537:    getWorkbenchRun: (id) => get<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}`),
+539:      get<WorkbenchRunResult>(`/api/workbench/runs/${encodeURIComponent(id)}/result`),
+541:      get<WorkbenchResultBrief>(`/api/workbench/runs/${encodeURIComponent(id)}/brief`),
+551:        `/api/workbench/runs/${encodeURIComponent(id)}/bars${qs ? `?${qs}` : ''}`,
+558:        `/api/workbench/runs/${encodeURIComponent(id)}/curve?${params.toString()}`,
+567:        `/api/workbench/runs/${encodeURIComponent(id)}/fills${qs ? `?${qs}` : ''}`,
+571:      request<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
+573:      request<WorkbenchCompareItem[]>('/api/workbench/runs/compare', {

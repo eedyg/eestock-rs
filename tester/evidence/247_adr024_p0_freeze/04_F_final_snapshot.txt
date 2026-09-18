@@ -1,0 +1,183 @@
+=== 04-F: FINAL SNAPSHOT (post-verification, before cleanup) 2026-09-18T13:04:20+08:00 ===
+$ git rev-parse HEAD
+18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+$ git log -1 --oneline
+18d1b9a docs(report): ADR-023 E6b 第二刀的报告与四段验收证据
+$ git diff --cached --name-only | wc -l  (must stay 55 = unchanged by tester)
+55
+$ git diff --cached --shortstat
+ 55 files changed, 3464 insertions(+), 56 deletions(-)
+$ git status --porcelain | wc -l
+122
+$ git status --porcelain | grep -c '^[MAD] '  (staged)
+55
+$ git status --porcelain | grep -c '^ M'  (unstaged, pre-existing/concurrent)
+3
+$ git status --porcelain | grep -c '^??'  (untracked)
+64
+--- unstaged list ---
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/99-decisions-log.md
+ M docker-compose.yml
+--- untracked (adr024-related only) ---
+coder/report/adr024_p0_rect2_testrunpanel.md
+tester/evidence/240_adr024_golden_baseline/README.md
+tester/evidence/240_adr024_golden_baseline/compare.sh
+tester/evidence/240_adr024_golden_baseline/compare_report.txt
+tester/evidence/240_adr024_golden_baseline/d1_1slot/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/d1_1slot/case.json
+tester/evidence/240_adr024_golden_baseline/d1_1slot/expected.json
+tester/evidence/240_adr024_golden_baseline/d1_3slots/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/d1_3slots/case.json
+tester/evidence/240_adr024_golden_baseline/d1_3slots/expected.json
+tester/evidence/240_adr024_golden_baseline/export_bars.sh
+tester/evidence/240_adr024_golden_baseline/freeze.log
+tester/evidence/240_adr024_golden_baseline/freeze.sh
+tester/evidence/240_adr024_golden_baseline/h1_1slot/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/h1_1slot/case.json
+tester/evidence/240_adr024_golden_baseline/h1_1slot/expected.json
+tester/evidence/240_adr024_golden_baseline/h1_3slots/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/h1_3slots/case.json
+tester/evidence/240_adr024_golden_baseline/h1_3slots/expected.json
+tester/evidence/240_adr024_golden_baseline/m15_1slot/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m15_1slot/case.json
+tester/evidence/240_adr024_golden_baseline/m15_1slot/expected.json
+tester/evidence/240_adr024_golden_baseline/m15_3slots/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m15_3slots/case.json
+tester/evidence/240_adr024_golden_baseline/m15_3slots/expected.json
+tester/evidence/240_adr024_golden_baseline/m1_1slot/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m1_1slot/case.json
+tester/evidence/240_adr024_golden_baseline/m1_1slot/expected.json
+tester/evidence/240_adr024_golden_baseline/m1_1slot_stop/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m1_1slot_stop/case.json
+tester/evidence/240_adr024_golden_baseline/m1_1slot_stop/expected.json
+tester/evidence/240_adr024_golden_baseline/m1_3slots/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m1_3slots/case.json
+tester/evidence/240_adr024_golden_baseline/m1_3slots/expected.json
+tester/evidence/240_adr024_golden_baseline/m5_1slot/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m5_1slot/case.json
+tester/evidence/240_adr024_golden_baseline/m5_1slot/expected.json
+tester/evidence/240_adr024_golden_baseline/m5_3slots/bars.jsonl
+tester/evidence/240_adr024_golden_baseline/m5_3slots/case.json
+tester/evidence/240_adr024_golden_baseline/m5_3slots/expected.json
+tester/evidence/240_adr024_golden_baseline/sensitivity/m15_1slot_selftest.txt
+tester/evidence/240_adr024_golden_baseline/sensitivity/m15_3slots_selftest.txt
+tester/evidence/240_adr024_golden_baseline/sensitivity/m1_1slot_stop_selftest.txt
+tester/evidence/241_adr024_scale_curve/analysis.txt
+tester/evidence/241_adr024_scale_curve/analyze.py
+tester/evidence/241_adr024_scale_curve/data/m1_200k.jsonl
+tester/evidence/241_adr024_scale_curve/data/m1_290k.jsonl
+tester/evidence/241_adr024_scale_curve/fit.md
+tester/evidence/241_adr024_scale_curve/raw_pre.txt
+tester/evidence/241_adr024_scale_curve/run_scale.sh
+tester/evidence/241_adr024_scale_curve/run_scale_extra.sh
+tester/evidence/242_adr024_baseline_extension/STATUS.md
+tester/evidence/242_adr024_baseline_extension/compare_p1b_report.txt
+tester/evidence/242_adr024_baseline_extension/fixtures/indicator_heavy.js
+tester/evidence/242_adr024_baseline_extension/freeze_p1b.log
+tester/evidence/242_adr024_baseline_extension/pre_ledger/payload_sha256_after.txt
+tester/evidence/242_adr024_baseline_extension/pre_ledger/payload_sha256_before.txt
+tester/evidence/242_adr024_baseline_extension/raw_heavy_plugin.txt
+tester/evidence/242_adr024_baseline_extension/run_heavy.sh
+tester/evidence/242_adr024_baseline_extension/tolprobe.txt
+tester/evidence/243_adr024_attribution/calibration/export_runs.sh
+tester/evidence/243_adr024_attribution/calibration/fit.txt
+tester/evidence/243_adr024_attribution/calibration/runs_prod.csv
+tester/evidence/243_adr024_attribution/raw_replica.txt
+tester/evidence/243_adr024_attribution/run_replica.sh
+tester/evidence/244_adr024_fixedcost_realpath/STATUS.md
+tester/evidence/244_adr024_fixedcost_realpath/cleanup.txt
+tester/evidence/244_adr024_fixedcost_realpath/fit_p1c.txt
+tester/evidence/244_adr024_fixedcost_realpath/per_run_table.md
+tester/evidence/244_adr024_fixedcost_realpath/probe.sh
+tester/evidence/244_adr024_fixedcost_realpath/probe_lag.sh
+tester/evidence/244_adr024_fixedcost_realpath/probe_lag.txt
+tester/evidence/244_adr024_fixedcost_realpath/probe_settled.txt
+tester/evidence/244_adr024_fixedcost_realpath/queries.sql
+tester/evidence/244_adr024_fixedcost_realpath/raw.txt
+tester/evidence/244_adr024_fixedcost_realpath/raw_probe.txt
+tester/evidence/244_adr024_fixedcost_realpath/refit.py
+tester/evidence/244_adr024_fixedcost_realpath/refit.sh
+tester/evidence/244_adr024_fixedcost_realpath/runs_p1c.csv
+tester/evidence/244_adr024_fixedcost_realpath/struct_sql.txt
+tester/evidence/246_adr024_p0_verify/.run_id
+tester/evidence/246_adr024_p0_verify/00_preflight.txt
+tester/evidence/246_adr024_p0_verify/01_build_app_pre_deploy.txt
+tester/evidence/246_adr024_p0_verify/02_frontend_build_pre_deploy.txt
+tester/evidence/246_adr024_p0_verify/03_redeploy_8081.txt
+tester/evidence/246_adr024_p0_verify/03b_app_log.txt
+tester/evidence/246_adr024_p0_verify/04_smoke.txt
+tester/evidence/246_adr024_p0_verify/05_final_result.json
+tester/evidence/246_adr024_p0_verify/05_final_run_view.json
+tester/evidence/246_adr024_p0_verify/05_m30_e2e_run.txt
+tester/evidence/246_adr024_p0_verify/05b_m30_run_assertions.txt
+tester/evidence/246_adr024_p0_verify/05b_run_view.json
+tester/evidence/246_adr024_p0_verify/06_teardown.txt
+tester/evidence/246_adr024_p0_verify/10_backend_targeted_tests.txt
+tester/evidence/246_adr024_p0_verify/11_cargo_check_all_targets.txt
+tester/evidence/246_adr024_p0_verify/12_frontend_vitest_full.txt
+tester/evidence/246_adr024_p0_verify/13_check_tangle.txt
+tester/evidence/246_adr024_p0_verify/14_workspace_tests.txt
+tester/evidence/246_adr024_p0_verify/15_final_reruns_and_teardown.txt
+tester/evidence/246_adr024_p0_verify/20_forbidden_changes.txt
+tester/evidence/246_adr024_p0_verify/20b_constants_and_consistency.txt
+tester/evidence/246_adr024_p0_verify/30_drift_reverse_evidence.txt
+tester/evidence/246_adr024_p0_verify/31_test_effectiveness.txt
+tester/evidence/246_adr024_p0_verify/32_web_test_falsifiability.txt
+tester/evidence/246_adr024_p0_verify/99_final_selfcheck.txt
+tester/evidence/246_adr024_p0_verify/EVIDENCE.md
+tester/evidence/247_adr024_p0_freeze/00_baseline_capture.txt
+tester/evidence/247_adr024_p0_freeze/01_A_pre_green_testrunpanel.txt
+tester/evidence/247_adr024_p0_freeze/01_B_bonus_and_01_C_restore.txt
+tester/evidence/247_adr024_p0_freeze/01_B_perturb.txt
+tester/evidence/247_adr024_p0_freeze/01_D_unchanged_proof.txt
+tester/evidence/247_adr024_p0_freeze/01_E_concurrent_worktree_observation.txt
+tester/evidence/247_adr024_p0_freeze/02_A_rust_application_backtest_periods_ssot.txt
+tester/evidence/247_adr024_p0_freeze/02_B_rust_mcp_adr024_period_ssot_drift.txt
+tester/evidence/247_adr024_p0_freeze/02_C_rust_web_adr024_workbench_period_ssot.txt
+tester/evidence/247_adr024_p0_freeze/02_D_frontend_targeted.txt
+tester/evidence/247_adr024_p0_freeze/02_E_frontend_full_suite.txt
+tester/evidence/247_adr024_p0_freeze/03_A_clean_checkout_export.txt
+tester/evidence/247_adr024_p0_freeze/03_B_clean_tree_ts_tests.txt
+tester/evidence/247_adr024_p0_freeze/03_C_clean_tree_rust_freshcompile.txt
+tester/evidence/247_adr024_p0_freeze/03_D_clean_tree_reads_own_file_negative_control.txt
+tester/evidence/247_adr024_p0_freeze/03_E_clean_tree_other_rust_assertions.txt
+tester/evidence/247_adr024_p0_freeze/03_F_clean_tree_ts_negative_control.txt
+tester/evidence/247_adr024_p0_freeze/04_A_index_surface_full.txt
+tester/evidence/247_adr024_p0_freeze/04_B_forbidden_items.txt
+tester/evidence/247_adr024_p0_freeze/04_C_reverse_declared_check.txt
+tester/evidence/247_adr024_p0_freeze/04_D2_staged_prod_diff_web.txt
+tester/evidence/247_adr024_p0_freeze/04_D3_staged_assertion_diffs.txt
+tester/evidence/247_adr024_p0_freeze/04_D_staged_prod_diff_rust.txt
+tester/evidence/247_adr024_p0_freeze/04_E_tsc_build.txt
+tester/evidence/247_adr024_p0_freeze/04_F_final_snapshot.txt
+tester/harness/adr024_harness/Cargo.lock
+tester/harness/adr024_harness/Cargo.toml
+tester/harness/adr024_harness/src/main.rs
+tester/harness/adr024_replica/Cargo.lock
+tester/harness/adr024_replica/Cargo.toml
+tester/harness/adr024_replica/src/main.rs
+tester/report/adr024_p0_m30_verification.md
+tester/report/adr024_p1_baseline_and_curve.md
+tester/report/adr024_p1b_baseline_extension.md
+tester/report/adr024_p1c_fixed_cost_realpath.md
+tester/test/295_adr024_p1_evidence_execution.md
+tester/test/296_adr024_p1b_execution.md
+tester/test/297_adr024_p1c_execution.md
+tester/test/298_adr024_p0_verification_execution.md
+
+--- F.2 no perturbation residue: disk blobs == index blobs (all 4 assertions + SSOT) ---
+  web/src/features/backtest/periods.ts                               SAME=YES
+  web/src/features/backtest/periods.test.ts                          SAME=YES
+  web/src/features/strategies/TestRunPanel.test.tsx                  SAME=YES
+  web/src/features/strategies/TestRunPanel.tsx                       SAME=YES
+  web/src/features/workbench/ConfigPanel.test.tsx                    SAME=YES
+  web/src/features/workbench/ConfigPanel.tsx                         SAME=YES
+  design/16-backtest-scalability/contract-vectors.json               SAME=YES
+
+$ sha256sum web/src/features/backtest/periods.ts  (must be 04b540de... = baseline)
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+838530eeb02edcefa315cbc5ae1d485fe44e8bde51e43c1cf06c9f00a520281d  design/16-backtest-scalability/contract-vectors.json
+
+$ grep -c "'M30'" web/src/features/backtest/periods.ts  (perturbation fully reverted: expect 1)
+1

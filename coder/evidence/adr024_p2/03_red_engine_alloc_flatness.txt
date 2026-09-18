@@ -1,0 +1,21 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+P2-alloc: per_bar_bytes n=2000: 56915.9  n=4000: 112913.8  ratio=1.984
+P2-alloc: per_bar_allocs n=2000: 23.24 n=4000: 23.23 ratio=0.999
+
+thread 'engine_per_bar_allocation_does_not_grow_with_index' (4181822) panicked at crates/strategy-core/tests/session_alloc.rs:136:5:
+每 bar 分配字节不得随 index 增长：n=2000 56915.9 B/bar vs n=4000 112913.8 B/bar（ratio=1.984，改造前 O(index) 复制使该比值 ≈2.0）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test engine_per_bar_allocation_does_not_grow_with_index ... FAILED
+
+failures:
+
+failures:
+    engine_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
+
+error: test failed, to rerun pass `-p strategy-core --test session_alloc`

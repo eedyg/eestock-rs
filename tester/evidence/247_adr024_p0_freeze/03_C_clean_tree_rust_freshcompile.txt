@@ -1,0 +1,106 @@
+=== 03-C: FULL FRESH-COMPILE LOG in clean tree (CARGO_TARGET_DIR was empty: rm -rf before start) ===
+$ cd /tmp/adr024_clean_frz01
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p application --test backtest_periods_ssot
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.229
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.11
+   Compiling shlex v2.0.1
+   Compiling serde v1.0.229
+   Compiling zmij v1.0.23
+   Compiling version_check v0.9.5
+   Compiling thiserror v2.0.20
+   Compiling foldhash v0.2.0
+   Compiling serde_json v1.0.151
+   Compiling zerocopy v0.8.56
+   Compiling allocator-api2 v0.2.21
+   Compiling equivalent v1.0.2
+   Compiling itoa v1.0.18
+   Compiling cc v1.4.4
+   Compiling typenum v1.20.1
+   Compiling autocfg v1.5.1
+   Compiling memchr v2.8.3
+   Compiling anyhow v1.0.104
+   Compiling parking_lot_core v0.9.12
+   Compiling generic-array v0.14.7
+   Compiling scopeguard v1.2.0
+   Compiling smallvec v1.16.0
+   Compiling hashbrown v0.16.1
+   Compiling lock_api v0.4.14
+   Compiling once_cell v1.21.4
+   Compiling iana-time-zone v0.1.65
+   Compiling pin-project-lite v0.2.17
+   Compiling num-traits v0.2.19
+   Compiling cpufeatures v0.2.17
+   Compiling bytes v1.12.1
+   Compiling tracing-core v0.1.36
+   Compiling rquickjs-sys v0.11.0
+   Compiling syn v3.0.4
+   Compiling syn v2.0.119
+   Compiling getrandom v0.2.17
+   Compiling errno v0.3.14
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling signal-hook-registry v1.4.8
+   Compiling digest v0.10.7
+   Compiling rand_core v0.6.4
+   Compiling parking_lot v0.12.5
+   Compiling sha2 v0.10.9
+   Compiling ppv-lite86 v0.2.21
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling tokio-macros v2.7.2
+   Compiling async-trait v0.1.92
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling tokio v1.53.1
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling backtest v0.1.0 (/tmp/adr024_clean_frz01/crates/backtest)
+   Compiling chrono v0.4.45
+   Compiling domain v0.1.0 (/tmp/adr024_clean_frz01/crates/domain)
+   Compiling rquickjs-core v0.11.0
+   Compiling rquickjs v0.11.0
+   Compiling strategy-runtime v0.1.0 (/tmp/adr024_clean_frz01/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/tmp/adr024_clean_frz01/crates/strategy-core)
+   Compiling simlive v0.1.0 (/tmp/adr024_clean_frz01/crates/simlive)
+   Compiling application v0.1.0 (/tmp/adr024_clean_frz01/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.27s
+     Running tests/backtest_periods_ssot.rs (/tmp/adr024_clean_target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+
+running 6 tests
+test every_ssot_period_parses_roundtrip ... ok
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test m30_maps_to_both_m30_variants ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+(compile log line count: 82; target dir size after: 490M -> compiled from scratch, no pre-existing artifacts)
+
+=== 03-C.2 re-run in clean tree (incremental) 2026-09-18T13:03:10+08:00 ===
+$ pwd
+/tmp/adr024_clean_frz01
+$ CARGO_TARGET_DIR=/tmp/adr024_clean_target cargo test -p application --test backtest_periods_ssot
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/backtest_periods_ssot.rs (/tmp/adr024_clean_target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+
+running 6 tests
+test every_ssot_period_parses_roundtrip ... ok
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test m30_maps_to_both_m30_variants ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+CLEAN_TREE_RUST_EXIT=0

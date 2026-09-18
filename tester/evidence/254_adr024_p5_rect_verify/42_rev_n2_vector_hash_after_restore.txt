@@ -1,0 +1,1 @@
+838530eeb02edcefa315cbc5ae1d485fe44e8bde51e43c1cf06c9f00a520281d  design/16-backtest-scalability/contract-vectors.json

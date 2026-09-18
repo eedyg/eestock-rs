@@ -1,0 +1,86 @@
+===== 反向对照 R-B：sim-live 去掉 .with_history(...)（退回「每 bar 复制 bars[..=index]」兼容路径）=====
+改动：crates/simlive/src/plugin_orchestrator.rs::evaluate 内 ctx 构造去掉共享句柄注入
+备份 sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87  crates/simlive/src/plugin_orchestrator.rs
+退化后 sha256：1fa7413838654fefe7e8d0effb4a16f9d4814da649c57d8693565d90e20ccf0f
+
+--- [R-B-1] worker 断言（crates/simlive/tests/adr024_p2b_orchestrator.rs）---
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running tests/adr024_p2b_orchestrator.rs (target/debug/deps/adr024_p2b_orchestrator-d9ce500227a2f7d4)
+
+running 3 tests
+test orchestrator_ctx_bars_is_prefix_shared_and_has_no_future ... 
+thread 'orchestrator_ctx_bars_is_prefix_shared_and_has_no_future' (122356) panicked at crates/simlive/tests/adr024_p2b_orchestrator.rs:218:9:
+bar 0: 必须注入共享历史缓冲句柄（兼容路径每 bar 复制 bars[..=index]）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test orchestrator_per_bar_allocation_does_not_grow_with_index ... P2b-simlive alloc/bar（bytes）: n=2000 50727.5 → n=4000 98726.5 (ratio=1.946)
+P2b-simlive wall（ms）: n=2000 536.9 → n=4000 2091.8 (ratio=3.896)
+
+thread 'orchestrator_per_bar_allocation_does_not_grow_with_index' (122357) panicked at crates/simlive/tests/adr024_p2b_orchestrator.rs:321:5:
+每 bar 分配字节不得随 index 增长：n=2000 50727.5 B/bar vs n=4000 98726.5 B/bar （ratio=1.946；改造前每 bar 复制 bars[..=index] 使该比值 ≈2.0）
+FAILED
+test orchestrator_scores_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+failures:
+    orchestrator_ctx_bars_is_prefix_shared_and_has_no_future
+    orchestrator_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
+
+error: test failed, to rerun pass `-p simlive --test adr024_p2b_orchestrator`
+exit=101
+
+--- [R-B-2] tester 独立断言（crates/simlive/tests/tester_p2b_orchestrator_indep.rs）---
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running tests/tester_p2b_orchestrator_indep.rs (target/debug/deps/tester_p2b_orchestrator_indep-fac8029a376fccac)
+
+running 3 tests
+test indep_orchestrator_alloc_flat_vs_growing_compat ... [tester-indep/alloc·新路径] n=2000 49217.8 B/bar（48.8 ms） | n=4000 97216.0 B/bar（145.6 ms）；ratio=1.975（期望 ≈1）；wall ratio=2.983（期望 ≈2）
+[tester-indep/alloc·兼容路径(改造前形态)] n=2000 48736.1 B/bar（47.4 ms） | n=4000 96736.0 B/bar（145.2 ms）；ratio=1.985（期望 ≈2）
+
+thread 'indep_orchestrator_alloc_flat_vs_growing_compat' (122570) panicked at crates/simlive/tests/tester_p2b_orchestrator_indep.rs:472:5:
+新路径每 bar 分配不得随 index 增长：49217.8 → 97216.0 B/bar
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test indep_orchestrator_ctx_prefix_and_position_fields ... 
+thread 'indep_orchestrator_ctx_prefix_and_position_fields' (122571) panicked at crates/simlive/tests/tester_p2b_orchestrator_indep.rs:280:9:
+bar 0: 未注入共享历史缓冲句柄
+FAILED
+test indep_orchestrator_scores_bitwise_vs_prechange_replica_with_positions ... [tester-indep/sim-live] 位级等价（含持仓）：bars=120 slots=3 持仓 bar=105 逐位相等=360 distinct_scores=119 signals={"sell", "hold"}
+ok
+
+failures:
+
+failures:
+    indep_orchestrator_alloc_flat_vs_growing_compat
+    indep_orchestrator_ctx_prefix_and_position_fields
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+error: test failed, to rerun pass `-p simlive --test tester_p2b_orchestrator_indep`
+exit=101
+
+--- [R-B-3] 复原 ---
+复原后 sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87
+备份   sha256：b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87  crates/simlive/src/plugin_orchestrator.rs
+worktree vs index（应为空）：
+[diff 为空 ⇒ 复原 = index 内容]
+[与 git index 逐字节相同: b901affe3e61eb730af6ab1662c68356c106cb85bd40864ef73d3ca256947d87]
+
+--- [R-B-4] 复原后复跑（应全绿）---
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/tester_p2b_orchestrator_indep.rs (target/debug/deps/tester_p2b_orchestrator_indep-fac8029a376fccac)
+
+running 3 tests
+test indep_orchestrator_alloc_flat_vs_growing_compat ... ok
+test indep_orchestrator_ctx_prefix_and_position_fields ... ok
+test indep_orchestrator_scores_bitwise_vs_prechange_replica_with_positions ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+

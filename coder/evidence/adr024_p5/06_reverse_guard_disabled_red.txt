@@ -1,0 +1,13 @@
+$ cargo test -p application --test workbench p5_resource_guard_confirm_and_hard_reject   # 反向：禁用资源护栏
+
+thread 'p5_resource_guard_confirm_and_hard_reject' (774912) panicked at crates/application/tests/workbench.rs:1982:45:
+called `Result::unwrap_err()` on an `Ok` value: StrategyRunView { id: "sr_1788915600000_000000", name: "", symbol: "600000", period: "D1", from_ts: 2026-09-02T01:30:00Z, to_ts: 2026-09-06T01:30:01Z, config: Object {"buy_threshold": Number(60.0), "clamp_reason": String("data_range"), "clamped": Bool(true), "estimated_bars": Number(200000), "fee": Object {"min_fee": Number(5.0), "rate_pct": Number(0.025), "slippage_bp": Number(2.0), "stamp_duty_pct": Number(0.05)}, "initial_capital": Number(100000.0), "policy": Object {"LumpSum": Object {"position_pct": Number(1.0)}}, "progress_prescan": String("count"), "requested_from": String("2026-08-31T01:30:00+00:00"), "requested_to": String("2026-12-10T01:30:00+00:00"), "sell_threshold": Number(40.0), "slots": Array [Object {"archived": Bool(false), "params": Object {"score": Number(80.0)}, "sha256": String("9d91ef05f1d81bac6b0380d1c600f84209b90b2e4a9acc8ff1f4ba42193ac84d"), "strategy_id": String("st_1"), "version": Number(1), "version_id": String("sv_pub"), "weight": Number(1.0)}], "stop": Null, "warmup_effective": Number(1), "warmup_requested": Number(250)}, status: Queued, progress: 0.0, error: None, created_at: 2026-09-09T01:00:00Z, started_at: None, finished_at: None, requested_from: 2026-08-31T01:30:00Z, requested_to: 2026-12-10T01:30:00Z, clamped: true, clamp_reason: Some("data_range"), estimated_bars: Some(200000), bars_total: None, result_format: None }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    p5_resource_guard_confirm_and_hard_reject
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test workbench`

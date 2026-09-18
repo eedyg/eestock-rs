@@ -1,0 +1,154 @@
+===== 反向对照 R-A：试算 helper 退回全量切片（ctx.bars 暴露未来 bar；共享句柄保留）=====
+改动：crates/application/src/strategy.rs::tryrun_bar_ctx 的 &bars[..=index] → bars
+备份 sha256：6d31ad101e6338a70f62db7910481bdaa327800da2e124813c22054c6efc77fe  crates/application/src/strategy.rs
+退化后 sha256：2eac376dc037971f43a5d80c94bb7babf0d4371cb22a3c1079bdbb5c7dcbd995
+
+--- [R-A-1] worker 断言：lib 单测 p2b ---
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 1 test
+
+thread 'strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history' (123709) panicked at crates/application/src/strategy.rs:1145:13:
+assertion `left == right` failed: bar 0: 宿主侧 ctx.bars 必须恰为 bars[..=index]（P2b：无可读未来）
+  left: 8
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... FAILED
+
+failures:
+
+failures:
+    strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`
+exit=101
+
+--- [R-A-2] worker 断言：集成 adr024_p2b_tryrun ---
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+
+running 2 tests
+test tryrun_per_bar_allocation_does_not_grow_with_index ... P2b-tryrun alloc/bar（bytes）: n=2000 855.5 → n=4000 850.4 (ratio=0.994)
+P2b-tryrun wall（ms）: n=2000 36.0 → n=4000 66.0 (ratio=1.835)
+ok
+test tryrun_pure_score_bitwise_equal_to_compat_path ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+exit=0
+
+--- [R-A-3] tester 独立断言：tester_p2b_tryrun_indep（本项预期仍绿 ⇒ 见报告 §A2 局限性说明）---
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running tests/tester_p2b_tryrun_indep.rs (target/debug/deps/tester_p2b_tryrun_indep-63f982fecd9089ac)
+
+running 3 tests
+test indep_alloc_flat_new_path_vs_growing_compat_path ... [tester-indep/alloc·新路径] n=1000 703.2 B/bar（12.0 ms） | n=2000 695.3 B/bar（23.8 ms） | n=4000 690.3 B/bar（44.9 ms）
+[tester-indep/alloc·新路径] ratio 4000/2000 = 0.993（期望 ≈1，常数）；wall ratio = 1.886（期望 ≈2）
+[tester-indep/alloc·兼容路径(改造前形态)] n=2000 48736.1 B/bar（46.9 ms） | n=4000 96736.0 B/bar（143.8 ms）；ratio = 1.985（期望 ≈2，线性）
+ok
+test indep_simposition_tryrun_matches_direct_engine ... [tester-indep/tryrun] SimPosition 回归对照：bars=120 warmup_effective=30 trades=1 fills=2 aggregate/ts/warmup/signal/trades 逐位一致
+ok
+test indep_tryrun_warmup_flow_bitwise_vs_prechange_replica ... [tester-indep/tryrun] warmup 位级等价：bars=120 warmup_effective=30 warmup_true=30 逐位相等=120 distinct_scores=117
+[tester-indep/tryrun] 前 5 bar（新路径）：[(1788220800, Some(4626476121078649323), true), (1788220860, Some(4626465706504511029), true), (1788220920, Some(4626449662430838522), true), (1788220980, Some(4626503142676413546), true), (1788221040, Some(4632258461525216329), true)]
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+exit=0
+
+===== 反向对照 R-A2：试算 helper 退回**改造前调用形态**（全量切片 + 无共享句柄）=====
+改动：crates/application/src/strategy.rs::tryrun_bar_ctx → BarCtx::new(index, bar.clone(), bars, None)
+退化后 sha256：2f187f86479ce600694cf2ccb58e3109f149f4a508b84948b9df517b4cc01fd2
+
+--- [R-A2-1] worker 断言：集成 adr024_p2b_tryrun ---
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+warning: unused variable: `hist`
+   --> crates/application/src/strategy.rs:859:5
+    |
+859 |     hist: &Rc<BarHistory>,
+    |     ^^^^ help: if this is intentional, prefix it with an underscore: `_hist`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib) generated 1 warning (run `cargo fix --lib -p application` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+
+running 2 tests
+test tryrun_per_bar_allocation_does_not_grow_with_index ... P2b-tryrun alloc/bar（bytes）: n=2000 50522.8 → n=4000 98518.0 (ratio=1.950)
+P2b-tryrun wall（ms）: n=2000 537.6 → n=4000 2088.3 (ratio=3.885)
+
+thread 'tryrun_per_bar_allocation_does_not_grow_with_index' (124885) panicked at crates/application/tests/adr024_p2b_tryrun.rs:357:5:
+每 bar 分配字节不得随 index 增长：n=2000 50522.8 B/bar vs n=4000 98518.0 B/bar （ratio=1.950；改造前每 bar 复制 bars[..=index] 使该比值 ≈2.0）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test tryrun_pure_score_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+failures:
+    tryrun_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
+
+error: test failed, to rerun pass `-p application --test adr024_p2b_tryrun`
+exit=101
+
+--- [R-A2-2] tester 独立断言：tester_p2b_tryrun_indep ---
+warning: unused variable: `hist`
+   --> crates/application/src/strategy.rs:859:5
+    |
+859 |     hist: &Rc<BarHistory>,
+    |     ^^^^ help: if this is intentional, prefix it with an underscore: `_hist`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib) generated 1 warning (run `cargo fix --lib -p application` to apply 1 suggestion)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running tests/tester_p2b_tryrun_indep.rs (target/debug/deps/tester_p2b_tryrun_indep-63f982fecd9089ac)
+
+running 3 tests
+test indep_alloc_flat_new_path_vs_growing_compat_path ... [tester-indep/alloc·新路径] n=1000 25023.2 B/bar（18.8 ms） | n=2000 49015.3 B/bar（49.2 ms） | n=4000 97010.3 B/bar（148.0 ms）
+[tester-indep/alloc·新路径] ratio 4000/2000 = 1.979（期望 ≈1，常数）；wall ratio = 3.007（期望 ≈2）
+[tester-indep/alloc·兼容路径(改造前形态)] n=2000 48736.1 B/bar（47.0 ms） | n=4000 96736.0 B/bar（143.7 ms）；ratio = 1.985（期望 ≈2，线性）
+
+thread 'indep_alloc_flat_new_path_vs_growing_compat_path' (125147) panicked at crates/application/tests/tester_p2b_tryrun_indep.rs:572:5:
+新路径每 bar 分配不得随 index 增长：49015.3 → 97010.3 B/bar（ratio 1.979）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test indep_simposition_tryrun_matches_direct_engine ... [tester-indep/tryrun] SimPosition 回归对照：bars=120 warmup_effective=30 trades=1 fills=2 aggregate/ts/warmup/signal/trades 逐位一致
+ok
+test indep_tryrun_warmup_flow_bitwise_vs_prechange_replica ... [tester-indep/tryrun] warmup 位级等价：bars=120 warmup_effective=30 warmup_true=30 逐位相等=120 distinct_scores=117
+[tester-indep/tryrun] 前 5 bar（新路径）：[(1788220800, Some(4626476121078649323), true), (1788220860, Some(4626465706504511029), true), (1788220920, Some(4626449662430838522), true), (1788220980, Some(4626503142676413546), true), (1788221040, Some(4632258461525216329), true)]
+ok
+
+failures:
+
+failures:
+    indep_alloc_flat_new_path_vs_growing_compat_path
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+error: test failed, to rerun pass `-p application --test tester_p2b_tryrun_indep`
+exit=101
+
+--- [R-A3] 复原 ---
+复原后 sha256：6d31ad101e6338a70f62db7910481bdaa327800da2e124813c22054c6efc77fe
+备份   sha256：6d31ad101e6338a70f62db7910481bdaa327800da2e124813c22054c6efc77fe  crates/application/src/strategy.rs
+[与 git index 逐字节相同]
+git diff -- crates/application/src/strategy.rs （应为空）：
+
+--- [R-A4] 复原后复跑（应全绿）---
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s

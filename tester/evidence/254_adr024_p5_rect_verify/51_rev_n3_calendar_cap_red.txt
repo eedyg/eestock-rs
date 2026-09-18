@@ -1,0 +1,14 @@
+
+running 1 test
+
+thread 't_n3_long_d1_accepted_and_no_intersection_range_empty' (1515190) panicked at crates/web/tests/tester_p5rect_verify.rs:650:5:
+assertion `left == right` failed: 6 年 D1 + 有数据应 200（日历档已删），实得 400；body={"error":{"code":"period_invalid","detail":{"period":"D1"},"message":"试算区间超限（D1≤5 年）"}}
+  left: 400
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... FAILED
+
+failures:
+
+failures:
+    t_n3_long_d1_accepted_and_no_intersection_range_empty

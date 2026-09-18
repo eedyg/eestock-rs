@@ -1,0 +1,28 @@
+### ⑦-a 前端全量 vitest
+TS=2026-09-18T15:20:56+08:00
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C8 拖拽期望值必须夹在配置域 [80,1200]：狠拖下界（期望 <80）也不得产出域外 PUT body  516ms
+   ✓ 页面级高度拖拽与持久化（P5-A 红） > C9 拖拽域外值 ⇒ 镜像配置面校验的 stub 会 400 ⇒ 用户可见「拖了但没保存」  540ms
+ ✓ src/features/dashboard/multiPeriodDragDomainClamp.test.ts (4 tests) 4ms
+ ✓ src/features/backtest/ScopedKlineFeed.test.ts (8 tests) 9ms
+ ✓ src/features/indicators/dcapMirror.test.ts (11 tests) 11ms
+ ✓ src/features/dashboard/timeshare.test.ts (3 tests) 4ms
+ ✓ src/features/strategies/diff.test.ts (6 tests) 7ms
+ ✓ src/features/workbench/chartUtils.test.ts (3 tests) 5ms
+ ✓ src/features/symbols/validate.test.ts (5 tests) 4ms
+ ✓ src/features/backtest/format.test.ts (9 tests) 3ms
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 6ms
+ ✓ src/features/dashboard/klineDataLoader.test.ts (3 tests) 4ms
+ ✓ src/features/strategies/format.test.ts (4 tests) 3ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 2ms
+ ✓ src/features/dashboard/indicatorCallGuard.test.ts (4 tests) 3ms
+ ✓ src/shell/session.test.ts (7 tests) 2ms
+ ✓ src/features/dashboard/chartCommon.test.ts (3 tests) 2ms
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/backtest/markerSnap.test.ts (7 tests) 3ms
+
+ Test Files  90 passed (90)
+      Tests  864 passed (864)
+   Start at  15:20:57
+   Duration  7.03s (transform 2.99s, setup 4.00s, collect 13.26s, tests 37.39s, environment 27.99s, prepare 6.16s)
+
+EXIT=0

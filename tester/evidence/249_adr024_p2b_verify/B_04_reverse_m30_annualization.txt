@@ -1,0 +1,78 @@
+===== B 反向证据 B-R1：人为改错 M30 年化因子（bars_per_year 2016 → 1008）=====
+改动：crates/backtest/src/types.rs: Period::M30 => 252.0 * 8.0  →  252.0 * 4.0
+备份 sha256：177048cb84a2005563e5cdafc5f52787dc98eb407bfefdc1b99d870e83717b97  crates/backtest/src/types.rs
+退化后 sha256：2cc2b9cdcbeb0de1631b70f356d74ba8b4f8eb0a3291759615a914ed1de20cde
+
+--- [B-R1-1] m30_1slot 必须变红 ---
+# B 层判据（唯一事实源）：PASS ⇔ |Δ| ≤ max(1e-12, 1e-9×|expected|)   [对照·旧判据 P1：abs ≤ 1e-9 或 rel ≤ 1e-9]
+# A 层 bitwise 含：result 的整数/结构字段 + 派生序列 derived.{ledger,position,trades_replay}（全部叶节点逐位）
+case_id                     bars    A_ck    B_ck  max_abs_dev  max_rel_dev   dev>0  ledger_ck    ledger  layer
+m30_1slot                   1000    6443    4345     1.434e-1     5.062e-1       2       7176      PASS  A/B FAIL
+
+# [B′] 逐字段枚举：所有 dev>0 条目（field, expected, actual, abs, rel）（合计 2 条）
+[B′-dev] m30_1slot: field=result.metrics.annualized_return expected=5.09351897036445234e-2 actual=2.51513008837498386e-2 abs=2.578389e-2 rel=5.062097e-1 verdict=FAIL old_verdict=FAIL
+[B′-dev] m30_1slot: field=result.metrics.sharpe expected=4.89555139321183552e-1 actual=3.46167758778733903e-1 abs=1.433874e-1 rel=2.928932e-1 verdict=FAIL old_verdict=FAIL
+
+# 容差收紧对照（1e-9 → 1e-12 绝对下限）：按新判据 FAIL 而按旧判据 PASS 的条目数 = 0
+
+# [台账] 派生序列 A 层 bitwise 比较（derived.ledger / derived.position / derived.trades_replay；
+#        合计 7176 个叶节点）+ 自证「replay trades ↔ payload trades」（合计 312 个叶节点）
+[台账] m30_1slot: ledger_checks=7176 fills=52 replayed_trades=26 payload_trades=26 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+
+[B-FAIL] m30_1slot: 浮点偏差超限 @result.metrics.annualized_return: expected=5.09351897036445234e-2 actual=2.51513008837498386e-2 abs=2.578e-2 rel=5.062e-1 tol=5.094e-11
+[B-FAIL] m30_1slot: 浮点偏差超限 @result.metrics.sharpe: expected=4.89555139321183552e-1 actual=3.46167758778733903e-1 abs=1.434e-1 rel=2.929e-1 tol=4.896e-10
+
+A/B 层：1 用例，失败 1 用例
+全局 max_abs_dev = 1.433874e-1 @ m30_1slot (result.metrics.sharpe; expected=4.89555139321183552e-1 actual=3.46167758778733903e-1)
+全局 max_rel_dev = 5.062097e-1 @ m30_1slot (result.metrics.annualized_return; expected=5.09351897036445234e-2 actual=2.51513008837498386e-2)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.14338738054244965)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: FAIL ==
+[exit] 2
+
+--- [B-R1-2] m30_3slots 必须变红 ---
+m30_3slots                  1000    9377    7055     3.903e-1     4.775e-1       2       7936      PASS  A/B FAIL
+
+# [B′] 逐字段枚举：所有 dev>0 条目（field, expected, actual, abs, rel）（合计 2 条）
+[B′-dev] m30_3slots: field=result.metrics.annualized_return expected=-1.65124909233825279e-1 actual=-8.62850057232427137e-2 abs=7.883990e-2 rel=4.774562e-1 verdict=FAIL old_verdict=FAIL
+[B′-dev] m30_3slots: field=result.metrics.sharpe expected=-1.33240423083767445e0 actual=-9.42152066906965735e-1 abs=3.902522e-1 rel=2.928932e-1 verdict=FAIL old_verdict=FAIL
+
+# 容差收紧对照（1e-9 → 1e-12 绝对下限）：按新判据 FAIL 而按旧判据 PASS 的条目数 = 0
+
+# [台账] 派生序列 A 层 bitwise 比较（derived.ledger / derived.position / derived.trades_replay；
+#        合计 7936 个叶节点）+ 自证「replay trades ↔ payload trades」（合计 960 个叶节点）
+[台账] m30_3slots: ledger_checks=7936 fills=163 replayed_trades=80 payload_trades=80 final_qty_bits=0 bitwise=PASS self_proof=PASS（self_proof dev>0 0 条）
+
+[B-FAIL] m30_3slots: 浮点偏差超限 @result.metrics.annualized_return: expected=-1.65124909233825279e-1 actual=-8.62850057232427137e-2 abs=7.884e-2 rel=4.775e-1 tol=1.651e-10
+[B-FAIL] m30_3slots: 浮点偏差超限 @result.metrics.sharpe: expected=-1.33240423083767445e0 actual=-9.42152066906965735e-1 abs=3.903e-1 rel=2.929e-1 tol=1.332e-9
+
+A/B 层：1 用例，失败 1 用例
+全局 max_abs_dev = 3.902522e-1 @ m30_3slots (result.metrics.sharpe; expected=-1.33240423083767445e0 actual=-9.42152066906965735e-1)
+全局 max_rel_dev = 4.774562e-1 @ m30_3slots (result.metrics.annualized_return; expected=-1.65124909233825279e-1 actual=-8.62850057232427137e-2)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.3902521639307087)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: FAIL ==
+[exit] 2
+
+--- [B-R1-3] 控制组：m15_1slot（非 M30）应仍 PASS（证明扰动只命中 M30）---
+全局 max_abs_dev = 0.000000e0 @ m15_1slot (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+全局 max_rel_dev = 0.000000e0 @ m15_1slot (result.drawdown[0][1]; expected=0.00000000000000000e0 actual=0.00000000000000000e0)
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0
+
+--- [B-R1-4] 复原 + 复跑（必须全绿）---
+复原后 sha256：177048cb84a2005563e5cdafc5f52787dc98eb407bfefdc1b99d870e83717b97
+备份   sha256：177048cb84a2005563e5cdafc5f52787dc98eb407bfefdc1b99d870e83717b97  crates/backtest/src/types.rs
+[与 git index 逐字节相同]
+git diff -- crates/backtest/src/types.rs（应为空）：
+
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0
+C 层偏差-规模 log-log 斜率 = n/a（全部 dev==0，无规模依赖）（points=[(1000, 0.0)]）→ PASS（未观测到随 n 增长）
+持仓台账：bitwise FAIL 0 用例 / 自证 FAIL 0 用例 / 自证 dev>0 条目 0
+== VERDICT: PASS ==
+[exit] 0

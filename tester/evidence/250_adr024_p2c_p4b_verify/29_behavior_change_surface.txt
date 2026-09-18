@@ -1,0 +1,92 @@
+===== ①-补 P4b 净 diff 中「被删除/被改写」行全量清单（= 唯一可能改行为的表面）=====
+（来源：06:19Z 抓取的 tester/evidence/250_adr024_p2c_p4b_verify/01_p4b_workbench_diff.txt，当时 worktree == index 交付态）
+
+     1	-use std::sync::atomic::{AtomicBool, Ordering};
+     2	-        tokio::spawn(async move {
+     3	-            let _permit = semaphore.acquire().await.expect("semaphore closed");
+     4	-            execute_run(
+     5	-                run_store, progress, cancel_flags, clock, id, probe, slots, bars,
+     6	-            )
+     7	-            .await;
+     8	-        });
+     9	-    match store.mark_started(&run_id, clock.now()).await {
+    10	-    let report_task = tokio::spawn(async move {
+    11	-        while let Some((progress, ts)) = rx.recv().await {
+    12	-            let _ = sink.send(&id2, progress, Some(ts)).await;
+    13	-            let _ = store2.update_progress(&id2, progress).await;
+    14	-    });
+    15	-            match store.mark_succeeded(&run_id, &result, clock.now()).await {
+
+===== ①-补 排水顺序（交付态 index 快照）=====
+--- 关键行号（delivered_index_state/crates_application_src_workbench.rs）---
+963:                let _ = sink.send(&id2, progress, Some(ts)).await;
+966:                let _ = store2.update_progress(&id2, progress).await;
+968:                report_p4b.db_writes.fetch_add(1, Ordering::Relaxed);
+1017:                engine_p4b.frames_produced.fetch_add(1, Ordering::Relaxed);
+1043:    let _ = report_task.await;
+1083:                .mark_succeeded(&run_id, &result, clock.now())
+
+--- 1036..1052（排水段）---
+    });
+
+    // 引擎结束（含 Break）后 drop 发送端；等报告任务排空（进度/落库完成，确定可复现）。
+    // ⚠ P4b 纪律：**排水顺序不变**（仍在 `mark_succeeded` 之前），本批不改行为。
+    let tail_span =
+        tracing::info_span!("p4b.segment", segment = "progress_drain_tail", run_id = %run_id);
+    let t_tail = Instant::now();
+    let _ = report_task.await;
+    let tail_us = p4b_add_us(&p4b.drain_tail_us, t_tail);
+    let drain_total_us = p4b_add_us(&p4b.drain_total_us, t_drain_total);
+    tail_span.in_scope(|| {
+        tracing::info!(
+            trace_id = %trace_id,
+            run_id = %run_id,
+            elapsed_us = tail_us,
+            progress_drain_total_ms = p4b_ms(drain_total_us),
+            "p4b.segment"
+
+--- 1078..1090（mark_succeeded）---
+            });
+            let write_span =
+                tracing::info_span!("p4b.segment", segment = "result_write", run_id = %run_id);
+            let t_write = Instant::now();
+            let written = store
+                .mark_succeeded(&run_id, &result, clock.now())
+                .instrument(write_span.clone())
+                .await;
+            let write_us = p4b_add_us(&p4b.result_write_us, t_write);
+            write_span.in_scope(|| {
+                tracing::info!(
+                    trace_id = %trace_id,
+                    run_id = %run_id,
+
+--- 958..970（收帧侧：send 先于 update_progress，原顺序与次数未变）---
+    let t_drain_total = Instant::now();
+    let report_task = tokio::spawn(
+        async move {
+            while let Some((progress, ts)) = rx.recv().await {
+                let t = Instant::now();
+                let _ = sink.send(&id2, progress, Some(ts)).await;
+                p4b_add_us(&report_p4b.ws_send_us, t);
+                let t = Instant::now();
+                let _ = store2.update_progress(&id2, progress).await;
+                p4b_add_us(&report_p4b.db_write_us, t);
+                report_p4b.db_writes.fetch_add(1, Ordering::Relaxed);
+            }
+            drain_span2.in_scope(|| {
+
+--- 1010..1020（发帧侧：同一判定分支内计数 + send）---
+            }
+            let progress = (i + 1) as f64 / total as f64;
+            // 节流：0.1% 粒度前进或最后一 bar 才发帧（防 20 万帧洪泛 WS/DB）。
+            let milli = (progress * PROGRESS_THROTTLE_MILLI) as i64;
+            if milli != last_milli || i + 1 == total {
+                last_milli = milli;
+                // P4b：帧产生计数（与 `tx.send` 同一判定分支 ⇒ 口径 = 实际入队帧数）。
+                engine_p4b.frames_produced.fetch_add(1, Ordering::Relaxed);
+                let _ = tx.send((progress, DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default()));
+            }
+            LoopControl::Continue
+
+判读：非新增行共 15 行（1 处 use 改写 + 2 处 spawn 结构改写 + 2 处 match 结构改写）；
+      未删除任何判定式/调用；send 与 update_progress 顺序、report_task.await 与 mark_succeeded 先后、节流判定式均不变。

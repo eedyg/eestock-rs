@@ -1,0 +1,18 @@
+[0] 控制组（同 bars/同配置重跑）→ PASS（预期）（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0）
+[1] 扰动 slot0.weight ×(1+1e-6)（slots=1）→ PASS（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0；max_rel_dev=0.000e0）
+    期望=PASS（单 slot：权重在 aggregate=(w·s)/w 中被约掉，属无操作输入（信息性探针））⇒ 符合预期
+[close] bars[500].close ×1.001（中段/持仓中）→ PASS（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0；max_rel_dev=0.000e0）
+    期望=FAIL ⇒ ！！比对器未捕获该扰动
+[close] bars[999].close ×1.001（末根）→ PASS（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0；max_rel_dev=0.000e0）
+    期望=FAIL ⇒ ！！比对器未捕获该扰动
+[close] bars[500].close ×1.000001（中段/持仓中·1e-6 量级）→ PASS（A-FAIL 0 / B-FAIL 0；max_abs_dev=0.000e0；max_rel_dev=0.000e0）
+    期望=FAIL ⇒ ！！比对器未捕获该扰动
+[L1] expected.derived.ledger[last].cash 微扰（≈1 ulp）→ bitwise FAIL（1/4000 叶节点不等）
+    期望=FAIL ⇒ 符合预期
+    LED-A-FAIL 位级不等 @derived.ledger[999].cash: expected=102494.9217820309 actual=102494.92178203078 (abs=1.164e-10 rel=1.136e-15)
+[L2] 位级语义合成对：+0.0 vs -0.0 → FAIL（必须 FAIL）；1.0 vs 1.0 → PASS（必须 PASS）
+    期望=FAIL/PASS ⇒ 符合预期（位级语义生效；±0.0 可区分，等值不误报）
+[L3] 自证（replay trades ↔ payload trades）人为扰动 pnl ×(1+1e-6) → FAIL（A-FAIL 0 / B-FAIL 1 / dev>0 1）
+    期望=FAIL ⇒ 符合预期
+[L0] 自证控制组（同源 replay，未扰动）→ PASS（预期）
+== SELFTEST VERDICT: FAIL（比对器敏感性不足或控制组误报） ==

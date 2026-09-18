@@ -1,0 +1,44 @@
+### 前端缺口确认（P4 新契约在前端的消费情况）
+TS=2026-09-18T14:46:10+08:00
+
+--- 关键字命中计数（web/src，ts/tsx） ---
+has_more               -> 0
+next_offset            -> 0
+downsampled            -> 0
+original_bars          -> 0
+runs/.*\/brief         -> 0
+runs/.*\/bars          -> 0
+runs/.*\/curve         -> 0
+result_format          -> 0
+chunk_count            -> 0
+bars_total             -> 0
+net_value              -> 13
+per_bar                -> 26
+
+--- 运行结果读取点（前端仍只消费 /result 全量） ---
+web/src/api/client.ts:513:      get<WorkbenchRunResult>(`/api/workbench/runs/${encodeURIComponent(id)}/result`),
+
+--- 结果字段消费点（net_value / per_bar 内联假设） ---
+web/src/api/types.ts:565:  result: { net_value: unknown; trades: unknown; metrics: unknown } | null;
+web/src/api/types.ts:964:/** per_bar 单 slot 评分（score 恒有值——插件错误 bar 记中立 50，error 字段携带错误文本） */
+web/src/api/types.ts:971:/** per_bar 订单意图（OrderIntent serde；次 bar open 成交——Intrabar 止损除外） */
+web/src/api/types.ts:978:/** per_bar 事件（bar_record_json 投影：插件错误/熔断/插件 log/成交） */
+web/src/api/types.ts:985:/** per_bar 全量记录（ADR §13.4；UI 端抽样渲染，后端不做有损预处理） */
+web/src/api/types.ts:1000:  per_bar: WorkbenchBarRecord[];
+web/src/api/types.ts:1002:  net_value: Array<[number, number]>; // [ts_unix_sec, equity]
+web/src/api/types.ts:1013:  net_value: Array<[number, number]>;
+web/src/features/workbench/AggregateScoreChart.tsx:12: * per_bar 全量数据经 downsample 抽样渲染（ADR §13.4 UI 端抽样）。
+web/src/features/workbench/chartUtils.test.ts:4:describe('downsample（ADR §13.4：per_bar 全量数据 UI 抽样渲染）', () => {
+web/src/features/workbench/chartUtils.ts:5:/** 图表折线抽样上限（ADR §13.4：per_bar 全量落库，UI 端抽样渲染——分钟级 3 个月 ~3.7 万点，
+web/src/features/workbench/ComparePanel.tsx:41:    const sampled = rows.map((r) => downsample(r.net_value));
+web/src/features/workbench/KlineResultChart.tsx:14:/** per_bar 成交事件 → K 线标记 overlay（ADR §13.5：K线+买卖标记，含硬止损触发点不同图标）。
+web/src/features/workbench/KlineResultChart.tsx:37: * 区间 = run [from_ts, to_ts]（小 buffer）；markers 由 per_bar fill 事件生成
+web/src/features/workbench/KlineResultChart.tsx:63:  const overlays = useMemo(() => buildMarkers(result.per_bar), [result]);
+web/src/features/workbench/ResultView.test.tsx:125:      ts: result.per_bar[0]!.ts + i * 86_400,
+web/src/features/workbench/ResultView.test.tsx:132:    render(<ResultView {...mkProps(run, { ...result, per_bar: perBar })} />);
+web/src/features/workbench/ResultView.test.tsx:152:    const markers = buildMarkers(result.per_bar);
+web/src/features/workbench/ResultView.tsx:165:            perBar={result.per_bar}
+web/src/features/workbench/ResultView.tsx:169:          <SlotScoresChart perBar={result.per_bar} slots={run.config.slots} catalog={catalog} />
+
+--- 前端测试是否覆盖分页/抽样契约 ---
+（无输出 = 前端零消费/零测试）

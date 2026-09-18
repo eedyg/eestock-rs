@@ -1,0 +1,119 @@
+### ⑧ 提交面分类与并发纪律（git diff --cached，只读）
+TS=2026-09-18T14:48:57+08:00  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+--- 总览 ---
+    149 A
+     38 M
+staged 路径总数: 187
+工作区未暂存（unstaged）改动数: 4
+untracked 数: 446
+
+--- P4 自述路径（coder/report §6）是否都在 index，且 index 与工作区一致 ---
+migrations/0027_strategy_run_result_chunks.sql               staged=1 unstaged=0
+design/04-storage/schema.md                                  staged=1 unstaged=0
+design/04-storage/03-raw-writer.md                           staged=1 unstaged=0
+design/02-domain/contracts.md                                staged=1 unstaged=0
+design/07-app-plane/00-web-api.md                            staged=1 unstaged=0
+design/07-app-plane/01-mcp.md                                staged=1 unstaged=0
+crates/domain/src/ports.rs                                   staged=1 unstaged=0
+crates/storage/src/workbench.rs                              staged=1 unstaged=0
+crates/storage/src/migrate_check.rs                          staged=1 unstaged=0
+crates/storage/tests/workbench_store.rs                      staged=1 unstaged=0
+crates/application/src/workbench.rs                          staged=1 unstaged=0
+crates/application/tests/workbench.rs                        staged=1 unstaged=0
+crates/application/tests/simlive.rs                          staged=1 unstaged=0
+crates/web/src/workbench.rs                                  staged=1 unstaged=0
+crates/web/src/lib.rs                                        staged=1 unstaged=0
+crates/web/tests/api_workbench.rs                            staged=1 unstaged=0
+crates/mcp/src/tools.rs                                      staged=1 unstaged=0
+
+--- 非 P4 自述路径的 staged 文件（按目录聚合；这些属其它车道/架构师的共享 worktree 产物） ---
+      8 web/src/features
+      4 crates/strategy-runtime/src
+      3 web/src/api
+      3 crates/strategy-runtime/tests
+      3 crates/backtest/src
+      3 crates/application/src
+      2 crates/strategy-core/tests
+      2 crates/strategy-core/src
+      2 crates/application/tests
+      1 design/16-backtest-scalability/contract-vectors.json
+      1 design/16-backtest-scalability/04-implementation-plan.md
+      1 design/16-backtest-scalability/03-test-plan.md
+      1 design/16-backtest-scalability/02-spec.md
+      1 design/16-backtest-scalability/01-adr.md
+      1 crates/web/tests
+      1 crates/storage/src
+      1 crates/simlive/tests
+      1 crates/simlive/src
+      1 crates/mcp/tests
+
+--- 非 P4 自述路径的全量清单（逐条） ---
+crates/application/src/bar_map.rs
+crates/application/src/simlive.rs
+crates/application/src/strategy.rs
+crates/application/tests/adr024_p2b_tryrun.rs
+crates/application/tests/backtest_periods_ssot.rs
+crates/backtest/src/indicators.rs
+crates/backtest/src/lib.rs
+crates/backtest/src/types.rs
+crates/mcp/tests/adr024_period_ssot_drift.rs
+crates/simlive/src/plugin_orchestrator.rs
+crates/simlive/tests/adr024_p2b_orchestrator.rs
+crates/storage/src/backtest.rs
+crates/strategy-core/src/engine.rs
+crates/strategy-core/src/lib.rs
+crates/strategy-core/tests/session.rs
+crates/strategy-core/tests/session_alloc.rs
+crates/strategy-runtime/src/history.rs
+crates/strategy-runtime/src/lib.rs
+crates/strategy-runtime/src/quickjs.rs
+crates/strategy-runtime/src/types.rs
+crates/strategy-runtime/tests/online_indicators_fixture.rs
+crates/strategy-runtime/tests/shared_history.rs
+crates/strategy-runtime/tests/shared_history_alloc.rs
+crates/web/tests/adr024_workbench_period_ssot.rs
+design/16-backtest-scalability/01-adr.md
+design/16-backtest-scalability/02-spec.md
+design/16-backtest-scalability/03-test-plan.md
+design/16-backtest-scalability/04-implementation-plan.md
+design/16-backtest-scalability/contract-vectors.json
+web/src/api/mock.test.ts
+web/src/api/mock.ts
+web/src/api/types.ts
+web/src/features/backtest/format.test.ts
+web/src/features/backtest/format.ts
+web/src/features/backtest/periods.test.ts
+web/src/features/backtest/periods.ts
+web/src/features/strategies/TestRunPanel.test.tsx
+web/src/features/strategies/TestRunPanel.tsx
+web/src/features/workbench/ConfigPanel.test.tsx
+web/src/features/workbench/ConfigPanel.tsx
+
+--- design/16-backtest-scalability/**（架构师所有）：状态与暂存/未暂存改动 ---
+A  design/16-backtest-scalability/01-adr.md
+A  design/16-backtest-scalability/02-spec.md
+A  design/16-backtest-scalability/03-test-plan.md
+AM design/16-backtest-scalability/04-implementation-plan.md
+A  design/16-backtest-scalability/contract-vectors.json
+（A = 新增到 index 的架构师契约文档；M/AM = 暂存后又改）
+design/16-backtest-scalability/01-adr.md                   mtime=2026-09-18 13:37:46.433443561 +0800
+design/16-backtest-scalability/02-spec.md                  mtime=2026-09-17 23:58:21.520682915 +0800
+design/16-backtest-scalability/03-test-plan.md             mtime=2026-09-18 00:39:42.015298732 +0800
+design/16-backtest-scalability/04-implementation-plan.md   mtime=2026-09-18 14:32:28.720140126 +0800
+design/16-backtest-scalability/contract-vectors.json       mtime=2026-09-17 23:59:02.004432450 +0800
+
+--- 本批（P4）是否改动 design/16：原文 mtime 早于 P4 车道窗口（P4 证据 14:19–14:35）者即非本批 ---
+P4 证据窗口: 
+  
+2026-09-18 14:34 01b_tempdb_init_log.txt
+2026-09-18 14:28 01_tempdb_migration_0027.txt
+2026-09-18 14:35 02_green_application.txt
+2026-09-18 14:33 03_green_storage.txt
+2026-09-18 14:33 04_green_web.txt
+2026-09-18 14:33 05_green_mcp.txt
+2026-09-18 14:34 06_reverse_probes.txt
+2026-09-18 14:34 07_tangle_check.txt
+2026-09-18 14:34 08_green_migrate_check_startup_selfcheck.txt
+2026-09-18 14:34 09_tempdb_teardown.txt
+2026-09-18 14:35 10_wire_samples.txt

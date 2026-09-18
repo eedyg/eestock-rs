@@ -1,0 +1,24 @@
+$ cargo test -p storage --test backtest   # 反向：union_avail_sql 改回 accurate 单层
+running 3 tests
+test available_range_none_when_no_data ... ok
+test available_range_is_service_union_accurate_plus_fallback ... FAILED
+test bar_read_m1_accurate_first_in_range ... ok
+
+failures:
+
+---- available_range_is_service_union_accurate_plus_fallback stdout ----
+
+thread 'available_range_is_service_union_accurate_plus_fallback' (721738) panicked at crates/storage/tests/backtest.rs:111:5:
+assertion `left == right` failed: to = union 最晚 +1s（**兜底** 02:30，非 accurate 02:00）——服务口径并集硬约束（D3）
+  left: 2026-08-03T02:00:01Z
+ right: 2026-08-03T02:30:01Z
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    available_range_is_service_union_accurate_plus_fallback
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `-p storage --test backtest`
+EXIT=0

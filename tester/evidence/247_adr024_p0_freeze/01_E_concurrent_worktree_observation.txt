@@ -1,0 +1,50 @@
+=== 01-E: concurrent-worktree-change observation 2026-09-18T13:01:50+08:00 ===
+$ stat design/99-decisions-log.md design/01-architecture/adr/ADR-023-period-set-extension-30m.md docker-compose.yml
+design/99-decisions-log.md mtime=2026-09-18 13:00:54.614197964 +0800 size=30135
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md mtime=2026-09-17 13:34:38.362144889 +0800 size=36140
+docker-compose.yml mtime=2026-09-18 12:16:18.367374541 +0800 size=4650
+
+$ git diff --name-status   (worktree vs index, full)
+M	design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M	design/99-decisions-log.md
+M	docker-compose.yml
+
+$ git diff --stat -- design/99-decisions-log.md
+ design/99-decisions-log.md | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+$ git diff -- design/99-decisions-log.md | head -40
+diff --git a/design/99-decisions-log.md b/design/99-decisions-log.md
+index e81192b..ddaf515 100644
+--- a/design/99-decisions-log.md
++++ b/design/99-decisions-log.md
+@@ -220,3 +220,26 @@
+ - **落地范围**：插件侧（浮点确定性铁律：禁 `pow/exp/log`、禁增量累加、CORE = 无类型注解 ES2015 子集；`init` 内确定性归一化 `n_m←max(n_m,n_s+1)`、`n_l←max(n_l,n_m+1)`，幂等）；配置面 `GET/PUT /api/config/dcap`（复用 `app_config`，**无新迁移**；非单调 n 严格 400，与插件面「容忍并归一化」**有意不同**）；前端 DCAP 独立副图 + `precision: 5`；`th` 只属策略参数、不进图表接口。
+ - **关联**：ADR-007（文学式单一源 / `design/` 即事实源）、ADR-018（门禁硬化：沙箱权威判据 + `--force` 禁令 + 假绿回归）、插件 ABI（`design/12-strategy-system/02-plugin-abi.md`，本 ADR **不改 ABI**）。
+ - **产出物**：`design/14-dcap-indicator/**`；镜像产物 `web/src/features/indicators/dcap.ts`、`crates/strategy-core/reference-plugins/dcap.js`（`reference_plugins()` 7→8 条、播种计数 11→12）；编程手册 dcap 章节（`design/12-strategy-system/04-strategy-programming-guide.md` §12）；配置端点行已随 P3 落地（`design/07-app-plane/00-web-api.md`）。
++
++---
++
++# ADR-024 回测区间护栏重构（去日历天数档）与引擎 O(n²)→O(n) 流式化（2026-09-18，用户三轮确认：「不要上限限额，指定哪个时间范围就按时间范围回测」「应该使用流式计算才对」「全按推荐」；另追加「回测不能选择 30min」）
++
++- **权威正文**：`design/16-backtest-scalability/{01-adr.md, 02-spec.md, 03-test-plan.md, 04-implementation-plan.md, contract-vectors.json}`。
++- **一句话结论**：「分钟级≤3 个月（93 天）/ 日线≤5 年」这条护栏**不是产品需求，而是引擎每 bar 复制整段历史的 O(n²) 拐点被误写成规则**（`quickjs.rs:380` 每 slot×每 bar `bars[..=index].to_vec()`）⇒ 删除一切日历天数档，改「按实际资源 + 可确认放行」；引擎会话化 + 共享缓冲 + **指标增量（P2/P3 必须同批**：实测指标二次项 = 复制项的 **16.2×**，只做 P2 等于只做 1/16）；结果三类序列（per_bar/net_value/drawdown）改**分块落库 + 显式抽样**（后端不做*隐式*有损）；M30 打通回测/试算/MCP。
++- **证据基础（全部实测）**：改造前渐近 log-log 斜率 **1.878–1.900**、分配字节与预测式 `slots×48B×Σ(i+1)` 吻合到 **1.0001**（`tester/evidence/241_*`）；指标重插件 200k bar = 239.7 s vs 轻插件 15.6 s（`242_*`）；真路径**每 run 固定 1003 次 `UPDATE strategy_run`**（`243_*`、`244_*`，推翻架构师「背压/丢弃」推断）。
++- **决策要点**：D1 护栏语义（**无日历档**，极宽物理护栏 + 二次确认；预估算子须用生产端到端口径）；D2/D3 区间按**服务口径并集**（accurate ∪ 兜底，非 accurate 单层）收缩并回显 requested/effective/clamped，空交集 400；D6 指标增量（**必要性由实测升级**）；D7 插件 ABI 零变更（共享缓冲起步）；D8/D9 分块 + `result_format` 判别列（**禁止用空 jsonb 表达「数据在别处」**）+ summary/bars/curve 三读法；D10 ADR §13.4 口径修订为「不做隐式未标注的有损」；D15 每 run 固定开销治理（**先仪表后优化**）。
++- **关联**：ADR-003/004（双真值层/派生）、ADR-007/018（文学式单一源 + tangle 门禁）、ADR-019、**ADR-023**（30m，本 ADR 修订其「回测 gate 拒绝 30m」注记）、**ADR-025**（测试载体治理）；`design/08-backtest/01-engine-adr.md`、`design/12-strategy-system/01-adr.md` §13.4/§13.5。
++- **产出物**：`design/16-backtest-scalability/**`；**P0 已落地并验收**（M30 打通 + 周期白名单收敛为 `bar_map::supported_backtest_periods()` 单一事实源 + 四方防漂移断言）；P1/P1b/P1c 取证完毕；P2（引擎线性化）起为后续批次。
++
++---
++
++# ADR-025 TimescaleDB 作业层可观测性与测试隔离载体治理（2026-09-18，用户「全部按推荐」）
++
++- **权威正文**：`design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md`。
++- **触发事故**：**2026-09-17 03:56:20Z → 09-18 02:32Z（22.6 小时）生产 5m/15m 数据停摆、日涨跌幅昨收被冻结**（用户可见：5m/15m「像每 30 分钟才更新」、增幅错 0.688% vs 真值 0.779%）。
++- **根因（精确到秒）**：TimescaleDB **每库一个常驻 scheduler** 占用 `max_worker_processes` 槽位（配 8，而 `timescaledb.max_background_workers`=16，**配置不一致**）；带 TSDB 的库增至 6 个（其中 **4 个是 09-17 03:47–04:02 创建的 ADR-023 E6b 隔离测试库**）⇒ 常驻 7/8 ⇒ 全部 job `failed to start a background worker` ⇒ 生产 job 连续失败 **75,173 次**、17 个 job 全逾期。
++- **处置**：删 5 个遗留测试库（槽位 7→3，作业即刻转 Success）+ 手工 `refresh_continuous_aggregate` ×8 回填缺口（5m 09-17 行数 1100→2200、15m 396→792、昨收 8.864→**8.856**）+ `max_worker_processes` 8→**32**（compose `-c`，防复发）。证据：`tester/evidence/245_tsdb_worker_slot_incident/**`。
++- **为什么没人清（用户追问，逐条有原文）**：①各车道只清「自己前缀」、对别人的明文「未动」；②门禁只管「不新增」不管「不残留」；③「登记残留」当成了处置；④**工具只建不删**（`scripts/testdb-init.sh` 全篇无 teardown）；⑤收尾动作最先被 30 分钟上限截断；⑥先例被点名也没人动。
++- **决策要点**：D1 worker 名额自洽不变量 + 启动自检；D2 **DB 作业层进观测面**（cagg 新鲜度 / job 失败率 / 槽位占用，复用 `alert_rules` 通道）；D3 测试载体治理（命名 `tmp_<lane>_<ts>`、必须 `--drop`、验收用**正向断言**、隔离优先 **schema 级** 而非整库、清理不得放最后一步、**残留必须带 owner+到期日**）；D4 事故顺序纪律（先量化缺口 → 再修因 → 最后回填）；D5 ADR-023 §6.1 第 8 条升级为本 ADR 强制规则。
++- **产出物**：ADR-025 本体（已裁决待实现）+ 项目 skill `eestock-db-migration-and-cagg-ops` 的 Pitfalls/Verification 补充；实现项 4 项待派（`testdb-init.sh --drop`、三项监控、启动自检、车道模板）。
+
+$ git status --porcelain | head -5 ; git status --porcelain | wc -l
+122

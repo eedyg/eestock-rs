@@ -1,0 +1,68 @@
+# ===== ADR-024 P4b ② 基线独立复现（tester 自跑；长窗口 PG 协议）=====
+# date_utc : 2026-09-18T06:19:24.700Z
+# binary   : /tmp/eestock-app-instr-250 sha256=e738fc71293821c1edcdade09d8476a6d5201c3c093ac68171547eba7981b5d3
+# app 源码 : crates/application/src/workbench.rs sha256=0a5045ad1072dc0a0967daf5ca32ba284a226ea806e4da540b4a835b8b6f4e52（== index 交付态）
+# config   : /tmp/app_tester_instr_18081.toml（listen 127.0.0.1:18081；DB=活库 eestock）
+# 协议     : 前置 idle guard（连续 3 次相同）→ 3 档串行 → 后置 settle（连续 3 次相同）
+
+# app pid  : 247969
+# healthz  : 200
+
+### [0] 前置 idle guard（不提交 run）
+  IDLE[2026-09-18T06:19:25.355Z] 376235|2371|1998
+  IDLE[2026-09-18T06:19:30.390Z] 376235|2371|1998
+  IDLE[2026-09-18T06:19:35.433Z] 376235|2371|1998
+  IDLE[2026-09-18T06:19:40.472Z] 376235|2371|1998
+IDLE strategy_run(tup_upd|ins|del): 376235|2371|1998
+
+### [1] 三档串行真路径 run
+[SUBMIT verify_small_d1_492] [http=201 wall=0.012059s]
+[TERM   verify_small_d1_492] status=succeeded rid=sr_1789712380517_000000
+verify_small_d1_492|row|sr_1789712380517_000000|D1|518880|succeeded|progress=1|bars=492|dur_s=0.437422
+[SUBMIT verify_medium_m5_3500] [http=201 wall=0.054499s]
+[TERM   verify_medium_m5_3500] status=succeeded rid=sr_1789712381060_000001
+verify_medium_m5_3500|row|sr_1789712381060_000001|M5|159740|succeeded|progress=1|bars=3500|dur_s=0.853156
+[SUBMIT verify_large_m1_16155] [http=201 wall=0.658430s]
+[TERM   verify_large_m1_16155] status=succeeded rid=sr_1789712382656_000002
+verify_large_m1_16155|row|sr_1789712382656_000002|M1|518880|succeeded|progress=1|bars=16155|dur_s=0.924582
+
+### [2] 后置 settle
+  POST[2026-09-18T06:19:43.841Z] 378735|2374|1998
+  POST[2026-09-18T06:19:48.882Z] 378735|2374|1998
+  POST[2026-09-18T06:19:53.920Z] 378735|2374|1998
+  POST[2026-09-18T06:19:58.956Z] 378735|2374|1998
+PRE  strategy_run(tup_upd|ins|del): 376235|2371|1998
+POST strategy_run(tup_upd|ins|del): 378735|2374|1998
+Δn_tup_upd = 2500   Δn_tup_ins = 3   Δn_tup_del = 0
+理论 Σ(min(1001,bars)+2) = 2500  （492+2 / 1001+2 / 1001+2）
+
+### [3] 并发 4（M5 3500 ×4）—— 交叉核对 worker B4.3 吞吐/放大
+[SUBMIT conc4_1] [http=201 wall=0.070327s]
+[SUBMIT conc4_2] [http=201 wall=0.030377s]
+[SUBMIT conc4_3] [http=201 wall=0.058139s]
+[SUBMIT conc4_4] [http=201 wall=0.043864s]
+[TERM   conc4_1] status=succeeded rid=sr_1789712399075_000003
+[TERM   conc4_2] status=succeeded rid=sr_1789712399110_000004
+[TERM   conc4_3] status=succeeded rid=sr_1789712399175_000005
+[TERM   conc4_4] status=succeeded rid=sr_1789712399225_000006
+[CONC4] wall_total=1.983s  runs=4  throughput=2.0168 run/s
+  POST2[2026-09-18T06:20:01.044Z] 381200|2378|1998
+  POST2[2026-09-18T06:20:06.081Z] 381200|2378|1998
+  POST2[2026-09-18T06:20:11.123Z] 382747|2378|1998
+  POST2[2026-09-18T06:20:16.161Z] 382747|2378|1998
+  POST2[2026-09-18T06:20:21.197Z] 382747|2378|1998
+  POST2[2026-09-18T06:20:26.241Z] 382747|2378|1998
+PRE-C4  strategy_run: 378735|2374|1998
+POST-C4 strategy_run: 382747|2378|1998
+Δn_tup_upd(并发4) = 4012  理论 = 1003×4 = 4012
+
+### [4] 清理（按前缀删除）
+DELETE 7
+残留 T250-BASE-%: 0
+孤儿结果行: 0
+strategy_run 行数: 374 / result: 374
+
+### [5] 停止实例
+残进程: 0  18081 http=000000
+prod 8081 http=200  pid=4083225 alive=yes
+### —— 结束 ——

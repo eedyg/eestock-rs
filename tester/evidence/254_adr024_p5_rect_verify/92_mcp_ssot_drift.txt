@@ -1,0 +1,13 @@
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.06s
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... ok
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

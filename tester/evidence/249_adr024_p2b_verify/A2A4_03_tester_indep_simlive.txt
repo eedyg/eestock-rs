@@ -1,0 +1,21 @@
+===== tester 独立判别测试（A2/A4）: crates/simlive/tests/tester_p2b_orchestrator_indep.rs =====
+命令: cargo test -p simlive --test tester_p2b_orchestrator_indep -- --nocapture --test-threads=1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/tester_p2b_orchestrator_indep.rs (target/debug/deps/tester_p2b_orchestrator_indep-fac8029a376fccac)
+
+running 3 tests
+test indep_orchestrator_alloc_flat_vs_growing_compat ... [tester-indep/alloc·新路径] n=2000 897.8 B/bar（24.3 ms） | n=4000 896.0 B/bar（47.1 ms）；ratio=0.998（期望 ≈1）；wall ratio=1.941（期望 ≈2）
+[tester-indep/alloc·兼容路径(改造前形态)] n=2000 48736.1 B/bar（47.2 ms） | n=4000 96736.0 B/bar（146.5 ms）；ratio=1.985（期望 ≈2）
+ok
+test indep_orchestrator_ctx_prefix_and_position_fields ... [tester-indep/sim-live] ctx.bars 可见面（独立探针）：rows=60 违例=0 bars_len==index+1 全成立 ahead_visible 全 false 逐元素前缀相等=true 句柄恒等=true
+  idx=0 bars_len=1 ahead_visible=false shared_handle=true history_ptr=0x71aee4005a10
+  idx=1 bars_len=2 ahead_visible=false shared_handle=true history_ptr=0x71aee4005a10
+  idx=2 bars_len=3 ahead_visible=false shared_handle=true history_ptr=0x71aee4005a10
+[tester-indep/sim-live] ctx.position 复刻比对：60 bar 全等（null 15 / some 45）；抽印 idx=10,25,35,45,50 → [(10, Some(PositionSnapshot { qty: 1000.0, avg_cost: 12.9, entry_ts: 1700000600, bars_since_entry: 0, unrealized_pnl: -909.9999999999984 })), (25, Some(PositionSnapshot { qty: 2000.0, avg_cost: 12.95, entry_ts: 1700000600, bars_since_entry: 15, unrealized_pnl: -1079.9999999999948 })), (35, Some(PositionSnapshot { qty: 500.0, avg_cost: 12.95, entry_ts: 1700000600, bars_since_entry: 25, unrealized_pnl: -364.9999999999984 })), (45, None), (50, Some(PositionSnapshot { qty: 300.0, avg_cost: 13.4, entry_ts: 1700003000, bars_since_entry: 0, unrealized_pnl: -17.999999999999083 }))]
+ok
+test indep_orchestrator_scores_bitwise_vs_prechange_replica_with_positions ... [tester-indep/sim-live] 位级等价（含持仓）：bars=120 slots=3 持仓 bar=105 逐位相等=360 distinct_scores=119 signals={"sell", "hold"}
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+exit=0

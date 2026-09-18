@@ -1,0 +1,262 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running unittests src/lib.rs (target/debug/deps/backtest-7a004127ec463d4d)
+
+running 31 tests
+test fee::tests::buy_respects_min_commission_branch ... ok
+test fee::tests::buy_uses_proportional_commission_and_total_equals_budget ... ok
+test fee::tests::default_matches_adr_bt1 ... ok
+test fee::tests::commission_proportional_and_min ... ok
+test fee::tests::sell_charges_commission_and_stamp ... ok
+test fee::tests::sell_roundtrip_golden_pnl ... ok
+test fee::tests::slippage_prices ... ok
+test fee::tests::stamp_only_sell_side ... ok
+test indicators::tests::atr_wilder ... ok
+test indicators::tests::boll_population_std ... ok
+test indicators::tests::ema_recursive ... ok
+test indicators::tests::kdj_smoothing ... ok
+test indicators::tests::ma_simple ... ok
+test indicators::tests::macd_dif_dea_hist ... ok
+test indicators::tests::online_out_of_range_index_is_none ... ok
+test indicators::tests::true_range_definition ... ok
+test indicators::tests::rsi_wilder ... ok
+test types::tests::bars_per_year_m30_is_2016_nominal ... ok
+test metrics::tests::metrics_known_sequence ... ok
+test metrics::tests::max_drawdown_only_wins_no_loss_gives_infinity_profit_factor ... ok
+test metrics::tests::no_trades_degenerate ... ok
+test metrics::tests::drawdown_series_known ... ok
+test types::tests::bars_per_year_known_factors ... ok
+test indicators::tests::online_ma_matches_slice_view ... ok
+test indicators::tests::online_handles_non_monotone_requests ... ok
+test indicators::tests::online_boll_matches_slice_view ... ok
+test indicators::tests::online_ema_matches_slice_view ... ok
+test indicators::tests::online_macd_matches_slice_view ... ok
+test indicators::tests::online_rsi_matches_slice_view ... ok
+test indicators::tests::online_atr_matches_slice_view ... ok
+test indicators::tests::online_kdj_matches_slice_view ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+
+running 33 tests
+test aggregate::tests::aggregate_empty_is_neutral ... ok
+test aggregate::tests::aggregate_single_slot_equals_score ... ok
+test aggregate::tests::aggregate_weighted_mean ... ok
+test aggregate::tests::classify_custom_thresholds ... ok
+test aggregate::tests::classify_boundaries_exact ... ok
+test aggregate::tests::slot_accepts_positive_weight ... ok
+test aggregate::tests::slot_rejects_non_positive_weight ... ok
+test policy::tests::clamp_lump_frozen_caps_unreachable_target ... ok
+test policy::tests::dca_equal_batches_split_plan_total ... ok
+test policy::tests::dca_equal_plan_total_snapshotted_at_run_start ... ok
+test policy::tests::dca_fixed_amount_batches ... ok
+test policy::tests::dca_hold_interrupts_and_cancels_remaining_batches ... ok
+test policy::tests::dca_interval_fires_every_k_bars ... ok
+test policy::tests::dca_sell_liquidates_all_and_resets ... ok
+test policy::tests::lump_sum_buy_freezes_target_against_equity_drift ... ok
+test policy::tests::lump_sum_buy_target_is_pct_of_equity ... ok
+test policy::tests::lump_sum_hold_unfreezes_and_next_buy_resnapshots ... ok
+test policy::tests::lump_sum_repeated_buy_is_idempotent ... ok
+test policy::tests::lump_sum_sell_target_zero_hold_keeps_current ... ok
+test policy::tests::lump_sum_sell_unfreezes ... ok
+test policy::tests::policy_state_reset_clears_lump_freeze_and_dca ... ok
+test policy::tests::policy_validation ... ok
+test stop::tests::atr_line ... ok
+test stop::tests::close_basis_triggers_on_close_cross ... ok
+test reference::tests::official_templates_len_4_and_wellformed ... ok
+test stop::tests::fixed_pct_line ... ok
+test stop::tests::intrabar_fill_price_is_line_minus_slippage ... ok
+test stop::tests::default_trigger_is_intrabar ... ok
+test stop::tests::trailing_line_uses_peak_close ... ok
+test stop::tests::trailing_peak_tracks_max_close_since_entry ... ok
+test stop::tests::intrabar_triggers_on_low_cross ... ok
+test reference::tests::reference_plugins_match_builtin_order ... ok
+test reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels ... ok
+
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (target/debug/deps/engine-14ef3ff72e954382)
+
+running 26 tests
+test perf_smoke_1260_bars_3_plugins ... ignored, 性能冒烟：手动运行 cargo test -p strategy-core -- --ignored
+test instantiate_failure_is_reported_not_swallowed ... ok
+test lump_sum_interrupted_buy_resnapshots_frozen_target ... ok
+test e2e_position_gate_buy_then_sell ... ok
+test ensemble_config_validate_rejects_illegal_configs ... ok
+test e2e_buy_hold_force_close ... ok
+test g5_consecutive_count_resets_on_success ... ok
+test e2e_dca_batches_with_interval ... ok
+test lump_sum_frozen_target_flat_no_fee_bleed ... ok
+test lump_sum_frozen_target_rising_price_no_micro_sell ... ok
+test zero_slots_neutral_50_no_orders ... ok
+test stop_atr_intrabar_uses_atr_through_previous_bar ... ok
+test stop_atr_close_basis_uses_atr14_line ... ok
+test stop_configured_but_never_holding_is_noop ... ok
+test engine_weighted_aggregation_across_slots ... ok
+test stop_trailing_close_basis_next_open_fill ... ok
+test stop_liquidation_resets_dca_state_intrabar ... ok
+test stop_fixed_pct_intrabar_fills_same_bar_at_line_minus_slippage ... ok
+test stop_liquidation_resets_dca_state_close_basis ... ok
+test stop_close_basis_next_open_fill ... ok
+test stop_trailing_intrabar_uses_peak_close_since_entry ... ok
+test warmup_zero_is_legacy_behaviour ... ok
+test warmup_prefix_scores_but_never_executes_or_counts_metrics ... ok
+test engine_threshold_exact_boundaries ... ok
+test e2e_deterministic_double_run_pointwise_equal ... ok
+test g5_circuit_breaker_after_10_consecutive_timeouts ... ok
+
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/observer.rs (target/debug/deps/observer-5ed881eae7031f13)
+
+running 6 tests
+test ensemble_error_is_std_error ... ok
+test observer_break_at_first_bar ... ok
+test observer_break_cancels_run_without_result ... ok
+test observer_called_once_per_bar_in_order ... ok
+test plugin_error_wraps_into_ensemble_error ... ok
+test observer_continue_all_matches_run_ensemble ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 5 tests
+test session_finish_force_closes_open_position ... ok
+test session_observer_called_per_bar_and_break_is_immediate ... ok
+test session_handles_empty_single_and_warmup_overflow ... ok
+test session_chunked_feed_matches_single_feed ... ok
+test session_push_matches_batch_entry_bitwise ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+test engine_per_bar_allocation_does_not_grow_with_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/templates.rs (target/debug/deps/templates-c15ca349a91d9e15)
+
+running 3 tests
+test two_state_gate_scores_gated_by_position ... ok
+test templates_instantiate_with_valid_schema ... ok
+test templates_deterministic_double_run ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/strategy_runtime-4d7e8a01856d9163)
+
+running 17 tests
+test history::tests::indicators_before_data_are_none ... ok
+test history::tests::from_bars_equals_push_sequence ... ok
+test history::tests::push_and_prefix_access ... ok
+test types::tests::clamp_boundaries ... ok
+test types::tests::default_limits_match_abi ... ok
+test quickjs::tests::missing_on_bar_fails_instantiate ... ok
+test quickjs::tests::load_without_hook_errors ... ok
+test quickjs::tests::duplicate_param_key_is_schema_error ... ok
+test quickjs::tests::malformed_schema_fails_with_schema_error ... ok
+test quickjs::tests::syntax_error_fails_instantiate ... ok
+test quickjs::tests::date_is_absent_from_sandbox ... ok
+test quickjs::tests::math_random_is_forbidden ... ok
+test quickjs::tests::math_legit_functions_still_work ... ok
+test quickjs::tests::non_finite_score_is_invalid ... ok
+test quickjs::tests::params_frozen_and_passed ... ok
+test quickjs::tests::indicators_match_backtest_and_null_when_insufficient ... ok
+test quickjs::tests::save_error_variants_are_reported ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (target/debug/deps/contract-35c9b5b509ca6897)
+
+running 13 tests
+test contract_log_sink ... ok
+test contract_position_panorama ... ok
+test contract_boundary_clamp ... ok
+test contract_capability_forbidden ... ok
+test contract_params_schema_extraction ... ok
+test contract_exception_isolation ... ok
+test contract_state_round_trip ... ok
+test contract_stack_overflow_is_js_exception ... ok
+test contract_forged_guard_messages_are_js_exception ... ok
+test contract_save_error_is_reported_not_swallowed ... ok
+test contract_determinism_double_run ... ok
+test contract_timeout_circuit_semantics ... ok
+test contract_memory_limit ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/dcap_cross_runtime.rs (target/debug/deps/dcap_cross_runtime-bc519b058305ab41)
+
+running 6 tests
+test t4_sample_set_meets_spec ... ok
+test t5a_cross_runtime_nonmonotonic_params_bit_equal ... ok
+test t4_selfcheck_comparator_teeth_one_ulp_and_sandbox_pipeline ... ok
+test t2_plugin_smooth_off_equals_m1_bit_equal ... ok
+test t4_cross_runtime_scores_bit_equal ... ok
+test t4_cross_runtime_raw_series_bit_equal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/dcap_plugin_init.rs (target/debug/deps/dcap_plugin_init-6d8a3c8ca53f9ffc)
+
+running 5 tests
+test t6_plugin_all_lines_insufficient_returns_exactly_50_and_no_log_noise ... ok
+test t6_plugin_insufficient_lines_are_excluded_from_n ... ok
+test t5a_plugin_windows_do_not_drift_across_bars ... ok
+test t5a_plugin_normalization_is_idempotent_and_bitwise_deterministic ... ok
+test t5a_plugin_effective_windows_follow_normalization ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/dcap_plugin_replay.rs (target/debug/deps/dcap_plugin_replay-209b6420f0fc20ec)
+
+running 3 tests
+test t7_channel_probe_channel_is_not_bit_exact ... ok
+test t7_selftest_missing_save_field_is_detected ... ok
+test t7_replay_continuation_scores_bit_equal ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+test compat_path_ctx_bars_unchanged ... ok
+test bar_history_grows_as_exact_prefix ... ok
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+test bar_history_indicators_match_slice_view ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/shared_history_alloc.rs (target/debug/deps/shared_history_alloc-b3a4132438113fa9)
+
+running 1 test
+test shared_history_per_bar_allocation_is_flat_in_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+
+   Doc-tests backtest
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests strategy_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests strategy_runtime
+
+running 1 test
+test crates/strategy-runtime/src/history.rs - history::BarHistory (line 28) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

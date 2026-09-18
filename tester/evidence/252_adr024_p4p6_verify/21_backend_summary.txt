@@ -1,0 +1,4 @@
+suites= 64 passed= 498 failed= 0 ignored= 0
+FAILED lines: []
+panics: []
+crates covered: ['accurate_upsert', 'alert_store', 'api_admin', 'api_alerts', 'api_favorites', 'api_kline_period', 'api_ma_config', 'api_multi_period_config', 'api_quality', 'api_rest', 'api_settings', 'api_strategies', 'api_workbench', 'backtest', 'backtest_periods_ssot', 'config_store', 'event_sink', 'favorite_store', 'fee_profile_store', 'kline_reader', 'ma_config_store', 'mcp_protocol', 'mcp_tools_db', 'multi_period_contract_vectors', 'multi_period_pane_budget', 'orphan_detect_endpoint_red', 'orphan_detect_sql_constant_red', 'raw_writer', 'sim_store', 'simlive', 'src', 'strategy', 'strategy_store', 'symbol_admin', 'symbol_type_fee_migration', 'symbols_registry', 'tests', 'workbench', 'workbench_store', 'ws_poller']

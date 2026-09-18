@@ -1,0 +1,44 @@
+[lookahead] bars=tester/evidence/240_adr024_golden_baseline/m1_1slot/bars.jsonl n=1500
+
+### A. 前缀 bars[0..=i] 跑一遍 vs 全序列跑到第 i 根（逐位比较）
+  i=    0  prefix_len=1  full_len=1500  bitwise=SAME
+  i=    1  prefix_len=2  full_len=1500  bitwise=SAME
+  i=    4  prefix_len=5  full_len=1500  bitwise=SAME
+  i=    5  prefix_len=6  full_len=1500  bitwise=SAME
+  i=   18  prefix_len=19  full_len=1500  bitwise=SAME
+  i=   19  prefix_len=20  full_len=1500  bitwise=SAME
+  i=   20  prefix_len=21  full_len=1500  bitwise=SAME
+  i=   25  prefix_len=26  full_len=1500  bitwise=SAME
+  i=   26  prefix_len=27  full_len=1500  bitwise=SAME
+  i=  100  prefix_len=101  full_len=1500  bitwise=SAME
+  i=  750  prefix_len=751  full_len=1500  bitwise=SAME
+  i= 1498  prefix_len=1499  full_len=1500  bitwise=SAME
+  i= 1499  prefix_len=1500  full_len=1500  bitwise=SAME
+  全量逐点（0..n-1，共 1499 点）前缀≡全序列: true（首个不同点=None）
+
+### B. 未来污染不变性（corrupt bars[from..]，断言 bars[0..from-1] 的记录逐位不变）
+  from=    0: 不变区 0..0 相同=0 不同=无 | 正对照（from.. 内变化记录数=1500）: OK（有变化 ⇒ 比较器有鉴别力）
+  from=    1: 不变区 0..0 相同=1 不同=无 | 正对照（from.. 内变化记录数=1499）: OK（有变化 ⇒ 比较器有鉴别力）
+  from=   19: 不变区 0..18 相同=19 不同=无 | 正对照（from.. 内变化记录数=1481）: OK（有变化 ⇒ 比较器有鉴别力）
+  from=  100: 不变区 0..99 相同=100 不同=无 | 正对照（from.. 内变化记录数=1400）: OK（有变化 ⇒ 比较器有鉴别力）
+  from=  750: 不变区 0..749 相同=750 不同=无 | 正对照（from.. 内变化记录数=750）: OK（有变化 ⇒ 比较器有鉴别力）
+  from= 1498: 不变区 0..1497 相同=1498 不同=无 | 正对照（from.. 内变化记录数=2）: OK（有变化 ⇒ 比较器有鉴别力）
+
+### C. ctx.bars 可见面探针（真实引擎会话路径；断言 len==index+1 / bars[index]==ctx.bar / 无未来 bar）
+  rows=1500 违例=0 首个违例=None
+     idx=0 bars_len=1 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true
+     idx=1 bars_len=2 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true
+     idx=2 bars_len=3 cur_eq_ctx_bar=true ahead_visible=false shared_handle=true
+  探针行 前缀 vs 全序列 不同点: "无"
+  探针行 未来污染不变区 不同点: "无"
+
+### D. 反向对照（必须变红）：模拟「共享缓冲被改成预填全量」/改造前批式 ctx.bars 口径
+  D1 全量 ctx.bars：len != index+1 的 bar 数 = 1499/1500（首个=Some(0)）；可读到 bars[index+1] 的 bar 数 = 1499
+     ⇒ 断言 [ctx.bars.len() == index+1] 在此语义下**变红**（区别于 C 的 0 违例）
+  D1b 预填 BarHistory（n=1500）在 index=750 处：history.len()=1500（应为 751）⇒ 断言 [len == index+1] 变红 = true
+  D2 「偷看 bars[index+1]」的插件在预填/全量语义下：不变区 0..749 内不同点 = 1（>0 ⇒ 前视确实存在，B 的不变性断言**变红**）
+  D3 「读 bars[index+1..] 全局极值」的插件在预填/全量语义下：不变区 0..749 内不同点 = 750/750（大面积 ⇒ B 的不变性断言**大面积变红**）
+  对照：真实引擎会话路径下，同一偷看语义不可达（ahead_visible 全 false = true）⇒ ctx.bars 无未来 bar
+  ⇒ 反向对照鉴别力自证: PASS（D1/D1b 断言变红 且 D2 前视可检出 且 真实路径无未来）
+
+== lookahead VERDICT: PASS ==

@@ -1,0 +1,47 @@
+=== 04-B: FORBIDDEN-ITEM CHECKS (values + paths) 2026-09-18T13:03:55+08:00 ===
+--- B.1 constant VALUE lines in staged diff (must be absent) ---
+$ git diff --cached -U0 -- crates/ | grep -E '^[-+].*(MINUTE_MAX_SPAN_DAYS|D1_MAX_SPAN_DAYS|MAX_BARS)'
+[grep exit=1  (exit 1 / no output == no +/- line mentions these constants)]
+
+--- B.2 constant definitions: HEAD vs INDEX vs WORKTREE (byte/value compare) ---
+### MINUTE_MAX_SPAN_DAYS  (crates/application/src/strategy.rs)
+  HEAD   : pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  INDEX  : pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  WORKTREE: pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  sha16 HEAD=ac01c6d0c488efec INDEX=ac01c6d0c488efec WORKTREE=ac01c6d0c488efec  IDENTICAL=YES
+### D1_MAX_SPAN_DAYS  (crates/application/src/strategy.rs)
+  HEAD   : pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  INDEX  : pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  WORKTREE: pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  sha16 HEAD=a9ba2649a8f8203f INDEX=a9ba2649a8f8203f WORKTREE=a9ba2649a8f8203f  IDENTICAL=YES
+### MAX_BARS  (crates/application/src/workbench.rs)
+  HEAD   : pub const MAX_BARS: usize = 200_000;
+  INDEX  : pub const MAX_BARS: usize = 200_000;
+  WORKTREE: pub const MAX_BARS: usize = 200_000;
+  sha16 HEAD=745f1cbb70110331 INDEX=745f1cbb70110331 WORKTREE=745f1cbb70110331  IDENTICAL=YES
+
+--- B.3 forbidden PATHS: staged diff must be empty ---
+$ git diff --cached --name-only -- crates/strategy-core
+   (EMPTY => untouched in index)
+$ git diff --cached --name-only -- crates/strategy-runtime
+   (EMPTY => untouched in index)
+$ git diff --cached --name-only -- crates/storage/src/workbench.rs
+   (EMPTY => untouched in index)
+
+--- B.4 forbidden paths: worktree-vs-index AND HEAD-vs-worktree (double check) ---
+$ git diff --name-only -- crates/strategy-core crates/strategy-runtime crates/storage/src/workbench.rs
+  (empty = worktree==index)
+$ git diff HEAD --name-only -- crates/strategy-core crates/strategy-runtime crates/storage/src/workbench.rs
+  (empty = HEAD==worktree for these paths)
+$ git diff --cached --stat -- crates/strategy-core crates/strategy-runtime crates/storage/src/workbench.rs
+  (empty)
+
+--- B.5 no staged file anywhere under those dirs (full index scan) ---
+$ git diff --cached --name-only | grep -E '^crates/(strategy-core|strategy-runtime)/|^crates/storage/src/workbench.rs'
+  (grep exit=1 ; exit 1 = none)
+
+--- B.6 docker-compose.yml NOT staged (ADR-025 side change must stay out) ---
+$ git diff --cached --name-only -- docker-compose.yml
+  (empty = not staged)
+$ git status --porcelain -- docker-compose.yml
+ M docker-compose.yml

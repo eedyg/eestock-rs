@@ -1,0 +1,11 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.83s
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+
+running 3 tests
+test confirm_bars_matches_contract_vector ... ok
+test max_bars_guard_matches_contract_vector ... ok
+test guard_bars_runtime_thresholds_match_contract_vector ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

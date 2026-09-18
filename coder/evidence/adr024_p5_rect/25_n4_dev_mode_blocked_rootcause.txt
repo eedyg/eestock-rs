@@ -1,0 +1,62 @@
+
+Running 1 test using 1 worker
+
+SEL_DISABLED= true
+SEL_HTML= <select class="mt-0.5 h-7 w-full rounded-lg border border-line bg-panel2 px-2 text-txt text-xs" disabled="" data-testid="wb-add-strategy"><option value="">加载中…</option></select>
+OPTIONS= 1
+PANEL_TEXT= 组合预设
+选择预设…
+保存
+重命名
+删除
+策略（多选，加权聚合）
+加载中…
+添加
+名称（可选）
+标的
+518880
+周期
+M1
+M5
+M15
+M30
+H1
+D1
+初始资金
+起始
+截止
+可用区间：2013-07-28 ~ 2026-09-16
+买入阈值（≥ 买）
+卖出阈值（≤ 卖）
+执行策略（ExecutionPolicy）
+LumpSum 一次性
+DCA 分批
+仓位比例 (0,1]
+启用硬止损（触发即绕过评分平仓）
+佣金率%
+最低佣金
+滑点 bp
+提交回测
+CALLS= [
+ "RESP 200 http://127.0.0.1:15173/src/api/index.ts",
+ "RESP 200 http://127.0.0.1:15173/src/api/types.ts",
+ "RESP 200 http://127.0.0.1:15173/src/api/client.ts",
+ "RESP 200 http://127.0.0.1:15173/src/api/mock.ts",
+ "RESP 200 http://127.0.0.1:15173/src/api/errorMessages.ts",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/presets",
+ "RESP 200 http://127.0.0.1:15173/api/sources/health",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/runs?limit=50&offset=0",
+ "RESP 200 http://127.0.0.1:15173/api/strategies",
+ "RESP 200 http://127.0.0.1:15173/api/sources/health",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/presets",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/runs?limit=50&offset=0",
+ "RESP 200 http://127.0.0.1:15173/api/strategies",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1",
+ "RESP 200 http://127.0.0.1:15173/api/workbench/available_range?symbol=518880&period=D1",
+ "RESP 200 http://127.0.0.1:15173/api/symbols",
+ "RESP 200 http://127.0.0.1:15173/api/symbols"
+]
+  ✓  1 [chromium] › e2e-p5-rect/probe.e2e.ts:3:1 › probe: catalog 下拉从何而来 (5.3s)
+
+  1 passed (5.7s)

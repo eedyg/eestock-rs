@@ -1,0 +1,76 @@
+### FINAL — 终态自检 @ 2026-09-18T12:53:24+08:00
+$ git diff --cached --stat | tail -2
+ web/src/features/workbench/ConfigPanel.tsx         |   9 +-
+ 48 files changed, 1807 insertions(+), 56 deletions(-)
+$ git diff --stat (unstaged)
+ design/01-architecture/adr/ADR-023-period-set-extension-30m.md | 7 ++++++-
+ docker-compose.yml                                             | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+$ git status --porcelain | grep -v '^??' (staged/unstaged 概览)
+A  coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+A  coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+A  coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/11_red_frontend.txt
+A  coder/evidence/adr024_p0_m30/12_green_frontend.txt
+A  coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+A  coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+A  coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+A  coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+A  coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+A  coder/evidence/adr024_p0_m30/16_frontend_build.txt
+A  coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+A  coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+A  coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+A  coder/evidence/adr024_p0_m30/20_tangle_check.txt
+A  coder/evidence/adr024_p0_m30/21_frontend_final.txt
+A  coder/evidence/adr024_p0_m30/22_backend_final.txt
+A  coder/report/adr024_p0_m30.md
+M  crates/application/src/bar_map.rs
+M  crates/application/src/simlive.rs
+M  crates/application/src/strategy.rs
+A  crates/application/tests/backtest_periods_ssot.rs
+M  crates/backtest/src/types.rs
+M  crates/domain/src/ports.rs
+M  crates/mcp/src/tools.rs
+A  crates/mcp/tests/adr024_period_ssot_drift.rs
+M  crates/storage/src/backtest.rs
+M  crates/web/src/workbench.rs
+A  crates/web/tests/adr024_workbench_period_ssot.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M  design/02-domain/contracts.md
+M  design/07-app-plane/01-mcp.md
+ M docker-compose.yml
+M  web/src/api/mock.test.ts
+M  web/src/api/mock.ts
+M  web/src/api/types.ts
+M  web/src/features/backtest/format.test.ts
+M  web/src/features/backtest/format.ts
+A  web/src/features/backtest/periods.ts
+M  web/src/features/strategies/TestRunPanel.test.tsx
+M  web/src/features/strategies/TestRunPanel.tsx
+M  web/src/features/workbench/ConfigPanel.test.tsx
+M  web/src/features/workbench/ConfigPanel.tsx
+$ sha256sum of perturbed files (must equal baselines)
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+34909888143174459bed7e17e1e6ef952a116ea75d05509ffe97157d559c65d9  crates/web/src/workbench.rs
+6cebff6c8fc42f0097a72561a04fdc76d83ce563bcc82161cc60e7dd0d3b65a0  web/src/features/workbench/ConfigPanel.tsx
+  baselines: periods.ts 04b540de… | workbench.rs 34909888… | ConfigPanel.tsx 6cebff6c…
+$ online app
+LISTEN 0      128                                             0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=11)) 
+LISTEN 0      128                                             0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=12)) 
+{"status":"ok"} HTTP=200
+$ db list
+eestock postgres 
+$ residual verify runs
+0
+$ deliverables
+-rw-rw-r-- 1 eestock eestock  4396 Sep 18 12:52 tester/evidence/246_adr024_p0_verify/EVIDENCE.md
+-rw-rw-r-- 1 eestock eestock 28883 Sep 18 12:53 tester/report/adr024_p0_m30_verification.md
+-rw-rw-r-- 1 eestock eestock  8860 Sep 18 12:52 tester/test/298_adr024_p0_verification_execution.md

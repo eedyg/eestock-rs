@@ -1,0 +1,24 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.49s
+     Running tests/adr024_structured_errors.rs (target/debug/deps/adr024_structured_errors-83c23e3ee295648b)
+
+running 1 test
+test every_400_path_is_structured_with_code ... FAILED
+
+failures:
+
+---- every_400_path_is_structured_with_code stdout ----
+
+thread 'every_400_path_is_structured_with_code' (1263687) panicked at crates/web/tests/adr024_structured_errors.rs:191:5:
+assertion `left == right` failed: [runs/symbol_required] code 不符: {"error":{"code":"request_invalid","detail":{},"message":"symbol 必填"}}
+  left: String("request_invalid")
+ right: String("symbol_required")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    every_400_path_is_structured_with_code
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `-p web --test adr024_structured_errors`

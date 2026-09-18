@@ -1,0 +1,53 @@
+== ADR-024 P1b ⑤ 生产 run 端到端预估算子标定（只读 runs_prod.csv）==
+样本量 N=374（strategy_run.status='succeeded' 且 started_at/finished_at 非空）
+bars: min=29 max=3250 median=999.0
+dur_s: min=0.026 max=2.151 median=0.854 mean=1.042
+slots 取值=[1, 2, 4]；周期=['D1', 'H1', 'M15', 'M5']
+
+-- 模型 A：dur = c0 + c1×bars（全样本）--
+   c0=1.0205s  c1=16.584 µs/bar  R²=0.0007  rmse=0.4487s
+-- 模型 B：dur = c0 + c1×(bars×slots)（全样本）--
+   c0=0.9539s  c1=58.567 µs/bar/slot  R²=0.0209  rmse=0.4441s
+
+-- 分周期模型 dur = c0 + c1×bars --
+    D1: N=185 bars=[29..1249] c0=-0.277s c1=1492.584 µs/bar R²=0.6229 rmse=0.3308s
+    H1: N= 21 bars=[274..598] c0=-0.039s c1=990.114 µs/bar R²=0.7638 rmse=0.0380s
+   M15: N= 83 bars=[936..1402] c0=1.482s c1=-472.673 µs/bar R²=0.0688 rmse=0.3026s
+    M5: N= 85 bars=[1150..3250] c0=0.895s c1=-13.191 µs/bar R²=0.0264 rmse=0.0577s
+
+-- 固定成本证据（dur 与 bars 分段，看是否随 n 增长）--
+   bars<=500        N= 19 bars_median=   254 dur_median=0.251s dur_mean=0.224s
+   500<bars<=1000   N=181 bars_median=   999 dur_median=0.854s dur_mean=0.980s
+   1000<bars<=1500  N=100 bars_median=  1209 dur_median=1.672s dur_mean=1.445s
+   bars>1500        N= 74 bars_median=  2100 dur_median=0.844s dur_mean=0.860s
+
+-- 残差异常点（模型 A，|残差| 最大的 8 个）--
+    D1 bars= 1209 slots=4 dur=2.151s 残差=+1.110s
+    D1 bars= 1209 slots=1 dur=2.130s 残差=+1.089s
+    D1 bars= 1209 slots=1 dur=2.099s 残差=+1.059s
+    D1 bars= 1209 slots=4 dur=2.088s 残差=+1.048s
+    D1 bars=   29 slots=1 dur=0.026s 残差=-0.995s
+    D1 bars=   29 slots=1 dur=0.028s 残差=-0.993s
+    D1 bars=   43 slots=1 dur=0.045s 残差=-0.976s
+    D1 bars= 1209 slots=4 dur=1.977s 残差=+0.937s
+   残差 sd=0.4487s；|残差|>3σ 点数=0/374
+
+== 结论式（D1 过渡期用；**P2 改造后必须重标定**）==
+   全样本：dur ≈ 1.021s + 16.58 µs/bar × bars    （R²=0.0007，rmse=0.449s）
+   含 slots：dur ≈ 0.954s + 58.57 µs/(bar·slot) × bars × slots （R²=0.0209）
+   注：本口径**仅适用于过渡期（P2 前）**；P2/P3 改变引擎与写库路径后必须重标定。
+
+== 判别性检验：dur 是否由「进度节流写库次数 min(1001, bars)」主导？ ==
+   口径：PROGRESS_THROTTLE_MILLI=1000 时发出的进度帧数 ≈
+         bars                    若 bars ≤ 1000
+         1001                    若 bars > 1000（0.1% 粒度 ⇒ 恰好 1001 步，与 n 无关）
+   模型：dur ≈ c0 + c1×min(1001,bars)
+        c0=-91.07 ms  c1=1.226 ms/帧  R²=0.2773  rmse=381.6 ms
+   对照（模型 A：dur ~ bars）：R²=0.0007 rmse=448.7 ms
+   分档核对（实测中位 dur  vs  c1×min(1001,bars) 预测）：
+     bars<=120        N=  6 bars_median=    74 预测=  90.1 ms 实测中位=  74.5 ms
+     500<bars<=800    N= 24 bars_median=   598 预测= 733.1 ms 实测中位= 549.1 ms
+     900<bars<=1001   N=157 bars_median=   999 预测=1224.7 ms 实测中位= 855.3 ms
+     bars>1001        N=174 bars_median=  1330 预测=1227.2 ms 实测中位= 866.3 ms
+   ⇒ 结论：生产端到端时长与「进度帧数」近似成正比，而**与 bars 几乎无关**（R² 从 0.0007 升到上值）。
+   ⇒ 这直接解释了真路径 bars/s 是伪指标（bars/s ≈ bars/(固定写库成本) ⇒ 随 n 单调上升、随 run 规模无关）。

@@ -1,0 +1,21 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+error[E0599]: no variant, associated function, or constant named `M30` found for enum `Period` in the current scope
+   --> crates/backtest/src/types.rs:133:28
+    |
+ 47 | pub enum Period {
+    | --------------- variant, associated function, or constant `M30` not found for this enum
+...
+133 |         assert_eq!(Period::M30.bars_per_year(), 2016.0);
+    |                            ^^^ variant, associated function, or constant not found in `Period`
+
+error[E0599]: no variant, associated function, or constant named `M30` found for enum `Period` in the current scope
+   --> crates/backtest/src/types.rs:134:28
+    |
+ 47 | pub enum Period {
+    | --------------- variant, associated function, or constant `M30` not found for this enum
+...
+134 |         assert_eq!(Period::M30.bars_per_year(), 252.0 * 8.0);
+    |                            ^^^ variant, associated function, or constant not found in `Period`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `backtest` (lib test) due to 2 previous errors

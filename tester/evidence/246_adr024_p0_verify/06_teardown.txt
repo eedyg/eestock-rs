@@ -1,0 +1,44 @@
+### 06 — teardown (ADR-025 D3): delete ADR024-P0-verify-* run + cascade result, positive assertion @ 2026-09-18T12:48:12+08:00
+--- 6.1 BEFORE: matching strategy_run rows ---
+           id            |               name               | period |  status   
+-------------------------+----------------------------------+--------+-----------
+ sr_1789706874229_000000 | ADR024-P0-verify-20260918_124754 | M30    | succeeded
+(1 row)
+
+matching count = 1
+result rows for those runs = 1
+--- 6.2 DELETE (cascade) ---
+           id            |               name               
+-------------------------+----------------------------------
+ sr_1789706874229_000000 | ADR024-P0-verify-20260918_124754
+(1 row)
+
+DELETE 1
+--- 6.3 AFTER (positive assertion: must be 0, not 'no new database') ---
+strategy_run  matching count      = 0
+strategy_run_result orphans by id = 0
+ strategy_run_matching 
+-----------------------
+                     0
+(1 row)
+
+ result_rows_for_deleted_run 
+-----------------------------
+                           0
+(1 row)
+
+--- 6.4 GET the deleted run over REST (must be 404) ---
+{"error":"运行不存在: sr_1789706874229_000000"}
+HTTP=404
+{"error":"运行不存在: sr_1789706874229_000000"}
+HTTP=404
+--- 6.5 db list (AFTER) must equal {eestock, postgres} ---
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+count = 2
+--- 6.6 ADR-025 D2 side-signal: no new TSDB test carrier created by this lane ---
+eestock|eestock postgres|eestock 

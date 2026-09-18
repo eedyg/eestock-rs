@@ -1,0 +1,25 @@
+### ②-a 独立验收（tester 自建）：结果读取端点（真实 server + 临时库）
+TS=2026-09-18T14:48:25+08:00  DB=tmp_p4verify_20260918143844  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+命令：cargo test -p web --test tester_p4_endpoints_indep -- --nocapture
+文件：crates/web/tests/tester_p4_endpoints_indep.rs（tester 新增，未 git add）
+覆盖：真实 run（5010 根 = 5000+10）/ 分页边界（0·恰好一整块·跨块·越界·超上限）/ 区间读跨块外沿 /
+      /result 兼容矩阵（chunked 首页+has_more+next_offset；legacy 全量）/ /curve 抽样保首尾 /
+      /compare 抽样标记 / 手工 legacy·chunked 行 / 异构块不变量探针
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/tester_p4_endpoints_indep.rs (target/debug/deps/tester_p4_endpoints_indep-dbd0dfebdd592281)
+
+running 3 tests
+[probe] 异构块 [7000,3000]：/brief bars_total=8000 chunk_count=2（真值 n=10000）
+[probe] /result(chunked_v1) net_value=[] drawdown=[]
+[probe] 异构块 offset=6000&limit=2 → ts=[1789397400, 1789397460]（期望 [1789277400, 1789277460]）
+[probe] 异构块 has_more=true next_offset=6002 total=8000
+test t_p4_crafted_legacy_and_chunked_dual_read_independent ... ok
+[probe] 对照（均匀块 [5000,5000]）：bars_total=10000 ts=[1789277400, 1789277460] ✓
+test t_p4_probe_heterogeneous_chunk_size_invariant ... ok
+[probe] /curve k=1 → k=1 points=2 downsampled=true
+[probe] /curve k=0 → k=1 points=2 downsampled=true
+test t_p4_real_run_chunked_endpoints_independent ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+

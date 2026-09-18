@@ -1,0 +1,91 @@
+## ⑥ P4/P6/P4b 未回退静态核查（工作区）
+
+### 1) /fills + recorded（P6）
+crates/web/src/workbench.rs:541:/// `limit` 缺省 5000/上限 20000；响应含 `total` 与 `recorded`（区分「无成交」与「未写」）。
+crates/web/src/workbench.rs:544:pub async fn get_fills(
+crates/web/src/workbench.rs:552:    match svc.result_fills(&id, offset, limit).await {
+crates/application/src/workbench.rs:275:    pub recorded: bool,
+crates/application/src/workbench.rs:913:    /// 返回 `(fills, recorded)`：`recorded=false` = 「未写」（P6 之前的 chunked run）。
+crates/application/src/workbench.rs:934:    pub async fn result_fills(
+crates/application/src/workbench.rs:944:        let (all, recorded) = self.fills_all(run_id, &res).await?;
+crates/application/src/workbench.rs:959:            recorded,
+  routes:
+101:        .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
+
+### 2) 分块写路径（P4）
+crates/storage/src/workbench.rs:14://! - `mark_succeeded` 新语义：新 run 写 `result_format='chunked_v1'` + `trades`/`metrics`，
+crates/storage/src/workbench.rs:16://! - `append_result_chunk` / `result_chunks` / `result_chunks_in_range` / `result_chunk_count`：分块读写。
+crates/storage/src/workbench.rs:25:    StrategyRunView, RESULT_FORMAT_CHUNKED,
+crates/storage/src/workbench.rs:177:        // ADR-024 P4 / D8：新 run 一律写 `result_format='chunked_v1'`——per_bar/net_value/drawdown
+crates/storage/src/workbench.rs:195:            .bind(&result.trades).bind(&result.metrics).bind(RESULT_FORMAT_CHUNKED)
+crates/storage/src/workbench.rs:242:    async fn append_result_chunk(&self, run_id: &str, chunk: &ResultChunk) -> Result<()> {
+crates/storage/src/workbench.rs:289:    async fn result_chunk_count(&self, run_id: &str, kind: ResultKind) -> Result<i64> {
+crates/application/src/workbench.rs:44:    RESULT_FORMAT_CHUNKED, RESULT_FORMAT_LEGACY,
+crates/application/src/workbench.rs:226:    /// `legacy_single` | `chunked_v1`；无结果行为 None（未成功）。
+crates/application/src/workbench.rs:878:            // D8 双读：chunked_v1 的净值在 strategy_run_bars；legacy_single 为内联列。
+crates/application/src/workbench.rs:922:        let blocks = self.run_store.result_chunk_count(run_id, ResultKind::Fills).await?;
+crates/application/src/workbench.rs:1006:        let count = self.run_store.result_chunk_count(run_id, kind).await?;
+
+### 3) P4b 仪表（P4B_GLOBAL / run_summary 自洽）
+1489:// - `progress_db_writes`：`store.update_progress` 实际调用次数（report 任务内）；
+1545:static P4B_GLOBAL: P4bGlobalCounters = P4bGlobalCounters::new();
+1674:                    progress_db_writes = report_p4b.db_writes.load(Ordering::Relaxed),
+1908:    // ── P4b 每 run 汇总（自洽性：`progress_frames_produced == progress_db_writes`）──
+1926:    let global_runs = P4B_GLOBAL.runs.fetch_add(1, Ordering::Relaxed) + 1;
+1927:    let global_frames = P4B_GLOBAL.frames_produced.fetch_add(produced, Ordering::Relaxed) + produced;
+1928:    let global_writes = P4B_GLOBAL.db_writes.fetch_add(writes, Ordering::Relaxed) + writes;
+1931:        p4b_ms(P4B_GLOBAL.db_write_us.fetch_add(db_write_us, Ordering::Relaxed) + db_write_us);
+1933:        p4b_ms(P4B_GLOBAL.permit_hold_us.fetch_add(hold_us, Ordering::Relaxed) + hold_us);
+1940:        progress_db_writes = writes,
+1959:        global_runs_total = global_runs,
+
+### 4) SSOT 四方断言
+  application:
+crates/application/src/bar_map.rs:9://! **单一事实源（ADR-024 §5.1）**：`supported_backtest_periods()` 是回测周期白名单的唯一权威来源，
+crates/application/src/bar_map.rs:10://! web/MCP/前端镜像常量均不得再手写第二份（防漂移断言见 `tests/backtest_periods_ssot.rs`
+crates/application/src/bar_map.rs:23:pub fn supported_backtest_periods() -> &'static [&'static str] {
+crates/application/src/bar_map.rs:28:/// match 臂必须与 `supported_backtest_periods()` 一一对应（回环断言在
+crates/application/src/bar_map.rs:29:/// `tests/backtest_periods_ssot.rs::every_ssot_period_parses_roundtrip`）。
+crates/application/tests/backtest_periods_ssot.rs:3://! 单一事实源：`application::bar_map::supported_backtest_periods()`（`design/16-backtest-scalability/02-spec.md` §5.1）。
+  mcp:
+5://! application::bar_map::supported_backtest_periods()   （后端唯一权威事实源）
+10://! 另加源码级反回归：`crates/mcp/src/tools.rs` 必须由 `supported_backtest_periods()` 生成
+15:use application::bar_map::supported_backtest_periods;
+25:fn ssot() -> Vec<String> {
+26:    supported_backtest_periods().iter().map(|s| s.to_string()).collect()
+86:fn mcp_schema_enums_match_backend_ssot() {
+  web:
+3://! 现状（红）：`crates/web/src/workbench.rs::submit_run` 手写 `matches!(req.period.as_str(), "M1"|...")`
+5://! 目标（绿）：删除硬编码，改调 `application::bar_map::parse_period`（唯一事实源）。
+10://! - `period=M30` 走通 web 预校验后才可能触达服务层；服务层连不上库 ⇒ 500 也是**非 400**
+12://! - `period=W1`（看板扩展周期，不属回测）必须在触达服务层**之前**返回 400（保留既有语义）。
+14://! 另有源码级反回归：断言 `src/workbench.rs` 已无硬编码 `matches!(req.period.as_str()` 白名单，
+15://! 且确实调用 `parse_period`（防「行为对了但双事实源又长回来」）。
+  frontend:
+-rw-rw-r-- 1 eestock eestock 1264 Sep 18 13:01 web/src/features/backtest/periods.ts
+17:export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'M30', 'H1', 'D1'] as const;
+20:export type BacktestPeriod = (typeof SUPPORTED_BACKTEST_PERIODS)[number];
+104:test every_ssot_period_parses_roundtrip ... ok
+106:test ssot_has_no_duplicates ... ok
+107:test ssot_is_the_canonical_six_tier_set ... ok
+108:test ssot_matches_contract_vectors_backtest_periods ... ok
+242:test p4b_run_summary_counters_are_self_consistent ... ok
+245:test p6_fills_curve_sampling_rejected ... ok
+246:test p6_fills_block_single_seq_and_content ... ok
+256:test p6_fills_paging_and_recorded ... ok
+257:test p6_fills_legacy_derived_from_inline_per_bar ... ok
+258:test p6_fills_unrecorded_distinguished ... ok
+459:test p6_fills_endpoint ... ok
+553:test t_p6_fills_chunk_single_block_and_result_row_coexist ... ok
+554:test t_p6_fills_chunk_write_failure_marks_failed_and_precedes_success ... ok
+564:test t_p5_structured_error_serializes_as_object ... ok
+569:test t_p5_no_calendar_span_cap_m15_m1_m30 ... ok
+570:test t_p5_http_d1_six_year_span_accepted_independent ... ok
+582:test t_n1_frontend_code_map_covers_backend_codes ... ok
+583:test t_n1_static_audit ... ok
+584:test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+585:test t_n1_http_every_400_is_structured_object ... ok
+592:test t_p6_fills_rejected_by_curve_and_bars_with_hint ... ok
+593:test t_p6_fills_recorded_vs_unrecorded_and_legacy_derived ... ok
+594:test t_p6_fills_paging_boundaries_and_clamps ... ok
+595:test t_p6_fills_is_exact_source_and_trades_misses_partial_fills ... ok

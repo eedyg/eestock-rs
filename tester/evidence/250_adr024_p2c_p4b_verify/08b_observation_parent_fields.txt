@@ -1,0 +1,17 @@
+===== 4b 父 span 字段的『Empty -> record 补全』时点（同一 root span 的两个快照）=====
+  sr_1789712380517_000000    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712380517_000000 bars_total=492 symbol=518880 period=D1
+  sr_1789712381060_000001    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712381060_000001 bars_total=3500 symbol=159740 period=M5
+  sr_1789712382656_000002    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712382656_000002 bars_total=16155 symbol=518880 period=M1
+  sr_1789712399075_000003    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712399075_000003 bars_total=3500 symbol=159740 period=M5
+  sr_1789712399110_000004    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712399110_000004 bars_total=3500 symbol=159740 period=M5
+  sr_1789712399175_000005    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712399175_000005 bars_total=3500 symbol=159740 period=M5
+  sr_1789712399225_000006    首快照(事件=p4b.segment   ) run_id=    None bars_total=    None
+                             末快照(事件=p4b.run_summary) run_id=sr_1789712399225_000006 bars_total=3500 symbol=159740 period=M5
+
+判定: 首快照 run_id/bars_total 为 Empty、末快照（run_summary 处）全部补全 -> 违例数=0 -> OK

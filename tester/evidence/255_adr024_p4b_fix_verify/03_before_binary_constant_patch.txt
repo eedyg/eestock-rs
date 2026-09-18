@@ -1,0 +1,14 @@
+# 2026-09-18T09:49:36Z
+## 改动前 sha256 (crates/application/src/workbench.rs)
+2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528  crates/application/src/workbench.rs
+## 临时反向：PROGRESS_DB_MIN_INTERVAL 250ms -> 0ms（等价退化：due 恒真 = 逐帧落库）
+93:const PROGRESS_DB_MIN_INTERVAL: Duration = Duration::from_millis(0); // TESTER-BEFORE
+## 反向态 sha256
+9d1b95ed30bbcff03d7d78b8943b70e97f3098d051bc91cbe9d9a4553e5137d4  crates/application/src/workbench.rs
+## 复原后 sha256（必须 == 2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528）
+2495e9cb7e022eff265e2fcf2110adf7bd2665e06c15999a60955de6404e5528  crates/application/src/workbench.rs
+## 复原后 git diff（应为空）
+EXIT=0
+## TESTER- 残留标记计数（应为 0）: 0
+## 当前常量
+93:const PROGRESS_DB_MIN_INTERVAL: Duration = Duration::from_millis(250);

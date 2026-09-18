@@ -1,0 +1,23 @@
+# N6 teardown（2026-09-18T16:46:30+08:00）—— 全单最终回读（架构师 N6 要求：DROP … WITH (FORCE) + 回读库清单）
+
+$ psql -Atc "select datname, pg_size_pretty(pg_database_size(datname)) from pg_database order by 1"   # 删除前
+eestock 2452 MB
+postgres 7519 kB
+template0 7361 kB
+template1 7361 kB
+tmp_p5r_fixt_1789721128 490 MB
+
+$ for db in $(select datname where datname like 'tmp_p5r%'); do psql -c "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)"; done
+DROP DATABASE
+
+# 删除后库清单（业务库须只剩 eestock / postgres；template0/1 为系统模板）
+eestock
+postgres
+template0
+template1
+
+# 残留进程（app/vite）计数（期望 0）
+0
+# 一次性 harness 目录（期望：不存在）
+ls: cannot access 'web/e2e-p5-rect': No such file or directory
+ls: cannot access 'web/pw-artifacts': No such file or directory

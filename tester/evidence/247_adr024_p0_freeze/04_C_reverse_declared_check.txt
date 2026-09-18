@@ -1,0 +1,73 @@
+=== 04-C: REVERSE CHECK — is every index entry DECLARED? (防多提) 2026-09-18T13:04:03+08:00 ===
+$ wc -l declared actual
+  55 /tmp/adr024_frz/declared.sorted
+  55 /tmp/adr024_frz/actual.sorted
+ 110 total
+
+$ diff declared.sorted actual.sorted
+  (no output => index EXACTLY equals the declared P0 surface; diff exit=0)
+
+--- C.2 staged entries whose path is OUTSIDE the declared prefixes (undeclared/foreign lanes) ---
+  (empty => nothing foreign staged)
+
+--- C.3 sanity: no staged files in these lanes/dirs ---
+  staged under tester       : 0
+  staged under migrations   : 0
+  staged under scripts      : 0
+  staged under config       : 0
+  staged under deploy       : 0
+  staged under .github      : 0
+  staged under data         : 0
+
+--- C.4 untracked batch artifacts NOT in index (completeness note) ---
+$ git status --porcelain -- coder/
+A  coder/evidence/adr024_p0_m30/01_red_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/02_green_backtest_m30.txt
+A  coder/evidence/adr024_p0_m30/03_application_nonexhaustive_match.txt
+A  coder/evidence/adr024_p0_m30/04_red_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/05_green_application_ssot.txt
+A  coder/evidence/adr024_p0_m30/06_red_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/07_green_web_period_gate.txt
+A  coder/evidence/adr024_p0_m30/08_web_period_gate_nocapture.txt
+A  coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/10_green_mcp_drift.txt
+A  coder/evidence/adr024_p0_m30/11_red_frontend.txt
+A  coder/evidence/adr024_p0_m30/12_green_frontend.txt
+A  coder/evidence/adr024_p0_m30/13a_reverse_rust_red.txt
+A  coder/evidence/adr024_p0_m30/13b_reverse_ts_red.txt
+A  coder/evidence/adr024_p0_m30/14_restore_green_rust.txt
+A  coder/evidence/adr024_p0_m30/14b_restore_green_ts.txt
+A  coder/evidence/adr024_p0_m30/15_frontend_full_suite.txt
+A  coder/evidence/adr024_p0_m30/16_frontend_build.txt
+A  coder/evidence/adr024_p0_m30/17_backend_check_all_targets.txt
+A  coder/evidence/adr024_p0_m30/18_backend_targeted_tests.txt
+A  coder/evidence/adr024_p0_m30/19_backend_lib_tests.txt
+A  coder/evidence/adr024_p0_m30/20_tangle_check.txt
+A  coder/evidence/adr024_p0_m30/21_frontend_final.txt
+A  coder/evidence/adr024_p0_m30/22_backend_final.txt
+A  coder/report/adr024_p0_m30.md
+A  coder/report/adr024_p0_rectification.md
+?? coder/backups/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/adr024_p0_rect2_testrunpanel.md
+$ git ls-files --others --exclude-standard -- coder/
+coder/backups/strategy_purge_20260911_strategy.csv
+coder/backups/strategy_purge_20260911_versions.csv
+coder/evidence/281_mp_deploy_p0_p5/base_dcap.json
+coder/evidence/281_mp_deploy_p0_p5/base_kline.json
+coder/evidence/281_mp_deploy_p0_p5/base_ma.json
+coder/evidence/281_mp_deploy_p0_p5/final_dcap.json
+coder/evidence/281_mp_deploy_p0_p5/final_kline.json
+coder/evidence/281_mp_deploy_p0_p5/final_ma.json
+coder/evidence/281_mp_deploy_p0_p5/mp-OFF1.png
+coder/evidence/281_mp_deploy_p0_p5/mp-OFF2.png
+coder/evidence/281_mp_deploy_p0_p5/mp-ON.png
+coder/evidence/281_mp_deploy_p0_p5/mp-deploy-results.json
+coder/evidence/281_mp_deploy_p0_p5/neg.sh
+coder/evidence/281_mp_deploy_p0_p5/neg_matrix_output.txt
+coder/evidence/281_mp_deploy_p0_p5/probe.mjs
+coder/evidence/281_mp_deploy_p0_p5/probe.txt
+coder/evidence/281_mp_deploy_p0_p5/verify_mp_deploy.mjs
+coder/report/281_mp_redeploy_p0_p5.md
+coder/report/adr024_p0_rect2_testrunpanel.md

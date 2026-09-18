@@ -1,0 +1,9 @@
+$ cargo test -p storage --test backtest measure_bars_fetch_scaling_r10 -- --nocapture   # R10 取数标度量化
+[r10] 510050 M1 可得区间：2012-01-04 01:30:00 UTC ~ 2026-09-17 07:00:01 UTC
+[r10] read n=1000 got=241 wall_ms=132.2 us_per_bar=548.57 bars_per_s=1823
+[r10] read n=5000 got=964 wall_ms=53.8 us_per_bar=55.82 bars_per_s=17915
+[r10] read n=20000 got=2410 wall_ms=57.8 us_per_bar=23.98 bars_per_s=41703
+[r10] read n=100000 got=12050 wall_ms=83.3 us_per_bar=6.91 bars_per_s=144667
+[r10] read n=500000 got=56153 wall_ms=222.5 us_per_bar=3.96 bars_per_s=252358
+[r10] read FULL got=861093 wall_ms=3500.0 us_per_bar=4.06
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 4.50s

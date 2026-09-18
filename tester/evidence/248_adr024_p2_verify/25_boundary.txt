@@ -1,0 +1,76 @@
+[boundary] bars=tester/evidence/240_adr024_golden_baseline/m1_1slot/bars.jsonl n=200
+
+---- 空 bars (n=0)（n=0）----
+  批式: per_bar=0 nav=0 dd=0 trades=0 warmup_marks=0 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+        空序列断言: per_bar 空=true nav 空=true
+
+---- 单根 bars (n=1)（n=1）----
+  批式: per_bar=1 nav=1 dd=1 trades=0 warmup_marks=0 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        nav first=(1788934020, 100000.0) last=(1788934020, 100000.0)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+
+---- 单根 bars + 恒 Buy（n=1）（n=1）----
+  批式: per_bar=1 nav=1 dd=1 trades=0 warmup_marks=0 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        nav first=(1788934020, 100000.0) last=(1788934020, 100000.0)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+
+---- warmup=100 > n=10（n=10）----
+  批式: per_bar=10 nav=0 dd=0 trades=0 warmup_marks=10 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+        warmup>n 断言: marks==min(w,n)=true nav 空=true 无 policy 成交=true
+
+---- warmup=10 == n=10（全 warmup）（n=10）----
+  批式: per_bar=10 nav=0 dd=0 trades=0 warmup_marks=10 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+        全 warmup 断言: marks==n=true nav 空=true 无 policy 成交=true
+
+---- warmup=0, n=30（n=30）----
+  批式: per_bar=30 nav=30 dd=30 trades=0 warmup_marks=0 | fills: policy=0 force_close=0 stop=0
+        metrics=BacktestMetrics { net_profit: 0.0, max_drawdown: 0.0, sharpe: 0.0, win_rate: 0.0, profit_factor: 0.0, annualized_return: 0.0, trade_count: 0, avg_hold_bars: 0.0 }
+        nav first=(1788934020, 100000.0) last=(1788935760, 100000.0)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+
+---- 期末强平（恒 Buy, n=40）（n=40）----
+  批式: per_bar=40 nav=40 dd=40 trades=1 warmup_marks=0 | fills: policy=1 force_close=1 stop=0
+        metrics=BacktestMetrics { net_profit: -25.57251914385415, max_drawdown: 0.001520898956844791, sharpe: -4.157347071476986, win_rate: 0.0, profit_factor: 0.0, annualized_return: -0.3207091800000489, trade_count: 1, avg_hold_bars: 38.0 }
+        nav first=(1788934020, 100000.0) last=(1788936360, 99974.42748085615)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+        期末强平断言: force_close 次数=1（期望 1）nav_last==initial+net_profit=YES
+
+---- 期末强平 + warmup=5（恒 Buy, n=40）（n=40）----
+  批式: per_bar=40 nav=35 dd=35 trades=1 warmup_marks=5 | fills: policy=1 force_close=1 stop=0
+        metrics=BacktestMetrics { net_profit: -25.57251914385415, max_drawdown: 0.001520898956844791, sharpe: -4.5421356338012036, win_rate: 0.0, profit_factor: 0.0, annualized_return: -0.35721799617098426, trade_count: 1, avg_hold_bars: 33.0 }
+        nav first=(1788934320, 100000.0) last=(1788936360, 99974.42748085615)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+
+---- 恒 Buy + ATR 止损 Intrabar（n=40）（n=40）----
+  批式: per_bar=40 nav=40 dd=40 trades=16 warmup_marks=0 | fills: policy=16 force_close=0 stop=16
+        metrics=BacktestMetrics { net_profit: -2193.050636904314, max_drawdown: 0.022050274504625902, sharpe: -217.1458986553805, win_rate: 0.0, profit_factor: 0.0, annualized_return: -0.9999999999999972, trade_count: 16, avg_hold_bars: 1.4375 }
+        nav first=(1788934020, 100000.0) last=(1788936360, 97806.94936309569)
+        分块=1     与批式逐位等价=SAME
+        分块=7     与批式逐位等价=SAME
+        分块=5000  与批式逐位等价=SAME
+
+== boundary VERDICT: PASS ==

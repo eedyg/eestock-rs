@@ -1,0 +1,15 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+error[E0432]: unresolved import `strategy_core::EnsembleSession`
+  --> crates/strategy-core/tests/session.rs:16:64
+   |
+16 |     run_ensemble_with_observer, EnsembleConfig, EnsembleError, EnsembleSession, EnsembleResult,
+   |                                                                ^^^^^^^^^^^^^^^ no `EnsembleSession` in the root
+   |
+help: a similar name exists in the module
+   |
+16 -     run_ensemble_with_observer, EnsembleConfig, EnsembleError, EnsembleSession, EnsembleResult,
+16 +     run_ensemble_with_observer, EnsembleConfig, EnsembleError, EnsembleResult, EnsembleResult,
+   |
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `strategy-core` (test "session") due to 1 previous error

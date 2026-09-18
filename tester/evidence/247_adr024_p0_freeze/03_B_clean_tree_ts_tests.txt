@@ -1,0 +1,22 @@
+=== 03-B: RUN the 3 TS assertions INSIDE the clean-checkout export tree (2026-09-18T13:02:34+08:00) ===
+--- B.1 preconditions: node_modules symlinked (deps are build artifacts, not committed) ---
+lrwxrwxrwx 1 eestock eestock 63 Sep 18 13:02 node_modules -> /home/eestock/workspace/git/eestock/eestock-rs/web/node_modules
+$ grep -c M30 ../design/16-backtest-scalability/contract-vectors.json
+2
+
+$ pwd
+/tmp/adr024_clean_frz01/web
+$ npx vitest run src/features/backtest/periods.test.ts src/features/strategies/TestRunPanel.test.tsx src/features/workbench/ConfigPanel.test.tsx
+
+ RUN  v3.2.7 <CLEAN_TREE>/web
+
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/strategies/TestRunPanel.test.tsx (6 tests) 173ms
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 714ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  13:02:34
+   Duration  1.25s (transform 134ms, setup 71ms, collect 282ms, tests 889ms, environment 441ms, prepare 137ms)
+
+CLEAN_TREE_TS_EXIT_RAW=0

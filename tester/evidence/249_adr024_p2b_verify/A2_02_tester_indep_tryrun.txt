@@ -1,0 +1,21 @@
+===== tester 独立判别测试（A2）: crates/application/tests/tester_p2b_tryrun_indep.rs =====
+命令: cargo test -p application --test tester_p2b_tryrun_indep -- --nocapture --test-threads=1
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.43s
+     Running tests/tester_p2b_tryrun_indep.rs (target/debug/deps/tester_p2b_tryrun_indep-63f982fecd9089ac)
+
+running 3 tests
+test indep_alloc_flat_new_path_vs_growing_compat_path ... [tester-indep/alloc·新路径] n=1000 703.2 B/bar（11.8 ms） | n=2000 695.3 B/bar（22.9 ms） | n=4000 690.3 B/bar（43.7 ms）
+[tester-indep/alloc·新路径] ratio 4000/2000 = 0.993（期望 ≈1，常数）；wall ratio = 1.906（期望 ≈2）
+[tester-indep/alloc·兼容路径(改造前形态)] n=2000 48736.1 B/bar（46.1 ms） | n=4000 96736.0 B/bar（140.4 ms）；ratio = 1.985（期望 ≈2，线性）
+ok
+test indep_simposition_tryrun_matches_direct_engine ... [tester-indep/tryrun] SimPosition 回归对照：bars=120 warmup_effective=30 trades=1 fills=2 aggregate/ts/warmup/signal/trades 逐位一致
+ok
+test indep_tryrun_warmup_flow_bitwise_vs_prechange_replica ... [tester-indep/tryrun] warmup 位级等价：bars=120 warmup_effective=30 warmup_true=30 逐位相等=120 distinct_scores=117
+[tester-indep/tryrun] 前 5 bar（新路径）：[(1788220800, Some(4626476121078649323), true), (1788220860, Some(4626465706504511029), true), (1788220920, Some(4626449662430838522), true), (1788220980, Some(4626503142676413546), true), (1788221040, Some(4632258461525216329), true)]
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+exit=0

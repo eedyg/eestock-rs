@@ -1,0 +1,20 @@
+### ⑦-g 范围分类：git diff --cached --name-only
+TS=2026-09-18T15:25:19+08:00
+总staged文件: 217
+
+--- design/16-backtest-scalability/** 的 stage 状态与时间线（架构师回填）---
+A  design/16-backtest-scalability/01-adr.md
+AM design/16-backtest-scalability/02-spec.md
+A  design/16-backtest-scalability/03-test-plan.md
+AM design/16-backtest-scalability/04-implementation-plan.md
+A  design/16-backtest-scalability/contract-vectors.json
+
+
+--- 这些文件是否为 worker 改动？逐文件看 staged diff 内容特征（契约文本 vs 实现）---
+design/16-backtest-scalability/01-adr.md                   +273 -0
+design/16-backtest-scalability/02-spec.md                  +248 -0
+design/16-backtest-scalability/03-test-plan.md             +148 -0
+design/16-backtest-scalability/04-implementation-plan.md   +152 -0
+design/16-backtest-scalability/contract-vectors.json       +46 -0
+
+--- 02-spec staged diff 中与 /fills 有关的行（架构师回填证据）---

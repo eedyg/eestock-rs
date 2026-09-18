@@ -1,0 +1,8 @@
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test submit_rejects_span_limits_400 ... ok
+test submit_rejects_unknown_version_404 ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+

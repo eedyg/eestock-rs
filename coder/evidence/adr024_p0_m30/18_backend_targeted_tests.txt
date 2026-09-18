@@ -1,0 +1,84 @@
+================= cargo test -p backtest --lib =================
+test indicators::tests::kdj_smoothing ... ok
+test indicators::tests::ma_simple ... ok
+test indicators::tests::macd_dif_dea_hist ... ok
+test indicators::tests::rsi_wilder ... ok
+test indicators::tests::true_range_definition ... ok
+test metrics::tests::drawdown_series_known ... ok
+test metrics::tests::max_drawdown_only_wins_no_loss_gives_infinity_profit_factor ... ok
+test metrics::tests::metrics_known_sequence ... ok
+test types::tests::bars_per_year_known_factors ... ok
+test types::tests::bars_per_year_m30_is_2016_nominal ... ok
+test metrics::tests::no_trades_degenerate ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+================= cargo test -p application --test backtest_periods_ssot =================
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
+     Running tests/backtest_periods_ssot.rs (target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+
+running 6 tests
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test every_ssot_period_parses_roundtrip ... ok
+test m30_maps_to_both_m30_variants ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+================= cargo test -p web --test adr024_workbench_period_ssot =================
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.68s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+EXIT=0
+================= cargo test -p web --test period30m_api_contract =================
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.71s
+     Running tests/period30m_api_contract.rs (target/debug/deps/period30m_api_contract-2b65ddda7e04a4a7)
+
+running 2 tests
+test j5b_unknown_period_400_message_lists_all_eight_tiers ... ok
+test j5a_api_kline_period_30m_must_not_be_400 ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+EXIT=0
+================= cargo test -p mcp --test adr024_period_ssot_drift =================
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... ok
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+EXIT=0
+================= cargo test -p mcp --test mcp_protocol =================
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.60s
+     Running tests/mcp_protocol.rs (target/debug/deps/mcp_protocol-b7ccc26f568f8201)
+
+running 2 tests
+test messages_requires_known_session ... ok
+test mcp_sse_full_protocol_roundtrip ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+EXIT=0

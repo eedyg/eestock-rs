@@ -1,0 +1,22 @@
+### ③-a 独立验收（tester 自建）：写路径语义（真实 DB store + 注入式故障/取消）
+TS=2026-09-18T14:48:34+08:00  DB=tmp_p4verify_20260918143844  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+命令：cargo test -p web --test tester_p4_writepath_indep -- --nocapture
+文件：crates/web/tests/tester_p4_writepath_indep.rs（tester 新增，未 git add）
+注入点：InjectStore 透传 PgStrategyRunStore，仅第 N 次 append_result_chunk 返回 Err（fail_at）
+        或在该次成功写入后以 SQL 把 run 置 canceled（cancel_at，模拟并发取消胜出）
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/tester_p4_writepath_indep.rs (target/debug/deps/tester_p4_writepath_indep-36fa1ad9cfd10345)
+
+running 4 tests
+[probe] 协作式取消：status=canceled chunks_per_bar=0（0..k 均可，只需不落 succeeded）
+test t_p4_cooperative_cancel_never_marks_succeeded ... ok
+[probe] cancel 竞态胜出：status=canceled chunks_per_bar=1
+test t_p4_cancel_after_chunks_written_never_succeeds ... ok
+[probe] fail_at=1: status=failed chunks_per_bar=0 error=Some("结果分块落库失败: [tester 注入] 第 1 次 append_result_chunk 强制失败")
+test t_p4_success_path_writes_all_chunks_before_result_row ... ok
+[probe] fail_at=2: status=failed chunks_per_bar=1 error=Some("结果分块落库失败: [tester 注入] 第 2 次 append_result_chunk 强制失败")
+test t_p4_chunk_write_failure_marks_run_failed_not_succeeded ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+

@@ -1,0 +1,5 @@
+# N4 解锁夹具：catalog 为空时的路径（临时库）
+# 1) TRUNCATE strategy/strategy_version ⇒ 2) 启动真二实例 ⇒ 观察：
+# 3) 夹具脚本（幂等）：当 catalog 有 0 条时会经真 REST 门禁 create+publish；本次实测：
+[fixture] catalog 现有条目 = 12
+[fixture] 无需夹具（已有 published 版本）

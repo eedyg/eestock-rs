@@ -1,0 +1,1249 @@
+2026-09-18T12:49:44+08:00
+CMD: cargo test -p backtest -p application -p web -p mcp --no-fail-fast
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/application-c6e64ecbc651b8b9)
+
+running 26 tests
+test fee::tests::consumed_profile_fields_are_exactly_what_engine_applies ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::explicit_object_with_single_recognized_field_is_accepted ... ok
+test fee::tests::effective_excludes_unmodeled_profile_fields ... ok
+test fee::tests::effective_strictly_matches_fee_model_fields_and_is_disjoint_from_not_modeled ... ok
+test fee::tests::explicit_object_without_recognized_fields_is_rejected ... ok
+test fee::tests::explicit_stamp_wins_over_profile ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_etf_profile ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_stock_profile ... ok
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::partial_explicit_overrides_only_present_fields ... ok
+test fee::tests::not_modeled_matches_profile_numeric_fields_minus_consumed ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test fee::tests::resolved_json_exposes_effective_and_profile_segments ... ok
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/backtest_periods_ssot.rs (target/debug/deps/backtest_periods_ssot-84a454eb7488d7a5)
+
+running 6 tests
+test dashboard_and_non_backtest_tiers_still_rejected ... ok
+test m30_maps_to_both_m30_variants ... ok
+test every_ssot_period_parses_roundtrip ... ok
+test ssot_is_the_canonical_six_tier_set ... ok
+test ssot_has_no_duplicates ... ok
+test ssot_matches_contract_vectors_backtest_periods ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/simlive.rs (target/debug/deps/simlive-28e2096096334013)
+
+running 55 tests
+test mcp_enabled_toggle_reads_back_same_instance ... ok
+test p4a_explicit_version_id_must_be_published_and_owned ... ok
+test current_session_resolves_latest_running_only ... ok
+test feed_targets_returns_pinned_session_poll_targets ... ok
+test limit_not_touched_records_pending_no_fill_no_trade_persist ... ok
+test list_and_get_session_return_history_and_result ... ok
+test p4a_feed_targets_from_pinned_configs_only ... ok
+test market_buy_fills_at_latest_applies_account_and_persists ... ok
+test cancel_order_cancels_pending_but_not_filled ... ok
+test p4a_custom_thresholds_pinned_and_used ... ok
+test p4a_registry_not_injected_errors ... ok
+test p4a_recover_degrades_legacy_builtin_configs ... ok
+test feed_polls_new_bar_drives_evaluation_and_auto_order ... ok
+test p4a_g5_events_stream_and_circuit_breaker ... ok
+test p4a_late_feed_after_stop_does_not_trade ... ok
+test p4a_unknown_strategy_id_rejected_with_guidance ... ok
+test get_strategy_signal_and_analysis_return_evaluations ... ok
+test p4a_late_eval_from_replaced_worker_does_not_pollute_latest ... ok
+test p4a_thresholds_must_straddle_neutral_50 ... ok
+test p4a_position_injection_drives_gate_plugin ... ok
+test recover_after_unmarked_positions_pnl_matches_position_view ... ok
+test place_order_position_latest_resolves_from_market_quote ... ok
+test orders_include_source_manual_and_aggregate ... ok
+test place_order_is_idempotent_by_intent ... ok
+test p4a_recover_degrades_when_pinned_version_archived ... ok
+test recover_sessions_degraded_when_no_state_marks_ended ... ok
+test recover_reproduces_persisted_pnl_snapshot ... ok
+test place_order_position_latest_falls_back_zero_without_quote ... ok
+test pnl_and_mark_to_market_reflect_unrealized ... ok
+test p4a_pinning_latest_published_by_default_and_explicit_version ... ok
+test p4a_recover_reinstantiates_plugin_and_continues ... ok
+test run_backtest_compare_manual_session_errors ... ok
+test p4a_worker_panic_degrades_session_to_ended ... ok
+test start_session_invalid_strategies_rejects ... ok
+test run_backtest_compare_unknown_session_errors ... ok
+test process_bar_unconfigured_errors_and_unknown_stock_no_event ... ok
+test position_latest_matches_scoring_latest_price_same_quote_source ... ok
+test start_session_with_strategies_rejects_unregistered_code ... ok
+test start_session_when_already_running_returns_already_running_error ... ok
+test process_bar_persists_running_state ... ok
+test unknown_session_errors ... ok
+test start_session_with_strategies_accepts_registered_code ... ok
+test run_backtest_compare_triggers_ensemble_run_with_pinned_config ... ok
+test start_session_with_strategies_without_registry_port_falls_back_to_format ... ok
+test stop_session_ends_and_persists_result_two_stop_returns_false ... ok
+test stop_session_result_uses_backtest_metrics_structure_and_trade_pnl ... ok
+test start_session_defaults_cash_to_1m_and_persists ... ok
+test set_trading_off_only_scores_no_order ... ok
+test start_session_with_strategies_wires_orchestrator ... ok
+test set_trading_on_and_buy_threshold_places_aggregate_order ... ok
+test recover_sessions_restores_running_session_and_continues ... ok
+test trading_on_no_threshold_no_order ... ok
+test recover_sessions_is_idempotent ... ok
+test p4a_limits_3_strategies_30_stocks ... ok
+test p4a_no_published_version_rejected ... ok
+
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/strategy.rs (target/debug/deps/strategy-f652cf9fe697c517)
+
+running 39 tests
+test create_rejects_empty_name_or_code ... ok
+test delete_strategy_unknown_id_is_404 ... ok
+test delete_strategy_zero_version_ok ... ok
+test not_found_semantics ... ok
+test create_strategy_makes_v1_draft_with_sha_and_schema ... ok
+test delete_strategy_all_draft_ok_and_cascades ... ok
+test delete_strategy_with_published_is_409 ... ok
+test archive_transition_rules ... ok
+test publish_conflict_when_code_changed_concurrently ... ok
+test diff_returns_both_versions ... ok
+test publish_conflict_when_status_changed_concurrently ... ok
+test delete_strategy_with_archived_history_is_409 ... ok
+test catalog_only_published_with_level_filter ... ok
+test publish_gate_rejects_bad_code ... ok
+test catalog_filters_level_set_before_latest_published ... ok
+test manage_list_includes_draft_only_with_aggregates ... ok
+test create_draft_from_inherits_code_and_bumps_version ... ok
+test publish_happy_sets_status_published_at_and_stable_sha ... ok
+test test_run_sim_position_produces_signals_and_trade ... ok
+test test_run_pure_score_inline_code ... ok
+test test_run_param_validation ... ok
+test update_draft_advances_strategy_updated_at ... ok
+test test_run_interval_limits ... ok
+test test_run_warmup_prefix_marked ... ok
+test update_meta_happy_trims_name_and_keeps_missing_fields ... ok
+test test_run_warmup_reports_shortfall ... ok
+test update_meta_validation_400_and_404 ... ok
+test test_run_fee_echo_and_stamp_duty_effect ... ok
+test test_run_h1_period_supported ... ok
+test test_run_version_source_and_bad_inputs ... ok
+test test_run_pure_score_defaults_fill_and_neutral_on_error ... ok
+test update_draft_edits_in_place_when_draft ... ok
+test update_draft_on_published_auto_creates_new_draft ... ok
+test publish_non_draft_is_invalid_transition ... ok
+test test_run_policy_and_capital_effect ... ok
+test update_draft_on_archived_is_conflict ... ok
+test test_run_fee_resolves_by_symbol_type_when_absent ... ok
+test seed_reference_plugins_seeds_12_and_is_idempotent ... ok
+test test_run_events_truncation_cap ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/workbench.rs (target/debug/deps/workbench-ab5ad5571362e14c)
+
+running 17 tests
+test submit_rejects_draft_version_400 ... ok
+test submit_rejects_unknown_version_404 ... ok
+test submit_marks_published_version_not_archived ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test preset_crud_and_apply ... ok
+test submit_rejects_span_limits_400 ... ok
+test compare_returns_side_by_side_net_value_and_metrics ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test cancel_unknown_run_404_and_terminal_409 ... ok
+test run_success_end_to_end ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_rejects_empty_or_oversize_bars_400 ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.45s
+
+     Running unittests src/lib.rs (target/debug/deps/backtest-08de17136bfc2352)
+
+running 22 tests
+test fee::tests::buy_uses_proportional_commission_and_total_equals_budget ... ok
+test fee::tests::default_matches_adr_bt1 ... ok
+test fee::tests::commission_proportional_and_min ... ok
+test fee::tests::buy_respects_min_commission_branch ... ok
+test fee::tests::sell_charges_commission_and_stamp ... ok
+test fee::tests::sell_roundtrip_golden_pnl ... ok
+test fee::tests::slippage_prices ... ok
+test fee::tests::stamp_only_sell_side ... ok
+test indicators::tests::atr_wilder ... ok
+test indicators::tests::boll_population_std ... ok
+test indicators::tests::ema_recursive ... ok
+test indicators::tests::kdj_smoothing ... ok
+test indicators::tests::ma_simple ... ok
+test indicators::tests::macd_dif_dea_hist ... ok
+test indicators::tests::rsi_wilder ... ok
+test indicators::tests::true_range_definition ... ok
+test metrics::tests::drawdown_series_known ... ok
+test metrics::tests::max_drawdown_only_wins_no_loss_gives_infinity_profit_factor ... ok
+test metrics::tests::metrics_known_sequence ... ok
+test metrics::tests::no_trades_degenerate ... ok
+test types::tests::bars_per_year_known_factors ... ok
+test types::tests::bars_per_year_m30_is_2016_nominal ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/mcp-cfe3b0185d1f0823)
+
+running 65 tests
+test state::tests::session_lifecycle_and_id_shape ... ok
+test rpc::tests::notifications_yield_no_response ... ok
+test rpc::tests::unknown_method_is_32601 ... ok
+test rpc::tests::initialize_returns_protocol_capabilities_serverinfo ... ok
+test rpc::tests::id_echo_string_and_numeric_and_ping ... ok
+test tools::tests::call_tool_requires_params_and_name ... ok
+test tools::tests::bt_presets_list_and_apply ... ok
+test tools::tests::get_kline_from_to_validation_is_32602 ... ok
+test tools::tests::get_kline_limit_clamped_and_period_mapped ... ok
+test tools::tests::get_kline_from_to_rfc3339_bounds ... ok
+test tools::tests::get_data_quality_holiday_and_param_validation ... ok
+test tools::tests::get_kline_happy_path_and_defaults ... ok
+test tools::tests::get_kline_from_to_date_bounds_and_range_filter ... ok
+test tools::tests::bt_tools_param_validation_and_unknown_id ... ok
+test tools::tests::get_kline_param_validation_is_32602 ... ok
+test tools::tests::get_kline_port_failure_is_tool_error_not_protocol_error ... ok
+test tools::tests::get_kline_registered_without_bars_is_empty_not_error ... ok
+test tools::tests::get_kline_range_over_limit_is_tool_error ... ok
+test tools::tests::get_data_quality_happy_path ... ok
+test tools::tests::get_kline_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::get_sources_health_failure_is_tool_error ... ok
+test tools::tests::get_kline_unregistered_code_is_tool_error ... ok
+test tools::tests::list_symbols_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::list_symbols_exposes_symbol_type_or_null ... ok
+test tools::tests::get_kline_without_bounds_keeps_legacy_shape ... ok
+test tools::tests::get_sources_health_happy_and_window_clamp ... ok
+test tools::tests::get_kline_same_day_date_bounds_legal ... ok
+test tools::tests::list_symbols_returns_registered_with_status_and_latest ... ok
+test tools::tests::bt_run_ensemble_schema_has_warmup_bars ... ok
+test rpc::tests::tools_list_and_call_route_to_tools_layer ... ok
+test tools::tests::sim_get_strategy_tool_param_validation_is_32602 ... ok
+test tools::tests::sim_l3_param_validation_is_32602 ... ok
+test tools::tests::sim_place_order_param_validation_is_32602 ... ok
+test tools::tests::sim_list_strategies_filter_by_id ... ok
+test tools::tests::sim_place_order_limit_not_touched_pending ... ok
+test tools::tests::sim_place_order_market_fills_and_updates_account ... ok
+test tools::tests::sim_tool_unconfigured_returns_is_error ... ok
+test tools::tests::sim_list_and_get_session_returns_history ... ok
+test tools::tests::sim_list_strategies_returns_catalog ... ok
+test tools::tests::sim_start_session_invalid_strategies_is_error ... ok
+test tools::tests::sim_start_session_legacy_builtin_id_rejected_with_guidance ... ok
+test tools::tests::strategy_list_include_source_type_validation_is_32602 ... ok
+test tools::tests::sim_tools_gated_by_mcp_enabled_toggle ... ok
+test tools::tests::strategy_test_run_registry_failure_is_tool_error_fail_closed ... ok
+test tools::tests::bt_run_ensemble_fee_resolves_by_symbol_type_and_pins_source ... ok
+test tools::tests::strategy_tools_gated_by_mcp_disable_switch ... ok
+test tools::tests::sim_run_backtest_compare_triggers_run ... ok
+test tools::tests::strategy_tools_unconfigured_returns_is_error ... ok
+test tools::tests::bt_run_ensemble_unpublished_and_invalid_config_are_is_error ... ok
+test tools::tests::strategy_guide_returns_handbook_full_text ... ok
+test tools::tests::sim_get_strategy_signal_and_analysis_happy ... ok
+test tools::tests::sim_start_session_with_strategies_wires_orchestrator ... ok
+test tools::tests::tool_list_schema_contract ... ok
+test tools::tests::strategy_test_run_unregistered_symbol_is_tool_error ... ok
+test tools::tests::strategy_crud_flow_via_tools ... ok
+test tools::tests::strategy_list_default_slim_and_include_source_full ... ok
+test tools::tests::strategy_tools_unknown_id_and_state_errors_are_is_error ... ok
+test tools::tests::strategy_test_run_inline_and_version_modes ... ok
+test tools::tests::strategy_test_run_fee_resolves_by_symbol_type ... ok
+test tools::tests::get_kline_limit_cap_and_segment_hint ... ok
+test tools::tests::strategy_tools_param_validation_is_32602 ... ok
+test tools::tests::strategy_test_run_fee_policy_capital_channel ... ok
+test tools::tests::sim_start_session_and_get_account_happy ... ok
+test tools::tests::bt_run_ensemble_archived_version_audit_rerun ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-9c99ea2a60b733fc)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... ok
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-77b7a4348025edcf)
+
+running 1 test
+test real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins ... FAILED
+
+failures:
+
+---- real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins stdout ----
+
+thread 'real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins' (4096441) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --test d11_fee_profile_e2e`
+     Running tests/mcp_protocol.rs (target/debug/deps/mcp_protocol-913992944f4dcd8d)
+
+running 2 tests
+test messages_requires_known_session ... ok
+test mcp_sse_full_protocol_roundtrip ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/mcp_tools_db.rs (target/debug/deps/mcp_tools_db-1f2efab3f345c75b)
+
+running 8 tests
+test list_symbols_matches_real_symbols_registry ... FAILED
+test get_kline_unregistered_code_is_tool_error_against_real_registry ... FAILED
+test get_kline_merged_accurate_first_via_tool ... FAILED
+test get_sources_health_aggregation_via_tool ... FAILED
+test get_kline_from_to_and_limit_cap_against_real_data ... FAILED
+test strategy_test_run_unregistered_symbol_against_real_registry ... FAILED
+test get_data_quality_via_tool ... FAILED
+test strategy_list_slim_reduces_payload_against_real_registry ... FAILED
+
+failures:
+
+---- list_symbols_matches_real_symbols_registry stdout ----
+
+thread 'list_symbols_matches_real_symbols_registry' (4096451) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- get_kline_unregistered_code_is_tool_error_against_real_registry stdout ----
+
+thread 'get_kline_unregistered_code_is_tool_error_against_real_registry' (4096449) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- get_kline_merged_accurate_first_via_tool stdout ----
+
+thread 'get_kline_merged_accurate_first_via_tool' (4096448) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- get_sources_health_aggregation_via_tool stdout ----
+
+thread 'get_sources_health_aggregation_via_tool' (4096450) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- get_kline_from_to_and_limit_cap_against_real_data stdout ----
+
+thread 'get_kline_from_to_and_limit_cap_against_real_data' (4096447) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- strategy_test_run_unregistered_symbol_against_real_registry stdout ----
+
+thread 'strategy_test_run_unregistered_symbol_against_real_registry' (4096453) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- get_data_quality_via_tool stdout ----
+
+thread 'get_data_quality_via_tool' (4096446) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- strategy_list_slim_reduces_payload_against_real_registry stdout ----
+
+thread 'strategy_list_slim_reduces_payload_against_real_registry' (4096452) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+
+failures:
+    get_data_quality_via_tool
+    get_kline_from_to_and_limit_cap_against_real_data
+    get_kline_merged_accurate_first_via_tool
+    get_kline_unregistered_code_is_tool_error_against_real_registry
+    get_sources_health_aggregation_via_tool
+    list_symbols_matches_real_symbols_registry
+    strategy_list_slim_reduces_payload_against_real_registry
+    strategy_test_run_unregistered_symbol_against_real_registry
+
+test result: FAILED. 0 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --test mcp_tools_db`
+     Running unittests src/lib.rs (target/debug/deps/web-c2e45ae876ada5de)
+
+running 49 tests
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test dto::tests::collector_interval_validation ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::dcap_config_default_and_roundtrip ... ok
+test dto::tests::dcap_config_validation_ranges_and_monotonic ... ok
+test dto::tests::dcap_config_or_default_falls_back_on_missing_bad_or_out_of_range ... ok
+test dto::tests::dcap_config_non_integer_or_wrong_type_rejected_at_deserialize ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::symbol_type_validation_enum_and_optional ... ok
+test settings::tests::kline_viewport_bars_constants ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+test settings::tests::kline_viewport_bars_validation ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test spa::tests::mime_mapping ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-e33123a8c8744367)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running tests/api_admin.rs (target/debug/deps/api_admin-ceda77c8f40f72d8)
+
+running 3 tests
+test symbols_register_edit_disable_and_stats ... FAILED
+test symbols_type_optional_register_and_patch ... FAILED
+test reset_endpoint_enqueues_db_control_row ... FAILED
+
+failures:
+
+---- symbols_register_edit_disable_and_stats stdout ----
+
+thread 'symbols_register_edit_disable_and_stats' (4096582) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- symbols_type_optional_register_and_patch stdout ----
+
+thread 'symbols_type_optional_register_and_patch' (4096583) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- reset_endpoint_enqueues_db_control_row stdout ----
+
+thread 'reset_endpoint_enqueues_db_control_row' (4096581) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reset_endpoint_enqueues_db_control_row
+    symbols_register_edit_disable_and_stats
+    symbols_type_optional_register_and_patch
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_admin`
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-4605a1fbf5e69d14)
+
+running 3 tests
+test alerts_list_filters_and_ack_lifecycle ... FAILED
+test rules_list_patch_and_validation ... FAILED
+test evaluator_fires_incident_and_publishes_ws ... FAILED
+
+failures:
+
+---- alerts_list_filters_and_ack_lifecycle stdout ----
+
+thread 'alerts_list_filters_and_ack_lifecycle' (4096585) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- rules_list_patch_and_validation stdout ----
+
+thread 'rules_list_patch_and_validation' (4096587) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- evaluator_fires_incident_and_publishes_ws stdout ----
+
+thread 'evaluator_fires_incident_and_publishes_ws' (4096586) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+
+failures:
+    alerts_list_filters_and_ack_lifecycle
+    evaluator_fires_incident_and_publishes_ws
+    rules_list_patch_and_validation
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_alerts`
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-fde30703a1500e90)
+
+running 2 tests
+test favorite_star_unstar_reorder_and_symbols_order ... FAILED
+test favorite_not_found_and_reorder_validation ... FAILED
+
+failures:
+
+---- favorite_star_unstar_reorder_and_symbols_order stdout ----
+
+thread 'favorite_star_unstar_reorder_and_symbols_order' (4096590) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- favorite_not_found_and_reorder_validation stdout ----
+
+thread 'favorite_not_found_and_reorder_validation' (4096589) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    favorite_not_found_and_reorder_validation
+    favorite_star_unstar_reorder_and_symbols_order
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_favorites`
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-6350fca104d7f586)
+
+running 1 test
+test kline_weekly_monthly_period ... FAILED
+
+failures:
+
+---- kline_weekly_monthly_period stdout ----
+
+thread 'kline_weekly_monthly_period' (4096592) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    kline_weekly_monthly_period
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_kline_period`
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-858fc26b537b5801)
+
+running 1 test
+test ma_config_get_default_put_normalize_and_validate ... FAILED
+
+failures:
+
+---- ma_config_get_default_put_normalize_and_validate stdout ----
+
+thread 'ma_config_get_default_put_normalize_and_validate' (4096594) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    ma_config_get_default_put_normalize_and_validate
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_ma_config`
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-338244fab929bc96)
+
+running 17 tests
+test t6_put_rejects_1w_when_base_below_1d ... FAILED
+test t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values ... FAILED
+test t6_max_legal_config_is_accepted ... FAILED
+test d1_duplicate_indicators_are_normalized_200_and_readback_deduped ... FAILED
+test t6_get_without_key_returns_defaults_200 ... FAILED
+test d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200 ... FAILED
+test t6_put_rejects_more_than_4_periods_without_silent_truncation ... FAILED
+test t6_put_rejects_heights_keys_mismatching_periods ... FAILED
+test t6_put_rejects_duplicate_periods ... FAILED
+test t6_put_rejects_heights_out_of_range ... FAILED
+test t6_put_rejects_base_1mo ... FAILED
+test t6_put_rejects_satellite_below_base ... FAILED
+test t6_put_rejects_satellite_1mo ... FAILED
+test t6_put_rejects_unsupported_indicators ... FAILED
+test t6_zz_cleanup_leaves_no_multi_period_key ... FAILED
+test t6_put_valid_1d_base_with_1w_satellite_is_accepted ... FAILED
+test t6_put_valid_roundtrip_200_and_readback_identical ... FAILED
+
+failures:
+
+---- t6_put_rejects_1w_when_base_below_1d stdout ----
+
+thread 't6_put_rejects_1w_when_base_below_1d' (4096601) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values stdout ----
+
+thread 't6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values' (4096598) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_max_legal_config_is_accepted stdout ----
+
+thread 't6_max_legal_config_is_accepted' (4096600) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- d1_duplicate_indicators_are_normalized_200_and_readback_deduped stdout ----
+
+thread 'd1_duplicate_indicators_are_normalized_200_and_readback_deduped' (4096596) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_get_without_key_returns_defaults_200 stdout ----
+
+thread 't6_get_without_key_returns_defaults_200' (4096599) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200 stdout ----
+
+thread 'd1_duplicate_items_cannot_forge_over_budget_4_periods_always_200' (4096597) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_more_than_4_periods_without_silent_truncation stdout ----
+
+thread 't6_put_rejects_more_than_4_periods_without_silent_truncation' (4096606) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_heights_keys_mismatching_periods stdout ----
+
+thread 't6_put_rejects_heights_keys_mismatching_periods' (4096604) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_duplicate_periods stdout ----
+
+thread 't6_put_rejects_duplicate_periods' (4096603) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_heights_out_of_range stdout ----
+
+thread 't6_put_rejects_heights_out_of_range' (4096605) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_base_1mo stdout ----
+
+thread 't6_put_rejects_base_1mo' (4096602) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_satellite_below_base stdout ----
+
+thread 't6_put_rejects_satellite_below_base' (4096608) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_satellite_1mo stdout ----
+
+thread 't6_put_rejects_satellite_1mo' (4096607) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_rejects_unsupported_indicators stdout ----
+
+thread 't6_put_rejects_unsupported_indicators' (4096609) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_zz_cleanup_leaves_no_multi_period_key stdout ----
+
+thread 't6_zz_cleanup_leaves_no_multi_period_key' (4096612) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_valid_1d_base_with_1w_satellite_is_accepted stdout ----
+
+thread 't6_put_valid_1d_base_with_1w_satellite_is_accepted' (4096610) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- t6_put_valid_roundtrip_200_and_readback_identical stdout ----
+
+thread 't6_put_valid_roundtrip_200_and_readback_identical' (4096611) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+
+failures:
+    d1_duplicate_indicators_are_normalized_200_and_readback_deduped
+    d1_duplicate_items_cannot_forge_over_budget_4_periods_always_200
+    t6_get_falls_back_to_defaults_on_bad_or_out_of_range_stored_values
+    t6_get_without_key_returns_defaults_200
+    t6_max_legal_config_is_accepted
+    t6_put_rejects_1w_when_base_below_1d
+    t6_put_rejects_base_1mo
+    t6_put_rejects_duplicate_periods
+    t6_put_rejects_heights_keys_mismatching_periods
+    t6_put_rejects_heights_out_of_range
+    t6_put_rejects_more_than_4_periods_without_silent_truncation
+    t6_put_rejects_satellite_1mo
+    t6_put_rejects_satellite_below_base
+    t6_put_rejects_unsupported_indicators
+    t6_put_valid_1d_base_with_1w_satellite_is_accepted
+    t6_put_valid_roundtrip_200_and_readback_identical
+    t6_zz_cleanup_leaves_no_multi_period_key
+
+test result: FAILED. 0 passed; 17 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p web --test api_multi_period_config`
+     Running tests/api_quality.rs (target/debug/deps/api_quality-b2d6e44b61bc4351)
+
+running 1 test
+test quality_endpoints_full_flow ... FAILED
+
+failures:
+
+---- quality_endpoints_full_flow stdout ----
+
+thread 'quality_endpoints_full_flow' (4096614) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    quality_endpoints_full_flow
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_quality`
+     Running tests/api_rest.rs (target/debug/deps/api_rest-cfa6f225fb149140)
+
+running 2 tests
+test kline_cursor_pagination_cagg_and_validation ... FAILED
+test symbols_latest_healthz_spa_and_sources_health ... FAILED
+
+failures:
+
+---- kline_cursor_pagination_cagg_and_validation stdout ----
+
+thread 'kline_cursor_pagination_cagg_and_validation' (4096616) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- symbols_latest_healthz_spa_and_sources_health stdout ----
+
+thread 'symbols_latest_healthz_spa_and_sources_health' (4096617) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    kline_cursor_pagination_cagg_and_validation
+    symbols_latest_healthz_spa_and_sources_health
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_rest`
+     Running tests/api_settings.rs (target/debug/deps/api_settings-58ab9a932cc06c8a)
+
+running 6 tests
+test purge_raw_rejects_missing_or_mismatched_confirm ... FAILED
+test reset_circuits_rejects_missing_or_mismatched_confirm ... FAILED
+test system_info_returns_version_db_and_uptime ... FAILED
+test config_kline_put_get_and_validate ... FAILED
+test config_patch_persists_get_reads_back_and_validates ... FAILED
+test config_snapshots_return_readonly_defaults ... FAILED
+
+failures:
+
+---- purge_raw_rejects_missing_or_mismatched_confirm stdout ----
+
+thread 'purge_raw_rejects_missing_or_mismatched_confirm' (4096622) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- reset_circuits_rejects_missing_or_mismatched_confirm stdout ----
+
+thread 'reset_circuits_rejects_missing_or_mismatched_confirm' (4096623) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- system_info_returns_version_db_and_uptime stdout ----
+
+thread 'system_info_returns_version_db_and_uptime' (4096624) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- config_kline_put_get_and_validate stdout ----
+
+thread 'config_kline_put_get_and_validate' (4096619) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- config_patch_persists_get_reads_back_and_validates stdout ----
+
+thread 'config_patch_persists_get_reads_back_and_validates' (4096620) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- config_snapshots_return_readonly_defaults stdout ----
+
+thread 'config_snapshots_return_readonly_defaults' (4096621) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+
+failures:
+    config_kline_put_get_and_validate
+    config_patch_persists_get_reads_back_and_validates
+    config_snapshots_return_readonly_defaults
+    purge_raw_rejects_missing_or_mismatched_confirm
+    reset_circuits_rejects_missing_or_mismatched_confirm
+    system_info_returns_version_db_and_uptime
+
+test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_settings`
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-c715e2a22f9c9e2a)
+
+running 9 tests
+test patch_meta_update_and_error_semantics ... FAILED
+test delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 ... FAILED
+test test_run_both_modes_and_errors ... FAILED
+test guide_endpoint_returns_markdown_full_text ... FAILED
+test create_validation_400 ... FAILED
+test publish_gate_rejects_bad_code_400 ... FAILED
+test registry_lifecycle_end_to_end ... FAILED
+test manage_endpoint_lists_all_strategies_with_aggregates ... FAILED
+test catalog_filters_and_validation ... FAILED
+
+failures:
+
+---- patch_meta_update_and_error_semantics stdout ----
+
+thread 'patch_meta_update_and_error_semantics' (4096631) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- delete_endpoint_all_draft_204_published_or_archived_409_unknown_404 stdout ----
+
+thread 'delete_endpoint_all_draft_204_published_or_archived_409_unknown_404' (4096628) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- test_run_both_modes_and_errors stdout ----
+
+thread 'test_run_both_modes_and_errors' (4096634) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- guide_endpoint_returns_markdown_full_text stdout ----
+
+thread 'guide_endpoint_returns_markdown_full_text' (4096629) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- create_validation_400 stdout ----
+
+thread 'create_validation_400' (4096627) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- publish_gate_rejects_bad_code_400 stdout ----
+
+thread 'publish_gate_rejects_bad_code_400' (4096632) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- registry_lifecycle_end_to_end stdout ----
+
+thread 'registry_lifecycle_end_to_end' (4096633) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- manage_endpoint_lists_all_strategies_with_aggregates stdout ----
+
+thread 'manage_endpoint_lists_all_strategies_with_aggregates' (4096630) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- catalog_filters_and_validation stdout ----
+
+thread 'catalog_filters_and_validation' (4096626) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+
+failures:
+    catalog_filters_and_validation
+    create_validation_400
+    delete_endpoint_all_draft_204_published_or_archived_409_unknown_404
+    guide_endpoint_returns_markdown_full_text
+    manage_endpoint_lists_all_strategies_with_aggregates
+    patch_meta_update_and_error_semantics
+    publish_gate_rejects_bad_code_400
+    registry_lifecycle_end_to_end
+    test_run_both_modes_and_errors
+
+test result: FAILED. 0 passed; 9 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_strategies`
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-efe4250d3892277e)
+
+running 6 tests
+test preset_crud_apply_end_to_end ... FAILED
+test submit_validation_error_matrix ... FAILED
+test cancel_run_semantics ... FAILED
+test submit_archived_version_audit_rerun_201 ... FAILED
+test submit_run_lifecycle_end_to_end ... FAILED
+test compare_endpoint_side_by_side ... FAILED
+
+failures:
+
+---- preset_crud_apply_end_to_end stdout ----
+
+thread 'preset_crud_apply_end_to_end' (4096638) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- submit_validation_error_matrix stdout ----
+
+thread 'submit_validation_error_matrix' (4096641) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- cancel_run_semantics stdout ----
+
+thread 'cancel_run_semantics' (4096636) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- submit_archived_version_audit_rerun_201 stdout ----
+
+thread 'submit_archived_version_audit_rerun_201' (4096639) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- submit_run_lifecycle_end_to_end stdout ----
+
+thread 'submit_run_lifecycle_end_to_end' (4096640) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+
+---- compare_endpoint_side_by_side stdout ----
+
+thread 'compare_endpoint_side_by_side' (4096637) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    cancel_run_semantics
+    compare_endpoint_side_by_side
+    preset_crud_apply_end_to_end
+    submit_archived_version_audit_rerun_201
+    submit_run_lifecycle_end_to_end
+    submit_validation_error_matrix
+
+test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test api_workbench`
+     Running tests/multi_period_contract_vectors.rs (target/debug/deps/multi_period_contract_vectors-0277bf9ec84a2a80)
+
+running 4 tests
+test contract_vectors_cover_required_rules ... ok
+test pane_guard_error_names_dimension_for_over_limit_vectors ... ok
+test pane_count_after_dedup_matches_backend_pure_function ... ok
+test all_contract_vectors_match_backend_validation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-9dc988b7c9d62d35)
+
+running 8 tests
+test d1_duplicate_items_cannot_forge_over_budget_and_legal_shape_is_accepted ... ok
+test d1_pane_count_uses_deduped_indicator_set_not_raw_length ... ok
+test d2_dimension_predicate_boundary_is_pinned ... ok
+test over_budget_must_be_rejected_with_explicit_error_not_silent_truncation ... ok
+test d2_over_budget_error_names_the_rejected_dimension ... ok
+test pane_budget_boundary_is_inclusive_at_12_and_rejects_13 ... ok
+test pane_budget_cap_is_12 ... ok
+test pane_count_formula_is_base_plus_per_satellite_panes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-1fd79d52091fd3ac)
+
+running 4 tests
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+test r4a_clean_functions_refresh_affected_cagg_windows ... ok
+test r5_no_full_range_refresh_in_test_sources ... ok
+test r2_orphan_sql_has_single_reusable_definition_shared_with_endpoint ... ok
+
+failures:
+
+---- r1_orphan_endpoint_exists_and_reports_zero_on_clean_db stdout ----
+
+thread 'r1_orphan_endpoint_exists_and_reports_zero_on_clean_db' (4096657) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r1_orphan_endpoint_exists_and_reports_zero_on_clean_db
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-11f4cd3b79135d33)
+
+running 2 tests
+test r2_shared_sql_constant_shape ... ok
+test r2_sql_result_equals_endpoint_payload ... FAILED
+
+failures:
+
+---- r2_sql_result_equals_endpoint_payload stdout ----
+
+thread 'r2_sql_result_equals_endpoint_payload' (4096667) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r2_sql_result_equals_endpoint_payload
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_sql_constant_red`
+     Running tests/period30m_api_contract.rs (target/debug/deps/period30m_api_contract-177bdb7a9b0dcb02)
+
+running 2 tests
+test j5b_unknown_period_400_message_lists_all_eight_tiers ... ok
+test j5a_api_kline_period_30m_must_not_be_400 ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running tests/period30m_d2_multiperiod_red.rs (target/debug/deps/period30m_d2_multiperiod_red-26a306e4a161ae5e)
+
+running 6 tests
+test d2a_multi_period_allowed_contains_30m_between_15m_and_1h ... ok
+test d2d_pane_count_and_dedup_semantics_unchanged_with_30m ... ok
+test d2c_validate_accepts_config_containing_30m_and_echoes_it ... ok
+test d2f_1mo_still_not_offered_after_30m_lands ... ok
+test d2b_rank_30m_is_between_15m_and_1h_via_validate ... ok
+test d2e_put_multi_period_with_30m_must_not_be_400 ... FAILED
+
+failures:
+
+---- d2e_put_multi_period_with_30m_must_not_be_400 stdout ----
+
+thread 'd2e_put_multi_period_with_30m_must_not_be_400' (4096702) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    d2e_put_multi_period_with_30m_must_not_be_400
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+error: test failed, to rerun pass `-p web --test period30m_d2_multiperiod_red`
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-9dd0e72648da6a6c)
+
+running 3 tests
+test d2_backend_multi_period_allowed_contains_30m_between_15m_and_1h ... ok
+test d2_backend_multi_period_allowed_keeps_all_six_existing_tiers ... ok
+test d2_backend_multi_period_allowed_still_excludes_1mo ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ws_poller.rs (target/debug/deps/ws_poller-ea2b5d7005adeb53)
+
+running 1 test
+test poller_publishes_increments_only ... FAILED
+
+failures:
+
+---- poller_publishes_increments_only stdout ----
+
+thread 'poller_publishes_increments_only' (4096717) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    poller_publishes_increments_only
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test ws_poller`
+   Doc-tests application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests backtest
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mcp
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests web
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 17 targets failed:
+    `-p mcp --test d11_fee_profile_e2e`
+    `-p mcp --test mcp_tools_db`
+    `-p web --test api_admin`
+    `-p web --test api_alerts`
+    `-p web --test api_favorites`
+    `-p web --test api_kline_period`
+    `-p web --test api_ma_config`
+    `-p web --test api_multi_period_config`
+    `-p web --test api_quality`
+    `-p web --test api_rest`
+    `-p web --test api_settings`
+    `-p web --test api_strategies`
+    `-p web --test api_workbench`
+    `-p web --test orphan_detect_endpoint_red`
+    `-p web --test orphan_detect_sql_constant_red`
+    `-p web --test period30m_d2_multiperiod_red`
+    `-p web --test ws_poller`
+EXIT=101

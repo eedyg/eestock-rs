@@ -1,0 +1,14 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+error[E0432]: unresolved import `application::bar_map::supported_backtest_periods`
+  --> crates/application/tests/backtest_periods_ssot.rs:11:42
+   |
+11 | use application::bar_map::{parse_period, supported_backtest_periods};
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `supported_backtest_periods` in `bar_map`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `application` (test "backtest_periods_ssot") due to 1 previous error

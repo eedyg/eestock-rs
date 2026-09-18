@@ -1,0 +1,112 @@
+### [⑥-a] 变更范围分类与越界检查
+# 2026-09-18T09:59:12Z
+
+## A1. index 总量（P0–P6 全部批次；本批 P4b 增量在内）
+staged 文件数 = 303
+未暂存/工作区修改 = 
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+design/16-backtest-scalability/02-spec.md
+design/16-backtest-scalability/contract-vectors.json
+design/99-decisions-log.md
+docker-compose.yml
+
+## A2. P4b 增量识别：staged 内容里含本批新符号的文件
+[PROGRESS_DB_MIN_INTERVAL]
+   coder/evidence/adr024_p4b_fix/08_reverse_throttle_off_red.txt
+   coder/report/adr024_p4b_fix_and_confirm_threshold.md
+   crates/application/src/workbench.rs
+[progress_db_throttled]
+   coder/evidence/adr024_p4b_fix/06_green_self_consistency.txt
+   coder/evidence/adr024_p4b_fix/11_before_summary_table.txt
+   coder/evidence/adr024_p4b_fix/12_after_probe_console.txt
+   coder/evidence/adr024_p4b_fix/13_after_summary_table.txt
+   coder/evidence/adr024_p4b_fix/14_realpath_cancel_terminal_progress.txt
+   coder/evidence/adr024_p4b_fix/18_terminal_write_three_paths.txt
+   coder/evidence/adr024_p4b_fix/after_raw.txt
+   coder/evidence/adr024_p4b_fix/extract_summary.py
+   coder/evidence/adr024_p4b_fix/probe_p4bfix.sh
+   coder/report/adr024_p4b_fix_and_confirm_threshold.md
+   crates/application/src/workbench.rs
+   crates/application/tests/workbench.rs
+[progress_db_throttled]
+   coder/evidence/adr024_p4b_fix/06_green_self_consistency.txt
+   coder/evidence/adr024_p4b_fix/11_before_summary_table.txt
+   coder/evidence/adr024_p4b_fix/12_after_probe_console.txt
+   coder/evidence/adr024_p4b_fix/13_after_summary_table.txt
+   coder/evidence/adr024_p4b_fix/14_realpath_cancel_terminal_progress.txt
+   coder/evidence/adr024_p4b_fix/18_terminal_write_three_paths.txt
+   coder/evidence/adr024_p4b_fix/after_raw.txt
+   coder/evidence/adr024_p4b_fix/extract_summary.py
+   coder/evidence/adr024_p4b_fix/probe_p4bfix.sh
+   coder/report/adr024_p4b_fix_and_confirm_threshold.md
+   crates/application/src/workbench.rs
+   crates/application/tests/workbench.rs
+[GUARD_CONFIRM_BARS]
+   coder/evidence/adr024_p4b_fix/01_red_confirm_bars_binding.txt
+   coder/evidence/adr024_p4b_fix/03_reverse_confirm_bars_red.txt
+   coder/report/adr024_p4b_fix_and_confirm_threshold.md
+   coder/report/adr024_p5_rectification.md
+   coder/report/adr024_p5_span_unwrap_and_clamp.md
+   crates/application/src/error.rs
+   crates/application/src/strategy.rs
+   crates/application/src/workbench.rs
+   crates/application/tests/resource_guard_contract_vectors.rs
+   crates/application/tests/workbench.rs
+   web/src/api/mock.ts
+[resource_guard_contract_vectors]
+   coder/evidence/adr024_p4b_fix/01_red_confirm_bars_binding.txt
+   coder/evidence/adr024_p4b_fix/02_green_confirm_bars_binding.txt
+   coder/evidence/adr024_p4b_fix/03_reverse_confirm_bars_red.txt
+   coder/evidence/adr024_p4b_fix/07_application_full_suite.txt
+   coder/evidence/adr024_p4b_fix/15_application_full_suite_final.txt
+   coder/report/adr024_p4b_fix_and_confirm_threshold.md
+   crates/application/src/error.rs
+
+## A3. 本批（P4b 修复）实际触碰文件（按内容+时间窗）：
+crates/application/src/workbench.rs       (常量 + consumer 节流 + 终态补写 + 计数 + 文档)
+crates/application/src/error.rs           (GUARD_CONFIRM_BARS 500_000 + 注释)
+crates/application/tests/workbench.rs     (新增 3 测试 + mock progress_calls/fail_on_append + 自洽契约改写)
+crates/application/tests/resource_guard_contract_vectors.rs (新增 3 例向量绑定)
+coder/report/adr024_p4b_fix_and_confirm_threshold.md
+coder/evidence/adr024_p4b_fix/* (18 项 + 2 脚本)
+design/16-backtest-scalability/contract-vectors.json (工作区改动 = 架构师：confirm_bars 500000)
+
+## A4. 越界路径检查（本批**不得**触碰的路径）
+crates/backtest : staged=3
+crates/strategy-core : staged=4
+crates/storage : staged=5
+crates/domain : staged=1
+crates/mcp : staged=3
+crates/simlive : staged=2
+crates/strategy-runtime : staged=7
+migrations/ : staged=1
+docker-compose.yml : staged=0
+
+## A5. 这些路径的 staged 内容是否为**本批**新改（按 mtime 时间窗 17:30 之后）
+-rw-rw-r-- 1 eestock eestock  10836 09-18_17:58 crates/application/src/error.rs
+-rw-rw-r-- 1 eestock eestock  95988 09-18_17:52 crates/application/src/workbench.rs
+-rw-rw-r-- 1 eestock eestock  98813 09-18_17:46 crates/application/tests/workbench.rs
+-rw-rw-r-- 1 eestock eestock   4337 09-18_17:34 crates/application/tests/resource_guard_contract_vectors.rs
+-rw-rw-r-- 1 eestock eestock   2048 09-18_17:31 design/16-backtest-scalability/contract-vectors.json
+-rw-rw-r-- 1 eestock eestock   7191 09-18_17:14 design/16-backtest-scalability/05-deploy-runbook.md
+-rw-rw-r-- 1 eestock eestock  21824 09-18_17:14 design/16-backtest-scalability/04-implementation-plan.md
+-rw-rw-r-- 1 eestock eestock  58563 09-18_16:56 crates/application/src/strategy.rs
+-rw-rw-r-- 1 eestock eestock  20308 09-18_16:55 crates/web/src/strategies.rs
+-rw-rw-r-- 1 eestock eestock  29653 09-18_16:34 crates/web/tests/api_strategies.rs
+-rw-rw-r-- 1 eestock eestock  22877 09-18_16:32 crates/web/tests/adr024_structured_errors.rs
+-rw-rw-r-- 1 eestock eestock  11824 09-18_16:32 web/src/features/strategies/TestRunPanel.tsx
+
+## A6. design/16-backtest-scalability 的工作区（未暂存）改动 = 架构师裁定内容
+ design/16-backtest-scalability/02-spec.md            | 4 +++-
+ design/16-backtest-scalability/contract-vectors.json | 2 +-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+--- contract-vectors.json 唯一改动行 ---
+-    "resource_guard": { "hard_reject": false, "requires_confirmation": true, "code": "resource_guard" }
++    "resource_guard": { "hard_reject": false, "requires_confirmation": true, "code": "resource_guard", "max_bars_guard": 2000000, "confirm_bars": 500000, "note": "ADR-024 D1 修订（2026-09-18 用户「按推荐」）：confirm 阈值由 200000 提到 500000（≈M1 五年）；硬上界 2000000 不变（M1 全历史≈86 万 bar ⇒ 合法请求永不触发）。两值必须与 application::error::{MAX_BARS_GUARD, GUARD_CONFIRM_BARS} 一致（防漂移断言）。" }
+
+## A7. tester 资产改动（本批唯一被授权文件）
+crates/web/tests/tester_p5_indep.rs sha256 重钉前=f463cc653f7adc635dc743cf7fce0c439b9d038b60060495a32e55dfc8ede949
+crates/web/tests/tester_p5_indep.rs sha256 重钉后=2ea7a9a6b530a6e02e4b93d7ed54e6130b7aa3a0167ec5b8824ec5947d4f1181
+crates/web/tests/tester_p5rect_verify.rs 未改（sha256=18119a46ad32ebbbb165cac0e0afea22e135c6b94dc2ace499ff58eb8a874b2c）
+
+## A8. 我未做 git add：index 文件数在本轮开始/结束均为 303

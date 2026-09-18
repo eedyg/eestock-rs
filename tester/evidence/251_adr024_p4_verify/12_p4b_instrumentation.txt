@@ -1,0 +1,29 @@
+### ⑦-d P4b 仪表未被回退（定向用例 + grep 佐证）
+TS=2026-09-18T14:46:31+08:00
+
+--- grep：P4B_GLOBAL / p4b.segment / permit_hold_us / chunk_writes ---
+P4B_GLOBAL 命中: 6
+p4b.segment 命中: 14
+permit_hold_us 命中: 6
+chunk_writes 命中: 3
+
+--- 定向运行 P4b 自洽用例 ---
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 1 test
+[P4b/capture] 事件数=9 span 数=8
+[P4b/capture] p4b.segment spans=["p4b.segment"] fields={"bars_fetched": "300", "elapsed_us": "35", "period": "D1", "symbol": "600000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.submit spans=[] fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000000", "submit_fetch_ms": "0.035", "symbol": "600000", "trace_id": "35599afa2613805468bf6ec29967cf25", "warmup_effective": "0"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "2", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.segment spans=["p4b.segment", "p4b.segment"] fields={"chunk_write_ms": "0.316", "chunk_writes": "3", "progress_db_write_ms": "0.003", "progress_db_writes": "300", "progress_ws_send_ms": "0.011", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"bars_total": "300", "elapsed_us": "7599", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "2", "progress_drain_total_ms": "7.617", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "0", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.segment spans=["workbench_run", "p4b.segment"] fields={"elapsed_us": "8", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] p4b.run_summary spans=["workbench_run"] fields={"bars_total": "300", "engine_ms": "7.599", "engine_share_pct": "99.27", "fetch_ms": "0.035", "global_db_write_ms_total": "0.003", "global_db_writes_total": "300", "global_frames_total": "300", "global_permit_hold_ms_total": "7.655", "global_runs_total": "1", "mark_started_ms": "0.002", "mark_started_share_pct": "0.03", "outcome": "succeeded", "permit_hold_ms": "7.655", "permit_wait_ms": "0.002", "progress_db_share_pct": "0.04", "progress_db_write_ms": "0.003", "progress_db_writes": "300", "progress_drain_tail_ms": "0.002", "progress_drain_total_ms": "7.617", "progress_frame_avg_ms": "0.00001", "progress_frames_produced": "300", "progress_tail_share_pct": "0.03", "progress_ws_send_ms": "0.011", "result_serialize_ms": "0", "result_serialize_share_pct": "0", "result_write_ms": "0.008", "result_write_share_pct": "0.1", "run_id": "sr_1788915600000_000000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+[P4b/capture] span workbench_run fields={"bars_total": "300", "period": "D1", "run_id": "sr_1788915600000_000000", "symbol": "600000", "trace_id": "35599afa2613805468bf6ec29967cf25"}
+test p4b_run_summary_counters_are_self_consistent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.02s
+

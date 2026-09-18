@@ -1,0 +1,28 @@
+### ⑤-b 单一取数入口 + 4 类消费者调用点
+TS=2026-09-18T15:20:46+08:00
+--- 哪些模块 import useRunSeries ---
+src/features/workbench/PerBarTable.tsx:4:import type { RunBarsState } from './useRunSeries';
+src/features/workbench/KlineResultChart.tsx:8:import type { RunFillsState } from './useRunSeries';
+src/features/workbench/useRunSeries.ts:137:export function useRunSeries({
+src/features/workbench/ResultView.tsx:11:import { useRunSeries } from './useRunSeries';
+src/features/workbench/ResultView.tsx:123:  const series = useRunSeries({ api, run, result });
+src/features/workbench/ResultView.test.tsx:10:import { fillsFromPerBar } from './useRunSeries';
+src/features/workbench/useRunSeries.test.ts:5:import { useRunSeries, SERIES_PAGE_SIZE } from './useRunSeries';
+src/features/workbench/useRunSeries.test.ts:26:describe('useRunSeries（ADR-024 P6 结果取数单一入口）', () => {
+src/features/workbench/useRunSeries.test.ts:36:    const { result: hook } = renderHook(() => useRunSeries({ api, run, result }));
+src/features/workbench/useRunSeries.test.ts:57:    const { result: hook } = renderHook(() => useRunSeries({ api, run, result }));
+src/features/workbench/useRunSeries.test.ts:83:    const { result: hook } = renderHook(() => useRunSeries({ api, run, result }));
+src/features/workbench/useRunSeries.test.ts:102:    const { result: hook } = renderHook(() => useRunSeries({ api, run, result }));
+src/features/workbench/useRunSeries.test.ts:130:    const { result: hook } = renderHook(() => useRunSeries({ api, run, result }));
+src/features/workbench/useRunSeries.test.ts:140:    const { result: hook } = renderHook(() => useRunSeries({ api, run: null, result: null }));
+
+--- 是否有第二处直接调用 workbench 结果端点（应只在 api/client.ts + useRunSeries.ts）---
+src/api/mock.test.ts
+src/api/mock.ts
+src/api/client.ts
+src/api/client.test.ts
+src/features/workbench/useRunSeries.ts
+src/features/workbench/store.test.ts
+src/features/workbench/ResultView.test.tsx
+src/features/workbench/useRunSeries.test.ts
+src/features/workbench/store.ts

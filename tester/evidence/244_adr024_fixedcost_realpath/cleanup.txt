@@ -1,0 +1,35 @@
+# ===== ADR-024 P1c 测试 run 清理（级联删 result）=====
+# date_utc: 2026-09-17T16:51:25Z
+[CMD] psql -c "SELECT id,name,period,symbol,status FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+           id            |                name                | period | symbol |  status   | dur_s 
+-------------------------+------------------------------------+--------+--------+-----------+-------
+ sr_1789663332534_000000 | ADR024-P1c-probe-t1_small_d1_490   | D1     | 518880 | succeeded | 1.841
+ sr_1789663335760_000001 | ADR024-P1c-probe-t2_medium_m5_3250 | M5     | 159740 | succeeded | 2.456
+ sr_1789663340174_000002 | ADR024-P1c-probe-t3_large_m1_15900 | M1     | 518880 | succeeded | 2.593
+ sr_1789663435710_000003 | ADR024-P1c-probe-t1_small_d1_492   | D1     | 518880 | succeeded | 1.305
+ sr_1789663443311_000004 | ADR024-P1c-probe-t4_small2_m5_650  | M5     | 159740 | succeeded | 1.726
+ sr_1789663452400_000005 | ADR024-P1c-probe-t2_medium_m5_3500 | M5     | 159740 | succeeded | 2.592
+ sr_1789663461850_000006 | ADR024-P1c-probe-t3_large_m1_16155 | M1     | 518880 | succeeded | 2.578
+ sr_1789663588369_000007 | ADR024-P1c-lagprobe                | M5     | 159740 | succeeded | 3.459
+(8 rows)
+
+[CMD] psql -c "SELECT count(*) pre_delete FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+pre_delete_runs=8
+pre_delete_results=8
+[CMD] psql -c "DELETE FROM strategy_run WHERE name LIKE 'ADR024-P1c-%'"
+DELETE 8
+[CMD] psql -c "SELECT count(*) post_delete ..."
+post_delete_runs=0
+post_delete_results=0
+[CMD] psql -c "SELECT count(*) total_runs, count(*) FILTER (WHERE status='succeeded') succeeded FROM strategy_run"
+ total_runs | succeeded 
+------------+-----------
+        374 |       374
+(1 row)
+
+[CMD] psql -c "SELECT n_tup_ins,n_tup_upd,n_tup_del FROM pg_stat_user_tables WHERE relname='strategy_run'"
+ n_tup_ins | n_tup_upd | n_tup_del | n_live_tup 
+-----------+-----------+-----------+------------
+      2357 |    364041 |      1984 |        374
+(1 row)
+

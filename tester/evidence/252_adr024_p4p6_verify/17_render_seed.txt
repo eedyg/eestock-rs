@@ -1,0 +1,8 @@
+VID=sv_1789716153218_000001
+--- submit run（518880 M1，2026-08-01 → 2026-09-17，≈7953 bar）---
+run_id= sr_1789716153346_000002 status= queued
+terminal= succeeded error= None
+brief: {"status": "succeeded", "bars_total": 7953, "result_format": "chunked_v1", "chunk_count": 2}
+fills: total=200 recorded=True pages has_more=False
+curve: kind=net_value n=2000 downsampled=True original_bars=7953
+result: result_format=chunked_v1 per_bar_n=5000 has_more=True next_offset=5000 trades_n=100

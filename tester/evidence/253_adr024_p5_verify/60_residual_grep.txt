@@ -1,0 +1,44 @@
+### 1) 旧日历档常量（物理删除断言：应无定义，仅注释/文档提及）
+crates/web/tests/tester_p5_indep.rs:305:/// ADR-024 D1：物理删除 `D1_MAX_SPAN_DAYS`/`MINUTE_MAX_SPAN_DAYS`/`MAX_BARS` ⇒
+crates/web/tests/tester_p5_indep.rs:351:    // （旧的 `D1_MAX_SPAN_DAYS` / `MINUTE_MAX_SPAN_DAYS` / `MAX_BARS` 在 application/web 侧均已无定义。）
+crates/application/src/strategy.rs:61:// ADR-024 P5/D1：试算**删除**一切日历天数档（原 `D1_MAX_SPAN_DAYS`/`MINUTE_MAX_SPAN_DAYS`）。
+crates/application/src/error.rs:46:// 旧 `MAX_BARS = 200_000`（读完 bar 后才判的补偿性补丁）随 O(n²)→O(n) 一并**删除**。
+web/src/api/mock.ts:455:const MOCK_TESTRUN_D1_MAX_SPAN_DAYS = 366 * 5;
+web/src/api/mock.ts:456:const MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS = 93;
+web/src/api/mock.ts:1553:        req.period === 'D1' ? MOCK_TESTRUN_D1_MAX_SPAN_DAYS : MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS;
+
+### 2) 旧「超限」文案（实现侧）
+crates/web/src/dto.rs:218:            "indicators 去重后总 pane 数 {n} 超上限 {MULTI_PERIOD_MAX_PANES}\
+crates/application/src/simlive.rs:476:                "策略数 {} 超上限 {MAX_STRATEGIES}（ADR §4：3 策略）",
+crates/application/src/simlive.rs:537:                    "策略 {sid} 标的数 {} 超上限 {MAX_STOCKS_PER_STRATEGY}（ADR §4：≤30 股）",
+crates/simlive/src/plugin_orchestrator.rs:141:                "策略数 {} 超上限 {MAX_STRATEGIES}（ADR §4：3 策略）",
+crates/simlive/src/plugin_orchestrator.rs:167:                    "策略 {} 标的数 {} 超上限 {MAX_STOCKS_PER_STRATEGY}（ADR §4：≤30 股）",
+crates/mcp/src/tools.rs:32:/// I-10/I-5（D2）：上限 1000→10000（M15 最大窗口 1188 根 > 旧上限）；超上限**不再静默封顶**。
+crates/mcp/src/tools.rs:70:                    "limit": { "type": "integer", "description": "根数，默认 240，上限 10000（超上限 → 参数错误并提示分段取数）" }
+crates/mcp/src/tools.rs:331:            "description": "统一策略系统 Registry：在线试算（同步，单标的区间）。双模式：pure_score 裸评分（position 恒 null，看原始反应）/ sim_position 模拟持仓（默认 60/40 阈值 + LumpSum 全仓 + 默认费用，逐 bar 信号+成交）。code 内联源码与 version_id 已存版本二选一（恰一个）。**ADR-024 P5**：无日历天数上限；区间按数据可得范围自动收缩（响应回显 requested/effective/clamped）；评分/信号超上限改为**均匀抽样（保首尾）**，响应带 `downsampled`/`original_points`；预估 bar 数 ≥ 20 万返回 `resource_guard`（带 `confirm:true` 重提可放行；>200 万硬拒）。适用场景：发布前验证插件行为/调参。",
+crates/mcp/src/tools.rs:573:/// limit 超上限 → -32602（提示分段取数，不静默封顶）；区间内根数 > limit → 工具错误（不静默截断）。
+crates/mcp/src/tools.rs:585:            // I-10（D2）：超上限不再静默封顶 → 明确参数错误 + 分段取数提示。
+crates/mcp/src/tools.rs:587:                "limit 超上限 10000——请缩小 limit 或用 from/to 分段取数"),
+crates/mcp/src/tools.rs:1898:        assert_eq!(kline.calls.lock().unwrap()[0].limit, 3, "多取一根（limit+1）判定区间超限");
+
+### 3) 旧「超限」文案（测试/前端/mock）
+crates/web/tests/api_strategies.rs:467:    // 区间超限（D1 > 5 年）→ 400
+crates/application/tests/workbench.rs:4://! - submit 校验全路径：draft 版本 400 / 未知版本 404 / 未注册 symbol 400 / 区间超限 400 /
+crates/mcp/src/tools.rs:1898:        assert_eq!(kline.calls.lock().unwrap()[0].limit, 3, "多取一根（limit+1）判定区间超限");
+web/src/api/mock.ts:455:const MOCK_TESTRUN_D1_MAX_SPAN_DAYS = 366 * 5;
+web/src/api/mock.ts:456:const MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS = 93;
+web/src/api/mock.ts:1553:        req.period === 'D1' ? MOCK_TESTRUN_D1_MAX_SPAN_DAYS : MOCK_TESTRUN_MINUTE_MAX_SPAN_DAYS;
+web/src/api/mock.ts:1557:          `HTTP 400: 试算区间超限：${req.period} 跨度 ${spanDays} 天 > 上限 ${limitDays} 天`,
+web/src/features/strategies/TestRunPanel.tsx:34: * 错误（400 参数越界/区间超限）内联友好展示。
+web/src/features/strategies/TestRunPanel.test.tsx:95:  it('truncated 标记 → 截断提示；400 错误（区间超限等）→ 友好展示', async () => {
+web/src/features/strategies/TestRunPanel.test.tsx:116:    // 400 错误（后端区间超限/参数越界）→ 友好内联展示
+
+### 4) 旧断言残留（259 天 → 400 / 93 天 / 5 年）
+crates/application/tests/strategy.rs:847:    // D1 超 5 年 → 现在**可试算**（不再 400）。
+crates/application/tests/workbench.rs:663:    // M15 × 259 天（原断言：259 天 > 93 天 → 400）。
+crates/application/tests/workbench.rs:668:    let run = r.svc.submit(req).await.expect("M15×259 天必须可提交（旧 400 已撤销）");
+crates/application/tests/workbench.rs:670:    // M1 × 1 年（原断言：>93 天 → 400）。
+crates/application/tests/workbench.rs:676:    // M30 × 2 年（原断言：>93 天 → 400）。
+crates/web/tests/api_strategies.rs:473:    assert_eq!(r.status(), 400, "D1 超 5 年应 400");
+crates/web/tests/tester_p5_indep.rs:306:/// M15×259 天 / M1×1 年 / M30×2 年**必须可提交**（旧「超限 400」全数反转）。
+web/src/api/mock.test.ts:495:    // D1 超 5 年 → 400

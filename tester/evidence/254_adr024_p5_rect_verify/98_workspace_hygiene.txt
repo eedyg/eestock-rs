@@ -1,0 +1,21 @@
+# 工作区卫生 / harness 残留
+时间：2026-09-18T17:11:55+08:00
+
+## web/tester 目录（一次性 harness 应已删）
+design
+p2-satellite-harness
+p3-sync-harness
+p4p6-render
+p5-layout-harness
+p5-r1r2-harness
+probe-165
+test
+
+## 一次性 harness 目录存在性（期望：不存在）
+ls: cannot access 'web/tester/p5rv-254': No such file or directory
+
+## /tmp 夹具（期望：/tmp/p5rv_app.toml 仍在但非仓内；.bak 已删）
+/tmp/03c-agent.md.bak
+/tmp/14.bak
+/tmp/14b.bak
+-rw-rw-r-- 1 eestock eestock 229 Sep 18 16:57 /tmp/p5rv_app.toml

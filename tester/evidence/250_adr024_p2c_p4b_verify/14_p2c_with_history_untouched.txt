@@ -1,0 +1,39 @@
+===== ③-补 BarCtx::with_history 本体未改 + P2 反向资产仍绿 =====
+--- [1] mtime（P2c/P4b 批次窗口 ≈ 14:00–14:13）---
+-rw-rw-r-- 1 eestock eestock 50308 2026-09-18 14:21:41.483584132 +0800 crates/application/src/strategy.rs
+-rw-rw-r-- 1 eestock eestock 20071 2026-09-18 14:22:15.204338069 +0800 crates/simlive/src/plugin_orchestrator.rs
+-rw-rw-r-- 1 eestock eestock 39084 2026-09-18 14:22:05.782443961 +0800 crates/strategy-core/src/engine.rs
+-rw-rw-r-- 1 eestock eestock  7458 2026-09-18 13:31:32.105849650 +0800 crates/strategy-runtime/src/history.rs
+-rw-rw-r-- 1 eestock eestock  7883 2026-09-18 13:16:30.185849425 +0800 crates/strategy-runtime/src/types.rs
+
+--- [2] with_history 函数体 sha256（index vs worktree）---
+  crates/strategy-runtime/src/types.rs with_history: index=95ecc9602d6ab0e4 worktree=95ecc9602d6ab0e4 SAME
+
+--- [3] P2 两个反向测试资产（shared_history.rs 199/271 区）仍绿 ---
+
+    let bars = series(1);
+    let hist = BarHistory::new();
+    hist.push(bars[0].clone());
+    let ctx = BarCtx::new(0, bars[0].clone(), &bars, None).with_history(hist.clone());
+    let mut rt = strategy_runtime::QuickJsRuntime::new(strategy_runtime::RuntimeLimits::default());
+    let mut inst = rt
+        .instantiate("sha256:indicator_mix", INDICATOR_MIX, &params())
+        .expect("实例化成功");
+        entry_ts: bars[0].ts,
+        bars_since_entry: 3,
+        unrealized_pnl: 12.0,
+    };
+    let ctx = BarCtx::new(9, bars[9].clone(), &bars, Some(pos)).with_history(hist.clone());
+    let mut rt = strategy_runtime::QuickJsRuntime::new(strategy_runtime::RuntimeLimits::default());
+    let mut inst = rt
+        .instantiate(
+            "sha256:pos_probe",
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+test bar_history_indicators_match_slice_view ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+EXIT=0
+
+--- [4] strategy-runtime 本批（P2c/P4b）无 diff（worktree vs index）---
+(空 = P2c/P4b 未触碰 strategy-runtime)

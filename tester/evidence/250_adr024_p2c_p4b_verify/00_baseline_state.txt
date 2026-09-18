@@ -1,0 +1,98 @@
+===== ADR-024 P2c/P4b 独立验收 —— 开工基线快照 =====
+# date_utc : 2026-09-18T06:17:50.823Z
+# pwd      : /home/eestock/workspace/git/eestock/eestock-rs
+# HEAD     : 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+--- [1] git status --short（非 'A ' 行 = 本批相关承载）---
+M  crates/application/src/bar_map.rs
+M  crates/application/src/simlive.rs
+M  crates/application/src/strategy.rs
+M  crates/application/src/workbench.rs
+M  crates/application/tests/workbench.rs
+M  crates/backtest/src/indicators.rs
+M  crates/backtest/src/lib.rs
+M  crates/backtest/src/types.rs
+M  crates/domain/src/ports.rs
+M  crates/mcp/src/tools.rs
+M  crates/simlive/src/plugin_orchestrator.rs
+M  crates/storage/src/backtest.rs
+M  crates/strategy-core/src/engine.rs
+M  crates/strategy-core/src/lib.rs
+M  crates/strategy-runtime/src/lib.rs
+M  crates/strategy-runtime/src/quickjs.rs
+M  crates/strategy-runtime/src/types.rs
+M  crates/web/src/workbench.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M  design/02-domain/contracts.md
+M  design/07-app-plane/01-mcp.md
+AM design/16-backtest-scalability/04-implementation-plan.md
+ M design/99-decisions-log.md
+ M docker-compose.yml
+M  web/src/api/mock.test.ts
+M  web/src/api/mock.ts
+M  web/src/api/types.ts
+M  web/src/features/backtest/format.test.ts
+M  web/src/features/backtest/format.ts
+M  web/src/features/strategies/TestRunPanel.test.tsx
+M  web/src/features/strategies/TestRunPanel.tsx
+M  web/src/features/workbench/ConfigPanel.test.tsx
+M  web/src/features/workbench/ConfigPanel.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/adr024_p0_rect2_testrunpanel.md
+?? crates/application/tests/tester_p2b_tryrun_indep.rs
+?? crates/simlive/tests/tester_p2b_orchestrator_indep.rs
+?? design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md
+?? prod_tools_schemas_periphery.txt
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/design/283_adr024_p2b_independent_design.md
+?? tester/evidence/018/
+?? tester/evidence/240_adr024_golden_baseline/
+?? tester/evidence/241_adr024_scale_curve/
+?? tester/evidence/242_adr024_baseline_extension/
+?? tester/evidence/243_adr024_attribution/
+?? tester/evidence/244_adr024_fixedcost_realpath/
+?? tester/evidence/245_tsdb_worker_slot_incident/
+?? tester/evidence/246_adr024_p0_verify/
+?? tester/evidence/247_adr024_p0_freeze/
+?? tester/evidence/248_adr024_p2_verify/
+?? tester/evidence/249_adr024_p2b_verify/
+?? tester/evidence/250_adr024_p2c_p4b_verify/
+
+--- [2] 索引中目标文件 sha256（= worker 交付态；我不得改动）---
+crates/application/src/workbench.rs  worktree=0a5045ad1072dc0a  index=0a5045ad1072dc0a  HEAD=f97f26d6b97b9770
+crates/application/src/strategy.rs  worktree=a0a279c4ac186395  index=a0a279c4ac186395  HEAD=624b32662005056b
+crates/strategy-core/src/engine.rs  worktree=9b334eb3478001d7  index=9b334eb3478001d7  HEAD=1f9e651a3aae63f6
+crates/simlive/src/plugin_orchestrator.rs  worktree=d5ae4947225e05e2  index=d5ae4947225e05e2  HEAD=9956839538e31611
+crates/application/tests/workbench.rs  worktree=d76bf5ff3d729964  index=d76bf5ff3d729964  HEAD=66c87217dce54757
+
+--- [3] worktree vs index（本批应恒为空：worker 已 git add，tester 不得再改）---
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 ++++++-
+ .../04-implementation-plan.md                      |  5 ++++-
+ design/99-decisions-log.md                         | 23 ++++++++++++++++++++++
+ docker-compose.yml                                 |  7 ++++++-
+ 4 files changed, 39 insertions(+), 3 deletions(-)
+(空 = worktree==index)
+
+--- [4] pg_stat_user_tables（strategy_run）开工基线（后续引用须扣除本车增量）---
+strategy_run n_tup_upd|ins|del: 371235|2365|1992
+strategy_run rows: 374
+strategy_run_result rows: 374
+
+--- [5] 端口/进程（prod 8081 现场）---
+LISTEN 0      128                                             0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=11)) 
+LISTEN 0      128                                             0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4083225,fd=12)) 
+    PID                  STARTED CMD
+4083225 Fri Sep 18 12:47:37 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+prod 8081 /proc/exe sha256: f4d07dcce45f8d08f555761cb0c06573d6b19d7c2cac9511c505a5ce305712fc
+
+--- [6] 仪表二进制（target/debug/eestock-app，worker 14:09 构建）---
+-rwxrwxr-x 2 eestock eestock 209453904 Sep 18 14:09 target/debug/eestock-app
+e738fc71293821c1edcdade09d8476a6d5201c3c093ac68171547eba7981b5d3  target/debug/eestock-app
+含 P4b 字样: 2

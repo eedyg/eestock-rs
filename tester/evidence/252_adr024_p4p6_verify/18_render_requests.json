@@ -1,0 +1,18 @@
+[
+  "http://127.0.0.1:18083/backtest-workbench",
+  "http://127.0.0.1:18083/assets/index-W2CP3XMF.js",
+  "http://127.0.0.1:18083/assets/index-CeUPb4uk.css",
+  "http://127.0.0.1:18083/api/strategies",
+  "http://127.0.0.1:18083/api/workbench/presets",
+  "http://127.0.0.1:18083/api/symbols",
+  "http://127.0.0.1:18083/api/workbench/runs?limit=50&offset=0",
+  "http://127.0.0.1:18083/api/sources/health",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/result",
+  "http://127.0.0.1:18083/api/kline?code=518880&period=1m&before=2026-09-17T00%3A03%3A00.000Z&limit=67687",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/bars?kind=per_bar&offset=0&limit=5000",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/fills?limit=5000",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/curve?kind=per_bar&k=2000",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/curve?kind=net_value&k=2000",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/curve?kind=drawdown&k=2000",
+  "http://127.0.0.1:18083/api/workbench/runs/sr_1789716153346_000002/bars?kind=per_bar&offset=5000&limit=5000"
+]

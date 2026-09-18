@@ -1,0 +1,22 @@
+### [①-f] 「顺序不变」的**行为**证据（静态见 02 号）
+# 2026-09-18T09:59:58Z
+
+判据：若「排水先于状态迁移」被破坏，`report_task.await` 的返回值（`chunk_err`）就不可能进入 outcome 分派
+      ⇒ 分块写失败时 run 会被误判为 succeeded。
+
+A) **真路径**（临时库注入 `CHECK(false)` 使分块写失败，见 10 号）：
+   `status=failed`；`error="结果分块落库失败: … violates check constraint \"t255_fail_inject\""`。
+   ⇒ 该失败**只能**来自 `report_task.await` 之后的分派（`chunk_err` 已就绪）⇒ 排水确实先于状态迁移。
+
+B) **套件**（全新库全量 19 号；含早前批次 tester 资产）：
+   - `p4b_run_summary_counters_are_self_consistent` ... ok
+   - `p4b_progress_db_time_window_throttle_reduces_writes` ... ok
+   - `p4b_progress_terminal_frame_persisted_on_chunk_write_failure` ... ok
+   - `p4b_progress_terminal_frame_persisted_on_cancel` ... ok
+   - `t_p4_cooperative_cancel_never_marks_succeeded` ... ok
+   - `t_p4_success_path_writes_all_chunks_before_result_row` ... ok
+   - `t_p4_chunk_write_failure_marks_run_failed_not_succeeded` ... ok
+
+C) 每 run **UPDATE 次数**口径（D15 原话「每 run 固定 1003 次 UPDATE」= 帧 + 2 次状态迁移）：
+   - before：733+2=735 / 1001+2=1003 / 1001+2=1003
+   - after ：  2+2=4   /    2+2=4   /    3+2=5      （见 05/06 号原始输出）

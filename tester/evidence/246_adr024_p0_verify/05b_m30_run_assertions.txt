@@ -1,0 +1,13 @@
+### 05b(revision) — M30 run assertions; invariant = all bar deltas are multiples of 1800s (30-min grid; session gaps are expected) @ 2026-09-18T12:48:05+08:00
+run_id = sr_1789706874229_000000
+run_view.period       = 'M30'
+run_view.status       = 'succeeded' progress= 1.0 error= None
+result keys           = ['drawdown', 'metrics', 'net_value', 'per_bar', 'trades']
+per_bar / trades / net_value / drawdown len = 680 14 430 430
+metrics               = {"annualized_return": 0.19853051498666208, "avg_hold_bars": 16.428571428571427, "max_drawdown": 0.05263001312436868, "net_profit": 3938.238609562817, "profit_factor": 3.547742910300246, "sharpe": 1.5051028427135118, "trade_count": 14, "win_rate": 0.2857142857142857}
+deltas Counter (s)    = [(1800, 544), (5400, 68), (66600, 53), (239400, 13), (325800, 1)]
+all deltas %% 1800 == 0 : True
+non-monotonic pairs   = 0
+trades (sample)       = [{"close_bar": 289, "close_price": 8.558288000000001, "close_ts": 1784790000, "commission": 50.59051420467166, "gross_value": 102387.05057024874, "hold_bars": 35, "open_bar": 254, "open_price": 8.356671, "open_ts": 1784518200, "pnl": 2361.453807606187, "shares": 11963.496737928044, "stamp_duty": 0.0}, {"close_bar": 313, "close_price": 8.3873222, "close_ts": 1785207600, "commission": 50.88028518524
+
+ASSERT OK: run_view.period=='M30' && status=='succeeded' && per_bar non-empty (n=680) && all bar deltas on the 1800s grid && trades=14 executed

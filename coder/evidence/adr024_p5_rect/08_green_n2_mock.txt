@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/api/mock.test.ts (53 tests) 49ms
+
+ Test Files  1 passed (1)
+      Tests  53 passed (53)
+   Start at  16:31:41
+   Duration  486ms (transform 79ms, setup 22ms, collect 78ms, tests 49ms, environment 128ms, prepare 87ms)
+

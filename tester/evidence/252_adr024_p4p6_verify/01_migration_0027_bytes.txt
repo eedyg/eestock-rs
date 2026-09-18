@@ -1,0 +1,12 @@
+### ①-a schema.md §4.3.18 块 == migrations/0027 逐字节
+TS=2026-09-18T15:17:03+08:00  HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+--- 提取 schema.md 中 file=migrations/0027_* 的代码块 ---
+schema.md block lines: 20 ; migration lines: 20
+--- diff (空 = 逐字节一致) ---
+DIFF_EMPTY_OK
+--- sha256 ---
+f76f8b6e71661b28e6c42da6d6c13daa482de21737382dcf4a1a5883088e2f6a  /tmp/spec_0027_clean.sql
+f76f8b6e71661b28e6c42da6d6c13daa482de21737382dcf4a1a5883088e2f6a  /tmp/mig_0027_clean.sql
+--- grep 'fills' 命中数 ---
+2
+--- 02-spec §2 的 0027 SQL 也核 ---

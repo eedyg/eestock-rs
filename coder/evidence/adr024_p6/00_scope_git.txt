@@ -1,0 +1,34 @@
+### ADR-024 P6 提交面（仅本任务路径；未用 git add -A / git add .；未 commit）
+# 后端（授权：domain / storage / application / web / migrations / design 04+07）
+crates/domain/src/ports.rs
+crates/application/src/workbench.rs
+crates/application/tests/workbench.rs
+crates/storage/tests/workbench_store.rs
+crates/web/src/workbench.rs
+crates/web/src/lib.rs
+crates/web/tests/api_workbench.rs
+migrations/0027_strategy_run_result_chunks.sql            (tangle 重生成)
+design/04-storage/schema.md                               (0027 块 CHECK 增 'fills')
+design/07-app-plane/00-web-api.md                         (REST 表 + 路由块增 /fills)
+design/02-domain/contracts.md                             (ports.rs 经 ./scripts/stitch.sh 回写；ADR-007 门禁要求)
+# 前端（授权：web/src/**）
+web/src/api/types.ts
+web/src/api/client.ts
+web/src/api/mock.ts
+web/src/api/client.test.ts
+web/src/api/mock.test.ts
+web/src/features/workbench/useRunSeries.ts               (新增：单一取数入口)
+web/src/features/workbench/useRunSeries.test.ts          (新增)
+web/src/features/workbench/ResultView.tsx
+web/src/features/workbench/ResultView.test.tsx
+web/src/features/workbench/KlineResultChart.tsx
+web/src/features/workbench/PerBarTable.tsx
+web/src/features/workbench/EventLog.tsx
+web/src/features/workbench/AggregateScoreChart.tsx
+web/src/features/workbench/SlotScoresChart.tsx
+web/src/features/workbench/EquityDrawdownChart.tsx
+web/src/features/workbench/ComparePanel.tsx
+# 本任务产物
+coder/evidence/adr024_p6/
+coder/report/adr024_p6_frontend_result_paths.md
+# 明确未触碰：design/16-backtest-scalability/**（架构师所有）、crates/mcp/**、docker-compose.yml、design/01-architecture/**、design/99-decisions-log.md

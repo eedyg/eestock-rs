@@ -1,0 +1,274 @@
+===== ⑤ 范围与回归：git diff HEAD --stat 分类 + P4b 未触碰面逐条 =====
+# date_utc 2026-09-18T06:23:42.719Z   HEAD=18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+--- [1] 本批（P2c+P4b）对 HEAD 的净改动（5 个声明文件）---
+ crates/application/src/strategy.rs        |  137 +++-
+ crates/application/src/workbench.rs       | 1039 +++++++++++++++++++++++++++--
+ crates/application/tests/workbench.rs     |  304 +++++++++
+ crates/simlive/src/plugin_orchestrator.rs |   48 +-
+ crates/strategy-core/src/engine.rs        |  740 +++++++++++---------
+ 5 files changed, 1904 insertions(+), 364 deletions(-)
+
+--- [2] 归属判据：tester 249（P2b 验收）当日存量清单  .../evidence/adr024_p0_m30/01_red_backtest_m30.txt |   21 +
+ .../adr024_p0_m30/02_green_backtest_m30.txt        |   30 +
+ .../03_application_nonexhaustive_match.txt         |   30 +
+ .../adr024_p0_m30/04_red_application_ssot.txt      |   14 +
+ .../adr024_p0_m30/05_green_application_ssot.txt    |   14 +
+ .../adr024_p0_m30/06_red_web_period_gate.txt       |   40 +
+ .../adr024_p0_m30/07_green_web_period_gate.txt     |   12 +
+ .../adr024_p0_m30/08_web_period_gate_nocapture.txt |    4 +
+ coder/evidence/adr024_p0_m30/09_red_mcp_drift.txt  |   48 +
+ .../evidence/adr024_p0_m30/10_green_mcp_drift.txt  |   13 +
+ coder/evidence/adr024_p0_m30/11_red_frontend.txt   |  242 +++++
+ coder/evidence/adr024_p0_m30/12_green_frontend.txt |   14 +
+ .../adr024_p0_m30/13a_reverse_rust_red.txt         |   30 +
+ .../evidence/adr024_p0_m30/13b_reverse_ts_red.txt  |   35 +
+ .../adr024_p0_m30/14_restore_green_rust.txt        |   12 +
+ .../adr024_p0_m30/14b_restore_green_ts.txt         |   10 +
+ .../adr024_p0_m30/15_frontend_full_suite.txt       |   25 +
+ coder/evidence/adr024_p0_m30/16_frontend_build.txt |   18 +
+ .../adr024_p0_m30/17_backend_check_all_targets.txt |   17 +
+ .../adr024_p0_m30/18_backend_targeted_tests.txt    |   84 ++
+ .../adr024_p0_m30/19_backend_lib_tests.txt         |   20 +
+ coder/evidence/adr024_p0_m30/20_tangle_check.txt   |    1 +
+ coder/evidence/adr024_p0_m30/21_frontend_final.txt |   14 +
+ coder/evidence/adr024_p0_m30/22_backend_final.txt  |   51 +
+ coder/evidence/adr024_p2/00_golden_pre.txt         |   52 +
+ .../adr024_p2/01_red_online_indicators.txt         |   57 ++
+ .../adr024_p2/02_green_online_indicators.txt       |   38 +
+ .../adr024_p2/03_red_engine_alloc_flatness.txt     |   21 +
+ coder/evidence/adr024_p2/04_red_session_equiv.txt  |   15 +
+ coder/evidence/adr024_p2/05_red_shared_history.txt |   58 ++
+ .../evidence/adr024_p2/06_green_shared_history.txt |   23 +
+ .../evidence/adr024_p2/07_green_session_equiv.txt  |   12 +
+ coder/evidence/adr024_p2/08_green_engine_alloc.txt |   10 +
+ coder/evidence/adr024_p2/09_green_p2_crates.txt    |  262 +++++
+ coder/evidence/adr024_p2/10_golden_post.txt        |   52 +
+ coder/evidence/adr024_p2/11_post_large_n.txt       |   18 +
+ .../adr024_p2/12_green_indicator_fixture.txt       |  193 ++++
+ .../adr024_p2/13a_reverse_indicator_break.txt      |   29 +
+ .../adr024_p2/13b_reverse_shared_history_break.txt |   31 +
+ .../adr024_p2/13c_reverse_no_shared_history.txt    |   25 +
+ .../adr024_p2/13d_reverse_warmup_break.txt         |  240 +++++
+ coder/evidence/adr024_p2/13e_reverse_ma_offset.txt |   65 ++
+ .../evidence/adr024_p2/14_green_all_p2_crates.txt  |  273 +++++
+ .../adr024_p2/15_green_application_tests.txt       |  180 ++++
+ coder/evidence/adr024_p2/16_tangle_check.txt       |    1 +
+ coder/evidence/adr024_p2/17_prepost_table.txt      |   30 +
+ .../adr024_p2/18_application_web_unchanged.txt     |    1 +
+ .../adr024_p2/19_golden_pre_vs_post_same.txt       |    4 +
+ coder/evidence/adr024_p2/20_impact_manual.txt      |   76 ++
+ .../adr024_p2/application_web_hashes_after.txt     |   44 +
+ .../adr024_p2/application_web_hashes_before.txt    |   44 +
+ coder/evidence/adr024_p2/post_scale.txt            |   68 ++
+ coder/evidence/adr024_p2/pre_scale.txt             |   68 ++
+ coder/evidence/adr024_p2/run_preflight.sh          |   56 ++
+ coder/evidence/adr024_p2b/01_red_simlive.txt       |   26 +
+ coder/evidence/adr024_p2b/02_red_tryrun.txt        |   21 +
+ coder/evidence/adr024_p2b/03_red_tryrun_prefix.txt |   33 +
+ coder/evidence/adr024_p2b/04_green_tryrun.txt      |   11 +
+ coder/evidence/adr024_p2b/05_green_simlive.txt     |   12 +
+ .../adr024_p2b/06_green_application_all.txt        |  191 ++++
+ coder/evidence/adr024_p2b/07_green_simlive_all.txt |   63 ++
+ .../adr024_p2b/08_reverse_simlive_no_history.txt   |   26 +
+ .../adr024_p2b/09_restore_simlive_green.txt        |   63 ++
+ .../adr024_p2b/10_reverse_tryrun_expose_future.txt |   25 +
+ .../11_reverse_tryrun_no_history_unit.txt          |   31 +
+ .../12_reverse_tryrun_no_history_alloc.txt         |   30 +
+ .../adr024_p2b/13_restore_tryrun_green.txt         |   11 +
+ coder/evidence/adr024_p2b/14_green_tryrun_wall.txt |   12 +
+ .../evidence/adr024_p2b/15_green_simlive_wall.txt  |   13 +
+ .../adr024_p2b/16_pre_state_tryrun_full.txt        |   32 +
+ .../adr024_p2b/17_pre_state_simlive_full.txt       |   27 +
+ .../adr024_p2b/18_green_application_all_final.txt  |  190 ++++
+ .../adr024_p2b/19_workspace_check_all_targets.txt  |    9 +
+ coder/evidence/adr024_p2b/20_clippy.txt            |   13 +
+ .../adr024_p2b/21_green_simlive_all_final.txt      |   62 ++
+ coder/evidence/adr024_p2b/22_no_future_surface.txt |   33 +
+ .../23_assert_bars_len_prefix_tryrun.txt           |   18 +
+ .../24_assert_bars_len_prefix_simlive.txt          |   18 +
+ coder/evidence/adr024_p2b/25_tangle_check.txt      |    1 +
+ coder/evidence/adr024_p2b/26_git_diff_targets.txt  |  252 +++++
+ .../adr024_p2b/27_green_p2_layer_crates.txt        |  270 +++++
+ .../adr024_p2b/28_gitnexus_unavailable.txt         |   26 +
+ .../adr024_p2c_p4b/01_green_strategy_core.txt      |   30 +
+ coder/evidence/adr024_p2c_p4b/02_green_simlive.txt |   25 +
+ .../adr024_p2c_p4b/03_green_application.txt        |   40 +
+ .../adr024_p2c_p4b/04_hashes_before_reverse.txt    |    3 +
+ .../adr024_p2c_p4b/05_reverse_R1_tryrun_panic.txt  |   25 +
+ .../adr024_p2c_p4b/06_restore_R1_green.txt         |    9 +
+ .../adr024_p2c_p4b/07_reverse_R2_engine_panic.txt  |   25 +
+ .../adr024_p2c_p4b/08_restore_R2_green.txt         |   13 +
+ .../adr024_p2c_p4b/09_reverse_R3_simlive_panic.txt |   30 +
+ .../adr024_p2c_p4b/10_restore_R3_green.txt         |    4 +
+ coder/evidence/adr024_p2c_p4b/11_red_p4b_test.txt  |   20 +
+ .../evidence/adr024_p2c_p4b/12_green_p4b_test.txt  |    9 +
+ .../evidence/adr024_p2c_p4b/13_p4b_capture_raw.txt |   20 +
+ .../adr024_p2c_p4b/14_green_application_all.txt    |   24 +
+ .../evidence/adr024_p2c_p4b/15_p4b_flake_probe.txt |   38 +
+ .../adr024_p2c_p4b/16_p4b_single_thread.txt        |    8 +
+ .../adr024_p2c_p4b/17_p4b_parallel_run.txt         |   18 +
+ coder/evidence/adr024_p2c_p4b/18_p4b_stability.txt |    3 +
+ .../adr024_p2c_p4b/19_green_application_all.txt    |   15 +
+ .../evidence/adr024_p2c_p4b/20_clippy_touched.txt  |    4 +
+ .../adr024_p2c_p4b/21_p4b_realpath_probe.txt       |   53 +
+ .../adr024_p2c_p4b/22_p4b_app_json_log.txt         |   69 ++
+ .../adr024_p2c_p4b/23_p4b_summary_table.txt        |   29 +
+ coder/evidence/adr024_p2c_p4b/24_p4b_cleanup.txt   |   25 +
+ .../adr024_p2c_p4b/25_p4b_trace_drain_raw.txt      |   13 +
+ .../adr024_p2c_p4b/26_p4b_instance_stopped.txt     |    7 +
+ .../evidence/adr024_p2c_p4b/27_workspace_check.txt |    1 +
+ coder/evidence/adr024_p2c_p4b/28_tangle_check.txt  |    1 +
+ .../adr024_p2c_p4b/29_final_affected_tests.txt     |   28 +
+ coder/evidence/adr024_p2c_p4b/30_release_check.txt |    3 +
+ coder/evidence/adr024_p2c_p4b/probe_p4b.sh         |  104 ++
+ coder/report/adr024_p0_m30.md                      |  393 ++++++++
+ coder/report/adr024_p0_rectification.md            |  718 ++++++++++++++
+ coder/report/adr024_p2_engine_linearization.md     |  396 ++++++++
+ .../adr024_p2b_tryrun_simlive_linearization.md     |  333 +++++++
+ coder/report/adr024_p2c_and_p4b_instrumentation.md |  363 +++++++
+ crates/application/src/bar_map.rs                  |   25 +-
+ crates/application/src/simlive.rs                  |    4 +
+ crates/application/src/strategy.rs                 |  137 ++-
+ crates/application/src/workbench.rs                | 1039 +++++++++++++++++++-
+ crates/application/tests/adr024_p2b_tryrun.rs      |  362 +++++++
+ crates/application/tests/backtest_periods_ssot.rs  |   97 ++
+ crates/application/tests/workbench.rs              |  304 ++++++
+ crates/backtest/src/indicators.rs                  |  769 +++++++++++++++
+ crates/backtest/src/lib.rs                         |    2 +-
+ crates/backtest/src/types.rs                       |   20 +-
+ crates/domain/src/ports.rs                         |   70 +-
+ crates/mcp/src/tools.rs                            |   23 +-
+ crates/mcp/tests/adr024_period_ssot_drift.rs       |  151 +++
+ crates/simlive/src/plugin_orchestrator.rs          |   48 +-
+ crates/simlive/tests/adr024_p2b_orchestrator.rs    |  326 ++++++
+ crates/storage/src/backtest.rs                     |    4 +-
+ crates/storage/src/migrate_check.rs                |    2 +
+ crates/storage/src/workbench.rs                    |   98 +-
+ crates/strategy-core/src/engine.rs                 |  740 ++++++++------
+ crates/strategy-core/src/lib.rs                    |    4 +-
+ crates/strategy-core/tests/session.rs              |  320 ++++++
+ crates/strategy-core/tests/session_alloc.rs        |  145 +++
+ crates/strategy-runtime/src/history.rs             |  195 ++++
+ crates/strategy-runtime/src/lib.rs                 |    2 +
+ crates/strategy-runtime/src/quickjs.rs             |   34 +-
+ crates/strategy-runtime/src/types.rs               |   47 +-
+ .../tests/online_indicators_fixture.rs             |  238 +++++
+ crates/strategy-runtime/tests/shared_history.rs    |  348 +++++++
+ .../strategy-runtime/tests/shared_history_alloc.rs |  160 +++
+ crates/web/src/lib.rs                              |    3 +
+ crates/web/src/workbench.rs                        |  133 ++-
+ crates/web/tests/adr024_workbench_period_ssot.rs   |  180 ++++
+ .../adr/ADR-023-period-set-extension-30m.md        |    7 +-
+ design/02-domain/contracts.md                      |   70 +-
+ design/04-storage/03-raw-writer.md                 |    2 +
+ design/04-storage/schema.md                        |   42 +
+ design/07-app-plane/01-mcp.md                      |   23 +-
+ design/16-backtest-scalability/01-adr.md           |  273 +++++
+ design/16-backtest-scalability/02-spec.md          |  248 +++++
+ design/16-backtest-scalability/03-test-plan.md     |  148 +++
+ .../04-implementation-plan.md                      |  155 +++
+ .../16-backtest-scalability/contract-vectors.json  |   46 +
+ design/99-decisions-log.md                         |   23 +
+ docker-compose.yml                                 |    7 +-
+ web/src/api/mock.test.ts                           |   14 +-
+ web/src/api/mock.ts                                |    9 +-
+ web/src/api/types.ts                               |   11 +-
+ web/src/features/backtest/format.test.ts           |   39 +-
+ web/src/features/backtest/format.ts                |   12 +-
+ web/src/features/backtest/periods.test.ts          |   39 +
+ web/src/features/backtest/periods.ts               |   20 +
+ web/src/features/strategies/TestRunPanel.test.tsx  |   20 +
+ web/src/features/strategies/TestRunPanel.tsx       |   13 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |   20 +
+ web/src/features/workbench/ConfigPanel.tsx         |    9 +-
+ 173 files changed, 14083 insertions(+), 460 deletions(-) 中，workbench.rs / tests/workbench.rs 均未出现
+        ⇒ 这两个文件的全部 HEAD-diff 只能来自本批（P4b）。
+  grep workbench 于 tester/evidence/249_adr024_p2b_verify/A5_01_git_diff_stat.txt: 0
+  （0 = 当日不存在 ⇒ 非 P0/P2/P2b 产物）
+
+--- [3] git diff HEAD --stat 全量（含其他车道的在飞改动；本批文件已在上表）---
+ web/src/api/mock.test.ts                           |   14 +-
+ web/src/api/mock.ts                                |    9 +-
+ web/src/api/types.ts                               |   11 +-
+ web/src/features/backtest/format.test.ts           |   39 +-
+ web/src/features/backtest/format.ts                |   12 +-
+ web/src/features/backtest/periods.test.ts          |   39 +
+ web/src/features/backtest/periods.ts               |   20 +
+ web/src/features/strategies/TestRunPanel.test.tsx  |   20 +
+ web/src/features/strategies/TestRunPanel.tsx       |   13 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |   20 +
+ web/src/features/workbench/ConfigPanel.tsx         |    9 +-
+ 173 files changed, 14083 insertions(+), 460 deletions(-)
+
+--- [4] 未触碰面（红线）逐条 ---
+  design/16-backtest-scalability/                      HEAD-diff 文件数=5  （设计文档；非本批）
+  docker-compose.yml                                   HEAD-diff 文件数=1  （compose；mtime 12:16 < 本批窗口）
+  migrations/                                          HEAD-diff 文件数=0  （落库 schema/迁移；0 = P4b 未加列）
+  crates/simlive/src/session.rs                        HEAD-diff 文件数=0  （sim-live 业务逻辑）
+  crates/simlive/src/fill.rs                           HEAD-diff 文件数=0  （sim-live 业务逻辑）
+  crates/simlive/src/account.rs                        HEAD-diff 文件数=0  （sim-live 业务逻辑）
+  crates/simlive/src/strategy_orchestrator.rs          HEAD-diff 文件数=0  （sim-live 业务逻辑）
+  crates/application/src/bar_map.rs                    HEAD-diff 文件数=1  （周期 SSOT = P0）
+
+  sim-live 业务逻辑 sha256（HEAD vs worktree，逐字节对照）：
+    crates/simlive/src/session.rs                        HEAD=3dd9080652549e44 WORK=3dd9080652549e44 相同
+    crates/simlive/src/fill.rs                           HEAD=acdf7332a0c8864e WORK=acdf7332a0c8864e 相同
+    crates/simlive/src/account.rs                        HEAD=0091627e2ca035ab WORK=0091627e2ca035ab 相同
+    crates/simlive/src/strategy_orchestrator.rs          HEAD=896be560cc8d0623 WORK=896be560cc8d0623 相同
+
+  红线常量（本批不得改）：
+  [PROGRESS_THROTTLE_MILLI] workbench HEAD=58:const PROGRESS_THROTTLE_MILLI: f64 = 1000.0; WORK=74:const PROGRESS_THROTTLE_MILLI: f64 = 1000.0;
+  [MAX_BARS] workbench HEAD=55:pub const MAX_BARS: usize = 200_000; WORK=58:pub const MAX_BARS: usize = 200_000;
+  [D1_MAX_SPAN_DAYS] workbench HEAD=None WORK=None
+  [D1_MAX_SPAN_DAYS] strategy  HEAD=59:pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5; WORK=62:pub const D1_MAX_SPAN_DAYS: i64 = 366 * 5;
+  [MINUTE_MAX_SPAN_DAYS] workbench HEAD=None WORK=None
+  [MINUTE_MAX_SPAN_DAYS] strategy  HEAD=60:pub const MINUTE_MAX_SPAN_DAYS: i64 = 93; WORK=63:pub const MINUTE_MAX_SPAN_DAYS: i64 = 93;
+  [MAX_SCORE_POINTS] workbench HEAD=None WORK=None
+  [MAX_SCORE_POINTS] strategy  HEAD=53:pub const MAX_SCORE_POINTS: usize = 50_000; WORK=55:pub const MAX_SCORE_POINTS: usize = 50_000;
+  [MAX_EVENTS] workbench HEAD=None WORK=None
+  [MAX_EVENTS] strategy  HEAD=54:pub const MAX_EVENTS: usize = 1_000; WORK=56:pub const MAX_EVENTS: usize = 1_000;
+  [MAX_TRADES] workbench HEAD=None WORK=None
+  [MAX_TRADES] strategy  HEAD=55:pub const MAX_TRADES: usize = 5_000; WORK=57:pub const MAX_TRADES: usize = 5_000;
+
+--- [5] mtime（本批窗口 14:00–14:13；>14:15 = 其他车道在飞）---
+-rw-rw-r-- 1 eestock eestock 50308 14:21:41 crates/application/src/strategy.rs
+-rw-rw-r-- 1 eestock eestock 79740 14:23:03 crates/application/src/workbench.rs
+-rw-rw-r-- 1 eestock eestock 53817 14:07:50 crates/application/tests/workbench.rs
+-rw-rw-r-- 1 eestock eestock 20071 14:22:15 crates/simlive/src/plugin_orchestrator.rs
+-rw-rw-r-- 1 eestock eestock 39084 14:22:05 crates/strategy-core/src/engine.rs
+-rw-rw-r-- 1 eestock eestock 27290 13:37:46 design/16-backtest-scalability/01-adr.md
+-rw-rw-r-- 1 eestock eestock 15287 23:58:21 design/16-backtest-scalability/02-spec.md
+-rw-rw-r-- 1 eestock eestock 11938 00:39:42 design/16-backtest-scalability/03-test-plan.md
+-rw-rw-r-- 1 eestock eestock 18634 14:00:13 design/16-backtest-scalability/04-implementation-plan.md
+-rw-rw-r-- 1 eestock eestock  4650 12:16:18 docker-compose.yml
+
+migrations:
+total 116
+-rw-r--r-- 1 eestock eestock 3641 02:21:21 0001_init.sql
+-rw-r--r-- 1 eestock eestock 2027 02:21:21 0002_caggs.sql
+-rw-r--r-- 1 eestock eestock  941 09:07:43 0003_compression.sql
+-rw-r--r-- 1 eestock eestock 1440 09:07:43 0004_metrics.sql
+-rw-r--r-- 1 eestock eestock 1247 02:24:22 0005_sync_checkpoints.sql
+-rw-r--r-- 1 eestock eestock  710 09:07:43 0006_accurate_compression.sql
+-rw-r--r-- 1 eestock eestock  845 02:22:54 0007_circuit_reset.sql
+-rw-r--r-- 1 eestock eestock 2047 12:36:26 0008_holidays.sql
+-rw-r--r-- 1 eestock eestock 2888 12:36:26 0009_alert_engine.sql
+-rw-r--r-- 1 eestock eestock 2241 10:12:40 0010_accurate_caggs.sql
+-rw-r--r-- 1 eestock eestock 2019 17:27:20 0011_backtest.sql
+-rw-r--r-- 1 eestock eestock 1448 22:10:14 0012_backtest_run_extend.sql
+-rw-r--r-- 1 eestock eestock  575 12:02:58 0013_favorite_symbols.sql
+-rw-r--r-- 1 eestock eestock 2123 10:12:40 0014_weekly_monthly_caggs.sql
+-rw-r--r-- 1 eestock eestock  768 19:28:17 0015_ma_config.sql
+-rw-r--r-- 1 eestock eestock 1996 21:57:04 0016_weekly_monthly_full_history.sql
+-rw-r--r-- 1 eestock eestock 2828 10:12:40 0017_minute_caggs_full_history.sql
+-rw-r--r-- 1 eestock eestock 2454 13:58:31 0018_sim_session.sql
+-rw-r--r-- 1 eestock eestock  632 00:46:36 0019_sim_session_state.sql
+-rw-r--r-- 1 eestock eestock  845 10:46:15 0020_accurate_cagg_refresh.sql
+-rw-r--r-- 1 eestock eestock  711 23:24:16 0021_app_config.sql
+-rw-r--r-- 1 eestock eestock 4806 16:52:44 0022_strategy_registry.sql
+-rw-r--r-- 1 eestock eestock 2587 18:44:54 0023_strategy_workbench.sql
+-rw-r--r-- 1 eestock eestock  614 08:42:55 0024_drop_legacy_backtest_tables.sql
+-rw-r--r-- 1 eestock eestock 6947 21:15:22 0025_symbol_type_fee_profiles.sql
+-rw-r--r-- 1 eestock eestock 3545 22:53:50 0026_period_30m.sql
+-rw------- 1 eestock eestock 1340 14:19:51 0027_strategy_run_result_chunks.sql

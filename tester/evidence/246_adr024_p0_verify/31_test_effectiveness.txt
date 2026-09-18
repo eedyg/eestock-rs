@@ -1,0 +1,67 @@
+### 31 — 测试有效性抽查（防空断言）：ConfigPanel.test.tsx 的「周期下拉 = SSOT（含 M30）」 @ 2026-09-18T12:51:15+08:00
+--- 31.0 baseline ---
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+6cebff6c8fc42f0097a72561a04fdc76d83ce563bcc82161cc60e7dd0d3b65a0  web/src/features/workbench/ConfigPanel.tsx
+A  web/src/features/backtest/periods.ts
+M  web/src/features/workbench/ConfigPanel.tsx
+
+--- 31.1 扰动 A：把 SSOT 常量里的 'M30' 删掉（常量与断言两侧同时变） ---
+17:export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'H1', 'D1'] as const;
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/workbench/ConfigPanel.test.tsx (13 tests) 702ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  12:51:15
+   Duration  1.30s (transform 119ms, setup 29ms, collect 181ms, tests 702ms, environment 141ms, prepare 43ms)
+
+VITEST_EXIT_A=0
+→ 结论 A: 若此处为 passed ⇒ 该断言对 M30 成员资格**不敏感**（两侧同源，恒真）
+31.1 restore sha: 04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a
+
+--- 31.2 扰动 B：改组件本身（下拉手写 4 项，去掉 M30）⇒ 断言必须变红 ---
+mutated component: dropdown hardcoded ['M1','M5','M15','D1']
+        <label className={LABEL}>
+          周期
+          <select className={INPUT} value={period} onChange={(e) => setPeriod(e.target.value)} data-testid="wb-period">
+            {['M1', 'M5', 'M15', 'D1'].map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[32m-   "H1",[39m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/workbench/ConfigPanel.test.tsx:48:50
+     46|     render(<ConfigPanel {...mkProps()} />);
+     47|     const sel = screen.getByTestId('wb-period') as HTMLSelectElement;
+     48|     expect([...sel.options].map((o) => o.value)).toEqual([...SUPPORTED…
+       |                                                  ^
+     49|   });
+     50| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  12:51:17
+   Duration  1.19s (transform 78ms, setup 22ms, collect 117ms, tests 709ms, environment 131ms, prepare 104ms)
+
+VITEST_EXIT_B=1
+
+--- 31.3 restore both ---
+04b540dedf18f1e55625bbf0f6726077c8bc2f94dc69f691e2ad6a095d99f14a  web/src/features/backtest/periods.ts
+6cebff6c8fc42f0097a72561a04fdc76d83ce563bcc82161cc60e7dd0d3b65a0  web/src/features/workbench/ConfigPanel.tsx
+$ git diff --stat  (must show only the 2 pre-existing unstaged files)
+ design/01-architecture/adr/ADR-023-period-set-extension-30m.md | 7 ++++++-
+ docker-compose.yml                                             | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)

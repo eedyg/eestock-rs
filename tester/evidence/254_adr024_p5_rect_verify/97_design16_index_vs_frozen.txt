@@ -1,0 +1,6 @@
+## index（暂存版）vs 冻结快照(06:31Z) —— design/16
+01-adr.md  index==frozen  work==frozen
+02-spec.md  index!=frozen  work!=frozen
+03-test-plan.md  index==frozen  work==frozen
+04-implementation-plan.md  index!=frozen  work!=frozen
+contract-vectors.json  index==frozen  work==frozen

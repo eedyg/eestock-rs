@@ -1,0 +1,13 @@
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running tests/adr024_p2b_orchestrator.rs (target/debug/deps/adr024_p2b_orchestrator-d9ce500227a2f7d4)
+
+running 3 tests
+test orchestrator_ctx_bars_is_prefix_shared_and_has_no_future ... ok
+test orchestrator_per_bar_allocation_does_not_grow_with_index ... P2b-simlive alloc/bar（bytes）: n=2000 1060.2 → n=4000 1058.8 (ratio=0.999)
+P2b-simlive wall（ms）: n=2000 34.0 → n=4000 67.5 (ratio=1.986)
+ok
+test orchestrator_scores_bitwise_equal_to_compat_path ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

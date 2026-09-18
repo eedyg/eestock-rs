@@ -1,0 +1,45 @@
+== 样本 ==
+历史 succeeded run: N=374  bars=[29..3250] median=999.0
+  dur: median=0.854s mean=1.042s
+  concurrent 分布: {0: 268, 1: 2, 3: 9, 4: 13, 5: 39, 6: 43}
+本轮 P1c 自建 run: N=8（不参与历史拟合）
+  同刻无并发(concurrent=0) N=268  有并发 N=106
+
+== 上轮 fit.txt 基线（全样本）复现/对照 ==
+A  dur ~ bars (全样本, 上轮口径)                            N=374  dur = 1.0205 + 1.65839e-05*bars   R2=0.0007 rmse=0.4487s
+B  dur ~ bars*slots (全样本, 上轮口径)                      N=374  dur = 0.9539 + 5.85669e-05*bars*slots   R2=0.0209 rmse=0.4441s
+
+== ③ 新模型：每 run 固定成本（帧数）===
+C  dur ~ min(1001,bars)      (全样本)                   N=374  dur = -0.0911 + 0.00122597*frames   R2=0.2773 rmse=0.3816s
+D  dur ~ min(1001,bars)+2    (全样本)                   N=374  dur = -0.0935 + 0.00122597*frames+2   R2=0.2773 rmse=0.3816s
+C' dur ~ min(1001,bars)      (无并发子集)                 N=268  dur = 0.0418 + 0.000825135*frames   R2=0.9053 rmse=0.0576s
+D' dur ~ min(1001,bars)+2    (无并发子集)                 N=268  dur = 0.0402 + 0.000825135*frames+2   R2=0.9053 rmse=0.0576s
+
+== ③ 协变量：并发度 / slots ==
+E  dur ~ frames2 + concurrent        (全样本)           N=374  dur = 0.0222 + 0.000859357*frames+2 + 0.156775*concurrent   R2=0.9217 rmse=0.1256s
+E' dur ~ frames2 + concurrent + slots(全样本)           N=374  dur = -0.0354 + 0.000851198*frames+2 + 0.154397*concurrent + 0.0603847*slots   R2=0.9260 rmse=0.1221s
+F  dur ~ bars + concurrent           (全样本)           N=374  dur = 0.6552 + 0.00010478*bars + 0.175542*concurrent   R2=0.8191 rmse=0.1909s
+
+== ③ 分周期（无并发子集 vs 全样本）==
+  D1   all N=185 c0=-0.2765s c1=  1492.6us/bar R2=0.6229 | clean N= 99 c0=+0.0414s c1=   829.7us/bar R2=0.9227
+  H1   all N= 21 c0=-0.0392s c1=   990.1us/bar R2=0.7638 | clean N= 21 c0=-0.0392s c1=   990.1us/bar R2=0.7638
+  M15  all N= 83 c0=+1.4818s c1=  -472.7us/bar R2=0.0688 | clean N= 63 c0=+0.7058s c1=   104.5us/bar R2=0.6030
+  M5   all N= 85 c0=+0.8950s c1=   -13.2us/bar R2=0.0264 | clean N= 85 c0=+0.8950s c1=   -13.2us/bar R2=0.0264
+
+== ③ 无并发子集：分档 dur vs 帧数预测（c1 由 D' 给出）==
+  帧数[0,600] N= 37 中位 dur=0.506s 预测=0.535s
+  帧数[601,1001] N=121 中位 dur=0.851s 预测=0.866s
+
+== 每帧成本 c1 汇总（dur / (min(1001,bars)+2)）==
+  全样本 N=374 中位=0.862 ms/帧  均值=1.116 ms/帧  p10=0.837 p90=1.723 ms/帧
+  无并发 N=268 中位=0.854 ms/帧
+
+== 本轮 P1c 真路径自建 run（长窗口协议实测 Δ）==
+  sr_1789663332534_000000 D1  bars=   492 dur=1.841s 帧数= 494 dur/帧=3.73 ms  concurrent=0
+  sr_1789663335760_000001 M5  bars=  3500 dur=2.456s 帧数=1003 dur/帧=2.45 ms  concurrent=0
+  sr_1789663340174_000002 M1  bars= 16155 dur=2.593s 帧数=1003 dur/帧=2.58 ms  concurrent=0
+  sr_1789663435710_000003 D1  bars=   492 dur=1.305s 帧数= 494 dur/帧=2.64 ms  concurrent=0
+  sr_1789663443311_000004 M5  bars=   650 dur=1.726s 帧数= 652 dur/帧=2.65 ms  concurrent=0
+  sr_1789663452400_000005 M5  bars=  3500 dur=2.592s 帧数=1003 dur/帧=2.58 ms  concurrent=0
+  sr_1789663461850_000006 M1  bars= 16155 dur=2.578s 帧数=1003 dur/帧=2.57 ms  concurrent=0
+  sr_1789663588369_000007 M5  bars=  3500 dur=3.459s 帧数=1003 dur/帧=3.45 ms  concurrent=0

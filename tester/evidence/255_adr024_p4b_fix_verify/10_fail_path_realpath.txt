@@ -1,0 +1,27 @@
+### [①-b] 真路径失败路径（注入分块写失败：临时库 strategy_run_bars 加 CHECK(false) NOT VALID）
+# 2026-09-18T09:52:30Z
+# 注入前约束:
+strategy_run_bars_kind_check | CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text])))
+strategy_run_bars_pkey | PRIMARY KEY (run_id, kind, seq)
+strategy_run_bars_run_id_fkey | FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+--- 注入 ---
+ALTER TABLE
+注入后:
+strategy_run_bars_kind_check | CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text])))
+strategy_run_bars_pkey | PRIMARY KEY (run_id, kind, seq)
+strategy_run_bars_run_id_fkey | FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+t255_fail_inject | CHECK (false) NOT VALID
+
+--- 跑一个 4 块大 run（M1 2026-03-02→2026-06-09，16147 bar）---
+# 2026-09-18T09:52:30.339Z WS connected + subscribed strategy_run(wildcard)
+# 2026-09-18T09:52:30.964Z submit http=201 id=sr_1789725150959_000010 wall_ms=624
+# 2026-09-18T09:52:31.725Z terminal status=failed db_progress=1 ws_frames=1001 ws_last=1
+RESULT {"scenario":"complete","run_id":"sr_1789725150959_000010","http_submit":201,"cancel":null,"status":"failed","progress_in_db":1,"error":"结果分块落库失败: error returned from database: new row for relation \"strategy_run_bars\" violates check constraint \"t255_fail_inject\"","wall_submit_to_terminal_ms":985,"ws_frames":1001,"ws_last_progress":1,"ws_first_progress":0.000060986765871805816,"ws_has_1_0":true,"ws_duplicate_consecutive":0}
+
+--- 解除注入 ---
+ALTER TABLE
+解除后:
+strategy_run_bars_kind_check | CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text])))
+strategy_run_bars_pkey | PRIMARY KEY (run_id, kind, seq)
+strategy_run_bars_run_id_fkey | FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE

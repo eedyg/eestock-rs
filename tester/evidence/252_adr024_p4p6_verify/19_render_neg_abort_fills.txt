@@ -1,0 +1,12 @@
+--- ⑥ 反向对照（真渲染）：掐断 /fills ⇒ 必须显式报错 ---
+[render] PASS 反向对照：掐断 /fills ⇒ 显式报错（非静默）
+[render] EXCEPTION Error: __NEG_DONE__
+    at file:///home/eestock/workspace/git/eestock/eestock-rs/web/tester/p4p6-render/run.mjs:59:11
+RENDER_PASS
+EXIT=0
+{
+  "rid": "sr_1789716153346_000002",
+  "neg": "abort-fills",
+  "errTxt": "成交明细加载失败：Failed to fetch",
+  "failures": []
+}

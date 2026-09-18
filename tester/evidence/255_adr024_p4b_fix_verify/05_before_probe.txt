@@ -1,0 +1,5 @@
+# tag_prefix=T255-BEFORE  rows=3
+run_id	bars_total	progress_frames_produced	progress_db_writes	progress_db_throttled	progress_db_write_ms	progress_db_share_pct	permit_hold_ms	permit_wait_ms	progress_drain_total_ms	progress_drain_tail_ms	engine_ms	engine_share_pct	result_serialize_ms	result_write_ms	outcome
+sr_1789725042029_000000	733	733	733	0	646.288	96.46	670.029	0.003	666.058	650.099	15.705	2.34	0.001	2.396	succeeded
+sr_1789725043362_000001	3865	1001	1001	0	842.379	92.49	910.761	0.003	905.787	826.769	78.832	8.66	0.002	3.165	succeeded
+sr_1789725044792_000002	16397	1001	1001	0	831.874	78.85	1054.962	0.002	1042.623	732.922	309.546	29.34	0.002	9.552	succeeded

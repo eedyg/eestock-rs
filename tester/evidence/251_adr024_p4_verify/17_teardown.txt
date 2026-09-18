@@ -1,0 +1,23 @@
+### ⑤ Teardown（ADR-025 D3）：销毁临时库并回读库清单
+TS=2026-09-18T14:50:54+08:00  DB=tmp_p4verify_20260918143844
+
+--- 销毁前：库中存在本车道载体 ---
+count(tmp_p4verify_20260918143844) 销毁前: 1
+
+--- DROP DATABASE "tmp_p4verify_20260918143844" WITH (FORCE); ---
+DROP DATABASE
+
+--- 回读：载体应为 0 ---
+count(tmp_p4verify_20260918143844) = 0
+
+--- 库清单回读（期望只剩 eestock / postgres） ---
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+
+--- 活库终检（只读）：0027 未应用 ---
+t|0
+t|0|374

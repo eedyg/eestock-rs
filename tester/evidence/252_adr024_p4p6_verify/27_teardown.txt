@@ -1,0 +1,15 @@
+### 收尾：第二 app 实例停止 + 临时库 DROP + 库清单回读 + 活库未动
+TS=2026-09-18T15:26:01+08:00
+--- 第二 app（:18083）已停：curl 探测 ---
+port 18083 down（已停）
+--- 活库 eestock 未动核验（0027 未应用 + 今日无新 run）---
+<table absent>|0
+--- 活库今日新增 strategy_run（应为 0）---
+0
+--- DROP 临时库 tmp_p4p6_20260918151821 WITH (FORCE) ---
+DROP DATABASE
+--- 回读库清单（非 template）---
+eestock
+postgres
+--- 残留计数（期望 0）---
+0

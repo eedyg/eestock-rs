@@ -1,0 +1,105 @@
+# ===== ADR-024 P1c ② pg 侧结构证据（只读） =====
+# date_utc: 2026-09-17T16:51:29Z   commit: 18d1b9a0d1e17af06ac503fcb2a676eaa2f5520f
+
+[CMD] psql -c "SELECT relname,n_tup_ins,n_tup_upd,n_tup_del,n_tup_hot_upd,n_live_tup,n_dead_tup FROM pg_stat_user_tables WHERE relname IN ('strategy_run','strategy_run_result') ORDER BY relname"
+       relname       | n_tup_ins | n_tup_upd | n_tup_del | n_tup_hot_upd | n_live_tup | n_dead_tup 
+---------------------+-----------+-----------+-----------+---------------+------------+------------
+ strategy_run        |      2357 |    364041 |      1984 |        336458 |        374 |         57
+ strategy_run_result |      1481 |         0 |      1108 |             0 |        374 |         50
+(2 rows)
+
+[CMD] psql -c "SELECT count(*) AS alive_runs FROM strategy_run"
+ alive_runs | succeeded 
+------------+-----------
+        374 |       374
+(1 row)
+
+[CMD] psql -c "SHOW synchronous_commit; SHOW fsync; SHOW wal_sync_method; SHOW wal_level; SHOW max_wal_size"
+ synchronous_commit 
+--------------------
+ on
+(1 row)
+
+ fsync 
+-------
+ on
+(1 row)
+
+ wal_sync_method 
+-----------------
+ fdatasync
+(1 row)
+
+ wal_level 
+-----------
+ replica
+(1 row)
+
+ max_wal_size 
+--------------
+ 1GB
+(1 row)
+
+# 统计未被重置的证据：n_tup_ins(2357，含本轮 8 条已删) ≈ 存活 374 + 历史删除 1984 ⇒ 覆盖全表历史
+
+[CMD] grep -rn 'UPDATE strategy_run' crates/storage/src/workbench.rs
+107:            "UPDATE strategy_run SET status = 'running', started_at = $2 \
+116:            "UPDATE strategy_run SET progress = $2 WHERE id = $1 AND status = 'running'")
+131:            "UPDATE strategy_run SET status = 'succeeded', progress = 1, finished_at = $2 \
+152:            "UPDATE strategy_run SET status = 'failed', error = $2, finished_at = $3 \
+169:            "UPDATE strategy_run SET status = 'canceled', finished_at = $2 \
+
+# update_progress 的唯一调用点（进度帧 → DB）
+[CMD] grep -n 'update_progress' crates/application/src/workbench.rs crates/storage/src/workbench.rs
+crates/storage/src/workbench.rs:9://! - `update_progress` 仅 running 行生效（终态行静默忽略）。
+crates/storage/src/workbench.rs:114:    async fn update_progress(&self, id: &str, progress: f64) -> Result<()> {
+crates/application/src/workbench.rs:12://!   （WS sink + store.update_progress，0..1，按 0.1% 粒度节流）；②**协作式取消**——
+crates/application/src/workbench.rs:777:    //（WS sink + store.update_progress），与 BacktestService 同模式。
+crates/application/src/workbench.rs:785:            let _ = store2.update_progress(&id2, progress).await;
+
+# 进度桥接结构事实（原样摘录，不做根因结论）：
+[CMD] sed -n '775,790p;806,826p' crates/application/src/workbench.rs
+
+    // 进度桥接：引擎 observer 为同步回调（spawn_blocking 内），经 mpsc 到异步报告任务
+    //（WS sink + store.update_progress），与 BacktestService 同模式。
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(f64, DateTime<Utc>)>();
+    let sink = Arc::clone(&progress);
+    let store2 = Arc::clone(&store);
+    let id2 = run_id.clone();
+    let report_task = tokio::spawn(async move {
+        while let Some((progress, ts)) = rx.recv().await {
+            let _ = sink.send(&id2, progress, Some(ts)).await;
+            let _ = store2.update_progress(&id2, progress).await;
+        }
+    });
+
+    // 引擎配置：钉住槽位（code + sha256 + params + weight）。
+    let mut cfg = probe;
+  ...
+        let mut last_milli: i64 = -1;
+        let mut observer = |i: usize, total: usize| -> LoopControl {
+            // 协作式取消检查点（每 bar 末）。
+            if flag2.load(Ordering::Relaxed) {
+                return LoopControl::Break;
+            }
+            let progress = (i + 1) as f64 / total as f64;
+            // 节流：0.1% 粒度前进或最后一 bar 才发帧（防 20 万帧洪泛 WS/DB）。
+            let milli = (progress * PROGRESS_THROTTLE_MILLI) as i64;
+            if milli != last_milli || i + 1 == total {
+                last_milli = milli;
+                let _ = tx.send((progress, DateTime::from_timestamp(bars[i].ts, 0).unwrap_or_default()));
+            }
+            LoopControl::Continue
+        };
+        strategy_core::run_ensemble_with_quickjs_observed(&cfg, &bars, &mut observer)
+    })
+    .await
+    .map_err(|e| anyhow!("引擎任务 panic: {e}"));
+
+    // 引擎结束（含 Break）后 drop 发送端；等报告任务排空（进度/落库完成，确定可复现）。
+
+[CMD] grep -n 'unbounded_channel\|tokio::spawn\|report_task.await\|sink.send' crates/application/src/workbench.rs
+778:    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(f64, DateTime<Utc>)>();
+782:    let report_task = tokio::spawn(async move {
+784:            let _ = sink.send(&id2, progress, Some(ts)).await;
+827:    let _ = report_task.await;

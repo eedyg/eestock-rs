@@ -1,0 +1,40 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling test-support v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/test-support)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.34s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... FAILED
+test unknown_period_still_rejected_400 ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test m30_passes_web_period_gate_not_400 ... FAILED
+
+failures:
+
+---- web_source_has_no_hardcoded_period_whitelist stdout ----
+
+thread 'web_source_has_no_hardcoded_period_whitelist' (4047030) panicked at crates/web/tests/adr024_workbench_period_ssot.rs:172:5:
+crates/web/src/workbench.rs 仍含硬编码 period 白名单（双事实源回归，ADR-024 §5.1）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- m30_passes_web_period_gate_not_400 stdout ----
+[证据] POST /api/workbench/runs period=M30 状态码 = 400（无库 ⇒ 预期 500 亦合规）body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+
+thread 'm30_passes_web_period_gate_not_400' (4047027) panicked at crates/web/tests/adr024_workbench_period_ssot.rs:142:5:
+assertion `left != right` failed: ADR-024 P0：period=M30 被 web 硬编码白名单 400 拒绝；body = {"error":"period 须为 M1/M5/M15/H1/D1"}
+  left: 400
+ right: 400
+
+
+failures:
+    m30_passes_web_period_gate_not_400
+    web_source_has_no_hardcoded_period_whitelist
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p web --test adr024_workbench_period_ssot`

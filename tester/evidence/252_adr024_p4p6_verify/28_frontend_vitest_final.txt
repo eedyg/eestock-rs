@@ -1,0 +1,12 @@
+### ⑦-a' 前端全量 vitest（反向对照还原后复跑，最终态）
+TS=2026-09-18T15:26:07+08:00
+useRunSeries.ts sha256 = 05be06ff3742bb96939f6f3ca945f125f9715bc96c35d6a8411a8663ab5d4318
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 2ms
+
+ Test Files  90 passed (90)
+      Tests  864 passed (864)
+   Start at  15:26:08
+   Duration  6.99s (transform 2.95s, setup 4.09s, collect 13.47s, tests 37.26s, environment 28.85s, prepare 6.74s)
+
+EXIT=0

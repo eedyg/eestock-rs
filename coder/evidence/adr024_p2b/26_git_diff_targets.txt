@@ -1,0 +1,252 @@
+diff --git a/crates/application/src/strategy.rs b/crates/application/src/strategy.rs
+index 3aee1e8..d89e9e2 100644
+--- a/crates/application/src/strategy.rs
++++ b/crates/application/src/strategy.rs
+@@ -20,6 +20,7 @@
+ //! - **参考插件播种**：strategy 表为空时将 strategy-core::reference 的 7 款插件 + 4 模板
+ //!   以 published 入库（幂等：按 name+sha256 存在则跳过）。
+ 
++use std::rc::Rc;
+ use std::sync::atomic::{AtomicU64, Ordering};
+ use std::sync::Arc;
+ use std::time::Duration;
+@@ -35,7 +36,7 @@ use domain::ports::{
+ };
+ use domain::strategy_state::{validate_transition, ApprovalLevel, StrategyKind, StrategyStatus};
+ use strategy_runtime::{
+-    BarCtx, ParamDef, PluginRuntime, QuickJsRuntime, RuntimeLimits, StrategyParams,
++    BarCtx, BarHistory, ParamDef, PluginRuntime, QuickJsRuntime, RuntimeLimits, StrategyParams,
+ };
+ 
+ // 复用回测/试算的周期解析口径（`crate::bar_map::parse_period`：唯一事实源
+@@ -844,9 +845,26 @@ impl StrategyService {
+     }
+ }
+ 
++/// 构建试算逐 bar 的宿主侧 `BarCtx`（ADR-024 P2b / D7 修订）。
++///
++/// - **宿主侧无「可读未来」**：无论调用方传入多长的 `bars`，`ctx.bars` 一律收窄为
++///   `bars[..=index]`（前缀，`len == index + 1`），与引擎会话路径同口径；
++/// - **零复制**：注入同一 run 的**增长式共享缓冲** `hist`（每 bar 摊销 O(1)），替代兼容路径
++///   `BarCtx::new` 的「每 bar 按 `bars[..=index]` 建一次性等价缓冲」（O(index) 复制 ——
++///   P2 引擎路径已消除的同源二次项，见 tester P2 验收 §9 R2）。
++fn tryrun_bar_ctx<'a>(
++    index: usize,
++    bar: &backtest::Bar,
++    bars: &'a [backtest::Bar],
++    hist: &Rc<BarHistory>,
++) -> BarCtx<'a> {
++    BarCtx::new(index, bar.clone(), &bars[..=index], None).with_history(hist.clone())
++}
++
+ /// pure_score 试算：逐 bar on_bar（position 恒 None）；G5 语义——错误 bar 中立分 50 +
+ /// 错误事件，连续 10 次熔断停用（后续 bar score=None）。
+ /// I-2/D6：前 `warmup_effective` 根为预热段（仍评分，逐 bar 标记 warmup=true）。
++/// ADR-024 P2b：逐 bar 共享同一 `Rc<BarHistory>`（**不再每 bar 复制 `bars[..=index]`**）。
+ #[allow(clippy::too_many_arguments)]
+ fn run_pure_score(
+     req: &TestRunRequest,
+@@ -891,7 +909,12 @@ fn run_pure_score(
+         }
+     };
+ 
++    // ADR-024 P2b：同一 run 的**增长式共享缓冲**（插件指标闭包共享同一句柄；逐 bar 摊销 O(1)）。
++    // 语义与改造前兼容路径等价：`hist` 恰含已喂入的 `bars[0..=i]`。
++    let hist = BarHistory::with_capacity(bars.len());
++
+     for (i, bar) in bars.iter().enumerate() {
++        hist.push(bar.clone());
+         if scores.len() >= MAX_SCORE_POINTS {
+             truncated.scores = true;
+             break;
+@@ -904,7 +927,7 @@ fn run_pure_score(
+             });
+             continue;
+         }
+-        let ctx = BarCtx::new(i, bar.clone(), bars, None);
++        let ctx = tryrun_bar_ctx(i, bar, bars, &hist);
+         let out = inst.on_bar(&ctx);
+         for msg in ctx.take_logs() {
+             if events.len() >= MAX_EVENTS {
+@@ -1074,3 +1097,94 @@ fn run_sim_position(
+         truncated,
+     })
+ }
++
++// ---------------------------------------------------------------------------
++// ADR-024 P2b 定向单测（试算路径线性化）
++// ---------------------------------------------------------------------------
++
++#[cfg(test)]
++mod p2b_tests {
++    use super::*;
++
++    /// 确定性 bar 序列（非恒定 ⇒ 指标取值有鉴别力）。
++    fn series(n: usize) -> Vec<backtest::Bar> {
++        let mut state: u64 = 0x2545_F491_4F6C_DD1D;
++        let mut close = 12.5_f64;
++        (0..n)
++            .map(|i| {
++                state = state
++                    .wrapping_mul(6_364_136_223_846_793_005)
++                    .wrapping_add(1_442_695_040_888_963_407);
++                let step = ((state >> 33) % 41) as f64 - 20.0;
++                close = (close + step * 0.01).max(0.5);
++                backtest::Bar {
++                    ts: 1_700_000_000 + i as i64 * 60,
++                    open: close - 0.05,
++                    high: close + 0.2,
++                    low: (close - 0.2).max(0.01),
++                    close,
++                    volume: 10_000.0,
++                }
++            })
++            .collect()
++    }
++
++    /// P2b 附带项（D7 遗留）——**试算路径宿主侧 `ctx.bars` 必须恰为前缀**（`len == index + 1`，
++    /// 无 `index` 之外的可读 bar）且注入同一 run 的增长式共享缓冲（零复制）。
++    ///
++    /// 反向证据：把 `tryrun_bar_ctx` 里的 `&bars[..=index]` 退回 `bars`（改造前口径）⇒ 本测变红；
++    /// 去掉 `.with_history(...)` ⇒ `shared_history()` 为 `None` ⇒ 本测变红。
++    #[test]
++    fn tryrun_bar_ctx_narrows_to_prefix_and_shares_history() {
++        let bars = series(8);
++        let hist = BarHistory::with_capacity(bars.len());
++        for (i, bar) in bars.iter().enumerate() {
++            hist.push(bar.clone());
++            // 故意传「全量」bars（含未来 bar）——helper 必须收窄为前缀。
++            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist);
++            assert_eq!(
++                ctx.bars.len(),
++                ctx.index + 1,
++                "bar {i}: 宿主侧 ctx.bars 必须恰为 bars[..=index]（P2b：无可读未来）"
++            );
++            assert_eq!(ctx.bars[ctx.index], ctx.bar, "bar {i}: ctx.bars[index] 必须等于 ctx.bar");
++            assert!(
++                ctx.shared_history().is_some(),
++                "bar {i}: 必须注入共享历史缓冲句柄（兼容路径每 bar 复制 bars[..=index]）"
++            );
++        }
++        // 共享句柄跨 bar 恒等（同一增长式缓冲被复用 ⇒ 零复制）。
++        let mut ptrs = Vec::new();
++        let hist2 = BarHistory::with_capacity(bars.len());
++        for (i, bar) in bars.iter().enumerate() {
++            hist2.push(bar.clone());
++            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist2);
++            let h = ctx.shared_history().expect("共享句柄").clone();
++            ptrs.push(std::rc::Rc::as_ptr(&h) as usize);
++        }
++        assert!(ptrs.iter().all(|p| *p == ptrs[0]), "共享缓冲句柄必须跨 bar 恒等");
++
++        // 断言输出（可复核）：每 bar 一行（本库测试路径 = 试算 `tryrun_bar_ctx` 构造点）。
++        println!("[P2b/tryrun] ctx.bars 可见面（n={}）：", bars.len());
++        let hist3 = BarHistory::with_capacity(bars.len());
++        let mut viol = 0usize;
++        for (i, bar) in bars.iter().enumerate() {
++            hist3.push(bar.clone());
++            let ctx = tryrun_bar_ctx(i, bar, &bars, &hist3);
++            let ok = ctx.bars.len() == ctx.index + 1
++                && ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar)
++                && ctx.shared_history().is_some();
++            if !ok {
++                viol += 1;
++            }
++            println!(
++                "  idx={} bars_len={} cur_eq_ctx_bar={} shared_handle={}",
++                ctx.index,
++                ctx.bars.len(),
++                ctx.bars.get(ctx.index).is_some_and(|b| *b == ctx.bar),
++                ctx.shared_history().is_some()
++            );
++        }
++        assert_eq!(viol, 0, "ctx.bars 可见面违例（bars_len != index+1 / 句柄缺失）");
++    }
++}
+diff --git a/crates/simlive/src/plugin_orchestrator.rs b/crates/simlive/src/plugin_orchestrator.rs
+index 61d1b73..981b035 100644
+--- a/crates/simlive/src/plugin_orchestrator.rs
++++ b/crates/simlive/src/plugin_orchestrator.rs
+@@ -26,10 +26,11 @@
+ //! 恢复场景残差注明）。
+ 
+ use std::collections::{BTreeMap, BTreeSet, HashMap};
++use std::rc::Rc;
+ 
+ use backtest::{Bar, StrategyParams};
+ use strategy_runtime::{
+-    BarCtx, PluginInstance, PluginRuntime, PositionSnapshot, QuickJsRuntime, RuntimeLimits,
++    BarCtx, BarHistory, PluginInstance, PluginRuntime, PositionSnapshot, QuickJsRuntime, RuntimeLimits,
+ };
+ 
+ use crate::fill::{Side, SimTrade};
+@@ -114,8 +115,10 @@ struct PluginStrategyRuntime {
+ /// 插件策略编排器（**!Send**：QuickJS 实例内含 Rc；应用层以专用 worker 线程承载）。
+ pub struct PluginStrategyOrchestrator {
+     strategies: Vec<PluginStrategyRuntime>,
+-    /// code → 累计 bar 序列（BarCtx 全量历史，指标口径与 backtest::Indicators 一致）。
+-    bars: BTreeMap<String, Vec<Bar>>,
++    /// code → **增长式共享历史缓冲**（`BarCtx` 全量历史 = 前缀 `bars[0..=index]`，指标口径与
++    /// `backtest::Indicators` 位级一致）。ADR-024 P2b：逐 bar `push` + 注入 `BarCtx::with_history`
++    /// ⇒ **不再每 bar 复制 `bars[..=index]`**（同源二次项；tester P2 验收 §9 R2）。
++    bars: BTreeMap<String, Rc<BarHistory>>,
+     /// code → 最近一次评估（查询用）。
+     latest: BTreeMap<String, StockEvaluation>,
+     buy_long_threshold: f64,
+@@ -229,24 +232,29 @@ impl PluginStrategyOrchestrator {
+         bar: Bar,
+         position: Option<PositionInput>,
+     ) -> Option<StockEvaluation> {
+-        self.bars.entry(code.to_string()).or_default().push(bar);
++        // ADR-024 P2b：共享历史缓冲**跨 bar 常驻**（每 code 一个增长式缓冲）。
++        self.bars
++            .entry(code.to_string())
++            .or_insert_with(BarHistory::new)
++            .push(bar);
+         self.evaluate(code, position)
+     }
+ 
+     /// 对某标的按最新 bar 重新评估（feed 后内部调用）。
+     fn evaluate(&mut self, code: &str, position: Option<PositionInput>) -> Option<StockEvaluation> {
+-        let bars = self.bars.get(code)?;
+-        if bars.is_empty() || !self.covers(code) {
++        // ADR-024 P2b：取共享缓冲句柄（`Rc` 克隆仅增引用计数，非数据复制）。
++        let history = self.bars.get(code)?.clone();
++        if history.is_empty() || !self.covers(code) {
+             return None;
+         }
+-        let idx = bars.len() - 1;
+-        let latest_bar = bars[idx].clone();
++        let idx = history.len() - 1;
++        let latest_bar = history.with_slice(|bars| bars[idx].clone());
+         // ABI §2.5 持仓快照：空仓 → None（插件见 null）。
+         let snapshot = position.map(|p| PositionSnapshot {
+             qty: p.qty,
+             avg_cost: p.avg_cost,
+             entry_ts: p.entry_ts,
+-            bars_since_entry: bars_since_entry(bars, idx, p.entry_ts),
++            bars_since_entry: history.with_slice(|bars| bars_since_entry(bars, idx, p.entry_ts)),
+             unrealized_pnl: p.qty * (latest_bar.close - p.avg_cost),
+         });
+ 
+@@ -261,9 +269,17 @@ impl PluginStrategyOrchestrator {
+             if slot.disabled {
+                 continue; // 熔断停用 → 按「无覆盖」处理（G5 引擎语义）。
+             }
+-            let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot);
+-            let out = slot.instance.on_bar(&ctx);
+-            drop(ctx); // 插件日志（ctx.log）本期不归集（P4a 范围外，决策点 3 仅插件错误/熔断入流）。
++            // ADR-024 P2b：在共享缓冲的只读借用下构建 ctx（`ctx.bars` 即缓冲前缀 `bars[0..=index]`
++            // ⇒ 宿主侧无可读未来，与引擎会话路径同口径），并注入同一缓冲句柄（零复制；
++            // 改造前为 `BarCtx::new(..., bars, ...)` —— 每 bar 按 `bars[..=index]` 复制整段历史）。
++            let out = history.with_slice(|bars| {
++                let ctx = BarCtx::new(idx, latest_bar.clone(), bars, snapshot)
++                    .with_history(history.clone());
++                // 插件日志（ctx.log）本期不归集（P4a 范围外，决策点 3 仅插件错误/熔断入流）。
++                let out = slot.instance.on_bar(&ctx);
++                drop(ctx);
++                out
++            });
+             match out {
+                 Ok(score) => {
+                     slot.consecutive_errors = 0; // 成功即清零（G5）。

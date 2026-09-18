@@ -1,0 +1,5 @@
+# 临时库 teardown（ADR-024 D15 任务一）
+# db: tmp_p4bfix_1789724479
+DROP: DROP DATABASE
+ok
+库清单: eestock,postgres

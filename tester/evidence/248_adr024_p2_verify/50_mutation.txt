@@ -1,0 +1,465 @@
+# ===== 备份基线 sha256（本脚本开始时）=====
+d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+6840f8540ed380146268e82b604e96f846fad1dd7459f8bda6182a3ca3b6b3a4  crates/strategy-runtime/src/history.rs
+
+======================================================================
+## M1 — OnlineIndicators::RsiState 种子分母 period → period-1（错误递推）
+   文件: crates/backtest/src/indicators.rs
+   扰动: sed -i 's|self.sum_gain / self.period as f64|self.sum_gain / (self.period as f64 - 1.0)|' crates/backtest/src/indicators.rs
+   判据测试: cargo test --offline -p backtest --lib online_rsi_matches_slice_view -- --nocapture
+======================================================================
+[扰动后 sha256] e67f21b030b662267923c0423179af95a4c93b1db46a586c8fd7666e51c78456  crates/backtest/src/indicators.rs
+
+$ cargo test --offline -p backtest --lib online_rsi_matches_slice_view -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+
+thread 'indicators::tests::online_rsi_matches_slice_view' (62696) panicked at crates/backtest/src/indicators.rs:808:35:
+assertion `left == right` failed: rsi(3) @i=3: 位级不一致 got=90.0 want=85.71428571428571
+  left: 4636033603912859648
+ right: 4635732023580669659
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test indicators::tests::online_rsi_matches_slice_view ... FAILED
+
+failures:
+
+failures:
+    indicators::tests::online_rsi_matches_slice_view
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p backtest --lib`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=1 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+$ cargo test --offline -p backtest --lib online_rsi_matches_slice_view -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+test indicators::tests::online_rsi_matches_slice_view ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+[复原后 EXIT=0（0=绿）]  [重编译发生=1 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M1b — 同上扰动（RSI 递推）：真实 golden fixture 上增量 vs 切片位级等价
+   文件: crates/backtest/src/indicators.rs
+   扰动: sed -i 's|self.sum_gain / self.period as f64|self.sum_gain / (self.period as f64 - 1.0)|' crates/backtest/src/indicators.rs
+   判据测试: cargo test --offline -p strategy-runtime --test online_indicators_fixture -- --nocapture
+======================================================================
+[扰动后 sha256] e67f21b030b662267923c0423179af95a4c93b1db46a586c8fd7666e51c78456  crates/backtest/src/indicators.rs
+
+$ cargo test --offline -p strategy-runtime --test online_indicators_fixture -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running tests/online_indicators_fixture.rs (target/debug/deps/online_indicators_fixture-2b3a36fbe8b29e3b)
+
+running 1 test
+
+thread 'online_indicators_match_slice_view_on_golden_fixture' (63266) panicked at crates/strategy-runtime/tests/online_indicators_fixture.rs:191:43:
+assertion `left == right` failed: m1_1slot @i=6 rsi6: 位级不一致 want=50.0 got=54.54545454545455
+  left: 4632233691727265792
+ right: 4632873407583426374
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test online_indicators_match_slice_view_on_golden_fixture ... FAILED
+
+failures:
+
+failures:
+    online_indicators_match_slice_view_on_golden_fixture
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test online_indicators_fixture`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=2 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+$ cargo test --offline -p strategy-runtime --test online_indicators_fixture -- --nocapture   （复原后：期望 GREEN）
+[key] h1_1slot @i=799 ma20: slice=Some(3.3886499999999997) online=Some(3.3886499999999997)
+[key] h1_1slot @i=799 ma5: slice=Some(3.3612) online=Some(3.3612)
+[key] h1_1slot @i=799 ema12: slice=Some(3.3761123061194844) online=Some(3.3761123061194844)
+[key] h1_1slot @i=799 ema26: slice=Some(3.396304852238361) online=Some(3.396304852238361)
+[key] h1_1slot @i=799 rsi14: slice=Some(36.53228174789198) online=Some(36.53228174789198)
+[key] h1_1slot @i=799 rsi6: slice=Some(40.21308445681166) online=Some(40.21308445681166)
+[key] h1_1slot @i=799 macd.dif: slice=Some(-0.020192546118876553) online=Some(-0.020192546118876553)
+[key] h1_1slot @i=799 macd.dea: slice=Some(-0.01907018074375933) online=Some(-0.01907018074375933)
+[key] h1_1slot @i=799 macd.hist: slice=Some(-0.0011223653751172222) online=Some(-0.0011223653751172222)
+[key] h1_1slot @i=799 kdj.k: slice=Some(33.64303774320442) online=Some(33.64303774320442)
+[key] h1_1slot @i=799 kdj.j: slice=Some(52.88913067327809) online=Some(52.88913067327809)
+[key] h1_1slot @i=799 boll.mid: slice=Some(3.3886499999999997) online=Some(3.3886499999999997)
+[key] h1_1slot @i=799 boll.upper: slice=Some(3.430565510255751) online=Some(3.430565510255751)
+[key] h1_1slot @i=799 atr14: slice=Some(0.015564755699984735) online=Some(0.015564755699984735)
+[key] h1_1slot @i=799 atr2: slice=Some(0.007234495357785533) online=Some(0.007234495357785533)
+[case] h1_1slot: bars=800 叶节点比较=12000 max_abs_dev=0.000e0 max_rel_dev=0.000e0
+[汇总] cases=3 全局 max_abs_dev=0.000e0 全局 max_rel_dev=0.000e0 dev>0 条目=0
+test online_indicators_match_slice_view_on_golden_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+[复原后 EXIT=0（0=绿）]  [重编译发生=2 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M2 — 会话 push_batch 的 observer index 偏移 1（bars_seen-1 → bars_seen）
+   文件: crates/strategy-core/src/engine.rs
+   扰动: sed -i 's|let i = self.bars_seen - 1;|let i = self.bars_seen;|' crates/strategy-core/src/engine.rs
+   判据测试: cargo test --offline -p strategy-core --test session session_observer_called_per_bar_and_break_is_immediate -- --nocapture
+======================================================================
+[扰动后 sha256] 016c5e5eec247ebcc1d9ba27fb21536918e19d6e50e67456917a1feafd0072d2  crates/strategy-core/src/engine.rs
+
+$ cargo test --offline -p strategy-core --test session session_observer_called_per_bar_and_break_is_immediate -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+
+thread 'session_observer_called_per_bar_and_break_is_immediate' (64195) panicked at crates/strategy-core/tests/session.rs:142:5:
+assertion `left == right` failed: Break 必须**立即**跳出（第 8 次回调后不再调用），且 total 恒定
+  left: [(1, 40), (2, 40), (3, 40), (4, 40), (5, 40), (6, 40), (7, 40)]
+ right: [(0, 40), (1, 40), (2, 40), (3, 40), (4, 40), (5, 40), (6, 40), (7, 40)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test session_observer_called_per_bar_and_break_is_immediate ... FAILED
+
+failures:
+
+failures:
+    session_observer_called_per_bar_and_break_is_immediate
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test session`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=3 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+$ cargo test --offline -p strategy-core --test session session_observer_called_per_bar_and_break_is_immediate -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+test session_observer_called_per_bar_and_break_is_immediate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+[复原后 EXIT=0（0=绿）]  [重编译发生=3 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M3 — 会话去掉共享缓冲注入（删除 .with_history(shared.clone())）⇒ 机制退回每 bar 复制
+   文件: crates/strategy-core/src/engine.rs
+   扰动: sed -i 's|\.with_history(shared\.clone())||' crates/strategy-core/src/engine.rs
+   判据测试: cargo test --offline -p strategy-core --test session_alloc -- --nocapture
+======================================================================
+[扰动后 sha256] 687edcc9f9375c7c3a94b386d6ae10c654a08eee6e52de898b0cc124950786c8  crates/strategy-core/src/engine.rs
+
+$ cargo test --offline -p strategy-core --test session_alloc -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+P2-alloc: per_bar_bytes n=2000: 50614.6  n=4000: 98612.3  ratio=1.948
+P2-alloc: per_bar_allocs n=2000: 27.25 n=4000: 27.23 ratio=0.999
+
+thread 'engine_per_bar_allocation_does_not_grow_with_index' (65148) panicked at crates/strategy-core/tests/session_alloc.rs:136:5:
+每 bar 分配字节不得随 index 增长：n=2000 50614.6 B/bar vs n=4000 98612.3 B/bar（ratio=1.948，改造前 O(index) 复制使该比值 ≈2.0）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test engine_per_bar_allocation_does_not_grow_with_index ... FAILED
+
+failures:
+
+failures:
+    engine_per_bar_allocation_does_not_grow_with_index
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+
+error: test failed, to rerun pass `-p strategy-core --test session_alloc`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=3 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+$ cargo test --offline -p strategy-core --test session_alloc -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+
+running 1 test
+P2-alloc: per_bar_bytes n=2000: 947.3  n=4000: 944.6  ratio=0.997
+P2-alloc: per_bar_allocs n=2000: 20.25 n=4000: 20.23 ratio=0.999
+test engine_per_bar_allocation_does_not_grow_with_index ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+[复原后 EXIT=0（0=绿）]  [重编译发生=3 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M3b — 同上去掉共享缓冲注入：语义级断言 session_shared_history_exposes_current_bar_to_plugin
+   文件: crates/strategy-core/src/engine.rs
+   扰动: sed -i 's|\.with_history(shared\.clone())||' crates/strategy-core/src/engine.rs
+   判据测试: cargo test --offline -p strategy-core --test session session_shared_history_exposes_current_bar_to_plugin -- --nocapture
+======================================================================
+[扰动后 sha256] 687edcc9f9375c7c3a94b386d6ae10c654a08eee6e52de898b0cc124950786c8  crates/strategy-core/src/engine.rs
+
+$ cargo test --offline -p strategy-core --test session session_shared_history_exposes_current_bar_to_plugin -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+test session_shared_history_exposes_current_bar_to_plugin ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+[扰动后 EXIT=0（0=绿 / 非 0=红）]  [重编译=3 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+$ cargo test --offline -p strategy-core --test session session_shared_history_exposes_current_bar_to_plugin -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+test session_shared_history_exposes_current_bar_to_plugin ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+[复原后 EXIT=0（0=绿）]  [重编译发生=3 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M4 — 会话 warmup 判定 off-by-one（i < w → i + 1 < w）
+   文件: crates/strategy-core/src/engine.rs
+   扰动: sed -i 's|let is_warmup = i < self.cfg.warmup_bars;|let is_warmup = i + 1 < self.cfg.warmup_bars;|' crates/strategy-core/src/engine.rs
+   判据测试: cargo test --offline -p strategy-core --test session session_warmup_marker_is_exact -- --nocapture
+======================================================================
+[扰动后 sha256] 649c34a8cc6d20cb361a6394046d19eca11734ca51fd113b2bbe00a5980c0c50  crates/strategy-core/src/engine.rs
+
+$ cargo test --offline -p strategy-core --test session session_warmup_marker_is_exact -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+
+thread 'session_warmup_marker_is_exact' (67163) panicked at crates/strategy-core/tests/session.rs:303:9:
+assertion `left == right` failed: warmup=1: warmup 标记根数应恰为 min(warmup_bars, n)
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test session_warmup_marker_is_exact ... FAILED
+
+failures:
+
+failures:
+    session_warmup_marker_is_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test session`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=3 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+$ cargo test --offline -p strategy-core --test session session_warmup_marker_is_exact -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+
+running 1 test
+test session_warmup_marker_is_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.01s
+[复原后 EXIT=0（0=绿）]  [重编译发生=3 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M5 — BarHistory::ma 窗口错位到前一根（index → index-1）
+   文件: crates/strategy-runtime/src/history.rs
+   扰动: sed -i 's|online\.ma(bars, index, period)|online.ma(bars, index.saturating_sub(1), period)|' crates/strategy-runtime/src/history.rs
+   判据测试: cargo test --offline -p strategy-runtime --test shared_history -- --nocapture
+======================================================================
+[扰动后 sha256] d25b31c0bef6062bbce898d2cf9871c46cf15503c9f25b997a73122695ad98e0  crates/strategy-runtime/src/history.rs
+
+$ cargo test --offline -p strategy-runtime --test shared_history -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+
+thread 'bar_history_indicators_match_slice_view' (68053) panicked at crates/strategy-runtime/tests/shared_history.rs:296:13:
+assertion `left == right` failed: ma(1) @i=1
+  left: Some(4615063718147915776)
+ right: Some(4615062592248008933)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test bar_history_grows_as_exact_prefix ... ok
+test compat_path_ctx_bars_unchanged ... ok
+test bar_history_indicators_match_slice_view ... FAILED
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+
+failures:
+
+failures:
+    bar_history_indicators_match_slice_view
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p strategy-runtime --test shared_history`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=2 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] 6840f8540ed380146268e82b604e96f846fad1dd7459f8bda6182a3ca3b6b3a4  crates/strategy-runtime/src/history.rs
+$ cargo test --offline -p strategy-runtime --test shared_history -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running tests/shared_history.rs (target/debug/deps/shared_history-48cabc9119b49643)
+
+running 7 tests
+test bar_history_grows_as_exact_prefix ... ok
+test compat_path_ctx_bars_unchanged ... ok
+test ctx_bars_is_prefix_consistent_with_shared_history ... ok
+test shared_history_keeps_position_snapshot ... ok
+test empty_and_single_bar_boundaries ... ok
+test shared_history_scores_bitwise_equal_to_compat_path ... ok
+test bar_history_indicators_match_slice_view ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+[复原后 EXIT=0（0=绿）]  [重编译发生=2 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M6 — OnlineIndicators::KdjState 平滑系数 1/k_period → 1/(k_period+1)
+   文件: crates/backtest/src/indicators.rs
+   扰动: sed -i 's|self.mk \* self.k + (1.0 / self.k_period as f64) \* rsv|self.mk * self.k + (1.0 / (self.k_period as f64 + 1.0)) * rsv|' crates/backtest/src/indicators.rs
+   判据测试: cargo test --offline -p backtest --lib online_kdj_matches_slice_view -- --nocapture
+======================================================================
+[扰动后 sha256] 7d909dc560d44e1e8734e2cb2f5d89104ece784fd3dab2477a3d095c6b810fb6  crates/backtest/src/indicators.rs
+
+$ cargo test --offline -p backtest --lib online_kdj_matches_slice_view -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+
+thread 'indicators::tests::online_kdj_matches_slice_view' (68635) panicked at crates/backtest/src/indicators.rs:827:21:
+assertion `left == right` failed: kdj(9,3,3) @i=8 第 0 字段: 位级不一致 got=53.12500000000007 want=59.722222222222314
+  left: 4632673496378376202
+ right: 4633601972864053716
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test indicators::tests::online_kdj_matches_slice_view ... FAILED
+
+failures:
+
+failures:
+    indicators::tests::online_kdj_matches_slice_view
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p backtest --lib`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=1 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+$ cargo test --offline -p backtest --lib online_kdj_matches_slice_view -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+test indicators::tests::online_kdj_matches_slice_view ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.13s
+[复原后 EXIT=0（0=绿）]  [重编译发生=1 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## M7 — OnlineIndicators::AtrState Wilder 递推 (period-1) → period
+   文件: crates/backtest/src/indicators.rs
+   扰动: sed -i 's|self.atr \* (self.period as f64 - 1.0) + tr|self.atr * self.period as f64 + tr|' crates/backtest/src/indicators.rs
+   判据测试: cargo test --offline -p backtest --lib online_atr_matches_slice_view -- --nocapture
+======================================================================
+[扰动后 sha256] 6b1e7130674d7e799e4ffd0cb5e3dff5f973f502614829fe428a11c2e1e95509  crates/backtest/src/indicators.rs
+
+$ cargo test --offline -p backtest --lib online_atr_matches_slice_view -- --nocapture   （扰动后：期望 RED）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+
+thread 'indicators::tests::online_atr_matches_slice_view' (68979) panicked at crates/backtest/src/indicators.rs:808:35:
+assertion `left == right` failed: atr(1) @i=1: 位级不一致 got=0.1599999999999966 want=0.06999999999999851
+  left: 4594932627813569536
+ right: 4589708452245819776
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test indicators::tests::online_atr_matches_slice_view ... FAILED
+
+failures:
+
+failures:
+    indicators::tests::online_atr_matches_slice_view
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p backtest --lib`
+[扰动后 EXIT=101（0=绿 / 非 0=红）]  [重编译=1 个 crate ⇒ 跑的是扰动版]
+
+[复原后 sha256] d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+$ cargo test --offline -p backtest --lib online_atr_matches_slice_view -- --nocapture   （复原后：期望 GREEN）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+
+running 1 test
+test indicators::tests::online_atr_matches_slice_view ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.01s
+[复原后 EXIT=0（0=绿）]  [重编译发生=1 个 crate ⇒ 证据有效（跑的是复原版）]
+
+======================================================================
+## 全部复原后的最终校验
+======================================================================
+d693c9a1d899880d8256a309256a0de4648e14f9740cde6ec9bfd7049f5ffaed  crates/backtest/src/indicators.rs
+dfa827a9ee443f97abbbd0ad321d0bde47817194a77eb27a290787926eda8ba3  crates/strategy-core/src/engine.rs
+6840f8540ed380146268e82b604e96f846fad1dd7459f8bda6182a3ca3b6b3a4  crates/strategy-runtime/src/history.rs
+$ git diff --name-only -- <三个文件>（应为空）
+[最终 worktree-vs-index diff 行数=0（0=逐字节一致）]
+
+$ 最终全绿复跑（P2 三 crate 全测试）
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 25 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[最终复跑 EXIT=0]

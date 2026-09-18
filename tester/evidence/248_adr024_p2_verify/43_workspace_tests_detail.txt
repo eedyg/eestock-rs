@@ -1,0 +1,30 @@
+### 41-2 各 crate 靶明细（passed/failed 逐靶）
+靶总数=81  ok 靶=48  FAILED 靶=33
+passed 合计=351  failed 合计=137
+
+非 DB 失败靶（应为空）:
+    ('tests/backtest.rs', 'FAILED', 0, 1)
+    ('tests/strategy_store.rs', 'FAILED', 0, 16)
+
+application 全部靶:
+
+P2 相关靶（backtest/strategy-core/strategy-runtime 全部）:
+   tests/engine.rs                                              ok  passed=6 failed=0
+   tests/backtest_periods_ssot.rs                               ok  passed=6 failed=0
+   tests/contracts_test.rs                                      ok  passed=13 failed=0
+   tests/period30m_contract.rs                                  ok  passed=1 failed=0
+   tests/backtest.rs                                            FAILED  passed=0 failed=1
+   tests/engine.rs                                              ok  passed=25 failed=0
+   tests/observer.rs                                            ok  passed=6 failed=0
+   tests/session.rs                                             ok  passed=7 failed=0
+   tests/session_alloc.rs                                       ok  passed=1 failed=0
+   tests/templates.rs                                           ok  passed=3 failed=0
+   tests/contract.rs                                            ok  passed=13 failed=0
+   tests/dcap_cross_runtime.rs                                  ok  passed=6 failed=0
+   tests/dcap_plugin_init.rs                                    ok  passed=5 failed=0
+   tests/dcap_plugin_replay.rs                                  ok  passed=3 failed=0
+   tests/online_indicators_fixture.rs                           ok  passed=1 failed=0
+   tests/shared_history.rs                                      ok  passed=7 failed=0
+   tests/shared_history_alloc.rs                                ok  passed=1 failed=0
+   tests/multi_period_contract_vectors.rs                       ok  passed=4 failed=0
+   tests/period30m_api_contract.rs                              ok  passed=2 failed=0

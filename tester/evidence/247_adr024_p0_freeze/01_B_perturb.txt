@@ -1,0 +1,55 @@
+=== 01-B: PERTURBATION -> RED (delete 'M30' from SUPPORTED_BACKTEST_PERIODS) 2026-09-18T13:01:26+08:00 ===
+$ sed -i "s/'M1', 'M5', 'M15', 'M30', 'H1', 'D1'/'M1', 'M5', 'M15', 'H1', 'D1'/" web/src/features/backtest/periods.ts
+$ sed -n '17p' web/src/features/backtest/periods.ts
+export const SUPPORTED_BACKTEST_PERIODS = ['M1', 'M5', 'M15', 'H1', 'D1'] as const;
+$ sha256sum web/src/features/backtest/periods.ts (perturbed)
+2dc4a4f63e113f5ae8408ead6ecba31e3a8e8417ad242c91fecca2f7f3809fe4  web/src/features/backtest/periods.ts
+--- (verified: this is a TEMPORARY in-window perturbation, restored in 01-C) ---
+
+$ npx vitest run src/features/strategies/TestRunPanel.test.tsx
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ❯ src/features/strategies/TestRunPanel.test.tsx (6 tests | 1 failed) 171ms
+   × TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > 周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望） 24ms
+     → expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+   ✓ TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > 表单校验：标的为空 → 内联错误，不调 test-run 38ms
+   ✓ TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > 参数按 schema 渲染（默认值填充）；参数越界 → 内联校验错误 41ms
+   ✓ TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > pure_score 运行：POST test-run（内联 code + 参数）→ 评分曲线 + 事件列表 18ms
+   ✓ TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > sim_position 运行：渲染成交表 + 信号标记 25ms
+   ✓ TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > truncated 标记 → 截断提示；400 错误（区间超限等）→ 友好展示 24ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/strategies/TestRunPanel.test.tsx > TestRunPanel（试算面板：双模式表单 → test-run → 结果渲染） > 周期下拉 = contract-vectors.json::backtest_periods（六档含 M30，独立期望）
+AssertionError: expected [ 'M1', 'M5', 'M15', 'H1', 'D1' ] to deeply equal [ Array(6) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "M1",[22m
+[2m    "M5",[22m
+[2m    "M15",[22m
+[32m-   "M30",[39m
+[2m    "H1",[22m
+[2m    "D1",[22m
+[2m  ][22m
+
+ ❯ src/features/strategies/TestRunPanel.test.tsx:41:50
+     39|     render(<TestRunPanel api={api} code={CODE} schema={SCHEMA} />);
+     40|     const sel = screen.getByTestId('tr-period') as HTMLSelectElement;
+     41|     expect([...sel.options].map((o) => o.value)).toEqual(CONTRACT_VECT…
+       |                                                  ^
+     42|   });
+     43| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  13:01:26
+   Duration  664ms (transform 69ms, setup 22ms, collect 103ms, tests 171ms, environment 136ms, prepare 90ms)
+
+RED_EXIT=1
