@@ -148,3 +148,83 @@ pub trait Strategy: Send + Sync {
 - 每个测试注明数据来源=固定构造序列、无随机/无时间依赖。
 
 **批复后**：先落引擎 crate + 指标单测（黄金样本）→ 策略 → storage 迁移 0011 + domain 端口 → web 端点 + WS → 前端页面组件(RegionPortal 挂入 BacktestGrid) → E2E。全程 TDD、ADR-007 设计源同步、测试可复现。
+
+---
+
+## 10. 结果载荷 v2 引擎口径注（ADR-027 批次，2026-09-20 落地）
+
+> 本节为 ADR-027「交易明细分层显示（L1 回合 / L2 逐笔）」在**引擎侧**的口径事实源回写；
+> 契约权威以 `design/17-trade-detail-layering/02-spec.md` 与 `design/01-architecture/adr/ADR-027-*.md` 为准，
+> 本节只固化**已落地**的口径。落地清单与验收索引见 `design/17-trade-detail-layering/05-status.md`；
+> 实现证据 `coder/evidence/20260920_adr027_p1a_types_aggregation/`、`.../p1b_engine/`，独立验收 `tester/evidence/20260920_adr027_accept*/`。
+>
+> **本节的 §1–§9 仍有历史价值**：§1–§6 的口径（fee/indicators/metrics/types）对保留件继续有效；§7 服务链与 §5 内建 7 策略已于 P4b 退役（见 §2/§7 退役注记）。
+
+### 10.1 `TradeDetail` = 回合（Round Trip）v2：**全回合口径**（ADR-027 D1/D2/D5）
+
+`backtest::TradeDetail` **原地升级为 v2**（`crates/backtest/src/types.rs`）。它不再表示「清仓那一笔」，而是
+**一个持仓回合**（持仓 `0→>0` 起、`→0` 止的连续成交区间）。字段与口径：
+
+| 字段 | 口径 |
+|---|---|
+| `rt_seq: u32` | 回合序号（per `(run\|session, code)` 从 1 单调递增）——L1/L2 归属键 |
+| `code: String` | 标的（回测 = run 的 symbol；sim-live = 会话内标的），同时是聚合的分组键 |
+| `status` | `Closed` \| `Open` |
+| `open_ts` / `close_ts?` | 回合首笔买入 ts / 终结（清仓）ts；`Open` ⇒ `None` |
+| `open_bar` / `close_bar?` | **真实 bar 序号**（**禁** `ts / bar_sec` 反算）；`Open` ⇒ `None` |
+| `shares` | Σ 买入 qty（`Closed` 时 == Σ 卖出 qty） |
+| `buy_count` / `sell_count` / `l2_count` | 买/卖笔数、本回合成交总笔数（D8 懒加载摘要） |
+| `open_price` | 加权**有效买价（不含费）** = Σ_buy `trade_value` / Σ_buy qty |
+| `close_price?` | 加权**有效卖价（不含费）**；**无任何卖出 ⇒ `None`（禁止造 0）**；部分卖出（`Open` 态）⇒ `Some(该加权价)` |
+| `gross_value` | Σ 卖出 `trade_value` |
+| `commission` | Σ 买入佣金 + Σ 卖出佣金 |
+| `stamp_duty` | Σ 卖出印花税（买入恒 0） |
+| `pnl?` | `Closed` ⇒ `Some(proceeds − invested)`；`Open` ⇒ `None`（**禁止造数**） |
+| `hold_bars?` | `close_bar − open_bar`；`Open` ⇒ `None` |
+| `reason?` | 清仓那一笔的来源（`ForceClose`/`StopTrigger`/`Policy`）；`Open` ⇒ `None` |
+
+**全回合现金流口径（唯一，02-spec §2）**：
+
+```
+invested = Σ_buy (trade_value + commission)               // 买入总成本（含佣金）
+proceeds = Σ_sell (trade_value − commission − stamp_duty)  // 卖出净得
+pnl      = proceeds − invested                             // 整回合现金流差
+```
+
+- `pnl` 是**整回合现金流差**（**含**部分卖出的已实现部分），**不需要**对部分卖出做成本摊薄或 FIFO 归属；
+  原「部分卖出分支只摊薄、已实现部分不进账本」（F1/F2）的缺陷被口径本身消掉。
+- **`Open` 回合禁止造数**：`pnl`/`hold_bars`/`close_*`/`reason` 恒 `None`，不给出未定义语义的盈亏；未实现部分由持仓视图承担。
+- **费用三件套 = 撮合点事实**：`commission`/`stamp_duty`/`trade_value` 必须来自引擎实算（`FeeModel::buy/sell` 返回值），
+  **禁止**由 `(side, qty, price)` + fee 配置复算（最低佣金分支 `trade_value = budget − 5.0` 先减后除，复算不保证逐位相等，ADR-027 F10/D4）。
+- **绩效口径收紧（ADR-027 D7）**：`backtest::compute_metrics` 只吃 `status == Closed` 的回合进入 `win_rate`/`profit_factor`/`trade_count`/`avg_hold_bars`；
+  `Open` **不造 0 计入**。`net_profit`/`max_drawdown`/`sharpe` 仍源自 nav，不受本批口径变更影响。
+- **无旧语义兼容**：ADR-027 D3 已清空历史，v2 新字段**不提供** `serde(default)` 兼容（v1 形状必须被拒，`application::audit` 有锁定测试）。
+
+### 10.2 `rt_seq` 归属键 = `backtest::assign_rt_seq`（**唯一实现**，ADR-027 D6）
+
+- **归属只由 `rt_seq` 决定**：**禁止**用 `[open_bar, close_bar]` 窗口推断（零长回合 `open_bar == close_bar` 是合法且必须正确归属的形态）。
+- **唯一序号实现**：`pub fn assign_rt_seq(fills: &mut [FillFact])`（`crates/backtest/src/round_trip.rs`），规则 = 买入且当时无持仓 ⇒ 新序号；持仓中的任何成交 ⇒ 当前序号；卖出使持仓归零 ⇒ 终结当前序号。
+  引擎**在线**分配（逐笔 `RtSeqAssigner`）与 sim-live **回放**分配**必须**调用本函数/同一规则体（禁止各自实现）。
+- **唯一聚合实现**：`pub fn aggregate_round_trips(fills: &[FillFact]) -> Vec<TradeDetail>`（只按 `(code, rt_seq)` 分组求和，**不重编号**）。
+  回测引擎、审计端点、sim-live 结算与运行中读**全部**调用本函数 ⇒ 全系统无第二处回合聚合（DRY 硬约束，02-spec §1.3）。
+- **类型归属（架构裁决）**：`OrderSide`/`FillReason` 唯一定义在 `backtest`；`strategy-core` 以 `pub use backtest::OrderSide;` 再导出（消费方路径零改动，serde 形状 `"Buy"/"Sell"` 逐字节不变）。
+- 回测期末强平（`ForceClose`）终结最后一个回合 ⇒ **回测侧所有 `rt_seq` 均为 `Closed`**（`round_trips_open` 恒 0）。
+
+### 10.3 持仓序列 `PositionPoint` + `ResultKind::Position`（ADR-027 D9 / ADR-028 D1）
+
+- 引擎在**净值压入点**（`crates/strategy-core/src/engine.rs`）**同点**写入 `PositionPoint`（`EnsembleResult.positions`），
+  与 `net_value` **逐点一一对应**（同 `ts`、同 `nav`）：
+
+```
+PositionPoint { ts, qty, position_value, cash, nav, position_ratio }
+position_value = qty × close            // bar close 计价
+nav            = cash + position_value
+position_ratio = position_value / nav    // nav ≤ 0 ⇒ 0
+```
+
+- `ResultKind`（`crates/domain/src/ports.rs`）新增 `Position` 变体（`as_str` → `"position"`、`parse("position")`、`is_sampleable()` 三处同步；`Fills` 仍**不可抽样**）。
+- `strategy_run_bars.kind` 的 CHECK 约束由迁移 **0029** 扩为五值 `('per_bar','net_value','drawdown','fills','position')`
+  （经 `design/04-storage/schema.md` §4.3.20 tangle 生成，禁手改产物；漏改该约束会使**所有**新 run 因 CHECK 违规 `status=failed` —— 既有功能回归级缺陷，tester 闸门 E 段实测命中）。
+- **期末强平仍保留**：回测侧 `finish()` 期末强制平仓（最后可用 close）**不取消**；强平后同点修正为空仓（持仓序列末点 `qty = 0`、`position_value = 0`）。
+- **口径消歧（强制，ADR-028 D1）**：`position_ratio`（**时点**市值 / **时点**净值）与 ADR-026 的 `deployed_pct`（**区间累计**敞口 / 初始资金）、
+  `cash_consumed_pct`（**区间累计**资金占用 / 初始资金）是**三个不同物**——字段名、UI 标签、文档三处都必须带分母说明，**不得互相解释**（详见 `design/12-strategy-system/01-adr.md` §13.4 口径注）。

@@ -79,3 +79,53 @@
 ## 决策点（均已按你拍板）
 3 策略×30 股票；聚合+独立评分、聚合用于交易决策；trading on/off；双通道；sim_ 前缀；Streamable HTTP；会话记录+回测对比；模拟独立/持久化/幂等。
 **批复后**：先 L1（核心+基础 MCP）→ L2（策略）→ L3（记录/对比/web）→ L4。
+
+---
+
+## 12. 结果载荷 v2 口径注（ADR-027 批次，2026-09-20 落地）
+
+> 本节为 ADR-027「交易明细分层（L1/L2）+ 回合口径统一」在 **sim-live 侧**的口径事实源回写；
+> 契约权威以 `design/17-trade-detail-layering/02-spec.md` 与 `design/01-architecture/adr/ADR-027-*.md` 为准。
+> 落地清单/验收索引见 `design/17-trade-detail-layering/05-status.md`；实现证据 `coder/evidence/20260920_adr027_p2_simlive/`，独立验收 `tester/evidence/20260920_adr027_accept*/`。
+
+### 12.1 费用拆列（ADR-027 D4）：`commission` + `stamp_duty`，`fee` 为**派生合计**
+
+- `simlive::Fill` 与 `simlive::SimTrade` 的合并 `fee` 字段**拆为** `commission` + `stamp_duty` 两列
+  （撮合点 `FeeModel::buy/sell` 本就算出两者，原实现相加后丢弃 —— F9）。
+- `Fill::fee()` / `SimTrade::fee()` 为**派生读**（= `commission + stamp_duty`），**非第二事实源**；账户账务/订单读模型沿用合计口径。
+- `sim_trades` 表新增 `commission float8 NOT NULL DEFAULT 0`、`stamp_duty float8 NOT NULL DEFAULT 0`
+  （迁移 `0028_sim_trades_fee_split.sql`，经 `design/04-storage/schema.md` §4.3.19 tangle 生成，**禁手改产物**）；
+  保留 `fee` 列（语义 = `commission + stamp_duty`，列注释写明）。
+- `SimOrder` 增 `commission`/`stamp_duty`（`#[serde(default)]`）⇒ 重启恢复路径能用**真实事实**重建 `Fill`，而不是把印花税补成 0（造数）。
+- **禁止下游复算**：`FillFact.commission`/`stamp_duty` 必须取撮合点事实（最低佣金分支不可逆，复算不保证逐位相等）。
+
+### 12.2 真实 bar 序号（**禁** `ts / bar_sec` 反算，ADR-027 §2.13）
+
+- `session_bar_index(session_start_ts, ts, bar_sec) = (ts − session.start_ts).max(0) / bar_sec`
+  —— **会话内 0-based bar 网格序号**（`stop_session` 传 `session.start_ts`；运行中读路径传 `view.start_ts`，同一函数同一口径）。
+- **禁**绝对纪元商 `ts / bar_sec`（旧实现得到 `29206680` 量级的伪序号，R4 复现测试）。
+
+### 12.3 Open 回合语义 + **不引入期末强平**（ADR-027 D7/F8）
+
+- 会话**不引入期末强平**：`stop_session` **不补造任何平仓成交**（否则即为「伪造成交」，违反 ledger 事实源纪律）。
+- 未平仓回合以 `status = Open` 与 `Closed` **出现在同一列表**；`pnl`/`hold_bars`/`close_ts`/`close_bar`/`close_price`/`reason` 恒 `None`（**禁止造数**）。
+- 8 项绩效只吃 `Closed`（`backtest::compute_metrics` 内已按 `status == Closed` 过滤）；`Open` 的未实现部分由持仓视图（账户持仓/`PositionPoint`）承担，UI 必须**单列披露**。
+- `sim_trades.source` → `FillReason` 映射：`strategy`/`aggregate_strategy` → `Policy`；其余（`manual`）→ `Manual`。
+  **不产出** `ForceClose`/`StopTrigger`（sim-live 无期末强平/无引擎硬止损强平）。
+
+### 12.4 结算与运行中读共用**唯一聚合实现**（ADR-027 D7）
+
+- 旧 FIFO lot 配对（一条 lot = 一条 L1、`stamp_duty` 硬编码 0、`rt_seq`/笔数占位、`bar_index` 由 ts 反算）**已删除**；
+  改为：`SimTrade` → `FillFact` 账本 → `assign_rt_seq` → `aggregate_round_trips`（**唯一聚合实现**，禁第二份配对/分摊）。
+- 输入顺序 = `sim_trades` 到达顺序（`id` 升序）；多标的按 `(code, rt_seq)` 分组（`assign_rt_seq` per-code 从 1 起）。
+
+### 12.5 运行中 L1/L2 读能力（ADR-027 D8/§6，F8 缺口补齐）
+
+- `SimLiveService` 新增运行中读函数（会话进行中即可取，与结算**同口径**）：
+  - `round_trips(session_id) -> Vec<TradeDetail>`（L1 列表，同 02-spec §5.2 形状，含 `l2_count`/买卖笔数）；
+  - `round_trip_fills(session_id, code, rt_seq) -> Option<Vec<FillFact>>`（L2 切片，同 §5.3 形状；
+    **未知回合 → `None`**，映射 404，**禁止**空数组冒充「无成交」）。
+- 外部通道（MCP `sim_*`，02-spec §6「键为 `session_id` + `code`」）：
+  `sim_get_round_trips(session_id, code?, offset?, limit?)` 与 `sim_get_round_trip_fills(session_id, code, rt_seq, offset?, limit?)`
+  （权威 schema 见 `design/07-app-plane/01-mcp.md`）。
+- 完整性契约（D11）：列表响应自述 `total`/`recorded`/`has_more`/`next_offset`，UI**不得**静默展示不完整数据。

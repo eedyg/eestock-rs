@@ -5,6 +5,21 @@
 > **本文档是实现契约唯一出口**：任何实现与本文不一致 = 违约，须先改本文。
 > 修订既有文档的责任见 `04-implementation-plan.md` §7。
 
+> **实施状态：已落地（P0–P6，2026-09-20）。** 本批次已按 §1–§9 实现并验收；落地清单、逐阶段证据与验收结论索引见
+> `design/17-trade-detail-layering/05-status.md`。验收（tester 闸门 3）结论：R/U/C/S/F 段通过，E 段（后端契约 + 恒等式 I1/I3/I4 + 持仓序列 + 前端 tsc/vitest）通过，
+> E1–E4 真渲染（Playwright）由 P5c 补齐并通过（`web/e2e/adr028-window-sync.e2e.ts`，证据 `coder/evidence/20260920_adr027_p5c_e2e/`）。
+>
+> **与本文的偏差项（已实现，已单独登记，待闸门 1 裁决/追认）**：
+> 1. **§4.2 `/curve` 响应多一个 `recorded: bool`**（本文 §4.2 信封未列）。理由：§4.1 的 `legacy_single` 路径无 `position` 列时须「读侧回空 + 正确 recorded」；
+>    §5.6/D11 又要求全局自述完整性，而 §4.2 信封无字段可区分「零持仓」与「未记录该序列」。**纯加法**（既有键名/语义/顺序未变）。
+>    申报见 `coder/evidence/20260920_adr027_p3_app_api/report.md` §5。
+> 2. **§7 `KlineChartProps` 除 `onVisibleRangeChange` 外新增两个【可选】prop**：`windowCommand` / `onWindowApplied`。理由：ADR-028 D4 要求「程序化写窗 + 断言成功 + 失败显式报错」，而结果页 K 线实例无既有写窗通道；两者皆可选，不传时零行为。
+>    申报见 `coder/evidence/20260920_adr027_p5b_frontend_window/report.md` §4.2。
+>
+> **非违约登记项（形状不对称/退化边界，不影响验收）**：
+> - **§7 前端 `WorkbenchRunFill` 未含 `code`**：后端 `/fills` 元素已含 `code`（§5.4，读径注入 = run 的 symbol）；前端类型保持 §7 的最小增量集（多余键忽略）。`coder/evidence/20260920_adr027_p4c_consistency/report.md` §7.3 已登记。
+> - **`aggregate_round_trips` 退化分组 `open_price = 0.0`**：仅可能来自 `rt_seq = 0` 的孤儿卖出分组（无买入），**正常路径不可达**；若要改 `Option<f64>` 属 ABI 二次变更（未获授权）。`coder/evidence/20260920_adr027_p1a_types_aggregation/report.md` §4 迁移点 4。
+
 ---
 
 ## 1. Domain 类型契约
@@ -15,11 +30,13 @@
 
 ```rust
 /// 一笔成交（事实）。费用三件套必须由撮合点写入，禁止下游复算（ADR-027 D4）。
+/// `code` 为必需字段：L1（TradeDetail.code）的取值来源，同时是聚合的分组键。
 pub struct FillFact {
-    pub rt_seq: u32,          // 回合序号（ADR-027 D6）：开仓成交 = 新 seq；加仓/减仓/清仓 = 当前 seq
+    pub code: String,         // 标的（回测=run 的 symbol；sim-live=会话内标的）
+    pub rt_seq: u32,          // 回合序号（ADR-027 D6）：由 assign_rt_seq 统一分配，聚合函数只分组不重编
     pub bar_index: usize,     // **真实 bar 序号**（禁 ts/bar_sec 反算）
     pub ts: i64,
-    pub side: OrderSide,      // Buy | Sell
+    pub side: OrderSide,      // Buy | Sell（**定义在 backtest crate**；strategy-core 以 pub use 再导出）
     pub qty: f64,
     pub price: f64,           // 成交有效价（含滑点）
     pub trade_value: f64,     // = qty × price
@@ -28,6 +45,10 @@ pub struct FillFact {
     pub reason: FillReason,   // Policy | StopTrigger | ForceClose | Manual
 }
 ```
+
+**类型归属（架构裁决）**：`OrderSide` 唯一定义在 `backtest`；`strategy-core` 以 `pub use backtest::OrderSide;` 再导出 ⇒ 消费方（application/simlive/web 层）路径零改动；
+**硬约束**：迁移前后 serde 形状逐字节不变（外部标记 `"Buy"`/`"Sell"`），须有往返测试锁定。
+`FillReason` 四值定义在 `backtest`；engine 侧 `OrderReason` 保留并加 `From<OrderReason> for FillReason`；sim-live 的 `source` 映射为 `Manual`/`Policy`。
 
 **硬约束**：`commission`/`stamp_duty`/`trade_value` 必须来自引擎实算（`FeeModel::buy/sell` 的返回值），
 **禁止**由 `(side, qty, price)` + fee 配置复算 —— `fee.rs:90-98` 最低佣金分支 `trade_value = budget − 5.0`
@@ -44,6 +65,11 @@ pub struct RoundTrip {
     pub open_bar: usize, pub close_bar: Option<usize>,
     pub shares: f64,              // Σ 买入 qty（= Σ 卖出 qty，当 Closed）
     pub buy_count: usize, pub sell_count: usize,
+    /// 加权有效买价（**不含费**）= Σ_buy trade_value / Σ_buy qty（Open 回合恒有值：开仓必有买入）
+    pub open_price: f64,
+    /// 加权有效卖价（**不含费**）= Σ_sell trade_value / Σ_sell qty；
+    /// **无任何卖出 ⇒ None**（禁止造 0）；有部分卖出（Open 态）⇒ Some(该加权价)
+    pub close_price: Option<f64>,
     pub gross_value: f64,         // Σ 卖出 trade_value
     pub commission: f64,          // Σ 买入佣金 + Σ 卖出佣金
     pub stamp_duty: f64,          // Σ 卖出印花税
@@ -57,10 +83,19 @@ pub struct RoundTrip {
 ### 1.3 唯一聚合实现（DRY 硬约束）
 
 ```rust
+/// 回合序号分配：**全系统唯一实现**（ADR-027 D6）。
+/// 规则：买入且当时无持仓 ⇒ 新序号；持仓中的任何成交 ⇒ 当前序号；卖出使持仓归零 ⇒ 终结当前序号。
+/// 引擎在线分配与 sim-live 回放分配**都必须**调用本函数（禁止各自实现）。
+pub fn assign_rt_seq(fills: &mut [FillFact]);
+
 /// 逐笔成交事实 → 回合列表。**全系统唯一**的回合聚合实现（ADR-027 D7）。
 /// 回测引擎、sim-live 结算与运行中读路径、审计端点必须**全部**调用本函数，禁止第二处实现。
-pub fn aggregate_round_trips(fills: &[FillFact], initial_capital: f64) -> Vec<RoundTrip>;
+/// **不重编号** rt_seq（只按 (code, rt_seq) 分组求和）；
+pub fn aggregate_round_trips(fills: &[FillFact]) -> Vec<TradeDetail>;
 ```
+
+**输出顺序**：按每个 `code` 内首个成交在输入中的位置升序；`code` 内部按 `rt_seq` 升序。
+（原设计中的 `initial_capital` 入参已删除：本轮聚合不消费它，KISS，不留死参数。）
 
 输入要求：`fills` 按 `(code, 到达顺序)` 有序（回测天然有序；sim-live 按 `sim_trades.id` 升序）。
 
@@ -171,8 +206,11 @@ GET /api/workbench/runs/{id}/round-trips/{rt_seq}/fills?offset=&limit=
 
 ### 5.4 `/fills` 增量
 
-- 元素增字段：`rt_seq`、`trade_value`、`commission`、`stamp_duty`。
+- 元素增字段：`code`、`rt_seq`、`trade_value`、`commission`、`stamp_duty`。
 - 增可选过滤 `round_trip=<rt_seq>`；既有 `offset/limit/recorded/has_more/next_offset` 不变。
+- **过滤语义（冻结，消除「200 空 vs 404」歧义）**：`round_trip` 指向**不存在的 rt_seq** ⇒ **404**（与 §5.3 对称）；存在但无成交不可能发生（回合必有至少一笔），故 200 空数组不出现。
+- **校验失败必须返回结构化错误信封（JSON）**，禁止纯文本 400（含非数字 `rt_seq` 等参数形态错误）。
+- 注：特此补上 `code`（闸门 2 发现 L-1：L2 切片带 `code` 而 `/fills` 元素不带 ⇒ 同一事实源两种形状）。
 
 ### 5.5 `/audit` 增量（逐回合自洽）
 
@@ -223,11 +261,13 @@ onVisibleRangeChange?(r: { from_ts: number; to_ts: number; from_idx: number; to_
 
 ## 8. DB 契约
 
-- **`sim_trades`**：新增 `commission float8 NOT NULL`、`stamp_duty float8 NOT NULL`；
+- **`sim_trades`**：新增 `commission float8 NOT NULL DEFAULT 0`、`stamp_duty float8 NOT NULL DEFAULT 0`；
   保留 `fee` 列（语义 = `commission + stamp_duty`，冗余便于既有查询，列注释写明）。
-  DDL 经 `design/04-storage/schema.md` 的 `{.sql file=migrations/00XX_*.sql}` 块 tangle 生成，**禁止手改 `migrations/` 产物**。
-- **无需其它 DDL**：`strategy_run_result.trades`(jsonb)、`strategy_run_bars.payload`(jsonb) 形状自描述；
-  新曲线 kind 复用 `strategy_run_bars.kind` 文本列。
+- **`strategy_run_bars.kind` 的 CHECK 约束必须允许 `position`**（新增 `ResultKind::Position` 后，任何分块 run 都会写该 kind 的块）。
+  **若漏改该约束，则所有新回测 run 均会因 check 约束违规而 `status=failed`** —— 这是**既有功能回归级**缺陷（tester 闸门 E 段实测命中），必须与新 kind 同批发布。
+- DDL 经 `design/04-storage/schema.md` 的 `{.sql file=migrations/00XX_*.sql}` 块 tangle 生成，**禁止手改 `migrations/` 产物**；
+  迁移清单：`0028_sim_trades_fee_split.sql`、`0029_strategy_run_bars_kind_position.sql`。
+- **其它**：`strategy_run_result.trades`(jsonb)、`strategy_run_bars.payload`(jsonb) 形状自描述，无需 DDL；新曲线 kind 复用 `strategy_run_bars.kind` 文本列。
 - **历史数据**：按 ADR-027 D3 清空（归档 → `TRUNCATE`，保表结构与迁移链；禁 DROP）。
 
 ---

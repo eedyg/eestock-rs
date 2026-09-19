@@ -1234,7 +1234,12 @@ export interface WorkbenchBarsResponse {
   to?: string;
 }
 
-/** 成交明细条目（`EngineEvent::Fill` 投影 + 所在 bar 的 ts，K 线标记锚点）。 */
+/** 成交明细条目（`EngineEvent::Fill` 投影 + 所在 bar 的 ts，K 线标记锚点）。
+ *
+ * 口径注（ADR-027 §5.4，v2）：`rt_seq`/`trade_value`/`commission`/`stamp_duty` 为**引擎撮合点写入的事实**，
+ * 前端**禁止**由 `(side, qty, price)` + 费率复算（最低佣金分支不可逆，复算不保证逐位相等）。
+ * 注：后端 `/fills` 元素实际还含 `code`（读径注入 = run 的 symbol，与 L2 切片同一事实源）；
+ * 本类型保持 `02-spec` §7 的最小增量集，多余键被忽略——若 UI 需消费 `code`，须先改 `02-spec` §7。 */
 export interface WorkbenchRunFill {
   type: 'fill';
   bar_index: number;

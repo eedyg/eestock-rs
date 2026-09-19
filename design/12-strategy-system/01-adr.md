@@ -172,6 +172,19 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 ### 13.4 数据粒度（D12）
 每 bar 的各策略分+聚合分**全量落库**；UI 渲染端抽样（1m 长区间几十万点由前端降采样，后端不做有损预处理）。
 
+**口径注（ADR-027/028，2026-09-20 落地）——三比率分别命名 + 各自分母（强制）**：
+结果载荷 v2 新增的 `position_ratio` 与 ADR-026 既有两个比率是**三个不同物**，字段名 / UI 标签 / 文档三处都必须带分母说明，**不得互相解释**：
+
+| 量 | 定义 | 分母 | 形态/来源 |
+|---|---|---|---|
+| `position_ratio`（新增） | 持仓**市值** / **净值**（时点值；`nav ≤ 0` ⇒ 0） | **时点净值** | 逐 bar **曲线**（`/curve?kind=position`，可抽样） |
+| `cash_ratio`（新增，UI 并列） | `1 − position_ratio`（免用户自算） | **时点净值** | 逐 bar 曲线（UI 派生） |
+| `deployed_pct`（ADR-026） | **区间累计**敞口 / 初始资金（不含费用） | **初始资金** | **单值**（`/audit`） |
+| `cash_consumed_pct`（ADR-026） | **区间累计**资金占用（含买入佣金）/ 初始资金 | **初始资金** | **单值**（`/audit`） |
+
+未满仓 run：`position_ratio` 是曲线、`deployed_pct` 是单值，**二者不得互相解释**；UI 禁止裸用「持仓比率」标签。
+
+---
 ### 13.5 Web 交互定稿（D13）
 - 编辑器：**CodeMirror 6**（非 Monaco；包体积理由见 Grill Q5）+ 指标 API 文档侧栏 + 版本 diff 视图。
 - 试算**双模式**：纯评分模式（position 恒 null，看原始反应）/ 模拟持仓模式（单策略 ensemble，自身分数走默认 60/40 阈值+LumpSum 模拟成交，position 有真实值，可调 DCA/止损/门控模板）。同步执行 + 区间上限（日线/H1≤5年 / 分钟级≤3个月）。
@@ -206,6 +219,21 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
   `capital`（初始资金，缺省 100_000）。**保留缺省值兼容既有调用**；响应回显**生效** fee（含 stamp_duty_pct 实际取值）。
 
 **H1（I-6）**：试算/工作台 period 集含 `H1`（与数据层 `kline_accurate_1h` cagg 对齐）；区间上限 H1 归日线档（≤ 5 年）。
+
+#### 13.5.2 交易明细 L1/L2 分层与懒加载（ADR-027 D8/D10，2026-09-20 落地）
+
+结果页「交易明细」Tab 由**两层**构成（前端 `RoundTripsTable` + `useRunSeries`；契约见 `design/17-trade-detail-layering/02-spec.md`）：
+
+- **L1 = 回合（Round Trip）**：持仓 `0→>0` 起、`→0` 止的连续成交区间；金额字段为**全回合加总**（口径见 `design/08-backtest/01-engine-adr.md` §10）。
+  列表行携带懒加载摘要 `rt_seq`/`l2_count`/`buy_count`/`sell_count`/费用合计。
+- **L2 = 逐笔成交**（`FillFact`）：仅在展开某条 L1 时**按 `rt_seq` 懒加载**分页切片（`GET …/round-trips/{rt_seq}/fills`）；**展开前零 L2 请求**。
+- **归属只由 `rt_seq` 决定**（ADR-027 D6）：**禁止** `[open_bar, close_bar]` 窗口推断（零长回合 `open_bar == close_bar` 合法）。
+- **双口径均价 + 累计列（D9，消歧强制）**：`avg_price_excl_fee`（不含费）与 `avg_cost_incl_fee`（含费，对账口径）**并存且必带限定词**；
+  `cum_commission`/`cum_stamp_duty`/`cum_realized_pnl` 常显，**末行累计 == 该回合 L1 对应字段**（逐行可验）。
+- **对账不一致失败态（D10，强制）**：`Σ L2 ≠ L1` ⇒ 展开区顶部必须出现醒目告警（含 Δ 值）并**冻结展示两侧数值**，**不得**静默按 L1 渲染。
+- **取数完整性（D11）**：L1/L2/K 线标记均自述 `total`/`has_more`/`next_offset`（或显式 `truncated`）。
+- **结果页时间窗（ADR-028 D2/D3）**：窗口变化 ⇒ 对 `per_bar`/`net_value`/`drawdown`/`position` 四个既有 per-kind 端点并发重取（**不新增**批量端点）；
+  曲线 x 定义域 = 共享窗口（`mapLineByTs`，**禁**用数据自身 min/max），禁止前端裁剪已取点。
 
 ### 13.6 sim-live 切源口径（D14）
 **保留骨架换内核**：会话/账户/撮合/UI 配置流/会话记录/回测对比全部不动；编排器内 `create_strategy` 替换为 Registry 已发布策略 + QuickJS 实例（每策略×标的一实例），评分/聚合语义不变，沿用 3 策略×30 股上限。

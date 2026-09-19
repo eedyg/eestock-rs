@@ -919,14 +919,14 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_get_run_fills",
-            "description": "回测工作台：成交明细**分页**读（ADR-024 P6：成交是事实源，**禁止**抽样——抽样会丢真实成交）。元素 = 02-spec §1.1 FillFact：{code, rt_seq, bar_index, ts, side, qty, price, trade_value, commission, stamp_duty, reason}（费用三件套由撮合点写入，禁下游复算）。可选 round_trip=<rt_seq> 过滤（归属**只**由 rt_seq 决定，ADR-027 D6，禁 [open_bar, close_bar] 窗口推断）；过滤不改 recorded 语义（未命中 ⇒ 空页 + total=0，**非错误**——404 语义归属 bt_get_run_round_trip_fills）。响应 total/offset/limit/has_more/next_offset/recorded（过滤时回显 round_trip）。run 不存在 / 无结果 → isError。",
+            "description": "回测工作台：成交明细**分页**读（ADR-024 P6：成交是事实源，**禁止**抽样——抽样会丢真实成交）。元素 = 02-spec §1.1 FillFact：{code, rt_seq, bar_index, ts, side, qty, price, trade_value, commission, stamp_duty, reason}（费用三件套由撮合点写入，禁下游复算）。可选 round_trip=<rt_seq> 过滤（归属**只**由 rt_seq 决定，ADR-027 D6，禁 [open_bar, close_bar] 窗口推断）；round_trip 指向**不存在的 rt_seq** ⇒ isError（404 语义，与 bt_get_run_round_trip_fills **对称**，禁空数组冒充「无成交」）；过滤不改 recorded 语义（仍为「事实源是否可得」）。响应 total/offset/limit/has_more/next_offset/recorded（过滤时回显 round_trip）。run 不存在 / 无结果 → isError。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
                     "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
                     "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" },
-                    "round_trip": { "type": "integer", "description": "可选：仅取该 rt_seq 回合的成交（缺省不过滤）" }
+                    "round_trip": { "type": "integer", "description": "可选：仅取该 rt_seq 回合的成交（缺省不过滤）；该 rt_seq 不属于此 run ⇒ isError（与 bt_get_run_round_trip_fills 对称）" }
                 },
                 "required": ["run_id"]
             }
@@ -2152,9 +2152,10 @@ async fn bt_get_run_curve(st: &McpState, id: Option<Value>, args: &Value) -> Val
 
 /// bt_get_run_fills(run_id, offset?, limit?, round_trip?)：成交明细分页（ADR-027 §5.4）。
 ///
-/// 元素 = `FillFact`（含 `rt_seq`/`trade_value`/`commission`/`stamp_duty`，由撮合点写入，
-/// **禁止**下游复算）；`round_trip` 过滤**不改变** `recorded` 语义（未命中 ⇒ 空页 + `total=0`，
-/// **非错误**——404 语义归属 `bt_get_run_round_trip_fills`）。
+/// 元素 = `FillFact` 同形状（含 `code`/`rt_seq`/`trade_value`/`commission`/`stamp_duty`，由撮合点写入，
+/// **禁止**下游复算）；`round_trip` 指向**不存在的 `rt_seq`** ⇒ isError（404 语义，与
+/// `bt_get_run_round_trip_fills` **对称**，禁止空数组冒充「无成交」）；过滤**不改变** `recorded`
+/// 语义（仍为「事实源是否可得」）。
 async fn bt_get_run_fills(st: &McpState, id: Option<Value>, args: &Value) -> Value {
     let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
     let Some(run_id) = req_str(args, "run_id") else {
@@ -4297,12 +4298,12 @@ mod tests {
         assert!(fills["total"].as_u64().unwrap() >= 1);
         assert!(fills.get("round_trip").is_none() || fills["round_trip"].is_null(),
             "未过滤不回显 round_trip（既有契约不变）");
-        // 元素 = FillFact 增量字段（ADR-027 §5.4）：rt_seq + 费用三件套
-        // 注：`code` 在 /fills 元素上**不**保证存在（P3 读径仅在 L2 切片补 `code`；回测 run 单标的）；
-        // L2 切片（上文）已逐笔断言 `code`。
-        for k in ["rt_seq", "trade_value", "commission", "stamp_duty"] {
+        // 元素 = FillFact 同形状（ADR-027 §5.4 / 02-spec §1.1）：`code` + `rt_seq` + 费用三件套
+        // 闸门 2 L-1：`/fills` 与 L2 切片同事实源 ⇒ **同形状**（`code` 必带，回测 = run 的 symbol）。
+        for k in ["code", "rt_seq", "trade_value", "commission", "stamp_duty"] {
             assert!(!fills["fills"][0][k].is_null(), "fills 元素缺 {k}");
         }
+        assert_eq!(fills["fills"][0]["code"], json!("600000"), "回测 code = run 的 symbol");
         let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "round_trip": rt_seq })).await;
         let filtered = payload_of(&r);
         assert_eq!(filtered["round_trip"], json!(rt_seq));
@@ -4310,10 +4311,10 @@ mod tests {
             .all(|f| f["rt_seq"] == json!(rt_seq)), "过滤后全部归属该回合");
         assert_eq!(filtered["total"].as_u64().unwrap() as usize,
             first["l2_count"].as_u64().unwrap() as usize);
-        // 未命中（未知回合）⇒ 空页 total=0，**非错误**（404 语义归属 L2 切片工具，§5.4）
+        // `round_trip` 指向**不存在的 rt_seq** ⇒ isError（02-spec §5.4 冻结；与 L2 切片**对称**，
+        // 禁 200 空数组冒充「无成交」——闸门 2 L-3）
         let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "round_trip": 9999 })).await;
-        assert_eq!(r["result"]["isError"], json!(null));
-        assert_eq!(payload_of(&r)["total"], json!(0));
+        assert_eq!(r["result"]["isError"], json!(true), "未知 rt_seq ⇒ isError（与 L2 切片对称）");
         // 分页：limit=1 ⇒ has_more/next_offset（§5.6）
         let fills_total = fills["total"].as_u64().unwrap();
         let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "limit": 1 })).await;
@@ -5759,7 +5760,7 @@ tangle 单属主原则：`crates/app/**` 与 `Dockerfile.app` 的代码块属主
   跑至 succeeded + result 五 jsonb）+ 未发布/未知版本/非法 weight/policy isError；
 - **ADR-027 §6（结果载荷 v2）**：`bt_get_run_round_trips`（L1 分页/完整性自述/元素摘要字段）、
   `bt_get_run_round_trip_fills`（rt_seq 归属；未知 rt_seq ⇒ isError 而非空数组）、
-  `bt_get_run_fills`（rt_seq + 费用三件套 + `round_trip` 过滤；未命中 ⇒ 空页非错误）、
+  `bt_get_run_fills`（rt_seq + 费用三件套 + `code` + `round_trip` 过滤；未知 rt_seq ⇒ isError，与 L2 切片对称）、
   `bt_get_run_curve`（`from_ts`/`to_ts` 闭区间窗口 + `window_*` 回显 + `kind=position`；
   `kind=fills` ⇒ -32602）、`bt_get_run_audit` 增 `round_trips_closed/open` + `rt_reconcile`；
   `sim_get_round_trips`/`sim_get_round_trip_fills`（运行中 L1/L2，键 = session_id + code，
