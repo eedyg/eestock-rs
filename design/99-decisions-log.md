@@ -254,3 +254,29 @@
 - **明确不做**（登记为技术债）：提交期体检、发布期信号分布体检、历史 run 回填、未执行挂单归因（仅区分 `last_bar_unfilled`）。
 - **关联**：ADR-024 P6（`/fills` 为成交事实源）、ADR-019（fee 契约复算佣金）、ADR-025（测试载体治理）；`design/12-strategy-system/01-adr.md` §13.4。
 - **产出物**：ADR-026 本体（已裁决）+ 本批实现（纯函数审计 `crates/application/src/audit.rs`、端点、MCP 工具、`TradeDetail.reason`、可观测性）；证据 `coder/evidence/20260919_adr026_backend/**`。
+
+---
+
+# ADR-027 交易明细分层显示（L1 回合 / L2 逐笔）与回合口径统一（2026-09-20，Grill 十问闭合；P1/P2「按推荐」确认）
+
+- **权威正文**：`design/01-architecture/adr/ADR-027-trade-detail-two-level-round-trip-model.md`。
+- **触发事件**：交易明细无法回答「这一笔交易是怎么形成的」——DCA 分批建仓/部分卖出在 `trades` 里不可见（`TradeDetail` 仅在完全平仓时合成），与 ADR-026 触发事件（`sr_1789738328788_000005`）同源；用户提出「第一层=完整一次交易、第二层=该交易内的买入卖出细则」。
+- **决策要点**：D1 **L1 = 全回合口径**（金额字段 = 该回合所有成交加总；`pnl` = 回合真实已实现盈亏，部分卖出分支必须进账本）；D2 **Scope 全域统一**（回测 + 在线试算 + sim-live 共用同一回合定义/聚合实现/测试向量）；D3 **历史清空**（先 `pg_dump` 归档 → `TRUNCATE`，保表结构与迁移链，禁 DROP）；D4 **费用上游事实源分列**（回测 Fill 补 `trade_value/commission/stamp_duty`；sim-live 把合并 `fee` 拆回两列；**禁止下游复算**——`fee.rs:90-98` 最低佣金分支不可逆）；D5 **L1 粒度 = 整仓回合**（FIFO/lot 降级为归属算法；`trade_count` = 已清仓回合数不变）；D6 **归属键 = 引擎成交时刻打 `rt_seq`**（整数序号，禁 `[open_bar, close_bar]` 窗口推断）；D7 **L1 = ledger 派生视图**（唯一聚合实现；`Open` 态回合进同一列表；回测保留强平、sim-live **不**强平；sim-live 增运行中读路由）；D8 **L2 懒加载**（L1 带摘要元数据，展开按 `rt_seq` 拉分页）；D9 **L2 双口径 + 累计列**（`avg_price_excl_fee` / `avg_cost_incl_fee` 必须带限定词；`cum_*` 末行 == L1）；D10 **UI 手风琴展开** + 对账不一致**强制显式告警**（冻结两侧数值，禁静默按 L1 渲染）；D11 **取数完整性统一契约**纳入范围（含 K 线标记 5000 首屏缺口整改）。
+- **明确不做**：不引入「成本对手方 / lot 归属」列；不对 sim-live 引入期末强平；不做历史数据回填或双写兼容；不改 `net_profit`/`max_drawdown`/`sharpe` 算法。
+- **影响披露**：D1 生效后 `win_rate`/`profit_factor`/`avg_hold_bars` 取值会变（源自 nav 的三项不受影响）；sim-live `trade_count` 语义由「lot 匹配数」变为「已清仓回合数」⇒ 既有结论不可比（与 D3 同步）。
+- **关联**：ADR-024 P6（`/fills` 成交事实源）、**ADR-026 D5**（`TradeDetail.reason`；本 ADR 扩展其字段与语义）、ADR-019（fee 契约）、ADR-025（测试载体治理）、ADR-007/018（tangle 门禁）、ADR-003/004。
+- **产出物（分阶段）**：第一批 = ADR-027 本体 + 本条目；第二批（待评审通过）= `design/17-trade-detail-layering/02-spec.md`、`03-test-plan.md`、`04-implementation-plan.md`；实现由 coder/tester 子代理按 TDD 执行（**先复现测试后改引擎**）。
+
+---
+
+# ADR-028 回测结果可视化：持仓比率序列、结果页时间窗联动、L1/L2 跳转定位（2026-09-20，用户补充需求；「全部按推荐」）
+
+- **权威正文**：`design/01-architecture/adr/ADR-028-result-visualization-position-ratio-and-window-sync.md`。
+- **批次**：与 **ADR-027 合并**为「结果载荷 v2」不兼容批次（M1：只清一次历史、只发一次不兼容版本）。
+- **触发需求（用户原话）**：①新增「持仓比率」视图（像净值一样的图，详细来定）；②K 线/vol 可平移缩放，但净值、聚合总分、各策略评分等视图**不跟随** K 线时间范围；③L2 交易明细需一个按钮，点击后**所有视图跳转到该笔成交的时间段**。
+- **决策要点**：D1 持仓比率 = **引擎逐 bar 写下的可抽样事实**（`BarRecord` 增 `qty`/`position_value`/`cash`，新增 `ResultKind::Position`；引擎在净值压入点已同时持有两者，零成本可得）；**口径消歧强制**：`position_ratio`（时点市值/时点净值）与 ADR-026 的 `deployed_pct` / `cash_consumed_pct`（区间累计/初始资金）**三物分别命名**；D2 结果页时间窗 = **页面级多源共享状态**（K 线交互 / L1-L2 跳转 / 重置回退），程序化写窗必须回声抑制 + `rev` 防乱序；D3 `/curve` 增 `from_ts`/`to_ts`（缺省全区间 ⇒ 向后兼容）+ 窗口内重采样 + ~200ms 节流以最后一次为准（**禁**前端裁剪点变稀、**禁**旧数据静默顶替）；D4 L2→「定位」（成交居中 120 根）、L1→「看全过程」（回合区间）+ **按钮语义方案②：L1 行 `[明细]`（展开 L2）+ `[跳转]`（回合区间）、L2 行 `[明细]`（该笔完整字段）+ `[跳转]`（定位该笔）**，取消隐式“点击整行展开”；带窗口历史栈 + 全览；sim-live 跨标的则**切换 K 线标的并显式提示**；D5 ADR-027 D11 完整性契约同样约束窗口路径。
+- **补问二结论（现状勘查）**：结果页与其他视图之间**根本没有同步逻辑**——`ChartSyncContext.Provider` 全仓唯一挂载点在看板 `MultiPeriodChartStack.tsx:337`（结果页为 NOOP 注册表）；`KlineResultChart` 把 `onManualZoom` 传空实现；三条曲线走 `/curve?k=2000` 全区间一次抽样；`mapLine` 按**数组下标**映射 x（忽略 ts）⇒ SVG 视图**连时间轴都没有**。⇒ 新增 **D2.1 视图时间轴重建**：新增 `mapLineByTs`、x 定义域必须为共享窗口（禁用数据自带 min/max）、对齐基准 = K 线可见 bar 的 ts 区间（误差 ≤1 根 bar）。
+- **关键坑（已核实）**：`setBarSpace` 越界会**静默 return**（默认 max=50）⇒ 宽窗口跳转必须放宽 `barSpaceLimit` 或改 `scrollToDataIndex`，并**断言跳转成功**（`syncChartStub.ts:7`）；`mapLine` 按索引铺排（`chartUtils.ts:9-22`，3 个调用点 `AggregateScoreChart:38` / `EquityDrawdownChart:41` / `ComparePanel:47`）⇒ 不得改其语义，只能新增 `mapLineByTs` 并一并核对调用点。
+- **明确不做**：不做双向自动联动（除程序化跳转）；不做本地聚合（ADR-022 禁令）；不新增成本口径持仓比率。
+- **关联**：**ADR-027**（同批次）、**ADR-022**（跨图同步原语 / 时间跨度误差 ≤ 1 根 bar）、ADR-024 P6 + D10（显式抽样披露）、ADR-026（口径消歧先例）、ADR-020（回到最新 / barSpace 语义）。
+- **产出物**：本 ADR + 本条目；契约增量并入 `design/17-trade-detail-layering/02-spec.md`（第二批，与 ADR-027 合并）。
