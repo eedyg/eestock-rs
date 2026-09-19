@@ -1,0 +1,17 @@
+### [S1] 新代码在跑自证：policy Dca.interval=0 → 期望 400 policy_invalid（旧二进制为 201，见 01_baseline_smoke_old.txt）  2026-09-19 16:36:23
+$ curl -s -w '\nHTTP=%{http_code}\n' -X POST -H 'content-type: application/json' --data @raw/baseline_body_interval0.json http://127.0.0.1:8081/api/workbench/runs
+{"error":{"code":"policy_invalid","detail":{"period":"M5"},"message":"Dca.interval 必须 ≥ 1（省略即为默认 1）"}}
+HTTP=400
+
+### 同一 body 的 request/response 全文
+REQUEST_BODY:
+{
+  "symbol": "518880",
+  "period": "M5",
+  "from": "2026-09-17T01:30:00Z",
+  "to": "2026-09-17T07:00:00Z",
+  "slots": [{"version_id": "sv_1789013713975_000001", "params": {}, "weight": 1.0}],
+  "policy": {"Dca": {"tranches": 2, "mode": "Equal", "amount": null, "interval": 0}},
+  "warmup_bars": 0,
+  "confirm": true
+}

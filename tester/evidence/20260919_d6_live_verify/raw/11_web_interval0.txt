@@ -1,0 +1,6 @@
+{"status":"ok"}
+HTTP=200
+
+== i0 ==
+{"error":{"code":"policy_invalid","detail":{"period":"M5"},"message":"Dca.interval 必须 ≥ 1（省略即为默认 1）"}}
+HTTP=400

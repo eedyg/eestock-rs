@@ -1,0 +1,38 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.21s
+     Running tests/d6_dca_interval.rs (target/debug/deps/d6_dca_interval-97e57510e1367bd0)
+
+running 2 tests
+test d6_workbench_entry_omitted_interval_defaults_to_one_and_executes_like_one ... FAILED
+test d6_workbench_entry_rejects_interval_zero_loudly ... FAILED
+
+failures:
+
+---- d6_workbench_entry_omitted_interval_defaults_to_one_and_executes_like_one stdout ----
+[D6 omit/omitted] submit status=400 Bad Request body={"error":{"code":"policy_invalid","detail":{"period":"M1"},"message":"policy 非法: missing field `interval`"}}
+
+thread 'd6_workbench_entry_omitted_interval_defaults_to_one_and_executes_like_one' (1173809) panicked at crates/web/tests/d6_dca_interval.rs:190:5:
+assertion `left == right` failed: [omit/omitted] 应 201（接受）: {"error":{"code":"policy_invalid","detail":{"period":"M1"},"message":"policy 非法: missing field `interval`"}}
+  left: 400
+ right: 201
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- d6_workbench_entry_rejects_interval_zero_loudly stdout ----
+[D6 workbench/interval=0] status=201 Created raw body={"id":"sr_1789806382466_000004","name":"","symbol":"91173808001","period":"M1","from_ts":"2026-09-09T01:30:00Z","to_ts":"2026-09-09T01:35:01Z","config":{"buy_threshold":60.0,"clamp_reason":"data_range","clamped":true,"estimated_bars":6,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"initial_capital":100000.0,"policy":{"Dca":{"interval":0,"mode":"Equal","tranches":2}},"progress_prescan":"count","requested_from":"2026-09-09T01:29:00+00:00","requested_to":"2026-09-09T01:40:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{},"sha256":"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c","strategy_id":"st_1789806382199_000000","version":1,"version_id":"sv_1789806382199_000002","weight":1.0}],"stop":null,"warmup_effective":0,"warmup_requested":250},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-19T08:26:22.467291Z","started_at":null,"finished_at":null,"requested_from":"2026-09-09T01:29:00Z","requested_to":"2026-09-09T01:40:00Z","clamped":true,"clamp_reason":"data_range","estimated_bars":6,"bars_total":null,"result_format":null}
+
+thread 'd6_workbench_entry_rejects_interval_zero_loudly' (1173810) panicked at crates/web/tests/d6_dca_interval.rs:238:5:
+assertion `left == right` failed: 显式 interval=0 必须 400（fail loud），实得 201 Created: {"id":"sr_1789806382466_000004","name":"","symbol":"91173808001","period":"M1","from_ts":"2026-09-09T01:30:00Z","to_ts":"2026-09-09T01:35:01Z","config":{"buy_threshold":60.0,"clamp_reason":"data_range","clamped":true,"estimated_bars":6,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"initial_capital":100000.0,"policy":{"Dca":{"interval":0,"mode":"Equal","tranches":2}},"progress_prescan":"count","requested_from":"2026-09-09T01:29:00+00:00","requested_to":"2026-09-09T01:40:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{},"sha256":"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c","strategy_id":"st_1789806382199_000000","version":1,"version_id":"sv_1789806382199_000002","weight":1.0}],"stop":null,"warmup_effective":0,"warmup_requested":250},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-19T08:26:22.467291Z","started_at":null,"finished_at":null,"requested_from":"2026-09-09T01:29:00Z","requested_to":"2026-09-09T01:40:00Z","clamped":true,"clamp_reason":"data_range","estimated_bars":6,"bars_total":null,"result_format":null}
+  left: 201
+ right: 400
+
+
+failures:
+    d6_workbench_entry_omitted_interval_defaults_to_one_and_executes_like_one
+    d6_workbench_entry_rejects_interval_zero_loudly
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+error: test failed, to rerun pass `-p web --test d6_dca_interval`

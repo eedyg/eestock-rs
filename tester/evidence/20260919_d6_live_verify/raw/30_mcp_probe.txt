@@ -1,0 +1,153 @@
+## SSE endpoint /messages?sessionId=86bdf039aa786802b65534cbbd63bba6
+## initialize ok: {"id": 1, "jsonrpc": "2.0", "result": {"capabilities": {"tools": {"listChanged": false}}, "protocolVersion": "2024-11-05", "serverInfo": {"name": "eestock-mcp", "version": "0.1.0"}}}
+## tools/list count= 35 has_bt_run_ensemble= True
+
+### bt_run_ensemble policy.Dca.interval=0 (expect isError, message contains ≥ 1)
+POST /messages -> HTTP 202
+RAW JSON-RPC RESP = {"id": 10, "jsonrpc": "2.0", "result": {"content": [{"text": "工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）", "type": "text"}], "isError": true}}
+isError = True
+content[0].text = 工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）
+PARSED: n/a
+
+### bt_run_ensemble interval omitted (expect accepted)
+POST /messages -> HTTP 202
+RAW JSON-RPC RESP = {"id": 11, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run\": {\n    \"bars_total\": null,\n    \"clamp_reason\": null,\n    \"clamped\": false,\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"clamp_reason\": null,\n      \"clamped\": false,\n      \"estimated_bars\": 49,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"Dca\": {\n          \"amount\": null,\n          \"mode\": \"Equal\",\n          \"tranches\": 2\n        }\n      },\n      \"progress_prescan\": \"count\",\n      \"requested_from\": \"2026-09-17T01:30:00+00:00\",\n      \"requested_to\": \"2026-09-17T07:00:00+00:00\",\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {\n            \"fast\": 5.0,\n            \"slow\": 20.0\n          },\n          \"sha256\": \"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c\",\n          \"strategy_id\": \"st_1789013713975_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789013713975_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 0\n    },\n    \"created_at\": \"2026-09-19T08:41:19.697678Z\",\n    \"error\": null,\n    \"estimated_bars\": 49,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-09-17T01:30:00Z\",\n    \"id\": \"sr_1789807279697_000001\",\n    \"name\": \"d6-mcp\",\n    \"period\": \"M5\",\n    \"progress\": 0.0,\n    \"requested_from\": \"2026-09-17T01:30:00Z\",\n    \"requested_to\": \"2026-09-17T07:00:00Z\",\n    \"result_format\": null,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"518880\",\n    \"to_ts\": \"2026-09-17T07:00:00Z\"\n  },\n  \"run_id\": \"sr_1789807279697_000001\"\n}", "type": "text"}]}}
+isError = None
+content[0].text = {
+  "run": {
+    "bars_total": null,
+    "clamp_reason": null,
+    "clamped": false,
+    "config": {
+      "buy_threshold": 60.0,
+      "clamp_reason": null,
+      "clamped": false,
+      "estimated_bars": 49,
+      "fee": {
+        "min_fee": 5.0,
+        "rate_pct": 0.025,
+        "slippage_bp": 2.0,
+        "stamp_duty_pct": 0.0
+      },
+      "initial_capital": 100000.0,
+      "policy": {
+        "Dca": {
+          "amount": null,
+          "mode": "Equal",
+          "tranches": 2
+        }
+      },
+      "progress_prescan": "count",
+      "requested_from": "2026-09-17T01:30:00+00:00",
+      "requested_to": "2026-09-17T07:00:00+00:00",
+      "sell_threshold": 40.0,
+      "slots": [
+        {
+          "archived": false,
+          "params": {
+            "fast": 5.0,
+            "slow": 20.0
+          },
+          "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+          "strategy_id": "st_1789013713975_000000",
+          "version": 1,
+          "version_id": "sv_1789013713975_000001",
+          "weight": 1.0
+        }
+      ],
+      "stop": null,
+      "warmup_effective": 0,
+      "warmup_requested": 0
+    },
+    "created_at": "2026-09-19T08:41:19.697678Z",
+    "error": null,
+    "estimated_bars": 49,
+    "finished_at": null,
+    "from_ts": "2026-09-17T01:30:00Z",
+    "id": "sr_1789807279697_000001",
+    "name": "d6-mcp",
+    "period": "M5",
+    "progress": 0.0,
+    "requested_from": "2026-09-17T01:30:00Z",
+    "requested_to": "2026-09-17T07:00:00Z",
+    "result_format": null,
+    "started_at": null,
+    "status": "queued",
+    "symbol": "518880",
+    "to_ts": "2026-09-17T07:00:00Z"
+  },
+  "run_id": "sr_1789807279697_000001"
+}
+PARSED run_id = sr_1789807279697_000001 | status = queued | config.policy = {"Dca": {"amount": null, "mode": "Equal", "tranches": 2}}
+
+### bt_run_ensemble interval=1 (expect accepted)
+POST /messages -> HTTP 202
+RAW JSON-RPC RESP = {"id": 12, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run\": {\n    \"bars_total\": null,\n    \"clamp_reason\": null,\n    \"clamped\": false,\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"clamp_reason\": null,\n      \"clamped\": false,\n      \"estimated_bars\": 49,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"Dca\": {\n          \"amount\": null,\n          \"interval\": 1,\n          \"mode\": \"Equal\",\n          \"tranches\": 2\n        }\n      },\n      \"progress_prescan\": \"count\",\n      \"requested_from\": \"2026-09-17T01:30:00+00:00\",\n      \"requested_to\": \"2026-09-17T07:00:00+00:00\",\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {\n            \"fast\": 5.0,\n            \"slow\": 20.0\n          },\n          \"sha256\": \"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c\",\n          \"strategy_id\": \"st_1789013713975_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789013713975_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 0\n    },\n    \"created_at\": \"2026-09-19T08:41:19.753326Z\",\n    \"error\": null,\n    \"estimated_bars\": 49,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-09-17T01:30:00Z\",\n    \"id\": \"sr_1789807279753_000002\",\n    \"name\": \"d6-mcp\",\n    \"period\": \"M5\",\n    \"progress\": 0.0,\n    \"requested_from\": \"2026-09-17T01:30:00Z\",\n    \"requested_to\": \"2026-09-17T07:00:00Z\",\n    \"result_format\": null,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"518880\",\n    \"to_ts\": \"2026-09-17T07:00:00Z\"\n  },\n  \"run_id\": \"sr_1789807279753_000002\"\n}", "type": "text"}]}}
+isError = None
+content[0].text = {
+  "run": {
+    "bars_total": null,
+    "clamp_reason": null,
+    "clamped": false,
+    "config": {
+      "buy_threshold": 60.0,
+      "clamp_reason": null,
+      "clamped": false,
+      "estimated_bars": 49,
+      "fee": {
+        "min_fee": 5.0,
+        "rate_pct": 0.025,
+        "slippage_bp": 2.0,
+        "stamp_duty_pct": 0.0
+      },
+      "initial_capital": 100000.0,
+      "policy": {
+        "Dca": {
+          "amount": null,
+          "interval": 1,
+          "mode": "Equal",
+          "tranches": 2
+        }
+      },
+      "progress_prescan": "count",
+      "requested_from": "2026-09-17T01:30:00+00:00",
+      "requested_to": "2026-09-17T07:00:00+00:00",
+      "sell_threshold": 40.0,
+      "slots": [
+        {
+          "archived": false,
+          "params": {
+            "fast": 5.0,
+            "slow": 20.0
+          },
+          "sha256": "8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c",
+          "strategy_id": "st_1789013713975_000000",
+          "version": 1,
+          "version_id": "sv_1789013713975_000001",
+          "weight": 1.0
+        }
+      ],
+      "stop": null,
+      "warmup_effective": 0,
+      "warmup_requested": 0
+    },
+    "created_at": "2026-09-19T08:41:19.753326Z",
+    "error": null,
+    "estimated_bars": 49,
+    "finished_at": null,
+    "from_ts": "2026-09-17T01:30:00Z",
+    "id": "sr_1789807279753_000002",
+    "name": "d6-mcp",
+    "period": "M5",
+    "progress": 0.0,
+    "requested_from": "2026-09-17T01:30:00Z",
+    "requested_to": "2026-09-17T07:00:00Z",
+    "result_format": null,
+    "started_at": null,
+    "status": "queued",
+    "symbol": "518880",
+    "to_ts": "2026-09-17T07:00:00Z"
+  },
+  "run_id": "sr_1789807279753_000002"
+}
+PARSED run_id = sr_1789807279753_000002 | status = queued | config.policy = {"Dca": {"amount": null, "interval": 1, "mode": "Equal", "tranches": 2}}

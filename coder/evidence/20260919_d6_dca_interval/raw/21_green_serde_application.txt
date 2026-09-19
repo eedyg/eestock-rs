@@ -1,0 +1,13 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.56s
+     Running tests/d6_dca_interval_serde.rs (target/debug/deps/d6_dca_interval_serde-76b4c7451b4956b8)
+
+running 3 tests
+test dca_interval_explicit_positive_values_unchanged ... ok
+test dca_interval_explicit_zero_parses_but_validate_rejects ... ok
+test dca_interval_omitted_deserializes_to_default_one ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

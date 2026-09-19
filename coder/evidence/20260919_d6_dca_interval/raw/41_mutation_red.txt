@@ -1,0 +1,15 @@
+=== MUTATION: interval 校验移除后 ===
+test policy::tests::dca_interval_zero_is_rejected_loudly ... FAILED
+test policy::tests::policy_validation ... FAILED
+failures:
+failures:
+test result: FAILED. 16 passed; 2 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+--- application serde ---
+test dca_interval_explicit_zero_parses_but_validate_rejects ... FAILED
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+--- web entry ---
+test d6_workbench_entry_rejects_interval_zero_loudly ... FAILED
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+--- mcp entry ---
+test d6_mcp_bt_run_ensemble_rejects_interval_zero_loudly ... FAILED
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s

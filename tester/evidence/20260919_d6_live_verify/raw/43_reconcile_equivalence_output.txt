@@ -1,0 +1,18 @@
+A vs B  reachable_batches: 67 == 67 -> True
+A vs B  batches_done: 10 == 10 -> True
+A vs B  deployed_notional: 99950.0 == 99950.0 -> True
+A vs B  deployed_pct: 0.9995 == 0.9995 -> True
+A vs B  cash_consumed: 100000.0 == 100000.0 -> True
+A vs B  planned_tranches: 10 == 10 -> True
+A vs B  unexecuted_orders: 57 == 57 -> True
+A vs B  last_bar_unfilled: False == False -> True
+A vs B  fills field-wise equal: True
+A vs B  trades field-wise equal: True
+A vs B  audit differing keys: {'run_id'}
+--- negative control (fixture discriminative?) ---
+A vs C  batches_done: 10 vs 11 -> differ: True
+A vs C  deployed_notional: 99950.0 vs 99945.00000000001
+A vs C  fills differ: True
+fill bar_index A: [301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 548]
+fill bar_index C: [301, 306, 311, 316, 321, 326, 331, 401, 406, 409, 432, 548]
+RESULT: PASS

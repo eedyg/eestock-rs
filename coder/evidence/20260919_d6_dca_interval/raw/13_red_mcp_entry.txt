@@ -1,0 +1,96 @@
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s
+     Running tests/d6_dca_interval.rs (target/debug/deps/d6_dca_interval-2d3258613ba1bcd8)
+
+running 2 tests
+test d6_mcp_bt_run_ensemble_omitted_interval_defaults_to_one ... FAILED
+test d6_mcp_bt_run_ensemble_rejects_interval_zero_loudly ... FAILED
+
+failures:
+
+---- d6_mcp_bt_run_ensemble_omitted_interval_defaults_to_one stdout ----
+[D6 mcp/omitted] isError=true raw text=工具执行失败：policy 非法: missing field `interval`
+
+thread 'd6_mcp_bt_run_ensemble_omitted_interval_defaults_to_one' (1174825) panicked at crates/mcp/tests/d6_dca_interval.rs:217:5:
+assertion `left != right` failed: 省略 interval 必须被接受：{"id":1,"jsonrpc":"2.0","result":{"content":[{"text":"工具执行失败：policy 非法: missing field `interval`","type":"text"}],"isError":true}}
+  left: Bool(true)
+ right: Bool(true)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- d6_mcp_bt_run_ensemble_rejects_interval_zero_loudly stdout ----
+[D6 mcp/interval=0] isError=null raw text={
+  "run": {
+    "bars_total": null,
+    "clamp_reason": "data_range",
+    "clamped": true,
+    "config": {
+      "buy_threshold": 60.0,
+      "clamp_reason": "data_range",
+      "clamped": true,
+      "estimated_bars": 6,
+      "fee": {
+        "min_fee": 5.0,
+        "rate_pct": 0.025,
+        "slippage_bp": 2.0,
+        "stamp_duty_pct": 0.05
+      },
+      "initial_capital": 100000.0,
+      "policy": {
+        "Dca": {
+          "interval": 0,
+          "mode": "Equal",
+          "tranches": 2
+        }
+      },
+      "progress_prescan": "count",
+      "requested_from": "2026-09-09T01:29:00+00:00",
+      "requested_to": "2026-09-09T01:40:00+00:00",
+      "sell_threshold": 40.0,
+      "slots": [
+        {
+          "archived": false,
+          "params": {},
+          "sha256": "4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c",
+          "strategy_id": "st_1789806407235_000001",
+          "version": 1,
+          "version_id": "sv_1789806407235_000003",
+          "weight": 1.0
+        }
+      ],
+      "stop": null,
+      "warmup_effective": 0,
+      "warmup_requested": 250
+    },
+    "created_at": "2026-09-19T08:26:47.502699Z",
+    "error": null,
+    "estimated_bars": 6,
+    "finished_at": null,
+    "from_ts": "2026-09-09T01:30:00Z",
+    "id": "sr_1789806407502_000004",
+    "name": "",
+    "period": "M1",
+    "progress": 0.0,
+    "requested_from": "2026-09-09T01:29:00Z",
+    "requested_to": "2026-09-09T01:40:00Z",
+    "result_format": null,
+    "started_at": null,
+    "status": "queued",
+    "symbol": "91174824000",
+    "to_ts": "2026-09-09T01:35:01Z"
+  },
+  "run_id": "sr_1789806407502_000004"
+}
+
+thread 'd6_mcp_bt_run_ensemble_rejects_interval_zero_loudly' (1174826) panicked at crates/mcp/tests/d6_dca_interval.rs:190:5:
+assertion `left == right` failed: 显式 interval=0 必须 isError：{"id":1,"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"run\": {\n    \"bars_total\": null,\n    \"clamp_reason\": \"data_range\",\n    \"clamped\": true,\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"clamp_reason\": \"data_range\",\n      \"clamped\": true,\n      \"estimated_bars\": 6,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.05\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"Dca\": {\n          \"interval\": 0,\n          \"mode\": \"Equal\",\n          \"tranches\": 2\n        }\n      },\n      \"progress_prescan\": \"count\",\n      \"requested_from\": \"2026-09-09T01:29:00+00:00\",\n      \"requested_to\": \"2026-09-09T01:40:00+00:00\",\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {},\n          \"sha256\": \"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\n          \"strategy_id\": \"st_1789806407235_000001\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789806407235_000003\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 250\n    },\n    \"created_at\": \"2026-09-19T08:26:47.502699Z\",\n    \"error\": null,\n    \"estimated_bars\": 6,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-09-09T01:30:00Z\",\n    \"id\": \"sr_1789806407502_000004\",\n    \"name\": \"\",\n    \"period\": \"M1\",\n    \"progress\": 0.0,\n    \"requested_from\": \"2026-09-09T01:29:00Z\",\n    \"requested_to\": \"2026-09-09T01:40:00Z\",\n    \"result_format\": null,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"91174824000\",\n    \"to_ts\": \"2026-09-09T01:35:01Z\"\n  },\n  \"run_id\": \"sr_1789806407502_000004\"\n}","type":"text"}]}}
+  left: Null
+ right: Bool(true)
+
+
+failures:
+    d6_mcp_bt_run_ensemble_omitted_interval_defaults_to_one
+    d6_mcp_bt_run_ensemble_rejects_interval_zero_loudly
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+error: test failed, to rerun pass `-p mcp --test d6_dca_interval`

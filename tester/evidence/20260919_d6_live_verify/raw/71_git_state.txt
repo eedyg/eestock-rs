@@ -1,0 +1,28 @@
+## git state 2026-09-19T16:40:38+08:00
+### tracked changes
+ M crates/strategy-core/src/policy.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/12-strategy-system/01-adr.md
+ M web/src/features/workbench/ConfigPanel.test.tsx
+### untracked (D6-related + pre-existing)
+?? coder/evidence/20260919_d6_dca_interval/
+?? coder/evidence/20260919_d6_redeploy/
+?? coder/report/286_d6_dca_interval.md
+?? crates/application/tests/d6_dca_interval_serde.rs
+?? crates/mcp/tests/d6_dca_interval.rs
+?? crates/web/tests/d6_dca_interval.rs
+?? tester/evidence/20260919_d6_dca_interval_verify/
+?? tester/evidence/20260919_d6_live_verify/
+### git diff --cached --stat (must be empty)
+(empty above = no staged files)
+### git diff --stat
+ crates/strategy-core/src/policy.rs                 | 110 +++++++++++++++++++--
+ .../adr/ADR-023-period-set-extension-30m.md        |   7 +-
+ design/12-strategy-system/01-adr.md                |   2 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |  26 +++++
+ 4 files changed, 137 insertions(+), 8 deletions(-)
+### reflog -3
+40d16e1 HEAD@{0}: commit: feat(adr026): 回测结果执行完整度审计与口径披露（/audit + MCP bt_get_run_audit）
+e807385 HEAD@{1}: commit: chore(deploy): ADR-024 上线记录与手册修订
+8b1840a HEAD@{2}: commit: fix(ops): TimescaleDB worker 槽位耗尽根治 + ADR-025 决策 + 事故证据链
+### NOTE: ADR-023 md modification is a pre-existing worktree change unrelated to D6 (content = ADR-023 观测闭环记录), not produced by this tester run.

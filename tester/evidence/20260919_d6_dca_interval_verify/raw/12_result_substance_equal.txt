@@ -1,0 +1,11 @@
+result keys: ['drawdown', 'has_more', 'metrics', 'net_value', 'next_offset', 'per_bar', 'result_format', 'summary', 'trades']
+  drawdown               相同=True
+  has_more               相同=True
+  metrics                相同=True
+  net_value              相同=True
+  next_offset            相同=True
+  per_bar                相同=True
+  result_format          相同=True
+  summary                相同=False
+  trades                 相同=True
+trades 段存在: True

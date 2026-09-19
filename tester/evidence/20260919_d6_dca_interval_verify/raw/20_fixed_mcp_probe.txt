@@ -1,0 +1,176 @@
+## SSE endpoint 首帧 data=/messages?sessionId=ecb31e6a51e802a9d7c160345424b3b9
+## initialize: {"id": 1, "jsonrpc": "2.0", "result": {"capabilities": {"tools": {"listChanged": false}}, "protocolVersion": "2024-11-05", "serverInfo": {"name": "eestock-mcp", "version": "0.1.0"}}}
+## tools/list count=35 has_bt_run_ensemble=True has_strategy_test_run=True has_bt_get_run_audit=True
+## 已发布 strategy_id=st_1789806753066_000000 version_id=sv_1789806753066_000001
+
+## 1) bt_run_ensemble interval=0（同参数 slots/bar 夹具）
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 10, "jsonrpc": "2.0", "result": {"content": [{"text": "工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）", "type": "text"}], "isError": true}}
+  isError=True content[0].text=工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）
+
+## 2) bt_run_ensemble 省略 interval（须被接受）
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 11, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run\": {\n    \"bars_total\": null,\n    \"clamp_reason\": \"data_range\",\n    \"clamped\": true,\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"clamp_reason\": \"data_range\",\n      \"clamped\": true,\n      \"estimated_bars\": 12,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"Dca\": {\n          \"mode\": \"Equal\",\n          \"tranches\": 10\n        }\n      },\n      \"progress_prescan\": \"count\",\n      \"requested_from\": \"2026-09-09T01:29:00+00:00\",\n      \"requested_to\": \"2026-09-09T01:50:00+00:00\",\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {},\n          \"sha256\": \"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\n          \"strategy_id\": \"st_1789806753066_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789806753066_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 250\n    },\n    \"created_at\": \"2026-09-19T08:33:05.357130Z\",\n    \"error\": null,\n    \"estimated_bars\": 12,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-09-09T01:30:00Z\",\n    \"id\": \"sr_1789806785356_000006\",\n    \"name\": \"\",\n    \"period\": \"M1\",\n    \"progress\": 0.0,\n    \"requested_from\": \"2026-09-09T01:29:00Z\",\n    \"requested_to\": \"2026-09-09T01:50:00Z\",\n    \"result_format\": null,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"D6V01\",\n    \"to_ts\": \"2026-09-09T01:41:01Z\"\n  },\n  \"run_id\": \"sr_1789806785356_000006\"\n}", "type": "text"}]}}
+  isError=None content[0].text={
+  "run": {
+    "bars_total": null,
+    "clamp_reason": "data_range",
+    "clamped": true,
+    "config": {
+      "buy_threshold": 60.0,
+      "clamp_reason": "data_range",
+      "clamped": true,
+      "estimated_bars": 12,
+      "fee": {
+        "min_fee": 5.0,
+        "rate_pct": 0.025,
+        "slippage_bp": 2.0,
+        "stamp_duty_pct": 0.0
+      },
+      "initial_capital": 100000.0,
+      "policy": {
+        "Dca": {
+          "mode": "Equal",
+          "tranches": 10
+        }
+      },
+      "progress_prescan": "count",
+      "requested_from": "2026-09-09T01:29:00+00:00",
+      "request
+
+## 3) bt_run_ensemble 显式 interval=1（对照）
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 12, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run\": {\n    \"bars_total\": null,\n    \"clamp_reason\": \"data_range\",\n    \"clamped\": true,\n    \"config\": {\n      \"buy_threshold\": 60.0,\n      \"clamp_reason\": \"data_range\",\n      \"clamped\": true,\n      \"estimated_bars\": 12,\n      \"fee\": {\n        \"min_fee\": 5.0,\n        \"rate_pct\": 0.025,\n        \"slippage_bp\": 2.0,\n        \"stamp_duty_pct\": 0.0\n      },\n      \"initial_capital\": 100000.0,\n      \"policy\": {\n        \"Dca\": {\n          \"interval\": 1,\n          \"mode\": \"Equal\",\n          \"tranches\": 10\n        }\n      },\n      \"progress_prescan\": \"count\",\n      \"requested_from\": \"2026-09-09T01:29:00+00:00\",\n      \"requested_to\": \"2026-09-09T01:50:00+00:00\",\n      \"sell_threshold\": 40.0,\n      \"slots\": [\n        {\n          \"archived\": false,\n          \"params\": {},\n          \"sha256\": \"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\n          \"strategy_id\": \"st_1789806753066_000000\",\n          \"version\": 1,\n          \"version_id\": \"sv_1789806753066_000001\",\n          \"weight\": 1.0\n        }\n      ],\n      \"stop\": null,\n      \"warmup_effective\": 0,\n      \"warmup_requested\": 250\n    },\n    \"created_at\": \"2026-09-19T08:33:05.715076Z\",\n    \"error\": null,\n    \"estimated_bars\": 12,\n    \"finished_at\": null,\n    \"from_ts\": \"2026-09-09T01:30:00Z\",\n    \"id\": \"sr_1789806785714_000007\",\n    \"name\": \"\",\n    \"period\": \"M1\",\n    \"progress\": 0.0,\n    \"requested_from\": \"2026-09-09T01:29:00Z\",\n    \"requested_to\": \"2026-09-09T01:50:00Z\",\n    \"result_format\": null,\n    \"started_at\": null,\n    \"status\": \"queued\",\n    \"symbol\": \"D6V01\",\n    \"to_ts\": \"2026-09-09T01:41:01Z\"\n  },\n  \"run_id\": \"sr_1789806785714_000007\"\n}", "type": "text"}]}}
+  isError=None content[0].text={
+  "run": {
+    "bars_total": null,
+    "clamp_reason": "data_range",
+    "clamped": true,
+    "config": {
+      "buy_threshold": 60.0,
+      "clamp_reason": "data_range",
+      "clamped": true,
+      "estimated_bars": 12,
+      "fee": {
+        "min_fee": 5.0,
+        "rate_pct": 0.025,
+        "slippage_bp": 2.0,
+        "stamp_duty_pct": 0.0
+      },
+      "initial_capital": 100000.0,
+      "policy": {
+        "Dca": {
+          "interval": 1,
+          "mode": "Equal",
+          "tranches": 10
+        }
+      },
+      "progress_prescan": "count",
+      "requested_from": "2026-09-09T01:29:
+
+## 4) bt_get_run_audit 对照 omitted=sr_1789806785356_000006 vs explicit1=sr_1789806785714_000007
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 13, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run_id\": \"sr_1789806785356_000006\",\n  \"recorded\": true,\n  \"capital_basis\": 100000.0,\n  \"deployed_notional\": 57658.32074472561,\n  \"deployed_pct\": 0.5765832074472561,\n  \"cash_consumed\": 57688.32074472561,\n  \"cash_consumed_pct\": 0.5768832074472562,\n  \"planned_tranches\": 10,\n  \"reachable_batches\": 6,\n  \"batches_done\": 6,\n  \"unexecuted_orders\": 0,\n  \"last_bar_unfilled\": false,\n  \"round_trips_total\": 2,\n  \"round_trips_force_closed\": 0,\n  \"warnings\": [\n    {\n      \"code\": \"DCA_PLAN_UNDERFILLED\",\n      \"severity\": \"warn\",\n      \"message\": \"计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）\"\n    },\n    {\n      \"code\": \"PARTIAL_DEPLOYMENT\",\n      \"severity\": \"warn\",\n      \"message\": \"名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金\"\n    }\n  ]\n}", "type": "text"}]}}
+  isError=None content[0].text={
+  "run_id": "sr_1789806785356_000006",
+  "recorded": true,
+  "capital_basis": 100000.0,
+  "deployed_notional": 57658.32074472561,
+  "deployed_pct": 0.5765832074472561,
+  "cash_consumed": 57688.32074472561,
+  "cash_consumed_pct": 0.5768832074472562,
+  "planned_tranches": 10,
+  "reachable_batches": 6,
+  "batches_done": 6,
+  "unexecuted_orders": 0,
+  "last_bar_unfilled": false,
+  "round_trips_total": 2,
+  "round_trips_force_closed": 0,
+  "warnings": [
+    {
+      "code": "DCA_PLAN_UNDERFILLED",
+      "severity": "warn",
+      "message": "计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）"
+    },
+    {
+
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 14, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"run_id\": \"sr_1789806785714_000007\",\n  \"recorded\": true,\n  \"capital_basis\": 100000.0,\n  \"deployed_notional\": 57658.32074472561,\n  \"deployed_pct\": 0.5765832074472561,\n  \"cash_consumed\": 57688.32074472561,\n  \"cash_consumed_pct\": 0.5768832074472562,\n  \"planned_tranches\": 10,\n  \"reachable_batches\": 6,\n  \"batches_done\": 6,\n  \"unexecuted_orders\": 0,\n  \"last_bar_unfilled\": false,\n  \"round_trips_total\": 2,\n  \"round_trips_force_closed\": 0,\n  \"warnings\": [\n    {\n      \"code\": \"DCA_PLAN_UNDERFILLED\",\n      \"severity\": \"warn\",\n      \"message\": \"计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）\"\n    },\n    {\n      \"code\": \"PARTIAL_DEPLOYMENT\",\n      \"severity\": \"warn\",\n      \"message\": \"名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金\"\n    }\n  ]\n}", "type": "text"}]}}
+  isError=None content[0].text={
+  "run_id": "sr_1789806785714_000007",
+  "recorded": true,
+  "capital_basis": 100000.0,
+  "deployed_notional": 57658.32074472561,
+  "deployed_pct": 0.5765832074472561,
+  "cash_consumed": 57688.32074472561,
+  "cash_consumed_pct": 0.5768832074472562,
+  "planned_tranches": 10,
+  "reachable_batches": 6,
+  "batches_done": 6,
+  "unexecuted_orders": 0,
+  "last_bar_unfilled": false,
+  "round_trips_total": 2,
+  "round_trips_force_closed": 0,
+  "warnings": [
+    {
+      "code": "DCA_PLAN_UNDERFILLED",
+      "severity": "warn",
+      "message": "计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）"
+    },
+    {
+
+
+## 5) strategy_test_run policy interval=0
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 15, "jsonrpc": "2.0", "result": {"content": [{"text": "工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）", "type": "text"}], "isError": true}}
+  isError=True content[0].text=工具执行失败：Dca.interval 必须 ≥ 1（省略即为默认 1）
+
+## 6) strategy_test_run policy 省略 interval
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 16, "jsonrpc": "2.0", "result": {"content": [{"text": "{\n  \"mode\": \"sim_position\",\n  \"symbol\": \"D6V01\",\n  \"period\": \"M1\",\n  \"bar_count\": 12,\n  \"warmup_requested\": 250,\n  \"warmup_effective\": 0,\n  \"scores\": [\n    {\n      \"ts\": 1788917400,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917460,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917520,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917580,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917640,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917700,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917760,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917820,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917880,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917940,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788918000,\n      \"score\": 90.0,\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788918060,\n      \"score\": 90.0,\n      \"warmup\": false\n    }\n  ],\n  \"signals\": [\n    {\n      \"ts\": 1788917400,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917460,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917520,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917580,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917640,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917700,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917760,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917820,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917880,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788917940,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788918000,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    },\n    {\n      \"ts\": 1788918060,\n      \"signal\": \"buy\",\n      \"warmup\": false\n    }\n  ],\n  \"trades\": [\n    {\n      \"close_bar\": 11,\n      \"close_price\": 99.98,\n      \"close_ts\": 1788918060,\n      \"commission\": 73.56868654093903,\n      \"gross_value\": 94274.74616375609,\n      \"hold_bars\": 10,\n      \"open_bar\": 1,\n      \"open_price\": 105.99870491978912,\n      \"open_ts\": 1788917460,\n      \"pnl\": -5748.822522784874,\n      \"reason\": \"ForceClose\",\n      \"shares\": 942.9360488473303,\n      \"stamp_duty\": 0.0\n    }\n  ],\n  \"fee\": {\n    \"effective\": {\n      \"commission_rate_pct\": 0.025,\n      \"min_fee\": 5.0,\n      \"slippage_bp\": 2.0,\n      \"source\": \"profile\",\n      \"stamp_duty_pct\": 0.0\n    },\n    \"profile\": {\n      \"commission_rate_pct\": 0.025,\n      \"exchange_fee_pct\": 0.0,\n      \"min_fee\": 5.0,\n      \"not_modeled\": [\n        \"exchange_fee_pct\",\n        \"regulatory_fee_pct\",\n        \"transfer_fee_pct\"\n      ],\n      \"note\": \"场内基金二级市场买卖（ADR-019 §1.1）：印花税不征（《印花税法》第三条列举式封闭定义仅含股票/存托凭证）→0；过户费免收（中国结算：ETF/LOF 二级市场买卖免收）→0；经手费事实值 0.04‰（深交所 2026-01，基金双边）按平台全佣口径已含于佣金→列 0（不得叠加，否则重复计费）；证管费交易所收费表仅列 A股/B股/优先股（基金未列）→0；佣金万2.5 双向、单笔最低 5 元（券商公示）\",\n      \"regulatory_fee_pct\": 0.0,\n      \"source\": \"ADR-019 §1.1/§5：《印花税法》第三条；深交所收费及代收税费标准（2026-01）；中国结算代收税费一览表；券商费用公示（全佣口径）\",\n      \"stamp_duty_pct\": 0.0,\n      \"transfer_fee_pct\": 0.0,\n      \"type\": \"etf\"\n    },\n    \"symbol_type\": \"etf\"\n  },\n  \"events\": [],\n  \"truncated\": {\n    \"scores\": false,\n    \"events\": false,\n    \"trades\": false\n  },\n  \"downsampled\": false,\n  \"original_points\": 12,\n  \"requested_from\": \"2026-09-09T01:29:00Z\",\n  \"requested_to\": \"2026-09-09T01:50:00Z\",\n  \"effective_from\": \"2026-09-09T01:30:00Z\",\n  \"effective_to\": \"2026-09-09T01:41:01Z\",\n  \"clamped\": true,\n  \"clamp_reason\": \"data_range\",\n  \"estimated_bars\": 12\n}", "type": "text"}]}}
+  isError=None content[0].text={
+  "mode": "sim_position",
+  "symbol": "D6V01",
+  "period": "M1",
+  "bar_count": 12,
+  "warmup_requested": 250,
+  "warmup_effective": 0,
+  "scores": [
+    {
+      "ts": 1788917400,
+      "score": 90.0,
+      "warmup": false
+    },
+    {
+      "ts": 1788917460,
+      "score": 90.0,
+      "warmup": false
+    },
+    {
+      "ts": 1788917520,
+      "score": 90.0,
+      "warmup": false
+    },
+    {
+      "ts": 1788917580,
+      "score": 90.0,
+      "warmup": false
+    },
+    {
+      "ts": 1788917640,
+      "score": 90.0,
+      "warmup": false
+    },
+    {
+      "ts": 1788917700,
+      "score": 90.
+
+## 7) 语义对照：policy 非 object（-32602 JSON-RPC error，而非 isError）
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 17, "jsonrpc": "2.0", "result": {"content": [{"text": "工具执行失败：policy 非法: unknown variant `not-an-object`, expected `LumpSum` or `Dca`", "type": "text"}], "isError": true}}
+  isError=True content[0].text=工具执行失败：policy 非法: unknown variant `not-an-object`, expected `LumpSum` or `Dca`
+
+## 8) 语义对照：未知 run_id（isError）
+  POST /messages -> HTTP 202
+  RAW JSON-RPC RESP = {"id": 18, "jsonrpc": "2.0", "result": {"content": [{"text": "工具执行失败：运行不存在: sr_nope", "type": "text"}], "isError": true}}
+  isError=True content[0].text=工具执行失败：运行不存在: sr_nope

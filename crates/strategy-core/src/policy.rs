@@ -37,8 +37,12 @@ pub enum ExecutionPolicy {
         mode: DcaMode,
         /// FixedAmount 模式的每批金额（Equal 模式忽略）。
         amount: Option<f64>,
-        /// 批间隔 k bar（默认 1 = 每 bar 一批）。第 0 批在 Buy 信号出现当 bar 即触发，
+        /// 批间隔 k bar（**≥ 1**；省略 = 默认 1 = 每 bar 一批）。第 0 批在 Buy 信号出现当 bar 即触发，
         /// 之后每过 k bar 触发下一批。
+        ///
+        /// D6（2026-09-19）：字段可省略（serde default = 1，让文档 `interval?: k（默认 1）` 成真）；
+        /// **显式 0 不再静默归一化**，由 [`ExecutionPolicy::validate`] fail loud。
+        #[serde(default = "default_dca_interval")]
         interval: usize,
     },
 }
@@ -59,10 +63,17 @@ impl ExecutionPolicy {
                 tranches,
                 mode,
                 amount,
-                interval: _,
+                interval,
             } => {
                 if *tranches == 0 {
                     return Err("Dca.tranches 必须 ≥ 1".to_string());
+                }
+                // D6（2026-09-19）：显式 `interval=0` = 非法配置，**fail loud**（不再静默当 1）；
+                // 省略字段由 serde default 落为 1，故此处只见「调用方显式传了 0」。
+                if *interval == 0 {
+                    return Err(
+                        "Dca.interval 必须 ≥ 1（省略即为默认 1）".to_string(),
+                    );
                 }
                 if *mode == DcaMode::FixedAmount {
                     match amount {
@@ -76,7 +87,16 @@ impl ExecutionPolicy {
     }
 }
 
-/// 批间隔归一化：interval=0 视为默认 1（任务书「interval: k（默认 1）」）。
+/// DCA 批间隔的 serde 缺省值 = 1（文档契约 `interval?: k（默认 1）` ⇒ 字段可省略且省略等价 1）。
+/// 注意：**必须**用显式 default 函数而非裸 `#[serde(default)]`——后者对 `usize` 给 0，
+/// 而 0 是非法值（会反过来触发 validate fail loud）。
+const fn default_dca_interval() -> usize {
+    1
+}
+
+/// 批间隔归一化（**纵深防御**，非「静默修正」）：
+/// [`ExecutionPolicy::validate`] 已保证 `interval ≥ 1`（显式 0 → fail loud；省略 → serde default 1）。
+/// 此处仅为「绕过 validate 直接进入目标换算」的调用方兜底，**不**再作为非法输入的合法化通道。
 fn norm_interval(interval: usize) -> usize {
     interval.max(1)
 }
@@ -558,16 +578,94 @@ mod tests {
         }
         .validate()
         .is_err());
+        // D6（2026-09-19 契约变更，fail loud）：旧断言把 `interval=0` 编码为「按默认 1 处理」
+        // —— 那正是本单要修的静默归一化缺陷。断言按**新契约**翻转（拒绝 0），
+        // 明细见 `dca_interval_zero_is_rejected_loudly`。
+        let err = ExecutionPolicy::Dca {
+            tranches: 2,
+            mode: DcaMode::FixedAmount,
+            amount: Some(100.0),
+            interval: 0,
+        }
+        .validate()
+        .expect_err("interval=0 必须拒绝（不再静默归一化为 1）");
+        assert!(err.contains("Dca.interval"), "错误须指明字段：{err}");
+    }
+
+    // ---- D6：Dca.interval 语义与校验 ----
+    // 契约：① 显式 0 → fail loud（复用 policy 校验错误码体系）；② 省略 → 默认 1（让文档成真）；
+    //       ③ interval ≥ 1 的行为与数值一律不变。
+
+    /// 契约①：显式 `interval=0` 必须 fail loud，错误须点名字段 + 下限 + 「省略即默认 1」。
+    #[test]
+    fn dca_interval_zero_is_rejected_loudly() {
+        let err = ExecutionPolicy::Dca {
+            tranches: 2,
+            mode: DcaMode::Equal,
+            amount: None,
+            interval: 0,
+        }
+        .validate()
+        .expect_err("interval=0 必须被拒绝（D6：静默归一化 → fail loud）");
+        assert!(err.contains("Dca.interval"), "错误须指明字段名：{err}");
+        assert!(err.contains("≥ 1"), "错误须含下限语义：{err}");
+        assert!(err.contains("默认 1"), "错误须点明「省略即为默认 1」：{err}");
+        // 校验与 mode 无关：FixedAmount 分支同样拒绝。
         assert!(
             ExecutionPolicy::Dca {
                 tranches: 2,
                 mode: DcaMode::FixedAmount,
                 amount: Some(100.0),
-                interval: 0
+                interval: 0,
             }
             .validate()
-            .is_ok(),
-            "interval=0 按默认 1 处理"
+            .is_err(),
+            "FixedAmount 模式 interval=0 同样须拒绝"
         );
+    }
+
+    /// 契约③：`interval ∈ {1,5,20}` 在固定 20 根连续 Buy bar 上的**批次数与股数**逐一不变。
+    ///
+    /// 期望值 = 既有触发逻辑 `bars_in_run % k == 0`（run 内第 0 bar 触发）的闭式解：
+    /// k=1 → 每 bar 一批 = 20；k=5 → bar 0/5/10/15 = 4；k=20 → bar 0 = 1。
+    #[test]
+    fn dca_interval_batch_counts_unchanged_for_1_5_20() {
+        for (k, expected) in [(1usize, 20usize), (5, 4), (20, 1)] {
+            let mut st = PolicyState::new();
+            let p = ExecutionPolicy::Dca {
+                tranches: 1_000_000,
+                mode: DcaMode::FixedAmount,
+                amount: Some(1_000.0),
+                interval: k,
+            };
+            for _ in 0..20 {
+                st.target_qty(&p, TradeSignal::Buy, 100_000.0, 10.0, 0.0);
+            }
+            let dca = st.dca.expect("Buy 后必有 DCA 运行态");
+            assert_eq!(
+                dca.batches_done, expected,
+                "interval={k}：20 根 Buy bar 上的批次数不得改变"
+            );
+            // 数值级：每批 1_000 元 / 价 10 = 100 股 ⇒ 累计股数 = 批次数 × 100。
+            close(dca.accumulated_qty, expected as f64 * 100.0);
+        }
+    }
+
+    /// 契约③：`interval ≥ 1` 的 validate 通过性不变（显式 1/5/20 一律合法）。
+    #[test]
+    fn dca_interval_positive_still_valid() {
+        for k in [1usize, 5, 20] {
+            assert!(
+                ExecutionPolicy::Dca {
+                    tranches: 2,
+                    mode: DcaMode::Equal,
+                    amount: None,
+                    interval: k,
+                }
+                .validate()
+                .is_ok(),
+                "interval={k} 须仍然合法"
+            );
+        }
     }
 }

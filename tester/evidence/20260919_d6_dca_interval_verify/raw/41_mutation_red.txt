@@ -1,0 +1,43 @@
+=== MUTATION RUN 2026-09-19 16:33:53 ===
+--- cargo test -p strategy-core --lib policy ---
+test policy::tests::lump_sum_sell_unfreezes ... ok
+test policy::tests::policy_state_reset_clears_lump_freeze_and_dca ... ok
+test policy::tests::policy_validation ... FAILED
+
+failures:
+
+---- policy::tests::dca_interval_zero_is_rejected_loudly stdout ----
+
+thread 'policy::tests::dca_interval_zero_is_rejected_loudly' (1204328) panicked at crates/strategy-core/src/policy.rs:606:10:
+interval=0 必须被拒绝（D6：静默归一化 → fail loud）: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- policy::tests::policy_validation stdout ----
+
+thread 'policy::tests::policy_validation' (1204337) panicked at crates/strategy-core/src/policy.rs:588:10:
+interval=0 必须拒绝（不再静默归一化为 1）: ()
+
+
+failures:
+    policy::tests::dca_interval_zero_is_rejected_loudly
+    policy::tests::policy_validation
+
+test result: FAILED. 16 passed; 2 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --lib`
+--- cargo test -p application --test d6_dca_interval_serde ---
+failures:
+
+---- dca_interval_explicit_zero_parses_but_validate_rejects stdout ----
+
+thread 'dca_interval_explicit_zero_parses_but_validate_rejects' (1204898) panicked at crates/application/tests/d6_dca_interval_serde.rs:40:10:
+显式 interval=0 必须 fail loud（不得静默当 1）: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    dca_interval_explicit_zero_parses_but_validate_rejects
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test d6_dca_interval_serde`

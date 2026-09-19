@@ -1,0 +1,23 @@
+/audit     逐字段(除 run_id)相同=True
+/fills     逐字段(除 run_id)相同=True
+/result    逐字段(除 run_id)相同=False
+   DIFF summary {'id': 'sr_1789806753804_000002', 'name': 'd6v_fixed_omitted', 'symbol': 'D6V01', 'period': 'M1', 'status': 'succeeded', 'progress': 1.0, 'error': None, 'created_at': '2026-09-19T08:32:33.805279Z', 's | {'id': 'sr_1789806754132_000003', 'name': 'd6v_fixed_interval=1', 'symbol': 'D6V01', 'period': 'M1', 'status': 'succeeded', 'progress': 1.0, 'error': None, 'created_at': '2026-09-19T08:32:34.132791Z',
+/curve     逐字段(除 run_id)相同=True
+/bars      逐字段(除 run_id)相同=True
+/brief     逐字段(除 run_id)相同=False
+   DIFF created_at 2026-09-19T08:32:33.805279Z | 2026-09-19T08:32:34.132791Z
+   DIFF finished_at 2026-09-19T08:32:33.823368Z | 2026-09-19T08:32:34.144521Z
+   DIFF id sr_1789806753804_000002 | sr_1789806754132_000003
+   DIFF name d6v_fixed_omitted | d6v_fixed_interval=1
+   DIFF started_at 2026-09-19T08:32:33.814530Z | 2026-09-19T08:32:34.137441Z
+fills 条数 A/B: 8 8
+fills 逐条逐字段相同: True
+audit.batches_done         A=6 B=6 EQ
+audit.reachable_batches    A=6 B=6 EQ
+audit.deployed_notional    A=57658.32074472561 B=57658.32074472561 EQ
+audit.cash_consumed        A=57688.32074472561 B=57688.32074472561 EQ
+audit.planned_tranches     A=10 B=10 EQ
+audit.round_trips_total    A=2 B=2 EQ
+audit.unexecuted_orders    A=0 B=0 EQ
+audit.deployed_pct         A=0.5765832074472561 B=0.5765832074472561 EQ
+audit.capital_basis        A=100000.0 B=100000.0 EQ

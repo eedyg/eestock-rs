@@ -1,0 +1,40 @@
+### 前端构建后 dist（本次 build 产物）  2026-09-19 16:35:55
+-rw-rw-r-- 1 eestock eestock  397 2026-09-19 16:35:53.674607015 +0800 web/dist/index.html
+
+web/dist/assets/:
+total 1236
+-rw-rw-r-- 1 eestock eestock   22971 2026-09-19 16:35:53.674607015 +0800 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237407 2026-09-19 16:35:53.674607015 +0800 index-CkI-1t1L.js
+### sha256（== 部署前，说明 D6 只改测试文件不改 bundle）
+67f101bc7701119886e43c076f84360b66545876fe270e5e567e64cf120c8199  web/dist/index.html
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+### index.html 引用
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>eestock · 行情看板</title>
+    <script type="module" crossorigin src="/assets/index-CkI-1t1L.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CeUPb4uk.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+### VITE_API_MOCK 环境与仓库 env 文件（确认非 mock 构建）
+VITE_API_MOCK(env)=<unset>
+web/.env* 不存在
+4:// 默认值站在生产一侧（mock 构建事故根治）：仅 VITE_API_MOCK=1 显式启用契约 mock（09-frontend.md §4）；
+6:const useMock = import.meta.env.VITE_API_MOCK === '1';
+### D6 前端防回归用例是否在 src（ConfigPanel.test.tsx，不进 bundle）
+160:    await user.clear(screen.getByTestId('wb-dca-interval'));
+161:    await user.type(screen.getByTestId('wb-dca-interval'), '3');
+170:    expect(req.policy).toEqual({ Dca: { tranches: 4, mode: 'FixedAmount', amount: 5000, interval: 3 } });
+174:  // D6（2026-09-19）：前端与后端 `Dca.validate()` 的 fail-loud 同口径——`interval=0` 必须在**表单层**
+185:    await user.clear(screen.getByTestId('wb-dca-interval'));
+186:    await user.type(screen.getByTestId('wb-dca-interval'), '0');
+191:    await user.clear(screen.getByTestId('wb-dca-interval'));
+192:    await user.type(screen.getByTestId('wb-dca-interval'), '1');
+196:      Dca: { tranches: 3, mode: 'Equal', amount: null, interval: 1 },

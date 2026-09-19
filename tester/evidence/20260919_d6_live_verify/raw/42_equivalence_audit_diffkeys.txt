@@ -1,0 +1,10 @@
+A(omit) vs B(interval=1) audit differing keys: {'run_id': ('sr_1789807182072_000017', 'sr_1789807182146_000018')}
+  reachable_batches: 67 == 67 -> True
+  batches_done: 10 == 10 -> True
+  deployed_notional: 99950.0 == 99950.0 -> True
+  deployed_pct: 0.9995 == 0.9995 -> True
+  cash_consumed: 100000.0 == 100000.0 -> True
+  planned_tranches: 10 == 10 -> True
+  unexecuted_orders: 57 == 57 -> True
+  last_bar_unfilled: False == False -> True
+  capital_basis: 100000.0 == 100000.0 -> True

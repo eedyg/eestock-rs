@@ -1,0 +1,26 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+
+running 18 tests
+test policy::tests::clamp_lump_frozen_caps_unreachable_target ... ok
+test policy::tests::dca_equal_batches_split_plan_total ... ok
+test policy::tests::dca_equal_plan_total_snapshotted_at_run_start ... ok
+test policy::tests::dca_fixed_amount_batches ... ok
+test policy::tests::dca_hold_interrupts_and_cancels_remaining_batches ... ok
+test policy::tests::dca_interval_batch_counts_unchanged_for_1_5_20 ... ok
+test policy::tests::dca_interval_fires_every_k_bars ... ok
+test policy::tests::dca_interval_positive_still_valid ... ok
+test policy::tests::dca_interval_zero_is_rejected_loudly ... ok
+test policy::tests::dca_sell_liquidates_all_and_resets ... ok
+test policy::tests::lump_sum_buy_freezes_target_against_equity_drift ... ok
+test policy::tests::lump_sum_buy_target_is_pct_of_equity ... ok
+test policy::tests::lump_sum_hold_unfreezes_and_next_buy_resnapshots ... ok
+test policy::tests::lump_sum_repeated_buy_is_idempotent ... ok
+test policy::tests::lump_sum_sell_target_zero_hold_keeps_current ... ok
+test policy::tests::lump_sum_sell_unfreezes ... ok
+test policy::tests::policy_state_reset_clears_lump_freeze_and_dca ... ok
+test policy::tests::policy_validation ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+

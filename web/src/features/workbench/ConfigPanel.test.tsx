@@ -171,6 +171,32 @@ describe('ConfigPanel（页面⑪ 配置区：策略多选/权重/参数/阈值/
     expect(req.stop).toEqual({ kind: 'Trailing', value: 0.1, trigger: 'CloseBasis' });
   });
 
+  // D6（2026-09-19）：前端与后端 `Dca.validate()` 的 fail-loud 同口径——`interval=0` 必须在**表单层**
+  // 被拦截，绝不把 0 发给后端（防回归：既有校验在 ConfigPanel.tsx 的 `DCA 批间隔须为 ≥1 整数`）。
+  it('D6：DCA 批间隔=0 被前端拦截（渲染错误且不提交）', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await user.selectOptions(screen.getByTestId('wb-add-strategy'), 'sv_mock_dual_v1');
+    await user.click(screen.getByTestId('wb-add-btn'));
+    await user.selectOptions(screen.getByTestId('wb-policy-kind'), 'Dca');
+    await user.clear(screen.getByTestId('wb-dca-tranches'));
+    await user.type(screen.getByTestId('wb-dca-tranches'), '3');
+    await user.clear(screen.getByTestId('wb-dca-interval'));
+    await user.type(screen.getByTestId('wb-dca-interval'), '0');
+    await user.click(screen.getByTestId('wb-submit'));
+    expect(await screen.findByTestId('wb-form-error')).toHaveTextContent('DCA 批间隔须为 ≥1 整数');
+    expect(props.onSubmit).not.toHaveBeenCalled();
+    // 边界：1 合法（不得把 ≥1 写成 ≥2）。
+    await user.clear(screen.getByTestId('wb-dca-interval'));
+    await user.type(screen.getByTestId('wb-dca-interval'), '1');
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    expect(props.onSubmit.mock.calls[0]![0].policy).toEqual({
+      Dca: { tranches: 3, mode: 'Equal', amount: null, interval: 1 },
+    });
+  });
+
   it('预设：选中应用 → 表单回填（slots/阈值/policy/止损）；保存为预设 → onCreatePreset 当前配置', async () => {
     const user = userEvent.setup();
     const pinnedConfig: WorkbenchRunConfig = {

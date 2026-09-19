@@ -1,0 +1,17 @@
+### [S2] 省略 interval → 期望 201/202（旧二进制为 400 missing field，见 01_baseline_smoke_old.txt）  2026-09-19 16:36:25
+$ curl -s -w '\nHTTP=%{http_code}\n' -X POST -H 'content-type: application/json' --data @raw/baseline_body_no_interval.json http://127.0.0.1:8081/api/workbench/runs
+{"id":"sr_1789806985225_000000","name":"","symbol":"518880","period":"M5","from_ts":"2026-09-17T01:30:00Z","to_ts":"2026-09-17T07:00:00Z","config":{"buy_threshold":60.0,"clamp_reason":null,"clamped":false,"estimated_bars":49,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"Dca":{"amount":null,"mode":"Equal","tranches":2}},"progress_prescan":"count","requested_from":"2026-09-17T01:30:00+00:00","requested_to":"2026-09-17T07:00:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":0,"warmup_requested":0},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-19T08:36:25.226050Z","started_at":null,"finished_at":null,"requested_from":"2026-09-17T01:30:00Z","requested_to":"2026-09-17T07:00:00Z","clamped":false,"clamp_reason":null,"estimated_bars":49,"bars_total":null,"result_format":null}
+HTTP=201
+
+### 同一 body 的 request 全文
+REQUEST_BODY:
+{
+  "symbol": "518880",
+  "period": "M5",
+  "from": "2026-09-17T01:30:00Z",
+  "to": "2026-09-17T07:00:00Z",
+  "slots": [{"version_id": "sv_1789013713975_000001", "params": {}, "weight": 1.0}],
+  "policy": {"Dca": {"tranches": 2, "mode": "Equal", "amount": null}},
+  "warmup_bars": 0,
+  "confirm": true
+}

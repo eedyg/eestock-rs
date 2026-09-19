@@ -1,0 +1,24 @@
+## step1 binary identity  2026-09-19T16:38:14+08:00
+### ss -lntp
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=12)) 
+### ps
+    PID    PPID                  STARTED     ELAPSED CMD
+1210738       1 Sat Sep 19 16:36:14 2026       01:59 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### disk bin
+mtime=2026-09-19 16:35:59.320782517 +0800 size=213324216 target/debug/eestock-app
+ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02  target/debug/eestock-app
+ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02  /proc/1210738/exe
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+### source mtimes
+2026-09-19 16:33:57.320274237 +0800 crates/strategy-core/src/policy.rs
+2026-09-19 16:27:20.112156106 +0800 web/src/features/workbench/ConfigPanel.test.tsx
+2026-09-19 16:27:53.436557370 +0800 design/12-strategy-system/01-adr.md
+### strings|grep -c (ASCII-only, expected 0 due UTF-8)
+0
+### grep -a -c (UTF-8 aware) D6 literal
+1
+### grep -a -o literal
+Dca.interval 必须 ≥ 1（省略即为默认 1）Dca.tranches 必须 ≥ 1lump ta
+### /proc/1210738/exe same literal
+1

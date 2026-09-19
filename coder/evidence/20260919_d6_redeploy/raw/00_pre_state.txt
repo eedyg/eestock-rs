@@ -1,0 +1,40 @@
+### 时间: 2026-09-19 16:35:39 CST (+0800)
+### git rev-parse HEAD
+40d16e10661cbbe1597d4ab3dda600639a8a5947
+### git status --porcelain（部署前，仅相关项）
+ M crates/strategy-core/src/policy.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/12-strategy-system/01-adr.md
+ M web/src/features/workbench/ConfigPanel.test.tsx
+### git diff --cached --stat（应为空 = 无 staged）
+(end)
+### ss -lntp 8081/8082
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=12))  
+### ps（监听 PID 818710）
+    PID    PPID                  STARTED     ELAPSED CMD
+ 818710       1 Sat Sep 19 11:17:10 2026    05:18:28 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### /proc/818710/exe
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+### sha256 /proc/818710/exe (运行中镜像)
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  /proc/818710/exe
+### /proc/818710/cwd
+/home/eestock/workspace/git/eestock/eestock-rs
+### 磁盘二进制
+-rwxrwxr-x 2 eestock eestock 213324216 2026-09-19 16:31:25.433697394 +0800 target/debug/eestock-app
+ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02  target/debug/eestock-app
+### healthz
+HTTP=200
+### sim-live 非 ended 会话（停机门禁）
+total= 12  non_ended= []
+### web/dist 哈希（部署前）
+67f101bc7701119886e43c076f84360b66545876fe270e5e567e64cf120c8199  web/dist/index.html
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+### dist 文件
+-rw-rw-r-- 1 eestock eestock 397 2026-09-19 11:16:55.860397208 +0800 web/dist/index.html
+total 1236
+-rw-rw-r-- 1 eestock eestock   22971 2026-09-19 11:16:55.860397208 +0800 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237407 2026-09-19 11:16:55.860397208 +0800 index-CkI-1t1L.js
+### 运行中日志文件
+-rw-rw-r-- 1 eestock eestock 85859 2026-09-19 16:33:27.378900710 +0800 logs/app_dev_8081_redeploy_20260919_111711.log

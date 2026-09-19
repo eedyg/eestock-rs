@@ -1,0 +1,31 @@
+### 4.x 新进程事实（部署后自证）  2026-09-19 16:36:36
+$ ps -o pid,ppid,lstart,etime,cmd -p 1210738
+    PID    PPID                  STARTED     ELAPSED CMD
+1210738       1 Sat Sep 19 16:36:14 2026       00:21 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+/proc/1210738/cmdline = ./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+/proc/1210738/cwd     -> /home/eestock/workspace/git/eestock/eestock-rs
+/proc/1210738/exe     -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+/proc/1210738/stat 字段22 starttime = 136093150
+### 端口归属
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=12)) 
+### healthz
+HTTP=200
+
+### 4.x 二进制（mtime + sha256）
+-rwxrwxr-x 2 eestock eestock 213324216 2026-09-19 16:35:59.320782517 +0800 target/debug/eestock-app
+ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02  target/debug/eestock-app
+sha256 /proc/1210738/exe = ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02
+D6 文案编入当前运行镜像: grep -ac 'Dca.interval 必须 ≥ 1（省略即为默认 1）' /proc/1210738/exe = 1
+
+### 4.x 启动日志 logs/app_dev_8081_redeploy_20260919_163614.log
+总行数=16
+ERROR 行数=0
+WARN  行数=0
+启动 6 行 INFO：
+{"timestamp":"2026-09-19T08:36:14.957730Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T08:36:15.003404Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T08:36:15.004653Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T08:36:15.005482Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T08:36:15.005551Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T08:36:15.005590Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}

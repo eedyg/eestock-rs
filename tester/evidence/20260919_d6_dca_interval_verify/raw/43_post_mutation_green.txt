@@ -1,0 +1,9 @@
+=== 还原后复核 2026-09-19 16:33:57 ===
+test policy::tests::policy_validation ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s
+
+test dca_interval_omitted_deserializes_to_default_one ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

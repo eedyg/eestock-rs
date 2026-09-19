@@ -1,0 +1,176 @@
+{
+ "zero": {
+  "label": "interval=0",
+  "status": 400,
+  "body": "{\"error\":{\"code\":\"policy_invalid\",\"detail\":{\"period\":\"M1\"},\"message\":\"Dca.interval 必须 ≥ 1（省略即为默认 1）\"}}",
+  "run_id": null
+ },
+ "zero_fixed": {
+  "label": "interval=0/fixed_amount",
+  "status": 400,
+  "body": "{\"error\":{\"code\":\"policy_invalid\",\"detail\":{\"period\":\"M1\"},\"message\":\"Dca.interval 必须 ≥ 1（省略即为默认 1）\"}}",
+  "run_id": null
+ },
+ "omitted": {
+  "label": "omitted",
+  "status": 201,
+  "body": "{\"id\":\"sr_1789806753804_000002\",\"name\":\"d6v_fixed_omitted\",\"symbol\":\"D6V01\",\"period\":\"M1\",\"from_ts\":\"2026-09-09T01:30:00Z\",\"to_ts\":\"2026-09-09T01:41:01Z\",\"config\":{\"buy_threshold\":60.0,\"clamp_reason\":\"data_range\",\"clamped\":true,\"estimated_bars\":12,\"fee\":{\"min_fee\":5.0,\"rate_pct\":0.025,\"slippage_bp\":2.0,\"stamp_duty_pct\":0.0},\"initial_capital\":100000.0,\"policy\":{\"Dca\":{\"mode\":\"Equal\",\"tranches\":10}},\"progress_prescan\":\"count\",\"requested_from\":\"2026-09-09T01:29:00+00:00\",\"requested_to\":\"2026-09-09T01:50:00+00:00\",\"sell_threshold\":40.0,\"slots\":[{\"archived\":false,\"params\":{},\"sha256\":\"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\"strategy_id\":\"st_1789806753066_000000\",\"version\":1,\"version_id\":\"sv_1789806753066_000001\",\"weight\":1.0}],\"stop\":null,\"warmup_effective\":0,\"warmup_requested\":250},\"status\":\"queued\",\"progress\":0.0,\"error\":null,\"created_at\":\"2026-09-19T08:32:33.805279Z\",\"started_at\":null,\"finished_at\":null,\"requested_from\":\"2026-09-09T01:29:00Z\",\"requested_to\":\"2026-09-09T01:50:00Z\",\"clamped\":true,\"clamp_reason\":\"data_range\",\"estimated_bars\":12,\"bars_total\":null,\"result_format\":null}",
+  "run_id": "sr_1789806753804_000002",
+  "final_status": "succeeded",
+  "audit": {
+   "run_id": "sr_1789806753804_000002",
+   "recorded": true,
+   "capital_basis": 100000.0,
+   "deployed_notional": 57658.32074472561,
+   "deployed_pct": 0.5765832074472561,
+   "cash_consumed": 57688.32074472561,
+   "cash_consumed_pct": 0.5768832074472562,
+   "planned_tranches": 10,
+   "reachable_batches": 6,
+   "batches_done": 6,
+   "unexecuted_orders": 0,
+   "last_bar_unfilled": false,
+   "round_trips_total": 2,
+   "round_trips_force_closed": 0,
+   "warnings": [
+    {
+     "code": "DCA_PLAN_UNDERFILLED",
+     "severity": "warn",
+     "message": "计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）"
+    },
+    {
+     "code": "PARTIAL_DEPLOYMENT",
+     "severity": "warn",
+     "message": "名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金"
+    }
+   ]
+  },
+  "audit_raw": "{\"run_id\":\"sr_1789806753804_000002\",\"recorded\":true,\"capital_basis\":100000.0,\"deployed_notional\":57658.32074472561,\"deployed_pct\":0.5765832074472561,\"cash_consumed\":57688.32074472561,\"cash_consumed_pct\":0.5768832074472562,\"planned_tranches\":10,\"reachable_batches\":6,\"batches_done\":6,\"unexecuted_orders\":0,\"last_bar_unfilled\":false,\"round_trips_total\":2,\"round_trips_force_closed\":0,\"warnings\":[{\"code\":\"DCA_PLAN_UNDERFILLED\",\"severity\":\"warn\",\"message\":\"计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）\"},{\"code\":\"PARTIAL_DEPLOYMENT\",\"severity\":\"warn\",\"message\":\"名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金\"}]}",
+  "fills_sha": "05aa73d79c8357b7c7bfe060f5bf90aa7aee9b0f3d149106beb8712b119202b2",
+  "result_sha": "827c7d7091c3296b49dde0cc0ce43dad4225f43a82a8ce7922f0e5366e40e04b"
+ },
+ "explicit1": {
+  "label": "interval=1",
+  "status": 201,
+  "body": "{\"id\":\"sr_1789806754132_000003\",\"name\":\"d6v_fixed_interval=1\",\"symbol\":\"D6V01\",\"period\":\"M1\",\"from_ts\":\"2026-09-09T01:30:00Z\",\"to_ts\":\"2026-09-09T01:41:01Z\",\"config\":{\"buy_threshold\":60.0,\"clamp_reason\":\"data_range\",\"clamped\":true,\"estimated_bars\":12,\"fee\":{\"min_fee\":5.0,\"rate_pct\":0.025,\"slippage_bp\":2.0,\"stamp_duty_pct\":0.0},\"initial_capital\":100000.0,\"policy\":{\"Dca\":{\"interval\":1,\"mode\":\"Equal\",\"tranches\":10}},\"progress_prescan\":\"count\",\"requested_from\":\"2026-09-09T01:29:00+00:00\",\"requested_to\":\"2026-09-09T01:50:00+00:00\",\"sell_threshold\":40.0,\"slots\":[{\"archived\":false,\"params\":{},\"sha256\":\"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\"strategy_id\":\"st_1789806753066_000000\",\"version\":1,\"version_id\":\"sv_1789806753066_000001\",\"weight\":1.0}],\"stop\":null,\"warmup_effective\":0,\"warmup_requested\":250},\"status\":\"queued\",\"progress\":0.0,\"error\":null,\"created_at\":\"2026-09-19T08:32:34.132791Z\",\"started_at\":null,\"finished_at\":null,\"requested_from\":\"2026-09-09T01:29:00Z\",\"requested_to\":\"2026-09-09T01:50:00Z\",\"clamped\":true,\"clamp_reason\":\"data_range\",\"estimated_bars\":12,\"bars_total\":null,\"result_format\":null}",
+  "run_id": "sr_1789806754132_000003",
+  "final_status": "succeeded",
+  "audit": {
+   "run_id": "sr_1789806754132_000003",
+   "recorded": true,
+   "capital_basis": 100000.0,
+   "deployed_notional": 57658.32074472561,
+   "deployed_pct": 0.5765832074472561,
+   "cash_consumed": 57688.32074472561,
+   "cash_consumed_pct": 0.5768832074472562,
+   "planned_tranches": 10,
+   "reachable_batches": 6,
+   "batches_done": 6,
+   "unexecuted_orders": 0,
+   "last_bar_unfilled": false,
+   "round_trips_total": 2,
+   "round_trips_force_closed": 0,
+   "warnings": [
+    {
+     "code": "DCA_PLAN_UNDERFILLED",
+     "severity": "warn",
+     "message": "计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）"
+    },
+    {
+     "code": "PARTIAL_DEPLOYMENT",
+     "severity": "warn",
+     "message": "名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金"
+    }
+   ]
+  },
+  "audit_raw": "{\"run_id\":\"sr_1789806754132_000003\",\"recorded\":true,\"capital_basis\":100000.0,\"deployed_notional\":57658.32074472561,\"deployed_pct\":0.5765832074472561,\"cash_consumed\":57688.32074472561,\"cash_consumed_pct\":0.5768832074472562,\"planned_tranches\":10,\"reachable_batches\":6,\"batches_done\":6,\"unexecuted_orders\":0,\"last_bar_unfilled\":false,\"round_trips_total\":2,\"round_trips_force_closed\":0,\"warnings\":[{\"code\":\"DCA_PLAN_UNDERFILLED\",\"severity\":\"warn\",\"message\":\"计划 10 批，区间内最多可推进 6 批、已成交 6 批（剩余批次随买入区结束取消）\"},{\"code\":\"PARTIAL_DEPLOYMENT\",\"severity\":\"warn\",\"message\":\"名义投入 57.66% 初始资金，年化/回撤/夏普分母仍为初始资金\"}]}",
+  "fills_sha": "019dd9de7e76cf803126cccda52c88b905478565c31f25cfba9b4501a3951106",
+  "result_sha": "868d82db332e0eb49a32203c11afd302e4c028aabfa1e7920045c7c5303fe1d6"
+ },
+ "k5": {
+  "label": "interval=5",
+  "status": 201,
+  "body": "{\"id\":\"sr_1789806754446_000004\",\"name\":\"d6v_fixed_interval=5\",\"symbol\":\"D6V01\",\"period\":\"M1\",\"from_ts\":\"2026-09-09T01:30:00Z\",\"to_ts\":\"2026-09-09T01:41:01Z\",\"config\":{\"buy_threshold\":60.0,\"clamp_reason\":\"data_range\",\"clamped\":true,\"estimated_bars\":12,\"fee\":{\"min_fee\":5.0,\"rate_pct\":0.025,\"slippage_bp\":2.0,\"stamp_duty_pct\":0.0},\"initial_capital\":100000.0,\"policy\":{\"Dca\":{\"interval\":5,\"mode\":\"Equal\",\"tranches\":10}},\"progress_prescan\":\"count\",\"requested_from\":\"2026-09-09T01:29:00+00:00\",\"requested_to\":\"2026-09-09T01:50:00+00:00\",\"sell_threshold\":40.0,\"slots\":[{\"archived\":false,\"params\":{},\"sha256\":\"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\"strategy_id\":\"st_1789806753066_000000\",\"version\":1,\"version_id\":\"sv_1789806753066_000001\",\"weight\":1.0}],\"stop\":null,\"warmup_effective\":0,\"warmup_requested\":250},\"status\":\"queued\",\"progress\":0.0,\"error\":null,\"created_at\":\"2026-09-19T08:32:34.446846Z\",\"started_at\":null,\"finished_at\":null,\"requested_from\":\"2026-09-09T01:29:00Z\",\"requested_to\":\"2026-09-09T01:50:00Z\",\"clamped\":true,\"clamp_reason\":\"data_range\",\"estimated_bars\":12,\"bars_total\":null,\"result_format\":null}",
+  "run_id": "sr_1789806754446_000004",
+  "final_status": "succeeded",
+  "audit": {
+   "run_id": "sr_1789806754446_000004",
+   "recorded": true,
+   "capital_basis": 100000.0,
+   "deployed_notional": 19906.69137925272,
+   "deployed_pct": 0.1990669137925272,
+   "cash_consumed": 19916.69137925272,
+   "cash_consumed_pct": 0.19916691379252718,
+   "planned_tranches": 10,
+   "reachable_batches": 6,
+   "batches_done": 2,
+   "unexecuted_orders": 4,
+   "last_bar_unfilled": false,
+   "round_trips_total": 2,
+   "round_trips_force_closed": 0,
+   "warnings": [
+    {
+     "code": "DCA_PLAN_UNDERFILLED",
+     "severity": "warn",
+     "message": "计划 10 批，区间内最多可推进 6 批、已成交 2 批（剩余批次随买入区结束取消）"
+    },
+    {
+     "code": "PARTIAL_DEPLOYMENT",
+     "severity": "warn",
+     "message": "名义投入 19.91% 初始资金，年化/回撤/夏普分母仍为初始资金"
+    },
+    {
+     "code": "ORDERS_UNEXECUTED",
+     "severity": "info",
+     "message": "4 笔挂单未成交（末根 bar 无次 bar 可执行）"
+    }
+   ]
+  },
+  "audit_raw": "{\"run_id\":\"sr_1789806754446_000004\",\"recorded\":true,\"capital_basis\":100000.0,\"deployed_notional\":19906.69137925272,\"deployed_pct\":0.1990669137925272,\"cash_consumed\":19916.69137925272,\"cash_consumed_pct\":0.19916691379252718,\"planned_tranches\":10,\"reachable_batches\":6,\"batches_done\":2,\"unexecuted_orders\":4,\"last_bar_unfilled\":false,\"round_trips_total\":2,\"round_trips_force_closed\":0,\"warnings\":[{\"code\":\"DCA_PLAN_UNDERFILLED\",\"severity\":\"warn\",\"message\":\"计划 10 批，区间内最多可推进 6 批、已成交 2 批（剩余批次随买入区结束取消）\"},{\"code\":\"PARTIAL_DEPLOYMENT\",\"severity\":\"warn\",\"message\":\"名义投入 19.91% 初始资金，年化/回撤/夏普分母仍为初始资金\"},{\"code\":\"ORDERS_UNEXECUTED\",\"severity\":\"info\",\"message\":\"4 笔挂单未成交（末根 bar 无次 bar 可执行）\"}]}",
+  "fills_sha": "48823061d665ec0d173be2489274b3d7afa871fc59027f97b385bb518a5e1fe0",
+  "result_sha": "587f57e911ad1ec12724f13d613695395c9e43ce5dfd80e9462593cd5fe90a38"
+ },
+ "k20": {
+  "label": "interval=20",
+  "status": 201,
+  "body": "{\"id\":\"sr_1789806754772_000005\",\"name\":\"d6v_fixed_interval=20\",\"symbol\":\"D6V01\",\"period\":\"M1\",\"from_ts\":\"2026-09-09T01:30:00Z\",\"to_ts\":\"2026-09-09T01:41:01Z\",\"config\":{\"buy_threshold\":60.0,\"clamp_reason\":\"data_range\",\"clamped\":true,\"estimated_bars\":12,\"fee\":{\"min_fee\":5.0,\"rate_pct\":0.025,\"slippage_bp\":2.0,\"stamp_duty_pct\":0.0},\"initial_capital\":100000.0,\"policy\":{\"Dca\":{\"interval\":20,\"mode\":\"Equal\",\"tranches\":10}},\"progress_prescan\":\"count\",\"requested_from\":\"2026-09-09T01:29:00+00:00\",\"requested_to\":\"2026-09-09T01:50:00+00:00\",\"sell_threshold\":40.0,\"slots\":[{\"archived\":false,\"params\":{},\"sha256\":\"4f71cb3478eae8fbbc62c64b8940df7394b44242f747e9ac214eca8438e1112c\",\"strategy_id\":\"st_1789806753066_000000\",\"version\":1,\"version_id\":\"sv_1789806753066_000001\",\"weight\":1.0}],\"stop\":null,\"warmup_effective\":0,\"warmup_requested\":250},\"status\":\"queued\",\"progress\":0.0,\"error\":null,\"created_at\":\"2026-09-19T08:32:34.772367Z\",\"started_at\":null,\"finished_at\":null,\"requested_from\":\"2026-09-09T01:29:00Z\",\"requested_to\":\"2026-09-09T01:50:00Z\",\"clamped\":true,\"clamp_reason\":\"data_range\",\"estimated_bars\":12,\"bars_total\":null,\"result_format\":null}",
+  "run_id": "sr_1789806754772_000005",
+  "final_status": "succeeded",
+  "audit": {
+   "run_id": "sr_1789806754772_000005",
+   "recorded": true,
+   "capital_basis": 100000.0,
+   "deployed_notional": 19906.69137925272,
+   "deployed_pct": 0.1990669137925272,
+   "cash_consumed": 19916.69137925272,
+   "cash_consumed_pct": 0.19916691379252718,
+   "planned_tranches": 10,
+   "reachable_batches": 6,
+   "batches_done": 2,
+   "unexecuted_orders": 4,
+   "last_bar_unfilled": false,
+   "round_trips_total": 2,
+   "round_trips_force_closed": 0,
+   "warnings": [
+    {
+     "code": "DCA_PLAN_UNDERFILLED",
+     "severity": "warn",
+     "message": "计划 10 批，区间内最多可推进 6 批、已成交 2 批（剩余批次随买入区结束取消）"
+    },
+    {
+     "code": "PARTIAL_DEPLOYMENT",
+     "severity": "warn",
+     "message": "名义投入 19.91% 初始资金，年化/回撤/夏普分母仍为初始资金"
+    },
+    {
+     "code": "ORDERS_UNEXECUTED",
+     "severity": "info",
+     "message": "4 笔挂单未成交（末根 bar 无次 bar 可执行）"
+    }
+   ]
+  },
+  "audit_raw": "{\"run_id\":\"sr_1789806754772_000005\",\"recorded\":true,\"capital_basis\":100000.0,\"deployed_notional\":19906.69137925272,\"deployed_pct\":0.1990669137925272,\"cash_consumed\":19916.69137925272,\"cash_consumed_pct\":0.19916691379252718,\"planned_tranches\":10,\"reachable_batches\":6,\"batches_done\":2,\"unexecuted_orders\":4,\"last_bar_unfilled\":false,\"round_trips_total\":2,\"round_trips_force_closed\":0,\"warnings\":[{\"code\":\"DCA_PLAN_UNDERFILLED\",\"severity\":\"warn\",\"message\":\"计划 10 批，区间内最多可推进 6 批、已成交 2 批（剩余批次随买入区结束取消）\"},{\"code\":\"PARTIAL_DEPLOYMENT\",\"severity\":\"warn\",\"message\":\"名义投入 19.91% 初始资金，年化/回撤/夏普分母仍为初始资金\"},{\"code\":\"ORDERS_UNEXECUTED\",\"severity\":\"info\",\"message\":\"4 笔挂单未成交（末根 bar 无次 bar 可执行）\"}]}",
+  "fills_sha": "6cbdf48d7bfb9d695cf5f24f804aecf8ba2a4990f7cd7ebb81d0a00a1cdd7790",
+  "result_sha": "a85a025b0ec7e58b8afc80c34144c7fa976308f72eda216c6dc2ace3929a2b45"
+ }
+}

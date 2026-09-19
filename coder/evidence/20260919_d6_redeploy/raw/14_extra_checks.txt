@@ -1,0 +1,44 @@
+### 14 手册第 6 步冒烟补充 + 额外自证  2026-09-19 16:36:41
+### GET /api/config/kline
+{"viewport_bars":120}
+HTTP=200
+### PUT /api/config/kline 合法值 130
+{"viewport_bars":130}
+HTTP=200
+### PUT /api/config/kline 越界值 0（期望 400）
+{"error":"viewport_bars 须为 30..=600 整数，收到 0"}
+HTTP=400
+### PUT /api/config/kline 越界值 99999（期望 400）
+{"error":"viewport_bars 须为 30..=600 整数，收到 99999"}
+HTTP=400
+### 恢复原值 120
+{"viewport_bars":120}
+HTTP=200
+### 复核 GET /api/config/kline
+{"viewport_bars":120}
+HTTP=200
+
+### sim-live 会话状态（重启未产生中断会话）
+total= 12  non_ended= []
+
+### 补充自证（非替代 tester）：显式 interval=1 仍须 201（防过度拒绝回归）
+HTTP=201
+id= sr_1789807001774_000001 status= queued policy= {"Dca": {"amount": null, "interval": 1, "mode": "Equal", "tranches": 2}}
+
+### S2（省略 interval）run 落库结果复核
+HTTP=200
+id= sr_1789806985225_000000 status= succeeded error= None bars_total= None
+policy= {"Dca": {"amount": null, "mode": "Equal", "tranches": 2}}
+
+### git 纪律自证
+$ git diff --cached --stat → 0
+(0 行 = 无 staged)
+$ git status --porcelain -- crates web/src design → 7
+（部署阶段未新增业务代码改动，唯一变化为构建产物 target/debug + web/dist，二者被 gitignore）
+ M crates/strategy-core/src/policy.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/12-strategy-system/01-adr.md
+ M web/src/features/workbench/ConfigPanel.test.tsx
+?? crates/application/tests/d6_dca_interval_serde.rs
+?? crates/mcp/tests/d6_dca_interval.rs
+?? crates/web/tests/d6_dca_interval.rs

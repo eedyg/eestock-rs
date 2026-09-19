@@ -158,8 +158,8 @@ GET /api/workbench/runs/{id}/audit
 | D2 | 提交期（pre-run）体检 | 见 §3 | 待 ADR-024 P3 增量引擎就绪后评估 |
 | D3 | 发布期信号分布体检（能否买/能否卖/信号频率） | 发布链路发现不了「结构性单边」策略 | 另立 ADR |
 | D4 | 外部 DCA 族设计文档不在仓库、命名与能力不符 | 见取证报告 | 文档归档 + 命名修订（「定期定额」→「无择时梯次建仓」） |
-| D5 | 错误体形状不一致：404 家族为字符串形 `{"error":"…"}`，400 家族为对象形 `{"error":{code,detail,message}}` | 2026-09-19 部署后冒烟 S3（O1） | 统一为对象形（带 `code`）——**属对外契约变更，需先行批准** |
-| D6 | `Dca.interval=0` 被接受（201）并 succeeded；`tranches=0` 已正确拒绝 | 冒烟 S3d（O2，run `sr_1789787981802_000007`） | 二选一：在 config 回显里写入规范化后的 `interval`，或在 `Dca.validate()` 拒绝 0；现状是静默规范化（`norm_interval`） |
+| D5 | 错误体形状不一致：404 家族为字符串形 `{"error":"…"}`，400 家族为对象形 `{"error":{code,detail,message}}`；**MCP 工具失败**（`crates/mcp/src/tools.rs` `tool_fail`）只透传 message、**不带 code**（全工具族一致） | 2026-09-19 部署后冒烟 S3（O1）+ D6 实施期入口审计 | 统一为对象形（含 `code`）并在 MCP 工具失败里带 `code`——**属对外契约变更，需先行批准** |
+| ~~D6~~ | ~~`Dca.interval=0` 被静默规范化接受~~ | **✅ 已修（2026-09-19，live 实测）** | `crates/strategy-core/src/policy.rs`：`interval` 改可省略（serde default=1，让文档「interval?: k（默认 1）」成真）+ `validate()` 拒绝显式 0（fail loud）；前端 ConfigPanel 已有 ≥1 校验并补防回归用例；`design/12-strategy-system/01-adr.md:99` 契约同步。入口审计确认 web 提交/MCP bt_run_ensemble/strategy_test_run/预设均达 `policy.validate()`（`sim_start_session` 不接受 policy，无缺口）。验收：A（省略）与 B（显式 1）audit/fills/trades 逐字段全等，C（显式 5）明确不同（判据有区分力）；`interval=0` → HTTP 400 `policy_invalid`、MCP `isError`；突变反证 2 条测试变红后逐字节还原。债：现存 1 条历史 run `sr_1789787981802_000007`（interval=0，已跑完）保留为对照，不回溯 |
 | D7 | 超大 run（M1 686,368 根，预估 ≈430s）完整成功路径未端到端验证（本次为保护主机主动 cancel）；已有 392,589 根 M1 成功先例 | 冒烟 S3b（O4） | 单独开一个长窗口验证，或纳入 P4b 性能治理一并覆盖 |
 
 ## 8. 风险

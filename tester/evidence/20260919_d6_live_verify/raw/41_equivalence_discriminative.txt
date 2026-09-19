@@ -1,0 +1,17 @@
+## discriminative equivalence fixture (strategy sv_1789211104755_000012 params ma_n=60 dev_open=0.005 dev_deep=0.01 stop_dev=0.5 plan_bars=10; tranches=10 Equal; M5 518880 2026-09-10→2026-09-17; warmup=250)
+E_OM: reachable_batches=67 batches_done=10 deployed_notional=99950.0 deployed_pct=0.9995 cash_consumed=100000.0 planned_tranches=10 fills=11 trades=1
+E_I1: reachable_batches=67 batches_done=10 deployed_notional=99950.0 deployed_pct=0.9995 cash_consumed=100000.0 planned_tranches=10 fills=11 trades=1
+E_I5: reachable_batches=67 batches_done=11 deployed_notional=99945.00000000001 deployed_pct=0.9994500000000002 cash_consumed=100000.00000000001 planned_tranches=10 fills=12 trades=1
+A(omit) vs B(interval=1): audit_equal=False fills_equal=True trades_equal=True
+   reachable_batches: OM=67 I1=67 identical=True
+   batches_done: OM=10 I1=10 identical=True
+   deployed_notional: OM=99950.0 I1=99950.0 identical=True
+A(omit) vs C(interval=5): audit_equal=False fills_equal=False trades_equal=False
+   reachable_batches: OM=67 I1=67 identical=True
+   batches_done: OM=10 I1=11 identical=False
+   deployed_notional: OM=99950.0 I1=99945.00000000001 identical=False
+   trade diff: {'pnl': (-657.7695084130974, -439.8801307539543), 'gross_value': (99367.07225965183, 99585.01612327687), 'shares': (11222.555290151508, 11247.169953782635), 'commission': (74.84176806491296, 79.89625403081922), 'open_price': (8.906171314452099, 8.886235418393996)}
+fills(bars) OM: [301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 548]
+fills(bars) I1: [301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 548]
+fills(bars) I5: [301, 306, 311, 316, 321, 326, 331, 401, 406, 409, 432, 548]
+trades OM[0..1]: [{"close_bar": 548, "close_price": 8.8542288, "close_ts": 1789628100, "commission": 74.84176806491296, "gross_value": 99367.07225965183, "hold_bars": 247, "open_bar": 301, "open_price": 8.906171314452099, "open_ts": 1789090500, "pnl": -657.7695084130974, "reason": "ForceClose", "shares": 11222.555290151508, "stamp_duty": 0.0}]

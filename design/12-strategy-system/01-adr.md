@@ -96,7 +96,7 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 3. 信号判定：聚合 ≥ buy_threshold（默认 60，可配）→ buy；≤ sell_threshold（默认 40）→ sell；否则 hold；
 4. **ExecutionPolicy** 将信号转为订单（本期双模式）：
    - `LumpSum{position_pct}`：buy → 下一 bar open 按资金比例全量买入；sell → 全部清仓（沿用现有引擎成交假设：close 判定、次 bar open 成交、slippage_bp + FeeModel）；
-   - `Dca{tranches: N, mode: equal|fixed_amount, amount?, interval?: k（默认 1）}`：buy 信号持续期间分 N 批建仓（每 k bar 一批；Equal 计划总额 = 本轮 Buy 起点净值快照；信号中断 → 剩余批次取消，Buy 重现重新计数）；**sell 信号 → 一次性清仓**（目标 0；P1a 裁决覆盖本节旧文「对称分批减仓」，与 Grill Q3 推荐一致）；
+   - `Dca{tranches: N, mode: equal|fixed_amount, amount?, interval?: k（**≥ 1**；省略 = 1）}`：buy 信号持续期间分 N 批建仓（每 k bar 一批，第 0 批在 Buy 出现当 bar 触发；Equal 计划总额 = 本轮 Buy 起点净值快照；信号中断 → 剩余批次取消，Buy 重现重新计数）；**sell 信号 → 一次性清仓**（目标 0；P1a 裁决覆盖本节旧文「对称分批减仓」，与 Grill Q3 推荐一致）。**配置校验（D6，2026-09-19）**：`tranches < 1`、`interval = 0` 均为非法配置——`ExecutionPolicy::validate` **fail loud**（拒绝并回错误码，**不再**把显式 `interval=0` 静默归一化为 1）；`interval` 省略时 serde default = **1**，与显式 1 行为等价。
 5. 期末强制平仓 + 绩效指标（复用 backtest::metrics 8 项）。
 
 **记录输出**：每 bar 落 {各策略分, 聚合分, 信号, 订单} 序列——页面评分曲线/总分曲线/交易标记的数据源，也是确定性验收的 diff 对象。

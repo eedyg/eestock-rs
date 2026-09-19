@@ -1,0 +1,1 @@
+{"run_id":"sr_1789807098205_000004","total":2,"offset":0,"limit":5000,"has_more":false,"next_offset":null,"recorded":true,"fills":[{"bar_index":26,"price":8.836767,"qty":5658.028742786013,"reason":"Policy","side":"Buy","ts":1789621500,"type":"fill"},{"bar_index":48,"price":8.8542288,"qty":5658.028742786013,"reason":"ForceClose","side":"Sell","ts":1789628100,"type":"fill"}]}

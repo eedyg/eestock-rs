@@ -1,0 +1,10 @@
+# 活库 eestock：Dca run 的 interval 分布（只读；影响面取证）
+# 时间：2026-09-19T16:30:11+08:00
+0|succeeded|1
+1|succeeded|14
+20|succeeded|2
+5|canceled|1
+5|succeeded|137
+
+# interval=0 的 run（D6 复现对照）：
+sr_1789787981802_000007|succeeded|{"Dca": {"mode": "Equal", "interval": 0, "tranches": 3}}

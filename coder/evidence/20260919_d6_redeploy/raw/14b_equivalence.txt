@@ -1,0 +1,17 @@
+### 补充自证（等价性数值佐证，非替代 tester）  2026-09-19 16:36:47
+### 三个 run 的 audit（batches_done / planned_tranches / round_trips）
+--- sr_1789806985225_000000 ---
+{"run_id": "sr_1789806985225_000000", "recorded": true, "planned_tranches": 2, "reachable_batches": 1, "batches_done": 1, "round_trips_total": 1, "deployed_pct": 0.4999868167930293}
+status= succeeded  policy= {"Dca": {"amount": null, "mode": "Equal", "tranches": 2}}
+--- sr_1789807001774_000001 ---
+{"run_id": "sr_1789807001774_000001", "recorded": true, "planned_tranches": 2, "reachable_batches": 1, "batches_done": 1, "round_trips_total": 1, "deployed_pct": 0.4999868167930293}
+status= succeeded  policy= {"Dca": {"amount": null, "interval": 1, "mode": "Equal", "tranches": 2}}
+--- sr_1789806942293_000012 ---
+{"run_id": "sr_1789806942293_000012", "recorded": true, "planned_tranches": 2, "reachable_batches": 1, "batches_done": 1, "round_trips_total": 1, "deployed_pct": 0.4999868167930293}
+status= succeeded  policy= {"Dca": {"amount": null, "interval": 0, "mode": "Equal", "tranches": 2}}
+
+### 语义对照（同一 fixture：518880 M5 2026-09-17 49 bars，Dca tranches=2 Equal，warmup=0）
+A sr_1789806942293_000012 = 旧二进制 + 显式 interval=0（旧=静默归一化 1）
+B sr_1789806985225_000000 = 新二进制 + 省略 interval（新契约 default=1）
+C sr_1789807001774_000001 = 新二进制 + 显式 interval=1
+期望：A/B/C 的 batches_done 全等 ⇒ 「省略 ≡ 1 ≡ 旧 0 的归一化后语义」

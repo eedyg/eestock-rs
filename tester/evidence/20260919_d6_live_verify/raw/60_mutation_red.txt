@@ -1,0 +1,88 @@
+## mutation counter-proof 2026-09-19T16:40:03+08:00
+### baseline sha256 (pre-mutation, restored target):
+cec749d83b8bcbf1cfdd10a8780bd9ca881ef2df3144ef333ee93cb1956245c5  crates/strategy-core/src/policy.rs
+cec749d83b8bcbf1cfdd10a8780bd9ca881ef2df3144ef333ee93cb1956245c5  /tmp/d6v/policy.rs.orig
+patched 1 occurrence
+### mutated diff vs baseline:
+--- /tmp/d6v/policy.rs.orig	2026-09-19 16:40:03.089085650 +0800
++++ crates/strategy-core/src/policy.rs	2026-09-19 16:40:03.099204976 +0800
+@@ -70,7 +70,7 @@
+                 }
+                 // D6（2026-09-19）：显式 `interval=0` = 非法配置，**fail loud**（不再静默当 1）；
+                 // 省略字段由 serde default 落为 1，故此处只见「调用方显式传了 0」。
+-                if *interval == 0 {
++                if false && *interval == 0 { // D6-MUTATION
+                     return Err(
+                         "Dca.interval 必须 ≥ 1（省略即为默认 1）".to_string(),
+                     );
+### mutated sha256:
+b4617873780501f3f13cd7113c17414f70ad8f1f2912233616eea09846bbe292  crates/strategy-core/src/policy.rs
+### targeted tests (expect >=2 FAILED):
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+
+running 4 tests
+test policy::tests::dca_interval_batch_counts_unchanged_for_1_5_20 ... ok
+test policy::tests::dca_interval_fires_every_k_bars ... ok
+test policy::tests::dca_interval_positive_still_valid ... ok
+test policy::tests::dca_interval_zero_is_rejected_loudly ... FAILED
+
+failures:
+
+---- policy::tests::dca_interval_zero_is_rejected_loudly stdout ----
+
+thread 'policy::tests::dca_interval_zero_is_rejected_loudly' (1216286) panicked at crates/strategy-core/src/policy.rs:609:10:
+interval=0 必须被拒绝（D6：静默归一化 → fail loud）: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    policy::tests::dca_interval_zero_is_rejected_loudly
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --lib`
+MUTATION_TEST_PIPE_DONE
+### full lib suite under mutation:
+test policy::tests::dca_interval_zero_is_rejected_loudly ... FAILED
+test policy::tests::lump_sum_hold_unfreezes_and_next_buy_resnapshots ... ok
+test policy::tests::lump_sum_repeated_buy_is_idempotent ... ok
+test policy::tests::lump_sum_sell_target_zero_hold_keeps_current ... ok
+test policy::tests::lump_sum_sell_unfreezes ... ok
+test policy::tests::policy_state_reset_clears_lump_freeze_and_dca ... ok
+test policy::tests::policy_validation ... FAILED
+test reference::tests::official_templates_len_4_and_wellformed ... ok
+test stop::tests::atr_line ... ok
+test stop::tests::default_trigger_is_intrabar ... ok
+test stop::tests::intrabar_fill_price_is_line_minus_slippage ... ok
+test stop::tests::close_basis_triggers_on_close_cross ... ok
+test stop::tests::trailing_line_uses_peak_close ... ok
+test stop::tests::fixed_pct_line ... ok
+test stop::tests::intrabar_triggers_on_low_cross ... ok
+test stop::tests::trailing_peak_tracks_max_close_since_entry ... ok
+test reference::tests::reference_plugins_match_builtin_order ... ok
+test reference::tests::t12_dcap_registered_with_plugin_abi_and_core_sentinels ... ok
+
+failures:
+
+---- policy::tests::dca_interval_zero_is_rejected_loudly stdout ----
+
+thread 'policy::tests::dca_interval_zero_is_rejected_loudly' (1216355) panicked at crates/strategy-core/src/policy.rs:609:10:
+interval=0 必须被拒绝（D6：静默归一化 → fail loud）: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- policy::tests::policy_validation stdout ----
+
+thread 'policy::tests::policy_validation' (1216364) panicked at crates/strategy-core/src/policy.rs:591:10:
+interval=0 必须拒绝（不再静默归一化为 1）: ()
+
+
+failures:
+    policy::tests::dca_interval_zero_is_rejected_loudly
+    policy::tests::policy_validation
+
+test result: FAILED. 34 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --lib`
+MUTATION_FULL_DONE

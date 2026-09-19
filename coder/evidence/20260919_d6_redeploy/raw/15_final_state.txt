@@ -1,0 +1,62 @@
+### 15 终态  2026-09-19 16:36:52
+### 进程/端口
+    PID    PPID                  STARTED     ELAPSED CMD
+1210738       1 Sat Sep 19 16:36:14 2026       00:37 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1210738,fd=12)) 
+### healthz
+HTTP=200
+### 终态日志 ERROR/WARN 计数（logs/app_dev_8081_redeploy_20260919_163614.log）
+总行数=28
+ERROR=0
+WARN=0
+### 旧 PID 818710 终态
+    PID TTY          TIME CMD
+  (exit=1)
+ls: cannot access '/proc/818710': No such file or directory
+### pgrep -a eestock-app
+1210738 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+
+### git 纪律终态
+### git diff --cached --stat（须为空）
+(end)
+### git diff --stat（与本轮部署前一致：4 个文件为 D6 既有未提交修复）
+ crates/strategy-core/src/policy.rs                 | 110 +++++++++++++++++++--
+ .../adr/ADR-023-period-set-extension-30m.md        |   7 +-
+ design/12-strategy-system/01-adr.md                |   2 +-
+ web/src/features/workbench/ConfigPanel.test.tsx    |  26 +++++
+ 4 files changed, 137 insertions(+), 8 deletions(-)
+### 未执行 git 写操作自证：reflog 尾部
+40d16e1 HEAD@{0}: commit: feat(adr026): 回测结果执行完整度审计与口径披露（/audit + MCP bt_get_run_audit）
+e807385 HEAD@{1}: commit: chore(deploy): ADR-024 上线记录与手册修订
+8b1840a HEAD@{2}: commit: fix(ops): TimescaleDB worker 槽位耗尽根治 + ADR-025 决策 + 事故证据链
+
+### 证据文件清单（sha256）
+974a7d82252df0c309f2ec9c2dfc62dd074db0afb4f18fdbbbfef7e77def91dc  coder/evidence/20260919_d6_redeploy/raw/00_pre_state.txt
+bc56f2762388b90bab33adc35ff7ec1d67ad6b729bc953d1dc5fdeec4f8cf29b  coder/evidence/20260919_d6_redeploy/raw/01_baseline_smoke_old.txt
+6529a579cd55296e4114494352c09044fd1822fb0c3c2cf970a42cd82fa51a22  coder/evidence/20260919_d6_redeploy/raw/02_tsc_b.txt
+870c0ae55187678725616d0821a7044cec594ae8d84016314c3219ad2d6542e7  coder/evidence/20260919_d6_redeploy/raw/03_npm_build.txt
+552629c1c6823de3a4056476e91cc0c7f5fff3ae8c6fb3a596e4add12b4984cd  coder/evidence/20260919_d6_redeploy/raw/04_post_build_dist.txt
+d8f10baed947f4867aa8e3da2032af544f35b4735c15eab748b7cdbcb1e4a2fb  coder/evidence/20260919_d6_redeploy/raw/05_cargo_build.txt
+738ccb38974f8ef8db3366fe0a0f7b158ea969bd56e50e6ee27d93c1dbc7028c  coder/evidence/20260919_d6_redeploy/raw/06_bin_static_diff.txt
+6cd839d1cbc7571027487f0cafe9d23c5f2e7d5949742435d521794b081f98c9  coder/evidence/20260919_d6_redeploy/raw/07_stop_old_pid.txt
+2e80088a8adbccc2752983df55b97b7b9dec2c41e054aa22959e92d961b2def2  coder/evidence/20260919_d6_redeploy/raw/08_start_new.txt
+516ac738f1c85c9357bdd555a47b5709b52e1e78a2560a2451b8cc487a0b376e  coder/evidence/20260919_d6_redeploy/raw/09_startup_log.txt
+04b26e10cbdd9cde87cd027182cd9c1c3dec435dfc92399271adc4e36e4a70a8  coder/evidence/20260919_d6_redeploy/raw/10_post_deploy_selfcheck.txt
+b0efc997ca24d5371463cfe055751608994559ebf70fed4d535c7881624e656e  coder/evidence/20260919_d6_redeploy/raw/11_static_origin.txt
+35cbcead1d4fa6e7067b34229a9ce9eb423c72e54bc3ae1fc98fad3c83b9d731  coder/evidence/20260919_d6_redeploy/raw/12_smoke_interval0.txt
+a33048b267ff601db8f65481be2e657fa09ed2cdae219363bf317ef25f067dba  coder/evidence/20260919_d6_redeploy/raw/13_smoke_interval_omitted.txt
+7cf70e42250fd3b21b192b54a23fc15dab4ae6b3fb549ca7f8934bf86e8056eb  coder/evidence/20260919_d6_redeploy/raw/14b_equivalence.txt
+a655026dbc1880622ee69442653088ed37e22742964dbfd89bb1c2428f0e940c  coder/evidence/20260919_d6_redeploy/raw/14_extra_checks.txt
+d333b2b2fec0aa59fb5aceb4cbd845b9153fdb609af4f32f8b968dc087ec41a3  coder/evidence/20260919_d6_redeploy/raw/15_final_state.txt
+7fcb7d03043588c610446f2c3bc396f7823575095e94507a672a8f4735d687fd  coder/evidence/20260919_d6_redeploy/raw/baseline_body_interval0.json
+189da748a7e9782d9a21fb1cc3babfe3a2691e28a35d047169c12af749f6af01  coder/evidence/20260919_d6_redeploy/raw/baseline_body_no_interval.json
+b65b3e7e416a43a43087e727a44a88c0732efb59eb28e47c17e769590517a51f  coder/evidence/20260919_d6_redeploy/raw/body_interval1.json
+9fac74d75a0da6c4060d1c3d56d26407fbdb41127f4722cb23df3ab915c0ca2b  coder/evidence/20260919_d6_redeploy/raw/.newpid
+
+### 本轮产生的业务侧副作用（如实记录）
+- workbench run sr_1789806942293_000012（旧二进制 + interval=0 → 201，旧行为基线，已 succeeded）
+- workbench run sr_1789806985225_000000（新二进制 + 省略 interval → 201，已 succeeded）
+- workbench run sr_1789807001774_000001（新二进制 + 显式 interval=1 → 201，已 succeeded）
+- /api/config/kline：先 PUT 130 后已恢复原值 120（终态 GET 复核 = 120）
+- 未创建/未 DROP 临时测试库（本轮无 DB 测试）

@@ -1,0 +1,20 @@
+### 停机前：运行镜像 vs 磁盘二进制
+sha256 /proc/818710/exe       = 895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b
+sha256 target/debug/eestock-app = ead45c291f632563524edbc14192adf843ecfb98660d5bce361012138cbb4d02
+readlink /proc/818710/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+
+### kill -TERM 818710  @ 2026-09-19 16:36:10.045
+exited after 200ms  (2026-09-19 16:36:10.151)
+### ps -p 818710
+    PID TTY          TIME CMD
+  (exit=1；无输出=进程不存在)
+### ls -ld /proc/818710
+ls: cannot access '/proc/818710': No such file or directory
+### ss -lntp 8081/8082（应无监听）
+  grep_exit=1 (1=无匹配=端口已释放)
+### pgrep -a eestock-app（应无输出，含 nohup 包装残留检查）
+  pgrep_exit=1
+### 旧日志尾部（进程退出前最后 3 行）
+{"timestamp":"2026-09-19T08:35:42.302649Z","level":"INFO","fields":{"message":"p4b.segment","trace_id":"9be96304d8c9521f4cb51c64d064b679","run_id":"sr_1789806942293_000012","elapsed_us":0},"target":"application::workbench","span":{"run_id":"sr_1789806942293_000012","segment":"result_serialize","name":"p4b.segment"},"spans":[{"bars_total":49,"period":"M5","run_id":"sr_1789806942293_000012","symbol":"518880","trace_id":"9be96304d8c9521f4cb51c64d064b679","name":"workbench_run"},{"run_id":"sr_1789806942293_000012","segment":"result_serialize","name":"p4b.segment"}]}
+{"timestamp":"2026-09-19T08:35:42.304086Z","level":"INFO","fields":{"message":"p4b.segment","trace_id":"9be96304d8c9521f4cb51c64d064b679","run_id":"sr_1789806942293_000012","elapsed_us":1406},"target":"application::workbench","span":{"run_id":"sr_1789806942293_000012","segment":"result_write","name":"p4b.segment"},"spans":[{"bars_total":49,"period":"M5","run_id":"sr_1789806942293_000012","symbol":"518880","trace_id":"9be96304d8c9521f4cb51c64d064b679","name":"workbench_run"},{"run_id":"sr_1789806942293_000012","segment":"result_write","name":"p4b.segment"}]}
+{"timestamp":"2026-09-19T08:35:42.304150Z","level":"INFO","fields":{"message":"p4b.run_summary","run_id":"sr_1789806942293_000012","trace_id":"9be96304d8c9521f4cb51c64d064b679","outcome":"succeeded","bars_total":49,"progress_frames_produced":49,"progress_db_writes":2,"progress_db_throttled":47,"progress_db_write_ms":1.997,"progress_ws_send_ms":0.015,"progress_frame_avg_ms":0.9985,"permit_hold_ms":9.702,"permit_wait_ms":0.002,"fetch_ms":4.461,"mark_started_ms":1.05,"engine_ms":1.591,"progress_drain_total_ms":6.995,"progress_drain_tail_ms":5.299,"result_serialize_ms":0.0,"result_write_ms":1.406,"engine_share_pct":16.4,"progress_db_share_pct":20.58,"progress_tail_share_pct":54.62,"result_write_share_pct":14.49,"result_serialize_share_pct":0.0,"mark_started_share_pct":10.82,"global_runs_total":13,"global_frames_total":8239,"global_db_writes_total":124,"global_db_write_ms_total":179.438,"global_permit_hold_ms_total":34747.015},"target":"application::workbench","span":{"bars_total":49,"period":"M5","run_id":"sr_1789806942293_000012","symbol":"518880","trace_id":"9be96304d8c9521f4cb51c64d064b679","name":"workbench_run"},"spans":[{"bars_total":49,"period":"M5","run_id":"sr_1789806942293_000012","symbol":"518880","trace_id":"9be96304d8c9521f4cb51c64d064b679","name":"workbench_run"}]}

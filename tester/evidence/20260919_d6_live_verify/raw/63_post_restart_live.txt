@@ -1,0 +1,11 @@
+## post-restart live behaviour (rebuilt binary, pid 1217966) 2026-09-19T16:40:23+08:00
+### pgrep -a eestock-app (wrapper residue check):
+1217966 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### ① interval=0 (must be 400):
+{"error":{"code":"policy_invalid","detail":{"period":"M5"},"message":"Dca.interval 必须 ≥ 1（省略即为默认 1）"}}
+HTTP=400
+### ② omitted interval (must be 201 + config echo):
+id= sr_1789807223339_000000 status= queued policy_echo= {"Dca": {"amount": null, "mode": "Equal", "tranches": 2}}
+HTTP= 201
+### ③ restart log ERROR count:
+0

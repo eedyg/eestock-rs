@@ -1,0 +1,57 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.51s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 46 tests
+test audit::tests::commission_follows_fee_contract_min_and_rate ... ok
+test audit::tests::dca_plan_met_has_no_dca_warning ... ok
+test audit::tests::force_closed_round_trips_match_by_close_bar ... ok
+test audit::tests::full_deployment_lumpsum_has_no_warnings ... ok
+test audit::tests::fills_and_trades_projection_reads_documented_fields ... ok
+test audit::tests::no_in_range_bar_means_no_last_bar_unfilled ... ok
+test audit::tests::legacy_two_way_run_is_self_consistent ... ok
+test audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning ... ok
+test audit::tests::orders_projection_treats_missing_warmup_as_in_range ... ok
+test audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar ... ok
+test audit::tests::partial_deployment_threshold_table ... ok
+test audit::tests::recorded_false_reports_zeros_and_no_warnings ... ok
+test audit::tests::target_run_shape_dca_underfilled ... ok
+test audit::tests::unexecuted_orders_is_saturating ... ok
+test audit::tests::zero_capital_basis_does_not_divide_by_zero ... ok
+test audit::tests::zero_fills_reports_partial_deployment_and_unexecuted ... ok
+test audit::tests::trade_detail_json_reads_legacy_without_reason_field ... ok
+test fee::tests::consumed_profile_fields_are_exactly_what_engine_applies ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test audit::tests::report_serializes_frozen_field_names ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::explicit_object_with_single_recognized_field_is_accepted ... ok
+test fee::tests::effective_excludes_unmodeled_profile_fields ... ok
+test fee::tests::effective_strictly_matches_fee_model_fields_and_is_disjoint_from_not_modeled ... ok
+test fee::tests::explicit_stamp_wins_over_profile ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_etf_profile ... ok
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::explicit_object_without_recognized_fields_is_rejected ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_stock_profile ... ok
+test fee::tests::partial_explicit_overrides_only_present_fields ... ok
+test fee::tests::not_modeled_matches_profile_numeric_fields_minus_consumed ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test fee::tests::resolved_json_exposes_effective_and_profile_segments ... ok
+test strategy::p2b_tests::sample_mask_uniform_preserves_first_and_last ... ok
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... ok
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

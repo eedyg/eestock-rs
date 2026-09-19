@@ -1,0 +1,24 @@
+# D6 入口审计（policy.validate 可达性，逐处 file:line）
+
+## ExecutionPolicy::validate 定义与调用点
+52:    pub fn validate(&self) -> Result<(), String> {
+crates/strategy-core/src/engine.rs:114:        self.policy.validate()?;
+crates/application/src/workbench.rs:533:        probe.validate().map_err(|m| {
+
+## EnsembleConfig::validate（含 self.policy.validate()）
+92:    pub fn validate(&self) -> Result<(), String> {
+399:        cfg.validate()
+
+## 入口 → 校验链
+web POST /api/workbench/runs : crates/web/src/workbench.rs:240 (handler) -> :332 (policy 透传 Json<Value>)
+  -> application::workbench::submit crates/application/src/workbench.rs:495 (serde 解析) -> :533 probe.validate()
+  -> EnsembleConfig::validate crates/strategy-core/src/engine.rs:92 -> :114 self.policy.validate()
+MCP bt_run_ensemble : crates/mcp/src/tools.rs:1293 (args->SubmitRunReq) :1371 -> wb.submit (同上)
+MCP strategy_test_run : crates/mcp/src/tools.rs:1188 -> application::strategy crates/application/src/strategy.rs:766-770 policy.validate()
+web 试算 POST /api/strategies/... : crates/web/src/strategies.rs:186/:498 -> 同上 strategy.rs
+MCP sim_start_session : crates/mcp/src/tools.rs:763 —— 不接受 policy（硬编码 LumpSum, crates/application/src/simlive.rs:1563）⇒ 无缺口
+预设保存/应用 : crates/application/src/workbench.rs:1488-1539 (probe.validate())
+
+## norm_interval（私有，唯一调用者 target_qty）
+100:fn norm_interval(interval: usize) -> usize {
+192:                    let k = norm_interval(*interval);

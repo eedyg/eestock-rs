@@ -1,0 +1,11 @@
+### 基线冒烟（旧进程 818710 / 运行镜像 sha 895c516e…，不含 D6 修复）  2026-09-19 16:35:42
+
+### [B1] POST /api/workbench/runs  body = policy Dca.interval=0（期望旧二进制 201）
+$ curl -s -w '\nHTTP=%{http_code}\n' -X POST -H 'content-type: application/json' --data @raw/baseline_body_interval0.json http://127.0.0.1:8081/api/workbench/runs
+{"id":"sr_1789806942293_000012","name":"","symbol":"518880","period":"M5","from_ts":"2026-09-17T01:30:00Z","to_ts":"2026-09-17T07:00:00Z","config":{"buy_threshold":60.0,"clamp_reason":null,"clamped":false,"estimated_bars":49,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.0},"initial_capital":100000.0,"policy":{"Dca":{"amount":null,"interval":0,"mode":"Equal","tranches":2}},"progress_prescan":"count","requested_from":"2026-09-17T01:30:00+00:00","requested_to":"2026-09-17T07:00:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":0,"warmup_requested":0},"status":"queued","progress":0.0,"error":null,"created_at":"2026-09-19T08:35:42.293238Z","started_at":null,"finished_at":null,"requested_from":"2026-09-17T01:30:00Z","requested_to":"2026-09-17T07:00:00Z","clamped":false,"clamp_reason":null,"estimated_bars":49,"bars_total":null,"result_format":null}
+HTTP=201
+
+### [B2] POST /api/workbench/runs  body = policy Dca 省略 interval（期望旧二进制 400 missing field）
+$ curl -s -w '\nHTTP=%{http_code}\n' -X POST -H 'content-type: application/json' --data @raw/baseline_body_no_interval.json http://127.0.0.1:8081/api/workbench/runs
+{"error":{"code":"policy_invalid","detail":{"period":"M5"},"message":"policy 非法: missing field `interval`"}}
+HTTP=400

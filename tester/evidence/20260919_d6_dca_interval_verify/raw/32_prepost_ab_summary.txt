@@ -1,0 +1,19 @@
+修复前(prefix binary, sha 895c516e) vs 修复后(fixed, sha ead45c29) —— 同一临时库/同一夹具/同一参数
+case         pre-batches post-batches         pre-notional        post-notional  same
+explicit1              6            6    57658.32074472561    57658.32074472561    EQ
+   audit(除 run_id) 逐字段相同 = True
+k5                     2            2    19906.69137925272    19906.69137925272    EQ
+   audit(除 run_id) 逐字段相同 = True
+k20                    2            2    19906.69137925272    19906.69137925272    EQ
+   audit(除 run_id) 逐字段相同 = True
+
+修复前 interval=0 行为（静默）： 201 -> succeeded batches_done= 4
+修复后 interval=0 行为（fail loud）： 400 {"error":{"code":"policy_invalid","detail":{"period":"M1"},"message":"Dca.interval 必须 ≥ 1（省略即为默认 1）"}}
+
+修复前 省略 interval： 400 {"error":{"code":"policy_invalid","detail":{"period":"M1"},"message":"policy 非法: missing field `interval`"}}
+修复后 省略 interval： 201 run sr_1789806753804_000002 batches_done= 6
+
+纸面重算（既有触发逻辑：run 内第 0 bar 触发、之后每 k bar 一批；夹具 12 bar 的 Buy 段 = bar2-5 / bar8-9）:
+  interval=1 -> 段1 4 批 + 段2 2 批 = 6 ; 实测 pre/post = 6 / 6
+  interval=5 -> 段1 bar0 触发、run 内 bar5 不存在 => 1 批 ; 段2 => 1 批 => 2 ; 实测 pre/post = 2 / 2
+  interval=20 -> 每段各 1 批 = 2 ; 实测 pre/post = 2 / 2
