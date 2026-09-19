@@ -12,6 +12,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    extract::rejection::{PathRejection, QueryRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -61,6 +62,21 @@ fn merge_detail(mut detail: serde_json::Value, ctx: &serde_json::Value) -> serde
         }
     }
     detail
+}
+
+/// 参数**形态**错误（非数字 `rt_seq`/`offset`/`limit` 等反序列化失败）→ **结构化 400**（02-spec §5.4）。
+///
+/// 背景（闸门 2 发现 L-2）：axum 内置 extractor 的 rejection 响应体是**纯文本**
+/// （`Failed to deserialize query string: …`），前端无法编程消费，也与本模块
+/// 「400 一律 `{"error":{code,message,detail}}`」（ADR-024 §3.1.1）冲突 ⇒ 在 handler 入口单点改写。
+/// `code` 复用兜底码 `request_invalid`（形态错误无语义专属码；**不新增**码以免破坏 `codes::ALL` 冻结集）。
+fn param_shape_err(what: &str, reason: String) -> Response {
+    structured(
+        StatusCode::BAD_REQUEST,
+        codes::REQUEST_INVALID,
+        &format!("参数形态非法（{what} 须为整数）"),
+        serde_json::json!({ "param": what, "reason": reason }),
+    )
 }
 
 /// application 层结构化错误（`range_empty`/`resource_guard`）→ 结构化 400。
@@ -566,15 +582,20 @@ pub async fn get_curve(
 /// GET /api/workbench/runs/{id}/fills?offset=&limit=&round_trip= —— **成交明细分页读**（ADR-024 P6）。
 /// 有界精确源：`kind='fills'` 单块（chunked）/ 内联 per_bar 事件派生（legacy）；
 /// `limit` 缺省 5000/上限 20000；响应含 `total` 与 `recorded`（区分「无成交」与「未写」）。
-/// ADR-027 §5.4：元素增 `rt_seq`/`trade_value`/`commission`/`stamp_duty`；增可选 `round_trip` 过滤。
+/// ADR-027 §5.4：元素 = `FillFact`（增 `code`/`rt_seq`/`trade_value`/`commission`/`stamp_duty`）；
+/// 增可选 `round_trip` 过滤（未知 `rt_seq` ⇒ **404**，与 §5.3 对称）；参数形态错误 ⇒ **结构化 400**。
 /// 用于 **K 线买卖标记**与成交核对；**禁止**用抽样曲线（丢真实成交）或 `trades`
 /// （仅完全平仓时合成 ⇒ 部分买入/加仓/部分卖出不进 `trades`）代替。
 pub async fn get_fills(
     State(st): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<FillsQuery>,
+    q: Result<Query<FillsQuery>, QueryRejection>,
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let Query(q) = match q {
+        Ok(q) => q,
+        Err(rej) => return param_shape_err("round_trip/offset/limit", rej.body_text()),
+    };
     let offset = q.offset.unwrap_or(0).max(0);
     let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
     match svc.result_fills_filtered(&id, offset, limit, q.round_trip).await {
@@ -587,13 +608,17 @@ pub async fn get_fills(
 ///
 /// 元素 = 02-spec §1.2 全字段 + 摘要（`l2_count`/`buy_count`/`sell_count`）；
 /// 响应自述完整性（`total`/`recorded`/`has_more`/`next_offset`，ADR-027 D11）。
-/// 错误语义与 `/result` 同：run 未知 / 无结果 ⇒ 404。
+/// 错误语义与 `/result` 同：run 未知 / 无结果 ⇒ 404；参数形态错误 ⇒ 结构化 400。
 pub async fn get_round_trips(
     State(st): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<RoundTripsQuery>,
+    q: Result<Query<RoundTripsQuery>, QueryRejection>,
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let Query(q) = match q {
+        Ok(q) => q,
+        Err(rej) => return param_shape_err("offset/limit", rej.body_text()),
+    };
     let offset = q.offset.unwrap_or(0).max(0);
     let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
     match svc.result_round_trips(&id, offset, limit).await {
@@ -605,13 +630,22 @@ pub async fn get_round_trips(
 /// GET /api/workbench/runs/{id}/round-trips/{rt_seq}/fills?offset=&limit= —— **L2 逐笔切片**（ADR-027 §5.3）。
 ///
 /// 归属**只能**由 `rt_seq` 决定（D6：禁 `[open_bar, close_bar]` 窗口推断）；
-/// **未知 `rt_seq` ⇒ 404**（禁止空数组冒充「无成交」，D8/D11）。
+/// **未知 `rt_seq` ⇒ 404**（禁止空数组冒充「无成交」，D8/D11）；
+/// 路径/查询参数**形态**错误（非数字 `rt_seq`/`offset`/`limit`）⇒ **结构化 400**（非纯文本）。
 pub async fn get_round_trip_fills(
     State(st): State<Arc<AppState>>,
-    Path((id, rt_seq)): Path<(String, u32)>,
-    Query(q): Query<RoundTripsQuery>,
+    p: Result<Path<(String, u32)>, PathRejection>,
+    q: Result<Query<RoundTripsQuery>, QueryRejection>,
 ) -> Response {
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let Path((id, rt_seq)) = match p {
+        Ok(p) => p,
+        Err(rej) => return param_shape_err("rt_seq", rej.body_text()),
+    };
+    let Query(q) = match q {
+        Ok(q) => q,
+        Err(rej) => return param_shape_err("offset/limit", rej.body_text()),
+    };
     let offset = q.offset.unwrap_or(0).max(0);
     let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
     match svc.result_round_trip_fills(&id, rt_seq, offset, limit).await {

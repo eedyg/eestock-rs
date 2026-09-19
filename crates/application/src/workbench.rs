@@ -1019,11 +1019,15 @@ impl WorkbenchService {
     }
 
     /// `GET /runs/{id}/fills?offset=&limit=&round_trip=<rt_seq>`：
-    /// 增可选 `round_trip` 过滤（ADR-027 §5.4）；元素字段增 `rt_seq`/`trade_value`/
-    /// `commission`/`stamp_duty`（由撮合点写入，见 `collect_fills`）。
+    /// 增可选 `round_trip` 过滤（ADR-027 §5.4）；元素 = **`FillFact` 同形状**（02-spec §1.1）：
+    /// `code`/`rt_seq`/`bar_index`/`ts`/`side`/`qty`/`price`/`trade_value`/`commission`/
+    /// `stamp_duty`/`reason`（事实由撮合点写入，见 `collect_fills`；本读径只投影 + 补 `code`）。
     ///
-    /// 过滤**不改变** `recorded` 语义（仍为「事实源是否可得」）；未命中 ⇒ 空页 + `total=0`
-    /// （`/fills` 是分页查询，不做 404——404 语义归属 L2 切片端点 `/round-trips/{rt_seq}/fills`）。
+    /// 过滤语义（§5.4 **冻结**，闸门 2 L-3）：`round_trip` 指向**不存在的 `rt_seq`** ⇒ `404`
+    /// （与 §5.3 `/round-trips/{rt_seq}/fills` **对称**）；**禁止**用 200 空数组冒充「该回合无成交」。
+    /// 存在性以 **L1 回合账本**（`trades`；ADR-027 D7 唯一聚合实现的物化结果）为准，
+    /// **不**以「过滤后是否为空」判定 —— 否则「未写事实源」（`recorded=false`）会被误判为「回合不存在」。
+    /// 过滤**不改变** `recorded` 语义（仍为「事实源是否可得」）。
     pub async fn result_fills_filtered(
         &self,
         run_id: &str,
@@ -1031,11 +1035,25 @@ impl WorkbenchService {
         limit: i64,
         round_trip: Option<u32>,
     ) -> anyhow::Result<FillsResponse> {
-        self.get_run(run_id).await?;
+        let run = self.get_run(run_id).await?;
         let res = self.run_store.get_result(run_id).await?.ok_or_else(|| {
             anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
         })?;
         let (all, recorded) = self.fills_all(run_id, &res).await?;
+        if let Some(rt) = round_trip {
+            let (l1, l1_recorded) = Self::round_trips_of(&res)?;
+            let exists = if l1_recorded {
+                l1.iter().any(|t| t.rt_seq == rt)
+            } else {
+                // L1 账本不可得（`trades` 非数组）⇒ 退化为「有归属成交即存在」。
+                all.iter().any(|f| Self::fill_rt_seq(f) == Some(rt))
+            };
+            if !exists {
+                return Err(anyhow!(WorkbenchNotFound(format!(
+                    "回合 {rt} 不属于运行 {run_id}（L1 回合账本无该 rt_seq）"
+                ))));
+            }
+        }
         // 归属**只能**由 `rt_seq` 决定（ADR-027 D6：禁止 `[open_bar, close_bar]` 窗口推断）。
         let all: Vec<serde_json::Value> = match round_trip {
             None => all,
@@ -1044,6 +1062,10 @@ impl WorkbenchService {
                 .filter(|f| Self::fill_rt_seq(f) == Some(rt))
                 .collect(),
         };
+        // 闸门 2 L-1（§5.4）：`/fills` 元素须与 L2 切片**同形状** ⇒ 补 `code`
+        // （回测 = run 的 symbol；`sim-live` 由会话内标的携带，不由本读径猜）。
+        let all: Vec<serde_json::Value> =
+            all.iter().map(|f| Self::with_code(f, &run.symbol)).collect();
         let total = all.len() as i64;
         let offset = offset.max(0);
         let start = offset.min(total) as usize;

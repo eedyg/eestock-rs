@@ -2396,9 +2396,11 @@ async fn c4_fills_filter_and_element_increment() {
     assert!(all.recorded);
     assert!(all.round_trip.is_none(), "未过滤 ⇒ 不回显 round_trip");
     for f in &all.fills {
-        for k in ["rt_seq", "trade_value", "commission", "stamp_duty"] {
+        for k in ["code", "rt_seq", "trade_value", "commission", "stamp_duty"] {
             assert!(!f[k].is_null(), "fills 元素增字段 {k} 缺失");
         }
+        // 闸门 2 L-1：同一事实源（FillFact）在 `/fills` 与 L2 切片上必须**同形状**（02-spec §1.1/§5.4）。
+        assert_eq!(f["code"], serde_json::json!("600000"), "回测 code = run 的 symbol（L-1）");
         assert!(f["rt_seq"].as_u64().unwrap() >= 1);
         assert!(f["trade_value"].as_f64().unwrap() > 0.0);
         assert!(f["commission"].as_f64().unwrap() > 0.0, "佣金含最低佣金，必为正");
@@ -2416,6 +2418,18 @@ async fn c4_fills_filter_and_element_increment() {
         "过滤后集合 == 该回合 fills"
     );
     assert_eq!(filtered.total, l2.total);
+    // 闸门 2 L-1：同一事实源**禁止**两种形状 ⇒ `/fills` 与 L2 切片元素键集必须完全一致。
+    let keys = |f: &serde_json::Value| {
+        let mut k: Vec<String> = f.as_object().unwrap().keys().cloned().collect();
+        k.sort();
+        k
+    };
+    assert_eq!(
+        keys(&filtered.fills[0]),
+        keys(&l2.fills[0]),
+        "`/fills` 元素键集必须 == L2 切片元素键集（同一 FillFact 形状）"
+    );
+    assert!(keys(&filtered.fills[0]).contains(&"code".to_string()));
     assert_eq!(filtered.round_trip, Some(rt), "过滤参数回显");
     assert!(filtered.fills.iter().all(|f| f["rt_seq"].as_u64() == Some(rt as u64)));
 
@@ -2424,6 +2438,38 @@ async fn c4_fills_filter_and_element_increment() {
     let un = r.svc.result_fills_filtered(&id, 0, 5000, Some(rt)).await.unwrap();
     assert!(!un.recorded, "无 fills 块 ⇒ 仍是「未写」而非「无成交」");
     assert_eq!(un.total, 0);
+}
+
+/// C4b（闸门 2 L-3）：`/fills?round_trip=` 指向**不存在的 `rt_seq`** ⇒ **404**，
+/// 与 L2 切片端点 `/round-trips/{rt_seq}/fills` **对称**（02-spec §5.4 冻结：不存在 200 空数组）。
+#[tokio::test]
+async fn c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let l1 = r.svc.result_round_trips(&id, 0, 5000).await.unwrap();
+    let known = l1.round_trips[0].rt_seq;
+
+    // 正向：已知回合 ⇒ 200 + 过滤生效（不得把整条过滤路径做成 404）
+    let ok = r.svc.result_fills_filtered(&id, 0, 5000, Some(known)).await.unwrap();
+    assert_eq!(ok.round_trip, Some(known), "过滤参数回显");
+    assert!(ok.total >= 1, "已知回合必有成交（回合必有至少一笔）");
+
+    // 反向：未知回合 ⇒ 404（禁止 200 空数组冒充「该回合无成交」）
+    let unknown = known + 1000;
+    let err = r.svc.result_fills_filtered(&id, 0, 5000, Some(unknown)).await.unwrap_err();
+    assert!(
+        err.downcast_ref::<WorkbenchNotFound>().is_some(),
+        "`/fills?round_trip=<未知>` 必须 404（对称 §5.3），实际: {err}"
+    );
+    // 对称性：同一未知 rt_seq 在两个端点得到**同类**错误（404 ⇒ HTTP 404）
+    let err_l2 = r.svc.result_round_trip_fills(&id, unknown, 0, 10).await.unwrap_err();
+    assert!(
+        err_l2.downcast_ref::<WorkbenchNotFound>().is_some(),
+        "L2 切片同语义（404），实际: {err_l2}"
+    );
+    // 未过滤路径不受影响（既有契约：不带 round_trip ⇒ 200 全量）
+    let all = r.svc.result_fills(&id, 0, 5000).await.unwrap();
+    assert_eq!(all.total, l1.round_trips.iter().map(|t| t.l2_count as i64).sum::<i64>());
 }
 
 /// C5：`/curve?kind=position` + `from_ts/to_ts`（窗口回显 / `window_bars` / 缺省向后兼容）。
