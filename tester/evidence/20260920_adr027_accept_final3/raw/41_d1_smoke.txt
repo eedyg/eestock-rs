@@ -1,0 +1,82 @@
+=================== D1 SMOKE (t=2026-09-20T01:19:57+08:00) ===================
+RUN=sr_1789832477006_000002
+
+### S1 /fills (element key set)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/fills?limit=2
+HTTP=200
+--- body (first 800 bytes) ---
+{"run_id":"sr_1789832477006_000002","total":16,"offset":0,"limit":2,"has_more":true,"next_offset":2,"recorded":true,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"},{"bar_index":262,"code":"159776","commission":5.0,"price":1.075215,"qty":932.6935800785214,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":1002.8461277041275,"ts":1783440000,"type":"fill"}]}
+
+--- S1 key set ---
+keys(12)=['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+has code = True | code = 159776
+total = 16 | recorded = True
+
+### S2 /fills?round_trip=9999 (unknown RT -> 404)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/fills?round_trip=9999
+HTTP=404
+--- body (first 800 bytes) ---
+{"error":"回合 9999 不属于运行 sr_1789832477006_000002（L1 回合账本无该 rt_seq）"}
+
+### S3 /round-trips/9999/fills (unknown RT -> 404)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/round-trips/9999/fills
+HTTP=404
+--- body (first 800 bytes) ---
+{"error":"回合 9999 不属于运行 sr_1789832477006_000002（无该回合的成交事实）"}
+
+### S4a /fills?round_trip=abc (invalid -> 400 envelope)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/fills?round_trip=abc
+HTTP=400
+--- body (first 800 bytes) ---
+{"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: round_trip: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}}
+
+--- S4a envelope keys ---
+top keys= ['error']
+err keys= ['code', 'detail', 'message']
+code= request_invalid
+### S4b /fills?offset=abc (invalid -> 400 envelope)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/fills?offset=abc
+HTTP=400
+--- body (first 800 bytes) ---
+{"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: offset: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}}
+
+### S4c /fills?limit=xyz (invalid -> 400 envelope)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/fills?limit=xyz
+HTTP=400
+--- body (first 800 bytes) ---
+{"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: limit: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}}
+
+### S4d /round-trips/abc/fills (path invalid -> 400/404)
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/round-trips/abc/fills
+HTTP=400
+--- body (first 800 bytes) ---
+{"error":{"code":"request_invalid","detail":{"param":"rt_seq","reason":"Invalid URL: Cannot parse value at index 1 with value `abc` to a `u32`"},"message":"参数形态非法（rt_seq 须为整数）"}}
+
+### S5 /round-trips
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/round-trips
+HTTP=200
+--- body (first 800 bytes) ---
+{"run_id":"sr_1789832477006_000002","total":1,"recorded":true,"offset":0,"limit":5000,"has_more":false,"next_offset":null,"round_trips":[{"rt_seq":1,"code":"159776","status":"Closed","open_ts":1783353600,"close_ts":1789660800,"open_bar":261,"close_bar":314,"open_price":1.1390374607816938,"close_price":1.1947610000000002,"shares":13228.239933752147,"gross_value":15804.585171489653,"commission":80.0,"stamp_duty":0.0,"pnl":657.1243467376044,"hold_bars":53,"l2_count":16,"buy_count":15,"sell_count":1,"reason":"ForceClose"}]}
+
+--- S5 summary ---
+n= 1
+keys= ['buy_count', 'close_bar', 'close_price', 'close_ts', 'code', 'commission', 'gross_value', 'hold_bars', 'l2_count', 'open_bar', 'open_price', 'open_ts', 'pnl', 'reason', 'rt_seq', 'sell_count', 'shares', 'stamp_duty', 'status']
+rt_seq= [1]
+### S6 /round-trips/1/fills
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/round-trips/1/fills
+HTTP=200
+--- body (first 800 bytes) ---
+{"run_id":"sr_1789832477006_000002","rt_seq":1,"total":16,"recorded":true,"offset":0,"limit":5000,"has_more":false,"next_offset":null,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"},{"bar_index":262,"code":"159776","commission":5.0,"price":1.075215,"qty":932.6935800785214,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":1002.8461277041275,"ts":1783440000,"type":"fill"},{"bar_index":263,"code":"159776","commission":5.0,"price":1.0582116,"qty":939.7766928852756,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":994.482597820836,"ts":1783526400,"type":"fill"},{"bar_index":264
+
+--- S6 summary ---
+n_fills= 16 total= 16
+keys= ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+### S7 /curve?kind=position
+GET http://127.0.0.1:8081/api/workbench/runs/sr_1789832477006_000002/curve?kind=position
+HTTP=200
+--- body (first 800 bytes) ---
+{"kind":"position","points":[{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782057600},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782144000},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782230400},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782316800},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782403200},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782662400},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1782748800},{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_v
+
+--- S7 summary ---
+kind= position n_points= 65
+=================== END SMOKE ===================

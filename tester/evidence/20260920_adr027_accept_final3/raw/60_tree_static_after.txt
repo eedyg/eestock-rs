@@ -1,0 +1,12 @@
+=== t=2026-09-20T01:21:22+08:00 ===
+--- prod src hash AFTER (crates/*/src/*.rs) ---
+c4281b18d83bff48087d7d806893845441236b7a0bd605a715170d7704cf5a8d  -
+--- web src hash AFTER (web/src/**/*.ts,tsx) ---
+c2d26a008fc9c9bb24e118598ab386e51d3d23ceae6d475ba6bc33b117c4d97c  -
+--- mutated-test-file shas AFTER (must equal /tmp originals) ---
+3ba4ab828846dae878618ade960a7d615bf7a3577d88aefef4577c4677334e79  crates/web/tests/tester_p6_fills_indep.rs
+23267f5ca007eff1a9598d214288a579d59f1958df00d3a2202e792d91e1211a  web/e2e/adr028-window-sync.e2e.ts
+--- git staged-vs-worktree diff on the 3 touched test files (must be empty) ---
+(end git diff)
+--- tracked-file count modified (working tree, untracked excluded) ---
+193

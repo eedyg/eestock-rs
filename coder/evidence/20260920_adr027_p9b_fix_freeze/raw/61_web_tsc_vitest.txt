@@ -1,0 +1,19 @@
+### npx tsc -b (2026-09-20 00:35:11)
+TSC_EXIT=0
+
+### npx vitest run
+     83|     await user.type(circuit, '-1');
+     84|     await user.tab(); // 触发 onBlur 提交
+     85|     expect(screen.getByTestId('save-sources')).toBeDisabled();
+       |                                                ^
+     86|   });
+     87| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 99 passed (100)
+      Tests  1 failed | 962 passed (963)
+   Start at  00:35:15
+   Duration  7.63s (transform 3.78s, setup 4.17s, collect 15.24s, tests 39.33s, environment 30.82s, prepare 7.48s)
+

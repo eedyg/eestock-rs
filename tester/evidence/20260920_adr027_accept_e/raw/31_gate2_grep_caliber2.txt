@@ -1,0 +1,55 @@
+### 闸门2-4 口径回退 · 定向 grep
+--- G2b: 非引擎侧按费率复算费用（qty*price*rate / min_fee 复算） ---
+crates/web/src/dto.rs:692:/// 费用校验（web 层预校验）：提交入参 `fee` 为 `{rate_pct, min_fee, slippage_bp}` 三字段必齐、均为数值；
+crates/web/src/dto.rs:699:    for key in ["rate_pct", "min_fee", "slippage_bp"] {
+crates/web/src/dto.rs:1062:        let ok = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0});
+crates/web/src/dto.rs:1064:        let missing = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0});
+crates/web/src/dto.rs:1066:        let nonnum = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": "2"});
+crates/web/src/dto.rs:1070:        let etf = serde_json::json!({"rate_pct": 0.005, "min_fee": 0.0, "slippage_bp": 2.0, "stamp_duty_pct": 0.0});
+crates/web/src/dto.rs:1072:        let over = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": 1.5});
+crates/web/src/dto.rs:1074:        let neg = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": -0.1});
+crates/web/src/dto.rs:1076:        let nonnum_stamp = serde_json::json!({"rate_pct": 0.025, "min_fee": 5.0, "slippage_bp": 2.0, "stamp_duty_pct": "0"});
+crates/application/src/strategy.rs:198:    /// I-3/D6 + D11-3（v1.1 R-2/R-3）：费用入参（`{rate_pct, min_fee, slippage_bp, stamp_duty_pct?}`）；
+crates/application/src/fee.rs:13://! 字段映射：`rate_pct -> commission_rate_pct`、`min_fee -> min_commission`、`slippage_bp -> slippage_bp`；
+crates/application/src/fee.rs:39:/// **注意**：这是**入参**键名，与档案列名（`commission_rate_pct` 等）不同；`stamp_duty_pct` 虽可省略，
+crates/application/src/fee.rs:41:pub const RECOGNIZED_FEE_FIELDS: [&str; 4] = ["rate_pct", "min_fee", "slippage_bp", "stamp_duty_pct"];
+crates/application/src/fee.rs:79:        commission_rate_pct: DEFAULT_COMMISSION_RATE_PCT,
+crates/application/src/fee.rs:90:        commission_rate_pct: p.commission_rate_pct,
+crates/application/src/fee.rs:91:        min_commission: p.min_fee,
+crates/application/src/fee.rs:131:                m.commission_rate_pct = x;
+crates/application/src/fee.rs:134:            if let Some(x) = explicit_number(obj, "min_fee")? {
+crates/application/src/fee.rs:183:/// I-3/D6：`FeeModel -> serde_json`（**输入/预设钉住**形态：`{rate_pct, min_fee, slippage_bp, stamp_duty_pct}`）。
+crates/application/src/fee.rs:188:        "rate_pct": m.commission_rate_pct,
+crates/application/src/fee.rs:189:        "min_fee": m.min_commission,
+crates/application/src/fee.rs:197:/// 注意 `min_fee` 在 `FeeModel` 中名为 `min_commission`；`slippage_bp` 非档案字段（取 ADR bt-1 默认）。
+crates/application/src/fee.rs:198:const PROFILE_CONSUMED_FIELDS: [&str; 3] = ["commission_rate_pct", "min_fee", "stamp_duty_pct"];
+crates/application/src/fee.rs:218:/// - `effective`：引擎**实际应用**的参数（`commission_rate_pct`/`min_fee`/`stamp_duty_pct`/`slippage_bp`）
+crates/application/src/fee.rs:226:            "commission_rate_pct": r.model.commission_rate_pct,
+--- G3b: 以周期秒数反算 bar 序号 ---
+crates/collector/src/executor.rs:39:    roster.duty_at((shifted.timestamp() / 60) as u64, seed)
+crates/application/src/bar_map.rs:59:    let bar_secs: i64 = match period {
+crates/application/src/bar_map.rs:74:    chrono::Duration::seconds(bar_secs * factor * warmup_bars as i64)
+crates/application/src/simlive.rs:818:    /// `bar_index` = 会话内真实 bar 序号（相对 `session.start_ts`；禁 `ts / bar_sec` 反算）。
+crates/application/src/simlive.rs:1934:/// ADR-027 §2.13 / 02-spec §1.1：**禁止**用绝对纪元商 `ts / bar_sec` 反算 bar 序号
+crates/application/src/simlive.rs:1935:/// （该值与时序语义无关，见 R4 复现：`1788400817 / 60 = 29806680`）。
+--- G3c: 引擎/聚合中 bar_index 来源 ---
+crates/strategy-core/src/engine.rs:12://! 4. 各活跃 slot `on_bar` 评分：错误走 G5（中立分 50 + 错误事件自含 sha256/bar_index +
+crates/strategy-core/src/engine.rs:224:    /// 插件错误（G5：score 记中立 50；错误自含 sha256/bar_index——OnBar 包装）。
+crates/strategy-core/src/engine.rs:240:    /// 插件 on_bar 错误（G5；error 自含 sha256/bar_index）。
+crates/strategy-core/src/engine.rs:244:        bar_index: usize,
+crates/strategy-core/src/engine.rs:251:        bar_index: usize,
+crates/strategy-core/src/engine.rs:256:        bar_index: usize,
+crates/strategy-core/src/engine.rs:264:        bar_index: usize,
+crates/strategy-core/src/engine.rs:348:    fn snapshot(&self, bar_index: usize, close: f64) -> PositionSnapshot {
+crates/strategy-core/src/engine.rs:353:            bars_since_entry: (bar_index - self.entry_bar) as u64,
+crates/strategy-core/src/engine.rs:397:/// `observer` 在每 bar 末（步骤 8 记录后）恰调用一次，参数 `(bar_index, total)`；
+crates/strategy-core/src/engine.rs:506:    /// 已喂入 bar 数（= 下一次 [`EnsembleSession::push`] 的 `bar_index`）。
+crates/strategy-core/src/engine.rs:524:        bar_index: usize,
+crates/strategy-core/src/engine.rs:537:            bar_index,
+crates/strategy-core/src/engine.rs:551:            bar_index,
+crates/strategy-core/src/engine.rs:580:    /// 批量喂入（chunk 粒度由调用方决定）：每 bar 末调用 `observer`（参数 `(bar_index, total)`），
+crates/strategy-core/src/engine.rs:833:                            bar_index: i,
+crates/strategy-core/src/engine.rs:841:                                bar_index: i,
+crates/strategy-core/src/engine.rs:855:                        bar_index: i,
+crates/strategy-core/src/lib.rs:27://!   runtime 只负责把错误以 `PluginError::OnBar`（自含 sha256 + bar_index）上报。
+crates/backtest/src/round_trip.rs:115:    pub bar_index: usize,

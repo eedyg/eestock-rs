@@ -1,0 +1,27 @@
+# RED（实现前）：契约测试已写、聚合/分配为 stub
+$ cargo test -p backtest
+---- round_trip::tests::u6_distinct_rt_seq_equals_round_trip_count stdout ----
+
+thread 'round_trip::tests::u6_distinct_rt_seq_equals_round_trip_count' (1617634) panicked at crates/backtest/src/round_trip.rs:148:5:
+not implemented: P1a RED：待实现
+
+
+failures:
+    metrics::tests::open_round_trips_are_excluded_from_metrics
+    round_trip::tests::empty_fills_yield_empty_round_trips
+    round_trip::tests::output_order_code_first_appearance_then_rt_seq
+    round_trip::tests::u1_open_round_has_no_pnl
+    round_trip::tests::u1_open_round_without_sell_has_null_close_price
+    round_trip::tests::u1_table_driven_round_trip_fields
+    round_trip::tests::u2_assign_rt_seq_is_per_code
+    round_trip::tests::u2_assign_rt_seq_open_add_close_reopen
+    round_trip::tests::u2_assign_rt_seq_orphan_sell_is_zero
+    round_trip::tests::u2_assign_rt_seq_zero_length_round_same_bar
+    round_trip::tests::u4_aggregate_passes_through_facts_without_recompute
+    round_trip::tests::u4_fee_triple_is_bit_identical_to_fee_model_output
+    round_trip::tests::u6_assign_then_aggregate_seq_consistent
+    round_trip::tests::u6_distinct_rt_seq_equals_round_trip_count
+
+test result: FAILED. 32 passed; 14 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+error: test failed, to rerun pass `-p backtest --lib`

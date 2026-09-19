@@ -1,0 +1,48 @@
+### 0. 进程事实 @ 2026-09-20 00:28:08
+    PID    PPID                  STARTED CMD
+1901936       1 Sun Sep 20 00:27:56 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+exe sha:  530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41
+disk sha: 530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41
+cwd: /home/eestock/workspace/git/eestock/eestock-rs
+### healthz: 200
+
+### 1. /fills 元素键集（须 12 键且含 code）
+keys        = ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+n_keys      = 12
+has code    = True | code = 159776
+run symbol  = sr_1789832500958_000004
+
+### 1b. /fills 元素键集 vs /round-trips/1/fills（同形状）
+l2 keys     = ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type'] n= 12
+
+### 2. 未知 round_trip ⇒ 期望 404
+GET /fills?round_trip=9999 -> 404
+{"error":"回合 9999 不属于运行 sr_1789832500958_000004（L1 回合账本无该 rt_seq）"}
+GET /round-trips/9999/fills -> 404
+{"error":"回合 9999 不属于运行 sr_1789832500958_000004（无该回合的成交事实）"}
+
+### 3. 非法参数 ⇒ 期望 400 + 三键信封
+GET /fills?round_trip=abc -> 400
+   envelope keys = ['code', 'detail', 'message'] | code = request_invalid | detail.param = round_trip/offset/limit
+GET /fills?offset=-1 -> 200
+   envelope keys = [] | code = None | detail.param = None
+GET /fills?limit=xyz -> 400
+   envelope keys = ['code', 'detail', 'message'] | code = request_invalid | detail.param = round_trip/offset/limit
+GET /round-trips/abc/fills -> 400
+   envelope keys = ['code', 'detail', 'message'] | code = request_invalid | detail.param = rt_seq
+
+### 4. /round-trips 与 /round-trips/{seq}/fills 可用
+GET /round-trips -> 200
+GET /round-trips/1/fills -> 200
+
+### 5. /curve?kind=position 可用
+GET /curve?kind=position -> 200
+{"kind":"position","points":[{"cash":100000.0,"nav":100000.0,"position_ratio":0.0,"position_value":0.0,"qty":0.0,"ts":1772380800},{"cash":92511.1770095953,"nav":99490.53824613363,"position_ratio":0.07
+
+### 6. 线上前端 bundle 与 dist 一致
+index.html bundle: index-D8WPpeNL.js
+index-D8WPpeNL.js
+
+### 7. 启动日志 ERROR/WARN 计数
+log=logs/app_dev_8081_p9b_redeploy_20260920_002756.log
+ERROR=0 WARN=0 lines=7

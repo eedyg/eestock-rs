@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 1 test
+test r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl ... FAILED
+
+failures:
+
+---- r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl stdout ----
+
+thread 'r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl' (1604760) panicked at crates/strategy-core/tests/adr027_repro.rs:184:5:
+R1：TradeDetail.pnl 必须 == 该回合真实已实现盈亏（= nav[-1] − initial_capital；02-spec §2 全回合口径 Σ sell proceeds − Σ buy total_cost）: 期望 5338.715921666619，实际 4513.894182770709（Δ = -824.8217388959092，容差 0.000000001）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test adr027_repro`

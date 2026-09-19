@@ -1,0 +1,90 @@
+== 第二份 FIFO 聚合实现已删除（无 VecDeque lot / 无 stamp_duty 硬编码） ==
+-- grep -rn 'VecDeque' crates/application/src/simlive.rs
+(无命中)
+-- grep -rn 'stamp_duty: 0.0' crates/application/src/simlive.rs
+989:                        stamp_duty: 0.0,
+-- 唯一聚合实现调用点（application 车道）
+16:    aggregate_round_trips, assign_rt_seq, Bar, FeeModel, FillFact, FillReason, OrderSide,
+816:    /// → `backtest::assign_rt_seq`（**唯一打号实现**，D6：禁窗口推断）。
+833:        assign_rt_seq(&mut facts);
+838:    /// `backtest::aggregate_round_trips`（**禁止第二份配对/聚合**）。
+844:        Ok(aggregate_round_trips(&facts))
+1960:/// - `rt_seq` 置 0 占位，由 `backtest::assign_rt_seq`（唯一实现）统一分配（D6：禁窗口推断）。
+1972:            rt_seq: 0, // 占位：由 assign_rt_seq 统一打号
+1992:/// **唯一聚合实现**（ADR-027 D7）：`assign_rt_seq` 打号 + `aggregate_round_trips` 分组求和，
+1998:    assign_rt_seq(&mut fills);
+1999:    aggregate_round_trips(&fills)
+-- sim_trades_to_trade_details 定义数（应 = 1，且体内即唯一实现委托）
+crates/application/src/simlive.rs:1996:fn sim_trades_to_trade_details(trades: &[SimTrade], session_start_ts: i64, period: Period) -> Vec<TradeDetail> {
+
+== 聚合统一前（index 版旧实现，节选） ==
+fn sim_trades_to_trade_details(trades: &[SimTrade], period: Period) -> Vec<TradeDetail> {
+    use std::collections::{BTreeMap, VecDeque};
+
+    /// 开仓 lot（FIFO）。
+    struct Lot {
+        open_ts: i64,
+        open_price: f64,
+        open_qty: f64,
+        remaining: f64,
+        fee: f64,
+    }
+
+    let bar_sec = bt_bar_seconds(period);
+    let mut open: BTreeMap<String, VecDeque<Lot>> = BTreeMap::new();
+    let mut closed: Vec<TradeDetail> = Vec::new();
+
+    for t in trades {
+        match &t.side {
+            Side::Buy => {
+                open.entry(t.code.clone()).or_default().push_back(Lot {
+                    open_ts: t.ts,
+                    open_price: t.price,
+                    open_qty: t.qty,
+                    remaining: t.qty,
+                    fee: t.fee,
+                });
+            }
+            Side::Sell => {
+                let Some(queues) = open.get_mut(&t.code) else { continue };
+                let mut sell_remaining = t.qty;
+                while sell_remaining > 0.0 {
+                    let Some(lot) = queues.front_mut() else { break };
+                    let matched = lot.remaining.min(sell_remaining);
+                    if matched <= 0.0 {
+                        break;
+                    }
+                    let ratio = matched / lot.open_qty;
+                    let buy_fee_share = lot.fee * ratio;
+                    let sell_fee_share = t.fee * (matched / t.qty);
+                    let buy_cost = lot.open_price * matched + buy_fee_share;
+                    let sell_gross = t.price * matched;
+                    let pnl = (sell_gross - sell_fee_share) - buy_cost;
+                    let open_bar = (lot.open_ts / bar_sec) as usize;
+                    let close_bar = (t.ts / bar_sec) as usize;
+                    closed.push(TradeDetail {
+                        // ── 待迁移点（ADR-027 D5/D7，下一波）：sim-live 结算当前为 FIFO lot 配对（一条 lot
+                        //    一条 L1），尚未走 `aggregate_round_trips`；本处为**让 v2 类型编译通过**的最小
+                        //    机械适配：`rt_seq`/`l2_count`/买卖笔数为占位值，`code` 取真实成交代码。
+                        rt_seq: 0,
+                        code: t.code.clone(),
+                        status: RoundTripStatus::Closed,
+                        l2_count: 1,
+                        buy_count: 1,
+                        sell_count: 1,
+                        open_ts: lot.open_ts,
+                        close_ts: Some(t.ts),
+                        open_bar,
+                        close_bar: Some(close_bar),
+                        open_price: lot.open_price,
+                        close_price: Some(t.price),
+                        shares: matched,
+                        gross_value: sell_gross,
+                        commission: buy_fee_share + sell_fee_share,
+                        stamp_duty: 0.0,
+                        pnl: Some(pnl),
+                        hold_bars: Some(close_bar.saturating_sub(open_bar)),
+                        // ADR-026 Red：字段已声明但尚未接线（simlive 侧无引擎清仓来源可写）。
+                        reason: None,
+                    });
+                    lot.remaining -= matched;

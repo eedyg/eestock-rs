@@ -1,0 +1,13 @@
+   Compiling domain v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/domain)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling storage v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/storage)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling diagnose v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/diagnose)
+   Compiling alert v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/alert)
+   Compiling providers v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/providers)
+   Compiling collector v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/collector)
+   Compiling tushare v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/tushare)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.86s

@@ -1,0 +1,45 @@
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p6_fills_indep.rs:35:7
+   |
+35 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `seed_symbol_and_m1` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:119:10
+    |
+119 | async fn seed_symbol_and_m1(pool: &PgPool, code: &str, n: i64) {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `expect_ts` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:167:4
+    |
+167 | fn expect_ts(n: i64) -> Vec<DateTime<Utc>> {
+    |    ^^^^^^^^^
+
+warning: function `rfc` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:175:4
+    |
+175 | fn rfc(t: DateTime<Utc>) -> String {
+    |    ^^^
+
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:190:4
+    |
+190 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tester_p6_fills_indep.rs (target/debug/deps/tester_p6_fills_indep-a39df61bd4fcade6)
+
+running 4 tests
+test t_p6_fills_is_exact_source_and_trades_misses_partial_fills ... ok
+test t_p6_fills_paging_boundaries_and_clamps ... ok
+test t_p6_fills_rejected_by_curve_and_bars_with_hint ... ok
+test t_p6_fills_recorded_vs_unrecorded_and_legacy_derived ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+EXIT=0

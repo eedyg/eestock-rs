@@ -1,0 +1,24 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 1 test
+test r2_l1_amount_fields_are_not_whole_round_trip_sums ... FAILED
+
+failures:
+
+---- r2_l1_amount_fields_are_not_whole_round_trip_sums stdout ----
+
+thread 'r2_l1_amount_fields_are_not_whole_round_trip_sums' (1604782) panicked at crates/strategy-core/tests/adr027_repro.rs:234:5:
+R2：L1 金额字段必须 == 全回合加总（02-spec §2），实得 3 项不符:
+  L1.gross_value: 全回合期望 55406.520749979165，实际 50396.27175022916（Δ = -5010.2489997500015）
+  L1.commission: 全回合期望 30.101567937557288，实际 24.057348458338538（Δ = -6.04421947921875）
+  L1.stamp_duty: 全回合期望 27.703260374989583，实际 25.19813587511458（Δ = -2.505124499875002）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r2_l1_amount_fields_are_not_whole_round_trip_sums
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test adr027_repro`

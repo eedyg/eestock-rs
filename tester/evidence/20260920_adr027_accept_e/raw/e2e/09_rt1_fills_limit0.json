@@ -1,0 +1,1 @@
+{"run_id":"sr_1789832477006_000002","rt_seq":1,"total":16,"recorded":true,"offset":0,"limit":1,"has_more":true,"next_offset":1,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"}]}

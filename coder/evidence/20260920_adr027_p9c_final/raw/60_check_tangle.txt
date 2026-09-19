@@ -1,0 +1,5 @@
+### date: 2026-09-20 01:09:47 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        17Gi        24Gi       1.7Gi       7.2Gi        28Gi
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+EXIT=0

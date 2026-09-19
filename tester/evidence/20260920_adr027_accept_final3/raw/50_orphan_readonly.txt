@@ -1,0 +1,25 @@
+=== t=2026-09-20T01:21:17+08:00 — read-only orphan audit (default_transaction_read_only=on) ===
+--- db=eestock_test ---
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+  TOTAL orphan = 0
+--- db=eestock ---
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+  TOTAL orphan = 0

@@ -1,0 +1,11 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.98s
+     Running tests/adr027_fills_param_shape.rs (target/debug/deps/adr027_fills_param_shape-d668e40c4b49ca0f)
+
+running 2 tests
+test param_shape_errors_are_structured_json_envelope ... ok
+test wellformed_params_are_not_rejected_as_shape_error ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.01s
+

@@ -1,0 +1,10 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.64s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 2 tests
+test c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2 ... ok
+test c4_fills_filter_and_element_increment ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+

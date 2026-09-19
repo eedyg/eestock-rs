@@ -1,0 +1,17 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/workbench/roundTripAccum.test.ts (5 tests) 3ms
+ ✓ src/api/client.test.ts (43 tests) 16ms
+ ✓ src/api/mock.test.ts (56 tests) 107ms
+ ✓ src/features/workbench/useRunSeries.test.ts (6 tests) 340ms
+ ✓ src/features/workbench/roundTripLayers.test.tsx (6 tests) 632ms
+   ✓ 交易明细 L1/L2 分层（ADR-027 D8/D9/D10；ADR-028 D4） > F2：展开前无 L2 请求；展开后按 rt_seq 请求且按 next_offset 续拉全部页  374ms
+ ✓ src/features/workbench/ResultView.test.tsx (27 tests) 1035ms
+
+ Test Files  6 passed (6)
+      Tests  143 passed (143)
+   Start at  23:12:05
+   Duration  1.76s (transform 427ms, setup 175ms, collect 1.01s, tests 2.13s, environment 1.03s, prepare 547ms)
+
+exit=0

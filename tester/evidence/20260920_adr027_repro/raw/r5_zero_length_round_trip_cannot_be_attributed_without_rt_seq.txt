@@ -1,0 +1,25 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 1 test
+test r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq ... FAILED
+
+failures:
+
+---- r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq stdout ----
+
+thread 'r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq' (1604804) panicked at crates/strategy-core/tests/adr027_repro.rs:320:5:
+R5：零长回合必须可归属（l2_count == 2 且两笔同 rt_seq），实得 4 项缺口:
+  L1 缺 `l2_count` 摘要字段（02-spec §1.2）⇒ 无法表达「该回合 = 2 笔成交」；Debug: TradeDetail { open_ts: 1700086400, close_ts: 1700086400, open_bar: 1, close_bar: 1, open_price: 10.001999999999999, close_price: 9.502374619904998, shares: 9995.501524538882, gross_value: 94980.99999999999, commission: 48.739001562109465, stamp_duty: 47.49049999999999, pnl: -5090.235750000022, hold_bars: 0, reason: Some("StopTrigger") }
+  L1 缺 `rt_seq` 字段（02-spec §1.2/§3 D6 归属键）；Debug: TradeDetail { open_ts: 1700086400, close_ts: 1700086400, open_bar: 1, close_bar: 1, open_price: 10.001999999999999, close_price: 9.502374619904998, shares: 9995.501524538882, gross_value: 94980.99999999999, commission: 48.739001562109465, stamp_duty: 47.49049999999999, pnl: -5090.235750000022, hold_bars: 0, reason: Some("StopTrigger") }
+  同 bar 第 0 笔成交事实缺 `rt_seq`（02-spec §1.1 FillFact）⇒ 归属只能退化到 [open_bar, close_bar] 窗口推断（D6 明确否掉）；Debug: Fill { bar_index: 1, side: Buy, qty: 9995.501524538882, price: 10.001999999999999, reason: Policy }
+  同 bar 第 1 笔成交事实缺 `rt_seq`（02-spec §1.1 FillFact）⇒ 归属只能退化到 [open_bar, close_bar] 窗口推断（D6 明确否掉）；Debug: Fill { bar_index: 1, side: Sell, qty: 9995.501524538882, price: 9.502374619904998, reason: StopTrigger }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test adr027_repro`

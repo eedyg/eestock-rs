@@ -1,0 +1,33 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 1 test
+test r6_fill_fact_source_lacks_rt_seq_and_fee_triple ... FAILED
+
+failures:
+
+---- r6_fill_fact_source_lacks_rt_seq_and_fee_triple stdout ----
+
+thread 'r6_fill_fact_source_lacks_rt_seq_and_fee_triple' (1604826) panicked at crates/strategy-core/tests/adr027_repro.rs:371:5:
+R6：两源（fills 事实源 / per_bar.events）逐笔必须携带 rt_seq + 金额三件套（02-spec §1.1），实得 12 项缺口:
+  第 0 笔（bar1 Buy）缺 `rt_seq`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `trade_value`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `commission`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `stamp_duty`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `rt_seq`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `trade_value`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `commission`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `stamp_duty`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `rt_seq`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `trade_value`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `commission`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `stamp_duty`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r6_fill_fact_source_lacks_rt_seq_and_fee_triple
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test adr027_repro`

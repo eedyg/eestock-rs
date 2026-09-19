@@ -1,0 +1,30 @@
+FULL position: n=1699 downsampled=False original_bars=1699 k=2000 window_from=None window_to=None window_bars=1699
+{"case": "mid200_k8", "req": [1787275800, 1787727600, 8], "points": 8, "downsampled": true, "original_bars": 1699, "k_resp": 8, "window_from_ts": 1787275800, "window_to_ts": 1787727600, "window_bars": 200, "raw_bars_in_window": 200, "echo_ok": true, "all_in_window": true, "first_ts": 1787275800, "last_ts": 1787727600, "ts_minus_req": 0}
+{"case": "mid200_k2000", "req": [1787275800, 1787727600, 2000], "points": 200, "downsampled": false, "original_bars": 1699, "k_resp": 2000, "window_from_ts": 1787275800, "window_to_ts": 1787727600, "window_bars": 200, "raw_bars_in_window": 200, "echo_ok": true, "all_in_window": true, "first_ts": 1787275800, "last_ts": 1787727600, "ts_minus_req": 0}
+{"case": "mid200_k1", "req": [1787275800, 1787727600, 1], "points": 2, "downsampled": true, "original_bars": 1699, "k_resp": 1, "window_from_ts": 1787275800, "window_to_ts": 1787727600, "window_bars": 200, "raw_bars_in_window": 200, "echo_ok": true, "all_in_window": true, "first_ts": 1787275800, "last_ts": 1787727600, "ts_minus_req": 0}
+{"case": "fullrange_k8", "req": [1785720600, 1789628100, 8], "points": 8, "downsampled": true, "original_bars": 1699, "k_resp": 8, "window_from_ts": 1785720600, "window_to_ts": 1789628100, "window_bars": 1699, "raw_bars_in_window": 1699, "echo_ok": true, "all_in_window": true, "first_ts": 1785720600, "last_ts": 1789628100, "ts_minus_req": 0}
+{"case": "subbar_off", "req": [1787275860, 1787727600, 8], "points": 8, "downsampled": true, "original_bars": 1699, "k_resp": 8, "window_from_ts": 1787275860, "window_to_ts": 1787727600, "window_bars": 199, "raw_bars_in_window": 199, "echo_ok": true, "all_in_window": true, "first_ts": 1787276100, "last_ts": 1787727600, "ts_minus_req": 240}
+{"case": "empty_window", "req": [1789714500, 1789800900, 8], "points": 0, "downsampled": false, "original_bars": 1699, "k_resp": 8, "window_from_ts": 1789714500, "window_to_ts": 1789800900, "window_bars": 0, "raw_bars_in_window": 0, "echo_ok": true, "all_in_window": true, "first_ts": null, "last_ts": null, "ts_minus_req": null}
+{"case": "one_bar", "req": [1785722100, 1785722100, 8], "points": 1, "downsampled": false, "original_bars": 1699, "k_resp": 8, "window_from_ts": 1785722100, "window_to_ts": 1785722100, "window_bars": 1, "raw_bars_in_window": 1, "echo_ok": true, "all_in_window": true, "first_ts": 1785722100, "last_ts": 1785722100, "ts_minus_req": 0}
+Traceback (most recent call last):
+  File "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260920_adr027_accept_e/raw/probe_window.py", line 14, in <module>
+    d=get(f"{run}/curve?kind=position&from_ts={f}&to_ts={t}&k={k}")
+  File "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260920_adr027_accept_e/raw/probe_window.py", line 4, in get
+    with urllib.request.urlopen(BASE+p) as r: return json.loads(r.read())
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 495, in open
+    response = meth(req, response)
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 466, in _call_chain
+    result = func(*args)
+  File "/home/linuxbrew/.linuxbrew/Homebrew/Cellar/python@3.13/3.13.3_1/lib/python3.13/urllib/request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request

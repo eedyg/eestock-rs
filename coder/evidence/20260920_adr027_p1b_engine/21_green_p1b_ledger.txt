@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running tests/p1b_ledger.rs (target/debug/deps/p1b_ledger-0ce2cf0d019ae665)
+
+running 9 tests
+test p1b_i3_nav_identity_holds_on_force_close_run ... ok
+test p1b_force_close_terminates_last_round_trip ... ok
+test p1b_i3_nav_identity_holds_on_partial_sell_run ... ok
+test p1b_rt_seq_attribution_is_consistent_between_events_and_round_trips ... ok
+test p1b_i1_l1_amounts_equal_per_fill_sums ... ok
+test p1b_trade_code_is_run_symbol ... ok
+test p1b_fill_events_carry_exec_fee_values ... ok
+test p1b_u7_position_series_is_synchronous_with_nav_and_self_consistent ... ok
+test p1b_u6_i4_distinct_rt_seq_equals_round_trip_count ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

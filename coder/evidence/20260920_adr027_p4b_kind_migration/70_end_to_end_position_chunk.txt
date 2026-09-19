@@ -1,0 +1,27 @@
+### 端到端取证（测试库 eestock_test，非活库）：真实 run 的 kind='position' 分块**已落库**
+### 来源：`cargo test -p web --test adr026_run_audit`（真库门禁目标，含真实回测 run 提交 + 结果分块落库）
+### 意义：这正是 tester E 段阻塞的失败点（position 块 INSERT 被 CHECK 拒绝 ⇒ run failed）；现为 succeeded。
+
+$ psql -d eestock_test -c "select kind, count(*) from strategy_run_bars group by kind order by kind"
+   kind    | count 
+-----------+-------
+ drawdown  |     1
+ fills     |     1
+ net_value |     1
+ per_bar   |     1
+ position  |     1
+(5 rows)
+
+$ psql -d eestock_test -c "select id, status, result_format from strategy_run order by id"（归属到 run）
+                  id                  |  status   |   symbol    | result_format 
+--------------------------------------+-----------+-------------+---------------
+ sr_1789832284173_000004              | succeeded | 91794124000 | chunked_v1
+ sr_1794124_1_nofacts_chunked_nofacts | succeeded | 91794124001 | chunked_v1
+(2 rows)
+
+$ psql -d eestock_test -c "select run_id, kind, seq, jsonb_array_length(payload) as n from strategy_run_bars where kind='position'"
+         run_id          |   kind   | seq | points 
+-------------------------+----------+-----+--------
+ sr_1789832284173_000004 | position |   0 |      6
+(1 row)
+

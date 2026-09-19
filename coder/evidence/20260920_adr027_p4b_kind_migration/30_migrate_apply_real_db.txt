@@ -1,0 +1,70 @@
+### 迁移应用证据（真库 = docker-compose `timescaledb` 容器；宿主 127.0.0.1:5433；库 eestock）
+### 日期（UTC）：2026-09-19T15:36:19Z ｜ 执行者：worker（P4b 车道）
+### 纪律：本波禁止 TRUNCATE / DELETE / DROP TABLE —— 本文件全部命令均为 ALTER TABLE ADD/DROP CONSTRAINT 或只读 \d
+
+$ psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -v ON_ERROR_STOP=1 -f migrations/0028_sim_trades_fee_split.sql
+ALTER TABLE
+COMMENT
+COMMENT
+COMMENT
+EXIT=0
+
+$ psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -v ON_ERROR_STOP=1 -f migrations/0029_strategy_run_bars_kind_position.sql
+ALTER TABLE
+ALTER TABLE
+EXIT=0
+
+$ psql … -c '\d strategy_run_bars'
+                  Table "public.strategy_run_bars"
+ Column  |           Type           | Collation | Nullable | Default 
+---------+--------------------------+-----------+----------+---------
+ run_id  | text                     |           | not null | 
+ kind    | text                     |           | not null | 
+ seq     | integer                  |           | not null | 
+ ts_from | timestamp with time zone |           | not null | 
+ ts_to   | timestamp with time zone |           | not null | 
+ payload | jsonb                    |           | not null | 
+Indexes:
+    "strategy_run_bars_pkey" PRIMARY KEY, btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_seq_idx" btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_ts_idx" btree (run_id, kind, ts_from, ts_to)
+Check constraints:
+    "strategy_run_bars_kind_check" CHECK (kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text, 'position'::text]))
+Foreign-key constraints:
+    "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+
+$ psql … -c '\d sim_trades'
+                                       Table "public.sim_trades"
+   Column   |           Type           | Collation | Nullable |                Default                 
+------------+--------------------------+-----------+----------+----------------------------------------
+ id         | bigint                   |           | not null | nextval('sim_trades_id_seq'::regclass)
+ session_id | text                     |           | not null | 
+ code       | text                     |           | not null | 
+ side       | text                     |           | not null | 
+ qty        | double precision         |           | not null | 
+ price      | double precision         |           | not null | 
+ ts         | timestamp with time zone |           | not null | 
+ fee        | double precision         |           | not null | 
+ source     | text                     |           | not null | 
+ commission | double precision         |           | not null | 0
+ stamp_duty | double precision         |           | not null | 0
+Indexes:
+    "sim_trades_pkey" PRIMARY KEY, btree (id)
+    "sim_trades_session_idx" btree (session_id, ts)
+Check constraints:
+    "sim_trades_side_check" CHECK (side = ANY (ARRAY['buy'::text, 'sell'::text]))
+Foreign-key constraints:
+    "sim_trades_session_id_fkey" FOREIGN KEY (session_id) REFERENCES simsession(id) ON DELETE CASCADE
+
+
+### 幂等复跑（第二次执行 0029 ⇒ 期望等价、无报错；证明 DROP IF EXISTS + 同名 ADD 幂等）
+$ psql … -v ON_ERROR_STOP=1 -f migrations/0029_strategy_run_bars_kind_position.sql
+ALTER TABLE
+ALTER TABLE
+EXIT=0
+
+### 约束定义（pg_constraint 权威读回）
+strategy_run_bars_kind_check|CHECK ((kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text, 'position'::text])))
+strategy_run_bars_pkey|PRIMARY KEY (run_id, kind, seq)
+strategy_run_bars_run_id_fkey|FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE

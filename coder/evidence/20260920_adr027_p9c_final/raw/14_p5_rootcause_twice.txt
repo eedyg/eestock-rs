@@ -1,0 +1,25 @@
+### date: 2026-09-20 01:06:48 CST
+### 修复后 start：孤儿计数 1w/1mo = 0/0
+
+########## RUN 1 : cargo test -p web --test tester_p5_indep t_p5_http_structured_error_shape
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.35s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+test t_p5_http_structured_error_shape ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 1.68s
+
+--- RUN 1 后孤儿计数 1w/1mo = 0/0
+
+########## RUN 2 : cargo test -p web --test tester_p5_indep t_p5_http_structured_error_shape
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+
+running 1 test
+test t_p5_http_structured_error_shape ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 1.64s
+
+--- RUN 2 后孤儿计数 1w/1mo = 0/0
+

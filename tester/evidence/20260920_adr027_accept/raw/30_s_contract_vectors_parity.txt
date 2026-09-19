@@ -1,0 +1,9 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/adr027_contract_vectors_parity.rs (target/debug/deps/adr027_contract_vectors_parity-075f1f61d6081115)
+
+running 2 tests
+test adr027_contract_vectors_sim_live_l2_matches_vector ... ok
+test adr027_contract_vectors_cross_side_parity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

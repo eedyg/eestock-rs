@@ -1,0 +1,20 @@
+=== ADR-027 P0 归档恢复校验 2026-09-19T14:42:15Z ===
+dump=/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr027_p0_archive/eestock_adr027_p0_tables_20260919T144156Z.dump
+tmp_db=tmp_p0_20260919t144215z
+[1] CREATE DATABASE tmp_p0_20260919t144215z OK
+[2] pg_restore OK
+[3] 逐表 count 比对 (manifest vs restored):
+  PASS  strategy_run: manifest=414 restored=414
+  PASS  strategy_run_result: manifest=413 restored=413
+  PASS  strategy_run_bars: manifest=1039 restored=1039
+  PASS  simsession: manifest=12 restored=12
+  PASS  simsession_result: manifest=12 restored=12
+  PASS  simsession_state: manifest=4 restored=4
+  PASS  sim_trades: manifest=102 restored=102
+  PASS  sim_positions: manifest=4 restored=4
+[3] 结果: ALL TABLES MATCH (8/8)
+[4] 立即 DROP DATABASE tmp_p0_20260919t144215z
+[4] DROP DATABASE tmp_p0_20260919t144215z OK
+[5] psql -l 中 tmp_p0 匹配行（应为空）:
+  NONE — 无 tmp_p0 残留
+=== 比对结论: PASS ===

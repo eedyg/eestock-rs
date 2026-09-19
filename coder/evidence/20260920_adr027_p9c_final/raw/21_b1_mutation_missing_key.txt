@@ -1,0 +1,28 @@
+### 变异 A（去掉一个键）：FILL_KEYS_V2 删 'code' 且长度 12→11；断言 keys == FILL_KEYS_V2 必须变红
+### date: 2026-09-20 01:07:05 CST
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.68s
+     Running tests/tester_p6_fills_indep.rs (target/debug/deps/tester_p6_fills_indep-a39df61bd4fcade6)
+
+running 1 test
+test t_p6_fills_is_exact_source_and_trades_misses_partial_fills ... FAILED
+
+failures:
+
+---- t_p6_fills_is_exact_source_and_trades_misses_partial_fills stdout ----
+
+thread 't_p6_fills_is_exact_source_and_trades_misses_partial_fills' (1937630) panicked at crates/web/tests/tester_p6_fills_indep.rs:324:9:
+assertion `left == right` failed: 元素字段集合应恰为 v2 的 12 键（精确集合，不多不少）；实际 ["bar_index", "code", "commission", "price", "qty", "reason", "rt_seq", "side", "stamp_duty", "trade_value", "ts", "type"]
+  left: ["bar_index", "code", "commission", "price", "qty", "reason", "rt_seq", "side", "stamp_duty", "trade_value", "ts", "type"]
+ right: ["bar_index", "commission", "price", "qty", "reason", "rt_seq", "side", "stamp_duty", "trade_value", "ts", "type"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    t_p6_fills_is_exact_source_and_trades_misses_partial_fills
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p web --test tester_p6_fills_indep`
+RUN_EXIT=101

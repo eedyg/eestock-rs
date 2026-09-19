@@ -1,0 +1,90 @@
+{
+  "runId": "sr_1789832477006_000002",
+  "rt": {
+    "rt_seq": 1,
+    "code": "159776",
+    "status": "Closed",
+    "open_ts": 1783353600,
+    "close_ts": 1789660800,
+    "open_bar": 261,
+    "close_bar": 314,
+    "open_price": 1.1390374607816938,
+    "close_price": 1.1947610000000002,
+    "shares": 13228.239933752147,
+    "gross_value": 15804.585171489653,
+    "commission": 80,
+    "stamp_duty": 0,
+    "pnl": 657.1243467376044,
+    "hold_bars": 53,
+    "l2_count": 16,
+    "buy_count": 15,
+    "sell_count": 1,
+    "reason": "ForceClose"
+  },
+  "fullFrom": 1782057600,
+  "fullTo": 1789660801,
+  "jumped": {
+    "source": "jump",
+    "rev": 1,
+    "fromTs": 1783008000,
+    "toTs": 1789660800,
+    "spanBars": 56
+  },
+  "jumpedProbe": {
+    "ok": true,
+    "rev": 1,
+    "requestedBarSpace": 12,
+    "barSpace": 11,
+    "fromIdx": 259,
+    "toIdx": 314,
+    "fromTs": 1783008000,
+    "toTs": 1789660800,
+    "centerIdx": 287,
+    "centerTs": 1786464000,
+    "observedCenterIdx": 287,
+    "observedCenterTs": 1786464000,
+    "edgeClamped": false,
+    "error": ""
+  },
+  "full": {
+    "source": "full",
+    "rev": null,
+    "fromTs": null,
+    "toTs": null,
+    "spanBars": null
+  },
+  "fullProbe": {
+    "ok": true,
+    "rev": 2,
+    "requestedBarSpace": 10,
+    "barSpace": 9,
+    "fromIdx": 247,
+    "toIdx": 314,
+    "fromTs": 1781539200,
+    "toTs": 1789660800,
+    "centerIdx": 282,
+    "centerTs": 1785859200,
+    "observedCenterIdx": 281,
+    "observedCenterTs": 1785772800,
+    "edgeClamped": true,
+    "error": ""
+  },
+  "fullDomains": {
+    "wb-aggregate-chart": [
+      1782057600,
+      1789660801
+    ],
+    "wb-slot-chart": [
+      1782057600,
+      1789660801
+    ],
+    "wb-equity-chart": [
+      1782057600,
+      1789660801
+    ],
+    "wb-position-chart": [
+      1782057600,
+      1789660801
+    ]
+  }
+}

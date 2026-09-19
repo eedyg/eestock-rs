@@ -1,0 +1,10 @@
+== cargo build --workspace（最终态）==
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.08s
+EXIT=0
+== cargo test -p web --test adr027_fills_param_shape --no-run（编译检查）==
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+  Executable tests/adr027_fills_param_shape.rs (target/debug/deps/adr027_fills_param_shape-d668e40c4b49ca0f)

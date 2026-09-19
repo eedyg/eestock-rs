@@ -1,0 +1,42 @@
+{
+  "runId": "sr_1789832477006_000002",
+  "fill": {
+    "bar_index": 283,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.120224,
+    "qty": 893.7123851207041,
+    "reason": "Policy",
+    "rt_seq": 1,
+    "side": "Buy",
+    "stamp_duty": 0,
+    "trade_value": 1001.1580629094557,
+    "ts": 1785945600,
+    "type": "fill"
+  },
+  "dataEndIdx": 314,
+  "probe": {
+    "ok": true,
+    "rev": 2,
+    "requestedBarSpace": 5,
+    "barSpace": 5,
+    "fromIdx": 193,
+    "toIdx": 314,
+    "fromTs": 1774454400,
+    "toTs": 1789660800,
+    "centerIdx": 283,
+    "centerTs": 1785945600,
+    "observedCenterIdx": 254,
+    "observedCenterTs": 1782403200,
+    "edgeClamped": true,
+    "error": ""
+  },
+  "state": {
+    "source": "jump",
+    "rev": 2,
+    "fromTs": 1774454400,
+    "toTs": 1789660800,
+    "spanBars": 122
+  },
+  "mismatch": []
+}

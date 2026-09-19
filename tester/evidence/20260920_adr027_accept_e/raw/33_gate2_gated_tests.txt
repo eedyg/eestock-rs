@@ -1,0 +1,75 @@
+### 闸门2-3 未挣得的绿：环境变量/门禁静默跳过
+--- ignore 标记 ---
+crates/strategy-core/tests/engine.rs:740:// 性能冒烟（#[ignore]，ADR §14：单标的 5 年日线 × 3 插件 < 2s 目标）
+crates/strategy-core/tests/engine.rs:744:#[ignore = "性能冒烟：手动运行 cargo test -p strategy-core -- --ignored"]
+crates/strategy-core/tests/engine.rs:764:    // NIT-4：保留 #[ignore]，但运行时硬断言达标线（实测约 86ms，留 20x 余量防 flaky）。
+crates/storage/tests/kline_reader.rs:274:    //   **不得恢复"静默 return 通过"的写法**：换成改名/`#[ignore]`/"打印后 return"均不接受——
+crates/storage/tests/kline_reader.rs:275:    //   skip 语义下门禁同样没有测量，而 `#[ignore]` 默认不执行 ⇒ 仍是无声假绿。
+--- 缺 env 时 skip/return ---
+crates/web/tests/ws_poller.rs-14-
+crates/web/tests/ws_poller.rs-15-async fn pool() -> PgPool {
+crates/web/tests/ws_poller.rs:16:    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+crates/web/tests/ws_poller.rs-17-    test_support::test_pool().await
+crates/web/tests/ws_poller.rs-18-}
+crates/web/tests/ws_poller.rs-19-
+crates/web/tests/ws_poller.rs-20-/// 测试装配（与 app bin 同结构）：storage 具体实现注入 domain 端口 / diagnose 服务。
+crates/web/tests/api_quality.rs-15-
+crates/web/tests/api_quality.rs-16-async fn pool() -> PgPool {
+crates/web/tests/api_quality.rs:17:    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+crates/web/tests/api_quality.rs-18-    test_support::test_pool().await
+crates/web/tests/api_quality.rs-19-}
+crates/web/tests/api_quality.rs-20-
+crates/web/tests/api_quality.rs-21-fn state(pool: PgPool) -> Arc<AppState> {
+crates/web/tests/orphan_probe/mod.rs-18-
+crates/web/tests/orphan_probe/mod.rs-19-pub async fn pool() -> PgPool {
+crates/web/tests/orphan_probe/mod.rs:20:    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+crates/web/tests/orphan_probe/mod.rs-21-    test_support::test_pool().await
+crates/web/tests/orphan_probe/mod.rs-22-}
+crates/web/tests/orphan_probe/mod.rs-23-
+crates/web/tests/orphan_probe/mod.rs-24-/// 装配（复制 crates/web/tests/api_quality.rs 的 state()：web 无 test-support 装配器）。
+crates/web/tests/api_alerts.rs-19-
+crates/web/tests/api_alerts.rs-20-async fn pool() -> PgPool {
+crates/web/tests/api_alerts.rs:21:    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+crates/web/tests/api_alerts.rs-22-    test_support::test_pool().await
+crates/web/tests/api_alerts.rs-23-}
+crates/web/tests/api_alerts.rs-24-
+crates/web/tests/api_alerts.rs-25-/// 测试装配（与 app bin 同结构；storage/sqlx 仅 dev-dependencies）。
+crates/web/tests/api_strategies.rs-16-
+crates/web/tests/api_strategies.rs-17-async fn pool() -> PgPool {
+crates/web/tests/api_strategies.rs:18:    // ADR-023 E6b：统一测试库入口（EESTOCK_TEST_DATABASE_URL + 哨兵表校验），不得回退活库。
+crates/web/tests/api_strategies.rs-19-    test_support::test_pool().await
+crates/web/tests/api_strategies.rs-20-}
+crates/web/tests/api_strategies.rs-21-
+crates/web/tests/api_strategies.rs-22-fn pref(tag: &str) -> String {
+crates/web/tests/tester_p5rect_verify.rs-17-//!    「无交集 ⇒ 400 range_empty + 回显」两种情形（真库真数据）。
+crates/web/tests/tester_p5rect_verify.rs-18-//!
+crates/web/tests/tester_p5rect_verify.rs:19://! 需要临时库：`EESTOCK_TEST_DATABASE_URL`（`scripts/testdb-init.sh` 供应）。
+crates/web/tests/tester_p5rect_verify.rs-20-//! 只读契约、不改生产代码。
+crates/web/tests/tester_p5rect_verify.rs-21-
+--- test_pool 实现 ---
+29:pub async fn test_pool() -> PgPool {
+30-    let url = match std::env::var(TEST_DB_ENV) {
+31-        Ok(v) if !v.trim().is_empty() => v,
+32-        _ => panic!(
+33-            "集成测试拒绝运行：环境变量 `{TEST_DB_ENV}` 未设置（或为空）。\n\
+34-             这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。\n\
+35-             前置步骤：先运行 `scripts/testdb-init.sh`，再 `export {TEST_DB_ENV}=...`（见 README「跑集成测试的前置步骤」）。"
+36-        ),
+37-    };
+38-
+39-    let pool = PgPool::connect(&url).await.unwrap_or_else(|e| {
+40-        panic!("`{TEST_DB_ENV}` 连接失败（测试库不可达；请先运行 scripts/testdb-init.sh）: {e}")
+41-    });
+42-
+43-    assert_test_db_sentinel(&pool).await;
+44-    pool
+45-}
+46-
+47-/// 校验哨兵表 `_eestock_test_db` 存在且值恒为 `test`；否则响亮失败。
+48-async fn assert_test_db_sentinel(pool: &PgPool) {
+49-    let row: Result<Option<(String,)>, sqlx::Error> =
+50-        sqlx::query_as("SELECT value FROM _eestock_test_db LIMIT 1")
+51-            .fetch_optional(pool)
+52-            .await;
+53-    match row {
+54-        Ok(Some((v,))) if v == SENTINEL_VALUE => {}

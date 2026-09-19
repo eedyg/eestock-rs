@@ -1,0 +1,25 @@
+=== PRE-DELETE counts (all 8 tables) ===
+strategy_run|421
+strategy_run_result|418
+strategy_run_bars|1072
+simsession|12
+simsession_result|12
+simsession_state|4
+sim_trades|102
+sim_positions|4
+=== strategy_run split by cutoff ===
+ is_old | count 
+--------+-------
+ f      |     7
+ t      |   414
+(2 rows)
+
+=== cascade tables split by parent run created_at ===
+          t          | is_old | count 
+---------------------+--------+-------
+ strategy_run_bars   | f      |    33
+ strategy_run_bars   | t      |  1039
+ strategy_run_result | f      |     5
+ strategy_run_result | t      |   413
+(4 rows)
+

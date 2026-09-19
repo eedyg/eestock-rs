@@ -1,0 +1,6 @@
+=== reversed window ===
+{"error":{"code":"from_after_to","detail":{"from_ts":1787727600,"to_ts":1787275800},"message":"from_ts 须不晚于 to_ts"}}
+HTTP 400
+=== cross-kind window consistency (from=1787275800 to=1787727600) ===
+kind=position n=200 win=(1787275800,1787727600) window_bars=200 first=1787275800 last=1787727600 recorded=True
+kind=per_bar n=200 win=(1787275800,1787727600) window_bars=200 first=1787275800 last=1787727600 recorded=True

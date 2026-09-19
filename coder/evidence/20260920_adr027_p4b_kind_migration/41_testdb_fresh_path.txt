@@ -1,0 +1,12 @@
+### 新建测试库（scripts/testdb-init.sh）—— 验证「空库全量应用迁移」路径（0027 四值 → 0029 五值）
+$ psql … -d eestock_test -c '\d strategy_run_bars'（节选）
+Check constraints:
+    "strategy_run_bars_kind_check" CHECK (kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text, 'position'::text]))
+Foreign-key constraints:
+    "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+
+$ psql … -d eestock_test -Atc "select filename from _eestock_test_migrations order by filename desc limit 3"
+0029_strategy_run_bars_kind_position.sql
+0028_sim_trades_fee_split.sql
+0027_strategy_run_result_chunks.sql

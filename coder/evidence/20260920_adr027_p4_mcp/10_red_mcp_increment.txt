@@ -1,0 +1,39 @@
+### bt_trade_detail_increment_tools_contract（HEAD 生成物 + 新测试：期望红）
+
+---- tools::tests::bt_trade_detail_increment_tools_contract stdout ----
+
+thread 'tools::tests::bt_trade_detail_increment_tools_contract' (1763135) panicked at crates/mcp/src/tools.rs:1571:66:
+text content
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tools::tests::bt_trade_detail_increment_tools_contract
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p mcp --lib`
+### sim_round_trip_tools_contract
+
+---- tools::tests::sim_round_trip_tools_contract stdout ----
+
+thread 'tools::tests::sim_round_trip_tools_contract' (1763159) panicked at crates/mcp/src/tools.rs:1571:66:
+text content
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tools::tests::sim_round_trip_tools_contract
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --lib`
+### tool_list_schema_contract（旧 35 计数）
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/mcp-45c017ec1684aa89)
+
+running 1 test
+test tools::tests::tool_list_schema_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.00s
+

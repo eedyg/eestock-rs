@@ -1,0 +1,6 @@
+L2[0] keys: ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+/fills[0] keys: ['bar_index', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+sorted equal: False
+order equal: False
+a: [{"bar_index": 267, "code": "518880", "commission": 5.0, "price": 8.416682999999999, "qty": 118.28519061781473, "reason": "Policy", "rt_seq": 1, "side": "Buy", "stamp_duty": 0.0, "trade_value": 995.5689530247207, "ts": 1785725700, "type": "fill"}, {"bar_index": 280, "code": "518880", "commission": 5.0, "price": 8.405318600000001, "qty": 118.28519061781473, "reason": "Policy", "rt_seq": 1, "side": "Sell", "stamp_duty": 0.0, "trade_value": 994.2247128044638, "ts": 1785734700, "type": "fill"}]
+b: [{"bar_index": 267, "commission": 5.0, "price": 8.416682999999999, "qty": 118.28519061781473, "reason": "Policy", "rt_seq": 1, "side": "Buy", "stamp_duty": 0.0, "trade_value": 995.5689530247207, "ts": 1785725700, "type": "fill"}, {"bar_index": 280, "commission": 5.0, "price": 8.405318600000001, "qty": 118.28519061781473, "reason": "Policy", "rt_seq": 1, "side": "Sell", "stamp_duty": 0.0, "trade_value": 994.2247128044638, "ts": 1785734700, "type": "fill"}]

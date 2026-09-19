@@ -1,0 +1,20 @@
+ ✓ src/features/workbench/chartUtils.test.ts (7 tests) 6ms
+ ✓ src/features/dashboard/chartSyncStubFidelity.test.ts (5 tests) 4ms
+ ✓ src/api/errorMessages.test.ts (5 tests) 7ms
+ ✓ src/features/workbench/roundTripAccum.test.ts (5 tests) 5ms
+ ✓ src/features/strategies/diff.test.ts (6 tests) 5ms
+ ✓ src/features/dashboard/timeshare.test.ts (3 tests) 4ms
+ ✓ src/shell/session.test.ts (7 tests) 3ms
+ ✓ src/features/symbols/validate.test.ts (5 tests) 4ms
+ ✓ src/features/strategies/format.test.ts (4 tests) 3ms
+ ✓ src/features/dashboard/chartCommon.test.ts (3 tests) 2ms
+ ✓ src/features/simlive/format.test.ts (5 tests) 2ms
+ ✓ src/features/backtest/markerSnap.test.ts (7 tests) 2ms
+ ✓ src/features/backtest/periods.test.ts (3 tests) 2ms
+ ✓ src/features/dashboard/indicatorCallGuard.test.ts (4 tests) 2ms
+
+ Test Files  100 passed (100)
+      Tests  963 passed (963)
+   Start at  00:13:02
+   Duration  7.64s (transform 3.59s, setup 4.21s, collect 15.93s, tests 39.82s, environment 30.90s, prepare 7.16s)
+

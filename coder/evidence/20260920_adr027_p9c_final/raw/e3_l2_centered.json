@@ -1,0 +1,79 @@
+{
+  "runId": "sr_1789832517708_000005",
+  "rt": {
+    "rt_seq": 3,
+    "code": "159776",
+    "status": "Closed",
+    "open_ts": 1774972800,
+    "close_ts": 1777219200,
+    "open_bar": 306,
+    "close_bar": 323,
+    "open_price": 1.1812362,
+    "close_price": 1.1667666,
+    "shares": 863.286660627209,
+    "gross_value": 1007.2540418453626,
+    "commission": 10,
+    "stamp_duty": 0,
+    "pnl": -22.491412664611403,
+    "hold_bars": 17,
+    "l2_count": 2,
+    "buy_count": 1,
+    "sell_count": 1,
+    "reason": "Policy"
+  },
+  "fill": {
+    "bar_index": 323,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.1667666,
+    "qty": 863.286660627209,
+    "reason": "Policy",
+    "rt_seq": 3,
+    "side": "Sell",
+    "stamp_duty": 0,
+    "trade_value": 1007.2540418453626,
+    "ts": 1777219200,
+    "type": "fill"
+  },
+  "probe": {
+    "ok": true,
+    "rev": 1,
+    "requestedBarSpace": 5,
+    "barSpace": 5,
+    "fromIdx": 13,
+    "toIdx": 135,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "centerIdx": 74,
+    "centerTs": 1777219200,
+    "observedCenterIdx": 74,
+    "observedCenterTs": 1777219200,
+    "edgeClamped": false,
+    "error": ""
+  },
+  "state": {
+    "source": "jump",
+    "rev": 1,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "spanBars": 123
+  },
+  "domains": {
+    "wb-aggregate-chart": [
+      1768924800,
+      1785081600
+    ],
+    "wb-slot-chart": [
+      1768924800,
+      1785081600
+    ],
+    "wb-equity-chart": [
+      1768924800,
+      1785081600
+    ],
+    "wb-position-chart": [
+      1768924800,
+      1785081600
+    ]
+  }
+}

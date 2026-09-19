@@ -1,0 +1,49 @@
+### date: 2026-09-20 01:09:36 CST   BASE=http://127.0.0.1:8081   RUN=sr_1789832500958_000004
+### 0. 进程事实
+    PID    PPID                  STARTED CMD
+1941108       1 Sun Sep 20 01:09:27 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+exe sha: 530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41
+disk sha: 530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41
+
+### 1. /fills 元素键集（须 12 键且含 code）
+keys        = ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+n_keys      = 12
+has code    = True | code = 159776
+total       = 36 recorded = True
+
+### 1b. /fills vs /round-trips/1/fills 元素键集同形状
+l2 keys     = ['bar_index', 'code', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type'] n= 12
+
+### 2. 未知 round_trip ⇒ 404
+GET /fills?round_trip=9999 -> 404
+{"error":"回合 9999 不属于运行 sr_1789832500958_000004（L1 回合账本无该 rt_seq）"}
+GET /round-trips/9999/fills -> 404
+{"error":"回合 9999 不属于运行 sr_1789832500958_000004（无该回合的成交事实）"}
+
+### 3. 非法参数 ⇒ 400 + 结构化三键信封（code/message/detail）
+GET /fills?round_trip=abc -> 400  non-json: 0 |      0 |      0 | 0      |      0 | 0      |      0 |      0 | 0      |      0 | 0
+0 |      0 |      0 | 0      |   
+GET /fills?offset=abc -> 400  non-json: 0 |      0 |      0 | 0      |      0 | 0      |      0 |      0 | 0      |      0 | 0
+0 |      0 |      0 | 0      |   
+GET /fills?limit=xyz -> 400  non-json: 0 |      0 |      0 | 0      |      0 | 0      |      0 |      0 | 0      |      0 | 0
+0 |      0 |      0 | 0      |   
+GET /round-trips?offset=abc -> 400  non-json: 0 |      0 |      0 | 0      |      0 | 0      |      0 |      0 | 0      |      0 | 0
+0 |      0 |      0 | 0      |   
+GET /round-trips/abc/fills -> 400  non-json: 0 |      0 |      0 | 0      |      0 | 0      |      0 |      0 | 0      |      0 | 0
+0 |      0 |      0 | 0      |   
+
+### 4. /round-trips 与 /round-trips/{seq}/fills 可用
+GET /round-trips -> 200
+  n_round_trips= 1 first rt_seq= 1
+GET /round-trips/1/fills -> 200
+  n_fills= 36 total= 36
+
+### 5. /curve?kind=position 可用
+GET /curve?kind=position&k=5 -> 200
+  kind= position n_points= 5
+  head= [{"cash": 100000.0, "nav": 100000.0, "position_ratio": 0.0, "position_value": 0.0, "qty": 0.0, "ts": 1772380800}]
+GET /curve?kind=net_value&k=5 -> 200
+
+### 6. 线上前端 bundle 标记
+index-D8WPpeNL.js
+index-D8WPpeNL.js

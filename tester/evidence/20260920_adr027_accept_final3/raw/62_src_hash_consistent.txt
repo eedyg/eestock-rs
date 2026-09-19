@@ -1,0 +1,10 @@
+=== t=2026-09-20T01:21:34+08:00 ===
+--- prod src (find crates -path '*/src/*' -name '*.rs' -not -path '*/target/*') ---
+c4281b18d83bff48087d7d806893845441236b7a0bd605a715170d7704cf5a8d  -
+  (BEFORE recorded in raw/00_prod_src_hash_before.txt)
+--- web src (find web/src -type f -name *.ts|*.tsx) ---
+c2d26a008fc9c9bb24e118598ab386e51d3d23ceae6d475ba6bc33b117c4d97c  -
+  (BEFORE recorded in raw/00_web_src_hash_before.txt)
+--- vs recorded BEFORE ---
+prod before=c4281b18d83bff48087d7d806893845441236b7a0bd605a715170d7704cf5a8d after=c4281b18d83bff48087d7d806893845441236b7a0bd605a715170d7704cf5a8d same=YES
+web before=c2d26a008fc9c9bb24e118598ab386e51d3d23ceae6d475ba6bc33b117c4d97c after=c2d26a008fc9c9bb24e118598ab386e51d3d23ceae6d475ba6bc33b117c4d97c same=YES

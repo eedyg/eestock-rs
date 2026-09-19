@@ -1,0 +1,35 @@
+### date: 2026-09-20 01:09:27 CST
+### 构建二进制 sha/mtime（本波重构建后）
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  target/debug/eestock-app
+2026-09-19 23:50:07.346345157 +0800 target/debug/eestock-app
+### 旧进程（pre-restart）
+old_pid=1901936
+    PID                  STARTED CMD
+1901936 Sun Sep 20 00:27:56 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### 停机前风险检查：sim-live sessions / healthz
+healthz=200
+### kill -TERM 1901936 @ 01:09:27
+exited after 1*0.5s
+(8081/8082 已无监听)
+### start new @ 01:09:28  LOG=logs/app_dev_8081_redeploy_p9c_20260920_010927.log
+spawned bg pid=1941108
+### 新进程事实
+    PID    PPID                  STARTED CMD
+1941108 1941089 Sun Sep 20 01:09:27 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### 新进程 exe sha（必须 == 磁盘 sha）
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  /proc/1941108/exe
+### 监听
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=12)) 
+### healthz
+healthz=200
+### 启动日志（前 12 行）+ ERROR/WARN 计数
+{"timestamp":"2026-09-19T17:09:28.006722Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T17:09:28.053033Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T17:09:28.054244Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T17:09:28.055427Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T17:09:28.055531Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-19T17:09:28.055543Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T17:09:30.494652Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"029219834e055e52d9c09219c7f4ffbf"},"target":"mcp::server"}
+ERROR=0 WARN=0 lines=7
+### 顺序关系：二进制 mtime = 2026-09-19 23:50:07.346345157 +0800 ；新进程启动 = Sun Sep 20 01:09:27 2026

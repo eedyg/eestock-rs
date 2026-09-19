@@ -1,0 +1,450 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+error[E0425]: cannot find value `RT_RECONCILE_TOLERANCE` in module `application::audit`
+    --> crates/application/tests/workbench.rs:2571:69
+     |
+2571 |     assert_eq!(a.report.rt_reconcile.tolerance, application::audit::RT_RECONCILE_TOLERANCE);
+     |                                                                     ^^^^^^^^^^^^^^^^^^^^^^ not found in `application::audit`
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2300:21
+     |
+2300 |     let all = r.svc.result_round_trips(&id, 0, 5000).await.unwrap();
+     |                     ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2300 -     let all = r.svc.result_round_trips(&id, 0, 5000).await.unwrap();
+2300 +     let all = r.svc.result_bars(&id, 0, 5000).await.unwrap();
+     |
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2310:24
+     |
+2310 |         let l2 = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 5000).await.unwrap();
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2329:23
+     |
+2329 |         let p = r.svc.result_round_trips(&id, off, 1).await.unwrap();
+     |                       ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2329 -         let p = r.svc.result_round_trips(&id, off, 1).await.unwrap();
+2329 +         let p = r.svc.result_bars(&id, off, 1).await.unwrap();
+     |
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2346:22
+     |
+2346 |     let past = r.svc.result_round_trips(&id, 10_000, 10).await.unwrap();
+     |                      ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2346 -     let past = r.svc.result_round_trips(&id, 10_000, 10).await.unwrap();
+2346 +     let past = r.svc.result_bars(&id, 10_000, 10).await.unwrap();
+     |
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2355:20
+     |
+2355 |     let l1 = r.svc.result_round_trips(&id, 0, 10).await.unwrap();
+     |                    ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2355 -     let l1 = r.svc.result_round_trips(&id, 0, 10).await.unwrap();
+2355 +     let l1 = r.svc.result_bars(&id, 0, 10).await.unwrap();
+     |
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2358:22
+     |
+2358 |     let full = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 5000).await.unwrap();
+     |                      ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2375:19
+     |
+2375 |     let p = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 1).await.unwrap();
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2383:21
+     |
+2383 |     let err = r.svc.result_round_trip_fills(&id, unknown, 0, 10).await.unwrap_err();
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0609]: no field `round_trip` on type `FillsResponse`
+    --> crates/application/tests/workbench.rs:2397:17
+     |
+2397 |     assert!(all.round_trip.is_none(), "未过滤 ⇒ 不回显 round_trip");
+     |                 ^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `run_id`, `total`, `offset`, `limit`, `has_more` ... and 3 others
+
+error[E0599]: no method named `result_fills_filtered` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2410:26
+     |
+2410 |     let filtered = r.svc.result_fills_filtered(&id, 0, 5000, Some(rt)).await.unwrap();
+     |                          ^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2411:20
+     |
+2411 |     let l2 = r.svc.result_round_trip_fills(&id, rt, 0, 5000).await.unwrap();
+     |                    ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_fills_filtered` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2424:20
+     |
+2424 |     let un = r.svc.result_fills_filtered(&id, 0, 5000, Some(rt)).await.unwrap();
+     |                    ^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+error[E0609]: no field `recorded` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2438:18
+     |
+2438 |     assert!(full.recorded, "chunked run 有 position 块 ⇒ recorded=true");
+     |                  ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0609]: no field `window_from_ts` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2439:21
+     |
+2439 |     assert_eq!(full.window_from_ts, None);
+     |                     ^^^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0609]: no field `window_to_ts` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2440:21
+     |
+2440 |     assert_eq!(full.window_to_ts, None);
+     |                     ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0609]: no field `window_bars` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2441:21
+     |
+2441 |     assert_eq!(full.window_bars, full.original_bars, "无窗口 ⇒ window_bars == 全序列根数");
+     |                     ^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0599]: no method named `result_curve_window` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2470:10
+     |
+2468 |       let w = r
+     |  _____________-
+2469 | |         .svc
+2470 | |         .result_curve_window(&id, ResultKind::NetValue, Some(20_000), Some(from), Some(to))
+     | |_________-^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_curve` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:1231:5
+     |
+1231 | /     pub async fn result_curve(
+1232 | |         &self,
+1233 | |         run_id: &str,
+1234 | |         kind: ResultKind,
+1235 | |         k: Option<usize>,
+1236 | |     ) -> anyhow::Result<CurveResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_curve_window` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2482:10
+     |
+2480 |       let w_empty = r
+     |  ___________________-
+2481 | |         .svc
+2482 | |         .result_curve_window(&id, ResultKind::NetValue, Some(20_000), Some(0), Some(0))
+     | |_________-^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_curve` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:1231:5
+     |
+1231 | /     pub async fn result_curve(
+1232 | |         &self,
+1233 | |         run_id: &str,
+1234 | |         kind: ResultKind,
+1235 | |         k: Option<usize>,
+1236 | |     ) -> anyhow::Result<CurveResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_curve_window` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2491:10
+     |
+2489 |       let ws = r
+     |  ______________-
+2490 | |         .svc
+2491 | |         .result_curve_window(&id, ResultKind::NetValue, Some(2), Some(from), Some(to))
+     | |_________-^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_curve` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:1231:5
+     |
+1231 | /     pub async fn result_curve(
+1232 | |         &self,
+1233 | |         run_id: &str,
+1234 | |         kind: ResultKind,
+1235 | |         k: Option<usize>,
+1236 | |     ) -> anyhow::Result<CurveResponse> {
+     | |______________________________________^
+
+error[E0609]: no field `recorded` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2513:16
+     |
+2513 |     assert!(!c.recorded, "「无该序列」必须显式披露（不得读成「无持仓」）");
+     |                ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0609]: no field `window_bars` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2514:18
+     |
+2514 |     assert_eq!(c.window_bars, 0);
+     |                  ^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0609]: no field `recorded` on type `CurveResponse`
+    --> crates/application/tests/workbench.rs:2517:16
+     |
+2517 |     assert!(nv.recorded, "legacy 有 net_value 内联列 ⇒ recorded=true");
+     |                ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `kind`, `points`, `downsampled`, `original_bars`, `k`
+
+error[E0599]: no method named `result_curve_window` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2550:10
+     |
+2548 |       let err2 = r
+     |  ________________-
+2549 | |         .svc
+2550 | |         .result_curve_window(&id, ResultKind::Fills, None, Some(0), Some(9))
+     | |_________-^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_curve` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:1231:5
+     |
+1231 | /     pub async fn result_curve(
+1232 | |         &self,
+1233 | |         run_id: &str,
+1234 | |         kind: ResultKind,
+1235 | |         k: Option<usize>,
+1236 | |     ) -> anyhow::Result<CurveResponse> {
+     | |______________________________________^
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2562:20
+     |
+2562 |     let l1 = r.svc.result_round_trips(&id, 0, 1000).await.unwrap();
+     |                    ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2562 -     let l1 = r.svc.result_round_trips(&id, 0, 1000).await.unwrap();
+2562 +     let l1 = r.svc.result_bars(&id, 0, 1000).await.unwrap();
+     |
+
+error[E0609]: no field `round_trips_closed` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2563:25
+     |
+2563 |     assert_eq!(a.report.round_trips_closed, l1.total as usize, "closed == L1 回合数（回测恒 Closed）");
+     |                         ^^^^^^^^^^^^^^^^^^ unknown field
+     |
+help: a field with a similar name exists
+     |
+2563 -     assert_eq!(a.report.round_trips_closed, l1.total as usize, "closed == L1 回合数（回测恒 Closed）");
+2563 +     assert_eq!(a.report.round_trips_total, l1.total as usize, "closed == L1 回合数（回测恒 Closed）");
+     |
+
+error[E0609]: no field `round_trips_open` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2564:25
+     |
+2564 |     assert_eq!(a.report.round_trips_open, 0, "回测恒 0");
+     |                         ^^^^^^^^^^^^^^^^ unknown field
+     |
+help: a field with a similar name exists
+     |
+2564 -     assert_eq!(a.report.round_trips_open, 0, "回测恒 0");
+2564 +     assert_eq!(a.report.round_trips_total, 0, "回测恒 0");
+     |
+
+error[E0609]: no field `round_trips_closed` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2566:18
+     |
+2566 |         a.report.round_trips_closed + a.report.round_trips_open,
+     |                  ^^^^^^^^^^^^^^^^^^ unknown field
+     |
+help: a field with a similar name exists
+     |
+2566 -         a.report.round_trips_closed + a.report.round_trips_open,
+2566 +         a.report.round_trips_total + a.report.round_trips_open,
+     |
+
+error[E0609]: no field `round_trips_open` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2566:48
+     |
+2566 |         a.report.round_trips_closed + a.report.round_trips_open,
+     |                                                ^^^^^^^^^^^^^^^^ unknown field
+     |
+help: a field with a similar name exists
+     |
+2566 -         a.report.round_trips_closed + a.report.round_trips_open,
+2566 +         a.report.round_trips_closed + a.report.round_trips_total,
+     |
+
+error[E0609]: no field `rt_reconcile` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2569:25
+     |
+2569 |     assert_eq!(a.report.rt_reconcile.checked, l1.total as usize, "逐回合核对");
+     |                         ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `recorded`, `capital_basis`, `deployed_notional`, `deployed_pct`, `cash_consumed` ... and 9 others
+
+error[E0609]: no field `rt_reconcile` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2570:22
+     |
+2570 |     assert!(a.report.rt_reconcile.mismatched.is_empty(), "正常 run 逐回合自洽（mismatched 空）");
+     |                      ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `recorded`, `capital_basis`, `deployed_notional`, `deployed_pct`, `cash_consumed` ... and 9 others
+
+error[E0609]: no field `rt_reconcile` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2571:25
+     |
+2571 |     assert_eq!(a.report.rt_reconcile.tolerance, application::audit::RT_RECONCILE_TOLERANCE);
+     |                         ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `recorded`, `capital_basis`, `deployed_notional`, `deployed_pct`, `cash_consumed` ... and 9 others
+
+error[E0609]: no field `rt_reconcile` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2588:25
+     |
+2588 |     assert_eq!(b.report.rt_reconcile.mismatched, vec![target], "篡改回合必须被标出");
+     |                         ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `recorded`, `capital_basis`, `deployed_notional`, `deployed_pct`, `cash_consumed` ... and 9 others
+
+error[E0609]: no field `rt_reconcile` on type `AuditReport`
+    --> crates/application/tests/workbench.rs:2589:25
+     |
+2589 |     assert_eq!(b.report.rt_reconcile.checked, l1.total as usize);
+     |                         ^^^^^^^^^^^^ unknown field
+     |
+     = note: available fields are: `recorded`, `capital_basis`, `deployed_notional`, `deployed_pct`, `cash_consumed` ... and 9 others
+
+error[E0599]: no method named `result_round_trips` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2606:41
+     |
+2606 |     let l1 = serde_json::to_value(r.svc.result_round_trips(&id, 0, 5000).await.unwrap()).unwrap();
+     |                                         ^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_bars` with a similar name
+     |
+2606 -     let l1 = serde_json::to_value(r.svc.result_round_trips(&id, 0, 5000).await.unwrap()).unwrap();
+2606 +     let l1 = serde_json::to_value(r.svc.result_bars(&id, 0, 5000).await.unwrap()).unwrap();
+     |
+
+error[E0599]: no method named `result_round_trip_fills` found for struct `Arc<WorkbenchService>` in the current scope
+    --> crates/application/tests/workbench.rs:2609:41
+     |
+2609 |     let l2 = serde_json::to_value(r.svc.result_round_trip_fills(&id, rt, 0, 5000).await.unwrap())
+     |                                         ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: there is a method `result_fills` with a similar name, but with different arguments
+    --> crates/application/src/workbench.rs:966:5
+     |
+ 966 | /     pub async fn result_fills(
+ 967 | |         &self,
+ 968 | |         run_id: &str,
+ 969 | |         offset: i64,
+ 970 | |         limit: i64,
+ 971 | |     ) -> anyhow::Result<FillsResponse> {
+     | |______________________________________^
+
+Some errors have detailed explanations: E0425, E0599, E0609.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `application` (test "workbench") due to 36 previous errors

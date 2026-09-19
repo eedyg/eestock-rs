@@ -1,0 +1,11 @@
+=== binary mtime ===
+-rwxrwxr-x 2 eestock eestock 215853168 2026-09-19 23:50:07.346345157 +0800 target/debug/eestock-app
+sha(disk) = 530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41
+=== proc 1941108 start ===
+    PID                  STARTED ELAPSED CMD
+1941108 Sun Sep 20 01:09:27 2026     619 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+start_epoch(proc) = 1789837768
+=== exe sha of running proc ===
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  /proc/1941108/exe
+=== binary mtime epoch ===
+1789833007 2026-09-19 23:50:07.346345157 +0800

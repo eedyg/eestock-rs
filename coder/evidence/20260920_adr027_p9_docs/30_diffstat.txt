@@ -1,0 +1,10 @@
+== git diff --stat (本波文档/类型改动，工作区 vs 索引) ==
+ design/08-backtest/01-engine-adr.md        | 80 ++++++++++++++++++++++++++++++
+ design/11-sim-live/01-adr.md               | 50 +++++++++++++++++++
+ design/12-strategy-system/01-adr.md        | 28 +++++++++++
+ design/17-trade-detail-layering/02-spec.md | 56 ++++++++++++++++++---
+ web/src/api/types.ts                       |  7 ++-
+ 5 files changed, 212 insertions(+), 9 deletions(-)
+
+== 新增文件 ==
+-rw-rw-r-- 1 eestock eestock 13502 Sep 20 00:12 design/17-trade-detail-layering/05-status.md

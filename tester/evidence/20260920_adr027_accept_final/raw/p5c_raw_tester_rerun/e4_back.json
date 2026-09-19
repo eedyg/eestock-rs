@@ -1,0 +1,43 @@
+{
+  "back": {
+    "source": "jump",
+    "rev": 3,
+    "fromTs": 1783008000,
+    "toTs": 1789660800,
+    "spanBars": 56
+  },
+  "backProbe": {
+    "ok": true,
+    "rev": 3,
+    "requestedBarSpace": 11,
+    "barSpace": 11,
+    "fromIdx": 259,
+    "toIdx": 314,
+    "fromTs": 1783008000,
+    "toTs": 1789660800,
+    "centerIdx": 287,
+    "centerTs": 1786464000,
+    "observedCenterIdx": 287,
+    "observedCenterTs": 1786464000,
+    "edgeClamped": false,
+    "error": ""
+  },
+  "backDomains": {
+    "wb-aggregate-chart": [
+      1783008000,
+      1789660800
+    ],
+    "wb-slot-chart": [
+      1783008000,
+      1789660800
+    ],
+    "wb-equity-chart": [
+      1783008000,
+      1789660800
+    ],
+    "wb-position-chart": [
+      1783008000,
+      1789660800
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+== 突变：去掉 /fills 的 code 补全（预期 c4 红）==
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib) generated 1 warning (run `cargo fix --lib -p application` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.93s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 2 tests
+test c4_fills_filter_and_element_increment ... FAILED
+test c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2 ... ok
+
+failures:
+
+---- c4_fills_filter_and_element_increment stdout ----
+
+thread 'c4_fills_filter_and_element_increment' (1822517) panicked at crates/application/tests/workbench.rs:2400:13:
+fills 元素增字段 code 缺失
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    c4_fills_filter_and_element_increment
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p application --test workbench`
+== 还原 ==
+e421266324f3c9ca61d06ce6dfffcaf061492bd5ff5066fa15b24e2c8552078f  crates/application/src/workbench.rs

@@ -1,0 +1,17 @@
+### date: 2026-09-20 00:23:40 CST
+### ss -lntp 8081/8082
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1781236,fd=11))    
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1781236,fd=12))    
+### ps
+1781236       1 Sat Sep 19 23:30:48 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### running exe sha256
+0e35fd705463471c8774717080eaec39987138aff4070c07c74aff64dba6454c  /proc/1781236/exe
+### disk bin sha256 + mtime
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  target/debug/eestock-app
+2026-09-19 23:50:07.346345157 +0800 215853168
+### cwd of running proc
+/home/eestock/workspace/git/eestock/eestock-rs
+### sim-live sessions (停机前风险检查)
+[]
+### healthz
+200

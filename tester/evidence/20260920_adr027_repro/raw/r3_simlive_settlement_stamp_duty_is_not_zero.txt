@@ -1,0 +1,24 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/adr027_repro_simlive.rs (target/debug/deps/adr027_repro_simlive-5c20a5b92208d209)
+
+running 1 test
+test r3_simlive_settlement_stamp_duty_is_not_zero ... FAILED
+
+failures:
+
+---- r3_simlive_settlement_stamp_duty_is_not_zero stdout ----
+
+thread 'r3_simlive_settlement_stamp_duty_is_not_zero' (1607806) panicked at crates/application/tests/adr027_repro_simlive.rs:277:5:
+R3：sim-live 结算费用三件套必须与撮合点事实一致，实得 3 项不符:
+  stamp_duty 必须 > 0（本笔卖出含印花税 5.9988），实际 0（simlive.rs:1914 硬编码 0.0）
+  stamp_duty 必须 == Σ_sell 印花税 = 5.9988，实际 0（Δ = -5.9988）
+  commission 必须 == Σ_buy + Σ_sell 佣金 = 10，实际 15.9988（Δ = 5.998799999999999；现口径把卖腿「佣金+印花税」合并值整笔计入 commission）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r3_simlive_settlement_stamp_duty_is_not_zero
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test adr027_repro_simlive`

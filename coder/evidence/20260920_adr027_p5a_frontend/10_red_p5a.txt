@@ -1,0 +1,18 @@
+# P5a TDD 红证据（实现前实测，输出原文）
+
+命令：
+  cd web && npx vitest run src/features/workbench/roundTripLayers.test.tsx
+
+结果（实现前）：
+  Test Files  1 failed (1)
+  Tests  6 failed (6)
+
+失败骨架（原文摘录）：
+  ❯ src/features/workbench/roundTripLayers.test.tsx:400:42
+      400|     await waitFor(() => expect(fillsSpy).toHaveBeenCalledTimes(2));
+  ...
+  F12 用例：「成交 > 首页大小 ⇒ 分页拉全（消费 next_offset）并显式披露 总量/已加载量」超时（旧实现只取 5000 首页且无续拉）
+  其余 5 例（F1/F2/F3/F5/F4 语义）在实现前因缺少 L1/L2 分层渲染与 `wb-rt-*` testid 而全红；
+  F12 之外的红判据另含：类型层缺 `L2_PAGE_SIZE`/`RoundTrip`/`RoundTripFill` 等导出（tsc 前即失败）。
+
+说明：本文件为「先红」判词的落盘记录；红运行在实现代码写入之前执行（同会话顺序：先写测试 → 运行红 → 写实现）。

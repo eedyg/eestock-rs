@@ -1,0 +1,38 @@
+### date: 2026-09-20 01:06:21 CST   库：eestock_test
+### 说明：首次清理（删 838469/831554 + refresh）后，refresh 把同类的**未物化原始残留** 836963（6 根，base 2026-09-09，同签名 close=100/vol=600）物化出来 ⇒ 必须一并清理（同一隔离库、同一类测试残留）。
+
+### 2d) 全量审计：kline_accurate 中 code 不在 symbols 的原始残留（恒等于 {836963}）
+  code  | n |         ts_min         |         ts_max         
+--------+---+------------------------+------------------------
+ 836963 | 6 | 2026-09-09 01:30:00+00 | 2026-09-09 01:35:00+00
+(1 row)
+
+
+### 2e) 精确 DELETE 三个 code 的原始行（隔离测试库唯一写库；活库 eestock 零触碰）
+DELETE 6
+
+### 2f) 有界 refresh 1w [2026-08-30 16:00Z, 2026-09-13 16:00Z)
+CALL
+### 2g) 有界 refresh 1mo [2026-07-31 16:00Z, 2026-09-30 16:00Z)
+CALL
+
+### 3b) 清理后复核：全 10 表孤儿计数（ORPHAN_ROWS_SQL 同口径；总量 = 0 为达标）
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_5m|0
+kline_15m|0
+kline_1d|0
+
+### 4c) kline_accurate / kline_raw 三 code 残留（应 0）
+ t | code | n 
+---+------+---
+(0 rows)
+
+
+### 5) 活库 eestock 孤儿计数（证明未受影响，仍 0；只读 SELECT）
+0

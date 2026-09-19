@@ -1,0 +1,45 @@
+test p5_estimator_includes_fixed_run_cost ... ok
+test p5_structured_error_shape_json ... ok
+test p5_resource_guard_confirm_and_hard_reject ... ok
+test p5_prescan_degraded_path_visible ... ok
+test p6_fills_block_single_seq_and_content ... ok
+test p6_fills_legacy_derived_from_inline_per_bar ... ok
+test p6_fills_curve_sampling_rejected ... ok
+test preset_crud_and_apply ... ok
+test p4b_run_summary_counters_are_self_consistent ... ok
+test p6_fills_paging_and_recorded ... ok
+test submit_accepts_h1_and_rejects_unknown_period ... ok
+test p6_fills_unrecorded_distinguished ... ok
+test submit_accepts_long_spans_no_calendar_cap ... ok
+test cancel_running_run_cooperative_break ... ok
+test submit_range_empty_is_structured_400_with_available_range ... ok
+test submit_rejects_bad_slots_and_config_400 ... ok
+test submit_rejects_draft_version_400 ... ok
+test run_success_end_to_end ... ok
+test submit_rejects_empty_data_range_400 ... ok
+test submit_rejects_unknown_version_404 ... ok
+test submit_rejects_unregistered_symbol_400 ... ok
+test submit_marks_published_version_not_archived ... ok
+test submit_accepts_archived_version_with_audit_marker ... ok
+test submit_fee_resolves_by_symbol_type_and_pins_source ... ok
+test submit_warmup_marks_prefix_and_pins_effective_fee ... ok
+test p4b_progress_db_time_window_throttle_reduces_writes ... ok
+test p4b_progress_terminal_frame_persisted_on_chunk_write_failure ... ok
+test p4_cancel_guard_chunks_written_not_succeeded ... ok
+test p4_curve_downsampling_marks_and_endpoints ... ok
+test p4_chunked_write_seq_and_boundaries ... ok
+test p4_brief_fields ... ok
+test p4b_progress_terminal_frame_persisted_on_cancel ... ok
+test p4_bars_range_client_filters_chunk_edges ... ok
+test p4_result_compat_chunked_first_page ... ok
+test p4_bars_paging_offset_limit_boundaries ... ok
+test cancel_queued_run_prevents_execution ... ok
+
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+
+   Doc-tests application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

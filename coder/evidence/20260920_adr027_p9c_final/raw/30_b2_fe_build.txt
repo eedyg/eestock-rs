@@ -1,0 +1,26 @@
+### date: 2026-09-20 01:07:26 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        18Gi        24Gi       1.7Gi       6.7Gi        28Gi
+Swap:          8.0Gi       5.3Gi       2.7Gi
+### npx vite build（真身 = 生产构建产物）
+vite v6.4.3 building for production...
+transforming...
+✓ 190 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.40 kB │ gzip:   0.29 kB
+dist/assets/index-CeUPb4uk.css     22.97 kB │ gzip:   5.77 kB
+dist/assets/index-D8WPpeNL.js   1,272.40 kB │ gzip: 391.73 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.95s
+BUILD_EXIT=0
+### dist 产物
+total 1276
+drwxrwxr-x 2 eestock eestock    4096 Sep 20 01:07 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 20 01:07 ..
+-rw-rw-r-- 1 eestock eestock   22971 Sep 20 01:07 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1272397 Sep 20 01:07 index-D8WPpeNL.js

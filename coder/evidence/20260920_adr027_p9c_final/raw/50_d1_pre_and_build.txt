@@ -1,0 +1,24 @@
+### date: 2026-09-20 01:09:22 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        18Gi        23Gi       1.7Gi       7.0Gi        28Gi
+Swap:          8.0Gi       5.3Gi       2.7Gi
+### PRE: listening 8081/8082
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=12)) 
+old_pid=1901936
+    PID    PPID                  STARTED CMD
+1901936       1 Sun Sep 20 00:27:56 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### running exe sha256
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  /proc/1901936/exe
+### disk bin before build (sha + mtime)
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  target/debug/eestock-app
+2026-09-19 23:50:07.346345157 +0800 215853168 target/debug/eestock-app
+
+### cargo build -p app --bin eestock-app
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+BUILD_EXIT=0
+### disk bin after build (sha + mtime)
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  target/debug/eestock-app
+2026-09-19 23:50:07.346345157 +0800 215853168 target/debug/eestock-app
+### running exe sha (still old until restart)
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  /proc/1901936/exe

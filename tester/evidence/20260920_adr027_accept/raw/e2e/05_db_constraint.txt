@@ -1,0 +1,23 @@
+$ psql -h 127.0.0.1 -p 5433 -U eestock -d eestock -c '\d strategy_run_bars'
+                  Table "public.strategy_run_bars"
+ Column  |           Type           | Collation | Nullable | Default 
+---------+--------------------------+-----------+----------+---------
+ run_id  | text                     |           | not null | 
+ kind    | text                     |           | not null | 
+ seq     | integer                  |           | not null | 
+ ts_from | timestamp with time zone |           | not null | 
+ ts_to   | timestamp with time zone |           | not null | 
+ payload | jsonb                    |           | not null | 
+Indexes:
+    "strategy_run_bars_pkey" PRIMARY KEY, btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_seq_idx" btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_ts_idx" btree (run_id, kind, ts_from, ts_to)
+Check constraints:
+    "strategy_run_bars_kind_check" CHECK (kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text]))
+Foreign-key constraints:
+    "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+
+$ grep -rn 'kind.*CHECK' migrations/*.sql
+migrations/0022_strategy_registry.sql:11:    kind        text NOT NULL DEFAULT 'strategy' CHECK (kind IN ('strategy','template')),
+migrations/0027_strategy_run_result_chunks.sql:13:    kind     text        NOT NULL CHECK (kind IN ('per_bar','net_value','drawdown','fills')),

@@ -1,0 +1,28 @@
+### 约束接受性冒烟（事务内 INSERT + ROLLBACK；不留行 —— 非 DELETE/TRUNCATE/DROP）
+### 目的：证明 kind='position' 被接受（回归修通，DB 层），且非法 kind 仍被拒绝（约束未被放宽为无约束）
+
+$ psql … <<'SQL'
+BEGIN;
+-- 正例：取一个既有 succeeded run 作父行，写 kind='position' 块（期望 INSERT 0 1）
+INSERT INTO strategy_run_bars(run_id, kind, seq, ts_from, ts_to, payload)
+SELECT id, 'position', 0, now(), now(), '[]'::jsonb FROM strategy_run WHERE status = 'succeeded' LIMIT 1;
+-- 负例（哨兵）：非法 kind 必须仍被拒绝（证明约束仍在，只是成员扩为五值）
+SAVEPOINT sp;
+INSERT INTO strategy_run_bars(run_id, kind, seq, ts_from, ts_to, payload)
+SELECT id, 'bogus_kind_sentinel', 0, now(), now(), '[]'::jsonb FROM strategy_run WHERE status = 'succeeded' LIMIT 1;
+ROLLBACK TO SAVEPOINT sp;
+ROLLBACK;
+SELECT count(*) AS rows_with_position_after_rollback FROM strategy_run_bars WHERE kind = 'position';
+BEGIN
+INSERT 0 1
+SAVEPOINT
+ERROR:  new row for relation "strategy_run_bars" violates check constraint "strategy_run_bars_kind_check"
+DETAIL:  Failing row contains (sr_1789040391904_000003, bogus_kind_sentinel, 0, 2026-09-19 15:36:28.859416+00, 2026-09-19 15:36:28.859416+00, []).
+ROLLBACK
+ROLLBACK
+ rows_with_position_after_rollback 
+-----------------------------------
+                                 0
+(1 row)
+
+EXIT=0

@@ -1,0 +1,12 @@
+### old pid 1781236 exe sha = 0e35fd... (pre-P4c 陈旧二进制；磁盘 = 530d2e... 于 23:50:07 被替换)
+### kill -TERM 1781236 @ 2026-09-20 00:27:56
+exited after 1*0.5s
+(8081/8082 无监听)
+### start new @ 2026-09-20 00:27:56
+spawned bg pid=1901936
+LOGFILE=logs/app_dev_8081_p9b_redeploy_20260920_002756.log
+### ps
+1901936 1901928 Sun Sep 20 00:27:56 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### ss
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=12)) 

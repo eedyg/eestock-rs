@@ -1,0 +1,11 @@
+### date: 2026-09-20 01:14:32 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        17Gi        23Gi       1.7Gi       7.6Gi        28Gi
+### 全量 -p web 跑完后孤儿计数（应 0，证明根因修复后不再累积）
+kline_accurate_1w|0
+kline_accurate_1mo|0
+kline_accurate_1d|0
+kline_5m|0
+
+### tsc -b（前端类型检查；确认 e2e 规格编辑无类型错误）
+TSC_EXIT=0

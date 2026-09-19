@@ -1,0 +1,13 @@
+### 形态矩阵（与冻结契约 crates/web/tests/adr027_fills_param_shape.rs 同 6 条）@ 2026-09-20 00:28:15
+400  /api/workbench/runs/sr_1789832500958_000004/fills?offset=abc keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /api/workbench/runs/sr_1789832500958_000004/fills?limit=abc keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /api/workbench/runs/sr_1789832500958_000004/fills?round_trip=abc keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /api/workbench/runs/sr_1789832500958_000004/round-trips?offset=abc keys=['code', 'detail', 'message'] code=request_invalid param=offset/limit
+400  /api/workbench/runs/sr_1789832500958_000004/round-trips/1/fills?limit=abc keys=['code', 'detail', 'message'] code=request_invalid param=offset/limit
+400  /api/workbench/runs/sr_1789832500958_000004/round-trips/abc/fills keys=['code', 'detail', 'message'] code=request_invalid param=rt_seq
+### 负向对照（形态合法 ⇒ 非 400）
+200  /api/workbench/runs/sr_1789832500958_000004/fills?offset=0&limit=10&round_trip=1
+200  /api/workbench/runs/sr_1789832500958_000004/round-trips?offset=0&limit=10
+200  /api/workbench/runs/sr_1789832500958_000004/curve?kind=position&k=5
+### /curve 非法 kind（既有口径，非本次范围）
+400 {"error":{"code":"kind_invalid","detail":{},"message":"kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）"}}

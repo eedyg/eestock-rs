@@ -1,0 +1,5 @@
+== 路由接线探针（无 v2 结果可查时的状态码形状）==
+/api/workbench/runs/sr_1789831866857_000000/round-trips                -> 404 body={"error":"运行 sr_1789831866857_000000 尚无结果（未成功完成）"}
+/api/workbench/runs/sr_1789831866857_000000/round-trips/1/fills        -> 404 body={"error":"运行 sr_1789831866857_000000 尚无结果（未成功完成）"}
+/api/workbench/runs/sr_1789831866857_000000/round-trips/abc/fills      -> 400 body=Invalid URL: Cannot parse value at index 1 with value `abc` to a `u32`
+/api/workbench/runs/__nope__/round-trips                               -> 404 body={"error":"运行不存在: __nope__"}

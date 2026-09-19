@@ -1,0 +1,10 @@
+[stitch] ⚠️  无参数默认 scoped 回写（不做全局 stitch —— 全局 stitch 已证破坏性，见 --help HAZARD）。
+[stitch]    正在用沙箱重新生成比对检测漂移 ...
+[stitch] 检测到 1 个漂移生成物：crates/web/src/lib.rs
+[stitch] round-trip 校验中（全新沙箱：回写后的文档能否重新生成出仓库中的生成物）...
+[stitch] ✅ 已回写 1 份文档（沙箱 stitch + round-trip 校验通过）：
+  - design/07-app-plane/00-web-api.md
+   design/07-app-plane/00-web-api.md | 6 ++++++
+   1 file changed, 6 insertions(+)
+[stitch] 实现侧生成物一个字节都没动（零回退）。
+[stitch] 下一步：./scripts/check-tangle.sh 复验 → git add → 提交（改动含文档 + 生成物两侧）。

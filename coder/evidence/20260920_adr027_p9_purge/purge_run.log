@@ -1,0 +1,43 @@
+BEGIN
+--- BEFORE: strategy_run partition by cutoff (created_at < cutoff) ---
+ is_old |  n  
+--------+-----
+ f      |   7
+ t      | 414
+(2 rows)
+
+--- BEFORE: simsession partition by cutoff (start_ts < cutoff) ---
+ is_old | n  
+--------+----
+ t      | 12
+(1 row)
+
+--- DELETE v1 strategy_run (created_at < cutoff); cascades to *_result / *_bars ---
+DELETE 414
+--- DELETE v1 simsession (start_ts < cutoff); cascades to *_result / *_state / sim_trades / sim_positions ---
+DELETE 12
+COMMIT
+--- AFTER: strategy_run partition by cutoff ---
+ is_old | n 
+--------+---
+ f      | 7
+(1 row)
+
+--- AFTER: simsession partition by cutoff ---
+ is_old | n 
+--------+---
+(0 rows)
+
+--- AFTER: all 8 tables ---
+       ?column?        
+-----------------------
+ strategy_run|7
+ strategy_run_result|5
+ strategy_run_bars|33
+ simsession|0
+ simsession_result|0
+ simsession_state|0
+ sim_trades|0
+ sim_positions|0
+(8 rows)
+

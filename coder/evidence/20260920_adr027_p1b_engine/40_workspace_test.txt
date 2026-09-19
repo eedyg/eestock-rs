@@ -1,0 +1,223 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+warning: constant `EPS` is never used
+   --> crates/backtest/src/round_trip.rs:343:11
+    |
+343 |     const EPS: f64 = 1e-9;
+    |           ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `backtest` (lib test) generated 1 warning
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p6_fills_indep.rs:33:7
+   |
+33 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `seed_symbol_and_m1` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:117:10
+    |
+117 | async fn seed_symbol_and_m1(pool: &PgPool, code: &str, n: i64) {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `expect_ts` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:165:4
+    |
+165 | fn expect_ts(n: i64) -> Vec<DateTime<Utc>> {
+    |    ^^^^^^^^^
+
+warning: function `rfc` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:173:4
+    |
+173 | fn rfc(t: DateTime<Utc>) -> String {
+    |    ^^^
+
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:188:4
+    |
+188 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.85s
+     Running unittests src/lib.rs (target/debug/deps/alert-cd40ed1180379951)
+
+running 8 tests
+test rules::tests::expected_minutes_elapsed_curve ... ok
+test rules::tests::gap_rate_fires_only_for_enabled_and_past_grace ... ok
+test rules::tests::gap_rate_zero_bars_is_full_gap ... ok
+test rules::tests::stall_only_in_session_and_na_not_success ... ok
+test rules::tests::success_rate_min_samples_guard ... ok
+test rules::tests::trading_session_boundaries ... ok
+test rules::tests::success_rate_breach_boundary_and_na_exclusion ... ok
+test rules::tests::tushare_latest_failure_freshness_window ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (target/debug/deps/engine-390b82536e1b8e90)
+
+running 6 tests
+test disabled_rule_skipped ... ok
+test list_filter_and_rule_patch_passthrough ... ok
+test aggregation_silence_and_refire_reopens ... ok
+test silence_suppresses_new_incident_after_resolve ... ok
+test gap_stall_tushare_rules_dispatch ... ok
+test full_lifecycle_fire_ack_resolve ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/app-7babe33f2756f2ab)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/eestock-app.rs (target/debug/deps/eestock_app-783a77953e067f8d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/eestock-data.rs (target/debug/deps/eestock_data-e177ca8c887cabe2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/app_config.rs (target/debug/deps/app_config-d27f660d20909498)
+
+running 1 test
+test parse_minimal_uses_defaults_and_env_overrides ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/config_healthz.rs (target/debug/deps/config_healthz-648d558c4c9e02e7)
+
+running 3 tests
+test self_check_false_when_down ... ok
+test config_parse_and_defaults ... ok
+test healthz_serves_200_and_404 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/deps/application-f60986817f736cde)
+
+running 47 tests
+test audit::tests::commission_follows_fee_contract_min_and_rate ... ok
+test audit::tests::force_closed_round_trips_match_by_close_bar ... ok
+test audit::tests::dca_plan_met_has_no_dca_warning ... ok
+test audit::tests::fills_and_trades_projection_reads_documented_fields ... ok
+test audit::tests::full_deployment_lumpsum_has_no_warnings ... ok
+test audit::tests::no_in_range_bar_means_no_last_bar_unfilled ... ok
+test audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning ... ok
+test audit::tests::legacy_two_way_run_is_self_consistent ... ok
+test audit::tests::order_side_relocation_keeps_type_identity_and_serde_shape ... ok
+test audit::tests::orders_projection_treats_missing_warmup_as_in_range ... ok
+test audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar ... ok
+test audit::tests::partial_deployment_threshold_table ... ok
+test audit::tests::recorded_false_reports_zeros_and_no_warnings ... ok
+test audit::tests::unexecuted_orders_is_saturating ... ok
+test audit::tests::target_run_shape_dca_underfilled ... ok
+test audit::tests::zero_capital_basis_does_not_divide_by_zero ... ok
+test audit::tests::zero_fills_reports_partial_deployment_and_unexecuted ... ok
+test fee::tests::consumed_profile_fields_are_exactly_what_engine_applies ... ok
+test fee::tests::default_fee_sell_still_charges_stamp_duty ... ok
+test audit::tests::report_serializes_frozen_field_names ... ok
+test audit::tests::trade_detail_json_v2_shape_is_locked_and_v1_shape_is_rejected ... ok
+test fee::tests::explicit_object_with_single_recognized_field_is_accepted ... ok
+test fee::tests::etf_fee_explicit_zero_stamp_duty_sell_free ... ok
+test fee::tests::effective_excludes_unmodeled_profile_fields ... ok
+test fee::tests::explicit_stamp_wins_over_profile ... ok
+test fee::tests::explicit_object_without_recognized_fields_is_rejected ... ok
+test fee::tests::effective_strictly_matches_fee_model_fields_and_is_disjoint_from_not_modeled ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_etf_profile ... ok
+test fee::tests::maps_three_fields_and_defaults_stamp_duty ... ok
+test fee::tests::legacy_default_matches_adr_bt1 ... ok
+test fee::tests::explicit_three_keys_without_stamp_falls_back_to_stock_profile ... ok
+test fee::tests::missing_fee_and_unknown_type_falls_back_to_legacy_default ... ok
+test fee::tests::missing_fee_resolves_profile_by_symbol_type ... ok
+test fee::tests::partial_explicit_overrides_only_present_fields ... ok
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test fee::tests::rejects_missing_field ... ok
+test fee::tests::rejects_non_object ... ok
+test fee::tests::not_modeled_matches_profile_numeric_fields_minus_consumed ... ok
+test fee::tests::resolved_json_exposes_effective_and_profile_segments ... ok
+test strategy::p2b_tests::sample_mask_uniform_preserves_first_and_last ... ok
+test fee::tests::stamp_duty_pct_out_of_range_rejected ... ok
+test strategy::p2b_tests::tryrun_bar_ctx_narrows_to_prefix_and_shares_history ... ok
+test simlive_orch::tests::spawn_fails_on_bad_code ... ok
+test simlive_orch::tests::feed_bar_roundtrip_via_worker ... ok
+test simlive_orch::tests::drop_handle_stops_worker_and_feed_fails ... ok
+test simlive_orch::tests::worker_panic_yields_orchestrator_dead_and_thread_exits ... ok
+test simlive_orch::tests::worker_thread_actually_exits_after_handle_drop ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-97c1f668f74c2e30)
+
+running 2 tests
+test tryrun_pure_score_bitwise_equal_to_compat_path ... ok
+test tryrun_per_bar_allocation_does_not_grow_with_index ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/adr027_repro_simlive.rs (target/debug/deps/adr027_repro_simlive-3693100a5cd2d8be)
+
+running 2 tests
+test r3_simlive_settlement_stamp_duty_is_not_zero ... FAILED
+test r4_simlive_bar_index_is_not_reverse_computed_from_ts ... FAILED
+
+failures:
+
+---- r3_simlive_settlement_stamp_duty_is_not_zero stdout ----
+
+thread 'r3_simlive_settlement_stamp_duty_is_not_zero' (1671727) panicked at crates/application/tests/adr027_repro_simlive.rs:277:5:
+R3：sim-live 结算费用三件套必须与撮合点事实一致，实得 3 项不符:
+  stamp_duty 必须 > 0（本笔卖出含印花税 5.9988），实际 0（simlive.rs:1914 硬编码 0.0）
+  stamp_duty 必须 == Σ_sell 印花税 = 5.9988，实际 0（Δ = -5.9988）
+  commission 必须 == Σ_buy + Σ_sell 佣金 = 10，实际 15.9988（Δ = 5.998799999999999；现口径把卖腿「佣金+印花税」合并值整笔计入 commission）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r4_simlive_bar_index_is_not_reverse_computed_from_ts stdout ----
+
+thread 'r4_simlive_bar_index_is_not_reverse_computed_from_ts' (1671728) panicked at crates/application/tests/adr027_repro_simlive.rs:345:5:
+R4：sim-live bar_index 必须为真实 bar 序号，实得 4 项不符:
+  open_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  close_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  open_bar 必须**不是** ts/bar_sec 的反算商（02-spec §1.1「禁 ts/bar_sec 反算」），实际 29806680 == 1788400817/60
+  close_bar 必须**不是** ts/bar_sec 的反算商，实际 29806680 == 1788400817/60
+
+
+failures:
+    r3_simlive_settlement_stamp_duty_is_not_zero
+    r4_simlive_bar_index_is_not_reverse_computed_from_ts
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test adr027_repro_simlive`

@@ -1,0 +1,70 @@
+--- roundTripAccum pnl 行与 Open 渲染 ---
+  let commission = 0;
+  let stampDuty = 0;
+  for (const f of fills) {
+    commission += f.commission;
+    stampDuty += f.stamp_duty;
+    if (f.side === 'Buy') buyQty += f.qty;
+    else sellValue += f.trade_value;
+  }
+  const tol = opts.tolerance > 0 ? opts.tolerance : 1e-6;
+  const mk = (key: string, label: string, l1: number | null, l2: number, fmt: ReconcileField['fmt']): ReconcileField => {
+    const delta = l1 == null ? Number.NaN : l2 - l1;
+    const mismatched = l1 != null && Math.abs(delta) > tol * Math.max(1, Math.abs(l1));
+    return { key, label, l1, l2, delta, mismatched, fmt };
+  };
+  const fields: ReconcileField[] = [
+    mk('commission', 'commission（佣金）', rt.commission, commission, 'money'),
+    mk('stamp_duty', 'stamp_duty（印花税）', rt.stamp_duty, stampDuty, 'money'),
+    mk('gross_value', 'gross_value（卖出金额）', rt.gross_value, sellValue, 'money'),
+    mk('shares', 'shares（股数）', rt.shares, buyQty, 'qty'),
+    mk('pnl', 'pnl（回合盈亏）', rt.pnl, last?.cum_realized_pnl ?? 0, 'money'),
+    mk('l2_count', 'l2_count（成交笔数）', rt.l2_count, fills.length, 'int'),
+  ];
+  const auditMismatch = opts.auditMismatch === true;
+  return { ok: !auditMismatch && fields.every((f) => !f.mismatched), fields, auditMismatch };
+}
+
+/** 金额 / 股数 / 价格 / 计数展示（L1 表与 L2 累计列**共用**同一格式化 ⇒「末行 == L1」可直接字符串断言）。
+ *  `price` = 3 位（成交价/均价口径，与既有页面⑤逐笔价格精度一致）；`money` = 2 位。 */
+export function fmtNum(
+  x: number | null | undefined,
+  fmt: 'money' | 'qty' | 'int' | 'price' = 'money',
+): string {
+  if (x == null || Number.isNaN(x)) return '—';
+  if (fmt === 'int') return String(x);
+  if (fmt === 'qty') return x.toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+  if (fmt === 'price') return x.toFixed(3);
+  return x.toFixed(2);
+}
+--- RoundTripTable pnl 渲染 ---
+AggregateScoreChart.tsx
+chartUtils.test.ts
+chartUtils.ts
+ComparePanel.tsx
+ConfigPanel.test.tsx
+ConfigPanel.tsx
+EquityDrawdownChart.tsx
+EventLog.tsx
+KlineResultChart.tsx
+PerBarTable.tsx
+PositionRatioChart.tsx
+ResultView.test.tsx
+ResultView.tsx
+resultWindowSync.test.tsx
+resultWindow.test.ts
+resultWindow.ts
+roundTripAccum.test.ts
+roundTripAccum.ts
+roundTripLayers.test.tsx
+RoundTripsTable.tsx
+RunList.test.tsx
+RunList.tsx
+SlotScoresChart.tsx
+store.test.ts
+store.ts
+tester_p5rect_dispose_blast.test.tsx
+useResultWindow.ts
+useRunAudit.ts
+useRunSeries.test.ts
+useRunSeries.ts

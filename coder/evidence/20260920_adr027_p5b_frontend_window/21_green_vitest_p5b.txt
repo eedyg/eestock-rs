@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ ✓ src/features/workbench/chartUtils.test.ts (7 tests) 5ms
+ ✓ src/features/workbench/resultWindow.test.ts (17 tests) 9ms
+ ✓ src/features/dashboard/KlineChartVisibleRange.test.tsx (5 tests) 23ms
+ ✓ src/features/workbench/resultWindowSync.test.tsx (6 tests) 198ms
+
+ Test Files  4 passed (4)
+      Tests  35 passed (35)
+   Start at  23:19:30
+   Duration  802ms (transform 252ms, setup 102ms, collect 461ms, tests 234ms, environment 593ms, prepare 370ms)
+

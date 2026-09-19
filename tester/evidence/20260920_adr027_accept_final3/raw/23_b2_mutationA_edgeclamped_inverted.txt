@@ -1,0 +1,150 @@
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） (3.7s)
+  ✓  2 [chromium] › e2e/adr028-window-sync.e2e.ts:457:1 › E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在数据末端、中心 = 最大可居中程度 (5.0s)
+  ✘  3 [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） (4.1s)
+  ✘  4 [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） (retry #1) (4.3s)
+  ✓  5 [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） (4.7s)
+  ✓  6 [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） (3.6s)
+  ✘  7 [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 (4.4s)
+  ✘  8 [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 (retry #1) (4.6s)
+
+
+  1) [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） 
+
+    Error: L2 真居中断言（无豁免；变异时必须变红）
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "目标未被数据边缘夹取（可居中路径必须被真跑到） ‖ edgeClamped=false",
+    + ]
+
+      533 |   ];
+      534 |   writeJson('e3_l2_centered_mismatch', { mismatch });
+    > 535 |   expect(mismatch, 'L2 真居中断言（无豁免；变异时必须变红）').toEqual([]);
+          |                                             ^
+      536 | });
+      537 |
+      538 | // ────────────────────────────────────── E4：全览 + 历史回退 ──────────────────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:535:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: L2 真居中断言（无豁免；变异时必须变红）
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "目标未被数据边缘夹取（可居中路径必须被真跑到） ‖ edgeClamped=false",
+    + ]
+
+      533 |   ];
+      534 |   writeJson('e3_l2_centered_mismatch', { mismatch });
+    > 535 |   expect(mismatch, 'L2 真居中断言（无豁免；变异时必须变红）').toEqual([]);
+          |                                             ^
+      536 | });
+      537 |
+      538 | // ────────────────────────────────────── E4：全览 + 历史回退 ──────────────────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:535:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/artifacts/test-results/adr028-window-sync.e2e.ts--db046-（edge-clamped-false-路径被真跑到）-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 
+
+    Error: 未变异基线：L2 居中判据必须为绿
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "目标未被数据边缘夹取（可居中路径必须被真跑到） ‖ edgeClamped=false",
+    + ]
+
+      703 |
+      704 |   // ① 基线（未变异）该判据为绿：证明断言可满足（否则本用例的红无意义）。
+    > 705 |   expect(baseCentered, '未变异基线：L2 居中判据必须为绿').toEqual([]);
+          |                                             ^
+      706 |   // ② 变异后必须**变红**，且红点落在「居中」上（证有牙）。
+      707 |   expect(mutMismatch.length, '「只改 barSpace 不滚动」变异下 L2 断言必须变红').toBeGreaterThan(0);
+      708 |   expect(
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:705:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 未变异基线：L2 居中判据必须为绿
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "目标未被数据边缘夹取（可居中路径必须被真跑到） ‖ edgeClamped=false",
+    + ]
+
+      703 |
+      704 |   // ① 基线（未变异）该判据为绿：证明断言可满足（否则本用例的红无意义）。
+    > 705 |   expect(baseCentered, '未变异基线：L2 居中判据必须为绿').toEqual([]);
+          |                                             ^
+      706 |   // ② 变异后必须**变红**，且红点落在「居中」上（证有牙）。
+      707 |   expect(mutMismatch.length, '「只改 barSpace 不滚动」变异下 L2 断言必须变红').toBeGreaterThan(0);
+      708 |   expect(
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:705:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/artifacts/test-results/adr028-window-sync.e2e.ts--b8183--生效但真身滚动被替换为-no-op-⇒-居中断言必红-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） 
+    [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 
+  4 passed (36.0s)
+PW_EXIT=1

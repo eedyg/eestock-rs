@@ -1,0 +1,1 @@
+{"error":{"code":"kind_invalid","detail":{},"message":"kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）"}}

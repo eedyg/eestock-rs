@@ -1,0 +1,53 @@
+957134e38f1bf779f91db972ae99c9994665aede027dcb3712472a9dd032a38b  crates/web/tests/adr026_run_audit.rs
+### 突变验证（反假绿）第 1 器：把 AUDIT_KEYS 退回 v1 的 15 键集（= 本波修复前的冻结集）⇒ 断言必须**响红**
+### 目的：① 证明冻结集断言是**活的**（load-bearing）；② 复现 tester 报告 §3.3-B 的「提供测试库后必红」判定。
+### （首次尝试的 sed 把类型写成 `[[&str; 18]str; 15]` ⇒ 编译错（非测试失败），已作废并重做；本文件为**重做版**。）
+
+$ sed -i '…去掉三键；类型 18→15'
+$ sed -n '/const AUDIT_KEYS/,/^];/p' crates/web/tests/adr026_run_audit.rs
+const AUDIT_KEYS: [&str; 15] = [
+    "run_id", "recorded", "capital_basis", "deployed_notional", "deployed_pct", "cash_consumed",
+    "cash_consumed_pct", "planned_tranches", "reachable_batches", "batches_done",
+    "unexecuted_orders", "last_bar_unfilled", "round_trips_total", "round_trips_force_closed",
+    "warnings",
+];
+
+$ EESTOCK_TEST_DATABASE_URL='postgres://eestock:eestock@127.0.0.1:5433/eestock_test' cargo test -p web --test adr026_run_audit
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 4 tests
+test audit_recorded_false_when_facts_are_missing ... FAILED
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... FAILED
+test audit_endpoint_emits_required_tracing_fields ... ok
+
+failures:
+
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (1794128) panicked at crates/web/tests/adr026_run_audit.rs:237:5:
+assertion `left == right` failed: audit 不得多出/少出字段：{"batches_done":0,"capital_basis":100000.0,"cash_consumed":0.0,"cash_consumed_pct":0.0,"deployed_notional":0.0,"deployed_pct":0.0,"last_bar_unfilled":false,"planned_tranches":100,"reachable_batches":0,"recorded":false,"round_trips_closed":0,"round_trips_force_closed":0,"round_trips_open":0,"round_trips_total":0,"rt_reconcile":{"checked":0,"mismatched":[],"tolerance":1e-6},"run_id":"sr_1794124_1_nofacts_chunked_nofacts","unexecuted_orders":0,"warnings":[]}
+  left: 18
+ right: 15
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- audit_endpoint_matches_recorded_facts_and_404_semantics stdout ----
+
+thread 'audit_endpoint_matches_recorded_facts_and_404_semantics' (1794127) panicked at crates/web/tests/adr026_run_audit.rs:237:5:
+assertion `left == right` failed: audit 不得多出/少出字段：{"batches_done":2,"capital_basis":100000.0,"cash_consumed":19101.77379534091,"cash_consumed_pct":0.1910177379534091,"deployed_notional":19091.77379534091,"deployed_pct":0.19091773795340908,"last_bar_unfilled":false,"planned_tranches":10,"reachable_batches":2,"recorded":true,"round_trips_closed":1,"round_trips_force_closed":0,"round_trips_open":0,"round_trips_total":1,"rt_reconcile":{"checked":1,"mismatched":[],"tolerance":1e-6},"run_id":"sr_1789832284173_000004","unexecuted_orders":0,"warnings":[{"code":"DCA_PLAN_UNDERFILLED","message":"计划 10 批，区间内最多可推进 2 批、已成交 2 批（剩余批次随买入区结束取消）","severity":"warn"},{"code":"PARTIAL_DEPLOYMENT","message":"名义投入 19.09% 初始资金，年化/回撤/夏普分母仍为初始资金","severity":"warn"}]}
+  left: 18
+ right: 15
+
+
+failures:
+    audit_endpoint_matches_recorded_facts_and_404_semantics
+    audit_recorded_false_when_facts_are_missing
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`
+MUTATION_EXIT=101
+# 还原后 sha256（须与首行一致）
+957134e38f1bf779f91db972ae99c9994665aede027dcb3712472a9dd032a38b  crates/web/tests/adr026_run_audit.rs

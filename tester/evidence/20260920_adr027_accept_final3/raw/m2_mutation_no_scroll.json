@@ -1,0 +1,85 @@
+{
+  "runId": "sr_1789832517708_000005",
+  "rtSeq": 3,
+  "fill0": {
+    "bar_index": 306,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.1812362,
+    "qty": 863.286660627209,
+    "reason": "Policy",
+    "rt_seq": 3,
+    "side": "Buy",
+    "stamp_duty": 0,
+    "trade_value": 1019.745454509974,
+    "ts": 1774972800,
+    "type": "fill"
+  },
+  "fill1": {
+    "bar_index": 323,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.1667666,
+    "qty": 863.286660627209,
+    "reason": "Policy",
+    "rt_seq": 3,
+    "side": "Sell",
+    "stamp_duty": 0,
+    "trade_value": 1007.2540418453626,
+    "ts": 1777219200,
+    "type": "fill"
+  },
+  "baseCenteredMismatch": [],
+  "baseProbe": {
+    "ok": true,
+    "rev": 1,
+    "requestedBarSpace": 5,
+    "barSpace": 5,
+    "fromIdx": 13,
+    "toIdx": 135,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "centerIdx": 74,
+    "centerTs": 1777219200,
+    "observedCenterIdx": 74,
+    "observedCenterTs": 1777219200,
+    "edgeClamped": false,
+    "error": ""
+  },
+  "baseState": {
+    "source": "jump",
+    "rev": 1,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "spanBars": 123
+  },
+  "mutatedProbe": {
+    "ok": true,
+    "rev": 2,
+    "requestedBarSpace": 5,
+    "barSpace": 5,
+    "fromIdx": 13,
+    "toIdx": 135,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "centerIdx": 57,
+    "centerTs": 1774972800,
+    "observedCenterIdx": 74,
+    "observedCenterTs": 1777219200,
+    "edgeClamped": true,
+    "error": ""
+  },
+  "mutatedState": {
+    "source": "jump",
+    "rev": 2,
+    "fromTs": 1768924800,
+    "toTs": 1785081600,
+    "spanBars": 123
+  },
+  "scrollCalls": 5,
+  "mutatedMismatch": [
+    "目标未被数据边缘夹取（可居中路径必须被真跑到） ‖ edgeClamped=true",
+    "窗口真居中：|实测中心 − 目标| ≤ 1 根 ‖ centerIdx=57 observedCenterIdx=74",
+    "中心 bar ts == 成交 bar ts（±1 根；真身中心 bar 取自回执，禁 (from_ts+to_ts)/2） ‖ observedCenterTs=1777219200 fill.ts=1774972800"
+  ]
+}

@@ -1,0 +1,22 @@
+# 对**当前源码构建**的新二进制（18091；cargo build -p app 后 target/debug/eestock-app；连活库 eestock 只读 GET）的探测 2026-09-20T00:20:18+08:00
+## 1) /fills?limit=2 元素（应含 code == run.symbol=159776）
+{"run_id":"sr_1789832477006_000002","total":16,"offset":0,"limit":2,"has_more":true,"next_offset":2,"recorded":true,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"},{"bar_index":262,"code":"159776","commission":5.0,"price":1.075215,"qty":932.6935800785214,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":1002.8461277041275,"ts":1783440000,"type":"fill"}]}
+## 2) L2 切片 /round-trips/1/fills?limit=2（键集应与 1) 逐字段相同）
+{"run_id":"sr_1789832477006_000002","rt_seq":1,"total":16,"recorded":true,"offset":0,"limit":2,"has_more":true,"next_offset":2,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"},{"bar_index":262,"code":"159776","commission":5.0,"price":1.075215,"qty":932.6935800785214,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":1002.8461277041275,"ts":1783440000,"type":"fill"}]}
+## 3) 未知 round_trip=9999（应 404，非 200 空数组）
+{"error":"回合 9999 不属于运行 sr_1789832477006_000002（L1 回合账本无该 rt_seq）"} [HTTP=404]
+## 4) L2 端点同义（对称性 404）
+{"error":"回合 9999 不属于运行 sr_1789832477006_000002（无该回合的成交事实）"} [HTTP=404]
+## 5) 已知 round_trip=1（过滤仍生效，200）
+{"run_id":"sr_1789832477006_000002","total":16,"offset":0,"limit":2,"has_more":true,"next_offset":2,"recorded":true,"round_trip":1,"fills":[{"bar_index":261,"code":"159776","commission":5.0,"price":1.1112222,"qty":899.0686522137128,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":999.0650456639568,"ts":1783353600,"type":"fill"},{"bar_index":262,"code":"159776","commission":5.0,"price":1.075215,"qty":932.6935800785214,"reason":"Policy","rt_seq":1,"side":"Buy","stamp_duty":0.0,"trade_value":1002.8461277041275,"ts":1783440000,"type":"fill"}]}  [HTTP=200]
+## 6) 参数形态错误表（应全为 400 + JSON 信封，禁纯文本）
+fills?round_trip=abc           {"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: round_trip: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}} [HTTP=400]
+fills?offset=abc               {"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: offset: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}} [HTTP=400]
+fills?limit=abc                {"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: limit: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}} [HTTP=400]
+fills?round_trip=-1            {"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: round_trip: invalid digit found in string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}} [HTTP=400]
+fills?round_trip=              {"error":{"code":"request_invalid","detail":{"param":"round_trip/offset/limit","reason":"Failed to deserialize query string: round_trip: cannot parse integer from empty string"},"message":"参数形态非法（round_trip/offset/limit 须为整数）"}} [HTTP=400]
+round-trips/abc/fills          {"error":{"code":"request_invalid","detail":{"param":"rt_seq","reason":"Invalid URL: Cannot parse value at index 1 with value `abc` to a `u32`"},"message":"参数形态非法（rt_seq 须为整数）"}} [HTTP=400]
+round-trips?offset=abc         {"error":{"code":"request_invalid","detail":{"param":"offset/limit","reason":"Failed to deserialize query string: offset: invalid digit found in string"},"message":"参数形态非法（offset/limit 须为整数）"}} [HTTP=400]
+round-trips/1/fills?limit=abc  {"error":{"code":"request_invalid","detail":{"param":"offset/limit","reason":"Failed to deserialize query string: limit: invalid digit found in string"},"message":"参数形态非法（offset/limit 须为整数）"}} [HTTP=400]
+## 7) 负向对照：形态合法但 run 不存在 ⇒ 404（不得 400）
+{"error":"运行不存在: sr_nope"} [HTTP=404]

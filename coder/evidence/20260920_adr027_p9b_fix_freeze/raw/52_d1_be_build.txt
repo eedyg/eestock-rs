@@ -1,0 +1,8 @@
+### cargo build -p app (2026-09-20 00:27:52)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+EXIT=0
+### disk bin after build
+530d2ecae7d012495e5c7aadba2da60ea5b2262245bce44adcf099e329250c41  target/debug/eestock-app
+2026-09-19 23:50:07.346345157 +0800 215853168
+### running exe before restart
+0e35fd705463471c8774717080eaec39987138aff4070c07c74aff64dba6454c  /proc/1781236/exe

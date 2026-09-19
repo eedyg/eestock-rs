@@ -1,0 +1,10 @@
+89f434b3c3caa2d40be67098880a29eb61e7e0ab12118a414c124293e0e40373  crates/mcp/src/tools.rs
+--- entangled tangle ---
+[23:48:37] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/mcp/src/tools.rs`
+EXIT=0
+--- after ---
+6458796292e29ea3ef05ce8fb7e513da862d16814f480e783c1ad7e54fead7ab  crates/mcp/src/tools.rs
+--- git diff --stat (tangle 目标) ---
+ crates/mcp/src/tools.rs | 25 +++++++++++++------------
+ 1 file changed, 13 insertions(+), 12 deletions(-)

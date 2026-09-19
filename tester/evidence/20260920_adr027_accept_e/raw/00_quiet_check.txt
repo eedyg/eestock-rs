@@ -1,0 +1,6 @@
+$ date; find . -path ./target -prune -o -path ./.git -prune -o -path ./web/node_modules -prune -o -path ./tester -prune -o -type f -newermt '-60 seconds' -print
+Sat Sep 19 11:41:02 PM CST 2026
+(no output => no writes in last 60s, excluding tester/ own evidence)
+$ ps aux | grep -E '\bcargo\b|\brustc\b|vite|vitest' | grep -v grep  => (empty)
+$ ss -ltnp | grep -E '8081|8082|5433'
+LISTEN 0.0.0.0:5433 (timescaledb), 0.0.0.0:8081 + 0.0.0.0:8082 (eestock-app pid 1781236, started Sat Sep 19 23:30:48 2026, exe=target/debug/eestock-app mtime 2026-09-19 23:26:38)

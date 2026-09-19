@@ -1,0 +1,9 @@
+# 对**在跑的** :8081（pre-P4c 旧二进制，启动 23:30:48，exe 已被替换）的只读探测
+## /fills?limit=2 元素键
+['bar_index', 'commission', 'price', 'qty', 'reason', 'rt_seq', 'side', 'stamp_duty', 'trade_value', 'ts', 'type']
+## /fills?round_trip=9999
+{"run_id":"sr_1789832477006_000002","total":0,"offset":0,"limit":2,"has_more":false,"next_offset":null,"recorded":true,"round_trip":9999,"fills":[]}
+HTTP=200
+## /fills?round_trip=abc
+Failed to deserialize query string: round_trip: invalid digit found in string
+HTTP=400

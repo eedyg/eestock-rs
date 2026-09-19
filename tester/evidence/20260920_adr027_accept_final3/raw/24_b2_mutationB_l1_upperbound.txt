@@ -1,0 +1,218 @@
+
+Running 6 tests using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） (3.8s)
+  ✘  2 [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） (retry #1) (3.9s)
+  ✓  3 [chromium] › e2e/adr028-window-sync.e2e.ts:457:1 › E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在数据末端、中心 = 最大可居中程度 (5.1s)
+  ✓  4 [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） (4.1s)
+  ✘  5 [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） (4.6s)
+  ✘  6 [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） (retry #1) (4.9s)
+  ✘  7 [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） (3.7s)
+  ✘  8 [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） (retry #1) (3.8s)
+  ✓  9 [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 (4.4s)
+
+
+  1) [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） 
+
+    Error: L1 跳转真身断言（变异时必须变红）
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "可见根数 ≤ ceil(58×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=259-314(56) 期望≈58（barSpace=11）",
+    + ]
+
+      450 |   ];
+      451 |   writeJson('e1_l1_jump_mismatch', { mismatch });
+    > 452 |   expect(mismatch, 'L1 跳转真身断言（变异时必须变红）').toEqual([]);
+          |                                          ^
+      453 | });
+      454 |
+      455 | // ────────────────────────── E2：L2 跳转（夹取用例：精确 clamp 期望值） ──────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:452:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: L1 跳转真身断言（变异时必须变红）
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "可见根数 ≤ ceil(58×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=259-314(56) 期望≈58（barSpace=11）",
+    + ]
+
+      450 |   ];
+      451 |   writeJson('e1_l1_jump_mismatch', { mismatch });
+    > 452 |   expect(mismatch, 'L1 跳转真身断言（变异时必须变红）').toEqual([]);
+          |                                          ^
+      453 | });
+      454 |
+      455 | // ────────────────────────── E2：L2 跳转（夹取用例：精确 clamp 期望值） ──────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:452:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/artifacts/test-results/adr028-window-sync.e2e.ts--9462b-K-线可见窗口-回合区间（±-buffer-±1-根）-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） ───────
+
+    Error: 全览/历史回退真身断言
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "L1 真身判据在回退后仍成立（覆盖 + 双侧根数 + 居中 + 共享窗口一致） ‖ [\"可见根数 ≤ ceil(58×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=259-314(56) 期望≈58（barSpace=11）\"]",
+    + ]
+
+      598 |
+      599 |   writeJson('e4_reset_back_mismatch', { mismatch: m });
+    > 600 |   expect(m, '全览/历史回退真身断言').toEqual([]);
+          |                            ^
+      601 | });
+      602 |
+      603 | // ─────────────────────────────────────── 禁假绿：变异反证 ───────────────────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:600:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 全览/历史回退真身断言
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "L1 真身判据在回退后仍成立（覆盖 + 双侧根数 + 居中 + 共享窗口一致） ‖ [\"可见根数 ≤ ceil(58×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=259-314(56) 期望≈58（barSpace=11）\"]",
+    + ]
+
+      598 |
+      599 |   writeJson('e4_reset_back_mismatch', { mismatch: m });
+    > 600 |   expect(m, '全览/历史回退真身断言').toEqual([]);
+          |                            ^
+      601 | });
+      602 |
+      603 | // ─────────────────────────────────────── 禁假绿：变异反证 ───────────────────────────────────────
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:600:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/artifacts/test-results/adr028-window-sync.e2e.ts--fd3e6-back：全览恢复全区间、历史回退恢复跳转窗口（真身）-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） 
+
+    Error: 窗口必须跟随变异后的回合区间
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "可见根数 ≤ ceil(18×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=275-300(26) 期望≈18（barSpace=25）",
+    + ]
+
+      639 |   const mutatedMismatch = l1Mismatches(mutated, probe, state);
+      640 |   writeJson('m1_mutation_mutated_mismatch', { mismatch: mutatedMismatch });
+    > 641 |   expect(mutatedMismatch, '窗口必须跟随变异后的回合区间').toEqual([]);
+          |                                             ^
+      642 |
+      643 |   // ② 用**原始**区间同一套断言 ⇒ 必须非空（否则断言恒真，正向绿无意义）
+      644 |   const originalMismatch = l1Mismatches(rt, probe, state);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:641:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: 窗口必须跟随变异后的回合区间
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "可见根数 ≤ ceil(18×0.1) + 5（窗口未过宽：禁「取全量」冒充跳转） ‖ visible=275-300(26) 期望≈18（barSpace=25）",
+    + ]
+
+      639 |   const mutatedMismatch = l1Mismatches(mutated, probe, state);
+      640 |   writeJson('m1_mutation_mutated_mismatch', { mismatch: mutatedMismatch });
+    > 641 |   expect(mutatedMismatch, '窗口必须跟随变异后的回合区间').toEqual([]);
+          |                                             ^
+      642 |
+      643 |   // ② 用**原始**区间同一套断言 ⇒ 必须非空（否则断言恒真，正向绿无意义）
+      644 |   const originalMismatch = l1Mismatches(rt, probe, state);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-window-sync.e2e.ts:641:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/artifacts/test-results/adr028-window-sync.e2e.ts--d4651-回合区间-⇒-原始基线真身断言必须变红（证断言非恒真）-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） 
+    [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） ────────
+    [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） 
+  3 passed (40.8s)
+PW_EXIT=1

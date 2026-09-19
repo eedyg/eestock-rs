@@ -1,0 +1,81 @@
+### 闸门2-5 静默失败路径 · 前端 grep
+--- S1: setBarSpace 越界是否被断言/返回 ---
+web/src/test/syncChartStub.ts:7: *  - `setBarSpace(space)` 越界（∉ `barSpaceLimit`）**静默 return**（P0.3 §2.3：req 350 在 max=50 下被吞、零告警）；
+web/src/test/syncChartStub.ts:29: *     推论**只在桩内成立**，不得当作真身证据（P3-C：`setBarSpace(302)` 在真渲染仍报 4 根可见）。
+web/src/test/syncChartStub.ts:55:  setBarSpace(space: number): void;
+web/src/test/syncChartStub.ts:71:  /** 调用日志（含被静默吞掉的越界 `setBarSpace`）。 */
+web/src/test/syncChartStub.ts:96: *    `setBarSpace(8)`，`setOffsetRightDistance(0)` 后 **读回 0**；
+web/src/test/syncChartStub.ts:153:    setBarSpace: (space: number) => {
+web/src/test/syncChartStub.ts:154:      log.push({ method: 'setBarSpace', args: [space] });
+web/src/features/dashboard/multiPeriodLayoutAuthority.test.tsx:51:      setBarSpace: vi.fn(),
+web/src/features/dashboard/chartSyncStubFidelity.test.ts:128:    //    不得当作真身证据（P3-C：真身 `setBarSpace(302)` 仍报 4 根可见，部分 bar 计数导致）。
+web/src/features/dashboard/DashboardPage.test.tsx:15:  setBarSpace: vi.fn(),
+web/src/features/dashboard/KlineChartVisibleRange.test.tsx:142:    // 程序化写窗让引擎**同步**派发了 onVisibleRangeChange（桩内 setBarSpace/scrollToDataIndex 会 fire）
+web/src/features/dashboard/KlineChartVisibleRange.test.tsx:150:    const savedSet = chartStub.setBarSpace;
+web/src/features/dashboard/KlineChartVisibleRange.test.tsx:152:    chartStub.setBarSpace = narrow.setBarSpace;
+web/src/features/dashboard/KlineChartVisibleRange.test.tsx:171:      chartStub.setBarSpace = savedSet;
+web/src/features/dashboard/KlineChartSwitchLayout.test.tsx:116:      setBarSpace: vi.fn(),
+web/src/features/dashboard/KlineChartDcapSaveLayout.test.tsx:125:      setBarSpace: vi.fn(),
+web/src/features/dashboard/multiPeriodHeightsPageContract.test.tsx:40:      setBarSpace: vi.fn(),
+web/src/features/dashboard/GridCell.test.tsx:13:  setBarSpace: vi.fn(),
+web/src/features/dashboard/GridCell.test.tsx:185:  it('复用 barSpaceFit：容器宽 470 / viewportBars=200 → setBarSpace(2) 并写 data-viewport-fit', async () => {
+web/src/features/dashboard/GridCell.test.tsx:200:    expect(chartStub.setBarSpace).toHaveBeenCalledWith(2); // round(470/200)
+--- S2: 截断披露 truncated / has_more 处理 ---
+web/src/api/mock.test.ts:486:    expect(sim.truncated).toEqual({ scores: false, events: false, trades: false });
+web/src/api/mock.test.ts:704:    // ADR-024 P6：新提交 run = `chunked_v1` ⇒ `/result` 回 summary + 首页 per_bar + has_more/next_offset
+web/src/api/mock.test.ts:711:    expect(res.has_more).toBe(false); // 60 根 ≤ 页 5000
+web/src/api/mock.test.ts:737:    // /bars 分页：has_more/next_offset 必须可用（消费方禁止静默只显首页）
+web/src/api/mock.test.ts:741:    expect(all.has_more).toBe(false);
+web/src/api/mock.test.ts:742:    expect(all.next_offset).toBeNull();
+web/src/api/mock.test.ts:745:    expect(p1.has_more).toBe(true);
+web/src/api/mock.test.ts:746:    expect(p1.next_offset).toBe(2);
+web/src/api/mock.test.ts:764:    expect(fp.has_more).toBe(fills.total > 1);
+web/src/api/mock.test.ts:775:    expect(all.has_more).toBe(false);
+web/src/api/mock.test.ts:795:    // 分页：limit=1 ⇒ has_more/next_offset 正确
+web/src/api/mock.test.ts:799:      expect(p1.has_more).toBe(true);
+web/src/api/mock.test.ts:800:      expect(p1.next_offset).toBe(1);
+web/src/api/mock.test.ts:840:  it('ADR-024 P6：长区间（>5000 根）chunked ⇒ /result 首页 + has_more/next_offset（显式截断）', async () => {
+web/src/api/mock.test.ts:846:    expect(res.has_more).toBe(true);
+web/src/api/mock.test.ts:847:    expect(res.next_offset).toBe(5000);
+web/src/api/mock.test.ts:851:    expect(p2.next_offset).toBe(10000);
+web/src/api/mock.test.ts:855:    expect(p3.has_more).toBe(false);
+web/src/api/mock.ts:338:   *  置 >5000 可构造「首页只回 5000 + has_more」的 chunked 场景（P6 长区间不得静默截断用例）。 */
+web/src/api/mock.ts:800:  'result_format' | 'summary' | 'has_more' | 'next_offset'
+web/src/api/mock.ts:807: *  按 `format` 模拟两条真实读取路径（legacy 内联全量 / chunked 首页 + has_more）。 */
+web/src/api/mock.ts:1960:        truncated: { scores: false, events: false, trades: false },
+web/src/api/mock.ts:2111:      // ADR-024 §3.2 兼容：legacy ⇒ 三列全量；chunked ⇒ summary + 首页 per_bar + has_more/next_offset。
+web/src/api/mock.ts:2113:        return { ...r.result, result_format: 'legacy_single', summary: null, has_more: false, next_offset: null };
+web/src/api/mock.ts:2116:      const hasMore = first.length < r.result.per_bar.length;
+--- S3: 窗口请求失败是否用旧数据冒充（catch/fallback） ---
+web/src/features/workbench/PerBarTable.tsx:24: * 逐 bar 评分表（ADR §13.5 Tab）：ts / 各 slot 分（错误 bar 标 ⚠）/ 聚合分 / 信号 / 订单数。
+web/src/features/workbench/WorkbenchPage.test.tsx:117:    expect(screen.getByTestId('wb-run-row-sr_mock_seed4')).toHaveTextContent('mock 引擎错误');
+web/src/features/workbench/WorkbenchPage.test.tsx:144:  it('提交 400 → 友好错误展示（wb-submit-error）', async () => {
+web/src/features/workbench/ConfigPanel.tsx:232:      .catch(() => {
+web/src/features/workbench/ConfigPanel.tsx:412:    } catch (e) {
+web/src/features/workbench/ConfigPanel.tsx:436:    } catch (e) {
+web/src/features/workbench/ConfigPanel.tsx:447:    } catch (e) {
+web/src/features/workbench/ConfigPanel.tsx:460:    } catch (e) {
+web/src/features/workbench/useRunSeries.ts:119:  /** 窗口取数失败（UI **必须**标注「显示的是上一窗口数据」，禁止旧数据冒充当前窗口，§9.8）。 */
+web/src/features/workbench/useRunSeries.ts:139:  /** 整段重取（错误重试 / 区间复位）。 */
+web/src/features/workbench/useRunSeries.ts:323:    setWindowApplied(null); // 换 run / 重取：上一窗口的「已应用」标记失效
+web/src/features/workbench/useRunSeries.ts:413:   *   `windowApplied` ⇒ UI 可标注「显示的是上一窗口数据」。
+web/src/features/workbench/useRunSeries.ts:451:        // 不更新 windowApplied ⇒ UI 显式标注「显示的是上一窗口数据」（禁止旧数据冒充当前窗口）
+web/src/features/workbench/useRunSeries.ts:466:   * 已取过的回合（同一 run）复用缓存；失败 ⇒ 显式错误态（可重试，禁止静默空表）。
+web/src/features/workbench/useRunSeries.ts:479:        } catch (e) {
+web/src/features/workbench/useRunSeries.ts:505:      } catch (e) {
+web/src/features/workbench/useRunSeries.ts:528:      } catch (e) {
+web/src/features/workbench/useRunSeries.ts:552:        } catch (e) {
+web/src/features/workbench/useRunAudit.ts:54:      } catch (e) {
+web/src/features/workbench/ConfigPanel.test.tsx:81:  it('校验：空 slots 提交 → 内联错误，不触发 onSubmit', async () => {
+api
+App.tsx
+components
+features
+index.css
+layouts
+lib
+main.tsx
+shell
+test
+vite-env.d.ts
+ws

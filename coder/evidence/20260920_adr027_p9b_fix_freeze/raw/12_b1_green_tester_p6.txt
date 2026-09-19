@@ -1,0 +1,117 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p6_fills_indep.rs:35:7
+   |
+35 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `seed_symbol_and_m1` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:119:10
+    |
+119 | async fn seed_symbol_and_m1(pool: &PgPool, code: &str, n: i64) {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `expect_ts` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:167:4
+    |
+167 | fn expect_ts(n: i64) -> Vec<DateTime<Utc>> {
+    |    ^^^^^^^^^
+
+warning: function `rfc` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:175:4
+    |
+175 | fn rfc(t: DateTime<Utc>) -> String {
+    |    ^^^
+
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:190:4
+    |
+190 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.76s
+     Running tests/tester_p6_fills_indep.rs (target/debug/deps/tester_p6_fills_indep-a39df61bd4fcade6)
+
+running 4 tests
+[probe] /curve?kind=fills → 400 {"error":{"code":"kind_invalid","detail":{},"message":"kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）"}}
+[probe] /curve?kind=fills&k=10 → 400 {"error":{"code":"kind_invalid","detail":{},"message":"kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）"}}
+[probe] /bars?kind=fills → 400 {"error":{"code":"kind_invalid","detail":{},"message":"kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）"}}
+[probe] /fills total=3 records=[
+  {
+    "bar_index": 1,
+    "code": "797439",
+    "commission": 12.5025,
+    "price": 100.02,
+    "qty": 500.0,
+    "reason": "Policy",
+    "rt_seq": 1,
+    "side": "Buy",
+    "stamp_duty": 0.0,
+    "trade_value": 50010.0,
+    "ts": 1788917460,
+    "type": "fill"
+  },
+  {
+    "bar_index": 10,
+    "code": "797439",
+    "commission": 6.2515622499375,
+    "price": 199.96,
+    "qty": 125.05625624999999,
+    "reason": "Policy",
+    "rt_seq": 1,
+    "side": "Sell",
+    "stamp_duty": 12.503124499875,
+    "trade_value": 25006.248999749998,
+    "ts": 1788918000,
+    "type": "fill"
+  },
+  {
+    "bar_index": 29,
+    "code": "797439",
+    "commission": 18.7434377500625,
+    "price": 199.96,
+    "qty": 374.94374375,
+    "reason": "ForceClose",
+    "rt_seq": 1,
+    "side": "Sell",
+    "stamp_duty": 37.486875500125,
+    "trade_value": 74973.75100025,
+    "ts": 1788919140,
+    "type": "fill"
+  }
+]
+[probe] /result trades n=1 [
+  {
+    "buy_count": 1,
+    "close_bar": 29,
+    "close_price": 199.96,
+    "close_ts": 1788919140,
+    "code": "797439",
+    "commission": 37.4975,
+    "gross_value": 99980.0,
+    "hold_bars": 28,
+    "l2_count": 3,
+    "open_bar": 1,
+    "open_price": 100.02,
+    "open_ts": 1788917460,
+    "pnl": 49882.5125,
+    "reason": "ForceClose",
+    "rt_seq": 1,
+    "sell_count": 2,
+    "shares": 500.0,
+    "stamp_duty": 49.99,
+    "status": "Closed"
+  }
+]
+[probe] 无成交=true 未写=false legacy=true
+[probe] /fills 分页 OK total=4 bar_indices=[1, 2, 3, 11]
+test t_p6_fills_rejected_by_curve_and_bars_with_hint ... ok
+test t_p6_fills_recorded_vs_unrecorded_and_legacy_derived ... ok
+test t_p6_fills_is_exact_source_and_trades_misses_partial_fills ... ok
+test t_p6_fills_paging_boundaries_and_clamps ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+

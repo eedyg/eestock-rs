@@ -1,0 +1,22 @@
+test tools::tests::bt_get_run_audit_tool_contract_and_gate ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+test tools::tests::bt_trade_detail_increment_tools_contract ... ok
+
+test result: ok. 68 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+=== mcp_protocol ===
+     Running tests/mcp_protocol.rs (target/debug/deps/mcp_protocol-b7ccc26f568f8201)
+
+running 2 tests
+test messages_requires_known_session ... ok
+test mcp_sse_full_protocol_roundtrip ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+=== adr024_period_ssot_drift ===
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

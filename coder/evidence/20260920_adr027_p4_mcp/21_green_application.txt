@@ -1,0 +1,30 @@
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+test fee::tests::present_but_invalid_explicit_fields_still_error ... ok
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/adr027_repro_simlive.rs (target/debug/deps/adr027_repro_simlive-5c20a5b92208d209)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/backtest_periods_ssot.rs (target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/d6_dca_interval_serde.rs (target/debug/deps/d6_dca_interval_serde-76b4c7451b4956b8)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/simlive.rs (target/debug/deps/simlive-6a5e569d767dbe94)
+test p4a_registry_not_injected_errors ... ok
+test run_backtest_compare_manual_session_errors ... ok
+test run_backtest_compare_unknown_session_errors ... ok
+test process_bar_unconfigured_errors_and_unknown_stock_no_event ... ok
+test start_session_when_already_running_returns_already_running_error ... ok
+test unknown_session_errors ... ok
+test result: ok. 57 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/strategy.rs (target/debug/deps/strategy-80d9653af36dddc6)
+test test_run_pure_score_defaults_fill_and_neutral_on_error ... ok
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+     Running tests/tester_p2b_tryrun_indep.rs (target/debug/deps/tester_p2b_tryrun_indep-63f982fecd9089ac)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+test p5_structured_error_shape_json ... ok
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

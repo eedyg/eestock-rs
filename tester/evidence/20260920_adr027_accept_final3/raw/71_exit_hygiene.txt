@@ -1,0 +1,9 @@
+=== t=2026-09-20T01:21:28+08:00 ===
+-- port 4173/8081/8082 --
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=12)) 
+-- node/vite preview processes --
+-- headless chromium processes (playwright) --
+-- playwright driver processes --
+-- eestock-app processes --
+1941108 Sun Sep 20 01:09:27 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml

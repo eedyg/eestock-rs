@@ -1,0 +1,17 @@
+### 恢复原状（cp /tmp/p6_orig.rs）+ 复核 sha256
+3ba4ab828846dae878618ade960a7d615bf7a3577d88aefef4577c4677334e79  /tmp/p6_orig.rs
+3ba4ab828846dae878618ade960a7d615bf7a3577d88aefef4577c4677334e79  crates/web/tests/tester_p6_fills_indep.rs
+### date: 2026-09-20 01:07:12 CST
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.63s
+     Running tests/tester_p6_fills_indep.rs (target/debug/deps/tester_p6_fills_indep-a39df61bd4fcade6)
+
+running 4 tests
+test t_p6_fills_rejected_by_curve_and_bars_with_hint ... ok
+test t_p6_fills_is_exact_source_and_trades_misses_partial_fills ... ok
+test t_p6_fills_paging_boundaries_and_clamps ... ok
+test t_p6_fills_recorded_vs_unrecorded_and_legacy_derived ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+RUN_EXIT=0

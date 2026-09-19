@@ -1,0 +1,34 @@
+### 闸门2-6 Open 回合 pnl=null 前端处理
+web/src/api/mock.ts:748:    let cashFlow = 0; // 整回合现金流差（= pnl），逐笔同序累加
+web/src/api/mock.ts:786:      pnl: closed ? cashFlow : null,
+web/src/api/mock.ts:1155:    // 重算 pnl 快照（未实现 = 市值 - 成本×量；已实现/费用累计）。
+web/src/api/mock.ts:1163:      unrealized_pnl: unrealized,
+web/src/api/mock.ts:1165:    simLive.pnl = {
+web/src/api/mock.ts:1166:      realized_pnl: simLive.account.realized_pnl,
+web/src/api/mock.ts:1167:      unrealized_pnl: unrealized,
+web/src/api/mock.ts:1169:      net_profit: simLive.account.realized_pnl + unrealized,
+web/src/api/mock.ts:1552:        pnl: simLive.pnl, trading_enabled: simLive.trading_enabled, mcp_enabled: simLive.mcp_enabled };
+web/src/api/mock.ts:1561:      return { session_id: simLive.session.id, pnl: { ...simLive.pnl } };
+web/src/api/mock.ts:1592:          market_value: 0, realized_pnl: 0, unrealized_pnl: 0, total_fee: 0 },
+web/src/api/mock.ts:1595:        pnl: { realized_pnl: 0, unrealized_pnl: 0, total_fee: 0, net_profit: 0 },
+web/src/api/mock.ts:1611:      simLive.history = [{ session: ended, metrics: toSimMetrics(simLive.pnl) }, ...simLive.history];
+web/src/api/mock.ts:1640:            market_value: price * req.qty, unrealized_pnl: 0 });
+web/src/api/mock.ts:1646:          simLive.account.realized_pnl = round4(simLive.account.realized_pnl + realized);
+web/src/api/mock.ts:1947:            commission: 5, stamp_duty: 1.26, pnl: 113.74, hold_bars: 8,
+web/src/api/mock.ts:2351:    realized_pnl: number; unrealized_pnl: number; total_fee: number;
+web/src/api/mock.ts:2354:    market_value: number; unrealized_pnl: number }>;
+web/src/api/mock.ts:2358:  pnl: { realized_pnl: number; unrealized_pnl: number; total_fee: number; net_profit: number };
+web/src/api/mock.ts:2373:    unrealized_pnl: round4((p.latest - p.avg_cost) * p.qty),
+web/src/api/mock.ts:2377:  const unrealized = round4(positions.reduce((s, p) => s + p.unrealized_pnl, 0));
+web/src/api/mock.ts:2444:      realized_pnl: realized, unrealized_pnl: unrealized, total_fee },
+web/src/api/mock.ts:2447:    pnl: { realized_pnl: realized, unrealized_pnl: unrealized, total_fee, net_profit: round4(realized + unrealized) },
+web/src/api/mock.ts:2560:/** 页面⑨ 把 pnl 快照映射为 BacktestMetrics jsonb 摘要（历史会话指标；口径 08-backtest）。 */
+web/src/api/mock.ts:2561:function toSimMetrics(pnl: SimLiveSeed['pnl']): Record<string, unknown> {
+web/src/api/mock.ts:2563:    net_profit: pnl.net_profit,
+web/src/api/client.ts:207:  /** 当前会话聚合（GET /api/sim-live/state；account+positions+pnl+trading_enabled+mcp_enabled） */
+web/src/api/client.ts:213:  /** 盈亏（GET /api/sim-live/pnl） */
+web/src/api/client.ts:475:    getSimPnl: (sessionId) => get(`/api/sim-live/pnl${simSessionQuery(sessionId)}`),
+web/src/api/types.ts:422: * sim-live 未平仓回合为 `Open`（**禁止**伪造成交；`pnl` 恒 null）。
+--- 是否有 ?? 0 / || 0 兜底 ---
+web/src/api/mock.ts:989:    round_trips_open: trades.filter((t) => t.status === 'Open').length,
+web/src/features/workbench/roundTripAccum.ts:139:    mk('pnl', 'pnl（回合盈亏）', rt.pnl, last?.cum_realized_pnl ?? 0, 'money'),

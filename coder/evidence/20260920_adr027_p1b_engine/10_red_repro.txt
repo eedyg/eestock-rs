@@ -1,0 +1,61 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 4 tests
+test r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq ... FAILED
+test r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl ... FAILED
+test r2_l1_amount_fields_are_not_whole_round_trip_sums ... FAILED
+test r6_fill_fact_source_lacks_rt_seq_and_fee_triple ... FAILED
+
+failures:
+
+---- r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq stdout ----
+
+thread 'r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq' (1634551) panicked at crates/strategy-core/tests/adr027_repro.rs:325:5:
+R5：零长回合必须可归属（l2_count == 2 且两笔同 rt_seq），实得 3 项缺口:
+  L1.l2_count != 2（该零长回合有 2 笔成交）；Debug: TradeDetail { rt_seq: 0, code: "", status: Closed, open_ts: 1700086400, close_ts: Some(1700086400), open_bar: 1, close_bar: Some(1), open_price: 10.001999999999999, close_price: Some(9.502374619904998), shares: 9995.501524538882, gross_value: 94980.99999999999, commission: 48.739001562109465, stamp_duty: 47.49049999999999, pnl: Some(-5090.235750000022), hold_bars: Some(0), l2_count: 1, buy_count: 1, sell_count: 1, reason: Some("StopTrigger") }
+  同 bar 第 0 笔成交事实缺 `rt_seq`（02-spec §1.1 FillFact）⇒ 归属只能退化到 [open_bar, close_bar] 窗口推断（D6 明确否掉）；Debug: Fill { bar_index: 1, side: Buy, qty: 9995.501524538882, price: 10.001999999999999, reason: Policy }
+  同 bar 第 1 笔成交事实缺 `rt_seq`（02-spec §1.1 FillFact）⇒ 归属只能退化到 [open_bar, close_bar] 窗口推断（D6 明确否掉）；Debug: Fill { bar_index: 1, side: Sell, qty: 9995.501524538882, price: 9.502374619904998, reason: StopTrigger }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl stdout ----
+
+thread 'r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl' (1634549) panicked at crates/strategy-core/tests/adr027_repro.rs:187:5:
+R1：TradeDetail.pnl 必须 == 该回合真实已实现盈亏（= nav[-1] − initial_capital；02-spec §2 全回合口径 Σ sell proceeds − Σ buy total_cost）: 期望 5338.715921666619，实际 4513.894182770709（Δ = -824.8217388959092，容差 0.000000001）
+
+---- r2_l1_amount_fields_are_not_whole_round_trip_sums stdout ----
+
+thread 'r2_l1_amount_fields_are_not_whole_round_trip_sums' (1634550) panicked at crates/strategy-core/tests/adr027_repro.rs:238:5:
+R2：L1 金额字段必须 == 全回合加总（02-spec §2），实得 3 项不符:
+  L1.gross_value: 全回合期望 55406.520749979165，实际 50396.27175022916（Δ = -5010.2489997500015）
+  L1.commission: 全回合期望 30.101567937557288，实际 24.057348458338538（Δ = -6.04421947921875）
+  L1.stamp_duty: 全回合期望 27.703260374989583，实际 25.19813587511458（Δ = -2.505124499875002）
+
+---- r6_fill_fact_source_lacks_rt_seq_and_fee_triple stdout ----
+
+thread 'r6_fill_fact_source_lacks_rt_seq_and_fee_triple' (1634552) panicked at crates/strategy-core/tests/adr027_repro.rs:376:5:
+R6：两源（fills 事实源 / per_bar.events）逐笔必须携带 rt_seq + 金额三件套（02-spec §1.1），实得 12 项缺口:
+  第 0 笔（bar1 Buy）缺 `rt_seq`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `trade_value`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `commission`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 0 笔（bar1 Buy）缺 `stamp_duty`；Debug: Fill { bar_index: 1, side: Buy, qty: 5000.0, price: 10.001999999999999, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `rt_seq`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `trade_value`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `commission`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 1 笔（bar5 Sell）缺 `stamp_duty`；Debug: Fill { bar_index: 5, side: Sell, qty: 417.60427083333343, price: 11.9976, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `rt_seq`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `trade_value`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `commission`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+  第 2 笔（bar7 Sell）缺 `stamp_duty`；Debug: Fill { bar_index: 7, side: Sell, qty: 4582.395729166667, price: 10.9978, reason: Policy }
+
+
+failures:
+    r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl
+    r2_l1_amount_fields_are_not_whole_round_trip_sums
+    r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq
+    r6_fill_fact_source_lacks_rt_seq_and_fee_triple
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test adr027_repro`

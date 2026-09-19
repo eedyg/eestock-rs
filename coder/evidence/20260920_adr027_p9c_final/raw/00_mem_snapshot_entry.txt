@@ -1,0 +1,13 @@
+### date: 2026-09-20 01:05:34 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        18Gi        25Gi       1.7Gi       5.4Gi        28Gi
+Swap:          8.0Gi       5.5Gi       2.5Gi
+
+### 8081/8082/4173
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1901936,fd=12)) 
+
+### eestock-app / vite / chromium / cargo procs
+1901936       1 Sun Sep 20 00:27:56 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+1935620 1932405 Sun Sep 20 01:05:34 2026 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && mkdir -p coder/evidence/20260920_adr027_p9c_final/raw && { echo "### date: $(date '+%F %T %Z')"; free -h; echo; echo "### 8081/8082/4173"; ss -lntp 2>/dev/null | grep -E '8081|8082|4173' || echo none; echo; echo "### eestock-app / vite / chromium / cargo procs"; ps -eo pid,ppid,lstart,cmd | grep -E '[e]estock-app|[v]ite|[c]hromium|[c]argo|[v]itest' || echo none; } | tee coder/evidence/20260920_adr027_p9c_final/raw/00_mem_snapshot_entry.txt
+1935622 1935620 Sun Sep 20 01:05:34 2026 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && mkdir -p coder/evidence/20260920_adr027_p9c_final/raw && { echo "### date: $(date '+%F %T %Z')"; free -h; echo; echo "### 8081/8082/4173"; ss -lntp 2>/dev/null | grep -E '8081|8082|4173' || echo none; echo; echo "### eestock-app / vite / chromium / cargo procs"; ps -eo pid,ppid,lstart,cmd | grep -E '[e]estock-app|[v]ite|[c]hromium|[c]argo|[v]itest' || echo none; } | tee coder/evidence/20260920_adr027_p9c_final/raw/00_mem_snapshot_entry.txt

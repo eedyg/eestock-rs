@@ -1,0 +1,20 @@
+=== P5b 红判词（MUTATION-CHECK：证明 F9「越界静默失败必须被捕获」用例非空断言） ===
+
+工具：vitest
+命令：npx vitest run src/features/workbench/resultWindow.test.ts -t "越界静默失败"
+前置：临时删除 src/features/dashboard/klineWindowOps.ts 中 applyWindowOps 的读回断言
+      （`if (applied !== requested) return fail(...静默吞掉...)` → `void applied;`）
+
+原始输出（节选）：
+  FAIL src/features/workbench/resultWindow.test.ts > F9 跳转断言（禁止 setBarSpace 静默越界）
+    > **越界静默失败必须被捕获并显式报错**（构造 max=50 场景）
+  AssertionError: expected true to be false
+   ❯ src/features/workbench/resultWindow.test.ts:200:18
+      200|     expect(r.ok).toBe(false);
+      201|     expect(r.error).toContain('静默吞掉');
+  Test Files  1 failed (1)
+       Tests  1 failed | 16 skipped (17)
+
+恢复实现后：
+  npx vitest run src/features/workbench/resultWindow.test.ts → Tests 17 passed (17)
+  git diff web/src/features/dashboard/klineWindowOps.ts → 空（已还原，见 21_green_vitest_p5b.txt）

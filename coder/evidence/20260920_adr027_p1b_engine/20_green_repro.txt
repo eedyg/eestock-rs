@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/adr027_repro.rs (target/debug/deps/adr027_repro-0bbf3d4b6e3353da)
+
+running 4 tests
+test r5_zero_length_round_trip_cannot_be_attributed_without_rt_seq ... ok
+test r2_l1_amount_fields_are_not_whole_round_trip_sums ... ok
+test r1_partial_sell_trade_detail_pnl_is_not_round_trip_realized_pnl ... ok
+test r6_fill_fact_source_lacks_rt_seq_and_fee_triple ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

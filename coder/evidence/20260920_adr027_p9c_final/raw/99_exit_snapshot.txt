@@ -1,0 +1,13 @@
+### date: 2026-09-20 01:14:46 CST
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        17Gi        23Gi       1.7Gi       7.6Gi        28Gi
+Swap:          8.0Gi       5.3Gi       2.7Gi
+### 8081/8082/4173
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=1941108,fd=12)) 
+### eestock-app procs
+1941108       1 Sun Sep 20 01:09:27 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### vite preview / chromium from our runs
+4173 not listening (ok)
+### playwright artifacts dir (failed-run leftovers)
+### cargo/vitest running

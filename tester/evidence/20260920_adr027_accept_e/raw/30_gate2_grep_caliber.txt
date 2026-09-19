@@ -1,0 +1,44 @@
+### 闸门2 · 口径回退 grep（--exclude target/node_modules/.git）
+--- G1: 末笔卖出充当回合金额（端点口径残留） ---
+--- G2: 费率复算费用（下游 recompute） ---
+crates/web/src/dto.rs:699:    for key in ["rate_pct", "min_fee", "slippage_bp"] {
+crates/web/src/dto.rs:706:    if let Some(v) = obj.get("stamp_duty_pct") {
+crates/web/src/dto.rs:709:            Some(_) => return Err(FieldError::BadRequest("fee.stamp_duty_pct 须 ∈ [0,1]".into())),
+crates/web/src/dto.rs:710:            None => return Err(FieldError::BadRequest("fee.stamp_duty_pct 应为数值".into())),
+crates/storage/src/fee_profile.rs:30:            "SELECT p.type, p.commission_rate_pct, p.min_fee, p.exchange_fee_pct, \
+crates/storage/src/fee_profile.rs:31:                    p.regulatory_fee_pct, p.stamp_duty_pct, p.transfer_fee_pct, p.note, p.source \
+crates/storage/src/fee_profile.rs:39:            |(type_, commission_rate_pct, min_fee, exchange_fee_pct, regulatory_fee_pct,
+crates/storage/src/fee_profile.rs:40:              stamp_duty_pct, transfer_fee_pct, note, source)| FeeProfileRow {
+crates/storage/src/fee_profile.rs:42:                commission_rate_pct,
+crates/storage/src/fee_profile.rs:46:                stamp_duty_pct,
+crates/application/src/fee.rs:79:        commission_rate_pct: DEFAULT_COMMISSION_RATE_PCT,
+crates/application/src/fee.rs:81:        stamp_duty_pct: DEFAULT_STAMP_DUTY_PCT,
+crates/application/src/fee.rs:90:        commission_rate_pct: p.commission_rate_pct,
+crates/application/src/fee.rs:92:        stamp_duty_pct: p.stamp_duty_pct,
+crates/application/src/fee.rs:130:            if let Some(x) = explicit_number(obj, "rate_pct")? {
+crates/application/src/fee.rs:131:                m.commission_rate_pct = x;
+crates/application/src/fee.rs:143:                m.stamp_duty_pct = x;
+crates/application/src/fee.rs:169:    match obj.get("stamp_duty_pct") {
+crates/application/src/fee.rs:174:                .ok_or_else(|| anyhow!("fee.stamp_duty_pct 应为数值"))?;
+crates/application/src/fee.rs:176:                return Err(anyhow!("fee.stamp_duty_pct 须 ∈ [0,1]（百分比）"));
+--- G3: ts/bar_sec 反算 bar 序号 ---
+crates/web/src/rest.rs:419:/// PUT /api/config/multi_period —— body = 多周期配置（enabled/periods/heights/indicators）：
+crates/web/src/spa.rs:86:/// 哈希静态资产（`assets/<name>-<hash>.<ext>`）→ 长期不可变缓存；其余（含 index.html）→ no-store。
+crates/web/src/spa.rs:95:/// 判定是否为 Vite 内容寻址哈希资产：路径位于 `assets/` 前缀，且 basename 去扩展名后
+crates/web/src/spa.rs:101:    if !p.starts_with("assets/") { return false; }
+crates/web/src/spa.rs:120:        assert!(sanitize("assets/..\\evil").is_none());
+crates/web/src/spa.rs:127:        assert_eq!(sanitize("/assets/app.js"), Some(PathBuf::from("assets/app.js")));
+crates/web/src/spa.rs:148:        assert_eq!(cache_control_for("assets/vite.svg"), "no-store");
+crates/web/src/spa.rs:149:        assert_eq!(cache_control_for("assets/index.js"), "no-store");
+crates/web/src/spa.rs:150:        assert_eq!(cache_control_for("assets/foo-123.js"), "no-store");
+crates/web/src/spa.rs:156:            cache_control_for("assets/index-D3fG4fH1.js"),
+crates/web/src/spa.rs:160:            cache_control_for("assets/index-AbCdEf12.css"),
+crates/web/src/spa.rs:167:        assert!(is_hashed_asset("assets/index-12345678.js"));
+crates/web/src/spa.rs:168:        assert!(is_hashed_asset("assets/logo-AbCdEfGh.svg"));
+crates/web/src/spa.rs:170:        assert!(is_hashed_asset("assets/index-D4J30-jW.css"));
+crates/web/src/spa.rs:171:        assert!(!is_hashed_asset("assets/index.js"));
+crates/web/src/spa.rs:173:        assert!(!is_hashed_asset("assets/foo-123.js"));
+crates/web/src/workbench.rs:731:/// GET /api/workbench/presets/{id} —— 预设详情（404）。
+crates/web/src/workbench.rs:740:/// PUT /api/workbench/presets/{id} —— 更新预设（name trim 非空；config 同 create 校验；404/409）。
+crates/web/src/workbench.rs:761:/// DELETE /api/workbench/presets/{id} —— 删除预设（200 / 404）。
+crates/web/src/workbench.rs:770:/// POST /api/workbench/presets/{id}/apply —— 返回钉住 config（供 submit 用；404）。

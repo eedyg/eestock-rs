@@ -1,0 +1,13 @@
+# ADR-027 §2.4 D3 — P0 历史归档 manifest
+# 源库: eestock @ 127.0.0.1:5433 (容器 172.24.0.2:5432), user=eestock, schema=public
+# 快照时间: 2026-09-19T14:41:50Z (UTC) / 2026-09-19T22:41:50+08:00 (CST)
+# 采样: BEGIN ISOLATION LEVEL REPEATABLE READ + count(*)（单事务快照，8 表一致）
+# 格式: table<TAB>count  （表名与 count 列；# 开头为注释）
+strategy_run	414
+strategy_run_result	413
+strategy_run_bars	1039
+simsession	12
+simsession_result	12
+simsession_state	4
+sim_trades	102
+sim_positions	4

@@ -1,0 +1,88 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+error[E0560]: struct `EnsembleConfig` has no field named `symbol`
+  --> crates/strategy-core/tests/p1b_ledger.rs:41:9
+   |
+41 |         symbol: "TEST.SYMBOL".to_string(),
+   |         ^^^^^^ `EnsembleConfig` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0026]: variant `Fill` does not have fields named `trade_value`, `commission`, `stamp_duty`, `rt_seq`
+   --> crates/strategy-core/tests/p1b_ledger.rs:123:17
+    |
+123 |                 trade_value,
+    |                 ^^^^^^^^^^^
+124 |                 commission,
+    |                 ^^^^^^^^^^
+125 |                 stamp_duty,
+    |                 ^^^^^^^^^^
+126 |                 rt_seq,
+    |                 ^^^^^^ variant `Fill` does not have these fields
+
+error[E0609]: no field `symbol` on type `EnsembleConfig`
+   --> crates/strategy-core/tests/p1b_ledger.rs:407:18
+    |
+407 |     assert!(!cfg.symbol.is_empty(), "配置必须携带 symbol");
+    |                  ^^^^^^ unknown field
+    |
+    = note: available fields are: `slots`, `buy_threshold`, `sell_threshold`, `policy`, `stop` ... and 5 others
+
+error[E0609]: no field `symbol` on type `EnsembleConfig`
+   --> crates/strategy-core/tests/p1b_ledger.rs:409:32
+    |
+409 |         assert_eq!(t.code, cfg.symbol, "TradeDetail.code == run symbol：{t:?}");
+    |                                ^^^^^^ unknown field
+    |
+    = note: available fields are: `slots`, `buy_threshold`, `sell_threshold`, `policy`, `stop` ... and 5 others
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:421:14
+    |
+421 |         !res.positions.is_empty(),
+    |              ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:425:13
+    |
+425 |         res.positions.len(),
+    |             ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:430:29
+    |
+430 |     for (i, (p, nv)) in res.positions.iter().zip(res.net_value.iter()).enumerate() {
+    |                             ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:455:20
+    |
+455 |     let last = res.positions.last().expect("非空");
+    |                    ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:472:13
+    |
+472 |         res.positions.iter().any(|p| p.position_ratio > 0.0),
+    |             ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+error[E0609]: no field `positions` on type `EnsembleResult`
+   --> crates/strategy-core/tests/p1b_ledger.rs:474:13
+    |
+474 |         res.positions
+    |             ^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `per_bar`, `trades`, `net_value`, `drawdown`, `metrics`
+
+Some errors have detailed explanations: E0026, E0560, E0609.
+For more information about an error, try `rustc --explain E0026`.
+error: could not compile `strategy-core` (test "p1b_ledger") due to 10 previous errors

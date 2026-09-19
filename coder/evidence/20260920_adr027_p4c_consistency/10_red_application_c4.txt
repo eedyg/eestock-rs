@@ -1,0 +1,28 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+
+running 2 tests
+test c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2 ... FAILED
+test c4_fills_filter_and_element_increment ... FAILED
+
+failures:
+
+---- c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2 stdout ----
+
+thread 'c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2' (1812381) panicked at crates/application/tests/workbench.rs:2447:78:
+called `Result::unwrap_err()` on an `Ok` value: FillsResponse { run_id: "sr_1788915600000_000000", total: 0, offset: 0, limit: 5000, has_more: false, next_offset: None, recorded: true, round_trip: Some(1001), fills: [] }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- c4_fills_filter_and_element_increment stdout ----
+
+thread 'c4_fills_filter_and_element_increment' (1812380) panicked at crates/application/tests/workbench.rs:2400:13:
+fills 元素增字段 code 缺失
+
+
+failures:
+    c4_fills_filter_and_element_increment
+    c4b_fills_round_trip_unknown_seq_is_404_symmetric_with_l2
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p application --test workbench`

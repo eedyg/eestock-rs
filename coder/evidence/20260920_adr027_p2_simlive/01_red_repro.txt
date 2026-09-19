@@ -1,0 +1,36 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.55s
+     Running tests/adr027_repro_simlive.rs (target/debug/deps/adr027_repro_simlive-5c20a5b92208d209)
+
+running 2 tests
+test r3_simlive_settlement_stamp_duty_is_not_zero ... FAILED
+test r4_simlive_bar_index_is_not_reverse_computed_from_ts ... FAILED
+
+failures:
+
+---- r3_simlive_settlement_stamp_duty_is_not_zero stdout ----
+
+thread 'r3_simlive_settlement_stamp_duty_is_not_zero' (1677331) panicked at crates/application/tests/adr027_repro_simlive.rs:277:5:
+R3：sim-live 结算费用三件套必须与撮合点事实一致，实得 3 项不符:
+  stamp_duty 必须 > 0（本笔卖出含印花税 5.9988），实际 0（simlive.rs:1914 硬编码 0.0）
+  stamp_duty 必须 == Σ_sell 印花税 = 5.9988，实际 0（Δ = -5.9988）
+  commission 必须 == Σ_buy + Σ_sell 佣金 = 10，实际 15.9988（Δ = 5.998799999999999；现口径把卖腿「佣金+印花税」合并值整笔计入 commission）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r4_simlive_bar_index_is_not_reverse_computed_from_ts stdout ----
+
+thread 'r4_simlive_bar_index_is_not_reverse_computed_from_ts' (1677332) panicked at crates/application/tests/adr027_repro_simlive.rs:345:5:
+R4：sim-live bar_index 必须为真实 bar 序号，实得 4 项不符:
+  open_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  close_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  open_bar 必须**不是** ts/bar_sec 的反算商（02-spec §1.1「禁 ts/bar_sec 反算」），实际 29806680 == 1788400817/60
+  close_bar 必须**不是** ts/bar_sec 的反算商，实际 29806680 == 1788400817/60
+
+
+failures:
+    r3_simlive_settlement_stamp_duty_is_not_zero
+    r4_simlive_bar_index_is_not_reverse_computed_from_ts
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test adr027_repro_simlive`

@@ -1,0 +1,9 @@
+== entry 2026-09-20T00:15:23+08:00 ==
+note: find here does not support --exclude-dir; using -not -path '*/target/*' -not -path '*/node_modules/*'
+--- prod sources: crates/**/*.rs + web/src/**/*.{ts,tsx,css} ---
+33e31881d9fe8e5aa7e6d90b565abd15c8ac1789aaa29d078dc2ee4ff8896ac9  /tmp/sums_all.txt
+458 /tmp/files_all.txt
+--- rust only ---
+01b5af218413d16a6dabc6601495b70429c94928d25875c8a58f4a04afcff58f  /tmp/sums_rs.txt
+--- web/src only ---
+e84d3937bc6f2e4820389d08174dc15ed6b24d8f9b5425197319eb6a24dcfedf  /tmp/sums_web.txt

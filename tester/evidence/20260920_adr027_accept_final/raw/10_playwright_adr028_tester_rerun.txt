@@ -1,0 +1,10 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-window-sync.e2e.ts:281:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） (3.7s)
+  ✓  2 [chromium] › e2e/adr028-window-sync.e2e.ts:304:1 › E2_L2_jump：真渲染下 [跳转] 后窗口中心 bar == 该笔成交 bar (4.1s)
+  ✓  3 [chromium] › e2e/adr028-window-sync.e2e.ts:334:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） (4.6s)
+  ✓  4 [chromium] › e2e/adr028-window-sync.e2e.ts:393:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） (3.6s)
+
+  4 passed (16.4s)
+EXIT=0

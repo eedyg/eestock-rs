@@ -1,0 +1,37 @@
+--- 前端 recorded 处理 ---
+web/src/api/types.ts:1201: *  完整性契约（D11）：`total` + `recorded` + `has_more`/`next_offset` 齐备，UI **不得**静默截断。 */
+web/src/api/types.ts:1205:  recorded: boolean;
+web/src/api/types.ts:1265:  recorded: boolean;
+web/src/api/types.ts:1285: * `recorded=false` ⇒ 事实源缺失（per_bar.orders/events 与 fills 皆不可得）：其余数值均为 0、
+web/src/api/types.ts:1291:  recorded: boolean;
+web/src/features/workbench/RoundTripsTable.tsx:308:  if (!state.recorded) {
+web/src/features/workbench/RoundTripsTable.tsx:312:        data-testid="wb-rt-unrecorded"
+web/src/features/workbench/KlineResultChart.tsx:99:        ) : !fills.recorded ? (
+web/src/features/workbench/useRunSeries.ts:65:/** 成交明细状态（`recorded=false` = 后端未写 fills 块，与「无成交」区分）。
+web/src/features/workbench/useRunSeries.ts:71:  recorded: boolean;
+web/src/features/workbench/useRunSeries.ts:80:/** L1 回合列表状态（`recorded=false` = 无成交事实源 ⇒ L1 不可得，与「无回合」区分）。 */
+web/src/features/workbench/useRunSeries.ts:84:  recorded: boolean;
+web/src/features/workbench/useRunSeries.ts:182:  rows: [], total: 0, recorded: true, loading: false, error: null, complete: false, truncated: false,
+web/src/features/workbench/useRunSeries.ts:186:  rows: [], total: 0, recorded: true, hasMore: false, nextOffset: null,
+web/src/features/workbench/useRunSeries.ts:215:): Promise<{ rows: WorkbenchRunFill[]; total: number; recorded: boolean; complete: boolean; truncated: boolean }> {
+web/src/features/workbench/useRunSeries.ts:219:  let recorded = true;
+web/src/features/workbench/useRunSeries.ts:226:    recorded = page.recorded;
+web/src/features/workbench/useRunSeries.ts:229:    if (!page.recorded) break;
+web/src/features/workbench/useRunSeries.ts:232:  return { rows, total, recorded, complete: offset == null, truncated: offset != null };
+web/src/features/workbench/useRunSeries.ts:263:    fills: { rows: fills, total: fills.length, recorded: true, loading: false, error: null, complete: true, truncated: false },
+--- ResultView/WorkbenchPage 空态 vs 无事实 ---
+web/src/features/workbench/KlineResultChart.tsx:99:        ) : !fills.recorded ? (
+web/src/features/workbench/PositionRatioChart.tsx:16:  /** `recorded=false` ⇒ 事实源缺失：**不得**把缺失读成 0%。 */
+web/src/features/workbench/PositionRatioChart.tsx:17:  recorded: boolean;
+web/src/features/workbench/PositionRatioChart.tsx:117:            : !cumulative.recorded
+web/src/features/workbench/PositionRatioChart.tsx:128:            : !cumulative.recorded
+web/src/features/workbench/ResultView.test.tsx:53:  recorded: true,
+web/src/features/workbench/ResultView.test.tsx:397:  it('P6：/fills 回 recorded=false（P6 前的 chunked run）⇒ 显式提示，不静默少标记', async () => {
+web/src/features/workbench/ResultView.test.tsx:598:  it('ADR-026：recorded=false ⇒ 显式「未记录」，绝不把 0 渲染成投入率', async () => {
+web/src/features/workbench/ResultView.test.tsx:608:    const box = await screen.findByTestId('wb-audit-unrecorded');
+web/src/features/workbench/ResultView.tsx:85: *  三态沿用仓内既有模式；`recorded=false` ⇒ 显式「未记录」，**不得**把 0 读成 0% 投入。 */
+web/src/features/workbench/ResultView.tsx:112:      {audit.data.recorded
+web/src/features/workbench/ResultView.tsx:156:  // recorded=false = 事实源缺失 ⇒ 诚实留白（把 0 展示成 0% 投入比缺字段更危险）
+web/src/features/workbench/ResultView.tsx:157:  if (!a.recorded) {
+web/src/features/workbench/ResultView.tsx:161:        data-testid="wb-audit-unrecorded"
+web/src/features/workbench/ResultView.tsx:170:        {`${fills.recorded ? `成交合计 ${fills.total} 笔（含期末强平卖出 ${a.round_trips_force_closed} 笔）` : '成交合计 未记录（/fills 事实源缺失）'}｜回合 ${a.round_trips_total} 条（其中强平合成 ${a.round_trips_force_closed} 条）｜名义投入 ${fmtPct(a.deployed_pct, 2)}（分母 = 初始资金）`}

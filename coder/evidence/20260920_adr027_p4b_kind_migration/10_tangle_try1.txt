@@ -1,0 +1,3 @@
+[23:36:11] INFO     Welcome to Entangled v2.4.3!
+           INFO     create `migrations/0029_strategy_run_bars_kind_position.sql`
+EXIT=0

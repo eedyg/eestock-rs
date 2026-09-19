@@ -1,0 +1,7 @@
+test plugin_orchestrator::tests::instantiate_failure_is_explicit_error ... ok
+test plugin_orchestrator::tests::g5_consecutive_errors_reset_on_success ... ok
+test plugin_orchestrator::tests::g5_error_neutral_score_events_and_circuit_breaker ... ok
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

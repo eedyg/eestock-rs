@@ -1,0 +1,57 @@
+## D3 清理复核（只读 psql，活库 eestock，cutoff=2026-09-19T14:41:56Z）
+### strategy_run
+ total | old_lt_cutoff | v2_ge_cutoff 
+-------+---------------+--------------
+     7 |             0 |            7
+(1 row)
+
+### strategy_run 行明细
+           id            |            name             |          created_at           |  status   
+-------------------------+-----------------------------+-------------------------------+-----------
+ sr_1789831866857_000000 | adr027-accept-e2e           | 2026-09-19 15:31:06.857579+00 | failed
+ sr_1789831880929_000001 | adr027-accept-e2e-2         | 2026-09-19 15:31:20.929508+00 | failed
+ sr_1789832477006_000002 | adr027E-accept-DCApartial-1 | 2026-09-19 15:41:17.006787+00 | succeeded
+ sr_1789832500924_000003 | adr027E-accept-M5-multirt   | 2026-09-19 15:41:40.92435+00  | succeeded
+ sr_1789832500958_000004 | adr027E-accept-D1-multirt   | 2026-09-19 15:41:40.977623+00 | succeeded
+ sr_1789832517708_000005 | adr027E-accept-D1-macross   | 2026-09-19 15:41:57.708985+00 | succeeded
+ sr_1789832517800_000006 | adr027E-accept-M5-macross   | 2026-09-19 15:41:57.800581+00 | succeeded
+(7 rows)
+
+### simsession
+ total | old_lt_cutoff 
+-------+---------------
+     0 |             0
+(1 row)
+
+### L1 trades 的 rt_seq 覆盖（strategy_run_result.trades）
+         run_id          | result_format | l1_n | l1_with_rtseq 
+-------------------------+---------------+------+---------------
+ sr_1789832477006_000002 | chunked_v1    |    1 |             1
+ sr_1789832500924_000003 | chunked_v1    |    1 |             1
+ sr_1789832500958_000004 | chunked_v1    |    1 |             1
+ sr_1789832517708_000005 | chunked_v1    |    5 |             5
+ sr_1789832517800_000006 | chunked_v1    |   48 |            48
+(5 rows)
+
+### L2 fills 块的 rt_seq/code 覆盖（strategy_run_bars.kind='fills'）
+         run_id          | kind  |  n  | with_rtseq | with_code 
+-------------------------+-------+-----+------------+-----------
+ sr_1789831866857_000000 | fills |  16 |         16 |         0
+ sr_1789831880929_000001 | fills |   4 |          4 |         0
+ sr_1789832477006_000002 | fills |  16 |         16 |         0
+ sr_1789832500924_000003 | fills | 126 |        126 |         0
+ sr_1789832500958_000004 | fills |  36 |         36 |         0
+ sr_1789832517708_000005 | fills |  10 |         10 |         0
+ sr_1789832517800_000006 | fills |  96 |         96 |         0
+(7 rows)
+
+### strategy_run_bars 分块概览
+   kind    | count | count 
+-----------+-------+-------
+ drawdown  |     7 |     7
+ fills     |     7 |     7
+ net_value |     7 |     7
+ per_bar   |     7 |     7
+ position  |     5 |     5
+(5 rows)
+

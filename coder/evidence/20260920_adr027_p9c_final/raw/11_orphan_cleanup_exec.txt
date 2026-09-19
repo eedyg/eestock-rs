@@ -1,0 +1,33 @@
+### date: 2026-09-20 01:06:00 CST   库：eestock_test（隔离测试库，唯一被写库）
+
+### 2) 清理动作：DELETE FROM kline_accurate WHERE code IN ('838469','831554')
+DELETE 12
+
+### 2b) 有界 refresh：kline_accurate_1w 窗口 [2026-08-30 16:00Z, 2026-09-13 16:00Z)
+CALL
+
+### 2c) 有界 refresh：kline_accurate_1mo 窗口 [2026-07-31 16:00Z, 2026-09-30 16:00Z)
+CALL
+
+### 3) 清理后复核：全 10 表孤儿计数（ORPHAN_ROWS_SQL 同口径）+ 总量
+kline_accurate_5m|0
+kline_accurate_15m|0
+kline_accurate_30m|0
+kline_accurate_1h|0
+kline_accurate_1d|0
+kline_accurate_1w|1
+kline_accurate_1mo|1
+kline_5m|0
+kline_15m|0
+kline_1d|0
+
+### 4) kline_raw 同 code 残留核对
+ code | n 
+------+---
+(0 rows)
+
+### 4b) kline_accurate 同 code 残留核对（应为 0 行）
+ code | n 
+------+---
+(0 rows)
+

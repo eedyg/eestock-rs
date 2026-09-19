@@ -1,0 +1,205 @@
+{
+ "runs": {
+  "sr_1789832477006_000002": {
+   "run": "sr_1789832477006_000002",
+   "i1_mismatch": [],
+   "i3": {
+    "nav_last": 100657.1243467376,
+    "rhs": 100657.1243467376,
+    "delta": 0.0,
+    "tolerance": 0.1006571243467376,
+    "pass": true
+   },
+   "i4": {
+    "distinct_rt_seq": 1,
+    "distinct_list": [
+     1
+    ],
+    "trades_len": 1,
+    "audit_total": 1,
+    "closed": 1,
+    "open": 0,
+    "force_closed": 1,
+    "force_closed_reasons": 1,
+    "closed_rt_in_list": 1,
+    "open_rt_in_list": 0,
+    "pass": true
+   },
+   "position": {
+    "points": 65,
+    "bad": [],
+    "bad_count": 0,
+    "monotonic": true
+   },
+   "checks": 1,
+   "rt_reconcile": {
+    "checked": 1,
+    "mismatched": [],
+    "tolerance": 1e-06
+   },
+   "rt_envelope": {
+    "total": 1,
+    "recorded": true,
+    "has_more": false,
+    "next_offset": null,
+    "count": 1
+   },
+   "fills_envelope": {
+    "total": 16,
+    "recorded": true,
+    "count": 16
+   }
+  },
+  "sr_1789832517708_000005": {
+   "run": "sr_1789832517708_000005",
+   "i1_mismatch": [],
+   "i3": {
+    "nav_last": 99953.0871377441,
+    "rhs": 99953.08713774412,
+    "delta": -1.4551915228366852e-11,
+    "tolerance": 0.0999530871377441,
+    "pass": true
+   },
+   "i4": {
+    "distinct_rt_seq": 5,
+    "distinct_list": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "trades_len": 5,
+    "audit_total": 5,
+    "closed": 5,
+    "open": 0,
+    "force_closed": 0,
+    "force_closed_reasons": 0,
+    "closed_rt_in_list": 5,
+    "open_rt_in_list": 0,
+    "pass": true
+   },
+   "position": {
+    "points": 174,
+    "bad": [],
+    "bad_count": 0,
+    "monotonic": true
+   },
+   "checks": 5,
+   "rt_reconcile": {
+    "checked": 5,
+    "mismatched": [],
+    "tolerance": 1e-06
+   },
+   "rt_envelope": {
+    "total": 5,
+    "recorded": true,
+    "has_more": false,
+    "next_offset": null,
+    "count": 5
+   },
+   "fills_envelope": {
+    "total": 10,
+    "recorded": true,
+    "count": 10
+   }
+  },
+  "sr_1789832517800_000006": {
+   "run": "sr_1789832517800_000006",
+   "i1_mismatch": [],
+   "i3": {
+    "nav_last": 99582.14238086533,
+    "rhs": 99582.14238086536,
+    "delta": -2.9103830456733704e-11,
+    "tolerance": 0.09958214238086532,
+    "pass": true
+   },
+   "i4": {
+    "distinct_rt_seq": 48,
+    "distinct_list": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38,
+     39,
+     40,
+     41,
+     42,
+     43,
+     44,
+     45,
+     46,
+     47,
+     48
+    ],
+    "trades_len": 48,
+    "audit_total": 48,
+    "closed": 48,
+    "open": 0,
+    "force_closed": 1,
+    "force_closed_reasons": 1,
+    "closed_rt_in_list": 48,
+    "open_rt_in_list": 0,
+    "pass": true
+   },
+   "position": {
+    "points": 1699,
+    "bad": [],
+    "bad_count": 0,
+    "monotonic": true
+   },
+   "checks": 48,
+   "rt_reconcile": {
+    "checked": 48,
+    "mismatched": [],
+    "tolerance": 1e-06
+   },
+   "rt_envelope": {
+    "total": 48,
+    "recorded": true,
+    "has_more": false,
+    "next_offset": null,
+    "count": 48
+   },
+   "fills_envelope": {
+    "total": 96,
+    "recorded": true,
+    "count": 96
+   }
+  }
+ }
+}

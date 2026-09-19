@@ -1,0 +1,14 @@
+test c2_round_trips_paging_and_summary ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c3_l2_slice_ownership_and_unknown_rt_seq_404 ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c4_fills_filter_and_element_increment ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c5_curve_position_kind_and_time_window ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c6_curve_rejects_fills_kind ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c7_audit_increments_and_per_round_trip_reconcile ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s
+test c8_completeness_on_all_list_endpoints ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.01s

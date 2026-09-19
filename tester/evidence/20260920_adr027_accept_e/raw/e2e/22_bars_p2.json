@@ -1,0 +1,1 @@
+{"kind":"per_bar","bars":[{"aggregate":75.0,"events":[],"orders":[],"scores":[{"score":75.0,"slot_idx":0}],"signal":"Buy","ts":1749484800,"warmup":true},{"aggregate":75.0,"events":[],"orders":[],"scores":[{"score":75.0,"slot_idx":0}],"signal":"Buy","ts":1749571200,"warmup":true}],"total":315,"has_more":true,"next_offset":2,"offset":0,"limit":2}

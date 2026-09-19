@@ -1,0 +1,40 @@
+test tools::tests::bt_run_ensemble_archived_version_audit_rerun ... ok
+test tools::tests::bt_run_ensemble_happy_path_and_run_queries ... ok
+test tools::tests::bt_get_run_audit_tool_contract_and_gate ... ok
+test tools::tests::bt_trade_detail_increment_tools_contract ... ok
+
+test result: ok. 68 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+
+running 5 tests
+test backend_ssot_matches_frontend_mirror ... ok
+test backend_ssot_matches_contract_vectors ... ok
+test mcp_schema_enums_match_backend_ssot ... ok
+test all_four_period_sources_are_byte_equal ... ok
+test mcp_source_derives_from_ssot_not_handwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-cd470f7eac4f8c68)
+
+running 1 test
+test real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins ... FAILED
+
+failures:
+
+---- real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins stdout ----
+
+thread 'real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins' (1760989) panicked at crates/test-support/src/lib.rs:32:14:
+集成测试拒绝运行：环境变量 `EESTOCK_TEST_DATABASE_URL` 未设置（或为空）。
+这是**刻意设计**的响亮失败——禁止回退到活库 `eestock`（测试会写库，误指即污染生产数据）。
+前置步骤：先运行 `scripts/testdb-init.sh`，再 `export EESTOCK_TEST_DATABASE_URL=...`（见 README「跑集成测试的前置步骤」）。
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    real_db_etf_default_fee_is_stamp_free_and_explicit_still_wins
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mcp --test d11_fee_profile_e2e`

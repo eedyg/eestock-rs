@@ -1,0 +1,25 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/adr027_repro_simlive.rs (target/debug/deps/adr027_repro_simlive-5c20a5b92208d209)
+
+running 1 test
+test r4_simlive_bar_index_is_not_reverse_computed_from_ts ... FAILED
+
+failures:
+
+---- r4_simlive_bar_index_is_not_reverse_computed_from_ts stdout ----
+
+thread 'r4_simlive_bar_index_is_not_reverse_computed_from_ts' (1607827) panicked at crates/application/tests/adr027_repro_simlive.rs:345:5:
+R4：sim-live bar_index 必须为真实 bar 序号，实得 4 项不符:
+  open_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  close_bar 必须 == 真实 bar 序号（会话内 0-based）= 30，实际 29806680
+  open_bar 必须**不是** ts/bar_sec 的反算商（02-spec §1.1「禁 ts/bar_sec 反算」），实际 29806680 == 1788400817/60
+  close_bar 必须**不是** ts/bar_sec 的反算商，实际 29806680 == 1788400817/60
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    r4_simlive_bar_index_is_not_reverse_computed_from_ts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --test adr027_repro_simlive`

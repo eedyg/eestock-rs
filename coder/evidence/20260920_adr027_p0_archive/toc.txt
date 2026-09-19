@@ -1,0 +1,55 @@
+;
+; Archive created at 2026-09-19 22:41:56 CST
+;     dbname: eestock
+;     TOC Entries: 44
+;     Compression: gzip
+;     Dump Version: 1.15-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 16.15
+;     Dumped by pg_dump version: 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+;
+;
+; Selected TOC Entries:
+;
+2330; 1259 309526 TABLE public sim_positions eestock
+2329; 1259 309512 TABLE public sim_trades eestock
+2328; 1259 309511 SEQUENCE public sim_trades_id_seq eestock
+10418; 0 0 SEQUENCE OWNED BY public sim_trades_id_seq eestock
+2326; 1259 309487 TABLE public simsession eestock
+2327; 1259 309499 TABLE public simsession_result eestock
+2331; 1259 309574 TABLE public simsession_state eestock
+2335; 1259 309998 TABLE public strategy_run eestock
+2432; 1259 595853 TABLE public strategy_run_bars eestock
+2336; 1259 310010 TABLE public strategy_run_result eestock
+10171; 2604 309515 DEFAULT public sim_trades id eestock
+10407; 0 309526 TABLE DATA public sim_positions eestock
+10406; 0 309512 TABLE DATA public sim_trades eestock
+10403; 0 309487 TABLE DATA public simsession eestock
+10404; 0 309499 TABLE DATA public simsession_result eestock
+10408; 0 309574 TABLE DATA public simsession_state eestock
+10409; 0 309998 TABLE DATA public strategy_run eestock
+10411; 0 595853 TABLE DATA public strategy_run_bars eestock
+10410; 0 310010 TABLE DATA public strategy_run_result eestock
+10419; 0 0 SEQUENCE SET public sim_trades_id_seq eestock
+10190; 2606 309532 CONSTRAINT public sim_positions sim_positions_pkey eestock
+10187; 2606 309520 CONSTRAINT public sim_trades sim_trades_pkey eestock
+10183; 2606 309498 CONSTRAINT public simsession simsession_pkey eestock
+10185; 2606 309505 CONSTRAINT public simsession_result simsession_result_pkey eestock
+10193; 2606 309581 CONSTRAINT public simsession_state simsession_state_pkey eestock
+10201; 2606 595860 CONSTRAINT public strategy_run_bars strategy_run_bars_pkey eestock
+10195; 2606 310009 CONSTRAINT public strategy_run strategy_run_pkey eestock
+10199; 2606 310016 CONSTRAINT public strategy_run_result strategy_run_result_pkey eestock
+10191; 1259 309539 INDEX public sim_positions_session_idx eestock
+10188; 1259 309538 INDEX public sim_trades_session_idx eestock
+10202; 1259 595866 INDEX public strategy_run_bars_run_kind_seq_idx eestock
+10203; 1259 595867 INDEX public strategy_run_bars_run_kind_ts_idx eestock
+10196; 1259 310033 INDEX public strategy_run_status_created_idx eestock
+10197; 1259 310034 INDEX public strategy_run_symbol_idx eestock
+10206; 2606 309533 FK CONSTRAINT public sim_positions sim_positions_session_id_fkey eestock
+10205; 2606 309521 FK CONSTRAINT public sim_trades sim_trades_session_id_fkey eestock
+10204; 2606 309506 FK CONSTRAINT public simsession_result simsession_result_session_id_fkey eestock
+10207; 2606 309582 FK CONSTRAINT public simsession_state simsession_state_session_id_fkey eestock
+10209; 2606 595861 FK CONSTRAINT public strategy_run_bars strategy_run_bars_run_id_fkey eestock
+10208; 2606 310017 FK CONSTRAINT public strategy_run_result strategy_run_result_run_id_fkey eestock

@@ -1,0 +1,12 @@
+### date: 2026-09-20 01:09:45 CST  非法参数形态矩阵（期望 400 + 三键信封 code/message/detail）
+400  /fills?round_trip=abc           keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /fills?offset=abc               keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /fills?limit=xyz                keys=['code', 'detail', 'message'] code=request_invalid param=round_trip/offset/limit
+400  /round-trips?offset=abc         keys=['code', 'detail', 'message'] code=request_invalid param=offset/limit
+400  /round-trips/abc/fills          keys=['code', 'detail', 'message'] code=request_invalid param=rt_seq
+200  /fills?offset=-1                keys=[] code=None param=None
+
+### 负向对照：形态合法 ⇒ 非 400
+200  /fills?offset=0&limit=2&round_trip=1
+200  /round-trips?offset=0&limit=2
+200  /curve?kind=position&k=3

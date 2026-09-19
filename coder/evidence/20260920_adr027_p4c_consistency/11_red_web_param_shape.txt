@@ -1,0 +1,23 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running tests/adr027_fills_param_shape.rs (target/debug/deps/adr027_fills_param_shape-d668e40c4b49ca0f)
+
+running 2 tests
+test param_shape_errors_are_structured_json_envelope ... FAILED
+test wellformed_params_are_not_rejected_as_shape_error ... ok
+
+failures:
+
+---- param_shape_errors_are_structured_json_envelope stdout ----
+
+thread 'param_shape_errors_are_structured_json_envelope' (1812664) panicked at crates/web/tests/adr027_fills_param_shape.rs:121:9:
+响应体必须是 JSON（L-2：禁止纯文本 400）；实际 status=400 body="Failed to deserialize query string: round_trip: invalid digit found in string": expected value at line 1 column 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    param_shape_errors_are_structured_json_envelope
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.01s
+
+error: test failed, to rerun pass `-p web --test adr027_fills_param_shape`
