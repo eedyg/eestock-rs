@@ -198,31 +198,45 @@ pub struct BarsQuery {
 }
 
 /// GET /api/workbench/runs/{id}/curve 查询参数（`kind` 缺省 `net_value`；`k` 缺省 2000/上限 20000）。
+/// ADR-028 D3：`from_ts`/`to_ts` 为时间窗（epoch 秒，闭区间）；缺省 = 全区间（向后兼容）。
 #[derive(Debug, Deserialize)]
 pub struct CurveQuery {
     pub kind: Option<String>,
     pub k: Option<usize>,
+    pub from_ts: Option<i64>,
+    pub to_ts: Option<i64>,
 }
 
 /// GET /api/workbench/runs/{id}/fills 查询参数（`offset` 缺省 0；`limit` 缺省 5000/上限 20000）。
+/// ADR-027 §5.4：增可选 `round_trip=<rt_seq>` 过滤。
 #[derive(Debug, Deserialize)]
 pub struct FillsQuery {
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
+    pub round_trip: Option<u32>,
+}
+
+/// GET /api/workbench/runs/{id}/round-trips 查询参数（L1 懒加载首屏分页）。
+#[derive(Debug, Deserialize)]
+pub struct RoundTripsQuery {
     pub offset: Option<i64>,
     pub limit: Option<i64>,
 }
 
 /// 抽样/区间/分页曲线可接受的 kind（`fills` 是**事实源**：专用 `/fills` 端点分页读，禁止抽样，见 ADR-024 P6）。
 /// `default` 为未传 `kind` 时的缺省值（`/bars` = per_bar；`/curve` = net_value）。
+/// ADR-027 §4.1：`position` 可抽样（与 `net_value` 同级，须披露 `downsampled`/`original_bars`）。
 fn parse_series_kind(s: Option<&str>, default: ResultKind) -> Result<ResultKind, Response> {
     match s {
         None => Ok(default),
         Some("per_bar") => Ok(ResultKind::PerBar),
         Some("net_value") => Ok(ResultKind::NetValue),
         Some("drawdown") => Ok(ResultKind::Drawdown),
+        Some("position") => Ok(ResultKind::Position),
         _ => Err(structured(
             StatusCode::BAD_REQUEST,
             codes::KIND_INVALID,
-            "kind 须为 per_bar/net_value/drawdown（fills 请用专用端点 /fills）",
+            "kind 须为 per_bar/net_value/drawdown/position（fills 请用专用端点 /fills）",
             serde_json::json!({}),
         )),
     }
@@ -519,8 +533,10 @@ pub async fn get_bars(
     }
 }
 
-/// GET /api/workbench/runs/{id}/curve?k=&kind= —— **显式抽样**曲线（均匀保首尾）。
-/// 响应带 `downsampled` + `original_bars`（ADR-024 D10；`kind` 缺省 net_value）。
+/// GET /api/workbench/runs/{id}/curve?k=&kind=&from_ts=&to_ts= —— **显式抽样**曲线（均匀保首尾）。
+/// 响应带 `downsampled` + `original_bars`（ADR-024 D10；`kind` 缺省 net_value）；
+/// ADR-028 D3：`from_ts`/`to_ts` 时间窗（闭区间，缺省全区间 = 行为与今日一致），窗口内**重新采样**，
+/// 响应回显 `window_from_ts`/`window_to_ts`/`window_bars`（窗口内原始根数 = 采样分母）。
 pub async fn get_curve(
     State(st): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -531,15 +547,26 @@ pub async fn get_curve(
         Ok(k) => k,
         Err(r) => return r,
     };
-    match svc.result_curve(&id, kind, q.k).await {
+    if let (Some(f), Some(t)) = (q.from_ts, q.to_ts) {
+        if f > t {
+            return structured(
+                StatusCode::BAD_REQUEST,
+                codes::FROM_AFTER_TO,
+                "from_ts 须不晚于 to_ts",
+                serde_json::json!({ "from_ts": f, "to_ts": t }),
+            );
+        }
+    }
+    match svc.result_curve_window(&id, kind, q.k, q.from_ts, q.to_ts).await {
         Ok(c) => Json(c).into_response(),
         Err(e) => map_svc_err(e),
     }
 }
 
-/// GET /api/workbench/runs/{id}/fills?offset=&limit= —— **成交明细分页读**（ADR-024 P6）。
+/// GET /api/workbench/runs/{id}/fills?offset=&limit=&round_trip= —— **成交明细分页读**（ADR-024 P6）。
 /// 有界精确源：`kind='fills'` 单块（chunked）/ 内联 per_bar 事件派生（legacy）；
 /// `limit` 缺省 5000/上限 20000；响应含 `total` 与 `recorded`（区分「无成交」与「未写」）。
+/// ADR-027 §5.4：元素增 `rt_seq`/`trade_value`/`commission`/`stamp_duty`；增可选 `round_trip` 过滤。
 /// 用于 **K 线买卖标记**与成交核对；**禁止**用抽样曲线（丢真实成交）或 `trades`
 /// （仅完全平仓时合成 ⇒ 部分买入/加仓/部分卖出不进 `trades`）代替。
 pub async fn get_fills(
@@ -550,7 +577,44 @@ pub async fn get_fills(
     let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
     let offset = q.offset.unwrap_or(0).max(0);
     let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
-    match svc.result_fills(&id, offset, limit).await {
+    match svc.result_fills_filtered(&id, offset, limit, q.round_trip).await {
+        Ok(b) => Json(b).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/round-trips?offset=&limit= —— **L1 回合列表**（ADR-027 D8 懒加载首屏）。
+///
+/// 元素 = 02-spec §1.2 全字段 + 摘要（`l2_count`/`buy_count`/`sell_count`）；
+/// 响应自述完整性（`total`/`recorded`/`has_more`/`next_offset`，ADR-027 D11）。
+/// 错误语义与 `/result` 同：run 未知 / 无结果 ⇒ 404。
+pub async fn get_round_trips(
+    State(st): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(q): Query<RoundTripsQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let offset = q.offset.unwrap_or(0).max(0);
+    let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
+    match svc.result_round_trips(&id, offset, limit).await {
+        Ok(b) => Json(b).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/round-trips/{rt_seq}/fills?offset=&limit= —— **L2 逐笔切片**（ADR-027 §5.3）。
+///
+/// 归属**只能**由 `rt_seq` 决定（D6：禁 `[open_bar, close_bar]` 窗口推断）；
+/// **未知 `rt_seq` ⇒ 404**（禁止空数组冒充「无成交」，D8/D11）。
+pub async fn get_round_trip_fills(
+    State(st): State<Arc<AppState>>,
+    Path((id, rt_seq)): Path<(String, u32)>,
+    Query(q): Query<RoundTripsQuery>,
+) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let offset = q.offset.unwrap_or(0).max(0);
+    let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
+    match svc.result_round_trip_fills(&id, rt_seq, offset, limit).await {
         Ok(b) => Json(b).into_response(),
         Err(e) => map_svc_err(e),
     }

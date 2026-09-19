@@ -2,12 +2,14 @@
 //! ⚠️ 非 tangle 手写；由 tester 独立编写，**不复用** worker `crates/web/tests/api_workbench.rs` 的断言。
 //!
 //! 覆盖（任务书 ② / ③）：
-//!   A. 单块 `seq=0` / `total` / `ts_from·ts_to` / 元素字段 == `EngineEvent::Fill` 投影
+//!   A. 单块 `seq=0` / `total` / `ts_from·ts_to` / 元素字段 == **ADR-027 §5.4 v2 的 12 键**
+//!      （`FillFact` 投影 + `ts`，精确集合，见 `FILL_KEYS_V2`）
 //!      （含 `ts` == 对应 bar ts）；分页边界（0 / 恰好一页 / 跨页 / 超末尾 / 上限夹取）。
 //!   B. 「无成交」（recorded=true,total=0）vs「未写」（recorded=false）可区分；
 //!      legacy `legacy_single` 由内联 per_bar 事件派生（双读、不回填）。
 //!   C. **决定性**：含「部分买入（position_pct<1）+ 部分卖出（未清仓）」的 run ⇒
-//!      `/fills` 含这两笔，而 `trades`（`/result.trades`）不含它们（条数不等 / 无对应 close_bar）。
+//!      `/fills` 是**逐笔事实源**（含这两笔），而 `trades`（`/result.trades`）是**回合聚合行**：
+//!      行数 ≠ 逐笔数、部分卖出没有单独行，但其金额字段按恒等式 I1 与逐笔对账相等（ADR-027 v2）。
 //!   D. 反向防误用：`/curve?kind=fills` 与 `/bars?kind=fills` 必须 400 且提示走 `/fills`。
 //!
 //! 所有造出的 run 均以 `tp6f<pid>_` 前缀；测试结束 `DELETE FROM strategy_run` 收尾（FK 级联清结果/分块）。
@@ -246,10 +248,31 @@ async fn submit_run(
     id
 }
 
-/// `/fills` 元素字段集合（== `EngineEvent::Fill` 投影 + `ts`）。
-const FILL_KEYS: [&str; 7] = ["type", "bar_index", "ts", "side", "qty", "price", "reason"];
+/// `/fills` 元素字段集合（**ADR-027 §5.4 v2 增量后** = `FillFact` 投影 + `ts`，**恰为 12 键**）。
+///
+/// **顺序声明**：`serde_json` 默认**未**开 `preserve_order` ⇒ `Value::Object` = `BTreeMap` ⇒ 键按
+/// **字典序**序列化；故此处以字典序声明，并断言实测键序列与该序列**逐项相等**（既验「不多不少」
+/// 的精确集合，也验顺序）。键序清单 = `["bar_index", "code", "commission", "price", "qty",
+/// "reason", "rt_seq", "side", "stamp_duty", "trade_value", "ts", "type"]`。
+///
+/// **禁止**放宽为包含式断言（只 `contains_key` 逐项查）：那会让「漏字段」「多字段」静默通过。
+/// 本清单与 `crates/application/tests/workbench.rs::c4_fills_filter_and_element_increment`（L-1 同形状）对齐。
+const FILL_KEYS_V2: [&str; 12] = [
+    "bar_index",
+    "code",
+    "commission",
+    "price",
+    "qty",
+    "reason",
+    "rt_seq",
+    "side",
+    "stamp_duty",
+    "trade_value",
+    "ts",
+    "type",
+];
 
-// ═══════════════════ ② + ③ 决定性：/fills 精确 vs trades 漏标记 ═══════════════════
+// ═══════════════════ ② + ③ 决定性：/fills 逐笔精确（v2 12 键） vs trades 回合聚合（I1） ═══════════════════
 
 #[tokio::test]
 async fn t_p6_fills_is_exact_source_and_trades_misses_partial_fills() {
@@ -297,8 +320,18 @@ async fn t_p6_fills_is_exact_source_and_trades_misses_partial_fills() {
     let pbars = pb["bars"].as_array().unwrap();
     for f in &fills {
         let o = f.as_object().unwrap();
-        assert_eq!(o.len(), FILL_KEYS.len(), "元素字段集合应恰为 {FILL_KEYS:?}；实际 {:?}", o.keys().collect::<Vec<_>>());
-        for k in FILL_KEYS { assert!(o.contains_key(k), "缺字段 {k}"); }
+        // 精确集合 + 顺序：实测键序列（serde_json 字典序）必须与 v2 的 12 键清单逐项相等。
+        let keys: Vec<&str> = o.keys().map(String::as_str).collect();
+        assert_eq!(keys, FILL_KEYS_V2, "元素字段集合应恰为 v2 的 12 键（精确集合，不多不少）；实际 {keys:?}");
+        // v2 新增字段不得是「有键无值」（键集断言单独无法发现 null/缺失语义退化）。
+        assert_eq!(f["code"], Value::String(code.clone()), "code == run 的 symbol（ADR-027 §5.4）");
+        for k in ["rt_seq", "trade_value", "commission", "stamp_duty"] {
+            assert!(!f[k].is_null(), "v2 新增字段 {k} 不得为 null");
+        }
+        assert!(f["rt_seq"].as_u64().unwrap() >= 1, "rt_seq 从 1 起（归属由 rt_seq 决定，禁止窗口推断）");
+        assert!(f["trade_value"].as_f64().unwrap() > 0.0, "trade_value 为正");
+        assert!(f["commission"].as_f64().unwrap() >= 0.0, "commission 非负");
+        assert!(f["stamp_duty"].as_f64().unwrap() >= 0.0, "stamp_duty 非负（买入恒 0）");
         assert_eq!(f["type"], "fill");
         let bi = f["bar_index"].as_i64().unwrap() as usize;
         assert!(bi < n as usize);
@@ -329,15 +362,29 @@ async fn t_p6_fills_is_exact_source_and_trades_misses_partial_fills() {
         .copied().expect("应存在一笔 Policy 的部分卖出（未清仓）");
     let ps_bar = ps["bar_index"].as_i64().unwrap();
     assert!(ps_bar < n - 1, "部分卖出不是期末强平（bar_index={ps_bar}）");
-    // 反向：trades 不含该部分成交
+    // 反向：trades 是**回合聚合行**（行数 ≠ 逐笔数），不逐笔列出；但其金额字段按 I1 聚合**全部**逐笔
+    // （ADR-027 v2 取消了 pre-ADR-027 的「部分卖出只摊薄、不进账本」缺陷，见 02-spec §2）。
     assert_ne!(trades.len() as i64, fills.len() as i64,
-               "trades 条数必须 != fills 条数（trades 只在完全平仓时合成 ⇒ 漏部分成交）");
+               "trades 条数必须 != fills 条数（trades = 回合聚合行，非逐笔事实源）");
     assert!(trades.iter().all(|t| t["close_bar"].as_i64() != Some(ps_bar)),
-            "部分卖出的 bar_index 不得出现在 trades.close_bar（trades 漏标记）");
-    assert_eq!(trades.len(), 1, "该 run 只有 1 笔完整往返（3 笔成交 ⇒ 1 行 trades）");
+            "部分卖出不得单独成行：其 bar_index 不得出现在任何 trades.close_bar");
+    assert_eq!(trades.len(), 1, "该 run 只有 1 个回合（3 笔成交 ⇒ 1 行 trades）");
+    // ADR-027 v2 回合口径（design/17-trade-detail-layering/02-spec.md §1.2 / §2 I1）：
+    //   `shares = Σ 买入 qty`（Closed ⇒ 亦 == Σ 卖出 qty）；`commission/stamp_duty` = Σ 本回合逐笔同名字段。
     let trade_shares = trades[0]["shares"].as_f64().unwrap();
-    assert!(trade_shares < buy_qty - 1e-6,
-            "trade.shares({trade_shares}) 只含剩余仓位 < 累计买入({buy_qty}) ⇒ 部分卖出未被 trades 记录");
+    assert!((trade_shares - buy_qty).abs() < 1e-6,
+            "v2 §1.2：trade.shares({trade_shares}) == Σ 买入 qty({buy_qty})");
+    let sell_qty: f64 = sells.iter().map(|f| f["qty"].as_f64().unwrap()).sum();
+    assert!((trade_shares - sell_qty).abs() < 1e-6,
+            "v2 §1.2：Closed ⇒ Σ 买入({buy_qty}) == shares({trade_shares}) == Σ 卖出({sell_qty})");
+    assert_eq!(trades[0]["l2_count"].as_u64().unwrap() as usize, fills.len(),
+               "trades.l2_count == 本回合成交笔数（含部分卖出笔，02-spec §1.2）");
+    for k in ["commission", "stamp_duty"] {
+        let s: f64 = fills.iter().map(|f| f[k].as_f64().unwrap()).sum();
+        let t = trades[0][k].as_f64().unwrap();
+        assert!((t - s).abs() < 1e-6,
+                "v2 恒等式 I1：trade.{k}({t}) == Σfills.{k}({s}) ⇒ 回合聚合行未漏任何逐笔成交");
+    }
     // per_bar 事件流确认该部分卖出确实由引擎发出（非读侧伪造）
     let ev10 = pbars[ps_bar as usize]["events"].as_array().cloned().unwrap_or_default();
     assert!(ev10.iter().any(|e| e["type"] == "fill" && e["side"] == "Sell"

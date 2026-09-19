@@ -417,22 +417,79 @@ export interface Metrics {
   avg_hold_bars: number;
 }
 
-/** 单笔交易明细（TradeDetail jsonb；open_ts/close_ts 为 Unix 秒） */
-export interface Trade {
+/**
+ * 回合状态（ADR-027 D7）：回测侧恒 `Closed`（期末强平终结最后一个回合）；
+ * sim-live 未平仓回合为 `Open`（**禁止**伪造成交；`pnl` 恒 null）。
+ */
+export type RoundTripStatus = 'Open' | 'Closed';
+
+/**
+ * L1：**回合**（`design/17-trade-detail-layering/02-spec.md` §1.2；Rust `backtest::TradeDetail`）。
+ *
+ * 口径（02-spec §2，全回合口径；**非**端点口径）：
+ * - `gross_value` = Σ_sell `trade_value`；`pnl` = proceeds − invested（整回合现金流差，无成本分摊/FIFO）；
+ * - `invested` = Σ_buy (`trade_value` + `commission`)；`proceeds` = Σ_sell (`trade_value` − `commission` − `stamp_duty`)；
+ * - `open_price`/`close_price` = 加权**有效价（不含费）**（`close_price` 无卖出 ⇒ null，**禁止**造 0）。
+ *
+ * 懒加载摘要（D8）：`l2_count`/`buy_count`/`sell_count` 由 L1 行携带，展开时才按 `rt_seq` 拉 L2 分页切片。
+ */
+export interface RoundTrip {
+  /** 回合序号（ADR-027 D6，per `(run|session, code)` 从 1 单调递增）。 */
+  rt_seq: number;
+  /** 标的（sim-live 多标的必需；回测填 run 的 symbol）。 */
+  code: string;
+  status: RoundTripStatus;
   open_ts: number;
-  close_ts: number;
+  /** `Open` 回合 ⇒ null（**禁止**造数）。 */
+  close_ts: number | null;
   open_bar: number;
-  close_bar: number;
-  open_price: number;
-  close_price: number;
+  close_bar: number | null;
   shares: number;
+  buy_count: number;
+  sell_count: number;
+  /** 加权有效买价（**不含费**）= Σ_buy trade_value / Σ_buy qty。 */
+  open_price: number;
+  /** 加权有效卖价（**不含费**）；无任何卖出 ⇒ null。 */
+  close_price: number | null;
   gross_value: number;
+  /** Σ 买入佣金 + Σ 卖出佣金。 */
   commission: number;
+  /** Σ 卖出印花税。 */
   stamp_duty: number;
-  pnl: number;
-  hold_bars: number;
-  /** ADR-026 §2.3：清仓那一笔的来源（新 run 引擎写入；历史 run 缺字段 ⇒ 未记录）。 */
-  reason?: TradeReason | null;
+  /** `Closed` ⇒ 精确值；`Open` ⇒ null。 */
+  pnl: number | null;
+  hold_bars: number | null;
+  /** ADR-026 §2.3：清仓那一笔的来源（新 run 引擎写入；历史 run 缺字段 ⇒ 未记录）。
+   *  取值为 {@link FillReason}（sim-live 人工来源 = `Manual`）；后端为 `Option<String>`。 */
+  reason?: FillReason | null;
+  /** 本回合成交笔数（= L2 分页 `total`；供 D8 懒加载摘要）。 */
+  l2_count: number;
+}
+
+/**
+ * L2：**一笔成交事实**（`design/17-trade-detail-layering/02-spec.md` §1.1；Rust `backtest::FillFact`）。
+ *
+ * 费用三件套（`trade_value`/`commission`/`stamp_duty`）由**撮合点写入**，前端**禁止**由
+ * `(side, qty, price)` + 费率复算（ADR-027 D4 / §1 F10：最低佣金分支先减后除不可逆）。
+ * `avg_price_excl_fee` / `avg_cost_incl_fee` / `cum_*` 为 UI 侧的**逐笔累计派生**（ADR-027 D9 口径，
+ * 见 `features/workbench/roundTripAccum.ts` 的公式注），不新增后端字段。
+ */
+export interface RoundTripFill {
+  rt_seq: number;
+  code: string;
+  /** **真实 bar 序号**（禁 ts/bar_sec 反算）。 */
+  bar_index: number;
+  ts: number;
+  side: 'Buy' | 'Sell';
+  qty: number;
+  /** 成交有效价（含滑点）。 */
+  price: number;
+  /** = qty × price（引擎实算值）。 */
+  trade_value: number;
+  commission: number;
+  /** 买入恒 0。 */
+  stamp_duty: number;
+  reason: FillReason;
 }
 
 // ── 页面⑨ 模拟实盘（11-sim-live / L3b；07-app-plane/00-web-api.md §1.6，snake_case 直通）──
@@ -1036,12 +1093,25 @@ export interface WorkbenchOrderIntent {
   reason: 'Policy' | 'StopTrigger' | 'ForceClose';
 }
 
-/** per_bar 事件（bar_record_json 投影：插件错误/熔断/插件 log/成交） */
+/** per_bar 事件（bar_record_json 投影：插件错误/熔断/插件 log/成交）。
+ *  `fill` 携带引擎成交时刻写入的**全部事实**（ADR-027 D4：`rt_seq` + 费用三件套），
+ *  使 legacy（内联列）路径与 `/fills` 路径同源同口径、无下游复算。 */
 export type WorkbenchEngineEvent =
   | { type: 'plugin_error'; slot_idx: number; sha256: string; bar_index: number; error: string }
   | { type: 'circuit_breaker'; slot_idx: number; sha256: string; bar_index: number }
   | { type: 'plugin_log'; slot_idx: number; bar_index: number; message: string }
-  | { type: 'fill'; bar_index: number; side: 'Buy' | 'Sell'; qty: number; price: number; reason: 'Policy' | 'StopTrigger' | 'ForceClose' };
+  | {
+      type: 'fill';
+      bar_index: number;
+      side: 'Buy' | 'Sell';
+      qty: number;
+      price: number;
+      reason: FillReason;
+      rt_seq: number;
+      trade_value: number;
+      commission: number;
+      stamp_duty: number;
+    };
 
 /** per_bar 全量记录（ADR §13.4；UI 端抽样渲染，后端不做有损预处理） */
 export interface WorkbenchBarRecord {
@@ -1065,6 +1135,24 @@ export type WorkbenchResultFormat = 'legacy_single' | 'chunked_v1';
  *  `Policy` = 策略信号正常平仓 / `StopTrigger` = 止损触发 / `ForceClose` = 期末强平。
  *  历史 run（ADR-026 之前）该字段缺失 ⇒ 前端显示「未记录」（**不**反推、**不**伪造）。 */
 export type TradeReason = 'Policy' | 'StopTrigger' | 'ForceClose';
+
+/** 成交来源（ADR-027 §1.1 `FillReason` 四值）：在 `TradeReason` 之外增 `Manual`（sim-live 人工/外部来源）。 */
+export type FillReason = TradeReason | 'Manual';
+
+/** `/curve` 可抽样 kind（ADR-027 §4.1/§4.2：`position` 为点形状持仓序列，**非**事实源、可抽样）。 */
+export type CurveKind = 'per_bar' | 'net_value' | 'drawdown' | 'position';
+
+/** 持仓序列点（`kind=position`；口径冻结见 02-spec §4.2）：
+ *  `position_ratio = position_value / nav`（`nav ≤ 0` ⇒ 0，UI 并列 `cash_ratio = 1 − position_ratio`）。
+ *  **消歧**：本比率（时点市值/时点净值）≠ `deployed_pct`/`cash_consumed_pct`（区间累计/初始资金）。 */
+export interface WorkbenchPositionPoint {
+  ts: number;
+  qty: number;
+  position_value: number;
+  cash: number;
+  nav: number;
+  position_ratio: number;
+}
 
 /** GET /api/workbench/runs/{id}/brief（轻量摘要；列表/轮询用，避免拉大包）。
  *  P5 字段（effective_from·effective_to·clamped·estimated_bars）在 P4 为先占位真值，前端只读展示不推导。 */
@@ -1097,11 +1185,38 @@ export interface WorkbenchResultBrief {
 /** 显式抽样曲线（`GET …/curve`）：`downsampled`/`original_bars` 必带（ADR-024 D10）。
  *  ⚠ 后端**不做隐式/未标注的有损**：凡 `downsampled=true`，UI 必须显式标注抽样点数与原始根数。 */
 export interface WorkbenchCurveResponse<T = unknown> {
-  kind: string;
+  kind: CurveKind;
   points: T[];
   downsampled: boolean;
   original_bars: number;
   k: number;
+  /** 窗口回显（ADR-028 D3；缺省无窗口 = 全区间 ⇒ null）。 */
+  window_from_ts: number | null;
+  window_to_ts: number | null;
+  /** 窗口内**原始**根数（抽样前）—— 采样的分母（`original_bars` = 全区间分母）。 */
+  window_bars: number;
+}
+
+/** `GET /api/workbench/runs/{id}/round-trips`（ADR-027 §5.2，L1 懒加载首屏）。
+ *  完整性契约（D11）：`total` + `recorded` + `has_more`/`next_offset` 齐备，UI **不得**静默截断。 */
+export interface WorkbenchRoundTripsResponse {
+  run_id: string;
+  total: number;
+  recorded: boolean;
+  has_more: boolean;
+  next_offset: number | null;
+  round_trips: RoundTrip[];
+}
+
+/** `GET /api/workbench/runs/{id}/round-trips/{rt_seq}/fills`（ADR-027 §5.3，L2 切片）。
+ *  未知 `rt_seq` ⇒ 404（**禁止**空数组冒充「无成交」）。 */
+export interface WorkbenchRoundTripFillsResponse {
+  run_id: string;
+  rt_seq: number;
+  total: number;
+  has_more: boolean;
+  next_offset: number | null;
+  fills: RoundTripFill[];
 }
 
 /** `GET …/bars`（分页或区间读）：`has_more`/`next_offset` 必须被消费（D9 禁静默截断）。 */
@@ -1128,7 +1243,12 @@ export interface WorkbenchRunFill {
   side: 'Buy' | 'Sell';
   qty: number;
   price: number;
-  reason: 'Policy' | 'StopTrigger' | 'ForceClose';
+  reason: FillReason;
+  /** ADR-027 §5.4：归属键 + 费用三件套（引擎事实，前端**禁止**复算）。 */
+  rt_seq: number;
+  trade_value: number;
+  commission: number;
+  stamp_duty: number;
 }
 
 /** `GET …/fills`（成交明细分页读；ADR-024 P6 有界精确源，**禁止抽样**）。
@@ -1189,6 +1309,16 @@ export interface WorkbenchRunAudit {
   round_trips_total: number;
   /** 其中由期末强平合成的回合数（读侧派生，历史 run 亦可判）。 */
   round_trips_force_closed: number;
+  /** ADR-027 §5.5：`Closed` 回合数（回测恒 = `round_trips_total`）。 */
+  round_trips_closed: number;
+  /** ADR-027 §5.5：`Open` 回合数（回测恒 0；sim-live 未平仓回合）。 */
+  round_trips_open: number;
+  /** ADR-027 §5.5 逐回合自洽（D10 告警源）：`mismatched` 非空 ⇒ UI **必须**显式告警。 */
+  rt_reconcile: {
+    checked: number;
+    mismatched: number[];
+    tolerance: number;
+  };
   warnings: WorkbenchAuditWarning[];
 }
 
@@ -1202,7 +1332,8 @@ export interface WorkbenchRunResult {
   /** chunked_v1 的轻量摘要（legacy 时为 null/缺省）。 */
   summary?: WorkbenchResultBrief | null;
   per_bar: WorkbenchBarRecord[];
-  trades: Trade[];
+  /** ADR-027 §5.1：`trades` 元素为 **L1 回合** v2 形状（全回合口径，非端点口径）。 */
+  trades: RoundTrip[];
   net_value: Array<[number, number]>; // [ts_unix_sec, equity]
   drawdown: Array<[number, number]>; // [ts_unix_sec, dd]
   metrics: WorkbenchMetrics;

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { StrategyCatalogEntry, WorkbenchBarRecord, WorkbenchPinnedSlot } from '@/api/types';
-import { downsample } from './chartUtils';
+import { downsample, mapLineByTs } from './chartUtils';
 import type { CurveSampling } from './AggregateScoreChart';
 
 const W = 1000;
@@ -37,11 +37,14 @@ export function SlotScoresChart({
   slots,
   catalog,
   sampling,
+  domain,
 }: {
   perBar: WorkbenchBarRecord[];
   slots: WorkbenchPinnedSlot[];
   catalog: StrategyCatalogEntry[] | null;
   sampling?: CurveSampling;
+  /** ADR-028 D2.1：共享窗口 x 定义域（Unix 秒）；**不给** ⇒ 保持既有下标轴（零回归）。 */
+  domain?: { from_ts: number; to_ts: number } | null;
 }) {
   const [visible, setVisible] = useState<Record<number, boolean>>(() => defaultVisible(slots));
   const [slotsKey, setSlotsKey] = useState(() => slotsKeyOf(slots));
@@ -53,7 +56,23 @@ export function SlotScoresChart({
   }
   const pts = useMemo(() => downsample(perBar), [perBar]);
   const y = (s: number) => PAD + (1 - s / 100) * (H - 2 * PAD);
-  const x = (i: number) => (pts.length <= 1 ? W / 2 : (i / (pts.length - 1)) * (W - 2 * PAD) + PAD);
+  // ADR-028 D2.1：有共享窗口 ⇒ x 按 ts 线性映射到窗口定义域；无 ⇒ 保持既有下标轴（零回归）。
+  const x = useMemo(() => {
+    if (!domain) {
+      return (i: number) => (pts.length <= 1 ? W / 2 : (i / (pts.length - 1)) * (W - 2 * PAD) + PAD);
+    }
+    const xs = mapLineByTs(
+      pts.map((rec) => [rec.ts, 0] as [number, number]),
+      domain.from_ts,
+      domain.to_ts,
+      0,
+      1,
+      W,
+      H,
+      PAD,
+    ).map((p) => p.x);
+    return (i: number) => xs[i] ?? PAD;
+  }, [pts, domain]);
 
   // 每 slot 折线分段（null 断线：该 bar 无此 slot 评分）
   const series = useMemo(
@@ -74,11 +93,16 @@ export function SlotScoresChart({
         return segs;
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pts, slots],
+    [pts, slots, x],
   );
 
   return (
-    <div className="rounded-lg border border-line bg-panel2 p-1" data-testid="wb-slot-chart">
+    <div
+      className="rounded-lg border border-line bg-panel2 p-1"
+      data-testid="wb-slot-chart"
+      // ADR-028 D2.1：x 轴定义域实测标注（E2E 断言）
+      data-x-domain={domain ? `${domain.from_ts},${domain.to_ts}` : 'data'}
+    >
       <div className="flex flex-wrap gap-2 px-1 pb-1">
         {slots.map((slot, i) => (
           <label key={i} className="flex items-center gap-1 text-[10px]" style={{ color: COLORS[i % COLORS.length] }}>

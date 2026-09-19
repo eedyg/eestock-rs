@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmtPct } from '@/features/backtest/format';
-import { areaBelow, downsample, extentOf, lineFrom, mapLine } from './chartUtils';
+import { areaBelow, downsample, extentOf, lineFrom, mapLine, mapLineByTs } from './chartUtils';
 
 const W = 1000;
 const H = 220;
@@ -15,11 +15,14 @@ export function EquityDrawdownChart({
   netValue,
   drawdown,
   sampling,
+  domain,
 }: {
   netValue: Array<[number, number]>;
   drawdown: Array<[number, number]>;
   /** 后端抽样标注（`/curve` 的 `downsampled`/`original_bars`；ADR-024 D10）。 */
   sampling?: { netValue: { downsampled: boolean; originalBars: number }; drawdown: { downsampled: boolean; originalBars: number } };
+  /** ADR-028 D2.1：共享窗口 x 定义域（Unix 秒）；**不给** ⇒ 保持既有 `mapLine` 行为（零回归）。 */
+  domain?: { from_ts: number; to_ts: number } | null;
 }) {
   const series = useMemo(() => downsample(netValue), [netValue]);
   const dd = useMemo(() => downsample(drawdown), [drawdown]);
@@ -38,11 +41,18 @@ export function EquityDrawdownChart({
   const retPct = initial > 0 ? (lastEquity - initial) / initial : 0;
   const { min, max } = extentOf(equities);
   const ddMax = Math.max(...dd.map((d) => d[1]), 0);
-  const eqPoints = mapLine(series, min, max, W, H, PAD);
+  const eqPoints = domain
+    ? mapLineByTs(series, domain.from_ts, domain.to_ts, min, max, W, H, PAD)
+    : mapLine(series, min, max, W, H, PAD);
   const depth = H * 0.35;
 
   return (
-    <div className="relative rounded-lg border border-line bg-panel2 p-1" data-testid="wb-equity-chart">
+    <div
+      className="relative rounded-lg border border-line bg-panel2 p-1"
+      data-testid="wb-equity-chart"
+      // ADR-028 D2.1：x 轴定义域实测标注（E2E 断言）
+      data-x-domain={domain ? `${domain.from_ts},${domain.to_ts}` : 'data'}
+    >
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-52 w-full" role="img" aria-label="净值与回撤">
         <g opacity="0.2" stroke="#fff" strokeWidth="0.5">
           {[0.25, 0.5, 0.75].map((f) => (

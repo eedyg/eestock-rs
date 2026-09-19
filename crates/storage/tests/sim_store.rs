@@ -106,7 +106,7 @@ async fn append_trade_and_update_positions() {
 
     store.append_trade(&NewSimTrade {
         session_id: id.clone(), code: "510300".into(), side: "buy".into(),
-        qty: 1000.0, price: 10.002, ts: base(), fee: 5.0, source: "manual".into(),
+        qty: 1000.0, price: 10.002, ts: base(), commission: 5.0, stamp_duty: 0.0, fee: 5.0, source: "manual".into(),
     }).await.unwrap();
 
     store.update_positions(&id, &[SimPositionRow {
@@ -185,7 +185,7 @@ async fn delete_session_cascades_children() {
     store.create_session(&new_session(&id, "t1")).await.unwrap();
     store.append_trade(&NewSimTrade {
         session_id: id.clone(), code: "510300".into(), side: "buy".into(),
-        qty: 100.0, price: 10.0, ts: base(), fee: 5.0, source: "manual".into(),
+        qty: 100.0, price: 10.0, ts: base(), commission: 5.0, stamp_duty: 0.0, fee: 5.0, source: "manual".into(),
     }).await.unwrap();
     store.update_positions(&id, &[SimPositionRow {
         session_id: id.clone(), code: "510300".into(), qty: 100.0, avg_cost: 10.0,
@@ -220,16 +220,20 @@ async fn list_trades_and_upsert_get_state_roundtrip() {
     // 追加两笔成交（买→卖），list_trades 按 ts 升序。
     store.append_trade(&NewSimTrade {
         session_id: id.clone(), code: "510300".into(), side: "buy".into(),
-        qty: 100.0, price: 10.0, ts: base(), fee: 5.0, source: "manual".into(),
+        qty: 100.0, price: 10.0, ts: base(), commission: 5.0, stamp_duty: 0.0, fee: 5.0, source: "manual".into(),
     }).await.unwrap();
     store.append_trade(&NewSimTrade {
         session_id: id.clone(), code: "510300".into(), side: "sell".into(),
-        qty: 100.0, price: 11.0, ts: base() + Duration::minutes(1), fee: 5.0, source: "manual".into(),
+        qty: 100.0, price: 11.0, ts: base() + Duration::minutes(1), commission: 5.0, stamp_duty: 5.5, fee: 10.5, source: "manual".into(),
     }).await.unwrap();
     let trades = store.list_trades(&id).await.unwrap();
     assert_eq!(trades.len(), 2);
     assert_eq!(trades[0].side, "buy");
     assert_eq!(trades[1].side, "sell");
+    // ADR-027 D4 / 迁移 0028：费用分列读回（事实源两列 + 冗余合计列）。
+    assert_eq!(trades[1].commission, 5.0);
+    assert_eq!(trades[1].stamp_duty, 5.5);
+    assert_eq!(trades[1].fee, 10.5, "fee 列语义 = commission + stamp_duty");
 
     // upsert_state → get_state 幂等。
     let state = SimSessionState {

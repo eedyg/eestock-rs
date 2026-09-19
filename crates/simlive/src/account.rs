@@ -62,10 +62,12 @@ impl SimAccount {
         if fill.qty <= 0.0 {
             anyhow::bail!("成交数量须为正，got {}", fill.qty);
         }
-        self.total_fee += fill.fee;
+        // 费用事实 = 佣金 + 印花税（两列分列，ADR-027 D4）；账单累计仍按合计口径。
+        let fee = fill.fee();
+        self.total_fee += fee;
         match fill.side {
             Side::Buy => {
-                let spend = fill.qty * fill.price + fill.fee;
+                let spend = fill.qty * fill.price + fee;
                 self.cash -= spend;
                 let pos = self.positions.entry(fill.code.clone()).or_insert(Position {
                     code: fill.code.clone(),
@@ -91,9 +93,9 @@ impl SimAccount {
                         code = fill.code
                     );
                 }
-                let proceeds = fill.qty * fill.price - fill.fee;
+                let proceeds = fill.qty * fill.price - fee;
                 self.cash += proceeds;
-                self.realized_pnl += fill.qty * (fill.price - pos.avg_cost) - fill.fee;
+                self.realized_pnl += fill.qty * (fill.price - pos.avg_cost) - fee;
                 pos.qty -= fill.qty;
                 if pos.qty <= 1e-9 {
                     self.positions.remove(&fill.code);
@@ -156,13 +158,15 @@ fn weighted_avg(qty_a: f64, cost_a: f64, qty_b: f64, cost_b: f64) -> f64 {
 mod tests {
     use super::*;
 
+    /// 测试构造：`fee` 参数按**佣金**入列（印花税 0，测试只关心费用合计口径）。
     fn fill(code: &str, side: Side, qty: f64, price: f64, fee: f64) -> Fill {
         Fill {
             code: code.into(),
             side,
             qty,
             price,
-            fee,
+            commission: fee,
+            stamp_duty: 0.0,
         }
     }
 

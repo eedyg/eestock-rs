@@ -11,12 +11,17 @@
 //! - TradeCount = 平仓次数。
 //! - AvgHoldPeriod = 平均开→平仓 bar 数（×周期换算为天/时由展示层并发处理）。
 //!
+//! ADR-027 D7（2026-09-20 口径收紧）：绩效**只吃 `status == Closed` 的回合**；`Open` 回合
+//! （仅 sim-live 可能出现）不参与 `win_rate`/`profit_factor`/`trade_count`/`avg_hold_bars`
+//! （且其 `pnl = None`，禁止造数参与统计）。
+//!
 //! 约定：
 //! - 周期回报标准差使用**样本标准差**（ddof=1，金融 Sharpe 惯例；ADR 未指明，按推荐实现并注明）。
 //! - 无平仓时 WinRate=0、AvgHold=0、ProfitFactor=0；仅盈无亏 → 盈亏比 = +∞；仅亏无盈 → 0。
 
 use serde::{Deserialize, Serialize};
 
+use crate::round_trip::RoundTripStatus;
 use crate::types::{Period, TradeDetail};
 
 /// 8 项绩效指标。
@@ -71,12 +76,20 @@ pub fn compute_metrics(
         0.0
     };
 
-    let closed = trades;
-    let wins: Vec<f64> = closed.iter().filter(|t| t.pnl > 0.0).map(|t| t.pnl).collect();
+    let closed: Vec<&TradeDetail> = trades
+        .iter()
+        .filter(|t| t.status == RoundTripStatus::Closed)
+        .collect();
+    let wins: Vec<f64> = closed
+        .iter()
+        .filter_map(|t| t.pnl)
+        .filter(|p| *p > 0.0)
+        .collect();
     let losses: Vec<f64> = closed
         .iter()
-        .filter(|t| t.pnl < 0.0)
-        .map(|t| t.pnl.abs())
+        .filter_map(|t| t.pnl)
+        .filter(|p| *p < 0.0)
+        .map(|p| p.abs())
         .collect();
     let win_rate = if closed.is_empty() {
         0.0
@@ -111,7 +124,7 @@ pub fn compute_metrics(
     let avg_hold_bars = if closed.is_empty() {
         0.0
     } else {
-        closed.iter().map(|t| t.hold_bars as f64).sum::<f64>() / closed.len() as f64
+        closed.iter().map(|t| t.hold_bars.unwrap_or(0) as f64).sum::<f64>() / closed.len() as f64
     };
 
     BacktestMetrics {
@@ -156,27 +169,51 @@ pub fn compute_max_drawdown(equity: &[f64]) -> f64 {
 #[allow(clippy::excessive_precision)]
 mod tests {
     use super::*;
+    use crate::round_trip::RoundTripStatus;
     use crate::types::{Period, TradeDetail};
 
     fn close(a: f64, b: f64) {
         assert!((a - b).abs() < 1e-6, "expected {b}, got {a}");
     }
 
+    /// 已平仓回合（`pnl`/`hold_bars` 均为精确值）。
     fn trade(pnl: f64, hold: usize) -> TradeDetail {
         TradeDetail {
+            rt_seq: 1,
+            code: "600000.SH".into(),
+            status: RoundTripStatus::Closed,
             open_ts: 0,
-            close_ts: 0,
+            close_ts: Some(0),
             open_bar: 0,
-            close_bar: hold,
+            close_bar: Some(hold),
             open_price: 0.0,
-            close_price: 0.0,
+            close_price: Some(0.0),
             shares: 0.0,
             gross_value: 0.0,
             commission: 0.0,
             stamp_duty: 0.0,
-            pnl,
-            hold_bars: hold,
+            pnl: Some(pnl),
+            hold_bars: Some(hold),
             reason: None,
+            l2_count: 2,
+            buy_count: 1,
+            sell_count: 1,
+        }
+    }
+
+    /// `Open` 回合（未平仓）：`pnl`/`hold_bars`/`close_*` 为 `None`。
+    fn open_trade() -> TradeDetail {
+        TradeDetail {
+            status: RoundTripStatus::Open,
+            close_ts: None,
+            close_bar: None,
+            close_price: None,
+            pnl: None,
+            hold_bars: None,
+            l2_count: 1,
+            buy_count: 1,
+            sell_count: 0,
+            ..trade(0.0, 0)
         }
     }
 
@@ -224,5 +261,17 @@ mod tests {
         assert_eq!(m.trade_count, 0);
         close(m.avg_hold_bars, 0.0);
         close(m.max_drawdown, 0.0);
+    }
+
+    /// ADR-027 D7 / U3：`Open` 回合**不**参与绩效（分母不计，亦不造 `pnl = 0`）。
+    #[test]
+    fn open_round_trips_are_excluded_from_metrics() {
+        let nav = vec![(0_i64, 100.0), (1, 110.0)];
+        let trades = vec![trade(10.0, 3), open_trade()];
+        let m = compute_metrics(&nav, &trades, 100.0, Period::D1);
+        assert_eq!(m.trade_count, 1, "trade_count = 已清仓回合数（Open 不计）");
+        close(m.win_rate, 1.0); // 1/1（分母不含 Open）
+        close(m.avg_hold_bars, 3.0);
+        assert!(m.profit_factor.is_infinite(), "仅盈无亏 ⇒ 盈亏比 = ∞");
     }
 }

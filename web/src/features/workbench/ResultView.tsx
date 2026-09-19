@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ApiClient } from '@/api/client';
-import type { StrategyCatalogEntry, TradeReason, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
-import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, fmtTs, periodLabel } from '@/features/backtest/format';
+import type { StrategyCatalogEntry, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, periodLabel } from '@/features/backtest/format';
 import { KlineResultChart } from './KlineResultChart';
 import { AggregateScoreChart } from './AggregateScoreChart';
 import { SlotScoresChart } from './SlotScoresChart';
 import { EquityDrawdownChart } from './EquityDrawdownChart';
+import { PositionRatioChart } from './PositionRatioChart';
 import { PerBarTable } from './PerBarTable';
+import { RoundTripsTable, type JumpTarget } from './RoundTripsTable';
 import { EventLog } from './EventLog';
 import { useRunSeries, type RunFillsState } from './useRunSeries';
 import { useRunAudit, type RunAuditState } from './useRunAudit';
+import { useResultWindow } from './useResultWindow';
 
 type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
 
@@ -190,59 +193,6 @@ function AuditSummary({ audit, fills }: { audit: RunAuditState; fills: RunFillsS
   );
 }
 
-/** ADR-026 §2.3：来源列取值（新 run 正常 / 止损 / 期末强平；历史 run 缺字段 = 未记录）。 */
-const TRADE_REASON_LABEL: Record<TradeReason, string> = {
-  Policy: '正常',
-  StopTrigger: '止损',
-  ForceClose: '期末强平',
-};
-
-function tradeSourceLabel(reason: TradeReason | null | undefined): string {
-  if (!reason) return '未记录';
-  return TRADE_REASON_LABEL[reason] ?? reason;
-}
-
-/** 交易明细表（TradeDetail jsonb 只读）。 */
-function TradesTable({ result }: { result: WorkbenchRunResult }) {
-  if (result.trades.length === 0) {
-    return <div className="p-3 text-xs text-dim" data-testid="wb-trades-table">无成交</div>;
-  }
-  return (
-    <div className="overflow-auto">
-      <table className="w-full border-collapse text-xs" data-testid="wb-trades-table">
-        <thead>
-          <tr className="border-b border-line text-left text-[11px] text-dim">
-            <th className="px-2 py-1 font-normal">开仓</th>
-            <th className="px-2 py-1 font-normal">平仓</th>
-            <th className="px-2 py-1 font-normal">开价</th>
-            <th className="px-2 py-1 font-normal">平价</th>
-            <th className="px-2 py-1 font-normal">股数</th>
-            <th className="px-2 py-1 font-normal">盈亏</th>
-            <th className="px-2 py-1 font-normal">持仓</th>
-            <th className="px-2 py-1 font-normal">来源</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.trades.map((t, i) => (
-            <tr key={i} className="border-b border-line/40" data-testid={`wb-trade-row-${i}`}>
-              <td className="num px-2 py-1 text-dim">{fmtTs(t.open_ts)}</td>
-              <td className="num px-2 py-1 text-dim">{fmtTs(t.close_ts)}</td>
-              <td className="num px-2 py-1">{t.open_price.toFixed(3)}</td>
-              <td className="num px-2 py-1">{t.close_price.toFixed(3)}</td>
-              <td className="num px-2 py-1">{t.shares.toLocaleString('zh-CN')}</td>
-              <td className={`num px-2 py-1 ${t.pnl >= 0 ? 'text-up' : 'text-down'}`}>{fmtMoney(t.pnl)}</td>
-              <td className="num px-2 py-1 text-dim">{fmtHoldBars(t.hold_bars)}</td>
-              <td className="px-2 py-1 text-dim" data-testid={`wb-trade-source-${i}`}>
-                {tradeSourceLabel(t.reason)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 /**
  * 结果视图（ADR §13.5 布局定稿）：
  * K线+买卖标记（含硬止损 ⊗）/ 总分曲线（阈值线+三区着色）/ 各策略评分曲线（图例开关默认前 3）/
@@ -258,6 +208,7 @@ export function ResultView({
   api,
   catalog,
   progressMap,
+  onJump,
 }: {
   run: WorkbenchRunView | null;
   result: WorkbenchRunResult | null;
@@ -268,14 +219,36 @@ export function ResultView({
   catalog: StrategyCatalogEntry[] | null;
   /** WS strategy_run_progress 增量（run_id → 进度），头部进度叠加覆盖 REST 行进度（与 RunList 同模式）。 */
   progressMap?: Record<string, { progress: number; barTs: string | null }>;
+  /** ADR-028 D4：L1/L2 `[跳转]` 的事件出口（P5a 只派发；窗口状态机由 P5b 接入）。 */
+  onJump?: (target: JumpTarget) => void;
 }) {
   const [tab, setTab] = useState<TabKey>('trades');
+  // ADR-028 D2：页面级共享窗口事实源（唯一；写入者 = kline 交互 / L1·L2 跳转 / 全览与历史回退）。
+  // `totalBars` 由下面 `useRunSeries` 的 bars 总数回填（同一渲染帧内用 ref 传递，避免 hooks 循环依赖）。
+  const totalBarsRef = useRef(0);
+  const fullFromTs = run ? Math.floor(Date.parse(run.from_ts) / 1000) : null;
+  const fullToTs = run ? Math.floor(Date.parse(run.to_ts) / 1000) : null;
+  const win = useResultWindow({
+    runId: run?.id ?? null,
+    fullFromTs: Number.isFinite(fullFromTs) ? fullFromTs : null,
+    fullToTs: Number.isFinite(fullToTs) ? fullToTs : null,
+    period: run?.period ?? null,
+    totalBars: totalBarsRef.current,
+  });
   // ADR-024 P6：结果取数**单一入口**（曲线 /curve、明细 /bars 分页、成交 /fills；
   // legacy_single 从 `/result` 内联列同步派生 ⇒ 旧行为零回归）。
-  const series = useRunSeries({ api, run, result });
+  // ADR-028 D3：窗口（`win.window`）经此入口注入 `/curve` 取数（仍无第二处取数点）。
+  const series = useRunSeries({ api, run, result, window: win.window });
+  totalBarsRef.current = series.bars.total || result?.per_bar.length || 0;
   // ADR-026 §2.4：审计按 Tab **懒加载**（交易明细/8项绩效需要；逐bar/事件不请求；无结果 run 不请求）。
   const auditEnabled = (tab === 'trades' || tab === 'metrics') && run?.status === 'succeeded' && !!result;
   const audit = useRunAudit({ api, runId: run?.id ?? null, enabled: auditEnabled });
+
+  /** L1/L2 `[跳转]`：先写窗口状态机（程序化写窗 + 断言），再向父层派发（P5a 已预留给与 5b 并行）。 */
+  const handleJump = (t: JumpTarget) => {
+    win.jumpTo(t);
+    onJump?.(t);
+  };
 
   if (!run) {
     return (
@@ -319,7 +292,90 @@ export function ResultView({
         </div>
       ) : run.status === 'succeeded' && result ? (
         <>
-          <KlineResultChart run={run} fills={series.fills} api={api} />
+          <KlineResultChart
+            run={run}
+            fills={series.fills}
+            api={api}
+            onVisibleRangeChange={win.applyKlineRange}
+            windowCommand={win.command}
+            onWindowApplied={win.onApplied}
+          />
+          {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测） */}
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
+            data-testid="wb-window-bar"
+          >
+            <button
+              type="button"
+              onClick={win.reset}
+              data-testid="wb-window-reset"
+              className="rounded-lg border border-line px-2 py-0.5 hover:text-txt"
+            >
+              全览
+            </button>
+            <button
+              type="button"
+              onClick={win.back}
+              disabled={!win.canBack}
+              data-testid="wb-window-back"
+              className="rounded-lg border border-line px-2 py-0.5 hover:text-txt disabled:opacity-40"
+            >
+              回退
+            </button>
+            {/* 页面级窗口（**请求态**）：文本 + 机器可读 data-*（E2E 真渲染断言用） */}
+            <span
+              data-testid="wb-window-state"
+              data-source={win.window?.source ?? 'full'}
+              data-rev={win.window?.rev ?? ''}
+              data-from-ts={win.window?.from_ts ?? ''}
+              data-to-ts={win.window?.to_ts ?? ''}
+              data-span-bars={win.window?.span_bars ?? ''}
+            >
+              {win.window
+                ? `窗口 [${win.window.from_ts}, ${win.window.to_ts}] · ${win.window.span_bars} 根 · 来源 ${win.window.source} · rev ${win.window.rev}`
+                : '全区间（未显式写窗）'}
+            </span>
+            {/**
+             * **真身回执探针**（ADR-028 §3.4 / F18）：值来自 K 线实例 `getBarSpace()` /
+             * `getVisibleRange()` 的**实际读回**（`WindowApplyResult.observed`），**不是**请求态。
+             * 若 `setBarSpace` 越界被引擎静默 return ⇒ `ok=false` / `error` 非空且 `observed=null`，
+             * 真渲染 E2E 必须据此变红（禁止「没报错就算绿」）。
+             */}
+            <span
+              data-testid="wb-window-probe"
+              data-ok={win.observed ? String(win.observed.ok) : ''}
+              data-rev={win.observed?.rev ?? ''}
+              data-requested-bar-space={win.observed?.requested_bar_space ?? ''}
+              data-bar-space={win.observed?.observed?.bar_space ?? ''}
+              data-from-idx={win.observed?.observed?.from_idx ?? ''}
+              data-to-idx={win.observed?.observed?.to_idx ?? ''}
+              data-from-ts={win.observed?.observed?.from_ts ?? ''}
+              data-to-ts={win.observed?.observed?.to_ts ?? ''}
+              data-error={win.observed?.error ?? ''}
+              data-center-idx={win.observed?.observed?.center_idx ?? ''}
+              data-center-ts={win.observed?.observed?.center_ts ?? ''}
+              data-observed-center-idx={win.observed?.observed?.observed_center_idx ?? ''}
+              data-observed-center-ts={win.observed?.observed?.observed_center_ts ?? ''}
+              data-edge-clamped={win.observed?.observed?.edge_clamped == null ? '' : String(win.observed.observed.edge_clamped)}
+              data-cmd-rev={win.command?.rev ?? ''}
+              data-cmd-from-ts={win.command?.from_ts ?? ''}
+              data-cmd-to-ts={win.command?.to_ts ?? ''}
+              data-cmd-span={win.command?.span_bars ?? ''}
+              data-cmd-center-ts={win.command?.center_ts ?? ''}
+              hidden
+            />
+            {win.applying && (
+              <span className="text-sky-300" data-testid="wb-window-applying">
+                跳转中…
+              </span>
+            )}
+            {win.applyError && (
+              <span className="text-up" role="alert" data-testid="wb-window-apply-error">
+                窗口应用失败：{win.applyError}
+              </span>
+            )}
+            <span data-testid="wb-window-history">{`可回退 ${win.historyDepth} 步（上限 20）`}</span>
+          </div>
           {series.curvesError && (
             <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-series-error">
               <span>曲线加载失败：{series.curvesError}</span>
@@ -341,22 +397,54 @@ export function ResultView({
             </div>
           ) : (
             <>
+              {/* ADR-028 §9.8：窗口加载中显式标注；失败时不得用旧数据冒充当前窗口 */}
+              {win.window && (
+                <div className="text-[11px] text-dim" data-testid="wb-window-load-note">
+                  {series.windowLoading
+                    ? `窗口加载中：[${win.window.from_ts}, ${win.window.to_ts}]（共享 ~200ms 节流，以最后一次为准）`
+                    : series.windowError
+                      ? `窗口取数失败：${series.windowError}；当前显示的是上一窗口数据（from ${series.windowApplied?.from_ts ?? '—'} 到 ${series.windowApplied?.to_ts ?? '—'}，非当前窗口）`
+                      : series.windowApplied &&
+                          series.windowApplied.from_ts === win.window.from_ts &&
+                          series.windowApplied.to_ts === win.window.to_ts
+                        ? `窗口已应用：[${series.windowApplied.from_ts}, ${series.windowApplied.to_ts}] rev ${series.windowApplied.rev}`
+                        : '窗口待应用（等待取数）'}
+                </div>
+              )}
               <AggregateScoreChart
                 perBar={series.perBar.points}
                 sampling={series.perBar}
                 buyThreshold={run.config.buy_threshold}
                 sellThreshold={run.config.sell_threshold}
+                domain={win.domain}
               />
               <SlotScoresChart
                 perBar={series.perBar.points}
                 sampling={series.perBar}
                 slots={run.config.slots}
                 catalog={catalog}
+                domain={win.domain}
               />
               <EquityDrawdownChart
                 netValue={series.netValue.points}
                 drawdown={series.drawdown.points}
                 sampling={{ netValue: series.netValue, drawdown: series.drawdown }}
+                domain={win.domain}
+              />
+              {/* ADR-028 D1：持仓比率视图（口径消歧三件套：position_ratio / ratio / deployed_pct / cash_consumed_pct 各带分母） */}
+              <PositionRatioChart
+                points={series.position.points}
+                sampling={series.position}
+                domain={win.domain}
+                cumulative={
+                  audit.data
+                    ? {
+                        deployedPct: audit.data.deployed_pct,
+                        cashConsumedPct: audit.data.cash_consumed_pct,
+                        recorded: audit.data.recorded,
+                      }
+                    : null
+                }
               />
             </>
           )}
@@ -378,7 +466,15 @@ export function ResultView({
               {tab === 'trades' && (
                 <div className="flex flex-col gap-2">
                   <AuditSummary audit={audit} fills={series.fills} />
-                  <TradesTable result={result} />
+                  {/* ADR-027 D8/D10：L1 回合（默认一层）→ 展开按 rt_seq 懒加载 L2 + 逐回合对账告警 */}
+                  <RoundTripsTable
+                    state={series.roundTrips}
+                    l2={series.l2}
+                    ensureL2={series.ensureL2}
+                    onLoadMore={series.loadMoreRoundTrips}
+                    onJump={handleJump}
+                    audit={audit}
+                  />
                 </div>
               )}
               {tab === 'metrics' && (

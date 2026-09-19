@@ -2250,3 +2250,384 @@ async fn p5_brief_estimated_bars_echo() {
     assert!(brief.clamped);
     assert_eq!(brief.requested_from, dbar(-1, 0.0).ts);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ADR-027 / ADR-028 P3：C 段契约测试（C1–C8；02-spec §4/§5/§6/§8；03-test-plan §3）
+// 载体：既有 mock store + 真实 QuickJsRuntime（不依赖真库）。
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+/// C1：`/result` 的 `trades` 元素 = L1 v2 形状（02-spec §1.2）——字段齐全 + **无旧字段残留**。
+///
+/// 判据：键集**精确相等**（不是「包含」）⇒ 既无漏字段，也无 v1 残留。
+#[tokio::test]
+async fn c1_result_trades_element_is_v2_shape() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let rc = r.svc.result_compat(&id, 5000).await.unwrap();
+    let trades = rc.trades.as_array().expect("trades 为数组");
+    assert!(!trades.is_empty(), "TREND 夹具应产出回合");
+    let want: std::collections::BTreeSet<&str> = [
+        "rt_seq", "code", "status", "open_ts", "close_ts", "open_bar", "close_bar", "open_price",
+        "close_price", "shares", "gross_value", "commission", "stamp_duty", "pnl", "hold_bars",
+        "l2_count", "buy_count", "sell_count", "reason",
+    ]
+    .into_iter()
+    .collect();
+    for t in trades {
+        let got: std::collections::BTreeSet<&str> = t
+            .as_object()
+            .expect("trades 元素为对象")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(got, want, "trades 元素键集必须 = 02-spec §1.2（无旧字段残留/无漏字段）");
+        assert!(t["rt_seq"].as_u64().unwrap() >= 1, "rt_seq 从 1 起单调");
+        assert_eq!(t["code"], serde_json::json!("600000"), "回测 code = run symbol");
+        assert_eq!(t["status"], serde_json::json!("Closed"), "回测恒 Closed（期末强平）");
+        assert!(t["close_ts"].is_i64() && t["close_bar"].is_i64(), "Closed ⇒ close_* 有值");
+        assert!(t["pnl"].is_number(), "Closed ⇒ pnl 精确值");
+        assert!(t["hold_bars"].is_number());
+        assert!(t["l2_count"].as_u64().unwrap() >= 1, "l2_count 摘要必为正");
+        assert!(t["open_price"].as_f64().unwrap() > 0.0);
+    }
+}
+
+/// C2：`/round-trips` 分页与摘要（`l2_count`/`buy_count`/`sell_count`）。
+#[tokio::test]
+async fn c2_round_trips_paging_and_summary() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let all = r.svc.result_round_trips(&id, 0, 5000).await.unwrap();
+    assert_eq!(all.run_id, id);
+    assert!(all.recorded, "trades 为数组 ⇒ recorded=true");
+    assert!(all.total >= 1);
+    assert_eq!(all.round_trips.len() as i64, all.total);
+    assert!(!all.has_more);
+    assert_eq!(all.next_offset, None);
+
+    // 摘要一致性：l2_count == 该回合 L2 切片 total；买/卖笔数与切片逐笔一致。
+    for rt in &all.round_trips {
+        let l2 = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 5000).await.unwrap();
+        assert_eq!(rt.l2_count, l2.total as usize, "l2_count == 该回合 fills 数");
+        assert_eq!(rt.l2_count, l2.fills.len());
+        let buys = l2.fills.iter().filter(|f| f["side"] == serde_json::json!("Buy")).count();
+        let sells = l2.fills.iter().filter(|f| f["side"] == serde_json::json!("Sell")).count();
+        assert_eq!(rt.buy_count, buys, "buy_count == 切片买入笔数");
+        assert_eq!(rt.sell_count, sells, "sell_count == 切片卖出笔数");
+        assert!(rt.buy_count + rt.sell_count == rt.l2_count);
+        assert!(
+            l2.fills.iter().all(|f| f["rt_seq"].as_u64() == Some(rt.rt_seq as u64)),
+            "切片元素 rt_seq 必须全等于该回合"
+        );
+    }
+
+    // 分页边界：逐页拼接 = 全量；has_more/next_offset 正确。
+    let total = all.total;
+    let mut paged: Vec<u32> = Vec::new();
+    let mut off = 0i64;
+    loop {
+        let p = r.svc.result_round_trips(&id, off, 1).await.unwrap();
+        assert!(p.round_trips.len() <= 1);
+        paged.extend(p.round_trips.iter().map(|t| t.rt_seq));
+        if !p.has_more {
+            assert_eq!(p.next_offset, None, "无更多 ⇒ next_offset=null");
+            break;
+        }
+        assert_eq!(p.next_offset, Some(off + 1), "next_offset = 已消费数");
+        off = p.next_offset.unwrap();
+    }
+    assert_eq!(paged.len() as i64, total, "分页不丢不重");
+    assert_eq!(
+        paged,
+        all.round_trips.iter().map(|t| t.rt_seq).collect::<Vec<_>>(),
+        "分页顺序 = 全量顺序"
+    );
+    // 越界 ⇒ 空页（非错误）
+    let past = r.svc.result_round_trips(&id, 10_000, 10).await.unwrap();
+    assert!(past.round_trips.is_empty() && !past.has_more && past.next_offset.is_none());
+}
+
+/// C3：L2 切片归属正确；**未知 `rt_seq` ⇒ 404**（禁空数组冒充「无成交」，D6/D11）。
+#[tokio::test]
+async fn c3_l2_slice_ownership_and_unknown_rt_seq_404() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let l1 = r.svc.result_round_trips(&id, 0, 10).await.unwrap();
+    let rt = l1.round_trips[0].clone();
+
+    let full = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 5000).await.unwrap();
+    assert_eq!(full.run_id, id);
+    assert_eq!(full.rt_seq, rt.rt_seq);
+    assert_eq!(full.total, rt.l2_count as i64);
+    assert!(full.recorded);
+    for f in &full.fills {
+        assert_eq!(f["rt_seq"].as_u64(), Some(rt.rt_seq as u64), "禁止窗口推断归属");
+        assert_eq!(f["code"], serde_json::json!("600000"), "L2 元素带 code（02-spec §1.1）");
+        for k in [
+            "bar_index", "ts", "side", "qty", "price", "trade_value", "commission", "stamp_duty",
+            "reason",
+        ] {
+            assert!(!f[k].is_null(), "L2 字段 {k} 必带（02-spec §1.1）");
+        }
+    }
+
+    // 分页切片
+    let p = r.svc.result_round_trip_fills(&id, rt.rt_seq, 0, 1).await.unwrap();
+    assert_eq!(p.fills.len(), 1);
+    let more = rt.l2_count > 1;
+    assert_eq!(p.has_more, more);
+    assert_eq!(p.next_offset, more.then_some(1));
+
+    // 未知 rt_seq ⇒ 404（不是空数组！）
+    let unknown = rt.rt_seq + 1000;
+    let err = r.svc.result_round_trip_fills(&id, unknown, 0, 10).await.unwrap_err();
+    assert!(
+        err.downcast_ref::<WorkbenchNotFound>().is_some(),
+        "未知 rt_seq 必须 404，实际: {err}"
+    );
+}
+
+/// C4：`/fills?round_trip=` 过滤 + 元素新字段；`recorded=false` 语义不变。
+#[tokio::test]
+async fn c4_fills_filter_and_element_increment() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let all = r.svc.result_fills(&id, 0, 5000).await.unwrap();
+    assert!(all.recorded);
+    assert!(all.round_trip.is_none(), "未过滤 ⇒ 不回显 round_trip");
+    for f in &all.fills {
+        for k in ["rt_seq", "trade_value", "commission", "stamp_duty"] {
+            assert!(!f[k].is_null(), "fills 元素增字段 {k} 缺失");
+        }
+        assert!(f["rt_seq"].as_u64().unwrap() >= 1);
+        assert!(f["trade_value"].as_f64().unwrap() > 0.0);
+        assert!(f["commission"].as_f64().unwrap() > 0.0, "佣金含最低佣金，必为正");
+        assert!(f["stamp_duty"].as_f64().unwrap() >= 0.0, "买入印花税恒 0");
+    }
+
+    // 过滤后集合 == 该回合 L2 切片（逐 (rt_seq, bar_index) 对齐）
+    let rt = all.fills[0]["rt_seq"].as_u64().unwrap() as u32;
+    let filtered = r.svc.result_fills_filtered(&id, 0, 5000, Some(rt)).await.unwrap();
+    let l2 = r.svc.result_round_trip_fills(&id, rt, 0, 5000).await.unwrap();
+    let key = |f: &serde_json::Value| (f["rt_seq"].as_u64(), f["bar_index"].as_u64(), f["side"].clone());
+    assert_eq!(
+        filtered.fills.iter().map(key).collect::<Vec<_>>(),
+        l2.fills.iter().map(key).collect::<Vec<_>>(),
+        "过滤后集合 == 该回合 fills"
+    );
+    assert_eq!(filtered.total, l2.total);
+    assert_eq!(filtered.round_trip, Some(rt), "过滤参数回显");
+    assert!(filtered.fills.iter().all(|f| f["rt_seq"].as_u64() == Some(rt as u64)));
+
+    // recorded 语义不变：无 fills 块 ⇒ recorded=false 且 total=0（过滤不改变该判定）
+    r.runs.chunks.lock().unwrap().retain(|(_, c)| c.kind != ResultKind::Fills);
+    let un = r.svc.result_fills_filtered(&id, 0, 5000, Some(rt)).await.unwrap();
+    assert!(!un.recorded, "无 fills 块 ⇒ 仍是「未写」而非「无成交」");
+    assert_eq!(un.total, 0);
+}
+
+/// C5：`/curve?kind=position` + `from_ts/to_ts`（窗口回显 / `window_bars` / 缺省向后兼容）。
+#[tokio::test]
+async fn c5_curve_position_kind_and_time_window() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+
+    // ① 缺省无窗口 = 全区间（向后兼容，window_* 回显 null）
+    let full = r.svc.result_curve(&id, ResultKind::Position, Some(20_000)).await.unwrap();
+    assert_eq!(full.kind, "position");
+    assert!(full.recorded, "chunked run 有 position 块 ⇒ recorded=true");
+    assert_eq!(full.window_from_ts, None);
+    assert_eq!(full.window_to_ts, None);
+    assert_eq!(full.window_bars, full.original_bars, "无窗口 ⇒ window_bars == 全序列根数");
+    assert!(!full.points.is_empty());
+    // 逐点形状 + I6 恒等式：position_value + cash == nav；position_ratio == position_value/nav
+    for p in &full.points {
+        for k in ["ts", "qty", "position_value", "cash", "nav", "position_ratio"] {
+            assert!(p.get(k).is_some(), "position 点缺字段 {k}");
+        }
+        let pv = p["position_value"].as_f64().unwrap();
+        let cash = p["cash"].as_f64().unwrap();
+        let nav = p["nav"].as_f64().unwrap();
+        let ratio = p["position_ratio"].as_f64().unwrap();
+        assert!((pv + cash - nav).abs() <= 1e-6 * nav.abs().max(1.0), "I6: pv+cash==nav");
+        let want = if nav <= 0.0 { 0.0 } else { pv / nav };
+        assert!((ratio - want).abs() < 1e-12, "position_ratio 分母 = 时点净值");
+    }
+    // 与 net_value 同点同值（同序列同根数）
+    let net = r.svc.result_curve(&id, ResultKind::NetValue, Some(20_000)).await.unwrap();
+    assert_eq!(full.original_bars, net.original_bars, "position 与 net_value 同根数");
+    for (p, q) in full.points.iter().zip(net.points.iter()) {
+        assert_eq!(p["ts"], q[0], "同 ts");
+        assert!((p["nav"].as_f64().unwrap() - q[1].as_f64().unwrap()).abs() < 1e-9, "同 nav");
+    }
+
+    // ② 时间窗：window_bars == 窗口内原始根数（抽样前）；响应回显窗口
+    let ts: Vec<i64> = net.points.iter().map(|q| q[0].as_i64().unwrap()).collect();
+    assert!(ts.len() >= 4, "夹具应 ≥4 根 bar");
+    let (from, to) = (ts[1], ts[3]);
+    let w = r
+        .svc
+        .result_curve_window(&id, ResultKind::NetValue, Some(20_000), Some(from), Some(to))
+        .await
+        .unwrap();
+    assert_eq!(w.window_from_ts, Some(from));
+    assert_eq!(w.window_to_ts, Some(to));
+    assert_eq!(w.window_bars, 3, "window_bars == 窗口内原始根数");
+    assert_eq!(w.points.len(), 3);
+    assert_eq!(w.original_bars, net.original_bars, "original_bars 仍为全序列根数");
+    assert!(!w.downsampled);
+    // 窗口外点当然不在
+    let w_empty = r
+        .svc
+        .result_curve_window(&id, ResultKind::NetValue, Some(20_000), Some(0), Some(0))
+        .await
+        .unwrap();
+    assert_eq!(w_empty.window_bars, 0, "空窗口 window_bars=0（不静默回全量）");
+    assert!(w_empty.points.is_empty());
+
+    // ③ 窗口内**重新采样**（k 作用于窗口内点集；分母 = window_bars）
+    let ws = r
+        .svc
+        .result_curve_window(&id, ResultKind::NetValue, Some(2), Some(from), Some(to))
+        .await
+        .unwrap();
+    assert_eq!(ws.points.len(), 2);
+    assert!(ws.downsampled, "窗口内重采样 ⇒ downsampled=true");
+    assert_eq!(ws.window_bars, 3);
+}
+
+/// C5b：`legacy_single` 无 `position` 列 ⇒ 读侧回空数组 + `recorded=false`
+/// （**不得**把「无该序列」读成「无持仓」，02-spec §4.1 / ADR-027 D11）。
+#[tokio::test]
+async fn c5b_legacy_single_position_is_empty_and_explicitly_unrecorded() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    {
+        let mut results = r.runs.results.lock().unwrap();
+        let res = results.get_mut(&id).unwrap();
+        res.result_format = "legacy_single".into();
+        res.net_value = serde_json::json!([[1, 100.0], [2, 101.0]]);
+    }
+    let c = r.svc.result_curve(&id, ResultKind::Position, None).await.unwrap();
+    assert!(c.points.is_empty(), "legacy 无 position 列 ⇒ 空数组");
+    assert!(!c.recorded, "「无该序列」必须显式披露（不得读成「无持仓」）");
+    assert_eq!(c.window_bars, 0);
+    // 既有 kind 的 legacy 内联路径不受影响
+    let nv = r.svc.result_curve(&id, ResultKind::NetValue, None).await.unwrap();
+    assert!(nv.recorded, "legacy 有 net_value 内联列 ⇒ recorded=true");
+    assert_eq!(nv.points.len(), 2);
+    assert_eq!(nv.original_bars, 2);
+}
+
+/// 写入侧：`positions` 必须落成 `kind='position'` 块（与 `net_value` 同级；ADR-027 §4.1）。
+#[tokio::test]
+async fn c5c_position_chunk_written_alongside_net_value() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let net_chunks = r.runs.result_chunk_count(&id, ResultKind::NetValue).await.unwrap();
+    let pos_chunks = r.runs.result_chunk_count(&id, ResultKind::Position).await.unwrap();
+    assert!(net_chunks > 0, "net_value 恒有块");
+    assert_eq!(pos_chunks, net_chunks, "position 与 net_value 同级分块（同根数 ⇒ 同块数）");
+    let pos = read_all(&r.runs, &id, ResultKind::Position).await;
+    let net = read_all(&r.runs, &id, ResultKind::NetValue).await;
+    assert_eq!(pos.len(), net.len());
+    for (p, q) in pos.iter().zip(net.iter()) {
+        assert_eq!(p["ts"], q[0], "逐点同 ts");
+        assert!((p["nav"].as_f64().unwrap() - q[1].as_f64().unwrap()).abs() < 1e-9, "逐点同 nav");
+    }
+}
+
+/// C6：`/curve` 拒 `kind=fills`（白名单不变；含窗口路径）。
+#[tokio::test]
+async fn c6_curve_rejects_fills_kind() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let err = r.svc.result_curve(&id, ResultKind::Fills, None).await.unwrap_err();
+    let e = err.downcast_ref::<WorkbenchValidation>().expect("fills 不可抽样 ⇒ 400");
+    assert_eq!(e.code(), "kind_invalid");
+    let err2 = r
+        .svc
+        .result_curve_window(&id, ResultKind::Fills, None, Some(0), Some(9))
+        .await
+        .unwrap_err();
+    assert!(err2.downcast_ref::<WorkbenchValidation>().is_some(), "窗口路径同样拒绝");
+}
+
+/// C7：`/audit` 增量（`round_trips_closed/open`、`rt_reconcile`）与 L1 列表逐回合一致。
+#[tokio::test]
+async fn c7_audit_increments_and_per_round_trip_reconcile() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let a = r.svc.run_audit(&id).await.unwrap();
+    let l1 = r.svc.result_round_trips(&id, 0, 1000).await.unwrap();
+    assert_eq!(a.report.round_trips_closed, l1.total as usize, "closed == L1 回合数（回测恒 Closed）");
+    assert_eq!(a.report.round_trips_open, 0, "回测恒 0");
+    assert_eq!(
+        a.report.round_trips_closed + a.report.round_trips_open,
+        a.report.round_trips_total
+    );
+    assert_eq!(a.report.rt_reconcile.checked, l1.total as usize, "逐回合核对");
+    assert!(a.report.rt_reconcile.mismatched.is_empty(), "正常 run 逐回合自洽（mismatched 空）");
+    assert_eq!(a.report.rt_reconcile.tolerance, application::audit::RT_RECONCILE_TOLERANCE);
+
+    // 反例：篡改某回合的一笔 L2 佣金 ⇒ 必须被**标出**该 rt_seq（禁静默按 L1 渲染，D10）
+    let target = {
+        let mut g = r.runs.chunks.lock().unwrap();
+        let mut target = None;
+        for (rid, c) in g.iter_mut() {
+            if rid == &id && c.kind == ResultKind::Fills {
+                if let Some(arr) = c.payload.as_array_mut() {
+                    target = arr[0]["rt_seq"].as_u64().map(|v| v as u32);
+                    arr[0]["commission"] = serde_json::json!(9999.0);
+                }
+            }
+        }
+        target.expect("应存在 fills 块")
+    };
+    let b = r.svc.run_audit(&id).await.unwrap();
+    assert_eq!(b.report.rt_reconcile.mismatched, vec![target], "篡改回合必须被标出");
+    assert_eq!(b.report.rt_reconcile.checked, l1.total as usize);
+}
+
+/// C8：完整性契约（ADR-027 D11）—— 所有列表型响应自述完整性。
+#[tokio::test]
+async fn c8_completeness_on_all_list_endpoints() {
+    let r = rig(trend_bars(), 2);
+    let id = submitted_trend(&r).await;
+    let keys = |v: &serde_json::Value, ks: &[&str], who: &str| {
+        for k in ks {
+            assert!(v.get(*k).is_some(), "{who} 缺完整性字段 {k}（ADR-027 D11）");
+        }
+    };
+    let page_keys = ["total", "recorded", "has_more", "next_offset", "offset", "limit"];
+
+    let f = serde_json::to_value(r.svc.result_fills(&id, 0, 5000).await.unwrap()).unwrap();
+    keys(&f, &page_keys, "/fills");
+    let l1 = serde_json::to_value(r.svc.result_round_trips(&id, 0, 5000).await.unwrap()).unwrap();
+    keys(&l1, &page_keys, "/round-trips");
+    let rt = l1["round_trips"][0]["rt_seq"].as_u64().unwrap() as u32;
+    let l2 = serde_json::to_value(r.svc.result_round_trip_fills(&id, rt, 0, 5000).await.unwrap())
+        .unwrap();
+    keys(&l2, &page_keys, "/round-trips/{rt_seq}/fills");
+    let b = serde_json::to_value(
+        r.svc
+            .result_bars(&id, ResultKind::PerBar, BarsWindow::Offset { offset: 0, limit: 2 })
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    keys(&b, &["total", "has_more", "next_offset"], "/bars");
+    // 窗口取数路径（ADR-028 §2.5）自述窗口 + 抽样前后根数
+    let c = serde_json::to_value(r.svc.result_curve(&id, ResultKind::Position, Some(10)).await.unwrap())
+        .unwrap();
+    keys(
+        &c,
+        &["window_from_ts", "window_to_ts", "window_bars", "recorded", "downsampled", "original_bars", "k"],
+        "/curve",
+    );
+    // 截断必须显式：首页 limit < total ⇒ has_more=true（不得静默截断）
+    let first = r.svc.result_fills(&id, 0, 1).await.unwrap();
+    if first.total > 1 {
+        assert!(first.has_more && first.next_offset.is_some(), "截断必须显式披露");
+    }
+}

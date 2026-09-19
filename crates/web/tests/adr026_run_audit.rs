@@ -214,11 +214,19 @@ async fn clean(pool: &PgPool, fx: &Fix) {
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(code).execute(pool).await.unwrap();
 }
 
-const AUDIT_KEYS: [&str; 15] = [
+/// `/audit` 响应键集 = `RunAudit { run_id, #[serde(flatten)] AuditReport }` 的**精确**字段集
+/// （= ADR-026 §2.2 十五键 + ADR-027 §5.5 三键），**顺序 = 结构体声明序 = 契约序**。
+///
+/// P4b 同步（2026-09-20，audit 契约变更的正当跟随）：ADR-027 §5.5 使 `/audit` 增
+/// `round_trips_closed` / `round_trips_open` / `rt_reconcile` ⇒ 旧 `[&str; 15]` 冻结集与
+/// `assert_eq!(obj.len(), N)` 必红。本冻结集与**事实源同步**：`crates/application/src/audit.rs
+/// ::AuditReport` 的字段声明序（其单测 `report_serializes_frozen_field_names` 为同源镜像）。
+/// 断言仍是**精确集合**（不多不少）+ 顺序声明（见 [`assert_audit_key_order`]），**非**「包含」式。
+const AUDIT_KEYS: [&str; 18] = [
     "run_id", "recorded", "capital_basis", "deployed_notional", "deployed_pct", "cash_consumed",
     "cash_consumed_pct", "planned_tranches", "reachable_batches", "batches_done",
     "unexecuted_orders", "last_bar_unfilled", "round_trips_total", "round_trips_force_closed",
-    "warnings",
+    "round_trips_closed", "round_trips_open", "rt_reconcile", "warnings",
 ];
 
 fn assert_audit_shape(a: &Value) {
@@ -226,15 +234,41 @@ fn assert_audit_shape(a: &Value) {
     for k in AUDIT_KEYS {
         assert!(obj.contains_key(k), "audit 缺字段 {k}：{a}");
     }
-    assert_eq!(obj.len(), AUDIT_KEYS.len(), "audit 不得多出字段：{a}");
+    assert_eq!(obj.len(), AUDIT_KEYS.len(), "audit 不得多出/少出字段：{a}");
     for k in ["deployed_notional", "deployed_pct", "cash_consumed", "cash_consumed_pct", "capital_basis"] {
         assert!(a[k].is_number(), "{k} 须为数值：{a}");
     }
     assert!(a["round_trips_total"].is_u64() && a["batches_done"].is_u64());
+    // ADR-027 §5.5 增量的**形状**断言（只冻结存在性/类型，不冻结值）：
+    assert!(a["round_trips_closed"].is_u64() && a["round_trips_open"].is_u64());
+    let rc = &a["rt_reconcile"];
+    assert!(rc.is_object(), "rt_reconcile 须为对象：{rc}");
+    assert!(rc["checked"].is_u64(), "rt_reconcile.checked 须为 u64：{rc}");
+    assert!(rc["mismatched"].is_array(), "rt_reconcile.mismatched 须为数组：{rc}");
+    assert!(rc["tolerance"].is_number(), "rt_reconcile.tolerance 须为数值：{rc}");
     assert!(a["warnings"].is_array(), "warnings 须为数组");
     for w in a["warnings"].as_array().unwrap() {
         assert!(w["code"].is_string() && w["severity"].is_string() && w["message"].is_string(),
             "warning 须含 code/severity/message：{w}");
+    }
+}
+
+/// **顺序断言**（把 `AUDIT_KEYS` 的顺序声明变成可执行的断言）：在**原始响应文本**上逐键按下标递增查找，
+/// 任一键缺失或次序与契约序不一致 ⇒ 失败。
+///
+/// 必要性：`serde_json::Value` 的 `Map` 是 `BTreeMap`（键序不可断言，见 `crates/application/src/audit.rs`
+/// 同名注记）⇒ 顺序只能在 raw body 上断言。首键固定 `run_id`（`RunAudit` 外层字段先于 flatten）。
+#[track_caller]
+fn assert_audit_key_order(raw: &str) {
+    assert!(raw.starts_with("{\"run_id\":"), "首字段须为 run_id：{raw}");
+    let mut cursor = 0usize;
+    for k in AUDIT_KEYS {
+        let needle = format!("\"{k}\":");
+        let pos = raw[cursor..]
+            .find(&needle)
+            .unwrap_or_else(|| panic!("原始响应缺字段 {k}（或键序与契约序不一致）：{raw}"))
+            + cursor;
+        cursor = pos;
     }
 }
 
@@ -333,7 +367,10 @@ async fn audit_endpoint_matches_recorded_facts_and_404_semantics() {
 
     let r = http.get(format!("{url}/api/workbench/runs/{run_id}/audit")).send().await.unwrap();
     assert_eq!(r.status(), 200, "audit 应 200: {:?}", r.text().await);
-    let a: Value = r.json().await.unwrap();
+    // 顺序声明在**原始响应文本**上挣得（`Value` 的键序不可断言）；再解析为 `Value` 做精确集合/语义断言。
+    let raw = r.text().await.unwrap();
+    assert_audit_key_order(&raw);
+    let a: Value = serde_json::from_str(&raw).unwrap();
     assert_audit_shape(&a);
     assert_eq!(a["run_id"], json!(run_id), "run_id 回显");
     assert_eq!(a["recorded"], json!(true), "chunked run 的 per_bar 可得 ⇒ recorded=true");

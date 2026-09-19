@@ -21,6 +21,37 @@ export function mapLine(
   }));
 }
 
+/**
+ * 把一组 `[ts,val]` 点按**共享窗口 ts 定义域**映射为 SVG 折线点（ADR-028 D2.1，**并列新增**）。
+ *
+ * 与 {@link mapLine} 的区别（**`mapLine` 语义/调用点一律不动**：`AggregateScoreChart` /
+ * `EquityDrawdownChart` / `ComparePanel`，F23）：
+ * - x 由 **ts 线性映射**（`mapLine` 的 x 是**数组下标**等距铺满 ⇒ 时间轴失真，ADR-028 F21）；
+ * - 定义域是**共享窗口** `[domainFrom, domainTo]`（**禁止**用数据自身 min/max，D2.1 明文）。
+ *
+ * 边界语义（显式、可断言）：
+ * - 定义域退化（`domainTo <= domainFrom` 或非有限）⇒ 全部 x = pad（不除零、不静默跳变）；
+ * - 定义域外的点按线性外推（**不钳位**）：调用方必须传「窗口内取数」的点，钳位会掩盖取数口径错误。
+ */
+export function mapLineByTs(
+  pts: Array<[number, number]>,
+  domainFrom: number,
+  domainTo: number,
+  min: number,
+  max: number,
+  width: number,
+  height: number,
+  pad: number,
+): SvgPoint[] {
+  const span = max - min || 1;
+  const dSpan = domainTo - domainFrom;
+  const plotW = width - pad * 2;
+  return pts.map((p) => ({
+    x: Number.isFinite(dSpan) && dSpan > 0 ? pad + ((p[0] - domainFrom) / dSpan) * plotW : pad,
+    y: height - pad - ((p[1] - min) / span) * (height - pad * 2),
+  }));
+}
+
 export function lineFrom(points: SvgPoint[]): string {
   return points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 }

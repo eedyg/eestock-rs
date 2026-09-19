@@ -1,0 +1,908 @@
+{
+  "schema": "adr027-contract-vectors/1",
+  "owner": "tester（闸门 3 独立验收）",
+  "spec": "design/17-trade-detail-layering/02-spec.md §1/§2/§3",
+  "note": "期望值由 gen_contract_vectors.py（独立 Python oracle，逐条按 02-spec §2 公式的 op 顺序计算，不读 Rust 实现）生成；判据 = 回测聚合（backtest::assign_rt_seq + aggregate_round_trips）与 sim-live 聚合（SimLiveService::round_trips 经 sim_trades 账本）对同一向量逐字段相同，浮点**逐位**相等（JSON 字符串亦需逐字节相等）。",
+  "bar_sec": 60,
+  "session_start_ts": 1700000000,
+  "sim_live_reason_source": {
+    "Policy": "strategy",
+    "Manual": "manual"
+  },
+  "vectors": [
+    {
+      "id": "V1_single_open_close",
+      "description": "单笔开平：一笔买入 + 一笔足额卖出 ⇒ 1 个 Closed 回合",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 12.0,
+          "trade_value": 1200.0,
+          "commission": 5.0,
+          "stamp_duty": 1.2,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000060,
+          "close_ts": 1700000180,
+          "open_bar": 1,
+          "close_bar": 3,
+          "open_price": 10.0,
+          "close_price": 12.0,
+          "shares": 100.0,
+          "gross_value": 1200.0,
+          "commission": 10.0,
+          "stamp_duty": 1.2,
+          "pnl": 188.79999999999995,
+          "hold_bars": 2,
+          "reason": "Policy",
+          "l2_count": 2,
+          "buy_count": 1,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 12.0,
+          "trade_value": 1200.0,
+          "commission": 5.0,
+          "stamp_duty": 1.2,
+          "reason": "Policy"
+        }
+      ]
+    },
+    {
+      "id": "V2_multi_batch_add",
+      "description": "多批加仓：两笔买入 + 一笔足额卖出 ⇒ 同一 rt_seq",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Buy",
+          "qty": 200.0,
+          "price": 11.0,
+          "trade_value": 2200.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 5,
+          "ts": 1700000300,
+          "side": "Sell",
+          "qty": 300.0,
+          "price": 13.0,
+          "trade_value": 3900.0,
+          "commission": 5.0,
+          "stamp_duty": 3.9,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000060,
+          "close_ts": 1700000300,
+          "open_bar": 1,
+          "close_bar": 5,
+          "open_price": 10.666666666666666,
+          "close_price": 13.0,
+          "shares": 300.0,
+          "gross_value": 3900.0,
+          "commission": 15.0,
+          "stamp_duty": 3.9,
+          "pnl": 681.0999999999999,
+          "hold_bars": 4,
+          "reason": "Policy",
+          "l2_count": 3,
+          "buy_count": 2,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Buy",
+          "qty": 200.0,
+          "price": 11.0,
+          "trade_value": 2200.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 2,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 5,
+          "ts": 1700000300,
+          "side": "Sell",
+          "qty": 300.0,
+          "price": 13.0,
+          "trade_value": 3900.0,
+          "commission": 5.0,
+          "stamp_duty": 3.9,
+          "reason": "Policy"
+        }
+      ]
+    },
+    {
+      "id": "V3_partial_sell",
+      "description": "部分卖出：买 100 → 卖 40（部分）→ 卖 60（清仓）⇒ 单回合全回合口径 pnl",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Sell",
+          "qty": 40.0,
+          "price": 12.0,
+          "trade_value": 480.0,
+          "commission": 5.0,
+          "stamp_duty": 0.48,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 7,
+          "ts": 1700000420,
+          "side": "Sell",
+          "qty": 60.0,
+          "price": 11.0,
+          "trade_value": 660.0,
+          "commission": 5.0,
+          "stamp_duty": 0.66,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000060,
+          "close_ts": 1700000420,
+          "open_bar": 1,
+          "close_bar": 7,
+          "open_price": 10.0,
+          "close_price": 11.4,
+          "shares": 100.0,
+          "gross_value": 1140.0,
+          "commission": 15.0,
+          "stamp_duty": 1.1400000000000001,
+          "pnl": 123.8599999999999,
+          "hold_bars": 6,
+          "reason": "Policy",
+          "l2_count": 3,
+          "buy_count": 1,
+          "sell_count": 2
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Sell",
+          "qty": 40.0,
+          "price": 12.0,
+          "trade_value": 480.0,
+          "commission": 5.0,
+          "stamp_duty": 0.48,
+          "reason": "Policy"
+        },
+        {
+          "index": 2,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 7,
+          "ts": 1700000420,
+          "side": "Sell",
+          "qty": 60.0,
+          "price": 11.0,
+          "trade_value": 660.0,
+          "commission": 5.0,
+          "stamp_duty": 0.66,
+          "reason": "Policy"
+        }
+      ]
+    },
+    {
+      "id": "V4_dca_multi_batch",
+      "description": "DCA 多批：6 笔定投买入 + 期末足额卖出 ⇒ 单回合（shares = Σ 买入 qty）",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.5,
+          "trade_value": 475.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.5,
+          "trade_value": 525.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.0,
+          "trade_value": 450.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 5,
+          "ts": 1700000300,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 11.0,
+          "trade_value": 550.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 6,
+          "ts": 1700000360,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 8,
+          "ts": 1700000480,
+          "side": "Sell",
+          "qty": 300.0,
+          "price": 12.0,
+          "trade_value": 3600.0,
+          "commission": 5.0,
+          "stamp_duty": 3.6,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000060,
+          "close_ts": 1700000480,
+          "open_bar": 1,
+          "close_bar": 8,
+          "open_price": 10.0,
+          "close_price": 12.0,
+          "shares": 300.0,
+          "gross_value": 3600.0,
+          "commission": 35.0,
+          "stamp_duty": 3.6,
+          "pnl": 561.4000000000001,
+          "hold_bars": 7,
+          "reason": "Policy",
+          "l2_count": 7,
+          "buy_count": 6,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.5,
+          "trade_value": 475.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 2,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 3,
+          "ts": 1700000180,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.5,
+          "trade_value": 525.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 3,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.0,
+          "trade_value": 450.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 4,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 5,
+          "ts": 1700000300,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 11.0,
+          "trade_value": 550.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 5,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 6,
+          "ts": 1700000360,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 6,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 8,
+          "ts": 1700000480,
+          "side": "Sell",
+          "qty": 300.0,
+          "price": 12.0,
+          "trade_value": 3600.0,
+          "commission": 5.0,
+          "stamp_duty": 3.6,
+          "reason": "Policy"
+        }
+      ]
+    },
+    {
+      "id": "V5_zero_length_round_trip",
+      "description": "零长回合：同一 bar 内买入 + 卖出（open_bar == close_bar）⇒ 归属仍由 rt_seq 决定",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 9.5,
+          "trade_value": 950.0,
+          "commission": 5.0,
+          "stamp_duty": 0.95,
+          "reason": "Manual"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000240,
+          "close_ts": 1700000240,
+          "open_bar": 4,
+          "close_bar": 4,
+          "open_price": 10.0,
+          "close_price": 9.5,
+          "shares": 100.0,
+          "gross_value": 950.0,
+          "commission": 10.0,
+          "stamp_duty": 0.95,
+          "pnl": -60.950000000000045,
+          "hold_bars": 0,
+          "reason": "Manual",
+          "l2_count": 2,
+          "buy_count": 1,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 9.5,
+          "trade_value": 950.0,
+          "commission": 5.0,
+          "stamp_duty": 0.95,
+          "reason": "Manual"
+        }
+      ]
+    },
+    {
+      "id": "V6_open_round_trip_unclosed",
+      "description": "Open 回合未平仓：买 100 → 部分卖 40 ⇒ status=Open、pnl=None（禁造数）",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Sell",
+          "qty": 40.0,
+          "price": 12.0,
+          "trade_value": 480.0,
+          "commission": 5.0,
+          "stamp_duty": 0.48,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Open",
+          "open_ts": 1700000060,
+          "close_ts": null,
+          "open_bar": 1,
+          "close_bar": null,
+          "open_price": 10.0,
+          "close_price": 12.0,
+          "shares": 100.0,
+          "gross_value": 480.0,
+          "commission": 10.0,
+          "stamp_duty": 0.48,
+          "pnl": null,
+          "hold_bars": null,
+          "reason": null,
+          "l2_count": 2,
+          "buy_count": 1,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Sell",
+          "qty": 40.0,
+          "price": 12.0,
+          "trade_value": 480.0,
+          "commission": 5.0,
+          "stamp_duty": 0.48,
+          "reason": "Policy"
+        }
+      ]
+    },
+    {
+      "id": "V7_close_then_reopen_two_round_trips",
+      "description": "清仓后重开：rt_seq 1（Closed）→ rt_seq 2（Closed，同一 code）",
+      "code": "600000.SH",
+      "bar_sec": 60,
+      "session_start_ts": 1700000000,
+      "fills": [
+        {
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 11.0,
+          "trade_value": 1100.0,
+          "commission": 5.0,
+          "stamp_duty": 1.1,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.0,
+          "trade_value": 450.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "code": "600000.SH",
+          "bar_index": 6,
+          "ts": 1700000360,
+          "side": "Sell",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.5,
+          "reason": "Policy"
+        }
+      ],
+      "expected_fill_rt_seq": [
+        1,
+        1,
+        2,
+        2
+      ],
+      "expected_round_trips": [
+        {
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000060,
+          "close_ts": 1700000120,
+          "open_bar": 1,
+          "close_bar": 2,
+          "open_price": 10.0,
+          "close_price": 11.0,
+          "shares": 100.0,
+          "gross_value": 1100.0,
+          "commission": 10.0,
+          "stamp_duty": 1.1,
+          "pnl": 88.90000000000009,
+          "hold_bars": 1,
+          "reason": "Policy",
+          "l2_count": 2,
+          "buy_count": 1,
+          "sell_count": 1
+        },
+        {
+          "rt_seq": 2,
+          "code": "600000.SH",
+          "status": "Closed",
+          "open_ts": 1700000240,
+          "close_ts": 1700000360,
+          "open_bar": 4,
+          "close_bar": 6,
+          "open_price": 9.0,
+          "close_price": 10.0,
+          "shares": 50.0,
+          "gross_value": 500.0,
+          "commission": 10.0,
+          "stamp_duty": 0.5,
+          "pnl": 39.5,
+          "hold_bars": 2,
+          "reason": "Policy",
+          "l2_count": 2,
+          "buy_count": 1,
+          "sell_count": 1
+        }
+      ],
+      "expected_l2": [
+        {
+          "index": 0,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 1,
+          "ts": 1700000060,
+          "side": "Buy",
+          "qty": 100.0,
+          "price": 10.0,
+          "trade_value": 1000.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 1,
+          "rt_seq": 1,
+          "code": "600000.SH",
+          "bar_index": 2,
+          "ts": 1700000120,
+          "side": "Sell",
+          "qty": 100.0,
+          "price": 11.0,
+          "trade_value": 1100.0,
+          "commission": 5.0,
+          "stamp_duty": 1.1,
+          "reason": "Policy"
+        },
+        {
+          "index": 2,
+          "rt_seq": 2,
+          "code": "600000.SH",
+          "bar_index": 4,
+          "ts": 1700000240,
+          "side": "Buy",
+          "qty": 50.0,
+          "price": 9.0,
+          "trade_value": 450.0,
+          "commission": 5.0,
+          "stamp_duty": 0.0,
+          "reason": "Policy"
+        },
+        {
+          "index": 3,
+          "rt_seq": 2,
+          "code": "600000.SH",
+          "bar_index": 6,
+          "ts": 1700000360,
+          "side": "Sell",
+          "qty": 50.0,
+          "price": 10.0,
+          "trade_value": 500.0,
+          "commission": 5.0,
+          "stamp_duty": 0.5,
+          "reason": "Policy"
+        }
+      ]
+    }
+  ]
+}

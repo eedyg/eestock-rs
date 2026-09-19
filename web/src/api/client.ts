@@ -72,11 +72,13 @@ import type {
   WorkbenchRunConfig,
   WorkbenchRunResult,
   WorkbenchRunStatus,
+  WorkbenchRoundTripFillsResponse,
+  WorkbenchRoundTripsResponse,
   WorkbenchRunView,
   WorkbenchSubmitReq,
 } from './types';
 import { ApiError } from './types';
-import type { ApiErrorDetail } from './types';
+import type { ApiErrorDetail, CurveKind } from './types';
 
 export interface KlineQuery {
   code: string;
@@ -92,6 +94,15 @@ export interface WorkbenchBarsQuery {
   limit?: number;
   from?: string; // RFC3339
   to?: string; // RFC3339
+}
+
+/** 页面⑪ `/curve` 查询参数（ADR-028 D3：窗口缺省 = 全区间 ⇒ 向后兼容）。 */
+export interface WorkbenchCurveQuery {
+  kind: CurveKind;
+  k?: number;
+  /** 窗口起（Unix 秒；与 `to_ts` 成对；缺省 = 全区间）。 */
+  from_ts?: number;
+  to_ts?: number;
 }
 
 /** 页面④ 日期范围查询（from/to 为 YYYY-MM-DD，闭区间；thresholdPct 缺省由后端兜底 0.5） */
@@ -269,10 +280,18 @@ export interface ApiClient {
   /** 分页/区间读 bar（GET /api/workbench/runs/{id}/bars；`offset/limit` 与 `from/to` **互斥**） */
   getWorkbenchBars(id: string, q?: WorkbenchBarsQuery): Promise<WorkbenchBarsResponse>;
   /** 显式抽样曲线（GET /api/workbench/runs/{id}/curve；`downsampled`/`original_bars` 必带） */
-  getWorkbenchCurve(
+  getWorkbenchCurve(id: string, q: WorkbenchCurveQuery): Promise<WorkbenchCurveResponse>;
+  /** L1 回合列表（GET …/round-trips；ADR-027 D8 懒加载首屏，行含 l2_count/买卖笔数摘要）。 */
+  getWorkbenchRoundTrips(
     id: string,
-    q: { kind: 'per_bar' | 'net_value' | 'drawdown'; k?: number },
-  ): Promise<WorkbenchCurveResponse>;
+    q?: { offset?: number; limit?: number },
+  ): Promise<WorkbenchRoundTripsResponse>;
+  /** L2 回合切片（GET …/round-trips/{rt_seq}/fills；ADR-027 D8；未知 rt_seq ⇒ 404，禁空数组冒充）。 */
+  getWorkbenchRoundTripFills(
+    id: string,
+    rtSeq: number,
+    q?: { offset?: number; limit?: number },
+  ): Promise<WorkbenchRoundTripFillsResponse>;
   /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
   getWorkbenchFills(id: string, q?: { offset?: number; limit?: number }): Promise<WorkbenchFillsResponse>;
   /** 执行完整度审计（GET /api/workbench/runs/{id}/audit；ADR-026 §2.2 只读派生，前端**按 Tab 懒加载**）。 */
@@ -576,8 +595,29 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
     getWorkbenchCurve: (id, q) => {
       const params = new URLSearchParams({ kind: q.kind });
       if (q.k != null) params.set('k', String(q.k));
+      // ADR-028 D3：窗口参数（缺省不传 ⇒ 后端全区间，行为与今日一致）
+      if (q.from_ts != null) params.set('from_ts', String(q.from_ts));
+      if (q.to_ts != null) params.set('to_ts', String(q.to_ts));
       return get<WorkbenchCurveResponse>(
         `/api/workbench/runs/${encodeURIComponent(id)}/curve?${params.toString()}`,
+      );
+    },
+    getWorkbenchRoundTrips: (id, q) => {
+      const params = new URLSearchParams();
+      if (q?.offset != null) params.set('offset', String(q.offset));
+      if (q?.limit != null) params.set('limit', String(q.limit));
+      const qs = params.toString();
+      return get<WorkbenchRoundTripsResponse>(
+        `/api/workbench/runs/${encodeURIComponent(id)}/round-trips${qs ? `?${qs}` : ''}`,
+      );
+    },
+    getWorkbenchRoundTripFills: (id, rtSeq, q) => {
+      const params = new URLSearchParams();
+      if (q?.offset != null) params.set('offset', String(q.offset));
+      if (q?.limit != null) params.set('limit', String(q.limit));
+      const qs = params.toString();
+      return get<WorkbenchRoundTripFillsResponse>(
+        `/api/workbench/runs/${encodeURIComponent(id)}/round-trips/${rtSeq}/fills${qs ? `?${qs}` : ''}`,
       );
     },
     getWorkbenchFills: (id, q) => {

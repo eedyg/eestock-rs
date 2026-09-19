@@ -1193,6 +1193,8 @@ fn run_sim_position(
     let slot = strategy_core::StrategySlot::new(code, code_hash, params.clone(), 1.0)
         .map_err(|m| StrategyValidation::new(codes::PARAMS_INVALID, m))?;
     let cfg = strategy_core::EnsembleConfig {
+        // P1b 机械适配（裁决 A）：symbol 为 engine 侧 `code` 唯一取值来源 ⇒ 传 run 的 symbol。
+        symbol: req.symbol.trim().to_string(),
         slots: vec![slot],
         buy_threshold: strategy_core::DEFAULT_BUY_THRESHOLD,
         sell_threshold: strategy_core::DEFAULT_SELL_THRESHOLD,

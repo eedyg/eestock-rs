@@ -22,6 +22,13 @@ import { applyDarkTerminalStyles, PERIOD_MAP, toKcData } from './chartCommon';
 import { loadBarsForKc, type KlineDataFeedLike } from './klineDataLoader';
 import { addOverlayIndicator } from './overlayIndicator';
 import { useChartSyncRegistry } from './chartSyncContext';
+import {
+  applyWindowOps,
+  readVisibleRangeTs,
+  type VisibleRangeTs,
+  type WindowApplyResult,
+  type WindowCommand,
+} from './klineWindowOps';
 
 /** KlineChart 承接所需的最小 feed 面（看板 KlineDataFeed 与弹窗 ScopedKlineFeed 均满足）。
  *  - bars/hasMore/loadInitial/loadBefore：DataLoader 取数（见 klineDataLoader.loadBarsForKc）。
@@ -103,6 +110,21 @@ export interface KlineChartProps {
    * `init(el)` 不传 options ⇒ 引擎默认 `{min:1,max:50}`（ADR-020 严格，**放宽不得泄漏到基准**）。
    */
   barSpaceLimit?: { min?: number; max?: number };
+  /**
+   * ADR-028 D2 / 02-spec §7：**可见时间范围变更**回调（索引→ts 由图内部经 `getDataList()` 转换）。
+   *  **可选**：不传 ⇒ 本组件**不订阅** `onVisibleRangeChange`（既有调用方订阅面/渲染逐字节不变，F8）。
+   *  程序化写窗（{@link KlineChartProps.windowCommand}）期间的回声由 `programmaticScroll` 抑制
+   *  （与 `onZoom`/`onScroll` 同口径，ADR-022 §2.3）。
+   */
+  onVisibleRangeChange?: (r: VisibleRangeTs) => void;
+  /**
+   * ADR-028 D2/D4：**程序化写窗命令**（结果页 L1/L2 `[跳转]` / 全览 / 历史回退）。
+   *  **可选**；不传/传 null ⇒ 本组件不执行任何窗口写操作（既有调用方零影响）。
+   *  同一命令对象不会重放 ⇒ 调用方须以单调 `rev` 生成新对象。
+   */
+  windowCommand?: WindowCommand | null;
+  /** 写窗回执（ADR-028 D4 断言口径；**失败必须显式报错**，禁止静默无反应）。可选。 */
+  onWindowApplied?: (r: WindowApplyResult) => void;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -367,6 +389,11 @@ export function KlineChart(props: KlineChartProps) {
   onManualZoomRef.current = props.onManualZoom;
   const onInitErrorRef = useRef(props.onInitError);
   onInitErrorRef.current = props.onInitError;
+  const onVisibleRangeChangeRef = useRef(props.onVisibleRangeChange);
+  onVisibleRangeChangeRef.current = props.onVisibleRangeChange;
+  const hasVisibleRangeCb = props.onVisibleRangeChange != null;
+  const onWindowAppliedRef = useRef(props.onWindowApplied);
+  onWindowAppliedRef.current = props.onWindowApplied;
   const hideCandles = props.hideCandles ?? false;
   const feed = props.feed;
   /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
@@ -443,6 +470,52 @@ export function KlineChart(props: KlineChartProps) {
     if (!chart) return;
     return syncRegistry.register({ chart, period: props.period, isBase: !hideCandles });
   }, [syncRegistry, props.period, hideCandles]);
+
+  // Effect V —— 可见范围回调（ADR-028 D2 / 02-spec §7）。**仅当调用方传了回调**时才订阅
+  // `onVisibleRangeChange` ⇒ 不传的既有调用方（看板/宫格/多周期/关闭态）订阅面与渲染**逐字节不变**（F8）。
+  // 程序化写窗期间（Effect K）的回声由 `programmaticScroll` 抑制（同 onZoom/onScroll 口径）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !hasVisibleRangeCb) return;
+    if (typeof chart.subscribeAction !== 'function' || typeof chart.getVisibleRange !== 'function') return;
+    const onVisibleRange = () => {
+      if (programmaticScroll.current) return; // 程序化写窗 ⇒ 不回写（防回声 + 防乱序）
+      const r = readVisibleRangeTs(chart);
+      if (r) onVisibleRangeChangeRef.current?.(r);
+    };
+    chart.subscribeAction('onVisibleRangeChange', onVisibleRange);
+    return () => {
+      if (typeof chart.unsubscribeAction === 'function') chart.unsubscribeAction('onVisibleRangeChange', onVisibleRange);
+    };
+  }, [hasVisibleRangeCb]);
+
+  // Effect K —— 程序化写窗（ADR-028 D2/D4）：结果页 `[跳转]` / 全览 / 历史回退。
+  // `windowCommand` 为**可选** prop（不传 ⇒ 本 effect 一条写语句都不执行）。
+  // 写窗期间置 `programmaticScroll`（复用实时跟随/跨图同步同款回声抑制），并**读回断言**：
+  // `setBarSpace` 越界会静默 return（F18 零容忍）⇒ 失败/未生效必须经 `onWindowApplied` 显式上报。
+  useEffect(() => {
+    const chart = chartRef.current;
+    const cmd = props.windowCommand;
+    if (!chart || !cmd) return;
+    let result: WindowApplyResult | null = null;
+    programmaticScroll.current = true;
+    syncRegistryRef.current.beginProgrammatic();
+    try {
+      result = applyWindowOps(chart, cmd, barSpaceLimitRef.current);
+    } catch (e) {
+      result = {
+        rev: cmd.rev,
+        ok: false,
+        error: `窗口命令异常：${(e as Error).message}`,
+        requested_bar_space: null,
+        observed: null,
+      };
+    } finally {
+      syncRegistryRef.current.endProgrammatic();
+      programmaticScroll.current = false;
+    }
+    if (result) onWindowAppliedRef.current?.(result);
+  }, [props.windowCommand]);
 
   // Effect H —— 卫星实例隐藏 K 线（P2，02-spec §3.4 唯一可行手段）。
   // 必须在 Effect L 之后（此时 chart 已 init）：`state:'minimize' + minHeight:0` 折叠 candle pane，

@@ -89,6 +89,8 @@ fn series(n: usize) -> Vec<Bar> {
 
 fn cfg() -> EnsembleConfig {
     EnsembleConfig {
+        // P1b 机械适配（架构裁决 2026-09-20 方案 A）：EnsembleConfig 增 symbol（code 唯一取值来源）。
+        symbol: "TEST.SYMBOL".to_string(),
         slots: vec![
             StrategySlot::new(
                 INDICATOR_HEAVY,

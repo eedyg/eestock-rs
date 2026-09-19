@@ -3,6 +3,7 @@ import type { ApiClient } from '@/api/client';
 import type { WorkbenchRunFill, WorkbenchRunView } from '@/api/types';
 import { DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
 import { KlineChart, type KlineMarkerOverlay } from '@/features/dashboard/KlineChart';
+import type { VisibleRangeTs, WindowApplyResult, WindowCommand } from '@/features/dashboard/klineWindowOps';
 import { ScopedKlineFeed } from '@/features/backtest/ScopedKlineFeed';
 import { periodCodeToPeriod } from '@/features/backtest/format';
 import type { RunFillsState } from './useRunSeries';
@@ -36,6 +37,14 @@ export function buildMarkers(fills: WorkbenchRunFill[]): KlineMarkerOverlay[] {
 }
 
 /**
+ * ADR-028 §7：结果页 K 线**必须**传放宽后的 `barSpaceLimit`（供宽窗口跳转；F18 的静默越界。
+ * 放宽度：L2 跳转要求 120 根居中 ⇒ 在 520px 窗宽下需 barSpace ≈ 4，而看板默认上限 50
+ * 会把「回合区间（可能仅数根）」所需的更大 barSpace 吞掉。**该放宽只作用于本实例**：
+ * 看板基准图/宫格一律不传（ADR-020 严格）。
+ */
+export const RESULT_BAR_SPACE_LIMIT = { min: 1, max: 400 } as const;
+
+/**
  * K线 + 买卖标记（复用看板 `KlineChart` + 页面⑤ `ScopedKlineFeed` 区间取数）：
  * 区间 = run [from_ts, to_ts]（小 buffer）；markers 由**成交明细事实源**生成
  * （B=买入 / S=卖出 / ⊗=硬止损触发强平）。
@@ -47,10 +56,19 @@ export function KlineResultChart({
   run,
   fills,
   api,
+  onVisibleRangeChange,
+  windowCommand,
+  onWindowApplied,
 }: {
   run: WorkbenchRunView;
   fills: RunFillsState;
   api: ApiClient;
+  /** ADR-028 D2：可见范围回调（页面级窗口事实源的 `kline` 写入者）。 */
+  onVisibleRangeChange?: (r: VisibleRangeTs) => void;
+  /** ADR-028 D4：程序化写窗命令（L1/L2 跳转 / 全览 / 历史回退）。 */
+  windowCommand?: WindowCommand | null;
+  /** 写窗回执（断言成功/失败；失败必须显式报错）。 */
+  onWindowApplied?: (r: WindowApplyResult) => void;
 }) {
   const period = periodCodeToPeriod(run.period);
   const feed = useMemo(
@@ -83,9 +101,10 @@ export function KlineResultChart({
             该运行未记录成交明细（P6 之前的分块 run）⇒ 标记可能不全
           </span>
         ) : (
+          // ADR-027 D11：完整性契约 —— 总量与已加载量**常显**（旧实现在 > 首页时静默缺标记）
           <span data-testid="wb-fills-note">
-            成交 {overlays.length} 笔（精确源 /fills
-            {fills.total > fills.rows.length ? `，已加载 ${fills.rows.length} / 共 ${fills.total}` : ''}）
+            成交合计 {fills.total} 笔（精确源 /fills，已加载 {fills.rows.length} / 共 {fills.total}
+            {fills.truncated ? '，触达单次拉取护栏 ⇒ 标记不全' : ''}）
           </span>
         )}
         {fills.error && <span className="text-up" data-testid="wb-fills-error">成交明细加载失败：{fills.error}</span>}
@@ -99,6 +118,10 @@ export function KlineResultChart({
           indicators={DASHBOARD_DEFAULTS.indicators}
           onManualZoom={() => undefined}
           overlays={overlays}
+          barSpaceLimit={RESULT_BAR_SPACE_LIMIT}
+          onVisibleRangeChange={onVisibleRangeChange}
+          windowCommand={windowCommand}
+          onWindowApplied={onWindowApplied}
         />
       </div>
     </div>

@@ -49,6 +49,8 @@ fn run_scores(code: &str, id: &str, bars: &[Bar]) -> Vec<f64> {
     )
     .expect("合法 slot");
     let cfg = EnsembleConfig {
+        // P1b 机械适配（架构裁决 2026-09-20 方案 A）：EnsembleConfig 增 symbol（code 唯一取值来源）。
+        symbol: "TEST.SYMBOL".to_string(),
         slots: vec![slot],
         buy_threshold: 60.0,
         sell_threshold: 40.0,
@@ -133,6 +135,8 @@ fn two_state_gate_scores_gated_by_position() {
     )
     .expect("合法 slot");
     let cfg = EnsembleConfig {
+        // P1b 机械适配（架构裁决 2026-09-20 方案 A）：EnsembleConfig 增 symbol（code 唯一取值来源）。
+        symbol: "TEST.SYMBOL".to_string(),
         slots: vec![slot],
         buy_threshold: 60.0,
         sell_threshold: 40.0,

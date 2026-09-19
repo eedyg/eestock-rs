@@ -62,6 +62,8 @@ fn series(n: usize) -> Vec<Bar> {
 /// 三 slot（dual_ma / macd / kdj，覆盖多 slot 聚合路径）+ ATR 硬止损 + warmup 的配置。
 fn base_cfg(warmup_bars: usize) -> EnsembleConfig {
     EnsembleConfig {
+        // P1b 机械适配（架构裁决 2026-09-20 方案 A）：EnsembleConfig 增 symbol（code 唯一取值来源）。
+        symbol: "TEST.SYMBOL".to_string(),
         slots: vec![
             slot("dual_ma", &[("fast", 5.0), ("slow", 20.0)], 1.0),
             slot("macd", &[("fast", 12.0), ("slow", 26.0)], 0.5),
@@ -246,7 +248,8 @@ fn session_finish_force_closes_open_position() {
     let got = session.finish();
     assert_eq!(got, expected);
     assert!(
-        expected.trades.iter().all(|t| t.close_bar < bars.len()),
+        // P1b 机械适配：v2 `close_bar: Option<usize>` ⇒ 解包（回测侧回合恒 Closed）。
+        expected.trades.iter().all(|t| t.close_bar.expect("Closed 回合必有 close_bar") < bars.len()),
         "期末强平交易应落在最后一根 bar"
     );
 }

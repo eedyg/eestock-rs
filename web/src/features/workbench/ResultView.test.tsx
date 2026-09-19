@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {
-  Trade,
+  RoundTrip,
   WorkbenchBarRecord,
   WorkbenchRunAudit,
   WorkbenchRunResult,
@@ -63,6 +63,9 @@ const AUDIT_BASELINE: WorkbenchRunAudit = {
   last_bar_unfilled: true,
   round_trips_total: 1,
   round_trips_force_closed: 1,
+  round_trips_closed: 1,
+  round_trips_open: 0,
+  rt_reconcile: { checked: 1, mismatched: [], tolerance: 1e-6 },
   warnings: [
     {
       code: 'DCA_PLAN_UNDERFILLED',
@@ -153,7 +156,7 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-equity-chart')).toBeInTheDocument();
     // 默认 Tab：交易明细
     expect(screen.getByTestId('wb-tab-trades')).toBeInTheDocument();
-    expect(screen.getByTestId('wb-trades-table')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-round-trips-table')).toBeInTheDocument();
   });
 
   it('Tab 切换：8项绩效 / 逐bar评分表 / 事件日志（含插件错误与 log）', async () => {
@@ -386,9 +389,9 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     const note = await screen.findByTestId('wb-fills-note');
     expect(spy).toHaveBeenCalledWith(run.id, { limit: 5000 });
     expect(note).toHaveTextContent('精确源 /fills');
-    // 精确源条数 = per_bar fill 事件数（不漏不加）
+    // 精确源条数 = per_bar fill 事件数（不漏不加）；ADR-027 D11：总量与已加载量**常显**
     const expected = fillsFromPerBar(result.per_bar).length;
-    expect(note).toHaveTextContent(`成交 ${expected} 笔`);
+    expect(note).toHaveTextContent(`成交合计 ${expected} 笔（精确源 /fills，已加载 ${expected} / 共 ${expected}）`);
   });
 
   it('P6：/fills 回 recorded=false（P6 前的 chunked run）⇒ 显式提示，不静默少标记', async () => {
@@ -432,7 +435,7 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-audit-warning-DCA_PLAN_UNDERFILLED')).toBeInTheDocument();
     expect(screen.getByTestId('wb-audit-warning-PARTIAL_DEPLOYMENT')).toBeInTheDocument();
     expect(screen.getByTestId('wb-audit-warning-ORDERS_UNEXECUTED')).toBeInTheDocument();
-    expect(screen.getByTestId('wb-trades-table')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-round-trips-table')).toBeInTheDocument();
   });
 
   it('ADR-026：warnings 为空 ⇒ 不渲染提示条（无告警不占位）', async () => {
@@ -446,7 +449,11 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
   it('ADR-026：交易明细「来源」列 —— 正常 / 止损 / 期末强平；历史 run（缺字段）→ 未记录', async () => {
     const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
     const { run, result } = await seedRunAndResult(client);
-    const trade = (reason: Trade['reason']): Trade => ({
+    // ADR-027 v2：L1 = `RoundTrip`（回合），逐回合带 `rt_seq`/摘要
+    const trade = (reason: RoundTrip['reason'], rtSeq: number): RoundTrip => ({
+      rt_seq: rtSeq,
+      code: '518880',
+      status: 'Closed',
       open_ts: 1_700_000_000,
       close_ts: 1_700_086_400,
       open_bar: 0,
@@ -454,11 +461,14 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
       open_price: 2,
       close_price: 2.1,
       shares: 100,
+      buy_count: 1,
+      sell_count: 1,
       gross_value: 210,
       commission: 5,
       stamp_duty: 0,
       pnl: 5,
       hold_bars: 1,
+      l2_count: 2,
       ...(reason === undefined ? {} : { reason }),
     });
     render(
@@ -469,16 +479,16 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
             ...result,
             result_format: 'legacy_single',
             per_bar: [],
-            trades: [trade('Policy'), trade('StopTrigger'), trade('ForceClose'), trade(undefined)],
+            trades: [trade('Policy', 1), trade('StopTrigger', 2), trade('ForceClose', 3), trade(undefined, 4)],
           },
           { api: client },
         )}
       />,
     );
-    expect(screen.getByTestId('wb-trade-source-0')).toHaveTextContent('正常');
-    expect(screen.getByTestId('wb-trade-source-1')).toHaveTextContent('止损');
-    expect(screen.getByTestId('wb-trade-source-2')).toHaveTextContent('期末强平');
-    expect(screen.getByTestId('wb-trade-source-3')).toHaveTextContent('未记录');
+    expect(screen.getByTestId('wb-rt-source-1')).toHaveTextContent('正常');
+    expect(screen.getByTestId('wb-rt-source-2')).toHaveTextContent('止损');
+    expect(screen.getByTestId('wb-rt-source-3')).toHaveTextContent('期末强平');
+    expect(screen.getByTestId('wb-rt-source-4')).toHaveTextContent('未记录');
     // 审计为异步取数 ⇒ 等其落地，避免测试结束后才 setState（act 噪声）
     expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
   });
@@ -487,7 +497,7 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     const { run, result } = await seededLegacyRun();
     render(<ResultView {...mkProps(run, result)} />);
     expect(result.trades.length).toBeGreaterThan(0);
-    expect(screen.getByTestId('wb-trade-source-0')).toHaveTextContent('未记录');
+    expect(screen.getByTestId('wb-rt-source-1')).toHaveTextContent('未记录');
     expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
   });
 

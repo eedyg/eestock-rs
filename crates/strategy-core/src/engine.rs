@@ -28,7 +28,8 @@
 use std::rc::Rc;
 
 use backtest::{
-    compute_drawdown, compute_metrics, Bar, FeeModel, OnlineIndicators, Period, TradeDetail,
+    aggregate_round_trips, assign_rt_seq, compute_drawdown, compute_metrics, Bar, FeeModel,
+    FillFact, FillReason, OnlineIndicators, Period, RtSeqAssigner, TradeDetail,
 };
 use serde::{Deserialize, Serialize};
 use strategy_runtime::{
@@ -111,6 +112,14 @@ impl EnsembleConfig {
                 self.initial_capital
             ));
         }
+        // P1b（02-spec §1.1/§1.2）：`symbol` 是 `FillFact.code`/`TradeDetail.code` 的取值来源，
+        // 也是 L1 聚合的分组键 ⇒ 空串属静默失真，fail loud。
+        if self.symbol.trim().is_empty() {
+            return Err(
+                "symbol（标的代码）必填：FillFact.code / TradeDetail.code 的取值来源（02-spec §1.1）"
+                    .to_string(),
+            );
+        }
         self.policy.validate()?;
         Ok(())
     }
@@ -119,6 +128,10 @@ impl EnsembleConfig {
 /// Ensemble 运行配置。
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnsembleConfig {
+    /// **标的代码**（run 的 symbol）：逐笔成交事实 `FillFact.code` / L1 `TradeDetail.code` 的
+    /// **取值来源**（02-spec §1.1/§1.2；`code` 是 L1 聚合的分组键 ⇒ 禁止空串/占位）。
+    /// 架构裁决 2026-09-20（P1b）：本字段为本轮新增的唯一 symbol 来源。
+    pub symbol: String,
     /// 策略槽位（代码 + sha256 + 参数 + 权重）。
     pub slots: Vec<StrategySlot>,
     /// 买入阈值（聚合 ≥ 此值 → Buy；ADR 默认 60）。
@@ -144,12 +157,10 @@ pub struct EnsembleConfig {
     pub runtime_limits: RuntimeLimits,
 }
 
-/// 订单方向。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OrderSide {
-    Buy,
-    Sell,
-}
+/// 订单方向（ADR-027 P1a 裁决 2026-09-20：**唯一定义**已迁至 `backtest`（ABI 最低层），
+/// 本处 `pub use` 再导出以保持 `strategy_core::{OrderSide}` / `strategy_core::engine::OrderSide`
+/// 消费方路径与 serde 形状（`"Buy"/"Sell"`）零改动）。
+pub use backtest::OrderSide;
 
 /// 订单/成因缘由。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -180,6 +191,18 @@ impl OrderReason {
             "StopTrigger" => Some(OrderReason::StopTrigger),
             "ForceClose" => Some(OrderReason::ForceClose),
             _ => None,
+        }
+    }
+}
+
+/// ADR-027 P1a 裁决：`OrderReason`（三值，订单意图）→ [`FillReason`]（四值，成交事实）的
+/// **唯一映射**；`Manual` 不来自策略订单（sim-live 人工/外部来源）。
+impl From<OrderReason> for FillReason {
+    fn from(r: OrderReason) -> Self {
+        match r {
+            OrderReason::Policy => FillReason::Policy,
+            OrderReason::StopTrigger => FillReason::StopTrigger,
+            OrderReason::ForceClose => FillReason::ForceClose,
         }
     }
 }
@@ -233,13 +256,25 @@ pub enum EngineEvent {
         bar_index: usize,
         msg: String,
     },
-    /// 成交记录。
+    /// 成交记录（逐笔携带全部金额与归属，02-spec §1.1）。
+    ///
+    /// 费用三件套（`trade_value`/`commission`/`stamp_duty`）为 `FeeModel::buy/sell` 的**实算结果**，
+    /// 禁止下游用 `(side, qty, price)` + 费率复算（`fee.rs` 最低佣金分支先减后除不可逆，ADR-027 D4/F10）。
     Fill {
         bar_index: usize,
         side: OrderSide,
         qty: f64,
         /// 成交价（含滑点）。
         price: f64,
+        /// 成交额 = `qty × price`（撮合点写入的事实值）。
+        trade_value: f64,
+        /// 本笔佣金（含最低佣金）。
+        commission: f64,
+        /// 本笔印花税（买入恒 0）。
+        stamp_duty: f64,
+        /// 回合序号（ADR-027 D6；经 [`backtest::RtSeqAssigner`] / [`backtest::assign_rt_seq`]
+        /// 同一规则分配，禁窗口推断）。
+        rt_seq: u32,
         reason: OrderReason,
     },
 }
@@ -261,6 +296,26 @@ pub struct BarRecord {
     pub events: Vec<EngineEvent>,
 }
 
+/// 持仓序列点（02-spec §4.1）：与净值**同点**产出（在既有净值压入点同步写入）。
+///
+/// 口径（消歧冻结，02-spec §4.2）：`position_ratio` = `position_value / nav`
+/// （**时点市值 / 时点净值**；`nav <= 0` ⇒ 0）——与 ADR-026 的区间累计口径
+/// `deployed_pct` / `cash_consumed_pct` **不是**同一个物。
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PositionPoint {
+    pub ts: i64,
+    /// 该点持仓股数（期末强平后末点为 0）。
+    pub qty: f64,
+    /// 持仓市值 = `qty × close`（bar close 计价）。
+    pub position_value: f64,
+    /// 该点现金。
+    pub cash: f64,
+    /// 该点净值 = `cash + position_value`（与 `net_value` 同点、同值）。
+    pub nav: f64,
+    /// 持仓比率（分母 = 时点净值；`nav <= 0` ⇒ 0）。
+    pub position_ratio: f64,
+}
+
 /// Ensemble 运行结果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnsembleResult {
@@ -268,6 +323,8 @@ pub struct EnsembleResult {
     pub trades: Vec<TradeDetail>,
     /// `(ts, equity)` 每 bar 收盘净值（期末强平后最后一点为已实现净值）。
     pub net_value: Vec<(i64, f64)>,
+    /// 持仓序列（与 `net_value` **逐点一一对应**：同 `ts`、同 `nav`；02-spec §4.1）。
+    pub positions: Vec<PositionPoint>,
     pub drawdown: Vec<(i64, f64)>,
     pub metrics: backtest::BacktestMetrics,
 }
@@ -278,10 +335,6 @@ struct Holding {
     qty: f64,
     /// 总成本（Σ 买入 total_cost，含买入佣金；部分卖出按比例扣减）。
     cost_basis: f64,
-    /// Σ 买入成交额（不含费用），用于 open_price = value_basis/qty（加权有效买价）。
-    value_basis: f64,
-    /// Σ 买入佣金。
-    buy_commission: f64,
     entry_ts: i64,
     entry_bar: usize,
 }
@@ -374,6 +427,8 @@ pub fn run_ensemble_with_observer(
 /// （消灭改造前每 slot × 每 bar 的 `bars[..=index].to_vec()` 整段复制）。
 pub struct EnsembleSession {
     cfg: EnsembleConfig,
+    /// run 的标的（`FillFact.code` 取值来源，02-spec §1.1）。
+    symbol: String,
     slots: Vec<SlotState>,
     /// 单一增长式共享历史缓冲（`bars[0..=i]` = 截至当前 bar 的全量历史）。
     shared: Rc<BarHistory>,
@@ -390,7 +445,13 @@ pub struct EnsembleSession {
     total_hint: usize,
     per_bar: Vec<BarRecord>,
     nav: Vec<(i64, f64)>,
-    trades: Vec<TradeDetail>,
+    /// 持仓序列（与 `nav` 同点；02-spec §4.1）。
+    positions: Vec<PositionPoint>,
+    /// 逐笔成交账本（**L2 唯一事实源**；L1 于期末由 [`aggregate_round_trips`] 物化，
+    /// 引擎内禁止第二处聚合）。
+    ledger: Vec<FillFact>,
+    /// `rt_seq` 在线分配器（与 [`assign_rt_seq`] **同一规则单一体** [`RtSeqAssigner`]）。
+    rt_assigner: RtSeqAssigner,
 }
 
 impl EnsembleSession {
@@ -415,6 +476,7 @@ impl EnsembleSession {
 
         Ok(Self {
             cash: cfg.initial_capital,
+            symbol: cfg.symbol.clone(),
             cfg: cfg.clone(),
             slots,
             shared: BarHistory::new(),
@@ -427,7 +489,9 @@ impl EnsembleSession {
             total_hint: 0,
             per_bar: Vec::new(),
             nav: Vec::new(),
-            trades: Vec::new(),
+            positions: Vec::new(),
+            ledger: Vec::new(),
+            rt_assigner: RtSeqAssigner::new(),
         })
     }
 
@@ -436,6 +500,7 @@ impl EnsembleSession {
         self.total_hint = total;
         self.per_bar.reserve(total);
         self.nav.reserve(total);
+        self.positions.reserve(total);
     }
 
     /// 已喂入 bar 数（= 下一次 [`EnsembleSession::push`] 的 `bar_index`）。
@@ -446,6 +511,53 @@ impl EnsembleSession {
     /// 已产出但未取走的 per-bar 记录（分块落库用，ADR-024 P4）。
     pub fn records(&self) -> &[BarRecord] {
         &self.per_bar
+    }
+
+    /// 记一笔成交：写入逐笔账本（L2 唯一事实源）→ 分配 `rt_seq`（与 [`assign_rt_seq`] 同一规则）
+    /// → 返回携带**实算**费用三件套的 [`EngineEvent::Fill`]。
+    ///
+    /// 事实与事件**同点产成**（同一次 `FeeModel` 撮合结果），调用方只需把返回的事件推入本 bar 事件流
+    /// （成交→账本→回合归属在同一步完成，不存在「只摊薄、丢弃记录」的路径）。
+    #[allow(clippy::too_many_arguments)]
+    fn record_fill(
+        &mut self,
+        bar_index: usize,
+        ts: i64,
+        side: OrderSide,
+        qty: f64,
+        price: f64,
+        trade_value: f64,
+        commission: f64,
+        stamp_duty: f64,
+        reason: OrderReason,
+    ) -> EngineEvent {
+        let mut fact = FillFact {
+            rt_seq: 0, // 占位：紧接着由 rt_assigner 就地分配（唯一规则，禁止在引擎里另写一套）
+            code: self.symbol.clone(),
+            bar_index,
+            ts,
+            side,
+            qty,
+            price,
+            trade_value,
+            commission,
+            stamp_duty,
+            reason: reason.into(),
+        };
+        self.rt_assigner.assign(&mut fact);
+        let rt_seq = fact.rt_seq;
+        self.ledger.push(fact);
+        EngineEvent::Fill {
+            bar_index,
+            side,
+            qty,
+            price,
+            trade_value,
+            commission,
+            stamp_duty,
+            rt_seq,
+            reason,
+        }
     }
 
     /// 取走已产出的 per-bar 记录（分块落库；`finish()` 产出剩余部分）。
@@ -499,42 +611,59 @@ impl EnsembleSession {
             let fee = self.cfg.fee;
             let exec = fee.sell(h.qty, bar.close);
             self.cash += exec.proceeds;
-            if let Some(last) = self.per_bar.last_mut() {
-                last.events.push(EngineEvent::Fill {
-                    bar_index: n - 1,
-                    side: OrderSide::Sell,
-                    qty: h.qty,
-                    price: exec.effective_price,
-                    reason: OrderReason::ForceClose,
-                });
-            }
-            apply_sell(
-                &mut self.holding,
-                &mut self.trades,
-                &mut self.trailing,
-                h.qty,
-                bar.ts,
+            // 期末强平同样进账本（D6/§3.4：ForceClose 终结最后一个回合 ⇒ 回测侧全部 rt_seq 均 Closed）。
+            let ev = self.record_fill(
                 n - 1,
+                bar.ts,
+                OrderSide::Sell,
+                h.qty,
+                exec.effective_price,
+                exec.trade_value,
+                exec.commission,
+                exec.stamp_duty,
                 OrderReason::ForceClose,
-                &exec,
             );
+            if let Some(last) = self.per_bar.last_mut() {
+                last.events.push(ev);
+            }
+            apply_sell(&mut self.holding, &mut self.trailing, h.qty);
             if let Some(last) = self.nav.last_mut() {
                 last.1 = self.cash;
             }
+            // 同点持仓序列末点同步修正为空仓（与净值末点**同点同值**；U7 逐点恒等式不被强平破坏）。
+            if let Some(last) = self.positions.last_mut() {
+                let ts = last.ts;
+                *last = PositionPoint {
+                    ts,
+                    qty: 0.0,
+                    position_value: 0.0,
+                    cash: self.cash,
+                    nav: self.cash,
+                    position_ratio: 0.0,
+                };
+            }
         }
+
+        // L1 回合由逐笔账本**唯一**物化（02-spec §1.3/§2）：
+        // 1) 唯一序号实现（幂等：在线分配值已由同一规则得出，此处以批式入口再钉一遍）；
+        // 2) 唯一聚合实现（引擎内禁止第二处聚合；金额字段全部来自 L2 事实加总）。
+        let mut ledger = std::mem::take(&mut self.ledger);
+        assign_rt_seq(&mut ledger);
+        let trades = aggregate_round_trips(&ledger);
 
         let drawdown = compute_drawdown(&self.nav);
         let metrics = compute_metrics(
             &self.nav,
-            &self.trades,
+            &trades,
             self.cfg.initial_capital,
             self.cfg.period,
         );
 
         EnsembleResult {
             per_bar: self.per_bar,
-            trades: self.trades,
+            trades,
             net_value: self.nav,
+            positions: self.positions,
             drawdown,
             metrics,
         }
@@ -571,28 +700,29 @@ impl EnsembleSession {
                                         Some(h) => {
                                             h.qty += exec.shares;
                                             h.cost_basis += exec.total_cost;
-                                            h.value_basis += exec.trade_value;
-                                            h.buy_commission += exec.commission;
                                         }
                                         None => {
                                             self.holding = Some(Holding {
                                                 qty: exec.shares,
                                                 cost_basis: exec.total_cost,
-                                                value_basis: exec.trade_value,
-                                                buy_commission: exec.commission,
                                                 entry_ts: bar.ts,
                                                 entry_bar: i,
                                             });
                                             self.trailing.on_entry(bar.open);
                                         }
                                     }
-                                    events.push(EngineEvent::Fill {
-                                        bar_index: i,
-                                        side: OrderSide::Buy,
-                                        qty: exec.shares,
-                                        price: exec.effective_price,
+                                    let ev = self.record_fill(
+                                        i,
+                                        bar.ts,
+                                        OrderSide::Buy,
+                                        exec.shares,
+                                        exec.effective_price,
+                                        exec.trade_value,
+                                        exec.commission,
+                                        0.0, // 买入无印花税（FeeModel 仅卖出收取，D4）
                                         reason,
-                                    });
+                                    );
+                                    events.push(ev);
                                     // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
                                     // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
                                     if reason == OrderReason::Policy {
@@ -609,23 +739,19 @@ impl EnsembleSession {
                                 if q > 0.0 {
                                     let exec = self.cfg.fee.sell(q, bar.open);
                                     self.cash += exec.proceeds;
-                                    events.push(EngineEvent::Fill {
-                                        bar_index: i,
-                                        side: OrderSide::Sell,
-                                        qty: q,
-                                        price: exec.effective_price,
-                                        reason,
-                                    });
-                                    apply_sell(
-                                        &mut self.holding,
-                                        &mut self.trades,
-                                        &mut self.trailing,
-                                        q,
-                                        bar.ts,
+                                    let ev = self.record_fill(
                                         i,
+                                        bar.ts,
+                                        OrderSide::Sell,
+                                        q,
+                                        exec.effective_price,
+                                        exec.trade_value,
+                                        exec.commission,
+                                        exec.stamp_duty,
                                         reason,
-                                        &exec,
                                     );
+                                    events.push(ev);
+                                    apply_sell(&mut self.holding, &mut self.trailing, q);
                                 }
                             }
                         }
@@ -649,23 +775,19 @@ impl EnsembleSession {
                                 // 按止损价 ×(1−slippage) 当 bar 成交（fee.sell 内含滑点）。
                                 let exec = self.cfg.fee.sell(h.qty, line);
                                 self.cash += exec.proceeds;
-                                events.push(EngineEvent::Fill {
-                                    bar_index: i,
-                                    side: OrderSide::Sell,
-                                    qty: h.qty,
-                                    price: exec.effective_price,
-                                    reason: OrderReason::StopTrigger,
-                                });
-                                apply_sell(
-                                    &mut self.holding,
-                                    &mut self.trades,
-                                    &mut self.trailing,
-                                    h.qty,
-                                    bar.ts,
+                                let ev = self.record_fill(
                                     i,
+                                    bar.ts,
+                                    OrderSide::Sell,
+                                    h.qty,
+                                    exec.effective_price,
+                                    exec.trade_value,
+                                    exec.commission,
+                                    exec.stamp_duty,
                                     OrderReason::StopTrigger,
-                                    &exec,
                                 );
+                                events.push(ev);
+                                apply_sell(&mut self.holding, &mut self.trailing, h.qty);
                                 // MAJOR-2 裁决：强平 = 外部中断 → 重置 PolicyState
                                 //（与 trailing.reset() 并列）；次个 Buy 重新计数批次/重新快照。
                                 self.policy_state.reset();
@@ -817,10 +939,19 @@ impl EnsembleSession {
                 self.trailing.on_bar_close(bar.close);
             }
             if !is_warmup {
-                self.nav.push((
-                    bar.ts,
-                    self.cash + self.holding.map(|h| h.qty).unwrap_or(0.0) * bar.close,
-                ));
+                let qty = self.holding.map(|h| h.qty).unwrap_or(0.0);
+                let position_value = qty * bar.close;
+                let nav = self.cash + position_value;
+                self.nav.push((bar.ts, nav));
+                // 02-spec §4.1：持仓序列与净值**同点**产出（同一压入点，已同时持有 cash 与 qty×close）。
+                self.positions.push(PositionPoint {
+                    ts: bar.ts,
+                    qty,
+                    position_value,
+                    cash: self.cash,
+                    nav,
+                    position_ratio: if nav <= 0.0 { 0.0 } else { position_value / nav },
+                });
             }
             self.per_bar.push(BarRecord {
                 ts: bar.ts,
@@ -857,47 +988,22 @@ pub fn run_ensemble_with_quickjs_observed(
     run_ensemble_with_observer(cfg, bars, &mut rt, observer)
 }
 
-/// 卖出台账处理：部分卖出按比例摊薄成本；清仓合成完整 [`TradeDetail`] 并重置 Trailing。
+/// 卖出台账处理（**只做持仓簿记**）：部分卖出按比例摊薄成本；清仓结束持仓并重置 Trailing。
 ///
-/// `reason` = **本笔卖出的来源**（`Policy` / `StopTrigger` / `ForceClose`）；清仓合成时写入
-/// `TradeDetail.reason`（ADR-026 §2.3）。部分卖出不产生 `TradeDetail` ⇒ 该参数只在清仓分支被消费。
-fn apply_sell(
-    holding: &mut Option<Holding>,
-    trades: &mut Vec<TradeDetail>,
-    trailing: &mut TrailingState,
-    qty: f64,
-    ts: i64,
-    bar_index: usize,
-    reason: OrderReason,
-    exec: &backtest::SellExecution,
-) {
+/// P1b（ADR-027 D1/D7）：本函数**不再**合成 L1 `TradeDetail` —— 旧口径「部分卖出只摊薄、已实现
+/// 部分不进账本」的缺陷由「逐笔账本 + 全回合口径」消除：每笔成交（含部分卖出）在**调用点**经
+/// [`EnsembleSession::record_fill`] 写入 L2 账本（与事件同点产成），L1 由
+/// [`aggregate_round_trips`] 在期末**唯一**物化（引擎内无第二处聚合、无占位值）。
+fn apply_sell(holding: &mut Option<Holding>, trailing: &mut TrailingState, qty: f64) {
     let Some(h) = holding.as_mut() else { return };
     if qty >= h.qty {
-        // 清仓 → 合成一笔完整交易（open_price = 加权有效买价，成本含买入佣金）。
-        trades.push(TradeDetail {
-            open_ts: h.entry_ts,
-            close_ts: ts,
-            open_bar: h.entry_bar,
-            close_bar: bar_index,
-            open_price: h.value_basis / h.qty,
-            close_price: exec.effective_price,
-            shares: h.qty,
-            gross_value: exec.trade_value,
-            commission: h.buy_commission + exec.commission,
-            stamp_duty: exec.stamp_duty,
-            pnl: exec.proceeds - h.cost_basis,
-            hold_bars: bar_index - h.entry_bar,
-            // ADR-026 §2.3：清仓来源三值（历史 run 该字段缺失 ⇒ None，前端显示「未记录」）。
-            reason: Some(reason.as_str().to_string()),
-        });
+        // 清仓：持仓归零 + Trailing 重置（成交已由调用点记入账本）。
         *holding = None;
         trailing.reset();
     } else {
-        // 部分卖出（LumpSum 目标下调）：成本/佣金按比例摊薄。
+        // 部分卖出（LumpSum 目标下调）：成本按比例摊薄（成交已由调用点记入账本）。
         let ratio = qty / h.qty;
         h.cost_basis *= 1.0 - ratio;
-        h.value_basis *= 1.0 - ratio;
-        h.buy_commission *= 1.0 - ratio;
         h.qty -= qty;
     }
 }

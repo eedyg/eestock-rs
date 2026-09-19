@@ -33,7 +33,6 @@ import type {
   SymbolRow,
   SymbolSnapshot,
   SystemInfo,
-  Trade,
   TushareStatusResponse,
   MaConfigDto,
   KlineConfigDto,
@@ -85,6 +84,11 @@ import type {
   WorkbenchRunConfig,
   WorkbenchRunFill,
   WorkbenchRunResult,
+  WorkbenchPositionPoint,
+  WorkbenchRoundTripFillsResponse,
+  WorkbenchRoundTripsResponse,
+  RoundTrip,
+  RoundTripFill,
   WorkbenchRunStatus,
   WorkbenchRunView,
   WorkbenchSubmitReq,
@@ -93,6 +97,10 @@ import { ApiError, SUPPORTED_BACKTEST_PERIODS } from './types';
 
 /** `GET /bars` 缺省页大小（与后端 `BARS_LIMIT_DEFAULT` 一致：一个分块 = 5000）。 */
 const BARS_PAGE_DEFAULT = 5000;
+/** `GET /round-trips`（L1 列表）缺省页大小（ADR-027 D8 懒加载首屏）。 */
+export const ROUND_TRIPS_PAGE_DEFAULT = 200;
+/** 逐回合对账容差（ADR-027 §5.5 `rt_reconcile.tolerance`；浮点累加，非「无校验」）。 */
+export const MOCK_RT_RECONCILE_TOLERANCE = 1e-6;
 /** `GET /curve` 缺省目标点数（与后端 `CURVE_K_DEFAULT` 一致）。 */
 const CURVE_K_DEFAULT = 2000;
 
@@ -542,15 +550,36 @@ function approvalRank(l: StrategyApprovalLevel): number {
 
 // ── 页面⑪ 回测工作台（12-strategy-system / P3b；§1.8 契约 mock）──
 
+/** mock 印花税率（卖出单边 0.05%；仅 mock 撮合点使用，前端**禁止**据费率复算）。 */
+const MOCK_STAMP_DUTY_PCT = 0.05;
+
+/** mock 撮合点的费用三件套（ADR-027 D4：由「引擎」在成交时刻写入，下游只透传）。
+ *  返回本笔成交的 trade_value/commission/stamp_duty/stamp 口径事实。 */
+function mockFillFees(
+  side: 'Buy' | 'Sell',
+  qty: number,
+  price: number,
+  fee: WorkbenchRunConfig['fee'],
+): { trade_value: number; commission: number; stamp_duty: number } {
+  const tradeValue = round3(qty * price);
+  const commission = round3(Math.max((tradeValue * fee.rate_pct) / 100, fee.min_fee));
+  const stampDuty = side === 'Sell' ? round3((tradeValue * MOCK_STAMP_DUTY_PCT) / 100) : 0;
+  return { trade_value: tradeValue, commission, stamp_duty: stampDuty };
+}
+
 /** 确定性 ensemble 运行结果（ADR §13.4 五 jsonb 列形状；由 run id 哈希驱动，可复现）。
  *  per_bar 60 根日线粒度：scores（每 slot 一分，偶发插件错误记中立 50 + error 文本）/aggregate
- *  （权重加权）/signal（config 阈值判定）/orders/events（含一次 StopTrigger 成交与插件 log）；
- *  trades/net_value/drawdown/metrics 与旧回测 mock 同口径生成。 */
+ *  （权重加权）/signal（config 阈值判定）/orders/events（含一次 StopTrigger 成交与插件 log）。
+ *
+ *  ADR-027 v2：撮合点在成交时刻同时写入 **L2 事实账本**（`fills`：`rt_seq` + 费用三件套）与
+ *  持仓序列（`position`）；`trades`（L1）由 [`aggregateRoundTrips`] 从账本**派生**
+ *  （与后端 `backtest::aggregate_round_trips` 同口径同顺序 ⇒ 逐字段可对账）。 */
 function mockWorkbenchResult(
   seed: string,
   config: WorkbenchRunConfig,
   fromMs: number,
   toMs: number,
+  code: string,
   n = 60,
 ): MockFullResult {
   const N = n;
@@ -558,12 +587,40 @@ function mockWorkbenchResult(
   const startSec = Math.floor(fromMs / 1000);
   const totalWeight = config.slots.reduce((s, x) => s + x.weight, 0) || 1;
   const perBar: WorkbenchBarRecord[] = [];
-  const trades: Trade[] = [];
+  const fills: RoundTripFill[] = [];
+  const position: WorkbenchPositionPoint[] = [];
   const netValue: Array<[number, number]> = [];
   const drawdown: Array<[number, number]> = [];
+  let rtSeq = 0;
   let equity = config.initial_capital;
   let peak = equity;
-  let holding: { qty: number; price: number; openTs: number; openBar: number } | null = null;
+  let holding: { qty: number; price: number; openTs: number; openBar: number; rtSeq: number } | null = null;
+  /** 成交记账（唯一事实入口：同时写账本与 per_bar 事件；per_bar 是同一事实的投影）。 */
+  const recordFill = (
+    ev: WorkbenchBarRecord['events'],
+    f: { bar_index: number; ts: number; side: 'Buy' | 'Sell'; qty: number; price: number; reason: RoundTripFill['reason'] },
+  ): RoundTripFill => {
+    const fees = mockFillFees(f.side, f.qty, f.price, config.fee);
+    const row: RoundTripFill = {
+      rt_seq: rtSeq,
+      code,
+      bar_index: f.bar_index,
+      ts: f.ts,
+      side: f.side,
+      qty: f.qty,
+      price: f.price,
+      trade_value: fees.trade_value,
+      commission: fees.commission,
+      stamp_duty: fees.stamp_duty,
+      reason: f.reason,
+    };
+    fills.push(row);
+    ev.push({
+      type: 'fill', bar_index: f.bar_index, side: f.side, qty: f.qty, price: f.price, reason: f.reason,
+      rt_seq: rtSeq, trade_value: fees.trade_value, commission: fees.commission, stamp_duty: fees.stamp_duty,
+    });
+    return row;
+  };
   for (let i = 0; i < N; i++) {
     const ts = startSec + i * stepSec;
     const price = round3(2 + rand01(`${seed}:px:${i}`) * 1.5);
@@ -591,67 +648,160 @@ function mockWorkbenchResult(
     // 简薄撮合同构：Buy 开/加仓、Sell 平仓；中段插一笔硬止损强平（StopTrigger 不同图标测试素材）
     const stopBar = Math.floor(N / 2);
     if (i === stopBar && config.stop) {
-      // 确定性止损素材：无持仓则补一笔建仓，保证 stopBar 处必有 StopTrigger 强平
-      if (!holding) holding = { qty: 100, price: round3(price * 1.08), openTs: ts - stepSec, openBar: i - 1 };
+      // 确定性止损素材：无持仓则补一笔建仓（买入事实），保证 stopBar 处必有 StopTrigger 强平
+      if (!holding) {
+        rtSeq += 1; // ADR-027 D6：买入且无持仓 ⇒ 新回合序号
+        const bq = 100;
+        const bp = round3(price * 1.08);
+        const l1 = recordFill(events, { bar_index: i - 1, ts: ts - stepSec, side: 'Buy', qty: bq, price: bp, reason: 'Policy' });
+        holding = { qty: bq, price: bp, openTs: l1.ts, openBar: i - 1, rtSeq };
+      }
       const sp = round3(holding.price * (1 - 0.08));
-      events.push({ type: 'fill', bar_index: i, side: 'Sell', qty: holding.qty, price: sp, reason: 'StopTrigger' });
+      recordFill(events, { bar_index: i, ts, side: 'Sell', qty: holding.qty, price: sp, reason: 'StopTrigger' });
       equity += (sp - holding.price) * holding.qty;
-      trades.push({
-        open_ts: holding.openTs, close_ts: ts, open_bar: holding.openBar, close_bar: i,
-        open_price: holding.price, close_price: sp, shares: holding.qty,
-        gross_value: round3(sp * holding.qty), commission: 10, stamp_duty: round3(sp * holding.qty * 0.0005),
-        pnl: Math.round((sp - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
-        reason: 'StopTrigger', // ADR-026 §2.3：清仓那一笔的来源
-      });
       holding = null;
     } else if (!holding && signal === 'Buy') {
       const qty = Math.floor((equity * 0.9) / price / 100) * 100 || 100;
-      events.push({ type: 'fill', bar_index: i, side: 'Buy', qty, price, reason: 'Policy' });
-      holding = { qty, price, openTs: ts, openBar: i };
+      rtSeq += 1; // ADR-027 D6：开仓 ⇒ 新回合序号
+      recordFill(events, { bar_index: i, ts, side: 'Buy', qty, price, reason: 'Policy' });
+      holding = { qty, price, openTs: ts, openBar: i, rtSeq };
     } else if (holding && signal === 'Sell') {
-      events.push({ type: 'fill', bar_index: i, side: 'Sell', qty: holding.qty, price, reason: 'Policy' });
+      recordFill(events, { bar_index: i, ts, side: 'Sell', qty: holding.qty, price, reason: 'Policy' });
       equity += (price - holding.price) * holding.qty;
-      trades.push({
-        open_ts: holding.openTs, close_ts: ts, open_bar: holding.openBar, close_bar: i,
-        open_price: holding.price, close_price: price, shares: holding.qty,
-        gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
-        pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
-        reason: 'Policy', // ADR-026 §2.3
-      });
       holding = null;
     }
     const eq = round3(equity + (holding ? (price - holding.price) * holding.qty : 0));
     peak = Math.max(peak, eq);
     netValue.push([ts, eq]);
     drawdown.push([ts, peak > 0 ? round3((peak - eq) / peak) : 0]);
+    // ADR-027 §4.1：持仓序列在**净值压入点**同步写入（position_value + cash == nav）
+    const posValue = holding ? round3(holding.qty * price) : 0;
+    const nav = round3(equity + (holding ? (price - holding.price) * holding.qty : 0));
+    position.push({
+      ts,
+      qty: holding?.qty ?? 0,
+      position_value: posValue,
+      cash: round3(nav - posValue),
+      nav,
+      position_ratio: nav > 0 ? round3(posValue / nav) : 0,
+    });
     perBar.push({ ts, scores, aggregate, signal, orders, events });
   }
   // 期末仍持仓 → 强平（ForceClose）
   if (holding) {
     const last = perBar[perBar.length - 1]!;
     const price = round3(2 + rand01(`${seed}:px:end`) * 1.5);
-    last.events.push({ type: 'fill', bar_index: N - 1, side: 'Sell', qty: holding.qty, price, reason: 'ForceClose' });
-    trades.push({
-      open_ts: holding.openTs, close_ts: last.ts, open_bar: holding.openBar, close_bar: N - 1,
-      open_price: holding.price, close_price: price, shares: holding.qty,
-      gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
-      pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: N - 1 - holding.openBar,
-      reason: 'ForceClose', // ADR-026 §2.3：期末强平合成
-    });
+    recordFill(last.events, { bar_index: N - 1, ts: last.ts, side: 'Sell', qty: holding.qty, price, reason: 'ForceClose' });
     const eq = round3(equity + (price - holding.price) * holding.qty);
     netValue[netValue.length - 1] = [last.ts, eq];
     peak = Math.max(peak, eq);
     drawdown[drawdown.length - 1] = [last.ts, peak > 0 ? round3((peak - eq) / peak) : 0];
+    const lastPos = position[position.length - 1];
+    if (lastPos) {
+      lastPos.qty = 0;
+      lastPos.position_value = 0;
+      lastPos.cash = eq;
+      lastPos.nav = eq;
+      lastPos.position_ratio = 0;
+    }
+    holding = null;
   }
-  return { per_bar: perBar, trades, net_value: netValue, drawdown, metrics: mockBacktestMetrics(seed) };
+  return {
+    per_bar: perBar,
+    trades: aggregateRoundTrips(fills),
+    net_value: netValue,
+    drawdown,
+    metrics: mockBacktestMetrics(seed),
+    fills,
+    position,
+  };
+}
+
+/**
+ * mock 的 L1 聚合（**镜像**后端唯一实现 `backtest::aggregate_round_trips`，02-spec §2 口径）。
+ *
+ * 顺序/运算与 UI 侧累计列（`features/workbench/roundTripAccum.ts`）**逐位一致**：
+ * 逐笔顺序累加 ⇒ `Σ(L2) == L1` 在浮点层面亦成立（I2 恒等式）。
+ * 分组键 = `(code, rt_seq)`（**不重编号**）；输出顺序 = 该 code 内首个成交位置升序、组内 rt_seq 升序。
+ */
+export function aggregateRoundTrips(fills: RoundTripFill[]): RoundTrip[] {
+  const groups = new Map<string, { code: string; rt_seq: number; rows: RoundTripFill[] }>();
+  const order: string[] = [];
+  for (const f of fills) {
+    const key = `${f.code}#${f.rt_seq}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { code: f.code, rt_seq: f.rt_seq, rows: [] };
+      groups.set(key, g);
+      order.push(key);
+    }
+    g.rows.push(f);
+  }
+  return order.map((key) => {
+    const g = groups.get(key)!;
+    let buyQty = 0;
+    let buyValue = 0;
+    let sellQty = 0;
+    let sellValue = 0;
+    let commission = 0;
+    let stampDuty = 0;
+    let cashFlow = 0; // 整回合现金流差（= pnl），逐笔同序累加
+    let buyCount = 0;
+    let sellCount = 0;
+    const open = g.rows[0]!;
+    let close: RoundTripFill | null = null;
+    for (const f of g.rows) {
+      commission += f.commission;
+      stampDuty += f.stamp_duty;
+      if (f.side === 'Buy') {
+        buyQty += f.qty;
+        buyValue += f.trade_value;
+        buyCount += 1;
+        cashFlow -= f.trade_value + f.commission;
+      } else {
+        sellQty += f.qty;
+        sellValue += f.trade_value;
+        sellCount += 1;
+        cashFlow += f.trade_value - f.commission - f.stamp_duty;
+      }
+      close = f;
+    }
+    const closed = !!close && sellQty >= buyQty - 1e-9 && buyQty > 0;
+    return {
+      rt_seq: g.rt_seq,
+      code: g.code,
+      status: closed ? 'Closed' : 'Open',
+      open_ts: open.ts,
+      close_ts: closed ? close!.ts : null,
+      open_bar: open.bar_index,
+      close_bar: closed ? close!.bar_index : null,
+      shares: buyQty,
+      buy_count: buyCount,
+      sell_count: sellCount,
+      open_price: buyQty > 0 ? buyValue / buyQty : 0,
+      close_price: sellQty > 0 ? sellValue / sellQty : null,
+      gross_value: sellValue,
+      commission,
+      stamp_duty: stampDuty,
+      pnl: closed ? cashFlow : null,
+      hold_bars: closed ? close!.bar_index - open.bar_index : null,
+      reason: closed ? close!.reason : null,
+      l2_count: g.rows.length,
+    };
+  });
 }
 
 /** mock 存储的**全量**结果（相当于后端 `strategy_run_bars` 全部分块 + 有界列）。
- *  对外响应由读取端点按 `format` 投影（legacy 全量 / chunked 首页），故此处不带判别列。 */
+ *  对外响应由读取端点按 `format` 投影（legacy 全量 / chunked 首页），故此处不带判别列。
+ *  ADR-027 v2 附两列内部序列：`fills`（L2 事实账本，/fills 与 /round-trips 皆由此派生）与
+ *  `position`（持仓序列，`/curve?kind=position`）。 */
 type MockFullResult = Omit<
   WorkbenchRunResult,
   'result_format' | 'summary' | 'has_more' | 'next_offset'
->;
+> & {
+  fills: RoundTripFill[];
+  position: WorkbenchPositionPoint[];
+};
 
 /** mock run 内存条目：结果以「全量数组」存储（= 后端 `strategy_run_bars` 全部分块），
  *  按 `format` 模拟两条真实读取路径（legacy 内联全量 / chunked 首页 + has_more）。 */
@@ -702,7 +852,8 @@ function mockBriefOf(r: MockRunEntry): WorkbenchResultBrief {
   };
 }
 
-/** 由 per_bar 的 `fill` 事件派生成交明细（与后端 legacy 双读同口径；`ts` 取所在 bar）。 */
+/** 由 per_bar 的 `fill` 事件派生成交明细（legacy 内联列路径；`ts` 取所在 bar）。
+ *  ADR-027 v2：`rt_seq` 与费用三件套**逐笔透传引擎事实**（禁下游复算）。 */
 export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
   const out: WorkbenchRunFill[] = [];
   for (const rec of perBar) {
@@ -716,6 +867,10 @@ export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
         qty: ev.qty,
         price: ev.price,
         reason: ev.reason,
+        rt_seq: ev.rt_seq,
+        trade_value: ev.trade_value,
+        commission: ev.commission,
+        stamp_duty: ev.stamp_duty,
       });
     }
   }
@@ -724,10 +879,27 @@ export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
 
 /** ADR-026 §2.3：种子 run = ADR-026 之前的历史 run ⇒ 落库 `TradeDetail` 无 `reason` 字段
  *  （前端「来源」列显「未记录」）；新提交 run 由生成器写入来源。 */
-function withoutTradeReason(t: Trade): Trade {
-  const rest: Trade = { ...t };
+function withoutTradeReason(t: RoundTrip): RoundTrip {
+  const rest: RoundTrip = { ...t };
   delete rest.reason;
   return rest;
+}
+
+/** 由 L2 事实账本投影为 `/fills` 元素（事实字段与 `ts` 逐笔透传；不重算不小改）。 */
+function fillsFromLedger(ledger: RoundTripFill[]): WorkbenchRunFill[] {
+  return ledger.map((f) => ({
+    type: 'fill' as const,
+    bar_index: f.bar_index,
+    ts: f.ts,
+    side: f.side,
+    qty: f.qty,
+    price: f.price,
+    reason: f.reason,
+    rt_seq: f.rt_seq,
+    trade_value: f.trade_value,
+    commission: f.commission,
+    stamp_duty: f.stamp_duty,
+  }));
 }
 
 /**
@@ -756,10 +928,13 @@ export function mockRunAuditInternal(entry: MockRunEntry, missing: boolean): Wor
       last_bar_unfilled: false,
       round_trips_total: 0,
       round_trips_force_closed: 0,
+      round_trips_closed: 0,
+      round_trips_open: 0,
+      rt_reconcile: { checked: 0, mismatched: [], tolerance: MOCK_RT_RECONCILE_TOLERANCE },
       warnings: [],
     };
   }
-  const fills = fillsOf(perBar);
+  const fills = entry.result?.fills ?? [];
   const buyIntents = perBar.reduce((n, b) => n + b.orders.filter((o) => o.side === 'Buy').length, 0);
   const buys = fills.filter((f) => f.side === 'Buy');
   const deployed = buys.reduce((s, f) => s + f.qty * f.price, 0);
@@ -809,7 +984,12 @@ export function mockRunAuditInternal(entry: MockRunEntry, missing: boolean): Wor
     unexecuted_orders: unexecuted,
     last_bar_unfilled: lastBarUnfilled,
     round_trips_total: trades.length,
-    round_trips_force_closed: trades.filter((t) => forceCloseBars.has(t.close_bar)).length,
+    round_trips_force_closed: trades.filter((t) => t.close_bar != null && forceCloseBars.has(t.close_bar)).length,
+    round_trips_closed: trades.filter((t) => t.status === 'Closed').length,
+    round_trips_open: trades.filter((t) => t.status === 'Open').length,
+    // ADR-027 §5.5：mock 的 L1 由账本派生 ⇒ 逐回合自洽恒成立（mismatched 空）。
+    // 「不一致」场景由测试注入（UI 必须显式告警，禁静默按 L1 渲染）。
+    rt_reconcile: { checked: trades.length, mismatched: [], tolerance: MOCK_RT_RECONCILE_TOLERANCE },
     warnings,
   };
 }
@@ -871,7 +1051,7 @@ function seedWorkbenchRuns(
       ...over,
     };
     const result =
-      view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor, bars) : null;
+      view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor, view.symbol, bars) : null;
     // 种子 run = 历史 run：无 `TradeDetail.reason`（ADR-026 §2.3 之前落库）
     if (result) result.trades = result.trades.map(withoutTradeReason);
     // 种子 run = 旧 run（`legacy_single`）—— 与后端双读不回填同口径；新提交 run 走 `chunked_v1`。
@@ -1883,7 +2063,7 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       };
       workbenchRuns.set(id, {
         view,
-        result: mockWorkbenchResult(id, config, fromMs, toMs, workbenchResultBars),
+        result: mockWorkbenchResult(id, config, fromMs, toMs, req.symbol, workbenchResultBars),
         // 新提交 run = `chunked_v1`（与后端 `mark_succeeded` 新语义同口径）。
         format: 'chunked_v1',
       });
@@ -1980,11 +2160,76 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
       }
       const k = q.k ?? CURVE_K_DEFAULT;
-      const all: unknown[] =
-        q.kind === 'per_bar' ? r.result.per_bar : q.kind === 'net_value' ? r.result.net_value : r.result.drawdown;
-      const idx = sampleIndices(all.length, k);
-      const points = idx.map((i) => all[i]);
-      return { kind: q.kind, points, downsampled: points.length < all.length, original_bars: all.length, k };
+      const full: unknown[] =
+        q.kind === 'per_bar'
+          ? r.result.per_bar
+          : q.kind === 'net_value'
+            ? r.result.net_value
+            : q.kind === 'position'
+              ? r.result.position
+              : r.result.drawdown;
+      // ADR-028 D3：窗口内**重新采样**（缺省 = 全区间 ⇒ 向后兼容，行为与今日一致）。
+      const hasWindow = q.from_ts != null && q.to_ts != null;
+      const tsOf = (p: unknown): number => {
+        if (Array.isArray(p)) return Number(p[0]);
+        return Number((p as { ts: number }).ts);
+      };
+      const win = hasWindow
+        ? (full as unknown[]).filter((p) => tsOf(p) >= q.from_ts! && tsOf(p) <= q.to_ts!)
+        : (full as unknown[]);
+      const idx = sampleIndices(win.length, k);
+      const points = idx.map((i) => win[i]);
+      return {
+        kind: q.kind,
+        points,
+        downsampled: points.length < win.length,
+        original_bars: full.length,
+        k,
+        window_from_ts: hasWindow ? q.from_ts! : null,
+        window_to_ts: hasWindow ? q.to_ts! : null,
+        window_bars: win.length,
+      };
+    },
+    async getWorkbenchRoundTrips(id, q): Promise<WorkbenchRoundTripsResponse> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      // `recorded=false` 与 `/fills` 同口径（P6 之前的 chunked run 无成交事实源 ⇒ L1 亦不可得）
+      const recorded = !(opts.workbenchFillsMissing && r.format === 'chunked_v1');
+      const all = recorded ? r.result.trades : [];
+      const offset = Math.max(0, q?.offset ?? 0);
+      const limit = q?.limit ?? ROUND_TRIPS_PAGE_DEFAULT;
+      const rows = all.slice(offset, offset + limit);
+      const next = offset + rows.length;
+      const hasMore = next < all.length;
+      return {
+        run_id: id, total: all.length, recorded, has_more: hasMore,
+        next_offset: hasMore ? next : null, round_trips: rows.map((t) => ({ ...t })),
+      };
+    },
+    async getWorkbenchRoundTripFills(id, rtSeq, q): Promise<WorkbenchRoundTripFillsResponse> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      if (opts.workbenchFillsMissing && r.format === 'chunked_v1') {
+        throw new ApiError(404, `HTTP 404: run ${id} 无成交事实源（recorded=false）`);
+      }
+      // 未知 rt_seq ⇒ 404（**禁止**空数组冒充「无成交」，02-spec §5.3）
+      if (!r.result.trades.some((t) => t.rt_seq === rtSeq)) {
+        throw new ApiError(404, `HTTP 404: rt_seq ${rtSeq} 不属于 run ${id}`);
+      }
+      const all = r.result.fills.filter((f) => f.rt_seq === rtSeq);
+      const offset = Math.max(0, q?.offset ?? 0);
+      const limit = q?.limit ?? BARS_PAGE_DEFAULT;
+      const rows = all.slice(offset, offset + limit);
+      const next = offset + rows.length;
+      const hasMore = next < all.length;
+      return {
+        run_id: id, rt_seq: rtSeq, total: all.length, has_more: hasMore,
+        next_offset: hasMore ? next : null, fills: rows.map((f) => ({ ...f })),
+      };
     },
     async getWorkbenchFills(id, q): Promise<WorkbenchFillsResponse> {
       const r = workbenchRuns.get(id);
@@ -1995,7 +2240,8 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
       const limit = q?.limit ?? BARS_PAGE_DEFAULT;
       // `recorded=false` 模拟 P6 之前的 chunked run（无 fills 块）——与「无成交」（true, total=0）可区分。
       const recorded = !(opts.workbenchFillsMissing && r.format === 'chunked_v1');
-      const all = recorded ? fillsOf(r.result.per_bar) : [];
+      // ADR-027 §5.4：元素增 `rt_seq` + 费用三件套（由引擎账本投影，非 per_bar 复算）
+      const all = recorded ? fillsFromLedger(r.result.fills) : [];
       const fills = all.slice(offset, offset + limit);
       const next = offset + fills.length;
       const hasMore = next < all.length;

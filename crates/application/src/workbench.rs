@@ -280,7 +280,7 @@ pub struct BarsResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct FillsResponse {
     pub run_id: String,
-    /// 成交总数（全量，不受分页影响）。
+    /// 成交总数（全量或**过滤后**全量，不受分页影响）。
     pub total: i64,
     pub offset: i64,
     pub limit: i64,
@@ -289,6 +289,42 @@ pub struct FillsResponse {
     /// 事实源是否可得：`true` = 有 `kind='fills'` 块（chunked）或由内联 per_bar 事件派生（legacy）；
     /// `false` = **未写**（P6 之前的 chunked run 无 fills 块）⇒ 与「无成交」（`true`, `total=0`）可区分。
     pub recorded: bool,
+    /// 回合过滤回声（ADR-027 §5.4；未过滤 ⇒ 字段不序列化，既有契约不变）。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub round_trip: Option<u32>,
+    pub fills: Vec<serde_json::Value>,
+}
+
+/// L1 回合列表响应（02-spec §5.2；懒加载首屏，元素含 `l2_count`/`buy_count`/`sell_count` 摘要）。
+#[derive(Debug, Clone, Serialize)]
+pub struct RoundTripsResponse {
+    pub run_id: String,
+    /// 回合总数（全量，不受分页影响）。
+    pub total: i64,
+    /// 事实源是否可得（`strategy_run_result.trades` 为数组 ⇒ true；ADR-027 D11）。
+    pub recorded: bool,
+    pub offset: i64,
+    pub limit: i64,
+    pub has_more: bool,
+    pub next_offset: Option<i64>,
+    pub round_trips: Vec<backtest::TradeDetail>,
+}
+
+/// L2 逐笔切片响应（02-spec §5.3）。
+///
+/// **未知 `rt_seq` ⇒ 404**（`WorkbenchNotFound`），**禁止**空数组冒充「无成交」（ADR-027 D6/D8/D11）。
+#[derive(Debug, Clone, Serialize)]
+pub struct RoundTripFillsResponse {
+    pub run_id: String,
+    pub rt_seq: u32,
+    /// 该回合成交总数（全量，不受分页影响）。
+    pub total: i64,
+    /// 事实源是否可得（同 [`FillsResponse::recorded`]）。
+    pub recorded: bool,
+    pub offset: i64,
+    pub limit: i64,
+    pub has_more: bool,
+    pub next_offset: Option<i64>,
     pub fills: Vec<serde_json::Value>,
 }
 
@@ -298,8 +334,18 @@ pub struct CurveResponse {
     pub kind: String,
     pub points: Vec<serde_json::Value>,
     pub downsampled: bool,
+    /// 该 kind 的**全序列**原始根数（含窗口外的点；无窗口时 = `window_bars`，向后兼容）。
     pub original_bars: i64,
     pub k: i64,
+    /// 时间窗回显（ADR-028 D3）：缺省（无窗口）= 全区间 ⇒ `null`。
+    pub window_from_ts: Option<i64>,
+    pub window_to_ts: Option<i64>,
+    /// 窗口内**原始**根数（抽样前）—— `downsampled` 的分母（ADR-028 D3）。
+    pub window_bars: i64,
+    /// 该 kind 序列事实源是否可得（ADR-027 D11 / 02-spec §5.6）：
+    /// `false` = **无该序列**（如 `legacy_single` 旧 run 无 `position` 列）⇒ 空点集是
+    /// 「未记录」而非「零持仓/零净值」，UI 必须区分。
+    pub recorded: bool,
 }
 
 /// `GET /runs/{id}/audit` 响应（ADR-026 §2.2）：**只读派生的执行完整度审计**。
@@ -353,7 +399,9 @@ fn sample_indices(n: usize, k: usize) -> Vec<usize> {
 /// 取一个结果元素的 bar ts（epoch 秒）：per_bar 记录为对象字段 `ts`；净值/回撤为 `[ts, value]`。
 fn bar_ts_secs(v: &serde_json::Value, kind: ResultKind) -> Option<i64> {
     match kind {
-        ResultKind::PerBar | ResultKind::Fills => v.get("ts").and_then(|t| t.as_i64()),
+        ResultKind::PerBar | ResultKind::Fills | ResultKind::Position => {
+            v.get("ts").and_then(|t| t.as_i64())
+        }
         ResultKind::NetValue | ResultKind::Drawdown => {
             v.as_array().and_then(|a| a.first()).and_then(|t| t.as_i64())
         }
@@ -519,6 +567,9 @@ impl WorkbenchService {
             .map_err(|e| WorkbenchValidation::new(codes::FEE_INVALID, e.to_string()))?;
         let fee = resolved.model;
         let mut probe = EnsembleConfig {
+            // P1b 机械适配（裁决 A）：`EnsembleConfig.symbol` 为新增必填字段（`code` 唯一取值来源）；
+            // 本 probe 仅用于 validate，填 run 的真实 symbol（已在作用域内）。
+            symbol: symbol.clone(),
             slots: vec![], // validate 不检视 slots（零 slot 合法）；钉住校验已先行
             buy_threshold: buy,
             sell_threshold: sell,
@@ -929,7 +980,8 @@ impl WorkbenchService {
             ResultKind::NetValue => &res.net_value,
             ResultKind::Drawdown => &res.drawdown,
             // fills 无内联列（旧 run 由 `legacy_fills` 从内联 per_bar 事件派生，不回填）。
-            ResultKind::Fills => return Vec::new(),
+            // ADR-027 §4.1：`position` 为新增 kind，`legacy_single` 旧 run 无该列（不回填）。
+            ResultKind::Fills | ResultKind::Position => return Vec::new(),
         };
         v.as_array().cloned().unwrap_or_default()
     }
@@ -963,11 +1015,35 @@ impl WorkbenchService {
         offset: i64,
         limit: i64,
     ) -> anyhow::Result<FillsResponse> {
+        self.result_fills_filtered(run_id, offset, limit, None).await
+    }
+
+    /// `GET /runs/{id}/fills?offset=&limit=&round_trip=<rt_seq>`：
+    /// 增可选 `round_trip` 过滤（ADR-027 §5.4）；元素字段增 `rt_seq`/`trade_value`/
+    /// `commission`/`stamp_duty`（由撮合点写入，见 `collect_fills`）。
+    ///
+    /// 过滤**不改变** `recorded` 语义（仍为「事实源是否可得」）；未命中 ⇒ 空页 + `total=0`
+    /// （`/fills` 是分页查询，不做 404——404 语义归属 L2 切片端点 `/round-trips/{rt_seq}/fills`）。
+    pub async fn result_fills_filtered(
+        &self,
+        run_id: &str,
+        offset: i64,
+        limit: i64,
+        round_trip: Option<u32>,
+    ) -> anyhow::Result<FillsResponse> {
         self.get_run(run_id).await?;
         let res = self.run_store.get_result(run_id).await?.ok_or_else(|| {
             anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
         })?;
         let (all, recorded) = self.fills_all(run_id, &res).await?;
+        // 归属**只能**由 `rt_seq` 决定（ADR-027 D6：禁止 `[open_bar, close_bar]` 窗口推断）。
+        let all: Vec<serde_json::Value> = match round_trip {
+            None => all,
+            Some(rt) => all
+                .into_iter()
+                .filter(|f| Self::fill_rt_seq(f) == Some(rt))
+                .collect(),
+        };
         let total = all.len() as i64;
         let offset = offset.max(0);
         let start = offset.min(total) as usize;
@@ -983,8 +1059,137 @@ impl WorkbenchService {
             has_more,
             next_offset: has_more.then_some(next),
             recorded,
+            round_trip,
             fills,
         })
+    }
+
+    /// 取一笔成交事实的 `rt_seq`（缺失/非法 ⇒ `None`；禁止窗口推断）。
+    fn fill_rt_seq(f: &serde_json::Value) -> Option<u32> {
+        f.get("rt_seq").and_then(serde_json::Value::as_u64).map(|v| v as u32)
+    }
+
+    /// L2 元素形状（02-spec §1.1 `FillFact`）：回测侧 `code` = run 的 symbol
+    /// （引擎落库不含该列；`sim-live` 由会话内标的携带）。已存在则不覆盖。
+    fn with_code(v: &serde_json::Value, code: &str) -> serde_json::Value {
+        let mut o = v.clone();
+        if let Some(m) = o.as_object_mut() {
+            m.entry("code".to_string())
+                .or_insert_with(|| serde_json::Value::String(code.to_string()));
+        }
+        o
+    }
+
+    /// `trades` JSON → L1 回合（02-spec §1.2）。
+    ///
+    /// 该数组由引擎经**唯一聚合实现** `backtest::aggregate_round_trips` 写出（ADR-027 D7），
+    /// 本读径只分页/投影，**禁止**第二处聚合。非数组 ⇒ `(空, recorded=false)`。
+    fn round_trips_of(
+        res: &StrategyRunResult,
+    ) -> anyhow::Result<(Vec<backtest::TradeDetail>, bool)> {
+        if !res.trades.is_array() {
+            return Ok((Vec::new(), false));
+        }
+        let v = serde_json::from_value::<Vec<backtest::TradeDetail>>(res.trades.clone())
+            .map_err(|e| anyhow!("trades 形状非法（L1 回合 v2，02-spec §1.2）: {e}"))?;
+        Ok((v, true))
+    }
+
+    /// `GET /runs/{id}/round-trips?offset=&limit=`：L1 回合列表（ADR-027 D8 懒加载首屏）。
+    pub async fn result_round_trips(
+        &self,
+        run_id: &str,
+        offset: i64,
+        limit: i64,
+    ) -> anyhow::Result<RoundTripsResponse> {
+        self.get_run(run_id).await?;
+        let res = self.run_store.get_result(run_id).await?.ok_or_else(|| {
+            anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
+        })?;
+        let (all, recorded) = Self::round_trips_of(&res)?;
+        let total = all.len() as i64;
+        let offset = offset.max(0);
+        let start = offset.min(total) as usize;
+        let end = (offset + limit.max(0)).min(total) as usize;
+        let round_trips = all[start..end].to_vec();
+        let next = start as i64 + round_trips.len() as i64;
+        let has_more = next < total;
+        Ok(RoundTripsResponse {
+            run_id: run_id.to_string(),
+            total,
+            recorded,
+            offset,
+            limit,
+            has_more,
+            next_offset: has_more.then_some(next),
+            round_trips,
+        })
+    }
+
+    /// `GET /runs/{id}/round-trips/{rt_seq}/fills?offset=&limit=`：L2 逐笔切片（02-spec §5.3）。
+    ///
+    /// 归属**只能**由 `rt_seq` 决定（ADR-027 D6）。未知 `rt_seq`（该 run 无任何归属该 seq 的
+    /// 成交事实）⇒ **404** —— 禁止用空数组冒充「该回合无成交」。
+    pub async fn result_round_trip_fills(
+        &self,
+        run_id: &str,
+        rt_seq: u32,
+        offset: i64,
+        limit: i64,
+    ) -> anyhow::Result<RoundTripFillsResponse> {
+        let run = self.get_run(run_id).await?;
+        let res = self.run_store.get_result(run_id).await?.ok_or_else(|| {
+            anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
+        })?;
+        let (all, recorded) = self.fills_all(run_id, &res).await?;
+        let owned: Vec<serde_json::Value> = all
+            .iter()
+            .filter(|f| Self::fill_rt_seq(f) == Some(rt_seq))
+            .map(|f| Self::with_code(f, &run.symbol))
+            .collect();
+        if owned.is_empty() {
+            return Err(anyhow!(WorkbenchNotFound(format!(
+                "回合 {rt_seq} 不属于运行 {run_id}（无该回合的成交事实）"
+            ))));
+        }
+        let total = owned.len() as i64;
+        let offset = offset.max(0);
+        let start = offset.min(total) as usize;
+        let end = (offset + limit.max(0)).min(total) as usize;
+        let fills: Vec<serde_json::Value> = owned[start..end].to_vec();
+        let next = start as i64 + fills.len() as i64;
+        let has_more = next < total;
+        Ok(RoundTripFillsResponse {
+            run_id: run_id.to_string(),
+            rt_seq,
+            total,
+            recorded,
+            offset,
+            limit,
+            has_more,
+            next_offset: has_more.then_some(next),
+            fills,
+        })
+    }
+
+    /// 全量物化某 kind 的 bar 数组 + **事实源是否可得**（ADR-027 D11 完整性披露）。
+    ///
+    /// - chunked：`result_chunk_count(kind) > 0` ⇒ recorded；
+    /// - legacy：只有三个内联列（per_bar/net_value/drawdown）⇒ `fills`/`position` **无该序列**
+    ///   （回空数组 + `recorded=false`，「无序列」不得读作「零持仓」）。
+    async fn series_all_recorded(
+        &self,
+        run_id: &str,
+        res: &StrategyRunResult,
+        kind: ResultKind,
+    ) -> anyhow::Result<(Vec<serde_json::Value>, bool)> {
+        if !res.is_chunked() {
+            let recorded = !matches!(kind, ResultKind::Fills | ResultKind::Position);
+            return Ok((Self::legacy_series(res, kind), recorded));
+        }
+        let blocks = self.run_store.result_chunk_count(run_id, kind).await?;
+        let all = self.series_all(run_id, res, kind).await?;
+        Ok((all, blocks > 0))
     }
 
     /// 全量物化某 kind 的 bar 数组（D8 双读）：chunked 逐页读分块拼接；legacy 取内联列。
@@ -1228,6 +1433,22 @@ impl WorkbenchService {
         kind: ResultKind,
         k: Option<usize>,
     ) -> anyhow::Result<CurveResponse> {
+        self.result_curve_window(run_id, kind, k, None, None).await
+    }
+
+    /// `GET /runs/{id}/curve?kind=&k=&from_ts=&to_ts=`（ADR-028 D3）：
+    /// 时间窗内**重新采样** `k`（禁前端裁剪已取点）；缺省无窗口 = 全区间（**向后兼容**）。
+    ///
+    /// 窗口语义：**闭区间** `[from_ts, to_ts]`，两端可各自缺省（`null` = 该端不限）。
+    /// 响应回显 `window_from_ts`/`window_to_ts` + `window_bars`（窗口内原始根数 = 采样分母）。
+    pub async fn result_curve_window(
+        &self,
+        run_id: &str,
+        kind: ResultKind,
+        k: Option<usize>,
+        from_ts: Option<i64>,
+        to_ts: Option<i64>,
+    ) -> anyhow::Result<CurveResponse> {
         if !kind.is_sampleable() {
             return Err(anyhow!(WorkbenchValidation::new(
                 codes::KIND_INVALID,
@@ -1239,17 +1460,35 @@ impl WorkbenchService {
             anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
         })?;
         let k = k.unwrap_or(CURVE_K_DEFAULT).clamp(1, CURVE_K_MAX);
-        let all = self.series_all(run_id, &res, kind).await?;
-        let n = all.len();
+        let (all, recorded) = self.series_all_recorded(run_id, &res, kind).await?;
+        let original_bars = all.len() as i64;
+        // 时间窗（闭区间；缺省端 = 不限）。无窗口 ⇒ windowed == all（行为与今日一致）。
+        let windowed: Vec<serde_json::Value> = if from_ts.is_none() && to_ts.is_none() {
+            all
+        } else {
+            all.into_iter()
+                .filter(|v| match bar_ts_secs(v, kind) {
+                    Some(ts) => {
+                        from_ts.is_none_or(|f| ts >= f) && to_ts.is_none_or(|t| ts <= t)
+                    }
+                    None => false,
+                })
+                .collect()
+        };
+        let n = windowed.len();
         let idx = sample_indices(n, k);
-        let points: Vec<serde_json::Value> = idx.iter().map(|&i| all[i].clone()).collect();
+        let points: Vec<serde_json::Value> = idx.iter().map(|&i| windowed[i].clone()).collect();
         let downsampled = points.len() < n;
         Ok(CurveResponse {
             kind: kind.as_str().to_string(),
             points,
             downsampled,
-            original_bars: n as i64,
+            original_bars,
             k: k as i64,
+            window_from_ts: from_ts,
+            window_to_ts: to_ts,
+            window_bars: n as i64,
+            recorded,
         })
     }
 
@@ -1342,6 +1581,15 @@ impl WorkbenchService {
             initial_capital,
             policy: policy.as_ref(),
         });
+        let mut report = report;
+        // ADR-027 §5.5（I1/I2）：逐回合对账 + `Closed`/`Open` 计数需**逐回合明细** ⇒ 在
+        // `recorded` 门禁后由读径合并（`compute_audit` 只产出零值占位）。
+        if recorded {
+            let rt = crate::audit::reconcile_round_trips(&res.trades, &fills_json, fills_recorded);
+            report.round_trips_closed = rt.closed;
+            report.round_trips_open = rt.open;
+            report.rt_reconcile = rt.reconcile;
+        }
         Ok(RunAudit { run_id: run_id.to_string(), report })
     }
 
@@ -1524,6 +1772,9 @@ impl WorkbenchService {
                 })?,
         };
         let probe = EnsembleConfig {
+            // P1b 机械适配（裁决 A）：`symbol` 必填。预设校验阶段尚无 symbol（由 submit 合并真实 symbol）
+            // ⇒ 用显式 probe 哨兵值；本 config 只进 `validate()`，不进入任何运行。
+            symbol: "__preset_probe__".to_string(),
             slots: vec![],
             buy_threshold: buy,
             sell_threshold: sell,
@@ -1894,7 +2145,7 @@ async fn execute_run(
                 return EngineOutcome::Failed("结果分块写通道已关闭".into());
             }
         }
-        // 净值/回撤分块（仅 in-range；chunk = 5000）。
+        // 净值/回撤/持仓分块（仅 in-range；chunk = 5000；三者同点同序 ⇒ 块界对齐）。
         for (kind, series) in [
             (ResultKind::NetValue, &res.net_value),
             (ResultKind::Drawdown, &res.drawdown),
@@ -1904,6 +2155,16 @@ async fn execute_run(
                     if tx.send(RunMsg::Chunk(c)).is_err() {
                         return EngineOutcome::Failed("结果分块写通道已关闭".into());
                     }
+                }
+            }
+        }
+        // ADR-027 §4.1：持仓序列与 `net_value` **同级**落 `kind='position'` 块
+        // （对象点 `{ts,qty,position_value,cash,nav,position_ratio}`）。
+        // `legacy_single` 无该列 ⇒ 读侧回空数组 + `recorded=false`（**不得**读作「无持仓」）。
+        for (i, win) in res.positions.chunks(RESULT_CHUNK_BARS).enumerate() {
+            if let Some(c) = position_chunk(i as i32, win) {
+                if tx.send(RunMsg::Chunk(c)).is_err() {
+                    return EngineOutcome::Failed("结果分块写通道已关闭".into());
                 }
             }
         }
@@ -2115,13 +2376,29 @@ fn chunked_result(tail: RunTail) -> StrategyRunResult {
 }
 
 /// 从 BarRecord 收集成交事件（解析态；引擎闭包内按 chunk 累积）——ADR-024 P6 fills 事实源。
+///
+/// ADR-027 §5.4：元素增 `rt_seq` + 费用三件套（`trade_value`/`commission`/`stamp_duty`）——
+/// 全部取自引擎撮合点写入的事实值（**禁止**下游用 `(side, qty, price)` 复算，D4）。
 fn collect_fills(records: &[BarRecord], out: &mut Vec<serde_json::Value>) {
     for rec in records {
         for ev in &rec.events {
-            if let strategy_core::EngineEvent::Fill { bar_index, side, qty, price, reason } = ev {
+            if let strategy_core::EngineEvent::Fill {
+                bar_index,
+                side,
+                qty,
+                price,
+                trade_value,
+                commission,
+                stamp_duty,
+                rt_seq,
+                reason,
+            } = ev
+            {
                 out.push(serde_json::json!({
                     "type": "fill", "bar_index": bar_index, "ts": rec.ts,
-                    "side": side, "qty": qty, "price": price, "reason": reason,
+                    "side": side, "qty": qty, "price": price,
+                    "trade_value": trade_value, "commission": commission,
+                    "stamp_duty": stamp_duty, "rt_seq": rt_seq, "reason": reason,
                 }));
             }
         }
@@ -2145,6 +2422,8 @@ fn fills_chunk(
 }
 
 /// legacy 内联 per_bar（JSON 投影）的 `fill` 事件 → fills 数组（旧 run 不回填）。
+///
+/// ADR-027 §5.4：per_bar 事件已带 `rt_seq` + 费用三件套 ⇒ 逐字段透传（缺失 ⇒ `null`，不造数）。
 fn legacy_fills(res: &StrategyRunResult) -> Vec<serde_json::Value> {
     let mut out = Vec::new();
     for v in res.per_bar.as_array().cloned().unwrap_or_default() {
@@ -2160,6 +2439,10 @@ fn legacy_fills(res: &StrategyRunResult) -> Vec<serde_json::Value> {
                 "side": ev.get("side"),
                 "qty": ev.get("qty"),
                 "price": ev.get("price"),
+                "trade_value": ev.get("trade_value"),
+                "commission": ev.get("commission"),
+                "stamp_duty": ev.get("stamp_duty"),
+                "rt_seq": ev.get("rt_seq"),
                 "reason": ev.get("reason"),
             }));
         }
@@ -2176,6 +2459,17 @@ fn per_bar_chunk(seq: i32, records: &[BarRecord]) -> Option<ResultChunk> {
     let ts_to = DateTime::from_timestamp(records[records.len() - 1].ts, 0).unwrap_or_default();
     let payload = serde_json::to_value(PerBarRecords(records)).expect("per_bar 可序列化");
     Some(ResultChunk { kind: ResultKind::PerBar, seq, ts_from, ts_to, payload })
+}
+
+/// 持仓序列分块（`payload` = [`strategy_core::PositionPoint`] 对象数组；ADR-027 §4.1）。
+fn position_chunk(seq: i32, points: &[strategy_core::PositionPoint]) -> Option<ResultChunk> {
+    if points.is_empty() {
+        return None;
+    }
+    let ts_from = DateTime::from_timestamp(points[0].ts, 0).unwrap_or_default();
+    let ts_to = DateTime::from_timestamp(points[points.len() - 1].ts, 0).unwrap_or_default();
+    let payload = serde_json::to_value(points).expect("持仓序列可序列化");
+    Some(ResultChunk { kind: ResultKind::Position, seq, ts_from, ts_to, payload })
 }
 
 /// 净值/回撤分块（`payload` = `[[ts, value], ...]` 子数组）。
@@ -2244,10 +2538,23 @@ fn bar_record_json(rec: &strategy_core::BarRecord) -> serde_json::Value {
                     "message": msg,
                 })
             }
-            strategy_core::EngineEvent::Fill { bar_index, side, qty, price, reason } => {
+            // ADR-027 §5.4：per_bar 事件同步携带 `rt_seq` + 费用三件套（与 fills 块同源同事实；
+            // legacy 双读派生路径据此恢复 L2 形状）。
+            strategy_core::EngineEvent::Fill {
+                bar_index,
+                side,
+                qty,
+                price,
+                trade_value,
+                commission,
+                stamp_duty,
+                rt_seq,
+                reason,
+            } => {
                 serde_json::json!({
                     "type": "fill", "bar_index": bar_index, "side": side, "qty": qty,
-                    "price": price, "reason": reason,
+                    "price": price, "trade_value": trade_value, "commission": commission,
+                    "stamp_duty": stamp_duty, "rt_seq": rt_seq, "reason": reason,
                 })
             }
         })

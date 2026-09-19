@@ -765,6 +765,78 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     await expect(api.getWorkbenchFills('sr_nope')).rejects.toMatchObject({ status: 404 });
   });
 
+  it('ADR-027 v2：/round-trips（L1 摘要 + 分页）与 /round-trips/{rt_seq}/fills（L2 切片 + 未知 rt_seq 404）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await api.submitWorkbenchRun(validSubmit());
+    const all = await api.getWorkbenchRoundTrips(run.id, { offset: 0, limit: 200 });
+    expect(all.run_id).toBe(run.id);
+    expect(all.recorded).toBe(true);
+    expect(all.round_trips.length).toBe(all.total);
+    expect(all.has_more).toBe(false);
+
+    for (const rt of all.round_trips) {
+      // D8 摘要：l2_count == 该回合 fills 数；买卖笔数 == 各自侧计数
+      const l2 = await api.getWorkbenchRoundTripFills(run.id, rt.rt_seq);
+      expect(l2.total).toBe(rt.l2_count);
+      expect(l2.fills.length).toBe(rt.l2_count);
+      expect(l2.fills.filter((f) => f.side === 'Buy').length).toBe(rt.buy_count);
+      expect(l2.fills.filter((f) => f.side === 'Sell').length).toBe(rt.sell_count);
+      // I2 恒等式：Σ(L2) 逐字段 == L1（浮点逐位；mock 的 L1 由账本派生）
+      const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+      expect(sum(l2.fills.map((f) => f.commission))).toBe(rt.commission);
+      expect(sum(l2.fills.map((f) => f.stamp_duty))).toBe(rt.stamp_duty);
+      expect(sum(l2.fills.filter((f) => f.side === 'Sell').map((f) => f.trade_value))).toBe(rt.gross_value);
+      // 元素形状（§5.4 新字段齐备）
+      for (const f of l2.fills) {
+        expect(f).toMatchObject({ rt_seq: rt.rt_seq, code: rt.code, trade_value: expect.any(Number), commission: expect.any(Number), stamp_duty: expect.any(Number) });
+      }
+    }
+
+    // 分页：limit=1 ⇒ has_more/next_offset 正确
+    if (all.total > 1) {
+      const p1 = await api.getWorkbenchRoundTrips(run.id, { offset: 0, limit: 1 });
+      expect(p1.round_trips).toHaveLength(1);
+      expect(p1.has_more).toBe(true);
+      expect(p1.next_offset).toBe(1);
+    }
+    // 未知 rt_seq ⇒ 404（禁空数组冒充「无成交」）
+    await expect(api.getWorkbenchRoundTripFills(run.id, 99_999)).rejects.toMatchObject({ status: 404 });
+
+    // /fills 元素增 rt_seq + 费用三件套（§5.4）
+    const fills = await api.getWorkbenchFills(run.id, { limit: 5000 });
+    for (const f of fills.fills) {
+      expect(f.rt_seq).toBeGreaterThan(0);
+      expect(Number.isFinite(f.trade_value)).toBe(true);
+      expect(Number.isFinite(f.commission)).toBe(true);
+      expect(Number.isFinite(f.stamp_duty)).toBe(true);
+    }
+
+    // /audit 增量（§5.5）：closed/open 与 rt_reconcile（mock 由账本派生 ⇒ mismatched 空）
+    const audit = await api.getRunAudit(run.id);
+    expect(audit.round_trips_closed).toBe(all.total);
+    expect(audit.round_trips_open).toBe(0);
+    expect(audit.rt_reconcile).toMatchObject({ checked: all.total, mismatched: [] });
+
+    // /curve：window 回显（缺省全区间 = null）+ kind=position（ADR-027 §4.1/ADR-028 D3）
+    const nv = await api.getWorkbenchCurve(run.id, { kind: 'net_value' });
+    expect(nv.window_from_ts).toBeNull();
+    expect(nv.window_to_ts).toBeNull();
+    expect(nv.window_bars).toBe(nv.original_bars);
+    const pos = await api.getWorkbenchCurve(run.id, { kind: 'position' });
+    expect(pos.points.length).toBeGreaterThan(0);
+    for (const p of pos.points as Array<{ ts: number; qty: number; position_value: number; cash: number; nav: number; position_ratio: number }>) {
+      expect(p.position_value + p.cash).toBeCloseTo(p.nav, 3); // 恒等式（mock 舍入到 3 位）
+      expect(p.position_ratio).toBeCloseTo(p.nav > 0 ? p.position_value / p.nav : 0, 3);
+    }
+    const bars = (await api.getWorkbenchBars(run.id, { kind: 'per_bar' })).bars;
+    const from = bars[2]!.ts;
+    const to = bars[5]!.ts;
+    const win = await api.getWorkbenchCurve(run.id, { kind: 'net_value', from_ts: from, to_ts: to, k: 10 });
+    expect(win.window_from_ts).toBe(from);
+    expect(win.window_to_ts).toBe(to);
+    expect(win.window_bars).toBe(4); // 窗口内原始根数（抽样前）
+  });
+
   it('ADR-024 P6：长区间（>5000 根）chunked ⇒ /result 首页 + has_more/next_offset（显式截断）', async () => {
     const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchResultBars: 12_000 });
     const run = await api.submitWorkbenchRun(validSubmit());

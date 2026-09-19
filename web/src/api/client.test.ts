@@ -649,6 +649,17 @@ describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8
     expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/fills?offset=0&limit=5000');
     await api.getWorkbenchFills('sr_9');
     expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/fills');
+
+    // ADR-027 §5.2/5.3：L1 回合列表与 L2 切片（懒加载两枚端点）
+    await api.getWorkbenchRoundTrips('sr_9', { offset: 0, limit: 200 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/round-trips?offset=0&limit=200');
+    await api.getWorkbenchRoundTrips('sr_9');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/round-trips');
+    await api.getWorkbenchRoundTripFills('sr_9', 3, { offset: 500, limit: 500 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/round-trips/3/fills?offset=500&limit=500');
+    // ADR-028 D3：窗口参数透传（缺省不传 ⇒ 全区间向后兼容）
+    await api.getWorkbenchCurve('sr_9', { kind: 'position', from_ts: 100, to_ts: 200, k: 10 });
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/curve?kind=position&k=10&from_ts=100&to_ts=200');
   });
 
   it('ADR-026 getRunAudit → GET /api/workbench/runs/{id}/audit（响应原样透传；404 走既有 ApiError）', async () => {
@@ -667,6 +678,9 @@ describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8
       last_bar_unfilled: true,
       round_trips_total: 1,
       round_trips_force_closed: 1,
+      round_trips_closed: 1,
+      round_trips_open: 0,
+      rt_reconcile: { checked: 1, mismatched: [], tolerance: 1e-6 },
       warnings: [{ code: 'PARTIAL_DEPLOYMENT', severity: 'warn', message: '名义投入 41.40% 初始资金' }],
     };
     const f = fetcherReturning(body);

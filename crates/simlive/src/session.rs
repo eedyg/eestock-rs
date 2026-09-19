@@ -55,7 +55,15 @@ pub struct SimOrder {
     pub status: OrderStatus,
     pub filled_price: Option<f64>,
     pub filled_qty: f64,
+    /// 费用合计（= `commission + stamp_duty`；订单读模型沿用单列口径）。
     pub fee: f64,
+    /// 本笔佣金（ADR-027 D4 分列事实；恢复重建 `Fill` 用，禁止下游复算）。
+    /// `#[serde(default)]`：旧 `simsession_state.orders` JSON 无此列仍可读（缺省 0）。
+    #[serde(default)]
+    pub commission: f64,
+    /// 本笔印花税（买入恒 0；同上，旧 JSON 缺省 0）。
+    #[serde(default)]
+    pub stamp_duty: f64,
     pub ts: i64,
     /// 订单来源：`manual` | `aggregate_strategy`（自动单）| `strategy`（预留）。
     /// L4 补（F1）：`SimOrder` 未透传 source，导致面板「来源」列空白；此处补上与 `SimTrade.source` 同口径。
@@ -338,8 +346,9 @@ mod tests {
         assert!((a - b).abs() < 1e-6, "expected {b}, got {a}");
     }
 
+    /// 测试构造：`fee` 参数按**佣金**入列（印花税 0）。
     fn buy(code: &str, qty: f64, price: f64, fee: f64) -> Fill {
-        Fill { code: code.into(), side: Side::Buy, qty, price, fee }
+        Fill { code: code.into(), side: Side::Buy, qty, price, commission: fee, stamp_duty: 0.0 }
     }
 
     #[test]
@@ -381,7 +390,8 @@ mod tests {
         let mut m = SessionManager::new();
         m.start_session("test", 1_000_000.0, vec![], vec![], "M1", 1000, "manual");
         m.record_trade(SimTrade {
-            code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.002, ts: 1000, fee: 5.0, source: "manual".into(),
+            code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.002, ts: 1000,
+            commission: 5.0, stamp_duty: 0.0, source: "manual".into(),
         });
         let st = m.get_state().unwrap();
         assert_eq!(st.trades.len(), 1);
@@ -465,7 +475,8 @@ mod tests {
         };
         let nv = vec![(1000, 1_000_000.0), (2000, 989_995.0)];
         let trades = vec![SimTrade {
-            code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.0, ts: 2000, fee: 5.0, source: "manual".into(),
+            code: "510300".into(), side: Side::Buy, qty: 1000.0, price: 10.0, ts: 2000,
+            commission: 5.0, stamp_duty: 0.0, source: "manual".into(),
         }];
         let mut m = SessionManager::restore(account, session, nv.clone(), trades.clone(), vec![], vec![]);
         let st = m.get_state().expect("restore 后有状态");

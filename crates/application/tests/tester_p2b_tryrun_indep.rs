@@ -448,6 +448,9 @@ async fn indep_simposition_tryrun_matches_direct_engine() {
         strategy_core::StrategySlot::new(TRADE_SCRIPT_PLUGIN, &code_hash, StrategyParams::new(), 1.0)
             .expect("slot");
     let cfg = strategy_core::EnsembleConfig {
+        // P1b 机械适配（裁决 A）：symbol 为新增必填字段；取本测试 run 的 symbol（与
+        // `run_sim_position` 内 `req.symbol` 同值，保证两侧逐字同参对比仍成立）。
+        symbol: SYMBOL.to_string(),
         slots: vec![slot],
         buy_threshold: strategy_core::DEFAULT_BUY_THRESHOLD,
         sell_threshold: strategy_core::DEFAULT_SELL_THRESHOLD,

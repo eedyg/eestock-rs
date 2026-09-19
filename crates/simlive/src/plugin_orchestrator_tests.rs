@@ -526,7 +526,10 @@ fn session_events_record_read_reset_restore() {
 // ── Red 6：entry_ts sticky-first-entry 推导（MINOR-2：与 strategy-core Holding 口径一致）──
 
 fn trade(code: &str, side: Side, qty: f64, ts: i64) -> SimTrade {
-    SimTrade { code: code.into(), side, qty, price: 10.0, ts, fee: 0.0, source: "t".into() }
+    SimTrade {
+        code: code.into(), side, qty, price: 10.0, ts,
+        commission: 0.0, stamp_duty: 0.0, source: "t".into(),
+    }
 }
 
 /// sticky-first-entry：自空仓以来**首笔建仓 ts 钉死**；加仓不动；**部分卖出不前进**

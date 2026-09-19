@@ -932,6 +932,10 @@ pub struct SimSessionView {
 }
 
 /// 新成交明细（sim_trades 行）。
+///
+/// **ADR-027 D4（费用分列）**：`commission` / `stamp_duty` 为撮合点写入的**事实**（禁止下游按
+/// `(side, qty, price)` + 费率复算）；`fee` 为 DB 冗余列（语义 = `commission + stamp_duty`，
+/// 见 `design/04-storage/schema.md` §4.3.10 迁移 0028），调用方须按两列之和填写。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NewSimTrade {
     pub session_id: String,
@@ -940,6 +944,11 @@ pub struct NewSimTrade {
     pub qty: f64,
     pub price: f64,
     pub ts: DateTime<Utc>,
+    /// 本笔佣金（含最低佣金）。
+    pub commission: f64,
+    /// 本笔印花税（买入恒 0）。
+    pub stamp_duty: f64,
+    /// 费用合计 = `commission + stamp_duty`（DB 冗余列，便于既有查询）。
     pub fee: f64,
     pub source: String,
 }
@@ -1245,20 +1254,24 @@ pub const RESULT_FORMAT_CHUNKED: &str = "chunked_v1";
 /// `qty >= holding.qty`）⇒ 部分买入/加仓（DCA、`position_pct < 1`）与部分卖出**不进** `trades`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ResultKind { PerBar, NetValue, Drawdown, Fills }
+pub enum ResultKind { PerBar, NetValue, Drawdown, Position, Fills }
 
 impl ResultKind {
     pub fn as_str(&self) -> &'static str {
         match self { ResultKind::PerBar => "per_bar", ResultKind::NetValue => "net_value",
-                     ResultKind::Drawdown => "drawdown", ResultKind::Fills => "fills" }
+                     ResultKind::Drawdown => "drawdown", ResultKind::Position => "position",
+                     ResultKind::Fills => "fills" }
     }
     pub fn parse(s: &str) -> Option<Self> {
         match s { "per_bar" => Some(ResultKind::PerBar), "net_value" => Some(ResultKind::NetValue),
-                  "drawdown" => Some(ResultKind::Drawdown), "fills" => Some(ResultKind::Fills),
+                  "drawdown" => Some(ResultKind::Drawdown), "position" => Some(ResultKind::Position),
+                  "fills" => Some(ResultKind::Fills),
                   _ => None }
     }
     /// `fills` 是**事实源**（成交明细）：不得进入抽样/区间/分页曲线路径（ADR-024 P6 硬约束）。
     /// 专用端点 `/runs/{id}/fills` 分页读。
+    /// ADR-027 §4.1（2026-09-20）：`position` **可抽样**（与 `net_value` 同级，须披露
+    /// `downsampled`/`original_bars`），不得混入 `fills` 的禁抽样白名单。
     pub fn is_sampleable(&self) -> bool {
         !matches!(self, ResultKind::Fills)
     }

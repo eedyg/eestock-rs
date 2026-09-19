@@ -99,6 +99,12 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/workbench/runs/{id}/bars", get(workbench::get_bars))
         .route("/api/workbench/runs/{id}/curve", get(workbench::get_curve))
         .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
+        // ADR-027 §5.2/§5.3：L1 回合列表（懒加载首屏）+ L2 逐笔切片（未知 rt_seq ⇒ 404）
+        .route("/api/workbench/runs/{id}/round-trips", get(workbench::get_round_trips))
+        .route(
+            "/api/workbench/runs/{id}/round-trips/{rt_seq}/fills",
+            get(workbench::get_round_trip_fills),
+        )
         // ADR-026 §2.2：执行完整度审计（只读派生：投入率/计划推进/未执行挂单/强平回合）
         .route("/api/workbench/runs/{id}/audit", get(workbench::get_audit))
         .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))

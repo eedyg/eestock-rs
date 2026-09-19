@@ -113,13 +113,18 @@ mod tests {
             "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
             "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",
             "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare",
+            // ADR-027 §6：运行中 L1/L2 读
+            "sim_get_round_trips", "sim_get_round_trip_fills",
             // 12-strategy-system / P3c：统一策略系统工具族
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
             "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
             "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
             // ADR-026 §2.2：执行完整度审计（只读派生）
-            "bt_get_run_audit"]);
+            "bt_get_run_audit",
+            // ADR-027 §6：「结果载荷 v2」增量（L1 列表 / L2 切片 / 曲线时间窗 / 成交明细）
+            "bt_get_run_curve", "bt_get_run_fills", "bt_get_run_round_trips",
+            "bt_get_run_round_trip_fills"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();

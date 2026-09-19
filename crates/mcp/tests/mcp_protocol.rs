@@ -201,13 +201,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 35 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 9 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）
+    // 3. tools/list → 41 个工具（4 只读（I-4 加 list_symbols）+ 16 模拟实盘 + 8 strategy_* + 13 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit + ADR-027 §6）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 35, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 41, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],

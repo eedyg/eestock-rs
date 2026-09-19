@@ -60,25 +60,32 @@ impl SimSessionStore for PgSimSessionStore {
     }
 
     async fn append_trade(&self, t: &NewSimTrade) -> Result<()> {
+        // 费用三列（ADR-027 D4 / 迁移 0028）：`commission`/`stamp_duty` 为事实源，
+        // `fee` 为冗余列（= 两列之和，由调用方传入，语义见 schema.md §4.3.10）。
         sqlx::query(
-            "INSERT INTO sim_trades (session_id, code, side, qty, price, ts, fee, source) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
+            "INSERT INTO sim_trades (session_id, code, side, qty, price, ts, commission, stamp_duty, fee, source) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
             .bind(&t.session_id).bind(&t.code).bind(&t.side)
-            .bind(t.qty).bind(t.price).bind(t.ts).bind(t.fee).bind(&t.source)
+            .bind(t.qty).bind(t.price).bind(t.ts)
+            .bind(t.commission).bind(t.stamp_duty).bind(t.fee).bind(&t.source)
             .execute(&self.pool).await?;
         Ok(())
     }
 
     async fn list_trades(&self, session_id: &str) -> Result<Vec<NewSimTrade>> {
-        type TradeRow = (String, String, f64, f64, DateTime<Utc>, f64, String);
+        type TradeRow = (String, String, f64, f64, DateTime<Utc>, f64, f64, f64, String);
         let rows: Vec<TradeRow> =
             sqlx::query_as(
-                "SELECT code, side, qty, price, ts, fee, source \
+                "SELECT code, side, qty, price, ts, commission, stamp_duty, fee, source \
                  FROM sim_trades WHERE session_id = $1 ORDER BY ts ASC, id ASC")
                 .bind(session_id).fetch_all(&self.pool).await?;
-        Ok(rows.into_iter().map(|(code, side, qty, price, ts, fee, source)|
-            NewSimTrade { session_id: session_id.into(), code, side, qty, price, ts, fee, source }
-        ).collect())
+        Ok(rows.into_iter()
+            .map(|(code, side, qty, price, ts, commission, stamp_duty, fee, source)|
+                NewSimTrade {
+                    session_id: session_id.into(), code, side, qty, price, ts,
+                    commission, stamp_duty, fee, source,
+                }
+            ).collect())
     }
 
     async fn update_positions(&self, session_id: &str, positions: &[SimPositionRow]) -> Result<()> {

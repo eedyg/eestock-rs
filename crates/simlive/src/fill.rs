@@ -33,7 +33,10 @@ impl Side {
     }
 }
 
-/// 一笔成交（有效价已含滑点，fee 已含佣金/印花税）。
+/// 一笔成交（有效价已含滑点；费用**分列**为佣金与印花税）。
+///
+/// ADR-027 D4（2026-09-20）：费用必须由撮合点分列写出（佣金 / 印花税），
+/// 禁止下游由 `(side, qty, price)` + 费率复算 —— `FeeModel` 最低佣金分支不可逆（`backtest/src/fee.rs`）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Fill {
     pub code: String,
@@ -41,8 +44,18 @@ pub struct Fill {
     pub qty: f64,
     /// 成交有效价（含滑点）。
     pub price: f64,
-    /// 该笔费用（佣金；卖出另含印花税）。
-    pub fee: f64,
+    /// 本笔佣金（含最低佣金）。
+    pub commission: f64,
+    /// 本笔印花税（买入恒 0）。
+    pub stamp_duty: f64,
+}
+
+impl Fill {
+    /// 费用合计（= `commission + stamp_duty`）：**派生读**，非第二事实源；
+    /// 供账户账务与订单读模型沿用单列口径（`sim_trades.fee` 列语义同此）。
+    pub fn fee(&self) -> f64 {
+        self.commission + self.stamp_duty
+    }
 }
 
 /// 一笔订单。`limit_price=None` 为市价单；`Some(p)` 为限价单。
@@ -93,21 +106,23 @@ impl FillEngine {
         };
         let trade_value = order.qty * eff_price;
         let commission = self.fee.commission(trade_value);
-        let fee = match order.side {
-            Side::Buy => commission,
-            Side::Sell => commission + self.fee.stamp_duty(trade_value),
+        let stamp_duty = match order.side {
+            Side::Buy => 0.0,
+            Side::Sell => self.fee.stamp_duty(trade_value),
         };
         Some(Fill {
             code: order.code.clone(),
             side: order.side,
             qty: order.qty,
             price: eff_price,
-            fee,
+            commission,
+            stamp_duty,
         })
     }
 }
 
 /// 降序（供会话/存储：会话内记录成交明细）。
+/// 费用**分列**（ADR-027 D4）：`commission` + `stamp_duty` 为事实；`fee()` 为派生合计。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SimTrade {
     pub code: String,
@@ -115,8 +130,19 @@ pub struct SimTrade {
     pub qty: f64,
     pub price: f64,
     pub ts: i64,
-    pub fee: f64,
-    pub source: String, // "strategy" | "manual"
+    /// 本笔佣金（含最低佣金）。
+    pub commission: f64,
+    /// 本笔印花税（买入恒 0）。
+    pub stamp_duty: f64,
+    /// 来源："strategy" | "manual" | "aggregate_strategy"（映射见 `backtest::FillReason`）。
+    pub source: String,
+}
+
+impl SimTrade {
+    /// 费用合计（= `commission + stamp_duty`）：派生读，供既有单列口径消费方沿用。
+    pub fn fee(&self) -> f64 {
+        self.commission + self.stamp_duty
+    }
 }
 
 #[cfg(test)]
@@ -139,7 +165,9 @@ mod tests {
         close(f.price, 10.002); // 最新 10 × (1 + 2bp)
         close(f.qty, 1000.0);
         // 成交额 = 1000 × 10.002 = 10002 → 佣金 = 10002 × 0.00025 = 2.5005 < 5 → 取最低 5
-        close(f.fee, 5.0);
+        close(f.commission, 5.0);
+        close(f.stamp_duty, 0.0); // 买入恒 0
+        close(f.fee(), 5.0);
         assert_eq!(f.side, Side::Buy);
         assert_eq!(f.code, "510300");
     }
@@ -152,8 +180,30 @@ mod tests {
         close(f.price, 9.998); // 10 × (1 − 2bp)
         let tv = 1000.0 * 9.998; // 9998
         // commission = max(tv×0.00025, 5) = max(2.4995,5) = 5；stamp = tv×0.0005 = 4.999
-        close(f.fee, 5.0 + tv * 0.0005);
+        close(f.commission, 5.0);
+        close(f.stamp_duty, tv * 0.0005);
+        close(f.fee(), 5.0 + tv * 0.0005);
         assert_eq!(f.side, Side::Sell);
+    }
+
+    /// ADR-027 D4/R3：费用分列事实 —— 卖腿 `stamp_duty > 0` 且与买腿佣金口径独立
+    /// （`Fill` 不再只有合并的 `fee`；`fee()` = 两列之和）。
+    #[test]
+    fn sell_fill_carries_stamp_duty_as_separate_fact() {
+        let eng = FillEngine::new(FeeModel::default());
+        let buy = eng.try_fill(&order("510300", Side::Buy, 1000.0, None), 10.0).unwrap();
+        let sell = eng.try_fill(&order("510300", Side::Sell, 1000.0, None), 12.0).unwrap();
+        assert_eq!(buy.stamp_duty, 0.0, "买入印花税恒 0");
+        assert!(
+            (sell.stamp_duty - 1000.0 * sell.price * 0.0005).abs() < 1e-12,
+            "卖腿印花税 = 成交额 × 0.05%，实际 {}",
+            sell.stamp_duty
+        );
+        assert!((sell.fee() - (sell.commission + sell.stamp_duty)).abs() < 1e-12);
+        // 与 backtest::FeeModel::sell 的卖出执行体同源（逐位一致）。
+        let exec = FeeModel::default().sell(1000.0, 12.0);
+        assert!((sell.commission - exec.commission).abs() < 1e-12);
+        assert!((sell.stamp_duty - exec.stamp_duty).abs() < 1e-12);
     }
 
     /// 限价买：latest ≤ limit 触及成交，参考价 = limit（仍叠滑点/佣金）。

@@ -41,6 +41,11 @@ pub const WARN_DCA_PLAN_UNDERFILLED: &str = "DCA_PLAN_UNDERFILLED";
 /// 警告码：存在未执行挂单（`unexecuted_orders > 0`）。
 pub const WARN_ORDERS_UNEXECUTED: &str = "ORDERS_UNEXECUTED";
 
+/// 逐回合对账容差（ADR-027 D10 / 02-spec §2 I1-I2；**显式**常量，禁魔法值）。
+///
+/// 判据：`|Σ_L2 − L1| ≤ tolerance × max(1, |L1|)`（相对容差 + 绝对下界，浮点累加）。
+pub const RT_RECONCILE_TOLERANCE: f64 = 1e-6;
+
 /// 严重度：需注意（改变读者结论的风险披露）。
 pub const SEVERITY_WARN: &str = "warn";
 /// 严重度：信息性（事实陈述，非风险）。
@@ -136,8 +141,119 @@ pub struct AuditReport {
     pub round_trips_total: usize,
     /// 由期末强平合成的回合数。
     pub round_trips_force_closed: usize,
+    /// **已终结**回合数（`status='Closed'`；ADR-027 §5.5）。
+    ///
+    /// 注：本字段与 `rt_reconcile` 由 [`compute_audit`] 之外的读径（`run_audit`）在
+    /// `recorded` 门禁后合并——它们需要 `trades`/`fills` 的**逐回合明细**，而 `compute_audit`
+    /// 只认已投影的扁平事实（KISS）。
+    pub round_trips_closed: usize,
+    /// **未终结**回合数（`status='Open'`；回测恒 0）。
+    pub round_trips_open: usize,
+    /// 逐回合自洽对账（I1/I2；ADR-027 D10 强告警源）。
+    pub rt_reconcile: RtReconcile,
     /// 非阻断警告（顺序：DCA 未推进完 → 未满仓 → 挂单未成交）。
     pub warnings: Vec<AuditWarning>,
+}
+
+/// 逐回合对账结果（02-spec §5.5 / ADR-027 D10/I1-I2）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RtReconcile {
+    /// 已核对回合数（有 `rt_seq` 且 L2 事实可归属）。
+    pub checked: usize,
+    /// 不一致的 `rt_seq` 列表（**非空 ⇒ UI 必须显式告警**，ADR-027 D10：禁静默按 L1 渲染）。
+    pub mismatched: Vec<u32>,
+    /// 对账容差（= [`RT_RECONCILE_TOLERANCE`]，显式披露）。
+    pub tolerance: f64,
+}
+
+/// 回合计数 + 对账（`AuditReport` 两块增量的纯函数产物；读侧在 `recorded` 门禁后合并）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct RtAudit {
+    pub closed: usize,
+    pub open: usize,
+    pub reconcile: RtReconcile,
+}
+
+/// 逐回合对账（I1/I2）：把 L2 逐笔事实按 `rt_seq` 分组求和，与 L1 同名字段比对。
+///
+/// - `gross_value` ← Σ_`side==Sell` `trade_value`；`commission` ← Σ 全笔 commission；
+///   `stamp_duty` ← Σ 全笔 stamp_duty（与 [`crate::audit`] / `aggregate_round_trips` 同口径）；
+/// - **事实缺失不冒充一致**（ADR-027 D11）：`fills_recorded=false` 或成交无 `rt_seq` ⇒ `checked=0`
+///   且 `mismatched` 为空（无可核项，诚实留白）；
+/// - `Closed`/`Open` 由 `status` 字段判定；**缺该字段 ⇒ 计 `Closed`**（回测恒 Closed；旧 JSON 无该列）。
+pub fn reconcile_round_trips(
+    trades: &serde_json::Value,
+    fills: &[serde_json::Value],
+    fills_recorded: bool,
+) -> RtAudit {
+    let l1 = trades.as_array().cloned().unwrap_or_default();
+    let mut closed = 0usize;
+    let mut open = 0usize;
+    for t in &l1 {
+        if t.get("status").and_then(serde_json::Value::as_str) == Some("Open") {
+            open += 1;
+        } else {
+            closed += 1;
+        }
+    }
+    // L2 聚合（仅带 `rt_seq` 的事实可归属）
+    let mut sums: std::collections::HashMap<u32, (f64, f64, f64)> =
+        std::collections::HashMap::new();
+    let mut has_rt = false;
+    for f in fills {
+        let Some(rt) = f
+            .get("rt_seq")
+            .and_then(serde_json::Value::as_u64)
+            .map(|v| v as u32)
+        else {
+            continue;
+        };
+        has_rt = true;
+        let side = f.get("side").and_then(serde_json::Value::as_str).unwrap_or("");
+        let e = sums.entry(rt).or_insert((0.0, 0.0, 0.0));
+        e.1 += f.get("commission").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        e.2 += f.get("stamp_duty").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        if side == "Sell" {
+            e.0 += f.get("trade_value").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        }
+    }
+    let mut checked = 0usize;
+    let mut mismatched: Vec<u32> = Vec::new();
+    if fills_recorded && has_rt {
+        for t in &l1 {
+            let (Some(rt), Some(l1_gross)) = (
+                t.get("rt_seq").and_then(serde_json::Value::as_u64).map(|v| v as u32),
+                t.get("gross_value").and_then(serde_json::Value::as_f64),
+            ) else {
+                continue;
+            };
+            checked += 1;
+            let s = sums.get(&rt).copied().unwrap_or((0.0, 0.0, 0.0));
+            let l1_comm = t.get("commission").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            let l1_stamp =
+                t.get("stamp_duty").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            if !rt_close_enough(s.0, l1_gross)
+                || !rt_close_enough(s.1, l1_comm)
+                || !rt_close_enough(s.2, l1_stamp)
+            {
+                mismatched.push(rt);
+            }
+        }
+    }
+    RtAudit {
+        closed,
+        open,
+        reconcile: RtReconcile {
+            checked,
+            mismatched,
+            tolerance: RT_RECONCILE_TOLERANCE,
+        },
+    }
+}
+
+/// 对账判据：`|a − b| ≤ tolerance × max(1, |b|)`（`b` = L1 字段值）。
+fn rt_close_enough(a: f64, b: f64) -> bool {
+    (a - b).abs() <= RT_RECONCILE_TOLERANCE * b.abs().max(1.0)
 }
 
 // ---------------------------------------------------------------------------
@@ -253,6 +369,13 @@ pub fn compute_audit(input: &AuditInput<'_>) -> AuditReport {
             last_bar_unfilled: false,
             round_trips_total: 0,
             round_trips_force_closed: 0,
+            round_trips_closed: 0,
+            round_trips_open: 0,
+            rt_reconcile: RtReconcile {
+                checked: 0,
+                mismatched: Vec::new(),
+                tolerance: RT_RECONCILE_TOLERANCE,
+            },
             warnings: Vec::new(),
         };
     }
@@ -341,6 +464,16 @@ pub fn compute_audit(input: &AuditInput<'_>) -> AuditReport {
         last_bar_unfilled,
         round_trips_total,
         round_trips_force_closed,
+        // `round_trips_closed/open` 与 `rt_reconcile` 需逐回合明细 ⇒ 由读径
+        // （`WorkbenchService::run_audit` 调 `reconcile_round_trips`）在 `recorded` 门禁后合并；
+        // 本纯函数只产出零值占位（不伪造事实，ADR-027 D11）。
+        round_trips_closed: 0,
+        round_trips_open: 0,
+        rt_reconcile: RtReconcile {
+            checked: 0,
+            mismatched: Vec::new(),
+            tolerance: RT_RECONCILE_TOLERANCE,
+        },
         warnings,
     }
 }
@@ -859,24 +992,108 @@ mod tests {
         assert!(trades_from_json(&serde_json::Value::Null).is_empty());
     }
 
-    // ── ADR-026 §2.3 向后兼容：**历史 run** 的 `trades` JSON 无 `reason` 键 ⇒ `None` ──
+    // ── ADR-027 D3：**v2 形状契约**（无 v1 兼容层；缺字段 = 静默失真 ⇒ fail loud） ──
 
-    /// 读侧（application）必须能读历史 run 的 `trades`（12 字段、无 `reason`）⇒ `None`；
-    /// 新序列化形态含 `reason` 键（前端可区分「未记录」与已知来源）。
+    /// P1b（2026-09-20 架构裁决 ①）：废弃的 v1 兼容用例 `trade_detail_json_reads_legacy_without_reason_field`
+    /// **改写为 v2 形状测试**（不删覆盖）：
+    /// 1. v2 全字段 JSON 可读且逐字段正确（含 `Option` 字段的 `Null` 语义）；
+    /// 2. 新序列化形态含全部 v2 键（`Open` 回合的 `close_*`/`pnl`/`hold_bars`/`reason` 为 `Null`，**禁造数**）；
+    /// 3. **v1 形状（缺 `rt_seq` 等 v2 字段）必须被拒绝**（D3 无兼容窗口，禁止 `serde(default)` 静默通过）。
     #[test]
-    fn trade_detail_json_reads_legacy_without_reason_field() {
-        use backtest::TradeDetail;
-        let legacy = serde_json::json!({
+    fn trade_detail_json_v2_shape_is_locked_and_v1_shape_is_rejected() {
+        use backtest::{RoundTripStatus, TradeDetail};
+
+        // (1) v2 全字段（Closed 回合）⇒ 逐字段正确。
+        let v2 = serde_json::json!({
+            "rt_seq": 3,
+            "code": "600000.SH",
+            "status": "Closed",
+            "open_ts": 1,
+            "close_ts": 2,
+            "open_bar": 0,
+            "close_bar": 1,
+            "open_price": 10.0,
+            "close_price": 11.0,
+            "shares": 100.0,
+            "gross_value": 1100.0,
+            "commission": 5.0,
+            "stamp_duty": 0.55,
+            "pnl": 95.0,
+            "hold_bars": 1,
+            "l2_count": 2,
+            "buy_count": 1,
+            "sell_count": 1,
+            "reason": "Policy"
+        });
+        let t: TradeDetail = serde_json::from_value(v2).expect("v2 JSON 必须可读");
+        assert_eq!(t.rt_seq, 3);
+        assert_eq!(t.code, "600000.SH");
+        assert_eq!(t.status, RoundTripStatus::Closed);
+        assert_eq!(t.close_ts, Some(2));
+        assert_eq!(t.close_bar, Some(1));
+        assert_eq!(t.close_price, Some(11.0));
+        assert_eq!(t.pnl, Some(95.0));
+        assert_eq!(t.hold_bars, Some(1));
+        assert_eq!(t.l2_count, 2);
+        assert_eq!(t.reason.as_deref(), Some("Policy"));
+
+        // (2) `Open` 回合：未定义语义的字段必须序列化为 `Null`（**禁止造 0**，02-spec §2）。
+        let open = TradeDetail {
+            rt_seq: 1,
+            code: "600000.SH".to_string(),
+            status: RoundTripStatus::Open,
+            open_ts: 1,
+            close_ts: None,
+            open_bar: 0,
+            close_bar: None,
+            open_price: 10.0,
+            close_price: None,
+            shares: 100.0,
+            gross_value: 0.0,
+            commission: 5.0,
+            stamp_duty: 0.0,
+            pnl: None,
+            hold_bars: None,
+            l2_count: 1,
+            buy_count: 1,
+            sell_count: 0,
+            reason: None,
+        };
+        let j = serde_json::to_value(&open).unwrap();
+        for key in [
+            "rt_seq",
+            "code",
+            "status",
+            "close_ts",
+            "close_bar",
+            "close_price",
+            "pnl",
+            "hold_bars",
+            "l2_count",
+            "buy_count",
+            "sell_count",
+            "reason",
+        ] {
+            assert!(j.get(key).is_some(), "v2 序列化形态必须含 `{key}` 键：{j}");
+        }
+        for key in ["close_ts", "close_bar", "close_price", "pnl", "hold_bars", "reason"] {
+            assert_eq!(j[key], serde_json::Value::Null, "Open 回合 `{key}` 必须为 Null（禁造数）");
+        }
+        assert_eq!(j["status"], serde_json::json!("Open"));
+
+        // (3) **v1 形状必须被拒绝**：ADR-027 D3 已清空历史、不提供兼容窗口；
+        //     `rt_seq` 等 v2 字段**无** `serde(default)` ⇒ 缺字段 = 静默失真 ⇒ 必须报错。
+        let v1 = serde_json::json!({
             "open_ts": 1, "close_ts": 2, "open_bar": 0, "close_bar": 1,
             "open_price": 10.0, "close_price": 11.0, "shares": 100.0, "gross_value": 1100.0,
             "commission": 5.0, "stamp_duty": 0.0, "pnl": 95.0, "hold_bars": 1
         });
-        let t: TradeDetail =
-            serde_json::from_value(legacy).expect("历史 JSON 须可读（serde default）");
-        assert_eq!(t.reason, None, "历史 run 缺该字段 ⇒ None（前端显示「未记录」）");
-        let j = serde_json::to_value(&t).unwrap();
-        assert!(j.get("reason").is_some(), "新序列化形态须含 reason 键");
-        assert_eq!(j["reason"], serde_json::Value::Null);
+        let err = serde_json::from_value::<TradeDetail>(v1)
+            .expect_err("v1 形状（缺 v2 字段）必须被拒绝，不得静默兼容（ADR-027 D3）");
+        assert!(
+            err.to_string().contains("rt_seq"),
+            "拒绝原因必须指向缺失的 v2 字段（无兼容默认值）：{err}"
+        );
     }
 
     // ── 序列化契约（ADR-026 §2.2 字段名冻结） ──
@@ -897,11 +1114,14 @@ mod tests {
             policy: Some(&policy),
         });
         let j = serde_json::to_value(&report).unwrap();
+        // ADR-026 §2.2 冻结字段 + ADR-027 §5.5 增量（`round_trips_closed`/`round_trips_open`/
+        // `rt_reconcile`）——后者由 02-spec §5.5 批准，是**受控**的契约演进。
         let frozen = [
             "recorded", "capital_basis", "deployed_notional", "deployed_pct", "cash_consumed",
             "cash_consumed_pct", "planned_tranches", "reachable_batches", "batches_done",
             "unexecuted_orders", "last_bar_unfilled", "round_trips_total",
-            "round_trips_force_closed", "warnings",
+            "round_trips_force_closed", "round_trips_closed", "round_trips_open", "rt_reconcile",
+            "warnings",
         ];
         // 字段**集**（`serde_json::Value` 用 BTreeMap ⇒ 键序不可断言，仅比集合）。
         let keys: std::collections::BTreeSet<&str> = j
@@ -913,7 +1133,7 @@ mod tests {
         assert_eq!(
             keys,
             frozen.iter().copied().collect::<std::collections::BTreeSet<_>>(),
-            "字段名 = ADR-026 §2.2（敞口/资金占用分别命名）"
+            "字段名 = ADR-026 §2.2 + ADR-027 §5.5（敞口/资金占用分别命名）"
         );
         assert_eq!(j.as_object().unwrap().len(), frozen.len(), "不得多出/少字段");
         // 字段**顺序**在序列化文本上断言（结构体声明序 = ADR-026 §2.2 的契约序）。
@@ -929,5 +1149,39 @@ mod tests {
         assert!(text.starts_with("{\"recorded\":"), "首字段须为 recorded：{text}");
         assert_eq!(j["warnings"][0]["code"], WARN_DCA_PLAN_UNDERFILLED);
         assert_eq!(j["warnings"][0]["severity"], SEVERITY_WARN);
+    }
+
+    // ── ADR-027 P1a（2026-09-20）：`OrderSide` 唯一定义迁至 `backtest`，strategy-core `pub use` 再导出 ──
+
+    /// 迁移守卫（架构师硬约束）：
+    /// 1. 两路径为**同一类型**（`strategy_core::OrderSide` 可直接喂 `backtest::OrderSide` 形参）；
+    /// 2. serde 形状**逐字节不变**（外部标记 `"Buy"/"Sell"`，两边互转）；
+    /// 3. 与 audit 读侧字符串解析口径一致（同一事实源，无第二套字符串映射）。
+    #[test]
+    fn order_side_relocation_keeps_type_identity_and_serde_shape() {
+        fn takes_backtest_side(s: backtest::OrderSide) -> backtest::OrderSide {
+            s
+        }
+
+        // 1) 类型恒等（编译期）：strategy_core 的再导出就是 backtest 的类型
+        let via_core: OrderSide = OrderSide::Buy;
+        assert_eq!(takes_backtest_side(via_core), backtest::OrderSide::Buy);
+
+        // 2) serde 形状逐字节不变 + 往返相等
+        assert_eq!(serde_json::to_string(&OrderSide::Buy).unwrap(), "\"Buy\"");
+        assert_eq!(serde_json::to_string(&OrderSide::Sell).unwrap(), "\"Sell\"");
+        assert_eq!(
+            serde_json::from_str::<backtest::OrderSide>("\"Buy\"").unwrap(),
+            backtest::OrderSide::Buy,
+            "backtest 定义处可反向读出（同一 serde 形状）"
+        );
+        assert_eq!(
+            serde_json::from_str::<OrderSide>("\"Sell\"").unwrap(),
+            OrderSide::Sell
+        );
+
+        // 3) 字符串读侧口径一致
+        assert_eq!(parse_side("Buy"), Some(OrderSide::Buy));
+        assert_eq!(parse_side("Sell"), Some(OrderSide::Sell));
     }
 }

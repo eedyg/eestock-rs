@@ -119,7 +119,18 @@ LLM 客户端据此把错误当工具输出处理）。响应 echo 请求 id（s
   默认 {0.025, 5.0, 2.0}）/ `bt_get_run(run_id)`（状态+进度）/ `bt_get_run_result(run_id)` /
   `bt_list_runs(status?, page?, page_size?)`（page 1 起，page_size 默认 100 封顶 500）/
   `bt_cancel_run(run_id)`（协作式）/ `bt_compare_runs(run_ids[])` / `bt_list_presets()` /
-  `bt_apply_preset(preset_id)`（返回钉住 config 供 bt_run_ensemble 用）。
+  `bt_apply_preset(preset_id)`（返回钉住 config 供 bt_run_ensemble 用）/ `bt_get_run_audit(run_id)`
+  （执行完整度审计；ADR-027 §5.5 增 `round_trips_closed`/`round_trips_open`/`rt_reconcile`）/ **ADR-027 §6
+  「结果载荷 v2」增量**：`bt_get_run_curve(run_id, kind?, k?, from_ts?, to_ts?)`（显式抽样 + ADR-028 D3
+  时间窗回显 `window_*`；`position` 可抽样，`fills` 仍不可）/ `bt_get_run_fills(run_id, offset?, limit?,
+  round_trip?)`（元素增 `rt_seq`/`trade_value`/`commission`/`stamp_duty`）/ `bt_get_run_round_trips(run_id,
+  offset?, limit?)`（L1 回合列表，§5.2）/ `bt_get_run_round_trip_fills(run_id, rt_seq, offset?, limit?)`
+  （L2 切片，§5.3；未知 `rt_seq` → isError 而非空数组）。
+- **运行中 L1/L2（sim-live，ADR-027 §6「运行中 L1/L2 读」）**：`sim_get_round_trips(session_id, code?,
+  offset?, limit?)` / `sim_get_round_trip_fills(session_id, code, rt_seq, offset?, limit?)`——形状与
+  `bt_get_run_*` 同（§5.2/§5.3），**键为 `session_id` + `code`**（回测侧键为 `run_id`）；
+  事实源 = `sim_trades`（会话进行中即可取），经 `SimLiveService` 复用**唯一聚合实现**（与结算同口径，
+  未平仓回合 `status=Open`、`pnl=null`，**不引入期末强平**）；未知 `(code, rt_seq)` → isError。
 - **P3c 开关（父级裁决）**：strategy_*/bt_* 共用 McpState 本地单开关 `strategy_tools_enabled`
   （默认开；停用 → isError「统一策略系统 MCP 工具已停用」，参照 sim_* 既有实现；
   后续如需运行时翻转，web 端点写同一 Arc——本期不做端点）。服务未配置（None）→ isError「未配置」。
@@ -367,13 +378,18 @@ mod tests {
             "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
             "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",
             "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare",
+            // ADR-027 §6：运行中 L1/L2 读
+            "sim_get_round_trips", "sim_get_round_trip_fills",
             // 12-strategy-system / P3c：统一策略系统工具族
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
             "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
             "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
             // ADR-026 §2.2：执行完整度审计（只读派生）
-            "bt_get_run_audit"]);
+            "bt_get_run_audit",
+            // ADR-027 §6：「结果载荷 v2」增量（L1 列表 / L2 切片 / 曲线时间窗 / 成交明细）
+            "bt_get_run_curve", "bt_get_run_fills", "bt_get_run_round_trips",
+            "bt_get_run_round_trip_fills"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();
@@ -408,7 +424,7 @@ use application::strategy::{
     UpdateDraftOutcome,
 };
 use application::workbench::{SlotReq, SubmitRunReq, WorkbenchService};
-use domain::ports::StrategyRunStatus;
+use domain::ports::{ResultKind, StrategyRunStatus};
 use domain::strategy_state::{ApprovalLevel, StrategyKind};
 use std::sync::Arc;
 
@@ -639,6 +655,35 @@ fn tool_schemas() -> Vec<Value> {
             }
         }),
         json!({
+            "name": "sim_get_round_trips",
+            "description": "模拟实盘，不触真实券商：**运行中 L1 回合列表**（ADR-027 §5.2 形状，键为 session_id + code）——会话进行中即可取，与结算同口径（复用唯一聚合实现，禁止第二份配对/聚合）；未平仓回合以 status=Open 出现且 pnl=null（不引入期末强平、不伪造成交）。code 可选：给定则只回该标的的回合（多标的会话取数键）。元素含 l2_count/buy_count/sell_count。响应自述完整性（ADR-027 D11）：session_id/code/total/recorded/offset/limit/has_more/next_offset/round_trips。会话不存在 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "session_id": { "type": "string", "description": "会话 id（s_ 前缀）" },
+                    "code": { "type": "string", "description": "可选：只取该标的的回合（缺省 = 会话内全部标的）" },
+                    "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
+                    "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" }
+                },
+                "required": ["session_id"]
+            }
+        }),
+        json!({
+            "name": "sim_get_round_trip_fills",
+            "description": "模拟实盘，不触真实券商：**运行中 L2 逐笔切片**（ADR-027 §5.3 形状，键为 session_id + code + rt_seq）。归属**只能**由 rt_seq 决定（禁 [open_bar, close_bar] 窗口推断）；**未知 (code, rt_seq) → isError**（禁止空数组冒充「无成交」）。元素 = FillFact（含 rt_seq/trade_value/commission/stamp_duty，费用三件套由撮合点写入，禁下游复算）。响应 session_id/code/rt_seq/total/recorded/offset/limit/has_more/next_offset/fills。会话不存在 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "session_id": { "type": "string", "description": "会话 id（s_ 前缀）" },
+                    "code": { "type": "string", "description": "标的（会话内 code）" },
+                    "rt_seq": { "type": "integer", "description": "回合序号（≥1，per (session_id, code) 单调递增）" },
+                    "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
+                    "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" }
+                },
+                "required": ["session_id", "code", "rt_seq"]
+            }
+        }),
+        json!({
             "name": "strategy_list",
             "description": "统一策略系统 Registry：查询已发布策略目录（catalog，仅 published 版本入册，每策略取最新 published；level 为权限分级 at-least 过滤，kind 精确过滤）。适用场景：为 strategy_test_run / bt_run_ensemble 挑选策略与版本（与 web 下拉同源）。",
             "inputSchema": {
@@ -848,13 +893,69 @@ fn tool_schemas() -> Vec<Value> {
         }),
         json!({
             "name": "bt_get_run_audit",
-            "description": "回测工作台：**执行完整度审计**（ADR-026 §2.2，只读派生，不改引擎语义/不落库）。回答「这份回测到底投出去多少钱、计划推进到哪、有没有挂单没成交、回合里多少是期末强平合成的」：deployed_notional/deployed_pct（**敞口**，不含费用）与 cash_consumed/cash_consumed_pct（**资金占用**，含按 run 生效 fee 复算的买入佣金）分别命名；planned_tranches（非 Dca 为 null）/reachable_batches（区间内 Buy 意图数，即最多可推进批数）/batches_done/unexecuted_orders/last_bar_unfilled/round_trips_total/round_trips_force_closed（期末强平合成的回合）。warnings 为**非阻断**披露（PARTIAL_DEPLOYMENT 敞口<99%；DCA_PLAN_UNDERFILLED 计划未推进完；ORDERS_UNEXECUTED 末根 bar 挂单无次 bar 可成交）。run 不存在或无结果 → isError（同 bt_get_run_result）。",
+            "description": "回测工作台：**执行完整度审计**（ADR-026 §2.2，只读派生，不改引擎语义/不落库）。回答「这份回测到底投出去多少钱、计划推进到哪、有没有挂单没成交、回合里多少是期末强平合成的」：deployed_notional/deployed_pct（**敞口**，不含费用）与 cash_consumed/cash_consumed_pct（**资金占用**，含按 run 生效 fee 复算的买入佣金）分别命名；planned_tranches（非 Dca 为 null）/reachable_batches（区间内 Buy 意图数，即最多可推进批数）/batches_done/unexecuted_orders/last_bar_unfilled/round_trips_total/round_trips_force_closed（期末强平合成的回合）。**ADR-027 §5.5 增量**：round_trips_closed/round_trips_open（回测恒 0）/rt_reconcile{checked, mismatched[], tolerance}（逐回合对账 I1/I2；**mismatched 非空 ⇒ 必须显式告警**，禁静默按 L1 渲染）。warnings 为**非阻断**披露（PARTIAL_DEPLOYMENT 敞口<99%；DCA_PLAN_UNDERFILLED 计划未推进完；ORDERS_UNEXECUTED 末根 bar 挂单无次 bar 可成交）。run 不存在或无结果 → isError（同 bt_get_run_result）。",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" }
                 },
                 "required": ["run_id"]
+            }
+        }),
+        json!({
+            "name": "bt_get_run_curve",
+            "description": "回测工作台：结果曲线**显式抽样**读（ADR-024 D10：必须披露 downsampled/original_bars）。kind ∈ per_bar|net_value|drawdown|position（缺省 net_value）；`fills` 是**事实源**（不可抽样）⇒ 请用 bt_get_run_fills 分页读。k = 目标点数（缺省 2000/上限 20000，保首尾均匀抽样）；from_ts/to_ts = 时间窗（**闭区间**，可各自缺省 = 该端不限；ADR-028 D3：窗口内**重新采样**，禁前端裁剪已取点），响应回显 window_from_ts/window_to_ts/window_bars（窗口内原始根数 = 采样分母）。recorded=false ⇒ 该 kind 序列**未记录**（如旧 run 无 position 列），空点集不得读作「零持仓/零净值」。run 不存在 / 无结果 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
+                    "kind": { "type": "string", "enum": ["per_bar", "net_value", "drawdown", "position"], "description": "曲线种类（缺省 net_value；fills 不可抽样）" },
+                    "k": { "type": "integer", "description": "抽样目标点数（缺省 2000，上限 20000）" },
+                    "from_ts": { "type": "integer", "description": "窗口起始 ts（epoch 秒，闭区间；缺省 = 该端不限）" },
+                    "to_ts": { "type": "integer", "description": "窗口结束 ts（epoch 秒，闭区间；缺省 = 该端不限）" }
+                },
+                "required": ["run_id"]
+            }
+        }),
+        json!({
+            "name": "bt_get_run_fills",
+            "description": "回测工作台：成交明细**分页**读（ADR-024 P6：成交是事实源，**禁止**抽样——抽样会丢真实成交）。元素 = 02-spec §1.1 FillFact：{code, rt_seq, bar_index, ts, side, qty, price, trade_value, commission, stamp_duty, reason}（费用三件套由撮合点写入，禁下游复算）。可选 round_trip=<rt_seq> 过滤（归属**只**由 rt_seq 决定，ADR-027 D6，禁 [open_bar, close_bar] 窗口推断）；过滤不改 recorded 语义（未命中 ⇒ 空页 + total=0，**非错误**——404 语义归属 bt_get_run_round_trip_fills）。响应 total/offset/limit/has_more/next_offset/recorded（过滤时回显 round_trip）。run 不存在 / 无结果 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
+                    "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
+                    "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" },
+                    "round_trip": { "type": "integer", "description": "可选：仅取该 rt_seq 回合的成交（缺省不过滤）" }
+                },
+                "required": ["run_id"]
+            }
+        }),
+        json!({
+            "name": "bt_get_run_round_trips",
+            "description": "回测工作台：**L1 回合列表**（ADR-027 §5.2 懒加载首屏，分页）。元素 = 回合全字段（rt_seq/code/status/open_ts/close_ts/open_bar/close_bar/shares/open_price/close_price/gross_value/commission/stamp_duty/pnl/hold_bars/reason）+ 摘要 l2_count（本回合成交笔数）/buy_count/sell_count；Closed ⇒ pnl 为精确值，Open ⇒ pnl=null（**禁止造数**）。响应自述完整性（ADR-027 D11）：run_id/total/recorded/offset/limit/has_more/next_offset。run 不存在 / 无结果 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
+                    "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
+                    "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" }
+                },
+                "required": ["run_id"]
+            }
+        }),
+        json!({
+            "name": "bt_get_run_round_trip_fills",
+            "description": "回测工作台：**L2 逐笔切片**（ADR-027 §5.3）：取某一回合的逐笔成交事实（懒加载）。归属**只能**由 rt_seq 决定（禁 [open_bar, close_bar] 窗口推断；零长回合 open_bar == close_bar 必须正确归属）。**未知 rt_seq → isError**（禁止空数组冒充「该回合无成交」）。响应 run_id/rt_seq/total/recorded/offset/limit/has_more/next_offset/fills（元素 = FillFact，同 bt_get_run_fills）。run 不存在 / 无结果 → isError。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" },
+                    "rt_seq": { "type": "integer", "description": "回合序号（per run 从 1 递增）" },
+                    "offset": { "type": "integer", "description": "起始下标（缺省 0）" },
+                    "limit": { "type": "integer", "description": "本页条数（缺省 5000，上限 20000）" }
+                },
+                "required": ["run_id", "rt_seq"]
             }
         })
     ]
@@ -890,6 +991,9 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "sim_list_sessions" => sim_list_sessions(st, id, &args).await,
         "sim_get_session" => sim_get_session(st, id, &args).await,
         "sim_run_backtest_compare" => sim_run_backtest_compare(st, id, &args).await,
+        // ADR-027 §6：运行中 L1/L2 读（键 = session_id + code；形状同 §5.2/§5.3）
+        "sim_get_round_trips" => sim_get_round_trips(st, id, &args).await,
+        "sim_get_round_trip_fills" => sim_get_round_trip_fills(st, id, &args).await,
         // 12-strategy-system / P3c：统一策略系统 Registry 工具（strategy_*）
         "strategy_list" => strategy_list(st, id, &args).await,
         "strategy_get" => strategy_get(st, id, &args).await,
@@ -909,6 +1013,11 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "bt_list_presets" => bt_list_presets(st, id, &args).await,
         "bt_apply_preset" => bt_apply_preset(st, id, &args).await,
         "bt_get_run_audit" => bt_get_run_audit(st, id, &args).await,
+        // ADR-027 §6：结果载荷 v2 —— 曲线时间窗 + 成交/回合 L1/L2 读
+        "bt_get_run_curve" => bt_get_run_curve(st, id, &args).await,
+        "bt_get_run_fills" => bt_get_run_fills(st, id, &args).await,
+        "bt_get_run_round_trips" => bt_get_run_round_trips(st, id, &args).await,
+        "bt_get_run_round_trip_fills" => bt_get_run_round_trip_fills(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -1375,6 +1484,97 @@ async fn sim_run_backtest_compare(st: &McpState, id: Option<Value>, args: &Value
     };
     match sim.run_backtest_compare(session_id).await {
         Ok(view) => tool_ok(id, &view),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+// ── ADR-027 §6：运行中 L1/L2 读（键 = session_id + code；形状同 §5.2/§5.3）──
+
+/// sim_get_round_trips(session_id, code?, offset?, limit?)：运行中 **L1 回合列表**。
+///
+/// 事实源 = 会话成交（`sim_trades`），经 `SimLiveService::round_trips`（复用**唯一聚合实现**
+/// `backtest::aggregate_round_trips`，与结算同口径，禁止第二份配对/聚合）；未平仓回合以
+/// `status=Open` 出现且 `pnl=null`（**不引入期末强平**、不伪造成交）。
+/// `code` 可选：给定则只回该标的的回合（多标的会话的取数键）。
+/// 响应形状同 §5.2（键由 `run_id` 换为 `session_id` + `code`），自述完整性（ADR-027 D11）。
+async fn sim_get_round_trips(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = req_str(args, "session_id") else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填（非空 string，s_ 前缀）");
+    };
+    let code = match args.get("code") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) if !s.is_empty() => Some(s.clone()),
+        Some(_) => return result_err(id, INVALID_PARAMS, "code 须为非空 string（会话内标的）"),
+    };
+    let (offset, limit) = match page_params(&id, args) { Ok(v) => v, Err(e) => return e };
+    let all = match sim.round_trips(session_id).await {
+        Ok(v) => v,
+        Err(e) => return tool_fail(id, e),
+    };
+    let filtered: Vec<_> = match code.as_deref() {
+        None => all,
+        Some(c) => all.into_iter().filter(|t| t.code == c).collect(),
+    };
+    let total = filtered.len() as i64;
+    let start = offset.min(total) as usize;
+    let end = (start as i64 + limit).min(total) as usize;
+    let round_trips = &filtered[start..end];
+    let next = start as i64 + round_trips.len() as i64;
+    let has_more = next < total;
+    tool_ok(id, &json!({
+        "session_id": session_id,
+        "code": code,
+        "total": total,
+        "recorded": true,
+        "offset": offset,
+        "limit": limit,
+        "has_more": has_more,
+        "next_offset": has_more.then_some(next),
+        "round_trips": round_trips,
+    }))
+}
+
+/// sim_get_round_trip_fills(session_id, code, rt_seq, offset?, limit?)：运行中 **L2 逐笔切片**。
+///
+/// 归属**只能**由 `rt_seq` 决定（ADR-027 D6）；**未知 `(code, rt_seq)` → isError**
+/// （服务层 `Ok(None)`；**禁止**用空数组冒充「该回合无成交」）。
+/// 响应形状同 §5.3（键由 `run_id` 换为 `session_id` + `code`）。
+async fn sim_get_round_trip_fills(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let sim = match sim_service(st, id.clone()) { Ok(s) => s, Err(e) => return e };
+    let Some(session_id) = req_str(args, "session_id") else {
+        return result_err(id, INVALID_PARAMS, "session_id 必填（非空 string，s_ 前缀）");
+    };
+    let Some(code) = req_str(args, "code") else {
+        return result_err(id, INVALID_PARAMS, "code 必填（非空 string，会话内标的）");
+    };
+    let Some(rt_seq) = req_u32(args, "rt_seq") else {
+        return result_err(id, INVALID_PARAMS, "rt_seq 必填（≥1 整数，回合序号）");
+    };
+    let (offset, limit) = match page_params(&id, args) { Ok(v) => v, Err(e) => return e };
+    match sim.round_trip_fills(session_id, code, rt_seq).await {
+        Ok(Some(all)) => {
+            let total = all.len() as i64;
+            let start = offset.min(total) as usize;
+            let end = (start as i64 + limit).min(total) as usize;
+            let fills = &all[start..end];
+            let next = start as i64 + fills.len() as i64;
+            let has_more = next < total;
+            tool_ok(id, &json!({
+                "session_id": session_id,
+                "code": code,
+                "rt_seq": rt_seq,
+                "total": total,
+                "recorded": true,
+                "offset": offset,
+                "limit": limit,
+                "has_more": has_more,
+                "next_offset": has_more.then_some(next),
+                "fills": fills,
+            }))
+        }
+        Ok(None) => tool_fail(id, anyhow::anyhow!(
+            "回合 {rt_seq} 不属于会话 {session_id} 的标的 {code}（无该回合的成交事实）")),
         Err(e) => tool_fail(id, e),
     }
 }
@@ -1929,6 +2129,143 @@ async fn bt_get_run_audit(st: &McpState, id: Option<Value>, args: &Value) -> Val
     }
 }
 
+/// bt_get_run_curve(run_id, kind?, k?, from_ts?, to_ts?)：结果曲线**显式抽样**读（ADR-024 D10）。
+///
+/// `kind` 缺省 `net_value`；`fills` 是事实源 ⇒ 不可抽样（-32602，与 web `/curve` 同口径，
+/// 请用 `bt_get_run_fills` 分页读）。ADR-028 D3：`from_ts`/`to_ts` 时间窗（**闭区间**，可各自
+/// 缺省 = 该端不限）——**窗口内重新采样**，响应回显 `window_from_ts`/`window_to_ts`/
+/// `window_bars`（窗口内原始根数 = 采样分母）与 `recorded`（完整性披露）。
+async fn bt_get_run_curve(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
+    let Some(run_id) = req_str(args, "run_id") else {
+        return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
+    };
+    let kind = match curve_kind_param(&id, args) { Ok(k) => k, Err(e) => return e };
+    let k = match opt_usize(&id, args, "k") { Ok(v) => v, Err(e) => return e };
+    let from_ts = match opt_i64(&id, args, "from_ts") { Ok(v) => v, Err(e) => return e };
+    let to_ts = match opt_i64(&id, args, "to_ts") { Ok(v) => v, Err(e) => return e };
+    match wb.result_curve_window(run_id, kind, k, from_ts, to_ts).await {
+        Ok(curve) => tool_ok(id, &curve),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// bt_get_run_fills(run_id, offset?, limit?, round_trip?)：成交明细分页（ADR-027 §5.4）。
+///
+/// 元素 = `FillFact`（含 `rt_seq`/`trade_value`/`commission`/`stamp_duty`，由撮合点写入，
+/// **禁止**下游复算）；`round_trip` 过滤**不改变** `recorded` 语义（未命中 ⇒ 空页 + `total=0`，
+/// **非错误**——404 语义归属 `bt_get_run_round_trip_fills`）。
+async fn bt_get_run_fills(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
+    let Some(run_id) = req_str(args, "run_id") else {
+        return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
+    };
+    let (offset, limit) = match page_params(&id, args) { Ok(v) => v, Err(e) => return e };
+    let round_trip = match opt_u32(&id, args, "round_trip") { Ok(v) => v, Err(e) => return e };
+    match wb.result_fills_filtered(run_id, offset, limit, round_trip).await {
+        Ok(fills) => tool_ok(id, &fills),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// bt_get_run_round_trips(run_id, offset?, limit?)：**L1 回合列表**（ADR-027 §5.2，懒加载首屏）。
+///
+/// 元素 = 回合全字段 + 摘要 `l2_count`/`buy_count`/`sell_count`；`Open` 回合 `pnl=null`
+/// （**禁止造数**）。响应自述完整性（ADR-027 D11）：`total`/`recorded`/`has_more`/`next_offset`。
+async fn bt_get_run_round_trips(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
+    let Some(run_id) = req_str(args, "run_id") else {
+        return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
+    };
+    let (offset, limit) = match page_params(&id, args) { Ok(v) => v, Err(e) => return e };
+    match wb.result_round_trips(run_id, offset, limit).await {
+        Ok(list) => tool_ok(id, &list),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// bt_get_run_round_trip_fills(run_id, rt_seq, offset?, limit?)：**L2 逐笔切片**（ADR-027 §5.3）。
+///
+/// 归属**只能**由 `rt_seq` 决定（禁 `[open_bar, close_bar]` 窗口推断）；未知 `rt_seq` →
+/// isError（应用层 `WorkbenchNotFound`；**禁止**空数组冒充「无成交」）。
+async fn bt_get_run_round_trip_fills(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
+    let Some(run_id) = req_str(args, "run_id") else {
+        return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
+    };
+    let Some(rt_seq) = req_u32(args, "rt_seq") else {
+        return result_err(id, INVALID_PARAMS, "rt_seq 必填（≥1 整数，回合序号）");
+    };
+    let (offset, limit) = match page_params(&id, args) { Ok(v) => v, Err(e) => return e };
+    match wb.result_round_trip_fills(run_id, rt_seq, offset, limit).await {
+        Ok(fills) => tool_ok(id, &fills),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
+/// 可选整数参数（缺省/`null` → None；非整数 → -32602）。
+fn opt_i64(id: &Option<Value>, args: &Value, key: &str) -> Result<Option<i64>, Value> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => match v.as_i64() {
+            Some(n) => Ok(Some(n)),
+            None => Err(result_err(id.clone(), INVALID_PARAMS, format!("{key} 须为整数"))),
+        },
+    }
+}
+
+/// 可选非负整数参数（负值/非整数 → -32602）。
+fn opt_usize(id: &Option<Value>, args: &Value, key: &str) -> Result<Option<usize>, Value> {
+    match opt_i64(id, args, key)? {
+        None => Ok(None),
+        Some(n) if n >= 0 => Ok(Some(n as usize)),
+        Some(_) => Err(result_err(id.clone(), INVALID_PARAMS, format!("{key} 须为非负整数"))),
+    }
+}
+
+/// 可选 `u32` 参数（缺省/`null` → None；非整数或越界 → -32602）。
+fn opt_u32(id: &Option<Value>, args: &Value, key: &str) -> Result<Option<u32>, Value> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => match v.as_u64().and_then(|n| u32::try_from(n).ok()) {
+            Some(n) => Ok(Some(n)),
+            None => Err(result_err(id.clone(), INVALID_PARAMS,
+                format!("{key} 须为整数（0..2^32-1）"))),
+        },
+    }
+}
+
+/// 必填 `u32` 参数（缺/非法 → None；调用方映射 -32602）。
+fn req_u32(args: &Value, key: &str) -> Option<u32> {
+    args.get(key).and_then(Value::as_u64).and_then(|n| u32::try_from(n).ok())
+}
+
+/// 分页参数（与 web `/fills`、`/round-trips` **同口径**：`offset` 缺省 0 且负值归零，
+/// `limit` 缺省 5000/上限 20000；非整数 → -32602）。返回 `(offset, limit)`。
+fn page_params(id: &Option<Value>, args: &Value) -> Result<(i64, i64), Value> {
+    let offset = opt_i64(id, args, "offset")?.unwrap_or(0).max(0);
+    let limit = match opt_i64(id, args, "limit")? {
+        None => application::workbench::BARS_LIMIT_DEFAULT,
+        Some(n) => n.clamp(1, application::workbench::BARS_LIMIT_MAX),
+    };
+    Ok((offset, limit))
+}
+
+/// `/curve` 可抽样 kind（缺省 `net_value`；`fills` 是事实源 ⇒ -32602，与 web 同口径）。
+fn curve_kind_param(id: &Option<Value>, args: &Value) -> Result<ResultKind, Value> {
+    match args.get("kind") {
+        None | Some(Value::Null) => Ok(ResultKind::NetValue),
+        Some(Value::String(s)) => match ResultKind::parse(s) {
+            Some(k) if k.is_sampleable() => Ok(k),
+            Some(_) => Err(result_err(id.clone(), INVALID_PARAMS,
+                "kind=fills 为事实源，不可抽样（请用 bt_get_run_fills 分页读）")),
+            None => Err(result_err(id.clone(), INVALID_PARAMS,
+                "kind 须为 per_bar/net_value/drawdown/position")),
+        },
+        Some(_) => Err(result_err(id.clone(), INVALID_PARAMS, "kind 须为 string")),
+    }
+}
+
 /// 解析字符串数组参数（缺省/非数组 → 空）。
 fn str_array(args: &Value, key: &str) -> Vec<String> {
     args.get(key)
@@ -1960,7 +2297,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 35, "4 只读工具（I-4 加 list_symbols）+ 14 模拟实盘（11-sim-live）+ 8 strategy_* + 9 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）");
+        assert_eq!(tools.len(), 41, "4 只读工具（I-4 加 list_symbols）+ 16 模拟实盘（11-sim-live + ADR-027 运行中 L1/L2）+ 8 strategy_* + 13 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit + ADR-027 §6 四工具）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -1981,7 +2318,9 @@ mod tests {
         assert_eq!(sim_names, vec!["sim_start_session", "sim_stop_session", "sim_get_account",
             "sim_get_positions", "sim_get_orders", "sim_get_pnl", "sim_place_order", "sim_cancel_order",
             "sim_list_strategies", "sim_get_strategy_signal", "sim_get_strategy_analysis",
-            "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare"]);
+            "sim_list_sessions", "sim_get_session", "sim_run_backtest_compare",
+            // ADR-027 §6：运行中 L1/L2 读（键 = session_id + code）
+            "sim_get_round_trips", "sim_get_round_trip_fills"]);
         // 每个 sim 工具 description 均注明「模拟实盘，不触真实券商」
         for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("sim_")) {
             assert!(t["description"].as_str().unwrap().contains("模拟实盘，不触真实券商"),
@@ -1998,7 +2337,10 @@ mod tests {
         assert_eq!(bt_names, vec!["bt_run_ensemble", "bt_get_run", "bt_get_run_result",
             "bt_list_runs", "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
             // ADR-026 §2.2：执行完整度审计（只读派生）
-            "bt_get_run_audit"]);
+            "bt_get_run_audit",
+            // ADR-027 §6「结果载荷 v2」：曲线时间窗 + 成交/回合 L1/L2 读
+            "bt_get_run_curve", "bt_get_run_fills", "bt_get_run_round_trips",
+            "bt_get_run_round_trip_fills"]);
         // 策略管理类描述注明「统一策略系统 Registry」（任务书口径）
         for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("strategy_")) {
             assert!(t["description"].as_str().unwrap().contains("统一策略系统 Registry"),
@@ -2030,6 +2372,22 @@ mod tests {
         assert_eq!(by_name("bt_apply_preset")["inputSchema"]["required"], json!(["preset_id"]));
         assert_eq!(by_name("bt_get_run_audit")["inputSchema"]["required"], json!(["run_id"]),
             "bt_get_run_audit 必填 run_id（ADR-026 §2.2）");
+        // ADR-027 §6：新增四工具必填契约（分页/时间窗参数均非必填）
+        assert_eq!(by_name("bt_get_run_curve")["inputSchema"]["required"], json!(["run_id"]));
+        assert_eq!(by_name("bt_get_run_curve")["inputSchema"]["properties"]["kind"]["enum"],
+            json!(["per_bar", "net_value", "drawdown", "position"]),
+            "ADR-027 §4.1：position 可抽样；fills 不入 enum（事实源）");
+        assert!(by_name("bt_get_run_curve")["inputSchema"]["properties"]["from_ts"].is_object());
+        assert!(by_name("bt_get_run_curve")["inputSchema"]["properties"]["to_ts"].is_object());
+        assert_eq!(by_name("bt_get_run_fills")["inputSchema"]["required"], json!(["run_id"]));
+        assert!(by_name("bt_get_run_fills")["inputSchema"]["properties"]["round_trip"].is_object(),
+            "ADR-027 §5.4：可选回合过滤");
+        assert_eq!(by_name("bt_get_run_round_trips")["inputSchema"]["required"], json!(["run_id"]));
+        assert_eq!(by_name("bt_get_run_round_trip_fills")["inputSchema"]["required"],
+            json!(["run_id", "rt_seq"]), "L2 切片：rt_seq 必填（ADR-027 §5.3）");
+        assert_eq!(by_name("sim_get_round_trips")["inputSchema"]["required"], json!(["session_id"]));
+        assert_eq!(by_name("sim_get_round_trip_fills")["inputSchema"]["required"],
+            json!(["session_id", "code", "rt_seq"]), "sim 运行中 L2：键 = session_id + code + rt_seq");
     }
 
     #[tokio::test]
@@ -3854,6 +4212,265 @@ mod tests {
             "停用语义文案须含「停用」：{}", r["result"]["content"][0]["text"]);
     }
 
+    /// ADR-027 §6「结果载荷 v2」：提交一个 ensemble run 并轮询至 succeeded（返回 run_id）。
+    async fn run_ensemble_succeeded(st: &McpState, name: &str) -> String {
+        let (sid, _vid) = create_published(st, name, CONST_80).await;
+        let r = call(st, "bt_run_ensemble", json!({
+            "name": name, "symbol": "600000", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "slots": [{ "strategy_id": sid, "weight": 1.0 }],
+            "policy": { "Dca": { "mode": "Equal", "tranches": 8, "interval": 1 } }
+        })).await;
+        let p = payload_of(&r);
+        assert_eq!(r["result"]["isError"], json!(null), "提交不得 isError：{p}");
+        let run_id = p["run_id"].as_str().unwrap().to_string();
+        let mut status = String::new();
+        for _ in 0..200 {
+            let p = payload_of(&call(st, "bt_get_run", json!({ "run_id": run_id })).await);
+            status = p["status"].as_str().unwrap().to_string();
+            if status != "queued" && status != "running" { break; }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert_eq!(status, "succeeded", "run 未成功：{status}");
+        run_id
+    }
+
+    /// ADR-027 §6 / 02-spec §5.2·§5.3·§5.4：MCP 增量 4 工具——形状与 HTTP 一致、错误语义一致。
+    #[tokio::test]
+    async fn bt_trade_detail_increment_tools_contract() {
+        let (st, _fx) = strategy_state();
+        let run_id = run_ensemble_succeeded(&st, "v2").await;
+        let result = payload_of(&call(&st, "bt_get_run_result", json!({ "run_id": run_id })).await);
+        let trades = result["trades"].as_array().unwrap().clone();
+        assert!(!trades.is_empty(), "Dca 8 批 + 期末强平 ⇒ 至少 1 回合：{result}");
+        let rt_seq = trades[0]["rt_seq"].as_u64().unwrap();
+
+        // ① L1 列表：分页 + 完整性自述 + 元素摘要字段
+        let r = call(&st, "bt_get_run_round_trips", json!({ "run_id": run_id })).await;
+        assert_eq!(r["result"]["isError"], json!(null), "L1 不得 isError");
+        let l1 = payload_of(&r);
+        assert_eq!(l1["run_id"], json!(run_id));
+        assert_eq!(l1["recorded"], json!(true));
+        assert_eq!(l1["total"].as_u64().unwrap() as usize, trades.len());
+        assert_eq!(l1["offset"], json!(0));
+        assert_eq!(l1["has_more"], json!(false));
+        assert_eq!(l1["next_offset"], json!(null));
+        let first = &l1["round_trips"][0];
+        assert_eq!(first["rt_seq"], json!(rt_seq));
+        assert_eq!(first["status"], json!("Closed"), "回测期末强平 ⇒ 全部 Closed（02-spec §3.4）");
+        assert!(first["l2_count"].as_u64().unwrap() >= 1, "摘要 l2_count 供 D8 懒加载");
+        assert!(first["buy_count"].is_number() && first["sell_count"].is_number());
+        assert_eq!(first["code"], json!("600000"));
+        // 分页：limit=1 ⇒ has_more/next_offset 语义（完整性契约 §5.6）
+        let total_rt = l1["total"].as_u64().unwrap();
+        let r = call(&st, "bt_get_run_round_trips", json!({ "run_id": run_id, "limit": 1 })).await;
+        let page = payload_of(&r);
+        assert_eq!(page["round_trips"].as_array().unwrap().len(), 1, "limit=1 ⇒ 1 条");
+        assert_eq!(page["limit"], json!(1));
+        assert_eq!(page["total"], json!(total_rt), "total 为全量（不受分页影响）");
+        assert_eq!(page["has_more"], json!(total_rt > 1));
+        assert_eq!(page["next_offset"], if total_rt > 1 { json!(1) } else { json!(null) },
+            "next_offset = offset + 本页条数（无下页 ⇒ null）");
+
+        // ② L2 切片：rt_seq 归属（禁窗口推断）；未知 rt_seq ⇒ isError
+        let r = call(&st, "bt_get_run_round_trip_fills",
+            json!({ "run_id": run_id, "rt_seq": rt_seq })).await;
+        assert_eq!(r["result"]["isError"], json!(null), "L2 不得 isError");
+        let l2 = payload_of(&r);
+        assert_eq!(l2["rt_seq"], json!(rt_seq));
+        assert_eq!(l2["total"].as_u64().unwrap() as usize,
+            first["l2_count"].as_u64().unwrap() as usize, "L2 total == L1 l2_count");
+        let fill = &l2["fills"][0];
+        assert_eq!(fill["rt_seq"], json!(rt_seq), "归属只由 rt_seq 决定（D6）");
+        assert_eq!(fill["code"], json!("600000"));
+        for k in ["trade_value", "commission", "stamp_duty", "bar_index", "side", "qty", "price"] {
+            assert!(!fill[k].is_null(), "FillFact 字段 {k} 缺失：{fill}");
+        }
+        let r = call(&st, "bt_get_run_round_trip_fills",
+            json!({ "run_id": run_id, "rt_seq": 9999 })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "未知 rt_seq ⇒ isError（禁空数组冒充）");
+
+        // ③ /fills 增量：rt_seq + 费用三件套 + round_trip 过滤
+        let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id })).await;
+        let fills = payload_of(&r);
+        assert!(fills["recorded"].is_boolean());
+        assert!(fills["total"].as_u64().unwrap() >= 1);
+        assert!(fills.get("round_trip").is_none() || fills["round_trip"].is_null(),
+            "未过滤不回显 round_trip（既有契约不变）");
+        // 元素 = FillFact 增量字段（ADR-027 §5.4）：rt_seq + 费用三件套
+        // 注：`code` 在 /fills 元素上**不**保证存在（P3 读径仅在 L2 切片补 `code`；回测 run 单标的）；
+        // L2 切片（上文）已逐笔断言 `code`。
+        for k in ["rt_seq", "trade_value", "commission", "stamp_duty"] {
+            assert!(!fills["fills"][0][k].is_null(), "fills 元素缺 {k}");
+        }
+        let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "round_trip": rt_seq })).await;
+        let filtered = payload_of(&r);
+        assert_eq!(filtered["round_trip"], json!(rt_seq));
+        assert!(filtered["fills"].as_array().unwrap().iter()
+            .all(|f| f["rt_seq"] == json!(rt_seq)), "过滤后全部归属该回合");
+        assert_eq!(filtered["total"].as_u64().unwrap() as usize,
+            first["l2_count"].as_u64().unwrap() as usize);
+        // 未命中（未知回合）⇒ 空页 total=0，**非错误**（404 语义归属 L2 切片工具，§5.4）
+        let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "round_trip": 9999 })).await;
+        assert_eq!(r["result"]["isError"], json!(null));
+        assert_eq!(payload_of(&r)["total"], json!(0));
+        // 分页：limit=1 ⇒ has_more/next_offset（§5.6）
+        let fills_total = fills["total"].as_u64().unwrap();
+        let r = call(&st, "bt_get_run_fills", json!({ "run_id": run_id, "limit": 1 })).await;
+        let fp = payload_of(&r);
+        assert_eq!(fp["fills"].as_array().unwrap().len(), 1);
+        assert_eq!(fp["has_more"], json!(fills_total > 1));
+        assert_eq!(fp["next_offset"], if fills_total > 1 { json!(1) } else { json!(null) });
+
+        // ④ /curve 时间窗 + position；`fills` 不可抽样（-32602）
+        let r = call(&st, "bt_get_run_curve", json!({ "run_id": run_id })).await;
+        let curve = payload_of(&r);
+        assert_eq!(curve["kind"], json!("net_value"), "缺省 kind=net_value");
+        assert_eq!(curve["window_from_ts"], json!(null), "无窗口 ⇒ 回显 null（向后兼容）");
+        assert_eq!(curve["window_to_ts"], json!(null));
+        let n_net = curve["original_bars"].as_u64().unwrap();
+        assert!(n_net >= 2, "夹具应 ≥2 根 bar");
+        let r = call(&st, "bt_get_run_curve", json!({ "run_id": run_id, "kind": "position" })).await;
+        let pos = payload_of(&r);
+        assert_eq!(pos["kind"], json!("position"), "ADR-027 §4.1：position 可抽样");
+        assert_eq!(pos["recorded"], json!(true), "chunked run 有 position 块 ⇒ recorded=true");
+        assert_eq!(pos["window_bars"], pos["original_bars"], "无窗口 ⇒ window_bars == 全序列根数");
+        for k in ["ts", "qty", "position_value", "cash", "nav", "position_ratio"] {
+            assert!(!pos["points"][0][k].is_null(), "position 点缺字段 {k}");
+        }
+        // 时间窗：窗口内重新采样（k 作用于窗口内点集）+ 回显分母
+        let ts0 = curve["points"][0][0].as_i64().unwrap();
+        let ts_last = curve["points"].as_array().unwrap().last().unwrap()[0].as_i64().unwrap();
+        let r = call(&st, "bt_get_run_curve", json!({
+            "run_id": run_id, "kind": "net_value", "k": 1, "from_ts": ts0, "to_ts": ts_last,
+        })).await;
+        let win = payload_of(&r);
+        assert_eq!(win["window_from_ts"], json!(ts0), "窗口回显（ADR-028 D3）");
+        assert_eq!(win["window_to_ts"], json!(ts_last));
+        assert_eq!(win["window_bars"], json!(n_net), "窗口覆盖全区间 ⇒ 分母 = 全序列根数");
+        assert_eq!(win["k"], json!(1));
+        assert_eq!(win["downsampled"], json!(true), "k < 窗口根数 ⇒ 抽样");
+        assert!(win["points"].as_array().unwrap().len() < n_net as usize);
+        // 单点窗口（**闭区间**）：window_bars=1 而 original_bars 仍为全序列根数
+        let r = call(&st, "bt_get_run_curve", json!({
+            "run_id": run_id, "from_ts": ts0, "to_ts": ts0 })).await;
+        let one = payload_of(&r);
+        assert_eq!(one["window_bars"], json!(1));
+        assert_eq!(one["original_bars"], json!(n_net));
+        for bad in [json!({ "run_id": run_id, "kind": "fills" }),
+                    json!({ "run_id": run_id, "kind": "bogus" }),
+                    json!({ "run_id": run_id, "kind": 1 })] {
+            let r = call(&st, "bt_get_run_curve", bad.clone()).await;
+            assert_eq!(r["error"]["code"], json!(-32602), "curve kind 校验：{bad}");
+        }
+
+        // ⑤ /audit 增量（§5.5）：round_trips_closed/open + rt_reconcile（I1/I2）
+        let r = call(&st, "bt_get_run_audit", json!({ "run_id": run_id })).await;
+        let audit = payload_of(&r);
+        assert_eq!(audit["round_trips_closed"].as_u64().unwrap() as usize, trades.len());
+        assert_eq!(audit["round_trips_open"], json!(0), "回测恒 0（02-spec §5.5）");
+        assert!(audit["rt_reconcile"]["checked"].as_u64().unwrap() >= 1);
+        assert_eq!(audit["rt_reconcile"]["mismatched"], json!([]), "I1/I2 自洽 ⇒ 无 mismatch");
+        assert!(audit["rt_reconcile"]["tolerance"].is_number());
+
+        // ⑥ 参数校验：必填/非法 → -32602（协议层）；未知 run → isError（工具层）
+        for (tool, bad) in [
+            ("bt_get_run_round_trips", json!({})),
+            ("bt_get_run_round_trip_fills", json!({})),
+            ("bt_get_run_round_trip_fills", json!({ "run_id": run_id })),
+            ("bt_get_run_round_trip_fills", json!({ "run_id": run_id, "rt_seq": -1 })),
+            ("bt_get_run_fills", json!({})),
+            ("bt_get_run_fills", json!({ "run_id": run_id, "limit": "x" })),
+            ("bt_get_run_curve", json!({})),
+            ("bt_get_run_curve", json!({ "run_id": run_id, "k": -1 })),
+        ] {
+            let r = call(&st, tool, bad.clone()).await;
+            assert_eq!(r["error"]["code"], json!(-32602), "{tool} {bad} ⇒ -32602");
+        }
+        for tool in ["bt_get_run_round_trips", "bt_get_run_fills", "bt_get_run_curve"] {
+            let r = call(&st, tool, json!({ "run_id": "sr_nope" })).await;
+            assert_eq!(r["result"]["isError"], json!(true), "{tool} 未知 run ⇒ isError");
+        }
+        let r = call(&st, "bt_get_run_round_trip_fills",
+            json!({ "run_id": "sr_nope", "rt_seq": 1 })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "未知 run ⇒ isError");
+    }
+
+    /// ADR-027 §6：sim-live **运行中 L1/L2 读**（形状同 §5.2/§5.3，键 = session_id + code）。
+    #[tokio::test]
+    async fn sim_round_trip_tools_contract() {
+        let st = sim_state();
+        let r = call(&st, "sim_start_session", json!({ "name": "rt", "period": "M1" })).await;
+        let sid = payload_of(&r)["id"].as_str().unwrap().to_string();
+        // 市价买入 1 笔 ⇒ 1 个 Open 回合（运行中可读；**不引入期末强平**）
+        let r = call(&st, "sim_place_order",
+            json!({ "session_id": sid, "code": "510300", "side": "buy", "qty": 1000, "price": 10.0 })).await;
+        assert_eq!(payload_of(&r)["filled"], json!(true));
+
+        // ① L1（未过滤 = 会话内全部标的）
+        let r = call(&st, "sim_get_round_trips", json!({ "session_id": sid })).await;
+        assert_eq!(r["result"]["isError"], json!(null), "L1 不得 isError");
+        let l1 = payload_of(&r);
+        assert_eq!(l1["session_id"], json!(sid));
+        assert_eq!(l1["code"], json!(null), "未过滤 ⇒ code=null（多标的会话）");
+        assert_eq!(l1["recorded"], json!(true));
+        assert_eq!(l1["total"], json!(1));
+        assert_eq!(l1["offset"], json!(0));
+        assert_eq!(l1["has_more"], json!(false));
+        assert_eq!(l1["next_offset"], json!(null));
+        let rt = &l1["round_trips"][0];
+        assert_eq!(rt["rt_seq"], json!(1));
+        assert_eq!(rt["code"], json!("510300"));
+        assert_eq!(rt["status"], json!("Open"), "未平仓 ⇒ Open");
+        assert_eq!(rt["pnl"], json!(null), "Open 禁造 pnl（02-spec §1.2）");
+        assert_eq!(rt["l2_count"], json!(1));
+        assert_eq!(rt["buy_count"], json!(1));
+        assert_eq!(rt["sell_count"], json!(0));
+        // ② code 过滤（§5.2 键扩展）+ 分页回声
+        let r = call(&st, "sim_get_round_trips", json!({ "session_id": sid, "code": "600000" })).await;
+        let other = payload_of(&r);
+        assert_eq!(other["code"], json!("600000"));
+        assert_eq!(other["total"], json!(0), "该标的无成交 ⇒ 空列表 total=0（非错误）");
+        let r = call(&st, "sim_get_round_trips", json!({ "session_id": sid, "limit": 1 })).await;
+        assert_eq!(payload_of(&r)["round_trips"].as_array().unwrap().len(), 1);
+
+        // ③ L2（键 = session_id + code + rt_seq）
+        let r = call(&st, "sim_get_round_trip_fills",
+            json!({ "session_id": sid, "code": "510300", "rt_seq": 1 })).await;
+        assert_eq!(r["result"]["isError"], json!(null), "L2 不得 isError");
+        let l2 = payload_of(&r);
+        assert_eq!(l2["rt_seq"], json!(1));
+        assert_eq!(l2["code"], json!("510300"));
+        assert_eq!(l2["total"], json!(1));
+        let f = &l2["fills"][0];
+        assert_eq!(f["rt_seq"], json!(1), "归属只由 rt_seq 决定");
+        assert_eq!(f["code"], json!("510300"));
+        assert_eq!(f["side"], json!("Buy"));
+        assert!(f["trade_value"].as_f64().unwrap() > 0.0);
+        assert!(f["commission"].as_f64().unwrap() > 0.0, "佣金由撮合点写入（P2）");
+        assert_eq!(f["stamp_duty"], json!(0.0), "买入印花税恒 0");
+        // 未知 (code, rt_seq) ⇒ isError（禁空数组冒充）
+        let r = call(&st, "sim_get_round_trip_fills",
+            json!({ "session_id": sid, "code": "510300", "rt_seq": 999 })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "未知回合 ⇒ isError");
+        let r = call(&st, "sim_get_round_trip_fills",
+            json!({ "session_id": sid, "code": "600000", "rt_seq": 1 })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "code 不匹配 ⇒ isError");
+        // 会话不存在 ⇒ isError
+        let r = call(&st, "sim_get_round_trips", json!({ "session_id": "s_nope" })).await;
+        assert_eq!(r["result"]["isError"], json!(true));
+        // 缺参/非法 ⇒ -32602
+        for (tool, bad) in [
+            ("sim_get_round_trips", json!({})),
+            ("sim_get_round_trips", json!({ "session_id": sid, "code": "" })),
+            ("sim_get_round_trip_fills", json!({ "session_id": sid })),
+            ("sim_get_round_trip_fills", json!({ "session_id": sid, "code": "510300" })),
+        ] {
+            let r = call(&st, tool, bad.clone()).await;
+            assert_eq!(r["error"]["code"], json!(-32602), "{tool} {bad} ⇒ -32602");
+        }
+    }
+
     #[tokio::test]
     async fn bt_run_ensemble_unpublished_and_invalid_config_are_is_error() {
         let (st, _fx) = strategy_state();
@@ -4595,13 +5212,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 35 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 9 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）
+    // 3. tools/list → 41 个工具（4 只读（I-4 加 list_symbols）+ 16 模拟实盘 + 8 strategy_* + 13 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit + ADR-027 §6）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 35, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 41, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -5135,11 +5752,18 @@ tangle 单属主原则：`crates/app/**` 与 `Dockerfile.app` 的代码块属主
   缺 sessionId 400、断连后会话注销（泄漏防护）。
 - 工具数据通路（真实库 :5433）：merge 准确层优先、健康聚合 0.75/degraded/last_error——
   与 web REST 同端口同口径（storage 端口实现复用，零新 SQL）。
-- **P3c（strategy_*/bt_*）**：tools/list 33 工具 schema 契约（名称序/必填/枚举/描述注明
+- **P3c（strategy_*/bt_*）**：tools/list 41 工具 schema 契约（名称序/必填/枚举/描述注明
   「统一策略系统 Registry」）；strategy CRUD 全流程（create→update 原地→publish→update 新 draft→
   catalog level/kind 过滤→archive）；test_run 双模式（inline pure_score 裸评分 / version sim_position
   信号+成交）；bt_run_ensemble happy（version_id 缺省 catalog 解析钉住 + fee 缺省 + 后台真实引擎
   跑至 succeeded + result 五 jsonb）+ 未发布/未知版本/非法 weight/policy isError；
+- **ADR-027 §6（结果载荷 v2）**：`bt_get_run_round_trips`（L1 分页/完整性自述/元素摘要字段）、
+  `bt_get_run_round_trip_fills`（rt_seq 归属；未知 rt_seq ⇒ isError 而非空数组）、
+  `bt_get_run_fills`（rt_seq + 费用三件套 + `round_trip` 过滤；未命中 ⇒ 空页非错误）、
+  `bt_get_run_curve`（`from_ts`/`to_ts` 闭区间窗口 + `window_*` 回显 + `kind=position`；
+  `kind=fills` ⇒ -32602）、`bt_get_run_audit` 增 `round_trips_closed/open` + `rt_reconcile`；
+  `sim_get_round_trips`/`sim_get_round_trip_fills`（运行中 L1/L2，键 = session_id + code，
+  未平仓 ⇒ `status=Open` + `pnl=null`）。
   run 查询/列表过滤分页/compare 跳过未知/终态取消 409/queued 取消；preset list/apply；
   参数校验 -32602 矩阵（缺参/非法枚举/非法时间戳/slot 结构）；未知 id isError；
   MCP 停用开关（关→全族 isError 含「停用」→开恢复）；服务未配置 isError。

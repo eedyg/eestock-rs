@@ -1,5 +1,7 @@
 // 页面⑪ 图表工具：复用页面⑤ 轻量 SVG 作图（不引新图表依赖，参照 09-frontend 折衷）。
-export { areaBelow, evenTickIndices, extentOf, lineFrom, mapLine } from '@/features/backtest/chartUtils';
+// ADR-028 D2.1：`mapLineByTs`（按共享窗口 ts 定义域映射 x）与 `mapLine` 并列导出；
+// `mapLine` 语义与 3 个既有调用点保持不变。
+export { areaBelow, evenTickIndices, extentOf, lineFrom, mapLine, mapLineByTs } from '@/features/backtest/chartUtils';
 export type { SvgPoint } from '@/features/backtest/chartUtils';
 
 /** 图表折线抽样上限（ADR §13.4：per_bar 全量落库，UI 端抽样渲染——分钟级 3 个月 ~3.7 万点，

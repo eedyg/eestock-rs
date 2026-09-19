@@ -547,7 +547,9 @@ async fn market_buy_fills_at_latest_applies_account_and_persists() {
         .expect("市价即时成交");
     close(fill.price, 10.002); // 含滑点
     close(fill.qty, 1000.0);
-    close(fill.fee, 5.0); // 佣金 10002×0.025% < 5 → 取 5
+    close(fill.fee(), 5.0); // 佣金 10002×0.025% < 5 → 取 5（fee 为派生合计 = commission + stamp_duty）
+    close(fill.commission, 5.0);
+    close(fill.stamp_duty, 0.0); // 买入恒 0
 
     let acct = svc.get_account(&id).unwrap();
     close(acct.cash, 1_000_000.0 - 1000.0 * 10.002 - 5.0);
@@ -3051,4 +3053,105 @@ async fn p4a_thresholds_must_straddle_neutral_50() {
     let err = svc.start_session(&req4).await.unwrap_err();
     assert!(err.downcast_ref::<InvalidConfig>().is_some(), "sell=55 拒绝");
     // 合法夹 50 自定义阈值仍可用（30/70 已由 p4a_custom_thresholds_pinned_and_used 覆盖）。
+}
+
+
+// ── ADR-027 P2：运行中 L1/L2 读（复用唯一聚合实现；Open 语义；多标的按 (code, rt_seq)）──
+
+/// P2 判据：运行中读（未 stop）产出 L1 回合列表 —— 复用 `backtest::aggregate_round_trips`：
+/// - 多标的按 `(code, rt_seq)` 分组（code 用真实成交代码）；
+/// - 未平仓回合以 `status = Open` 出现在同一列表且 `pnl = None`（**不引入期末强平**）；
+/// - 已平仓回合费用三件套逐笔加总（I1：Σ L2 == L1），无 FIFO 分摊；
+/// - L2 切片按 `(code, rt_seq)` 取，未知回合 → `None`（不冒充空数组）。
+#[tokio::test]
+async fn adr027_p2_running_round_trips_and_fills_read() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = started(store.clone()).await;
+
+    let order = |code: &str, side: &str, qty: f64| PlaceOrderReq {
+        code: code.into(),
+        side: side.into(),
+        qty,
+        limit_price: None,
+        intent_id: None,
+        source: "manual".into(),
+    };
+    // 510300：买 1000 后不平仓 → Open 回合（rt_seq = 1）
+    svc.place_order(&id, &order("510300", "buy", 1000.0), 10.0).await.unwrap().expect("买成交");
+    // 159915：买 500 → 卖 500 → Closed 回合（rt_seq = 1，每 code 独立编号）
+    svc.place_order(&id, &order("159915", "buy", 500.0), 10.0).await.unwrap().expect("买成交");
+    svc.place_order(&id, &order("159915", "sell", 500.0), 12.0).await.unwrap().expect("卖成交");
+
+    let rts = svc.round_trips(&id).await.expect("运行中 L1 读");
+    assert_eq!(rts.len(), 2, "两标的各 1 个回合（每 code 独立 rt_seq）");
+    assert_eq!(rts[0].code, "510300", "输出顺序 = code 首现升序");
+    assert_eq!(rts[1].code, "159915");
+    assert_eq!(rts[0].rt_seq, 1);
+    assert_eq!(rts[1].rt_seq, 1);
+
+    // Open 回合：pnl/close_ts/close_bar/hold_bars 恒 None（禁止造数），只披露毛额与费用。
+    let open = &rts[0];
+    assert_eq!(open.status, backtest::RoundTripStatus::Open);
+    assert!(open.pnl.is_none(), "Open ⇒ pnl 恒 None（禁止伪造成交）");
+    assert!(open.close_ts.is_none() && open.close_bar.is_none() && open.hold_bars.is_none());
+    assert!(open.close_price.is_none(), "无卖出 ⇒ close_price None（禁造 0）");
+    close(open.gross_value, 0.0);
+    close(open.commission, 5.0); // 买腿最低佣金
+    close(open.stamp_duty, 0.0);
+    close(open.shares, 1000.0);
+    assert_eq!((open.l2_count, open.buy_count, open.sell_count), (1, 1, 0));
+
+    // Closed 回合：费用三件套 = 逐笔事实加总（I1），pnl = 卖出净得 − 买入总成本。
+    let fee = backtest::FeeModel::default();
+    let buy_tv = 500.0 * fee.buy_price(10.0);
+    let buy_comm = fee.commission(buy_tv);
+    let sell_tv = 500.0 * fee.sell_price(12.0);
+    let sell_comm = fee.commission(sell_tv);
+    let sell_stamp = fee.stamp_duty(sell_tv);
+    let closed = &rts[1];
+    assert_eq!(closed.status, backtest::RoundTripStatus::Closed);
+    assert_eq!(closed.reason.as_deref(), Some("Manual"), "来源映射 manual → Manual");
+    close(closed.gross_value, sell_tv);
+    close(closed.commission, buy_comm + sell_comm);
+    close(closed.stamp_duty, sell_stamp);
+    close(closed.pnl.expect("Closed ⇒ pnl Some"), (sell_tv - sell_comm - sell_stamp) - (buy_tv + buy_comm));
+    assert_eq!((closed.l2_count, closed.buy_count, closed.sell_count), (2, 1, 1));
+
+    // L2 切片：按 (code, rt_seq) 取；未知回合/未知 code → None（P3 映射 404）。
+    let l2 = svc.round_trip_fills(&id, "159915", 1).await.unwrap().expect("该回合有成交");
+    assert_eq!(l2.len(), 2);
+    assert_eq!(l2[0].side, backtest::OrderSide::Buy);
+    assert_eq!(l2[1].side, backtest::OrderSide::Sell);
+    close(l2[1].commission, sell_comm);
+    close(l2[1].stamp_duty, sell_stamp);
+    close(l2[1].trade_value, 500.0 * l2[1].price);
+    assert!(svc.round_trip_fills(&id, "159915", 9).await.unwrap().is_none(), "未知 rt_seq → None");
+    assert!(svc.round_trip_fills(&id, "588000", 1).await.unwrap().is_none(), "未知 code → None");
+    assert!(svc.round_trips("s_no_such_0").await.is_err(), "未知会话 → Err（非空列表）");
+}
+
+/// P2 判据（Open 不参与绩效）：`compute_metrics` 只吃 Closed；Open 回合不进 trade_count/win_rate。
+#[tokio::test]
+async fn adr027_p2_open_round_trip_excluded_from_metrics() {
+    let store = Arc::new(MockSimStore::default());
+    let (svc, id) = started(store.clone()).await;
+    svc.place_order(
+        &id,
+        &PlaceOrderReq {
+            code: "510300".into(), side: "buy".into(), qty: 1000.0,
+            limit_price: None, intent_id: None, source: "manual".into(),
+        },
+        10.0,
+    ).await.unwrap().expect("买成交");
+
+    assert!(svc.stop_session(&id).await.unwrap(), "stop 成功");
+    let result = store.results.lock().unwrap().get(&id).cloned().expect("结束结果已落库");
+    let trades = result.trades.as_array().expect("trades 数组");
+    assert_eq!(trades.len(), 1, "未平仓回合出现在同一列表（status = Open）");
+    assert_eq!(trades[0]["status"], "Open");
+    assert!(trades[0]["pnl"].is_null(), "Open ⇒ pnl 恒 None");
+    assert_eq!(trades[0]["code"], "510300", "code = 真实成交代码");
+    let metrics = &result.metrics;
+    assert_eq!(metrics["trade_count"].as_u64().unwrap_or_default(), 0, "Open 不进 trade_count");
+    assert_eq!(metrics["win_rate"].as_f64().unwrap_or_default(), 0.0, "Open 不进 win_rate");
 }

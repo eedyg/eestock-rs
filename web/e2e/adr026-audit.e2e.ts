@@ -140,7 +140,7 @@ async function summaryLines(page: Page): Promise<{ l1: string; l2: string; warni
 /** 来源列全部取值（逐行）。 */
 async function sourceCells(page: Page): Promise<string[]> {
   return page
-    .locator('[data-testid^="wb-trade-source-"]')
+    .locator('[data-testid^="wb-rt-source-"]')
     .evaluateAll((els) => els.map((e) => (e.textContent ?? '').trim()));
 }
 
@@ -182,7 +182,7 @@ async function summaryMismatches(page: Page): Promise<string[]> {
     );
   }
 
-  const headers = (await page.getByTestId('wb-trades-table').locator('th').allInnerTexts()).map((s) => s.trim());
+  const headers = (await page.getByTestId('wb-round-trips-table').locator('th').allInnerTexts()).map((s) => s.trim());
   push('交易明细表头含「来源」', headers.includes('来源'), JSON.stringify(headers));
   return m;
 }
@@ -211,7 +211,7 @@ test('10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning
   await shot(page, '10_trades_tab');
   await shot(page, '10b_trades_tab_fullpage', true);
   await shotEl(page, 'wb-audit-summary', '10c_audit_summary_el');
-  await shotEl(page, 'wb-trades-table', '10d_trades_table_el');
+  await shotEl(page, 'wb-round-trips-table', '10d_trades_table_el');
 
   const lines = await summaryLines(page);
   writeJson('10_baseline_trades_lines', lines);
@@ -263,7 +263,7 @@ test('12_legacy_sources：历史 run（无 reason 字段）来源列全部「未
   const obs = attachObservers(page);
   await openRun(page, LEGACY_MULTI);
   await shot(page, '12_legacy_sources');
-  await shotEl(page, 'wb-trades-table', '12b_legacy_trades_table_el');
+  await shotEl(page, 'wb-round-trips-table', '12b_legacy_trades_table_el');
 
   const sources = await sourceCells(page);
   writeJson('12_legacy_sources', { runId: LEGACY_MULTI, sources });
@@ -286,7 +286,7 @@ test('13_reason_injection：真实浏览器下 reason=ForceClose ⇒ 来源列�
   });
   await openRun(page, TARGET);
   await shot(page, '13_reason_injection');
-  await shotEl(page, 'wb-trades-table', '13b_reason_table_el');
+  await shotEl(page, 'wb-round-trips-table', '13b_reason_table_el');
   const sources = await sourceCells(page);
   writeJson('13_reason_injection', { runId: TARGET, sources });
   expect(sources[0]).toBe('期末强平');
@@ -314,7 +314,7 @@ test('14_control_audit_500：审计端点 500 ⇒ 错误态 + console/网络采�
   const errText = await page.getByTestId('wb-audit-error').innerText();
   expect(errText).toContain('审计加载失败');
   await expect(page.getByTestId('wb-audit-retry')).toBeVisible();
-  await expect(page.getByTestId('wb-trades-table')).toBeVisible();
+  await expect(page.getByTestId('wb-round-trips-table')).toBeVisible();
   await shot(page, '14_control_audit_500');
 
   // 采集器对照：正向用例里 consoleErrors/httpErrors 为空数组，必须有「非空」的对照才不算假绿

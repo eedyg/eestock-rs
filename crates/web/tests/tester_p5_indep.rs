@@ -659,7 +659,22 @@ async fn t_p5_http_structured_error_shape() {
         violations.join("\n"));
 
     sqlx::query("DELETE FROM strategy_run WHERE symbol = $1").bind(&code).execute(&pool).await.unwrap();
+    // 删完即重算（ADR-023 §6.1 第 8 条 / §6.3 第 12 条）：本用例夹具 = base()=2026-09-09 起 6 根 M1，
+    // 落在 CST 周桶 2026-09-07 与月桶 2026-09-01。cagg 物化行**不随** symbols/源行删除回删 ⇒ 只删 symbols
+    // 会在 kline_accurate_1w/_1mo 留下孤儿（实测每跑一次 +2）。故：源行与 symbols 都删，再按**桶边界**
+    // 有界 refresh（禁 NULL,NULL 全量刷，见 orphan_detect_endpoint_red::R5）。
+    sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(&code).execute(&pool).await.unwrap();
     sqlx::query("DELETE FROM symbols WHERE code = $1").bind(&code).execute(&pool).await.unwrap();
+    // 窗口按 CST 桶边界（周/月起点在 UTC 恒为 16:00）：
+    //   周桶 [2026-08-30 16:00Z, 2026-09-13 16:00Z)（含 08-31 与 09-07 两周）；
+    //   月桶 [2026-07-31 16:00Z, 2026-09-30 16:00Z)（含 8/9 月）。
+    for (v, from, to) in [
+        ("kline_accurate_1w", "2026-08-30 16:00:00+00", "2026-09-13 16:00:00+00"),
+        ("kline_accurate_1mo", "2026-07-31 16:00:00+00", "2026-09-30 16:00:00+00"),
+    ] {
+        sqlx::query(&format!("CALL refresh_continuous_aggregate('{v}', '{from}', '{to}')"))
+            .execute(&pool).await.unwrap();
+    }
 }
 
 // ═══════════════ ⑥ 试算同口径（D11）+ 均匀抽样保首尾 ═══════════════

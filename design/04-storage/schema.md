@@ -1275,6 +1275,97 @@ CREATE INDEX IF NOT EXISTS strategy_run_bars_run_kind_ts_idx  ON strategy_run_ba
 **应用方式**：`psql -v ON_ERROR_STOP=1 -f migrations/0027_strategy_run_result_chunks.sql`（本迁移无 cagg，
 可用单事务；仍按既有惯例记录应用证据）。
 
+⚠️ **ADR-027 P4b 修订（2026-09-20）**：本节 0027 块的 `kind` CHECK 为**四值**（`per_bar`/`net_value`/
+`drawdown`/`fills`），**不是**当前全集 —— P3 起新增 `position` 分块，kind 全集由 §4.3.20 的 0029 迁移
+扩为**五值**。0027 已应用于真库，其块内容保持**应用时原样**不改写（已应用迁移 = 历史记录，
+新增成员一律走**追加迁移**，避免「文件与真库不一致」的审计漂移）。
+
+## 4.3.19 sim_trades 费用分列（ADR-027 D4，0028；口径见 17-trade-detail-layering/02-spec.md §1.1/§8）
+
+**上下文**：ADR-027 D4「费用 = 上游事实源分列（禁止下游复算）」——sim-live 撮合点
+（`crates/simlive/src/fill.rs::FillEngine::try_fill`）**本就算出**佣金与印花税两者，落库时被合并为单列
+`fee`（事实丢失），导致结算侧只能硬编码 `stamp_duty: 0.0`（`application/src/simlive.rs` 旧 `sim_trades_to_trade_details`）。
+
+**变更**：`sim_trades` 增 `commission` / `stamp_duty` 两列（`float8 NOT NULL DEFAULT 0`），
+**保留** `fee` 列并使之成为**冗余合计列**：`fee = commission + stamp_duty`（列注释写明，迁移内 `COMMENT ON COLUMN` 固化）。
+**禁止**下游（结算/聚合/端点）按 `(side, qty, price)` + 费率复算费用三件套 —— `FeeModel` 最低佣金分支
+（`backtest/src/fee.rs` 建仓预算先减后除）不可逆，复算即成为第二事实源（同物异值）。
+
+**历史数据**：旧行两列取列默认值 `0`（其 `fee` 列的合并值保留原样）；按 ADR-027 D3，sim-live 历史会话在
+收尾波次与回测历史**同批**清空（先 `pg_dump` 归档再 `TRUNCATE`），故不提供旧值回填。
+
+**幂等与应用**：`ADD COLUMN IF NOT EXISTS` ⇒ 重复执行安全；`COMMENT ON COLUMN` 重跑等价。
+应用方式：`psql -v ON_ERROR_STOP=1 -f migrations/0028_sim_trades_fee_split.sql`（本迁移无 cagg，可用单事务）。
+⚠️ **顺序硬约束**：本迁移**先于**新二进制上线（`crates/storage/src/sim.rs` 的 INSERT/SELECT 已含两列，
+缺列会运行期报错）。
+
+``` {.sql file=migrations/0028_sim_trades_fee_split.sql}
+-- 0028_sim_trades_fee_split.sql — 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- ADR-027 D4（费用分列，2026-09-20）：sim_trades 增 commission / stamp_duty（事实源两列），
+-- 保留 fee 列（冗余，语义 = commission + stamp_duty，便于既有查询）。
+-- 口径：费用三件套由撮合点写入（crates/simlive/src/fill.rs），禁止下游按费率复算。
+-- 历史行：两列取默认 0；按 ADR-027 D3 历史会话在收尾波次同批清空（不提供回填）。
+-- 应用：psql -v ON_ERROR_STOP=1 -f migrations/0028_sim_trades_fee_split.sql
+
+ALTER TABLE sim_trades
+    ADD COLUMN IF NOT EXISTS commission float8 NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS stamp_duty float8 NOT NULL DEFAULT 0;
+
+COMMENT ON COLUMN sim_trades.commission IS '本笔佣金（含最低佣金；ADR-027 D4 事实源，禁止下游复算）';
+COMMENT ON COLUMN sim_trades.stamp_duty IS '本笔印花税（买入恒 0；ADR-027 D4 事实源）';
+COMMENT ON COLUMN sim_trades.fee        IS '费用合计 = commission + stamp_duty（冗余列，便于既有查询）';
+```
+
+## 4.3.20 `strategy_run_bars.kind` 扩 `position`（ADR-027 D9 / §4.1，0029）
+
+**上下文（事实源修订）**：ADR-027 §4.1 新增结果序列 `position`（持仓比率序列，与 `net_value`
+**同点**产出；口径见 `design/17-trade-detail-layering/02-spec.md` §4.1/§4.2）。P3 起**所有**分块化
+run 都在 `net_value` 同级写 `position` 块（`c5c_position_chunk_written_alongside_net_value` 断言同块数）。
+但 §4.3.18 的 0027 把 `strategy_run_bars.kind` 冻结为**四值** CHECK ⇒ 任何新 run 在结果落库阶段
+`violates check constraint "strategy_run_bars_kind_check"`、`status=failed` —— 这不是「新功能缺失」，
+而是**既有功能回归**（本波前所有 run 均 succeeded；取证：
+`tester/evidence/20260920_adr027_accept/raw/e2e/01_run.json` / `02_run2.json`，
+真库现状 `raw/e2e/05_db_constraint.txt`）。
+
+**kind 全集（本迁移后的事实源定义，唯一权威）**：
+
+```text
+CHECK (kind IN ('per_bar','net_value','drawdown','fills','position'))
+```
+
+语义（与 §4.3.18 一致，仅追加成员）：`per_bar` = 逐 bar 明细事实；`net_value` / `drawdown` /
+`position` = **可显式抽样**的曲线（`position` 与 `net_value` 同点、同长度；抽样口径见 02-spec §4.2）；
+`fills` = **不可抽样**的成交明细事实源。
+
+**实现（0029）：替换约束，不新建表**。`DROP CONSTRAINT IF EXISTS` + `ADD CONSTRAINT` 同名重建 ⇒
+重复执行等价（幂等，与项目既有迁移风格一致）；旧约束名由 0027 的内联 `CHECK` 自动生成
+（`<table>_<column>_check` = `strategy_run_bars_kind_check`），故 `DROP` 后 `ADD` 得到同名约束、
+列定义与索引一律不动（additive 到数据面：无行改写、无列变更）。
+
+**顺序硬约束**：本迁移**先于**新二进制写入 `position` 块；否则新 run 继续 check 违规。
+本迁移无 cagg，可用单事务。**应用方式**：
+`psql -v ON_ERROR_STOP=1 -f migrations/0029_strategy_run_bars_kind_position.sql`。
+
+**回滚（未使用，备查）**：先删除库内全部 `kind='position'` 分块行（`DELETE FROM strategy_run_bars
+WHERE kind='position'`），再重建四值约束；本波按纪律**不执行**任何 `DELETE`/`TRUNCATE`。
+
+``` {.sql file=migrations/0029_strategy_run_bars_kind_position.sql}
+-- 0029_strategy_run_bars_kind_position.sql —— 由 design/04-storage/schema.md tangle 生成，禁止手改
+-- ADR-027 D9 / §4.1（2026-09-20）：结果分块增 kind='position'（持仓比率序列，与 net_value 同点；
+-- 口径见 design/17-trade-detail-layering/02-spec.md §4.1/§4.2）。
+-- 背景：0027 的 CHECK 冻结为四值（per_bar/net_value/drawdown/fills），而 P3 起所有分块 run 都写
+-- position 块 ⇒ 新回测 run 一律 check 约束违规、status=failed（既有功能回归）。本迁移为修复件。
+-- 幂等：DROP CONSTRAINT IF EXISTS + 同名 ADD CONSTRAINT（重跑等价；约量：无行改写、无列变更）。
+-- 应用：psql -v ON_ERROR_STOP=1 -f migrations/0029_strategy_run_bars_kind_position.sql
+
+ALTER TABLE strategy_run_bars
+    DROP CONSTRAINT IF EXISTS strategy_run_bars_kind_check;
+
+ALTER TABLE strategy_run_bars
+    ADD CONSTRAINT strategy_run_bars_kind_check
+    CHECK (kind IN ('per_bar','net_value','drawdown','fills','position'));
+```
+
 ## 4.4 设计注记
 
 1. 采集服务是 `kline_raw` 的**逻辑单写者**（批量去重/源状态机收敛一处）；tushare 同步任务只写 `kline_accurate`，两写者物理零冲突（ADR-002/003）

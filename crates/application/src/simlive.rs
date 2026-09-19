@@ -13,8 +13,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use backtest::{
-    Bar, FeeModel, ParamValue, Period, StrategyParams, TradeDetail,
-    compute_drawdown, compute_metrics,
+    aggregate_round_trips, assign_rt_seq, Bar, FeeModel, FillFact, FillReason, OrderSide,
+    ParamValue, Period, StrategyParams, TradeDetail, compute_drawdown, compute_metrics,
 };
 use domain::ports::{
     Clock, KlineRead, NewSimSession, NewSimTrade, SimPositionRow, SimSessionResult, SimSessionState,
@@ -674,15 +674,7 @@ impl SimLiveService {
         // 成交明细回填（重建 SessionManager.trades；sim_trades 已按 ts 升序读回）。
         let mut trades = Vec::new();
         for t in self.store.list_trades(&view.id).await? {
-            trades.push(SimTrade {
-                code: t.code,
-                side: Side::parse(&t.side).ok_or_else(|| anyhow!("未知方向：{}", t.side))?,
-                qty: t.qty,
-                price: t.price,
-                ts: t.ts.timestamp(),
-                fee: t.fee,
-                source: t.source,
-            });
+            trades.push(sim_trade_from_row(t)?);
         }
         let orders: Vec<SimOrder> = serde_json::from_value(state.orders.clone()).unwrap_or_default();
         let trading_enabled = state.trading_enabled;
@@ -716,7 +708,8 @@ impl SimLiveService {
                         side: o.side,
                         qty: o.filled_qty,
                         price,
-                        fee: o.fee,
+                        commission: o.commission,
+                        stamp_duty: o.stamp_duty,
                     });
                 }
             }
@@ -802,7 +795,7 @@ impl SimLiveService {
             // L3：结束结算用 backtest 指标口径（8 项；结构=backtest_run：
             // net_value={series,drawdown}, trades=TradeDetail 已平仓配对, metrics=BacktestMetrics）。
             let bt_period = bt_period_from_str(&session.period);
-            let detail = sim_trades_to_trade_details(&state.trades, bt_period);
+            let detail = sim_trades_to_trade_details(&state.trades, session.start_ts, bt_period);
             let metrics = compute_metrics(&state.net_value_series, &detail, session.cash_init, bt_period);
             let drawdown = compute_drawdown(&state.net_value_series);
             let result = SimSessionResult {
@@ -815,6 +808,62 @@ impl SimLiveService {
         let _ = ended;
         let updated = self.store.mark_end(session_id, now, &result).await?;
         Ok(updated)
+    }
+
+    // ── ADR-027 P2：运行中 L1/L2 读（纯派生读；HTTP 路由留 P3）──
+
+    /// 会话成交事实账本（读路径共用）：`sim_trades`（`id` 升序 = 到达顺序）→ `FillFact`
+    /// → `backtest::assign_rt_seq`（**唯一打号实现**，D6：禁窗口推断）。
+    ///
+    /// `bar_index` = 会话内真实 bar 序号（相对 `session.start_ts`；禁 `ts / bar_sec` 反算）。
+    /// 未知会话 → Err（P3 映射 404，不用空列表冒充）。
+    async fn session_fill_facts(&self, session_id: &str) -> anyhow::Result<Vec<FillFact>> {
+        let view = self
+            .store
+            .get_session(session_id)
+            .await?
+            .ok_or_else(|| anyhow!("会话不存在：{session_id}"))?;
+        let rows = self.store.list_trades(session_id).await?;
+        let trades: Vec<SimTrade> = rows
+            .into_iter()
+            .map(sim_trade_from_row)
+            .collect::<anyhow::Result<_>>()?;
+        let bar_sec = bt_bar_seconds(bt_period_from_str(&view.period));
+        let mut facts = sim_trades_to_fill_facts(&trades, view.start_ts.timestamp(), bar_sec);
+        assign_rt_seq(&mut facts);
+        Ok(facts)
+    }
+
+    /// 运行中 **L1 回合列表**（会话进行中可取，与结算同口径）：复用唯一聚合实现
+    /// `backtest::aggregate_round_trips`（**禁止第二份配对/聚合**）。
+    ///
+    /// 未平仓回合以 `status = Open` 出现在同一列表且 `pnl = None`（**不引入期末强平**，不伪造成交）；
+    /// 输出顺序 = `code` 首现升序，`code` 内 `rt_seq` 升序（聚合函数口径）。
+    pub async fn round_trips(&self, session_id: &str) -> anyhow::Result<Vec<TradeDetail>> {
+        let facts = self.session_fill_facts(session_id).await?;
+        Ok(aggregate_round_trips(&facts))
+    }
+
+    /// 运行中 **L2 回合成交切片**：按 `(code, rt_seq)` 取该回合的逐笔成交事实（懒加载，D8）。
+    ///
+    /// 未知回合（该会话无此 `(code, rt_seq)`）→ `Ok(None)`（P3 映射 404；
+    /// **禁止**用空数组冒充「回合无成交」）。
+    pub async fn round_trip_fills(
+        &self,
+        session_id: &str,
+        code: &str,
+        rt_seq: u32,
+    ) -> anyhow::Result<Option<Vec<FillFact>>> {
+        let facts = self.session_fill_facts(session_id).await?;
+        let slice: Vec<FillFact> = facts
+            .into_iter()
+            .filter(|f| f.code == code && f.rt_seq == rt_seq)
+            .collect();
+        if slice.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(slice))
+        }
     }
 
     // ── 11-sim-live / L3b：web 面板（与 MCP 共享同一服务实例）──
@@ -891,7 +940,8 @@ impl SimLiveService {
                         qty: f.qty,
                         price: f.price,
                         ts,
-                        fee: f.fee,
+                        commission: f.commission,
+                        stamp_duty: f.stamp_duty,
                         source: req.source.clone(),
                     };
                     live.manager.record_trade(trade.clone());
@@ -907,7 +957,9 @@ impl SimLiveService {
                         status: OrderStatus::Filled,
                         filled_price: Some(f.price),
                         filled_qty: f.qty,
-                        fee: f.fee,
+                        fee: f.fee(),
+                        commission: f.commission,
+                        stamp_duty: f.stamp_duty,
                         ts,
                         source: req.source.clone(),
                     });
@@ -933,6 +985,8 @@ impl SimLiveService {
                         filled_price: None,
                         filled_qty: 0.0,
                         fee: 0.0,
+                        commission: 0.0,
+                        stamp_duty: 0.0,
                         ts,
                         source: req.source.clone(),
                     });
@@ -952,7 +1006,9 @@ impl SimLiveService {
                     price: t.price,
                     ts: DateTime::from_timestamp(t.ts, 0)
                         .unwrap_or_else(|| self.clock.now()),
-                    fee: t.fee,
+                    commission: t.commission,
+                    stamp_duty: t.stamp_duty,
+                    fee: t.fee(),
                     source: t.source,
                 })
                 .await?;
@@ -1307,7 +1363,8 @@ impl SimLiveService {
                             qty: fill.qty,
                             price: fill.price,
                             ts,
-                            fee: fill.fee,
+                            commission: fill.commission,
+                            stamp_duty: fill.stamp_duty,
                             source: "aggregate_strategy".into(),
                         };
                         live.manager.record_trade(trade.clone());
@@ -1323,7 +1380,9 @@ impl SimLiveService {
                             status: OrderStatus::Filled,
                             filled_price: Some(fill.price),
                             filled_qty: fill.qty,
-                            fee: fill.fee,
+                            fee: fill.fee(),
+                            commission: fill.commission,
+                            stamp_duty: fill.stamp_duty,
                             ts,
                             source: "aggregate_strategy".into(),
                         });
@@ -1364,7 +1423,9 @@ impl SimLiveService {
                     qty: trade.qty,
                     price: trade.price,
                     ts: DateTime::from_timestamp(trade.ts, 0).unwrap_or_else(|| self.clock.now()),
-                    fee: trade.fee,
+                    commission: trade.commission,
+                    stamp_duty: trade.stamp_duty,
+                    fee: trade.fee(),
                     source: trade.source,
                 })
                 .await?;
@@ -1852,80 +1913,88 @@ fn bt_bar_seconds(period: Period) -> i64 {
     }
 }
 
-/// 把模拟会话成交明细（SimTrade，FIFO per code）配对成 backtest 口径的**已平仓** `TradeDetail` 列表。
-/// 仅“卖出有对应买入”的已平仓段计入（胜率/交易笔数/持仓时长口径=backtest）；
-/// 期末未实现持仓（未平仓）不进入 `win_rate`/`trade_count`/`avg_hold_bars`（与 backtest 强制平仓口径一致）。
-/// 费用按其占成交量比例分摊到平仓段（买/卖各一次）；`stamp_duty` 已含在 sim 的 `fee` 内，此处单列 ≈0 保留字段。
-/// 确定性、无随机：输入 k 条成交 → 输出确定的一组 TradeDetail。
-fn sim_trades_to_trade_details(trades: &[SimTrade], period: Period) -> Vec<TradeDetail> {
-    use std::collections::{BTreeMap, VecDeque};
+/// 存储行（`NewSimTrade`，`sim_trades` 一行）→ 会话成交明细（`SimTrade`）。
+/// 恢复重建与运行中读路径共用**同一映射**（费用两列直取事实，禁止复算）。
+fn sim_trade_from_row(t: NewSimTrade) -> anyhow::Result<SimTrade> {
+    let side = Side::parse(&t.side).ok_or_else(|| anyhow!("未知方向：{}", t.side))?;
+    Ok(SimTrade {
+        code: t.code,
+        side,
+        qty: t.qty,
+        price: t.price,
+        ts: t.ts.timestamp(),
+        commission: t.commission,
+        stamp_duty: t.stamp_duty,
+        source: t.source,
+    })
+}
 
-    /// 开仓 lot（FIFO）。
-    struct Lot {
-        open_ts: i64,
-        open_price: f64,
-        open_qty: f64,
-        remaining: f64,
-        fee: f64,
+/// 会话内**真实 bar 序号**（0-based，相对会话起点）：`(ts − session_start_ts) / bar_sec`。
+///
+/// ADR-027 §2.13 / 02-spec §1.1：**禁止**用绝对纪元商 `ts / bar_sec` 反算 bar 序号
+/// （该值与时序语义无关，见 R4 复现：`1788400817 / 60 = 29806680`）。
+/// sim-live 的 bar 网格起点 = 会话 `start_ts`（回测侧由引擎逐根递增的 bar 计数器承载）。
+/// 成交早于会话起点（时钟回拨/脏数据）⇒ 0（不产出负序号）。
+fn session_bar_index(session_start_ts: i64, ts: i64, bar_sec: i64) -> usize {
+    if bar_sec <= 0 {
+        return 0;
     }
+    ((ts - session_start_ts).max(0) / bar_sec) as usize
+}
 
-    let bar_sec = bt_bar_seconds(period);
-    let mut open: BTreeMap<String, VecDeque<Lot>> = BTreeMap::new();
-    let mut closed: Vec<TradeDetail> = Vec::new();
-
-    for t in trades {
-        match &t.side {
-            Side::Buy => {
-                open.entry(t.code.clone()).or_default().push_back(Lot {
-                    open_ts: t.ts,
-                    open_price: t.price,
-                    open_qty: t.qty,
-                    remaining: t.qty,
-                    fee: t.fee,
-                });
-            }
-            Side::Sell => {
-                let Some(queues) = open.get_mut(&t.code) else { continue };
-                let mut sell_remaining = t.qty;
-                while sell_remaining > 0.0 {
-                    let Some(lot) = queues.front_mut() else { break };
-                    let matched = lot.remaining.min(sell_remaining);
-                    if matched <= 0.0 {
-                        break;
-                    }
-                    let ratio = matched / lot.open_qty;
-                    let buy_fee_share = lot.fee * ratio;
-                    let sell_fee_share = t.fee * (matched / t.qty);
-                    let buy_cost = lot.open_price * matched + buy_fee_share;
-                    let sell_gross = t.price * matched;
-                    let pnl = (sell_gross - sell_fee_share) - buy_cost;
-                    let open_bar = (lot.open_ts / bar_sec) as usize;
-                    let close_bar = (t.ts / bar_sec) as usize;
-                    closed.push(TradeDetail {
-                        open_ts: lot.open_ts,
-                        close_ts: t.ts,
-                        open_bar,
-                        close_bar,
-                        open_price: lot.open_price,
-                        close_price: t.price,
-                        shares: matched,
-                        gross_value: sell_gross,
-                        commission: buy_fee_share + sell_fee_share,
-                        stamp_duty: 0.0,
-                        pnl,
-                        hold_bars: close_bar.saturating_sub(open_bar),
-                        // ADR-026 Red：字段已声明但尚未接线（simlive 侧无引擎清仓来源可写）。
-                        reason: None,
-                    });
-                    lot.remaining -= matched;
-                    sell_remaining -= matched;
-                    if lot.remaining <= 1e-9 {
-                        queues.pop_front();
-                    }
-                }
-            }
-        }
+/// `SimTrade.source` → `backtest::FillReason` 映射（02-spec §1.1：sim 的 source 映射
+/// strategy → Policy，manual → Manual；`aggregate_strategy` 为策略驱动自动单 ⇒ Policy；
+/// 未知来源保守归 Manual，**不造** ForceClose/StopTrigger 语义——sim-live 无期末强平）。
+fn fill_reason_from_source(source: &str) -> FillReason {
+    match source {
+        "strategy" | "aggregate_strategy" => FillReason::Policy,
+        _ => FillReason::Manual,
     }
+}
 
-    closed
+/// 模拟会话成交明细（SimTrade）→ L2 **成交事实账本**（`backtest::FillFact`）。
+///
+/// 事实源纪律（ADR-027 D4）：
+/// - `commission` / `stamp_duty` / `price` 直接取自撮合点写入的事实，**禁止**按费率复算；
+/// - `trade_value = qty × price`（与撮合点同一表达式/同操作数 ⇒ 逐位相等；`sim_trades` 不存该列）；
+/// - `rt_seq` 置 0 占位，由 `backtest::assign_rt_seq`（唯一实现）统一分配（D6：禁窗口推断）。
+///
+/// 输入顺序 = `sim_trades` 到达顺序（`id` 升序，即 append 顺序）⇒ 满足聚合函数「按
+/// (code, 到达顺序) 有序」的输入要求。
+fn sim_trades_to_fill_facts(
+    trades: &[SimTrade],
+    session_start_ts: i64,
+    bar_sec: i64,
+) -> Vec<FillFact> {
+    trades
+        .iter()
+        .map(|t| FillFact {
+            rt_seq: 0, // 占位：由 assign_rt_seq 统一打号
+            code: t.code.clone(),
+            bar_index: session_bar_index(session_start_ts, t.ts, bar_sec),
+            ts: t.ts,
+            side: match t.side {
+                Side::Buy => OrderSide::Buy,
+                Side::Sell => OrderSide::Sell,
+            },
+            qty: t.qty,
+            price: t.price,
+            trade_value: t.qty * t.price,
+            commission: t.commission,
+            stamp_duty: t.stamp_duty,
+            reason: fill_reason_from_source(&t.source),
+        })
+        .collect()
+}
+
+/// 成交明细 → L1 回合列表（结算/运行中读共用入口）。
+///
+/// **唯一聚合实现**（ADR-027 D7）：`assign_rt_seq` 打号 + `aggregate_round_trips` 分组求和，
+/// 本模块不自建第二份配对/分摊逻辑（旧 FIFO `sim_trades_to_trade_details` 已删除）。
+/// sim-live **不引入期末强平**：未平仓回合以 `status = Open` 出现在同一列表，`pnl` 恒 `None`；
+/// 8 项绩效只吃 `Closed`（`backtest::compute_metrics` 内已按 `status == Closed` 过滤）。
+fn sim_trades_to_trade_details(trades: &[SimTrade], session_start_ts: i64, period: Period) -> Vec<TradeDetail> {
+    let mut fills = sim_trades_to_fill_facts(trades, session_start_ts, bt_bar_seconds(period));
+    assign_rt_seq(&mut fills);
+    aggregate_round_trips(&fills)
 }

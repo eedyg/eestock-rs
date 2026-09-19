@@ -14,6 +14,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::round_trip::RoundTripStatus;
+
 // ---------------------------------------------------------------------------
 // 运行时策略参数（ABI 共用：strategy-core/strategy-runtime/simlive/application 均引用）
 // ---------------------------------------------------------------------------
@@ -98,27 +100,50 @@ pub struct ParamDef {
 }
 
 /// 一笔完整交易（开→平）的明细。
+///
+/// **v2（ADR-027 D1/D7，2026-09-20）**：语义由「端点口径」升级为**全回合口径**（本类型即 L1 回合）：
+/// `gross_value` = Σ 卖出成交额；`commission` = Σ 买入佣金 + Σ 卖出佣金；`stamp_duty` = Σ 卖出印花税；
+/// `pnl` = 整回合现金流差（Σ 卖出净得 − Σ 买入总成本，含部分卖出的已实现部分，**无成本分摊/FIFO**）。
+/// `Open` 回合（仅 sim-live）的 `pnl`/`hold_bars`/`close_*` 为 `None`（**禁止造数**）。
+///
+/// 唯一聚合实现 = [`crate::round_trip::aggregate_round_trips`]（全系统禁止第二处）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TradeDetail {
+    /// 回合序号（ADR-027 D6，per `(run|session, code)` 从 1 单调递增；事实由 L2 `FillFact.rt_seq` 承载）。
+    pub rt_seq: u32,
+    /// 标的代码（sim-live 多标的必需；回测填 run 的 symbol）。
+    pub code: String,
+    /// 回合状态：回测恒 `Closed`（期末强平）；sim-live 未平仓 = `Open`。
+    pub status: RoundTripStatus,
     pub open_ts: i64,
-    pub close_ts: i64,
+    /// 清仓时刻；`Open` ⇒ `None`。
+    pub close_ts: Option<i64>,
     pub open_bar: usize,
-    pub close_bar: usize,
-    /// 成交买入价（含滑点）。
+    /// 清仓 bar；`Open` ⇒ `None`。
+    pub close_bar: Option<usize>,
+    /// 成交买入价（含滑点；全回合口径 = Σ 买入 `trade_value` / Σ 买入 qty）。
     pub open_price: f64,
-    /// 成交卖出价（含滑点）。
-    pub close_price: f64,
+    /// 成交卖出价（含滑点；全回合口径 = Σ 卖出 `trade_value` / Σ 卖出 qty）；
+    /// **完全无卖出 ⇒ `None`**（禁止造 0）。
+    pub close_price: Option<f64>,
+    /// Σ 买入 qty。
     pub shares: f64,
-    /// 卖出毛额（shares × close_price）。
+    /// Σ 卖出毛额（全回合口径）。
     pub gross_value: f64,
-    /// 总佣金（买入 + 卖出）。
+    /// Σ 买入佣金 + Σ 卖出佣金（全回合口径）。
     pub commission: f64,
-    /// 卖出印花税。
+    /// Σ 卖出印花税（全回合口径）。
     pub stamp_duty: f64,
-    /// 净盈亏（卖出净得 − 建仓成本）。正=盈。
-    pub pnl: f64,
-    /// 持仓 bar 数（开仓 bar → 平仓 bar 间隔）。
-    pub hold_bars: usize,
+    /// 整回合净盈亏（Σ 卖出净得 − Σ 买入总成本）。正=盈；`Open` ⇒ `None`。
+    pub pnl: Option<f64>,
+    /// 持仓 bar 数（`close_bar − open_bar`）；`Open` ⇒ `None`。
+    pub hold_bars: Option<usize>,
+    /// 本回合成交笔数（D8 懒加载摘要：L2 切片总行数）。
+    pub l2_count: usize,
+    /// 本回合买入笔数。
+    pub buy_count: usize,
+    /// 本回合卖出笔数。
+    pub sell_count: usize,
     /// 清仓那一笔的**来源**（ADR-026 §2.3）：`"Policy" | "StopTrigger" | "ForceClose"`。
     ///
     /// - 新 run 由引擎写入（[`strategy_core`] `apply_sell`）；

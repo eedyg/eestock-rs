@@ -54,6 +54,8 @@ fn flat_bars(n: usize, price: f64) -> Vec<Bar> {
 
 fn base_cfg(slots: Vec<StrategySlot>, policy: ExecutionPolicy) -> EnsembleConfig {
     EnsembleConfig {
+        // P1b 机械适配（架构裁决 2026-09-20 方案 A）：EnsembleConfig 增 symbol（code 唯一取值来源）。
+        symbol: "TEST.SYMBOL".to_string(),
         slots,
         buy_threshold: 60.0,
         sell_threshold: 40.0,
@@ -77,12 +79,14 @@ fn fills(res: &strategy_core::EnsembleResult) -> Vec<(usize, OrderSide, f64, f64
         .iter()
         .flat_map(|r| r.events.iter())
         .filter_map(|e| match e {
+            // P1b 机械适配：`EngineEvent::Fill` 增 rt_seq + 金额三件套；本投影只消费原 5 字段。
             EngineEvent::Fill {
                 bar_index,
                 side,
                 qty,
                 price,
                 reason,
+                ..
             } => Some((*bar_index, *side, *qty, *price, *reason)),
             _ => None,
         })
@@ -211,7 +215,7 @@ fn e2e_position_gate_buy_then_sell() {
     // 门控随持仓状态振荡：清仓后 position 恢复 null → bar2 起重回 80 分再次买入，
     // 6 bar 内共 3 笔完整交易（1→2, 3→4, 5→期末强平）。首笔验证开平仓 bar 序号。
     assert_eq!(res.trades.len(), 3);
-    assert_eq!((res.trades[0].open_bar, res.trades[0].close_bar), (1, 2));
+    assert_eq!((res.trades[0].open_bar, res.trades[0].close_bar), (1, Some(2)));
     close(res.per_bar[2].scores[0].score, 80.0);
 }
 
@@ -331,9 +335,12 @@ fn stop_fixed_pct_intrabar_fills_same_bar_at_line_minus_slippage() {
     close(stop_fill.3, line * (1.0 - fee.slippage_fraction()));
 
     // 首笔交易为止损平仓：bar2 当 bar 成交，价 = 止损线 ×(1−slippage)。
-    assert_eq!(res.trades[0].close_bar, 2);
+    assert_eq!(res.trades[0].close_bar, Some(2));
     close(
-        res.trades[0].close_price,
+        // P1b 机械适配：v2 `close_price: Option<f64>` ⇒ 解包（Closed 回合必为 Some）。
+        res.trades[0]
+            .close_price
+            .expect("Closed 回合必有 close_price（02-spec §2）"),
         line * (1.0 - fee.slippage_fraction()),
     );
     // 语义注明：止损平仓后信号仍为 Buy（80 分）→ Policy 重新建仓，bar3 open 再买入，
@@ -379,7 +386,7 @@ fn stop_close_basis_next_open_fill() {
     assert_eq!(stop_fill.0, 3, "次 bar open 成交");
     close(stop_fill.3, 9.55 * (1.0 - fee.slippage_fraction()));
     assert_eq!(res.trades.len(), 1);
-    assert_eq!(res.trades[0].close_bar, 3);
+    assert_eq!(res.trades[0].close_bar, Some(3));
 }
 
 #[test]
@@ -467,9 +474,12 @@ fn stop_trailing_intrabar_uses_peak_close_since_entry() {
         .expect("应有 trailing 止损成交");
     assert_eq!(stop_fill.0, 5);
     close(stop_fill.3, line * (1.0 - fee.slippage_fraction()));
-    assert_eq!(res.trades[0].close_bar, 5);
+    assert_eq!(res.trades[0].close_bar, Some(5));
     close(
-        res.trades[0].close_price,
+        // P1b 机械适配：v2 `close_price: Option<f64>` ⇒ 解包（Closed 回合必为 Some）。
+        res.trades[0]
+            .close_price
+            .expect("Closed 回合必有 close_price（02-spec §2）"),
         line * (1.0 - fee.slippage_fraction()),
     );
 }
@@ -538,7 +548,7 @@ fn stop_atr_close_basis_uses_atr14_line() {
         .expect("应有 ATR 止损成交");
     assert_eq!(stop_fill.0, 17);
     close(stop_fill.3, 7.6 * (1.0 - fee.slippage_fraction()));
-    assert_eq!(res.trades[0].close_bar, 17);
+    assert_eq!(res.trades[0].close_bar, Some(17));
 }
 
 // ---------------------------------------------------------------------------
@@ -962,7 +972,7 @@ fn stop_liquidation_resets_dca_state_close_basis() {
     close(res.per_bar[7].orders[0].qty, expected_batch);
     // 交易：止损平仓一笔 + 期末强平一笔（重新建仓的部分）。
     assert_eq!(res.trades.len(), 2);
-    assert_eq!(res.trades[0].close_bar, 6);
+    assert_eq!(res.trades[0].close_bar, Some(6));
 }
 
 #[test]
@@ -1010,7 +1020,7 @@ fn stop_liquidation_resets_dca_state_intrabar() {
     assert_eq!(res.per_bar[6].orders.len(), 1);
     close(res.per_bar[6].orders[0].qty, expected_batch);
     assert_eq!(res.trades.len(), 2);
-    assert_eq!(res.trades[0].close_bar, 5);
+    assert_eq!(res.trades[0].close_bar, Some(5));
 }
 
 // ---------------------------------------------------------------------------
@@ -1084,7 +1094,7 @@ fn stop_atr_intrabar_uses_atr_through_previous_bar() {
     );
     assert_eq!(stop_fills[0].0, 14, "Intrabar 当 bar 成交");
     close(stop_fills[0].3, line_prev * (1.0 - fee.slippage_fraction()));
-    assert_eq!(res.trades[0].close_bar, 14);
+    assert_eq!(res.trades[0].close_bar, Some(14));
 }
 
 // ---------------------------------------------------------------------------
@@ -1227,7 +1237,7 @@ fn stop_trailing_close_basis_next_open_fill() {
         .expect("应有 trailing 止损成交");
     assert_eq!(stop_fill.0, 6, "CloseBasis 次 bar open 成交");
     close(stop_fill.3, 10.65 * (1.0 - fee.slippage_fraction()));
-    assert_eq!(res.trades[0].close_bar, 6);
+    assert_eq!(res.trades[0].close_bar, Some(6));
 }
 
 // ---------------------------------------------------------------------------
