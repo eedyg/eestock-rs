@@ -1,0 +1,109 @@
+== 回归：受影响 crate（ADR-026 触碰：backtest/strategy-core/application/web/mcp）
+== 环境：EESTOCK_TEST_DATABASE_URL=postgres://eestock:eestock@127.0.0.1:5433/tmp_adr026_1789749546（ADR-025 临时库 tmp_adr026_*）
+
+############ cargo test -p backtest ############
+     Running unittests src/lib.rs (target/debug/deps/backtest-4928a34156b32522)
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+############ cargo test -p strategy-core ############
+     Running unittests src/lib.rs (target/debug/deps/strategy_core-b5efe7a6485ce757)
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/engine.rs (target/debug/deps/engine-14ef3ff72e954382)
+test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s
+     Running tests/observer.rs (target/debug/deps/observer-5ed881eae7031f13)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/session.rs (target/debug/deps/session-7c99b841a6cc2a1f)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/session_alloc.rs (target/debug/deps/session_alloc-b6b5716f018d2336)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/templates.rs (target/debug/deps/templates-c15ca349a91d9e15)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+############ cargo test -p application ############
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/adr024_p2b_tryrun.rs (target/debug/deps/adr024_p2b_tryrun-9949173c06449349)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/backtest_periods_ssot.rs (target/debug/deps/backtest_periods_ssot-09b3f9833a545c5e)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-9378f4c2b205fb54)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/simlive.rs (target/debug/deps/simlive-6a5e569d767dbe94)
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/strategy.rs (target/debug/deps/strategy-80d9653af36dddc6)
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+     Running tests/tester_p2b_tryrun_indep.rs (target/debug/deps/tester_p2b_tryrun_indep-63f982fecd9089ac)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests/workbench.rs (target/debug/deps/workbench-c300fcbbde7fc9e3)
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+############ cargo test -p mcp ############
+     Running unittests src/lib.rs (target/debug/deps/mcp-45c017ec1684aa89)
+test result: ok. 66 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/adr024_period_ssot_drift.rs (target/debug/deps/adr024_period_ssot_drift-b075a53456bc287b)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/d11_fee_profile_e2e.rs (target/debug/deps/d11_fee_profile_e2e-cd470f7eac4f8c68)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+     Running tests/mcp_protocol.rs (target/debug/deps/mcp_protocol-b7ccc26f568f8201)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/mcp_tools_db.rs (target/debug/deps/mcp_tools_db-80e99a79799b395d)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.43s
+     Running tests/tester_p4_mcp_indep.rs (target/debug/deps/tester_p4_mcp_indep-5d845e39d71ff656)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+############ cargo test -p web ############
+     Running unittests src/lib.rs (target/debug/deps/web-fa28072e0007cce2)
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/adr024_structured_errors.rs (target/debug/deps/adr024_structured_errors-83c23e3ee295648b)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.16s
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+     Running tests/api_admin.rs (target/debug/deps/api_admin-cb615ccb7362c720)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
+     Running tests/api_alerts.rs (target/debug/deps/api_alerts-180711b67b3e1308)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/api_favorites.rs (target/debug/deps/api_favorites-298a354f4a512367)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+     Running tests/api_kline_period.rs (target/debug/deps/api_kline_period-9b7df218da5bdd80)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+     Running tests/api_ma_config.rs (target/debug/deps/api_ma_config-abfed7ab455ea0a1)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/api_multi_period_config.rs (target/debug/deps/api_multi_period_config-ea6e4039a2979396)
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+     Running tests/api_quality.rs (target/debug/deps/api_quality-2fb6ae3c98712b71)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+     Running tests/api_rest.rs (target/debug/deps/api_rest-b0e3d2c832f6f56e)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+     Running tests/api_settings.rs (target/debug/deps/api_settings-5cf37eb453f94fae)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/api_strategies.rs (target/debug/deps/api_strategies-3954ee17ee87b183)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+     Running tests/api_workbench.rs (target/debug/deps/api_workbench-6dd4f6c81c20a70c)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.70s
+     Running tests/multi_period_contract_vectors.rs (target/debug/deps/multi_period_contract_vectors-c910288e45088f51)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/multi_period_pane_budget.rs (target/debug/deps/multi_period_pane_budget-13aa9289126025a1)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/orphan_detect_endpoint_red.rs (target/debug/deps/orphan_detect_endpoint_red-48dc5d4c00a36f49)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-f0a883dcc4c2be71)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+     Running tests/period30m_api_contract.rs (target/debug/deps/period30m_api_contract-2b65ddda7e04a4a7)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+     Running tests/period30m_d2_multiperiod_red.rs (target/debug/deps/period30m_d2_multiperiod_red-c969687f22de23e6)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.09s
+     Running tests/period30m_scope_guard.rs (target/debug/deps/period30m_scope_guard-10cff527de53063e)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/tester_p4_endpoints_indep.rs (target/debug/deps/tester_p4_endpoints_indep-dbd0dfebdd592281)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.66s
+     Running tests/tester_p4_writepath_indep.rs (target/debug/deps/tester_p4_writepath_indep-36fa1ad9cfd10345)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+     Running tests/tester_p5_indep.rs (target/debug/deps/tester_p5_indep-e343b921ca1589c5)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.65s
+     Running tests/tester_p5rect_verify.rs (target/debug/deps/tester_p5rect_verify-ff0d5ed099fba369)
+failures:
+failures:
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.12s
+error: test failed, to rerun pass `-p web --test tester_p5rect_verify`

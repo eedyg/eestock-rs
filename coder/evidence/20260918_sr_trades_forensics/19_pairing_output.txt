@@ -1,0 +1,47 @@
+=== 按实现规则（engine.rs apply_sell：仅 qty>=holding.qty 的清仓才 push TradeDetail）重建 ===
+{
+ "open_ts": 1768838400,
+ "close_ts": 1789574400,
+ "open_bar": 261,
+ "close_bar": 422,
+ "open_price": 9.47542039259697,
+ "close_price": 8.8542288,
+ "shares": 4368.985265614662,
+ "gross_value": 38683.99516558099,
+ "commission": 219.67099879139525,
+ "stamp_duty": 0.0,
+ "pnl": -2933.647913971261,
+ "hold_bars": 161
+}
+=== DB/API 实际 TradeDetail ===
+{
+ "pnl": -2933.647913971261,
+ "shares": 4368.985265614662,
+ "open_ts": 1768838400,
+ "close_ts": 1789574400,
+ "open_bar": 261,
+ "close_bar": 422,
+ "hold_bars": 161,
+ "commission": 219.67099879139525,
+ "open_price": 9.47542039259697,
+ "stamp_duty": 0.0,
+ "close_price": 8.8542288,
+ "gross_value": 38683.99516558099
+}
+  open_ts      recon=1768838400               db=1768838400               diff=0
+  close_ts     recon=1789574400               db=1789574400               diff=0
+  open_bar     recon=261                      db=261                      diff=0
+  close_bar    recon=422                      db=422                      diff=0
+  close_price  recon=8.8542288                db=8.8542288                diff=0.0
+  shares       recon=4368.985265614662        db=4368.985265614662        diff=0.0
+  gross_value  recon=38683.99516558099        db=38683.99516558099        diff=0.0
+  commission   recon=219.67099879139525       db=219.67099879139525       diff=0.0
+  stamp_duty   recon=0.0                      db=0.0                      diff=0.0
+  pnl          recon=-2933.647913971261       db=-2933.647913971261       diff=0.0
+  hold_bars    recon=161                      db=161                      diff=0
+  open_price   recon=9.475420392597 db=9.475420392597 diff=0.00e+00
+
+=== 反事实：若按「每笔买入 vs 分摊卖出」FIFO 逐笔配对，会有多少笔 round-trip？ ===
+  fills: Buy=42 Sell=1; 若逐笔买/卖配对 → 42 笔（每笔买入各自成一笔 round-trip）
+  若按「平仓事件」计数 → 1 笔
+  实现口径（清仓合成） → 1 笔

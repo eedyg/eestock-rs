@@ -1,0 +1,38 @@
+===== 1) 手工小序列（对照算例）=====
+--- nav=[100,110,99,108.9] trades=[+100,-50] initial=100 D1
+  net_profit=8.900000000000006  max_drawdown=0.100000000000000  sharpe=4.582575694955842  win_rate=0.500000000000000
+  profit_factor=2.000000000000000  annualized_return=214.157467903757833  trade_count=2  avg_hold_bars=2.500000000000000
+  手算（ADR §6 口径）：net=8.9 maxDD=(110-99)/110=0.100000000000 年化=(108.9/100)^(252/4)-1=214.157467903758
+  ⇒ 实现 == 文档口径的手算值：true
+
+===== 2) 目标 run sr_1789738328788_000005（库内 nav/trades 原样输入实现）=====
+--- target run
+  net_profit=-2933.647913971290109  max_drawdown=0.052608136537377  sharpe=-0.802916082393964  win_rate=0.000000000000000
+  profit_factor=0.000000000000000  annualized_return=-0.042445133565803  trade_count=1  avg_hold_bars=161.000000000000000
+    vs 库内 net_profit           Δ = 0.000e0
+    vs 库内 max_drawdown         Δ = 0.000e0
+    vs 库内 sharpe               Δ = 0.000e0
+    vs 库内 win_rate             Δ = 0.000e0
+    vs 库内 profit_factor        Δ = 0.000e0
+    vs 库内 annualized_return    Δ = 0.000e0
+    vs 库内 avg_hold_bars        Δ = 0.000e0
+    vs 库内 trade_count            Δ = 0
+
+===== 3) 双向 run sr_1789044295239_000111 =====
+--- two-way run
+  net_profit=110296.772820699930890  max_drawdown=0.166642661565711  sharpe=1.145657859938369  win_rate=0.550000000000000
+  profit_factor=4.795604884527925  annualized_return=0.167589474858527  trade_count=40  avg_hold_bars=18.975000000000001
+    vs 库内 net_profit           Δ = 0.000e0
+    vs 库内 max_drawdown         Δ = 0.000e0
+    vs 库内 sharpe               Δ = 0.000e0
+    vs 库内 win_rate             Δ = 0.000e0
+    vs 库内 profit_factor        Δ = 0.000e0
+    vs 库内 annualized_return    Δ = 0.000e0
+    vs 库内 avg_hold_bars        Δ = 0.000e0
+    vs 库内 trade_count            Δ = 0
+
+===== 4) 判据区分度（同一实现的输入突变 → 立刻变红）=====
+  突变 A：trades 少一笔（1 笔而非 2 笔）→ trade_count=1（期望 2）, win_rate=1, pf=inf
+  突变 B：两笔全亏 → profit_factor=0.000000（仅亏无盈按口径应为 0）, win_rate=0
+  突变 C：仅盈无亏 → profit_factor = inf（口径：+∞）
+  突变 D：nav=[0] initial=100 → net_profit=-100, annualized=-1（可观察的退化行为）

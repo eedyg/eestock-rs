@@ -1,0 +1,9 @@
+=== 上游两车道引用的外部文档副本 vs 原件 sha256 ===
+9650b020af3639a15bb54f383d7fad55ec070c55c38d81c375742e593b0ba53f  /home/eestock/workspace/scrylink/eestock/eestock/design/01-dca-strategy-family.md
+c4100c9ded8ca6ea9fb279c839c311f86fa40e41a6650495d1d2d02a9e8c2fe4  /home/eestock/workspace/scrylink/eestock/eestock/design/03-dca-policy-semantics-correction.md
+9650b020af3639a15bb54f383d7fad55ec070c55c38d81c375742e593b0ba53f  coder/evidence/20260918_sr_trades_strategy_side/raw/50_design_01_copy.md
+c4100c9ded8ca6ea9fb279c839c311f86fa40e41a6650495d1d2d02a9e8c2fe4  coder/evidence/20260918_sr_trades_strategy_side/raw/51_design_03_copy.md
+
+=== 作者源文件 vs 库内 code 副本 ===
+5d7f83df79f338e795b11560218d07971941088eca587116240ec14bf19ea0b3  coder/evidence/20260918_sr_trades_strategy_side/raw/52_author_source_dca_baseline.js
+Tester 自己导出的库内 code sha256(裁尾换行) = 5d7f83df79f338e795b11560218d07971941088eca587116240ec14bf19ea0b3

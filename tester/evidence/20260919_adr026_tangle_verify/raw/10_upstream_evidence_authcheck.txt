@@ -1,0 +1,27 @@
+# step 2b: authenticate upstream evidence (coder/evidence/20260919_adr026_tangle_sync/)
+# date: 2026-09-19T04:56:26Z
+
+### coder raw/00_pre_docs_sha256.txt
+0789d3fb34c5a926d0b315c34394db66786556103f5dd5763e212eeb2559f987  design/07-app-plane/00-web-api.md
+a6c4367caed2808f0c2109c5fb1285a9cc7f76cdb776aa89ba414ebb5835b4a1  design/07-app-plane/01-mcp.md
+### coder raw/11_post_docs_sha256.txt
+137a78762c2aa2110669e1e082d02fc0e24f014d457a4d5ec110e0d0d5c2491b  design/07-app-plane/00-web-api.md
+601633909f1381b69cdfd7f05c4b662da9eba31e2f19cfcf337a21d3dfada10f  design/07-app-plane/01-mcp.md
+### CURRENT docs sha256 (re-measured by tester)
+137a78762c2aa2110669e1e082d02fc0e24f014d457a4d5ec110e0d0d5c2491b  design/07-app-plane/00-web-api.md
+601633909f1381b69cdfd7f05c4b662da9eba31e2f19cfcf337a21d3dfada10f  design/07-app-plane/01-mcp.md
+### /tmp backups left by coder (pre-edit copies)
+-rw------- 1 eestock eestock 355690 2026-09-19 12:50:49.538666542 +0800 /tmp/00-web-api.md
+-rw------- 1 eestock eestock 283501 2026-09-19 12:50:49.539609650 +0800 /tmp/01-mcp.md
+0789d3fb34c5a926d0b315c34394db66786556103f5dd5763e212eeb2559f987  /tmp/00-web-api.md
+a6c4367caed2808f0c2109c5fb1285a9cc7f76cdb776aa89ba414ebb5835b4a1  /tmp/01-mcp.md
+### current docs bytes vs /tmp pre-edit backups (doc diff is exactly the coder hunk set?)
+--- /tmp/00-web-api.md vs design/07-app-plane/00-web-api.md
+4
+2
+--- /tmp/01-mcp.md vs design/07-app-plane/01-mcp.md
+94
+92
+
+### .orig/.rej/backup litter under design/ and repo root (expect none)
+(end)

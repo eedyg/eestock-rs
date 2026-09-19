@@ -1,0 +1,35 @@
+### Q2a columns of strategy_run_result
+  column_name  | data_type 
+---------------+-----------
+ run_id        | text
+ per_bar       | jsonb
+ trades        | jsonb
+ net_value     | jsonb
+ drawdown      | jsonb
+ metrics       | jsonb
+ result_format | text
+(7 rows)
+
+### Q2b result row shape (no updated_at)
+-[ RECORD 1 ]-+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+run_id        | sr_1789738328788_000005
+result_format | chunked_v1
+pb_type       | array
+pb_len        | 0
+tr_type       | array
+tr_len        | 1
+nv_len        | 0
+dd_len        | 0
+metrics       | {"sharpe": -0.8029160823939638, "win_rate": 0.0, "net_profit": -2933.64791397129, "trade_count": 1, "max_drawdown": 0.052608136537377476, "avg_hold_bars": 161.0, "profit_factor": 0.0, "annualized_return": -0.042445133565802595}
+
+### Q2c columns of strategy_run_bars
+ column_name |        data_type         
+-------------+--------------------------
+ run_id      | text
+ kind        | text
+ seq         | integer
+ ts_from     | timestamp with time zone
+ ts_to       | timestamp with time zone
+ payload     | jsonb
+(6 rows)
+

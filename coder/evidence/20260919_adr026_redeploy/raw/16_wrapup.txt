@@ -1,0 +1,40 @@
+### evidence tree
+coder/evidence/20260919_adr026_redeploy/:
+total 28
+drwxrwxr-x  3 eestock eestock  4096 Sep 19 11:17 .
+drwxrwxr-x 39 eestock eestock  4096 Sep 19 11:16 ..
+drwxrwxr-x  2 eestock eestock  4096 Sep 19 11:17 raw
+-rw-rw-r--  1 eestock eestock 12869 Sep 19 11:17 README.md
+
+coder/evidence/20260919_adr026_redeploy/raw/:
+total 1304
+drwxrwxr-x 2 eestock eestock    4096 Sep 19 11:17 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 19 11:17 ..
+-rw-rw-r-- 1 eestock eestock    5697 Sep 19 11:16 00_pre_state.txt
+-rw-rw-r-- 1 eestock eestock     507 Sep 19 11:16 01_pre_build_hashes.txt
+-rw-rw-r-- 1 eestock eestock      11 Sep 19 11:16 02_tsc_b.txt
+-rw-rw-r-- 1 eestock eestock     873 Sep 19 11:16 03_npm_build.txt
+-rw-rw-r-- 1 eestock eestock     726 Sep 19 11:16 04_post_build_dist.txt
+-rw-rw-r-- 1 eestock eestock     233 Sep 19 11:16 05_cargo_build.txt
+-rw-rw-r-- 1 eestock eestock     634 Sep 19 11:17 06_running_vs_disk_bin.txt
+-rw-rw-r-- 1 eestock eestock     308 Sep 19 11:17 07_stop_old_pid.txt
+-rw-rw-r-- 1 eestock eestock     507 Sep 19 11:17 08_start_new.txt
+-rw-rw-r-- 1 eestock eestock    2203 Sep 19 11:17 09_startup_log_full.log
+-rw-rw-r-- 1 eestock eestock    1370 Sep 19 11:17 09_startup_log.txt
+-rw-rw-r-- 1 eestock eestock    1232 Sep 19 11:17 10_post_deploy_selfcheck.txt
+-rw-rw-r-- 1 eestock eestock    1050 Sep 19 11:17 11_static_origin.txt
+-rw-rw-r-- 1 eestock eestock     827 Sep 19 11:17 12_audit_resp.json
+-rw-rw-r-- 1 eestock eestock    1723 Sep 19 11:17 12_web_audit_endpoint.txt
+-rw-rw-r-- 1 eestock eestock    2474 Sep 19 11:17 13_mcp_sse_tools.txt
+-rw-rw-r-- 1 eestock eestock     407 Sep 19 11:17 14_extra_checks.txt
+-rw-rw-r-- 1 eestock eestock      21 Sep 19 11:17 14_kline_cfg.json
+-rw-rw-r-- 1 eestock eestock    2776 Sep 19 11:17 15_final_state.txt
+-rw-rw-r-- 1 eestock eestock      18 Sep 19 11:17 16_wrapup.txt
+-rw-rw-r-- 1 eestock eestock 1237407 Sep 19 11:17 served_index-CkI-1t1L.js
+### staged (must be empty)
+### untracked-modified unchanged vs task start?
+95
+### final healthz
+http=200
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=12))  

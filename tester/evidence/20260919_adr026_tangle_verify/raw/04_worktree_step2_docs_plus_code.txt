@@ -1,0 +1,19 @@
+# differential test step 2: same worktree, NOW also overlay the 4 CURRENT code files
+# date: 2026-09-19T04:54:59Z
+'/home/eestock/workspace/git/eestock/eestock-rs/crates/web/src/lib.rs' -> '/tmp/tv_wt/crates/web/src/lib.rs'
+'/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/src/rpc.rs' -> '/tmp/tv_wt/crates/mcp/src/rpc.rs'
+'/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/src/tools.rs' -> '/tmp/tv_wt/crates/mcp/src/tools.rs'
+'/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/tests/mcp_protocol.rs' -> '/tmp/tv_wt/crates/mcp/tests/mcp_protocol.rs'
+# sha256 after overlay (must equal real worktree sha256):
+c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390  /tmp/tv_wt/crates/web/src/lib.rs
+101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171  /tmp/tv_wt/crates/mcp/src/rpc.rs
+d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8  /tmp/tv_wt/crates/mcp/src/tools.rs
+47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b  /tmp/tv_wt/crates/mcp/tests/mcp_protocol.rs
+# same files in real repo:
+c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390  /home/eestock/workspace/git/eestock/eestock-rs/crates/web/src/lib.rs
+101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171  /home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/src/rpc.rs
+d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8  /home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/src/tools.rs
+47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b  /home/eestock/workspace/git/eestock/eestock-rs/crates/mcp/tests/mcp_protocol.rs
+--- cmd: ./scripts/check-tangle.sh (cwd=/tmp/tv_wt) ---
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+EXIT=0

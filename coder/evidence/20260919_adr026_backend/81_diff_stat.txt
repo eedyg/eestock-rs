@@ -1,0 +1,15 @@
+ crates/application/src/lib.rs                      |  2 +
+ crates/application/src/simlive.rs                  |  2 +
+ crates/application/src/workbench.rs                | 62 ++++++++++++++++
+ crates/backtest/src/metrics.rs                     |  1 +
+ crates/backtest/src/types.rs                       |  8 +++
+ crates/mcp/src/rpc.rs                              |  4 +-
+ crates/mcp/src/tools.rs                            | 84 +++++++++++++++++++++-
+ crates/mcp/tests/mcp_protocol.rs                   |  4 +-
+ crates/strategy-core/src/engine.rs                 | 31 ++++++++
+ crates/strategy-core/tests/engine.rs               | 74 +++++++++++++++++++
+ crates/web/src/lib.rs                              |  2 +
+ crates/web/src/workbench.rs                        | 47 ++++++++++++
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/99-decisions-log.md                         | 11 +++
+ 14 files changed, 333 insertions(+), 6 deletions(-)

@@ -302,6 +302,16 @@ pub struct CurveResponse {
     pub k: i64,
 }
 
+/// `GET /runs/{id}/audit` 响应（ADR-026 §2.2）：**只读派生的执行完整度审计**。
+///
+/// `run_id` + [`crate::audit::AuditReport`] 的展平（字段名即 ADR-026 §2.2 契约，`run_id` 在前）。
+#[derive(Debug, Clone, Serialize)]
+pub struct RunAudit {
+    pub run_id: String,
+    #[serde(flatten)]
+    pub report: crate::audit::AuditReport,
+}
+
 /// `GET /runs/{id}/result` 兼容响应（legacy 全量；chunked 首页 + has_more + next_offset）。
 #[derive(Debug, Clone, Serialize)]
 pub struct RunResultCompat {
@@ -1281,6 +1291,58 @@ impl WorkbenchService {
                 next_offset: None,
             })
         }
+    }
+
+    /// `GET /runs/{id}/audit`：**执行完整度审计**（ADR-026 §2.2；只读派生，不落库）。
+    ///
+    /// 事实源（ADR-026 §2.1）：
+    /// - `per_bar`（chunked 分块 或 legacy 内联——同一 JSON 形态）⇒ 意图/成交/末根 bar；
+    /// - `fills`（chunked 块；legacy 由内联 per_bar 事件派生，即 ADR-024 P6 双读）⇒ 敞口/佣金复算；
+    /// - `strategy_run_result.trades` ⇒ 回合数与强平合成判据。
+    ///
+    /// 错误语义与 `/result` `/fills` **完全一致**：run 未知 → 404；run 存在但无结果 → 404。
+    ///
+    /// 派生计算本身在 [`crate::audit::compute_audit`]（纯函数，无 IO；表驱动单测锁定）。
+    pub async fn run_audit(&self, run_id: &str) -> anyhow::Result<RunAudit> {
+        let run = self.get_run(run_id).await?;
+        let res = self.run_store.get_result(run_id).await?.ok_or_else(|| {
+            anyhow!(WorkbenchNotFound(format!("运行 {run_id} 尚无结果（未成功完成）")))
+        })?;
+        // 事实源读取：per_bar 按既有分段（RESULT_CHUNK_BARS）逐页流式扫描（ADR-026 §4 性能）。
+        let per_bar = self.series_all(run_id, &res, ResultKind::PerBar).await?;
+        let (fills_json, fills_recorded) = self.fills_all(run_id, &res).await?;
+        // `recorded`：per_bar 可得（旧/新 run 都有）**或** fills 块可得。两者皆无 ⇒ 审计无事实可依。
+        let recorded = !per_bar.is_empty() || fills_recorded;
+        let (orders, last_bar_index) = crate::audit::orders_from_per_bar(&per_bar);
+        let fills = crate::audit::fills_from_json(&fills_json);
+        let trades = crate::audit::trades_from_json(&res.trades);
+        let fee = run
+            .config
+            .get("fee")
+            .and_then(|v| to_fee_model(v).ok())
+            .unwrap_or_default();
+        let initial_capital = run
+            .config
+            .get("initial_capital")
+            .and_then(serde_json::Value::as_f64)
+            .unwrap_or(DEFAULT_INITIAL_CAPITAL);
+        // `policy` 解析失败/缺失 ⇒ `None`（`planned_tranches=null`，不报错：审计是只读读径，
+        // 不得因历史 config 形态差异而 500）。
+        let policy: Option<ExecutionPolicy> = run
+            .config
+            .get("policy")
+            .and_then(|v| serde_json::from_value(v.clone()).ok());
+        let report = crate::audit::compute_audit(&crate::audit::AuditInput {
+            recorded,
+            orders: &orders,
+            fills: &fills,
+            trades: &trades,
+            last_bar_index,
+            fee,
+            initial_capital,
+            policy: policy.as_ref(),
+        });
+        Ok(RunAudit { run_id: run_id.to_string(), report })
     }
 
     // ── 组合预设（ADR §13.5）──

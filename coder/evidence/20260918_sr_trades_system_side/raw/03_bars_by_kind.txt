@@ -1,0 +1,4 @@
+drawdown|1|0|0
+fills|1|0|0
+net_value|1|0|0
+per_bar|1|0|0

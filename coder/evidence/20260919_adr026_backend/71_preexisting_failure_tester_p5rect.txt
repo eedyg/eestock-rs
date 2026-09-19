@@ -1,0 +1,31 @@
+
+############ 已知既有失败（与本批无关，见报告「既有失败」节）：cargo test -p web --test tester_p5rect_verify ############
+test t_n1_frontend_code_map_covers_backend_codes ... ok
+test t_n1_static_audit ... ok
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+test t_n1_http_every_400_is_structured_object ... FAILED
+thread 't_n1_http_every_400_is_structured_object' (4035713) panicked at crates/web/tests/tester_p5rect_verify.rs:137:5:
+assertion `left == right` failed: [runs/resource_guard(confirm=false)] 期望 400，实得 201；body={"bars_total":null,"clamp_reason":null,"clamped":false,"config":{"buy_threshold":60.0,"clamp_reason":null,"clamped":false,"estimated_bars":292092,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"progress_prescan":"count","requested_from":"2021-01-01T00:00:00+00:00","requested_to":"2026-01-01T00:00:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"created_at":"2026-09-18T16:47:23.935973Z","error":null,"estimated_bars":292092,"finished_at":null,"from_ts":"2021-01-01T00:00:00Z","id":"sr_1789750043935_000000","name":"","period":"M1","progress":0.0,"requested_from":"2021-01-01T00:00:00Z","requested_to":"2026-01-01T00:00:00Z","result_format":null,"started_at":null,"status":"queued","symbol":"518880","to_ts":"2026-01-01T00:00:00Z"}
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.09s
+
+-- 证明与本批无关：threshold 常量与测试期望在 HEAD 即不一致（两文件均未被本批修改）
+--   HEAD crates/application/src/error.rs: 150:pub const GUARD_CONFIRM_BARS: usize = 500_000;
+--   HEAD crates/web/tests/tester_p5rect_verify.rs: 406:        ("runs/resource_guard(confirm=false)", "POST", "/api/workbench/runs",
+--   ADR-024 向量注释（crates/application/tests/resource_guard_contract_vectors.rs:8）：
+//! 背景：2026-09-18 用户「按推荐」把 confirm 阈值由 200_000 提到 500_000（≈M1 五年）；
+//! 边界：`crates/web/tests/tester_p5_indep.rs` 是 tester 自有资产（含 200_000 硬断言），
+--   本批改动文件清单（git status）：
+ M crates/application/src/lib.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/workbench.rs
+ M crates/backtest/src/metrics.rs
+ M crates/backtest/src/types.rs
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/strategy-core/src/engine.rs
+ M crates/strategy-core/tests/engine.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/workbench.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/99-decisions-log.md

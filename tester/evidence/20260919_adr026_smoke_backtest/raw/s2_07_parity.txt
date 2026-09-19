@@ -1,0 +1,18 @@
+PASS  REST can read MCP-submitted run id: got='sr_1789787945018_000002' exp='sr_1789787945018_000002'
+PASS  MCP run status via REST: got='succeeded' exp='succeeded'
+PASS  result top-level key set identical: got=['drawdown', 'has_more', 'metrics', 'net_value', 'next_offset', 'per_bar', 'result_format', 'summary', 'trades'] exp=['drawdown', 'has_more', 'metrics', 'net_value', 'next_offset', 'per_bar', 'result_format', 'summary', 'trades']
+PASS  result_format identical: got='chunked_v1' exp='chunked_v1'
+PASS  per_bar[0] key set identical: got=['aggregate', 'events', 'orders', 'scores', 'signal', 'ts', 'warmup'] exp=['aggregate', 'events', 'orders', 'scores', 'signal', 'ts', 'warmup']
+PASS  per_bar len identical: got=493 exp=493
+PASS  trades[0] key set identical: got=['close_bar', 'close_price', 'close_ts', 'commission', 'gross_value', 'hold_bars', 'open_bar', 'open_price', 'open_ts', 'pnl', 'reason', 'shares', 'stamp_duty'] exp=['close_bar', 'close_price', 'close_ts', 'commission', 'gross_value', 'hold_bars', 'open_bar', 'open_price', 'open_ts', 'pnl', 'reason', 'shares', 'stamp_duty']
+PASS  trade reason identical: got='ForceClose' exp='ForceClose'
+PASS  metrics key set identical: got=['annualized_return', 'avg_hold_bars', 'max_drawdown', 'net_profit', 'profit_factor', 'sharpe', 'trade_count', 'win_rate'] exp=['annualized_return', 'avg_hold_bars', 'max_drawdown', 'net_profit', 'profit_factor', 'sharpe', 'trade_count', 'win_rate']
+PASS  summary key set identical: got=['bars_total', 'chunk_count', 'clamped', 'created_at', 'effective_from', 'effective_to', 'error', 'estimated_bars', 'finished_at', 'id', 'metrics', 'name', 'period', 'progress', 'requested_from', 'requested_to', 'result_format', 'started_at', 'status', 'symbol'] exp=['bars_total', 'chunk_count', 'clamped', 'created_at', 'effective_from', 'effective_to', 'error', 'estimated_bars', 'finished_at', 'id', 'metrics', 'name', 'period', 'progress', 'requested_from', 'requested_to', 'result_format', 'started_at', 'status', 'symbol']
+PASS  MCP bt_get_run_audit isError absent: got=None exp=None
+PASS  audit field set identical (MCP vs REST): got=['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings'] exp=['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings']
+PASS  audit all fields equal (REST vs MCP): got={} exp={}
+PASS  MCP run audit field set identical: got=['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings'] exp=['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings']
+PASS  MCP run audit batches_done: got=3 exp=3
+PASS  MCP run deployed_notional: got=99975.006248 exp=99975.006248
+
+SUMMARY: 16 checks, 0 failed

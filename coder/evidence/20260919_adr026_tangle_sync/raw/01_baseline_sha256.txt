@@ -1,0 +1,12 @@
+== crates/web/src/lib.rs
+  staged(:)  c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390  -
+  worktree   c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390  -
+== crates/mcp/src/rpc.rs
+  staged(:)  101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171  -
+  worktree   101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171  -
+== crates/mcp/src/tools.rs
+  staged(:)  d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8  -
+  worktree   d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8  -
+== crates/mcp/tests/mcp_protocol.rs
+  staged(:)  47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b  -
+  worktree   47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b  -

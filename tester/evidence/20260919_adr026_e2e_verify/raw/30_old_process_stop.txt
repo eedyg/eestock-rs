@@ -1,0 +1,10 @@
+### 旧进程（重启前）
+    PID    PPID                  STARTED     ELAPSED CMD
+2043164 2043161 Fri Sep 18 18:04:44 2026    07:09:17 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### 旧 /proc/exe（旧 inode 证据）
+lrwxrwxrwx 1 eestock eestock 0 Sep 18 18:34 /proc/2043164/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app (deleted)
+### 发送 SIGTERM
+### 旧进程是否存活
+OLD PID 2043164 已退出 (exit)
+### 端口释放检查
+(8081/8082 无监听)

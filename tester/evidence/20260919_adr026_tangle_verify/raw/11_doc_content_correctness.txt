@@ -1,0 +1,88 @@
+# step 6: doc content correctness spot-check (doc block semantics vs implementation truth)
+# date: 2026-09-19T04:56:35Z
+
+### 6.1 doc block content == generated file body (1:1, no rewriting) - 4/4
+total tangle blocks found in the two docs: 31
+block design/07-app-plane/00-web-api.md:2610 (end marker line 2722) -> crates/web/src/lib.rs
+   doc block lines=110  file body lines=110  IDENTICAL=True
+   doc-block sha256=f66c7f8dd79f771d8f4ab3be081b8c3aa77cb426f76ad79a4d053cafb27f1899
+   file-body sha256=f66c7f8dd79f771d8f4ab3be081b8c3aa77cb426f76ad79a4d053cafb27f1899
+block design/07-app-plane/01-mcp.md:255 (end marker line 384) -> crates/mcp/src/rpc.rs
+   doc block lines=127  file body lines=127  IDENTICAL=True
+   doc-block sha256=899bdcf9691feabaf937b76545d3ea37b9a2a29da466ee968216fa08c0c1c051
+   file-body sha256=899bdcf9691feabaf937b76545d3ea37b9a2a29da466ee968216fa08c0c1c051
+block design/07-app-plane/01-mcp.md:385 (end marker line 4058) -> crates/mcp/src/tools.rs
+   doc block lines=3671  file body lines=3671  IDENTICAL=True
+   doc-block sha256=28cbf88d2f5905018782c7fccc7ad41bbb340f5ebf35c497e62f4c495581affe
+   file-body sha256=28cbf88d2f5905018782c7fccc7ad41bbb340f5ebf35c497e62f4c495581affe
+block design/07-app-plane/01-mcp.md:4395 (end marker line 4737) -> crates/mcp/tests/mcp_protocol.rs
+   doc block lines=340  file body lines=340  IDENTICAL=True
+   doc-block sha256=6f0ca145fdf92ecfb5684f193b70e9724801ff24c5af722d935b9db786b4ab83
+   file-body sha256=6f0ca145fdf92ecfb5684f193b70e9724801ff24c5af722d935b9db786b4ab83
+
+### 6.2 web route: doc says GET /api/workbench/runs/{id}/audit -> workbench::get_audit
+crates/web/src/lib.rs:103:        .route("/api/workbench/runs/{id}/audit", get(workbench::get_audit))
+design/07-app-plane/00-web-api.md:2712:        .route("/api/workbench/runs/{id}/audit", get(workbench::get_audit))
+handler exists:
+568:pub async fn get_audit(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+same pure function as MCP (workbench service run_audit):
+crates/web/src/workbench.rs:580:    let out = svc.run_audit(&id).instrument(span.clone()).await;
+crates/mcp/src/tools.rs:1542:    match wb.run_audit(run_id).await {
+1306:    pub async fn run_audit(&self, run_id: &str) -> anyhow::Result<RunAudit> {
+
+### 6.3 MCP tool name/receipt: bt_get_run_audit
+466:            "name": "bt_get_run_audit",
+527:        "bt_get_run_audit" => bt_get_run_audit(st, id, &args).await,
+1617:            "bt_get_run_audit"]);
+1647:        assert_eq!(by_name("bt_get_run_audit")["inputSchema"]["required"], json!(["run_id"]),
+3431:        assert!(names.contains(&"bt_get_run_audit"), "工具名单须含 bt_get_run_audit：{names:?}");
+3447:        let r = call(&st, "bt_get_run_audit", json!({ "run_id": run_id })).await;
+3460:        let r = call(&st, "bt_get_run_audit", json!({ "run_id": "sr_nope" })).await;
+3463:        let r = call(&st, "bt_get_run_audit", json!({})).await;
+3467:        let r = call(&st, "bt_get_run_audit", json!({ "run_id": run_id })).await;
+crates/mcp/src/rpc.rs:122:            "bt_get_run_audit"]);
+crates/mcp/tests/mcp_protocol.rs:204:    // 3. tools/list → 35 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 9 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）
+
+### 6.4 counts claimed by doc (35 tools / 9 bt_*) vs impl
+crates/mcp/src/tools.rs:1579:        assert_eq!(tools.len(), 35, "4 只读工具（I-4 加 list_symbols）+ 14 模拟实盘（11-sim-live）+ 8 strategy_* + 9 b
+crates/mcp/tests/mcp_protocol.rs:210:    assert_eq!(tools.len(), 35, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+bt_* names actually registered:
+  count=9: ['bt_run_ensemble', 'bt_get_run', 'bt_get_run_result', 'bt_list_runs', 'bt_cancel_run', 'bt_compare_runs', 'bt_list_presets', 'bt_apply_preset', 'bt_get_run_audit']
+
+### 6.5 audit payload field names claimed by doc vs RunAudit/AuditReport impl
+84:    pub recorded: bool,
+114:    pub recorded: bool,
+116:    pub capital_basis: f64,
+118:    pub deployed_notional: f64,
+120:    pub deployed_pct: f64,
+122:    pub cash_consumed: f64,
+124:    pub cash_consumed_pct: f64,
+126:    pub planned_tranches: Option<usize>,
+128:    pub reachable_batches: usize,
+130:    pub batches_done: usize,
+132:    pub unexecuted_orders: usize,
+134:    pub last_bar_unfilled: bool,
+136:    pub round_trips_total: usize,
+138:    pub round_trips_force_closed: usize,
+140:    pub warnings: Vec<AuditWarning>,
+
+### 6.6 warning codes claimed by doc vs impl (PARTIAL_DEPLOYMENT<0.99 / DCA_PLAN_UNDERFILLED / ORDERS_UNEXECUTED)
+35:pub const PARTIAL_DEPLOYMENT_THRESHOLD: f64 = 0.99;
+38:pub const WARN_PARTIAL_DEPLOYMENT: &str = "PARTIAL_DEPLOYMENT";
+40:pub const WARN_DCA_PLAN_UNDERFILLED: &str = "DCA_PLAN_UNDERFILLED";
+42:pub const WARN_ORDERS_UNEXECUTED: &str = "ORDERS_UNEXECUTED";
+304:                code: WARN_DCA_PLAN_UNDERFILLED,
+314:            code: WARN_PARTIAL_DEPLOYMENT,
+324:            code: WARN_ORDERS_UNEXECUTED,
+437:            vec![WARN_DCA_PLAN_UNDERFILLED, WARN_PARTIAL_DEPLOYMENT, WARN_ORDERS_UNEXECUTED],
+520:            vec![WARN_PARTIAL_DEPLOYMENT, WARN_ORDERS_UNEXECUTED],
+590:        assert!(!codes(&r).contains(&WARN_DCA_PLAN_UNDERFILLED), "计划已推进完 ⇒ 无 DCA 警告");
+591:        assert!(!codes(&r).contains(&WARN_ORDERS_UNEXECUTED));
+608:        assert!(!codes(&r).contains(&WARN_DCA_PLAN_UNDERFILLED), "无计划 ⇒ 不告警");
+637:            let got = codes(&r).contains(&WARN_PARTIAL_DEPLOYMENT);
+930:        assert_eq!(j["warnings"][0]["code"], WARN_DCA_PLAN_UNDERFILLED);
+
+### 6.7 stale-description scan: any '34 个工具' / old bt_* count left in the two docs?
+(none in the two target docs)
+other design docs still carrying the historical 'bt_*×8' sentence (out of tangle scope):
+design/12-strategy-system/01-adr.md:121:> P3c 实施定稿（2026-09-09，父级批准）：`strategy_versions` 并入 `strategy_get`（详情+版本列表合一）；bt_* 增补 `bt_get_run_result` / `bt_cancel_run` / `bt_list_presets` / `bt_apply_preset`（最终矩阵 strategy_*×7 + bt_*×8，权威 schema 以 design/07-app-plane/01-mcp.md 为准）。

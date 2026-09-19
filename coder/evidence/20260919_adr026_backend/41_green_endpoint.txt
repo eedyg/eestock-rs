@@ -1,0 +1,12 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.35s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 3 tests
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_recorded_false_when_facts_are_missing ... ok
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+

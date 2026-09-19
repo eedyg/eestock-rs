@@ -1,0 +1,10 @@
+### M1 端到端：web 回放/自洽套件
+test adr026_replay_target_run_matches_frozen_baseline ... FAILED
+test audit_endpoint_emits_required_tracing_fields ... ok
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... FAILED
+test audit_recorded_false_when_facts_are_missing ... ok
+thread 'adr026_replay_target_run_matches_frozen_baseline' (4068797) panicked at crates/web/tests/adr026_run_audit.rs:408:5:
+deployed_notional=4368.985265614662
+thread 'audit_endpoint_matches_recorded_facts_and_404_semantics' (4068824) panicked at crates/web/tests/adr026_run_audit.rs:244:5:
+deployed_notional 须 = Σ buy_fill.qty×price（敞口口径）：audit=181.7909247684554, 实况=19091.77379534091
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s

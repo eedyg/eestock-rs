@@ -1,0 +1,11 @@
+== P5 真实插件 + 真实配置 + 真实 bar 的独立重跑 ==
+bars 输入 = 423 ; per_bar = 423 (warmup 250)
+fills = 43 (Buy 42 / Sell 1) ；意图 orders 总数 = 43 ；意图 − 非强平成交 = 1
+末 bar(index 422) 的 orders = [("Buy", 110.04391957839198, "Policy")] ; events = ["Fill Buy qty=108.906439 Policy", "Fill Sell qty=4368.985266 ForceClose"]
+nav 点数 = 173 ; nav 末点 = 97066.352086028710 ; trades 笔数 = 1
+metrics = {"net_profit":-2933.64791397129,"max_drawdown":0.052608136537377476,"sharpe":-0.8029160823939638,"win_rate":0.0,"profit_factor":0.0,"annualized_return":-0.042445133565802595,"trade_count":1,"avg_hold_bars":161.0}
+trades[0] = {"open_ts":1768838400,"close_ts":1789574400,"open_bar":261,"close_bar":422,"open_price":9.47542039259697,"close_price":8.8542288,"shares":4368.985265614662,"gross_value":38683.99516558099,"commission":219.67099879139525,"stamp_duty":0.0,"pnl":-2933.647913971261,"hold_bars":161}
+vs 库内 net_value：点数 173/173，逐点最大绝对差 = 0.000e0
+vs 库内 fills：笔数 43/43，逐笔 qty 最大绝对差 = 0.000e0
+vs 库内 metrics：net_profit Δ=0.000e0 max_drawdown Δ=0.000e0 sharpe Δ=0.000e0 annualized Δ=0.000e0 trade_count Δ=0
+vs 库内 trades：笔数 1/1；pnl Δ=0.000e0；shares Δ=0.000e0；commission Δ=0.000e0

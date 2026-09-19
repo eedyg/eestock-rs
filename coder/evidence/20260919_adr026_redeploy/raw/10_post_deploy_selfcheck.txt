@@ -1,0 +1,24 @@
+### date
+Sat Sep 19 11:17:22 AM CST 2026
+### PID/process facts
+    PID    PPID                  STARTED     ELAPSED CMD
+ 818710       1 Sat Sep 19 11:17:10 2026       00:11 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+-- /proc/818710/cmdline:
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+-- /proc/818710/cwd:
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 11:17 /proc/818710/cwd -> /home/eestock/workspace/git/eestock/eestock-rs
+-- /proc/818710/exe:
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 11:17 /proc/818710/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+-- /proc/818710/stat field22 starttime: 134178756
+### ports
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=12))  
+### healthz
+healthz http=200
+### binary
+mtime=2026-09-19 01:13:57.457197250 +0800 size=213324544 path=target/debug/eestock-app
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+-- running exe sha256:
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  /proc/818710/exe
+### strings bt_get_run_audit count
+16

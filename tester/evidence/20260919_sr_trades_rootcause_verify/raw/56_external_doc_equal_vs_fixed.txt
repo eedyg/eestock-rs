@@ -1,0 +1,30 @@
+=== 外部设计文档 01/03 中 FixedAmount / 定额 / 固定 的命中 ===
+01-dca-strategy-family.md:12:用户裁决：**三个择时内核各实现一版**（均线偏离 / 回撤触发 / 定期不定额），
+01-dca-strategy-family.md:20:| 批次由 DCA Policy 管 | `{tranches, mode: Equal\|FixedAmount, amount, interval}` | 插件不能决定"投多少"，只能决定"何时待在买入区" |
+01-dca-strategy-family.md:27:### 2.1 关于「不定额」的表达边界
+01-dca-strategy-family.md:29:DCA Policy 每批金额固定，插件无法改变单批金额。因此「不定额」只能通过两条
+01-dca-strategy-family.md:86:### 4.3 `dca_periodic` — 定期不定额
+01-dca-strategy-family.md:106:### 4.4 `dca_baseline` — 无脑定期定额（对照组，非策略）
+01-dca-strategy-family.md:160:| R1 | dca_baseline + DCA | 无择时定期定额（主标尺） |
+01-dca-strategy-family.md:177:- 单批金额不可变 → 「不定额」只能靠跳过/延长窗口近似（见 §2.1）。
+03-dca-policy-semantics-correction.md:61:| `dca_baseline` = 无脑定期定额 | 实际是 **无择时的梯次建仓**（时间分散） |
+
+=== 01 文档 §2.1 与 §5.3 原文 ===
+### 2.1 关于「不定额」的表达边界
+
+DCA Policy 每批金额固定，插件无法改变单批金额。因此「不定额」只能通过两条
+通道近似表达，本设计如实采用并在此声明：
+
+1. **跳过某些周期的批次**（少投）—— 直接有效；
+2. **延长买入区窗口**（多投）—— 在 `tranches` 未耗尽时窗口越长、投的批数越多；
+   一旦 `tranches` 耗尽则窗口无效。
+
+这是平台能力的真实边界，不做假装。
+
+- 执行：DCA Policy `{tranches:3, mode:"Equal", interval:5}`。
+- 注意：`strategy_test_run` **没有费用参数**，其 sim_position 固定用 LumpSum
+  且固定含 0.05% 印花税（实测 `stamp_duty` 字段 = 成交额 × 0.0005）。
+
+=== 03 文档中关于 Equal/FixedAmount 的原文 ===
+61:| `dca_baseline` = 无脑定期定额 | 实际是 **无择时的梯次建仓**（时间分散） |
+98:- `bt_run_ensemble` / `sim_start_session` 增加周期性注资配置

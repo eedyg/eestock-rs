@@ -1,0 +1,134 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.59s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 17 tests
+test audit::tests::commission_follows_fee_contract_min_and_rate ... FAILED
+test audit::tests::dca_plan_met_has_no_dca_warning ... FAILED
+test audit::tests::force_closed_round_trips_match_by_close_bar ... FAILED
+test audit::tests::fills_and_trades_projection_reads_documented_fields ... FAILED
+test audit::tests::full_deployment_lumpsum_has_no_warnings ... FAILED
+test audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning ... FAILED
+test audit::tests::legacy_two_way_run_is_self_consistent ... FAILED
+test audit::tests::no_in_range_bar_means_no_last_bar_unfilled ... FAILED
+test audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar ... FAILED
+test audit::tests::orders_projection_treats_missing_warmup_as_in_range ... FAILED
+test audit::tests::partial_deployment_threshold_table ... FAILED
+test audit::tests::recorded_false_reports_zeros_and_no_warnings ... FAILED
+test audit::tests::report_serializes_frozen_field_names ... FAILED
+test audit::tests::target_run_shape_dca_underfilled ... FAILED
+test audit::tests::unexecuted_orders_is_saturating ... FAILED
+test audit::tests::zero_capital_basis_does_not_divide_by_zero ... FAILED
+test audit::tests::zero_fills_reports_partial_deployment_and_unexecuted ... FAILED
+
+failures:
+
+---- audit::tests::commission_follows_fee_contract_min_and_rate stdout ----
+
+thread 'audit::tests::commission_follows_fee_contract_min_and_rate' (3989267) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- audit::tests::dca_plan_met_has_no_dca_warning stdout ----
+
+thread 'audit::tests::dca_plan_met_has_no_dca_warning' (3989268) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::force_closed_round_trips_match_by_close_bar stdout ----
+
+thread 'audit::tests::force_closed_round_trips_match_by_close_bar' (3989270) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::fills_and_trades_projection_reads_documented_fields stdout ----
+
+thread 'audit::tests::fills_and_trades_projection_reads_documented_fields' (3989269) panicked at crates/application/src/audit.rs:157:5:
+not yet implemented: ADR-026 Red：fills_from_json 尚未实现
+
+---- audit::tests::full_deployment_lumpsum_has_no_warnings stdout ----
+
+thread 'audit::tests::full_deployment_lumpsum_has_no_warnings' (3989271) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning stdout ----
+
+thread 'audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning' (3989274) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::legacy_two_way_run_is_self_consistent stdout ----
+
+thread 'audit::tests::legacy_two_way_run_is_self_consistent' (3989272) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::no_in_range_bar_means_no_last_bar_unfilled stdout ----
+
+thread 'audit::tests::no_in_range_bar_means_no_last_bar_unfilled' (3989273) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar stdout ----
+
+thread 'audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar' (3989275) panicked at crates/application/src/audit.rs:152:5:
+not yet implemented: ADR-026 Red：orders_from_per_bar 尚未实现
+
+---- audit::tests::orders_projection_treats_missing_warmup_as_in_range stdout ----
+
+thread 'audit::tests::orders_projection_treats_missing_warmup_as_in_range' (3989276) panicked at crates/application/src/audit.rs:152:5:
+not yet implemented: ADR-026 Red：orders_from_per_bar 尚未实现
+
+---- audit::tests::partial_deployment_threshold_table stdout ----
+
+thread 'audit::tests::partial_deployment_threshold_table' (3989277) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::recorded_false_reports_zeros_and_no_warnings stdout ----
+
+thread 'audit::tests::recorded_false_reports_zeros_and_no_warnings' (3989278) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::report_serializes_frozen_field_names stdout ----
+
+thread 'audit::tests::report_serializes_frozen_field_names' (3989279) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::target_run_shape_dca_underfilled stdout ----
+
+thread 'audit::tests::target_run_shape_dca_underfilled' (3989280) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::unexecuted_orders_is_saturating stdout ----
+
+thread 'audit::tests::unexecuted_orders_is_saturating' (3989281) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::zero_capital_basis_does_not_divide_by_zero stdout ----
+
+thread 'audit::tests::zero_capital_basis_does_not_divide_by_zero' (3989282) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+---- audit::tests::zero_fills_reports_partial_deployment_and_unexecuted stdout ----
+
+thread 'audit::tests::zero_fills_reports_partial_deployment_and_unexecuted' (3989283) panicked at crates/application/src/audit.rs:167:5:
+not yet implemented: ADR-026 Red：compute_audit 尚未实现
+
+
+failures:
+    audit::tests::commission_follows_fee_contract_min_and_rate
+    audit::tests::dca_plan_met_has_no_dca_warning
+    audit::tests::fills_and_trades_projection_reads_documented_fields
+    audit::tests::force_closed_round_trips_match_by_close_bar
+    audit::tests::full_deployment_lumpsum_has_no_warnings
+    audit::tests::legacy_two_way_run_is_self_consistent
+    audit::tests::no_in_range_bar_means_no_last_bar_unfilled
+    audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning
+    audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar
+    audit::tests::orders_projection_treats_missing_warmup_as_in_range
+    audit::tests::partial_deployment_threshold_table
+    audit::tests::recorded_false_reports_zeros_and_no_warnings
+    audit::tests::report_serializes_frozen_field_names
+    audit::tests::target_run_shape_dca_underfilled
+    audit::tests::unexecuted_orders_is_saturating
+    audit::tests::zero_capital_basis_does_not_divide_by_zero
+    audit::tests::zero_fills_reports_partial_deployment_and_unexecuted
+
+test result: FAILED. 0 passed; 17 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`

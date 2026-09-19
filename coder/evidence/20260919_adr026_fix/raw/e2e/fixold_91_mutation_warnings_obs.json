@@ -1,0 +1,17 @@
+{
+  "tag": "fixold",
+  "name": "91_mutation_warnings_obs",
+  "runId": "sr_1789738328788_000005",
+  "mismatch": [
+    "L1 成交合计（/fills 全口径）= 43 笔（含期末强平卖出 1 笔） ‖ 成交合计 43 笔（含期末强平卖出 1 笔）｜回合 1 条（其中强平合成 1 条）｜名义投入 41.40%（分母 = 初始资金）",
+    "L2 买入成交 = 42 笔（= 审计 batches_done，与 L1 全口径分别命名） ‖ 现金消耗（含佣金）41.61%｜计划批数 100｜可达轮次 43｜买入成交 42 笔｜未执行挂单 1（末根 bar 无次 bar 可执行）",
+    "warning DCA_PLAN_UNDERFILLED ‖ visible=false text=\"\"",
+    "warning PARTIAL_DEPLOYMENT ‖ visible=false text=\"\"",
+    "warning ORDERS_UNEXECUTED ‖ visible=false text=\"\""
+  ],
+  "consoleErrors": [],
+  "consoleWarnings": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "httpErrors": []
+}

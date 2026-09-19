@@ -1,0 +1,1 @@
+{"name":"smoke_adr026_S4_M1_518880_202502","symbol":"518880","period":"M1","from":"2025-01-02T00:00:00Z","to":"2025-01-10T00:00:00Z","slots":[{"version_id":"sv_1789211089727_000010","params":{"cadence":20,"plan_bars":5},"weight":1.0}],"policy":{"Dca":{"tranches":3,"interval":5,"mode":"Equal"}}}

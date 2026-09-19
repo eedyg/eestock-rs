@@ -1,0 +1,10 @@
+[package]
+name = "srprobe2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+backtest = { path = "/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest" }
+strategy-core = { path = "/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core" }
+strategy-runtime = { path = "/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime" }
+serde_json = { version = "1", features = ["float_roundtrip"] }

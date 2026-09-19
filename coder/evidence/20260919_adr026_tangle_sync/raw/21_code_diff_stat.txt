@@ -1,0 +1,6 @@
+=== code diff stat HEAD (4 generated files) ===
+ crates/mcp/src/rpc.rs            |  4 +-
+ crates/mcp/src/tools.rs          | 84 +++++++++++++++++++++++++++++++++++++++-
+ crates/mcp/tests/mcp_protocol.rs |  4 +-
+ crates/web/src/lib.rs            |  2 +
+ 4 files changed, 89 insertions(+), 5 deletions(-)

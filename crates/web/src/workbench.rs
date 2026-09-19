@@ -19,6 +19,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::sync::Arc;
+use tracing::Instrument;
 
 use application::workbench::{
     SlotReq, SubmitRunReq, WorkbenchConflict, WorkbenchNotFound, WorkbenchService,
@@ -551,6 +552,52 @@ pub async fn get_fills(
     let limit = q.limit.unwrap_or(BARS_LIMIT_DEFAULT).clamp(1, BARS_LIMIT_MAX);
     match svc.result_fills(&id, offset, limit).await {
         Ok(b) => Json(b).into_response(),
+        Err(e) => map_svc_err(e),
+    }
+}
+
+/// GET /api/workbench/runs/{id}/audit —— **执行完整度审计**（ADR-026 §2.2；只读派生）。
+///
+/// 返回 ADR-026 §2.2 冻结字段（`recorded` / `deployed_*`（敞口）/ `cash_consumed*`（含佣金）/
+/// `planned_tranches` / `reachable_batches` / `batches_done` / `unexecuted_orders` / `last_bar_unfilled` /
+/// `round_trips_*` / `warnings[]`）；**非阻断**：`warnings` 仅信息，不改变引擎行为、不影响既有响应。
+/// 错误语义：运行不存在 / 无结果 → 404（复用既有错误码体系，与 `/result`、`/fills` 同）。
+///
+/// 可观测性（ADR-026 §4）：发 `tracing` span，含 `trace_id`/`run_id`/`deployed_pct`/
+/// `unexecuted_orders`/warnings 数（与仓内 `p4b.segment` 同风格；审计请求自成一个 trace）。
+pub async fn get_audit(State(st): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+    let svc = match svc(&st) { Ok(s) => s, Err(r) => return r };
+    let trace_id = domain::types::new_trace_id();
+    let span = tracing::info_span!(
+        "workbench_run_audit",
+        trace_id = %trace_id,
+        run_id = %id,
+        deployed_pct = tracing::field::Empty,
+        unexecuted_orders = tracing::field::Empty,
+        warnings = tracing::field::Empty,
+    );
+    let t0 = std::time::Instant::now();
+    let out = svc.run_audit(&id).instrument(span.clone()).await;
+    match out {
+        Ok(a) => {
+            span.record("deployed_pct", a.report.deployed_pct);
+            span.record("unexecuted_orders", a.report.unexecuted_orders as i64);
+            span.record("warnings", a.report.warnings.len() as i64);
+            span.in_scope(|| {
+                tracing::info!(
+                    trace_id = %trace_id,
+                    run_id = %id,
+                    deployed_pct = a.report.deployed_pct,
+                    cash_consumed_pct = a.report.cash_consumed_pct,
+                    recorded = a.report.recorded,
+                    unexecuted_orders = a.report.unexecuted_orders,
+                    warnings = a.report.warnings.len(),
+                    elapsed_us = t0.elapsed().as_micros() as u64,
+                    "workbench_run_audit"
+                )
+            });
+            Json(a).into_response()
+        }
         Err(e) => map_svc_err(e),
     }
 }

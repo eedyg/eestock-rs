@@ -1,0 +1,26 @@
+### 启动命令: nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml >> logs/app_dev_8081_redeploy_20260919_011412.log 2>&1 &
+### 启动时刻: 2026-09-19T01:14:22+08:00
+### 新进程
+4160311 Sat Sep 19 01:14:12 2026       00:09 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+### 端口归属
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=12)) 
+### bin mtime / sha256
+-rwxrwxr-x 2 eestock eestock 213324544 2026-09-19 01:13:57.457197250 +0800 target/debug/eestock-app
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+### /proc/<new>/exe（非 deleted ⇒ 跑的是磁盘新二进制）
+NEWPID=4160311
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 01:14 /proc/4160311/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 01:14 /proc/4160311/cwd -> /home/eestock/workspace/git/eestock/eestock-rs
+### healthz
+8081: 200
+8082: 404
+### 启动日志（前 15 行 + ERROR 计数）
+{"timestamp":"2026-09-18T17:14:12.618390Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T17:14:12.674582Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T17:14:12.676777Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T17:14:12.679198Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T17:14:12.679333Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T17:14:12.679363Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-18T17:14:15.135749Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"80d95c1b099f481c2f90143dd2840f94"},"target":"mcp::server"}
+ERROR 计数: 0

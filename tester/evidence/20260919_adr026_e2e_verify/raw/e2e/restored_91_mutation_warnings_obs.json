@@ -1,0 +1,15 @@
+{
+  "tag": "restored",
+  "name": "91_mutation_warnings_obs",
+  "runId": "sr_1789738328788_000005",
+  "mismatch": [
+    "warning DCA_PLAN_UNDERFILLED ‖ visible=false text=\"\"",
+    "warning PARTIAL_DEPLOYMENT ‖ visible=false text=\"\"",
+    "warning ORDERS_UNEXECUTED ‖ visible=false text=\"\""
+  ],
+  "consoleErrors": [],
+  "consoleWarnings": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "httpErrors": []
+}

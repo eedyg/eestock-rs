@@ -310,6 +310,18 @@ fn t_n1_static_audit() {
 /// `"-"` = 非提交/试算路径，不做 period 判据。
 type Case = (&'static str, &'static str, &'static str, Option<Value>, &'static str, &'static str);
 
+/// R-G2 整改（2026-09-19）：`resource_guard` 夹具区间必须**真的**触发二次确认阈值。
+///
+/// 阈值 = `application::error::GUARD_CONFIRM_BARS`（ADR-024 D1 修订：2026-09-18 用户「按推荐」把它由
+/// `200_000` 提到 **`500_000`**（≈M1 五年），并与 `design/16-backtest-scalability/contract-vectors.json`
+/// 的 `resource_guard.confirm_bars` 双向绑定；硬上界 `MAX_BARS_GUARD = 2_000_000` 不变）。
+/// 历史坑：原夹具用 518880 M1 `2021-01→2026-01` 仅 **292,092 bar < 500_000** ⇒ 阈值上移后不再触发护栏，
+/// 该表项恒红（期望 400、实得 201；原文见 `coder/evidence/20260919_adr026_fix/raw/30_rg2_prefix_RED.txt`）。
+/// 本区间覆盖 518880 M1 `2016-01-01→2027-01-01`（临时库实测 **627,564 bar**，比阈值高 ~25% 余量）
+/// ⇒ `500_000 ≤ bars ≤ 2_000_000`（仍在可 confirm 放行窗口内）。
+const GUARD_TRIGGER_FROM: &str = "2016-01-01T00:00:00Z";
+const GUARD_TRIGGER_TO: &str = "2027-01-01T00:00:00Z";
+
 const PERIOD_REQ: &str = "req";
 const PERIOD_GAP: &str = "gap";
 const PERIOD_NA: &str = "-";
@@ -404,7 +416,7 @@ fn cases(ver_published: &str, ver_draft: &str) -> Vec<Case> {
          Some(submit("518880", "M1", "2030-01-01T00:00:00Z", "2031-01-01T00:00:00Z", ok_slot.clone(), json!({}))),
          "range_empty", PERIOD_REQ),
         ("runs/resource_guard(confirm=false)", "POST", "/api/workbench/runs",
-         Some(submit("518880", "M1", "2021-01-01T00:00:00Z", "2026-01-01T00:00:00Z", ok_slot.clone(), json!({}))),
+         Some(submit("518880", "M1", GUARD_TRIGGER_FROM, GUARD_TRIGGER_TO, ok_slot.clone(), json!({}))),
          "resource_guard", PERIOD_REQ),
         // ── GET /api/workbench/available_range ──
         ("available_range/symbol_required", "GET", "/api/workbench/available_range?symbol=&period=M1",
@@ -481,7 +493,7 @@ fn cases(ver_published: &str, ver_draft: &str) -> Vec<Case> {
          Some(testrun(good_code, "518880", "D1", "2030-01-01T00:00:00Z", "2031-01-01T00:00:00Z", json!({}))),
          "range_empty", PERIOD_REQ),
         ("test-run/resource_guard(confirm=false)", "POST", "/api/strategies/test-run",
-         Some(testrun(good_code, "518880", "M1", "2021-01-01T00:00:00Z", "2026-01-01T00:00:00Z", json!({}))),
+         Some(testrun(good_code, "518880", "M1", GUARD_TRIGGER_FROM, GUARD_TRIGGER_TO, json!({}))),
          "resource_guard", PERIOD_REQ),
     ]
 }
@@ -554,13 +566,16 @@ async fn t_n1_http_every_400_is_structured_object() {
     println!("[N1-HTTP] 覆盖码 {} 个: {codes:?}", codes.len());
 
     // 护栏二次确认放行（confirm=true）：提交路径 201 / 试算路径 200（证明 resource_guard 可编程消费）。
+    // ⚠ 区间必须落在 `[GUARD_CONFIRM_BARS, MAX_BARS_GUARD]`：否则「confirm=true ⇒ 放行」是**本就无需确认**的
+    // 空放行（旧的 2021→2026 区间只有 292,092 bar，阈值上移后已落在此窗口之外）。此处逐条断言估计 bar 数
+    // ≥ `GUARD_CONFIRM_BARS`，使该放行**确系**二次确认被消费（防夹具再一次漂移后静默变成空断言）。
     let (status, v) = call(
         &http,
         "POST",
         &format!("{base}/api/workbench/runs"),
         Some(json!({
             "symbol": "518880", "period": "M1",
-            "from": "2021-01-01T00:00:00Z", "to": "2026-01-01T00:00:00Z",
+            "from": GUARD_TRIGGER_FROM, "to": GUARD_TRIGGER_TO,
             "slots": [{ "version_id": ver_pub, "params": {}, "weight": 1.0 }],
             "policy": {"LumpSum": {"position_pct": 1.0}},
             "confirm": true,
@@ -568,7 +583,12 @@ async fn t_n1_http_every_400_is_structured_object() {
     )
     .await;
     assert_eq!(status, 201, "resource_guard 带 confirm=true 重提应 201；body={v}");
-    println!("[N1-guard] 提交路径 confirm=true ⇒ 201 run={}", v["id"]);
+    let est = v["estimated_bars"].as_i64().unwrap_or(-1);
+    assert!(
+        est >= application::error::GUARD_CONFIRM_BARS as i64 && (est as usize) <= application::error::MAX_BARS_GUARD,
+        "confirm=true 放行的 `estimated_bars` 必须落在 [GUARD_CONFIRM_BARS, MAX_BARS_GUARD] 内（否则本断言是空放行）：est={est}, body={v}"
+    );
+    println!("[N1-guard] 提交路径 confirm=true ⇒ 201 run={} estimated_bars={est}", v["id"]);
     let (status, v) = call(
         &http,
         "POST",
@@ -576,13 +596,18 @@ async fn t_n1_http_every_400_is_structured_object() {
         Some(json!({
             "code": "function on_bar(ctx) { return 50; }",
             "symbol": "518880", "period": "M1",
-            "from": "2021-01-01T00:00:00Z", "to": "2026-01-01T00:00:00Z",
+            "from": GUARD_TRIGGER_FROM, "to": GUARD_TRIGGER_TO,
             "mode": "pure_score", "confirm": true,
         })),
     )
     .await;
     assert_eq!(status, 200, "试算 resource_guard 带 confirm=true 应 200；body={v}");
-    println!("[N1-guard] 试算路径 confirm=true ⇒ 200 bar_count={}", v["bar_count"]);
+    let bar_count = v["bar_count"].as_i64().unwrap_or(-1);
+    assert!(
+        bar_count >= application::error::GUARD_CONFIRM_BARS as i64,
+        "试算 confirm=true 的 `bar_count` 必须 ≥ GUARD_CONFIRM_BARS（否则本断言是空放行）：bar_count={bar_count}, body={v}"
+    );
+    println!("[N1-guard] 试算路径 confirm=true ⇒ 200 bar_count={bar_count}");
 }
 
 // ─────────────────────────── 3. 前端码映射 parity ───────────────────────────

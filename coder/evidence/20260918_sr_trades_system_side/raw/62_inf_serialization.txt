@@ -1,0 +1,21 @@
+### fmtRatio / fmtPct 实现（web/src/features/backtest/format.ts）
+115:export function fmtRatio(x: number | undefined | null, digits = 2): string {
+116-  if (x == null || Number.isNaN(x) || !Number.isFinite(x)) return x === Infinity ? '∞' : '—';
+117-  return x.toFixed(digits);
+118-}
+119-
+120-/** 交易盈亏（带符号着色由调用方决定；此处提供 +/- 格式）。 */
+121-export function fmtPnl(x: number | undefined | null): string {
+122-  if (x == null || Number.isNaN(x)) return '—';
+123-  return `${x >= 0 ? '+' : ''}${x.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+
+### metrics 序列化路径（workbench.rs metrics 落库）
+208:    pub metrics: serde_json::Value,
+247:    pub metrics: Option<serde_json::Value>,
+314:    pub metrics: serde_json::Value,
+905:                metrics: res.metrics,
+1266:                metrics: res.metrics.clone(),
+1279:                metrics: res.metrics.clone(),
+1850:            metrics: serde_json::to_value(res.metrics).expect("metrics 可序列化"),
+2032:    metrics: serde_json::Value,
+2050:        metrics: tail.metrics,

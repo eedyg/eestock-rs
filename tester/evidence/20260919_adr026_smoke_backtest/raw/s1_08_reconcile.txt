@@ -1,0 +1,31 @@
+PASS  status: got='succeeded' exp='succeeded'
+PASS  progress: got=1.0 exp=1.0
+PASS  error: got=None exp=None
+PASS  result_format: got='chunked_v1' exp='chunked_v1'
+PASS  per_bar total (result page): got=493 exp=493
+PASS  per_bar warmup: got=250 exp=250
+PASS  per_bar in-range: got=243 exp=243
+PASS  warmup+in-range == total: got=493 exp=493
+PASS  has_more: got=False exp=False
+PASS  next_offset: got=None exp=None
+PASS  estimated_bars(brief) == in-range: got=243 exp=243
+PASS  /bars per_bar len: got=493 exp=493
+PASS  /bars has_more: got=False exp=False
+PASS  /bars next_offset: got=None exp=None
+PASS  audit.batches_done == #Buy fills: got=3 exp=3
+PASS  deployed_notional == Sum(Buy qty*price): got=99975.006248438 exp=99975.006248438
+      -> deployed_notional=99975.006248438 recomputed=99975.006248438 abs_delta=0.000e+00 rel_delta=0.000e+00
+PASS  fills.total == len(fills): got=4 exp=4
+PASS  audit.round_trips_total == len(trades): got=1 exp=1
+PASS  audit.round_trips_force_closed == #ForceClose events(per_bar): got=1 exp=1
+PASS  round_trips_force_closed == #ForceClose fills: got=1 exp=1
+PASS  trades[0].reason present: got=True exp=True
+PASS  trades[0].reason value: got='ForceClose' exp='ForceClose'
+PASS  reason matches sell fill close_bar: got=492 exp=492
+PASS  reason matches sell fill price: got=9.29914 exp=9.29914
+PASS  deployed_pct >= 0.99: got=True exp=True
+PASS  PARTIAL_DEPLOYMENT absent (pct>=0.99): got=False exp=False
+PASS  DCA_PLAN_UNDERFILLED absent (batches==tranches): got=False exp=False
+PASS  planned_tranches: got=3 exp=3
+
+SUMMARY: 29 assertions, 0 failed

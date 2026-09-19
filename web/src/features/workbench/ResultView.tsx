@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ApiClient } from '@/api/client';
-import type { StrategyCatalogEntry, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import type { StrategyCatalogEntry, TradeReason, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
 import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, fmtTs, periodLabel } from '@/features/backtest/format';
 import { KlineResultChart } from './KlineResultChart';
 import { AggregateScoreChart } from './AggregateScoreChart';
@@ -8,7 +8,8 @@ import { SlotScoresChart } from './SlotScoresChart';
 import { EquityDrawdownChart } from './EquityDrawdownChart';
 import { PerBarTable } from './PerBarTable';
 import { EventLog } from './EventLog';
-import { useRunSeries } from './useRunSeries';
+import { useRunSeries, type RunFillsState } from './useRunSeries';
+import { useRunAudit, type RunAuditState } from './useRunAudit';
 
 type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
 
@@ -27,31 +28,178 @@ const STATUS_LABEL: Record<string, string> = {
   canceled: '已取消',
 };
 
-/** 8 项绩效表（口径由后端 strategy-core 锁定，前端只读展示）。 */
-function MetricsTable({ result }: { result: WorkbenchRunResult }) {
+/** 8 项绩效表（口径由后端 strategy-core 锁定，前端只读展示）。
+ *  ADR-026 §2.4-2：**必须**带口径注（分母 = 初始资金）并并列披露资金投入率 ——
+ *  未满仓时年化/回撤/夏普按初始资金为分母会低估风险，两个口径必须同时可见。 */
+function MetricsTable({
+  result,
+  audit,
+  capitalBasis,
+}: {
+  result: WorkbenchRunResult;
+  audit: RunAuditState;
+  capitalBasis: number;
+}) {
   const m = result.metrics;
+  /** ADR-026 §2.4-3：`profit_factor=null` = 区间内无亏损（JSON 无法表达 ∞）⇒ 显「∞（无亏损）」并注明。 */
+  const pfInfinite = m.profit_factor == null;
   const rows: Array<{ key: string; label: string; value: string }> = [
     { key: 'net_profit', label: 'net_profit（净盈亏）', value: fmtMoney(m.net_profit) },
     { key: 'max_drawdown', label: 'max_drawdown（最大回撤）', value: fmtPct(m.max_drawdown) },
     { key: 'sharpe', label: 'sharpe（夏普）', value: fmtRatio(m.sharpe) },
     { key: 'win_rate', label: 'win_rate（胜率）', value: fmtPct(m.win_rate) },
-    { key: 'profit_factor', label: 'profit_factor（盈亏比）', value: fmtRatio(m.profit_factor) },
+    { key: 'profit_factor', label: 'profit_factor（盈亏比）', value: pfInfinite ? '∞（无亏损）' : fmtRatio(m.profit_factor) },
     { key: 'annualized_return', label: 'annualized_return（年化）', value: fmtPct(m.annualized_return) },
     { key: 'trade_count', label: 'trade_count（交易数）', value: String(m.trade_count) },
     { key: 'avg_hold_bars', label: 'avg_hold_bars（平均持仓）', value: fmtHoldBars(m.avg_hold_bars) },
   ];
   return (
-    <table className="w-full border-collapse text-xs" data-testid="wb-metrics-table">
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.key} className="border-b border-line/40">
-            <td className="px-2 py-1.5 text-dim">{r.label}</td>
-            <td className="num px-2 py-1.5 text-right">{r.value}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="flex flex-col gap-2">
+      <div className="text-[11px] text-dim" data-testid="wb-metrics-basis">
+        {`口径：年化 / 最大回撤 / 夏普的分母 = 初始资金 ${fmtMoney(capitalBasis)}（未满仓时按实际投入口径的风险更高，故并列披露资金投入率）`}
+      </div>
+      <DeployedRate audit={audit} />
+      <table className="w-full border-collapse text-xs" data-testid="wb-metrics-table">
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key} className="border-b border-line/40">
+              <td className="px-2 py-1.5 text-dim">{r.label}</td>
+              <td className="num px-2 py-1.5 text-right">{r.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {pfInfinite && (
+        <div className="text-[11px] text-dim" data-testid="wb-metrics-pf-note">
+          profit_factor = ∞（无亏损）：区间内无亏损平仓，JSON 无法表达 ∞ 故后端回 null
+        </div>
+      )}
+    </div>
   );
+}
+
+/** 资金投入率（ADR-026 §2.1 口径消歧：名义投入=敞口；现金消耗=含佣金）。
+ *  三态沿用仓内既有模式；`recorded=false` ⇒ 显式「未记录」，**不得**把 0 读成 0% 投入。 */
+function DeployedRate({ audit }: { audit: RunAuditState }) {
+  if (audit.loading) {
+    return (
+      <div className="text-[11px] text-dim" data-testid="wb-metrics-deployed">
+        资金投入率：加载中…
+      </div>
+    );
+  }
+  if (audit.error) {
+    return (
+      <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-audit-error">
+        <span>审计加载失败：{audit.error}</span>
+        <button
+          type="button"
+          onClick={audit.retry}
+          data-testid="wb-audit-retry"
+          className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt"
+        >
+          重试
+        </button>
+      </div>
+    );
+  }
+  if (!audit.data) return null;
+  return (
+    <div className="text-[11px] text-dim" data-testid="wb-metrics-deployed">
+      {audit.data.recorded
+        ? `资金投入率（名义投入 / 初始资金）= ${fmtPct(audit.data.deployed_pct, 2)}；资金占用（含佣金）/ 初始资金 = ${fmtPct(audit.data.cash_consumed_pct, 2)}`
+        : '资金投入率：未记录（该 run 无执行事实源）'}
+    </div>
+  );
+}
+
+/**
+ * 交易明细 Tab 表上方的审计摘要行（ADR-026 §2.4-1）。
+ * 成交笔数取**逐笔源** `/fills`（不用 `trades`：部分买入/加仓不进 trades）；
+ * 回合数与强平合成数取审计派生（历史 run 也能辨识「胜率 100%」的真伪）。
+ * `warnings` **非阻断**：仅信息性提示条，不影响提交/结果/既有响应。
+ *
+ * 口径消歧（2026-09-19 整改）：`/fills` 全口径（含期末强平 Sell）与审计 `batches_done`（**买入批数**）
+ * 是两个不同的数（实例 run：43 笔成交合计 = 42 笔买入 + 1 笔期末强平卖出），故 L1 写明
+ * 「成交合计 N 笔（含期末强平卖出 K 笔）」、L2 写明「买入成交 M 笔」，两个数**分别命名**。
+ * 两个数都来自接口响应（N = `/fills` total，K = 审计 `round_trips_force_closed`，M = 审计 `batches_done`），
+ * 前端不硬编码。
+ */
+function AuditSummary({ audit, fills }: { audit: RunAuditState; fills: RunFillsState }) {
+  if (audit.loading) {
+    return (
+      <div className="text-[11px] text-dim" data-testid="wb-audit-loading">
+        执行完整度审计加载中…
+      </div>
+    );
+  }
+  if (audit.error) {
+    return (
+      <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-audit-error">
+        <span>审计加载失败：{audit.error}</span>
+        <button
+          type="button"
+          onClick={audit.retry}
+          data-testid="wb-audit-retry"
+          className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt"
+        >
+          重试
+        </button>
+      </div>
+    );
+  }
+  if (!audit.data) return null;
+  const a = audit.data;
+  // recorded=false = 事实源缺失 ⇒ 诚实留白（把 0 展示成 0% 投入比缺字段更危险）
+  if (!a.recorded) {
+    return (
+      <div
+        className="rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
+        data-testid="wb-audit-unrecorded"
+      >
+        执行完整度审计：未记录（该 run 无 per_bar.orders/events 与 fills 事实源，故不展示投入率以免把缺失读成 0%）
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1" data-testid="wb-audit-summary">
+      <div className="text-[11px] text-dim">
+        {`${fills.recorded ? `成交合计 ${fills.total} 笔（含期末强平卖出 ${a.round_trips_force_closed} 笔）` : '成交合计 未记录（/fills 事实源缺失）'}｜回合 ${a.round_trips_total} 条（其中强平合成 ${a.round_trips_force_closed} 条）｜名义投入 ${fmtPct(a.deployed_pct, 2)}（分母 = 初始资金）`}
+      </div>
+      <div className="text-[11px] text-dim" data-testid="wb-audit-cash">
+        {`现金消耗（含佣金）${fmtPct(a.cash_consumed_pct, 2)}｜计划批数 ${a.planned_tranches ?? '—'}｜可达轮次 ${a.reachable_batches}｜买入成交 ${a.batches_done} 笔｜未执行挂单 ${a.unexecuted_orders}${a.last_bar_unfilled ? '（末根 bar 无次 bar 可执行）' : ''}`}
+      </div>
+      {a.warnings.length > 0 && (
+        <div className="flex flex-col gap-1" data-testid="wb-audit-warnings">
+          {a.warnings.map((w) => (
+            <div
+              key={w.code}
+              role="status"
+              data-testid={`wb-audit-warning-${w.code}`}
+              className={`rounded-lg border px-2 py-1 text-[11px] ${
+                w.severity === 'warn' ? 'border-up/40 bg-up/10 text-up' : 'border-line bg-panel2 text-dim'
+              }`}
+            >
+              {w.severity === 'warn' ? '⚠ ' : 'ℹ '}
+              {w.message}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** ADR-026 §2.3：来源列取值（新 run 正常 / 止损 / 期末强平；历史 run 缺字段 = 未记录）。 */
+const TRADE_REASON_LABEL: Record<TradeReason, string> = {
+  Policy: '正常',
+  StopTrigger: '止损',
+  ForceClose: '期末强平',
+};
+
+function tradeSourceLabel(reason: TradeReason | null | undefined): string {
+  if (!reason) return '未记录';
+  return TRADE_REASON_LABEL[reason] ?? reason;
 }
 
 /** 交易明细表（TradeDetail jsonb 只读）。 */
@@ -71,6 +219,7 @@ function TradesTable({ result }: { result: WorkbenchRunResult }) {
             <th className="px-2 py-1 font-normal">股数</th>
             <th className="px-2 py-1 font-normal">盈亏</th>
             <th className="px-2 py-1 font-normal">持仓</th>
+            <th className="px-2 py-1 font-normal">来源</th>
           </tr>
         </thead>
         <tbody>
@@ -83,6 +232,9 @@ function TradesTable({ result }: { result: WorkbenchRunResult }) {
               <td className="num px-2 py-1">{t.shares.toLocaleString('zh-CN')}</td>
               <td className={`num px-2 py-1 ${t.pnl >= 0 ? 'text-up' : 'text-down'}`}>{fmtMoney(t.pnl)}</td>
               <td className="num px-2 py-1 text-dim">{fmtHoldBars(t.hold_bars)}</td>
+              <td className="px-2 py-1 text-dim" data-testid={`wb-trade-source-${i}`}>
+                {tradeSourceLabel(t.reason)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -121,6 +273,9 @@ export function ResultView({
   // ADR-024 P6：结果取数**单一入口**（曲线 /curve、明细 /bars 分页、成交 /fills；
   // legacy_single 从 `/result` 内联列同步派生 ⇒ 旧行为零回归）。
   const series = useRunSeries({ api, run, result });
+  // ADR-026 §2.4：审计按 Tab **懒加载**（交易明细/8项绩效需要；逐bar/事件不请求；无结果 run 不请求）。
+  const auditEnabled = (tab === 'trades' || tab === 'metrics') && run?.status === 'succeeded' && !!result;
+  const audit = useRunAudit({ api, runId: run?.id ?? null, enabled: auditEnabled });
 
   if (!run) {
     return (
@@ -220,8 +375,19 @@ export function ResultView({
               ))}
             </div>
             <div className="p-2">
-              {tab === 'trades' && <TradesTable result={result} />}
-              {tab === 'metrics' && <MetricsTable result={result} />}
+              {tab === 'trades' && (
+                <div className="flex flex-col gap-2">
+                  <AuditSummary audit={audit} fills={series.fills} />
+                  <TradesTable result={result} />
+                </div>
+              )}
+              {tab === 'metrics' && (
+                <MetricsTable
+                  result={result}
+                  audit={audit}
+                  capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
+                />
+              )}
               {tab === 'perbar' && (
                 <PerBarTable
                   bars={series.bars}

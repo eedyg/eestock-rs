@@ -1,0 +1,28 @@
+### 失败详情
+    t_n1_http_every_400_is_structured_object
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.07s
+
+error: test failed, to rerun pass `-p web --test tester_p5rect_verify`
+### 该文件是否被本批改动
+(空 = 未改)
+### HEAD 中的护栏常量
+150:pub const GUARD_CONFIRM_BARS: usize = 500_000;
+168:/// 硬上界（> [`MAX_BARS_GUARD`]）不可 confirm 放行；二次确认阈值（≥ [`GUARD_CONFIRM_BARS`]）需 `confirm=true`。
+176:    if bars <= MAX_BARS_GUARD && (bars < GUARD_CONFIRM_BARS || confirm) {
+183:    //   confirm_bars = GUARD_CONFIRM_BARS（二次确认阈值，confirm=true 放行）；
+190:        "confirm_bars": GUARD_CONFIRM_BARS,
+202:            "预估 {bars} 根 bar（≈{secs:.1} 秒）达到二次确认阈值 {GUARD_CONFIRM_BARS} 根；如仍要提交，带 confirm=true 重提"
+### tester 资产里的硬断言
+406:        ("runs/resource_guard(confirm=false)", "POST", "/api/workbench/runs",
+483:        ("test-run/resource_guard(confirm=false)", "POST", "/api/strategies/test-run",
+556:    // 护栏二次确认放行（confirm=true）：提交路径 201 / 试算路径 200（证明 resource_guard 可编程消费）。
+566:            "confirm": true,
+570:    assert_eq!(status, 201, "resource_guard 带 confirm=true 重提应 201；body={v}");
+571:    println!("[N1-guard] 提交路径 confirm=true ⇒ 201 run={}", v["id"]);
+580:            "mode": "pure_score", "confirm": true,
+584:    assert_eq!(status, 200, "试算 resource_guard 带 confirm=true 应 200；body={v}");
+585:    println!("[N1-guard] 试算路径 confirm=true ⇒ 200 bar_count={}", v["bar_count"]);
+### 本批是否触碰 resource_guard 相关文件
+crates/strategy-core/src/engine.rs
+crates/strategy-core/tests/engine.rs

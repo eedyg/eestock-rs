@@ -1,0 +1,15 @@
+### 线上 :8081（父代理侧的常驻进程）是否已含 ADR-026 端点
+2043164 Fri Sep 18 18:04:44 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+4062143 Sat Sep 19 00:53:26 2026 /bin/bash -c cat > /tmp/adr026_verify_app_8091.toml <<'EOF' database_url = "postgres://eestock:eestock@127.0.0.1:5433/tmp_test026_1789750375" listen = "127.0.0.1:8091" mcp_listen = "127.0.0.1:8092" static_dir = "./web/dist" health_window_secs = 3600 ws_poll_ms = 60000 alert_eval_ms = 600000 EOF cd /home/eestock/workspace/git/eestock/eestock-rs && LOG=tester/evidence/20260919_adr026_backend_verify/raw/22_app_8091_startup.log && nohup ./target/debug/eestock-app --config /tmp/adr026_verify_app_8091.toml > $LOG 2>&1 & sleep 8; echo "=== log ==="; cat /home/eestock/workspace/git/eestock/eestock-rs/$LOG 2>/dev/null || tail -20 /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_adr026_backend_verify/raw/22_app_8091_startup.log; echo "=== health ==="; curl -s -m 5 -o /dev/null -w "8091 healthz:%{http_code}\n" http://127.0.0.1:8091/healthz; curl -s -m 5 -o /dev/null -w "8092 healthz:%{http_code}\n" http://127.0.0.1:8092/healthz
+4062145 Sat Sep 19 00:53:26 2026 ./target/debug/eestock-app --config /tmp/adr026_verify_app_8091.toml
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+2026-09-19 00:52:42.185103682 +0800  target/debug/eestock-app
+2
+--- 线上 curl ---
+HTTP/1.1 404 Not Found
+content-type: application/json
+content-length: 21
+date: Fri, 18 Sep 2026 16:58:28 GMT
+
+{"error":"not found"}
+--- 线上 MCP tools/list 是否含 bt_get_run_audit（8082）---

@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 1 test
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.11s
+

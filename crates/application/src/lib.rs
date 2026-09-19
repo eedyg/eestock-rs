@@ -8,6 +8,8 @@
 //! 依赖注入 domain 端口 + `backtest`/`strategy-core`/`simlive` 纯逻辑 crate；
 //! **不依赖 web/storage**（差异在哪层均不反向依赖基础设施，DI 由 app bin 装配）。
 
+// ADR-026：回测结果的执行完整度审计（纯函数派生，无 IO；web/MCP 共用同一口径）。
+pub mod audit;
 pub mod bar_map;
 // ADR-024 P5 §3.1.1：结构化应用层错误（`{"error":{code,message,detail}}`；手写，非 tangle）。
 pub mod error;

@@ -1,0 +1,9 @@
+### GET /api/workbench/runs/sr_1789738328788_000005/audit
+
+HTTP=200
+{"run_id":"sr_1789738328788_000005","recorded":true,"capital_basis":100000.0,"deployed_notional":41397.97208076086,"deployed_pct":0.4139797208076086,"cash_consumed":41607.97208076086,"cash_consumed_pct":0.41607972080760863,"planned_tranches":100,"reachable_batches":43,"batches_done":42,"unexecuted_orders":1,"last_bar_unfilled":true,"round_trips_total":1,"round_trips_force_closed":1,"warnings":[{"code":"DCA_PLAN_UNDERFILLED","severity":"warn","message":"计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）"},{"code":"PARTIAL_DEPLOYMENT","severity":"warn","message":"名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金"},{"code":"ORDERS_UNEXECUTED","severity":"info","message":"1 笔挂单未成交（末根 bar 无次 bar 可执行）"}]}
+### key presence
+top-level keys: ['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings']
+deployed_pct -> 0.4139797208076086
+planned_tranches -> 100
+warnings -> [{"code": "DCA_PLAN_UNDERFILLED", "severity": "warn", "message": "计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）"}, {"code": "PARTIAL_DEPLOYMENT", "severity": "warn", "message": "名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金"}, {"code": "ORDERS_UNEXECUTED", "severity": "info", "message": "1 笔挂单未成交（末根 bar 无次 bar 可执行）"}]

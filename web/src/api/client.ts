@@ -68,6 +68,7 @@ import type {
   WorkbenchPresetConfigInput,
   WorkbenchPresetRow,
   WorkbenchResultBrief,
+  WorkbenchRunAudit,
   WorkbenchRunConfig,
   WorkbenchRunResult,
   WorkbenchRunStatus,
@@ -274,6 +275,8 @@ export interface ApiClient {
   ): Promise<WorkbenchCurveResponse>;
   /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
   getWorkbenchFills(id: string, q?: { offset?: number; limit?: number }): Promise<WorkbenchFillsResponse>;
+  /** 执行完整度审计（GET /api/workbench/runs/{id}/audit；ADR-026 §2.2 只读派生，前端**按 Tab 懒加载**）。 */
+  getRunAudit(id: string): Promise<WorkbenchRunAudit>;
   /** 协作式取消（POST /api/workbench/runs/{id}/cancel；409 已终态/404 未知） */
   cancelWorkbenchRun(id: string): Promise<WorkbenchRunView>;
   /** 多 run 并排对比（POST /api/workbench/runs/compare body {ids, k?}；**服务端抽样**净值；
@@ -586,6 +589,8 @@ export function createHttpClient(baseUrl = '', fetcher: typeof fetch = fetch): A
         `/api/workbench/runs/${encodeURIComponent(id)}/fills${qs ? `?${qs}` : ''}`,
       );
     },
+    getRunAudit: (id) =>
+      get<WorkbenchRunAudit>(`/api/workbench/runs/${encodeURIComponent(id)}/audit`),
     cancelWorkbenchRun: (id) =>
       request<WorkbenchRunView>(`/api/workbench/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
     compareWorkbenchRuns: (ids, k) =>

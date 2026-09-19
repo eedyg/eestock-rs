@@ -1,0 +1,7 @@
+DROP DATABASE
+postgres
+eestock
+eestock_test
+DROP DATABASE
+postgres
+eestock

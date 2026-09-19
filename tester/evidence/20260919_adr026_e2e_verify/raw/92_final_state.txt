@@ -1,0 +1,15 @@
+### 收工环境状态 2026-09-19T01:23:59+08:00
+--- 进程（新 PID 应仍存活，旧 PID 2043164 不存在）
+4160311 Sat Sep 19 01:14:12 2026       09:47 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+旧 PID 2043164 存在? NO
+--- 端口归属
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=12)) 
+--- healthz / audit（新代码在跑）
+8081/healthz: 200
+8082/healthz: 404
+8082/sse: 200
+8081 audit: 200
+--- 库清单
+eestock
+postgres

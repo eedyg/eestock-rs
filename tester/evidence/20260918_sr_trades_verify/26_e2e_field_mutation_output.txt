@@ -1,0 +1,6 @@
+{
+  "baselineTradeRows": 1,
+  "fillsNote": "成交 43 笔（精确源 /fills）",
+  "mutatedTradeRowsWhenTradesReplacedWith43": 43,
+  "observableDifference": 42
+}

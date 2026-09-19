@@ -1,0 +1,111 @@
+### GET /bars?offset=420&limit=3 （末 3 根，证明客户端可自行发现末 bar 挂单未执行）
+{
+    "kind": "per_bar",
+    "bars": [
+        {
+            "aggregate": 75.0,
+            "events": [],
+            "orders": [
+                {
+                    "qty": 109.84194313473563,
+                    "reason": "Policy",
+                    "side": "Buy"
+                }
+            ],
+            "scores": [
+                {
+                    "score": 75.0,
+                    "slot_idx": 0
+                }
+            ],
+            "signal": "Buy",
+            "ts": 1789401600,
+            "warmup": false
+        },
+        {
+            "aggregate": 75.0,
+            "events": [
+                {
+                    "bar_index": 421,
+                    "price": 8.8297656,
+                    "qty": 109.30313717285733,
+                    "reason": "Policy",
+                    "side": "Buy",
+                    "type": "fill"
+                }
+            ],
+            "orders": [
+                {
+                    "qty": 109.44329961000585,
+                    "reason": "Policy",
+                    "side": "Buy"
+                }
+            ],
+            "scores": [
+                {
+                    "score": 75.0,
+                    "slot_idx": 0
+                }
+            ],
+            "signal": "Buy",
+            "ts": 1789488000,
+            "warmup": false
+        },
+        {
+            "aggregate": 75.0,
+            "events": [
+                {
+                    "bar_index": 422,
+                    "price": 8.861771999999998,
+                    "qty": 108.90643919337788,
+                    "reason": "Policy",
+                    "side": "Buy",
+                    "type": "fill"
+                },
+                {
+                    "bar_index": 422,
+                    "price": 8.8542288,
+                    "qty": 4368.985265614662,
+                    "reason": "ForceClose",
+                    "side": "Sell",
+                    "type": "fill"
+                }
+            ],
+            "orders": [
+                {
+                    "qty": 110.04391957839198,
+                    "reason": "Policy",
+                    "side": "Buy"
+                }
+            ],
+            "scores": [
+### GET /fills 末 2 笔
+{
+    "run_id": "sr_1789738328788_000005",
+    "total": 43,
+    "offset": 41,
+    "limit": 3,
+    "has_more": false,
+    "next_offset": null,
+    "recorded": true,
+    "fills": [
+        {
+            "bar_index": 422,
+            "price": 8.861771999999998,
+            "qty": 108.90643919337788,
+            "reason": "Policy",
+            "side": "Buy",
+            "ts": 1789574400,
+            "type": "fill"
+        },
+        {
+            "bar_index": 422,
+            "price": 8.8542288,
+            "qty": 4368.985265614662,
+            "reason": "ForceClose",
+            "side": "Sell",
+            "ts": 1789574400,
+            "type": "fill"
+        }
+    ]
+}

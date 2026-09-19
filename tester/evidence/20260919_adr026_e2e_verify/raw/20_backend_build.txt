@@ -1,0 +1,15 @@
+### 构建前二进制
+-rwxrwxr-x 2 eestock eestock 213324544 2026-09-19 00:52:42.185103682 +0800 target/debug/eestock-app
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+### cargo build --bin eestock-app
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+   Compiling app v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.07s
+### 构建后二进制
+-rwxrwxr-x 2 eestock eestock 213324544 2026-09-19 01:13:57.457197250 +0800 target/debug/eestock-app
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+### strings 命中
+2
+16

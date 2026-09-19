@@ -1,0 +1,41 @@
+web/src/api/mock.ts:697:/** 由 per_bar 的 `fill` 事件派生成交明细（与后端 legacy 双读同口径；`ts` 取所在 bar）。 */
+web/src/api/client.ts:275:  /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
+web/src/api/types.ts:794:/** sim_position 模式成交明细（backtest::TradeDetail JSON 形状） */
+web/src/api/types.ts:1114:/** 成交明细条目（`EngineEvent::Fill` 投影 + 所在 bar 的 ts，K 线标记锚点）。 */
+web/src/api/types.ts:1126:/** `GET …/fills`（成交明细分页读；ADR-024 P6 有界精确源，**禁止抽样**）。
+web/src/features/strategies/TestRunPanel.tsx:127:        result.truncated.trades ? '成交明细' : null,
+web/src/features/workbench/KlineResultChart.tsx:15:/** 成交明细 → K 线标记 overlay（ADR §13.5：K线+买卖标记，含硬止损触发点不同图标）。
+web/src/features/workbench/KlineResultChart.tsx:17: * ADR-024 P6：数据源**必须是成交明细事实源**（后端 `kind='fills'` / `GET …/fills`），
+web/src/features/workbench/KlineResultChart.tsx:40: * 区间 = run [from_ts, to_ts]（小 buffer）；markers 由**成交明细事实源**生成
+web/src/features/workbench/KlineResultChart.tsx:80:          <span data-testid="wb-fills-note">成交明细加载中…</span>
+web/src/features/workbench/KlineResultChart.tsx:83:            该运行未记录成交明细（P6 之前的分块 run）⇒ 标记可能不全
+web/src/features/workbench/KlineResultChart.tsx:91:        {fills.error && <span className="text-up" data-testid="wb-fills-error">成交明细加载失败：{fills.error}</span>}
+web/src/features/workbench/useRunSeries.ts:20: * - **成交明细 ⇒ `GET …/fills`**（有界精确源；K 线买卖标记**不用** `trades`：`TradeDetail` 仅在
+web/src/features/workbench/useRunSeries.ts:53:/** 成交明细状态（`recorded=false` = 后端未写 fills 块，与「无成交」区分）。 */
+web/src/features/workbench/useRunSeries.ts:83:/** 由 per_bar 的 `fill` 事件派生成交明细（与后端 legacy 双读同口径；`ts` 取所在 bar）。 */
+web/src/features/workbench/ResultView.test.tsx:359:    expect(note).toHaveTextContent('未记录成交明细');
+crates/web/tests/api_workbench.rs:741:// ── ADR-024 P6：`GET /runs/{id}/fills` 成交明细分页（有界精确源；K 线标记数据源） ──
+crates/web/src/workbench.rs:539:/// GET /api/workbench/runs/{id}/fills?offset=&limit= —— **成交明细分页读**（ADR-024 P6）。
+crates/storage/tests/sim_store.rs:118:    assert_eq!(n.0, 1, "成交明细落库");
+crates/application/tests/workbench.rs:1883:// ── ADR-024 P6：fills 事实源（成交明细单块 + `/fills` 分页读；禁止抽样） ──
+crates/application/tests/simlive.rs:560:    // 落库：成交明细 + 持仓
+crates/application/tests/simlive.rs:591:    // 不落成交明细 / 不动持仓
+crates/application/tests/simlive.rs:720:    // 只记一笔成交明细
+crates/application/src/strategy.rs:264:    /// sim_position 模式成交明细（backtest::TradeDetail JSON，**仅 in-range**）；pure_score 恒空数组。
+crates/application/src/workbench.rs:277:/// `GET /runs/{id}/fills` 响应（成交明细分页；ADR-024 P6：**有界精确源，禁止抽样**）。
+crates/application/src/workbench.rs:946:    /// `GET /runs/{id}/fills?offset=&limit=`：成交明细分页读（ADR-024 P6 有界精确源）。
+crates/application/src/workbench.rs:1770:        // ADR-024 P6：成交明细（fills 事实源）——与 per_bar 同遍扫描累积，finish 后写单块。
+crates/application/src/simlive.rs:7://! 持久化经 `SimSessionStore`（会话元数据 / 成交明细 / 持仓快照 / 结束结果）。
+crates/application/src/simlive.rs:674:        // 成交明细回填（重建 SessionManager.trades；sim_trades 已按 ts 升序读回）。
+crates/application/src/simlive.rs:922:                    // 限价未触及 → pending 单，不成交、不落成交明细。
+crates/application/src/simlive.rs:944:        // 落库（仅成交才写成交明细/持仓；pending 不落）。
+crates/application/src/simlive.rs:1357:        // 锁外持久化（仅成交才写成交明细/持仓）。
+crates/application/src/simlive.rs:1855:/// 把模拟会话成交明细（SimTrade，FIFO per code）配对成 backtest 口径的**已平仓** `TradeDetail` 列表。
+crates/domain/src/ports.rs:651:/// 新成交明细（sim_trades 行）。
+crates/domain/src/ports.rs:720:    /// 追加一条成交明细。
+crates/domain/src/ports.rs:722:    /// 读会话成交明细（ts 升序；恢复重建用）。
+crates/domain/src/ports.rs:959:/// ADR-024 P6：新增 `Fills` —— 成交明细的**有界精确源**（单块 `seq=0`）。
+crates/domain/src/ports.rs:977:    /// `fills` 是**事实源**（成交明细）：不得进入抽样/区间/分页曲线路径（ADR-024 P6 硬约束）。
+crates/domain/src/ports.rs:1003:    pub trades: serde_json::Value,    // 成交明细
+crates/simlive/src/session.rs:4://! `record_trade` 追加成交明细；`stop_session` 置 ended + end_ts 并返回会话状态快照。
+crates/simlive/src/fill.rs:110:/// 降序（供会话/存储：会话内记录成交明细）。

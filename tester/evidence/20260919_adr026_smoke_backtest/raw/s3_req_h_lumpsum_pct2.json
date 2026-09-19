@@ -1,0 +1,1 @@
+{"name":"smoke_adr026_S3_neg_neg","symbol":"518880","period":"D1","from":"2025-06-01T00:00:00Z","to":"2025-09-30T00:00:00Z","slots":[{"version_id":"sv_1789211089727_000010","params":{"cadence":20,"plan_bars":5},"weight":1.0}],"policy":{"LumpSum":{"position_pct":2.0}}}

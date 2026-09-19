@@ -1,0 +1,16 @@
+[
+    {
+        "pnl": 70627.93767900081,
+        "shares": 13358.26876836762,
+        "open_ts": 1659369600,
+        "close_ts": 1788969600,
+        "open_bar": 1,
+        "close_bar": 998,
+        "hold_bars": 997,
+        "commission": 42.98671319796955,
+        "open_price": 3.790758,
+        "stamp_duty": 0.0,
+        "close_price": 9.0811834,
+        "gross_value": 121308.88859203848
+    }
+]

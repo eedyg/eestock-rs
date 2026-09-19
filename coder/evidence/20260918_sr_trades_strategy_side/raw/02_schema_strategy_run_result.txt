@@ -1,0 +1,15 @@
+                  Table "public.strategy_run_result"
+    Column     | Type  | Collation | Nullable |        Default        
+---------------+-------+-----------+----------+-----------------------
+ run_id        | text  |           | not null | 
+ per_bar       | jsonb |           | not null | 
+ trades        | jsonb |           | not null | 
+ net_value     | jsonb |           | not null | 
+ drawdown      | jsonb |           | not null | 
+ metrics       | jsonb |           | not null | 
+ result_format | text  |           | not null | 'legacy_single'::text
+Indexes:
+    "strategy_run_result_pkey" PRIMARY KEY, btree (run_id)
+Foreign-key constraints:
+    "strategy_run_result_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+

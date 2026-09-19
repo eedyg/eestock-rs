@@ -1,0 +1,16 @@
+run=sr_1789044295239_000111  bars=1209 per_bar(/result)=1209
+intents(/bars): Buy=40 Sell=40   events(fill)=80 (in /bars)
+fills(/fills): total=80 Buy=40 Sell=40 recorded=True
+trades(/result).len=40   ForceClose fill events=0  FC bar∈events=[]
+--- 三方自洽断言 ---
+  [PASS] audit.batches_done == /fills Buy 数
+  [PASS] audit.reachable_batches == /bars in-range Buy 意图数
+  [PASS] audit.unexecuted_orders == 意图-成交
+  [PASS] audit.round_trips_total == /result trades 长度
+  [PASS] audit.round_trips_force_closed == close_bar 配对数
+  [PASS] audit.deployed_notional == Σ Buy qty*price
+  [PASS] /fills 与 /bars events 成交数一致
+  [PASS] /bars orders 与 /result per_bar orders 一致
+ALL PASS
+target run: /bars in-range Buy 意图=43 vs audit.reachable_batches=43 -> PASS
+A5 VERDICT: PASS

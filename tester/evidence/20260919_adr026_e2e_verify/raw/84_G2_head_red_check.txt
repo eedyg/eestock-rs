@@ -1,0 +1,25 @@
+### G2 独立复核：tester_p5rect_verify 的红是否与本批无关（HEAD 既有）
+--- 常量定义处
+--- 测试期望
+7://! 1. `t_n1_static_audit`：**静态枚举**两模块内每一条 400 出口，断言
+12://! 2. `t_n1_http_every_400_is_structured_object`：**HTTP 级**表驱动（40 条），逐条断言
+13://!    `status==400` + `error` 为对象 + `code`/`message`/`detail` 齐备 + `detail` 为对象；
+17://!    「无交集 ⇒ 400 range_empty + 回显」两种情形（真库真数据）。
+134:/// 结构化 400 形状断言（N1 的核心判据）：`error` 恒为对象，含 `code`/`message`/`detail`，
+136:fn assert_structured_400(label: &str, status: u16, body: &Value) -> String {
+137:    assert_eq!(status, 400, "[{label}] 期望 400，实得 {status}；body={body}");
+191:        // 同语句内的调用头：从 pos 往前看 400 字节，取最后一个 `structured(` / `err(` 出现位置，
+193:        let start = abs.saturating_sub(400);
+215:    // ①/② 每处 400 都走 structured(（workbench.rs 内联结构化；strategies.rs 由 structured() 内部固定 400）
+304:// ─────────────────────────── 2. HTTP 级：每条 400 都是结构化对象 ───────────────────────────
+508:async fn t_n1_http_every_400_is_structured_object() {
+--- 两个文件是否在本批改动清单内（空=未改动）
+(以上为空 ⇒ 本批未触碰)
+--- 实际失败原文
+---- t_n1_http_every_400_is_structured_object stdout ----
+[runs/symbol_required] code=symbol_required detail={} <<< N1-r: 无 detail.period
+[runs/period_invalid] code=period_invalid detail.period="W1"
+[runs/from_bad] code=timestamp_invalid detail={"field":"from","value":"not-a-ts"} <<< N1-r: 无 detail.period
+[runs/to_bad] code=timestamp_invalid detail={"field":"to","value":"not-a-ts"} <<< N1-r: 无 detail.period
+[runs/from_after_to] code=from_after_to detail={"from":"2025-02-01T00:00:00Z","to":"2025-01-01T00:00:00Z"} <<< N1-r: 无 detail.period
+[runs/slots_empty] code=slots_invalid detail={"got":0} <<< N1-r: 无 detail.period

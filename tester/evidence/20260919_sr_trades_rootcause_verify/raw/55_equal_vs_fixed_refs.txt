@@ -1,0 +1,76 @@
+=== grep 注资/入金/追加资金/现金流 通道 ===
+design/12-strategy-system/04-strategy-programming-guide.md:220:| `r_s` | float | 1.0 | 0.5–2.0 | 短窗口每期投入金额增长比 |
+design/12-strategy-system/04-strategy-programming-guide.md:221:| `r_m` | float | 1.0 | 0.5–2.0 | 中窗口每期投入金额增长比 |
+design/12-strategy-system/04-strategy-programming-guide.md:222:| `r_l` | float | 1.0 | 0.5–2.0 | 长窗口每期投入金额增长比 |
+design/12-strategy-system/04-strategy-programming-guide.md:291:  { key: "r",  type: "float", default: 1.0,  min: 0.5,   max: 2.0, description: "每期投入金额增长比（1.0 = 等额定投）" },
+(空 = 无该通道)
+
+=== policy.rs 里 Equal/FixedAmount 原文（行号）===
+25:    /// 一次性全量：Buy → 目标 = 净值 × position_pct；Sell → 目标 0。
+26:    LumpSum {
+27:        /// 目标仓位占净值比例，∈ (0, 1]。
+28:        position_pct: f64,
+29:    },
+30:    /// 分批建仓（定投式）。Buy 信号**持续**期间每 `interval` bar 执行一批；
+31:    /// 信号中断 → 剩余批次取消；Buy 信号重新出现 → 重新开始计数（重新规划总额/批次）；
+32:    /// Sell 信号 → 一次性清仓（目标 0）。
+33:    Dca {
+34:        /// 总批次数 N（≥ 1）。
+35:        tranches: usize,
+96:    pub(crate) bars_in_run: usize,
+97:    /// 已执行批次数。
+98:    pub(crate) batches_done: usize,
+99:    /// 本轮起点持仓（股）——目标仓位 = base_qty + 累计批次股数，保证幂等换算。
+100:    pub(crate) base_qty: f64,
+101:    /// 累计批次股数（按各批次决策 bar 的 close 换算）。
+102:    pub(crate) accumulated_qty: f64,
+103:    /// Equal 模式计划总额（本轮起点净值快照）。
+104:    pub(crate) plan_total: f64,
+105:}
+106:
+107:impl PolicyState {
+108:    pub fn new() -> Self {
+109:        Self::default()
+110:    }
+186:                    // 每 k bar 触发一批（run 内第 0 批当 bar 即触发），批次数不超过 N。
+187:                    // allow：usize::is_multiple_of 稳定于 rust 1.87，超出 workspace MSRV 1.85。
+188:                    #[allow(clippy::manual_is_multiple_of)]
+189:                    if st.bars_in_run % k == 0 && st.batches_done < *tranches {
+190:                        let batch_amount = match mode {
+191:                            DcaMode::Equal => st.plan_total / *tranches as f64,
+192:                            DcaMode::FixedAmount => amount.expect("validated"),
+193:                        };
+194:                        st.accumulated_qty += batch_amount / price;
+195:                        st.batches_done += 1;
+196:                    }
+197:                    st.bars_in_run += 1;
+198:                    st.base_qty + st.accumulated_qty
+199:                }
+200:                // 信号中断（Hold）→ 剩余批次取消（状态清除）；目标 = 当前（无订单）。
+201:                TradeSignal::Hold => {
+202:                    self.dca = None;
+203:                    current_qty
+204:                }
+205:                // Sell → 一次性清仓（目标 0），状态复位。
+
+=== templates/dca.js 的 plan_bars 注释原文 ===
+13-//
+14-// 本模板策略：
+15-//   空仓 + 收盘低于慢速均线（回踩）→ 80（开启一轮定投）；
+16://   持仓且 bars_since_entry < plan_bars → 继续 80（让 Policy 把批次打完）；
+17-//   达到计划窗口 → 50（中立，停止加仓）；趋势深跌可改为 20 离场（留作练习）。
+18-// 无内部状态（节奏由 ctx.position 驱动）→ 无需 save()/load()。
+19-// =============================================================================
+20-
+21-const PARAMS_SCHEMA = [
+22-  { key: "slow", type: "int", default: 20, min: 2, max: 250, description: "慢线周期（回踩判定基准）" },
+23:  { key: "plan_bars", type: "int", default: 3, min: 1, max: 60, description: "计划加仓窗口（bar 数，应与 DCA Policy 的 tranches×interval 对齐）" }
+24-];
+25-
+26-function on_bar(ctx) {
+--
+33-    return ctx.bar.close < slow ? 80 : 50;
+34-  }
+35-  // 持仓：计划窗口内保持买入区高分（Policy 按 interval 逐批执行），窗口外中立。
+36:  return ctx.position.bars_since_entry < ctx.params.plan_bars ? 80 : 50;
+37-}

@@ -1,0 +1,24 @@
+# Green — ADR-026 前端披露（阶段 3）目标用例
+
+## 1) 三条目标测试文件（Red = 14 failed / 110 passed → Green = 125 passed）
+$ npx vitest run src/api/client.test.ts src/api/mock.test.ts src/features/workbench/ResultView.test.tsx
+ ✓ src/api/client.test.ts > 回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8 线格式） > ADR-026 getRunAudit → GET /api/workbench/runs/{id}/audit（响应原样透传；404 走既有 ApiError） 0ms
+ ✓ src/api/mock.test.ts > 回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为同构） > ADR-026：/audit 由事实派生（recorded=true；batches_done=Buy 成交数；deployed=Σqty×price；cash=金额+佣金；Dca → DCA_PLAN_UNDERFILLED） 1ms
+ ✓ src/api/mock.test.ts > 回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为同构） > ADR-026：workbenchAuditMissing ⇒ recorded=false + 零值 + 空 warnings（前端须显「未记录」，不得显 0%） 0ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：交易明细 Tab 审计摘要行 + warnings 非阻断提示条（成交/回合/强平/名义投入口径） 12ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：warnings 为空 ⇒ 不渲染提示条（无告警不占位） 12ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：交易明细「来源」列 —— 正常 / 止损 / 期末强平；历史 run（缺字段）→ 未记录 7ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：来源列历史 run 实测 —— mock 种子 run（legacy_single，TradeDetail 无 reason 字段）→ 未记录 15ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：8项绩效 Tab —— 口径注（分母 = 初始资金）+ 资金投入率；profit_factor=null → ∞（无亏损）并注明 18ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：profit_factor 有值 ⇒ 显示数值且无 ∞ 注 16ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：审计按 Tab 懒加载 —— 仅审计 Tab 打请求、切回不重复、无结果 run 不请求 49ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：审计 loading 三态骨架（请求未落地前显加载中） 15ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：审计 error → 重试三态（沿用既有 loading/error/retry 模式） 24ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：recorded=false ⇒ 显式「未记录」，绝不把 0 渲染成投入率 21ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：/fills 未记录（P6 前 chunked run）⇒ 摘要行的成交笔数也不得伪造为 0 13ms
+ ✓ src/features/workbench/ResultView.test.tsx > ResultView（ADR §13.5 结果页布局） > ADR-026：提交 run（chunked，Dca 计划未满）⇒ 契约 mock 派生出 DCA_PLAN_UNDERFILLED 提示 11ms
+ Test Files  3 passed (3)
+      Tests  125 passed (125)
+
+## 2) act 噪声计数（须 0；既有两条 legacy 用例补 await 后清零）
+act-warnings=0

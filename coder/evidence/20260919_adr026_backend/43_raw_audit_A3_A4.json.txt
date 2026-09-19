@@ -1,0 +1,59 @@
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.54s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 1 test
+A3 sr_1789738328788_000005 原始响应 = {
+  "batches_done": 42,
+  "capital_basis": 100000.0,
+  "cash_consumed": 41607.97208076086,
+  "cash_consumed_pct": 0.41607972080760863,
+  "deployed_notional": 41397.97208076086,
+  "deployed_pct": 0.4139797208076086,
+  "last_bar_unfilled": true,
+  "planned_tranches": 100,
+  "reachable_batches": 43,
+  "recorded": true,
+  "round_trips_force_closed": 1,
+  "round_trips_total": 1,
+  "run_id": "sr_1789738328788_000005",
+  "unexecuted_orders": 1,
+  "warnings": [
+    {
+      "code": "DCA_PLAN_UNDERFILLED",
+      "message": "计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）",
+      "severity": "warn"
+    },
+    {
+      "code": "PARTIAL_DEPLOYMENT",
+      "message": "名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金",
+      "severity": "warn"
+    },
+    {
+      "code": "ORDERS_UNEXECUTED",
+      "message": "1 笔挂单未成交（末根 bar 无次 bar 可执行）",
+      "severity": "info"
+    }
+  ]
+}
+A4 sr_1789738272901_000004 原始响应 = {
+  "batches_done": 1,
+  "capital_basis": 100000.0,
+  "cash_consumed": 99999.99999999999,
+  "cash_consumed_pct": 0.9999999999999999,
+  "deployed_notional": 99975.00624843787,
+  "deployed_pct": 0.9997500624843787,
+  "last_bar_unfilled": false,
+  "planned_tranches": null,
+  "reachable_batches": 1,
+  "recorded": true,
+  "round_trips_force_closed": 1,
+  "round_trips_total": 1,
+  "run_id": "sr_1789738272901_000004",
+  "unexecuted_orders": 0,
+  "warnings": []
+}
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.11s
+

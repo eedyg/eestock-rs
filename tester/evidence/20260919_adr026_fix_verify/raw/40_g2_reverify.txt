@@ -1,0 +1,57 @@
+### [I] G2 复验（自己重取判据） 2026-09-19T02:42:16+08:00
+
+--- I1) tester_p5rect_verify 目标在 10 次 cargo test -p web 中的输出（本轮 rebuilt 5 次中的 RUN1 原文） ---
+     Running tests/tester_p5rect_verify.rs (target/debug/deps/tester_p5rect_verify-ff0d5ed099fba369)
+
+running 4 tests
+test t_n1_frontend_code_map_covers_backend_codes ... ok
+test t_n1_static_audit ... ok
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+test t_n1_http_every_400_is_structured_object ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.35s
+
+--- I2) 常量出处（只读） ---
+142:pub const MAX_BARS_GUARD: usize = 2_000_000;
+146:/// 低于此值的合法区间一次提交即过（不再被二次确认打断）；硬上界 [`MAX_BARS_GUARD`] 不变。
+150:pub const GUARD_CONFIRM_BARS: usize = 500_000;
+168:/// 硬上界（> [`MAX_BARS_GUARD`]）不可 confirm 放行；二次确认阈值（≥ [`GUARD_CONFIRM_BARS`]）需 `confirm=true`。
+176:    if bars <= MAX_BARS_GUARD && (bars < GUARD_CONFIRM_BARS || confirm) {
+180:    let hard = bars > MAX_BARS_GUARD;
+182:    //   limit_bars = MAX_BARS_GUARD（硬上界，confirm 不放行）；
+183:    //   confirm_bars = GUARD_CONFIRM_BARS（二次确认阈值，confirm=true 放行）；
+189:        "limit_bars": MAX_BARS_GUARD,
+190:        "confirm_bars": GUARD_CONFIRM_BARS,
+
+--- I3) 契约向量（冻结另一侧） ---
+null
+
+--- I4) 双向绑定测试存在且在本轮全绿 ---
+-rw-rw-r-- 1 eestock eestock 4337 Sep 18 17:34 crates/application/tests/resource_guard_contract_vectors.rs
+269:     Running tests/resource_guard_contract_vectors.rs (target/debug/deps/resource_guard_contract_vectors-fde312e7e76b30aa)
+405:test p5_resource_guard_confirm_and_hard_reject ... ok
+1679:test t_p5_resource_guard_thresholds_and_confirm ... ok
+
+--- I5) 变更提交（git log -S 500_000） ---
+f2726da feat(adr024): 回测区间上限重构 + 引擎线性化 + 结果分块存储 + 结果页取数 + M30
+
+--- I6) 相关文件是否在本批改动清单 ---
+ M crates/web/tests/tester_p5rect_verify.rs
+
+--- I7) 夹具区间（新） ---
+/// `"-"` = 非提交/试算路径，不做 period 判据。
+type Case = (&'static str, &'static str, &'static str, Option<Value>, &'static str, &'static str);
+
+/// R-G2 整改（2026-09-19）：`resource_guard` 夹具区间必须**真的**触发二次确认阈值。
+///
+/// 阈值 = `application::error::GUARD_CONFIRM_BARS`（ADR-024 D1 修订：2026-09-18 用户「按推荐」把它由
+/// `200_000` 提到 **`500_000`**（≈M1 五年），并与 `design/16-backtest-scalability/contract-vectors.json`
+/// 的 `resource_guard.confirm_bars` 双向绑定；硬上界 `MAX_BARS_GUARD = 2_000_000` 不变）。
+/// 历史坑：原夹具用 518880 M1 `2021-01→2026-01` 仅 **292,092 bar < 500_000** ⇒ 阈值上移后不再触发护栏，
+/// 该表项恒红（期望 400、实得 201；原文见 `coder/evidence/20260919_adr026_fix/raw/30_rg2_prefix_RED.txt`）。
+/// 本区间覆盖 518880 M1 `2016-01-01→2027-01-01`（临时库实测 **627,564 bar**，比阈值高 ~25% 余量）
+/// ⇒ `500_000 ≤ bars ≤ 2_000_000`（仍在可 confirm 放行窗口内）。
+const GUARD_TRIGGER_FROM: &str = "2016-01-01T00:00:00Z";
+const GUARD_TRIGGER_TO: &str = "2027-01-01T00:00:00Z";
+
+const PERIOD_REQ: &str = "req";

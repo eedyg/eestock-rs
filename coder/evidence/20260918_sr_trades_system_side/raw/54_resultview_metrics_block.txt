@@ -1,0 +1,136 @@
+import { useState } from 'react';
+import type { ApiClient } from '@/api/client';
+import type { StrategyCatalogEntry, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, fmtTs, periodLabel } from '@/features/backtest/format';
+import { KlineResultChart } from './KlineResultChart';
+import { AggregateScoreChart } from './AggregateScoreChart';
+import { SlotScoresChart } from './SlotScoresChart';
+import { EquityDrawdownChart } from './EquityDrawdownChart';
+import { PerBarTable } from './PerBarTable';
+import { EventLog } from './EventLog';
+import { useRunSeries } from './useRunSeries';
+
+type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
+
+const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: 'trades', label: '交易明细' },
+  { key: 'metrics', label: '8项绩效' },
+  { key: 'perbar', label: '逐bar评分' },
+  { key: 'events', label: '事件日志' },
+];
+
+const STATUS_LABEL: Record<string, string> = {
+  queued: '排队中',
+  running: '运行中',
+  succeeded: '完成',
+  failed: '失败',
+  canceled: '已取消',
+};
+
+/** 8 项绩效表（口径由后端 strategy-core 锁定，前端只读展示）。 */
+function MetricsTable({ result }: { result: WorkbenchRunResult }) {
+  const m = result.metrics;
+  const rows: Array<{ key: string; label: string; value: string }> = [
+    { key: 'net_profit', label: 'net_profit（净盈亏）', value: fmtMoney(m.net_profit) },
+    { key: 'max_drawdown', label: 'max_drawdown（最大回撤）', value: fmtPct(m.max_drawdown) },
+    { key: 'sharpe', label: 'sharpe（夏普）', value: fmtRatio(m.sharpe) },
+    { key: 'win_rate', label: 'win_rate（胜率）', value: fmtPct(m.win_rate) },
+    { key: 'profit_factor', label: 'profit_factor（盈亏比）', value: fmtRatio(m.profit_factor) },
+    { key: 'annualized_return', label: 'annualized_return（年化）', value: fmtPct(m.annualized_return) },
+    { key: 'trade_count', label: 'trade_count（交易数）', value: String(m.trade_count) },
+    { key: 'avg_hold_bars', label: 'avg_hold_bars（平均持仓）', value: fmtHoldBars(m.avg_hold_bars) },
+  ];
+  return (
+    <table className="w-full border-collapse text-xs" data-testid="wb-metrics-table">
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.key} className="border-b border-line/40">
+            <td className="px-2 py-1.5 text-dim">{r.label}</td>
+            <td className="num px-2 py-1.5 text-right">{r.value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** 交易明细表（TradeDetail jsonb 只读）。 */
+function TradesTable({ result }: { result: WorkbenchRunResult }) {
+  if (result.trades.length === 0) {
+    return <div className="p-3 text-xs text-dim" data-testid="wb-trades-table">无成交</div>;
+
+/** 交易明细表（TradeDetail jsonb 只读）。 */
+function TradesTable({ result }: { result: WorkbenchRunResult }) {
+  if (result.trades.length === 0) {
+    return <div className="p-3 text-xs text-dim" data-testid="wb-trades-table">无成交</div>;
+  }
+  return (
+    <div className="overflow-auto">
+      <table className="w-full border-collapse text-xs" data-testid="wb-trades-table">
+        <thead>
+          <tr className="border-b border-line text-left text-[11px] text-dim">
+            <th className="px-2 py-1 font-normal">开仓</th>
+            <th className="px-2 py-1 font-normal">平仓</th>
+            <th className="px-2 py-1 font-normal">开价</th>
+            <th className="px-2 py-1 font-normal">平价</th>
+            <th className="px-2 py-1 font-normal">股数</th>
+            <th className="px-2 py-1 font-normal">盈亏</th>
+            <th className="px-2 py-1 font-normal">持仓</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.trades.map((t, i) => (
+            <tr key={i} className="border-b border-line/40" data-testid={`wb-trade-row-${i}`}>
+              <td className="num px-2 py-1 text-dim">{fmtTs(t.open_ts)}</td>
+              <td className="num px-2 py-1 text-dim">{fmtTs(t.close_ts)}</td>
+              <td className="num px-2 py-1">{t.open_price.toFixed(3)}</td>
+              <td className="num px-2 py-1">{t.close_price.toFixed(3)}</td>
+              <td className="num px-2 py-1">{t.shares.toLocaleString('zh-CN')}</td>
+              <td className={`num px-2 py-1 ${t.pnl >= 0 ? 'text-up' : 'text-down'}`}>{fmtMoney(t.pnl)}</td>
+              <td className="num px-2 py-1 text-dim">{fmtHoldBars(t.hold_bars)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * 结果视图（ADR §13.5 布局定稿）：
+ * K线+买卖标记（含硬止损 ⊗）/ 总分曲线（阈值线+三区着色）/ 各策略评分曲线（图例开关默认前 3）/
+ * 净值+回撤 / Tab（交易明细 | 8项绩效 | 逐bar评分表 | 事件日志）。
+ * 三态：未选中占位 / loading 骨架 / 错误+重试；失败 run 显示 error；非终态显示状态提示。
+ */
+export function ResultView({
+102:pub struct TradeDetail {
+103-    pub open_ts: i64,
+104-    pub close_ts: i64,
+105-    pub open_bar: usize,
+106-    pub close_bar: usize,
+107-    /// 成交买入价（含滑点）。
+108-    pub open_price: f64,
+109-    /// 成交卖出价（含滑点）。
+110-    pub close_price: f64,
+111-    pub shares: f64,
+112-    /// 卖出毛额（shares × close_price）。
+113-    pub gross_value: f64,
+114-    /// 总佣金（买入 + 卖出）。
+115-    pub commission: f64,
+116-    /// 卖出印花税。
+117-    pub stamp_duty: f64,
+118-    /// 净盈亏（卖出净得 − 建仓成本）。正=盈。
+119-    pub pnl: f64,
+120-    /// 持仓 bar 数（开仓 bar → 平仓 bar 间隔）。
+121-    pub hold_bars: usize,
+122-}
+123-
+124-#[cfg(test)]
+125-mod tests {
+126-    use super::Period;
+127-
+128-    /// ADR bt-3 年化折返因子表：日内周期按「A 股每日 4 小时（=240 分钟）」折算。
+129-    /// H1 = 每年 252×4 根小时线（I-6/D3：引擎补 H1，与数据层 cagg 1h 口径对齐）。
+130-    #[test]
+131-    fn bars_per_year_known_factors() {
+132-        assert_eq!(Period::M1.bars_per_year(), 252.0 * 240.0);

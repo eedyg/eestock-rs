@@ -1,0 +1,34 @@
+### 线上 :8082 MCP（重启后新进程）真机调用摘要
+tool_count=35
+has_bt_get_run_audit= True
+bt_*= ['bt_run_ensemble', 'bt_get_run', 'bt_get_run_result', 'bt_list_runs', 'bt_cancel_run', 'bt_compare_runs', 'bt_list_presets', 'bt_apply_preset', 'bt_get_run_audit']
+tools/call id=3 isError=None text={
+  "run_id": "sr_1789738328788_000005",
+  "recorded": true,
+  "capital_basis": 100000.0,
+  "deployed_notional": 41397.97208076086,
+  "deployed_pct": 0.4139797208076086,
+  "cash_consumed": 41607.97208076086,
+  "cash_consumed_pct": 0.41607972080760863,
+  "planned_tranches": 100,
+  "reachable_batches": 43,
+  "batches_done": 42,
+  "unexecuted_orders": 1,
+  "last_bar_unfilled": true,
+  "round_trips_to
+tools/call id=4 isError=None text={
+  "run_id": "sr_1789738272901_000004",
+  "recorded": true,
+  "capital_basis": 100000.0,
+  "deployed_notional": 99975.00624843787,
+  "deployed_pct": 0.9997500624843787,
+  "cash_consumed": 99999.99999999999,
+  "cash_consumed_pct": 0.9999999999999999,
+  "planned_tranches": null,
+  "reachable_batches": 1,
+  "batches_done": 1,
+  "unexecuted_orders": 0,
+  "last_bar_unfilled": false,
+  "round_trips_tot
+tools/call id=5 isError=True text=工具执行失败：运行不存在: sr_nope
+error id=6 {'code': -32602, 'message': 'run_id 必填（非空 string，sr_ 前缀）'}

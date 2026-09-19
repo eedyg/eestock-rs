@@ -1,0 +1,13 @@
+### kill -TERM 634454
+2026-09-19 11:17:07.672762248
+exited after 2s
+--- post-kill state ---
+2026-09-19 11:17:08.674839852
+ps:
+    PID    PPID                  STARTED CMD
+proc dir:
+ls: cannot access '/proc/634454': No such file or directory
+ss 8081/8082:
+(no listener on 8081/8082)
+pgrep eestock-app:
+(none)

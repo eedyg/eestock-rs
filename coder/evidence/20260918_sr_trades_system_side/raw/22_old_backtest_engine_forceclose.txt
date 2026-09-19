@@ -1,0 +1,70 @@
+# git show b4f09a2^:crates/backtest/src/engine.rs （P4b 退役前的旧内建回测引擎，YYYY）
+# 退役提交: b4f09a2 refactor(strategy-system): P4b 旧策略系统物理退役（D16终章，-10500行）
+# 行号以 git show 原文为准（下同）
+     1	//! 事件驱动回测引擎（ADR §4 / §5 / §6）。
+     2	//!
+     3	//! 事件循环（每 bar）：
+     4	//! 1. 在 `open[i]` 执行上一 bar 收盘产生的挂单（bt-2：信号在 bar close 判定 → 下一 bar open 成交）。
+     5	//! 2. 用 `bars[0..=i]` 计算指标 → 构造 `Ctx`（bar_index/ts/资金/持仓/净值）。
+     6	//! 3. 对当前 bar 调用 `strategy.on_bar` → 产生 `Signal`，作为下一 bar open 的挂单。
+     7	//! 4. 记录该 bar 收盘净值（现金 + 持仓 × close）。
+     8	//!
+     9	//! 期末若仍持仓 → 用最后可用 close 强制平仓（并让净值序列最后一个点反映已实现净值）。
+    10	//! 仅支持单标的、单方向多头（ADR §4）；`Signal::Sell` 平掉全部持仓。
+    11	
+    12	use crate::indicators::Indicators;
+    13	use crate::metrics::{compute_drawdown, compute_metrics};
+    14	use crate::types::{BacktestResult, Bar, Ctx, RunConfig, Signal, Strategy, TradeDetail};
+    15	
+    16	/// 回测引擎：持有运行配置（初始资金 / 费用 / 周期）。
+    17	#[derive(Debug, Clone)]
+    18	pub struct Engine {
+    19	    cfg: RunConfig,
+    20	}
+    55	        bars: &[Bar],
+    56	        strategy: &mut dyn Strategy,
+    57	        progress: &mut dyn FnMut(usize, usize, i64),
+    58	    ) -> BacktestResult {
+    59	        let fee = &self.cfg.fee;
+    60	        let initial = self.cfg.initial_capital;
+    61	        let period = self.cfg.period;
+    62	        let n = bars.len();
+    63	
+    64	        let mut cash = initial;
+    65	        let mut position = 0.0_f64;
+    66	        let mut open_trade: Option<OpenTrade> = None;
+    67	        let mut pending: Option<Pending> = None;
+    68	
+    69	        let mut nav: Vec<(i64, f64)> = Vec::with_capacity(n);
+    70	        let mut trades: Vec<TradeDetail> = Vec::new();
+    71	
+    72	        for i in 0..n {
+    73	            let bar = &bars[i];
+    74	
+    75	            // 1) 执行上一 bar 信号产生的挂单（本 bar 开盘价成交）
+   150	            nav.push((bar.ts, cash + position * bar.close));
+   151	
+   152	            // 进度上报（纯逻辑；总 bar 数 = n，当前 bar 已处理到 i）
+   153	            progress(i, n, bar.ts);
+   154	        }
+   155	
+   156	        // 期末强制平仓（用最后 close）
+   157	        if position > 0.0 {
+   158	            let bar = &bars[n - 1];
+   159	            let s = fee.sell(position, bar.close);
+   160	            let open = open_trade.expect("open trade must exist while holding");
+   161	            let pnl = s.proceeds - open.cost;
+   162	            trades.push(TradeDetail {
+   163	                open_ts: open.ts,
+   164	                close_ts: bar.ts,
+   165	                open_bar: open.bar_index,
+   166	                close_bar: n - 1,
+   167	                open_price: open.effective_price,
+   168	                close_price: s.effective_price,
+   169	                shares: position,
+   170	                gross_value: s.trade_value,
+   171	                commission: open.buy_commission + s.commission,
+   172	                stamp_duty: s.stamp_duty,
+   173	                pnl,
+   174	                hold_bars: n - 1 - open.bar_index,
+   175	            });

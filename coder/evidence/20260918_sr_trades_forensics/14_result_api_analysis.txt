@@ -1,0 +1,22 @@
+result top keys: ['result_format', 'summary', 'per_bar', 'net_value', 'drawdown', 'trades', 'metrics', 'has_more', 'next_offset']
+result_format: chunked_v1
+trades len: 1
+per_bar len: 423
+has_more: False next_offset: None total_bars: None
+metrics: {"annualized_return": -0.042445133565802595, "avg_hold_bars": 161.0, "max_drawdown": 0.052608136537377476, "net_profit": -2933.64791397129, "profit_factor": 0.0, "sharpe": -0.8029160823939638, "trade_count": 1, "win_rate": 0.0}
+trades: [
+ {
+  "close_bar": 422,
+  "close_price": 8.8542288,
+  "close_ts": 1789574400,
+  "commission": 219.67099879139525,
+  "gross_value": 38683.99516558099,
+  "hold_bars": 161,
+  "open_bar": 261,
+  "open_price": 9.47542039259697,
+  "open_ts": 1768838400,
+  "pnl": -2933.647913971261,
+  "shares": 4368.985265614662,
+  "stamp_duty": 0.0
+ }
+]

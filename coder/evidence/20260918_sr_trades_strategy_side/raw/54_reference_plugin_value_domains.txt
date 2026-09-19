@@ -1,0 +1,35 @@
+# S5 横向对照：仓内参考插件 / 官方模板的返回值域（是否双向）
+
+检索命令（只读）：
+  cd /home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core/reference-plugins
+  for f in *.js templates/*.js; do echo "=== $f"; grep -nE "return |score = " $f; done
+
+阈值口径（crates/strategy-core/src/aggregate.rs:8-12, 105-114）：
+  aggregate >= buy_threshold(60)  -> Buy
+  aggregate <= sell_threshold(40) -> Sell
+  否则 -> Hold
+⇒ 「双向」判据 = 值域中存在 ≤ 40 的字面量（可达 Sell）。
+
+| 文件 | 分值字面量（file:line） | 值域 | ≤40（可卖）？ |
+|---|---|---|---|
+| reference-plugins/dual_ma.js | :46 `80`、:48 `20`、:40 `50` | {20,50,80} | 是 |
+| reference-plugins/ma_rsi.js | :49 `80`、:54 `20`、:41 `50` | {20,50,80} | 是 |
+| reference-plugins/macd.js | :74 `80`、:76 `20`、:52 `50` | {20,50,80} | 是 |
+| reference-plugins/boll.js | :50/:57 `80`、:52/:59 `20`、:42 `50` | {20,50,80} | 是 |
+| reference-plugins/kdj.js | :78 `80`、:80 `20`、:54/:63 `50` | {20,50,80} | 是 |
+| reference-plugins/momentum.js | :47 `80`、:49 `20`、:38 `50` | {20,50,80} | 是 |
+| reference-plugins/atr_channel.js | :75 `80`、:65/:70 `20`、:57 `50` | {20,50,80} | 是 |
+| reference-plugins/dcap.js | :189-192 `score = clamp(50 - (50/N)·Σroi, 0, 100)` | 连续 [0,100] | 是（连续） |
+| templates/pure_score.js | :32 `fast > slow ? 80 : 20`、:29 `50` | {20,50,80} | 是 |
+| templates/trend_stop.js | :36 `80/20`、:29 `0`（软止损）、:34 `50` | {0,20,50,80} | 是 |
+| templates/two_state_gate.js | :34 `80/50`、:37 `50/20`、:29 `50` | {20,50,80} | 是 |
+| templates/dca.js | :33 `80/50`、:36 `80/50` | {50,80} | **否（设计使然）** |
+| （本 run）sv_1789211089727_000010 dca_baseline | 见 40_value_domain_enum.txt | {50,75} | **否** |
+
+结论：
+- 12 个仓内样例里 **11 个能产出 Sell 区分数**（其中 dcap 是连续 0..100）；
+  唯一单边的是官方 DCA 模板 `templates/dca.js`，而它的注释明确写「不使用卖出区」属定投族设计红线
+  （见 50_design_01_copy.md:41-43 "不使用卖出区（≤40）：定投策略不做空、不主动清仓"）。
+- ⇒ 「策略可以双向，dca_baseline 单边是其设计使然」——平台能力不缺，缺的是**发布期的分布体检**（见 S4）。
+- 附注：作者自己的 RESULTS（results/RESULTS-dca-family.md §3.1）实测指出 60/40 阈值把 75/80/85/88/90
+  全部折叠为同一个 Buy，因此本族插件的「分档」在执行层面是装饰性的；这不影响单边结论。

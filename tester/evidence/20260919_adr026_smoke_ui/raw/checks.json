@@ -1,0 +1,152 @@
+[
+  {
+    "id": "A00",
+    "name": "页面加载 /backtest-workbench + 左侧运行列表渲染",
+    "pass": true,
+    "detail": "workbench-page + wb-run-list 可见，S1 run 行存在"
+  },
+  {
+    "id": "__SEL__",
+    "name": "选中 run 行并完成结果取数",
+    "pass": true,
+    "detail": "selected=sr_1789787931919_000001 title=\"smoke_adr026_S1_REST_518880_D1_2025\""
+  },
+  {
+    "id": "A01",
+    "name": "结果视图正常出图：K 线容器 + canvas 存在",
+    "pass": true,
+    "detail": "wb-kline-chart visible=true, canvas count=10"
+  },
+  {
+    "id": "A02",
+    "name": "K 线 canvas 尺寸合理（>200x100）",
+    "pass": true,
+    "detail": "{\"x\":601,\"y\":101,\"width\":1021,\"height\":107}"
+  },
+  {
+    "id": "A03",
+    "name": "/fills 标记来源计数可见（成交 N 笔，来自精确源 /fills）",
+    "pass": true,
+    "detail": "wb-fills-note=\"成交 4 笔（精确源 /fills）\""
+  },
+  {
+    "id": "A04",
+    "name": "无成交明细加载失败提示",
+    "pass": true,
+    "detail": "wb-fills-error count=0"
+  },
+  {
+    "id": "A05",
+    "name": "交易明细 Tab 出「审计摘要行」（wb-audit-summary）",
+    "pass": true,
+    "detail": "text=\"成交合计 4 笔（含期末强平卖出 1 笔）｜回合 1 条（其中强平合成 1 条）｜名义投入 99.98%（分母 = 初始资金） / 现金消耗（含佣金）100.00%｜计划批数 3｜可达轮次 52｜买入成交 3 笔｜未执行挂单 49 / ℹ 49 笔挂单未成交（末根 bar 无次 bar 可执行）\""
+  },
+  {
+    "id": "A06",
+    "name": "审计摘要含现金消耗/计划批数/买入成交/未执行挂单",
+    "pass": true,
+    "detail": "现金消耗（含佣金）100.00%｜计划批数 3｜可达轮次 52｜买入成交 3 笔｜未执行挂单 49"
+  },
+  {
+    "id": "A07",
+    "name": "warning 展示（本条 run 预期 ORDERS_UNEXECUTED）",
+    "pass": true,
+    "detail": "count=1 texts=[\"ℹ 49 笔挂单未成交（末根 bar 无次 bar 可执行）\"]"
+  },
+  {
+    "id": "A08",
+    "name": "无审计加载失败",
+    "pass": true,
+    "detail": "wb-audit-error count=0"
+  },
+  {
+    "id": "A09",
+    "name": "交易明细表含「来源」列",
+    "pass": true,
+    "detail": "headers=[\"开仓\",\"平仓\",\"开价\",\"平价\",\"股数\",\"盈亏\",\"持仓\",\"来源\"]"
+  },
+  {
+    "id": "A10",
+    "name": "S1 run 来源列显示 正常/止损/期末强平 之一（新写路径 reason 生效）",
+    "pass": true,
+    "detail": "rows=1 labels=[\"期末强平\"]"
+  },
+  {
+    "id": "A11",
+    "name": "S1 run 来源列无「未记录」",
+    "pass": true,
+    "detail": "labels=[\"期末强平\"]"
+  },
+  {
+    "id": "A12",
+    "name": "8 项绩效表 = 8 行",
+    "pass": true,
+    "detail": "rows=8"
+  },
+  {
+    "id": "A13",
+    "name": "口径注存在且含「口径」「初始资金」「分母」",
+    "pass": true,
+    "detail": "口径：年化 / 最大回撤 / 夏普的分母 = 初始资金 ¥100,000（未满仓时按实际投入口径的风险更高，故并列披露资金投入率）"
+  },
+  {
+    "id": "A14",
+    "name": "资金投入率并列披露（含名义投入 + 含佣金占用两个口径）",
+    "pass": true,
+    "detail": "资金投入率（名义投入 / 初始资金）= 99.98%；资金占用（含佣金）/ 初始资金 = 100.00%"
+  },
+  {
+    "id": "__SEL__",
+    "name": "选中 run 行并完成结果取数",
+    "pass": true,
+    "detail": "selected=sr_1789738328788_000005 title=\"sr_1789738328788_000005\""
+  },
+  {
+    "id": "A15",
+    "name": "历史 run 结果视图仍正常渲染（K 线 canvas 存在）",
+    "pass": true,
+    "detail": "run=sr_1789738328788_000005"
+  },
+  {
+    "id": "A16",
+    "name": "历史 run 交易明细 Tab 出审计摘要（兼容性回归：非报错）",
+    "pass": true,
+    "detail": "auditText=\"成交合计 43 笔（含期末强平卖出 1 笔）｜回合 1 条（其中强平合成 1 条）｜名义投入 41.40%（分母 = 初始资金） / 现金消耗（含佣金）41.61%｜计划批数 100｜可达轮次 43｜买入成交 42 笔｜未执行挂单 1（末根 bar 无次 bar 可执行） / ⚠ 计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消） / ⚠ 名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金 / ℹ 1 笔挂单未成交（末根 bar 无次 bar 可执行）\" warnings=[\"⚠ 计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）\",\"⚠ 名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金\",\"ℹ 1 笔挂单未成交（末根 bar 无次 bar 可执行）\"]"
+  },
+  {
+    "id": "A17",
+    "name": "历史 run 来源列显示「未记录」（无 reason 字段，属预期）",
+    "pass": true,
+    "detail": "rows=1 labels=[\"未记录\"]"
+  },
+  {
+    "id": "A18",
+    "name": "历史 run 8 项绩效 8 行 + 资金投入率可用",
+    "pass": true,
+    "detail": "rows=8 deployed=\"资金投入率（名义投入 / 初始资金）= 41.40%；资金占用（含佣金）/ 初始资金 = 41.61%\""
+  },
+  {
+    "id": "A19",
+    "name": "历史 run fills note 可见",
+    "pass": true,
+    "detail": "wb-fills-note=\"成交 43 笔（精确源 /fills）\""
+  },
+  {
+    "id": "A20",
+    "name": "console error 清单为空",
+    "pass": true,
+    "detail": "count=0 []"
+  },
+  {
+    "id": "A21",
+    "name": "pageerror 清单为空",
+    "pass": true,
+    "detail": "count=0 []"
+  },
+  {
+    "id": "A22",
+    "name": "失败请求清单为空（HTTP>=400 或 requestfailed）",
+    "pass": true,
+    "detail": "count=0 []"
+  }
+]

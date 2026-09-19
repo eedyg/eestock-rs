@@ -1,0 +1,13 @@
++++ b/design/07-app-plane/00-web-api.md
+@@ -2710,0 +2711,2 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
++++ b/design/07-app-plane/01-mcp.md
+@@ -374 +374,3 @@ mod tests {
+@@ -845,0 +848,11 @@ fn tool_schemas() -> Vec<Value> {
+@@ -897,0 +911 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>)
+@@ -1903,0 +1918,14 @@ async fn bt_apply_preset(st: &McpState, id: Option<Value>, args: &Value) -> Valu
+@@ -1935 +1963 @@ mod tests {
+@@ -1971 +1999,3 @@ mod tests {
+@@ -2000,0 +2031,2 @@ mod tests {
+@@ -3774,0 +3807,50 @@ mod tests {
+@@ -4516 +4598 @@ async fn mcp_sse_full_protocol_roundtrip() {
+@@ -4522 +4604 @@ async fn mcp_sse_full_protocol_roundtrip() {

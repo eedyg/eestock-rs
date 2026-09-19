@@ -1,0 +1,35 @@
+# 判据灵敏度（门禁非空转）：在 worktree 中叠加当前文档+当前 4 代码文件后，单字节篡改是否被捕获
+# date: 2026-09-19T04:57:38Z
+### 基线（未篡改，期望 ✅）
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+EXIT=0
+
+### 篡改 1：对 4 个目标之一 crates/mcp/src/tools.rs 追加 1 个字节（期望 ❌ 且点名该文件）
+[check-tangle] ❌ entangled dry-run 报告冲突/未托管（生成物与 design/ 文档失同步）：
+WARNING `crates/mcp/src/tools.rs` not managed by Entangled INFO nothing is done 
+
+可操作下一步（二选一，勿用 --force 变绿）：
+  • 改动在 design/ 文档侧（文档已改、生成物未重新生成）→ 运行： entangled tangle
+  • 改动在代码侧（手改了生成物、文档未同步）        → 运行： ./scripts/stitch.sh
+EXIT_PIPE=1
+
+### 篡改 2：对**不在本批**的生成物 crates/alert/src/engine.rs 追加 1 个字节（期望 ❌ 且点名该文件）
+[check-tangle] ❌ entangled dry-run 报告冲突/未托管（生成物与 design/ 文档失同步）：
+WARNING `crates/alert/src/engine.rs` not managed by Entangled INFO nothing is done 
+
+可操作下一步（二选一，勿用 --force 变绿）：
+  • 改动在 design/ 文档侧（文档已改、生成物未重新生成）→ 运行： entangled tangle
+  • 改动在代码侧（手改了生成物、文档未同步）        → 运行： ./scripts/stitch.sh
+EXIT_PIPE=1
+
+### 还原后复跑（期望 ✅）
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+EXIT=0
+
+### worktree2 状态（应干净）
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/web/src/lib.rs
+ M design/07-app-plane/00-web-api.md
+ M design/07-app-plane/01-mcp.md

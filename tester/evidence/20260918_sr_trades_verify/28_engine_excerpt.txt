@@ -1,0 +1,74 @@
+### crates/strategy-core/src/engine.rs:835-872 (apply_sell)
+835: /// 卖出台账处理：部分卖出按比例摊薄成本；清仓合成完整 [`TradeDetail`] 并重置 Trailing。
+836: fn apply_sell(
+837:     holding: &mut Option<Holding>,
+838:     trades: &mut Vec<TradeDetail>,
+839:     trailing: &mut TrailingState,
+840:     qty: f64,
+841:     ts: i64,
+842:     bar_index: usize,
+843:     exec: &backtest::SellExecution,
+844: ) {
+845:     let Some(h) = holding.as_mut() else { return };
+846:     if qty >= h.qty {
+847:         // 清仓 → 合成一笔完整交易（open_price = 加权有效买价，成本含买入佣金）。
+848:         trades.push(TradeDetail {
+849:             open_ts: h.entry_ts,
+850:             close_ts: ts,
+851:             open_bar: h.entry_bar,
+852:             close_bar: bar_index,
+853:             open_price: h.value_basis / h.qty,
+854:             close_price: exec.effective_price,
+855:             shares: h.qty,
+856:             gross_value: exec.trade_value,
+857:             commission: h.buy_commission + exec.commission,
+858:             stamp_duty: exec.stamp_duty,
+859:             pnl: exec.proceeds - h.cost_basis,
+860:             hold_bars: bar_index - h.entry_bar,
+861:         });
+862:         *holding = None;
+863:         trailing.reset();
+864:     } else {
+865:         // 部分卖出（LumpSum 目标下调）：成本/佣金按比例摊薄。
+866:         let ratio = qty / h.qty;
+867:         h.cost_basis *= 1.0 - ratio;
+868:         h.value_basis *= 1.0 - ratio;
+869:         h.buy_commission *= 1.0 - ratio;
+870:         h.qty -= qty;
+871:     }
+872: }
+
+### crates/strategy-core/src/engine.rs:471-500 (finish / ForceClose)
+471:     pub fn finish(mut self) -> EnsembleResult {
+472:         if let Some(h) = self.holding {
+473:             let n = self.bars_seen;
+474:             let bar = self
+475:                 .shared
+476:                 .with_slice(|s| s.last().cloned().expect("bars_seen > 0 ⇒ 共享缓冲非空"));
+477:             let fee = self.cfg.fee;
+478:             let exec = fee.sell(h.qty, bar.close);
+479:             self.cash += exec.proceeds;
+480:             if let Some(last) = self.per_bar.last_mut() {
+481:                 last.events.push(EngineEvent::Fill {
+482:                     bar_index: n - 1,
+483:                     side: OrderSide::Sell,
+484:                     qty: h.qty,
+485:                     price: exec.effective_price,
+486:                     reason: OrderReason::ForceClose,
+487:                 });
+488:             }
+489:             apply_sell(
+490:                 &mut self.holding,
+491:                 &mut self.trades,
+492:                 &mut self.trailing,
+493:                 h.qty,
+494:                 bar.ts,
+495:                 n - 1,
+496:                 &exec,
+497:             );
+498:             if let Some(last) = self.nav.last_mut() {
+499:                 last.1 = self.cash;
+500:             }
+
+### crates/strategy-core/src/engine.rs:246
+246:     pub trades: Vec<TradeDetail>,

@@ -1,0 +1,49 @@
+### grep -rn 'dropped|unfilled|discard|pending' crates/ (排除引擎内部 Pending 类型本身)
+crates/web/src/simlive.rs:191:            "session_id": sid, "filled": false, "fill": null, "reason": "限价未触及，记为 pending 单",
+crates/web/src/simlive.rs:198:/// POST /api/sim-live/cancel-order —— 撤单（仅取消 pending 单）。
+crates/collector/tests/reset_test.rs:15:/// 内存复位通道：take_pending 弹出并清空（模拟原子消费）。
+crates/collector/tests/reset_test.rs:18:    pending: Mutex<Vec<ResetRequest>>,
+crates/collector/tests/reset_test.rs:23:    async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>> {
+crates/collector/tests/reset_test.rs:24:        Ok(std::mem::take(&mut *self.pending.lock().unwrap()))
+crates/collector/tests/reset_test.rs:39:async fn pending_reset_applied_and_event_emitted() {
+crates/collector/tests/reset_test.rs:46:    channel.pending.lock().unwrap()
+crates/collector/tests/reset_test.rs:54:    assert!(channel.pending.lock().unwrap().is_empty(), "请求已被取走（原子消费）");
+crates/collector/tests/reset_test.rs:60:    channel.pending.lock().unwrap()
+crates/collector/src/reset.rs:27:        let reqs = self.channel.take_pending().await?;
+crates/storage/tests/symbol_admin.rs:123:    let taken = store.take_pending().await.unwrap();
+crates/storage/tests/symbol_admin.rs:127:    let again = store.take_pending().await.unwrap();
+crates/storage/src/admin.rs:4://! - PgResetStore：熔断复位 DB 通道（应用面 request_reset 插入；数据面 take_pending 原子消费）
+crates/storage/src/admin.rs:80:    /// circuit_reset_pending_idx 部分索引覆盖 consumed_at IS NULL）。
+crates/storage/src/admin.rs:81:    async fn take_pending(&self) -> Result<Vec<ResetRequest>> {
+crates/application/tests/workbench.rs:1561:/// 这是对「通道关闭时冲刷 pending 帧」的**判别性**断言：若只做节流不做终态补写，
+crates/application/tests/simlive.rs:567:async fn limit_not_touched_records_pending_no_fill_no_trade_persist() {
+crates/application/tests/simlive.rs:586:    // pending 单记录
+crates/application/tests/simlive.rs:589:    assert_eq!(orders[0].status, "pending");
+crates/application/tests/simlive.rs:598:async fn cancel_order_cancels_pending_but_not_filled() {
+crates/application/tests/simlive.rs:601:    // pending 单
+crates/application/tests/simlive.rs:621:        "撤 pending 成功"
+crates/application/src/workbench.rs:1679:            let mut pending: Option<f64> = None;
+crates/application/src/workbench.rs:1694:                            pending = None;
+crates/application/src/workbench.rs:1697:                            pending = Some(progress);
+crates/application/src/workbench.rs:1716:            if let Some(progress) = pending {
+crates/application/src/simlive.rs:6://! `cancel_order`（仅取消 pending 限价）、幂等（intent_id 去重）。运行态在内存（SessionManager），
+crates/application/src/simlive.rs:851:    /// 下单：市价按最新价即时成交；限价触及成交；未成交（限价未触及）记 pending 单。
+crates/application/src/simlive.rs:922:                    // 限价未触及 → pending 单，不成交、不落成交明细。
+crates/application/src/simlive.rs:932:                        status: OrderStatus::Pending,
+crates/application/src/simlive.rs:944:        // 落库（仅成交才写成交明细/持仓；pending 不落）。
+crates/application/src/simlive.rs:976:    /// 撤单：仅取消 pending 单；已成交/未知 → false。变更即实时落盘（重启恢复：订单状态一致）。
+crates/application/src/simlive.rs:986:                    if o.status == OrderStatus::Pending {
+crates/domain/src/ports.rs:276:    async fn take_pending(&self) -> anyhow::Result<Vec<ResetRequest>>;
+crates/simlive/src/session.rs:65:/// 订单状态（L1 简化：pending→filled；取消→cancelled）。
+crates/simlive/src/session.rs:68:    Pending,
+crates/simlive/src/session.rs:76:            OrderStatus::Pending => "pending",
+crates/mcp/src/tools.rs:153:            "description": "模拟实盘，不触真实券商：查询会话订单（含 pending/filled/cancelled）。",
+crates/mcp/src/tools.rs:189:            "description": "模拟实盘，不触真实券商：撤除未成交（pending）模拟单；已成交/未知单返回 false。",
+
+### engine.rs 内 pending 出现处
+362:    pending: Option<Pending>,
+401:            pending: None,
+535:                if let Some(p) = self.pending.take() {
+738:                                self.pending = Some(Pending::SellQty {
+772:                    self.pending = Some(Pending::BuyDelta {
+782:                    self.pending = Some(Pending::SellQty {

@@ -1,0 +1,35 @@
+### R-G1 修复前 FK 23503 根因确定性复现（2026-09-19T01:29:34+08:00）
+手段：后台 psql \watch 每 5ms 重放旧 clean() 的跨用例删除 [DELETE FROM strategy_run WHERE id LIKE 'sr_adr026%']；
+      前台反复跑 cargo test -p web --test adr026_run_audit -- --exact audit_recorded_false_when_facts_are_missing
+
+### 命中：第 3 次
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 1 test
+test audit_recorded_false_when_facts_are_missing ... FAILED
+
+failures:
+
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (4193675) panicked at crates/web/tests/adr026_run_audit.rs:355:5:
+assertion `left == right` failed: 有 run 行 + 结果行 ⇒ 200：Ok("{\"error\":\"运行不存在: sr_adr026_chunked_nofacts\"}")
+  left: 404
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_recorded_false_when_facts_are_missing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`
+
+### 附注（FK 23503 变体的取证）
+- 本文件实测命中「自造 run 行被并发用例的 clean() 删掉」的同源失败：`/audit` 期望 200 实得 404（`运行不存在: sr_adr026_chunked_nofacts`），
+  即同一个「跨用例 DELETE」根因在时序落在 `strategy_run_result` 插入前时表现为 404、落在插入后（见 [2]）表现为 FK 23503；
+  两者同源、同一条被删除的 SQL：`DELETE FROM strategy_run WHERE id LIKE 'sr_adr026%'`。
+- FK 23503 变体的**原始异常栈**见 `12_prefix_evidence_citations.txt` [2]（引 tester 阶段 4 的 `raw/71_reg_web_run1.txt:143`）。
+- 本用例另在默认并行下**实测复现** tracing 变体 2/10（`10_prefix_flake_repro.txt`）与全量输出（`10b_prefix_flake_full_output.txt`，行 547 命中并发用例的 span）。

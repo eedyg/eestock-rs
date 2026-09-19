@@ -1,0 +1,7329 @@
+[
+    {
+        "ts": 1734883200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1734969600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1735056000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1735142400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1735228800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1735488000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1735574400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1735747200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1735833600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736092800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736179200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736265600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736352000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736438400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736697600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736784000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736870400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1736956800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1737043200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1737302400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1737388800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1737475200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1737561600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1737648000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1737907200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1738684800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1738771200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1738857600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739116800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739203200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739289600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739376000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739462400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739721600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739808000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739894400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1739980800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1740067200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1740326400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1740412800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1740499200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1740585600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1740672000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1740931200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1741017600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1741104000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741190400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741276800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741536000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741622400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741708800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741795200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1741881600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742140800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742227200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742313600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742400000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742486400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742745600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742832000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1742918400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1743004800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1743091200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1743350400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1743436800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1743523200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1743609600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1743955200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744041600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744128000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744214400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744300800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744560000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744646400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744732800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744819200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1744905600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1745164800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1745251200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1745337600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1745424000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1745510400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1745769600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1745856000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1745942400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1746460800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1746547200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1746633600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1746720000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1746979200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747065600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747152000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747238400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747324800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747584000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747670400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747756800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747843200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1747929600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1748188800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1748275200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1748361600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1748448000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1748534400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1748880000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1748966400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749052800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749139200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749398400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749484800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749571200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749657600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1749744000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750003200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750089600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750176000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750262400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750348800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750608000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750694400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1750780800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1750867200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1750953600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1751212800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1751299200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1751385600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1751472000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1751558400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1751817600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1751904000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1751990400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752076800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752163200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752422400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752508800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752595200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752681600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1752768000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1753027200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1753113600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1753200000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1753286400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1753372800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1753632000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1753718400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1753804800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1753891200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1753977600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754236800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754323200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754409600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754496000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754582400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754841600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1754928000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755014400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755100800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755187200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755446400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755532800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1755619200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1755705600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1755792000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1756051200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1756137600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1756224000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756310400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756396800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756656000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756742400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756828800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1756915200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757001600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757260800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757347200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757433600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757520000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757606400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757865600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1757952000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1758038400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1758124800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1758211200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1758470400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1758556800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1758643200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1758729600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1758816000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1759075200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1759161600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1759939200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760025600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760284800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760371200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760457600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760544000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760630400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760889600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1760976000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1761062400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1761148800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1761235200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1761494400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1761580800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1761667200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1761753600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1761840000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762099200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762185600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762272000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762358400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762444800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762704000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762790400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762876800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1762963200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1763049600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1763308800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1763395200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1763481600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1763568000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1763654400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1763913600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1764000000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1764086400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1764172800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764259200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764518400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764604800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764691200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764777600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1764864000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765123200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765209600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765296000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765382400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765468800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765728000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765814400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765900800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1765987200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1766073600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1766332800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1766419200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1766505600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": true,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1766592000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1766678400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1766937600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767024000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767110400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": true,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767542400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767628800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767715200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767801600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1767888000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768147200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768233600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768320000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768406400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768492800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1768752000,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 99.94003597841295,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1768838400,
+        "events": [
+            {
+                "qty": 99.465370792509,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.007001,
+                "reason": "Policy",
+                "bar_index": 261
+            }
+        ],
+        "orders": [
+            {
+                "qty": 99.66133449754845,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1768924800,
+        "events": [
+            {
+                "qty": 99.20395362278308,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.367073,
+                "reason": "Policy",
+                "bar_index": 262
+            }
+        ],
+        "orders": [
+            {
+                "qty": 96.82434627902478,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1769011200,
+        "events": [
+            {
+                "qty": 96.36274087871797,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.292057999999999,
+                "reason": "Policy",
+                "bar_index": 263
+            }
+        ],
+        "orders": [
+            {
+                "qty": 97.16405197220507,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1769097600,
+        "events": [
+            {
+                "qty": 96.71753867177188,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.6201236,
+                "reason": "Policy",
+                "bar_index": 264
+            }
+        ],
+        "orders": [
+            {
+                "qty": 94.63507880858049,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1769356800,
+        "events": [
+            {
+                "qty": 94.19952389098152,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.8881772,
+                "reason": "Policy",
+                "bar_index": 265
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1769443200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1769529600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1769616000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1769702400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1769961600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770048000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770134400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770220800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770307200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770566400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770652800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770739200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770825600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1770912000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1771862400,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 91.532195447054,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1771948800,
+        "events": [
+            {
+                "qty": 91.09867383966086,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.9551906,
+                "reason": "Policy",
+                "bar_index": 281
+            }
+        ],
+        "orders": [
+            {
+                "qty": 91.89054689667523,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1772035200,
+        "events": [
+            {
+                "qty": 91.45653075929208,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.9411878,
+                "reason": "Policy",
+                "bar_index": 282
+            }
+        ],
+        "orders": [
+            {
+                "qty": 92.27654707711031,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1772121600,
+        "events": [
+            {
+                "qty": 91.84183231278435,
+                "side": "Buy",
+                "type": "fill",
+                "price": 10.922184,
+                "reason": "Policy",
+                "bar_index": 283
+            }
+        ],
+        "orders": [
+            {
+                "qty": 92.10923595203667,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1772380800,
+        "events": [
+            {
+                "qty": 91.6925201048002,
+                "side": "Buy",
+                "type": "fill",
+                "price": 11.3702736,
+                "reason": "Policy",
+                "bar_index": 284
+            }
+        ],
+        "orders": [
+            {
+                "qty": 88.20488613235875,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1772467200,
+        "events": [
+            {
+                "qty": 87.78911985520907,
+                "side": "Buy",
+                "type": "fill",
+                "price": 11.4202836,
+                "reason": "Policy",
+                "bar_index": 285
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1772553600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1772640000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1772726400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1772985600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773072000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773158400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773244800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773331200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773590400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773676800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773763200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773849600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1773936000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1774195200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1774281600,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 106.00512348526195,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1774368000,
+        "events": [
+            {
+                "qty": 105.51626392077657,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.701939999999999,
+                "reason": "Policy",
+                "bar_index": 301
+            }
+        ],
+        "orders": [
+            {
+                "qty": 102.73361045022875,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1774454400,
+        "events": [
+            {
+                "qty": 102.24007904187745,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.6299256,
+                "reason": "Policy",
+                "bar_index": 302
+            }
+        ],
+        "orders": [
+            {
+                "qty": 104.80481641252595,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1774540800,
+        "events": [
+            {
+                "qty": 104.29682225437647,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.3598716,
+                "reason": "Policy",
+                "bar_index": 303
+            }
+        ],
+        "orders": [
+            {
+                "qty": 104.3358478857092,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1774800000,
+        "events": [
+            {
+                "qty": 103.83549964465199,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.4978992,
+                "reason": "Policy",
+                "bar_index": 304
+            }
+        ],
+        "orders": [
+            {
+                "qty": 102.58626821718099,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1774886400,
+        "events": [
+            {
+                "qty": 102.09924939607407,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.752950199999999,
+                "reason": "Policy",
+                "bar_index": 305
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1774972800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775059200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775145600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775491200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775577600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775664000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1775750400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776009600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776096000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776182400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776268800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776355200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776614400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776700800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1776787200,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 99.38746935326412,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1776873600,
+        "events": [
+            {
+                "qty": 98.9091455915174,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.936987,
+                "reason": "Policy",
+                "bar_index": 321
+            }
+        ],
+        "orders": [
+            {
+                "qty": 100.90986350013623,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1776960000,
+        "events": [
+            {
+                "qty": 100.42937521487723,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.886977,
+                "reason": "Policy",
+                "bar_index": 322
+            }
+        ],
+        "orders": [
+            {
+                "qty": 101.6683819764919,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1777219200,
+        "events": [
+            {
+                "qty": 101.18674965521355,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.8609718,
+                "reason": "Policy",
+                "bar_index": 323
+            }
+        ],
+        "orders": [
+            {
+                "qty": 100.94361508474753,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1777305600,
+        "events": [
+            {
+                "qty": 100.4613382778629,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.85197,
+                "reason": "Policy",
+                "bar_index": 324
+            }
+        ],
+        "orders": [
+            {
+                "qty": 102.64752993163347,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1777392000,
+        "events": [
+            {
+                "qty": 102.15467711647506,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.6429282,
+                "reason": "Policy",
+                "bar_index": 325
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1777478400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1777996800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778083200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778169600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778428800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778515200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778601600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778688000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1778774400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779033600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779120000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779206400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779292800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779379200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1779638400,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 103.57700284802627,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1779724800,
+        "events": [
+            {
+                "qty": 103.07563202121904,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.482896199999999,
+                "reason": "Policy",
+                "bar_index": 341
+            }
+        ],
+        "orders": [
+            {
+                "qty": 104.7138154100976,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1779811200,
+        "events": [
+            {
+                "qty": 104.20925809582612,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.4208838,
+                "reason": "Policy",
+                "bar_index": 342
+            }
+        ],
+        "orders": [
+            {
+                "qty": 105.93253495904719,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1779897600,
+        "events": [
+            {
+                "qty": 105.41659185581213,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.217843199999999,
+                "reason": "Policy",
+                "bar_index": 343
+            }
+        ],
+        "orders": [
+            {
+                "qty": 108.40298330148607,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1779984000,
+        "events": [
+            {
+                "qty": 107.89742552840256,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.386877,
+                "reason": "Policy",
+                "bar_index": 344
+            }
+        ],
+        "orders": [
+            {
+                "qty": 105.35013062510325,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1780243200,
+        "events": [
+            {
+                "qty": 104.84454645101768,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.3998796,
+                "reason": "Policy",
+                "bar_index": 345
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780329600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780416000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780502400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780588800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780848000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1780934400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781020800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781107200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781193600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781452800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781539200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781625600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1781712000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1782057600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1782144000,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 112.61797396660086,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1782230400,
+        "events": [
+            {
+                "qty": 112.05697110005009,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.486697,
+                "reason": "Policy",
+                "bar_index": 361
+            }
+        ],
+        "orders": [
+            {
+                "qty": 113.46994517458052,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1782316800,
+        "events": [
+            {
+                "qty": 112.89819258885016,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.331666,
+                "reason": "Policy",
+                "bar_index": 362
+            }
+        ],
+        "orders": [
+            {
+                "qty": 116.58715547614565,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1782403200,
+        "events": [
+            {
+                "qty": 116.01869315563513,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.366673,
+                "reason": "Policy",
+                "bar_index": 363
+            }
+        ],
+        "orders": [
+            {
+                "qty": 115.15959983575203,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1782662400,
+        "events": [
+            {
+                "qty": 114.59644181386847,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.446689,
+                "reason": "Policy",
+                "bar_index": 364
+            }
+        ],
+        "orders": [
+            {
+                "qty": 114.35409703867526,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1782748800,
+        "events": [
+            {
+                "qty": 113.77762623105889,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.2636524,
+                "reason": "Policy",
+                "bar_index": 365
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1782835200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1782921600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783008000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783267200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783353600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783440000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783526400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783612800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783872000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1783958400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1784044800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1784131200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1784217600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1784476800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1784563200,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 113.3634242470207,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1784649600,
+        "events": [
+            {
+                "qty": 112.8074284344723,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.556711,
+                "reason": "Policy",
+                "bar_index": 381
+            }
+        ],
+        "orders": [
+            {
+                "qty": 112.70102811672723,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1784736000,
+        "events": [
+            {
+                "qty": 112.14819451741518,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.605720799999999,
+                "reason": "Policy",
+                "bar_index": 382
+            }
+        ],
+        "orders": [
+            {
+                "qty": 112.69786590349077,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1784822400,
+        "events": [
+            {
+                "qty": 112.13092129854283,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.40168,
+                "reason": "Policy",
+                "bar_index": 383
+            }
+        ],
+        "orders": [
+            {
+                "qty": 115.05251127444944,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1785081600,
+        "events": [
+            {
+                "qty": 114.4933642293926,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.5047006,
+                "reason": "Policy",
+                "bar_index": 384
+            }
+        ],
+        "orders": [
+            {
+                "qty": 113.4692242649785,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1785168000,
+        "events": [
+            {
+                "qty": 112.90183418813926,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.3926782,
+                "reason": "Policy",
+                "bar_index": 385
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785254400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785340800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785427200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785686400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785772800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785859200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1785945600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786032000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786291200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786377600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786464000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786550400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786636800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786896000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1786982400,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 108.13590454671976,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1787068800,
+        "events": [
+            {
+                "qty": 107.60482752587531,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.9587914,
+                "reason": "Policy",
+                "bar_index": 401
+            }
+        ],
+        "orders": [
+            {
+                "qty": 109.92017234902823,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1787155200,
+        "events": [
+            {
+                "qty": 109.40727835688038,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.2528502,
+                "reason": "Policy",
+                "bar_index": 402
+            }
+        ],
+        "orders": [
+            {
+                "qty": 106.82194115211314,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1787241600,
+        "events": [
+            {
+                "qty": 106.31117752655719,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.3028602,
+                "reason": "Policy",
+                "bar_index": 403
+            }
+        ],
+        "orders": [
+            {
+                "qty": 105.07592569150438,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1787500800,
+        "events": [
+            {
+                "qty": 104.57531859788931,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.489897599999999,
+                "reason": "Policy",
+                "bar_index": 404
+            }
+        ],
+        "orders": [
+            {
+                "qty": 103.14152527378246,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1787587200,
+        "events": [
+            {
+                "qty": 102.6469608893093,
+                "side": "Buy",
+                "type": "fill",
+                "price": 9.6089214,
+                "reason": "Policy",
+                "bar_index": 405
+            }
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1787673600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1787760000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1787846400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788105600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788192000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788278400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788364800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788451200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788710400,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788796800,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788883200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1788969600,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1789056000,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1789315200,
+        "events": [
+        ],
+        "orders": [
+        ],
+        "scores": [
+            {
+                "score": 50.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Hold",
+        "warmup": false,
+        "aggregate": 50.0
+    },
+    {
+        "ts": 1789401600,
+        "events": [
+        ],
+        "orders": [
+            {
+                "qty": 109.84194313473563,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1789488000,
+        "events": [
+            {
+                "qty": 109.30313717285733,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.8297656,
+                "reason": "Policy",
+                "bar_index": 421
+            }
+        ],
+        "orders": [
+            {
+                "qty": 109.44329961000585,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    },
+    {
+        "ts": 1789574400,
+        "events": [
+            {
+                "qty": 108.90643919337788,
+                "side": "Buy",
+                "type": "fill",
+                "price": 8.861771999999998,
+                "reason": "Policy",
+                "bar_index": 422
+            },
+            {
+                "qty": 4368.985265614662,
+                "side": "Sell",
+                "type": "fill",
+                "price": 8.8542288,
+                "reason": "ForceClose",
+                "bar_index": 422
+            }
+        ],
+        "orders": [
+            {
+                "qty": 110.04391957839198,
+                "side": "Buy",
+                "reason": "Policy"
+            }
+        ],
+        "scores": [
+            {
+                "score": 75.0,
+                "slot_idx": 0
+            }
+        ],
+        "signal": "Buy",
+        "warmup": false,
+        "aggregate": 75.0
+    }
+]

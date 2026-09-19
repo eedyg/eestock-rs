@@ -1,0 +1,48 @@
+=== 突变：unexecuted_orders 推导 → 常量 0 ===
+assertion `left == right` failed: 末根 bar 的意图无次 bar 可成交
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- audit::tests::zero_fills_reports_partial_deployment_and_unexecuted stdout ----
+
+thread 'audit::tests::zero_fills_reports_partial_deployment_and_unexecuted' (4009384) panicked at crates/application/src/audit.rs:513:9:
+assertion `left == right` failed
+  left: 0
+ right: 4
+
+
+failures:
+    audit::tests::target_run_shape_dca_underfilled
+    audit::tests::zero_fills_reports_partial_deployment_and_unexecuted
+
+test result: FAILED. 16 passed; 2 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`
+
+=== 同突变下的端点回放（A3/A4）与端点集成 ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.05s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 3 tests
+test audit_recorded_false_when_facts_are_missing ... ok
+test adr026_replay_target_run_matches_frozen_baseline ... FAILED
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+
+failures:
+
+---- adr026_replay_target_run_matches_frozen_baseline stdout ----
+
+thread 'adr026_replay_target_run_matches_frozen_baseline' (4010315) panicked at crates/web/tests/adr026_run_audit.rs:393:5:
+assertion `left == right` failed
+  left: Number(0)
+ right: Number(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    adr026_replay_target_run_matches_frozen_baseline
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`

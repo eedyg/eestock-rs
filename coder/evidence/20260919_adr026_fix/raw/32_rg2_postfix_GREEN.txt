@@ -1,0 +1,17 @@
+### R-G2 修复后：cargo test -p web --test tester_p5rect_verify（2026-09-19T01:46:48+08:00）
+改动：夹具区间 2021-01→2026-01（292,092 bar）→ 2016-01→2027-01（627,564 bar，≥ GUARD_CONFIRM_BARS=500,000）；
+      confirm=true 两例同步换区间并断言 estimated_bars/bar_count 落在 [500000, 2000000]（证明确系二次确认被消费）
+
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.55s
+     Running tests/tester_p5rect_verify.rs (target/debug/deps/tester_p5rect_verify-ff0d5ed099fba369)
+
+running 4 tests
+test t_n1_frontend_code_map_covers_backend_codes ... ok
+test t_n1_static_audit ... ok
+test t_n3_long_d1_accepted_and_no_intersection_range_empty ... ok
+test t_n1_http_every_400_is_structured_object ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.89s
+
+exit=0

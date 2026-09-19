@@ -1914,6 +1914,8 @@ fn sim_trades_to_trade_details(trades: &[SimTrade], period: Period) -> Vec<Trade
                         stamp_duty: 0.0,
                         pnl,
                         hold_bars: close_bar.saturating_sub(open_bar),
+                        // ADR-026 Red：字段已声明但尚未接线（simlive 侧无引擎清仓来源可写）。
+                        reason: None,
                     });
                     lot.remaining -= matched;
                     sell_remaining -= matched;

@@ -1,0 +1,28 @@
+{
+ "name": "smoke_adr026_S2_MCP_518880_D1_2025",
+ "symbol": "518880",
+ "period": "D1",
+ "from": "2025-01-01T00:00:00Z",
+ "to": "2025-12-31T00:00:00Z",
+ "slots": [
+  {
+   "strategy_id": "st_1789211089727_000009",
+   "version_id": "sv_1789211089727_000010",
+   "params": {
+    "cadence": 20,
+    "plan_bars": 5
+   },
+   "weight": 1.0
+  }
+ ],
+ "buy_threshold": 60.0,
+ "sell_threshold": 40.0,
+ "policy": {
+  "Dca": {
+   "tranches": 3,
+   "interval": 5,
+   "mode": "Equal"
+  }
+ },
+ "initial_capital": 100000.0
+}

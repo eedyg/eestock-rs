@@ -1,0 +1,30 @@
+== 本阶段是否有 DB 测试 ==
+无（前端 vitest 全在 jsdom，不连库）；未创建任何临时库，未执行 DDL/DML。
+
+== 只读回读库清单（证明无 tmp_ 残留）==
+eestock
+postgres
+-- tmp_ 前缀计数:
+0
+
+== 迁移目录（无新增迁移；本批未触碰）==
+0025_symbol_type_fee_profiles.sql
+0026_period_30m.sql
+0027_strategy_run_result_chunks.sql
+git status --porcelain -- migrations 行数: 0
+
+== 后端/crate 文件本批是否被触碰（应只有设计/历史遗留）==
+ M crates/application/src/lib.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/workbench.rs
+ M crates/backtest/src/metrics.rs
+ M crates/backtest/src/types.rs
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/strategy-core/src/engine.rs
+ M crates/strategy-core/tests/engine.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/workbench.rs
+?? crates/application/src/audit.rs
+?? crates/web/tests/adr026_run_audit.rs

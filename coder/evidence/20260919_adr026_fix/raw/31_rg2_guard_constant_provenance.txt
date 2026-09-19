@@ -1,0 +1,42 @@
+### R-G2 溯源：GUARD_CONFIRM_BARS 的提交与理由（2026-09-19T01:45:36+08:00）
+
+--- 1) 常量出处与当前值 ---
+142:pub const MAX_BARS_GUARD: usize = 2_000_000;
+146:/// 低于此值的合法区间一次提交即过（不再被二次确认打断）；硬上界 [`MAX_BARS_GUARD`] 不变。
+150:pub const GUARD_CONFIRM_BARS: usize = 500_000;
+168:/// 硬上界（> [`MAX_BARS_GUARD`]）不可 confirm 放行；二次确认阈值（≥ [`GUARD_CONFIRM_BARS`]）需 `confirm=true`。
+176:    if bars <= MAX_BARS_GUARD && (bars < GUARD_CONFIRM_BARS || confirm) {
+180:    let hard = bars > MAX_BARS_GUARD;
+182:    //   limit_bars = MAX_BARS_GUARD（硬上界，confirm 不放行）；
+183:    //   confirm_bars = GUARD_CONFIRM_BARS（二次确认阈值，confirm=true 放行）；
+
+--- 2) 变更提交（git log -S '500_000'）---
+f2726da feat(adr024): 回测区间上限重构 + 引擎线性化 + 结果分块存储 + 结果页取数 + M30
+
+--- 3) 该提交的 diff 片段（error.rs）---
++// 旧 `MAX_BARS = 200_000`（读完 bar 后才判的补偿性补丁）随 O(n²)→O(n) 一并**删除**。
++/// 2026-09-18 用户「按推荐」修订：由 `200_000` 提到 **`500_000`（≈M1 五年）** ——
++pub const GUARD_CONFIRM_BARS: usize = 500_000;
++/// 硬上界（> [`MAX_BARS_GUARD`]）不可 confirm 放行；二次确认阈值（≥ [`GUARD_CONFIRM_BARS`]）需 `confirm=true`。
++    if bars <= MAX_BARS_GUARD && (bars < GUARD_CONFIRM_BARS || confirm) {
++    //   confirm_bars = GUARD_CONFIRM_BARS（二次确认阈值，confirm=true 放行）；
++        "confirm_bars": GUARD_CONFIRM_BARS,
++            "预估 {bars} 根 bar（≈{secs:.1} 秒）达到二次确认阈值 {GUARD_CONFIRM_BARS} 根；如仍要提交，带 confirm=true 重提"
+
+--- 4) 契约向量（冻结另一侧，常量必须与之相等）---
+17:    "resource_guard": { "hard_reject": false, "requires_confirmation": true, "code": "resource_guard", "max_bars_guard": 2000000, "confirm_bars": 500000, "note": "ADR-024 D1 修订（2026-09-18 用户「按推荐」）：confirm 阈值由 200000 提到 500000（≈M1 五年）；硬上界 2000000 不变（M1 全历史≈86 万 bar ⇒ 合法请求永不触发）。两值必须与 application::error::{MAX_BARS_GUARD, GUARD_CONFIRM_BARS} 一致（防漂移断言）。" }
+
+--- 5) tester 上一轮自述（同一现象与建议修法）---
+18:> tester 在生产源码上做过 3 次**临时反向**改动（`PROGRESS_DB_MIN_INTERVAL` 250→0、`GUARD_CONFIRM_BARS` 500000→200000 ×2），
+33:| **⑤** | **回归** | **部分 FAIL**（349 / 350） | 全新临时库 `cargo test -p application -p web --no-fail-fast`：**349 passed / 1 failed**（37 个目标）。唯一红 = `tester_p5rect_verify::t_n1_http_every_400_is_structured_object`（**阈值漂移，非产品回归**，已因果证明）。`cargo check --all-targets` EXIT=0；`check-tangle` ✅；前端 vitest **94 files / 901 tests 全绿**（基线 90/864，**不减**）；`tsc -b` EXIT=0。P0–P6 点名面全绿（§5） |
+55:> | **上线前必修 2（B2）** | `crates/web/tests/tester_p5rect_verify.rs` 1 例红：`runs/resource_guard(confirm=false)` 夹具区间 518880 M1 2021-01→2026-01 仅 **292,092 bar < 500,000** ⇒ 期望应改为「201/放行」或把区间换成 ≥50 万 bar。**未修**：派单只授权我改 `tester_p5_indep.rs`（§5.3） |
+58:> | 版本级风险（非本批） | `web/src/api/mock.ts` 仍 `MOCK_GUARD_CONFIRM_BARS=200_000`（dev-only mock，无红测试绑定）；worker 已列为其未决项② |
+247:## R2 —— `GUARD_CONFIRM_BARS` 改回 `200_000` ⇒ 向量绑定断言必红
+254:assertion `left == right` failed: GUARD_CONFIRM_BARS(200000) != contract-vectors.json `resource_guard.confirm_bars`(500000)
+277:crates/application/src/error.rs:150: pub const GUARD_CONFIRM_BARS: usize = 500_000;
+296:| 518880 M1 2021-01→2026-01（**292,092 bar**） | false | **新契约下不再触发** | ✅ 201 放行（旧契约下会 400 ⇒ 见 §5.3 F3） |
+303:349: assert_eq!(application::error::GUARD_CONFIRM_BARS, 200_000) → 500_000
+356:## 5.3 唯一红：`tester_p5rect_verify::t_n1_http_every_400_is_structured_object`（**阈值漂移，非回归**）
+
+--- 6) 相关文件在工作树内是否被本批改动 ---
+(空 = 未改动)

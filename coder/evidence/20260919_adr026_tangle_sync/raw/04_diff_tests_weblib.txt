@@ -1,0 +1,33 @@
+diff --git a/crates/mcp/tests/mcp_protocol.rs b/crates/mcp/tests/mcp_protocol.rs
+index 62e2688..b6671a2 100644
+--- a/crates/mcp/tests/mcp_protocol.rs
++++ b/crates/mcp/tests/mcp_protocol.rs
+@@ -201,13 +201,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
+         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
+     assert_eq!(status, 202);
+ 
+-    // 3. tools/list → 34 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10）
++    // 3. tools/list → 35 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 9 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）
+     let status = post(&http, &base, &client.endpoint, &json!({
+         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
+     assert_eq!(status, 202);
+     let resp = next_resp(&mut client).await;
+     let tools = resp["result"]["tools"].as_array().unwrap();
+-    assert_eq!(tools.len(), 34, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
++    assert_eq!(tools.len(), 35, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+     assert_eq!(tools[0]["name"], "get_kline");
+     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
+     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
+diff --git a/crates/web/src/lib.rs b/crates/web/src/lib.rs
+index e1302ac..bb102cc 100644
+--- a/crates/web/src/lib.rs
++++ b/crates/web/src/lib.rs
+@@ -99,6 +99,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
+         .route("/api/workbench/runs/{id}/bars", get(workbench::get_bars))
+         .route("/api/workbench/runs/{id}/curve", get(workbench::get_curve))
+         .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
++        // ADR-026 §2.2：执行完整度审计（只读派生：投入率/计划推进/未执行挂单/强平回合）
++        .route("/api/workbench/runs/{id}/audit", get(workbench::get_audit))
+         .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
+         .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
+         .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))

@@ -1,0 +1,6 @@
+PARAMS_SCHEMA = [{"key":"cadence","type":"int","default":20,"min":1,"max":250,"description":"定投周期（bar 数）"},{"key":"plan_bars","type":"int","default":5,"min":1,"max":120,"description":"买入区保持窗口（bar 数）"}]
+combos(cadence×plan_bars) = 30000  idx 0..1000 ⇒ 样本数 = 30030000
+可达值域 value set = [50,75]
+是否含 ≤ sell_threshold(40) 的分支 = false
+是否含 ≥ buy_threshold(60) 的分支 = true
+run 参数 (cadence=20, plan_bars=5) idx 255..266 = 50,50,50,50,50,75,75,75,75,75,50,50

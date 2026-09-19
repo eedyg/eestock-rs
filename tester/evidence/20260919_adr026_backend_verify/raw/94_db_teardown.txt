@@ -1,0 +1,42 @@
+### teardown 前库清单
+         datname         
+-------------------------
+ eestock
+ postgres
+ tmp_test026_1789750375
+ tmp_test026f_1789750578
+(4 rows)
+
+### DROP
+DROP DATABASE
+DROP DATABASE
+### 回读库清单（应只剩 eestock, postgres）
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+### tmp_ 前缀残留数
+0
+### 清理 /tmp 临时配置与 CSV
+(临时文件已清理)
+### 停第二只测试实例
+### 测试实例已停（8091/8092 无监听，仅剩线上 8081 PID 2043164）
+### DROP tmp_test026g_1789750768
+DROP DATABASE
+### 回读库清单（应只剩 eestock, postgres）
+ datname  
+----------
+ eestock
+ postgres
+(2 rows)
+
+### tmp_ 残留数
+0
+### 线上 8081 未触碰
+    PID                  STARTED
+2043164 Fri Sep 18 18:04:44 2026
+8081 healthz:200
+### 残留临时文件
+(无)

@@ -1,0 +1,109 @@
+                          Table "public.strategy_run"
+   Column    |           Type           | Collation | Nullable |    Default     
+-------------+--------------------------+-----------+----------+----------------
+ id          | text                     |           | not null | 
+ name        | text                     |           | not null | ''::text
+ symbol      | text                     |           | not null | 
+ period      | text                     |           | not null | 
+ from_ts     | timestamp with time zone |           | not null | 
+ to_ts       | timestamp with time zone |           | not null | 
+ config      | jsonb                    |           | not null | 
+ status      | text                     |           | not null | 'queued'::text
+ progress    | double precision         |           | not null | 0
+ error       | text                     |           |          | 
+ created_at  | timestamp with time zone |           | not null | now()
+ started_at  | timestamp with time zone |           |          | 
+ finished_at | timestamp with time zone |           |          | 
+Indexes:
+    "strategy_run_pkey" PRIMARY KEY, btree (id)
+    "strategy_run_status_created_idx" btree (status, created_at DESC)
+    "strategy_run_symbol_idx" btree (symbol)
+Check constraints:
+    "strategy_run_status_check" CHECK (status = ANY (ARRAY['queued'::text, 'running'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text]))
+Referenced by:
+    TABLE "strategy_run_bars" CONSTRAINT "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+    TABLE "strategy_run_result" CONSTRAINT "strategy_run_result_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+                  Table "public.strategy_run_bars"
+ Column  |           Type           | Collation | Nullable | Default 
+---------+--------------------------+-----------+----------+---------
+ run_id  | text                     |           | not null | 
+ kind    | text                     |           | not null | 
+ seq     | integer                  |           | not null | 
+ ts_from | timestamp with time zone |           | not null | 
+ ts_to   | timestamp with time zone |           | not null | 
+ payload | jsonb                    |           | not null | 
+Indexes:
+    "strategy_run_bars_pkey" PRIMARY KEY, btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_seq_idx" btree (run_id, kind, seq)
+    "strategy_run_bars_run_kind_ts_idx" btree (run_id, kind, ts_from, ts_to)
+Check constraints:
+    "strategy_run_bars_kind_check" CHECK (kind = ANY (ARRAY['per_bar'::text, 'net_value'::text, 'drawdown'::text, 'fills'::text]))
+Foreign-key constraints:
+    "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+Index "public.strategy_run_bars_pkey"
+ Column |  Type   | Key? | Definition 
+--------+---------+------+------------
+ run_id | text    | yes  | run_id
+ kind   | text    | yes  | kind
+ seq    | integer | yes  | seq
+primary key, btree, for table "public.strategy_run_bars"
+
+Index "public.strategy_run_bars_run_kind_seq_idx"
+ Column |  Type   | Key? | Definition 
+--------+---------+------+------------
+ run_id | text    | yes  | run_id
+ kind   | text    | yes  | kind
+ seq    | integer | yes  | seq
+btree, for table "public.strategy_run_bars"
+
+    Index "public.strategy_run_bars_run_kind_ts_idx"
+ Column  |           Type           | Key? | Definition 
+---------+--------------------------+------+------------
+ run_id  | text                     | yes  | run_id
+ kind    | text                     | yes  | kind
+ ts_from | timestamp with time zone | yes  | ts_from
+ ts_to   | timestamp with time zone | yes  | ts_to
+btree, for table "public.strategy_run_bars"
+
+ Index "public.strategy_run_pkey"
+ Column | Type | Key? | Definition 
+--------+------+------+------------
+ id     | text | yes  | id
+primary key, btree, for table "public.strategy_run"
+
+                  Table "public.strategy_run_result"
+    Column     | Type  | Collation | Nullable |        Default        
+---------------+-------+-----------+----------+-----------------------
+ run_id        | text  |           | not null | 
+ per_bar       | jsonb |           | not null | 
+ trades        | jsonb |           | not null | 
+ net_value     | jsonb |           | not null | 
+ drawdown      | jsonb |           | not null | 
+ metrics       | jsonb |           | not null | 
+ result_format | text  |           | not null | 'legacy_single'::text
+Indexes:
+    "strategy_run_result_pkey" PRIMARY KEY, btree (run_id)
+Foreign-key constraints:
+    "strategy_run_result_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+
+Index "public.strategy_run_result_pkey"
+ Column | Type | Key? | Definition 
+--------+------+------+------------
+ run_id | text | yes  | run_id
+primary key, btree, for table "public.strategy_run_result"
+
+      Index "public.strategy_run_status_created_idx"
+   Column   |           Type           | Key? | Definition 
+------------+--------------------------+------+------------
+ status     | text                     | yes  | status
+ created_at | timestamp with time zone | yes  | created_at
+btree, for table "public.strategy_run"
+
+Index "public.strategy_run_symbol_idx"
+ Column | Type | Key? | Definition 
+--------+------+------+------------
+ symbol | text | yes  | symbol
+btree, for table "public.strategy_run"
+

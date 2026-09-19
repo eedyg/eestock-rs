@@ -1,0 +1,22 @@
+### ADR-025 临时库 teardown（2026-09-19T02:11:49+08:00）
+teardown 前库清单：
+eestock
+tmp_g1_1789752501
+tmp_g3_1789754000
+tmp_g3b_1789754127
+tmp_ws_1789753699
+
+DROP DATABASE
+DROP DATABASE
+DROP DATABASE
+DROP DATABASE
+
+teardown 后库清单（应只剩 eestock/postgres）：
+eestock
+postgres
+template0
+template1
+tmp_% 计数 = 0
+
+### 精确口径回读（排除 Postgres 内建 template0/template1）：
+eestock, postgres

@@ -1,0 +1,15 @@
+fills=43 buy=42 sell=1
+full_close_sells=1 partial_sells=0
+RECOMPUTED trade count (engine rule) = 1
+DB trades length                     = 1
+COUNT MATCH = True
+
+--- field diff ---
+  trade[0].open_ts: recomputed=1768838400 db=1768838400 match=True
+  trade[0].close_ts: recomputed=1789574400 db=1789574400 match=True
+  trade[0].open_bar: recomputed=261 db=261 match=True
+  trade[0].close_bar: recomputed=422 db=422 match=True
+  trade[0].shares: recomputed=4368.985265614662 db=4368.985265614662 match=True
+  trade[0].hold_bars: recomputed=161 db=161 match=True
+  residual holding qty (should be 0): 0.0
+FIELD MATCH = True

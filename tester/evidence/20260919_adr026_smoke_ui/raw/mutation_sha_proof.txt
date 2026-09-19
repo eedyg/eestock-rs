@@ -1,0 +1,9 @@
+== 变异反证 sha256 记录 ==
+-- 原始（变异前）ui_e2e.mjs:
+2971cde1cb018dc87b48c90b9a855f4c09f50415ef3c163635f73a476d068c9b  ui_e2e.mjs
+-- 变体（由 mutation_apply.py 对原始文件原位施加后、本文件重放推导，与运行时字节一致，已核对 checks 输出逐行相同）:
+2dd415be2430d1e918dead9346325b566ef6a8fd8f5d006b4d7ab8d0e7f74797  /tmp/mut_derive.mjs
+-- 还原后 ui_e2e.mjs:
+2971cde1cb018dc87b48c90b9a855f4c09f50415ef3c163635f73a476d068c9b  ui_e2e.mjs
+-- 结论: before == after ⇒ 逐字节还原
+IDENTICAL_OK

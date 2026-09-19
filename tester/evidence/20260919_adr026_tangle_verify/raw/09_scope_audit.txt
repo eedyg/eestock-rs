@@ -1,0 +1,68 @@
+# step 5: out-of-bounds audit
+# date: 2026-09-19T04:55:53Z  HEAD=e807385449a303a1090ac00a52c722b7b77e62ec
+
+### git diff --stat (unstaged, vs index)
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/07-app-plane/00-web-api.md                  |  2 +
+ design/07-app-plane/01-mcp.md                      | 92 ++++++++++++++++++++--
+ 3 files changed, 95 insertions(+), 6 deletions(-)
+
+### git diff --stat --name-status (unstaged)
+M	design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+M	design/07-app-plane/00-web-api.md
+M	design/07-app-plane/01-mcp.md
+
+### untracked entries for the evidence dirs
+?? coder/evidence/20260919_adr026_tangle_sync/
+?? tester/evidence/20260919_adr026_tangle_verify/
+
+### crates/** web/** : any unstaged or untracked change? (expect EMPTY)
+(end - empty above = zero working-tree changes in code)
+
+### count of staged entries (pre-existing, untouched by this task)
+718
+### .git/index mtime (unchanged since before this session => no git add)
+-rw-rw-r-- 1 eestock eestock 718824 2026-09-19 12:49:41.557456574 +0800 .git/index
+### .git/ORIG_HEAD mtime
+-rw-rw-r-- 1 eestock eestock 41 2026-09-18 18:03:20.533972875 +0800 .git/ORIG_HEAD
+### reflog top 3 (no new commit/checkout/reset/stash from this session)
+e807385 HEAD@{0}: commit: chore(deploy): ADR-024 上线记录与手册修订
+8b1840a HEAD@{1}: commit: fix(ops): TimescaleDB worker 槽位耗尽根治 + ADR-025 决策 + 事故证据链
+0d9092e HEAD@{2}: commit: test(adr024): 交付证据与验收归档（coder 证据/报告 + tester 验收/探针/harness）
+### stash list (expect empty)
+(end stash)
+
+### all 26 frozen-manifest files vs current worktree (ADR-026 batch intact)
+OK    crates/application/src/audit.rs
+OK    crates/application/src/lib.rs
+OK    crates/application/src/simlive.rs
+OK    crates/application/src/workbench.rs
+OK    crates/backtest/src/metrics.rs
+OK    crates/backtest/src/types.rs
+OK    crates/mcp/src/rpc.rs
+OK    crates/mcp/src/tools.rs
+OK    crates/mcp/tests/mcp_protocol.rs
+OK    crates/strategy-core/src/engine.rs
+OK    crates/strategy-core/tests/engine.rs
+OK    crates/web/src/lib.rs
+OK    crates/web/src/workbench.rs
+OK    crates/web/tests/adr026_run_audit.rs
+OK    crates/web/tests/tester_p5rect_verify.rs
+OK    design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+OK    design/01-architecture/adr/ADR-026-run-execution-audit-and-disclosure.md
+OK    design/99-decisions-log.md
+OK    web/e2e/adr026-audit.e2e.ts
+OK    web/src/api/client.test.ts
+OK    web/src/api/client.ts
+OK    web/src/api/mock.test.ts
+OK    web/src/api/mock.ts
+OK    web/src/api/types.ts
+OK    web/src/features/workbench/ResultView.test.tsx
+OK    web/src/features/workbench/ResultView.tsx
+OK    web/src/features/workbench/useRunAudit.ts
+
+### file MODE note (side effect of the doc edit)
+-rw-rw-r-- 1 eestock eestock  36140 2026-09-17 13:34:38.362144889 +0800 design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+-rw------- 1 eestock eestock 355887 2026-09-19 12:52:23.490074529 +0800 design/07-app-plane/00-web-api.md
+-rw------- 1 eestock eestock 289149 2026-09-19 12:52:23.503749973 +0800 design/07-app-plane/01-mcp.md
+-rw-rw-r-- 1 eestock eestock  32110 2026-09-19 00:43:24.138820082 +0800 design/99-decisions-log.md

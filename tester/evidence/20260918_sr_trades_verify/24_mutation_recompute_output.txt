@@ -1,0 +1,12 @@
+runs = 377
+Rule A close-only  (engine) : match 377/377  -> GREEN
+  fail sample: []
+Rule B each-Buy             : match 226/377  -> RED
+  fail sample: [('sr_1789040388790_000002', 30, 27), ('sr_1789040401152_000006', 39, 36), ('sr_1789211239591_000017', 3, 1), ('sr_1789211374823_000020', 3, 1), ('sr_1789211555164_000024', 5, 1)]
+Rule C each-fill            : match 18/377  -> RED
+  fail sample: [('sr_1789040196234_000000', 212, 106), ('sr_1789040385708_000001', 212, 106), ('sr_1789040391904_000003', 186, 93), ('sr_1789040398073_000005', 156, 78), ('sr_1789040669243_000012', 50, 25)]
+
+target run sr_1789738328788_000005: fills=43 db_trades=1
+  Rule A close-only -> 1  GREEN (==db)
+  Rule B each-Buy   -> 42  RED (would flag a bug)
+  Rule C each-fill  -> 43  RED (would flag a bug)

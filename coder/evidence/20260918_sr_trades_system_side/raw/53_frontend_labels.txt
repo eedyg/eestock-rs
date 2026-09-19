@@ -1,0 +1,43 @@
+### 前端绩效标签（web/src）
+web/src/api/mock.ts:371:    win_rate: round3(0.45 + rand01(`${seed}:wr`) * 0.25),
+web/src/api/mock.ts:372:    profit_factor: round3(1.1 + rand01(`${seed}:pf`) * 1.4),
+web/src/api/mock.ts:374:    trade_count: 20 + Math.floor(rand01(`${seed}:tc`) * 60),
+web/src/api/mock.ts:2077:      metrics: { net_profit: 64_200, max_drawdown: -3.1, sharpe: 1.28, win_rate: 0.625,
+web/src/api/mock.ts:2078:        profit_factor: 1.4, annualized_return: 0.18, trade_count: 24, avg_hold_bars: 90 } },
+web/src/api/mock.ts:2083:      metrics: { net_profit: 21_800, max_drawdown: -1.7, sharpe: 0.84, win_rate: 0.55,
+web/src/api/mock.ts:2084:        profit_factor: 1.12, annualized_return: 0.06, trade_count: 18, avg_hold_bars: 120 } },
+web/src/api/mock.ts:2211:    win_rate: 0.6,
+web/src/api/mock.ts:2212:    profit_factor: 1.2,
+web/src/api/mock.ts:2214:    trade_count: 20,
+web/src/api/types.ts:412:  win_rate: number;
+web/src/api/types.ts:413:  profit_factor: number;
+web/src/api/types.ts:415:  trade_count: number;
+web/src/features/workbench/ComparePanel.tsx:15:  { key: 'win_rate', label: 'win_rate', deco: (m) => fmtPct(m.win_rate) },
+web/src/features/workbench/ComparePanel.tsx:16:  { key: 'profit_factor', label: 'profit_factor', deco: (m) => fmtRatio(m.profit_factor) },
+web/src/features/workbench/ComparePanel.tsx:18:  { key: 'trade_count', label: 'trade_count', deco: (m) => String(m.trade_count) },
+web/src/features/workbench/ResultView.tsx:37:    { key: 'win_rate', label: 'win_rate（胜率）', value: fmtPct(m.win_rate) },
+web/src/features/workbench/ResultView.tsx:38:    { key: 'profit_factor', label: 'profit_factor（盈亏比）', value: fmtRatio(m.profit_factor) },
+web/src/features/workbench/ResultView.tsx:40:    { key: 'trade_count', label: 'trade_count（交易数）', value: String(m.trade_count) },
+web/src/features/workbench/ResultView.tsx:41:    { key: 'avg_hold_bars', label: 'avg_hold_bars（平均持仓）', value: fmtHoldBars(m.avg_hold_bars) },
+
+### 前端是否展示 fills 总数 / ForceClose
+web/src/api/mock.test.ts:726:  it('ADR-024 P6：/brief /bars /fills 契约形状（分页字段与 recorded 语义）', async () => {
+web/src/api/mock.test.ts:754:    // /fills：有界精确源（TREND 之外的 CONST 插件可能 0 笔，但 recorded 必为 true）
+web/src/api/mock.test.ts:755:    const fills = await api.getWorkbenchFills(run.id, { limit: 5000 });
+web/src/api/mock.test.ts:756:    expect(fills).toMatchObject({ run_id: run.id, recorded: true, offset: 0, limit: 5000 });
+web/src/api/mock.test.ts:757:    expect(fills.fills).toHaveLength(fills.total);
+web/src/api/mock.test.ts:758:    for (const x of fills.fills) {
+web/src/api/mock.test.ts:763:    expect(fp.fills.length).toBe(Math.min(1, fills.total));
+web/src/api/mock.test.ts:764:    expect(fp.has_more).toBe(fills.total > 1);
+web/src/api/mock.ts:330:  /** 页面⑪：`GET /fills` 是否回 `recorded=false`（模拟 P6 之前的 chunked run 无 fills 块）。 */
+web/src/api/mock.ts:622:  // 期末仍持仓 → 强平（ForceClose）
+web/src/api/mock.ts:626:    last.events.push({ type: 'fill', bar_index: N - 1, side: 'Sell', qty: holding.qty, price, reason: 'ForceClose' });
+web/src/api/mock.ts:698:export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
+web/src/api/mock.ts:1894:      // `recorded=false` 模拟 P6 之前的 chunked run（无 fills 块）——与「无成交」（true, total=0）可区分。
+web/src/api/mock.ts:1896:      const all = recorded ? fillsOf(r.result.per_bar) : [];
+web/src/api/mock.ts:1897:      const fills = all.slice(offset, offset + limit);
+web/src/api/mock.ts:1898:      const next = offset + fills.length;
+web/src/api/mock.ts:1902:        next_offset: hasMore ? next : null, recorded, fills,
+web/src/api/client.ts:275:  /** 成交明细分页（GET /api/workbench/runs/{id}/fills；ADR-024 P6 有界精确源，K 线标记数据源） */
+web/src/api/client.ts:586:        `/api/workbench/runs/${encodeURIComponent(id)}/fills${qs ? `?${qs}` : ''}`,
+web/src/api/types.ts:1033:  reason: 'Policy' | 'StopTrigger' | 'ForceClose';

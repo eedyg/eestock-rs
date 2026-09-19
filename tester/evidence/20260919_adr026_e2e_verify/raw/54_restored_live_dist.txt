@@ -1,0 +1,13 @@
+### 还原后 :8081 服务的 index.html（须引用 index-CxpxqtmC.js）
+index-CxpxqtmC.js
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr026-audit.e2e.ts:203:1 › 10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning 条 + 来源列 (583ms)
+  ✓  2 [chromium] › e2e/adr026-audit.e2e.ts:228:1 › 11_baseline_metrics：8项绩效 Tab 出口径注（分母 = 初始资金）+ 资金投入率 (574ms)
+  ✓  3 [chromium] › e2e/adr026-audit.e2e.ts:257:1 › 12_legacy_sources：历史 run（无 reason 字段）来源列全部「未记录」 (476ms)
+  ✓  4 [chromium] › e2e/adr026-audit.e2e.ts:273:1 › 13_reason_injection：真实浏览器下 reason=ForceClose ⇒ 来源列「期末强平」 (468ms)
+  ✓  5 [chromium] › e2e/adr026-audit.e2e.ts:295:1 › 90_mutation_deployed：拦截改 deployed_pct=1.0/batches_done=7 ⇒ UI 随之变且基线断言变红 (410ms)
+  ✓  6 [chromium] › e2e/adr026-audit.e2e.ts:332:1 › 91_mutation_warnings：拦截把 warnings 置空 ⇒ 提示条消失且基线断言变红 (445ms)
+
+  6 passed (3.3s)

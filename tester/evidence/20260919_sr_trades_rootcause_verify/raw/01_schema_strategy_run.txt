@@ -1,0 +1,24 @@
+Table "public.strategy_run"
+Column	Type	Collation	Nullable	Default
+id	text		not null	
+name	text		not null	''::text
+symbol	text		not null	
+period	text		not null	
+from_ts	timestamp with time zone		not null	
+to_ts	timestamp with time zone		not null	
+config	jsonb		not null	
+status	text		not null	'queued'::text
+progress	double precision		not null	0
+error	text			
+created_at	timestamp with time zone		not null	now()
+started_at	timestamp with time zone			
+finished_at	timestamp with time zone			
+Indexes:
+    "strategy_run_pkey" PRIMARY KEY, btree (id)
+    "strategy_run_status_created_idx" btree (status, created_at DESC)
+    "strategy_run_symbol_idx" btree (symbol)
+Check constraints:
+    "strategy_run_status_check" CHECK (status = ANY (ARRAY['queued'::text, 'running'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text]))
+Referenced by:
+    TABLE "strategy_run_bars" CONSTRAINT "strategy_run_bars_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE
+    TABLE "strategy_run_result" CONSTRAINT "strategy_run_result_run_id_fkey" FOREIGN KEY (run_id) REFERENCES strategy_run(id) ON DELETE CASCADE

@@ -1,0 +1,776 @@
+# cmd: entangled tangle   (repo root, WITHOUT --force), run twice
+# date: 2026-09-19T04:55:18Z
+
+===== RUN 1 =====
+[12:55:18] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/domain/src/ports.rs`
+           INFO     write `crates/storage/src/migrate_check.rs`
+           INFO     write `migrations/0027_strategy_run_result_chunks.sql`
+           INFO     write `crates/web/src/lib.rs`
+           INFO     write `crates/mcp/src/rpc.rs`
+           INFO     write `crates/mcp/src/tools.rs`
+           INFO     write `crates/mcp/tests/mcp_protocol.rs`
+           WARNING  `crates/domain/src/ports.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/storage/src/migrate_check.rs` changed outside the
+                    control of Entangled
+           WARNING  `migrations/0027_strategy_run_result_chunks.sql` changed
+                    outside the control of Entangled
+           WARNING  `crates/web/src/lib.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/rpc.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/tools.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/tests/mcp_protocol.rs` changed outside the
+                    control of Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+EXIT=0
+
+--- git status (non-A entries) after run1 ---
+1,288d0
+< A  coder/evidence/20260918_sr_trades_forensics/00_schema_strategy_run.txt
+< A  coder/evidence/20260918_sr_trades_forensics/01_run_meta.txt
+< A  coder/evidence/20260918_sr_trades_forensics/02_run_prefix_fuzzy.txt
+< A  coder/evidence/20260918_sr_trades_forensics/03_result_shape.txt
+< A  coder/evidence/20260918_sr_trades_forensics/04_bars_by_kind.txt
+< A  coder/evidence/20260918_sr_trades_forensics/05_bars_payload_shape.txt
+< A  coder/evidence/20260918_sr_trades_forensics/06_fills_payload_raw.json
+< A  coder/evidence/20260918_sr_trades_forensics/07_fills_summary.txt
+< A  coder/evidence/20260918_sr_trades_forensics/08_result_row_raw.json
+< A  coder/evidence/20260918_sr_trades_forensics/09_trades_content.txt
+< A  coder/evidence/20260918_sr_trades_forensics/10_trades_raw.json
+< A  coder/evidence/20260918_sr_trades_forensics/11_trades_pretty.json
+< A  coder/evidence/20260918_sr_trades_forensics/12_same_symbol_runs.txt
+< A  coder/evidence/20260918_sr_trades_forensics/13_curl_log.txt
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005_bars_kind_per_bar_offset_0_limit_2.json
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005_brief.json
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005_curve.json
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005_fills_offset_0_limit_100.json
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005.json
+< A  coder/evidence/20260918_sr_trades_forensics/13_resp_runs_sr_1789738328788_000005_result.json
+< A  coder/evidence/20260918_sr_trades_forensics/14_result_api_analysis.txt
+< A  coder/evidence/20260918_sr_trades_forensics/15_fills_api_analysis.txt
+< A  coder/evidence/20260918_sr_trades_forensics/16_brief.json
+< A  coder/evidence/20260918_sr_trades_forensics/17_run_meta_api.json
+< A  coder/evidence/20260918_sr_trades_forensics/18_pairing_experiment.py
+< A  coder/evidence/20260918_sr_trades_forensics/19_pairing_output.txt
+< A  coder/evidence/20260918_sr_trades_forensics/20_strategy_meta.txt
+< A  coder/evidence/20260918_sr_trades_forensics/21_strategy_version.txt
+< A  coder/evidence/20260918_sr_trades_forensics/22_presets.txt
+< A  coder/evidence/20260918_sr_trades_forensics/23_applog_runid.txt
+< A  coder/evidence/20260918_sr_trades_forensics/24_applog_context.txt
+< A  coder/evidence/20260918_sr_trades_forensics/25_app_log_full.log
+< A  coder/evidence/20260918_sr_trades_forensics/25_mcp_sessions.txt
+< A  coder/evidence/20260918_sr_trades_forensics/26_api_vs_db_consistency.txt
+< A  coder/evidence/20260918_sr_trades_forensics/27_per_bar_payload_raw.json
+< A  coder/evidence/20260918_sr_trades_forensics/28_per_bar_fill_events.txt
+< A  coder/evidence/20260918_sr_trades_forensics/29_orders_and_signals.txt
+< A  coder/evidence/20260918_sr_trades_forensics/30_frontend_label_grep.txt
+< A  coder/evidence/20260918_sr_trades_forensics/31_curve_summary.txt
+< A  coder/evidence/20260918_sr_trades_forensics/32_trade_dates.txt
+< A  coder/evidence/20260918_sr_trades_forensics/33_app_process.txt
+< A  coder/evidence/20260918_sr_trades_forensics/commands.sh
+< A  coder/evidence/20260918_sr_trades_forensics/README.md
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/00_schema_strategy_version.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/01_schema_strategy_run.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/02_schema_strategy_run_result.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/10_sv_row.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/11_run_row.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/12_sv_code.exact.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/12_sv_code.sql.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/13_all_versions_sha.tsv
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/14_sha_audit.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/20_fills_raw.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/21_fills_summary.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/22_bars_by_kind.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/23_per_bar_firstlast.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/25_per_bar_ts.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/26_batch_amounts.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/27_kline_api_518880_1d.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/28_per_bar_pretty.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/29_window260_orders_events.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/30_metrics_raw.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/31_nav_last.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/32_nav_first.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/33_trades_pretty.json
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/34_batch_amount_exact.py
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/34_batch_amount_exact.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/35_dca_strategy_rows.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/36_dca_version_rows.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/40_value_domain_enum.js
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/40_value_domain_enum.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/41_index_phase_check.py
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/41_index_phase_check.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/42_policy_projection_out.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/42_policy_projection.py
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/43_paper_engine_out.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/43_paper_engine.py
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/50_design_01_copy.md
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/51_design_03_copy.md
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/52_author_source_dca_baseline.js
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/53_external_docs_provenance.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/54_reference_plugin_value_domains.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/55_policy_equal_vs_fixed_refs.md
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/56_publish_gate_refs.md
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/60_same_plugin_other_runs.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/61_same_window_lumpsum_arm.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/62_same_window_comparison.py
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/62_same_window_comparison.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/63_author_A1A2_runs.txt
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/commands.sh
+< A  coder/evidence/20260918_sr_trades_strategy_side/raw/__pycache__/43_paper_engine.cpython-313.pyc
+< A  coder/evidence/20260918_sr_trades_strategy_side/README.md
+< A  coder/evidence/20260918_sr_trades_system_side/commands.sh
+< A  coder/evidence/20260918_sr_trades_system_side/raw/01_run_meta.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/02_metrics_raw.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/03_bars_by_kind.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/04_fills_payload.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/05_per_bar_payload.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/06_net_value_payload.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/07_drawdown_payload.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/08_trades_raw.json
+< A  coder/evidence/20260918_sr_trades_system_side/raw/09_result_net_value_head.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/10_d1_all_bars.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/20_recompute.py
+< A  coder/evidence/20260918_sr_trades_system_side/raw/21_recompute_output.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/22_old_backtest_engine_forceclose.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/23_dropped_pending_grep.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/24_dcastate_observability.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/25_planstate_exposure.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/30_run_inventory.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/31_all_runs_metrics_flat.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/32_global_consistency_scan.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/34_global_recompute.py
+< A  coder/evidence/20260918_sr_trades_system_side/raw/35_global_recompute_output.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/36_profit_factor_null.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/37_duplicate_runs.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/38_dupcheck_out.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/39_same_params_as_target.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/40_ledger_invariants.py
+< A  coder/evidence/20260918_sr_trades_system_side/raw/41_ledger_invariants_output.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/43_reason_scan.py
+< A  coder/evidence/20260918_sr_trades_system_side/raw/44_reason_scan_output.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/45_last_bar_order_drop_scan.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/46_anomaly_run_intents.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/47_dca_phantom_intents.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/48_silent_skip_scan.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/50_api_surface.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/51_design_forceclose_grep.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/52_adr08_metrics_section.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/53_frontend_labels.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/54_resultview_metrics_block.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/60_capital_caliber.py
+< A  coder/evidence/20260918_sr_trades_system_side/raw/61_capital_caliber_output.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/62_inf_serialization.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/63_api_last_bar_orders.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/64_intent_windows.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/65_design_dca_grep.txt
+< A  coder/evidence/20260918_sr_trades_system_side/raw/66_chunked_runs_recompute.txt
+< A  coder/evidence/20260918_sr_trades_system_side/README.md
+< A  coder/evidence/20260919_adr026_backend/00_baseline.txt
+< A  coder/evidence/20260919_adr026_backend/10_red_pure_fn.txt
+< A  coder/evidence/20260919_adr026_backend/11_green_pure_fn.txt
+< A  coder/evidence/20260919_adr026_backend/20_red_trade_reason.txt
+< A  coder/evidence/20260919_adr026_backend/21_green_trade_reason.txt
+< A  coder/evidence/20260919_adr026_backend/30_testdb_init.txt
+< A  coder/evidence/20260919_adr026_backend/32_replay_fixture_seed.txt
+< A  coder/evidence/20260919_adr026_backend/40_red_endpoint.txt
+< A  coder/evidence/20260919_adr026_backend/41_green_endpoint.txt
+< A  coder/evidence/20260919_adr026_backend/42_green_replay_A3_A4.txt
+< A  coder/evidence/20260919_adr026_backend/43_raw_audit_A3_A4.json.txt
+< A  coder/evidence/20260919_adr026_backend/44_independent_recompute.sql
+< A  coder/evidence/20260919_adr026_backend/44_independent_recompute.txt
+< A  coder/evidence/20260919_adr026_backend/50_red_mcp.txt
+< A  coder/evidence/20260919_adr026_backend/51_green_mcp.txt
+< A  coder/evidence/20260919_adr026_backend/60_mutation_pre_sha256.txt
+< A  coder/evidence/20260919_adr026_backend/61_mutation_unexecuted_red.txt
+< A  coder/evidence/20260919_adr026_backend/62_mutation_cash_consumed_red.txt
+< A  coder/evidence/20260919_adr026_backend/63_mutation_reverted_sha256.txt
+< A  coder/evidence/20260919_adr026_backend/70_regression_affected_crates.txt
+< A  coder/evidence/20260919_adr026_backend/71_preexisting_failure_tester_p5rect.txt
+< A  coder/evidence/20260919_adr026_backend/72_regression_raw_fresh_tempdb.txt
+< A  coder/evidence/20260919_adr026_backend/80_changed_files_sha256.txt
+< A  coder/evidence/20260919_adr026_backend/81_diff_stat.txt
+< A  coder/evidence/20260919_adr026_backend/90_db_teardown.txt
+< A  coder/evidence/20260919_adr026_backend/README.md
+< A  coder/evidence/20260919_adr026_fix/raw/10b_prefix_flake_full_output.txt
+< A  coder/evidence/20260919_adr026_fix/raw/10c_prefix_fk23503_rootcause_demo.txt
+< A  coder/evidence/20260919_adr026_fix/raw/10_prefix_flake_repro.txt
+< A  coder/evidence/20260919_adr026_fix/raw/12_prefix_evidence_citations.txt
+< A  coder/evidence/20260919_adr026_fix/raw/20_postfix_adr026_parallel_x5.txt
+< A  coder/evidence/20260919_adr026_fix/raw/21_postfix_web_suite_parallel_x5.txt
+< A  coder/evidence/20260919_adr026_fix/raw/22_mutation_shared_code_RED.txt
+< A  coder/evidence/20260919_adr026_fix/raw/23_mutation_trace_expectation_RED.txt
+< A  coder/evidence/20260919_adr026_fix/raw/30_rg2_prefix_RED.txt
+< A  coder/evidence/20260919_adr026_fix/raw/31_rg2_guard_constant_provenance.txt
+< A  coder/evidence/20260919_adr026_fix/raw/32_rg2_postfix_GREEN.txt
+< A  coder/evidence/20260919_adr026_fix/raw/40_rg4_e2e_old_expectation_RED.txt
+< A  coder/evidence/20260919_adr026_fix/raw/41_rg4_e2e_new_text_GREEN.txt
+< A  coder/evidence/20260919_adr026_fix/raw/42_frontend_vitest.txt
+< A  coder/evidence/20260919_adr026_fix/raw/43_frontend_tsc.txt
+< A  coder/evidence/20260919_adr026_fix/raw/50_g3_web_full_nofailfast_probe.txt
+< A  coder/evidence/20260919_adr026_fix/raw/51_g3_attribution_per_target.txt
+< A  coder/evidence/20260919_adr026_fix/raw/52_g3_same_db_twice_web_suite.txt
+< A  coder/evidence/20260919_adr026_fix/raw/60_workspace_nofailfast_x3.txt
+< A  coder/evidence/20260919_adr026_fix/raw/61_workspace_nofailfast_freshdb_x3.txt
+< A  coder/evidence/20260919_adr026_fix/raw/70_changed_files_sha256.txt
+< A  coder/evidence/20260919_adr026_fix/raw/71_db_teardown.txt
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10_baseline_trades.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10_baseline_trades_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10_baseline_trades_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10_baseline_trades_sources.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10b_trades_tab_fullpage.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10c_audit_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10d_trades_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_10_trades_tab.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11_baseline_metrics.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11_baseline_metrics_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11_baseline_metrics_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11b_metrics_tab_fullpage.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11c_metrics_basis_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11d_metrics_deployed_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_11_metrics_tab.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_12b_legacy_trades_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_12_legacy_sources.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_12_legacy_sources_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_12_legacy_sources.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_13b_reason_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_13_reason_injection.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_13_reason_injection_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_13_reason_injection.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_14_control_audit_500.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_14_control_audit_500_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_14_control_audit_500.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_90b_mutation_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_90_mutation_deployed_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_90_mutation_deployed_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_90_mutation_deployed_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_90_mutation_deployed.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_91b_mutation_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_91_mutation_warnings_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_91_mutation_warnings_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fix_91_mutation_warnings.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10_baseline_trades_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10_baseline_trades_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10b_trades_tab_fullpage.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10c_audit_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10d_trades_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_10_trades_tab.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11_baseline_metrics.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11_baseline_metrics_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11_baseline_metrics_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11b_metrics_tab_fullpage.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11c_metrics_basis_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11d_metrics_deployed_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_11_metrics_tab.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_12b_legacy_trades_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_12_legacy_sources.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_12_legacy_sources_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_12_legacy_sources.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_13b_reason_table_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_13_reason_injection.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_13_reason_injection_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_13_reason_injection.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_14_control_audit_500.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_14_control_audit_500_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_14_control_audit_500.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_90b_mutation_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_90_mutation_deployed_lines.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_90_mutation_deployed.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_91b_mutation_summary_el.png
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_91_mutation_warnings_mismatch.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_91_mutation_warnings_obs.json
+< A  coder/evidence/20260919_adr026_fix/raw/e2e/fixold_91_mutation_warnings.png
+< A  coder/evidence/20260919_adr026_fix/README.md
+< A  coder/evidence/20260919_adr026_frontend/raw/00_baseline.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/10_red_frontend_full.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/10_red_frontend.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/20_green_frontend.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/21_green_full_web_suite.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/30_contract_field_crosscheck.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/40_db_and_scope_check.txt
+< A  coder/evidence/20260919_adr026_frontend/raw/80_changed_files_sha256.txt
+< A  coder/evidence/20260919_adr026_frontend/README.md
+< A  coder/evidence/20260919_adr026_redeploy/raw/00_pre_state.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/01_pre_build_hashes.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/02_tsc_b.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/03_npm_build.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/04_post_build_dist.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/05_cargo_build.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/06_running_vs_disk_bin.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/07_stop_old_pid.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/08_start_new.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/09_startup_log_full.log
+< A  coder/evidence/20260919_adr026_redeploy/raw/09_startup_log.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/10_post_deploy_selfcheck.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/11_static_origin.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/12_audit_resp.json
+< A  coder/evidence/20260919_adr026_redeploy/raw/12_web_audit_endpoint.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/13_mcp_sse_tools.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/14_extra_checks.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/14_kline_cfg.json
+< A  coder/evidence/20260919_adr026_redeploy/raw/15_final_state.txt
+< A  coder/evidence/20260919_adr026_redeploy/raw/16_wrapup.txt
+< A  coder/evidence/20260919_adr026_redeploy/README.md
+< A  coder/report/283_adr026_backend_execution_audit.md
+< A  crates/application/src/audit.rs
+< A  crates/web/tests/adr026_run_audit.rs
+< A  design/01-architecture/adr/ADR-026-run-execution-audit-and-disclosure.md
+290,698d1
+< A  tester/design/295_adr026_ui_e2e_design.md
+< A  tester/evidence/20260918_sr_trades_verify/00_REPORT.md
+< A  tester/evidence/20260918_sr_trades_verify/01_verify_sql_shape.txt
+< A  tester/evidence/20260918_sr_trades_verify/02_verify_result_shape.txt
+< A  tester/evidence/20260918_sr_trades_verify/03_fills_payload_raw.json
+< A  tester/evidence/20260918_sr_trades_verify/04_recompute_trades.py
+< A  tester/evidence/20260918_sr_trades_verify/05_db_trades_raw.json
+< A  tester/evidence/20260918_sr_trades_verify/06_recompute_output.txt
+< A  "tester/evidence/20260918_sr_trades_verify/07_label_grep_\344\272\244\346\230\223\346\230\216\347\273\206.txt"
+< A  "tester/evidence/20260918_sr_trades_verify/08_label_grep_\346\210\220\344\272\244\346\230\216\347\273\206.txt"
+< A  tester/evidence/20260918_sr_trades_verify/09_resp_result.json
+< A  tester/evidence/20260918_sr_trades_verify/10_resp_fills.json
+< A  tester/evidence/20260918_sr_trades_verify/11_resp_brief.json
+< A  tester/evidence/20260918_sr_trades_verify/12_curl_log.txt
+< A  tester/evidence/20260918_sr_trades_verify/13_all_runs_trades_vs_fills.txt
+< A  tester/evidence/20260918_sr_trades_verify/14_crossrun_recompute.json
+< A  tester/evidence/20260918_sr_trades_verify/15_crossrun_trades_ne_fills.json
+< A  tester/evidence/20260918_sr_trades_verify/16_crossrun_recompute.py
+< A  tester/evidence/20260918_sr_trades_verify/17_crossrun_recompute_output.txt
+< A  tester/evidence/20260918_sr_trades_verify/18_pct05_fills.txt
+< A  tester/evidence/20260918_sr_trades_verify/19_pct05_trades.txt
+< A  tester/evidence/20260918_sr_trades_verify/20_workbench_e2e.png
+< A  tester/evidence/20260918_sr_trades_verify/21_e2e_workbench_probe.cjs
+< A  tester/evidence/20260918_sr_trades_verify/22_e2e_probe_output.txt
+< A  tester/evidence/20260918_sr_trades_verify/23_mutation_recompute.py
+< A  tester/evidence/20260918_sr_trades_verify/24_mutation_recompute_output.txt
+< A  tester/evidence/20260918_sr_trades_verify/25_e2e_field_mutation.cjs
+< A  tester/evidence/20260918_sr_trades_verify/26_e2e_field_mutation_output.txt
+< A  tester/evidence/20260918_sr_trades_verify/28_engine_excerpt.txt
+< A  tester/evidence/20260918_sr_trades_verify/29_max_trades_audit.txt
+< A  tester/evidence/20260918_sr_trades_verify/30_upstream_overreach_audit.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/05_build_app.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/10_independent_recompute.sql
+< A  tester/evidence/20260919_adr026_backend_verify/raw/10_independent_recompute.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/20_testdb_init.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/21_seed_runs.sh
+< A  tester/evidence/20260919_adr026_backend_verify/raw/21_seed_runs.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/22_app_8091_startup.log
+< A  tester/evidence/20260919_adr026_backend_verify/raw/23_testdb_init_fresh.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/24_seed_runs_freshdb.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/25_recorded_false_setup.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/26_app_8091_startup_run3.log
+< A  tester/evidence/20260919_adr026_backend_verify/raw/30_curl_A3_A4_A5.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/40_synth_edges.sql
+< A  tester/evidence/20260919_adr026_backend_verify/raw/40_synth_edges.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/41_curl_edge_probes.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/42_curl_zerofill.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/43_curl_recorded_false.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/50_A1_unit_green.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/51_A5_three_way_selfcheck.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/52_endpoint_suite_green.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/53_endpoint_suite_parallel_3x.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/54_endpoint_suite_flake_8x.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/55_endpoint_suite_flake_20x.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/56_flake_full_outputs.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/57_endpoint_suite_serial.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/58_flake_freshdb_12x.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/60_mcp_probe.sh
+< A  tester/evidence/20260919_adr026_backend_verify/raw/60_mcp_probe.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/60_mutation_pre_sha256.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/61_mutation_M1_red.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/62_mutation_M1_red_e2e.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/63_mutation_restore_check.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/64_mutation_M2_sha.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/65_mutation_M2_red.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/66_mutation_restore_and_green.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/70_antihardcode.sql
+< A  tester/evidence/20260919_adr026_backend_verify/raw/70_antihardcode.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/71_curl_antihardcode.json
+< A  tester/evidence/20260919_adr026_backend_verify/raw/80_reg_application.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/80_reg_backtest.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/80_reg_mcp.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/80_reg_strategy-core.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/80_reg_web.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/81b_preexisting_failure_detail.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/81_preexisting_failure_check.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/82_regression_summary.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/90_git_discipline.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/91_live_8081_stale.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/92_live_8082_mcp_stale.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/93_instance_teardown.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/94_db_teardown.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/95_observability_log.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/96_changed_files_sha256.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/97_live_zerofill_population.txt
+< A  tester/evidence/20260919_adr026_backend_verify/raw/98_final_state.txt
+< A  tester/evidence/20260919_adr026_backend_verify/README.md
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/00_baseline_recon.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/10_frontend_build.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/11_frontend_dist_check.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/20_backend_build.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/30_old_process_stop.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/31_app_restart_note.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/31_app_restart_verify.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/32_live_audit_curl.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/33b_live_mcp_summary.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/33_live_mcp_probe.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/40_E2E_baseline_green.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/50_mutation_page_render_setup.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/51_mutation_page_render_build.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/52_mutation_page_render_RED.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/53_mutation_page_render_restore.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/54_restored_live_dist.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/55_E2E_restored_green.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/60_testdb_init.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_application.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_backtest.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_mcp.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_strategy-core.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/71_reg_web_run1.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_A.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_B.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_C.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/73_tempdb_pollution_after_flake.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/74_adr026_suite_flake_stats.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/75_other_targets_isolated.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/76_tempdb_orphans_now.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/77_testdb_init_fresh2.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/78_isolation_experiment.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/80_frontend_vitest.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/81_frontend_tsc.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/82_regression_final.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/83_regression_summary.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/84_G2_head_red_check.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/90_db_teardown.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/91_git_boundary_audit.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/92_final_state.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/93_changed_files_sha256.txt
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_sources.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10b_trades_tab_fullpage.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10c_audit_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10d_trades_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_trades_tab.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11b_metrics_tab_fullpage.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11c_metrics_basis_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11d_metrics_deployed_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_metrics_tab.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12b_legacy_trades_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13b_reason_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90b_mutation_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91b_mutation_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/mutsrc_52_mutation_page_render_RED_screenshot.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_sources.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10b_trades_tab_fullpage.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10c_audit_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10d_trades_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_trades_tab.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11b_metrics_tab_fullpage.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11c_metrics_basis_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11d_metrics_deployed_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_metrics_tab.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12b_legacy_trades_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13b_reason_table_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90b_mutation_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_lines.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91b_mutation_summary_el.png
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings_mismatch.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings_obs.json
+< A  tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings.png
+< A  tester/evidence/20260919_adr026_e2e_verify/README.md
+< A  tester/evidence/20260919_adr026_fix_verify/raw/00_baseline_recon.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/20_postfix_web_default_parallel_x5.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/23_postfix_web_default_parallel_x5_rebuilt.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/24_workspace_nofailfast_freshdb_x3.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/30_g1_fixpoint_grep.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/31_g1_repeat_baseline_and_mutations.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/32_g1_sentinel_survival.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/40_g2_reverify.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/41_g2_negative_control.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/50_frontend_rebuild_and_restart.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/60_g4_build_and_e2e.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/61_g4_e2e.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/62_frontend_vitest.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/70_g3_confirm.txt
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10_baseline_trades.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10_baseline_trades_lines.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10_baseline_trades_mismatch.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10_baseline_trades_sources.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10c_audit_summary_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10d_trades_table_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_10_trades_tab.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_11_baseline_metrics.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_11_baseline_metrics_lines.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_11_baseline_metrics_mismatch.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_11c_metrics_basis_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_11_metrics_tab.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_12b_legacy_trades_table_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_12_legacy_sources.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_12_legacy_sources_obs.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_13b_reason_table_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_13_reason_injection.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_14_control_audit_500.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_14_control_audit_500_obs.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_90b_mutation_summary_el.png
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_90_mutation_deployed_mismatch.json
+< A  tester/evidence/20260919_adr026_fix_verify/raw/e2e/base_91_mutation_warnings_mismatch.json
+< A  tester/evidence/20260919_adr026_fix_verify/README.md
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_00_submit_body.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_01_submit_resp.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_02_final_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_02_list_head.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_02_status_timeline.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_04_bars_per_bar.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_04_curve.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_04_fills.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_04_result.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_07_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_08_reconcile.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_02_final_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_02_status_timeline.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_04_bars_kind_per_bar&limit_20000.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_04_curve.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_04_fills.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_04_result.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1prev/s1_07_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_reconcile.py
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s1_run_id.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_00_mcp_tools_list.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_01_mcp_submit_args.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_02_mcp_final_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_02_mcp_submit_resp.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_03_mcp_audit_s1.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_04_rest_read_mcp_run.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_05_rest_audit_mcp_run.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_06_rest_result_mcp_run.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_07_parity.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_mcp_client.py
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_parity.py
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_run_id.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s2_runner.py
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_a_range_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_a_range_result.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_m1_2015-01-01_confirm_false.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_m1_2015-01-01_confirm_true.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_m1_2020-01-01_confirm_false.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_m1_2020-01-01_confirm_true.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_m1_cancel_686k.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_a_range.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_d_bad_strategy.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_e_bad_version.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_f_dca_tranches0.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_g_dca_interval0.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_req_h_lumpsum_pct2.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_a_range.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_d_bad_strategy.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_e_bad_version.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_f_dca_tranches0.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_g_dca_interval0.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_resp_h_lumpsum_pct2.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_unknown_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_unknown_fills.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s3_unknown_result.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M1_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M1_final_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M1_run_id.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M1_submit_body.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M1_submit_resp.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M30_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M30_final_brief.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M30_run_id.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M30_submit_body.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s4_M30_submit_resp.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s5_log_lines.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s6_negative_control.py
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s6_negative_control.txt
+< A  tester/evidence/20260919_adr026_smoke_backtest/raw/s6_partial_run_audit.json
+< A  tester/evidence/20260919_adr026_smoke_backtest/README.md
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/cargo_test_application_lib_audit.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/cargo_test_web_adr026_run_audit.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/checks.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/console_all.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/console_errors.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/db_age.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/hist_canvas_kline.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/hist_tab_metrics.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/hist_tab_trades.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mutation_apply.py
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mutation_run_stdout.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mutation_sha_after.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mutation_sha_before.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mutation_sha_proof.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mut_out2/s1_canvas_kline.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mut_out2/s1_tab_trades.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mut_out/s1_canvas_kline.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/mut_out/s1_tab_trades.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/network_all.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/network_failed.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/pageerrors.json
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/post_drop_workers.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/README_sha256.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/s1_canvas_kline.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/s1_tab_metrics.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/s1_tab_trades.png
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/testdb_drop.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/testdb_env.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/testdb_init_stderr.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/touched_files_since_1120.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/tracked_m_mtimes.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/ui_e2e.mjs
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/ui_e2e_stdout_rerun.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/ui_e2e_stdout.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/raw/vitest_run_full.txt
+< A  tester/evidence/20260919_adr026_smoke_ui/README.md
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/commands.sh
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/01_schema_strategy_run.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/02_schema_strategy_run_result.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/03_run_row.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/04_result_shape.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/05_schema_strategy_run_bars.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/06_bars_by_kind.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/07_bars_chunk_shape.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/10_fills_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/11_per_bar_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/12_net_value_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/13_drawdown_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/14_trades_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/15_metrics_raw.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/20_d1_bars_union.psv
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/21_d1_available_range.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/30_result_format_counts.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/31_target_config.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/40_independent_recompute.py
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/41_independent_recompute_output.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/44_crate_metrics_probe_Cargo.toml.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/44_crate_metrics_probe.rs.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/45_crate_metrics_probe_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/46_engine_probe_Cargo.toml.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/46_engine_probe.rs.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/47_engine_probe_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/48_engine_real_plugin_probe.rs.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/49_engine_real_plugin_probe_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/50_sv_code.exact.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/51_value_domain_enum.js
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/52_value_domain_enum_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/55_equal_vs_fixed_refs.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/56_external_doc_equal_vs_fixed.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/57_doc_copy_sha_audit.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/60_independent_policy_ressim.py
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/61_independent_policy_ressim_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/63_intent_windows.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/70_global_scan.sql
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/71_global_scan.out
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/72_global_scan_v2.sql
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/73_global_scan_v2.out
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/80_api_probe.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/81_api_brief.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/82_api_fills.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/83_api_curve.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/84_api_result.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/85_design_forceclose_grep.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/86_forceclose_contract_refs.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/87_deployment_disclosure.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/90_twoway_candidates.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_config.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_dd.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_metrics.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_nav.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_per_bar.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/95_tw_trades.json
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/96_tw_bars.psv
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/97_twoway_three_way_check.py
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/98_twoway_three_way_check_out.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/99_overreach_db2.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/99_overreach_db.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/raw/99_overreach_git.txt
+< A  tester/evidence/20260919_sr_trades_rootcause_verify/README.md
+< A  tester/test/034_archived_audit_rerun_acceptance_execution.md
+< A  web/e2e/adr026-audit.e2e.ts
+< A  web/src/features/workbench/useRunAudit.ts
+--- git diff --stat after run1 ---
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/07-app-plane/00-web-api.md                  |  2 +
+ design/07-app-plane/01-mcp.md                      | 92 ++++++++++++++++++++--
+ 3 files changed, 95 insertions(+), 6 deletions(-)
+--- 148 targets sha256 delta after run1 ---
+(no target byte delta)
+--- .entangled/filedb.json sha256 after run1 ---
+e3ad9c2342c8259103686ed4a8d218dc859e859ffafabd750a3b4f1eed78fab4  .entangled/filedb.json
+
+===== RUN 2 =====
+[12:55:19] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/domain/src/ports.rs`
+           INFO     write `crates/storage/src/migrate_check.rs`
+           INFO     write `migrations/0027_strategy_run_result_chunks.sql`
+           INFO     write `crates/web/src/lib.rs`
+           INFO     write `crates/mcp/src/rpc.rs`
+           INFO     write `crates/mcp/src/tools.rs`
+           INFO     write `crates/mcp/tests/mcp_protocol.rs`
+           WARNING  `crates/domain/src/ports.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/storage/src/migrate_check.rs` changed outside the
+                    control of Entangled
+           WARNING  `migrations/0027_strategy_run_result_chunks.sql` changed
+                    outside the control of Entangled
+           WARNING  `crates/web/src/lib.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/rpc.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/tools.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/tests/mcp_protocol.rs` changed outside the
+                    control of Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+EXIT=0
+
+--- git status (non-A entries) after run2 ---
+(no status delta run1->run2)
+--- git diff --stat after run2 ---
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/07-app-plane/00-web-api.md                  |  2 +
+ design/07-app-plane/01-mcp.md                      | 92 ++++++++++++++++++++--
+ 3 files changed, 95 insertions(+), 6 deletions(-)
+--- 148 targets sha256 delta run1 -> run2 ---
+(ZERO change on 2nd run)
+--- .entangled/filedb.json sha256 after run2 ---
+e3ad9c2342c8259103686ed4a8d218dc859e859ffafabd750a3b4f1eed78fab4  .entangled/filedb.json

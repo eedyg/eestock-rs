@@ -1,0 +1,6 @@
+# cmd: ./scripts/check-tangle.sh
+# date: 2026-09-19T04:54:34Z
+# HEAD: e807385449a303a1090ac00a52c722b7b77e62ec
+--- output ---
+[check-tangle] ✅ design 与生成物一致（沙箱重新生成 + 逐字节比对通过；工作区未被修改）。
+EXIT=0

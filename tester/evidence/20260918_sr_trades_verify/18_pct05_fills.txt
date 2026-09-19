@@ -1,0 +1,18 @@
+[
+    {
+        "qty": 13358.26876836762,
+        "side": "Buy",
+        "type": "fill",
+        "price": 3.790758,
+        "reason": "Policy",
+        "bar_index": 1
+    },
+    {
+        "qty": 13358.26876836762,
+        "side": "Sell",
+        "type": "fill",
+        "price": 9.0811834,
+        "reason": "ForceClose",
+        "bar_index": 998
+    }
+]

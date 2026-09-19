@@ -1,0 +1,8 @@
+### 停我的测试实例（8091/8092）
+2043164 Fri Sep 18 18:04:44 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+--- 监听 ---
+(8091/8092 无监听)
+--- 线上 8081 未触碰 ---
+    PID                  STARTED
+2043164 Fri Sep 18 18:04:44 2026
+8081 healthz:200

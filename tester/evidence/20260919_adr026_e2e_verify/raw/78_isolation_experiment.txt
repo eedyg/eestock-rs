@@ -1,0 +1,7 @@
+### 干净实验（库 tmp_e2e2_1789752105，全新实例，每次运行前回读 kline_accurate 孤儿数）
+--- 步骤0 初始孤儿数 = 0
+--- 步骤1：orphan 目标单独跑 | exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s | 之后孤儿数=0
+--- 步骤2：adr026 目标单独跑 | exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s | 之后孤儿数=0
+     失败用例：
+--- 步骤3：orphan 目标再跑 | exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s | 之后孤儿数=0
+     失败用例：

@@ -1,0 +1,4 @@
+### 线上 :8082 MCP tools/list 名单（stale 二进制）
+tool_count= 34
+has_bt_get_run_audit= False
+bt_*= ['bt_run_ensemble', 'bt_get_run', 'bt_get_run_result', 'bt_list_runs', 'bt_cancel_run', 'bt_compare_runs', 'bt_list_presets', 'bt_apply_preset']

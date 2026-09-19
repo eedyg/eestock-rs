@@ -1,0 +1,24 @@
+# Green — web 全量 vitest（终态）+ tsc
+
+命令: cd web && npx vitest run
+ Test Files  94 passed (94)
+      Tests  916 passed (916)
+   Duration  7.38s (transform 3.69s, setup 4.23s, collect 14.97s, tests 38.47s, environment 29.13s, prepare 7.18s)
+exit=0
+
+== 一次 flake 记录（与 ADR-026 无关）==
+run#2（/tmp/green_full3.txt）曾报 1 failed：src/features/settings/SettingsPage.test.tsx
+   × SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 源参数面板：保存启用，编辑速率→PATCH 乐观更新，值域非法禁用保存 190ms
+     → expected 110 to be 10 // Object.is equality
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 源参数面板：东财（push2delay）不可上移（ADR-006），参数<0 禁用保存 118ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 采集参数面板：编辑间隔→PATCH collector（≥60），非法禁用保存 119ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > MCP 面板：交易工具开启需二次确认（ADR-009）→确认→保存 PATCH mcp，限额非法禁用 196ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > 配置保存失败（后端 400）→ 提示错误并回滚 75ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > danger-zone：confirm 为空时破坏按钮禁用（缺失被拒）；输入 PURGE 后方可触发 114ms
+   ✓ SettingsPage（页面⑧系统设置：骨架锚点 + 只读/运维区 + S2 占位） > danger-zone：服务端 confirm 拒绝（400）→ 错误提示展示 96ms
+--
+-- 单文件隔离重跑 3 次：11 passed ×3（flake，且该文件与本批改动零交集）
+-- 全量重跑 run#3：见上，916 passed / 0 failed
+
+命令: cd web && npx tsc -b
+exit=0（无输出）

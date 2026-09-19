@@ -1,0 +1,50 @@
+=== FAIL RUN #4 ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 4 tests
+test audit_recorded_false_when_facts_are_missing ... ok
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_endpoint_emits_required_tracing_fields ... FAILED
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+
+failures:
+
+---- audit_endpoint_emits_required_tracing_fields stdout ----
+
+thread 'audit_endpoint_emits_required_tracing_fields' (4066077) panicked at crates/web/tests/adr026_run_audit.rs:547:5:
+span.run_id 须为本次请求的 run：SPAN workbench_run_audit trace_id=c41ee49602016c3569b5c5b23041297f run_id=sr_1789750570412_000005 deployed_pct=0.19091773795340908 unexecuted_orders=0 warnings=2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_endpoint_emits_required_tracing_fields
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`
+=== FAIL RUN #6 ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 4 tests
+test audit_recorded_false_when_facts_are_missing ... FAILED
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+test audit_endpoint_emits_required_tracing_fields ... ok
+
+failures:
+
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (4066165) panicked at crates/web/tests/adr026_run_audit.rs:352:40:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "23503", message: "insert or update on table \"strategy_run_result\" violates foreign key constraint \"strategy_run_result_run_id_fkey\"", detail: Some("Key (run_id)=(sr_adr026_chunked_nofacts) is not present in table \"strategy_run\"."), hint: None, position: None, where: None, schema: Some("public"), table: Some("strategy_run_result"), column: None, data_type: None, constraint: Some("strategy_run_result_run_id_fkey"), file: Some("ri_triggers.c"), line: Some(2608), routine: Some("ri_ReportViolation") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_recorded_false_when_facts_are_missing
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`

@@ -1,0 +1,3 @@
+ERROR:  column "level" does not exist
+LINE 1: SELECT id,name,level,kind,status FROM strategy WHERE id='st_...
+                       ^

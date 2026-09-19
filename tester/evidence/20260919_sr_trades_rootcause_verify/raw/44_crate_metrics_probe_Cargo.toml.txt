@@ -1,0 +1,8 @@
+[package]
+name = "srprobe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+backtest = { path = "/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest" }
+serde_json = { version = "1", features = ["float_roundtrip"] }

@@ -1,0 +1,23 @@
+### 突变前 sha256（源码 + dist + 二进制）
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  web/src/features/workbench/ResultView.tsx
+b909850ded4c6325912938483c52e9b8ab61a9bf68162a37cd313cbf2f4ff97f  web/dist/assets/index-CxpxqtmC.js
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+### 备份到 /tmp（仓库外，避免仓库内残留探针文件）
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  /tmp/adr026_ResultView.tsx.bak
+### 突变：注掉页面摘要渲染（<AuditSummary … /> → {false \&\& <AuditSummary … />}）
+MUTATED: 摘要渲染已注掉
+### 突变后 diff（仅 1 行）
++                <div className="flex flex-col gap-2">
++                  {false && <AuditSummary audit={audit} fills={series.fills} />}
++                  <TradesTable result={result} />
++                </div>
++              )}
++              {tab === 'metrics' && (
++                <MetricsTable
++                  result={result}
++                  audit={audit}
++                  capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
++                />
++              )}
+### 突变后 sha256
+6b23288aa528b23f6801d2b25f9bd13154bf9d3bb630585d9c3feca62cb623ca  web/src/features/workbench/ResultView.tsx

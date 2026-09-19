@@ -1,0 +1,23 @@
+### 还原：从 /tmp 备份恢复（cp）
+### 还原后 sha256（须 = 突变前 1226b2e7…）
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  web/src/features/workbench/ResultView.tsx
+### cmp 逐字节比对备份
+cmp: 逐字节一致
+### 与 coder/阶段3 所载 sha256 对照（1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446）
+### git diff 是否回到基线（应只剩 coder 阶段 3 的既有改动，无 {false &&）
+0
+### 还原后重建前端 dist
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.04s
+### 还原后 dist sha256（须 = 突变前 b909850d…）
+total 1244
+drwxrwxr-x 2 eestock eestock    4096 Sep 19 01:17 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 19 01:17 ..
+-rw-rw-r-- 1 eestock eestock   22971 Sep 19 01:17 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237321 Sep 19 01:17 index-CxpxqtmC.js
+b909850ded4c6325912938483c52e9b8ab61a9bf68162a37cd313cbf2f4ff97f  web/dist/assets/index-CxpxqtmC.js
+1

@@ -1,0 +1,1 @@
+{"error":{"code":"policy_invalid","detail":{"period":"D1"},"message":"Dca.tranches 必须 ≥ 1"}}

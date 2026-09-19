@@ -829,6 +829,64 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     await expect(api.getWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
     await expect(api.deleteWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
   });
+
+  // ── ADR-026 §2.2：/audit mock（由 per_bar.orders/events + config 事实派生，与后端同口径）──
+
+  it('ADR-026：/audit 由事实派生（recorded=true；batches_done=Buy 成交数；deployed=Σqty×price；cash=金额+佣金；Dca → DCA_PLAN_UNDERFILLED）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await api.submitWorkbenchRun({
+      ...validSubmit(),
+      policy: { Dca: { mode: 'Equal', tranches: 100, interval: 1 } },
+    });
+    const audit = await api.getRunAudit(run.id);
+    expect(audit.run_id).toBe(run.id);
+    expect(audit.recorded).toBe(true);
+    expect(audit.capital_basis).toBe(100_000);
+    expect(audit.planned_tranches).toBe(100);
+
+    // 三方自洽：/fills 的 Buy 笔数 = batches_done；deployed/cash 由逐笔复算佣金（仓内 fee 契约）
+    const fills = (await api.getWorkbenchFills(run.id, { limit: 5000 })).fills;
+    const buys = fills.filter((f) => f.side === 'Buy');
+    expect(audit.batches_done).toBe(buys.length);
+    const notional = buys.reduce((s, f) => s + f.qty * f.price, 0);
+    const commission = buys.reduce((s, f) => s + Math.max((f.qty * f.price * 0.025) / 100, 5), 0);
+    expect(audit.deployed_notional).toBeCloseTo(notional, 6);
+    expect(audit.cash_consumed).toBeCloseTo(notional + commission, 6);
+    expect(audit.deployed_pct).toBeCloseTo(notional / 100_000, 9);
+    expect(audit.cash_consumed_pct).toBeCloseTo((notional + commission) / 100_000, 9);
+    expect(audit.round_trips_total).toBe((await api.getWorkbenchResult(run.id)).trades.length);
+    expect(audit.round_trips_force_closed).toBeLessThanOrEqual(audit.round_trips_total);
+    expect(audit.warnings.map((w) => w.code)).toContain('DCA_PLAN_UNDERFILLED');
+
+    // 非 Dca → planned_tranches=null；未知 run / 无结果 run → 404
+    const lump = await api.submitWorkbenchRun(validSubmit());
+    expect((await api.getRunAudit(lump.id)).planned_tranches).toBeNull();
+    await expect(api.getRunAudit('sr_nope')).rejects.toMatchObject({ status: 404 });
+    const running = (await api.listWorkbenchRuns({ status: 'running' }))[0]!;
+    await expect(api.getRunAudit(running.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('ADR-026：workbenchAuditMissing ⇒ recorded=false + 零值 + 空 warnings（前端须显「未记录」，不得显 0%）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchAuditMissing: true });
+    const run = await api.submitWorkbenchRun(validSubmit());
+    const audit = await api.getRunAudit(run.id);
+    expect(audit).toMatchObject({
+      run_id: run.id,
+      recorded: false,
+      capital_basis: 100_000,
+      deployed_notional: 0,
+      deployed_pct: 0,
+      cash_consumed: 0,
+      planned_tranches: null,
+      reachable_batches: 0,
+      batches_done: 0,
+      unexecuted_orders: 0,
+      last_bar_unfilled: false,
+      round_trips_total: 0,
+      round_trips_force_closed: 0,
+      warnings: [],
+    });
+  });
 });
 
 describe('createMockClient（ADR-020：K线默认视口 = 根数口径 viewport_bars）', () => {

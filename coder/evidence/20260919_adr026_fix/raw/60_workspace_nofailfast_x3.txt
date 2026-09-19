@@ -1,0 +1,22 @@
+### ⚠ 本文件作废（保留痕迹）：RUN1 的临时库名构造有误（数据库名含转义反斜杠），哨兵表缺失 ⇒ 42 个目标瞬时失败；
+### 权威口径见 `61_workspace_nofailfast_freshdb_x3.txt`（每次全新库、先校验哨兵表，3/3 全绿）。
+### 本文件 RUN2/RUN3 亦为有效数据（同库连续跑，RUN2 因 G3 债务红；见 52_g3_same_db_twice_web_suite.txt）。
+
+### 仓内惯例（对照 tester/test/032_main_wave_flake_final_acceptance_execution.md）：cargo test --workspace --no-fail-fast 连续 3 次
+DB=tmp_ws_1789753699（ADR-025 临时库，全新）
+
+RUN1 exit=0 | ok_targets=130 failed_targets=0 | passed_tests=895 | 1 run in 101s
+RUN2 exit=101 | ok_targets=129 failed_targets=1 | passed_tests=894 | 2 run in 76s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-3f0d434bdf18b2c8)
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+RUN3 exit=101 | ok_targets=129 failed_targets=1 | passed_tests=894 | 3 run in 75s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+error: test failed, to rerun pass `-p web --test orphan_detect_endpoint_red`
+     Running tests/orphan_detect_sql_constant_red.rs (target/debug/deps/orphan_detect_sql_constant_red-3f0d434bdf18b2c8)
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s

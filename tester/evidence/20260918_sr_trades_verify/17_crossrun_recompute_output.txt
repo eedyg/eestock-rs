@@ -1,0 +1,15 @@
+runs scanned                 = 377
+recompute == db trades       = 377/377
+MISMATCH runs                = 0
+runs with partial sells      = 0
+runs where trades_n != fills_n = 359
+    sr_1789040196234_000000 fills= 212 trades= 106 partial= 0 legacy_single
+    sr_1789040385708_000001 fills= 212 trades= 106 partial= 0 legacy_single
+    sr_1789040624896_000011 fills= 196 trades= 98 partial= 0 legacy_single
+    sr_1789040675394_000014 fills= 194 trades= 97 partial= 0 legacy_single
+    sr_1789040693862_000020 fills= 194 trades= 97 partial= 0 legacy_single
+    sr_1789040684631_000017 fills= 190 trades= 95 partial= 0 legacy_single
+    sr_1789040391904_000003 fills= 186 trades= 93 partial= 0 legacy_single
+    sr_1789041370788_000067 fills= 184 trades= 92 partial= 0 legacy_single
+    sr_1789040762163_000024 fills= 178 trades= 89 partial= 0 legacy_single
+    sr_1789040398073_000005 fills= 156 trades= 78 partial= 0 legacy_single

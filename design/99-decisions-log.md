@@ -243,3 +243,14 @@
 - **为什么没人清（用户追问，逐条有原文）**：①各车道只清「自己前缀」、对别人的明文「未动」；②门禁只管「不新增」不管「不残留」；③「登记残留」当成了处置；④**工具只建不删**（`scripts/testdb-init.sh` 全篇无 teardown）；⑤收尾动作最先被 30 分钟上限截断；⑥先例被点名也没人动。
 - **决策要点**：D1 worker 名额自洽不变量 + 启动自检；D2 **DB 作业层进观测面**（cagg 新鲜度 / job 失败率 / 槽位占用，复用 `alert_rules` 通道）；D3 测试载体治理（命名 `tmp_<lane>_<ts>`、必须 `--drop`、验收用**正向断言**、隔离优先 **schema 级** 而非整库、清理不得放最后一步、**残留必须带 owner+到期日**）；D4 事故顺序纪律（先量化缺口 → 再修因 → 最后回填）；D5 ADR-023 §6.1 第 8 条升级为本 ADR 强制规则。
 - **产出物**：ADR-025 本体（已裁决待实现）+ 项目 skill `eestock-db-migration-and-cagg-ops` 的 Pitfalls/Verification 补充；实现项 4 项待派（`testdb-init.sh --drop`、三项监控、启动自检、车道模板）。
+
+---
+
+# ADR-026 回测结果的执行完整度审计与口径披露（2026-09-19，用户授权「按建议修复，自主决策」）
+
+- **权威正文**：`design/01-architecture/adr/ADR-026-run-execution-audit-and-disclosure.md`。
+- **触发事件**：`sr_1789738328788_000005`（518880/D1，`Dca{tranches:100,interval:1}`）被读成「交易明细只有一条」，实测为「名义只投出 **41.40%**（敞口）/ **41.61%**（含佣金）、计划 100 批只推进 **42** 批、回合数 **1** 且由期末**强平合成**」；全库 174/359 个「有已实现回合」的 run 全程无真实卖出，其中 132 个读出「胜率 100%」。
+- **决策要点**：新增**只读派生的执行完整度审计**（按需从已落库事实计算，落库与读侧解耦）：D1 唯一口径（意图/成交/未执行/敞口/资金占用/回合/强平合成，见 §2.1）；D2 `GET /api/workbench/runs/{id}/audit` + MCP `bt_get_run_audit`；D3 **`deployed_*`（敞口，不含费用）与 `cash_consumed*`（含佣金）必须分别命名**（固化「41.40% vs 41.61%」同物异名的教训）；D4 判据常量具名（`PARTIAL_DEPLOYMENT` 阈值 `deployed_pct < 0.99` 等）；D5 `TradeDetail` 增 `reason: Option<String>`（`Policy|StopTrigger|ForceClose`，`#[serde(default)]` 兼容历史 run，**不改 `trade_count` 语义**）；D6 警告**非阻断**（仅披露）。
+- **明确不做**（登记为技术债）：提交期体检、发布期信号分布体检、历史 run 回填、未执行挂单归因（仅区分 `last_bar_unfilled`）。
+- **关联**：ADR-024 P6（`/fills` 为成交事实源）、ADR-019（fee 契约复算佣金）、ADR-025（测试载体治理）；`design/12-strategy-system/01-adr.md` §13.4。
+- **产出物**：ADR-026 本体（已裁决）+ 本批实现（纯函数审计 `crates/application/src/audit.rs`、端点、MCP 工具、`TradeDetail.reason`、可观测性）；证据 `coder/evidence/20260919_adr026_backend/**`。

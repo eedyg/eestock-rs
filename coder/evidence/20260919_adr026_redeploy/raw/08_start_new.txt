@@ -1,0 +1,12 @@
+### stale wrapper check
+    PID    PPID                  STARTED CMD
+
+### start new
+2026-09-19 11:17:11.012719424
+LOGFILE=logs/app_dev_8081_redeploy_20260919_111711.log
+spawned bg pid=818710
+### after start
+2026-09-19 11:17:17.014684088
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=818710,fd=12))  
+818710 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml

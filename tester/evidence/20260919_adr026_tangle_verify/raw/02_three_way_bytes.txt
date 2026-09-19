@@ -1,0 +1,41 @@
+# cmd: 3-way byte comparison of 4 generated files
+# date: 2026-09-19T04:54:41Z
+# sources: worktree | git show :<path> (index) | /tmp/tv_frozen (coder/backups/adr026_frozen_20260919T112937Z.tar.gz)
+
+== crates/web/src/lib.rs
+  worktree : c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390
+  index(:) : c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390
+  frozen   : c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390
+  cmp worktree-vs-index  : SAME
+  cmp worktree-vs-frozen : SAME
+  RESULT   : ALL-EQUAL
+
+== crates/mcp/src/rpc.rs
+  worktree : 101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171
+  index(:) : 101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171
+  frozen   : 101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171
+  cmp worktree-vs-index  : SAME
+  cmp worktree-vs-frozen : SAME
+  RESULT   : ALL-EQUAL
+
+== crates/mcp/src/tools.rs
+  worktree : d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8
+  index(:) : d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8
+  frozen   : d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8
+  cmp worktree-vs-index  : SAME
+  cmp worktree-vs-frozen : SAME
+  RESULT   : ALL-EQUAL
+
+== crates/mcp/tests/mcp_protocol.rs
+  worktree : 47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b
+  index(:) : 47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b
+  frozen   : 47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b
+  cmp worktree-vs-index  : SAME
+  cmp worktree-vs-frozen : SAME
+  RESULT   : ALL-EQUAL
+
+--- byte sizes ---
+8548 worktree  8548 index  8548 frozen  crates/web/src/lib.rs
+6019 worktree  6019 index  6019 frozen  crates/mcp/src/rpc.rs
+212433 worktree  212433 index  212433 frozen  crates/mcp/src/tools.rs
+15998 worktree  15998 index  15998 frozen  crates/mcp/tests/mcp_protocol.rs

@@ -1,0 +1,57 @@
+   Compiling backtest v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/backtest)
+   Compiling strategy-runtime v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-runtime)
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+   Compiling simlive v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/simlive)
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+warning: unused import: `DcaMode`
+  --> crates/application/src/audit.rs:28:21
+   |
+28 | use strategy_core::{DcaMode, ExecutionPolicy, OrderReason, OrderSide};
+   |                     ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+warning: `application` (lib) generated 1 warning (run `cargo fix --lib -p application` to apply 1 suggestion)
+warning: unused variable: `code`
+   --> crates/web/tests/adr026_run_audit.rs:336:9
+    |
+336 |     let code = format!("85{}", std::process::id() % 10000);
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_code`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `web` (test "adr026_run_audit") generated 1 warning (run `cargo fix --test "adr026_run_audit" -p web` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.37s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 3 tests
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_recorded_false_when_facts_are_missing ... FAILED
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... FAILED
+
+failures:
+
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (3998278) panicked at crates/web/tests/adr026_run_audit.rs:350:5:
+assertion `left == right` failed: 有 run 行 + 结果行 ⇒ 200：Ok("{\"error\":\"not found\"}")
+  left: 404
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- audit_endpoint_matches_recorded_facts_and_404_semantics stdout ----
+
+thread 'audit_endpoint_matches_recorded_facts_and_404_semantics' (3998277) panicked at crates/web/tests/adr026_run_audit.rs:290:5:
+assertion `left == right` failed: audit 应 200: Ok("{\"error\":\"not found\"}")
+  left: 404
+ right: 200
+
+
+failures:
+    audit_endpoint_matches_recorded_facts_and_404_semantics
+    audit_recorded_false_when_facts_are_missing
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`

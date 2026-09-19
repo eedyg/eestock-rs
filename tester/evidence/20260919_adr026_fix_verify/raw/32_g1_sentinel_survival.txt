@@ -1,0 +1,37 @@
+### [G] 哨兵行存活实验 v2（证明新 adr026_run_audit 只读写自有行，不删/不改他人行） 2026-09-19T02:30:51+08:00
+db=tmp_g1sentb_1789756251
+EESTOCK_TEST_DATABASE_URL=postgres://eestock:eestock@127.0.0.1:5433/tmp_g1sentb_1789756251
+
+--- 播种哨兵行（模拟「别人的」夹具；run id 刻意命中旧 clean() 的 LIKE 'sr_adr026%' 向量） ---
+--- BEFORE ---
+symbols(888888)=1 kline_accurate(888888)=1 cagg_orphan_sentinel=0
+strategy_run(sr_adr026_foreign_000001)=1 strategy_run(sr_9999999999999_888888)=1
+strategy_run_total=2
+--- target run 1: cargo test -p web --test adr026_run_audit ---
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+  [post-1] 1 sr_adr026%-rows remain
+--- target run 2: cargo test -p web --test adr026_run_audit ---
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+  [post-2] 1 sr_adr026%-rows remain
+--- target run 3: cargo test -p web --test adr026_run_audit ---
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+  [post-3] 1 sr_adr026%-rows remain
+--- AFTER 3x target ---
+symbols(888888)=1 kline_accurate(888888)=1 cagg_orphan_sentinel=0
+strategy_run(sr_adr026_foreign_000001)=1 strategy_run(sr_9999999999999_888888)=1
+strategy_run_total=2
+--- run 4: cargo test -p web（全量默认并行） ---
+targets=29 passed=173 failed=0
+--- AFTER full -p web ---
+symbols(888888)=1 kline_accurate(888888)=1 cagg_orphan_sentinel=1
+strategy_run(sr_adr026_foreign_000001)=1 strategy_run(sr_9999999999999_888888)=1
+strategy_run_total=3
+
+--- 残留 run 行（非哨兵）：按 symbol/id 分类 ---
+  sr_1789756298464_000000|518880|running
+  sr_9999999999999_888888|888888|queued
+  sr_adr026_foreign_000001|888888|queued
+--- 结论判据：哨兵 5 项计数 BEFORE == AFTER（不变）⇒ 未删/未改他人行 ---
+DROP DATABASE
+db list after: postgres,eestock
+### end 2026-09-19T02:31:49+08:00

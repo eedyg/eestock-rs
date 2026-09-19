@@ -1,0 +1,83 @@
+// Tester 只读探针 P5：用**库内真实插件字节 + 真实 run 配置 + 真实 423 根 bar** 在仓库引擎里独立重跑一遍
+// （不写库、不建 run），与库内结果逐项比对。
+use backtest::{Bar, FeeModel, ParamValue, Period, StrategyParams};
+use strategy_core::{run_ensemble, DcaMode, EngineEvent, EnsembleConfig, ExecutionPolicy, OrderReason, OrderSide, StrategySlot};
+use strategy_runtime::QuickJsRuntime;
+use std::fs;
+
+const RAW: &str = "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_sr_trades_rootcause_verify/raw";
+
+fn main() {
+    let mut code = fs::read_to_string(format!("{RAW}/50_sv_code.exact.txt")).unwrap();
+    if code.ends_with('\n') { code.pop(); }
+    let mut bars: Vec<Bar> = Vec::new();
+    for line in fs::read_to_string(format!("{RAW}/20_d1_bars_union.psv")).unwrap().lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+        let f: Vec<&str> = line.split('|').collect();
+        bars.push(Bar { ts: f[0].parse().unwrap(), open: f[1].parse().unwrap(), high: f[2].parse().unwrap(),
+                        low: f[3].parse().unwrap(), close: f[4].parse().unwrap(), volume: 0.0 });
+    }
+    let mut params = StrategyParams::new();
+    params.insert("cadence".to_string(), ParamValue::Num(20.0));
+    params.insert("plan_bars".to_string(), ParamValue::Num(5.0));
+    let cfg = EnsembleConfig {
+        slots: vec![StrategySlot::new(code.clone(), "5d7f83df79f338e795b11560218d07971941088eca587116240ec14bf19ea0b3", params, 1.0).unwrap()],
+        buy_threshold: 60.0, sell_threshold: 40.0,
+        policy: ExecutionPolicy::Dca { tranches: 100, mode: DcaMode::Equal, amount: None, interval: 1 },
+        stop: None,
+        initial_capital: 100_000.0,
+        fee: FeeModel { commission_rate_pct: 0.025, min_commission: 5.0, stamp_duty_pct: 0.0, slippage_bp: 2.0 },
+        period: Period::D1,
+        warmup_bars: 250,
+        runtime_limits: Default::default(),
+    };
+    let mut rt = QuickJsRuntime::new(cfg.runtime_limits);
+    let res = run_ensemble(&cfg, &bars, &mut rt).expect("引擎运行成功");
+
+    let fills: Vec<(usize, OrderSide, f64, OrderReason)> = res.per_bar.iter().flat_map(|r| r.events.iter())
+        .filter_map(|e| match e { EngineEvent::Fill { bar_index, side, qty, price: _, reason } =>
+            Some((*bar_index, *side, *qty, *reason)), _ => None }).collect();
+    let nb = fills.iter().filter(|f| f.1 == OrderSide::Buy).count();
+    let ns = fills.iter().filter(|f| f.1 == OrderSide::Sell).count();
+    let nintent: usize = res.per_bar.iter().map(|r| r.orders.len()).sum();
+    let pb_n = res.per_bar.len();
+    let pb_warm: usize = res.per_bar.iter().filter(|r| r.warmup).count();
+    let last = res.per_bar.last().unwrap();
+    println!("== P5 真实插件 + 真实配置 + 真实 bar 的独立重跑 ==");
+    println!("bars 输入 = {} ; per_bar = {} (warmup {})", bars.len(), pb_n, pb_warm);
+    println!("fills = {} (Buy {} / Sell {}) ；意图 orders 总数 = {} ；意图 − 非强平成交 = {}",
+             fills.len(), nb, ns, nintent,
+             nintent - fills.iter().filter(|f| f.3 != OrderReason::ForceClose).count());
+    println!("末 bar(index {}) 的 orders = {:?} ; events = {:?}",
+             pb_n - 1, last.orders.iter().map(|o| (format!("{:?}", o.side), o.qty, format!("{:?}", o.reason))).collect::<Vec<_>>(),
+             last.events.iter().map(|e| match e { EngineEvent::Fill { side, qty, reason, .. } =>
+                 format!("Fill {:?} qty={:.6} {:?}", side, qty, reason), _ => "other".into() }).collect::<Vec<_>>());
+    println!("nav 点数 = {} ; nav 末点 = {:.12} ; trades 笔数 = {}",
+             res.net_value.len(), res.net_value.last().unwrap().1, res.trades.len());
+    println!("metrics = {}", serde_json::to_string(&res.metrics).unwrap());
+    println!("trades[0] = {}", serde_json::to_string(&res.trades[0]).unwrap());
+
+    // 与库内逐项比对
+    let exp_metrics: serde_json::Value = serde_json::from_str(&fs::read_to_string(format!("{RAW}/15_metrics_raw.json")).unwrap()).unwrap();
+    let exp_nav: Vec<(i64, f64)> = serde_json::from_str(&fs::read_to_string(format!("{RAW}/12_net_value_raw.json")).unwrap()).unwrap();
+    let exp_fills: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(format!("{RAW}/10_fills_raw.json")).unwrap()).unwrap();
+    let exp_trades: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(format!("{RAW}/14_trades_raw.json")).unwrap()).unwrap();
+    let mut dmax = 0.0f64;
+    for (a, b) in res.net_value.iter().zip(exp_nav.iter()) { dmax = dmax.max((a.1 - b.1).abs()); }
+    println!("vs 库内 net_value：点数 {}/{}，逐点最大绝对差 = {:.3e}", res.net_value.len(), exp_nav.len(), dmax);
+    let mut fq = 0.0f64;
+    for (a, b) in fills.iter().zip(exp_fills.iter()) { fq = fq.max((a.2 - b["qty"].as_f64().unwrap()).abs()); }
+    println!("vs 库内 fills：笔数 {}/{}，逐笔 qty 最大绝对差 = {:.3e}", fills.len(), exp_fills.len(), fq);
+    println!("vs 库内 metrics：net_profit Δ={:.3e} max_drawdown Δ={:.3e} sharpe Δ={:.3e} annualized Δ={:.3e} trade_count Δ={}",
+        (res.metrics.net_profit - exp_metrics["net_profit"].as_f64().unwrap()).abs(),
+        (res.metrics.max_drawdown - exp_metrics["max_drawdown"].as_f64().unwrap()).abs(),
+        (res.metrics.sharpe - exp_metrics["sharpe"].as_f64().unwrap()).abs(),
+        (res.metrics.annualized_return - exp_metrics["annualized_return"].as_f64().unwrap()).abs(),
+        (res.metrics.trade_count as i64 - exp_metrics["trade_count"].as_i64().unwrap()).abs());
+    println!("vs 库内 trades：笔数 {}/{}；pnl Δ={:.3e}；shares Δ={:.3e}；commission Δ={:.3e}",
+        res.trades.len(), exp_trades.len(),
+        (res.trades[0].pnl - exp_trades[0]["pnl"].as_f64().unwrap()).abs(),
+        (res.trades[0].shares - exp_trades[0]["shares"].as_f64().unwrap()).abs(),
+        (res.trades[0].commission - exp_trades[0]["commission"].as_f64().unwrap()).abs());
+}

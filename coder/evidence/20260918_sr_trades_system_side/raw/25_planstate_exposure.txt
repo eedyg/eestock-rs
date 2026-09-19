@@ -1,0 +1,90 @@
+### grep -rn 'policy_state|PolicyState' 非 strategy-core
+crates/strategy-core/tests/engine.rs:873:// MAJOR-2：止损强平重置 PolicyState（ADR §13.1 裁决）——兼 DCA+止损组合（MINOR-5）
+crates/strategy-core/src/engine.rs:8://!    尚不可知，避免前视，ADR §13.1 MINOR-1 裁决）；触发即平仓并**重置 PolicyState**
+crates/strategy-core/src/engine.rs:18://!    无前视）；触发同时**重置 PolicyState**（MAJOR-2 裁决，强平后首个 Buy 重新计数）；
+crates/strategy-core/src/engine.rs:40:use crate::policy::{ExecutionPolicy, PolicyState};
+crates/strategy-core/src/engine.rs:363:    policy_state: PolicyState,
+crates/strategy-core/src/engine.rs:402:            policy_state: PolicyState::new(),
+crates/strategy-core/src/engine.rs:577:                                            self.policy_state.clamp_lump_frozen(h.qty);
+crates/strategy-core/src/engine.rs:644:                                // MAJOR-2 裁决：强平 = 外部中断 → 重置 PolicyState
+crates/strategy-core/src/engine.rs:646:                                self.policy_state.reset();
+crates/strategy-core/src/engine.rs:743:                                // MAJOR-2 裁决：触发即重置 PolicyState（强平挂单已排定，
+crates/strategy-core/src/engine.rs:745:                                self.policy_state.reset();
+crates/strategy-core/src/engine.rs:757:                let target = self.policy_state.target_qty(
+crates/strategy-core/src/lib.rs:48://! - **止损强平重置 PolicyState**（ADR §13.1 MAJOR-2 裁决）：硬止损强平 = 外部中断——
+crates/strategy-core/src/lib.rs:73:pub use policy::{DcaMode, ExecutionPolicy, PolicyState};
+web/node_modules/playwright-core/types/protocol.d.ts:16143:    export type getPermissionsPolicyStateParameters = {
+web/node_modules/playwright-core/types/protocol.d.ts:16146:    export type getPermissionsPolicyStateReturnValue = {
+web/node_modules/playwright-core/types/protocol.d.ts:23942:    "Page.getPermissionsPolicyState": Page.getPermissionsPolicyStateParameters;
+web/node_modules/playwright-core/types/protocol.d.ts:24613:    "Page.getPermissionsPolicyState": Page.getPermissionsPolicyStateReturnValue;
+
+### EnsembleResult 字段（engine.rs:242-251）
+/// Ensemble 运行结果。
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnsembleResult {
+    pub per_bar: Vec<BarRecord>,
+    pub trades: Vec<TradeDetail>,
+    /// `(ts, equity)` 每 bar 收盘净值（期末强平后最后一点为已实现净值）。
+    pub net_value: Vec<(i64, f64)>,
+    pub drawdown: Vec<(i64, f64)>,
+    pub metrics: backtest::BacktestMetrics,
+}
+
+### BarRecord 字段（engine.rs:226-240）
+#[derive(Debug, Clone, PartialEq)]
+pub struct BarRecord {
+    pub ts: i64,
+    /// 是否属于前置 warmup 段（I-2/D6）：true 的 bar 仅用于预热指标/插件状态，
+    /// 不计入绩效统计、不产订单/成交（响应层据此逐根标记）。
+    pub warmup: bool,
+    /// 各活跃 slot 评分（已熔断 slot 不出现——按「无覆盖」处理）。
+    pub scores: Vec<SlotScore>,
+    pub aggregate: f64,
+    pub signal: TradeSignal,
+    /// 本 bar 决策产生的订单意图。
+    pub orders: Vec<OrderIntent>,
+    /// 本 bar 发生的事件（成交/插件错误/熔断/插件日志）。
+    pub events: Vec<EngineEvent>,
+}
+
+### 结果序列化：workbench 结果写库字段
+26://! - 查询：get_run / list_runs（分页+状态过滤）/ compare（并排 net_value+metrics，输入序，
+207:    pub net_value: serde_json::Value,
+208:    pub metrics: serde_json::Value,
+240:    /// per_bar 总根数（chunked = 由 chunk_count + 末块长度推得；legacy = 内联数组长度）。
+244:    /// per_bar 分块数（legacy = 0——无 `strategy_run_bars` 行）。
+247:    pub metrics: Option<serde_json::Value>,
+289:    /// 事实源是否可得：`true` = 有 `kind='fills'` 块（chunked）或由内联 per_bar 事件派生（legacy）；
+310:    pub per_bar: Vec<serde_json::Value>,
+311:    pub net_value: Vec<serde_json::Value>,
+312:    pub drawdown: Vec<serde_json::Value>,
+313:    pub trades: serde_json::Value,
+314:    pub metrics: serde_json::Value,
+343:/// 取一个结果元素的 bar ts（epoch 秒）：per_bar 记录为对象字段 `ts`；净值/回撤为 `[ts, value]`。
+875:    /// 多 run 对比：并排 net_value + metrics（输入序；未知/未成功 run 跳过）。
+904:                net_value: serde_json::Value::Array(sampled),
+905:                metrics: res.metrics,
+918:            ResultKind::PerBar => &res.per_bar,
+919:            ResultKind::NetValue => &res.net_value,
+920:            ResultKind::Drawdown => &res.drawdown,
+921:            // fills 无内联列（旧 run 由 `legacy_fills` 从内联 per_bar 事件派生，不回填）。
+928:    /// legacy 由内联 per_bar 的 `fill` 事件派生（旧 run 不回填）。
+948:    /// 硬约束：**不得**用 `/curve`（抽样丢真实成交）或 `trades`（仅完全平仓时合成 ⇒
+949:    /// 部分买入/加仓与部分卖出不进 `trades`）代替本端点。
+1012:    /// per_bar 总根数（D8 双读）：chunked = (chunk_count-1)*5000 + 末块长度；legacy = 内联长度。
+1041:        let (result_format, chunk_count, bars_total, metrics) = match res {
+1050:                (Some(r.result_format.clone()), chunk_count, bars_total, Some(r.metrics.clone()))
+1074:            metrics,
+1246:    /// `GET /runs/{id}/result`：兼容（legacy 全量；chunked 首页 per_bar + `has_more` + `next_offset`）。
+1260:                per_bar: page.bars,
+1261:                // chunked_v1：净值/回撤在分块表且体量可大 ⇒ 本端点只回首页 per_bar；
+1263:                net_value: Vec::new(),
+1264:                drawdown: Vec::new(),
+1265:                trades: res.trades.clone(),
+1266:                metrics: res.metrics.clone(),
+1275:                per_bar: res.per_bar.as_array().cloned().unwrap_or_default(),
+1276:                net_value: res.net_value.as_array().cloned().unwrap_or_default(),
+1277:                drawdown: res.drawdown.as_array().cloned().unwrap_or_default(),
+1278:                trades: res.trades.clone(),
+1279:                metrics: res.metrics.clone(),
+1759:        // 已产出 per_bar 记录 **边跑边写**（非末块每满 5000 根即写一块）。

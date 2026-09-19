@@ -1,0 +1,274 @@
+[
+  {
+    "url": "http://127.0.0.1:8081/backtest-workbench",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 1,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/assets/index-CeUPb4uk.css",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 2,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/assets/index-CkI-1t1L.js",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 33,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/presets",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 33,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/sources/health",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 33,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/strategies",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 33,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs?limit=50&offset=0",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 33,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 34,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 34,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 5,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 20,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 18,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 9,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/result",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 15,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/fills?limit=5000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 12,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/curve?kind=net_value&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 12,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/curve?kind=drawdown&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 12,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/audit",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 12,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/kline?code=518880&period=1d&before=2026-01-03T00%3A00%3A00.000Z&limit=371",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/curve?kind=per_bar&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789787931919_000001/bars?kind=per_bar&offset=0&limit=5000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 17,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/symbols",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 516,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 6,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 14,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/result",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 16,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/available_range?symbol=518880&period=D1",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 1,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=drawdown&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 1,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=net_value&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 2,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/fills?limit=5000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 2,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=per_bar&k=2000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/bars?kind=per_bar&offset=0&limit=5000",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  },
+  {
+    "url": "http://127.0.0.1:8081/api/kline?code=518880&period=1d&before=2026-09-19T16%3A00%3A01.000Z&limit=263",
+    "method": "GET",
+    "status": 200,
+    "failure": null,
+    "ms": 13,
+    "kind": "response"
+  }
+]

@@ -1,0 +1,12 @@
+### R-G1 修复前：adr026_run_audit 默认并行重复（2026-09-19T01:28:46+08:00） DB=tmp_g1_1789752501
+cmd: cargo test -p web --test adr026_run_audit   (默认并行 ×10)
+run1 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s | failed=[test audit_endpoint_emits_required_tracing_fields ... FAILED test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s ] | thread 'audit_endpoint_emits_required_tracing_fields' (4192155) panicked at crates/web/tests/adr026_run_audit.rs:547:5: 
+run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s | failed=[test audit_endpoint_emits_required_tracing_fields ... FAILED test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s ] | thread 'audit_endpoint_emits_required_tracing_fields' (4192211) panicked at crates/web/tests/adr026_run_audit.rs:547:5: 
+run3 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run4 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run5 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run6 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s | failed=[] | 
+run7 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run8 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run9 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 
+run10 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s | failed=[] | 

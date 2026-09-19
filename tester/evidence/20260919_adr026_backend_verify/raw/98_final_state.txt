@@ -1,0 +1,17 @@
+### 最终 git status（只应与基线差本证据目录）
+36a37
+> ?? tester/evidence/20260919_adr026_backend_verify/
+--- staged（空=无）---
+--- audit.rs 还原态 sha256 ---
+acf65682af84283e492f8a1e922107392b0fdaa8dcde6c979d19fdd4ea011b90  crates/application/src/audit.rs
+cmp OK
+### 进程/监听
+2043164 Fri Sep 18 18:04:44 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=12)) 
+### 库清单
+eestock,postgres
+0
+### 线上未触碰
+2043164 Fri Sep 18 18:04:44 2026
+8081 healthz:200

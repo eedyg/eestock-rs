@@ -1,0 +1,24 @@
+   Compiling strategy-core v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/strategy-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running tests/engine.rs (target/debug/deps/engine-14ef3ff72e954382)
+
+running 1 test
+test trade_detail_reason_records_liquidation_source ... FAILED
+
+failures:
+
+---- trade_detail_reason_records_liquidation_source stdout ----
+
+thread 'trade_detail_reason_records_liquidation_source' (3993428) panicked at crates/strategy-core/tests/engine.rs:1414:5:
+assertion `left == right` failed: 期末强平合成的回合须标注来源
+  left: None
+ right: Some("ForceClose")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    trade_detail_reason_records_liquidation_source
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p strategy-core --test engine`

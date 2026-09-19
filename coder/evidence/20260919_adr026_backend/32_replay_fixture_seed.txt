@@ -1,0 +1,6 @@
+-- strategy_run
+strategy_run|2
+-- strategy_run_result
+strategy_run_result|2
+-- strategy_run_bars
+strategy_run_bars|8

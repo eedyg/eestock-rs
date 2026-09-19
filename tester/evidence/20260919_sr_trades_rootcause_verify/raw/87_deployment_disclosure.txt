@@ -1,0 +1,17 @@
+=== 代码/前端/设计里有无 deployed / 资金投入率 / 仓位占比 暴露 ===
+(空 = 无)
+
+=== metrics 8 字段结构体（唯一暴露面）===
+pub struct BacktestMetrics {
+    pub net_profit: f64,
+    pub max_drawdown: f64,
+    pub sharpe: f64,
+    pub win_rate: f64,
+    pub profit_factor: f64,
+    pub annualized_return: f64,
+    pub trade_count: usize,
+    pub avg_hold_bars: f64,
+}
+
+=== brief API 返回字段清单（实测）===
+['bars_total', 'chunk_count', 'clamped', 'created_at', 'effective_from', 'effective_to', 'error', 'estimated_bars', 'finished_at', 'id', 'metrics', 'name', 'period', 'progress', 'requested_from', 'requested_to', 'result_format', 'started_at', 'status', 'symbol']

@@ -1,0 +1,12 @@
+{
+ "id": 3,
+ "jsonrpc": "2.0",
+ "result": {
+  "content": [
+   {
+    "text": "{\n  \"run_id\": \"sr_1789787931919_000001\",\n  \"recorded\": true,\n  \"capital_basis\": 100000.0,\n  \"deployed_notional\": 99975.00624843789,\n  \"deployed_pct\": 0.9997500624843789,\n  \"cash_consumed\": 100000.0,\n  \"cash_consumed_pct\": 1.0,\n  \"planned_tranches\": 3,\n  \"reachable_batches\": 52,\n  \"batches_done\": 3,\n  \"unexecuted_orders\": 49,\n  \"last_bar_unfilled\": false,\n  \"round_trips_total\": 1,\n  \"round_trips_force_closed\": 1,\n  \"warnings\": [\n    {\n      \"code\": \"ORDERS_UNEXECUTED\",\n      \"severity\": \"info\",\n      \"message\": \"49 笔挂单未成交（末根 bar 无次 bar 可执行）\"\n    }\n  ]\n}",
+    "type": "text"
+   }
+  ]
+ }
+}

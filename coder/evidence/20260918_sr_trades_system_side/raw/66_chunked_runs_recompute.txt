@@ -1,0 +1,27 @@
+=== sr_1789731376244_000003 (518880/D1) nav=64 trades=1
+   net_profit           recompute=3009.0148611             reported=3009.0148611             delta=0.000e+00
+   max_drawdown         recompute=0.0768500116             reported=0.0768500116             delta=0.000e+00
+   sharpe               recompute=0.7404583523             reported=0.7404583523             delta=7.772e-16
+   win_rate             recompute=1.0                      reported=1.0                      delta=0.000e+00
+   profit_factor        recompute=inf                      reported=null（f64::INFINITY 经 serde_json 落 null）
+   annualized_return    recompute=0.1238186446             reported=0.1238186446             delta=0.000e+00
+   trade_count          recompute=1                        reported=1                        delta=0.000e+00
+   avg_hold_bars        recompute=52.0                     reported=52.0                     delta=0.000e+00
+=== sr_1789738272901_000004 (518880/D1) nav=173 trades=1
+   net_profit           recompute=-11563.88620             reported=-11563.88620             delta=0.000e+00
+   max_drawdown         recompute=0.3051915322             reported=0.3051915322             delta=0.000e+00
+   sharpe               recompute=-0.386772265             reported=-0.386772265             delta=6.106e-16
+   win_rate             recompute=0.0                      reported=0.0                      delta=0.000e+00
+   profit_factor        recompute=0.0                      reported=0.0                      delta=0.000e+00
+   annualized_return    recompute=-0.163900009             reported=-0.163900009             delta=0.000e+00
+   trade_count          recompute=1                        reported=1                        delta=0.000e+00
+   avg_hold_bars        recompute=161.0                    reported=161.0                    delta=0.000e+00
+=== sr_1789738328788_000005 (518880/D1) nav=173 trades=1
+   net_profit           recompute=-2933.647913             reported=-2933.647913             delta=0.000e+00
+   max_drawdown         recompute=0.0526081365             reported=0.0526081365             delta=0.000e+00
+   sharpe               recompute=-0.802916082             reported=-0.802916082             delta=3.331e-16
+   win_rate             recompute=0.0                      reported=0.0                      delta=0.000e+00
+   profit_factor        recompute=0.0                      reported=0.0                      delta=0.000e+00
+   annualized_return    recompute=-0.042445133             reported=-0.042445133             delta=0.000e+00
+   trade_count          recompute=1                        reported=1                        delta=0.000e+00
+   avg_hold_bars        recompute=161.0                    reported=161.0                    delta=0.000e+00

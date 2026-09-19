@@ -1,0 +1,174 @@
+{
+    "ts": 1659283200,
+    "events": [
+    ],
+    "orders": [
+        {
+            "qty": 8905.51251224508,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1659369600,
+    "events": [
+        {
+            "qty": 8905.51251224508,
+            "side": "Buy",
+            "type": "fill",
+            "price": 3.790758,
+            "reason": "Policy",
+            "bar_index": 1
+        }
+    ],
+    "orders": [
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1661702400,
+    "events": [
+    ],
+    "orders": [
+        {
+            "qty": 8829.305651980718,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1661788800,
+    "events": [
+        {
+            "qty": 8829.305651980718,
+            "side": "Buy",
+            "type": "fill",
+            "price": 3.7847568,
+            "reason": "Policy",
+            "bar_index": 21
+        }
+    ],
+    "orders": [
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1664208000,
+    "events": [
+    ],
+    "orders": [
+        {
+            "qty": 8830.967928753591,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1664294400,
+    "events": [
+        {
+            "qty": 8761.162232670296,
+            "side": "Buy",
+            "type": "fill",
+            "price": 3.7437486,
+            "reason": "Policy",
+            "bar_index": 41
+        }
+    ],
+    "orders": [
+        {
+            "qty": 69.8056960832946,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1664380800,
+    "events": [
+    ],
+    "orders": [
+        {
+            "qty": 69.8056960832946,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}
+{
+    "ts": 1664467200,
+    "events": [
+    ],
+    "orders": [
+        {
+            "qty": 69.8056960832946,
+            "side": "Buy",
+            "reason": "Policy"
+        }
+    ],
+    "scores": [
+        {
+            "score": 75.0,
+            "slot_idx": 0
+        }
+    ],
+    "signal": "Buy",
+    "aggregate": 75.0
+}

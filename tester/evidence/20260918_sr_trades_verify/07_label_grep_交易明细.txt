@@ -1,0 +1,6 @@
+web/src/api/types.ts:419:/** 单笔交易明细（TradeDetail jsonb；open_ts/close_ts 为 Unix 秒） */
+web/src/features/workbench/ResultView.tsx:16:  { key: 'trades', label: '交易明细' },
+web/src/features/workbench/ResultView.tsx:57:/** 交易明细表（TradeDetail jsonb 只读）。 */
+web/src/features/workbench/ResultView.tsx:97: * 净值+回撤 / Tab（交易明细 | 8项绩效 | 逐bar评分表 | 事件日志）。
+web/src/features/workbench/ResultView.test.tsx:97:  it('结果渲染：K线容器 + 总分曲线（阈值线+三区着色）+ 各策略曲线 + 净值回撤 + 默认 Tab 交易明细', async () => {
+web/src/features/workbench/ResultView.test.tsx:113:    // 默认 Tab：交易明细

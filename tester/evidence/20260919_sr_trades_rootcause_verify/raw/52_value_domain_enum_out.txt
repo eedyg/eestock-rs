@@ -1,0 +1,10 @@
+code 字节数(裁掉 psql 尾换行后) = 1248
+code 是否含 string "return" 之外的分支字面量 40 或更小数字 = false
+PARAMS_SCHEMA = [{"key":"cadence","type":"int","default":20,"min":1,"max":250,"description":"定投周期（bar 数）"},{"key":"plan_bars","type":"int","default":5,"min":1,"max":120,"description":"买入区保持窗口（bar 数）"}]
+样本数 = 30030000
+可达值域 = [50,75]
+是否含 ≤ sell_threshold(40) 的取值 = false
+是否含 ≥ buy_threshold(60) 的取值 = true
+非有限值数 = 0 越界值数 = 0
+run 参数 (20,5) idx 255..266 序列 = [50,50,50,50,50,75,75,75,75,75,50,50]
+「恒为 75（永不中立）」的 (cadence,plan_bars) 对数 = 359 例： [[1,1],[1,2],[1,120],[2,2],[2,3]]

@@ -1,0 +1,27 @@
+### P1 未知 run → 期望 404
+HTTP/1.1 404 Not Found
+content-type: application/json
+content-length: 53
+date: Fri, 18 Sep 2026 16:53:56 GMT
+
+{"error":"运行不存在: sr_does_not_exist_999999"}
+### P2 run 存在但无结果 → 期望 404
+HTTP/1.1 404 Not Found
+content-type: application/json
+content-length: 78
+date: Fri, 18 Sep 2026 16:53:56 GMT
+
+{"error":"运行 sr_verify_noresult_000002 尚无结果（未成功完成）"}
+### P3 chunked 有 per_bar 无 fills 块 → recorded? warnings?
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 773
+date: Fri, 18 Sep 2026 16:53:56 GMT
+
+{"run_id":"sr_verify_nofills_000001","recorded":true,"capital_basis":100000.0,"deployed_notional":-0.0,"deployed_pct":-0.0,"cash_consumed":-0.0,"cash_consumed_pct":-0.0,"planned_tranches":100,"reachable_batches":43,"batches_done":0,"unexecuted_orders":43,"last_bar_unfilled":true,"round_trips_total":0,"round_trips_force_closed":0,"warnings":[{"code":"DCA_PLAN_UNDERFILLED","severity":"warn","message":"计划 100 批，区间内最多可推进 43 批、已成交 0 批（剩余批次随买入区结束取消）"},{"code":"PARTIAL_DEPLOYMENT","severity":"warn","message":"名义投入 -0.00% 初始资金，年化/回撤/夏普分母仍为初始资金"},{"code":"ORDERS_UNEXECUTED","severity":"info","message":"43 笔挂单未成交（末根 bar 无次 bar 可执行）"}]}
+### P4 对照：既有 /result 与 /fills 在 P3 run 上的 recorded 口径
+{"run_id":"sr_verify_nofills_000001","total":0,"offset":0,"limit":2,"has_more":false,"next_offset":null,"recorded":false,"fills":[]}
+### P5 对照：/result 在未知 run 上的状态码
+result_unknown:404
+result_noresult:404
+fills_noresult:404

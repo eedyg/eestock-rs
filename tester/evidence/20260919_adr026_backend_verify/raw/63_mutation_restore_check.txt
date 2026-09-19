@@ -1,0 +1,7 @@
+### M1 还原校验
+acf65682af84283e492f8a1e922107392b0fdaa8dcde6c979d19fdd4ea011b90  crates/application/src/audit.rs
+cmp: 与变更前逐字节一致 OK
+?? crates/application/src/audit.rs
+ crates/web/src/lib.rs                |  2 +
+ crates/web/src/workbench.rs          | 47 ++++++++++++++++++++
+ 12 files changed, 316 insertions(+), 5 deletions(-)

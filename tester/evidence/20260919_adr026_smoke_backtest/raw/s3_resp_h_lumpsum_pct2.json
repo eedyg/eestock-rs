@@ -1,0 +1,1 @@
+{"error":{"code":"policy_invalid","detail":{"period":"D1"},"message":"LumpSum.position_pct 必须在 (0,1]，got 2"}}

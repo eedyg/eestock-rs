@@ -1,0 +1,15 @@
+### [M] G4 真浏览器 E2E（自采） 2026-09-19T10:54:49+08:00
+cmd: E2E_BASE_URL=http://127.0.0.1:8081 npx playwright test e2e/adr026-audit.e2e.ts --retries=0 --timeout=20000
+
+Running 7 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr026-audit.e2e.ts:208:1 › 10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning 条 + 来源列 (676ms)
+  ✓  2 [chromium] › e2e/adr026-audit.e2e.ts:233:1 › 11_baseline_metrics：8项绩效 Tab 出口径注（分母 = 初始资金）+ 资金投入率 (590ms)
+  ✓  3 [chromium] › e2e/adr026-audit.e2e.ts:262:1 › 12_legacy_sources：历史 run（无 reason 字段）来源列全部「未记录」 (476ms)
+  ✓  4 [chromium] › e2e/adr026-audit.e2e.ts:278:1 › 13_reason_injection：真实浏览器下 reason=ForceClose ⇒ 来源列「期末强平」 (450ms)
+  ✓  5 [chromium] › e2e/adr026-audit.e2e.ts:298:1 › 14_control_audit_500：审计端点 500 ⇒ 错误态 + console/网络采集器**非恒空**（采集器对照） (327ms)
+  ✓  6 [chromium] › e2e/adr026-audit.e2e.ts:328:1 › 90_mutation_deployed：拦截改 deployed_pct=1.0/batches_done=7 ⇒ UI 随之变且基线断言变红 (430ms)
+  ✓  7 [chromium] › e2e/adr026-audit.e2e.ts:365:1 › 91_mutation_warnings：拦截把 warnings 置空 ⇒ 提示条消失且基线断言变红 (429ms)
+
+  7 passed (3.9s)
+E2E exit=0

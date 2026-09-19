@@ -1,0 +1,19 @@
+ runs | ok  
+------+-----
+  377 | 377
+(1 row)
+
+ result_format | count 
+---------------+-------
+ legacy_single |   374
+ chunked_v1    |     3
+(2 rows)
+
+   kind    | count 
+-----------+-------
+ per_bar   |     3
+ fills     |     3
+ net_value |     3
+ drawdown  |     3
+(4 rows)
+

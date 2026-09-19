@@ -1,0 +1,22 @@
+## 源库（活库，只读）逐表导出原文
+COPY 3
+COPY 3
+COPY 8
+## 行数
+     3 /tmp/adr026_verify_seed/strategy_run.csv
+     3 /tmp/adr026_verify_seed/strategy_run_result.csv
+     8 /tmp/adr026_verify_seed/strategy_run_bars.csv
+    14 total
+## 目标库（临时库）导入
+COPY 3
+COPY 3
+COPY 8
+## 目标库回读
+           id            |  status   |    ic    | result_format | trades | bar_rows 
+-------------------------+-----------+----------+---------------+--------+----------
+ sr_1789044295239_000111 | succeeded | 100000.0 | legacy_single |     40 |        0
+ sr_1789738272901_000004 | succeeded | 100000.0 | chunked_v1    |      1 |        4
+ sr_1789738328788_000005 | succeeded | 100000.0 | chunked_v1    |      1 |        4
+ sr_1789750601820_000004 | succeeded | 100000.0 | chunked_v1    |      1 |        4
+(4 rows)
+

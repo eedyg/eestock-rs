@@ -1,0 +1,149 @@
+### 本阶段我（tester 阶段 4）改动/新增的文件 + sha256（2026-09-19T01:24:09+08:00）
+--- 新增测试
+b8aaee0e6c5da0de0e2637054bd87ebaa678840877f206e2ce73fd2bc4988219  web/e2e/adr026-audit.e2e.ts
+--- 构建产物（web/dist 为 .gitignore 项，随源码重建；源码未改）
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+b909850ded4c6325912938483c52e9b8ab61a9bf68162a37cd313cbf2f4ff97f  web/dist/assets/index-CxpxqtmC.js
+772f693876f11584f9d6ac4aec8af683ca169597aecc86013b279f95c94abcfd  web/dist/index.html
+--- 后端二进制
+-rwxrwxr-x 2 eestock eestock 213324544 2026-09-19 01:13:57.457197250 +0800 target/debug/eestock-app
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+--- 被核验的既有（未改）文件 sha256（应与 coder 阶段 3 所载一致）
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  web/src/features/workbench/ResultView.tsx
+b3492c899a687bee821d46d86fdb48fc6ceb1bbfcb2e72ae74eb4bd114dba3ad  web/src/features/workbench/useRunAudit.ts
+55912f10b160d4e99e37417e4ef1f0a98fc8aede1288a5e03d25253b02751acc  web/src/api/client.ts
+39a583dd0fa98f78d55f14f73e3cf4f486948d27e3425d031f83cb58e3df0b63  web/src/api/types.ts
+c977bb8ffa94938cab48ecf2f04985b77dca297f262c4e75d47104559e4190ab  web/src/api/mock.ts
+acf65682af84283e492f8a1e922107392b0fdaa8dcde6c979d19fdd4ea011b90  crates/application/src/audit.rs
+--- 应用日志（新进程）
+-rw-rw-r-- 1 eestock eestock 36520 2026-09-19 01:24:04.813754659 +0800 logs/app_dev_8081_redeploy_20260919_011412.log
+--- 证据目录文件清单
+tester/evidence/20260919_adr026_e2e_verify/raw/00_baseline_recon.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/10_frontend_build.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/11_frontend_dist_check.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/20_backend_build.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/30_old_process_stop.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/31_app_restart_note.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/31_app_restart_verify.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/32_live_audit_curl.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/33b_live_mcp_summary.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/33_live_mcp_probe.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/40_E2E_baseline_green.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/50_mutation_page_render_setup.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/51_mutation_page_render_build.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/52_mutation_page_render_RED.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/53_mutation_page_render_restore.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/54_restored_live_dist.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/55_E2E_restored_green.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/60_testdb_init.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_application.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_backtest.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_mcp.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/70_reg_strategy-core.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/71_reg_web_run1.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_A.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_B.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/72_reg_web_noFailFast_C.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/73_tempdb_pollution_after_flake.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/74_adr026_suite_flake_stats.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/75_other_targets_isolated.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/76_tempdb_orphans_now.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/77_testdb_init_fresh2.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/78_isolation_experiment.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/80_frontend_vitest.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/81_frontend_tsc.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/82_regression_final.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/90_db_teardown.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/91_git_boundary_audit.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/92_final_state.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/93_changed_files_sha256.txt
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_sources.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10b_trades_tab_fullpage.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10c_audit_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10d_trades_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_trades_tab.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_baseline_metrics_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11b_metrics_tab_fullpage.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11c_metrics_basis_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11d_metrics_deployed_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_11_metrics_tab.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12b_legacy_trades_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_12_legacy_sources.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13b_reason_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_13_reason_injection.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_14_control_audit_500.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90b_mutation_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_90_mutation_deployed.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91b_mutation_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_91_mutation_warnings.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/mutsrc_52_mutation_page_render_RED_screenshot.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_baseline_trades_sources.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10b_trades_tab_fullpage.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10c_audit_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10d_trades_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_10_trades_tab.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_baseline_metrics_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11b_metrics_tab_fullpage.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11c_metrics_basis_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11d_metrics_deployed_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_11_metrics_tab.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12b_legacy_trades_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_12_legacy_sources.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13b_reason_table_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_13_reason_injection.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_14_control_audit_500.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90b_mutation_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_lines.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_90_mutation_deployed.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91b_mutation_summary_el.png
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings_mismatch.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings_obs.json
+tester/evidence/20260919_adr026_e2e_verify/raw/e2e/restored_91_mutation_warnings.png
+--- 证据目录内图片数
+35
+
+### 报告文件 sha256（收尾补录）
+3b99a51b63edef1aa119c0d7268e451f731a9f61e3028c5e5ace928e783b8db2  tester/evidence/20260919_adr026_e2e_verify/README.md
+### 证据目录统计
+113
+4.7M	tester/evidence/20260919_adr026_e2e_verify
+### 收尾再核：应用仍在新 PID 上、端口归属、audit 200、库清单
+    PID                  STARTED CMD
+4160311 Sat Sep 19 01:14:12 2026 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=12)) 
+audit_http=200
+eestock
+postgres
+### 收尾 git 状态（只应多 2 项）
+85
+0

@@ -1,0 +1,9 @@
+### P9 chunked run：无 per_bar 块、无 fills 块（事实源完全缺失）→ 期望 recorded=false + 零值 + 空 warnings
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 342
+date: Fri, 18 Sep 2026 16:59:57 GMT
+
+{"run_id":"sr_verify_noblocks_000004","recorded":false,"capital_basis":100000.0,"deployed_notional":0.0,"deployed_pct":0.0,"cash_consumed":0.0,"cash_consumed_pct":0.0,"planned_tranches":100,"reachable_batches":0,"batches_done":0,"unexecuted_orders":0,"last_bar_unfilled":false,"round_trips_total":0,"round_trips_force_closed":0,"warnings":[]}
+### 对照：同 run 的 /fills recorded
+{"run_id":"sr_verify_noblocks_000004","total":0,"offset":0,"limit":2,"has_more":false,"next_offset":null,"recorded":false,"fills":[]}

@@ -1,0 +1,44 @@
+== 本批改动/新增文件 + sha256（交付基线：git rev-parse HEAD = e807385449a303a1090ac00a52c722b7b77e62ec）
+acf65682af84283e492f8a1e922107392b0fdaa8dcde6c979d19fdd4ea011b90  crates/application/src/audit.rs
+9831499301f42d656685d761048bbbac9b7ffb1b27481f961ada1d19b4ecfb00  crates/application/src/lib.rs
+e1bac99e8e859a67e41fbef7dd9005bef54853b642c994cdb7d386194ac6592f  crates/application/src/workbench.rs
+ed5bf5bff5d97f7173f6e8b9def2b555227e1b43fad8fcfa3c8e162c2442b038  crates/application/src/simlive.rs
+eef4001a38e12ba297e48d99c3c6e9a05bc8a20d837b075dd27ee07ce5cc5e5e  crates/backtest/src/types.rs
+f2f9837e2f1ce485346f44ef449ac66100a150ede48304f3212d3fe2be8ba95e  crates/backtest/src/metrics.rs
+8c3461ec76ac98c626555f9e97599061e75f147181e6ef66275cf368fcd796cf  crates/strategy-core/src/engine.rs
+027ebee12561b53ea9ef2c6cf7f4237709b5e21c89cf99cdef1e111e3b0aedbb  crates/strategy-core/tests/engine.rs
+105da7c086c03eeb533c2162461de4da9e5661cd2ed489ae547dc86500b8de4b  crates/web/src/workbench.rs
+c9ae22928247a997c349a3b0c924c1d69e96d30d1bd0b5619e4b13497312f390  crates/web/src/lib.rs
+fe974d7a5d950b32eee7ab4d41fa524edf3f03c34427b0978018de917207a86e  crates/web/tests/adr026_run_audit.rs
+d50ae8e5afe85110795c254d8a99de28e8f18d0ada2a00fd4e640ff9e134a6f8  crates/mcp/src/tools.rs
+101811fbd9b771a6b96a7350392f90b79ce3d62bc90e2a52813f57ee02820171  crates/mcp/src/rpc.rs
+47f0b2ce2d625458e3cca83e41d0700eef21d83248e658ad67dcf8b8f3193b8b  crates/mcp/tests/mcp_protocol.rs
+85578d1ab5fd7f8d0fc639fd1ec5668634043f117d41ac7ed445b34f3bfc03e2  design/99-decisions-log.md
+
+== git status --porcelain（工作树，未暂存：本批禁止 git add）
+ M crates/application/src/lib.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/workbench.rs
+ M crates/backtest/src/metrics.rs
+ M crates/backtest/src/types.rs
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/strategy-core/src/engine.rs
+ M crates/strategy-core/tests/engine.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/workbench.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/99-decisions-log.md
+
+== 本批新增（untracked）
+?? coder/evidence/20260919_adr026_backend/
+?? crates/web/tests/adr026_run_audit.rs
+?? tester/evidence/20260919_sr_trades_rootcause_verify/
+
+== git diff --stat（仅已跟踪文件）
+ crates/web/src/lib.rs                              |  2 +
+ crates/web/src/workbench.rs                        | 47 ++++++++++++
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/99-decisions-log.md                         | 11 +++
+ 14 files changed, 333 insertions(+), 6 deletions(-)

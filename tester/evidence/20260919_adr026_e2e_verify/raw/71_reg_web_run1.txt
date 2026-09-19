@@ -1,0 +1,152 @@
+### run1 (默认并行) 2026-09-19T01:18:21+08:00
+warning: function `pfx` is never used
+  --> crates/web/tests/tester_p5_indep.rs:21:4
+   |
+21 | fn pfx(tag: &str) -> String {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p5_indep.rs:29:7
+   |
+29 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+
+warning: function `get_json` is never used
+   --> crates/web/tests/tester_p5_indep.rs:107:10
+    |
+107 | async fn get_json(http: &reqwest::Client, url: &str) -> Value {
+    |          ^^^^^^^^
+
+warning: `web` (test "tester_p5_indep") generated 3 warnings
+warning: constant `CONST_SCORE` is never used
+  --> crates/web/tests/tester_p6_fills_indep.rs:33:7
+   |
+33 | const CONST_SCORE: &str = r#"
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `seed_symbol_and_m1` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:117:10
+    |
+117 | async fn seed_symbol_and_m1(pool: &PgPool, code: &str, n: i64) {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `expect_ts` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:165:4
+    |
+165 | fn expect_ts(n: i64) -> Vec<DateTime<Utc>> {
+    |    ^^^^^^^^^
+
+warning: function `rfc` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:173:4
+    |
+173 | fn rfc(t: DateTime<Utc>) -> String {
+    |    ^^^
+
+warning: function `per_bar_obj` is never used
+   --> crates/web/tests/tester_p6_fills_indep.rs:188:4
+    |
+188 | fn per_bar_obj(ts: DateTime<Utc>) -> Value {
+    |    ^^^^^^^^^^^
+
+warning: `web` (test "tester_p6_fills_indep") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/web-fa28072e0007cce2)
+
+running 49 tests
+test dto::tests::parse_period_front_contract ... ok
+test dto::tests::mcp_daily_limit_validation ... ok
+test dto::tests::collector_interval_validation ... ok
+test alerts::tests::parse_filter_validation_and_defaults ... ok
+test dto::tests::kline_response_json_shape ... ok
+test dto::tests::ma_config_dto_roundtrip ... ok
+test dto::tests::parse_date_and_threshold_validation ... ok
+test dto::tests::dcap_config_default_and_roundtrip ... ok
+test alerts::tests::dto_serializes_snake_case_enums ... ok
+test dto::tests::dcap_config_or_default_falls_back_on_missing_bad_or_out_of_range ... ok
+test dto::tests::source_config_patch_validation_ok ... ok
+test dto::tests::source_config_patch_validation_rejects_eastmoney_not_last ... ok
+test dto::tests::source_config_patch_item_value_domain ... ok
+test dto::tests::source_config_patch_validation_rejects_bad_values ... ok
+test dto::tests::backtest_fee_validation ... ok
+test dto::tests::dcap_config_validation_ranges_and_monotonic ... ok
+test dto::tests::reorder_favorites_req_deserialize ... ok
+test dto::tests::ma_windows_validation_and_normalize ... ok
+test dto::tests::dcap_config_non_integer_or_wrong_type_rejected_at_deserialize ... ok
+test dto::tests::source_config_patch_validation_rejects_unknown_dup_missing ... ok
+test dto::tests::validate_interval_and_settlement ... ok
+test settings::tests::default_source_config_has_all_real_and_rotation_lock ... ok
+test settings::tests::kline_config_dto_roundtrip_and_non_integer_rejected ... ok
+test dto::tests::validate_code_format_and_market ... ok
+test dto::tests::normalize_name_and_register_defaults ... ok
+test dto::tests::symbol_without_bars_serializes_null_latest ... ok
+test dto::tests::symbol_dto_favorite_fields_always_serialize ... ok
+test dto::tests::symbol_type_validation_enum_and_optional ... ok
+test settings::tests::kline_viewport_bars_constants ... ok
+test settings::tests::reset_sources_are_real_non_approx ... ok
+test settings::tests::kline_viewport_bars_validation ... ok
+test spa::tests::cache_control_hashed_assets_is_immutable ... ok
+test spa::tests::cache_control_index_html_is_no_store ... ok
+test spa::tests::cache_control_non_hashed_static_is_no_store ... ok
+test spa::tests::is_hashed_asset_detection ... ok
+test spa::tests::mime_mapping ... ok
+test spa::tests::sanitize_normalizes ... ok
+test spa::tests::sanitize_rejects_traversal ... ok
+test ws::tests::cross_topic_never_matches ... ok
+test ws::tests::matches_bar_code_and_period ... ok
+test ws::tests::client_subscribe_strategy_run_id ... ok
+test ws::tests::matches_none_is_wildcard ... ok
+test ws::tests::client_subscribe_unsubscribe_roundtrip ... ok
+test ws::tests::matches_strategy_run_progress_by_run_id ... ok
+test ws::tests::push_msg_json_tag_shape ... ok
+test ws::tests::push_msg_quote_frame_camel_case ... ok
+test ws::tests::push_msg_alert_frame_shape ... ok
+test workbench::tests::sink_ignores_no_subscriber ... ok
+test workbench::tests::sink_publishes_progress_to_hub ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/adr024_structured_errors.rs (target/debug/deps/adr024_structured_errors-83c23e3ee295648b)
+
+running 2 tests
+test frontend_code_message_map_covers_every_backend_code ... ok
+test every_400_path_is_structured_with_code ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.74s
+
+     Running tests/adr024_workbench_period_ssot.rs (target/debug/deps/adr024_workbench_period_ssot-a339f9bbf5ee6b4f)
+
+running 4 tests
+test web_source_has_no_hardcoded_period_whitelist ... ok
+test w1_still_rejected_400_with_period_message ... ok
+test unknown_period_still_rejected_400 ... ok
+test m30_passes_web_period_gate_not_400 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
+
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 4 tests
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_recorded_false_when_facts_are_missing ... FAILED
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+test audit_endpoint_emits_required_tracing_fields ... ok
+
+failures:
+
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (4177130) panicked at crates/web/tests/adr026_run_audit.rs:352:40:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "23503", message: "insert or update on table \"strategy_run_result\" violates foreign key constraint \"strategy_run_result_run_id_fkey\"", detail: Some("Key (run_id)=(sr_adr026_chunked_nofacts) is not present in table \"strategy_run\"."), hint: None, position: None, where: None, schema: Some("public"), table: Some("strategy_run_result"), column: None, data_type: None, constraint: Some("strategy_run_result_run_id_fkey"), file: Some("ri_triggers.c"), line: Some(2608), routine: Some("ri_ReportViolation") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_recorded_false_when_facts_are_missing
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`

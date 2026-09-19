@@ -1,0 +1,9 @@
+### pre-build dist hashes
+67f101bc7701119886e43c076f84360b66545876fe270e5e567e64cf120c8199  web/dist/index.html
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+### pre-build binary
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+2026-09-19 01:13:57.457197250 +0800 213324544
+### pre-build strings audit tool
+16

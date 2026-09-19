@@ -1,0 +1,58 @@
+### [A] G1 修复点核验（自己 grep 测试源） 2026-09-19T02:23:47+08:00
+
+--- A1) 是否存在跨用例删除/共享夹具（应当只剩本用例私有谓词）---
+31:/// （旧实现用 `DELETE … WHERE id LIKE 'sr_adr026%'` 跨用例删行，是 FK 23503 的直接成因）。
+146:    sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(&fx.code).execute(pool).await.unwrap();
+196:/// （`fx.name_prefix` 含 pid+nanos）。**禁止**再出现按 `id LIKE 'sr_adr026%'` 之类的跨用例删除
+201:    sqlx::query("DELETE FROM strategy_run WHERE symbol = $1").bind(code).execute(pool).await.unwrap();
+207:    sqlx::query("DELETE FROM kline_accurate WHERE code = $1").bind(code).execute(pool).await.unwrap();
+214:    sqlx::query("DELETE FROM symbols WHERE code = $1").bind(code).execute(pool).await.unwrap();
+408:    sqlx::query("DELETE FROM strategy_run WHERE id = $1").bind(&id).execute(&pool).await.unwrap();
+
+--- A2) 夹具唯一键（pid × 进程内原子自增 × tag）---
+41:    fn run_id(&self, tag: &str) -> String {
+47:static FIX_SEQ: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+49:fn fix(tag: &str) -> Fix {
+50:    let seq = FIX_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+55:    let key = format!("{}_{}_{}", std::process::id(), seq, tag);
+58:        code: format!("9{}{:03}", std::process::id(), seq),
+
+--- A3) 每个用例只读写自有行：各 clean()/夹具调用点 ---
+321:    let fx = fix("aud");
+322:    clean(&pool, &fx).await;
+323:    seed_symbol_and_bars(&pool, &fx).await;
+371:    clean(&pool, &fx).await;
+385:    let fx = fix("nofacts");
+612:    let fx = fix("trace");
+613:    clean(&pool, &fx).await;
+614:    seed_symbol_and_bars(&pool, &fx).await;
+670:    clean(&pool, &fx).await;
+
+--- A4) trace 断言：按唯一 run_id 过滤 + 禁异己 run_id ---
+490:/// （非 `set_global_default`）；`#[tokio::test]` 默认 current-thread runtime ⇒ 本用例的 axum 任务
+531:/// 把本订阅器装成**全局默认**（`set_global_default`）后，**任意线程**首次命中调用点都会得到
+532:/// `Interest::always()`（全局订阅器对所有线程生效），再叠加一次 `rebuild_interest_cache()`
+536:struct InterestOnly;
+538:impl tracing::subscriber::Subscriber for InterestOnly {
+594:/// 从捕获行里抽出所有 `run_id=` 字段值，只看带 `workbench_run_audit` 业务标识的行。
+595:fn audit_run_ids(lines: &str) -> Vec<String> {
+598:        .filter(|l| l.contains("workbench_run_audit"))
+623:    //    跨用例全局状态污染（旧实现用 `set_global_default(CaptureSubscriber)` ⇒ 会捕到并发用例的 span）。
+624:    //    随后 `rebuild_interest_cache()` 把**此前**已被缓存成 never 的调用点抬起来（含 web 侧
+625:    //    `workbench_run_audit` 的 span/event 两个调用点）。次序：先装全局、再重算。
+626:    let _ = tracing::dispatcher::set_global_default(tracing::Dispatch::new(InterestOnly));
+627:    tracing::callsite::rebuild_interest_cache();
+635:    let _guard = tracing::dispatcher::set_default(&dispatch);
+644:    assert!(!ids.is_empty(), "须捕获到 workbench_run_audit 的 run_id 字段：\n{lines}");
+645:    assert!(ids.iter().all(|id| id == &run_id),
+649:        .find(|l| l.starts_with("SPAN workbench_run_audit") && l.contains(&format!("run_id={run_id}")))
+650:        .unwrap_or_else(|| panic!("须发出本用例 run 的 workbench_run_audit span：\n{lines}"));
+654:    // 事件名恒为 `event`（宏名），业务标识在 `message=workbench_run_audit` 字段。
+658:            && l.contains("message=workbench_run_audit")
+660:        .unwrap_or_else(|| panic!("须发出本用例 run 的 workbench_run_audit 事件：\n{lines}"));
+
+--- A5) 反复确认：仍无 sleep 兜底（旧实现靠 sleep(50ms) 掩盖）---
+190:        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+
+--- A6) 有多少处 sleep（全文件计数）---
+1

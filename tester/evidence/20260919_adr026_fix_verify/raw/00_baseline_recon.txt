@@ -1,0 +1,117 @@
+### baseline recon 2026-09-19T02:18:27+08:00
+--- HEAD ---
+e807385449a303a1090ac00a52c722b7b77e62ec
+--- git status --porcelain (count) ---
+89
+--- git status --porcelain ---
+ M crates/application/src/lib.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/workbench.rs
+ M crates/backtest/src/metrics.rs
+ M crates/backtest/src/types.rs
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/strategy-core/src/engine.rs
+ M crates/strategy-core/tests/engine.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/workbench.rs
+ M crates/web/tests/tester_p5rect_verify.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/99-decisions-log.md
+ M web/src/api/client.test.ts
+ M web/src/api/client.ts
+ M web/src/api/mock.test.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/workbench/ResultView.test.tsx
+ M web/src/features/workbench/ResultView.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/adr024_frozen_index_20260918T063137Z.tar.gz
+?? coder/backups/strategy_purge_20260911_strategy.csv
+?? coder/backups/strategy_purge_20260911_versions.csv
+?? coder/evidence/20260918_sr_trades_forensics/
+?? coder/evidence/20260918_sr_trades_strategy_side/
+?? coder/evidence/20260918_sr_trades_system_side/
+?? coder/evidence/20260919_adr026_backend/
+?? coder/evidence/20260919_adr026_fix/
+?? coder/evidence/20260919_adr026_frontend/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/283_adr026_backend_execution_audit.md
+?? coder/report/284_adr026_frontend_disclosure.md
+?? coder/report/285_adr026_fix_batch.md
+?? crates/application/src/audit.rs
+?? crates/web/tests/adr026_run_audit.rs
+?? design/01-architecture/adr/ADR-026-run-execution-audit-and-disclosure.md
+?? prod_tools_schemas_periphery.txt
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/evidence/018/
+?? tester/evidence/20260918_sr_trades_verify/
+?? tester/evidence/20260919_adr026_backend_verify/
+?? tester/evidence/20260919_adr026_e2e_verify/
+?? tester/evidence/20260919_adr026_fix_verify/
+?? tester/evidence/20260919_sr_trades_rootcause_verify/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/harness/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? web/e2e/adr026-audit.e2e.ts
+?? web/src/features/workbench/useRunAudit.ts
+--- git diff --cached (staged) ---
+staged-count=0
+--- procs/ports ---
+    PID                  STARTED     ELAPSED CMD
+4160311 Sat Sep 19 01:14:12 2026    01:04:14 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=4160311,fd=12)) 
+--- healthz/audit ---
+healthz=200
+audit=200
+--- live index.html bundle ref ---
+assets/index-CkI-1t1L.js
+--- file sha256 (upstream-claimed) ---
+e9337ea4fcd5a367443c30170f2d32ce42b63cf2af9b9ebf267a994934809e6b  crates/web/tests/adr026_run_audit.rs
+8dfe5fe0c9d1e525ddddf1c26f2c1cc587b67553f152add8469d5c3135472f5e  crates/web/tests/tester_p5rect_verify.rs
+46eb787e586aaf99e1d2f3ecdfe1c269531675bea8216bb29da99eeae1eeac4a  web/src/features/workbench/ResultView.tsx
+7cf2ba781b4e46f4dbca9eedf2d8d5abc810d32515dc62d5b01354a4e3b72454  web/src/features/workbench/ResultView.test.tsx
+f9b855819b5984d6ced4ae08174e875350bf9ba0a66093a3136b37324224d756  web/e2e/adr026-audit.e2e.ts
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+--- db list ---
+eestock
+postgres

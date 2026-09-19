@@ -70,6 +70,7 @@ import type {
   StrategyTradeDetail,
   StrategyUpdateOutcome,
   StrategyVersionRowDto,
+  WorkbenchAuditWarning,
   WorkbenchBarRecord,
   WorkbenchBarsResponse,
   WorkbenchCompareItem,
@@ -80,6 +81,7 @@ import type {
   WorkbenchAvailableRange,
   WorkbenchResultBrief,
   WorkbenchResultFormat,
+  WorkbenchRunAudit,
   WorkbenchRunConfig,
   WorkbenchRunFill,
   WorkbenchRunResult,
@@ -329,6 +331,9 @@ export interface MockOptions {
   workbenchResultBars?: number;
   /** 页面⑪：`GET /fills` 是否回 `recorded=false`（模拟 P6 之前的 chunked run 无 fills 块）。 */
   workbenchFillsMissing?: boolean;
+  /** 页面⑪：`GET /audit` 是否回 `recorded=false`（ADR-026：模拟 per_bar.orders/events 与 fills
+   *  皆不可得的 run ⇒ 前端须显「未记录」而非把 0 当 0% 投入率）。 */
+  workbenchAuditMissing?: boolean;
 }
 
 /** 页面⑦ mock 种子：与 preview/07-alerts.html 样例同构（critical/warning/info 各一）。
@@ -596,6 +601,7 @@ function mockWorkbenchResult(
         open_price: holding.price, close_price: sp, shares: holding.qty,
         gross_value: round3(sp * holding.qty), commission: 10, stamp_duty: round3(sp * holding.qty * 0.0005),
         pnl: Math.round((sp - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
+        reason: 'StopTrigger', // ADR-026 §2.3：清仓那一笔的来源
       });
       holding = null;
     } else if (!holding && signal === 'Buy') {
@@ -610,6 +616,7 @@ function mockWorkbenchResult(
         open_price: holding.price, close_price: price, shares: holding.qty,
         gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
         pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: i - holding.openBar,
+        reason: 'Policy', // ADR-026 §2.3
       });
       holding = null;
     }
@@ -629,6 +636,7 @@ function mockWorkbenchResult(
       open_price: holding.price, close_price: price, shares: holding.qty,
       gross_value: round3(price * holding.qty), commission: 10, stamp_duty: round3(price * holding.qty * 0.0005),
       pnl: Math.round((price - holding.price) * holding.qty - 10), hold_bars: N - 1 - holding.openBar,
+      reason: 'ForceClose', // ADR-026 §2.3：期末强平合成
     });
     const eq = round3(equity + (price - holding.price) * holding.qty);
     netValue[netValue.length - 1] = [last.ts, eq];
@@ -714,6 +722,98 @@ export function fillsOf(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[] {
   return out;
 }
 
+/** ADR-026 §2.3：种子 run = ADR-026 之前的历史 run ⇒ 落库 `TradeDetail` 无 `reason` 字段
+ *  （前端「来源」列显「未记录」）；新提交 run 由生成器写入来源。 */
+function withoutTradeReason(t: Trade): Trade {
+  const rest: Trade = { ...t };
+  delete rest.reason;
+  return rest;
+}
+
+/**
+ * ADR-026 §2.2 执行完整度审计的 mock 派生（与后端 `application::audit` **同口径**：
+ * 只从 `per_bar.orders/events` + run config 的真事实推导，逐笔复算佣金 `max(额×费率, 最低)`）。
+ * `missing=true` ⇒ `recorded=false` + 零值 + 空 warnings（与后端「无事实源」语义一致）。
+ */
+export function mockRunAuditInternal(entry: MockRunEntry, missing: boolean): WorkbenchRunAudit {
+  const cfg = entry.view.config;
+  const perBar = entry.result?.per_bar ?? [];
+  const trades = entry.result?.trades ?? [];
+  const capital = cfg.initial_capital;
+  if (missing) {
+    return {
+      run_id: entry.view.id,
+      recorded: false,
+      capital_basis: capital,
+      deployed_notional: 0,
+      deployed_pct: 0,
+      cash_consumed: 0,
+      cash_consumed_pct: 0,
+      planned_tranches: null,
+      reachable_batches: 0,
+      batches_done: 0,
+      unexecuted_orders: 0,
+      last_bar_unfilled: false,
+      round_trips_total: 0,
+      round_trips_force_closed: 0,
+      warnings: [],
+    };
+  }
+  const fills = fillsOf(perBar);
+  const buyIntents = perBar.reduce((n, b) => n + b.orders.filter((o) => o.side === 'Buy').length, 0);
+  const buys = fills.filter((f) => f.side === 'Buy');
+  const deployed = buys.reduce((s, f) => s + f.qty * f.price, 0);
+  const commission = buys.reduce((s, f) => s + Math.max((f.qty * f.price * cfg.fee.rate_pct) / 100, cfg.fee.min_fee), 0);
+  const cash = deployed + commission;
+  const planned = 'Dca' in cfg.policy ? cfg.policy.Dca.tranches : null;
+  const lastBar = perBar[perBar.length - 1];
+  const lastBarUnfilled = !!lastBar && lastBar.orders.some((o) => o.side === 'Buy');
+  const forceCloseBars = new Set(
+    fills.filter((f) => f.side === 'Sell' && f.reason === 'ForceClose').map((f) => f.bar_index),
+  );
+  const unexecuted = Math.max(0, buyIntents - buys.length);
+  const pct = (x: number) => (capital > 0 ? x / capital : 0);
+  const warnings: WorkbenchAuditWarning[] = [];
+  if (planned != null && buys.length < planned) {
+    warnings.push({
+      code: 'DCA_PLAN_UNDERFILLED',
+      severity: 'warn',
+      message: `计划 ${planned} 批，区间内最多可推进 ${buyIntents} 批、已成交 ${buys.length} 批（剩余批次随买入区结束取消）`,
+    });
+  }
+  if (pct(deployed) < 0.99) {
+    warnings.push({
+      code: 'PARTIAL_DEPLOYMENT',
+      severity: 'warn',
+      message: `名义投入 ${(pct(deployed) * 100).toFixed(2)}% 初始资金，年化/回撤/夏普分母仍为初始资金`,
+    });
+  }
+  if (unexecuted > 0) {
+    warnings.push({
+      code: 'ORDERS_UNEXECUTED',
+      severity: 'info',
+      message: `${unexecuted} 笔挂单未成交（末根 bar 无次 bar 可执行）`,
+    });
+  }
+  return {
+    run_id: entry.view.id,
+    recorded: true,
+    capital_basis: capital,
+    deployed_notional: deployed,
+    deployed_pct: pct(deployed),
+    cash_consumed: cash,
+    cash_consumed_pct: pct(cash),
+    planned_tranches: planned,
+    reachable_batches: buyIntents,
+    batches_done: buys.length,
+    unexecuted_orders: unexecuted,
+    last_bar_unfilled: lastBarUnfilled,
+    round_trips_total: trades.length,
+    round_trips_force_closed: trades.filter((t) => forceCloseBars.has(t.close_bar)).length,
+    warnings,
+  };
+}
+
 /** 页面⑪ 种子工作台 runs（succeeded/running/failed 三态；config 钉住形状与 submit 同构）。 */
 function seedWorkbenchRuns(
   anchor: number,
@@ -772,6 +872,8 @@ function seedWorkbenchRuns(
     };
     const result =
       view.status === 'succeeded' ? mockWorkbenchResult(id, config, fromMs, anchor, bars) : null;
+    // 种子 run = 历史 run：无 `TradeDetail.reason`（ADR-026 §2.3 之前落库）
+    if (result) result.trades = result.trades.map(withoutTradeReason);
     // 种子 run = 旧 run（`legacy_single`）—— 与后端双读不回填同口径；新提交 run 走 `chunked_v1`。
     return { view, result, format: 'legacy_single' };
   };
@@ -1901,6 +2003,13 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         run_id: id, total: all.length, offset, limit, has_more: hasMore,
         next_offset: hasMore ? next : null, recorded, fills,
       };
+    },
+    async getRunAudit(id: string): Promise<WorkbenchRunAudit> {
+      const r = workbenchRuns.get(id);
+      if (!r || r.view.status !== 'succeeded' || !r.result) {
+        throw new ApiError(404, `HTTP 404: run ${id} 未知或未成功（无结果）`);
+      }
+      return mockRunAuditInternal(r, opts.workbenchAuditMissing === true);
     },
     async cancelWorkbenchRun(id: string): Promise<WorkbenchRunView> {
       const r = workbenchRuns.get(id);

@@ -1,0 +1,2 @@
+0789d3fb34c5a926d0b315c34394db66786556103f5dd5763e212eeb2559f987  design/07-app-plane/00-web-api.md
+a6c4367caed2808f0c2109c5fb1285a9cc7f76cdb776aa89ba414ebb5835b4a1  design/07-app-plane/01-mcp.md

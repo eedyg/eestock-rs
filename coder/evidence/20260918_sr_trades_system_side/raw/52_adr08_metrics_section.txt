@@ -1,0 +1,61 @@
+  > 费率事实：
+  > - **ETF/LOF**（场内基金二级市场买卖）：印花税**不征**→0（《印花税法》第三条列举式定义仅含股票/存托凭证，
+  >   属"不征"而非"免征"）；过户费**免收**→0（中国结算：ETF/LOF 二级市场买卖免收）；经手费事实值 0.04‰（双边，
+  >   深交所 2026-01）与证管费（交易所收费表仅列 A股/B股/优先股）**按平台全佣口径已含于佣金 → 列 0，不得叠加**；
+  > - **A股股票**（当前无此标的，为将来注册预留）：印花税卖出单边 0.5‰（2023-08-28 减半）、过户费 0.01‰ 双边、
+  >   经手费 0.0341‰ 双边、证管费 0.02‰ 双边；佣金同 ETF（万2.5 双向、最低 5 元、全佣口径）；
+  > - **引擎消费范围**：`FeeModel` 仍为 4 参数（佣金/最低/印花税/滑点；滑点非费率事实，取 ADR bt-1 默认 2bp）；
+  >   档案中的经手费/证管费/过户费为**事实/口径列，本批未建模**（**D11-follow-up 债务**：注册个股或需规费精度时
+  >   须扩展 FeeModel = 经手费/证管费/过户费双边 + 印花税仅卖出侧）。
+  > 响应回显**显式两段**：`fee.effective`（引擎**实际应用**参数 commission_rate_pct/min_fee/stamp_duty_pct/slippage_bp + `source`=explicit|profile|default）与 `fee.profile`（解析到档案时的**全量事实**，含经手费/证管费/过户费 + `not_modeled` 显式清单）；`fee.symbol_type` 回显解析到的标的类型。**未参与撮合的档案字段不得出现在 effective 段**——`not_modeled` 由档案字段集与 `FeeModel` 消费字段集派生（非硬编码字符串），避免规费被误读为「已计入成本」（D11 验收 013 §11.3）。
+  > **钉住 config 保持扁平（v1.1 R-1）**：两段结构（`effective`/`profile`）**仅用于试算/回测的响应回显**；
+  > `strategy_run.config.fee` 与工作台预设仍为扁平 `fee_model_to_json` 形态（`{rate_pct,min_fee,slippage_bp,stamp_duty_pct}`，含 stamp 实际取值），以保前端读取与预设往返向后兼容。
+- **持仓**：bar 循环中维护 `position`（数量/成本/开仓bar）；无持仓时只算净值=现金；有持仓时净值=现金+持仓×close。
+- **结标的**：回测期末**强制平仓**（最后可用 close）。
+- **禁止**：保证金/做空/杠杆；分红/除权不复权（用不复权 K 线，回测区间内除权导致跳空——接受为简化，见 §8 决策）。
+
+## 5. 策略框架（事件驱动）
+
+```rust
+pub trait Strategy: Send + Sync {
+    fn id(&self) -> &str;
+    fn params_schema(&self) -> Vec<ParamDef>;           // 驱动 UI 参数表单（schema）
+    fn on_bar(&mut self, ctx: &mut Ctx, bar: &Bar, indicators: &Indicators) -> Signal;
+}
+```
+- `Indicators`：每 bar 计算常用指标（MA/EMA/RSI/MACD/KDJ/BOLL/ATR），按需。
+- `Signal`：`Hold | Buy(fraction) | Sell`。单 bar 一信号。
+- 每 bar：先算指标 → `on_bar` → 按信号挂单 → bar 内成交判定（见 §4）→ 更新组合/净值。
+
+**首批 7 款经典策略**（编译期注册，非页面配置；`builtinStrategyCount: 7`）：
+1. 双均线交叉（MA fast/slow）。
+2. 均线+RSI 过滤（MA + RSI 超买超卖）。
+3. MACD 金叉/死叉。
+4. BOLL 带突破（上轨买/下轨卖或均值回归，二选一）。
+5. KDJ 金叉/死叉。
+6. 动量突破（N 日新高突破 high）。
+7. ATR 通道突破（Donchian/ATR 止损）。
+
+> 每个策略的参数以 schema 暴露（如 fast/slow/period/threshold），网格「起:止:步长」即对这些数值参数展开。
+
+## 6. 指标口径（**单测锁定**，定义于本 ADR）
+
+| 指标 | 口径 |
+|---|---|
+| Net Profit | 期末净值 − 初始资金（元；+绝对） |
+| Max Drawdown | 净值曲线峰谷最大回撤百分比（`(peak−trough)/peak`，含未实现） |
+| Sharpe | `(period_returns - rf) / std(period_returns) × sqrt(annualize)`；rf=0（见 §8），period = 回测 bar 周期，annualize = 按周期折算年化（如 1m/日线不同，见 §8） |
+| 胜率 | 盈利平仓笔数 / 总平仓笔数 |
+| 盈亏比 | 平均盈利 / 平均亏损（绝对额） |
+| 年化收益 | `(期末净值/初始)^(annualize/bar_count) − 1` |
+| 总交易数 | 平仓次数（买+卖对计一次完整交易） |
+| 平均持仓周期 | 平均开仓到平仓的 bar 数（×周期换算为天/时） |
+
+> 全部用**精确小数/整数**计算并在单元测试锁死（黄金样本：手工小序列）。
+
+## 7. 异步任务制 + REST/WS 契约
+
+> ⚠️ **P4b 退役注记**（12-strategy-system D16 终章）：本节服务链（`BacktestService` / 内置策略 /
+> `/api/backtest` 端点）已于 P4b 退役删除，保留仅为历史记录；§1-§6 口径对保留件
+> （fee/indicators/metrics/types）继续有效。
+

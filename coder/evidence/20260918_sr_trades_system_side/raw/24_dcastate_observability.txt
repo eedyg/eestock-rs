@@ -1,0 +1,26 @@
+### grep -rn 'DcaState' (全仓)
+crates/strategy-core/src/policy.rs:87:    pub(crate) dca: Option<DcaState>,
+crates/strategy-core/src/policy.rs:94:pub(crate) struct DcaState {
+crates/strategy-core/src/policy.rs:177:                        self.dca = Some(DcaState {
+
+### policy.rs 中 DcaState 定义与 plan 相关字段
+31:    /// 信号中断 → 剩余批次取消；Buy 信号重新出现 → 重新开始计数（重新规划总额/批次）；
+86:pub struct PolicyState {
+87:    pub(crate) dca: Option<DcaState>,
+94:pub(crate) struct DcaState {
+98:    pub(crate) batches_done: usize,
+104:    pub(crate) plan_total: f64,
+175:                    // （任务书口径注释：「信号中断 → 剩余批次取消；Buy 信号重新出现 → 重新开始计数」。）
+177:                        self.dca = Some(DcaState {
+179:                            batches_done: 0,
+182:                            plan_total: equity,
+189:                    if st.bars_in_run % k == 0 && st.batches_done < *tranches {
+191:                            DcaMode::Equal => st.plan_total / *tranches as f64,
+195:                        st.batches_done += 1;
+200:                // 信号中断（Hold）→ 剩余批次取消（状态清除）；目标 = 当前（无订单）。
+265:    fn dca_equal_batches_split_plan_total() {
+294:    fn dca_equal_plan_total_snapshotted_at_run_start() {
+313:    // ---- DCA 中断取消 / 重启重新计数（任务书口径）----
+316:    fn dca_hold_interrupts_and_cancels_remaining_batches() {
+328:        // Hold 中断：目标 = 当前（无订单），剩余批次取消
+394:    fn dca_fixed_amount_batches() {

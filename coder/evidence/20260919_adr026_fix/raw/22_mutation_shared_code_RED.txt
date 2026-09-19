@@ -1,0 +1,8 @@
+### R-G1 变异反证 M1：把 fixture 唯一键退化为「所有用例共用同一 code」⇒ 断言/隔离必须变红（2026-09-19T01:42:52+08:00）
+变异点 = crates/web/tests/adr026_run_audit.rs fix(): code 由  改为 
+变异点 = crates/web/tests/adr026_run_audit.rs fix(): code 由 9<pid><seq:03> 改为 9<pid>000（所有用例共用同一 code）
+run1 RED:
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... FAILED
+thread 'audit_endpoint_matches_recorded_facts_and_404_semantics' (31944) panicked at crates/web/tests/adr026_run_audit.rs:251:5:
+assertion `left == right` failed: reachable_batches 须 = per_bar 的 Buy 意图数（/bars 实况）
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s

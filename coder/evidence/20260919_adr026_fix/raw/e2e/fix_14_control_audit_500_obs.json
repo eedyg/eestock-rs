@@ -1,0 +1,12 @@
+{
+  "errText": "审计加载失败：HTTP 500 /api/workbench/runs/sr_1789738328788_000005/audit: boom-e2e-control\n重试",
+  "consoleErrors": [
+    "[error] Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "consoleWarnings": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "httpErrors": [
+    "500 GET http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit"
+  ]
+}

@@ -1,0 +1,67 @@
+[CHK-A] per_bar ts 未在 kline_accurate_1d∪kline_1d 中找到的根数 = 0
+[CHK-A] bar 序列首/末 = 1734883200 1789574400  原始表内该区间根数 = 423
+[CHK-B1] 42 Buy: fill.price != bar.open*(1+2bp) count = 0 []
+[CHK-B2] 1 ForceClose Sell: fill.price != bar.close*(1-2bp) count = 0 []  (bar422 open=8.860000 close=8.856000 => 走 close 而非 open)
+
+[LEDGER] 买入笔数 = 42  卖出笔数 = 1
+[LEDGER] Σ买入成交额 = 41397.972081  Σ买入佣金 = 210.000000  期末现金 = 97066.352086
+[LEDGER] 重算期末权益 = 97066.352086028710  系统 net_value[-1] = 97066.352086028710  差 = 0.000e+00
+[CHK-C] 173 点净值逐点最大绝对差 = 0.000e+00  最差点 = None
+[CHK-C] 我的净值序列点数 = 173  系统 = 173
+
+=== Y1 字段级差值表（独立重算 vs strategy_run_result.metrics）===
+field                independent_recompute      system_metrics             delta        verdict
+net_profit           -2933.647913971290         -2933.647913971290         0.000e+00    IDENTICAL
+max_drawdown         0.052608136537             0.052608136537             0.000e+00    IDENTICAL
+sharpe               -0.802916082394            -0.802916082394            -3.331e-16   IDENTICAL
+win_rate             0.000000000000             0.000000000000             0.000e+00    IDENTICAL
+profit_factor        0.000000000000             0.000000000000             0.000e+00    IDENTICAL
+annualized_return    -0.042445133566            -0.042445133566            0.000e+00    IDENTICAL
+trade_count          1.000000000000             1.000000000000             0.000e+00    IDENTICAL
+avg_hold_bars        161.000000000000           161.000000000000           0.000e+00    IDENTICAL
+
+=== 中间量（供口径讨论）===
+nav 点数 n = 173  returns 数 = 172
+mean_period_return = -1.676335263748e-04  std_period_return(ddof=1) = 3.314293724412e-03
+非零收益 bars = 162  零收益 bars = 10
+期末权益 = 97066.352086  初始 = 100000.0  净利 = -2933.647914
+买入总额(成交额) = 41397.972081  买入佣金合计 = 210.000000
+期末强平：成交额/佣金/印花/净得 见下
+[{"bar": 422, "side": "Sell", "qty": 4368.985265614662, "px": 8.8542288, "tv": 38683.99516558099, "comm": 9.670998791395249, "stamp": 0.0, "proceeds": 38674.3241667896, "cash": 97066.35208602871, "pos": 0.0}]
+
+=== 我的 TradeDetail（1 笔）vs 系统 trades ===
+{
+ "open_ts": 1768838400,
+ "close_ts": 1789574400,
+ "open_bar": 261,
+ "close_bar": 422,
+ "open_price": 9.47542039259697,
+ "close_price": 8.8542288,
+ "shares": 4368.985265614662,
+ "gross_value": 38683.99516558099,
+ "commission": 219.67099879139525,
+ "stamp_duty": 0.0,
+ "pnl": -2933.647913971261,
+ "hold_bars": 161,
+ "reason": "ForceClose"
+}
+系统 trades = [{"pnl": -2933.647913971261, "shares": 4368.985265614662, "open_ts": 1768838400, "close_ts": 1789574400, "open_bar": 261, "close_bar": 422, "hold_bars": 161, "commission": 219.67099879139525, "open_price": 9.47542039259697, "stamp_duty": 0.0, "close_price": 8.8542288, "gross_value": 38683.99516558099}]
+
+=== 回撤序列对比 ===
+max |my_dd - reported_dd| = 0.0
+
+=== 口径变体（系统口径 vs 若干替代口径）===
+V1 sharpe(仅持仓段, 起始 index=10, 163 点) = -0.827243  (系统全段 = -0.802916)
+V2 累计投入本金(含买入佣金) = 41607.972081 (41.61% of initial)
+   net_profit/initial      = -2.933648%
+   net_profit/invested     = -7.050687%
+   annualized(基准 initial, 系统口径) = -4.244513%
+   annualized(基准 invested, n=173)     = -10.102858%
+V3 annualized(n-1=172) = -0.042686564267  vs 系统(n=173) = -0.042445133566  差 = -2.414e-04
+
+[V4] 若不做期末强平（持仓按末 close=8.8560 市值标记）:
+     期末权益(含未实现) = 97083.761431522551  净利(含未实现) = -2916.238568 (-2.916239%)
+     系统强平后期末权益 = 97066.352086028710  净利(已实现)   = -2933.647914 (-2.933648%)
+     强平成本(卖出佣金+滑点) = -17.409345   → 让净利少 17.409345
+     两种口径下 trade_count: 强平=1 / 不强平=0
+[V5] 若把期末强平从 TradeDetail 剔除: trade_count=0, win_rate=0.0/profit_factor=0.0/avg_hold_bars=0.0 全部退化（metrics.rs:81-85,96-102,111-115），净利仍 -2933.65（净值口径不变）

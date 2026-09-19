@@ -2708,6 +2708,8 @@ pub fn build_router(state: Arc<state::AppState>) -> Router {
         .route("/api/workbench/runs/{id}/bars", get(workbench::get_bars))
         .route("/api/workbench/runs/{id}/curve", get(workbench::get_curve))
         .route("/api/workbench/runs/{id}/fills", get(workbench::get_fills))
+        // ADR-026 §2.2：执行完整度审计（只读派生：投入率/计划推进/未执行挂单/强平回合）
+        .route("/api/workbench/runs/{id}/audit", get(workbench::get_audit))
         .route("/api/workbench/runs/{id}/cancel", post(workbench::cancel_run))
         .route("/api/workbench/presets", get(workbench::list_presets).post(workbench::create_preset))
         .route("/api/workbench/presets/{id}", get(workbench::get_preset).put(workbench::update_preset).delete(workbench::delete_preset))

@@ -1,0 +1,15 @@
+### 回归汇总（原始输出见同目录同名 .txt；targets = cargo 测试目标数）
+套件/运行                                                targets failed_tgt  passed failed ignored
+cargo test -p backtest（DB1）                                2          0      31      0       0
+cargo test -p strategy-core（DB1）                           7          0      76      0       1
+cargo test -p application（DB1）                             9          0     199      0       0
+cargo test -p mcp（DB1）                                     7          0      83      0       0
+cargo test -p web（RUN1, 默认 fail-fast, DB1）                 4          1      58      1       0
+cargo test -p web --no-fail-fast（RUN-A, DB1）              29          1     172      1       0
+cargo test -p web --no-fail-fast（RUN-B, DB1）              29          3     170      3       0
+cargo test -p web --no-fail-fast（RUN-C, DB1）              29          3     170      3       0
+cargo test -p web --no-fail-fast（RUN-D, DB2 全新）           29          1     172      1       0
+
+### RUN-D（全新库）失败目标逐条
+   test t_n1_http_every_400_is_structured_object ... FAILED
+   test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.34s

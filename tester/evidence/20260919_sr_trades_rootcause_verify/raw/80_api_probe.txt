@@ -1,0 +1,8 @@
+=== GET /api/workbench/runs/sr_1789738328788_000005/brief ===
+HTTP 200 bytes=730
+=== GET /api/workbench/runs/sr_1789738328788_000005/fills?offset=0&limit=100 ===
+HTTP 200 bytes=5422
+=== GET /api/workbench/runs/sr_1789738328788_000005/curve ===
+HTTP 200 bytes=5353
+=== GET /api/workbench/runs/sr_1789738328788_000005/bars?kind=fills&offset=0&limit=5 ===
+HTTP 400 bytes=133

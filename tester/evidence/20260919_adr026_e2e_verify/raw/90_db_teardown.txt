@@ -1,0 +1,11 @@
+### 库清单（teardown 前）
+eestock
+postgres
+tmp_e2e2_1789752105
+### DROP DATABASE tmp_e2e2_1789752105 WITH (FORCE)
+DROP DATABASE
+### 库清单（teardown 后，须只剩 eestock/postgres）
+eestock
+postgres
+### tmp_ 残留计数（须为 0）
+0

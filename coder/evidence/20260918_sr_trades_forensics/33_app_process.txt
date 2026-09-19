@@ -1,0 +1,11 @@
+$ ss -tlnp | grep -E '8081|8082|5433'
+LISTEN 0      4096         0.0.0.0:5433       0.0.0.0:*                                              
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=12)) 
+LISTEN 0      4096            [::]:5433          [::]:*                                              
+
+$ tr '\0' ' ' < /proc/2043164/cmdline
+./target/debug/eestock-app --config /tmp/app_dev_8081.toml 
+$ ls -l /proc/2043164/cwd /proc/2043164/fd/1
+lrwxrwxrwx 1 eestock eestock  0 Sep 18 21:30 /proc/2043164/cwd -> /home/eestock/workspace/git/eestock/eestock-rs
+l-wx------ 1 eestock eestock 64 Sep 18 21:36 /proc/2043164/fd/1 -> /home/eestock/workspace/git/eestock/eestock-rs/logs/app_dev_8081_redeploy_20260918_180445.log

@@ -1,0 +1,40 @@
+=== 三张相关表的 max xmin（若等于目标 run 的 16042826 系列 ⇒ 之后无任何行写入）===
+t|max
+strategy_run|16042826
+strategy_run_result|16042826
+strategy_run_bars|16042825
+strategy_version|1712088
+(4 rows)
+
+=== xmin 最大的 5 行属于哪个 run ===
+id|created_at|xmin
+sr_1789738328788_000005|2026-09-18 13:32:08.788482+00|16042826
+sr_1789738272901_000004|2026-09-18 13:31:12.902436+00|16042793
+sr_1789731376244_000003|2026-09-18 11:36:16.244873+00|16039961
+sr_1789282796575_000021|2026-09-13 06:59:56.575641+00|1728140
+sr_1789282794859_000020|2026-09-13 06:59:54.859608+00|1727167
+(5 rows)
+
+=== 进程启动时间（服务是否被本轮重启）===
+2043164 Fri Sep 18 18:04:44 2026    06:06:39 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+3884730 Fri Sep 18 23:42:05 2026       29:17 postgres: eestock eestock 172.24.0.1(55780) idle
+3884731 Fri Sep 18 23:42:05 2026       29:17 postgres: eestock eestock 172.24.0.1(49638) idle
+3895963 Fri Sep 18 23:47:59 2026       23:24 postgres: eestock eestock 172.24.0.3(38962) idle
+3896063 Fri Sep 18 23:48:01 2026       23:22 postgres: eestock eestock 172.24.0.3(38970) idle
+3925249 Sat Sep 19 00:02:01 2026       09:22 postgres: eestock eestock 172.24.0.3(37948) idle
+3928081 Sat Sep 19 00:03:01 2026       08:22 postgres: eestock eestock 172.24.0.3(43372) idle
+3942959 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34436) idle
+3942960 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34442) idle
+3942961 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34458) idle
+3942962 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34464) idle
+3942963 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34466) idle
+3942964 Sat Sep 19 00:09:01 2026       02:22 postgres: eestock eestock 172.24.0.3(34460) idle
+4155728 Tue Sep  8 23:01:27 2026 10-01:09:56 sshd: eestock [priv]
+
+=== 当前时间 ===
+2026-09-19T00:11:24+08:00
+
+=== 库内现在时间 ===
+now|pg_postmaster_start_time
+2026-09-18 16:11:24.2258+00|2026-09-18 04:16:21.158683+00
+(1 row)

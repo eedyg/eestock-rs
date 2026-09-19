@@ -1,0 +1,10 @@
+ legacy_runs | zero_buy_fill_runs 
+-------------+--------------------
+         374 |                 18
+(1 row)
+
+ chunked_runs | chunked_zero_buy_fills 
+--------------+------------------------
+            3 |                      0
+(1 row)
+

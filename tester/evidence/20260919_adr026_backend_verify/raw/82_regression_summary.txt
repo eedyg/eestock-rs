@@ -1,0 +1,10 @@
+### strategy-core 引擎 reason 三值测试是否真跑过（我的回归原文摘录）
+68:test trade_detail_reason_records_liquidation_source ... ok
+### 各 crate 汇总
+backtest       ok=2 failed=0
+strategy-core  ok=7 failed=0
+application    ok=9 failed=0
+mcp            ok=7 failed=0
+web            ok=25 failed=1
+### web 失败唯一目标
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.07s

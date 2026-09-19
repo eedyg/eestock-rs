@@ -1,0 +1,24 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 4 tests
+test adr026_replay_target_run_matches_frozen_baseline ... ok
+test audit_recorded_false_when_facts_are_missing ... ok
+test audit_endpoint_emits_required_tracing_fields ... FAILED
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+
+failures:
+
+---- audit_endpoint_emits_required_tracing_fields stdout ----
+
+thread 'audit_endpoint_emits_required_tracing_fields' (4063999) panicked at crates/web/tests/adr026_run_audit.rs:547:5:
+span.run_id 须为本次请求的 run：SPAN workbench_run_audit trace_id=d88e6bc5c60f82d332b0610711692c47 run_id=sr_1789750514813_000004 deployed_pct=0.19091773795340908 unexecuted_orders=0 warnings=2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_endpoint_emits_required_tracing_fields
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`

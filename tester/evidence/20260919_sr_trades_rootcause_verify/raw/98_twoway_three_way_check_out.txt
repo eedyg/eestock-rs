@@ -1,0 +1,32 @@
+run = sr_1789044295239_000111  symbols bar 数 = 1209  per_bar = 1209  nav = 1209  trades = 40
+bar ts 与 per_bar ts 一致 = True
+fills(side,reason) = {('Buy', 'Policy'): 40, ('Sell', 'Policy'): 40}
+注：legacy per_bar 的 fill 事件无 ts 字段，成交 ts 以所在 bar 的 ts 为准
+
+A. 净值重算 vs 库内 net_value：点数 1209/1209，ts 全等=True，逐点最大绝对差=0.000e+00
+   期末现金 = 210296.772820700（库内 nav 末点 = 210296.772820700）
+
+B. TradeDetail 逐笔逐字段：重算 40 笔 vs 库内 40 笔
+   逐字段最大绝对差 = {'open_ts': '0.000e+00', 'close_ts': '0.000e+00', 'open_bar': '0.000e+00', 'close_bar': '0.000e+00', 'open_price': '0.000e+00', 'close_price': '0.000e+00', 'shares': '0.000e+00', 'gross_value': '0.000e+00', 'commission': '0.000e+00', 'stamp_duty': '0.000e+00', 'pnl': '0.000e+00', 'hold_bars': '0.000e+00'}
+   字段不符的笔数 = 0
+   Σ pnl 重算 = 110296.772820700  库内 Σ pnl = 110296.772820700
+
+C. metrics（文档口径）重算 vs 库内
+   net_profit           重算=110296.7728207             库内=110296.7728207             Δ=0.000e+00
+   max_drawdown         重算=0.166642661565711          库内=0.166642661565711          Δ=0.000e+00
+   sharpe               重算=1.14565785993837           库内=1.14565785993837           Δ=3.775e-15
+   win_rate             重算=0.55                       库内=0.55                       Δ=0.000e+00
+   profit_factor        重算=4.79560488452792           库内=4.79560488452792           Δ=0.000e+00
+   annualized_return    重算=0.167589474858527          库内=0.167589474858527          Δ=0.000e+00
+   trade_count          重算=40                         库内=40                         Δ=0.000e+00
+   avg_hold_bars        重算=18.975                     库内=18.975                     Δ=0.000e+00
+   回撤序列：库内 1209 点，重算逐点最大差 = 0.000e+00
+
+D. 三账恒等式
+   Σ trades.pnl = 110296.772820700 ; nav[-1] − initial = 110296.772820700 ; Δ = 0.000e+00
+   trade_count == len(trades) == 40 ；成交笔数（fills）= 80 ；买/卖 = 40/40
+
+E. 反证（判据可失败）：不同 trade 定义下的笔数
+   Rule A 仅清仓合成（engine.rs:846 口径）→ 40  （库内 40）GREEN
+   Rule B 每笔 Buy 一条            → 40  vs 库内 40  ⇒ 同值
+   Rule C 每笔成交一条            → 80  vs 库内 40  ⇒ RED（定义不同即不符）

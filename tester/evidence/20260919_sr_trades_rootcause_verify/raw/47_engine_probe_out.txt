@@ -1,0 +1,25 @@
+================ P1 末 bar 挂单被静默丢弃（最小示例） ================
+bars = 5（全 Buy 分 75，Dca{tranches:10, interval:1, Equal}）
+per_bar.orders 意图总数 = 5
+逐 bar 意图 side = [["Buy"], ["Buy"], ["Buy"], ["Buy"], ["Buy"]]
+fills = [(1, "Buy", "Policy"), (2, "Buy", "Policy"), (3, "Buy", "Policy"), (4, "Buy", "Policy"), (4, "Sell", "ForceClose")]
+非强平成交 = 4；意图 − 非强平成交 = 1（= 最后一根的挂单）
+trade_count = 1 ; net_profit = -45.996376181 ; nav 末点 = 99954.003623819
+metrics JSON = {"net_profit":-45.9963761807594,"max_drawdown":0.000459963761807594,"sharpe":-20.283427423873576,"win_rate":0.0,"profit_factor":0.0,"annualized_return":-0.02292074232166519,"trade_count":1,"avg_hold_bars":3.0}
+结果结构里有无 dropped/pending/unfilled 字段 = false
+事件类型集合 = ["Fill", "Fill", "Fill", "Fill", "Fill"]
+
+================ P2 挂单被静默跳过（exec.shares==0 分支） ================
+bars = 10（全 Buy 分 75）；initial_capital = 100；Dca{tranches:1000, interval:1}
+意图总数 = 10 ; fills = [] ; 事件总数 = 0
+nav 末点 = 100.000000000（现金从未动用）；net_profit = 0.000000000
+=> 10 条挂单全部静默消失：无 Fill、无事件、无计数、无日志（events 全空）
+
+================ P3 双向最小示例（引擎能双向；TradeDetail 无 reason 字段） ================
+bars = 6；分数 = [75,75,75,20,20,50]（Buy→Sell→Hold）
+fills = [(1, "Buy", "Policy"), (2, "Buy", "Policy"), (3, "Buy", "Policy"), (4, "Sell", "Policy")]
+trades 笔数 = 1 ; trade_count = 1 ; win_rate = 0.0000 ; net_profit = -89.959513721
+trades[0] JSON = {"open_ts":1700086400,"close_ts":1700345600,"open_bar":1,"close_bar":4,"open_price":10.001999999999999,"close_price":9.998000000000001,"shares":9995.501524538882,"gross_value":99935.02424233976,"commission":49.97750762269442,"stamp_duty":0.0,"pnl":-89.95951372082345,"hold_bars":3}
+TradeDetail 含 `reason` 字段 = false
+P3 里 ForceClose 笔数 = 0（双向场景期末空仓 ⇒ 无强平）
+P3 trades[0].pnl 与 nav 末点一致性：sum(pnl) = -89.959513721 ; nav[-1]-initial = -89.959513721 ; Δ = 0.000e0

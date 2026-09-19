@@ -1,0 +1,11 @@
+PASS  A/mutation deployed_notional==recomp+1.0 (expect assertion RED, i.e. ok=False) | got_match=False (False=assertion went red as required)  real=99975.006248 mutated_exp=99976.006248 delta=1.000
+PASS  B/true deployed_notional==recomp (expect GREEN) | delta=0.000e+00
+PASS  C1/full run deployed_pct>=0.99 | pct=0.999750
+PASS  C2/full run NO PARTIAL_DEPLOYMENT | codes=['ORDERS_UNEXECUTED']
+PASS  C3/partial run deployed_pct<0.99 | pct=0.413980
+PASS  C4/partial run HAS PARTIAL_DEPLOYMENT | codes=['DCA_PLAN_UNDERFILLED', 'PARTIAL_DEPLOYMENT', 'ORDERS_UNEXECUTED']
+PASS  C5/warning discriminates on the same field (not constant) 
+PASS  D1/full run batches_done==planned_tranches (3/3) -> NO warn 
+PASS  D2/partial run batches_done(42)<planned_tranches(100) -> HAS warn 
+
+SUMMARY: 9 checks, 0 failed (A is expected to be recorded as PASS because it asserts the assertion went red)

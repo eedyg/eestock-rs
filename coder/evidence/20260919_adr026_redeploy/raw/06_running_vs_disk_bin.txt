@@ -1,0 +1,11 @@
+### running exe vs file (before kill)
+Sat Sep 19 11:17:05 AM CST 2026
+/home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+inode=438054960 size=0 mtime=2026-09-19 10:14:04.293585115 +0800 path=/proc/634454/exe
+inode=95038716 size=213324544 mtime=2026-09-19 01:13:57.457197250 +0800 path=target/debug/eestock-app
+(deleted) marker check on live proc:
+1
+sha256 of /proc/634454/exe (running image):
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  /proc/634454/exe
+sha256 of target/debug/eestock-app (on disk):
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app

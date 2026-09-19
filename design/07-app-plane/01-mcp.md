@@ -371,7 +371,9 @@ mod tests {
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
             "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
-            "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
+            "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
+            // ADR-026 §2.2：执行完整度审计（只读派生）
+            "bt_get_run_audit"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();
@@ -843,6 +845,17 @@ fn tool_schemas() -> Vec<Value> {
                 },
                 "required": ["preset_id"]
             }
+        }),
+        json!({
+            "name": "bt_get_run_audit",
+            "description": "回测工作台：**执行完整度审计**（ADR-026 §2.2，只读派生，不改引擎语义/不落库）。回答「这份回测到底投出去多少钱、计划推进到哪、有没有挂单没成交、回合里多少是期末强平合成的」：deployed_notional/deployed_pct（**敞口**，不含费用）与 cash_consumed/cash_consumed_pct（**资金占用**，含按 run 生效 fee 复算的买入佣金）分别命名；planned_tranches（非 Dca 为 null）/reachable_batches（区间内 Buy 意图数，即最多可推进批数）/batches_done/unexecuted_orders/last_bar_unfilled/round_trips_total/round_trips_force_closed（期末强平合成的回合）。warnings 为**非阻断**披露（PARTIAL_DEPLOYMENT 敞口<99%；DCA_PLAN_UNDERFILLED 计划未推进完；ORDERS_UNEXECUTED 末根 bar 挂单无次 bar 可成交）。run 不存在或无结果 → isError（同 bt_get_run_result）。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "run_id": { "type": "string", "description": "运行 id（sr_ 前缀）" }
+                },
+                "required": ["run_id"]
+            }
         })
     ]
 }
@@ -895,6 +908,7 @@ pub async fn call_tool(st: &McpState, id: Option<Value>, params: Option<Value>) 
         "bt_compare_runs" => bt_compare_runs(st, id, &args).await,
         "bt_list_presets" => bt_list_presets(st, id, &args).await,
         "bt_apply_preset" => bt_apply_preset(st, id, &args).await,
+        "bt_get_run_audit" => bt_get_run_audit(st, id, &args).await,
         _ => result_err(id, INVALID_PARAMS, format!("未知工具：{name}")),
     }
 }
@@ -1901,6 +1915,20 @@ async fn bt_apply_preset(st: &McpState, id: Option<Value>, args: &Value) -> Valu
     }
 }
 
+/// bt_get_run_audit(run_id)：**执行完整度审计**（ADR-026 §2.2，只读派生；与 web
+/// `GET /api/workbench/runs/{id}/audit` **同一纯函数口径**，无第二套算法）。
+/// run 不存在 / 无结果 → isError（同 `bt_get_run_result`）。
+async fn bt_get_run_audit(st: &McpState, id: Option<Value>, args: &Value) -> Value {
+    let wb = match workbench_service(st, &id) { Ok(s) => s, Err(e) => return e };
+    let Some(run_id) = req_str(args, "run_id") else {
+        return result_err(id, INVALID_PARAMS, "run_id 必填（非空 string，sr_ 前缀）");
+    };
+    match wb.run_audit(run_id).await {
+        Ok(audit) => tool_ok(id, &audit),
+        Err(e) => tool_fail(id, e),
+    }
+}
+
 /// 解析字符串数组参数（缺省/非数组 → 空）。
 fn str_array(args: &Value, key: &str) -> Vec<String> {
     args.get(key)
@@ -1932,7 +1960,7 @@ mod tests {
     fn tool_list_schema_contract() {
         let v = tool_list();
         let tools = v["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 34, "4 只读工具（I-4 加 list_symbols）+ 14 模拟实盘（11-sim-live）+ 8 strategy_* + 8 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10）");
+        assert_eq!(tools.len(), 35, "4 只读工具（I-4 加 list_symbols）+ 14 模拟实盘（11-sim-live）+ 8 strategy_* + 9 bt_*（12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）");
         assert_eq!(tools[0]["name"], "get_kline");
         assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
         assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],
@@ -1968,7 +1996,9 @@ mod tests {
             "strategy_guide"]);
         let bt_names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).filter(|n| n.starts_with("bt_")).collect();
         assert_eq!(bt_names, vec!["bt_run_ensemble", "bt_get_run", "bt_get_run_result",
-            "bt_list_runs", "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
+            "bt_list_runs", "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
+            // ADR-026 §2.2：执行完整度审计（只读派生）
+            "bt_get_run_audit"]);
         // 策略管理类描述注明「统一策略系统 Registry」（任务书口径）
         for t in tools.iter().filter(|t| t["name"].as_str().unwrap().starts_with("strategy_")) {
             assert!(t["description"].as_str().unwrap().contains("统一策略系统 Registry"),
@@ -1998,6 +2028,8 @@ mod tests {
         assert_eq!(by_name("bt_cancel_run")["inputSchema"]["required"], json!(["run_id"]));
         assert_eq!(by_name("bt_compare_runs")["inputSchema"]["required"], json!(["run_ids"]));
         assert_eq!(by_name("bt_apply_preset")["inputSchema"]["required"], json!(["preset_id"]));
+        assert_eq!(by_name("bt_get_run_audit")["inputSchema"]["required"], json!(["run_id"]),
+            "bt_get_run_audit 必填 run_id（ADR-026 §2.2）");
     }
 
     #[tokio::test]
@@ -3772,6 +3804,56 @@ mod tests {
         assert_eq!(r["result"]["isError"], true);
     }
 
+    /// ADR-026 §2.2：`bt_get_run_audit` —— 工具名单注册 + 可调用 + 停用开关语义。
+    #[tokio::test]
+    async fn bt_get_run_audit_tool_contract_and_gate() {
+        let (st, _fx) = strategy_state();
+        // ① 名单注册（tools/list）
+        let tools = crate::tools::tool_list();
+        let names: Vec<&str> = tools["tools"].as_array().unwrap().iter()
+            .map(|t| t["name"].as_str().unwrap()).collect();
+        assert!(names.contains(&"bt_get_run_audit"), "工具名单须含 bt_get_run_audit：{names:?}");
+        // ② 工具可调用：真跑一次 ensemble（6 bar mock）后读审计
+        let (sid, _vid) = create_published(&st, "恒分80", CONST_80).await;
+        let r = call(&st, "bt_run_ensemble", json!({
+            "name": "audit", "symbol": "600000", "period": "D1",
+            "from": "2026-09-01T00:00:00Z", "to": "2026-09-10T00:00:00Z",
+            "slots": [{ "strategy_id": sid, "weight": 1.0 }],
+            "policy": { "Dca": { "mode": "Equal", "tranches": 8, "interval": 1 } }
+        })).await;
+        let run_id = payload_of(&r)["run_id"].as_str().unwrap().to_string();
+        for _ in 0..200 {
+            let p = payload_of(&call(&st, "bt_get_run", json!({ "run_id": run_id })).await);
+            let st_ = p["status"].as_str().unwrap().to_string();
+            if st_ != "queued" && st_ != "running" { break; }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        let r = call(&st, "bt_get_run_audit", json!({ "run_id": run_id })).await;
+        let p = payload_of(&r);
+        assert_eq!(r["result"]["isError"], json!(null), "审计调用不得 isError：{p}");
+        assert_eq!(p["run_id"], json!(run_id));
+        assert_eq!(p["capital_basis"], json!(100000.0));
+        assert_eq!(p["planned_tranches"], json!(8), "Dca ⇒ planned_tranches");
+        assert!(p["deployed_pct"].is_number() && p["deployed_notional"].is_number());
+        assert!(p["warnings"].is_array());
+        // 未执行挂单/回合口径与结果侧自洽
+        assert_eq!(p["round_trips_total"].as_u64().unwrap() as usize,
+            payload_of(&call(&st, "bt_get_run_result", json!({ "run_id": run_id })).await)["trades"]
+                .as_array().unwrap().len());
+        // ③ 未知 run → isError（非协议错误）
+        let r = call(&st, "bt_get_run_audit", json!({ "run_id": "sr_nope" })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "未知 run ⇒ isError");
+        // ④ 缺 run_id → -32602
+        let r = call(&st, "bt_get_run_audit", json!({})).await;
+        assert_eq!(r["error"]["code"], json!(-32602));
+        // ⑤ 停用开关（strategy_tools_enabled=false）→ 既有 MCP 停用语义（isError + 文案）
+        assert!(!st.set_strategy_tools_enabled(false));
+        let r = call(&st, "bt_get_run_audit", json!({ "run_id": run_id })).await;
+        assert_eq!(r["result"]["isError"], json!(true), "停用后须 isError");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("停用"),
+            "停用语义文案须含「停用」：{}", r["result"]["content"][0]["text"]);
+    }
+
     #[tokio::test]
     async fn bt_run_ensemble_unpublished_and_invalid_config_are_is_error() {
         let (st, _fx) = strategy_state();
@@ -4513,13 +4595,13 @@ async fn mcp_sse_full_protocol_roundtrip() {
         "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
     assert_eq!(status, 202);
 
-    // 3. tools/list → 34 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 8 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10）
+    // 3. tools/list → 35 个工具（4 只读（I-4 加 list_symbols）+ 14 模拟实盘 + 8 strategy_* + 9 bt_*；ADR-009 范围①② + 11-sim-live + 12-strategy-system / P3c + 手册暴露裁决 2026-09-10 + ADR-026 bt_get_run_audit）
     let status = post(&http, &base, &client.endpoint, &json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
     assert_eq!(status, 202);
     let resp = next_resp(&mut client).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 34, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
+    assert_eq!(tools.len(), 35, "通知无响应帧——本帧即 tools/list 响应（帧序锁定）");
     assert_eq!(tools[0]["name"], "get_kline");
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["code"]));
     assert_eq!(tools[0]["inputSchema"]["properties"]["period"]["enum"],

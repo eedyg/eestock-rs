@@ -1,0 +1,110 @@
+### git status --porcelain（收工，85 行）
+ M crates/application/src/lib.rs
+ M crates/application/src/simlive.rs
+ M crates/application/src/workbench.rs
+ M crates/backtest/src/metrics.rs
+ M crates/backtest/src/types.rs
+ M crates/mcp/src/rpc.rs
+ M crates/mcp/src/tools.rs
+ M crates/mcp/tests/mcp_protocol.rs
+ M crates/strategy-core/src/engine.rs
+ M crates/strategy-core/tests/engine.rs
+ M crates/web/src/lib.rs
+ M crates/web/src/workbench.rs
+ M design/01-architecture/adr/ADR-023-period-set-extension-30m.md
+ M design/99-decisions-log.md
+ M web/src/api/client.test.ts
+ M web/src/api/client.ts
+ M web/src/api/mock.test.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/workbench/ResultView.test.tsx
+ M web/src/features/workbench/ResultView.tsx
+?? .claude/
+?? AGENTS.md
+?? CLAUDE.md
+?? backup_symbols.sql
+?? coder/backups/adr024_frozen_index_20260918T063137Z.tar.gz
+?? coder/backups/strategy_purge_20260911_strategy.csv
+?? coder/backups/strategy_purge_20260911_versions.csv
+?? coder/evidence/20260918_sr_trades_forensics/
+?? coder/evidence/20260918_sr_trades_strategy_side/
+?? coder/evidence/20260918_sr_trades_system_side/
+?? coder/evidence/20260919_adr026_backend/
+?? coder/evidence/20260919_adr026_frontend/
+?? coder/evidence/281_mp_deploy_p0_p5/
+?? coder/report/281_mp_redeploy_p0_p5.md
+?? coder/report/283_adr026_backend_execution_audit.md
+?? coder/report/284_adr026_frontend_disclosure.md
+?? crates/application/src/audit.rs
+?? crates/web/tests/adr026_run_audit.rs
+?? design/01-architecture/adr/ADR-026-run-execution-audit-and-disclosure.md
+?? prod_tools_schemas_periphery.txt
+?? tester/design/281_mp_p0_p5_acceptance_design.md
+?? tester/design/282_forming_bucket_live_probe_design.md
+?? tester/evidence/018/
+?? tester/evidence/20260918_sr_trades_verify/
+?? tester/evidence/20260919_adr026_backend_verify/
+?? tester/evidence/20260919_adr026_e2e_verify/
+?? tester/evidence/20260919_sr_trades_rootcause_verify/
+?? tester/evidence/281_ac/
+?? tester/evidence/282_live_bucket/
+?? tester/harness/
+?? tester/report/018_debt_batch1_acceptance.md
+?? tester/test/009_kline_loop_rendering_reconcile.md
+?? tester/test/010_kline_loop_rerun_reconcile.md
+?? tester/test/011_strategy_runtime_p0_reverify.md
+?? tester/test/012_strategy_core_p1a_acceptance.md
+?? tester/test/013_strategy_core_p1a_reverify.md
+?? tester/test/014_strategy_core_p1b_acceptance.md
+?? tester/test/015_p2a_acceptance.md
+?? tester/test/016_p2a_acceptance_final.md
+?? tester/test/017_strategy_registry_p2b_acceptance.md
+?? tester/test/018_strategy_registry_p2b_acceptance_final.md
+?? tester/test/019_strategy_workbench_p3a_acceptance.md
+?? tester/test/020_p3b_acceptance.md
+?? tester/test/021_p3b_acceptance_final.md
+?? tester/test/022_p3c_acceptance.md
+?? tester/test/023_p4a_final_acceptance.md
+?? tester/test/024_p4b_acceptance.md
+?? tester/test/025_p4b_final_acceptance_rerun.md
+?? tester/test/026_tech_debt_acceptance.md
+?? tester/test/027_tech_debt_final_acceptance.md
+?? tester/test/028_td8_deploy_acceptance_execution.md
+?? tester/test/029_strategy_delete_guide_acceptance_execution.md
+?? tester/test/030_t0_strategy_acceptance_execution.md
+?? tester/test/031_main_wave_capture_acceptance_execution.md
+?? tester/test/032_main_wave_flake_final_acceptance_execution.md
+?? tester/test/033_wave25_acceptance_execution.md
+?? tester/test/034_archived_audit_rerun_acceptance_execution.md
+?? tester/test/035_mock_build_incident_fix_acceptance_execution.md
+?? tester/test/036_three_fixes_final_acceptance_execution.md
+?? tester/test/037_dashboard_change_pct_final_acceptance_execution.md
+?? tester/test/281_mp_p0_p5_acceptance_execution.md
+?? tester/test/282_forming_bucket_live_probe_execution.md
+?? web/e2e/adr026-audit.e2e.ts
+?? web/src/features/workbench/useRunAudit.ts
+
+### git diff --cached（须为空）
+(空 = 无 staged)
+
+### 与开工基线 diff（应只多本阶段证据目录 + E2E 用例文件）
+46a47
+> ?? tester/evidence/20260919_adr026_e2e_verify/
+82a84
+> ?? web/e2e/adr026-audit.e2e.ts
+
+### 本阶段是否执行过 git 写操作（add/commit/checkout/stash/reset）
+禁止项：未执行任何 git add/commit/checkout/stash/reset（本会话全部 git 调用仅 status/diff/rev-parse/log）
+
+### 仓库内残留探针文件检查
+--- /tmp 临时备份（仓库外，仅记录 sha256，随后删除）
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  /tmp/adr026_ResultView.tsx.bak
+--- 突变痕迹检查（ResultView.tsx 不得含 'false &&'）
+0
+--- E2E artifacts（gitignored）
+--- 仓库内新增非预期文件（对比基线）
+25a26
+> ?? tester/evidence/20260919_adr026_e2e_verify/
+61a63
+> ?? web/e2e/adr026-audit.e2e.ts

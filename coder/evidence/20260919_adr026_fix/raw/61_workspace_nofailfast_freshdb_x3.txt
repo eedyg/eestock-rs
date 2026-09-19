@@ -1,0 +1,9 @@
+### 仓内惯例：cargo test --workspace --no-fail-fast 连续 3 次；**每次全新 ADR-025 临时库**
+（G3 = 同库连续跑的共享库隔离债务，另见 52_g3_same_db_twice_web_suite.txt；每次全新库不受其影响）
+
+  sentinel(tmp_wf1_1789754502)=1
+RUN1 (DB=tmp_wf1_1789754502): exit=0 | ok_targets=130 failed_targets=0 | passed=895 failed=0 | 84s
+  sentinel(tmp_wf2_1789754602)=1
+RUN2 (DB=tmp_wf2_1789754602): exit=0 | ok_targets=130 failed_targets=0 | passed=895 failed=0 | 84s
+  sentinel(tmp_wf3_1789754702)=1
+RUN3 (DB=tmp_wf3_1789754702): exit=0 | ok_targets=130 failed_targets=0 | passed=895 failed=0 | 84s

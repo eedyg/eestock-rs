@@ -1,0 +1,15 @@
+### grep MAX_TRADES crates (excluding /tests/)
+/home/eestock/workspace/git/eestock/eestock-rs/crates/application/src/strategy.rs:61:pub const MAX_TRADES: usize = 5_000;
+/home/eestock/workspace/git/eestock/eestock-rs/crates/application/src/strategy.rs:1255:    let trades = if result.trades.len() > MAX_TRADES {
+/home/eestock/workspace/git/eestock/eestock-rs/crates/application/src/strategy.rs:1257:        serde_json::to_value(&result.trades[..MAX_TRADES]).expect("trades 可序列化")
+
+### result_compat trades (workbench.rs 1258-1266)
+1258:                 result_format: RESULT_FORMAT_CHUNKED.to_string(),
+1259:                 summary,
+1260:                 per_bar: page.bars,
+1261:                 // chunked_v1：净值/回撤在分块表且体量可大 ⇒ 本端点只回首页 per_bar；
+1262:                 // 图表改走 `/curve`（ADR-024 §3.2 兼容矩阵）。
+1263:                 net_value: Vec::new(),
+1264:                 drawdown: Vec::new(),
+1265:                 trades: res.trades.clone(),
+1266:                 metrics: res.metrics.clone(),

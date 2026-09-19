@@ -1,0 +1,7 @@
+### M2: round_trips_force_closed 去掉 close_bar 配对
+test audit::tests::force_closed_round_trips_match_by_close_bar ... FAILED
+thread 'audit::tests::force_closed_round_trips_match_by_close_bar' (4069267) panicked at crates/application/src/audit.rs:730:9:
+assertion `left == right` failed: 只有 close_bar=5 的回合与 ForceClose 成交配对
+  left: 3
+ right: 1
+test result: FAILED. 17 passed; 1 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s

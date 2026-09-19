@@ -1,0 +1,18 @@
+381:---- t_n1_http_every_400_is_structured_object stdout ----
+382-[runs/symbol_required] code=symbol_required detail={} <<< N1-r: 无 detail.period
+383-[runs/period_invalid] code=period_invalid detail.period="W1"
+384-[runs/from_bad] code=timestamp_invalid detail={"field":"from","value":"not-a-ts"} <<< N1-r: 无 detail.period
+385-[runs/to_bad] code=timestamp_invalid detail={"field":"to","value":"not-a-ts"} <<< N1-r: 无 detail.period
+386-[runs/from_after_to] code=from_after_to detail={"from":"2025-02-01T00:00:00Z","to":"2025-01-01T00:00:00Z"} <<< N1-r: 无 detail.period
+387-[runs/slots_empty] code=slots_invalid detail={"got":0} <<< N1-r: 无 detail.period
+398-[runs/range_empty] code=range_empty detail.period="M1"
+399-
+400:thread 't_n1_http_every_400_is_structured_object' (4080932) panicked at crates/web/tests/tester_p5rect_verify.rs:137:5:
+401-assertion `left == right` failed: [runs/resource_guard(confirm=false)] 期望 400，实得 201；body={"bars_total":null,"clamp_reason":null,"clamped":false,"config":{"buy_threshold":60.0,"clamp_reason":null,"clamped":false,"estimated_bars":292092,"fee":{"min_fee":5.0,"rate_pct":0.025,"slippage_bp":2.0,"stamp_duty_pct":0.05},"initial_capital":100000.0,"policy":{"LumpSum":{"position_pct":1.0}},"progress_prescan":"count","requested_from":"2021-01-01T00:00:00+00:00","requested_to":"2026-01-01T00:00:00+00:00","sell_threshold":40.0,"slots":[{"archived":false,"params":{"fast":5.0,"slow":20.0},"sha256":"8cae080c68ad8796ce2a731010c80a38e4be75bac2ecd94e055c7786d9a7126c","strategy_id":"st_1789013713975_000000","version":1,"version_id":"sv_1789013713975_000001","weight":1.0}],"stop":null,"warmup_effective":250,"warmup_requested":250},"created_at":"2026-09-18T16:58:02.736847Z","error":null,"estimated_bars":292092,"finished_at":null,"from_ts":"2021-01-01T00:00:00Z","id":"sr_1789750682735_000000","name":"","period":"M1","progress":0.0,"requested_from":"2021-01-01T00:00:00Z","requested_to":"2026-01-01T00:00:00Z","result_format":null,"started_at":null,"status":"queued","symbol":"518880","to_ts":"2026-01-01T00:00:00Z"}
+402-  left: 201
+403- right: 400
+404-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+405-
+406-
+407-failures:
+408-    t_n1_http_every_400_is_structured_object

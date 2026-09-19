@@ -1,0 +1,10 @@
+== 真实后端响应字段（A3，证据文件逐字）==
+['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings']
+
+== 前端 WorkbenchRunAudit 声明字段 ==
+['batches_done', 'capital_basis', 'cash_consumed', 'cash_consumed_pct', 'deployed_notional', 'deployed_pct', 'last_bar_unfilled', 'planned_tranches', 'reachable_batches', 'recorded', 'round_trips_force_closed', 'round_trips_total', 'run_id', 'unexecuted_orders', 'warnings']
+
+后端有前端缺: 无
+前端有后端缺: 无
+
+warnings[0] keys = ['code', 'message', 'severity'] | WorkbenchAuditWarning = ['code', 'message', 'severity']

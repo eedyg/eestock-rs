@@ -1,0 +1,825 @@
+# step 4 (corrected): repo-root `entangled tangle` (no --force) x2, consistent filtering
+# date: 2026-09-19T04:55:34Z   cwd=/home/eestock/workspace/git/eestock/eestock-rs   HEAD=e807385449a303a1090ac00a52c722b7b77e62ec
+# NOTE: an earlier attempt (07a_...SUPERSEDED) compared an UNFILTERED pre-status against a
+#       FILTERED post-status -> spurious diff. This file re-measures everything consistently.
+
+===== RUN 1 (3rd overall for this session) =====
+[12:55:34] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/domain/src/ports.rs`
+           INFO     write `crates/storage/src/migrate_check.rs`
+           INFO     write `migrations/0027_strategy_run_result_chunks.sql`
+           INFO     write `crates/web/src/lib.rs`
+           INFO     write `crates/mcp/src/rpc.rs`
+           INFO     write `crates/mcp/src/tools.rs`
+           INFO     write `crates/mcp/tests/mcp_protocol.rs`
+           WARNING  `crates/domain/src/ports.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/storage/src/migrate_check.rs` changed outside the
+                    control of Entangled
+           WARNING  `migrations/0027_strategy_run_result_chunks.sql` changed
+                    outside the control of Entangled
+           WARNING  `crates/web/src/lib.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/rpc.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/tools.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/tests/mcp_protocol.rs` changed outside the
+                    control of Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+EXIT=0
+--- delta full git status (pre -> r1) ---
+(IDENTICAL)
+--- delta git status | grep -v '^A ' (pre -> r1) ---
+(IDENTICAL)
+--- git diff --stat (r1) ---
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/07-app-plane/00-web-api.md                  |  2 +
+ design/07-app-plane/01-mcp.md                      | 92 ++++++++++++++++++++--
+ 3 files changed, 95 insertions(+), 6 deletions(-)
+--- git diff --cached --stat (r1) ---
+ .../00_schema_strategy_run.txt                     |  109 +
+ .../20260918_sr_trades_forensics/01_run_meta.txt   |   15 +
+ .../02_run_prefix_fuzzy.txt                        |    5 +
+ .../03_result_shape.txt                            |    5 +
+ .../04_bars_by_kind.txt                            |    8 +
+ .../05_bars_payload_shape.txt                      |    8 +
+ .../06_fills_payload_raw.json                      |    1 +
+ .../07_fills_summary.txt                           |   46 +
+ .../08_result_row_raw.json                         |    0
+ .../09_trades_content.txt                          |   17 +
+ .../10_trades_raw.json                             |    1 +
+ .../11_trades_pretty.json                          |   16 +
+ .../12_same_symbol_runs.txt                        |   19 +
+ .../20260918_sr_trades_forensics/13_curl_log.txt   |   12 +
+ .../13_resp_runs_sr_1789738328788_000005.json      |    1 +
+ ..._000005_bars_kind_per_bar_offset_0_limit_2.json |    1 +
+ ...13_resp_runs_sr_1789738328788_000005_brief.json |    1 +
+ ...13_resp_runs_sr_1789738328788_000005_curve.json |    1 +
+ ...9738328788_000005_fills_offset_0_limit_100.json |    1 +
+ ...3_resp_runs_sr_1789738328788_000005_result.json |    1 +
+ .../14_result_api_analysis.txt                     |   22 +
+ .../15_fills_api_analysis.txt                      |    3 +
+ .../20260918_sr_trades_forensics/16_brief.json     |   31 +
+ .../17_run_meta_api.json                           |   63 +
+ .../18_pairing_experiment.py                       |   49 +
+ .../19_pairing_output.txt                          |   47 +
+ .../20_strategy_meta.txt                           |    3 +
+ .../21_strategy_version.txt                        |   29 +
+ .../20260918_sr_trades_forensics/22_presets.txt    |    2 +
+ .../23_applog_runid.txt                            |    8 +
+ .../24_applog_context.txt                          |   21 +
+ .../25_app_log_full.log                            |  137 +
+ .../25_mcp_sessions.txt                            |   20 +
+ .../26_api_vs_db_consistency.txt                   |    4 +
+ .../27_per_bar_payload_raw.json                    |    1 +
+ .../28_per_bar_fill_events.txt                     |   13 +
+ .../29_orders_and_signals.txt                      |    6 +
+ .../30_frontend_label_grep.txt                     |   48 +
+ .../31_curve_summary.txt                           |    6 +
+ .../32_trade_dates.txt                             |    8 +
+ .../33_app_process.txt                             |   11 +
+ .../20260918_sr_trades_forensics/README.md         |  298 +
+ .../20260918_sr_trades_forensics/commands.sh       |   49 +
+ .../20260918_sr_trades_strategy_side/README.md     |  469 ++
+ .../raw/00_schema_strategy_version.txt             |   27 +
+ .../raw/01_schema_strategy_run.txt                 |   26 +
+ .../raw/02_schema_strategy_run_result.txt          |   15 +
+ .../raw/10_sv_row.txt                              |    9 +
+ .../raw/11_run_row.txt                             |   10 +
+ .../raw/12_sv_code.exact.txt                       |   24 +
+ .../raw/12_sv_code.sql.txt                         |   25 +
+ .../raw/13_all_versions_sha.tsv                    |   24 +
+ .../raw/14_sha_audit.txt                           |   24 +
+ .../raw/20_fills_raw.json                          |    1 +
+ .../raw/21_fills_summary.txt                       |   50 +
+ .../raw/22_bars_by_kind.txt                        |    8 +
+ .../raw/23_per_bar_firstlast.txt                   |    1 +
+ .../raw/25_per_bar_ts.json                         |    1 +
+ .../raw/26_batch_amounts.txt                       |   68 +
+ .../raw/27_kline_api_518880_1d.json                |    1 +
+ .../raw/28_per_bar_pretty.json                     | 7329 ++++++++++++++++++++
+ .../raw/29_window260_orders_events.txt             |   26 +
+ .../raw/30_metrics_raw.json                        |    1 +
+ .../raw/31_nav_last.txt                            |    1 +
+ .../raw/32_nav_first.txt                           |    1 +
+ .../raw/33_trades_pretty.json                      |   16 +
+ .../raw/34_batch_amount_exact.py                   |   32 +
+ .../raw/34_batch_amount_exact.txt                  |   19 +
+ .../raw/35_dca_strategy_rows.txt                   |    8 +
+ .../raw/36_dca_version_rows.txt                    |    8 +
+ .../raw/40_value_domain_enum.js                    |   29 +
+ .../raw/40_value_domain_enum.txt                   |    6 +
+ .../raw/41_index_phase_check.py                    |   21 +
+ .../raw/41_index_phase_check.txt                   |   11 +
+ .../raw/42_policy_projection.py                    |   78 +
+ .../raw/42_policy_projection_out.txt               |   16 +
+ .../raw/43_paper_engine.py                         |  127 +
+ .../raw/43_paper_engine_out.txt                    |   16 +
+ .../raw/50_design_01_copy.md                       |  206 +
+ .../raw/51_design_03_copy.md                       |  106 +
+ .../raw/52_author_source_dca_baseline.js           |   24 +
+ .../raw/53_external_docs_provenance.txt            |   17 +
+ .../raw/54_reference_plugin_value_domains.txt      |   35 +
+ .../raw/55_policy_equal_vs_fixed_refs.md           |   75 +
+ .../raw/56_publish_gate_refs.md                    |   92 +
+ .../raw/60_same_plugin_other_runs.txt              |   77 +
+ .../raw/61_same_window_lumpsum_arm.txt             |   24 +
+ .../raw/62_same_window_comparison.py               |   19 +
+ .../raw/62_same_window_comparison.txt              |   12 +
+ .../raw/63_author_A1A2_runs.txt                    |   41 +
+ .../__pycache__/43_paper_engine.cpython-313.pyc    |  Bin 0 -> 9001 bytes
+ .../raw/commands.sh                                |   82 +
+ .../20260918_sr_trades_system_side/README.md       |  460 ++
+ .../20260918_sr_trades_system_side/commands.sh     |   75 +
+ .../raw/01_run_meta.txt                            |    1 +
+ .../raw/02_metrics_raw.json                        |   10 +
+ .../raw/03_bars_by_kind.txt                        |    4 +
+ .../raw/04_fills_payload.json                      |    1 +
+ .../raw/05_per_bar_payload.json                    |    1 +
+ .../raw/06_net_value_payload.json                  |    1 +
+ .../raw/07_drawdown_payload.json                   |    1 +
+ .../raw/08_trades_raw.json                         |   16 +
+ .../raw/09_result_net_value_head.txt               |    2 +
+ .../raw/10_d1_all_bars.txt                         | 3197 +++++++++
+ .../raw/20_recompute.py                            |  289 +
+ .../raw/21_recompute_output.txt                    |   67 +
+ .../raw/22_old_backtest_engine_forceclose.txt      |   70 +
+ .../raw/23_dropped_pending_grep.txt                |   49 +
+ .../raw/24_dcastate_observability.txt              |   26 +
+ .../raw/25_planstate_exposure.txt                  |   90 +
+ .../raw/30_run_inventory.txt                       |   19 +
+ .../raw/31_all_runs_metrics_flat.txt               |  377 +
+ .../raw/32_global_consistency_scan.txt             |  377 +
+ .../raw/34_global_recompute.py                     |  124 +
+ .../raw/35_global_recompute_output.txt             |   75 +
+ .../raw/36_profit_factor_null.txt                  |   24 +
+ .../raw/37_duplicate_runs.txt                      |   25 +
+ .../raw/38_dupcheck_out.txt                        |  251 +
+ .../raw/39_same_params_as_target.txt               |    5 +
+ .../raw/40_ledger_invariants.py                    |  123 +
+ .../raw/41_ledger_invariants_output.txt            |   35 +
+ .../raw/43_reason_scan.py                          |  100 +
+ .../raw/44_reason_scan_output.txt                  |   46 +
+ .../raw/45_last_bar_order_drop_scan.txt            |   26 +
+ .../raw/46_anomaly_run_intents.txt                 |  174 +
+ .../raw/47_dca_phantom_intents.txt                 |   13 +
+ .../raw/48_silent_skip_scan.txt                    |   14 +
+ .../raw/50_api_surface.txt                         |   10 +
+ .../raw/51_design_forceclose_grep.txt              |   30 +
+ .../raw/52_adr08_metrics_section.txt               |   61 +
+ .../raw/53_frontend_labels.txt                     |   43 +
+ .../raw/54_resultview_metrics_block.txt            |  136 +
+ .../raw/60_capital_caliber.py                      |  175 +
+ .../raw/61_capital_caliber_output.txt              |   43 +
+ .../raw/62_inf_serialization.txt                   |   21 +
+ .../raw/63_api_last_bar_orders.txt                 |  111 +
+ .../raw/64_intent_windows.txt                      |   18 +
+ .../raw/65_design_dca_grep.txt                     |    6 +
+ .../raw/66_chunked_runs_recompute.txt              |   27 +
+ .../20260919_adr026_backend/00_baseline.txt        |   60 +
+ .../20260919_adr026_backend/10_red_pure_fn.txt     |  134 +
+ .../20260919_adr026_backend/11_green_pure_fn.txt   |   25 +
+ .../20_red_trade_reason.txt                        |   24 +
+ .../21_green_trade_reason.txt                      |    9 +
+ .../20260919_adr026_backend/30_testdb_init.txt     |   76 +
+ .../32_replay_fixture_seed.txt                     |    6 +
+ .../20260919_adr026_backend/40_red_endpoint.txt    |   57 +
+ .../20260919_adr026_backend/41_green_endpoint.txt  |   12 +
+ .../42_green_replay_A3_A4.txt                      |    8 +
+ .../43_raw_audit_A3_A4.json.txt                    |   59 +
+ .../44_independent_recompute.sql                   |   31 +
+ .../44_independent_recompute.txt                   |   46 +
+ .../20260919_adr026_backend/50_red_mcp.txt         |   22 +
+ .../20260919_adr026_backend/51_green_mcp.txt       |    9 +
+ .../60_mutation_pre_sha256.txt                     |    1 +
+ .../61_mutation_unexecuted_red.txt                 |   48 +
+ .../62_mutation_cash_consumed_red.txt              |   66 +
+ .../63_mutation_reverted_sha256.txt                |   11 +
+ .../70_regression_affected_crates.txt              |  109 +
+ .../71_preexisting_failure_tester_p5rect.txt       |   31 +
+ .../72_regression_raw_fresh_tempdb.txt             |  984 +++
+ .../80_changed_files_sha256.txt                    |   44 +
+ .../20260919_adr026_backend/81_diff_stat.txt       |   15 +
+ .../20260919_adr026_backend/90_db_teardown.txt     |   21 +
+ coder/evidence/20260919_adr026_backend/README.md   |  242 +
+ coder/evidence/20260919_adr026_fix/README.md       |  236 +
+ .../raw/10_prefix_flake_repro.txt                  |   12 +
+ .../raw/10b_prefix_flake_full_output.txt           |   26 +
+ .../raw/10c_prefix_fk23503_rootcause_demo.txt      |   35 +
+ .../raw/12_prefix_evidence_citations.txt           |   49 +
+ .../raw/20_postfix_adr026_parallel_x5.txt          |   25 +
+ .../raw/21_postfix_web_suite_parallel_x5.txt       |    7 +
+ .../raw/22_mutation_shared_code_RED.txt            |    8 +
+ .../raw/23_mutation_trace_expectation_RED.txt      |   52 +
+ .../20260919_adr026_fix/raw/30_rg2_prefix_RED.txt  |   43 +
+ .../raw/31_rg2_guard_constant_provenance.txt       |   42 +
+ .../raw/32_rg2_postfix_GREEN.txt                   |   17 +
+ .../raw/40_rg4_e2e_old_expectation_RED.txt         |   72 +
+ .../raw/41_rg4_e2e_new_text_GREEN.txt              |   15 +
+ .../20260919_adr026_fix/raw/42_frontend_vitest.txt |  320 +
+ .../20260919_adr026_fix/raw/43_frontend_tsc.txt    |    2 +
+ .../raw/50_g3_web_full_nofailfast_probe.txt        |  406 ++
+ .../raw/51_g3_attribution_per_target.txt           |   26 +
+ .../raw/52_g3_same_db_twice_web_suite.txt          |   13 +
+ .../raw/60_workspace_nofailfast_x3.txt             |   22 +
+ .../raw/61_workspace_nofailfast_freshdb_x3.txt     |    9 +
+ .../raw/70_changed_files_sha256.txt                |   10 +
+ .../20260919_adr026_fix/raw/71_db_teardown.txt     |   22 +
+ .../raw/e2e/fix_10_baseline_trades.json            |   11 +
+ .../raw/e2e/fix_10_baseline_trades_lines.json      |    5 +
+ .../raw/e2e/fix_10_baseline_trades_mismatch.json   |    3 +
+ .../raw/e2e/fix_10_baseline_trades_sources.json    |    5 +
+ .../raw/e2e/fix_10_trades_tab.png                  |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fix_10b_trades_tab_fullpage.png        |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fix_10c_audit_summary_el.png           |  Bin 0 -> 34022 bytes
+ .../raw/e2e/fix_10d_trades_table_el.png            |  Bin 0 -> 9025 bytes
+ .../raw/e2e/fix_11_baseline_metrics.json           |   11 +
+ .../raw/e2e/fix_11_baseline_metrics_lines.json     |    4 +
+ .../raw/e2e/fix_11_baseline_metrics_mismatch.json  |    3 +
+ .../raw/e2e/fix_11_metrics_tab.png                 |  Bin 0 -> 187705 bytes
+ .../raw/e2e/fix_11b_metrics_tab_fullpage.png       |  Bin 0 -> 187705 bytes
+ .../raw/e2e/fix_11c_metrics_basis_el.png           |  Bin 0 -> 9509 bytes
+ .../raw/e2e/fix_11d_metrics_deployed_el.png        |  Bin 0 -> 5181 bytes
+ .../raw/e2e/fix_12_legacy_sources.json             |   38 +
+ .../raw/e2e/fix_12_legacy_sources.png              |  Bin 0 -> 214395 bytes
+ .../raw/e2e/fix_12_legacy_sources_obs.json         |   11 +
+ .../raw/e2e/fix_12b_legacy_trades_table_el.png     |  Bin 0 -> 174008 bytes
+ .../raw/e2e/fix_13_reason_injection.json           |    6 +
+ .../raw/e2e/fix_13_reason_injection.png            |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fix_13_reason_injection_obs.json       |   13 +
+ .../raw/e2e/fix_13b_reason_table_el.png            |  Bin 0 -> 9321 bytes
+ .../raw/e2e/fix_14_control_audit_500.json          |   14 +
+ .../raw/e2e/fix_14_control_audit_500.png           |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fix_14_control_audit_500_obs.json      |   12 +
+ .../raw/e2e/fix_90_mutation_deployed.png           |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fix_90_mutation_deployed_lines.json    |    4 +
+ .../raw/e2e/fix_90_mutation_deployed_mismatch.json |    7 +
+ .../raw/e2e/fix_90_mutation_deployed_obs.json      |   15 +
+ .../raw/e2e/fix_90b_mutation_summary_el.png        |  Bin 0 -> 33997 bytes
+ .../raw/e2e/fix_91_mutation_warnings.png           |  Bin 0 -> 190313 bytes
+ .../raw/e2e/fix_91_mutation_warnings_mismatch.json |    7 +
+ .../raw/e2e/fix_91_mutation_warnings_obs.json      |   15 +
+ .../raw/e2e/fix_91b_mutation_summary_el.png        |  Bin 0 -> 15900 bytes
+ .../raw/e2e/fixold_10_baseline_trades_lines.json   |    5 +
+ .../e2e/fixold_10_baseline_trades_mismatch.json    |    6 +
+ .../raw/e2e/fixold_10_trades_tab.png               |  Bin 0 -> 191963 bytes
+ .../raw/e2e/fixold_10b_trades_tab_fullpage.png     |  Bin 0 -> 191963 bytes
+ .../raw/e2e/fixold_10c_audit_summary_el.png        |  Bin 0 -> 34022 bytes
+ .../raw/e2e/fixold_10d_trades_table_el.png         |  Bin 0 -> 9025 bytes
+ .../raw/e2e/fixold_11_baseline_metrics.json        |   11 +
+ .../raw/e2e/fixold_11_baseline_metrics_lines.json  |    4 +
+ .../e2e/fixold_11_baseline_metrics_mismatch.json   |    3 +
+ .../raw/e2e/fixold_11_metrics_tab.png              |  Bin 0 -> 189454 bytes
+ .../raw/e2e/fixold_11b_metrics_tab_fullpage.png    |  Bin 0 -> 189454 bytes
+ .../raw/e2e/fixold_11c_metrics_basis_el.png        |  Bin 0 -> 9509 bytes
+ .../raw/e2e/fixold_11d_metrics_deployed_el.png     |  Bin 0 -> 5181 bytes
+ .../raw/e2e/fixold_12_legacy_sources.json          |   38 +
+ .../raw/e2e/fixold_12_legacy_sources.png           |  Bin 0 -> 212856 bytes
+ .../raw/e2e/fixold_12_legacy_sources_obs.json      |   11 +
+ .../raw/e2e/fixold_12b_legacy_trades_table_el.png  |  Bin 0 -> 174008 bytes
+ .../raw/e2e/fixold_13_reason_injection.json        |    6 +
+ .../raw/e2e/fixold_13_reason_injection.png         |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fixold_13_reason_injection_obs.json    |   13 +
+ .../raw/e2e/fixold_13b_reason_table_el.png         |  Bin 0 -> 9321 bytes
+ .../raw/e2e/fixold_14_control_audit_500.json       |   14 +
+ .../raw/e2e/fixold_14_control_audit_500.png        |  Bin 0 -> 190343 bytes
+ .../raw/e2e/fixold_14_control_audit_500_obs.json   |   12 +
+ .../raw/e2e/fixold_90_mutation_deployed.png        |  Bin 0 -> 191964 bytes
+ .../raw/e2e/fixold_90_mutation_deployed_lines.json |    4 +
+ .../raw/e2e/fixold_90b_mutation_summary_el.png     |  Bin 0 -> 33997 bytes
+ .../raw/e2e/fixold_91_mutation_warnings.png        |  Bin 0 -> 190313 bytes
+ .../e2e/fixold_91_mutation_warnings_mismatch.json  |    9 +
+ .../raw/e2e/fixold_91_mutation_warnings_obs.json   |   17 +
+ .../raw/e2e/fixold_91b_mutation_summary_el.png     |  Bin 0 -> 15900 bytes
+ coder/evidence/20260919_adr026_frontend/README.md  |  140 +
+ .../20260919_adr026_frontend/raw/00_baseline.txt   |   92 +
+ .../raw/10_red_frontend.txt                        |   32 +
+ .../raw/10_red_frontend_full.txt                   | 7030 +++++++++++++++++++
+ .../raw/20_green_frontend.txt                      |   24 +
+ .../raw/21_green_full_web_suite.txt                |   24 +
+ .../raw/30_contract_field_crosscheck.txt           |   10 +
+ .../raw/40_db_and_scope_check.txt                  |   30 +
+ .../raw/80_changed_files_sha256.txt                |   50 +
+ coder/evidence/20260919_adr026_redeploy/README.md  |  218 +
+ .../20260919_adr026_redeploy/raw/00_pre_state.txt  |   17 +
+ .../raw/01_pre_build_hashes.txt                    |    9 +
+ .../20260919_adr026_redeploy/raw/02_tsc_b.txt      |    1 +
+ .../20260919_adr026_redeploy/raw/03_npm_build.txt  |   26 +
+ .../raw/04_post_build_dist.txt                     |   18 +
+ .../raw/05_cargo_build.txt                         |    9 +
+ .../raw/06_running_vs_disk_bin.txt                 |   11 +
+ .../raw/07_stop_old_pid.txt                        |   13 +
+ .../20260919_adr026_redeploy/raw/08_start_new.txt  |   12 +
+ .../raw/09_startup_log.txt                         |   14 +
+ .../raw/09_startup_log_full.log                    |   10 +
+ .../raw/10_post_deploy_selfcheck.txt               |   24 +
+ .../raw/11_static_origin.txt                       |   22 +
+ .../raw/12_audit_resp.json                         |    1 +
+ .../raw/12_web_audit_endpoint.txt                  |    9 +
+ .../raw/13_mcp_sse_tools.txt                       |   15 +
+ .../raw/14_extra_checks.txt                        |   13 +
+ .../20260919_adr026_redeploy/raw/14_kline_cfg.json |    1 +
+ .../raw/15_final_state.txt                         |   16 +
+ .../20260919_adr026_redeploy/raw/16_wrapup.txt     |   40 +
+ coder/report/283_adr026_backend_execution_audit.md |   62 +
+ crates/application/src/audit.rs                    |  933 +++
+ crates/application/src/lib.rs                      |    2 +
+ crates/application/src/simlive.rs                  |    2 +
+ crates/application/src/workbench.rs                |   62 +
+ crates/backtest/src/metrics.rs                     |    1 +
+ crates/backtest/src/types.rs                       |    8 +
+ crates/mcp/src/rpc.rs                              |    4 +-
+ crates/mcp/src/tools.rs                            |   84 +-
+ crates/mcp/tests/mcp_protocol.rs                   |    4 +-
+ crates/strategy-core/src/engine.rs                 |   31 +
+ crates/strategy-core/tests/engine.rs               |   74 +
+ crates/web/src/lib.rs                              |    2 +
+ crates/web/src/workbench.rs                        |   47 +
+ crates/web/tests/adr026_run_audit.rs               |  671 ++
+ crates/web/tests/tester_p5rect_verify.rs           |   37 +-
+ .../ADR-026-run-execution-audit-and-disclosure.md  |  169 +
+ design/99-decisions-log.md                         |   11 +
+ tester/design/295_adr026_ui_e2e_design.md          |   62 +
+ .../20260918_sr_trades_verify/00_REPORT.md         |  149 +
+ .../01_verify_sql_shape.txt                        |   49 +
+ .../02_verify_result_shape.txt                     |   35 +
+ .../03_fills_payload_raw.json                      |    1 +
+ .../04_recompute_trades.py                         |   79 +
+ .../05_db_trades_raw.json                          |    1 +
+ .../06_recompute_output.txt                        |   15 +
+ ...72\244\346\230\223\346\230\216\347\273\206.txt" |    6 +
+ ...10\220\344\272\244\346\230\216\347\273\206.txt" |   41 +
+ .../20260918_sr_trades_verify/09_resp_result.json  |    1 +
+ .../20260918_sr_trades_verify/10_resp_fills.json   |    1 +
+ .../20260918_sr_trades_verify/11_resp_brief.json   |    1 +
+ .../20260918_sr_trades_verify/12_curl_log.txt      |   12 +
+ .../13_all_runs_trades_vs_fills.txt                |    7 +
+ .../14_crossrun_recompute.json                     | 5657 +++++++++++++++
+ .../15_crossrun_trades_ne_fills.json               | 5387 ++++++++++++++
+ .../16_crossrun_recompute.py                       |  106 +
+ .../17_crossrun_recompute_output.txt               |   15 +
+ .../20260918_sr_trades_verify/18_pct05_fills.txt   |   18 +
+ .../20260918_sr_trades_verify/19_pct05_trades.txt  |   16 +
+ .../20260918_sr_trades_verify/20_workbench_e2e.png |  Bin 0 -> 235543 bytes
+ .../21_e2e_workbench_probe.cjs                     |   61 +
+ .../22_e2e_probe_output.txt                        |   27 +
+ .../23_mutation_recompute.py                       |  105 +
+ .../24_mutation_recompute_output.txt               |   12 +
+ .../25_e2e_field_mutation.cjs                      |   58 +
+ .../26_e2e_field_mutation_output.txt               |    6 +
+ .../28_engine_excerpt.txt                          |   74 +
+ .../29_max_trades_audit.txt                        |   15 +
+ .../30_upstream_overreach_audit.txt                |   20 +
+ .../20260919_adr026_backend_verify/README.md       |  222 +
+ .../raw/05_build_app.txt                           |    5 +
+ .../raw/10_independent_recompute.sql               |  118 +
+ .../raw/10_independent_recompute.txt               |   19 +
+ .../raw/20_testdb_init.txt                         |   74 +
+ .../raw/21_seed_runs.sh                            |   28 +
+ .../raw/21_seed_runs.txt                           |   21 +
+ .../raw/22_app_8091_startup.log                    |   20 +
+ .../raw/23_testdb_init_fresh.txt                   |   74 +
+ .../raw/24_seed_runs_freshdb.txt                   |   22 +
+ .../raw/25_recorded_false_setup.txt                |   75 +
+ .../raw/26_app_8091_startup_run3.log               |    7 +
+ .../raw/30_curl_A3_A4_A5.txt                       |   21 +
+ .../raw/40_synth_edges.sql                         |   25 +
+ .../raw/40_synth_edges.txt                         |   11 +
+ .../raw/41_curl_edge_probes.txt                    |   27 +
+ .../raw/42_curl_zerofill.txt                       |   11 +
+ .../raw/43_curl_recorded_false.txt                 |    9 +
+ .../raw/50_A1_unit_green.txt                       |   25 +
+ .../raw/51_A5_three_way_selfcheck.txt              |   16 +
+ .../raw/52_endpoint_suite_green.txt                |   24 +
+ .../raw/53_endpoint_suite_parallel_3x.txt          |   18 +
+ .../raw/54_endpoint_suite_flake_8x.txt             |    8 +
+ .../raw/55_endpoint_suite_flake_20x.txt            |    1 +
+ .../raw/56_flake_full_outputs.txt                  |   50 +
+ .../raw/57_endpoint_suite_serial.txt               |    6 +
+ .../raw/58_flake_freshdb_12x.txt                   |    1 +
+ .../raw/60_mcp_probe.sh                            |   28 +
+ .../raw/60_mcp_probe.txt                           |   38 +
+ .../raw/60_mutation_pre_sha256.txt                 |    1 +
+ .../raw/61_mutation_M1_red.txt                     |   32 +
+ .../raw/62_mutation_M1_red_e2e.txt                 |   10 +
+ .../raw/63_mutation_restore_check.txt              |    7 +
+ .../raw/64_mutation_M2_sha.txt                     |    1 +
+ .../raw/65_mutation_M2_red.txt                     |    7 +
+ .../raw/66_mutation_restore_and_green.txt          |    8 +
+ .../raw/70_antihardcode.sql                        |   21 +
+ .../raw/70_antihardcode.txt                        |   12 +
+ .../raw/71_curl_antihardcode.json                  |    1 +
+ .../raw/80_reg_application.txt                     |  255 +
+ .../raw/80_reg_backtest.txt                        |   44 +
+ .../raw/80_reg_mcp.txt                             |  128 +
+ .../raw/80_reg_strategy-core.txt                   |  120 +
+ .../raw/80_reg_web.txt                             |  412 ++
+ .../raw/81_preexisting_failure_check.txt           |   28 +
+ .../raw/81b_preexisting_failure_detail.txt         |   18 +
+ .../raw/82_regression_summary.txt                  |   10 +
+ .../raw/90_git_discipline.txt                      |   81 +
+ .../raw/91_live_8081_stale.txt                     |   15 +
+ .../raw/92_live_8082_mcp_stale.txt                 |    4 +
+ .../raw/93_instance_teardown.txt                   |    8 +
+ .../raw/94_db_teardown.txt                         |   42 +
+ .../raw/95_observability_log.txt                   |   12 +
+ .../raw/96_changed_files_sha256.txt                |   17 +
+ .../raw/97_live_zerofill_population.txt            |   10 +
+ .../raw/98_final_state.txt                         |   17 +
+ .../evidence/20260919_adr026_e2e_verify/README.md  |  332 +
+ .../raw/00_baseline_recon.txt                      |  111 +
+ .../raw/10_frontend_build.txt                      |   18 +
+ .../raw/11_frontend_dist_check.txt                 |   33 +
+ .../raw/20_backend_build.txt                       |   15 +
+ .../raw/30_old_process_stop.txt                    |   10 +
+ .../raw/31_app_restart_note.txt                    |    1 +
+ .../raw/31_app_restart_verify.txt                  |   26 +
+ .../raw/32_live_audit_curl.txt                     |   29 +
+ .../raw/33_live_mcp_probe.txt                      |   38 +
+ .../raw/33b_live_mcp_summary.txt                   |   34 +
+ .../raw/40_E2E_baseline_green.txt                  |   12 +
+ .../raw/50_mutation_page_render_setup.txt          |   23 +
+ .../raw/51_mutation_page_render_build.txt          |   18 +
+ .../raw/52_mutation_page_render_RED.txt            |   38 +
+ .../raw/53_mutation_page_render_restore.txt        |   23 +
+ .../raw/54_restored_live_dist.txt                  |   13 +
+ .../raw/55_E2E_restored_green.txt                  |   12 +
+ .../raw/60_testdb_init.txt                         |   77 +
+ .../raw/70_reg_application.txt                     |  256 +
+ .../raw/70_reg_backtest.txt                        |   46 +
+ .../20260919_adr026_e2e_verify/raw/70_reg_mcp.txt  |  128 +
+ .../raw/70_reg_strategy-core.txt                   |  122 +
+ .../raw/71_reg_web_run1.txt                        |  152 +
+ .../raw/72_reg_web_noFailFast_A.txt                |  437 ++
+ .../raw/72_reg_web_noFailFast_B.txt                |  468 ++
+ .../raw/72_reg_web_noFailFast_C.txt                |  468 ++
+ .../raw/73_tempdb_pollution_after_flake.txt        |    5 +
+ .../raw/74_adr026_suite_flake_stats.txt            |    9 +
+ .../raw/75_other_targets_isolated.txt              |    7 +
+ .../raw/76_tempdb_orphans_now.txt                  |    3 +
+ .../raw/77_testdb_init_fresh2.txt                  |   75 +
+ .../raw/78_isolation_experiment.txt                |    7 +
+ .../raw/80_frontend_vitest.txt                     |  319 +
+ .../raw/81_frontend_tsc.txt                        |    0
+ .../raw/82_regression_final.txt                    |   66 +
+ .../raw/83_regression_summary.txt                  |   15 +
+ .../raw/84_G2_head_red_check.txt                   |   25 +
+ .../raw/90_db_teardown.txt                         |   11 +
+ .../raw/91_git_boundary_audit.txt                  |  110 +
+ .../raw/92_final_state.txt                         |   15 +
+ .../raw/93_changed_files_sha256.txt                |  149 +
+ .../raw/e2e/base_10_baseline_trades.json           |   11 +
+ .../raw/e2e/base_10_baseline_trades_lines.json     |    5 +
+ .../raw/e2e/base_10_baseline_trades_mismatch.json  |    3 +
+ .../raw/e2e/base_10_baseline_trades_sources.json   |    5 +
+ .../raw/e2e/base_10_trades_tab.png                 |  Bin 0 -> 190372 bytes
+ .../raw/e2e/base_10b_trades_tab_fullpage.png       |  Bin 0 -> 190372 bytes
+ .../raw/e2e/base_10c_audit_summary_el.png          |  Bin 0 -> 34022 bytes
+ .../raw/e2e/base_10d_trades_table_el.png           |  Bin 0 -> 9025 bytes
+ .../raw/e2e/base_11_baseline_metrics.json          |   11 +
+ .../raw/e2e/base_11_baseline_metrics_lines.json    |    4 +
+ .../raw/e2e/base_11_baseline_metrics_mismatch.json |    3 +
+ .../raw/e2e/base_11_metrics_tab.png                |  Bin 0 -> 189499 bytes
+ .../raw/e2e/base_11b_metrics_tab_fullpage.png      |  Bin 0 -> 189499 bytes
+ .../raw/e2e/base_11c_metrics_basis_el.png          |  Bin 0 -> 9509 bytes
+ .../raw/e2e/base_11d_metrics_deployed_el.png       |  Bin 0 -> 5181 bytes
+ .../raw/e2e/base_12_legacy_sources.json            |   38 +
+ .../raw/e2e/base_12_legacy_sources.png             |  Bin 0 -> 179078 bytes
+ .../raw/e2e/base_12_legacy_sources_obs.json        |   11 +
+ .../raw/e2e/base_12b_legacy_trades_table_el.png    |  Bin 0 -> 174008 bytes
+ .../raw/e2e/base_13_reason_injection.json          |    6 +
+ .../raw/e2e/base_13_reason_injection.png           |  Bin 0 -> 192024 bytes
+ .../raw/e2e/base_13_reason_injection_obs.json      |   13 +
+ .../raw/e2e/base_13b_reason_table_el.png           |  Bin 0 -> 9321 bytes
+ .../raw/e2e/base_14_control_audit_500.json         |   14 +
+ .../raw/e2e/base_14_control_audit_500.png          |  Bin 0 -> 192024 bytes
+ .../raw/e2e/base_14_control_audit_500_obs.json     |   12 +
+ .../raw/e2e/base_90_mutation_deployed.png          |  Bin 0 -> 192024 bytes
+ .../raw/e2e/base_90_mutation_deployed_lines.json   |    4 +
+ .../e2e/base_90_mutation_deployed_mismatch.json    |    7 +
+ .../raw/e2e/base_90_mutation_deployed_obs.json     |   15 +
+ .../raw/e2e/base_90b_mutation_summary_el.png       |  Bin 0 -> 33997 bytes
+ .../raw/e2e/base_91_mutation_warnings.png          |  Bin 0 -> 192024 bytes
+ .../e2e/base_91_mutation_warnings_mismatch.json    |    7 +
+ .../raw/e2e/base_91_mutation_warnings_obs.json     |   15 +
+ .../raw/e2e/base_91b_mutation_summary_el.png       |  Bin 0 -> 15900 bytes
+ ...tsrc_52_mutation_page_render_RED_screenshot.png |  Bin 0 -> 191984 bytes
+ .../raw/e2e/restored_10_baseline_trades.json       |   11 +
+ .../raw/e2e/restored_10_baseline_trades_lines.json |    5 +
+ .../e2e/restored_10_baseline_trades_mismatch.json  |    3 +
+ .../e2e/restored_10_baseline_trades_sources.json   |    5 +
+ .../raw/e2e/restored_10_trades_tab.png             |  Bin 0 -> 191984 bytes
+ .../raw/e2e/restored_10b_trades_tab_fullpage.png   |  Bin 0 -> 191984 bytes
+ .../raw/e2e/restored_10c_audit_summary_el.png      |  Bin 0 -> 33079 bytes
+ .../raw/e2e/restored_10d_trades_table_el.png       |  Bin 0 -> 9025 bytes
+ .../raw/e2e/restored_11_baseline_metrics.json      |   11 +
+ .../e2e/restored_11_baseline_metrics_lines.json    |    4 +
+ .../e2e/restored_11_baseline_metrics_mismatch.json |    3 +
+ .../raw/e2e/restored_11_metrics_tab.png            |  Bin 0 -> 189397 bytes
+ .../raw/e2e/restored_11b_metrics_tab_fullpage.png  |  Bin 0 -> 189396 bytes
+ .../raw/e2e/restored_11c_metrics_basis_el.png      |  Bin 0 -> 9509 bytes
+ .../raw/e2e/restored_11d_metrics_deployed_el.png   |  Bin 0 -> 5181 bytes
+ .../raw/e2e/restored_12_legacy_sources.json        |   38 +
+ .../raw/e2e/restored_12_legacy_sources.png         |  Bin 0 -> 214359 bytes
+ .../raw/e2e/restored_12_legacy_sources_obs.json    |   11 +
+ .../e2e/restored_12b_legacy_trades_table_el.png    |  Bin 0 -> 174008 bytes
+ .../raw/e2e/restored_13_reason_injection.json      |    6 +
+ .../raw/e2e/restored_13_reason_injection.png       |  Bin 0 -> 191984 bytes
+ .../raw/e2e/restored_13_reason_injection_obs.json  |   13 +
+ .../raw/e2e/restored_13b_reason_table_el.png       |  Bin 0 -> 9321 bytes
+ .../raw/e2e/restored_14_control_audit_500.json     |   14 +
+ .../raw/e2e/restored_14_control_audit_500.png      |  Bin 0 -> 191984 bytes
+ .../raw/e2e/restored_14_control_audit_500_obs.json |   12 +
+ .../raw/e2e/restored_90_mutation_deployed.png      |  Bin 0 -> 191984 bytes
+ .../e2e/restored_90_mutation_deployed_lines.json   |    4 +
+ .../restored_90_mutation_deployed_mismatch.json    |    7 +
+ .../raw/e2e/restored_90_mutation_deployed_obs.json |   15 +
+ .../raw/e2e/restored_90b_mutation_summary_el.png   |  Bin 0 -> 33182 bytes
+ .../raw/e2e/restored_91_mutation_warnings.png      |  Bin 0 -> 191984 bytes
+ .../restored_91_mutation_warnings_mismatch.json    |    7 +
+ .../raw/e2e/restored_91_mutation_warnings_obs.json |   15 +
+ .../raw/e2e/restored_91b_mutation_summary_el.png   |  Bin 0 -> 14989 bytes
+ .../evidence/20260919_adr026_fix_verify/README.md  |  149 +
+ .../raw/00_baseline_recon.txt                      |  117 +
+ .../raw/20_postfix_web_default_parallel_x5.txt     | 2430 +++++++
+ .../23_postfix_web_default_parallel_x5_rebuilt.txt | 2430 +++++++
+ .../raw/24_workspace_nofailfast_freshdb_x3.txt     | 5446 +++++++++++++++
+ .../raw/30_g1_fixpoint_grep.txt                    |   58 +
+ .../raw/31_g1_repeat_baseline_and_mutations.txt    | 1009 +++
+ .../raw/32_g1_sentinel_survival.txt                |   37 +
+ .../raw/40_g2_reverify.txt                         |   57 +
+ .../raw/41_g2_negative_control.txt                 |   74 +
+ .../raw/50_frontend_rebuild_and_restart.txt        |   87 +
+ .../raw/60_g4_build_and_e2e.txt                    |   36 +
+ .../20260919_adr026_fix_verify/raw/61_g4_e2e.txt   |   15 +
+ .../raw/62_frontend_vitest.txt                     |   42 +
+ .../raw/70_g3_confirm.txt                          | 1214 ++++
+ .../raw/e2e/base_10_baseline_trades.json           |   11 +
+ .../raw/e2e/base_10_baseline_trades_lines.json     |    5 +
+ .../raw/e2e/base_10_baseline_trades_mismatch.json  |    3 +
+ .../raw/e2e/base_10_baseline_trades_sources.json   |    5 +
+ .../raw/e2e/base_10_trades_tab.png                 |  Bin 0 -> 190372 bytes
+ .../raw/e2e/base_10c_audit_summary_el.png          |  Bin 0 -> 34022 bytes
+ .../raw/e2e/base_10d_trades_table_el.png           |  Bin 0 -> 9025 bytes
+ .../raw/e2e/base_11_baseline_metrics.json          |   11 +
+ .../raw/e2e/base_11_baseline_metrics_lines.json    |    4 +
+ .../raw/e2e/base_11_baseline_metrics_mismatch.json |    3 +
+ .../raw/e2e/base_11_metrics_tab.png                |  Bin 0 -> 189499 bytes
+ .../raw/e2e/base_11c_metrics_basis_el.png          |  Bin 0 -> 9509 bytes
+ .../raw/e2e/base_12_legacy_sources.json            |   38 +
+ .../raw/e2e/base_12_legacy_sources_obs.json        |   11 +
+ .../raw/e2e/base_12b_legacy_trades_table_el.png    |  Bin 0 -> 174008 bytes
+ .../raw/e2e/base_13_reason_injection.json          |    6 +
+ .../raw/e2e/base_13b_reason_table_el.png           |  Bin 0 -> 9321 bytes
+ .../raw/e2e/base_14_control_audit_500.json         |   14 +
+ .../raw/e2e/base_14_control_audit_500_obs.json     |   12 +
+ .../e2e/base_90_mutation_deployed_mismatch.json    |    7 +
+ .../raw/e2e/base_90b_mutation_summary_el.png       |  Bin 0 -> 33997 bytes
+ .../e2e/base_91_mutation_warnings_mismatch.json    |    7 +
+ .../20260919_adr026_smoke_backtest/README.md       |  371 +
+ .../raw/s1_00_submit_body.json                     |    1 +
+ .../raw/s1_01_submit_resp.json                     |    1 +
+ .../raw/s1_02_final_brief.json                     |    1 +
+ .../raw/s1_02_list_head.json                       |    1 +
+ .../raw/s1_02_status_timeline.txt                  |    1 +
+ .../raw/s1_04_bars_per_bar.json                    |    1 +
+ .../raw/s1_04_curve.json                           |    1 +
+ .../raw/s1_04_fills.json                           |    1 +
+ .../raw/s1_04_result.json                          |    1 +
+ .../raw/s1_07_audit.json                           |    1 +
+ .../raw/s1_08_reconcile.txt                        |   31 +
+ .../raw/s1_reconcile.py                            |   73 +
+ .../raw/s1_run_id.txt                              |    1 +
+ .../raw/s1prev/s1_02_final_brief.json              |    1 +
+ .../raw/s1prev/s1_02_status_timeline.txt           |    1 +
+ .../s1_04_bars_kind_per_bar&limit_20000.json       |    1 +
+ .../raw/s1prev/s1_04_curve.json                    |    1 +
+ .../raw/s1prev/s1_04_fills.json                    |    1 +
+ .../raw/s1prev/s1_04_result.json                   |    1 +
+ .../raw/s1prev/s1_07_audit.json                    |    1 +
+ .../raw/s2_00_mcp_tools_list.json                  |  874 +++
+ .../raw/s2_01_mcp_submit_args.json                 |   28 +
+ .../raw/s2_02_mcp_final_brief.json                 |   12 +
+ .../raw/s2_02_mcp_submit_resp.json                 |   12 +
+ .../raw/s2_03_mcp_audit_s1.json                    |   12 +
+ .../raw/s2_04_rest_read_mcp_run.json               |    1 +
+ .../raw/s2_05_rest_audit_mcp_run.json              |    1 +
+ .../raw/s2_06_rest_result_mcp_run.json             |    1 +
+ .../raw/s2_07_parity.txt                           |   18 +
+ .../raw/s2_mcp_client.py                           |   58 +
+ .../raw/s2_parity.py                               |   42 +
+ .../raw/s2_run_id.txt                              |    1 +
+ .../raw/s2_runner.py                               |   29 +
+ .../raw/s3_a_range_brief.json                      |    1 +
+ .../raw/s3_a_range_result.json                     |    1 +
+ .../raw/s3_m1_2015-01-01_confirm_false.json        |    1 +
+ .../raw/s3_m1_2015-01-01_confirm_true.json         |    1 +
+ .../raw/s3_m1_2020-01-01_confirm_false.json        |    1 +
+ .../raw/s3_m1_2020-01-01_confirm_true.json         |    1 +
+ .../raw/s3_m1_cancel_686k.json                     |    1 +
+ .../raw/s3_req_a_range.json                        |    1 +
+ .../raw/s3_req_d_bad_strategy.json                 |    1 +
+ .../raw/s3_req_e_bad_version.json                  |    1 +
+ .../raw/s3_req_f_dca_tranches0.json                |    1 +
+ .../raw/s3_req_g_dca_interval0.json                |    1 +
+ .../raw/s3_req_h_lumpsum_pct2.json                 |    1 +
+ .../raw/s3_resp_a_range.json                       |    1 +
+ .../raw/s3_resp_d_bad_strategy.json                |    1 +
+ .../raw/s3_resp_e_bad_version.json                 |    1 +
+ .../raw/s3_resp_f_dca_tranches0.json               |    1 +
+ .../raw/s3_resp_g_dca_interval0.json               |    1 +
+ .../raw/s3_resp_h_lumpsum_pct2.json                |    1 +
+ .../raw/s3_unknown_audit.json                      |    1 +
+ .../raw/s3_unknown_fills.json                      |    1 +
+ .../raw/s3_unknown_result.json                     |    1 +
+ .../raw/s4_M1_audit.json                           |    1 +
+ .../raw/s4_M1_final_brief.json                     |    1 +
+ .../raw/s4_M1_run_id.txt                           |    1 +
+ .../raw/s4_M1_submit_body.json                     |    1 +
+ .../raw/s4_M1_submit_resp.json                     |    1 +
+ .../raw/s4_M30_audit.json                          |    1 +
+ .../raw/s4_M30_final_brief.json                    |    1 +
+ .../raw/s4_M30_run_id.txt                          |    1 +
+ .../raw/s4_M30_submit_body.json                    |    1 +
+ .../raw/s4_M30_submit_resp.json                    |    1 +
+ .../raw/s5_log_lines.txt                           |   28 +
+ .../raw/s6_negative_control.py                     |   39 +
+ .../raw/s6_negative_control.txt                    |   11 +
+ .../raw/s6_partial_run_audit.json                  |    1 +
+ tester/evidence/20260919_adr026_smoke_ui/README.md |  272 +
+ .../20260919_adr026_smoke_ui/raw/README_sha256.txt |    1 +
+ .../raw/cargo_test_application_lib_audit.txt       |   25 +
+ .../raw/cargo_test_web_adr026_run_audit.txt        |   11 +
+ .../20260919_adr026_smoke_ui/raw/checks.json       |  152 +
+ .../20260919_adr026_smoke_ui/raw/console_all.json  |    1 +
+ .../raw/console_errors.json                        |    1 +
+ .../20260919_adr026_smoke_ui/raw/db_age.txt        |    4 +
+ .../raw/hist_canvas_kline.png                      |  Bin 0 -> 49952 bytes
+ .../raw/hist_tab_metrics.png                       |  Bin 0 -> 149814 bytes
+ .../raw/hist_tab_trades.png                        |  Bin 0 -> 151651 bytes
+ .../raw/mut_out/s1_canvas_kline.png                |  Bin 0 -> 46333 bytes
+ .../raw/mut_out/s1_tab_trades.png                  |  Bin 0 -> 137889 bytes
+ .../raw/mut_out2/s1_canvas_kline.png               |  Bin 0 -> 46333 bytes
+ .../raw/mut_out2/s1_tab_trades.png                 |  Bin 0 -> 137889 bytes
+ .../20260919_adr026_smoke_ui/raw/mutation_apply.py |   39 +
+ .../raw/mutation_run_stdout.txt                    |   29 +
+ .../raw/mutation_sha_after.txt                     |    1 +
+ .../raw/mutation_sha_before.txt                    |    1 +
+ .../raw/mutation_sha_proof.txt                     |    9 +
+ .../20260919_adr026_smoke_ui/raw/network_all.json  |  274 +
+ .../raw/network_failed.json                        |    1 +
+ .../20260919_adr026_smoke_ui/raw/pageerrors.json   |    1 +
+ .../raw/post_drop_workers.txt                      |    1 +
+ .../raw/s1_canvas_kline.png                        |  Bin 0 -> 46333 bytes
+ .../raw/s1_tab_metrics.png                         |  Bin 0 -> 146813 bytes
+ .../20260919_adr026_smoke_ui/raw/s1_tab_trades.png |  Bin 0 -> 147496 bytes
+ .../20260919_adr026_smoke_ui/raw/testdb_drop.txt   |    7 +
+ .../20260919_adr026_smoke_ui/raw/testdb_env.txt    |    1 +
+ .../raw/testdb_init_stderr.txt                     |   20 +
+ .../raw/touched_files_since_1120.txt               |   30 +
+ .../raw/tracked_m_mtimes.txt                       |   22 +
+ .../20260919_adr026_smoke_ui/raw/ui_e2e.mjs        |  172 +
+ .../20260919_adr026_smoke_ui/raw/ui_e2e_stdout.txt |   27 +
+ .../raw/ui_e2e_stdout_rerun.txt                    |   27 +
+ .../raw/vitest_run_full.txt                        |  319 +
+ .../20260919_sr_trades_rootcause_verify/README.md  |  433 ++
+ .../commands.sh                                    |   85 +
+ .../raw/01_schema_strategy_run.txt                 |   24 +
+ .../raw/02_schema_strategy_run_result.txt          |   13 +
+ .../raw/03_run_row.txt                             |   13 +
+ .../raw/04_result_shape.txt                        |    6 +
+ .../raw/05_schema_strategy_run_bars.txt            |   16 +
+ .../raw/06_bars_by_kind.txt                        |    4 +
+ .../raw/07_bars_chunk_shape.txt                    |    4 +
+ .../raw/10_fills_raw.json                          |    1 +
+ .../raw/11_per_bar_raw.json                        |    1 +
+ .../raw/12_net_value_raw.json                      |    1 +
+ .../raw/13_drawdown_raw.json                       |    1 +
+ .../raw/14_trades_raw.json                         |    1 +
+ .../raw/15_metrics_raw.json                        |    1 +
+ .../raw/20_d1_bars_union.psv                       |  423 ++
+ .../raw/21_d1_available_range.txt                  |    5 +
+ .../raw/30_result_format_counts.txt                |    2 +
+ .../raw/31_target_config.json                      |    1 +
+ .../raw/40_independent_recompute.py                |  217 +
+ .../raw/41_independent_recompute_output.txt        |   69 +
+ .../raw/44_crate_metrics_probe.rs.txt              |   84 +
+ .../raw/44_crate_metrics_probe_Cargo.toml.txt      |    8 +
+ .../raw/45_crate_metrics_probe_out.txt             |   38 +
+ .../raw/46_engine_probe.rs.txt                     |  126 +
+ .../raw/46_engine_probe_Cargo.toml.txt             |   10 +
+ .../raw/47_engine_probe_out.txt                    |   25 +
+ .../raw/48_engine_real_plugin_probe.rs.txt         |   83 +
+ .../raw/49_engine_real_plugin_probe_out.txt        |   11 +
+ .../raw/50_sv_code.exact.txt                       |   25 +
+ .../raw/51_value_domain_enum.js                    |   49 +
+ .../raw/52_value_domain_enum_out.txt               |   10 +
+ .../raw/55_equal_vs_fixed_refs.txt                 |   76 +
+ .../raw/56_external_doc_equal_vs_fixed.txt         |   30 +
+ .../raw/57_doc_copy_sha_audit.txt                  |    9 +
+ .../raw/60_independent_policy_ressim.py            |  187 +
+ .../raw/61_independent_policy_ressim_out.txt       |   39 +
+ .../raw/63_intent_windows.txt                      |   17 +
+ .../raw/70_global_scan.sql                         |  133 +
+ .../raw/71_global_scan.out                         |  267 +
+ .../raw/72_global_scan_v2.sql                      |  153 +
+ .../raw/73_global_scan_v2.out                      |   40 +
+ .../raw/80_api_probe.txt                           |    8 +
+ .../raw/81_api_brief.json                          |    1 +
+ .../raw/82_api_fills.json                          |    1 +
+ .../raw/83_api_curve.json                          |    1 +
+ .../raw/84_api_result.json                         |    1 +
+ .../raw/85_design_forceclose_grep.txt              |   26 +
+ .../raw/86_forceclose_contract_refs.txt            |   81 +
+ .../raw/87_deployment_disclosure.txt               |   17 +
+ .../raw/90_twoway_candidates.txt                   |   12 +
+ .../raw/95_tw_config.json                          |    1 +
+ .../raw/95_tw_dd.json                              |    1 +
+ .../raw/95_tw_metrics.json                         |    1 +
+ .../raw/95_tw_nav.json                             |    1 +
+ .../raw/95_tw_per_bar.json                         |    1 +
+ .../raw/95_tw_trades.json                          |    1 +
+ .../raw/96_tw_bars.psv                             | 1209 ++++
+ .../raw/97_twoway_three_way_check.py               |  143 +
+ .../raw/98_twoway_three_way_check_out.txt          |   32 +
+ .../raw/99_overreach_db.txt                        |   46 +
+ .../raw/99_overreach_db2.txt                       |   40 +
+ .../raw/99_overreach_git.txt                       |   70 +
+ ...34_archived_audit_rerun_acceptance_execution.md |  162 +
+ web/e2e/adr026-audit.e2e.ts                        |  390 ++
+ web/src/api/client.test.ts                         |   33 +
+ web/src/api/client.ts                              |    5 +
+ web/src/api/mock.test.ts                           |   58 +
+ web/src/api/mock.ts                                |  109 +
+ web/src/api/types.ts                               |   58 +-
+ web/src/features/workbench/ResultView.test.tsx     |  279 +-
+ web/src/features/workbench/ResultView.tsx          |  200 +-
+ web/src/features/workbench/useRunAudit.ts          |   67 +
+ 718 files changed, 72154 insertions(+), 32 deletions(-)
+--- 148 target sha256 delta (pre -> r1) ---
+(ZERO target byte change)
+--- files modified after 12:54:00 (excluding target/ .git/) ---
+./coder/evidence/20260919_adr026_tangle_sync/README.md
+./.entangled/filedb.lock
+./tester/evidence/20260919_adr026_tangle_verify/raw/01_check_tangle_run.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/02_three_way_bytes.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/03_worktree_step1_docs_only.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/04_worktree_step2_docs_plus_code.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/05_worktree_controls.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/06_all_targets_sha256_pre_tangle.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/07a_repo_root_tangle_x2_SUPERSEDED_filter_artifact.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/07_repo_root_tangle_idempotence.txt
+(end)
+
+===== RUN 2 =====
+[12:55:35] INFO     Welcome to Entangled v2.4.3!
+           INFO     write `crates/domain/src/ports.rs`
+           INFO     write `crates/storage/src/migrate_check.rs`
+           INFO     write `migrations/0027_strategy_run_result_chunks.sql`
+           INFO     write `crates/web/src/lib.rs`
+           INFO     write `crates/mcp/src/rpc.rs`
+           INFO     write `crates/mcp/src/tools.rs`
+           INFO     write `crates/mcp/tests/mcp_protocol.rs`
+           WARNING  `crates/domain/src/ports.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/storage/src/migrate_check.rs` changed outside the
+                    control of Entangled
+           WARNING  `migrations/0027_strategy_run_result_chunks.sql` changed
+                    outside the control of Entangled
+           WARNING  `crates/web/src/lib.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/rpc.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/tools.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/tests/mcp_protocol.rs` changed outside the
+                    control of Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)
+EXIT=0
+--- delta full git status (r1 -> r2) ---
+(IDENTICAL)
+--- delta git status | grep -v '^A ' (r1 -> r2) ---
+(IDENTICAL)
+--- git diff --stat (r2) ---
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 +-
+ design/07-app-plane/00-web-api.md                  |  2 +
+ design/07-app-plane/01-mcp.md                      | 92 ++++++++++++++++++++--
+ 3 files changed, 95 insertions(+), 6 deletions(-)
+--- 148 target sha256 delta (r1 -> r2) ---
+(ZERO CHANGE on 2nd consecutive run)
+--- files modified after 12:54:00 (excluding target/ .git/) ---
+./coder/evidence/20260919_adr026_tangle_sync/README.md
+./.entangled/filedb.lock
+./tester/evidence/20260919_adr026_tangle_verify/raw/01_check_tangle_run.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/02_three_way_bytes.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/03_worktree_step1_docs_only.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/04_worktree_step2_docs_plus_code.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/05_worktree_controls.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/06_all_targets_sha256_pre_tangle.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/07a_repo_root_tangle_x2_SUPERSEDED_filter_artifact.txt
+./tester/evidence/20260919_adr026_tangle_verify/raw/07_repo_root_tangle_idempotence.txt
+(end)
+
+--- .entangled/filedb.json sha256 (pre/after) ---
+e3ad9c2342c8259103686ed4a8d218dc859e859ffafabd750a3b4f1eed78fab4  .entangled/filedb.json

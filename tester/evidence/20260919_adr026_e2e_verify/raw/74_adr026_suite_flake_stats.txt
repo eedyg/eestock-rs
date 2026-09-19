@@ -1,0 +1,9 @@
+### 新增端点套件 adr026_run_audit 隔离重复（默认并行 vs 串行） 2026-09-19T01:19:29+08:00
+PARALLEL run1 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s | failed_cases=none
+PARALLEL run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s | failed_cases=test audit_endpoint_emits_required_tracing_fields ... FAILED,
+PARALLEL run3 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s | failed_cases=none
+PARALLEL run4 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s | failed_cases=none
+PARALLEL run5 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s | failed_cases=none
+SERIAL   run1 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.48s | failed_cases=none
+SERIAL   run2 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s | failed_cases=none
+SERIAL   run3 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s | failed_cases=none

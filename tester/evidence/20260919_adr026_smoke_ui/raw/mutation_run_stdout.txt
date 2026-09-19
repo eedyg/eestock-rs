@@ -1,0 +1,29 @@
+PASS | A00 | 页面加载 /backtest-workbench + 左侧运行列表渲染 | workbench-page + wb-run-list 可见，S1 run 行存在
+PASS | __SEL__ | 选中 run 行并完成结果取数 | selected=sr_1789787931919_000001 title="smoke_adr026_S1_REST_518880_D1_2025"
+PASS | A01 | 结果视图正常出图：K 线容器 + canvas 存在 | wb-kline-chart visible=true, canvas count=10
+PASS | A02 | K 线 canvas 尺寸合理（>200x100） | {"x":601,"y":101,"width":1021,"height":107}
+PASS | A03 | /fills 标记来源计数可见（成交 N 笔，来自精确源 /fills） | wb-fills-note="成交 4 笔（精确源 /fills）"
+PASS | A04 | 无成交明细加载失败提示 | wb-fills-error count=0
+FAIL | A05 | 交易明细 Tab 出「审计摘要行」（wb-audit-summary） | text="<<not rendered>>"
+FAIL | A06 | 审计摘要含现金消耗/计划批数/买入成交/未执行挂单 | <<absent>>
+FAIL | A07 | warning 展示（本条 run 预期 ORDERS_UNEXECUTED） | count=0 texts=[]
+FAIL | A08 | 无审计加载失败 | wb-audit-error count=1
+PASS | A09 | 交易明细表含「来源」列 | headers=["开仓","平仓","开价","平价","股数","盈亏","持仓","来源"]
+FAIL | A10 | S1 run 来源列显示 正常/止损/期末强平 之一（新写路径 reason 生效） | rows=1 labels=["期末强平"]
+PASS | A11 | S1 run 来源列无「未记录」 | labels=["期末强平"]
+PASS | A12 | 8 项绩效表 = 8 行 | rows=8
+PASS | A13 | 口径注存在且含「口径」「初始资金」「分母」 | 口径：年化 / 最大回撤 / 夏普的分母 = 初始资金 ¥100,000（未满仓时按实际投入口径的风险更高，故并列披露资金投入率）
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+locator.innerText: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-testid="wb-metrics-deployed"]')[22m
+
+    at /home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_adr026_smoke_ui/raw/ui_e2e.mjs:132:80 {
+  log: [ `  - waiting for locator('[data-testid="wb-metrics-deployed"]')` ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.22.2

@@ -1,0 +1,14 @@
+### log file: logs/app_dev_8081_redeploy_20260919_111711.log
+-rw-rw-r-- 1 eestock eestock 1126 Sep 19 11:17 logs/app_dev_8081_redeploy_20260919_111711.log
+### raw content
+{"timestamp":"2026-09-19T03:17:11.015828Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T03:17:11.065588Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T03:17:11.067142Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T03:17:11.068149Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T03:17:11.068248Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-19T03:17:11.068284Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-19T03:17:13.678511Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"dfaccab741514ceec04f0c7714c133a8"},"target":"mcp::server"}
+### line count: 7
+### INFO count: 7
+### ERROR count: 0
+### WARN count: 0

@@ -1,0 +1,13 @@
+### R-G3 复现：同一临时库（tmp_g3b_1789754127）连续跑 cargo test -p web --no-fail-fast ×2（2026-09-19T01:55:46+08:00）
+
+RUN1: open_ok=29 failed=0 
+raw=836448
+cagg=
+RUN2: open_ok=28 failed=1 
+raw=836448,837934
+cagg=836448
+test r1_orphan_endpoint_exists_and_reports_zero_on_clean_db ... FAILED
+---- r1_orphan_endpoint_exists_and_reports_zero_on_clean_db stdout ----
+thread 'r1_orphan_endpoint_exists_and_reports_zero_on_clean_db' (87621) panicked at crates/web/tests/orphan_detect_endpoint_red.rs:47:5:
+assertion `left == right` failed: R1: 当前活库无孤儿（2026-09-17 清理后 0）⇒ rows 必须为 0
+DB=tmp_g3b_1789754127

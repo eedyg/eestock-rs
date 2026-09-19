@@ -162,6 +162,28 @@ pub enum OrderReason {
     ForceClose,
 }
 
+impl OrderReason {
+    /// 稳定字符串形态（**唯一映射源**：`per_bar[].orders/events` 落库、`fills` 事实源、
+    /// `TradeDetail.reason` 三处共用；与 serde 外部标记形态一致，ADR-026 §2.3）。
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            OrderReason::Policy => "Policy",
+            OrderReason::StopTrigger => "StopTrigger",
+            OrderReason::ForceClose => "ForceClose",
+        }
+    }
+
+    /// [`OrderReason::as_str`] 的逆映射（`None` = 未知字符串，调用方自行决定语义）。
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "Policy" => Some(OrderReason::Policy),
+            "StopTrigger" => Some(OrderReason::StopTrigger),
+            "ForceClose" => Some(OrderReason::ForceClose),
+            _ => None,
+        }
+    }
+}
+
 /// 订单意图（决策 bar 记录；次 bar open 成交——Intrabar 止损除外，决策即成交）。
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct OrderIntent {
@@ -493,6 +515,7 @@ impl EnsembleSession {
                 h.qty,
                 bar.ts,
                 n - 1,
+                OrderReason::ForceClose,
                 &exec,
             );
             if let Some(last) = self.nav.last_mut() {
@@ -600,6 +623,7 @@ impl EnsembleSession {
                                         q,
                                         bar.ts,
                                         i,
+                                        reason,
                                         &exec,
                                     );
                                 }
@@ -639,6 +663,7 @@ impl EnsembleSession {
                                     h.qty,
                                     bar.ts,
                                     i,
+                                    OrderReason::StopTrigger,
                                     &exec,
                                 );
                                 // MAJOR-2 裁决：强平 = 外部中断 → 重置 PolicyState
@@ -833,6 +858,9 @@ pub fn run_ensemble_with_quickjs_observed(
 }
 
 /// 卖出台账处理：部分卖出按比例摊薄成本；清仓合成完整 [`TradeDetail`] 并重置 Trailing。
+///
+/// `reason` = **本笔卖出的来源**（`Policy` / `StopTrigger` / `ForceClose`）；清仓合成时写入
+/// `TradeDetail.reason`（ADR-026 §2.3）。部分卖出不产生 `TradeDetail` ⇒ 该参数只在清仓分支被消费。
 fn apply_sell(
     holding: &mut Option<Holding>,
     trades: &mut Vec<TradeDetail>,
@@ -840,6 +868,7 @@ fn apply_sell(
     qty: f64,
     ts: i64,
     bar_index: usize,
+    reason: OrderReason,
     exec: &backtest::SellExecution,
 ) {
     let Some(h) = holding.as_mut() else { return };
@@ -858,6 +887,8 @@ fn apply_sell(
             stamp_duty: exec.stamp_duty,
             pnl: exec.proceeds - h.cost_basis,
             hold_bars: bar_index - h.entry_bar,
+            // ADR-026 §2.3：清仓来源三值（历史 run 该字段缺失 ⇒ None，前端显示「未记录」）。
+            reason: Some(reason.as_str().to_string()),
         });
         *holding = None;
         trailing.reset();

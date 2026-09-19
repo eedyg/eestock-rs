@@ -404,13 +404,14 @@ export interface MultiPeriodConfigDto {
 // ── 回测/模拟实盘共享读模型（P4b：旧页面⑤ DTO 已退役；Metrics/Trade 为 ensemble 引擎
 //    backtest::BacktestMetrics / backtest::TradeDetail 的 jsonb 形态，页面⑪ 工作台与⑨ sim-live 沿用）──
 
-/** 8 项绩效指标（BacktestMetrics jsonb；口径 08-backtest §6 单测锁定） */
+/** 8 项绩效指标（BacktestMetrics jsonb；口径 08-backtest §6 单测锁定）。
+ *  ⚠ `profit_factor` 可为 `null`：JSON 无法表达 ∞（区间内无亏损）⇒ 后端回 null，前端显「∞（无亏损）」。 */
 export interface Metrics {
   net_profit: number;
   max_drawdown: number;
   sharpe: number;
   win_rate: number;
-  profit_factor: number;
+  profit_factor: number | null;
   annualized_return: number;
   trade_count: number;
   avg_hold_bars: number;
@@ -430,6 +431,8 @@ export interface Trade {
   stamp_duty: number;
   pnl: number;
   hold_bars: number;
+  /** ADR-026 §2.3：清仓那一笔的来源（新 run 引擎写入；历史 run 缺字段 ⇒ 未记录）。 */
+  reason?: TradeReason | null;
 }
 
 // ── 页面⑨ 模拟实盘（11-sim-live / L3b；07-app-plane/00-web-api.md §1.6，snake_case 直通）──
@@ -1058,6 +1061,11 @@ export type WorkbenchMetrics = Metrics;
  *  `chunked_v1` = 数据在 `strategy_run_bars` 分块（图表走 `/curve`、明细走 `/bars`、成交走 `/fills`）。 */
 export type WorkbenchResultFormat = 'legacy_single' | 'chunked_v1';
 
+/** 完全平仓回合的来源（ADR-026 §2.3 = `TradeDetail.reason`；引擎写入清仓那一笔的来源）。
+ *  `Policy` = 策略信号正常平仓 / `StopTrigger` = 止损触发 / `ForceClose` = 期末强平。
+ *  历史 run（ADR-026 之前）该字段缺失 ⇒ 前端显示「未记录」（**不**反推、**不**伪造）。 */
+export type TradeReason = 'Policy' | 'StopTrigger' | 'ForceClose';
+
 /** GET /api/workbench/runs/{id}/brief（轻量摘要；列表/轮询用，避免拉大包）。
  *  P5 字段（effective_from·effective_to·clamped·estimated_bars）在 P4 为先占位真值，前端只读展示不推导。 */
 export interface WorkbenchResultBrief {
@@ -1136,6 +1144,52 @@ export interface WorkbenchFillsResponse {
   /** `false` = 该 chunked run 无 fills 块（「未写」，与「无成交」`true`+`total=0` 可区分）。 */
   recorded: boolean;
   fills: WorkbenchRunFill[];
+}
+
+/** 执行完整度审计的非阻断提示（ADR-026 §2.2；仅信息性，不改变引擎行为、不拒绝提交）。
+ *  `code` ∈ {`DCA_PLAN_UNDERFILLED`, `PARTIAL_DEPLOYMENT`, `ORDERS_UNEXECUTED`}（判据常量集中后端）。 */
+export interface WorkbenchAuditWarning {
+  code: string;
+  severity: 'info' | 'warn';
+  message: string;
+}
+
+/**
+ * 执行完整度审计（GET /api/workbench/runs/{id}/audit；ADR-026 §2.2 **冻结**契约，snake_case 直通，
+ * 字段名以真实响应为事实源）。
+ *
+ * 口径消歧（ADR-026 §2.1，禁同物异名）：
+ * - `deployed_*` = **敞口**（Σ buy 成交额，不含费用）；
+ * - `cash_consumed*` = **资金占用**（敞口 + Σ buy 佣金）。
+ *
+ * `recorded=false` ⇒ 事实源缺失（per_bar.orders/events 与 fills 皆不可得）：其余数值均为 0、
+ * `warnings` 为空 —— UI **必须**显「未记录」而**不得**把 0 读成「0% 投入」。
+ */
+export interface WorkbenchRunAudit {
+  run_id: string;
+  /** 事实源是否齐全（per_bar.orders/events 或 fills 可得）。 */
+  recorded: boolean;
+  /** 绩效分母口径（= run config initial_capital）。 */
+  capital_basis: number;
+  deployed_notional: number;
+  deployed_pct: number;
+  cash_consumed: number;
+  cash_consumed_pct: number;
+  /** 计划批数（仅 `Dca` 策略有值，其余 null）。 */
+  planned_tranches: number | null;
+  /** 区间内可达轮次（per_bar 的 Buy 意图数，含 warmup 段排除）。 */
+  reachable_batches: number;
+  /** 已成交买入批数（逐笔源 /fills）。 */
+  batches_done: number;
+  /** 未执行挂单 = 意图数 − 买入成交数（≥0）。 */
+  unexecuted_orders: number;
+  /** 末根 in-range bar 存在 Buy 意图（结构上无次 bar 可成交）。 */
+  last_bar_unfilled: boolean;
+  /** 完全平仓回合数（= `trades` 长度）。 */
+  round_trips_total: number;
+  /** 其中由期末强平合成的回合数（读侧派生，历史 run 亦可判）。 */
+  round_trips_force_closed: number;
+  warnings: WorkbenchAuditWarning[];
 }
 
 /** StrategyRunResult（GET /api/workbench/runs/{id}/result；ADR-024 §3.2 **兼容** 形状）。

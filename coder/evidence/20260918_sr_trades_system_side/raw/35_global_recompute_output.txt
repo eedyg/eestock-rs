@@ -1,0 +1,75 @@
+====================================================================================================
+[Y5-③] 全库独立重算 vs metrics 逐字段最大绝对差（377 run，跳过 3 个 chunked 的净值不在 dump）
+field                max |delta|              worst run
+net_profit           0.000e+00                None
+max_drawdown         0.000e+00                None
+sharpe               9.459e-14                sr_1789040967030_000038
+win_rate             0.000e+00                None
+profit_factor        inf                      sr_1789041187600_000052
+annualized_return    0.000e+00                None
+trade_count          0.000e+00                None
+avg_hold_bars        0.000e+00                None
+超容差(>1e-6)不一致条数 = 137
+    ('sr_1789041187600_000052', 'profit_factor', inf, None, inf)
+    ('sr_1789041579555_000077', 'profit_factor', inf, None, inf)
+    ('sr_1789041655466_000084', 'profit_factor', inf, None, inf)
+    ('sr_1789044294963_000098', 'profit_factor', inf, None, inf)
+    ('sr_1789044295229_000110', 'profit_factor', inf, None, inf)
+    ('sr_1789044295270_000113', 'profit_factor', inf, None, inf)
+    ('sr_1789052338372_000155', 'profit_factor', inf, None, inf)
+    ('sr_1789183624984_000000', 'profit_factor', inf, None, inf)
+    ('sr_1789183724147_000001', 'profit_factor', inf, None, inf)
+    ('sr_1789185280539_000002', 'profit_factor', inf, None, inf)
+    ('sr_1789185300115_000003', 'profit_factor', inf, None, inf)
+    ('sr_1789185302164_000004', 'profit_factor', inf, None, inf)
+    ('sr_1789185304210_000005', 'profit_factor', inf, None, inf)
+    ('sr_1789185320440_000006', 'profit_factor', inf, None, inf)
+    ('sr_1789185323520_000007', 'profit_factor', inf, None, inf)
+    ('sr_1789211239591_000017', 'profit_factor', inf, None, inf)
+    ('sr_1789211284656_000018', 'profit_factor', inf, None, inf)
+    ('sr_1789211329739_000019', 'profit_factor', inf, None, inf)
+    ('sr_1789211374823_000020', 'profit_factor', inf, None, inf)
+    ('sr_1789211419907_000021', 'profit_factor', inf, None, inf)
+    ('sr_1789211465014_000022', 'profit_factor', inf, None, inf)
+    ('sr_1789211510077_000023', 'profit_factor', inf, None, inf)
+    ('sr_1789211555164_000024', 'profit_factor', inf, None, inf)
+    ('sr_1789211605009_000025', 'profit_factor', inf, None, inf)
+    ('sr_1789211650095_000026', 'profit_factor', inf, None, inf)
+    ('sr_1789211695181_000027', 'profit_factor', inf, None, inf)
+    ('sr_1789211783919_000030', 'profit_factor', inf, None, inf)
+    ('sr_1789211874087_000033', 'profit_factor', inf, None, inf)
+    ('sr_1789211964253_000036', 'profit_factor', inf, None, inf)
+    ('sr_1789212066161_000039', 'profit_factor', inf, None, inf)
+    ('sr_1789212111246_000040', 'profit_factor', inf, None, inf)
+    ('sr_1789212156335_000041', 'profit_factor', inf, None, inf)
+    ('sr_1789212274674_000044', 'profit_factor', inf, None, inf)
+    ('sr_1789212319758_000045', 'profit_factor', inf, None, inf)
+    ('sr_1789212364841_000046', 'profit_factor', inf, None, inf)
+    ('sr_1789212409923_000047', 'profit_factor', inf, None, inf)
+    ('sr_1789212455007_000048', 'profit_factor', inf, None, inf)
+    ('sr_1789212500090_000049', 'profit_factor', inf, None, inf)
+    ('sr_1789212545195_000050', 'profit_factor', inf, None, inf)
+    ('sr_1789212590258_000051', 'profit_factor', inf, None, inf)
+
+[Y5-①] 多回合（trade_count>1）run 数量 = 181
+前 20 例（run_id, symbol, period, trades, per_bar orders, per_bar fill events）：
+    ('sr_1789013905608_000022', '516380', 'D1', 33, 67, 66)
+    ('sr_1789040196234_000000', '159740', 'M5', 106, 211, 212)
+    ('sr_1789040385708_000001', '159740', 'M5', 106, 211, 212)
+    ('sr_1789040388790_000002', '159740', 'M5', 27, 57, 57)
+    ('sr_1789040391904_000003', '518880', 'M5', 93, 185, 186)
+    ('sr_1789040394990_000004', '518880', 'M5', 38, 75, 76)
+    ('sr_1789040398073_000005', '513310', 'M5', 78, 155, 156)
+    ('sr_1789040401152_000006', '513310', 'M5', 36, 74, 75)
+    ('sr_1789040618748_000009', '159740', 'M5', 25, 50, 50)
+    ('sr_1789040621829_000010', '518880', 'M5', 44, 88, 88)
+    ('sr_1789040624896_000011', '513310', 'M5', 98, 196, 196)
+    ('sr_1789040669243_000012', '159740', 'M5', 25, 50, 50)
+    ('sr_1789040672324_000013', '518880', 'M5', 38, 76, 76)
+    ('sr_1789040675394_000014', '513310', 'M5', 97, 194, 194)
+    ('sr_1789040678471_000015', '159740', 'M5', 25, 50, 50)
+    ('sr_1789040681554_000016', '518880', 'M5', 29, 58, 58)
+    ('sr_1789040684631_000017', '513310', 'M5', 95, 190, 190)
+    ('sr_1789040687712_000018', '159740', 'M5', 14, 28, 28)
+    ('sr_1789040690788_000019', '518880', 'M5', 29, 58, 58)
+    ('sr_1789040693862_000020', '513310', 'M5', 97, 194, 194)

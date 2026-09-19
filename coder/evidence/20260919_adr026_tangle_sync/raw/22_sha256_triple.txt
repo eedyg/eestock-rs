@@ -1,0 +1,5 @@
+=== sha256 triple (baseline / pre-edit worktree / post-tangle) ===
+crates/web/src/lib.rs                    baseline=c9ae22928247 pre=c9ae22928247 post=c9ae22928247
+crates/mcp/src/rpc.rs                    baseline=101811fbd9b7 pre=101811fbd9b7 post=101811fbd9b7
+crates/mcp/src/tools.rs                  baseline=d50ae8e5afe8 pre=d50ae8e5afe8 post=d50ae8e5afe8
+crates/mcp/tests/mcp_protocol.rs         baseline=47f0b2ce2d62 pre=47f0b2ce2d62 post=47f0b2ce2d62

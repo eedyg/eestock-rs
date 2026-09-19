@@ -1,0 +1,6 @@
+### design/ 中 DCA 批次/计划/dropped 相关
+design/12-strategy-system/02-plugin-abi.md:112:- `定投模板`：按 `bars_since_entry`/`qty` 与计划批次控制高分时机，配合 DCA Policy；
+design/12-strategy-system/01-adr.md:99:   - `Dca{tranches: N, mode: equal|fixed_amount, amount?, interval?: k（默认 1）}`：buy 信号持续期间分 N 批建仓（每 k bar 一批；Equal 计划总额 = 本轮 Buy 起点净值快照；信号中断 → 剩余批次取消，Buy 重现重新计数）；**sell 信号 → 一次性清仓**（目标 0；P1a 裁决覆盖本节旧文「对称分批减仓」，与 Grill Q3 推荐一致）；
+design/12-strategy-system/01-adr.md:156:- **止损×Policy 交互（P1a 评审 MAJOR-2 裁决）**：硬止损强平 = **外部中断**——触发即平仓的同时**重置 PolicyState**（DCA 批次/基线清零，与 Trailing 峰值 reset 对齐）；次个 Buy 信号重新计数，禁止以陈旧批次状态一次性重建仓。
+design/12-strategy-system/03-live-readiness.md:38:6. **交易时段感知归 Executor**（oracle 挑战）：集合竞价/非交易时段的拒单/挂单由
+design/08-backtest/01-engine-adr.md:87:- 每 bar：先算指标 → `on_bar` → 按信号挂单 → bar 内成交判定（见 §4）→ 更新组合/净值。

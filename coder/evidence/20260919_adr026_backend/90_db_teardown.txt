@@ -1,0 +1,21 @@
+== ADR-025 §D3 测试载体 teardown（临时库必须 drop，不留残留）
+-- 库名：tmp_adr026_1789749546（lane=adr026）
+
+$ PGPASSWORD=eestock psql -h 127.0.0.1 -p 5433 -U eestock -d postgres -c "DROP DATABASE tmp_adr026_1789749546 WITH (FORCE)"
+DROP DATABASE
+
+== 回读库清单（正向断言：仅 {eestock, postgres} + 系统模板）
+eestock
+postgres
+
+== 回读：tmp_ 前缀残留数（须为 0）
+0
+
+== ADR-025 §D3 teardown（新临时库，跑完即删）
+$ psql -d postgres -c "DROP DATABASE tmp_adr026f_1789750143 WITH (FORCE)"
+DROP DATABASE
+-- 回读 datname not like 'template%'：
+eestock
+postgres
+-- 回读 tmp_ 残留数（须 0）：
+0

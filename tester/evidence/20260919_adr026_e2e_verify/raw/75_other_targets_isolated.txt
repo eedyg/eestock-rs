@@ -1,0 +1,7 @@
+### orphan_detect_endpoint_red 隔离重复（默认并行）2026-09-19T01:21:15+08:00
+run1 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+run3 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+### tester_p5rect_verify 隔离重复（既有红 F5）
+run1 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.27s | test t_n1_http_every_400_is_structured_object ... FAILED,
+run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.10s | test t_n1_http_every_400_is_structured_object ... FAILED,

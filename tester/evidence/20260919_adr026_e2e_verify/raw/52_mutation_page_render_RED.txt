@@ -1,0 +1,38 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr026-audit.e2e.ts:203:1 › 10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning 条 + 来源列 (15.2s)
+
+
+  1) [chromium] › e2e/adr026-audit.e2e.ts:203:1 › 10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning 条 + 来源列 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByTestId('wb-audit-summary')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByTestId('wb-audit-summary')
+
+
+      120 |   await expect(page.getByTestId('wb-result')).toBeVisible();
+      121 |   await expect(page.getByTestId('wb-run-title')).toBeVisible();
+    > 122 |   await expect(page.getByTestId('wb-audit-summary')).toBeVisible();
+          |                                                      ^
+      123 | }
+      124 |
+      125 | /**
+        at openRun (/home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr026-audit.e2e.ts:122:54)
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr026-audit.e2e.ts:205:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr026-audit.e2e.ts-10-bas-39163-易明细-Tab-出审计摘要-warning-条-来源列-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr026-audit.e2e.ts-10-bas-39163-易明细-Tab-出审计摘要-warning-条-来源列-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr026-audit.e2e.ts:203:1 › 10_baseline_trades：目标 run 交易明细 Tab 出审计摘要 + warning 条 + 来源列 

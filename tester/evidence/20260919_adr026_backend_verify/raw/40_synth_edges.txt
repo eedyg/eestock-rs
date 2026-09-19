@@ -1,0 +1,11 @@
+Pager usage is off.
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+            id             | pb | fb | res 
+---------------------------+----+----+-----
+ sr_verify_nofills_000001  |  1 |  0 |   1
+ sr_verify_noresult_000002 |  0 |  0 |   0
+(2 rows)
+

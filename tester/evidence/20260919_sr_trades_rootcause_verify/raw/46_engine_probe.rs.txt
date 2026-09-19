@@ -1,0 +1,126 @@
+// Tester 只读探针（位于 /tmp，不属于仓库）：
+// 1) 最小示例复现「末 bar 挂单被静默丢弃」（engine.rs finish() 不消费 pending）；
+// 2) 最小示例复现「挂单被静默跳过」（exec.shares==0 分支：无 Fill 事件 / 无计数 / 无日志）；
+// 3) 双向最小示例：证明引擎能双向、TradeDetail 仅在清仓时合成、且 TradeDetail 无 reason 字段。
+// 用 mock PluginRuntime（不跑 QuickJS 插件代码）以固定分序列驱动，纯确定性。
+use backtest::{Bar, FeeModel, Period, StrategyParams};
+use strategy_core::{
+    run_ensemble, DcaMode, EngineEvent, EnsembleConfig, EnsembleResult, ExecutionPolicy, OrderReason,
+    OrderSide, StrategySlot,
+};
+use strategy_runtime::{BarCtx, ParamDef, PluginError, PluginInstance, PluginRuntime};
+
+struct MockInst {
+    scores: Vec<f64>,
+    idx: usize,
+}
+impl PluginInstance for MockInst {
+    fn on_bar(&mut self, _ctx: &BarCtx<'_>) -> Result<f64, PluginError> {
+        let s = self.scores.get(self.idx).copied().unwrap_or(50.0);
+        self.idx += 1;
+        Ok(s)
+    }
+    fn save(&self) -> Result<Option<serde_json::Value>, PluginError> { Ok(None) }
+    fn load(&mut self, _s: &serde_json::Value) -> Result<(), PluginError> { Ok(()) }
+    fn params_schema(&self) -> &[ParamDef] { &[] }
+}
+struct MockRt { scores: Vec<f64> }
+impl PluginRuntime for MockRt {
+    fn instantiate(&mut self, _h: &str, _c: &str, _p: &StrategyParams)
+        -> Result<Box<dyn PluginInstance>, PluginError> {
+        Ok(Box::new(MockInst { scores: self.scores.clone(), idx: 0 }))
+    }
+}
+
+fn bars(n: usize, price: f64) -> Vec<Bar> {
+    (0..n)
+        .map(|i| Bar { ts: 1_700_000_000 + i as i64 * 86_400, open: price, high: price, low: price, close: price, volume: 10_000.0 })
+        .collect()
+}
+fn cfg(policy: ExecutionPolicy, initial: f64) -> EnsembleConfig {
+    EnsembleConfig {
+        slots: vec![StrategySlot::new("function on_bar(){}", "deadbeef", StrategyParams::new(), 1.0).unwrap()],
+        buy_threshold: 60.0,
+        sell_threshold: 40.0,
+        policy,
+        stop: None,
+        initial_capital: initial,
+        fee: FeeModel { commission_rate_pct: 0.025, min_commission: 5.0, stamp_duty_pct: 0.0, slippage_bp: 2.0 },
+        period: Period::D1,
+        warmup_bars: 0,
+        runtime_limits: Default::default(),
+    }
+}
+fn run(c: &EnsembleConfig, b: &[Bar], scores: Vec<f64>) -> EnsembleResult {
+    let mut rt = MockRt { scores };
+    run_ensemble(c, b, &mut rt).expect("run ok")
+}
+fn fills_of(res: &EnsembleResult) -> Vec<(usize, OrderSide, f64, OrderReason)> {
+    res.per_bar
+        .iter()
+        .flat_map(|r| r.events.iter())
+        .filter_map(|e| match e {
+            EngineEvent::Fill { bar_index, side, qty, price: _, reason } => Some((*bar_index, *side, *qty, *reason)),
+            _ => None,
+        })
+        .collect()
+}
+fn n_intents(res: &EnsembleResult) -> usize {
+    res.per_bar.iter().map(|r| r.orders.len()).sum()
+}
+
+fn main() {
+    println!("================ P1 末 bar 挂单被静默丢弃（最小示例） ================");
+    let b = bars(5, 10.0);
+    let policy = ExecutionPolicy::Dca { tranches: 10, mode: DcaMode::Equal, amount: None, interval: 1 };
+    let c = cfg(policy, 100_000.0);
+    let res = run(&c, &b, vec![75.0; 5]);
+    let f = fills_of(&res);
+    println!("bars = 5（全 Buy 分 75，Dca{{tranches:10, interval:1, Equal}}）");
+    println!("per_bar.orders 意图总数 = {}", n_intents(&res));
+    println!("逐 bar 意图 side = {:?}", res.per_bar.iter().map(|r| r.orders.iter().map(|o| format!("{:?}", o.side)).collect::<Vec<_>>()).collect::<Vec<_>>());
+    println!("fills = {:?}", f.iter().map(|x| (x.0, format!("{:?}", x.1), format!("{:?}", x.3))).collect::<Vec<_>>());
+    let nonfc = f.iter().filter(|x| x.3 != OrderReason::ForceClose).count();
+    println!("非强平成交 = {}；意图 − 非强平成交 = {}（= 最后一根的挂单）", nonfc, n_intents(&res) - nonfc);
+    println!("trade_count = {} ; net_profit = {:.9} ; nav 末点 = {:.9}", res.metrics.trade_count, res.metrics.net_profit, res.net_value.last().unwrap().1);
+    println!("metrics JSON = {}", serde_json::to_string(&res.metrics).unwrap());
+    println!("结果结构里有无 dropped/pending/unfilled 字段 = {}",
+             serde_json::to_string(&res.metrics).unwrap().contains("dropped"));
+    println!("事件类型集合 = {:?}", res.per_bar.iter().flat_map(|r| r.events.iter()).map(|e| match e {
+        EngineEvent::Fill { .. } => "Fill", EngineEvent::PluginError { .. } => "PluginError",
+        EngineEvent::CircuitBreaker { .. } => "CircuitBreaker", EngineEvent::PluginLog { .. } => "PluginLog" }).collect::<Vec<_>>());
+
+    println!();
+    println!("================ P2 挂单被静默跳过（exec.shares==0 分支） ================");
+    let b2 = bars(10, 10.0);
+    let policy2 = ExecutionPolicy::Dca { tranches: 1000, mode: DcaMode::Equal, amount: None, interval: 1 };
+    let c2 = cfg(policy2, 100.0);
+    let res2 = run(&c2, &b2, vec![75.0; 10]);
+    println!("bars = 10（全 Buy 分 75）；initial_capital = 100；Dca{{tranches:1000, interval:1}}");
+    println!("意图总数 = {} ; fills = {:?} ; 事件总数 = {}",
+             n_intents(&res2),
+             fills_of(&res2).iter().map(|x| format!("{:?}", x.3)).collect::<Vec<_>>(),
+             res2.per_bar.iter().map(|r| r.events.len()).sum::<usize>());
+    println!("nav 末点 = {:.9}（现金从未动用）；net_profit = {:.9}", res2.net_value.last().unwrap().1, res2.metrics.net_profit);
+    println!("=> 10 条挂单全部静默消失：无 Fill、无事件、无计数、无日志（events 全空）");
+
+    println!();
+    println!("================ P3 双向最小示例（引擎能双向；TradeDetail 无 reason 字段） ================");
+    let b3 = bars(6, 10.0);
+    let policy3 = ExecutionPolicy::Dca { tranches: 3, mode: DcaMode::Equal, amount: None, interval: 1 };
+    let c3 = cfg(policy3, 100_000.0);
+    let scores = vec![75.0, 75.0, 75.0, 20.0, 20.0, 50.0];
+    let res3 = run(&c3, &b3, scores);
+    let f3 = fills_of(&res3);
+    println!("bars = 6；分数 = [75,75,75,20,20,50]（Buy→Sell→Hold）");
+    println!("fills = {:?}", f3.iter().map(|x| (x.0, format!("{:?}", x.1), format!("{:?}", x.3))).collect::<Vec<_>>());
+    println!("trades 笔数 = {} ; trade_count = {} ; win_rate = {:.4} ; net_profit = {:.9}",
+             res3.trades.len(), res3.metrics.trade_count, res3.metrics.win_rate, res3.metrics.net_profit);
+    println!("trades[0] JSON = {}", serde_json::to_string(&res3.trades[0]).unwrap());
+    println!("TradeDetail 含 `reason` 字段 = {}", serde_json::to_string(&res3.trades[0]).unwrap().contains("reason"));
+    println!("P3 里 ForceClose 笔数 = {}（双向场景期末空仓 ⇒ 无强平）",
+             f3.iter().filter(|x| x.3 == OrderReason::ForceClose).count());
+    println!("P3 trades[0].pnl 与 nav 末点一致性：sum(pnl) = {:.9} ; nav[-1]-initial = {:.9} ; Δ = {:.3e}",
+             res3.trades.iter().map(|t| t.pnl).sum::<f64>(), res3.net_value.last().unwrap().1 - 100_000.0,
+             res3.trades.iter().map(|t| t.pnl).sum::<f64>() - (res3.net_value.last().unwrap().1 - 100_000.0));
+}

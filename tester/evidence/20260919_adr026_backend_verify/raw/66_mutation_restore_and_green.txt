@@ -1,0 +1,8 @@
+### M2 还原校验
+acf65682af84283e492f8a1e922107392b0fdaa8dcde6c979d19fdd4ea011b90  crates/application/src/audit.rs
+cmp OK（逐字节一致）
+?? crates/application/src/audit.rs
+### 还原后复跑（Green）
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+

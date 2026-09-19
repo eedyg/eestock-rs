@@ -1,0 +1,16 @@
+MAPPING SEMANTICS (empirically verified, entangled 2.4.3):
+  generated file bytes == ['// ~/~ begin <<<doc>>#<target>>>[init]']
+                        + <fenced-block content lines, verbatim>
+                        + ['// ~/~ end']
+  => doc-block content == generated-file lines[1:-2] (begin marker, end marker, trailing '' stripped)
+  => block content is NOT wrapped in in-block ~/~ markers; the two docs contain NO '~/~ begin'
+
+BLOCK BOUNDARIES (post-edit, 1-based, after the ADR-026 doc sync):
+  design/07-app-plane/00-web-api.md:2610  fence-open   -> crates/web/src/lib.rs
+      content lines 2611..2720  (110 lines), fence-close line 2721
+  design/07-app-plane/01-mcp.md:255  fence-open   -> crates/mcp/src/rpc.rs
+      content lines 256..382  (127 lines), fence-close line 383
+  design/07-app-plane/01-mcp.md:385  fence-open   -> crates/mcp/src/tools.rs
+      content lines 386..4056  (3671 lines), fence-close line 4057
+  design/07-app-plane/01-mcp.md:4395  fence-open   -> crates/mcp/tests/mcp_protocol.rs
+      content lines 4396..4735  (340 lines), fence-close line 4736

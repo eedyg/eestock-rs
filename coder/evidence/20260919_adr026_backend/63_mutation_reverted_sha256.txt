@@ -1,0 +1,11 @@
+crates/application/src/audit.rs: OK
+
+=== 还原后复跑（Green） ===
+test audit::tests::report_serializes_frozen_field_names ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+test audit_endpoint_matches_recorded_facts_and_404_semantics ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+

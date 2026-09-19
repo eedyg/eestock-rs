@@ -1,0 +1,1 @@
+{"error":{"code":"resource_guard","detail":{"available_from":"2013-07-29T01:30:00+00:00","available_to":"2026-09-18T07:00:01+00:00","confirm_bars":500000,"confirmable":true,"estimated_secs":429.83,"limit_bars":2000000,"period":"M1","requested_bars":686368,"symbol":"518880"},"message":"预估 686368 根 bar（≈429.8 秒）达到二次确认阈值 500000 根；如仍要提交，带 confirm=true 重提"}}

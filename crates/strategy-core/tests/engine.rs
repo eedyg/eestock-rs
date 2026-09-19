@@ -1389,3 +1389,77 @@ fn warmup_zero_is_legacy_behaviour() {
     assert!(res.per_bar.iter().all(|r| !r.warmup));
     assert_eq!(res.net_value.len(), 6);
 }
+
+// ---------------------------------------------------------------------------
+// ADR-026 §2.3：`TradeDetail.reason`（清仓那一笔的来源，向后兼容）
+// ---------------------------------------------------------------------------
+
+/// 清仓来源三值逐一取证：`Policy`（信号清仓）/ `StopTrigger`（硬止损）/ `ForceClose`（期末强平）。
+/// **不改 `trade_count` 语义**：回合数仍 = 平仓次数（本测试逐例断言长度不变）。
+#[test]
+fn trade_detail_reason_records_liquidation_source() {
+    // ① 期末强平：`LumpSum{1}` + 全程 Buy → 唯一回合由 `finish` 清仓合成。
+    let bars = flat_bars(10, 10.0);
+    let cfg = base_cfg(
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::LumpSum { position_pct: 1.0 },
+    );
+    let res = run(&cfg, &bars);
+    assert_eq!(res.trades.len(), 1, "trade_count 语义不变（1 次平仓）");
+    assert_eq!(
+        res.trades[0].reason.as_deref(),
+        Some("ForceClose"),
+        "期末强平合成的回合须标注来源"
+    );
+
+    // ② 信号清仓（Policy）：持仓门控驱动 买→卖 闭环，前两笔由 Sell 信号清仓，末笔期末强平。
+    let bars = flat_bars(6, 10.0);
+    let cfg = base_cfg(
+        vec![slot(
+            POSITION_GATE,
+            "sha256:position_gate",
+            StrategyParams::new(),
+            1.0,
+        )],
+        ExecutionPolicy::LumpSum { position_pct: 1.0 },
+    );
+    let res = run(&cfg, &bars);
+    assert_eq!(res.trades.len(), 3, "trade_count 语义不变（3 次平仓）");
+    let reasons: Vec<Option<&str>> = res.trades.iter().map(|t| t.reason.as_deref()).collect();
+    assert_eq!(
+        reasons,
+        vec![Some("Policy"), Some("Policy"), Some("ForceClose")],
+        "信号清仓标 Policy；末笔期末强平标 ForceClose"
+    );
+
+    // ③ 硬止损清仓（StopTrigger）：Intrabar 止损当 bar 平仓。
+    let bars = stop_bars();
+    let mut cfg = base_cfg(
+        vec![slot(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            1.0,
+        )],
+        ExecutionPolicy::LumpSum { position_pct: 1.0 },
+    );
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::FixedPct,
+        value: 0.05,
+        trigger: StopTrigger::Intrabar,
+    });
+    let res = run(&cfg, &bars);
+    assert_eq!(res.trades.len(), 2);
+    assert_eq!(
+        res.trades[0].reason.as_deref(),
+        Some("StopTrigger"),
+        "止损清仓须标注 StopTrigger"
+    );
+    assert_eq!(res.trades[1].reason.as_deref(), Some("ForceClose"));
+}
+

@@ -651,6 +651,39 @@ describe('回测工作台 client（12-strategy-system / P3b；07-app-plane §1.8
     expect(lastCall(f).url).toBe('/api/workbench/runs/sr_9/fills');
   });
 
+  it('ADR-026 getRunAudit → GET /api/workbench/runs/{id}/audit（响应原样透传；404 走既有 ApiError）', async () => {
+    const body: import('./types').WorkbenchRunAudit = {
+      run_id: 'sr_5',
+      recorded: true,
+      capital_basis: 100000,
+      deployed_notional: 41397.972081,
+      deployed_pct: 0.4139797208076086,
+      cash_consumed: 41607.972081,
+      cash_consumed_pct: 0.41607972080760863,
+      planned_tranches: 100,
+      reachable_batches: 43,
+      batches_done: 42,
+      unexecuted_orders: 1,
+      last_bar_unfilled: true,
+      round_trips_total: 1,
+      round_trips_force_closed: 1,
+      warnings: [{ code: 'PARTIAL_DEPLOYMENT', severity: 'warn', message: '名义投入 41.40% 初始资金' }],
+    };
+    const f = fetcherReturning(body);
+    const api = createHttpClient('', f);
+    expect(await api.getRunAudit('sr_5')).toEqual(body);
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr_5/audit');
+    // run id 需编码（不破坏路径）
+    await api.getRunAudit('sr a/b');
+    expect(lastCall(f).url).toBe('/api/workbench/runs/sr%20a%2Fb/audit');
+
+    const f404 = fetcherReturning({ error: 'not found' }, false, 404);
+    await expect(createHttpClient('', f404).getRunAudit('sr_x')).rejects.toMatchObject({
+      status: 404,
+      message: expect.stringContaining('not found'),
+    });
+  });
+
   it('presets CRUD + apply URL/method/body 契约', async () => {
     const f = fetcherReturning({});
     const api = createHttpClient('', f);

@@ -1,0 +1,13 @@
+### ADR-026 frontend strings inside served bundle (evidence bundle carries new UI)
+deployed_pct           -> 1
+planned_tranches       -> 1
+DCA_PLAN_UNDERFILLED   -> 0
+口径                 -> 1
+审计                 -> 1
+### /api/config/kline (manual smoke)
+http=200
+{"viewport_bars":120}
+### sim-live sessions count after restart
+sessions= 12 non_ended= []
+### staged files (must be empty)
+staged_exit=0

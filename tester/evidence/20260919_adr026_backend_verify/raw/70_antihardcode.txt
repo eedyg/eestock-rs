@@ -1,0 +1,12 @@
+Pager usage is off.
+INSERT 0 1
+INSERT 0 1
+INSERT 0 4
+        run_id        |   kind    | jsonb_array_length 
+----------------------+-----------+--------------------
+ sr_verify_mut_000003 | drawdown  |                173
+ sr_verify_mut_000003 | fills     |                 43
+ sr_verify_mut_000003 | net_value |                173
+ sr_verify_mut_000003 | per_bar   |                423
+(4 rows)
+

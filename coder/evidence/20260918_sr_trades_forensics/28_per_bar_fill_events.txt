@@ -1,0 +1,13 @@
+per_bar n = 423
+Fill events in per_bar: 43
+first: (1768838400, 'Buy', 99.465370792509, 'Policy')
+last: (1789574400, 'Sell', 4368.985265614662, 'ForceClose')
+by reason: Counter({'Policy': 42, 'ForceClose': 1})
+by side: Counter({'Buy': 42, 'Sell': 1})
+orders n = 43
+orders by side: Counter({'Buy': 43})
+position at warmup end (bar 249): 0
+position at bar 260 (first buy decision bar): 0
+position at bar 421: 4260.078826
+position at last bar 422: 0.0
+bars with position >0: 161 first 261 last 421

@@ -1,0 +1,27 @@
+{
+  "url": "http://127.0.0.1:8081/backtest-workbench",
+  "runTextMatches": 2,
+  "clicked": true,
+  "defaultTradesTabPresent": 1,
+  "tradesTablePresent": 1,
+  "tradesTableText": "开仓\t平仓\t开价\t平价\t股数\t盈亏\t持仓\n01-20 00:00\t09-17 00:00\t9.475\t8.854\t4,368.985\t¥-2,934\t161bar",
+  "tradeRowCount": 1,
+  "fillsNotePresent": 1,
+  "fillsNoteText": "成交 43 笔（精确源 /fills）",
+  "klineCircleMarkers": 0,
+  "apiCalls": [
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/result",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/result",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/bars?kind=per_bar&offset=0&limit=5000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/fills?limit=5000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=per_bar&k=2000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=net_value&k=2000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=drawdown&k=2000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/bars?kind=per_bar&offset=0&limit=5000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/fills?limit=5000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=per_bar&k=2000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=net_value&k=2000",
+    "http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve?kind=drawdown&k=2000"
+  ],
+  "consoleErrors": []
+}

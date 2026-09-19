@@ -1,0 +1,26 @@
+total per_bar: 423
+idx 255 ts 1768147200 warmup=False agg=50.0 signal=Hold
+idx 256 ts 1768233600 warmup=False agg=50.0 signal=Hold
+idx 257 ts 1768320000 warmup=False agg=50.0 signal=Hold
+idx 258 ts 1768406400 warmup=False agg=50.0 signal=Hold
+idx 259 ts 1768492800 warmup=False agg=50.0 signal=Hold
+idx 260 ts 1768752000 warmup=False agg=75.0 signal=Buy
+   orders: [{'qty': 99.94003597841295, 'side': 'Buy', 'reason': 'Policy'}]
+idx 261 ts 1768838400 warmup=False agg=75.0 signal=Buy
+   orders: [{'qty': 99.66133449754845, 'side': 'Buy', 'reason': 'Policy'}]
+   events: [{'qty': 99.465370792509, 'side': 'Buy', 'type': 'fill', 'price': 10.007001, 'reason': 'Policy', 'bar_index': 261}]
+idx 262 ts 1768924800 warmup=False agg=75.0 signal=Buy
+   orders: [{'qty': 96.82434627902478, 'side': 'Buy', 'reason': 'Policy'}]
+   events: [{'qty': 99.20395362278308, 'side': 'Buy', 'type': 'fill', 'price': 10.367073, 'reason': 'Policy', 'bar_index': 262}]
+idx 263 ts 1769011200 warmup=False agg=75.0 signal=Buy
+   orders: [{'qty': 97.16405197220507, 'side': 'Buy', 'reason': 'Policy'}]
+   events: [{'qty': 96.36274087871797, 'side': 'Buy', 'type': 'fill', 'price': 10.292057999999999, 'reason': 'Policy', 'bar_index': 263}]
+idx 264 ts 1769097600 warmup=False agg=75.0 signal=Buy
+   orders: [{'qty': 94.63507880858049, 'side': 'Buy', 'reason': 'Policy'}]
+   events: [{'qty': 96.71753867177188, 'side': 'Buy', 'type': 'fill', 'price': 10.6201236, 'reason': 'Policy', 'bar_index': 264}]
+idx 265 ts 1769356800 warmup=False agg=50.0 signal=Hold
+   events: [{'qty': 94.19952389098152, 'side': 'Buy', 'type': 'fill', 'price': 10.8881772, 'reason': 'Policy', 'bar_index': 265}]
+idx 266 ts 1769443200 warmup=False agg=50.0 signal=Hold
+idx 267 ts 1769529600 warmup=False agg=50.0 signal=Hold
+idx 268 ts 1769616000 warmup=False agg=50.0 signal=Hold
+idx 269 ts 1769702400 warmup=False agg=50.0 signal=Hold

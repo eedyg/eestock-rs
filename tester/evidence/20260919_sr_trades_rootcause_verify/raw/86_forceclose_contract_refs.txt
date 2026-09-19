@@ -1,0 +1,81 @@
+=== design/ 中所有 '强平|强制平仓|ForceClose' 命中 ===
+design/08-backtest/01-engine-adr.md:73:- **结标的**：回测期末**强制平仓**（最后可用 close）。
+design/12-strategy-system/01-adr.md:100:5. 期末强制平仓 + 绩效指标（复用 backtest::metrics 8 项）。
+design/12-strategy-system/01-adr.md:156:- **止损×Policy 交互（P1a 评审 MAJOR-2 裁决）**：硬止损强平 = **外部中断**——触发即平仓的同时**重置 PolicyState**（DCA 批次/基线清零，与 Trailing 峰值 reset 对齐）；次个 Buy 信号重新计数，禁止以陈旧批次状态一次性重建仓。
+crates/web/tests/tester_p4_writepath_indep.rs:464:    assert!(!arr.is_empty(), "扁平价格 + LumpSum 1.0 ⇒ 应有买入 + 期末强平两笔");
+crates/web/tests/api_workbench.rs:751:    // 6 根趋势 bar（TREND ⇒ 1 笔完整交易 + 期末强平 ⇒ 至少 2 笔成交）
+crates/web/tests/tester_p6_fills_indep.rs:204:/// 判别插件 B：三批 DCA 加仓（Buy 持续 3 bar，每 bar 一批），随后期末强平 ⇒ 4 笔成交。
+crates/web/tests/tester_p6_fills_indep.rs:331:    assert!(ps_bar < n - 1, "部分卖出不是期末强平（bar_index={ps_bar}）");
+crates/web/tests/tester_p6_fills_indep.rs:366:    // DCA 3 批（每 bar 一批）⇒ 3 笔加仓买入 + 期末强平 1 笔 = 4 笔成交
+crates/web/tests/tester_p6_fills_indep.rs:371:    assert_eq!(total, 4, "3 笔 DCA 加仓 + 1 笔期末强平"); 
+crates/strategy-core/tests/engine.rs:93:// 端到端：Buy → 持仓 → 期末强平（ensemble 自身断言）
+crates/strategy-core/tests/engine.rs:122:    // 成交：bar1 open 买入 1 笔；期末强制平仓 1 笔（最后 close）。
+crates/strategy-core/tests/engine.rs:124:    assert_eq!(f.len(), 2, "买入 + 期末强平各一笔");
+crates/strategy-core/tests/engine.rs:131:        (9, OrderSide::Sell, OrderReason::ForceClose)
+crates/strategy-core/tests/engine.rs:212:    // 6 bar 内共 3 笔完整交易（1→2, 3→4, 5→期末强平）。首笔验证开平仓 bar 序号。
+crates/strategy-core/tests/engine.rs:251:    // bar4 起信号转 Hold（50 分）→ 无新订单；期末强平收尾。
+crates/strategy-core/tests/engine.rs:253:    assert_eq!(res.trades.len(), 1, "期末强平合成一笔完整交易");
+crates/strategy-core/tests/engine.rs:340:    // 期末强平收尾——硬止损只负责「触发即平仓」，不抑制后续信号（ADR §13.3 第二层职责边界）。
+crates/strategy-core/tests/engine.rs:791:    // 成交仅 2 笔：bar1 买入 + 期末强平；中途无任何微卖出。
+crates/strategy-core/tests/engine.rs:793:    assert_eq!(f.len(), 2, "买入 + 期末强平各一笔");
+crates/strategy-core/tests/engine.rs:801:        (9, OrderSide::Sell, OrderReason::ForceClose)
+crates/strategy-core/tests/engine.rs:842:    assert_eq!(fills(&res).len(), 2, "买入 + 期末强平各一笔");
+crates/strategy-core/tests/engine.rs:873:// MAJOR-2：止损强平重置 PolicyState（ADR §13.1 裁决）——兼 DCA+止损组合（MINOR-5）
+crates/strategy-core/tests/engine.rs:946:        .expect("应有止损强平成交");
+crates/strategy-core/tests/engine.rs:949:    // 核心断言（评审反例）：强平后首个 Buy 只执行**单批**（新一轮第 1 批），
+crates/strategy-core/tests/engine.rs:963:    // 交易：止损平仓一笔 + 期末强平一笔（重新建仓的部分）。
+crates/strategy-core/tests/engine.rs:996:        .expect("应有止损强平成交");
+crates/strategy-core/tests/engine.rs:999:    // 强平后首个 Buy（同 bar 信号仍 80 分）只执行单批（未修复时 qty = 10_000）。
+crates/strategy-core/tests/session.rs:230:/// 期末强平：会话 `finish()` 与批式入口同样在最后一个 close 强平（净值末点 = 已实现净值）。
+crates/strategy-core/tests/session.rs:250:        "期末强平交易应落在最后一根 bar"
+crates/strategy-core/tests/observer.rs:5://! 引擎立即跳出循环（不做期末强平、不产出结果），返回 `EnsembleError::Canceled`。
+
+=== engine.rs 内（口径声明）===
+25://! 期末仍持仓 → 最后 close 强制平仓（沿用 backtest 引擎口径，净值最后一点修正为已实现净值）。
+161:    /// 期末强制平仓。
+469:    /// 期末收尾：最后 close 强平（沿用 backtest 引擎口径，净值最后一点修正为已实现净值）
+
+=== TradeDetail 是否有 reason/source 字段（types.rs 原文）===
+pub struct TradeDetail {
+    pub open_ts: i64,
+    pub close_ts: i64,
+    pub open_bar: usize,
+    pub close_bar: usize,
+    /// 成交买入价（含滑点）。
+    pub open_price: f64,
+    /// 成交卖出价（含滑点）。
+    pub close_price: f64,
+    pub shares: f64,
+    /// 卖出毛额（shares × close_price）。
+    pub gross_value: f64,
+    /// 总佣金（买入 + 卖出）。
+    pub commission: f64,
+    /// 卖出印花税。
+    pub stamp_duty: f64,
+    /// 净盈亏（卖出净得 − 建仓成本）。正=盈。
+    pub pnl: f64,
+    /// 持仓 bar 数（开仓 bar → 平仓 bar 间隔）。
+    pub hold_bars: usize,
+}
+
+=== 前端 / API 是否有『来源/强平』标注 ===
+web/src/api/errorMessages.ts:39:  source_invalid: () => '策略来源非法（代码与版本须且仅须提供一个）',
+web/src/api/mock.ts:586:    // 简薄撮合同构：Buy 开/加仓、Sell 平仓；中段插一笔硬止损强平（StopTrigger 不同图标测试素材）
+web/src/api/mock.ts:589:      // 确定性止损素材：无持仓则补一笔建仓，保证 stopBar 处必有 StopTrigger 强平
+web/src/api/mock.ts:622:  // 期末仍持仓 → 强平（ForceClose）
+web/src/api/mock.ts:626:    last.events.push({ type: 'fill', bar_index: N - 1, side: 'Sell', qty: holding.qty, price, reason: 'ForceClose' });
+web/src/api/types.ts:819: * 形状来源（后端 = 事实源）：`crates/application/src/fee.rs::resolved_fee_to_json`。
+web/src/api/types.ts:1033:  reason: 'Policy' | 'StopTrigger' | 'ForceClose';
+web/src/api/types.ts:1041:  | { type: 'fill'; bar_index: number; side: 'Buy' | 'Sell'; qty: number; price: number; reason: 'Policy' | 'StopTrigger' | 'ForceClose' };
+web/src/api/types.ts:1123:  reason: 'Policy' | 'StopTrigger' | 'ForceClose';
+web/src/layouts/AlertsGrid.tsx:38:      {/* alert-filter：静态控件无三态；级别+时间范围+来源，变更即重查 */}
+web/src/layouts/AlertsGrid.tsx:48:          {/* <AlertList onAck/>（级别/来源/内容/时刻/状态+[确认]） */}
+web/src/features/quality/DivergenceTable.tsx:24: * divergence-table（04-quality §2 主视图）：时刻/raw收盘/accurate收盘/偏差%/raw来源；
+web/src/features/quality/DivergenceTable.tsx:61:              {['时刻', 'raw 收盘', 'accurate 收盘', '偏差%', 'raw 来源'].map((h) => (
+web/src/features/alerts/AlertList.tsx:21: * alert-list（07-alerts L2）：级别/来源/内容/时刻/状态 + [确认]；
+web/src/features/alerts/AlertFilterBar.tsx:5: * alert-filter H=48（07-alerts L2：级别 + 时间范围 + 来源；静态控件无三态；变更即重查）。
+web/src/features/alerts/AlertFilterBar.tsx:42:        aria-label="来源"
+web/src/features/alerts/AlertFilterBar.tsx:47:        <option value="">来源：全部</option>
+web/src/features/strategies/CreateStrategyModal.tsx:19: * 新建策略弹窗（列表页）：名称/描述 + 来源（空白 / 从模板创建——catalog kind=template 下拉，
+web/src/features/dashboard/chartSyncGroup.ts:127:   * 287 可观测（口径 C）：最近一次对齐里各跟随者的**有效密度比与来源**（键 = 跟随者周期）。
+web/src/features/dashboard/chartSyncGroup.ts:153:/** 某跟随者最近一次实际使用的密度比及其**来源**（口径 C：来源必须可区分）。 */

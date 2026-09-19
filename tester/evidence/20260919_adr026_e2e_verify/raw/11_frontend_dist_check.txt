@@ -1,0 +1,33 @@
+### web/dist 内容（构建后）
+web/dist:
+total 16
+drwxrwxr-x 3 eestock eestock 4096 Sep 19 01:13 .
+drwxrwxr-x 8 eestock eestock 4096 Sep 18 21:44 ..
+drwxrwxr-x 2 eestock eestock 4096 Sep 19 01:13 assets
+-rw-rw-r-- 1 eestock eestock  397 Sep 19 01:13 index.html
+
+web/dist/assets:
+total 1244
+drwxrwxr-x 2 eestock eestock    4096 Sep 19 01:13 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 19 01:13 ..
+-rw-rw-r-- 1 eestock eestock   22971 Sep 19 01:13 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237321 Sep 19 01:13 index-CxpxqtmC.js
+### sha256
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+b909850ded4c6325912938483c52e9b8ab61a9bf68162a37cd313cbf2f4ff97f  web/dist/assets/index-CxpxqtmC.js
+772f693876f11584f9d6ac4aec8af683ca169597aecc86013b279f95c94abcfd  web/dist/index.html
+### dist 内 ADR-026 关键字命中
+1
+执行完整度审计：未记录
+资金投入率
+资金投入率
+期末强平
+### git status --porcelain -- web/ (tsbuildinfo 等新文件检查)
+ M web/src/api/client.test.ts
+ M web/src/api/client.ts
+ M web/src/api/mock.test.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/workbench/ResultView.test.tsx
+ M web/src/features/workbench/ResultView.tsx
+?? web/src/features/workbench/useRunAudit.ts

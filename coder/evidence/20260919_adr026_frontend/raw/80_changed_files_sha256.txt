@@ -1,0 +1,50 @@
+== 本批改动文件 sha256（阶段 3，web/ 前端）==
+39a583dd0fa98f78d55f14f73e3cf4f486948d27e3425d031f83cb58e3df0b63  web/src/api/types.ts
+55912f10b160d4e99e37417e4ef1f0a98fc8aede1288a5e03d25253b02751acc  web/src/api/client.ts
+c977bb8ffa94938cab48ecf2f04985b77dca297f262c4e75d47104559e4190ab  web/src/api/mock.ts
+1226b2e7a3acc62679533fe21f9f9e2793af0268089741b967bcab66492ba446  web/src/features/workbench/ResultView.tsx
+b3492c899a687bee821d46d86fdb48fc6ceb1bbfcb2e72ae74eb4bd114dba3ad  web/src/features/workbench/useRunAudit.ts
+07e0ae6a69d1a8ebe2f6564535866d292a67a6d0da214e33e6bc788d7ef38b9f  web/src/api/client.test.ts
+632a8e889aa7d0c04210cd22e6b2addf712566cd0c91ccd8fea86a5554ebe32d  web/src/api/mock.test.ts
+089788b0d952aba0f463965d9124c1893e2f979449bcd3dd983bb6e0d90e4ab1  web/src/features/workbench/ResultView.test.tsx
+
+== 基线 sha256（动手前，见 raw/00_baseline.txt）==
+f7241682e871f8c90798dd5e22c54db88ca5073fa00fc564a19e1dd00caa2fd5  web/src/api/types.ts
+c75ecb2bbac73da92f4064091e5d7ccb458e30295a0e430345478bb676cd9fbb  web/src/api/client.ts
+f6b54020f14953cc30cb84a928fc7ae11a06f47bcc14ee7fe6f016017d1e1b4e  web/src/api/mock.ts
+3315ebae0cfa3beea9ec1c3635216976c045c6fe5d31fb3749bf6eb60f4bd8f9  web/src/features/workbench/ResultView.tsx
+5f2bb46a036abce73fc2a951a78ba5e0c142752c8f08fd7e6c1eb82a0fde8e6f  web/src/api/client.test.ts
+0ec3e00c8584d77f55ff1b2266045ddac57dd971938a319b1608dc248ab9a610  web/src/api/mock.test.ts
+4b0baea07957c06e8b7a3be45f64c44f2cbade9a1a3f398b79f2862453db684f  web/src/features/workbench/ResultView.test.tsx
+
+== git diff --stat（web/；工作区，未 staged）==
+ web/src/api/client.test.ts                     |  33 +++
+ web/src/api/client.ts                          |   5 +
+ web/src/api/mock.test.ts                       |  58 ++++++
+ web/src/api/mock.ts                            | 109 ++++++++++
+ web/src/api/types.ts                           |  58 +++++-
+ web/src/features/workbench/ResultView.test.tsx | 273 ++++++++++++++++++++++++-
+ web/src/features/workbench/ResultView.tsx      | 194 ++++++++++++++++--
+ 7 files changed, 709 insertions(+), 21 deletions(-)
+
+== 未跟踪新文件 ==
+?? web/src/features/workbench/useRunAudit.ts
+
+== git diff --cached（须为空，冻结由主代理执行）==
+(empty)
+
+== 本批未触碰 crates/ 的证明（与 raw/00_baseline.txt 逐行一致）==
+   M crates/application/src/lib.rs
+   M crates/application/src/simlive.rs
+   M crates/application/src/workbench.rs
+   M crates/backtest/src/metrics.rs
+   M crates/backtest/src/types.rs
+   M crates/mcp/src/rpc.rs
+   M crates/mcp/src/tools.rs
+   M crates/mcp/tests/mcp_protocol.rs
+   M crates/strategy-core/src/engine.rs
+   M crates/strategy-core/tests/engine.rs
+   M crates/web/src/lib.rs
+   M crates/web/src/workbench.rs
+  ?? crates/application/src/audit.rs
+  ?? crates/web/tests/adr026_run_audit.rs

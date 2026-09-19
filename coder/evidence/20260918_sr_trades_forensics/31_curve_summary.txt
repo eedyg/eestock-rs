@@ -1,0 +1,6 @@
+curve keys: ['kind', 'points', 'downsampled', 'original_bars', 'k']
+kind = net_value
+points len= 173 first= [1767542400, 100000.0]
+downsampled = False
+original_bars = 173
+k = 2000

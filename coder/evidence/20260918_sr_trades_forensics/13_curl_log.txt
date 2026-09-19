@@ -1,0 +1,12 @@
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005'
+HTTP 200 bytes=1221
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/result'
+HTTP 200 bytes=62563
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/brief'
+HTTP 200 bytes=730
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/curve'
+HTTP 200 bytes=5353
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/fills?offset=0&limit=100'
+HTTP 200 bytes=5422
+### curl -sS -w 'HTTP %{http_code}' 'http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/bars?kind=per_bar&offset=0&limit=2'
+HTTP 200 bytes=346

@@ -1,0 +1,6 @@
+run_id|sr_1789738328788_000005
+result_format|chunked_v1
+metrics|{"sharpe": -0.8029160823939638, "win_rate": 0.0, "net_profit": -2933.64791397129, "trade_count": 1, "max_drawdown": 0.052608136537377476, "avg_hold_bars": 161.0, "profit_factor": 0.0, "annualized_return": -0.042445133565802595}
+run_id|result_format|trades_n|per_bar_n|nav_n|dd_n|tr_bytes|m_bytes
+sr_1789738328788_000005|chunked_v1|1|0|0|0|364|260
+(1 row)

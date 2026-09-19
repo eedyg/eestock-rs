@@ -1,8 +1,14 @@
 import { indicatorViewFromCalls, type IndicatorViewFilter } from '@/test/chartStoreStub';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { WorkbenchBarRecord, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import type {
+  Trade,
+  WorkbenchBarRecord,
+  WorkbenchRunAudit,
+  WorkbenchRunResult,
+  WorkbenchRunView,
+} from '@/api/types';
 import type { ApiClient } from '@/api/client';
 import { createMockClient } from '@/api/mock';
 import { ResultView } from './ResultView';
@@ -37,6 +43,41 @@ vi.mock('klinecharts', () => ({
 }));
 
 const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+
+/**
+ * ADR-026 §2.2 冻结基准（与 `coder/evidence/20260919_adr026_backend/43_raw_audit_A3_A4.json.txt`
+ * 中目标 run `sr_1789738328788_000005` 的真实响应逐字段同值；字段名以实际响应为准）。
+ */
+const AUDIT_BASELINE: WorkbenchRunAudit = {
+  run_id: 'sr_1789738328788_000005',
+  recorded: true,
+  capital_basis: 100000,
+  deployed_notional: 41397.97208076086,
+  deployed_pct: 0.4139797208076086,
+  cash_consumed: 41607.97208076086,
+  cash_consumed_pct: 0.41607972080760863,
+  planned_tranches: 100,
+  reachable_batches: 43,
+  batches_done: 42,
+  unexecuted_orders: 1,
+  last_bar_unfilled: true,
+  round_trips_total: 1,
+  round_trips_force_closed: 1,
+  warnings: [
+    {
+      code: 'DCA_PLAN_UNDERFILLED',
+      severity: 'warn',
+      message: '计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）',
+    },
+    { code: 'PARTIAL_DEPLOYMENT', severity: 'warn', message: '名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金' },
+    { code: 'ORDERS_UNEXECUTED', severity: 'info', message: '1 笔挂单未成交（末根 bar 无次 bar 可执行）' },
+  ],
+};
+
+/** 只替换 `getRunAudit` 的契约 mock 客户端（其余方法照常走 mock）。 */
+function apiWithAudit(impl: ApiClient['getRunAudit']): ApiClient {
+  return { ...api, getRunAudit: impl };
+}
 
 const SUBMIT_BASE = {
   symbol: '518880',
@@ -141,6 +182,8 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-equity-chart')).toBeInTheDocument();
     expect(screen.getByTestId('wb-aggregate-sampling')).toHaveTextContent('共 60 bar');
     expect(spy).not.toHaveBeenCalled();
+    // ADR-026：默认 Tab（交易明细）会异步取审计 ⇒ 等其落地，免测试结束后才 setState
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
   });
 
   it('逐bar评分表分页：>100 行分页器可见且翻页（legacy 全量内联列路径）', async () => {
@@ -232,6 +275,8 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     rerender(<ResultView {...mkProps(runA, resultA)} />);
     expect((screen.getByTestId('legend-slot-0') as HTMLInputElement).checked).toBe(true);
     expect((screen.getByTestId('legend-slot-1') as HTMLInputElement).checked).toBe(true);
+    // ADR-026：每次切 run 会重取审计（run 变）⇒ 等最后一次落地，免 act 噪声
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
   });
 
   it('自定义阈值 70/30：阈值线/三区着色按 70/30 渲染（非默认 60/40）', async () => {
@@ -357,5 +402,235 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     render(<ResultView {...mkProps(run, result, { api: missApi })} />);
     const note = await screen.findByTestId('wb-fills-note');
     expect(note).toHaveTextContent('未记录成交明细');
+  });
+
+  // ── ADR-026 §2.4 前端披露（审计摘要 / 来源列 / 口径注 / 懒加载） ──
+
+  it('ADR-026：交易明细 Tab 审计摘要行 + warnings 非阻断提示条（成交/回合/强平/名义投入口径）', async () => {
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    const fills = await client.getWorkbenchFills(run.id, { limit: 5000 });
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+
+    const summary = await screen.findByTestId('wb-audit-summary');
+    // 逐笔源口径：成交笔数取自 /fills（非 trades，非抽样）；并显式拆分「买入成交」与「期末强平卖出」
+    expect(summary).toHaveTextContent(
+      `成交合计 ${fills.total} 笔（含期末强平卖出 ${AUDIT_BASELINE.round_trips_force_closed} 笔）`,
+    );
+    expect(summary).toHaveTextContent('回合 1 条（其中强平合成 1 条）');
+    expect(summary).toHaveTextContent('名义投入 41.40%（分母 = 初始资金）');
+    // ADR-026 §2.1 口径消歧：敞口与资金占用分别命名披露
+    expect(screen.getByTestId('wb-audit-cash')).toHaveTextContent('现金消耗（含佣金）41.61%');
+    // 口径消歧（2026-09-19 整改）：L2 的「买入成交 M 笔」= 审计 `batches_done`，
+    // 与 L1 的 `/fills` 全口径（含期末强平卖出）**分别命名** ⇒ 两个数不再可混读。
+    expect(screen.getByTestId('wb-audit-cash')).toHaveTextContent(`买入成交 ${AUDIT_BASELINE.batches_done} 笔`);
+    expect(screen.getByTestId('wb-audit-cash')).not.toHaveTextContent('已成交 42');
+
+    // warnings：非阻断提示条（带 data-testid；仍渲染表格 = 不阻断）
+    const box = screen.getByTestId('wb-audit-warnings');
+    expect(box).toHaveTextContent('计划 100 批');
+    expect(screen.getByTestId('wb-audit-warning-DCA_PLAN_UNDERFILLED')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-audit-warning-PARTIAL_DEPLOYMENT')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-audit-warning-ORDERS_UNEXECUTED')).toBeInTheDocument();
+    expect(screen.getByTestId('wb-trades-table')).toBeInTheDocument();
+  });
+
+  it('ADR-026：warnings 为空 ⇒ 不渲染提示条（无告警不占位）', async () => {
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, warnings: [] })));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+    expect(screen.queryByTestId('wb-audit-warnings')).toBeNull();
+  });
+
+  it('ADR-026：交易明细「来源」列 —— 正常 / 止损 / 期末强平；历史 run（缺字段）→ 未记录', async () => {
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    const trade = (reason: Trade['reason']): Trade => ({
+      open_ts: 1_700_000_000,
+      close_ts: 1_700_086_400,
+      open_bar: 0,
+      close_bar: 1,
+      open_price: 2,
+      close_price: 2.1,
+      shares: 100,
+      gross_value: 210,
+      commission: 5,
+      stamp_duty: 0,
+      pnl: 5,
+      hold_bars: 1,
+      ...(reason === undefined ? {} : { reason }),
+    });
+    render(
+      <ResultView
+        {...mkProps(
+          run,
+          {
+            ...result,
+            result_format: 'legacy_single',
+            per_bar: [],
+            trades: [trade('Policy'), trade('StopTrigger'), trade('ForceClose'), trade(undefined)],
+          },
+          { api: client },
+        )}
+      />,
+    );
+    expect(screen.getByTestId('wb-trade-source-0')).toHaveTextContent('正常');
+    expect(screen.getByTestId('wb-trade-source-1')).toHaveTextContent('止损');
+    expect(screen.getByTestId('wb-trade-source-2')).toHaveTextContent('期末强平');
+    expect(screen.getByTestId('wb-trade-source-3')).toHaveTextContent('未记录');
+    // 审计为异步取数 ⇒ 等其落地，避免测试结束后才 setState（act 噪声）
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+  });
+
+  it('ADR-026：来源列历史 run 实测 —— mock 种子 run（legacy_single，TradeDetail 无 reason 字段）→ 未记录', async () => {
+    const { run, result } = await seededLegacyRun();
+    render(<ResultView {...mkProps(run, result)} />);
+    expect(result.trades.length).toBeGreaterThan(0);
+    expect(screen.getByTestId('wb-trade-source-0')).toHaveTextContent('未记录');
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+  });
+
+  it('ADR-026：8项绩效 Tab —— 口径注（分母 = 初始资金）+ 资金投入率；profit_factor=null → ∞（无亏损）并注明', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    render(
+      <ResultView
+        {...mkProps(run, { ...result, metrics: { ...result.metrics, profit_factor: null } }, { api: client })}
+      />,
+    );
+    await user.click(screen.getByTestId('wb-tab-metrics'));
+    const basis = await screen.findByTestId('wb-metrics-basis');
+    expect(basis).toHaveTextContent('分母 = 初始资金');
+    const deployed = screen.getByTestId('wb-metrics-deployed');
+    await waitFor(() => expect(deployed).toHaveTextContent('41.40%'));
+    expect(deployed).toHaveTextContent('资金投入率');
+    expect(screen.getByTestId('wb-metrics-table')).toHaveTextContent('∞（无亏损）');
+    expect(screen.getByTestId('wb-metrics-pf-note')).toHaveTextContent('∞');
+  });
+
+  it('ADR-026：profit_factor 有值 ⇒ 显示数值且无 ∞ 注', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    await user.click(screen.getByTestId('wb-tab-metrics'));
+    const table = await screen.findByTestId('wb-metrics-table');
+    expect(result.metrics.profit_factor).toBeTypeOf('number');
+    expect(table).toHaveTextContent(result.metrics.profit_factor!.toFixed(2));
+    expect(screen.queryByTestId('wb-metrics-pf-note')).toBeNull();
+  });
+
+  it('ADR-026：审计按 Tab 懒加载 —— 仅审计 Tab 打请求、切回不重复、无结果 run 不请求', async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn(async () => AUDIT_BASELINE);
+    const client = apiWithAudit(spy);
+    const { run, result } = await seedRunAndResult(client);
+    const { unmount } = render(<ResultView {...mkProps(run, result, { api: client })} />);
+    await screen.findByTestId('wb-audit-summary');
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // 非审计 Tab（逐bar评分/事件）不触发审计请求
+    await user.click(screen.getByTestId('wb-tab-perbar'));
+    await user.click(screen.getByTestId('wb-tab-events'));
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // 切回审计 Tab：已有该 run 的审计 ⇒ 复用，不重复打请求
+    await user.click(screen.getByTestId('wb-tab-trades'));
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // 无结果（running）run ⇒ 无结果就无审计，不得无脑请求
+    unmount();
+    const running = (await client.listWorkbenchRuns({ status: 'running' }))[0]!;
+    render(<ResultView {...mkProps(running, null, { api: client })} />);
+    expect(screen.getByTestId('wb-result-pending')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ADR-026：审计 loading 三态骨架（请求未落地前显加载中）', async () => {
+    let resolveAudit: (v: WorkbenchRunAudit) => void = () => undefined;
+    const client = apiWithAudit(
+      vi.fn(() => new Promise<WorkbenchRunAudit>((resolve) => {
+        resolveAudit = resolve;
+      })),
+    );
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    expect(screen.getByTestId('wb-audit-loading')).toBeInTheDocument();
+    act(() => resolveAudit(AUDIT_BASELINE));
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+    expect(screen.queryByTestId('wb-audit-loading')).toBeNull();
+  });
+
+  it('ADR-026：审计 error → 重试三态（沿用既有 loading/error/retry 模式）', async () => {
+    const user = userEvent.setup();
+    let first = true;
+    const spy = vi.fn(async () => {
+      if (first) {
+        first = false;
+        throw new Error('HTTP 500: audit');
+      }
+      return AUDIT_BASELINE;
+    });
+    const client = apiWithAudit(spy);
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    const err = await screen.findByTestId('wb-audit-error');
+    expect(err).toHaveTextContent('审计加载失败');
+    await user.click(screen.getByTestId('wb-audit-retry'));
+    expect(await screen.findByTestId('wb-audit-summary')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('wb-audit-error')).toBeNull();
+  });
+
+  it('ADR-026：recorded=false ⇒ 显式「未记录」，绝不把 0 渲染成投入率', async () => {
+    const user = userEvent.setup();
+    const missApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchAuditMissing: true });
+    const run = await missApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: '无审计事实源',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    });
+    const result = await missApi.getWorkbenchResult(run.id);
+    render(<ResultView {...mkProps(run, result, { api: missApi })} />);
+    const box = await screen.findByTestId('wb-audit-unrecorded');
+    expect(box).toHaveTextContent('未记录');
+    expect(screen.queryByTestId('wb-audit-summary')).toBeNull();
+
+    await user.click(screen.getByTestId('wb-tab-metrics'));
+    const deployed = screen.getByTestId('wb-metrics-deployed');
+    await waitFor(() => expect(deployed).toHaveTextContent('未记录'));
+    expect(deployed).not.toHaveTextContent('0.0%');
+  });
+
+  it('ADR-026：/fills 未记录（P6 前 chunked run）⇒ 摘要行的成交笔数也不得伪造为 0', async () => {
+    const missApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchFillsMissing: true });
+    const run = await missApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: '无 fills 块的审计',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+    });
+    const result = await missApi.getWorkbenchResult(run.id);
+    render(<ResultView {...mkProps(run, result, { api: missApi })} />);
+    const summary = await screen.findByTestId('wb-audit-summary');
+    expect(summary).toHaveTextContent('成交合计 未记录（/fills 事实源缺失）');
+    expect(summary).not.toHaveTextContent('成交合计 0 笔');
+  });
+
+  it('ADR-026：提交 run（chunked，Dca 计划未满）⇒ 契约 mock 派生出 DCA_PLAN_UNDERFILLED 提示', async () => {
+    const dcaApi = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const run = await dcaApi.submitWorkbenchRun({
+      ...SUBMIT_BASE,
+      name: 'DCA 未满批',
+      slots: [{ version_id: 'sv_mock_dual_v1', weight: 1 }],
+      policy: { Dca: { mode: 'Equal', tranches: 100, interval: 1 } },
+    });
+    const result = await dcaApi.getWorkbenchResult(run.id);
+    render(<ResultView {...mkProps(run, result, { api: dcaApi })} />);
+    const summary = await screen.findByTestId('wb-audit-summary');
+    expect(summary).toHaveTextContent('名义投入');
+    expect(screen.getByTestId('wb-audit-warning-DCA_PLAN_UNDERFILLED')).toHaveTextContent('计划 100 批');
   });
 });

@@ -1,0 +1,25 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 18 tests
+test audit::tests::recorded_false_reports_zeros_and_no_warnings ... ok
+test audit::tests::zero_capital_basis_does_not_divide_by_zero ... ok
+test audit::tests::no_in_range_bar_means_no_last_bar_unfilled ... ok
+test audit::tests::force_closed_round_trips_match_by_close_bar ... ok
+test audit::tests::unexecuted_orders_is_saturating ... ok
+test audit::tests::commission_follows_fee_contract_min_and_rate ... ok
+test audit::tests::partial_deployment_threshold_table ... ok
+test audit::tests::full_deployment_lumpsum_has_no_warnings ... ok
+test audit::tests::dca_plan_met_has_no_dca_warning ... ok
+test audit::tests::legacy_two_way_run_is_self_consistent ... ok
+test audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning ... ok
+test audit::tests::zero_fills_reports_partial_deployment_and_unexecuted ... ok
+test audit::tests::target_run_shape_dca_underfilled ... ok
+test audit::tests::orders_projection_treats_missing_warmup_as_in_range ... ok
+test audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar ... ok
+test audit::tests::fills_and_trades_projection_reads_documented_fields ... ok
+test audit::tests::trade_detail_json_reads_legacy_without_reason_field ... ok
+test audit::tests::report_serializes_frozen_field_names ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+

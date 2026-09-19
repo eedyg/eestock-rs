@@ -1,0 +1,84 @@
+// Tester 对照算例探针（/tmp，只读）：直接调用仓库实现 backtest::compute_metrics
+//  1) 手工小序列（黄金样本）——按 ADR §6 / metrics.rs 文档口径手算的期望值；
+//  2) 目标 run（518880 D1）库内 nav + trades 原样输入 → 与库内 metrics 比对；
+//  3) 双向 run（sr_1789044295239_000111）库内 nav + trades 原样输入 → 比对。
+use backtest::{compute_metrics, Period, TradeDetail};
+use std::fs;
+
+fn jnum(v: &serde_json::Value, k: &str) -> f64 { v[k].as_f64().unwrap_or(f64::NAN) }
+
+fn metrics_from_files(nav_path: &str, trades_path: &str, initial: f64) -> backtest::BacktestMetrics {
+    let nav: Vec<(i64, f64)> = serde_json::from_str(&fs::read_to_string(nav_path).unwrap()).unwrap();
+    let tv: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(trades_path).unwrap()).unwrap();
+    let trades: Vec<TradeDetail> = tv.iter().map(|t| TradeDetail {
+        open_ts: t["open_ts"].as_i64().unwrap(), close_ts: t["close_ts"].as_i64().unwrap(),
+        open_bar: t["open_bar"].as_u64().unwrap() as usize, close_bar: t["close_bar"].as_u64().unwrap() as usize,
+        open_price: jnum(t, "open_price"), close_price: jnum(t, "close_price"), shares: jnum(t, "shares"),
+        gross_value: jnum(t, "gross_value"), commission: jnum(t, "commission"),
+        stamp_duty: jnum(t, "stamp_duty"), pnl: jnum(t, "pnl"), hold_bars: t["hold_bars"].as_u64().unwrap() as usize,
+    }).collect();
+    compute_metrics(&nav, &trades, initial, Period::D1)
+}
+
+fn show(tag: &str, m: backtest::BacktestMetrics, expect: Option<&serde_json::Value>) {
+    println!("--- {tag}");
+    println!("  net_profit={:.15}  max_drawdown={:.15}  sharpe={:.15}  win_rate={:.15}",
+             m.net_profit, m.max_drawdown, m.sharpe, m.win_rate);
+    println!("  profit_factor={:.15}  annualized_return={:.15}  trade_count={}  avg_hold_bars={:.15}",
+             m.profit_factor, m.annualized_return, m.trade_count, m.avg_hold_bars);
+    if let Some(e) = expect {
+        let pairs = [("net_profit", m.net_profit), ("max_drawdown", m.max_drawdown), ("sharpe", m.sharpe),
+                     ("win_rate", m.win_rate), ("profit_factor", m.profit_factor),
+                     ("annualized_return", m.annualized_return), ("avg_hold_bars", m.avg_hold_bars)];
+        for (k, v) in pairs {
+            let d = (v - jnum(e, k)).abs();
+            println!("    vs 库内 {:20} Δ = {:.3e}{}", k, d, if d > 1e-12 { "   <<< 不一致" } else { "" });
+        }
+        println!("    vs 库内 trade_count            Δ = {}{}", (m.trade_count as i64 - e["trade_count"].as_i64().unwrap()).abs(),
+                 if (m.trade_count as i64 - e["trade_count"].as_i64().unwrap()).abs() != 0 { "   <<< 不一致" } else { "" });
+    }
+}
+
+fn main() {
+    println!("===== 1) 手工小序列（对照算例）=====");
+    let nav = vec![(0_i64, 100.0), (1, 110.0), (2, 99.0), (3, 108.9)];
+    let t = |pnl: f64, hold: usize| TradeDetail { open_ts: 0, close_ts: 0, open_bar: 0, close_bar: hold,
+        open_price: 0.0, close_price: 0.0, shares: 0.0, gross_value: 0.0, commission: 0.0,
+        stamp_duty: 0.0, pnl, hold_bars: hold };
+    let m = compute_metrics(&nav, &vec![t(100.0, 3), t(-50.0, 2)], 100.0, Period::D1);
+    show("nav=[100,110,99,108.9] trades=[+100,-50] initial=100 D1", m, None);
+    let bpy: f64 = 252.0; let hand_ann = (108.9_f64/100.0).powf(bpy/4.0)-1.0;
+    println!("  手算（ADR §6 口径）：net=8.9 maxDD=(110-99)/110={:.12} 年化=(108.9/100)^(252/4)-1={:.12}",
+             (110.0-99.0)/110.0, hand_ann);
+    println!("  ⇒ 实现 == 文档口径的手算值：{}", (m.net_profit-8.9).abs()<1e-12
+             && (m.max_drawdown-0.1).abs()<1e-12 && (m.annualized_return-hand_ann).abs()<1e-9);
+
+    println!();
+    println!("===== 2) 目标 run sr_1789738328788_000005（库内 nav/trades 原样输入实现）=====");
+    let navp = "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_sr_trades_rootcause_verify/raw/12_net_value_raw.json";
+    let trp = "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_sr_trades_rootcause_verify/raw/14_trades_raw.json";
+    let exp: serde_json::Value = serde_json::from_str(&fs::read_to_string(
+        "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_sr_trades_rootcause_verify/raw/15_metrics_raw.json").unwrap()).unwrap();
+    show("target run", metrics_from_files(navp, trp, 100000.0), Some(&exp));
+
+    println!();
+    println!("===== 3) 双向 run sr_1789044295239_000111 =====");
+    let base = "/home/eestock/workspace/git/eestock/eestock-rs/tester/evidence/20260919_sr_trades_rootcause_verify/raw";
+    let exp2: serde_json::Value = serde_json::from_str(&fs::read_to_string(format!("{base}/95_tw_metrics.json")).unwrap()).unwrap();
+    show("two-way run", metrics_from_files(&format!("{base}/95_tw_nav.json"), &format!("{base}/95_tw_trades.json"), 100000.0), Some(&exp2));
+
+    println!();
+    println!("===== 4) 判据区分度（同一实现的输入突变 → 立刻变红）=====");
+    let nav2 = vec![(0_i64, 100.0), (1, 110.0), (2, 99.0), (3, 108.9)];
+    let m2 = compute_metrics(&nav2, &vec![t(100.0,3)], 100.0, Period::D1);
+    println!("  突变 A：trades 少一笔（1 笔而非 2 笔）→ trade_count={}（期望 2）, win_rate={}, pf={}",
+             m2.trade_count, m2.win_rate, m2.profit_factor);
+    let m3 = compute_metrics(&nav2, &vec![t(-100.0,3), t(-50.0,2)], 100.0, Period::D1);
+    println!("  突变 B：两笔全亏 → profit_factor={:.6}（仅亏无盈按口径应为 0）, win_rate={}",
+             m3.profit_factor, m3.win_rate);
+    let m4 = compute_metrics(&nav2, &vec![t(10.0,1), t(10.0,1)], 100.0, Period::D1);
+    println!("  突变 C：仅盈无亏 → profit_factor = {}（口径：+∞）", m4.profit_factor);
+    let nav_inf = vec![(0_i64, 0.0)];   // 退化输入
+    let m5 = compute_metrics(&nav_inf, &vec![], 100.0, Period::D1);
+    println!("  突变 D：nav=[0] initial=100 → net_profit={}, annualized={}（可观察的退化行为）", m5.net_profit, m5.annualized_return);
+}

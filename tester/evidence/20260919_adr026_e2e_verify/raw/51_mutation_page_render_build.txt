@@ -1,0 +1,18 @@
+### 突变后重建前端 dist
+dist/assets/index-CeUPb4uk.css     22.97 kB │ gzip:   5.77 kB
+dist/assets/index-C5v-edqI.js   1,235.25 kB │ gzip: 381.22 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.01s
+### 突变后 dist
+total 1240
+drwxrwxr-x 2 eestock eestock    4096 Sep 19 01:16 .
+drwxrwxr-x 3 eestock eestock    4096 Sep 19 01:16 ..
+-rw-rw-r-- 1 eestock eestock 1235246 Sep 19 01:16 index-C5v-edqI.js
+-rw-rw-r-- 1 eestock eestock   22971 Sep 19 01:16 index-CeUPb4uk.css
+b7520e0980129a5d535586cf439274552312c5bb4e228326b668da746e401fe7  web/dist/assets/index-C5v-edqI.js
+### dist 是否还含摘要文案（应仍含 '执行完整度审计：未记录' 但摘要容器 testid 仍在 bundle ⇒ 运行时被 false 短路）
+0

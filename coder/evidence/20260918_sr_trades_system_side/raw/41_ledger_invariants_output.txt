@@ -1,0 +1,35 @@
+[Y5-①] 参与三账自洽扫描的 legacy run 数 = 374
+I1 违反（TradeDetail 内部 pnl ≠ 明细重算）条数 = 0
+I2 违反（末权益−初始 ≠ Σ trades.pnl）条数 = 0
+I3 违反（有 trades 但无 Sell 意图）条数 = 171
+    ('sr_1789044294802_000095', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044294963_000098', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295055_000101', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295145_000104', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295192_000107', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295229_000110', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295270_000113', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789044295315_000116', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789185280539_000002', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+    ('sr_1789185300115_000003', 'trades>0 但 per_bar orders 无 Sell 意图', 1)
+
+[Y5-①] 多回合样本（trade_count ≥ 5 且 Sell 意图数 ≥ 5）前 10 例：
+  run=sr_1789013905608_000022 516380/D1 trades=33 buy_intents=34 sell_intents=33 fill_bars=66 orders_bars=67
+  ---- 该样本逐笔 TradeDetail ----
+     {"close_bar": 14, "close_price": 1.009798, "close_ts": 1758470400, "commission": 51.86658821939465, "gross_value": 107491.34662914071, "hold_bars": 10, "open_bar": 4, "open_price": 0.9391877999999999, "open_ts": 1757260800, "pnl": 7410.728119168853, "shares": 106448.36554354506, "stamp_duty": 53.745673314570354}
+     {"close_bar": 19, "close_price": 1.0557888, "close_ts": 1759075200, "commission": 53.529593340150356, "gross_value": 106734.49121196974, "hold_bars": 2, "open_bar": 17, "open_price": 1.0622124, "open_ts": 1758729600, "pnl": -756.2877756080852, "shares": 101094.54770875552, "stamp_duty": 53.36724560598487}
+     {"close_bar": 23, "close_price": 1.0107978, "close_ts": 1760284800, "commission": 50.93225212951569, "gross_value": 97827.65304855033, "hold_bars": 2, "open_bar": 21, "open_price": 1.0942188000000002, "open_ts": 1759939200, "pnl": -8173.5484996158775, "shares": 96782.61374188817, "stamp_duty": 48.913826524275166}
+     {"close_bar": 38, "close_price": 1.0587882, "close_ts": 1762099200, "commission": 50.0336931564086, "gross_value": 101826.56856430182, "hold_bars": 8, "open_bar": 30, "open_price": 1.0222044, "open_ts": 1761062400, "pnl": 3417.4175255306764, "shares": 96172.74594135242, "stamp_duty": 50.91328428215091}
+     {"close_bar": 44, "close_price": 1.0357928, "close_ts": 1762790400, "commission": 50.63473122898367, "gross_value": 100666.0837567489, "hold_bars": 1, "open_bar": 43, "open_price": 1.0482096, "open_ts": 1762704000, "pnl": -1307.725175544212, "shares": 97187.47200863811, "stamp_duty": 50.33304187837445}
+     {"close_bar": 50, "close_price": 1.0157968, "close_ts": 1763481600, "commission": 49.32072346751785, "gross_value": 96717.45103684839, "hold_bars": 3, "open_bar": 47, "open_price": 1.0562112000000001, "open_ts": 1763049600, "pnl": -3945.671245360587, "shares": 95213.38424855088, "stamp_duty": 48.358725518424194}
+     metrics: {"annualized_return": -0.1877040550282445, "avg_hold_bars": 3.606060606060606, "max_drawdown": 0.25513676053729367, "net_profit": -18501.91729530951, "profit_factor": 1.4206063150058954, "sharpe": -1.017641586548193, "trade_count": 33, "win_rate": 0.30303030303030304}
+     initcap=100000.0  last_equity=81498.08270469049  Σpnl=-18501.917295
+  run=sr_1789040196234_000000 159740/M5 trades=106 buy_intents=106 sell_intents=105 fill_bars=212 orders_bars=211
+  run=sr_1789040385708_000001 159740/M5 trades=106 buy_intents=106 sell_intents=105 fill_bars=212 orders_bars=211
+  run=sr_1789040388790_000002 159740/M5 trades=27 buy_intents=30 sell_intents=27 fill_bars=57 orders_bars=57
+  run=sr_1789040391904_000003 518880/M5 trades=93 buy_intents=93 sell_intents=92 fill_bars=186 orders_bars=185
+  run=sr_1789040394990_000004 518880/M5 trades=38 buy_intents=38 sell_intents=37 fill_bars=76 orders_bars=75
+  run=sr_1789040398073_000005 513310/M5 trades=78 buy_intents=78 sell_intents=77 fill_bars=156 orders_bars=155
+  run=sr_1789040401152_000006 513310/M5 trades=36 buy_intents=39 sell_intents=35 fill_bars=75 orders_bars=74
+  run=sr_1789040618748_000009 159740/M5 trades=25 buy_intents=25 sell_intents=25 fill_bars=50 orders_bars=50
+  run=sr_1789040621829_000010 518880/M5 trades=44 buy_intents=44 sell_intents=44 fill_bars=88 orders_bars=88

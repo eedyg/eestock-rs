@@ -1,0 +1,17 @@
+# 外部设计文档来源与指纹（只读副本，原件在策略研发侧工作区，不在本仓库）
+
+origin_dir=/home/eestock/workspace/scrylink/eestock/eestock
+
+9650b020af3639a15bb54f383d7fad55ec070c55c38d81c375742e593b0ba53f  /home/eestock/workspace/scrylink/eestock/eestock/design/01-dca-strategy-family.md
+c4100c9ded8ca6ea9fb279c839c311f86fa40e41a6650495d1d2d02a9e8c2fe4  /home/eestock/workspace/scrylink/eestock/eestock/design/03-dca-policy-semantics-correction.md
+c14ccf81d0d6b63f9ff33b964448ffe2efe5cd967844fbbc0b9d290ea1c527b8  /home/eestock/workspace/scrylink/eestock/eestock/design/02-platform-issues-for-upstream.md
+5d7f83df79f338e795b11560218d07971941088eca587116240ec14bf19ea0b3  /home/eestock/workspace/scrylink/eestock/eestock/strategies/dca_baseline.js
+2071324bcea8d68c8f8dc4c872d1ed57b1bdbb8eedb1d7d63b794d4094262a69  /home/eestock/workspace/scrylink/eestock/eestock/strategies/dca_drawdown.js
+7c6570c42e9b134c72cb27b19f6519ba50f70d9fe86f6b20b3ee567ef41c8524  /home/eestock/workspace/scrylink/eestock/eestock/strategies/dca_ma_dev.js
+194d058165869ca0c69e333dd7827117d5330dc088307d68dfe82c22bf91a2ae  /home/eestock/workspace/scrylink/eestock/eestock/strategies/dca_periodic.js
+3d8fcfff7d6c907fc0cd35ac7f84d11fbf477277bc8ee7abd8d8b27a325266b8  /home/eestock/workspace/scrylink/eestock/eestock/tools/dca_matrix.py
+b6e51eeff13da0be2b6013b940a4a6d7172fbe810fa3ed1d97ebede6e9a68b98  /home/eestock/workspace/scrylink/eestock/eestock/tools/strategy_eval.py
+4abe57c4b1fcb67f6911bd878b3fe478d8278c1ce981e654d3ef17ab741bf893  /home/eestock/workspace/scrylink/eestock/eestock/results/RESULTS-dca-family.md
+
+## git ls-files 反证：本仓库（eestock-rs）内不存在该设计文档
+0

@@ -1,0 +1,10 @@
+### 本批（R-G1/R-G2/R-G4 整改）改动文件 + sha256（2026-09-19T02:11:45+08:00）
+
+e9337ea4fcd5a367443c30170f2d32ce42b63cf2af9b9ebf267a994934809e6b  crates/web/tests/adr026_run_audit.rs
+8dfe5fe0c9d1e525ddddf1c26f2c1cc587b67553f152add8469d5c3135472f5e  crates/web/tests/tester_p5rect_verify.rs
+46eb787e586aaf99e1d2f3ecdfe1c269531675bea8216bb29da99eeae1eeac4a  web/src/features/workbench/ResultView.tsx
+7cf2ba781b4e46f4dbca9eedf2d8d5abc810d32515dc62d5b01354a4e3b72454  web/src/features/workbench/ResultView.test.tsx
+f9b855819b5984d6ced4ae08174e875350bf9ba0a66093a3136b37324224d756  web/e2e/adr026-audit.e2e.ts
+
+### 构建产物（gitignore，非源码）：
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js

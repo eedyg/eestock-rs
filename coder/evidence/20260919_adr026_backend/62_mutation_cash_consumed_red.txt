@@ -1,0 +1,66 @@
+   Compiling application v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/application)
+warning: unused variable: `buy_commission`
+   --> crates/application/src/audit.rs:269:9
+    |
+269 |     let buy_commission: f64 = buy_fills
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_buy_commission`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib test) generated 1 warning (run `cargo fix --lib -p application --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.35s
+     Running unittests src/lib.rs (target/debug/deps/application-c54ef88074d95bf3)
+
+running 18 tests
+test audit::tests::dca_plan_met_has_no_dca_warning ... ok
+test audit::tests::force_closed_round_trips_match_by_close_bar ... ok
+test audit::tests::fills_and_trades_projection_reads_documented_fields ... ok
+test audit::tests::commission_follows_fee_contract_min_and_rate ... FAILED
+test audit::tests::full_deployment_lumpsum_has_no_warnings ... FAILED
+test audit::tests::no_in_range_bar_means_no_last_bar_unfilled ... ok
+test audit::tests::legacy_two_way_run_is_self_consistent ... FAILED
+test audit::tests::no_policy_means_null_planned_tranches_and_no_dca_warning ... ok
+test audit::tests::orders_projection_filters_warmup_and_tracks_last_in_range_bar ... ok
+test audit::tests::orders_projection_treats_missing_warmup_as_in_range ... ok
+test audit::tests::partial_deployment_threshold_table ... ok
+test audit::tests::recorded_false_reports_zeros_and_no_warnings ... ok
+test audit::tests::target_run_shape_dca_underfilled ... FAILED
+test audit::tests::unexecuted_orders_is_saturating ... ok
+test audit::tests::zero_capital_basis_does_not_divide_by_zero ... ok
+test audit::tests::trade_detail_json_reads_legacy_without_reason_field ... ok
+test audit::tests::zero_fills_reports_partial_deployment_and_unexecuted ... ok
+test audit::tests::report_serializes_frozen_field_names ... ok
+
+failures:
+
+---- audit::tests::commission_follows_fee_contract_min_and_rate stdout ----
+
+thread 'audit::tests::commission_follows_fee_contract_min_and_rate' (4010761) panicked at crates/application/src/audit.rs:393:9:
+expected 10005, got 10000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- audit::tests::full_deployment_lumpsum_has_no_warnings stdout ----
+
+thread 'audit::tests::full_deployment_lumpsum_has_no_warnings' (4010765) panicked at crates/application/src/audit.rs:393:9:
+expected 100000, got 99975.00624843787
+
+---- audit::tests::legacy_two_way_run_is_self_consistent stdout ----
+
+thread 'audit::tests::legacy_two_way_run_is_self_consistent' (4010766) panicked at crates/application/src/audit.rs:393:9:
+expected 5168013.55349227, got 5167755.165733989
+
+---- audit::tests::target_run_shape_dca_underfilled stdout ----
+
+thread 'audit::tests::target_run_shape_dca_underfilled' (4010774) panicked at crates/application/src/audit.rs:393:9:
+expected 41607.97208076086, got 41397.97208076087
+
+
+failures:
+    audit::tests::commission_follows_fee_contract_min_and_rate
+    audit::tests::full_deployment_lumpsum_has_no_warnings
+    audit::tests::legacy_two_way_run_is_self_consistent
+    audit::tests::target_run_shape_dca_underfilled
+
+test result: FAILED. 14 passed; 4 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p application --lib`

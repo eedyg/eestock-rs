@@ -1,0 +1,5 @@
+### RUN-B/C 后临时库 tmp_e2e_1789751873 残留（flaky 用例失败前未清理）
+### 孤儿计数（symbol 不在 symbols 内）
+0
+### RUN-A 中 orphan 目标是否绿（应为绿：库尚未被污染）
+1

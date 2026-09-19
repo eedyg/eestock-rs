@@ -1,0 +1,29 @@
+{
+    "id": "sv_1789211089727_000010",
+    "code": "// =============================================================================\n// dca_baseline —— 无脑定期定额（DCA Family #0：对照组，不是策略）\n// 设计文档：design/01-dca-strategy-family.md §4.4\n// =============================================================================\n// 作用：**判断三个候选定投策略是否真有价值的唯一标尺。**\n// 没有它，任何收益数字都无法解释——你不知道改善来自择时，还是来自市场本身。\n//\n// 逻辑：每 cadence 根 bar 到期投一期，窗口 plan_bars 内保持买入区，\n//       不读任何指标、不做任何判断。\n//\n// 无内部状态（节奏由 ctx.index 算术导出）→ 无需 save()/load()。\n// =============================================================================\n\nconst PARAMS_SCHEMA = [\n  { key: \"cadence\", type: \"int\", default: 20, min: 1, max: 250, description: \"定投周期（bar 数）\" },\n  { key: \"plan_bars\", type: \"int\", default: 5, min: 1, max: 120, description: \"买入区保持窗口（bar 数）\" }\n];\n\nfunction on_bar(ctx) {\n  const p = ctx.params;\n  const idx = ctx.index;\n  const since = idx - Math.floor(idx / p.cadence) * p.cadence;\n  return since < p.plan_bars ? 75 : 50;\n}\n",
+    "sha256": "5d7f83df79f338e795b11560218d07971941088eca587116240ec14bf19ea0b3",
+    "status": "published",
+    "version": 1,
+    "created_at": "2026-09-12T11:04:49.732964+00:00",
+    "strategy_id": "st_1789211089727_000009",
+    "published_at": "2026-09-12T11:05:49.846265+00:00",
+    "params_schema": [
+        {
+            "key": "cadence",
+            "max": 250.0,
+            "min": 1.0,
+            "type": "int",
+            "default": 20.0,
+            "description": "定投周期（bar 数）"
+        },
+        {
+            "key": "plan_bars",
+            "max": 120.0,
+            "min": 1.0,
+            "type": "int",
+            "default": 5.0,
+            "description": "买入区保持窗口（bar 数）"
+        }
+    ],
+    "approval_level": "backtest_ok"
+}

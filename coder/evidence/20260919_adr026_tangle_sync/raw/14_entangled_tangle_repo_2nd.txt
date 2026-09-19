@@ -1,0 +1,23 @@
+[12:53:00] INFO     Welcome to Entangled v2.4.3!
+[12:53:01] INFO     write `crates/domain/src/ports.rs`
+           INFO     write `crates/storage/src/migrate_check.rs`
+           INFO     write `migrations/0027_strategy_run_result_chunks.sql`
+           INFO     write `crates/web/src/lib.rs`
+           INFO     write `crates/mcp/src/rpc.rs`
+           INFO     write `crates/mcp/src/tools.rs`
+           INFO     write `crates/mcp/tests/mcp_protocol.rs`
+           WARNING  `crates/domain/src/ports.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/storage/src/migrate_check.rs` changed outside the
+                    control of Entangled
+           WARNING  `migrations/0027_strategy_run_result_chunks.sql` changed
+                    outside the control of Entangled
+           WARNING  `crates/web/src/lib.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/rpc.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/src/tools.rs` changed outside the control of
+                    Entangled
+           WARNING  `crates/mcp/tests/mcp_protocol.rs` changed outside the
+                    control of Entangled
+           ERROR    conflicts found, breaking off (use `--force` to run anyway)

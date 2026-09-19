@@ -176,6 +176,7 @@ mod tests {
             stamp_duty: 0.0,
             pnl,
             hold_bars: hold,
+            reason: None,
         }
     }
 

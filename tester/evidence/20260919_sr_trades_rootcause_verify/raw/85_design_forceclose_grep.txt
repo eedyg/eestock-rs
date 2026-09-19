@@ -1,0 +1,26 @@
+=== design 里关于期末强平/口径标注/未实现 的要求 ===
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:4:- 背景：`strategy_test_run` / `bt_run_ensemble` 的印花税默认值固定 `0.05%`（股票口径），
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:6:  （实测：同一 ETF 同配置，默认口径 pnl 少 50.83 元，差 3.2%）。根因是**缺少标的类型元数据**，
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:15:| **过户费** | **免收（0）** | 中国结算口径：ETF/LOF/封闭式基金/可转债二级市场买卖免收过户费（**注**：ETF 申赎的"组合证券过户"另收费，属场外环节，不在本平台范围） |
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:16:| **交易经手费** | **0.04‰（=0.004%）双边** | 深交所收费标准（2026年1月）："基金 按成交额双边收取 0.04‰"；**债券 ETF、货币 ETF 暂免**。**⚠️ 本平台入库存 `0`**（因佣金为全佣口径，规费已含，叠加即重复计费；`fee_profiles.note` 已写明） |
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:20:> **口径警示**：佣金有"**全佣**"（已含经手费/证管费等规费）与"**净佣**"（规费另收）之分。
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:21:> 平台既有默认 `rate_pct=0.025`（万2.5）按**全佣**口径理解，故对 ETF 而言经手费/证管费
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:22:> **不得再叠加**（否则重复计费）。本 ADR 明确该口径。
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:38:| D11-2 | **费率档案入库** | 新增 `fee_profiles` 表（按 `type` 主键）：`commission_rate_pct`、`min_fee`、`exchange_fee_pct`（经手费）、`regulatory_fee_pct`（证管费）、`stamp_duty_pct`（卖出印花税）、`transfer_fee_pct`（过户费）。按 §1 事实播种；**每行须带注释/来源字段说明口径**（尤其 ETF 的"全佣已含规费 → 经手费/证管费列 0"）。 |
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:41:| D11-5 | **口径文档化** | `design/07-app-plane/01-mcp.md` / `design/08-backtest/` 写明：ETF/LOF 印花税=0（不征）、过户费=0；股票印花税=卖出 0.05%；佣金为全佣口径（已含规费）。 |
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:44:## 3. 验收口径
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:62:- 多家券商费用公示（华金/长城/大同/浙商等）：佣金双向、最低 5 元、全佣/净佣口径差异
+design/01-architecture/adr/ADR-019-symbol-type-fee-profiles.md:85:| R-3 | `source` 语义随之明确：取本次解析中**最高优先级来源**（任一字段来自显式 → `"explicit"`；否则 profile → `"profile"`；否则 `"default"`），并在文档写明该口径（不等于"所有字段都来自该类"）。 |
+design/01-architecture/adr/ADR-017-deployment-two-planes.md:51:- diagnose 的「手动复位」等写操作在 Wave 1 设计时必须沿用 DB 控制通道口径，不得给数据面开管理 API。
+design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md:6:- 关联：ADR-017（双平面部署）、ADR-019 D11（费率档案，遗留探针库来源）、**ADR-023**（30m 周期档 + cagg 刷新窗口根治；其 §6.1 第 8 条「测试隔离债」、第 12 条「测试残留进了生产 cagg」为同类问题的先例）、`design/04-storage/schema.md`（迁移与运维口径）
+design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md:45:| 信号 | 口径 | 阈值（初值，可由实测调整） |
+design/01-architecture/adr/ADR-025-tsdb-job-observability-and-test-carrier-governance.md:67:- 度量口径：缺口用**行数 + 水位**双证（`kline_5m` 09-17 = 1100 vs 应 2200）。
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:38:| 口径统一 | 现有 6 档（5m/15m/1h/1d/1w/1mo）**全部**是 1m 派生（`crates/tushare/src/client.rs:110`「tushare 原生仅 M1」），30m 单独走原生会形成**第二个口径** |
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:40:| 逐桶可对齐 | 同一 `time_bucket` 口径 ⇒ 30m 桶与 1m/15m 桶边界严格对齐，可逐桶校验 |
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:49:  - **每日桶数（2026-09-16 修正）**：A 股真实 M1 形态是 241 根/日，且**含会话末打印**（11:30 与 15:00 各一根）、**无 13:00**；会话末打印落在对齐桶上 ⇒ 各自独占一桶，于是每个日内周期都比「理想对齐」**多 2 桶**：15m 实测 **18**/日、30m **10**/日、1h **6**/日（1h 的 6 已由活库 44×6=264 行/日独立佐证）。**判据必须是「与既有 15m/1h 几何同构」，不得写成理想值**；薄桶属既有数据形态，**不得为 30m 特殊处理**（否则与 15m/1h 口径分裂）
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:69:- 用户侧未暴露：`reader.rs` 的兜底用 raw 层 `kline_5m`（新鲜）反连接补位 ⇒ **5m 实际长期由兜底数据服务，准确层空缺**（第二事实源，潜在口径分歧）
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:99:- **密度比**：`MEASURED_DENSITY_TABLE` **只认实测值，禁止按名义周期比兜底**（ADR-022/287 口径）。
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:104:- **30m 配对禁用 composed（强制，2026-09-16 追加）**：必须为 30m 与 `{1m,5m,15m,1h}` 的**每一对**写**直接实测条目**，**冻结值**（同一 P0.3 口径真渲染、pane 520px、多取样逐位一致、禁名义比）：
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:137:| `design/06-web/01-dashboard.md` | `web/src/layouts/DashboardGrid.tsx`（`type Period` 加 `'30m'`）、§202/§312/§215 口径（2.6-4） |
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:204:3. **`materialized_only = true`**：全部 cagg 查询完全依赖物化，无 real-time 兜底；本轮以 §2.4 修窗口根治，**不改模式**（避免制造口径分裂）
+design/01-architecture/adr/ADR-023-period-set-extension-30m.md:211:6. ~~**`kline_accurate_1d` 落后 1–2 交易日**~~ **已证伪（2026-09-17，口径误读）**：实测 `max(ts) = 2026-09-15 16:00:00Z` 换算 CST 即 **2026-09-16 00:00**，正是**最后完整交易日 09-16 的日线桶** ⇒ 不落后。三重实测均无缺口：(a) 全历史按年集合差集 **0 行**；(b) 内容强判据——最近 14 交易日 accurate_1d 对 M1 rollup 逐日 **close/volume 失配 0、缺行 0**；(c) 窗口算术——末次刷新 `now=09-17 00:35Z` 窗口 `[09-14 00:35Z, 09-16 23:35Z]` 完全包含目标桶（`09-15 16:00Z`），余量 **7h35m**（不覆盖需 `end_offset > 8h`）。

@@ -1,0 +1,8 @@
+   kind    | seq |  n  
+-----------+-----+-----
+ drawdown  |   0 | 173
+ fills     |   0 |  43
+ net_value |   0 | 173
+ per_bar   |   0 | 423
+(4 rows)
+

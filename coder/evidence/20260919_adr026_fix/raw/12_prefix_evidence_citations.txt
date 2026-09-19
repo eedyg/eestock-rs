@@ -1,0 +1,49 @@
+### 上一轮（tester/阶段 4）已采集的「修复前」原始证据引用摘录（本批复用，不重跑已绿部分）
+
+--- [1] G1 flake 定量：tester/evidence/20260919_adr026_e2e_verify/raw/74_adr026_suite_flake_stats.txt ---
+### 新增端点套件 adr026_run_audit 隔离重复（默认并行 vs 串行） 2026-09-19T01:19:29+08:00
+PARALLEL run1 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s | failed_cases=none
+PARALLEL run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s | failed_cases=test audit_endpoint_emits_required_tracing_fields ... FAILED,
+PARALLEL run3 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s | failed_cases=none
+PARALLEL run4 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s | failed_cases=none
+PARALLEL run5 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s | failed_cases=none
+SERIAL   run1 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.48s | failed_cases=none
+SERIAL   run2 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s | failed_cases=none
+SERIAL   run3 exit=0 | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s | failed_cases=none
+
+--- [2] G1 FK 23503 原始异常：tester/evidence/20260919_adr026_e2e_verify/raw/71_reg_web_run1.txt:143 ---
+---- audit_recorded_false_when_facts_are_missing stdout ----
+
+thread 'audit_recorded_false_when_facts_are_missing' (4177130) panicked at crates/web/tests/adr026_run_audit.rs:352:40:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "23503", message: "insert or update on table \"strategy_run_result\" violates foreign key constraint \"strategy_run_result_run_id_fkey\"", detail: Some("Key (run_id)=(sr_adr026_chunked_nofacts) is not present in table \"strategy_run\"."), hint: None, position: None, where: None, schema: Some("public"), table: Some("strategy_run_result"), column: None, data_type: None, constraint: Some("strategy_run_result_run_id_fkey"), file: Some("ri_triggers.c"), line: Some(2608), routine: Some("ri_ReportViolation") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+--- [3] G3 隔离重复红：tester/evidence/20260919_adr026_e2e_verify/raw/75_other_targets_isolated.txt ---
+### orphan_detect_endpoint_red 隔离重复（默认并行）2026-09-19T01:21:15+08:00
+run1 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+run2 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+run3 exit=101 | test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+### tester_p5rect_verify 隔离重复（既有红 F5）
+
+--- [4] G4 修复前 UI 文案（真浏览器基线）：tester/evidence/20260919_adr026_e2e_verify/raw/e2e/base_10_baseline_trades_lines.json ---
+{
+  "l1": "成交 43 笔（逐笔源 /fills）｜回合 1 条（其中强平合成 1 条）｜名义投入 41.40%（分母 = 初始资金）",
+  "l2": "现金消耗（含佣金）41.61%｜计划批数 100｜可达轮次 43｜已成交 42｜未执行挂单 1（末根 bar 无次 bar 可执行）",
+  "warnings": "成交 43 笔（逐笔源 /fills）｜回合 1 条（其中强平合成 1 条）｜名义投入 41.40%（分母 = 初始资金）\n现金消耗（含佣金）41.61%｜计划批数 100｜可达轮次 43｜已成交 42｜未执行挂单 1（末根 bar 无次 bar 可执行）\n⚠ 计划 100 批，区间内最多可推进 43 批、已成交 42 批（剩余批次随买入区结束取消）\n⚠ 名义投入 41.40% 初始资金，年化/回撤/夏普分母仍为初始资金\nℹ 1 笔挂单未成交（末根 bar 无次 bar 可执行）"
+}
+--- [5] G2（既有红）tester 自述：tester/report/adr024_p4b_fix_verification.md:356-366 ---
+## 5.3 唯一红：`tester_p5rect_verify::t_n1_http_every_400_is_structured_object`（**阈值漂移，非回归**）
+
+```
+[runs/resource_guard(confirm=false)] 期望 400，实得 201；
+  body: …"estimated_bars":292092… "symbol":"518880","period":"M1",
+        "requested_from":"2021-01-01…","requested_to":"2026-01-01…" …
+```
+**因果证明**（证据 `24_p5rect_failure_attribution.txt`）：把 `GUARD_CONFIRM_BARS` 临时改回 `200_000` ⇒ 同文件 **4 passed / 0 failed**；复原 500_000 ⇒ 复红 1 例。⇒ 100% 由 confirm 阈值上移引起（292,092 < 500,000）。
+
+**未修（授权边界）**：派单限定「`crates/web/tests/tester_p5_indep.rs` 是你唯一被授权改的文件」，故本轮**未触碰** `tester_p5rect_verify.rs`（sha256 `18119a46…` 未变）。
+建议修法（二选一）：① 该表项期望由 `resource_guard` 改为 `201`/放行，并另加一个 ≥50 万 bar 的 `resource_guard` 表项；② 把该行区间换成 518880 M1 全历史（≈77 万 bar）。
+
+--- [6] 修复前 adr026_run_audit.rs sha256：coder/evidence/20260919_adr026_backend/80_changed_files_sha256.txt:12 ---
+fe974d7a5d950b32eee7ab4d41fa524edf3f03c34427b0978018de917207a86e  crates/web/tests/adr026_run_audit.rs

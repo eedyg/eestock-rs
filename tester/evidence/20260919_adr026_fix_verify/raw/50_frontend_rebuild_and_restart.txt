@@ -1,0 +1,87 @@
+### [K] G4 前置：前端重建 + 应用重启 2026-09-19T02:43:33+08:00
+--- 重启前状态 ---
+total 1244
+drwxrwxr-x 2 eestock eestock    4096 2026-09-19 01:44:04.069472979 +0800 .
+drwxrwxr-x 3 eestock eestock    4096 2026-09-19 01:44:04.069472979 +0800 ..
+-rw-rw-r-- 1 eestock eestock   22971 2026-09-19 01:44:04.069472979 +0800 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237407 2026-09-19 01:44:04.069472979 +0800 index-CkI-1t1L.js
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+assets/index-CkI-1t1L.js
+assets/index-CeUPb4uk.css
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+
+> eestock-web@0.1.0 build
+> tsc -b && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 184 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.40 kB │ gzip:   0.29 kB
+dist/assets/index-CeUPb4uk.css     22.97 kB │ gzip:   5.77 kB
+dist/assets/index-CkI-1t1L.js   1,237.41 kB │ gzip: 381.77 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.05s
+--- 重建后 dist ---
+total 1244
+drwxrwxr-x 2 eestock eestock    4096 2026-09-19 02:43:38.906036997 +0800 .
+drwxrwxr-x 3 eestock eestock    4096 2026-09-19 02:43:38.906036997 +0800 ..
+-rw-rw-r-- 1 eestock eestock   22971 2026-09-19 02:43:38.906036997 +0800 index-CeUPb4uk.css
+-rw-rw-r-- 1 eestock eestock 1237407 2026-09-19 02:43:38.907036996 +0800 index-CkI-1t1L.js
+cc991403600598936124bbd124e5306613b49957327447ffcd7e563ca393f90f  web/dist/assets/index-CeUPb4uk.css
+4967c508e507cc2361620b74c56ed6a93cfa293df5a69fd5f64d71b71c437726  web/dist/assets/index-CkI-1t1L.js
+ M web/src/api/client.test.ts
+ M web/src/api/client.ts
+ M web/src/api/mock.test.ts
+ M web/src/api/mock.ts
+ M web/src/api/types.ts
+ M web/src/features/workbench/ResultView.test.tsx
+ M web/src/features/workbench/ResultView.tsx
+?? web/e2e/adr026-audit.e2e.ts
+?? web/src/features/workbench/useRunAudit.ts
+
+--- 后端二进制重建（确认与 01:13 版本一致，后端本批未改） ---
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+895c516e0176e054a8086e0c5ac6d60e9fe8050d4935c747771b588fc92fbf4b  target/debug/eestock-app
+
+--- 停止旧进程 ---
+    PID                  STARTED     ELAPSED CMD
+4160311 Sat Sep 19 01:14:12 2026    01:29:35 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 02:15 /proc/4160311/exe -> /home/eestock/workspace/git/eestock/eestock-rs/target/debug/eestock-app
+kill 后存活检查: 0 行
+(端口已释放)
+--- 新进程 ---
+161652 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && D=tester/evidence/20260919_adr026_fix_verify/raw && LOGF=logs/app_dev_8081_redeploy_20260919_0244.log && { echo; echo "--- 停止旧进程 ---"; ps -o pid,lstart,etime,cmd -p 4160311; ls -l /proc/4160311/exe; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; kill -TERM 4160311; sleep 3; { echo "kill 后存活检查: $(ps -p 4160311 -o pid= | wc -l) 行"; ss -ltnp | grep -E ':(8081|8082)' || echo "(端口已释放)"; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml >> $LOGF 2>&1 & sleep 5; { echo "--- 新进程 ---"; pgrep -af eestock-app; NEWPID=$(pgrep -f 'target/debug/eestock-app --config /tmp/app_dev_8081.toml' | head -1); echo "NEWPID=$NEWPID"; ls -l /proc/$NEWPID/exe; ps -o pid,lstart,etime,cmd -p $NEWPID; echo "--- 端口归属 ---"; ss -ltnp | grep -E ':(8081|8082)'; echo "--- 启动日志 ---"; cat $LOGF; echo "ERROR 计数: $(grep -c ERROR $LOGF)"; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; sleep 1; { echo "--- 健康与线上产物 ---"; curl -s -o /dev/null -w 'healthz=%{http_code}\n' http://127.0.0.1:8081/healthz; curl -s -o /dev/null -w 'sse=%{http_code}\n' http://127.0.0.1:8082/sse; curl -s -o /dev/null -w 'audit=%{http_code}\n' http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit; curl -s http://127.0.0.1:8081/backtest-workbench | grep -o 'assets/index-[A-Za-z0-9_-]*\.\(js\|css\)'; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; cat $D/50_frontend_rebuild_and_restart.txt | tail -30
+161666 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+NEWPID=161652
+lrwxrwxrwx 1 eestock eestock 0 Sep 19 02:43 /proc/161652/exe -> /usr/bin/bash
+    PID                  STARTED     ELAPSED CMD
+ 161652 Sat Sep 19 02:43:47 2026       00:08 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && D=tester/evidence/20260919_adr026_fix_verify/raw && LOGF=logs/app_dev_8081_redeploy_20260919_0244.log && { echo; echo "--- 停止旧进程 ---"; ps -o pid,lstart,etime,cmd -p 4160311; ls -l /proc/4160311/exe; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; kill -TERM 4160311; sleep 3; { echo "kill 后存活检查: $(ps -p 4160311 -o pid= | wc -l) 行"; ss -ltnp | grep -E ':(8081|8082)' || echo "(端口已释放)"; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml >> $LOGF 2>&1 & sleep 5; { echo "--- 新进程 ---"; pgrep -af eestock-app; NEWPID=$(pgrep -f 'target/debug/eestock-app --config /tmp/app_dev_8081.toml' | head -1); echo "NEWPID=$NEWPID"; ls -l /proc/$NEWPID/exe; ps -o pid,lstart,etime,cmd -p $NEWPID; echo "--- 端口归属 ---"; ss -ltnp | grep -E ':(8081|8082)'; echo "--- 启动日志 ---"; cat $LOGF; echo "ERROR 计数: $(grep -c ERROR $LOGF)"; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; sleep 1; { echo "--- 健康与线上产物 ---"; curl -s -o /dev/null -w 'healthz=%{http_code}\n' http://127.0.0.1:8081/healthz; curl -s -o /dev/null -w 'sse=%{http_code}\n' http://127.0.0.1:8082/sse; curl -s -o /dev/null -w 'audit=%{http_code}\n' http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit; curl -s http://127.0.0.1:8081/backtest-workbench | grep -o 'assets/index-[A-Za-z0-9_-]*\.\(js\|css\)'; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; cat $D/50_frontend_rebuild_and_restart.txt | tail -30
+--- 端口归属 ---
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=161666,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=161666,fd=12))  
+--- 启动日志 ---
+{"timestamp":"2026-09-18T18:43:50.923250Z","level":"INFO","fields":{"message":"eestock-app starting","config":"/tmp/app_dev_8081.toml"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T18:43:50.968030Z","level":"INFO","fields":{"message":"schema self-check ok"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T18:43:50.969202Z","level":"INFO","fields":{"message":"strategy registry 启动播种完成","seeded":"0","skipped":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T18:43:50.970874Z","level":"INFO","fields":{"message":"sim-live 启动恢复完成","recovered":"0","degraded":"0"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T18:43:50.970951Z","level":"INFO","fields":{"message":"eestock-app serving","listen":"0.0.0.0:8081","static_dir":"./web/dist"},"target":"eestock_app"}
+{"timestamp":"2026-09-18T18:43:50.970985Z","level":"INFO","fields":{"message":"mcp server (HTTP/SSE) serving","listen":"0.0.0.0:8082"},"target":"mcp::server"}
+{"timestamp":"2026-09-18T18:43:53.899058Z","level":"INFO","fields":{"message":"mcp sse session opened","session":"b74082a3799d72253058bf03eff8d732"},"target":"mcp::server"}
+ERROR 计数: 0
+--- 健康与线上产物 ---
+healthz=200
+
+--- 复验续跑：应用重启后再次确认（上一进程 161666 因工具 300s 超时被进程组回收） ---
+2026-09-19T10:14:16+08:00
+634452 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && LOGF=logs/app_dev_8081_redeploy_20260919_0250.log && setsid nohup ./target/debug/eestock-app --config /tmp/app_dev_8081.toml >> $LOGF 2>&1 < /dev/null & disown; sleep 6; pgrep -af 'target/debug/eestock-app' ; ss -ltnp 2>/dev/null | grep -E ':(8081|8082)'; curl -s -o /dev/null -w 'healthz=%{http_code}\n' http://127.0.0.1:8081/healthz; curl -s -o /dev/null -w 'audit=%{http_code}\n' http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit; curl -s http://127.0.0.1:8081/backtest-workbench | grep -o 'assets/index-[A-Za-z0-9_-]*\.\(js\|css\)'; cat $LOGF
+634454 ./target/debug/eestock-app --config /tmp/app_dev_8081.toml
+634610 /bin/bash -c cd /home/eestock/workspace/git/eestock/eestock-rs && D=tester/evidence/20260919_adr026_fix_verify/raw && { echo; echo "--- 复验续跑：应用重启后再次确认（上一进程 161666 因工具 300s 超时被进程组回收） ---"; date -Is; pgrep -af 'target/debug/eestock-app'; ss -ltnp 2>/dev/null | grep -E ':(8081|8082)'; echo "healthz=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/healthz) audit=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/api/workbench/runs/sr_1789738328788_000005/audit) sse=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8082/sse)"; curl -s http://127.0.0.1:8081/backtest-workbench | grep -o 'assets/index-[A-Za-z0-9_-]*\.\(js\|css\)'; echo "启动日志 ERROR 计数: $(grep -c ERROR logs/app_dev_8081_redeploy_20260919_0250.log)"; } >> $D/50_frontend_rebuild_and_restart.txt 2>&1; cat $D/50_frontend_rebuild_and_restart.txt | tail -12; echo "=== e2e artifacts/spec ==="; ls web/e2e/ ; ls web/e2e/adr026-audit.e2e.ts
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=634454,fd=11))  
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=634454,fd=12))  

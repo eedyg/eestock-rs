@@ -1,0 +1,27 @@
+                            Table "public.strategy_version"
+     Column     |           Type           | Collation | Nullable |       Default       
+----------------+--------------------------+-----------+----------+---------------------
+ id             | text                     |           | not null | 
+ strategy_id    | text                     |           | not null | 
+ version        | integer                  |           | not null | 
+ code           | text                     |           | not null | 
+ params_schema  | jsonb                    |           | not null | '[]'::jsonb
+ sha256         | text                     |           | not null | 
+ status         | text                     |           | not null | 'draft'::text
+ approval_level | text                     |           | not null | 'backtest_ok'::text
+ created_at     | timestamp with time zone |           | not null | now()
+ published_at   | timestamp with time zone |           |          | 
+Indexes:
+    "strategy_version_pkey" PRIMARY KEY, btree (id)
+    "strategy_version_catalog_idx" btree (approval_level) WHERE status = 'published'::text
+    "strategy_version_status_idx" btree (strategy_id, status)
+    "strategy_version_strategy_id_version_key" UNIQUE CONSTRAINT, btree (strategy_id, version)
+Check constraints:
+    "strategy_version_approval_level_check" CHECK (approval_level = ANY (ARRAY['backtest_ok'::text, 'sim_ok'::text, 'live_approved'::text]))
+    "strategy_version_status_check" CHECK (status = ANY (ARRAY['draft'::text, 'published'::text, 'archived'::text]))
+Foreign-key constraints:
+    "strategy_version_strategy_id_fkey" FOREIGN KEY (strategy_id) REFERENCES strategy(id) ON DELETE CASCADE
+Triggers:
+    strategy_version_no_delete_published BEFORE DELETE ON strategy_version FOR EACH ROW EXECUTE FUNCTION strategy_version_published_guard()
+    strategy_version_no_update_published BEFORE UPDATE ON strategy_version FOR EACH ROW EXECUTE FUNCTION strategy_version_published_guard()
+

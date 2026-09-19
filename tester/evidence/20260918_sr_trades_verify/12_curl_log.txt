@@ -1,0 +1,12 @@
+### ss listen 8081/8082
+LISTEN 0      128          0.0.0.0:8081       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=11)) 
+LISTEN 0      128          0.0.0.0:8082       0.0.0.0:*    users:(("eestock-app",pid=2043164,fd=12)) 
+### curl /result
+
+HTTP 200
+### curl /fills
+
+HTTP 200
+### curl /brief
+
+HTTP 200

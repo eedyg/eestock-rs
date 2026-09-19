@@ -1,0 +1,9 @@
+   Compiling mcp v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.05s
+     Running unittests src/lib.rs (target/debug/deps/mcp-45c017ec1684aa89)
+
+running 1 test
+test tools::tests::bt_get_run_audit_tool_contract_and_gate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.02s
+

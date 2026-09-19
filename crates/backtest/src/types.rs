@@ -119,6 +119,14 @@ pub struct TradeDetail {
     pub pnl: f64,
     /// 持仓 bar 数（开仓 bar → 平仓 bar 间隔）。
     pub hold_bars: usize,
+    /// 清仓那一笔的**来源**（ADR-026 §2.3）：`"Policy" | "StopTrigger" | "ForceClose"`。
+    ///
+    /// - 新 run 由引擎写入（[`strategy_core`] `apply_sell`）；
+    /// - **历史 run 缺该字段 ⇒ `None`**（`#[serde(default)]` 保证旧 JSON 可读），前端显示「未记录」，
+    ///   并由审计端点 `round_trips_force_closed` 补足披露；
+    /// - **不改 `trade_count` 语义**（仍为平仓次数）。
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 #[cfg(test)]

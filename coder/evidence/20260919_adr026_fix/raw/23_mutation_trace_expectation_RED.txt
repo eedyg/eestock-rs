@@ -1,0 +1,52 @@
+### R-G1 变异反证 M2：把「捕获的 span/event 必须属于本用例 run」的期望改成不存在的 run id ⇒ 该断言必须变红（证明断言非恒真、确在检查捕获数据）（2026-09-19T01:43:01+08:00）
+变异点：adr026_run_audit.rs 中 id == &run_id → id == &format!("{run_id}_MUT")
+
+   Compiling web v0.1.0 (/home/eestock/workspace/git/eestock/eestock-rs/crates/web)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.58s
+     Running tests/adr026_run_audit.rs (target/debug/deps/adr026_run_audit-2919503a9c72a837)
+
+running 1 test
+test audit_endpoint_emits_required_tracing_fields ... FAILED
+
+failures:
+
+---- audit_endpoint_emits_required_tracing_fields stdout ----
+
+thread 'audit_endpoint_emits_required_tracing_fields' (32554) panicked at crates/web/tests/adr026_run_audit.rs:649:5:
+捕获的审计 span/event 不得含异己 run（并发用例）的 run_id：["sr_1789753382775_000002", "sr_1789753382775_000002"]
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.20/src/client/legacy/pool.rs:660 message=take? ("http", 127.0.0.1:46321): expiration = Some(90s)
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.20/src/client/legacy/pool.rs:268 message=reuse idle connection for ("http", 127.0.0.1:46321)
+SPAN workbench_run_audit trace_id=6d4aff660a4d33443271b112c5efb6b7 run_id=sr_1789753382775_000002 deployed_pct=0.5001 unexecuted_orders=0 warnings=1
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/logger.rs:143 summary=SELECT id, name, symbol, … db.statement=
+
+SELECT id, name, symbol, period, from_ts, to_ts, config, status, progress, error, created_at, started_at, finished_at FROM strategy_run WHERE id = $1
+ rows_affected=1 rows_returned=1 elapsed=120.841µs elapsed_secs=0.000120841
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/logger.rs:143 summary=SELECT per_bar, trades, net_value, … db.statement=
+
+SELECT per_bar, trades, net_value, drawdown, metrics, result_format FROM strategy_run_result WHERE run_id = $1
+ rows_affected=1 rows_returned=1 elapsed=288.388µs elapsed_secs=0.000288388
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/logger.rs:143 summary=SELECT kind, seq, ts_from, … db.statement=
+
+SELECT kind, seq, ts_from, ts_to, payload FROM strategy_run_bars WHERE run_id = $1 AND kind = $2 ORDER BY seq LIMIT $3 OFFSET $4
+ rows_affected=1 rows_returned=1 elapsed=464.055µs elapsed_secs=0.000464055
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/logger.rs:143 summary=SELECT count(*) FROM strategy_run_bars … db.statement=
+
+SELECT count(*) FROM strategy_run_bars WHERE run_id = $1 AND kind = $2
+ rows_affected=1 rows_returned=1 elapsed=245.931µs elapsed_secs=0.000245931
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/logger.rs:143 summary=SELECT kind, seq, ts_from, … db.statement=
+
+SELECT kind, seq, ts_from, ts_to, payload FROM strategy_run_bars WHERE run_id = $1 AND kind = $2 ORDER BY seq LIMIT $3 OFFSET $4
+ rows_affected=1 rows_returned=1 elapsed=123.39µs elapsed_secs=0.00012339
+EVENT event crates/web/src/workbench.rs:587 message=workbench_run_audit trace_id=6d4aff660a4d33443271b112c5efb6b7 run_id=sr_1789753382775_000002 deployed_pct=0.5001 cash_consumed_pct=0.500225025 recorded=true unexecuted_orders=0 warnings=1 elapsed_us=1770
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.20/src/client/legacy/pool.rs:353 message=put; add idle connection for ("http", 127.0.0.1:46321)
+EVENT event /home/eestock/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.20/src/client/legacy/pool.rs:401 message=pooling idle connection for ("http", 127.0.0.1:46321)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    audit_endpoint_emits_required_tracing_fields
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p web --test adr026_run_audit`
+exit=101

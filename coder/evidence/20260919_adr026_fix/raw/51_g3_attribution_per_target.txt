@@ -1,0 +1,26 @@
+### R-G3 归因：逐目标单跑 + 每次都查孤儿行（临时库 tmp_g3_1789754000，2026-09-19T01:53:36+08:00）
+孤儿口径 = kline_accurate_1w/1mo 等 10 张 cagg 中 code 不在 symbols 的行（与端点同口径）
+
+adr024_structured_errors: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+adr024_workbench_period_ssot: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_admin: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_alerts: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_favorites: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_kline_period: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_ma_config: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_multi_period_config: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_quality: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_rest: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_settings: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_strategies: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+api_workbench: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+adr026_run_audit: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+tester_p4_endpoints_indep: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+tester_p4_writepath_indep: cagg_orphans=0 raw_orphans=0 | 1 ok / 0 failed
+tester_p5_indep: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+tester_p5rect_verify: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+tester_p6_fills_indep: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+ws_poller: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+period30m_api_contract: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+multi_period_pane_budget: cagg_orphans=0 raw_orphans=6 | 1 ok / 0 failed
+DB=tmp_g3_1789754000

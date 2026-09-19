@@ -117,7 +117,9 @@ mod tests {
             "strategy_list", "strategy_get", "strategy_create", "strategy_update",
             "strategy_publish", "strategy_archive", "strategy_test_run", "strategy_guide",
             "bt_run_ensemble", "bt_get_run", "bt_get_run_result", "bt_list_runs",
-            "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset"]);
+            "bt_cancel_run", "bt_compare_runs", "bt_list_presets", "bt_apply_preset",
+            // ADR-026 §2.2：执行完整度审计（只读派生）
+            "bt_get_run_audit"]);
         let r = dispatch(&st(), &req(Some(json!(3)), "tools/call", Some(json!({
             "name": "get_sources_health", "arguments": {},
         })))).await.unwrap();
