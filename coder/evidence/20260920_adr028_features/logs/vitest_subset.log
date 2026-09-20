@@ -1,0 +1,27 @@
+### src/features/workbench/adr028FocusHighlight.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+### src/features/workbench/resultWindowSync.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+### src/features/workbench/ResultView.test.tsx
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+### src/features/workbench/roundTripLayers.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+### src/features/workbench/resultAxisIndex.test.tsx
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+### src/features/workbench/resultBarSpaceLimit.test.tsx
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+### src/features/workbench/chartUtils.test.ts
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+### src/features/dashboard/KlineChart.test.tsx
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+### src/features/dashboard/KlineChartVisibleRange.test.tsx
+ Test Files  1 passed (1)
+      Tests  5 passed (5)

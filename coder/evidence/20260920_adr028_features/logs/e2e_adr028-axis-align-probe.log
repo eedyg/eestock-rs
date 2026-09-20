@@ -1,0 +1,112 @@
+
+Running 2 tests using 1 worker
+
+[axis-align-probe-v2] {
+ "tolPx": 2,
+ "pairMaxAbsRawPx": {
+  "init": 0.03,
+  "full": 0.03,
+  "follow": 0.03,
+  "leftscroll": 0.03,
+  "jump120": 0.03,
+  "zoom300": 0.51,
+  "controlGapless": 0.58
+ },
+ "pairMaxAbs984Px": {
+  "init": 0.05,
+  "full": 0.05,
+  "follow": 0.05,
+  "leftscroll": 0.05,
+  "jump120": 0.05,
+  "zoom300": 0.98,
+  "controlGapless": 0.86
+ },
+ "pairOk": {
+  "init": true,
+  "full": true,
+  "follow": true,
+  "leftscroll": true,
+  "jump120": true,
+  "zoom300": true,
+  "controlGapless": true
+ },
+ "followOk": {
+  "init": true,
+  "full": true,
+  "follow": true,
+  "leftscroll": true,
+  "jump120": true,
+  "zoom300": true,
+  "controlGapless": true
+ },
+ "atomicOk": {
+  "init": true,
+  "full": true,
+  "follow": true,
+  "leftscroll": true,
+  "jump120": true,
+  "zoom300": true,
+  "controlGapless": true
+ },
+ "discloseOk": {
+  "init": true,
+  "full": true,
+  "follow": true,
+  "leftscroll": true,
+  "jump120": true,
+  "zoom300": true,
+  "controlGapless": true
+ },
+ "legacyTsLinearInverseSolve984": {
+  "init": 347.39,
+  "full": 132.78,
+  "follow": 120.06,
+  "leftscroll": 134.88,
+  "jump120": 274.38,
+  "zoom300": 220.32,
+  "controlGapless": 205.41
+ },
+ "legacyIndexVsTsModel984": {
+  "init": 352.4,
+  "full": 136.21,
+  "follow": 120.49,
+  "leftscroll": 136.21,
+  "jump120": 280.19,
+  "zoom300": 222.53,
+  "controlGapless": 211.4
+ },
+ "tsLinearPredictResidualPx984": {
+  "init": 352.44,
+  "full": 136.24,
+  "follow": 120.54,
+  "leftscroll": 136.24,
+  "jump120": 280.14,
+  "zoom300": 222.58,
+  "controlGapless": 211.37
+ },
+ "indexPredictResidualUser": {
+  "init": 0.05,
+  "full": 0.05,
+  "follow": 0.05,
+  "leftscroll": 0.05,
+  "jump120": 0.05,
+  "zoom300": 0.05,
+  "controlGapless": 0.04
+ },
+ "transitionVerdict": {
+  "full": {
+   "atomicInFlight": true,
+   "noSilentStale": true,
+   "ok": true
+  },
+  "jump120": {
+   "atomicInFlight": true,
+   "noSilentStale": true,
+   "ok": true
+  }
+ }
+}
+  ✓  1 [chromium] › e2e/adr028-axis-align-probe.e2e.ts:1431:1 › P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + 原子性 + 披露 (30.8s)
+  ✓  2 [chromium] › e2e/adr028-axis-align-probe.e2e.ts:1750:1 › P2_degraded_disclosure：注入降级（K 线 bar 序列不可得 / per_bar 亦不可得）必须出 wb-axis-degraded (14.8s)
+
+  2 passed (46.0s)

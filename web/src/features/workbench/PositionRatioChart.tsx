@@ -1,7 +1,16 @@
 import { useMemo } from 'react';
 import type { WorkbenchPositionPoint } from '@/api/types';
 import { fmtPct } from '@/features/backtest/format';
-import { downsample, extentOf, lineFrom, mapLineByTs } from './chartUtils';
+import {
+  curveDomainAttr,
+  downsample,
+  extentOf,
+  lineFrom,
+  mapLineByDomain,
+  resolveCurveX,
+  vlineX,
+  type CurveXDomain,
+} from './chartUtils';
 
 const W = 1000;
 const H = 220;
@@ -34,29 +43,37 @@ export function PositionRatioChart({
   points,
   sampling,
   domain,
+  xDomain,
+  plot,
   cumulative,
+  markerTs,
 }: {
   points: WorkbenchPositionPoint[];
   sampling?: { downsampled: boolean; originalBars: number };
-  /** 共享窗口定义域（Unix 秒）；`null` = 无窗口（回退数据自身范围仅用于「无窗口」态，见下）。 */
+  /** 共享窗口（Unix 秒）——`data-x-domain` 标注与**降级**路径用（页面一律传 xDomain）。 */
   domain: { from_ts: number; to_ts: number } | null;
+  /** ADR-028 D2.1（**主路**）：x 定义域 = bar 索引空间；`undefined` ⇒ 按 `domain` 降级 ts 线性。 */
+  xDomain?: CurveXDomain | null;
+  /** ADR-028 D2.3-4：与 K 线共用的绘图区几何（`viewBox` x 起点/宽度）。 */
+  plot?: { x0: number; w: number } | null;
   /** 区间累计口径（消歧用；`null` = 审计未加载）。 */
   cumulative: CumulativeRatioBasis | null;
+  /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒）。 */
+  markerTs?: number | null;
 }) {
   const series = useMemo(() => downsample(points), [points]);
-
-  const domainFrom = domain?.from_ts ?? 0;
-  const domainTo = domain?.to_ts ?? 0;
+  const xd = useMemo(() => resolveCurveX({ xDomain, domain }), [xDomain, domain]);
 
   const chart = useMemo(() => {
     if (series.length === 0) return null;
     const ratios = series.map((p) => p.position_ratio);
     const { min, max } = extentOf(ratios.concat([0, 1]));
     const pts = series.map((p) => [p.ts, p.position_ratio] as [number, number]);
-    const points2d = mapLineByTs(pts, domainFrom, domainTo, min, max, W, H, PAD);
+    const mapped = mapLineByDomain(pts, xd, min, max, W, H, PAD);
     const last = series[series.length - 1]!;
-    return { line: lineFrom(points2d), last, min, max };
-  }, [series, domainFrom, domainTo]);
+    return { line: lineFrom(mapped.points), last, min, max, unmatched: mapped.unmatched };
+  }, [series, xd]);
+  const markX = vlineX(markerTs, xd, W, PAD);
 
   if (!chart) {
     return (
@@ -73,13 +90,15 @@ export function PositionRatioChart({
   const cashRatio = 1 - last.position_ratio;
   return (
     <div
-      className="relative rounded-lg border border-line bg-panel2 p-1"
+      className="relative rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-position-chart"
-      // ADR-028 D2.1：x 轴定义域实测标注（E2E 断言）
-      data-x-domain={domain ? `${domain.from_ts},${domain.to_ts}` : 'data'}
+      // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径）
+      data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
+      data-x-mode={xd ? xd.mode : 'none'}
+      data-vline-ts={markerTs == null ? '' : String(markerTs)}
     >
       <svg
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`${(plot ? plot.x0 : 0).toFixed(2)} 0 ${(plot ? plot.w : W).toFixed(2)} ${H}`}
         preserveAspectRatio="none"
         className="h-52 w-full"
         role="img"
@@ -87,10 +106,26 @@ export function PositionRatioChart({
       >
         <g opacity="0.2" stroke="#fff" strokeWidth="0.5">
           {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={0} y1={H * f} x2={W} y2={H * f} />
+            <line key={f} x1={plot ? plot.x0 : 0} y1={H * f} x2={(plot ? plot.x0 : 0) + (plot ? plot.w : W)} y2={H * f} />
           ))}
         </g>
         <polyline points={chart.line} fill="none" stroke="#a78bfa" strokeWidth="2" data-testid="position-line" />
+        {/* ADR-028 D4.1 ④：竖线标记（与曲线同定义域 ⇒ 各视图同一时点同位） */}
+        {markX != null && (
+          <line
+            data-testid="wb-vline"
+            data-view="position"
+            data-vline-ts={String(markerTs)}
+            x1={markX}
+            y1={0}
+            x2={markX}
+            y2={H}
+            stroke="#facc15"
+            strokeWidth="1"
+            strokeDasharray="4 3"
+            opacity="0.9"
+          />
+        )}
       </svg>
       <div className="absolute left-3 top-2 flex flex-col">
         <div className="num text-sm text-acc1" data-testid="wb-last-position-ratio">
@@ -105,6 +140,7 @@ export function PositionRatioChart({
       </div>
       <div className="absolute bottom-2 left-3 text-[10px] text-dim" data-testid="wb-position-sampling">
         持仓比率 共 {sampling?.originalBars ?? points.length} bar
+        {chart.unmatched > 0 ? ` · ${chart.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
       </div>
       {/* 口径消歧（ADR-028 §4.5：三口径标签各含分母说明，同屏可辨） */}

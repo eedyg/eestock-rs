@@ -10,7 +10,8 @@ import type {
   WorkbenchRunResult,
   WorkbenchRunView,
 } from '@/api/types';
-import { isStaleResponse, type ResultWindowState } from './resultWindow';
+import { isStaleResponse, type CurveDomainRequest, type CurveXSource } from './resultWindow';
+import type { CurveXDomain } from '@/features/backtest/chartUtils';
 
 /**
  * 页面⑪ 结果取数**单一入口**（ADR-024 P6 / §5.2；架构师裁决 Q1=A + DRY 硬约束）。
@@ -120,6 +121,17 @@ export interface RunSeries {
   windowError: string | null;
   /** 当前曲线数据实际对应的窗口（null = 全区间）。UI 用它判定「是否已在显示新窗口」。 */
   windowApplied: { from_ts: number; to_ts: number; rev: number } | null;
+  /**
+   * ADR-028 D2.1（原子切换）：**已应用**的曲线 x 定义域——与已取数数据**同 rev**（旧数据 + 新域 /
+   * 新数据 + 旧域均不得渲染）。窗口请求未到位期间保持上一组一致快照。
+   */
+  appliedXDomain: CurveXDomain | null;
+  /** 已应用的**共用绘图区几何**（`viewBox` x 起点/宽度；null = 曲线独立几何）。 */
+  appliedPlot: { x0: number; w: number } | null;
+  /** 已应用的**降级**标记（`per_bar`/`ts`；UI 必须显式标注）。 */
+  appliedDegraded: boolean;
+  /** 已应用的**定义域来源**（`kline` / `per_bar` / `ts` / null）。 */
+  appliedXSource: CurveXSource | null;
   bars: RunBarsState;
   fills: RunFillsState;
   /** L1 回合列表（ADR-027 D8：chunked 走 `/round-trips` 分页；legacy 由 `/result.trades` 内联派生）。 */
@@ -166,6 +178,17 @@ export function fillsFromPerBar(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[
 }
 
 const emptyCurve = <T,>(): RunCurve<T> => ({ points: [], downsampled: false, originalBars: 0 });
+
+/** 未传请求时的兜底：**全区间**取数（旧行为零回归；x 定义域由调用方通过 request 提供）。 */
+const FULL_RANGE_REQUEST: CurveDomainRequest = {
+  rev: 0,
+  window: null,
+  xDomain: null,
+  plot: null,
+  degraded: false,
+  source: null,
+  slots: 0,
+};
 
 const emptyBars = (): RunBarsState => ({
   rows: [],
@@ -244,6 +267,10 @@ export function legacySeries(
   | 'ensureL2'
   | 'loadMoreRoundTrips'
   | 'l2'
+  | 'appliedXDomain'
+  | 'appliedPlot'
+  | 'appliedDegraded'
+  | 'appliedXSource'
 > {
   const perBar = result.per_bar;
   const fills = fillsFromPerBar(perBar);
@@ -273,13 +300,16 @@ export function useRunSeries({
   api,
   run,
   result,
-  window = null,
+  request = null,
 }: {
   api: ApiClient;
   run: WorkbenchRunView | null;
   result: WorkbenchRunResult | null;
-  /** ADR-028 D3：共享时间窗（页面级事实源）；null = 全区间（既有行为零回归）。 */
-  window?: ResultWindowState | null;
+  /**
+   * ADR-028 D2.1/D2.3：曲线取数 + x 定义域**同一请求对象**（rev 单调）⇒ 数据与定义域原子切换。
+   * `null` = 无请求（legacy 路径 / 无结果）⇒ 曲线数据保持 `/result` 内联派生。
+   */
+  request?: CurveDomainRequest | null;
 }): RunSeries {
   const runId = run?.id ?? null;
   const format: WorkbenchResultFormat = result?.result_format ?? 'legacy_single';
@@ -294,8 +324,18 @@ export function useRunSeries({
   const [windowLoading, setWindowLoading] = useState(false);
   const [windowError, setWindowError] = useState<string | null>(null);
   const [windowApplied, setWindowApplied] = useState<{ from_ts: number; to_ts: number; rev: number } | null>(null);
+  /** ADR-028 D2.1（原子切换）：**与数据同 rev 提交**的 x 定义域快照。 */
+  const [applied, setApplied] = useState<{
+    rev: number;
+    xDomain: CurveXDomain | null;
+    plot: { x0: number; w: number } | null;
+    degraded: boolean;
+    source: CurveXSource | null;
+  } | null>(null);
   /** 已发出的最大窗口 rev（02-spec §9.3：落后响应丢弃，防乱序覆盖）。 */
-  const issuedRevRef = useRef(0);
+  const issuedRevRef = useRef(-1);
+  /** 首屏曲线是否已成功装载（窗口刷新期间**保持**旧曲线可读，不得整块换成骨架）。 */
+  const firstLoadDoneRef = useRef(false);
   const [bars, setBars] = useState<RunBarsState>(emptyBars);
   const [fills, setFills] = useState<RunFillsState>(emptyFills);
   const [roundTrips, setRoundTrips] = useState<RunRoundTripsState>(emptyRoundTrips);
@@ -323,22 +363,20 @@ export function useRunSeries({
     setWindowApplied(null); // 换 run / 重取：上一窗口的「已应用」标记失效
     setWindowError(null);
     setWindowLoading(false);
-    issuedRevRef.current = 0;
+    issuedRevRef.current = -1;
+    setApplied(null);
     setBars((b) => ({ ...b, loading: true, error: null }));
     setFills((f) => ({ ...f, loading: true, error: null }));
     setRoundTrips((r) => ({ ...r, loading: true, error: null }));
     void (async () => {
-      const [b, f, pb, nv, dd, rt, pos] = await Promise.allSettled([
+      // ADR-028 D2.1/D2.3：**曲线取数不在此处发起**（由下方 request-driven effect 唯一负责）
+      // ⇒ 保证「定义域 + 数据」始终按同一 rev 原子提交（旧数据 + 新域 / 新数据 + 旧域均不渲染）。
+      const [b, f, rt] = await Promise.allSettled([
         api.getWorkbenchBars(runId, { kind: 'per_bar', offset: 0, limit: SERIES_PAGE_SIZE }),
         // ADR-027 D11：**分页拉全**（旧实现只取 5000 首页且无续拉 ⇒ 标记静默缺失）
         fetchAllFills(api, runId),
-        api.getWorkbenchCurve(runId, { kind: 'per_bar', k: SERIES_CURVE_K }),
-        api.getWorkbenchCurve(runId, { kind: 'net_value', k: SERIES_CURVE_K }),
-        api.getWorkbenchCurve(runId, { kind: 'drawdown', k: SERIES_CURVE_K }),
         // ADR-027 D8：L1 列表（含 l2_count/买卖笔数摘要；L2 切片仍懒加载）
         api.getWorkbenchRoundTrips(runId, { offset: 0, limit: ROUND_TRIPS_PAGE_SIZE }),
-        // ADR-028 D1：持仓序列（全区间；窗口态由下面的窗口 effect 覆盖）
-        api.getWorkbenchCurve(runId, { kind: 'position', k: SERIES_CURVE_K }),
       ]);
       const errs: string[] = [];
       alive2(() => {
@@ -378,19 +416,6 @@ export function useRunSeries({
           setRoundTrips((r) => ({ ...r, loading: false, error: (rt.reason as Error).message }));
           errs.push(`/round-trips ${(rt.reason as Error).message}`);
         }
-        const curveOf = <T,>(r: PromiseSettledResult<{ points: unknown; downsampled: boolean; original_bars: number }>) =>
-          r.status === 'fulfilled'
-            ? { points: r.value.points as T[], downsampled: r.value.downsampled, originalBars: r.value.original_bars }
-            : null;
-        const pbv = curveOf<WorkbenchBarRecord>(pb);
-        const nvv = curveOf<[number, number]>(nv);
-        const ddv = curveOf<[number, number]>(dd);
-        const posv = curveOf<WorkbenchPositionPoint>(pos);
-        if (pbv) setPerBar(pbv); else errs.push('/curve?kind=per_bar');
-        if (nvv) setNetValue(nvv); else errs.push('/curve?kind=net_value');
-        if (ddv) setDrawdown(ddv); else errs.push('/curve?kind=drawdown');
-        if (posv) setPosition(posv); else errs.push('/curve?kind=position');
-        setCurvesLoading(false);
         setCurvesError(errs.length > 0 ? errs.join('；') : null);
       });
     })();
@@ -403,28 +428,39 @@ export function useRunSeries({
   }, [api, runId, chunked, run?.status, result, nonce]);
 
   /**
-   * **窗口曲线**（ADR-028 D3）：共享窗口变化 ⇒ 对 4 个 kind **并发**重取（既有 per-kind 端点，
-   * 不新增批量端点，§9.7），窗口内重新采样（`k` 作用于窗口内点集）。
+   * **曲线取数（唯一入口；数据与定义域原子提交）**（ADR-028 D3 + D2.1 第 3 条 + D2.3-2）：
    *
-   * 两条硬约束：
-   * - **落后响应丢弃**（§9.3）：响应 rev < 已发出的最大 rev ⇒ 直接丢弃，**不回写也不动加载态**
-   *   （否则旧窗口响应会把新窗口数据覆盖，或把新请求的 loading 提前关掉）；
-   * - **失败不冒充**（§9.8）：任一 kind 失败 ⇒ `windowError` 显式报错，且**不**更新
-   *   `windowApplied` ⇒ UI 可标注「显示的是上一窗口数据」。
+   * - `request.window == null` ⇒ **不传窗口参数**（全区间）——这是默认态与「全览」态的取数口径，
+   *   也是旧实现缺失的路径（旧实现只在 window != null 时重取 ⇒ 全览态「旧数据 + 新域」）；
+   * - 否则传 `from_ts`/`to_ts`（窗口内重新采样 `k`，禁前端裁剪）；
+   * - **rev 变化一律重取**（含「窗口 → 全区间」）；**落后响应丢弃**（§9.3，不回写也不动加载态）；
+   * - **失败不冒充**（§9.8）：任一 kind 失败 ⇒ `windowError` 显式报错且**不**提交新快照
+   *   ⇒ UI 标注「显示的是上一窗口数据」；
+   * - 成功 ⇒ `applied = {rev, xDomain, plot, degraded}` 与数据**一并**提交（原子切换）。
    */
-  const winFrom = window?.from_ts ?? null;
-  const winTo = window?.to_ts ?? null;
-  const winRev = window?.rev ?? null;
+  const req = request ?? FULL_RANGE_REQUEST;
+  const reqRev = req.rev;
+  const reqFrom = req.window?.from_ts ?? null;
+  const reqTo = req.window?.to_ts ?? null;
+  /** 取数期间定义域可能继续更新（同一 rev 内只换几何）⇒ 提交时以**当时最新**的定义域为准。 */
+  const requestRef = useRef<CurveDomainRequest>(req);
+  requestRef.current = req;
   useEffect(() => {
     if (!chunked || !runId || !result || run?.status !== 'succeeded') return () => undefined;
-    if (winFrom == null || winTo == null || winRev == null) return () => undefined;
-    if (isStaleResponse(winRev, issuedRevRef.current)) return () => undefined; // 乱序到达的旧窗口：不发起
-    issuedRevRef.current = winRev;
+    if (isStaleResponse(reqRev, issuedRevRef.current)) return () => undefined; // 乱序到达的旧窗口：不发起
+    const snapX = requestRef.current;
+    issuedRevRef.current = reqRev;
     let alive = true;
+    // 仅**首屏**走整块骨架；窗口刷新只置 `windowLoading`（旧曲线保持可见 + 加载态标注，
+    // 直到新数据与定义域**同 rev** 到位再原子切换）——ADR-028 D2.3-2。
+    if (!firstLoadDoneRef.current) setCurvesLoading(true);
     setWindowLoading(true);
     setWindowError(null);
     void (async () => {
-      const q = { k: SERIES_CURVE_K, from_ts: winFrom, to_ts: winTo };
+      const q =
+        reqFrom != null && reqTo != null
+          ? { k: SERIES_CURVE_K, from_ts: reqFrom, to_ts: reqTo }
+          : { k: SERIES_CURVE_K };
       const [pb, nv, dd, pos] = await Promise.allSettled([
         api.getWorkbenchCurve(runId, { kind: 'per_bar', ...q }),
         api.getWorkbenchCurve(runId, { kind: 'net_value', ...q }),
@@ -432,7 +468,7 @@ export function useRunSeries({
         api.getWorkbenchCurve(runId, { kind: 'position', ...q }),
       ]);
       if (!alive) return;
-      if (isStaleResponse(winRev, issuedRevRef.current)) return; // 落后即丢弃（不回写、不改加载态）
+      if (isStaleResponse(reqRev, issuedRevRef.current)) return; // 落后即丢弃（不回写、不改加载态）
       const errs: string[] = [];
       const curveOf = <T,>(r: PromiseSettledResult<{ points: unknown; downsampled: boolean; original_bars: number }>) =>
         r.status === 'fulfilled'
@@ -446,20 +482,30 @@ export function useRunSeries({
       if (nvv) setNetValue(nvv); else errs.push('/curve?kind=net_value');
       if (ddv) setDrawdown(ddv); else errs.push('/curve?kind=drawdown');
       if (posv) setPosition(posv); else errs.push('/curve?kind=position');
+      setCurvesLoading(false);
       setWindowLoading(false);
       if (errs.length > 0) {
-        // 不更新 windowApplied ⇒ UI 显式标注「显示的是上一窗口数据」（禁止旧数据冒充当前窗口）
+        // 不提交新快照 ⇒ UI 显式标注「显示的是上一窗口数据」（禁止旧数据冒充当前窗口）
         setWindowError(errs.join('；'));
-      } else {
-        setWindowError(null);
-        setWindowApplied({ from_ts: winFrom, to_ts: winTo, rev: winRev });
+        return;
       }
+      setWindowError(null);
+      firstLoadDoneRef.current = true;
+      // ── 原子提交：数据（已 setXxx）与 x 定义域**同一 rev** ──
+      setApplied({
+        rev: reqRev,
+        xDomain: snapX.xDomain,
+        plot: snapX.plot,
+        degraded: snapX.degraded,
+        source: snapX.source,
+      });
+      setWindowApplied(reqFrom != null && reqTo != null ? { from_ts: reqFrom, to_ts: reqTo, rev: reqRev } : null);
     })();
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, runId, chunked, run?.status, result, winFrom, winTo, winRev]);
+  }, [api, runId, chunked, run?.status, result, reqRev, reqFrom, reqTo, nonce]);
 
   /**
    * **L2 懒加载**（ADR-027 D8）：只在展开某回合时调用 ⇒ 展开前**零** L2 请求。
@@ -560,6 +606,7 @@ export function useRunSeries({
   const resetRange = useCallback(() => reload(), [reload]);
 
   // legacy：直接从 `/result` 派生（同步返回 ⇒ 旧行为零回归）。
+  // x 定义域仍按 ADR-028 D2.1 消费（主路 = bar 索引空间）——数据为全区间 ⇒ 窗口外的点被剔除不绘。
   if (!chunked) {
     const base =
       result && run?.status === 'succeeded'
@@ -579,8 +626,28 @@ export function useRunSeries({
             fills: emptyFills(),
             roundTrips: emptyRoundTrips(),
           };
-    return { ...base, l2, ensureL2, loadMoreRoundTrips, loadMore, jumpToRange, resetRange, reload };
+    return {
+      ...base,
+      appliedXDomain: request?.xDomain ?? null,
+      appliedPlot: request?.plot ?? null,
+      appliedDegraded: request?.degraded ?? false,
+      appliedXSource: request?.source ?? null,
+      l2,
+      ensureL2,
+      loadMoreRoundTrips,
+      loadMore,
+      jumpToRange,
+      resetRange,
+      reload,
+    };
   }
+
+  // ── 渲染用 x 定义域（原子性）：同 rev ⇒ 用请求的最新几何；跨 rev（取数在飞）⇒ 用已提交快照 ──
+  const sameRev = applied != null && applied.rev === reqRev;
+  const appliedXDomain = applied == null ? null : sameRev ? req.xDomain : applied.xDomain;
+  const appliedPlot = applied == null ? null : sameRev ? req.plot : applied.plot;
+  const appliedDegraded = applied == null ? false : sameRev ? req.degraded : applied.degraded;
+  const appliedXSource = applied == null ? null : sameRev ? req.source : applied.source;
 
   return {
     format,
@@ -593,6 +660,10 @@ export function useRunSeries({
     windowLoading,
     windowError,
     windowApplied,
+    appliedXDomain,
+    appliedPlot,
+    appliedDegraded,
+    appliedXSource,
     bars,
     fills,
     roundTrips,

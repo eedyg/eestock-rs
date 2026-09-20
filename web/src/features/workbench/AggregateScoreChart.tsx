@@ -1,6 +1,14 @@
 import { useMemo } from 'react';
 import type { WorkbenchBarRecord } from '@/api/types';
-import { downsample, lineFrom, mapLine, mapLineByTs } from './chartUtils';
+import {
+  curveDomainAttr,
+  downsample,
+  lineFrom,
+  mapLineByDomain,
+  resolveCurveX,
+  vlineX,
+  type CurveXDomain,
+} from './chartUtils';
 
 const W = 1000;
 const H = 160;
@@ -25,50 +33,88 @@ export function AggregateScoreChart({
   sellThreshold,
   sampling,
   domain,
+  xDomain,
+  plot,
+  markerTs,
 }: {
   perBar: WorkbenchBarRecord[];
   buyThreshold: number;
   sellThreshold: number;
   sampling?: CurveSampling;
-  /** ADR-028 D2.1：共享窗口 x 定义域（Unix 秒）；**不给** ⇒ 保持既有 `mapLine` 行为（零回归）。 */
+  /** ADR-028 D2.1：共享窗口（Unix 秒）——`data-x-domain` 标注与**降级**路径用（页面一律传 xDomain）。 */
   domain?: { from_ts: number; to_ts: number } | null;
+  /**
+   * ADR-028 D2.1（**主路**）：x 定义域 = **bar 索引空间**（ts 经 K 线所绘制的同一 bar 序列查表得索引）。
+   * `undefined` ⇒ 按 `domain` 走 ts 线性**降级**（组件级兜底）；`null` ⇒ 无定义域（不绘制，禁自造域）。
+   */
+  xDomain?: CurveXDomain | null;
+  /** ADR-028 D2.3-4：与 K 线**共用的绘图区几何**（`viewBox` x 起点/宽度；null = 曲线独立几何）。 */
+  plot?: { x0: number; w: number } | null;
+  /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒；跳转到该笔成交/回合时设置，全览时清）。 */
+  markerTs?: number | null;
 }) {
   const pts = useMemo(
     () => downsample(perBar.map((r) => [r.ts, r.aggregate] as [number, number])),
     [perBar],
   );
   const y = (s: number) => PAD + (1 - s / 100) * (H - 2 * PAD);
-  const line = useMemo(
-    () =>
-      lineFrom(
-        domain
-          ? mapLineByTs(pts, domain.from_ts, domain.to_ts, 0, 100, W, H, PAD)
-          : mapLine(pts, 0, 100, W, H, PAD),
-      ),
-    [pts, domain],
-  );
+  const xd = useMemo(() => resolveCurveX({ xDomain, domain }), [xDomain, domain]);
+  const mapped = useMemo(() => mapLineByDomain(pts, xd, 0, 100, W, H, PAD), [pts, xd]);
+  const line = useMemo(() => lineFrom(mapped.points), [mapped]);
+  const viewX0 = plot ? plot.x0 : 0;
+  const viewW = plot ? plot.w : W;
+  const markX = vlineX(markerTs, xd, W, PAD);
 
   return (
     <div
-      className="rounded-lg border border-line bg-panel2 p-1"
+      className="rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-aggregate-chart"
-      // ADR-028 D2.1：x 轴定义域实测标注（E2E 断言各视图定义域 == 共享窗口；无窗口 ⇒ 'data' = 既有下标轴）
-      data-x-domain={domain ? `${domain.from_ts},${domain.to_ts}` : 'data'}
+      // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径：各视图 == 共享窗口；无窗口 ⇒ 'data'）
+      data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
+      // 映射方式标注（观测性：主路/降级/无域；与 `data-x-domain` 是两件事）
+      data-x-mode={xd ? xd.mode : 'none'}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-40 w-full" preserveAspectRatio="none" role="img" aria-label="总分曲线">
-        {/* 三区着色 */}
-        <rect x={0} y={y(100)} width={W} height={y(buyThreshold) - y(100)} fill="#00e0a4" opacity="0.07" data-testid="zone-buy" />
-        <rect x={0} y={y(buyThreshold)} width={W} height={y(sellThreshold) - y(buyThreshold)} fill="#8b93b0" opacity="0.04" data-testid="zone-hold" />
-        <rect x={0} y={y(sellThreshold)} width={W} height={y(0) - y(sellThreshold)} fill="#ff5c6c" opacity="0.07" data-testid="zone-sell" />
+      <svg
+        viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
+        className="h-40 w-full"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="总分曲线"
+      >
+        {/* 三区着色（x/width 跟随共用绘图区几何：viewBox 位移后不得再用绝对 0..W） */}
+        <rect x={viewX0} y={y(100)} width={viewW} height={y(buyThreshold) - y(100)} fill="#00e0a4" opacity="0.07" data-testid="zone-buy" />
+        <rect x={viewX0} y={y(buyThreshold)} width={viewW} height={y(sellThreshold) - y(buyThreshold)} fill="#8b93b0" opacity="0.04" data-testid="zone-hold" />
+        <rect x={viewX0} y={y(sellThreshold)} width={viewW} height={y(0) - y(sellThreshold)} fill="#ff5c6c" opacity="0.07" data-testid="zone-sell" />
         {/* 阈值虚线 */}
-        <line x1={0} x2={W} y1={y(buyThreshold)} y2={y(buyThreshold)} stroke="#00e0a4" strokeDasharray="4 4" strokeWidth="0.8" data-testid="threshold-buy" />
-        <line x1={0} x2={W} y1={y(sellThreshold)} y2={y(sellThreshold)} stroke="#ff5c6c" strokeDasharray="4 4" strokeWidth="0.8" data-testid="threshold-sell" />
+        <line x1={viewX0} x2={viewX0 + viewW} y1={y(buyThreshold)} y2={y(buyThreshold)} stroke="#00e0a4" strokeDasharray="4 4" strokeWidth="0.8" data-testid="threshold-buy" />
+        <line x1={viewX0} x2={viewX0 + viewW} y1={y(sellThreshold)} y2={y(sellThreshold)} stroke="#ff5c6c" strokeDasharray="4 4" strokeWidth="0.8" data-testid="threshold-sell" />
         <polyline points={line} fill="none" stroke="#38bdf8" strokeWidth="1.4" />
+        {/* ADR-028 D4.1 ④：竖线标记（同共享定义域 ⇒ 各曲线视图同一时点同位）；保留到下一次跳转或「全览」 */}
+        {markX != null && (
+          <line
+            data-testid="wb-vline"
+            data-view="aggregate"
+            data-vline-ts={String(markerTs)}
+            x1={markX}
+            y1={0}
+            x2={markX}
+            y2={H}
+            stroke="#facc15"
+            strokeWidth="1"
+            strokeDasharray="4 3"
+            opacity="0.9"
+          />
+        )}
       </svg>
       <div className="flex justify-between px-1 text-[10px] text-dim">
         <span>
           聚合总分 0-100（虚线 = 买入阈 {buyThreshold} / 卖出阈 {sellThreshold}；三区 = 买/持/卖）
         </span>
+        {mapped.unmatched > 0 && (
+          <span className="text-up" data-testid="wb-curve-unmatched">
+            · {mapped.unmatched} 点不在 K 线 bar 序列上（已剔除）
+          </span>
+        )}
         <span data-testid="wb-aggregate-sampling">
           共 {sampling?.originalBars ?? perBar.length} bar
           {sampling?.downsampled

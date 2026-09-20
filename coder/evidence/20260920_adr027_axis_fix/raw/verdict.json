@@ -1,0 +1,79 @@
+{
+  "deltas984": {
+    "full": 136.2,
+    "init": 352.4,
+    "narrow120": 280.2,
+    "zoom300": 221.8,
+    "zoom600": 119.3,
+    "controlGapless": 191.8
+  },
+  "deltasRawPx": {
+    "init": 216.1,
+    "narrow120": 170.1,
+    "zoom300": 137.1,
+    "zoom600": 73.8
+  },
+  "baselineInsetRawPx": 0,
+  "model": {
+    "init": 352.4,
+    "narrow120": 280.2,
+    "zoom300": 222.5,
+    "zoom600": 119.3,
+    "fullDomain": 47.5
+  },
+  "controlGapless": {
+    "gapCensus": {
+      "300": 36,
+      "5400": 1
+    },
+    "aligned": false,
+    "maxAbs984": 191.8
+  },
+  "windowMismatch": [
+    {
+      "label": "full",
+      "coverage": 0.4,
+      "window": "1785547800,1789628280"
+    }
+  ],
+  "curveCoverageDeficits": [
+    {
+      "label": "init",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    },
+    {
+      "label": "full",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    },
+    {
+      "label": "narrow120",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    },
+    {
+      "label": "zoom300",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    },
+    {
+      "label": "zoom600",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    },
+    {
+      "label": "controlGapless",
+      "head": 0,
+      "tail": 0,
+      "ratio": 1
+    }
+  ],
+  "tolPx": 2,
+  "alignedAny": false
+}

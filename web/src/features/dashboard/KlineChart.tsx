@@ -70,6 +70,17 @@ export interface KlineMarkerOverlay {
   /** 可选锚定价位（决定 pin 的 y 位置；缺省 0，简单注解以顶为锚）。 */
   price?: number;
   color?: string;
+  /**
+   * ADR-028 D4.1 **判别身份键**（`rt_seq:回合成交序号`；见 `KlineResultChart.makeFillKey`）。
+   * 缺省 ⇒ 无身份（既有调用方不变）。「点击 → 目标标记」的一一对应靠它（**禁止**按 bar 粗定位）。
+   */
+  fillKey?: string;
+  /** 价格×股数标签（如 `B 8.417×118`）；缺省 ⇒ 不画标签（退化回既有 simpleAnnotation 形态）。 */
+  label?: string;
+  /** 同 bar 多笔的**堆叠序**（0 起，像素纵向偏移 `stackIndex × FILL_DOT_DY_PX`）⇒ 同 bar 多笔可分辨。 */
+  stackIndex?: number;
+  /** 渲染形态：`'dot'` = 实心圆点 + 描边（ADR-028 D4.1 醒目化）；缺省/`'annotation'` = 既有 simpleAnnotation。 */
+  shape?: 'dot' | 'annotation';
 }
 export type KlineOverlay = KlinePriceLineOverlay | KlineRangeOverlay | KlineMarkerOverlay;
 
@@ -125,6 +136,17 @@ export interface KlineChartProps {
   windowCommand?: WindowCommand | null;
   /** 写窗回执（ADR-028 D4 断言口径；**失败必须显式报错**，禁止静默无反应）。可选。 */
   onWindowApplied?: (r: WindowApplyResult) => void;
+  /**
+   * ADR-028 D4.1：**跳转高亮的判别身份键**（`fillKey`，精确到笔）。
+   * 非空 ⇒ 本图在该标记上叠加「放大 + 描边脉冲」高亮（**定时器驱动 overlay 重绘**，
+   * **不重建整图**、不丢视口/指标状态），持续 {@link HIGHLIGHT_DURATION_MS} 后自动回常态。
+   * 缺省 `null` ⇒ 无高亮（既有调用方零影响）。
+   */
+  highlightFillKey?: string | null;
+  /** 高亮**重放键**：同 `fillKey` 上再次跳转须换新值（否则 effect 不重放 ⇒ 3s 窗口不重启）。 */
+  highlightRev?: number;
+  /** 高亮结束（3s 到点）回调（观测性；可选）。 */
+  onHighlightEnd?: () => void;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -222,7 +244,7 @@ function syncIndicators(
  *  注册为全局一次性；测试环境 klinecharts 被打桩（无 registerOverlay），跳过注册，交由 createOverlay 桩验证。 */
 let tradeRangeRegistered = false;
 function ensureTradeRangeOverlayRegistered() {
-  if (tradeRangeRegistered || typeof registerOverlay !== 'function') return;
+  if (tradeRangeRegistered || getRegisterOverlay() == null) return;
   registerOverlay({
     name: 'tradeRange',
     totalStep: 0,
@@ -249,6 +271,96 @@ function ensureTradeRangeOverlayRegistered() {
     },
   });
   tradeRangeRegistered = true;
+}
+
+/** ADR-028 D4.1 高亮时长（ms）：放大 + 描边脉冲，3 秒后回常态（**不得**留永久选中态）。 */
+export const HIGHLIGHT_DURATION_MS = 3000;
+/** 脉冲节拍（ms）：定时器驱动的 overlay 重绘周期（canvas 内无法用 CSS 动画）。 */
+export const HIGHLIGHT_PULSE_MS = 150;
+/** 同 bar 多笔堆叠的纵向间距（px；**不得相互遮盖**）。 */
+export const FILL_DOT_DY_PX = 12;
+/** 常态圆点半径（px；小尺寸 + 半透明 ⇒ 不遮蜡烛主体）。 */
+export const FILL_DOT_R_PX = 3.2;
+/** 高亮圆点半径（px；放大）。 */
+export const FILL_DOT_HIGHLIGHT_R_PX = 6.5;
+
+/** `fillDot` overlay 的 extendData（判别身份 + 形态参数）。 */
+export interface FillDotData {
+  text?: string;
+  label?: string;
+  color?: string;
+  stackIndex?: number;
+  fillKey?: string;
+  highlight?: boolean;
+  /** 脉冲相位（整数；奇偶交替 ⇒ 半径/描边脉冲）。 */
+  pulse?: number;
+}
+
+function getRegisterOverlay(): ((overlay: unknown) => void) | null {
+  try {
+    const f = registerOverlay as unknown;
+    return typeof f === 'function' ? (f as (overlay: unknown) => void) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** klinecharts 无内置「实心圆点 + 描边 + 价格×股数标签」overlay：注册自定义 `fillDot` 模板。
+ *  注册为全局一次性；测试环境 klinecharts 被打桩（无 registerOverlay）⇒ 跳过注册，
+ *  由 createOverlay 桩验证「调用面」。（与 {@link ensureTradeRangeOverlayRegistered} 同模式。） */
+let fillDotRegistered = false;
+function ensureFillDotOverlayRegistered() {
+  // **取用本身要 try/catch**：测试环境 klinecharts 被 `vi.mock` 打桩且**无该导出**，
+  // 直接 `typeof registerOverlay !== 'function'` 的**属性访问**会抛
+  // （vitest mocker proxy：No "registerOverlay" export is defined）⇒ 打桩环境必须能安全跳过。
+  const register = getRegisterOverlay();
+  if (fillDotRegistered || register == null) return;
+  const template = {
+    totalStep: 0,
+    createPointFigures: (p: OverlayCreateFiguresCallbackParams<unknown>) => {
+      const c = p.coordinates[0];
+      if (!c) return [];
+      const d = (p.overlay.extendData ?? {}) as FillDotData;
+      const dy = (d.stackIndex ?? 0) * FILL_DOT_DY_PX;
+      const pulse = d.highlight ? ((d.pulse ?? 0) % 2 === 0 ? 0 : 2.2) : 0;
+      const r = d.highlight ? FILL_DOT_HIGHLIGHT_R_PX + pulse : FILL_DOT_R_PX;
+      const figures: Array<{ type: string; attrs: unknown; styles?: unknown; ignoreEvent: boolean }> = [
+        {
+          type: 'circle',
+          attrs: { x: c.x, y: c.y + dy, r },
+          styles: {
+            style: 'stroke_fill',
+            color: d.color ?? '#8b93b0',
+            borderColor: d.highlight ? '#ffffff' : '#0b0f1a',
+            borderSize: d.highlight ? 2.5 + pulse / 2 : 1,
+          },
+          ignoreEvent: true,
+        },
+      ];
+      if (d.label) {
+        figures.push({
+          type: 'text',
+          attrs: { x: c.x + r + 3, y: c.y + dy, text: d.label, align: 'left', baseline: 'middle' },
+          styles: {
+            color: d.color ?? '#8b93b0',
+            size: 9,
+            backgroundColor: 'rgba(9,13,24,0.72)',
+            paddingLeft: 2,
+            paddingRight: 2,
+          },
+          ignoreEvent: true,
+        });
+      }
+      return figures;
+    },
+  };
+  // **两个名字，同一模板**：`fillDot` = 常态买卖标记；`fillDotHighlight` = 跳转高亮（放大 + 描边脉冲）。
+  // 名字必须各自**注册过**，否则 `createOverlay` 会因 `getOverlayInnerClass(name) === null`
+  // **静默返回 null**（真渲染实测：高亮 overlay 被丢弃 ⇒ 像素零变化）。分开命名是为了能按名单独清除高亮，
+  // 而不误清常态标记（`removeOverlay({name})` 按名过滤）。
+  register({ ...template, name: 'fillDot' });
+  register({ ...template, name: 'fillDotHighlight' });
+  fillDotRegistered = true;
 }
 
 /** B/S 标记「吸附 + 钳位」纯函数：在已加载 bar 集合里吸附到距目标 ts 最近的 bar，并钳位到 [0, len-1]
@@ -325,15 +437,41 @@ function createChartOverlays(chart: Chart, overlays: KlineOverlay[]) {
  *  数据面变化（切周期/切标的 ⇒ feed 身份变化）后由 Effect W 先清旧 overlay 再重建，回到当前周期
  *  已加载 bar 重新吸附（同一 chart 实例，`resetData` 不清 overlay）。
  *  无已加载 bar（bars 空）则跳过（无可吸附对象，避免锚定到屏外）。 */
-function createMarkerOverlays(
+export function createMarkerOverlays(
   chart: Chart,
   overlays: ReadonlyArray<KlineOverlay>,
   bars: ReadonlyArray<{ ts: string }>,
-) {
+  /** 覆盖层父级：`extra` 用于高亮脉冲重绘（同一模板 `fillDot`，判别键相同）。 */
+  highlight?: { fillKey: string; pulse: number } | null,
+): number {
+  let created = 0;
   for (const ov of overlays) {
     if (ov.type !== 'marker') continue;
     const snapped = snapTsToBars(bars, ov.ts);
     if (!snapped) continue;
+    // ADR-028 D4.1 醒目化：实心圆点 + 描边 + 价格×股数标签（`shape:'dot'`/带 `label`）。
+    if (ov.shape === 'dot' || ov.label != null) {
+      ensureFillDotOverlayRegistered();
+      const hl = highlight && ov.fillKey === highlight.fillKey ? highlight : null;
+      chart.createOverlay({
+        name: 'fillDot',
+        paneId: 'candle_pane',
+        lock: true,
+        zLevel: hl ? 30 : 10,
+        points: [{ timestamp: snapped.ts, value: ov.price ?? 0 }],
+        extendData: {
+          text: ov.text,
+          label: ov.label,
+          color: ov.color,
+          stackIndex: ov.stackIndex ?? 0,
+          fillKey: ov.fillKey,
+          highlight: hl != null,
+          pulse: hl?.pulse ?? 0,
+        } satisfies FillDotData,
+      });
+      created += 1;
+      continue;
+    }
     chart.createOverlay({
       name: 'simpleAnnotation',
       paneId: 'candle_pane',
@@ -348,7 +486,22 @@ function createMarkerOverlays(
         },
       },
     });
+    created += 1;
   }
+  return created;
+}
+
+/** 纯函数：按 `fillKey` 精确找到目标标记（ADR-028 D4.1：**禁止**按 bar 粗定位）。
+ *  找不到 ⇒ `null`（调用方须**显式**披露「标记不可得」，禁静默无反应）。 */
+export function findMarkerByFillKey(
+  overlays: ReadonlyArray<KlineOverlay> | undefined,
+  fillKey: string | null | undefined,
+): KlineMarkerOverlay | null {
+  if (!fillKey) return null;
+  for (const ov of overlays ?? []) {
+    if (ov.type === 'marker' && ov.fillKey === fillKey) return ov;
+  }
+  return null;
 }
 
 /** 实时 bar 像素 x 是否落在视口（容器宽度）之外 —— R2「非跟随态有新数据看不见」判据。
@@ -394,6 +547,8 @@ export function KlineChart(props: KlineChartProps) {
   const hasVisibleRangeCb = props.onVisibleRangeChange != null;
   const onWindowAppliedRef = useRef(props.onWindowApplied);
   onWindowAppliedRef.current = props.onWindowApplied;
+  const onHighlightEndRef = useRef(props.onHighlightEnd);
+  onHighlightEndRef.current = props.onHighlightEnd;
   const hideCandles = props.hideCandles ?? false;
   const feed = props.feed;
   /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
@@ -405,6 +560,12 @@ export function KlineChart(props: KlineChartProps) {
   const [rt, setRt] = useState<{ x: number | null; price: number; ts: string } | null>(null);
   /** R2：非跟随态下落在视口外的新 bar 计数（「有新数据」提示；**不改变视口**，点击后才跳最新）。 */
   const [pendingNew, setPendingNew] = useState(0);
+  /** ADR-028 D4.1 观测性：已创建的买卖标记（`fillDot`）overlay 数。 */
+  const [markerCount, setMarkerCount] = useState(0);
+  /** overlay 重建世代（marker 数据/feed 变化 ⇒ 递增 ⇒ 高亮重新套用，防「重建后丢失」）。 */
+  const [overlayEpoch, setOverlayEpoch] = useState(0);
+  /** 高亮脉冲相位（0 = 无高亮；>0 = 高亮中；定时器递增驱动 overlay 重绘）。 */
+  const [pulse, setPulse] = useState(0);
 
   /** 横向铺满：按容器实际宽度 + 配置视口根数设 barSpace（`clamp(round(W/bars),1,50)`，与周期无关），
    *  并在容器上写 `data-viewport-fit`（§5 观测性）；宽度 ≤ 0（未布局）→ 不设置。 */
@@ -473,13 +634,16 @@ export function KlineChart(props: KlineChartProps) {
 
   // Effect V —— 可见范围回调（ADR-028 D2 / 02-spec §7）。**仅当调用方传了回调**时才订阅
   // `onVisibleRangeChange` ⇒ 不传的既有调用方（看板/宫格/多周期/关闭态）订阅面与渲染**逐字节不变**（F8）。
-  // 程序化写窗期间（Effect K）的回声由 `programmaticScroll` 抑制（同 onZoom/onScroll 口径）。
+  //
+  // **程序化写窗期间仍然派发**（2026-09-20 修正）：负载里的 `bar_ts` / `bar_space` / `x_from_px` 是
+  // K 线**实际绘制的 bar 序列与绘图区几何**（事实），曲线 x 映射与共用几何**必须**跟随（D2.1/D2.3-4）——
+  // 「程序化写窗不回写窗口」由**消费方**按 `programmaticScroll`/回声抑制窗决定（见 useResultWindow），
+  // 若在此直接吞掉事件，则 barSpace 被重构（如「全览」压到下限 1）后曲线会拿着**过期**的 bar 序列渲染。
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !hasVisibleRangeCb) return;
     if (typeof chart.subscribeAction !== 'function' || typeof chart.getVisibleRange !== 'function') return;
     const onVisibleRange = () => {
-      if (programmaticScroll.current) return; // 程序化写窗 ⇒ 不回写（防回声 + 防乱序）
       const r = readVisibleRangeTs(chart);
       if (r) onVisibleRangeChangeRef.current?.(r);
     };
@@ -652,7 +816,14 @@ export function KlineChart(props: KlineChartProps) {
     // 把上一份标记打在已换数据的新图上）。
     void feed.loadInitial().then(() => {
       if (!cancelled && chartRef.current === chart) {
-        createMarkerOverlays(chart, props.overlays ?? [], feed.bars);
+        // marker overlay 先清后建（同名过滤 ⇒ 幂等；fillDot/simpleAnnotation 均属 marker 类，
+        // 不触及数据/视口/指标 pane）
+        if (typeof chart.removeOverlay === 'function') {
+          chart.removeOverlay({ name: 'fillDot' });
+          chart.removeOverlay({ name: 'simpleAnnotation' });
+        }
+        setMarkerCount(createMarkerOverlays(chart, props.overlays ?? [], feed.bars));
+        setOverlayEpoch((e) => e + 1);
       }
     });
 
@@ -663,6 +834,69 @@ export function KlineChart(props: KlineChartProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);
+
+  // Effect M —— marker overlay **重同步**（ADR-028 D4.1：marker 数据晚到/变化后不得丢失，
+  // 且高亮必须能在 overlay 重建后真正生效）。只重算 marker 类 overlay：
+  // `removeOverlay({name})` 按名过滤，**不动** dataList / 视口 / barSpace / 指标 pane ⇒ 非「重建整图」。
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || typeof chart.removeOverlay !== 'function' || typeof chart.createOverlay !== 'function') return;
+    chart.removeOverlay({ name: 'fillDot' });
+    chart.removeOverlay({ name: 'simpleAnnotation' });
+    setMarkerCount(createMarkerOverlays(chart, props.overlays ?? [], feed.bars));
+    setOverlayEpoch((e) => e + 1);
+  }, [props.overlays, feed]);
+
+  // Effect P —— 高亮脉冲定时器（ADR-028 D4.1）：canvas 内无法用 CSS 动画 ⇒ **定时器驱动 overlay 重绘**。
+  // 3 秒到点 ⇒ `setPulse(0)` 回常态，**不留永久选中态**。
+  useEffect(() => {
+    const key = props.highlightFillKey;
+    if (!key) {
+      setPulse(0);
+      return;
+    }
+    setPulse(1);
+    const interval = setInterval(() => setPulse((p) => p + 1), HIGHLIGHT_PULSE_MS);
+    const timer = setTimeout(() => {
+      clearInterval(interval);
+      setPulse(0);
+      onHighlightEndRef.current?.();
+    }, HIGHLIGHT_DURATION_MS);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
+  }, [props.highlightFillKey, props.highlightRev]);
+
+  // Effect G —— 把高亮落到**被点击的那一笔**（按 `fillKey` 判别；没找到 ⇒ 不画，由页面显式提示）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    const key = props.highlightFillKey;
+    if (!chart || typeof chart.createOverlay !== 'function') return;
+    if (typeof chart.removeOverlay === 'function') chart.removeOverlay({ name: 'fillDotHighlight' });
+    if (!key || pulse === 0) return;
+    const target = findMarkerByFillKey(props.overlays, key);
+    if (!target) return;
+    const snapped = snapTsToBars(feed.bars, target.ts);
+    if (!snapped) return;
+    ensureFillDotOverlayRegistered();
+    chart.createOverlay({
+      name: 'fillDotHighlight',
+      paneId: 'candle_pane',
+      lock: true,
+      zLevel: 40,
+      points: [{ timestamp: snapped.ts, value: target.price ?? 0 }],
+      extendData: {
+        text: target.text,
+        label: target.label,
+        color: target.color,
+        stackIndex: target.stackIndex ?? 0,
+        fillKey: key,
+        highlight: true,
+        pulse,
+      } satisfies FillDotData,
+    });
+  }, [pulse, props.highlightFillKey, props.overlays, feed, overlayEpoch]);
 
   // 指标勾选/MA 窗口/dcap 参数热切换（状态差分：仅启用状态翻转才 create/remove；参数变化走 overrideIndicator）
   useEffect(() => {
@@ -720,10 +954,18 @@ export function KlineChart(props: KlineChartProps) {
     }
   }, [props.followLatest]);
 
+  /** ADR-028 D4.1：高亮目标（判别键 ⇒ 精确到笔；`null`/找不到 ⇒ 无高亮）。 */
+  const highlightTarget = findMarkerByFillKey(props.overlays, props.highlightFillKey);
+  const highlightActive = pulse > 0 && highlightTarget != null;
+
   return (
     <div
       ref={ref}
       data-testid="kline-chart"
+      data-highlight-key={props.highlightFillKey ?? ''}
+      data-highlight-active={highlightActive ? 'true' : 'false'}
+      data-highlight-pulse={pulse}
+      data-marker-overlays={markerCount}
       style={props.heightPx != null ? { height: `${props.heightPx}px` } : undefined}
       className="relative h-full w-full"
     >

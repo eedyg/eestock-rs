@@ -109,7 +109,15 @@ describe('KlineChart 可选 onVisibleRangeChange（ADR-028 D2 / F8）', () => {
     expect(r.to_ts).toBe(Math.floor((KC_BARS[r.to_idx] as number) / 1000));
   });
 
-  it('F9-回声抑制：程序化写窗期间的 onVisibleRangeChange 不得回写窗口', async () => {
+  /**
+   * F9-回声抑制（**2026-09-20 分层修正**）：程序化写窗期间引擎会同步派发 `onVisibleRangeChange`；
+   * 该事件**必须继续派发**（负载里的 `bar_ts`/`bar_space`/`x_from_px` 是 K 线**实际绘制的 bar 序列与
+   * 绘图区几何**——曲线 x 映射/共用几何必须跟随，ADR-028 D2.1/D2.3-4；否则「全览」把 barSpace 压到
+   * 下限后，曲线会拿过期 bar 序列渲染）；而「程序化写窗**不回写窗口状态**」由**消费方**按回声抑制窗决定
+   * （02-spec §9.3 原文只要求抑制 `onZoom`/`onScroll`；页面侧抑制见 `useResultWindow.applyKlineRange`
+   * 与真渲染 E1~E4：跳转/全览后窗口端点仍等于回执）。
+   */
+  it('F9-回声分层：程序化写窗期间仍派发（携带真身几何），窗口回写由消费方抑制', async () => {
     const onChange = vi.fn();
     const onApplied = vi.fn();
     const { rerender } = render(
@@ -141,7 +149,14 @@ describe('KlineChart 可选 onVisibleRangeChange（ADR-028 D2 / F8）', () => {
     expect(res.requested_bar_space).toBe(4); // round(520 / 120)
     // 程序化写窗让引擎**同步**派发了 onVisibleRangeChange（桩内 setBarSpace/scrollToDataIndex 会 fire）
     expect(syncStub.__events).toContain('onVisibleRangeChange');
-    expect(onChange).not.toHaveBeenCalled(); // 但被回声抑制（不回写窗口状态）
+    // 仍派发（几何是事实），且负载带**可见 bar 序列**（曲线 ts→bar 索引查表源）
+    expect(onChange).toHaveBeenCalled();
+    const first = onChange.mock.calls[0]![0] as { bar_ts?: number[]; bar_space?: number; from_idx: number };
+    expect(Array.isArray(first.bar_ts)).toBe(true);
+    expect(first.bar_ts!.length).toBeGreaterThan(0);
+    expect(first.bar_ts!.length).toBe((first as unknown as { to_idx: number }).to_idx - first.from_idx + 1);
+    // 几何字段（共用绘图区几何用）也在负载内
+    expect(typeof first.bar_space).toBe('number');
   });
 
   it('F9-断言失败上报：windowCommand 让目标 barSpace 越界（stub max=50）⇒ onWindowApplied 显式报错', async () => {

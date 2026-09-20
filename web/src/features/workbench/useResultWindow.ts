@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JumpTarget } from './RoundTripsTable';
 import {
+  buildCurveX,
+  capDisclosure,
   centeredWindow,
+  clampDisclosure,
   DEFAULT_JUMP_BUFFER_BARS,
   DEFAULT_L2_JUMP_SPAN_BARS,
+  geomFromRange,
   makeWindow,
   periodSeconds,
   popHistory,
   pushHistory,
   roundTripWindow,
+  sameGeom,
   throttleLatest,
   WINDOW_THROTTLE_MS,
+  type CurveDomainRequest,
+  type CurveXBuild,
+  type KlinePlotGeom,
   type ResultWindowState,
   type VisibleRangeTs,
   type WindowApplyResult,
@@ -37,6 +45,8 @@ export interface UseResultWindowArgs {
   period: string | null;
   /** 全区间 bar 根数（「全览」命令的 span_bars）。 */
   totalBars: number;
+  /** **降级**定义域用：run per_bar 的已加载行（`/bars?kind=per_bar`）。 */
+  perBarRows?: ReadonlyArray<{ ts: number }> | null;
   /** L2 跳转窗口根数（缺省 120，D4「可配」）。 */
   l2SpanBars?: number;
 }
@@ -73,6 +83,21 @@ export interface UseResultWindow {
   historyDepth: number;
   /** 单根 bar 秒数（视图刻度换算用；与 K 线周期同源）。 */
   barSeconds: number;
+  /**
+   * ADR-028 D2.1/D2.3-4：K 线**真身几何**（可见 bar 序列 + 复用绘图区几何）。
+   * 来源 = `onVisibleRangeChange` 负载（图内 `getVisibleRange()`/`getBarSpace()`/`convertToPixel()` 实测）。
+   */
+  geom: KlinePlotGeom | null;
+  /** 曲线 x 定义域构建结果（主路 = bar 索引；降级 = ts 线性）。 */
+  curveX: CurveXBuild;
+  /** 曲线取数请求（rev + 取数窗口 + x 定义域），交 `useRunSeries` **原子**提交。 */
+  request: CurveDomainRequest;
+  /** 程序化写窗**被钳位**披露（请求 ≠ 实测；一致 ⇒ null）。 */
+  clampNote: string | null;
+  /** 「尽可能全」的物理上限披露（显示 N / 共 M 根；ADR-028 D2.3-3）。 */
+  capNote: string | null;
+  /** 引擎实测可见根数（回执口径；null = 尚无回执）。 */
+  visibleBars: number | null;
 }
 
 /** 程序化写窗期间的回声抑制窗（ms）：写窗后引擎派发的 onZoom/onScroll/onVisibleRangeChange 一律忽略。 */
@@ -80,6 +105,7 @@ export const PROGRAMMATIC_SUPPRESS_MS = 400;
 
 export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
   const { runId, fullFromTs, fullToTs, period, totalBars } = args;
+  const perBarRows = args.perBarRows ?? null;
   const l2SpanBars = args.l2SpanBars ?? DEFAULT_L2_JUMP_SPAN_BARS;
   const barSeconds = useMemo(() => periodSeconds(period), [period]);
 
@@ -89,6 +115,14 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [observed, setObserved] = useState<WindowApplyResult | null>(null);
+  /** K 线真身几何（可见 bar 序列 + 绘图区几何；D2.1/D2.3-4）。 */
+  const [geom, setGeom] = useState<KlinePlotGeom | null>(null);
+  /** 「全区间」（window = null）请求的 rev（单调；与窗口 rev 同一序列，保证落后响应丢弃）。 */
+  const [fullRev, setFullRev] = useState(0);
+  /** 程序化写窗的**请求**（与回执比对，供钳位披露）。 */
+  const lastRequestRef = useRef<{ from_ts: number; to_ts: number; span_bars: number } | null>(null);
+  const [clampNote, setClampNote] = useState<string | null>(null);
+  const [visibleBars, setVisibleBars] = useState<number | null>(null);
 
   const revRef = useRef(0);
   /** 回声抑制窗（程序化写窗后 K 线派发的事件在此时刻前一律忽略）。 */
@@ -119,15 +153,32 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     setApplyError(null);
     setApplying(false);
     setObserved(null);
+    setGeom(null);
+    // rev 序列在换 run 时归零（新 run 的窗口从 0 重新单调递增；applied 已清空 ⇒ 无跨 run 竞争）
+    setFullRev(0);
+    setClampNote(null);
+    setVisibleBars(null);
+    lastRequestRef.current = null;
   }, [runId]);
 
   useEffect(() => () => throttleRef.current?.cancel(), []);
 
-  /** K 线交互写窗（leader）：节流 + 回声抑制 + 同窗丢弃（无变化不重取）。 */
+  /** K 线交互写窗（leader）：节流 + 回声抑制 + 同窗丢弃（无变化不重取）。
+   *  同时**记录真身几何**（同一 bar 序列 + 绘图区几何）——曲线 x 映射与共用几何的唯一来源。 */
   const applyKlineRange = useCallback(
     (r: VisibleRangeTs) => {
-      if (Date.now() < suppressUntilRef.current) return; // 程序化写窗回声 ⇒ 抑制（§9.3）
-      const next = makeWindow('kline', r.from_ts, r.to_ts, r.to_idx - r.from_idx + 1, revRef.current + 1);
+      // **真身几何先记**（ADR-028 D2.1/D2.3-4）：无论是否程序化回声，K 线实际绘制的 bar 序列与
+      // 绘图区几何都是**事实**（曲线 x 映射/共用几何必须跟随）——被抑制的只是「写窗口」这一步。
+      const g = geomFromRange(r);
+      setGeom((prev) => (sameGeom(prev, g) ? prev : g));
+      if (Date.now() < suppressUntilRef.current) return; // 程序化写窗回声 ⇒ 不回写窗口（§9.3）
+      revRef.current += 1; // rev **单调**（落后响应丢弃的前提；旧实现用 revRef+1 但不推进 ⇒ 同 rev 竞争）
+      const next = makeWindow('kline', r.from_ts, r.to_ts, r.to_idx - r.from_idx + 1, revRef.current, {
+        from_idx: r.from_idx,
+        to_idx: r.to_idx,
+      });
+      setVisibleBars(next.span_bars);
+      setClampNote(null); // 用户手势不是「请求」，无钳位语义
       const cur = windowRef.current;
       if (
         cur &&
@@ -153,6 +204,9 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
       setCommand(cmd);
       setApplyError(null);
       setApplying(true);
+      // 记录**请求值**（回读后与实测比对 ⇒ 钳位披露；禁「请求即发布」）
+      lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
+      setClampNote(null);
     },
     [],
   );
@@ -198,17 +252,21 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     const rev = revRef.current;
     windowRef.current = null;
     setWindow(null);
+    setFullRev(rev);
     setApplyError(null);
+    setClampNote(null);
     if (fullFromTs != null && fullToTs != null) {
       suppressUntilRef.current = Date.now() + PROGRAMMATIC_SUPPRESS_MS;
-      setCommand({
+      const cmd: WindowCommand = {
         rev,
         from_ts: fullFromTs,
         to_ts: fullToTs,
         span_bars: Math.max(1, totalBars || 1),
         center_ts: (fullFromTs + fullToTs) / 2,
         span_mode: 'range',
-      });
+      };
+      lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
+      setCommand(cmd);
       setApplying(true);
     }
   }, [fullFromTs, fullToTs, totalBars]);
@@ -224,48 +282,106 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
       setWindow(w);
       setApplyError(null);
       suppressUntilRef.current = Date.now() + PROGRAMMATIC_SUPPRESS_MS;
-      setCommand({
+      const cmd: WindowCommand = {
         rev,
         from_ts: w.from_ts,
         to_ts: w.to_ts,
         span_bars: w.span_bars,
         center_ts: (w.from_ts + w.to_ts) / 2,
         span_mode: 'range',
-      });
+      };
+      lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
+      setCommand(cmd);
       setApplying(true);
+      setClampNote(null);
       return stack;
     });
   }, []);
 
-  const onApplied = useCallback((r: WindowApplyResult) => {
-    setApplying(false);
-    setObserved(r); // 真身回执（成功/失败都留痕，禁止「没报错就算绿」）
-    if (!r.ok) {
-      setApplyError(r.error ?? `窗口应用失败（rev ${r.rev}）`);
-      return;
-    }
-    setApplyError(null);
-    // ADR-028 §4.1：程序化写窗成功后，把**页面共享窗口对齐到真身实测窗口**。
-    // 理由：barSpace 为整数 + 真身含部分 bar + 数据稀疏 ⇒ 请求态 `[from_ts, to_ts]` 与可见态
-    // 必然有量化偏差；而「各曲线 x 定义域 == K 线可见 ts 区间」是冻结契约（§4.1/D2.1）。
-    // 回执即真身读数 ⇒ 以回执为准，曲线取数窗口与 K 线可见窗口**按构造成立**。
-    const obs = r.observed;
-    const cur = windowRef.current;
-    if (obs && cur && (cur.source === 'jump' || cur.source === 'reset')) {
-      const span = obs.to_idx - obs.from_idx + 1;
-      if (cur.from_ts !== obs.from_ts || cur.to_ts !== obs.to_ts || cur.span_bars !== span) {
-        const next: ResultWindowState = { ...cur, from_ts: obs.from_ts, to_ts: obs.to_ts, span_bars: span };
-        windowRef.current = next;
-        setWindow(next);
+  const onApplied = useCallback(
+    (r: WindowApplyResult) => {
+      setApplying(false);
+      setObserved(r); // 真身回执（成功/失败都留痕，禁止「没报错就算绿」）
+      if (!r.ok) {
+        setApplyError(r.error ?? `窗口应用失败（rev ${r.rev}）`);
+        return;
       }
-    }
-  }, []);
+      setApplyError(null);
+      const obs = r.observed;
+      if (!obs) return;
+      setVisibleBars(obs.to_idx - obs.from_idx + 1);
+      // ADR-028 §4.1：程序化写窗成功后，把**页面共享窗口对齐到真身实测窗口**。
+      // 理由：barSpace 为整数 + 真身含部分 bar + 数据稀疏 ⇒ 请求态 `[from_ts, to_ts]` 与可见态
+      // 必然有量化偏差；而「各曲线 x 定义域 == K 线可见 ts 区间」是冻结契约（§4.1/D2.1）。
+      // 回执即真身读数 ⇒ 以回执为准。
+      const cur = windowRef.current;
+      if (cur && (cur.source === 'jump' || cur.source === 'reset')) {
+        const span = obs.to_idx - obs.from_idx + 1;
+        setClampNote(clampDisclosure(lastRequestRef.current, obs, barSeconds));
+        if (
+          cur.from_ts !== obs.from_ts ||
+          cur.to_ts !== obs.to_ts ||
+          cur.span_bars !== span ||
+          cur.from_idx !== obs.from_idx ||
+          cur.to_idx !== obs.to_idx
+        ) {
+          const next: ResultWindowState = {
+            ...cur,
+            from_ts: obs.from_ts,
+            to_ts: obs.to_ts,
+            span_bars: span,
+            from_idx: obs.from_idx,
+            to_idx: obs.to_idx,
+          };
+          windowRef.current = next;
+          setWindow(next);
+        }
+      }
+    },
+    [barSeconds],
+  );
 
   const domain = useMemo(() => {
     if (window) return { from_ts: window.from_ts, to_ts: window.to_ts };
     if (fullFromTs != null && fullToTs != null) return { from_ts: fullFromTs, to_ts: fullToTs };
     return null;
   }, [window, fullFromTs, fullToTs]);
+
+  /**
+   * 曲线 x 定义域构建（ADR-028 D2.1：主路 = bar 索引空间；降级 = ts 线性；无域 = null）。
+   * `barSeconds` 用于配对容差（真身 per_bar ts 与 K 线 bar ts 可差数秒 ⇒ 最近邻吸附）。
+   */
+  const curveX = useMemo(
+    () =>
+      buildCurveX({
+        geom,
+        perBarTs: perBarRows ? perBarRows.map((r) => r.ts) : null,
+        from_ts: domain?.from_ts ?? null,
+        to_ts: domain?.to_ts ?? null,
+        barSeconds,
+      }),
+    [geom, domain, barSeconds, perBarRows],
+  );
+
+  /** 取数请求（窗口 rev + 取数窗口 + x 定义域）：`useRunSeries` 据此**原子**提交「数据 ↔ 定义域」。 */
+  const request: CurveDomainRequest = useMemo(
+    () => ({
+      rev: window ? window.rev : fullRev,
+      window: window ? { from_ts: window.from_ts, to_ts: window.to_ts } : null,
+      xDomain: curveX.xDomain,
+      plot: curveX.plot,
+      degraded: curveX.degraded,
+      source: curveX.source,
+      slots: curveX.slots,
+    }),
+    [window, fullRev, curveX],
+  );
+
+  /** 全览态（window = null）的物理上限披露：以**引擎实测可见根数**为 N、run 总根数为 M。 */
+  const capNote = useMemo(() => {
+    if (window) return null;
+    return capDisclosure(visibleBars, totalBars);
+  }, [window, visibleBars, totalBars]);
 
   return {
     window,
@@ -282,5 +398,11 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     canBack: history.length > 0,
     historyDepth: history.length,
     barSeconds,
+    geom,
+    curveX,
+    request,
+    clampNote,
+    capNote,
+    visibleBars,
   };
 }

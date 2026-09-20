@@ -1,0 +1,88 @@
+{
+  "run_id": "sr_1789832477006_000002",
+  "rt_seq": 1,
+  "fill_idx": 1,
+  "target_fill": {
+    "bar_index": 262,
+    "ts": 1783440000,
+    "price": 1.075215,
+    "qty": 932.6935800785214
+  },
+  "want_key": "1:1",
+  "scroll_before": 1386,
+  "scroll_after": 40,
+  "probe_center_idx": "262",
+  "probe_ok": "true",
+  "pulse_a": "7",
+  "pulse_b": "8",
+  "kline_clip": {
+    "x": 600,
+    "y": 40,
+    "width": 668,
+    "height": 256
+  },
+  "marker_px_phase_a": {
+    "buy#ff5c6c": 617,
+    "sell#00e0a4": 447,
+    "stop#fb923c": 0,
+    "white": 135
+  },
+  "marker_px_phase_b": {
+    "buy#ff5c6c": 587,
+    "sell#00e0a4": 447,
+    "stop#fb923c": 0,
+    "white": 51
+  },
+  "marker_px_after_3s": {
+    "buy#ff5c6c": 562,
+    "sell#00e0a4": 461,
+    "stop#fb923c": 0,
+    "white": 3
+  },
+  "diff_phaseA_vs_phaseB": {
+    "size": [
+      668,
+      256
+    ],
+    "diff_bbox": [
+      334,
+      102,
+      428,
+      124
+    ],
+    "px_any": 765,
+    "px_gt24": 603
+  },
+  "diff_phaseA_vs_after3s": {
+    "size": [
+      668,
+      256
+    ],
+    "diff_bbox": [
+      334,
+      102,
+      428,
+      124
+    ],
+    "px_any": 1403,
+    "px_gt24": 730
+  },
+  "vlines": [
+    {
+      "view": "aggregate",
+      "ts": "1783440000"
+    },
+    {
+      "view": "slots",
+      "ts": "1783440000"
+    },
+    {
+      "view": "equity",
+      "ts": "1783440000"
+    },
+    {
+      "view": "position",
+      "ts": "1783440000"
+    }
+  ]
+}

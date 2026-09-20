@@ -34,7 +34,12 @@ export type JumpTarget =
       open_ts: number;
       close_ts: number | null;
     }
-  | { level: 'L2'; rt_seq: number; code: string; bar_index: number; /** 该笔成交 bar 的 ts（Unix 秒）。 */ ts: number };
+  | { level: 'L2'; rt_seq: number; code: string; bar_index: number; /** 该笔成交 bar 的 ts（Unix 秒）。 */ ts: number;
+      /** ADR-028 D4.1：**该回合内成交序号**（0 基，与 L2 切片顺序同源）⇒ 高亮判别键 `rt_seq:fill_index`。 */
+      fill_index: number;
+      /** 成交有效价 / 股数（跨源降级匹配用；非主路）。 */
+      price: number;
+      qty: number };
 
 /** ADR-026 §2.3 + ADR-027 §1.1：来源列取值（历史 run 缺字段 = 未记录；`Manual` = sim-live 人工/外部）。 */
 export const TRADE_REASON_LABEL: Record<FillReason, string> = {
@@ -222,7 +227,16 @@ function L2Table({
                       data-testid={`wb-l2-jump-${rt.rt_seq}-${i}`}
                       className="ml-1 rounded border border-line px-2 py-0.5 text-dim hover:text-txt"
                       onClick={() =>
-                        onJump?.({ level: 'L2', rt_seq: rt.rt_seq, code: rt.code, bar_index: f.bar_index, ts: f.ts })
+                        onJump?.({
+                          level: 'L2',
+                          rt_seq: rt.rt_seq,
+                          code: rt.code,
+                          bar_index: f.bar_index,
+                          ts: f.ts,
+                          fill_index: i,
+                          price: f.price,
+                          qty: f.qty,
+                        })
                       }
                     >
                       跳转

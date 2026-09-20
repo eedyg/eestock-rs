@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-fill-focus-highlight.e2e.ts:78:1 › D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 + 3 秒回常态 + 曲线竖线 (8.4s)
+
+  1 passed (8.7s)

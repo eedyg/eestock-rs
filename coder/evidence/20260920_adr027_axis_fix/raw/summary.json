@@ -1,0 +1,854 @@
+{
+  "runId": "sr_1789832517800_000006",
+  "finishedAt": "2026-09-20T01:38:02.100Z",
+  "criterion": "Δ984 = (pK − pC) × 984；同一 ts 在 K 线（索引线性）与曲线（ts 线性）上的归一化 x 差；Δ984 > 2px ⇒ 判不对齐",
+  "states": [
+    {
+      "label": "init",
+      "windowSource": "kline",
+      "windowSpanBars": "103",
+      "domain": "1789454700,1789628100",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 896,
+        "toIdx": 998,
+        "bars": 103,
+        "barSpace": 6,
+        "firstTs": 1789454700,
+        "lastTs": 1789628100
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+      },
+      "curve": {
+        "apiPoints": 103,
+        "apiDownsampled": false,
+        "renderedVertices": 103,
+        "vertexMatch": true,
+        "dataTsRange": [
+          1789454700,
+          1789628100
+        ]
+      },
+      "overlap": [
+        1789454700,
+        1789628100
+      ],
+      "overlapBars": 103,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1789454700,
+          "xK": 518,
+          "xC": 518,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1789541400,
+          "xK": 824,
+          "xC": 824,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789628100,
+          "xK": 1130,
+          "xC": 1130,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789608600,
+          "xK": 842,
+          "xC": 1061.2,
+          "dRaw": -219.2,
+          "d984": -352.4,
+          "gapBeforeSec": 66600
+        }
+      ],
+      "maxAbs984": 352.4,
+      "maxAbs984Ts": 1789607693.7804878,
+      "maxAbs984BarTs": 1789608600,
+      "maxAbs984IndexPair": 0,
+      "maxAbsRaw": 216.1,
+      "baselineInsetRawPx": 0,
+      "argmaxGapBeforeSec": 66600,
+      "argmaxGapAfterSec": 300,
+      "modelMaxAbs984": 352.4,
+      "modelFullDomain984": 352.4,
+      "windowLevel": {
+        "klineVisible": [
+          1789454700,
+          1789628100
+        ],
+        "domain": [
+          1789454700,
+          1789628100
+        ],
+        "missingLeftSec": 0,
+        "missingRightSec": 0,
+        "coverage": 1
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1789454700,
+        "domainEnd": 1789628100,
+        "apiFirstTs": 1789454700,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 0
+      },
+      "zoom": null,
+      "gapCensus": {
+        "300": 98,
+        "5400": 2,
+        "66600": 2
+      },
+      "aligned": false,
+      "notes": [],
+      "screenshots": [
+        "state_init.png",
+        "state_init_kline.png",
+        "state_init_aggregate.png",
+        "state_init_slot.png"
+      ]
+    },
+    {
+      "label": "full",
+      "windowSource": "full",
+      "windowSpanBars": "",
+      "domain": "1785547800,1789628280",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 192,
+        "toIdx": 805,
+        "bars": 614,
+        "barSpace": 1,
+        "firstTs": 1787725500,
+        "lastTs": 1789350900
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar · 1335 点不在 K 线 bar 序列上（已剔除）"
+      },
+      "curve": {
+        "apiPoints": 1949,
+        "apiDownsampled": false,
+        "renderedVertices": 614,
+        "vertexMatch": false,
+        "dataTsRange": [
+          1785547800,
+          1789628280
+        ]
+      },
+      "overlap": [
+        1787725500,
+        1789350900
+      ],
+      "overlapBars": 614,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1787725500,
+          "xK": 602,
+          "xC": 929.2,
+          "dRaw": -327.2,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1788418500,
+          "xK": 908,
+          "xC": 1033.3,
+          "dRaw": -125.3,
+          "d984": 71.7,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789350900,
+          "xK": 1215,
+          "xC": 1173.3,
+          "dRaw": 41.7,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789110000,
+          "xK": 1209,
+          "xC": 1137.1,
+          "dRaw": 71.9,
+          "d984": 136.2,
+          "gapBeforeSec": 300
+        }
+      ],
+      "maxAbs984": 136.2,
+      "maxAbs984Ts": 1789115731.902439,
+      "maxAbs984BarTs": 1789110000,
+      "maxAbs984IndexPair": null,
+      "maxAbsRaw": 329.1,
+      "baselineInsetRawPx": -327.2,
+      "argmaxGapBeforeSec": 300,
+      "argmaxGapAfterSec": 239400,
+      "modelMaxAbs984": 136.2,
+      "modelFullDomain984": 47.5,
+      "windowLevel": {
+        "klineVisible": [
+          1787725500,
+          1789350900
+        ],
+        "domain": [
+          1785547800,
+          1789628280
+        ],
+        "missingLeftSec": 2177700,
+        "missingRightSec": 277380,
+        "coverage": 0.39833548994235973
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1785547800,
+        "domainEnd": 1789628280,
+        "apiFirstTs": 1785115800,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 180
+      },
+      "zoom": null,
+      "gapCensus": {
+        "300": 588,
+        "5400": 12,
+        "66600": 10,
+        "239400": 3
+      },
+      "aligned": false,
+      "notes": [
+        "聚合图渲染顶点数 614 ≠ /curve 返回点数 1949 ⇒ 该状态下「曲线数据」与「共享窗口」覆盖不一致（观测事实，不做原因分析）",
+        "窗口末 ts 1789628280 vs /curve 末点 ts 1789628100：曲线数据已到 /curve 边界，缺 180s（≈0.60 根 M5）",
+        "共享窗口 ≠ K 线可见区间：window=[1785547800, 1789628280]、K 可见=[1787725500, 1789350900]（可见/窗口 ts 跨度 = 0.398）⇒ 该态两图**显示的时间范围本身不同**"
+      ],
+      "screenshots": [
+        "state_full.png",
+        "state_full_kline.png",
+        "state_full_aggregate.png",
+        "state_full_slot.png"
+      ]
+    },
+    {
+      "label": "narrow120",
+      "windowSource": "jump",
+      "windowSpanBars": "123",
+      "domain": "1789448700,1789628100",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 876,
+        "toIdx": 998,
+        "bars": 123,
+        "barSpace": 5,
+        "firstTs": 1789448700,
+        "lastTs": 1789628100
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+      },
+      "curve": {
+        "apiPoints": 123,
+        "apiDownsampled": false,
+        "renderedVertices": 123,
+        "vertexMatch": true,
+        "dataTsRange": [
+          1789448700,
+          1789628100
+        ]
+      },
+      "overlap": [
+        1789448700,
+        1789628100
+      ],
+      "overlapBars": 123,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1789448700,
+          "xK": 601,
+          "xC": 601,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1789538400,
+          "xK": 906,
+          "xC": 906,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789628100,
+          "xK": 1211,
+          "xC": 1211,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789608600,
+          "xK": 971,
+          "xC": 1144.7,
+          "dRaw": -173.7,
+          "d984": -280.2,
+          "gapBeforeSec": 66600
+        }
+      ],
+      "maxAbs984": 280.2,
+      "maxAbs984Ts": 1789607516.402439,
+      "maxAbs984BarTs": 1789608600,
+      "maxAbs984IndexPair": 0,
+      "maxAbsRaw": 170.1,
+      "baselineInsetRawPx": 0,
+      "argmaxGapBeforeSec": 66600,
+      "argmaxGapAfterSec": 300,
+      "modelMaxAbs984": 280.2,
+      "modelFullDomain984": 280.2,
+      "windowLevel": {
+        "klineVisible": [
+          1789448700,
+          1789628100
+        ],
+        "domain": [
+          1789448700,
+          1789628100
+        ],
+        "missingLeftSec": 0,
+        "missingRightSec": 0,
+        "coverage": 1
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1789448700,
+        "domainEnd": 1789628100,
+        "apiFirstTs": 1789448700,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 0
+      },
+      "zoom": null,
+      "gapCensus": {
+        "300": 118,
+        "5400": 2,
+        "66600": 2
+      },
+      "aligned": false,
+      "notes": [],
+      "screenshots": [
+        "state_narrow120.png",
+        "state_narrow120_kline.png",
+        "state_narrow120_aggregate.png",
+        "state_narrow120_slot.png"
+      ]
+    },
+    {
+      "label": "zoom300",
+      "windowSource": "kline",
+      "windowSpanBars": "317",
+      "domain": "1788932100,1789628100",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 682,
+        "toIdx": 998,
+        "bars": 317,
+        "barSpace": 1.9371024449999998,
+        "firstTs": 1788932100,
+        "lastTs": 1789628100
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+      },
+      "curve": {
+        "apiPoints": 317,
+        "apiDownsampled": false,
+        "renderedVertices": 317,
+        "vertexMatch": true,
+        "dataTsRange": [
+          1788932100,
+          1789628100
+        ]
+      },
+      "overlap": [
+        1788932100,
+        1789628100
+      ],
+      "overlapBars": 317,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1788932100,
+          "xK": 429,
+          "xC": 429,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1789366500,
+          "xK": 735,
+          "xC": 811.1,
+          "dRaw": -76.1,
+          "d984": -122.2,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789628100,
+          "xK": 1041,
+          "xC": 1041.1,
+          "dRaw": -0.1,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789349400,
+          "xK": 658,
+          "xC": 796,
+          "dRaw": -138,
+          "d984": -221.8,
+          "gapBeforeSec": 239400
+        }
+      ],
+      "maxAbs984": 221.8,
+      "maxAbs984Ts": 1789348356.097561,
+      "maxAbs984BarTs": 1789349400,
+      "maxAbs984IndexPair": 1,
+      "maxAbsRaw": 137.1,
+      "baselineInsetRawPx": 0,
+      "argmaxGapBeforeSec": 239400,
+      "argmaxGapAfterSec": 300,
+      "modelMaxAbs984": 222.5,
+      "modelFullDomain984": 222.5,
+      "windowLevel": {
+        "klineVisible": [
+          1788932100,
+          1789628100
+        ],
+        "domain": [
+          1788932100,
+          1789628100
+        ],
+        "missingLeftSec": 0,
+        "missingRightSec": 0,
+        "coverage": 1
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1788932100,
+        "domainEnd": 1789628100,
+        "apiFirstTs": 1788932100,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 0
+      },
+      "zoom": {
+        "steps": 8,
+        "zoomEffective": true,
+        "targetBars": 300
+      },
+      "gapCensus": {
+        "300": 304,
+        "5400": 6,
+        "66600": 5,
+        "239400": 1
+      },
+      "aligned": false,
+      "notes": [],
+      "screenshots": [
+        "state_zoom300.png",
+        "state_zoom300_kline.png",
+        "state_zoom300_aggregate.png",
+        "state_zoom300_slot.png"
+      ]
+    },
+    {
+      "label": "zoom600",
+      "windowSource": "kline",
+      "windowSpanBars": "595",
+      "domain": "1788313800,1789628100",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 404,
+        "toIdx": 998,
+        "bars": 595,
+        "barSpace": 1.0294556604732445,
+        "firstTs": 1788313800,
+        "lastTs": 1789628100
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+      },
+      "curve": {
+        "apiPoints": 595,
+        "apiDownsampled": false,
+        "renderedVertices": 595,
+        "vertexMatch": true,
+        "dataTsRange": [
+          1788313800,
+          1789628100
+        ]
+      },
+      "overlap": [
+        1788313800,
+        1789628100
+      ],
+      "overlapBars": 595,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1788313800,
+          "xK": 379,
+          "xC": 379,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1789004100,
+          "xK": 685,
+          "xC": 700.2,
+          "dRaw": -15.2,
+          "d984": -24.8,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789628100,
+          "xK": 991,
+          "xC": 990.5,
+          "dRaw": 0.5,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789349400,
+          "xK": 787,
+          "xC": 860.8,
+          "dRaw": -73.8,
+          "d984": -119.3,
+          "gapBeforeSec": 239400
+        }
+      ],
+      "maxAbs984": 119.3,
+      "maxAbs984Ts": 1789349345.5182927,
+      "maxAbs984BarTs": 1789349400,
+      "maxAbs984IndexPair": 1.4,
+      "maxAbsRaw": 73.8,
+      "baselineInsetRawPx": 0,
+      "argmaxGapBeforeSec": 239400,
+      "argmaxGapAfterSec": 300,
+      "modelMaxAbs984": 119.3,
+      "modelFullDomain984": 119.3,
+      "windowLevel": {
+        "klineVisible": [
+          1788313800,
+          1789628100
+        ],
+        "domain": [
+          1788313800,
+          1789628100
+        ],
+        "missingLeftSec": 0,
+        "missingRightSec": 0,
+        "coverage": 1
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1788313800,
+        "domainEnd": 1789628100,
+        "apiFirstTs": 1788313800,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 0
+      },
+      "zoom": {
+        "steps": 60,
+        "zoomEffective": true,
+        "targetBars": 600
+      },
+      "gapCensus": {
+        "300": 571,
+        "5400": 12,
+        "66600": 9,
+        "239400": 2
+      },
+      "aligned": false,
+      "notes": [],
+      "screenshots": [
+        "state_zoom600.png",
+        "state_zoom600_kline.png",
+        "state_zoom600_aggregate.png",
+        "state_zoom600_slot.png"
+      ]
+    },
+    {
+      "label": "controlGapless",
+      "windowSource": "kline",
+      "windowSpanBars": "38",
+      "domain": "1789611900,1789628100",
+      "kline": {
+        "dataLen": 999,
+        "dataFirstTs": 1787275800,
+        "dataLastTs": 1789628100,
+        "fromIdx": 961,
+        "toIdx": 998,
+        "bars": 38,
+        "barSpace": 16.33035085234526,
+        "firstTs": 1789611900,
+        "lastTs": 1789628100
+      },
+      "samplingText": {
+        "aggregate": "共 1949 bar",
+        "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+      },
+      "curve": {
+        "apiPoints": 38,
+        "apiDownsampled": false,
+        "renderedVertices": 38,
+        "vertexMatch": true,
+        "dataTsRange": [
+          1789611900,
+          1789628100
+        ]
+      },
+      "overlap": [
+        1789611900,
+        1789628100
+      ],
+      "overlapBars": 38,
+      "rows": [
+        {
+          "kind": "first",
+          "ts": 1789611900,
+          "xK": 21,
+          "xC": 21,
+          "dRaw": 0,
+          "d984": 0,
+          "gapBeforeSec": null
+        },
+        {
+          "kind": "mid",
+          "ts": 1789622400,
+          "xK": 315,
+          "xC": 412.6,
+          "dRaw": -97.6,
+          "d984": -158.8,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "last",
+          "ts": 1789628100,
+          "xK": 625,
+          "xC": 625.2,
+          "dRaw": -0.2,
+          "d984": 0,
+          "gapBeforeSec": 300
+        },
+        {
+          "kind": "argmax",
+          "ts": 1789621200,
+          "xK": 250,
+          "xC": 367.9,
+          "dRaw": -117.9,
+          "d984": -191.8,
+          "gapBeforeSec": 5400
+        }
+      ],
+      "maxAbs984": 191.8,
+      "maxAbs984Ts": 1789621094.817073,
+      "maxAbs984BarTs": 1789621200,
+      "maxAbs984IndexPair": 1.6,
+      "maxAbsRaw": 114.3,
+      "baselineInsetRawPx": 0,
+      "argmaxGapBeforeSec": 5400,
+      "argmaxGapAfterSec": 300,
+      "modelMaxAbs984": 192.6,
+      "modelFullDomain984": 192.6,
+      "windowLevel": {
+        "klineVisible": [
+          1789611900,
+          1789628100
+        ],
+        "domain": [
+          1789611900,
+          1789628100
+        ],
+        "missingLeftSec": 0,
+        "missingRightSec": 0,
+        "coverage": 1
+      },
+      "curveCoverage": {
+        "firstUserX": 8,
+        "lastUserX": 992,
+        "headDeficitPx984": 0,
+        "tailDeficitPx984": 0,
+        "coverageRatio": 1
+      },
+      "edge": {
+        "domainStart": 1789611900,
+        "domainEnd": 1789628100,
+        "apiFirstTs": 1789611900,
+        "apiLastTs": 1789628100,
+        "tailDeficitSec": 0
+      },
+      "zoom": {
+        "steps": 28,
+        "zoomEffective": true,
+        "targetBars": 40
+      },
+      "gapCensus": {
+        "300": 36,
+        "5400": 1
+      },
+      "aligned": false,
+      "notes": [],
+      "screenshots": [
+        "state_controlGapless.png",
+        "state_controlGapless_kline.png",
+        "state_controlGapless_aggregate.png",
+        "state_controlGapless_slot.png"
+      ]
+    }
+  ],
+  "verdict": {
+    "deltas984": {
+      "full": 136.2,
+      "init": 352.4,
+      "narrow120": 280.2,
+      "zoom300": 221.8,
+      "zoom600": 119.3,
+      "controlGapless": 191.8
+    },
+    "deltasRawPx": {
+      "init": 216.1,
+      "narrow120": 170.1,
+      "zoom300": 137.1,
+      "zoom600": 73.8
+    },
+    "baselineInsetRawPx": 0,
+    "model": {
+      "init": 352.4,
+      "narrow120": 280.2,
+      "zoom300": 222.5,
+      "zoom600": 119.3,
+      "fullDomain": 47.5
+    },
+    "controlGapless": {
+      "gapCensus": {
+        "300": 36,
+        "5400": 1
+      },
+      "aligned": false,
+      "maxAbs984": 191.8
+    },
+    "windowMismatch": [
+      {
+        "label": "full",
+        "coverage": 0.4,
+        "window": "1785547800,1789628280"
+      }
+    ],
+    "curveCoverageDeficits": [
+      {
+        "label": "init",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      },
+      {
+        "label": "full",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      },
+      {
+        "label": "narrow120",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      },
+      {
+        "label": "zoom300",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      },
+      {
+        "label": "zoom600",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      },
+      {
+        "label": "controlGapless",
+        "head": 0,
+        "tail": 0,
+        "ratio": 1
+      }
+    ],
+    "tolPx": 2,
+    "alignedAny": false
+  }
+}

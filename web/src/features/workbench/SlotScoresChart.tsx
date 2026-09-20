@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { StrategyCatalogEntry, WorkbenchBarRecord, WorkbenchPinnedSlot } from '@/api/types';
-import { downsample, mapLineByTs } from './chartUtils';
+import { curveDomainAttr, curveXs, downsample, resolveCurveX, vlineX, type CurveXDomain } from './chartUtils';
 import type { CurveSampling } from './AggregateScoreChart';
 
 const W = 1000;
@@ -38,13 +38,22 @@ export function SlotScoresChart({
   catalog,
   sampling,
   domain,
+  xDomain,
+  plot,
+  markerTs,
 }: {
   perBar: WorkbenchBarRecord[];
   slots: WorkbenchPinnedSlot[];
   catalog: StrategyCatalogEntry[] | null;
   sampling?: CurveSampling;
-  /** ADR-028 D2.1：共享窗口 x 定义域（Unix 秒）；**不给** ⇒ 保持既有下标轴（零回归）。 */
+  /** ADR-028 D2.1：共享窗口（Unix 秒）——`data-x-domain` 标注与**降级**路径用（页面一律传 xDomain）。 */
   domain?: { from_ts: number; to_ts: number } | null;
+  /** ADR-028 D2.1（**主路**）：x 定义域 = bar 索引空间；`undefined` ⇒ 按 `domain` 降级 ts 线性。 */
+  xDomain?: CurveXDomain | null;
+  /** ADR-028 D2.3-4：与 K 线共用的绘图区几何（`viewBox` x 起点/宽度）。 */
+  plot?: { x0: number; w: number } | null;
+  /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒）。 */
+  markerTs?: number | null;
 }) {
   const [visible, setVisible] = useState<Record<number, boolean>>(() => defaultVisible(slots));
   const [slotsKey, setSlotsKey] = useState(() => slotsKeyOf(slots));
@@ -56,23 +65,20 @@ export function SlotScoresChart({
   }
   const pts = useMemo(() => downsample(perBar), [perBar]);
   const y = (s: number) => PAD + (1 - s / 100) * (H - 2 * PAD);
-  // ADR-028 D2.1：有共享窗口 ⇒ x 按 ts 线性映射到窗口定义域；无 ⇒ 保持既有下标轴（零回归）。
-  const x = useMemo(() => {
-    if (!domain) {
-      return (i: number) => (pts.length <= 1 ? W / 2 : (i / (pts.length - 1)) * (W - 2 * PAD) + PAD);
-    }
-    const xs = mapLineByTs(
-      pts.map((rec) => [rec.ts, 0] as [number, number]),
-      domain.from_ts,
-      domain.to_ts,
-      0,
-      1,
+  const xd = useMemo(() => resolveCurveX({ xDomain, domain }), [xDomain, domain]);
+  // ADR-028 D2.1：x 一律由**定义域**决定（主路 = bar 索引空间）；无域 ⇒ 该 bar 的 x 为 null（断线跳过）。
+  const { x, unmatched } = useMemo(() => {
+    const r = curveXs(
+      pts.map((rec) => rec.ts),
+      xd,
       W,
-      H,
       PAD,
-    ).map((p) => p.x);
-    return (i: number) => xs[i] ?? PAD;
-  }, [pts, domain]);
+    );
+    return {
+      x: (i: number) => r.xs[i] ?? null,
+      unmatched: r.unmatched,
+    };
+  }, [pts, xd]);
 
   // 每 slot 折线分段（null 断线：该 bar 无此 slot 评分）
   const series = useMemo(
@@ -82,11 +88,12 @@ export function SlotScoresChart({
         let cur: string[] = [];
         pts.forEach((rec, i) => {
           const sc = rec.scores.find((s) => s.slot_idx === slotIdx);
-          if (!sc) {
+          const px = x(i);
+          if (!sc || px == null) {
             if (cur.length > 0) segs.push(cur.join(' '));
             cur = [];
           } else {
-            cur.push(`${x(i).toFixed(1)},${y(sc.score).toFixed(1)}`);
+            cur.push(`${px.toFixed(1)},${y(sc.score).toFixed(1)}`);
           }
         });
         if (cur.length > 0) segs.push(cur.join(' '));
@@ -95,13 +102,17 @@ export function SlotScoresChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pts, slots, x],
   );
+  const viewX0 = plot ? plot.x0 : 0;
+  const viewW = plot ? plot.w : W;
+  const markX = vlineX(markerTs, xd, W, PAD);
 
   return (
     <div
-      className="rounded-lg border border-line bg-panel2 p-1"
+      className="rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-slot-chart"
-      // ADR-028 D2.1：x 轴定义域实测标注（E2E 断言）
-      data-x-domain={domain ? `${domain.from_ts},${domain.to_ts}` : 'data'}
+      // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径）
+      data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
+      data-x-mode={xd ? xd.mode : 'none'}
     >
       <div className="flex flex-wrap gap-2 px-1 pb-1">
         {slots.map((slot, i) => (
@@ -116,7 +127,13 @@ export function SlotScoresChart({
           </label>
         ))}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-36 w-full" preserveAspectRatio="none" role="img" aria-label="各策略评分曲线">
+      <svg
+        viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
+        className="h-36 w-full"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="各策略评分曲线"
+      >
         {series.map((segs, i) =>
           (visible[i] ?? false)
             ? segs.map((points, j) => (
@@ -124,9 +141,26 @@ export function SlotScoresChart({
               ))
             : null,
         )}
+        {/* ADR-028 D4.1 ④：竖线标记（与曲线同定义域 ⇒ 各视图同一时点同位） */}
+        {markX != null && (
+          <line
+            data-testid="wb-vline"
+            data-view="slots"
+            data-vline-ts={String(markerTs)}
+            x1={markX}
+            y1={0}
+            x2={markX}
+            y2={H}
+            stroke="#facc15"
+            strokeWidth="1"
+            strokeDasharray="4 3"
+            opacity="0.9"
+          />
+        )}
       </svg>
       <div className="px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
         各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 共 {sampling?.originalBars ?? perBar.length} bar
+        {unmatched > 0 ? ` · ${unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.downsampled ? `（服务端抽样 ${perBar.length} 点）` : ''}
       </div>
     </div>

@@ -22,6 +22,12 @@ export interface KlineWindowOps {
   getDataList?(): Array<{ timestamp: number }>;
   scrollToDataIndex?(dataIndex: number): void;
   scrollToTimestamp?(timestamp: number): void;
+  /** 索引/时间 → 绘图区局部像素（`Chart.convertToPixel`；ADR-028 D2.3-4 几何锚点）。可选。
+   *  返回类型按 klinecharts 真实签名放宽（`Partial<Coordinate> | Partial<Coordinate>[]`）⇒ 组件侧零 cast。 */
+  convertToPixel?(
+    p: { timestamp: number },
+    f?: { paneId?: string },
+  ): { x?: number; y?: number } | Array<{ x?: number; y?: number }> | undefined;
 }
 
 /**
@@ -31,12 +37,31 @@ export interface KlineWindowOps {
  */
 export const CHART_TS_MS = 1000;
 
-/** `readVisibleRangeTs` 的返回值：索引空间 + 时间空间（`onVisibleRangeChange` 回调负载，02-spec §7）。 */
+/**
+ * `readVisibleRangeTs` 的返回值：索引空间 + 时间空间（`onVisibleRangeChange` 回调负载，02-spec §7）。
+ *
+ * **口径（2026-09-20 修正，ADR-028 D2.3-1）**：`from_ts`/`to_ts`/`from_idx`/`to_idx` 取
+ * 引擎 `getVisibleRange()` 的 **`from`/`to`**（可见 bar 集合，取整并夹到数据长度）——
+ * **不得**再混用 `realFrom/realTo`：`realTo` 是**未夹取**的内部扫描上界（可 > `dataList.length-1`，
+ * 实测 1014 vs 999），而 `realFrom` 只在右侧偏移 > 0 时 ≠ `from` ⇒ 旧实现发布的是「realFrom + 夹取后的
+ * realTo」这种**混合端点**，实测导致 6 态中 5 态「窗口 ≠ 视口」（1.680×/1.309×/1.661×/0.398×/27×）。
+ */
 export interface VisibleRangeTs {
   from_ts: number;
   to_ts: number;
   from_idx: number;
   to_idx: number;
+  /**
+   * ADR-028 D2.1：**K 线所绘制的同一 bar 序列**（可见 bar 的 ts，Unix 秒，升序；索引 i ⇒ `bar_ts[i]`）。
+   * 曲线视图的 ts→bar 索引查表源（禁在曲线侧另造 bar 序列）。
+   */
+  bar_ts?: number[];
+  /** 每槽像素宽（`getBarSpace().bar`）——曲线与 K 线共用绘图区几何用（D2.3-4）。 */
+  bar_space?: number;
+  /** 窗口首根 bar 的**绘图区局部**像素 x（`convertToPixel` 实测）——几何锚点。 */
+  x_from_px?: number;
+  /** K 线容器宽（px，`getSize().width`）——曲线 SVG 与其同宽时可直接换算屏幕坐标。 */
+  chart_width_px?: number;
 }
 
 /** 下发给 K 线实例的程序化写窗命令（rev 单调；同一窗口重复跳转也换 rev ⇒ 组件侧必须重放）。 */
@@ -93,7 +118,10 @@ function pickTo(r: { to: number; realTo?: number }): number {
 }
 
 /**
- * 读回可见范围并把**索引 → ts**（D2/D2.1「对齐基准 = K 线可见 bar 的 ts 区间」）。
+ * 读回**引擎实际生效的可见范围**并把**索引 → ts**（D2/D2.1「对齐基准 = K 线可见 bar 的 ts 区间」）。
+ *
+ * 口径见 {@link VisibleRangeTs}（`from`/`to`，不是 `realFrom/realTo`）；同时回传曲线侧所需的
+ * **同一 bar 序列**（`bar_ts`）与绘图区几何（`bar_space`/`x_from_px`/`chart_width_px`，D2.3-4）。
  * 不可读（无数据 / NaN 视口）⇒ 返回 `null`（**不猜**，调用方不得把 null 当成 0 区间使用）。
  */
 export function readVisibleRangeTs(chart: KlineWindowOps): VisibleRangeTs | null {
@@ -106,19 +134,38 @@ export function readVisibleRangeTs(chart: KlineWindowOps): VisibleRangeTs | null
   } catch {
     return null;
   }
-  if (!r || Number.isNaN(pickFrom(r)) || Number.isNaN(pickTo(r))) return null;
+  if (!r || Number.isNaN(r.from) || Number.isNaN(r.to)) return null;
   const last = list.length - 1;
-  const fromIdx = Math.max(0, Math.min(last, Math.round(pickFrom(r))));
-  const toIdx = Math.max(fromIdx, Math.min(last, Math.round(pickTo(r))));
+  const fromIdx = Math.max(0, Math.min(last, Math.round(r.from)));
+  const toIdx = Math.max(fromIdx, Math.min(last, Math.round(r.to)));
   const from = list[fromIdx];
   const to = list[toIdx];
   if (!from || !to) return null;
-  return {
+  const barTs: number[] = [];
+  for (let i = fromIdx; i <= toIdx; i++) {
+    barTs.push(Math.floor((list[i] as { timestamp: number }).timestamp / CHART_TS_MS));
+  }
+  const out: VisibleRangeTs = {
     from_idx: fromIdx,
     to_idx: toIdx,
     from_ts: Math.floor(from.timestamp / CHART_TS_MS),
     to_ts: Math.floor(to.timestamp / CHART_TS_MS),
+    bar_ts: barTs,
   };
+  const space = chart.getBarSpace?.()?.bar;
+  if (typeof space === 'number' && Number.isFinite(space) && space > 0) out.bar_space = space;
+  const width = chart.getSize?.()?.width;
+  if (typeof width === 'number' && Number.isFinite(width) && width > 0) out.chart_width_px = width;
+  if (typeof chart.convertToPixel === 'function') {
+    try {
+      const px = chart.convertToPixel({ timestamp: from.timestamp }, { paneId: 'candle_pane' });
+      const one = Array.isArray(px) ? px[0] : px;
+      if (one && typeof one.x === 'number' && Number.isFinite(one.x)) out.x_from_px = one.x;
+    } catch {
+      /* 像素不可得 ⇒ 几何降级（曲线独立几何），不猜 */
+    }
+  }
+  return out;
 }
 
 function nearestIndexByTs(list: ReadonlyArray<{ timestamp: number }>, tsSeconds: number): number {

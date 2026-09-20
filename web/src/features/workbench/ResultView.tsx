@@ -9,6 +9,7 @@ import { EquityDrawdownChart } from './EquityDrawdownChart';
 import { PositionRatioChart } from './PositionRatioChart';
 import { PerBarTable } from './PerBarTable';
 import { RoundTripsTable, type JumpTarget } from './RoundTripsTable';
+import { makeFillKey } from './KlineResultChart';
 import { EventLog } from './EventLog';
 import { useRunSeries, type RunFillsState } from './useRunSeries';
 import { useRunAudit, type RunAuditState } from './useRunAudit';
@@ -223,9 +224,19 @@ export function ResultView({
   onJump?: (target: JumpTarget) => void;
 }) {
   const [tab, setTab] = useState<TabKey>('trades');
+  /** ADR-028 D4.1 ①：focus 锚点（跳转后将结果页滚动到 K 线区域）。 */
+  const klineWrapRef = useRef<HTMLDivElement>(null);
+  /** ADR-028 D4.1 ②：高亮目标（**精确到笔**：fillKey = `rt_seq:成交序号`）；null = 无高亮。 */
+  const [highlight, setHighlight] = useState<{ key: string; rev: number } | null>(null);
+  /** 高亮重放键（同一笔再次跳转须重开 3s 窗口）。 */
+  const highlightRevRef = useRef(0);
+  /** ADR-028 D4.1 ④：曲线视图竖线标记所在时点（Unix 秒）；保留到下一次跳转或「全览」。 */
+  const [markerTs, setMarkerTs] = useState<number | null>(null);
   // ADR-028 D2：页面级共享窗口事实源（唯一；写入者 = kline 交互 / L1·L2 跳转 / 全览与历史回退）。
   // `totalBars` 由下面 `useRunSeries` 的 bars 总数回填（同一渲染帧内用 ref 传递，避免 hooks 循环依赖）。
   const totalBarsRef = useRef(0);
+  /** run per_bar 的 ts（降级定义域用；同一渲染帧内由下面的 `useRunSeries` 回填 ⇒ 滞后 1 帧可接受）。 */
+  const perBarRowsRef = useRef<Array<{ ts: number }> | null>(null);
   const fullFromTs = run ? Math.floor(Date.parse(run.from_ts) / 1000) : null;
   const fullToTs = run ? Math.floor(Date.parse(run.to_ts) / 1000) : null;
   const win = useResultWindow({
@@ -234,20 +245,42 @@ export function ResultView({
     fullToTs: Number.isFinite(fullToTs) ? fullToTs : null,
     period: run?.period ?? null,
     totalBars: totalBarsRef.current,
+    perBarRows: perBarRowsRef.current,
   });
   // ADR-024 P6：结果取数**单一入口**（曲线 /curve、明细 /bars 分页、成交 /fills；
   // legacy_single 从 `/result` 内联列同步派生 ⇒ 旧行为零回归）。
-  // ADR-028 D3：窗口（`win.window`）经此入口注入 `/curve` 取数（仍无第二处取数点）。
-  const series = useRunSeries({ api, run, result, window: win.window });
+  // ADR-028 D3 + D2.1/D2.3-2：窗口 + **x 定义域**以同一请求对象注入（rev 单调）⇒ 数据/定义域原子切换。
+  const series = useRunSeries({ api, run, result, request: win.request });
   totalBarsRef.current = series.bars.total || result?.per_bar.length || 0;
+  perBarRowsRef.current = series.bars.rows;
   // ADR-026 §2.4：审计按 Tab **懒加载**（交易明细/8项绩效需要；逐bar/事件不请求；无结果 run 不请求）。
   const auditEnabled = (tab === 'trades' || tab === 'metrics') && run?.status === 'succeeded' && !!result;
   const audit = useRunAudit({ api, runId: run?.id ?? null, enabled: auditEnabled });
 
-  /** L1/L2 `[跳转]`：先写窗口状态机（程序化写窗 + 断言），再向父层派发（P5a 已预留给与 5b 并行）。 */
+  /** L1/L2 `[跳转]`：先写窗口状态机（程序化写窗 + 断言），再向父层派发（P5a 已预留给与 5b 并行）。
+   *  ADR-028 D4.1：同时完成 ①focus 滚动、②精确到笔的高亮、④曲线竖线标记。 */
   const handleJump = (t: JumpTarget) => {
     win.jumpTo(t);
     onJump?.(t);
+    // ① focus：把结果页滚动到 K 线区域（目标 bar 由窗口状态机锁定在视窗内）
+    klineWrapRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    // ② 高亮：**只高亮被点击的那一笔**（按 rt_seq + 该回合成交序号 ⇒ `fillKey`，禁按 bar 粗定位）；
+    //    L1 是区间跳转、无单笔目标 ⇒ 不残留上一笔高亮。
+    if (t.level === 'L2') {
+      highlightRevRef.current += 1;
+      setHighlight({ key: makeFillKey(t.rt_seq, t.fill_index), rev: highlightRevRef.current });
+    } else {
+      setHighlight(null);
+    }
+    // ④ 曲线竖线：同一时点（L2 = 该笔成交 bar 的 ts；L1 = 回合开仓 ts）
+    setMarkerTs(t.level === 'L2' ? t.ts : t.open_ts);
+  };
+
+  /** 「全览」：清窗口 + **清高亮与曲线竖线**（ADR-028 D4.1：保留到下一次跳转或点「全览」）。 */
+  const handleReset = () => {
+    win.reset();
+    setHighlight(null);
+    setMarkerTs(null);
   };
 
   if (!run) {
@@ -292,14 +325,18 @@ export function ResultView({
         </div>
       ) : run.status === 'succeeded' && result ? (
         <>
-          <KlineResultChart
-            run={run}
-            fills={series.fills}
-            api={api}
-            onVisibleRangeChange={win.applyKlineRange}
-            windowCommand={win.command}
-            onWindowApplied={win.onApplied}
-          />
+          {/* ADR-028 D4.1 ①：focus 锚点（跳转时 scrollIntoView 到此） */}
+          <div ref={klineWrapRef} data-testid="wb-kline-focus-anchor" data-marker-ts={markerTs ?? ''}>
+            <KlineResultChart
+              run={run}
+              fills={series.fills}
+              api={api}
+              onVisibleRangeChange={win.applyKlineRange}
+              windowCommand={win.command}
+              onWindowApplied={win.onApplied}
+              highlight={highlight}
+            />
+          </div>
           {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测） */}
           <div
             className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
@@ -307,7 +344,7 @@ export function ResultView({
           >
             <button
               type="button"
-              onClick={win.reset}
+              onClick={handleReset}
               data-testid="wb-window-reset"
               className="rounded-lg border border-line px-2 py-0.5 hover:text-txt"
             >
@@ -374,6 +411,26 @@ export function ResultView({
                 窗口应用失败：{win.applyError}
               </span>
             )}
+            {/* ADR-028 D2.3-1 ②：程序化写窗**被钳位**必须显式披露（禁「请求即发布」） */}
+            {win.clampNote && (
+              <span className="text-amber-300" data-testid="wb-window-clamped">
+                {win.clampNote}
+              </span>
+            )}
+            {/* ADR-028 D2.3-3：全览的**物理上限**必须显式披露（显示 N / 共 M 根） */}
+            {win.capNote && (
+              <span className="text-amber-300" data-testid="wb-window-cap">
+                {win.capNote}
+              </span>
+            )}
+            {/* ADR-028 D2.1 第 2/4 条：定义域**降级**必须显式标注（禁静默） */}
+            {series.appliedDegraded && (
+              <span className="text-amber-300" data-testid="wb-axis-degraded">
+                {series.appliedXSource === 'per_bar'
+                  ? '时间轴降级（run per_bar 索引）：K 线所绘制的 bar 序列不可得 ⇒ 与 K 线蜡烛位置不保证对齐'
+                  : '时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得'}
+              </span>
+            )}
             <span data-testid="wb-window-history">{`可回退 ${win.historyDepth} 步（上限 20）`}</span>
           </div>
           {series.curvesError && (
@@ -411,12 +468,17 @@ export function ResultView({
                         : '窗口待应用（等待取数）'}
                 </div>
               )}
+              {/* ADR-028 D2.1/D2.3-4：x 一律消费**已提交**的定义域（`series.appliedXDomain`）+ 共用绘图区
+                  几何（`series.appliedPlot`）；`domain` 仅供 `data-x-domain` 标注与降级路径（E2E 冻结口径）。 */}
               <AggregateScoreChart
                 perBar={series.perBar.points}
                 sampling={series.perBar}
                 buyThreshold={run.config.buy_threshold}
                 sellThreshold={run.config.sell_threshold}
                 domain={win.domain}
+                xDomain={series.appliedXDomain}
+                plot={series.appliedPlot}
+                markerTs={markerTs}
               />
               <SlotScoresChart
                 perBar={series.perBar.points}
@@ -424,18 +486,27 @@ export function ResultView({
                 slots={run.config.slots}
                 catalog={catalog}
                 domain={win.domain}
+                xDomain={series.appliedXDomain}
+                plot={series.appliedPlot}
+                markerTs={markerTs}
               />
               <EquityDrawdownChart
                 netValue={series.netValue.points}
                 drawdown={series.drawdown.points}
                 sampling={{ netValue: series.netValue, drawdown: series.drawdown }}
                 domain={win.domain}
+                xDomain={series.appliedXDomain}
+                plot={series.appliedPlot}
+                markerTs={markerTs}
               />
               {/* ADR-028 D1：持仓比率视图（口径消歧三件套：position_ratio / ratio / deployed_pct / cash_consumed_pct 各带分母） */}
               <PositionRatioChart
                 points={series.position.points}
                 sampling={series.position}
                 domain={win.domain}
+                xDomain={series.appliedXDomain}
+                plot={series.appliedPlot}
+                markerTs={markerTs}
                 cumulative={
                   audit.data
                     ? {

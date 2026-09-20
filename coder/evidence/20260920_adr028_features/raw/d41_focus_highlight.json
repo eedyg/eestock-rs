@@ -1,0 +1,108 @@
+{
+  "run_id": "sr_1789832477006_000002",
+  "rt_seq": 1,
+  "fill_idx": 1,
+  "target_fill": {
+    "bar_index": 262,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.075215,
+    "qty": 932.6935800785214,
+    "reason": "Policy",
+    "rt_seq": 1,
+    "side": "Buy",
+    "stamp_duty": 0,
+    "trade_value": 1002.8461277041275,
+    "ts": 1783440000,
+    "type": "fill"
+  },
+  "want_key": "1:1",
+  "scroll_before": 1386,
+  "scroll_after": 40,
+  "note_attrs": {
+    "data-testid": "wb-jump-highlight-note",
+    "data-state": "ok",
+    "data-fill-key": "1:1",
+    "class": "text-sky-300"
+  },
+  "vlines": [
+    {
+      "view": "aggregate",
+      "ts": "1783440000"
+    },
+    {
+      "view": "slots",
+      "ts": "1783440000"
+    },
+    {
+      "view": "equity",
+      "ts": "1783440000"
+    },
+    {
+      "view": "position",
+      "ts": "1783440000"
+    }
+  ],
+  "vline_ts_unique": [
+    "1783440000"
+  ],
+  "probe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "true",
+    "data-rev": "4",
+    "data-requested-bar-space": "5",
+    "data-bar-space": "5",
+    "data-from-idx": "193",
+    "data-to-idx": "314",
+    "data-from-ts": "1774454400",
+    "data-to-ts": "1789660800",
+    "data-error": "",
+    "data-center-idx": "262",
+    "data-center-ts": "1783440000",
+    "data-observed-center-idx": "254",
+    "data-observed-center-ts": "1782403200",
+    "data-edge-clamped": "true",
+    "data-cmd-rev": "4",
+    "data-cmd-from-ts": "1778342400",
+    "data-cmd-to-ts": "1788624000",
+    "data-cmd-span": "120",
+    "data-cmd-center-ts": "1783483200",
+    "hidden": ""
+  },
+  "kline_attrs": {
+    "data-testid": "wb-kline-focus-anchor",
+    "data-highlight-key": "1:1",
+    "data-highlight-active": "true",
+    "data-highlight-pulse": "9",
+    "data-marker-overlays": "16",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}",
+    "data-marker-ts": "1783440000"
+  },
+  "kline_after_3s": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "1:1",
+    "data-highlight-active": "false",
+    "data-highlight-pulse": "0",
+    "data-marker-overlays": "16",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "kline_clip": {
+    "x": 600,
+    "y": 40,
+    "width": 668,
+    "height": 256
+  },
+  "pulse_at_phase_a": "7",
+  "pulse_at_phase_b": "8",
+  "screenshots": {
+    "highlight_on": "/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr028_features/raw/d41_highlight_on.png",
+    "after_3s": "/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr028_features/raw/d41_highlight_after_3s.png",
+    "kline_phase_a": "/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr028_features/raw/d41_kline_phase_a.png",
+    "kline_phase_b": "/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr028_features/raw/d41_kline_phase_b.png",
+    "kline_after_3s": "/home/eestock/workspace/git/eestock/eestock-rs/coder/evidence/20260920_adr028_features/raw/d41_kline_after_3s.png"
+  }
+}
