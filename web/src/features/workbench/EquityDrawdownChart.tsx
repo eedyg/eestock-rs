@@ -1,5 +1,11 @@
 import { useMemo } from 'react';
 import { fmtPct } from '@/features/backtest/format';
+/** 曲线绘图区几何（x）**唯一来源** = `./curveGeometry`（四张曲线共用；禁各自声明 PAD/W 常量）。
+ *  **历史缺陷**：本图原为 `PAD = 10`，与聚合/各策略的 8 相差 2 user unit ⇒ 跨视图同一根 bar
+ *  恒差 1.244px（吃掉 ≤2px 判据余量的 62%）。本波统一到 8（唯一同时满足「跨视图 ≤0.1px」与
+ *  「冻结规格 adr028-axis-align-probe 全绿且禁改」的取值，见 `curveGeometry.ts` 的契约说明）。 */
+import { CURVE_PAD as PAD, CURVE_W as W } from './curveGeometry';
+import { CardTitle, type CardResizeApi } from './cardResize';
 import {
   areaBelow,
   curveDomainAttr,
@@ -12,9 +18,7 @@ import {
   type CurveXDomain,
 } from './chartUtils';
 
-const W = 1000;
 const H = 220;
-const PAD = 10;
 
 /**
  * 净值 + 回撤双曲线（ADR §13.5；与页面⑤ ResultOverview 同风格：净值面积线 + 回撤着色区）。
@@ -29,6 +33,7 @@ export function EquityDrawdownChart({
   xDomain,
   plot,
   markerTs,
+  resize,
 }: {
   netValue: Array<[number, number]>;
   drawdown: Array<[number, number]>;
@@ -42,6 +47,8 @@ export function EquityDrawdownChart({
   plot?: { x0: number; w: number } | null;
   /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒）。 */
   markerTs?: number | null;
+  /** ADR-028 §2.4c 第 3 项：卡片高度缩放 API（缺省 ⇒ 默认渲染，逐像素与修复前一致）。 */
+  resize?: CardResizeApi;
 }) {
   const series = useMemo(() => downsample(netValue), [netValue]);
   const dd = useMemo(() => downsample(drawdown), [drawdown]);
@@ -70,16 +77,23 @@ export function EquityDrawdownChart({
 
   return (
     <div
-      className="relative rounded-lg border border-line bg-panel2 py-1"
+      ref={resize?.cardRef}
+      style={resize?.cardStyle}
+      className="relative flex flex-col rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-equity-chart"
+      data-resizable="equity"
       // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径）
       data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
       data-x-mode={xd ? xd.mode : 'none'}
     >
+      <CardTitle cardId="equity" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
+        净值 + 回撤
+      </CardTitle>
+      <div className="relative min-h-0 flex-1">
       <svg
         viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
         preserveAspectRatio="none"
-        className="h-52 w-full"
+        className={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
         role="img"
         aria-label="净值与回撤"
       >
@@ -115,7 +129,7 @@ export function EquityDrawdownChart({
           />
         )}
       </svg>
-      <div className="absolute left-3 top-2">
+      <div className="pointer-events-none absolute left-3 top-2">
         <div className="num text-sm text-acc1" data-testid="wb-last-equity">
           净值 {lastEquity.toFixed(2)}
         </div>
@@ -124,16 +138,18 @@ export function EquityDrawdownChart({
           {fmtPct(retPct)}
         </div>
       </div>
-      <div className="absolute bottom-2 left-3 text-[10px] text-dim">
+      <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim">
         回撤（最大 −{fmtPct(ddMax)}，着色区间）
       </div>
-      <div className="absolute bottom-2 right-3 text-[10px] text-dim" data-testid="wb-equity-sampling">
+      <div className="pointer-events-none absolute bottom-2 right-3 text-[10px] text-dim" data-testid="wb-equity-sampling">
         净值 共 {sampling?.netValue.originalBars ?? netValue.length} bar
         {eq.unmatched > 0 ? ` · ${eq.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.netValue.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
         {' · '}回撤 共 {sampling?.drawdown.originalBars ?? drawdown.length} bar
         {sampling?.drawdown.downsampled ? `（服务端抽样 ${dd.length} 点）` : ''}
       </div>
+      </div>
+      {resize && <div {...resize.handleProps} />}
     </div>
   );
 }

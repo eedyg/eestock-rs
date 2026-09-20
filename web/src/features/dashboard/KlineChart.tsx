@@ -11,9 +11,11 @@ import { DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { fitBarSpaceToViewport, useBarSpaceFit, type BarSpaceFitResult } from './barSpaceFit';
 import type { Bar, Period } from '@/api/types';
 import type { IndicatorName } from './Toolbar';
+// 指标名单**唯一来源** = `./IndicatorToggles`（看板 Toolbar 与结果页共用同一份，ADR-028 §2.4c 第 1 项）：
+// 「勾选键 ↔ 图表指标」不再有两套名单可漂移。本文件只消费（`syncIndicators` 差分应用）。
+import { INDICATOR_DEFS } from './IndicatorToggles';
 import {
   DEFAULT_DCAP_PARAMS,
-  DCAP_INDICATOR_NAME,
   dcapCalcParams,
   ensureDcapIndicatorRegistered,
   type DcapParams,
@@ -152,14 +154,6 @@ export interface KlineChartProps {
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
 const DEFAULT_MA_WINDOWS: number[] = [5, 10, 20];
 
-const INDICATOR_DEFS: Array<{ key: IndicatorName; name: string; calcParams?: number[] }> = [
-  { key: 'ma', name: 'MA' }, // 定稿 1b：主图 MA 默认开；calcParams 取 maWindows（统一配置）
-  { key: 'vol', name: 'VOL' }, // 副图1 成交量：与其它指标并列的开关（默认开，见 DASHBOARD_DEFAULTS.indicators）
-  { key: 'macd', name: 'MACD' },
-  { key: 'kdj', name: 'KDJ' },
-  { key: 'boll', name: 'BOLL' },
-  { key: 'dcap', name: DCAP_INDICATOR_NAME }, // ADR-021：dcap 三线（独立副图 pane，precision 5）
-];
 
 /** 已应用指标状态：`name → 已应用的 calcParams`。
  *  **必须是「本次建图」的组件级持有**（随建图重置）：

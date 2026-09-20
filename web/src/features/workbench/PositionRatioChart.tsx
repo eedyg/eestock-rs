@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 import type { WorkbenchPositionPoint } from '@/api/types';
 import { fmtPct } from '@/features/backtest/format';
+/** 曲线绘图区几何（x）**唯一来源** = `./curveGeometry`（四张曲线共用；禁各自声明 PAD/W 常量）。
+ *  **历史缺陷**：本图原为 `PAD = 10`（与净值图同），与聚合/各策略的 8 相差 2 user unit ⇒ 跨视图
+ *  同一根 bar 恒差 1.244px。本波统一到 8（见 `curveGeometry.ts` 的跨仓契约说明）。 */
+import { CURVE_PAD as PAD, CURVE_W as W } from './curveGeometry';
+import { CardTitle, type CardResizeApi } from './cardResize';
 import {
   curveDomainAttr,
   downsample,
@@ -12,9 +17,7 @@ import {
   type CurveXDomain,
 } from './chartUtils';
 
-const W = 1000;
 const H = 220;
-const PAD = 10;
 
 /** 三口径消歧所需的「区间累计」侧数值（ADR-026 §2.1；来自 `/audit`）。 */
 export interface CumulativeRatioBasis {
@@ -47,6 +50,7 @@ export function PositionRatioChart({
   plot,
   cumulative,
   markerTs,
+  resize,
 }: {
   points: WorkbenchPositionPoint[];
   sampling?: { downsampled: boolean; originalBars: number };
@@ -60,6 +64,8 @@ export function PositionRatioChart({
   cumulative: CumulativeRatioBasis | null;
   /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒）。 */
   markerTs?: number | null;
+  /** ADR-028 §2.4c 第 3 项：卡片高度缩放 API（缺省 ⇒ 默认渲染，逐像素与修复前一致）。 */
+  resize?: CardResizeApi;
 }) {
   const series = useMemo(() => downsample(points), [points]);
   const xd = useMemo(() => resolveCurveX({ xDomain, domain }), [xDomain, domain]);
@@ -90,17 +96,24 @@ export function PositionRatioChart({
   const cashRatio = 1 - last.position_ratio;
   return (
     <div
-      className="relative rounded-lg border border-line bg-panel2 py-1"
+      ref={resize?.cardRef}
+      style={resize?.cardStyle}
+      className="relative flex flex-col rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-position-chart"
+      data-resizable="position"
       // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径）
       data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
       data-x-mode={xd ? xd.mode : 'none'}
       data-vline-ts={markerTs == null ? '' : String(markerTs)}
     >
+      <CardTitle cardId="position" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
+        持仓比率（时点市值 / 时点净值）
+      </CardTitle>
+      <div className="relative min-h-0 flex-1">
       <svg
         viewBox={`${(plot ? plot.x0 : 0).toFixed(2)} 0 ${(plot ? plot.w : W).toFixed(2)} ${H}`}
         preserveAspectRatio="none"
-        className="h-52 w-full"
+        className={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
         role="img"
         aria-label="持仓比率曲线"
       >
@@ -127,7 +140,7 @@ export function PositionRatioChart({
           />
         )}
       </svg>
-      <div className="absolute left-3 top-2 flex flex-col">
+      <div className="pointer-events-none absolute left-3 top-2 flex flex-col">
         <div className="num text-sm text-acc1" data-testid="wb-last-position-ratio">
           position_ratio {fmtPct(last.position_ratio, 2)}
         </div>
@@ -138,13 +151,14 @@ export function PositionRatioChart({
           nav {last.nav.toFixed(2)}（= 持仓市值 {last.position_value.toFixed(2)} + 现金 {last.cash.toFixed(2)}）
         </div>
       </div>
-      <div className="absolute bottom-2 left-3 text-[10px] text-dim" data-testid="wb-position-sampling">
+      <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim" data-testid="wb-position-sampling">
         持仓比率 共 {sampling?.originalBars ?? points.length} bar
         {chart.unmatched > 0 ? ` · ${chart.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
       </div>
+      </div>
       {/* 口径消歧（ADR-028 §4.5：三口径标签各含分母说明，同屏可辨） */}
-      <div className="px-1 pt-1 text-[10px] leading-relaxed text-dim" data-testid="wb-position-basis">
+      <div className="shrink-0 px-1 pt-1 text-[10px] leading-relaxed text-dim" data-testid="wb-position-basis">
         <span data-testid="wb-basis-position-ratio">
           持仓比率 position_ratio（分母 = **时点净值** nav，即 持仓市值 / 时点净值）
         </span>
@@ -174,6 +188,7 @@ export function PositionRatioChart({
         </span>
         ：三者**不同物**，不得互相解释（前者时点/时点，后两者区间累计/初始资金）。
       </div>
+      {resize && <div {...resize.handleProps} />}
     </div>
   );
 }

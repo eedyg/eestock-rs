@@ -14,6 +14,9 @@ import { EventLog } from './EventLog';
 import { useRunSeries, type RunFillsState } from './useRunSeries';
 import { useRunAudit, type RunAuditState } from './useRunAudit';
 import { useResultWindow } from './useResultWindow';
+import { useCardResize } from './cardResize';
+import { useResultChartConfig, type ResultCardId } from './resultChartConfig';
+import { IndicatorToggles } from '@/features/dashboard/IndicatorToggles';
 
 type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
 
@@ -276,6 +279,26 @@ export function ResultView({
     setMarkerTs(t.level === 'L2' ? t.ts : t.open_ts);
   };
 
+  /** ADR-028 §2.4c 第 2/3/5/6 项：结果页图表卡配置（**独立 key**；指标选择 + 卡片高度）。 */
+  const chartCfg = useResultChartConfig();
+  /** 五张可缩放卡片的高度 API（`null` = 默认渲染；拖拽提交后落独立 key ⇒ 刷新保持）。 */
+  const resizeKline = useCardResize({
+    cardId: 'kline',
+    heightPx: chartCfg.cardHeight('kline'),
+    onCommit: (px) => chartCfg.setCardHeight('kline', px),
+    defaultPx: 256,
+  });
+  const resizeOf = (id: ResultCardId, defaultPx: number) => ({
+    cardId: id,
+    heightPx: chartCfg.cardHeight(id),
+    onCommit: (px: number | null) => chartCfg.setCardHeight(id, px),
+    defaultPx,
+  });
+  const resizeAggregate = useCardResize(resizeOf('aggregate', 186));
+  const resizeSlot = useCardResize(resizeOf('slot', 190));
+  const resizeEquity = useCardResize(resizeOf('equity', 218));
+  const resizePosition = useCardResize(resizeOf('position', 271));
+
   /** 「全览」：清窗口 + **清高亮与曲线竖线**（ADR-028 D4.1：保留到下一次跳转或点「全览」）。 */
   const handleReset = () => {
     win.reset();
@@ -335,6 +358,17 @@ export function ResultView({
               windowCommand={win.command}
               onWindowApplied={win.onApplied}
               highlight={highlight}
+              indicators={chartCfg.indicators}
+              resize={resizeKline}
+              toggleSlot={
+                /* 指标勾选 = 与看板**同一实现**（共享组件）；结果页配置独立 key（硬约束）。
+                   aria-pressed + 稳定 testid ⇒ 真渲染规格可点、可断言。 */
+                <IndicatorToggles
+                  indicators={chartCfg.indicators}
+                  onToggle={chartCfg.toggleIndicator}
+                  testIdPrefix="wb-indicator-toggle"
+                />
+              }
             />
           </div>
           {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测） */}
@@ -479,6 +513,7 @@ export function ResultView({
                 xDomain={series.appliedXDomain}
                 plot={series.appliedPlot}
                 markerTs={markerTs}
+                resize={resizeAggregate}
               />
               <SlotScoresChart
                 perBar={series.perBar.points}
@@ -489,6 +524,7 @@ export function ResultView({
                 xDomain={series.appliedXDomain}
                 plot={series.appliedPlot}
                 markerTs={markerTs}
+                resize={resizeSlot}
               />
               <EquityDrawdownChart
                 netValue={series.netValue.points}
@@ -498,6 +534,7 @@ export function ResultView({
                 xDomain={series.appliedXDomain}
                 plot={series.appliedPlot}
                 markerTs={markerTs}
+                resize={resizeEquity}
               />
               {/* ADR-028 D1：持仓比率视图（口径消歧三件套：position_ratio / ratio / deployed_pct / cash_consumed_pct 各带分母） */}
               <PositionRatioChart
@@ -507,6 +544,7 @@ export function ResultView({
                 xDomain={series.appliedXDomain}
                 plot={series.appliedPlot}
                 markerTs={markerTs}
+                resize={resizePosition}
                 cumulative={
                   audit.data
                     ? {

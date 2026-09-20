@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
 import type { WorkbenchBarRecord } from '@/api/types';
+/** 曲线绘图区几何（x）**唯一来源** = `./curveGeometry`（四张曲线共用；禁各自声明 PAD/W 常量）。
+ *  别名导入 ⇒ 组件内既有算式（`W`/`PAD`）零改动，而常量本体只有一处。 */
+import { CURVE_PAD as PAD, CURVE_W as W } from './curveGeometry';
+import { CardTitle, type CardResizeApi } from './cardResize';
 import {
   curveDomainAttr,
   downsample,
@@ -10,9 +14,7 @@ import {
   type CurveXDomain,
 } from './chartUtils';
 
-const W = 1000;
 const H = 160;
-const PAD = 8;
 
 /** 曲线抽样标注（后端 `/curve` 的 `downsampled`/`original_bars`；ADR-024 D10 禁止隐式有损）。 */
 export interface CurveSampling {
@@ -36,6 +38,7 @@ export function AggregateScoreChart({
   xDomain,
   plot,
   markerTs,
+  resize,
 }: {
   perBar: WorkbenchBarRecord[];
   buyThreshold: number;
@@ -52,6 +55,8 @@ export function AggregateScoreChart({
   plot?: { x0: number; w: number } | null;
   /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒；跳转到该笔成交/回合时设置，全览时清）。 */
   markerTs?: number | null;
+  /** ADR-028 §2.4c 第 3 项：卡片高度缩放 API（缺省 ⇒ 默认渲染，逐像素与修复前一致）。 */
+  resize?: CardResizeApi;
 }) {
   const pts = useMemo(
     () => downsample(perBar.map((r) => [r.ts, r.aggregate] as [number, number])),
@@ -67,16 +72,24 @@ export function AggregateScoreChart({
 
   return (
     <div
-      className="rounded-lg border border-line bg-panel2 py-1"
+      ref={resize?.cardRef}
+      style={resize?.cardStyle}
+      className="relative flex flex-col rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-aggregate-chart"
+      data-resizable="aggregate"
       // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径：各视图 == 共享窗口；无窗口 ⇒ 'data'）
       data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
       // 映射方式标注（观测性：主路/降级/无域；与 `data-x-domain` 是两件事）
       data-x-mode={xd ? xd.mode : 'none'}
     >
+      {/* 卡片标题：**双击复位高度**（ADR-028 §2.4c 第 3 项）；非受控态也渲染（标题即复位入口） */}
+      <CardTitle cardId="aggregate" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
+        聚合总分曲线
+      </CardTitle>
+      <div className="min-h-0 flex-1">
       <svg
         viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
-        className="h-40 w-full"
+        className={resize ? resize.svgClass('h-40 w-full') : 'h-40 w-full'}
         preserveAspectRatio="none"
         role="img"
         aria-label="总分曲线"
@@ -106,7 +119,8 @@ export function AggregateScoreChart({
           />
         )}
       </svg>
-      <div className="flex justify-between px-1 text-[10px] text-dim">
+      </div>
+      <div className="flex shrink-0 justify-between px-1 text-[10px] text-dim">
         <span>
           聚合总分 0-100（虚线 = 买入阈 {buyThreshold} / 卖出阈 {sellThreshold}；三区 = 买/持/卖）
         </span>
@@ -124,6 +138,7 @@ export function AggregateScoreChart({
               : ''}
         </span>
       </div>
+      {resize && <div {...resize.handleProps} />}
     </div>
   );
 }

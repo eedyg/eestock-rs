@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { StrategyCatalogEntry, WorkbenchBarRecord, WorkbenchPinnedSlot } from '@/api/types';
+/** 曲线绘图区几何（x）**唯一来源** = `./curveGeometry`（四张曲线共用；禁各自声明 PAD/W 常量）。 */
+import { CURVE_PAD as PAD, CURVE_W as W } from './curveGeometry';
+import { CardTitle, type CardResizeApi } from './cardResize';
 import { curveDomainAttr, curveXs, downsample, resolveCurveX, vlineX, type CurveXDomain } from './chartUtils';
 import type { CurveSampling } from './AggregateScoreChart';
 
-const W = 1000;
 const H = 160;
-const PAD = 8;
 const COLORS = ['#a78bfa', '#fbbf24', '#34d399', '#fb923c', '#f472b6', '#818cf8', '#22d3ee', '#e879f9', '#4ade80', '#f87171'];
 
 /** 图例默认可见条数（ADR §13.5：图例开关，默认前 3）。 */
@@ -41,6 +42,7 @@ export function SlotScoresChart({
   xDomain,
   plot,
   markerTs,
+  resize,
 }: {
   perBar: WorkbenchBarRecord[];
   slots: WorkbenchPinnedSlot[];
@@ -54,6 +56,8 @@ export function SlotScoresChart({
   plot?: { x0: number; w: number } | null;
   /** ADR-028 D4.1 ④：竖线标记时点（Unix 秒）。 */
   markerTs?: number | null;
+  /** ADR-028 §2.4c 第 3 项：卡片高度缩放 API（缺省 ⇒ 默认渲染，逐像素与修复前一致）。 */
+  resize?: CardResizeApi;
 }) {
   const [visible, setVisible] = useState<Record<number, boolean>>(() => defaultVisible(slots));
   const [slotsKey, setSlotsKey] = useState(() => slotsKeyOf(slots));
@@ -108,13 +112,19 @@ export function SlotScoresChart({
 
   return (
     <div
-      className="rounded-lg border border-line bg-panel2 py-1"
+      ref={resize?.cardRef}
+      style={resize?.cardStyle}
+      className="relative flex flex-col rounded-lg border border-line bg-panel2 py-1"
       data-testid="wb-slot-chart"
+      data-resizable="slot"
       // ADR-028 D2.1：x 轴**数据窗口**实测标注（E2E 冻结口径）
       data-x-domain={curveDomainAttr({ xDomain: xd, domain })}
       data-x-mode={xd ? xd.mode : 'none'}
     >
-      <div className="flex flex-wrap gap-2 px-1 pb-1">
+      <CardTitle cardId="slot" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
+        各策略评分
+      </CardTitle>
+      <div className="flex shrink-0 flex-wrap gap-2 px-1 pb-1">
         {slots.map((slot, i) => (
           <label key={i} className="flex items-center gap-1 text-[10px]" style={{ color: COLORS[i % COLORS.length] }}>
             <input
@@ -127,9 +137,10 @@ export function SlotScoresChart({
           </label>
         ))}
       </div>
+      <div className="min-h-0 flex-1">
       <svg
         viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
-        className="h-36 w-full"
+        className={resize ? resize.svgClass('h-36 w-full') : 'h-36 w-full'}
         preserveAspectRatio="none"
         role="img"
         aria-label="各策略评分曲线"
@@ -158,11 +169,13 @@ export function SlotScoresChart({
           />
         )}
       </svg>
-      <div className="px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
+      </div>
+      <div className="shrink-0 px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
         各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 共 {sampling?.originalBars ?? perBar.length} bar
         {unmatched > 0 ? ` · ${unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.downsampled ? `（服务端抽样 ${perBar.length} 点）` : ''}
       </div>
+      {resize && <div {...resize.handleProps} />}
     </div>
   );
 }

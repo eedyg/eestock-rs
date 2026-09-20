@@ -38,8 +38,8 @@ const OUT = process.env.ADR028V_OUT ?? resolve(REPO, 'tester/evidence/20260920_a
  *  :8081 由 `static_dir=./web/dist` 静态托管 —— `index.html` 引用的 `assets/index-*.js` 必须与 `web/dist` 内
  *  同名文件**逐字节一致**，且 sha256 == 本常量。构建产物合法变更时，**须由规格维护者显式更新本常量**
  *  （不得放宽为「任意 bundle」或加 env 旁路）。 */
-const EXPECT_BUNDLE_NAME = 'index-BY728MHs.js';
-const EXPECT_BUNDLE_SHA256 = 'f2504232e7a4fba582943fdbe020235013fef27752313db6cc69531f37d0fa0e';
+const EXPECT_BUNDLE_NAME = 'index-xGaRgVd-.js';
+const EXPECT_BUNDLE_SHA256 = '8d936e11f5d0d448434cf0d6907d8d907f0e544e8bd0a2805d1d06433993a8bc';
 
 const RUN_A = process.env.ADR028V_RUN_A ?? 'sr_1789865219068_000001';
 const RT_A = Number(process.env.ADR028V_RT_A ?? '1');

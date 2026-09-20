@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { ApiClient } from '@/api/client';
 import type { WorkbenchRunFill, WorkbenchRunView } from '@/api/types';
 import { DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
+import type { IndicatorName } from '@/features/dashboard/Toolbar';
+import { type CardResizeApi } from './cardResize';
 import {
   HIGHLIGHT_DURATION_MS,
   KlineChart,
@@ -93,6 +95,9 @@ export function KlineResultChart({
   onWindowApplied,
   highlight,
   onHighlightEnd,
+  indicators = DASHBOARD_DEFAULTS.indicators,
+  toggleSlot,
+  resize,
 }: {
   run: WorkbenchRunView;
   fills: RunFillsState;
@@ -107,6 +112,16 @@ export function KlineResultChart({
   highlight?: { key: string; rev: number } | null;
   /** 高亮 3s 回常态回调（可选）。 */
   onHighlightEnd?: () => void;
+  /**
+   * ADR-028 §2.4c 第 1 项：**副图指标勾选**（默认 = `DASHBOARD_DEFAULTS.indicators`，vol 开）。
+   *  **受控 prop**：结果页传入自己的独立配置态（`resultChartConfig`），**不得**再直通看板配置
+   *  （旧实现硬编码 `indicators={DASHBOARD_DEFAULTS.indicators}` ⇒ 既无入口、又存在「污染看板」风险）。
+   */
+  indicators?: Record<IndicatorName, boolean>;
+  /** 指标勾选入口（结果页注入共享组件 `IndicatorToggles`；缺省 ⇒ 不渲染入口）。 */
+  toggleSlot?: ReactNode;
+  /** ADR-028 §2.4c 第 2 项：卡片高度缩放 API（缺省 ⇒ 固定 `h-64`，与修复前一致）。 */
+  resize?: CardResizeApi;
 }) {
   const period = periodCodeToPeriod(run.period);
   const feed = useMemo(
@@ -152,11 +167,23 @@ export function KlineResultChart({
     // canvas 盖住下方窗口控制条（`elementFromPoint` 命中 canvas）⇒「全览 / 历史回退」真实点击超时。
     // 该布局**不依赖任何头部行数假设**，且卡片高度仍为 `h-64`（不挤压兄弟区域）。
     <div
-      className="flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2"
+      ref={resize?.cardRef}
+      style={resize?.cardStyle}
+      className="relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2"
       data-testid="wb-kline-chart"
+      data-resizable="kline"
     >
       <div className="flex shrink-0 flex-wrap items-center gap-3 px-2 pt-1 text-[10px] text-dim">
-        <span>K线 {run.symbol}（{run.period}）</span>
+        {/* 卡片标题 = **双击复位高度**入口（ADR-028 §2.4c 第 2 项） */}
+        <span
+          data-testid="wb-card-title-kline"
+          data-card-title="kline"
+          title="双击复位高度"
+          onDoubleClick={() => resize?.reset()}
+          className="select-none"
+        >
+          K线 {run.symbol}（{run.period}）
+        </span>
         <span style={{ color: COLOR_BUY }}>B 买入</span>
         <span style={{ color: COLOR_SELL }}>S 卖出</span>
         <span style={{ color: COLOR_STOP }}>⊗ 硬止损触发</span>
@@ -175,6 +202,13 @@ export function KlineResultChart({
           </span>
         )}
         {fills.error && <span className="text-up" data-testid="wb-fills-error">成交明细加载失败：{fills.error}</span>}
+        {/* ADR-028 §2.4c 第 1 项：副图指标勾选入口（共享组件；结果页独立配置 key） */}
+        {toggleSlot != null && (
+          <span className="flex flex-wrap items-center gap-1" data-testid="wb-indicator-toggles">
+            <span className="text-dim">指标</span>
+            {toggleSlot}
+          </span>
+        )}
         {/* ADR-028 D4.1：跳转高亮的**显式**状态（标记不可得 / 未记录 / 未命中 ⇒ 不得静默无反应） */}
         {highlight && highlightState !== 'idle' && (
           <span
@@ -197,7 +231,7 @@ export function KlineResultChart({
           code={run.symbol}
           period={period}
           followLatest={false}
-          indicators={DASHBOARD_DEFAULTS.indicators}
+          indicators={indicators}
           onManualZoom={() => undefined}
           overlays={overlays}
           barSpaceLimit={RESULT_BAR_SPACE_LIMIT}
@@ -209,6 +243,9 @@ export function KlineResultChart({
           onHighlightEnd={onHighlightEnd}
         />
       </div>
+      {/* 卡片下边缘拖拽把手（自由调高；双击标题复位）。内层 `min-h-0 flex-1` 承接高度 ⇒
+          klinecharts 的 ResizeObserver 自动重排（pane 高度比例与该实例视口保持）。 */}
+      {resize && <div {...resize.handleProps} />}
     </div>
   );
 }

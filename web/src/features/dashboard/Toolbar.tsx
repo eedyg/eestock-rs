@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { DASHBOARD_DEFAULTS, type GridMode, type Period } from '@/layouts/DashboardGrid';
+import type { GridMode, Period } from '@/layouts/DashboardGrid';
 import { Button } from '@/components/ui/button';
+import { IndicatorToggles, type IndicatorName } from './IndicatorToggles';
 import { DcapParamsPanel } from '@/features/indicators/DcapParamsPanel';
 import { DEFAULT_DCAP_PARAMS, type DcapParams } from '@/features/indicators/dcapIndicator';
 
 export type ChartTab = 'kline' | 'timeshare';
-export type IndicatorName = keyof typeof DASHBOARD_DEFAULTS.indicators;
+/** 指标名单与勾选逻辑的唯一实现见 `./IndicatorToggles`（看板与结果页共用，ADR-028 §2.4c 第 1 项）。 */
+export type { IndicatorName };
 
 export interface ToolbarProps {
   period: Period;
@@ -56,15 +58,6 @@ const PERIODS: Array<{ value: Period; label: string }> = [
 const TABS: Array<{ value: ChartTab; label: string }> = [
   { value: 'kline', label: 'K线' },
   { value: 'timeshare', label: '分时' },
-];
-
-const INDICATORS: Array<{ value: IndicatorName; label: string }> = [
-  { value: 'ma', label: 'MA' },
-  { value: 'vol', label: 'VOL' }, // 成交量副图：与 MA/MACD/KDJ/BOLL/DCAP 并列的开关（默认开，会话态）
-  { value: 'macd', label: 'MACD' },
-  { value: 'kdj', label: 'KDJ' },
-  { value: 'boll', label: 'BOLL' },
-  { value: 'dcap', label: 'DCAP' }, // ADR-021：定投收益率三线（默认关，独立副图）
 ];
 
 const GRID_MODES: Array<{ value: GridMode; label: string }> = [
@@ -204,26 +197,22 @@ export function Toolbar(props: ToolbarProps) {
         </Button>
       ))}
       <Sep />
-      {INDICATORS.map((i) => (
-        <span key={i.value} className="flex items-center gap-1">
-          <Button
-            aria-pressed={props.indicators[i.value]}
-            variant={props.indicators[i.value] ? 'primary' : 'ghost'}
-            onClick={() => props.onToggleIndicator(i.value)}
-          >
-            {i.label}
-          </Button>
-          {i.value === 'ma' && (
+      {/* 指标勾选：与结果页**同一实现**（名单/勾选逻辑唯一来源 = `./IndicatorToggles`）。
+          MA 窗口配置 / DCAP 参数面板仍内联在各自按钮之后（DOM 顺序与既有行为不变）。 */}
+      <IndicatorToggles
+        indicators={props.indicators}
+        onToggle={props.onToggleIndicator}
+        renderExtra={(name) =>
+          name === 'ma' ? (
             <MaConfigControl maWindows={props.maWindows} onSaveMaWindows={props.onSaveMaWindows} />
-          )}
-          {i.value === 'dcap' && (
+          ) : name === 'dcap' ? (
             <DcapParamsPanel
               params={props.dcapParams ?? DEFAULT_DCAP_PARAMS}
               onSave={props.onSaveDcapParams ?? (async () => {})}
             />
-          )}
-        </span>
-      ))}
+          ) : null
+        }
+      />
       <Sep />
       {GRID_MODES.map((g) => (
         <Button
