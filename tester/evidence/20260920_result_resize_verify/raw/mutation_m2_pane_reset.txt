@@ -1,0 +1,39 @@
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:505:1 › RV-1 指标选择入口 + 切换真身 + 配置隔离（localStorage 增量 / 看板哨兵键 / 网络写入） (6.1s)
+  ✘  2 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:602:1 › RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后保持 + 无残留 pane (9.7s)
+  -  3 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:722:1 › RV-3 曲线卡拖高（聚合分 / 净值+回撤）+ 双击复位 + 只做高度（宽度与 x 几何不变）
+  -  4 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:864:1 › RV-4 表格类无高度把手 / 无 inline 高度；PAD 单源（运行期）与跨视图同一 bar 偏差
+  -  5 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:976:1 › RV-5 持久化：刷新后卡片高度与指标选择保持（且 localStorage 仍只有结果页一个键）
+  -  6 [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:1033:1 › RV-6 隔离性（跨页对照）：结果页改动不得影响看板指标会话态，看板亦不得新增存储键
+
+
+  1) [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:602:1 › RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后保持 + 无残留 pane 
+
+    Error: 指标切换后已拖高度的 VOL pane 必须保持（切换前 63 / 切换后 null）
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 2
+    Received:    63
+
+      704 |     Math.abs(H(volH2) - H(volH1b)),
+      705 |     `指标切换后已拖高度的 VOL pane 必须保持（切换前 ${volH1b} / 切换后 ${volH2}）`,
+    > 706 |   ).toBeLessThanOrEqual(2);
+          |     ^
+      707 |   expect(H(volH2), 'VOL pane 高度不得被重置回默认').not.toBe(H(volH0));
+      708 |   expect(macdPaneId, 'MACD 必须新建独立 pane').toBeTruthy();
+      709 |   expect(macdPaneId, 'MACD pane ≠ VOL pane').not.toBe(volPaneId);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-result-resize-tester-verify.e2e.ts:706:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-result-resize-te-ef542-副图-pane-高度在指标切换后保持-无残留-pane-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-result-resize-te-ef542-副图-pane-高度在指标切换后保持-无残留-pane-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-d5-result-resize-tester-verify.e2e.ts:602:1 › RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后保持 + 无残留 pane 
+  4 did not run
+  1 passed (16.1s)

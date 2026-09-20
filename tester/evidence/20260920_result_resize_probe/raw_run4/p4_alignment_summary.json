@@ -1,0 +1,590 @@
+[
+  {
+    "label": "base",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 256,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "klineTall",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 480,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "klineShort",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 160,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "restored",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 256,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "volShrunk",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 256,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "zoom80",
+    "klineVisibleBars": 117,
+    "klineBarSpace": 8,
+    "klineCardHeight": 205,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 117,
+        "apiPoints": 117,
+        "pairs": 117,
+        "maxAbsRaw": 185.96,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 92.98,
+        "maxAbsAnchoredRaw": 0.05,
+        "offsetMedianRaw": 92.98,
+        "spanC": 742.04,
+        "ok": false
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 117,
+        "apiPoints": 117,
+        "pairs": 117,
+        "maxAbsRaw": 185.96,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 92.98,
+        "maxAbsAnchoredRaw": 0.05,
+        "offsetMedianRaw": 92.98,
+        "spanC": 742.04,
+        "ok": false
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 117,
+        "apiPoints": 117,
+        "pairs": 117,
+        "maxAbsRaw": 187.46,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 94.49,
+        "maxAbsAnchoredRaw": 0.05,
+        "offsetMedianRaw": 92.98,
+        "spanC": 739.03,
+        "ok": false
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 117,
+        "apiPoints": 117,
+        "pairs": 117,
+        "maxAbsRaw": 187.46,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 94.49,
+        "maxAbsAnchoredRaw": 0.05,
+        "offsetMedianRaw": 92.98,
+        "spanC": 739.03,
+        "ok": false
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  },
+  {
+    "label": "zoomRestored",
+    "klineVisibleBars": 103,
+    "klineBarSpace": 6,
+    "klineCardHeight": 256,
+    "views": [
+      {
+        "id": "wb-aggregate-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-slot-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 0.03,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 0.03,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 612,
+        "ok": true
+      },
+      {
+        "id": "wb-equity-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      },
+      {
+        "id": "wb-position-chart",
+        "vertices": 103,
+        "apiPoints": 103,
+        "pairs": 103,
+        "maxAbsRaw": 1.25,
+        "maxAbs984": 0.05,
+        "maxAbsCenteredRaw": 1.24,
+        "maxAbsAnchoredRaw": 0.03,
+        "offsetMedianRaw": 0,
+        "spanC": 609.51,
+        "ok": true
+      }
+    ],
+    "crossViewMaxUserX": 2,
+    "crossViewNote": "",
+    "edges": [
+      {
+        "id": "wb-aggregate-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-slot-chart",
+        "first": 8,
+        "last": 992
+      },
+      {
+        "id": "wb-equity-chart",
+        "first": 10,
+        "last": 990
+      },
+      {
+        "id": "wb-position-chart",
+        "first": 10,
+        "last": 990
+      }
+    ]
+  }
+]

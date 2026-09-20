@@ -1,0 +1,53 @@
+{
+  "curveCardInjection": {
+    "injectedHeight": 340,
+    "before": {
+      "cardHeight": 186,
+      "cardFlexShrink": "1",
+      "svgHeight": 160,
+      "svgClass": "h-40 w-full",
+      "svgViewBox": "141.45 0 1070.82 160"
+    },
+    "beforeNoShrink": {
+      "cardHeight": 186,
+      "cardFlexShrink": "0",
+      "svgHeight": 160,
+      "svgClass": "h-40 w-full",
+      "svgViewBox": "141.45 0 1070.82 160"
+    },
+    "injected": {
+      "cardHeight": 340,
+      "cardFlexShrink": "0",
+      "svgHeight": 160,
+      "svgClass": "h-40 w-full",
+      "svgViewBox": "141.45 0 1070.82 160"
+    },
+    "restored": {
+      "cardHeight": 186,
+      "cardFlexShrink": "1",
+      "svgHeight": 160,
+      "svgClass": "h-40 w-full",
+      "svgViewBox": "141.45 0 1070.82 160"
+    },
+    "svgFollowsCard": false,
+    "cardFollowsInjection": true
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T03:56:28.917Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

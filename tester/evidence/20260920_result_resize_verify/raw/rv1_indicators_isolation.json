@@ -1,0 +1,192 @@
+{
+ "toggles0": {
+  "scopePresent": true,
+  "count": 6,
+  "items": [
+   {
+    "key": "ma",
+    "text": "MA",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "vol",
+    "text": "VOL",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "macd",
+    "text": "MACD",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "kdj",
+    "text": "KDJ",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "boll",
+    "text": "BOLL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "dcap",
+    "text": "DCAP",
+    "pressed": "false",
+    "inScope": true
+   }
+  ]
+ },
+ "toggles1": {
+  "scopePresent": true,
+  "count": 6,
+  "items": [
+   {
+    "key": "ma",
+    "text": "MA",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "vol",
+    "text": "VOL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "macd",
+    "text": "MACD",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "kdj",
+    "text": "KDJ",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "boll",
+    "text": "BOLL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "dcap",
+    "text": "DCAP",
+    "pressed": "false",
+    "inScope": true
+   }
+  ]
+ },
+ "toggles3": {
+  "scopePresent": true,
+  "count": 6,
+  "items": [
+   {
+    "key": "ma",
+    "text": "MA",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "vol",
+    "text": "VOL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "macd",
+    "text": "MACD",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "kdj",
+    "text": "KDJ",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "boll",
+    "text": "BOLL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "dcap",
+    "text": "DCAP",
+    "pressed": "false",
+    "inScope": true
+   }
+  ]
+ },
+ "names0": [
+  "MA",
+  "VOL"
+ ],
+ "names1": [
+  "MA"
+ ],
+ "names2": [
+  "MA",
+  "MACD"
+ ],
+ "names3": [
+  "KDJ",
+  "MA",
+  "MACD"
+ ],
+ "paneCount0": 3,
+ "paneCount1": 2,
+ "paneCount2": 3,
+ "paneCount3": 4,
+ "panes2": [
+  {
+   "id": "candle_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "indicator_pane_1789878572169_2",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "x_axis_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  }
+ ],
+ "storage0": {
+  "keys": [
+   "eestock.dashboard.indicators.v1",
+   "eestock.dashboard.layout.v1"
+  ],
+  "raw": {
+   "eestock.dashboard.indicators.v1": "{\"ma\":false,\"vol\":false,\"macd\":true,\"kdj\":true,\"boll\":true,\"dcap\":true}",
+   "eestock.dashboard.layout.v1": "{\"view\":\"grid2x3\",\"sentinel\":1}"
+  }
+ },
+ "storage3": {
+  "keys": [
+   "eestock.dashboard.indicators.v1",
+   "eestock.dashboard.layout.v1",
+   "eestock.wb.result.chartConfig.v1"
+  ],
+  "raw": {
+   "eestock.dashboard.indicators.v1": "{\"ma\":false,\"vol\":false,\"macd\":true,\"kdj\":true,\"boll\":true,\"dcap\":true}",
+   "eestock.dashboard.layout.v1": "{\"view\":\"grid2x3\",\"sentinel\":1}",
+   "eestock.wb.result.chartConfig.v1": "{\"indicators\":{\"ma\":true,\"vol\":false,\"macd\":true,\"kdj\":true,\"boll\":false,\"dcap\":false},\"cardHeights\":{\"kline\":null,\"aggregate\":null,\"slot\":null,\"equity\":null,\"position\":null}}"
+  }
+ },
+ "writes": [],
+ "configReqs": []
+}

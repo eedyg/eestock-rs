@@ -1,0 +1,432 @@
+{
+  "dragEnabledFlag": [
+    {
+      "id": "candle_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789876467124_3",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "separatorStyle": {
+    "size": 1,
+    "color": "#DDDDDD",
+    "fill": true,
+    "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+  },
+  "domPanesBefore": [
+    {
+      "left": 601,
+      "top": 101,
+      "width": 666,
+      "height": 234
+    }
+  ],
+  "domPanesAfterShrink": [
+    {
+      "left": 601,
+      "top": 101,
+      "width": 666,
+      "height": 234
+    }
+  ],
+  "domPanesAfterGrow": [
+    {
+      "left": 601,
+      "top": 101,
+      "width": 666,
+      "height": 234
+    }
+  ],
+  "paneOptionsBefore": [
+    {
+      "id": "candle_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789876467124_3",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterShrink": [
+    {
+      "id": "candle_pane",
+      "height": 67,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789876467124_3",
+      "height": 140,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterGrow": [
+    {
+      "id": "candle_pane",
+      "height": 107,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789876467124_3",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "dragShrink": {
+    "attempted": true,
+    "x": 934,
+    "y0": 209,
+    "dy": -40,
+    "hitRect": {
+      "left": 601,
+      "top": 205,
+      "width": 666,
+      "height": 7
+    },
+    "backgroundBefore": "rgba(0, 0, 0, 0)",
+    "hitTargetCount": 1,
+    "geometryBefore": {
+      "root": {
+        "left": 601,
+        "top": 101,
+        "width": 666,
+        "height": 234
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 101,
+            "width": 666,
+            "height": 234
+          },
+          "canvasCount": 10
+        }
+      ],
+      "separatorBars": [],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 205,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "hover": {
+      "hitTag": "DIV",
+      "hitCursor": "ns-resize",
+      "hitIsSeparator": true,
+      "sepBackground": "rgba(22, 119, 255, 0.08)"
+    },
+    "geometryAfter": {
+      "root": {
+        "left": 601,
+        "top": 101,
+        "width": 666,
+        "height": 234
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 101,
+            "width": 666,
+            "height": 234
+          },
+          "canvasCount": 10
+        }
+      ],
+      "separatorBars": [],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 165,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "layoutAfter": {
+      "ok": true,
+      "chartWidth": 666,
+      "dataLen": 999,
+      "panes": [
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 67,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 140,
+          "state": "normal",
+          "id": "indicator_pane_1789876467124_3"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 9007199254740991,
+          "height": 100,
+          "state": "normal",
+          "id": "x_axis_pane"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "MA_1789876467124_1",
+          "name": "MA",
+          "shortName": "MA",
+          "paneId": "candle_pane",
+          "yAxisId": "yAxis_1789876467120_1",
+          "precision": 3
+        },
+        {
+          "id": "VOL_1789876467124_2",
+          "name": "VOL",
+          "shortName": "VOL",
+          "paneId": "indicator_pane_1789876467124_3",
+          "yAxisId": "yAxis_1789876467124_4",
+          "precision": 0
+        }
+      ],
+      "sizes": {
+        "width": 666,
+        "height": 234,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "separatorStyle": {
+        "size": 1,
+        "color": "#DDDDDD",
+        "fill": true,
+        "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+      }
+    }
+  },
+  "dragGrow": {
+    "attempted": true,
+    "x": 934,
+    "y0": 169,
+    "dy": 40,
+    "hitRect": {
+      "left": 601,
+      "top": 165,
+      "width": 666,
+      "height": 7
+    },
+    "backgroundBefore": "rgba(0, 0, 0, 0)",
+    "hitTargetCount": 1,
+    "geometryBefore": {
+      "root": {
+        "left": 601,
+        "top": 101,
+        "width": 666,
+        "height": 234
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 101,
+            "width": 666,
+            "height": 234
+          },
+          "canvasCount": 10
+        }
+      ],
+      "separatorBars": [],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 165,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "hover": {
+      "hitTag": "DIV",
+      "hitCursor": "ns-resize",
+      "hitIsSeparator": true,
+      "sepBackground": "rgba(0, 0, 0, 0)"
+    },
+    "geometryAfter": {
+      "root": {
+        "left": 601,
+        "top": 101,
+        "width": 666,
+        "height": 234
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 101,
+            "width": 666,
+            "height": 234
+          },
+          "canvasCount": 10
+        }
+      ],
+      "separatorBars": [],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 205,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "layoutAfter": {
+      "ok": true,
+      "chartWidth": 666,
+      "dataLen": 999,
+      "panes": [
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 107,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 100,
+          "state": "normal",
+          "id": "indicator_pane_1789876467124_3"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 9007199254740991,
+          "height": 100,
+          "state": "normal",
+          "id": "x_axis_pane"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "MA_1789876467124_1",
+          "name": "MA",
+          "shortName": "MA",
+          "paneId": "candle_pane",
+          "yAxisId": "yAxis_1789876467120_1",
+          "precision": 3
+        },
+        {
+          "id": "VOL_1789876467124_2",
+          "name": "VOL",
+          "shortName": "VOL",
+          "paneId": "indicator_pane_1789876467124_3",
+          "yAxisId": "yAxis_1789876467124_4",
+          "precision": 0
+        }
+      ],
+      "sizes": {
+        "width": 666,
+        "height": 234,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "separatorStyle": {
+        "size": 1,
+        "color": "#DDDDDD",
+        "fill": true,
+        "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+      }
+    }
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T03:54:26.934Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

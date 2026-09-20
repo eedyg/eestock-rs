@@ -1,0 +1,226 @@
+{
+ "sepBefore": {
+  "x": 934,
+  "y": 209,
+  "count": 1,
+  "yList": [
+   205
+  ]
+ },
+ "volPaneId": "indicator_pane_1789878574254_3",
+ "volH0": 100,
+ "volH1": 63,
+ "volH1b": 63,
+ "volH2": 63,
+ "macdPaneId": "indicator_pane_1789878579085_2",
+ "macdH2": 100,
+ "klineH0": 256,
+ "klineH1": 406,
+ "klineH2": 256,
+ "innerH0": 194,
+ "innerH1": 344,
+ "innerH2": 194,
+ "card0": {
+  "present": true,
+  "rect": {
+   "x": 600,
+   "y": 80,
+   "w": 668,
+   "h": 256
+  },
+  "inlineHeight": null,
+  "inlineWidth": null,
+  "inlineFlexShrink": null,
+  "dataResizable": "kline",
+  "svg": null,
+  "klineInner": {
+   "x": 601,
+   "y": 141,
+   "w": 666,
+   "h": 194
+  },
+  "handleCount": 1,
+  "handle": {
+   "id": "kline",
+   "testid": "wb-card-resize-kline",
+   "rect": {
+    "x": 601,
+    "y": 329,
+    "w": 666,
+    "h": 6
+   },
+   "cursor": "ns-resize"
+  }
+ },
+ "card1": {
+  "present": true,
+  "rect": {
+   "x": 600,
+   "y": 80,
+   "w": 668,
+   "h": 406
+  },
+  "inlineHeight": "406px",
+  "inlineWidth": null,
+  "inlineFlexShrink": "0",
+  "dataResizable": "kline",
+  "svg": null,
+  "klineInner": {
+   "x": 601,
+   "y": 141,
+   "w": 666,
+   "h": 344
+  },
+  "handleCount": 1,
+  "handle": {
+   "id": "kline",
+   "testid": "wb-card-resize-kline",
+   "rect": {
+    "x": 601,
+    "y": 479,
+    "w": 666,
+    "h": 6
+   },
+   "cursor": "ns-resize"
+  }
+ },
+ "card2": {
+  "present": true,
+  "rect": {
+   "x": 600,
+   "y": 80,
+   "w": 668,
+   "h": 256
+  },
+  "inlineHeight": null,
+  "inlineWidth": null,
+  "inlineFlexShrink": null,
+  "dataResizable": "kline",
+  "svg": null,
+  "klineInner": {
+   "x": 601,
+   "y": 141,
+   "w": 666,
+   "h": 194
+  },
+  "handleCount": 1,
+  "handle": {
+   "id": "kline",
+   "testid": "wb-card-resize-kline",
+   "rect": {
+    "x": 601,
+    "y": 329,
+    "w": 666,
+    "h": 6
+   },
+   "cursor": "ns-resize"
+  }
+ },
+ "card3": {
+  "present": true,
+  "rect": {
+   "x": 600,
+   "y": 80,
+   "w": 668,
+   "h": 256
+  },
+  "inlineHeight": null,
+  "inlineWidth": null,
+  "inlineFlexShrink": null,
+  "dataResizable": "kline",
+  "svg": null,
+  "klineInner": {
+   "x": 601,
+   "y": 141,
+   "w": 666,
+   "h": 194
+  },
+  "handleCount": 1,
+  "handle": {
+   "id": "kline",
+   "testid": "wb-card-resize-kline",
+   "rect": {
+    "x": 601,
+    "y": 329,
+    "w": 666,
+    "h": 6
+   },
+   "cursor": "ns-resize"
+  }
+ },
+ "sizes0": [
+  {
+   "paneId": "candle_pane",
+   "w": 666,
+   "h": 67
+  },
+  {
+   "paneId": "indicator_pane_1789878574254_3",
+   "w": 666,
+   "h": 100
+  }
+ ],
+ "sizes1": [
+  {
+   "paneId": "candle_pane",
+   "w": 666,
+   "h": 104
+  },
+  {
+   "paneId": "indicator_pane_1789878574254_3",
+   "w": 666,
+   "h": 63
+  }
+ ],
+ "sizes2": [
+  {
+   "paneId": "candle_pane",
+   "w": 666,
+   "h": 153
+  },
+  {
+   "paneId": "indicator_pane_1789878574254_3",
+   "w": 666,
+   "h": 63
+  },
+  {
+   "paneId": "indicator_pane_1789878579085_2",
+   "w": 666,
+   "h": 100
+  }
+ ],
+ "sizes3": [
+  {
+   "paneId": "candle_pane",
+   "w": 666,
+   "h": 168
+  }
+ ],
+ "sepCount3": 0,
+ "subPanes0": [
+  "indicator_pane_1789878574254_3"
+ ],
+ "subPanes2": [
+  "indicator_pane_1789878574254_3",
+  "indicator_pane_1789878579085_2"
+ ],
+ "subPanes3": [],
+ "paneIds3": [
+  "candle_pane",
+  "x_axis_pane"
+ ],
+ "indicators3": [
+  "MA"
+ ],
+ "paneCount3": 2,
+ "paneDomHeights3": [
+  {
+   "h": 168,
+   "canvas": 0
+  },
+  {
+   "h": 168,
+   "canvas": 0
+  }
+ ]
+}

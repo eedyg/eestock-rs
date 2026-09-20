@@ -1,0 +1,123 @@
+{
+ "before": 256,
+ "after": 376,
+ "afterReload": 376,
+ "storage1": {
+  "keys": [
+   "eestock.dashboard.indicators.v1",
+   "eestock.dashboard.layout.v1",
+   "eestock.wb.result.chartConfig.v1"
+  ],
+  "raw": {
+   "eestock.dashboard.indicators.v1": "{\"ma\":false,\"vol\":false,\"macd\":true,\"kdj\":true,\"boll\":true,\"dcap\":true}",
+   "eestock.dashboard.layout.v1": "{\"view\":\"grid2x3\",\"sentinel\":1}",
+   "eestock.wb.result.chartConfig.v1": "{\"indicators\":{\"ma\":true,\"vol\":true,\"macd\":true,\"kdj\":false,\"boll\":false,\"dcap\":false},\"cardHeights\":{\"kline\":376,\"aggregate\":null,\"slot\":null,\"equity\":null,\"position\":null}}"
+  }
+ },
+ "storage2": {
+  "keys": [
+   "eestock.dashboard.indicators.v1",
+   "eestock.dashboard.layout.v1",
+   "eestock.wb.result.chartConfig.v1"
+  ],
+  "raw": {
+   "eestock.dashboard.indicators.v1": "{\"ma\":false,\"vol\":false,\"macd\":true,\"kdj\":true,\"boll\":true,\"dcap\":true}",
+   "eestock.dashboard.layout.v1": "{\"view\":\"grid2x3\",\"sentinel\":1}",
+   "eestock.wb.result.chartConfig.v1": "{\"indicators\":{\"ma\":true,\"vol\":true,\"macd\":true,\"kdj\":false,\"boll\":false,\"dcap\":false},\"cardHeights\":{\"kline\":376,\"aggregate\":null,\"slot\":null,\"equity\":null,\"position\":null}}"
+  }
+ },
+ "toggles1": {
+  "scopePresent": true,
+  "count": 6,
+  "items": [
+   {
+    "key": "ma",
+    "text": "MA",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "vol",
+    "text": "VOL",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "macd",
+    "text": "MACD",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "kdj",
+    "text": "KDJ",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "boll",
+    "text": "BOLL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "dcap",
+    "text": "DCAP",
+    "pressed": "false",
+    "inScope": true
+   }
+  ]
+ },
+ "toggles2": {
+  "scopePresent": true,
+  "count": 6,
+  "items": [
+   {
+    "key": "ma",
+    "text": "MA",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "vol",
+    "text": "VOL",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "macd",
+    "text": "MACD",
+    "pressed": "true",
+    "inScope": true
+   },
+   {
+    "key": "kdj",
+    "text": "KDJ",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "boll",
+    "text": "BOLL",
+    "pressed": "false",
+    "inScope": true
+   },
+   {
+    "key": "dcap",
+    "text": "DCAP",
+    "pressed": "false",
+    "inScope": true
+   }
+  ]
+ },
+ "names1": [
+  "MA",
+  "MACD",
+  "VOL"
+ ],
+ "names2": [
+  "MA",
+  "MACD",
+  "VOL"
+ ]
+}

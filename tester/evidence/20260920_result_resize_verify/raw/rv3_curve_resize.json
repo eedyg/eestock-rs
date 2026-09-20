@@ -1,0 +1,308 @@
+{
+ "results": {
+  "aggregate": {
+   "card0": {
+    "rect": {
+     "x": 600,
+     "y": 411.19,
+     "w": 668,
+     "h": 204
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "aggregate"
+   },
+   "card1": {
+    "rect": {
+     "x": 600,
+     "y": 411.19,
+     "w": 668,
+     "h": 264
+    },
+    "inlineHeight": "264px",
+    "inlineWidth": null,
+    "flexShrink": "0",
+    "dataResizable": "aggregate"
+   },
+   "card2": {
+    "rect": {
+     "x": 600,
+     "y": 411.19,
+     "w": 668,
+     "h": 204
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "aggregate"
+   },
+   "svg0": {
+    "rect": {
+     "x": 601,
+     "y": 434.19,
+     "w": 666,
+     "h": 160
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     160
+    ],
+    "vbW": 1070.82,
+    "cls": "h-40 w-full"
+   },
+   "svg1": {
+    "rect": {
+     "x": 601,
+     "y": 434.19,
+     "w": 666,
+     "h": 220
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     160
+    ],
+    "vbW": 1070.82,
+    "cls": "h-full w-full"
+   },
+   "svg2": {
+    "rect": {
+     "x": 601,
+     "y": 434.19,
+     "w": 666,
+     "h": 160
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     160
+    ],
+    "vbW": 1070.82,
+    "cls": "h-40 w-full"
+   },
+   "cardRect": [
+    204,
+    264,
+    204
+   ],
+   "svgRect": [
+    160,
+    220,
+    160
+   ],
+   "svgW": [
+    666,
+    666,
+    666
+   ],
+   "cardW": [
+    668,
+    668,
+    668
+   ],
+   "xsEqual": true,
+   "xsEqualAfterReset": true
+  },
+  "equity": {
+   "card0": {
+    "rect": {
+     "x": 600,
+     "y": 839.19,
+     "w": 668,
+     "h": 236
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "equity"
+   },
+   "card1": {
+    "rect": {
+     "x": 600,
+     "y": 148.19,
+     "w": 668,
+     "h": 296
+    },
+    "inlineHeight": "296px",
+    "inlineWidth": null,
+    "flexShrink": "0",
+    "dataResizable": "equity"
+   },
+   "card2": {
+    "rect": {
+     "x": 600,
+     "y": 148.19,
+     "w": 668,
+     "h": 236
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "equity"
+   },
+   "svg0": {
+    "rect": {
+     "x": 601,
+     "y": 862.19,
+     "w": 666,
+     "h": 208
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     220
+    ],
+    "vbW": 1070.82,
+    "cls": "h-52 w-full"
+   },
+   "svg1": {
+    "rect": {
+     "x": 601,
+     "y": 171.19,
+     "w": 666,
+     "h": 268
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     220
+    ],
+    "vbW": 1070.82,
+    "cls": "h-full w-full"
+   },
+   "svg2": {
+    "rect": {
+     "x": 601,
+     "y": 171.19,
+     "w": 666,
+     "h": 208
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     220
+    ],
+    "vbW": 1070.82,
+    "cls": "h-52 w-full"
+   },
+   "cardRect": [
+    236,
+    296,
+    236
+   ],
+   "svgRect": [
+    208,
+    268,
+    208
+   ],
+   "svgW": [
+    666,
+    666,
+    666
+   ],
+   "cardW": [
+    668,
+    668,
+    668
+   ],
+   "xsEqual": true,
+   "xsEqualAfterReset": true
+  }
+ },
+ "handles": [
+  {
+   "card": "aggregate",
+   "count": 1,
+   "h": 6,
+   "w": 666,
+   "cursor": "ns-resize",
+   "bottomGap": 1,
+   "cardW": 668,
+   "dataResizable": "aggregate"
+  },
+  {
+   "card": "slot",
+   "count": 1,
+   "h": 6,
+   "w": 666,
+   "cursor": "ns-resize",
+   "bottomGap": 1,
+   "cardW": 668,
+   "dataResizable": "slot"
+  },
+  {
+   "card": "equity",
+   "count": 1,
+   "h": 6,
+   "w": 666,
+   "cursor": "ns-resize",
+   "bottomGap": 1,
+   "cardW": 668,
+   "dataResizable": "equity"
+  },
+  {
+   "card": "position",
+   "count": 1,
+   "h": 6,
+   "w": 666,
+   "cursor": "ns-resize",
+   "bottomGap": 1,
+   "cardW": 668,
+   "dataResizable": "position"
+  }
+ ],
+ "widthCursors": [
+  {
+   "testid": null,
+   "cursor": "ew-resize",
+   "tag": "DIV",
+   "cls": "",
+   "inKlineEngine": true,
+   "inResizableCard": true
+  },
+  {
+   "testid": null,
+   "cursor": "ew-resize",
+   "tag": "CANVAS",
+   "cls": "",
+   "inKlineEngine": true,
+   "inResizableCard": true
+  },
+  {
+   "testid": null,
+   "cursor": "ew-resize",
+   "tag": "CANVAS",
+   "cls": "",
+   "inKlineEngine": true,
+   "inResizableCard": true
+  }
+ ],
+ "horizontalDrag": {
+  "cardWidth": [
+   668,
+   668
+  ],
+  "svgWidth": [
+   666,
+   666
+  ],
+  "cardHeight": [
+   204,
+   204
+  ],
+  "svgViewBox": [
+   null,
+   null
+  ],
+  "xsEqual": true,
+  "inlineWidth": null
+ }
+}

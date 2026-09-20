@@ -1,0 +1,273 @@
+{
+ "tables": {
+  "trades:wb-round-trips-table": {
+   "present": true,
+   "handles": 0,
+   "inlineHeight": null,
+   "ancestorInlineHeight": null,
+   "ancestorResizable": null,
+   "dataResizableSelf": null,
+   "nsResizeCursors": 0,
+   "rect": {
+    "x": 609,
+    "y": 532.91,
+    "w": 843.89,
+    "h": 5081
+   },
+   "clientHeight": 5081,
+   "scrollHeight": 5081
+  },
+  "perbar:wb-perbar-table": {
+   "present": true,
+   "handles": 0,
+   "inlineHeight": null,
+   "ancestorInlineHeight": null,
+   "ancestorResizable": null,
+   "dataResizableSelf": null,
+   "nsResizeCursors": 0,
+   "rect": {
+    "x": 609,
+    "y": 400.94,
+    "w": 650,
+    "h": 2579
+   },
+   "clientHeight": 2579,
+   "scrollHeight": 2579
+  },
+  "events:wb-event-log": {
+   "present": true,
+   "handles": 0,
+   "inlineHeight": null,
+   "ancestorInlineHeight": null,
+   "ancestorResizable": null,
+   "dataResizableSelf": null,
+   "nsResizeCursors": 0,
+   "rect": {
+    "x": 609,
+    "y": 400.94,
+    "w": 650,
+    "h": 2036
+   },
+   "clientHeight": 2036,
+   "scrollHeight": 2036
+  }
+ },
+ "padRuntime": [
+  {
+   "key": "aggregate",
+   "n": 103,
+   "first": 8,
+   "last": 992,
+   "vbW": 1070.82,
+   "pxPerUser": 1.61,
+   "mappingResidualMax": 0.047
+  },
+  {
+   "key": "slot",
+   "n": 103,
+   "first": 8,
+   "last": 992,
+   "vbW": 1070.82,
+   "pxPerUser": 1.61,
+   "mappingResidualMax": 0.047
+  },
+  {
+   "key": "equity",
+   "n": 103,
+   "first": 8,
+   "last": 992,
+   "vbW": 1070.82,
+   "pxPerUser": 1.61,
+   "mappingResidualMax": 0.047
+  },
+  {
+   "key": "position",
+   "n": 103,
+   "first": 8,
+   "last": 992,
+   "vbW": 1070.82,
+   "pxPerUser": 1.61,
+   "mappingResidualMax": 0.047
+  }
+ ],
+ "crossView": [
+  {
+   "pair": "aggregate-slot",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  },
+  {
+   "pair": "aggregate-equity",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  },
+  {
+   "pair": "aggregate-position",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  },
+  {
+   "pair": "slot-equity",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  },
+  {
+   "pair": "slot-position",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  },
+  {
+   "pair": "equity-position",
+   "paired": 103,
+   "maxUserDelta": 0,
+   "argJ": -1,
+   "pxDeltaOnA": 0,
+   "pxDeltaOnB": 0
+  }
+ ],
+ "meta": {
+  "aggregate": {
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": -582.81,
+     "w": 666,
+     "h": 160
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     160
+    ],
+    "vbW": 1070.82,
+    "cls": "h-40 w-full"
+   },
+   "card": {
+    "rect": {
+     "x": 600,
+     "y": -605.81,
+     "w": 668,
+     "h": 204
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "aggregate"
+   },
+   "pxPerUser": 1.61,
+   "polyCount": 1
+  },
+  "slot": {
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": -350.81,
+     "w": 666,
+     "h": 144
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     160
+    ],
+    "vbW": 1070.82,
+    "cls": "h-36 w-full"
+   },
+   "card": {
+    "rect": {
+     "x": 600,
+     "y": -393.81,
+     "w": 668,
+     "h": 208
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "slot"
+   },
+   "pxPerUser": 1.61,
+   "polyCount": 1
+  },
+  "equity": {
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": -154.81,
+     "w": 666,
+     "h": 208
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     220
+    ],
+    "vbW": 1070.82,
+    "cls": "h-52 w-full"
+   },
+   "card": {
+    "rect": {
+     "x": 600,
+     "y": -177.81,
+     "w": 668,
+     "h": 236
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "equity"
+   },
+   "pxPerUser": 1.61,
+   "polyCount": 1
+  },
+  "position": {
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": 89.19,
+     "w": 666,
+     "h": 208
+    },
+    "vb": [
+     141.45,
+     0,
+     1070.82,
+     220
+    ],
+    "vbW": 1070.82,
+    "cls": "h-52 w-full"
+   },
+   "card": {
+    "rect": {
+     "x": 600,
+     "y": 66.19,
+     "w": 668,
+     "h": 288.75
+    },
+    "inlineHeight": null,
+    "inlineWidth": null,
+    "flexShrink": null,
+    "dataResizable": "position"
+   },
+   "pxPerUser": 1.61,
+   "polyCount": 1
+  }
+ }
+}

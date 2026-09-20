@@ -1,0 +1,7 @@
+
+Running 1 test using 1 worker
+
+[resize-probe] {"indicatorEntries":[],"indicators":[{"id":"MA_1789876589120_1","name":"MA","shortName":"MA","paneId":"candle_pane","yAxisId":"yAxis_1789876589117_1","precision":3},{"id":"VOL_1789876589121_1","name":"VOL","shortName":"VOL","paneId":"indicator_pane_1789876589121_2","yAxisId":"yAxis_1789876589121_3","precision":0}],"dragBefore":[{"left":601,"top":101,"width":666,"height":107},{"left":601,"top":209,"width":666,"height":100},{"left":601,"top":309,"width":666,"height":26}],"dragAfterShrink":[{"left":601,"top":101,"width":666,"height":67},{"left":601,"top":169,"width":666,"height":140},{"left":601,"top":309,"width":666,"height":26}],"dragAfterGrow":[{"left":601,"top":101,"width":666,"height":107},{"left":601,"top":209,"width":666,"height":100},{"left":601,"top":309,"width":666,"height":26}],"curveSvgFollows":false}
+  ✓  1 [chromium] › e2e/adr028-resize-probe.e2e.ts:942:1 › P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡片高度结构 / 拖高后对齐 ≤2px (35.9s)
+
+  1 passed (36.4s)

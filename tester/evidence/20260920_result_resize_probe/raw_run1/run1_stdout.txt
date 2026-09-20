@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-resize-probe.e2e.ts:794:1 › P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡片高度结构 / 拖高后对齐 ≤2px (20.2s)
+
+
+  1) [chromium] › e2e/adr028-resize-probe.e2e.ts:794:1 › P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡片高度结构 / 拖高后对齐 ≤2px 
+
+    Error: base：聚合分曲线主口径 max|Δ984| 必须 ≤ 2px（真身渲染像素配对）
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 2
+    Received:    NaN
+
+      1004 |       Number(agg['maxAbs984']),
+      1005 |       `${label}：聚合分曲线主口径 max|Δ984| 必须 ≤ ${ALIGN_TOL_PX}px（真身渲染像素配对）`,
+    > 1006 |     ).toBeLessThanOrEqual(ALIGN_TOL_PX);
+           |       ^
+      1007 |     expect(
+      1008 |       Number(agg['maxAbsRawPx']),
+      1009 |       `${label}：聚合分曲线主口径 max|Δraw| 必须 ≤ ${ALIGN_TOL_PX}px（真身渲染像素配对）`,
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-resize-probe.e2e.ts:1006:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-resize-probe.e2e.ts-68398-指标入口-副图拖拽-卡片高度结构-拖高后对齐-≤2px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-resize-probe.e2e.ts-68398-指标入口-副图拖拽-卡片高度结构-拖高后对齐-≤2px-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-resize-probe.e2e.ts:794:1 › P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡片高度结构 / 拖高后对齐 ≤2px 

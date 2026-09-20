@@ -1,0 +1,870 @@
+{
+  "dragEnabledFlag": [
+    {
+      "id": "candle_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "separatorStyle": {
+    "size": 1,
+    "color": "#DDDDDD",
+    "fill": true,
+    "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+  },
+  "domPanesBefore": [
+    {
+      "left": 601,
+      "top": 141,
+      "width": 666,
+      "height": 67
+    },
+    {
+      "left": 601,
+      "top": 209,
+      "width": 666,
+      "height": 100
+    },
+    {
+      "left": 601,
+      "top": 309,
+      "width": 666,
+      "height": 26
+    }
+  ],
+  "domPanesAfterShrink": [
+    {
+      "left": 601,
+      "top": 141,
+      "width": 666,
+      "height": 30
+    },
+    {
+      "left": 601,
+      "top": 172,
+      "width": 666,
+      "height": 137
+    },
+    {
+      "left": 601,
+      "top": 309,
+      "width": 666,
+      "height": 26
+    }
+  ],
+  "domPanesAfterGrow": [
+    {
+      "left": 601,
+      "top": 141,
+      "width": 666,
+      "height": 70
+    },
+    {
+      "left": 601,
+      "top": 212,
+      "width": 666,
+      "height": 97
+    },
+    {
+      "left": 601,
+      "top": 309,
+      "width": 666,
+      "height": 26
+    }
+  ],
+  "domPanesAfterMaxVol": [
+    {
+      "left": 601,
+      "top": 141,
+      "width": 666,
+      "height": 30
+    },
+    {
+      "left": 601,
+      "top": 172,
+      "width": 666,
+      "height": 137
+    },
+    {
+      "left": 601,
+      "top": 309,
+      "width": 666,
+      "height": 26
+    }
+  ],
+  "paneOptionsBefore": [
+    {
+      "id": "candle_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterShrink": [
+    {
+      "id": "candle_pane",
+      "height": 30,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 137,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterGrow": [
+    {
+      "id": "candle_pane",
+      "height": 70,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 97,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterMaxVol": [
+    {
+      "id": "candle_pane",
+      "height": 30,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 137,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterWindowReset": [
+    {
+      "id": "candle_pane",
+      "height": 30,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 137,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "paneOptionsAfterWindowBack": [
+    {
+      "id": "candle_pane",
+      "height": 30,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "indicator_pane_1789878202086_3",
+      "height": 137,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    },
+    {
+      "id": "x_axis_pane",
+      "height": 100,
+      "minHeight": 30,
+      "dragEnabled": true,
+      "state": "normal"
+    }
+  ],
+  "dragShrink": {
+    "attempted": true,
+    "x": 934,
+    "y0": 209,
+    "dy": -40,
+    "hitRect": {
+      "left": 601,
+      "top": 205,
+      "width": 666,
+      "height": 7
+    },
+    "backgroundBefore": "rgba(0, 0, 0, 0)",
+    "hitTargetCount": 1,
+    "geometryBefore": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 67
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 209,
+            "width": 666,
+            "height": 100
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 208,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 205,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "hover": {
+      "hitTag": "DIV",
+      "hitCursor": "ns-resize",
+      "hitIsSeparator": true,
+      "sepBackground": "rgba(22, 119, 255, 0.08)"
+    },
+    "geometryAfter": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 30
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 172,
+            "width": 666,
+            "height": 137
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 171,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 168,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "layoutAfter": {
+      "ok": true,
+      "chartWidth": 666,
+      "dataLen": 999,
+      "panes": [
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 30,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 137,
+          "state": "normal",
+          "id": "indicator_pane_1789878202086_3"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 9007199254740991,
+          "height": 100,
+          "state": "normal",
+          "id": "x_axis_pane"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "MA_1789878202086_1",
+          "name": "MA",
+          "shortName": "MA",
+          "paneId": "candle_pane",
+          "yAxisId": "yAxis_1789878202083_1",
+          "precision": 3
+        },
+        {
+          "id": "VOL_1789878202086_2",
+          "name": "VOL",
+          "shortName": "VOL",
+          "paneId": "indicator_pane_1789878202086_3",
+          "yAxisId": "yAxis_1789878202086_4",
+          "precision": 0
+        }
+      ],
+      "sizes": {
+        "width": 666,
+        "height": 194,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "separatorStyle": {
+        "size": 1,
+        "color": "#DDDDDD",
+        "fill": true,
+        "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+      }
+    }
+  },
+  "dragGrow": {
+    "attempted": true,
+    "x": 934,
+    "y0": 172,
+    "dy": 40,
+    "hitRect": {
+      "left": 601,
+      "top": 168,
+      "width": 666,
+      "height": 7
+    },
+    "backgroundBefore": "rgba(0, 0, 0, 0)",
+    "hitTargetCount": 1,
+    "geometryBefore": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 30
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 172,
+            "width": 666,
+            "height": 137
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 171,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 168,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "hover": {
+      "hitTag": "DIV",
+      "hitCursor": "ns-resize",
+      "hitIsSeparator": true,
+      "sepBackground": "rgba(0, 0, 0, 0)"
+    },
+    "geometryAfter": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 70
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 212,
+            "width": 666,
+            "height": 97
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 211,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 208,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "layoutAfter": {
+      "ok": true,
+      "chartWidth": 666,
+      "dataLen": 999,
+      "panes": [
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 70,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 97,
+          "state": "normal",
+          "id": "indicator_pane_1789878202086_3"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 9007199254740991,
+          "height": 100,
+          "state": "normal",
+          "id": "x_axis_pane"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "MA_1789878202086_1",
+          "name": "MA",
+          "shortName": "MA",
+          "paneId": "candle_pane",
+          "yAxisId": "yAxis_1789878202083_1",
+          "precision": 3
+        },
+        {
+          "id": "VOL_1789878202086_2",
+          "name": "VOL",
+          "shortName": "VOL",
+          "paneId": "indicator_pane_1789878202086_3",
+          "yAxisId": "yAxis_1789878202086_4",
+          "precision": 0
+        }
+      ],
+      "sizes": {
+        "width": 666,
+        "height": 194,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "separatorStyle": {
+        "size": 1,
+        "color": "#DDDDDD",
+        "fill": true,
+        "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+      }
+    }
+  },
+  "dragMax": {
+    "attempted": true,
+    "x": 934,
+    "y0": 212,
+    "dy": -200,
+    "hitRect": {
+      "left": 601,
+      "top": 208,
+      "width": 666,
+      "height": 7
+    },
+    "backgroundBefore": "rgba(0, 0, 0, 0)",
+    "hitTargetCount": 1,
+    "geometryBefore": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 70
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 212,
+            "width": 666,
+            "height": 97
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 211,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 208,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "hover": {
+      "hitTag": "DIV",
+      "hitCursor": "ns-resize",
+      "hitIsSeparator": true,
+      "sepBackground": "rgba(0, 0, 0, 0)"
+    },
+    "geometryAfter": {
+      "root": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 194
+      },
+      "panes": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 141,
+            "width": 666,
+            "height": 30
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 172,
+            "width": 666,
+            "height": 137
+          },
+          "canvasCount": 4
+        },
+        {
+          "rect": {
+            "left": 601,
+            "top": 309,
+            "width": 666,
+            "height": 26
+          },
+          "canvasCount": 2
+        }
+      ],
+      "separatorBars": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 171,
+            "width": 666,
+            "height": 1
+          },
+          "canvasCount": 0
+        }
+      ],
+      "separators": [
+        {
+          "rect": {
+            "left": 601,
+            "top": 168,
+            "width": 666,
+            "height": 7
+          },
+          "background": "rgba(0, 0, 0, 0)"
+        }
+      ]
+    },
+    "layoutAfter": {
+      "ok": true,
+      "chartWidth": 666,
+      "dataLen": 999,
+      "panes": [
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 30,
+          "state": "normal",
+          "id": "candle_pane"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 0,
+          "height": 137,
+          "state": "normal",
+          "id": "indicator_pane_1789878202086_3"
+        },
+        {
+          "minHeight": 30,
+          "dragEnabled": true,
+          "order": 9007199254740991,
+          "height": 100,
+          "state": "normal",
+          "id": "x_axis_pane"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "MA_1789878202086_1",
+          "name": "MA",
+          "shortName": "MA",
+          "paneId": "candle_pane",
+          "yAxisId": "yAxis_1789878202083_1",
+          "precision": 3
+        },
+        {
+          "id": "VOL_1789878202086_2",
+          "name": "VOL",
+          "shortName": "VOL",
+          "paneId": "indicator_pane_1789878202086_3",
+          "yAxisId": "yAxis_1789878202086_4",
+          "precision": 0
+        }
+      ],
+      "sizes": {
+        "width": 666,
+        "height": 194,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "separatorStyle": {
+        "size": 1,
+        "color": "#DDDDDD",
+        "fill": true,
+        "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+      }
+    }
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T04:23:21.883Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

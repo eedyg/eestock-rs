@@ -1,0 +1,1143 @@
+{
+  "label": "base",
+  "window": {
+    "source": "kline",
+    "fromTs": "1789454700",
+    "toTs": "1789628100",
+    "spanBars": "103",
+    "aggregateDomain": "1789454700,1789628100",
+    "note": "窗口已应用：[1789454700, 1789628100] rev 4",
+    "degraded": null,
+    "unmatched": null
+  },
+  "kline": {
+    "ok": true,
+    "error": "",
+    "visibleCount": 103,
+    "dataLen": 999,
+    "fromIdx": 896,
+    "toIdx": 998,
+    "barSpace": 6,
+    "container": {
+      "left": 601,
+      "top": 101,
+      "width": 666,
+      "height": 234
+    },
+    "spacingDistinct": [
+      6
+    ]
+  },
+  "views": [
+    {
+      "testid": "wb-aggregate-chart",
+      "apiKind": "per_bar",
+      "apiOk": true,
+      "apiStatus": 200,
+      "apiPoints": 103,
+      "downsampled": false,
+      "polyCount": 1,
+      "vertices": 103,
+      "pairs": 103,
+      "duplicateBars": 0,
+      "outOfTolerance": 0,
+      "maxAbsRawPx": 0.03,
+      "maxAbs984Px": 0.05,
+      "offsetMedianRawPx": 0,
+      "maxAbsCenteredRawPx": 0.03,
+      "maxAbsAnchoredRawPx": 0.03,
+      "spanK": 612,
+      "spanC": 612,
+      "firstUserX": 8,
+      "lastUserX": 992,
+      "screenHead": [
+        598.002197265625,
+        603.9729614257812,
+        610.005859375
+      ],
+      "screenMid": [
+        904.0032348632812,
+        909.9739379882812
+      ],
+      "screenTail": [
+        1198.00048828125,
+        1204.033447265625,
+        1210.0042724609375
+      ],
+      "ctm": {
+        "a": 0.6219533006534197,
+        "d": 1,
+        "e": 593.0265588754282,
+        "f": 416.1875
+      },
+      "cardRect": {
+        "left": 600,
+        "top": 411.1875,
+        "width": 668,
+        "height": 186
+      },
+      "svgRect": {
+        "left": 601,
+        "top": 416.1875,
+        "width": 666,
+        "height": 160
+      },
+      "xMode": "index",
+      "xDomain": "1789454700,1789628100",
+      "ok": true
+    },
+    {
+      "testid": "wb-slot-chart",
+      "apiKind": "per_bar",
+      "apiOk": true,
+      "apiStatus": 200,
+      "apiPoints": 103,
+      "downsampled": false,
+      "polyCount": 1,
+      "vertices": 103,
+      "pairs": 103,
+      "duplicateBars": 0,
+      "outOfTolerance": 0,
+      "maxAbsRawPx": 0.03,
+      "maxAbs984Px": 0.05,
+      "offsetMedianRawPx": 0,
+      "maxAbsCenteredRawPx": 0.03,
+      "maxAbsAnchoredRawPx": 0.03,
+      "spanK": 612,
+      "spanC": 612,
+      "firstUserX": 8,
+      "lastUserX": 992,
+      "screenHead": [
+        598.002197265625,
+        603.9729614257812,
+        610.005859375
+      ],
+      "screenMid": [
+        904.0032348632812,
+        909.9739379882812
+      ],
+      "screenTail": [
+        1198.00048828125,
+        1204.033447265625,
+        1210.0042724609375
+      ],
+      "ctm": {
+        "a": 0.6219533006534197,
+        "d": 0.9,
+        "e": 593.0265588754282,
+        "f": 630.1875
+      },
+      "cardRect": {
+        "left": 600,
+        "top": 605.1875,
+        "width": 668,
+        "height": 190
+      },
+      "svgRect": {
+        "left": 601,
+        "top": 630.1875,
+        "width": 666,
+        "height": 144
+      },
+      "xMode": "index",
+      "xDomain": "1789454700,1789628100",
+      "ok": true
+    },
+    {
+      "testid": "wb-equity-chart",
+      "apiKind": "net_value",
+      "apiOk": true,
+      "apiStatus": 200,
+      "apiPoints": 103,
+      "downsampled": false,
+      "polyCount": 1,
+      "vertices": 103,
+      "pairs": 103,
+      "duplicateBars": 0,
+      "outOfTolerance": 0,
+      "maxAbsRawPx": 1.25,
+      "maxAbs984Px": 0.05,
+      "offsetMedianRawPx": 0,
+      "maxAbsCenteredRawPx": 1.24,
+      "maxAbsAnchoredRawPx": 0.03,
+      "spanK": 612,
+      "spanC": 609.51,
+      "firstUserX": 10,
+      "lastUserX": 990,
+      "screenHead": [
+        599.24609375,
+        605.2168579101562,
+        611.1876220703125
+      ],
+      "screenMid": [
+        904.0032348632812,
+        909.9739379882812
+      ],
+      "screenTail": [
+        1196.81884765625,
+        1202.78955078125,
+        1208.7603759765625
+      ],
+      "ctm": {
+        "a": 0.6219533006534197,
+        "d": 0.9454545454545454,
+        "e": 593.0265588754282,
+        "f": 808.1875
+      },
+      "cardRect": {
+        "left": 600,
+        "top": 803.1875,
+        "width": 668,
+        "height": 218
+      },
+      "svgRect": {
+        "left": 601,
+        "top": 808.1875,
+        "width": 666,
+        "height": 208
+      },
+      "xMode": "index",
+      "xDomain": "1789454700,1789628100",
+      "ok": true
+    },
+    {
+      "testid": "wb-position-chart",
+      "apiKind": "position",
+      "apiOk": true,
+      "apiStatus": 200,
+      "apiPoints": 103,
+      "downsampled": false,
+      "polyCount": 1,
+      "vertices": 103,
+      "pairs": 103,
+      "duplicateBars": 0,
+      "outOfTolerance": 0,
+      "maxAbsRawPx": 1.25,
+      "maxAbs984Px": 0.05,
+      "offsetMedianRawPx": 0,
+      "maxAbsCenteredRawPx": 1.24,
+      "maxAbsAnchoredRawPx": 0.03,
+      "spanK": 612,
+      "spanC": 609.51,
+      "firstUserX": 10,
+      "lastUserX": 990,
+      "screenHead": [
+        599.24609375,
+        605.2168579101562,
+        611.1876220703125
+      ],
+      "screenMid": [
+        904.0032348632812,
+        909.9739379882812
+      ],
+      "screenTail": [
+        1196.81884765625,
+        1202.78955078125,
+        1208.7603759765625
+      ],
+      "ctm": {
+        "a": 0.6219533006534197,
+        "d": 0.9454545454545454,
+        "e": 593.0265588754282,
+        "f": 1034.1875
+      },
+      "cardRect": {
+        "left": 600,
+        "top": 1029.1875,
+        "width": 668,
+        "height": 270.75
+      },
+      "svgRect": {
+        "left": 601,
+        "top": 1034.1875,
+        "width": 666,
+        "height": 208
+      },
+      "xMode": "index",
+      "xDomain": "1789454700,1789628100",
+      "ok": true
+    }
+  ],
+  "crossViewMaxUserX": 2,
+  "crossViewNote": "",
+  "edges": [
+    {
+      "id": "wb-aggregate-chart",
+      "first": 8,
+      "last": 992
+    },
+    {
+      "id": "wb-slot-chart",
+      "first": 8,
+      "last": 992
+    },
+    {
+      "id": "wb-equity-chart",
+      "first": 10,
+      "last": 990
+    },
+    {
+      "id": "wb-position-chart",
+      "first": 10,
+      "last": 990
+    }
+  ],
+  "paneOptions": [
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 0,
+      "height": 100,
+      "state": "normal",
+      "id": "candle_pane"
+    },
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 0,
+      "height": 100,
+      "state": "normal",
+      "id": "indicator_pane_1789876589121_2"
+    },
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 9007199254740991,
+      "height": 100,
+      "state": "normal",
+      "id": "x_axis_pane"
+    }
+  ],
+  "indicators": [
+    {
+      "id": "MA_1789876589120_1",
+      "name": "MA",
+      "shortName": "MA",
+      "paneId": "candle_pane",
+      "yAxisId": "yAxis_1789876589117_1",
+      "precision": 3
+    },
+    {
+      "id": "VOL_1789876589121_1",
+      "name": "VOL",
+      "shortName": "VOL",
+      "paneId": "indicator_pane_1789876589121_2",
+      "yAxisId": "yAxis_1789876589121_3",
+      "precision": 0
+    }
+  ],
+  "klineDomChildren": [
+    {
+      "index": 0,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 101,
+        "width": 666,
+        "height": 107
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 107px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "107px",
+      "overflow": "hidden",
+      "canvasCount": 4
+    },
+    {
+      "index": 1,
+      "kind": "separator-bar",
+      "rect": {
+        "left": 601,
+        "top": 208,
+        "width": 666,
+        "height": 1
+      },
+      "inlineStyle": "width: 666px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);",
+      "cursor": "crosshair",
+      "background": "rgb(221, 221, 221)",
+      "position": "relative",
+      "height": "1px",
+      "overflow": "visible",
+      "canvasCount": 0
+    },
+    {
+      "index": 2,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 209,
+        "width": 666,
+        "height": 100
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 100px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "100px",
+      "overflow": "hidden",
+      "canvasCount": 4
+    },
+    {
+      "index": 3,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 26px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "26px",
+      "overflow": "hidden",
+      "canvasCount": 2
+    }
+  ],
+  "horizontalSeparators": [
+    {
+      "rect": {
+        "left": 601,
+        "top": 205,
+        "width": 666,
+        "height": 7
+      },
+      "inlineStyle": "width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize; background: transparent;",
+      "zIndex": "20",
+      "position": "absolute",
+      "background": "rgba(0, 0, 0, 0)",
+      "childCount": 0,
+      "canvasCount": 0
+    }
+  ],
+  "cards": {
+    "wb-kline-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 80,
+        "width": 668,
+        "height": 256
+      },
+      "inline": "",
+      "className": "flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+      "computedHeight": "256px",
+      "computedFlexShrink": "0",
+      "position": "static",
+      "overflowY": "visible",
+      "svg": null,
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-kline-chart",
+          "className": "flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+          "rect": {
+            "left": 600,
+            "top": 80,
+            "width": 668,
+            "height": 256
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "0",
+          "flexBasis": "auto",
+          "height": "256px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-kline-focus-anchor",
+          "className": "",
+          "rect": {
+            "left": 600,
+            "top": 80,
+            "width": 668,
+            "height": 256
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "256px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-aggregate-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 411,
+        "width": 668,
+        "height": 186
+      },
+      "inline": "",
+      "className": "rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "186px",
+      "computedFlexShrink": "1",
+      "position": "static",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 416,
+          "width": 666,
+          "height": 160
+        },
+        "className": "h-40 w-full",
+        "viewBox": "12.82 0 1070.82 160"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-aggregate-chart",
+          "className": "rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 411,
+            "width": 668,
+            "height": 186
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "186px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-slot-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 605,
+        "width": 668,
+        "height": 190
+      },
+      "inline": "",
+      "className": "rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "190px",
+      "computedFlexShrink": "1",
+      "position": "static",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 630,
+          "width": 666,
+          "height": 144
+        },
+        "className": "h-36 w-full",
+        "viewBox": "12.82 0 1070.82 160"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-slot-chart",
+          "className": "rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 605,
+            "width": 668,
+            "height": 190
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "190px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-equity-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 803,
+        "width": 668,
+        "height": 218
+      },
+      "inline": "",
+      "className": "relative rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "218px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 808,
+          "width": 666,
+          "height": 208
+        },
+        "className": "h-52 w-full",
+        "viewBox": "12.82 0 1070.82 220"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-equity-chart",
+          "className": "relative rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 803,
+            "width": 668,
+            "height": 218
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "218px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-position-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 1029,
+        "width": 668,
+        "height": 271
+      },
+      "inline": "",
+      "className": "relative rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "270.75px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 1034,
+          "width": 666,
+          "height": 208
+        },
+        "className": "h-52 w-full",
+        "viewBox": "12.82 0 1070.82 220"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-position-chart",
+          "className": "relative rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 1029,
+            "width": 668,
+            "height": 271
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "270.75px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    }
+  },
+  "resultScroll": {
+    "rect": {
+      "left": 588,
+      "top": 40,
+      "width": 692,
+      "height": 680
+    },
+    "clientHeight": 680,
+    "scrollHeight": 6540,
+    "overflowY": "auto"
+  },
+  "screenshot": "state_p4_base.png",
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T03:56:28.917Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}
