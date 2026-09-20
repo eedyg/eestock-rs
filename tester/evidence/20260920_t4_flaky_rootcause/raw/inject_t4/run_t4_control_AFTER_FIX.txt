@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-t4-inject.e2e.ts:653:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 (11.2s)
+
+  1 passed (11.6s)

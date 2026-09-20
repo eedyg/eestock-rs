@@ -1,0 +1,40 @@
+{
+ "panes": [
+  {
+   "id": "candle_pane",
+   "height": 30,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "indicator_pane_1789877639010_3",
+   "height": 137,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "x_axis_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  }
+ ],
+ "paneDoms": [
+  {
+   "h": 30,
+   "canvas": 4
+  },
+  {
+   "h": 1,
+   "canvas": 0
+  },
+  {
+   "h": 137,
+   "canvas": 4
+  },
+  {
+   "h": 26,
+   "canvas": 2
+  }
+ ]
+}

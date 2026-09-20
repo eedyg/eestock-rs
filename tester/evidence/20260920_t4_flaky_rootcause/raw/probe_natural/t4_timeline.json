@@ -1,0 +1,1092 @@
+{
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "delayKlineMs": 0,
+    "delayFillsMs": 0
+  },
+  "run": "sr_1789865219068_000001",
+  "rt": 1,
+  "fillA": 42,
+  "target": {
+    "ts": 1789660800,
+    "price": 1.1882376
+  },
+  "phaseMs": {
+    "tSelect": 403,
+    "tResult": 439,
+    "tWindowBar": 492,
+    "tL2": 572,
+    "tClick": 871,
+    "total": 12913
+  },
+  "net": [
+    {
+      "url": "/api/workbench/runs/sr_1789865219068_000001/round-trips?offset=0&limit=200",
+      "at": 480,
+      "status": 200
+    },
+    {
+      "url": "/api/workbench/runs/sr_1789865219068_000001/fills?limit=5000",
+      "at": 480,
+      "status": 200
+    },
+    {
+      "url": "/api/kline?code=159776&period=1d&before=2026-09-18T16%3A00%3A01.000Z&limit=260",
+      "at": 480,
+      "status": 200
+    },
+    {
+      "url": "/api/workbench/runs/sr_1789865219068_000001/bars?kind=per_bar&offset=0&limit=5000",
+      "at": 491,
+      "status": 200
+    },
+    {
+      "url": "/api/workbench/runs/sr_1789865219068_000001/round-trips/1/fills?offset=0&limit=500",
+      "at": 551,
+      "status": 200
+    }
+  ],
+  "samples": 247,
+  "compact": [
+    {
+      "t": 51,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "",
+        "rev": "",
+        "err": "",
+        "fromIdx": "",
+        "toIdx": ""
+      }
+    },
+    {
+      "t": 400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "1",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 550,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "2",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 700,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "3",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 850,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "4",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1000,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "5",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1150,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "6",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1300,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "7",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1450,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "8",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1600,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "9",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1750,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "10",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 1900,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "11",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2050,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "12",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2201,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "13",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2350,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "14",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2500,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "15",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2650,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "16",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2800,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "17",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 2950,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "18",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 3100,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "19",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 3250,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44,
+          "fillDotHighlight": 1
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "true",
+        "data-highlight-pulse": "20",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 3400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 4400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 5400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 6400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 7400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 8400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 9400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 10400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    },
+    {
+      "t": 11400,
+      "geom": {
+        "cands": 1,
+        "dataLens": [
+          174
+        ],
+        "ok": true,
+        "dataLen": 174,
+        "byName": {
+          "fillDot": 44
+        },
+        "dots": 44,
+        "matched": true,
+        "matchedKey": "1:42"
+      },
+      "klAttrs": {
+        "data-testid": "kline-chart",
+        "data-highlight-key": "1:42",
+        "data-highlight-active": "false",
+        "data-highlight-pulse": "0",
+        "data-marker-overlays": "44",
+        "class": "relative h-full w-full",
+        "k-line-chart-id": "k_line_chart_1",
+        "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+      },
+      "probeAttrs": {
+        "ok": "true",
+        "rev": "3",
+        "err": "",
+        "fromIdx": "52",
+        "toIdx": "173"
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+### 次序① /api/kline 延迟 1500ms（/fills 先到）—— 修复后
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/zz-marker-race-inject.e2e.ts:142:1 › 次序①：/fills 先落定（/api/kline 延迟 INJ_KLINE_MS）⇒ 每笔成交标记仍然出现 (1.9s)
+
+  1 passed (2.3s)
+
+### 次序② /fills 延迟 1500ms（K 线先到）—— 修复后
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/zz-marker-race-inject.e2e.ts:173:1 › 次序②：K 线先落定（/fills 延迟 INJ_FILLS_MS）⇒ 每笔成交标记仍然出现 (1.9s)
+
+  1 passed (2.2s)

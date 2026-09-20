@@ -1,0 +1,99 @@
+{
+ "klineOk": true,
+ "klineBarSpace": 6,
+ "visible": 103,
+ "klineTsHead": [
+  1789454700,
+  1789455000,
+  1789455300
+ ],
+ "klineXHead": [
+  518,
+  524,
+  530
+ ],
+ "perView": [
+  {
+   "testid": "wb-aggregate-chart",
+   "apiOk": true,
+   "nApiTs": 103,
+   "ctm": {
+    "a": 0.6219533006534197,
+    "d": 1.9375,
+    "e": 513.0247075206246,
+    "f": 203.1875
+   },
+   "polyCount": 1,
+   "nUserX": 103,
+   "nScreenX": 103,
+   "pairs": 103,
+   "maxAbsAnchored": 0.03,
+   "maxAbs984": 0.05,
+   "firstUserX": 8,
+   "lastUserX": 992
+  },
+  {
+   "testid": "wb-slot-chart",
+   "apiOk": true,
+   "nApiTs": 103,
+   "ctm": {
+    "a": 0.6219533006534197,
+    "d": 0.9,
+    "e": 513.0247075206246,
+    "f": 585.1875
+   },
+   "polyCount": 1,
+   "nUserX": 103,
+   "nScreenX": 103,
+   "pairs": 103,
+   "maxAbsAnchored": 0.03,
+   "maxAbs984": 0.05,
+   "firstUserX": 8,
+   "lastUserX": 992
+  },
+  {
+   "testid": "wb-equity-chart",
+   "apiOk": true,
+   "nApiTs": 103,
+   "ctm": {
+    "a": 0.6219533006534197,
+    "d": 0.9454545454545454,
+    "e": 513.0247075206246,
+    "f": 781.1875
+   },
+   "polyCount": 1,
+   "nUserX": 103,
+   "nScreenX": 103,
+   "pairs": 103,
+   "maxAbsAnchored": 0.03,
+   "maxAbs984": 0.05,
+   "firstUserX": 8,
+   "lastUserX": 992
+  },
+  {
+   "testid": "wb-position-chart",
+   "apiOk": true,
+   "nApiTs": 103,
+   "ctm": {
+    "a": 0.6219533006534197,
+    "d": 0.9454545454545454,
+    "e": 513.0247075206246,
+    "f": 1025.1875
+   },
+   "polyCount": 1,
+   "nUserX": 103,
+   "nScreenX": 103,
+   "pairs": 103,
+   "maxAbsAnchored": 0.03,
+   "maxAbs984": 0.05,
+   "firstUserX": 8,
+   "lastUserX": 992
+  }
+ ],
+ "crossViewMaxUserX": {
+  "wb-aggregate-chart": null,
+  "wb-slot-chart": 0,
+  "wb-equity-chart": 0,
+  "wb-position-chart": 0
+ }
+}

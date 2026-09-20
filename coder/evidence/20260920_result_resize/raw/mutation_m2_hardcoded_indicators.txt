@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:441:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 (4.2s)
+
+
+  1) [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:441:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 
+
+    Error: 开 MACD ⇒ 真身出现 MACD（副图变化）
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "MACD"
+    Received array: ["MA", "VOL"]
+
+      484 |   writeJson('d5a_after_macd_on', { panes: afterMacd.panes, indicators: afterMacd.indicators });
+      485 |   const names1 = (afterMacd.indicators as Array<{ name: string }>).map((i) => i.name).sort();
+    > 486 |   expect(names1, '开 MACD ⇒ 真身出现 MACD（副图变化）').toContain('MACD');
+          |                                              ^
+      487 |   expect(names1, '开 MACD 不得连带移除 VOL').toContain('VOL');
+      488 |   const panesAfterMacd = (afterMacd.panes as Array<{ id: string; height: number }>).filter((p) => /indicator_pane/.test(p.id));
+      489 |   expect(
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-resize-indicators.e2e.ts:486:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-resize-indicator-d8093-身驱动-已拖过的-pane-高度在切换后保持-刷新保持-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-resize-indicator-d8093-身驱动-已拖过的-pane-高度在切换后保持-刷新保持-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:441:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 

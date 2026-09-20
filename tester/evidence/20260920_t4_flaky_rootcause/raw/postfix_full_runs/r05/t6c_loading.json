@@ -1,0 +1,27 @@
+{
+  "hitUrls": [
+    "http://localhost:8081/api/workbench/runs/sr_1789865219068_000001/fills?limit=5000"
+  ],
+  "fillsNoteDuring": "成交明细加载中…",
+  "markersDuring": "0",
+  "l2ReachableDuring": false,
+  "shotLoading": "t6c_loading_phase.png",
+  "fillsNoteAfter": "成交合计 44 笔（精确源 /fills，已加载 44 / 共 44）",
+  "noteAfter": {
+    "data-testid": "wb-jump-highlight-note",
+    "data-state": "ok",
+    "data-fill-key": "1:42",
+    "class": "text-sky-300"
+  },
+  "attrsAfter": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "1:42",
+    "data-highlight-active": "true",
+    "data-highlight-pulse": "7",
+    "data-marker-overlays": "44",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "bigClustersAfter": 1
+}

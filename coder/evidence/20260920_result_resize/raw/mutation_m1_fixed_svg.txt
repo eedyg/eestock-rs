@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:517:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 (5.1s)
+
+
+  1) [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:517:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 
+
+    Error: 曲线卡 svg 必须随容器（拖前 160 → 拖后 160）
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 200
+    Received:    160
+
+      556 |     agg1.svg.rect.h,
+      557 |     `曲线卡 svg 必须随容器（拖前 ${agg0.svg.rect.h} → 拖后 ${agg1.svg.rect.h}）`,
+    > 558 |   ).toBeGreaterThanOrEqual(agg0.svg.rect.h + 40);
+          |     ^
+      559 |   expect(agg1.svg.className, '受控高度下 svg 用 h-full（去掉固定 h-40）').toContain('h-full');
+      560 |
+      561 |   // ③ 持仓比率卡（含口径说明行，另一个 PAD 变更图）拖高 60px ⇒ svg 跟随
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-resize-indicators.e2e.ts:558:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-resize-indicator-bc48b-线卡（svg-随容器）-双击复位-刷新保持-表格无把手-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-resize-indicator-bc48b-线卡（svg-随容器）-双击复位-刷新保持-表格无把手-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:517:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 

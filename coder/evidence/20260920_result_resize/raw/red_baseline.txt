@@ -1,0 +1,112 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/dashboard/IndicatorToggles.test.tsx [ src/features/dashboard/IndicatorToggles.test.tsx ]
+Error: Failed to resolve import "./IndicatorToggles" from "src/features/dashboard/IndicatorToggles.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/IndicatorToggles.test.tsx:5:49
+  4  |  import { DASHBOARD_DEFAULTS } from "@/layouts/DashboardGrid";
+  5  |  import { Toolbar } from "./Toolbar";
+  6  |  import { INDICATOR_DEFS, IndicatorToggles } from "./IndicatorToggles";
+     |                                                    ^
+  7  |  describe("S0 共享名单：INDICATOR_DEFS = ma/vol/macd/kdj/boll/dcap（与 DASHBOARD_DEFAULTS 键集同构）", () => {
+  8  |    it("名单键集与看板默认值键集逐一对应", () => {
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23
+ ❯ node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/features/workbench/cardResize.test.tsx [ src/features/workbench/cardResize.test.tsx ]
+Error: Failed to resolve import "./cardResize" from "src/features/workbench/cardResize.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/cardResize.test.tsx:3:30
+  2  |  import { describe, expect, it, vi } from "vitest";
+  3  |  import { fireEvent, render, screen } from "@testing-library/react";
+  4  |  import { useCardResize } from "./cardResize";
+     |                                 ^
+  5  |  import { AggregateScoreChart } from "./AggregateScoreChart";
+  6  |  import { CURVE_PAD, CURVE_W } from "./curveGeometry";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23
+ ❯ node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/features/workbench/curveGeometry.test.tsx [ src/features/workbench/curveGeometry.test.tsx ]
+Error: Failed to resolve import "./curveGeometry" from "src/features/workbench/curveGeometry.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/curveGeometry.test.tsx:9:35
+  8  |  import { EquityDrawdownChart } from "./EquityDrawdownChart";
+  9  |  import { PositionRatioChart } from "./PositionRatioChart";
+  10 |  import { CURVE_PAD, CURVE_W } from "./curveGeometry";
+     |                                      ^
+  11 |  const HERE = dirname(fileURLToPath(import.meta.url));
+  12 |  describe("G0 取值钉死：CURVE_PAD === 8（锚定冻结规格 adr028-axis-align-probe 的校准口径）", () => {
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23
+ ❯ node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/features/workbench/resultChartConfig.test.ts [ src/features/workbench/resultChartConfig.test.ts ]
+Error: Failed to resolve import "./resultChartConfig" from "src/features/workbench/resultChartConfig.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/resultChartConfig.test.ts:14:7
+  11 |    parseResultChartConfig,
+  12 |    saveResultChartConfig
+  13 |  } from "./resultChartConfig";
+     |          ^
+  14 |  const HERE = dirname(fileURLToPath(import.meta.url));
+  15 |  describe("R0 独立 key（硬约束）：结果页配置只能落在自己的 key 上", () => {
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23
+ ❯ node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/features/workbench/resultResizeIndicators.test.tsx [ src/features/workbench/resultResizeIndicators.test.tsx ]
+Error: Failed to resolve import "./resultChartConfig" from "src/features/workbench/resultResizeIndicators.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/resultResizeIndicators.test.tsx:10:0
+  11 |  const __vi_import_5__ = await import("./KlineResultChart");
+  12 |  const __vi_import_6__ = await import("@/features/dashboard/IndicatorToggles");
+  13 |  const __vi_import_7__ = await import("./resultChartConfig");
+     |                                       ^
+  14 |  
+  15 |  import { describe, expect, it, vi, beforeEach } from "vitest";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23
+ ❯ node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  no tests
+   Start at  12:04:17
+   Duration  1.31s (transform 17ms, setup 86ms, collect 0ms, tests 0ms, environment 677ms, prepare 128ms)
+

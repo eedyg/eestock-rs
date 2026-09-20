@@ -1,0 +1,662 @@
+[
+  {
+    "i": 1,
+    "totalMs": 3467,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      166
+    ],
+    "fillsAtMs": [
+      161
+    ],
+    "deltaKlineMinusFillsMs": 5,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 2,
+    "totalMs": 3440,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      154
+    ],
+    "fillsAtMs": [
+      150
+    ],
+    "deltaKlineMinusFillsMs": 4,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 3,
+    "totalMs": 3442,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      150
+    ],
+    "fillsAtMs": [
+      150
+    ],
+    "deltaKlineMinusFillsMs": 0,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 4,
+    "totalMs": 3438,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      152
+    ],
+    "fillsAtMs": [
+      152
+    ],
+    "deltaKlineMinusFillsMs": 0,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 5,
+    "totalMs": 3458,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      170
+    ],
+    "fillsAtMs": [
+      167
+    ],
+    "deltaKlineMinusFillsMs": 3,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 6,
+    "totalMs": 3455,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      167
+    ],
+    "fillsAtMs": [
+      165
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 7,
+    "totalMs": 3458,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      152
+    ],
+    "fillsAtMs": [
+      152
+    ],
+    "deltaKlineMinusFillsMs": 0,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 8,
+    "totalMs": 3456,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      166
+    ],
+    "fillsAtMs": [
+      164
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 9,
+    "totalMs": 3439,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      150
+    ],
+    "fillsAtMs": [
+      148
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 10,
+    "totalMs": 3441,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      152
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 3,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 11,
+    "totalMs": 3457,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      168
+    ],
+    "fillsAtMs": [
+      168
+    ],
+    "deltaKlineMinusFillsMs": 0,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 12,
+    "totalMs": 3440,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      151
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 13,
+    "totalMs": 3441,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      151
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 14,
+    "totalMs": 3438,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      152
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 3,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 15,
+    "totalMs": 3440,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      156
+    ],
+    "fillsAtMs": [
+      156
+    ],
+    "deltaKlineMinusFillsMs": 0,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 16,
+    "totalMs": 3439,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      151
+    ],
+    "fillsAtMs": [
+      148
+    ],
+    "deltaKlineMinusFillsMs": 3,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 17,
+    "totalMs": 3441,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      151
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 18,
+    "totalMs": 3437,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      153
+    ],
+    "fillsAtMs": [
+      151
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 19,
+    "totalMs": 3457,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      152
+    ],
+    "fillsAtMs": [
+      148
+    ],
+    "deltaKlineMinusFillsMs": 4,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  },
+  {
+    "i": 20,
+    "totalMs": 3440,
+    "klineRequests": 1,
+    "fillsRequests": 1,
+    "klineAtMs": [
+      151
+    ],
+    "fillsAtMs": [
+      149
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "geomOk": true,
+    "candsAll": 1,
+    "cands": 1,
+    "dataLens": [
+      174
+    ],
+    "dots": 44,
+    "names": [
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "byName": {
+      "fillDot": 44,
+      "fillDotHighlight": 1
+    },
+    "matchedA": true,
+    "matchedB": true,
+    "markerOverlays": "44",
+    "windowProbeOk": "true",
+    "windowProbeErr": ""
+  }
+]

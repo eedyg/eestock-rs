@@ -1,0 +1,38 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-t4-inject.e2e.ts:653:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 (16.8s)
+
+
+  1) [chromium] › e2e/adr028-t4-inject.e2e.ts:653:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 
+
+    Error: 成交明细到位后每笔成交必须已建成 fillDot 标记（data-marker-overlays == 已加载成交笔数）
+
+    成交明细到位后每笔成交必须已建成 fillDot 标记（data-marker-overlays == 已加载成交笔数）
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "OK"
+    Received: "MISMATCH data-marker-overlays=0 want=44 note=成交合计 44 笔（精确源 /fills，已加载 44 / 共 44）"
+
+    Call Log:
+    - Timeout 15000ms exceeded while waiting on the predicate
+
+      161 |       },
+      162 |     )
+    > 163 |     .toBe('OK');
+          |      ^
+      164 | }
+      165 |
+      166 | /** 真图表 store：`fillDot`（常态标记）/`fillDotHighlight`（跳转高亮）逐条读回。 */
+        at openRunSettled (/home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-t4-inject.e2e.ts:163:6)
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-t4-inject.e2e.ts:654:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-t4-inject.e2e.ts-T4-a349c-簇恰-1-个且质心落在该笔堆叠位置；3-秒后回落为-0-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-t4-inject.e2e.ts-T4-a349c-簇恰-1-个且质心落在该笔堆叠位置；3-秒后回落为-0-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-t4-inject.e2e.ts:653:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 

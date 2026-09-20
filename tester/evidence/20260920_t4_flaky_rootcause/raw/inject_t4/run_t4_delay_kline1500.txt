@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-t4-inject.e2e.ts:569:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 (4.4s)
+
+
+  1) [chromium] › e2e/adr028-t4-inject.e2e.ts:569:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 
+
+    Error: 跳转后目标笔几何必须可测（按 ts+价格定位）
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      592 |   const gA = geomCells[`${fA.ts}:${fA.price}`];
+      593 |   const gB = geomCells[`${fB.ts}:${fB.price}`];
+    > 594 |   expect(gA != null && gB != null, '跳转后目标笔几何必须可测（按 ts+价格定位）').toBe(true);
+          |                                                               ^
+      595 |   const attrsOn = await readAttrs(page, 'kline-chart');
+      596 |   const noteOn = await readAttrs(page, 'wb-jump-highlight-note');
+      597 |   const storeOn = await storeDump(page);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-t4-inject.e2e.ts:594:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-t4-inject.e2e.ts-T4-a349c-簇恰-1-个且质心落在该笔堆叠位置；3-秒后回落为-0-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-t4-inject.e2e.ts-T4-a349c-簇恰-1-个且质心落在该笔堆叠位置；3-秒后回落为-0-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-t4-inject.e2e.ts:569:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 

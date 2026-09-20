@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/zz-tester-order-independence.e2e.ts:256:1 › 次序无关：/api/kline 与 /fills 的提交次序（注入 fills +1500ms）下标记都要出现 (20.3s)
+
+
+  1) [chromium] › e2e/zz-tester-order-independence.e2e.ts:256:1 › 次序无关：/api/kline 与 /fills 的提交次序（注入 fills +1500ms）下标记都要出现 
+
+    Error: 成交明细落定后每笔成交必须已建成 fillDot（次序无关）
+
+    成交明细落定后每笔成交必须已建成 fillDot（次序无关）
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "OK"
+    Received: "MISMATCH data-marker-overlays=0 want=44 note=成交合计 44 笔（精确源 /fills，已加载 44 / 共 44）"
+
+    Call Log:
+    - Timeout 20000ms exceeded while waiting on the predicate
+
+      290 |       { timeout: 20_000, intervals: [100], message: '成交明细落定后每笔成交必须已建成 fillDot（次序无关）' },
+      291 |     )
+    > 292 |     .toBe('OK');
+          |      ^
+      293 |
+      294 |   const s1 = await state(page);
+      295 |   const want = wantFromNote(s1.note);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/zz-tester-order-independence.e2e.ts:292:6
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/zz-tester-order-independen-4399a-交次序（注入-fills-1500ms）下标记都要出现-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/zz-tester-order-independen-4399a-交次序（注入-fills-1500ms）下标记都要出现-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/zz-tester-order-independence.e2e.ts:256:1 › 次序无关：/api/kline 与 /fills 的提交次序（注入 fills +1500ms）下标记都要出现 

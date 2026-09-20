@@ -1,0 +1,42 @@
+{
+ "panes": [
+  {
+   "id": "candle_pane",
+   "height": 30,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "indicator_pane_1789877639010_3",
+   "height": 137,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "indicator_pane_1789877642289_2",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "x_axis_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  }
+ ],
+ "indicators": [
+  {
+   "name": "MA",
+   "paneId": "candle_pane"
+  },
+  {
+   "name": "VOL",
+   "paneId": "indicator_pane_1789877639010_3"
+  },
+  {
+   "name": "MACD",
+   "paneId": "indicator_pane_1789877642289_2"
+  }
+ ]
+}

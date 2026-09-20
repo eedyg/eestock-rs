@@ -1,0 +1,45 @@
+{
+  "attrs": {
+    "data-testid": "wb-jump-highlight-note",
+    "data-state": "unmatched",
+    "data-fill-key": "1:42",
+    "class": "text-amber-300"
+  },
+  "text": "未在 K 线标记中找到目标成交 1:42（L2 序号与 /fills 事实源不一致）⇒ 仅跳窗口，无高亮",
+  "attrsOnK": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "1:42",
+    "data-highlight-active": "false",
+    "data-highlight-pulse": "9",
+    "data-marker-overlays": "44",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "markers": 44,
+  "highlight": 0,
+  "bigClusters": 0,
+  "probe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "true",
+    "data-rev": "3",
+    "data-requested-bar-space": "5",
+    "data-bar-space": "5",
+    "data-from-idx": "52",
+    "data-to-idx": "173",
+    "data-from-ts": "1774454400",
+    "data-to-ts": "1789660800",
+    "data-error": "",
+    "data-center-idx": "173",
+    "data-center-ts": "1789660800",
+    "data-observed-center-idx": "113",
+    "data-observed-center-ts": "1782403200",
+    "data-edge-clamped": "true",
+    "data-cmd-rev": "3",
+    "data-cmd-from-ts": "1784563200",
+    "data-cmd-to-ts": "1794844800",
+    "data-cmd-span": "120",
+    "data-cmd-center-ts": "1789704000",
+    "hidden": ""
+  }
+}

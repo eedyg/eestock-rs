@@ -1,0 +1,35 @@
+{
+  "klineCardInjection": {
+    "injectedHeight": 480,
+    "before": {
+      "cardHeight": 256,
+      "innerHeight": 194
+    },
+    "tall": {
+      "cardHeight": 480,
+      "innerHeight": 418
+    },
+    "restored": {
+      "cardHeight": 256,
+      "innerHeight": 194
+    }
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T05:05:00.706Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

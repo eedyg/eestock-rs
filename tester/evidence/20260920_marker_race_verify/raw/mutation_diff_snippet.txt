@@ -1,0 +1,14 @@
+### 变异体 diff（相对还原后的工作区文件；插入两处，测试后已逐字节还原）
+--- 插入点 1（挂载快照 + 单次构建闸门）---
++  // ── TESTER MUTANT（临时反证，稍后逐字节还原）──
++  const mutantMountOverlays = useRef(props.overlays);
++  const mutantBuilt = useRef(false);
+--- 插入点 2（rebuildOverlays 内：仅挂载时构建 + 陈旧快照）---
++      // ── TESTER MUTANT：改回「仅挂载时构建 + 挂载快照」（旧缺陷形态）──
++      if (mutantBuilt.current) return;
++      mutantBuilt.current = true;
+       const ovs = overlaysRef.current ?? [];   ← 变异时改为读取 mutantMountOverlays.current
+
+变异期 git diff --numstat: 101 30（= 修复的 95 30 + 变异 6 行插入）
+还原后 git diff --numstat: 95	30	web/src/features/dashboard/KlineChart.tsx
+还原后源文件 sha256: bc6fd9571db049a13845c59d8de333cbd1a77904c3d87ec53bfde0733e942196

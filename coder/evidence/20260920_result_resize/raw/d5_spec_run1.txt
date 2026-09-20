@@ -1,0 +1,89 @@
+
+Running 3 tests using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:396:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 (19.8s)
+  ✘  2 [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:472:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 (4.5s)
+  ✘  3 [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:581:1 › D5-C 高度缩放后对齐：同一根 bar 跨图配对 ≤2px；统一 PAD 后跨视图 userX 差 ≤0.1 user unit (6.9s)
+
+
+  1) [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:396:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByTestId('wb-indicator-toggles')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 15000ms
+      - waiting for getByTestId('wb-indicator-toggles')
+
+
+      458 |   // ⑥ 持久化：刷新后指标选择保持（结果页独立 key；仅本机浏览器有效）
+      459 |   await page.reload();
+    > 460 |   await expect(page.getByTestId('wb-indicator-toggles')).toBeVisible();
+          |                                                          ^
+      461 |   await page.waitForTimeout(2500);
+      462 |   const afterReload = await page.evaluate(probeDom);
+      463 |   const pressed = Object.fromEntries(afterReload.toggles.map((t) => [String(t['key']), String(t['pressed'])]));
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-resize-indicators.e2e.ts:460:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-resize-indicator-d8093-身驱动-已拖过的-pane-高度在切换后保持-刷新保持-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-resize-indicator-d8093-身驱动-已拖过的-pane-高度在切换后保持-刷新保持-chromium/error-context.md
+
+  2) [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:472:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 
+
+    Error: 聚合卡高度跟随拖拽
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 258
+    Received:    204
+
+      507 |     inlineHeight: string | null;
+      508 |   };
+    > 509 |   expect(agg1.rect.h, '聚合卡高度跟随拖拽').toBeGreaterThanOrEqual(agg0.rect.h + 60 - 6);
+          |                                    ^
+      510 |   expect(
+      511 |     agg1.svg.rect.h,
+      512 |     `曲线卡 svg 必须随容器（拖前 ${agg0.svg.rect.h} → 拖后 ${agg1.svg.rect.h}）`,
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-resize-indicators.e2e.ts:509:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-resize-indicator-bc48b-线卡（svg-随容器）-双击复位-刷新保持-表格无把手-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-resize-indicator-bc48b-线卡（svg-随容器）-双击复位-刷新保持-表格无把手-chromium/error-context.md
+
+  3) [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:581:1 › D5-C 高度缩放后对齐：同一根 bar 跨图配对 ≤2px；统一 PAD 后跨视图 userX 差 ≤0.1 user unit 
+
+    Error: wb-aggregate-chart：配对点数必须 > 0
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      624 |   // 判据 ① 同一根 bar 跨图配对偏差 ≤2px（锚定残差 + 归一化 984）
+      625 |   for (const row of perView) {
+    > 626 |     expect(row['pairs'], `${String(row['testid'])}：配对点数必须 > 0`).toBeGreaterThan(0);
+          |                                                                 ^
+      627 |     expect(
+      628 |       Number(row['maxAbsAnchored']),
+      629 |       `${String(row['testid'])}：拖高后同一根 bar 配对残差必须 ≤ ${ALIGN_TOL_PX}px（锚定去漂移）`,
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-d5-resize-indicators.e2e.ts:626:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-d5-resize-indicator-66a4f-后跨视图-userX-差-≤0-1-user-unit-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-d5-resize-indicator-66a4f-后跨视图-userX-差-≤0-1-user-unit-chromium/error-context.md
+
+  3 failed
+    [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:396:1 › D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 已拖过的 pane 高度在切换后保持 / 刷新保持 
+    [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:472:1 › D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（svg 随容器）/ 双击复位 / 刷新保持 / 表格无把手 
+    [chromium] › e2e/adr028-d5-resize-indicators.e2e.ts:581:1 › D5-C 高度缩放后对齐：同一根 bar 跨图配对 ≤2px；统一 PAD 后跨视图 userX 差 ≤0.1 user unit 

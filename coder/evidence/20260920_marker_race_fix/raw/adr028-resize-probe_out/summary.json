@@ -1,0 +1,435 @@
+{
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T05:05:00.706Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  },
+  "finishedAt": "2026-09-20T05:05:36.472Z",
+  "p1": {
+    "controlsTotal": 109,
+    "indicatorEntries": [
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-vol",
+        "ariaPressed": "true",
+        "ariaLabel": null,
+        "role": null,
+        "text": "VOL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-macd",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "MACD"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-kdj",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "KDJ"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-boll",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "BOLL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-dcap",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "DCAP"
+      }
+    ],
+    "indicators": [
+      {
+        "id": "MA_1789880700904_1",
+        "name": "MA",
+        "shortName": "MA",
+        "paneId": "candle_pane",
+        "yAxisId": "yAxis_1789880700900_1",
+        "precision": 3
+      },
+      {
+        "id": "VOL_1789880700904_2",
+        "name": "VOL",
+        "shortName": "VOL",
+        "paneId": "indicator_pane_1789880700904_3",
+        "yAxisId": "yAxis_1789880700904_4",
+        "precision": 0
+      }
+    ],
+    "paneInventory": [
+      {
+        "minHeight": 30,
+        "dragEnabled": true,
+        "order": 0,
+        "height": 100,
+        "state": "normal",
+        "id": "candle_pane"
+      },
+      {
+        "minHeight": 30,
+        "dragEnabled": true,
+        "order": 0,
+        "height": 100,
+        "state": "normal",
+        "id": "indicator_pane_1789880700904_3"
+      },
+      {
+        "minHeight": 30,
+        "dragEnabled": true,
+        "order": 9007199254740991,
+        "height": 100,
+        "state": "normal",
+        "id": "x_axis_pane"
+      }
+    ],
+    "horizontalSeparatorHitTargets": [
+      {
+        "rect": {
+          "left": 601,
+          "top": 205,
+          "width": 666,
+          "height": 7
+        },
+        "inlineStyle": "width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize;",
+        "zIndex": "20",
+        "position": "absolute",
+        "background": "rgba(0, 0, 0, 0)",
+        "childCount": 0,
+        "canvasCount": 0
+      }
+    ]
+  },
+  "p2": {
+    "dragEnabledFlag": [
+      {
+        "id": "candle_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsBefore": [
+      {
+        "id": "candle_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsAfterShrink": [
+      {
+        "id": "candle_pane",
+        "height": 30,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 137,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsAfterGrow": [
+      {
+        "id": "candle_pane",
+        "height": 70,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 97,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsAfterMaxVol": [
+      {
+        "id": "candle_pane",
+        "height": 30,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 137,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsAfterWindowReset": [
+      {
+        "id": "candle_pane",
+        "height": 30,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 137,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "paneOptionsAfterWindowBack": [
+      {
+        "id": "candle_pane",
+        "height": 30,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "indicator_pane_1789880700904_3",
+        "height": 137,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      },
+      {
+        "id": "x_axis_pane",
+        "height": 100,
+        "minHeight": 30,
+        "dragEnabled": true,
+        "state": "normal"
+      }
+    ],
+    "domPanesBefore": [
+      {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 67
+      },
+      {
+        "left": 601,
+        "top": 209,
+        "width": 666,
+        "height": 100
+      },
+      {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      }
+    ],
+    "domPanesAfterShrink": [
+      {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 30
+      },
+      {
+        "left": 601,
+        "top": 172,
+        "width": 666,
+        "height": 137
+      },
+      {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      }
+    ],
+    "domPanesAfterGrow": [
+      {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 70
+      },
+      {
+        "left": 601,
+        "top": 212,
+        "width": 666,
+        "height": 97
+      },
+      {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      }
+    ],
+    "domPanesAfterMaxVol": [
+      {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 30
+      },
+      {
+        "left": 601,
+        "top": 172,
+        "width": 666,
+        "height": 137
+      },
+      {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      }
+    ]
+  },
+  "p3": {
+    "curveCardInjection": {
+      "injectedHeight": 340,
+      "before": {
+        "cardHeight": 204,
+        "cardFlexShrink": "1",
+        "svgHeight": 160,
+        "svgClass": "h-40 w-full",
+        "svgViewBox": "141.45 0 1070.82 160"
+      },
+      "beforeNoShrink": {
+        "cardHeight": 204,
+        "cardFlexShrink": "0",
+        "svgHeight": 160,
+        "svgClass": "h-40 w-full",
+        "svgViewBox": "141.45 0 1070.82 160"
+      },
+      "injected": {
+        "cardHeight": 340,
+        "cardFlexShrink": "0",
+        "svgHeight": 160,
+        "svgClass": "h-40 w-full",
+        "svgViewBox": "141.45 0 1070.82 160"
+      },
+      "restored": {
+        "cardHeight": 204,
+        "cardFlexShrink": "1",
+        "svgHeight": 160,
+        "svgClass": "h-40 w-full",
+        "svgViewBox": "141.45 0 1070.82 160"
+      },
+      "svgFollowsCard": false,
+      "cardFollowsInjection": true
+    },
+    "klineCardInjection": {
+      "injectedHeight": 480,
+      "before": {
+        "cardHeight": 256,
+        "innerHeight": 194
+      },
+      "tall": {
+        "cardHeight": 480,
+        "innerHeight": 418
+      },
+      "restored": {
+        "cardHeight": 256,
+        "innerHeight": 194
+      }
+    },
+    "resultScroll": {
+      "rect": {
+        "left": 588,
+        "top": 40,
+        "width": 692,
+        "height": 680
+      },
+      "clientHeight": 680,
+      "scrollHeight": 6612,
+      "overflowY": "auto"
+    }
+  }
+}

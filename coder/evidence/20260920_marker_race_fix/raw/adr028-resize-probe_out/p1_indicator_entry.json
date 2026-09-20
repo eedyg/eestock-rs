@@ -1,0 +1,1237 @@
+{
+  "controlsTotal": 109,
+  "controls": [
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-ma",
+      "ariaPressed": "true",
+      "ariaLabel": null,
+      "role": null,
+      "text": "MA"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-vol",
+      "ariaPressed": "true",
+      "ariaLabel": null,
+      "role": null,
+      "text": "VOL"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-macd",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "MACD"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-kdj",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "KDJ"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-boll",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "BOLL"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-dcap",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "DCAP"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-window-reset",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "全览"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-window-back",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "回退"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "testid": "legend-slot-0",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": ""
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-tab-trades",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "交易明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-tab-metrics",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "8项绩效"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-tab-perbar",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "逐bar评分"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-tab-events",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "事件日志"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-1",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-1",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-2",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-2",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-3",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-3",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-4",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-4",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-5",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-5",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-6",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-6",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-7",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-7",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-8",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-8",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-9",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-9",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-10",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-10",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-11",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-11",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-12",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-12",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-13",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-13",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-14",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-14",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-15",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-15",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-16",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-16",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-17",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-17",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-18",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-18",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-19",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-19",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-20",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-20",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-21",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-21",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-22",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-22",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-23",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-23",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-24",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-24",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-25",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-25",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-26",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-26",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-27",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-27",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-28",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-28",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-29",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-29",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-30",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-30",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-31",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-31",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-32",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-32",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-33",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-33",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-34",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-34",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-35",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-35",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-36",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-36",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-37",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-37",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-38",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-38",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-39",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-39",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-40",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-40",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-41",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-41",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-42",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-42",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-43",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-43",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-44",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-44",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-45",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-45",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-46",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-46",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-47",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-47",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-detail-48",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "明细"
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "testid": "wb-rt-jump-48",
+      "ariaPressed": null,
+      "ariaLabel": null,
+      "role": null,
+      "text": "跳转"
+    }
+  ],
+  "indicatorEntries": [
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-vol",
+      "ariaPressed": "true",
+      "ariaLabel": null,
+      "role": null,
+      "text": "VOL"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-macd",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "MACD"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-kdj",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "KDJ"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-boll",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "BOLL"
+    },
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-dcap",
+      "ariaPressed": "false",
+      "ariaLabel": null,
+      "role": null,
+      "text": "DCAP"
+    }
+  ],
+  "maEntries": [
+    {
+      "tag": "button",
+      "type": null,
+      "testid": "wb-indicator-toggle-ma",
+      "ariaPressed": "true",
+      "ariaLabel": null,
+      "role": null,
+      "text": "MA"
+    }
+  ],
+  "paneInventory": [
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 0,
+      "height": 100,
+      "state": "normal",
+      "id": "candle_pane"
+    },
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 0,
+      "height": 100,
+      "state": "normal",
+      "id": "indicator_pane_1789880700904_3"
+    },
+    {
+      "minHeight": 30,
+      "dragEnabled": true,
+      "order": 9007199254740991,
+      "height": 100,
+      "state": "normal",
+      "id": "x_axis_pane"
+    }
+  ],
+  "indicators": [
+    {
+      "id": "MA_1789880700904_1",
+      "name": "MA",
+      "shortName": "MA",
+      "paneId": "candle_pane",
+      "yAxisId": "yAxis_1789880700900_1",
+      "precision": 3
+    },
+    {
+      "id": "VOL_1789880700904_2",
+      "name": "VOL",
+      "shortName": "VOL",
+      "paneId": "indicator_pane_1789880700904_3",
+      "yAxisId": "yAxis_1789880700904_4",
+      "precision": 0
+    }
+  ],
+  "chartSizes": {
+    "width": 666,
+    "height": 194,
+    "left": 0,
+    "right": 0,
+    "top": 0,
+    "bottom": 0
+  },
+  "separatorStyle": {
+    "size": 1,
+    "color": "#DDDDDD",
+    "fill": true,
+    "activeBackgroundColor": "rgba(22, 119, 255, 0.08)"
+  },
+  "klineDomChildren": [
+    {
+      "index": 0,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 141,
+        "width": 666,
+        "height": 67
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 67px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "67px",
+      "overflow": "hidden",
+      "canvasCount": 4
+    },
+    {
+      "index": 1,
+      "kind": "separator-bar",
+      "rect": {
+        "left": 601,
+        "top": 208,
+        "width": 666,
+        "height": 1
+      },
+      "inlineStyle": "width: 666px; margin: 0px; padding: 0px; position: relative; box-sizing: border-box; height: 1px; background-color: rgb(221, 221, 221);",
+      "cursor": "crosshair",
+      "background": "rgb(221, 221, 221)",
+      "position": "relative",
+      "height": "1px",
+      "overflow": "visible",
+      "canvasCount": 0
+    },
+    {
+      "index": 2,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 209,
+        "width": 666,
+        "height": 100
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 100px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "100px",
+      "overflow": "hidden",
+      "canvasCount": 4
+    },
+    {
+      "index": 3,
+      "kind": "pane",
+      "rect": {
+        "left": 601,
+        "top": 309,
+        "width": 666,
+        "height": 26
+      },
+      "inlineStyle": "width: 100%; margin: 0px; padding: 0px; position: relative; overflow: hidden; box-sizing: border-box; height: 26px;",
+      "cursor": "crosshair",
+      "background": "rgba(0, 0, 0, 0)",
+      "position": "relative",
+      "height": "26px",
+      "overflow": "hidden",
+      "canvasCount": 2
+    }
+  ],
+  "horizontalSeparatorHitTargets": [
+    {
+      "rect": {
+        "left": 601,
+        "top": 205,
+        "width": 666,
+        "height": 7
+      },
+      "inlineStyle": "width: 100%; height: 7px; margin: 0px; padding: 0px; position: absolute; top: -3px; z-index: 20; box-sizing: border-box; cursor: ns-resize;",
+      "zIndex": "20",
+      "position": "absolute",
+      "background": "rgba(0, 0, 0, 0)",
+      "childCount": 0,
+      "canvasCount": 0
+    }
+  ],
+  "nsResizeNonSeparatorWidgets": [
+    {
+      "rect": {
+        "left": 1213,
+        "top": 141,
+        "width": 54,
+        "height": 67
+      },
+      "inlineStyle": "margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 612px; width: 54px; height: 67px;",
+      "zIndex": "1",
+      "position": "absolute",
+      "background": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "canvasCount": 2
+    },
+    {
+      "rect": {
+        "left": 1213,
+        "top": 209,
+        "width": 54,
+        "height": 100
+      },
+      "inlineStyle": "margin: 0px; padding: 0px; position: absolute; top: 0px; overflow: hidden; box-sizing: border-box; z-index: 1; cursor: ns-resize; left: 612px; width: 54px; height: 100px;",
+      "zIndex": "1",
+      "position": "absolute",
+      "background": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "canvasCount": 2
+    }
+  ],
+  "klineChartId": "k_line_chart_1",
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T05:05:00.706Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

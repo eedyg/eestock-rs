@@ -1,0 +1,146 @@
+[
+  {
+    "i": 1,
+    "klineAtMs": [
+      43
+    ],
+    "fillsAtMs": [
+      39
+    ],
+    "deltaKlineMinusFillsMs": 4,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 2,
+    "klineAtMs": [
+      30
+    ],
+    "fillsAtMs": [
+      24
+    ],
+    "deltaKlineMinusFillsMs": 6,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 3,
+    "klineAtMs": [
+      28
+    ],
+    "fillsAtMs": [
+      23
+    ],
+    "deltaKlineMinusFillsMs": 5,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 4,
+    "klineAtMs": [
+      28
+    ],
+    "fillsAtMs": [
+      55
+    ],
+    "deltaKlineMinusFillsMs": -27,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 5,
+    "klineAtMs": [
+      43
+    ],
+    "fillsAtMs": [
+      24
+    ],
+    "deltaKlineMinusFillsMs": 19,
+    "markerOverlays": "0",
+    "storeFillDot": 0
+  },
+  {
+    "i": 6,
+    "klineAtMs": [
+      27
+    ],
+    "fillsAtMs": [
+      25
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 7,
+    "klineAtMs": [
+      35
+    ],
+    "fillsAtMs": [
+      23
+    ],
+    "deltaKlineMinusFillsMs": 12,
+    "markerOverlays": "0",
+    "storeFillDot": 0
+  },
+  {
+    "i": 8,
+    "klineAtMs": [
+      37
+    ],
+    "fillsAtMs": [
+      27
+    ],
+    "deltaKlineMinusFillsMs": 10,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 9,
+    "klineAtMs": [
+      25
+    ],
+    "fillsAtMs": [
+      23
+    ],
+    "deltaKlineMinusFillsMs": 2,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 10,
+    "klineAtMs": [
+      28
+    ],
+    "fillsAtMs": [
+      25
+    ],
+    "deltaKlineMinusFillsMs": 3,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 11,
+    "klineAtMs": [
+      36
+    ],
+    "fillsAtMs": [
+      22
+    ],
+    "deltaKlineMinusFillsMs": 14,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  },
+  {
+    "i": 12,
+    "klineAtMs": [
+      33
+    ],
+    "fillsAtMs": [
+      24
+    ],
+    "deltaKlineMinusFillsMs": 9,
+    "markerOverlays": "44",
+    "storeFillDot": 44
+  }
+]

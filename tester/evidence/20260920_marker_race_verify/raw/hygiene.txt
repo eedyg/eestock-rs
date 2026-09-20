@@ -1,0 +1,15 @@
+### hygiene (final) 2026-09-20T13:31:07+08:00
+pgrep -af '[v]ite preview'   => 0
+pgrep -af 'ms[-]playwright'  => 0
+pgrep -af '[p]laywright test' => 0  (0 = 无遗留 runner)
+core dumps in repo          => 0
+served bundle => assets/index-BZMgzJCS.js
+served sha    => 56ef46526414735c93f58f159a2659f2a4cfc68d13f47244571d5154b53db13b
+dist files    => index-BZMgzJCS.js index-DOyfqUyq.css 
+dist sha      => 56ef46526414735c93f58f159a2659f2a4cfc68d13f47244571d5154b53db13b
+KlineChart.tsx sha => bc6fd9571db049a13845c59d8de333cbd1a77904c3d87ec53bfde0733e942196
+spec sha => dc3f6fc537a0da1734d8ff08f3166167c7bf41724303a32810fb1fa635446c5f
+temp probe leftovers (web/e2e zz, dashboard zz) => 0 / 0
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi        18Gi        10Gi       1.9Gi        20Gi        28Gi
+Swap:          8.0Gi       7.3Gi       723Mi

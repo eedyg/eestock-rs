@@ -1,0 +1,11 @@
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-window-sync.e2e.ts:434:1 › E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根） (3.7s)
+  ✓  2 [chromium] › e2e/adr028-window-sync.e2e.ts:457:1 › E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在数据末端、中心 = 最大可居中程度 (4.3s)
+  ✓  3 [chromium] › e2e/adr028-window-sync.e2e.ts:516:1 › E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到） (3.5s)
+  ✓  4 [chromium] › e2e/adr028-window-sync.e2e.ts:540:1 › E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身） (4.2s)
+  ✓  5 [chromium] › e2e/adr028-window-sync.e2e.ts:605:1 › M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真） (3.4s)
+  ✓  6 [chromium] › e2e/adr028-window-sync.e2e.ts:649:1 › M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替换为 no-op ⇒ 居中断言必红 (4.1s)
+
+  6 passed (23.6s)

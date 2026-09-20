@@ -1,0 +1,57 @@
+{
+  "before": {
+    "viewport": {
+      "w": 1280,
+      "h": 720
+    },
+    "scrollTop": 2463,
+    "result": {
+      "x": 588,
+      "y": 40,
+      "w": 692,
+      "h": 680
+    },
+    "anchor": {
+      "x": 600,
+      "y": -2383,
+      "w": 668,
+      "h": 256
+    },
+    "host": {
+      "x": 600,
+      "y": -2383,
+      "w": 668,
+      "h": 256
+    }
+  },
+  "after": {
+    "viewport": {
+      "w": 1280,
+      "h": 720
+    },
+    "scrollTop": 40,
+    "result": {
+      "x": 588,
+      "y": 40,
+      "w": 692,
+      "h": 680
+    },
+    "anchor": {
+      "x": 600,
+      "y": 40,
+      "w": 668,
+      "h": 256
+    },
+    "host": {
+      "x": 600,
+      "y": 40,
+      "w": 668,
+      "h": 256
+    }
+  },
+  "settle": {
+    "waitedMs": 987
+  },
+  "shotBefore": "t3_before_jump.png",
+  "shotAfter": "t3_after_jump.png"
+}

@@ -1,0 +1,3113 @@
+{
+  "cards": {
+    "wb-kline-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 80,
+        "width": 668,
+        "height": 256
+      },
+      "inline": "",
+      "className": "relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+      "computedHeight": "256px",
+      "computedFlexShrink": "0",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": null,
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-kline-chart",
+          "className": "relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+          "rect": {
+            "left": 600,
+            "top": 80,
+            "width": 668,
+            "height": 256
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "0",
+          "flexBasis": "auto",
+          "height": "256px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-kline-focus-anchor",
+          "className": "",
+          "rect": {
+            "left": 600,
+            "top": 80,
+            "width": 668,
+            "height": 256
+          },
+          "display": "block",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "256px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-aggregate-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 411,
+        "width": 668,
+        "height": 204
+      },
+      "inline": "",
+      "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "204px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 434,
+          "width": 666,
+          "height": 160
+        },
+        "className": "h-40 w-full",
+        "viewBox": "141.45 0 1070.82 160"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-aggregate-chart",
+          "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 411,
+            "width": 668,
+            "height": 204
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "204px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-slot-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 623,
+        "width": 668,
+        "height": 208
+      },
+      "inline": "",
+      "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "208px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 666,
+          "width": 666,
+          "height": 144
+        },
+        "className": "h-36 w-full",
+        "viewBox": "141.45 0 1070.82 160"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-slot-chart",
+          "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 623,
+            "width": 668,
+            "height": 208
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "208px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-equity-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 839,
+        "width": 668,
+        "height": 236
+      },
+      "inline": "",
+      "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "236px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 862,
+          "width": 666,
+          "height": 208
+        },
+        "className": "h-52 w-full",
+        "viewBox": "141.45 0 1070.82 220"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-equity-chart",
+          "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 839,
+            "width": 668,
+            "height": 236
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "236px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    },
+    "wb-position-chart": {
+      "present": true,
+      "rect": {
+        "left": 600,
+        "top": 1083,
+        "width": 668,
+        "height": 289
+      },
+      "inline": "",
+      "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+      "computedHeight": "288.75px",
+      "computedFlexShrink": "1",
+      "position": "relative",
+      "overflowY": "visible",
+      "svg": {
+        "rect": {
+          "left": 601,
+          "top": 1106,
+          "width": 666,
+          "height": 208
+        },
+        "className": "h-52 w-full",
+        "viewBox": "141.45 0 1070.82 220"
+      },
+      "chain": [
+        {
+          "tag": "div",
+          "testid": "wb-position-chart",
+          "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+          "rect": {
+            "left": 600,
+            "top": 1083,
+            "width": 668,
+            "height": 289
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "288.75px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "wb-result",
+          "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "auto"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "min-h-0 min-w-0 flex-1 bg-panel",
+          "rect": {
+            "left": 588,
+            "top": 40,
+            "width": 692,
+            "height": 680
+          },
+          "display": "block",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": "workbench-page",
+          "className": "flex min-w-0 flex-1",
+          "rect": {
+            "left": 208,
+            "top": 40,
+            "width": 1072,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "auto",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex min-h-0 flex-1",
+          "rect": {
+            "left": 0,
+            "top": 40,
+            "width": 1280,
+            "height": 680
+          },
+          "display": "flex",
+          "flexGrow": "1",
+          "flexShrink": "1",
+          "flexBasis": "0%",
+          "height": "680px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        },
+        {
+          "tag": "div",
+          "testid": null,
+          "className": "flex h-screen min-w-[1280px] flex-col",
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "display": "flex",
+          "flexGrow": "0",
+          "flexShrink": "1",
+          "flexBasis": "auto",
+          "height": "720px",
+          "minHeight": "0px",
+          "maxHeight": "none",
+          "overflowY": "visible"
+        }
+      ]
+    }
+  },
+  "resultScroll": {
+    "rect": {
+      "left": 588,
+      "top": 40,
+      "width": 692,
+      "height": 680
+    },
+    "clientHeight": 680,
+    "scrollHeight": 6612,
+    "overflowY": "auto"
+  },
+  "tables": {
+    "trades(tab default)": {
+      "wb-round-trips-table": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 1550,
+          "width": 844,
+          "height": 5081
+        },
+        "tbodyTrCount": 48,
+        "eventRowCount": 0,
+        "testidElementCount": 768,
+        "firstRowHeights": [
+          105,
+          105,
+          105
+        ],
+        "chain": [
+          {
+            "tag": "table",
+            "testid": "wb-round-trips-table",
+            "className": "w-full border-collapse text-xs",
+            "height": "5081px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5081,
+            "scrollHeight": 5081
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex flex-col gap-1 overflow-auto",
+            "height": "5102.59px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 5103,
+            "scrollHeight": 5103
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex flex-col gap-2",
+            "height": "5212.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5213,
+            "scrollHeight": 5213
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "5228.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5229,
+            "scrollHeight": 5229
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "5259.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5258,
+            "scrollHeight": 5258
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 6612
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      },
+      "wb-rt-coverage": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 1528,
+          "width": 650,
+          "height": 18
+        },
+        "tbodyTrCount": 0,
+        "eventRowCount": 0,
+        "testidElementCount": 0,
+        "firstRowHeights": [],
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-rt-coverage",
+            "className": "text-[11px] text-dim",
+            "height": "17.5938px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 18,
+            "scrollHeight": 18
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex flex-col gap-1 overflow-auto",
+            "height": "5102.59px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 5103,
+            "scrollHeight": 5103
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex flex-col gap-2",
+            "height": "5212.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5213,
+            "scrollHeight": 5213
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "5228.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5229,
+            "scrollHeight": 5229
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "5259.97px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 5258,
+            "scrollHeight": 5258
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 6612
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      }
+    },
+    "perbar(tab)": {
+      "wb-perbar-table": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 401,
+          "width": 650,
+          "height": 2579
+        },
+        "tbodyTrCount": 100,
+        "eventRowCount": 0,
+        "testidElementCount": 100,
+        "firstRowHeights": [
+          25,
+          25,
+          25
+        ],
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-perbar-table",
+            "className": "",
+            "height": "2579px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2579,
+            "scrollHeight": 2579
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "2595px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2595,
+            "scrollHeight": 2595
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "2626px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2624,
+            "scrollHeight": 2624
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 3978
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": [
+          {
+            "testid": null,
+            "className": "overflow-auto",
+            "clientHeight": 2525,
+            "scrollHeight": 2525,
+            "maxHeight": "none"
+          }
+        ]
+      },
+      "wb-perbar-coverage": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 404,
+          "width": 188,
+          "height": 16
+        },
+        "tbodyTrCount": 0,
+        "eventRowCount": 0,
+        "testidElementCount": 0,
+        "firstRowHeights": [],
+        "chain": [
+          {
+            "tag": "span",
+            "testid": "wb-perbar-coverage",
+            "className": "",
+            "height": "16px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 16,
+            "scrollHeight": 16
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "mb-1 flex flex-wrap items-center justify-between gap-2 text-[10px] text-dim",
+            "height": "22px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 22,
+            "scrollHeight": 22
+          },
+          {
+            "tag": "div",
+            "testid": "wb-perbar-table",
+            "className": "",
+            "height": "2579px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2579,
+            "scrollHeight": 2579
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "2595px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2595,
+            "scrollHeight": 2595
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "2626px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2624,
+            "scrollHeight": 2624
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 3978
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      }
+    },
+    "events(tab)": {
+      "wb-event-log": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 401,
+          "width": 650,
+          "height": 2036
+        },
+        "tbodyTrCount": 0,
+        "eventRowCount": 96,
+        "testidElementCount": 96,
+        "firstRowHeights": [],
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-event-log",
+            "className": "overflow-auto text-xs",
+            "height": "2036px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 2036,
+            "scrollHeight": 2036
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "2052px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2052,
+            "scrollHeight": 2052
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "2083px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2081,
+            "scrollHeight": 2081
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 3435
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      },
+      "wb-event-log-coverage": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 401,
+          "width": 197,
+          "height": 16
+        },
+        "tbodyTrCount": 0,
+        "eventRowCount": 0,
+        "testidElementCount": 0,
+        "firstRowHeights": [],
+        "chain": [
+          {
+            "tag": "span",
+            "testid": "wb-event-log-coverage",
+            "className": "",
+            "height": "16px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 16,
+            "scrollHeight": 16
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "mb-1 flex flex-wrap items-center gap-2 text-[10px] text-dim",
+            "height": "16px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 16,
+            "scrollHeight": 16
+          },
+          {
+            "tag": "div",
+            "testid": "wb-event-log",
+            "className": "overflow-auto text-xs",
+            "height": "2036px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 2036,
+            "scrollHeight": 2036
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "2052px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2052,
+            "scrollHeight": 2052
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "2083px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 2081,
+            "scrollHeight": 2081
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 3435
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      }
+    },
+    "metrics(tab)": {
+      "wb-metrics-table": {
+        "present": true,
+        "rect": {
+          "left": 609,
+          "top": 467,
+          "width": 650,
+          "height": 232
+        },
+        "tbodyTrCount": 8,
+        "eventRowCount": 0,
+        "testidElementCount": 8,
+        "firstRowHeights": [
+          29,
+          29,
+          29
+        ],
+        "chain": [
+          {
+            "tag": "table",
+            "testid": "wb-metrics-table",
+            "className": "w-full border-collapse text-xs",
+            "height": "232px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 232,
+            "scrollHeight": 232
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex flex-col gap-2",
+            "height": "283.188px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 283,
+            "scrollHeight": 283
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "p-2",
+            "height": "299.188px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 299,
+            "scrollHeight": 299
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "rounded-lg border border-line bg-panel2",
+            "height": "330.188px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 328,
+            "scrollHeight": 328
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "auto",
+            "clientHeight": 680,
+            "scrollHeight": 1682
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "height": "680px",
+            "maxHeight": "none",
+            "overflowY": "visible",
+            "clientHeight": 680,
+            "scrollHeight": 680
+          }
+        ],
+        "scrollables": []
+      }
+    }
+  },
+  "afterTabReturn": {
+    "controls": [
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-ma",
+        "ariaPressed": "true",
+        "ariaLabel": null,
+        "role": null,
+        "text": "MA"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-vol",
+        "ariaPressed": "true",
+        "ariaLabel": null,
+        "role": null,
+        "text": "VOL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-macd",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "MACD"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-kdj",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "KDJ"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-boll",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "BOLL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-dcap",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "DCAP"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-window-reset",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "全览"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-window-back",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "回退"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "testid": "legend-slot-0",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-tab-trades",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "交易明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-tab-metrics",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "8项绩效"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-tab-perbar",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "逐bar评分"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-tab-events",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "事件日志"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-1",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-1",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-2",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-2",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-3",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-3",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-4",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-4",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-5",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-5",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-6",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-6",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-7",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-7",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-8",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-8",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-9",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-9",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-10",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-10",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-11",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-11",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-12",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-12",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-13",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-13",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-14",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-14",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-15",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-15",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-16",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-16",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-17",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-17",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-18",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-18",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-19",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-19",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-20",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-20",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-21",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-21",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-22",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-22",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-23",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-23",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-24",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-24",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-25",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-25",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-26",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-26",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-27",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-27",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-28",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-28",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-29",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-29",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-30",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-30",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-31",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-31",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-32",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-32",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-33",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-33",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-34",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-34",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-35",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-35",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-36",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-36",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-37",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-37",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-38",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-38",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-39",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-39",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-40",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-40",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-41",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-41",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-42",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-42",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-43",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-43",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-44",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-44",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-45",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-45",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-46",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-46",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-47",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-47",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-detail-48",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "明细"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "testid": "wb-rt-jump-48",
+        "ariaPressed": null,
+        "ariaLabel": null,
+        "role": null,
+        "text": "跳转"
+      }
+    ],
+    "indicatorish": [
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-vol",
+        "ariaPressed": "true",
+        "ariaLabel": null,
+        "role": null,
+        "text": "VOL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-macd",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "MACD"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-kdj",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "KDJ"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-boll",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "BOLL"
+      },
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-dcap",
+        "ariaPressed": "false",
+        "ariaLabel": null,
+        "role": null,
+        "text": "DCAP"
+      }
+    ],
+    "maish": [
+      {
+        "tag": "button",
+        "type": null,
+        "testid": "wb-indicator-toggle-ma",
+        "ariaPressed": "true",
+        "ariaLabel": null,
+        "role": null,
+        "text": "MA"
+      }
+    ],
+    "cards": {
+      "wb-kline-chart": {
+        "present": true,
+        "rect": {
+          "left": 600,
+          "top": 80,
+          "width": 668,
+          "height": 256
+        },
+        "inline": "",
+        "className": "relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+        "computedHeight": "256px",
+        "computedFlexShrink": "0",
+        "position": "relative",
+        "overflowY": "visible",
+        "svg": null,
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-kline-chart",
+            "className": "relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2",
+            "rect": {
+              "left": 600,
+              "top": 80,
+              "width": 668,
+              "height": 256
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "0",
+            "flexBasis": "auto",
+            "height": "256px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-kline-focus-anchor",
+            "className": "",
+            "rect": {
+              "left": 600,
+              "top": 80,
+              "width": 668,
+              "height": 256
+            },
+            "display": "block",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "256px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "auto"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "block",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "rect": {
+              "left": 208,
+              "top": 40,
+              "width": 1072,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "rect": {
+              "left": 0,
+              "top": 40,
+              "width": 1280,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          }
+        ]
+      },
+      "wb-aggregate-chart": {
+        "present": true,
+        "rect": {
+          "left": 600,
+          "top": 411,
+          "width": 668,
+          "height": 204
+        },
+        "inline": "",
+        "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+        "computedHeight": "204px",
+        "computedFlexShrink": "1",
+        "position": "relative",
+        "overflowY": "visible",
+        "svg": {
+          "rect": {
+            "left": 601,
+            "top": 434,
+            "width": 666,
+            "height": 160
+          },
+          "className": "h-40 w-full",
+          "viewBox": "141.45 0 1070.82 160"
+        },
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-aggregate-chart",
+            "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+            "rect": {
+              "left": 600,
+              "top": 411,
+              "width": 668,
+              "height": 204
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "204px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "auto"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "block",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "rect": {
+              "left": 208,
+              "top": 40,
+              "width": 1072,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "rect": {
+              "left": 0,
+              "top": 40,
+              "width": 1280,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex h-screen min-w-[1280px] flex-col",
+            "rect": {
+              "left": 0,
+              "top": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "720px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          }
+        ]
+      },
+      "wb-slot-chart": {
+        "present": true,
+        "rect": {
+          "left": 600,
+          "top": 623,
+          "width": 668,
+          "height": 208
+        },
+        "inline": "",
+        "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+        "computedHeight": "208px",
+        "computedFlexShrink": "1",
+        "position": "relative",
+        "overflowY": "visible",
+        "svg": {
+          "rect": {
+            "left": 601,
+            "top": 666,
+            "width": 666,
+            "height": 144
+          },
+          "className": "h-36 w-full",
+          "viewBox": "141.45 0 1070.82 160"
+        },
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-slot-chart",
+            "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+            "rect": {
+              "left": 600,
+              "top": 623,
+              "width": 668,
+              "height": 208
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "208px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "auto"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "block",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "rect": {
+              "left": 208,
+              "top": 40,
+              "width": 1072,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "rect": {
+              "left": 0,
+              "top": 40,
+              "width": 1280,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex h-screen min-w-[1280px] flex-col",
+            "rect": {
+              "left": 0,
+              "top": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "720px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          }
+        ]
+      },
+      "wb-equity-chart": {
+        "present": true,
+        "rect": {
+          "left": 600,
+          "top": 839,
+          "width": 668,
+          "height": 236
+        },
+        "inline": "",
+        "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+        "computedHeight": "236px",
+        "computedFlexShrink": "1",
+        "position": "relative",
+        "overflowY": "visible",
+        "svg": {
+          "rect": {
+            "left": 601,
+            "top": 862,
+            "width": 666,
+            "height": 208
+          },
+          "className": "h-52 w-full",
+          "viewBox": "141.45 0 1070.82 220"
+        },
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-equity-chart",
+            "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+            "rect": {
+              "left": 600,
+              "top": 839,
+              "width": 668,
+              "height": 236
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "236px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "auto"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "block",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "rect": {
+              "left": 208,
+              "top": 40,
+              "width": 1072,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "rect": {
+              "left": 0,
+              "top": 40,
+              "width": 1280,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex h-screen min-w-[1280px] flex-col",
+            "rect": {
+              "left": 0,
+              "top": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "720px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          }
+        ]
+      },
+      "wb-position-chart": {
+        "present": true,
+        "rect": {
+          "left": 600,
+          "top": 1083,
+          "width": 668,
+          "height": 289
+        },
+        "inline": "",
+        "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+        "computedHeight": "288.75px",
+        "computedFlexShrink": "1",
+        "position": "relative",
+        "overflowY": "visible",
+        "svg": {
+          "rect": {
+            "left": 601,
+            "top": 1106,
+            "width": 666,
+            "height": 208
+          },
+          "className": "h-52 w-full",
+          "viewBox": "141.45 0 1070.82 220"
+        },
+        "chain": [
+          {
+            "tag": "div",
+            "testid": "wb-position-chart",
+            "className": "relative flex flex-col rounded-lg border border-line bg-panel2 py-1",
+            "rect": {
+              "left": 600,
+              "top": 1083,
+              "width": 668,
+              "height": 289
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "288.75px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "wb-result",
+            "className": "flex h-full flex-col gap-2 overflow-auto p-3",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "auto"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "min-h-0 min-w-0 flex-1 bg-panel",
+            "rect": {
+              "left": 588,
+              "top": 40,
+              "width": 692,
+              "height": 680
+            },
+            "display": "block",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": "workbench-page",
+            "className": "flex min-w-0 flex-1",
+            "rect": {
+              "left": 208,
+              "top": 40,
+              "width": 1072,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "auto",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex min-h-0 flex-1",
+            "rect": {
+              "left": 0,
+              "top": 40,
+              "width": 1280,
+              "height": 680
+            },
+            "display": "flex",
+            "flexGrow": "1",
+            "flexShrink": "1",
+            "flexBasis": "0%",
+            "height": "680px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          },
+          {
+            "tag": "div",
+            "testid": null,
+            "className": "flex h-screen min-w-[1280px] flex-col",
+            "rect": {
+              "left": 0,
+              "top": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "display": "flex",
+            "flexGrow": "0",
+            "flexShrink": "1",
+            "flexBasis": "auto",
+            "height": "720px",
+            "minHeight": "0px",
+            "maxHeight": "none",
+            "overflowY": "visible"
+          }
+        ]
+      }
+    },
+    "resultScroll": {
+      "rect": {
+        "left": 588,
+        "top": 40,
+        "width": 692,
+        "height": 680
+      },
+      "clientHeight": 680,
+      "scrollHeight": 6612,
+      "overflowY": "auto"
+    }
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T05:05:00.706Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

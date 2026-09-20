@@ -1,0 +1,519 @@
+{
+  "inj": "fills",
+  "injMs": 1500,
+  "run": "sr_1789865219068_000001",
+  "state": {
+    "maxDataLen": 174,
+    "markers": "44",
+    "note": "成交合计 44 笔（精确源 /fills，已加载 44 / 共 44）"
+  },
+  "want": 44,
+  "markers": "44",
+  "storeOk": true,
+  "storeNames": [
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot",
+    "fillDot"
+  ],
+  "storeDotCount": 44,
+  "pane": {
+    "W": 666,
+    "H": 194,
+    "canvases": 10
+  },
+  "dotInk": [
+    {
+      "fillKey": "1:0",
+      "label": "B 1.292×772.7224",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -449,
+      "y": 10
+    },
+    {
+      "fillKey": "1:1",
+      "label": "B 1.272×782.4142",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -443,
+      "y": 13
+    },
+    {
+      "fillKey": "1:2",
+      "label": "B 1.295×780.7095",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -437,
+      "y": 10
+    },
+    {
+      "fillKey": "1:3",
+      "label": "B 1.282×784.8913",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -431,
+      "y": 12
+    },
+    {
+      "fillKey": "1:4",
+      "label": "B 1.290×773.4165",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -425,
+      "y": 11
+    },
+    {
+      "fillKey": "1:5",
+      "label": "B 1.255×798.1418",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -329,
+      "y": 15
+    },
+    {
+      "fillKey": "1:6",
+      "label": "B 1.249×802.5502",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -323,
+      "y": 16
+    },
+    {
+      "fillKey": "1:7",
+      "label": "B 1.205×829.7362",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -317,
+      "y": 22
+    },
+    {
+      "fillKey": "1:8",
+      "label": "B 1.188×830.5056",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -311,
+      "y": 25
+    },
+    {
+      "fillKey": "1:9",
+      "label": "B 1.170×853.1833",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -305,
+      "y": 27
+    },
+    {
+      "fillKey": "1:10",
+      "label": "B 1.120×892.6218",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -209,
+      "y": 34
+    },
+    {
+      "fillKey": "1:11",
+      "label": "B 1.131×892.9006",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -203,
+      "y": 32
+    },
+    {
+      "fillKey": "1:12",
+      "label": "B 1.096×902.3883",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -197,
+      "y": 37
+    },
+    {
+      "fillKey": "1:13",
+      "label": "B 1.159×863.0508",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -191,
+      "y": 29
+    },
+    {
+      "fillKey": "1:14",
+      "label": "B 1.159×865.0524",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -185,
+      "y": 29
+    },
+    {
+      "fillKey": "1:15",
+      "label": "B 1.206×821.1437",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -89,
+      "y": 22
+    },
+    {
+      "fillKey": "1:16",
+      "label": "B 1.160×856.0088",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -83,
+      "y": 28
+    },
+    {
+      "fillKey": "1:17",
+      "label": "B 1.167×856.1903",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -77,
+      "y": 27
+    },
+    {
+      "fillKey": "1:18",
+      "label": "B 1.158×861.2944",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -71,
+      "y": 29
+    },
+    {
+      "fillKey": "1:19",
+      "label": "B 1.165×863.5844",
+      "color": "#ff5c6c",
+      "ink": 0,
+      "inView": false,
+      "x": -65,
+      "y": 28
+    },
+    {
+      "fillKey": "1:20",
+      "label": "B 1.065×936.2751",
+      "color": "#ff5c6c",
+      "ink": 20,
+      "inView": true,
+      "x": 31,
+      "y": 41
+    },
+    {
+      "fillKey": "1:21",
+      "label": "B 1.063×934.5702",
+      "color": "#ff5c6c",
+      "ink": 26,
+      "inView": true,
+      "x": 37,
+      "y": 42
+    },
+    {
+      "fillKey": "1:22",
+      "label": "B 1.054×948.73",
+      "color": "#ff5c6c",
+      "ink": 27,
+      "inView": true,
+      "x": 43,
+      "y": 43
+    },
+    {
+      "fillKey": "1:23",
+      "label": "B 1.029×982.2114",
+      "color": "#ff5c6c",
+      "ink": 29,
+      "inView": true,
+      "x": 49,
+      "y": 46
+    },
+    {
+      "fillKey": "1:24",
+      "label": "B 1.058×951.6003",
+      "color": "#ff5c6c",
+      "ink": 20,
+      "inView": true,
+      "x": 55,
+      "y": 42
+    },
+    {
+      "fillKey": "1:25",
+      "label": "B 0.946×1,057.6806",
+      "color": "#ff5c6c",
+      "ink": 32,
+      "inView": true,
+      "x": 151,
+      "y": 58
+    },
+    {
+      "fillKey": "1:26",
+      "label": "B 0.970×1,028.9301",
+      "color": "#ff5c6c",
+      "ink": 33,
+      "inView": true,
+      "x": 157,
+      "y": 54
+    },
+    {
+      "fillKey": "1:27",
+      "label": "B 0.960×1,035.1446",
+      "color": "#ff5c6c",
+      "ink": 30,
+      "inView": true,
+      "x": 163,
+      "y": 56
+    },
+    {
+      "fillKey": "1:28",
+      "label": "B 0.960×1,050.424",
+      "color": "#ff5c6c",
+      "ink": 28,
+      "inView": true,
+      "x": 169,
+      "y": 56
+    },
+    {
+      "fillKey": "1:29",
+      "label": "B 1.013×976.8165",
+      "color": "#ff5c6c",
+      "ink": 38,
+      "inView": true,
+      "x": 175,
+      "y": 49
+    },
+    {
+      "fillKey": "1:30",
+      "label": "B 1.102×901.4873",
+      "color": "#ff5c6c",
+      "ink": 23,
+      "inView": true,
+      "x": 271,
+      "y": 36
+    },
+    {
+      "fillKey": "1:31",
+      "label": "B 1.113×898.5167",
+      "color": "#ff5c6c",
+      "ink": 24,
+      "inView": true,
+      "x": 277,
+      "y": 35
+    },
+    {
+      "fillKey": "1:32",
+      "label": "B 1.110×897.6537",
+      "color": "#ff5c6c",
+      "ink": 24,
+      "inView": true,
+      "x": 283,
+      "y": 35
+    },
+    {
+      "fillKey": "1:33",
+      "label": "B 1.093×911.5105",
+      "color": "#ff5c6c",
+      "ink": 26,
+      "inView": true,
+      "x": 289,
+      "y": 38
+    },
+    {
+      "fillKey": "1:34",
+      "label": "B 1.104×905.0213",
+      "color": "#ff5c6c",
+      "ink": 18,
+      "inView": true,
+      "x": 295,
+      "y": 36
+    },
+    {
+      "fillKey": "1:35",
+      "label": "B 1.197×831.4545",
+      "color": "#ff5c6c",
+      "ink": 22,
+      "inView": true,
+      "x": 391,
+      "y": 23
+    },
+    {
+      "fillKey": "1:36",
+      "label": "B 1.237×836.9565",
+      "color": "#ff5c6c",
+      "ink": 31,
+      "inView": true,
+      "x": 397,
+      "y": 18
+    },
+    {
+      "fillKey": "1:37",
+      "label": "B 1.243×805.1645",
+      "color": "#ff5c6c",
+      "ink": 29,
+      "inView": true,
+      "x": 403,
+      "y": 17
+    },
+    {
+      "fillKey": "1:38",
+      "label": "B 1.240×811.0217",
+      "color": "#ff5c6c",
+      "ink": 29,
+      "inView": true,
+      "x": 409,
+      "y": 17
+    },
+    {
+      "fillKey": "1:39",
+      "label": "B 1.203×832.5209",
+      "color": "#ff5c6c",
+      "ink": 24,
+      "inView": true,
+      "x": 415,
+      "y": 22
+    },
+    {
+      "fillKey": "1:40",
+      "label": "B 1.176×848.4772",
+      "color": "#ff5c6c",
+      "ink": 15,
+      "inView": true,
+      "x": 511,
+      "y": 26
+    },
+    {
+      "fillKey": "1:41",
+      "label": "B 1.165×856.1262",
+      "color": "#ff5c6c",
+      "ink": 24,
+      "inView": true,
+      "x": 517,
+      "y": 28
+    },
+    {
+      "fillKey": "1:42",
+      "label": "B 1.188×843.9619",
+      "color": "#ff5c6c",
+      "ink": 25,
+      "inView": true,
+      "x": 523,
+      "y": 25
+    },
+    {
+      "fillKey": "1:43",
+      "label": "S 1.195×37,764.7619",
+      "color": "#00e0a4",
+      "ink": 16,
+      "inView": true,
+      "x": 523,
+      "y": 36
+    }
+  ],
+  "pixel": {
+    "inkMin": 0,
+    "inkMedian": 18,
+    "dotsWithInk": 24,
+    "dotsInView": 24,
+    "dotsInViewWithInk": 24,
+    "inkMinInView": 15,
+    "readErrors": []
+  },
+  "firstKlineAtMs": 177,
+  "firstRunFillsAtMs": 1674,
+  "orderDeltaMs": -1497,
+  "events": [
+    {
+      "url": "http://localhost:8081/api/kline?code=159776&period=1d&before=2026-09-18T16%3A00%3A01.000Z&limit=260",
+      "at": 177
+    },
+    {
+      "url": "http://localhost:8081/api/workbench/runs/sr_1789865219068_000001/fills?limit=5000",
+      "at": 1674
+    }
+  ],
+  "geomTargets": {
+    "keyA": [
+      "1789660800:1.1882376",
+      "1789660800:1.1947610000000002"
+    ],
+    "gA": {
+      "x": 604,
+      "y": 25
+    },
+    "gB": {
+      "x": 604,
+      "y": 24
+    }
+  },
+  "shots": {
+    "markers": {
+      "name": "markers_fills.png",
+      "clip": {
+        "x": 601,
+        "y": 141,
+        "width": 666,
+        "height": 194
+      }
+    },
+    "jump": {
+      "name": "jump_fills.png",
+      "clip": {
+        "x": 601,
+        "y": 0,
+        "width": 666,
+        "height": 194
+      }
+    }
+  }
+}

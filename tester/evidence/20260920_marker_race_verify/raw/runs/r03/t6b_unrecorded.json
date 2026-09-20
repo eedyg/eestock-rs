@@ -1,0 +1,35 @@
+{
+  "attrs": {
+    "data-testid": "wb-jump-highlight-note",
+    "data-state": "unrecorded",
+    "data-fill-key": "1:42",
+    "class": "text-amber-300"
+  },
+  "text": "该运行未记录成交明细（recorded=false）⇒ 无标记可高亮（窗口跳转仍已执行）",
+  "fillsNote": "该运行未记录成交明细（P6 之前的分块 run）⇒ 标记可能不全",
+  "markers": 0,
+  "highlight": 0,
+  "probe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "true",
+    "data-rev": "3",
+    "data-requested-bar-space": "5",
+    "data-bar-space": "5",
+    "data-from-idx": "52",
+    "data-to-idx": "173",
+    "data-from-ts": "1774454400",
+    "data-to-ts": "1789660800",
+    "data-error": "",
+    "data-center-idx": "173",
+    "data-center-ts": "1789660800",
+    "data-observed-center-idx": "113",
+    "data-observed-center-ts": "1782403200",
+    "data-edge-clamped": "true",
+    "data-cmd-rev": "3",
+    "data-cmd-from-ts": "1784563200",
+    "data-cmd-to-ts": "1794844800",
+    "data-cmd-span": "120",
+    "data-cmd-center-ts": "1789704000",
+    "hidden": ""
+  }
+}

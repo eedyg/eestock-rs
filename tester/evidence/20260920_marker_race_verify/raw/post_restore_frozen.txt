@@ -1,0 +1,15 @@
+
+Running 10 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/adr028-features-verify.e2e.ts:499:1 › T0 真身锚定：被服务的 bundle == 实现方 bundle（sha256） (357ms)
+  ✓   2 [chromium] › e2e/adr028-features-verify.e2e.ts:527:1 › T1 醒目化：真图表 store 中每笔成交一个 fillDot（含价格×股数标签/堆叠序），同 bar 多笔可分辨，且无连线类 overlay (1.4s)
+  ✓   3 [chromium] › e2e/adr028-features-verify.e2e.ts:574:1 › T2 醒目化像素 [@mut]：价格×股数标签确实被绘制到 canvas（标签区红墨连续列 run ≥ 阈值） (1.3s)
+  ✓   4 [chromium] › e2e/adr028-features-verify.e2e.ts:615:1 › T3 focus：L2 [跳转] 后结果页滚动到 K 线区域（滚动容器 + 视口双重判据） (1.7s)
+  ✓   5 [chromium] › e2e/adr028-features-verify.e2e.ts:642:1 › T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0 (10.9s)
+  ✓   6 [chromium] › e2e/adr028-features-verify.e2e.ts:825:1 › T5 曲线竖线：四视图同一时点画竖线，跨 3 秒保留、下一次跳转更新、全览清除 (6.9s)
+  ✓   7 [chromium] › e2e/adr028-features-verify.e2e.ts:882:1 › T6a 三态提示 unmatched：目标笔不在 K 线标记集合内（序号跨源错配）⇒ 显式提示、不静默 (1.6s)
+  ✓   8 [chromium] › e2e/adr028-features-verify.e2e.ts:916:1 › T6b 三态提示 unrecorded：recorded=false（未写成交明细）⇒ 显式提示、不静默 (1.7s)
+  ✓   9 [chromium] › e2e/adr028-features-verify.e2e.ts:948:1 › T6c 三态提示 loading：成交明细未到位期间必须显式披露；并核验「跳转高亮 loading 分支」在 UI 上是否可达 (15.9s)
+  ✓  10 [chromium] › e2e/adr028-features-verify.e2e.ts:1017:1 › T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 采样点自命中 + 真实 click 不超时） (3.1s)
+
+  10 passed (45.3s)

@@ -1,0 +1,54 @@
+{
+  "geomKeys": [
+    "1789660800:1.1882376",
+    "1789660800:1.1947610000000002"
+  ],
+  "geomCells": {
+    "1789660800:1.1882376": {
+      "x": 604,
+      "yRaw": 25,
+      "y": 25,
+      "stack": 0,
+      "label": "B 1.188×843.9619",
+      "color": "#ff5c6c",
+      "fillKey": "1:42"
+    },
+    "1789660800:1.1947610000000002": {
+      "x": 604,
+      "yRaw": 24,
+      "y": 36,
+      "stack": 1,
+      "label": "S 1.195×37,764.7619",
+      "color": "#00e0a4",
+      "fillKey": "1:43"
+    }
+  },
+  "chartState": {
+    "maxDataLen": 174,
+    "markers": "44",
+    "fillsNote": "成交合计 44 笔（精确源 /fills，已加载 44 / 共 44）"
+  },
+  "windowProbe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "true",
+    "data-rev": "3",
+    "data-requested-bar-space": "5",
+    "data-bar-space": "5",
+    "data-from-idx": "52",
+    "data-to-idx": "173",
+    "data-from-ts": "1774454400",
+    "data-to-ts": "1789660800",
+    "data-error": "",
+    "data-center-idx": "173",
+    "data-center-ts": "1789660800",
+    "data-observed-center-idx": "113",
+    "data-observed-center-ts": "1782403200",
+    "data-edge-clamped": "true",
+    "data-cmd-rev": "3",
+    "data-cmd-from-ts": "1784563200",
+    "data-cmd-to-ts": "1794844800",
+    "data-cmd-span": "120",
+    "data-cmd-center-ts": "1789704000",
+    "hidden": ""
+  }
+}

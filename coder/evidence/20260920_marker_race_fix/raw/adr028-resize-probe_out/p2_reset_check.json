@@ -1,0 +1,79 @@
+{
+  "paneRectsAtTop": {
+    "root": {
+      "left": 601,
+      "top": 141,
+      "width": 666,
+      "height": 194
+    },
+    "panes": [
+      {
+        "rect": {
+          "left": 601,
+          "top": 141,
+          "width": 666,
+          "height": 67
+        },
+        "canvasCount": 4
+      },
+      {
+        "rect": {
+          "left": 601,
+          "top": 209,
+          "width": 666,
+          "height": 100
+        },
+        "canvasCount": 4
+      },
+      {
+        "rect": {
+          "left": 601,
+          "top": 309,
+          "width": 666,
+          "height": 26
+        },
+        "canvasCount": 2
+      }
+    ],
+    "separatorBars": [
+      {
+        "rect": {
+          "left": 601,
+          "top": 208,
+          "width": 666,
+          "height": 1
+        },
+        "canvasCount": 0
+      }
+    ],
+    "separators": [
+      {
+        "rect": {
+          "left": 601,
+          "top": 205,
+          "width": 666,
+          "height": 7
+        },
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    ]
+  },
+  "env": {
+    "baseURL": "http://localhost:8081",
+    "runId": "sr_1789832517800_000006",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "barSeconds": 300,
+    "alignTolPx": 2,
+    "curvePlotW": 984,
+    "heights": {
+      "klineTall": 480,
+      "klineShort": 160,
+      "curveCard": 340
+    },
+    "startedAt": "2026-09-20T05:05:00.706Z",
+    "metricVersion": "v1: v2 same-bar pairing (Δraw px + Δ984 normalized) + cross-view userX + plot edges"
+  }
+}

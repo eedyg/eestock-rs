@@ -1,0 +1,19 @@
+{
+  "afterMount": {
+    "setSymbol": 1,
+    "setPeriod": 1,
+    "symbols": [
+      "518880"
+    ]
+  },
+  "afterChange": {
+    "setSymbol": 1,
+    "setPeriod": 1,
+    "symbols": [
+      "518880"
+    ],
+    "periods": [
+      "[object Object]"
+    ]
+  }
+}

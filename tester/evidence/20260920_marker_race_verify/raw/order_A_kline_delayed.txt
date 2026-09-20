@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/zz-tester-order-independence.e2e.ts:256:1 › 次序无关：/api/kline 与 /fills 的提交次序（注入 kline +1500ms）下标记都要出现 (2.5s)
+
+  1 passed (2.9s)

@@ -1,0 +1,74 @@
+{
+  "tsA": 1789660800,
+  "tsC": 1789574400,
+  "before": 0,
+  "vOn": [
+    {
+      "view": "aggregate",
+      "ts": "1789660800"
+    },
+    {
+      "view": "slots",
+      "ts": "1789660800"
+    },
+    {
+      "view": "equity",
+      "ts": "1789660800"
+    },
+    {
+      "view": "position",
+      "ts": "1789660800"
+    }
+  ],
+  "vAfter3s": [
+    {
+      "view": "aggregate",
+      "ts": "1789660800"
+    },
+    {
+      "view": "slots",
+      "ts": "1789660800"
+    },
+    {
+      "view": "equity",
+      "ts": "1789660800"
+    },
+    {
+      "view": "position",
+      "ts": "1789660800"
+    }
+  ],
+  "vSecond": [
+    {
+      "view": "aggregate",
+      "ts": "1789574400"
+    },
+    {
+      "view": "slots",
+      "ts": "1789574400"
+    },
+    {
+      "view": "equity",
+      "ts": "1789574400"
+    },
+    {
+      "view": "position",
+      "ts": "1789574400"
+    }
+  ],
+  "vReset": [],
+  "attrsReset": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "",
+    "data-highlight-active": "false",
+    "data-highlight-pulse": "0",
+    "data-marker-overlays": "44",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "obstruction": {
+    "elementAtCenter": "button",
+    "blocked": false
+  }
+}

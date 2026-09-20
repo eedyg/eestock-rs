@@ -1,0 +1,36 @@
+--- src/features/workbench/ResultView.test.tsx
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+--- src/features/workbench/resultAxisIndex.test.tsx
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+--- src/features/workbench/resultWindowSync.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+--- src/features/workbench/resultWindow.test.ts
+ Test Files  1 passed (1)
+      Tests  33 passed (33)
+--- src/features/dashboard/volToggle.test.tsx
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+--- src/features/dashboard/dcapWiringP3.test.tsx
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+--- src/features/workbench/adr028FocusHighlight.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+--- src/features/workbench/adr028LayoutFix.test.ts
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+--- src/features/workbench/roundTripLayers.test.tsx
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+--- src/features/workbench/resultBarSpaceLimit.test.tsx
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+--- src/features/dashboard/multiPeriodSatellite.test.tsx
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+--- src/features/workbench/WorkbenchPage.test.tsx
+ Test Files  1 passed (1)
+      Tests  14 passed (14)

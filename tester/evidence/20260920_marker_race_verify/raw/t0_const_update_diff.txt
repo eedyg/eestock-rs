@@ -1,0 +1,23 @@
+### numstat: pre-edit snapshot vs post-edit (self-consistent zero-change proof)
+2	2	tester/evidence/20260920_marker_race_verify/raw/{spec_prefix_before_t0_update.e2e.ts => spec_post_t0_update.e2e.ts}
+### diff body
+--- tester/evidence/20260920_marker_race_verify/raw/spec_prefix_before_t0_update.e2e.ts	2026-09-20 13:16:25.844245642 +0800
++++ tester/evidence/20260920_marker_race_verify/raw/spec_post_t0_update.e2e.ts	2026-09-20 13:16:31.718033469 +0800
+@@ -42,8 +42,8 @@
+  *  :8081 由 `static_dir=./web/dist` 静态托管 —— `index.html` 引用的 `assets/index-*.js` 必须与 `web/dist` 内
+  *  同名文件**逐字节一致**，且 sha256 == 本常量。构建产物合法变更时，**须由规格维护者显式更新本常量**
+  *  （不得放宽为「任意 bundle」或加 env 旁路）。 */
+-const EXPECT_BUNDLE_NAME = 'index-xGaRgVd-.js';
+-const EXPECT_BUNDLE_SHA256 = '8d936e11f5d0d448434cf0d6907d8d907f0e544e8bd0a2805d1d06433993a8bc';
++const EXPECT_BUNDLE_NAME = 'index-BZMgzJCS.js';
++const EXPECT_BUNDLE_SHA256 = '56ef46526414735c93f58f159a2659f2a4cfc68d13f47244571d5154b53db13b';
+ 
+ const RUN_A = process.env.ADR028V_RUN_A ?? 'sr_1789865219068_000001';
+ const RT_A = Number(process.env.ADR028V_RT_A ?? '1');
+### sha256 post
+dc3f6fc537a0da1734d8ff08f3166167c7bf41724303a32810fb1fa635446c5f  web/e2e/adr028-features-verify.e2e.ts
+### 'git HEAD vs pre-edit snapshot' numstat (上一波 tester 改动量，非本波)
+100	8	/tmp/spec_HEAD.tsx => tester/evidence/20260920_marker_race_verify/raw/spec_prefix_before_t0_update.e2e.ts
+
+### 'git HEAD vs current worktree' numstat
+102	10	/tmp/spec_HEAD.tsx => web/e2e/adr028-features-verify.e2e.ts

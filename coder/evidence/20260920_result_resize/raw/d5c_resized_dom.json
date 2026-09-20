@@ -1,0 +1,235 @@
+{
+ "cards": {
+  "wb-kline-chart": {
+   "present": true,
+   "rect": {
+    "x": 600,
+    "y": -375,
+    "w": 668,
+    "h": 480
+   },
+   "inlineHeight": "480px",
+   "inlineFlexShrink": "0",
+   "dataResizable": "kline",
+   "svg": null,
+   "handle": true,
+   "title": true
+  },
+  "wb-aggregate-chart": {
+   "present": true,
+   "rect": {
+    "x": 600,
+    "y": 180,
+    "w": 668,
+    "h": 354
+   },
+   "inlineHeight": "354px",
+   "inlineFlexShrink": "0",
+   "dataResizable": "aggregate",
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": 203,
+     "w": 666,
+     "h": 310
+    },
+    "className": "h-full w-full"
+   },
+   "handle": true,
+   "title": true
+  },
+  "wb-slot-chart": {
+   "present": true,
+   "rect": {
+    "x": 600,
+    "y": 542,
+    "w": 668,
+    "h": 208
+   },
+   "inlineHeight": null,
+   "inlineFlexShrink": null,
+   "dataResizable": "slot",
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": 585,
+     "w": 666,
+     "h": 144
+    },
+    "className": "h-36 w-full"
+   },
+   "handle": true,
+   "title": true
+  },
+  "wb-equity-chart": {
+   "present": true,
+   "rect": {
+    "x": 600,
+    "y": 758,
+    "w": 668,
+    "h": 236
+   },
+   "inlineHeight": null,
+   "inlineFlexShrink": null,
+   "dataResizable": "equity",
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": 781,
+     "w": 666,
+     "h": 208
+    },
+    "className": "h-52 w-full"
+   },
+   "handle": true,
+   "title": true
+  },
+  "wb-position-chart": {
+   "present": true,
+   "rect": {
+    "x": 600,
+    "y": 1002,
+    "w": 668,
+    "h": 289
+   },
+   "inlineHeight": null,
+   "inlineFlexShrink": null,
+   "dataResizable": "position",
+   "svg": {
+    "rect": {
+     "x": 601,
+     "y": 1025,
+     "w": 666,
+     "h": 208
+    },
+    "className": "h-52 w-full"
+   },
+   "handle": true,
+   "title": true
+  }
+ },
+ "klineInner": {
+  "x": 601,
+  "y": -314,
+  "w": 666,
+  "h": 418
+ },
+ "toggles": [
+  {
+   "key": "ma",
+   "testid": "wb-indicator-toggle-ma",
+   "text": "MA",
+   "pressed": "true"
+  },
+  {
+   "key": "vol",
+   "testid": "wb-indicator-toggle-vol",
+   "text": "VOL",
+   "pressed": "true"
+  },
+  {
+   "key": "macd",
+   "testid": "wb-indicator-toggle-macd",
+   "text": "MACD",
+   "pressed": "false"
+  },
+  {
+   "key": "kdj",
+   "testid": "wb-indicator-toggle-kdj",
+   "text": "KDJ",
+   "pressed": "false"
+  },
+  {
+   "key": "boll",
+   "testid": "wb-indicator-toggle-boll",
+   "text": "BOLL",
+   "pressed": "false"
+  },
+  {
+   "key": "dcap",
+   "testid": "wb-indicator-toggle-dcap",
+   "text": "DCAP",
+   "pressed": "false"
+  }
+ ],
+ "tableAnchors": {
+  "wb-round-trips-table": {
+   "present": true,
+   "rect": {
+    "x": 609,
+    "y": 1469,
+    "w": 844,
+    "h": 5081
+   },
+   "handles": 0,
+   "inlineHeight": null,
+   "clientHeight": 5081,
+   "scrollHeight": 5081
+  },
+  "wb-perbar-table": {
+   "present": false,
+   "rect": null,
+   "handles": 0,
+   "inlineHeight": null,
+   "clientHeight": null,
+   "scrollHeight": null
+  },
+  "wb-event-log": {
+   "present": false,
+   "rect": null,
+   "handles": 0,
+   "inlineHeight": null,
+   "clientHeight": null,
+   "scrollHeight": null
+  }
+ },
+ "panes": [
+  {
+   "id": "candle_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "indicator_pane_1789877658660_2",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  },
+  {
+   "id": "x_axis_pane",
+   "height": 100,
+   "minHeight": 30,
+   "dragEnabled": true
+  }
+ ],
+ "indicators": [
+  {
+   "name": "MA",
+   "paneId": "candle_pane"
+  },
+  {
+   "name": "VOL",
+   "paneId": "indicator_pane_1789877658660_2"
+  }
+ ],
+ "paneDoms": [
+  {
+   "h": 291,
+   "canvas": 4
+  },
+  {
+   "h": 1,
+   "canvas": 0
+  },
+  {
+   "h": 100,
+   "canvas": 4
+  },
+  {
+   "h": 26,
+   "canvas": 2
+  }
+ ],
+ "resultScrollTop": 455
+}

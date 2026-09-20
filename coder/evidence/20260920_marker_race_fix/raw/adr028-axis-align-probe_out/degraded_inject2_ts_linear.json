@@ -1,0 +1,160 @@
+{
+  "attrs": {
+    "state": {
+      "data-testid": "wb-window-state",
+      "data-source": "full",
+      "data-rev": "",
+      "data-from-ts": "",
+      "data-to-ts": "",
+      "data-span-bars": ""
+    },
+    "probe": {
+      "data-testid": "wb-window-probe",
+      "data-ok": "",
+      "data-rev": "",
+      "data-requested-bar-space": "",
+      "data-bar-space": "",
+      "data-from-idx": "",
+      "data-to-idx": "",
+      "data-from-ts": "",
+      "data-to-ts": "",
+      "data-error": "",
+      "data-center-idx": "",
+      "data-center-ts": "",
+      "data-observed-center-idx": "",
+      "data-observed-center-ts": "",
+      "data-edge-clamped": "",
+      "data-cmd-rev": "",
+      "data-cmd-from-ts": "",
+      "data-cmd-to-ts": "",
+      "data-cmd-span": "",
+      "data-cmd-center-ts": "",
+      "hidden": ""
+    },
+    "charts": {
+      "wb-aggregate-chart": "1785547800,1789628280",
+      "wb-slot-chart": "1785547800,1789628280",
+      "wb-equity-chart": "1785547800,1789628280",
+      "wb-position-chart": "1785547800,1789628280"
+    },
+    "modes": {
+      "wb-aggregate-chart": "ts",
+      "wb-slot-chart": "ts",
+      "wb-equity-chart": "ts",
+      "wb-position-chart": "ts"
+    },
+    "note": null,
+    "capNote": null,
+    "clampNote": null,
+    "degradedNote": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得",
+    "unmatchedNote": null,
+    "applying": false,
+    "sampling": {
+      "aggregate": "共 1949 bar",
+      "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+    }
+  },
+  "probe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "",
+    "data-rev": "",
+    "data-requested-bar-space": "",
+    "data-bar-space": "",
+    "data-from-idx": "",
+    "data-to-idx": "",
+    "data-from-ts": "",
+    "data-to-ts": "",
+    "data-error": "",
+    "data-center-idx": "",
+    "data-center-ts": "",
+    "data-observed-center-idx": "",
+    "data-observed-center-ts": "",
+    "data-edge-clamped": "",
+    "data-cmd-rev": "",
+    "data-cmd-from-ts": "",
+    "data-cmd-to-ts": "",
+    "data-cmd-span": "",
+    "data-cmd-center-ts": "",
+    "hidden": ""
+  },
+  "progression": [
+    {
+      "atMs": 0,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 500,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 1000,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 1500,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 2000,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 2500,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 3000,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    },
+    {
+      "atMs": 3500,
+      "mode": "ts",
+      "degraded": "时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得"
+    }
+  ],
+  "network": [
+    {
+      "phase": "inject2",
+      "url": "/api/kline?code=518880&period=5m&before=2026-09-17T07%3A03%3A00.000Z&limit=13605",
+      "status": 200,
+      "summary": "bars=0 points=- total=- err=-"
+    },
+    {
+      "phase": "inject2",
+      "url": "/api/workbench/runs/sr_1789832517800_000006/bars?kind=per_bar&offset=0&limit=5000",
+      "status": 200,
+      "summary": "bars=0 points=- total=0 err=-"
+    },
+    {
+      "phase": "inject2",
+      "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=net_value&k=2000",
+      "status": 200,
+      "summary": "bars=- points=1699 total=- err=-"
+    },
+    {
+      "phase": "inject2",
+      "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=drawdown&k=2000",
+      "status": 200,
+      "summary": "bars=- points=1699 total=- err=-"
+    },
+    {
+      "phase": "inject2",
+      "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=position&k=2000",
+      "status": 200,
+      "summary": "bars=- points=1699 total=- err=-"
+    },
+    {
+      "phase": "inject2",
+      "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=per_bar&k=2000",
+      "status": 200,
+      "summary": "bars=- points=1949 total=- err=-"
+    }
+  ]
+}
