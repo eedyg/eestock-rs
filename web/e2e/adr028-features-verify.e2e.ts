@@ -10,6 +10,10 @@
  *     高亮判据要求「白簇**恰 1 个**且质心落在被点那一笔的**堆叠位置**（±3px）」——
  *     按 bar 粗定位（M1 变异）或高亮 overlay 被静默丢弃（M2 变异）都会红；
  *  4. 三态提示用 `page.route` **注入数据面**（不改生产代码）构造 unmatched / unrecorded / loading。
+ *  5. **2026-09-20（T4 flaky 取证后加固）**：`openRunSettled` 不再用 `waitForTimeout(2500)`「等落定」，改为
+ *     **显式就绪判据**（图表 K 线 `dataList` 非空 + `data-marker-overlays` == 已加载成交笔数）；T4 另要求
+ *     **写窗真身回执**（`wb-window-probe` rev 到位）后才读几何（见 `settleJump(page,{requireReceipt:true})`）。
+ *     取证：`tester/evidence/20260920_t4_flaky_rootcause/report.md`。
  *
  * 真身：`:8081`（**主机进程** `./target/debug/eestock-app --config /tmp/app_dev_8081.toml`，`static_dir=./web/dist`，
  * 进程 PID 见 `tester/evidence/20260920_adr028_features_verify2/report.md` §1；`dist/index.html` 引用
@@ -38,8 +42,8 @@ const OUT = process.env.ADR028V_OUT ?? resolve(REPO, 'tester/evidence/20260920_a
  *  :8081 由 `static_dir=./web/dist` 静态托管 —— `index.html` 引用的 `assets/index-*.js` 必须与 `web/dist` 内
  *  同名文件**逐字节一致**，且 sha256 == 本常量。构建产物合法变更时，**须由规格维护者显式更新本常量**
  *  （不得放宽为「任意 bundle」或加 env 旁路）。 */
-const EXPECT_BUNDLE_NAME = 'index-xGaRgVd-.js';
-const EXPECT_BUNDLE_SHA256 = '8d936e11f5d0d448434cf0d6907d8d907f0e544e8bd0a2805d1d06433993a8bc';
+const EXPECT_BUNDLE_NAME = 'index-BZMgzJCS.js';
+const EXPECT_BUNDLE_SHA256 = '56ef46526414735c93f58f159a2659f2a4cfc68d13f47244571d5154b53db13b';
 
 const RUN_A = process.env.ADR028V_RUN_A ?? 'sr_1789865219068_000001';
 const RT_A = Number(process.env.ADR028V_RT_A ?? '1');
@@ -88,7 +92,43 @@ async function readAttrs(page: Page, testId: string): Promise<Record<string, str
   );
 }
 
-/** 打开工作台 + 选中 run + 等初始装载落定（结果页可见、窗口事实源来自 kline、成交明细到位）。 */
+/** 页面上屏的图表真身状态（就绪判据读点）。 */
+async function chartReadyState(page: Page): Promise<{ maxDataLen: number; markers: string; fillsNote: string }> {
+  const dataLens = await page.evaluate(() => {
+    const w = window as unknown as { __wbCharts?: Array<Record<string, (...a: unknown[]) => unknown>> };
+    return (w.__wbCharts ?? []).map((c) => {
+      try {
+        return (((c['getDataList'] as () => unknown[])() ?? []) as unknown[]).length;
+      } catch {
+        return -1;
+      }
+    });
+  });
+  const markers = (await page.getByTestId('kline-chart').getAttribute('data-marker-overlays')) ?? '';
+  const fillsNote = (await page.getByTestId('wb-fills-note').textContent()) ?? '';
+  return { maxDataLen: dataLens.reduce((a, b) => Math.max(a, b), 0), markers, fillsNote };
+}
+
+/** 由 `wb-fills-note` 文案导出**期望已建标记数**（= 已加载成交笔数）。
+ *  与 K 线标记的事实源同源：`成交合计 N 笔（精确源 /fills，已加载 L / 共 N）` ⇒ 期望 L（每笔一个 fillDot）。
+ *  `加载中…` / `未记录…` ⇒ 期望 0（与 T6b/T6c 的显式判据同口径）。
+ *  文案无法解析 ⇒ **显式抛错**（就绪判据失去依据时必须变红，禁止静默放宽）。 */
+function expectedMarkerCount(fillsNote: string): number {
+  if (fillsNote.includes('加载中')) return 0;
+  if (fillsNote.includes('未记录')) return 0;
+  const m = /已加载\s*(\d+)\s*\/\s*共\s*\d+/.exec(fillsNote);
+  if (!m) throw new Error(`wb-fills-note 文案无法解析（就绪判据失效，须更新规格）：${fillsNote}`);
+  return Number(m[1]);
+}
+
+/** 打开工作台 + 选中 run + 等初始装载落定（结果页可见、窗口事实源来自 kline、成交明细到位）。
+ *
+ *  **2026-09-20（T4 flaky 取证）**：本条原先以 `waitForTimeout(2500)`「等落定」——固定 sleep 不能保证任何
+ *  前置条件成立（数据慢于 2.5s ⇒ 断言跑在未就绪状态上；数据快于 2.5s ⇒ 白白等待）。现改为**显式就绪判据**：
+ *  ① 图表 K 线数据到位（`dataList` 非空 ⇒ 窗口事实源/几何定位可用）；
+ *  ② 成交明细到位且**每笔成交一个 `fillDot`**（`data-marker-overlays` == 已加载成交数，读页面自身上屏口径）。
+ *  就绪判据超时 ⇒ 显式红（附实际/期望计数），不再随机停在后续断言上。
+ *  取证与残留在产品侧的竞态见 `tester/evidence/20260920_t4_flaky_rootcause/report.md`。 */
 async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
@@ -98,7 +138,29 @@ async function openRunSettled(page: Page, runId: string): Promise<void> {
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
   await expect(page.getByTestId('wb-fills-note')).toBeVisible();
-  await page.waitForTimeout(2500);
+  // ① 图表 K 线数据就绪（窗口事实源来自 kline；dataList 为空则「定位/画标记」无从谈起）
+  await expect
+    .poll(async () => (await chartReadyState(page)).maxDataLen, {
+      timeout: 15_000,
+      intervals: [100],
+      message: '图表 K 线数据必须到位（真图表实例 dataList 非空）',
+    })
+    .toBeGreaterThan(0);
+  // ② 成交明细就绪 + 每笔成交一个标记（读页面上屏计数，与 T1/T4 判据同源）
+  await expect
+    .poll(
+      async () => {
+        const { markers, fillsNote } = await chartReadyState(page);
+        const want = expectedMarkerCount(fillsNote);
+        return markers === String(want) ? 'OK' : `MISMATCH data-marker-overlays=${markers} want=${want} note=${fillsNote}`;
+      },
+      {
+        timeout: 15_000,
+        intervals: [100],
+        message: '成交明细到位后每笔成交必须已建成 fillDot 标记（data-marker-overlays == 已加载成交笔数）',
+      },
+    )
+    .toBe('OK');
 }
 
 /** 真图表 store：`fillDot`（常态标记）/`fillDotHighlight`（跳转高亮）逐条读回。 */
@@ -373,8 +435,17 @@ async function rects(page: Page) {
   });
 }
 
-/** 跳转后等「平滑滚动落定 + 高亮生效」（高亮只活 3s ⇒ 判据用 scrollTop 连续两次采样不变，最快 ~1.2s）。 */
-async function settleJump(page: Page, maxMs = 3000): Promise<{ waitedMs: number }> {
+/** 跳转后等「平滑滚动落定 + 高亮生效」（高亮只活 3s ⇒ 判据用 scrollTop 连续两次采样不变，最快 ~1.2s）。
+ *
+ *  `requireReceipt`（默认 false）：额外要求**写窗真身回执**到位（`wb-window-probe` 的
+ *  `data-ok=true` 且 `data-rev == data-cmd-rev`，即最近一次命令已被 K 线实例读回确认）。
+ *  几何/像素判据（T4）用它把「跳转是否真的落到图上」变成显式前置条件——F18「静默吞掉写窗」不再能用
+ *  「滚动到了」蒙混（回执口径见 ADR-028 §3.4）。 */
+async function settleJump(
+  page: Page,
+  opts: { maxMs?: number; requireReceipt?: boolean } = {},
+): Promise<{ waitedMs: number }> {
+  const maxMs = opts.maxMs ?? 3000;
   const t0 = Date.now();
   let prev = Number.NaN;
   await expect
@@ -386,9 +457,22 @@ async function settleJump(page: Page, maxMs = 3000): Promise<{ waitedMs: number 
         const inViewport = r.host.y >= 0 && r.host.y + r.host.h <= r.viewport.h + 1;
         const stable = Number.isFinite(prev) && Math.abs(r.scrollTop - prev) <= 1;
         prev = r.scrollTop;
-        return inViewport && stable;
+        if (!inViewport || !stable) return false;
+        if (!opts.requireReceipt) return true;
+        const p = await page.getByTestId('wb-window-probe').evaluate((e) => ({
+          ok: e.getAttribute('data-ok'),
+          rev: e.getAttribute('data-rev'),
+          cmd: e.getAttribute('data-cmd-rev'),
+        }));
+        return p.ok === 'true' && p.rev !== '' && p.rev === p.cmd;
       },
-      { timeout: maxMs, intervals: [120], message: '滚动须落定（scrollTop 稳定）且 K 线整体在视口内、高亮生效' },
+      {
+        timeout: maxMs,
+        intervals: [120],
+        message: opts.requireReceipt
+          ? '滚动须落定（scrollTop 稳定）+ K 线整体在视口内 + 高亮生效 + 写窗真身回执 rev 到位'
+          : '滚动须落定（scrollTop 稳定）且 K 线整体在视口内、高亮生效',
+      },
     )
     .toBe(true);
   return { waitedMs: Date.now() - t0 };
@@ -562,8 +646,9 @@ test('T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落�
   const keyB = `${RT_A}:${FILL_B}`;
   const rowA = page.getByTestId(`wb-l2-row-${RT_A}-${FILL_A}`);
   await expect(rowA).toBeVisible();
+  // `scrollIntoViewIfNeeded`（默认 behavior:'auto' ⇒ 瞬时）返回即已就位；本条原先再 `waitForTimeout(250)`
+  // 属无判据依据的固定等待（跳转前无任何断言依赖滚动位置）⇒ 删除（禁止用 sleep 充当时序护栏）。
   await rowA.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(250);
 
   const gtFills = ((await (await page.request.get(`/api/workbench/runs/${RUN_A}/round-trips/${RT_A}/fills?limit=500`)).json()) as {
     fills: Array<{ ts: number; price: number }>;
@@ -574,12 +659,19 @@ test('T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落�
   // ── 点击第 42 笔 ──
   const tClick = Date.now();
   await page.getByTestId(`wb-l2-jump-${RT_A}-${FILL_A}`).click();
-  const settle = await settleJump(page);
+  const settle = await settleJump(page, { requireReceipt: true });
   // 几何必须在**跳转后**读（跳转前窗口为全览 174 根，目标 bar 的 x 完全不同；跳转后窗口收敛到目标），
   // 且按 (ts, price) 定位（**键方案无关**）⇒ 变异把键粗化后仍能测到目标位置。
   const geomCells = await geomByFill(page, [{ ts: fA.ts, price: fA.price }, { ts: fB.ts, price: fB.price }]);
   const gA = geomCells[`${fA.ts}:${fA.price}`];
   const gB = geomCells[`${fB.ts}:${fB.price}`];
+  // 失败时留痕（几何步的任何残留异常都自带状态画像，不再只剩一句「不可测」）
+  writeJson('t4_geom_state', {
+    geomKeys: Object.keys(geomCells),
+    geomCells,
+    chartState: await chartReadyState(page),
+    windowProbe: await readAttrs(page, 'wb-window-probe'),
+  });
   expect(gA != null && gB != null, '跳转后目标笔几何必须可测（按 ts+价格定位）').toBe(true);
   const attrsOn = await readAttrs(page, 'kline-chart');
   const noteOn = await readAttrs(page, 'wb-jump-highlight-note');

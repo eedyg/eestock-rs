@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   init,
   dispose,
@@ -519,6 +519,30 @@ export function createMarkerOverlays(
   return created;
 }
 
+/** overlay **内容签名**（纯函数）：标记重建的依赖面，**不用对象身份**作依赖。
+ *  理由（幂等/防重建风暴）：父级每次渲染都可能重建 `overlays` 数组（同一内容、不同身份）；
+ *  若以身份为依赖，「重建 ⇒ setState ⇒ 渲染 ⇒ 身份又变 ⇒ 再重建」会形成无界重建回路。
+ *  签名覆盖**全部影响绘制的字段**（marker 的 ts/text/price/color/fillKey/label/stackIndex/shape；
+ *  价位线/区间的价格与 ts 端点）⇒ 内容不变 ⇒ 不触发重建。 */
+export function overlaySignature(overlays: ReadonlyArray<KlineOverlay> | undefined): string {
+  if (!overlays || overlays.length === 0) return '';
+  const parts: string[] = [];
+  for (const ov of overlays) {
+    if (ov.type === 'marker') {
+      parts.push(
+        `m|${ov.ts}|${ov.text}|${ov.price ?? ''}|${ov.color ?? ''}|${ov.fillKey ?? ''}|${ov.label ?? ''}|${
+          ov.stackIndex ?? 0
+        }|${ov.shape ?? ''}`,
+      );
+    } else if (ov.type === 'price-line') {
+      parts.push(`p|${ov.price}|${ov.label ?? ''}|${ov.color ?? ''}`);
+    } else {
+      parts.push(`r|${ov.fromTs}|${ov.toTs}|${ov.price ?? ''}`);
+    }
+  }
+  return parts.join(';');
+}
+
 /** 纯函数：按 `fillKey` 精确找到目标标记（ADR-028 D4.1：**禁止**按 bar 粗定位）。
  *  找不到 ⇒ `null`（调用方须**显式**披露「标记不可得」，禁静默无反应）。 */
 export function findMarkerByFillKey(
@@ -579,6 +603,25 @@ export function KlineChart(props: KlineChartProps) {
   onHighlightEndRef.current = props.onHighlightEnd;
   const hideCandles = props.hideCandles ?? false;
   const feed = props.feed;
+  /** **最新** overlay props（ADR-028 D4.1 竞态修复）：标记重建**一律**读本 ref，
+   *  **禁止**读挂载/某次渲染的快照 —— `/fills` 先于图表 K 线数据提交时，旧实现读的是挂载那次
+   *  渲染的空数组 ⇒ 全部 B/S 标记永久丢失（tester 取证 §3.5）。 */
+  const overlaysRef = useRef(props.overlays);
+  overlaysRef.current = props.overlays;
+  /** K 线数据**代际**：bar 数据可用/重载（初始取数、`resetData`、换 run/周期、warmup 补取、向前分页）
+   *  ⇒ 递增 ⇒ 触发标记重建（次序无关的**事件/依赖驱动**信号；**不是**定时轮询）。 */
+  const [barsGen, setBarsGen] = useState(0);
+  const bumpBarsGen = useCallback(() => setBarsGen((g) => g + 1), []);
+  /** overlay **内容**签名（marker 重建的依赖面；身份无关 ⇒ 幂等、无重建风暴）。 */
+  const overlaysSig = useMemo(() => overlaySignature(props.overlays), [props.overlays]);
+  /** 指标/pane 布局签名（指标勾选 + MA 窗口 + dcap 参数 + 隐藏 K 线 ⇒ pane 布局变化）。 */
+  const paneLayoutSig = useMemo(
+    () =>
+      `${INDICATOR_DEFS.map((d) => (props.indicators[d.key] ? '1' : '0')).join('')}|${(
+        props.maWindows ?? DEFAULT_MA_WINDOWS
+      ).join(',')}|${props.dcapParams ? JSON.stringify(props.dcapParams) : ''}|${hideCandles ? '1' : '0'}`,
+    [props.indicators, props.maWindows, props.dcapParams, hideCandles],
+  );
   /** 配置视口（K 线根数；feed 未暴露 → 默认 120）。 */
   const viewportBars = feed.viewportBars ?? DEFAULT_KLINE_VIEWPORT_BARS;
   const fitRef = useRef<(chart: Chart) => BarSpaceFitResult | null>(() => null);
@@ -594,6 +637,29 @@ export function KlineChart(props: KlineChartProps) {
   const [overlayEpoch, setOverlayEpoch] = useState(0);
   /** 高亮脉冲相位（0 = 无高亮；>0 = 高亮中；定时器递增驱动 overlay 重绘）。 */
   const [pulse, setPulse] = useState(0);
+
+  /** ADR-028 D4.1 **唯一的 overlay 重建路径**（次序无关 + 幂等）：
+   *  - 一律读**最新**值：`overlaysRef.current`（最新 props）+ `feed.bars`（最新数据），**不读任何渲染快照**；
+   *  - 先按名清旧再建（`removeOverlay({name})` 幂等）⇒ 重复触发不会累积重复标记；
+   *  - 只触碰 overlay 层：不动 dataList / 视口 / barSpace / 指标 pane（用户拖拽高度保持）；
+   *  - 触发面（Effect M 依赖）：①`overlays` 内容变化 ②`barsGen`（bar 数据可用/代际变化）
+   *    ③指标或 pane 布局变化。——**没有任何**定时器/固定等待。
+   *  - 高亮 overlay（`fillDotHighlight`）不在清理名单里：由 Effect G 按 `overlayEpoch` 重放（精确到笔）。 */
+  const rebuildOverlays = useCallback(
+    (chart: Chart) => {
+      // 测试环境 klinecharts 打桩（无 removeOverlay/createOverlay）时与修复前行为一致（零副作用）。
+      if (typeof chart.removeOverlay !== 'function' || typeof chart.createOverlay !== 'function') return;
+      chart.removeOverlay({ name: 'fillDot' });
+      chart.removeOverlay({ name: 'simpleAnnotation' });
+      chart.removeOverlay({ name: 'simpleTag' });
+      chart.removeOverlay({ name: 'tradeRange' });
+      const ovs = overlaysRef.current ?? [];
+      if (ovs.length > 0) createChartOverlays(chart, ovs);
+      setMarkerCount(createMarkerOverlays(chart, ovs, feed.bars));
+      setOverlayEpoch((e) => e + 1);
+    },
+    [feed],
+  );
 
   /** 横向铺满：按容器实际宽度 + 配置视口根数设 barSpace（`clamp(round(W/bars),1,50)`，与周期无关），
    *  并在容器上写 `data-viewport-fit`（§5 观测性）；宽度 ≤ 0（未布局）→ 不设置。 */
@@ -788,6 +854,10 @@ export function KlineChart(props: KlineChartProps) {
             },
           );
           callback(bars, { forward, backward: false });
+          // **数据代际信号**：引擎实际取到数据（init = 初始/重载；forward = 向前分页）⇒ 通知 overlay
+          // 重建（只递增计数，**不在此处读 props 快照**）。真身由 `resetData`/`setSymbol`/`setPeriod`
+          // 内部调用本回调 ⇒「换 run/换周期/加 warmup/向前翻页」全部自动落入标记重建面。
+          if (bars.length > 0) bumpBarsGen();
         } catch {
           // 兜底：即使加载异常也保证 callback（避免 klinecharts _loading 卡死）；回空数组不会叠加重复。
           callback([], { forward: feed.hasMore, backward: false });
@@ -815,14 +885,12 @@ export function KlineChart(props: KlineChartProps) {
     // 这里不再额外 `chart.resetData()`：它只会多一次幂等的`_addData('init')` 重绘，不带来额外价值；
     // 且保持既有测试桩（未提供该 API 的工作台图）无需补齐。
 
-    // overlay（开/平仓价位线 + 区间高亮）：同一 chart 实例跨 feed ⇒ 必须先清旧再按新数据重建。
-    // `resetData` 只清/换数据、**不清 overlay**（实测：原地切换后 `getOverlays().length` 不变），
-    // 否则切标的/周期后残留上一份 overlay（工作台 B/S 标记/价位线）。
+    // overlay（开/平仓价位线 + 区间高亮）：同一 chart 实例跨 feed ⇒ 上一份数据面的 overlay 必须清掉
+    // （`resetData` 只清/换数据、**不清 overlay**；实测：原地切换后 `getOverlays().length` 不变）。
+    // **重建**统一交给 Effect M 的唯一路径（读最新 overlays + 最新 bars），此处只做「换数据面」清场；
+    // 新数据面到位时 `bumpBarsGen()` 会再次触发重建（`/fills` 与 K 线数据的次序因此无关）。
     // `typeof` 能力检查：测试环境 klinecharts 打桩（无 removeOverlay）时行为与修复前一致。
     if (typeof chart.removeOverlay === 'function') chart.removeOverlay();
-    if (props.overlays && props.overlays.length > 0) {
-      createChartOverlays(chart, props.overlays);
-    }
 
     // WS 实时：appendBar/updateBar → DataLoader subscribeBar 回调；
     // 滚动门控 = `followLatest && !manualAdjusted`（口径①：非跟随态/用户手动缩放后**绝不**拉回最右）；
@@ -839,20 +907,11 @@ export function KlineChart(props: KlineChartProps) {
       const x = markRealtime(kc, bar.close, bar.ts);
       if (!followRef.current && isOffViewport(ref.current, x)) setPendingNew((n) => n + 1);
     });
-    // 幂等兜底（DataLoader 路径之外保证加载）；加载完成后依「已加载 bar」吸附/钳位创建 B/S 标记
-    // （跨周期 On-Screen）。仅在本 chart 仍存活**且本次接线未被换掉**时创建（防旧 feed 的迟到回调
-    // 把上一份标记打在已换数据的新图上）。
+    // 幂等兜底（DataLoader 路径之外保证加载）；加载完成 = bar 数据可用 ⇒ 递增代际，由 Effect M
+    // 按**最新** `overlays`/`feed.bars` 重建标记（跨周期 On-Screen 吸附/钳位）。
+    // 仅在本 chart 仍存活**且本次接线未被换掉**时递增（防旧 feed 的迟到回调把上一份状态打在已换数据的新图上）。
     void feed.loadInitial().then(() => {
-      if (!cancelled && chartRef.current === chart) {
-        // marker overlay 先清后建（同名过滤 ⇒ 幂等；fillDot/simpleAnnotation 均属 marker 类，
-        // 不触及数据/视口/指标 pane）
-        if (typeof chart.removeOverlay === 'function') {
-          chart.removeOverlay({ name: 'fillDot' });
-          chart.removeOverlay({ name: 'simpleAnnotation' });
-        }
-        setMarkerCount(createMarkerOverlays(chart, props.overlays ?? [], feed.bars));
-        setOverlayEpoch((e) => e + 1);
-      }
+      if (!cancelled && chartRef.current === chart) bumpBarsGen();
     });
 
     return () => {
@@ -863,17 +922,18 @@ export function KlineChart(props: KlineChartProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed]);
 
-  // Effect M —— marker overlay **重同步**（ADR-028 D4.1：marker 数据晚到/变化后不得丢失，
-  // 且高亮必须能在 overlay 重建后真正生效）。只重算 marker 类 overlay：
-  // `removeOverlay({name})` 按名过滤，**不动** dataList / 视口 / barSpace / 指标 pane ⇒ 非「重建整图」。
+  // Effect M —— overlay/标记**重建**（ADR-028 D4.1：**唯一**重建路径，次序无关 + 幂等）。
+  // 触发面（全部为**事件/依赖驱动**，无定时器、无固定 sleep）：
+  //   ① `overlays` 内容变化（`overlaysSig`；/fills、换 run、标记内容变化）；
+  //   ② `barsGen` — K 线数据变为可用或**代际变化**（初始取数、`resetData`/warmup、换 run/周期、向前分页）；
+  //   ③ `paneLayoutSig` — 指标或 pane 布局变化（指标勾选/MA 窗口/dcap 参数/隐藏 K 线）。
+  // 目的：`/fills` 与 K 线数据的**提交次序**不再影响结果 —— 任一侧后到都会触发一次真正的重建。
+  // 只重算 overlay 层：`removeOverlay({name})` 按名过滤，**不动** dataList / 视口 / barSpace / 指标 pane。
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || typeof chart.removeOverlay !== 'function' || typeof chart.createOverlay !== 'function') return;
-    chart.removeOverlay({ name: 'fillDot' });
-    chart.removeOverlay({ name: 'simpleAnnotation' });
-    setMarkerCount(createMarkerOverlays(chart, props.overlays ?? [], feed.bars));
-    setOverlayEpoch((e) => e + 1);
-  }, [props.overlays, feed]);
+    if (!chart) return;
+    rebuildOverlays(chart);
+  }, [rebuildOverlays, overlaysSig, barsGen, paneLayoutSig]);
 
   // Effect P —— 高亮脉冲定时器（ADR-028 D4.1）：canvas 内无法用 CSS 动画 ⇒ **定时器驱动 overlay 重绘**。
   // 3 秒到点 ⇒ `setPulse(0)` 回常态，**不留永久选中态**。
@@ -949,7 +1009,12 @@ export function KlineChart(props: KlineChartProps) {
     void sync
       .call(feed, props.warmupBars ?? 0)
       .then((changed) => {
-        if (changed && !cancelled && chartRef.current === chart) chart.resetData();
+        if (changed && !cancelled && chartRef.current === chart) {
+          chart.resetData();
+          // 数据代际已变（向前补取了更早 bar ⇒ 目标 ts 的吸附点可能改到更近的 bar）：
+          // 显式递增代际，（在引擎未接 DataLoader 的桩环境里也）保证标记按新 bar 序列重建。
+          bumpBarsGen();
+        }
       })
       .catch(() => {
         // 补取失败：保持既有数据（最左 warmup 段可能断线，向左翻页会自然补齐），不得打断渲染
