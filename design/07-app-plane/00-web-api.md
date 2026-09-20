@@ -5576,10 +5576,24 @@ fn parse_minimal_uses_defaults_and_env_overrides() {
   dist 从 frontend 阶段 COPY）。构建上下文无需预存 dist；`.dockerignore` 排除 node_modules/target/data 等。
   前端阶段构建前 `rm -rf dist` 清空历史产物（防旧镜像遗留的旧哈希 bundle 被 COPY 到运行时）。
   **builder 依赖缓存分层**（纯构建提速、零功能改动）：依赖图以各 crate 的 `Cargo.toml` 为层键——
-  先 COPY 锁文件与 15 个 crate 清单（不含源码），`cargo fetch` 仅下载依赖；清单不变则本层与 fetch 层命中缓存，
+  先 COPY 锁文件与 16 个 crate 清单（不含源码），`cargo fetch` 仅下载依赖；清单不变则本层与 fetch 层命中缓存，
   源码变更只触发 `COPY crates` 与 `cargo build` 重编。workspace 特例：`crates/*` 无显式 `[lib]`/`[[bin]]`，
-  cargo 自动发现目标需 src，故先补 15 个空 `src/lib.rs` 使 fetch 可加载依赖图（见 data-plane.md §5 同注记），
+  cargo 自动发现目标需 src，故先补 16 个空 `src/lib.rs` 使 fetch 可加载依赖图（见 data-plane.md §5 同注记），
   随后 `COPY crates ./crates` 以真实源码覆盖。
+  **清单集合必须等于实际 workspace 全量**（16 = `ls crates` 全量，差集为空）：`test-support` 虽为 dev-only
+  （只被 `web`/`storage`/`mcp` 的 `[dev-dependencies]` 以 `path = "../test-support"` 引用），但
+  `members = ["crates/*"]` 的 workspace 加载与 dev-dependency 路径解析都要求读到其清单，缺则
+  `cargo fetch` 直接 `failed to read .../crates/test-support/Cargo.toml`（镜像构建恒失败）；
+  故其清单同列、其空 `src/lib.rs` 同补——其源码仅喂 dev/测试目标，不进 runtime 依赖图。
+  **不变量（镜像可构建性・普查口径）**：builder 编译路径内每个 `include_str!`/`include_bytes!` 目标都必须被 COPY 覆盖
+  ——`crates/**` 由 `COPY crates ./crates` 覆盖；**`crates/` 之外的本仓库文件必须显式 COPY**（当前仅
+  `design/12-strategy-system/04-strategy-programming-guide.md`：被 `crates/mcp/src/tools.rs` 与
+  `crates/web/src/strategies.rs` 作编译期常量嵌入），且该 COPY 必须放在 `cargo fetch` **之后**
+  （否则文档内容变更会击穿 manifest/fetch 层缓存）。理由：app 与 data 两个 bin 同在 `app` crate
+  （`crates/app/src/bin/`）且都链接 `app` lib ⇒ 二者都会编译 `web`/`mcp`，故两镜像同需此文件。
+  全仓普查：37 处 `include_*!`（10 文件）、0 处动态拼接；目标在 `crates/` 之外者 4 处，其中 3 处仅存在于
+  `crates/web/tests/tester_p5rect_verify.rs`（**test target**，不进 `cargo build --release --bin` 路径，
+  不影响镜像构建）；build 路径内需显式 COPY 者 = 1（即本行）。
 - compose `app` 服务（docker-compose.yml 手写例外）：`depends_on: timescaledb(healthy)`——
   **不依赖 data 服务**（两面零耦合，库为唯一耦合点）；`8081:8081`（数据面 8080 不动）；
   `./config/app.toml` 只读挂载（.gitignore；模板 config/app.toml.example 入库）；
@@ -5607,7 +5621,9 @@ RUN npm run build:prod
 
 FROM rust:1-bookworm AS builder
 WORKDIR /build
-# 依赖缓存分层：先 COPY 锁文件与 15 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
+# 依赖缓存分层：先 COPY 锁文件与 16 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
+# 16 = workspace 全量（含 dev-only 的 test-support：workspace/dev-dependency 图解析必需，缺则 fetch 报
+# failed to read crates/test-support/Cargo.toml；其源码只进 dev/测试目标，不进 runtime 依赖图）。
 # 清单不变 → 本层及 fetch 层命中 Docker 缓存，源码变更只触发 COPY crates 与 cargo build 重编（依赖已 fetch）。
 COPY Cargo.toml Cargo.lock ./
 COPY crates/alert/Cargo.toml crates/alert/Cargo.toml
@@ -5623,13 +5639,19 @@ COPY crates/providers/Cargo.toml crates/providers/Cargo.toml
 COPY crates/storage/Cargo.toml crates/storage/Cargo.toml
 COPY crates/strategy-core/Cargo.toml crates/strategy-core/Cargo.toml
 COPY crates/strategy-runtime/Cargo.toml crates/strategy-runtime/Cargo.toml
+COPY crates/test-support/Cargo.toml crates/test-support/Cargo.toml
 COPY crates/tushare/Cargo.toml crates/tushare/Cargo.toml
 COPY crates/web/Cargo.toml crates/web/Cargo.toml
 # workspace 特例：crates/* 无显式 [lib]/[[bin]]，cargo 自动发现目标需 src。故先补空 src/lib.rs 使
 # 每个 crate 可加载解析依赖图；随后 COPY crates ./crates 以真实源码覆盖（各 crate 均含真实 lib.rs，零残留）。
-RUN for c in alert app application backtest collector diagnose domain mcp providers storage strategy-core strategy-runtime tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
+RUN for c in alert app application backtest collector diagnose domain mcp providers storage strategy-core strategy-runtime test-support tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
 RUN cargo fetch
 COPY crates ./crates
+# build 路径的 include_str! 目标（不变量）：app/web/mcp 的 src 把设计文档作编译期常量嵌入
+# （crates/mcp/src/tools.rs、crates/web/src/strategies.rs → design/12-strategy-system/04-strategy-programming-guide.md，
+# 因 eestock-app 与 eestock-data 均链接 app lib 而必然编译）。放 cargo fetch 之后：文档变更不破 fetch 缓存。
+# 新增“引用仓库内文件”的 include_str!/include_bytes! 时，必须同步本行与本注记。
+COPY design/12-strategy-system/04-strategy-programming-guide.md design/12-strategy-system/04-strategy-programming-guide.md
 RUN cargo build --release --bin eestock-app
 
 FROM debian:bookworm-slim

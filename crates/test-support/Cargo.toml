@@ -1,4 +1,7 @@
-# dev-only crate：只被各 crate 的 [dev-dependencies] 引用，不进运行时依赖图、不进 Dockerfile。
+# dev-only crate：只被各 crate 的 [dev-dependencies] 引用，不进运行时依赖图；源码不进镜像。
+# 但本清单（Cargo.toml）**必须**被镜像 builder 阶段 COPY：workspace `members = ["crates/*"]` 的成员加载
+# 与各 crate `[dev-dependencies] path = "../test-support"` 的路径解析都要求读到它，
+# 缺则 `cargo fetch` 恒失败（见 design/07-app-plane/00-web-api.md §6 / design/03-collector/02-data-plane.md §5）。
 # ADR-023 §6.1 第 8 条 / §6.3 第 12 条：集成测试必须指向测试库，未设环境变量即响亮失败。
 [package]
 name = "test-support"
