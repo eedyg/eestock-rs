@@ -283,6 +283,38 @@ export const FILL_DOT_DY_PX = 12;
 export const FILL_DOT_R_PX = 3.2;
 /** 高亮圆点半径（px；放大）。 */
 export const FILL_DOT_HIGHLIGHT_R_PX = 6.5;
+/** R1（2026-09-20）：标签与圆点之间的水平间距（px）。 */
+export const FILL_LABEL_GAP_PX = 3;
+/** R1：9px 文本近似字宽（px/字符；实测 16 字符标签宽 76px ⇒ 4.4×16+5）。 */
+export const FILL_LABEL_CW_PX = 4.4;
+/** R1：标签左右 padding + 余量（px；模板 styles 里 paddingLeft/Right 各 2）。 */
+export const FILL_LABEL_PAD_PX = 5;
+
+/**
+ * R1（2026-09-20）**标签边缘收敛**（纯函数）：给定圆点位置与面板宽度，返回标签锚点与对齐。
+ *
+ * 旧实现恒为 `x = 圆点x + r + 3, align='left'` ⇒ 当圆点落在 candle pane **右缘**（如 run 末根 bar 的成交）时，
+ * 「价格×股数」文本被面板裁掉（实测末根 bar 标签几乎不可读）。
+ *
+ * 规则（**不改变有空间时的既有位置**）：
+ *  1. 右侧放得下 ⇒ 保持右侧左对齐（与旧行为逐像素一致）；
+ *  2. 右侧放不下但左侧放得下 ⇒ **翻转到圆点左侧**（右对齐）；
+ *  3. 两侧都放不下（面板极窄）⇒ 向内偏移并夹紧在面板内（**不得越界**）。
+ */
+export function placeFillLabel(args: {
+  x: number;
+  r: number;
+  text: string;
+  paneWidth: number;
+}): { x: number; align: CanvasTextAlign } {
+  const textW = args.text.length * FILL_LABEL_CW_PX + FILL_LABEL_PAD_PX;
+  const rightX = args.x + args.r + FILL_LABEL_GAP_PX;
+  const leftX = args.x - args.r - FILL_LABEL_GAP_PX;
+  const paneW = args.paneWidth > 0 ? args.paneWidth : Number.POSITIVE_INFINITY;
+  if (rightX + textW <= paneW - 1) return { x: rightX, align: 'left' };
+  if (leftX - textW >= 1) return { x: leftX, align: 'right' };
+  return { x: Math.max(1, Math.min(paneW - textW - 1, leftX - textW)), align: 'left' };
+}
 
 /** `fillDot` overlay 的 extendData（判别身份 + 形态参数）。 */
 export interface FillDotData {
@@ -338,9 +370,11 @@ function ensureFillDotOverlayRegistered() {
         },
       ];
       if (d.label) {
+        // R1：标签边缘收敛（右缘翻转/夹紧）——末根 bar 的成交标签必须完整落在面板内。
+        const pos = placeFillLabel({ x: c.x, r, text: d.label, paneWidth: p.bounding.width });
         figures.push({
           type: 'text',
-          attrs: { x: c.x + r + 3, y: c.y + dy, text: d.label, align: 'left', baseline: 'middle' },
+          attrs: { x: pos.x, y: c.y + dy, text: d.label, align: pos.align, baseline: 'middle' },
           styles: {
             color: d.color ?? '#8b93b0',
             size: 9,

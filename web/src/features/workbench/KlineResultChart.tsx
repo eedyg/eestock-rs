@@ -127,22 +127,35 @@ export function KlineResultChart({
   );
   useEffect(() => () => feed.dispose(), [feed]);
   const overlays = useMemo(() => buildMarkers(fills.rows), [fills.rows]);
-  /** ADR-028 D4.1 降级/无数据情形 ⇒ **显式**提示状态（不得静默无反应）。 */
-  const highlightState: 'idle' | 'ok' | 'loading' | 'unrecorded' | 'unmatched' = !highlight
+  /** ADR-028 D4.1 降级/无数据情形 ⇒ **显式**提示状态（不得静默无反应）。
+   *
+   * 2026-09-20（本波 R2）：**删除**原 `'loading'` 态与其「标记到位后自动补齐高亮」承诺文案。
+   * 理由（可达性）：`bars / fills / round-trips` 由 `useRunSeries` 的 `Promise.allSettled` **同批原子提交**，
+   * 成交明细未到位期间 L2 表本身不可达（tester 复验实测 `l2ReachableDuring=false`）⇒ 本组件拿不到
+   * `highlight` 而处于 loading：该分支在 UI 上**不可达**，其「标记到位后自动补齐高亮」的承诺**无法被验证**（且事实上高亮
+   * 窗口从点击时刻起算，数据晚到不会补画）⇒ 按「禁止不可验证承诺」删除分支与文案。
+   * 若后续把三段数据改为**分片提交**，须以「可真实触发」的方式重新引入并配触发测试（不得只留文案）。 */
+  const highlightState: 'idle' | 'ok' | 'unrecorded' | 'unmatched' = !highlight
     ? 'idle'
-    : fills.loading && fills.rows.length === 0
-      ? 'loading'
-      : !fills.recorded && fills.rows.length === 0
-        ? 'unrecorded'
-        : findMarkerByFillKey(overlays, highlight.key)
-          ? 'ok'
-          : 'unmatched';
+    : !fills.recorded && fills.rows.length === 0
+      ? 'unrecorded'
+      : findMarkerByFillKey(overlays, highlight.key)
+        ? 'ok'
+        : 'unmatched';
   const highlightRevRef = useRef(0);
   if (highlight) highlightRevRef.current = highlight.rev;
 
   return (
-    <div className="h-64 shrink-0 rounded-lg border border-line bg-panel2" data-testid="wb-kline-chart">
-      <div className="flex flex-wrap items-center gap-3 px-2 pt-1 text-[10px] text-dim">
+    // B1（2026-09-20）：卡片必须**自身**是 flex-col —— 头部图例/提示行**可换行增高**，图表区
+    // `flex-1 min-h-0` 随之收缩。旧实现用 `h-[calc(100%-1.25rem)]`（对头部高度做了「恒 1 行」的固定假设）：
+    // 新增高亮提示使头部由 1 行涨到 2 行时该高度**不收缩** ⇒ 图表容器溢出 `h-64` 卡片 27px，
+    // canvas 盖住下方窗口控制条（`elementFromPoint` 命中 canvas）⇒「全览 / 历史回退」真实点击超时。
+    // 该布局**不依赖任何头部行数假设**，且卡片高度仍为 `h-64`（不挤压兄弟区域）。
+    <div
+      className="flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2"
+      data-testid="wb-kline-chart"
+    >
+      <div className="flex shrink-0 flex-wrap items-center gap-3 px-2 pt-1 text-[10px] text-dim">
         <span>K线 {run.symbol}（{run.period}）</span>
         <span style={{ color: COLOR_BUY }}>B 买入</span>
         <span style={{ color: COLOR_SELL }}>S 卖出</span>
@@ -172,15 +185,13 @@ export function KlineResultChart({
           >
             {highlightState === 'ok'
               ? `已高亮目标成交 ${highlight.key}（放大 + 描边脉冲，${HIGHLIGHT_DURATION_MS / 1000} 秒后回常态）`
-              : highlightState === 'loading'
-                ? '成交明细加载中：标记不可得 ⇒ 暂无法高亮目标成交（标记就绪后自动补高亮）'
-                : highlightState === 'unrecorded'
-                  ? '该运行未记录成交明细（recorded=false）⇒ 无标记可高亮（窗口跳转仍已执行）'
-                  : `未在 K 线标记中找到目标成交 ${highlight.key}（L2 序号与 /fills 事实源不一致）⇒ 仅跳窗口，无高亮`}
+              : highlightState === 'unrecorded'
+                ? '该运行未记录成交明细（recorded=false）⇒ 无标记可高亮（窗口跳转仍已执行）'
+                : `未在 K 线标记中找到目标成交 ${highlight.key}（L2 序号与 /fills 事实源不一致）⇒ 仅跳窗口，无高亮`}
           </span>
         )}
       </div>
-      <div className="h-[calc(100%-1.25rem)]">
+      <div className="min-h-0 flex-1">
         <KlineChart
           feed={feed}
           code={run.symbol}
