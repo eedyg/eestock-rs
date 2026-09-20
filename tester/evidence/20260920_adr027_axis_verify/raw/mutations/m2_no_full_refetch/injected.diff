@@ -1,0 +1,13 @@
+diff --git a/web/src/features/workbench/useRunSeries.ts b/web/src/features/workbench/useRunSeries.ts
+index a9db823..c13e2bd 100644
+--- a/web/src/features/workbench/useRunSeries.ts
++++ b/web/src/features/workbench/useRunSeries.ts
+@@ -448,6 +448,8 @@ export function useRunSeries({
+   useEffect(() => {
+     if (!chunked || !runId || !result || run?.status !== 'succeeded') return () => undefined;
+     if (isStaleResponse(reqRev, issuedRevRef.current)) return () => undefined; // 乱序到达的旧窗口：不发起
++    // ⚠ MUTATION(M2, tester 变异反证，临时注入): 撤销「回到全区间」的重取 ⇒ 全览态「旧数据 + 新域」（修复前缺陷类）
++    if (reqFrom == null && reqTo == null && firstLoadDoneRef.current) return () => undefined;
+     const snapX = requestRef.current;
+     issuedRevRef.current = reqRev;
+     let alive = true;

@@ -1,0 +1,155 @@
+{
+  "key": "1:1",
+  "geom": {
+    "x": 344,
+    "yRaw": 64,
+    "y": 64,
+    "stack": 0,
+    "label": "",
+    "color": "#ff5c6c",
+    "ts": 1783440000000,
+    "price": 1.075215
+  },
+  "labelSpan": {
+    "x0": 356,
+    "x1": 432,
+    "y0": 59,
+    "y1": 70
+  },
+  "LW": 76,
+  "coverage": 0.27631578947368424,
+  "ink": {
+    "maxRun": 8,
+    "cols": [
+      [
+        356,
+        2
+      ],
+      [
+        358,
+        1
+      ],
+      [
+        360,
+        1
+      ],
+      [
+        363,
+        3
+      ],
+      [
+        364,
+        7
+      ],
+      [
+        365,
+        2
+      ],
+      [
+        366,
+        1
+      ],
+      [
+        367,
+        1
+      ],
+      [
+        368,
+        1
+      ],
+      [
+        369,
+        1
+      ],
+      [
+        370,
+        1
+      ],
+      [
+        383,
+        4
+      ],
+      [
+        384,
+        4
+      ],
+      [
+        385,
+        4
+      ],
+      [
+        389,
+        3
+      ],
+      [
+        408,
+        1
+      ],
+      [
+        409,
+        1
+      ],
+      [
+        410,
+        1
+      ],
+      [
+        428,
+        2
+      ],
+      [
+        429,
+        3
+      ],
+      [
+        430,
+        2
+      ]
+    ],
+    "total": 46
+  },
+  "inkLeftCtrl": {
+    "maxRun": 3,
+    "cols": [
+      [
+        324,
+        1
+      ],
+      [
+        328,
+        7
+      ],
+      [
+        329,
+        8
+      ],
+      [
+        330,
+        7
+      ]
+    ],
+    "total": 23
+  },
+  "attrs": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "1:1",
+    "data-highlight-active": "true",
+    "data-highlight-pulse": "6",
+    "data-marker-overlays": "16",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "shots": {
+    "on": {
+      "name": "t2_label_on.png",
+      "clip": {
+        "x": 600,
+        "y": 40,
+        "width": 668,
+        "height": 256
+      }
+    }
+  },
+  "expectLabel": "B 1.075×932.6936"
+}

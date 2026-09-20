@@ -1,0 +1,209 @@
+
+ RUN  v3.2.7 /home/eestock/workspace/git/eestock/eestock-rs/web
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+ ✓ src/features/workbench/adr028FocusHighlight.test.tsx (6 tests) 153ms
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > feed.viewportBars=200（15m）→ space=round(680/200)=3（不再按每日 bar 数折算）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > 同一 viewportBars 下 1m/1d 得到同一 space（周期无关；旧实现 1m 夹 1、1d 夹 50）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > 同一 viewportBars 下 1m/1d 得到同一 space（周期无关；旧实现 1m 夹 1、1d 夹 50）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > 无 viewportBars（fallback 默认 120）→ space=round(960/120)=8
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > 容器宽度 ≤ 0（未布局）→ 不调用 setBarSpace
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（fitBarSpace 铺满目标 = 配置视口根数 viewportBars，与周期无关） > fit 完成后在根节点写 data-viewport-fit（e2e 断言面，§5 观测性）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（MA 窗口可配置：calcParams 用配置 windows） > 不传 maWindows → MA calcParams 默认 [5,10,20]
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（MA 窗口可配置：calcParams 用配置 windows） > 传 maWindows=[7,20,60] → MA calcParams=[7,20,60]
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart（MA 窗口可配置：calcParams 用配置 windows） > maWindows 变化 → overrideIndicator 原地更新 calcParams（不重建指标 ⇒ 不重置 pane 布局）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢复） > 容器宽度变化（ResizeObserver 回调）→ 用新宽度重新 setBarSpace
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢复） > 用户手动缩放（onZoom 非 programmatic）后 resize 不再重算（尊重手动视口）
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢复） > followLatest false→true（回到最新）→ 解除抑制、重算并 scrollToRealTime
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢复） > feed 重建（周期切换）→ 抑制状态重置，resize 重新生效
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+stderr | src/features/dashboard/KlineChart.test.tsx > KlineChart R7（resize 重算 / 手动缩放抑制 / 回到最新恢复） > feed 重建（周期切换）→ 抑制状态重置，resize 重新生效
+Warning: An update to KlineChart inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at KlineChart (/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/dashboard/KlineChart.tsx:303:47)
+
+ ✓ src/features/dashboard/KlineChart.test.tsx (12 tests) 31ms
+ ✓ src/features/workbench/adr028LayoutFix.test.ts (7 tests) 9ms
+
+
+ Test Files  3 passed (3)
+      Tests  25 passed (25)
+   Start at  10:44:23
+   Duration  1.25s (transform 179ms, setup 54ms, collect 302ms, tests 193ms, environment 386ms, prepare 85ms)
+

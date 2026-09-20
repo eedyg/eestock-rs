@@ -1,0 +1,17 @@
+=== data-plane Dockerfile fetch-stage reproduction (raw/14) ===
+ts_utc=2026-09-20T03:08:22Z
+--- [1] PRE-FIX: old data Dockerfile manifest set (12 crates) ---
+Caused by:
+  failed to load manifest for dependency `application`
+
+Caused by:
+  failed to read `/tmp/datarepro/crates/application/Cargo.toml`
+
+Caused by:
+  No such file or directory (os error 2)
+PRE_FIX_EXIT=101
+
+--- [2] POST-FIX: new data Dockerfile manifest set (16 crates; equal to ls crates?) ---
+9a10
+> simlive
+POST_FIX_EXIT=0

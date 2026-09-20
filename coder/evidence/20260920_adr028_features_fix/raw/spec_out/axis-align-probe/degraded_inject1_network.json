@@ -1,0 +1,38 @@
+[
+  {
+    "phase": "inject1",
+    "url": "/api/kline?code=518880&period=5m&before=2026-09-17T07%3A03%3A00.000Z&limit=13605",
+    "status": 200,
+    "summary": "bars=0 points=- total=- err=-"
+  },
+  {
+    "phase": "inject1",
+    "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=net_value&k=2000",
+    "status": 200,
+    "summary": "bars=- points=1699 total=- err=-"
+  },
+  {
+    "phase": "inject1",
+    "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=drawdown&k=2000",
+    "status": 200,
+    "summary": "bars=- points=1699 total=- err=-"
+  },
+  {
+    "phase": "inject1",
+    "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=position&k=2000",
+    "status": 200,
+    "summary": "bars=- points=1699 total=- err=-"
+  },
+  {
+    "phase": "inject1",
+    "url": "/api/workbench/runs/sr_1789832517800_000006/curve?kind=per_bar&k=2000",
+    "status": 200,
+    "summary": "bars=- points=1949 total=- err=-"
+  },
+  {
+    "phase": "inject1",
+    "url": "/api/workbench/runs/sr_1789832517800_000006/bars?kind=per_bar&offset=0&limit=5000",
+    "status": 200,
+    "summary": "bars=1949 points=- total=1949 err=-"
+  }
+]

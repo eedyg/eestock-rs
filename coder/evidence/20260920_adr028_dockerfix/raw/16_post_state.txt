@@ -1,0 +1,24 @@
+9d4abe42cbd5556d412e29324ad22ce6987eff9570660c1555a8653acdfb0d4c  Dockerfile
+5222819b51e0e5f82878cf19065d10ce5af8d598a0545774efed7ffe3d850f7c  Dockerfile.app
+d4a5f51afb12378851c7d21bc850067bb586db703ede8585be3037df88769642  design/07-app-plane/00-web-api.md
+bb8b800383bd7ba178bb73f4546486e6d45f308fdecef1c84f1be9bb4e0f7844  design/03-collector/02-data-plane.md
+742d21e587dcecff02b013fc1315b5719af53dea280a3fb72cf3bc081724bf13  crates/test-support/Cargo.toml
+
+ Dockerfile                                         | 14 +++++-
+ Dockerfile.app                                     | 12 ++++-
+ .../20260920_adr027_p9c_final/raw/e1_l1_jump.json  |  4 +-
+ .../raw/e2a_l2_end_target.json                     |  4 +-
+ .../raw/e2b_l2_clamped_target.json                 |  4 +-
+ .../raw/e3_l2_centered.json                        | 12 ++---
+ .../20260920_adr027_p9c_final/raw/e4_back.json     |  4 +-
+ .../raw/e4_reset_back.json                         |  6 +--
+ .../20260920_adr027_p9c_final/raw/m1_mutation.json |  4 +-
+ .../raw/m2_mutation_no_scroll.json                 | 26 +++++------
+ crates/test-support/Cargo.toml                     |  5 ++-
+ .../adr/ADR-023-period-set-extension-30m.md        |  7 ++-
+ ...visualization-position-ratio-and-window-sync.md | 51 +++++++++++++++++++---
+ design/03-collector/02-data-plane.md               | 29 ++++++++++--
+ design/07-app-plane/00-web-api.md                  | 30 +++++++++++--
+ web/src/features/dashboard/KlineChart.tsx          | 36 ++++++++++++++-
+ web/src/features/workbench/KlineResultChart.tsx    | 45 +++++++++++--------
+ 17 files changed, 224 insertions(+), 69 deletions(-)

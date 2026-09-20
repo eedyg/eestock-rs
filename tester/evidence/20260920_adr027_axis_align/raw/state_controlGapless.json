@@ -1,0 +1,382 @@
+{
+  "label": "controlGapless",
+  "windowState": {
+    "data-testid": "wb-window-state",
+    "data-source": "kline",
+    "data-rev": "3",
+    "data-from-ts": "1789627800",
+    "data-to-ts": "1789628400",
+    "data-span-bars": "3"
+  },
+  "windowProbe": {
+    "data-testid": "wb-window-probe",
+    "data-ok": "true",
+    "data-rev": "2",
+    "data-requested-bar-space": "5",
+    "data-bar-space": "5",
+    "data-from-idx": "877",
+    "data-to-idx": "999",
+    "data-from-ts": "1789449000",
+    "data-to-ts": "1789628400",
+    "data-error": "",
+    "data-center-idx": "948",
+    "data-center-ts": "1789541700",
+    "data-observed-center-idx": "938",
+    "data-observed-center-ts": "1789538700",
+    "data-edge-clamped": "true",
+    "data-cmd-rev": "2",
+    "data-cmd-from-ts": "1789524000",
+    "data-cmd-to-ts": "1789559700",
+    "data-cmd-span": "120",
+    "data-cmd-center-ts": "1789541850",
+    "hidden": ""
+  },
+  "domainAttr": "1789627800,1789628400",
+  "curveDomains": {
+    "wb-aggregate-chart": "1789627800,1789628400",
+    "wb-slot-chart": "1789627800,1789628400",
+    "wb-equity-chart": "1789627800,1789628400",
+    "wb-position-chart": "1789627800,1789628400"
+  },
+  "windowNote": "窗口已应用：[1789627800, 1789628400] rev 3",
+  "samplingText": {
+    "aggregate": "共 1949 bar",
+    "slot": "各策略评分 0-100（图例开关，默认前 3 条）· 共 1949 bar"
+  },
+  "api": {
+    "ok": true,
+    "status": 200,
+    "pointCount": 2,
+    "downsampled": false,
+    "originalBars": 1949,
+    "firstTs": 1789627800,
+    "lastTs": 1789628100
+  },
+  "kline": {
+    "ok": true,
+    "error": "",
+    "chartCount": 1,
+    "withDataCount": 1,
+    "dataLen": 1000,
+    "dataFirstTs": 1787275800,
+    "dataLastTs": 1789628400,
+    "container": {
+      "left": 601,
+      "top": 40,
+      "width": 666,
+      "height": 234
+    },
+    "ts": [
+      1789612200,
+      1789612500,
+      1789612800,
+      1789613100,
+      1789613400,
+      1789613700,
+      1789614000,
+      1789614300,
+      1789614600,
+      1789614900,
+      1789615200,
+      1789615500,
+      1789615800,
+      1789621200,
+      1789621500,
+      1789621800,
+      1789622100,
+      1789622400,
+      1789622700,
+      1789623000,
+      1789623300,
+      1789623600,
+      1789623900,
+      1789624200,
+      1789624500,
+      1789624800,
+      1789625100,
+      1789625400,
+      1789625700,
+      1789626000,
+      1789626300,
+      1789626600,
+      1789626900,
+      1789627200,
+      1789627500,
+      1789627800,
+      1789628100,
+      1789628400
+    ],
+    "xRaw": [
+      -580,
+      -563,
+      -547,
+      -531,
+      -514,
+      -498,
+      -482,
+      -465,
+      -449,
+      -433,
+      -416,
+      -400,
+      -384,
+      -367,
+      -351,
+      -335,
+      -318,
+      -302,
+      -286,
+      -269,
+      -253,
+      -237,
+      -220,
+      -204,
+      -188,
+      -171,
+      -155,
+      -139,
+      -122,
+      -106,
+      -90,
+      -73,
+      -57,
+      -41,
+      -24,
+      -8,
+      8,
+      24
+    ],
+    "xAbs": [
+      21,
+      38,
+      54,
+      70,
+      87,
+      103,
+      119,
+      136,
+      152,
+      168,
+      185,
+      201,
+      217,
+      234,
+      250,
+      266,
+      283,
+      299,
+      315,
+      332,
+      348,
+      364,
+      381,
+      397,
+      413,
+      430,
+      446,
+      462,
+      479,
+      495,
+      511,
+      528,
+      544,
+      560,
+      577,
+      593,
+      609,
+      625
+    ],
+    "fromIdx": 962,
+    "toIdx": 999,
+    "realFrom": 997,
+    "realTo": 1036,
+    "barSpace": 16.33035085234526,
+    "spacingDistinct": [
+      16,
+      17
+    ],
+    "visibleCount": 38,
+    "candidates": [
+      {
+        "n": 1000,
+        "width": 666,
+        "err": ""
+      }
+    ]
+  },
+  "curve": {
+    "present": true,
+    "domain": "1789627800,1789628400",
+    "svg": true,
+    "rect": {
+      "left": 605,
+      "top": 355.1875,
+      "width": 658,
+      "height": 160
+    },
+    "viewBox": "0 0 1000 160",
+    "ctmAvailable": true,
+    "polys": [
+      {
+        "n": 2,
+        "firstUserX": 8,
+        "lastUserX": 500,
+        "userX": [
+          8,
+          500
+        ],
+        "screenX": [
+          610.2639770507812,
+          934
+        ],
+        "diag": "attrLen=19"
+      }
+    ]
+  },
+  "slot": {
+    "present": true,
+    "domain": "1789627800,1789628400",
+    "svg": true,
+    "rect": {
+      "left": 605,
+      "top": 569.1875,
+      "width": 658,
+      "height": 144
+    },
+    "viewBox": "0 0 1000 160",
+    "ctmAvailable": true,
+    "polys": [
+      {
+        "n": 2,
+        "firstUserX": 8,
+        "lastUserX": 500,
+        "userX": [
+          8,
+          500
+        ],
+        "screenX": [
+          610.2639770507812,
+          934
+        ],
+        "diag": "attrLen=19"
+      }
+    ]
+  },
+  "vertexMatch": {
+    "aggregate": true,
+    "slot": true
+  },
+  "curveDataTsRange": [
+    1789627800,
+    1789628100
+  ],
+  "overlap": [
+    1789627800,
+    1789628100
+  ],
+  "overlapBars": 2,
+  "windowLevel": {
+    "klineVisible": [
+      1789612200,
+      1789628400
+    ],
+    "domain": [
+      1789627800,
+      1789628400
+    ],
+    "missingLeftSec": 0,
+    "missingRightSec": 0,
+    "coverage": 27
+  },
+  "curveCoverage": {
+    "firstUserX": 8,
+    "lastUserX": 500,
+    "headDeficitPx984": 0,
+    "tailDeficitPx984": 492,
+    "coverageRatio": 0.5
+  },
+  "edge": {
+    "domainStart": 1789627800,
+    "domainEnd": 1789628400,
+    "apiFirstTs": 1789627800,
+    "apiLastTs": 1789628100,
+    "tailDeficitSec": 300
+  },
+  "rows": [
+    {
+      "kind": "first",
+      "ts": 1789627800,
+      "kIdx": 35,
+      "xK": 593,
+      "xC": 610.2639770507812,
+      "dRaw": -17.26397705078125,
+      "d984": 0,
+      "gapBeforeSec": 300
+    },
+    {
+      "kind": "mid",
+      "ts": 1789627800,
+      "kIdx": 35,
+      "xK": 593,
+      "xC": 610.2639770507812,
+      "dRaw": -17.26397705078125,
+      "d984": 0,
+      "gapBeforeSec": 300
+    },
+    {
+      "kind": "last",
+      "ts": 1789628100,
+      "kIdx": 36,
+      "xK": 609,
+      "xC": 934,
+      "dRaw": -325,
+      "d984": 0,
+      "gapBeforeSec": 300
+    },
+    {
+      "kind": "argmax",
+      "ts": 1789627800,
+      "kIdx": 35,
+      "xK": 593,
+      "xC": 610.2639770507812,
+      "dRaw": -17.26397705078125,
+      "d984": 0,
+      "gapBeforeSec": 300
+    }
+  ],
+  "maxAbs984": 0,
+  "maxAbs984Ts": 1789627800,
+  "maxAbs984BarTs": 1789627800,
+  "maxAbs984IndexPair": 0,
+  "maxAbsRaw": 325,
+  "baselineInsetRawPx": -17.26397705078125,
+  "argmaxGapBeforeSec": 300,
+  "argmaxGapAfterSec": 300,
+  "modelMaxAbs984": 0,
+  "modelMaxAbs984Ts": 1789627800,
+  "modelFullDomain984": 492,
+  "gapCensus": {
+    "300": 2
+  },
+  "spacingDistinct": [
+    16,
+    17
+  ],
+  "aligned": true,
+  "notes": [
+    "曲线渲染数据**未铺到窗口右缘**：末顶点 userX=500（期望 992）⇒ 右端缺口 492 px@984 口径",
+    "窗口末 ts 1789628400 vs /curve 末点 ts 1789628100：曲线数据已到 /curve 边界，缺 300s（≈1.00 根 M5）",
+    "共享窗口 ≠ K 线可见区间：window=[1789627800, 1789628400]、K 可见=[1789612200, 1789628400]（可见/窗口 ts 跨度 = 27.000）⇒ 该态两图**显示的时间范围本身不同**"
+  ],
+  "zoom": {
+    "steps": 28,
+    "zoomEffective": true,
+    "targetBars": 40
+  },
+  "screenshots": [
+    "state_controlGapless.png",
+    "state_controlGapless_kline.png",
+    "state_controlGapless_aggregate.png",
+    "state_controlGapless_slot.png"
+  ]
+}

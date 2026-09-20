@@ -1,0 +1,32 @@
+{
+  "drag": {
+    "mag": 120,
+    "plus": {
+      "deltaTo": -120,
+      "deltaBars": 0,
+      "to": 685
+    },
+    "minus": {
+      "deltaTo": 120,
+      "deltaBars": 0,
+      "to": 805
+    },
+    "pans": true,
+    "zooms": false
+  },
+  "wheelX": {
+    "mag": 200,
+    "plus": {
+      "deltaTo": 194,
+      "deltaBars": 0,
+      "to": 999
+    },
+    "minus": {
+      "deltaTo": -194,
+      "deltaBars": 0,
+      "to": 805
+    },
+    "pans": true,
+    "zooms": false
+  }
+}

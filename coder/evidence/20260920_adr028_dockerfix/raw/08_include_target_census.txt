@@ -1,0 +1,52 @@
+=== FULL CENSUS: include_str!/include_bytes! under crates/ ===
+total usages = 37 in 10 files
+
+--- [A] targets OUTSIDE crates/ (need explicit COPY in the image builder stage) ---
+  design/12-strategy-system/04-strategy-programming-guide.md  <- crates/mcp/src/tools.rs:  crate=mcp  test-target=False
+  design/12-strategy-system/04-strategy-programming-guide.md  <- crates/web/src/strategies.rs:  crate=web  test-target=False
+  web/src/api/errorMessages.ts  <- crates/web/tests/tester_p5rect_verify.rs:  crate=web  test-target=True
+  web/src/features/workbench/store.ts  <- crates/web/tests/tester_p5rect_verify.rs:  crate=web  test-target=True
+  web/src/features/strategies/TestRunPanel.tsx  <- crates/web/tests/tester_p5rect_verify.rs:  crate=web  test-target=True
+  (distinct external targets = 4)
+
+--- [B] all distinct targets by origin file ---
+  EXTERNAL         design/12-strategy-system/04-strategy-programming-guide.md  <- crates/mcp/src/tools.rs
+  IN-CRATE(test)   crates/mcp/src/tools.rs  <- crates/mcp/tests/adr024_period_ssot_drift.rs
+  IN-CRATE(test)   crates/storage/src/reader.rs  <- crates/storage/tests/period30m_read_source.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/dual_ma.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/ma_rsi.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/macd.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/boll.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/kdj.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/momentum.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/atr_channel.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/dcap.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/templates/pure_score.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/templates/two_state_gate.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/templates/dca.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(src)    crates/strategy-core/reference-plugins/templates/trend_stop.js  <- crates/strategy-core/src/reference.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/constant_score.js  <- crates/strategy-core/tests/engine.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/position_gate.js  <- crates/strategy-core/tests/engine.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/scripted_index.js  <- crates/strategy-core/tests/engine.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/flaky.js  <- crates/strategy-core/tests/engine.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/infinite_loop.js  <- crates/strategy-core/tests/engine.rs
+  IN-CRATE(test)   crates/strategy-core/tests/fixtures/constant_score.js  <- crates/strategy-core/tests/observer.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/constant_score.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/stateful_counter.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/thrower.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/infinite_loop.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/boundary_clamp.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/capability_forbidden.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/dual_ma_ref.js  <- crates/strategy-runtime/tests/contract.rs
+  IN-CRATE(test)   crates/strategy-runtime/tests/fixtures/stack_overflow.js  <- crates/strategy-runtime/tests/contract.rs
+  EXTERNAL         design/12-strategy-system/04-strategy-programming-guide.md  <- crates/web/src/strategies.rs
+  IN-CRATE(test)   crates/web/src/workbench.rs  <- crates/web/tests/adr024_workbench_period_ssot.rs
+  IN-CRATE(test)   crates/web/src/workbench.rs  <- crates/web/tests/tester_p5rect_verify.rs
+  IN-CRATE(test)   crates/web/src/strategies.rs  <- crates/web/tests/tester_p5rect_verify.rs
+  IN-CRATE(test)   crates/application/src/error.rs  <- crates/web/tests/tester_p5rect_verify.rs
+  EXTERNAL         web/src/api/errorMessages.ts  <- crates/web/tests/tester_p5rect_verify.rs
+  EXTERNAL         web/src/features/workbench/store.ts  <- crates/web/tests/tester_p5rect_verify.rs
+  EXTERNAL         web/src/features/strategies/TestRunPanel.tsx  <- crates/web/tests/tester_p5rect_verify.rs
+
+--- [C] unresolved/dynamic (env!/concat! indirection) ---
+  count = 0 []

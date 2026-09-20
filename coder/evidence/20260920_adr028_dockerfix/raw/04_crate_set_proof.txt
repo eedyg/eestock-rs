@@ -1,0 +1,103 @@
+=== crate set-difference proof (generated artifacts) ===
+ts_utc=2026-09-20T03:04:36Z
+
+--- actual workspace crates (ls crates) : 16 ---
+alert
+app
+application
+backtest
+collector
+diagnose
+domain
+mcp
+providers
+simlive
+storage
+strategy-core
+strategy-runtime
+test-support
+tushare
+web
+
+--- Dockerfile.app COPY-manifest set : 16 ---
+alert
+app
+application
+backtest
+collector
+diagnose
+domain
+mcp
+providers
+simlive
+storage
+strategy-core
+strategy-runtime
+test-support
+tushare
+web
+--- Dockerfile.app stub-src loop set : 23 ---
+:
+>
+alert
+app
+application
+backtest
+collector
+"crates/$c/src";
+"crates/$c/src/lib.rs"
+diagnose
+do
+domain
+mcp
+mkdir
+-p
+providers
+simlive;
+storage
+strategy-core
+strategy-runtime
+test-support
+tushare
+web
+
+--- DIFF: actual vs Dockerfile.app COPY set ---
+count_diff_app_copy=0
+--- DIFF: actual vs Dockerfile.app stub-src loop set ---
+	:
+	>
+	"crates/$c/src";
+	"crates/$c/src/lib.rs"
+	do
+	mkdir
+	-p
+simlive
+	simlive;
+count_diff_app_loop=9
+
+--- prose count check (00-web-api.md) ---
+5579:  先 COPY 锁文件与 16 个 crate 清单（不含源码），`cargo fetch` 仅下载依赖；清单不变则本层与 fetch 层命中缓存，
+5581:  cargo 自动发现目标需 src，故先补 16 个空 `src/lib.rs` 使 fetch 可加载依赖图（见 data-plane.md §5 同注记），
+5615:# 依赖缓存分层：先 COPY 锁文件与 16 个 crate 的清单（层键=清单内容），cargo fetch 仅下载依赖、不碰源码；
+
+=== SURVEY (out of scope, reported): Dockerfile (data plane) ===
+Dockerfile(data) COPY set count=12 ; loop set count=19
+--- DIFF: actual vs Dockerfile(data) COPY set ---
+application
+backtest
+simlive
+test-support
+--- DIFF: actual vs Dockerfile(data) stub loop set ---
+	:
+	>
+application
+backtest
+	"crates/$c/src";
+	"crates/$c/src/lib.rs"
+	do
+	mkdir
+	-p
+simlive
+test-support
+web
+	web;

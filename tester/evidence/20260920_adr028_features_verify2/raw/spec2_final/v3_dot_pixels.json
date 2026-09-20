@@ -1,0 +1,2827 @@
+{
+  "run": "sr_1789865219068_000001",
+  "pane": {
+    "ox": 0,
+    "oy": 0,
+    "cw": 606,
+    "ch": 79,
+    "dw": 606,
+    "dh": 79
+  },
+  "canvases": [
+    {
+      "ox": 0,
+      "oy": 0,
+      "cw": 606,
+      "ch": 79,
+      "dw": 606,
+      "dh": 79
+    },
+    {
+      "ox": 0,
+      "oy": 0,
+      "cw": 606,
+      "ch": 79,
+      "dw": 606,
+      "dh": 79
+    },
+    {
+      "ox": 606,
+      "oy": 0,
+      "cw": 60,
+      "ch": 79,
+      "dw": 60,
+      "dh": 79
+    },
+    {
+      "ox": 606,
+      "oy": 0,
+      "cw": 60,
+      "ch": 79,
+      "dw": 60,
+      "dh": 79
+    },
+    {
+      "ox": 0,
+      "oy": 80,
+      "cw": 606,
+      "ch": 100,
+      "dw": 606,
+      "dh": 100
+    },
+    {
+      "ox": 0,
+      "oy": 80,
+      "cw": 606,
+      "ch": 100,
+      "dw": 606,
+      "dh": 100
+    },
+    {
+      "ox": 606,
+      "oy": 80,
+      "cw": 60,
+      "ch": 100,
+      "dw": 60,
+      "dh": 100
+    },
+    {
+      "ox": 606,
+      "oy": 80,
+      "cw": 60,
+      "ch": 100,
+      "dw": 60,
+      "dh": 100
+    },
+    {
+      "ox": 0,
+      "oy": 180,
+      "cw": 606,
+      "ch": 26,
+      "dw": 606,
+      "dh": 26
+    },
+    {
+      "ox": 0,
+      "oy": 180,
+      "cw": 606,
+      "ch": 26,
+      "dw": 606,
+      "dh": 26
+    }
+  ],
+  "sampled": 27,
+  "totalDots": 44,
+  "tiers": {
+    "exact": 24,
+    "near": 0,
+    "storeExact": 0,
+    "dominant": 2,
+    "blend": 1,
+    "fail": 0
+  },
+  "exactRatio": 0.8888888888888888,
+  "passTier": 27,
+  "sideMatch": 27,
+  "buyN": 26,
+  "sellN": 1,
+  "stopDots": 0,
+  "records": [
+    {
+      "key": "1:17",
+      "idx": 17,
+      "stack": 0,
+      "label": "B 1.167×856.1903",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 3,
+        "y": 32
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:18",
+      "idx": 18,
+      "stack": 0,
+      "label": "B 1.158×861.2944",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 9,
+        "y": 34
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:19",
+      "idx": 19,
+      "stack": 0,
+      "label": "B 1.165×863.5844",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 15,
+        "y": 33
+      },
+      "centerPixel": [
+        142,
+        145,
+        173,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          191,
+          121,
+          144,
+          255
+        ],
+        [
+          142,
+          145,
+          173,
+          255
+        ],
+        [
+          184,
+          125,
+          149,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          145,
+          143,
+          171,
+          255
+        ],
+        [
+          232,
+          102,
+          121,
+          255
+        ]
+      ],
+      "dExpectCenter": 113,
+      "dStoreCenter": 113,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": false,
+        "alpha": 0.15,
+        "cover": [
+          11,
+          15,
+          26
+        ],
+        "residual": 77.3
+      },
+      "tier": "dominant",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:20",
+      "idx": 20,
+      "stack": 0,
+      "label": "B 1.065×936.2751",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 111,
+        "y": 49
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:21",
+      "idx": 21,
+      "stack": 0,
+      "label": "B 1.063×934.5702",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 117,
+        "y": 49
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:22",
+      "idx": 22,
+      "stack": 0,
+      "label": "B 1.054×948.73",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 123,
+        "y": 51
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:23",
+      "idx": 23,
+      "stack": 0,
+      "label": "B 1.029×982.2114",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 129,
+        "y": 55
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:24",
+      "idx": 24,
+      "stack": 0,
+      "label": "B 1.058×951.6003",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 135,
+        "y": 50
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:25",
+      "idx": 25,
+      "stack": 0,
+      "label": "B 0.946×1,057.6806",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 231,
+        "y": 68
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:26",
+      "idx": 26,
+      "stack": 0,
+      "label": "B 0.970×1,028.9301",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 237,
+        "y": 64
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:27",
+      "idx": 27,
+      "stack": 0,
+      "label": "B 0.960×1,035.1446",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 243,
+        "y": 66
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:28",
+      "idx": 28,
+      "stack": 0,
+      "label": "B 0.960×1,050.424",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 249,
+        "y": 66
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:29",
+      "idx": 29,
+      "stack": 0,
+      "label": "B 1.013×976.8165",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 255,
+        "y": 57
+      },
+      "centerPixel": [
+        22,
+        119,
+        255,
+        255
+      ],
+      "dominantPixel": [
+        239,
+        93,
+        117,
+        255
+      ],
+      "neon3": [
+        [
+          238,
+          93,
+          118,
+          255
+        ],
+        [
+          22,
+          119,
+          255,
+          255
+        ],
+        [
+          240,
+          93,
+          117,
+          255
+        ],
+        [
+          239,
+          93,
+          117,
+          255
+        ],
+        [
+          22,
+          119,
+          255,
+          255
+        ],
+        [
+          239,
+          93,
+          117,
+          255
+        ],
+        [
+          239,
+          93,
+          117,
+          255
+        ],
+        [
+          22,
+          119,
+          255,
+          255
+        ],
+        [
+          239,
+          93,
+          117,
+          255
+        ]
+      ],
+      "dExpectCenter": 233,
+      "dStoreCenter": 233,
+      "dStoreDominant": 16,
+      "blend": {
+        "ok": false,
+        "alpha": 0.26,
+        "cover": [
+          9,
+          13,
+          24
+        ],
+        "residual": 169
+      },
+      "tier": "dominant",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:30",
+      "idx": 30,
+      "stack": 0,
+      "label": "B 1.102×901.4873",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 351,
+        "y": 43
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:31",
+      "idx": 31,
+      "stack": 0,
+      "label": "B 1.113×898.5167",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 357,
+        "y": 41
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          229,
+          104,
+          123,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          213,
+          111,
+          132,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:32",
+      "idx": 32,
+      "stack": 0,
+      "label": "B 1.110×897.6537",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 363,
+        "y": 42
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:33",
+      "idx": 33,
+      "stack": 0,
+      "label": "B 1.093×911.5105",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 369,
+        "y": 44
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:34",
+      "idx": 34,
+      "stack": 0,
+      "label": "B 1.104×905.0213",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 375,
+        "y": 43
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:35",
+      "idx": 35,
+      "stack": 0,
+      "label": "B 1.197×831.4545",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 471,
+        "y": 27
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:36",
+      "idx": 36,
+      "stack": 0,
+      "label": "B 1.237×836.9565",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 477,
+        "y": 21
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:37",
+      "idx": 37,
+      "stack": 0,
+      "label": "B 1.243×805.1645",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 483,
+        "y": 20
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:38",
+      "idx": 38,
+      "stack": 0,
+      "label": "B 1.240×811.0217",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 489,
+        "y": 21
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:39",
+      "idx": 39,
+      "stack": 0,
+      "label": "B 1.203×832.5209",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 495,
+        "y": 26
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:40",
+      "idx": 40,
+      "stack": 0,
+      "label": "B 1.176×848.4772",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 591,
+        "y": 31
+      },
+      "centerPixel": [
+        52,
+        25,
+        38,
+        255
+      ],
+      "dominantPixel": [
+        52,
+        25,
+        38,
+        255
+      ],
+      "neon3": [
+        [
+          78,
+          33,
+          47,
+          255
+        ],
+        [
+          155,
+          59,
+          73,
+          255
+        ],
+        [
+          145,
+          55,
+          70,
+          255
+        ],
+        [
+          26,
+          17,
+          29,
+          255
+        ],
+        [
+          52,
+          25,
+          38,
+          255
+        ],
+        [
+          52,
+          25,
+          38,
+          255
+        ],
+        [
+          16,
+          14,
+          26,
+          255
+        ],
+        [
+          27,
+          18,
+          30,
+          255
+        ],
+        [
+          27,
+          18,
+          30,
+          255
+        ]
+      ],
+      "dExpectCenter": 203,
+      "dStoreCenter": 203,
+      "dStoreDominant": 203,
+      "blend": {
+        "ok": true,
+        "alpha": 0.83,
+        "cover": [
+          9,
+          13,
+          24
+        ],
+        "residual": 1.4
+      },
+      "tier": "blend",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:41",
+      "idx": 41,
+      "stack": 0,
+      "label": "B 1.165×856.1262",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 597,
+        "y": 33
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          76,
+          34,
+          45,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          55,
+          27,
+          38,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          51,
+          26,
+          37,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:42",
+      "idx": 42,
+      "stack": 0,
+      "label": "B 1.188×843.9619",
+      "storeColor": "#ff5c6c",
+      "expectColor": "#ff5c6c",
+      "sideFromApi": "Buy",
+      "reasonFromApi": "Policy",
+      "dot": {
+        "x": 603,
+        "y": 29
+      },
+      "centerPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "dominantPixel": [
+        255,
+        92,
+        108,
+        255
+      ],
+      "neon3": [
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ],
+        [
+          255,
+          92,
+          108,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    },
+    {
+      "key": "1:43",
+      "idx": 43,
+      "stack": 1,
+      "label": "S 1.195×37,764.7619",
+      "storeColor": "#00e0a4",
+      "expectColor": "#00e0a4",
+      "sideFromApi": "Sell",
+      "reasonFromApi": "ForceClose",
+      "dot": {
+        "x": 603,
+        "y": 40
+      },
+      "centerPixel": [
+        0,
+        224,
+        164,
+        255
+      ],
+      "dominantPixel": [
+        0,
+        224,
+        164,
+        255
+      ],
+      "neon3": [
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ],
+        [
+          0,
+          224,
+          164,
+          255
+        ]
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          11,
+          15,
+          26
+        ],
+        "residual": 10.5
+      },
+      "tier": "exact",
+      "storeMatchesApiSide": true
+    }
+  ],
+  "srcMapping": {
+    "buy": true,
+    "sell": true,
+    "stop": true,
+    "stopBranch": true
+  },
+  "stopTrigger": {
+    "fillsSeen": 367,
+    "reasons": {
+      "Policy": 360,
+      "ForceClose": 7
+    },
+    "perRun": [
+      {
+        "run": "sr_1789865536364_000002",
+        "fills": 35,
+        "reasons": {
+          "Policy": 34,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789865219068_000001",
+        "fills": 44,
+        "reasons": {
+          "Policy": 43,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789865144110_000000",
+        "fills": 4,
+        "reasons": {
+          "Policy": 3,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789832517800_000006",
+        "fills": 96,
+        "reasons": {
+          "Policy": 95,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789832517708_000005",
+        "fills": 10,
+        "reasons": {
+          "Policy": 10
+        }
+      },
+      {
+        "run": "sr_1789832500958_000004",
+        "fills": 36,
+        "reasons": {
+          "Policy": 35,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789832500924_000003",
+        "fills": 126,
+        "reasons": {
+          "Policy": 125,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789832477006_000002",
+        "fills": 16,
+        "reasons": {
+          "Policy": 15,
+          "ForceClose": 1
+        }
+      },
+      {
+        "run": "sr_1789831880929_000001",
+        "fills": 0,
+        "reasons": {}
+      },
+      {
+        "run": "sr_1789831866857_000000",
+        "fills": 0,
+        "reasons": {}
+      }
+    ],
+    "stopTriggerCount": 0
+  },
+  "shot": {
+    "clip": {
+      "x": 601,
+      "y": 89,
+      "width": 666,
+      "height": 206
+    }
+  }
+}

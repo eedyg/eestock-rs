@@ -1,0 +1,568 @@
+{
+  "store": {
+    "ok": true,
+    "names": [
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDot",
+      "fillDotHighlight"
+    ],
+    "fillDot": [
+      {
+        "key": "1:0",
+        "stack": 0,
+        "label": "B 1.292×772.7224",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1768838400000,
+        "price": 1.2922584
+      },
+      {
+        "key": "1:1",
+        "stack": 0,
+        "label": "B 1.272×782.4142",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1768924800000,
+        "price": 1.2722544
+      },
+      {
+        "key": "1:2",
+        "stack": 0,
+        "label": "B 1.295×780.7095",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1769011200000,
+        "price": 1.295259
+      },
+      {
+        "key": "1:3",
+        "stack": 0,
+        "label": "B 1.282×784.8913",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1769097600000,
+        "price": 1.2822564
+      },
+      {
+        "key": "1:4",
+        "stack": 0,
+        "label": "B 1.290×773.4165",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1769356800000,
+        "price": 1.290258
+      },
+      {
+        "key": "1:5",
+        "stack": 0,
+        "label": "B 1.255×798.1418",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1771948800000,
+        "price": 1.255251
+      },
+      {
+        "key": "1:6",
+        "stack": 0,
+        "label": "B 1.249×802.5502",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1772035200000,
+        "price": 1.2492498
+      },
+      {
+        "key": "1:7",
+        "stack": 0,
+        "label": "B 1.205×829.7362",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1772121600000,
+        "price": 1.205241
+      },
+      {
+        "key": "1:8",
+        "stack": 0,
+        "label": "B 1.188×830.5056",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1772380800000,
+        "price": 1.1882376
+      },
+      {
+        "key": "1:9",
+        "stack": 0,
+        "label": "B 1.170×853.1833",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1772467200000,
+        "price": 1.170234
+      },
+      {
+        "key": "1:10",
+        "stack": 0,
+        "label": "B 1.120×892.6218",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1774368000000,
+        "price": 1.120224
+      },
+      {
+        "key": "1:11",
+        "stack": 0,
+        "label": "B 1.131×892.9006",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1774454400000,
+        "price": 1.1312262
+      },
+      {
+        "key": "1:12",
+        "stack": 0,
+        "label": "B 1.096×902.3883",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1774540800000,
+        "price": 1.0962192000000002
+      },
+      {
+        "key": "1:13",
+        "stack": 0,
+        "label": "B 1.159×863.0508",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1774800000000,
+        "price": 1.1592318
+      },
+      {
+        "key": "1:14",
+        "stack": 0,
+        "label": "B 1.159×865.0524",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1774886400000,
+        "price": 1.1592318
+      },
+      {
+        "key": "1:15",
+        "stack": 0,
+        "label": "B 1.206×821.1437",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1776873600000,
+        "price": 1.2062412
+      },
+      {
+        "key": "1:16",
+        "stack": 0,
+        "label": "B 1.160×856.0088",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1776960000000,
+        "price": 1.160232
+      },
+      {
+        "key": "1:17",
+        "stack": 0,
+        "label": "B 1.167×856.1903",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1777219200000,
+        "price": 1.1672334
+      },
+      {
+        "key": "1:18",
+        "stack": 0,
+        "label": "B 1.158×861.2944",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1777305600000,
+        "price": 1.1582316
+      },
+      {
+        "key": "1:19",
+        "stack": 0,
+        "label": "B 1.165×863.5844",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1777392000000,
+        "price": 1.165233
+      },
+      {
+        "key": "1:20",
+        "stack": 0,
+        "label": "B 1.065×936.2751",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1779724800000,
+        "price": 1.065213
+      },
+      {
+        "key": "1:21",
+        "stack": 0,
+        "label": "B 1.063×934.5702",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1779811200000,
+        "price": 1.0632126
+      },
+      {
+        "key": "1:22",
+        "stack": 0,
+        "label": "B 1.054×948.73",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1779897600000,
+        "price": 1.0542108000000001
+      },
+      {
+        "key": "1:23",
+        "stack": 0,
+        "label": "B 1.029×982.2114",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1779984000000,
+        "price": 1.0292058
+      },
+      {
+        "key": "1:24",
+        "stack": 0,
+        "label": "B 1.058×951.6003",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1780243200000,
+        "price": 1.0582116
+      },
+      {
+        "key": "1:25",
+        "stack": 0,
+        "label": "B 0.946×1,057.6806",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1782230400000,
+        "price": 0.9461892
+      },
+      {
+        "key": "1:26",
+        "stack": 0,
+        "label": "B 0.970×1,028.9301",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1782316800000,
+        "price": 0.970194
+      },
+      {
+        "key": "1:27",
+        "stack": 0,
+        "label": "B 0.960×1,035.1446",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1782403200000,
+        "price": 0.9601919999999999
+      },
+      {
+        "key": "1:28",
+        "stack": 0,
+        "label": "B 0.960×1,050.424",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1782662400000,
+        "price": 0.9601919999999999
+      },
+      {
+        "key": "1:29",
+        "stack": 0,
+        "label": "B 1.013×976.8165",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1782748800000,
+        "price": 1.0132025999999998
+      },
+      {
+        "key": "1:30",
+        "stack": 0,
+        "label": "B 1.102×901.4873",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1784649600000,
+        "price": 1.1022204
+      },
+      {
+        "key": "1:31",
+        "stack": 0,
+        "label": "B 1.113×898.5167",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1784736000000,
+        "price": 1.1132226
+      },
+      {
+        "key": "1:32",
+        "stack": 0,
+        "label": "B 1.110×897.6537",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1784822400000,
+        "price": 1.110222
+      },
+      {
+        "key": "1:33",
+        "stack": 0,
+        "label": "B 1.093×911.5105",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1785081600000,
+        "price": 1.0932186
+      },
+      {
+        "key": "1:34",
+        "stack": 0,
+        "label": "B 1.104×905.0213",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1785168000000,
+        "price": 1.1042208
+      },
+      {
+        "key": "1:35",
+        "stack": 0,
+        "label": "B 1.197×831.4545",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1787068800000,
+        "price": 1.1972394
+      },
+      {
+        "key": "1:36",
+        "stack": 0,
+        "label": "B 1.237×836.9565",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1787155200000,
+        "price": 1.2372474
+      },
+      {
+        "key": "1:37",
+        "stack": 0,
+        "label": "B 1.243×805.1645",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1787241600000,
+        "price": 1.2432486
+      },
+      {
+        "key": "1:38",
+        "stack": 0,
+        "label": "B 1.240×811.0217",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1787500800000,
+        "price": 1.240248
+      },
+      {
+        "key": "1:39",
+        "stack": 0,
+        "label": "B 1.203×832.5209",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1787587200000,
+        "price": 1.2032406
+      },
+      {
+        "key": "1:40",
+        "stack": 0,
+        "label": "B 1.176×848.4772",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1789488000000,
+        "price": 1.1762351999999998
+      },
+      {
+        "key": "1:41",
+        "stack": 0,
+        "label": "B 1.165×856.1262",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1789574400000,
+        "price": 1.165233
+      },
+      {
+        "key": "1:42",
+        "stack": 0,
+        "label": "B 1.188×843.9619",
+        "color": "#ff5c6c",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1789660800000,
+        "price": 1.1882376
+      },
+      {
+        "key": "1:43",
+        "stack": 1,
+        "label": "S 1.195×37,764.7619",
+        "color": "#00e0a4",
+        "pulse": 0,
+        "zLevel": 10,
+        "ts": 1789660800000,
+        "price": 1.1947610000000002
+      }
+    ],
+    "highlight": [
+      {
+        "key": "1:42",
+        "stack": 0,
+        "label": "B 1.188×843.9619",
+        "color": "#ff5c6c",
+        "pulse": 7,
+        "zLevel": 40,
+        "ts": 1789660800000,
+        "price": 1.1882376
+      }
+    ]
+  },
+  "geom": {
+    "1:42": {
+      "x": 603,
+      "yRaw": 29,
+      "y": 29,
+      "stack": 0,
+      "label": "B 1.188×843.9619",
+      "color": "#ff5c6c",
+      "ts": 1789660800000,
+      "price": 1.1882376
+    },
+    "1:43": {
+      "x": 603,
+      "yRaw": 28,
+      "y": 40,
+      "stack": 1,
+      "label": "S 1.195×37,764.7619",
+      "color": "#00e0a4",
+      "ts": 1789660800000,
+      "price": 1.1947610000000002
+    }
+  },
+  "attrs": {
+    "data-testid": "kline-chart",
+    "data-highlight-key": "1:42",
+    "data-highlight-active": "true",
+    "data-highlight-pulse": "7",
+    "data-marker-overlays": "44",
+    "class": "relative h-full w-full",
+    "k-line-chart-id": "k_line_chart_1",
+    "data-viewport-fit": "{\"bars\":120,\"space\":6,\"visible\":111,\"clamped\":false}"
+  },
+  "expectLabelA": "B 1.188×843.9619",
+  "expectLabelB": "S 1.195×37,764.7619",
+  "fA": {
+    "bar_index": 423,
+    "code": "159776",
+    "commission": 5,
+    "price": 1.1882376,
+    "qty": 843.9618701319539,
+    "reason": "Policy",
+    "rt_seq": 1,
+    "side": "Buy",
+    "stamp_duty": 0,
+    "trade_value": 1002.8272270571044,
+    "ts": 1789660800,
+    "type": "fill"
+  },
+  "fB": {
+    "bar_index": 423,
+    "code": "159776",
+    "commission": 11.279966174672925,
+    "price": 1.1947610000000002,
+    "qty": 37764.76190526113,
+    "reason": "ForceClose",
+    "rt_seq": 1,
+    "side": "Sell",
+    "stamp_duty": 0,
+    "trade_value": 45119.8646986917,
+    "ts": 1789660800,
+    "type": "fill"
+  }
+}

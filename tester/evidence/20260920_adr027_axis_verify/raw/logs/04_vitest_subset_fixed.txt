@@ -1,0 +1,54 @@
+===== src/features/workbench/chartUtils.test.ts =====
+
+ ✓ src/features/workbench/chartUtils.test.ts (17 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  09:50:36
+   Duration  298ms (transform 29ms, setup 22ms, collect 19ms, tests 4ms, environment 131ms, prepare 33ms)
+
+===== src/features/workbench/resultWindow.test.ts =====
+
+ ✓ src/features/workbench/resultWindow.test.ts (33 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  33 passed (33)
+   Start at  09:50:37
+   Duration  314ms (transform 41ms, setup 22ms, collect 37ms, tests 7ms, environment 131ms, prepare 32ms)
+
+===== src/features/workbench/resultAxisIndex.test.tsx =====
+
+ ✓ src/features/workbench/resultAxisIndex.test.tsx (4 tests) 442ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  09:50:38
+   Duration  935ms (transform 162ms, setup 22ms, collect 224ms, tests 442ms, environment 128ms, prepare 26ms)
+
+===== src/features/workbench/useRunSeries.test.ts =====
+
+ ✓ src/features/workbench/useRunSeries.test.ts (6 tests) 295ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  09:50:39
+   Duration  682ms (transform 85ms, setup 26ms, collect 110ms, tests 295ms, environment 134ms, prepare 33ms)
+
+===== src/features/dashboard/KlineChartVisibleRange.test.tsx =====
+
+ ✓ src/features/dashboard/KlineChartVisibleRange.test.tsx (5 tests) 23ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  09:50:40
+   Duration  395ms (transform 76ms, setup 23ms, collect 110ms, tests 23ms, environment 126ms, prepare 28ms)
+
+===== src/features/workbench/resultBarSpaceLimit.test.tsx =====
+
+ ✓ src/features/workbench/resultBarSpaceLimit.test.tsx (2 tests) 13ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  09:50:41
+   Duration  402ms (transform 81ms, setup 22ms, collect 117ms, tests 13ms, environment 135ms, prepare 31ms)
+

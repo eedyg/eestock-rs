@@ -1,0 +1,58 @@
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-features-fix.e2e.ts:305:1 › F0 真身锚定：:8081 服务的 bundle 含本波修复（弹性布局类名在、被删除的承诺文案不在） (373ms)
+  ✘  2 [chromium] › e2e/adr028-features-fix.e2e.ts:323:1 › F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击且 K 线容器不溢出卡片 (9.6s)
+
+
+  1) [chromium] › e2e/adr028-features-fix.e2e.ts:305:1 › F0 真身锚定：:8081 服务的 bundle 含本波修复（弹性布局类名在、被删除的承诺文案不在） 
+
+    Error: K 线卡片必须是 flex-col（B1 修复）
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      315 |   };
+      316 |   writeJson('f0_bundle_anchor', r);
+    > 317 |   expect(r.hasFlexCard, 'K 线卡片必须是 flex-col（B1 修复）').toBe(true);
+          |                                                     ^
+      318 |   expect(r.hasFlexChartArea, '图表区必须是 flex-1 min-h-0（B1 修复）').toBe(true);
+      319 |   expect(r.hasRemovedPromise, '被删除的不可达承诺文案不得出现在产物中（R2）').toBe(false);
+      320 | });
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-features-fix.e2e.ts:317:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-features-fix.e2e.ts-3bda2-e-含本波修复（弹性布局类名在、被删除的承诺文案不在）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-features-fix.e2e.ts-3bda2-e-含本波修复（弹性布局类名在、被删除的承诺文案不在）-chromium/error-context.md
+
+  2) [chromium] › e2e/adr028-features-fix.e2e.ts:323:1 › F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击且 K 线容器不溢出卡片 
+
+    Error: K 线容器不得溢出卡片（实测 27px）
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    27
+
+      365 |
+      366 |   // ① K 线容器不得溢出 h-64 卡片（旧实现 +27px，canvas 盖住窗口控制条）
+    > 367 |   expect(reset.overflowPx, `K 线容器不得溢出卡片（实测 ${reset.overflowPx}px）`).toBeLessThanOrEqual(1);
+          |                                                                     ^
+      368 |   expect(back.overflowPx).toBeLessThanOrEqual(1);
+      369 |   expect(Math.round(reset.host.h), '卡片高度必须仍为 h-64 = 256（不得挤压其它区域）').toBe(256);
+      370 |   expect(reset.host.bottom, '卡片底部不得越过窗口控制条顶部').toBeLessThanOrEqual(reset.barTop + 1);
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-features-fix.e2e.ts:367:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-features-fix.e2e.ts-0e5ae-览-历史回退」必须可被真实点击且-K-线容器不溢出卡片-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-features-fix.e2e.ts-0e5ae-览-历史回退」必须可被真实点击且-K-线容器不溢出卡片-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/adr028-features-fix.e2e.ts:305:1 › F0 真身锚定：:8081 服务的 bundle 含本波修复（弹性布局类名在、被删除的承诺文案不在） 
+    [chromium] › e2e/adr028-features-fix.e2e.ts:323:1 › F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击且 K 线容器不溢出卡片 

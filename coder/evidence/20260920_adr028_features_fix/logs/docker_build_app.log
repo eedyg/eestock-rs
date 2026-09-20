@@ -1,0 +1,129 @@
+time="2026-09-20T10:35:05+08:00" level=warning msg="Docker Compose is configured to build using Bake, but buildx isn't installed"
+#0 building with "default" instance using docker driver
+
+#1 [app internal] load build definition from Dockerfile.app
+#1 transferring dockerfile: 3.25kB done
+#1 DONE 0.0s
+
+#2 [app internal] load metadata for docker.io/library/debian:bookworm-slim
+#2 DONE 0.0s
+
+#3 [app internal] load metadata for docker.io/library/node:22-bookworm-slim
+#3 DONE 0.0s
+
+#4 [app internal] load metadata for docker.io/library/rust:1-bookworm
+#4 DONE 0.0s
+
+#5 [app internal] load .dockerignore
+#5 transferring context: 216B done
+#5 DONE 0.0s
+
+#6 [app stage-2 1/4] FROM docker.io/library/debian:bookworm-slim
+#6 DONE 0.0s
+
+#7 [app frontend 1/7] FROM docker.io/library/node:22-bookworm-slim
+#7 DONE 0.0s
+
+#8 [app builder  1/22] FROM docker.io/library/rust:1-bookworm
+#8 DONE 0.0s
+
+#9 [app internal] load build context
+#9 transferring context: 43.32kB done
+#9 DONE 0.0s
+
+#10 [app frontend 2/7] WORKDIR /web
+#10 CACHED
+
+#11 [app frontend 3/7] COPY web/package.json web/package-lock.json ./
+#11 CACHED
+
+#12 [app builder  5/22] COPY crates/app/Cargo.toml crates/app/Cargo.toml
+#12 CACHED
+
+#13 [app builder 14/22] COPY crates/storage/Cargo.toml crates/storage/Cargo.toml
+#13 CACHED
+
+#14 [app builder  9/22] COPY crates/diagnose/Cargo.toml crates/diagnose/Cargo.toml
+#14 CACHED
+
+#15 [app builder 13/22] COPY crates/providers/Cargo.toml crates/providers/Cargo.toml
+#15 CACHED
+
+#16 [app builder  3/22] COPY Cargo.toml Cargo.lock ./
+#16 CACHED
+
+#17 [app builder 15/22] COPY crates/strategy-core/Cargo.toml crates/strategy-core/Cargo.toml
+#17 CACHED
+
+#18 [app builder  2/22] WORKDIR /build
+#18 CACHED
+
+#19 [app builder 12/22] COPY crates/simlive/Cargo.toml crates/simlive/Cargo.toml
+#19 CACHED
+
+#20 [app builder 16/22] COPY crates/strategy-runtime/Cargo.toml crates/strategy-runtime/Cargo.toml
+#20 CACHED
+
+#21 [app builder  8/22] COPY crates/collector/Cargo.toml crates/collector/Cargo.toml
+#21 CACHED
+
+#22 [app builder 17/22] COPY crates/tushare/Cargo.toml crates/tushare/Cargo.toml
+#22 CACHED
+
+#23 [app builder 10/22] COPY crates/domain/Cargo.toml crates/domain/Cargo.toml
+#23 CACHED
+
+#24 [app builder  7/22] COPY crates/backtest/Cargo.toml crates/backtest/Cargo.toml
+#24 CACHED
+
+#25 [app builder  6/22] COPY crates/application/Cargo.toml crates/application/Cargo.toml
+#25 CACHED
+
+#26 [app builder 11/22] COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
+#26 CACHED
+
+#27 [app builder 18/22] COPY crates/web/Cargo.toml crates/web/Cargo.toml
+#27 CACHED
+
+#28 [app builder  4/22] COPY crates/alert/Cargo.toml crates/alert/Cargo.toml
+#28 CACHED
+
+#29 [app builder 19/22] RUN for c in alert app application backtest collector diagnose domain mcp providers storage strategy-core strategy-runtime tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
+#29 CACHED
+
+#30 [app builder 20/22] RUN cargo fetch
+#30 0.123 error: failed to load manifest for workspace member `/build/crates/app`
+#30 0.123 referenced via `crates/*` by workspace at `/build/Cargo.toml`
+#30 0.123 
+#30 0.123 Caused by:
+#30 0.123   failed to load manifest for dependency `mcp`
+#30 0.123 
+#30 0.123 Caused by:
+#30 0.123   failed to load manifest for dependency `storage`
+#30 0.123 
+#30 0.123 Caused by:
+#30 0.123   failed to load manifest for dependency `test-support`
+#30 0.123 
+#30 0.123 Caused by:
+#30 0.123   failed to read `/build/crates/test-support/Cargo.toml`
+#30 0.123 
+#30 0.123 Caused by:
+#30 0.123   No such file or directory (os error 2)
+#30 ERROR: process "/bin/sh -c cargo fetch" did not complete successfully: exit code: 101
+
+#31 [app frontend 4/7] RUN npm ci
+#31 CANCELED
+------
+ > [app builder 20/22] RUN cargo fetch:
+0.123   failed to load manifest for dependency `storage`
+0.123 
+0.123 Caused by:
+0.123   failed to load manifest for dependency `test-support`
+0.123 
+0.123 Caused by:
+0.123   failed to read `/build/crates/test-support/Cargo.toml`
+0.123 
+0.123 Caused by:
+0.123   No such file or directory (os error 2)
+------
+failed to solve: process "/bin/sh -c cargo fetch" did not complete successfully: exit code: 101

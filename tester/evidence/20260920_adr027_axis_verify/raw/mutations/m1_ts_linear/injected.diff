@@ -1,0 +1,31 @@
+diff --git a/web/src/features/backtest/chartUtils.ts b/web/src/features/backtest/chartUtils.ts
+index 17dc392..eef4fbe 100644
+--- a/web/src/features/backtest/chartUtils.ts
++++ b/web/src/features/backtest/chartUtils.ts
+@@ -153,9 +153,10 @@ export function curveXs(
+   }
+   const bars = d.barTs;
+   if (bars.length === 0) return { xs, unmatched: tsList.length };
++  // ⚠ MUTATION(M1, tester 变异反证，临时注入): 把曲线映射改回 **ts 线性**（保留 index 声明与降级链）。
+   const tol = Number.isFinite(d.toleranceSec) && d.toleranceSec > 0 ? d.toleranceSec : 0;
+-  const denom = Math.max(bars.length - 1, 1);
+-  let j = 0;
++  void tol;
++  const span = bars[bars.length - 1]! - bars[0]!;
+   let unmatched = 0;
+   for (let i = 0; i < tsList.length; i++) {
+     const t = tsList[i]!;
+@@ -163,12 +164,7 @@ export function curveXs(
+       unmatched += 1;
+       continue;
+     }
+-    while (j + 1 < bars.length && Math.abs(bars[j + 1]! - t) <= Math.abs(bars[j]! - t)) j += 1;
+-    if (Math.abs(bars[j]! - t) > tol) {
+-      unmatched += 1;
+-      continue;
+-    }
+-    xs[i] = pad + (j / denom) * plotW;
++    xs[i] = span > 0 ? pad + ((t - bars[0]!) / span) * plotW : pad;
+   }
+   return { xs, unmatched };
+ }

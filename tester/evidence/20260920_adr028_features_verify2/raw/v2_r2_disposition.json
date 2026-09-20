@@ -1,0 +1,49 @@
+{
+  "srcChecks": {
+    "srcPath": "/home/eestock/workspace/git/eestock/eestock-rs/web/src/features/workbench/KlineResultChart.tsx",
+    "unionLine": "'idle' | 'ok' | 'unrecorded' | 'unmatched'",
+    "hasLoadingInUnion": false,
+    "hasAutoFillPromiseInCode": false,
+    "hasReadyPhraseInCode": false,
+    "hasAutoFillPromiseInLiterals": false,
+    "hasReadyPhraseInLiterals": false,
+    "hasLoadingNoteInLiterals": false,
+    "hasLoadingGuard": false,
+    "keepStates": [
+      {
+        "s": "ok",
+        "present": true
+      },
+      {
+        "s": "unrecorded",
+        "present": true
+      },
+      {
+        "s": "unmatched",
+        "present": true
+      }
+    ],
+    "commentOnlyMentions": 2
+  },
+  "artChecks": {
+    "url": "/assets/index-BY728MHs.js",
+    "bytes": 1271742,
+    "hasAutoFillPromise": false,
+    "hasReadyPhrase": false,
+    "hasLoadingNote": false,
+    "controlUnmatched": true,
+    "controlUnrecorded": true,
+    "controlOkNote": true
+  },
+  "runtime": {
+    "noteCount": 1,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）"
+  },
+  "during": {
+    "fillsNote": "成交明细加载中…",
+    "markers": "0",
+    "noteCount": 0,
+    "l2RowCount": 0
+  }
+}

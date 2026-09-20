@@ -1,0 +1,8 @@
+
+Running 3 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-features-verify2.e2e.ts:430:1 › V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测文本宽度，且完整落在 pane 内 (15.3s)
+  ✓  2 [chromium] › e2e/adr028-features-verify2.e2e.ts:566:1 › V2 R2 处置确认：源码(去注释) + 产物两侧均无「loading」高亮态与「自动补齐」承诺；loading 期 L2 不可达 (6.4s)
+  ✓  3 [chromium] › e2e/adr028-features-verify2.e2e.ts:657:1 › V3 R3 圆点颜色身份：合成位图逐圆点读圆心/3×3，与 /fills 侧别⇒颜色映射交叉；止损橙按数据事实判可测性 (7.6s)
+
+  3 passed (29.7s)

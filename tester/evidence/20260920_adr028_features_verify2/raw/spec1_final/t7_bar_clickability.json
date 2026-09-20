@@ -1,0 +1,300 @@
+{
+  "beforeNote": 0,
+  "afterJump": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "klineOverflowPx": -1,
+    "hostBottom": 296,
+    "barTop": 304,
+    "chartAreaH": 206,
+    "notePresent": true,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）",
+    "windowSource": "jump",
+    "windowRev": "3"
+  },
+  "guardNote": 1,
+  "resetClickOk": true,
+  "resetClickError": "",
+  "afterReset": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "klineOverflowPx": -1,
+    "hostBottom": 296,
+    "barTop": 304,
+    "chartAreaH": 234,
+    "notePresent": false,
+    "noteState": "",
+    "noteText": "",
+    "windowSource": "full",
+    "windowRev": ""
+  },
+  "backBefore": {
+    "present": true,
+    "disabled": false,
+    "rect": {
+      "x": 657,
+      "y": 309,
+      "w": 40,
+      "h": 23.59375
+    },
+    "samples": [
+      {
+        "f": 0.5,
+        "px": 677,
+        "py": 321,
+        "tag": "button",
+        "testid": "wb-window-back",
+        "selfOrChild": true
+      },
+      {
+        "f": 0.15,
+        "px": 677,
+        "py": 313,
+        "tag": "button",
+        "testid": "wb-window-back",
+        "selfOrChild": true
+      },
+      {
+        "f": 0.85,
+        "px": 677,
+        "py": 329,
+        "tag": "button",
+        "testid": "wb-window-back",
+        "selfOrChild": true
+      }
+    ],
+    "allSelf": true
+  },
+  "backClickOk": true,
+  "backClickError": "",
+  "afterBack": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 321,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 313,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true
+    },
+    "klineOverflowPx": -1,
+    "hostBottom": 296,
+    "barTop": 304,
+    "chartAreaH": 234,
+    "notePresent": false,
+    "noteState": "",
+    "noteText": "",
+    "windowSource": "jump",
+    "windowRev": "5"
+  }
+}

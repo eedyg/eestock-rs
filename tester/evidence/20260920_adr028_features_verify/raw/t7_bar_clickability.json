@@ -1,0 +1,33 @@
+{
+  "beforeNote": 0,
+  "afterJump": {
+    "btn": {
+      "x": 609,
+      "y": 309,
+      "w": 40,
+      "h": 23.59375
+    },
+    "elementAtCenter": "button",
+    "isButton": true,
+    "klineOverflowPx": -1,
+    "hostBottom": 296,
+    "barTop": 304,
+    "notePresent": true,
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）"
+  },
+  "afterL1": {
+    "btn": {
+      "x": 609,
+      "y": 309,
+      "w": 40,
+      "h": 23.59375
+    },
+    "elementAtCenter": "button",
+    "isButton": true,
+    "klineOverflowPx": -1,
+    "hostBottom": 296,
+    "barTop": 304,
+    "notePresent": false,
+    "noteText": ""
+  }
+}

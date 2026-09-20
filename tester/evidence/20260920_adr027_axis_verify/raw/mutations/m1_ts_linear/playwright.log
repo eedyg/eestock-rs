@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-axis-align-probe.e2e.ts:1431:1 › P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + 原子性 + 披露 (28.3s)
+
+
+  1) [chromium] › e2e/adr028-axis-align-probe.e2e.ts:1431:1 › P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + 原子性 + 披露 
+
+    Error: init：索引空间预测残差必须 ≈ 0（配对自校验；>1 user unit ⇒ 配对或映射不自洽）
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    352.36
+
+      1631 |       st.mapping.indexResidualMaxUser,
+      1632 |       `${st.label}：索引空间预测残差必须 ≈ 0（配对自校验；>1 user unit ⇒ 配对或映射不自洽）`,
+    > 1633 |     ).toBeLessThanOrEqual(1);
+           |       ^
+      1634 |   }
+      1635 |   {
+      1636 |     const ls = states.find((s) => s.label === 'leftscroll');
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-axis-align-probe.e2e.ts:1633:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-axis-align-probe.e2-e7c6c-同一根-bar-配对偏差（六态）-跟随性-原子性-披露-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-axis-align-probe.e2-e7c6c-同一根-bar-配对偏差（六态）-跟随性-原子性-披露-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-axis-align-probe.e2e.ts:1431:1 › P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + 原子性 + 披露 

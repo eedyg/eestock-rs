@@ -1,0 +1,9 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/adr028-features-fix.e2e.ts:305:1 › F0 真身锚定：:8081 服务的 bundle 含本波修复（弹性布局类名在、被删除的承诺文案不在） (359ms)
+  ✓  2 [chromium] › e2e/adr028-features-fix.e2e.ts:323:1 › F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击且 K 线容器不溢出卡片 (4.0s)
+  ✓  3 [chromium] › e2e/adr028-features-fix.e2e.ts:406:1 › F2（R1）run 末根 bar 的买卖标签必须完整可见（边缘收敛） (7.2s)
+  ✓  4 [chromium] › e2e/adr028-features-fix.e2e.ts:490:1 › F3（R3）真渲染圆点像素色值必须等于标记 store 色值（买红 / 卖绿） (2.7s)
+
+  4 passed (14.6s)

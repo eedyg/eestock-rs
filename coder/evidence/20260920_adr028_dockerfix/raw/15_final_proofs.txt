@@ -1,0 +1,21 @@
+=== FINAL PROOF 1: manifest/loop sets vs actual crates ===
+actual crates (ls crates) = 16
+  Dockerfile.app: COPY=16 loop=16 | DIFF(copy)=[] (EMPTY) | DIFF(loop)=[] (EMPTY)
+     non-crates COPY lines = ['crates', 'design/12-strategy-system/04-strategy-programming-guide.md']
+  Dockerfile: COPY=16 loop=16 | DIFF(copy)=[] (EMPTY) | DIFF(loop)=[] (EMPTY)
+     non-crates COPY lines = ['crates', 'design/12-strategy-system/04-strategy-programming-guide.md']
+
+=== FINAL PROOF 2: include_str!/include_bytes! invariant (build path ⊆ COPY coverage) ===
+census: 37 usages in 10 files; dynamic(unresolved)=0
+
+  [Dockerfile.app] compiled path crates (15) = alert app application backtest collector diagnose domain mcp providers simlive storage strategy-core strategy-runtime tushare web
+    src include_* targets in build path: 14 usages; in-crate=12 (covered by 'COPY crates ./crates')
+    external targets needing explicit COPY = ['design/12-strategy-system/04-strategy-programming-guide.md']
+    INVARIANT: uncovered targets = [] (EMPTY => invariant holds)
+    (out-of-build-path note: test-target externals ['web/src/api/errorMessages.ts', 'web/src/features/strategies/TestRunPanel.tsx', 'web/src/features/workbench/store.ts'] — tests are NOT compiled by `cargo build --release --bin`; not in image build path)
+
+  [Dockerfile] compiled path crates (15) = alert app application backtest collector diagnose domain mcp providers simlive storage strategy-core strategy-runtime tushare web
+    src include_* targets in build path: 14 usages; in-crate=12 (covered by 'COPY crates ./crates')
+    external targets needing explicit COPY = ['design/12-strategy-system/04-strategy-programming-guide.md']
+    INVARIANT: uncovered targets = [] (EMPTY => invariant holds)
+    (out-of-build-path note: test-target externals ['web/src/api/errorMessages.ts', 'web/src/features/strategies/TestRunPanel.tsx', 'web/src/features/workbench/store.ts'] — tests are NOT compiled by `cargo build --release --bin`; not in image build path)

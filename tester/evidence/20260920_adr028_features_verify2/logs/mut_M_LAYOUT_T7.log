@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-features-verify.e2e.ts:925:1 › T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 采样点自命中 + 真实 click 不超时） (11.6s)
+
+
+  1) [chromium] › e2e/adr028-features-verify.e2e.ts:925:1 › T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 采样点自命中 + 真实 click 不超时） 
+
+    Error: 「全览」3 个采样点必须命中按钮自身或其子元素：[{"f":0.5,"px":629,"py":321,"tag":"canvas","testid":"kline-chart","selfOrChild":false},{"f":0.15,"px":629,"py":313,"tag":"canvas","testid":"kline-chart","selfOrChild":false},{"f":0.85,"px":629,"py":329,"tag":"button","testid":"wb-window-reset","selfOrChild":true}]
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1044 |     afterJump.reset.allSelf,
+      1045 |     `「全览」3 个采样点必须命中按钮自身或其子元素：${JSON.stringify(afterJump.reset.samples)}`,
+    > 1046 |   ).toBe(true);
+           |     ^
+      1047 |   expect(
+      1048 |     afterJump.back.allSelf,
+      1049 |     `「回退」3 个采样点必须命中按钮自身或其子元素：${JSON.stringify(afterJump.back.samples)}`,
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-features-verify.e2e.ts:1046:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-features-verify.e2e-aead5-仍可点击（3-采样点自命中-真实-click-不超时）-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-features-verify.e2e-aead5-仍可点击（3-采样点自命中-真实-click-不超时）-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-features-verify.e2e.ts:925:1 › T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 采样点自命中 + 真实 click 不超时） 

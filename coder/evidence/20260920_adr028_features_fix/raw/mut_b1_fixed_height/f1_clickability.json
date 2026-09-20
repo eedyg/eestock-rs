@@ -1,0 +1,275 @@
+{
+  "before": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 361,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 353,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true,
+      "host": {
+        "x": 600,
+        "y": 80,
+        "w": 668,
+        "h": 256,
+        "bottom": 336
+      },
+      "kline": {
+        "bottom": 335,
+        "h": 234
+      },
+      "overflowPx": -1,
+      "barTop": 344,
+      "notePresent": false,
+      "noteState": "",
+      "noteText": ""
+    },
+    "back": {
+      "present": true,
+      "disabled": true,
+      "rect": {
+        "x": 657,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 361,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 353,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": true,
+      "host": {
+        "x": 600,
+        "y": 80,
+        "w": 668,
+        "h": 256,
+        "bottom": 336
+      },
+      "kline": {
+        "bottom": 335,
+        "h": 234
+      },
+      "overflowPx": -1,
+      "barTop": 344,
+      "notePresent": false,
+      "noteState": "",
+      "noteText": ""
+    }
+  },
+  "afterJump": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 125,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 137,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 129,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 145,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false,
+      "host": {
+        "x": 600,
+        "y": -144,
+        "w": 668,
+        "h": 256,
+        "bottom": 112
+      },
+      "kline": {
+        "bottom": 139,
+        "h": 234
+      },
+      "overflowPx": 27,
+      "barTop": 120,
+      "notePresent": true,
+      "noteState": "ok",
+      "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）"
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 125,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 137,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 129,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 145,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false,
+      "host": {
+        "x": 600,
+        "y": -144,
+        "w": 668,
+        "h": 256,
+        "bottom": 112
+      },
+      "kline": {
+        "bottom": 139,
+        "h": 234
+      },
+      "overflowPx": 27,
+      "barTop": 120,
+      "notePresent": true,
+      "noteState": "ok",
+      "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）"
+    }
+  },
+  "resetClickOk": false,
+  "resetClickError": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('wb-window-reset')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-testid=\"wb-window-reset\" class=\"rounded-lg border border-line px-2 py-0.5 hover:text-txt\">全览</button>\u001b[22m\n\u001b[2m  - attempti",
+  "afterReset": {
+    "present": true,
+    "disabled": false,
+    "rect": {
+      "x": 609,
+      "y": 349,
+      "w": 40,
+      "h": 23.59375
+    },
+    "samples": [
+      {
+        "f": 0.5,
+        "px": 629,
+        "py": 361,
+        "tag": "canvas",
+        "testid": "kline-chart",
+        "selfOrChild": false
+      },
+      {
+        "f": 0.15,
+        "px": 629,
+        "py": 353,
+        "tag": "canvas",
+        "testid": "kline-chart",
+        "selfOrChild": false
+      },
+      {
+        "f": 0.85,
+        "px": 629,
+        "py": 369,
+        "tag": "button",
+        "testid": "wb-window-reset",
+        "selfOrChild": true
+      }
+    ],
+    "allSelf": false,
+    "host": {
+      "x": 600,
+      "y": 80,
+      "w": 668,
+      "h": 256,
+      "bottom": 336
+    },
+    "kline": {
+      "bottom": 363,
+      "h": 234
+    },
+    "overflowPx": 27,
+    "barTop": 344,
+    "notePresent": true,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）"
+  },
+  "backClickOk": false,
+  "backClickError": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('wb-window-back')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-testid=\"wb-window-back\" class=\"rounded-lg border border-line px-2 py-0.5 hover:text-txt disabled:opacity-40\">回退</button>\u001b[22"
+}

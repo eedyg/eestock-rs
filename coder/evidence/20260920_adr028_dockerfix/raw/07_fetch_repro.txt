@@ -1,0 +1,29 @@
+=== sandbox builder-stage fetch reproduction (evidence raw/07) ===
+ts_utc=2026-09-20T03:05:45Z
+sim_dir=/tmp/fetchrepro ; recipe = builder 阶段同步骤（锁文件 + 15 份清单 + 15 空 src/lib.rs）
+
+crates present = 15
+
+--- [1] PRE-FIX: timeout 180 cargo fetch ---
+error: failed to load manifest for workspace member `/tmp/fetchrepro/crates/app`
+referenced via `crates/*` by workspace at `/tmp/fetchrepro/Cargo.toml`
+
+Caused by:
+  failed to load manifest for dependency `mcp`
+
+Caused by:
+  failed to load manifest for dependency `storage`
+
+Caused by:
+  failed to load manifest for dependency `test-support`
+
+Caused by:
+  failed to read `/tmp/fetchrepro/crates/test-support/Cargo.toml`
+
+Caused by:
+  No such file or directory (os error 2)
+PRE_FIX_EXIT=101
+
+--- [2] POST-FIX: 补 crates/test-support/Cargo.toml + 空 src/lib.rs 后 ---
+crates present = 16
+POST_FIX_EXIT=0

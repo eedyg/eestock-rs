@@ -1,0 +1,325 @@
+start_utc=2026-09-20T03:08:42Z
+cmd: timeout 1500 docker compose build data
+time="2026-09-20T11:08:42+08:00" level=warning msg="Docker Compose is configured to build using Bake, but buildx isn't installed"
+#0 building with "default" instance using docker driver
+
+#1 [data internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.26kB done
+#1 DONE 0.0s
+
+#2 [data internal] load metadata for docker.io/library/debian:bookworm-slim
+#2 DONE 0.0s
+
+#3 [data internal] load metadata for docker.io/library/rust:1-bookworm
+#3 DONE 0.0s
+
+#4 [data internal] load .dockerignore
+#4 transferring context: 216B done
+#4 DONE 0.0s
+
+#5 [data builder  1/24] FROM docker.io/library/rust:1-bookworm
+#5 DONE 0.0s
+
+#6 [data stage-1 1/3] FROM docker.io/library/debian:bookworm-slim
+#6 CACHED
+
+#7 [data internal] load build context
+#7 transferring context: 19.01kB done
+#7 DONE 0.0s
+
+#8 [data builder 16/24] COPY crates/strategy-runtime/Cargo.toml crates/strategy-runtime/Cargo.toml
+#8 CACHED
+
+#9 [data builder 10/24] COPY crates/domain/Cargo.toml crates/domain/Cargo.toml
+#9 CACHED
+
+#10 [data builder  4/24] COPY crates/alert/Cargo.toml crates/alert/Cargo.toml
+#10 CACHED
+
+#11 [data builder  7/24] COPY crates/backtest/Cargo.toml crates/backtest/Cargo.toml
+#11 CACHED
+
+#12 [data builder 15/24] COPY crates/strategy-core/Cargo.toml crates/strategy-core/Cargo.toml
+#12 CACHED
+
+#13 [data builder 11/24] COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
+#13 CACHED
+
+#14 [data builder 18/24] COPY crates/tushare/Cargo.toml crates/tushare/Cargo.toml
+#14 CACHED
+
+#15 [data builder  9/24] COPY crates/diagnose/Cargo.toml crates/diagnose/Cargo.toml
+#15 CACHED
+
+#16 [data builder 13/24] COPY crates/providers/Cargo.toml crates/providers/Cargo.toml
+#16 CACHED
+
+#17 [data builder 12/24] COPY crates/simlive/Cargo.toml crates/simlive/Cargo.toml
+#17 CACHED
+
+#18 [data builder 22/24] COPY crates ./crates
+#18 CACHED
+
+#19 [data builder 20/24] RUN for c in alert app application backtest collector diagnose domain mcp providers storage strategy-core strategy-runtime test-support tushare web simlive; do mkdir -p "crates/$c/src"; : > "crates/$c/src/lib.rs"; done
+#19 CACHED
+
+#20 [data builder 14/24] COPY crates/storage/Cargo.toml crates/storage/Cargo.toml
+#20 CACHED
+
+#21 [data builder 19/24] COPY crates/web/Cargo.toml crates/web/Cargo.toml
+#21 CACHED
+
+#22 [data builder  3/24] COPY Cargo.toml Cargo.lock ./
+#22 CACHED
+
+#23 [data builder 17/24] COPY crates/test-support/Cargo.toml crates/test-support/Cargo.toml
+#23 CACHED
+
+#24 [data builder  8/24] COPY crates/collector/Cargo.toml crates/collector/Cargo.toml
+#24 CACHED
+
+#25 [data builder  2/24] WORKDIR /build
+#25 CACHED
+
+#26 [data builder 21/24] RUN cargo fetch
+#26 CACHED
+
+#27 [data builder  5/24] COPY crates/app/Cargo.toml crates/app/Cargo.toml
+#27 CACHED
+
+#28 [data builder  6/24] COPY crates/application/Cargo.toml crates/application/Cargo.toml
+#28 CACHED
+
+#29 [data builder 23/24] COPY design/12-strategy-system/04-strategy-programming-guide.md design/12-strategy-system/04-strategy-programming-guide.md
+#29 CACHED
+
+#30 [data stage-1 2/3] RUN useradd --system --uid 10001 --no-create-home eestock
+#30 0.137 useradd warning: eestock's uid 10001 is greater than SYS_UID_MAX 999
+#30 DONE 0.2s
+
+#31 [data builder 24/24] RUN cargo build --release --bin eestock-data
+#31 0.286    Compiling proc-macro2 v1.0.107
+#31 0.286    Compiling quote v1.0.47
+#31 0.286    Compiling unicode-ident v1.0.24
+#31 0.286    Compiling serde_core v1.0.229
+#31 0.286    Compiling serde v1.0.229
+#31 0.286    Compiling cfg-if v1.0.4
+#31 0.286    Compiling libc v0.2.189
+#31 0.286    Compiling itoa v1.0.18
+#31 0.288    Compiling pin-project-lite v0.2.17
+#31 0.289    Compiling bytes v1.12.1
+#31 0.290    Compiling shlex v2.0.1
+#31 0.290    Compiling find-msvc-tools v0.1.11
+#31 0.291    Compiling parking_lot_core v0.9.12
+#31 0.292    Compiling memchr v2.8.3
+#31 0.292    Compiling scopeguard v1.2.0
+#31 0.292    Compiling once_cell v1.21.4
+#31 0.303    Compiling futures-core v0.3.34
+#31 0.318    Compiling lock_api v0.4.14
+#31 0.323    Compiling log v0.4.34
+#31 0.329    Compiling subtle v2.6.1
+#31 0.381    Compiling zmij v1.0.23
+#31 0.383    Compiling cc v1.4.4
+#31 0.386    Compiling zerocopy v0.8.56
+#31 0.389    Compiling version_check v0.9.5
+#31 0.407    Compiling tracing-core v0.1.36
+#31 0.411    Compiling stable_deref_trait v1.2.1
+#31 0.433    Compiling serde_json v1.0.151
+#31 0.433    Compiling thiserror v2.0.20
+#31 0.450    Compiling futures-sink v0.3.34
+#31 0.457    Compiling typenum v1.20.1
+#31 0.467    Compiling equivalent v1.0.2
+#31 0.479    Compiling autocfg v1.5.1
+#31 0.485    Compiling allocator-api2 v0.2.21
+#31 0.490    Compiling slab v0.4.12
+#31 0.507    Compiling futures-io v0.3.34
+#31 0.581    Compiling generic-array v0.14.7
+#31 0.604    Compiling percent-encoding v2.3.2
+#31 0.607    Compiling futures-task v0.3.34
+#31 0.609    Compiling litemap v0.8.3
+#31 0.673    Compiling futures-util v0.3.34
+#31 0.681    Compiling writeable v0.6.4
+#31 0.717    Compiling http v1.5.0
+#31 0.722    Compiling num-traits v0.2.19
+#31 0.728    Compiling icu_normalizer_data v2.3.0
+#31 0.775    Compiling zeroize v1.9.0
+#31 0.800    Compiling utf8_iter v1.0.4
+#31 0.871    Compiling icu_properties_data v2.3.0
+#31 0.876    Compiling iana-time-zone v0.1.65
+#31 0.880    Compiling syn v3.0.4
+#31 0.890    Compiling syn v2.0.119
+#31 0.927    Compiling rustls-pki-types v1.15.1
+#31 0.948    Compiling form_urlencoded v1.2.2
+#31 0.948    Compiling httparse v1.10.1
+#31 1.093    Compiling anyhow v1.0.104
+#31 1.117    Compiling cpufeatures v0.2.17
+#31 1.164    Compiling errno v0.3.14
+#31 1.170    Compiling getrandom v0.2.17
+#31 1.199    Compiling socket2 v0.6.5
+#31 1.203    Compiling mio v1.2.3
+#31 1.237    Compiling signal-hook-registry v1.4.8
+#31 1.267    Compiling rand_core v0.6.4
+#31 1.347    Compiling futures-channel v0.3.34
+#31 1.362    Compiling ring v0.17.14
+#31 1.390    Compiling http-body v1.1.0
+#31 1.461    Compiling block-buffer v0.10.4
+#31 1.464    Compiling crypto-common v0.1.7
+#31 1.473    Compiling base64 v0.22.1
+#31 1.477    Compiling untrusted v0.9.0
+#31 1.515    Compiling digest v0.10.7
+#31 1.540    Compiling rustls v0.23.43
+#31 1.566    Compiling tower-service v0.3.3
+#31 1.587    Compiling rquickjs-sys v0.11.0
+#31 1.597    Compiling try-lock v0.2.5
+#31 1.634    Compiling getrandom v0.3.4
+#31 1.644    Compiling want v0.3.1
+#31 1.650    Compiling webpki-roots v1.0.9
+#31 1.695    Compiling sync_wrapper v1.0.2
+#31 1.718    Compiling foldhash v0.2.0
+#31 1.730    Compiling httpdate v1.0.3
+#31 1.744    Compiling tower-layer v0.3.3
+#31 1.779    Compiling atomic-waker v1.1.2
+#31 1.840    Compiling hashbrown v0.16.1
+#31 1.848    Compiling sha2 v0.10.9
+#31 1.851    Compiling crossbeam-utils v0.8.22
+#31 1.873    Compiling ipnet v2.12.1
+#31 1.924    Compiling hashbrown v0.17.1
+#31 1.985    Compiling rand_core v0.9.5
+#31 1.987    Compiling http-body-util v0.1.5
+#31 1.996    Compiling bitflags v2.13.1
+#31 2.029    Compiling ryu v1.0.23
+#31 2.172    Compiling tinyvec_macros v0.1.1
+#31 2.203    Compiling foldhash v0.1.5
+#31 2.225    Compiling tinyvec v1.12.0
+#31 2.255    Compiling parking v2.2.1
+#31 2.309    Compiling hashbrown v0.15.5
+#31 2.323    Compiling crc-catalog v2.5.0
+#31 2.369    Compiling crc v3.4.0
+#31 2.372    Compiling event-listener v5.4.2
+#31 2.377    Compiling webpki-roots v0.26.11
+#31 2.407    Compiling sha1 v0.10.7
+#31 2.469    Compiling indexmap v2.14.1
+#31 2.472    Compiling hmac v0.12.1
+#31 2.549    Compiling unicode-bidi v0.3.18
+#31 2.553    Compiling unicode-properties v0.1.4
+#31 2.572    Compiling crossbeam-queue v0.3.13
+#31 2.666    Compiling unicode-normalization v0.1.25
+#31 2.703    Compiling data-encoding v2.11.1
+#31 2.721    Compiling hkdf v0.12.4
+#31 2.728    Compiling md-5 v0.10.6
+#31 2.802    Compiling atoi v2.0.0
+#31 2.808    Compiling mime v0.3.17
+#31 2.813    Compiling hex v0.4.3
+#31 2.863    Compiling hashlink v0.10.0
+#31 2.868    Compiling dotenvy v0.15.7
+#31 2.985    Compiling whoami v1.6.1
+#31 3.001    Compiling stringprep v0.1.5
+#31 3.048    Compiling regex-syntax v0.8.11
+#31 3.076    Compiling byteorder v1.5.0
+#31 3.101    Compiling home v0.5.12
+#31 3.114    Compiling serde_path_to_error v0.1.20
+#31 3.168    Compiling matchit v0.8.4
+#31 3.193    Compiling lazy_static v1.5.0
+#31 3.272    Compiling ppv-lite86 v0.2.21
+#31 3.280    Compiling sharded-slab v0.1.7
+#31 3.284    Compiling tracing-log v0.2.0
+#31 3.285    Compiling thread_local v1.1.10
+#31 3.494    Compiling synstructure v0.13.2
+#31 3.512    Compiling rand_chacha v0.3.1
+#31 3.529    Compiling rand_chacha v0.9.0
+#31 3.545    Compiling winnow v0.7.15
+#31 3.548    Compiling toml_write v0.1.2
+#31 3.553    Compiling nu-ansi-term v0.50.3
+#31 3.687    Compiling rand v0.8.8
+#31 3.727    Compiling rand v0.9.5
+#31 3.736    Compiling encoding_rs v0.8.35
+#31 4.213    Compiling serde_derive v1.0.229
+#31 4.232    Compiling tokio-macros v2.7.2
+#31 4.251    Compiling thiserror-impl v2.0.20
+#31 4.321    Compiling zerofrom-derive v0.1.7
+#31 4.329    Compiling yoke-derive v0.8.2
+#31 4.367    Compiling tracing-attributes v0.1.31
+#31 4.563    Compiling zerovec-derive v0.11.6
+#31 4.588    Compiling displaydoc v0.2.7
+#31 4.671    Compiling async-trait v0.1.92
+#31 4.756    Compiling regex-automata v0.4.18
+#31 4.985    Compiling tungstenite v0.29.0
+#31 5.088    Compiling zerofrom v0.1.8
+#31 5.112    Compiling tracing v0.1.44
+#31 5.170    Compiling yoke v0.8.3
+#31 5.278    Compiling zerovec v0.11.8
+#31 5.390    Compiling zerotrie v0.2.5
+#31 5.463    Compiling axum-core v0.5.6
+#31 5.795    Compiling tinystr v0.8.4
+#31 5.797    Compiling potential_utf v0.1.6
+#31 5.833    Compiling icu_collections v2.3.0
+#31 5.897    Compiling icu_locale_core v2.3.0
+#31 6.201    Compiling smallvec v1.16.0
+#31 6.201    Compiling chrono v0.4.45
+#31 6.201    Compiling serde_urlencoded v0.7.1
+#31 6.201    Compiling backtest v0.1.0 (/build/crates/backtest)
+#31 6.201    Compiling either v1.18.0
+#31 6.201    Compiling serde_spanned v0.6.9
+#31 6.201    Compiling tracing-serde v0.2.0
+#31 6.201    Compiling toml_datetime v0.6.11
+#31 6.303    Compiling toml_edit v0.22.27
+#31 6.339    Compiling matchers v0.2.0
+#31 6.398    Compiling tracing-subscriber v0.3.23
+#31 6.452    Compiling icu_provider v2.3.1
+#31 6.470    Compiling parking_lot v0.12.5
+#31 6.767    Compiling tokio v1.53.1
+#31 6.823    Compiling icu_normalizer v2.3.0
+#31 6.885    Compiling icu_properties v2.3.0
+#31 6.897    Compiling futures-intrusive v0.5.0
+#31 7.195    Compiling domain v0.1.0 (/build/crates/domain)
+#31 7.767    Compiling idna_adapter v1.2.2
+#31 7.833    Compiling idna v1.1.0
+#31 8.150    Compiling url v2.5.8
+#31 8.167    Compiling toml v0.8.23
+#31 8.808    Compiling rustls-webpki v0.103.15
+#31 8.916    Compiling diagnose v0.1.0 (/build/crates/diagnose)
+#31 8.948    Compiling alert v0.1.0 (/build/crates/alert)
+#31 10.25    Compiling hyper v1.11.1
+#31 10.25    Compiling tower v0.5.3
+#31 10.25    Compiling tokio-util v0.7.19
+#31 10.25    Compiling tokio-tungstenite v0.29.0
+#31 10.25    Compiling collector v0.1.0 (/build/crates/collector)
+#31 10.43    Compiling tokio-stream v0.1.19
+#31 10.58    Compiling tower-http v0.6.11
+#31 11.00    Compiling hyper-util v0.1.20
+#31 11.65    Compiling sqlx-core v0.8.6
+#31 11.65    Compiling tokio-rustls v0.26.4
+#31 11.95    Compiling hyper-rustls v0.27.9
+#31 11.96    Compiling axum v0.8.9
+#31 12.08    Compiling reqwest v0.12.28
+#31 13.06    Compiling providers v0.1.0 (/build/crates/providers)
+#31 13.42    Compiling sqlx-postgres v0.8.6
+#31 15.70    Compiling sqlx v0.8.6
+#31 15.71    Compiling storage v0.1.0 (/build/crates/storage)
+#31 18.00    Compiling tushare v0.1.0 (/build/crates/tushare)
+#31 22.79    Compiling rquickjs-core v0.11.0
+#31 23.39    Compiling rquickjs v0.11.0
+#31 23.41    Compiling strategy-runtime v0.1.0 (/build/crates/strategy-runtime)
+#31 23.60    Compiling strategy-core v0.1.0 (/build/crates/strategy-core)
+#31 23.81    Compiling simlive v0.1.0 (/build/crates/simlive)
+#31 24.11    Compiling application v0.1.0 (/build/crates/application)
+#31 25.20    Compiling mcp v0.1.0 (/build/crates/mcp)
+#31 25.20    Compiling web v0.1.0 (/build/crates/web)
+#31 27.58    Compiling app v0.1.0 (/build/crates/app)
+#31 33.19     Finished `release` profile [optimized] target(s) in 33.05s
+#31 DONE 33.3s
+
+#32 [data stage-1 3/3] COPY --from=builder /build/target/release/eestock-data /usr/local/bin/eestock-data
+#32 DONE 0.0s
+
+#33 [data] exporting to image
+#33 exporting layers 0.0s done
+#33 writing image sha256:a3e8d59b8a8119298c9f458f4754f48706f8ecebef455a21239c31c0856cdaa7 done
+#33 naming to docker.io/library/eestock-rs-data done
+#33 DONE 0.0s
+
+#34 [data] resolving provenance for metadata file
+#34 DONE 0.0s
+ data  Built
+BUILD_EXIT=0
+end_utc=2026-09-20T03:09:16Z

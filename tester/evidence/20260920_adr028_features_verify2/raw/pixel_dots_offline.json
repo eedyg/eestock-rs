@@ -1,0 +1,1083 @@
+{
+  "source": "v3_dot_pixels.png + v3_dot_pixels.json",
+  "imageSize": [
+    666,
+    206
+  ],
+  "pane": {
+    "ox": 0,
+    "oy": 0,
+    "cw": 606,
+    "ch": 79,
+    "dw": 606,
+    "dh": 79
+  },
+  "sampled": 27,
+  "tiers": {
+    "exact": 24,
+    "near": 0,
+    "storeExact": 0,
+    "dominant": 2,
+    "blend": 1,
+    "fail": 0
+  },
+  "exactRatio": 0.8888888888888888,
+  "pageVsOfflineAgreeWithin2": 27,
+  "pageVsOfflineMaxDiff": 0,
+  "failKeys": [],
+  "rows": [
+    {
+      "key": "1:17",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        3,
+        32
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:18",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        9,
+        34
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:19",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        15,
+        33
+      ],
+      "offlineCenter": [
+        142,
+        145,
+        173
+      ],
+      "pageCenter": [
+        142,
+        145,
+        173
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 113,
+      "dStoreCenter": 113,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": false,
+        "alpha": 0.15,
+        "cover": [
+          11,
+          15,
+          26
+        ],
+        "residual": 77.3
+      },
+      "tier": "dominant"
+    },
+    {
+      "key": "1:20",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        111,
+        49
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:21",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        117,
+        49
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:22",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        123,
+        51
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:23",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        129,
+        55
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:24",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        135,
+        50
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:25",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        231,
+        68
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:26",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        237,
+        64
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:27",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        243,
+        66
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:28",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        249,
+        66
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:29",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        255,
+        57
+      ],
+      "offlineCenter": [
+        22,
+        119,
+        255
+      ],
+      "pageCenter": [
+        22,
+        119,
+        255
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        239,
+        93,
+        117
+      ],
+      "dExpectCenter": 233,
+      "dStoreCenter": 233,
+      "dStoreDominant": 16,
+      "blend": {
+        "ok": false,
+        "alpha": 0.26,
+        "cover": [
+          9,
+          13,
+          24
+        ],
+        "residual": 169.0
+      },
+      "tier": "dominant"
+    },
+    {
+      "key": "1:30",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        351,
+        43
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:31",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        357,
+        41
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:32",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        363,
+        42
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:33",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        369,
+        44
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:34",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        375,
+        43
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:35",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        471,
+        27
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:36",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        477,
+        21
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:37",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        483,
+        20
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:38",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        489,
+        21
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:39",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        495,
+        26
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:40",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        591,
+        31
+      ],
+      "offlineCenter": [
+        52,
+        25,
+        38
+      ],
+      "pageCenter": [
+        52,
+        25,
+        38
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        52,
+        25,
+        38
+      ],
+      "dExpectCenter": 203,
+      "dStoreCenter": 203,
+      "dStoreDominant": 203,
+      "blend": {
+        "ok": true,
+        "alpha": 0.83,
+        "cover": [
+          9,
+          13,
+          24
+        ],
+        "residual": 1.4
+      },
+      "tier": "blend"
+    },
+    {
+      "key": "1:41",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        597,
+        33
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:42",
+      "expectColor": "#ff5c6c",
+      "storeColor": "#ff5c6c",
+      "xy": [
+        603,
+        29
+      ],
+      "offlineCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageCenter": [
+        255,
+        92,
+        108
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        255,
+        92,
+        108
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          255,
+          255,
+          255
+        ],
+        "residual": 8.1
+      },
+      "tier": "exact"
+    },
+    {
+      "key": "1:43",
+      "expectColor": "#00e0a4",
+      "storeColor": "#00e0a4",
+      "xy": [
+        603,
+        40
+      ],
+      "offlineCenter": [
+        0,
+        224,
+        164
+      ],
+      "pageCenter": [
+        0,
+        224,
+        164
+      ],
+      "pageVsOfflineMaxDiff": 0,
+      "offlineDominant": [
+        0,
+        224,
+        164
+      ],
+      "dExpectCenter": 0,
+      "dStoreCenter": 0,
+      "dStoreDominant": 0,
+      "blend": {
+        "ok": true,
+        "alpha": 0.05,
+        "cover": [
+          11,
+          15,
+          26
+        ],
+        "residual": 10.5
+      },
+      "tier": "exact"
+    }
+  ]
+}

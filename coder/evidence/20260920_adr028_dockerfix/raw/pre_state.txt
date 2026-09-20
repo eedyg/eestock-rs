@@ -1,0 +1,8 @@
+ts_utc=2026-09-20T03:04:02Z
+git_rev=aa5444e
+--- sha256 Dockerfile.app ---
+e000a1d9f3b4ad75a7eefcca417698d424c665b04ab31e99ce3cd401930a7079  Dockerfile.app
+--- sha256 Dockerfile ---
+f836d39c706254764a3c8b8fc696eefde1ed3a97964666d13e9b1ff58a420f01  Dockerfile
+--- sha256 doc ---
+3f6e053776d9bfa21dca56d77212087b8e571f54397e87da98bfbe8546578b6b  design/07-app-plane/00-web-api.md

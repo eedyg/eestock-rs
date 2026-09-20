@@ -1,0 +1,19 @@
+=== precise set-difference proof ===
+actual crates (ls crates) = 16
+
+--- Dockerfile.app ---
+  COPY-manifest set = 16  loop-set = 16
+  DIFF actual vs COPY set : []  (empty=True)
+  DIFF actual vs loop set : []  (empty=True)
+
+--- Dockerfile ---
+  COPY-manifest set = 12  loop-set = 12
+  DIFF actual vs COPY set : ['application', 'backtest', 'simlive', 'test-support']  (empty=False)
+  DIFF actual vs loop set : ['application', 'backtest', 'simlive', 'test-support']  (empty=False)
+
+--- Dockerfile.app COPY list order (as generated) ---
+  alert app application backtest collector diagnose domain mcp providers simlive storage strategy-core strategy-runtime test-support tushare web
+--- Dockerfile.app loop list order (as generated) ---
+  alert app application backtest collector diagnose domain mcp providers simlive storage strategy-core strategy-runtime test-support tushare web
+
+(workspace declaration = members = ["crates/*"] glob -> no enumeration gap possible)

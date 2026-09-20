@@ -1,0 +1,300 @@
+{
+  "beforeNote": 0,
+  "afterJump": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 321,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 313,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 309,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 321,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 313,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 329,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "klineOverflowPx": 27,
+    "hostBottom": 296,
+    "barTop": 304,
+    "chartAreaH": 234,
+    "notePresent": true,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）",
+    "windowSource": "jump",
+    "windowRev": "3"
+  },
+  "guardNote": 1,
+  "resetClickOk": false,
+  "resetClickError": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('wb-window-reset')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-testid=\"wb-window-reset\" class=\"rounded-lg border border-line px-2 py-0.5 hover:text-txt\">全览</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    ",
+  "afterReset": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 361,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 353,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 361,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 353,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "klineOverflowPx": 27,
+    "hostBottom": 336,
+    "barTop": 344,
+    "chartAreaH": 234,
+    "notePresent": true,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）",
+    "windowSource": "jump",
+    "windowRev": "3"
+  },
+  "backBefore": {
+    "present": true,
+    "disabled": false,
+    "rect": {
+      "x": 657,
+      "y": 349,
+      "w": 40,
+      "h": 23.59375
+    },
+    "samples": [
+      {
+        "f": 0.5,
+        "px": 677,
+        "py": 361,
+        "tag": "canvas",
+        "testid": "kline-chart",
+        "selfOrChild": false
+      },
+      {
+        "f": 0.15,
+        "px": 677,
+        "py": 353,
+        "tag": "canvas",
+        "testid": "kline-chart",
+        "selfOrChild": false
+      },
+      {
+        "f": 0.85,
+        "px": 677,
+        "py": 369,
+        "tag": "button",
+        "testid": "wb-window-back",
+        "selfOrChild": true
+      }
+    ],
+    "allSelf": false
+  },
+  "backClickOk": false,
+  "backClickError": "TimeoutError: locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('wb-window-back')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-testid=\"wb-window-back\" class=\"rounded-lg border border-line px-2 py-0.5 hover:text-txt disabled:opacity-40\">回退</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and st",
+  "afterBack": {
+    "reset": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 609,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 629,
+          "py": 361,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 629,
+          "py": 353,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 629,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-reset",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "back": {
+      "present": true,
+      "disabled": false,
+      "rect": {
+        "x": 657,
+        "y": 349,
+        "w": 40,
+        "h": 23.59375
+      },
+      "samples": [
+        {
+          "f": 0.5,
+          "px": 677,
+          "py": 361,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.15,
+          "px": 677,
+          "py": 353,
+          "tag": "canvas",
+          "testid": "kline-chart",
+          "selfOrChild": false
+        },
+        {
+          "f": 0.85,
+          "px": 677,
+          "py": 369,
+          "tag": "button",
+          "testid": "wb-window-back",
+          "selfOrChild": true
+        }
+      ],
+      "allSelf": false
+    },
+    "klineOverflowPx": 27,
+    "hostBottom": 336,
+    "barTop": 344,
+    "chartAreaH": 234,
+    "notePresent": true,
+    "noteState": "ok",
+    "noteText": "已高亮目标成交 1:42（放大 + 描边脉冲，3 秒后回常态）",
+    "windowSource": "jump",
+    "windowRev": "3"
+  }
+}

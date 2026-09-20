@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/adr028-features-verify2.e2e.ts:430:1 › V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测文本宽度，且完整落在 pane 内 (15.3s)
+
+
+  1) [chromium] › e2e/adr028-features-verify2.e2e.ts:430:1 › V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测文本宽度，且完整落在 pane 内 
+
+    Error: 标签右缘必须落在 pane 内（≤ pane 右缘 -1）
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 605
+    Received:    678.52861328125
+
+      527 |   // 几何：标签整盒必须落在 pane 内 —— 若仍按旧「恒在右侧」绘制则整盒越出右缘（本判据必红）
+      528 |   expect(recBuy!.x, '标签左缘必须落在 pane 内').toBeGreaterThanOrEqual(1);
+    > 529 |   expect(recBuy!.x + expBuyW, '标签右缘必须落在 pane 内（≤ pane 右缘 -1）').toBeLessThanOrEqual(paneBuy.ox + paneBuy.cw - 1);
+          |                                                                ^
+      530 |   // 方向：有效锚点 + 文本宽 ⇒ 文本右缘必须紧贴圆点左侧（翻转语义；klinecharts 归一化 align，故用有效锚点）
+      531 |   expect(recBuy!.x + expBuyW, '标签文本右缘必须在圆点左侧（翻转）').toBeLessThan(buy.x);
+      532 |   expect(
+        at /home/eestock/workspace/git/eestock/eestock-rs/web/e2e/adr028-features-verify2.e2e.ts:529:64
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/artifacts/test-results/adr028-features-verify2.e2-b8a39-跨度-≈-渲染器实测文本宽度，且完整落在-pane-内-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/artifacts/test-results/adr028-features-verify2.e2-b8a39-跨度-≈-渲染器实测文本宽度，且完整落在-pane-内-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/adr028-features-verify2.e2e.ts:430:1 › V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测文本宽度，且完整落在 pane 内 
