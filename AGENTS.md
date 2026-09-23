@@ -53,3 +53,9 @@ This project is indexed by GitNexus as **eestock-rs** (1177 symbols, 2133 relati
 - 提交前必须跑 `gitnexus detect_changes`（staged）与 `impact`（目标符号）。
   索引若报 `LadybugDB unavailable` / `database file version` 不符 ⇒ 先 `node .gitnexus/run.cjs analyze --index-only` 重建，**不得**跳过门禁提交。
 - 真渲染判据必须**真身**取证（本机 chromium 可用），且判据须**有鉴别力**（移除实现即变红），不得只断言元素存在。
+- **e2e 证据落盘目录不得硬编码为已跟踪路径**（2026-09-23 登记）：
+  既有 `web/e2e/adr028-*.e2e.ts` 等规格把证据 JSON/PNG 的落盘目录硬编码为仓库内**已跟踪**的
+  `coder/evidence/20260920_*/raw/`、`tester/evidence/20260920_*/raw/` ⇒ 每跑一次真渲染即覆盖写，
+  一次 D6/D7 验收跑出 **67 个**已跟踪文件变脏。新增/修改规格时：证据须落到**未跟踪**目录
+  （如当批 `tester/evidence/<date>_<topic>/raw/`），或经 `E2E_EVIDENCE_DIR` 等**可配置出口**注入；
+  评审规格时把"证据落盘路径是否污染已跟踪文件"列为检查项。
