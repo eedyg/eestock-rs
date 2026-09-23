@@ -138,7 +138,7 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-run-error')).toHaveTextContent('mock 引擎错误');
   });
 
-  it('结果渲染：K线容器 + 总分曲线（阈值线+三区着色）+ 各策略曲线 + 净值回撤 + 默认 Tab 交易明细', async () => {
+  it('结果渲染：K线容器 + 总分曲线（阈值线+三区着色）+ 各策略曲线 + 净值回撤 + 默认 Tab「回合与逐笔」', async () => {
     const { run, result } = await seedRunAndResult();
     render(<ResultView {...mkProps(run, result)} />);
     expect(screen.getByTestId('wb-kline-chart')).toBeInTheDocument();
@@ -154,9 +154,42 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect((screen.getByTestId('legend-slot-0') as HTMLInputElement).checked).toBe(true);
     // 净值+回撤
     expect(screen.getByTestId('wb-equity-chart')).toBeInTheDocument();
-    // 默认 Tab：交易明细
+    // 默认 Tab：回合与逐笔（ADR-028 §2.7 第 2 项；旧标签「交易明细」已按新口径更名）
     expect(screen.getByTestId('wb-tab-trades')).toBeInTheDocument();
     expect(screen.getByTestId('wb-round-trips-table')).toBeInTheDocument();
+  });
+
+  it('D7 分层（ADR-028 §2.7）：上栏 wb-chart-pane / 下栏 wb-detail-pane 分层成立；四块都在下栏；页面级滚动被移除', async () => {
+    const user = userEvent.setup();
+    const { run, result } = await seedRunAndResult();
+    render(<ResultView {...mkProps(run, result)} />);
+    await screen.findByTestId('wb-round-trips-table');
+    const chartPane = screen.getByTestId('wb-chart-pane');
+    const detailPane = screen.getByTestId('wb-detail-pane');
+    // 上层 = K 线卡；下层 = 明细（四块）
+    expect(chartPane.contains(screen.getByTestId('wb-kline-chart')), 'K 线卡必须在上栏').toBe(true);
+    expect(detailPane.contains(screen.getByTestId('wb-kline-chart')), 'K 线卡不得在下栏').toBe(false);
+    expect(detailPane.contains(screen.getByTestId('wb-round-trips-table')), 'L1/L2 必须在下栏').toBe(true);
+    expect(detailPane.contains(screen.getByTestId('wb-audit-summary')), '审计摘要必须在下栏').toBe(true);
+    // 默认 tab = 回合与逐笔
+    expect(screen.getByTestId('wb-tab-trades').getAttribute('aria-selected')).toBe('true');
+    // 逐 bar 明细 / 事件日志 / 8 项绩效都渲染在**同一张**下栏容器内
+    for (const [tabKey, blockId] of [
+      ['perbar', 'wb-perbar-table'],
+      ['events', 'wb-event-log'],
+      ['metrics', 'wb-metrics-table'],
+    ] as const) {
+      await user.click(screen.getByTestId(`wb-tab-${tabKey}`));
+      expect(detailPane.contains(screen.getByTestId(blockId)), `${blockId} 必须在下栏`).toBe(true);
+    }
+    // 页面级滚动容器已移除（D7-1：整页不再滚动，上下栏各自内部滚动）
+    const resultRoot = screen.getByTestId('wb-result');
+    expect(resultRoot.className, 'wb-result 不得再是滚动容器（overflow-auto）').not.toContain('overflow-auto');
+    expect(chartPane.className).toContain('overflow-auto');
+    expect(detailPane.className).toContain('overflow-auto');
+    // 下栏独立比例记忆（D7-3：默认 40% 视口高；jsdom 无布局 ⇒ 属性可回查）
+    expect(resultRoot.getAttribute('data-pane-collapsed')).toBe('false');
+    expect(Number(resultRoot.getAttribute('data-pane-ratio'))).toBeGreaterThan(0);
   });
 
   it('Tab 切换：8项绩效 / 逐bar评分表 / 事件日志（含插件错误与 log）', async () => {

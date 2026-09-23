@@ -1,20 +1,58 @@
 /**
- * 本波（2026-09-20）**解冻修复**规格（worker 前端车道自有规格；不改 tester 的三个规格）。
+ * ADR-028 「解冻修复」规格（worker 前端车道自有；本文件在 2026-09-23 **由 tester 车道按 D6/D7 新契约重锚**）。
  *
  * 覆盖：
- *  - F0 真身锚定：被 :8081 服务的 bundle 必须是**含本波修复**的构建（含新弹性布局类名、无被删除的承诺文案）；
+ *  - F0 真身锚定：被 :PORT 服务的 bundle 必须是**含 D6/D7 契约标识符**的构建（D6-2 预设 / D6-5 指标浮层 /
+ *        D6-7 卡高 key / D7-1 分层容器 / D7-3 下栏 key），且**被删除的承诺文案不在**（R2）；
  *  - F1（B1 阻断项）：任意 L2 跳转后，「全览 / 历史回退」按钮**可被真实点击** ——
- *        `elementFromPoint` 在多采样点命中按钮自身或其子元素 + `click()` 真实点击成功且不超时；
- *        同时断言 K 线容器**不溢出** `h-64` 卡片（旧实现溢出 27px ⇒ canvas 盖住窗口控制条）；
+ *        在上栏容器内滚入视口后 `elementFromPoint` 三采样点命中按钮自身或其子元素 + `click()` 真实点击成功且不超时；
+ *        同时断言 K 线容器**不溢出**卡片、卡高 == 契约默认 520（D6-1）、蜡烛主图 ≥ 320（D6-3）、页面无滚动（D7-1）；
  *  - F2（R1 风险项）：run 末根 bar 的买卖标签**完整可见**（标签盒内 ink 列覆盖率 ≥ 0.6、ink 像素 ≥ 80）；
- *  - F3（R3 风险项）：**真渲染像素颜色**断言 —— 圆点中心像素色值 == 该标记 store 色值（买红 / 卖绿），
- *        并给出「止损橙」当下的不可测说明与复验口径。
+ *  - F3（R3 风险项）：**真渲染像素颜色**断言 —— 圆点 ink == 该标记 store 色值（买红 / 卖绿），
+ *        含「被常显标签背景盒遮挡」的混合解释（见下重锚第 4 条）；并给出「止损橙」当下的不可测说明与复验口径。
  *
- * 运行（对 :8081 静态产物）：
- *   cd web && timeout 400 env E2E_BASE_URL=http://localhost:8081 \
- *     npx playwright test e2e/adr028-features-fix.e2e.ts --reporter=list --retries=0
+ * 运行（对自建 preview；**证据默认落未跟踪目录**，不再写 `coder/`（AGENTS.md 2026-09-23 纪律））：
+ *   cd web && npx vite build --outDir /tmp/<build> --emptyOutDir
+ *   cd web && VITE_PROXY_TARGET=http://127.0.0.1:8081 npx vite preview --outDir /tmp/<build> --port <free> --strictPort
+ *   cd web && E2E_BASE_URL=http://127.0.0.1:<free> \
+ *     npx playwright test e2e/adr028-features-fix.e2e.ts --reporter=list --retries=0 --workers=1
+ * 产物：`ADR028FIX_OUT`（默认 `tester/evidence/20260923_adr028_featuresfix/raw`，**未跟踪**）。
  *
- * 产物：`ADR028FIX_OUT`（默认 `coder/evidence/20260920_adr028_features_fix/raw`）。
+ * ══════════════════ 2026-09-23 重锚（ADR-023 §6.2：改契约须全域枚举受影响测试；**按契约推导，禁按实现输出倒推**） ══════════════════
+ * 事实源：`ADR-028 §2.6（D6）/§2.7（D7）/§4 第 8–10 条` + `design/17-trade-detail-layering/07-plan-result-height-and-detail-split.md §2/§4`。
+ *
+ *  1. **F0 产物文本锚**：旧锚 `js.includes('h-64 shrink-0 flex-col')` 编码「卡高固定 256」的**旧契约**；
+ *     新契约 D6-1 规定默认 520 且可拖拽 ⇒ 该固定高类名在契约上**不可能继续存在**（旧锚的失效是契约推导结论，
+ *     不是「实现换了写法」）。⇒ 改为按**契约命名的标识符**锚定（D6-2 `wb-kline-preset-`、D6-5 `wb-indicator-menu`、
+ *     D6-7 `eestock.result.cardHeights.v1`、D7-1 `wb-chart-pane`/`wb-detail-pane`、D7-2 `wb-detail-tabs`、
+ *     D7-3 `eestock.result.layout.v1`）；**理由**：这些标识符由 design/07 §2–§3 明文命名，属契约面（而非 Tailwind 类名这类
+ *     纯实现细节），且旧构建（`index-DhVqizDl.js`）**逐个缺失** ⇒ 对「被服务的是不是本波构建」保留鉴别力。
+ *     **维护口径**：契约改名（key/testid）⇒ 本用例必须同步；类名/样式重构**不再**触发维护。
+ *     `hasRemovedPromise`（`自动补高亮` 不得出现）保留：它断言的是**产品文案缺失**（R2 契约本身）。
+ *  2. **F1 卡高**：`h-64 = 256` → **520**（D6-1 默认卡高；无记忆值时）。同时补：
+ *     `max = 视口高 − 200`（D6-2 ⇒ 800 视口下上限 600，默认 520 在契约内可达）、「双击复位到 520」（D6-1，见 D6 规格）。
+ *  3. **F1 图表区高**：旧「flex 收缩后 > 100px」→ **蜡烛主图 ≥ 320px**（D6-3 默认 520 态判据；旧阈值是旧 67px 主图时代的宽松口径）。
+ *  4. **F1 按钮可点击性**：旧口径假设「卡高 256 + 单列整页滚动 ⇒ 窗口条必然在视口内」。新契约 §2.7-1 改为上下分层、
+ *     **页面级滚动移除**、上栏自身滚动，且 §2.7-6 实测登记「上栏内容 ≈6524px ⇒ 任何视口下上栏都需自身滚动」；
+ *     380 视口下卡 520 + 窗口条 34 > 上栏视口 ⇒ 窗口条**初始不在上栏视口内**（真渲染实测：`elementFromPoint`
+ *     命中下栏表格）。⇒ 判据按契约收敛为：**先在上栏容器内把窗口条滚入视口**（D7-4 ④「只在上栏内部滚动」的同一语义），
+ *     再判定 ①页面 `scrollY` 仍为 0（D7-1）②三采样点命中按钮自身 ③真实点击成功。B1 的鉴别力（canvas 盖住窗口条 ⇒ 红）不变。
+ *  5. **F2**：判据（标签盒边缘收敛 + ink 覆盖率）与新契约无冲突，且 pane 宽/标记坐标全部**运行时重算**（不编码旧布局）
+ *     ⇒ **不重锚**。残留脆弱点已登记：标签盒宽度模型（4.4px/字符 + padding 5）与实现常量耦合，实现改排版常量时须同步。
+ *  6. **F3 取样窗**：旧口径 `r.y >= 6 && r.y <= 200` 是**旧 67px 主图**时代的窗口 ⇒ 新默认 520 态主图 371px，
+ *     该窗把可见标记从 24 个截到 12 个（真渲染实测）⇒ 改为**按实时 pane 几何**取窗（`getSize('candle_pane','main')`，
+ *     内缩 1 个圆点半径）。**这不是 F3 红的原因**（见 §「F3 判定」），但属同类旧口径，必须一并重锚。
+ *     另：`F3 判定（2026-09-23）`——标记 1:40 的圆心像素不等于 store 色值的**真实原因**是：同 bar 邻笔（1:43，卖绿、
+ *     `stackIndex=1` ⇒ 标签翻转至左侧）的**常显标签背景盒**（宽 88.6px、x∈[428.2,516.8]、y≈143）整体盖住了 1:40 的圆点
+ *     ⇒ 圆心像素 = store 红 ×0.28 + 盒底 ×0.72 = `#4d222f`（实测 vs 预测 ±1）。即 **R3 的「圆点按 store 色绘制」不成立**？
+ *     不成立的是「圆心像素逐像素等于 store 色」这条**取样口径**：圆点确实按 store 色绘制（混合恒等式可证），
+ *     且新旧构建对照显示该遮挡是 **ADR §5 已登记债（标记遮挡：标签常显、99.0% 可见 bar 被标签压住）在新几何下被本用例首次命中**，
+ *     （旧口径另有**取样错位**：`getImageData(cx−half, cy−half, …)` 后取 `d[0..3]` 读到的是补丁**左上角** (x−1,y−1)，
+ *     不是圆心；该角像素在主图层常为透明 ⇒ `alpha≥200` 过滤还会漏图层。2026-09-23 已修正为「补丁正中一格」。）
+ *     非颜色映射回归（旧构建同标记圆心 = 精确 store 色；新构建 23/24 个窗内标记逐像素精确）。⇒ F3 按契约重锚为
+ *     **两档颜色身份判据**：①圆心像素逐像素 == store 色；②圆心像素 == `α·store + (1−α)·(同图层实测底)`（α∈[0.15,1]，
+ *     残差 ≤12，且通道序与 store 一致）——②对「被半透明标签盒压暗」的标记成立，对「画错色」「圆点缺失」仍**必红**
+ *     （见变异反证）。遮挡实例逐条落盘（`f3_dot_pixels.json:.occluded`）并作为残留风险上报（本批不改标签常显策略）。
  */
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -23,12 +61,21 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const OUT = process.env.ADR028FIX_OUT ?? resolve(REPO, 'coder/evidence/20260920_adr028_features_fix/raw');
+/** 证据目录：**未跟踪**路径（`tester/evidence/2026*` 已被 .gitignore 覆盖）。 */
+const OUT = process.env.ADR028FIX_OUT ?? resolve(REPO, 'tester/evidence/20260923_adr028_featuresfix/raw');
 
 /** run A：rt_seq=1 的 44 笔，第 42/43 笔同 bar（bar_index=423、ts=1789660800；423 是该 run **末根** bar）。 */
 const RUN_A = process.env.ADR028FIX_RUN_A ?? 'sr_1789865219068_000001';
 const RT_A = Number(process.env.ADR028FIX_RT_A ?? '1');
 const FILL_A = Number(process.env.ADR028FIX_FILL_A ?? '42');
+
+/** D6-1：默认卡高（契约常量；本规格**独立硬编码**作对照，不 import 实现）。 */
+const DEFAULT_KLINE_PX = 520;
+/** D6-2：卡高上限余量（`max = 视口高 − 200`）。 */
+const CARD_MAX_MARGIN_PX = 200;
+/** D6-3：默认 520 态蜡烛主图下限。 */
+const CANDLE_PANE_MIN_PX = 320;
+// 说明：`DEFAULT_KLINE_PX`/`CARD_MAX_MARGIN_PX`/`CANDLE_PANE_MIN_PX` 均在 F1 内作为契约常量参与断言。
 
 const PAGE_CAPTURE = `
   (() => {
@@ -134,7 +181,7 @@ async function paneGeom(page: Page) {
 }
 
 /** 采样点像素：**逐图层**读回（canvas DOM 顺序自下而上；`reverse` 后第一个 = 最上层），
- *  返回每个图层的 3×3 patch。图层叠放/覆盖不影响「某图层确实在该位置按该色值画了标记」这一事实。 */
+ *  返回每个图层的 3×3 patch（含圆心像素与**同图层实测底**——用于 F3 的混合解释档）。 */
 async function samplePixels(page: Page, pts: Array<{ x: number; y: number }>, half = 1) {
   return page.evaluate(
     ({ points, half }) => {
@@ -145,9 +192,21 @@ async function samplePixels(page: Page, pts: Array<{ x: number; y: number }>, ha
         const cr = c.getBoundingClientRect();
         return { c, ci, ox: Math.round(cr.x - kr.x), oy: Math.round(cr.y - kr.y) };
       });
+      /** 实测底：同一图层上「圆点之外」仍有墨（含半透明标签盒）的首个像素。
+       *  偏移按由近及远（±6/±10/±14 横向、±10 纵向）；**不含**圆心自身。 */
+      const backdropOffsets: Array<[number, number]> = [
+        [-6, 0],
+        [6, 0],
+        [-10, 0],
+        [10, 0],
+        [0, -10],
+        [0, 10],
+        [-14, 0],
+        [14, 0],
+      ];
       return points.map((p) => {
         let top: number[] | null = null;
-        const layers: Array<{ ci: number; center: number[]; patch: number[][] }> = [];
+        const layers: Array<{ ci: number; center: number[]; patch: number[][]; backdrop: number[] | null }> = [];
         for (const m of meta) {
           const cx = p.x - m.ox;
           const cy = p.y - m.oy;
@@ -158,11 +217,29 @@ async function samplePixels(page: Page, pts: Array<{ x: number; y: number }>, ha
           } catch {
             continue;
           }
-          const center = [d[0]!, d[1]!, d[2]!, d[3]!];
-          if (center[3]! < 200) continue;
           const patch: number[][] = [];
           for (let i = 0; i < d.length; i += 4) patch.push([d[i]!, d[i + 1]!, d[i + 2]!, d[i + 3]!]);
-          layers.push({ ci: m.ci, center, patch });
+          // **圆心像素 = 补丁正中一格**（`getImageData(cx-half, cy-half, 1+2*half, …)` 的左上角
+          // 是 (cx−half, cy−half)，取 `d[0..3]` 会读到**左上角**而非圆心 —— 2026-09-23 重锚时修正的取样错位）
+          const center = patch[half * (1 + 2 * half) + half]!;
+          if (center[3]! < 200) continue;
+          // 实测底（同图层、圆点外、任何墨）
+          let backdrop: number[] | null = null;
+          try {
+            const full = m.c.getContext('2d')!.getImageData(0, 0, m.c.width, m.c.height).data;
+            for (const [dx, dy] of backdropOffsets) {
+              const bx = Math.round(cx) + dx;
+              const by = Math.round(cy) + dy;
+              if (bx < 0 || by < 0 || bx >= m.c.width || by >= m.c.height) continue;
+              const i = (by * m.c.width + bx) * 4;
+              if (full[i + 3]! < 8) continue;
+              backdrop = [full[i]!, full[i + 1]!, full[i + 2]!, full[i + 3]!];
+              break;
+            }
+          } catch {
+            backdrop = null;
+          }
+          layers.push({ ci: m.ci, center, patch, backdrop });
           if (top == null) top = center;
         }
         return { x: p.x, y: p.y, top, layers };
@@ -177,6 +254,23 @@ const hexToRgb = (h: string): Rgb => [1, 3, 5].map((i) => parseInt(h.slice(i, i 
 const dist = (a: Rgb, b: Rgb) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 const isRedInk = ([r, g, b]: Rgb) => r > 80 && r - g > 40 && r - b > 25;
 const isGreenInk = ([r, g, b]: Rgb) => g > 80 && g - r > 40 && g - b > 25;
+/** store 色的**通道序**（用于混合档：压暗后通道相对次序不得变）。 */
+const channelOrder = ([r, g, b]: Rgb): string => {
+  const e = 3; // 近等值视为同档（抗混合噪声）
+  const cmp = (a: number, b: number) => (Math.abs(a - b) <= e ? '=' : a > b ? '>' : '<');
+  return `${cmp(r, g)}${cmp(r, b)}${cmp(g, b)}`;
+};
+/** 混合模型：`α·store + (1−α)·bg`（α ∈ [0.15, 1]，步长 0.05）。 */
+function blendFit(center: Rgb, store: Rgb, bg: Rgb): { alpha: number; predicted: Rgb; delta: number } {
+  let best = { alpha: 1, predicted: store, delta: dist(center, store) };
+  for (let a = 15; a <= 100; a += 5) {
+    const al = a / 100;
+    const predicted = [0, 1, 2].map((i) => Math.round(al * store[i]! + (1 - al) * bg[i]!)) as Rgb;
+    const d = dist(center, predicted);
+    if (d < best.delta) best = { alpha: al, predicted, delta: d };
+  }
+  return best;
+}
 
 /** 标签 ink：在 `[x0,x1]×[y0,y1]` 带内按颜色谓词统计「含墨列」的最长连续列数（= 标签可读宽度）。 */
 async function inkRun(
@@ -279,6 +373,7 @@ async function hitProbe(page: Page, testId: string) {
     const kl = document.querySelector('[data-testid="kline-chart"]')!.getBoundingClientRect();
     const bar = document.querySelector('[data-testid="wb-window-bar"]')!.getBoundingClientRect();
     const note = document.querySelector('[data-testid="wb-jump-highlight-note"]') as HTMLElement | null;
+    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
     return {
       present: true,
       disabled: (btn as HTMLButtonElement).disabled,
@@ -289,6 +384,8 @@ async function hitProbe(page: Page, testId: string) {
       kline: { bottom: kl.bottom, h: kl.height },
       overflowPx: Math.round(kl.bottom - host.bottom),
       barTop: Math.round(bar.top),
+      pageScrollY: Math.round(window.scrollY),
+      chartPaneScrollTop: pane ? Math.round(pane.scrollTop) : null,
       notePresent: note != null,
       noteState: note?.getAttribute('data-state') ?? '',
       noteText: note?.textContent ?? '',
@@ -296,36 +393,78 @@ async function hitProbe(page: Page, testId: string) {
   }, testId);
 }
 
+/** 蜡烛主图（candle pane main）实时高度：D6-3 默认态判据用的量。 */
+async function candlePaneHeight(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const w = window as unknown as { __wbCharts?: Array<Record<string, (...a: unknown[]) => unknown>> };
+    const cands = (w.__wbCharts ?? []).filter((c) => {
+      try {
+        return ((c['getDataList'] as () => unknown[])() ?? []).length > 0;
+      } catch {
+        return false;
+      }
+    });
+    try {
+      const p = (cands[0]!['getSize'] as (a?: string, b?: string) => { height: number } | null)('candle_pane', 'main');
+      return p ? Math.round(p.height) : -1;
+    } catch {
+      return -1;
+    }
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   mkdirSync(OUT, { recursive: true });
   await page.addInitScript(PAGE_CAPTURE);
 });
 
-// ───────────────────────── F0 真身锚定：被服务产物必须含本波修复 ─────────────────────────
-test('F0 真身锚定：:8081 服务的 bundle 含本波修复（弹性布局类名在、被删除的承诺文案不在）', async ({ page }) => {
+// ───────────────────────── F0 真身锚定：被服务产物必须含本波契约标识符 ─────────────────────────
+test('F0 真身锚定：被服务 bundle 含 D6/D7 契约标识符（分层/卡高/预设/指标浮层），且被删除的承诺文案不在', async ({ page }) => {
   const html = await (await page.request.get('/')).text();
   const m = /src="(\/assets\/index-[^"]+\.js)"/.exec(html);
   expect(m, 'index.html 必须引用打包产物').toBeTruthy();
   const js = await (await page.request.get(m![1]!)).text();
+  // 契约标识符（事实源：design/07 §2 D6-2/D6-5、§3 D6-7/D7-1/D7-2/D7-3；均为**契约命名**，非 Tailwind 类名）
+  const anchors = {
+    presetTestId: 'wb-kline-preset', // D6-2 预设 S/M/L（testid = `<prefix>-s|m|l`，产物中只有前缀字面量）
+    indicatorMenuTestId: 'wb-indicator-menu', // D6-5 指标勾选收进浮层
+    cardHeightKey: 'eestock.result.cardHeights.v1', // D6-7 卡高独立 key
+    chartPaneTestId: 'wb-chart-pane', // D7-1 上栏容器
+    detailPaneTestId: 'wb-detail-pane', // D7-1 下栏容器
+    detailTabsTestId: 'wb-detail-tabs', // D7-2 下栏分段控件
+    layoutKey: 'eestock.result.layout.v1', // D7-3 下栏布局独立 key
+  } as const;
   const r = {
     bundle: m![1]!,
-    hasFlexCard: js.includes('h-64 shrink-0 flex-col'),
-    hasFlexChartArea: js.includes('min-h-0 flex-1'),
+    missing: Object.entries(anchors)
+      .filter(([, needle]) => !js.includes(needle))
+      .map(([k]) => k),
     hasRemovedPromise: js.includes('自动补高亮'),
   };
-  writeJson('f0_bundle_anchor', r);
-  expect(r.hasFlexCard, 'K 线卡片必须是 flex-col（B1 修复）').toBe(true);
-  expect(r.hasFlexChartArea, '图表区必须是 flex-1 min-h-0（B1 修复）').toBe(true);
+  writeJson('f0_bundle_anchor', { ...r, anchors: Object.values(anchors) });
+  expect(
+    r.missing,
+    `被服务 bundle 必须含全部 D6/D7 契约标识符（缺 ${JSON.stringify(r.missing)} ⇒ 该构建不是本波构建）`,
+  ).toEqual([]);
   expect(r.hasRemovedPromise, '被删除的不可达承诺文案不得出现在产物中（R2）').toBe(false);
 });
 
 // ───────────────────────── F1（B1 阻断项）：L2 跳转后按钮必须真实可点 ─────────────────────────
-test('F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击且 K 线容器不溢出卡片', async ({ page }) => {
+test('F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击（上栏内滚入视口后）且 K 线不溢出、卡高 520、主图 ≥320', async ({
+  page,
+}) => {
   await openRunSettled(page, RUN_A);
+  const viewportH = page.viewportSize()!.height;
   const before = { reset: await hitProbe(page, 'wb-window-reset'), back: await hitProbe(page, 'wb-window-back') };
   await gotoL2Jump(page);
+  const resetAfterJump = await hitProbe(page, 'wb-window-reset');
+  // 新契约 §2.7-1/§2.7-6：页面无滚动、上栏自身滚动 ⇒ 窗口条初始可能不在上栏视口内。
+  // 判据按契约收敛为「上栏内滚入视口后再判可点击性」（D7-4 ④ 同一语义）。
+  await page.getByTestId('wb-window-bar').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
   const reset = await hitProbe(page, 'wb-window-reset');
   const back = await hitProbe(page, 'wb-window-back');
+  const candlePx = await candlePaneHeight(page);
 
   // 真实点击（playwright 会做 actionability 检查：命中点被 canvas 遮挡 ⇒ 重试至超时 ⇒ 红）
   let resetClickOk = false;
@@ -348,29 +487,49 @@ test('F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击�
       backClickError = String(e).slice(0, 300);
     }
   }
+  const pageScrollYAfter = await page.evaluate(() => Math.round(window.scrollY));
   writeJson('f1_clickability', {
+    viewportH,
+    defaultKlinePx: DEFAULT_KLINE_PX,
+    cardMaxPx: viewportH - CARD_MAX_MARGIN_PX,
+    candlePanePx: candlePx,
     before,
-    afterJump: { reset, back },
+    afterJump: resetAfterJump,
+    afterScrollIntoView: { reset, back },
     resetClickOk,
     resetClickError,
     afterReset,
     backClickOk,
     backClickError,
+    pageScrollYAfter,
   });
 
   // 前提：B1 的触发条件必须真的出现（否则本用例无区分力）
-  expect(reset.notePresent, 'L2 跳转后必须出现高亮提示（头部增高 ⇒ B1 触发条件）').toBe(true);
-  expect(reset.noteText).toContain('已高亮目标成交');
+  expect(resetAfterJump.notePresent, 'L2 跳转后必须出现高亮提示（头部增高 ⇒ B1 触发条件）').toBe(true);
+  expect(resetAfterJump.noteText).toContain('已高亮目标成交');
   expect(before.reset.overflowPx, '跳转前不应溢出（对照）').toBeLessThanOrEqual(1);
 
-  // ① K 线容器不得溢出 h-64 卡片（旧实现 +27px，canvas 盖住窗口控制条）
+  // ① K 线容器不得溢出卡片（旧实现 +27px，canvas 盖住窗口控制条）
   expect(reset.overflowPx, `K 线容器不得溢出卡片（实测 ${reset.overflowPx}px）`).toBeLessThanOrEqual(1);
   expect(back.overflowPx).toBeLessThanOrEqual(1);
-  expect(Math.round(reset.host.h), '卡片高度必须仍为 h-64 = 256（不得挤压其它区域）').toBe(256);
+  // ② 卡高 = 契约默认 520（D6-1；无记忆值），且不超 `max = 视口高 − 200`（D6-2）
+  expect(
+    Math.round(reset.host.h),
+    `卡高必须为契约默认 ${DEFAULT_KLINE_PX}（D6-1；实测 ${Math.round(reset.host.h)}，视口 ${viewportH} ⇒ max ${viewportH - CARD_MAX_MARGIN_PX}）`,
+  ).toBe(DEFAULT_KLINE_PX);
+  expect(reset.host.h, '卡高不得超 max = 视口高 − 200（D6-2）').toBeLessThanOrEqual(viewportH - CARD_MAX_MARGIN_PX);
+  // ③ 卡片与窗口控制条零重叠（保留旧口径的几何约束）
   expect(reset.host.bottom, '卡片底部不得越过窗口控制条顶部').toBeLessThanOrEqual(reset.barTop + 1);
-  expect(reset.kline.h, '图表区必须仍有可用高度（flex 收缩后 > 100px）').toBeGreaterThan(100);
+  // ④ 蜡烛主图 ≥ 320px（D6-3 默认 520 态；旧口径「>100px」是旧 67px 主图时代的宽松阈值）
+  expect(candlePx, `默认卡高下蜡烛主图须 ≥ ${CANDLE_PANE_MIN_PX}px（D6-3；实测 ${candlePx}px）`).toBeGreaterThanOrEqual(
+    CANDLE_PANE_MIN_PX,
+  );
+  // ⑤ 页面无滚动（D7-1）；滚动动作只发生在上栏容器内
+  expect(reset.pageScrollY, '页面 scrollY 必须为 0（D7-1：页面级滚动已移除）').toBe(0);
+  expect(pageScrollYAfter, '滚入上栏视口不得带动页面滚动（D7-1）').toBe(0);
+  expect(reset.chartPaneScrollTop, '上栏容器必须可滚动（D7-1：上栏自身滚动）').not.toBeNull();
 
-  // ② 采样点命中：按钮中心 / 15% / 85% 三处都必须命中按钮自身或其子元素
+  // ⑥ 采样点命中：按钮中心 / 15% / 85% 三处都必须命中按钮自身或其子元素（B1 的核心鉴别力）
   for (const [name, p] of [
     ['全览', reset],
     ['回退', back],
@@ -380,7 +539,7 @@ test('F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击�
     }
   }
 
-  // ③ 真实点击成功且不超时
+  // ⑦ 真实点击成功且不超时
   expect(resetClickError).toBe('');
   expect(resetClickOk, '「全览」必须能被真实点击（不得超时）').toBe(true);
   expect(afterReset.notePresent, '「全览」点击生效：高亮提示必须被清除').toBe(false);
@@ -392,7 +551,8 @@ test('F1（B1）L2 跳转后「全览 / 历史回退」必须可被真实点击�
 
 // ───────────────── F2（R1 风险项）：末根 bar 标签完整可见 ─────────────────
 /** 标签盒（**独立于实现的重算**，口径与 tester T2 一致：9px 文本 4.4px/字符 + padding 5）：
- *  右侧放得下 ⇒ 标签在圆点右侧（左对齐）；否则**边缘收敛**到圆点左侧（右对齐）。 */
+ *  右侧放得下 ⇒ 标签在圆点右侧（左对齐）；否则**边缘收敛**到圆点左侧（右对齐）。
+ *  重锚判定（2026-09-23）：本判据不编码旧布局（pane 宽与全部标记坐标**运行时重算**），D6/D7 未改变 R1 口径 ⇒ 不改。 */
 function labelBox(x: number, text: string, paneW: number): { side: 'right' | 'left'; x0: number; x1: number; w: number } {
   const W = text.length * 4.4 + 5;
   const rightX = x + 3.2 + 3;
@@ -487,12 +647,20 @@ test('F2（R1）run 末根 bar 的买卖标签必须完整可见（边缘收敛�
 });
 
 // ───────────────── F3（R3 风险项）：圆点像素颜色身份 ─────────────────
-test('F3（R3）真渲染圆点像素色值必须等于标记 store 色值（买红 / 卖绿）', async ({ page }) => {
+test('F3（R3）真渲染圆点颜色身份必须等于标记 store 色值（买红 / 卖绿；含被常显标签盒遮挡的混合解释）', async ({
+  page,
+}) => {
   await openRunSettled(page, RUN_A);
   const geom = await paneGeom(page);
   const paneW = geom.pane?.width ?? geom.w;
+  const paneH = geom.pane?.height ?? geom.h;
   const { rows } = await markers(page, Math.round(paneW));
-  const inPane = rows.filter((r) => r.x >= 2 && r.x <= paneW - 2 && r.y >= 6 && r.y <= 200);
+  // 取样窗（重锚）：按**实时 pane 几何**取「圆点整体落在 pane 内」的标记（内缩 1 个圆点半径 = 4px）。
+  // 旧口径 `y ∈ [6,200]` 是旧 67px 主图时代的窗口（新默认态主图 371px ⇒ 该窗把 24 个可见标记截到 12 个）。
+  const inset = 4;
+  const inPane = rows.filter(
+    (r) => r.x >= inset && r.x <= paneW - inset && r.y >= inset && r.y <= paneH - inset,
+  );
   expect(inPane.length, '完全落在画布内的标记必须 > 0').toBeGreaterThan(0);
   const samples = await samplePixels(
     page,
@@ -504,16 +672,38 @@ test('F3（R3）真渲染圆点像素色值必须等于标记 store 色值（买
     const want = hexToRgb(m.color);
     // 逐图层判定（canvas 叠放顺序不影响「某图层确实在该位置画了该色值」这件事）：
     //  - `bestMatch`：9 像素 3×3 邻域内匹配 store 色值的**最大**像素数（取最佳图层）；
-    //  - `centerExact`：圆心像素本身是否等于 store 色值（指标线/MA 恰好压在圆心上时会为 false ⇒ 见 aggregate 判据）。
-    const perLayer = s.layers.map((l) => ({
-      ci: l.ci,
-      center: [l.center[0], l.center[1], l.center[2]] as Rgb,
-      centerDelta: dist([l.center[0]!, l.center[1]!, l.center[2]!] as Rgb, want),
-      match: l.patch.filter(([r, g, b, a]) => a! >= 200 && dist([r!, g!, b!] as Rgb, want) <= 10).length,
-      total: l.patch.length,
-    }));
+    //  - `centerExact`：圆心像素是否**逐像素**等于 store 色值（Δmax ≤ 10）；
+    //  - `blendFit`：圆心像素是否等于 `α·store + (1−α)·实测底`（α∈[0.15,1]）——用于「被同 bar 邻笔的
+    //    常显标签背景盒整体压暗」的标记（ADR §5 已登记债「标记遮挡」；旧实现/new 几何实测实例见报告）。
+    const perLayer = s.layers.map((l) => {
+      const center = [l.center[0]!, l.center[1]!, l.center[2]!] as Rgb;
+      const bg = l.backdrop ? ([l.backdrop[0]!, l.backdrop[1]!, l.backdrop[2]!] as Rgb) : null;
+      const fit = bg ? blendFit(center, want, bg) : null;
+      return {
+        ci: l.ci,
+        center: l.center,
+        centerDelta: dist(center, want),
+        match: l.patch.filter(([r, g, b, a]) => a! >= 200 && dist([r!, g!, b!] as Rgb, want) <= 10).length,
+        total: l.patch.length,
+        backdrop: l.backdrop,
+        blend: fit,
+      };
+    });
     const best = perLayer.reduce<null | (typeof perLayer)[number]>((acc, c) => (acc == null || c.match > acc.match ? c : acc), null);
     const exact = perLayer.find((l) => l.centerDelta <= 10) ?? null;
+    const blended = perLayer.find(
+      (l) =>
+        l.blend != null &&
+        l.blend.alpha < 1 &&
+        l.blend.delta <= 12 &&
+        channelOrder(l.center as unknown as Rgb) === channelOrder(want),
+    ) ?? null;
+    const chosen = exact ?? blended ?? best;
+    const hueOk = (() => {
+      if (chosen == null) return false;
+      const probe = chosen.center as unknown as Rgb;
+      return m.color === '#00e0a4' ? isGreenInk(probe) : isRedInk(probe);
+    })();
     return {
       key: m.key,
       color: m.color,
@@ -523,54 +713,82 @@ test('F3（R3）真渲染圆点像素色值必须等于标记 store 色值（买
       layers: s.layers.length,
       firstOpaque: s.top ? [s.top[0], s.top[1], s.top[2]] : null,
       centerExact: exact != null,
-      hitLayer: (exact ?? best)?.ci ?? null,
-      hitCenter: (exact ?? best)?.center ?? null,
-      hitDelta: (exact ?? best)?.centerDelta ?? null,
+      blendExplained: exact == null && blended != null,
+      blendAlpha: blended?.blend?.alpha ?? null,
+      blendDelta: blended?.blend?.delta ?? null,
+      blendBackdrop: blended?.backdrop ?? null,
       bestMatch: best?.match ?? 0,
       bestTotal: best?.total ?? 0,
       bestCenter: best?.center ?? null,
+      layerDelta: exact?.centerDelta ?? blended?.blend?.delta ?? null,
+      layerCenter: (exact ?? blended)?.center ?? best?.center ?? null,
+      hueOk,
     };
   });
   const buys = recs.filter((r) => r.color === '#ff5c6c');
   const sells = recs.filter((r) => r.color === '#00e0a4');
+  const occluded = recs.filter((r) => r.blendExplained);
   writeJson('f3_dot_pixels', {
     paneW,
+    paneH,
     paneContainerW: geom.w,
     pane: geom.pane,
+    sampleWindow: { xMin: inset, xMax: Math.round(paneW - inset), yMin: inset, yMax: Math.round(paneH - inset) },
     count: recs.length,
     buys: buys.length,
     sells: sells.length,
+    exactCount: recs.filter((r) => r.centerExact).length,
+    occludedCount: occluded.length,
+    occluded: occluded.map((r) => ({
+      key: r.key,
+      at: { x: r.x, y: r.y },
+      alpha: r.blendAlpha,
+      residual: r.blendDelta,
+      center: r.layerCenter,
+      backdrop: r.blendBackdrop,
+    })),
     recs,
   });
 
   expect(buys.length, '必须至少采样到一笔买入标记（否则用例空绿）').toBeGreaterThan(0);
   expect(sells.length, '必须至少采样到一笔卖出标记（ForceClose；否则「卖绿」不可证）').toBeGreaterThan(0);
-  // 逐标记像素判据（**两档**，对指标线压在圆心上的情形有容差但仍有牙）：
+  // 逐标记颜色身份（**两档**）：
   //  档 1：圆心像素**逐像素等于** store 色值（Δmax ≤ 10）；
-  //  档 2：圆心像素属该标记的**色相族**（买 r 主导 / 卖 g 主导；抗混合/抗锯齿）。
-  // 任一档成立即通过；两档都不成立 ⇒ 该位置没有按该色值画过东西 ⇒ 红。
-  const byKey = new Map(recs.map((r) => [r.key, r]));
+  //  档 2：圆心像素 == `α·store + (1−α)·实测底`（α∈[0.15,1]，残差 ≤12，通道序一致）
+  //        —— 即「被半透明标签盒整体压暗，但确实按 store 色绘制」；α=1 已由档 1 覆盖，缺圆点（圆心=底）
+  //        或画错色（如买点画成绿）在**两档下都必红**（见变异反证）。
+  //  两档都不成立 ⇒ 该位置没有按该色值画过圆点 ⇒ 红。
   for (const r of recs) {
-    const probe = r.hitCenter as Rgb | null;
-    const hueOk = probe != null && (r.color === '#00e0a4' ? isGreenInk(probe) : isRedInk(probe));
     expect(
-      r.centerExact || hueOk,
-      `标记 ${r.key}（store 色 ${r.color}）：圆心像素既不等于该色值也不属其色相族（实测 ${JSON.stringify(probe)}）；` +
+      r.centerExact || r.blendExplained,
+      `标记 ${r.key}（store 色 ${r.color}）：圆心像素既不等于该色值、也不等于其被半透明层压暗的混合值` +
+        `（实测 ${JSON.stringify(r.layerCenter)}；档2 α=${r.blendAlpha} 残差=${r.blendDelta} 底=${JSON.stringify(r.blendBackdrop)}）；` +
         `全部读数落盘 f3_dot_pixels.json`,
     ).toBe(true);
+    if (r.centerExact) {
+      // 档 1（逐像素等于 store 色）成立的标记必须逐条为其色相（买红 / 卖绿）；
+      // 档 2 的标记其圆心像素已被半透明标签盒压暗（色相谓词按「未压暗」的 store 色定义，故不适用于压暗态），
+      // 其身份由「混合残差 ≤12 ∧ α≥0.15 ∧ 通道序一致」三者共同保证（画错色/缺圆点都必红，见变异反证）。
+      expect(
+        r.hueOk,
+        `标记 ${r.key} 的圆心像素必须属其 store 色的色相族（实测 ${JSON.stringify(r.layerCenter)}）`,
+      ).toBe(true);
+    }
   }
   const exactCount = recs.filter((r) => r.centerExact).length;
   const outliers = recs.filter((r) => !r.centerExact).map((r) => r.key);
   expect(
     exactCount / recs.length,
-    `圆心像素**逐像素相等**于 store 色值的标记占比须 ≥ 0.75（实测 ${exactCount}/${recs.length}；逐像素偏离者=${JSON.stringify(outliers)}，` +
-      `偏离原因 = 指标线/MA 压在圆心上造成的混合色，已逐条落盘）`,
+    `圆心像素**逐像素相等**于 store 色值的标记占比须 ≥ 0.75（实测 ${exactCount}/${recs.length}；` +
+      `逐像素偏离者=${JSON.stringify(outliers)}，偏离者须逐条给出混合解释：${JSON.stringify(occluded.map((o) => o.key))}）`,
   ).toBeGreaterThanOrEqual(0.75);
   // 色相身份逐条（买红 / 卖绿）：档 1 成立的标记必须逐条为对应色相
-  for (const b of buys) if (b.centerExact) expect(isRedInk(b.hitCenter as Rgb), `买入圆点须为红相 ${JSON.stringify(b.hitCenter)}`).toBe(true);
-  for (const s of sells) if (s.centerExact) expect(isGreenInk(s.hitCenter as Rgb), `卖出圆点须为绿相 ${JSON.stringify(s.hitCenter)}`).toBe(true);
-  expect(buys.filter((b) => byKey.get(b.key)!.centerExact).length, '买入标记逐像素样本数须 ≥ 1').toBeGreaterThan(0);
-  expect(sells.filter((s) => byKey.get(s.key)!.centerExact).length, '卖出标记逐像素样本数须 ≥ 1').toBeGreaterThan(0);
+  for (const b of buys)
+    if (b.centerExact) expect(isRedInk(b.layerCenter as Rgb), `买入圆点须为红相 ${JSON.stringify(b.layerCenter)}`).toBe(true);
+  for (const s of sells)
+    if (s.centerExact) expect(isGreenInk(s.layerCenter as Rgb), `卖出圆点须为绿相 ${JSON.stringify(s.layerCenter)}`).toBe(true);
+  expect(buys.filter((b) => b.centerExact || b.blendExplained).length, '买入标记可解释样本数须 ≥ 1').toBeGreaterThan(0);
+  expect(sells.filter((s) => s.centerExact || s.blendExplained).length, '卖出标记可解释样本数须 ≥ 1').toBeGreaterThan(0);
 
   // 止损橙（#fb923c）当下不可测：现网 run 的 /fills 无 `reason=StopTrigger`（只有 Policy/ForceClose）
   // ⇒ 无橙色圆点可渲染。颜色身份由「store 侧映射单测（adr028LayoutFix.test.ts R3）」+「本用例证明

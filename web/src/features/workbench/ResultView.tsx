@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ApiClient } from '@/api/client';
 import type { StrategyCatalogEntry, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
 import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, periodLabel } from '@/features/backtest/format';
@@ -16,16 +16,13 @@ import { useRunAudit, type RunAuditState } from './useRunAudit';
 import { useResultWindow } from './useResultWindow';
 import { useCardResize } from './cardResize';
 import { useResultChartConfig, type ResultCardId } from './resultChartConfig';
+import { cardBoundsFor, readCardHeight, writeCardHeight } from './resultCardHeights';
+import { useResultLayout } from './useResultLayout';
+import { DetailPane, type DetailTabKey } from './DetailPane';
 import { IndicatorToggles } from '@/features/dashboard/IndicatorToggles';
 
-type TabKey = 'trades' | 'metrics' | 'perbar' | 'events';
-
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: 'trades', label: '交易明细' },
-  { key: 'metrics', label: '8项绩效' },
-  { key: 'perbar', label: '逐bar评分' },
-  { key: 'events', label: '事件日志' },
-];
+/** 明细 tab（ADR-028 §2.7 第 2 项：①②③④ 全搬 + 内部 tab；默认「回合与逐笔」）。 */
+type TabKey = DetailTabKey;
 
 const STATUS_LABEL: Record<string, string> = {
   queued: '排队中',
@@ -227,12 +224,34 @@ export function ResultView({
   onJump?: (target: JumpTarget) => void;
 }) {
   const [tab, setTab] = useState<TabKey>('trades');
-  /** ADR-028 D4.1 ①：focus 锚点（跳转后将结果页滚动到 K 线区域）。 */
+  /** ADR-028 D4.1 ①：focus 锚点（跳转后把 K 线区域在上栏容器内滚回可见）。 */
   const klineWrapRef = useRef<HTMLDivElement>(null);
+  /** ADR-028 §2.7（D7）①：**上栏**滚动容器（focus 滚动作用域收敛于此，整页不再滚动）。 */
+  const chartPaneRef = useRef<HTMLDivElement>(null);
+  /** ADR-028 §2.7（D7）③：下栏比例 / 折叠 / 记忆（默认 40% 视口高）。 */
+  const layout = useResultLayout();
+  /**
+   * ADR-028 §2.6 第 3 项（D6-7）：卡片高度存**结果页独立 key**（`eestock.result.cardHeights.v1`）。
+   * 旧实现存在结果页指标 key 的 `cardHeights` 字段里（同一 key 混放两类配置）——现拆分：
+   * 高度走本 state（新 key），指标仍走 `resultChartConfig`（旧 key，语义不变）。
+   */
+  const [cardHeights, setCardHeights] = useState<Record<ResultCardId, number | null>>(() => ({
+    kline: readCardHeight('kline'),
+    aggregate: readCardHeight('aggregate'),
+    slot: readCardHeight('slot'),
+    equity: readCardHeight('equity'),
+    position: readCardHeight('position'),
+  }));
+  const commitHeight = useCallback((id: ResultCardId, px: number | null) => {
+    writeCardHeight(id, px);
+    setCardHeights((prev) => ({ ...prev, [id]: px }));
+  }, []);
   /** ADR-028 D4.1 ②：高亮目标（**精确到笔**：fillKey = `rt_seq:成交序号`）；null = 无高亮。 */
   const [highlight, setHighlight] = useState<{ key: string; rev: number } | null>(null);
   /** 高亮重放键（同一笔再次跳转须重开 3s 窗口）。 */
   const highlightRevRef = useRef(0);
+  /** ADR-028 §2.7 第 5 项：focus 滚动**作用域收敛到上栏容器内**的可观测计数（页级 scrollIntoView 已废弃）。 */
+  const [focusScrollRev, setFocusScrollRev] = useState(0);
   /** ADR-028 D4.1 ④：曲线视图竖线标记所在时点（Unix 秒）；保留到下一次跳转或「全览」。 */
   const [markerTs, setMarkerTs] = useState<number | null>(null);
   // ADR-028 D2：页面级共享窗口事实源（唯一；写入者 = kline 交互 / L1·L2 跳转 / 全览与历史回退）。
@@ -265,8 +284,17 @@ export function ResultView({
   const handleJump = (t: JumpTarget) => {
     win.jumpTo(t);
     onJump?.(t);
-    // ① focus：把结果页滚动到 K 线区域（目标 bar 由窗口状态机锁定在视窗内）
-    klineWrapRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    // ① focus（ADR-028 §2.7 第 5 项）：**作用域收敛到上栏容器内**（不再 scrollIntoView 到「页面」——
+    //    页面级滚动已移除；下栏**完全不动**，即 B1-1 口径）。
+    const pane = chartPaneRef.current;
+    const card = klineWrapRef.current;
+    if (pane && card) {
+      const pRect = pane.getBoundingClientRect();
+      const cRect = card.getBoundingClientRect();
+      pane.scrollTop = Math.max(0, pane.scrollTop + (cRect.top - pRect.top));
+      // 可观测：上栏内确实发生过 focus 滚动（旧契约 scrollIntoView 已被取代）
+      setFocusScrollRev((r) => r + 1);
+    }
     // ② 高亮：**只高亮被点击的那一笔**（按 rt_seq + 该回合成交序号 ⇒ `fillKey`，禁按 bar 粗定位）；
     //    L1 是区间跳转、无单笔目标 ⇒ 不残留上一笔高亮。
     if (t.level === 'L2') {
@@ -279,21 +307,20 @@ export function ResultView({
     setMarkerTs(t.level === 'L2' ? t.ts : t.open_ts);
   };
 
-  /** ADR-028 §2.4c 第 2/3/5/6 项：结果页图表卡配置（**独立 key**；指标选择 + 卡片高度）。 */
+  /** ADR-028 §2.4c 第 2/3/5/6 项：结果页图表卡配置（**指标** key 不变）。 */
   const chartCfg = useResultChartConfig();
-  /** 五张可缩放卡片的高度 API（`null` = 默认渲染；拖拽提交后落独立 key ⇒ 刷新保持）。 */
-  const resizeKline = useCardResize({
-    cardId: 'kline',
-    heightPx: chartCfg.cardHeight('kline'),
-    onCommit: (px) => chartCfg.setCardHeight('kline', px),
-    defaultPx: 256,
-  });
-  const resizeOf = (id: ResultCardId, defaultPx: number) => ({
-    cardId: id,
-    heightPx: chartCfg.cardHeight(id),
-    onCommit: (px: number | null) => chartCfg.setCardHeight(id, px),
-    defaultPx,
-  });
+  /** 四张**曲线卡**高度 API（K 线卡改由 `KlineResultChart` 内部按 pane 几何派生 bounds，见 D6-4）。 */
+  const resizeOf = (id: ResultCardId, defaultPx: number) => {
+    const b = cardBoundsFor({ viewportH: layout.viewportH, subPaneCount: 0, cardId: id });
+    return {
+      cardId: id,
+      heightPx: cardHeights[id],
+      onCommit: (px: number | null) => commitHeight(id, px),
+      defaultPx,
+      minPx: b.min,
+      maxPx: b.max,
+    };
+  };
   const resizeAggregate = useCardResize(resizeOf('aggregate', 186));
   const resizeSlot = useCardResize(resizeOf('slot', 190));
   const resizeEquity = useCardResize(resizeOf('equity', 218));
@@ -316,9 +343,21 @@ export function ResultView({
 
   // 头部进度叠加：WS progressMap 优先，REST 行进度兜底（与 RunList 行进度同口径）
   const progressPct = Math.round((progressMap?.[run.id]?.progress ?? run.progress) * 100);
+  /** 明细内容就绪（= 结果就绪；未就绪时下栏仍存在并显式空态，§4）。 */
+  const readyForDetail = !loading && !error && run.status === 'succeeded' && result != null;
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-auto p-3" data-testid="wb-result">
+    // ADR-028 §2.7（D7，方案 B = 上下分层）：
+    //  ① 页面级滚动**移除**（`wb-result` 不再 `overflow-auto`）⇒ 上下栏各自内部滚动（D7-1）；
+    //  ② 上栏 `wb-chart-pane` = K 线 + 窗口条 + 四张曲线卡（自身滚动，保住全宽）；
+    //  ③ 下栏 `wb-detail-pane` = 明细（自身滚动）+ `wb-detail-tabs`；
+    //  ④ 比例/折叠/记忆见 `useResultLayout`（默认 40% 视口高；D7-3）。
+    <div
+      className="flex h-full min-h-0 flex-col gap-2 p-3"
+      data-testid="wb-result"
+      data-pane-collapsed={layout.collapsed ? 'true' : 'false'}
+      data-pane-ratio={layout.ratio.toFixed(4)}
+    >
       {/* 头部：run 概要 + 状态/错误 */}
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <span className="text-sm text-txt" data-testid="wb-run-title">
@@ -335,42 +374,52 @@ export function ResultView({
         </div>
       )}
 
-      {error ? (
-        <div className="flex items-center gap-3 text-xs text-up" data-testid="wb-result-error">
-          <span>结果加载失败：{error}</span>
-          <button type="button" onClick={onRetry} className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt">
-            重试
-          </button>
-        </div>
-      ) : loading ? (
-        <div className="flex h-40 items-center justify-center" data-testid="wb-result-skeleton">
-          <div className="h-3 w-40 animate-pulse rounded bg-white/10" />
-        </div>
-      ) : run.status === 'succeeded' && result ? (
-        <>
-          {/* ADR-028 D4.1 ①：focus 锚点（跳转时 scrollIntoView 到此） */}
-          <div ref={klineWrapRef} data-testid="wb-kline-focus-anchor" data-marker-ts={markerTs ?? ''}>
-            <KlineResultChart
-              run={run}
-              fills={series.fills}
-              api={api}
-              onVisibleRangeChange={win.applyKlineRange}
-              windowCommand={win.command}
-              onWindowApplied={win.onApplied}
-              highlight={highlight}
-              indicators={chartCfg.indicators}
-              resize={resizeKline}
-              toggleSlot={
-                /* 指标勾选 = 与看板**同一实现**（共享组件）；结果页配置独立 key（硬约束）。
-                   aria-pressed + 稳定 testid ⇒ 真渲染规格可点、可断言。 */
-                <IndicatorToggles
+      <div ref={layout.splitRef} data-testid="wb-result-split" className="flex min-h-0 flex-1 flex-col gap-2">
+        {/* ── 上栏（自身滚动；focus 作用域收敛于此） ── */}
+        <div
+          ref={chartPaneRef}
+          data-testid="wb-chart-pane"
+          data-focus-scroll={focusScrollRev}
+          data-pane-height={layout.availablePx > 0 && !layout.collapsed ? layout.availablePx - layout.detailPx - 12 : ''}
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
+        >
+          {error ? (
+            <div className="flex items-center gap-3 text-xs text-up" data-testid="wb-result-error">
+              <span>结果加载失败：{error}</span>
+              <button type="button" onClick={onRetry} className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt">
+                重试
+              </button>
+            </div>
+          ) : loading ? (
+            <div className="flex h-40 items-center justify-center" data-testid="wb-result-skeleton">
+              <div className="h-3 w-40 animate-pulse rounded bg-white/10" />
+            </div>
+          ) : run.status === 'succeeded' && result ? (
+            <>
+              {/* ADR-028 D4.1 ①：focus 锚点（跳转时在**上栏容器内**滚回可见，见 handleJump） */}
+              <div ref={klineWrapRef} data-testid="wb-kline-focus-anchor" data-marker-ts={markerTs ?? ''}>
+                <KlineResultChart
+                  run={run}
+                  fills={series.fills}
+                  api={api}
+                  onVisibleRangeChange={win.applyKlineRange}
+                  windowCommand={win.command}
+                  onWindowApplied={win.onApplied}
+                  highlight={highlight}
                   indicators={chartCfg.indicators}
-                  onToggle={chartCfg.toggleIndicator}
-                  testIdPrefix="wb-indicator-toggle"
+                  heightPx={cardHeights.kline}
+                  onCommitHeight={(px) => commitHeight('kline', px)}
+                  toggleSlot={
+                    /* 指标勾选 = 与看板**同一实现**（共享组件）；结果页配置独立 key（硬约束）。
+                       aria-pressed + 稳定 testid ⇒ 真渲染规格可点、可断言。 */
+                    <IndicatorToggles
+                      indicators={chartCfg.indicators}
+                      onToggle={chartCfg.toggleIndicator}
+                      testIdPrefix="wb-indicator-toggle"
+                    />
+                  }
                 />
-              }
-            />
-          </div>
+              </div>
           {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测） */}
           <div
             className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
@@ -557,22 +606,42 @@ export function ResultView({
               />
             </>
           )}
-          <div className="rounded-lg border border-line bg-panel2">
-            <div className="flex gap-1 border-b border-line px-2 pt-1">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={`rounded-t px-3 py-1 text-xs ${tab === t.key ? 'bg-panel text-txt' : 'text-dim hover:text-txt'}`}
-                  onClick={() => setTab(t.key)}
-                  data-testid={`wb-tab-${t.key}`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            </>
+          ) : (
+            /* 非终态/无结果：上栏显示状态提示，下栏仍存在（显式空态），页面不滚动 */
+            <div className="flex h-40 items-center justify-center text-xs text-dim" data-testid="wb-result-pending">
+              {run.status === 'canceled'
+                ? '运行已取消（无结果）'
+                : run.status === 'failed'
+                  ? '运行失败（无结果）'
+                  : `运行${STATUS_LABEL[run.status] ?? run.status}…进度 ${progressPct}%`}
             </div>
-            <div className="p-2">
-              {tab === 'trades' && (
+          )}
+        </div>
+        {/* ── 下栏分隔条（拖拽改比例 + 双击复位 40%；折叠时隐藏但保留键盘可恢复入口） ── */}
+        {!layout.collapsed && <div {...layout.splitterProps} />}
+        {layout.collapsed ? (
+          <div className="flex shrink-0 items-center justify-center" data-testid="wb-detail-collapsed-bar">
+            <button
+              type="button"
+              data-testid="wb-detail-expand"
+              onClick={layout.expand}
+              aria-label="展开明细面板（恢复记忆比例）"
+              className="rounded border border-line px-3 py-0.5 text-[10px] text-dim hover:text-txt"
+            >
+              明细已收起 ▲
+            </button>
+          </div>
+        ) : (
+          /* ── 下栏（明细独立视图；自身滚动；D7-1/D7-2） ── */
+          <DetailPane
+            tab={tab}
+            onTabChange={setTab}
+            heightPx={layout.detailPx}
+            onCollapse={layout.collapse}
+            content={{
+              /* 1) L1 回合 + 2) L2 逐笔（默认 tab） */
+              trades: readyForDetail ? (
                 <div className="flex flex-col gap-2">
                   <AuditSummary audit={audit} fills={series.fills} />
                   {/* ADR-027 D8/D10：L1 回合（默认一层）→ 展开按 rt_seq 懒加载 L2 + 逐回合对账告警 */}
@@ -585,15 +654,20 @@ export function ResultView({
                     audit={audit}
                   />
                 </div>
-              )}
-              {tab === 'metrics' && (
+              ) : (
+                <DetailEmpty />
+              ),
+              metrics: readyForDetail ? (
                 <MetricsTable
-                  result={result}
+                  result={result as WorkbenchRunResult}
                   audit={audit}
                   capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
                 />
-              )}
-              {tab === 'perbar' && (
+              ) : (
+                <DetailEmpty />
+              ),
+              /* 3) 逐 bar 明细 */
+              perbar: readyForDetail ? (
                 <PerBarTable
                   bars={series.bars}
                   slotCount={run.config.slots.length}
@@ -601,8 +675,11 @@ export function ResultView({
                   onJumpRange={series.jumpToRange}
                   onResetRange={series.resetRange}
                 />
-              )}
-              {tab === 'events' && (
+              ) : (
+                <DetailEmpty />
+              ),
+              /* 4) 事件日志 */
+              events: readyForDetail ? (
                 <EventLog
                   perBar={series.bars.rows}
                   total={series.bars.total}
@@ -611,19 +688,22 @@ export function ResultView({
                   onLoadMore={series.loadMore}
                   range={series.bars.range}
                 />
-              )}
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="flex h-40 items-center justify-center text-xs text-dim" data-testid="wb-result-pending">
-          {run.status === 'canceled'
-            ? '运行已取消（无结果）'
-            : run.status === 'failed'
-              ? '运行失败（无结果）'
-              : `运行${STATUS_LABEL[run.status] ?? run.status}…进度 ${progressPct}%`}
-        </div>
-      )}
+              ) : (
+                <DetailEmpty />
+              ),
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 明细数据未就绪/不可得时的**显式空态**（§4：下栏不因空数据消失）。 */
+function DetailEmpty() {
+  return (
+    <div className="p-3 text-xs text-dim" data-testid="wb-detail-empty">
+      明细尚未就绪（运行完成后展示回合与逐笔 / 逐 bar 明细 / 事件日志）
     </div>
   );
 }

@@ -35,6 +35,19 @@ const RUN_ID = process.env.ADR028_D5_RUN ?? 'sr_1789832517800_000006';
 const BAR_SECONDS = 300;
 const PAIR_TOL_SEC = Math.max(60, Math.round(BAR_SECONDS / 2));
 const ALIGN_TOL_PX = 2;
+
+/**
+ * **本规格的契约修订（2026-09-23，D6/D7 批次；逐条给推导，非按实现倒推）**：
+ *  1. **默认卡高 256 → 520**（ADR-028 §2.6 第 1 项；D6-1）⇒ D5-B 的「默认高 256（h-64）」「复位 256」
+ *     与「内层 194」断言全部改按新默认（520 / `inline 520px`）；
+ *  2. **卡高上限 = 视口高 − 200**（§2.6 第 2 项）⇒ 视口 720 时 max = 520 = 默认值，「拖 +150」无增长空间，
+ *     故本规格显式把视口抬到 **1280×900**（max = 700，+150 可达）；
+ *  3. **指标勾选收进浮层**（§2.6 第 5 项：卡头 ≤48px）⇒ 断言 `wb-indicator-toggles` 前须先开
+ *     `wb-indicator-menu`（多选语义与既有 testid 不变）；
+ *  4. **页面级滚动移除**（§2.7 第 1 项）⇒ 滚动复位/读数从 `wb-result` 改为**上栏 `wb-chart-pane`**；
+ *  5. **卡片高度记忆改结果页独立 key**（§2.6 第 3 项 + D6-7）⇒ 断言只看渲染高度（不锁 key 名）。
+ */
+test.use({ viewport: { width: 1280, height: 900 } });
 /** 统一 PAD（user units）后跨视图同一根 bar 的 userX 差判据（1 user unit ≈ 0.62px @666px 卡宽）。 */
 const CROSS_VIEW_TOL_USER = 0.1;
 const CURVE_W = 1000;
@@ -305,7 +318,7 @@ async function openRunSettled(page: Page, runId: string): Promise<void> {
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
-  await expect(page.getByTestId('wb-indicator-toggles')).toBeVisible();
+  await openIndicatorMenu(page); // 契约修订 3：勾选在浮层内
   await page.waitForTimeout(2500);
   await resetScroll(page);
 }
@@ -320,11 +333,23 @@ async function reselectRun(page: Page, runId: string): Promise<void> {
   await resetScroll(page);
 }
 
+/** 滚动复位：**上栏**才是滚动容器（§2.7 第 1 项：页面级滚动已移除）⇒ 上栏与页面双复位。 */
 async function resetScroll(page: Page): Promise<void> {
   await page.evaluate(() => {
+    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
+    if (pane) pane.scrollTop = 0;
     const el = document.querySelector('[data-testid="wb-result"]') as HTMLElement | null;
     if (el) el.scrollTop = 0;
   });
+}
+
+/** 打开指标浮层（§2.6 第 5 项：勾选收进浮层，保留多选与 testid）。 */
+async function openIndicatorMenu(page: Page): Promise<void> {
+  const menu = page.getByTestId('wb-indicator-menu');
+  if ((await menu.count()) === 0) return;
+  const pressed = await menu.getAttribute('aria-expanded');
+  if (pressed !== 'true') await menu.click();
+  await expect(page.getByTestId('wb-indicator-toggles')).toBeVisible();
 }
 
 /** 真鼠标拖拽：定位把手/分隔线中心 → down → 分步 move（每步 25ms，> 引擎节流）→ up。 */
@@ -503,7 +528,7 @@ test('D5-A 副图指标可选：入口在结果页 K 线卡内 / 真身驱动 / 
   // ⑥ 持久化：刷新后指标选择保持（结果页独立 key；仅本机浏览器有效）
   await page.reload();
   await reselectRun(page, RUN_ID);
-  await expect(page.getByTestId('wb-indicator-toggles')).toBeVisible();
+  await openIndicatorMenu(page);
   const afterReload = await page.evaluate(probeDom);
   const pressed = Object.fromEntries(afterReload.toggles.map((t) => [String(t['key']), String(t['pressed'])]));
   expect(pressed['vol'], '刷新后 vol 仍关（结果页独立 key 持久化）').toBe('false');
@@ -525,7 +550,8 @@ test('D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（sv
   const kInner0 = before.klineInner as { h: number } | null;
   const agg0 = before.cards['wb-aggregate-chart'] as { rect: { h: number }; svg: { rect: { h: number } } };
   const pos0 = before.cards['wb-position-chart'] as { rect: { h: number }; svg: { rect: { h: number } } };
-  expect(kCard0.h, 'K 线卡默认高 256（h-64）').toBe(256);
+  // 契约修订 1：默认卡高 520（原 256）
+  expect(kCard0.h, 'K 线卡默认高 520（ADR-028 §2.6 第 1 项）').toBe(520);
   expect(agg0.svg.rect.h, '聚合卡 svg 默认固定高（h-40 = 160）').toBe(160);
 
   // ① K 线卡下边缘拖高 150px ⇒ 卡片与内层图表**同时**跟随
@@ -535,7 +561,7 @@ test('D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（sv
   writeJson('d5b_after_kline_drag', afterK);
   const kCard1 = (afterK.cards['wb-kline-chart'] as { rect: { h: number }; inlineHeight: string | null }).rect;
   const kInner1 = afterK.klineInner as { h: number } | null;
-  expect(kCard1.h, `拖 +150 ⇒ 卡片高度跟随（${kCard0.h} → ?）`).toBeGreaterThanOrEqual(256 + 150 - 4);
+  expect(kCard1.h, `拖 +150 ⇒ 卡片高度跟随（${kCard0.h} → ?）`).toBeGreaterThanOrEqual(520 + 150 - 4);
   expect(kInner1!.h, 'K 线内层图表必须跟随卡片（min-h-0 flex-1）').toBeGreaterThanOrEqual(kInner0!.h + 150 - 8);
   expect((afterK.cards['wb-kline-chart'] as { inlineFlexShrink: string }).inlineFlexShrink, '受控高度必须 shrink-0').toBe('0');
 
@@ -598,8 +624,9 @@ test('D5-B 卡片上下缩放：K 线卡（内层图表跟随）/ 曲线卡（sv
   await page.getByTestId('wb-card-title-kline').dblclick();
   await page.waitForTimeout(400);
   const afterResetK = await page.evaluate(probeDom);
-  expect((afterResetK.cards['wb-kline-chart'] as { rect: { h: number } }).rect.h, '双击 K 线卡标题 ⇒ 复位 256').toBe(256);
-  expect((afterResetK.cards['wb-kline-chart'] as { inlineHeight: string | null }).inlineHeight).toBeNull();
+  // 契约修订 1：复位到默认 520（原 256）；inline 高度**恒**存在（卡高由 D6-1 的 520 常量给定，不再靠类名）
+  expect((afterResetK.cards['wb-kline-chart'] as { rect: { h: number } }).rect.h, '双击 K 线卡标题 ⇒ 复位 520').toBe(520);
+  expect((afterResetK.cards['wb-kline-chart'] as { inlineHeight: string | null }).inlineHeight).toBe('520px');
   await page.getByTestId('wb-card-title-aggregate').dblclick();
   await page.waitForTimeout(400);
   const afterResetAgg = await page.evaluate(probeDom);

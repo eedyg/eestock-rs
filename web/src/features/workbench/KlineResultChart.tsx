@@ -1,14 +1,25 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ApiClient } from '@/api/client';
 import type { WorkbenchRunFill, WorkbenchRunView } from '@/api/types';
 import { DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
 import type { IndicatorName } from '@/features/dashboard/Toolbar';
-import { type CardResizeApi } from './cardResize';
+import { CardHeightPresets, useCardResize, type CardResizeApi } from './cardResize';
+import {
+  CARD_HEADER_FALLBACK_PX,
+  DEFAULT_KLINE_PX,
+  KLINE_CANDLE_MIN_PX,
+  SUB_PANE_MIN_PX,
+  SUB_PANE_TOTAL_MAX_PX,
+  cardBoundsFor,
+  clampCardPx,
+  planKlinePanes,
+} from './resultCardHeights';
 import {
   HIGHLIGHT_DURATION_MS,
   KlineChart,
   findMarkerByFillKey,
   type KlineMarkerOverlay,
+  type KlinePaneMetrics,
 } from '@/features/dashboard/KlineChart';
 import type { VisibleRangeTs, WindowApplyResult, WindowCommand } from '@/features/dashboard/klineWindowOps';
 import { ScopedKlineFeed } from '@/features/backtest/ScopedKlineFeed';
@@ -79,6 +90,43 @@ export function buildMarkers(fills: WorkbenchRunFill[]): KlineMarkerOverlay[] {
 export const RESULT_BAR_SPACE_LIMIT = { min: 1, max: 400 } as const;
 
 /**
+ * 副图指标（占用**独立 pane** 的那些；`ma` 叠在主图上、不占 pane）。
+ * 与 `KlineChart.syncIndicators` 的 pane 创建口径一致：除 `ma` 外均 `createIndicator(value, true)`。
+ */
+const SUB_PANE_INDICATORS: readonly IndicatorName[] = ['vol', 'macd', 'kdj', 'boll', 'dcap'];
+
+/** 结果页 K 线卡**默认高度**（ADR-028 §2.6 第 1 项；D6-1）。 */
+export const KLINE_CARD_DEFAULT_PX = DEFAULT_KLINE_PX;
+
+/** 视口高（挂载/`resize` 时更新；jsdom 兜底 800）。 */
+function useViewportHeight(): number {
+  const [h, setH] = useState(() => (typeof window === 'undefined' ? 800 : window.innerHeight));
+  useEffect(() => {
+    const onResize = () => setH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return h;
+}
+
+/** 元素高度实测（ResizeObserver；不可用 ⇒ 返回 0 = 未测量）。 */
+function useMeasuredHeight<T extends HTMLElement>(): [React.RefObject<T>, number] {
+  const ref = useRef<T>(null);
+  const [px, setPx] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setPx(Math.max(0, Math.round(el.getBoundingClientRect().height)));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, px];
+}
+
+/**
  * K线 + 买卖标记（复用看板 `KlineChart` + 页面⑤ `ScopedKlineFeed` 区间取数）：
  * 区间 = run [from_ts, to_ts]（小 buffer）；markers 由**成交明细事实源**生成
  * （B=买入 / S=卖出 / ⊗=硬止损触发强平）。
@@ -96,8 +144,11 @@ export function KlineResultChart({
   highlight,
   onHighlightEnd,
   indicators = DASHBOARD_DEFAULTS.indicators,
+  heightPx = null,
+  onCommitHeight,
   toggleSlot,
-  resize,
+  presetsEnabled = true,
+  resize: resizeProp,
 }: {
   run: WorkbenchRunView;
   fills: RunFillsState;
@@ -120,10 +171,59 @@ export function KlineResultChart({
   indicators?: Record<IndicatorName, boolean>;
   /** 指标勾选入口（结果页注入共享组件 `IndicatorToggles`；缺省 ⇒ 不渲染入口）。 */
   toggleSlot?: ReactNode;
-  /** ADR-028 §2.4c 第 2 项：卡片高度缩放 API（缺省 ⇒ 固定 `h-64`，与修复前一致）。 */
+  /** 已提交的卡片高度（结果页**独立**记忆 key；`null` = 默认 520）。 */
+  heightPx?: number | null;
+  /** 提交高度（`null` = 复位到默认 520）。 */
+  onCommitHeight?: (px: number | null) => void;
+  /** S/M/L 预设入口是否渲染（缺省 true）。 */
+  presetsEnabled?: boolean;
+  /** ADR-028 §2.4c 第 2 项：卡片高度缩放 API（缺省 ⇒ 组件**内部**按结果页口径自建）。 */
   resize?: CardResizeApi;
 }) {
   const period = periodCodeToPeriod(run.period);
+  const viewportH = useViewportHeight();
+  const [headerRef, headerPx] = useMeasuredHeight<HTMLDivElement>();
+  const [chartAreaRef, chartAreaPx] = useMeasuredHeight<HTMLDivElement>();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [paneMetrics, setPaneMetrics] = useState<KlinePaneMetrics | null>(null);
+  /** 副图 pane 数（= 启用中的「独立 pane」指标数；`ma` 叠主图不占 pane）。 */
+  const subPaneCount = useMemo(
+    () => SUB_PANE_INDICATORS.filter((k) => indicators[k]).length,
+    [indicators],
+  );
+  /** 主图/副图分配（ADR-028 §2.6 第 4 项；容器高实测注入）。 */
+  const panePlan = useMemo(
+    () => planKlinePanes({ containerPx: chartAreaPx, subPaneCount }),
+    [chartAreaPx, subPaneCount],
+  );
+  /** 卡高上下限（**有效下限**口径：卡头实测 + 1 + 26 + 160 + 30×副图数）。 */
+  const bounds = useMemo(
+    () => cardBoundsFor({ viewportH, headerPx: headerPx > 0 ? headerPx : CARD_HEADER_FALLBACK_PX, subPaneCount }),
+    [headerPx, subPaneCount, viewportH],
+  );
+
+  /** 内部自建 resize（结果页 K 线卡；缺省 bounds 由本组件派生 ⇒ 调用方无需知道 pane 几何）。 */
+  const innerResize = useCardResize({
+    cardId: 'kline',
+    heightPx,
+    onCommit: (px) => onCommitHeight?.(px),
+    defaultPx: DEFAULT_KLINE_PX,
+    minPx: bounds.min,
+    maxPx: bounds.max,
+  });
+  const resize = resizeProp ?? innerResize;
+  const cardPx = resize.heightPx ?? DEFAULT_KLINE_PX;
+  const constraints = useMemo(
+    () => ({
+      candleMinPx: KLINE_CANDLE_MIN_PX,
+      subPaneMinPx: SUB_PANE_MIN_PX,
+      subPanePx: panePlan.subPanePx,
+      subPaneTotalMaxPx: SUB_PANE_TOTAL_MAX_PX,
+    }),
+    [panePlan.subPanePx],
+  );
+  const onPaneMetrics = useCallback((m: KlinePaneMetrics) => setPaneMetrics(m), []);
+
   const feed = useMemo(
     () =>
       new ScopedKlineFeed({
@@ -163,23 +263,35 @@ export function KlineResultChart({
   return (
     // B1（2026-09-20）：卡片必须**自身**是 flex-col —— 头部图例/提示行**可换行增高**，图表区
     // `flex-1 min-h-0` 随之收缩。旧实现用 `h-[calc(100%-1.25rem)]`（对头部高度做了「恒 1 行」的固定假设）：
-    // 新增高亮提示使头部由 1 行涨到 2 行时该高度**不收缩** ⇒ 图表容器溢出 `h-64` 卡片 27px，
+    // 新增高亮提示使头部由 1 行涨到 2 行时该高度**不收缩** ⇒ 图表容器溢出卡片 27px，
     // canvas 盖住下方窗口控制条（`elementFromPoint` 命中 canvas）⇒「全览 / 历史回退」真实点击超时。
-    // 该布局**不依赖任何头部行数假设**，且卡片高度仍为 `h-64`（不挤压兄弟区域）。
+    // 该布局**不依赖任何头部行数假设**。
+    //
+    // D6（2026-09-23）：卡高 = 记忆值 ?? 默认 520（inline 高度**恒**存在 ⇒ 默认态也是 520，不再依赖类名）；
+    // 卡头**必须 ≤48px** ⇒ 头部只保留一行紧凑内容（指标勾选收进**浮层**，绝对定位不占布局高）；
+    // 把手 12px 命中带 + `z-30`（层级优先于 canvas，ADR §2.6 第 6 项）。
     <div
-      ref={resize?.cardRef}
-      style={resize?.cardStyle}
-      className="relative flex h-64 shrink-0 flex-col rounded-lg border border-line bg-panel2"
+      ref={resize.cardRef}
+      style={{ height: `${Math.round(cardPx)}px`, flexShrink: 0 }}
+      className="relative flex shrink-0 flex-col rounded-lg border border-line bg-panel2"
       data-testid="wb-kline-chart"
       data-resizable="kline"
+      data-card-header-height={headerPx > 0 ? headerPx : undefined}
+      data-kline-pane-height={paneMetrics?.candlePx ?? panePlan.candlePx}
+      data-kline-sub-pane-count={subPaneCount}
+      data-kline-card-bounds={`${bounds.min},${bounds.max}`}
     >
-      <div className="flex shrink-0 flex-wrap items-center gap-3 px-2 pt-1 text-[10px] text-dim">
-        {/* 卡片标题 = **双击复位高度**入口（ADR-028 §2.4c 第 2 项） */}
+      <div
+        ref={headerRef}
+        data-testid="wb-kline-card-header"
+        className="relative flex shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 px-2 pt-1 text-[10px] leading-4 text-dim"
+      >
+        {/* 卡片标题 = **双击复位高度**入口（ADR-028 §2.4c 第 2 项；复位到默认 520，D6-6） */}
         <span
           data-testid="wb-card-title-kline"
           data-card-title="kline"
-          title="双击复位高度"
-          onDoubleClick={() => resize?.reset()}
+          title="双击复位高度（默认 520）"
+          onDoubleClick={() => resize.reset()}
           className="select-none"
         >
           K线 {run.symbol}（{run.period}）
@@ -187,7 +299,7 @@ export function KlineResultChart({
         <span style={{ color: COLOR_BUY }}>B 买入</span>
         <span style={{ color: COLOR_SELL }}>S 卖出</span>
         <span style={{ color: COLOR_STOP }}>⊗ 硬止损触发</span>
-        {/* 覆盖范围**显式标注**（D9：禁止静默截断/静默缺数据） */}
+        {/* 覆盖范围**显式标注**（D9：禁止静默截断/静默缺数据）；长文本截断显示但 textContent 保持完整 */}
         {fills.loading ? (
           <span data-testid="wb-fills-note">成交明细加载中…</span>
         ) : !fills.recorded ? (
@@ -196,18 +308,46 @@ export function KlineResultChart({
           </span>
         ) : (
           // ADR-027 D11：完整性契约 —— 总量与已加载量**常显**（旧实现在 > 首页时静默缺标记）
-          <span data-testid="wb-fills-note">
+          <span className="min-w-0 max-w-[12rem] truncate" data-testid="wb-fills-note">
             成交合计 {fills.total} 笔（精确源 /fills，已加载 {fills.rows.length} / 共 {fills.total}
             {fills.truncated ? '，触达单次拉取护栏 ⇒ 标记不全' : ''}）
           </span>
         )}
         {fills.error && <span className="text-up" data-testid="wb-fills-error">成交明细加载失败：{fills.error}</span>}
-        {/* ADR-028 §2.4c 第 1 项：副图指标勾选入口（共享组件；结果页独立配置 key） */}
+        {/* D6-2：头部预设 S/M/L（值受 min/max 夹取后提交） */}
+        {presetsEnabled && (
+          <CardHeightPresets
+            testIdPrefix="wb-kline-preset"
+            activePx={cardPx}
+            onPick={(px) => {
+              const next = clampCardPx(px, bounds);
+              if (next != null) resize.commit(next);
+            }}
+          />
+        )}
+        {/* D6-5 第 5 项：指标勾选**收进浮层**（不再占整行 40px）；多选与既有 testid 保留 */}
         {toggleSlot != null && (
-          <span className="flex flex-wrap items-center gap-1" data-testid="wb-indicator-toggles">
-            <span className="text-dim">指标</span>
-            {toggleSlot}
-          </span>
+          <button
+            type="button"
+            data-testid="wb-indicator-menu"
+            aria-expanded={menuOpen}
+            aria-haspopup="true"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="h-4 rounded border border-line px-1.5 text-[10px] leading-4 text-dim hover:text-txt"
+          >
+            指标 {menuOpen ? '▴' : '▾'}
+          </button>
+        )}
+        {toggleSlot != null && menuOpen && (
+          <div
+            data-testid="wb-indicator-popover"
+            className="absolute right-2 top-full z-40 flex flex-wrap items-center gap-1 rounded border border-acc1/40 bg-panel/95 px-2 py-1 shadow-lg"
+          >
+            <span className="flex flex-wrap items-center gap-1" data-testid="wb-indicator-toggles">
+              <span className="text-dim">指标</span>
+              {toggleSlot}
+            </span>
+          </div>
         )}
         {/* ADR-028 D4.1：跳转高亮的**显式**状态（标记不可得 / 未记录 / 未命中 ⇒ 不得静默无反应） */}
         {highlight && highlightState !== 'idle' && (
@@ -225,7 +365,7 @@ export function KlineResultChart({
           </span>
         )}
       </div>
-      <div className="min-h-0 flex-1">
+      <div ref={chartAreaRef} className="min-h-0 flex-1">
         <KlineChart
           feed={feed}
           code={run.symbol}
@@ -241,11 +381,13 @@ export function KlineResultChart({
           highlightFillKey={highlight?.key ?? null}
           highlightRev={highlightRevRef.current}
           onHighlightEnd={onHighlightEnd}
+          paneConstraints={constraints}
+          onPaneMetrics={onPaneMetrics}
         />
       </div>
       {/* 卡片下边缘拖拽把手（自由调高；双击标题复位）。内层 `min-h-0 flex-1` 承接高度 ⇒
           klinecharts 的 ResizeObserver 自动重排（pane 高度比例与该实例视口保持）。 */}
-      {resize && <div {...resize.handleProps} />}
+      <div {...resize.handleProps} />
     </div>
   );
 }

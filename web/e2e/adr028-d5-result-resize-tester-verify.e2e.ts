@@ -15,6 +15,24 @@
  *   cd web && E2E_BASE_URL=http://localhost:8081 timeout 900 \
  *     npx playwright test e2e/adr028-d5-result-resize-tester-verify.e2e.ts --reporter=list --retries=0 --workers=1
  * 产物：`ADR028_RV_OUT`（默认 `tester/evidence/20260920_result_resize_verify/raw`）。
+ *
+ * ── 2026-09-23 **重锚**（ADR-028 §2.6 D6 / §2.7 D7 之后；**按契约推导，禁止按实现输出倒推**，
+ *    依 ADR-023 §6.2 教训）── 旧契约 → 新契约（逐条）：
+ *  1. **默认卡高**：256（旧固定类内层 194）→ **520**（§2.6 第 1 项）。新契约下默认值由常量给定
+ *     ⇒ **inline 高度恒存在**；「双击复位」语义 = 回到默认 520，**不再**是「清空 inline 高度」。
+ *  2. **卡高上限**：旧实现无上限 → `max = 视口高 − 200`（§2.6 第 2 项）⇒ 本规格视口抬到 1280×900：
+ *     800 视口下 max = 600 而默认 520 已贴近上限，「拖 +150 / +120」在**契约内**不可满足。
+ *  3. **把手可发现性**：可命中带 6px（旧规格断言「≤8px 细条」）→ **≥12px**（§2.6 第 6 项）
+ *     ⇒ RV-3 ④ 的断言**方向反转**（细条 ⇒ 命中带下限）。
+ *  4. **指标勾选**：占卡头整行（实测 40px）→ **收进浮层**（§2.6 第 5 项；卡头 ≤48px）
+ *     ⇒ 断言「点勾选」前必须先展开 `wb-indicator-menu`；卡头 ≤48px 成为契约判据。
+ *  5. **存储 key**：单一结果页 key → 结果页**三枚**独立 key（指标 / 卡高 `eestock.result.cardHeights.v1`
+ *     D6-7 / 下栏布局 `eestock.result.layout.v1` D7-3）；**看板 key 逐字节不变**（硬约束）。
+ *  6. **布局**：单列整页滚动 → 上下分层、**页面无滚动**（§2.7 第 1 项）⇒ 下栏 `wb-detail-pane` **是**
+ *     固定高度 inline 容器（表格的祖先 inline 高度因此**合法**，但只允许它）——旧断言「祖先 3 层内
+ *     不得有 inline 高度」按新契约收敛为「除下栏布局容器外不得有 inline 高度」。
+ *  7. **未削弱项**：pane 保持（D5-A ④）、x 几何单源（D2.3-4）、PAD 单源、看板隔离、无宽度类把手等
+ *     断言**逐条保留**（新契约未改变它们的口径）。
  */
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -45,6 +63,24 @@ const CURVE_KEYS = ['aggregate', 'slot', 'equity', 'position'] as const;
 const TABLES = ['wb-round-trips-table', 'wb-perbar-table', 'wb-event-log'] as const;
 /** 结果页独立配置 key（口径事实源 = `resultChartConfig.ts`；用于「增量只有这一个键」的断言）。 */
 const RESULT_KEY = 'eestock.wb.result.chartConfig.v1';
+/** 结果页**卡高**独立 key（D6-7 契约；口径事实源 `web/src/features/workbench/resultCardHeights.ts`）。 */
+const CARD_HEIGHT_KEY = 'eestock.result.cardHeights.v1';
+/** 结果页**下栏布局**独立 key（D7-3 契约；口径事实源 `web/src/features/workbench/resultLayout.ts`）。 */
+const LAYOUT_KEY = 'eestock.result.layout.v1';
+/** 结果页自有存储键全集（D6-7/D7-3；**不含**任何看板 key —— 硬约束）。 */
+const RESULT_PAGE_KEYS = [RESULT_KEY, CARD_HEIGHT_KEY, LAYOUT_KEY] as const;
+/** D7-1：下栏布局容器的 testid（其固定 inline 高度**按契约合法**，不计入「表格被塞进固定高度卡」）。 */
+const DETAIL_LAYOUT_NODES = ['wb-detail-pane', 'wb-detail-tabs', 'wb-detail-collapsed-bar', 'wb-result-split', 'wb-chart-pane'];
+/** D6-1：默认卡高（契约常量；本规格独立硬编码作对照，不 import 实现）。 */
+const DEFAULT_KLINE_PX_CONTRACT = 520;
+/** D6-2：卡高上限余量（`max = 视口高 − 200`）。 */
+const CARD_MAX_MARGIN_PX = 200;
+/** D6-5：把手可命中带下限（旧实现 6px ⇒ 契约 ≥12px）。 */
+const HANDLE_HIT_MIN_PX = 12;
+/** D6-5：卡头上限（指标勾选不得再占整行）。 */
+const CARD_HEADER_MAX_PX = 48;
+/** D7-3：下栏默认占视口高比例（容差 ±2px）。 */
+const DETAIL_RATIO = 0.4;
 /** 注入的**看板哨兵键**（对照：任何实现方读写都会改动它们）。 */
 const SENTINEL_KEYS: Array<[string, string]> = [
   ['eestock.dashboard.layout.v1', JSON.stringify({ view: 'grid2x3', sentinel: 1 })],
@@ -102,6 +138,8 @@ function probeCards() {
     const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
     const svg = el?.querySelector('svg') ?? null;
     const inner = el?.querySelector('[data-testid="kline-chart"]') ?? null;
+    /** 卡头（D6-5：≤48px；指标勾选收进浮层后不得再占整行）。 */
+    const header = el?.querySelector('[data-testid="wb-kline-card-header"]') ?? null;
     const handles = el ? Array.from(el.querySelectorAll('[data-card-resize]')) : [];
     cards[r.key] = {
       present: !!el,
@@ -113,6 +151,7 @@ function probeCards() {
       svg: svg ? { rect: rectOf(svg), cls: svg.getAttribute('class'), viewBox: svg.getAttribute('viewBox') } : null,
       /** K 线内层 klinecharts 容器（其余卡片为 null）。 */
       klineInner: inner ? rectOf(inner) : null,
+      header: header ? rectOf(header) : null,
       handleCount: handles.length,
       handle: handles[0]
         ? {
@@ -377,9 +416,26 @@ function probeTables() {
     let cur: HTMLElement | null = el;
     for (let i = 0; i < 3 && cur; i++) {
       ancestorHandles += cur.querySelectorAll('[data-card-resize]').length;
-      if (cur.style.height) ancestorInlineHeight = cur.style.height;
+      const tid = cur.getAttribute('data-testid');
+      // 重锚（D7-1/D7-3）：下栏 `wb-detail-pane` 等**布局容器按契约**持有固定 inline 高度
+      // ⇒ 只有「**非**布局容器」的 inline 高度才计为「表格被塞进固定高度卡」的证据。
+      // 本函数会被序列化到页面上下文执行 ⇒ 常量必须**内联**（不得引用模块作用域变量）。
+      const layoutNodes = ['wb-detail-pane', 'wb-detail-tabs', 'wb-detail-collapsed-bar', 'wb-result-split', 'wb-chart-pane'];
+      const isLayoutNode = tid != null && layoutNodes.includes(tid);
+      if (cur.style.height && !isLayoutNode) ancestorInlineHeight = cur.style.height;
       if (cur.getAttribute('data-resizable')) ancestorResizable = cur.getAttribute('data-resizable');
       cur = cur.parentElement;
+    }
+    /** 祖先链（**仅取证**，不参与断言；深度另取 5 层以便复核分层归属）。 */
+    const ancestors: Array<{ testid: string | null; resizable: string | null; inlineHeight: string | null }> = [];
+    let walk: HTMLElement | null = el;
+    for (let i = 0; i < 5 && walk; i++) {
+      ancestors.push({
+        testid: walk.getAttribute('data-testid'),
+        resizable: walk.getAttribute('data-resizable'),
+        inlineHeight: walk.style.height || null,
+      });
+      walk = walk.parentElement;
     }
     const r = el?.getBoundingClientRect();
     out[id] = {
@@ -387,6 +443,7 @@ function probeTables() {
       handles: ancestorHandles,
       inlineHeight: el?.style.height || null,
       ancestorInlineHeight,
+      ancestors,
       ancestorResizable,
       dataResizableSelf: el?.getAttribute('data-resizable') ?? null,
       nsResizeCursors: el
@@ -401,11 +458,19 @@ function probeTables() {
   return out;
 }
 
-/** 指标勾选入口 + 勾选态。 */
+/** 指标入口 + 勾选态（D6-5 重锚：勾选就地**收进浮层** ⇒ 需先展开 `wb-indicator-menu`）。 */
 function probeToggles() {
+  const menu = document.querySelector('[data-testid="wb-indicator-menu"]') as HTMLElement | null;
+  const popover = document.querySelector('[data-testid="wb-indicator-popover"]');
   const scope = document.querySelector('[data-testid="wb-indicator-toggles"]');
   const list = Array.from(document.querySelectorAll<HTMLElement>('[data-testid^="wb-indicator-toggle-"]'));
   return {
+    /** 入口存在性（= 结果页 K 线卡有指标入口）。 */
+    menuPresent: !!menu,
+    /** 浮层展开态（`aria-expanded`；独立于 DOM 存在性）。 */
+    menuExpanded: menu?.getAttribute('aria-expanded') ?? null,
+    /** 浮层容器是否在 DOM（未展开 ⇒ false）。 */
+    popoverOpen: !!popover,
     scopePresent: !!scope,
     count: list.length,
     items: list.map((b) => ({
@@ -491,6 +556,21 @@ async function dragAt(page: Page, x: number, y: number, dy: number): Promise<voi
   await page.waitForTimeout(700);
 }
 
+/** 展开指标浮层（D6-5：勾选收进浮层 ⇒ 一切「点勾选」的前置）。幂等。 */
+async function openIndicators(page: Page): Promise<void> {
+  const menu = page.getByTestId('wb-indicator-menu');
+  await expect(menu, '结果页 K 线卡必须有指标浮层入口').toBeVisible();
+  if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
+  await expect(page.getByTestId('wb-indicator-popover'), '指标浮层必须展开').toBeVisible();
+}
+
+/** 收起指标浮层（避免浮层遮挡后续交互目标）。幂等。 */
+async function closeIndicators(page: Page): Promise<void> {
+  const menu = page.getByTestId('wb-indicator-menu');
+  if ((await menu.getAttribute('aria-expanded')) === 'true') await menu.click();
+  await expect(page.getByTestId('wb-indicator-popover')).toHaveCount(0);
+}
+
 const names = (t: { indicators: Array<{ name: unknown }> }) => t.indicators.map((i) => String(i.name)).sort();
 const sizeOf = (t: { sizes: Array<{ paneId: string; h: number }> }, paneId: unknown) =>
   t.sizes.find((s) => s.paneId === paneId)?.h ?? null;
@@ -499,6 +579,14 @@ const subPanes = (t: { indicators: Array<{ paneId: unknown }> }) =>
   Array.from(new Set(t.indicators.map((i) => String(i.paneId)).filter((p) => p !== 'candle_pane'))).sort();
 /** 非副图 pane（主图 + x 轴）。 */
 const basePaneIds = ['candle_pane', 'x_axis_pane'];
+
+/**
+ * 视口重锚（2026-09-23，契约推导）：1280×900。
+ * 依 ADR-028 §2.6 第 2 项 `max = 视口高 − 200`：800 视口下 max = 600，而默认卡高 520
+ * ⇒ 旧断言的「+150 / +120」只剩 80px 空间，在**契约内**不可满足（会被上限吞掉而变红）
+ * ⇒ 取 900（max = 700 ⇒ 520+150=670、520+120=640 均在契约上限内）。与实现方 D5 规格同视口，便于跨波比对。
+ */
+test.use({ viewport: { width: 1280, height: 900 } });
 
 test.describe.configure({ mode: 'serial', timeout: 180_000 });
 
@@ -514,6 +602,10 @@ test('RV-1 指标选择入口 + 切换真身 + 配置隔离（localStorage 增�
   await page.addInitScript(installChartCapture);
   await openRun(page, RUN_ID);
 
+  // 重锚：先取「浮层未展开」态读数（D6-5：勾选缺省不占卡头布局），再展开浮层取勾选态。
+  const togglesClosed = await page.evaluate(probeToggles);
+  const cards0 = await page.evaluate(probeCards);
+  await openIndicators(page);
   const toggles0 = await page.evaluate(probeToggles);
   const truth0 = await page.evaluate(probeKlineTruth);
   const storage0 = await page.evaluate(probeStorage);
@@ -534,6 +626,8 @@ test('RV-1 指标选择入口 + 切换真身 + 配置隔离（localStorage 增�
   const storage3 = await page.evaluate(probeStorage);
 
   writeJson('rv1_indicators_isolation', {
+    togglesClosed,
+    klineCard0: cards0.cards['kline'],
     toggles0,
     toggles1,
     toggles3,
@@ -552,14 +646,25 @@ test('RV-1 指标选择入口 + 切换真身 + 配置隔离（localStorage 增�
     configReqs,
   });
 
-  // ① 入口存在且 6 枚（都在结果页 K 线卡内）
-  expect(toggles0.scopePresent, '结果页 K 线卡必须有指标勾选入口').toBe(true);
+  // ① 入口存在：浮层入口（D6-5 重锚：勾选收进浮层 ⇒ 判据 = 入口存在 + 展开后 6 枚 + 卡头 ≤48px）
+  expect(togglesClosed.menuPresent, '结果页 K 线卡必须有指标入口（wb-indicator-menu）').toBe(true);
+  expect(togglesClosed.popoverOpen, '指标浮层缺省必须关闭（勾选不得常占卡头布局）').toBe(false);
+  expect(
+    H((cards0.cards['kline'] as { header?: { h?: number } }).header?.h),
+    `[D6-5] 卡头实测高必须 ≤${CARD_HEADER_MAX_PX}px（实测 ${JSON.stringify((cards0.cards['kline'] as { header?: unknown }).header)}）`,
+  ).toBeLessThanOrEqual(CARD_HEADER_MAX_PX);
+  expect(toggles0.popoverOpen, '点击 wb-indicator-menu 后浮层必须展开').toBe(true);
+  expect(toggles0.scopePresent, '展开后必须有指标勾选入口容器').toBe(true);
   expect(toggles0.count, '指标勾选入口枚数 = 名单长度 6').toBe(6);
   expect(
     toggles0.items.every((i) => i.inScope),
     '6 枚按钮必须都在结果页入口容器内',
   ).toBe(true);
   // ② 默认 = DASHBOARD_DEFAULTS（vol 开）且**未读**注入的看板哨兵键（macd/kdj=true）
+  expect(
+    RESULT_PAGE_KEYS.filter((k) => k.startsWith('eestock.dashboard.')),
+    '结果页自有 key 不得与看板 key 命名空间混用（D6-7 硬约束）',
+  ).toEqual([]);
   expect(toggles0.items.find((i) => i.key === 'vol')?.pressed, '默认 vol 开').toBe('true');
   expect(toggles0.items.find((i) => i.key === 'macd')?.pressed, '默认 macd 关').toBe('false');
   expect(toggles0.items.find((i) => i.key === 'kdj')?.pressed, '默认 kdj 关').toBe('false');
@@ -627,14 +732,17 @@ test('RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后�
   const volH1b = sizeOf(truth1b, volPaneId);
 
   // ③ MACD 开（副图切换）⇒ 已拖高度的 VOL pane 必须保持（基线 = 卡片拖高之后、切换之前）
+  //    重锚：勾选已收进浮层（D6-5）⇒ 必须先展开入口。
+  await openIndicators(page);
   await page.getByTestId('wb-indicator-toggle-macd').click();
   await page.waitForTimeout(1400);
   const truth2 = await page.evaluate(probeKlineTruth);
   const volH2 = sizeOf(truth2, volPaneId);
   const macdPaneId = truth2.indicators.find((i) => String(i.name) === 'MACD')?.paneId;
   const macdH2 = sizeOf(truth2, macdPaneId);
+  await closeIndicators(page);
 
-  // ④ 双击 K 线卡标题 ⇒ 复位
+  // ④ 双击 K 线卡标题 ⇒ 复位（D6-6：复位 = 回**默认 520**）
   await page.getByTestId('wb-card-title-kline').dblclick();
   await page.waitForTimeout(700);
   const cards2 = await page.evaluate(probeCards);
@@ -642,10 +750,12 @@ test('RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后�
   const innerH2 = H(cards2.cards['kline'].klineInner?.h);
 
   // ⑤ 关掉全部副图指标（MACD 关、VOL 关）⇒ 无残留空 pane
+  await openIndicators(page);
   await page.getByTestId('wb-indicator-toggle-macd').click();
   await page.waitForTimeout(900);
   await page.getByTestId('wb-indicator-toggle-vol').click();
   await page.waitForTimeout(1400);
+  await closeIndicators(page);
   const truth3 = await page.evaluate(probeKlineTruth);
   const cards3 = await page.evaluate(probeCards);
 
@@ -694,9 +804,24 @@ test('RV-2 K 线卡拖高 + 双击复位 + 副图 pane 高度在指标切换后�
   expect(klineH1 - klineH0, '增量不得超出拖拽量').toBeLessThanOrEqual(155);
   expect(innerH1 - innerH0, `内层 klinecharts 容器必须跟随（实测 ${innerH0}→${innerH1}）`).toBeGreaterThanOrEqual(145);
   expect(innerH1 - innerH0).toBeLessThanOrEqual(155);
-  // ③ 双击标题 ⇒ 复位到默认 256 / 内层 194
+  // ②b 上限契约（D6-2）：卡高不得越过 `视口高 − 200`
+  const vh2 = await page.evaluate(() => window.innerHeight);
+  expect(
+    klineH1,
+    `拖后卡高必须 ≤ 视口高 − ${CARD_MAX_MARGIN_PX}（D6-2；实测 ${klineH1} / 视口 ${vh2}）`,
+  ).toBeLessThanOrEqual(vh2 - CARD_MAX_MARGIN_PX + 1);
+  // ③ 默认值锚定（D6-1）+ 双击标题 ⇒ 复位到默认 520（D6-6）
+  //    重锚：旧契约「复位 = 清空 inline 高度 / 内层 194」已废 —— 新契约默认卡高由常量给定，
+  //    **inline 高度恒存在**（520px），复位 = 回到该常量。
+  expect(
+    Math.abs(klineH0 - DEFAULT_KLINE_PX_CONTRACT),
+    `默认卡高必须 = ${DEFAULT_KLINE_PX_CONTRACT}px（D6-1；实测 ${klineH0}）`,
+  ).toBeLessThanOrEqual(1);
   expect(Math.abs(klineH2 - klineH0), `双击标题后卡片必须复位到默认（${klineH0} → ${klineH2}）`).toBeLessThanOrEqual(1);
-  expect(cards2.cards['kline'].inlineHeight, '复位后不得残留 inline 高度').toBeNull();
+  expect(
+    cards2.cards['kline'].inlineHeight,
+    `复位后 inline 高度必须回到默认 ${DEFAULT_KLINE_PX_CONTRACT}px（D6-1：默认由常量给定，不再靠类名）`,
+  ).toBe(`${DEFAULT_KLINE_PX_CONTRACT}px`);
   expect(Math.abs(innerH2 - innerH0), '复位后内层高度回到默认').toBeLessThanOrEqual(1);
   // ④ 副图切换后 pane 高度保持
   expect(volH1b, '切换前 VOL pane 高度必须可读').not.toBeNull();
@@ -854,7 +979,11 @@ test('RV-3 曲线卡拖高（聚合分 / 净值+回撤）+ 双击复位 + 只做
   ).toEqual([]);
   for (const h of handles) {
     expect(h.count, `[${h.card}] 恰好 1 个高度把手（下边缘）`).toBe(1);
-    expect(H(h.h), `[${h.card}] 把手高度须为下边缘细条（≤8px）`).toBeLessThanOrEqual(8);
+    // 重锚（D6-5）：把手可命中带 6px → **≥12px** ⇒ 旧断言「≤8px 细条」与新契约**方向相反**。
+    expect(
+      H(h.h),
+      `[${h.card}] 把手可命中带须 ≥${HANDLE_HIT_MIN_PX}px（D6-5；实测 ${h.h}）`,
+    ).toBeGreaterThanOrEqual(HANDLE_HIT_MIN_PX);
     expect(h.cursor, `[${h.card}] 把手光标须为 ns-resize（纵向）`).toBe('ns-resize');
     expect(Math.abs(H(h.bottomGap)), `[${h.card}] 把手须贴在卡片下边缘`).toBeLessThanOrEqual(1);
     expect(Math.abs(H(h.w) - H(h.cardW)), `[${h.card}] 把手横向铺满卡片（下边缘整条）`).toBeLessThanOrEqual(2);
@@ -939,14 +1068,31 @@ test('RV-4 表格类无高度把手 / 无 inline 高度；PAD 单源（运行期
       return [k, { svg: c.svg, card: c.card, pxPerUser: c.pxPerUser, polyCount: c.polyCount }];
     }),
   );
-  writeJson('rv4_tables_pad', { tables, padRuntime, crossView, meta });
+  // 重锚登记（D7-3）：表格所在的**下栏**必须是固定高度布局区（40% 视口高 ±2px）——
+  // 这是「表格的祖先可以有 inline 高度」这条收敛的**唯一**许可来源。
+  const vh4 = await page.evaluate(() => window.innerHeight);
+  const detailPanePx = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="wb-detail-pane"]') as HTMLElement | null;
+    return el ? Math.round(el.getBoundingClientRect().height) : -1;
+  });
+  expect(
+    Math.abs(detailPanePx - vh4 * DETAIL_RATIO),
+    `下栏高须 = ${DETAIL_RATIO * 100}% 视口高（D7-3；实测 ${detailPanePx} / 视口 ${vh4}）`,
+  ).toBeLessThanOrEqual(2);
+  writeJson('rv4_tables_pad', { tables, padRuntime, crossView, meta, detailPanePx, vh4 });
 
   for (const [key, t] of Object.entries(tables)) {
     const tt = t as Record<string, unknown>;
     expect(tt.present, `${key} 必须存在`).toBe(true);
     expect(tt.handles, `${key} 不得有高度把手`).toBe(0);
     expect(tt.inlineHeight, `${key} 不得有 inline 高度`).toBeNull();
-    expect(tt.ancestorInlineHeight, `${key} 祖先 3 层内不得有 inline 高度`).toBeNull();
+    // 重锚（D7-1/D7-3）：分层布局下**下栏容器本身**按契约持有固定 inline 高度（40% 视口高）
+    // ⇒ 旧断言「祖先 3 层内不得有 inline 高度」收敛为「除下栏布局容器外不得有 inline 高度」
+    //    （表格不得自带高度、不得被塞进卡片级固定高度；祖先链已落盘 ancestors 供复核）。
+    expect(
+      tt.ancestorInlineHeight,
+      `${key} 祖先（非下栏布局容器）不得有 inline 高度（实测 ${String(tt.ancestorInlineHeight)}）`,
+    ).toBeNull();
     expect(tt.ancestorResizable, `${key} 祖先不得被标记为可缩放卡`).toBeNull();
     expect(tt.nsResizeCursors, `${key} 内不得有 ns-resize 把手`).toBe(0);
   }
@@ -981,12 +1127,15 @@ test('RV-5 持久化：刷新后卡片高度与指标选择保持（且 localSto
   const before = H(cards0.cards['kline'].rect.h);
 
   await dragHandleBy(page, 'wb-card-resize-kline', 120);
+  await openIndicators(page);
   await page.getByTestId('wb-indicator-toggle-macd').click();
   await page.waitForTimeout(1000);
   const cards1 = await page.evaluate(probeCards);
   const after = H(cards1.cards['kline'].rect.h);
   const storage1 = await page.evaluate(probeStorage);
+  // 浮层展开态下取勾选读数（D6-5 重锚：勾选按钮只在浮层内存在）
   const toggles1 = await page.evaluate(probeToggles);
+  await closeIndicators(page);
   const truth1 = await page.evaluate(probeKlineTruth);
 
   // 刷新（同一浏览器/同一 origin ⇒ localStorage 保留）
@@ -996,6 +1145,7 @@ test('RV-5 持久化：刷新后卡片高度与指标选择保持（且 localSto
   await expect(page.getByTestId('wb-kline-chart')).toBeVisible();
   await page.waitForTimeout(3000);
   const cards2 = await page.evaluate(probeCards);
+  await openIndicators(page);
   const toggles2 = await page.evaluate(probeToggles);
   const truth2 = await page.evaluate(probeKlineTruth);
   const storage2 = await page.evaluate(probeStorage);
@@ -1020,11 +1170,19 @@ test('RV-5 持久化：刷新后卡片高度与指标选择保持（且 localSto
   expect(toggles2.items.find((i) => i.key === 'vol')?.pressed, '刷新后 vol 默认保持开启').toBe('true');
   const names2 = names(truth2);
   expect(names2.includes('MACD'), `刷新后真身必须含 MACD（实测 ${JSON.stringify(names2)}）`).toBe(true);
-  // 键数仍只有「结果页 key + 注入哨兵键」
+  // 键集合（重锚 D6-7/D7-3）：卡高改写入**结果页独立 key**（`eestock.result.cardHeights.v1`）。
+  // 本用例拖过卡高 + 切过指标 ⇒ 结果页自有键 = {指标 key, 卡高 key}（下栏布局未操作 ⇒ 无布局 key）；
+  // **看板 key 必须仍逐字节不变**（硬约束）。
   const sentinelNames = SENTINEL_KEYS.map(([k]) => k);
-  expect(storage2.keys.filter((k) => !sentinelNames.includes(k)), '刷新后 localStorage 仍只有结果页一个键').toEqual([
-    RESULT_KEY,
-  ]);
+  const resultKeysExpected = [CARD_HEIGHT_KEY, RESULT_KEY].sort();
+  expect(
+    storage1.keys.filter((k) => !sentinelNames.includes(k)),
+    '拖高 + 切指标后，结果页自有键增量 = 指标 key + 卡高 key',
+  ).toEqual(resultKeysExpected);
+  expect(
+    storage2.keys.filter((k) => !sentinelNames.includes(k)),
+    '刷新后结果页自有键仍只有这两枚（不得落到看板 key，也不得泄漏新 key）',
+  ).toEqual(resultKeysExpected);
   for (const [k, v] of SENTINEL_KEYS) {
     expect(storage2.raw[k], `刷新后看板哨兵键 ${k} 仍须逐字节不变`).toBe(v);
   }
@@ -1034,7 +1192,8 @@ test('RV-6 隔离性（跨页对照）：结果页改动不得影响看板指标
   await seedOnce(page);
   await page.addInitScript(installChartCapture);
   await openRun(page, RUN_ID);
-  // 结果页：开 MACD、关 VOL（与看板默认相反）
+  // 结果页：开 MACD、关 VOL（与看板默认相反）；重锚：须先展开指标浮层（D6-5）
+  await openIndicators(page);
   await page.getByTestId('wb-indicator-toggle-macd').click();
   await page.getByTestId('wb-indicator-toggle-vol').click();
   await page.waitForTimeout(900);

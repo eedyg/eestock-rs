@@ -16,6 +16,7 @@ const XD: CurveXDomain = { mode: 'index', barTs: [1_700_000_000, 1_700_000_300, 
 
 /** 测试宿主：把 hook 的 API 原样接到一个可控 div 上（不引入 ResultView 的重依赖）。 */
 function Harness({ onCommit, heightPx = null }: { onCommit: (px: number | null) => void; heightPx?: number | null }) {
+  // 夹具值（**非契约默认**；D6-1 的默认卡高 520 见 `resultCardHeights.ts` 及其单测）
   const r = useCardResize({ cardId: 'kline', heightPx, onCommit, defaultPx: 256 });
   return (
     <div data-testid="host">
@@ -70,7 +71,7 @@ describe('C1 拖拽（下边缘把手）：跟手、clamp、松手单次提交',
     expect(onCommit).toHaveBeenCalledWith(400);
   });
 
-  it('把手可被「宽 > 100 且高 ≤ 10」筛选命中（与 klinecharts 分隔线同口径，供真渲染拖拽）', () => {
+  it('把手暴露 `cursor: ns-resize` 与 `data-card-resize`（供真渲染命中；把手可命中带 ≥12px 由 D6-5 真身判据判定）', () => {
     render(<Harness onCommit={vi.fn()} />);
     const h = screen.getByTestId('wb-card-resize-kline') as HTMLElement;
     expect(h.style.cursor).toBe('ns-resize');

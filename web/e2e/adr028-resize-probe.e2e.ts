@@ -22,6 +22,22 @@
  * 探针纪律：页面侧**只读**（仅包 `Map.prototype.set` 捕获 klinecharts 实例以调其只读 getter/布局查询）；
  * 注入的样式只作用于**探针会话的 DOM**（inline style），**不落盘、不改源码**；每步结束后还原。
  *
+ * ───────────────────────────── 2026-09-23 **重锚**（ADR-028 §2.6 D6 / §2.7 D7 之后；按契约推导）──────────────
+ *  本规格的**硬判据**（跨视图同一根 bar 配对 max|Δ984| ≤ 2px、max|Δraw| ≤ 2px）**不变**；下列**取证字段口径**
+ *  因契约变更而重锚（旧口径在新布局下是 no-op 或读数恒为 1，属「度量口径过期」而非缺陷）：
+ *  1. `resetScroll()`：旧写 `wb-result.scrollTop` —— D7 后**页面级滚动被移除**，`wb-result` 不再是滚动容器
+ *     ⇒ 该写入是 **no-op**（Playwright 点击 tab 引起的 scrollIntoView 不会被复位）。改写上栏 `wb-chart-pane`
+ *     （+ 下栏 `wb-detail-pane` + `window.scrollTo(0,0)`）。
+ *  2. `indicatorEntries`（D5-P1）：D6-5 把指标勾选**收进浮层** ⇒ 收起态只命中 **1 枚**入口按钮
+ *     （`wb-indicator-menu`）。重锚为「**先展开浮层（`wb-indicator-popover`）再扫**」，收起态与展开态**两态读数都落盘**。
+ *  3. 卡片高度锚（旧依据 = 源码 `h-64` = 256px 固定）：D6-1 后卡高 = **inline 520px**（默认），`h-64` 不再是高度
+ *     事实源 ⇒ 读数改记 `inlineHeight` + `className` + `h64Class` 布尔（**不作断言**，仅取证对照）。
+ *  4. 滚动容器读数：`wb-result.overflowY` 之外，增记 `wb-chart-pane` / `wb-detail-pane` 的
+ *     `overflowY / clientHeight / scrollHeight`（D7-1 的双滚动容器事实源）。
+ *
+ * 真身（2026-09-23 实测）：主机 `:8081` 的静态根 `web/dist` 是 **D6/D7 之前**的构建 ⇒ 本探针须对
+ * **沙箱构建**跑（`vite build --outDir /tmp/reanchor-dist` + `vite preview --port 4188`，`VITE_PROXY_TARGET=:8081`）。
+ *
  * 运行（对已在跑的线上版本 8081，**不起 vite preview**）：
  *   cd web && E2E_BASE_URL=http://localhost:8081 \
  *     npx playwright test e2e/adr028-resize-probe.e2e.ts --reporter=list --retries=0 --workers=1
@@ -326,7 +342,45 @@ function probeResultDom() {
       }
     : null;
 
-  return { controls, indicatorish, maish, cards, resultScroll };
+  // ── ④ 滚动容器（**2026-09-23 重锚**：D7 后 = 上栏 `wb-chart-pane` 与下栏 `wb-detail-pane`；
+  //      `wb-result` 不再是滚动容器——页面级滚动已移除（§2.7 第 1 项），保留读数作对照）──
+  const scrollBox = (id: string) => {
+    const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+    if (!el) return null;
+    return {
+      rect: rectOf(el),
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+      scrollTop: el.scrollTop,
+      overflowY: getComputedStyle(el).overflowY,
+    };
+  };
+  // ── ⑤ 卡片高度锚（旧依据 = 源码 `h-64`；D6-1 后 = inline 520px，`h-64` 不再是高度事实源）──
+  const cardEl = q('wb-kline-chart') as HTMLElement | null;
+  const cardHeightAnchor = cardEl
+    ? {
+        inlineHeight: cardEl.style.height,
+        className: String(cardEl.className).slice(0, 140),
+        h64Class: /(^|\s)h-64(\s|$)/.test(String(cardEl.className)),
+        dataCardHeaderHeight: cardEl.getAttribute('data-card-header-height'),
+        dataKlinePaneHeight: cardEl.getAttribute('data-kline-pane-height'),
+      }
+    : null;
+  return {
+    controls,
+    indicatorish,
+    maish,
+    cards,
+    resultScroll,
+    chartPane: scrollBox('wb-chart-pane'),
+    detailPane: scrollBox('wb-detail-pane'),
+    cardHeightAnchor,
+    pageScroll: {
+      scrollY: window.scrollY,
+      scrollingElementScrollHeight: document.scrollingElement?.scrollHeight ?? null,
+      innerHeight: window.innerHeight,
+    },
+  };
 }
 
 /** 表格类锚点读回：锚点几何 + **祖先链**（每级 overflow / client / scroll）+ 后代可滚容器。
@@ -917,11 +971,17 @@ async function dragSeparator(page: Page, dy: number): Promise<Record<string, unk
   return out;
 }
 
-/** 复位结果页滚动（Playwright 点击 tab 会 scrollIntoView ⇒ 图表卡可能滚出视口，影响拖拽与截图）。 */
+/** 复位结果页滚动（Playwright 点击 tab 会 scrollIntoView ⇒ 图表卡可能滚出视口，影响拖拽与截图）。
+ *
+ *  **2026-09-23 重锚**：D7 后**滚动容器 = 上栏 `wb-chart-pane`**（页面级滚动已移除，§2.7 第 1 项）——
+ *  旧写法只写 `wb-result.scrollTop`，在新契约下是 **no-op**（`wb-result` 的 clientHeight == scrollHeight）。
+ *  本函数改为复位上栏 + 下栏 + 窗口三者（`wb-result` 保留兼容写入，代价为零）。 */
 async function resetScroll(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const el = document.querySelector('[data-testid="wb-result"]') as HTMLElement | null;
-    if (el) el.scrollTop = 0;
+    for (const id of ['wb-chart-pane', 'wb-detail-pane', 'wb-result']) {
+      const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+      if (el) el.scrollTop = 0;
+    }
     window.scrollTo(0, 0);
   });
   await page.waitForTimeout(250);
@@ -968,6 +1028,37 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
   const domBase = await page.evaluate(probeResultDom);
   const layoutBase = await page.evaluate(probeChartLayout);
   const klineDomBase = await page.evaluate(probeKlineDom);
+
+  // ── P1 附加（**2026-09-23 重锚**，D6-5）：指标勾选已**收进浮层** ⇒ 收起态只命中 1 枚入口按钮
+  //    （`wb-indicator-menu`）。重锚口径 = **先展开浮层再扫**（收起/展开两态读数都落盘），
+  //    否则「指标入口」读数恒为 1（旧口径过期，不是缺陷）。扫完复位（不影响后续布局读数）。 */
+  const indicatorEntryProbe = await (async () => {
+    const menu = page.getByTestId('wb-indicator-menu');
+    const menuEntryCount = await menu.count();
+    let expandedOpen = false;
+    let expandedDom: Record<string, unknown> | null = null;
+    if (menuEntryCount > 0) {
+      await menu.click();
+      await page.waitForTimeout(300);
+      expandedOpen = (await page.getByTestId('wb-indicator-popover').count()) > 0;
+      expandedDom = (await page.evaluate(probeResultDom)) as Record<string, unknown>;
+      await menu.click();
+      await page.waitForTimeout(200);
+    }
+    return {
+      menuEntryCount,
+      menuAriaExpandedAfterOpen: menuEntryCount > 0 ? await menu.getAttribute('aria-expanded') : null,
+      expandedOpen,
+      collapsedCount: (domBase['indicatorish'] as unknown[]).length,
+      expandedCount: ((expandedDom?.['indicatorish'] as unknown[]) ?? []).length,
+      expandedEntries: (expandedDom?.['indicatorish'] as unknown[]) ?? [],
+      expandedMaEntries: (expandedDom?.['maish'] as unknown[]) ?? [],
+      expandedFabToggleCount: ((expandedDom?.['controls'] as unknown[]) ?? []).filter((c) =>
+        /fab-toggle|vol-toggle|indicator/i.test(String((c as Record<string, unknown>)['testid'] ?? '')),
+      ),
+    };
+  })();
+
   const p1 = {
     controlsTotal: (domBase['controls'] as unknown[]).length,
     controls: domBase['controls'],
@@ -981,6 +1072,12 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
     horizontalSeparatorHitTargets: klineDomBase['horizontalSeparatorHitTargets'],
     nsResizeNonSeparatorWidgets: klineDomBase['nsResizeNonSeparatorWidgets'],
     klineChartId: klineDomBase['kLineChartId'],
+    indicatorEntryProbe,
+    chartPane: domBase['chartPane'],
+    detailPane: domBase['detailPane'],
+    resultScrollLegacy: domBase['resultScroll'],
+    cardHeightAnchor: domBase['cardHeightAnchor'],
+    pageScroll: domBase['pageScroll'],
   };
   writeJson('p1_indicator_entry', { ...p1, env });
   await shoot(page, 'p1_base');
@@ -1008,6 +1105,9 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
   const p3Base = {
     cards: domBase['cards'],
     resultScroll: domBase['resultScroll'],
+    chartPane: domBase['chartPane'],
+    detailPane: domBase['detailPane'],
+    cardHeightAnchor: domBase['cardHeightAnchor'],
     tables,
     afterTabReturn: await page.evaluate(probeResultDom),
   };
@@ -1283,6 +1383,10 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
     p1: {
       controlsTotal: p1.controlsTotal,
       indicatorEntries: p1.indicatorEntries,
+      indicatorEntryProbe,
+      chartPane: domBase['chartPane'],
+      detailPane: domBase['detailPane'],
+      cardHeightAnchor: domBase['cardHeightAnchor'],
       indicators: p1.indicators,
       paneInventory: p1.paneInventory,
       horizontalSeparatorHitTargets: p1.horizontalSeparatorHitTargets,
@@ -1308,6 +1412,9 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
     '[resize-probe] ' +
       JSON.stringify({
         indicatorEntries: p1.indicatorEntries,
+        indicatorEntriesCollapsed: indicatorEntryProbe.collapsedCount,
+        indicatorEntriesExpanded: indicatorEntryProbe.expandedCount,
+        chartPaneOverflowY: (domBase['chartPane'] as { overflowY?: string } | null)?.overflowY ?? null,
         indicators: p1.indicators,
         dragBefore: p2.domPanesBefore,
         dragAfterShrink: p2.domPanesAfterShrink,

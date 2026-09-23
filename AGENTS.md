@@ -46,8 +46,8 @@ This project is indexed by GitNexus as **eestock-rs** (1177 symbols, 2133 relati
 
 ## 代理产物与提交纪律（本项目强制 · 2026-09-23 用户裁定）
 
-- **禁止**把车道（subagent）产物加入版本控制：`coder/**`、`tester/**`、`.pi-sessions/**`、`.claude/**`
-  （证据、报告、备份、探针脚本、会话日志一律不入库）。**只入库**：产品代码、产品测试、`design/**` 文档、`scripts/**`、`migrations/**`。
+- **禁止**把车道（subagent）产物加入版本控制。已显式 `.gitignore` 的目录：`coder/evidence/`、`coder/report/`、`coder/design/`、`coder/backups/`、`tester/evidence/`、`tester/report/`、`tester/design/`、`tester/test/`、`tester/harness/`、`.pi-sessions/`、`.claude/`（证据、报告、备份、探针脚本、会话日志一律不入库）。
+  **只入库**：产品代码、产品测试（`web/src/**/*.test.ts(x)`、`web/e2e/**`）、`design/**` 文档、`scripts/**`、`migrations/**`。
 - 提交前必须用**显式文件清单** stage，**禁止** `git add -A` / `git add .`；
   并自检：`git diff --cached --name-only | grep -E '^(coder|tester)/'` 必须为空，否则 `git restore --staged <path>`。
 - 提交前必须跑 `gitnexus detect_changes`（staged）与 `impact`（目标符号）。

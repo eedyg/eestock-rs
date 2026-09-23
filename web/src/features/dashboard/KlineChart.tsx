@@ -149,6 +149,50 @@ export interface KlineChartProps {
   highlightRev?: number;
   /** 高亮结束（3s 到点）回调（观测性；可选）。 */
   onHighlightEnd?: () => void;
+  /**
+   * ADR-028 §2.6 第 4 项「接口条款」（2026-09-23 架构侧授权新增，**唯一新增接口**）：
+   * **pane 约束声明**（结果页 K 线卡用它实现「主图 ≥320/≥160、副图合计 ≤120、副图让位至 30px 下限」）。
+   *
+   *  - **可选、缺省关闭**：不传 ⇒ 本组件**既不设 pane 选项、也不订阅 onPaneDrag、也不落任何新 data-***
+   *    ⇒ 看板/宫格/多周期/关闭态行为与现状**逐像素一致**（沿用 `barSpaceLimit`「仅结果页/卫星传」先例）；
+   *  - **声明式**：只接受数值（主图下限 / 副图下限 / 副图规划高），**不暴露 chart 实例**；
+   *  - 两条 drag 路径都受约束：①卡片拖高（容器高变化 ⇒ 调用方重算 `subPanePx` ⇒ 本组件重新应用）
+   *    ②引擎 pane 分隔条拖拽（引擎按 pane `minHeight` 自行 clamp，事后再校验并修正）。
+   */
+  paneConstraints?: KlinePaneConstraints;
+  /** pane 约束的**实测结果**回执（观测性；可选）。 */
+  onPaneMetrics?: (m: KlinePaneMetrics) => void;
+}
+
+/** ADR-028 §2.6 第 4 项：结果页 K 线 pane 约束（声明式；无 chart 实例）。 */
+export interface KlinePaneConstraints {
+  /** 蜡烛主图（candle pane）硬下限 px（结果页 = 160）。 */
+  candleMinPx: number;
+  /** 每个副图 pane 的有效下限 px（结果页 = 30；保持可见，不隐藏）。 */
+  subPaneMinPx: number;
+  /**
+   * 副图 pane **规划高**（每个副图；由调用方按「容器高 − x轴 − 主图下限」算出）。
+   * 缺省 ⇒ 只设下限、不改高度（默认分配由引擎给定）。
+   */
+  subPanePx?: number;
+  /**
+   * 副图**合计上限**（默认分配目标，结果页 = 120）。
+   * **只对「默认分配」生效**：用户手动拖过引擎 pane 分隔条后不再强制（ADR §2.6 第 7 项
+   * 「保留引擎 pane 分隔条」+ D4.2 既有契约「已拖过的 pane 高度在指标切换后保持」）——
+   * 硬下限（主图 ≥ `candleMinPx`、每副图 ≥ `subPaneMinPx`）始终强制。
+   */
+  subPaneTotalMaxPx?: number;
+}
+
+/** pane 约束实测回执（真身 `getSize(paneId)` 读数）。 */
+export interface KlinePaneMetrics {
+  candlePx: number | null;
+  /** 用户是否已手动拖过引擎 pane 分隔条（`true` ⇒ 之后尊重其比例，除非硬下限越界）。 */
+  userDragged?: boolean;
+  subPanes: Array<{ id: string; px: number | null }>;
+  subPaneTotalPx: number | null;
+  /** 是否触发了硬下限/让位 clamp（观测性；`true` 必须在 UI/报告中可回查）。 */
+  clamped: boolean;
 }
 
 /** 主图 MA 默认窗口（GET /api/config/ma 缺省/未加载时兜底；与后端默认 [5,10,20] 同构） */
@@ -165,14 +209,135 @@ function sameParams(a: ReadonlyArray<number>, b: ReadonlyArray<number>): boolean
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
+/** x 轴 pane id（klinecharts 固定值；不参与 pane 约束）。 */
+const X_AXIS_PANE_ID = 'x_axis_pane';
+
+/** 读 pane 真实尺寸（`getSize(paneId)`；失败/不可用 ⇒ null，**不得**返回 0 冒充）。 */
+function paneSizeOf(chart: Chart, id: string): number | null {
+  try {
+    const s = chart.getSize?.(id);
+    return typeof s?.height === 'number' && Number.isFinite(s.height) ? Math.round(s.height) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 当前 pane 列表（candle / 副图 / x 轴）。 */
+function paneIdsOf(chart: Chart): string[] {
+  try {
+    const raw = chart.getPaneOptions?.();
+    const arr = Array.isArray(raw) ? raw : [];
+    return arr.map((p) => String(p.id));
+  } catch {
+    return [];
+  }
+}
+
+/** pane 约束实测：主图高 / 各副图高 / 是否越界。 */
+export function measurePaneMetrics(chart: Chart, pc: KlinePaneConstraints): KlinePaneMetrics {
+  const candlePx = paneSizeOf(chart, 'candle_pane');
+  const subPanes = paneIdsOf(chart)
+    .filter((id) => id !== 'candle_pane' && id !== X_AXIS_PANE_ID)
+    .map((id) => ({ id, px: paneSizeOf(chart, id) }));
+  const subKnown = subPanes.map((s) => s.px).filter((v): v is number => v != null);
+  const subPaneTotalPx = subKnown.length === subPanes.length && subPanes.length > 0 ? subKnown.reduce((a, b) => a + b, 0) : null;
+  const clamped =
+    (candlePx != null && candlePx < pc.candleMinPx) ||
+    subPanes.some((s) => s.px != null && s.px < pc.subPaneMinPx);
+  return { candlePx, subPanes, subPaneTotalPx, clamped };
+}
+
+/**
+ * 应用 pane 约束（ADR-028 §2.6 第 4 项；**仅结果页传 `paneConstraints` 时调用**）：
+ *  - candle pane ⇒ `minHeight = candleMinPx`（引擎拖分隔条时按 reduced pane 的 minHeight 自行 clamp
+ *    ⇒ 这是「拖分隔条越界」路径的**唯一**生效点，实测 `separatorWidget._pressedTouchMouseMoveEvent`）；
+ *  - 副图 pane ⇒ `minHeight = subPaneMinPx`（保持可见）+ `height = subPanePx`（让位/上限分配）；
+ *  - **不重建 pane**（`setPaneOptions` 原地改选项；指标/视口/用户拖拽高度语义不变）。
+ */
+export function applyPaneFloors(chart: Chart, pc: KlinePaneConstraints): void {
+  for (const id of paneIdsOf(chart)) {
+    if (id === 'candle_pane') {
+      // 主图硬下限：**唯一**能在「引擎拖分隔条」路径生效的机制（引擎按 reduced pane 的 minHeight 夹紧）
+      chart.setPaneOptions({ id, minHeight: pc.candleMinPx });
+    } else if (id !== X_AXIS_PANE_ID) {
+      chart.setPaneOptions({ id, minHeight: pc.subPaneMinPx });
+    }
+  }
+}
+
+/**
+ * 按 `subPanePx` 写副图高（默认分配）。
+ *
+ * `mode`：
+ *  - `'full'`（默认）：全部副图 = 规划高（容器高变化 / 主图触底 ⇒ 必须重排）；
+ *  - `'preserve'`：**保留**已达下限的副图高（= 用户手动拖过的比例，ADR §2.6 第 7 项），
+ *    只为「新建/过小」的副图补规划高。用于「用户拖过分隔条后新增副图指标」的场景
+ *    （既有契约 D4.2/2026-09-20：已拖过的 pane 高度在指标切换后保持）。
+ */
+export function applyPaneAllocation(
+  chart: Chart,
+  pc: KlinePaneConstraints,
+  mode: 'full' | 'preserve' = 'full',
+): KlinePaneMetrics {
+  applyPaneFloors(chart, pc);
+  const target = pc.subPanePx;
+  if (target != null && target > 0) {
+    for (const id of paneIdsOf(chart)) {
+      if (id === 'candle_pane' || id === X_AXIS_PANE_ID) continue;
+      const current = paneSizeOf(chart, id);
+      const keep = mode === 'preserve' && current != null && current >= pc.subPaneMinPx;
+      chart.setPaneOptions({
+        id,
+        minHeight: pc.subPaneMinPx,
+        height: keep ? (current as number) : Math.max(pc.subPaneMinPx, Math.round(target)),
+      });
+    }
+  }
+  return measurePaneMetrics(chart, pc);
+}
+
+/**
+ * 是否需要**重新分配**（否则尊重当前布局 = 用户拖拽结果）：
+ *  - 主图 / 副图触到硬下限 ⇒ 必须重分配（不得静默接受越界）；
+ *  - 副图合计超上限 ⇒ 仅在**用户尚未拖过**时重分配（默认分配目标；用户拖拽按 §2.6 第 7 项尊重）。
+ */
+export function paneAllocationNeeded(
+  m: KlinePaneMetrics,
+  pc: KlinePaneConstraints,
+  userDragged: boolean,
+): boolean {
+  if (m.candlePx != null && m.candlePx < pc.candleMinPx) return true;
+  if (m.subPanes.some((s) => s.px != null && s.px < pc.subPaneMinPx)) return true;
+  if (!userDragged) {
+    if (pc.subPaneTotalMaxPx != null && m.subPaneTotalPx != null && m.subPaneTotalPx > pc.subPaneTotalMaxPx) {
+      return true;
+    }
+    // 目标分配未达成（容器高变化后引擎保留旧高度 ⇒ 主图吃掉差额）⇒ 与规划值重新对齐。
+    // 例：首帧容器尚未布局 ⇒ 规划 30px；容器落定后必须回到 100px（否则默认态副图被压成 30px）。
+    const target = pc.subPanePx;
+    if (
+      target != null &&
+      target > 0 &&
+      m.subPanes.some((s) => s.px != null && Math.abs(s.px - target) > 4)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** 一次性应用（下限 + 分配）；供冒烟/测试使用。 */
+export function applyPaneConstraints(chart: Chart, pc: KlinePaneConstraints): KlinePaneMetrics {
+  return applyPaneAllocation(chart, pc);
+}
+
 /** `createIndicator` 参数：目标 calcParams 为空（内置模板指标 VOL/MACD/KDJ/BOLL）时**必须省略该字段**
  *  —— 传 `calcParams: []` 会覆盖模板默认参数（真渲染实测：VOL 的 calcParams 变 `[]`）。 */
 function createIndicatorValue(name: string, calcParams: number[]): { name: string; calcParams?: number[] } {
   return calcParams.length > 0 ? { name, calcParams } : { name };
 }
 
-/** 各指标目标 calcParams（MA 取统一配置窗口；DCAP 取 8 参显示参数；其余用内置默认）。 */
-function desiredCalcParams(
+/** 各指标目标 calcParams（MA 取统一配置窗口；DCAP 取 8 参显示参数；其余用内置默认）。 */function desiredCalcParams(
   def: { key: IndicatorName; calcParams?: number[] },
   maWindows: number[],
   dcapParams: DcapParams,
@@ -601,6 +766,10 @@ export function KlineChart(props: KlineChartProps) {
   onWindowAppliedRef.current = props.onWindowApplied;
   const onHighlightEndRef = useRef(props.onHighlightEnd);
   onHighlightEndRef.current = props.onHighlightEnd;
+  const onPaneMetricsRef = useRef(props.onPaneMetrics);
+  onPaneMetricsRef.current = props.onPaneMetrics;
+  /** 用户是否手动拖过引擎 pane 分隔条（拖过 ⇒ 之后尊重其比例，除非硬下限越界；§2.6 第 7 项）。 */
+  const userPaneDragRef = useRef(false);
   const hideCandles = props.hideCandles ?? false;
   const feed = props.feed;
   /** **最新** overlay props（ADR-028 D4.1 竞态修复）：标记重建**一律**读本 ref，
@@ -998,8 +1167,7 @@ export function KlineChart(props: KlineChartProps) {
       );
   }, [props.indicators, props.maWindows, props.dcapParams]);
 
-  // dcap 取数 warmup 热更新（02-spec §6 图表契约：**配置保存不得重建 pane**）。
-  // n_l/m（或 DCAP 开关）变化 ⇒ 让 feed 向前补取差额更早 bar，再原地重载数据（resetData 只重跑
+  // dcap 取数 warmup 热更新（02-spec §6 图表契约：**配置保存不得重建 pane**）。  // n_l/m（或 DCAP 开关）变化 ⇒ 让 feed 向前补取差额更早 bar，再原地重载数据（resetData 只重跑
   // DataLoader init：不 dispose/不 init 图表 ⇒ pane 高度/顺序/视口均保持，路径 B 不成立）。
   useEffect(() => {
     const chart = chartRef.current;
@@ -1050,6 +1218,96 @@ export function KlineChart(props: KlineChartProps) {
   /** ADR-028 D4.1：高亮目标（判别键 ⇒ 精确到笔；`null`/找不到 ⇒ 无高亮）。 */
   const highlightTarget = findMarkerByFillKey(props.overlays, props.highlightFillKey);
   const highlightActive = pulse > 0 && highlightTarget != null;
+
+  // Effect P —— ADR-028 §2.6 第 4 项 **pane 约束**（`paneConstraints` 缺省 ⇒ 本 effect 一条语句都不执行）。
+  //
+  // 为什么必须在引擎侧做：真身实测 `candle = 容器高 − x轴(26) − 分隔 − Σ副图(options.height)`，其中 candle 是
+  // **唯一 flexible pane** ⇒ 不做干预时副图恒 100px、主图被吃到 67px（用户报告「看不出变化」的根因）。
+  // 约束生效点：①指标 pane 布局变化（`paneLayoutSig`）②容器高变化（调用方重算 `subPanePx`）
+  // ③引擎拖分隔条（引擎按 pane `minHeight` 自行 clamp，事后校验 + 必要时修正）。
+  useEffect(() => {
+    const chart = chartRef.current;
+    const pc = props.paneConstraints;
+    if (!chart || !pc) return;
+    if (typeof chart.setPaneOptions !== 'function' || typeof chart.getPaneOptions !== 'function') return;
+    const report = (metrics: KlinePaneMetrics) => {
+      onPaneMetricsRef.current?.(metrics);
+      try {
+        ref.current?.setAttribute('data-pane-metrics', JSON.stringify(metrics));
+        ref.current?.setAttribute('data-pane-clamped', String(metrics.clamped));
+      } catch {
+        /* ignore */
+      }
+    };
+    const run = () => {
+      applyPaneFloors(chart, pc); // 下限**恒**应用（只写 minHeight，不触发布局 ⇒ 视觉零变化）
+      const m = measurePaneMetrics(chart, pc);
+      const dragged = userPaneDragRef.current;
+      // 主图触底 ⇒ 必须 'full' 重排（硬下限优先于用户比例）；否则用户拖过的比例用 'preserve' 保留
+      const candleBottomedOut = m.candlePx != null && m.candlePx < pc.candleMinPx;
+      const final = paneAllocationNeeded(m, pc, dragged)
+        ? applyPaneAllocation(chart, pc, dragged && !candleBottomedOut ? 'preserve' : 'full')
+        : m;
+      final.userDragged = dragged;
+      report(final);
+    };
+    run();
+    // 布局沉降后回读一次（真身 `getSize` 读数）：否则 data-* 会停在中间态、事后回查失真。
+    if (typeof requestAnimationFrame === 'function') {
+      const h = requestAnimationFrame(() => {
+        if (paneIdsOf(chart).length <= 1) run();
+        else report(measurePaneMetrics(chart, pc));
+      });
+      return () => cancelAnimationFrame(h);
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.paneConstraints?.candleMinPx,
+    props.paneConstraints?.subPaneMinPx,
+    props.paneConstraints?.subPanePx,
+    props.paneConstraints?.subPaneTotalMaxPx,
+    paneLayoutSig,
+  ]);
+
+  // Effect Q —— 引擎 pane 分隔条拖拽后的校验（同 §2.6 第 4 项：越界必须 clamp，不得静默接受）。
+  // 引擎已在拖拽过程中按 reduced pane 的 `minHeight` 自行夹紧 ⇒ 此处只**回读校验**；若仍越界（引擎行为变更/
+  // 极端容器高）⇒ 就地重应用约束（修正）并如实回执 `clamped=true`。
+  useEffect(() => {
+    const chart = chartRef.current;
+    const pc = props.paneConstraints;
+    if (!chart || !pc) return;
+    if (typeof chart.subscribeAction !== 'function' || typeof chart.getPaneOptions !== 'function') return;
+    const onPaneDrag = () => {
+      // 用户拖过引擎分隔条 ⇒ 之后**尊重其比例**（ADR §2.6 第 7 项 + D4.2「已拖过的 pane 高度在指标切换后保持」）；
+      // 只在硬下限越界时才纠正（默认分配目标不再强制）。
+      userPaneDragRef.current = true;
+      applyPaneFloors(chart, pc);
+      const checked = measurePaneMetrics(chart, pc);
+      const candleBottomedOut = checked.candlePx != null && checked.candlePx < pc.candleMinPx;
+      const final = paneAllocationNeeded(checked, pc, true)
+        ? applyPaneAllocation(chart, pc, candleBottomedOut ? 'full' : 'preserve')
+        : checked;
+      final.userDragged = true;
+      onPaneMetricsRef.current?.(final);
+      try {
+        ref.current?.setAttribute('data-pane-metrics', JSON.stringify(final));
+        ref.current?.setAttribute('data-pane-clamped', String(final.clamped));
+      } catch {
+        /* ignore */
+      }
+    };
+    chart.subscribeAction('onPaneDrag', onPaneDrag);
+    return () => {
+      if (typeof chart.unsubscribeAction === 'function') chart.unsubscribeAction('onPaneDrag', onPaneDrag);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.paneConstraints?.candleMinPx,
+    props.paneConstraints?.subPaneMinPx,
+    props.paneConstraints?.subPanePx,
+    props.paneConstraints?.subPaneTotalMaxPx,
+  ]);
 
   return (
     <div
