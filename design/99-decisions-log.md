@@ -294,3 +294,15 @@
 - **明确不做**：不改后端序列（不为 warmup 段补净值/持仓点——留待需要「全区间可比」时另裁）；不在本波暴露 `per_bar.warmup` 列到事实表（技术债，见报告 §「残留」）。
 - **关联**：ADR-024 D10（禁静默有损）、ADR-028 D2.1/D2.3（x 域与共用绘图区几何）、ADR-026 §2.1（口径消歧先例）、`design/12-strategy-system/01-adr.md` §13.5.1（warmup 口径）。
 - **产出物**：`web/src/features/workbench/runSeriesRange.ts`（新，纯函数）+ `useRunSeries`（chunked/legacy 两路径同口径）+ 两张分数卡脚注披露；测试 `runSeriesRange.test.ts`(7) / `useRunSeries.test.ts`(+2) / `scoreCurveWarmupNote.test.tsx`(3)。
+
+---
+
+# ADR-028 D6/D7｜结果页「K 线尺寸」与「明细上下分层」（2026-09-23，用户逐条裁定 + 真渲染取证）
+
+- **权威正文**：`design/01-architecture/adr/ADR-028-result-visualization-position-ratio-and-window-sync.md` §2.6（D6）/§2.7（D7）/§4 第 8–10 条/§5。
+- **触发（用户原话）**：「k 线窗口太小了，根本看不出来变化」「无法调节其窗口高度（之前不是提了调整窗口的需求了嘛，为什么没有做）」「k 线视图默认就要大一些，然后可以调节」「交易明细…跳转之后整个 scale 变得特别小，也是完全无法观看」「买入卖出点完全把 k 线图遮挡完了」「明细做成另外一个视图，不在 k 线/持仓比例等一组里」。
+- **取证（真渲染，`tester/evidence/20260923_result_ux_probe/`）**：①卡高拖拽**本身可用**（256→496、持久化、双击复位），但把手 **6px、悬停恒透明**（服务构建 `hover:bg-acc1/40` 规则数 = **0**）、可命中带仅 `y=329..334`（上方 20px 属 klinecharts），同卡内另有引擎分隔条充当「假把手」；②默认态 **蜡烛主图 67px < VOL 100px**、蜡烛实体高中位 2px（p10=0）、卡头 61px（其中 40px = D4.2 指标行）⇒ 「看不出变化」归因为**卡高**；③既有 D4.2/D5 规格覆盖了「默认 256/拖 +150/复位/持久化」，盲区 = 主图高、卡头高、遮挡率、跳转 scale 自洽性、跳转后曲线空、跳转后明细可见性；④跳转把整页 `scrollTop` 1388→40、表体 `top 1592`（视口 800）⇒ 明细被顶出视口。
+- **裁决（用户选）**：D6 = 默认 **520px** + 头部预设 **S/M/L 260/420/560** + 拖拽微调 + 双击复位；**min 200 / max 视口高−200**；**记忆**（结果页独立 key）；**主图 ≥320px（520 卡高）、副图合计 ≤120px、卡头 ≤48px、主图硬下限 ≥160px**；把手 **≥12px + 悬停可见**（修 CSS 规则缺失）。D7 = **上下分层**（上栏含 K 线+窗口条+四曲线卡、全宽、内部滚动；下栏 = 明细四块 + 内部 tab、独立滚动；**整页不滚**）；下栏默认 **40% 视口高**、可拖拽、可折叠、记忆；**跳转时下栏完全不动**，只在上栏内部把 K 线滚回可见 + 保留 D4.1 高亮。
+- **明确不做（挂起，仅登记）**：跳转 scale 缺陷（含 `wb-window-probe` `ok=true` 假绿、跳转后 4 张曲线卡空白，机制未定位）、标记遮挡 37.1% 降噪口径、D2.4「预热窗口内空图缺 view 级文案」、明细独立路由页/切换式。
+- **关联**：ADR-028 §2.4b（D4.1 高亮）/§2.4c（D4.2 缩放与配置隔离）/§2.5（D5 完整性）、ADR-024 D10（禁静默有损）、ADR-023 §6.2（改契约须全域枚举受影响测试）、ADR-018（tangle 门禁）、`AGENTS.md`（gitnexus 门禁 + **代理产物不入库**）。
+- **产出物**：本条目 + ADR-028 §2.6/§2.7 + `design/17-trade-detail-layering/07-plan-result-height-and-detail-split.md`（方案与实施计划）；实施 = `web/src/features/workbench/{resultCardHeights.ts,resultLayout.ts,useResultLayout.ts,DetailPane.tsx}` + `cardResize/KlineResultChart/ResultView` 改造 + `web/e2e/adr028-d6-kline-size.e2e.ts`、`adr028-d7-detail-split.e2e.ts`。
