@@ -27,10 +27,11 @@ node_modules/
 .pi-sessions/
 .claude/
 coder/backups/
-coder/report/2*
-coder/evidence/2*
-tester/report/2*
-tester/evidence/2*
+coder/report/
+coder/evidence/
+coder/design/
+tester/report/
+tester/evidence/
 tester/harness/
 backup_symbols.sql
 prod_tools_schemas_periphery.txt
