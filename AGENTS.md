@@ -59,3 +59,11 @@ This project is indexed by GitNexus as **eestock-rs** (1177 symbols, 2133 relati
   一次 D6/D7 验收跑出 **67 个**已跟踪文件变脏。新增/修改规格时：证据须落到**未跟踪**目录
   （如当批 `tester/evidence/<date>_<topic>/raw/`），或经 `E2E_EVIDENCE_DIR` 等**可配置出口**注入；
   评审规格时把"证据落盘路径是否污染已跟踪文件"列为检查项。
+- **禁止在仓库根执行递归属主/权限变更**（2026-09-23 事故复盘登记）：
+  2026-09-22T15:12:16Z 一次 `sudo chown -R eestock:eestock *`（仓库根）把 bind mount 的
+  PostgreSQL 数据目录 `data/timescaledb` 属主从容器内 **uid 70** 改成宿主 **uid 1001**，
+  容器 postgres 在 `0700` 目录上失去 `x` 位 ⇒ **全库 FATAL 约 9h57m**（`/api/*` 全 500）。
+  规则：①**禁止**对仓库根或 `data/` 执行递归 `chown`/`chmod`（要改就逐个目标路径、先 `stat` 确认）；
+  ②`data/timescaledb` 的**属主必须等于容器内 postgres 的 uid**（本机 = `70:70`，mode `0700`/`0600`），
+  任何变更前先 `docker exec <pg> id postgres` 取值；③改前先 `pg_dump`/冷备；
+  ④恢复动作 = **停容器 → `chown -R 70:70 <仅该路径>`（只改属主、不改 mode）→ 起容器**（走崩溃恢复）。
