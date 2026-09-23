@@ -234,6 +234,10 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 - **取数完整性（D11）**：L1/L2/K 线标记均自述 `total`/`has_more`/`next_offset`（或显式 `truncated`）。
 - **结果页时间窗（ADR-028 D2/D3）**：窗口变化 ⇒ 对 `per_bar`/`net_value`/`drawdown`/`position` 四个既有 per-kind 端点并发重取（**不新增**批量端点）；
   曲线 x 定义域 = 共享窗口（`mapLineByTs`，**禁**用数据自身 min/max），禁止前端裁剪已取点。
+  **ADR-028 D2.4（2026-09-22）**：四条曲线只画 **run 的评估段** `[from_ts, to_ts]` —— 引擎在 **warmup 预热段**仍逐 bar 评分
+  但**不产净值/回撤/持仓**（`engine.rs:937-959`），故分数曲线必须裁到评估段（与净值/持仓、K 线卡同段），
+  且裁剪根数须显式披露（禁静默有损）；**与 D3 的「禁前端裁剪」不矛盾**：D3 禁的是用已取点冒充**窗口内重采样**（放大后点变稀），
+  D2.4 裁的是**评估区间之外**（预热段）本就不该进入曲线的点。
 
 ### 13.6 sim-live 切源口径（D14）
 **保留骨架换内核**：会话/账户/撮合/UI 配置流/会话记录/回测对比全部不动；编排器内 `create_strategy` 替换为 Registry 已发布策略 + QuickJS 实例（每策略×标的一实例），评分/聚合语义不变，沿用 3 策略×30 股上限。

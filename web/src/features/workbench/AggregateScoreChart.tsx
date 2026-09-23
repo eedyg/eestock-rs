@@ -20,6 +20,11 @@ const H = 160;
 export interface CurveSampling {
   downsampled: boolean;
   originalBars: number;
+  /**
+   * **ADR-028 D2.4**：被裁掉的 warmup 预热段根数（按 `ts` 判定，`useRunSeries` 计算）。
+   * > 0 ⇒ 曲线只覆盖 run 的评估段 `[from_ts, to_ts]`，UI **必须**显式标注（禁静默有损）。
+   */
+  excludedWarmupBars?: number;
 }
 
 /**
@@ -69,6 +74,9 @@ export function AggregateScoreChart({
   const viewX0 = plot ? plot.x0 : 0;
   const viewW = plot ? plot.w : W;
   const markX = vlineX(markerTs, xd, W, PAD);
+  /** ADR-028 D2.4：评估段根数 = 服务端口径 − 被裁掉的预热段（预热段不计入曲线）。 */
+  const warmupExcluded = sampling?.excludedWarmupBars ?? 0;
+  const evaluatedBars = Math.max(0, (sampling?.originalBars ?? perBar.length) - warmupExcluded);
 
   return (
     <div
@@ -130,7 +138,12 @@ export function AggregateScoreChart({
           </span>
         )}
         <span data-testid="wb-aggregate-sampling">
-          共 {sampling?.originalBars ?? perBar.length} bar
+          评估段 共 {evaluatedBars} bar
+          {warmupExcluded > 0 && (
+            <span data-testid="wb-aggregate-warmup-note" className="text-amber-300/80">
+              （预热段 {warmupExcluded} 根不计入）
+            </span>
+          )}
           {sampling?.downsampled
             ? `（服务端抽样 ${perBar.length} 点）`
             : pts.length < perBar.length

@@ -1046,6 +1046,11 @@ export interface WorkbenchRunConfig {
   stop: WorkbenchStop | null;
   initial_capital: number;
   fee: WorkbenchFee;
+  /** I-2/D6 **预热段**请求根数（后端 config 快照；旧 run 可缺 ⇒ 容差消费）。
+   *  预热段：引擎仍逐 bar 评分（`per_bar.warmup=true`）但**不执行 Policy/不产订单/不计净值与绩效**。 */
+  warmup_requested?: number;
+  /** I-2/D6 实际生效的预热根数（< 请求值 = 历史不足）。评估段裁剪的**精确根数**依据（ADR-028 D2.4）。 */
+  warmup_effective?: number;
 }
 
 /** StrategyRunView（strategy_run 轻量行；结果不内联，经 result 端点单独取） */

@@ -87,6 +87,39 @@
    ⇒ 全览必须重定义为「**尽可能全**」并**显式标注**「显示 N / 共 M 根（受渲染上限约束）」；曲线跟随**同一实际可见范围**，不得自行扇伸到全量。
 4. 曲线右端距窗口右缘固定少 1 根（0.4~2.9 px@984）：并入第 1 项几何对齐一并消除。
 
+### 2.2e D2.4｜曲线只画**评估段**：预热段（warmup）不参与分数曲线（2026-09-22 用户实测 + 决策 A）
+
+- **现象**（用户截图取证，`coder/report/adr028_curve_y_scaling_mismatch_analysis.md` §0.0）：同屏四条曲线横向范围不一致 ——
+  净值/持仓只占右侧 **≈17% / ≈12%**（左侧 80% 对比度增强后仍为纯背景），而聚合总分/各策略评分铺到 **≈83% / ≈85%**、K 线蜡烛满宽；
+  用户判词：「**聚合和各策略评分的 scale 不对，净值是对的**」。
+- **根因**（代码可查）：引擎在 warmup 段**仍逐 bar 评分**（`per_bar.scores/aggregate` 全量记录并标 `warmup`），但**不产净值/回撤/持仓**
+  （`if !is_warmup` 才 push；`crates/strategy-core/src/engine.rs:937-959`）⇒ 四条曲线共享同一 x 轴（D2.1）时，
+  两条分数曲线横跨预热段、价值类两条只覆盖执行段。前端此前**完全不知道预热段存在**（`WorkbenchBarRecord` 无 `warmup` 列）。
+- **决策（用户 2026-09-22 选 A）**：**分数曲线不画预热段** —— 曲线数据裁到 run 的**评估区间** `[from_ts, to_ts]`
+  （后端存 effective 区间 = in-range；`crates/application/src/workbench.rs:736,757`）。
+  K 线卡本就取 `[run.from_ts, run.to_ts]` ⇒ 四条曲线与 K 线**同段对齐**。
+
+**契约（硬约束）：**
+
+1. **评估段** = run 的 effective `[from_ts, to_ts]`（Unix 秒）；边界**含**端点；**只按 `ts` 判定**（不依赖 `warmup` 列 ⇒ legacy/旧 run 同样成立）。
+2. `from`/`to` 不可得、不可解析、或 `from > to` ⇒ **不裁剪**（坏数据不得静默清空曲线，`dropped = 0`）。
+3. **禁止静默有损**（ADR-024 D10）：裁剪根数必须回传（`RunCurve.excludedWarmupBars`）并由 UI 标注
+   「预热段 N 根不计入」；N 优先取后端 `config.warmup_effective`（精确根数），不可得时回退为裁掉的点数。
+   脚注「共 N bar」的口径随之改为「**评估段** 共 M bar」。
+4. **逐 bar 明细 / 事件日志（事实表）不裁**（预热段行保留；曲线才裁）。
+5. **不新增/不改 `/curve` 请求参数**（仍按 D3 窗口语义）；裁剪在客户端派生层**单点**完成（`useRunSeries`）
+   —— 不触碰冻结规格对「全览 ⇒ 不传窗口参数」的口径。
+6. 预热段内的点**不得**再计入「N 点不在 K 线 bar 序列上（已剔除）」这一**配对失败**披露（两者语义不同：
+   前者=按区间裁剪，后者=K 线 bar 序列不可配）。
+
+**依据与测试：** `web/src/features/workbench/runSeriesRange.ts`（纯函数）+
+`useRunSeries`（chunked 与 legacy 两条路径同口径）+
+`AggregateScoreChart`/`SlotScoresChart` 脚注披露；
+`runSeriesRange.test.ts`（7）、`useRunSeries.test.ts`（+2）、`scoreCurveWarmupNote.test.tsx`（3）。
+
+**方案正文（本文引用，不重复口径）：** `design/17-trade-detail-layering/06-plan-d2.4-warmup-clip.md`
+（含改动清单、边界与异常、测试方案、执行与验证记录、残留与回退）。
+
 ### 2.3 D3｜`/curve` 增时间窗参数（保真优先）
 
 - 增 `from_ts`/`to_ts`（缺省 = 全区间 ⇒ **向后兼容**）；窗口内**重新采样** `k`；响应回显 `window_from_ts`/`window_to_ts`/`window_bars` + 既有 `downsampled`/`original_bars`。
@@ -157,6 +190,8 @@ ADR-027 D11 的完整性契约（`total`/`recorded`/`has_more`/显式截断/窗�
 - **不做双向自动联动**：SVG 视图不反向驱动 K 线（除 D4 的**程序化**跳转外）；避免回声循环与语义混乱。
 - **不做本地聚合**（ADR-022 已有禁令）。
 - **不新增"成本口径"持仓比率**（只做市值口径；若要成本口径须另立 ADR 并命名 `position_cost_ratio`）。
+- **D2.4 残留（技术债，已登记）**：① `per_bar.warmup` 列**未**暴露到前端类型/事实表（逐 bar 评分表/事件日志仍展示预热段行且无预热标识）；
+  ② 净值/回撤/持仓的 warmup 段仍为**空白**（不补点、不画平线）——若日后需要「全区间可比」，须另裁（或改由后端补点）。
 
 ## 6. 关联与产出物
 

@@ -125,3 +125,11 @@ tester/evidence/20260920_adr027_accept/                # 闸门 3 验收（R/U/C
 tester/evidence/20260920_adr027_accept_e/              # E 段复跑 + 闸门 2 反例挖掘
 tester/design/296_adr027_s_contract_vectors_design.md  # S 段向量设计
 ```
+
+---
+
+## 6. 批次后修订（非本批次范围，索引用）
+
+| 日期 | 修订 | 裁决 | 方案/证据 |
+|---|---|---|---|
+| 2026-09-22 | **ADR-028 D2.4「评估段裁剪」**：分数曲线（聚合总分/各策略评分）不再画 warmup 预热段 ⇒ 与净值/持仓、K 线同段对齐 | `design/01-architecture/adr/ADR-028-*.md` §2.2e + `design/99-decisions-log.md` 条目 | `06-plan-d2.4-warmup-clip.md`（方案正文） + `coder/report/adr028_curve_y_scaling_mismatch_analysis.md`（取证/实施） |

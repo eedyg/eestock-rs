@@ -280,3 +280,17 @@
 - **明确不做**：不做双向自动联动（除程序化跳转）；不做本地聚合（ADR-022 禁令）；不新增成本口径持仓比率。
 - **关联**：**ADR-027**（同批次）、**ADR-022**（跨图同步原语 / 时间跨度误差 ≤ 1 根 bar）、ADR-024 P6 + D10（显式抽样披露）、ADR-026（口径消歧先例）、ADR-020（回到最新 / barSpace 语义）。
 - **产出物**：本 ADR + 本条目；契约增量并入 `design/17-trade-detail-layering/02-spec.md`（第二批，与 ADR-027 合并）。
+
+---
+
+# ADR-028 D2.4｜曲线只画**评估段**：预热段（warmup）不参与分数曲线（2026-09-22，用户实测 + 决策 A）
+
+- **权威正文**：`design/01-architecture/adr/ADR-028-result-visualization-position-ratio-and-window-sync.md` §2.2e（D2.4）。
+- **触发事件（用户原话）**：「发现聚合总分和各策略评分的缩放比例和净值不一样，导致显示错误」→ 复核后用户判词：「**聚合和各策略评分的 scale 不对，净值是对的**」。
+- **取证**（用户截图逐像素分析；本容器无浏览器，用 JPEG 解码 + 逐列亮度/色度迹线）：净值/持仓只覆盖右侧 **≈17% / ≈12%**（左侧 80% 对比度增强后为纯背景），聚合总分/各策略评分铺到 **≈83% / ≈85%**，K 线蜡烛与两者同尺度（≈8 px/bar）。报告：`coder/report/adr028_curve_y_scaling_mismatch_analysis.md`。
+- **根因**：引擎在 **warmup 预热段**仍逐 bar 评分（`per_bar` 全量记录并标 `warmup`），但**不产净值/回撤/持仓**（`crates/strategy-core/src/engine.rs:937-959`）⇒ 四条曲线共享同一 x 轴时，两条分数曲线横跨预热段、价值类曲线只覆盖执行段；前端此前**不知道预热段存在**（`WorkbenchBarRecord` 无 `warmup` 列）。
+- **决策（用户选 A）**：**分数曲线不画预热段** —— 曲线数据裁到 run 的评估区间 `[from_ts, to_ts]`（后端 effective 区间）；K 线卡本就取 `[run.from_ts, run.to_ts]` ⇒ 四条曲线与 K 线同段对齐。
+- **硬约束**：① 边界含端点、**只按 `ts` 判定**（legacy/旧 run 同样成立）；② `from/to` 不可得或 `from > to` ⇒ **不裁剪**（不静默清空）；③ **禁止静默有损**：裁剪根数必须回传并由 UI 标注「预热段 N 根不计入」（N 优先取 `config.warmup_effective`），脚注口径改为「评估段 共 M bar」；④ 逐 bar 明细/事件日志（事实表）**不裁**；⑤ **不新增/不改 `/curve` 请求参数**（不触碰「全览 ⇒ 不传窗口参数」的冻结口径），裁剪在客户端派生层单点完成。
+- **明确不做**：不改后端序列（不为 warmup 段补净值/持仓点——留待需要「全区间可比」时另裁）；不在本波暴露 `per_bar.warmup` 列到事实表（技术债，见报告 §「残留」）。
+- **关联**：ADR-024 D10（禁静默有损）、ADR-028 D2.1/D2.3（x 域与共用绘图区几何）、ADR-026 §2.1（口径消歧先例）、`design/12-strategy-system/01-adr.md` §13.5.1（warmup 口径）。
+- **产出物**：`web/src/features/workbench/runSeriesRange.ts`（新，纯函数）+ `useRunSeries`（chunked/legacy 两路径同口径）+ 两张分数卡脚注披露；测试 `runSeriesRange.test.ts`(7) / `useRunSeries.test.ts`(+2) / `scoreCurveWarmupNote.test.tsx`(3)。

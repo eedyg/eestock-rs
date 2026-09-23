@@ -11,6 +11,7 @@ import type {
   WorkbenchRunView,
 } from '@/api/types';
 import { isStaleResponse, type CurveDomainRequest, type CurveXSource } from './resultWindow';
+import { clipToEvaluatedRange, evaluatedRange, type EvaluatedRange } from './runSeriesRange';
 import type { CurveXDomain } from '@/features/backtest/chartUtils';
 
 /**
@@ -47,6 +48,11 @@ export interface RunCurve<T> {
   downsampled: boolean;
   /** 抽样前根数（标注「共 M」的依据）。 */
   originalBars: number;
+  /**
+   * ADR-028 D2.4（用户 2026-09-22 决策 = 方案 A）：被裁掉的**预热段**根数（按 `ts` 判定）。
+   * > 0 ⇒ 曲线只画评估段（`[run.from_ts, run.to_ts]`），UI **必须**显式标注（禁静默有损，ADR-024 D10）。
+   */
+  excludedWarmupBars?: number;
 }
 
 /** 逐 bar 明细的分页状态（覆盖范围**必须**显式标注：`已加载 N / 共 M`）。 */
@@ -179,6 +185,17 @@ export function fillsFromPerBar(perBar: WorkbenchBarRecord[]): WorkbenchRunFill[
 
 const emptyCurve = <T,>(): RunCurve<T> => ({ points: [], downsampled: false, originalBars: 0 });
 
+/**
+ * 预热段剔除根数（ADR-028 D2.4）：仅当载荷**确实含**预热行（`dropped > 0`）时才有意义——
+ * 窗口态（只取子区间）不报预热段根数。优先用后端 `config.warmup_effective`（**精确**根数，
+ * 与「共 N bar」同分母），不可得时回退为裁掉的点数（抽样态下可能小于真实预热根数）。
+ */
+function warmupExcludedBars(dropped: number, run: WorkbenchRunView | null): number {
+  if (dropped <= 0) return 0;
+  const eff = run?.config?.warmup_effective;
+  return typeof eff === 'number' && Number.isFinite(eff) && eff >= dropped ? eff : dropped;
+}
+
 /** 未传请求时的兜底：**全区间**取数（旧行为零回归；x 定义域由调用方通过 request 提供）。 */
 const FULL_RANGE_REQUEST: CurveDomainRequest = {
   rev: 0,
@@ -255,9 +272,11 @@ async function fetchAllFills(
   return { rows, total, recorded, complete: offset == null, truncated: offset != null };
 }
 
-/** legacy 分支：直接从 `/result` 内联三列派生（原全量路径，零网络、零回归）。 */
+/** legacy 分支：直接从 `/result` 内联三列派生（原全量路径，零网络、零回归）。
+ *  ADR-028 D2.4：`range` 给定 ⇒ 分数曲线（`perBar`）裁到评估段（预热段不画）；缺省不裁（零回归）。 */
 export function legacySeries(
   result: WorkbenchRunResult,
+  range: EvaluatedRange | null = null,
 ): Omit<
   RunSeries,
   | 'loadMore'
@@ -272,11 +291,18 @@ export function legacySeries(
   | 'appliedDegraded'
   | 'appliedXSource'
 > {
-  const perBar = result.per_bar;
-  const fills = fillsFromPerBar(perBar);
+  const perBarAll = result.per_bar;
+  const perBarClip = clipToEvaluatedRange(perBarAll, range);
+  const perBar = perBarClip.kept;
+  const fills = fillsFromPerBar(perBarAll);
   return {
     format: 'legacy_single',
-    perBar: { points: perBar, downsampled: false, originalBars: perBar.length },
+    perBar: {
+      points: perBar,
+      downsampled: false,
+      originalBars: perBarAll.length,
+      excludedWarmupBars: perBarClip.dropped,
+    },
     netValue: { points: result.net_value, downsampled: false, originalBars: result.net_value.length },
     drawdown: { points: result.drawdown, downsampled: false, originalBars: result.drawdown.length },
     // legacy 无 `/curve?kind=position` 数据源（历史 run）⇒ 诚实空态（持仓比率视图显式留白）
@@ -286,7 +312,7 @@ export function legacySeries(
     windowLoading: false,
     windowError: null,
     windowApplied: null,
-    bars: { ...emptyBars(), rows: perBar, total: perBar.length },
+    bars: { ...emptyBars(), rows: perBarAll, total: perBarAll.length },
     fills: { rows: fills, total: fills.length, recorded: true, loading: false, error: null, complete: true, truncated: false },
     // legacy：L1 取 `/result.trades` 内联列（**零网络**，与今日行为逐字节一致）；L2 仍按 D8 懒加载。
     roundTrips: { ...emptyRoundTrips(), rows: result.trades, total: result.trades.length },
@@ -478,7 +504,13 @@ export function useRunSeries({
       const nvv = curveOf<[number, number]>(nv);
       const ddv = curveOf<[number, number]>(dd);
       const posv = curveOf<WorkbenchPositionPoint>(pos);
-      if (pbv) setPerBar(pbv); else errs.push('/curve?kind=per_bar');
+      if (pbv) {
+        // ADR-028 D2.4（方案 A）：分数曲线**只画评估段** —— 引擎在 warmup 段仍逐 bar 评分
+        // （`per_bar.scores/aggregate`）但不产净值/持仓 ⇒ 不裁的话两条分数曲线会横跨预热段，
+        // 与净值/持仓（只有执行段）在同一 x 轴上「scale 不一致」（2026-09-22 用户报告）。
+        const clip = clipToEvaluatedRange(pbv.points, evaluatedRange(run));
+        setPerBar({ ...pbv, points: clip.kept, excludedWarmupBars: warmupExcludedBars(clip.dropped, run) });
+      } else errs.push('/curve?kind=per_bar');
       if (nvv) setNetValue(nvv); else errs.push('/curve?kind=net_value');
       if (ddv) setDrawdown(ddv); else errs.push('/curve?kind=drawdown');
       if (posv) setPosition(posv); else errs.push('/curve?kind=position');
@@ -610,7 +642,7 @@ export function useRunSeries({
   if (!chunked) {
     const base =
       result && run?.status === 'succeeded'
-        ? legacySeries(result)
+        ? legacySeries(result, evaluatedRange(run))
         : {
             format,
             perBar: emptyCurve<WorkbenchBarRecord>(),

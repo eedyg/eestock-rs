@@ -109,6 +109,9 @@ export function SlotScoresChart({
   const viewX0 = plot ? plot.x0 : 0;
   const viewW = plot ? plot.w : W;
   const markX = vlineX(markerTs, xd, W, PAD);
+  /** ADR-028 D2.4：评估段根数 = 服务端口径 − 被裁掉的预热段（预热段不计入曲线）。 */
+  const warmupExcluded = sampling?.excludedWarmupBars ?? 0;
+  const evaluatedBars = Math.max(0, (sampling?.originalBars ?? perBar.length) - warmupExcluded);
 
   return (
     <div
@@ -171,7 +174,12 @@ export function SlotScoresChart({
       </svg>
       </div>
       <div className="shrink-0 px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
-        各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 共 {sampling?.originalBars ?? perBar.length} bar
+        各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 评估段 共 {evaluatedBars} bar
+        {warmupExcluded > 0 && (
+          <span data-testid="wb-slot-warmup-note" className="text-amber-300/80">
+            （预热段 {warmupExcluded} 根不计入）
+          </span>
+        )}
         {unmatched > 0 ? ` · ${unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
         {sampling?.downsampled ? `（服务端抽样 ${perBar.length} 点）` : ''}
       </div>
