@@ -110,8 +110,11 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 7. **防抖**：构造分数抖动序列 ⇒ 下单次数/费用占净值比 ≤ 判据上限（阈值由标定给出）。
 8. **观测/审计**：`target_pct/current_pct/deadzone_blocked/clamped_by_guard` 逐 bar 可读；审计出现"意图 vs 实际"差值。
 
+> **E14（sim-live 一致性）→ N/A（2026-09-24 取证更正）**：sim-live **没有** policy/仓位执行路径（固定 `aggregate_qty`，读数见 §7 R4）⇒ **无可改对象**；注意这**不是**「已一致」，而是「执行路径尚不存在」。缺口登记于 §5。
+
 ## 5. 明确不做（本批登记）
-目标层聚合与 per-slot policy（Step 2）｜`Tranches`/`fixed_amount`/`on_signal_break`（Step 2）｜策略声明意图（Step 3）｜`schema_version`（Step 2 若改写旧语义时再引入）｜`RiskGate` 接口改造｜试算"模拟持仓默认化"（P5，独立小批）。
+**sim-live 的 policy/仓位执行路径（Step 2/3 立项）**：现状 = `eval.signal` + **固定 `aggregate_qty`** 下单，**与 `policy` 无关** ⇒ **语义后果（必须对用户显式披露）**：回测里的 `Dca`/`exposure` 目标行为**在模拟/实盘不复现**（回测分批、模拟盘一次性固定股数）。立项时须产出「sim-live 执行路径 vs 回测执行路径」**逐项字段级差异清单**。
+- 目标层聚合与 per-slot policy（Step 2）｜`Tranches`/`fixed_amount`/`on_signal_break`（Step 2）｜策略声明意图（Step 3）｜`schema_version`（Step 2 若改写旧语义时再引入）｜`RiskGate` 接口改造｜试算"模拟持仓默认化"（P5，独立小批）。
 
 ## 6. 关联与产出物
 - **关联**：ADR-028 §13.1（LumpSum 冻结 / 强平 reset 裁决）、ADR-026（审计与披露口径）、ADR-024 D10（禁静默有损）、ADR-012（交付波形）、`design/12-strategy-system/{01-adr,02-plugin-abi,04-strategy-programming-guide}.md`。
@@ -128,7 +131,7 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 | R1 | **缺陷** | `RateCap` 的**量纲未定义**（限制 `pct` 还是股数/金额）⇒ 净值漂移会持续触发交易，与防抖目标冲突 | D4 补：限**金额口径**（`pct_per_bar × equity`），漂移由死区吸收 |
 | R2 | **缺陷** | `Fixed` 模式的**卖出语义未定义** ⇒ 可能"永不卖出"（死仓）或与 `LumpSum` 行为不一致 | D3 补：`Fixed` 等价 `LumpSum`（`score ≤ sell_threshold ⇒ 0`） |
 | R3 | **缺陷** | **求值顺序未定义**（guard/死区/限速 谁先谁后）⇒ 不同实现结果不同 | D5 补：七步 pipeline 写死为契约 |
-| R4 | **遗漏** | **sim-live 调用点未纳入范围**（`crates/simlive/src/plugin_orchestrator.rs` 亦调 `target_qty`）⇒ 破坏"三模式共享同一执行路径"的架构不变式（ADR-028 §4.6） | D1/D2 范围补：sim-live 同步传 `score` 并实现同一语义 |
+| R4 | **我的事实错误（已取证更正）** | 我原判「`crates/simlive/src/plugin_orchestrator.rs` 亦调 `target_qty`」**不成立**：实测 `grep -rn "target_qty|ExecutionPolicy|PolicyState" crates/simlive/src crates/application/src/simlive*.rs` = **0 命中**；`plugin_orchestrator::evaluate` 只产 `{per_strategy_scores, aggregate_score, signal}`；sim-live 下单在 `crates/application/src/simlive.rs:1345` 附近用**固定 `aggregate_qty`**，**与 policy 无关** | E14 记 **N/A（附取证）**；**不新建** sim-live policy 执行路径（属新功能，超 Step 1 边界）⇒ 登记 Step 2/3 立项，并在 §5 显式登记其**语义后果** |
 | R5 | **遗漏** | 中立带"保持上一目标"的**量纲**（pct vs 股数）未定义 ⇒ 承诺零订单但实际会因净值漂移下单 | D3 补：保持**目标股数（绝对）** |
 | R6 | **遗漏** | `Scaled` 的**端点未定义**（"对称降档"无定义） | D3 补：`(0⇒0) … (sell_threshold⇒at_threshold_pct)` |
 | R7 | **遗漏** | 观测缺 `rate_limited`／审计差值的**统计口径**未定（max/均值/末值） | D7 补：加 `rate_limited`、`sell_transition`；差值 = 评估段 `max|target_pct−position_ratio|`，阈值 0.05 |
