@@ -25,15 +25,15 @@
 | E1 | `ScoreMapped` **单调不减** + **端点精确** | `score=buy_threshold ⇒ at_threshold_pct`；`score=100 ⇒ at_full_pct`；区间内单调；分数先夹 `[0,100]` |
 | E2 | `SellPolicy` 两支 | `Flat`：`score ≤ sell_threshold ⇒ 目标 0`；`Scaled`：对称降档至 `[0, at_threshold_pct)` |
 | E3 | **中立带保持** | `sell_threshold < score < buy_threshold` ⇒ **保持上一目标**（穿越中立区零订单） |
-| E4 | `guard.max_pct` **强制夹取** | 构造"分数要求满仓"⇒ `目标 ≤ max_pct` ∧ `clamped_by_guard=true`；策略无权覆盖 |
+| E4 | `guard.max_pct` **强制夹取（仅 `Fixed{pct>max_pct}` 可达）** | 该模式下 `目标 ≤ max_pct` ∧ `clamped_by_guard=true`；`ScoreMapped` 下由校验 `at_full_pct ≤ max_pct` 结构性保证（判据分模式声明） |
 | E5 | `deadzone_pct` 死区 | `|Δ目标暴露| < deadzone_pct` ⇒ **零订单**（逐 bar 断言） |
 | E6 | `RateCap` 速率 | 相邻 bar 目标变动 ≤ `pct_per_bar × equity`（含跳变极端用例）；**任一 bar 不得越过 target** |
 | E7 | **强平 reset** | 硬止损/强平后路径与冻结状态全清（沿用现行裁决，与 `LumpSum/Dca` 同口径） |
 | E8 | **旧变体逐字节复现** | `LumpSum`/`Dca` 在同一输入下与本 ADR 之前一致；并用真实 run 成交序列对照（`sr_1790169818677_000006`、`sr_1790247371321_000015`） |
-| E9 | **防抖** | 分数抖动序列 ⇒ 下单次数 / 费用占净值比 ≤ 标定上限（不做"每 bar 微单"） |
+| E9 | **防抖（条件判据）** | 仅当 **`deadzone ≥ 抖动幅度`** 时成立（抖动幅度小于死区 ⇒ 0 单；无死区 ⇒ 每 bar 一单属预期并须披露配置含义） |
 | E10 | **观测/审计** | 每 bar `target_pct/current_pct/deadzone_blocked/clamped_by_guard` 可读；审计出现"意图 vs 实际暴露"差值 |
 | E15 | **`min_pct` 不阻塞清仓** | `min_pct>0` 时卖区目标仍必须为 0（不得被抬到 `min_pct`） |
-| E16 | **gap 排除首根跃迁** | 首次建仓/清仓后重建的那一根不计入 `EXPOSURE_INTENT_GAP` |
+| E16 | **gap 滞后一 bar 对齐（第三轮复验定案）** | `max_t \|target_pct_t − current_pct_{t+1}\|`（末根排除，阈值 0.05）；**清仓/翻转根零告警**；**持续未达成（现金受限）必须告警** |
 | E17 | **现金不可达下调**（判据限定构造态，R14） | **目标与净值脱钩**或**截断后回落再回升**的构造态下：目标一次性下调至可达上限 ∧ 披露 ∧ 无每 bar 微单；目标∝净值的常态下机制为不变量守卫（结构性不绑定，实测 `capped_bars=[]`） |
 | E12 | **求值顺序（pipeline）** | 固定为：映射→guard 夹取→换算股数→**死区**→**限速**→下单→观测；顺序不同即判错（构造可区分的用例：同一输入在两种顺序下结果不同） |
 | E13 | **`Fixed` 卖出语义** | `Fixed` 与 `LumpSum` 在相同输入下**逐字节等价**（含 `score ≤ sell_threshold ⇒ 目标 0`） |
