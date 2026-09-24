@@ -311,47 +311,90 @@ describe('D9-8 几何恒等式与硬不变量（D9-13 缺陷的纯函数判据�
   });
 });
 
-describe('D9-6 拖拽：px → 比例（1:1，方向 = 鼠标向上 ⇒ 上方视图变高）', () => {
-  it('K线↔指标：dy = −120 ⇒ K 线 +120、指标 −120（1:1，两侧都在可读下限之上）', () => {
-    const start = { klinePx: 697, indicatorsPx: 368, detailPx: 203, viewSpacePx: 1268 };
-    const plan0 = planThreeViews({ ratios: ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 0 }), viewportH: 1400, subPaneCount: 1 });
+/**
+ * D9-6 拖拽方向语义（**2026-09-24 二次纠错后为准**；事实源 = ADR §2.7-3 / §2.8 / §2.9-8）。
+ *
+ * 唯一裁决基准：**把手移动方向 = 边界移动方向** ⇒ `dy < 0`（鼠标上移）⇒ 边界上移 ⇒
+ * **下方视图（lower）变高、上方视图（upper）变矮**，位移 1:1：
+ *   `upperPx = startUpper + dy`、`lowerPx = startLower − dy`。
+ *
+ * | 契约版本 | 措辞 | 旧判据（错） | 新判据（对） |
+ * |---|---|---|---|
+ * | 初版 §2.8（错，已作废） | 向上 ⇒ **上方**视图变高 | `dy=−120 ⇒ K 线 +120 / 指标 −120` | — |
+ * | §2.7-3 + 二次纠错（**唯一有效**） | 向上 ⇒ **下方**视图变高 | — | `dy=−120 ⇒ 指标 +120 / K 线 −120` |
+ *
+ * 判据须有**鉴别力**：在错符号实现（旧措辞）上，本 describe 的四条必红。
+ */
+describe('D9-6 拖拽：px → 比例（1:1；方向 = 鼠标向上 ⇒ **下方**视图变高、上方变矮）', () => {
+  const start = { klinePx: 697, indicatorsPx: 368, detailPx: 203, viewSpacePx: 1268 };
+
+  it('前置：dy = 0 ⇒ 起点比例原样（三段 697 / 368 / 203 @ 可用 1268）', () => {
+    const plan0 = planThreeViews({
+      ratios: ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 0 }),
+      viewportH: 1400,
+      subPaneCount: 1,
+    });
     expect([plan0.klinePx, plan0.indicatorsPx, plan0.detailPx]).toEqual([697, 368, 203]);
+  });
+
+  it('K线↔指标：上拖 dy = −120 ⇒ **指标 +120、K 线 −120**（1:1，未触下限）', () => {
     const r = ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: -120 });
     const p = planThreeViews({ ratios: r, viewportH: 1400, subPaneCount: 1 });
-    expect(Math.abs(p.klinePx - (697 + 120)), `K 线 1:1 变高（实读 ${p.klinePx}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(p.indicatorsPx - (368 - 120)), `指标 1:1 变矮（实读 ${p.indicatorsPx}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      Math.abs(p.indicatorsPx - (368 + 120)),
+      `下方视图（指标）1:1 变高（实读 ${p.indicatorsPx}；**错符号实现此处为 ${368 - 120}**）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      Math.abs(p.klinePx - (697 - 120)),
+      `上方视图（K 线）1:1 变矮（实读 ${p.klinePx}；**错符号实现此处为 ${697 + 120}**）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(p.detailPx, '第三个视图（明细）完全不动').toBe(203);
+  });
+
+  it('方向反证（下拖 dy = +120）⇒ 上方视图（K 线）**变高**、下方视图（指标）变矮', () => {
+    const r = ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 120 });
+    const p = planThreeViews({ ratios: r, viewportH: 1400, subPaneCount: 1 });
+    expect(p.klinePx, `下拖 ⇒ 边界下移 ⇒ 上方视图变大（实读 ${p.klinePx}）`).toBeGreaterThan(697);
+    expect(p.indicatorsPx, `同上 ⇒ 下方视图变小（实读 ${p.indicatorsPx}）`).toBeLessThan(368);
     expect(p.detailPx).toBe(203);
   });
 
-  it('方向反证：dy = +120（鼠标向下）⇒ 上方视图**变矮**、下方视图变高', () => {
-    const r = ratiosFromViewPx({
-      klinePx: 697,
-      indicatorsPx: 368,
-      detailPx: 203,
-      viewSpacePx: 1268,
-      boundary: 'kline-indicators',
-      dy: 120,
-    });
-    const p = planThreeViews({ ratios: r, viewportH: 1400, subPaneCount: 1 });
-    expect(p.klinePx).toBeLessThan(697);
-    expect(p.indicatorsPx).toBeGreaterThan(368);
+  it('K线↔指标：触可读下限 clamp（下拖 dy = +400）⇒ 指标停在 180、K 线吸收被夹取的 212px', () => {
+    const out = dragRatiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 400, mins: viewMinPx(1) });
+    const p = planThreeViews({ ratios: out.ratios, viewportH: 1400, subPaneCount: 1 });
+    expect(out.clamped, '触下限必须回报 clamped').toBe(true);
+    expect(p.indicatorsPx, '指标停在可读下限 180（K 线 697+400 = 1097 撑不下去）').toBe(180);
+    expect(
+      Math.abs(p.klinePx - 885),
+      `K 线吸收被夹取的 212px（= 1097 − 212，实读 ${p.klinePx}）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(p.detailPx, '明细不受该边界影响').toBe(203);
   });
 
-  it('指标↔明细：dy = −120 ⇒ 指标 +120、明细 −120（明细受可读下限 95 夹取并让位给指标）', () => {
-    const r = ratiosFromViewPx({
-      klinePx: 697,
-      indicatorsPx: 368,
-      detailPx: 203,
-      viewSpacePx: 1268,
-      boundary: 'indicators-detail',
-      dy: -120,
-    });
+  it('指标↔明细：上拖 dy = −120 ⇒ **明细 +120、指标 −120**（1:1，未触下限）', () => {
+    const r = ratiosFromViewPx({ ...start, boundary: 'indicators-detail', dy: -120 });
     const p = planThreeViews({ ratios: r, viewportH: 1400, subPaneCount: 1 });
-    expect(p.detailPx, '明细被夹到可读下限 95').toBe(95);
-    // 明细目标 83（< 95）⇒ 抬到 95，缺口 12 从上方视图（指标）回吐 ⇒ 476 = 368+120−12
-    expect(Math.abs(p.indicatorsPx - 476), `指标吸收明细被夹取的 12px（实读 ${p.indicatorsPx}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(p.klinePx).toBe(697);
-    expect(p.klinePx + p.indicatorsPx + p.detailPx).toBeCloseTo(AVAIL[1400], 0);
+    expect(
+      Math.abs(p.detailPx - (203 + 120)),
+      `下方视图（明细）1:1 变高（实读 ${p.detailPx}；**错符号实现此处为 ${203 - 120}**）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      Math.abs(p.indicatorsPx - (368 - 120)),
+      `上方视图（指标）1:1 变矮（实读 ${p.indicatorsPx}；**错符号实现此处为 ${368 + 120}**）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(p.klinePx, '第三个视图（K 线）完全不动').toBe(697);
+    expect(p.klinePx + p.indicatorsPx + p.detailPx, 'D9-6④ 守恒').toBeCloseTo(AVAIL[1400], 0);
+  });
+
+  it('指标↔明细：触可读下限 clamp（下拖 dy = +240）⇒ 明细停在 95、指标吸收被夹取的 132px', () => {
+    const out = dragRatiosFromViewPx({ ...start, boundary: 'indicators-detail', dy: 240, mins: viewMinPx(1) });
+    const p = planThreeViews({ ratios: out.ratios, viewportH: 1400, subPaneCount: 1 });
+    expect(out.clamped, '触下限必须回报 clamped').toBe(true);
+    expect(p.detailPx, '明细停在可读下限 95（203−240 = −37）').toBe(95);
+    // 明细目标 −37（< 95）⇒ 抬到 95，缺口 132 从上方视图（指标）回吐 ⇒ 476 = 368+240−132
+    expect(Math.abs(p.indicatorsPx - 476), `指标吸收明细被夹取的 132px（实读 ${p.indicatorsPx}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(p.klinePx, 'K 线不受该边界影响').toBe(697);
+    expect(p.klinePx + p.indicatorsPx + p.detailPx, 'D9-6④ 守恒').toBeCloseTo(AVAIL[1400], 0);
   });
 });
 
@@ -511,14 +554,15 @@ describe('BLOCKED-1 修复：收起态下拖拽 ⇒ v2 不得含 0 比例、往�
 describe('BLOCKED-2 修复：拖拽路径也必须披露夹取（禁只在默认分配路径置位）', () => {
   it('拖到可读下限 ⇒ 该次拖拽回报 clamped=true；未触下限不得误报', () => {
     const start = { klinePx: 697, indicatorsPx: 368, detailPx: 203, viewSpacePx: 1268, mins: viewMinPx(1) };
-    const free = dragRatiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: -40 });
-    expect(free.clamped, '未触下限（指标 368 → 328 ≥ 180）不得误报夹取').toBe(false);
-    const hit = dragRatiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: -240 });
+    // 方向口径（§2.8 二次纠错）：上拖 ⇒ 下方变小；故「把下方视图拖到下限」= **下拖（dy > 0）**。
+    const free = dragRatiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 40 });
+    expect(free.clamped, '未触下限（K 线 697 → 737 ≥ 299、指标 368 → 328 ≥ 180）不得误报夹取').toBe(false);
+    const hit = dragRatiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 240 });
     expect(hit.clamped, '指标被夹到可读下限 180 ⇒ 必须置位').toBe(true);
-    const hit2 = dragRatiosFromViewPx({ ...start, boundary: 'indicators-detail', dy: -240 });
+    const hit2 = dragRatiosFromViewPx({ ...start, boundary: 'indicators-detail', dy: 240 });
     expect(hit2.clamped, '明细被夹到可读下限 95 ⇒ 必须置位').toBe(true);
     // 夹取后比例与「只取比例」的旧入口一致（兼容性）
-    expect(hit.ratios).toEqual(ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: -240 }));
+    expect(hit.ratios).toEqual(ratiosFromViewPx({ ...start, boundary: 'kline-indicators', dy: 240 }));
     // 夹取读数与 D9-6 实测表一致：885 / 180 / 203
     const p = planThreeViews({ ratios: hit.ratios, viewportH: 1400, subPaneCount: 1 });
     expect([p.klinePx, p.indicatorsPx, p.detailPx]).toEqual([885, 180, 203]);
@@ -543,6 +587,11 @@ describe('R1 冻结语义：收起段比例不得被拖拽改写（展开必须�
   /** 产品 commit 形态：写盘 ⇒ 内存态 = 落盘态（与 `useResultLayout.commit` 一致）。 */
   const VPX = { viewportH: 800, subPaneCount: 1 } as const;
 
+  /**
+   * 【方向口径迁移（2026-09-24 二次纠错）】本 describe 原有 dy 按错措辞（「上拖 ⇒ 上方变大」）选取；
+   * 新契约（§2.8：把手方向 = 边界方向）下，**同一物理手势的几何效果是镜像的** ⇒ 把 dy 取反
+   * 即精确重现原场景（两侧夹取/让位/真比例下限的结构不变）。以下注释标注新口径下的读法。
+   */
   it('①收起 indicators ⇒ 拖 指标↔明细 ⇒ 展开：indicators 比例 == 收起前（±1e-9）且可见两段之和 = 1 − 收起段', () => {
     const { storage, map } = fakeStorage();
     // ⓪ 先拖 K线↔指标 造出**非默认**比例（默认值巧合会掩盖冻结失效：0.29 vs 0.3503 必须可分）
@@ -554,7 +603,7 @@ describe('R1 冻结语义：收起段比例不得被拖拽改写（展开必须�
       detailPx: p0.detailPx,
       viewSpacePx: p0.availablePx,
       boundary: 'kline-indicators',
-      dy: 40,
+      dy: -40,
       mins: viewMinPx(1),
     });
     const afterFirst = writeResultLayout({ ratios: first.ratios, collapsed: { indicators: false, detail: false } }, storage);
@@ -584,7 +633,7 @@ describe('R1 冻结语义：收起段比例不得被拖拽改写（展开必须�
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'indicators-detail',
-      dy: 100,
+      dy: -100,
       mins: viewMinPx(1),
       collapsedRatioSum: preCollapse.ratios.indicators,
     });
@@ -663,7 +712,7 @@ describe('R1 冻结语义：收起段比例不得被拖拽改写（展开必须�
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'kline-indicators',
-      dy: 80,
+      dy: -80,
       mins: viewMinPx(1),
     });
     const afterDrag = writeResultLayout({ ratios: dragged.ratios, collapsed: { indicators: false, detail: true } }, storage);
@@ -732,7 +781,7 @@ describe('R1b 收起态相邻边界：位移转给可见两段（架构裁决第
     return commit(storage, d.ratios, COL_NONE);
   }
 
-  it('①收起 indicators ⇒ 拖 指标↔明细 +100 ⇒ K 线与明细各 ±100px（±2）且收起段比例逐位冻结', () => {
+  it('①收起 indicators ⇒ 拖 指标↔明细 **上拖 −100** ⇒ K 线与明细各 ±100px（±2）且收起段比例逐位冻结', () => {
     const { storage } = fakeStorage();
     const preset = presetLayout(storage, VH_BIG);
     expect(preset.ratios.indicators, '前置：指标比例已非默认').not.toBeCloseTo(DEFAULT_VIEW_RATIOS.indicators, 3);
@@ -742,14 +791,14 @@ describe('R1b 收起态相邻边界：位移转给可见两段（架构裁决第
     expect(pCol.indicatorsPx, '前置：收起段 px = 0').toBe(0);
     expect(pCol.klinePx + pCol.detailPx, '收起态：可见两段占满可用高').toBeCloseTo(pCol.availablePx, 0);
 
-    // 收起态下拖 指标↔明细 +100 ⇒ 位移只在可见两段之间 1:1
+    // 收起态下拖 指标↔明细 **上拖（dy < 0）** ⇒ 位移只在可见两段之间 1:1
     const drag = dragRatiosFromViewPx({
       klinePx: pCol.klinePx,
       indicatorsPx: pCol.indicatorsPx,
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'indicators-detail',
-      dy: 100,
+      dy: -100,
       mins: viewMinPx(1),
     });
     const after = commit(storage, drag.ratios, COL_IND);
@@ -788,7 +837,7 @@ describe('R1b 收起态相邻边界：位移转给可见两段（架构裁决第
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'indicators-detail',
-      dy: 100,
+      dy: -100,
       mins: viewMinPx(1),
     });
     const after = commit(storage, drag.ratios, COL_IND);
@@ -825,7 +874,7 @@ describe('R1b 收起态相邻边界：位移转给可见两段（架构裁决第
       detailPx: p0.detailPx,
       viewSpacePx: p0.availablePx,
       boundary: 'indicators-detail',
-      dy: 120,
+      dy: -120,
       mins: viewMinPx(1),
     });
     const after = commit(storage, drag.ratios, COL_NONE);
@@ -841,14 +890,14 @@ describe('R1b 收起态相邻边界：位移转给可见两段（架构裁决第
     const base = readResultLayout(storage, { viewportH: VH_W800 });
     const preCollapse = commit(storage, base.ratios, COL_IND);
     const pCol = planThreeViews({ ratios: preCollapse.ratios, viewportH: VH_W800, subPaneCount: 1, collapsed: COL_IND });
-    // 鼠标上拖 ⇒ 明细变矮，直至其可读下限 95
+    // 鼠标**下拖**（dy > 0；§2.8：把手方向 = 边界方向 ⇒ 边界下移 ⇒ 下方明细变矮）直至其可读下限 95
     const drag = dragRatiosFromViewPx({
       klinePx: pCol.klinePx,
       indicatorsPx: pCol.indicatorsPx,
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'indicators-detail',
-      dy: -200,
+      dy: 200,
       mins: viewMinPx(1),
     });
     expect(drag.clamped, '拖到可见段下限 ⇒ 必须置位夹取（禁静默）').toBe(true);
@@ -880,7 +929,7 @@ describe('R1c 真实比例夹取：展开无条件回位（800 档触真实下�
   const COL_DET = { indicators: false, detail: true } as const;
   const COL_NONE = { indicators: false, detail: false } as const;
 
-  it('800 档：收起指标 ⇒ 拖 ID +100 ⇒ 停在**真实**下限边界（clamped + 披露）∧ 展开 Δ≤2px（无条件）', () => {
+  it('800 档：收起指标 ⇒ 拖 ID **上拖 −100** ⇒ 停在**真实**下限边界（clamped + 披露）∧ 展开 Δ≤2px（无条件）', () => {
     const { storage } = fakeStorage();
     const base = readResultLayout(storage, { viewportH: 800 });
     const st = writeResultLayout({ ratios: base.ratios, collapsed: COL_IND }, storage);
@@ -893,7 +942,7 @@ describe('R1c 真实比例夹取：展开无条件回位（800 档触真实下�
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'indicators-detail',
-      dy: 100,
+      dy: -100,
       mins: viewMinPx(1),
       collapsedRatioSum: S,
     });
@@ -930,14 +979,14 @@ describe('R1c 真实比例夹取：展开无条件回位（800 档触真实下�
     const st = writeResultLayout({ ratios: base.ratios, collapsed: COL_DET }, storage);
     const S = st.ratios.detail;
     const pCol = planThreeViews({ ratios: st.ratios, viewportH: 800, subPaneCount: 1, collapsed: COL_DET });
-    // 上拖：指标变矮 —— 显示帧下限 180，但**真实**下限 = 180 / (1 − S) ≈ 214
+    // **下拖**（dy > 0；§2.8：边界下移 ⇒ 上方变高、下方变矮）：指标变矮 —— 显示帧下限 180，但**真实**下限 = 180 / (1 − S) ≈ 214
     const drag = dragRatiosFromViewPx({
       klinePx: pCol.klinePx,
       indicatorsPx: pCol.indicatorsPx,
       detailPx: pCol.detailPx,
       viewSpacePx: pCol.availablePx,
       boundary: 'kline-indicators',
-      dy: -400,
+      dy: 400,
       mins: viewMinPx(1),
       collapsedRatioSum: S,
     });
@@ -1030,7 +1079,7 @@ describe('R1d 写入侧归一（存储 == 渲染）：可行不变量 + 反例�
     });
     const afterDrag = writeResultLayout({ ratios: drag.ratios, collapsed: { indicators: false, detail: true } }, storage, opts);
     expectFeasible(afterDrag.ratios, afterDrag.collapsed, '拖拽后');
-    // 键盘步进（ArrowDown = K线变矮 16px）
+    // 键盘步进（ArrowDown = 边界下移 ⇒ K 线变高 16px）
     const pKey = planThreeViews({ ratios: afterDrag.ratios, viewportH: 800, availablePx: AV, subPaneCount: 1, collapsed: afterDrag.collapsed });
     const keyDrag = dragRatiosFromViewPx({
       klinePx: pKey.klinePx,

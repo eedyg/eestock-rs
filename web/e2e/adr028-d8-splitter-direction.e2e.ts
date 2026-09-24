@@ -9,13 +9,24 @@
  * ## 重锚推导（旧契约 → 新契约，逐条）
  * | 旧（D7/D8 两视图） | 新（D9 三视图） | 依据 |
  * |---|---|---|
- * | 单一分隔条 `wb-pane-splitter`（**上栏下沿 = 下栏上沿**）：「上拖 ⇒ 下栏变高」 | 该物理位置 = **`wb-splitter-indicators-detail`**（明细视图上沿）⇒ 「上拖 ⇒ **上方视图（指标）变高**、明细变矮」；**并新增** `wb-splitter-kline-indicators`（K 线视图下沿）需同规则 | §2.9-1（两条分隔条）+ §2.9-8 + §4-12⑤ |
+ * | 单一分隔条 `wb-pane-splitter`（**上栏下沿 = 下栏上沿**）：「上拖 ⇒ 下栏变高」 | 该物理位置 = **`wb-splitter-indicators-detail`**（明细视图上沿）⇒ 「上拖 ⇒ **下方视图（明细）变高**、指标变矮」；**并新增** `wb-splitter-kline-indicators`（K 线视图下沿）需同规则 | §2.9-1（两条分隔条）+ §2.9-8 + §4-12⑤ |
  * | 上方视图 = 单一「上栏 `wb-chart-pane`」 | 上方视图**按边界取**：K线↔指标 ⇒ 上方 = `wb-kline-view`；指标↔明细 ⇒ 上方 = `wb-indicator-view` | §2.9-1（结构硬约束） |
  *   （该映射在本规格内以 `VIEW_OF` + `VIEW_KEY` / `sidesOf()` 落地，并被「结构相邻」与「1:1 位移」判据**消费**）
  * | 比例观测 `data-pane-ratio` / 收起 `data-pane-collapsed` | `data-view-ratio-{kline,indicators,detail}` / `data-view-collapsed-{indicators,detail}` | §2.9-12（D9-12 观测性） |
  * | 夹取 = 「上栏保底 200px」+ 比例 [0.15,0.85] | 夹取 = **三视图可读下限**（K 线视图 299（1 副图）/329（2 副图）、指标 180、明细 95），**只对本边界的两个视图**生效，第三视图完全不动 | §2.9-7 + §4-12① |
- * | 卡片把手 = **K 线卡下沿把手**（`wb-card-resize-kline`）⇒ 下拖 = 变高 | **D9-5 删除 K 线卡把手** ⇒ 「两类把手符号相反」迁到**仍保留把手的四张曲线卡**（`wb-card-resize-{aggregate,slot,equity,position}`，D4.2 保留）；**方向语义本身不变**（把手下沿 ⇒ 下拖 = 变高），与分隔条（在上沿 ⇒ 上拖 = 上方视图变高）**符号相反** | §2.9-5（删卡片把手）+ §2.9-6（视图高度可调）+ §2.8（禁止互相套用） |
+ * | 卡片把手 = **K 线卡下沿把手**（`wb-card-resize-kline`）⇒ 下拖 = 变高 | **D9-5 删除 K 线卡把手** ⇒ 「两类把手符号相反」迁到**仍保留把手的四张曲线卡**（`wb-card-resize-{aggregate,slot,equity,position}`，D4.2 保留）；**方向语义本身不变**（把手下沿 ⇒ 下拖 = 变高），与分隔条（在上沿 ⇒ 上拖 = 下方视图变高）**符号相反** | §2.9-5（删卡片把手）+ §2.9-6（视图高度可调）+ §2.8（禁止互相套用） |
  * | 双击分隔条 ⇒ 复位 40% 视口高 | 双击分隔条 ⇒ 复位**该边界默认比例**（K线↔指标 ⇒ `kline/(kline+indicators)` = 0.55/0.84；指标↔明细 ⇒ 0.29/0.45） | §2.9-8 + D9-6⑥ |
+ *
+ * ## 方向语义的**二次纠错**（2026-09-24，本规格同步重锚）
+ * | 契约版本 | 措辞 | 几何读法 | 本规格旧断言（错） | 本规格新断言（对） |
+ * |---|---|---|---|---|
+ * | §2.8 初版（**已作废**） | 向上 ⇒ **上方**视图变高 | 与 §2.7-3 矛盾 | 上拖 120 ⇒ 上方 +120 | — |
+ * | §2.7-3 + §2.8 二次纠错（**唯一有效**） | 向上 ⇒ **下方**视图变高、上方变矮 | **把手移动方向 = 边界移动方向**：边界上移 ⇒ 下方区域变大 | — | 上拖 120 ⇒ **下方 +120 / 上方 −120** |
+ *
+ * 推导链（逐条，禁按实现倒推）：① 分隔条位于上方视图的**下沿**、下方视图的**上沿**（§2.8）；
+ * ② 拖拽不改变分隔条与两侧视图的相邻关系（结构前置断言）⇒ 分隔条上移即边界上移；
+ * ③ 边界上移 ⇒ 下方视图的上沿抬高、上方视图的下沿抬高 ⇒ **下方变大、上方变小**（§2.8「唯一裁决基准」）；
+ * ④ 位移 1:1 ⇒ `upperPx = startUpper + Δy`、`lowerPx = startLower − Δy`（Δy > 0 = 鼠标向下）。
  *
  * ## 为什么这条规格必须存在
  * 用户实测缺陷（2026-09-24）：拖「明细视图高度」时分隔条方向反了。**契约缺口**（原文只写「可拖拽」未写方向）
@@ -207,7 +218,7 @@ async function reselect(page: Page, runId: string = RUN_ID): Promise<void> {
 }
 
 /**
- * 拖某条**视图分隔条**：`dy < 0` = 鼠标**向上**（契约 §2.8/§2.9-8：上移 ⇒ **上方**视图变高）。
+ * 拖某条**视图分隔条**：`dy < 0` = 鼠标**向上**（契约 §2.8/§2.9-8：边界上移 ⇒ **下方**视图变高、上方变矮）。
  * 指针终点**夹在视口内**（越出视口的合成鼠标事件不可靠 ⇒ 会静默「什么都没发生」）。
  */
 async function dragSplitterBy(page: Page, which: Boundary, dy: number, steps = 10): Promise<void> {
@@ -279,7 +290,7 @@ async function dragCurveHandleBy(page: Page, cardId: string, dy: number, steps =
 test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 富余档）', () => {
   test.use({ viewport: RICH_VIEWPORT });
 
-  test('上拖 N ⇒ 上方（K 线）视图变高 N、指标变矮 N（1:1）；下拖反向；越界停 K 线可读下限；双击复位', async ({
+  test('上拖 N ⇒ **下方（指标）视图变高 N、K 线变矮 N**（1:1）；下拖反向；越界停 K 线可读下限；双击复位', async ({
     page,
   }) => {
     await openRun(page);
@@ -302,6 +313,10 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
     expect(base.ratios.detail, '前置：默认明细比例 0.16').toBeCloseTo(DEFAULT_RATIOS.detail, 2);
     const roomDown = RICH_VIEWPORT.height - 4 - (base.splitters.ki!.rect!.y + base.splitters.ki!.rect!.h / 2);
     expect(roomDown, '前置：K线↔指标 边界的下移余量必须 > 240（否则大位移判据会退化为常量）').toBeGreaterThan(240);
+    const roomUp = base.splitters.ki!.rect!.y + base.splitters.ki!.rect!.h / 2 - 4;
+    expect(roomUp, '前置：K线↔指标 边界的**上移余量**必须 > 240（错方向实现在此构上会退化为常量）').toBeGreaterThan(
+      240,
+    );
     // D9-5：K 线卡下沿把手必须不存在（「两类把手」的另一类已迁到曲线卡，见 D8-3）
     expect(base.klineCard.cardHandlePresent, 'D9-5：K 线卡下沿把手必须不存在').toBe(false);
 
@@ -318,7 +333,7 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
     expect(gapBelow, `D8 结构前置：分隔条必须在下方视图 ${lowerTestId} 之上（间隙 ${gapBelow}px，容差 0–12）`).toBeGreaterThanOrEqual(0);
     expect(gapBelow, `D8 结构前置：分隔条与下方视图 ${lowerTestId} 之间不得有超过 12px 的空隙（实读 ${gapBelow}）`).toBeLessThanOrEqual(12);
 
-    // ── D8-1（上拖 120）：上方视图 +120（1:1）、指标 −120、明细**完全不动** ──
+    // ── D8-1（上拖 120 ⇒ 边界上移）：**下方视图（指标）+120**（1:1）、上方视图（K 线）−120、明细**完全不动** ──
     const b1 = await probe(page);
     await dragSplitterBy(page, 'ki', -120);
     const a1 = await probe(page);
@@ -326,14 +341,19 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
     const dLower = a1.views[lowerKey]!.h - b1.views[lowerKey]!.h;
     writeJson('d8_t1_drag_up120', { b1, a1, dUpper, dLower });
     expect(
-      dUpper,
-      `D8-1 上移 120 ⇒ 上方视图（K 线）变高 ≈+120（实读 Δ${dUpper}；**错方向实现此处为 −120**）`,
+      dLower,
+      `D8-1 上移 120 ⇒ **下方视图（指标）变高** ≈+120（实读 Δ${dLower}；**错方向实现此处为 −120**）`,
     ).toBeGreaterThanOrEqual(120 - TOL_PX);
-    expect(Math.abs(dUpper - 120), `D8-1 位移 1:1（实读 Δ${dUpper}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dLower + 120), `D8-1 下方视图反向 1:1（实读 Δ${dLower}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(dLower - 120), `D8-1 位移 1:1（实读 Δ${dLower}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dUpper,
+      `D8-1 上移 120 ⇒ 上方视图（K 线）变矮 ≈−120（实读 Δ${dUpper}；**错方向实现此处为 +120**）`,
+    ).toBeLessThanOrEqual(-120 + TOL_PX);
+    expect(Math.abs(dUpper + 120), `D8-1 上方视图反向 1:1（实读 Δ${dUpper}）`).toBeLessThanOrEqual(TOL_PX);
     // 第三个视图（**非本边界两侧**）⇒ 保持**显式点名**，不接受 VIEW_OF 派生
     expect(a1.views.detail!.h, 'D8-1 另一条边界不受影响（明细视图完全不动）').toBe(b1.views.detail!.h);
-    expect(a1.ratios.kline, 'D8-1 比例必须随之上调').toBeGreaterThan(b1.ratios.kline);
+    expect(a1.ratios.kline, 'D8-1 上方视图变小 ⇒ K 线比例必须**下调**').toBeLessThan(b1.ratios.kline);
+    expect(a1.ratios.indicators, 'D8-1 下方视图变大 ⇒ 指标比例必须上调').toBeGreaterThan(b1.ratios.indicators);
     expect(
       Math.abs(a1.views[upperKey]!.h + a1.views[lowerKey]!.h + a1.views.detail!.h - a1.available),
       'D9-6④ 守恒：调整后三段之和 == 可用高（±2px）',
@@ -348,20 +368,21 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
     const b3 = await probe(page);
     await dragSplitterBy(page, 'ki', -40);
     const a3 = await probe(page);
-    expect(Math.abs(a3.views[upperKey]!.h - b3.views[upperKey]!.h - 40), 'D8-1② 上移 40 ⇒ 1:1').toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a3.views[lowerKey]!.h - b3.views[lowerKey]!.h - 40), 'D8-1② 上移 40 ⇒ 下方视图 +40（1:1）').toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a3.views[upperKey]!.h - b3.views[upperKey]!.h + 40), 'D8-1② 上方视图 −40（1:1）').toBeLessThanOrEqual(TOL_PX);
     await resetToDefault(page);
     const b4 = await probe(page);
     await dragSplitterBy(page, 'ki', -240);
     const a4 = await probe(page);
     writeJson('d8_t1_drag_up_40_240', { b3, a3, b4, a4 });
     expect(
-      Math.abs(a4.views[upperKey]!.h - b4.views[upperKey]!.h - 240),
-      `D8-1③ 上移 240 ⇒ 1:1（余量充裕档，实读 Δ${a4.views[upperKey]!.h - b4.views[upperKey]!.h}）`,
+      Math.abs(a4.views[lowerKey]!.h - b4.views[lowerKey]!.h - 240),
+      `D8-1③ 上移 240 ⇒ 下方视图 +240（1:1；余量充裕档，实读 Δ${a4.views[lowerKey]!.h - b4.views[lowerKey]!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(a4.views[lowerKey]!.h - b4.views[lowerKey]!.h + 240)).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a4.views[upperKey]!.h - b4.views[upperKey]!.h + 240)).toBeLessThanOrEqual(TOL_PX);
     expect(a4.views.detail!.h).toBe(b4.views.detail!.h);
 
-    // ── D8-2（自默认 下拖 120）⇒ 上方视图变矮、指标变高（1:1） ──
+    // ── D8-2（自默认 下拖 120 ⇒ 边界下移）⇒ **上方视图变高**、下方视图变矮（1:1） ──
     await resetToDefault(page);
     const b2 = await probe(page);
     await dragSplitterBy(page, 'ki', 120);
@@ -371,21 +392,25 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
     writeJson('d8_t1_drag_down120', { b2, a2, dUpper2, dLower2 });
     expect(
       dUpper2,
-      `D8-2 下移 120 ⇒ 上方视图变矮 ≈−120（实读 Δ${dUpper2}；**错方向实现此处为 +120**）`,
+      `D8-2 下移 120 ⇒ 上方视图（K 线）**变高** ≈+120（实读 Δ${dUpper2}；**错方向实现此处为 −120**）`,
+    ).toBeGreaterThanOrEqual(120 - TOL_PX);
+    expect(Math.abs(dUpper2 - 120), `D8-2 位移 1:1（实读 Δ${dUpper2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dLower2,
+      `D8-2 下移 120 ⇒ 下方视图变矮 ≈−120（实读 Δ${dLower2}；**错方向实现此处为 +120**）`,
     ).toBeLessThanOrEqual(-120 + TOL_PX);
-    expect(Math.abs(dUpper2 + 120), `D8-2 位移 1:1（实读 Δ${dUpper2}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dLower2 - 120), `D8-2 下方视图反向 1:1（实读 Δ${dLower2}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(a2.ratios.kline, 'D8-2 比例必须随之下调').toBeLessThan(b2.ratios.kline);
+    expect(Math.abs(dLower2 + 120), `D8-2 下方视图反向 1:1（实读 Δ${dLower2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(a2.ratios.kline, 'D8-2 上方视图变大 ⇒ 比例上调').toBeGreaterThan(b2.ratios.kline);
 
-    // ── 越界（自默认 下拖 4000；实测位移被视口底边夹住但足以越界）⇒ K 线视图停在**可读下限 299**（D9-7） ──
+    // ── 越界（自默认 **上拖 4000**；实测位移被视口顶边夹住但足以越界）⇒ K 线视图停在**可读下限 299**（D9-7） ──
     await resetToDefault(page);
     const b5 = await probe(page);
-    await dragSplitterBy(page, 'ki', 4000);
+    await dragSplitterBy(page, 'ki', -4000);
     const a5 = await probe(page);
     writeJson('d8_t1_lower_clamp', { b5, a5, roomDown });
     expect(
       a5.views[upperKey]!.h,
-      `D9-7 越界下拖 ⇒ K 线视图停在可读下限 ${VIEW_MIN.kline}（实读 ${a5.views[upperKey]!.h}）`,
+      `D9-7 越界上拖 ⇒ K 线视图停在可读下限 ${VIEW_MIN.kline}（实读 ${a5.views[upperKey]!.h}）`,
     ).toBe(VIEW_MIN.kline);
     expect(a5.views[lowerKey]!.h, `D9-7 指标视图不得低于可读下限 ${VIEW_MIN.indicators}`).toBeGreaterThanOrEqual(
       VIEW_MIN.indicators,
@@ -447,7 +472,7 @@ test.describe('D8-1/D8-2/D8-4 方向语义：K线↔指标 边界（1280×1800 �
 test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800 富余档）', () => {
   test.use({ viewport: RICH_VIEWPORT });
 
-  test('上拖 ⇒ 指标变高 / 明细变矮；下拖反向；越界停明细可读下限 95；双击复位', async ({ page }) => {
+  test('上拖 ⇒ **明细变高 / 指标变矮**；下拖反向；越界停明细可读下限 95；双击复位', async ({ page }) => {
     await openRun(page);
     const base = await probe(page);
     const { upperKey, lowerKey, upperTestId, lowerTestId } = sidesOf('id');
@@ -456,6 +481,8 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
     expect(base.splitters.id!.cursor).toBe('ns-resize');
     const roomDown = RICH_VIEWPORT.height - 4 - (base.splitters.id!.rect!.y + base.splitters.id!.rect!.h / 2);
     expect(roomDown, '前置：指标↔明细 边界的下移余量必须 > 240（否则大位移判据会退化为常量）').toBeGreaterThan(240);
+    const roomUp = base.splitters.id!.rect!.y + base.splitters.id!.rect!.h / 2 - 4;
+    expect(roomUp, '前置：指标↔明细 边界的**上移余量**必须 > 240').toBeGreaterThan(240);
 
     // 结构前置（载体 = 指标↔明细 边界；testid 由 VIEW_OF 派生，禁硬编码）
     const upperRect = base.views[upperKey];
@@ -469,7 +496,7 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
     expect(gapBelow, `D8 结构前置：分隔条必须在 ${lowerTestId} 之上（间隙 ${gapBelow}px，容差 0–12）`).toBeGreaterThanOrEqual(0);
     expect(gapBelow, `D8 结构前置：分隔条与 ${lowerTestId} 之间不得有超过 12px 空隙（实读 ${gapBelow}）`).toBeLessThanOrEqual(12);
 
-    // ── 上拖 120 ⇒ 指标 +120（上方视图）、明细 −120；K 线**完全不动** ──
+    // ── 上拖 120 ⇒ **明细 +120（下方视图）**、指标 −120（上方视图）；K 线**完全不动** ──
     const b1 = await probe(page);
     await dragSplitterBy(page, 'id', -120);
     const a1 = await probe(page);
@@ -477,11 +504,15 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
     const dLower = a1.views[lowerKey]!.h - b1.views[lowerKey]!.h;
     writeJson('d8_t2_drag_up120', { b1, a1, dUpper, dLower });
     expect(
-      dUpper,
-      `D8-1 上移 120 ⇒ 上方视图（指标）变高 ≈+120（实读 Δ${dUpper}；**错方向实现此处为 −120**）`,
+      dLower,
+      `D8-1 上移 120 ⇒ **下方视图（明细）变高** ≈+120（实读 Δ${dLower}；**错方向实现此处为 −120**）`,
     ).toBeGreaterThanOrEqual(120 - TOL_PX);
-    expect(Math.abs(dUpper - 120), `D8-1 位移 1:1（实读 Δ${dUpper}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dLower + 120), `D8-1 明细视图反向 1:1（实读 Δ${dLower}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(dLower - 120), `D8-1 位移 1:1（实读 Δ${dLower}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dUpper,
+      `D8-1 上移 120 ⇒ 上方视图（指标）变矮 ≈−120（实读 Δ${dUpper}；**错方向实现此处为 +120**）`,
+    ).toBeLessThanOrEqual(-120 + TOL_PX);
+    expect(Math.abs(dUpper + 120), `D8-1 指标视图反向 1:1（实读 Δ${dUpper}）`).toBeLessThanOrEqual(TOL_PX);
     // 第三个视图（**非本边界两侧**）⇒ 保持显式点名
     expect(a1.views.kline!.h, 'D8-1 另一条边界不受影响（K 线视图完全不动）').toBe(b1.views.kline!.h);
     expect(
@@ -504,7 +535,7 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
     );
     expect(resetFromUp.views.kline!.h, 'D8-4 双击 指标↔明细 不得改变 K 线视图').toBe(a1.views.kline!.h);
 
-    // ── 下拖 120（自默认）⇒ 反向 1:1 ──
+    // ── 下拖 120（自默认）⇒ 反向 1:1（明细 267−120 = 147 ≥ 95，不触限） ──
     const b2 = await probe(page);
     await dragSplitterBy(page, 'id', 120);
     const a2 = await probe(page);
@@ -513,36 +544,40 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
     writeJson('d8_t2_drag_down120', { b2, a2, dUpper2, dLower2 });
     expect(
       dUpper2,
-      `D8-2 下移 120 ⇒ 上方视图变矮 ≈−120（实读 Δ${dUpper2}；**错方向实现此处为 +120**）`,
+      `D8-2 下移 120 ⇒ 上方视图（指标）**变高** ≈+120（实读 Δ${dUpper2}；**错方向实现此处为 −120**）`,
+    ).toBeGreaterThanOrEqual(120 - TOL_PX);
+    expect(Math.abs(dUpper2 - 120), `D8-2 位移 1:1（实读 Δ${dUpper2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dLower2,
+      `D8-2 下移 120 ⇒ 下方视图（明细）变矮 ≈−120（实读 Δ${dLower2}；**错方向实现此处为 +120**）`,
     ).toBeLessThanOrEqual(-120 + TOL_PX);
-    expect(Math.abs(dUpper2 + 120), `D8-2 位移 1:1（实读 Δ${dUpper2}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dLower2 - 120), `D8-2 明细视图反向 1:1（实读 Δ${dLower2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(dLower2 + 120), `D8-2 明细视图反向 1:1（实读 Δ${dLower2}）`).toBeLessThanOrEqual(TOL_PX);
     expect(a2.views.kline!.h).toBe(b2.views.kline!.h);
 
-    // ── 下拖 240（自默认；余量实测 > 240）⇒ 1:1 ──
+    // ── **上拖** 240（自默认；余量实测 > 240）⇒ 明细 +240（1:1，267+240 = 507；指标 484−240 = 244 ≥ 180 不触限） ──
     await resetBoundary(page, 'id');
     const b2b = await probe(page);
-    await dragSplitterBy(page, 'id', 240);
+    await dragSplitterBy(page, 'id', -240);
     const a2b = await probe(page);
-    writeJson('d8_t2_drag_down240', { b2b, a2b });
+    writeJson('d8_t2_drag_up240', { b2b, a2b });
     expect(
-      Math.abs(a2b.views[upperKey]!.h - b2b.views[upperKey]!.h + 240),
-      `D8-2② 下移 240 ⇒ 1:1（实读 Δ${a2b.views[upperKey]!.h - b2b.views[upperKey]!.h}）`,
+      Math.abs(a2b.views[lowerKey]!.h - b2b.views[lowerKey]!.h - 240),
+      `D8-1② 上移 240 ⇒ 明细 +240（1:1，实读 Δ${a2b.views[lowerKey]!.h - b2b.views[lowerKey]!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(a2b.views[lowerKey]!.h - b2b.views[lowerKey]!.h - 240)).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a2b.views[upperKey]!.h - b2b.views[upperKey]!.h + 240)).toBeLessThanOrEqual(TOL_PX);
     expect(a2b.views.kline!.h).toBe(b2b.views.kline!.h);
 
-    // ── 上拖 240（越界）⇒ 明细停在可读下限 95，差额由指标吸收 ──
+    // ── 下拖 240（越界）⇒ 明细停在可读下限 95，差额由指标吸收 ──
     await resetBoundary(page, 'id');
     const b3 = await probe(page);
-    await dragSplitterBy(page, 'id', -240);
+    await dragSplitterBy(page, 'id', 240);
     const a3 = await probe(page);
     const clip = Math.max(0, VIEW_MIN.detail - (b3.views[lowerKey]!.h - 240));
-    writeJson('d8_t2_drag_up240_clip', { b3, a3, clip });
-    expect(a3.views[lowerKey]!.h, `D9-7 越界上拖 ⇒ 明细视图停在可读下限 ${VIEW_MIN.detail}`).toBe(VIEW_MIN.detail);
+    writeJson('d8_t2_drag_down240_clip', { b3, a3, clip });
+    expect(a3.views[lowerKey]!.h, `D9-7 越界下拖 ⇒ 明细视图停在可读下限 ${VIEW_MIN.detail}`).toBe(VIEW_MIN.detail);
     expect(
       Math.abs(a3.views[upperKey]!.h - (b3.views[upperKey]!.h + 240 - clip)),
-      `D8-1 指标吸收被夹取的 ${clip}px（实读 ${a3.views[upperKey]!.h}）`,
+      `D8-2 指标吸收被夹取的 ${clip}px（实读 ${a3.views[upperKey]!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
     expect(a3.views.kline!.h, 'D8 另一条边界不受影响（K 线仍不动）').toBe(b3.views.kline!.h);
     expect(
@@ -550,13 +585,13 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
       'D9-6④ 夹取后守恒仍成立',
     ).toBeLessThanOrEqual(TOL_PX);
 
-    // ── 越界（自默认 上拖 4000）⇒ 明细仍不得被压到 0；超额位移由同侧（指标）吸收 ──
+    // ── 越界（自默认 下拖 4000）⇒ 明细仍不得被压到 0；超额位移由同侧（指标）吸收 ──
     await resetBoundary(page, 'id');
     const b4 = await probe(page);
-    await dragSplitterBy(page, 'id', -4000);
+    await dragSplitterBy(page, 'id', 4000);
     const a4 = await probe(page);
-    writeJson('d8_t2_upper_limit', { b4, a4 });
-    expect(a4.views[lowerKey]!.h, `D9-7 极端上拖 ⇒ 明细停在可读下限（实读 ${a4.views[lowerKey]!.h}）`).toBe(VIEW_MIN.detail);
+    writeJson('d8_t2_lower_limit', { b4, a4 });
+    expect(a4.views[lowerKey]!.h, `D9-7 极端下拖 ⇒ 明细停在可读下限（实读 ${a4.views[lowerKey]!.h}）`).toBe(VIEW_MIN.detail);
     expect(a4.views[upperKey]!.h, `D9-7 指标视图 ≥ ${VIEW_MIN.indicators}`).toBeGreaterThanOrEqual(VIEW_MIN.indicators);
     expect(a4.views.kline!.h, 'D9-7 另一条边界仍不受影响').toBe(b4.views.kline!.h);
     expect(
@@ -585,10 +620,10 @@ test.describe('D8-1/D8-2/D8-4 方向语义：指标↔明细 边界（1280×1800
   });
 });
 
-test.describe('D8-3 两类把手符号相反（曲线卡把手下拖 = 变高 vs 分隔条上拖 = 上方视图变高）', () => {
+test.describe('D8-3 两类把手符号相反（曲线卡把手下拖 = 变高 vs 分隔条上拖 = **下方**视图变高）', () => {
   test.use({ viewport: RICH_VIEWPORT });
 
-  test('四张曲线卡把手下拖 +40 ⇒ 卡变高（D4.2 保留）；同页分隔条上拖 ⇒ 上方视图变高（反向并存）', async ({
+  test('四张曲线卡把手下拖 +40 ⇒ 卡变高（D4.2 保留）；同页分隔条上拖 ⇒ **下方**视图变高（反向并存）', async ({
     page,
   }) => {
     await openRun(page);
@@ -627,22 +662,35 @@ test.describe('D8-3 两类把手符号相反（曲线卡把手下拖 = 变高 vs
     expect(dUp, `D8-3 把手向上 40 ⇒ 卡片变矮 ≈−40（实读 Δ${dUp}）`).toBeLessThanOrEqual(-40 + TOL_PX);
     expect(Math.abs(dUp + 40), `D8-3 位移 1:1（实读 Δ${dUp}）`).toBeLessThanOrEqual(TOL_PX);
 
-    // ── D8-3③：同页交叉：分隔条**向上** ⇒ 上方视图变高（与曲线卡把手的「向下=变高」符号**相反**） ──
+    // ── D8-3③：同页交叉：分隔条**向上** ⇒ **下方视图（指标）**变高（与曲线卡把手的「向下=变高」符号**相反**） ──
+    // 推导（§2.8 唯一裁决基准）：分割条位于上方视图下沿 ⇒ 上移即边界上移 ⇒ **下方**区域变大、上方变小；
+    // 同一「向上」手势在**卡把手**（位于卡片下沿）⇒ 卡片**变矮** ⇒ 两者符号必然相反。
     const splitBase = await probe(page);
+    const { upperKey: upK, lowerKey: lowK } = sidesOf('ki');
     await dragSplitterBy(page, 'ki', -60);
     const splitUp = await probe(page);
-    const dViewUp = splitUp.views.kline!.h - splitBase.views.kline!.h;
-    writeJson('d8_t3_splitter_cross', { splitBase, splitUp, dViewUp, curveDelta: results['aggregate']!.delta });
+    const dViewUp = splitUp.views[lowK]!.h - splitBase.views[lowK]!.h;
+    const dViewUpUpper = splitUp.views[upK]!.h - splitBase.views[upK]!.h;
+    writeJson('d8_t3_splitter_cross', {
+      splitBase,
+      splitUp,
+      dViewUp,
+      dViewUpUpper,
+      curveDelta: results['aggregate']!.delta,
+    });
     expect(
       dViewUp,
-      `D8-3 同页交叉：分隔条向上 60 ⇒ K 线视图变高 ≈+60（实读 Δ${dViewUp}）——与曲线卡把手方向**相反**`,
+      `D8-3 同页交叉：分隔条向上 60 ⇒ **下方视图**变高 ≈+60（实读 Δ${dViewUp}）——与曲线卡把手方向**相反**`,
     ).toBeGreaterThanOrEqual(60 - TOL_PX);
     expect(Math.abs(dViewUp - 60)).toBeLessThanOrEqual(TOL_PX);
-    // 两类把手的符号差是几何决定的：同一手势方向（向上）在 **分隔条** = 上方视图**变高**，
+    expect(Math.abs(dViewUpUpper + 60), `D8-3 同页交叉：上方视图反向 1:1（实读 Δ${dViewUpUpper}）`).toBeLessThanOrEqual(
+      TOL_PX,
+    );
+    // 两类把手的符号差是几何决定的：同一手势方向（向上）在 **分隔条** = **下方**视图变高，
     // 在 **曲线卡把手** = 卡片**变矮**（D8-3② 的 dUp < 0）⇒ 若把两者符号互相套用，本用例必红。
     expect(
       Math.sign(dUp),
-      `D8-3 符号相反判据：向上手势在卡把手上 Δ=${dUp}（须为负），在分隔条上 Δ=${dViewUp}（须为正）`,
+      `D8-3 符号相反判据：向上手势在卡把手上 Δ=${dUp}（须为负），在分隔条（下方视图）上 Δ=${dViewUp}（须为正）`,
     ).toBe(-1);
     expect(Math.sign(dViewUp)).toBe(1);
   });

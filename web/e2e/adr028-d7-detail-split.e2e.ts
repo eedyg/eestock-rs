@@ -13,7 +13,7 @@
  * | D7-3「下栏默认 **40% 视口高**」 | 明细默认 = **0.16 × 可用高**（`可用 = 视口 − 132`） | §2.9-7（三段比例默认 0.55/0.29/0.16；实测取 0.16 替代草案 0.20——后者在 720/800 档不可行） |
  * | D7-3「折叠入口在 tab 条内」 | 收起**状态与恢复条上移到视图级**（`ResultView` 持有/渲染）：入口带 `data-collapse-view="detail"`、视图容器带 `data-view-collapse-entry="detail"`、恢复条 `wb-restore-detail`（旧 `wb-detail-expand` 已改名） | §2.9-2（D9-3：指标/明细各自可收起、恢复条常驻带名可点）+ §3 改动清单（`DetailPane`：收起入口统一到视图级） |
  * | D7-3「比例 clamp [0.15,0.85] + 上栏保底 200px」 | 夹取 = **三视图可读下限**（K 线 299/329、指标 180、明细 95） | §2.9-7 + §4-12① |
- * | D7-3 注释「先上限 clamp 再下限 clamp」 | **更正**：拖拽路径上**不存在**比例上下限；旧 `DETAIL_RATIO_MAX = 0.85` 在拖拽路径从未生效，极端位移之所以停住，旧实现是「上栏保底 200px」、D9 是**三视图可读下限**（实测：极端下拖停在明细下限 95） | 派工第 3 条「顺带修正那条不准确注释」+ §2.9-7 |
+ * | D7-3 注释「先上限 clamp 再下限 clamp」 | **更正**：拖拽路径上**不存在**比例上下限；旧 `DETAIL_RATIO_MAX = 0.85` 在拖拽路径从未生效，极端位移之所以停住，旧实现是「上栏保底 200px」、D9 是**三视图可读下限**（实测：极端**下拖**停在明细下限 95——2026-09-24 二次纠错后方向基准：边界下移 ⇒ 下方明细变矮） | 派工第 3 条「顺带修正那条不准确注释」+ §2.9-7 |
  * | D7-4④「K 线回到可见」**分档**（强档=整卡可见 / 弱档=卡顶对齐 + 主图 ≥80%，阈值实测 1065） | **分档取消**：K 线视图**常驻且不滚**（D9-2/D9-4）⇒ K 线卡**恒**完整落在 K 线视图内；等价判据 = ①K 线视图在视口内 ②卡完整落在 K 线视图内（恒等式保证）③主图 ≥160（D9-8②）④写窗真身回执 ok。强档的「与下栏并立」改为 D9 口径：`K线视图 = 0.55×可用 ∧ 主图 ≥320 ∧ 明细 = 0.16×可用` 并立 | §2.9-2/3/4（K 线常驻 + 不滚）+ §2.9-6③（分档）+ §4-12⑦ |
  * | D7-4①②③ 跳转纪律：`scrollY` 不变 / 下栏 `scrollTop` 不变 / 目标行仍可见 | **保留并加强**：`scrollY` 不变 / 明细视图 `scrollTop` 不变 / **指标视图 `scrollTop` 也不变** / 目标行仍在明细视图内 / 三段视图分配逐值不变 | §2.9-10（D9-10，对齐 D7-4②）+ §4-12⑥（切视图/收起/展开不得改变另一侧滚动位置） |
  * | D7-4④ 弱档「卡顶与上栏视口顶对齐」前置 | **删除**（不可满足）：K 线视图无内部滚动 ⇒ 无法把锚点滚出可视区；前置改为「明细视图与指标视图的 `scrollTop` 均 > 0」使「不变」判据有鉴别力 | D9-4（K 线视图不滚）+ 禁止「用不可满足的前提制造假绿」 |
@@ -281,7 +281,8 @@ async function reselect(page: Page, runId: string = RUN_ID): Promise<void> {
 }
 
 /**
- * 拖**指标↔明细**分隔条：`dy < 0` = 鼠标**向上**（契约 §2.8/§2.9-8：上移 ⇒ 上方视图（指标）变高、明细变矮）。
+ * 拖**指标↔明细**分隔条：`dy < 0` = 鼠标**向上** ⇒ 边界上移。
+ * **方向语义（§2.8 二次纠错）：上移 ⇒ 下方视图（明细）变高、上方视图（指标）变矮。**
  * 指针终点**夹在视口内**。
  */
 async function dragSplitter(page: Page, dy: number, steps = 8): Promise<void> {
@@ -503,12 +504,13 @@ test.describe('D7-1′/D7-3′（1280×800）：滚动语义 / 明细默认比�
     // **注释更正（派工第 3 条）**：拖拽路径上**没有比例上下限**——旧实现 `DETAIL_RATIO_MAX = 0.85`
     // 在拖拽路径从未生效（旧注释「先上限 clamp 再下限 clamp」不成立）；旧实际边界是「上栏保底 200px」，
     // D9 后由**三视图可读下限**（K 线 299 / 指标 180 / 明细 95）决定。
-    await dragSplitter(page, -4000);
+    // **下拖 4000**（§2.8：边界下移 ⇒ 下方明细变矮）⇒ 明细停在可读下限 95
+    await dragSplitter(page, 4000);
     const lowClamp = await page.evaluate(probeLayout);
     writeJson('d7_t1_low_clamp', { before: p0, lowClamp });
     expect(
       lowClamp.viewHeights.detail,
-      `D9-7 极端上拖 ⇒ 明细停在**可读下限 ${VIEW_MIN.detail}**（实读 ${lowClamp.viewHeights.detail}）`,
+      `D9-7 极端下拖 ⇒ 明细停在**可读下限 ${VIEW_MIN.detail}**（实读 ${lowClamp.viewHeights.detail}）`,
     ).toBe(VIEW_MIN.detail);
     expect(lowClamp.viewHeights.indicators, `D9-7 指标视图 ≥ ${VIEW_MIN.indicators}`).toBeGreaterThanOrEqual(
       VIEW_MIN.indicators,
@@ -518,12 +520,13 @@ test.describe('D7-1′/D7-3′（1280×800）：滚动语义 / 明细默认比�
       Math.abs(Number(lowClamp.ratios.detail) - VIEW_MIN.detail / lowClamp.available),
       'D9-12 夹取后比例与实际像素一致',
     ).toBeLessThanOrEqual(0.02);
-    await dragSplitter(page, 4000);
+    // **上拖 4000**（§2.8：边界上移 ⇒ 上方指标变矮）⇒ 指标停在可读下限 180
+    await dragSplitter(page, -4000);
     const lowClamp2 = await page.evaluate(probeLayout);
     writeJson('d7_t1_low_clamp_down', lowClamp2);
     expect(
       lowClamp2.viewHeights.indicators,
-      `D9-7 极端下拖 ⇒ 指标停在**可读下限 ${VIEW_MIN.indicators}**（实读 ${lowClamp2.viewHeights.indicators}）`,
+      `D9-7 极端上拖 ⇒ 指标停在**可读下限 ${VIEW_MIN.indicators}**（实读 ${lowClamp2.viewHeights.indicators}）`,
     ).toBe(VIEW_MIN.indicators);
     expect(lowClamp2.viewHeights.detail, `D9-7 明细视图 ≥ ${VIEW_MIN.detail}`).toBeGreaterThanOrEqual(VIEW_MIN.detail);
     expect(lowClamp2.viewHeights.kline, 'D9-7 K 线视图仍不受该边界影响').toBe(p0.viewHeights.kline);
@@ -681,10 +684,10 @@ test.describe('D7-4′（1280×1400 富余档）：跳转纪律 + D9 口径的�
     const a1 = await page.evaluate(probeLayout);
     writeJson('d7_t4_drag_up60', { b1, a1 });
     expect(
-      Math.abs(a1.viewHeights.detail - b1.viewHeights.detail + 60),
-      `D8 上拖 60 ⇒ 明细（下方视图）变矮 60（1:1；实读 Δ${a1.viewHeights.detail - b1.viewHeights.detail}）`,
+      Math.abs(a1.viewHeights.detail - b1.viewHeights.detail - 60),
+      `D8 上拖 60 ⇒ 明细（下方视图）**变高** 60（1:1；实读 Δ${a1.viewHeights.detail - b1.viewHeights.detail}）`,
     ).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(a1.viewHeights.indicators - b1.viewHeights.indicators - 60)).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a1.viewHeights.indicators - b1.viewHeights.indicators + 60)).toBeLessThanOrEqual(TOL_PX);
     expect(a1.viewHeights.kline, '另一条边界不受影响').toBe(b1.viewHeights.kline);
     await page.getByTestId('wb-splitter-indicators-detail').dblclick();
     await page.waitForTimeout(250);
@@ -693,10 +696,10 @@ test.describe('D7-4′（1280×1400 富余档）：跳转纪律 + D9 口径的�
     const a2 = await page.evaluate(probeLayout);
     writeJson('d7_t4_drag_down60', { b2, a2 });
     expect(
-      Math.abs(a2.viewHeights.detail - b2.viewHeights.detail - 60),
-      `D8 下拖 60 ⇒ 明细（下方视图）变高 60（1:1；实读 Δ${a2.viewHeights.detail - b2.viewHeights.detail}）`,
+      Math.abs(a2.viewHeights.detail - b2.viewHeights.detail + 60),
+      `D8 下拖 60 ⇒ 明细（下方视图）**变矮** 60（1:1；实读 Δ${a2.viewHeights.detail - b2.viewHeights.detail}）`,
     ).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(a2.viewHeights.indicators - b2.viewHeights.indicators + 60)).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a2.viewHeights.indicators - b2.viewHeights.indicators - 60)).toBeLessThanOrEqual(TOL_PX);
     await page.getByTestId('wb-splitter-indicators-detail').dblclick();
     await page.waitForTimeout(250);
 

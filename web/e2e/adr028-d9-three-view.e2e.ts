@@ -168,7 +168,11 @@ async function openRun(page: Page, runId: string = RUN_ID): Promise<void> {
   await page.waitForTimeout(2200);
 }
 
-/** 拖某条分隔条：`dy < 0` = 鼠标**向上**（契约：上移 ⇒ 上方视图变高）。 */
+/**
+ * 拖某条分隔条：`dy < 0` = 鼠标**向上** ⇒ 边界上移。
+ * **方向语义（2026-09-24 二次纠错后为准；ADR §2.7-3 / §2.8 / §2.9-8）**：把手移动方向 = 边界移动方向
+ * ⇒ **上移 ⇒ 下方视图变高、上方变矮**（`upperPx = startUpper + Δy` / `lowerPx = startLower − Δy`）。
+ */
 async function dragSplitter(page: Page, which: 'ki' | 'id', dy: number, steps = 8): Promise<void> {
   const id = which === 'ki' ? 'wb-splitter-kline-indicators' : 'wb-splitter-indicators-detail';
   const box = await page.getByTestId(id).boundingBox();
@@ -184,15 +188,22 @@ async function dragSplitter(page: Page, which: 'ki' | 'id', dy: number, steps = 
   await page.waitForTimeout(200);
 }
 
-/** 拖到极限（用于「K 线优先吃满」判据：终点夹在视口内 ⇒ 用足够大的位移）。 */
-async function dragSplitterToLimitUp(page: Page, which: 'ki' | 'id'): Promise<void> {
-  const box = await page.getByTestId(which === 'ki' ? 'wb-splitter-kline-indicators' : 'wb-splitter-indicators-detail').boundingBox();
+/**
+ * 把某条分隔条**拖到上限（推向视口底边）** —— 用于「K 线优先吃满」判据：
+ * 边界下移 ⇒ 上方（K 线）视图变大直至下方视图触其可读下限（§2.8 二次纠错：
+ * 旧规格用「上拖到顶」表达同一意图，那是按已作废的错误方向写的）。
+ */
+async function dragSplitterToLimitDown(page: Page, which: 'ki' | 'id'): Promise<void> {
+  const box = await page
+    .getByTestId(which === 'ki' ? 'wb-splitter-kline-indicators' : 'wb-splitter-indicators-detail')
+    .boundingBox();
   expect(box).not.toBeNull();
+  const vp = page.viewportSize() ?? VP.w800;
   const x = box!.x + box!.width / 2;
   const y0 = box!.y + box!.height / 2;
   await page.mouse.move(x, y0);
   await page.mouse.down();
-  for (const y of [y0 - 60, y0 - 160, y0 - 320, 4]) await page.mouse.move(x, Math.max(4, y));
+  for (const y of [y0 + 60, y0 + 160, y0 + 320, vp.height - 4]) await page.mouse.move(x, Math.min(vp.height - 4, y));
   await page.mouse.up();
   await page.waitForTimeout(200);
 }
@@ -244,22 +255,29 @@ test.describe('D9-1/D9-2/D9-5/D9-12 结构与观测（1280×800）', () => {
 test.describe('D9-6 两条分隔条 + 2 自由度守恒 + 方向语义（1280×1400，富余档）', () => {
   test.use({ viewport: VP.w1400 });
 
-  test('方向：上拖 N ⇒ 上方视图变高（N∈{40,120,240}）；1:1；守恒；双击复位默认比例', async ({ page }) => {
+  test('方向：上拖 N ⇒ **下方视图变高、上方变矮**（N∈{40,120,240}）；1:1；守恒；双击复位默认比例', async ({ page }) => {
     await openRun(page);
     const base = await probe(page);
     writeJson('d9_drag_base', base);
     expect(base.attrs.clamped, '1400 档默认比例不得触发夹取（前置）').toBe('false');
 
-    // ── K线↔指标（上拖 120：K 线 +120 / 指标 −120 / 明细不动）──
+    // ── K线↔指标（上拖 120 ⇒ 边界上移：**指标 +120 / K 线 −120** / 明细不动）──
     const before = await probe(page);
     await dragSplitter(page, 'ki', -120);
     const after = await probe(page);
     const dK = after.klineView!.h - before.klineView!.h;
     const dI = after.indicatorsView!.h - before.indicatorsView!.h;
     writeJson('d9_drag_ki_up120', { before, after, dK, dI });
-    expect(dK, `D9-6⑤ 上拖 120 ⇒ K 线视图变高 ≈+120（实读 ${dK}；**错方向实现此处为 −120**）`).toBeGreaterThanOrEqual(120 - TOL_PX);
-    expect(Math.abs(dK - 120), `D9-6⑤ 位移 1:1（实读 ${dK}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dI + 120), `D9-6① 指标反向补偿 1:1（实读 ${dI}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dI,
+      `D9-6⑤ 上拖 120 ⇒ **下方视图（指标）变高** ≈+120（实读 ${dI}；**错方向实现此处为 ${-120}**）`,
+    ).toBeGreaterThanOrEqual(120 - TOL_PX);
+    expect(Math.abs(dI - 120), `D9-6⑤ 位移 1:1（实读 ${dI}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      dK,
+      `D9-6① 上方视图（K 线）反向补偿 1:1 ≈−120（实读 ${dK}；**错方向实现此处为 ${120}**）`,
+    ).toBeLessThanOrEqual(-120 + TOL_PX);
+    expect(Math.abs(dK + 120)).toBeLessThanOrEqual(TOL_PX);
     expect(after.detailView!.h, '别的边界不受影响（明细不动）').toBe(before.detailView!.h);
     // D9-6④ 守恒
     expect(
@@ -271,27 +289,27 @@ test.describe('D9-6 两条分隔条 + 2 自由度守恒 + 方向语义（1280×1
       '物理守恒：可用高 + 两条分隔条(24) + gap(16) == split 容器高（±2px）',
     ).toBeLessThanOrEqual(TOL_PX);
 
-    // ── 指标↔明细（上拖 60：指标 +60 / 明细 −60 / K 线不动；60 有余量不触明细下限）──
+    // ── 指标↔明细（上拖 60 ⇒ 边界上移：**明细 +60 / 指标 −60** / K 线不动；60 有余量不触明细下限）──
     const b2 = await probe(page);
     await dragSplitter(page, 'id', -60);
     const a2 = await probe(page);
     const dI2 = a2.indicatorsView!.h - b2.indicatorsView!.h;
     const dD2 = a2.detailView!.h - b2.detailView!.h;
     writeJson('d9_drag_id_up60', { b2, a2, dI2, dD2 });
-    expect(Math.abs(dI2 - 60), `D9-6② 上拖 60 ⇒ 指标变高 60（实读 ${dI2}）`).toBeLessThanOrEqual(TOL_PX);
-    expect(Math.abs(dD2 + 60), `D9-6② 明细反向 1:1（实读 ${dD2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(dD2 - 60), `D9-6② 上拖 60 ⇒ **下方视图（明细）变高** 60（实读 ${dD2}）`).toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(dI2 + 60), `D9-6② 指标（上方）反向 1:1（实读 ${dI2}）`).toBeLessThanOrEqual(TOL_PX);
     expect(a2.klineView!.h, 'K 线不受该边界影响').toBe(b2.klineView!.h);
 
-    // ── 指标↔明细 上拖 240 ⇒ 明细被**可读下限 95** 挡住（1:1 在夹取处停止，差额回吐指标）──
+    // ── 指标↔明细 **下拖 240** ⇒ 明细被**可读下限 95** 挡住（1:1 在夹取处停止，差额回吐指标）──
     const b2b = await probe(page);
-    await dragSplitter(page, 'id', -240);
+    await dragSplitter(page, 'id', 240);
     const a2b = await probe(page);
     const clip = Math.max(0, VIEW_MIN.detail - (b2b.detailView!.h - 240));
-    writeJson('d9_drag_id_up240_clip', { b2b, a2b, clip });
+    writeJson('d9_drag_id_down240_clip', { b2b, a2b, clip });
     expect(a2b.detailView!.h, '明细停在可读下限 95').toBe(VIEW_MIN.detail);
     expect(
       Math.abs(a2b.indicatorsView!.h - (b2b.indicatorsView!.h + 240 - clip)),
-      `D9-6② 上拖 240：指标吸收被夹取的 ${clip}px（实读 ${a2b.indicatorsView!.h}）`,
+      `D9-6② 下拖 240：指标吸收被夹取的 ${clip}px（实读 ${a2b.indicatorsView!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
     expect(a2b.klineView!.h, 'K 线仍不受该边界影响').toBe(b2b.klineView!.h);
     expect(
@@ -300,7 +318,7 @@ test.describe('D9-6 两条分隔条 + 2 自由度守恒 + 方向语义（1280×1
     await page.getByTestId('wb-splitter-indicators-detail').dblclick();
     await page.waitForTimeout(150);
 
-    // ── 上拖 N ∈ {40, 120, 240} 复测（每次都先复位到默认比例；240 组会触指标可读下限）──
+    // ── 下拖 N ∈ {40, 120, 240} 复测（每次都先复位到默认比例；240 组会触指标可读下限 ⇒ K 线吃满）──
     const resetBoth = async () => {
       await page.getByTestId('wb-splitter-kline-indicators').dblclick();
       await page.getByTestId('wb-splitter-indicators-detail').dblclick();
@@ -308,25 +326,28 @@ test.describe('D9-6 两条分隔条 + 2 自由度守恒 + 方向语义（1280×1
     };
     await resetBoth();
     const b3 = await probe(page);
-    await dragSplitter(page, 'ki', -40);
+    await dragSplitter(page, 'ki', 40);
     const a3 = await probe(page);
-    expect(Math.abs(a3.klineView!.h - b3.klineView!.h - 40), '上拖 40 ⇒ +40（1:1）').toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a3.klineView!.h - b3.klineView!.h - 40), '下拖 40 ⇒ 上方（K 线）+40（1:1）').toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a3.indicatorsView!.h - b3.indicatorsView!.h + 40), '下拖 40 ⇒ 下方（指标）−40（1:1）').toBeLessThanOrEqual(
+      TOL_PX,
+    );
     await resetBoth();
     const b4 = await probe(page);
-    await dragSplitter(page, 'ki', -120);
+    await dragSplitter(page, 'ki', 120);
     const a4 = await probe(page);
-    expect(Math.abs(a4.klineView!.h - b4.klineView!.h - 120), '上拖 120 ⇒ +120（1:1）').toBeLessThanOrEqual(TOL_PX);
+    expect(Math.abs(a4.klineView!.h - b4.klineView!.h - 120), '下拖 120 ⇒ 上方（K 线）+120（1:1）').toBeLessThanOrEqual(TOL_PX);
     await resetBoth();
     const b5b = await probe(page);
     const avail0 = Number(b5b.attrs.available);
-    await dragSplitter(page, 'ki', -240);
+    await dragSplitter(page, 'ki', 240);
     const a5b = await probe(page);
     writeJson('d9_drag_ki_40_120_240', { b3, a3, b4, a4, b5b, a5b });
-    // 240 > 余量 ⇒ 停在指标可读下限 180：K 线 = 可用 − 180 − 明细（明细不受该边界影响）
-    expect(a5b.indicatorsView!.h, '上拖 240 ⇒ 指标停在可读下限 180').toBe(VIEW_MIN.indicators);
+    // 240 > 余量 ⇒ 停在**指标**可读下限 180：K 线 = 可用 − 180 − 明细（D9-8-3②「K 线优先吃满」；明细不受该边界影响）
+    expect(a5b.indicatorsView!.h, '下拖 240 ⇒ 指标停在可读下限 180').toBe(VIEW_MIN.indicators);
     expect(
       Math.abs(a5b.klineView!.h - (avail0 - VIEW_MIN.indicators - a5b.detailView!.h)),
-      `上拖 240（越界）⇒ K 线吃到 = 可用 − 指标下限 − 明细（实读 ${a5b.klineView!.h}）`,
+      `下拖 240（越界）⇒ K 线吃到 = 可用 − 指标下限 − 明细（实读 ${a5b.klineView!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
     expect(a5b.klineView!.h - b5b.klineView!.h, '即便越界，K 线仍必须变高（方向正确）').toBeGreaterThan(0);
     expect(a5b.detailView!.h, '明细不受该边界影响').toBe(b5b.detailView!.h);
@@ -343,12 +364,19 @@ test.describe('D9-6 两条分隔条 + 2 自由度守恒 + 方向语义（1280×1
     expect(Number(a5.attrs.ratioDetail)).toBeCloseTo(DEFAULT_RATIOS.detail, 2);
     expect(Math.abs(a5.klineView!.h - base.klineView!.h), '复位后与初始读数一致（±2px）').toBeLessThanOrEqual(TOL_PX);
 
-    // ── 方向反证：下拖 120 ⇒ 上方视图**变矮** ──
+    // ── 方向反证：下拖 120 ⇒ **上方视图（K 线）变高** ──
     const b6 = await probe(page);
     await dragSplitter(page, 'ki', 120);
     const a6 = await probe(page);
     writeJson('d9_drag_ki_down120', { b6, a6 });
-    expect(a6.klineView!.h - b6.klineView!.h, '下拖 ⇒ K 线变矮').toBeLessThanOrEqual(-(120 - TOL_PX));
+    expect(
+      Math.abs(a6.klineView!.h - b6.klineView!.h - 120),
+      `下拖 120 ⇒ K 线（上方）变高 120（实读 Δ${a6.klineView!.h - b6.klineView!.h}；**错方向实现此处为 −120**）`,
+    ).toBeLessThanOrEqual(TOL_PX);
+    expect(
+      Math.abs(a6.indicatorsView!.h - b6.indicatorsView!.h + 120),
+      `下拖 120 ⇒ 指标（下方）变矮 120（实读 Δ${a6.indicatorsView!.h - b6.indicatorsView!.h}）`,
+    ).toBeLessThanOrEqual(TOL_PX);
   });
 });
 
@@ -528,9 +556,9 @@ test.describe('D9-7/D9-8 夹取优先级、最小高、几何恒等式与硬不�
     expect(g.cardHeader!.h, '卡头 ≤ 48px').toBeLessThanOrEqual(48);
   });
 
-  test('720 档：把 K线↔指标 拖到极限 ⇒ K 线视图 == 可用 − 指标下限 − 明细下限（±2）且三视图不低于下限', async ({ page }) => {
+  test('720 档：把 K线↔指标 拖到极限（下推）⇒ K 线视图 == 可用 − 指标下限 − 明细下限（±2）且三视图不低于下限', async ({ page }) => {
     await openRun(page);
-    await dragSplitterToLimitUp(page, 'ki');
+    await dragSplitterToLimitDown(page, 'ki');
     const g = await probe(page);
     writeJson('d9_w720_drag_limit', g);
     const avail = Number(g.attrs.available);
@@ -717,7 +745,9 @@ test.describe('BLOCKED-1/D9-3/D9-11 修复判据：收起态下拖拽 ⇒ v2 合
     const collapsedView = await probe(page);
     expect(collapsedView.attrs.collapsedDetail, '前置：明细已收起').toBe('true');
 
-    await dragSplitter(page, 'ki', 80);
+    // **上拖 −80**（§2.8：边界上移 ⇒ 上方 K 线变矮、下方指标变高）：收起明细后的可见两段恰为（K 线、指标）
+    // ⇒ 位移 1:1 落在两段之间（下拖在该态会被“钉住”：指标已贴其真实下限）。
+    await dragSplitter(page, 'ki', -80);
     const dragged = await probe(page);
     const v2 = v2Ratios(dragged.storage.v2);
     writeJson('d9fix_b1_detail_collapse_drag', { base, collapsedView, dragged, v2 });
@@ -768,7 +798,11 @@ test.describe('BLOCKED-1/D9-3/D9-11 修复判据：收起态下拖拽 ⇒ v2 合
 
     await page.getByTestId('wb-detail-collapse').click();
     await page.waitForTimeout(300);
-    await dragSplitter(page, 'ki', 80);
+    // **上拖 −80**（§2.8：边界上移 ⇒ 上方 K 线变矮）：收起态下可见两段为（K 线、指标），
+    // 而指标在该迁移态下已处于**真实可读下限**（显示 210 ≈ 180/(1−S)）⇒ **下拖被“钉住”不动**
+    // （K 线始终回到 457）⇒ 其比例（0.587）与迁移读数（0.5883）碰巧重合 ⇒ 会把「不得回落」判据
+    // 变成假绿。取上拖使比例明显偏离（0.485 vs 0.588），判据保持**有鉴别力**。
+    await dragSplitter(page, 'ki', -80);
     const dragged = await probe(page);
     const v2 = v2Ratios(dragged.storage.v2);
     writeJson('d9fix_b1_legacy_drag', { migrated, dragged, v2 });
@@ -804,8 +838,8 @@ test.describe('BLOCKED-2 修复判据：拖拽路径必须披露夹取（1280×8
     expect(base.attrs.clamped, '前置：800 档默认不夹取').toBe('false');
     expect(base.disclosure ?? '', '前置：未夹取时不得有披露').toBe('');
 
-    // 下拖 400（终点夹在视口内）⇒ K 线视图必到可读下限 299
-    await dragSplitter(page, 'ki', 400);
+    // 上拖 400（终点夹在视口内；§2.8：边界上移 ⇒ 上方 K 线变矮）⇒ K 线视图必到可读下限 299
+    await dragSplitter(page, 'ki', -400);
     const afterDrag = await probe(page);
     writeJson('d9fix_b2_drag_clamp', { base, afterDrag });
     expect(afterDrag.klineView!.h, `D9-7 K 线视图必须停在可读下限 ${VIEW_MIN.klineOneSub}`).toBe(VIEW_MIN.klineOneSub);
@@ -813,12 +847,12 @@ test.describe('BLOCKED-2 修复判据：拖拽路径必须披露夹取（1280×8
     expect(afterDrag.disclosure ?? '', '拖拽夹取必须**显式披露**（禁静默）').toBeTruthy();
     expect(afterDrag.disclosure ?? '', '披露必须指明来自拖拽路径（不得与默认分配路径混淆）').toContain('拖拽');
 
-    // 反证：未触下限的拖拽不得误报（禁误报）
+    // 反证：未触下限的拖拽不得误报（禁误报）：上拖 30 ⇒ 337 / 224，两侧均在可读下限之上
     await page.getByTestId('wb-splitter-kline-indicators').dblclick();
     await page.waitForTimeout(200);
     const reset = await probe(page);
     expect(reset.attrs.clamped, '复位后回到默认分配（800 档不夹取）').toBe('false');
-    await dragSplitter(page, 'ki', 30);
+    await dragSplitter(page, 'ki', -30);
     const small = await probe(page);
     writeJson('d9fix_b2_no_false_positive', { reset, small });
     expect(small.attrs.clamped, '未触下限不得误报夹取').toBe('false');
@@ -865,9 +899,9 @@ test.describe('R1 冻结语义（架构裁决 2026-09-24）：收起段比例不
     /** 收起后（拖拽前）的**已存值**（全精度；DOM 属性仅 4 位小数，不得当基准）。 */
     const v2Frozen = v2Ratios(collapsedView.storage.v2).ratios.indicators ?? 0;
 
-    // ② 收起态下拖 指标↔明细 +100 ⇒ 位移**只在可见两段之间** 1:1（第三轮裁决；不得是 no-op），
-    //    并按**真实比例**夹取（第四轮裁决）：本档 ±100 会破坏 K 线的**真实**下限 ⇒ **停在边界值**。
-    await dragSplitter(page, 'id', 100);
+    // ② 收起态下拖 **上拖 −100** ⇒ 位移**只在可见两段之间** 1:1（第三轮裁决；不得是 no-op），
+    //    并按**真实比例**夹取（第四轮裁决）：本档 −200 会使 K 线越其**真实**下限 ⇒ **停在边界值**。
+    await dragSplitter(page, 'id', -200);
     const afterDrag = await probe(page);
     const v2 = v2Ratios(afterDrag.storage.v2);
     const avail = Number(afterDrag.attrs.available);
@@ -921,12 +955,12 @@ test.describe('R1 冻结语义（架构裁决 2026-09-24）：收起段比例不
     expect(collapsedView.detailPane, '前置：明细已收起').toBeNull();
     const v2Before = v2Ratios(collapsedView.storage.v2);
 
-    await dragSplitter(page, 'ki', 80);
+    await dragSplitter(page, 'ki', -80);
     const afterDrag = await probe(page);
     writeJson('d9fix_r1_control_visible_renorm', { collapsedView, afterDrag });
     expect(
       Math.abs(afterDrag.klineView!.h - (collapsedView.klineView!.h - 80)),
-      `可见段 K 线照常 1:1（期望 ${collapsedView.klineView!.h - 80} / 实读 ${afterDrag.klineView!.h}）`,
+      `可见段 K 线照常 1:1（上拖 ⇒ 上方变矮；期望 ${collapsedView.klineView!.h - 80} / 实读 ${afterDrag.klineView!.h}）`,
     ).toBeLessThanOrEqual(TOL_PX);
     expect(
       Math.abs(afterDrag.indicatorsView!.h - (collapsedView.indicatorsView!.h + 80)),
@@ -957,7 +991,7 @@ test.describe('R1 冻结语义（架构裁决 2026-09-24）：收起段比例不
 test.describe('R1b 收起态相邻边界：位移转给可见两段（1280×1400 富余档）', () => {
   test.use({ viewport: VP.w1400 });
 
-  test('①收起指标 ⇒ 拖 指标↔明细 +100 ⇒ K 线/明细各 ±100px；展开 ⇒ indicators 回位 ∧ 可见两段等比收缩', async ({ page }) => {
+  test('①收起指标 ⇒ 拖 指标↔明细 **上拖 −100** ⇒ K 线/明细各 ±100px；展开 ⇒ indicators 回位 ∧ 可见两段等比收缩', async ({ page }) => {
     await seedStorage(page);
     await openRun(page);
     // 造非默认比例（默认值巧合会掩盖冻结失效）
@@ -971,8 +1005,8 @@ test.describe('R1b 收起态相邻边界：位移转给可见两段（1280×1400
     expect(collapsedView.indicatorsView, '收起后指标不占位').toBeNull();
     const frozen = v2Ratios(collapsedView.storage.v2).ratios.indicators ?? 0;
 
-    // 收起态下拖 指标↔明细 +100：位移**只在可见两段之间** 1:1
-    await dragSplitter(page, 'id', 100);
+    // 收起态下拖 指标↔明细 **上拖 −100**：位移**只在可见两段之间** 1:1
+    await dragSplitter(page, 'id', -100);
     const afterDrag = await probe(page);
     expect(afterDrag.attrs.clamped, '富余档 ±100 未触下限 ⇒ 不得夹取').toBe('false');
     expect(
@@ -1020,7 +1054,7 @@ test.describe('R1b 收起态相邻边界：位移转给可见两段（1280×1400
     await openRun(page);
     await dragSplitter(page, 'ki', 40);
     const base = await probe(page);
-    await dragSplitter(page, 'id', 120);
+    await dragSplitter(page, 'id', -120);
     const after = await probe(page);
     writeJson('d9fix_r1b_control_uncollapsed', { base, after });
     expect(
@@ -1046,8 +1080,8 @@ test.describe('R1b 收起态相邻边界：位移转给可见两段（1280×1400
     expect(collapsedView.indicatorsView).toBeNull();
     const frozen = v2Ratios(collapsedView.storage.v2).ratios.indicators ?? 0;
 
-    // 上拖 ⇒ 明细变矮直至其**真实**可读下限（`min/(1−S)`；显示帧值高于显示下限）
-    await dragSplitter(page, 'id', -200);
+    // **下拖**（§2.8：边界下移 ⇒ 下方明细变矮）直至其**真实**可读下限（`min/(1−S)`；显示帧值高于显示下限）
+    await dragSplitter(page, 'id', 200);
     const afterDrag = await probe(page);
     const avail = Number(afterDrag.attrs.available);
     const v2After = v2Ratios(afterDrag.storage.v2);

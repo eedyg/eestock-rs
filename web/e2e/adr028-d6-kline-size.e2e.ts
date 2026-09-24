@@ -14,7 +14,7 @@
  * | D6-3 默认 520 态 主图 ≥320 ∧ 副图 ≤120 ∧ 卡头 ≤48 | **保留副图/卡头**；主图改按 **D9-8③ 分档**（几何可行 ⇒ ≥320；不可行 ⇒ K 线视图 == 可用 − 180 − 95 且披露） | §2.9-6③（分档）+ §4-12② |
  * | D6-4 拖卡到有效下限 ⇒ 卡高 ≥200 ∧ 主图 ≥160 ∧ 副图 ≥30；引擎分隔条越界 clamp | **卡高路径删除** ⇒ 改「拖 K线↔指标 向下越界 ⇒ K 线视图停可读下限 299（1 副图）+ 主图 ≥160 + 副图 ≥30」；**引擎 pane 分隔条路径保留**（卡高不变 ∧ 主图 ≥160） | §2.9-5/6/7 + §5「D6 第 3/4 项保留，约束对象改为 K 线视图高」 |
  * | D6-5 卡下沿把手命中带 ≥12px + 悬停可见 | **规则转移**到分隔条（把手已删）：分隔条命中带 ≥12px + 悬停计算样式变化且非全透明 + `cursor: ns-resize` | §2.9-5（第 5 项规则转移）+ §2.8 |
- * | D6-6 拖卡 +N ⇒ 卡高/内层双变化；刷新保持；双击标题复位 520 | **改**：拖 K线↔指标 上拖 +N ⇒ K 线视图 / 卡高 / 内层**三者同步 +N**（1:1）；下拖 ⇒ −N；双击**分隔条**复位默认比例 0.55；刷新后比例保持 | §2.9-6/8（D9-6⑥）+ §2.8 |
+ * | D6-6 拖卡 +N ⇒ 卡高/内层双变化；刷新保持；双击标题复位 520 | **改**：拖 K线↔指标 **下拖 +N ⇒ K 线视图 / 卡高 / 内层三者同步 +N**（1:1）；**上拖 ⇒ −N**；双击**分隔条**复位默认比例 0.55；刷新后比例保持（方向基准 = §2.8 二次纠错：把手方向 = 边界方向） | §2.9-6/8（D9-6⑥）+ §2.8 |
  * | D6-7 高度写 `eestock.result.cardHeights.v1` | **改**：比例写 `eestock.result.layout.v2`；旧卡高键**只读迁移、逐字节不变**；看板 key 逐字节不变 | §2.9-11（D9-11） |
  * | （新增）守恒 | 任意调整后 `三段高之和 == 可用高`（±2px）；`可用高 = 视口高 − 132` | §2.9-6④ + §2.9-7 |
  *
@@ -332,7 +332,8 @@ async function reselect(page: Page, runId: string = RUN_ID): Promise<void> {
 }
 
 /**
- * 拖分隔条：`dy < 0` = 鼠标**向上**（契约 §2.8/§2.9-8：上移 ⇒ **上方**视图变高）。
+ * 拖分隔条：`dy < 0` = 鼠标**向上** ⇒ **边界上移 ⇒ 下方视图变高、上方（K 线）变矮**
+ * （§2.8 二次纠错后为准；旧措辞「上移 ⇒ 上方视图变高」已作废）。
  * 指针终点**夹在视口内**（越出视口的合成鼠标事件不可靠 ⇒ 会静默「什么都没发生」）。
  */
 async function dragSplitter(page: Page, dy: number): Promise<void> {
@@ -410,7 +411,7 @@ async function splitterHoverReading(page: Page, testid: string) {
   };
 }
 
-// 视口口径：D9 默认比例下 `可用高 = 视口高 − 132`；要同时验证「上拖 +N 有余量」「越界夹取」与
+// 视口口径：D9 默认比例下 `可用高 = 视口高 − 132`；要同时验证「下拖 +N（上方 K 线变大）有余量」「越界夹取」与
 // 「引擎分隔条 clamp」，取 1280×900（可用 768；默认三段 422/223/123，均高于可读下限 299/180/95）。
 test.use({ viewport: { width: 1280, height: 900 } });
 
@@ -540,7 +541,7 @@ test.describe('ADR-028 D6 → D9 重锚（真渲染）', () => {
   test.describe('D9-6 可调性（重锚自 D6-6；1280×1400 富余档，位移有余量）', () => {
     test.use({ viewport: { width: 1280, height: 1400 } });
 
-    test('上拖 N ⇒ K 线视图/卡高/内层同步 +N（1:1）；下拖 ⇒ −N；越界停指标可读下限；双击复位默认比例', async ({
+    test('下拖 N ⇒ K 线视图/卡高/内层同步 +N（1:1）；上拖 ⇒ −N；越界停指标可读下限；双击复位默认比例', async ({
       page,
     }) => {
       await page.addInitScript(installChartCapture);
@@ -549,17 +550,17 @@ test.describe('ADR-028 D6 → D9 重锚（真渲染）', () => {
       expect(base.attrs.clamped, '前置：1400 档默认比例不触发夹取（否则位移被下限吞掉）').toBe('false');
       expect(Number(base.attrs.available), '前置：可用高 = 视口 − 132').toBe(1400 - VIEW_AVAILABLE_CHROME_PX);
 
-      // ── 上拖 120（1:1）──
-      await dragSplitter(page, -120);
+      // ── **下拖 120**（§2.8 二次纠错：把手方向 = 边界方向 ⇒ 边界下移 ⇒ 上方 K 线变大）1:1 ──
+      await dragSplitter(page, 120);
       const up = await probe(page);
       const dView = up.view.kline!.h - base.view.kline!.h;
       const dCard = up.card.rect!.h - base.card.rect!.h;
       const dInner = up.klineInner!.h - base.klineInner!.h;
       const dIndicator = up.view.indicators!.h - base.view.indicators!.h;
-      writeJson('d6_t2_drag_up120', { base, up, dView, dCard, dInner, dIndicator });
+      writeJson('d6_t2_drag_down120', { base, up, dView, dCard, dInner, dIndicator });
       expect(
         dView,
-        `D9-6⑤ 上拖 120 ⇒ K 线视图变高 ≈+120（实读 ${dView}；**错方向实现此处为 −120**）`,
+        `D9-6⑤ 下拖 120 ⇒ 上方 K 线视图变高 ≈+120（实读 ${dView}；**错方向实现此处为 −120**）`,
       ).toBeGreaterThanOrEqual(120 - TOL_PX);
       expect(Math.abs(dView - 120), `D9-6⑤ 位移 1:1（实读 ${dView}）`).toBeLessThanOrEqual(TOL_PX);
       expect(Math.abs(dCard - dView), `D9-5/D9-8① 卡高必须随视图 1:1（视图 ${dView} / 卡 ${dCard}）`).toBeLessThanOrEqual(
@@ -581,13 +582,13 @@ test.describe('ADR-028 D6 → D9 重锚（真渲染）', () => {
         'D9-8① 拖后恒等式仍成立',
       ).toBeLessThanOrEqual(TOL_PX);
 
-      // ── 下拖 120 ⇒ 变矮（方向反证） ──
+      // ── **上拖 120** ⇒ 上方视图变矮（方向反证） ──
       const b2 = await probe(page);
-      await dragSplitter(page, 120);
+      await dragSplitter(page, -120);
       const down = await probe(page);
       const dView2 = down.view.kline!.h - b2.view.kline!.h;
-      writeJson('d6_t2_drag_down120', { b2, down, dView2 });
-      expect(dView2, `D9-6⑤ 下拖 ⇒ 上方视图变矮（实读 ${dView2}）`).toBeLessThanOrEqual(-(120 - TOL_PX));
+      writeJson('d6_t2_drag_up120', { b2, down, dView2 });
+      expect(dView2, `D9-6⑤ 上拖 ⇒ 上方视图变矮（实读 ${dView2}）`).toBeLessThanOrEqual(-(120 - TOL_PX));
       expect(Number(down.attrs.ratioKline), 'D9-6⑤ 比例必须随之下调').toBeLessThan(Number(b2.attrs.ratioKline));
 
       // ── 双击分隔条 ⇒ 复位默认比例（D9-6⑥） ──
@@ -604,21 +605,21 @@ test.describe('ADR-028 D6 → D9 重锚（真渲染）', () => {
         '复位后 K 线视图高与初始读数一致（±2px）',
       ).toBeLessThanOrEqual(TOL_PX);
 
-      // ── 上拖 N=40（小位移 1:1 复核）──
+      // ── 下拖 N=40（小位移 1:1 复核）──
       const b3 = await probe(page);
-      await dragSplitter(page, -40);
+      await dragSplitter(page, 40);
       const a3 = await probe(page);
-      expect(Math.abs(a3.view.kline!.h - b3.view.kline!.h - 40), '上拖 40 ⇒ +40（1:1）').toBeLessThanOrEqual(TOL_PX);
+      expect(Math.abs(a3.view.kline!.h - b3.view.kline!.h - 40), '下拖 40 ⇒ 上方 +40（1:1）').toBeLessThanOrEqual(TOL_PX);
       await page.getByTestId('wb-splitter-kline-indicators').dblclick();
       await page.waitForTimeout(200);
 
-      // ── 上拖 240（越界）⇒ 位移在**指标视图可读下限 180** 处停止，差额回吐 K 线 ──
+      // ── **下拖** 240（越界）⇒ 位移在**指标视图可读下限 180** 处停止，差额回吐 K 线 ──
       const b4 = await probe(page);
       const avail = Number(b4.attrs.available);
-      await dragSplitter(page, -240);
+      await dragSplitter(page, 240);
       const a4 = await probe(page);
-      writeJson('d6_t2_drag_up240_clip', { b4, a4, avail });
-      expect(a4.view.indicators!.h, 'D9-7 越界上拖 ⇒ 指标视图停在可读下限 180').toBe(VIEW_MIN.indicators);
+      writeJson('d6_t2_drag_down240_clip', { b4, a4, avail });
+      expect(a4.view.indicators!.h, 'D9-7 越界下拖 ⇒ 指标视图停在可读下限 180').toBe(VIEW_MIN.indicators);
       expect(
         Math.abs(a4.view.kline!.h - (avail - VIEW_MIN.indicators - a4.view.detail!.h)),
         `D9-6/K线优先：越界后 K 线视图 == 可用 − 指标下限 − 明细（实读 ${a4.view.kline!.h}）`,
@@ -649,22 +650,23 @@ test.describe('ADR-028 D6 → D9 重锚（真渲染）', () => {
     });
   });
 
-  test('D9-7/D9-8②（重锚自 D6-4）：越界下拖 ⇒ K 线视图停可读下限 299；引擎 pane 分隔条越界 ⇒ 卡高不变 ∧ 主图 ≥160', async ({
+  test('D9-7/D9-8②（重锚自 D6-4）：越界上拖 ⇒ K 线视图停可读下限 299；引擎 pane 分隔条越界 ⇒ 卡高不变 ∧ 主图 ≥160', async ({
     page,
   }) => {
     await page.addInitScript(installChartCapture);
     await openRun(page);
 
-    // ① 视图分隔条路径（取代已删除的「卡片拖到有效下限」）：向下越界 ⇒ K 线视图停可读下限
+    // ① 视图分隔条路径（取代已删除的「卡片拖到有效下限」）：**向上**越界（§2.8：边界上移 ⇒ 上方 K 线变矮）
+    //    ⇒ K 线视图停可读下限
     const p0 = await probe(page);
     const subCount = p0.subPaneIds.length;
     const klineMin = subCount >= 2 ? VIEW_MIN.klineTwoSub : VIEW_MIN.klineOneSub;
-    await dragSplitter(page, 4000);
+    await dragSplitter(page, -4000);
     const clamped = await probe(page);
     writeJson('d6_t3_view_splitter_clamp', { p0, subCount, klineMin, clamped });
     expect(
       clamped.view.kline!.h,
-      `D9-7 越界下拖必须停在 K 线视图可读下限 ${klineMin}（实读 ${clamped.view.kline!.h}）`,
+      `D9-7 越界上拖必须停在 K 线视图可读下限 ${klineMin}（实读 ${clamped.view.kline!.h}）`,
     ).toBe(klineMin);
     expect(clamped.view.indicators!.h, `D9-7 指标视图 ≥ 可读下限 ${VIEW_MIN.indicators}`).toBeGreaterThanOrEqual(
       VIEW_MIN.indicators,

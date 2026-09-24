@@ -3,7 +3,8 @@
  *
  * 契约（唯一事实源 = ADR-028 §2.8/§2.9 第 6/8 项）：
  *  - 两条分隔条（`wb-splitter-kline-indicators` / `wb-splitter-indicators-detail`）；
- *  - **方向语义**：鼠标**向上**（Δy < 0）⇒ **上方**视图变高、下方视图变矮；位移 **1:1**；
+ *  - **方向语义（2026-09-24 二次纠错后为准）**：鼠标**向上**（Δy < 0）⇒ **下方**视图变高、上方视图变矮
+ *    （`upperPx = startUpper + Δy` / `lowerPx = startLower − Δy`）；位移 **1:1**；
  *  - **卡片把手方向相反**（把手在卡片下沿 ⇒ 向下 = 卡片变高；`cardResize.test.tsx` 已覆盖）——
  *    两者符号不同是几何决定的，**禁止互相套用**；
  *  - 双击各自复位默认比例；per-view 收起/展开（**K 线视图无收起 API**）；
@@ -67,42 +68,76 @@ describe('D9-6：两条分隔条 = 2 自由度守恒（jsdom 口径：可用高 
     expect(read('detail-px')).toBeGreaterThanOrEqual(95);
   });
 
-  it('K线↔指标：向上拖 120 ⇒ K 线 **变高**、指标 **变矮**（1:1，且明细不动）', () => {
-    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
-    const k0 = read('kline-px');
-    const i0 = read('indicators-px');
-    const d0 = read('detail-px');
-    const avail = read('available');
-    // 先把 K 线拖到足够大（可用高 768−132=636 ⇒ 指标 180 + 明细 95 ⇒ K 线最大 361）
-    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 400 - 100);
-    const k1 = read('kline-px');
-    const i1 = read('indicators-px');
-    expect(k1, `K 线上移 ⇒ 变高（${k0} → ${k1}）`).toBeGreaterThan(k0);
-    expect(i1, `指标 1:1 反向（${i0} → ${i1}）`).toBeLessThan(i0);
-    expect(Math.abs(k1 - k0 + (i1 - i0)), '位移 1:1（两侧变化量等值反向）').toBeLessThanOrEqual(TOL_PX);
-    expect(read('detail-px')).toBe(d0);
-    expect(Math.abs(k1 + i1 + read('detail-px') - avail)).toBeLessThanOrEqual(TOL_PX);
+  /** 富余档视口（1400 ⇒ 可用 1268）：默认 697/368/203 ⇒ 两方向各留 ≥240px 余量，1:1 才可量。 */
+  const withRichViewport = (fn: () => void): void => {
+    const prev = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 1400, configurable: true });
+    try {
+      fn();
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { value: prev, configurable: true });
+    }
+  };
+
+  it('K线↔指标：向上拖 100 ⇒ **指标变高 / K 线变矮**（1:1，未触下限；明细不动）', () => {
+    withRichViewport(() => {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const k0 = read('kline-px');
+      const i0 = read('indicators-px');
+      const d0 = read('detail-px');
+      const avail = read('available');
+      drag(screen.getByTestId('wb-splitter-kline-indicators'), 900, 900 - 100);
+      const k1 = read('kline-px');
+      const i1 = read('indicators-px');
+      expect(i1, `边界上移 ⇒ **下方**视图变大（${i0} → ${i1}；**错符号实现此处为 ${i0 - 100}**）`).toBeGreaterThan(i0);
+      expect(Math.abs(i1 - i0 - 100), `下方视图 1:1 变高 100（实读 Δ${i1 - i0}）`).toBeLessThanOrEqual(TOL_PX);
+      expect(k1, `上方视图反向（${k0} → ${k1}；**错符号实现此处为 ${k0 + 100}**）`).toBeLessThan(k0);
+      expect(Math.abs(k0 - k1 - 100), `上方视图 1:1 变矮 100（实读 Δ${k0 - k1}）`).toBeLessThanOrEqual(TOL_PX);
+      expect(read('detail-px'), '第三视图（明细）完全不动').toBe(d0);
+      expect(Math.abs(k1 + i1 + read('detail-px') - avail), '守恒：三段之和 == 可用高').toBeLessThanOrEqual(TOL_PX);
+    });
   });
 
-  it('指标↔明细：向上拖 ⇒ 指标变高、明细变矮（明细受可读下限 95 夹取）', () => {
-    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
-    const i0 = read('indicators-px');
-    const d0 = read('detail-px');
-    drag(screen.getByTestId('wb-splitter-indicators-detail'), 500, 500 - 60);
-    const i1 = read('indicators-px');
-    const d1 = read('detail-px');
-    expect(i1, `指标上移 ⇒ 变高（${i0} → ${i1}）`).toBeGreaterThan(i0);
-    expect(d1, `明细 1:1 反向（${d0} → ${d1}）`).toBeLessThan(d0);
-    expect(Math.abs(i1 - i0 + (d1 - d0))).toBeLessThanOrEqual(TOL_PX);
+  it('指标↔明细：向上拖 100 ⇒ **明细变高 / 指标变矮**（1:1，未触下限；K 线不动）', () => {
+    withRichViewport(() => {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const k0 = read('kline-px');
+      const i0 = read('indicators-px');
+      const d0 = read('detail-px');
+      drag(screen.getByTestId('wb-splitter-indicators-detail'), 900, 900 - 100);
+      const i1 = read('indicators-px');
+      const d1 = read('detail-px');
+      expect(d1, `边界上移 ⇒ **下方**视图（明细）变大（${d0} → ${d1}；**错符号实现此处为 ${d0 - 100}**）`).toBeGreaterThan(d0);
+      expect(Math.abs(d1 - d0 - 100), `明细 1:1 变高 100（实读 Δ${d1 - d0}）`).toBeLessThanOrEqual(TOL_PX);
+      expect(Math.abs(i0 - i1 - 100), `指标 1:1 变矮 100（实读 Δ${i0 - i1}）`).toBeLessThanOrEqual(TOL_PX);
+      expect(read('kline-px'), '第三视图（K 线）完全不动').toBe(k0);
+    });
   });
 
-  it('方向反证：K线↔指标 向下拖 ⇒ K 线**变矮**、指标变高（错符号实现此处必红）', () => {
-    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
-    const k0 = read('kline-px');
-    const i0 = read('indicators-px');
-    drag(screen.getByTestId('wb-splitter-kline-indicators'), 200, 200 + 60);
-    expect(read('kline-px'), `下行 ⇒ K 线变矮（${k0} → ${read('kline-px')}）`).toBeLessThan(k0);
-    expect(read('indicators-px')).toBeGreaterThan(i0);
+  it('方向反证（下拖 = 边界下移）⇒ 两侧各反向：K 线变高 / 指标变矮（错符号实现此处必红）', () => {
+    withRichViewport(() => {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const k0 = read('kline-px');
+      const i0 = read('indicators-px');
+      drag(screen.getByTestId('wb-splitter-kline-indicators'), 600, 600 + 60);
+      const k1 = read('kline-px');
+      const i1 = read('indicators-px');
+      expect(k1, `下移 ⇒ 上方视图变大（${k0} → ${k1}；**错符号实现此处为 ${k0 - 60}**）`).toBeGreaterThan(k0);
+      expect(Math.abs(k1 - k0 - 60), `1:1（实读 Δ${k1 - k0}）`).toBeLessThanOrEqual(TOL_PX);
+      expect(i1, `下移 ⇒ 下方视图变小（${i0} → ${i1}）`).toBeLessThan(i0);
+      expect(Math.abs(i0 - i1 - 60)).toBeLessThanOrEqual(TOL_PX);
+    });
+  });
+
+  it('触可读下限 clamp（未修复的镜像读数对照）：上拖 400 ⇒ K 线停在 299、指标吸收缺口', () => {
+    withRichViewport(() => {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const i0 = read('indicators-px');
+      drag(screen.getByTestId('wb-splitter-kline-indicators'), 900, 900 - 400);
+      expect(read('kline-px'), 'K 线视图停在可读下限 299').toBe(299);
+      expect(read('indicators-px'), `缺口从指标回吐（${i0} + 400 − 2 = ${i0 + 398}）`).toBe(i0 + 398);
+      expect(screen.getByTestId('clamped').textContent, '触下限必须置位').toBe('true');
+    });
   });
 
   it('分离性：同一页内两条分隔条各管一侧（拖 A 不改 B 的另一侧）', () => {
@@ -112,8 +147,8 @@ describe('D9-6：两条分隔条 = 2 自由度守恒（jsdom 口径：可用高 
     const iAfterA = read('indicators-px');
     const dAfterA = read('detail-px');
     drag(screen.getByTestId('wb-splitter-indicators-detail'), 500, 500 - 40);
-    expect(read('detail-px'), '拖 指标↔明细 只改明细（与指标反向）').toBeLessThan(dAfterA);
-    expect(read('indicators-px')).toBeGreaterThan(iAfterA);
+    expect(read('detail-px'), '拖 指标↔明细 只改明细（与指标反向；§2.8：上拖 ⇒ **下方**明细变高）').toBeGreaterThan(dAfterA);
+    expect(read('indicators-px')).toBeLessThan(iAfterA);
     expect(i0).toBeGreaterThanOrEqual(180);
   });
 
@@ -138,7 +173,8 @@ describe('D9-6：两条分隔条 = 2 自由度守恒（jsdom 口径：可用高 
       const k0 = read('kline-px');
       fireEvent.keyDown(screen.getByTestId('wb-splitter-kline-indicators'), { key: 'ArrowDown' });
       const kDown = read('kline-px');
-      expect(Math.abs(k0 - kDown - 16), `ArrowDown ⇒ 上方视图变矮 16px（实读 Δ${kDown - k0}）`).toBeLessThanOrEqual(TOL_PX);
+      // ArrowDown = 边界**下移** ⇒ 上方（K 线）视图变高 16px（§2.8：把手方向 = 边界方向）
+      expect(Math.abs(kDown - k0 - 16), `ArrowDown ⇒ 上方视图变高 16px（实读 Δ${kDown - k0}）`).toBeLessThanOrEqual(TOL_PX);
       fireEvent.keyDown(screen.getByTestId('wb-splitter-kline-indicators'), { key: 'ArrowUp' });
       expect(Math.abs(read('kline-px') - k0)).toBeLessThanOrEqual(TOL_PX);
     } finally {
@@ -174,33 +210,49 @@ describe('D9-3：per-view 收起（状态层）', () => {
 
 describe('BLOCKED-2 修复：拖拽路径必须披露夹取（禁只在默认分配路径置位）', () => {
   it('拖到 K 线视图可读下限 ⇒ clamped=true 且披露文本非空（禁静默）', () => {
-    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
-    expect(screen.getByTestId('clamped').textContent, '前置：默认比例不夹取（可用高 636 可行）').toBe('false');
-    expect(screen.getByTestId('disclosure').textContent, '前置：未夹取时不得有披露').toBe('');
-    // 默认 349 / 184 / 102 ⇒ 下拖 400 必触 K 线视图可读下限 299（旧实现此处 clamped 仍为 false）
-    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 800);
-    expect(screen.getByTestId('clamped').textContent, '拖到下限必须置位 `data-view-clamped`').toBe('true');
-    expect(
-      screen.getByTestId('disclosure').textContent,
-      '夹取必须显式披露（禁静默）；且必须指明来自**拖拽路径**（默认分配路径的披露不得冒充）',
-    ).toContain('拖拽');
-    expect(read('kline-px'), 'K 线视图停在可读下限').toBeGreaterThanOrEqual(299);
+    const prev = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 1400, configurable: true });
+    try {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      expect(screen.getByTestId('clamped').textContent, '前置：默认比例不夹取（可用高 1268 可行）').toBe('false');
+      expect(screen.getByTestId('disclosure').textContent, '前置：未夹取时不得有披露').toBe('');
+      // 默认 697 / 368 / 203 ⇒ **上拖** 400（边界上移 ⇒ 上方 K 线变矮）必触 K 线视图可读下限 299
+      drag(screen.getByTestId('wb-splitter-kline-indicators'), 900, 900 - 400);
+      expect(screen.getByTestId('clamped').textContent, '拖到下限必须置位 `data-view-clamped`').toBe('true');
+      expect(
+        screen.getByTestId('disclosure').textContent,
+        '夹取必须显式披露（禁静默）；且必须指明来自**拖拽路径**（默认分配路径的披露不得冒充）',
+      ).toContain('拖拽');
+      expect(read('kline-px'), 'K 线视图停在可读下限').toBeGreaterThanOrEqual(299);
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { value: prev, configurable: true });
+    }
   });
 
   it('未触下限的拖拽不得误报夹取/披露（禁误报）', () => {
-    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
-    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 420);
-    expect(screen.getByTestId('clamped').textContent).toBe('false');
-    expect(screen.getByTestId('disclosure').textContent).toBe('');
+    const prev = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 1400, configurable: true });
+    try {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const k0 = read('kline-px');
+      const i0 = read('indicators-px');
+      drag(screen.getByTestId('wb-splitter-kline-indicators'), 600, 600 + 20);
+      expect(Math.abs(read('kline-px') - k0 - 20), '未触下限 ⇒ 满额 1:1').toBeLessThanOrEqual(TOL_PX);
+      expect(Math.abs(i0 - read('indicators-px') - 20)).toBeLessThanOrEqual(TOL_PX);
+      expect(screen.getByTestId('clamped').textContent).toBe('false');
+      expect(screen.getByTestId('disclosure').textContent).toBe('');
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { value: prev, configurable: true });
+    }
   });
 });
 
 describe('BLOCKED-2 修复：拖拽披露不得被「未夹取」拖拽误报（键盘步进同理）', () => {
-  it('键盘 ArrowDown 到下限 ⇒ 也必顶置位并披露（键盘路径与鼠标路径同源）', () => {
+  it('键盘 ArrowUp 到下限 ⇒ 也必顶置位并披露（键盘路径与鼠标路径同源）', () => {
     render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
     const splitter = screen.getByTestId('wb-splitter-kline-indicators');
-    // 下拖至 K 线可读下限（可用 636；默认 K 线 350 ⇒ 步进 16×20 = 320 > 51 余量）
-    for (let i = 0; i < 20; i++) fireEvent.keyDown(splitter, { key: 'ArrowDown' });
+    // 上移至 K 线可读下限（可用 636；默认 K 线 350 ⇒ 步进 16×20 = 320 > 51 余量）
+    for (let i = 0; i < 20; i++) fireEvent.keyDown(splitter, { key: 'ArrowUp' });
     expect(read('kline-px'), 'K 线视图停在可读下限').toBeGreaterThanOrEqual(299);
     expect(screen.getByTestId('clamped').textContent, '键盘拖到下限也必须置位').toBe('true');
     expect(screen.getByTestId('disclosure').textContent, '键盘路径同样必须披露').toContain('拖拽');

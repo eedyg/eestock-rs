@@ -199,6 +199,18 @@ export function KlineResultChart({
     [api, run, period],
   );
   useEffect(() => () => feed.dispose(), [feed]);
+  /**
+   * **取数触顶披露**（ADR-024 D10 禁静默有损；2026-09-24 历史截断修复的配套）:
+   * 初始装载按 `before` 游标自行向前分页（服务端单页上限 1000 根）；若分页次数触顶而仍未覆盖
+   * run 起点（`ScopedKlineFeed.historyCapNote` 非 null），必须在卡头**显式**告知，
+   * 不得让「数据域不全」表现为「K 线本来就这么短」。
+   */
+  const [historyCapNote, setHistoryCapNote] = useState<string | null>(null);
+  useEffect(() => {
+    const sync = () => setHistoryCapNote(feed.historyCapNote);
+    sync();
+    return feed.onChange(sync);
+  }, [feed]);
   const overlays = useMemo(() => buildMarkers(fills.rows), [fills.rows]);
   /** ADR-028 D4.1 降级/无数据情形 ⇒ **显式**提示状态（不得静默无反应）。
    *
@@ -263,6 +275,16 @@ export function KlineResultChart({
           </span>
         )}
         {fills.error && <span className="text-up" data-testid="wb-fills-error">成交明细加载失败：{fills.error}</span>}
+        {/* ADR-024 D10：取数触顶（分页上限）必须显式披露（禁把「数据域不全」显示为「K 线本来就短」） */}
+        {historyCapNote && (
+          <span
+            className="min-w-0 max-w-[14rem] truncate text-amber-300"
+            title={historyCapNote}
+            data-testid="wb-kline-history-cap"
+          >
+            {historyCapNote}
+          </span>
+        )}
         {/* D9-5：**删除** S/M/L 预设条（卡高机制已删；高度由 K线↔指标 分隔条控制） */}
         {/* D6-5 第 5 项：指标勾选**收进浮层**（不再占整行 40px）；多选与既有 testid 保留 */}
         {toggleSlot != null && (

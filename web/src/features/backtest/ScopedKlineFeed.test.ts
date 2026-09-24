@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ApiClient } from '@/api/client';
 import type { Bar, Period } from '@/api/types';
 import { DEFAULT_KLINE_VIEWPORT_BARS, paginationBatchForPeriod } from '@/features/dashboard/feed';
-import { ScopedKlineFeed, SCOPED_VIEWPORT_BARS } from './ScopedKlineFeed';
+import {
+  MAX_INITIAL_PAGES,
+  SERVER_KLINE_MAX_LIMIT,
+  ScopedKlineFeed,
+  SCOPED_VIEWPORT_BARS,
+} from './ScopedKlineFeed';
 
 const MIN = 60 * 1000;
 /** 基准时刻（Unix 毫秒，整分钟边界），作为开仓时刻。 */
@@ -187,3 +192,108 @@ describe('ScopedKlineFeed（区间 K 线 feed——向前分页拉取更早历�
     );
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 服务端单页上限（MAX_LIMIT=1000）下的初始装载分页
+//
+// 复现（用户实测：结果页 K 线本应从 2026-01-01 开始，实际最早只到 2026-07-08）：
+//   真身 `crates/web/src/dto.rs: MAX_LIMIT = 1000` + `crates/web/src/rest.rs: q.limit.clamp(1, MAX_LIMIT)`
+//   ⇒ 结果页把整段区间当 `limit` 一次拉（M15 × 266 天 ⇒ 25539）时**只回最新 1000 根**，
+//     且旧 `hasMore = fetched.length >= needBars` 在夹取下恒假 ⇒ 向前分页被一并堵死。
+// 本组判据在**修复前必红**（红读数见 coder/evidence/20260924_kline_history_fix/）。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 模拟服务端 `/api/kline`：按 `before` 排他游标返回最近 `limit` 根，**并按服务端上限夹取**。 */
+function clampedApi(poolTsMs: number[], serverMax = SERVER_KLINE_MAX_LIMIT): ApiClient {
+  const getKline = vi.fn(async (q: { before?: string; limit?: number }) => {
+    const beforeMs = q.before ? Date.parse(q.before) : Infinity;
+    const eff = Math.min(q.limit ?? 500, serverMax);
+    return poolTsMs
+      .filter((t) => t < beforeMs)
+      .slice(-eff)
+      .map((t) => makeBar(t));
+  });
+  return { getKline } as unknown as ApiClient;
+}
+
+/** 1m bar 池：k ∈ [loMin, hiMin] 分钟。 */
+function minutePool(loMin: number, hiMin: number): number[] {
+  const out: number[] = [];
+  for (let k = loMin; k <= hiMin; k++) out.push(BASE + k * MIN);
+  return out;
+}
+
+/** 区间 feed（1m；开仓/平仓以分钟为单位给出；buffer 0 = 结果页口径）。 */
+function rangeFeed(api: ApiClient, fromMin: number, toMin: number, pageSize?: number): ScopedKlineFeed {
+  return new ScopedKlineFeed({
+    api,
+    code: '518880',
+    period: '1m',
+    fromTs: (BASE + fromMin * MIN) / 1000,
+    toTs: (BASE + toMin * MIN) / 1000,
+    buffer: 0,
+    ...(pageSize != null ? { pageSize } : {}),
+  });
+}
+
+describe('ScopedKlineFeed（服务端单页上限 MAX_LIMIT=1000 ⇒ 初始装载必须自行向前分页）', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('初始装载自行分页直到覆盖区间起点（请求量不得超过服务端单页上限），且 hasMore=true', async () => {
+    const api = clampedApi(minutePool(0, 5000));
+    // 区间 [BASE+3000min, BASE+5000min] ⇒ needBars = 2000 + 0 + 3 = 2003 > 1000（触发服务端夹取）
+    const feed = rangeFeed(api, 3000, 5000);
+    await feed.loadInitial();
+
+    // ① 单次请求不得超服务端单页上限（超了只会被夹取，拿不到更多）
+    const calls = (api.getKline as unknown as { mock: { calls: Array<[{ limit: number }]> } }).mock.calls;
+    expect(calls.length).toBeGreaterThan(1);
+    for (const [q] of calls) expect(q.limit).toBeLessThanOrEqual(SERVER_KLINE_MAX_LIMIT);
+
+    // ② 区间左端必须被覆盖：bars[0] == from_ts（旧实现：夹取后只回最新 1000 根 ⇒ bars[0] = from+1001min）
+    expect(Date.parse(feed.bars[0]!.ts)).toBe(BASE + 3000 * MIN);
+    expect(Date.parse(feed.bars[feed.bars.length - 1]!.ts)).toBe(BASE + 5000 * MIN);
+    expect(feed.bars.length).toBe(2001);
+
+    // ③ hasMore 必须为 true（左侧仍有更早历史）。旧实现 `fetched.length >= needBars`（1000 >= 2003）恒假
+    //    ⇒ hasMore=false ⇒ loadBefore 首行 return 0 ⇒ 向左拖/滚永不取更早历史。
+    expect(feed.hasMore).toBe(true);
+    expect(feed.historyCovered).toBe(true);
+    expect(feed.historyCapNote).toBeNull();
+  });
+
+  it('覆盖区间起点后，连续 loadBefore() 仍能把更早页并入并逐页前移 bars[0]', async () => {
+    const api = clampedApi(minutePool(0, 5000));
+    const feed = rangeFeed(api, 3000, 5000, 500);
+    await feed.loadInitial();
+    const first = Date.parse(feed.bars[0]!.ts);
+
+    expect(await feed.loadBefore()).toBe(500);
+    expect(Date.parse(feed.bars[0]!.ts)).toBe(first - 500 * MIN);
+    expect(await feed.loadBefore()).toBe(500);
+    expect(Date.parse(feed.bars[0]!.ts)).toBe(first - 1000 * MIN);
+
+    const ts = feed.bars.map((b) => Date.parse(b.ts));
+    expect(ts).toEqual([...ts].sort((a, b) => a - b)); // 升序
+    expect(new Set(ts).size).toBe(ts.length); // 无重复
+    expect(feed.hasMore).toBe(true); // 每页取满 ⇒ 左侧仍有历史
+  });
+
+  it('触顶（请求次数上限）且仍未覆盖区间起点 ⇒ 必须显式披露，禁静默截断', async () => {
+    const api = clampedApi(minutePool(0, 25000));
+    // 区间 [BASE+1000min, BASE+25000min] ⇒ 需要 24003 根 ≫ 20 页 × 1000 根 ⇒ 必然触顶
+    const feed = rangeFeed(api, 1000, 25000);
+    await feed.loadInitial();
+
+    const calls = (api.getKline as unknown as { mock: { calls: unknown[] } }).mock.calls;
+    expect(calls.length).toBe(MAX_INITIAL_PAGES);
+    // 已取回 k∈[6001, 25000]（20 页 × 1000 根，最新在前）
+    expect(Date.parse(feed.bars[0]!.ts)).toBe(BASE + (25000 - MAX_INITIAL_PAGES * SERVER_KLINE_MAX_LIMIT + 1) * MIN);
+    expect(feed.historyCovered).toBe(false);
+    expect(feed.historyCapNote).toEqual(expect.stringContaining('触顶'));
+    expect(feed.hasMore).toBe(true);
+  });
+});
+

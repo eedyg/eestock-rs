@@ -6,15 +6,29 @@
  *
  * **为什么必须真渲染**：高亮与醒目化都落在 klinecharts canvas / overlay 层，jsdom 无 canvas，
  * 单测只能断言**调用面**（`createOverlay` 的 extendData）。本规格在**真身**上断言：
- *  1. L2 `[跳转]` 后结果页**滚动到 K 线区域**（锚点在滚动容器可视区内）；
+ *  1. **focus**：L2 `[跳转]` 后 **K 线在上栏内可见**（见下「契约修订史」②：D9 后为**不变量**判据）；
  *  2. **只高亮被点击的那一笔**：`kline-chart[data-highlight-key]` = `rt_seq:成交序号`（精确到笔），
  *     `data-highlight-active=true`；
  *  3. **3 秒后回常态**（`data-highlight-active=false`，无永久选中态）；
  *  4. 各**曲线视图**出现竖线标记（`wb-vline`，同一时点）。
  *
- * 运行（同 adr028-window-sync.e2e.ts：真身 = 生产构建产物 + :8081 后端/库）：
- *   npx vite build && VITE_PROXY_TARGET=http://localhost:8081 npx vite preview --port 4173 &
- *   E2E_BASE_URL=http://localhost:4173 npx playwright test e2e/adr028-fill-focus-highlight.e2e.ts
+ * **契约修订史（逐条给推导，非按实现倒推；依 ADR-023 §6.2）**
+ *  ① 2026-09-23（§2.7 第 5 项，D7）：focus 滚动**作用域收敛到上栏容器**（页级 `scrollIntoView` 废弃）⇒
+ *     前置从「结果页 `wb-result` 已滚动」改为「**上栏 `wb-kline-view` 已滚离 K 线**（`scrollTop > 200`）」，
+ *     判据为跳转后上栏把 K 线带回可见（`scrollTop` 回落）。
+ *  ② 2026-09-24（**§2.9-3 D9-4 + §2.9-10 D9-10**，D9 三视图拆分）：
+ *     **K 线视图不再滚动**（`overflow:hidden`；`scrollHeight ≤ clientHeight`）⇒ ① 的前置
+ *     「把 K 线滚出上栏可视区」**几何上不可满足** ⇒ 该前置与被其支撑的两条断言
+ *     （`scrollTop` 必须变小 / 必须变化）在新口径下**无对应物**（已点名删除，见测试体内说明与执行报告）。
+ *     focus 的等价判据 = **不变量**（D9-10）：K 线视图在视口内 ∧ 卡完整落在视图内 ∧ 锚点在视图视口内
+ *     ∧ 整页不滚（`scrollY == 0`）∧ 明细视图 `scrollTop` 不变 ∧ 指标视图 `scrollTop` 不变（对齐 D7-4②）
+ *     ∧ 三段视图分配不变（§4-12⑥）；另断言 focus 路径的可观测计数递增（`data-focus-scroll`）。
+ *  ③ 高亮 / 3 秒回常态 / 曲线竖线（②③④ 项）**逐条保留**（D9 未改变其口径）。
+ *
+ * 运行（同 adr028-window-sync.e2e.ts：真身 = 生产构建产物 + :8081 后端/库；**证据出口须为未跟踪目录**）：
+ *   npx vite build --outDir /tmp/<dir> && VITE_PROXY_TARGET=http://localhost:8081 npx vite preview --outDir /tmp/<dir> &
+ *   E2E_BASE_URL=http://localhost:<port> npx playwright test e2e/adr028-fill-focus-highlight.e2e.ts
+ *   （默认出口 `coder/evidence/20260920_adr028_features/raw` **含 26 个已跟踪文件** ⇒ 禁止用默认值）
  */
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -24,7 +38,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
 const OUT =
-  process.env.ADR028_FEAT_E2E_OUT ?? resolve(REPO, 'coder/evidence/20260920_adr028_features/raw');
+  process.env.ADR028_FEAT_E2E_OUT ??
+  resolve(REPO, 'tester/evidence/20260924_d9_spec_tail/raw/fill_focus');
 
 /** 目标 run（159776/D1；rt_seq=1 l2_count=16 ⇒ 可断言「精确到笔」）。 */
 const RUN_ID = process.env.ADR028_FEAT_RUN ?? 'sr_1789832477006_000002';
@@ -75,10 +90,31 @@ async function shotKlineClip(page: Page, name: string): Promise<{ x: number; y: 
   return clip;
 }
 
-test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 + 3 秒回常态 + 曲线竖线', async ({
+test('D4.1 真渲染（D9 重锚：focus = 不变量）：L2 跳转 ⇒ K 线常驻可见 + 跳转纪律（页面/明细/指标均不动）+ 精确到笔高亮 + 3 秒回常态 + 曲线竖线', async ({
   page,
 }) => {
   await openRunSettled(page, RUN_ID);
+
+  /** D9-10 判据读数：页面滚动 + 两个**实际可滚**视图（明细 `wb-detail-pane` / 指标 `wb-indicator-view`）
+   *  + focus 可观测计数 + 三段视图分配（`data-view-height-*`）。 */
+  const readJumpState = () =>
+    page.evaluate(() => {
+      const q = (id: string) => document.querySelector(`[data-testid="${id}"]`);
+      const r = q('wb-result');
+      return {
+        scrollY: window.scrollY,
+        docScrollH: document.scrollingElement?.scrollHeight ?? -1,
+        innerH: window.innerHeight,
+        detailPaneTop: (q('wb-detail-pane') as HTMLElement | null)?.scrollTop ?? -1,
+        indicatorTop: (q('wb-indicator-view') as HTMLElement | null)?.scrollTop ?? -1,
+        focusRev: Number(q('wb-kline-view')?.getAttribute('data-focus-scroll') ?? '0'),
+        viewHeights: [
+          r?.getAttribute('data-view-height-kline'),
+          r?.getAttribute('data-view-height-indicators'),
+          r?.getAttribute('data-view-height-detail'),
+        ].join('/'),
+      };
+    });
 
   // 数据侧锚点（目标笔的 ts / bar_index；用于与曲线竖线、探针交叉核对）
   const resp = await page.request.get(`/api/workbench/runs/${RUN_ID}/round-trips/${RT_SEQ}/fills?limit=200`);
@@ -88,32 +124,52 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
   const targetFill = fillList[FILL_IDX]!;
   const wantKey = `${RT_SEQ}:${FILL_IDX}`;
 
-  // 展开 L2 并记录跳转前滚动状态（focus 判据的基线）
+  // 前置①（**D9-4**）：K 线视图**不是**滚动容器（旧「上栏才是滚动容器」口径已废止，见文件头修订史 ②）
+  const kvGeom = await page.getByTestId('wb-kline-view').evaluate((e) => ({
+    overflowY: getComputedStyle(e).overflowY,
+    scrollHeight: e.scrollHeight,
+    clientHeight: e.clientHeight,
+  }));
+  expect(kvGeom.overflowY, 'D9-4 K 线视图必须 overflow:hidden（不滚动）').toBe('hidden');
+  expect(kvGeom.scrollHeight, 'D9-4 K 线视图无内部滚动（scrollHeight ≤ clientHeight）').toBeLessThanOrEqual(
+    kvGeom.clientHeight,
+  );
+
+  // 展开 L2，并把目标行在**明细视图内**摆到容器中部
+  //  （`jump.click()` 的自动滚入会污染「明细 scrollTop 不变」基线 ⇒ 先就位、后读基线）
   await page.getByTestId(`wb-rt-detail-${RT_SEQ}`).click();
   const row = page.getByTestId(`wb-l2-row-${RT_SEQ}-${FILL_IDX}`);
   await expect(row).toBeVisible();
-  await row.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  // **契约修订（ADR-028 §2.7 第 5 项）**：focus 滚动**作用域收敛到上栏容器内**（页面级滚动已移除）。
-  //  旧契约：结果页 `wb-result` 作为滚动容器、`scrollIntoView` 到页级；旧前置 = 结果页已滚动。
-  //  新契约：`wb-kline-view` 才是滚动容器 ⇒ 前置 = **在上栏内滚离 K 线**（scrollTop > 200，保证判据有鉴别力），
-  //  跳转后上栏必须把 K 线区域带回可视区内（scrollTop 回落到锚点对齐处）。
-  await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
-    if (pane) pane.scrollTop = 600;
-  });
-  await page.waitForTimeout(250);
-  const scrollBefore = await page
-    .getByTestId('wb-kline-view')
-    .evaluate((e) => (e as HTMLElement).scrollTop);
-  expect(scrollBefore, '前置：上栏必须已滚离 K 线（否则 focus 判据无鉴别力）').toBeGreaterThan(200);
+  await page.evaluate(
+    (rowId) => {
+      const pane = document.querySelector('[data-testid="wb-detail-pane"]');
+      const el = document.querySelector(`[data-testid="${rowId}"]`);
+      if (pane && el) {
+        const pr = pane.getBoundingClientRect();
+        const rr = el.getBoundingClientRect();
+        pane.scrollTop = pane.scrollTop + (rr.top - pr.top) - Math.max(0, (pane.clientHeight - rr.height) / 2);
+      }
+      // 前置②：把**指标视图**滚离顶端（使「指标 scrollTop 不变」有鉴别力）
+      const iv = document.querySelector('[data-testid="wb-indicator-view"]');
+      if (iv) iv.scrollTop = 200;
+    },
+    `wb-l2-row-${RT_SEQ}-${FILL_IDX}`,
+  );
+  const jump = page.getByTestId(`wb-l2-jump-${RT_SEQ}-${FILL_IDX}`);
+  await jump.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
 
-  await page.getByTestId(`wb-l2-jump-${RT_SEQ}-${FILL_IDX}`).click();
+  const before = await readJumpState();
+  expect(before.detailPaneTop, '前置①：明细视图必须已滚动（否则「不变」判据无鉴别力）').toBeGreaterThan(0);
+  expect(before.indicatorTop, '前置②：指标视图必须已滚动（否则「不变」判据无鉴别力）').toBeGreaterThan(0);
+  expect(before.scrollY, '前置③：页面必须未滚动（整页不滚，D9-4）').toBe(0);
 
+  await jump.click();
   await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-highlight-active', 'true');
   mkdirSync(OUT, { recursive: true });
+  const after = await readJumpState();
 
-  // ① focus：结果页滚动到 K 线区域（锚点落在滚动容器可视区内 + 滚动位置确实变化）
+  // ① focus（**D9-10 重锚**）：K 线在上栏内可见 —— 锚点在 K 线视图视口内 ∧ 视图在视口内 ∧ 卡完整落在视图内
   await expect
     .poll(
       async () =>
@@ -123,13 +179,39 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
           const sBox = scroller.getBoundingClientRect();
           return box.top >= sBox.top - 4 && box.top <= sBox.bottom - 20;
         }),
-      { timeout: 5000, message: 'K 线锚点必须落在**上栏容器**可视区内（focus 滚动，作用域收敛）' },
+      { timeout: 5000, message: 'K 线锚点必须落在 **K 线视图**可视区内（D9-10「K 线在上栏内回到可见」）' },
     )
     .toBe(true);
-  const scrollAfter = await page
-    .getByTestId('wb-kline-view')
-    .evaluate((e) => (e as HTMLElement).scrollTop);
-  expect(scrollAfter, `focus 必须把上栏滚回 K 线区域（${scrollBefore} → ${scrollAfter}）`).toBeLessThan(scrollBefore);
+  const kb = await page.getByTestId('wb-kline-view').boundingBox();
+  const cardBox = await page.getByTestId('wb-kline-chart').boundingBox();
+  const vp = page.viewportSize() ?? { width: 1280, height: 800 };
+  expect(kb, 'K 线视图必须有几何框').toBeTruthy();
+  expect(cardBox, 'K 线卡必须有几何框').toBeTruthy();
+  expect(kb!.y, `D9-4 K 线视图必须在视口内（实读 y=${kb!.y}）`).toBeGreaterThanOrEqual(0);
+  expect(kb!.y + kb!.height, `D9-4 K 线视图底边必须在视口内（${kb!.y + kb!.height} / 视口 ${vp.height}）`).toBeLessThanOrEqual(
+    vp.height,
+  );
+  expect(cardBox!.y, 'D9-2 K 线卡顶不得越出 K 线视图顶（K 线常驻可见）').toBeGreaterThanOrEqual(kb!.y - 2);
+  expect(
+    cardBox!.y + cardBox!.height,
+    'D9-2/D9-4 K 线卡底不得越出 K 线视图底（视图不滚 ⇒ 卡恒完整可见）',
+  ).toBeLessThanOrEqual(kb!.y + kb!.height + 2);
+  // focus 路径**执行过**（§2.7-5 作用域收敛后的可观测计数；K 线视图不滚 ⇒ 该计数是「focus 未静默失效」的唯一证据）
+  expect(
+    after.focusRev,
+    `focus 路径必须执行过（data-focus-scroll ${before.focusRev} → ${after.focusRev}）`,
+  ).toBeGreaterThan(before.focusRev);
+  // ②③④ D9-10 纪律 + §4-12⑥：页面不滚 / 明细 scrollTop 不变 / 指标视图 scrollTop 不变 / 三段分配不变
+  expect(after.scrollY, 'D9-4/D9-10 跳转后页面不得滚动（scrollY 必须 0）').toBe(0);
+  expect(after.scrollY, 'D9-10 跳转前后页面滚动位置不变').toBe(before.scrollY);
+  expect(after.detailPaneTop, 'D9-10 跳转不得改变明细视图 scrollTop（B1-1 完全不动）').toBe(before.detailPaneTop);
+  expect(after.indicatorTop, 'D9-10 跳转不得改变指标视图 scrollTop（对齐 D7-4②）').toBe(before.indicatorTop);
+  expect(after.viewHeights, 'D9-10 跳转不得改变三段视图高度分配（§4-12⑥）').toBe(before.viewHeights);
+
+  // **被点名删除的旧断言**（D9 下无对应物，不静默删）：
+  //  · `scrollBefore > 200`（上栏滚离 K 线）—— K 线视图不滚（D9-4）⇒ 几何不可满足；
+  //  · `scrollAfter < scrollBefore` / `scrollAfter != scrollBefore`（focus 的滚动动作）—— 同上；
+  //    其语义（「K 线回到可见」）已由上面 ① 的不变量断言承接，且判据仍有鉴别力（卡越界 / 视图越界 / 页面被滚必红）。
 
   // **像素证据**（高亮只活 3 秒，须在窗口内抢拍）：K 线区域裁切 × 两个脉冲相位。
   // 脉冲 = 定时器驱动 overlay 重绘（半径/描边变化）⇒ 两相位像素差必须落在 K 线框内，
@@ -173,8 +255,13 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
     fill_idx: FILL_IDX,
     target_fill: targetFill,
     want_key: wantKey,
-    scroll_before: scrollBefore,
-    scroll_after: scrollAfter,
+    // D9 重锚：旧 `scroll_before/scroll_after`（上栏滚动位）无对应物（K 线视图不滚，D9-4）⇒ 换为 D9-10 读数
+    jump_state_before: before,
+    jump_state_after: after,
+    kline_view_geom: kvGeom,
+    kline_view_box: kb,
+    kline_card_box: cardBox,
+    viewport: { width: vp.width, height: vp.height },
     note_attrs: noteAttrs,
     vlines: vlineAttrs,
     vline_ts_unique: [...vlineTs],
@@ -193,7 +280,8 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
     },
   });
 
-  expect(scrollAfter, 'focus：滚动位置必须变化（跳转到 K 线区域）').not.toBe(scrollBefore);
+  // （旧断言「focus ⇒ 上栏滚动位置必须变化」已按 D9-4 删除：K 线视图不滚 ⇒ 无「滚动到 K 线」动作；
+  //   见文件头修订史 ② 与测试体内的点名说明。D9-10 的四条不变量断言已在其前逐条执行。）
   expect(Number(pulseA['data-highlight-pulse']), '相位 A 必须处于高亮脉冲中').toBeGreaterThan(0);
   expect(Number(pulseB['data-highlight-pulse']), '相位 B 必须处于高亮脉冲中').toBeGreaterThan(0);
   expect(pulseA['data-highlight-pulse']).not.toBe(pulseB['data-highlight-pulse']);

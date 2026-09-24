@@ -417,8 +417,10 @@ export function mainPanePxByIdentity(args: { innerPx: number; subPaneCount: numb
 /**
  * 拖拽提交：给定**起点 px** + 边界 + 鼠标位移 `dy`（正 = 向下），返回新的三段比例。
  *
- * **方向语义（ADR-028 §2.8/§2.9 第 8 项）**：分隔条位于其**上方视图的下沿** ⇒
- * **鼠标向上（dy < 0）⇒ 上方视图变高、下方视图变矮**，位移 **1:1**；
+ * **方向语义（ADR-028 §2.7-3 / §2.8 / §2.9 第 8 项；2026-09-24 二次纠错后为准）**：分隔条位于其**上方视图的下沿**
+ * （= 下方视图的上沿）⇒ **把手移动方向 = 边界移动方向** ⇒ **鼠标向上（dy < 0）⇒ 下方视图变高、上方视图变矮**，
+ * 位移 **1:1** ⇒ `upperPx = startUpper + dy`、`lowerPx = startLower − dy`（`dy` 正 = 向下）；
+ * **卡片类把手方向相反**（把手在卡片下沿 ⇒ `cardPx = startH + dy`），**禁止互相套用**（几何决定）。
  * 夹取（D9-7）：**只对本边界的两个视图**按其可读下限夹取（位移 1:1 在夹取处停止，差额回吐给另一侧）；
  * 第三个视图**完全不动**。
  *
@@ -517,8 +519,8 @@ export function dragRatiosFromViewPx(args: {
   const minTrue = (v: number) => (share > 0 && share < 1 ? v / share + 1 : v);
 
   const [upperNext, lowerNext] = clampPair(
-    start[tUp] - dy,
-    start[tLow] + dy,
+    start[tUp] + dy,
+    start[tLow] - dy,
     minTrue(mins[tUp]),
     minTrue(mins[tLow]),
   );

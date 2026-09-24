@@ -49,7 +49,7 @@
  * 11. **表格祖先 inline 高度许可名单**：`wb-detail-pane` → 加上视图级布局容器
  *     （`wb-detail-view` / `wb-kline-view` / `wb-indicator-view`）——它们按 D9 契约持有固定 inline 高度。
  * 12. **视口**：旧 1280×900 是为了满足 D6-2 的「`max = 视口高 − 200`」；D9 无该上限，
- *     但「K线↔指标 上拖 +120」需要指标视图余量 ⇒ 抬到 **1280×1400**（可用 1268；默认 697/368/203）。
+ *     但「K线↔指标 下拖 +120」需要指标视图余量 ⇒ 抬到 **1280×1400**（可用 1268；默认 697/368/203）。
  * 13. **证据出口**：旧默认 `tester/evidence/20260920_result_resize_verify/raw` **含 16 个已跟踪文件**
  *     ⇒ 每跑一次即污染（AGENTS.md 2026-09-23 登记）⇒ 默认改为**规格相对的未跟踪目录**。
  */
@@ -676,7 +676,7 @@ function probeViews() {
   };
 }
 
-/** 真鼠标拖某条**视图分隔条**（`dy < 0` = 向上 ⇒ 上方视图变高；契约 §2.8/§2.9-8）。 */
+/** 真鼠标拖某条**视图分隔条**（`dy < 0` = 向上 ⇒ **下方**视图变高、上方变矮；契约 §2.8/§2.9-8 二次纠错后为准）。 */
 async function dragSplitterByTestId(page: Page, testid: string, dy: number): Promise<void> {
   const el = page.getByTestId(testid);
   await el.scrollIntoViewIfNeeded();
@@ -720,9 +720,10 @@ const basePaneIds = ['candle_pane', 'x_axis_pane'];
 /**
  * 视口重锚（**2026-09-24，D9 契约推导**）：1280×1400。
  *  - 旧 900 档的理由（D6-2 `max = 视口高 − 200`）**已被 D9-5 删除**（卡高机制不存在）；
- *  - D9 下需要的是「**指标视图**有足够余量」：K线↔指标 上拖 +120 要求 `指标视图 ≥ 180 + 120 = 300`
+ *  - D9 下需要的是「**指标视图**有足够余量」：K线↔指标 **下拖 +120**（§2.8 二次纠错：把手方向 = 边界方向
+ *    ⇒ 下拖使上方 K 线变高、下方指标变矮）要求 `指标视图 ≥ 180 + 120 = 300`
  *    ⇒ `可用 ≥ (300/0.29) ≈ 1035` ⇒ 视口 ≥ 1167；取 **1400** ⇒ `可用 = 1268`，默认三段 `697 / 368 / 203`，
- *    上拖 +120 后 `指标 = 248 ≥ 180` ✓（另：1400 档属 D9-8③ 的**几何可行支** ⇒ 主图 ≥320 可断言）。
+ *    下拖 +120 后 `指标 = 248 ≥ 180` ✓（另：1400 档属 D9-8③ 的**几何可行支** ⇒ 主图 ≥320 可断言）。
  */
 test.use({ viewport: { width: 1280, height: 1400 } });
 
@@ -874,11 +875,11 @@ test('RV-2 K 线视图高度（K线↔指标 分隔条，取代已删的卡片�
   const truth1 = await page.evaluate(probeKlineTruth);
   const volH1 = sizeOf(truth1, volPaneId);
 
-  // ② 拖 **K线↔指标** 分隔条 上拖 +120 ⇒ K 线视图 / 卡高 / 内层**三者同步 +120**（D9-5/D9-6/D9-8①）
+  // ② 拖 **K线↔指标** 分隔条 **下拖 +120** ⇒ K 线视图 / 卡高 / 内层**三者同步 +120**（D9-5/D9-6/D9-8①）
   const viewH0 = views0.heights.kline;
   const klineH0 = H(cards0.cards['kline'].rect.h);
   const innerH0 = H(cards0.cards['kline'].klineInner?.h);
-  await dragSplitterByTestId(page, 'wb-splitter-kline-indicators', -120);
+  await dragSplitterByTestId(page, 'wb-splitter-kline-indicators', 120);
   const cards1 = await page.evaluate(probeCards);
   const views1 = await page.evaluate(probeViews);
   const truth1b = await page.evaluate(probeKlineTruth);
@@ -889,7 +890,7 @@ test('RV-2 K 线视图高度（K线↔指标 分隔条，取代已删的卡片�
 
   expect(
     viewH1 - viewH0,
-    `D9-6⑤ 上拖 120 ⇒ K 线视图变高 ≈+120（实读 Δ${viewH1 - viewH0}；**错方向实现此处为 −120**）`,
+    `D9-6⑤ 下拖 120（边界下移 ⇒ 上方视图变大）⇒ K 线视图变高 ≈+120（实读 Δ${viewH1 - viewH0}；**错方向实现此处为 −120**）`,
   ).toBeGreaterThanOrEqual(120 - TOL_PX);
   expect(Math.abs(viewH1 - viewH0 - 120), `D9-6⑤ 位移 1:1（实读 Δ${viewH1 - viewH0}）`).toBeLessThanOrEqual(TOL_PX);
   expect(
@@ -1338,8 +1339,8 @@ test('RV-5 持久化：刷新后三段比例（v2 键）与卡片/指标选择�
   const beforeView = views0.heights.kline;
   const beforeCard = H(cards0.cards['kline'].rect.h);
 
-  // 真鼠标拖 **K线↔指标** 分隔条（缩放）+ 切换 MACD（指标选择）
-  await dragSplitterByTestId(page, 'wb-splitter-kline-indicators', -120);
+  // 真鼠标拖 **K线↔指标** 分隔条（缩放；§2.8 二次纠错：边界下移 ⇒ 上方 K 线变高）+ 切换 MACD（指标选择）
+  await dragSplitterByTestId(page, 'wb-splitter-kline-indicators', 120);
   await openIndicators(page);
   await page.getByTestId('wb-indicator-toggle-macd').click();
   await page.waitForTimeout(1000);

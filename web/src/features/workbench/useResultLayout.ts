@@ -37,7 +37,8 @@ import {
  *
  * 契约（唯一事实源 = ADR-028 §2.9 第 2/3/5/6/7/8 项）：
  *  - 两条分隔条（`wb-splitter-kline-indicators` / `wb-splitter-indicators-detail`）；
- *    **方向语义 = 鼠标向上 ⇒ 上方视图变高**、位移 **1:1**（同 D8；与卡片把手的下沿符号相反，禁止互相套用）；
+ *    **方向语义（2026-09-24 二次纠错后为准）= 鼠标向上 ⇒ 下方视图变高、上方视图变矮**、位移 **1:1**
+ *    （同 §2.7-3/§2.8；与卡片把手的下沿符号相反，禁止互相套用）；
  *  - 双击各自复位该边界的默认比例；
  *  - **K 线视图常驻**（无收起 API）；指标/明细 per-view 收起/展开 + 记忆 + 常驻恢复条 props；
  *  - **可用高实测**：`可用 = split 容器实测高 − 40`（两条分隔条 + 4 条 gap）；未布局 ⇒ `视口高 − 132`；
@@ -352,7 +353,7 @@ export function useResultLayout(args: {
       'data-testid': `wb-splitter-${boundary}`,
       role: 'separator',
       'aria-orientation': 'horizontal',
-      'aria-label': `${BOUNDARY_LABEL[boundary]}（向上拖 ⇒ 上方视图变高；双击复位默认比例）`,
+      'aria-label': `${BOUNDARY_LABEL[boundary]}（向上拖 ⇒ 下方视图变高；双击复位默认比例）`,
       tabIndex: 0,
       style: { cursor: 'ns-resize', height: `${SPLITTER_PX}px`, flexShrink: 0, touchAction: 'none' },
       className: `relative z-20 w-full select-none bg-transparent ${SPLITTER_HOVER_CLASS}`,
