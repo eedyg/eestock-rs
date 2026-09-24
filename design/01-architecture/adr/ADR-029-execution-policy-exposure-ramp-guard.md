@@ -63,6 +63,7 @@ RampSpec = Immediate                              // 当 bar 目标即全额（=
 GuardSpec { max_pct, min_pct, deadzone_pct }
 ```
 - **`max_pct` 强制夹取**：分数多高、策略怎么说，**目标不得超过 `max_pct`**（安全不变式）。
+- **`min_pct` 语义（2026-09-24 实施取证后补全）**：`min_pct` **只约束"持有态目标"**，**不阻塞清仓** —— `SellPolicy::Flat/Scaled` 产生的目标 0 **必须可达**（否则"永不空仓"，与清仓/硬止损语义冲突）。默认 `min_pct = 0`；`min_pct > 0` 时配置处须显式提示"非零下限不清仓"。
 - **`deadzone_pct`**：`|目标 − 当前暴露| < deadzone_pct` ⇒ **不下单**（防抖前置条件；连续仓位的新失效模式是"分数抖动 → 订单抖动 → 费用流失"）。
 - **求值 pipeline（自审补全；顺序即契约，不得各实现自定）**：①`score → pct`（映射；先夹 `[0,100]`）②`pct → clamp(min_pct, max_pct)`（guard，置 `clamped_by_guard`）③`target_qty = pct × equity / price` ④**死区**：`|target_qty − current_qty| × price < deadzone_pct × equity` ⇒ 无订单（`deadzone_blocked`）⑤**限速**：本 bar 允许变动金额 ≤ `pct_per_bar × equity`（`rate_limited`）⑥下单（delta）⑦记录观测。
 
@@ -72,11 +73,13 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 3. **单调推进**：已完成步不得回退（速率受限亦不得反向抖动）；`Hold` 带内保持上一目标。
 4. **强平/硬止损 = 外部中断**：路径作废并 `PolicyState::reset()`（沿用 ADR-028 §13.1 MAJOR-2 裁决）。
 5. **warmup 段不执行 Policy**（沿用）。
-6. **聚合层本批不变**（仍为加权平均 → `classify`）；`Exposure` 模式从**聚合分**直接算目标，`signal` 仅作 UI/披露记录。
+6. **现金不可达时的下调（只降不升）**：目标因**现金不足**不可达时，**一次性把目标下调到实际可达上限**并披露（等价现行 `LumpSum` 的 `clamp_lump_frozen` 语义）；**禁止**对不可达缺口每 bar 重复挂微单。
+7. **聚合层本批不变**（仍为加权平均 → `classify`）；`Exposure` 模式从**聚合分**直接算目标，`signal` 仅作 UI/披露记录。
 
 ### D7（观测与审计）
 - 每 bar 落：`{target_pct, current_pct, ramp_cap_pct_per_bar, rate_limited, deadzone_blocked, clamped_by_guard, sell_transition}`；随既有 `per_bar` 记录通道输出（不新增事实表）。
-- **审计"意图 vs 实际"统计口径（自审补全）**：评估段内 `max |target_pct − position_ratio|`（逐 bar 取最大差）；超过 **0.05**（阈值待标定）触发告警；与既有 `WARN_PARTIAL_DEPLOYMENT` 并列，不得互相解释。
+- **审计"意图 vs 实际"统计口径（自审补全）**：评估段内 `max |target_pct − position_ratio|`（逐 bar 取最大差）；超过 **0.05**（阈值待标定）触发告警；与既有 `WARN_PARTIAL_DEPLOYMENT` 并列，不得互相解释。- **审计"意图 vs 实际"统计口径（自审补全）**：评估段内 `max |target_pct − position_ratio|`（逐 bar 取最大差）；超过 **0.05**（阈值待标定）触发告警；与既有 `WARN_PARTIAL_DEPLOYMENT` 并列，不得互相解释。
+- **`EXPOSURE_INTENT_GAP` 口径补全（2026-09-24 实施取证）**：统计**排除"建仓首根跃迁"** —— 上一 bar 目标为 0 或持仓为 0（首次建仓 / 清仓后重建）的那一根**不计入**；否则 `Immediate` 路径首根必然大步（实测 gap 0.20375）会逐次误报。阈值维持 **0.05**（待标定）。
 - 审计新增：**"意图（target_pct）vs 实际暴露"差值** + **抖动指标**（评估段下单次数 / 费用占净值比）；形态沿用 `WARN_DCA_PLAN_UNDERFILLED`。
 - UI：结果页需能显示目标暴露曲线（或至少在审计/配置处披露映射端点），并标注"总分曲线是诊断量，不等于仓位"。
 
@@ -108,7 +111,10 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 5. **强平 reset**：硬止损后 DCA/冻结/路径状态全清（与现行裁决一致）。
 6. **旧变体复现**：`LumpSum`/`Dca` 在同一输入下与本 ADR 之前**逐字节一致**（含记录 A/B 两个真实 run 的成交序列对照）。
 7. **防抖**：构造分数抖动序列 ⇒ 下单次数/费用占净值比 ≤ 判据上限（阈值由标定给出）。
-8. **观测/审计**：`target_pct/current_pct/deadzone_blocked/clamped_by_guard` 逐 bar 可读；审计出现"意图 vs 实际"差值。
+8. **观测/审计**：`target_pct/current_pct/deadzone_blocked/clamped_by_guard` 逐 bar 可读；审计出现"意图 vs 实际"差值。8. **观测/审计**：`target_pct/current_pct/deadzone_blocked/clamped_by_guard` 逐 bar 可读；审计出现"意图 vs 实际"差值。
+9. **`min_pct` 不得阻塞清仓**（E15）：`min_pct > 0` 时卖区目标仍必须为 0。
+10. **gap 排除首根跃迁**（E16）：首次建仓 / 清仓后重建那一根不计入 `EXPOSURE_INTENT_GAP`。
+11. **现金不可达下调**（E17）：目标一次性下调至可达上限 ∧ 披露 ∧ **无每 bar 微单**。
 
 > **E14（sim-live 一致性）→ N/A（2026-09-24 取证更正）**：sim-live **没有** policy/仓位执行路径（固定 `aggregate_qty`，读数见 §7 R4）⇒ **无可改对象**；注意这**不是**「已一致」，而是「执行路径尚不存在」。缺口登记于 §5。
 
@@ -139,3 +145,13 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 
 **复查后仍成立的部分**：正交化三维划分、`RateCap` 作为路径基元（对移动目标成立）、`Tranches` 延后 Step 2（与移动目标语义冲突）、Step 1 纯增量 ⇒ 历史 run 可复现、legacy 只读解释器纪律。
 **同类风险提示（登记）**：凡"比例"参数必须写明**分母与量纲**（本 ADR 出现 `pct` / `pct_per_bar` / `deadzone_pct` / `at_*_pct` 四类），后续条款一律显式标注。
+
+### 7.1 第二轮自审（2026-09-24，实施取证反馈后）
+
+| # | 类型 | 内容 | 处置 |
+|---|---|---|---|
+| R9 | **缺陷（我引入）** | `min_pct` 会把 pipeline 中"卖出支的 0"抬到 `min_pct` ⇒ **永不空仓** | D5 补：`min_pct` 只约束持有态目标；清仓 0 必须可达；新增判据 **E15** |
+| R10 | **缺陷（我引入）** | `EXPOSURE_INTENT_GAP` 把"建仓首根跃迁"计入 ⇒ `Immediate` 路径每次误报 | D7 补：排除首根跃迁；新增判据 **E16** |
+| R11 | **遗漏** | `Exposure` 缺 affordability 下调（`LumpSum` 有 `clamp_lump_frozen`）⇒ 不可达缺口每 bar 微单 | D6 新增第 6 条（只降不升 + 披露）；新增判据 **E17** |
+| R12 | 遗漏（提交期） | `application/src/strategy.rs` 提交路径未调 `validate_with_thresholds` ⇒ 错配置到运行时才报 | 纳入本批（fail loud at submit） |
+| R13 | 登记 | MCP 工具描述未同步新告警码；旧变体 `per_bar` 新增观测键 | MCP 描述随 Web/后续小改；`per_bar` 为观测记录（非事实源），E8 已证成交序列不受影响 |
