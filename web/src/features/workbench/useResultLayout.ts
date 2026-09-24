@@ -25,6 +25,9 @@ import {
  * ADR-028 §2.7（D7）下栏布局**状态与持久化**（拖拽 / 折叠 / 记忆）。
  *
  * - 默认 `ratio = 0.4`（40% 视口高，D7-3）；比例 clamp 到 `[0.15, 0.85]`（§4）；
+ * - **方向语义（2026-09-24 补齐）**：分隔条位于下栏**上沿** ⇒ 鼠标**向上 ⇒ 下栏变高**
+ *   （`detailPx = startDetail − Δy`）·鼠标**向下 ⇒ 下栏变矮**，**位移 1:1**；**卡片把手在下沿、方向相反**
+ *   （`cardPx = startH + Δy`），两者**禁止互相套用**；双击分隔条复位 40%；
  * - 折叠 ⇒ 下栏不占位（上栏占满）、比例记忆保留（展开恢复）；
  * - 记忆写入结果页**独立** key（`eestock.result.layout.v1`）；DI storage 适配器（单测注入内存实现）；
  * - 可用高由 split 容器**实测**（ResizeObserver）注入纯函数 ⇒ 不依赖视口假设。
@@ -116,7 +119,10 @@ export function useResultLayout(args: { storage?: LayoutStorage | null } = {}): 
     const move = (e: MouseEvent) => {
       const d = dragRef.current;
       if (!d) return;
-      const nextPx = d.startDetail + (e.clientY - d.startY);
+      // ADR-028 §2.7 第 3 项（**方向语义**，2026-09-24 补齐）：分隔条位于下栏**上沿** ⇒
+      // 鼠标**向上**（Δy < 0）必须让下栏**变高** ⇒ `detailPx = startDetail − Δy`，位移 1:1。
+      // 旧实现写 `+ Δy` ⇒ 方向反了（用户实测）；**卡片把手在下沿，符号相反，禁止互相套用**。
+      const nextPx = d.startDetail - (e.clientY - d.startY);
       commit({ ratio: ratioForDetailPx({ detailPx: nextPx, viewportH }), collapsed: false });
     };
     const up = () => {

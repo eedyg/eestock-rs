@@ -11,7 +11,9 @@
  *  - D7-2 四块（L1/L2、逐 bar、事件日志 + 既有 8 项绩效）**都在下栏**；`wb-detail-tabs` 默认「回合与逐笔」；
  *        切 tab 不改上栏状态；
  *  - D7-3 下栏默认 **40% 视口高**（±2px）；分隔条拖拽改变比例（clamp [0.15,0.85]）；折叠 ⇒ 上栏占满 +
- *        键盘可恢复入口；刷新后比例保持；
+ *        键盘可恢复入口；刷新后比例保持。**方向语义（2026-09-24 契约补齐）**：分隔条位于下栏**上沿** ⇒
+ *        鼠标**向上 ⇒ 下栏变高 / 向下 ⇒ 下栏变矮**（位移 1:1）——本条目的拖拽方向已按契约翻正，
+ *        两向判据见 `adr028-d8-splitter-direction.e2e.ts`；**卡片把手方向相反**（下沿），禁止互相套用；
  *  - D7-4 L1 与 L2 各一次跳转：①`window.scrollY` 不变 ②下栏 `scrollTop` 不变 ③下栏内目标行仍在其容器视口内
  *        ④K 线卡「可见」（按视口分档：见下）；
  *  - D7-5 跳转后 D4.1 高亮仍生效（`data-highlight-active=true` + 3s 回常态）。
@@ -376,16 +378,24 @@ test.describe('D7-1/D7-2/D7-3 + D7-4 弱档（视口 1280×800 < 阈值）', () 
     expect(p0.splitter, 'D7-3 分隔条必须存在且可拖拽（role=separator）').not.toBeNull();
     expect(p0.splitter!.role).toBe('separator');
 
-    // 拖拽分隔条 ⇒ 比例变化（并验证上限 clamp）
+    // 拖拽分隔条 ⇒ 比例变化（并验证 clamp）
+    // ── 方向语义重锚（2026-09-24 契约补齐；**按契约推导，不按实现输出倒推**）────────────────
+    // 旧契约缺口：ADR §2.7-3 原文只写「可拖拽」、**从未写方向**，本条曾写 `dragSplitter(page, 90)`
+    //   （`dy > 0` = 鼠标**向下**）却断言「下栏变高」⇒ 与「分隔条位于下栏**上沿**」的几何相反，
+    //   把错实现（`detailPx = startDetail + Δy`）当正确固定了下来。
+    // 新契约：分隔条在下栏**上沿** ⇒ 向上（Δy < 0）⇒ 下栏**变高**；向下（Δy > 0）⇒ 下栏**变矮**。
+    // 选择：**保留「变高/变矮」文案与 clamp 覆盖，只把拖拽方向翻正**（两处一起翻：
+    //   `+90` → `−90`，`−4000` → `+4000`）——改动最小、原判据意图（先上限 clamp 再下限 clamp）不变；
+    //   方向本身的正反两向判据见专门规格 `adr028-d8-splitter-direction.e2e.ts`（D8）。
     const beforeRatio = Number(p0.ratio);
-    await dragSplitter(page, 90);
+    await dragSplitter(page, -90);
     const dragged = await page.evaluate(probeLayout);
     writeJson('d7_t1_splitter', { before: p0, dragged });
-    expect(dragged.detailPane!.rect!.h, 'D7-3 拖 +90 ⇒ 下栏变高').toBeGreaterThan(p0.detailPane!.rect!.h + 60);
+    expect(dragged.detailPane!.rect!.h, 'D7-3 上拖 −90 ⇒ 下栏变高').toBeGreaterThan(p0.detailPane!.rect!.h + 60);
     expect(dragged.chartPane!.rect!.h, 'D7-3 上栏相应变矮').toBeLessThan(p0.chartPane!.rect!.h - 60);
     expect(Number(dragged.ratio), 'D7-3 data-pane-ratio 必须随拖拽变化').toBeGreaterThan(beforeRatio);
     expect(Number(dragged.ratio), 'D7-3 比例上限 0.85').toBeLessThanOrEqual(DETAIL_RATIO_MAX);
-    await dragSplitter(page, -4000);
+    await dragSplitter(page, 4000);
     const lowClamp = await page.evaluate(probeLayout);
     writeJson('d7_t1_low_clamp', lowClamp);
     expect(Number(lowClamp.ratio), `D7-3 比例下限 ${DETAIL_RATIO_MIN}（实读 ${lowClamp.ratio}）`).toBeGreaterThanOrEqual(
