@@ -154,4 +154,8 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 | R10 | **缺陷（我引入）** | `EXPOSURE_INTENT_GAP` 把"建仓首根跃迁"计入 ⇒ `Immediate` 路径每次误报 | D7 补：排除首根跃迁；新增判据 **E16** |
 | R11 | **遗漏** | `Exposure` 缺 affordability 下调（`LumpSum` 有 `clamp_lump_frozen`）⇒ 不可达缺口每 bar 微单 | D6 新增第 6 条（只降不升 + 披露）；新增判据 **E17** |
 | R12 | 遗漏（提交期） | `application/src/strategy.rs` 提交路径未调 `validate_with_thresholds` ⇒ 错配置到运行时才报 | 纳入本批（fail loud at submit） |
-| R13 | 登记 | MCP 工具描述未同步新告警码；旧变体 `per_bar` 新增观测键 | MCP 描述随 Web/后续小改；`per_bar` 为观测记录（非事实源），E8 已证成交序列不受影响 |
+| R13 | 登记 | MCP 工具描述未同步新告警码；旧变体 `per_bar` 新增观测键 | MCP 描述随 Web/后续小改；`per_bar` 为观测记录（非事实源），E8 已证成交序列不受影响 || R13 | 登记 | MCP 工具描述未同步新告警码；旧变体 `per_bar` 新增观测键 | MCP 描述随 Web/后续小改；`per_bar` 为观测记录（非事实源），E8 已证成交序列不受影响 |
+| R14 | **收敛（实施取证）** | R11 的 affordability 上限在**目标∝当前净值**时（`ScoreMapped`/`Fixed` 皆然）**结构性不绑定**：现金截断后净值已含费用损失 ⇒ 映射目标自动收敛到可达仓位（实测 `capped_bars=[]`，逐 bar 零订单） | **机制保留为不变量守卫**（对"目标与净值脱钩"或"截断后仓位回落再回升"的构造态才绑定）；`LumpSum` 的等价机制仍是 `clamp_lump_frozen`；E17 判据须限定上述构造态 |
+| R15 | 登记 | **提交期无法拦"阈值类"错配置**：试算阈值是常量 60/40 ⇒ `validate_with_thresholds ≡ validate`（本批修掉的是**错误码归类** `request_invalid → policy_invalid`） | Step 2：把试算阈值做成可配置后，提交期才能真正拦阈值类错配 |
+| R16 | 登记 | MCP `bt_get_run_audit` 工具描述未同步两个新告警码；`affordability_capped` 为 per_bar **第 8 个观测键**，前端类型待补（可选字段，缺省不渲染） | 随 web/mcp 小改 |
+| R17 | 登记 | E2E 向真库写入 1 条 run（开发库）；前端校验多一条 `at_threshold_pct ≥ 0`（比 E11 更严，**保留**不算放宽） | 已登记 |

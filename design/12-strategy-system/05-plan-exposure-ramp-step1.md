@@ -34,7 +34,7 @@
 | E10 | **观测/审计** | 每 bar `target_pct/current_pct/deadzone_blocked/clamped_by_guard` 可读；审计出现"意图 vs 实际暴露"差值 |
 | E15 | **`min_pct` 不阻塞清仓** | `min_pct>0` 时卖区目标仍必须为 0（不得被抬到 `min_pct`） |
 | E16 | **gap 排除首根跃迁** | 首次建仓/清仓后重建的那一根不计入 `EXPOSURE_INTENT_GAP` |
-| E17 | **现金不可达下调** | 目标一次性下调至可达上限 ∧ 披露 ∧ 无每 bar 微单 |
+| E17 | **现金不可达下调**（判据限定构造态，R14） | **目标与净值脱钩**或**截断后回落再回升**的构造态下：目标一次性下调至可达上限 ∧ 披露 ∧ 无每 bar 微单；目标∝净值的常态下机制为不变量守卫（结构性不绑定，实测 `capped_bars=[]`） |
 | E12 | **求值顺序（pipeline）** | 固定为：映射→guard 夹取→换算股数→**死区**→**限速**→下单→观测；顺序不同即判错（构造可区分的用例：同一输入在两种顺序下结果不同） |
 | E13 | **`Fixed` 卖出语义** | `Fixed` 与 `LumpSum` 在相同输入下**逐字节等价**（含 `score ≤ sell_threshold ⇒ 目标 0`） |
 | E14 | **N/A（取证更正）** | sim-live **无** policy/仓位执行路径（`plugin_orchestrator::evaluate` 只产评分；下单用固定 `aggregate_qty`，`application/src/simlive.rs:1345`）⇒ 无可改对象；**交付须附该两项取证读数**；缺口登记于 ADR-029 §5（Step 2/3 立项） |
