@@ -44,6 +44,9 @@ SellPolicy = Flat                                 // score ≤ sell_threshold �
 ```
 - **映射口径（钉死）**：`score ≥ buy_threshold` 时 `pct = at_threshold_pct + (score−buy_threshold)/(100−buy_threshold) × (at_full_pct−at_threshold_pct)`；`score ≤ sell_threshold` 时按 `SellPolicy`；其间（Hold 带）⇒ **保持上一目标**（不因穿越中立区而抖动）。
 - **单调 + 端点**：映射单调不减；`score=buy_threshold ⇒ at_threshold_pct`、`score=100 ⇒ at_full_pct`；越界分数先夹到 `[0,100]`。
+- **`SellPolicy::Scaled` 端点（自审补全）**：线性 `(score=0 ⇒ 0)` … `(score=sell_threshold ⇒ at_threshold_pct)`；`SellPolicy::Flat`：`score ≤ sell_threshold ⇒ 目标 0`（清仓）。两支在边界处的跳变**允许**但必须由观测字段披露（`sell_transition`）。
+- **中立带量纲（自审补全）**：`sell_threshold < score < buy_threshold` 时目标**保持上一目标股数（绝对量）**，**不随净值/价格漂移重算** —— 否则「保持」会因净值漂移而持续产生订单（与该条的零订单承诺矛盾）。
+- **`Fixed` 的卖出语义（自审补全）**：`Fixed{pct}` 等价于现行 `LumpSum`（Buy ⇒ 目标 `pct`；**`score ≤ sell_threshold` ⇒ 目标 0**）；"忽略卖出信号"（纯固定目标）**登记 Step 2**，不在本批。
 - **接口影响（内部）**：`PolicyState::target_qty` 需接收**聚合分**（现签名只有 `signal`）⇒ 增加 `score: f64` 参数（或新增 `target_qty_with_score`）；**旧变体忽略该参数**，行为不变。
 
 ### D4（`ramp`：到达方式维；Step 1 只做基元）
@@ -52,6 +55,7 @@ RampSpec = Immediate                              // 当 bar 目标即全额（=
          | RateCap { pct_per_bar }                // 每 bar 目标变动上限（速率限制）
 ```
 - **`RateCap` 是路径基元**：对**移动目标**天然成立（目标每 bar 变，路径只限制"每 bar 最多走多少"）。
+- **`RateCap` 量纲（自审补全）**：限制的是**每 bar 目标股数变化所折算的金额** ≤ `pct_per_bar × equity`（`equity` = 决策 bar 净值）；**净值/价格漂移引起的目标股数变化不单独触发交易**（先由 `deadzone` 吸收，见 D5 的 pipeline）。
 - **延后到 Step 2**：`Tranches{count, interval, size:{equal|fixed_amount}, on_signal_break}`（"静态目标 + 批次"的糖）、`fixed_amount`、`on_signal_break`。理由：`tranches` 与移动目标**语义冲突**（批次栅格对动态目标无定义）⇒ 必须与"进入路径时快照目标"的规则一起设计。
 
 ### D5（`guard`：硬边界维）
@@ -60,6 +64,7 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 ```
 - **`max_pct` 强制夹取**：分数多高、策略怎么说，**目标不得超过 `max_pct`**（安全不变式）。
 - **`deadzone_pct`**：`|目标 − 当前暴露| < deadzone_pct` ⇒ **不下单**（防抖前置条件；连续仓位的新失效模式是"分数抖动 → 订单抖动 → 费用流失"）。
+- **求值 pipeline（自审补全；顺序即契约，不得各实现自定）**：①`score → pct`（映射；先夹 `[0,100]`）②`pct → clamp(min_pct, max_pct)`（guard，置 `clamped_by_guard`）③`target_qty = pct × equity / price` ④**死区**：`|target_qty − current_qty| × price < deadzone_pct × equity` ⇒ 无订单（`deadzone_blocked`）⑤**限速**：本 bar 允许变动金额 ≤ `pct_per_bar × equity`（`rate_limited`）⑥下单（delta）⑦记录观测。
 
 ### D6（语义钉死；本批必须实现并测）
 1. **目标永远是上限**：`ramp` 只决定靠近速率，**不得越过 `target`**。
@@ -70,7 +75,8 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 6. **聚合层本批不变**（仍为加权平均 → `classify`）；`Exposure` 模式从**聚合分**直接算目标，`signal` 仅作 UI/披露记录。
 
 ### D7（观测与审计）
-- 每 bar 落：`{target_pct, current_pct, ramp_cap_pct_per_bar, deadzone_blocked, clamped_by_guard}`；随既有 `per_bar` 记录通道输出（不新增事实表）。
+- 每 bar 落：`{target_pct, current_pct, ramp_cap_pct_per_bar, rate_limited, deadzone_blocked, clamped_by_guard, sell_transition}`；随既有 `per_bar` 记录通道输出（不新增事实表）。
+- **审计"意图 vs 实际"统计口径（自审补全）**：评估段内 `max |target_pct − position_ratio|`（逐 bar 取最大差）；超过 **0.05**（阈值待标定）触发告警；与既有 `WARN_PARTIAL_DEPLOYMENT` 并列，不得互相解释。
 - 审计新增：**"意图（target_pct）vs 实际暴露"差值** + **抖动指标**（评估段下单次数 / 费用占净值比）；形态沿用 `WARN_DCA_PLAN_UNDERFILLED`。
 - UI：结果页需能显示目标暴露曲线（或至少在审计/配置处披露映射端点），并标注"总分曲线是诊断量，不等于仓位"。
 
@@ -110,3 +116,23 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 ## 6. 关联与产出物
 - **关联**：ADR-028 §13.1（LumpSum 冻结 / 强平 reset 裁决）、ADR-026（审计与披露口径）、ADR-024 D10（禁静默有损）、ADR-012（交付波形）、`design/12-strategy-system/{01-adr,02-plugin-abi,04-strategy-programming-guide}.md`。
 - **产出物**：本 ADR + `design/12-strategy-system/05-plan-exposure-ramp-step1.md`（实施计划与判据）+ `design/99-decisions-log.md` 条目。
+
+---
+
+## 7. 自审记录（2026-09-24；按用户长期规则「产出规范后自查」）
+
+**发现的缺陷与遗漏（已在上文补全）**
+
+| # | 类型 | 内容 | 处置 |
+|---|---|---|---|
+| R1 | **缺陷** | `RateCap` 的**量纲未定义**（限制 `pct` 还是股数/金额）⇒ 净值漂移会持续触发交易，与防抖目标冲突 | D4 补：限**金额口径**（`pct_per_bar × equity`），漂移由死区吸收 |
+| R2 | **缺陷** | `Fixed` 模式的**卖出语义未定义** ⇒ 可能"永不卖出"（死仓）或与 `LumpSum` 行为不一致 | D3 补：`Fixed` 等价 `LumpSum`（`score ≤ sell_threshold ⇒ 0`） |
+| R3 | **缺陷** | **求值顺序未定义**（guard/死区/限速 谁先谁后）⇒ 不同实现结果不同 | D5 补：七步 pipeline 写死为契约 |
+| R4 | **遗漏** | **sim-live 调用点未纳入范围**（`crates/simlive/src/plugin_orchestrator.rs` 亦调 `target_qty`）⇒ 破坏"三模式共享同一执行路径"的架构不变式（ADR-028 §4.6） | D1/D2 范围补：sim-live 同步传 `score` 并实现同一语义 |
+| R5 | **遗漏** | 中立带"保持上一目标"的**量纲**（pct vs 股数）未定义 ⇒ 承诺零订单但实际会因净值漂移下单 | D3 补：保持**目标股数（绝对）** |
+| R6 | **遗漏** | `Scaled` 的**端点未定义**（"对称降档"无定义） | D3 补：`(0⇒0) … (sell_threshold⇒at_threshold_pct)` |
+| R7 | **遗漏** | 观测缺 `rate_limited`／审计差值的**统计口径**未定（max/均值/末值） | D7 补：加 `rate_limited`、`sell_transition`；差值 = 评估段 `max|target_pct−position_ratio|`，阈值 0.05 |
+| R8 | 交叉引用 | "路径未走完"的披露未声明复用既有告警 | D7：与 `WARN_PARTIAL_DEPLOYMENT` 并列，禁止互相解释 |
+
+**复查后仍成立的部分**：正交化三维划分、`RateCap` 作为路径基元（对移动目标成立）、`Tranches` 延后 Step 2（与移动目标语义冲突）、Step 1 纯增量 ⇒ 历史 run 可复现、legacy 只读解释器纪律。
+**同类风险提示（登记）**：凡"比例"参数必须写明**分母与量纲**（本 ADR 出现 `pct` / `pct_per_bar` / `deadzone_pct` / `at_*_pct` 四类），后续条款一律显式标注。

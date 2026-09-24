@@ -32,6 +32,9 @@
 | E8 | **旧变体逐字节复现** | `LumpSum`/`Dca` 在同一输入下与本 ADR 之前一致；并用真实 run 成交序列对照（`sr_1790169818677_000006`、`sr_1790247371321_000015`） |
 | E9 | **防抖** | 分数抖动序列 ⇒ 下单次数 / 费用占净值比 ≤ 标定上限（不做"每 bar 微单"） |
 | E10 | **观测/审计** | 每 bar `target_pct/current_pct/deadzone_blocked/clamped_by_guard` 可读；审计出现"意图 vs 实际暴露"差值 |
+| E12 | **求值顺序（pipeline）** | 固定为：映射→guard 夹取→换算股数→**死区**→**限速**→下单→观测；顺序不同即判错（构造可区分的用例：同一输入在两种顺序下结果不同） |
+| E13 | **`Fixed` 卖出语义** | `Fixed` 与 `LumpSum` 在相同输入下**逐字节等价**（含 `score ≤ sell_threshold ⇒ 目标 0`） |
+| E14 | **sim-live 一致性** | `crates/simlive/src/plugin_orchestrator.rs` 的 policy 调用点同步传 `score` 且语义一致（三模式同一执行路径；构造同输入对照用例） |
 | E11 | **校验 fail loud** | `buy_threshold < 100 ∧ sell_threshold > 0`（`ScoreMapped` 分母非零）；`at_full_pct ≥ at_threshold_pct`；`0 ≤ min_pct ≤ max_pct ≤ 1`；`deadzone_pct ≥ 0`；`pct_per_bar > 0`；违规⇒构造报错（不得静默回退默认） |
 
 ---
@@ -41,6 +44,7 @@
 | 文件 | 改动 |
 |---|---|
 | `crates/strategy-core/src/policy.rs` | 新增 `ExposureTarget{SellPolicy, ...}` / `RampSpec` / `GuardSpec` / `ExecutionPolicy::Exposure`；`validate()` 加 E11 全部规则；`target_qty` 增 **`score: f64`** 参数（旧变体忽略）；新增 `ExposureState{last_target_pct, ramp_used_this_bar…}` 与 `clamped_by_guard/deadzone_blocked` 输出 |
+| `crates/simlive/src/plugin_orchestrator.rs` | 同步传 `score`、实现同一语义（E14；架构不变式要求三模式共享同一执行路径） |
 | `crates/strategy-core/src/engine.rs` | 把**聚合分**传入 policy；把 E10 观测字段写入既有 `per_bar` 记录（不新增事实表） |
 | `crates/application/src/audit.rs` | 新增"意图（target_pct）vs 实际暴露"差值与**抖动指标**（下单次数/费用占净值比），形态沿用 `WARN_*` |
 | `web/src/api/types.ts` | policy 联合类型补 `Exposure` |
