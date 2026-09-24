@@ -725,3 +725,117 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-audit-warning-DCA_PLAN_UNDERFILLED')).toHaveTextContent('计划 100 批');
   });
 });
+
+// ───────────── ADR-029 Step 1（Web 侧）：目标暴露披露（D7/§4-E10）─────────────
+// 契约：ADR-029 D7「UI 需能显示目标暴露…并标注『总分曲线是诊断量，不等于仓位』」+ E10 逐 bar 观测。
+// Rust 车道并行实施中：观测字段（`target_pct/current_pct/deadzone_blocked/clamped_by_guard`）
+// **未就绪时必须显式留白**（禁把缺失读成 0，ADR-024 D10），就绪时按字段计数展示。
+describe('ResultView（ADR-029 Step 1：目标暴露 + 逐 bar 观测披露）', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const EXPOSURE_POLICY = {
+    Exposure: {
+      target: { ScoreMapped: { at_threshold_pct: 0.2, at_full_pct: 0.5, sell: 'Flat' as const } },
+      ramp: { RateCap: { pct_per_bar: 0.05 } },
+      guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005 },
+    },
+  };
+
+  function withPolicy(run: WorkbenchRunView, policy: WorkbenchRunView['config']['policy']): WorkbenchRunView {
+    return { ...run, config: { ...run.config, policy } };
+  }
+
+  it('D7/E10：Exposure run ⇒ 配置端点披露 + 观测字段缺省时显式「未记录」（禁以 0 冒充）', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(withPolicy(run, EXPOSURE_POLICY), result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+
+    const box = await screen.findByTestId('wb-result-exposure-disclosure');
+    expect(box).toBeInTheDocument();
+    // BLOCKED-1/R26：结果侧披露必须用**结果侧专属** testid（与配置侧 `wb-exposure-*` 区分）
+    // —— 工作台选中 run 后两侧同时挂载，同名 id ⇒ Playwright strict mode 双命中。
+    expect(screen.queryByTestId('wb-exposure-disclosure')).toBeNull();
+    expect(screen.queryByTestId('wb-exposure-target')).toBeNull();
+    // 目标端（run 配置快照 = 真实事实源）
+    const target = screen.getByTestId('wb-result-exposure-target');
+    expect(target).toHaveTextContent('ScoreMapped');
+    expect(target).toHaveTextContent('at_threshold_pct=20.0%');
+    expect(target).toHaveTextContent('at_full_pct=50.0%');
+    expect(target).toHaveTextContent('sell=Flat');
+    expect(target).toHaveTextContent('RateCap');
+    expect(target).toHaveTextContent('pct_per_bar=5.0%');
+    expect(target).toHaveTextContent('max_pct=90.0%');
+    expect(target).toHaveTextContent('deadzone_pct=0.50%');
+    // 逐 bar 观测缺省（Rust 车道未落地）⇒ 显式「未记录」+ 只用既有事实（审计 deployed_pct）占位
+    const unrecorded = screen.getByTestId('wb-exposure-unrecorded');
+    expect(unrecorded).toHaveTextContent('未记录');
+    await waitFor(() => expect(screen.getByTestId('wb-exposure-unrecorded')).toHaveTextContent('41.40%'));
+    expect(screen.queryByTestId('wb-exposure-observed')).toBeNull();
+    // D7 披露文案
+    expect(screen.getByTestId('wb-exposure-score-note')).toHaveTextContent('总分曲线是诊断量');
+    expect(screen.getByTestId('wb-exposure-score-note')).toHaveTextContent('不等于仓位');
+    // 聚合分曲线卡处也有常驻诊断注（总分 ≠ 仓位）
+    expect(screen.getByTestId('wb-score-diagnostic-note')).toHaveTextContent('不等于仓位');
+  });
+
+  it('D7/E10：逐 bar 观测就绪 ⇒ 展示末值目标/当前暴露与 deadzone_blocked / clamped_by_guard 计数', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    // 构造 4 根 bar：最后一根带观测值；2 根死区拦截；1 根被 guard 夹取
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 4).map((r, i) => ({
+      ...r,
+      target_pct: i === 3 ? 0.5 : 0.4,
+      current_pct: i === 3 ? 0.42 : 0.4,
+      deadzone_blocked: i < 2,
+      clamped_by_guard: i === 3,
+    }));
+    const withObs = { ...result, per_bar: rows } as WorkbenchRunResult;
+    render(<ResultView {...mkProps(withPolicy(run, EXPOSURE_POLICY), withObs, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+
+    const observed = await screen.findByTestId('wb-exposure-observed');
+    expect(observed).toHaveTextContent('已加载 4 根');
+    expect(observed).toHaveTextContent('目标 50.0%');
+    expect(observed).toHaveTextContent('当前 42.0%');
+    expect(observed).toHaveTextContent('死区拦截 2 bar');
+    expect(observed).toHaveTextContent('guard 夹取 1 bar');
+    expect(screen.queryByTestId('wb-exposure-unrecorded')).toBeNull();
+  });
+
+  it('ADR-029 E16：审计新增告警码（EXPOSURE_INTENT_GAP / EXPOSURE_CHURN）经既有 warnings[] 通用渲染可见', async () => {
+    const warnings: WorkbenchRunAudit['warnings'] = [
+      {
+        code: 'EXPOSURE_INTENT_GAP',
+        severity: 'warn',
+        message: '意图 vs 实际暴露差值 18.00%（目标 50.00% / 实际 32.00%）：路径受 ramp/guard 约束未走满',
+      },
+      {
+        code: 'EXPOSURE_CHURN',
+        severity: 'info',
+        message: '评估段下单 42 次 / 费用占净值 0.31%：分数抖动导致换手偏高',
+      },
+    ];
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, warnings })));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(withPolicy(run, EXPOSURE_POLICY), result, { api: client })} />);
+    // warnings 顶层键集不变 ⇒ 结果页无需新字段解析：按 code 通用渲染（数值在 message 文本内）
+    const gap = await screen.findByTestId('wb-audit-warning-EXPOSURE_INTENT_GAP');
+    expect(gap).toHaveTextContent('意图 vs 实际暴露差值 18.00%');
+    const churn = screen.getByTestId('wb-audit-warning-EXPOSURE_CHURN');
+    expect(churn).toHaveTextContent('费用占净值 0.31%');
+    expect(screen.getByTestId('wb-audit-warnings')).toBeInTheDocument();
+  });
+
+  it('ADR-029 零回归：非 Exposure run（LumpSum）⇒ 不渲染目标暴露块（仅保留总分诊断注）', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    expect(await screen.findByTestId('wb-metrics-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('wb-result-exposure-disclosure')).toBeNull();
+  });
+});

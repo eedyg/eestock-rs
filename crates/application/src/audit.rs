@@ -41,6 +41,22 @@ pub const WARN_DCA_PLAN_UNDERFILLED: &str = "DCA_PLAN_UNDERFILLED";
 /// 警告码：存在未执行挂单（`unexecuted_orders > 0`）。
 pub const WARN_ORDERS_UNEXECUTED: &str = "ORDERS_UNEXECUTED";
 
+// ── ADR-029 Step 1（`exposure` 模式）审计增量 ──────────────────────────────
+
+/// 警告码（ADR-029 D7）：意图（`target_pct`）与实际暴露（`position_ratio`）**最大差**超阈。
+pub const WARN_EXPOSURE_INTENT_GAP: &str = "EXPOSURE_INTENT_GAP";
+/// 警告码（ADR-029 D7）：抖动指标超阈（下单频度 / 费用占净值比）。
+pub const WARN_EXPOSURE_CHURN: &str = "EXPOSURE_CHURN";
+
+/// 意图差判据阈值（ADR-029 D7/R7 **钉死** 0.05；本批以构造场景标定复核，见单测）。
+pub const EXPOSURE_INTENT_GAP_THRESHOLD: f64 = 0.05;
+
+/// 抖动判据：评估段**每 bar 下单比**上限（ADR-029 D7“不下每 bar 微单”；标定见单测）。
+pub const EXPOSURE_CHURN_ORDERS_PER_BAR_THRESHOLD: f64 = 0.5;
+
+/// 抖动判据：**费用占净值比**上限 0.5%（分母 = `capital_basis`，同 `deployed_pct` 口径）。
+pub const EXPOSURE_CHURN_FEE_PCT_THRESHOLD: f64 = 0.005;
+
 /// 逐回合对账容差（ADR-027 D10 / 02-spec §2 I1-I2；**显式**常量，禁魔法值）。
 ///
 /// 判据：`|Σ_L2 − L1| ≤ tolerance × max(1, |L1|)`（相对容差 + 绝对下界，浮点累加）。
@@ -172,6 +188,218 @@ pub struct RtAudit {
     pub closed: usize,
     pub open: usize,
     pub reconcile: RtReconcile,
+}
+
+/// per_bar 曝光观测投影（ADR-029 D7；仅 in-range bar，`target_pct`/`current_pct` 齐备者）。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AuditExposureBar {
+    /// 决策 bar 序号（= `per_bar` 数组下标）。
+    pub bar_index: usize,
+    /// 本 bar 输出目标占净值比（`target_pct`，决策 bar 收盘估值）。
+    pub target_pct: f64,
+    /// 本 bar **收盘时点**的实际暴露占净值比（与持仓序列 `position_ratio` 同点同值）。
+    ///
+    /// 注：`t` 的挂单在 `t+1` 开盘成交 ⇒ 「`t` 的意图是否达成」只能拿 `t+1` 的 `current_pct` 判
+    /// （ADR-029 R18 滞后一 bar 对齐）。
+    pub current_pct: f64,
+    pub clamped_by_guard: bool,
+    pub deadzone_blocked: bool,
+    pub rate_limited: bool,
+    pub sell_transition: bool,
+    /// 本 bar 目标因现金不可达被一次性下调（ADR-029 E17）。
+    pub affordability_capped: bool,
+}
+
+/// ADR-029 D7 审计增量：**意图 vs 实际差值** + **抖动指标**（纯派生，无 IO）。
+///
+/// 口径（ADR-029 D7/R18/§4 第 15 条**钉死**）：
+/// - **`max_intent_gap` 滞后一 bar 对齐**（ADR-029 R18）：`max_t |target_pct_t − current_pct_{t+1}|`
+///   （`t` 与其**相邻决策 bar** `t+1`；**末根无 `t+1` ⇒ 排除**）。理由：既有执行口径是「决策 bar 收盘
+///   挂单、**次 bar 开盘成交**」⇒ 同 bar 比较会把**成交时滞**误判成「意图未达成」（实测
+///   `Fixed{0.6}+Immediate` 同 bar 0.6031 ⇒ 每根清仓 bar 均告警；滞后一 bar 后 0.0135 ⇒ 零告警）。
+///   **「建仓首根排除」特例已取消**（滞后口径下首根自然≈0）；
+/// - `orders` = 评估段挂单数（= 既有 `orders` 投影条数，含止损/强平挂单）；
+/// - `fee_pct` = 评估段**费用**（买入佣金 + 卖出佣金 + 印花税，按 run 生效 `FeeModel` 复算）
+///   / `capital_basis`（与 `deployed_pct` **同分母**；本审计无净值序列，故不用时点净值作分母）；
+/// - `warnings` 仅当 run 策略为 `Exposure` 时发声（**与 `WARN_PARTIAL_DEPLOYMENT`
+///   并列、禁止互相解释**，R8：旧变体的欠配由既有两条告警负责）。
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ExposureAudit {
+    /// 评估段带曝光观测的 bar 数（0 ⇒ 无意图可核，派生量为零值）。
+    pub bars: usize,
+    /// 评估段 `max_t |target_pct_t − current_pct_{t+1}|`（滞后一 bar 对齐；末根无 `t+1` 不计）。
+    pub max_intent_gap: f64,
+    /// 取到最大差的**决策 bar** 序号 `t`（可追溯；无观测或全段无差 ⇒ `None`）。
+    pub max_intent_gap_bar: Option<usize>,
+    /// 评估段挂单数。
+    pub orders: usize,
+    /// 评估段每 bar 下单比（`bars = 0` ⇒ 0）。
+    pub orders_per_bar: f64,
+    /// 费用占净值比（分母 = `capital_basis`）。
+    pub fee_pct: f64,
+    /// guard 夹取 bar 数。
+    pub clamped_bars: usize,
+    /// 死区拦下 bar 数。
+    pub deadzone_blocked_bars: usize,
+    /// 限速命中 bar 数。
+    pub rate_limited_bars: usize,
+    /// 跨卖出档边界 bar 数。
+    pub sell_transition_bars: usize,
+    /// 因现金不可达被下调目标的 bar 数（ADR-029 E17 披露）。
+    pub affordability_capped_bars: usize,
+    /// 非阻断警告（仅 `Exposure` 策略下非空）。
+    pub warnings: Vec<AuditWarning>,
+}
+
+/// `per_bar` 数组 → 曝光观测（ADR-029 D7；`target_pct`/`current_pct` 齐备的 in-range bar）。
+///
+/// - `warmup` 缺失视为 in-range（与 [`orders_from_per_bar`] 同口径）；
+/// - 观测字段缺失（本 ADR 之前的 run / legacy 记录）⇒ 该 bar 跳过（**不造数**，诚实留白）；
+/// - 死区命中时引擎写的 `target_pct` = 当前暴露占比（无订单），与 `deadzone_blocked` 一起可复原事实。
+pub fn exposure_from_per_bar(bars: &[serde_json::Value]) -> Vec<AuditExposureBar> {
+    let mut out = Vec::new();
+    for (i, bar) in bars.iter().enumerate() {
+        if bar
+            .get("warmup")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false)
+        {
+            continue;
+        }
+        let (Some(target_pct), Some(current_pct)) = (
+            bar.get("target_pct").and_then(serde_json::Value::as_f64),
+            bar.get("current_pct").and_then(serde_json::Value::as_f64),
+        ) else {
+            continue;
+        };
+        let flag = |k: &str| {
+            bar.get(k)
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false)
+        };
+        out.push(AuditExposureBar {
+            bar_index: i,
+            target_pct,
+            current_pct,
+            clamped_by_guard: flag("clamped_by_guard"),
+            deadzone_blocked: flag("deadzone_blocked"),
+            rate_limited: flag("rate_limited"),
+            sell_transition: flag("sell_transition"),
+            affordability_capped: flag("affordability_capped"),
+        });
+    }
+    out
+}
+
+/// ADR-029 D7 审计增量（纯函数，无 IO）。
+///
+/// `policy` 仅为**告警发声门禁**（`Exposure` 才发声；旧变体的欠配/计划缺口由 ADR-026 既有
+/// 两条告警负责，R8 禁互相解释）；指标本身与策略无关，均照实计算（透明度优先）。
+pub fn exposure_audit(
+    bars: &[AuditExposureBar],
+    orders: &[AuditOrder],
+    fills: &[AuditFill],
+    fee: FeeModel,
+    capital_basis: f64,
+    policy: Option<&ExecutionPolicy>,
+) -> ExposureAudit {
+    let n = bars.len();
+    let mut max_intent_gap = 0.0f64;
+    let mut max_intent_gap_bar: Option<usize> = None;
+    let mut clamped_bars = 0usize;
+    let mut deadzone_blocked_bars = 0usize;
+    let mut rate_limited_bars = 0usize;
+    let mut sell_transition_bars = 0usize;
+    let mut affordability_capped_bars = 0usize;
+    // ADR-029 D7/R18/§4-15：**滞后一 bar 对齐** —— `gap_t = |target_pct_t − current_pct_{t+1}|`。
+    // 「决策 bar 收盘挂单、次 bar 开盘成交」是既有执行口径 ⇒ 只有 `t` 与**相邻决策 bar** `t+1` 的
+    // 实际暴露可比；同 bar 比较会把成交时滞当「意图未达成」（R18）。配对要求 `bar_index` 相邻
+    // （观测缺字段/跨段 ⇒ 不成对，不造数）；**末根无 `t+1` ⇒ 不参与统计**（`windows(2)` 天然排除）。
+    // 计数 `gap_pairs` 仅入告警 message（不新增结构字段，键集不变）。
+    let mut gap_pairs = 0usize;
+    for w in bars.windows(2) {
+        let (cur, next) = (&w[0], &w[1]);
+        if next.bar_index != cur.bar_index + 1 {
+            continue;
+        }
+        gap_pairs += 1;
+        let gap = (cur.target_pct - next.current_pct).abs();
+        // 逐 bar 取最大；严格大于才更新 ⇒ 首个最大者优先（确定性）。
+        // 仅**正差**才定位 bar：全段无差 ⇒ `max_intent_gap_bar = None`（无「最大差 bar」可言）。
+        if gap > 0.0 && (max_intent_gap_bar.is_none() || gap > max_intent_gap) {
+            max_intent_gap = gap;
+            max_intent_gap_bar = Some(cur.bar_index);
+        }
+    }
+    for b in bars {
+        clamped_bars += b.clamped_by_guard as usize;
+        deadzone_blocked_bars += b.deadzone_blocked as usize;
+        rate_limited_bars += b.rate_limited as usize;
+        sell_transition_bars += b.sell_transition as usize;
+        affordability_capped_bars += b.affordability_capped as usize;
+    }
+    // 费用口径：与 `cash_consumed` 同源（`FeeModel` 复算，禁另写一套），卖出另计印花税。
+    let fees: f64 = fills
+        .iter()
+        .map(|f| {
+            let trade_value = f.qty * f.price;
+            match f.side {
+                OrderSide::Buy => fee.commission(trade_value),
+                OrderSide::Sell => fee.commission(trade_value) + fee.stamp_duty(trade_value),
+            }
+        })
+        .sum();
+    let orders_per_bar = if n > 0 {
+        orders.len() as f64 / n as f64
+    } else {
+        0.0
+    };
+    let fee_pct = ratio(fees, capital_basis);
+
+    let mut warnings = Vec::new();
+    let exposure_mode = matches!(policy, Some(ExecutionPolicy::Exposure { .. }));
+    if exposure_mode && n > 0 {
+        if max_intent_gap > EXPOSURE_INTENT_GAP_THRESHOLD {
+            warnings.push(AuditWarning {
+                code: WARN_EXPOSURE_INTENT_GAP,
+                severity: SEVERITY_WARN,
+                message: format!(
+                    "意图（target_pct）与实际暴露最大差 {max_intent_gap:.4}，超过阈值 {EXPOSURE_INTENT_GAP_THRESHOLD:.2}（口径：**滞后一 bar 对齐** max_t |target_pct_t − current_pct_{{t+1}}|；评估段 {n} 根 bar，末根无次 bar 已排除，参与配对 {gap_pairs} 对；最大差出现在 bar {}（决策 bar t）；限速/死区/现金不足/意图下调均可致差）",
+                    max_intent_gap_bar.unwrap_or(0)
+                ),
+            });
+        }
+        if orders_per_bar > EXPOSURE_CHURN_ORDERS_PER_BAR_THRESHOLD
+            || fee_pct > EXPOSURE_CHURN_FEE_PCT_THRESHOLD
+        {
+            warnings.push(AuditWarning {
+                code: WARN_EXPOSURE_CHURN,
+                severity: SEVERITY_WARN,
+                message: format!(
+                    "抖动指标超阈：评估段挂单 {} 笔 / {} 根 bar（每 bar {orders_per_bar:.3}，阈值 {EXPOSURE_CHURN_ORDERS_PER_BAR_THRESHOLD:.2}），费用占净值 {:.4}%（阈值 {:.2}%）——检查 deadzone_pct/ramp 配置是否让分数抖动直接变成订单抖动",
+                    orders.len(),
+                    n,
+                    fee_pct * 100.0,
+                    EXPOSURE_CHURN_FEE_PCT_THRESHOLD * 100.0
+                ),
+            });
+        }
+    }
+
+    ExposureAudit {
+        bars: n,
+        max_intent_gap,
+        max_intent_gap_bar,
+        orders: orders.len(),
+        orders_per_bar,
+        fee_pct,
+        clamped_bars,
+        deadzone_blocked_bars,
+        rate_limited_bars,
+        sell_transition_bars,
+        affordability_capped_bars,
+        warnings,
+    }
 }
 
 /// 逐回合对账（I1/I2）：把 L2 逐笔事实按 `rt_seq` 分组求和，与 L1 同名字段比对。
@@ -1183,5 +1411,378 @@ mod tests {
         // 3) 字符串读侧口径一致
         assert_eq!(parse_side("Buy"), Some(OrderSide::Buy));
         assert_eq!(parse_side("Sell"), Some(OrderSide::Sell));
+    }
+    // =====================================================================
+    // ADR-029 Step 1：审计增量（意图 vs 实际 + 抖动指标；E10 / D7 / R7）
+    // =====================================================================
+
+    fn exp_policy() -> ExecutionPolicy {
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::ScoreMapped {
+                at_threshold_pct: 0.2,
+                at_full_pct: 0.8,
+                sell: strategy_core::SellPolicy::Flat,
+            },
+            ramp: strategy_core::RampSpec::RateCap { pct_per_bar: 0.05 },
+            guard: strategy_core::GuardSpec { max_pct: 0.9, min_pct: 0.0, deadzone_pct: 0.005 },
+        }
+    }
+
+    fn obs(bar_index: usize, target_pct: f64, current_pct: f64) -> AuditExposureBar {
+        AuditExposureBar {
+            bar_index,
+            target_pct,
+            current_pct,
+            clamped_by_guard: false,
+            deadzone_blocked: false,
+            rate_limited: false,
+            sell_transition: false,
+            affordability_capped: false,
+        }
+    }
+
+    /// `per_bar` JSON → 曝光观测投影：跳过 warmup 与缺字段（本 ADR 之前的 run）⇒ 不造数。
+    #[test]
+    fn exposure_projection_skips_warmup_and_legacy_records() {
+        let bars = vec![
+            // warmup：有观测字段但属预热段 ⇒ 跳过
+            serde_json::json!({"warmup": true, "target_pct": 0.5, "current_pct": 0.0}),
+            // legacy（本 ADR 之前）记录：无观测字段 ⇒ 跳过（诚实留白）
+            serde_json::json!({"warmup": false, "orders": []}),
+            // in-range 且字段齐备 ⇒ 取用（warmup 缺失按 in-range 处理）
+            serde_json::json!({"target_pct": 0.4, "current_pct": 0.1, "rate_limited": true}),
+            serde_json::json!({"warmup": false, "target_pct": 0.4, "current_pct": 0.4,
+                               "deadzone_blocked": true, "clamped_by_guard": true}),
+        ];
+        let out = exposure_from_per_bar(&bars);
+        assert_eq!(out.len(), 2, "只取 in-range 且字段齐备的 bar");
+        assert_eq!(out[0].bar_index, 2);
+        assert!(out[0].rate_limited && !out[0].deadzone_blocked);
+        assert!(out[1].deadzone_blocked && out[1].clamped_by_guard);
+        close(out[1].target_pct, 0.4);
+    }
+
+    /// E10：意图 vs 实际差值 + 抖动指标可读；两条新告警**只在 `Exposure` 策略下发声**。
+    #[test]
+    fn exposure_audit_reports_gap_and_churn_and_is_gated_to_exposure() {
+        let policy = exp_policy();
+        // 评估段 6 根 bar：**滞后一 bar** 最大差 0.12（bar2 = |target_2 0.32 − current_3 0.20|）> 0.05；
+        // 挂单 4 笔 / 6 bar = 0.667 > 0.5（末根 bar5 无次 bar ⇒ 不参与差值统计）
+        let bars = vec![
+            obs(0, 0.20, 0.10),
+            obs(1, 0.25, 0.15),
+            obs(2, 0.32, 0.20),
+            obs(3, 0.32, 0.20),
+            obs(4, 0.32, 0.28),
+            obs(5, 0.32, 0.32),
+        ];
+        let orders = vec![buy(0), buy(1), buy(2), buy(3)];
+        let fills = vec![buy_fill(1, 1.0, 5_000.0)];
+        let r = exposure_audit(&bars, &orders, &fills, fee(0.025, 5.0), 100_000.0, Some(&policy));
+        assert_eq!(r.bars, 6);
+        close(r.max_intent_gap, 0.12);
+        assert_eq!(r.max_intent_gap_bar, Some(2), "最大差可追溯到 bar");
+        assert_eq!(r.orders, 4);
+        close(r.orders_per_bar, 4.0 / 6.0);
+        close(r.fee_pct, 5.0 / 100_000.0); // 5000×0.025% = 1.25 元 → 最低佣金 5 元（FeeModel 口径）
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP, WARN_EXPOSURE_CHURN],
+            "两条告警：意图差（阈 0.05）+ 抖动（每 bar 下单比 0.667 > 0.5）"
+        );
+        assert_eq!(r.warnings[0].severity, SEVERITY_WARN);
+        assert!(
+            r.warnings[0].message.contains("0.1200") && r.warnings[0].message.contains("bar 2"),
+            "意图差告警须含数值与定位：{}",
+            r.warnings[0].message
+        );
+        assert!(
+            r.warnings[0].message.contains("滞后一 bar"),
+            "口径（滞后一 bar 对齐）须在消息中披露：{}",
+            r.warnings[0].message
+        );
+        assert!(
+            r.warnings[1].message.contains("每 bar 0.667"),
+            "抖动告警须含实测量：{}",
+            r.warnings[1].message
+        );
+
+        // 达标场景（滞后差 ≤ 0.05、下单稀疏）⇒ 零告警
+        // （建仓首根 bar0（current 0）不再享特例：其差 = |0.30 − current_1 0.28| = 0.02，仍远低于阈值）
+        let good = vec![obs(0, 0.30, 0.0), obs(1, 0.30, 0.28), obs(2, 0.30, 0.30)];
+        let r = exposure_audit(&good, &[buy(0)], &[buy_fill(1, 1.0, 5_000.0)], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.02);
+        assert!(r.warnings.is_empty(), "达标场景不得告警：{:?}", r.warnings);
+
+        // 门禁（R8）：非 `Exposure` 策略（旧变体的欠配由既有告警负责）⇒ 指标照算、**不发声**
+        let legacy = lump(0.5);
+        let r = exposure_audit(&bars, &orders, &fills, fee(0.025, 5.0), 100_000.0, Some(&legacy));
+        close(r.max_intent_gap, 0.12);
+        assert_eq!(r.max_intent_gap_bar, Some(2), "指标（含定位）与策略无关，照实计算");
+        assert!(r.warnings.is_empty(), "旧变体不得新增告警（防噪音/禁互相解释）");
+        // policy 缺失（解析失败/历史 config）同样不发声
+        let r = exposure_audit(&bars, &orders, &fills, fee(0.025, 5.0), 100_000.0, None);
+        assert!(r.warnings.is_empty());
+    }
+
+    /// 阈值标定取证（先标定后写死）：同一 ±5 分抖动序列下「有死区 / 无死区」两组读数，
+    /// 证明 `EXPOSURE_CHURN_ORDERS_PER_BAR_THRESHOLD = 0.5` 有鉴别力。
+    ///
+    /// 读数（本用例实测，见交付报告）：
+    /// - 有死区：20 根 bar / 1 笔挂单 ⇒ 每 bar 0.05、费用 5 元 / 10 万 = 0.005%（不告警）；
+    /// - 无死区：20 根 bar / 20 笔挂单 ⇒ 每 bar 1.0、费用 100 元 / 10 万 = 0.1%（告警）。
+    #[test]
+    fn exposure_audit_churn_threshold_is_calibrated() {
+        let policy = exp_policy();
+        let with_deadzone: Vec<AuditExposureBar> = (0..20)
+            .map(|i| {
+                let mut b = obs(i, 0.2, 0.2);
+                b.deadzone_blocked = i > 0;
+                b
+            })
+            .collect();
+        let r = exposure_audit(
+            &with_deadzone,
+            &[buy(0)],
+            &[buy_fill(1, 1.0, 20_375.0)],
+            fee(0.025, 5.0),
+            100_000.0,
+            Some(&policy),
+        );
+        close(r.orders_per_bar, 0.05);
+        assert!(r.warnings.is_empty(), "有死区 ⇒ 不告警");
+
+        let no_deadzone: Vec<AuditExposureBar> = (0..20).map(|i| obs(i, 0.2, 0.2)).collect();
+        let orders: Vec<AuditOrder> = (0..20).map(buy).collect();
+        let fills: Vec<AuditFill> = (0..20).map(|i| buy_fill(i + 1, 1.0, 5_000.0)).collect();
+        let r = exposure_audit(
+            &no_deadzone,
+            &orders,
+            &fills,
+            fee(0.025, 5.0),
+            100_000.0,
+            Some(&policy),
+        );
+        assert_eq!(r.orders, 20);
+        close(r.orders_per_bar, 1.0);
+        close(r.fee_pct, 100.0 / 100_000.0);
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_CHURN],
+            "无死区 ⇒ 每 bar 一单被判抖动"
+        );
+
+        // 费用维度：小净值下最低佣金累积 ⇒ 费用占比告警（分母 = capital_basis，与 deployed_pct 同口径）
+        let r = exposure_audit(
+            &no_deadzone,
+            &orders,
+            &fills,
+            fee(0.025, 5.0),
+            10_000.0,
+            Some(&policy),
+        );
+        close(r.fee_pct, 0.01);
+        assert!(r.warnings[0].message.contains("1.0000%"), "费用读数须写入消息：{}", r.warnings[0].message);
+    }
+
+    /// 同 bar（**旧口径**）最大差：只用于判据的**鉴别力自证**与红/绿对照，**不**参与实现。
+    ///
+    /// ADR-029 D7/R18 定案的旧口径是 `max |target_pct_t − current_pct_t|`（加「排除建仓首根」特例）；
+    /// 本函数给出其**去特例**上界（不排除任何根）⇒ 旧口径读数 ≥ 本读数，故用它能证「旧口径必误报」。
+    fn same_bar_max_gap(bars: &[AuditExposureBar]) -> f64 {
+        bars.iter()
+            .map(|b| (b.target_pct - b.current_pct).abs())
+            .fold(0.0f64, f64::max)
+    }
+
+    /// **E16（D7/R18/§4-15）· 清仓/翻转根不得误报**（真实 run 窗口）。
+    ///
+    /// 取值来自真实 run `sr_1790266267194_000009`（`Fixed{pct=0.6}+ramp=Immediate`）的
+    /// `per_bar` bar 310–318 原文（in-range；取证见交付报告 §BLOCKED-2）：
+    /// bar313 `Buy`（目标 0.6、持仓 0）→ 其成交落在 **bar314 开盘**，故 bar314（`Sell`，目标 0）
+    /// 的 `current_pct` 仍为 0.6031 ⇒ **同 bar 口径必然误报**；滞后一 bar 后该窗口最大差仅 0.0045。
+    #[test]
+    fn e16_liquidation_and_flip_bars_do_not_false_alarm() {
+        let policy = exp_policy();
+        let bars = vec![
+            obs(310, 0.0, 0.0),
+            obs(311, 0.0, 0.0),
+            obs(312, 0.0, 0.0),
+            obs(313, 0.6, 0.0),                     // Buy 决策（成交在 bar314）
+            obs(314, 0.0, 0.6030701464124579),      // Sell 决策（清仓成交在 bar315）
+            obs(315, 0.6, 0.0),                     // 重建 Buy
+            obs(316, 0.6045024187463942, 0.6045024187463942),
+            obs(317, 0.6010406210011352, 0.6010406210011352),
+            obs(318, 0.6004577542061642, 0.6004577542061642),
+        ];
+        // ① 判别力自证（防空壳用例）：该序列在**同 bar** 口径下必然越阈
+        let broken = same_bar_max_gap(&bars);
+        close(broken, 0.6030701464124579);
+        assert!(
+            broken > EXPOSURE_INTENT_GAP_THRESHOLD,
+            "序列须能复现旧口径误报（同 bar 最大差 {broken:.6}）"
+        );
+        // ② 清仓/翻转根零告警（滞后一 bar 对齐 = |target_t − current_{{t+1}}|）
+        let r = exposure_audit(&bars, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.0045024187463942); // |target_315 0.6 − current_316 0.6045024|
+        assert_eq!(r.max_intent_gap_bar, Some(315), "定位到差最大的**决策 bar**（t 而非 t+1）");
+        assert!(
+            r.max_intent_gap < EXPOSURE_INTENT_GAP_THRESHOLD,
+            "滞后口径读数须低于阈值（实测 {}）",
+            r.max_intent_gap
+        );
+        assert!(
+            r.warnings.is_empty(),
+            "清仓/翻转根不得误报 EXPOSURE_INTENT_GAP：{:?}",
+            r.warnings
+        );
+    }
+
+    /// **E16（D7/R18/§4-15）· 持续未达成仍须告警**（判据**不得**被削弱）。
+    ///
+    /// 构造「目标与净值脱钩 / 现金受限」：目标恒 0.60 而实际暴露被卡在 0.20 ⇒ 逐 bar 未达成。
+    #[test]
+    fn e16_persistent_unmet_target_still_warns() {
+        let policy = exp_policy();
+        // ① 连续 4 根都未达成（滞后差恒 0.40）
+        let stuck = vec![obs(0, 0.60, 0.0), obs(1, 0.60, 0.20), obs(2, 0.60, 0.20), obs(3, 0.60, 0.20)];
+        let r = exposure_audit(&stuck, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.40);
+        assert_eq!(r.max_intent_gap_bar, Some(0), "首个最大者优先（确定性）");
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP],
+            "持续未达成必须告警：{:?}",
+            r.warnings
+        );
+        let msg = &r.warnings[0].message;
+        assert!(
+            msg.contains("0.4000") && msg.contains("bar 0"),
+            "告警须给出 max_intent_gap 与定位 bar：{msg}"
+        );
+        // ② 中途偏离后**持续**不修复（0.30 目标 vs 0.14 实际）⇒ 告警定位到偏离根 bar2
+        let drifted = vec![
+            obs(0, 0.30, 0.0),
+            obs(1, 0.30, 0.30),
+            obs(2, 0.30, 0.30),
+            obs(3, 0.30, 0.14),
+            obs(4, 0.30, 0.14),
+        ];
+        let r = exposure_audit(&drifted, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.16); // |target_2 0.30 − current_3 0.14|
+        assert_eq!(r.max_intent_gap_bar, Some(2));
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP]
+        );
+        assert!(r.warnings[0].message.contains("0.1600") && r.warnings[0].message.contains("bar 2"));
+    }
+
+    /// **E16（D7/R18/§4-15）· 末根不参与统计**（无 `t+1`）。
+    ///
+    /// 末根的「目标 vs 持仓」差**无可比对的次 bar**（其挂单本就无 bar 可成交）⇒ 不计入。
+    #[test]
+    fn e16_last_bar_is_excluded_no_t_plus_one() {
+        let policy = exp_policy();
+        // 末根 bar2（`Sell` 决策，目标 0）持仓仍 0.60：同 bar 差 0.60，但无 t+1 ⇒ 不统计
+        let bars = vec![obs(0, 0.60, 0.0), obs(1, 0.60, 0.60), obs(2, 0.0, 0.60)];
+        assert!(
+            same_bar_max_gap(&bars) > EXPOSURE_INTENT_GAP_THRESHOLD,
+            "判别力：该序列同 bar 差超阈（否则本用例不具鉴别力）"
+        );
+        let r = exposure_audit(&bars, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        assert_eq!(r.bars, 3, "观测根数照实计数（末根照入）");
+        close(r.max_intent_gap, 0.0);
+        assert_eq!(r.max_intent_gap_bar, None, "末根无 t+1 ⇒ 无差可说");
+        assert!(r.warnings.is_empty(), "末根不计入：{:?}", r.warnings);
+        // 反向对照（同一「未达成」差，但存在次 bar）⇒ 立即可判、且定位到决策 bar2
+        let with_next = vec![obs(0, 0.60, 0.0), obs(1, 0.60, 0.60), obs(2, 0.0, 0.60), obs(3, 0.60, 0.60)];
+        let r = exposure_audit(&with_next, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.60); // |target_2 0.0 − current_3 0.60|：清仓意图在次 bar 仍未达成
+        assert_eq!(r.max_intent_gap_bar, Some(2));
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP],
+            "有次 bar 的未达成必须告警（证明上一条是「末根排除」而非「差被吞了」）"
+        );
+    }
+
+    /// **E16（D7/R18/§4-15）· 观测缺失导致跨 bar ⇒ 不配对**（`t` 与 `t+1` 必须是**相邻决策 bar**）。
+    ///
+    /// 若拿 `t` 与 `t+2` 比，就是把两次成交时滞混成一次读数（造数）；观测缺失（legacy 记录/字段不齐）
+    /// 时诚实放弃该配对。
+    #[test]
+    fn e16_non_contiguous_observations_are_not_paired() {
+        let policy = exp_policy();
+        // bar12 观测缺失 ⇒ (11,13) 不成对（若强行按列表相邻配对将得 0.30 的伪读数）
+        let gapped = vec![obs(10, 0.60, 0.0), obs(11, 0.60, 0.60), obs(13, 0.90, 0.90)];
+        let r = exposure_audit(&gapped, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.0);
+        assert_eq!(r.max_intent_gap_bar, None);
+        assert!(r.warnings.is_empty(), "跨缺失观测不得配对：{:?}", r.warnings);
+        // 对照：把 bar12 补回（观测齐全）⇒ 立即可配对并计入（证明上一条是「不配对」而非「漏算」）
+        let complete = vec![
+            obs(10, 0.60, 0.0),
+            obs(11, 0.60, 0.60),
+            obs(12, 0.60, 0.60),
+            obs(13, 0.90, 0.90),
+        ];
+        let r = exposure_audit(&complete, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, 0.30); // |target_12 0.60 − current_13 0.90|
+        assert_eq!(r.max_intent_gap_bar, Some(12));
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP]
+        );
+    }
+
+    /// **E16（D7/R18）· 阈值严格性**：恰好等于阈值**不**告警，超过才告警（`>` 而非 `>=`）。
+    #[test]
+    fn e16_threshold_is_strictly_greater() {
+        let policy = exp_policy();
+        // 滞后差恰为阈值位级同值（0.05）⇒ 不告警
+        let at = vec![obs(0, EXPOSURE_INTENT_GAP_THRESHOLD, 0.0), obs(1, 0.0, 0.0)];
+        let r = exposure_audit(&at, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, EXPOSURE_INTENT_GAP_THRESHOLD);
+        assert!(r.warnings.is_empty(), "恰等于阈值不得告警：{:?}", r.warnings);
+        // 略高于阈值 ⇒ 告警
+        let over = vec![obs(0, EXPOSURE_INTENT_GAP_THRESHOLD * 1.2, 0.0), obs(1, 0.0, 0.0)];
+        let r = exposure_audit(&over, &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        close(r.max_intent_gap, EXPOSURE_INTENT_GAP_THRESHOLD * 1.2);
+        assert_eq!(
+            r.warnings.iter().map(|w| w.code).collect::<Vec<_>>(),
+            vec![WARN_EXPOSURE_INTENT_GAP]
+        );
+    }
+
+    /// 观测桶计数（guard 夹取 / 死区 / 限速 / 卖出跳变）逐 bar 汇总可读。
+    #[test]
+    fn exposure_audit_counts_flag_bars() {
+        let policy = exp_policy();
+        let mut a = obs(0, 0.9, 0.0);
+        a.clamped_by_guard = true;
+        a.rate_limited = true;
+        let mut b = obs(1, 0.9, 0.9);
+        b.deadzone_blocked = true;
+        let mut c = obs(2, 0.0, 0.9);
+        c.sell_transition = true;
+        let r = exposure_audit(
+            &[a, b, c],
+            &[],
+            &[],
+            fee(0.025, 5.0),
+            100_000.0,
+            Some(&policy),
+        );
+        assert_eq!(r.clamped_bars, 1);
+        assert_eq!(r.deadzone_blocked_bars, 1);
+        assert_eq!(r.rate_limited_bars, 1);
+        assert_eq!(r.sell_transition_bars, 1);
+        // 空评估段：派生量零值（不造数）
+        let r = exposure_audit(&[], &[], &[], fee(0.025, 5.0), 100_000.0, Some(&policy));
+        assert_eq!(r.bars, 0);
+        assert_eq!(r.max_intent_gap_bar, None);
+        close(r.orders_per_bar, 0.0);
+        assert!(r.warnings.is_empty());
     }
 }

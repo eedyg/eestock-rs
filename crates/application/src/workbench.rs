@@ -1611,6 +1611,18 @@ impl WorkbenchService {
             report.round_trips_closed = rt.closed;
             report.round_trips_open = rt.open;
             report.rt_reconcile = rt.reconcile;
+            // ADR-029 D7：意图 vs 实际差值 + 抖动指标。**只往既有 `warnings[]` 追加**
+            //（项层键集/mirror 冻结测试不变）；指标结构体由纯函数单测直接断言。
+            let exposure_bars = crate::audit::exposure_from_per_bar(&per_bar);
+            let exp = crate::audit::exposure_audit(
+                &exposure_bars,
+                &orders,
+                &fills,
+                fee,
+                initial_capital,
+                policy.as_ref(),
+            );
+            report.warnings.extend(exp.warnings);
         }
         Ok(RunAudit { run_id: run_id.to_string(), report })
     }
@@ -2587,6 +2599,17 @@ fn bar_record_json(rec: &strategy_core::BarRecord) -> serde_json::Value {
         "scores": scores,
         "aggregate": rec.aggregate,
         "signal": rec.signal,
+        // ADR-029 D7 观测（**平铺**字段名与契约逐字对应；warmup bar 为 null/false 零值）。
+        // 口径：target_pct/current_pct 均以决策 bar 收盘净值折算（current_pct 与持仓序列的
+        // position_ratio 同点同值）；本块只读披露，**不参与**目标换算/订单判定。
+        "target_pct": rec.policy_obs.target_pct,
+        "current_pct": rec.policy_obs.current_pct,
+        "ramp_cap_pct_per_bar": rec.policy_obs.ramp_cap_pct_per_bar,
+        "rate_limited": rec.policy_obs.rate_limited,
+        "deadzone_blocked": rec.policy_obs.deadzone_blocked,
+        "clamped_by_guard": rec.policy_obs.clamped_by_guard,
+        "sell_transition": rec.policy_obs.sell_transition,
+        "affordability_capped": rec.policy_obs.affordability_capped,
         "orders": rec.orders,
         "events": events,
     })

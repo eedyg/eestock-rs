@@ -41,6 +41,20 @@ describe('errorDisplayText（ADR-024 §3.1.1 code → 中文提示）', () => {
     );
   });
 
+  // ADR-029（Rust 车道提交期校验）：`policy_invalid` 的**服务端校验原文**必须可见——
+  // 新的 `Exposure` 校验错（如 guard 越界）不能让用户只看「执行策略非法」四个字。
+  it('policy_invalid ⇒ 保留服务端校验原文（Exposure 提交期校验可诊断）', () => {
+    const e = new ApiError(
+      400,
+      'policy 非法: Exposure.guard.max_pct 必须在 [0,1]，got 1.2',
+      'policy_invalid',
+      { period: 'D1' },
+    );
+    const text = errorDisplayText(e);
+    expect(text).toContain('执行策略（policy）非法'); // 码级中文提示
+    expect(text).toContain('Exposure.guard.max_pct 必须在 [0,1]，got 1.2'); // 服务端原文
+  });
+
   it('#15 未知码 ⇒ 回退服务端 message（可读，不吞信息）', () => {
     const e = new ApiError(400, 'HTTP 400: 某个新契约错误：明细如下', 'brand_new_code_2099');
     expect(isKnownErrorCode('brand_new_code_2099')).toBe(false);

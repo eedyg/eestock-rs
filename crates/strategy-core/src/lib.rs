@@ -71,5 +71,8 @@ pub use engine::{
     OrderIntent, OrderReason, OrderSide, PositionPoint, SlotScore, SlotScoreOutcome,
     CIRCUIT_BREAKER_THRESHOLD,
 };
-pub use policy::{DcaMode, ExecutionPolicy, PolicyState};
+pub use policy::{
+    DcaMode, ExecutionPolicy, ExposureState, ExposureTarget, GuardSpec, PolicyObservation,
+    PolicyOutcome, PolicyState, RampSpec, SellPolicy, TargetBranch,
+};
 pub use stop::{StopConfig, StopKind, StopTrigger, TrailingState};

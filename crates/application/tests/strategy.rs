@@ -1243,3 +1243,86 @@ async fn delete_strategy_zero_version_ok() {
     svc.delete_strategy("st_zero").await.unwrap();
     assert!(store.get_strategy("st_zero").await.unwrap().is_none());
 }
+
+// ── ADR-029 R12：提交期（试算）对 `Exposure` 的**同源阈值校验** ──
+
+/// R12：非法 `Exposure` 配置必须在**提交期** fail loud（`StrategyValidation` + `policy_invalid`），
+/// 不得到运行时才报；且校验用的阈值与试算实际执行的阈值**同源**（`EnsembleConfig` 构造处同常量）。
+#[tokio::test]
+async fn test_run_rejects_invalid_exposure_policy_at_submit() {
+    use application::error::codes;
+    use strategy_core::{ExposureTarget, GuardSpec, RampSpec};
+
+    let (svc, _) = service(trend_bars());
+    let (from, to) = span(30);
+
+    // ① 合法 Exposure ⇒ 可提交（先证明基线可用，反假绿）
+    let legal = serde_json::json!({
+        "Exposure": {
+            "target": {"ScoreMapped": {"at_threshold_pct": 0.2, "at_full_pct": 0.6, "sell": "Flat"}},
+            "ramp": {"Immediate": null},
+            "guard": {"max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.005}
+        }
+    });
+    let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+    req.policy = legal.clone();
+    svc.test_run(&req).await.expect("合法 Exposure 须可试算（提交成功 + 执行成功）");
+
+    // ② 非法 Exposure（E11 各类）⇒ 提交期即被拒，且归类为 policy_invalid
+    let bad = [
+        serde_json::json!({"Exposure": {"target": {"ScoreMapped": {"at_threshold_pct": 0.8, "at_full_pct": 0.2, "sell": "Flat"}},
+                                         "ramp": {"Immediate": null},
+                                         "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        serde_json::json!({"Exposure": {"target": {"ScoreMapped": {"at_threshold_pct": 0.2, "at_full_pct": 0.95, "sell": "Flat"}},
+                                         "ramp": {"Immediate": null},
+                                         "guard": {"max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        serde_json::json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                                         "ramp": {"RateCap": {"pct_per_bar": 0.0}},
+                                         "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        serde_json::json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                                         "ramp": {"Immediate": null},
+                                         "guard": {"max_pct": 0.5, "min_pct": 0.9, "deadzone_pct": 0.0}}}),
+        serde_json::json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                                         "ramp": {"Immediate": null},
+                                         "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": -0.1}}}),
+        // 语法层形态错误（单位变体唯一形态）：字符串形态 `"Immediate"` 必须拒绝
+        serde_json::json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                                         "ramp": "Immediate",
+                                         "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+    ];
+    for p in bad {
+        let mut req = test_req(TestRunSource::Inline(TREND.into()), TestRunMode::SimPosition, from, to);
+        req.policy = p.clone();
+        let e = svc
+            .test_run(&req)
+            .await
+            .err()
+            .unwrap_or_else(|| panic!("非法 Exposure 须在提交期被拒：{p}"));
+        let ve = e
+            .downcast_ref::<StrategyValidation>()
+            .unwrap_or_else(|| panic!("应归类为校验错误（400 语义）：{p} / {e}"));
+        assert_eq!(
+            ve.code(),
+            codes::POLICY_INVALID,
+            "Exposure 配置错误须归类为 policy_invalid（与既有 policy 同口径）：{p}"
+        );
+    }
+
+    // ③ 校验实现与试算执行**同源**：`validate_with_thresholds` 用同一常量阈值（结构性断言，
+    //    防止将来改了试算阈值而提交期仍按旧值校验）。
+    let probe = strategy_core::ExecutionPolicy::Exposure {
+        target: ExposureTarget::ScoreMapped {
+            at_threshold_pct: 0.2,
+            at_full_pct: 0.6,
+            sell: strategy_core::SellPolicy::Flat,
+        },
+        ramp: RampSpec::Immediate,
+        guard: GuardSpec { max_pct: 0.9, min_pct: 0.0, deadzone_pct: 0.0 },
+    };
+    probe
+        .validate_with_thresholds(
+            strategy_core::DEFAULT_BUY_THRESHOLD,
+            strategy_core::DEFAULT_SELL_THRESHOLD,
+        )
+        .expect("合法 Exposure 在默认阈值下须通过（提交期同源阈值）");
+}

@@ -131,6 +131,10 @@ export function AggregateScoreChart({
       <div className="flex shrink-0 justify-between px-1 text-[10px] text-dim">
         <span>
           聚合总分 0-100（虚线 = 买入阈 {buyThreshold} / 卖出阈 {sellThreshold}；三区 = 买/持/卖）
+          {/* ADR-029 D7：常驻口径披露——总分是**诊断量**，不等于仓位（避免“分数即仓位”误读） */}
+          <span data-testid="wb-score-diagnostic-note" className="text-amber-300/70">
+            {' '}· 诊断量：总分不等于仓位（ADR-029 D7）
+          </span>
         </span>
         {mapped.unmatched > 0 && (
           <span className="text-up" data-testid="wb-curve-unmatched">

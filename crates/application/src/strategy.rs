@@ -765,8 +765,14 @@ impl StrategyService {
         let fee_json = crate::fee::resolved_fee_to_json(&resolved);
         let policy: strategy_core::ExecutionPolicy = serde_json::from_value(req.policy.clone())
             .map_err(|e| StrategyValidation::new(codes::POLICY_INVALID, format!("policy 非法: {e}")))?;
+        // ADR-029 R12：提交期即按**试算实际执行的阈值**（下方 `EnsembleConfig` 用的同一常量）
+        // 校验 policy —— `ScoreMapped` 的映射分母/降档分母依赖 run 级阈值，错配置须在此 fail loud
+        // （与既有 `validate()` 同口径、同错误码），不得到运行时才报。
         policy
-            .validate()
+            .validate_with_thresholds(
+                strategy_core::DEFAULT_BUY_THRESHOLD,
+                strategy_core::DEFAULT_SELL_THRESHOLD,
+            )
             .map_err(|m| StrategyValidation::new(crate::error::classify_config_error(&m), m))?;
         if !req.initial_capital.is_finite() || req.initial_capital <= 0.0 {
             return Err(StrategyValidation::new(

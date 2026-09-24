@@ -196,6 +196,81 @@ function AuditSummary({ audit, fills }: { audit: RunAuditState; fills: RunFillsS
 }
 
 /**
+ * ADR-029 D7/§4-E10：目标暴露披露（结果页 / 审计区）。
+ *
+ * - **目标侧**：`run.config.policy.Exposure`（run 快照 = 事实源，前端**不重算**）⇒ 端点 / ramp / guard 原文披露；
+ * - **实测侧**：`per_bar` 观测字段 `target_pct/current_pct/deadzone_blocked/clamped_by_guard`（Step 1 Rust
+ *   车道就绪后出现）；**未就绪 ⇒ 显式「未记录」**并仅以既有事实（审计 `deployed_pct`）占位——
+ *   禁把缺失读成 0（ADR-024 D10）；
+ * - 常驻口径注：**总分曲线是诊断量、不等于仓位**（D7）；非 `Exposure` run ⇒ **不渲染**（旧配置零回归）。
+ */
+function ExposureDisclosure({
+  run,
+  result,
+  audit,
+}: {
+  run: WorkbenchRunView;
+  result: WorkbenchRunResult;
+  audit: RunAuditState;
+}) {
+  const policy = run.config.policy;
+  if (!('Exposure' in policy)) return null;
+  const ex = policy.Exposure;
+  const targetText =
+    'Fixed' in ex.target
+      ? `Fixed pct=${fmtPct(ex.target.Fixed.pct)}（常数目标；score ≤ sell_threshold ⇒ 目标 0，净值占比）`
+      : `ScoreMapped at_threshold_pct=${fmtPct(ex.target.ScoreMapped.at_threshold_pct)}（score=${run.config.buy_threshold} 起）→ at_full_pct=${fmtPct(ex.target.ScoreMapped.at_full_pct)}（score=100）；sell=${ex.target.ScoreMapped.sell}`;
+  const rampText =
+    'Immediate' in ex.ramp
+      ? 'Immediate（当 bar 目标即全额）'
+      : `RateCap pct_per_bar=${fmtPct(ex.ramp.RateCap.pct_per_bar)}（每 bar 允许变动金额 / 净值）`;
+  const guardText = `max_pct=${fmtPct(ex.guard.max_pct)}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(ex.guard.min_pct)} / deadzone_pct=${fmtPct(ex.guard.deadzone_pct, 2)}（暴露比例差）`;
+
+  const rows = result.per_bar;
+  const observed = rows.filter(
+    (r) =>
+      r.target_pct !== undefined ||
+      r.current_pct !== undefined ||
+      r.deadzone_blocked !== undefined ||
+      r.clamped_by_guard !== undefined,
+  );
+  const last = [...observed].reverse().find((r) => r.target_pct !== undefined || r.current_pct !== undefined);
+  const deadzoneBars = observed.filter((r) => r.deadzone_blocked === true).length;
+  const clampedBars = observed.filter((r) => r.clamped_by_guard === true).length;
+  const auditFallback = audit.data
+    ? audit.data.recorded
+      ? `名义投入 ${fmtPct(audit.data.deployed_pct, 2)}（审计 deployed_pct，分母 = 初始资金）`
+      : '审计未记录（该 run 无执行事实源）'
+    : '审计加载中…';
+
+  return (
+    <div
+      className="flex flex-col gap-1 rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px]"
+      /* BLOCKED-1/R26：结果侧**专属** testid（`wb-result-*`）—— 工作台选中 run 后
+         `ConfigPanel` 与 `ResultView` **同时挂载**：两侧同名 id ⇒ e2e `getByTestId` strict mode
+         双命中（用例 ③ 首条披露断言即红）。配置侧保留 `wb-exposure-*`（用例 ② 未选中 run 时断言）。 */
+      data-testid="wb-result-exposure-disclosure"
+    >
+      <div className="text-dim" data-testid="wb-result-exposure-target">
+        {`目标暴露（run 配置快照）：target=${targetText}；ramp=${rampText}；guard ${guardText}`}
+      </div>
+      {observed.length > 0 ? (
+        <div className="text-dim" data-testid="wb-exposure-observed">
+          {`逐 bar 观测（已加载 ${observed.length} 根）：目标 ${fmtPct(last?.target_pct)}｜当前 ${fmtPct(last?.current_pct)}｜死区拦截 ${deadzoneBars} bar｜guard 夹取 ${clampedBars} bar`}
+        </div>
+      ) : (
+        <div className="text-up" data-testid="wb-exposure-unrecorded">
+          {`逐 bar 目标/实际暴露观测：未记录（该 run 的 per_bar 未携带 target_pct/current_pct/deadzone_blocked/clamped_by_guard，不以 0 冒充）。既有事实：${auditFallback}`}
+        </div>
+      )}
+      <div className="text-dim" data-testid="wb-exposure-score-note">
+        披露：总分曲线是诊断量、不等于仓位 —— 目标由聚合分映射、实际暴露由 ramp/guard 与成交共同决定。
+      </div>
+    </div>
+  );
+}
+
+/**
  * 结果视图（ADR §13.5 布局定稿）：
  * K线+买卖标记（含硬止损 ⊗）/ 总分曲线（阈值线+三区着色）/ 各策略评分曲线（图例开关默认前 3）/
  * 净值+回撤 / Tab（交易明细 | 8项绩效 | 逐bar评分表 | 事件日志）。
@@ -716,6 +791,8 @@ export function ResultView({
                 trades: readyForDetail ? (
                   <div className="flex flex-col gap-2">
                     <AuditSummary audit={audit} fills={series.fills} />
+                    {/* ADR-029 D7：审计区的目标暴露披露（非 Exposure run 自行返回 null ⇒ 零回归） */}
+                    <ExposureDisclosure run={run} result={result as WorkbenchRunResult} audit={audit} />
                     {/* ADR-027 D8/D10：L1 回合（默认一层）→ 展开按 rt_seq 懒加载 L2 + 逐回合对账告警 */}
                     <RoundTripsTable
                       state={series.roundTrips}
@@ -730,11 +807,14 @@ export function ResultView({
                   <DetailEmpty />
                 ),
                 metrics: readyForDetail ? (
-                  <MetricsTable
-                    result={result as WorkbenchRunResult}
-                    audit={audit}
-                    capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
-                  />
+                  <div className="flex flex-col gap-2">
+                    <ExposureDisclosure run={run} result={result as WorkbenchRunResult} audit={audit} />
+                    <MetricsTable
+                      result={result as WorkbenchRunResult}
+                      audit={audit}
+                      capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
+                    />
+                  </div>
                 ) : (
                   <DetailEmpty />
                 ),

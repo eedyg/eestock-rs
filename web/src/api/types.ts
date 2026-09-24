@@ -987,10 +987,47 @@ export interface WorkbenchSlotReq {
   weight: number;
 }
 
-/** ExecutionPolicy serde 外部标签形态（strategy-core policy.rs） */
+/** ADR-029 D3：`exposure` **目标**维的卖出侧口径。
+ *  - `Flat`：`score ≤ sell_threshold` ⇒ 目标 0（清仓）；
+ *  - `Scaled`：对称降档 —— `score=0 ⇒ 0`，`score=sell_threshold ⇒ at_threshold_pct`（同一斜率映射）。 */
+export type ExposureSellPolicy = 'Flat' | 'Scaled';
+
+/** ADR-029 D3：`exposure.target` 目标维（serde 外部标签；**无 rename**）。
+ *  - `Fixed`：常数目标（= 现行 `LumpSum` 的目标语义；`score ≤ sell_threshold` ⇒ 目标 0）；
+ *  - `ScoreMapped`：目标随聚合分**线性**变化（`score=buy_threshold ⇒ at_threshold_pct`、`score=100 ⇒ at_full_pct`）；
+ *    中立带（`sell_threshold < score < buy_threshold`）⇒ 保持上一目标。
+ *  量纲：`pct` / `at_*_pct` 均为**净值占比**（0..1）。 */
+export type ExposureTarget =
+  | { Fixed: { pct: number } }
+  | { ScoreMapped: { at_threshold_pct: number; at_full_pct: number; sell: ExposureSellPolicy } };
+
+/** ADR-029 D4：`ramp` **到达方式**维（Step 1 仅两个基元）。
+ *  - `Immediate`：当 bar 目标即全额（= 现行 `LumpSum` 的路径）；serde 单元变体 ⇒ 载荷为 `null`；
+ *  - `RateCap`：每 bar 目标变动上限 `pct_per_bar`（量纲 = 每 bar 允许变动**金额 / 净值**）。 */
+export type ExposureRamp = { Immediate: null } | { RateCap: { pct_per_bar: number } };
+
+/** ADR-029 D5/D8：`guard` **硬边界**维。
+ *  `max_pct` 强制夹取（策略无权覆盖）、`min_pct` 下限、`deadzone_pct` 死区
+ *  （`|目标 − 当前暴露| < deadzone_pct` ⇒ 不下单；量纲 = **暴露比例差**，与 `position_ratio` 同量纲）。 */
+export interface ExposureGuardSpec {
+  max_pct: number;
+  min_pct: number;
+  deadzone_pct: number;
+}
+
+/** ADR-029 D3–D5：`ExecutionPolicy::Exposure` 直通 JSON 形状（`target` × `ramp` × `guard`）。 */
+export interface ExposurePolicySpec {
+  target: ExposureTarget;
+  ramp: ExposureRamp;
+  guard: ExposureGuardSpec;
+}
+
+/** ExecutionPolicy serde 外部标签形态（strategy-core policy.rs）。
+ *  ADR-029 D2：`LumpSum`/`Dca` 为 **legacy 只读**变体（逐字节不变）；`Exposure` 为 Step 1 新增变体。 */
 export type WorkbenchPolicy =
   | { LumpSum: { position_pct: number } }
-  | { Dca: { tranches: number; mode: 'Equal' | 'FixedAmount'; amount?: number | null; interval: number } };
+  | { Dca: { tranches: number; mode: 'Equal' | 'FixedAmount'; amount?: number | null; interval: number } }
+  | { Exposure: ExposurePolicySpec };
 
 /** StopConfig serde 形态（strategy-core stop.rs；trigger 缺省 Intrabar） */
 export interface WorkbenchStop {
@@ -1126,6 +1163,15 @@ export interface WorkbenchBarRecord {
   signal: 'Buy' | 'Sell' | 'Hold';
   orders: WorkbenchOrderIntent[];
   events: WorkbenchEngineEvent[];
+  // ── ADR-029 D7/E10：`Exposure` 模式的逐 bar 观测（Step 1 Rust 车道就绪后出现；旧 run / 旧变体缺省）──
+  /** 目标暴露（净值占比 0..1，已含 `guard.max_pct` 夹取后的取值）。 */
+  target_pct?: number;
+  /** 当前实际暴露（净值占比 0..1）。 */
+  current_pct?: number;
+  /** 本 bar 因 `guard.deadzone_pct` 死区**未下单**。 */
+  deadzone_blocked?: boolean;
+  /** 本 bar 目标被 `guard.max_pct` 强制夹取。 */
+  clamped_by_guard?: boolean;
 }
 
 /** 8 项绩效（backtest::BacktestMetrics serde 形状，与既有 Metrics 同构） */

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type {
+  ExposureRamp,
+  ExposureSellPolicy,
+  ExposureTarget,
   StrategyCatalogEntry,
   StrategyParamDef,
   SymbolSnapshot,
@@ -14,6 +17,7 @@ import type {
 } from '@/api/types';
 // ADR-024 P0 §5.1：周期下拉由单一事实源（前端镜像常量）生成，不得手写第二份。
 import { SUPPORTED_BACKTEST_PERIODS } from '@/features/backtest/periods';
+import { fmtPct } from '@/features/backtest/format';
 
 /** 表单内 slot 状态（数值字段以文本持有，提交时统一 parse/校验——与 TestRunPanel 同模式）。 */
 interface SlotForm {
@@ -87,6 +91,37 @@ interface ParsedSlot {
 /** slots 数上限（与后端 §1.8 submit_run 校验同口径：1..=10）。 */
 export const MAX_SLOTS = 10;
 
+/** ADR-029 D4：`ramp` 到达方式维的 Step 1 基元（`Immediate` = 当 bar 到目标；`RateCap` = 每 bar 限速）。 */
+export type ExposureRampKind = 'Immediate' | 'RateCap';
+/** ADR-029 D3：`exposure.target` 目标维的 Step 1 基元。 */
+export type ExposureTargetKind = 'Fixed' | 'ScoreMapped';
+
+/**
+ * ADR-029 Step 1 保守默认值（派工给定）：`ScoreMapped 20%→50%` + `RateCap 5%/bar` +
+ * `guard.max_pct 90% / deadzone 0.5%`。理由：
+ *  - 分数映射两端点不冒进（阈值处 20%、满分 50%），避免“分数一高即满仓”；
+ *  - 默认走 `RateCap` 而非 `Immediate` —— 分数曲线是阶跃型信号源，无速率限制时易整仓跳变；
+ *  - `max_pct=0.9` 留出现金缓冲（D8 安全不变式）；`deadzone=0.5%` 做防抖；
+ *  - `Fixed.pct=0.3` 仅为切到 Fixed 时的起手值（固定目标下用户必填）。
+ *  **前端显式落值**，不依赖后端缺省（后端对 Exposure 字段无缺省）。
+ */
+export const EXPOSURE_DEFAULTS = {
+  fixedPct: '0.3',
+  atThresholdPct: '0.2',
+  atFullPct: '0.5',
+  sell: 'Flat',
+  pctPerBar: '0.05',
+  maxPct: '0.9',
+  minPct: '0',
+  deadzonePct: '0.005',
+  ramp: 'RateCap',
+} as const;
+
+/** ADR-029 R1/R5 **量纲**说明（三个量纲不同名同心，必须在表单处显式区分）。 */
+export const EXPOSURE_DIM_NOTE =
+  '量纲：at_threshold_pct / at_full_pct / max_pct / min_pct = 净值占比（0..1）；' +
+  'pct_per_bar = 每 bar 允许变动金额 / 净值；deadzone_pct = 暴露比例差（与 position_ratio 同量纲）。';
+
 /** 预设 config 规范化序列化（脏检测比较用；钉住/未钉住形态先归一为未钉住）。 */
 function canonicalConfig(cfg: WorkbenchPresetConfigInput): string {
   return JSON.stringify({
@@ -140,7 +175,7 @@ function parseSlots(slots: SlotForm[]): { ok: ParsedSlot[] } | { err: string } {
 /**
  * 页面⑪ 配置区（ADR §13.5 / 07-app-plane §1.8）：
  * 策略多选下拉（catalog published）→ slot 卡片（权重 + params_schema 参数表单）；
- * 聚合阈值（默认 60/40）/ ExecutionPolicy（LumpSum | DCA）/ 硬止损（可选）/ 初始资金 / 费用 /
+ * 聚合阈值（默认 60/40）/ ExecutionPolicy（LumpSum | DCA | Exposure[目标 × ramp × guard]，ADR-029）/ 硬止损（可选）/ 初始资金 / 费用 /
  * 标的+周期+区间；组合预设下拉（选中即回填）+ 保存为预设 + 重命名/删除。
  * 校验与后端 §1.8 400 口径同构（前端预校验，后端兜底）。
  */
@@ -199,12 +234,23 @@ export function ConfigPanel({
   const [addSel, setAddSel] = useState('');
   const [buyThreshold, setBuyThreshold] = useState('60');
   const [sellThreshold, setSellThreshold] = useState('40');
-  const [policyKind, setPolicyKind] = useState<'LumpSum' | 'Dca'>('LumpSum');
+  const [policyKind, setPolicyKind] = useState<'LumpSum' | 'Dca' | 'Exposure'>('LumpSum');
   const [positionPct, setPositionPct] = useState('1');
   const [dcaTranches, setDcaTranches] = useState('3');
   const [dcaMode, setDcaMode] = useState<'Equal' | 'FixedAmount'>('Equal');
   const [dcaAmount, setDcaAmount] = useState('');
   const [dcaInterval, setDcaInterval] = useState('1');
+  // ADR-029 Step 1：`Exposure` = 目标（target） × 到达方式（ramp） × 硬边界（guard）
+  const [exposureTarget, setExposureTarget] = useState<ExposureTargetKind>('Fixed');
+  const [exposureFixedPct, setExposureFixedPct] = useState<string>(EXPOSURE_DEFAULTS.fixedPct);
+  const [exposureAtThreshold, setExposureAtThreshold] = useState<string>(EXPOSURE_DEFAULTS.atThresholdPct);
+  const [exposureAtFull, setExposureAtFull] = useState<string>(EXPOSURE_DEFAULTS.atFullPct);
+  const [exposureSell, setExposureSell] = useState<ExposureSellPolicy>(EXPOSURE_DEFAULTS.sell);
+  const [rampKind, setRampKind] = useState<ExposureRampKind>(EXPOSURE_DEFAULTS.ramp);
+  const [pctPerBar, setPctPerBar] = useState<string>(EXPOSURE_DEFAULTS.pctPerBar);
+  const [guardMaxPct, setGuardMaxPct] = useState<string>(EXPOSURE_DEFAULTS.maxPct);
+  const [guardMinPct, setGuardMinPct] = useState<string>(EXPOSURE_DEFAULTS.minPct);
+  const [guardDeadzonePct, setGuardDeadzonePct] = useState<string>(EXPOSURE_DEFAULTS.deadzonePct);
   const [stopEnabled, setStopEnabled] = useState(false);
   const [stopKind, setStopKind] = useState<'FixedPct' | 'Trailing' | 'Atr'>('FixedPct');
   const [stopValue, setStopValue] = useState('0.08');
@@ -275,7 +321,7 @@ export function ConfigPanel({
         return { err: 'LumpSum 仓位比例须在 (0,1]' };
       }
       policy = { LumpSum: { position_pct: pct } };
-    } else {
+    } else if (policyKind === 'Dca') {
       const tranches = Number(dcaTranches);
       const interval = Number(dcaInterval);
       if (!Number.isInteger(tranches) || tranches < 1) {
@@ -292,6 +338,64 @@ export function ConfigPanel({
         }
       }
       policy = { Dca: { tranches, mode: dcaMode, amount, interval } };
+    } else {
+      // ADR-029 Step 1：`Exposure` = target × ramp × guard。
+      // 校验（E11 + R1/R5 量纲）在**表单层** fail loud（与后端 `ExecutionPolicy::validate` 同口径，不静默回退默认）。
+      const maxPct = Number(guardMaxPct);
+      const minPct = Number(guardMinPct);
+      const dz = Number(guardDeadzonePct);
+      if (!Number.isFinite(maxPct) || !Number.isFinite(minPct) || !Number.isFinite(dz)) {
+        return { err: 'guard 参数须为数值（净值占比 / 暴露比例差）' };
+      }
+      if (minPct < 0 || maxPct > 1 || minPct > maxPct) {
+        return {
+          err: 'guard 须满足 0 ≤ min_pct ≤ max_pct ≤ 1（均为净值占比；min_pct 非零时仅约束持有态、不清仓）',
+        };
+      }
+      if (dz < 0) {
+        return { err: 'guard.deadzone_pct（暴露比例差，与 position_ratio 同量纲）须 ≥ 0' };
+      }
+      let ramp: ExposureRamp = { Immediate: null };
+      if (rampKind === 'RateCap') {
+        const per = Number(pctPerBar);
+        if (!Number.isFinite(per) || per <= 0) {
+          return { err: 'ramp.pct_per_bar（每 bar 允许变动金额 / 净值）须 > 0' };
+        }
+        ramp = { RateCap: { pct_per_bar: per } };
+      }
+      let target: ExposureTarget;
+      if (exposureTarget === 'Fixed') {
+        const pct = Number(exposureFixedPct);
+        if (!Number.isFinite(pct) || pct <= 0 || pct > 1) {
+          return { err: 'exposure.Fixed.pct（净值占比）须在 (0,1]' };
+        }
+        // R2：`Fixed` 等价现行 `LumpSum` —— 卖侧目标恒为 0（清仓）⇒ **不携带** `sell` 字段。
+        target = { Fixed: { pct } };
+      } else {
+        // E11：ScoreMapped 映射分母 `100 − buy_threshold` 与 `sell` 边界不得为 0（否则映射无定义）。
+        if (!(buy < 100)) {
+          return { err: 'ScoreMapped 须买入阈值 < 100（映射分母 100 − buy_threshold 不得为 0）' };
+        }
+        if (!(sell > 0)) {
+          return { err: 'ScoreMapped 须卖出阈值 > 0（卖出边界不得为 0）' };
+        }
+        const at = Number(exposureAtThreshold);
+        const full = Number(exposureAtFull);
+        if (!Number.isFinite(at) || !Number.isFinite(full)) {
+          return { err: 'exposure.ScoreMapped 端点须为数值（净值占比）' };
+        }
+        if (at < 0) {
+          return { err: 'exposure.ScoreMapped.at_threshold_pct（净值占比）须 ≥ 0' };
+        }
+        if (full < at) {
+          return { err: 'exposure.ScoreMapped.at_full_pct（净值占比）须 ≥ at_threshold_pct' };
+        }
+        if (full > maxPct) {
+          return { err: 'exposure.ScoreMapped.at_full_pct（净值占比）须 ≤ guard.max_pct（分数不得要求超出硬边界）' };
+        }
+        target = { ScoreMapped: { at_threshold_pct: at, at_full_pct: full, sell: exposureSell } };
+      }
+      policy = { Exposure: { target, ramp, guard: { max_pct: maxPct, min_pct: minPct, deadzone_pct: dz } } };
     }
     let stop: WorkbenchStop | null = null;
     if (stopEnabled) {
@@ -386,12 +490,34 @@ export function ConfigPanel({
       if ('LumpSum' in cfg.policy) {
         setPolicyKind('LumpSum');
         setPositionPct(String(cfg.policy.LumpSum.position_pct));
-      } else {
+      } else if ('Dca' in cfg.policy) {
         setPolicyKind('Dca');
         setDcaTranches(String(cfg.policy.Dca.tranches));
         setDcaMode(cfg.policy.Dca.mode);
         setDcaAmount(cfg.policy.Dca.amount != null ? String(cfg.policy.Dca.amount) : '');
         setDcaInterval(String(cfg.policy.Dca.interval));
+      } else {
+        // ADR-029：`Exposure` 预设逐字段回填（未改动即无脏标记 ⇒ round-trip 无字段丢失）。
+        setPolicyKind('Exposure');
+        const ex = cfg.policy.Exposure;
+        if ('Fixed' in ex.target) {
+          setExposureTarget('Fixed');
+          setExposureFixedPct(String(ex.target.Fixed.pct));
+        } else {
+          setExposureTarget('ScoreMapped');
+          setExposureAtThreshold(String(ex.target.ScoreMapped.at_threshold_pct));
+          setExposureAtFull(String(ex.target.ScoreMapped.at_full_pct));
+          setExposureSell(ex.target.ScoreMapped.sell);
+        }
+        if ('Immediate' in ex.ramp) {
+          setRampKind('Immediate');
+        } else {
+          setRampKind('RateCap');
+          setPctPerBar(String(ex.ramp.RateCap.pct_per_bar));
+        }
+        setGuardMaxPct(String(ex.guard.max_pct));
+        setGuardMinPct(String(ex.guard.min_pct));
+        setGuardDeadzonePct(String(ex.guard.deadzone_pct));
       }
       if (cfg.stop) {
         setStopEnabled(true);
@@ -682,13 +808,19 @@ export function ConfigPanel({
         </label>
       </div>
 
-      {/* ExecutionPolicy */}
+      {/* ExecutionPolicy（ADR-029：LumpSum/Dca = legacy 只读；Exposure = 目标 × ramp × guard） */}
       <div className="rounded-lg border border-line bg-panel2 p-2">
         <label className={LABEL}>
           执行策略（ExecutionPolicy）
-          <select className={INPUT} value={policyKind} onChange={(e) => setPolicyKind(e.target.value as 'LumpSum' | 'Dca')} data-testid="wb-policy-kind">
+          <select
+            className={INPUT}
+            value={policyKind}
+            onChange={(e) => setPolicyKind(e.target.value as 'LumpSum' | 'Dca' | 'Exposure')}
+            data-testid="wb-policy-kind"
+          >
             <option value="LumpSum">LumpSum 一次性</option>
             <option value="Dca">DCA 分批</option>
+            <option value="Exposure">Exposure 目标 × 到达方式 × 硬边界</option>
           </select>
         </label>
         {policyKind === 'LumpSum' ? (
@@ -696,7 +828,7 @@ export function ConfigPanel({
             仓位比例 (0,1]
             <input type="number" className={INPUT} value={positionPct} min={0} max={1} step="any" onChange={(e) => setPositionPct(e.target.value)} data-testid="wb-position-pct" />
           </label>
-        ) : (
+        ) : policyKind === 'Dca' ? (
           <div className="mt-1 grid grid-cols-2 gap-2">
             <label className={LABEL}>
               批次数 N
@@ -719,6 +851,107 @@ export function ConfigPanel({
               批间隔（bar）
               <input type="number" className={INPUT} value={dcaInterval} min={1} step={1} onChange={(e) => setDcaInterval(e.target.value)} data-testid="wb-dca-interval" />
             </label>
+          </div>
+        ) : (
+          <div className="mt-1 flex flex-col gap-2" data-testid="wb-exposure-fields">
+            {/* ① 目标维 target（ADR-029 D3；量纲 = 净值占比） */}
+            <div className="grid grid-cols-2 gap-2">
+              <label className={LABEL}>
+                目标维 target
+                <select
+                  className={INPUT}
+                  value={exposureTarget}
+                  onChange={(e) => setExposureTarget(e.target.value as ExposureTargetKind)}
+                  data-testid="wb-exposure-target"
+                >
+                  <option value="Fixed">Fixed 常数目标（= LumpSum 目标语义）</option>
+                  <option value="ScoreMapped">ScoreMapped 随聚合分线性</option>
+                </select>
+              </label>
+              {exposureTarget === 'Fixed' ? (
+                <label className={LABEL}>
+                  pct（净值占比，(0,1]）
+                  <input type="number" className={INPUT} value={exposureFixedPct} min={0} max={1} step="any" onChange={(e) => setExposureFixedPct(e.target.value)} data-testid="wb-exposure-fixed-pct" />
+                </label>
+              ) : (
+                <>
+                  <label className={LABEL}>
+                    at_threshold_pct（净值占比；score = 买入阈值 时的目标）
+                    <input type="number" className={INPUT} value={exposureAtThreshold} min={0} max={1} step="any" onChange={(e) => setExposureAtThreshold(e.target.value)} data-testid="wb-exposure-at-threshold-pct" />
+                  </label>
+                  <label className={LABEL}>
+                    at_full_pct（净值占比；score = 100 时的目标）
+                    <input type="number" className={INPUT} value={exposureAtFull} min={0} max={1} step="any" onChange={(e) => setExposureAtFull(e.target.value)} data-testid="wb-exposure-at-full-pct" />
+                  </label>
+                  <label className={LABEL}>
+                    卖出侧 sell（仅 ScoreMapped）
+                    <select className={INPUT} value={exposureSell} onChange={(e) => setExposureSell(e.target.value as ExposureSellPolicy)} data-testid="wb-exposure-sell">
+                      <option value="Flat">Flat — score ≤ 卖出阈值 ⇒ 直接清仓（目标 0）</option>
+                      <option value="Scaled">Scaled — 对称降档（score=0 ⇒ 0；score=卖出阈值 ⇒ at_threshold_pct）</option>
+                    </select>
+                  </label>
+                </>
+              )}
+            </div>
+            {/* ② 到达方式维 ramp（ADR-029 D4） */}
+            <div className="grid grid-cols-2 gap-2">
+              <label className={LABEL}>
+                到达方式 ramp
+                <select className={INPUT} value={rampKind} onChange={(e) => setRampKind(e.target.value as ExposureRampKind)} data-testid="wb-ramp-kind">
+                  <option value="Immediate">Immediate — 当 bar 目标即全额</option>
+                  <option value="RateCap">RateCap — 每 bar 目标变动上限</option>
+                </select>
+              </label>
+              {rampKind === 'RateCap' && (
+                <label className={LABEL}>
+                  {'pct_per_bar（每 bar 允许变动金额 / 净值，须 > 0）'}
+                  <input type="number" className={INPUT} value={pctPerBar} min={0} step="any" onChange={(e) => setPctPerBar(e.target.value)} data-testid="wb-ramp-pct-per-bar" />
+                </label>
+              )}
+            </div>
+            {/* ③ 硬边界维 guard（ADR-029 D5/D8） */}
+            <div className="grid grid-cols-3 gap-2">
+              <label className={LABEL}>
+                max_pct（净值占比，强制夹取）
+                <input type="number" className={INPUT} value={guardMaxPct} min={0} max={1} step="any" onChange={(e) => setGuardMaxPct(e.target.value)} data-testid="wb-guard-max-pct" />
+              </label>
+              <label className={LABEL}>
+                min_pct（净值占比；非零下限仅约束持有态、不清仓）
+                <input type="number" className={INPUT} value={guardMinPct} min={0} max={1} step="any" onChange={(e) => setGuardMinPct(e.target.value)} data-testid="wb-guard-min-pct" />
+              </label>
+              <label className={LABEL}>
+                deadzone_pct（暴露比例差）
+                <input type="number" className={INPUT} value={guardDeadzonePct} min={0} step="any" onChange={(e) => setGuardDeadzonePct(e.target.value)} data-testid="wb-guard-deadzone-pct" />
+              </label>
+            </div>
+            {/* ④ ADR-029 D7/R1/R5/R6 披露（配置处）：总分 ≠ 仓位 + 映射端点 + 两支卖出语义 + 量纲 */}
+            <div className="flex flex-col gap-0.5 text-[11px] text-dim" data-testid="wb-exposure-disclosure">
+              <div>
+                总分曲线是诊断量、不等于仓位：聚合分只决定「目标」暴露；实际仓位由 ramp 限速、guard 夹取与次 bar 成交共同决定。
+              </div>
+              <div data-testid="wb-exposure-endpoints">
+                {exposureTarget === 'Fixed'
+                  ? `目标 Fixed：pct=${fmtPct(Number(exposureFixedPct))}（净值占比；score ≤ sell_threshold(${sellThreshold}) ⇒ 目标 0，等价 LumpSum）`
+                  : `目标 ScoreMapped：score=${buyThreshold}（买阈值）→ at_threshold_pct=${fmtPct(Number(exposureAtThreshold))}；score=100 → at_full_pct=${fmtPct(Number(exposureAtFull))}；卖出侧 ${exposureSell}（${
+                      exposureSell === 'Flat'
+                        ? `Flat = 直接清仓（score ≤ ${sellThreshold} ⇒ 目标 0）`
+                        : `Scaled = 对称降档（score=0 ⇒ 0；score=${sellThreshold} ⇒ at_threshold_pct=${fmtPct(Number(exposureAtThreshold))}）`
+                    }）`}
+                {'；'}路径 ramp={
+                  rampKind === 'Immediate'
+                    ? 'Immediate（当 bar 目标即全额）'
+                    : `RateCap：每 bar 目标变动 ≤ pct_per_bar=${fmtPct(Number(pctPerBar))}（净值）`
+                }
+                {'；'}硬边界 guard：{
+                  `max_pct=${fmtPct(Number(guardMaxPct))}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(Number(guardMinPct))} / deadzone_pct=${fmtPct(Number(guardDeadzonePct), 2)}（|目标 − 当前暴露| < 死区 ⇒ 不下单）。`
+                }
+              </div>
+              <div data-testid="wb-exposure-dim-note">{EXPOSURE_DIM_NOTE}</div>
+              {/* E15/E16（契约补充）：非零 min_pct **不阻塞清仓** —— 避免「设了下限就不会空仓」的误读 */}
+              <div data-testid="wb-exposure-guard-note" className="text-amber-300/80">
+                guard.min_pct 非零时仅约束持有态目标（持仓不低于下限），不阻塞清仓：score ≤ 卖出阈值时目标仍为 0（清仓）。
+              </div>
+            </div>
           </div>
         )}
       </div>

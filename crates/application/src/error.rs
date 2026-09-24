@@ -93,7 +93,13 @@ pub fn classify_config_error(msg: &str) -> &'static str {
         codes::THRESHOLD_INVALID
     } else if msg.starts_with("initial_capital") || msg.starts_with("capital") {
         codes::CAPITAL_INVALID
-    } else if msg.starts_with("LumpSum") || msg.starts_with("Dca") || msg.starts_with("policy") {
+    } else if msg.starts_with("LumpSum")
+        || msg.starts_with("Dca")
+        || msg.starts_with("Exposure")
+        || msg.starts_with("ScoreMapped")
+        || msg.starts_with("policy")
+    {
+        // ADR-029：`Exposure` / `ScoreMapped` 属 policy 家族（含其阈值分母规则）⇒ 同一错误码。
         codes::POLICY_INVALID
     } else {
         codes::REQUEST_INVALID

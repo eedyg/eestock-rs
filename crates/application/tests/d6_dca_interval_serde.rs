@@ -60,3 +60,117 @@ fn dca_interval_explicit_positive_values_unchanged() {
         p.validate().unwrap_or_else(|e| panic!("interval={k} 须仍然合法：{e}"));
     }
 }
+
+// ---------------------------------------------------------------------------
+// ADR-029 Step 1：`ExecutionPolicy::Exposure` 的 serde 契约（**无 rename** ⇒ 变体 PascalCase、
+// 字段 snake_case；MCP/HTTP 的 policy 直通 JSON 据此自动支持新变体，服务端 serde 校验）。
+// ---------------------------------------------------------------------------
+
+use strategy_core::{ExposureTarget, GuardSpec, RampSpec, SellPolicy};
+
+/// 契约：`ScoreMapped` 全字段往返（字段名逐字对应 ADR-029 D3；`sell` 取单位变体字符串）。
+#[test]
+fn adr029_exposure_score_mapped_serde_round_trip() {
+    let raw = json!({
+        "Exposure": {
+            "target": { "ScoreMapped": { "at_threshold_pct": 0.2, "at_full_pct": 0.8, "sell": "Flat" } },
+            "ramp": { "RateCap": { "pct_per_bar": 0.05 } },
+            "guard": { "max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.005 }
+        }
+    });
+    let p: ExecutionPolicy = serde_json::from_value(raw.clone()).expect("新变体必须可解析（直通 JSON）");
+    assert_eq!(
+        p,
+        ExecutionPolicy::Exposure {
+            target: ExposureTarget::ScoreMapped {
+                at_threshold_pct: 0.2,
+                at_full_pct: 0.8,
+                sell: SellPolicy::Flat,
+            },
+            ramp: RampSpec::RateCap { pct_per_bar: 0.05 },
+            guard: GuardSpec { max_pct: 0.9, min_pct: 0.0, deadzone_pct: 0.005 },
+        }
+    );
+    // 往返：序列化形态与输入逐字段一致（无 rename ⇒ 键名即字段名）
+    assert_eq!(serde_json::to_value(&p).unwrap(), raw);
+    p.validate_with_thresholds(60.0, 40.0).expect("合法阈值组合");
+}
+
+/// 契约：`Fixed` + 单位变体 `Immediate`（serde 外部标记的单位变体形态 = 字符串，与 `sell: "Flat"` 同规）。
+#[test]
+fn adr029_exposure_fixed_and_immediate_serde_round_trip() {
+    let raw = json!({
+        "Exposure": {
+            "target": { "Fixed": { "pct": 0.3 } },
+            "ramp": { "Immediate": null },
+            "guard": { "max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.0 }
+        }
+    });
+    let p: ExecutionPolicy = serde_json::from_value(raw.clone()).expect("Fixed/Immediate 必须可解析");
+    assert_eq!(serde_json::to_value(&p).unwrap(), raw);
+    p.validate().expect("合法 Fixed 配置");
+    // 单位变体形态**唯一**：契约形态之外的 `"Immediate"` 字符串形态必须拒绝（不得两套形状并存）
+    let string_form = json!({
+        "Exposure": {
+            "target": { "Fixed": { "pct": 0.3 } },
+            "ramp": "Immediate",
+            "guard": { "max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.0 }
+        }
+    });
+    assert!(
+        serde_json::from_value::<ExecutionPolicy>(string_form).is_err(),
+        "ramp 单位变体只认 {{\"Immediate\": null}}（计划 05 JSONC / web ExposureRamp 契约）"
+    );
+    // Scaled 支同样可解析
+    let p2: ExecutionPolicy = serde_json::from_value(json!({
+        "Exposure": {
+            "target": { "ScoreMapped": { "at_threshold_pct": 0.1, "at_full_pct": 0.5, "sell": "Scaled" } },
+            "ramp": { "Immediate": null },
+            "guard": { "max_pct": 0.5, "min_pct": 0.0, "deadzone_pct": 0.0 }
+        }
+    }))
+    .expect("Scaled 支可解析");
+    assert!(matches!(
+        p2,
+        ExecutionPolicy::Exposure { target: ExposureTarget::ScoreMapped { sell: SellPolicy::Scaled, .. }, .. }
+    ));
+}
+
+/// 契约（E11 fail loud，经 JSON 路径）：非法配置必须**构造期报错**，不得静默回退默认。
+#[test]
+fn adr029_exposure_invalid_configs_fail_loud_via_json() {
+    let bad = [
+        // at_full_pct < at_threshold_pct
+        json!({"Exposure": {"target": {"ScoreMapped": {"at_threshold_pct": 0.8, "at_full_pct": 0.2, "sell": "Flat"}},
+                            "ramp": {"Immediate": null}, "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        // at_full_pct > max_pct（策略无权覆盖 guard）
+        json!({"Exposure": {"target": {"ScoreMapped": {"at_threshold_pct": 0.2, "at_full_pct": 0.95, "sell": "Flat"}},
+                            "ramp": {"Immediate": null}, "guard": {"max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        // pct_per_bar ≤ 0
+        json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                            "ramp": {"RateCap": {"pct_per_bar": 0.0}}, "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}}),
+        // min_pct > max_pct
+        json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                            "ramp": {"Immediate": null}, "guard": {"max_pct": 0.5, "min_pct": 0.9, "deadzone_pct": 0.0}}}),
+        // deadzone_pct < 0
+        json!({"Exposure": {"target": {"Fixed": {"pct": 0.3}},
+                            "ramp": {"Immediate": null}, "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": -0.1}}}),
+    ];
+    for raw in bad {
+        let p: ExecutionPolicy = serde_json::from_value(raw.clone())
+            .unwrap_or_else(|e| panic!("语法层应可解析（语义层拒绝）：{raw} / {e}"));
+        assert!(p.validate().is_err(), "非法配置必须 fail loud：{raw}");
+    }
+    // ScoreMapped 的阈值分母规则（经 `validate_with_thresholds`，由 `EnsembleConfig::validate` 调用）
+    let sm: ExecutionPolicy = serde_json::from_value(json!({
+        "Exposure": {"target": {"ScoreMapped": {"at_threshold_pct": 0.2, "at_full_pct": 0.5, "sell": "Flat"}},
+                     "ramp": {"Immediate": null}, "guard": {"max_pct": 1.0, "min_pct": 0.0, "deadzone_pct": 0.0}}
+    }))
+    .unwrap();
+    assert!(sm.validate_with_thresholds(100.0, 40.0).is_err(), "buy_threshold=100 ⇒ 映射分母为 0");
+    assert!(sm.validate_with_thresholds(60.0, 0.0).is_err(), "sell_threshold=0 ⇒ 降档分母为 0");
+    assert!(sm.validate().is_ok(), "阈值规则不属无参 validate（需阈值可见处校验）");
+    // 旧变体在阈值下依旧合法（历史 run 可复现：阈值任意取值不影响 LumpSum/Dca）
+    let legacy: ExecutionPolicy = serde_json::from_value(json!({"LumpSum": {"position_pct": 0.5}})).unwrap();
+    legacy.validate_with_thresholds(100.0, 0.0).expect("旧变体不受阈值校验约束");
+}

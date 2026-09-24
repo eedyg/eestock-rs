@@ -16,7 +16,8 @@
 //! 6. CloseBasis 硬止损检查（持仓中且 trigger=CloseBasis）：收盘触线 → 次 bar open
 //!    平仓挂单（标注 stop_trigger，**绕过 Policy**）；ATR 线含当前 bar（收盘后判定，
 //!    无前视）；触发同时**重置 PolicyState**（MAJOR-2 裁决，强平后首个 Buy 重新计数）；
-//! 7. 否则 ExecutionPolicy 换算目标仓位（幂等）→ 订单 = 目标 − 当前 → 次 bar open 挂单；
+//! 7. 否则 ExecutionPolicy 换算目标仓位（幂等；ADR-029：**聚合分 + run 级阈值一并送入**，
+//!    每 bar 观测落 `per_bar[].policy_obs`）→ 订单 = 目标 − 当前 → 次 bar open 挂单；
 //! 8. 记录收盘净值 + per_bar 全量数据（ADR §13.4 全量落库的数据源）。
 //! 9. observer 钩子调用（每 bar 末恰一次，P3a 裁决：进度上报 + 协作式取消）：
 //!    返回 [`LoopControl::Break`] → 立即跳出循环（不做期末强平、不产出结果）
@@ -38,11 +39,15 @@ use strategy_runtime::{
 };
 
 use crate::aggregate::{aggregate, classify, StrategySlot, TradeSignal, NEUTRAL_SCORE};
-use crate::policy::{ExecutionPolicy, PolicyState};
+use crate::policy::{ExecutionPolicy, PolicyObservation, PolicyState};
 use crate::stop::{StopConfig, StopTrigger, TrailingState};
 
 /// G5 熔断阈值：单插件实例**连续**错误达到此次数 → 本运行停用（ABI §3 G5）。
 pub const CIRCUIT_BREAKER_THRESHOLD: u32 = 10;
+
+/// 买入后现金视为「已用尽」的容差（元；ADR-029 E17 判定：买后无余额继续补足不可达缺口）。
+/// 口径：`FeeModel::buy` 预算被夹时 `total_cost` 恰为预算，残留仅浮点尾差（~1e-11 元）。
+const AFFORDABILITY_CASH_EPS: f64 = 1e-9;
 
 /// 观察者返回的运行控制（P3a 裁决 2026-09-09：进度上报 + 协作式取消钩子）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,7 +125,7 @@ impl EnsembleConfig {
                     .to_string(),
             );
         }
-        self.policy.validate()?;
+        self.policy.validate_with_thresholds(self.buy_threshold, self.sell_threshold)?;
         Ok(())
     }
 }
@@ -290,6 +295,12 @@ pub struct BarRecord {
     pub scores: Vec<SlotScore>,
     pub aggregate: f64,
     pub signal: TradeSignal,
+    /// **ADR-029 D7 观测**（目标/当前暴露占比、限速/死区/guard 夹取/卖出跳变）。
+    ///
+    /// 口径：in-range bar 由 Policy 求值产出（含 `LumpSum`/`Dca` 的只读目标占比）；
+    /// warmup bar 不执行 Policy ⇒ 全零值（`target_pct`/`current_pct` 为 `None`）。
+    /// 随既有 `per_bar` 记录通道输出（**不新增事实表**）；本字段**不参与**目标换算/订单判定。
+    pub policy_obs: PolicyObservation,
     /// 本 bar 决策产生的订单意图。
     pub orders: Vec<OrderIntent>,
     /// 本 bar 发生的事件（成交/插件错误/熔断/插件日志）。
@@ -693,6 +704,9 @@ impl EnsembleSession {
                                 let fee = self.cfg.fee;
                                 let need =
                                     qty * fee.buy_price(bar.open) * (1.0 + fee.commission_fraction());
+                                // ADR-029 D6-6 / R11 / E17：本笔买入是否被**现金上限**截断
+                                //（预算被夹 或 买后现金归零 ⇒ 无余额继续补足不可达缺口）。
+                                let budget_limited = need > self.cash;
                                 let exec = fee.buy(need.min(self.cash), bar.open);
                                 if exec.shares > 0.0 {
                                     self.cash -= exec.total_cost;
@@ -725,9 +739,14 @@ impl EnsembleSession {
                                     events.push(ev);
                                     // MAJOR-1 冻结口径补全：买入被现金上限截断时（实得 < 冻结目标），
                                     // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
+                                    // ADR-029 E17（同源口径，作用于 `Exposure::ScoreMapped`）：
+                                    // 现金截断（预算被夹或买后现金归零）⇒ 目标上限一次性下调到可达股数。
                                     if reason == OrderReason::Policy {
                                         if let Some(h) = &self.holding {
                                             self.policy_state.clamp_lump_frozen(h.qty);
+                                            if budget_limited || self.cash <= AFFORDABILITY_CASH_EPS {
+                                                self.policy_state.clamp_exposure_affordable(h.qty);
+                                            }
                                         }
                                     }
                                 }
@@ -896,18 +915,26 @@ impl EnsembleSession {
                 }
             }
 
-            // 7) Policy：信号 → 目标仓位（幂等）→ 订单 = 目标 − 当前。
+            // 7) Policy：信号 + **聚合分**（ADR-029 D6.6）→ 目标仓位（幂等）→ 订单 = 目标 − 当前。
             //    I-2/D6：warmup 段不执行 Policy（不产订单），from 起从空仓开始。
+            //    阈值（buy/sell）随聚合分一并送入：`ScoreMapped` 的映射端点与分档均以 run 级阈值为准；
+            //    旧变体忽略 score/阈值 ⇒ 行为逐字节不变（ADR-029 D2/D10）。
+            let mut policy_obs = PolicyObservation::default();
             if !stop_order && !is_warmup {
                 let current_qty = self.holding.map(|h| h.qty).unwrap_or(0.0);
                 let equity = self.cash + current_qty * bar.close;
-                let target = self.policy_state.target_qty(
+                let outcome = self.policy_state.target_qty_with_score(
                     &self.cfg.policy,
                     signal,
+                    agg,
+                    self.cfg.buy_threshold,
+                    self.cfg.sell_threshold,
                     equity,
                     bar.close,
                     current_qty,
                 );
+                let target = outcome.target_qty;
+                policy_obs = outcome.observation;
                 let delta = target - current_qty;
                 const EPS: f64 = 1e-9;
                 if delta > EPS {
@@ -959,6 +986,7 @@ impl EnsembleSession {
                 scores,
                 aggregate: agg,
                 signal,
+                policy_obs,
                 orders,
                 events,
             });

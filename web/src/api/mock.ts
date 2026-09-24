@@ -2025,7 +2025,11 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
         };
       });
       const policy = req.policy as Record<string, unknown> | undefined;
-      if (!policy || (!policy.LumpSum && !policy.Dca)) throw new ApiError(400, 'HTTP 400: policy 非法');
+      // ADR-029 D2：新增变体 `Exposure`（target × ramp × guard）——契约 mock 与后端 serde 同口径接受，
+      // 并在 config 快照里**原样**回显（不做归一化、不丢字段）；`LumpSum`/`Dca` 校验不变。
+      if (!policy || (!policy.LumpSum && !policy.Dca && !policy.Exposure)) {
+        throw new ApiError(400, 'HTTP 400: policy 非法');
+      }
       const config: WorkbenchRunConfig = {
         slots: pinnedSlots,
         buy_threshold: buy,

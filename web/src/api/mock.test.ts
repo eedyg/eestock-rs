@@ -902,6 +902,36 @@ describe('回测工作台 mock（12-strategy-system / P3b；§1.8 契约行为�
     await expect(api.deleteWorkbenchPreset(created.id)).rejects.toMatchObject({ status: 404 });
   });
 
+  // ADR-029 Step 1：契约 mock 必须接受新变体 `Exposure`（否则 VITE_API_MOCK=1 的开发构建无法提交），
+  // 并在 config 快照里**原样**回显（端点/ramp/guard 三键不得被 mock 归一化或丢字段）。
+  it('ADR-029：submit 接受 Exposure（target × ramp × guard）并原样回显 config.policy；planned_tranches=null（RateCap 无批次计划）', async () => {
+    const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
+    const policy = {
+      Exposure: {
+        target: { ScoreMapped: { at_threshold_pct: 0.2, at_full_pct: 0.5, sell: 'Flat' as const } },
+        ramp: { RateCap: { pct_per_bar: 0.05 } },
+        guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005 },
+      },
+    };
+    const run = await api.submitWorkbenchRun({ ...validSubmit(), policy });
+    expect(run.config.policy).toEqual(policy);
+    // Fixed + Immediate 空载荷形态同样必须被接受
+    const fixed = await api.submitWorkbenchRun({
+      ...validSubmit(),
+      policy: {
+        Exposure: {
+          target: { Fixed: { pct: 0.3 } },
+          ramp: { Immediate: null },
+          guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005 },
+        },
+      },
+    });
+    expect(fixed.config.policy).toEqual({
+      Exposure: { target: { Fixed: { pct: 0.3 } }, ramp: { Immediate: null }, guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005 } },
+    });
+    expect((await api.getRunAudit(run.id)).planned_tranches).toBeNull();
+  });
+
   // ── ADR-026 §2.2：/audit mock（由 per_bar.orders/events + config 事实派生，与后端同口径）──
 
   it('ADR-026：/audit 由事实派生（recorded=true；batches_done=Buy 成交数；deployed=Σqty×price；cash=金额+佣金；Dca → DCA_PLAN_UNDERFILLED）', async () => {

@@ -1473,3 +1473,441 @@ fn trade_detail_reason_records_liquidation_source() {
     assert_eq!(res.trades[1].reason.as_deref(), Some("ForceClose"));
 }
 
+
+// ---------------------------------------------------------------------------
+// ADR-029 Step 1：`exposure × ramp × guard` 引擎端到端（E7 / E9 / E10 / E13）
+// ---------------------------------------------------------------------------
+
+/// 脚本化分数（按 index 取序列值；ADR-029 引擎端到端用例用）。
+const SCRIPTED_SCORES: &str = r#"
+const SCRIPT = [80, 80, 80, 50, 50, 80, 80, 90, 90, 90];
+function on_bar(ctx) { return SCRIPT[ctx.index % SCRIPT.length]; }
+"#;
+
+/// ±5 分抖动（偶数 bar 75 分、奇数 bar 80 分；ADR-029 E9 防抖用例）。
+const JITTER_SCORES: &str = r#"
+function on_bar(ctx) { return ctx.index % 2 === 0 ? 75 : 80; }
+"#;
+
+fn exposure_cfg(
+    code: &str,
+    hash: &str,
+    params: StrategyParams,
+    policy: ExecutionPolicy,
+) -> EnsembleConfig {
+    base_cfg(vec![slot(code, hash, params, 1.0)], policy)
+}
+
+/// `constant_score` 带 80 分（Buy 档）的 slot 参数。
+fn buy_score_params() -> StrategyParams {
+    params(&[("score", 80.0)])
+}
+
+fn guard(max_pct: f64, min_pct: f64, deadzone_pct: f64) -> strategy_core::GuardSpec {
+    strategy_core::GuardSpec { max_pct, min_pct, deadzone_pct }
+}
+
+/// E10：每 bar 观测字段（`target_pct`/`current_pct`/`deadzone_blocked`/`clamped_by_guard`
+/// /`rate_limited`/`ramp_cap_pct_per_bar`/`sell_transition`）逐 bar 可读且取值正确。
+#[test]
+fn adr029_e10_policy_observation_recorded_per_bar() {
+    let bars = flat_bars(6, 10.0);
+    let cfg = exposure_cfg(
+        CONSTANT_SCORE,
+        "sha256:constant_score",
+        buy_score_params(),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::Fixed { pct: 0.4 },
+            ramp: strategy_core::RampSpec::Immediate,
+            guard: guard(1.0, 0.0, 0.005),
+        },
+    );
+    let res = run(&cfg, &bars);
+
+    // bar0：空仓 ⇒ 目标 0.4×100_000/10 = 4000 股；观测 = 目标 0.4 / 当前 0 / 各标志 false。
+    let o0 = res.per_bar[0].policy_obs;
+    close(o0.target_pct.expect("target_pct 可读"), 0.4);
+    close(o0.current_pct.expect("current_pct 可读"), 0.0);
+    assert!(!o0.deadzone_blocked && !o0.clamped_by_guard && !o0.rate_limited);
+    assert!(!o0.sell_transition && o0.ramp_cap_pct_per_bar.is_none());
+    assert_eq!(res.per_bar[0].orders.len(), 1, "bar0 应挂买入单");
+
+    // bar1：仓位已到（差 = 佣金级微差）⇒ 死区拦下（零订单），观测 = 目标 = 当前。
+    let o1 = res.per_bar[1].policy_obs;
+    assert!(o1.deadzone_blocked, "Δ 在死区内 ⇒ 拦下");
+    assert!(res.per_bar[1].orders.is_empty(), "死区内不得下单");
+    let t1 = o1.target_pct.expect("target_pct");
+    let c1 = o1.current_pct.expect("current_pct");
+    close(t1, c1);
+    assert!((t1 - 0.4).abs() < 1e-4, "目标占比仍应为 ~0.4（实际 {t1}）");
+
+    // 全程观测可读（每 bar 都有值，不只首根）
+    for (i, r) in res.per_bar.iter().enumerate() {
+        assert!(
+            r.policy_obs.target_pct.is_some() && r.policy_obs.current_pct.is_some(),
+            "bar {i} 观测缺字段"
+        );
+    }
+}
+
+/// E10 边界：warmup 段不执行 Policy ⇒ 观测为零值（`None`），不得伪造目标。
+#[test]
+fn adr029_e10_warmup_bars_have_no_observation() {
+    let bars = flat_bars(5, 10.0);
+    let mut cfg = exposure_cfg(
+        CONSTANT_SCORE,
+        "sha256:constant_score",
+        buy_score_params(),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::Fixed { pct: 0.4 },
+            ramp: strategy_core::RampSpec::Immediate,
+            guard: guard(1.0, 0.0, 0.0),
+        },
+    );
+    cfg.warmup_bars = 2;
+    let res = run(&cfg, &bars);
+    for r in res.per_bar.iter().take(2) {
+        assert!(r.warmup);
+        assert_eq!(
+            r.policy_obs,
+            strategy_core::PolicyObservation::default(),
+            "warmup bar 观测须为零值"
+        );
+    }
+    assert!(res.per_bar[2].policy_obs.target_pct.is_some(), "in-range 起恢复观测");
+}
+
+/// E13：`Exposure{Fixed{pct}}`（Immediate + 宽松 guard）与 `LumpSum{position_pct}` 在同一
+/// bar 序列上**成交序列逐位一致**（含净值曲线逐位一致）。
+#[test]
+fn adr029_e13_fixed_matches_lump_sum_fills_bitwise() {
+    // 价格路径含上涨/回撤；分数序列含 Buy → Hold（解冻）→ Buy（重快照）→ 更强 Buy。
+    let prices = [10.0, 10.0, 10.5, 10.5, 10.0, 9.8, 10.2, 10.4, 10.1, 10.3];
+    let bars: Vec<Bar> = prices
+        .iter()
+        .enumerate()
+        .map(|(i, p)| Bar {
+            ts: 1_700_000_000 + i as i64 * 86_400,
+            open: *p,
+            high: *p,
+            low: *p,
+            close: *p,
+            volume: 10_000.0,
+        })
+        .collect();
+
+    let lump = exposure_cfg(
+        SCRIPTED_SCORES,
+        "sha256:scripted_scores",
+        StrategyParams::new(),
+        ExecutionPolicy::LumpSum { position_pct: 0.5 },
+    );
+    let fixed = exposure_cfg(
+        SCRIPTED_SCORES,
+        "sha256:scripted_scores",
+        StrategyParams::new(),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::Fixed { pct: 0.5 },
+            ramp: strategy_core::RampSpec::Immediate,
+            guard: guard(1.0, 0.0, 0.0),
+        },
+    );
+    let ra = run(&lump, &bars);
+    let rb = run(&fixed, &bars);
+
+    let fa = fills(&ra);
+    let fb = fills(&rb);
+    assert!(!fa.is_empty(), "用例须真有成交（否则等价断言空洞）");
+    assert_eq!(fa.len(), fb.len(), "成交笔数须一致");
+    for (i, (a, b)) in fa.iter().zip(fb.iter()).enumerate() {
+        assert_eq!(a.0, b.0, "第 {i} 笔成交 bar 不一致");
+        assert_eq!(a.1, b.1, "第 {i} 笔方向不一致");
+        assert_eq!(a.2.to_bits(), b.2.to_bits(), "第 {i} 笔股数不逐位一致");
+        assert_eq!(a.3.to_bits(), b.3.to_bits(), "第 {i} 笔价格不逐位一致");
+        assert_eq!(a.4, b.4, "第 {i} 笔缘由不一致");
+    }
+    assert_eq!(ra.net_value.len(), rb.net_value.len());
+    for (i, (x, y)) in ra.net_value.iter().zip(rb.net_value.iter()).enumerate() {
+        assert_eq!(x.0, y.0);
+        assert_eq!(x.1.to_bits(), y.1.to_bits(), "第 {i} 点净值不逐位一致");
+    }
+    assert_eq!(ra.trades.len(), rb.trades.len());
+}
+
+/// E7：硬止损强平 = 外部中断 ⇒ 路径作废（`PolicyState::reset`）⇒ 限速从**实际暴露**重新起算，
+/// 而非续用强平前的旧目标。
+#[test]
+fn adr029_e7_stop_reset_restarts_ramp_from_actual_exposure() {
+    // 价格路径：10 → 10 → 9.4（收盘破固定止损线 10×0.95）→ 10 …
+    let prices = [10.0, 10.0, 9.4, 10.0, 10.0, 10.0];
+    let bars: Vec<Bar> = prices
+        .iter()
+        .enumerate()
+        .map(|(i, p)| Bar {
+            ts: 1_700_000_000 + i as i64 * 86_400,
+            open: *p,
+            high: *p,
+            low: *p,
+            close: *p,
+            volume: 10_000.0,
+        })
+        .collect();
+    let mut cfg = exposure_cfg(
+        CONSTANT_SCORE,
+        "sha256:constant_score",
+        buy_score_params(),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::Fixed { pct: 1.0 },
+            ramp: strategy_core::RampSpec::RateCap { pct_per_bar: 0.05 },
+            guard: guard(1.0, 0.0, 0.0),
+        },
+    );
+    cfg.stop = Some(StopConfig {
+        kind: StopKind::FixedPct,
+        value: 0.05,
+        trigger: StopTrigger::CloseBasis,
+    });
+    let res = run(&cfg, &bars);
+
+    // bar2：收盘破线 ⇒ 止损挂单（绕过 Policy，policy_obs 留零值）
+    assert_eq!(res.per_bar[2].orders.len(), 1);
+    assert_eq!(res.per_bar[2].orders[0].reason, OrderReason::StopTrigger);
+    assert_eq!(
+        res.per_bar[2].policy_obs,
+        strategy_core::PolicyObservation::default(),
+        "止损挂单 bar 不执行 Policy ⇒ 观测零值"
+    );
+    // bar3：强平成交后 Policy 恢复：限速锚点 = 实际暴露（0）⇒ 单笔 ≤ 0.05×净值/价 ≈ 500 股
+    let orders3 = &res.per_bar[3].orders;
+    assert_eq!(orders3.len(), 1, "强平后应有新一轮建仓挂单");
+    assert_eq!(orders3[0].side, OrderSide::Buy);
+    assert!(
+        orders3[0].qty <= 500.5,
+        "强平后限速须从实际暴露重新起算（应 ≤ ~500 股，实际 {}）",
+        orders3[0].qty
+    );
+    assert!(res.per_bar[3].policy_obs.rate_limited);
+}
+
+/// E9（引擎端到端）：分数 ±5 抖动 20 根 bar ⇒ 不做「每 bar 微单」（订单数与费用上限）。
+///
+/// 标定（先标定后写死）：映射斜率 `at_full − at_threshold = 0.01` ⇒ ±5 分 ⇒ 目标占比抖动
+/// ±0.00125（≈ 12.5 股 @ 净值 10 万/价 10 = 125 元），死区 0.005×净值 = 500 元 ⇒ 全被吸收。
+/// 实测（本用例）：订单 1 笔、费用 5 元 ⇒ 费用占净值 0.005%。
+#[test]
+fn adr029_e9_engine_score_jitter_does_not_churn() {
+    let bars = flat_bars(20, 10.0);
+    let cfg = exposure_cfg(
+        JITTER_SCORES,
+        "sha256:jitter_scores",
+        StrategyParams::new(),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::ScoreMapped {
+                at_threshold_pct: 0.2,
+                at_full_pct: 0.21,
+                sell: strategy_core::SellPolicy::Flat,
+            },
+            ramp: strategy_core::RampSpec::Immediate,
+            guard: guard(1.0, 0.0, 0.005),
+        },
+    );
+    let res = run(&cfg, &bars);
+
+    let policy_orders: usize = res
+        .per_bar
+        .iter()
+        .map(|r| {
+            r.orders
+                .iter()
+                .filter(|o| o.reason == OrderReason::Policy)
+                .count()
+        })
+        .sum();
+    assert!(
+        policy_orders <= 2,
+        "20 根 ±5 分抖动 bar 上 Policy 订单须 ≤ 2（实测 {policy_orders}）"
+    );
+    // 费用上限（标定 0.1% 净值，远低于每 bar 微单的量级）
+    let fees: f64 = res
+        .per_bar
+        .iter()
+        .flat_map(|r| r.events.iter())
+        .filter_map(|e| match e {
+            EngineEvent::Fill { commission, stamp_duty, .. } => Some(commission + stamp_duty),
+            _ => None,
+        })
+        .sum();
+    assert!(
+        fees / 100_000.0 <= 1e-3,
+        "费用占净值比须 ≤ 0.1%（实测 {}）",
+        fees / 100_000.0
+    );
+    let max_gap = res
+        .per_bar
+        .iter()
+        .filter_map(|r| match (r.policy_obs.target_pct, r.policy_obs.current_pct) {
+            (Some(t), Some(c)) => Some((t - c).abs()),
+            _ => None,
+        })
+        .fold(0.0f64, f64::max);
+    eprintln!(
+        "[E9 标定·engine] max_intent_gap(同 bar、含建仓首根，**非审计口径**)={max_gap:.6}（仅标定读数；ADR-029 R18 已把**审计**口径改为滞后一 bar 对齐，见 application::audit::exposure_audit）"
+    );
+    eprintln!(
+        "[E9 标定·engine] policy_orders={policy_orders} fees={fees:.4} fee_pct={:.6}% blocked={}/20",
+        fees / 100_000.0 * 100.0,
+        res.per_bar.iter().filter(|r| r.policy_obs.deadzone_blocked).count()
+    );
+    // 观测：绝大多数 bar 被死区拦下（不是「每 bar 下单」）
+    let blocked = res.per_bar.iter().filter(|r| r.policy_obs.deadzone_blocked).count();
+    assert!(blocked >= 18, "抖动应被死区吸收（实测拦下 {blocked}/20）");
+}
+
+/// E11（构造期 fail loud，run 配置层）：`ScoreMapped` 配 `buy_threshold = 100` 或
+/// `sell_threshold = 0` 时映射分母为 0 ⇒ 引擎启动必须**拒绝运行**（不得静默回退默认）。
+#[test]
+fn adr029_e11_ensemble_config_rejects_score_mapped_with_degenerate_thresholds() {
+    let bars = flat_bars(3, 10.0);
+    let mk = |buy: f64, sell: f64| {
+        let mut cfg = exposure_cfg(
+            CONSTANT_SCORE,
+            "sha256:constant_score",
+            params(&[("score", 80.0)]),
+            ExecutionPolicy::Exposure {
+                target: strategy_core::ExposureTarget::ScoreMapped {
+                    at_threshold_pct: 0.2,
+                    at_full_pct: 0.5,
+                    sell: strategy_core::SellPolicy::Flat,
+                },
+                ramp: strategy_core::RampSpec::Immediate,
+                guard: guard(1.0, 0.0, 0.0),
+            },
+        );
+        cfg.buy_threshold = buy;
+        cfg.sell_threshold = sell;
+        cfg
+    };
+    let mut rt = QuickJsRuntime::new(RuntimeLimits::default());
+    let err = run_ensemble(&mk(100.0, 40.0), &bars, &mut rt).expect_err("buy_threshold=100 必须拒绝");
+    assert!(
+        format!("{err}").contains("buy_threshold"),
+        "错误须点名字段：{err}"
+    );
+    let err = run_ensemble(&mk(60.0, 0.0), &bars, &mut rt).expect_err("sell_threshold=0 必须拒绝");
+    assert!(
+        format!("{err}").contains("sell_threshold"),
+        "错误须点名字段：{err}"
+    );
+    // 合法阈值 ⇒ 正常运行
+    run(&mk(60.0, 40.0), &bars);
+}
+
+/// E17（R11）：买入被**现金上限截断**时目标一次性下调到可达上限并披露
+/// （`policy_obs.affordability_capped`），且截断后**不得**对不可达缺口每 bar 重复挂单。
+///
+/// 读数（本用例实测，打印于 stdout 供证据落盘）：`ScoreMapped` 目标 = 「比例 × **当前净值**」
+/// ⇒ 被截断后净值已含费用损失，映射目标自动收敛到可达仓位（`target − current = 0`，实测无
+/// `affordability_capped` 根 ⇒ 上限在本变体下**结构性不绑定**；该机制作为不变量守卫保留，
+/// 变体侧的等价机制是 `Fixed`/`LumpSum` 的 `clamp_lump_frozen` 冻结目标下调）。
+/// 判据落点为：① 截断确实发生（成交股数 < 同 bar 意图）；② 截断后逐 bar 无 Policy 挂单；
+/// ③ 若披露则目标必被夹到 ≤ 可达上限。
+#[test]
+fn adr029_e17_engine_affordability_clip_is_disclosed_and_stops_micro_orders() {
+    let bars = flat_bars(8, 10.0);
+    let cfg = exposure_cfg(
+        CONSTANT_SCORE,
+        "sha256:constant_score",
+        params(&[("score", 100.0)]),
+        ExecutionPolicy::Exposure {
+            target: strategy_core::ExposureTarget::ScoreMapped {
+                at_threshold_pct: 1.0,
+                at_full_pct: 1.0,
+                sell: strategy_core::SellPolicy::Flat,
+            },
+            ramp: strategy_core::RampSpec::Immediate,
+            guard: guard(1.0, 0.0, 0.0), // 死区 0：隔离 affordability 机制（不靠死区消单）
+        },
+    );
+    let res = run(&cfg, &bars);
+
+    // ① 截断确实发生：存在「决策 bar 的 Policy 买入意图 > 次 bar 实际成交股数」
+    let mut clip_bar: Option<usize> = None;
+    for (i, rec) in res.per_bar.iter().enumerate() {
+        let intent: f64 = rec
+            .orders
+            .iter()
+            .filter(|o| o.reason == OrderReason::Policy && o.side == OrderSide::Buy)
+            .map(|o| o.qty)
+            .sum();
+        if intent <= 0.0 {
+            continue;
+        }
+        let filled: f64 = res
+            .per_bar
+            .get(i + 1)
+            .map(|n| {
+                n.events
+                    .iter()
+                    .filter_map(|e| match e {
+                        EngineEvent::Fill { side, qty, reason, .. }
+                            if *side == OrderSide::Buy && *reason == OrderReason::Policy =>
+                        {
+                            Some(*qty)
+                        }
+                        _ => None,
+                    })
+                    .sum()
+            })
+            .unwrap_or(0.0);
+        if filled < intent - 1e-9 {
+            clip_bar = Some(i);
+            break;
+        }
+    }
+    let clip_bar = clip_bar.expect("本用例构造了 need > cash 的截断买入；未观测到截断即用例失效");
+
+    // ② 截断后逐 bar：不得有 Policy 挂单（禁止对不可达缺口重复挂微单）
+    let later_orders: Vec<usize> = res
+        .per_bar
+        .iter()
+        .enumerate()
+        .filter(|(i, r)| *i > clip_bar && !r.orders.is_empty())
+        .map(|(i, _)| i)
+        .collect();
+    assert!(
+        later_orders.is_empty(),
+        "截断后不得重复挂微单（实际有挂单的 bar：{later_orders:?}）"
+    );
+
+    // ③ 条件式不变量：凡披露下调的 bar，目标必须被夹到可达上限（≤ 披露值且 = 当前暴露）
+    let capped: Vec<usize> = res
+        .per_bar
+        .iter()
+        .enumerate()
+        .filter(|(_, r)| r.policy_obs.affordability_capped)
+        .map(|(i, _)| i)
+        .collect();
+    for i in &capped {
+        let o = res.per_bar[*i].policy_obs;
+        let t = o.target_pct.expect("观测");
+        let c = o.current_pct.expect("观测");
+        assert!(
+            (t - c).abs() < 1e-9,
+            "bar {i}：披露下调时目标须 = 当前可达暴露（{t} vs {c}）"
+        );
+    }
+    // 读数（证据落盘）：截断根 / 披露根数 / 截断后最大 |目标 − 当前|（净值占比）
+    let max_gap_after = res
+        .per_bar
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i > clip_bar)
+        .filter_map(|(_, r)| match (r.policy_obs.target_pct, r.policy_obs.current_pct) {
+            (Some(t), Some(c)) => Some((t - c).abs()),
+            _ => None,
+        })
+        .fold(0.0f64, f64::max);
+    eprintln!(
+        "[E17 读数] clip_bar={clip_bar} capped_bars={capped:?} max_gap_after_clip={max_gap_after:e}"
+    );
+}
