@@ -26,13 +26,13 @@
  *  本规格的**硬判据**（跨视图同一根 bar 配对 max|Δ984| ≤ 2px、max|Δraw| ≤ 2px）**不变**；下列**取证字段口径**
  *  因契约变更而重锚（旧口径在新布局下是 no-op 或读数恒为 1，属「度量口径过期」而非缺陷）：
  *  1. `resetScroll()`：旧写 `wb-result.scrollTop` —— D7 后**页面级滚动被移除**，`wb-result` 不再是滚动容器
- *     ⇒ 该写入是 **no-op**（Playwright 点击 tab 引起的 scrollIntoView 不会被复位）。改写上栏 `wb-chart-pane`
+ *     ⇒ 该写入是 **no-op**（Playwright 点击 tab 引起的 scrollIntoView 不会被复位）。改写上栏 `wb-kline-view`
  *     （+ 下栏 `wb-detail-pane` + `window.scrollTo(0,0)`）。
  *  2. `indicatorEntries`（D5-P1）：D6-5 把指标勾选**收进浮层** ⇒ 收起态只命中 **1 枚**入口按钮
  *     （`wb-indicator-menu`）。重锚为「**先展开浮层（`wb-indicator-popover`）再扫**」，收起态与展开态**两态读数都落盘**。
  *  3. 卡片高度锚（旧依据 = 源码 `h-64` = 256px 固定）：D6-1 后卡高 = **inline 520px**（默认），`h-64` 不再是高度
  *     事实源 ⇒ 读数改记 `inlineHeight` + `className` + `h64Class` 布尔（**不作断言**，仅取证对照）。
- *  4. 滚动容器读数：`wb-result.overflowY` 之外，增记 `wb-chart-pane` / `wb-detail-pane` 的
+ *  4. 滚动容器读数：`wb-result.overflowY` 之外，增记 `wb-kline-view` / `wb-detail-pane` 的
  *     `overflowY / clientHeight / scrollHeight`（D7-1 的双滚动容器事实源）。
  *
  * 真身（2026-09-23 实测）：主机 `:8081` 的静态根 `web/dist` 是 **D6/D7 之前**的构建 ⇒ 本探针须对
@@ -342,7 +342,7 @@ function probeResultDom() {
       }
     : null;
 
-  // ── ④ 滚动容器（**2026-09-23 重锚**：D7 后 = 上栏 `wb-chart-pane` 与下栏 `wb-detail-pane`；
+  // ── ④ 滚动容器（**2026-09-23 重锚**：D7 后 = 上栏 `wb-kline-view` 与下栏 `wb-detail-pane`；
   //      `wb-result` 不再是滚动容器——页面级滚动已移除（§2.7 第 1 项），保留读数作对照）──
   const scrollBox = (id: string) => {
     const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
@@ -372,7 +372,7 @@ function probeResultDom() {
     maish,
     cards,
     resultScroll,
-    chartPane: scrollBox('wb-chart-pane'),
+    chartPane: scrollBox('wb-kline-view'),
     detailPane: scrollBox('wb-detail-pane'),
     cardHeightAnchor,
     pageScroll: {
@@ -973,12 +973,12 @@ async function dragSeparator(page: Page, dy: number): Promise<Record<string, unk
 
 /** 复位结果页滚动（Playwright 点击 tab 会 scrollIntoView ⇒ 图表卡可能滚出视口，影响拖拽与截图）。
  *
- *  **2026-09-23 重锚**：D7 后**滚动容器 = 上栏 `wb-chart-pane`**（页面级滚动已移除，§2.7 第 1 项）——
+ *  **2026-09-23 重锚**：D7 后**滚动容器 = 上栏 `wb-kline-view`**（页面级滚动已移除，§2.7 第 1 项）——
  *  旧写法只写 `wb-result.scrollTop`，在新契约下是 **no-op**（`wb-result` 的 clientHeight == scrollHeight）。
  *  本函数改为复位上栏 + 下栏 + 窗口三者（`wb-result` 保留兼容写入，代价为零）。 */
 async function resetScroll(page: Page): Promise<void> {
   await page.evaluate(() => {
-    for (const id of ['wb-chart-pane', 'wb-detail-pane', 'wb-result']) {
+    for (const id of ['wb-kline-view', 'wb-detail-pane', 'wb-result']) {
       const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
       if (el) el.scrollTop = 0;
     }

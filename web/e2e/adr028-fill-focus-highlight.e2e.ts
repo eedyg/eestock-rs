@@ -96,15 +96,15 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
   await page.waitForTimeout(200);
   // **契约修订（ADR-028 §2.7 第 5 项）**：focus 滚动**作用域收敛到上栏容器内**（页面级滚动已移除）。
   //  旧契约：结果页 `wb-result` 作为滚动容器、`scrollIntoView` 到页级；旧前置 = 结果页已滚动。
-  //  新契约：`wb-chart-pane` 才是滚动容器 ⇒ 前置 = **在上栏内滚离 K 线**（scrollTop > 200，保证判据有鉴别力），
+  //  新契约：`wb-kline-view` 才是滚动容器 ⇒ 前置 = **在上栏内滚离 K 线**（scrollTop > 200，保证判据有鉴别力），
   //  跳转后上栏必须把 K 线区域带回可视区内（scrollTop 回落到锚点对齐处）。
   await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
+    const pane = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
     if (pane) pane.scrollTop = 600;
   });
   await page.waitForTimeout(250);
   const scrollBefore = await page
-    .getByTestId('wb-chart-pane')
+    .getByTestId('wb-kline-view')
     .evaluate((e) => (e as HTMLElement).scrollTop);
   expect(scrollBefore, '前置：上栏必须已滚离 K 线（否则 focus 判据无鉴别力）').toBeGreaterThan(200);
 
@@ -119,7 +119,7 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
       async () =>
         page.getByTestId('wb-kline-focus-anchor').evaluate((el) => {
           const box = el.getBoundingClientRect();
-          const scroller = document.querySelector('[data-testid="wb-chart-pane"]')!;
+          const scroller = document.querySelector('[data-testid="wb-kline-view"]')!;
           const sBox = scroller.getBoundingClientRect();
           return box.top >= sBox.top - 4 && box.top <= sBox.bottom - 20;
         }),
@@ -127,7 +127,7 @@ test('D4.1 真渲染：L2 跳转 ⇒ focus 滚动到 K 线 + 精确到笔高亮 
     )
     .toBe(true);
   const scrollAfter = await page
-    .getByTestId('wb-chart-pane')
+    .getByTestId('wb-kline-view')
     .evaluate((e) => (e as HTMLElement).scrollTop);
   expect(scrollAfter, `focus 必须把上栏滚回 K 线区域（${scrollBefore} → ${scrollAfter}）`).toBeLessThan(scrollBefore);
 

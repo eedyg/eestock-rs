@@ -17,7 +17,7 @@ import { buildMarkers, makeFillKey } from './KlineResultChart';
  *     同 bar 多笔**可分辨**（堆叠序，禁相互遮盖），**不加跨点连线**；
  *  ② 「l2 点击跳转之后，可以 focus 到 k 线上，并且高亮一下对应的买卖标记」⇒ 跳转后：
  *     - **上栏容器内**滚动把 K 线区域带回可见（ADR-028 §2.7 第 5 项：旧「页级 `scrollIntoView`」口径
- *       已被**取代**——整页不再滚动，focus 作用域收敛到 `wb-chart-pane` 内部）；
+ *       已被**取代**——整页不再滚动，focus 作用域收敛到 `wb-kline-view` 内部）；
  *     - **只高亮被点击的那一笔**（`fillKey = rt_seq:该回合成交序号`，禁按 bar 粗定位）；高亮 = 放大 + 描边脉冲，
  *       **3 秒**回常态（不得永久选中态）；脉冲 = 定时器驱动的 overlay 重绘（不重建整图）；
  *     - 各曲线视图出现**竖线标记**，保留到下一次跳转或「全览」。
@@ -275,14 +275,14 @@ describe('ADR-028 D4.1 ②结果页：L2 跳转 ⇒ focus 滚动 + 精确到笔�
     const fillTs = Number(screen.getByTestId(`wb-l2-row-${rtSeq}-1`).querySelector('td')!.textContent);
 
     scrollIntoView.mockClear();
-    const focusRevBefore = Number(screen.getByTestId('wb-chart-pane').getAttribute('data-focus-scroll') ?? '0');
+    const focusRevBefore = Number(screen.getByTestId('wb-kline-view').getAttribute('data-focus-scroll') ?? '0');
     await user.click(screen.getByTestId(`wb-l2-jump-${rtSeq}-1`));
 
     // ① focus（契约变更推导：ADR-028 §2.7 第 5 项「作用域收敛到上栏容器内」）
     //    旧断言 = `scrollIntoView` 被调用（页级滚动）；新断言 = 上栏容器内发生 focus 滚动，
     //    且**页级 `scrollIntoView` 不得再被调用**（否则作用域未收敛、会连带滚动祖先容器）。
     await waitFor(() =>
-      expect(Number(screen.getByTestId('wb-chart-pane').getAttribute('data-focus-scroll') ?? '0')).toBeGreaterThan(
+      expect(Number(screen.getByTestId('wb-kline-view').getAttribute('data-focus-scroll') ?? '0')).toBeGreaterThan(
         focusRevBefore,
       ),
     );

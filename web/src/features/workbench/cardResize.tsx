@@ -9,10 +9,11 @@ import {
   type RefObject,
 } from 'react';
 
-import { CARD_HEIGHT_PRESETS } from './resultCardHeights';
-
 /**
- * 结果页图表卡「上下缩放」原语（ADR-028 §2.4c 第 2/3 项 + §2.6 D6-5/D6-6）。
+ * 结果页**曲线卡**「上下缩放」原语（ADR-028 §2.4c 第 2/3 项）。
+ *
+ * **ADR-028 §2.9（D9-5）范围收敛**：K 线卡的卡高机制（S/M/L 预设条 + 下沿把手 + 卡高记忆）**已删**
+ * ⇒ 本模块**只服务四张曲线卡**（D4.2 有效，勿删）；K 线的高度由「K 线视图」分隔条控制。
  *
  * 契约（本波实测事实所定）：
  *  - **只做高度缩放**（宽度变化会破坏 D2.3-4 的共用绘图区几何；高度不影响 x 映射）；
@@ -200,45 +201,5 @@ export function useCardResize(args: {
       <span className="truncate">{children}</span>
       {hint != null && <span className="shrink-0 opacity-50">{hint}</span>}
     </div>
-  );
-}
-
-/**
- * 头部预设入口 S/M/L（ADR-028 §2.6 第 1 项；值 = `resultCardHeights.CARD_HEIGHT_PRESETS`）。
- * 点击 ⇒ `onPick(px)`（调用方按 min/max 夹取后提交；缺省按钮语义 = 受控高度）。
- */
-export function CardHeightPresets({
-  testIdPrefix,
-  onPick,
-  activePx = null,
-  className = '',
-}: {
-  /** 每枚按钮 testid = `<prefix>-s|m|l`（结果页 K 线卡 = `wb-kline-preset`）。 */
-  testIdPrefix: string;
-  onPick(px: number): void;
-  /** 当前生效高（用于 `aria-pressed`；`null` = 默认）。 */
-  activePx?: number | null;
-  className?: string;
-}) {
-  return (
-    <span className={`flex shrink-0 items-center gap-1 ${className}`} data-testid={`${testIdPrefix}s`}>
-      <span className="opacity-60" title="卡高预设（S/M/L）">高度</span>
-      {(['s', 'm', 'l'] as const).map((k) => (
-        <button
-          key={k}
-          type="button"
-          data-testid={`${testIdPrefix}-${k}`}
-          data-card-preset={k}
-          title={`${CARD_HEIGHT_PRESETS[k]}px`}
-          aria-pressed={activePx === CARD_HEIGHT_PRESETS[k]}
-          onClick={() => onPick(CARD_HEIGHT_PRESETS[k])}
-          className={`h-4 rounded border border-line px-1 text-[10px] uppercase leading-4 ${
-            activePx === CARD_HEIGHT_PRESETS[k] ? 'bg-panel text-txt' : 'text-dim hover:text-txt'
-          }`}
-        >
-          {k.toUpperCase()}
-        </button>
-      ))}
-    </span>
   );
 }

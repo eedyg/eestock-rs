@@ -50,6 +50,21 @@ export const KLINE_CARD_BORDER_PX = 2;
 export const CARD_HEADER_FALLBACK_PX = 24;
 /** 曲线卡下限（沿用既有结果页口径 `RESULT_CARD_MIN_PX`，本批不改）。 */
 export const CURVE_CARD_MIN_PX = 120;
+
+/**
+ * 副图指标（占用**独立 pane** 的那些；`ma` 叠在主图上、不占 pane）。
+ * 与 `KlineChart.syncIndicators` 的 pane 创建口径一致：除 `ma` 外均 `createIndicator(value, true)`。
+ *
+ * ADR-028 §2.9（D9）：副图数决定 K 线视图的**有效可读下限**（1 副图 299 / 2 副图 329）
+ * ⇒ 该口径必须与 `KlineResultChart` / `useResultLayout` **共用同一处**（禁各自维护一份）。
+ */
+export const SUB_PANE_INDICATORS: readonly string[] = ['vol', 'macd', 'kdj', 'boll', 'dcap'];
+
+/** 启用中的「独立 pane」指标数（`ma` 叠主图，不占 pane）。 */
+export function subPaneCountFor(indicators: Record<string, boolean | undefined> | null | undefined): number {
+  if (!indicators) return 0;
+  return SUB_PANE_INDICATORS.reduce((n, k) => n + (indicators[k] ? 1 : 0), 0);
+}
 /** 记忆值合理上界（超出视为坏数据 ⇒ 回默认，禁把坏值当高）。 */
 const CARD_PX_SANE_MAX = 4000;
 

@@ -5,21 +5,10 @@ import type { ApiClient } from '@/api/client';
 import { createMockClient } from '@/api/mock';
 import type { WorkbenchRunView } from '@/api/types';
 import { DASHBOARD_DEFAULTS } from '@/layouts/DashboardGrid';
-import { useState } from 'react';
 import { KlineResultChart } from './KlineResultChart';
 import { IndicatorToggles } from '@/features/dashboard/IndicatorToggles';
 import { useResultChartConfig, RESULT_CHART_CONFIG_KEY } from './resultChartConfig';
-import {
-  CARD_HEIGHT_STORAGE_KEY,
-  DEFAULT_KLINE_PX,
-  KLINE_CANDLE_MIN_PX,
-  KLINE_AXIS_PX,
-  KLINE_CARD_BORDER_PX,
-  PANE_SEPARATOR_PX,
-  SUB_PANE_MIN_PX,
-  readCardHeight,
-  writeCardHeight,
-} from './resultCardHeights';
+import { CARD_HEIGHT_STORAGE_KEY } from './resultCardHeights';
 import type { RunFillsState } from './useRunSeries';
 
 /** jsdom 无 canvas：klinecharts 整体打桩（与 ResultView.test 同模式）。 */
@@ -85,9 +74,8 @@ const FILLS: RunFillsState = {
  *  - 记忆写**结果页独立 key**（`eestock.result.cardHeights.v1`），不再寄存在指标 key 的 `cardHeights` 字段；
  *  - 指标勾选仍在指标 key（语义不变）。
  */
-function Page() {
+function Page({ viewPx = 0 }: { viewPx?: number } = {}) {
   const cfg = useResultChartConfig();
-  const [heightPx, setHeightPx] = useState<number | null>(() => readCardHeight('kline'));
   return (
     <div>
       <KlineResultChart
@@ -95,11 +83,7 @@ function Page() {
         fills={FILLS}
         api={api}
         indicators={cfg.indicators}
-        heightPx={heightPx}
-        onCommitHeight={(px) => {
-          writeCardHeight('kline', px);
-          setHeightPx(px);
-        }}
+        viewPx={viewPx}
         toggleSlot={
           <IndicatorToggles
             indicators={cfg.indicators}
@@ -191,68 +175,57 @@ describe('I1 副图指标可选（结果页复用看板实现）', () => {
   });
 });
 
-describe('I2 K 线卡可上下缩放 + 双击标题复位（D6-1/D6-4/D6-6 单测面）', () => {
-  it('默认卡高 = 520（D6-1）且内层图表容器 flex 弹性（min-h-0 flex-1）', async () => {
+/**
+ * I2 —— **由 D6「K 线卡可上下缩放」重锚为 D9-5「视图高度取代卡片高度」**（ADR-028 §2.9 第 5 项）。
+ *
+ * 契约推导（旧 → 新）：
+ *  - 旧 `D6-1` 「默认卡高 520」/ `D6-2` 「S/M/L 预设 260/420/560」/ `D6-4` 「有效下限」/ `D6-6` 「下沿把手 + 双击标题复位」
+ *    ⇒ **删除**：K 线卡高由外层「K 线视图」分配（卡片 `h-full`），可调性转移到**视图分隔条**（D9-6）。
+ *  - 因此本组判据从「拖把手改变卡高」改为**断言卡高机制不存在**（判据须有鉴别力：旧实现下必红）。
+ */
+describe('I2 K 线卡高机制**已删除**（D9-5：视图高度取代卡片高度）', () => {
+  it('卡片 `h-full` 随视图（不再有 inline height / flexShrink:0 的卡高契约）', async () => {
     render(<Page />);
     const card = await screen.findByTestId('wb-kline-chart');
-    await waitFor(() => expect(card.style.height).toBe(`${DEFAULT_KLINE_PX}px`));
-    expect(card.className).not.toContain('h-64'); // 旧契约（固定 256）已移除
+    expect(card.style.height, '卡片不得再有 inline 卡高（D9-5）').toBe('');
+    expect(card.className).toContain('h-full');
     expect(card.querySelector('.min-h-0.flex-1'), '内层图表容器必须 min-h-0 flex-1').not.toBeNull();
   });
 
-  it('拖下边缘 +40px ⇒ 卡高 560 与 klinecharts 容器双跟随（D6-6）', async () => {
+  it('**不存在** S/M/L 预设条与卡片下沿把手（D9-5 断言缺失）', async () => {
     render(<Page />);
-    const card = await screen.findByTestId('wb-kline-chart');
-    await waitFor(() => expect(card.style.height).toBe('520px'));
-    fireEvent.mouseDown(screen.getByTestId('wb-card-resize-kline'), { button: 0, clientY: 400 });
-    fireEvent.mouseMove(window, { clientY: 440 });
-    fireEvent.mouseUp(window, { clientY: 440 });
-    await waitFor(() => expect(card.style.height).toBe('560px'));
-    expect(card.style.flexShrink).toBe('0');
-    expect(localStorage.getItem(CARD_HEIGHT_STORAGE_KEY)).toContain('560');
+    await screen.findByTestId('wb-kline-chart');
+    expect(screen.queryByTestId('wb-card-resize-kline'), 'K 线卡下沿把手必须不存在').toBeNull();
+    for (const k of ['s', 'm', 'l']) {
+      expect(screen.queryByTestId(`wb-kline-preset-${k}`), `S/M/L 预设 ${k} 必须不存在`).toBeNull();
+    }
+    // 视图级可调性由分隔条承担（本组件不渲染；此处只断言旧机制不再存在）
+    expect(screen.queryByTestId('wb-kline-preset')?.textContent ?? null).toBeNull();
   });
 
-  it('上拖越界 ⇒ 停在**有效下限**（D6-4：卡头 + 1 + 26 + 160 + 30×副图数；jsdom 卡头未测量 ⇒ 兜底 24）', async () => {
+  it('卡高记忆语义已删：本组件**不写**任何卡高 key（旧 `cardHeights.kline` 只作只读迁移源）', async () => {
     render(<Page />);
-    const card = await screen.findByTestId('wb-kline-chart');
-    await waitFor(() => expect(card.style.height).toBe('520px'));
-    fireEvent.mouseDown(screen.getByTestId('wb-card-resize-kline'), { button: 0, clientY: 400 });
-    fireEvent.mouseMove(window, { clientY: -4000 });
-    fireEvent.mouseUp(window, { clientY: -4000 });
-    // 有效下限 = 卡头 + **卡边框 2**（实测补项：卡 237 − 卡头 20 − 容器 215 = 2）+ 分隔 1 + x轴 26 + 160 + 30×副图数
-    const expectedMin =
-      24 + KLINE_CARD_BORDER_PX + PANE_SEPARATOR_PX + KLINE_AXIS_PX + KLINE_CANDLE_MIN_PX + SUB_PANE_MIN_PX * 1;
-    await waitFor(() => expect(card.style.height).toBe(`${expectedMin}px`));
-    expect(Number(card.style.height.replace('px', ''))).toBeGreaterThanOrEqual(200);
+    await screen.findByTestId('wb-kline-chart');
+    expect(localStorage.getItem(CARD_HEIGHT_STORAGE_KEY), 'K 线卡高不得再被写入').toBeNull();
   });
 
-  it('双击 K 线卡标题 ⇒ 复位到默认 520（D6-6）且记忆清除', async () => {
-    render(<Page />);
+  it('`viewPx` 只作可观测性透出（`data-kline-view-height`），不参与卡高判定', async () => {
+    render(<Page viewPx={520} />);
     const card = await screen.findByTestId('wb-kline-chart');
-    // 最大高 = 视口高 − 200（jsdom innerHeight 768 ⇒ 568）⇒ 只拖 +40（560）以免撞上限
-    fireEvent.mouseDown(screen.getByTestId('wb-card-resize-kline'), { button: 0, clientY: 400 });
-    fireEvent.mouseMove(window, { clientY: 440 });
-    fireEvent.mouseUp(window, { clientY: 440 });
-    await waitFor(() => expect(card.style.height).toBe('560px'));
-    await act(async () => {
-      fireEvent.doubleClick(screen.getByTestId('wb-card-title-kline'));
-    });
-    await waitFor(() => expect(card.style.height).toBe('520px'));
-    expect(readCardHeight('kline')).toBeNull();
+    await waitFor(() => expect(card.getAttribute('data-kline-view-height')).toBe('520'));
+    expect(card.style.height).toBe('');
   });
+});
 
-  it('刷新（重新挂载）后卡片高度保持', async () => {
+describe('I2b 旧「刷新后卡高保持」判据的重锚', () => {
+  it('旧 `cardHeights.kline` 只作**只读迁移源**：本组件挂载/卸载均不改写它（逐字节不变）', async () => {
+    localStorage.setItem(CARD_HEIGHT_STORAGE_KEY, JSON.stringify({ kline: 560 }));
     const first = render(<Page />);
-    fireEvent.mouseDown(screen.getByTestId('wb-card-resize-kline'), { button: 0, clientY: 400 });
-    fireEvent.mouseMove(window, { clientY: 440 });
-    fireEvent.mouseUp(window, { clientY: 440 });
-    await waitFor(() =>
-      expect((screen.getByTestId('wb-kline-chart') as HTMLElement).style.height).toBe('560px'),
-    );
+    await screen.findByTestId('wb-kline-chart');
+    expect(localStorage.getItem(CARD_HEIGHT_STORAGE_KEY)).toBe(JSON.stringify({ kline: 560 }));
     first.unmount();
     render(<Page />);
-    await waitFor(() =>
-      expect((screen.getByTestId('wb-kline-chart') as HTMLElement).style.height).toBe('560px'),
-    );
+    await screen.findByTestId('wb-kline-chart');
+    expect(localStorage.getItem(CARD_HEIGHT_STORAGE_KEY)).toBe(JSON.stringify({ kline: 560 }));
   });
 });

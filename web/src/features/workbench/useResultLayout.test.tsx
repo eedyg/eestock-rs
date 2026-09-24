@@ -1,35 +1,24 @@
 /**
- * ADR-028 §2.7 第 3 项（**方向语义**，2026-09-24 补齐）—— 分隔条拖拽的**方向 + 1:1 位移**判据（jsdom 合成鼠标事件）。
+ * ADR-028 §2.9（**D9**）—— 三视图布局**状态层**判据（jsdom 合成鼠标事件）。
  *
- * 契约（唯一事实源 = `design/01-architecture/adr/ADR-028-…§2.7` 第 3 项）：
- *  - 分隔条位于下栏**上沿** ⇒ **鼠标向上（Δy < 0）⇒ 下栏变高**（`detailPx = startDetail − Δy`）；
- *  - **鼠标向下（Δy > 0）⇒ 下栏变矮**；位移 **1:1**；
- *  - 双击分隔条 ⇒ 比例复位 `DEFAULT_DETAIL_RATIO`（0.4）。
- *
- * **与卡片把手方向相反**（卡片把手在下沿 ⇒ 向下拖 = 卡片变高；见 `cardResize.tsx` / `cardResize.test.tsx`），
- * 两者符号不同是几何决定的，**禁止互相套用** —— 本文件末尾用一条「双把手同规格」用例把这条反向关系钉住。
- *
- * jsdom 口径：`splitRef` 未挂载 ⇒ `availablePx = 0` ⇒ 几何退化为「按视口高换算」
- * （`detailPx = round(window.innerHeight × ratio)`）⇒ 方向与 1:1 位移在此口径下可**精确**判定（±2px）。
+ * 契约（唯一事实源 = ADR-028 §2.8/§2.9 第 6/8 项）：
+ *  - 两条分隔条（`wb-splitter-kline-indicators` / `wb-splitter-indicators-detail`）；
+ *  - **方向语义**：鼠标**向上**（Δy < 0）⇒ **上方**视图变高、下方视图变矮；位移 **1:1**；
+ *  - **卡片把手方向相反**（把手在卡片下沿 ⇒ 向下 = 卡片变高；`cardResize.test.tsx` 已覆盖）——
+ *    两者符号不同是几何决定的，**禁止互相套用**；
+ *  - 双击各自复位默认比例；per-view 收起/展开（**K 线视图无收起 API**）；
+ *  - **可用高口径**：`视口高 − 132`（jsdom 无布局 ⇒ splitRef 未挂载 ⇒ 走该口径）；
+ *  - **D9-13**：`subPaneCount` 变化 ⇒ K 线视图有效下限 299→329 ⇒ **重夹**（记忆/比例不得绕过）。
  */
-import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useResultLayout } from './useResultLayout';
-import { useCardResize } from './cardResize';
-import { DEFAULT_DETAIL_RATIO, RESULT_LAYOUT_STORAGE_KEY, type LayoutStorage } from './resultLayout';
+import { RESULT_LAYOUT_STORAGE_KEY, availableForViewport, type LayoutStorage, type ViewRatios } from './resultLayout';
 
-const DRAG_PX = 120;
 const TOL_PX = 2;
 
-/** 注入式内存 storage（起点比例固定 0.4，杜绝用例间串味）。 */
 function fakeStorage(seed: Record<string, string> = {}): LayoutStorage {
-  const map = new Map<string, string>(
-    Object.entries({
-      [RESULT_LAYOUT_STORAGE_KEY]: JSON.stringify({ ratio: DEFAULT_DETAIL_RATIO, collapsed: false }),
-      ...seed,
-    }),
-  );
+  const map = new Map<string, string>(Object.entries(seed));
   return {
     getItem: (k) => (map.has(k) ? (map.get(k) as string) : null),
     setItem: (k, v) => void map.set(k, v),
@@ -37,23 +26,29 @@ function fakeStorage(seed: Record<string, string> = {}): LayoutStorage {
   };
 }
 
-/** 测试宿主：把 hook 的 API 原样接到 DOM 上（分隔条可被真鼠标事件命中）。 */
-function LayoutHarness({ storage }: { storage: LayoutStorage }) {
-  const r = useResultLayout({ storage });
+/** 测试宿主：把 hook 的 API 原样接到 DOM 上（两条分隔条 + 三段高度读数）。 */
+function LayoutHarness({ storage, subPaneCount = 1 }: { storage: LayoutStorage; subPaneCount?: number }) {
+  const r = useResultLayout({ storage, subPaneCount });
   return (
     <div>
-      <div {...r.splitterProps} />
+      <div {...r.splitterProps('kline-indicators')} />
+      <div {...r.splitterProps('indicators-detail')} />
+      <span data-testid="kline-px">{r.klinePx}</span>
+      <span data-testid="indicators-px">{r.indicatorsPx}</span>
       <span data-testid="detail-px">{r.detailPx}</span>
-      <span data-testid="ratio">{r.ratio}</span>
+      <span data-testid="available">{r.availablePx}</span>
+      <span data-testid="collapsed">{`${r.collapsed.indicators}/${r.collapsed.detail}`}</span>
+      <span data-testid="disclosure">{r.disclosure ?? ''}</span>
+      <span data-testid="clamped">{r.clamped ? 'true' : 'false'}</span>
+      <button type="button" data-testid="collapse-indicators" onClick={() => r.collapse('indicators')} />
+      <button type="button" data-testid="expand-indicators" onClick={() => r.expand('indicators')} />
     </div>
   );
 }
 
-function readDetailPx(): number {
-  return Number(screen.getByTestId('detail-px').textContent);
-}
+const read = (id: string) => Number(screen.getByTestId(id).textContent);
 
-function drag(handle: HTMLElement, fromY: number, toY: number, steps = 1): void {
+function drag(handle: HTMLElement, fromY: number, toY: number, steps = 6): void {
   fireEvent.mouseDown(handle, { button: 0, clientY: fromY });
   for (let i = 1; i <= steps; i++) {
     fireEvent.mouseMove(window, { clientY: fromY + ((toY - fromY) * i) / steps });
@@ -61,86 +56,205 @@ function drag(handle: HTMLElement, fromY: number, toY: number, steps = 1): void 
   fireEvent.mouseUp(window, { clientY: toY });
 }
 
-describe('D7-3（方向语义）：分隔条拖拽 = 上移变高 / 下移变矮（位移 1:1）', () => {
-  it('向上拖 −120px ⇒ 下栏 px **增加** ≈120（分隔条在下栏上沿，契约 §2.7-3）', () => {
-    render(<LayoutHarness storage={fakeStorage()} />);
-    const before = readDetailPx();
-    expect(before, '前置：默认 40% 视口高的下栏 px（jsdom 视口 768 ⇒ 307）').toBeGreaterThan(0);
-    drag(screen.getByTestId('wb-pane-splitter'), 500, 500 - DRAG_PX, 6);
-    const after = readDetailPx();
-    expect(
-      after - before,
-      `上移 ${DRAG_PX}px ⇒ 下栏必须变高 ${DRAG_PX}±${TOL_PX}（起点 ${before} → 实读 ${after}）`,
-    ).toBeGreaterThan(DRAG_PX - TOL_PX);
-    expect(Math.abs(after - before - DRAG_PX), `位移必须 1:1（实读 Δ${after - before}）`).toBeLessThanOrEqual(TOL_PX);
+describe('D9-6：两条分隔条 = 2 自由度守恒（jsdom 口径：可用高 = 视口 − 132）', () => {
+  it('默认三段之和 == 可用高（守恒）；三段均不低于可读下限', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const avail = read('available');
+    expect(avail).toBe(availableForViewport(window.innerHeight));
+    expect(Math.abs(read('kline-px') + read('indicators-px') + read('detail-px') - avail)).toBeLessThanOrEqual(TOL_PX);
+    expect(read('kline-px')).toBeGreaterThanOrEqual(299);
+    expect(read('indicators-px')).toBeGreaterThanOrEqual(180);
+    expect(read('detail-px')).toBeGreaterThanOrEqual(95);
   });
 
-  it('向下拖 +120px ⇒ 下栏 px **减少** ≈120', () => {
-    render(<LayoutHarness storage={fakeStorage()} />);
-    const before = readDetailPx();
-    drag(screen.getByTestId('wb-pane-splitter'), 200, 200 + DRAG_PX, 6);
-    const after = readDetailPx();
-    expect(
-      after - before,
-      `下移 ${DRAG_PX}px ⇒ 下栏必须变矮 ${DRAG_PX}±${TOL_PX}（起点 ${before} → 实读 ${after}）`,
-    ).toBeLessThan(-(DRAG_PX - TOL_PX));
-    expect(Math.abs(after - before + DRAG_PX), `位移必须 1:1（实读 Δ${after - before}）`).toBeLessThanOrEqual(TOL_PX);
+  it('K线↔指标：向上拖 120 ⇒ K 线 **变高**、指标 **变矮**（1:1，且明细不动）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const k0 = read('kline-px');
+    const i0 = read('indicators-px');
+    const d0 = read('detail-px');
+    const avail = read('available');
+    // 先把 K 线拖到足够大（可用高 768−132=636 ⇒ 指标 180 + 明细 95 ⇒ K 线最大 361）
+    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 400 - 100);
+    const k1 = read('kline-px');
+    const i1 = read('indicators-px');
+    expect(k1, `K 线上移 ⇒ 变高（${k0} → ${k1}）`).toBeGreaterThan(k0);
+    expect(i1, `指标 1:1 反向（${i0} → ${i1}）`).toBeLessThan(i0);
+    expect(Math.abs(k1 - k0 + (i1 - i0)), '位移 1:1（两侧变化量等值反向）').toBeLessThanOrEqual(TOL_PX);
+    expect(read('detail-px')).toBe(d0);
+    expect(Math.abs(k1 + i1 + read('detail-px') - avail)).toBeLessThanOrEqual(TOL_PX);
   });
 
-  it('位移按**起点**累计（多次 mousemove 不得累加漂移）：−60 再 −120 ⇒ 净 +120', () => {
-    render(<LayoutHarness storage={fakeStorage()} />);
-    const before = readDetailPx();
-    const splitter = screen.getByTestId('wb-pane-splitter');
-    fireEvent.mouseDown(splitter, { button: 0, clientY: 500 });
-    fireEvent.mouseMove(window, { clientY: 440 });
-    const mid = readDetailPx();
-    expect(mid - before, `中途 −60 ⇒ +60（实读 Δ${mid - before}）`).toBeGreaterThan(60 - TOL_PX);
-    fireEvent.mouseMove(window, { clientY: 380 });
-    const end = readDetailPx();
-    expect(Math.abs(end - before - DRAG_PX), `终点 −120 ⇒ 净 +120（实读 Δ${end - before}）`).toBeLessThanOrEqual(TOL_PX);
+  it('指标↔明细：向上拖 ⇒ 指标变高、明细变矮（明细受可读下限 95 夹取）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const i0 = read('indicators-px');
+    const d0 = read('detail-px');
+    drag(screen.getByTestId('wb-splitter-indicators-detail'), 500, 500 - 60);
+    const i1 = read('indicators-px');
+    const d1 = read('detail-px');
+    expect(i1, `指标上移 ⇒ 变高（${i0} → ${i1}）`).toBeGreaterThan(i0);
+    expect(d1, `明细 1:1 反向（${d0} → ${d1}）`).toBeLessThan(d0);
+    expect(Math.abs(i1 - i0 + (d1 - d0))).toBeLessThanOrEqual(TOL_PX);
   });
 
-  it('双击分隔条 ⇒ 比例复位 40%（±0.02 / ±2px）', () => {
-    render(<LayoutHarness storage={fakeStorage()} />);
-    const splitter = screen.getByTestId('wb-pane-splitter');
-    const before = readDetailPx();
-    drag(splitter, 500, 500 - 300, 6);
-    const dragged = readDetailPx();
-    expect(dragged, '前置：拖拽后下栏必须已改变（否则「复位」无鉴别力）').toBeGreaterThan(before + 100);
+  it('方向反证：K线↔指标 向下拖 ⇒ K 线**变矮**、指标变高（错符号实现此处必红）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const k0 = read('kline-px');
+    const i0 = read('indicators-px');
+    drag(screen.getByTestId('wb-splitter-kline-indicators'), 200, 200 + 60);
+    expect(read('kline-px'), `下行 ⇒ K 线变矮（${k0} → ${read('kline-px')}）`).toBeLessThan(k0);
+    expect(read('indicators-px')).toBeGreaterThan(i0);
+  });
+
+  it('分离性：同一页内两条分隔条各管一侧（拖 A 不改 B 的另一侧）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const i0 = read('indicators-px');
+    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 400 - 40);
+    const iAfterA = read('indicators-px');
+    const dAfterA = read('detail-px');
+    drag(screen.getByTestId('wb-splitter-indicators-detail'), 500, 500 - 40);
+    expect(read('detail-px'), '拖 指标↔明细 只改明细（与指标反向）').toBeLessThan(dAfterA);
+    expect(read('indicators-px')).toBeGreaterThan(iAfterA);
+    expect(i0).toBeGreaterThanOrEqual(180);
+  });
+
+  it('双击分隔条 ⇒ 复位该边界的默认比例（0.55 : 0.29 / 0.29 : 0.16）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const splitter = screen.getByTestId('wb-splitter-kline-indicators');
+    drag(splitter, 400, 400 - 100);
+    const kDragged = read('kline-px');
     fireEvent.doubleClick(splitter);
-    const reset = readDetailPx();
-    expect(Number(screen.getByTestId('ratio').textContent), '双击 ⇒ 比例回 0.4').toBeCloseTo(DEFAULT_DETAIL_RATIO, 2);
-    expect(Math.abs(reset - before), `双击 ⇒ 下栏 px 回默认（起点 ${before} → 实读 ${reset}）`).toBeLessThanOrEqual(TOL_PX);
+    const kReset = read('kline-px');
+    const iReset = read('indicators-px');
+    expect(kReset, '双击后 K 线回默认比例（与拖拽态不同 ⇒ 判据有鉴别力）').not.toBe(kDragged);
+    // 两段之和守恒，比值回到 0.55 : 0.29
+    expect(kReset / (kReset + iReset)).toBeCloseTo(0.55 / 0.84, 2);
+  });
+
+  it('分隔条可键盘操作（ArrowDown / ArrowUp 各 ±16px，大视口下无夹取 ⇒ 逐 px 可逆）', () => {
+    const prev = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 1400, configurable: true });
+    try {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+      const k0 = read('kline-px');
+      fireEvent.keyDown(screen.getByTestId('wb-splitter-kline-indicators'), { key: 'ArrowDown' });
+      const kDown = read('kline-px');
+      expect(Math.abs(k0 - kDown - 16), `ArrowDown ⇒ 上方视图变矮 16px（实读 Δ${kDown - k0}）`).toBeLessThanOrEqual(TOL_PX);
+      fireEvent.keyDown(screen.getByTestId('wb-splitter-kline-indicators'), { key: 'ArrowUp' });
+      expect(Math.abs(read('kline-px') - k0)).toBeLessThanOrEqual(TOL_PX);
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { value: prev, configurable: true });
+    }
   });
 });
 
-describe('D7-3/D6（方向不得互相套用）：分隔条与卡片把手的符号**相反**', () => {
-  /** 同一页里两枚把手（分隔条在上沿、卡片把手在下沿）；卡片高度与产品一致由外层 state 持久化。 */
-  function BothHandles() {
-    const layout = useResultLayout({ storage: fakeStorage() });
-    const [cardPx, setCardPx] = useState<number | null>(null);
-    const card = useCardResize({ cardId: 'kline', heightPx: cardPx, onCommit: setCardPx, defaultPx: 300 });
-    return (
-      <div>
-        <div {...layout.splitterProps} />
-        <div {...card.handleProps} />
-        <span data-testid="detail-px">{layout.detailPx}</span>
-        <span data-testid="card-px">{card.heightPx}</span>
-      </div>
-    );
-  }
+describe('D9-3：per-view 收起（状态层）', () => {
+  it('收起指标 ⇒ 指标 0、其余按原比例分享（和仍 = 可用高）；展开逐 px 复原', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const avail = read('available');
+    const before = { k: read('kline-px'), i: read('indicators-px'), d: read('detail-px') };
+    fireEvent.click(screen.getByTestId('collapse-indicators'));
+    expect(screen.getByTestId('collapsed').textContent).toBe('true/false');
+    expect(read('indicators-px')).toBe(0);
+    expect(Math.abs(read('kline-px') + read('detail-px') - avail)).toBeLessThanOrEqual(TOL_PX);
+    fireEvent.click(screen.getByTestId('expand-indicators'));
+    expect(read('kline-px'), '展开逐 px 复原').toBe(before.k);
+    expect(read('indicators-px')).toBe(before.i);
+    expect(read('detail-px')).toBe(before.d);
+  });
 
-  it('分隔条向上拖 120 ⇒ 下栏 **+120**；卡片把手向下拖 120 ⇒ 卡片 **+120**（两者反向，禁止互相套用）', () => {
-    render(<BothHandles />);
-    const detailBefore = readDetailPx();
-    drag(screen.getByTestId('wb-pane-splitter'), 500, 500 - DRAG_PX, 6);
-    expect(readDetailPx() - detailBefore, '分隔条：上移 ⇒ 下栏变高').toBeGreaterThan(DRAG_PX - TOL_PX);
+  it('收起态**记忆**（写入 v2 键；K 线视图无收起 API ⇒ 结构里不含 kline）', () => {
+    const storage = fakeStorage();
+    render(<LayoutHarness storage={storage} subPaneCount={1} />);
+    fireEvent.click(screen.getByTestId('collapse-indicators'));
+    const raw = JSON.parse(storage.getItem(RESULT_LAYOUT_STORAGE_KEY) as string);
+    expect(raw.collapsed).toEqual({ indicators: true, detail: false });
+    expect(Object.keys(raw.collapsed)).not.toContain('kline');
+  });
+});
 
-    drag(screen.getByTestId('wb-card-resize-kline'), 300, 300 + DRAG_PX, 6);
+describe('BLOCKED-2 修复：拖拽路径必须披露夹取（禁只在默认分配路径置位）', () => {
+  it('拖到 K 线视图可读下限 ⇒ clamped=true 且披露文本非空（禁静默）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    expect(screen.getByTestId('clamped').textContent, '前置：默认比例不夹取（可用高 636 可行）').toBe('false');
+    expect(screen.getByTestId('disclosure').textContent, '前置：未夹取时不得有披露').toBe('');
+    // 默认 349 / 184 / 102 ⇒ 下拖 400 必触 K 线视图可读下限 299（旧实现此处 clamped 仍为 false）
+    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 800);
+    expect(screen.getByTestId('clamped').textContent, '拖到下限必须置位 `data-view-clamped`').toBe('true');
     expect(
-      Number(screen.getByTestId('card-px').textContent) - 300,
-      '卡片把手（下沿）：下移 ⇒ 卡片变高（与分隔条方向相反）',
-    ).toBeGreaterThan(DRAG_PX - TOL_PX);
-    expect(Number(screen.getByTestId('card-px').textContent), '卡片新高度 = 300+120').toBe(300 + DRAG_PX);
+      screen.getByTestId('disclosure').textContent,
+      '夹取必须显式披露（禁静默）；且必须指明来自**拖拽路径**（默认分配路径的披露不得冒充）',
+    ).toContain('拖拽');
+    expect(read('kline-px'), 'K 线视图停在可读下限').toBeGreaterThanOrEqual(299);
+  });
+
+  it('未触下限的拖拽不得误报夹取/披露（禁误报）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    drag(screen.getByTestId('wb-splitter-kline-indicators'), 400, 420);
+    expect(screen.getByTestId('clamped').textContent).toBe('false');
+    expect(screen.getByTestId('disclosure').textContent).toBe('');
+  });
+});
+
+describe('BLOCKED-2 修复：拖拽披露不得被「未夹取」拖拽误报（键盘步进同理）', () => {
+  it('键盘 ArrowDown 到下限 ⇒ 也必顶置位并披露（键盘路径与鼠标路径同源）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    const splitter = screen.getByTestId('wb-splitter-kline-indicators');
+    // 下拖至 K 线可读下限（可用 636；默认 K 线 350 ⇒ 步进 16×20 = 320 > 51 余量）
+    for (let i = 0; i < 20; i++) fireEvent.keyDown(splitter, { key: 'ArrowDown' });
+    expect(read('kline-px'), 'K 线视图停在可读下限').toBeGreaterThanOrEqual(299);
+    expect(screen.getByTestId('clamped').textContent, '键盘拖到下限也必须置位').toBe('true');
+    expect(screen.getByTestId('disclosure').textContent, '键盘路径同样必须披露').toContain('拖拽');
+  });
+});
+
+describe('D9-13：记忆/比例不得绕过夹取，副图数变化时**重夹**', () => {
+  it('播种旧卡高 {kline:200} ⇒ 视口 728 档 K 线视图仍 ≥ 299（旧实现直渲染 200 ⇒ 主图 121）', () => {
+    const storage = fakeStorage({ 'eestock.result.cardHeights.v1': JSON.stringify({ kline: 200 }) });
+    render(<LayoutHarness storage={storage} subPaneCount={1} />);
+    expect(read('kline-px')).toBeGreaterThanOrEqual(299);
+    expect(read('kline-px') + read('indicators-px') + read('detail-px')).toBeCloseTo(read('available'), 0);
+  });
+
+  it('副图数 1 → 2 ⇒ K 线视图下限 299 → 329，自动重夹', () => {
+    const storage = fakeStorage({ 'eestock.result.cardHeights.v1': JSON.stringify({ kline: 200 }) });
+    const { rerender } = render(<LayoutHarness storage={storage} subPaneCount={1} />);
+    const one = read('kline-px');
+    rerender(<LayoutHarness storage={storage} subPaneCount={2} />);
+    const two = read('kline-px');
+    expect(one).toBeGreaterThanOrEqual(299);
+    expect(two, `2 副图 ⇒ K 线视图 ≥ 329（实读 ${two}）`).toBeGreaterThanOrEqual(329);
+  });
+
+  it('夹取/压缩时**显式披露**（禁静默）：2 副图 + 小视口（下限之和 604 > 可用 468）⇒ disclosure 非空', () => {
+    const prev = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true });
+    try {
+      render(<LayoutHarness storage={fakeStorage()} subPaneCount={2} />);
+      expect(screen.getByTestId('disclosure').textContent).toBeTruthy();
+      expect(read('kline-px'), 'K 线视图优先保下限').toBeGreaterThanOrEqual(329);
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { value: prev, configurable: true });
+    }
+  });
+});
+
+describe('R1e 归一完备（状态层）：收缩发生 ⇒ collapsed/clamped + 披露；未发生 ⇒ 不误报', () => {
+  it('legacy v1 {ratio:0.5, collapsed:true} ⇒ 迁移收缩 ⇒ clamped=true ∧ 披露说明「已收缩」', () => {
+    const storage = fakeStorage({
+      'eestock.result.layout.v1': JSON.stringify({ ratio: 0.5, collapsed: true }),
+    });
+    render(<LayoutHarness storage={storage} subPaneCount={1} />);
+    // jsdom 视口 768 ⇒ 可用 636；可见两段下限之和 479 ⇒ S 上界 = 1 − 479/636 ≈ 0.2469 < 0.5 ⇒ 必收缩
+    expect(screen.getByTestId('clamped').textContent, '发生收缩 ⇒ clamped 必须置位').toBe('true');
+    expect(screen.getByTestId('disclosure').textContent, '收缩必须**显式披露**').toContain('收缩');
+    const raw = JSON.parse(storage.getItem(RESULT_LAYOUT_STORAGE_KEY) as string) as { ratios: ViewRatios };
+    expect(raw.ratios.detail, 'S 收缩到可行上界（≈0.2469）').toBeLessThanOrEqual(1 - 479 / 636 + 0.01);
+    expect(raw.ratios.detail).toBeGreaterThan(0);
+  });
+
+  it('无收起 / 可行态 ⇒ 不误报（clamped=false、无披露）', () => {
+    render(<LayoutHarness storage={fakeStorage()} subPaneCount={1} />);
+    expect(screen.getByTestId('clamped').textContent).toBe('false');
+    expect(screen.getByTestId('disclosure').textContent).toBe('');
   });
 });

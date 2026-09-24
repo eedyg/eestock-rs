@@ -44,7 +44,7 @@ const ALIGN_TOL_PX = 2;
  *     故本规格显式把视口抬到 **1280×900**（max = 700，+150 可达）；
  *  3. **指标勾选收进浮层**（§2.6 第 5 项：卡头 ≤48px）⇒ 断言 `wb-indicator-toggles` 前须先开
  *     `wb-indicator-menu`（多选语义与既有 testid 不变）；
- *  4. **页面级滚动移除**（§2.7 第 1 项）⇒ 滚动复位/读数从 `wb-result` 改为**上栏 `wb-chart-pane`**；
+ *  4. **页面级滚动移除**（§2.7 第 1 项）⇒ 滚动复位/读数从 `wb-result` 改为**上栏 `wb-kline-view`**；
  *  5. **卡片高度记忆改结果页独立 key**（§2.6 第 3 项 + D6-7）⇒ 断言只看渲染高度（不锁 key 名）。
  */
 test.use({ viewport: { width: 1280, height: 900 } });
@@ -336,7 +336,7 @@ async function reselectRun(page: Page, runId: string): Promise<void> {
 /** 滚动复位：**上栏**才是滚动容器（§2.7 第 1 项：页面级滚动已移除）⇒ 上栏与页面双复位。 */
 async function resetScroll(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
+    const pane = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
     if (pane) pane.scrollTop = 0;
     const el = document.querySelector('[data-testid="wb-result"]') as HTMLElement | null;
     if (el) el.scrollTop = 0;

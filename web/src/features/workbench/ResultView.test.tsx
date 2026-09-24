@@ -159,37 +159,85 @@ describe('ResultView（ADR §13.5 结果页布局）', () => {
     expect(screen.getByTestId('wb-round-trips-table')).toBeInTheDocument();
   });
 
-  it('D7 分层（ADR-028 §2.7）：上栏 wb-chart-pane / 下栏 wb-detail-pane 分层成立；四块都在下栏；页面级滚动被移除', async () => {
+  /**
+   * D9 三视图结构性判据（ADR-028 §2.9 D9-1/D9-2/D9-4/D9-5/D9-12）——由 D7「上栏/下栏」重锚而来：
+   * 旧契约的 `wb-chart-pane`（K 线 + 曲线卡**混合**上栏）在 D9 被拆成 `wb-kline-view`（K 线视图）
+   * 与 `wb-indicator-view`（指标视图）⇒ 断言按**所断言内容**分别指向新容器。
+   */
+  it('D9-1/D9-2/D9-4：三视图归属正确、K 线视图无收起入口、明细 4 tab 全在明细视图内、整页不滚动', async () => {
     const user = userEvent.setup();
     const { run, result } = await seedRunAndResult();
     render(<ResultView {...mkProps(run, result)} />);
     await screen.findByTestId('wb-round-trips-table');
-    const chartPane = screen.getByTestId('wb-chart-pane');
+    const resultRoot = screen.getByTestId('wb-result');
+    const klineView = screen.getByTestId('wb-kline-view');
+    const indicatorView = screen.getByTestId('wb-indicator-view');
+    const detailView = screen.getByTestId('wb-detail-view');
     const detailPane = screen.getByTestId('wb-detail-pane');
-    // 上层 = K 线卡；下层 = 明细（四块）
-    expect(chartPane.contains(screen.getByTestId('wb-kline-chart')), 'K 线卡必须在上栏').toBe(true);
-    expect(detailPane.contains(screen.getByTestId('wb-kline-chart')), 'K 线卡不得在下栏').toBe(false);
-    expect(detailPane.contains(screen.getByTestId('wb-round-trips-table')), 'L1/L2 必须在下栏').toBe(true);
-    expect(detailPane.contains(screen.getByTestId('wb-audit-summary')), '审计摘要必须在下栏').toBe(true);
-    // 默认 tab = 回合与逐笔
+
+    // D9-1：K 线卡 ∈ K 线视图；四张曲线卡 ∈ 指标视图；明细 4 tab ∈ 明细视图
+    expect(klineView.contains(screen.getByTestId('wb-kline-chart')), 'K 线卡必须在 K 线视图内').toBe(true);
+    expect(klineView.contains(screen.getByTestId('wb-window-bar')), '窗口控制条 ∈ K 线视图（D9-8 的 60px 项）').toBe(true);
+    for (const card of ['wb-aggregate-chart', 'wb-slot-chart', 'wb-equity-chart', 'wb-position-chart']) {
+      const el = screen.queryByTestId(card);
+      if (el) expect(indicatorView.contains(el), `${card} 必须在指标视图内`).toBe(true);
+    }
+    expect(detailView.contains(detailPane)).toBe(true);
+    expect(detailPane.contains(screen.getByTestId('wb-round-trips-table')), 'L1/L2 必须在明细视图').toBe(true);
+    expect(indicatorView.contains(screen.getByTestId('wb-round-trips-table')), '明细不得在指标视图').toBe(false);
+
+    // D9-2：K 线视图**不存在**收起入口；指标/明细**存在**
+    expect(klineView.querySelector('[data-collapse-view]'), 'K 线视图不得有收起入口').toBeNull();
+    expect(screen.getByTestId('wb-indicator-collapse').getAttribute('data-collapse-view')).toBe('indicators');
+    expect(screen.getByTestId('wb-detail-collapse').getAttribute('data-collapse-view')).toBe('detail');
+
+    // 默认 tab = 回合与逐笔；其余三块同容器内
     expect(screen.getByTestId('wb-tab-trades').getAttribute('aria-selected')).toBe('true');
-    // 逐 bar 明细 / 事件日志 / 8 项绩效都渲染在**同一张**下栏容器内
     for (const [tabKey, blockId] of [
       ['perbar', 'wb-perbar-table'],
       ['events', 'wb-event-log'],
       ['metrics', 'wb-metrics-table'],
     ] as const) {
       await user.click(screen.getByTestId(`wb-tab-${tabKey}`));
-      expect(detailPane.contains(screen.getByTestId(blockId)), `${blockId} 必须在下栏`).toBe(true);
+      expect(detailPane.contains(screen.getByTestId(blockId)), `${blockId} 必须在明细视图`).toBe(true);
     }
-    // 页面级滚动容器已移除（D7-1：整页不再滚动，上下栏各自内部滚动）
-    const resultRoot = screen.getByTestId('wb-result');
+
+    // D9-4：整页不滚（K 线视图无内部滚动；指标/明细各自 overflow-auto）
     expect(resultRoot.className, 'wb-result 不得再是滚动容器（overflow-auto）').not.toContain('overflow-auto');
-    expect(chartPane.className).toContain('overflow-auto');
+    expect(klineView.className, 'K 线视图不得有内部滚动').not.toContain('overflow-auto');
+    expect(indicatorView.className).toContain('overflow-auto');
     expect(detailPane.className).toContain('overflow-auto');
-    // 下栏独立比例记忆（D7-3：默认 40% 视口高；jsdom 无布局 ⇒ 属性可回查）
-    expect(resultRoot.getAttribute('data-pane-collapsed')).toBe('false');
-    expect(Number(resultRoot.getAttribute('data-pane-ratio'))).toBeGreaterThan(0);
+
+    // D9-12：观测性（比例 / 高度 / 收起态都可读；jsdom 无布局 ⇒ 默认比例回查）
+    expect(Number(resultRoot.getAttribute('data-view-ratio-kline'))).toBeCloseTo(0.55, 2);
+    expect(Number(resultRoot.getAttribute('data-view-ratio-indicators'))).toBeCloseTo(0.29, 2);
+    expect(Number(resultRoot.getAttribute('data-view-ratio-detail'))).toBeCloseTo(0.16, 2);
+    expect(resultRoot.getAttribute('data-view-collapsed-indicators')).toBe('false');
+    expect(resultRoot.getAttribute('data-view-collapsed-detail')).toBe('false');
+    expect(Number(resultRoot.getAttribute('data-view-available'))).toBeGreaterThan(0);
+    expect(Number(resultRoot.getAttribute('data-view-height-kline'))).toBeGreaterThanOrEqual(299);
+    expect(Number(resultRoot.getAttribute('data-view-height-indicators'))).toBeGreaterThanOrEqual(180);
+    expect(Number(resultRoot.getAttribute('data-view-height-detail'))).toBeGreaterThanOrEqual(95);
+  });
+
+  it('D9-3：收起指标/明细 ⇒ 视图消失但**恢复条常驻可点**，再展开复原；收起态记忆', async () => {
+    const user = userEvent.setup();
+    const { run, result } = await seedRunAndResult();
+    render(<ResultView {...mkProps(run, result)} />);
+    await screen.findByTestId('wb-round-trips-table');
+
+    await user.click(screen.getByTestId('wb-indicator-collapse'));
+    expect(screen.queryByTestId('wb-indicator-view'), '收起后指标视图不占位').toBeNull();
+    expect(screen.getByTestId('wb-restore-indicators'), '恢复条必须常驻可见').toBeInTheDocument();
+    expect(screen.getByTestId('wb-restore-indicators').textContent).toContain('指标');
+    await user.click(screen.getByTestId('wb-restore-indicators'));
+    expect(screen.getByTestId('wb-indicator-view')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('wb-detail-collapse'));
+    expect(screen.queryByTestId('wb-detail-view')).toBeNull();
+    expect(screen.getByTestId('wb-restore-detail').textContent).toContain('明细');
+    await user.click(screen.getByTestId('wb-restore-detail'));
+    expect(screen.getByTestId('wb-detail-view')).toBeInTheDocument();
   });
 
   it('Tab 切换：8项绩效 / 逐bar评分表 / 事件日志（含插件错误与 log）', async () => {

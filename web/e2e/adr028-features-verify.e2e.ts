@@ -17,14 +17,24 @@
  *
  * 真身（**2026-09-23 重锚**）：本波被测对象 = **当前工作树构建**（D6/D7 的上下分层 + 默认卡高 520）。
  *  实测事实：主机 `:8081` 的静态根 `web/dist` 是 **D6/D7 之前**的构建（`index-DhVqizDl.js`，Sep-22 14:28；
- *  产物中 `wb-chart-pane`/`wb-detail-pane`/`eestock.result.cardHeights.v1` **命中 0**）⇒ 对 `:8081` 跑本规格
+ *  产物中 `wb-kline-view`/`wb-detail-pane`/`eestock.result.cardHeights.v1` **命中 0**）⇒ 对 `:8081` 跑本规格
  *  读到的是**旧 UI**，无法作为新契约判据。故本波真身 = **沙箱构建 + preview**（不写 `web/dist`，遵守用户纪律）：
  *    cd web && npx vite build --outDir /tmp/reanchor-dist
  *    VITE_PROXY_TARGET=http://localhost:8081 npx vite preview --outDir /tmp/reanchor-dist --port 4188 --strictPort &
  *    E2E_BASE_URL=http://127.0.0.1:4188 ADR028V_DIST=/tmp/reanchor-dist \
  *      npx playwright test e2e/adr028-features-verify.e2e.ts --reporter=list --retries=0 --workers=1
  *  （API 仍由主机 `:8081` 代理——活库事实源不变；只有**前端产物**换成本次构建。）
- * 产物：`ADR028V_OUT`（默认 tester/evidence/20260920_adr028_features_verify/raw）。
+ * 产物：`ADR028V_OUT`（默认 = **未跟踪**的 `tester/evidence/20260924_d9_spec_reanchor/raw/verify`）。
+ *
+ * ── 2026-09-24 **再重锚（ADR-028 §2.9 D9「三视图拆分」）**；按契约推导，禁按实现输出倒推 ──
+ * 事实源：`ADR-028 §2.8/§2.9/§4 第 11·12 条/§5` + `design/17-…/08-plan-three-view-split.md`（D9-1..13）。
+ * | 项 | 旧（D6/D7） | 新（D9） | 依据 |
+ * |---|---|---|---|
+ * | **T0 契约标记** | `wb-kline-view`/`wb-detail-pane`/`eestock.result.layout.v1`/`wb-indicator-menu`/`eestock.result.cardHeights.v1` | D9 命名：`wb-kline-view`/`wb-indicator-view`/`wb-detail-view`/`wb-detail-pane`/`wb-detail-tabs`/`wb-indicator-menu`/`eestock.result.layout.v2` + 模板前缀 `wb-splitter-`/`wb-restore-`（D9 之前不存在 ⇒ 有鉴别力）；并**新增反向锚**（被删的卡高机制标记 `wb-kline-preset`/`wb-card-resize-kline` **不得**出现） | §2.9-1/3/11 + D9-5（断言缺失） |
+ * | **T3 滚动作用域** | 「**上栏容器**内滚回 K 线」（前置：把锚点滚出上栏可视区） | **作用域收敛到 K 线视图容器**：K 线视图**不滚**（scrollTop 恒 0 ∧ `scrollHeight ≤ clientHeight+1`）⇒ 旧前置**不可满足**、已删除；改为断言「页面 scrollY 不变 ∧ 明细与指标视图 scrollTop 不变（D9-10）∧ K 线常驻可见 ∧ 写窗回执 ok」 | §2.9-3（D9-4）+ §2.9-10（D9-10）+ §2.7-5（focus 作用域收敛） |
+ * | **T3/T7 前置** | 「把窗口条在上栏容器内滚入视口」 | 删除：窗口条在 K 线视图**顶部且视图不滚** ⇒ **常驻可见**，改为直接断言其在 K 线视图可视区内 | D9-4 + §2.9-2（K 线视图常驻） |
+ * | **T1/T4 阈值** | 阈值按「默认卡高 520 ⇒ 主图 371px」的像素映射校准 | 按 **D9-8① 恒等式**（`主图 = 内层 − 26 − 1×副图数 − Σ副图`）**运行时复算**（规格本来就用运行时 `yRaw` 作期望值 ⇒ 判据不变），并**新增 D9-8② 硬不变量断言**（`主图 ≥160 ∧ 副图 ≥30`）与恒等式读数落盘 | §2.9-6（D9-8①②） |
+ * | **证据出口** | `tester/evidence/20260920_adr028_features_verify/raw`（**99 个已跟踪文件**） | **规格相对的未跟踪目录**（`ADR028V_OUT` / `E2E_EVIDENCE_DIR` 可覆盖） | AGENTS.md 2026-09-23 纪律 + 派工第 7 条 |
  */
 import { expect, test, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
@@ -34,7 +44,9 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const OUT = process.env.ADR028V_OUT ?? resolve(REPO, 'tester/evidence/20260920_adr028_features_verify/raw');
+const OUT =
+  process.env.ADR028V_OUT ??
+  resolve(process.env.E2E_EVIDENCE_DIR ?? resolve(REPO, 'tester/evidence/20260924_d9_spec_reanchor/raw'), 'verify');
 
 /** run A：rt_seq=1 的 44 笔中第 42/43 笔**同 bar**（bar_index=423，ts=1789660800）。 */
 /** ── T0 真身锚点（2026-09-23 重锚；ADR-023 §6.2 契约推导）───────────────────────────────────────
@@ -44,7 +56,7 @@ const OUT = process.env.ADR028V_OUT ?? resolve(REPO, 'tester/evidence/20260920_a
  *   ① **逐字节相等并记录**：`GET /` 的 index.html 引用的 `assets/index-*.js`（被服务产物）sha256
  *      == **被测静态根**（`ADR028V_DIST`，默认 `web/dist`）内同名文件 sha256，并把该值**落盘**（供跨波比对）。
  *   ② **契约命名标记在位**：被服务产物必须含 ADR-028 D6/D7 契约**命名**的标记
- *      （`wb-chart-pane`/`wb-detail-pane`/`wb-tab-trades`/`wb-indicator-menu`/`eestock.result.cardHeights.v1`；
+ *      （`wb-kline-view`/`wb-detail-pane`/`wb-tab-trades`/`wb-indicator-menu`/`eestock.result.cardHeights.v1`；
  *      事实源 = ADR-028 §2.6 第 3/5 项、§2.7 第 1/2 项 + `design/17-…/07-plan §3` 新增节点与 key 清单）。
  *      必要性：①**单独成立是同义反复**（任何构建都与自身相等）——2026-09-23 实测 `:8081` 静态根正是
  *      「无任何 D6/D7 标记的旧产物」，只留①则**服务端跑旧产物也会绿**；②把「服务端 == 被测构建」恢复成
@@ -54,14 +66,20 @@ const OUT = process.env.ADR028V_OUT ?? resolve(REPO, 'tester/evidence/20260920_a
 const DIST_DIR = process.env.ADR028V_DIST ?? resolve(REPO, 'web/dist');
 /** 被服务产物必须含有的**契约命名**标记（testid / 存储 key；不放实现内部符号名）。 */
 const CONTRACT_MARKERS = [
-  'wb-chart-pane', // ADR-028 §2.7 第 1 项：上栏（自身滚动容器）
-  'wb-detail-pane', // ADR-028 §2.7 第 1 项：下栏（明细视图）
-  'eestock.result.layout.v1', // ADR-028 §2.7 第 3 项：下栏布局（比例/折叠）独立 key
-  // 说明：`wb-tab-{trades|metrics|perbar|events}` 为模板字面量拼接 ⇒ 产物中只有前缀 `wb-tab-`，
-  // 且该前缀在 D6/D7 **之前**的产物中同样存在（无鉴别力）⇒ 不作为契约标记，改用上面的布局 key。
-  'wb-indicator-menu', // ADR-028 §2.6 第 5 项：指标勾选收进浮层
-  'eestock.result.cardHeights.v1', // ADR-028 §2.6 第 3 项：卡高独立 key
+  'wb-kline-view', // D9-1：K 线视图（常驻、不可收起；x 域锚）
+  'wb-indicator-view', // D9-1：指标视图（**仅**四张曲线卡）
+  'wb-detail-view', // D9-1：明细视图（4 tab）
+  'wb-detail-pane', // D9-1：明细容器
+  'wb-detail-tabs', // D9-1/D7-2：明细分段控件
+  // 说明：两条分隔条与恢复条由**模板字面量**拼接（`wb-splitter-${boundary}` / `wb-restore-${view}`）
+  // ⇒ 产物中只有前缀；且这两个前缀在 D9 **之前**不存在（旧为 `wb-pane-splitter` / `wb-detail-expand`）⇒ 有鉴别力。
+  'wb-splitter-', // D9-1/D9-6：两条视图分隔条
+  'wb-restore-', // D9-3：视图级恢复条（指标 / 明细）
+  'wb-indicator-menu', // D6-5（D9 保留）：指标勾选收进浮层
+  'eestock.result.layout.v2', // D9-11：三段比例 + 两个收起态独立 key
 ] as const;
+/** **反向锚（D9-5 断言缺失）**：被删的卡高机制标记**不得**出现在被服务产物中。 */
+const REMOVED_MARKERS = ['wb-kline-preset', 'wb-card-resize-kline'] as const;
 
 const RUN_A = process.env.ADR028V_RUN_A ?? 'sr_1789865219068_000001';
 const RT_A = Number(process.env.ADR028V_RT_A ?? '1');
@@ -82,6 +100,9 @@ const STACK_DY = 12;
 const CLUSTER_MIN = 30;
 /** 标签 ink run 阈值（校准口径见设计报告 §2/T2；真实构建实测 24）。 */
 const INK_RUN_MIN = 15;
+/** D9-8② 硬不变量（取代旧「默认卡高 520 ⇒ 主图 ≥320」的口径；D9-5 已删卡高机制）。 */
+const MAIN_MIN_PX = 160;
+const SUB_PANE_MIN_PX = 30;
 
 const PAGE_CAPTURE = `
   (() => {
@@ -435,7 +456,7 @@ async function inkRun(page: Page, box: { x0: number; x1: number; y0: number; y1:
 }
 
 /** 结果页几何读数（**2026-09-23 重锚**）：滚动容器由 `wb-result`（页级；§2.7 第 1 项已移除）收敛为
- *  **上栏** `wb-chart-pane`（自身滚动），并读**下栏** `wb-detail-pane` 与页面级滚动事实（D7-4①②）。
+ *  **上栏** `wb-kline-view`（自身滚动），并读**下栏** `wb-detail-pane` 与页面级滚动事实（D7-4①②）。
  *  另加「蜡烛主图在上栏可视区内的可见比例」（§2.7 第 6 项弱档②的量化口径；K 线卡内首个 pane 子节点）。 */
 type Rects = {
   viewport: { w: number; h: number };
@@ -450,6 +471,15 @@ type Rects = {
   paneScrollH: number;
   detail: { x: number; y: number; w: number; h: number } | null;
   detailScrollTop: number;
+  /** D9：指标视图（自身滚动；D9-4/D9-10 要求跳转不得改其 scrollTop）。 */
+  indicator: { x: number; y: number; w: number; h: number } | null;
+  indicatorScrollTop: number;
+  /** D9 观测性 + 几何（视图高/三段/夹取）。 */
+  views: { kline: number; indicators: number; detail: number; available: number; clamped: string | null };
+  paneMetrics: { candlePx: number | null; subPanes: Array<{ id: string; px: number | null }>; subPaneTotalPx: number | null } | null;
+  headerPx: number | null;
+  /** K 线内层容器（klinecharts 挂载点）高（D9-8① 恒等式输入）。 */
+  inner2H: number;
   anchor: { x: number; y: number; w: number; h: number } | null;
   host: { x: number; y: number; w: number; h: number } | null;
   candle: { top: number; h: number; visiblePx: number; visibleRatio: number } | null;
@@ -466,7 +496,7 @@ async function rects(page: Page): Promise<Rects> {
       const r = el.getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
     };
-    const paneEl = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
+    const paneEl = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
     const detailEl = document.querySelector('[data-testid="wb-detail-pane"]') as HTMLElement | null;
     const se = document.scrollingElement as HTMLElement | null;
     const card = document.querySelector('[data-testid="wb-kline-chart"]')?.getBoundingClientRect() ?? null;
@@ -483,12 +513,40 @@ async function rects(page: Page): Promise<Rects> {
       pageClientHeight: se?.clientHeight ?? -1,
       result: g('[data-testid="wb-result"]'),
       resultScrollTop: (document.querySelector('[data-testid="wb-result"]') as HTMLElement | null)?.scrollTop ?? -1,
-      pane: g('[data-testid="wb-chart-pane"]'),
+      pane: g('[data-testid="wb-kline-view"]'),
       scrollTop: paneEl?.scrollTop ?? -1,
       paneClientH: paneEl?.clientHeight ?? -1,
       paneScrollH: paneEl?.scrollHeight ?? -1,
       detail: g('[data-testid="wb-detail-pane"]'),
       detailScrollTop: detailEl?.scrollTop ?? -1,
+      indicator: g('[data-testid="wb-indicator-view"]'),
+      indicatorScrollTop:
+        (document.querySelector('[data-testid="wb-indicator-view"]') as HTMLElement | null)?.scrollTop ?? -1,
+      views: {
+        kline: Number(document.querySelector('[data-testid="wb-result"]')?.getAttribute('data-view-height-kline')),
+        indicators: Number(
+          document.querySelector('[data-testid="wb-result"]')?.getAttribute('data-view-height-indicators'),
+        ),
+        detail: Number(document.querySelector('[data-testid="wb-result"]')?.getAttribute('data-view-height-detail')),
+        available: Number(document.querySelector('[data-testid="wb-result"]')?.getAttribute('data-view-available')),
+        clamped: document.querySelector('[data-testid="wb-result"]')?.getAttribute('data-view-clamped') ?? null,
+      },
+      paneMetrics: (() => {
+        try {
+          const raw = document.querySelector('[data-testid="kline-chart"]')?.getAttribute('data-pane-metrics');
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      })(),
+      headerPx: (() => {
+        const h = document.querySelector('[data-testid="wb-kline-card-header"]');
+        return h ? Math.round(h.getBoundingClientRect().height) : null;
+      })(),
+      inner2H: (() => {
+        const el = document.querySelector('[data-testid="kline-chart"]');
+        return el ? Math.round(el.getBoundingClientRect().height) : -1;
+      })(),
       anchor: g('[data-testid="wb-kline-focus-anchor"]'),
       host: g('[data-testid="wb-kline-chart"]'),
       candle: cEl
@@ -509,13 +567,33 @@ async function rects(page: Page): Promise<Rects> {
   });
 }
 
-/** §2.7 第 6 项「K 线回到可见」**分档判据**（阈值 = 「上栏可视高 ≥ 卡高」这一物理事实；实测视口 1065）：
- *  强档：K 线卡**整体**落在**上栏**可视区内；弱档：卡顶与上栏顶对齐 ∧ **蜡烛主图可见 ≥80%**。
- *  旧口径（K 线卡整体落在**视口**内）在默认卡高 520 + 上栏自身滚动下不是契约要求（07-plan §2 物理约束登记）。 */
-function klineVisibleOk(r: Pick<Rects, 'cardFullyInPane' | 'cardTopAligned' | 'candle'>): boolean {
-  if (r.cardFullyInPane === true) return true; // 强档（整卡在上栏可视区内）
-  if (r.cardTopAligned !== true) return false; // 弱档① 卡顶与上栏视口顶对齐
-  return (r.candle?.visibleRatio ?? 0) >= 0.5; // 弱档② 主图过半进入上栏可视区（可达门槛，见上注）
+/** 轻量读数：卡头高 / 内层高 / 真身 pane metrics（用于「高亮回常态后」的复核）。 */
+function probePaneOnly() {
+  const el = document.querySelector('[data-testid="kline-chart"]');
+  const h = document.querySelector('[data-testid="wb-kline-card-header"]');
+  let pm: unknown = null;
+  try {
+    const raw = el?.getAttribute('data-pane-metrics');
+    pm = raw ? JSON.parse(raw) : null;
+  } catch {
+    pm = null;
+  }
+  return {
+    headerPx: h ? Math.round(h.getBoundingClientRect().height) : null,
+    inner2H: el ? Math.round(el.getBoundingClientRect().height) : -1,
+    paneMetrics: pm as { candlePx: number | null } | null,
+    candlePx: (pm as { candlePx: number | null } | null)?.candlePx ?? null,
+  };
+}
+
+/**
+ * 「K 线回到可见」的 **D9 形式**（**分档已取消**）：
+ * D9-2/D9-4 规定 **K 线视图常驻且不滚** ⇒ K 线卡**恒**完整落在 K 线视图可视区内
+ * （由 D9-8① `卡高 = K 线视图高 − 60` 保证）⇒ 判据收敛为「卡完整落在 K 线视图内」这**一条**。
+ * 旧 D7 分档（强档=整卡在上栏内 / 弱档=卡顶对齐 + 主图可见 ≥80%，阈值实测 1065）随「上栏自身滚动」一并作废。
+ */
+function klineVisibleOk(r: Pick<Rects, 'cardFullyInPane'>): boolean {
+  return r.cardFullyInPane === true;
 }
 
 /** 跳转后等「平滑滚动落定 + 高亮生效」（高亮只活 3s ⇒ 判据用 scrollTop 连续两次采样不变，最快 ~1.2s）。
@@ -552,15 +630,14 @@ async function settleJump(
           klineVisibleOk: klineVisibleOk(r),
         });
         if (active !== 'true' || !r.host || !r.pane) return false;
-        // 「K 线回到可见」= 分档判据（强档整卡在上栏内 / 弱档卡顶对齐 + 主图 ≥80%）
-        // 注：settleJump 是**前置助手**（判「跳转是否落定」），不得把弱档②的 0.8 契约阈值混进来
-        //    —— 该阈值在 e2e 项目默认视口（1280×720，`devices['Desktop Chrome']`）下**几何不可达**：
-        //    上栏 312px < 卡 520px（卡头 20 + 主图 371 > 312）⇒ 主图可见上限 ≈ 78.7%。
-        //    故此处用**可达且仍有鉴别力**的门槛：卡顶与上栏顶对齐 ∧ 主图过半进入上栏可视区
-        //    （去掉 focus 滚动 ⇒ 主图可见比 = 0 ⇒ 仍会红）。
+        // 「K 线回到可见」= D9 形式：K 线卡完整落在 K 线视图内（K 线视图常驻不滚 ⇒ 恒成立，
+        //   但去掉身份恒等式/视图高度约束即会红，故仍具鉴别力）。
         if (!klineVisibleOk(r)) return false;
-        // 上栏（新契约滚动容器）滚动落定
-        const stable = Number.isFinite(prev) && Math.abs(r.scrollTop - prev) <= 1;
+        // K 线视图（D9-4：不得滚动）与明细视图（D7-4②：跳转不得顶走明细）双双落定
+        const stable =
+          Number.isFinite(prev) &&
+          Math.abs(r.scrollTop - prev) <= 1 &&
+          r.scrollTop === 0;
         prev = r.scrollTop;
         if (!stable) return false;
         if (!opts.requireReceipt) return true;
@@ -575,8 +652,8 @@ async function settleJump(
         timeout: maxMs,
         intervals: [120],
         message: opts.requireReceipt
-          ? '上栏滚动须落定 + K 线分档可见 + 高亮生效 + 写窗真身回执 rev 到位'
-          : '上栏滚动须落定 + K 线分档可见 + 高亮生效',
+          ? 'K 线视图静止（不滚）+ K 线可见 + 高亮生效 + 写窗真身回执 rev 到位'
+          : 'K 线视图静止（不滚）+ K 线可见 + 高亮生效',
       },
     )
     .toBe(true);
@@ -651,7 +728,25 @@ test('T0 真身锚定：被服务产物 == 被测静态根产物（sha256 相等
   const missing = Object.entries(markers).filter(([, v]) => !v).map(([k]) => k);
   expect(
     missing,
-    `被服务产物必须含本波契约命名标记（缺 ⇒ 服务端跑的不是含 D6/D7 的构建）；实读 ${JSON.stringify(markers)}`,
+    `被服务产物必须含本波契约命名标记（缺 ⇒ 服务端跑的不是含 D9 三视图的构建）；实读 ${JSON.stringify(markers)}`,
+  ).toEqual([]);
+  // **反向锚（D9-5）**：被删的卡高机制标记不得复活（复活的唯一路径 = 卡高机制回到界面上）
+  const resurrected = REMOVED_MARKERS.filter((m) => js.includes(m));
+  const resurrectedHost = (() => {
+    try {
+      const hh = readFileSync(resolve(REPO, 'web/dist/index.html'), 'utf8');
+      const hr = /src="(\/assets\/index-[^"]+\.js)"/.exec(hh)?.[1];
+      if (!hr) return null;
+      const hb = readFileSync(resolve(REPO, 'web/dist', hr.replace(/^\//, '')), 'utf8');
+      return REMOVED_MARKERS.filter((m) => hb.includes(m));
+    } catch {
+      return null;
+    }
+  })();
+  writeJson('t0_removed_markers', { resurrected, resurrectedHost, markers: [...REMOVED_MARKERS] });
+  expect(
+    resurrected,
+    `D9-5 被删的卡高机制标记不得复活（实读 ${JSON.stringify(resurrected)}；复活即说明卡高机制回来了）`,
   ).toEqual([]);
 });
 
@@ -762,90 +857,184 @@ test('T2 醒目化像素 [@mut]：价格×股数标签确实被绘制到 canvas�
   expect(g.label, '标签文本（store）').toBe(expectedLabel);
 });
 
-// ───────────────────────────────── T3 focus 滚动 ─────────────────────────────────
-test('T3 focus [@mut]：L2 [跳转] 后**上栏容器内**滚回 K 线（卡顶对齐 + 主图过半可见 + 页面无滚动）', async ({ page }) => {
+// ───────────────────────────────── T3 focus 滚动（D9 重锚：作用域收敛到 K 线视图容器） ─────────────────────────────────
+test('T3 focus [@mut]：L2 [跳转] 后作用域收敛到 **K 线视图容器**（K 线视图不滚 / 页面不滚 / 明细与指标 scrollTop 均不变 / K 线常驻可见 / 写窗回执 ok）', async ({
+  page,
+}) => {
   await openRunSettled(page, RUN_A);
   await page.getByTestId(`wb-rt-detail-${RT_A}`).click();
   const row = page.getByTestId(`wb-l2-row-${RT_A}-${FILL_A}`);
   await expect(row).toBeVisible();
   await row.scrollIntoViewIfNeeded();
 
-  // **前置（新契约，ADR-028 §2.7 第 1/5 项）**：旧前置「锚点在**页级滚动容器**可视区之外」在「整页不再滚动」
-  //  之后**不可满足**（页级滚动已移除）。新前置 = 在**上栏容器** `wb-chart-pane` 内滚离 K 线 ⇒ 锚点完全
-  //  滚出上栏可视区之上（判据有鉴别力：不滚则「K 线本就在可视区」使 focus 断言恒真）。
-  await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
-    if (pane) pane.scrollTop = pane.scrollHeight;
-  });
-  await expect
-    .poll(
-      async () => {
-        const r = await rects(page);
-        return r.anchor != null && r.pane != null && r.anchor.y + r.anchor.h <= r.pane.y + 1;
-      },
-      { timeout: 3000, intervals: [100], message: '前置：K 线锚点必须完全滚出上栏可视区（否则 focus 判据无鉴别力）' },
-    )
-    .toBe(true);
-
+  // ── 前置（**D9 重锚**）──
+  //  ① 旧前置「把 K 线锚点滚出**上栏**可视区」在 D9 下**不可满足**（K 线视图不滚，D9-4）⇒ 删除
+  //     （保留它就会变成「恒真/恒假」的假判据）。
+  //  ② 新前置 = **明细视图**与**指标视图**的 scrollTop 均 > 0 —— 使「跳转不动它们」（D9-10/D7-4②）
+  //     具备鉴别力；并核验 K 线视图 scrollTop 恒 0（作用域容器无内部滚动）。
+  //  注意：明细视图的 scrollTop 必须**只由本前置**设定——若跳转按钮不在明细视图可视区内，
+  //  playwright `click()` 的 actionability 检查会自动 `scrollIntoViewIfNeeded` 而改变 scrollTop，
+  //  从而把「跳转是否动了下栏」这条判据污染成「点击助手是否滚了」的假红。
+  //  ⇒ 前置把**跳转按钮**摆到明细视图垂直中部（按钮在视口内 ⇒ 后续 click 不会自动滚动），
+  //    再断言「明细 scrollTop > 0 ∧ 目标行仍在明细视口内」。
+  await page.evaluate(
+    ({ jumpId }) => {
+      const pane = document.querySelector('[data-testid="wb-detail-pane"]') as HTMLElement | null;
+      const btn = document.querySelector(`[data-testid="${jumpId}"]`) as HTMLElement | null;
+      if (pane && btn) {
+        const pr = pane.getBoundingClientRect();
+        const br = btn.getBoundingClientRect();
+        pane.scrollTop = pane.scrollTop + (br.top - pr.top) - Math.round(pane.clientHeight / 2);
+      }
+      const iv = document.querySelector('[data-testid="wb-indicator-view"]') as HTMLElement | null;
+      if (iv) iv.scrollTop = Math.min(200, Math.max(1, iv.scrollHeight - iv.clientHeight));
+    },
+    { jumpId: `wb-l2-jump-${RT_A}-${FILL_A}` },
+  );
+  await page.waitForTimeout(300);
   const before = await rects(page);
   const detailBefore = before.detailScrollTop;
+  const indicatorBefore = before.indicatorScrollTop;
+  writeJson('t3_before_jump', before);
+
+  expect(before.scrollTop, '前置：K 线视图 scrollTop 必须恒为 0（D9-4：K 线视图不滚）').toBe(0);
+  expect(detailBefore, '前置：明细视图必须已滚动（否则「不变」无鉴别力）').toBeGreaterThan(0);
+  expect(indicatorBefore, '前置：指标视图必须已滚动（否则「不变」无鉴别力）').toBeGreaterThan(0);
+  const rowVisBefore = await page.evaluate(
+    ({ rowId }) => {
+      const pane = document.querySelector('[data-testid="wb-detail-pane"]') as HTMLElement | null;
+      const r = document.querySelector(`[data-testid="${rowId}"]`) as HTMLElement | null;
+      if (!pane || !r) return { found: false, visible: false };
+      const p = pane.getBoundingClientRect();
+      const rr = r.getBoundingClientRect();
+      return { found: true, visible: rr.top >= p.top - 1 && rr.bottom <= p.bottom + 1, rowTop: Math.round(rr.top), paneTop: Math.round(p.top), paneBottom: Math.round(p.bottom) };
+    },
+    { rowId: `wb-l2-row-${RT_A}-${FILL_A}` },
+  );
+  writeJson('t3_row_visibility_before', rowVisBefore);
+  expect(rowVisBefore.visible, '前置：目标行必须原本就在明细视图视口内（否则 D7-4③ 无鉴别力）').toBe(true);
+  expect(
+    before.cardFullyInPane,
+    '前置：K 线卡必须完整落在 K 线视图内（D9-8① 恒等式的直接后果）',
+  ).toBe(true);
   const shotBefore = await page.screenshot({ path: resolve(OUT, 't3_before_jump.png') }).then(() => 't3_before_jump.png');
 
   await page.getByTestId(`wb-l2-jump-${RT_A}-${FILL_A}`).click();
-  const settle = await settleJump(page);
+  const settle = await settleJump(page, { requireReceipt: true });
   const after = await rects(page);
   const shotAfter = await page.screenshot({ path: resolve(OUT, 't3_after_jump.png') }).then(() => 't3_after_jump.png');
-  writeJson('t3_focus_scroll', { before, after, settle, detailBefore, shotBefore, shotAfter });
-
-  // ① 前置事实（记录 + 断言，防「未滚」时判据退化）
-  expect(
-    before.anchor!.y + before.anchor!.h,
-    `前置：跳转前锚点必须在上栏可视区之上（anchorBottom=${Math.round(before.anchor!.y + before.anchor!.h)} vs paneTop=${Math.round(before.pane!.y)}）`,
-  ).toBeLessThanOrEqual(before.pane!.y + 1);
-  // ② focus 真发生：上栏滚动位置变化且**向上收敛**到 K 线
-  expect(after.scrollTop, 'focus：上栏滚动位置必须变化（滚回 K 线区域）').not.toBe(before.scrollTop);
-  expect(after.scrollTop, 'focus：滚动必须向上收敛到 K 线（不得越滚越远）').toBeLessThan(before.scrollTop);
-  // ③ 弱档①：K 线卡顶与上栏视口顶对齐
-  expect(
-    Math.abs(after.anchor!.y - after.pane!.y),
-    `弱档①：K 线卡顶须与上栏视口顶对齐（|Δ|≤2；实读 ${Math.abs(after.anchor!.y - after.pane!.y).toFixed(1)}px）`,
-  ).toBeLessThanOrEqual(2);
-  expect(after.anchor!.y, '锚点须落在上栏可视区内（上边界）').toBeGreaterThanOrEqual(after.pane!.y - 2);
-  expect(after.anchor!.y, '锚点须落在上栏可视区内（下边界）').toBeLessThanOrEqual(after.pane!.y + after.pane!.h - 20);
-  // ④ 「K 线回到可见」的**可达**门槛：主图过半进入上栏可视区（去掉 focus 滚动则实测 0）
-  //    **登记（不改判据、不静默放宽）**：ADR-028 §2.7 第 6 项弱档② 的字面阈值是「主图可见 ≥80%」，
-  //    但该阈值在 e2e 项目默认视口（`devices['Desktop Chrome']` = 1280×720）下**几何不可达**：
-  //    页头 40 + 标题区 + 下栏 0.4×720=288 ⇒ 上栏仅 312px，而卡 520 ⇒ 可见上限 = (312 − 卡头 20)/主图 371
-  //    ≈ 78.7% < 80%（跳转高亮提示使卡头换行 +18px 时更低）。因此本用例的硬断言落在**可达**区，
-  //    并把 0.8 档的字面缺口作为**读数**登记（`t3_focus_scroll.candleRatio`），交架构侧裁定判据适用视口范围。
-  writeJson('t3_visible_ratio_note', {
-    viewportH: after.viewport.h,
-    paneClientH: after.paneClientH ?? after.pane!.h,
-    candle: after.candle,
-    contractThreshold: 0.8,
-    reachableUpperBound720: (after.pane!.h - 20) / (after.candle?.h ?? 1),
-    meetsContractLiteral: (after.candle?.visibleRatio ?? 0) >= 0.8,
+  const attrsAfter = await readAttrs(page, 'kline-chart');
+  const viewAttrs = await readAttrs(page, 'wb-kline-view');
+  writeJson('t3_focus_scope', {
+    before,
+    after,
+    settle,
+    detailBefore,
+    indicatorBefore,
+    attrsAfter,
+    focusScrollRev: viewAttrs['data-focus-scroll'] ?? null,
+    shotBefore,
+    shotAfter,
   });
+
+  // ── ① **作用域收敛**：K 线视图**不得**有内部滚动（旧实现是页级 `scrollIntoView`，其反证见下）──
+  expect(after.scrollTop, 'D9-4 K 线视图 scrollTop 必须恒为 0（focus 作用域容器无内部滚动）').toBe(0);
   expect(
-    after.candle!.visibleRatio,
-    `弱档②（可达门槛）：主图须过半进入上栏可视区（实读 ${after.candle!.visiblePx.toFixed(0)}/${after.candle!.h.toFixed(0)}px = ${(after.candle!.visibleRatio * 100).toFixed(1)}%；契约字面 80% 在视口 ${after.viewport.h} 下几何不可达，见 t3_visible_ratio_note.json）`,
-  ).toBeGreaterThanOrEqual(0.5);
-  // ⑤ 弱档③：与下栏零重叠
-  expect(after.overlapDetailPx, '弱档③：K 线卡与下栏零重叠').toBe(0);
-  // ⑥ §2.7 第 1 项：页面级滚动已被移除（旧断言的「K 线整卡在**视口**内」在新契约下不是判据 —— 默认卡高 520
-  //    在上栏自身滚动下本就超出上栏可视高；07-plan §2 已把「整卡可见」降级为**强档**条件）
-  expect(after.pageScrollY, '页面级滚动必须为 0（§2.7 第 1 项：整页不再滚动）').toBe(0);
+    after.paneScrollH,
+    `D9-4 K 线视图不得有内部滚动（scrollHeight ${after.paneScrollH} ≤ clientHeight ${after.paneClientH} + 1）`,
+  ).toBeLessThanOrEqual(after.paneClientH + 1);
+  expect(after.pageScrollY, 'D7-1 页面级滚动必须为 0（focus 不得把页面滚走）').toBe(0);
+  expect(after.pageScrollY, 'D7-4① 跳转前后 window.scrollY 不变').toBe(before.pageScrollY);
   expect(
     after.pageScrollHeight,
-    '页面不得可滚（scrollingElement.scrollHeight ≤ 视口高 + 1）',
+    'D7-1 页面不得可滚（scrollingElement.scrollHeight ≤ 视口高 + 1）',
   ).toBeLessThanOrEqual(after.viewport.h + 1);
+  // ── ② **跳转纪律（D9-10 / D7-4②）**：明细与指标视图的滚动位置**均**不得改变 ──
+  expect(after.detailScrollTop, 'D7-4② 跳转不得改变明细视图 scrollTop').toBe(detailBefore);
+  expect(after.indicatorScrollTop, 'D9-10 跳转不得改变**指标视图** scrollTop（对齐 D7-4②）').toBe(indicatorBefore);
+  // ── ③ **K 线常驻可见**（D9-2/D9-4）+ 主图硬不变量（D9-8②）+ 卡高恒等式（D9-8①）──
+  expect(klineVisibleOk(after), 'D9-2/D9-4 跳转后 K 线卡必须完整落在 K 线视图内（常驻可见）').toBe(true);
+  const pm = after.paneMetrics;
+  const nSub = pm?.subPanes.length ?? 0;
+  const subFloor = SUB_PANE_MIN_PX * nSub;
+  /** D9-8① 恒等式右端 = 容器几何上**可达的主图上限**（副图已压到下限时）。
+   *  **契约口径（D9-8② 与 §4 边界联立）**：`主图 ≥ 160` 与「副图优先被压」在容器不足时**不可同时满足**
+   *  ⇒ 判据取 `主图 ≥ min(160, 内层 − 26 − 1×n − 30×n)`（= 要么满足硬下限，要么已把副图压到下限）。 */
+  const attainable = after.inner2H - 26 - 1 * nSub - subFloor;
+  const headerOver = Math.max(0, (after.headerPx ?? 20) - 20);
   expect(
-    klineVisibleOk(after),
-    `「K 线回到可见」分档判据必须成立（cardFullyInPane=${after.cardFullyInPane} cardTopAligned=${after.cardTopAligned} candleRatio=${after.candle!.visibleRatio.toFixed(3)} 卡高=${after.host!.h.toFixed(0)} 上栏高=${after.pane!.h.toFixed(0)}）`,
+    pm?.candlePx ?? 0,
+    `D9-8② 主图 ≥ min(${MAIN_MIN_PX}, 可达上限 ${attainable})（实测 ${pm?.candlePx ?? 'n/a'}；卡头实测 ${after.headerPx}）`,
+  ).toBeGreaterThanOrEqual(Math.min(MAIN_MIN_PX, attainable) - 2);
+  // **显式登记（不静默）**：跳转高亮提示使卡头换行（恒 20 → 实测值）时，主图让位量不得超过卡头超出量。
+  const mainShortfall = Math.max(0, MAIN_MIN_PX - (pm?.candlePx ?? 0));
+  writeJson('t3_main_shortfall', {
+    candlePx: pm?.candlePx ?? null,
+    attainable,
+    subFloor,
+    nSub,
+    headerPx: after.headerPx,
+    headerOver,
+    mainShortfall,
+    inner2H: after.inner2H,
+  });
+  expect(
+    mainShortfall,
+    `D9-8② 主图让位量不得超过卡头超出量（卡头 ${after.headerPx} ⇒ 允许 ${headerOver}px；实读让位 ${mainShortfall}px）`,
+  ).toBeLessThanOrEqual(headerOver);
+  if (pm?.candlePx != null && pm.subPaneTotalPx != null) {
+    expect(
+      Math.abs(pm.candlePx - (after.inner2H - 26 - 1 * nSub - pm.subPaneTotalPx)),
+      `D9-8① 主图 == 内层 − 26 − 1×副图数 − Σ副图（主图 ${pm.candlePx} / 内层 ${after.inner2H} / Σ副图 ${pm.subPaneTotalPx}）`,
+    ).toBeLessThanOrEqual(2);
+    for (const sp of pm.subPanes) {
+      expect(sp.px ?? 0, `D9-8② 副图 ≥ ${SUB_PANE_MIN_PX}`).toBeGreaterThanOrEqual(SUB_PANE_MIN_PX);
+    }
+  }
+  // ── ⑤ 让位的**归因与可恢复性**（不静默）──
+  //  实测事实（本规格取证，见 `t3_main_shortfall.json`）：跳转后高亮提示文案**常驻于卡头**
+  //  （直到「全览」或下一次跳转才被清除）⇒ 卡头由 恒 20 涨到 **38**、内层 −18、引擎把副图压到下限 30，
+  //  主图停在 **156**（= 容器可达上限 `内层 − 26 − 1×n − 30×n`），**4px 低于 D9-8② 的 160**。
+  //  ⇒ 本条**不静默放宽**：①断言让位量 ≤ 卡头超出量；②断言让位是**稳态**（3s 回常态后仍为同一读数，
+  //     排除了「脉冲抖动」解释）；③断言「全览」清除提示后卡头回单行时 **主图必须回到 ≥160**（干净态硬下限）。
+  await expect
+    .poll(async () => (await readAttrs(page, 'kline-chart'))['data-highlight-active'], { timeout: 6000, intervals: [400] })
+    .toBe('false');
+  const afterHl = await page.evaluate(probePaneOnly);
+  writeJson('t3_after_highlight_end', afterHl);
+  const shortfall2 = Math.max(0, MAIN_MIN_PX - (afterHl.candlePx ?? 0));
+  expect(
+    shortfall2,
+    `D9-8②（提示常驻态）主图让位量不得超过卡头超出量（卡头 ${afterHl.headerPx} ⇒ 允许 ${Math.max(0, (afterHl.headerPx ?? 20) - 20)}px；实读让位 ${shortfall2}px）`,
+  ).toBeLessThanOrEqual(Math.max(0, (afterHl.headerPx ?? 20) - 20));
+  expect(
+    afterHl.candlePx,
+    '让位是**稳态**（回常态后与提示激活期读数一致 ⇒ 非脉冲抖动）',
+  ).toBe(pm?.candlePx ?? null);
+  expect(
+    (afterHl.paneMetrics as { clamped?: boolean } | null)?.clamped,
+    '引擎已把副图压到下限并回报 clamped=true（让位已尽力，非静默丢弃）',
   ).toBe(true);
-  // ⑦ D7-4② 登记：跳转不得顶走下栏（分层改动的核心诉求）
-  expect(after.detailScrollTop, '跳转不得改变下栏滚动位置（D7-4②）').toBe(detailBefore);
-  expect(settle.waitedMs, '滚动落定耗时（观测）').toBeGreaterThan(0);
+
+  // 干净态（「全览」清除提示 ⇒ 卡头回单行）⇒ **D9-8② 硬下限必须成立**
+  await page.getByTestId('wb-window-reset').click();
+  await page.waitForTimeout(900);
+  const clean = await page.evaluate(probePaneOnly);
+  writeJson('t3_after_reset_clean', clean);
+  expect(clean.headerPx ?? 99, `「全览」后卡头必须回单行（实测 ${clean.headerPx}）`).toBeLessThanOrEqual(24);
+  expect(
+    clean.candlePx ?? 0,
+    `D9-8② 干净态（无提示换行）主图硬下限 ≥ ${MAIN_MIN_PX}（实测 ${clean.candlePx}）`,
+  ).toBeGreaterThanOrEqual(MAIN_MIN_PX);
+  // ── ④ **写窗真身回执**（ADR-028 §3.4；`requireReceipt` 已在 settleJump 内断言 rev 到位）──
+  const probeAttrs = await readAttrs(page, 'wb-window-probe');
+  expect(probeAttrs['data-ok'], 'ADR-028 §3.4 写窗真身回执 ok（跳转真的落到图上）').toBe('true');
+  // ── ⑤ 高亮仍生效（D4.1）──
+  expect(attrsAfter['data-highlight-active'], 'D4.1 跳转后高亮必须激活').toBe('true');
+  expect(attrsAfter['data-highlight-key'], 'D4.1 高亮键必须精确到笔').toBe(`${RT_A}:${FILL_A}`);
+  // ── ⑥ 三段视图分配不得被跳转改变（D9-6④ + §4-12⑥）──
+  expect(after.views, 'D9-10 跳转不得改变三段视图高度分配').toEqual(before.views);
+  expect(settle.waitedMs, '滚动/回执落定耗时（观测）').toBeGreaterThan(0);
 });
 
 // ───────────────────────────────── T4 精确到笔高亮 + 3 秒回常态（[@mut]） ─────────────────────────────────
@@ -1246,22 +1435,22 @@ test('T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 �
   await page.getByTestId(`wb-l2-jump-${RT_A}-${FILL_A}`).click();
   await settleJump(page);
 
-  // **前置重锚（2026-09-23，ADR-028 §2.7 第 1/4 项）**：新分层下窗口控制条位于**上栏**内、K 线卡**之下**，
-  //  而跳转 focus 把卡顶对齐到上栏视口顶 ⇒ 控制条落在上栏可视区之外（旧单列布局里它随页级滚动一跳即可见）。
-  //  本用例判据（「不被 canvas 遮挡 ∧ 可真实点击 ∧ 布局不变量」）不变，前置改为**先把控制条滚入上栏可视区**：
-  //  不滚则采样点必然落在下栏表格上（2026-09-23 实测 elementFromPoint 命中 `wb-l2-row-1-41/42`）。
-  await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
-    const bar = document.querySelector('[data-testid="wb-window-bar"]') as HTMLElement | null;
-    if (pane && bar) {
-      const pr = pane.getBoundingClientRect();
-      const br = bar.getBoundingClientRect();
-      pane.scrollTop = Math.max(0, pane.scrollTop + (br.top - pr.top) - 8);
-    }
-  });
+  // **前置重锚（2026-09-24，D9）**：D9 把窗口控制条放在 **K 线视图顶部**（K 线卡之上），且
+  //  **K 线视图不滚**（D9-4）⇒ 控制条**常驻可见**，旧「在上栏容器内滚入视口」的做法已无对象
+  //  （`pane.scrollTop = …` 在不滚动容器上恒无效，继续保留即变成「恒真前置」）⇒ 删除，
+  //  改为直接断言「控制条完整落在 K 线视图可视区内」。B1 的触发条件（跳转高亮提示使卡头换行）仍须真实复现。
+  expect(
+    await page.evaluate(() => {
+      const pane = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
+      if (!pane) return false;
+      pane.scrollTop = 999; // 反证：K 线视图不可滚（scrollTop 必须被忽略）
+      return pane.scrollTop === 0;
+    }),
+    'D9-4 K 线视图必须不可滚（scrollTop 赋值被忽略 ⇒ 控制条常驻可见的物理前提）',
+  ).toBe(true);
   await page.waitForTimeout(300);
   const barPre = await page.evaluate(() => {
-    const pane = document.querySelector('[data-testid="wb-chart-pane"]') as HTMLElement | null;
+    const pane = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
     const bar = document.querySelector('[data-testid="wb-window-bar"]') as HTMLElement | null;
     if (!pane || !bar) return null;
     const p = pane.getBoundingClientRect();
@@ -1269,7 +1458,10 @@ test('T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 �
     return { paneTop: Math.round(p.top), paneBottom: Math.round(p.bottom), barTop: Math.round(b.top), barBottom: Math.round(b.bottom), inPane: b.top >= p.top - 1 && b.bottom <= p.bottom + 1 };
   });
   expect(barPre, '窗口控制条必须存在').toBeTruthy();
-  expect(barPre!.inPane, `前置：控制条必须已滚入上栏可视区（实读 ${JSON.stringify(barPre)}）`).toBe(true);
+  expect(
+    barPre!.inPane,
+    `D9-2/D9-4 前置：控制条必须**常驻**落在 K 线视图可视区内（实读 ${JSON.stringify(barPre)}）`,
+  ).toBe(true);
 
   /** 采样点分数（中心 / 15% / 85%）。 */
   const FRACS = [0.5, 0.15, 0.85];
@@ -1307,12 +1499,31 @@ test('T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 �
       const bar = document.querySelector('[data-testid="wb-window-bar"]')!.getBoundingClientRect();
       const note = document.querySelector('[data-testid="wb-jump-highlight-note"]') as HTMLElement | null;
       const st = document.querySelector('[data-testid="wb-window-state"]')!;
+      const paneEl = document.querySelector('[data-testid="wb-kline-view"]') as HTMLElement | null;
+      const pr = paneEl?.getBoundingClientRect() ?? null;
       return {
         reset: sample('wb-window-reset'),
         back: sample('wb-window-back'),
         klineOverflowPx: Math.round(kl.bottom - host.bottom),
+        hostTop: Math.round(host.top),
         hostBottom: Math.round(host.bottom),
         barTop: Math.round(bar.top),
+        barBottom: Math.round(bar.bottom),
+        pane: pr
+          ? { top: Math.round(pr.top), bottom: Math.round(pr.bottom), h: Math.round(pr.height), scrollTop: paneEl!.scrollTop }
+          : null,
+        cardHeaderH: (() => {
+          const h = document.querySelector('[data-testid="wb-kline-card-header"]');
+          return h ? Math.round(h.getBoundingClientRect().height) : null;
+        })(),
+        paneMetrics: (() => {
+          try {
+            const raw = document.querySelector('[data-testid="kline-chart"]')?.getAttribute('data-pane-metrics');
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        })(),
         chartAreaH: Math.round(kl.height),
         notePresent: note != null,
         noteState: note?.getAttribute('data-state') ?? '',
@@ -1388,9 +1599,39 @@ test('T7 回归 [@mut]：L2 跳转后「全览/回退」必须仍可点击（3 �
   ).toBe(true);
 
   // ── 判据：布局不变量 ──
-  expect(afterJump.klineOverflowPx, 'K 线容器不得溢出卡片（溢出即盖住下方控制条）').toBeLessThanOrEqual(1);
-  expect(afterJump.hostBottom, 'K 线卡片底部不得越过控制条顶部').toBeLessThanOrEqual(afterJump.barTop + 1);
-  expect(afterJump.chartAreaH, '图表区收缩后仍须有可用高度').toBeGreaterThan(100);
+  expect(afterJump.klineOverflowPx, 'K 线容器不得溢出卡片（溢出即盖住控制条）').toBeLessThanOrEqual(1);
+  // **D9 布局不变量**：窗口条在 K 线视图**顶部**、卡片在其**之下** ⇒ 旧「卡片底部不得越过控制条顶部」几何反了；
+  // 等价判据 = ①控制条完整落在 K 线视图可视区内 ②卡片与控制条**不重叠**（卡片顶 ≥ 控制条底）
+  // ③卡片完整落在 K 线视图内 ④K 线视图 scrollTop 恒 0（不滚）
+  expect(afterJump.pane, 'K 线视图必须存在').toBeTruthy();
+  expect(afterJump.barTop, 'D9-4 控制条必须落在 K 线视图可视区内（顶边界）').toBeGreaterThanOrEqual(
+    afterJump.pane!.top - 1,
+  );
+  expect(afterJump.barBottom, 'D9-4 控制条必须完整落在 K 线视图可视区内（底边界）').toBeLessThanOrEqual(
+    afterJump.pane!.bottom + 1,
+  );
+  expect(afterJump.hostTop, 'D9 卡片顶不得高于控制条底（两者不得重叠）').toBeGreaterThanOrEqual(
+    afterJump.barBottom - 1,
+  );
+  expect(afterJump.hostBottom, 'D9-2 卡片必须完整落在 K 线视图内').toBeLessThanOrEqual(afterJump.pane!.bottom + 1);
+  expect(afterJump.pane!.scrollTop, 'D9-4 K 线视图 scrollTop 必须为 0').toBe(0);
+  expect(afterJump.chartAreaH, 'D9 图表区（内层）收缩后仍须有可用高度（卡高 = 视图高 − 60）').toBeGreaterThan(100);
+  // **D9-8① 恒等式**（含实测卡头）：主图 == 内层 − 26 − 1×副图数 − Σ副图；**D9-8②**：主图 ≥160（干净态时）
+  const pm7 = afterJump.paneMetrics as
+    | { candlePx: number | null; subPanes: Array<{ px: number | null }>; subPaneTotalPx: number | null }
+    | null;
+  expect(pm7?.candlePx ?? 0, `D9-8② 主图硬下限 ≥ ${MAIN_MIN_PX}（实测 ${pm7?.candlePx ?? 'n/a'}）`).toBeGreaterThanOrEqual(
+    MAIN_MIN_PX - Math.max(0, (afterJump.cardHeaderH ?? 20) - 20),
+  );
+  if (pm7?.candlePx != null && pm7.subPaneTotalPx != null) {
+    expect(
+      Math.abs(pm7.candlePx - (afterJump.chartAreaH - 26 - 1 * pm7.subPanes.length - pm7.subPaneTotalPx)),
+      `D9-8① 主图 == 内层 − 26 − 1×副图数 − Σ副图（主图 ${pm7.candlePx} / 内层 ${afterJump.chartAreaH} / Σ副图 ${pm7.subPaneTotalPx}）`,
+    ).toBeLessThanOrEqual(2);
+    for (const sp of pm7.subPanes) {
+      expect(sp.px ?? 0, `D9-8② 副图 ≥ ${SUB_PANE_MIN_PX}`).toBeGreaterThanOrEqual(SUB_PANE_MIN_PX);
+    }
+  }
 
   // ── 判据：真实 click ──
   expect(resetClickOk, `「全览」真实 click 必须成功（不得被 canvas 拦截）：${resetClickError}`).toBe(true);

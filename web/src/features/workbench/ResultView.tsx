@@ -16,8 +16,9 @@ import { useRunAudit, type RunAuditState } from './useRunAudit';
 import { useResultWindow } from './useResultWindow';
 import { useCardResize } from './cardResize';
 import { useResultChartConfig, type ResultCardId } from './resultChartConfig';
-import { cardBoundsFor, readCardHeight, writeCardHeight } from './resultCardHeights';
+import { cardBoundsFor, readCardHeight, subPaneCountFor, writeCardHeight } from './resultCardHeights';
 import { useResultLayout } from './useResultLayout';
+import { SPLITTER_PX } from './resultLayout';
 import { DetailPane, type DetailTabKey } from './DetailPane';
 import { IndicatorToggles } from '@/features/dashboard/IndicatorToggles';
 
@@ -224,19 +225,21 @@ export function ResultView({
   onJump?: (target: JumpTarget) => void;
 }) {
   const [tab, setTab] = useState<TabKey>('trades');
-  /** ADR-028 D4.1 ①：focus 锚点（跳转后把 K 线区域在上栏容器内滚回可见）。 */
+  /** ADR-028 D4.1 ① + §2.9（D9）：focus 锚点 = **K 线视图**容器（跳转只在该视图内回到可见，不得动其他视图）。 */
   const klineWrapRef = useRef<HTMLDivElement>(null);
-  /** ADR-028 §2.7（D7）①：**上栏**滚动容器（focus 滚动作用域收敛于此，整页不再滚动）。 */
-  const chartPaneRef = useRef<HTMLDivElement>(null);
-  /** ADR-028 §2.7（D7）③：下栏比例 / 折叠 / 记忆（默认 40% 视口高）。 */
-  const layout = useResultLayout();
+  /** ADR-028 §2.4c 第 2/3/5/6 项：结果页图表卡配置（指标 = 独立 key；本批不变）。
+   *  **先于**布局 hook 求值：副图数决定 K 线视图的有效可读下限（299/329，D9-7/D9-13）。 */
+  const chartCfg = useResultChartConfig();
+  const subPaneCount = subPaneCountFor(chartCfg.indicators);
+  /** ADR-028 §2.9（D9）③：三段视图比例 / 两条分隔条 / per-view 收起 / 记忆。 */
+  const layout = useResultLayout({ subPaneCount });
   /**
-   * ADR-028 §2.6 第 3 项（D6-7）：卡片高度存**结果页独立 key**（`eestock.result.cardHeights.v1`）。
-   * 旧实现存在结果页指标 key 的 `cardHeights` 字段里（同一 key 混放两类配置）——现拆分：
-   * 高度走本 state（新 key），指标仍走 `resultChartConfig`（旧 key，语义不变）。
+   * ADR-028 §2.6 第 3 项（D6-7）＋ §2.9 第 5 项（D9-5）：
+   * **曲线卡**高度仍走结果页独立 key（D4.2 有效，**勿删**）；**K 线卡高语义已删**
+   * （`kline` 旧值仅作一次性只读迁移源 → 初始视图高，见 `resultLayout.readResultLayout`）。
    */
   const [cardHeights, setCardHeights] = useState<Record<ResultCardId, number | null>>(() => ({
-    kline: readCardHeight('kline'),
+    kline: null,
     aggregate: readCardHeight('aggregate'),
     slot: readCardHeight('slot'),
     equity: readCardHeight('equity'),
@@ -284,15 +287,14 @@ export function ResultView({
   const handleJump = (t: JumpTarget) => {
     win.jumpTo(t);
     onJump?.(t);
-    // ① focus（ADR-028 §2.7 第 5 项）：**作用域收敛到上栏容器内**（不再 scrollIntoView 到「页面」——
-    //    页面级滚动已移除；下栏**完全不动**，即 B1-1 口径）。
-    const pane = chartPaneRef.current;
+    // ① focus（ADR-028 §2.9 D9-10 / D7 第 5 项）：**作用域收敛到 K 线视图容器内**。
+    //    K 线视图不滚动（D9-4）⇒ 该操作在默认布局下为 no-op，但保留「回到可见」语义与可观测计数。
     const card = klineWrapRef.current;
-    if (pane && card) {
-      const pRect = pane.getBoundingClientRect();
+    if (card) {
       const cRect = card.getBoundingClientRect();
-      pane.scrollTop = Math.max(0, pane.scrollTop + (cRect.top - pRect.top));
-      // 可观测：上栏内确实发生过 focus 滚动（旧契约 scrollIntoView 已被取代）
+      const vRect = card.parentElement ? card.parentElement.getBoundingClientRect() : cRect;
+      card.parentElement && (card.parentElement.scrollTop = Math.max(0, card.parentElement.scrollTop + (cRect.top - vRect.top)));
+      // 可观测：K 线视图内确实执行过 focus 滚动（旧契约 scrollIntoView 已被取代）
       setFocusScrollRev((r) => r + 1);
     }
     // ② 高亮：**只高亮被点击的那一笔**（按 rt_seq + 该回合成交序号 ⇒ `fillKey`，禁按 bar 粗定位）；
@@ -308,8 +310,7 @@ export function ResultView({
   };
 
   /** ADR-028 §2.4c 第 2/3/5/6 项：结果页图表卡配置（**指标** key 不变）。 */
-  const chartCfg = useResultChartConfig();
-  /** 四张**曲线卡**高度 API（K 线卡改由 `KlineResultChart` 内部按 pane 几何派生 bounds，见 D6-4）。 */
+  /** 四张**曲线卡**高度 API（D4.2 有效，D9 保留；K 线卡改由 K 线视图高度决定，见 D9-5）。 */
   const resizeOf = (id: ResultCardId, defaultPx: number) => {
     const b = cardBoundsFor({ viewportH: layout.viewportH, subPaneCount: 0, cardId: id });
     return {
@@ -347,16 +348,27 @@ export function ResultView({
   const readyForDetail = !loading && !error && run.status === 'succeeded' && result != null;
 
   return (
-    // ADR-028 §2.7（D7，方案 B = 上下分层）：
-    //  ① 页面级滚动**移除**（`wb-result` 不再 `overflow-auto`）⇒ 上下栏各自内部滚动（D7-1）；
-    //  ② 上栏 `wb-chart-pane` = K 线 + 窗口条 + 四张曲线卡（自身滚动，保住全宽）；
-    //  ③ 下栏 `wb-detail-pane` = 明细（自身滚动）+ `wb-detail-tabs`；
-    //  ④ 比例/折叠/记忆见 `useResultLayout`（默认 40% 视口高；D7-3）。
+    // ADR-028 §2.9（D9，三视图拆分）：
+    //  ① 页面级滚动**移除**（`wb-result` 不滚动）⇒ 三视图各自内部滚动（D9-4）；
+    //  ② `wb-kline-view` = 窗口条 + 载入提示 + K 线卡（**常驻、不可收起**，x 域锚）；
+    //  ③ `wb-indicator-view` = **仅**四张曲线卡（自身滚动）；④ `wb-detail-view` = 4 tab（自身滚动）；
+    //  ⑤ 两条分隔条 + 两枚常驻恢复条；三段比例/收起/记忆见 `useResultLayout`。
     <div
-      className="flex h-full min-h-0 flex-col gap-2 p-3"
+      className="relative flex h-full min-h-0 flex-col gap-2 p-3"
       data-testid="wb-result"
-      data-pane-collapsed={layout.collapsed ? 'true' : 'false'}
-      data-pane-ratio={layout.ratio.toFixed(4)}
+      data-view-ratio-kline={layout.ratios.kline.toFixed(4)}
+      data-view-ratio-indicators={layout.ratios.indicators.toFixed(4)}
+      data-view-ratio-detail={layout.ratios.detail.toFixed(4)}
+      data-view-height-kline={layout.klinePx}
+      data-view-height-indicators={layout.indicatorsPx}
+      data-view-height-detail={layout.detailPx}
+      data-view-collapsed-indicators={layout.collapsed.indicators ? 'true' : 'false'}
+      data-view-collapsed-detail={layout.collapsed.detail ? 'true' : 'false'}
+      data-view-available={layout.availablePx}
+      data-view-clamped={layout.clamped ? 'true' : 'false'}
+      data-view-compressed={layout.compressed ? 'true' : 'false'}
+      data-view-splitter={SPLITTER_PX}
+      data-kline-sub-pane-count={subPaneCount}
     >
       {/* 头部：run 概要 + 状态/错误 */}
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
@@ -373,15 +385,30 @@ export function ResultView({
           运行失败：{run.error ?? '未知错误'}
         </div>
       )}
-
-      <div ref={layout.splitRef} data-testid="wb-result-split" className="flex min-h-0 flex-1 flex-col gap-2">
-        {/* ── 上栏（自身滚动；focus 作用域收敛于此） ── */}
+      {/* D9-7：三段可读下限不可同时满足（或默认比例低于下限）⇒ **显式披露**（禁静默）。
+          绝对定位（不占布局高）⇒ K 线视图几何恒等式与「可用高 = 视口 − 132」不随披露状态漂移。 */}
+      {layout.disclosure && (
         <div
-          ref={chartPaneRef}
-          data-testid="wb-chart-pane"
+          className="absolute right-3 top-1 z-30 max-w-[36rem] rounded border border-amber-400/40 bg-panel/95 px-2 py-0.5 text-[10px] text-amber-300"
+          data-testid="wb-view-clamp-note"
+          role="status"
+        >
+          {layout.disclosure}
+        </div>
+      )}
+
+      <div ref={layout.splitRef} data-testid="wb-result-split" className="flex min-h-0 flex-1 flex-col gap-1">
+        {/* ── ① K 线视图（**常驻、不可收起**；D9-1/D9-2；focus 作用域收敛于此） ──
+            内部固定占用 60px（窗口控制条 34 + 载入提示 18 + gap 8）⇒ `卡高 = 视图高 − 60`（D9-8 恒等式） */}
+        <section
+          ref={klineWrapRef}
+          data-testid="wb-kline-view"
+          data-view="kline"
+          data-view-height={layout.klinePx}
           data-focus-scroll={focusScrollRev}
-          data-pane-height={layout.availablePx > 0 && !layout.collapsed ? layout.availablePx - layout.detailPx - 12 : ''}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
+          data-marker-ts={markerTs ?? ''}
+          style={{ height: `${layout.klinePx}px` }}
+          className="flex min-h-0 shrink-0 flex-col overflow-hidden"
         >
           {error ? (
             <div className="flex items-center gap-3 text-xs text-up" data-testid="wb-result-error">
@@ -396,8 +423,123 @@ export function ResultView({
             </div>
           ) : run.status === 'succeeded' && result ? (
             <>
-              {/* ADR-028 D4.1 ①：focus 锚点（跳转时在**上栏容器内**滚回可见，见 handleJump） */}
-              <div ref={klineWrapRef} data-testid="wb-kline-focus-anchor" data-marker-ts={markerTs ?? ''}>
+              {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测）—— 固定 34px（D9-8 恒等式项） */}
+              <div
+                className="flex h-[34px] shrink-0 flex-nowrap items-center gap-2 overflow-hidden rounded-lg border border-line bg-panel2 px-2 text-[11px] text-dim"
+                data-testid="wb-window-bar"
+              >
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  data-testid="wb-window-reset"
+                  className="shrink-0 rounded-lg border border-line px-2 py-0.5 hover:text-txt"
+                >
+                  全览
+                </button>
+                <button
+                  type="button"
+                  onClick={win.back}
+                  disabled={!win.canBack}
+                  data-testid="wb-window-back"
+                  className="shrink-0 rounded-lg border border-line px-2 py-0.5 hover:text-txt disabled:opacity-40"
+                >
+                  回退
+                </button>
+                {/* 页面级窗口（**请求态**）：文本 + 机器可读 data-*（E2E 真渲染断言用） */}
+                <span
+                  data-testid="wb-window-state"
+                  data-source={win.window?.source ?? 'full'}
+                  data-rev={win.window?.rev ?? ''}
+                  data-from-ts={win.window?.from_ts ?? ''}
+                  data-to-ts={win.window?.to_ts ?? ''}
+                  data-span-bars={win.window?.span_bars ?? ''}
+                  className="shrink-0"
+                >
+                  {win.window
+                    ? `窗口 [${win.window.from_ts}, ${win.window.to_ts}] · ${win.window.span_bars} 根 · 来源 ${win.window.source} · rev ${win.window.rev}`
+                    : '全区间（未显式写窗）'}
+                </span>
+                {/**
+                 * **真身回执探针**（ADR-028 §3.4 / F18）：值来自 K 线实例 `getBarSpace()` /
+                 * `getVisibleRange()` 的**实际读回**（`WindowApplyResult.observed`），**不是**请求态。
+                 * 若 `setBarSpace` 越界被引擎静默 return ⇒ `ok=false` / `error` 非空且 `observed=null`，
+                 * 真渲染 E2E 必须据此变红（禁止「没报错就算绿」）。
+                 */}
+                <span
+                  data-testid="wb-window-probe"
+                  data-ok={win.observed ? String(win.observed.ok) : ''}
+                  data-rev={win.observed?.rev ?? ''}
+                  data-requested-bar-space={win.observed?.requested_bar_space ?? ''}
+                  data-bar-space={win.observed?.observed?.bar_space ?? ''}
+                  data-from-idx={win.observed?.observed?.from_idx ?? ''}
+                  data-to-idx={win.observed?.observed?.to_idx ?? ''}
+                  data-from-ts={win.observed?.observed?.from_ts ?? ''}
+                  data-to-ts={win.observed?.observed?.to_ts ?? ''}
+                  data-error={win.observed?.error ?? ''}
+                  data-center-idx={win.observed?.observed?.center_idx ?? ''}
+                  data-center-ts={win.observed?.observed?.center_ts ?? ''}
+                  data-observed-center-idx={win.observed?.observed?.observed_center_idx ?? ''}
+                  data-observed-center-ts={win.observed?.observed?.observed_center_ts ?? ''}
+                  data-edge-clamped={win.observed?.observed?.edge_clamped == null ? '' : String(win.observed.observed.edge_clamped)}
+                  data-cmd-rev={win.command?.rev ?? ''}
+                  data-cmd-from-ts={win.command?.from_ts ?? ''}
+                  data-cmd-to-ts={win.command?.to_ts ?? ''}
+                  data-cmd-span={win.command?.span_bars ?? ''}
+                  data-cmd-center-ts={win.command?.center_ts ?? ''}
+                  hidden
+                />
+                {win.applying && (
+                  <span className="shrink-0 text-sky-300" data-testid="wb-window-applying">
+                    跳转中…
+                  </span>
+                )}
+                {win.applyError && (
+                  <span className="shrink-0 text-up" role="alert" data-testid="wb-window-apply-error">
+                    窗口应用失败：{win.applyError}
+                  </span>
+                )}
+                {/* ADR-028 D2.3-1 ②：程序化写窗**被钳位**必须显式披露（禁「请求即发布」） */}
+                {win.clampNote && (
+                  <span className="shrink-0 text-amber-300" data-testid="wb-window-clamped">
+                    {win.clampNote}
+                  </span>
+                )}
+                {/* ADR-028 D2.3-3：全览的**物理上限**必须显式披露（显示 N / 共 M 根） */}
+                {win.capNote && (
+                  <span className="shrink-0 text-amber-300" data-testid="wb-window-cap">
+                    {win.capNote}
+                  </span>
+                )}
+                {/* ADR-028 D2.1 第 2/4 条：定义域**降级**必须显式标注（禁静默） */}
+                {series.appliedDegraded && (
+                  <span className="shrink-0 text-amber-300" data-testid="wb-axis-degraded">
+                    {series.appliedXSource === 'per_bar'
+                      ? '时间轴降级（run per_bar 索引）'
+                      : '时间轴降级（ts 线性）'}
+                  </span>
+                )}
+                <span className="shrink-0" data-testid="wb-window-history">{`可回退 ${win.historyDepth} 步（上限 20）`}</span>
+              </div>
+              {/*
+                ADR-028 §9.8：窗口加载/应用状态 **恒常驻**（固定 18px）——「载入提示」在 D9 几何里
+                属于 K 线视图的固定 60px（D9-8：34 + 18 + 8）；未写窗时显式标注「全区间」，
+                不得因缺省而让 K 线视图高度改变（否则「卡高 = 视图高 − 60」恒等式随状态漂移）。
+              */}
+              <div className="h-[18px] shrink-0 overflow-hidden text-[11px] leading-[18px] text-dim" data-testid="wb-window-load-note">
+                {win.window
+                  ? series.windowLoading
+                    ? `窗口加载中：[${win.window.from_ts}, ${win.window.to_ts}]（共享 ~200ms 节流，以最后一次为准）`
+                    : series.windowError
+                      ? `窗口取数失败：${series.windowError}；当前显示的是上一窗口数据（from ${series.windowApplied?.from_ts ?? '—'} 到 ${series.windowApplied?.to_ts ?? '—'}，非当前窗口）`
+                      : series.windowApplied &&
+                          series.windowApplied.from_ts === win.window.from_ts &&
+                          series.windowApplied.to_ts === win.window.to_ts
+                        ? `窗口已应用：[${series.windowApplied.from_ts}, ${series.windowApplied.to_ts}] rev ${series.windowApplied.rev}`
+                        : '窗口待应用（等待取数）'
+                  : '窗口：全区间（未显式写窗）'}
+              </div>
+              {/* ADR-028 §2.9（D9-5）：K 线卡 **h-full**（高度 = K 线视图高 − 60） */}
+              <div data-testid="wb-kline-focus-anchor" className="mt-2 min-h-0 flex-1">
                 <KlineResultChart
                   run={run}
                   fills={series.fills}
@@ -407,8 +549,7 @@ export function ResultView({
                   onWindowApplied={win.onApplied}
                   highlight={highlight}
                   indicators={chartCfg.indicators}
-                  heightPx={cardHeights.kline}
-                  onCommitHeight={(px) => commitHeight('kline', px)}
+                  viewPx={layout.klinePx}
                   toggleSlot={
                     /* 指标勾选 = 与看板**同一实现**（共享组件）；结果页配置独立 key（硬约束）。
                        aria-pressed + 稳定 testid ⇒ 真渲染规格可点、可断言。 */
@@ -420,195 +561,9 @@ export function ResultView({
                   }
                 />
               </div>
-          {/* ADR-028 D2/D4：窗口控制条（全览 + 历史回退 + 当前窗口观测） */}
-          <div
-            className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-panel2 px-2 py-1 text-[11px] text-dim"
-            data-testid="wb-window-bar"
-          >
-            <button
-              type="button"
-              onClick={handleReset}
-              data-testid="wb-window-reset"
-              className="rounded-lg border border-line px-2 py-0.5 hover:text-txt"
-            >
-              全览
-            </button>
-            <button
-              type="button"
-              onClick={win.back}
-              disabled={!win.canBack}
-              data-testid="wb-window-back"
-              className="rounded-lg border border-line px-2 py-0.5 hover:text-txt disabled:opacity-40"
-            >
-              回退
-            </button>
-            {/* 页面级窗口（**请求态**）：文本 + 机器可读 data-*（E2E 真渲染断言用） */}
-            <span
-              data-testid="wb-window-state"
-              data-source={win.window?.source ?? 'full'}
-              data-rev={win.window?.rev ?? ''}
-              data-from-ts={win.window?.from_ts ?? ''}
-              data-to-ts={win.window?.to_ts ?? ''}
-              data-span-bars={win.window?.span_bars ?? ''}
-            >
-              {win.window
-                ? `窗口 [${win.window.from_ts}, ${win.window.to_ts}] · ${win.window.span_bars} 根 · 来源 ${win.window.source} · rev ${win.window.rev}`
-                : '全区间（未显式写窗）'}
-            </span>
-            {/**
-             * **真身回执探针**（ADR-028 §3.4 / F18）：值来自 K 线实例 `getBarSpace()` /
-             * `getVisibleRange()` 的**实际读回**（`WindowApplyResult.observed`），**不是**请求态。
-             * 若 `setBarSpace` 越界被引擎静默 return ⇒ `ok=false` / `error` 非空且 `observed=null`，
-             * 真渲染 E2E 必须据此变红（禁止「没报错就算绿」）。
-             */}
-            <span
-              data-testid="wb-window-probe"
-              data-ok={win.observed ? String(win.observed.ok) : ''}
-              data-rev={win.observed?.rev ?? ''}
-              data-requested-bar-space={win.observed?.requested_bar_space ?? ''}
-              data-bar-space={win.observed?.observed?.bar_space ?? ''}
-              data-from-idx={win.observed?.observed?.from_idx ?? ''}
-              data-to-idx={win.observed?.observed?.to_idx ?? ''}
-              data-from-ts={win.observed?.observed?.from_ts ?? ''}
-              data-to-ts={win.observed?.observed?.to_ts ?? ''}
-              data-error={win.observed?.error ?? ''}
-              data-center-idx={win.observed?.observed?.center_idx ?? ''}
-              data-center-ts={win.observed?.observed?.center_ts ?? ''}
-              data-observed-center-idx={win.observed?.observed?.observed_center_idx ?? ''}
-              data-observed-center-ts={win.observed?.observed?.observed_center_ts ?? ''}
-              data-edge-clamped={win.observed?.observed?.edge_clamped == null ? '' : String(win.observed.observed.edge_clamped)}
-              data-cmd-rev={win.command?.rev ?? ''}
-              data-cmd-from-ts={win.command?.from_ts ?? ''}
-              data-cmd-to-ts={win.command?.to_ts ?? ''}
-              data-cmd-span={win.command?.span_bars ?? ''}
-              data-cmd-center-ts={win.command?.center_ts ?? ''}
-              hidden
-            />
-            {win.applying && (
-              <span className="text-sky-300" data-testid="wb-window-applying">
-                跳转中…
-              </span>
-            )}
-            {win.applyError && (
-              <span className="text-up" role="alert" data-testid="wb-window-apply-error">
-                窗口应用失败：{win.applyError}
-              </span>
-            )}
-            {/* ADR-028 D2.3-1 ②：程序化写窗**被钳位**必须显式披露（禁「请求即发布」） */}
-            {win.clampNote && (
-              <span className="text-amber-300" data-testid="wb-window-clamped">
-                {win.clampNote}
-              </span>
-            )}
-            {/* ADR-028 D2.3-3：全览的**物理上限**必须显式披露（显示 N / 共 M 根） */}
-            {win.capNote && (
-              <span className="text-amber-300" data-testid="wb-window-cap">
-                {win.capNote}
-              </span>
-            )}
-            {/* ADR-028 D2.1 第 2/4 条：定义域**降级**必须显式标注（禁静默） */}
-            {series.appliedDegraded && (
-              <span className="text-amber-300" data-testid="wb-axis-degraded">
-                {series.appliedXSource === 'per_bar'
-                  ? '时间轴降级（run per_bar 索引）：K 线所绘制的 bar 序列不可得 ⇒ 与 K 线蜡烛位置不保证对齐'
-                  : '时间轴降级（ts 线性，与 K 线可能存在缺口偏差）：K 线 bar 序列与 run per_bar 均不可得'}
-              </span>
-            )}
-            <span data-testid="wb-window-history">{`可回退 ${win.historyDepth} 步（上限 20）`}</span>
-          </div>
-          {series.curvesError && (
-            <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-series-error">
-              <span>曲线加载失败：{series.curvesError}</span>
-              <button
-                type="button"
-                onClick={series.reload}
-                className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt"
-              >
-                重试
-              </button>
-            </div>
-          )}
-          {series.curvesLoading ? (
-            <div
-              className="flex h-32 items-center justify-center rounded-lg border border-line bg-panel2 text-xs text-dim"
-              data-testid="wb-series-skeleton"
-            >
-              曲线加载中（`/curve` 显式抽样）…
-            </div>
-          ) : (
-            <>
-              {/* ADR-028 §9.8：窗口加载中显式标注；失败时不得用旧数据冒充当前窗口 */}
-              {win.window && (
-                <div className="text-[11px] text-dim" data-testid="wb-window-load-note">
-                  {series.windowLoading
-                    ? `窗口加载中：[${win.window.from_ts}, ${win.window.to_ts}]（共享 ~200ms 节流，以最后一次为准）`
-                    : series.windowError
-                      ? `窗口取数失败：${series.windowError}；当前显示的是上一窗口数据（from ${series.windowApplied?.from_ts ?? '—'} 到 ${series.windowApplied?.to_ts ?? '—'}，非当前窗口）`
-                      : series.windowApplied &&
-                          series.windowApplied.from_ts === win.window.from_ts &&
-                          series.windowApplied.to_ts === win.window.to_ts
-                        ? `窗口已应用：[${series.windowApplied.from_ts}, ${series.windowApplied.to_ts}] rev ${series.windowApplied.rev}`
-                        : '窗口待应用（等待取数）'}
-                </div>
-              )}
-              {/* ADR-028 D2.1/D2.3-4：x 一律消费**已提交**的定义域（`series.appliedXDomain`）+ 共用绘图区
-                  几何（`series.appliedPlot`）；`domain` 仅供 `data-x-domain` 标注与降级路径（E2E 冻结口径）。 */}
-              <AggregateScoreChart
-                perBar={series.perBar.points}
-                sampling={series.perBar}
-                buyThreshold={run.config.buy_threshold}
-                sellThreshold={run.config.sell_threshold}
-                domain={win.domain}
-                xDomain={series.appliedXDomain}
-                plot={series.appliedPlot}
-                markerTs={markerTs}
-                resize={resizeAggregate}
-              />
-              <SlotScoresChart
-                perBar={series.perBar.points}
-                sampling={series.perBar}
-                slots={run.config.slots}
-                catalog={catalog}
-                domain={win.domain}
-                xDomain={series.appliedXDomain}
-                plot={series.appliedPlot}
-                markerTs={markerTs}
-                resize={resizeSlot}
-              />
-              <EquityDrawdownChart
-                netValue={series.netValue.points}
-                drawdown={series.drawdown.points}
-                sampling={{ netValue: series.netValue, drawdown: series.drawdown }}
-                domain={win.domain}
-                xDomain={series.appliedXDomain}
-                plot={series.appliedPlot}
-                markerTs={markerTs}
-                resize={resizeEquity}
-              />
-              {/* ADR-028 D1：持仓比率视图（口径消歧三件套：position_ratio / ratio / deployed_pct / cash_consumed_pct 各带分母） */}
-              <PositionRatioChart
-                points={series.position.points}
-                sampling={series.position}
-                domain={win.domain}
-                xDomain={series.appliedXDomain}
-                plot={series.appliedPlot}
-                markerTs={markerTs}
-                resize={resizePosition}
-                cumulative={
-                  audit.data
-                    ? {
-                        deployedPct: audit.data.deployed_pct,
-                        cashConsumedPct: audit.data.cash_consumed_pct,
-                        recorded: audit.data.recorded,
-                      }
-                    : null
-                }
-              />
-            </>
-          )}
             </>
           ) : (
-            /* 非终态/无结果：上栏显示状态提示，下栏仍存在（显式空态），页面不滚动 */
+            /* 非终态/无结果：K 线视图内显示状态提示（其余视图仍存在），页面不滚动 */
             <div className="flex h-40 items-center justify-center text-xs text-dim" data-testid="wb-result-pending">
               {run.status === 'canceled'
                 ? '运行已取消（无结果）'
@@ -617,82 +572,200 @@ export function ResultView({
                   : `运行${STATUS_LABEL[run.status] ?? run.status}…进度 ${progressPct}%`}
             </div>
           )}
-        </div>
-        {/* ── 下栏分隔条（拖拽改比例 + 双击复位 40%；折叠时隐藏但保留键盘可恢复入口） ── */}
-        {!layout.collapsed && <div {...layout.splitterProps} />}
-        {layout.collapsed ? (
-          <div className="flex shrink-0 items-center justify-center" data-testid="wb-detail-collapsed-bar">
-            <button
-              type="button"
-              data-testid="wb-detail-expand"
-              onClick={layout.expand}
-              aria-label="展开明细面板（恢复记忆比例）"
-              className="rounded border border-line px-3 py-0.5 text-[10px] text-dim hover:text-txt"
-            >
-              明细已收起 ▲
-            </button>
+        </section>
+
+        {/* ── ② 分隔条 `K线↔指标`（收起指标时**原位**换成常驻恢复条，占据同一 12px 带） ── */}
+        {layout.collapsed.indicators ? (
+          <div {...layout.restoreProps('indicators')} className={`${layout.restoreProps('indicators').className} w-full`}>
+            指标 ▲
           </div>
         ) : (
-          /* ── 下栏（明细独立视图；自身滚动；D7-1/D7-2） ── */
-          <DetailPane
-            tab={tab}
-            onTabChange={setTab}
-            heightPx={layout.detailPx}
-            onCollapse={layout.collapse}
-            content={{
-              /* 1) L1 回合 + 2) L2 逐笔（默认 tab） */
-              trades: readyForDetail ? (
-                <div className="flex flex-col gap-2">
-                  <AuditSummary audit={audit} fills={series.fills} />
-                  {/* ADR-027 D8/D10：L1 回合（默认一层）→ 展开按 rt_seq 懒加载 L2 + 逐回合对账告警 */}
-                  <RoundTripsTable
-                    state={series.roundTrips}
-                    l2={series.l2}
-                    ensureL2={series.ensureL2}
-                    onLoadMore={series.loadMoreRoundTrips}
-                    onJump={handleJump}
-                    audit={audit}
-                  />
+          <div {...layout.splitterProps('kline-indicators')} />
+        )}
+
+        {/* ── ③ 指标视图（**仅**四张曲线卡；自身滚动；D9-1/D9-4） ── */}
+        {!layout.collapsed.indicators && (
+          <section
+            data-testid="wb-indicator-view"
+            data-view="indicators"
+            data-view-height={layout.indicatorsPx}
+            style={{ height: `${layout.indicatorsPx}px` }}
+            className="flex min-h-0 shrink-0 flex-col gap-2 overflow-auto"
+          >
+            {/* D9-9：指标视图**不得**引入横向内缩（padding/border）——四张曲线卡与 K 线卡必须同宽同左缘，
+                否则同一根 bar 在两视图上的**屏幕像素**偏差会因容器内缩而变大（实测 15.3px > 2px 判据）。 */}
+            <div
+              data-testid="wb-indicator-view-header"
+              className="sticky top-0 z-10 flex h-4 shrink-0 items-center gap-2 bg-panel bg-opacity-90 px-1 text-[10px] text-dim"
+            >
+              <span className="shrink-0">指标视图</span>
+              <span className="flex-1" />
+              {/* 指标**视图**的收起入口（D9-3）；K 线视图**无**收起入口（D9-2） */}
+              <button
+                type="button"
+                onClick={() => layout.collapse('indicators')}
+                data-testid="wb-indicator-collapse"
+                data-collapse-view="indicators"
+                aria-label="收起指标视图（其余视图按原比例分享其空间）"
+                title="收起指标视图"
+                className="rounded border border-line px-2 text-[10px] text-dim hover:text-txt"
+              >
+                指标 收起 ▾
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {series.curvesError && (
+                <div className="flex items-center gap-2 text-[11px] text-up" data-testid="wb-series-error">
+                  <span>曲线加载失败：{series.curvesError}</span>
+                  <button
+                    type="button"
+                    onClick={series.reload}
+                    className="rounded-lg border border-line px-3 py-0.5 text-dim hover:text-txt"
+                  >
+                    重试
+                  </button>
+                </div>
+              )}
+              {series.curvesLoading ? (
+                <div
+                  className="flex h-32 items-center justify-center rounded-lg border border-line bg-panel2 text-xs text-dim"
+                  data-testid="wb-series-skeleton"
+                >
+                  曲线加载中（`/curve` 显式抽样）…
                 </div>
               ) : (
-                <DetailEmpty />
-              ),
-              metrics: readyForDetail ? (
-                <MetricsTable
-                  result={result as WorkbenchRunResult}
-                  audit={audit}
-                  capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
-                />
-              ) : (
-                <DetailEmpty />
-              ),
-              /* 3) 逐 bar 明细 */
-              perbar: readyForDetail ? (
-                <PerBarTable
-                  bars={series.bars}
-                  slotCount={run.config.slots.length}
-                  onLoadMore={series.loadMore}
-                  onJumpRange={series.jumpToRange}
-                  onResetRange={series.resetRange}
-                />
-              ) : (
-                <DetailEmpty />
-              ),
-              /* 4) 事件日志 */
-              events: readyForDetail ? (
-                <EventLog
-                  perBar={series.bars.rows}
-                  total={series.bars.total}
-                  hasMore={series.bars.hasMore}
-                  loadingMore={series.bars.loadingMore}
-                  onLoadMore={series.loadMore}
-                  range={series.bars.range}
-                />
-              ) : (
-                <DetailEmpty />
-              ),
-            }}
-          />
+                <>
+                  {/* ADR-028 D2.1/D2.3-4：x 一律消费**已提交**的定义域（`series.appliedXDomain`）+ 共用绘图区
+                      几何（`series.appliedPlot`）；`domain` 仅供 `data-x-domain` 标注与降级路径（E2E 冻结口径）。 */}
+                  <AggregateScoreChart
+                    perBar={series.perBar.points}
+                    sampling={series.perBar}
+                    buyThreshold={run.config.buy_threshold}
+                    sellThreshold={run.config.sell_threshold}
+                    domain={win.domain}
+                    xDomain={series.appliedXDomain}
+                    plot={series.appliedPlot}
+                    markerTs={markerTs}
+                    resize={resizeAggregate}
+                  />
+                  <SlotScoresChart
+                    perBar={series.perBar.points}
+                    sampling={series.perBar}
+                    slots={run.config.slots}
+                    catalog={catalog}
+                    domain={win.domain}
+                    xDomain={series.appliedXDomain}
+                    plot={series.appliedPlot}
+                    markerTs={markerTs}
+                    resize={resizeSlot}
+                  />
+                  <EquityDrawdownChart
+                    netValue={series.netValue.points}
+                    drawdown={series.drawdown.points}
+                    sampling={{ netValue: series.netValue, drawdown: series.drawdown }}
+                    domain={win.domain}
+                    xDomain={series.appliedXDomain}
+                    plot={series.appliedPlot}
+                    markerTs={markerTs}
+                    resize={resizeEquity}
+                  />
+                  {/* ADR-028 D1：持仓比率视图（口径消歧三件套：position_ratio / ratio / deployed_pct / cash_consumed_pct 各带分母） */}
+                  <PositionRatioChart
+                    points={series.position.points}
+                    sampling={series.position}
+                    domain={win.domain}
+                    xDomain={series.appliedXDomain}
+                    plot={series.appliedPlot}
+                    markerTs={markerTs}
+                    resize={resizePosition}
+                    cumulative={
+                      audit.data
+                        ? {
+                            deployedPct: audit.data.deployed_pct,
+                            cashConsumedPct: audit.data.cash_consumed_pct,
+                            recorded: audit.data.recorded,
+                          }
+                        : null
+                    }
+                  />
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── ④ 分隔条 `指标↔明细`（收起明细时**原位**换成常驻恢复条） ── */}
+        {layout.collapsed.detail ? (
+          <div {...layout.restoreProps('detail')} className={`${layout.restoreProps('detail').className} w-full`}>
+            明细 ▲
+          </div>
+        ) : (
+          <div {...layout.splitterProps('indicators-detail')} />
+        )}
+
+        {/* ── ⑤ 明细视图（4 tab；自身滚动；D9-1） ── */}
+        {!layout.collapsed.detail && (
+          <div data-testid="wb-detail-view" data-view="detail" data-view-height={layout.detailPx} className="flex min-h-0 shrink-0 flex-col">
+            <DetailPane
+              tab={tab}
+              onTabChange={setTab}
+              heightPx={layout.detailPx}
+              onCollapse={() => layout.collapse('detail')}
+              content={{
+                /* 1) L1 回合 + 2) L2 逐笔（默认 tab） */
+                trades: readyForDetail ? (
+                  <div className="flex flex-col gap-2">
+                    <AuditSummary audit={audit} fills={series.fills} />
+                    {/* ADR-027 D8/D10：L1 回合（默认一层）→ 展开按 rt_seq 懒加载 L2 + 逐回合对账告警 */}
+                    <RoundTripsTable
+                      state={series.roundTrips}
+                      l2={series.l2}
+                      ensureL2={series.ensureL2}
+                      onLoadMore={series.loadMoreRoundTrips}
+                      onJump={handleJump}
+                      audit={audit}
+                    />
+                  </div>
+                ) : (
+                  <DetailEmpty />
+                ),
+                metrics: readyForDetail ? (
+                  <MetricsTable
+                    result={result as WorkbenchRunResult}
+                    audit={audit}
+                    capitalBasis={audit.data?.capital_basis ?? run.config.initial_capital}
+                  />
+                ) : (
+                  <DetailEmpty />
+                ),
+                /* 3) 逐 bar 明细 */
+                perbar: readyForDetail ? (
+                  <PerBarTable
+                    bars={series.bars}
+                    slotCount={run.config.slots.length}
+                    onLoadMore={series.loadMore}
+                    onJumpRange={series.jumpToRange}
+                    onResetRange={series.resetRange}
+                  />
+                ) : (
+                  <DetailEmpty />
+                ),
+                /* 4) 事件日志 */
+                events: readyForDetail ? (
+                  <EventLog
+                    perBar={series.bars.rows}
+                    total={series.bars.total}
+                    hasMore={series.bars.hasMore}
+                    loadingMore={series.bars.loadingMore}
+                    onLoadMore={series.loadMore}
+                    range={series.bars.range}
+                  />
+                ) : (
+                  <DetailEmpty />
+                ),
+              }}
+            />
+          </div>
         )}
       </div>
     </div>
