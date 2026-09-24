@@ -178,3 +178,19 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 | R24 | 口径不一致 | 抖动费用分母实现为 `capital_basis`，契约写"净值" | 契约改以 `capital_basis` 为准（与审计族同口径） |
 | R25 | 可观测性缺口 | 审计数值受键集冻结，仅告警触发时可见；UI 无目标暴露曲线 | `per_bar` 已带 `target_pct/current_pct`（E10）⇒ 结果页可画；Step 2 再做显式曲线 |
 | R26 | **测试有效性（必修）** | 新增 e2e ③ 所选策略 in-range 分数仅 `{20,50}`（Sell/Hold）⇒ **0 挂单空壳通过**；且 `wb-exposure-disclosure`/`wb-exposure-target` 在 ConfigPanel 与 ResultView **重复 testid**（strict 双命中） | 必修：唯一 testid + 用例③须**真触发 Buy/加仓**并断言行为 |
+
+### 7.3 Step 1 部署后独立验收（2026-09-25；35/35 绿，0 红）
+
+- **身份**：被服务 `index-BlI-okHj.js` 与 `web/dist` 同名文件 **sha256 相等**（`5da406f1…`），契约标记全 HIT。
+- **后端为新二进制**：`POST /api/runs` 直提合法 `Exposure` ⇒ **201**（非 `unknown variant`）；`RateCap` 真生效
+  （`ramp_cap_pct_per_bar=0.05`、`rate_limited` 1 bar；**同窗口对照** `Immediate` 目标 0.3547 vs `RateCap` **0.0510**）；
+  告警 `["PARTIAL_DEPLOYMENT"]`、**无 `EXPOSURE_*`**。
+- **e2e 4/4**（此前被 skip 的用例③ 在 `:8081` 真跑通：`runPosts=[201]`、`目标 35.4%｜当前 35.4%｜死区拦截 9 bar`、`fills=2`、披露 testid 唯一命中）。
+- **旧配置/历史 run 不回归**：`LumpSum` ⇒ 201 且无 `EXPOSURE_*`；历史 run 的 `/audit` **18 键集与键序完全一致**。
+- **健康**：console/pageerror/failed request = 0；关键端点全 200；**重启未丢任务**（run id 前后差集 `LOST=∅`，87/2 → 91/2，`running/queued=0/0`）。
+- **运维记录**：`:8081` 于 2026-09-25 01:05 以原 `cmdline`/`cwd`/`config` 重启（SIGTERM 2s 优雅退出，新 PID 3365420；
+  日志留档 `logs/app_dev_8081_adr029_20260925_010552.log`，历史日志未覆盖）。
+
+**R27–R30（登记，不阻断）**：①`GET /api/health` → 404（本项目健康端点为 `/healthz`）⇒ **外部探活若依赖前者需对齐**；
+②用例③ 的 `deadzone_blocked=9` / `guard 夹取 0` 仅记录、未做语义校验（属规格层判据）；
+③二进制可复现性未核（未重编译比对 HEAD `0bd60f3`）；④`/bars` in-range 仅 10 bar（春节休市）未逐日核交易日历。
