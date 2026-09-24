@@ -59,6 +59,7 @@
 - **插件只产评分，永不可见订单/账户/执行接口**；聚合分 →（实盘模式必经 RiskGate）→ Executor。RiskGate 是独立 domain 组件，插件无法绕过。
 - Domain 层无 IO：BarSource/Executor/Registry 持久化均为 Port，由 application 注入。
 - 三种执行模式共享同一条「评分→聚合→Policy」代码路径——回测验证过的策略组合行为与模拟/实盘一致，此一致性由架构保证而非测试保证。
+> **更正注（2026-09-24，ADR-029 取证）**：上述「三种执行模式共享同一条『评分→聚合→Policy』代码路径」**只对评分路径成立**（`weighted_aggregate` / `aggregate_to_signal` 已共享）；**执行/仓位路径 sim-live 尚不存在**：`plugin_orchestrator::evaluate` 只产评分，下单用**固定 `aggregate_qty`**（`crates/application/src/simlive.rs:1345` 附近），**与 `policy` 无关** ⇒「回测验证过的策略组合行为与模拟/实盘一致」在**仓位维度上目前不成立**（语义后果：回测的 DCA/暴露目标在模拟盘不复现）。缺口立项见 `ADR-029 §5`（Step 2/3）。原文保留不删，以维持历史决策链。
 
 ## 4. 插件 ABI 与确定性契约
 

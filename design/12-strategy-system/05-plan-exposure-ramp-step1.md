@@ -34,7 +34,7 @@
 | E10 | **观测/审计** | 每 bar `target_pct/current_pct/deadzone_blocked/clamped_by_guard` 可读；审计出现"意图 vs 实际暴露"差值 |
 | E12 | **求值顺序（pipeline）** | 固定为：映射→guard 夹取→换算股数→**死区**→**限速**→下单→观测；顺序不同即判错（构造可区分的用例：同一输入在两种顺序下结果不同） |
 | E13 | **`Fixed` 卖出语义** | `Fixed` 与 `LumpSum` 在相同输入下**逐字节等价**（含 `score ≤ sell_threshold ⇒ 目标 0`） |
-| E14 | **sim-live 一致性** | `crates/simlive/src/plugin_orchestrator.rs` 的 policy 调用点同步传 `score` 且语义一致（三模式同一执行路径；构造同输入对照用例） |
+| E14 | **N/A（取证更正）** | sim-live **无** policy/仓位执行路径（`plugin_orchestrator::evaluate` 只产评分；下单用固定 `aggregate_qty`，`application/src/simlive.rs:1345`）⇒ 无可改对象；**交付须附该两项取证读数**；缺口登记于 ADR-029 §5（Step 2/3 立项） |
 | E11 | **校验 fail loud** | `buy_threshold < 100 ∧ sell_threshold > 0`（`ScoreMapped` 分母非零）；`at_full_pct ≥ at_threshold_pct`；`0 ≤ min_pct ≤ max_pct ≤ 1`；`deadzone_pct ≥ 0`；`pct_per_bar > 0`；违规⇒构造报错（不得静默回退默认） |
 
 ---
@@ -44,9 +44,9 @@
 | 文件 | 改动 |
 |---|---|
 | `crates/strategy-core/src/policy.rs` | 新增 `ExposureTarget{SellPolicy, ...}` / `RampSpec` / `GuardSpec` / `ExecutionPolicy::Exposure`；`validate()` 加 E11 全部规则；`target_qty` 增 **`score: f64`** 参数（旧变体忽略）；新增 `ExposureState{last_target_pct, ramp_used_this_bar…}` 与 `clamped_by_guard/deadzone_blocked` 输出 |
-| `crates/simlive/src/plugin_orchestrator.rs` | 同步传 `score`、实现同一语义（E14；架构不变式要求三模式共享同一执行路径） |
+| ~~`crates/simlive/src/plugin_orchestrator.rs`~~ | **不涉及**（E14 = N/A；取证见 ADR-029 §7 R4） |
 | `crates/strategy-core/src/engine.rs` | 把**聚合分**传入 policy；把 E10 观测字段写入既有 `per_bar` 记录（不新增事实表） |
-| `crates/application/src/audit.rs` | 新增"意图（target_pct）vs 实际暴露"差值与**抖动指标**（下单次数/费用占净值比），形态沿用 `WARN_*` |
+| `crates/application/src/audit.rs` | 新增「意图（target_pct）vs 实际暴露」差值与**抖动指标**（下单次数/费用占净值比），**只经 `warnings[]` 披露**（新增 `EXPOSURE_INTENT_GAP` / `EXPOSURE_CHURN`，数值入 message）；**`AuditReport` 顶层键集不变** ⇒ 两个冻结镜像测试（`report_serializes_frozen_field_names`、`crates/web/tests/adr026_run_audit.rs`）**不改**；机器可读断言走新增 `ExposureAudit` 结构体单测 |
 | `web/src/api/types.ts` | policy 联合类型补 `Exposure` |
 | `web/src/features/workbench/ConfigPanel.tsx` | 新模式 UI（选择 exposure/ramp/guard、字段校验提示、映射端点说明） |
 | 规格 | `crates/strategy-core` 单测矩阵（E1–E7、E11）；`engine` 观测（E10）；`audit` 新字段；`web` 单测 + e2e（配置与披露） |
