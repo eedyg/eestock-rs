@@ -15,7 +15,8 @@ import type { WsClient } from '@/ws/WsClient';
  *
  * 等价口径（本文件定义的判据，实现方不得放宽度量）：
  * 1. **DOM 结构**：`[data-region="main-chart"]` 子树结构指纹 == **现状冻结指纹**（下 `FROZEN_MAIN_CHART_FP`，
- *    取证于 P1 前 HEAD `d6462da`）⇒ 关闭态**不得新增任何包裹元素**（例：多周期容器必须是透传/直接返回 children）；
+ *    取证于 P1 前 HEAD `d6462da`；**已于 2026-09-25 重冻**到含 D4.1 四属性的当前真值，见该常量注释）
+ *    ⇒ 关闭态**不得新增任何包裹元素**（例：多周期容器必须是透传/直接返回 children）；
  *    指纹只含「标签层级 + `data-*` 属性 + `type`/`aria-pressed`」，**不含** class/id/style（避免样式类变动误报）。
  * 2. **调用序列/记账**：klinecharts `init` 恰 1 次（1 个实例）、`bar:` WS 订阅恰 1 个（仅基准周期 `15m`）、
  *    `getKline` 恰 1 次且 period = 默认周期、无任何其它周期的取数；**允许 1 次** `GET /api/config/multi_period`
@@ -81,11 +82,20 @@ async function loadStoreClass(): Promise<new (deps: { api: ApiClient }) => unkno
  * 现状冻结指纹（P1 前 HEAD `d6462da`，jsdom + klinecharts 桩，单图模式、默认 15m、默认 MA 开）：
  * 取 `[data-region="main-chart"]` 子树。取证命令与原始输出见
  * `tester/evidence/263_p1a_multiperiod_config_red/`（本文件执行报告 §2）。
+ *
+ * **重冻（2026-09-25，D4.1 遗留债结清）**：D4.1（`5890ea9`，2026-09-20）在主图根 div 引入
+ * `data-highlight-key` / `data-highlight-active` / `data-highlight-pulse` / `data-marker-overlays`
+ * **四个属性**（`git log -S` 四项全部指向 `5890ea9`），但当时未同步更新本指纹 ⇒ 该用例自 `5890ea9`
+ * 起一直红（`5890ea9^` 绿 6/6）。归属与处置立项见 `design/01-architecture/adr/ADR-028-…md` §2.13 第③项。
+ * 本次把指纹重冻为**当前关闭态主图子树逐字符真值**（含上述 4 属性），并已用 2 项变异（新增属性 /
+ * 删除 `data-marker-overlays`）证明指纹仍具鉴别力（各必红，逐字节复原）。
+ * 取证：`coder/evidence/20260925_t11_refreeze/raw/received_fingerprint.txt`（sha256
+ * `7432e6d615676aa03edd7c831cb1f873360a7152ee67585cdc59b09bef368ab4`）。
  */
 const FROZEN_MAIN_CHART_FP = [
   '0:div[data-region=main-chart]',
   '1:div[data-region=sub-chart]',
-  '1:div[data-testid=kline-chart]',
+  '1:div[data-highlight-active=false data-highlight-key= data-highlight-pulse=0 data-marker-overlays=0 data-testid=kline-chart]',
 ].join('\n');
 
 /** 结构指纹：标签层级 + `data-*`/`type`/`aria-pressed` + 非空文本（忽略 class/id/style）。 */
