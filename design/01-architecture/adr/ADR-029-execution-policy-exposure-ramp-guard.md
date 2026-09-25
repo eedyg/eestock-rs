@@ -191,6 +191,6 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 - **运维记录**：`:8081` 于 2026-09-25 01:05 以原 `cmdline`/`cwd`/`config` 重启（SIGTERM 2s 优雅退出，新 PID 3365420；
   日志留档 `logs/app_dev_8081_adr029_20260925_010552.log`，历史日志未覆盖）。
 
-**R27–R30（登记，不阻断）**：①`GET /api/health` → 404（本项目健康端点为 `/healthz`）⇒ **外部探活若依赖前者需对齐**；
+**R27–R30（登记，不阻断）**：①`GET /api/health` → 404（本项目健康端点为 `/healthz`）⇒ **外部探活若依赖前者需对齐**；**【2026-09-25 已处置】**：盘点为**零依赖** ⇒ **不设别名**（禁凭空造接口），改文档消歧（`design/07-app-plane/00-web-api.md §1`、`deploy-runbook C1`）+ **2 个契约锁定测试**；真身复验 `:8081`/`:8080` `/healthz`=200 ∧ `/api/health`=404。
 ②用例③ 的 `deadzone_blocked=9` / `guard 夹取 0` 仅记录、未做语义校验（属规格层判据）；
 ③二进制可复现性未核（未重编译比对 HEAD `0bd60f3`）；④`/bars` in-range 仅 10 bar（春节休市）未逐日核交易日历。

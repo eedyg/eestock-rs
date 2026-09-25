@@ -259,7 +259,9 @@ ADR-027 D11 的完整性契约（`total`/`recorded`/`has_more`/显式截断/窗�
 - **缺陷（三段实测）**：①跳转写入 `barSpace=5` 后 **16ms** 被 `ResizeObserver → fitBarSpaceToViewport(chart, el, 120)` **重拟合为 6**（`manualAdjusted` 只由真实手势置位，程序化跳转不置位；连"跳转自身高亮提示换行导致容器高 285→267"都会触发）；②`klineWindowOps.ts:280` `floor(width/span) || min` 在 **span 超面板宽**时**夹到 min=1**（M15 全览 ⇒ `bs=1`、可见 **620 根**，对应你报的"scale 变小/608 根"量级）；③**曲线卡错位**：取数窗口取**页面声明窗口**（`useRunSeries.ts:486-489`）而 x 域取**真身可见 bar 切片**（`buildCurveX` + `curveXs` 容差外整点剔除）⇒ 实测**剔除率最高 1493/1854 = 80.5%**、折线左 1/3 空白。**「4 张全空」未复现**（12 状态无零点数）⇒ 判据不以未复现现象为准。
 - **假绿位置（精确定位）**：`klineWindowOps.ts:264-273`（`setAndVerify` 只校验 t0 写值 t0 读回）+ `:341` `return {ok:true, requested_bar_space: firstApplied, observed}`；上屏为**一次性快照**（`useResultWindow.ts:301-345` → `ResultView.tsx:544-577`）⇒ **不含"此后是否仍一致"与"`bar_space == requested_bar_space`"**，故 `adr028-window-sync.e2e.ts` 只读该快照即可通行。
 - **决策**：
-  1. **锁定**：程序化写窗成功后**锁定视口**（禁 `fitBarSpaceToViewport` 重拟合），直到「全览 / 窗口复位 / 切换 run」或**真实手势**才解锁。
+  1. **锁定**：程序化写窗成功后**锁定视口**（禁 `fitBarSpaceToViewport` 重拟合）。
+     **解锁条件 = 真实手势**（及**切换 run** / 组件卸载）；**程序化写窗（跳转、全览/复位）成功后一律重新锁定**。
+     *措辞修正（2026-09-25，见 §2.13）：原文把「全览」列为解锁条件，与落地语义及源码注释「跳转/全览必须留在原地」不符 —— 全览不是「解锁」，而是「以全览可达区间重新写窗并重新锁定」。*
   2. **真值写回**：目标**不可达**被夹取（`bs` 落 min 或 span 超面板宽）时，**以实测可达区间写回窗口状态机**（**K 线真身为准**）⇒ 使「取数窗口 == 可见域」重新成立。
   3. **活体披露**：`wb-window-probe` 拆 **`data-applied-*`（申请回执，一次性）** 与 **`data-live-*`（当前真身）**；**`ok` 语义必须包含"当前一致"**（`bar_space == requested_bar_space` ∧ 可见域 == 窗口域，±1 bar）；`wb-window-clamped` 按**活体**重算，禁过期快照。
   4. **判据**：任一跳转后 ①`curveXs` 剔除率 **0**（允许 ≤1 bar 量化）②`data-live-*` 与真身读数一致 ③不可达时 `clamped` 非空且含 requested/observed ④`adr028-window-sync`/`adr028-axis-align-*` 重锚后全绿。
@@ -422,3 +424,19 @@ ADR-027 D11 的完整性契约（`total`/`recorded`/`has_more`/显式截断/窗�
   ④**常显态标签粘连** ⇒ 「标签连通域个数」不可作标签数读数，**须以笔数为主判据**；
   ⑤自然态「被改写」为**瞬态**（稳态读数由构造态给出）；⑥连续对账（真身每次变化即回写窗口）仍为 Step 2。
 
+### 2.13 小债打包与规格存量整改（2026-09-25）
+
+- **健康端点口径（零依赖 ⇒ 不设别名）**：盘点确认无任何外部/脚本/前端/MCP 依赖 `/api/health` ⇒ **不新增别名**（禁凭空造接口），
+  改为**文档消歧**（`design/07-app-plane/00-web-api.md §1`、`design/16-backtest-scalability/05-deploy-runbook.md C1`）
+  ＋ **2 个契约锁定测试**（`crates/app/tests/healthz_endpoint_contract_lock.rs`、`crates/web/tests/healthz_route_contract.rs`）；
+  真身复验：`:8081`/`:8080` 的 `/healthz` = **200** ∧ `/api/health` = **404**。
+- **MCP 描述同步**：`bt_get_run_audit` 描述补 `EXPOSURE_INTENT_GAP`/`EXPOSURE_CHURN` 语义（**仅描述文本**，schema/参数/返回零改）
+  ＋**双向防漂移测试**（缺码必红、漂移必红）。
+- **`affordability_capped` 前端类型**：补**可选**字段（不改后端契约）；真实 run `per_bar` **427/427 根含该键**（true 3 根）。
+- **`adr028-resize-probe` 重锚**：首跑红**根因 = 硬编码 run 被顶出历史首屏**（非 D10 语义）⇒ 按 §2.10.1 裁决 3 改谓词解析 + 翻页查找，
+  并新增 **P5「锁定期间不重拟合」**；**非恒真**由变异证明（去掉 `!isViewportLocked()` 门控 ⇒ 断言 `Expected 54 / Received 6` 必红）。
+- **D2.4 预热文案**：空态 overlay 明确「当前窗口 N 根全部落在预热段（不计入评估、不绘制）」，**N 取裁剪真值**
+  （窗口态 = `window_bars`，**不是** `original_bars`，实测 22 vs 427）。
+- **存量待整改（本批只登记，未动）**：① `adr026-audit.e2e.ts` 的硬编码 run `sr_1789738328788_000005` **已 404** ⇒ 应按 §2.10.1 裁决 3 重锚；
+  ② `per_bar` 另有 4 个已产出未声明键（`warmup`/`ramp_cap_pct_per_bar`/`rate_limited`/`sell_transition`）⇒ 下批补声明；
+  ③ `multiPeriodClosedEquivalence` 的 `FROZEN_MAIN_CHART_FP` 指纹陈旧（归属由独立复验判定，见其报告）。
