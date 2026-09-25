@@ -439,4 +439,10 @@ ADR-027 D11 的完整性契约（`total`/`recorded`/`has_more`/显式截断/窗�
   （窗口态 = `window_bars`，**不是** `original_bars`，实测 22 vs 427）。
 - **存量待整改（本批只登记，未动）**：① `adr026-audit.e2e.ts` 的硬编码 run `sr_1789738328788_000005` **已 404** ⇒ 应按 §2.10.1 裁决 3 重锚；
   ② `per_bar` 另有 4 个已产出未声明键（`warmup`/`ramp_cap_pct_per_bar`/`rate_limited`/`sell_transition`）⇒ 下批补声明；
-  ③ `multiPeriodClosedEquivalence` 的 `FROZEN_MAIN_CHART_FP` 指纹陈旧（归属由独立复验判定，见其报告）。
+  ③ `multiPeriodClosedEquivalence` 的 `FROZEN_MAIN_CHART_FP` 指纹陈旧 —— **归属已由独立复验钉死**：
+   **引入者 = `5890ea9`（2026-09-20 11:10，D4.1 高亮批次）**。证据：`git archive` 干净树逐时点跑同一用例，
+   `5890ea9^` = **GREEN 6/6**；其后（`5890ea9` / `2bab9df` / `f720a9f` / `f1b8330` / 当前工作区）失败块
+   **sha256 逐字相同**（`93d0df360fbd6119`）；4 个属性（`data-highlight-active` / `-key` / `-pulse`、`data-marker-overlays`）
+   经 `git log -S` **全部指向 `5890ea9`**。**本轮 `f720a9f` 零因果**（其新增属性为 `data-marker-labels…` / `data-viewport-lock`，
+   本指纹不读取）。⇒ 这是 **D4.1 遗留债**（引入时未同步冻结指纹），已立项：重冻指纹并证明其**仍能抓回归**（变异必红）。
+   附注：实施报告 §6.1 把归属写成 `f720a9f` **系误判**，一律以复验结论为准。
