@@ -128,6 +128,30 @@ shares       = Σ_buy qty ;  hold_bars = close_bar − open_bar
 - **I3**（跨侧一致）：`nav[-1] == initial_capital + Σ_closed(pnl) + Σ_open(gross_value − invested + position_value_at_last_bar)`，
   容差 `1e-6 × max(1, |nav|)`（浮点累加，容差必须在测试中显式声明）。
 - **I4**：`Σ distinct(rt_seq) == round_trips.len()`；`ForceClose` 终结的回合数 == `audit.round_trips_force_closed`。
+- **I5**（D12 新增；**L2 派生列**）：`status='Closed'` 且**全平**（卖出股数覆盖全部买入股数）的回合 ⇒ **末笔「累计已实现盈亏」== L1 `pnl`**（容差 = 既有 `rt_reconcile.tolerance` 相对口径 `tol × max(1,|l1|)`）。
+  数学依据：`Σ sell_pnl = Σ 卖出净收入 − Σ 被消耗成本`；全平时被消耗成本总额 == 买入含费总成本 ⇒ 恰等于 `proceeds − invested` = L1 `pnl`。
+- **I6**（D12 新增；**语义保护**；**2026-09-26 由独立复验更正字面口径**）：① **首笔卖出之前**的所有买入行 ⇒ `cum_realized_pnl === 0`（防「净投入」伪装成已实现盈亏，即原始缺陷的防线）；② **买入不改变** `cum_realized_pnl`（买入行的值恒等于其**前一笔卖出行**的值）⇒ **首笔卖出之后**的买入行显示**当前累计**已实现盈亏，**可正可负**。
+  - ⚠️ 原文「买入行不得为负 / 恒 0」**已作废**：活库 465 回合 / 2108 条买入行中 `<0` 共 6 条、`>0` 共 94 条（反例：`sr_1790349931388_000024::1` idx8 = −1305.7911539369234）—— 买入行只是承载**回合累计值**，与「不造数」无矛盾。
+
+### 2.1 L2 派生列口径（D12，移动加权平均成本；**display-only**）
+
+> 权威裁定：ADR-027 §2.14（D12）。**修订** §2.10 **Q9b**（原「不引入成本对手方 / lot 归属列」的结论被用户诉求覆盖；其「不得造第二事实源」的担忧由本节口径消解）。
+
+**递推（含费；L2 事实字段为准，禁复算费用）**：
+
+```
+买入：qty += q ; cost_total += trade_value + commission ; unit_cost = cost_total / qty
+卖出：consumed = q × unit_cost（unit_cost 不因部分卖出而改变）
+      sell_pnl = (trade_value − commission − stamp_duty) − consumed
+      sell_pnl_pct = sell_pnl / consumed        // consumed == 0 ⇒ null
+      qty −= q ; cost_total −= consumed
+派生：position_cost_incl_fee = qty > 0 ? cost_total / qty : null   // “该笔成交后”口径
+越卖（q > qty）：sell_pnl = null、sell_pnl_pct = null、**累计不累加**、qty/cost_total 夹到 0（**不造数**）
+```
+
+**列集**：`持仓成本`（`position_cost_incl_fee`）、`本笔卖出盈亏`（`sell_pnl` + `sell_pnl_pct`）、`累计已实现盈亏`（`cum_realized_pnl`，**D12 重定义**）、`累计净现金流`（`cum_cashflow`，= D12 之前的 `cum_realized_pnl` 算法**一字不改**）。
+
+**硬约束**：① 实现为**单一纯函数**（`web/src/features/workbench/roundTripAccum.ts`），前后端 L2 表共用；② **display-only**：不得回灌绩效 / 对账 / 审计，I2 的输入仍是**事实字段**（对账 `pnl` 字段的 L2 侧取 `cum_cashflow` 末值）；③ 不引入 FIFO / lot 重算（不造第二事实源）；④ UI 列名必须带限定词，裸用「累计盈亏」视为违约。
 
 ---
 

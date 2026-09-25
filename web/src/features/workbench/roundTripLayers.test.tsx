@@ -311,7 +311,7 @@ describe('交易明细 L1/L2 分层（ADR-027 D8/D9/D10；ADR-028 D4）', () => 
     // cum_ 累计列（常显 + 明细内逐字段）
     expect(screen.getByTestId('wb-l2-cum-commission-1-2')).toHaveTextContent('15.25');
     expect(screen.getByTestId('wb-l2-cum-stamp-1-2')).toHaveTextContent('1.05');
-    expect(screen.getByTestId('wb-l2-cum-pnl-1-2')).toHaveTextContent('63.70');
+    expect(screen.getByTestId('wb-l2-cum-cashflow-1-2')).toHaveTextContent('63.70'); // 原名「累计盈亏」⇒ D12 改名「累计净现金流」（算法一字不改）
   });
 
   // ── F5：cum_* 末行 == L1 字段（逐字段相等） ──
@@ -332,9 +332,64 @@ describe('交易明细 L1/L2 分层（ADR-027 D8/D9/D10；ADR-028 D4）', () => 
     expect(last).toHaveAttribute('data-last-row', 'true'); // 末行标记（累计行 == L1 的锚点）
     expect(screen.getByTestId('wb-l2-cum-commission-1-2').textContent).toBe(screen.getByTestId('wb-rt-commission-1').textContent);
     expect(screen.getByTestId('wb-l2-cum-stamp-1-2').textContent).toBe(screen.getByTestId('wb-rt-stamp-1').textContent);
-    expect(screen.getByTestId('wb-l2-cum-pnl-1-2').textContent).toBe(screen.getByTestId('wb-rt-pnl-1').textContent);
+    expect(screen.getByTestId('wb-l2-cum-cashflow-1-2').textContent).toBe(screen.getByTestId('wb-rt-pnl-1').textContent);
     // 干净回合（两侧一致 + audit 无该 seq）⇒ 不出现告警
     expect(screen.queryByTestId('wb-rt-reconcile-1')).toBeNull();
+  });
+
+  // ── F13：L2 成本归属新列（ADR-027 §2.14 D12 / 09-plan §4）──
+
+  it('F13（ADR-027 D12）：新列「持仓成本 / 本笔卖出盈亏 / 累计已实现盈亏」+「累计盈亏」改名「累计净现金流」', async () => {
+    const user = userEvent.setup();
+    const client = apiWith({
+      getWorkbenchRoundTrips: vi.fn(async () => l1Response()),
+      getWorkbenchRoundTripFills: vi.fn(async (_id: string, rt: number) => l2Response(rt, RT1_FILLS)),
+      getRunAudit: vi.fn(async () => AUDIT_BASE),
+    });
+    const { run, result } = await mkRunAndResult(client);
+    render(<ResultView {...mkProps(run, result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-rt-detail-1'));
+    await screen.findByTestId('wb-l2-row-1-2');
+
+    // ① 表头：新列存在；旧列名「累计盈亏」**消失**（改名生效，非新增并列）
+    expect(screen.getByTestId('wb-l2-th-cost-1')).toHaveTextContent('持仓成本');
+    expect(screen.getByTestId('wb-l2-th-sellpnl-1')).toHaveTextContent('本笔卖出盈亏');
+    expect(screen.getByTestId('wb-l2-th-cum-realized-pnl-1')).toHaveTextContent('累计已实现盈亏');
+    expect(screen.getByTestId('wb-l2-th-cum-cashflow-1')).toHaveTextContent('累计净现金流');
+    expect(screen.queryByText('累计盈亏')).toBeNull(); // 裸用旧名 ⇒ 违约
+
+    // ② 列顺序（架构侧钦定）：金额 / 佣金 / 印花税 / 持仓成本 / 本笔卖出盈亏 / 累计佣金 / 累计印花税 /
+    //    累计已实现盈亏 / 累计净现金流 / 来源 / 操作
+    const headerIds = screen.getAllByTestId(/^wb-l2-th-/).map((th) => th.getAttribute('data-testid'));
+    expect(headerIds).toEqual([
+      'wb-l2-th-bar-1', 'wb-l2-th-ts-1', 'wb-l2-th-side-1', 'wb-l2-th-qty-1', 'wb-l2-th-price-1',
+      'wb-l2-th-value-1', 'wb-l2-th-commission-1', 'wb-l2-th-stamp-1', 'wb-l2-th-cost-1', 'wb-l2-th-sellpnl-1',
+      'wb-l2-th-cum-commission-1', 'wb-l2-th-cum-stamp-1', 'wb-l2-th-cum-realized-pnl-1', 'wb-l2-th-cum-cashflow-1',
+      'wb-l2-th-source-1', 'wb-l2-th-op-1',
+    ]);
+
+    // ③ 持仓成本：买行 = 该笔后含费移动加权单位成本；全平（末笔）⇒ —
+    //    买 100@10（费 5）⇒ 10.05；再买 100@10.20（费 5）⇒ 2030/200 = 10.150；末笔全平 ⇒ 无持仓
+    expect(screen.getByTestId('wb-l2-cost-1-0')).toHaveTextContent('10.050');
+    expect(screen.getByTestId('wb-l2-cost-1-1')).toHaveTextContent('10.150');
+    expect(screen.getByTestId('wb-l2-cost-1-2')).toHaveTextContent('—');
+
+    // ④ 本笔卖出盈亏：买行 —；卖行 `+63.70 (+3.14%)`（63.70 / 被消耗成本 2030 = 3.14%）
+    expect(screen.getByTestId('wb-l2-sellpnl-1-0')).toHaveTextContent('—');
+    expect(screen.getByTestId('wb-l2-sellpnl-1-1')).toHaveTextContent('—');
+    expect(screen.getByTestId('wb-l2-sellpnl-1-2')).toHaveTextContent('+63.70 (+3.14%)');
+    expect(screen.getByTestId('wb-l2-sellpnl-1-2').textContent).toContain('%');
+
+    // ⑤ 累计已实现盈亏：**首笔卖出前**买入行为 0.00（I6①：买入不改变累计 ⇒ 买入行 == 其前一笔的值；
+    //    首笔卖出后买入行可正可负，故此处**不得**断言「买入行恒 ≥ 0」），末笔 == L1 pnl 文本（I5 锚点）
+    expect(screen.getByTestId('wb-l2-cum-realized-pnl-1-0')).toHaveTextContent('0.00');
+    expect(screen.getByTestId('wb-l2-cum-realized-pnl-1-1')).toHaveTextContent('0.00');
+    expect(screen.getByTestId('wb-l2-cum-realized-pnl-1-2').textContent).toBe(screen.getByTestId('wb-rt-pnl-1').textContent);
+
+    // ⑥ 累计净现金流（原「累计盈亏」算法一字不改）：买后大额负数；末行 == L1 pnl（对账可见性保留）
+    expect(screen.getByTestId('wb-l2-cum-cashflow-1-0')).toHaveTextContent('-1005.00');
+    expect(screen.getByTestId('wb-l2-cum-cashflow-1-1')).toHaveTextContent('-2030.00');
+    expect(screen.getByTestId('wb-l2-cum-cashflow-1-2').textContent).toBe(screen.getByTestId('wb-rt-pnl-1').textContent);
   });
 
   // ── F4：对账不一致告警（冻结两侧数值） ──

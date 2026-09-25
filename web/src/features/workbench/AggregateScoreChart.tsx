@@ -13,6 +13,9 @@ import {
   vlineX,
   type CurveXDomain,
 } from './chartUtils';
+import { niceTicks } from './axisTicks';
+/** ADR-028 D12/D13：刻度/十字线/读数 = **唯一共用实现**（09-plan §2.3 DRY 要求）。 */
+import { CurveReadoutFrame, buildSamples, fmtScore, layoutTicks, type AxisTickItem, type ReadoutSeries } from './curveReadout';
 
 const H = 160;
 
@@ -88,6 +91,16 @@ export function AggregateScoreChart({
    *  只认「被裁剪」这一因：`dropped === 0` 的空（窗口落在 run 数据之外）**不**渲染（不得谎报预热段）。 */
   const evalDropped = sampling?.excludedByEvaluatedRange ?? 0;
   const warmupWindowEmpty = pts.length === 0 && evalDropped > 0;
+  /** D12：刻度**只标注既有 0–100 值域**（本卡 y 域由 `y(s) = PAD + (1 − s/100)(H − 2PAD)` 固定，未改）。 */
+  const tickItems = useMemo<AxisTickItem[]>(
+    () => layoutTicks({ ticks: niceTicks(0, 100, 4), min: 0, max: 100, height: H, pad: PAD, fmt: fmtScore }),
+    [],
+  );
+  /** D13：读数样本 = 已加载序列**原始点**（x 由冻结 x 映射给出，禁插值/禁 ts 反算）。 */
+  const readoutSeries = useMemo<ReadoutSeries[]>(() => {
+    const { samples } = buildSamples({ pts, xd, min: 0, max: 100, width: W, height: H, pad: PAD });
+    return [{ label: '聚合总分', color: '#38bdf8', samples, fmt: fmtScore }];
+  }, [pts, xd]);
 
   return (
     <div
@@ -105,13 +118,27 @@ export function AggregateScoreChart({
       <CardTitle cardId="aggregate" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
         聚合总分曲线
       </CardTitle>
-      <div className="relative min-h-0 flex-1">
-      <svg
-        viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
-        className={resize ? resize.svgClass('h-40 w-full') : 'h-40 w-full'}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="总分曲线"
+      <CurveReadoutFrame
+        card="aggregate"
+        height={H}
+        viewX0={viewX0}
+        viewW={viewW}
+        svgClassName={resize ? resize.svgClass('h-40 w-full') : 'h-40 w-full'}
+        ariaLabel="总分曲线"
+        ticks={tickItems}
+        series={readoutSeries}
+        overlay={
+          warmupWindowEmpty ? (
+            // D2.4 债：**view 级文案**（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
+            <span
+              data-testid="wb-aggregate-warmup-window-empty"
+              data-eval-dropped-bars={String(evalDropped)}
+              className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
+            >
+              当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
+            </span>
+          ) : null
+        }
       >
         {/* 三区着色（x/width 跟随共用绘图区几何：viewBox 位移后不得再用绝对 0..W） */}
         <rect x={viewX0} y={y(100)} width={viewW} height={y(buyThreshold) - y(100)} fill="#00e0a4" opacity="0.07" data-testid="zone-buy" />
@@ -137,18 +164,7 @@ export function AggregateScoreChart({
             opacity="0.9"
           />
         )}
-      </svg>
-      {warmupWindowEmpty && (
-        // D2.4 债：**view 级文案**（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
-        <span
-          data-testid="wb-aggregate-warmup-window-empty"
-          data-eval-dropped-bars={String(evalDropped)}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
-        >
-          当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
-        </span>
-      )}
-      </div>
+      </CurveReadoutFrame>
       <div className="flex shrink-0 justify-between px-1 text-[10px] text-dim">
         <span>
           聚合总分 0-100（虚线 = 买入阈 {buyThreshold} / 卖出阈 {sellThreshold}；三区 = 买/持/卖）

@@ -99,6 +99,22 @@ L1 列表行携带摘要元数据（`rt_seq`/`l2_count`/买笔数/卖笔数/费�
 
 `TradeDetail.code`（sim 多标的必需；回测填 run 的 symbol）、`reason` 的 sim 侧对应物（现恒 `None`）、`status`（`Open`/`Closed`）、**真实 `bar_index`**（禁 `ts/bar_sec` 反算）、L1 摘要元数据（`l2_count`/买卖笔数/费用合计）。
 
+### 2.14 D12｜L2 成本归属派生列（移动加权平均，**修订 D9/Q9b**；2026-09-25 架构侧裁定）
+
+- **触发**：用户 2026-09-25 明确要求（原话）：「交易明细 l2 中，累计盈亏的计算不太正确，另外还需要引入一个新的列“持仓成本”，还有卖出的话，需要新的列来表示卖出部分的盈亏（相对这部分卖出的盈利百分比和绝对值）。」决策权 = 用户「全权交给架构侧决策」（同日）。
+- **问题定性（不是算错，是列名与口径不匹配）**：D9 的 `cum_realized_pnl` 实为**净现金流差**（买 `−(trade_value+commission)`、卖 `+(trade_value−commission−stamp_duty)`），**无成本归属** ⇒ 部分卖出 / 未平仓时该列显示的是「净投入」而非「盈亏」（买入后大额负数、卖出后回正、**不含未卖部分浮盈浮亏**）。
+- **修订 Q9b（显式登记，不得静默推翻）**：Q9b 原裁定「**不引入**成本对手方 / lot 归属列」（理由：回测侧无 FIFO（加权平均），要该列即须在回测引入 FIFO 重算 = 第二事实源）。用户诉求**覆盖**「不引入」的结论；**Q9b 的担忧被显式消解**：本裁定 ① **不引入 FIFO、不引入 lot 归属**；② 口径 = **与回测侧一致的移动加权平均**；③ 实现为 L2 事实的**纯函数派生、display-only**（**不得**回灌绩效 / 对账 / 审计，也**不得**被任何计算消费）；④ 与 L1 由 **I5** 约束（见 `02-spec.md` §2 判据表：I5/I6 为 D12 新增，编号避开既有 I1–I4）。
+- **新增/变更列**：
+  1. 「**持仓成本**」= 该笔成交**后**持仓的**含费**移动加权单位成本（无持仓 ⇒ `—`）；
+  2. 「**本笔卖出盈亏**」= 绝对值 `卖出净收入 − q_s × unit_cost(卖出前)`，百分比 `= 绝对值 / 被消耗成本`（仅卖出行，格式 `+123.45 (+2.31%)`；买出行 `—`）；
+  3. 「**累计已实现盈亏**」= 已实现逐笔累加（**买出行不得再显示负值**）；
+  4. 原「累计盈亏」**改名**「累计净现金流」（算法一字不改，保留与 L1 的对账可见性）。
+- **递推定义（含费口径，以 L2 事实字段为准，禁复算）**：买入 `qty += q`、`cost_total += trade_value + commission`、`unit_cost = cost_total / qty`；卖出 `consumed = q_s × unit_cost`（**unit_cost 不因部分卖出而改变**）、`qty −= q_s`、`cost_total −= consumed`；卖出净收入 `= trade_value − commission − stamp_duty`。
+- **为什么不是 FIFO**：① FIFO 使持仓成本在部分卖出时**跳到较晚批次成本**（用户会看到“莫名跳变”）；② FIFO 需回测侧 lot 重算 ⇒ 正是 Q9b 所忌的**第二事实源**；③ 移动加权平均在部分卖出后**持仓成本不变**，是 A 股券商「持仓成本价」通行口径，且与回测侧加权平均语义同源。
+- **恒等式**：**I2**（`Σ(L2 事实字段) == L1`）输入不变（本批不改事实字段）；**I5**（新增，见 `02-spec.md` §2）：`status='Closed'` 且**全平**的回合 ⇒ **末笔「累计已实现盈亏」== L1 `pnl`**（容差 = 既有 `rt_reconcile.tolerance` 相对口径；不成立必须显式解释，**禁**放宽容差）；**I6**（新增；2026-09-26 由独立复验**更正字面口径**）：① 首笔卖出前的所有买入行 `cum_realized_pnl === 0`；② 买入**不改变**累计值（买入行值 == 其前一笔卖出行值）⇒ 首笔卖出后的买入行**可正可负**（原「不得为负」已作废，活库 6 条为负、94 条为正）。
+- **硬约束**：单一实现（`web/src/features/workbench/roundTripAccum.ts` 纯函数，L2 表共用）；**禁改** `crates/backtest/src/round_trip.rs`、`FillFact`、`/fills` 形状、audit 对账输入、`reconcileRoundTrip` 输入；**字段名必须消歧**（`cum_realized_pnl` 与净现金流语义冲突 ⇒ 净现金流另名，或新名给已实现）；**判据须有鉴别力**（「部分卖出后持仓成本不变」可区分 FIFO 与均价）。
+- **产出物**：`design/17-trade-detail-layering/09-plan-result-axis-readout-and-l2-cost-attribution.md` §4；实现 = `roundTripAccum.ts` + `RoundTripsTable.tsx`；测试 = `roundTripAccum.test.ts`（扩展）+ 新 e2e `adr027-d12-l2-cost-attribution.e2e.ts`。
+
 ## 3. 影响与代价（须在实现前披露）
 
 1. **绩效口径变更**：D1 生效后 `win_rate`/`profit_factor`/`avg_hold_bars` 的取值会变（`net_profit`/`max_drawdown`/`sharpe` 来自 nav，不受影响）。凡引用旧结论者须重跑比对；这也是 D3 清空历史的前提。

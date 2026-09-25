@@ -306,3 +306,59 @@
 - **明确不做（挂起，仅登记）**：跳转 scale 缺陷（含 `wb-window-probe` `ok=true` 假绿、跳转后 4 张曲线卡空白，机制未定位）、标记遮挡 37.1% 降噪口径、D2.4「预热窗口内空图缺 view 级文案」、明细独立路由页/切换式。
 - **关联**：ADR-028 §2.4b（D4.1 高亮）/§2.4c（D4.2 缩放与配置隔离）/§2.5（D5 完整性）、ADR-024 D10（禁静默有损）、ADR-023 §6.2（改契约须全域枚举受影响测试）、ADR-018（tangle 门禁）、`AGENTS.md`（gitnexus 门禁 + **代理产物不入库**）。
 - **产出物**：本条目 + ADR-028 §2.6/§2.7 + `design/17-trade-detail-layering/07-plan-result-height-and-detail-split.md`（方案与实施计划）；实施 = `web/src/features/workbench/{resultCardHeights.ts,resultLayout.ts,useResultLayout.ts,DetailPane.tsx}` + `cardResize/KlineResultChart/ResultView` 改造 + `web/e2e/adr028-d6-kline-size.e2e.ts`、`adr028-d7-detail-split.e2e.ts`。
+
+---
+
+# ADR-028 D12/D13｜结果曲线卡「Y 轴刻度」与「时刻取值」（2026-09-25，用户报缺 + 架构侧裁定）
+
+- **权威正文**：`design/01-architecture/adr/ADR-028-result-visualization-position-ratio-and-window-sync.md` §2.15（D12）/§2.16（D13）；契约与判据 = `design/17-trade-detail-layering/09-plan-result-axis-readout-and-l2-cost-attribution.md` §2/§3/§5。
+- **触发（用户原话）**：「回测报告指标卡片中，每个指标有没有垂直指标的范围表示，看不到具体的范围，比如净值，左侧应该还有一个竖坐标来表示其值的范围，比如 0-100 这种；其次所有的指标都不能选择，无法查看某一个时刻的具体指标的信息」。**决策权** = 用户同日「全权交给架构侧决策」。
+- **取证（读码现状）**：结果视图**全目录无** axis/tick/grid/crosshair/tooltip 实现（仅 `ResultView.tsx` 有 `wb-axis-degraded` 降级标记）⇒ 「看不到值域」「无法取值」两条属实；卡为**手写 SVG**，K 线卡由 klinecharts 自带轴（排除）。
+- **裁定**：D12 = 4 张手写 SVG 卡（净值+回撤 / 总分 / 各策略评分 / 持仓比率）**统一**加左侧刻度带（3–5 条自适应整数刻度）+ 弱色水平网格线；刻度**只标注**现有 y 域；含 0 线的卡必须含 0 刻度；格式按卡固定。D13 = 悬停十字线 + tooltip（ts + 值）、**点击锁定**（再点/Esc/点卡外解除）、x 映射 = bar 索引空间且命中偏差 ≤1 根 bar、只用序列原始点（禁插值、禁用 ts 反算索引）、会话内不持久化、卡可聚焦 + `←/→` 移动取值点。
+- **声明准确性更正（2026-09-26，架构侧自查）**：契约初稿把净值卡格式写成「金额 → 千分位 2 位」，**实测现状为 `toFixed(2)`（无千分位，与同卡 `wb-last-equity` 同口径）** ⇒ 09-plan §2 与 ADR-028 §2.15 已更正为「以实测现状为准、禁改既有展示口径（`wb-last-equity`）」。这是本批审查拦下的**第 4 处**契约文本未取证猜测（前 3 处：FIFO 口径撞 Q9b、判据编号撞既有 I1–I4、E7 注释归因与自身 trace 矛盾）。
+- **硬约束（几何冻结，禁违反）**：`CURVE_PAD = 8` 一字不改（改则须同步 `web/e2e/adr028-axis-align-probe.e2e.ts` 并重跑）；x 域仍 = bar 索引空间、配对偏差 ≤2px；刻度带不得改变绘图区坐标；`wb-axis-degraded` 语义不变；既有轴/几何测试与探针**保持绿且判据不放宽**。
+- **明确不做（登记）**：跨卡/跨图窗口联动（触碰 D2.1 冻结判据）；**指标显隐切换**（结果视图是报告而非可配置看板；用户所缺为「取值」）；缩放/平移。
+- **产出物**：ADR-028 §2.15/§2.16 + 09-plan §2/§3/§5；实现 = 4 张卡的共用刻度/交互子组件；测试 = 组件测试 + 新 e2e `web/e2e/adr028-d12-result-axis-and-readout.e2e.ts`（**须含变异反证**）。
+
+---
+
+# ADR-027 D12｜L2「持仓成本 / 本笔卖出盈亏」派生列（移动加权平均；**修订 D9/Q9b**）（2026-09-25，用户报缺 + 架构侧裁定）
+
+- **权威正文**：`design/01-architecture/adr/ADR-027-trade-detail-two-level-round-trip-model.md` §2.14（D12）；契约与判据 = `design/17-trade-detail-layering/09-plan-result-axis-readout-and-l2-cost-attribution.md` §4/§5。
+- **触发（用户原话）**：「交易明细 l2 中，累计盈亏的计算不太正确，另外还需要引入一个新的列“持仓成本”，还有卖出的话，需要新的列来表示卖出部分的盈亏（相对这部分卖出的盈利百分比和绝对值）」。**决策权** = 用户同日「全权交给架构侧决策」。
+- **问题定性（不是算错，是列名与口径不匹配）**：D9 的 `cum_realized_pnl` 实为**净现金流差**（买 `−(金额+佣金)`、卖 `+(金额−佣金−印花)`），**无成本归属** ⇒ 部分卖出 / 未平仓时该列显示的是「净投入」而非「盈亏」（买入后大额负数、卖出后回正、不含未卖部分浮盈浮亏）。
+- **修订 Q9b（显式登记）**：Q9b 原裁定「**不引入**成本对手方 / lot 归属列」（理由：回测侧无 FIFO（加权平均），要该列即须在回测引入 FIFO 重算 = 第二事实源）。用户诉求**覆盖**「不引入」结论；**Q9b 的担忧被消解**：本裁定 ① 不引入 FIFO / 不引入 lot 归属；② 口径 = **与回测侧一致的移动加权平均**；③ **纯函数派生、display-only**（不得回灌绩效/对账/审计）；④ 与 L1 由 **I5** 约束。
+- **裁定（列）**：①「持仓成本」= 该笔成交后持仓**含费**移动加权单位成本（无持仓 ⇒ `—`）；②「本笔卖出盈亏」= 绝对值 `卖出净收入 − q_s × unit_cost(卖出前)`，百分比 = 绝对值 / 被消耗成本（仅卖出行，`+123.45 (+2.31%)`）；③「累计已实现盈亏」= 已实现逐笔累加（**买出行不得再显示负值**）；④ 原「累计盈亏」**改名**「累计净现金流」（算法一字不改，保留对账可见性）。
+- **递推（含费，以 L2 事实字段为准，禁复算）**：买入 `qty+=q; cost_total+=trade_value+commission; unit_cost=cost_total/qty`；卖出 `consumed=q_s×unit_cost（unit_cost 不变）; qty-=q_s; cost_total-=consumed`；卖出净收入 `= trade_value − commission − stamp_duty`。**为什么不是 FIFO**：FIFO 使持仓成本在部分卖出时跳到较晚批次成本（用户会看到「莫名跳变」），且需回测侧 lot 重算 = Q9b 所忌的第二事实源。
+- **恒等式**：**I2** 输入不变（本批不改事实字段）；**I5**（新增）：`Closed` 且**全平**回合末笔「累计已实现盈亏」== L1 `pnl`（容差取现有 `rt_reconcile.tolerance`；不成立必须显式解释，禁放宽容差）；**I6**（新增）：买入行「累计已实现盈亏」不得为负。**注：I5/I6 为新增编号，避开 `02-spec.md` §2 既有 I1–I4。**
+- **硬约束**：单一实现（`web/src/features/workbench/roundTripAccum.ts` 纯函数，L2 表共用）；**禁改** `crates/backtest/src/round_trip.rs` / `FillFact` / `/fills` 形状 / audit 对账输入；**字段名消歧**；**判据须有鉴别力**（「部分卖出后持仓成本不变」可区分 FIFO 与均价）。
+- **产出物**：ADR-027 §2.14 + 09-plan §4/§5；实现 = `roundTripAccum.ts` + `RoundTripsTable.tsx`；测试 = `roundTripAccum.test.ts`（扩展）+ 新 e2e `web/e2e/adr027-d12-l2-cost-attribution.e2e.ts`。
+
+---
+
+# ADR-029 D3｜`Exposure{Fixed} + RateCap` 卡死缺陷修复 + E7 fixture/判据修正（2026-09-25，用户报障 → 架构侧裁定）
+
+- **触发（用户原话）**：「帮我看看回测中的 `sr_1790346535264_000006` 历史，我觉得其表现不太对，因为我是定投，但是实际上其只买入了一次。」
+- **取证链（三轮，判词 CONFIRMED）**：① 活库读数（该 run：428 bar、178 live、**信号 178/178 全 Buy**、`rate_limited=true` 仅 1 条、`deadzone_blocked=true` 177 条、成交 **1 笔** 5.02%、期末强平 pnl −405.53）；② 引擎级 Red 测试复现同签名，而**同 policy/同 API/同 state 的纯 pipeline** 正确逐 bar +5% ⇒ 卡死源自引擎侧对冻结目标的**外部改写**；③ 完整策略族对照（**16 `Dca` + 1 `LumpSum`(failed) + 2 `Exposure`**；族内**唯一成功的非 `Dca` 跑法就是该 run**）。
+- **根因**：`crates/strategy-core/src/engine.rs:744-749` 在**任何** `OrderReason::Policy` 买单成交后**无条件**调用 `clamp_lump_frozen`（语义 = 「买入被**现金上限**截断时下调冻结目标」，只降不升），而同行的 `clamp_exposure_affordable` 有 `budget_limited || cash <= EPS` 门控 ⇒ `Exposure{Fixed} + RateCap` 下按设计只有 `pct_per_bar` 的**限速**部分成交被误判为"现金不够" ⇒ 30% 冻结目标被下调为实得 5% ⇒ 其后每 bar `desired == current` ⇒ 死区恒真 ⇒ **订单增量恒 0**。
+- **触发条件（实测收窄）**：**连续 Buy（无 Hold 断点）+ 首笔被限速截断**。脉冲信号因 `Hold` 解冻 `lump_frozen` 而不触发（对照实测：脉冲+Fixed `deployed 33.25%`/8 批 vs 连续 Buy+Fixed `5.0189%`/1 批，后者 `trades` md5 与报障 run **逐位相同** `c599ca07…`）。
+- **裁定 = A 案（最小）**：`let cash_truncated = budget_limited || self.cash <= AFFORDABILITY_CASH_EPS;`，两处 clamp 收进该门控（`engine.rs` 14+/3−）；**不动** `policy.rs`、**不改** `clamp_*` 签名/语义/序列化。`LumpSum`（无 RateCap）唯一截断源是现金 ⇒ 门控后旧行为不变（差分 md5 逐字节相同）。
+- **验收读数**：Red→Green（逐 bar `0.05→0.10→…→0.30`、每 bar 一笔共 6 笔、idx6 持仓 0.300026）；`cargo test -p strategy-core --no-fail-fast` = **119 passed / 0 failed / 1 ignored**；`E13`（`Fixed ≡ LumpSum` 逐位）/`E10` 保持绿；新增 4 条回归向量（LumpSum 现金截断仍降冻结目标 / ScoreMapped E17 读数不变 / 不变量「未限速且距声明目标 > 死区 ⇒ 不得 deadzone_blocked 且必有订单」/ 完成判据）；**变异反证**：M1（去门控）⇒ 不变量与完成判据变红；M2（删两处 clamp）⇒ LumpSum 回归向量变红。
+- **E7 fixture 修正（仅改输入，断言零改动）**：既有 `adr029_e7_stop_reset_restarts_ramp_from_actual_exposure` 的**原 fixture 隐式依赖本缺陷**（旧码 bar1 只成交一笔 ⇒ 摊薄成本 ≈10.0118 ⇒ 5% 止损线 ≈9.511 > close 9.4 击穿；修复后 bar2 open 成交第二笔 ⇒ 摊薄 ≈9.706 ⇒ 线 ≈9.221 < 9.4 **不再击穿**）⇒ **任何正确修复都会让其变红**。裁定：**只把 `bar[2].open/high` 由 9.4 改回 10.0**、`close` 保持 9.4（击穿仍发生、判据完整行使）。**4 组对照实测**（仅改 bar2 输入，均在修复码上）：`open==close==9.4`（原）⇒ 红在 `reason: Policy ≠ StopTrigger`（不击穿）；`9.10` ⇒ 同红（线 ≈9.077 < 9.10 不击穿）；`9.05` ⇒ 红在 `qty ≤ 500.5`（额度 502.255）；`9.0` ⇒ 红在 `qty`（502.380）；**采用方案** ⇒ `per_bar[3].orders[0].qty = 499.880023214428` < 500.5 **绿**。断言/容差零改动（`grep -cE '^[-+]\s*assert'` = 0）。
+- **判据修正（架构侧自身错误）**：Red 文件 `crates/strategy-core/tests/adr029_fixed_ratecap_ramp.rs` 断言 (3) 把「**声明目标**」与「**T+1 成交后的持仓**」混为一时点 ⇒ 拆为 `tgt[5] ≥ 0.3−5e-3` + `cur[6] ≥ 0.3−5e-3`，**容差 5e-3 不变**，其余 3 条一字未动。
+- **声明准确性更正（架构侧审查发现）**：worker 首版 E7 注释引用了**被否决候选**（bar2 `open==close==9.0`）的读数并外推到 9.05–9.10 区间 ⇒ 已用上表 4 组实测重写注释与报告（登记为本次审查拦下的第 3 个契约级问题）。
+- **历史数据处置**：`Fixed + RateCap + 连续 Buy` 的既有 run 结果会变（实测影响面 = **1 条真实 run** `sr_1790346535264_000006` + 1 条复现件 `sr_1790348458534_000007`）；**不静默改写历史**，部署后以同配置重跑作为验收制品。
+- **产出物**：`crates/strategy-core/src/engine.rs`（门控）+ `crates/strategy-core/tests/{adr029_fixed_ratecap_ramp.rs, adr029_d3_wedge_regression.rs, engine.rs}`（E7 fixture 输入 + 注释）；报告 `coder/report/20260925_d3_wedge_fix.md`；证据 `coder/evidence/20260925_d3_wedge_fix/`（01–29）。
+
+---
+
+# ADR-027 D12 补遗｜独立复验推翻契约文本两处 + I6 字面判据更正（2026-09-26）
+
+- **触发**：D4a 独立复验（tester 车道，`tester/evidence/20260925_d4ab_independent_verify/`）对 D2 给出「口径正确性 CONFIRMED / **I6 字面判据 REFUTED**」。**代码正确、契约错** —— 归架构侧。
+- **更正 1（I6 字面判据作废）**：原文「买入行「累计已实现盈亏」**不得为负** / 恒 `0.00`」**不成立**。活库 465 回合 / 2108 条买入行中 `< 0` 共 **6** 条、`> 0` 共 **94** 条（反例 `sr_1790349931388_000024::1` idx8 = −1305.7911539369234）。原因：**买入行承载回合累计值**，首笔卖出后自然可正可负；原缺陷（买入即显示净投入 −5000）与该现象无关。
+  **更正后 I6**：① **首笔卖出之前**的所有买入行 `cum_realized_pnl === 0`（这才是「净投入伪装」的防线）；② **买入不改变**累计值（买入行值 == 其前一笔卖出行值）⇒ 首笔卖出后买入行**可正可负**。
+  已同步更正：`design/17-trade-detail-layering/02-spec.md` §2、ADR-027 §2.14、`09-plan` §4.3/§5；并要求补**亏损卖出后买入行为负**的测试向量（原向量覆盖不到该象限，故全绿）。
+- **更正 2（浮点容差入契约）**：「部分卖出后持仓成本**不变**」为**浮点末位内**不变（**相对容差 ≤1e-9**；实测 101 样本中 27 个漂移、最大 2.021e-14），不再是严格相等；**保留**具鉴别力的量级断言（FIFO 归属下相对差 **8.65%** ⇒ 换 FIFO 必红）。
+- **陈旧文档清理**：`design/12-strategy-system/01-adr.md`（D9 双口径均价段）原称 `cum_realized_pnl` 末行 == L1 ⇒ 已更正为**该性质由 `cum_cashflow` 承载**（对账也取 `cum_cashflow`），并登记 D12 新增的 display-only 派生列。
+- **复验读数（采信）**：5 派生字段 vs 独立实现（87 run/465 回合/2674 笔）**最大偏差 0.0**；**I5 全局**最大偏差 2.68e-11（容差 ~3.74e-3，**超差 0 条**）；越卖/噪声全平/0 股卖出/卖在买前/微额共 8 个边界向量逐字段一致、越卖 `null` 且不累加（**不造数**）、无 NaN/Infinity；`I3/I4` 零命中、`I5/I6` 引用与 SSOT 同义。
+- **声明准确性计数（本批累计）**：架构侧审查/独立复验拦下的**契约文本**问题共 **5 处** —— ① FIFO 口径与 Q9b 冲突；② 判据编号撞既有 I1–I4；③ E7 注释归因与自身 trace 矛盾；④ 净值格式「千分位」为未取证猜测；⑤ I6 字面判据被活库推翻。

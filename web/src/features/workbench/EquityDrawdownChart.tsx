@@ -17,6 +17,17 @@ import {
   vlineX,
   type CurveXDomain,
 } from './chartUtils';
+import { niceTicks } from './axisTicks';
+/** ADR-028 D12/D13：刻度/十字线/读数 = **唯一共用实现**（09-plan §2.3 DRY 要求）。 */
+import {
+  CurveReadoutFrame,
+  buildSamples,
+  fmtEquityValue,
+  fmtTickPct,
+  layoutTicks,
+  type AxisTickItem,
+  type ReadoutSeries,
+} from './curveReadout';
 
 const H = 220;
 
@@ -52,6 +63,26 @@ export function EquityDrawdownChart({
 }) {
   const series = useMemo(() => downsample(netValue), [netValue]);
   const dd = useMemo(() => downsample(drawdown), [drawdown]);
+  const xd = resolveCurveX({ xDomain, domain });
+  /**
+   * D12/D13：刻度与读数样本。
+   * **值域口径：与曲线完全一致** —— 仍用既有 `extentOf(equities)`（数据 min/max，**无 padding**）
+   * 的同参数复算（纯函数 ⇒ 同值），不新增 padding、不强制含 0（09-plan §1.2-2 禁改 y 映射）。
+   */
+  const axis = useMemo<{ ticks: AxisTickItem[]; series: ReadoutSeries[] }>(() => {
+    if (series.length === 0) return { ticks: [], series: [] };
+    const equities = series.map((s) => s[1]);
+    const { min, max } = extentOf(equities);
+    const net = buildSamples({ pts: series, xd, min, max, width: W, height: H, pad: PAD });
+    const ddSamples = buildSamples({ pts: dd, xd, min, max, width: W, height: H, pad: PAD });
+    return {
+      ticks: layoutTicks({ ticks: niceTicks(min, max, 4), min, max, height: H, pad: PAD, fmt: fmtEquityValue }),
+      series: [
+        { label: '净值', color: '#38bdf8', samples: net.samples, fmt: fmtEquityValue },
+        { label: '回撤', color: '#ff5c6c', samples: ddSamples.samples, fmt: fmtTickPct },
+      ],
+    };
+  }, [series, dd, xd]);
 
   if (series.length === 0) {
     return (
@@ -67,7 +98,6 @@ export function EquityDrawdownChart({
   const retPct = initial > 0 ? (lastEquity - initial) / initial : 0;
   const { min, max } = extentOf(equities);
   const ddMax = Math.max(...dd.map((d) => d[1]), 0);
-  const xd = resolveCurveX({ xDomain, domain });
   const eq = mapLineByDomain(series, xd, min, max, W, H, PAD);
   const eqPoints = eq.points;
   const viewX0 = plot ? plot.x0 : 0;
@@ -89,19 +119,39 @@ export function EquityDrawdownChart({
       <CardTitle cardId="equity" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
         净值 + 回撤
       </CardTitle>
-      <div className="relative min-h-0 flex-1">
-      <svg
-        viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
-        preserveAspectRatio="none"
-        className={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
-        role="img"
-        aria-label="净值与回撤"
+      <CurveReadoutFrame
+        card="equity"
+        height={H}
+        viewX0={viewX0}
+        viewW={viewW}
+        svgClassName={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
+        ariaLabel="净值与回撤"
+        ticks={axis.ticks}
+        series={axis.series}
+        overlay={
+          <>
+            <div className="pointer-events-none absolute left-3 top-2">
+              <div className="num text-sm text-acc1" data-testid="wb-last-equity">
+                净值 {lastEquity.toFixed(2)}
+              </div>
+              <div className={`num text-xs ${retPct >= 0 ? 'text-up' : 'text-down'}`} data-testid="wb-net-return">
+                {retPct >= 0 ? '+' : ''}
+                {fmtPct(retPct)}
+              </div>
+            </div>
+            <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim">
+              回撤（最大 −{fmtPct(ddMax)}，着色区间）
+            </div>
+            <div className="pointer-events-none absolute bottom-2 right-3 text-[10px] text-dim" data-testid="wb-equity-sampling">
+              净值 共 {sampling?.netValue.originalBars ?? netValue.length} bar
+              {eq.unmatched > 0 ? ` · ${eq.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
+              {sampling?.netValue.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
+              {' · '}回撤 共 {sampling?.drawdown.originalBars ?? drawdown.length} bar
+              {sampling?.drawdown.downsampled ? `（服务端抽样 ${dd.length} 点）` : ''}
+            </div>
+          </>
+        }
       >
-        <g opacity="0.2" stroke="#fff" strokeWidth="0.5">
-          {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={viewX0} y1={H * f} x2={viewX0 + viewW} y2={H * f} />
-          ))}
-        </g>
         <polygon points={areaBelow(eqPoints, H - PAD)} fill="#38bdf8" opacity="0.08" />
         <polyline points={lineFrom(eqPoints)} fill="none" stroke="#38bdf8" strokeWidth="2" data-testid="equity-line" />
         {dd.map((d, i) => {
@@ -128,27 +178,7 @@ export function EquityDrawdownChart({
             opacity="0.9"
           />
         )}
-      </svg>
-      <div className="pointer-events-none absolute left-3 top-2">
-        <div className="num text-sm text-acc1" data-testid="wb-last-equity">
-          净值 {lastEquity.toFixed(2)}
-        </div>
-        <div className={`num text-xs ${retPct >= 0 ? 'text-up' : 'text-down'}`} data-testid="wb-net-return">
-          {retPct >= 0 ? '+' : ''}
-          {fmtPct(retPct)}
-        </div>
-      </div>
-      <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim">
-        回撤（最大 −{fmtPct(ddMax)}，着色区间）
-      </div>
-      <div className="pointer-events-none absolute bottom-2 right-3 text-[10px] text-dim" data-testid="wb-equity-sampling">
-        净值 共 {sampling?.netValue.originalBars ?? netValue.length} bar
-        {eq.unmatched > 0 ? ` · ${eq.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
-        {sampling?.netValue.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
-        {' · '}回撤 共 {sampling?.drawdown.originalBars ?? drawdown.length} bar
-        {sampling?.drawdown.downsampled ? `（服务端抽样 ${dd.length} 点）` : ''}
-      </div>
-      </div>
+      </CurveReadoutFrame>
       {resize && <div {...resize.handleProps} />}
     </div>
   );

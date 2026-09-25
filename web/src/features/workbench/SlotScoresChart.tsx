@@ -4,6 +4,9 @@ import type { StrategyCatalogEntry, WorkbenchBarRecord, WorkbenchPinnedSlot } fr
 import { CURVE_PAD as PAD, CURVE_W as W } from './curveGeometry';
 import { CardTitle, type CardResizeApi } from './cardResize';
 import { curveDomainAttr, curveXs, downsample, resolveCurveX, vlineX, type CurveXDomain } from './chartUtils';
+import { niceTicks } from './axisTicks';
+/** ADR-028 D12/D13：刻度/十字线/读数 = **唯一共用实现**（09-plan §2.3 DRY 要求）。 */
+import { CurveReadoutFrame, buildSamples, fmtScore, layoutTicks, type AxisTickItem, type ReadoutSeries } from './curveReadout';
 import type { CurveSampling } from './AggregateScoreChart';
 
 const H = 160;
@@ -115,6 +118,33 @@ export function SlotScoresChart({
   /** ADR-028 D2.4 债：同聚合同口径（载荷全被评估段裁掉 ⇒ 当前窗口全在预热段）。 */
   const evalDropped = sampling?.excludedByEvaluatedRange ?? 0;
   const warmupWindowEmpty = pts.length === 0 && evalDropped > 0;
+  /** D12：刻度**只标注既有 0–100 值域**（本卡 y 域由 `y(s) = PAD + (1 − s/100)(H − 2PAD)` 固定，未改）。 */
+  const tickItems = useMemo<AxisTickItem[]>(
+    () => layoutTicks({ ticks: niceTicks(0, 100, 4), min: 0, max: 100, height: H, pad: PAD, fmt: fmtScore }),
+    [],
+  );
+  /** D13：同卡多线一并读数（**可见**的 slot 各一条；值 = 该 bar 的该 slot 原始评分，缺失 ⇒ 读数给 —）。 */
+  const readoutSeries = useMemo<ReadoutSeries[]>(
+    () =>
+      slots.flatMap((slot, slotIdx) => {
+        if (!(visible[slotIdx] ?? false)) return [];
+        const sidePts: Array<[number, number]> = [];
+        for (const rec of pts) {
+          const sc = rec.scores.find((s) => s.slot_idx === slotIdx);
+          if (sc) sidePts.push([rec.ts, sc.score]);
+        }
+        const { samples } = buildSamples({ pts: sidePts, xd, min: 0, max: 100, width: W, height: H, pad: PAD });
+        return [
+          {
+            label: slotLabel(slot, catalog),
+            color: COLORS[slotIdx % COLORS.length],
+            samples,
+            fmt: fmtScore,
+          },
+        ];
+      }),
+    [pts, slots, catalog, visible, xd],
+  );
 
   return (
     <div
@@ -143,13 +173,27 @@ export function SlotScoresChart({
           </label>
         ))}
       </div>
-      <div className="relative min-h-0 flex-1">
-      <svg
-        viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
-        className={resize ? resize.svgClass('h-36 w-full') : 'h-36 w-full'}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="各策略评分曲线"
+      <CurveReadoutFrame
+        card="slot"
+        height={H}
+        viewX0={viewX0}
+        viewW={viewW}
+        svgClassName={resize ? resize.svgClass('h-36 w-full') : 'h-36 w-full'}
+        ariaLabel="各策略评分曲线"
+        ticks={tickItems}
+        series={readoutSeries}
+        overlay={
+          warmupWindowEmpty ? (
+            // D2.4 债：view 级文案（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
+            <span
+              data-testid="wb-slot-warmup-window-empty"
+              data-eval-dropped-bars={String(evalDropped)}
+              className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
+            >
+              当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
+            </span>
+          ) : null
+        }
       >
         {series.map((segs, i) =>
           (visible[i] ?? false)
@@ -174,18 +218,7 @@ export function SlotScoresChart({
             opacity="0.9"
           />
         )}
-      </svg>
-      {warmupWindowEmpty && (
-        // D2.4 债：view 级文案（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
-        <span
-          data-testid="wb-slot-warmup-window-empty"
-          data-eval-dropped-bars={String(evalDropped)}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
-        >
-          当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
-        </span>
-      )}
-      </div>
+      </CurveReadoutFrame>
       <div className="shrink-0 px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
         各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 评估段 共 {evaluatedBars} bar
         {warmupExcluded > 0 && (

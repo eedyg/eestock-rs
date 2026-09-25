@@ -741,10 +741,21 @@ impl EnsembleSession {
                                     // 冻结目标下调至实际持仓，避免对不可达缺口每 bar 重复挂微单。
                                     // ADR-029 E17（同源口径，作用于 `Exposure::ScoreMapped`）：
                                     // 现金截断（预算被夹或买后现金归零）⇒ 目标上限一次性下调到可达股数。
+                                    //
+                                    // ADR-029 D3（A 案，架构裁定 2026-09-25）：两处 clamp 收进**同一**
+                                    // 「现金截断」门控。`clamp_lump_frozen` 的语义是「买入被**现金上限**截断时
+                                    // 把冻结目标下调至可达股数（只降不升）」，其调用前提必须是**本笔买入确被
+                                    // 现金截断**。旧码把它在**任何** Policy 买单成交后无条件调用 ⇒
+                                    // `Exposure{Fixed} + Ramp{RateCap}` 下按设计只有 `pct_per_bar`（如 5%）的
+                                    // **限速**部分成交被误判为「现金不够」⇒ 冻结目标（如 30%）被下调到实得 5%
+                                    // ⇒ 其后每 bar `desired == current` ⇒ 死区恒真 ⇒ 订单增量恒 0（永久卡死）。
+                                    // `LumpSum`（无 RateCap）唯一的截断原因就是现金 ⇒ 门控后旧行为不变。
                                     if reason == OrderReason::Policy {
-                                        if let Some(h) = &self.holding {
-                                            self.policy_state.clamp_lump_frozen(h.qty);
-                                            if budget_limited || self.cash <= AFFORDABILITY_CASH_EPS {
+                                        let cash_truncated =
+                                            budget_limited || self.cash <= AFFORDABILITY_CASH_EPS;
+                                        if cash_truncated {
+                                            if let Some(h) = &self.holding {
+                                                self.policy_state.clamp_lump_frozen(h.qty);
                                                 self.policy_state.clamp_exposure_affordable(h.qty);
                                             }
                                         }

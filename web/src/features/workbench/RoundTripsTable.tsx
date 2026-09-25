@@ -1,11 +1,16 @@
 /**
- * ADR-027 D8/D9/D10 + ADR-028 D4 —— 交易明细 **L1 回合**列表与 **L2 逐笔**子列表（默认只渲染 L1 一层）。
+ * ADR-027 D8/D9/D10 + **D12（L2 成本归属列）** + ADR-028 D4 —— 交易明细 **L1 回合**列表与 **L2 逐笔**子列表（默认只渲染 L1 一层）。
  *
  * 交互契约（02-spec §9-5、ADR-028 §2.4 按钮表）：
  * - L1 行两枚按钮：`[明细]`（展开该回合 L2，**懒加载**，`aria-expanded` 自带状态）/`[跳转]`（回合区间）；
  * - L2 行两枚按钮：`[明细]`（该笔完整字段详情）/`[跳转]`（该笔 bar）；
  * - **取消隐式整行点击**（避免与文本选中/复制冲突；展开/跳转只由显式按钮触发）；
  * - 允许多条同时展开；窄屏横向滚动而不砍列。
+ *
+ * L2 列（D12 架构侧钦定顺序，09-plan §4.2）：`bar / 时间 / 方向 / 股数 / 价格 / 金额 / 佣金 / 印花税 /
+ * **持仓成本** / **本笔卖出盈亏** / 累计佣金 / 累计印花税 / **累计已实现盈亏** / **累计净现金流** / 来源 / 操作`
+ * —— 口径与递推定义见 `roundTripAccum.ts` 模块注（移动加权平均含费）；列值均为 **display-only** 派生，
+ * 不得回灌绩效/对账/审计。原「累计盈亏」= 净现金流，**改名**为「累计净现金流」（算法一字不改）。
  *
  * 对账（D10 强制失败态）：展开区顶部若出现 `Σ(L2) != L1`（或后端 audit `rt_reconcile.mismatched` 命中该
  * `rt_seq`）⇒ 醒目告警行（含 Δ 值）并**冻结**展示两侧数值，**禁止**静默按 L1 渲染。
@@ -15,7 +20,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import type { FillReason, RoundTrip, RoundTripFill } from '@/api/types';
 import { fmtHoldBars, fmtTs } from '@/features/backtest/format';
-import { accumulateL2, fmtNum, reconcileRoundTrip, type L2Accum, type ReconcileResult } from './roundTripAccum';
+import { accumulateL2, fmtNum, fmtSellPnl, reconcileRoundTrip, type L2Accum, type ReconcileResult } from './roundTripAccum';
 import type { RunL2State, RunRoundTripsState } from './useRunSeries';
 import type { RunAuditState } from './useRunAudit';
 
@@ -106,7 +111,12 @@ function L2Fields({
     { label: 'avg_cost_incl_fee（含费，对账口径）', value: fmtNum(acc.avg_cost_incl_fee, 'price'), testid: `wb-l2-avg-cost-${rt.rt_seq}-${idx}` },
     { label: 'cum_commission（回合累计佣金）', value: fmtNum(acc.cum_commission), testid: `wb-l2-detail-cum-commission-${rt.rt_seq}-${idx}` },
     { label: 'cum_stamp_duty（回合累计印花税）', value: fmtNum(acc.cum_stamp_duty), testid: `wb-l2-detail-cum-stamp-${rt.rt_seq}-${idx}` },
-    { label: 'cum_realized_pnl（回合累计已实现盈亏，现金流差口径）', value: fmtNum(acc.cum_realized_pnl), testid: `wb-l2-detail-cum-pnl-${rt.rt_seq}-${idx}` },
+    // D12 成本归属派生列（display-only；口径 = 移动加权平均含费，见 roundTripAccum.ts 模块注）
+    { label: 'position_cost_incl_fee（本笔成交后持仓含费移动加权单位成本；无持仓 = —）', value: fmtNum(acc.position_cost_incl_fee, 'price'), testid: `wb-l2-detail-cost-${rt.rt_seq}-${idx}` },
+    { label: 'sell_pnl（本笔卖出盈亏 = 卖出净收入 − 被消耗成本；仅卖出行）', value: fmtNum(acc.sell_pnl), testid: `wb-l2-detail-sellpnl-${rt.rt_seq}-${idx}` },
+    { label: 'sell_pnl_pct（本笔卖出盈亏率 = sell_pnl / 被消耗成本）', value: acc.sell_pnl_pct == null ? '—' : `${fmtNum(acc.sell_pnl_pct * 100)}%`, testid: `wb-l2-detail-sellpnl-pct-${rt.rt_seq}-${idx}` },
+    { label: 'cum_realized_pnl（回合累计已实现盈亏，移动加权平均含费成本口径）', value: fmtNum(acc.cum_realized_pnl), testid: `wb-l2-detail-cum-realized-pnl-${rt.rt_seq}-${idx}` },
+    { label: 'cum_cashflow（回合累计净现金流 = L1 pnl 的逐笔分解）', value: fmtNum(acc.cum_cashflow), testid: `wb-l2-detail-cum-cashflow-${rt.rt_seq}-${idx}` },
   ];
   return (
     <div
@@ -171,19 +181,26 @@ function L2Table({
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="border-b border-line text-left text-[11px] text-dim">
-            <th className="px-2 py-1 font-normal">bar</th>
-            <th className="px-2 py-1 font-normal">时间</th>
-            <th className="px-2 py-1 font-normal">方向</th>
-            <th className="px-2 py-1 font-normal">股数</th>
-            <th className="px-2 py-1 font-normal">价格</th>
-            <th className="px-2 py-1 font-normal">金额</th>
-            <th className="px-2 py-1 font-normal">佣金</th>
-            <th className="px-2 py-1 font-normal">印花税</th>
-            <th className="px-2 py-1 font-normal">累计佣金</th>
-            <th className="px-2 py-1 font-normal">累计印花税</th>
-            <th className="px-2 py-1 font-normal">累计盈亏</th>
-            <th className="px-2 py-1 font-normal">来源</th>
-            <th className="px-2 py-1 font-normal">操作</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-bar-${rt.rt_seq}`}>bar</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-ts-${rt.rt_seq}`}>时间</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-side-${rt.rt_seq}`}>方向</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-qty-${rt.rt_seq}`}>股数</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-price-${rt.rt_seq}`}>价格</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-value-${rt.rt_seq}`}>金额</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-commission-${rt.rt_seq}`}>佣金</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-stamp-${rt.rt_seq}`}>印花税</th>
+            {/* D12 新增：持仓成本（含费移动加权单位成本；无持仓 —） */}
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-cost-${rt.rt_seq}`}>持仓成本</th>
+            {/* D12 新增：本笔卖出盈亏（仅卖出行；`+123.45 (+2.31%)`） */}
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-sellpnl-${rt.rt_seq}`}>本笔卖出盈亏</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-cum-commission-${rt.rt_seq}`}>累计佣金</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-cum-stamp-${rt.rt_seq}`}>累计印花税</th>
+            {/* D12 新增：累计已实现盈亏（移动加权平均口径；I6① 首笔卖出前买入行恒 0；② 买入不改变累计 ⇒ 首笔卖出后可正可负） */}
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-cum-realized-pnl-${rt.rt_seq}`}>累计已实现盈亏</th>
+            {/* D12 改名：原「累计盈亏」→「累计净现金流」（算法一字不改 = cum_cashflow） */}
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-cum-cashflow-${rt.rt_seq}`}>累计净现金流</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-source-${rt.rt_seq}`}>来源</th>
+            <th className="px-2 py-1 font-normal" data-testid={`wb-l2-th-op-${rt.rt_seq}`}>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -207,9 +224,22 @@ function L2Table({
                   <td className="num px-2 py-1" data-testid={`wb-l2-trade-value-cell-${rt.rt_seq}-${i}`}>{fmtNum(f.trade_value)}</td>
                   <td className="num px-2 py-1">{fmtNum(f.commission)}</td>
                   <td className="num px-2 py-1">{fmtNum(f.stamp_duty)}</td>
+                  <td className="num px-2 py-1" data-testid={`wb-l2-cost-${rt.rt_seq}-${i}`}>{fmtNum(acc.position_cost_incl_fee, 'price')}</td>
+                  <td
+                    className={`num px-2 py-1 ${acc.sell_pnl == null ? 'text-dim' : acc.sell_pnl >= 0 ? 'text-up' : 'text-down'}`}
+                    data-testid={`wb-l2-sellpnl-${rt.rt_seq}-${i}`}
+                  >
+                    {fmtSellPnl(acc.sell_pnl, acc.sell_pnl_pct)}
+                  </td>
                   <td className="num px-2 py-1" data-testid={`wb-l2-cum-commission-${rt.rt_seq}-${i}`}>{fmtNum(acc.cum_commission)}</td>
                   <td className="num px-2 py-1" data-testid={`wb-l2-cum-stamp-${rt.rt_seq}-${i}`}>{fmtNum(acc.cum_stamp_duty)}</td>
-                  <td className="num px-2 py-1" data-testid={`wb-l2-cum-pnl-${rt.rt_seq}-${i}`}>{fmtNum(acc.cum_realized_pnl)}</td>
+                  <td
+                    className={`num px-2 py-1 ${acc.cum_realized_pnl >= 0 ? 'text-up' : 'text-down'}`}
+                    data-testid={`wb-l2-cum-realized-pnl-${rt.rt_seq}-${i}`}
+                  >
+                    {fmtNum(acc.cum_realized_pnl)}
+                  </td>
+                  <td className="num px-2 py-1" data-testid={`wb-l2-cum-cashflow-${rt.rt_seq}-${i}`}>{fmtNum(acc.cum_cashflow)}</td>
                   <td className="px-2 py-1 text-dim">{tradeSourceLabel(f.reason)}</td>
                   <td className="whitespace-nowrap px-2 py-1">
                     <button
@@ -245,7 +275,7 @@ function L2Table({
                 </tr>
                 {fieldsOpen && (
                   <tr className="border-b border-line/40">
-                    <td colSpan={13} className="px-2 py-1">
+                    <td colSpan={16} className="px-2 py-1">
                       <L2Fields rt={rt} fill={f} acc={acc} idx={i} />
                     </td>
                   </tr>

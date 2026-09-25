@@ -16,6 +16,17 @@ import {
   vlineX,
   type CurveXDomain,
 } from './chartUtils';
+import { niceTicks } from './axisTicks';
+/** ADR-028 D12/D13：刻度/十字线/读数 = **唯一共用实现**（09-plan §2.3 DRY 要求）。 */
+import {
+  CurveReadoutFrame,
+  buildSamples,
+  fmtTickPct,
+  layoutTicks,
+  type AxisTickItem,
+  type ReadoutSample,
+  type ReadoutSeries,
+} from './curveReadout';
 
 const H = 220;
 
@@ -77,7 +88,17 @@ export function PositionRatioChart({
     const pts = series.map((p) => [p.ts, p.position_ratio] as [number, number]);
     const mapped = mapLineByDomain(pts, xd, min, max, W, H, PAD);
     const last = series[series.length - 1]!;
-    return { line: lineFrom(mapped.points), last, min, max, unmatched: mapped.unmatched };
+    /** D12/D13：刻度与读数样本（y 域仍为 `extentOf(ratios ∪ {0,1})`，**未改**；刻度只标注）。 */
+    const ticks: AxisTickItem[] = layoutTicks({
+      ticks: niceTicks(min, max, 4),
+      min,
+      max,
+      height: H,
+      pad: PAD,
+      fmt: fmtTickPct,
+    });
+    const samples: ReadoutSample[] = buildSamples({ pts, xd, min, max, width: W, height: H, pad: PAD }).samples;
+    return { line: lineFrom(mapped.points), last, min, max, unmatched: mapped.unmatched, ticks, samples };
   }, [series, xd]);
   const markX = vlineX(markerTs, xd, W, PAD);
 
@@ -94,6 +115,9 @@ export function PositionRatioChart({
 
   const last = chart.last;
   const cashRatio = 1 - last.position_ratio;
+  const readoutSeries: ReadoutSeries[] = [
+    { label: 'position_ratio', color: '#a78bfa', samples: chart.samples, fmt: fmtTickPct },
+  ];
   return (
     <div
       ref={resize?.cardRef}
@@ -109,19 +133,36 @@ export function PositionRatioChart({
       <CardTitle cardId="position" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
         持仓比率（时点市值 / 时点净值）
       </CardTitle>
-      <div className="relative min-h-0 flex-1">
-      <svg
-        viewBox={`${(plot ? plot.x0 : 0).toFixed(2)} 0 ${(plot ? plot.w : W).toFixed(2)} ${H}`}
-        preserveAspectRatio="none"
-        className={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
-        role="img"
-        aria-label="持仓比率曲线"
+      <CurveReadoutFrame
+        card="position"
+        height={H}
+        viewX0={plot ? plot.x0 : 0}
+        viewW={plot ? plot.w : W}
+        svgClassName={resize ? resize.svgClass('h-52 w-full') : 'h-52 w-full'}
+        ariaLabel="持仓比率曲线"
+        ticks={chart.ticks}
+        series={readoutSeries}
+        overlay={
+          <>
+            <div className="pointer-events-none absolute left-3 top-2 flex flex-col">
+              <div className="num text-sm text-acc1" data-testid="wb-last-position-ratio">
+                position_ratio {fmtPct(last.position_ratio, 2)}
+              </div>
+              <div className="num text-xs text-dim" data-testid="wb-last-cash-ratio">
+                cash_ratio {fmtPct(cashRatio, 2)}
+              </div>
+              <div className="num text-[10px] text-dim" data-testid="wb-last-nav">
+                nav {last.nav.toFixed(2)}（= 持仓市值 {last.position_value.toFixed(2)} + 现金 {last.cash.toFixed(2)}）
+              </div>
+            </div>
+            <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim" data-testid="wb-position-sampling">
+              持仓比率 共 {sampling?.originalBars ?? points.length} bar
+              {chart.unmatched > 0 ? ` · ${chart.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
+              {sampling?.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
+            </div>
+          </>
+        }
       >
-        <g opacity="0.2" stroke="#fff" strokeWidth="0.5">
-          {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={plot ? plot.x0 : 0} y1={H * f} x2={(plot ? plot.x0 : 0) + (plot ? plot.w : W)} y2={H * f} />
-          ))}
-        </g>
         <polyline points={chart.line} fill="none" stroke="#a78bfa" strokeWidth="2" data-testid="position-line" />
         {/* ADR-028 D4.1 ④：竖线标记（与曲线同定义域 ⇒ 各视图同一时点同位） */}
         {markX != null && (
@@ -139,24 +180,7 @@ export function PositionRatioChart({
             opacity="0.9"
           />
         )}
-      </svg>
-      <div className="pointer-events-none absolute left-3 top-2 flex flex-col">
-        <div className="num text-sm text-acc1" data-testid="wb-last-position-ratio">
-          position_ratio {fmtPct(last.position_ratio, 2)}
-        </div>
-        <div className="num text-xs text-dim" data-testid="wb-last-cash-ratio">
-          cash_ratio {fmtPct(cashRatio, 2)}
-        </div>
-        <div className="num text-[10px] text-dim" data-testid="wb-last-nav">
-          nav {last.nav.toFixed(2)}（= 持仓市值 {last.position_value.toFixed(2)} + 现金 {last.cash.toFixed(2)}）
-        </div>
-      </div>
-      <div className="pointer-events-none absolute bottom-2 left-3 text-[10px] text-dim" data-testid="wb-position-sampling">
-        持仓比率 共 {sampling?.originalBars ?? points.length} bar
-        {chart.unmatched > 0 ? ` · ${chart.unmatched} 点不在 K 线 bar 序列上（已剔除）` : ''}
-        {sampling?.downsampled ? `（服务端抽样 ${series.length} 点）` : ''}
-      </div>
-      </div>
+      </CurveReadoutFrame>
       {/* 口径消歧（ADR-028 §4.5：三口径标签各含分母说明，同屏可辨） */}
       <div className="shrink-0 px-1 pt-1 text-[10px] leading-relaxed text-dim" data-testid="wb-position-basis">
         <span data-testid="wb-basis-position-ratio">

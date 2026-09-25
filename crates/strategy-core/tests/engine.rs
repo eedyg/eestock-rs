@@ -1636,17 +1636,55 @@ fn adr029_e13_fixed_matches_lump_sum_fills_bitwise() {
 
 /// E7：硬止损强平 = 外部中断 ⇒ 路径作废（`PolicyState::reset`）⇒ 限速从**实际暴露**重新起算，
 /// 而非续用强平前的旧目标。
+///
+/// **fixture 输入修正（2026-09-25，架构侧裁定授权；仅改输入，全部断言与容差逐字未动）**
+///
+/// 原 fixture（`prices = [10, 10, 9.4, 10, 10, 10]`，且**每根 bar `open == close`**）**隐式依赖
+/// ADR-029 D3 卡死缺陷**：旧码（`clamp_lump_frozen` 在**任何** Policy 买单成交后无条件调用）下，
+/// bar1 成交 ≈500 股后冻结目标即被下调到实得 ⇒ bar1 决策层算出「目标 − 当前 = 0」⇒
+/// **bar2 无第二笔成交** ⇒ bar2 摊薄成本停在 ≈10.0118 ⇒ 5% 固定止损线 ≈9.511 > bar2 close 9.4
+/// ⇒ 击穿。D3 修复后 bar1 照常再挂 ≈500 股，该笔在 **bar2 open** 成交；原 fixture 的 bar2
+/// `open == close == 9.4` 使这笔在 9.4 成交，把摊薄成本拉低到 ≈9.71 ⇒ 止损线 ≈9.222 < 9.4
+/// ⇒ **不再击穿**（任何正确修复只要让 bar1 继续挂单都会如此，非本方案特有）。
+///
+/// 修正＝**只把 bar2 的 `open` 恢复为 10.0**（`close` 保持 9.4 不动；A 股 D1 常见的
+/// 「高开/日内回落」形态）：第二笔成交价位回到 ≈10.0 ⇒ 摊薄成本 ≈10.007 ⇒ 止损线 ≈9.507 > 9.4
+/// ⇒ 击穿 ⇒ 原判据（击穿 ⇒ `StopTrigger` ⇒ `reset` ⇒ 限速从**实际暴露**重起算）在新成交口径下
+/// **完整行使**。本改动**仅还原 E7 原意，未改任何判据**。
+///
+/// **为何「只动 bar2 open」而不动 close（4 组对照实测；原始输出 `coder/evidence/20260925_d3_wedge_fix/27_e7_control_v*.txt`）**
+///
+/// 断言 `orders3[0].qty <= 500.5`（本文件 E7 内）读的是 **`per_bar[3]`**，其限速额度
+/// `= pct_per_bar × (该决策 bar 净值) / 10.0`；而 `CloseBasis` 止损的**成交在次 bar open（=10.0）**。
+/// 实测（均在修复码上，仅改 bar2 输入；净值为 `positions` 逐点原始值）：
+///
+/// | bar2 输入 | 止损击穿 | 决策 bar 净值（price 10.0） | `per_bar[3].orders[0].qty` | 结果 |
+/// |---|---|---|---|---|
+/// | **open 10.0 / close 9.4（采用）** | 是 | 99976.0046428856 | **499.880023214428**（= 额度） | **ok** |
+/// | open == close == 9.4（原 fixture） | 否（摊薄成本 ≈9.706 ⇒ 线 ≈9.221 < 9.4） | —（bar2 报 `Policy` 530.6636） | — | 红：`orders[0].reason` 得 `Policy`，期望 `StopTrigger` |
+/// | open == close == 9.10 | 否（线 ≈9.077 < 9.10） | —（bar2 报 `Policy` 547.3387） | — | 红：同上 `reason` 断言 |
+/// | open == close == 9.05 | 是 | 100451.0218330292 | **502.25510916514605** | 红：`qty <= 500.5` |
+/// | open == close == 9.0 | 是 | 100476.01967116745 | **502.3800983558373** | 红：`qty <= 500.5` |
+///
+/// ⇒ 「加深 close（open 随动）」的每一档都不能满足原判据：**9.10 档止损根本不击穿**；9.05/9.0 档击穿后
+/// 强平变成对**被拉低的摊薄成本**的盈利平仓 ⇒ 决策净值升到 100_451/100_476 ⇒ 额度
+/// 502.255/502.380 > 500.5 ⇒ 红在 qty 断言。采用方案里 `per_bar[3]` 的 qty 是
+/// 499.880023214428（**小于** 500.5）；500 量级以上的挂单只出现在**不被断言**的其它 bar
+/// （采用方案的 `per_bar[4]` = 500.2249581776884，同样 ≤ 500.5）。
+/// 故「只把 bar2 的 `open` 恢复为 10.0、`close` 保持 9.4」是既击穿止损、又不碰任何断言与容差的**最小**改法。
 #[test]
 fn adr029_e7_stop_reset_restarts_ramp_from_actual_exposure() {
-    // 价格路径：10 → 10 → 9.4（收盘破固定止损线 10×0.95）→ 10 …
+    // 收盘价路径：10 → 10 → 9.4（收盘破固定止损线）→ 10 …（bar2 的 open 另设，见上方说明）
     let prices = [10.0, 10.0, 9.4, 10.0, 10.0, 10.0];
     let bars: Vec<Bar> = prices
         .iter()
         .enumerate()
         .map(|(i, p)| Bar {
             ts: 1_700_000_000 + i as i64 * 86_400,
-            open: *p,
-            high: *p,
+            // bar2：open 保持 10.0（修复后 bar1 续挂的那笔在此成交，不得把摊薄成本拉低）；
+            // 其余 bar 维持 open == close == p。
+            open: if i == 2 { 10.0 } else { *p },
+            high: if i == 2 { 10.0 } else { *p },
             low: *p,
             close: *p,
             volume: 10_000.0,
@@ -1668,6 +1706,29 @@ fn adr029_e7_stop_reset_restarts_ramp_from_actual_exposure() {
         trigger: StopTrigger::CloseBasis,
     });
     let res = run(&cfg, &bars);
+
+    // 判据行使的**原始逐 bar 痕迹**（仅取证打印，不参与判定；架构裁定条件 (3)/(4) 要求）。
+    for (i, r) in res.per_bar.iter().enumerate() {
+        eprintln!(
+            "[E7 trace] bar {i} price {:.3} | target_pct {:?} | current_pct {:?} | rate_limited {} \
+             | deadzone_blocked {} | orders {:?}",
+            bars[i].close,
+            r.policy_obs.target_pct,
+            r.policy_obs.current_pct,
+            r.policy_obs.rate_limited,
+            r.policy_obs.deadzone_blocked,
+            r.orders
+                .iter()
+                .map(|o| (o.side, o.qty, o.reason))
+                .collect::<Vec<_>>()
+        );
+    }
+    for (i, r) in res.per_bar.iter().enumerate() {
+        for e in &r.events {
+            eprintln!("[E7 trace] bar {i} event {e:?}");
+        }
+    }
+    eprintln!("[E7 trace] positions {:?}", res.positions);
 
     // bar2：收盘破线 ⇒ 止损挂单（绕过 Policy，policy_obs 留零值）
     assert_eq!(res.per_bar[2].orders.len(), 1);

@@ -230,7 +230,8 @@ strategy_version(id, strategy_id, version 递增, code TEXT, params_schema JSONB
 - **L2 = 逐笔成交**（`FillFact`）：仅在展开某条 L1 时**按 `rt_seq` 懒加载**分页切片（`GET …/round-trips/{rt_seq}/fills`）；**展开前零 L2 请求**。
 - **归属只由 `rt_seq` 决定**（ADR-027 D6）：**禁止** `[open_bar, close_bar]` 窗口推断（零长回合 `open_bar == close_bar` 合法）。
 - **双口径均价 + 累计列（D9，消歧强制）**：`avg_price_excl_fee`（不含费）与 `avg_cost_incl_fee`（含费，对账口径）**并存且必带限定词**；
-  `cum_commission`/`cum_stamp_duty`/`cum_realized_pnl` 常显，**末行累计 == 该回合 L1 对应字段**（逐行可验）。
+  `cum_commission`/`cum_stamp_duty`/**`cum_cashflow`** 常显，**末行累计 == 该回合 L1 对应字段**（逐行可验）。
+  **ADR-027 D12 更正（2026-09-26）**：上句原写 `cum_realized_pnl` —— D12 已将该字段名**重定义**为「累计**已实现盈亏**（移动加权平均含费口径）」，「末行 == L1 `pnl`」的性质**改由 `cum_cashflow`（净现金流，算法与原 `cum_realized_pnl` 一字不改）承载**；对账（`reconcileRoundTrip` 的 `pnl` 字段）取 **`cum_cashflow`**。新增展示列：`position_cost_incl_fee`（持仓成本）/`sell_pnl`+`sell_pnl_pct`（本笔卖出盈亏）/`cum_realized_pnl`（累计已实现盈亏），均为 **display-only** 派生（见 `design/17-trade-detail-layering/02-spec.md` §2.1）。
 - **对账不一致失败态（D10，强制）**：`Σ L2 ≠ L1` ⇒ 展开区顶部必须出现醒目告警（含 Δ 值）并**冻结展示两侧数值**，**不得**静默按 L1 渲染。
 - **取数完整性（D11）**：L1/L2/K 线标记均自述 `total`/`has_more`/`next_offset`（或显式 `truncated`）。
 - **结果页时间窗（ADR-028 D2/D3）**：窗口变化 ⇒ 对 `per_bar`/`net_value`/`drawdown`/`position` 四个既有 per-kind 端点并发重取（**不新增**批量端点）；
