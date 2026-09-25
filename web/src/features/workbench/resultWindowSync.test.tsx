@@ -154,14 +154,22 @@ describe('F7/F9 窗口事实源：K 线交互写入 + L1 跳转 + 断言', () =>
     await waitFor(() => expect(screen.queryByTestId('wb-window-applying')).toBeNull());
   });
 
-  it('全览：窗口回到全区间（状态回「未显式写窗」）且历史栈可回退', async () => {
+  it('全览：窗口回到全区间（请求态）+ 以**实测可达区间**建立窗口（source=reset；D10-2 真值写回）且历史栈可回退', async () => {
     const { run, result } = await seed();
     renderView(run, result);
     const jumps = await screen.findAllByTestId(/^wb-rt-jump-/);
     await userEvent.click(jumps[0]!);
     await waitFor(() => expect(screen.getByTestId('wb-window-state').textContent).toContain('来源 jump'));
     await userEvent.click(screen.getByTestId('wb-window-reset'));
-    await waitFor(() => expect(screen.getByTestId('wb-window-state').textContent).toContain('全区间'));
+    // ADR-028 §2.10 D10 决策 2：「全览」请求全区间，而物理上只能显示可达子区间 ⇒
+    // 以实测可达区间**写回窗口状态机**（source=reset），使「取数窗口 == 可见域」重新成立
+    // （旧口径下窗口停在「全区间」而 x 域取真身切片 ⇒ 逐点剔除）。
+    await waitFor(() => expect(screen.getByTestId('wb-window-state').textContent).toContain('来源 reset'));
+    const probe = screen.getByTestId('wb-window-probe');
+    const state = screen.getByTestId('wb-window-state');
+    expect(state.getAttribute('data-from-ts')).toBe(probe.getAttribute('data-live-from-ts'));
+    expect(state.getAttribute('data-to-ts')).toBe(probe.getAttribute('data-live-to-ts'));
+    expect(state.getAttribute('data-span-bars')).toBe(probe.getAttribute('data-live-bars'));
     expect(screen.getByTestId('wb-window-history').textContent).toContain('可回退 1 步');
     // 历史回退 ⇒ 回到跳转前的窗口
     await userEvent.click(screen.getByTestId('wb-window-back'));

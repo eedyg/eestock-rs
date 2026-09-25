@@ -27,25 +27,44 @@
  *   E2E_BASE_URL=http://localhost:4175 npx playwright test e2e/adr028-features-verify2.e2e.ts -g "@mut" --retries=0
  * 产物：`ADR028V2_OUT`（默认 tester/evidence/20260920_adr028_features_verify2/raw）。
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const OUT = process.env.ADR028V2_OUT ?? resolve(REPO, 'tester/evidence/20260920_adr028_features_verify2/raw');
+/**
+ * 证据出口：**必须未跟踪**。旧默认 `tester/evidence/20260920_adr028_features_verify2/raw` **含 140 个已跟踪文件**
+ * ⇒ 每跑一次真渲染就覆盖写已跟踪文件（`AGENTS.md`「代理产物与提交纪律」2026-09-23 登记的同一坑）。
+ * 现默认落**未跟踪**目录（`coder/evidence/**` 已 gitignore），可用 `ADR028V2_OUT` 覆盖。
+ */
+const OUT =
+  process.env.ADR028V2_OUT ??
+  resolve(REPO, 'coder/evidence/20260925_adr028_d10d11_fix/raw/verify2');
 
-/** run A：rt_seq=1 的 44 笔；**末根 bar**（bar_index=423，ts=1789660800）含 2 笔（下标 42=Buy / 43=Sell）。 */
-const RUN_A = process.env.ADR028V2_RUN_A ?? 'sr_1789865219068_000001';
-const RT_A = Number(process.env.ADR028V2_RT_A ?? '1');
+/**
+ * 目标 run：**一律谓词解析**（ADR-028 §2.10.1 裁决 3），**禁硬编码 run id**（§7.1 第 9 行：
+ * 硬编码 run 会被新 run 顶出历史列表首屏 ⇒ 「运行必须在历史列表内」假红）。
+ * 前提由谓词 `pair` 编码：rt1 成交 ≥3 ∧ **数据末根 bar 上有一 Buy 一 Sell** ∧ 存在中段成交（距末根 ≥40 根）。
+ * 下标（末根双笔 / 中段对照）**由实测数据推出**（禁写死 42/43/1），与 fillKey 口径一致：key = `${rt}:${idx}`。
+ */
+let RUN_A = '';
+let RT_A = 1;
 /** 0-based 成交下标（与 L2 行号、fillKey 同名口径一致：key = `${rt}:${idx}`）。 */
-const IDX_LAST_BUY = Number(process.env.ADR028V2_IDX_LAST_BUY ?? '42');
-const IDX_LAST_SELL = Number(process.env.ADR028V2_IDX_LAST_SELL ?? '43');
-/** run B：目标笔居中（两侧都有 bar ⇒ 标签有右侧绘制空间）——R1 的**对照样本**。 */
-const RUN_B = process.env.ADR028V2_RUN_B ?? 'sr_1789832477006_000002';
-const RT_B = Number(process.env.ADR028V2_RT_B ?? '1');
-const IDX_B = Number(process.env.ADR028V2_IDX_B ?? '1');
+let IDX_LAST_BUY = -1;
+let IDX_LAST_SELL = -1;
+/** 解析结果（含谓词原文与扫描证据；落盘供复核）。 */
+let RUN_RESOLUTION: ResolvedRun | null = null;
 /** 高亮存活时长（与实现 `KlineChart.HIGHLIGHT_DURATION_MS` 同口径；仅用于「等高亮散去再测像素」）。 */
 const HL_MS = 3000;
 /** 成交侧别 ⇒ 颜色（口径：`reason==='StopTrigger'` ⇒ 橙；否则 Buy ⇒ 红 / Sell ⇒ 绿）。 */
@@ -138,18 +157,103 @@ function blendAttribution(
   return best;
 }
 
-/** 打开工作台 + 选中 run + 等初始装载落定。 */
+/**
+ * 打开工作台 + 选中 run + 等初始装载落定。
+ * **分页**（§7.1 第 10 行）：库已 90+ run，目标 run 会被顶出首屏 ⇒ 必须点「加载更多」直到出现。
+ */
 async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const sel = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(sel, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await sel.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(sel, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await sel.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
   await expect(page.getByTestId('wb-fills-note')).toBeVisible();
   await page.waitForTimeout(2500);
 }
+
+/**
+ * **D11 重锚**：标签默认不显 ⇒ 断言标签的用例必须先开结果页开关（走产品自身的持久化 key，非测试钩子）。
+ * 事实源：ADR-028 §2.11 决策 1（默认只显圆点）。
+ */
+async function enableMarkerLabels(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('eestock.wb.result.chartConfig.v1', JSON.stringify({ markerLabels: true }));
+    } catch {
+      /* 隐私模式：留给断言显式红 */
+    }
+  });
+}
+async function assertLabelGateOn(page: Page): Promise<void> {
+  await expect(page.getByTestId('wb-marker-labels-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'on');
+}
+
+/** `APIRequestContext` → {@link RunFetchPort}（只读；口径同 D10/D11 规格）。 */
+function requestPort(request: APIRequestContext): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      return Number(((await resp.json()) as { total?: number }).total ?? -1);
+    },
+    roundTrips: async (id) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id, rt) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/round-trips/${rt}/fills?limit=500`);
+      expect(resp.ok(), `GET /fills ${id}/${rt}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+const RESOLVE_SOURCE = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+
+/** 谓词 `pair` 解析 + 反硬编码护栏（**现场重解析，不走落盘缓存**）+ 末根双笔下标派生。 */
+test.beforeAll(async ({ request }) => {
+  const port = requestPort(request);
+  const run = await resolveRun(port, 'pair', { sourceKey: RESOLVE_SOURCE });
+  const fresh = await resolveRun(port, 'pair', { cacheDir: null, sourceKey: RESOLVE_SOURCE });
+  assertResolvedByIdFresh(run.id, fresh, 'pair');
+  RUN_RESOLUTION = run;
+  const fills = await port.fills(run.id, 1);
+  const lastBar = Math.max(...fills.map((f) => f.bar_index));
+  const buy = fills.findIndex((f) => f.bar_index === lastBar && f.side === 'Buy');
+  const sell = fills.findIndex((f) => f.bar_index === lastBar && f.side === 'Sell');
+  if (buy < 0 || sell < 0) throw new Error(`谓词 pair 命中 run 的末根 bar(${lastBar}) 必须一 Buy 一 Sell（实得 ${buy}/${sell}）`);
+  RUN_A = run.id;
+  RT_A = 1;
+  IDX_LAST_BUY = buy;
+  IDX_LAST_SELL = sell;
+  writeJson('run_resolution', {
+    id: run.id,
+    predicate: run.predicate,
+    totalBars: run.totalBars,
+    rtSeq: run.rtSeq,
+    l2Count: run.l2Count,
+    evidence: run.evidence,
+    derived: { lastBar, buy, sell, fills: fills.length },
+  });
+});
 
 /** L2 跳转（行号 = 0-based 成交下标）+ 等窗口生效。 */
 async function jumpL2(page: Page, rt: number, idx: number): Promise<void> {
@@ -437,10 +541,26 @@ test('V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测�
     Math.max(...fills.map((f) => Number(f['bar_index']))),
   );
 
+  // **D11 重锚**：标签默认不显（决策 1）⇒ 本用例断言「标签被 fillText / 标签盒不裁剪」必须先开结果页开关。
+  //  门控开后标签**常显** ⇒ 不再依赖 3s 高亮期（旧写法 `waitForTimeout(HL_MS+700)` 在门控关态下是「等过头」
+  //  ⇒ 一条 fillText 都收不到）。下面分两段：**高亮期内**先断言「目标标签已画」（时序可控），
+  //  等脉冲散去后再做像素测量（去白环污染）。
+  await enableMarkerLabels(page);
   await openRunSettled(page, RUN_A);
+  await assertLabelGateOn(page);
   await clearTextRecs(page);
   await jumpL2(page, RT_A, IDX_LAST_BUY);
-  await page.waitForTimeout(HL_MS + 700); // 等白描边脉冲散去，避免白环污染 ink
+  // ── 第一段：**高亮期内**（跳转后立即，未超 3s）目标标签必须已出现（旧判据在此态必红 ⇒ 有鉴别力）──
+  await expect
+    .poll(async () => page.getByTestId('kline-chart').getAttribute('data-highlight-active'), { timeout: 8000 })
+    .toBe('true');
+  const dumpDuring = await dotsDump(page);
+  const buyDuring = dumpDuring.dots.find((d) => d.key === `${RT_A}:${IDX_LAST_BUY}`);
+  expect(buyDuring, '高亮期内必须存在目标标记').toBeTruthy();
+  const recDuring = await textRec(page, buyDuring!.label);
+  expect(recDuring, `高亮期内渲染器必须已 fillText 过标签 ${JSON.stringify(buyDuring!.label)}（门控不得吞掉跳转目标）`).toBeTruthy();
+  writeJson('v1_during_highlight', { key: `${RT_A}:${IDX_LAST_BUY}`, label: buyDuring!.label, rec: recDuring });
+  await page.waitForTimeout(HL_MS + 700); // 第二段：等白描边脉冲散去，避免白环污染 ink
 
   const dump = await dotsDump(page);
   expect(dump.ok, '必须捕获真图表实例').toBe(true);
@@ -493,18 +613,22 @@ test('V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测�
   const ratioSell = inkSell.span / expSellW;
   const shot = await shotKline(page, 'v1_last_bar_labels.png');
 
-  // 对照样本（run B 中部 bar：标签画在圆点**右侧**）
-  await openRunSettled(page, RUN_B);
-  await clearTextRecs(page);
-  await jumpL2(page, RT_B, IDX_B);
-  await page.waitForTimeout(HL_MS + 700);
-  const dumpB = await dotsDump(page);
-  const mid = dumpB.dots.find((d) => d.key === `${RT_B}:${IDX_B}`)!;
+  // 对照样本（**同一 run 的静止态**中段标记：标签画在圆点**右侧**、未翻转）。
+  //  为什么不用「第二个 run + 跳转」：D10 的写回/前向分页会让跳转目标落到 pane 右缘 ⇒ 标签**翻转**，
+  //  对照样本的语义（右侧绘制）随之失效。静止态取 pane 中部、右侧有完整标签盒空间的标记，口径可复核。
+  const paneW = paneBuy.cw;
+  const mid = (() => {
+    const cands = dump.dots.filter((d) => d.x >= 40 && d.x <= paneW - 161 && Number.isFinite(d.x));
+    expect(cands.length, '必须存在「中部且右侧有完整标签盒空间」的静止态标记（对照样本前提）').toBeGreaterThan(0);
+    const midPt = paneW / 2;
+    return cands.slice().sort((a, b) => Math.abs(a.x - midPt) - Math.abs(b.x - midPt))[0]!;
+  })();
+  expect(mid.label.length, '对照标记必须带标签（门控已开）').toBeGreaterThan(0);
   const recMid = await textRec(page, mid.label);
   expect(recMid, '对照标签必须被 fillText 过').toBeTruthy();
   const p3 = await analyze(page, { measureTexts: [{ id: 'mid', text: mid.label, size: 9, font: recMid!.font }] });
   const expMidW = p3.measures![0]!.width;
-  const paneMid = paneOf(dumpB, mid);
+  const paneMid = paneOf(dump, mid);
   const boxMid = boxFromRec(recMid!, expMidW, mid.color, paneMid);
   const p4 = await analyze(page, { ink: [boxMid] });
   const inkMid = p4.inks![0]!;
@@ -517,7 +641,7 @@ test('V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测�
       buy: { key: buy.key, label: buy.label, dot: { x: buy.x, y: buy.y }, pane: paneBuy, rec: recBuy, expWidth: expBuyW, box: boxBuy, ink: inkBuy, ratio: ratioBuy },
       sell: { key: sell.key, label: sell.label, dot: { x: sell.x, y: sell.y }, pane: paneSell, rec: recSell, expWidth: expSellW, box: boxSell, ink: inkSell, ratio: ratioSell },
     },
-    controlMid: { run: RUN_B, key: mid.key, label: mid.label, dot: { x: mid.x, y: mid.y }, pane: paneMid, rec: recMid, expWidth: expMidW, box: boxMid, ink: inkMid, ratio: ratioMid },
+    controlMid: { run: RUN_A, state: '静止态（未跳转）', key: mid.key, label: mid.label, dot: { x: mid.x, y: mid.y }, pane: paneMid, rec: recMid, expWidth: expMidW, box: boxMid, ink: inkMid, ratio: ratioMid },
     shot,
   });
 
@@ -534,13 +658,15 @@ test('V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测�
     `翻转后文本右缘与圆点的间距必须紧凑（≤10px；实测 ${(buy.x - (recBuy!.x + expBuyW)).toFixed(1)}px）`,
   ).toBeLessThanOrEqual(10);
   // 完整性：像素 ink 必须铺满期望文本宽度
-  expect(inkBuy.total, 'Buy 标签 ink 必须存在（旧实现右侧绘制 ⇒ 几乎全被裁掉）').toBeGreaterThan(60);
+  // ink 绝对阈值重标（§7.1 第 11 行）：旧 60 是 17 字符长标签口径；短标签（`S×7,668.8451`=12 字符 ≈ 71px）
+  // 的墨量按同墨密度 ≈ 0.55×长标签 ⇒ 取 **30**（并保留 `ratio ≥ 0.85` 与覆盖率两条相对判据）。
+  expect(inkBuy.total, 'Buy 标签 ink 必须存在（旧实现右侧绘制 ⇒ 几乎全被裁掉）').toBeGreaterThan(30);
   expect(
     ratioBuy,
     `Buy 标签 ink 跨度 / 渲染器实测文本宽度 必须 ≥ 0.85（实测 ${ratioBuy.toFixed(3)}；期望宽 ${expBuyW.toFixed(1)}px，ink 跨度 ${inkBuy.span}px，墨量 ${inkBuy.total}px）`,
   ).toBeGreaterThanOrEqual(0.85);
   expect(ratioBuy, 'ink 跨度不得明显超出文本宽度（防跨元素误计）').toBeLessThanOrEqual(1.3);
-  expect(inkBuy.coverage, `标签墨列覆盖率必须 ≥ 0.5（实测 ${inkBuy.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.5);
+  expect(inkBuy.coverage, `标签墨列覆盖率必须 ≥ 0.6（**主判据**，与文本长度无关；实测 ${inkBuy.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.6);
   expect(inkBuy.xMax, 'Buy 标签 ink 右缘不得侵入圆点区域（全在圆点左侧）').toBeLessThan(Math.round(buy.x));
 
   // ── 判据（Sell：同 bar 第二笔）──
@@ -548,17 +674,17 @@ test('V1 R1 [@mut] 末根 bar 标签不裁剪：ink 跨度 ≈ 渲染器实测�
   expect(recSell!.x + expSellW, 'Sell 标签右缘必须落在 pane 内').toBeLessThanOrEqual(paneSell.ox + paneSell.cw - 1);
   expect(recSell!.x + expSellW, 'Sell 标签文本右缘必须在圆点左侧（翻转）').toBeLessThan(sell.x);
   expect(sell.x - (recSell!.x + expSellW), '翻转后间距必须紧凑（≤10px）').toBeLessThanOrEqual(10);
-  expect(inkSell.total, 'Sell 标签 ink 必须存在').toBeGreaterThan(60);
+  expect(inkSell.total, 'Sell 标签 ink 必须存在').toBeGreaterThan(30);
   expect(ratioSell, `Sell 标签 ink 跨度 / 渲染器实测文本宽度 必须 ≥ 0.85（实测 ${ratioSell.toFixed(3)}）`).toBeGreaterThanOrEqual(0.85);
   expect(ratioSell).toBeLessThanOrEqual(1.3);
-  expect(inkSell.coverage, `Sell 标签墨列覆盖率必须 ≥ 0.5（实测 ${inkSell.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.5);
+  expect(inkSell.coverage, `Sell 标签墨列覆盖率必须 ≥ 0.6（**主判据**；实测 ${inkSell.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.6);
   expect(inkSell.xMax, 'Sell 标签 ink 右缘不得侵入圆点区域').toBeLessThan(Math.round(sell.x));
 
   // ── 判据（对照：中部 bar 仍为右侧绘制 = 既有行为不变，且同指标达标 ⇒ 阈值可达）──
   expect(recMid!.x, '对照（中部 bar）标签锚点必须在圆点右侧（未翻转）').toBeGreaterThan(mid.x);
   expect(recMid!.x - mid.x, '对照标签与圆点间距必须紧凑（≤10px）').toBeLessThanOrEqual(10);
   expect(ratioMid, `对照同指标必须 ≥ 0.85（实测 ${ratioMid.toFixed(3)}）`).toBeGreaterThanOrEqual(0.85);
-  expect(inkMid.coverage, `对照墨列覆盖率必须 ≥ 0.5（实测 ${inkMid.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.5);
+  expect(inkMid.coverage, `对照墨列覆盖率必须 ≥ 0.6（**主判据**；实测 ${inkMid.coverage.toFixed(3)}）`).toBeGreaterThanOrEqual(0.6);
   expect(mid.x, '对照圆点必须离 pane 右缘足够远').toBeLessThan(paneMid.cw - 40);
 });
 
@@ -664,13 +790,24 @@ test('V3 R3 圆点颜色身份：合成位图逐圆点读圆心/3×3，与 /fill
   };
 
   await openRunSettled(page, RUN_A);
+  // **D11 重锚（前置自检）**：门控**默认关** ⇒ 画布上没有标签盒（否则标签背景盒会遮挡圆点圆心，
+  //  把「圆点颜色身份」测成「标签盒颜色」）。本前置使该前提可失败。
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'off');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-label-count', '0');
   await jumpL2(page, RT_A, IDX_LAST_BUY);
   await page.waitForTimeout(HL_MS + 700); // 常态圆点（无白环）下读色
 
   const dump = await dotsDump(page);
   expect(dump.ok, '必须捕获真图表实例').toBe(true);
   const pane = paneOf(dump, { x: 0, y: 0 });
-  const inPane = dump.dots.filter((d) => d.x >= 3 && d.x <= pane.cw - 3 && d.y >= 3 && d.y <= pane.ch - 3);
+  /**
+   * 采样面 = 「**中心像素 + 3×3 邻域**都在画布内」的圆点 ⇒ x ∈ [1, cw−2]（读的是圆心与邻域，不是整枚圆点）。
+   * **重锚（D10 后实测）**：旧margin `cw−3` 在本批（D10 精确落位）下会把**末根 bar 的圆点**排除
+   * （实测 x=617、cw=619 ⇒ 617 > 616），而本 run 的**唯一** Sell（ForceClose）恰在末根 bar
+   * ⇒ 旧 margin 会把「买/卖双侧颜色身份」测成**单侧**（实测 sellN=0 ⇒ 判据恒红/失去鉴别力）。
+   * 圆心像素仍在画布内（617 < 619）且 3×3 邻域完整 ⇒ 读数是有效的；故余量取 **2**（最小可读要求）。
+   */
+  const inPane = dump.dots.filter((d) => d.x >= 2 && d.x <= pane.cw - 2 && d.y >= 2 && d.y <= pane.ch - 2);
 
   const res = await analyze(page, { readPoints: inPane.map((d) => ({ id: d.key, x: d.x, y: d.y })) });
   const shot = await shotKline(page, 'v3_dot_pixels.png');

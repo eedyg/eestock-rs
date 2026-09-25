@@ -44,7 +44,9 @@ export function makeFillKey(rtSeq: number, fillSeq: number): string {
  *
  * ADR-028 D4.1（本波醒目化 + 可定位）：
  *  - `shape:'dot'` ⇒ 实心圆点 + 描边（买红 / 卖绿 / 硬止损橙）；
- *  - `label` = **价格×股数**文本（`B 8.417×118`，数字口径 = 页面既有 `fmtNum`）；
+ *  - `label` = **短标签** `方向×数量`（如 `B×118`；ADR-028 §2.11 D11 决策 3）；
+ *  - `labelDetail` = **明细** `方向 价格×数量`（如 `B 8.417×118`，数字口径 = 页面既有 `fmtNum`）
+ *    —— 明细不再常驻画布，由**悬停读数**（`kline-marker-hover`）与既有 L2 明细表承载（不丢失可获取性）；
  *  - `stackIndex` = **同 bar 堆叠序**（同 ts 的第 k 笔 ⇒ 像素纵向偏移，**禁止相互遮盖**）；
  *  - `fillKey` = 判别身份键（点击 → 目标标记一一对应；精确到笔）。
  *  **不加跨点连线**（避免与蜡烛重叠成噪声）。 */
@@ -62,6 +64,8 @@ export function buildMarkers(fills: WorkbenchRunFill[]): KlineMarkerOverlay[] {
     const buy = f.side === 'Buy';
     const text = stop ? '⊗' : buy ? 'B' : 'S';
     const color = stop ? COLOR_STOP : buy ? COLOR_BUY : COLOR_SELL;
+    // 数量口径与页面既有 `fmtNum(f.qty,'qty')` 一致（4 位小数上限）——**不**改数字口径，只缩短文本长度。
+    const qty = fmtNum(f.qty, 'qty');
     return {
       type: 'marker' as const,
       ts,
@@ -69,8 +73,9 @@ export function buildMarkers(fills: WorkbenchRunFill[]): KlineMarkerOverlay[] {
       price: f.price,
       color,
       shape: 'dot' as const,
-      // 价格×股数标签（数字格式与页面既有 fmtNum 口径一致：price 3 位 / qty 0 位）
-      label: `${text} ${fmtNum(f.price, 'price')}×${fmtNum(f.qty, 'qty')}`,
+      // D11 决策 3：**短标签**（方向 + 数量）；价格明细移到 `labelDetail`（悬停/详情）
+      label: `${text}×${qty}`,
+      labelDetail: `${text} ${fmtNum(f.price, 'price')}×${qty}`,
       fillKey: makeFillKey(f.rt_seq, fillSeq),
       stackIndex,
     };
@@ -131,6 +136,7 @@ export function KlineResultChart({
   indicators = DASHBOARD_DEFAULTS.indicators,
   viewPx = 0,
   toggleSlot,
+  markerLabels = false,
 }: {
   run: WorkbenchRunView;
   fills: RunFillsState;
@@ -153,6 +159,13 @@ export function KlineResultChart({
   indicators?: Record<IndicatorName, boolean>;
   /** 指标勾选入口（结果页注入共享组件 `IndicatorToggles`；缺省 ⇒ 不渲染入口）。 */
   toggleSlot?: ReactNode;
+  /**
+   * ADR-028 §2.11（D11 决策 4）：买卖标记标签开关（**受控 prop**，默认关）。
+   * 结果页把自己的独立配置态（`resultChartConfig`）传进来；缺省 `false` ⇒ 只显圆点。
+   * 入口（按钮）归结果页窗口条（`wb-marker-labels-toggle`）——**不**放进卡头，以免卡头换行改变
+   * D6-5/D9-8 的几何恒等式（卡头 ≤48 / K 线视图 60px 固定高）。
+   */
+  markerLabels?: boolean;
   /**
    * ADR-028 §2.9（D9-5）：外层「K 线视图」当前高度 px（**仅供可观测性**；卡片自身 `h-full` 随容器）。
    * 卡片高度不再由本组件决定 ⇒ `卡高 = 视图高 − 60`（窗口条 34 + 载入提示 18 + gap 8）。
@@ -342,6 +355,7 @@ export function KlineResultChart({
           highlightFillKey={highlight?.key ?? null}
           highlightRev={highlightRevRef.current}
           onHighlightEnd={onHighlightEnd}
+          markerLabels={markerLabels}
           paneConstraints={constraints}
           onPaneMetrics={onPaneMetrics}
         />

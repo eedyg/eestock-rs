@@ -5,9 +5,12 @@ import {
   capDisclosure,
   centeredWindow,
   clampDisclosure,
+  curveFetchWindow,
   DEFAULT_JUMP_BUFFER_BARS,
   DEFAULT_L2_JUMP_SPAN_BARS,
   geomFromRange,
+  liveConsistency,
+  liveWindowFromGeom,
   makeWindow,
   periodSeconds,
   popHistory,
@@ -15,10 +18,12 @@ import {
   roundTripWindow,
   sameGeom,
   throttleLatest,
+  writeBackWindow,
   WINDOW_THROTTLE_MS,
   type CurveDomainRequest,
   type CurveXBuild,
   type KlinePlotGeom,
+  type LiveWindowView,
   type ResultWindowState,
   type VisibleRangeTs,
   type WindowApplyResult,
@@ -92,12 +97,26 @@ export interface UseResultWindow {
   curveX: CurveXBuild;
   /** 曲线取数请求（rev + 取数窗口 + x 定义域），交 `useRunSeries` **原子**提交。 */
   request: CurveDomainRequest;
-  /** 程序化写窗**被钳位**披露（请求 ≠ 实测；一致 ⇒ null）。 */
+  /**
+   * 程序化写窗的**钳位/校准披露**（§2.10.1 裁决 1：「申请未被逐值兑现」= `requested` ≠ **生效值**；
+   * 一致 ⇒ null）。与 `liveReasons`（「被改写」）**分属两类**，禁混用。
+   */
   clampNote: string | null;
   /** 「尽可能全」的物理上限披露（显示 N / 共 M 根；ADR-028 D2.3-3）。 */
   capNote: string | null;
   /** 引擎实测可见根数（回执口径；null = 尚无回执）。 */
   visibleBars: number | null;
+  /**
+   * ADR-028 §2.10 D10 决策 3：**活体真身窗口**（当前可见 bar 区间 + 引擎读回值；无读数 ⇒ null）。
+   * 与 {@link UseResultWindow.observed}（**申请回执**，一次性）**分属两套量**，禁混用。
+   */
+  live: LiveWindowView | null;
+  /** **活体一致性**（`ok` 必含「当前一致」：申请回执 ∧ 当期 rev ∧ bar_space == requested ∧ 可见域 == 窗口域）。 */
+  liveOk: boolean;
+  /** 活体一致性未达成的原因（可读；观测/排查用）。 */
+  liveReasons: string[];
+  /** 当前请求 rev（live 一致性对照用）。 */
+  expectRev: number;
 }
 
 /** 程序化写窗期间的回声抑制窗（ms）：写窗后引擎派发的 onZoom/onScroll/onVisibleRangeChange 一律忽略。 */
@@ -121,7 +140,8 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
   const [fullRev, setFullRev] = useState(0);
   /** 程序化写窗的**请求**（与回执比对，供钳位披露）。 */
   const lastRequestRef = useRef<{ from_ts: number; to_ts: number; span_bars: number } | null>(null);
-  const [clampNote, setClampNote] = useState<string | null>(null);
+  /** 「全览」（`window = null`）程序化写窗的在飞 rev（回执到达后以实测可达区间建立窗口状态）。 */
+  const pendingResetRevRef = useRef<number | null>(null);
   const [visibleBars, setVisibleBars] = useState<number | null>(null);
 
   const revRef = useRef(0);
@@ -156,9 +176,9 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     setGeom(null);
     // rev 序列在换 run 时归零（新 run 的窗口从 0 重新单调递增；applied 已清空 ⇒ 无跨 run 竞争）
     setFullRev(0);
-    setClampNote(null);
     setVisibleBars(null);
     lastRequestRef.current = null;
+    pendingResetRevRef.current = null;
   }, [runId]);
 
   useEffect(() => () => throttleRef.current?.cancel(), []);
@@ -178,7 +198,7 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
         to_idx: r.to_idx,
       });
       setVisibleBars(next.span_bars);
-      setClampNote(null); // 用户手势不是「请求」，无钳位语义
+      // 用户手势 ⇒ 用户成为视口主人：窗口源转 `kline`，不再有「请求被钳位」语义（披露由派生 clampNote 判定）
       const cur = windowRef.current;
       if (
         cur &&
@@ -206,7 +226,7 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
       setApplying(true);
       // 记录**请求值**（回读后与实测比对 ⇒ 钳位披露；禁「请求即发布」）
       lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
-      setClampNote(null);
+      pendingResetRevRef.current = null; // 跳转/回退：窗口非 null，无需按 reset 路径建立
     },
     [],
   );
@@ -254,7 +274,6 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     setWindow(null);
     setFullRev(rev);
     setApplyError(null);
-    setClampNote(null);
     if (fullFromTs != null && fullToTs != null) {
       suppressUntilRef.current = Date.now() + PROGRAMMATIC_SUPPRESS_MS;
       const cmd: WindowCommand = {
@@ -266,6 +285,9 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
         span_mode: 'range',
       };
       lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
+      // 「全览」= 请求全区间而**物理上可能不可达**（barSpace 下限 1 + 面板宽）⇒
+      // 回执到达后必须把**实测可达区间**写回窗口状态机（ADR-028 §2.10 D10 决策 2）。
+      pendingResetRevRef.current = rev;
       setCommand(cmd);
       setApplying(true);
     }
@@ -291,9 +313,9 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
         span_mode: 'range',
       };
       lastRequestRef.current = { from_ts: cmd.from_ts, to_ts: cmd.to_ts, span_bars: cmd.span_bars };
+      pendingResetRevRef.current = null;
       setCommand(cmd);
       setApplying(true);
-      setClampNote(null);
       return stack;
     });
   }, []);
@@ -303,6 +325,7 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
       setApplying(false);
       setObserved(r); // 真身回执（成功/失败都留痕，禁止「没报错就算绿」）
       if (!r.ok) {
+        pendingResetRevRef.current = null;
         setApplyError(r.error ?? `窗口应用失败（rev ${r.rev}）`);
         return;
       }
@@ -310,36 +333,80 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
       const obs = r.observed;
       if (!obs) return;
       setVisibleBars(obs.to_idx - obs.from_idx + 1);
-      // ADR-028 §4.1：程序化写窗成功后，把**页面共享窗口对齐到真身实测窗口**。
-      // 理由：barSpace 为整数 + 真身含部分 bar + 数据稀疏 ⇒ 请求态 `[from_ts, to_ts]` 与可见态
-      // 必然有量化偏差；而「各曲线 x 定义域 == K 线可见 ts 区间」是冻结契约（§4.1/D2.1）。
-      // 回执即真身读数 ⇒ 以回执为准。
+      // ADR-028 §2.10 D10 决策 2（**真值写回**）：以**实测可达区间**对齐窗口状态机（K 线真身为准）。
+      // 适用：①跳转/全览/历史回退（窗口已存在，可能是 jump/reset 源）被夹取；
+      //      ②「全览」（window = null）在物理上限下只能显示可达子区间 ⇒ 以实测可达区间**建立**窗口状态
+      //      （否则「取数窗口 == 可见域」不成立：取数仍按全区间、x 域却取真身可见切片 ⇒ 逐点剔除）。
       const cur = windowRef.current;
-      if (cur && (cur.source === 'jump' || cur.source === 'reset')) {
-        const span = obs.to_idx - obs.from_idx + 1;
-        setClampNote(clampDisclosure(lastRequestRef.current, obs, barSeconds));
-        if (
-          cur.from_ts !== obs.from_ts ||
-          cur.to_ts !== obs.to_ts ||
-          cur.span_bars !== span ||
-          cur.from_idx !== obs.from_idx ||
-          cur.to_idx !== obs.to_idx
-        ) {
-          const next: ResultWindowState = {
-            ...cur,
-            from_ts: obs.from_ts,
-            to_ts: obs.to_ts,
-            span_bars: span,
-            from_idx: obs.from_idx,
-            to_idx: obs.to_idx,
-          };
-          windowRef.current = next;
-          setWindow(next);
-        }
+      const resetInFlight = pendingResetRevRef.current != null && pendingResetRevRef.current === r.rev;
+      if (resetInFlight) pendingResetRevRef.current = null;
+      const writeBack = writeBackWindow({
+        cur,
+        observed: resetInFlight ? obs : cur && cur.source !== 'kline' ? obs : null,
+        rev: cur ? cur.rev : r.rev,
+        source: 'reset',
+      });
+      if (writeBack) {
+        windowRef.current = writeBack;
+        setWindow(writeBack);
       }
     },
-    [barSeconds],
+    [],
   );
+
+  /**
+   * ADR-028 §2.10 D10 决策 3：**活体真身窗口**（当前可见 bar 区间 + 引擎读回值）。
+   * 事实源 = `onVisibleRangeChange` 负载（`geom`）——与「申请回执」（`observed`，一次性）分属两套量。
+   */
+  const live = useMemo(() => liveWindowFromGeom(geom), [geom]);
+  /** 当前请求 rev（与回执 rev 对照；`window = null` ⇒ 全区间请求的 rev）。 */
+  const expectRev = window ? window.rev : fullRev;
+
+  /**
+   * **活体一致性**（D10 决策 3 + §2.10.1 裁决 1）：`ok` 必含「当前一致」——回执成功 ∧ 当期 rev
+   * ∧ 真身 == **生效值**（`applied.observed.bar_space`，**不**是 `requested`）∧ 可见域 == 写回窗口域。
+   * 校准/夹取（申请未被逐值兑现）由 `wb-window-clamped` 独立披露，**不**改判 `ok`；
+   * 「写窗成功 → 其后被改写」仍必红（旧快照口径在此恒绿 = 假绿）。
+   */
+  const liveCheck = useMemo(
+    () =>
+      liveConsistency({
+        applied: observed
+          ? {
+              ok: observed.ok,
+              rev: observed.rev,
+              requested_bar_space: observed.requested_bar_space,
+              observed_bar_space: observed.observed?.bar_space ?? null,
+              error: observed.error,
+            }
+          : null,
+        live,
+        window,
+        expectRev,
+        barSeconds,
+      }),
+    [observed, live, window, expectRev, barSeconds],
+  );
+
+  /**
+   * 钳位/校准披露（§2.10.1 裁决 1）：**申请 vs 生效**（回执两套读数）——「申请未被逐值兑现」的唯一出口。
+   * 与 {@link UseResultWindow.liveReasons}（真身 vs 生效值/写回窗口域 = 「被改写」）**分属两类**，禁混用：
+   * 本披露按**回执**（写窗时刻的一次性实质），因此它不会把「后来被改写」误报成「夹取」。
+   * 回执未到/失败/不属当期 rev ⇒ 不披露（失败由 `applyError` 承担）。
+   */
+  const clampNote = useMemo(() => {
+    const req = lastRequestRef.current;
+    if (!window || window.source === 'kline' || !req) return null;
+    if (!observed || !observed.ok || observed.rev !== expectRev) return null;
+    const obs = observed.observed;
+    if (!obs) return null;
+    return clampDisclosure(
+      req,
+      { from_ts: obs.from_ts, to_ts: obs.to_ts, from_idx: obs.from_idx, to_idx: obs.to_idx },
+      barSeconds,
+      { requested: observed.requested_bar_space, observed: obs.bar_space },
+    );
+  }, [window, observed, expectRev, barSeconds]);
 
   const domain = useMemo(() => {
     if (window) return { from_ts: window.from_ts, to_ts: window.to_ts };
@@ -363,25 +430,39 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     [geom, domain, barSeconds, perBarRows],
   );
 
-  /** 取数请求（窗口 rev + 取数窗口 + x 定义域）：`useRunSeries` 据此**原子**提交「数据 ↔ 定义域」。 */
+  /**
+   * 取数请求（窗口 rev + 取数窗口 + x 定义域）：`useRunSeries` 据此**原子**提交「数据 ↔ 定义域」。
+   *
+   * ADR-028 §2.10 D10 决策 4（**消除剔除**）：取数窗口必须与 x 定义域**同源** ⇒ 主路取
+   * **K 线真身可见 ts 区间**（不是页面声明窗口）；降级（无真身几何）才回退声明窗口。
+   * 旧口径（声明窗口取数 + 真身切片作 x 域）实测逐点剔除率最高 80.5%。
+   */
   const request: CurveDomainRequest = useMemo(
     () => ({
-      rev: window ? window.rev : fullRev,
-      window: window ? { from_ts: window.from_ts, to_ts: window.to_ts } : null,
+      rev: expectRev,
+      window: curveFetchWindow({
+        source: curveX.source,
+        live,
+        window: window ? { from_ts: window.from_ts, to_ts: window.to_ts } : null,
+      }),
       xDomain: curveX.xDomain,
       plot: curveX.plot,
       degraded: curveX.degraded,
       source: curveX.source,
       slots: curveX.slots,
     }),
-    [window, fullRev, curveX],
+    [window, expectRev, curveX, live],
   );
 
-  /** 全览态（window = null）的物理上限披露：以**引擎实测可见根数**为 N、run 总根数为 M。 */
+  /**
+   * 物理上限披露（ADR-028 D2.3-3）：以**引擎实测可见根数**为 N、run 总根数为 M。
+   * 适用态 = 未显式写窗（全区间）与「全览」（`reset`：请求全区间而被物理上限夹取）。
+   * 跳转（`jump`）不适用：其钳位语义由 {@link UseResultWindow.clampNote} 承担（避免重复披露）。
+   */
   const capNote = useMemo(() => {
-    if (window) return null;
-    return capDisclosure(visibleBars, totalBars);
-  }, [window, visibleBars, totalBars]);
+    if (window && window.source !== 'reset') return null;
+    return capDisclosure(live?.bars ?? visibleBars, totalBars);
+  }, [window, live, visibleBars, totalBars]);
 
   return {
     window,
@@ -404,5 +485,9 @@ export function useResultWindow(args: UseResultWindowArgs): UseResultWindow {
     clampNote,
     capNote,
     visibleBars,
+    live,
+    liveOk: liveCheck.ok,
+    liveReasons: liveCheck.reasons,
+    expectRev,
   };
 }

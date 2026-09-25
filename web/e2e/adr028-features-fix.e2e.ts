@@ -351,12 +351,41 @@ async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const sel = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(sel, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  // ADR-028 §2.10.1 裁决 3（规格耐久）：历史列表**分页**（新 run 会把旧 run 顶出首屏）⇒ 先翻页找；
+  // 找不到则显式红（**不**静默换 run）。
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await sel.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(sel, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await sel.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
   await expect(page.getByTestId('wb-fills-note')).toBeVisible();
   await page.waitForTimeout(2500);
+}
+
+/**
+ * ADR-028 §2.11（D11，2026-09-25 重锚）：标签**默认不显**（只显圆点）⇒ 凡断言「标签墨迹」的用例
+ * 必须**先打开结果页的标记标签开关**（走产品自身的持久化配置 key，不是测试钩子）：
+ * 否则测的是「门控后无标签」这一**新默认**，旧判据（ink ≥ 阈值）必然红——这是重锚而非放宽。
+ */
+async function enableMarkerLabels(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        'eestock.wb.result.chartConfig.v1',
+        JSON.stringify({ markerLabels: true }),
+      );
+    } catch {
+      /* 隐私模式：留给断言显式红 */
+    }
+  });
 }
 
 async function gotoL2Jump(page: Page): Promise<void> {
@@ -702,8 +731,12 @@ function labelBox(x: number, text: string, paneW: number): { side: 'right' | 'le
   return { side: 'left', x0: clampX, x1: clampX + W, w: W };
 }
 
-test('F2（R1）run 末根 bar 的买卖标签必须完整可见（边缘收敛）', async ({ page }) => {
+test('F2（R1）run 末根 bar 的买卖标签必须完整可见（边缘收敛；D11 重锚：需先开标签开关）', async ({ page }) => {
+  await enableMarkerLabels(page);
   await openRunSettled(page, RUN_A);
+  // 前置自检（**非空转**）：标签开关必须真的生效（否则本用例会在「无标签」态下空转/假红）
+  await expect(page.getByTestId('wb-marker-labels-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'on');
   // R1 的触发条件：L2 跳转把窗口居中到目标笔 ⇒ **run 末根 bar 被推到 pane 右缘**
   await gotoL2Jump(page);
   await expect.poll(async () => page.getByTestId('wb-window-probe').getAttribute('data-ok'), { timeout: 8000 }).toBe('true');
@@ -786,10 +819,13 @@ test('F2（R1）run 末根 bar 的买卖标签必须完整可见（边缘收敛�
 });
 
 // ───────────────── F3（R3 风险项）：圆点像素颜色身份 ─────────────────
-test('F3（R3）真渲染圆点颜色身份必须等于标记 store 色值（买红 / 卖绿；含被常显标签盒遮挡的混合解释）', async ({
+test('F3（R3）真渲染圆点颜色身份必须等于标记 store 色值（买红 / 卖绿；D11 重锚：门控默认关 ⇒ 不再有标签盒遮挡）', async ({
   page,
 }) => {
   await openRunSettled(page, RUN_A);
+  // ADR-028 §2.11 D11：默认门控关 ⇒ **不得**有标签盒压住圆点（旧「1/24 被常显标签压暗」的成因被消除）
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'off');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-label-count', '0');
   const geom = await paneGeom(page);
   const paneW = geom.pane?.width ?? geom.w;
   const paneH = geom.pane?.height ?? geom.h;
@@ -890,6 +926,13 @@ test('F3（R3）真渲染圆点颜色身份必须等于标记 store 色值（买
   });
 
   expect(buys.length, '必须至少采样到一笔买入标记（否则用例空绿）').toBeGreaterThan(0);
+  // ADR-028 §2.11 D11（2026-09-25 重锚）：门控默认关 ⇒ 图上**没有标签盒** ⇒ 圆点不可能被标签压暗。
+  // （旧口径 1/24 的「被常显标签盒整体覆盖」成因已被 D11 消除；对照详见
+  //  `coder/evidence/20260925_adr028_d11/raw/gate_ab_occlusion.json`：门控前 8.04% 标签墨迹 / 门控后 0。）
+  expect(
+    occluded.length,
+    `门控默认关 ⇒ 不得有圆点被标签盒压暗（实测 ${occluded.length}/${recs.length}：${JSON.stringify(occluded.map((o) => o.key))}）`,
+  ).toBe(0);
   expect(sells.length, '必须至少采样到一笔卖出标记（ForceClose；否则「卖绿」不可证）').toBeGreaterThan(0);
   // 逐标记颜色身份（**两档**）：
   //  档 1：圆心像素**逐像素等于** store 色值（Δmax ≤ 10）；

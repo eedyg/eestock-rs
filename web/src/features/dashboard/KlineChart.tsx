@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   init,
   dispose,
@@ -6,6 +6,7 @@ import {
   type Chart,
   type KLineData,
   type OverlayCreateFiguresCallbackParams,
+  type Point,
 } from 'klinecharts';
 import { DEFAULT_KLINE_VIEWPORT_BARS } from './feed';
 import { fitBarSpaceToViewport, useBarSpaceFit, type BarSpaceFitResult } from './barSpaceFit';
@@ -77,8 +78,18 @@ export interface KlineMarkerOverlay {
    * 缺省 ⇒ 无身份（既有调用方不变）。「点击 → 目标标记」的一一对应靠它（**禁止**按 bar 粗定位）。
    */
   fillKey?: string;
-  /** 价格×股数标签（如 `B 8.417×118`）；缺省 ⇒ 不画标签（退化回既有 simpleAnnotation 形态）。 */
+  /**
+   * **短标签**（ADR-028 §2.11 D11 决策 3）：方向 + 数量（如 `B×118`）。
+   * 缺省 ⇒ 不画标签（退化回既有 simpleAnnotation 形态）。
+   * 门控：默认**不画**；`markerLabels` 开 / 悬停该笔 / 3s 高亮期内（高亮 overlay 恒带标签）才画。
+   */
   label?: string;
+  /**
+   * **明细文本**（`B 8.417×118`）：价格与股数明细的**承载字段**（D11 决策 3「明细移到悬停/详情」）
+   * —— 画布短标签只留方向 + 数量；悬停读数（`kline-marker-hover`）用本字段渲染，
+   * 保证「哪一笔 / 买卖 / 价格×数量」在悬停态仍可回答（不丢失可获取性）。
+   */
+  labelDetail?: string;
   /** 同 bar 多笔的**堆叠序**（0 起，像素纵向偏移 `stackIndex × FILL_DOT_DY_PX`）⇒ 同 bar 多笔可分辨。 */
   stackIndex?: number;
   /** 渲染形态：`'dot'` = 实心圆点 + 描边（ADR-028 D4.1 醒目化）；缺省/`'annotation'` = 既有 simpleAnnotation。 */
@@ -162,6 +173,15 @@ export interface KlineChartProps {
   paneConstraints?: KlinePaneConstraints;
   /** pane 约束的**实测结果**回执（观测性；可选）。 */
   onPaneMetrics?: (m: KlinePaneMetrics) => void;
+  /**
+   * ADR-028 §2.11（D11 决策 1/4）：**买卖标记标签开关**。
+   * `false`（缺省，用户 2026-09-25 默认口径）= **只显示圆点**；文本标签仅在
+   * ①本开关为 `true` ②**鼠标悬停**该笔 ③该笔处于跳转 **3s 高亮期** 三种情形下绘制。
+   * 缺省 `false` ⇒ 传了 `label` 的调用方（结果页）默认降噪；**未传 `label`** 的既有调用方（看板/宫格/多周期）
+   * 渲染面逐字节不变（无标签可门控 ⇒ 不挂悬停订阅、不写任何新 `data-*`）。
+   * 该开关**只影响标签**：圆点（`fillDot`）的绘制/命中/身份（`fillKey`）不受影响。
+   */
+  markerLabels?: boolean;
 }
 
 /** ADR-028 §2.6 第 4 项：结果页 K 线 pane 约束（声明式；无 chart 实例）。 */
@@ -444,10 +464,38 @@ export const FILL_DOT_R_PX = 3.2;
 export const FILL_DOT_HIGHLIGHT_R_PX = 6.5;
 /** R1（2026-09-20）：标签与圆点之间的水平间距（px）。 */
 export const FILL_LABEL_GAP_PX = 3;
-/** R1：9px 文本近似字宽（px/字符；实测 16 字符标签宽 76px ⇒ 4.4×16+5）。 */
-export const FILL_LABEL_CW_PX = 4.4;
-/** R1：标签左右 padding + 余量（px；模板 styles 里 paddingLeft/Right 各 2）。 */
+/**
+ * ADR-028 §2.11（D11）**标签宽度估算常量**（px/字符）——**真身标定值，禁回退到低估的 4.4**。
+ *
+ * 标定口径（`coder/evidence/20260925_adr028_d11/`；脚本 `calib_fontwidth.mjs`，原值 `width_calibration.json`）：
+ * klinecharts 文本盒宽 = `paddingLeft + round(measureText(text)) + paddingRight`
+ * （`klinecharts/dist/index.esm.js:6152`；font = `normal 9px <family>`，默认 family `Helvetica Neue`）。
+ * 真身 chromium 实测（4 字体族 × 2 档字号）最宽字族的最大单字符宽 = **5.418 px/字符**（monospace@9，
+ * `⊗`/`×` 等宽标点 + 空格混排的最坏情形）⇒ 向上取 **5.5**。
+ * 为何必须改：旧的 `4.4+5` 对**短标签**系统性低估（实测盒宽 vs 旧估算：`B×118` 31 vs 27、`⊗×12000` 42 vs 35.8、
+ * `B×807.8369` 58 vs 49、`S 12.345×12000` 80 vs 66.6、`⊗ 88.888×8888.8888` 102 vs 84.2 —— 5/5 低估），
+ * 而 D11 的短标签（`B×qty`）正落在该区间 ⇒ 避让/边缘收敛判据会误判「放得下」而把标签画出面板。
+ */
+export const FILL_LABEL_CW_PX = 5.5;
+/**
+ * D11：标签左右 padding + 余量（px）。真身盒宽里 padding = 模板 `paddingLeft/Right` 各 2（共 4），
+ * 余量 1 ⇒ 5（覆盖 `round()` 与描边/抗锯齿的 1px 级误差）。
+ */
 export const FILL_LABEL_PAD_PX = 5;
+/**
+ * D11 ⑤：圆点**悬停命中半径**（px）。
+ * 门控后「悬停才出标签」成为唯一标签入口 ⇒ 命中面必须**大于**视觉圆点半径
+ * （{@link FILL_DOT_R_PX} = 3.2）才能稳定悬停（旧口径下标签常显、点几乎无需命中）。
+ */
+export const FILL_HOVER_HIT_R_PX = 10;
+
+/**
+ * ADR-028 §2.11（D11 ⑥）**标签盒宽估算式**（纯函数）：`len × CW + PAD`。
+ * 判据（单测 + 真渲染规格）：对 ≥3 档长度，`实测盒宽 ≤ 估算式 ≤ 1.7×实测盒宽`。
+ */
+export function estimateFillLabelWidth(text: string): number {
+  return text.length * FILL_LABEL_CW_PX + FILL_LABEL_PAD_PX;
+}
 
 /**
  * R1（2026-09-20）**标签边缘收敛**（纯函数）：给定圆点位置与面板宽度，返回标签锚点与对齐。
@@ -466,7 +514,7 @@ export function placeFillLabel(args: {
   text: string;
   paneWidth: number;
 }): { x: number; align: CanvasTextAlign } {
-  const textW = args.text.length * FILL_LABEL_CW_PX + FILL_LABEL_PAD_PX;
+  const textW = estimateFillLabelWidth(args.text);
   const rightX = args.x + args.r + FILL_LABEL_GAP_PX;
   const leftX = args.x - args.r - FILL_LABEL_GAP_PX;
   const paneW = args.paneWidth > 0 ? args.paneWidth : Number.POSITIVE_INFINITY;
@@ -479,12 +527,84 @@ export function placeFillLabel(args: {
 export interface FillDotData {
   text?: string;
   label?: string;
+  /** D11：悬停明细（`B 8.417×118`）——由页面悬停读数消费（画布不画）。 */
+  labelDetail?: string;
   color?: string;
   stackIndex?: number;
   fillKey?: string;
   highlight?: boolean;
   /** 脉冲相位（整数；奇偶交替 ⇒ 半径/描边脉冲）。 */
   pulse?: number;
+}
+
+/** D11 ⑤：圆点模板的图元（角色显式化 ⇒ 「点恒在 / 命中面 > 圆点 / 标签才增加」可被单测判据直接断言）。 */
+export interface FillDotFigure {
+  role: 'hit' | 'dot' | 'label';
+  type: string;
+  attrs: Record<string, unknown>;
+  styles: Record<string, unknown>;
+  ignoreEvent: boolean;
+}
+
+/**
+ * ADR-028 §2.11（D11）`fillDot` 的**图元构造**（纯函数；由 overlay 模板与单测共用）。
+ *
+ * 门控只作用于**标签图元**：圆点（视觉）与命中面**恒在** ⇒ 判据⑤「门控不得破坏命中测试」。
+ *  - `hit`：半径 {@link FILL_HOVER_HIT_R_PX} 的**透明命中面**（`ignoreEvent:false`）——旧实现只有
+ *    r=3.2 的圆点且 `ignoreEvent:true` ⇒ 悬停命中面为零，门控后会出现「点不了/选不中」；
+ *  - `dot`：视觉实心圆点 + 描边（`ignoreEvent:true`：命中交由命中面，避免与标签/邻笔重复派发）；
+ *  - `label`：**仅当 `data.label` 非空**（⇒ 默认态、非悬停、非高亮期均不产生标签图元）。
+ */
+export function fillDotFigures(args: {
+  x: number;
+  y: number;
+  paneWidth: number;
+  data: FillDotData;
+}): FillDotFigure[] {
+  const { x, y, paneWidth: paneWidth, data: d } = args;
+  const dy = (d.stackIndex ?? 0) * FILL_DOT_DY_PX;
+  const pulse = d.highlight ? ((d.pulse ?? 0) % 2 === 0 ? 0 : 2.2) : 0;
+  const r = d.highlight ? FILL_DOT_HIGHLIGHT_R_PX + pulse : FILL_DOT_R_PX;
+  const figures: FillDotFigure[] = [
+    {
+      role: 'hit',
+      type: 'circle',
+      attrs: { x, y: y + dy, r: FILL_HOVER_HIT_R_PX },
+      // `stroke` + 透明描边 ⇒ **零可见像素**但可收事件（`drawCircle` 对透明色短路）。
+      styles: { style: 'stroke', borderColor: 'transparent', borderSize: 1, color: 'transparent' },
+      ignoreEvent: false,
+    },
+    {
+      role: 'dot',
+      type: 'circle',
+      attrs: { x, y: y + dy, r },
+      styles: {
+        style: 'stroke_fill',
+        color: d.color ?? '#8b93b0',
+        borderColor: d.highlight ? '#ffffff' : '#0b0f1a',
+        borderSize: d.highlight ? 2.5 + pulse / 2 : 1,
+      },
+      ignoreEvent: true,
+    },
+  ];
+  if (d.label) {
+    // R1：标签边缘收敛（右缘翻转/夹紧）——末根 bar 的成交标签必须完整落在面板内。
+    const pos = placeFillLabel({ x, r, text: d.label, paneWidth });
+    figures.push({
+      role: 'label',
+      type: 'text',
+      attrs: { x: pos.x, y: y + dy, text: d.label, align: pos.align, baseline: 'middle' },
+      styles: {
+        color: d.color ?? '#8b93b0',
+        size: 9,
+        backgroundColor: 'rgba(9,13,24,0.72)',
+        paddingLeft: 2,
+        paddingRight: 2,
+      },
+      ignoreEvent: true,
+    });
+  }
+  return figures;
 }
 
 function getRegisterOverlay(): ((overlay: unknown) => void) | null {
@@ -512,39 +632,8 @@ function ensureFillDotOverlayRegistered() {
       const c = p.coordinates[0];
       if (!c) return [];
       const d = (p.overlay.extendData ?? {}) as FillDotData;
-      const dy = (d.stackIndex ?? 0) * FILL_DOT_DY_PX;
-      const pulse = d.highlight ? ((d.pulse ?? 0) % 2 === 0 ? 0 : 2.2) : 0;
-      const r = d.highlight ? FILL_DOT_HIGHLIGHT_R_PX + pulse : FILL_DOT_R_PX;
-      const figures: Array<{ type: string; attrs: unknown; styles?: unknown; ignoreEvent: boolean }> = [
-        {
-          type: 'circle',
-          attrs: { x: c.x, y: c.y + dy, r },
-          styles: {
-            style: 'stroke_fill',
-            color: d.color ?? '#8b93b0',
-            borderColor: d.highlight ? '#ffffff' : '#0b0f1a',
-            borderSize: d.highlight ? 2.5 + pulse / 2 : 1,
-          },
-          ignoreEvent: true,
-        },
-      ];
-      if (d.label) {
-        // R1：标签边缘收敛（右缘翻转/夹紧）——末根 bar 的成交标签必须完整落在面板内。
-        const pos = placeFillLabel({ x: c.x, r, text: d.label, paneWidth: p.bounding.width });
-        figures.push({
-          type: 'text',
-          attrs: { x: pos.x, y: c.y + dy, text: d.label, align: pos.align, baseline: 'middle' },
-          styles: {
-            color: d.color ?? '#8b93b0',
-            size: 9,
-            backgroundColor: 'rgba(9,13,24,0.72)',
-            paddingLeft: 2,
-            paddingRight: 2,
-          },
-          ignoreEvent: true,
-        });
-      }
-      return figures;
+      // D11：图元构造抽出为纯函数（单测可直接断言「点恒在 / 命中面 > 圆点 / 标签才增加」）
+      return fillDotFigures({ x: c.x, y: c.y, paneWidth: p.bounding.width, data: d });
     },
   };
   // **两个名字，同一模板**：`fillDot` = 常态买卖标记；`fillDotHighlight` = 跳转高亮（放大 + 描边脉冲）。
@@ -655,6 +744,8 @@ export function createMarkerOverlays(
         extendData: {
           text: ov.text,
           label: ov.label,
+          // D11 决策 3：明细（价格×股数）随标记携带 ⇒ 悬停读数可直接消费（不丢失可获取性）
+          labelDetail: ov.labelDetail,
           color: ov.color,
           stackIndex: ov.stackIndex ?? 0,
           fillKey: ov.fillKey,
@@ -721,6 +812,55 @@ export function findMarkerByFillKey(
   return null;
 }
 
+/**
+ * ADR-028 §2.11（D11 ②/⑤）**悬停命中测试**（纯函数）：容器相对坐标 `(x, y)` → 命中的标记。
+ *
+ * 口径（逐条可测）：
+ *  - 标记像素位量 = `convertToPixel({timestamp: 吸附后的 bar ts, value: price})` + **堆叠偏移**
+ *    `stackIndex × FILL_DOT_DY_PX`（与模板绘制**同源**，否则悬停会飘到兄弟笔上）；
+ *  - 吸附口径与绘制一致（{@link snapTsToBars}）⇒ 标记的**真实像素位**不会因周期桶差异而偏；
+ *  - 命中半径 {@link FILL_HOVER_HIT_R_PX}（**大于**圆点半径）⇒ 门控把「悬停」变成标签唯一入口后仍好点；
+ *  - 取**最近**一笔（同 bar 多笔堆叠时可分辨）；超出半径 ⇒ `null`（禁「永远命中最近一笔」的假绿）。
+ */
+export function pickMarkerAt(args: {
+  markers: ReadonlyArray<KlineMarkerOverlay>;
+  bars: ReadonlyArray<{ ts: string }>;
+  x: number;
+  y: number;
+  toPixel: (p: { timestamp: number; value: number }) => { x?: number; y?: number } | null | undefined;
+  radiusPx?: number;
+}): KlineMarkerOverlay | null {
+  const radius = args.radiusPx ?? FILL_HOVER_HIT_R_PX;
+  let best: KlineMarkerOverlay | null = null;
+  let bestD = radius;
+  for (const m of args.markers) {
+    const snapped = snapTsToBars(args.bars, m.ts);
+    if (!snapped) continue;
+    let px: number | undefined;
+    let py: number | undefined;
+    try {
+      const p = args.toPixel({ timestamp: snapped.ts, value: m.price ?? 0 });
+      px = p?.x;
+      py = p?.y;
+    } catch {
+      continue;
+    }
+    if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
+    const dy = (m.stackIndex ?? 0) * FILL_DOT_DY_PX;
+    const d = Math.hypot(args.x - (px as number), args.y - ((py as number) + dy));
+    if (d <= bestD) {
+      best = m;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/** D11：该 overlay 是否携带可门控的标签（只有它在场时悬停/开关才有意义）。 */
+function hasFillLabel(o: KlineOverlay): boolean {
+  return o.type === 'marker' && o.label != null;
+}
+
 /** 实时 bar 像素 x 是否落在视口（容器宽度）之外 —— R2「非跟随态有新数据看不见」判据。
  *  两种宽度读取方式都兼容（`clientWidth` / `getBoundingClientRect().width`）；宽度不可测（≤0，如未布局）
  *  或像素不可得（`null`）一律判为「不算视口外」，避免误报。（诊断 §3.5 实测：跟随态 rtX∈绘图区；
@@ -751,6 +891,21 @@ export function KlineChart(props: KlineChartProps) {
   barSpaceLimitRef.current = props.barSpaceLimit;
   /** 用户手动缩放/平移过（非程序化）→ resize 不再重算（ADR-020 §2.6：「回到最新」恢复）。 */
   const manualAdjusted = useRef(false);
+  /**
+   * ADR-028 §2.10 **D10 决策 1**：**视口锁定**（程序化写窗成功后置位）。
+   * 锁定期间 `fitBarSpaceToViewport` 的两条调用路径**均不执行**：
+   * ① `useBarSpaceFit` 的 `ResizeObserver` 回调；② DataLoader `init` 回调（向前分页 / `resetData` 重载）。
+   * 解除：真实手势（`manual()`）/ 数据面变化（Effect W：换 run·换周期）/ 组件卸载（ref 随实例消亡）。
+   * 观测：锁定期间在宿主元素上留痕 `data-viewport-lock="1"`（解锁即移除 ⇒ 非结果页消费者 DOM 零变化）。
+   */
+  const viewportLocked = useRef(false);
+  /** 锁定所绑定的数据面（`feed` 身份）；不一致 ⇒ 锁定自动失效。 */
+  const viewportLockFeed = useRef<KlineChartFeedLike | null>(null);
+  const feedRef = useRef(props.feed);
+  feedRef.current = props.feed;
+  /** 视口锁定**当前是否有效**（锁定中 ∧ 数据面未变）。 */
+  const isViewportLocked = (): boolean =>
+    viewportLocked.current && viewportLockFeed.current === feedRef.current;
   /** 本次建图已应用的指标状态（启用/calcParams）——「状态差分」的基线；随建图重置（见 Effect L）。 */
   const appliedRef = useRef<AppliedIndicators | null>(null);
   const followRef = useRef(props.followLatest);
@@ -783,6 +938,8 @@ export function KlineChart(props: KlineChartProps) {
   const bumpBarsGen = useCallback(() => setBarsGen((g) => g + 1), []);
   /** overlay **内容**签名（marker 重建的依赖面；身份无关 ⇒ 幂等、无重建风暴）。 */
   const overlaysSig = useMemo(() => overlaySignature(props.overlays), [props.overlays]);
+  /** D11：本实例是否存在可门控的标签（`markerLabels`/悬停才有意义；未传 label 的调用方不进任何新分支）。 */
+  const hasLabelledMarkers = useMemo(() => (props.overlays ?? []).some(hasFillLabel), [props.overlays]);
   /** 指标/pane 布局签名（指标勾选 + MA 窗口 + dcap 参数 + 隐藏 K 线 ⇒ pane 布局变化）。 */
   const paneLayoutSig = useMemo(
     () =>
@@ -806,6 +963,16 @@ export function KlineChart(props: KlineChartProps) {
   const [overlayEpoch, setOverlayEpoch] = useState(0);
   /** 高亮脉冲相位（0 = 无高亮；>0 = 高亮中；定时器递增驱动 overlay 重绘）。 */
   const [pulse, setPulse] = useState(0);
+  /** ADR-028 §2.11（D11）观测性：当前**实际绘制**的文本标签数（= 门控后带 label 的 `fillDot` 笔数
+   *  + 3s 高亮期内的目标笔）。默认态恒 0 ⇒ 「只显圆点」可被机器可读地取证。 */
+  const [markerLabelCount, setMarkerLabelCount] = useState(0);
+  /** ADR-028 §2.11（D11 ②）当前被悬停的笔（`fillKey`；`null` = 无）。 */
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  /** D11：标签门控的**最新值**（`rebuildOverlays` 不读渲染快照；见 `overlaysRef` 同款口径）。 */
+  const labelGateRef = useRef<{ labels: boolean; hoverKey: string | null }>({ labels: false, hoverKey: null });
+  labelGateRef.current = { labels: props.markerLabels === true, hoverKey };
+  /** D11 门控签名（开关 + 悬停笔）：变化 ⇒ Effect M 重建（标签集合是 overlay 内容的一部分）。 */
+  const labelGateSig = `${props.markerLabels === true ? 'on' : 'off'}|${hoverKey ?? ''}`;
 
   /** ADR-028 D4.1 **唯一的 overlay 重建路径**（次序无关 + 幂等）：
    *  - 一律读**最新**值：`overlaysRef.current`（最新 props）+ `feed.bars`（最新数据），**不读任何渲染快照**；
@@ -824,7 +991,18 @@ export function KlineChart(props: KlineChartProps) {
       chart.removeOverlay({ name: 'tradeRange' });
       const ovs = overlaysRef.current ?? [];
       if (ovs.length > 0) createChartOverlays(chart, ovs);
-      setMarkerCount(createMarkerOverlays(chart, ovs, feed.bars));
+      // ADR-028 §2.11（D11 决策 1/4）**标签门控**：默认只画圆点；仅「开关开 / 悬停该笔」时带 label。
+      //  (`markerLabels` 缺省 false ⇒ 未传 label 的既有调用方**零影响**：无标签可门控。)
+      const gate = labelGateRef.current;
+      const gated = ovs.some(hasFillLabel)
+        ? ovs.map((o) => {
+            if (o.type !== 'marker' || !hasFillLabel(o)) return o;
+            const show = gate.labels || (gate.hoverKey != null && o.fillKey === gate.hoverKey);
+            return show ? o : { ...o, label: undefined };
+          })
+        : ovs;
+      setMarkerCount(createMarkerOverlays(chart, gated, feed.bars));
+      setMarkerLabelCount(gated.filter((o) => o.type === 'marker' && hasFillLabel(o)).length);
       setOverlayEpoch((e) => e + 1);
     },
     [feed],
@@ -836,12 +1014,47 @@ export function KlineChart(props: KlineChartProps) {
     fitBarSpaceToViewport(chart, ref.current, viewportBars);
   fitRef.current = fitBarSpace;
 
-  // 容器宽度变化（ResizeObserver）按当前视口重算；用户手动缩放/平移后不重算（enabled=false）。
+  /**
+   * 视口锁定/解锁（ADR-028 §2.10 D10 决策 1）——**唯一写口**：ref 状态与宿主留痕同源。
+   * `data-viewport-lock` **只在锁定期间存在** ⇒ 不写窗的既有调用方（看板/宫格/多周期）DOM 逐字节不变（F8）。
+   *
+   * **数据面代际**（`viewportLockFeed`）：锁定只对「写窗时的那份数据」有效 —— 换 run/换周期/换标的
+   * （`feed` 身份变化）后锁定**自动失效**（不依赖 effect 顺序，避免「新命令 + 新数据面同批提交」时被擦除）。
+   */
+  const syncViewportLockAttr = (): void => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      if (isViewportLocked()) el.setAttribute('data-viewport-lock', '1');
+      else el.removeAttribute('data-viewport-lock');
+    } catch {
+      /* 留痕失败不影响锁定语义（判定只读 ref） */
+    }
+  };
+  const lockViewport = (): void => {
+    viewportLocked.current = true;
+    viewportLockFeed.current = feedRef.current;
+    syncViewportLockAttr();
+  };
+  const releaseViewportLock = (): void => {
+    viewportLocked.current = false;
+    viewportLockFeed.current = null;
+    syncViewportLockAttr();
+  };
+
+  // 数据面代际同步：`feed` 身份变化 ⇒ 锁定失效（换 run/换周期必须重新铺满），留痕同步移除。
+  useEffect(() => {
+    syncViewportLockAttr();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.feed]);
+
+  // 容器宽度变化（ResizeObserver）按当前视口重算；用户手动缩放/平移后不重算（enabled=false）；
+  // **程序化写窗成功后同样不重算**（ADR-028 §2.10 D10 决策 1：跳转/全览必须留在原地）。
   useBarSpaceFit({
     elRef: ref,
     getChart: () => chartRef.current,
     viewportBars,
-    enabled: () => !manualAdjusted.current,
+    enabled: () => !manualAdjusted.current && !isViewportLocked(),
   });
 
   // Effect L —— 图表生命周期（**仅 mount 一次**）：容器不变 ⇒ chart 实例不重建。
@@ -874,6 +1087,7 @@ export function KlineChart(props: KlineChartProps) {
     const manual = () => {
       if (programmaticScroll.current) return; // 程序化滚动（实时跟随 scrollLatest）不算用户操作
       manualAdjusted.current = true; // 用户手动缩放/平移 → 尊重手动视口，resize 不再重算（ADR-020 §2.6）
+      releaseViewportLock(); // ADR-028 §2.10 D10 决策 1：真实手势 = 解锁（用户重新成为视口主人）
       onManualZoomRef.current();
     };
     chart.subscribeAction('onZoom', manual);
@@ -941,6 +1155,11 @@ export function KlineChart(props: KlineChartProps) {
       syncRegistryRef.current.endProgrammatic();
       programmaticScroll.current = false;
     }
+    // ADR-028 §2.10 D10 决策 1：**程序化写窗成功后锁定视口**（禁 `fitBarSpaceToViewport` 重拟合）。
+    // 实测机制（`tester/evidence/20260925_result_jump_and_marker_diag/report.md`）：跳转写 `barSpace=5`
+    // 后 16ms 被 `ResizeObserver → fitBarSpaceToViewport(chart, el, 120)` 重拟合为 6（`manualAdjusted`
+    // 只由真实手势置位）⇒ 声明 123 根、真身 104 根、探针仍报「123 根」（过期真身）。
+    if (result?.ok) lockViewport();
     if (result) onWindowAppliedRef.current?.(result);
   }, [props.windowCommand]);
 
@@ -1019,7 +1238,7 @@ export function KlineChart(props: KlineChartProps) {
             // 初始铺满：仅在用户未手动缩放/平移时执行（ADR-020 §2.6）——默认只读之外的原地重载
             // （warmup 热更新 ⇒ resetData 重跑 init）不得把用户的手动视口重置回配置视口。
             type === 'forward' ? null : () => {
-              if (!manualAdjusted.current) fitBarSpace(chart);
+              if (!manualAdjusted.current && !isViewportLocked()) fitBarSpace(chart);
             },
           );
           callback(bars, { forward, backward: false });
@@ -1102,7 +1321,7 @@ export function KlineChart(props: KlineChartProps) {
     const chart = chartRef.current;
     if (!chart) return;
     rebuildOverlays(chart);
-  }, [rebuildOverlays, overlaysSig, barsGen, paneLayoutSig]);
+  }, [rebuildOverlays, overlaysSig, barsGen, paneLayoutSig, labelGateSig]);
 
   // Effect P —— 高亮脉冲定时器（ADR-028 D4.1）：canvas 内无法用 CSS 动画 ⇒ **定时器驱动 overlay 重绘**。
   // 3 秒到点 ⇒ `setPulse(0)` 回常态，**不留永久选中态**。
@@ -1145,7 +1364,10 @@ export function KlineChart(props: KlineChartProps) {
       points: [{ timestamp: snapped.ts, value: target.price ?? 0 }],
       extendData: {
         text: target.text,
+        // ADR-028 §2.11（D11 决策 2）：跳转目标那一笔在 **3s 高亮期内恒带标签**（复用同一 extendData）；
+        // 3s 到点 ⇒ 本 overlay 被移出 ⇒ 回落为点（门控默认关也不影响本窗口内的可读性）。
         label: target.label,
+        labelDetail: target.labelDetail,
         color: target.color,
         stackIndex: target.stackIndex ?? 0,
         fillKey: key,
@@ -1218,6 +1440,33 @@ export function KlineChart(props: KlineChartProps) {
   /** ADR-028 D4.1：高亮目标（判别键 ⇒ 精确到笔；`null`/找不到 ⇒ 无高亮）。 */
   const highlightTarget = findMarkerByFillKey(props.overlays, props.highlightFillKey);
   const highlightActive = pulse > 0 && highlightTarget != null;
+  /** D11：当前悬停的那一笔（用于悬停明细读数；不参与绘制）。 */
+  const hoverMarker = hoverKey == null ? null : findMarkerByFillKey(props.overlays, hoverKey);
+  /** D11：实际绘制的标签总数 = 门控后带 label 的 `fillDot` 笔数 + 3s 高亮期内的目标笔（高亮 overlay 恒带 label）。 */
+  const drawnLabelCount = markerLabelCount + (highlightActive && highlightTarget?.label != null ? 1 : 0);
+
+  /**
+   * ADR-028 §2.11（D11 ②/⑤）鼠标移动 ⇒ 命中测试（**只改悬停态，不改视口/不写图表**）。
+   * 只在「本实例存在可门控标签」时接线 ⇒ 未传 `label` 的既有调用方（看板/宫格/多周期）**零订阅、DOM 不变**。
+   */
+  const onChartMouseMove = (e: ReactMouseEvent<HTMLDivElement>): void => {
+    const chart = chartRef.current;
+    const el = ref.current;
+    if (!chart || !el || typeof chart.convertToPixel !== 'function') return;
+    const rect = el.getBoundingClientRect();
+    const markers = (overlaysRef.current ?? []).filter((o): o is KlineMarkerOverlay => o.type === 'marker');
+    const hit = pickMarkerAt({
+      markers,
+      bars: feed.bars,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      toPixel: (p) =>
+        chart.convertToPixel(p as Partial<Point>, { paneId: 'candle_pane' }) as { x?: number; y?: number } | undefined,
+    });
+    const key = hit?.fillKey ?? null;
+    setHoverKey((prev) => (prev === key ? prev : key));
+  };
+  const onChartMouseLeave = (): void => setHoverKey((prev) => (prev === null ? prev : null));
 
   // Effect P —— ADR-028 §2.6 第 4 项 **pane 约束**（`paneConstraints` 缺省 ⇒ 本 effect 一条语句都不执行）。
   //
@@ -1317,9 +1566,30 @@ export function KlineChart(props: KlineChartProps) {
       data-highlight-active={highlightActive ? 'true' : 'false'}
       data-highlight-pulse={pulse}
       data-marker-overlays={markerCount}
+      /* ADR-028 §2.11（D11）观测性：**只在存在可门控标签时**写（未传 label 的调用方 DOM 逐字节不变） */
+      data-marker-labels={hasLabelledMarkers ? (props.markerLabels === true ? 'on' : 'off') : undefined}
+      data-marker-label-count={hasLabelledMarkers ? drawnLabelCount : undefined}
+      data-marker-hover-key={hasLabelledMarkers ? (hoverKey ?? '') : undefined}
+      data-marker-hover-detail={hasLabelledMarkers ? (hoverMarker?.labelDetail ?? '') : undefined}
+      data-marker-highlight-key={hasLabelledMarkers && highlightActive ? (highlightTarget?.fillKey ?? '') : undefined}
       style={props.heightPx != null ? { height: `${props.heightPx}px` } : undefined}
       className="relative h-full w-full"
+      onMouseMove={hasLabelledMarkers ? onChartMouseMove : undefined}
+      onMouseLeave={hasLabelledMarkers ? onChartMouseLeave : undefined}
     >
+      {/* ADR-028 §2.11（D11 决策 3）**悬停明细读数**：价格与股数明细从画布短标签移到悬停态
+          （绝对定位浮层，**不占布局高** ⇒ D6/D9 几何恒等式不受影响；`pointer-events-none` ⇒
+          不抢画布事件，命中测试仍归画布） */}
+      {hasLabelledMarkers && hoverMarker && (
+        <div
+          data-testid="kline-marker-hover"
+          data-fill-key={hoverMarker.fillKey ?? ''}
+          className="num pointer-events-none absolute left-2 top-1 z-30 rounded border border-line bg-panel/95 px-1.5 py-0.5 text-[10px] shadow-sm"
+          style={{ color: hoverMarker.color }}
+        >
+          {hoverMarker.labelDetail ?? hoverMarker.label ?? hoverMarker.text}
+        </div>
+      )}
       {/* R2：非跟随态下新 bar 落在视口之外 ⇒ 「有新数据」提示（轻量、非侵入）。
           **不改变视口**；点击才 `scrollToRealTime()` 跳最新（诊断 §6(a)2）。 */}
       {pendingNew > 0 && (

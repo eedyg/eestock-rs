@@ -113,6 +113,9 @@ export interface KlinePlotGeom {
   x_from_px: number | null;
   /** K 线容器宽（px，`getSize().width`；不可得 ⇒ null）。 */
   chart_width_px: number | null;
+  /** 可见首/末 bar 在图表 dataList 中的索引（ADR-028 §2.10 D10「活体披露」；不可得 ⇒ null）。 */
+  from_idx?: number | null;
+  to_idx?: number | null;
 }
 
 /**
@@ -202,21 +205,37 @@ export function buildCurveX(args: {
 }
 
 /**
- * **程序化写窗钳位披露**（ADR-028 D2.3-1 ②：回读与请求比对，不一致必须显式披露「被钳位」）。
- * 判据：端点差 > 1 根 bar（`barSeconds`）或根数差 > 1 根；一致 ⇒ null。
+ * **程序化写窗钳位/校准披露**（ADR-028 D2.3-1 ② / §2.10.1 **裁决 1**：申请未被逐值兑现必须显式披露）。
+ *
+ * 判据（任一成立即披露）：
+ *  - 端点差 > 1 根 bar（`barSeconds`）；
+ *  - 根数差 > 1 根；
+ *  - **barSpace 被校准**（`requested_bar_space` ≠ `observed_bar_space`，如 L1 初选 12 → 生效 11）。
+ *
+ * 为什么把 barSpace 校准也纳入：§2.10.1 把 `ok` 的对照基准改为**生效值** ⇒ 校准**不再**由 `data-ok` 承载，
+ * 若本披露不覆盖「区间逐值相同而 barScore 被校准」这一情形，「申请未被逐值兑现」就会**静默**。
+ * 反过来，披露文案必须与「写窗后被改写」（`data-live-reasons`）**分属两类**：本披露只谈「申请 vs 实质」。
  */
 export function clampDisclosure(
   cmd: { from_ts: number; to_ts: number; span_bars: number } | null,
   observed: { from_ts: number; to_ts: number; from_idx: number; to_idx: number } | null,
   barSeconds: number,
+  /** barSpace 申请/生效两侧读数（可缺：缺则只按端点/根数判定）。 */
+  args_bars?: { requested: number | null; observed: number | null },
 ): string | null {
   if (!cmd || !observed) return null;
   const tol = Math.max(1, barSeconds);
   const observedBars = observed.to_idx - observed.from_idx + 1;
   const endDiff = Math.abs(observed.from_ts - cmd.from_ts) > tol || Math.abs(observed.to_ts - cmd.to_ts) > tol;
   const spanDiff = Math.abs(observedBars - cmd.span_bars) > 1;
-  if (!endDiff && !spanDiff) return null;
-  return `窗口被钳位（引擎实测 ≠ 请求）：请求 [${cmd.from_ts}, ${cmd.to_ts}]（${cmd.span_bars} 根）⇒ 实际 [${observed.from_ts}, ${observed.to_ts}]（${observedBars} 根）`;
+  const bsDiff =
+    args_bars != null &&
+    args_bars.requested != null &&
+    args_bars.observed != null &&
+    args_bars.requested !== args_bars.observed;
+  if (!endDiff && !spanDiff && !bsDiff) return null;
+  const bsNote = bsDiff ? `；barSpace 申请 ${args_bars!.requested} → 生效 ${args_bars!.observed}` : '';
+  return `窗口被钳位/校准（申请未被逐值兑现：引擎实测 ≠ 请求）：请求 [${cmd.from_ts}, ${cmd.to_ts}]（${cmd.span_bars} 根）⇒ 实际 [${observed.from_ts}, ${observed.to_ts}]（${observedBars} 根）${bsNote}`;
 }
 
 /**
@@ -259,6 +278,8 @@ export function geomFromRange(r: {
   bar_space?: number;
   x_from_px?: number;
   chart_width_px?: number;
+  from_idx?: number;
+  to_idx?: number;
 }): KlinePlotGeom | null {
   const barTs = r.bar_ts ?? [];
   if (barTs.length === 0) return null;
@@ -267,6 +288,8 @@ export function geomFromRange(r: {
     bar_space: r.bar_space ?? null,
     x_from_px: r.x_from_px ?? null,
     chart_width_px: r.chart_width_px ?? null,
+    from_idx: r.from_idx ?? null,
+    to_idx: r.to_idx ?? null,
   };
 }
 
@@ -276,9 +299,163 @@ export function sameGeom(a: KlinePlotGeom | null, b: KlinePlotGeom | null): bool
   if (a.bar_space !== b.bar_space || a.x_from_px !== b.x_from_px || a.chart_width_px !== b.chart_width_px) {
     return false;
   }
+  if ((a.from_idx ?? null) !== (b.from_idx ?? null) || (a.to_idx ?? null) !== (b.to_idx ?? null)) return false;
   if (a.bar_ts.length !== b.bar_ts.length) return false;
   if (a.bar_ts.length === 0) return true;
   return a.bar_ts[0] === b.bar_ts[0] && a.bar_ts[a.bar_ts.length - 1] === b.bar_ts[b.bar_ts.length - 1];
+}
+
+/**
+ * **活体真身窗口**（ADR-028 §2.10 D10 决策 3）：K 线**当前**实测可见 bar 区间与引擎读回值。
+ * 事实源 = `onVisibleRangeChange`（`getVisibleRange()`/`getBarSpace()` 真身读数），不是页面请求态。
+ */
+export interface LiveWindowView {
+  from_ts: number;
+  to_ts: number;
+  /** 可见 bar 根数（= K 线实际绘制的 bar 数）。 */
+  bars: number;
+  from_idx: number | null;
+  to_idx: number | null;
+  bar_space: number | null;
+}
+
+/** 由真身几何构造活体窗口（几何缺失/空 bar 序列 ⇒ null：**不猜**）。 */
+export function liveWindowFromGeom(g: KlinePlotGeom | null): LiveWindowView | null {
+  if (!g || g.bar_ts.length === 0) return null;
+  return {
+    from_ts: g.bar_ts[0]!,
+    to_ts: g.bar_ts[g.bar_ts.length - 1]!,
+    bars: g.bar_ts.length,
+    from_idx: g.from_idx ?? null,
+    to_idx: g.to_idx ?? null,
+    bar_space: g.bar_space ?? null,
+  };
+}
+
+/** 活体一致性判定结果（`reasons` = 可读原因；供披露与红点定位）。 */
+export interface LiveConsistency {
+  ok: boolean;
+  reasons: string[];
+}
+
+/**
+ * **活体一致性**（ADR-028 §2.10 D10 决策 3 + §2.10.1 **裁决 1**）：`ok` 必须包含「**当前**一致」，不得只看一次性回执。
+ *
+ * 程序化窗口态（`window.source ∈ {jump, reset}`）判据：
+ *  ① 申请回执成功（`setBarSpace` 未被引擎静默吞掉）；
+ *  ② 回执属于**当前**请求（`rev` 一致 ⇒ 禁过期快照）；
+ *  ③ **真身 == 生效值**（`live.bar_space == applied.observed_bar_space`）——**不是**对照 `requested`：
+ *     引擎校准（L1 初选 12 → 生效 11、全览 10 → 9）与不可达夹取属「申请未被逐值兑现」，
+ *     由 `wb-window-clamped` 独立披露；若拿它们判 `ok=false`，真实的「写窗后被改写」信号会被噪声淹没。
+ *  ④ 可见域 == **写回后的**窗口域（两端各 ±1 根 bar 量化容差）。
+ *
+ * 被改写的两类信号（reason 文案**必须**读作「被改写」，与「校准/夹取」两类分开，见裁决 1）：
+ *  - `bar-space-rewritten:` 真身 barSpace ≠ 生效 barSpace；
+ *  - `domain-drift:` 真身可见域偏离写回窗口域（> ±1 根）。
+ *
+ * 非程序化态（无窗口 / `kline` 用户手势源）无「申请」对照，只要求真身可读（真身不可读 ⇒ 一律不绿）。
+ */
+export function liveConsistency(args: {
+  applied: {
+    ok: boolean;
+    rev: number;
+    /** **申请初选**（仅供观测/证据；**不**参与 `ok` 判定 — §2.10.1 裁决 1）。 */
+    requested_bar_space: number | null;
+    /** **生效值**（`applied.observed.bar_space`；§2.10.1 裁决 1 的对照基准）。 */
+    observed_bar_space: number | null;
+    error: string | null;
+  } | null;
+  live: LiveWindowView | null;
+  window: ResultWindowState | null;
+  expectRev: number;
+  barSeconds: number;
+}): LiveConsistency {
+  const { applied, live, window: win, expectRev, barSeconds } = args;
+  const reasons: string[] = [];
+  if (!live) reasons.push('live-unreadable: 真身可见域不可读（无 onVisibleRangeChange 读数）');
+  const programmatic = win != null && win.source !== 'kline';
+  if (programmatic) {
+    if (!applied) reasons.push('no-receipt: 无写窗回执');
+    else {
+      if (!applied.ok) reasons.push(`receipt-failed: ${applied.error ?? '写窗失败'}`);
+      else if (applied.rev !== expectRev) {
+        reasons.push(`receipt-stale: 回执 rev ${applied.rev} ≠ 当前请求 rev ${expectRev}`);
+      }
+      if (
+        applied.ok &&
+        live &&
+        applied.observed_bar_space != null &&
+        live.bar_space !== applied.observed_bar_space
+      ) {
+        reasons.push(
+          `bar-space-rewritten: 真身 ${live.bar_space} ≠ 生效 ${applied.observed_bar_space}（写窗后被改写，非申请未兑现）`,
+        );
+      }
+    }
+  }
+  if (live && win) {
+    const tol = Math.max(1, barSeconds);
+    if (Math.abs(live.from_ts - win.from_ts) > tol || Math.abs(live.to_ts - win.to_ts) > tol) {
+      reasons.push(
+        `domain-drift: 真身可见域 [${live.from_ts}, ${live.to_ts}] ≠ 写回窗口域 [${win.from_ts}, ${win.to_ts}]（> ±1 根：写窗后被改写/漂移）`,
+      );
+    }
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * **曲线取数窗口**（ADR-028 §2.10 D10 决策 4）：必须与 x 定义域**同源**。
+ * 主路（x 域取 K 线 bar 序列）⇒ 取数窗口 = **真身可见 ts 区间**；降级（无真身几何）⇒ 回退声明窗口。
+ * 理由：取数窗口取「页面声明窗口」而 x 域取「真身可见切片」⇒ 逐点剔除（实测剔除率最高 80.5%）。
+ */
+export function curveFetchWindow(args: {
+  source: CurveXSource | null;
+  live: LiveWindowView | null;
+  window: { from_ts: number; to_ts: number } | null;
+}): { from_ts: number; to_ts: number } | null {
+  if (args.source === 'kline' && args.live) return { from_ts: args.live.from_ts, to_ts: args.live.to_ts };
+  return args.window;
+}
+
+/**
+ * **真值写回**（ADR-028 §2.10 D10 决策 2）：程序化写窗被夹取（目标不可达）时，以**实测可达区间**
+ * 对齐窗口状态机（`source`/`rev` 保持申请者身份）；「全览」请求（`cur === null`）⇒ 建立 `reset` 窗口。
+ *
+ * 返回 `null` ⇒ 无需变更（幂等：不触发多余 re-render / 取数）。
+ */
+export function writeBackWindow(args: {
+  cur: ResultWindowState | null;
+  observed: { from_ts: number; to_ts: number; from_idx: number; to_idx: number } | null;
+  rev: number;
+  source?: WindowSource;
+}): ResultWindowState | null {
+  const { cur, observed, rev } = args;
+  if (!observed) return null;
+  const span = Math.max(1, observed.to_idx - observed.from_idx + 1);
+  if (cur == null) {
+    return makeWindow(args.source ?? 'reset', observed.from_ts, observed.to_ts, span, rev, {
+      from_idx: observed.from_idx,
+      to_idx: observed.to_idx,
+    });
+  }
+  if (
+    cur.from_ts === observed.from_ts &&
+    cur.to_ts === observed.to_ts &&
+    cur.span_bars === span &&
+    cur.from_idx === observed.from_idx &&
+    cur.to_idx === observed.to_idx
+  ) {
+    return null;
+  }
+  return {
+    ...cur,
+    from_ts: observed.from_ts,
+    to_ts: observed.to_ts,
+    span_bars: span,
+    from_idx: observed.from_idx,
+    to_idx: observed.to_idx,
+  };
 }
 
 export function containsTs(w: ResultWindowState, ts: number): boolean {

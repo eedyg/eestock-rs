@@ -18,11 +18,30 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const OUT = process.env.ADR027_VERIFY_OUT ?? resolve(REPO, 'coder/evidence/20260920_adr027_axis_fix/raw');
-const RUN_ID = process.env.ADR027_ALIGN_RUN ?? 'sr_1789832517800_000006';
+/**
+ * 证据落盘目录：**必须落未跟踪目录**（`AGENTS.md`「代理产物与提交纪律」；旧默认路径
+ * `coder/evidence/20260920_adr027_axis_fix/raw/` 已被 git 跟踪 ⇒ 每次真跑都会覆写已跟踪文件）。
+ * 可用 `ADR027_VERIFY_OUT` 覆盖。
+ */
+const OUT = process.env.ADR027_VERIFY_OUT ?? resolve(REPO, 'coder/evidence/20260925_adr028_d10_ruling/raw_axis_verify');
+/**
+ * **ADR-028 §2.10.1 裁决 3｜规格耐久**：目标 run（M5、根数足够、含缺口）按**谓词解析**——
+ * 禁硬编码 run id（库增长会把目标 run 顶出历史列表首屏）；解析失败 ⇒ 显式红。
+ * `RUN_ID` 由 {@link resolveTargetRun} 在用例开始时填入（**已废除**的历史字面量：`sr_1789832517800_000006`）。
+ */
+let RUN_ID = '';
 const PLOT_W = 984; // 曲线 plot 宽度（user units；与 tester 口径一致）
 const TOL = 2;
 
@@ -129,10 +148,69 @@ function probeCurve(testId: string) {
 
 // ────────────────────────────────────────── 动作 ──────────────────────────────────────────
 
+/** `page.request` → {@link RunFetchPort}（只读；规格侧唯一取数面）。 */
+function runPort(page: Page): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await page.request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      const total = ((await resp.json()) as { total?: number }).total;
+      expect(typeof total, `/bars per_bar ${id} 必须回 total`).toBe('number');
+      return total!;
+    },
+    roundTrips: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id, rtSeq) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips/${rtSeq}/fills?limit=200`);
+      expect(resp.ok(), `GET /fills ${id}#${rtSeq}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+/**
+ * 解析目标 run（谓词 `m5`）+ **反硬编码护栏**（规格使用的 id 必须 == 现场重解析结果）+
+ * 把解析证据落盘（复核者可回答「解析到什么、为什么」）。
+ */
+async function resolveTargetRun(page: Page): Promise<ResolvedRun> {
+  // 落盘缓存（未跟踪目录；命中仍校验）+ **护栏走现场解析（不走缓存）**
+  const sourceKey = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+  const run = await resolveRun(runPort(page), 'm5', { sourceKey });
+  const fresh = await resolveRun(runPort(page), 'm5', { cacheDir: null, sourceKey });
+  assertResolvedByIdFresh(run.id, fresh, 'm5');
+  RUN_ID = run.id;
+  writeJson('run_resolution', {
+    id: run.id,
+    predicate: run.predicate,
+    totalBars: run.totalBars,
+    evidence: run.evidence,
+  });
+  return run;
+}
+
 async function openRunSettled(page: Page): Promise<void> {
+  await resolveTargetRun(page);
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const select = page.getByTestId(`wb-run-select-${RUN_ID}`);
+  // 历史列表**分页**（新 run 顶掉旧 run 的首屏位置）⇒ 翻页查找（2026-09-25 复验实测：首屏 50 / 共 93）
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await select.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
   await expect(select).toBeVisible();
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
@@ -291,7 +369,7 @@ async function visibleCount(page: Page): Promise<number> {
 
 // ─────────────────────────────────────────── 用例 ───────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
+test.describe.configure({ mode: 'serial', timeout: 180_000 }); // timeout：§7.2 修法 ①（谓词解析不得吃穿默认 60s 预算）
 
 test('V1_true_pairing：同一根 bar 在 K 线与曲线上的真身像素偏差（六态）', async ({ page }) => {
   test.setTimeout(300_000);
@@ -308,9 +386,10 @@ test('V1_true_pairing：同一根 bar 在 K 线与曲线上的真身像素偏差
 
   await record('init');
 
-  // 全览
+  // 全览（ADR-028 §2.10 D10 决策 2：以**实测可达区间**写回窗口状态机 ⇒ source=reset；
+  // 不再停在「全区间」——否则取数窗口（全区间）与 x 域（真身可见切片）两源错位、逐点剔除）
   await page.getByTestId('wb-window-reset').click();
-  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'full');
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'reset');
   await page.waitForTimeout(1500);
   await record('full');
 

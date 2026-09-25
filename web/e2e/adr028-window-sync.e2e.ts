@@ -42,24 +42,57 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  L2_END_FILL_IDX as PRED_L2_END_IDX,
+  L2_MID_IDX as PRED_L2_MID_IDX,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunLabel,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-/** 落盘目录（P9c 复验沿用 coder 证据包；可用 `ADR028_E2E_OUT` 覆盖）。 */
-const OUT = process.env.ADR028_E2E_OUT ?? resolve(REPO, 'coder/evidence/20260920_adr027_p9c_final/raw');
+/**
+ * **规格内显式预算**（§7.2 修法 ①）：不再依赖 CLI `--timeout`。
+ * 动因（独立复验实测）：`d1` 谓词解析在**库增长后**开销 48.8s（`page.request` 150–300ms/次 × 159 次）；
+ * 默认 60s 预算会被解析吃穿 ⇒ 报「谓词解析失败 / Test timeout 60000ms exceeded」= **假红**（非断言失败）。
+ * 并发解析（{@link resolveRun} 默认 8 路）已把该开销降到 ~7s；本行是**第二道保险**（库/网络再变时仍不假红）。
+ */
+test.describe.configure({ timeout: 180_000 });
+/**
+ * 证据落盘目录：**必须落未跟踪目录**（`AGENTS.md`「代理产物与提交纪律」）——历史实测把证据写进
+ * 已跟踪的 `coder/evidence/20260920_adr027_p9c_final/raw/` ⇒ 一次验收跑脏 **67 个**已跟踪文件。
+ * 可用 `ADR028_E2E_OUT` 覆盖（CI/复验）。
+ */
+const OUT = process.env.ADR028_E2E_OUT ?? resolve(REPO, 'coder/evidence/20260925_adr028_d10_ruling/raw');
 
-/** E1/E4/E2/M1 目标 run（159776/D1，16 笔 L2、1 个回合；回合区间落在已加载 K 线区间内）。 */
-const RUN_ID = process.env.ADR028_E2E_RUN ?? 'sr_1789832477006_000002';
-/** E2 部分夹取目标：L2 行下标（该 run 数据末端 31 根之前的成交 bar，span=120 ⇒ 物理上无法居中）。 */
-const L2_FILL_IDX = Number(process.env.ADR028_E2E_FILL ?? '7');
-/** E2 数据末端目标：L2 行下标（= 本 run 最后一笔成交 = 数据末端 bar ⇒ 完全右夹取）。 */
-const L2_END_FILL_IDX = Number(process.env.ADR028_E2E_END_FILL ?? '15');
-/** E3 真居中目标 run（159776/D1，5 个回合；回合 #3 落在数据中部 ⇒ 两侧各 ≥60 根可真居中）。 */
-const CENTER_RUN_ID = process.env.ADR028_E2E_CENTER_RUN ?? 'sr_1789832517708_000005';
-/** E3 目标回合（`l2_count=2`，第 1 行 = 该回合卖出，距数据末端 >60 根）。 */
-const CENTER_RT_SEQ = Number(process.env.ADR028_E2E_CENTER_RT ?? '3');
+/**
+ * **ADR-028 §2.10.1 裁决 3｜规格耐久**：目标 run **一律按谓词解析**（`./adr028RunResolve`），
+ * **禁硬编码 run id**（库会增长：实测 93 个 run，新 run 把目标 run 顶出历史列表首屏）。
+ * 解析失败 ⇒ 显式红（抛错），禁静默换 run / 禁回退为跳过；{@link guardResolved} 是反硬编码护栏。
+ *
+ * **已废除的历史字面量**（仅用于「反硬编码」鉴别力自证 `D10P_run_resolution`；**不得**用作目标 run）：
+ *  - `d1`     : `sr_1789832477006_000002`（315 根 D1 / 16 笔）
+ *  - `center` : `sr_1789832517708_000005`（424 根 D1 / 5 回合）
+ *  - `excl`   : `sr_1790267761446_000013`（3436 根 M15）
+ */
+const HISTORICAL_LITERAL: Record<'d1' | 'center' | 'excl', string> = {
+  d1: 'sr_1789832477006_000002',
+  center: 'sr_1789832517708_000005',
+  excl: 'sr_1790267761446_000013',
+};
+/** E2 部分夹取目标：L2 行下标（距数据末端 >旧宽，span=120 ⇒ 物理上无法居中；谓词 `d1` 已核对）。 */
+const L2_FILL_IDX = PRED_L2_MID_IDX;
+/** E2 数据末端目标：L2 行下标（= 数据末根上的成交 ⇒ 完全右夹取；谓词 `d1` 已核对）。 */
+const L2_END_FILL_IDX = PRED_L2_END_IDX;
+/** E3 目标回合（谓词 `center` 已核对本回合有 ≥2 笔且第 2 笔距两侧各 ≥60 根）。 */
+const CENTER_RT_SEQ = 3;
 /** E3 目标行下标。 */
-const CENTER_ROW = Number(process.env.ADR028_E2E_CENTER_ROW ?? '1');
+const CENTER_ROW = 1;
 /** D1 单根 bar 秒数（本规格全部目标 run 均为 D1）。 */
 const BAR_SECONDS = 86_400;
 /** L1 回合窗口两侧 buffer（根）——`resultWindow.DEFAULT_JUMP_BUFFER_BARS`（ADR-028 D4）。 */
@@ -80,6 +113,13 @@ const CENTER_TOL_BARS = 1;
  */
 const L1_SPAN_UPPER_REL = 1.5;
 
+/**
+ * 真身探针读数（ADR-028 §2.10 D10 决策 3 拆分后）：
+ *  - `applied*` = **申请回执**（`data-applied-*`，写窗那一刻的真身读回；一次性）；
+ *  - `live*`    = **当前真身**（`data-live-*`，随 `onVisibleRangeChange` 更新）——窗口一致性判据用**这套**；
+ *  - `ok`       = **活体一致性**（含「写窗成功 **且其后未被改写**」）；旧口径把一次性快照当 ok = 假绿。
+ *  `fromIdx/fromTs/...`（无前缀）向后兼容旧字段名并**一律读 live**（可见窗口真身）。
+ */
 interface Probe {
   ok: boolean | null;
   rev: number | null;
@@ -95,6 +135,22 @@ interface Probe {
   observedCenterTs: number | null;
   edgeClamped: boolean;
   error: string;
+  appliedOk: boolean | null;
+  appliedRequestedBarSpace: number | null;
+  /** **生效值**（回执读回）：端点/索引/根数（「申请未被逐值兑现」的对照基准）。 */
+  appliedFromTs: number | null;
+  appliedToTs: number | null;
+  appliedFromIdx: number | null;
+  appliedToIdx: number | null;
+  appliedError: string;
+  liveConsistent: boolean | null;
+  liveBarSpace: number | null;
+  liveFromTs: number | null;
+  liveToTs: number | null;
+  liveFromIdx: number | null;
+  liveToIdx: number | null;
+  liveBars: number | null;
+  liveReasons: string;
 }
 
 interface StateAttrs {
@@ -103,6 +159,14 @@ interface StateAttrs {
   fromTs: number | null;
   toTs: number | null;
   spanBars: number | null;
+}
+
+/** 当前写窗**申请**（`wb-window-state` 的 `data-cmd-*`）。 */
+interface CmdAttrs {
+  rev: number | null;
+  fromTs: number | null;
+  toTs: number | null;
+  span: number | null;
 }
 
 interface RoundTripDto {
@@ -119,6 +183,57 @@ interface FillDto {
   ts: number;
   side: string;
   rt_seq: number;
+}
+
+// ───────────────────── 目标 run：**按谓词解析**（§2.10.1 裁决 3；禁硬编码） ─────────────────────
+
+/** `page.request` → {@link RunFetchPort} 适配器（规格侧唯一取数面；只读）。 */
+function runPort(page: Page): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await page.request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: (id) => perBarTotal(page, id),
+    roundTrips: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: (id, rtSeq) => fills(page, id, rtSeq),
+  };
+}
+
+/** 解析缓存（每个 worker 一次；`D10P_run_resolution` 会**现场重解析**校验缓存不是「记死的」）。 */
+const RESOLVED = new Map<RunLabel, Promise<ResolvedRun>>();
+/** 后端身份（进落盘缓存键；防跨构建/跨后端复用同一缓存条目）。 */
+const RESOLVE_SOURCE = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+function resolved(page: Page, label: RunLabel): Promise<ResolvedRun> {
+  const hit = RESOLVED.get(label);
+  if (hit) return hit;
+  const p = resolveRun(runPort(page), label, { sourceKey: RESOLVE_SOURCE });
+  RESOLVED.set(label, p);
+  return p;
+}
+
+/**
+ * **反硬编码护栏**（裁决 3）：规格使用的 run id 必须 == **现场重解析**结果。
+ * 把 run id 改回字面量（硬编码）后，只要该字面量不是谓词命中的最新匹配 ⇒ 本护栏抛错 ⇒ 规格必红。
+ */
+const GUARDED = new Set<string>();
+async function guardResolved(page: Page, run: ResolvedRun): Promise<void> {
+  const key = `${run.label}#${run.id}`;
+  if (GUARDED.has(key)) return;
+  // **护栏必须走现场解析（不走落盘缓存）**：否则缓存一旦陈旧，护栏会拿缓存自证缓存 ⇒ 不失灵。
+  const fresh = await resolveRun(runPort(page), run.label, { cacheDir: null, sourceKey: RESOLVE_SOURCE });
+  assertResolvedByIdFresh(run.id, fresh, run.label);
+  GUARDED.add(key);
+}
+
+/** 证据里的 run 摘要（**带谓词与解析证据** ⇒ 复核者能回答「解析到什么、为什么」）。 */
+function resolution(run: ResolvedRun): Record<string, unknown> {
+  return { id: run.id, label: run.label, predicate: run.predicate, totalBars: run.totalBars, rtSeq: run.rtSeq, l2Count: run.l2Count, evidence: run.evidence };
 }
 
 function writeJson(name: string, data: unknown): void {
@@ -140,21 +255,40 @@ async function readAttrs(page: Page, testId: string): Promise<Record<string, str
 
 async function readProbe(page: Page): Promise<Probe> {
   const a = await readAttrs(page, 'wb-window-probe');
+  const bool = (v: string | undefined): boolean | null =>
+    v == null || v === '' ? null : v === 'true';
   return {
-    ok: a['data-ok'] === '' ? null : a['data-ok'] === 'true',
-    rev: num(a['data-rev']),
-    requestedBarSpace: num(a['data-requested-bar-space']),
-    barSpace: num(a['data-bar-space']),
-    fromIdx: num(a['data-from-idx']),
-    toIdx: num(a['data-to-idx']),
-    fromTs: num(a['data-from-ts']),
-    toTs: num(a['data-to-ts']),
-    centerIdx: num(a['data-center-idx']),
-    centerTs: num(a['data-center-ts']),
-    observedCenterIdx: num(a['data-observed-center-idx']),
-    observedCenterTs: num(a['data-observed-center-ts']),
-    edgeClamped: a['data-edge-clamped'] === 'true',
-    error: a['data-error'] ?? '',
+    ok: bool(a['data-ok']),
+    rev: num(a['data-applied-rev'] ?? a['data-rev']),
+    requestedBarSpace: num(a['data-applied-requested-bar-space'] ?? a['data-requested-bar-space']),
+    barSpace: num(a['data-applied-bar-space'] ?? a['data-bar-space']),
+    // 真身可见窗口一律取 **live**（不是申请回执；回执是写窗那一刻的一次性快照）
+    fromIdx: num(a['data-live-from-idx']),
+    toIdx: num(a['data-live-to-idx']),
+    fromTs: num(a['data-live-from-ts']),
+    toTs: num(a['data-live-to-ts']),
+    // 目标中心 / 数据边界夹取属「申请回执」语义（由写窗函数读回算出）
+    centerIdx: num(a['data-applied-center-idx'] ?? a['data-center-idx']),
+    centerTs: num(a['data-applied-center-ts'] ?? a['data-center-ts']),
+    observedCenterIdx: num(a['data-applied-observed-center-idx'] ?? a['data-observed-center-idx']),
+    observedCenterTs: num(a['data-applied-observed-center-ts'] ?? a['data-observed-center-ts']),
+    edgeClamped: (a['data-applied-edge-clamped'] ?? a['data-edge-clamped']) === 'true',
+    error: a['data-applied-error'] ?? a['data-error'] ?? '',
+    appliedOk: bool(a['data-applied-ok']),
+    appliedRequestedBarSpace: num(a['data-applied-requested-bar-space']),
+    appliedFromTs: num(a['data-applied-from-ts']),
+    appliedToTs: num(a['data-applied-to-ts']),
+    appliedFromIdx: num(a['data-applied-from-idx']),
+    appliedToIdx: num(a['data-applied-to-idx']),
+    appliedError: a['data-applied-error'] ?? '',
+    liveConsistent: bool(a['data-live-consistent']),
+    liveBarSpace: num(a['data-live-bar-space']),
+    liveFromTs: num(a['data-live-from-ts']),
+    liveToTs: num(a['data-live-to-ts']),
+    liveFromIdx: num(a['data-live-from-idx']),
+    liveToIdx: num(a['data-live-to-idx']),
+    liveBars: num(a['data-live-bars']),
+    liveReasons: a['data-live-reasons'] ?? '',
   };
 }
 
@@ -166,6 +300,17 @@ async function readState(page: Page): Promise<StateAttrs> {
     fromTs: num(a['data-from-ts']),
     toTs: num(a['data-to-ts']),
     spanBars: num(a['data-span-bars']),
+  };
+}
+
+/** 当前**写窗申请**（`data-cmd-*`）——「申请未被逐值兑现」的对照基准（裁决 1）。 */
+async function readCmd(page: Page): Promise<CmdAttrs> {
+  const a = await readAttrs(page, 'wb-window-probe');
+  return {
+    rev: num(a['data-cmd-rev']),
+    fromTs: num(a['data-cmd-from-ts']),
+    toTs: num(a['data-cmd-to-ts']),
+    span: num(a['data-cmd-span']),
   };
 }
 
@@ -189,11 +334,25 @@ async function readDomains(page: Page): Promise<Record<string, [number, number] 
 }
 
 /** 打开工作台、选中 run、等 K 线**初始装载落定**（否则 jump 与初次 fit 抢时序 ⇒ 结果被覆盖）。 */
-async function openRunSettled(page: Page, runId: string): Promise<void> {
+async function openRunSettled(page: Page, run: ResolvedRun): Promise<void> {
+  // 反硬编码护栏（裁决 3）：打开任何 run 之前，先核对它确实来自谓词解析
+  await guardResolved(page, run);
+  const runId = run.id;
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const select = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(select, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  // 历史列表**分页**（新 run 会顶掉旧 run 的首屏位置；实测 93 个 run / 首屏 50）⇒ 反复「加载更多」
+  // 直到目标 run 出现；否则「运行不在历史列表内」会变成对 DB 内容漂移的假红（2026-09-25 复验实测）。
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await select.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(select, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
@@ -252,13 +411,104 @@ async function perBarTotal(page: Page, runId: string): Promise<number> {
  *     相差 ≤ {@link CENTER_TOL_BARS} 根。回合贴数据边缘而真身无法居中时，此条仍按真身回执判定
  *     （`ok`/`error` 已覆盖「引擎静默吞掉」类失败），不允许跳过。
  */
+/**
+ * **常态判据（§2.10.1 裁决 1，严格版）**：写窗成功 ∧ 活体一致（`data-ok=true`）∧ **`data-live-reasons` 为空**。
+ *
+ * 为什么可以严格断言（旧版在此处不得不放宽）：`data-ok` 的对照基准已改为**生效值**
+ * （`applied.observed.bar_space`）+ **写回后的窗口域**，因此「引擎校准」（L1 初选 12→11、全览 10→9）
+ * 与「不可达夹取」**不再**把 `ok` 打成 false —— 它们由 {@link clampStateMismatches} 单独验披露。
+ * 于是 `ok=false` 只剩一个含义：**写窗后真身被改写/漂移**（这正是要抓的缺陷信号）。
+ */
+function steadyMismatches(p: Probe): string[] {
+  const m: string[] = [];
+  if (p.appliedOk !== true) {
+    m.push(`真身回执 applied-ok=true ‖ appliedOk=${p.appliedOk} error=${JSON.stringify(p.appliedError)}`);
+  }
+  if (p.ok !== true) {
+    m.push(`常态必须 data-ok=true（真身 == 生效值 ∧ 可见域 == 写回窗口域）‖ ok=${p.ok} reasons=${JSON.stringify(p.liveReasons)}`);
+  }
+  if (p.liveReasons !== '') {
+    m.push(`常态必须 data-live-reasons 为空 ‖ ${JSON.stringify(p.liveReasons)}`);
+  }
+  return m;
+}
+
+/**
+ * **被改写态判据**（§2.10.1 裁决 1 防退化约束）：写窗后真身被改写 ⇒ `data-ok=false` ∧ `reasons` 非空，
+ * 且 reason 文案必须落在「**被改写**」一类（**不得**把「校准/夹取」写进 reasons —— 那是 `wb-window-clamped` 的职责）。
+ */
+function rewrittenMismatches(p: Probe): string[] {
+  const m: string[] = [];
+  if (p.appliedOk !== true) {
+    m.push(`被改写态：写窗当时的回执必须成功 ‖ appliedOk=${p.appliedOk} error=${JSON.stringify(p.appliedError)}`);
+  }
+  if (p.ok !== false) m.push(`被改写态：data-ok 必须为 false ‖ ok=${p.ok}`);
+  if (p.liveReasons.trim() === '') {
+    m.push('被改写态：data-live-reasons 必须非空（禁静默）');
+  } else {
+    if (!p.liveReasons.includes('被改写')) {
+      m.push(`被改写态：reason 必须明示「被改写」‖ ${JSON.stringify(p.liveReasons)}`);
+    }
+    if (p.liveReasons.includes('校准') || p.liveReasons.includes('夹取')) {
+      m.push(`被改写态：reason 不得读作「校准/夹取」（两者必须可分）‖ ${JSON.stringify(p.liveReasons)}`);
+    }
+  }
+  return m;
+}
+
+/**
+ * **钳位/校准态判据（§2.10.1 裁决 1）**：「申请未被逐值兑现」⇔ `wb-window-clamped` 必含 requested/observed
+ * 两侧读数；**且不得**因此把 `data-ok` 打成 false（本函数只判披露，`ok` 由 {@link steadyMismatches} 判）。
+ *
+ * 「是否未被兑现」由**回执两套量**在规格侧独立重算（`data-cmd-*` = 申请、`data-applied-*` = 生效），
+ * 不复用披露文本 ⇒ 判据**非恒真**：把披露删掉、或把校准误当改写，两侧都会变红。
+ */
+function clampStateMismatches(p: Probe, cmd: CmdAttrs, clampedNote: string | null, label: string): string[] {
+  const m: string[] = [];
+  const bsDiff =
+    p.appliedRequestedBarSpace != null && p.barSpace != null && p.appliedRequestedBarSpace !== p.barSpace;
+  const obsBars =
+    p.appliedFromIdx != null && p.appliedToIdx != null ? p.appliedToIdx - p.appliedFromIdx + 1 : null;
+  const spanDiff = cmd.span != null && obsBars != null && Math.abs(obsBars - cmd.span) > 1;
+  const endDiff =
+    cmd.fromTs != null &&
+    cmd.toTs != null &&
+    p.appliedFromTs != null &&
+    p.appliedToTs != null &&
+    (Math.abs(p.appliedFromTs - cmd.fromTs) > BAR_SECONDS || Math.abs(p.appliedToTs - cmd.toTs) > BAR_SECONDS);
+  const notFulfilled = bsDiff || spanDiff || endDiff;
+  const detail = `bsDiff=${bsDiff}(${p.appliedRequestedBarSpace}→${p.barSpace}) spanDiff=${spanDiff}(申请 ${cmd.span} / 生效 ${obsBars}) endDiff=${endDiff}`;
+  if (notFulfilled) {
+    if (clampedNote == null || !clampedNote.includes('被钳位')) {
+      m.push(`${label}：申请未被逐值兑现（${detail}）⇒ 必须披露 wb-window-clamped ‖ ${JSON.stringify(clampedNote)}`);
+    } else {
+      if (!/请求/.test(clampedNote) || !/实际/.test(clampedNote)) {
+        m.push(`${label}：披露必含 requested/observed 两侧读数 ‖ ${JSON.stringify(clampedNote)}`);
+      }
+      if (bsDiff && !clampedNote.includes(`barSpace 申请 ${p.appliedRequestedBarSpace} → 生效 ${p.barSpace}`)) {
+        m.push(`${label}：barSpace 被校准（${p.appliedRequestedBarSpace}→${p.barSpace}）时披露必含两侧 barSpace ‖ ${JSON.stringify(clampedNote)}`);
+      }
+    }
+  } else if (clampedNote != null) {
+    m.push(`${label}：申请已逐值兑现（${detail}）却仍披露钳位 ⇒ 披露失准 ‖ ${JSON.stringify(clampedNote)}`);
+  }
+  return m;
+}
+
+/** 读 `wb-window-clamped` 披露文本（无披露 ⇒ null）。 */
+async function readClampedNote(page: Page): Promise<string | null> {
+  const loc = page.getByTestId('wb-window-clamped');
+  if ((await loc.count()) === 0) return null;
+  return (await loc.first().innerText()).trim();
+}
+
 function l1Mismatches(rt: RoundTripDto, p: Probe, state: StateAttrs): string[] {
   const m: string[] = [];
   const push = (name: string, ok: boolean, detail: string) => {
     if (!ok) m.push(`${name} ‖ ${detail}`);
   };
-  push('真身回执 ok=true', p.ok === true, `ok=${p.ok} error=${JSON.stringify(p.error)}`);
-  push('真身回执 error 为空', p.error === '', JSON.stringify(p.error));
+  push('真身回执 applied-ok=true', p.appliedOk === true, `appliedOk=${p.appliedOk} error=${JSON.stringify(p.appliedError)}`);
+  push('真身回执 error 为空', p.appliedError === '', JSON.stringify(p.appliedError));
   push(
     '可见窗口覆盖回合区间 [open_ts, close_ts]',
     p.fromTs != null && p.toTs != null && p.fromTs <= rt.open_ts && p.toTs >= rt.close_ts,
@@ -307,8 +557,8 @@ function l2CommonMismatches(fill: FillDto, p: Probe, state: StateAttrs): string[
   const push = (name: string, ok: boolean, detail: string) => {
     if (!ok) m.push(`${name} ‖ ${detail}`);
   };
-  push('真身回执 ok=true', p.ok === true, `ok=${p.ok} error=${JSON.stringify(p.error)}`);
-  push('真身回执 error 为空', p.error === '', JSON.stringify(p.error));
+  push('真身回执 applied-ok=true', p.appliedOk === true, `appliedOk=${p.appliedOk} error=${JSON.stringify(p.appliedError)}`);
+  push('真身回执 error 为空', p.appliedError === '', JSON.stringify(p.appliedError));
   push(
     '成交 ts 落在可见窗口内',
     p.fromTs != null && p.toTs != null && p.fromTs <= fill.ts && fill.ts <= p.toTs,
@@ -429,24 +679,99 @@ function domainMismatches(
   return m;
 }
 
+
+// ────────────────────────── D10-L：视口锁定（真身 barSpace 真身读回） ──────────────────────────
+
+/** 捕获真身 chart 实例（与轴对齐规格同款手法：patch `Map.prototype.set`，形状过滤）。 */
+function installChartCapture(): void {
+  const w = window as unknown as { __wbCharts?: unknown[] };
+  w.__wbCharts = [];
+  const orig = Map.prototype.set;
+  Map.prototype.set = function patched(key: unknown, value: unknown) {
+    const o = value as { setBarSpace?: unknown; convertToPixel?: unknown; getDataList?: unknown } | null;
+    if (
+      o != null &&
+      typeof o === 'object' &&
+      typeof o['setBarSpace'] === 'function' &&
+      typeof o['convertToPixel'] === 'function' &&
+      typeof o['getDataList'] === 'function'
+    ) {
+      w.__wbCharts!.push(value);
+    }
+    return orig.call(this, key, value);
+  };
+}
+
+/** 真身读数：barSpace / 可见根数 / 可见 ts 区间（取 dataList 最长者 = 主图）。 */
+async function chartTruth(page: Page): Promise<{
+  ok: boolean;
+  barSpace: number | null;
+  fromIdx: number | null;
+  toIdx: number | null;
+  fromTs: number | null;
+  toTs: number | null;
+  bars: number | null;
+  paneWidth: number | null;
+}> {
+  return page.evaluate(() => {
+    interface ChartLike {
+      getDataList?: () => Array<{ timestamp: number }>;
+      getVisibleRange?: () => { from: number; to: number };
+      getBarSpace?: () => { bar: number };
+      getSize?: () => { width: number } | null;
+    }
+    const w = window as unknown as { __wbCharts?: ChartLike[] };
+    const cands = (w.__wbCharts ?? [])
+      .map((chart) => ({ chart, n: (chart.getDataList?.() ?? []).length }))
+      .filter((c) => c.n > 0)
+      .sort((a, b) => b.n - a.n);
+    const chosen = cands[0];
+    if (!chosen) {
+      return { ok: false, barSpace: null, fromIdx: null, toIdx: null, fromTs: null, toTs: null, bars: null, paneWidth: null };
+    }
+    const list = chosen.chart.getDataList!();
+    const r = chosen.chart.getVisibleRange!();
+    const last = list.length - 1;
+    const from = Math.max(0, Math.min(last, Math.round(r.from)));
+    const to = Math.max(from, Math.min(last, Math.round(r.to)));
+    return {
+      ok: true,
+      barSpace: chosen.chart.getBarSpace?.()?.bar ?? null,
+      fromIdx: from,
+      toIdx: to,
+      fromTs: Math.floor(list[from]!.timestamp / 1000),
+      toTs: Math.floor(list[to]!.timestamp / 1000),
+      bars: to - from + 1,
+      paneWidth: chosen.chart.getSize?.()?.width ?? null,
+    };
+  });
+}
+
 // ─────────────────────────────────────────── E1：L1 跳转 ───────────────────────────────────────────
 
-test('E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根）', async ({ page }) => {
-  await openRunSettled(page, RUN_ID);
-  const rt = await roundTrip(page, RUN_ID);
+test('E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间（± buffer ±1 根）；常态 data-ok 严格为真', async ({ page }) => {
+  const run = await resolved(page, 'd1');
+  await openRunSettled(page, run);
+  const rt = await roundTrip(page, run.id);
   await page.getByTestId('wb-rt-jump-1').click();
   await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
-  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-ok', 'true');
+  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
   await page.waitForTimeout(600);
 
   const probe = await readProbe(page);
   const state = await readState(page);
+  const cmd = await readCmd(page);
   const domains = await readDomains(page);
-  writeJson('e1_l1_jump', { runId: RUN_ID, rt, probe, state, domains });
+  const clampedNote = await readClampedNote(page);
+  writeJson('e1_l1_jump', { run: resolution(run), rt, probe, state, cmd, domains, clampedNote });
 
   const mismatch = [
     ...l1Mismatches(rt, probe, state),
-    ...domainMismatches(domains, state.fromTs!, state.toTs!),
+    // §2.10.1 裁决 1：常态**严格** `data-ok=true ∧ reasons=""`（校准/夹取不再踩这个信号）
+    ...steadyMismatches(probe),
+    // 同一条用例同时覆盖「钳位/校准态」：披露必含 requested/observed，且**不**影响 `ok`
+    ...clampStateMismatches(probe, cmd, clampedNote, 'L1 跳转'),
+    ...domainMismatches(domains, probe.fromTs!, probe.toTs!),
   ];
   writeJson('e1_l1_jump_mismatch', { mismatch });
   expect(mismatch, 'L1 跳转真身断言（变异时必须变红）').toEqual([]);
@@ -455,10 +780,11 @@ test('E1_L1_jump：真渲染下 [跳转] 后 K 线可见窗口 == 回合区间�
 // ────────────────────────── E2：L2 跳转（夹取用例：精确 clamp 期望值） ──────────────────────────
 
 test('E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在数据末端、中心 = 最大可居中程度', async ({ page }) => {
-  await openRunSettled(page, RUN_ID);
-  const rt = await roundTrip(page, RUN_ID);
-  const rows = await fills(page, RUN_ID, rt.rt_seq);
-  const total = await perBarTotal(page, RUN_ID);
+  const run = await resolved(page, 'd1');
+  await openRunSettled(page, run);
+  const rt = await roundTrip(page, run.id);
+  const rows = await fills(page, run.id, rt.rt_seq);
+  const total = await perBarTotal(page, run.id);
   const lastBarIdx = total - 1;
   expect(rows.length, 'L2 成交数').toBeGreaterThan(Math.max(L2_FILL_IDX, L2_END_FILL_IDX));
   const fillEnd = rows[L2_END_FILL_IDX]!;
@@ -485,7 +811,7 @@ test('E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在
     },
   ].filter((x) => !x.ok).map((x) => `${x.name} ‖ ${x.detail}`);
   await expect(probeEnd.ok, `数据末端目标跳转必须成功（error=${probeEnd.error}）`).toBe(true);
-  writeJson('e2a_l2_end_target', { runId: RUN_ID, fill: fillEnd, total, probe: probeEnd, state: stateEnd, mismatch: endAnchor });
+  writeJson('e2a_l2_end_target', { run: resolution(run), fill: fillEnd, total, probe: probeEnd, state: stateEnd, mismatch: endAnchor });
   expect(endAnchor, '数据末端目标锚定（若图表索引空间变了必须响亮变红，禁止静默放行）').toEqual([]);
 
   // 数据末端索引由**真身回执**给出（该目标即数据末端 bar）。
@@ -501,12 +827,17 @@ test('E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在
   const domainsMid = await readDomains(page);
 
   expect(probeMid.centerIdx, '索引空间锚定：回执 centerIdx == /fills.bar_index（中段目标）').toBe(fillMid.bar_index);
+  const clampedNoteMid = await readClampedNote(page);
+  const cmdMid = await readCmd(page);
   const mismatch = [
     ...l2ClampedMismatches(fillMid, probeMid, stateMid, dataEndIdx),
-    ...domainMismatches(domainsMid, stateMid.fromTs!, stateMid.toTs!),
+    // §2.10.1 裁决 1：夹取不改判 ok（常态严格）；夹取本身由 wb-window-clamped 披露（含两侧读数）
+    ...steadyMismatches(probeMid),
+    ...clampStateMismatches(probeMid, cmdMid, clampedNoteMid, 'L2 夹取'),
+    ...domainMismatches(domainsMid, probeMid.fromTs!, probeMid.toTs!),
   ];
   writeJson('e2b_l2_clamped_target', {
-    runId: RUN_ID, fill: fillMid, dataEndIdx, probe: probeMid, state: stateMid, mismatch,
+    run: resolution(run), fill: fillMid, dataEndIdx, probe: probeMid, state: stateMid, cmd: cmdMid, clampedNote: clampedNoteMid, mismatch,
   });
   expect(mismatch, 'L2 夹取精确期望断言（禁止豁免；变异时必须变红）').toEqual([]);
 });
@@ -514,22 +845,27 @@ test('E2_L2_jump_clamped：贴数据末端的两笔成交 ⇒ 右缘精确钉在
 // ────────────────────────── E3：L2 跳转（真居中用例：不贴数据末端） ──────────────────────────
 
 test('E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居中（edge_clamped=false 路径被真跑到）', async ({ page }) => {
-  await openRunSettled(page, CENTER_RUN_ID);
-  const rt = await roundTrip(page, CENTER_RUN_ID, CENTER_RT_SEQ);
-  const rows = await fills(page, CENTER_RUN_ID, CENTER_RT_SEQ);
+  const run = await resolved(page, 'center');
+  await openRunSettled(page, run);
+  const rt = await roundTrip(page, run.id, CENTER_RT_SEQ);
+  const rows = await fills(page, run.id, CENTER_RT_SEQ);
   expect(rows.length, `rt ${CENTER_RT_SEQ} 的 L2 成交数`).toBeGreaterThan(CENTER_ROW);
   const fill = rows[CENTER_ROW]!;
 
   await jumpL2(page, CENTER_RT_SEQ, CENTER_ROW);
-  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-ok', 'true');
+  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
   const probe = await readProbe(page);
   const state = await readState(page);
+  const cmd = await readCmd(page);
   const domains = await readDomains(page);
-  writeJson('e3_l2_centered', { runId: CENTER_RUN_ID, rt, fill, probe, state, domains });
+  const clampedNote = await readClampedNote(page);
+  writeJson('e3_l2_centered', { run: resolution(run), rt, fill, probe, state, cmd, domains, clampedNote });
 
   const mismatch = [
     ...l2CenteredMismatches(fill, probe, state),
-    ...domainMismatches(domains, state.fromTs!, state.toTs!),
+    ...steadyMismatches(probe),
+    ...clampStateMismatches(probe, cmd, clampedNote, 'L2 真居中'),
+    ...domainMismatches(domains, probe.fromTs!, probe.toTs!),
   ];
   writeJson('e3_l2_centered_mismatch', { mismatch });
   expect(mismatch, 'L2 真居中断言（无豁免；变异时必须变红）').toEqual([]);
@@ -537,12 +873,16 @@ test('E3_L2_jump_centered：目标两侧各有 ≥60 根 ⇒ 窗口必须真居�
 
 // ────────────────────────────────────── E4：全览 + 历史回退 ──────────────────────────────────────
 
-test('E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（真身）', async ({ page }) => {
-  await openRunSettled(page, RUN_ID);
-  const rt = await roundTrip(page, RUN_ID);
-  const run = await (await page.request.get(`/api/workbench/runs/${RUN_ID}`)).json();
-  const fullFrom = Math.floor(Date.parse(run.from_ts) / 1000);
-  const fullTo = Math.floor(Date.parse(run.to_ts) / 1000);
+test('E4_reset_back：全览以**实测可达区间**重建窗口（D10-2 真值写回）、历史回退恢复跳转窗口（真身）', async ({ page }) => {
+  const target = await resolved(page, 'd1');
+  await openRunSettled(page, target);
+  const rt = await roundTrip(page, target.id);
+  const runDto = (await (await page.request.get(`/api/workbench/runs/${target.id}`)).json()) as {
+    from_ts: string;
+    to_ts: string;
+  };
+  const fullFrom = Math.floor(Date.parse(runDto.from_ts) / 1000);
+  const fullTo = Math.floor(Date.parse(runDto.to_ts) / 1000);
 
   await page.getByTestId('wb-rt-jump-1').click();
   await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
@@ -550,43 +890,70 @@ test('E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（�
   const jumped = await readState(page);
   const jumpedProbe = await readProbe(page);
 
-  // 全览 ⇒ 回全区间（页面窗口 = 全区间；各曲线定义域 = 全区间）
+  // 全览 ⇒ 请求全区间，但物理上只能显示可达子区间 ⇒ 以**实测可达区间**写回窗口状态机
+  // （ADR-028 §2.10 D10 决策 2；source = reset），使「取数窗口 == 可见域」重新成立
   await page.getByTestId('wb-window-reset').click();
-  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'full');
-  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-ok', 'true');
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'reset');
+  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
   await page.waitForTimeout(400);
   const full = await readState(page);
   const fullProbe = await readProbe(page);
   const fullDomains = await readDomains(page);
-  writeJson('e4_reset_back', { runId: RUN_ID, rt, fullFrom, fullTo, jumped, jumpedProbe, full, fullProbe, fullDomains });
+  const fullClamped = await readClampedNote(page);
+  const fullCmd = await readCmd(page);
+  const capNote = (await page.getByTestId('wb-window-cap').count()) > 0
+    ? (await page.getByTestId('wb-window-cap').first().innerText()).trim()
+    : null;
+  writeJson('e4_reset_back', {
+    run: resolution(target), rt, fullFrom, fullTo, jumped, jumpedProbe, full, fullProbe, fullDomains, fullClamped, capNote,
+  });
 
   const m: string[] = [];
   const push = (name: string, ok: boolean, detail: string) => {
     if (!ok) m.push(`${name} ‖ ${detail}`);
   };
-  push('全览后窗口态 = full（未显式写窗）', full.source === 'full', full.source);
-  push('全览后真身 ok=true', fullProbe.ok === true, `${fullProbe.ok} ${fullProbe.error}`);
+  push('全览后窗口态 = reset（D10-2 真值写回：以实测可达区间建立窗口）', full.source === 'reset', full.source);
+  push('全览后窗口 == 真身实测可达区间（端点精确相等）', stateEqualsVisible(fullProbe, full), `state=[${full.fromTs}, ${full.toTs}] live=[${fullProbe.fromTs}, ${fullProbe.toTs}]`);
+  push(
+    '窗口根数 == 真身可见根数（取数窗口 == 可见域；D10-2/D10-4）',
+    full.spanBars != null && fullProbe.liveBars != null && full.spanBars === fullProbe.liveBars,
+    `spanBars=${full.spanBars} liveBars=${fullProbe.liveBars}`,
+  );
+  push(
+    '全览后物理上限必须披露（wb-window-cap 或 wb-window-clamped 至少其一非空）',
+    capNote != null || fullClamped != null,
+    `cap=${JSON.stringify(capNote)} clamped=${JSON.stringify(fullClamped)}`,
+  );
+  push('全览后写窗回执 applied-ok=true', fullProbe.appliedOk === true, `${fullProbe.appliedOk} ${fullProbe.appliedError}`);
+  // §2.10.1 裁决 1：全览（请求全区间而物理上不可达）属**钳位/校准** ⇒ 只披露、**不**改判 ok
+  const steadyFull = steadyMismatches(fullProbe);
+  push('全览后常态严格：data-ok=true ∧ reasons=""（校准/夹取不得踩 ok）', steadyFull.length === 0, JSON.stringify(steadyFull));
+  const clampFull = clampStateMismatches(fullProbe, fullCmd, fullClamped, '全览');
+  push('全览：申请未被逐值兑现 ⇒ 披露含 requested/observed（且不因此判 ok=false）', clampFull.length === 0, JSON.stringify(clampFull));
   push(
     '全览历史栈 = 2 步（跳转入栈 + 全览入栈；上限 20）',
     (await page.getByTestId('wb-window-history').innerText()).includes('可回退 2 步'),
     await page.getByTestId('wb-window-history').innerText(),
   );
-  const fd = domainMismatches(fullDomains, fullFrom, fullTo);
-  push('各曲线视图定义域 = run 全区间', fd.length === 0, JSON.stringify(fd));
+  const fd = domainMismatches(fullDomains, fullProbe.fromTs!, fullProbe.toTs!);
+  push('各曲线视图定义域 = 真身可达区间（不是 run 名义全区间）', fd.length === 0, JSON.stringify(fd));
 
   // 历史回退 ⇒ 回到跳转窗口（真身再次落到回合区间）
   await page.getByTestId('wb-window-back').click();
   await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
-  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-ok', 'true');
+  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
   await page.waitForTimeout(400);
   const back = await readState(page);
   const backProbe = await readProbe(page);
   const backDomains = await readDomains(page);
-  writeJson('e4_back', { back, backProbe, backDomains });
-
-  push('回退后真身 ok=true', backProbe.ok === true, `${backProbe.ok} ${backProbe.error}`);
-  const bd = domainMismatches(backDomains, back.fromTs!, back.toTs!);
-  push('回退后各曲线定义域 = 回退窗口', bd.length === 0, JSON.stringify(bd));
+  const backClamped = await readClampedNote(page);
+  const backCmd = await readCmd(page);
+  writeJson('e4_back', { back, backProbe, backCmd, backClamped, backDomains });
+  push('回退后写窗回执 applied-ok=true', backProbe.appliedOk === true, `${backProbe.appliedOk} ${backProbe.appliedError}`);
+  const bwo = [...steadyMismatches(backProbe), ...clampStateMismatches(backProbe, backCmd, backClamped, '回退')];
+  push('回退后常态严格（data-ok=true ∧ reasons=""）且钳位披露准确', bwo.length === 0, JSON.stringify(bwo));
+  const bd = domainMismatches(backDomains, backProbe.fromTs!, backProbe.toTs!);
+  push('回退后各曲线定义域 = 回退窗口（真身）', bd.length === 0, JSON.stringify(bd));
   const bm = l1Mismatches(rt, backProbe, back);
   push('L1 真身判据在回退后仍成立（覆盖 + 双侧根数 + 居中 + 共享窗口一致）', bm.length === 0, JSON.stringify(bm));
   // 回退窗口必须与首次跳转窗口**逐端点相等**（历史栈语义：回到同一窗，不是「随便一个窗」）
@@ -600,10 +967,204 @@ test('E4_reset_back：全览恢复全区间、历史回退恢复跳转窗口（�
   expect(m, '全览/历史回退真身断言').toEqual([]);
 });
 
+
+
+// ──────────────── D10-E：消除剔除（曲线取数与 x 域同源；D10 决策 4）────────────────
+
+test('D10E_no_exclusion：跳转/全览后曲线剔除率 0、各卡顶点数 == 真身可见根数、定义域 == 真身可见 ts 区间', async ({ page }) => {
+  test.setTimeout(180_000);
+  const target = await resolved(page, 'excl');
+  const runDto = (await (await page.request.get(`/api/workbench/runs/${target.id}`)).json()) as { period?: string };
+  const PERIOD_SEC: Record<string, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, D1: 86400 };
+  const barSeconds = PERIOD_SEC[runDto.period ?? ''] ?? 86400;
+  await openRunSettled(page, target);
+  // 取**成交最多**的回合（本 run 各回合 l2_count 不等；剔除判据需要目标两侧都有数据）
+  const rtResp = await page.request.get(`/api/workbench/runs/${target.id}/round-trips?limit=5000`);
+  const rtList = ((await rtResp.json()) as { round_trips?: RoundTripDto[] }).round_trips ?? [];
+  expect(rtList.length, '至少一个回合').toBeGreaterThan(0);
+  const rt = rtList.slice().sort((a, b) => b.l2_count - a.l2_count)[0]!;
+  const rows = await fills(page, target.id, rt.rt_seq);
+  expect(rows.length, 'L2 成交数（剔除判据需要目标两侧都有数据）').toBeGreaterThan(1);
+  const rowIdx = Math.floor(rows.length / 2);
+
+  const read = () =>
+    page.evaluate(() => {
+      const cards: Record<string, { vertices: number; unmatched: string | null; domain: string | null }> = {};
+      for (const id of ['wb-aggregate-chart', 'wb-slot-chart', 'wb-equity-chart', 'wb-position-chart']) {
+        const host = document.querySelector(`[data-testid="${id}"]`);
+        const poly = host?.querySelector('svg polyline');
+        cards[id] = {
+          vertices: (poly?.getAttribute('points') ?? '').trim().split(/\s+/).filter(Boolean).length,
+          unmatched: host?.querySelector('[data-testid="wb-curve-unmatched"]')?.textContent?.trim() ?? null,
+          domain: host?.getAttribute('data-x-domain') ?? null,
+        };
+      }
+      return cards;
+    });
+
+  const check = async (label: string): Promise<string[]> => {
+    const m: string[] = [];
+    const probe = await readProbe(page);
+    const cards = await read();
+    for (const [id, c] of Object.entries(cards)) {
+      if (c.unmatched != null && c.unmatched !== '') m.push(`${label}：${id} 存在剔除披露「${c.unmatched}」（D10-4 要求剔除率 0）`);
+      if (probe.liveBars != null && c.vertices !== probe.liveBars) {
+        m.push(`${label}：${id} 顶点数 ${c.vertices} ≠ 真身可见根数 ${probe.liveBars}（取数窗口必须 == 可见域）`);
+      }
+      // 定义域（= 窗口写回值）与「此刻真身」：允许 ±1 根 bar 量化容差。
+      // **双向强制**（§2.10.1 裁决 2 ②「不一致必披露、禁静默」）：
+      //  - 漂移 > 容差 ⇒ **必须** `data-ok=false` ∧ `data-live-reasons` 非空（「被改写/漂移」类文案）；
+      //  - 漂移 ≤ 容差 ⇒ **必须** `data-ok=true` ∧ reasons 为空（常态严格；否则本判据可被「恒 false」蒙过）。
+      // 实测（前序车道同一 run）：全览后向前分页改变 dataList 左端 ⇒ 写回值与此刻真身差 6 根 = 5400s，
+      // 此时 ok=false + reasons 非空（**已披露残差**），而**剔除率仍为 0**（取数窗口与 x 域都取真身）。
+      const [df, dt] = (c.domain ?? '').split(',').map(Number);
+      const drift = Math.max(Math.abs(df! - probe.liveFromTs!), Math.abs(dt! - probe.liveToTs!));
+      if (drift > barSeconds) {
+        if (probe.ok !== false || probe.liveReasons.trim() === '') {
+          m.push(
+            `${label}：${id} 定义域 ${c.domain} 偏离真身可见 ts 区间 [${probe.liveFromTs}, ${probe.liveToTs}] 达 ${drift}s（> 1 根 bar=${barSeconds}s）**未披露**‖ ok=${probe.ok} reasons=${JSON.stringify(probe.liveReasons)}`,
+          );
+        } else if (!probe.liveReasons.includes('被改写') && !probe.liveReasons.includes('漂移')) {
+          m.push(`${label}：${id} 漂移的 reason 必须读作「被改写/漂移」‖ ${JSON.stringify(probe.liveReasons)}`);
+        }
+      } else if (probe.ok !== true || probe.liveReasons !== '') {
+        m.push(
+          `${label}：${id} 定义域与真身一致（漂移 ${drift}s ≤ 1 根）却判不一致 ⇒ 常态必须严格 ok=true ∧ reasons="" ‖ ok=${probe.ok} reasons=${JSON.stringify(probe.liveReasons)}`,
+        );
+      }
+    }
+    if (probe.liveBars == null || probe.liveBars <= 0) m.push(`${label}：真身可见根数不可读（探针 live 字段缺失）`);
+    return m;
+  };
+
+  // ① L2 跳转（中部行）
+  await page.getByTestId(`wb-rt-detail-${rt.rt_seq}`).click();
+  const l2row = page.getByTestId(`wb-l2-row-${rt.rt_seq}-${rowIdx}`);
+  await expect(l2row).toBeVisible();
+  await l2row.scrollIntoViewIfNeeded();
+  await page.getByTestId(`wb-l2-jump-${rt.rt_seq}-${rowIdx}`).click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+  await page.waitForTimeout(900);
+  const jumped = await readProbe(page);
+  const mJump = await check('L2 跳转');
+
+  // ② 全览（可达根数 ≪ run 全根数 ⇒ 两源错位的最大判别态）
+  await page.getByTestId('wb-window-reset').click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'reset');
+  await page.waitForTimeout(1200);
+  const full = await readProbe(page);
+  const mFull = await check('全览');
+
+  writeJson('d10e_no_exclusion', { run: resolution(target), rtSeq: rt.rt_seq, rowIdx, jumped, full, mJump, mFull, stateJumped: await readState(page) });
+  expect(
+    jumped.liveBars != null && full.liveBars != null && full.liveBars !== jumped.liveBars,
+    '本用例须覆盖「窗口态变化」两侧（否则剔除判据可能恒真）',
+  ).toBe(true);
+  expect([...mJump, ...mFull], 'D10-4 消除剔除：跳转/全览两侧都必须 0 剔除且顶点数 == 真身可见根数').toEqual([]);
+});
+
+// ────────────────────── D10-L：锁定视口（ADR-028 §2.10 D10 决策 1）──────────────────────
+
+test('D10L_lock：跳转后容器尺寸变化不得重拟合 barSpace（真实主因＝ResizeObserver 16ms 覆盖）；活体读数与真身一致；手势解锁', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.addInitScript(installChartCapture);
+  const run = await resolved(page, 'd1');
+  await openRunSettled(page, run);
+  await page.getByTestId('wb-rt-jump-1').click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+  await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
+  await page.waitForTimeout(600);
+
+  const before = await chartTruth(page);
+  const probeBefore = await readProbe(page);
+  const stateBefore = await readState(page);
+  expect(before.ok, '真身 chart 实例必须可读（否则本用例失去意义）').toBe(true);
+  expect(before.barSpace, '真身 barSpace 必须有读数').not.toBeNull();
+  await expect(page.getByTestId('kline-chart').first()).toHaveAttribute('data-viewport-lock', '1');
+
+  // ① 活体探针 == 真身读数（D10 决策 3 判据 ②）+ 常态严格（§2.10.1 裁决 1：ok 对照生效值）
+  expect(steadyMismatches(probeBefore), '跳转后常态：data-ok 必须为 true 且无 reason').toEqual([]);
+  expect(probeBefore.liveBarSpace).toBe(before.barSpace);
+  expect(probeBefore.liveFromTs).toBe(before.fromTs);
+  expect(probeBefore.liveToTs).toBe(before.toTs);
+  expect(probeBefore.liveFromIdx).toBe(before.fromIdx);
+  expect(probeBefore.liveToIdx).toBe(before.toIdx);
+
+  // ② 容器尺寸变化（真身 ResizeObserver 的唯一输入）：加宽视口 ⇒ 面板变宽
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.waitForTimeout(1200);
+  const after = await chartTruth(page);
+  const probeAfter = await readProbe(page);
+  const refitWouldBe = after.paneWidth != null ? Math.round(after.paneWidth / 120) : null;
+  writeJson('d10l_lock', {
+    run: resolution(run), before, after, probeBefore, probeAfter, stateBefore, refitWouldBe,
+    locked: await page.getByTestId('kline-chart').first().getAttribute('data-viewport-lock'),
+  });
+  // 判据自证有牙：若「未锁定时应拟合出的 barSpace」与锁定值相同，本用例无鉴别力 ⇒ 直接红
+  expect(
+    refitWouldBe,
+    `本用例必须有鉴别力：未锁定时拟合值（round(${after.paneWidth}/120)=${refitWouldBe}）必须 ≠ 锁定值 ${before.barSpace}`,
+  ).not.toBe(before.barSpace);
+  expect(after.barSpace, '锁定期间容器尺寸变化**不得**改写真身 barSpace（D10 决策 1）').toBe(before.barSpace);
+  expect(probeAfter.liveBarSpace, '活体探针必须跟随真身').toBe(after.barSpace);
+  await expect(page.getByTestId('kline-chart').first()).toHaveAttribute('data-viewport-lock', '1');
+
+  // ③ 真实手势解锁（不得「窗跳不动」）：滚轮缩放 ⇒ 锁定解除，且窗口确实再变
+  const box = await page.locator('[data-testid="kline-chart"]').first().boundingBox();
+  const cx = Math.min(Math.max((box?.x ?? 0) + (box?.width ?? 600) / 2, 1), 1500);
+  const cy = Math.min(Math.max((box?.y ?? 0) + (box?.height ?? 200) / 2, 1), 880);
+  await page.mouse.move(cx, cy);
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, 100);
+    await page.waitForTimeout(120);
+  }
+  await page.waitForTimeout(600);
+  const afterGesture = await chartTruth(page);
+  expect(
+    await page.getByTestId('kline-chart').first().getAttribute('data-viewport-lock'),
+    '真实手势 ⇒ 锁定必须解除（交还视口自主权）',
+  ).toBeNull();
+  expect(afterGesture.barSpace, '手势后窗口可再变（禁「锁死」）').not.toBe(after.barSpace);
+});
+
+test('D10L_reset_writeback：全览以实测可达区间写回窗口（D10 决策 2）且窗口可再变（不锁死）', async ({ page }) => {
+  await page.addInitScript(installChartCapture);
+  const run = await resolved(page, 'd1');
+  await openRunSettled(page, run);
+  await page.getByTestId('wb-rt-jump-1').click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+  await page.waitForTimeout(400);
+  const jumped = await readProbe(page);
+
+  await page.getByTestId('wb-window-reset').click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'reset');
+  await page.waitForTimeout(700);
+  const full = await readProbe(page);
+  const fullState = await readState(page);
+  const truth = await chartTruth(page);
+  writeJson('d10l_reset_writeback', { run: resolution(run), jumped, full, fullState, truth });
+  // §2.10.1 裁决 1：跳转/全览两侧都必须**常态严格**为真（校准/夹取不改判 ok）
+  expect(steadyMismatches(jumped), '跳转后常态严格').toEqual([]);
+  expect(steadyMismatches(full), '全览后常态严格').toEqual([]);
+
+  // 窗口状态机 == 真身可达区间（D10 决策 2）
+  expect(fullState.fromTs).toBe(truth.fromTs);
+  expect(fullState.toTs).toBe(truth.toTs);
+  expect(fullState.spanBars).toBe(truth.bars);
+  expect(full.liveBarSpace).toBe(truth.barSpace);
+  // 全览后可再变（不锁死）：历史回退恢复跳转窗口
+  await page.getByTestId('wb-window-back').click();
+  await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+  await page.waitForTimeout(600);
+  const back = await readProbe(page);
+  expect(back.fromTs, '回退后窗口必须回到跳转窗（≠ 全览可达区间）').not.toBe(fullState.fromTs);
+});
+
 // ─────────────────────────────────────── 禁假绿：变异反证 ───────────────────────────────────────
 
 test('M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言必须变红（证断言非恒真）', async ({ page }) => {
-  const rt = await roundTrip(page, RUN_ID);
+  const run = await resolved(page, 'd1');
+  const rt = await roundTrip(page, run.id);
   // 变异：把回合区间**收窄**（两侧各内收 20 根）⇒ 跳转窗口随之变小；
   // 用**原始**回合基线断言时，真身窗口必然不再匹配 ⇒ 断言非恒真，且「窗口未生效」类静默失败必被捕获。
   await page.route(/\/api\/workbench\/runs\/[^/]+\/round-trips/, async (route) => {
@@ -618,7 +1179,7 @@ test('M1_mutation_silent_noop：拦截回合区间 ⇒ 原始基线真身断言�
     await route.fulfill({ response: resp, json });
   });
 
-  await openRunSettled(page, RUN_ID);
+  await openRunSettled(page, run);
   await page.getByTestId('wb-rt-jump-1').click();
   await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
   await page.waitForTimeout(600);
@@ -663,8 +1224,9 @@ test('M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替
       return orig.call(this, k, v);
     };
   });
-  await openRunSettled(page, CENTER_RUN_ID);
-  const rows = await fills(page, CENTER_RUN_ID, CENTER_RT_SEQ);
+  const run = await resolved(page, 'center');
+  await openRunSettled(page, run);
+  const rows = await fills(page, run.id, CENTER_RT_SEQ);
   expect(rows.length, `rt ${CENTER_RT_SEQ} 的 L2 成交数`).toBeGreaterThan(1);
   const fill1 = rows[1]!;
   const fill0 = rows[0]!;
@@ -696,7 +1258,7 @@ test('M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替
   );
   const mutMismatch = l2CenteredMismatches(fill0, mutProbe, mutState);
   writeJson('m2_mutation_no_scroll', {
-    runId: CENTER_RUN_ID, rtSeq: CENTER_RT_SEQ, fill0, fill1,
+    run: resolution(run), rtSeq: CENTER_RT_SEQ, fill0, fill1,
     baseCenteredMismatch: baseCentered, baseProbe, baseState,
     mutatedProbe: mutProbe, mutatedState: mutState, scrollCalls, mutatedMismatch: mutMismatch,
   });
@@ -717,4 +1279,120 @@ test('M2_mutation_barspace_only_no_scroll：barSpace 生效但真身滚动被替
     mutProbe.fromIdx === baseProbe.fromIdx && mutProbe.toIdx === baseProbe.toIdx,
     `变异下窗口不得移动（基线 [${baseProbe.fromIdx},${baseProbe.toIdx}] 实测 [${mutProbe.fromIdx},${mutProbe.toIdx}]）`,
   ).toBe(true);
+});
+
+// ──────────── D10-R：**被改写构造态**（§2.10.1 裁决 1 的防退化约束） ────────────
+
+/**
+ * 真身图表实例**直接写** barSpace（模拟实测到的「程序化跳转后 16ms 被 ResizeObserver 重拟合」：
+ * 视口锁定只挡**自动重拟合**，挡不住引擎被外部写入者直接改写 —— 这正是 `data-ok` 要抓的信号）。
+ */
+async function externalSetBarSpace(page: Page, barSpace: number): Promise<number> {
+  return page.evaluate((bs) => {
+    interface ChartLike {
+      getDataList?: () => Array<{ timestamp: number }>;
+      setBarSpace?: (n: number) => void;
+      getBarSpace?: () => { bar: number };
+    }
+    const w = window as unknown as { __wbCharts?: ChartLike[] };
+    const cands = (w.__wbCharts ?? [])
+      .map((chart) => ({ chart, n: (chart.getDataList?.() ?? []).length }))
+      .filter((c) => c.n > 0)
+      .sort((a, b) => b.n - a.n);
+    const chosen = cands[0];
+    if (!chosen?.chart.setBarSpace) return -1;
+    chosen.chart.setBarSpace(bs);
+    return chosen.chart.getBarSpace?.()?.bar ?? -1;
+  }, barSpace);
+}
+
+test('D10R_rewritten：【构造态】写窗成功 → 其后真身被**外部写入者**改写 ⇒ data-ok=false ∧ reasons 非空（且明示「被改写」，≠校准/夹取）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.addInitScript(installChartCapture);
+  const run = await resolved(page, 'd1');
+  await openRunSettled(page, run);
+
+  let after: Probe | null = null;
+  let stateAfter: StateAttrs | null = null;
+  let attempts = 0;
+  const trace: Array<Record<string, unknown>> = [];
+  // 改写在**写窗的回声抑制窗（400ms）内**完成 ⇒ 窗口状态机不跟随（真身被改写而窗口不动）。
+  // 时序若不成立（窗口被 `kline` 手势路径写走）⇒ 本次构造无效，重开一次写窗重试（**不得**把构造失效当断言通过）。
+  for (attempts = 1; attempts <= 3 && after == null; attempts++) {
+    await page.getByTestId('wb-rt-jump-1').click();
+    await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+    await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
+    const t0 = Date.now();
+    const base = await readProbe(page);
+    const newBs = (base.barSpace ?? 4) + 3;
+    const readBack = await externalSetBarSpace(page, newBs);
+    let observed = false;
+    try {
+      await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-live-bar-space', String(newBs), {
+        timeout: 2000,
+      });
+      observed = true;
+    } catch {
+      observed = false;
+    }
+    const candidate = await readProbe(page);
+    const st = await readState(page);
+    trace.push({
+      attempt: attempts, newBs, readBack, observed, mutateDelayMs: Date.now() - t0,
+      source: st.source, ok: candidate.ok, liveBarSpace: candidate.liveBarSpace,
+      appliedBarSpace: candidate.barSpace, reasons: candidate.liveReasons,
+    });
+    if (observed && st.source === 'jump') {
+      after = candidate;
+      stateAfter = st;
+    } else {
+      await page.waitForTimeout(150);
+    }
+  }
+  writeJson('d10r_rewritten', { run: resolution(run), attempts: trace.length, trace, after, stateAfter });
+  expect(
+    after,
+    `构造失效：${trace.length} 次尝试内未能在写窗抑制窗内完成「外部改写真身 barSpace」‖ trace=${JSON.stringify(trace)}`,
+  ).not.toBeNull();
+  const mismatch = rewrittenMismatches(after!);
+  writeJson('d10r_rewritten_mismatch', { mismatch });
+  expect(mismatch, '「写窗成功 → 其后被改写」必须 ok=false ∧ reasons 非空（变异：删掉该信号 ⇒ 本断言必红）').toEqual([]);
+  // 反衬：同一时刻「申请回执」仍是成功的（旧快照语义在此恒绿 = 假绿本体）
+  expect(after!.appliedOk, '写窗当时的回执必须仍为 true（否则本构造失去意义）').toBe(true);
+});
+
+// ──────────── D10-P：**目标 run 谓词解析**（§2.10.1 裁决 3） ────────────
+
+test('D10P_run_resolution：三条谓词各解析到「最新命中者」；现场重解析一致（反硬编码）；解析失败显式红', async ({ page }) => {
+  test.setTimeout(180_000);
+  const labels: Array<'d1' | 'center' | 'excl'> = ['d1', 'center', 'excl'];
+  const out: Record<string, unknown> = {};
+  let anyDiffers = 0;
+  for (const label of labels) {
+    const used = await resolved(page, label);
+    // **现场重解析**（显式**不走落盘缓存**）⇒ 核对「规格使用的 run」确实是谓词当前命中的最新匹配
+    const fresh = await resolveRun(runPort(page), label, { cacheDir: null, sourceKey: RESOLVE_SOURCE });
+    assertResolvedByIdFresh(used.id, fresh, label);
+    expect(used.id, `${label}：解析结果必须可复现（最新命中者）`).toBe(fresh.id);
+    expect(used.totalBars, `${label}：谓词声明的根数必须与真库一致`).toBe(await perBarTotal(page, used.id));
+    const differs = used.id !== HISTORICAL_LITERAL[label];
+    if (differs) anyDiffers += 1;
+    out[label] = {
+      id: used.id,
+      predicate: used.predicate,
+      totalBars: used.totalBars,
+      rtSeq: used.rtSeq,
+      l2Count: used.l2Count,
+      evidence: used.evidence,
+      historicalLiteral: HISTORICAL_LITERAL[label],
+      differsFromHistoricalLiteral: differs,
+    };
+  }
+  writeJson('d10p_run_resolution', out);
+  // 反硬编码的**鉴别力自证**：至少一族必须解析到「≠ 历史字面量」的 run ⇒
+  // 若把 run id 改回字面量，`assertResolvedByIdFresh` 必红（本断言保证该护栏不是空转）。
+  expect(
+    anyDiffers,
+    '至少一族必须解析到不同于历史字面量的 run（否则反硬编码护栏无鉴别力）',
+  ).toBeGreaterThan(0);
 });

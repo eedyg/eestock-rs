@@ -13,7 +13,8 @@ import { buildMarkers, makeFillKey } from './KlineResultChart';
  * ADR-028 §2.4b（D4.1）—— 买卖点**醒目化** + 跳转后的 **focus / 精确到笔高亮 / 曲线竖线**。
  *
  * 判据（用户原话 ①②）：
- *  ① 「K 线上最好再标注一下买卖的点」⇒ 标记 = **实心圆点 + 描边** + **价格×股数**标签（`B 8.417×118`），
+ *  ① 「K 线上最好再标注一下买卖的点」⇒ 标记 = **实心圆点 + 描边** + **短标签**（`B×118`；
+ *     价格×股数明细在 `labelDetail`，由悬停读数承载 —— ADR-028 §2.11 D11 决策 3 重锚，2026-09-25），
  *     同 bar 多笔**可分辨**（堆叠序，禁相互遮盖），**不加跨点连线**；
  *  ② 「l2 点击跳转之后，可以 focus 到 k 线上，并且高亮一下对应的买卖标记」⇒ 跳转后：
  *     - **上栏容器内**滚动把 K 线区域带回可见（ADR-028 §2.7 第 5 项：旧「页级 `scrollIntoView`」口径
@@ -107,7 +108,7 @@ afterEach(() => {
 // ───────────────────────── ① 买卖点醒目化（结构可断言） ─────────────────────────
 
 describe('ADR-028 D4.1 ①买卖点醒目化（buildMarkers）', () => {
-  it('实心圆点形态 + 价格×股数标签（B 8.417×118，fmt 口径同页面）+ 买红/卖绿/止损橙；不加连线', () => {
+  it('实心圆点形态 + 短标签 `B×qty` + 明细 `B 8.417×118`（fmt 口径同页面）+ 买红/卖绿/止损橙；不加连线', () => {
     const markers = buildMarkers([
       fill({ rt_seq: 1, ts: 1000, side: 'Buy', price: 8.417, qty: 118 }),
       fill({ rt_seq: 2, ts: 2000, side: 'Sell', price: 9.1, qty: 100 }),
@@ -116,10 +117,14 @@ describe('ADR-028 D4.1 ①买卖点醒目化（buildMarkers）', () => {
     // ① 醒目化：点（dot）形态（不再是「竖线注解」），且**没有**跨点连线类 overlay
     expect(markers.every((m) => m.shape === 'dot')).toBe(true);
     expect(markers.every((m) => m.type === 'marker')).toBe(true);
-    // ① 价格×股数标签：与页面既有 fmtNum 口径一致（price 3 位 / qty 4 位上限）
-    expect(markers[0]!.label).toBe('B 8.417×118');
-    expect(markers[1]!.label).toBe('S 9.100×100');
-    expect(markers[2]!.label).toBe('⊗ 7.700×50');
+    // ① **短标签**（ADR-028 §2.11 D11 决策 3 重锚，2026-09-25）：方向 + 数量（旧断言 = `B 8.417×118` 全量文本）
+    expect(markers[0]!.label).toBe('B×118');
+    expect(markers[1]!.label).toBe('S×100');
+    expect(markers[2]!.label).toBe('⊗×50');
+    // ① 明细**不得丢失可获取性**：价格×股数移到 `labelDetail`（悬停读数 / L2 明细表据此仍可回答）
+    expect(markers[0]!.labelDetail).toBe('B 8.417×118');
+    expect(markers[1]!.labelDetail).toBe('S 9.100×100');
+    expect(markers[2]!.labelDetail).toBe('⊗ 7.700×50');
     // 买红 / 卖绿 / 硬止损橙
     expect(markers[0]!.color).toBe('#ff5c6c');
     expect(markers[1]!.color).toBe('#00e0a4');
@@ -150,12 +155,14 @@ describe('ADR-028 D4.1 ①买卖点醒目化（buildMarkers）', () => {
 // ───────────────────── ② 高亮：精确到笔 + 3 秒回常态（定时器驱动） ─────────────────────
 
 describe('ADR-028 D4.1 ②高亮（KlineChart overlay 面）', () => {
-  it('标记 overlay = fillDot（实心圆点 + 标签）；同 bar 堆叠序写入 extendData', async () => {
+  it('标记 overlay = fillDot（实心圆点 + 标签）；同 bar 堆叠序写入 extendData（重锚：门控关 ⇒ 无标签）', async () => {
     const markers = buildMarkers([
       fill({ rt_seq: 7, ts: KC_BARS[KC_BARS.length - 2]! / 1000, side: 'Buy' }),
       fill({ rt_seq: 7, ts: KC_BARS[KC_BARS.length - 2]! / 1000, side: 'Buy', qty: 200 }),
     ]);
-    render(
+    // 重锚（ADR-028 §2.11 D11，2026-09-25）：默认态**不画标签** ⇒ 旧断言（extendData.label == 全量文本）已失效；
+    // 保留其原有意图（同 bar 两笔可分辨 + 明细可获）的方式 = ①默认：无标签、堆叠序仍在；②`markerLabels` 开：标签就位。
+    const { unmount } = render(
       <KlineChart
         feed={feedWithBars()}
         code="518880"
@@ -171,13 +178,37 @@ describe('ADR-028 D4.1 ②高亮（KlineChart overlay 面）', () => {
     expect(
       chartStub.removeOverlay.mock.calls.some((c) => (c[0] as { name?: string } | undefined)?.name === 'fillDot'),
     ).toBe(true);
-    const data = overlayCalls('fillDot')
+    const noGate = overlayCalls('fillDot')
       .slice(-2)
       .map((o) => o.extendData as Record<string, unknown>);
-    expect(data.map((d) => d.label)).toEqual(['B 8.417×118', 'B 8.417×200']);
-    // 同 bar 两笔：堆叠序不同 ⇒ 纵向不重叠（可分辨）
-    expect(data.map((d) => d.stackIndex)).toEqual([0, 1]);
-    expect(data.every((d) => d.highlight === false)).toBe(true);
+    expect(noGate.map((d) => d.label), '门控关 ⇒ 默认批次不得带标签').toEqual([undefined, undefined]);
+    expect(noGate.map((d) => d.stackIndex), '同 bar 两笔：堆叠序不同 ⇒ 纵向不重叠（可分辨）').toEqual([0, 1]);
+    expect(noGate.every((d) => d.highlight === false)).toBe(true);
+    unmount();
+
+    chartStub.createOverlay.mockClear();
+    render(
+      <KlineChart
+        feed={feedWithBars()}
+        code="518880"
+        period={'1d' as Period}
+        followLatest={false}
+        indicators={INDICATORS}
+        onManualZoom={() => {}}
+        overlays={markers}
+        markerLabels
+      />,
+    );
+    await waitFor(() => expect(overlayCalls('fillDot').length).toBeGreaterThanOrEqual(2));
+    const withGate = overlayCalls('fillDot')
+      .slice(-2)
+      .map((o) => o.extendData as Record<string, unknown>);
+    expect(withGate.map((d) => d.label)).toEqual(['B×118', 'B×200']);
+    expect(withGate.map((d) => d.stackIndex)).toEqual([0, 1]);
+    expect(withGate.map((d) => d.labelDetail), '明细始终随标记携带（悬停读数据此回答价格×数量）').toEqual([
+      'B 8.417×118',
+      'B 8.417×200',
+    ]);
   });
 
   it('**只高亮被点击的那一笔**（fillKey 精确）+ 脉冲相位推进 + 3 秒到点回常态（overlay 被清）', async () => {

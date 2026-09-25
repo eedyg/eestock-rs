@@ -520,6 +520,23 @@ export function ResultView({
                 >
                   回退
                 </button>
+                {/*
+                  ADR-028 §2.11（D11 决策 4）：**买卖标记标签开关**（默认关 = 只显圆点）。
+                  与指标/卡高同一结果页 key（`eestock.wb.result.chartConfig.v1`）⇒ 刷新后保持；
+                  **禁**写看板配置。按钮固定 34px 行高内（不改变 D9-8 的 34px 恒等式）。
+                */}
+                <button
+                  type="button"
+                  onClick={chartCfg.toggleMarkerLabels}
+                  data-testid="wb-marker-labels-toggle"
+                  data-marker-labels={chartCfg.markerLabels ? 'on' : 'off'}
+                  aria-pressed={chartCfg.markerLabels}
+                  aria-label={`买卖标记标签（${chartCfg.markerLabels ? '开' : '关'}）`}
+                  title="默认只显示买卖圆点（不遮挡 K 线）；开启后常显方向×数量标签；悬停仍可单笔看标签"
+                  className="shrink-0 rounded-lg border border-line px-2 py-0.5 hover:text-txt"
+                >
+                  标记标签 {chartCfg.markerLabels ? '开' : '关'}
+                </button>
                 {/* 页面级窗口（**请求态**）：文本 + 机器可读 data-*（E2E 真渲染断言用） */}
                 <span
                   data-testid="wb-window-state"
@@ -535,14 +552,44 @@ export function ResultView({
                     : '全区间（未显式写窗）'}
                 </span>
                 {/**
-                 * **真身回执探针**（ADR-028 §3.4 / F18）：值来自 K 线实例 `getBarSpace()` /
-                 * `getVisibleRange()` 的**实际读回**（`WindowApplyResult.observed`），**不是**请求态。
-                 * 若 `setBarSpace` 越界被引擎静默 return ⇒ `ok=false` / `error` 非空且 `observed=null`，
-                 * 真渲染 E2E 必须据此变红（禁止「没报错就算绿」）。
+                 * **真身探针**（ADR-028 §3.4 / F18；§2.10 D10 决策 3 拆分；§2.10.1 裁决 1 定口径）：
+                 *  - `data-applied-*` = **申请回执**（写窗那一刻的一次性真身读回；越界被静默吞掉 ⇒ ok=false）；
+                 *  - `data-live-*`    = **当前真身**（随 `onVisibleRangeChange` 的可见 bar 序列/引擎读回更新）。
+                 * `data-ok` = **活体一致性** = 申请回执 ∧ 当期 rev ∧ **真身 == 生效值**
+                 * （`applied.observed.bar_space`，**不**是 `requested`）∧ 可见域 == **写回后的**窗口域；
+                 * 即：写窗成功**且其后未被改写**才算绿。旧口径把「写窗当时成功」当 `ok` ⇒ 16ms 后被重拟合亦为绿（假绿）。
+                 * 「申请未被逐值兑现」（引擎校准如 L1 初选 12→11 / 全览 10→9；或不可达夹取）**不**改判 `ok`
+                 * —— 它由 `wb-window-clamped` 独立披露（必含 requested/observed），以免真实缺陷信号被噪声淹没。
+                 * 被改写的两类信号在 `data-live-reasons` 上（且文案与「校准/夹取」分开）：
+                 * `bar-space-rewritten`（真身 ≠ 生效值）/ `domain-drift`（可见域偏离写回窗口域）。
                  */}
                 <span
                   data-testid="wb-window-probe"
-                  data-ok={win.observed ? String(win.observed.ok) : ''}
+                  data-ok={String(win.liveOk)}
+                  data-live-consistent={String(win.liveOk)}
+                  data-live-rev={win.expectRev}
+                  data-live-bar-space={win.live?.bar_space ?? ''}
+                  data-live-from-ts={win.live?.from_ts ?? ''}
+                  data-live-to-ts={win.live?.to_ts ?? ''}
+                  data-live-from-idx={win.live?.from_idx ?? ''}
+                  data-live-to-idx={win.live?.to_idx ?? ''}
+                  data-live-bars={win.live?.bars ?? ''}
+                  data-live-reasons={win.liveReasons.join(' | ')}
+                  data-applied-ok={win.observed ? String(win.observed.ok) : ''}
+                  data-applied-rev={win.observed?.rev ?? ''}
+                  data-applied-requested-bar-space={win.observed?.requested_bar_space ?? ''}
+                  data-applied-bar-space={win.observed?.observed?.bar_space ?? ''}
+                  data-applied-from-idx={win.observed?.observed?.from_idx ?? ''}
+                  data-applied-to-idx={win.observed?.observed?.to_idx ?? ''}
+                  data-applied-from-ts={win.observed?.observed?.from_ts ?? ''}
+                  data-applied-to-ts={win.observed?.observed?.to_ts ?? ''}
+                  data-applied-error={win.observed?.error ?? ''}
+                  data-applied-center-idx={win.observed?.observed?.center_idx ?? ''}
+                  data-applied-center-ts={win.observed?.observed?.center_ts ?? ''}
+                  data-applied-observed-center-idx={win.observed?.observed?.observed_center_idx ?? ''}
+                  data-applied-observed-center-ts={win.observed?.observed?.observed_center_ts ?? ''}
+                  data-applied-edge-clamped={win.observed?.observed?.edge_clamped == null ? '' : String(win.observed.observed.edge_clamped)}
+                  /* 向后兼容别名（= 申请回执；既有规格/探针读它们 ⇒ 语义不变，禁把 live 值写进来混淆） */
                   data-rev={win.observed?.rev ?? ''}
                   data-requested-bar-space={win.observed?.requested_bar_space ?? ''}
                   data-bar-space={win.observed?.observed?.bar_space ?? ''}
@@ -625,6 +672,7 @@ export function ResultView({
                   highlight={highlight}
                   indicators={chartCfg.indicators}
                   viewPx={layout.klinePx}
+                  markerLabels={chartCfg.markerLabels}
                   toggleSlot={
                     /* 指标勾选 = 与看板**同一实现**（共享组件）；结果页配置独立 key（硬约束）。
                        aria-pressed + 稳定 testid ⇒ 真渲染规格可点、可断言。 */

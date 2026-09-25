@@ -167,7 +167,7 @@ describe('ADR-028 D2.1 主路：曲线 x = bar 索引空间（禁 ts 线性）',
 });
 
 describe('ADR-028 D2.3-2：数据/定义域**原子切换**（禁旧数据 + 新域）', () => {
-  it('全览：曲线按**全区间**重取（不带窗口参数）且定义域 = run 全区间 + 物理上限披露', async () => {
+  it('全览：曲线按**实测可达区间**重取（= 可见域；D10-4 同源）且定义域 = 可达区间 + 物理上限披露', async () => {
     // 600 根 run：全览把 barSpace 压到下限 1 ⇒ 面板 520px 只能显示 520 根 ⇒ **物理上限**必现
     const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z'), workbenchResultBars: 600 });
     const { run, result } = await seed(api);
@@ -188,20 +188,29 @@ describe('ADR-028 D2.3-2：数据/定义域**原子切换**（禁旧数据 + 新
 
     curveSpy.mockClear();
     await userEvent.click(screen.getByTestId('wb-window-reset'));
-    // 全览 = 全区间：**必须**无窗口参数重取（旧实现在此时不重取 ⇒ 「旧数据 + 新域」）
+    // D10-4：取数窗口必须与 x 域**同源** ⇒ 全览取数窗口 = **K 线真身可见 ts 区间**
+    // （旧口径：「全览不带窗口参数取全区间」+ x 域取真身切片 ⇒ 两源错位、逐点剔除）
     await waitFor(() => {
       const hits = curveSpy.mock.calls.filter(([id]) => id === run.id);
       expect(hits.length).toBeGreaterThan(0);
-      for (const [, q] of hits) {
-        expect((q as { from_ts?: number }).from_ts).toBeUndefined();
-        expect((q as { to_ts?: number }).to_ts).toBeUndefined();
-      }
+      // **最后一次**取数（稳定态）必须与真身可见域同源；写入后的瞬时旧窗口取数由 rev/原子提交机制作废
+      const probe0 = screen.getByTestId('wb-window-probe');
+      const liveFrom = Number(probe0.getAttribute('data-live-from-ts'));
+      const liveTo = Number(probe0.getAttribute('data-live-to-ts'));
+      const last = hits[hits.length - 1]![1] as { from_ts?: number; to_ts?: number };
+      expect(last.from_ts).toBe(liveFrom);
+      expect(last.to_ts).toBe(liveTo);
     });
-    // 定义域 = run 全区间（E4 冻结口径）
-    const runFrom = Math.floor(Date.parse(run.from_ts) / 1000);
-    const runTo = Math.floor(Date.parse(run.to_ts) / 1000);
+    // 定义域 = **可达区间**（= 窗口写回值 = 真身可见域；D10-2/D10-4）
+    const probe = screen.getByTestId('wb-window-probe');
+    const state = screen.getByTestId('wb-window-state');
+    expect(state.getAttribute('data-source')).toBe('reset');
+    expect(state.getAttribute('data-from-ts')).toBe(probe.getAttribute('data-live-from-ts'));
+    expect(state.getAttribute('data-to-ts')).toBe(probe.getAttribute('data-live-to-ts'));
     await waitFor(() =>
-      expect(screen.getByTestId('wb-aggregate-chart').getAttribute('data-x-domain')).toBe(`${runFrom},${runTo}`),
+      expect(screen.getByTestId('wb-aggregate-chart').getAttribute('data-x-domain')).toBe(
+        `${probe.getAttribute('data-live-from-ts')},${probe.getAttribute('data-live-to-ts')}`,
+      ),
     );
     // D2.3-3：全览的物理上限必须显式披露（显示 N / 共 M 根）
     const cap = await screen.findByTestId('wb-window-cap');
@@ -209,8 +218,7 @@ describe('ADR-028 D2.3-2：数据/定义域**原子切换**（禁旧数据 + 新
     expect(cap.textContent).toContain('共 600 根');
     expect(cap.textContent).toContain('受渲染上限约束');
     // 曲线必须跟随**同一实际可见范围**（不得自行扇伸到全量）：渲染点数 ≈ 实际可见根数
-    const probe = screen.getByTestId('wb-window-probe');
-    const visible = Number(probe.getAttribute('data-to-idx')) - Number(probe.getAttribute('data-from-idx')) + 1;
+    const visible = Number(probe.getAttribute('data-live-to-idx')) - Number(probe.getAttribute('data-live-from-idx')) + 1;
     expect(visible).toBe(520);
     const polyCount = (document.querySelector('[data-testid="wb-aggregate-chart"] svg polyline')!.getAttribute('points') ?? '')
       .trim()
@@ -218,6 +226,8 @@ describe('ADR-028 D2.3-2：数据/定义域**原子切换**（禁旧数据 + 新
       .filter(Boolean).length;
     expect(polyCount).toBeLessThanOrEqual(visible);
     expect(polyCount).toBeGreaterThan(0.5 * visible);
+    // D10-4：剔除率 0（旧口径在本态实测剔除 75/177 = 42%）
+    expect(screen.queryByTestId('wb-curve-unmatched')).toBeNull();
   });
 
   it('窗口变化期间：新数据未到位 ⇒ **不得**用新域渲染旧数据（保持上一组一致快照）', async () => {
@@ -269,7 +279,7 @@ describe('ADR-028 D2.3-2：数据/定义域**原子切换**（禁旧数据 + 新
 });
 
 describe('ADR-028 D2.3-1：程序化写窗回读 + 钳位披露', () => {
-  it('L2 跳转：请求 120 根但引擎实测 ≠ 120 ⇒ 显式披露「被钳位」', async () => {
+  it('L2 跳转：请求 120 根但引擎实测 ≠ 120 ⇒ 显式披露「被钳位」（回执 ok / 活体 ok 分列）', async () => {
     const api = createMockClient({ now: new Date('2026-09-09T06:00:00Z') });
     const { run, result } = await seed(api);
     const cTs = curveTs(result);
@@ -284,14 +294,27 @@ describe('ADR-028 D2.3-1：程序化写窗回读 + 钳位披露', () => {
     const jump = (await screen.findAllByTestId(/^wb-l2-jump-/))[0]!;
     await userEvent.click(jump);
     await waitFor(() => expect(screen.getByTestId('wb-window-state').getAttribute('data-source')).toBe('jump'));
-    // 回执必须为真身读数 + 请求/实测不一致 ⇒ 披露
-    await waitFor(() => expect(screen.getByTestId('wb-window-probe').getAttribute('data-ok')).toBe('true'));
+    // 申请回执：写窗**当时**成功（`setBarSpace` 未被静默吞掉）
+    await waitFor(() => expect(screen.getByTestId('wb-window-probe').getAttribute('data-applied-ok')).toBe('true'));
     const clamped = await screen.findByTestId('wb-window-clamped');
     expect(clamped.textContent).toContain('被钳位');
-    // 发布的是**实测值**（页面窗口 == 回执），不是请求值
+    // 发布的是**实测值**（页面窗口 == 真身可见域），不是请求值
     const probe = screen.getByTestId('wb-window-probe');
     const state = screen.getByTestId('wb-window-state');
-    expect(state.getAttribute('data-from-ts')).toBe(probe.getAttribute('data-from-ts'));
-    expect(state.getAttribute('data-to-ts')).toBe(probe.getAttribute('data-to-ts'));
+    expect(state.getAttribute('data-from-ts')).toBe(probe.getAttribute('data-live-from-ts'));
+    expect(state.getAttribute('data-to-ts')).toBe(probe.getAttribute('data-live-to-ts'));
+    expect(state.getAttribute('data-span-bars')).toBe(probe.getAttribute('data-live-bars'));
+    // **§2.10.1 裁决 1**（2026-09-25 架构侧裁决，取代 D10-3 原文口径）：
+    // `data-ok` 对照**生效值**（`applied.observed.bar_space`）+ 写回后的窗口域，**不**对照 `requested`。
+    // 本态请求 120 根而 run 数据不足 ⇒ 引擎把生效 barSpace 压低（requested ≠ 生效）＝「申请未被逐值兑现」，
+    // 该差异由 `wb-window-clamped` 独立披露（必含 requested/observed）⇒ **不得**把 `data-ok` 打成 false
+    // （否则真实的「写窗后被改写」信号会被校准噪声淹没）。
+    expect(probe.getAttribute('data-applied-requested-bar-space')).not.toBe(probe.getAttribute('data-applied-bar-space'));
+    expect(probe.getAttribute('data-live-bar-space')).toBe(probe.getAttribute('data-applied-bar-space'));
+    expect(probe.getAttribute('data-ok')).toBe('true');
+    expect(probe.getAttribute('data-live-consistent')).toBe('true');
+    expect(probe.getAttribute('data-live-reasons')).toBe('');
+    // 披露仍须给出 requested/observed 两侧（钳位不静默）
+    expect(clamped.textContent).toContain('120 根');
   });
 });

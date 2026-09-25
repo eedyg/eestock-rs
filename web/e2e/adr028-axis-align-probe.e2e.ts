@@ -42,13 +42,30 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-/** 证据落盘目录（`ADR027_ALIGN_OUT` 可覆盖）。 */
-const OUT = process.env.ADR027_ALIGN_OUT ?? resolve(REPO, 'tester/evidence/20260920_adr027_axis_verify/raw');
-/** 目标 run：518880 / M5 / 1949 根（含周末·隔夜·午休缺口）。 */
-const RUN_ID = process.env.ADR027_ALIGN_RUN ?? 'sr_1789832517800_000006';
+/**
+ * 证据落盘目录：**必须落未跟踪目录**（`AGENTS.md`「代理产物与提交纪律」；旧默认路径
+ * `tester/evidence/20260920_adr027_axis_verify/raw/` 已被 git 跟踪 ⇒ 每次真跑都会覆写已跟踪文件）。
+ * 可用 `ADR027_ALIGN_OUT` 覆盖。
+ */
+const OUT = process.env.ADR027_ALIGN_OUT ?? resolve(REPO, 'coder/evidence/20260925_adr028_d10_ruling/raw_axis_probe');
+/**
+ * **ADR-028 §2.10.1 裁决 3｜规格耐久**：目标 run（518880 / M5 / 根数足够、含周末·隔夜·午休缺口）
+ * 按**谓词解析** —— 禁硬编码 run id（库增长会把目标 run 顶出历史列表首屏）；解析失败 ⇒ 显式红。
+ * `RUN_ID` 由 {@link resolveTargetRun} 在用例开始时填入（**已废除**的历史字面量：`sr_1789832517800_000006`）。
+ */
+let RUN_ID = '';
 /** M5 ⇒ 单根 bar 秒数（配对容差与「根」换算用）。 */
 const BAR_SECONDS = 300;
 /** 曲线 plot 宽度（user units）：`AggregateScoreChart` W=1000 / PAD=8 ⇒ 984。 */
@@ -707,11 +724,70 @@ async function readWindowAttrs(page: Page): Promise<WindowAttrs> {
   });
 }
 
+/** `page.request` → {@link RunFetchPort}（只读；规格侧唯一取数面）。 */
+function runPort(page: Page): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await page.request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      const total = ((await resp.json()) as { total?: number }).total;
+      expect(typeof total, `/bars per_bar ${id} 必须回 total`).toBe('number');
+      return total!;
+    },
+    roundTrips: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id, rtSeq) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips/${rtSeq}/fills?limit=200`);
+      expect(resp.ok(), `GET /fills ${id}#${rtSeq}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+/**
+ * 解析目标 run（谓词 `m5`）+ **反硬编码护栏**（规格使用的 id 必须 == 现场重解析结果）。
+ * 解析失败 ⇒ 抛错（显式红），禁静默换用别的 run / 禁跳过。
+ */
+async function resolveTargetRun(page: Page): Promise<ResolvedRun> {
+  // 落盘缓存（未跟踪目录；命中仍校验）+ **护栏走现场解析（不走缓存）**
+  const sourceKey = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+  const run = await resolveRun(runPort(page), 'm5', { sourceKey });
+  const fresh = await resolveRun(runPort(page), 'm5', { cacheDir: null, sourceKey });
+  assertResolvedByIdFresh(run.id, fresh, 'm5');
+  RUN_ID = run.id;
+  mkdirSync(OUT, { recursive: true });
+  writeFileSync(
+    resolve(OUT, 'run_resolution.json'),
+    JSON.stringify({ id: run.id, predicate: run.predicate, totalBars: run.totalBars, evidence: run.evidence }, null, 2),
+    'utf8',
+  );
+  return run;
+}
+
 async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const select = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(select, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  // 历史列表**分页**（新 run 顶掉旧 run 的首屏位置；实测 93 个 run / 首屏 50）⇒ 翻页查找，
+  // 否则「运行不在历史列表内」是对 DB 内容漂移的假红（2026-09-25 复验实测）。
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await select.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(select, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
@@ -1022,6 +1098,7 @@ async function measureState(
     domainAttr && domainAttr !== 'data' && domainAttr.includes(',')
       ? (domainAttr.split(',').map(Number) as [number, number])
       : null;
+  // D10-2/D10-4：`reset` 态窗口 = 真身可达区间（取数窗口 == 可见域）⇒ 与其它窗口态同口径取数
   const windowed = source !== 'full' && domain != null;
   const api = await fetchCurve(page, RUN_ID, windowed ? domain![0] : null, windowed ? domain![1] : null);
   const kline = await page.evaluate(probeKline);
@@ -1426,7 +1503,7 @@ function deltaSeries(st: StateMeasure): Array<Record<string, number | null>> {
 
 // ─────────────────────────────────────────────────── 用例 ───────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
+test.describe.configure({ mode: 'serial', timeout: 180_000 }); // timeout：§7.2 修法 ①（谓词解析不得吃穿默认 60s 预算）
 
 test('P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + 原子性 + 披露', async ({ page }) => {
   test.setTimeout(420_000);
@@ -1445,8 +1522,9 @@ test('P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + �
     metricVersion: 'v2: same-bar pairing (main) + ts-linear inverse-solve (legacy diagnostic only)',
   };
 
-  await openRunSettled(page, RUN_ID);
-  const totalBars = await fetchRunTotalBars(page, RUN_ID);
+  const target = await resolveTargetRun(page);
+  await openRunSettled(page, target.id);
+  const totalBars = await fetchRunTotalBars(page, target.id);
 
   const states: StateMeasure[] = [];
   const transitions: Record<string, unknown> = {};
@@ -1561,7 +1639,8 @@ test('P1_pair_alignment：同一根 bar 配对偏差（六态）+ 跟随性 + �
   // ───────────── ④ 全览（含切换采样：原子性 + 披露） ─────────────
   const fullTrans = await sampleDuring('full', async () => {
     await page.getByTestId('wb-window-reset').click();
-    await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'full');
+    // ADR-028 §2.10 D10 决策 2：全览以实测可达区间写回窗口状态机（source=reset）
+    await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'reset');
   });
   const full = await record(await measureState(page, 'full', { totalBars }));
 
@@ -1751,6 +1830,7 @@ test('P2_degraded_disclosure：注入降级（K 线 bar 序列不可得 / per_ba
   test.setTimeout(180_000);
   await page.addInitScript(installChartCapture);
   mkdirSync(OUT, { recursive: true });
+  await resolveTargetRun(page);
   /** 网络留痕（原始输出）：/api/kline 与 /bars 的请求 URL 与响应体摘要。 */
   const net: Array<{ phase: string; url: string; status: number; summary: string }> = [];
   let phase = 'inject1';
@@ -1778,7 +1858,18 @@ test('P2_degraded_disclosure：注入降级（K 线 bar 序列不可得 / per_ba
   });
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
-  await page.getByTestId(`wb-run-select-${RUN_ID}`).click();
+  {
+    const sel = page.getByTestId(`wb-run-select-${RUN_ID}`);
+    for (let i = 0; i < 30 && (await sel.count()) === 0; i++) {
+      const more = page.getByTestId('wb-runs-more');
+      if ((await more.count()) > 0) {
+        await more.scrollIntoViewIfNeeded().catch(() => {});
+        await more.click({ timeout: 5000 }).catch(() => {});
+      }
+      await page.waitForTimeout(300);
+    }
+    await sel.click();
+  }
   await expect(page.getByTestId('wb-result')).toBeVisible();
   // 逐帧留痕：降级档位随时间的演进（一次渲染滞后 ⇒ 档位可能后发）
   const progression: Array<Record<string, unknown>> = [];
@@ -1830,7 +1921,18 @@ test('P2_degraded_disclosure：注入降级（K 线 bar 序列不可得 / per_ba
   });
   await page.reload();
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
-  await page.getByTestId(`wb-run-select-${RUN_ID}`).click();
+  {
+    const sel = page.getByTestId(`wb-run-select-${RUN_ID}`);
+    for (let i = 0; i < 30 && (await sel.count()) === 0; i++) {
+      const more = page.getByTestId('wb-runs-more');
+      if ((await more.count()) > 0) {
+        await more.scrollIntoViewIfNeeded().catch(() => {});
+        await more.click({ timeout: 5000 }).catch(() => {});
+      }
+      await page.waitForTimeout(300);
+    }
+    await sel.click();
+  }
   await expect(page.getByTestId('wb-result')).toBeVisible();
   const progression2: Array<Record<string, unknown>> = [];
   for (let i = 0; i < 8; i++) {

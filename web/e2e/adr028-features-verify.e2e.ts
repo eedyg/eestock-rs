@@ -36,11 +36,20 @@
  * | **T1/T4 阈值** | 阈值按「默认卡高 520 ⇒ 主图 371px」的像素映射校准 | 按 **D9-8① 恒等式**（`主图 = 内层 − 26 − 1×副图数 − Σ副图`）**运行时复算**（规格本来就用运行时 `yRaw` 作期望值 ⇒ 判据不变），并**新增 D9-8② 硬不变量断言**（`主图 ≥160 ∧ 副图 ≥30`）与恒等式读数落盘 | §2.9-6（D9-8①②） |
  * | **证据出口** | `tester/evidence/20260920_adr028_features_verify/raw`（**99 个已跟踪文件**） | **规格相对的未跟踪目录**（`ADR028V_OUT` / `E2E_EVIDENCE_DIR` 可覆盖） | AGENTS.md 2026-09-23 纪律 + 派工第 7 条 |
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
@@ -81,16 +90,25 @@ const CONTRACT_MARKERS = [
 /** **反向锚（D9-5 断言缺失）**：被删的卡高机制标记**不得**出现在被服务产物中。 */
 const REMOVED_MARKERS = ['wb-kline-preset', 'wb-card-resize-kline'] as const;
 
-const RUN_A = process.env.ADR028V_RUN_A ?? 'sr_1789865219068_000001';
-const RT_A = Number(process.env.ADR028V_RT_A ?? '1');
-const FILL_A = Number(process.env.ADR028V_FILL_A ?? '42');
-const FILL_B = Number(process.env.ADR028V_FILL_B ?? '43');
-/** 第三次跳转目标（ts 必须与 FILL_A 不同，用于「竖线随下一次跳转更新」）。 */
-const FILL_C = Number(process.env.ADR028V_FILL_C ?? '41');
-/** run B：目标笔居中（两侧都有 bar ⇒ 标签有右侧绘制空间）。 */
-const RUN_B = process.env.ADR028V_RUN_B ?? 'sr_1789832477006_000002';
-const RT_B = Number(process.env.ADR028V_RT_B ?? '1');
-const FILL_B1 = Number(process.env.ADR028V_FILL_B1 ?? '1');
+/**
+ * 目标 run：**一律谓词解析**（ADR-028 §2.10.1 裁决 3），**禁硬编码 run id**。
+ * 动因（独立复验 §7.1）：硬编码的旧 run 会被新 run 顶出历史列表首屏 ⇒ 「运行不在历史列表内」假红。
+ * 本族需要的**结构性前提**（已编进谓词 `pair`，不再是「某个具体 run」）：
+ *  - rt_seq=1 有足够多笔；**数据末根 bar 上恰有一 Buy 一 Sell**（末根双笔场景）；
+ *  - 存在**中段**成交（距末根 ≥{@link MID_GAP_BARS} 根）作对照样本（标签向**右**绘制、有右侧空间）。
+ * ⇒ 只有一个目标 run；下标（末根双笔 / 中段成交）由**实测数据**推出，禁写死 42/43/1。
+ */
+let RUN_A = '';
+let RT_A = 1;
+/** 末根 bar 上的 Buy / Sell 下标（T1/T4/T5/T6/T7 的目标笔）。 */
+let FILL_A = -1;
+let FILL_B = -1;
+/** 中段成交下标（距末根 ≥MID_GAP_BARS；T5 的「竖线随下一次跳转更新」目标）。 */
+let FILL_C = -1;
+/** 中段对照笔与数据末根的最小间距（根）：保证标签有右侧绘制空间 + 远离右缘。 */
+const MID_GAP_BARS = 40;
+/** 目标 run 的解析结果（含谓词原文与扫描证据；落盘供复核）。 */
+let RUN_RESOLUTION: ResolvedRun | null = null;
 
 /** 高亮存活时长（与 `KlineChart.HIGHLIGHT_DURATION_MS` 同口径）。 */
 const HL_MS = 3000;
@@ -98,8 +116,20 @@ const HL_MS = 3000;
 const STACK_DY = 12;
 /** 白簇最小计重（< 该值视为恒定背景噪声，实测为 y 轴小簇 size 4/1）。 */
 const CLUSTER_MIN = 30;
-/** 标签 ink run 阈值（校准口径见设计报告 §2/T2；真实构建实测 24）。 */
-const INK_RUN_MIN = 15;
+/**
+ * 标签 ink run 阈值（D11 重锚，ADR-028 **§2.11.1** 新口径）。
+ * 旧值 15 是**旧长标签**（`B 1.188×843.9619`，17 字符）下的校准；D11 决策 3 把标签缩短为 `方向×数量`
+ * （如 `B×843.9619`，10 字符）⇒ **阈值随文本缩短而失真**。
+ * 新口径：以**列覆盖率 ≥0.6** 为主判据（对文本长度不敏感），ink run 只作**辅判据**且按新短标签重标为 8
+ * （= 最短实测短标签 `S×37764.7619` 的墨缝量级下限；旧口径 15 在短标签下会把「真的画了标签」判红）。
+ * 依据：ADR-028 §2.11.1（“主判据与阈值无关”）+ 复验 §7.1 第 3 行（“按新短标签重标 / 改用列覆盖率为主判据”）。
+ */
+const INK_RUN_MIN = 8;
+/** 列覆盖率主判据阀值（§7.1 第 3 行建议值）。 */
+const INK_COVER_MIN = 0.6;
+/** 标签 span 内绝对墨量下限（px）：旧值 120 是 17 字符长标签口径（实测 234）；
+ *  短标签（10 字符）按同墨密度换算 ≈ 70 ⇒ 取 **60**（并一字保留对照区比较判据）。 */
+const INK_MIN_PX = 60;
 /** D9-8② 硬不变量（取代旧「默认卡高 520 ⇒ 主图 ≥320」的口径；D9-5 已删卡高机制）。 */
 const MAIN_MIN_PX = 160;
 const SUB_PANE_MIN_PX = 30;
@@ -108,6 +138,7 @@ const PAGE_CAPTURE = `
   (() => {
     const w = window;
     w.__wbCharts = [];
+    w.__wbTexts = {};
     const orig = Map.prototype.set;
     Map.prototype.set = function (k, v) {
       try {
@@ -117,6 +148,29 @@ const PAGE_CAPTURE = `
       } catch {}
       return orig.call(this, k, v);
     };
+    // T2 仪表：记录渲染器自己的 fillText 锚点（按文本去重，后写覆盖）⇒ 标签锚点判据的目标专属依据。
+    try {
+      const proto = CanvasRenderingContext2D.prototype;
+      const d = Object.getOwnPropertyDescriptor(proto, 'font');
+      if (d && d.get && d.set) {
+        Object.defineProperty(proto, 'font', {
+          configurable: true,
+          get() { return d.get.call(this); },
+          set(v) { try { this.__wbFont = v; } catch {} return d.set.call(this, v); },
+        });
+      }
+      const ft = proto.fillText;
+      proto.fillText = function (text, x, y) {
+        try {
+          const t = String(text);
+          if (t.length > 0 && t.length <= 64) {
+            const m = w.__wbTexts;
+            m[t] = { text: t, font: this.__wbFont || '', align: this.textAlign, x: x, y: y, n: (m[t] ? m[t].n : 0) + 1 };
+          }
+        } catch {}
+        return ft.apply(this, arguments);
+      };
+    } catch {}
   })();
 `;
 
@@ -172,7 +226,18 @@ async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const sel = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(sel, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  // **历史列表分页**（§7.1 第 2 行）：库已 90+ run，目标 run 会被顶出首屏 ⇒ 必顶“加载更多”
+  // 直到目标出现（无翻页就会在「run 打开处」假红，且与本批语义无关）。
+  for (let i = 0; i < 30 && (await sel.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(sel, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await sel.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
@@ -290,7 +355,7 @@ async function geomByFill(
 }
 
 /** 几何：目标 `fillKey` 的**渲染位置**（kline 容器相对坐标，**含堆叠偏移**）与锚点价/ts。 */
-type Geom = Record<string, { x: number; yRaw: number; y: number; stack: number; label: string; color: string; ts: number; price: number }>;
+type Geom = Record<string, { x: number; yRaw: number; y: number; stack: number; label: string; labelDetail?: string; color: string; ts: number; price: number }>;
 async function geomOf(page: Page, keys: string[]): Promise<Geom> {
   return page.evaluate((want) => {
     const w = window as unknown as { __wbCharts?: Array<Record<string, (...a: unknown[]) => unknown>> };
@@ -321,6 +386,7 @@ async function geomOf(page: Page, keys: string[]): Promise<Geom> {
         y: Number(p.y ?? NaN) + stack * 12,
         stack,
         label: String(ext['label'] ?? ''),
+        labelDetail: String(ext['labelDetail'] ?? ''),
         color: String(ext['color'] ?? ''),
         ts: Number(pts[0]!.timestamp),
         price: pts[0]!.value,
@@ -328,6 +394,45 @@ async function geomOf(page: Page, keys: string[]): Promise<Geom> {
     }
     return out as never;
   }, keys) as Promise<Geom>;
+}
+
+/** 绘图区宽度（CSS px）：K 线容器内最宽 canvas 的宽（DPR=1；与 `inkRun` 的列坐标同尺度）。 */
+async function paneWidth(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const kl = document.querySelector('[data-testid="kline-chart"]');
+    if (!kl) return 0;
+    const ws = Array.from(kl.querySelectorAll('canvas')).map((c) => c.width);
+    return ws.length > 0 ? Math.max(...ws) : 0;
+  });
+}
+
+/**
+ * 选「中部且右侧留完整标签盒空间」的标记（T2 的**静止态**目标）。
+ * 规则（可复核）：`x ∈ [40, paneW − 161]`；取最接近 pane 中点者；无候选 ⇒ 返回 null（调用方**显式红**）。
+ */
+function pickMidMarker(keys: string[], geom: Geom, paneW: number): string | null {
+  const cands = keys.filter((k) => {
+    const g = geom[k];
+    if (!g || !Number.isFinite(g.x)) return false;
+    return g.x >= 40 && g.x <= paneW - 161;
+  });
+  if (cands.length === 0) return null;
+  const mid = paneW / 2;
+  return cands.slice().sort((a, b) => Math.abs(geom[a]!.x - mid) - Math.abs(geom[b]!.x - mid))[0]!;
+}
+
+type TextRec = { text: string; font: string; align: string; x: number; y: number; n: number };
+/** 渲染器自报的 `fillText` 记录（按文本；T2 的锚点判据依据）。 */
+async function textRec(page: Page, text: string): Promise<TextRec | null> {
+  return page.evaluate((t) => {
+    const m = (window as unknown as { __wbTexts?: Record<string, TextRec> }).__wbTexts ?? {};
+    return (m[t] ?? null) as never;
+  }, text) as Promise<TextRec | null>;
+}
+async function clearTextRecs(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as unknown as { __wbTexts?: Record<string, unknown> }).__wbTexts = {};
+  });
 }
 
 type Cluster = { size: number; cx: number; cy: number; x0: number; x1: number; y0: number; y1: number };
@@ -682,6 +787,124 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(PAGE_CAPTURE);
 });
 
+/**
+ * `APIRequestContext` → {@link RunFetchPort} 适配器（只读；口径与 D10/D11 规格一致）。
+ * 用 `beforeAll({request})`（不占 page）⇒ 解析先于任何用例完成，解析失败就**整体显式红**。
+ */
+function requestPort(request: APIRequestContext): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      const total = ((await resp.json()) as { total?: number }).total;
+      expect(typeof total, '/bars per_bar 必须回 total').toBe('number');
+      return total!;
+    },
+    roundTrips: async (id) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id, rt) => {
+      const resp = await request.get(`/api/workbench/runs/${id}/round-trips/${rt}/fills?limit=500`);
+      expect(resp.ok(), `GET /fills ${id}/${rt}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+const RESOLVE_SOURCE = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+
+/**
+ * **目标 run 解析（谓词 `pair`）** + 反硬编码护栏（现场重解析，**不走落盘缓存**）。
+ * 下标 FILL_A/FILL_B/FILL_B1/FILL_C **全部由实测 `fills` 推出**（禁写死 42/43/1）：
+ *   `FILL_A` = 末根 bar 上的 Buy、`FILL_B` = 末根 bar 上的 Sell（同 bar 双笔场景）；
+ *   `FILL_B1` = 首个「距末根 ≥{@link MID_GAP_BARS} 根」的成交（中段对照）；
+ *   `FILL_C` = 与 FILL_A 不同 ts 的另一中段成交（竖线更新用例）。
+ * 前提不满足 ⇒ **显式抛错**（不得静默换 run / 换笔）。
+ */
+test.beforeAll(async ({ request }) => {
+  const port = requestPort(request);
+  const run = await resolveRun(port, 'pair', { sourceKey: RESOLVE_SOURCE });
+  const fresh = await resolveRun(port, 'pair', { cacheDir: null, sourceKey: RESOLVE_SOURCE });
+  assertResolvedByIdFresh(run.id, fresh, 'pair');
+  RUN_RESOLUTION = run;
+
+  const fills = await port.fills(run.id, 1);
+  if (fills.length < 3) throw new Error(`谓词 pair 命中 run 的 rt1 成交仅 ${fills.length} 笔，前提不成立（显式红）`);
+  const lastBar = Math.max(...fills.map((f) => f.bar_index));
+  const buyIdx = fills.findIndex((f) => f.bar_index === lastBar && f.side === 'Buy');
+  const sellIdx = fills.findIndex((f) => f.bar_index === lastBar && f.side === 'Sell');
+  if (buyIdx < 0 || sellIdx < 0) {
+    throw new Error(`谓词 pair 命中 run 的末根 bar(${lastBar}) 上必须有一 Buy 一 Sell（实得 buy=${buyIdx} sell=${sellIdx}）`);
+  }
+  const midIdx = fills.findIndex((f) => lastBar - f.bar_index >= MID_GAP_BARS && f.ts !== fills[buyIdx]!.ts);
+  if (midIdx < 0) throw new Error(`谓词 pair 命中 run 无「距末根 ≥${MID_GAP_BARS} 根且 ts 异于末根双笔」的中段成交（竖线更新用例前提）`);
+
+  RUN_A = run.id;
+  RT_A = 1;
+  FILL_A = buyIdx;
+  FILL_B = sellIdx;
+  FILL_C = midIdx;
+  writeJson('run_resolution', {
+    id: run.id,
+    predicate: run.predicate,
+    totalBars: run.totalBars,
+    rtSeq: run.rtSeq,
+    l2Count: run.l2Count,
+    evidence: run.evidence,
+    derived: { lastBar, buyIdx, sellIdx, midIdx, fills: fills.length, midGapBars: MID_GAP_BARS },
+  });
+});
+
+/**
+ * **D11 重锚**（ADR-028 §2.11）：标签**默认不显** ⇒ 凡断言「标签文本/墨迹」的用例必须**先开结果页开关**
+ * （走产品自身的持久化配置 key，不是测试钩子）。开关失效 ⇒ 后续断言**显式红**（非空转）。
+ */
+async function enableMarkerLabels(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('eestock.wb.result.chartConfig.v1', JSON.stringify({ markerLabels: true }));
+    } catch {
+      /* 隐私模式：留给断言显式红 */
+    }
+  });
+}
+
+/**
+ * **写窗回执判据（ADR-028 §2.10 决策 3 + §2.10.2 措辞修正）**——D10 之后的正确形式：
+ *  ① 写窗**回执**必须成功：`data-applied-ok == 'true'`（一次性，证明 `setBarSpace`/定位未被静默吞掉）；
+ *  ② **活体一致性**：`data-ok == 'true'`（当前一致）**或** `data-ok == 'false'` **且 `data-live-reasons` 非空**
+ *     —— §2.10.2 明确：分页态与 `min=1` 夹取态**不要求**端点恒等，**以「必披露」为准（禁静默）**。
+ *  反假绿：`ok=false` 且 reasons 为空（静默不一致）= **必红**；回执失败 = **必红**。
+ *  实读（本机 pair run）：跳转态 ok=true；全览态/未记录成交态 `ok=false` + `domain-drift: 真身可见域 … ≠ 写回窗口域 …`
+ *  （≥10s 稳定披露，非瞬态 ⇒ 旧写法 `data-ok == 'true'` 会在这两态恒红，属**判据过期**而非产品缺陷）。
+ */
+async function assertReceiptOrDisclosed(page: Page, ctx: string): Promise<Record<string, string>> {
+  const p = await readAttrs(page, 'wb-window-probe');
+  expect(p['data-applied-ok'], `${ctx}：写窗真身回执（一次性）必须成功`).toBe('true');
+  if (p['data-ok'] !== 'true') {
+    const reasons = p['data-live-reasons'] ?? '';
+    expect(
+      reasons.length,
+      `${ctx}：活体不一致**必须披露**（ok=${p['data-ok']} 而 reasons 为空 = 静默不一致，禁）`,
+    ).toBeGreaterThan(0);
+    expect(reasons, `${ctx}：披露必须含具体量（domain-drift / bar-space-rewritten）`).toMatch(/domain-drift|bar-space-rewritten/);
+  }
+  return p;
+}
+
+/** 断言标签开关**真的**生效（前置自检：否则「无标签」态会让标签判据空转/假红）。 */
+async function assertLabelGateOn(page: Page): Promise<void> {
+  await expect(page.getByTestId('wb-marker-labels-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'on');
+}
+
 // ───────────────────────────────── T0 真身锚定 ─────────────────────────────────
 test('T0 真身锚定：被服务产物 == 被测静态根产物（sha256 相等并记录）+ 契约标记在位', async ({ page }) => {
   const html = await (await page.request.get('/')).text();
@@ -751,15 +974,18 @@ test('T0 真身锚定：被服务产物 == 被测静态根产物（sha256 相等
 });
 
 // ───────────────────────────────── T1 醒目化结构（store） ─────────────────────────────────
-test('T1 醒目化：真图表 store 中每笔成交一个 fillDot（含价格×股数标签/堆叠序），同 bar 多笔可分辨，且无连线类 overlay', async ({ page }) => {
+test('T1 醒目化：真图表 store 中每笔成交一个 fillDot（含 `方向×数量` 标签/明细/堆叠序），同 bar 多笔可分辨，且无连线类 overlay', async ({ page }) => {
+  // D11 重锚：标签**默认不显** ⇒ 本用例断言 store 里的 label 文本，必须先开开关（否则 store.label 为空字符串）
+  await enableMarkerLabels(page);
   const fillsResp = await page.request.get(`/api/workbench/runs/${RUN_A}/round-trips/${RT_A}/fills?limit=500`);
   const fills = ((await fillsResp.json()) as { fills: Array<Record<string, number | string>> }).fills;
   const fA = fills[FILL_A]!;
   const fB = fills[FILL_B]!;
-  expect(fA['bar_index'], '第 42/43 笔必须同 bar（同 bar 多笔场景）').toBe(fB['bar_index']);
+  expect(fA['bar_index'], `第 ${FILL_A}/${FILL_B} 笔必须同 bar（同 bar 多笔场景；谓词 pair 已保证末根双笔）`).toBe(fB['bar_index']);
   expect(fA['ts']).toBe(fB['ts']);
 
   await openRunSettled(page, RUN_A);
+  await assertLabelGateOn(page);
   await page.getByTestId(`wb-rt-detail-${RT_A}`).click();
   const row = page.getByTestId(`wb-l2-row-${RT_A}-${FILL_A}`);
   await expect(row).toBeVisible();
@@ -773,18 +999,28 @@ test('T1 醒目化：真图表 store 中每笔成交一个 fillDot（含价格×
   const gA = geom[`${RT_A}:${FILL_A}`]!;
   const gB = geom[`${RT_A}:${FILL_B}`]!;
 
-  const expectLabelA = `B ${Number(fA['price']).toFixed(3)}×${Number(fA['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 })}`;
-  const expectLabelB = `S ${Number(fB['price']).toFixed(3)}×${Number(fB['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 })}`;
+  // **D11 决策 3 重锚**（旧值 `B <price>×<qty>` ⇒ 新值 `方向×数量`；全文进 `labelDetail`）：
+  //  事实源 = `KlineResultChart.buildFillOverlays`：`label = \`${text}×${fmtNum(qty,'qty')}\``，
+  //  `labelDetail = \`${text} ${fmtNum(price,'price')}×${qty}\``。
+  const qtyA = Number(fA['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+  const qtyB = Number(fB['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+  const shortLabelA = `B×${qtyA}`;
+  const shortLabelB = `S×${qtyB}`;
+  const detailLabelA = `B ${Number(fA['price']).toFixed(3)}×${qtyA}`;
+  const detailLabelB = `S ${Number(fB['price']).toFixed(3)}×${qtyB}`;
 
-  writeJson('t1_marker_store', { store, geom, attrs, expectLabelA, expectLabelB, fA, fB });
+  writeJson('t1_marker_store', { store, geom, attrs, shortLabelA, shortLabelB, detailLabelA, detailLabelB, fA, fB });
 
   expect(store.ok, '必须捕获到真图表实例并读到 overlay store').toBe(true);
   expect(store.fillDot.length, 'fillDot overlay 数 == /fills 笔数（每笔一个标记）').toBe(fills.length);
   expect(store.names.filter((n) => n !== 'fillDot' && n !== 'fillDotHighlight'), '除标记/高亮外不得有其它 overlay（禁连线/区间覆盖）').toEqual([]);
   expect(attrs['data-marker-overlays']).toBe(String(fills.length));
 
-  expect(gA.label, '第 42 笔标签 == 价格×股数（fmtNum 口径）').toBe(expectLabelA);
-  expect(gB.label, '第 43 笔标签 == 价格×股数（fmtNum 口径）').toBe(expectLabelB);
+  expect(gA.label, `第 ${FILL_A} 笔标签 == \`方向×数量\`（D11 决策 3：价格移入 labelDetail）`).toBe(shortLabelA);
+  expect(gB.label, `第 ${FILL_B} 笔标签 == \`方向×数量\``).toBe(shortLabelB);
+  expect(gA.labelDetail, 'labelDetail 必须是全文（方向 价格×数量）').toBe(detailLabelA);
+  expect(gB.labelDetail, 'labelDetail 必须是全文').toBe(detailLabelB);
+  expect(gA.label, '短标签必须与全文不同（否则「缩短」未生效）').not.toBe(gA.labelDetail);
   expect(gA.label).not.toBe(gB.label);
   expect(gA.color).toBe('#ff5c6c');
   expect(gB.color).toBe('#00e0a4');
@@ -817,44 +1053,88 @@ test('T1 醒目化：真图表 store 中每笔成交一个 fillDot（含价格×
 });
 
 // ───────────────────────────────── T2 标签像素（ink run，[@mut]） ─────────────────────────────────
-test('T2 醒目化像素 [@mut]：价格×股数标签确实被绘制到 canvas（标签区红墨连续列 run ≥ 阈值）', async ({ page }) => {
-  const fillsResp = await page.request.get(`/api/workbench/runs/${RUN_B}/round-trips/${RT_B}/fills?limit=500`);
+test('T2 醒目化像素 [@mut]：门控开 ⇒ `方向×数量` 标签真的落到 canvas（渲染器自报锚点 = 圆点 + 6.2px；列覆盖率为主判据）', async ({ page }) => {
+  const fillsResp = await page.request.get(`/api/workbench/runs/${RUN_A}/round-trips/${RT_A}/fills?limit=500`);
   const fills = ((await fillsResp.json()) as { fills: Array<Record<string, number | string>> }).fills;
-  const f = fills[FILL_B1]!;
 
-  await openRunSettled(page, RUN_B);
-  await page.getByTestId(`wb-rt-detail-${RT_B}`).click();
-  const row = page.getByTestId(`wb-l2-row-${RT_B}-${FILL_B1}`);
-  await expect(row).toBeVisible();
-  await row.scrollIntoViewIfNeeded();
-  await page.getByTestId(`wb-l2-jump-${RT_B}-${FILL_B1}`).click();
-  await settleJump(page);
+  // **静止态**选目标（不跳转）：跳转会触发取数窗口变更（前向分页/写回），使“圆点+标签”的像素邻域不可复现。
+  await openRunSettled(page, RUN_A);
+  const paneW = await paneWidth(page);
+  const store = await storeDump(page);
+  const keys = store.fillDot.map((m) => m.key);
+  const geom = await geomOf(page, keys);
+  // 目标 = 落在 pane 中部、且右侧留出完整标签盒空间的可见标记（`x + 6.2 + LW ≤ paneW − 1`）
+  const midKey = pickMidMarker(keys, geom, paneW);
+  expect(midKey, '必须能选到「右侧有完整标签空间」的中部标记（否则本用例前提不成立，显式红）').not.toBeNull();
+  const key = midKey!;
+  const idx = Number(key.split(':')[1]);
+  const f = fills[idx]!;
+  const qty = Number(f['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+  const expectedLabel = `B×${qty}`;
+  const expectedDetail = `B ${Number(f['price']).toFixed(3)}×${qty}`;
+  // `LW` 常量取**实现口径**（`FILL_LABEL_CW_PX=5.5` / `FILL_LABEL_PAD_PX=5`；旧 4.4+6 是本批已否定的低估式）；
+  // 锚点偏移取实现口径 `x + r(3.2) + gap(3) = x + 6.2`（旧规格写 `x + 12`）。
+  const LW = Math.round(5.5 * expectedLabel.length + 5);
+  const g0 = geom[key]!;
+  const box = { x0: Math.round(g0.x + 6.2), x1: Math.round(g0.x + 6.2 + LW), y0: Math.round(g0.y - 5), y1: Math.round(g0.y + 6) };
 
-  const key = `${RT_B}:${FILL_B1}`;
-  const geom = await geomOf(page, [key]);
-  const g = geom[key]!;
-  expect(Number.isFinite(g.x), '目标笔几何必须可测').toBe(true);
+  // ① 默认态（门控关）的基线墨迹：同一 box 内**不含任何标签墨迹**（标签默认不画）
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'off');
+  const inkOff = await inkRun(page, box);
 
-  // 标签区判据（**覆盖率口径**，对带偏移不敏感）：
-  //   labelSpan = 目标笔右侧 [x+12, x+12+LW]（LW = 4.4px/字符 + 6，9px 字号的经验字宽）；
-  //   量 = 该 span 内「有红墨的列数 / LW」与红墨总量。
-  //   实测（同一视口、同一 run/笔）：真实构建 覆盖率 0.84 / 红墨 234；变异构建（移除 label）0.28 / 46。
-  const expectedLabel = `B ${Number(f['price']).toFixed(3)}×${Number(f['qty']).toLocaleString('zh-CN', { maximumFractionDigits: 4 })}`;
-  const LW = Math.round(4.4 * expectedLabel.length + 6);
-  const labelSpan = { x0: Math.round(g.x + 12), x1: Math.round(g.x + 12 + LW), y0: Math.round(g.y - 5), y1: Math.round(g.y + 6) };
-  const ink = await inkRun(page, labelSpan);
-  const coverage = ink.cols.length / LW;
-  const inkLeftCtrl = await inkRun(page, { x0: Math.round(g.x - 12 - LW), x1: Math.round(g.x - 12), y0: labelSpan.y0, y1: labelSpan.y1 });
+  // ② 开开关（产品自身的开关，走 UI）⇒ 同一 box 内应出现标签墨迹；并核对渲染器自报的 fillText 记录
+  await clearTextRecs(page);
+  const toggle = page.getByTestId('wb-marker-labels-toggle');
+  await expect(toggle, 'D11 决策 4：结果页必须有标记标签开关').toBeVisible();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('kline-chart')).toHaveAttribute('data-marker-labels', 'on');
+  await page.waitForTimeout(400); // 等 React 状态 → overlay 重建 → 重绘落定
+  const geomOn = await geomOf(page, [key]);
+  const g = geomOn[key] ?? g0;
+  expect(Math.abs(g.x - g0.x), '开开关不得改变标记位置（否则差分口径失效）').toBeLessThanOrEqual(1);
+  const inkOn = await inkRun(page, box);
+  const rec = await textRec(page, expectedLabel);
+  const coverageOn = inkOn.cols.length / LW;
+  const coverageOff = inkOff.cols.length / LW;
   const shots = { on: await shotKline(page, 't2_label_on.png') };
   const attrs = await readAttrs(page, 'kline-chart');
-  writeJson('t2_label_ink', { key, geom: g, labelSpan, LW, coverage, ink, inkLeftCtrl, attrs, shots, expectLabel: expectedLabel });
+  writeJson('t2_label_ink', {
+    key, paneW, geom: g, box, LW, expectedLabel, expectedDetail,
+    inkOff, inkOn, coverageOff, coverageOn, rec, attrs, shots,
+    delta: inkOn.total - inkOff.total,
+  });
 
-  // ① 像素口径（**独立于 store**：即使 store 里写了 label，也要求真的画到 canvas 上）
-  expect(coverage, `标签文本覆盖率 = 有墨列数/LW ≥ 0.6（真实构建实测 0.84；移除 label 实测 0.28）`).toBeGreaterThanOrEqual(0.6);
-  expect(ink.total, '标签 span 内红墨像素 ≥ 120（真实构建实测 234；移除 label 实测 46）').toBeGreaterThanOrEqual(120);
-  expect(ink.total, '标签 span 红墨必须显著多于左侧同形对照区（无标签）').toBeGreaterThan(inkLeftCtrl.total);
-  // ② store 口径（标签文本内容 == 价格×股数，fmtNum 口径）
-  expect(g.label, '标签文本（store）').toBe(expectedLabel);
+  // ① **渲染器自报锚点**（目标专属、免疫密集态粘连）：渲染器必须真的 `fillText` 过该短标签，
+  //    且锚点 = 圆点 + 6.2px（±2）、纵向落在圆点附近（±6）。锚点写错（如旧 x+12）⇒ 必红。
+  expect(rec, `渲染器必须真的 fillText 过标签 ${JSON.stringify(expectedLabel)}（像素口径的“真身”依据）`).not.toBeNull();
+  // 两层锚点都要对齐（**实现口径**，两组都由真身读数命中）：
+  //   ① 标签**盒**左缘 = 圆点 + `r(3.2) + FILL_LABEL_GAP_PX(3)` = **+6.2**（旧规格写 +12 ⇒ 必红）；
+  //   ② `fillText` 的**笔**位 = 盒左缘 + 模板 `paddingLeft(2)` = **+8.2**（klinecharts 按 textRect 绘制）。
+  expect(box.x0, `标签盒左缘必须 = round(圆点 x + 6.2)（实测 ${box.x0} vs ${Math.round(g.x + 6.2)}）`).toBe(Math.round(g.x + 6.2));
+  expect(
+    Math.abs(rec!.x - (g.x + 8.2)),
+    `fillText 笔位必须 = 圆点 x + 8.2（盒 +6.2 再加盒内 paddingLeft 2；实测 ${rec!.x} vs ${(g.x + 8.2).toFixed(1)}）`,
+  ).toBeLessThanOrEqual(2);
+  expect(Math.abs(rec!.y - g.y), `标签锚点 y 必须落在圆点附近（实测 ${rec!.y} vs ${g.y}）`).toBeLessThanOrEqual(6);
+
+  // ② 像素口径（**独立于 store**）：门控开后同一 box 内出现标签墨迹，且**列覆盖率为主判据**
+  //   （与文本长度无关，见 ADR-028 §2.11.1）；墨列 run 为**重标后**的辅判据（绝对 + 相对 LW）。
+  expect(inkOn.total, `标签 span 内墨量必须 > 默认态基线（实测 on=${inkOn.total} vs off=${inkOff.total}）`).toBeGreaterThan(inkOff.total);
+  expect(coverageOn, `标签文本覆盖率 ≥ ${INK_COVER_MIN}（实测 ${coverageOn.toFixed(3)}；短标签 ${expectedLabel}，LW=${LW}）`).toBeGreaterThanOrEqual(INK_COVER_MIN);
+  expect(inkOn.total, `标签 span 内墨量 ≥ ${INK_MIN_PX}（实测 ${inkOn.total}；默认态基线 ${inkOff.total}）`).toBeGreaterThanOrEqual(INK_MIN_PX);
+  expect(inkOn.maxRun, `墨列 run ≥ ${INK_RUN_MIN}（实测 ${inkOn.maxRun}；旧阈值 15 是 17 字符长标签口径，短标签下过紧）`).toBeGreaterThanOrEqual(INK_RUN_MIN);
+  // 注：**不**设「maxRun ≥ 比例×LW」——门控开时相邻标签的背景盒会覆盖前一个标签的墨迹
+  // （实测 maxRun=25 而 LW=55）⇒ maxRun 不是长度的线性量；长度相对口径由**覆盖率**承担（主判据）。
+  // ③ **同 box 的反向对照（本用例内自证非恒真）**：默认态同 box 覆盖率必须 < 主判据阈值
+  //   （门控失效 = 默认也画标签 ⇒ 该断言必红；标签不画 ⇒ ② 必红）。
+  expect(
+    coverageOff,
+    `默认态（门控关）同 box 覆盖率必须 < ${INK_COVER_MIN}（实测 ${coverageOff.toFixed(3)}）——否则说明「默认态也在画标签」`,
+  ).toBeLessThan(INK_COVER_MIN);
+  // ④ store 口径（短标签 + 全文明细，与 /fills 事实源逐字对齐）
+  expect(g.label, 'store 标签必须 = 方向×数量').toBe(expectedLabel);
+  expect(g.labelDetail, 'store labelDetail 必须 = 方向 价格×数量 全文').toBe(expectedDetail);
 });
 
 // ───────────────────────────────── T3 focus 滚动（D9 重锚：作用域收敛到 K 线视图容器） ─────────────────────────────────
@@ -1026,9 +1306,17 @@ test('T3 focus [@mut]：L2 [跳转] 后作用域收敛到 **K 线视图容器**�
     clean.candlePx ?? 0,
     `D9-8② 干净态（无提示换行）主图硬下限 ≥ ${MAIN_MIN_PX}（实测 ${clean.candlePx}）`,
   ).toBeGreaterThanOrEqual(MAIN_MIN_PX);
-  // ── ④ **写窗真身回执**（ADR-028 §3.4；`requireReceipt` 已在 settleJump 内断言 rev 到位）──
-  const probeAttrs = await readAttrs(page, 'wb-window-probe');
-  expect(probeAttrs['data-ok'], 'ADR-028 §3.4 写窗真身回执 ok（跳转真的落到图上）').toBe('true');
+  // ── ④ **写窗真身回执 + 活体一致性**（ADR-028 §2.10 决策 3 + **§2.10.2 措辞修正**）──
+  //  旧写法 `data-ok == 'true'` 是在「窗口态 = 真身镜像」的旧语义下的判据；D10 之后 `ok` 是**活体一致性**，
+  //  而**「全览 ⇒ 写回窗口域 ≠ 真身可见域」的分页/`min=1` 夹取态**由 §2.10.2 明确**不要求**端点恒等
+  //  （原文：「该态以『必披露』为准（`data-ok=false` + `domain-drift`，**禁静默**），**不再要求**端点恒等」）。
+  //  故重锚为**两条并列**（保持鉴别力：**静默不一致必红**）：
+  //   ① 写窗**回执**必须成功（`data-applied-ok == 'true'`）；
+  //   ② 活体要么一致（`data-ok == 'true'`），要么**不一致但已披露**（`data-ok == 'false'` ∧ reasons 非空）。
+  //  实读（本机 pair run 全览态）：applied-ok=true；ok=false；reasons=`domain-drift: 真身可见域
+  //  [1763481600, 1790006400] ≠ 写回窗口域 [1767542400, 1790006400]`（≥10s 稳定披露，非瞬态）。
+  const probeAttrs = await assertReceiptOrDisclosed(page, 'T3 「全览」态');
+  writeJson('t3_receipt_after_reset', { appliedOk: probeAttrs['data-applied-ok'], ok: probeAttrs['data-ok'], reasons: probeAttrs['data-live-reasons'], probe: probeAttrs });
   // ── ⑤ 高亮仍生效（D4.1）──
   expect(attrsAfter['data-highlight-active'], 'D4.1 跳转后高亮必须激活').toBe('true');
   expect(attrsAfter['data-highlight-key'], 'D4.1 高亮键必须精确到笔').toBe(`${RT_A}:${FILL_A}`);
@@ -1039,7 +1327,12 @@ test('T3 focus [@mut]：L2 [跳转] 后作用域收敛到 **K 线视图容器**�
 
 // ───────────────────────────────── T4 精确到笔高亮 + 3 秒回常态（[@mut]） ─────────────────────────────────
 test('T4 只高亮被点击那一笔 [@mut]：白描边簇恰 1 个且质心落在该笔堆叠位置；3 秒后回落为 0', async ({ page }) => {
+  // D11 重锚：高亮 overlay **恒带标签**（决策 2），而 `fillDot` 的 label 受门控（决策 1）
+  // ⇒ 若不开开关，`storeOn.highlight[0].label`（短标签）与 `gA.label`（空串）**必然不等** ⇒ 假红。
+  // 门控开后两侧同为 `方向×数量`，本用例的真实判据（白簇**恰 1 个**且质心落在该笔堆叠位置）不变。
+  await enableMarkerLabels(page);
   await openRunSettled(page, RUN_A);
+  await assertLabelGateOn(page);
   await page.getByTestId(`wb-rt-detail-${RT_A}`).click();
   const keyA = `${RT_A}:${FILL_A}`;
   const keyB = `${RT_A}:${FILL_B}`;
@@ -1320,7 +1613,9 @@ test('T6a 三态提示 unmatched：目标笔不在 K 线标记集合内（序号
   expect(store.fillDot.length, '标记仍在（只是键不匹配）').toBeGreaterThan(0);
   expect(store.highlight.length, '未命中 ⇒ 不得画高亮').toBe(0);
   expect(attrsOnK['data-highlight-active']).toBe('false');
-  expect(probe['data-ok'], '窗口跳转仍须执行（提示的是「仅无高亮」）').toBe('true');
+  // 窗口跳转仍须执行（提示的是「仅无高亮」）——判据形式见 {@link assertReceiptOrDisclosed}（§2.10.2）
+  await assertReceiptOrDisclosed(page, 'T6a unmatched 态');
+  expect(probe['data-cmd-from-ts'], '命令（跳转）必须真的发出（不能只靠「无高亮」判过）').not.toBeUndefined();
 });
 
 test('T6b 三态提示 unrecorded：recorded=false（未写成交明细）⇒ 显式提示、不静默', async ({ page }) => {
@@ -1352,7 +1647,7 @@ test('T6b 三态提示 unrecorded：recorded=false（未写成交明细）⇒ �
   expect(text, '文案须显式说明 recorded=false 且窗口跳转仍执行').toContain('recorded=false');
   expect(fillsNote.length).toBeGreaterThan(0);
   expect(store.highlight.length).toBe(0);
-  expect(probe['data-ok']).toBe('true');
+  await assertReceiptOrDisclosed(page, 'T6b unrecorded 态');
 });
 
 test('T6c 三态提示 loading：成交明细未到位期间必须显式披露；并核验「跳转高亮 loading 分支」在 UI 上是否可达', async ({ page }) => {

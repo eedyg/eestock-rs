@@ -29,21 +29,103 @@
  *     VITE_PROXY_TARGET=http://localhost:8081 npx vite preview --outDir /tmp/khline --strictPort --port 4181 &
  *   E2E_BASE_URL=http://127.0.0.1:4181 npx playwright test e2e/adr028-kline-history.e2e.ts --retries=0 --workers=1
  *
- * 原始读数落盘：`ADR028_KH_OUT`（默认 `coder/evidence/20260924_kline_history_fix/raw`，**未跟踪**目录）。
+ * 原始读数落盘：`ADR028_KH_OUT`（默认 `coder/evidence/20260925_kline_history_resolve/raw`，**未跟踪**目录）。
+ *
+ * ## 目标 run（ADR-028 §2.10.1 **裁决 3｜规格耐久**）
+ * **按谓词解析**（`klineHistory`：最新 `period=M15 ∧ status=succeeded ∧ per_bar ≥ 3000` 的 run），
+ * **禁硬编码 run id**；解析失败 ⇒ **显式红**（抛错），禁静默换 run / 禁回退为跳过；
+ * `ADR028_KH_RUN` 仅作**显式覆盖**逃生门，且**覆盖时仍须满足谓词**（不满足 ⇒ 红）。
+ * 本规格的 K1/K2/K3 三条判据**未因去硬编码而改动**（只改「取哪个 run」）。
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertResolvedByIdFresh,
+  assertRunMatchesPredicate,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunLabel,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const OUT = process.env.ADR028_KH_OUT ?? resolve(REPO, 'coder/evidence/20260924_kline_history_fix/raw');
+/**
+ * 证据落盘目录（**必须未跟踪**）：`ADR028_KH_OUT` 可覆盖；默认落在本批新增的未跟踪目录。
+ * （`AGENTS.md`「代理产物与提交纪律」：`coder/evidence/` 已 gitignore；**禁**写 `web/dist`。）
+ */
+const OUT = process.env.ADR028_KH_OUT ?? resolve(REPO, 'coder/evidence/20260925_kline_history_resolve/raw');
 
-/** 靶 run（用户未给 run id ⇒ 按现象选靶）：159776 / **M15** / 2026-01-01→2026-09-24（266 天 > M15 触发域 10.4 天）。 */
-const RUN_ID = process.env.ADR028_KH_RUN ?? 'sr_1790247371321_000015';
+/**
+ * **已废除的历史字面量**（**不得**用作目标 run；仅作为证据里的「反硬编码」对照）：
+ * 该 run **仍在库中**（symbol 159776 / M15 / 3436 根 / succeeded），但在**新→旧**排序里已跌到 **71/93**
+ * ⇒ 被顶出历史列表首屏 ⇒ 本规格曾以「运行不在历史列表内」的形式**假红**
+ * （读数：`coder/evidence/20260925_adr028_d10d11_fix/BLOCKED_kline_history_run_id.md`）。
+ * 它与谓词命中者的结构性事实等价（同 symbol/周期/区间/根数）⇒ 那次红是**可达性**，不是判据回归。
+ */
+const HISTORICAL_LITERAL = 'sr_1790247371321_000015';
+/**
+ * 谓词标签：`klineHistory` = `period=M15 ∧ status=succeeded ∧ per_bar ≥ 3000`
+ * （阈值 = 3 × 服务端单页上限 1000 根 ⇒ 单页拉不回 ⇒ K1 数据域覆盖 / K3 向前分页**有前提**，不退化恒真）。
+ * 定义与逐候选拒因见 `./adr028RunResolve`（**禁硬编码 run id**；§2.10.1 裁决 3）。
+ */
+const PREDICATE: RunLabel = 'klineHistory';
+/** **逃生门（显式覆盖）**：给出具体 run id 时用它（调试/复跑用）；覆盖时仍须现场校验其满足谓词。 */
+const OVERRIDE_RUN = process.env.ADR028_KH_RUN?.trim() || null;
+/** 后端身份（进落盘缓存键；防跨构建/跨后端复用同一缓存条目）。 */
+const RESOLVE_SOURCE = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
 /** 周期步长（ms）：契约常量（M15 = 900s），用于「±1 根」容差；不 import 产品模块（避免按实现倒推）。 */
 const STEP_MS = 15 * 60 * 1000;
+
+/** 解析结果（`beforeAll` 现场解析一次）；**取不到即抛错**（禁静默换 run / 禁跳过）。 */
+let TARGET: ResolvedRun | null = null;
+function runId(): string {
+  if (!TARGET) throw new Error('目标 run 未解析（beforeAll 未产出 ⇒ 显式红，不得静默换 run）');
+  return TARGET.id;
+}
+
+/** `APIRequestContext` → {@link RunFetchPort} 适配器（只读；口径同 `adr028-window-sync`）。 */
+function runPort(ctx: APIRequestContext): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await ctx.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id: string) => {
+      const resp = await ctx.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      const total = ((await resp.json()) as { total?: number }).total;
+      expect(typeof total, '/bars per_bar 必须回 total').toBe('number');
+      return total!;
+    },
+    roundTrips: async (id: string) => {
+      const resp = await ctx.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id: string, rtSeq: number) => {
+      const resp = await ctx.get(`/api/workbench/runs/${id}/round-trips/${rtSeq}/fills?limit=200`);
+      expect(resp.ok(), `GET /fills ${id}/${rtSeq}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+/**
+ * **反硬编码护栏**（裁决 3）：规格实际使用的 run id 必须 == **现场重解析**结果（**不走落盘缓存**）。
+ * 把目标改回字面量（硬编码）后，只要该字面量不是谓词命中的最新匹配 ⇒ 本护栏抛错 ⇒ 规格必红。
+ */
+async function guardResolved(ctx: APIRequestContext): Promise<void> {
+  if (OVERRIDE_RUN) return; // 覆盖路径已在 beforeAll 校验「满足谓词」（覆盖允许 ≠ 最新命中者）
+  const fresh = await resolveRun(runPort(ctx), PREDICATE, { cacheDir: null, sourceKey: RESOLVE_SOURCE });
+  assertResolvedByIdFresh(runId(), fresh, PREDICATE);
+}
 
 function writeJson(name: string, data: unknown): void {
   mkdirSync(OUT, { recursive: true });
@@ -116,13 +198,14 @@ interface RunFacts {
 }
 
 async function readFacts(page: Page): Promise<RunFacts> {
-  const runResp = await page.request.get(`/api/workbench/runs/${RUN_ID}`);
-  expect(runResp.ok(), `/api/workbench/runs/${RUN_ID}`).toBeTruthy();
+  const id = runId();
+  const runResp = await page.request.get(`/api/workbench/runs/${id}`);
+  expect(runResp.ok(), `/api/workbench/runs/${id}`).toBeTruthy();
   const run = (await runResp.json()) as { period: string; symbol: string; from_ts: string; to_ts: string };
   const fromMs = Date.parse(run.from_ts);
   const toMs = Date.parse(run.to_ts);
-  const curveResp = await page.request.get(`/api/workbench/runs/${RUN_ID}/curve?kind=per_bar&k=5000`);
-  expect(curveResp.ok(), `/curve?kind=per_bar ${RUN_ID}`).toBeTruthy();
+  const curveResp = await page.request.get(`/api/workbench/runs/${id}/curve?kind=per_bar&k=5000`);
+  expect(curveResp.ok(), `/curve?kind=per_bar ${id}`).toBeTruthy();
   const curve = (await curveResp.json()) as {
     original_bars?: number;
     points?: Array<{ ts: number }>;
@@ -131,7 +214,7 @@ async function readFacts(page: Page): Promise<RunFacts> {
   const inRange = allMs.filter((t) => t >= fromMs && t <= toMs);
   expect(inRange.length, 'run 的 per_bar 必须在区间内有数据（否则判据无意义）').toBeGreaterThan(0);
   return {
-    runId: RUN_ID,
+    runId: id,
     period: run.period,
     symbol: run.symbol,
     fromMs,
@@ -144,10 +227,13 @@ async function readFacts(page: Page): Promise<RunFacts> {
 }
 
 async function openRunSettled(page: Page, expectedCount: number): Promise<void> {
+  const id = runId();
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
-  const select = page.getByTestId(`wb-run-select-${RUN_ID}`);
-  await expect(select, `运行 ${RUN_ID} 必须在历史列表内`).toBeVisible();
+  const select = page.getByTestId(`wb-run-select-${id}`);
+  // 靶 run 由谓词解析为「**最新**命中者」⇒ 本就在历史列表首屏（位次证据见 `kh_run_resolution.json`）；
+  // 此处**不翻页**：把「取哪个 run」交给谓词解析，而不是靠翻页去海里捞旧的硬编码靶。
+  await expect(select, `运行 ${id}（谓词 ${PREDICATE} 的现场解析结果）必须在历史列表内`).toBeVisible();
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'kline');
@@ -218,9 +304,23 @@ export function domainMismatches(dataList: number[], f: RunFacts): string[] {
 
 test.describe.configure({ mode: 'serial' });
 
-test('K1_data_domain：初始装载后 K 线数据域必须覆盖 run 区间（首根 = run 区间首个 bar，非 2026-07-08）', async ({ page }) => {
+/**
+ * **目标 run 解析**（§2.10.1 裁决 3）：解析失败 ⇒ 抛错 ⇒ 整个文件**显式红**（禁静默换 run / 禁跳过）。
+ * 两条路径都写进证据（谓词原文 / 扫描面 / 逐候选拒因 / 新→旧位次 / 历史字面量对照）。
+ */
+test.beforeAll(async ({ request }) => {
+  const port = runPort(request);
+  TARGET = OVERRIDE_RUN
+    ? await assertRunMatchesPredicate(port, PREDICATE, OVERRIDE_RUN)
+    : await resolveRun(port, PREDICATE, { sourceKey: RESOLVE_SOURCE });
+  writeJson('kh_run_resolution', { overrideRun: OVERRIDE_RUN, historicalLiteral: HISTORICAL_LITERAL, resolved: TARGET });
+  console.log(`[adr028-kline-history] 靶 run = ${TARGET.id}（${OVERRIDE_RUN ? '显式覆盖' : '谓词解析'}；${PREDICATE}）`);
+});
+
+test('K1_data_domain：初始装载后 K 线数据域必须覆盖 run 区间（首根 = run 区间首个 bar，非 2026-07-08）', async ({ page, request }) => {
   test.setTimeout(120_000);
   await page.addInitScript(installChartCapture);
+  await guardResolved(request);
   const f = await readFacts(page);
   await openRunSettled(page, f.inRangeCount);
   const dataList = await page.evaluate(readDataList);
@@ -236,9 +336,10 @@ test('K1_data_domain：初始装载后 K 线数据域必须覆盖 run 区间（�
   expect(rec.mismatch, 'K1：K 线数据域必须与 run per_bar 域一致（变异/回退时必红）').toEqual([]);
 });
 
-test('K2_disclosure：全览披露「共 N 根」与 /curve original_bars 一致；未覆盖起点时必须显式披露触顶', async ({ page }) => {
+test('K2_disclosure：全览披露「共 N 根」与 /curve original_bars 一致；未覆盖起点时必须显式披露触顶', async ({ page, request }) => {
   test.setTimeout(120_000);
   await page.addInitScript(installChartCapture);
+  await guardResolved(request);
   const f = await readFacts(page);
   await openRunSettled(page, f.inRangeCount);
 
@@ -291,9 +392,10 @@ test('K2_disclosure：全览披露「共 N 根」与 /curve original_bars 一致
   expect(m, 'K2：披露口径必须与事实源一致且不得静默截断').toEqual([]);
 });
 
-test('K3_forward_page：真身向左到底必须触发向前分页（hasMore 不再被服务端夹取堵死）', async ({ page }) => {
+test('K3_forward_page：真身向左到底必须触发向前分页（hasMore 不再被服务端夹取堵死）', async ({ page, request }) => {
   test.setTimeout(120_000);
   await page.addInitScript(installChartCapture);
+  await guardResolved(request);
   const f = await readFacts(page);
 
   const reqs: Array<{ url: string; before: string | null; limit: string | null }> = [];
