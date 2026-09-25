@@ -194,3 +194,6 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 **R27–R30（登记，不阻断）**：①`GET /api/health` → 404（本项目健康端点为 `/healthz`）⇒ **外部探活若依赖前者需对齐**；**【2026-09-25 已处置】**：盘点为**零依赖** ⇒ **不设别名**（禁凭空造接口），改文档消歧（`design/07-app-plane/00-web-api.md §1`、`deploy-runbook C1`）+ **2 个契约锁定测试**；真身复验 `:8081`/`:8080` `/healthz`=200 ∧ `/api/health`=404。
 ②用例③ 的 `deadzone_blocked=9` / `guard 夹取 0` 仅记录、未做语义校验（属规格层判据）；
 ③二进制可复现性未核（未重编译比对 HEAD `0bd60f3`）；④`/bars` in-range 仅 10 bar（春节休市）未逐日核交易日历。
+- **R31（2026-09-25 新登记）**：`GET /api/sim-live/{state,orders,strategies}` **三端点全 404**（前端在调、后端未实现），
+  批次前后同款 404 ⇒ **既有**。与 Q1 记录的「sim-live 无 policy/仓位执行路径」同源 ⇒ **Step 2 落地前必须先确认
+  "sim-live 后端是否补实现"**，否则 Step 2 的仓位一致性无载体。
