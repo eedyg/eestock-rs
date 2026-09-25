@@ -112,6 +112,9 @@ export function SlotScoresChart({
   /** ADR-028 D2.4：评估段根数 = 服务端口径 − 被裁掉的预热段（预热段不计入曲线）。 */
   const warmupExcluded = sampling?.excludedWarmupBars ?? 0;
   const evaluatedBars = Math.max(0, (sampling?.originalBars ?? perBar.length) - warmupExcluded);
+  /** ADR-028 D2.4 债：同聚合同口径（载荷全被评估段裁掉 ⇒ 当前窗口全在预热段）。 */
+  const evalDropped = sampling?.excludedByEvaluatedRange ?? 0;
+  const warmupWindowEmpty = pts.length === 0 && evalDropped > 0;
 
   return (
     <div
@@ -140,7 +143,7 @@ export function SlotScoresChart({
           </label>
         ))}
       </div>
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
       <svg
         viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
         className={resize ? resize.svgClass('h-36 w-full') : 'h-36 w-full'}
@@ -172,6 +175,16 @@ export function SlotScoresChart({
           />
         )}
       </svg>
+      {warmupWindowEmpty && (
+        // D2.4 债：view 级文案（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
+        <span
+          data-testid="wb-slot-warmup-window-empty"
+          data-eval-dropped-bars={String(evalDropped)}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
+        >
+          当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
+        </span>
+      )}
       </div>
       <div className="shrink-0 px-1 text-[10px] text-dim" data-testid="wb-slot-sampling">
         各策略评分 0-100（图例开关，默认前 {DEFAULT_VISIBLE_SLOTS} 条）· 评估段 共 {evaluatedBars} bar

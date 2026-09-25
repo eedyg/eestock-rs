@@ -25,6 +25,13 @@ export interface CurveSampling {
    * > 0 ⇒ 曲线只覆盖 run 的评估段 `[from_ts, to_ts]`，UI **必须**显式标注（禁静默有损）。
    */
   excludedWarmupBars?: number;
+  /**
+   * **ADR-028 D2.4 债（预热窗口空图）**：**本次载荷**中被评估段裁剪掉的根数
+   * （`runSeries.ts::clipToEvaluatedRange` 的 `dropped`；窗口态 = 本窗口内落在评估段之外的根数）。
+   * `> 0` ∧ 载荷点全被裁掉 ⇒ 当前窗口**全在预热段** ⇒ 视图内必须给「不计入评估、不绘制」文案，
+   * 且根数**只能**取本字段（真值），不得自造。
+   */
+  excludedByEvaluatedRange?: number;
 }
 
 /**
@@ -77,6 +84,10 @@ export function AggregateScoreChart({
   /** ADR-028 D2.4：评估段根数 = 服务端口径 − 被裁掉的预热段（预热段不计入曲线）。 */
   const warmupExcluded = sampling?.excludedWarmupBars ?? 0;
   const evaluatedBars = Math.max(0, (sampling?.originalBars ?? perBar.length) - warmupExcluded);
+  /** ADR-028 D2.4 债：载荷点**全被评估段裁掉**（`dropped > 0`）⇒ 当前窗口全在预热段 ⇒ 空图给文案。
+   *  只认「被裁剪」这一因：`dropped === 0` 的空（窗口落在 run 数据之外）**不**渲染（不得谎报预热段）。 */
+  const evalDropped = sampling?.excludedByEvaluatedRange ?? 0;
+  const warmupWindowEmpty = pts.length === 0 && evalDropped > 0;
 
   return (
     <div
@@ -94,7 +105,7 @@ export function AggregateScoreChart({
       <CardTitle cardId="aggregate" onReset={() => resize?.reset()} hint={resize?.active ? '双击复位高度' : null}>
         聚合总分曲线
       </CardTitle>
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
       <svg
         viewBox={`${viewX0.toFixed(2)} 0 ${viewW.toFixed(2)} ${H}`}
         className={resize ? resize.svgClass('h-40 w-full') : 'h-40 w-full'}
@@ -127,6 +138,16 @@ export function AggregateScoreChart({
           />
         )}
       </svg>
+      {warmupWindowEmpty && (
+        // D2.4 债：**view 级文案**（复盖空绘图区，绝对定位 ⇒ 零几何/布局改动；根数取载荷真值）
+        <span
+          data-testid="wb-aggregate-warmup-window-empty"
+          data-eval-dropped-bars={String(evalDropped)}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] leading-4 text-amber-300/90"
+        >
+          当前窗口 {evalDropped} 根全部落在预热段（不计入评估、不绘制）
+        </span>
+      )}
       </div>
       <div className="flex shrink-0 justify-between px-1 text-[10px] text-dim">
         <span>

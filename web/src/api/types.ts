@@ -1172,6 +1172,11 @@ export interface WorkbenchBarRecord {
   deadzone_blocked?: boolean;
   /** 本 bar 目标被 `guard.max_pct` 强制夹取。 */
   clamped_by_guard?: boolean;
+  /** **ADR-029 D7/E10 第 8 个观测键**（`crates/application/src/workbench.rs::bar_record_json`）：本 bar 的
+   *  买入被**现金上限**截断（引擎 `clamp_exposure_affordable` 把目标下调至实际可负担持仓时置位）。
+   *  **可选**：ADR-029 之前的旧 run / legacy `per_bar` 无此键 ⇒ 缺省 `undefined`
+   *  （「未知」≠「未截断」，消费侧**不得**补 `false`）。依据见 `perBarObservationKeys.test.ts`。 */
+  affordability_capped?: boolean;
 }
 
 /** 8 项绩效（backtest::BacktestMetrics serde 形状，与既有 Metrics 同构） */

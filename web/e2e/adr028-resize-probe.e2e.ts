@@ -47,12 +47,35 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// ADR-028 §2.10.1 裁决 3（规格耐久）：e2e **禁硬编码 run id** ⇒ 目标 run 按谓词现场解析 + 反硬编码护栏。
+import {
+  assertResolvedByIdFresh,
+  resolveRun,
+  type ResolvedRun,
+  type RunFetchPort,
+  type RunFill,
+  type RunListItem,
+  type RunRoundTrip,
+} from './adr028RunResolve';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
 const OUT = process.env.ADR028_RESIZE_OUT ?? resolve(REPO, 'tester/evidence/20260920_result_resize_probe/raw');
-/** 目标 run：518880 / M5（与 v2 对齐探针同源，便于跨波比对）。 */
-const RUN_ID = process.env.ADR028_RESIZE_RUN ?? 'sr_1789832517800_000006';
+/**
+ * 目标 run：**谓词解析**（`m5` = `period=M5 ∧ status=succeeded ∧ per_bar ≥ 1000`），**不硬编码**。
+ *
+ * 重锚依据（2026-09-25，本批项 4）：旧默认值 `sr_1789832517800_000006` 是**字面量**，而本机库已增长到
+ * **93 个 run**（`GET /api/workbench/runs` 首屏只 50）⇒ 该 run 被新 run 顶出首屏后，规格以
+ * 「运行 … 必须在历史列表内」的形式**假红**（实测：本批首跑即此形态）。ADR-028 §2.10.1 **裁决 3**
+ * 明文要求「e2e 不得硬编码具体 run id，改为按谓词解析；解析失败须**显式红**而非静默换 run」。
+ *
+ * `ADR028_RESIZE_RUN` 仅作**本机调参**逃生门（指定即不解析）；判据不依赖它。
+ */
+const RUN_ID_ENV = process.env.ADR028_RESIZE_RUN ?? null;
+/** 解析谓词（与 v2 对齐探针同源 = M5；`BAR_SECONDS=300` 与之配套）。 */
+const RESOLVE_LABEL = 'm5' as const;
+/** 解析结果（`resolveTargetRun` 首步写入；`env`/`openRunSettled`/`measureAlignment` 一律读它）。 */
+let RUN_ID = RUN_ID_ENV ?? '';
 const BAR_SECONDS = 300;
 /** 曲线绘图区口径（与 v2 完全一致：normChart W=1000 / PAD=8 ⇒ plot 984）。 */
 const CURVE_W = 1000;
@@ -638,11 +661,99 @@ function probeSeparatorHitPoint() {
 
 // ═══════════════════════════════════ 页面动作与编排 ═══════════════════════════════════
 
+/** `page.request` → {@link RunFetchPort}（只读；解析谓词唯一取数面）。 */
+function runPort(page: Page): RunFetchPort {
+  return {
+    listRuns: async () => {
+      const resp = await page.request.get('/api/workbench/runs?limit=500');
+      expect(resp.ok(), 'GET /api/workbench/runs').toBeTruthy();
+      return (await resp.json()) as RunListItem[];
+    },
+    totalBars: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/bars?kind=per_bar&offset=0&limit=1`);
+      expect(resp.ok(), `GET /bars per_bar ${id}`).toBeTruthy();
+      const total = ((await resp.json()) as { total?: number }).total;
+      expect(typeof total, `/bars per_bar ${id} 必须回 total`).toBe('number');
+      return total!;
+    },
+    roundTrips: async (id) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips?limit=5000`);
+      expect(resp.ok(), `GET /round-trips ${id}`).toBeTruthy();
+      return ((await resp.json()) as { round_trips?: RunRoundTrip[] }).round_trips ?? [];
+    },
+    fills: async (id, rtSeq) => {
+      const resp = await page.request.get(`/api/workbench/runs/${id}/round-trips/${rtSeq}/fills?limit=200`);
+      expect(resp.ok(), `GET /fills ${id}#${rtSeq}`).toBeTruthy();
+      return ((await resp.json()) as { fills?: RunFill[] }).fills ?? [];
+    },
+  };
+}
+
+/**
+ * 解析目标 run（谓词 `m5`）+ **反硬编码护栏**（`ADR028_RESIZE_RUN` 指定时跳过解析）。
+ * 解析失败 ⇒ 抛错（显式红）；禁静默换用别的 run / 禁跳过（ADR-028 §2.10.1 裁决 3）。
+ */
+async function resolveTargetRun(page: Page): Promise<ResolvedRun | null> {
+  if (RUN_ID_ENV) return null;
+  const sourceKey = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+  const run = await resolveRun(runPort(page), RESOLVE_LABEL, { sourceKey });
+  // 护栏走**现场重解析**（不走缓存）：规格实际使用的 id 必须 == 现场谓词命中的最新 run
+  const fresh = await resolveRun(runPort(page), RESOLVE_LABEL, { cacheDir: null, sourceKey });
+  assertResolvedByIdFresh(run.id, fresh, RESOLVE_LABEL);
+  RUN_ID = run.id;
+  mkdirSync(OUT, { recursive: true });
+  writeFileSync(
+    resolve(OUT, 'run_resolution.json'),
+    JSON.stringify({ id: run.id, predicate: run.predicate, totalBars: run.totalBars, evidence: run.evidence }, null, 2),
+    'utf8',
+  );
+  return run;
+}
+
+/** D10 视口锁定的**真身读数**：barSpace / chartWidth（拟合公式输入）/ 宿主锁定痕迹。 */
+async function readLockTruth(page: Page): Promise<{
+  barSpace: number | null;
+  chartWidth: number | null;
+  locked: string | null;
+}> {
+  return page.evaluate(() => {
+    interface ChartLike {
+      getDataList?: () => unknown[];
+      getBarSpace?: () => { bar: number };
+      getSize?: () => { width: number } | null;
+    }
+    const w = window as unknown as { __wbCharts?: ChartLike[] };
+    const chosen = (w.__wbCharts ?? [])
+      .map((c) => ({ c, n: (c.getDataList?.() ?? []).length }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n)[0];
+    return {
+      barSpace: chosen?.c.getBarSpace?.()?.bar ?? null,
+      chartWidth: chosen?.c.getSize?.()?.width ?? null,
+      locked:
+        (document.querySelector('[data-testid="kline-chart"]') as HTMLElement | null)?.getAttribute(
+          'data-viewport-lock',
+        ) ?? null,
+    };
+  });
+}
+
 async function openRunSettled(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
   const select = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(select, `运行 ${runId} 必须在历史列表内`).toBeVisible();
+  // 历史列表**分页**（库增长会把目标 run 顶出首屏：实测 93 个 run / 首屏 50）⇒ 翻页查找，
+  // 否则「运行不在历史列表内」是对 DB 内容漂移的**假红**（2026-09-25 本批实测形态）。
+  await expect(page.locator('[data-testid^="wb-run-select-"]').first()).toBeVisible();
+  for (let i = 0; i < 30 && (await select.count()) === 0; i++) {
+    const more = page.getByTestId('wb-runs-more');
+    if ((await more.count()) > 0) {
+      await more.scrollIntoViewIfNeeded().catch(() => {});
+      await more.click({ timeout: 5000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+  }
+  await expect(select, `运行 ${runId} 必须在历史列表内（已翻页查找）`).toBeVisible();
   await select.click();
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-window-bar')).toBeVisible();
@@ -1008,9 +1119,15 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
   mkdirSync(OUT, { recursive: true });
   await page.addInitScript(installChartCapture);
 
+  /** 目标 run 解析（谓词 `m5`；`ADR028_RESIZE_RUN` 指定时跳过）——必须在任何读数之前完成。 */
+  const resolvedRun = await resolveTargetRun(page);
+
   const env = {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:8081',
     runId: RUN_ID,
+    runResolution: resolvedRun
+      ? { id: resolvedRun.id, predicate: resolvedRun.predicate, totalBars: resolvedRun.totalBars, evidence: resolvedRun.evidence }
+      : { source: 'env ADR028_RESIZE_RUN（本机调参逃生门）', id: RUN_ID },
     viewport: page.viewportSize(),
     barSeconds: BAR_SECONDS,
     alignTolPx: ALIGN_TOL_PX,
@@ -1023,6 +1140,30 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
   await openRunSettled(page, RUN_ID);
   await waitCurvesSettled(page);
   await resetScroll(page);
+
+  // ─────────── P0（**2026-09-25 重锚补钉**）：ResizeObserver 活性基线（**任何写窗之前**）───────────
+  // P5 的核心判据是「锁定期间容器尺寸变化**不得**重拟合」。若本页 resize 本来就不改 barSpace，
+  // 该判据会**恒真**。故在未锁定态先证「宽变 ⇒ barSpace 真的变」（有鉴别力的活性基线）。
+  const p0Liveness = await (async () => {
+    const vp0 = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(900);
+    const narrow = await readLockTruth(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.waitForTimeout(1600);
+    const wide = await readLockTruth(page);
+    if (vp0) {
+      await page.setViewportSize(vp0);
+      await page.waitForTimeout(900);
+    }
+    const out = { atEntry: { locked: narrow.locked }, narrow, wide, restoredViewport: vp0 };
+    writeJson('p0_resize_liveness', { ...out, env });
+    expect(
+      wide.barSpace,
+      `P0 活性基线：未锁定态视口宽变（chartWidth ${String(narrow.chartWidth)} → ${String(wide.chartWidth)}）必须真的改写真身 barSpace`,
+    ).not.toBe(narrow.barSpace);
+    return out;
+  })();
 
   // ─────────────────────── P1：副图指标入口 + 当前副图指标 ───────────────────────
   const domBase = await page.evaluate(probeResultDom);
@@ -1377,6 +1518,78 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
     }
   }
 
+  // ═════════════════════════════════════════════════════════════════════════════════════════════════
+  // P5（**2026-09-25 重锚补钉**，ADR-028 §2.10 D10 决策 1）：「视口锁定期间**不得**重拟合」契约。
+  //   本规格的主题恰是**容器尺寸变化**（卡高注入 / 视口宽高 / CSS zoom），而 D10 定位的缺陷机制就是
+  //   「程序化写窗后 16ms 内被 `ResizeObserver → fitBarSpaceToViewport(chart, el, 120)` 重拟合」⇒
+  //   在此把该语义钉住：①程序化写窗（L1 跳转）成功 ⇒ 宿主留痕 `data-viewport-lock=1`；
+  //   ②此后**视口宽高变化**（ResizeObserver 的唯一输入）**不得**改写真身 barSpace；
+  //   ③鉴别力自证：未锁定时应拟合值 `round(chartWidth/120)` 必须 ≠ 锁定值（否则本判据恒真 ⇒ 直接红）；
+  //   ④解锁路径（「全览」）⇒ 锁定痕迹必须消失，且此后视口再变必须**真的**重拟合（证 RO 路径是活的，
+  //     不是「因为 resize 无效所以看起来没被改写」）。
+  //   （互补规格：`adr028-window-sync.e2e.ts` D10L_lock 覆盖活体探针一致性 + 手势解锁；本处不重复。）
+  // ═════════════════════════════════════════════════════════════════════════════════════════════════
+  const p5: Record<string, unknown> = {};
+  {
+    // ⓪ 活性基线见 **P0**（任何写窗之前实测「宽变 ⇒ barSpace 变」⇒ ② 的「未被改写」有鉴别力）。
+    //    本段起于 P4 之后：P2 已点过「窗口复位/回退」（程序化写窗 ⇒ 视口已被锁定），故此处**不**要求未锁。
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.waitForTimeout(800);
+
+    // ① 程序化写窗（L1 跳转）成功 ⇒ 视口锁定（ADR-028 §2.10 决策 1）
+    const jump = page.getByTestId('wb-rt-jump-1');
+    await expect(jump, 'P5 前提：目标 run 必须有第 1 回合的跳转按钮（程序化写窗入口）').toBeVisible();
+    await jump.click();
+    await expect(page.getByTestId('wb-window-state')).toHaveAttribute('data-source', 'jump');
+    await expect(page.getByTestId('wb-window-probe')).toHaveAttribute('data-applied-ok', 'true');
+    await page.waitForTimeout(800);
+    const lockedWide = await readLockTruth(page);
+    expect(lockedWide.locked, '程序化写窗成功后必须锁定视口（留痕 data-viewport-lock=1）').toBe('1');
+    expect(lockedWide.barSpace, 'P5 前提：锁定态必须有 barSpace 读数').not.toBeNull();
+
+    // ② **核心判据**：锁定期间容器尺寸变化（1600×900 → 1280×800）**不得**重拟合 barSpace
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(1600); // RO + rAF + 引擎重排（未锁定时实测 16ms 即被改写）
+    const lockedNarrow = await readLockTruth(page);
+    const refitWouldBe = lockedNarrow.chartWidth != null ? Math.round(lockedNarrow.chartWidth / 120) : null;
+    // 鉴别力自证：未锁定时应拟合值必须 ≠ 锁定值（否则「未被改写」恒真 ⇒ 直接红）
+    expect(
+      refitWouldBe,
+      `P5 鉴别力自证：未锁定应拟合值 round(${String(lockedNarrow.chartWidth)}/120)=${String(refitWouldBe)} 必须 ≠ 锁定值 ${String(lockedWide.barSpace)}`,
+    ).not.toBe(lockedWide.barSpace);
+    expect(lockedNarrow.locked, '锁定期间视口尺寸变化不得解锁').toBe('1');
+    expect(
+      lockedNarrow.barSpace,
+      `锁定期间容器尺寸变化（chartWidth ${String(lockedWide.chartWidth)} → ${String(lockedNarrow.chartWidth)}）**不得**重拟合 barSpace（D10 决策 1）`,
+    ).toBe(lockedWide.barSpace);
+
+    // ③ 显式解锁路径 = **真实手势**（ADR-028 §2.10 决策 1）；解锁后窗口可再变（禁「锁死」）。
+    //    注：「全览」**不解锁**（实测 + 实现注释「跳转/全览必须留在原地」⇒ 全览也是程序化写窗 ⇒ 重新锁定）；
+    //    该措辞差（§2.10 决策 1 原文把「全览」列为解锁动作）**只登记不断言**，避免用未裁定口径自造判据。
+    const box = await page.locator('[data-testid="kline-chart"]').first().boundingBox();
+    const cx = Math.min(Math.max((box?.x ?? 0) + (box?.width ?? 600) / 2, 1), 1200);
+    const cy = Math.min(Math.max((box?.y ?? 0) + (box?.height ?? 200) / 2, 1), 780);
+    await page.mouse.move(cx, cy);
+    for (let i = 0; i < 6; i++) {
+      await page.mouse.wheel(0, 100);
+      await page.waitForTimeout(120);
+    }
+    await page.waitForTimeout(800);
+    const afterGesture = await readLockTruth(page);
+
+    Object.assign(p5, {
+      livenessBaseline: p0Liveness,
+      lockedWide,
+      lockedNarrow,
+      refitWouldBe,
+      afterGesture,
+    });
+    writeJson('p5_viewport_lock', { ...p5, env });
+
+    expect(afterGesture.locked, '真实手势 ⇒ 锁定必须解除（ADR-028 §2.10 决策 1 显式解锁路径）').toBeNull();
+    expect(afterGesture.barSpace, '手势后窗口可再变（禁「锁死」）').not.toBe(lockedWide.barSpace);
+  }
+
   const sink = {
     env,
     finishedAt: new Date().toISOString(),
@@ -1405,6 +1618,7 @@ test('P1..P4 结果页图表卡缩放探针：指标入口 / 副图拖拽 / 卡�
       domPanesAfterMaxVol: p2.domPanesAfterMaxVol,
     },
     p3: { curveCardInjection, klineCardInjection, resultScroll: p3Base.resultScroll },
+    p5: { viewportLock: p5, runResolution: (env as { runResolution?: unknown }).runResolution },
   };
   writeJson('summary', sink);
   // eslint-disable-next-line no-console

@@ -44,6 +44,11 @@
 
 ## 1. 端点契约
 
+> **健康端点消歧（2026-09-25 登记；本批小债项 1）**：应用面（`:8081`，本文件路由表）与数据面（`:8080`，`design/03-collector/02-data-plane.md` §2 手写最小 HTTP）的健康端点**都是 `/healthz`** —— `GET /healthz → 200 {"status":"ok"}`。
+> **`/api/health` 不是端点**：`/api` 前缀的未知路径一律 404 JSON（`spa.rs::spa_fallback` §1.3），**不设别名**。
+> 依据：全仓依赖盘点（Rust/TS 代码、`docker-compose.yml`、`Dockerfile*`、`scripts/deploy.sh`、`web/` 前端、`crates/mcp` MCP、`migrations/`、`config/`）对 `/api/health` **零依赖**；且 ADR-017 明令「数据面除 `/healthz` 外不开放任何管理端口」，加别名等于给数据面新增 API 面。
+> 契约锁定测试（任一漂移即红）：`crates/web/tests/healthz_route_contract.rs`（应用面：200 + 逐键响应体 + `/api/health` 404 + 源码级禁别名）与 `crates/app/tests/healthz_endpoint_contract_lock.rs`（数据面：200 + 逐字节响应体 + `/api/health` 404）。
+
 ### 1.1 REST
 
 | 方法/路径 | 参数 | 响应 | 数据源 | 错误态 |

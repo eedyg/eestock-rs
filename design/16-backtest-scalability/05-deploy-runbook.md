@@ -77,7 +77,7 @@ sha256sum target/debug/eestock-app; ps -o pid,lstart,args -C eestock-app
 
 | # | 用例 | 期望 |
 |---|---|---|
-| C1 | `GET /api/health`（或仓内健康路径） | 200 |
+| C1 | `GET /healthz`（应用面 `:8081`；数据面 `:8080` **同路径**；**`/api/health` 不是端点**（`/api` 前缀未知路径一律 404，见 07-app-plane/00-web-api.md §1.1 消歧；2026-09-25 依赖盘点为零 ⇒ **不设别名**）） | 200 + `{"status":"ok"}` |
 | C2 | `GET /api/symbols` 取 518880 | 200；`change_pct` 与昨收一致（此前事故项） |
 | C3 | **M30 真跑**：`POST /api/workbench/runs` `period=M30`、小区间、1 slot | **201** → 轮询 `succeeded` → `/result` 首页 `has_more` 见、`period="M30"` |
 | C4 | **负向对照**：`period=W1` | **400** `{"error":{"code":"period_invalid",…}}` |

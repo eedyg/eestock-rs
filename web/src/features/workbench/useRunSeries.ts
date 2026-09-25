@@ -53,6 +53,13 @@ export interface RunCurve<T> {
    * > 0 ⇒ 曲线只画评估段（`[run.from_ts, run.to_ts]`），UI **必须**显式标注（禁静默有损，ADR-024 D10）。
    */
   excludedWarmupBars?: number;
+  /**
+   * ADR-028 D2.4 债（预热窗口空图文案）：**本次载荷**中被评估段裁剪掉的根数
+   * （`clipToEvaluatedRange` 的 `dropped`；窗口态 = 本窗口内落在评估段之外的根数，全量态 = 预热段根数）。
+   * 与 `excludedWarmupBars` 的差别：后者在全量态优先取 run 级 `config.warmup_effective`（精确口径），
+   * 而本字段是**本次取数载荷**的裁剪真值 ⇒ 供「窗口全在预热段 ⇒ 空图」的文案取数（禁自造数值）。
+   */
+  excludedByEvaluatedRange?: number;
 }
 
 /** 逐 bar 明细的分页状态（覆盖范围**必须**显式标注：`已加载 N / 共 M`）。 */
@@ -302,6 +309,7 @@ export function legacySeries(
       downsampled: false,
       originalBars: perBarAll.length,
       excludedWarmupBars: perBarClip.dropped,
+      excludedByEvaluatedRange: perBarClip.dropped,
     },
     netValue: { points: result.net_value, downsampled: false, originalBars: result.net_value.length },
     drawdown: { points: result.drawdown, downsampled: false, originalBars: result.drawdown.length },
@@ -509,7 +517,13 @@ export function useRunSeries({
         // （`per_bar.scores/aggregate`）但不产净值/持仓 ⇒ 不裁的话两条分数曲线会横跨预热段，
         // 与净值/持仓（只有执行段）在同一 x 轴上「scale 不一致」（2026-09-22 用户报告）。
         const clip = clipToEvaluatedRange(pbv.points, evaluatedRange(run));
-        setPerBar({ ...pbv, points: clip.kept, excludedWarmupBars: warmupExcludedBars(clip.dropped, run) });
+        setPerBar({
+          ...pbv,
+          points: clip.kept,
+          excludedWarmupBars: warmupExcludedBars(clip.dropped, run),
+          // D2.4 债：本次载荷的裁剪真值（窗口态 = 本窗口落在评估段之外的根数）⇒ 空图文案取数用
+          excludedByEvaluatedRange: clip.dropped,
+        });
       } else errs.push('/curve?kind=per_bar');
       if (nvv) setNetValue(nvv); else errs.push('/curve?kind=net_value');
       if (ddv) setDrawdown(ddv); else errs.push('/curve?kind=drawdown');
