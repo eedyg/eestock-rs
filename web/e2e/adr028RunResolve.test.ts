@@ -529,3 +529,130 @@ describe('裁决 3/E：解析结果**落盘缓存**（§7.2 修法 ③；命中�
     expect(r.evidence.cache?.status).toBe('disabled');
   });
 });
+
+// ═══════════ `adr026-audit` 族的冻结基线谓词（2026-09-25 重锚批次追加） ═══════════
+
+describe('裁决 3/I：`audit` 谓词（`adr026-audit` 族的**冻结审计基线**结构事实）', () => {
+  /** 造一个「518880/D1、恰 1 个回合、该回合 l2_count=43、43 笔成交（42 Buy + 1 Sell）」的 run。 */
+  function auditRun(
+    id: string,
+    createdAt: string,
+    opts: { symbol?: string; rts?: number; buys?: number; sell?: number; l2Count?: number } = {},
+  ): Fixture {
+    const buys = opts.buys ?? 42;
+    const sell = opts.sell ?? 1;
+    const fills: RunFill[] = [];
+    for (let i = 0; i < buys; i++) fills.push({ bar_index: 10 + i, ts: 1_700_000_000 + i, side: 'Buy', rt_seq: 1 });
+    if (sell > 0) fills.push({ bar_index: 60, ts: 1_700_000_100, side: 'Sell', rt_seq: 1 });
+    const rts: RunRoundTrip[] = [{ rt_seq: 1, l2_count: opts.l2Count ?? buys + Math.max(sell, 0) }];
+    for (let k = 2; k <= (opts.rts ?? 1); k++) rts.push({ rt_seq: k, l2_count: 2 });
+    return {
+      runs: [{ id, period: 'D1', status: 'succeeded', created_at: createdAt, symbol: opts.symbol ?? '518880' }],
+      totals: { [id]: 300 },
+      rts: { [id]: rts },
+      fills: { [`${id}#1`]: fills },
+    };
+  }
+
+  it('命中：518880 ∧ 恰 1 回合 ∧ fills=43（42 Buy + 1 Sell，= 冻结基线的「成交合计 43 笔 / 买入成交 42 笔」）', async () => {
+    const r = await resolveRun(port(auditRun('sr_audit', '2026-09-19T15:32:08Z')), 'audit', { cacheDir: null });
+    expect(r.id).toBe('sr_audit');
+    expect(r.rtSeq).toBe(1);
+    expect(r.evidence.detail['fillTotal']).toBe(43);
+    expect(r.evidence.detail['buyFills']).toBe(42);
+    expect(r.evidence.detail['sellFills']).toBe(1);
+    expect(r.predicate, '谓词原文必须可复核').toContain('43');
+  });
+
+  it('拒绝：回合数 ≠ 1（冻结基线是单回合 run）⇒ 不命中', async () => {
+    const multi = auditRun('sr_multi', '2026-09-24T00:00:00Z', { rts: 2 });
+    await expect(resolveRun(port(multi), 'audit', { cacheDir: null })).rejects.toThrow(/回合/);
+  });
+
+  it('拒绝：成交笔数 ≠ 43 / 卖出 ≠ 1（含邻域：42+1 之外的组合均须被拒）⇒ 不命中', async () => {
+    const short = auditRun('sr_short', '2026-09-24T00:00:00Z', { buys: 41, sell: 1 });
+    await expect(resolveRun(port(short), 'audit', { cacheDir: null })).rejects.toThrow(/43|42/);
+    const noSell = auditRun('sr_nosell', '2026-09-24T00:00:00Z', { buys: 43, sell: 0 });
+    await expect(resolveRun(port(noSell), 'audit', { cacheDir: null })).rejects.toThrow(/43|42/);
+  });
+
+  it('拒绝：标的 ≠ 518880（冻结基线的名义投入比例只对实测标的成立）⇒ 不命中', async () => {
+    const other = auditRun('sr_other', '2026-09-24T00:00:00Z', { symbol: '159776' });
+    await expect(resolveRun(port(other), 'audit', { cacheDir: null })).rejects.toThrow(/518880/);
+  });
+
+  it('多个命中 ⇒ 取 created_at **最新**者（禁「列表第一个」兜底）', async () => {
+    const older = auditRun('sr_audit_old', '2026-09-19T15:32:08Z');
+    const newer = auditRun('sr_audit_new', '2026-09-23T10:00:00Z');
+    const r = await resolveRun(port(merge(older, newer)), 'audit', { cacheDir: null });
+    expect(r.id).toBe('sr_audit_new');
+  });
+
+  it('反硬编码（①非恒真）：已删的历史字面量 ≠ 现场解析结果 ⇒ 护栏抛错（规格必红）', async () => {
+    const r = await resolveRun(port(auditRun('sr_audit', '2026-09-19T15:32:08Z')), 'audit', { cacheDir: null });
+    expect(() => assertResolvedByIdFresh('sr_1789738328788_000005', r, 'audit')).toThrow(/反硬编码护栏/);
+    expect(isResolvedByPredicate('sr_1789738328788_000005', r)).toBe(false);
+    expect(() => assertResolvedByIdFresh(r.id, r, 'audit')).not.toThrow();
+  });
+
+  it('全部候选不命中 ⇒ 抛错（携扫描证据；禁静默换 run / 禁跳过）', async () => {
+    const fx = merge(
+      auditRun('sr_a', '2026-09-24T00:00:00Z', { buys: 1, sell: 1 }),
+      auditRun('sr_b', '2026-09-23T00:00:00Z', { symbol: '159776' }),
+      auditRun('sr_c', '2026-09-22T00:00:00Z', { rts: 3 }),
+    );
+    await expect(resolveRun(port(fx), 'audit', { cacheDir: null })).rejects.toThrow(/谓词解析失败（audit）/);
+    await expect(resolveRun(port(fx), 'audit', { cacheDir: null })).rejects.toThrow(/禁静默换用别的 run/);
+  });
+
+  it('显式覆盖（`ADR026_E2E_RUN` 类）：满足谓词 ⇒ 通过（标注 explicitOverride）；不满足 ⇒ 显式红', async () => {
+    const fx = auditRun('sr_audit', '2026-09-19T15:32:08Z');
+    const ok = await assertRunMatchesPredicate(port(fx), 'audit', 'sr_audit');
+    expect(ok.evidence.detail['explicitOverride']).toBe(true);
+    const bad = auditRun('sr_bad', '2026-09-24T00:00:00Z', { buys: 2, sell: 1 });
+    await expect(assertRunMatchesPredicate(port(bad), 'audit', 'sr_bad')).rejects.toThrow(/显式红/);
+    await expect(assertRunMatchesPredicate(port(fx), 'audit', 'sr_ghost')).rejects.toThrow(/不在库中/);
+  });
+});
+
+// ═══════════ `adr026-audit` 用例 12 的历史 run 前提（`legacy`：来源列「未记录」） ═══════════
+
+describe('裁决 3/J：`legacy` 谓词（`adr026-audit` 用例 12 的「历史 run ⇒ 来源列未记录」前提）', () => {
+  /** 造一个「回合数 = n ∧ 所有回合均**缺** `reason`（历史 run 形态）」的 D1 run。 */
+  function legacyRun(id: string, createdAt: string, n = 33, withReason = false): Fixture {
+    const rts: RunRoundTrip[] = [];
+    for (let k = 1; k <= n; k++) {
+      rts.push({
+        rt_seq: k,
+        l2_count: 2,
+        open_bar: 10 * k,
+        close_bar: 10 * k + 1,
+        ...(withReason ? { reason: 'Policy' } : { reason: null }),
+      });
+    }
+    return {
+      runs: [{ id, period: 'D1', status: 'succeeded', created_at: createdAt }],
+      totals: { [id]: 400 },
+      rts: { [id]: rts },
+      fills: {},
+    };
+  }
+
+  it('命中：全部回合缺 reason（历史 run 形态）⇒ 命中，并给出回合数读数', async () => {
+    const r = await resolveRun(port(legacyRun('sr_legacy', '2026-09-13T00:00:00Z', 33)), 'legacy', { cacheDir: null });
+    expect(r.id).toBe('sr_legacy');
+    expect(r.evidence.detail['roundTrips']).toBe(33);
+    expect(r.evidence.detail['reasonless']).toBe(33);
+    expect(r.predicate).toContain('reason');
+  });
+
+  it('拒绝：回合全带 reason（新 run 形态 ⇒ 来源列不会是「未记录」）⇒ 不命中', async () => {
+    const fresh = legacyRun('sr_fresh', '2026-09-24T00:00:00Z', 33, true);
+    await expect(resolveRun(port(fresh), 'legacy', { cacheDir: null })).rejects.toThrow(/reason/);
+  });
+
+  it('拒绝：无回合（空 run ⇒ 来源列清单为空，判据失去主体）⇒ 不命中', async () => {
+    const empty = legacyRun('sr_empty', '2026-09-24T00:00:00Z', 0);
+    await expect(resolveRun(port(empty), 'legacy', { cacheDir: null })).rejects.toThrow(/回合/);
+  });
+});

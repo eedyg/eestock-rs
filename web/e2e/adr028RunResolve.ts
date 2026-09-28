@@ -28,6 +28,8 @@ export interface RunListItem {
   period?: string;
   status?: string;
   created_at?: string;
+  /** 标的（`/runs` 实测携带；可选声明——谓词用它钉住「同一标的」的基线口径）。 */
+  symbol?: string;
 }
 
 /** 回合行（`GET …/round-trips`）。 */
@@ -38,6 +40,9 @@ export interface RunRoundTrip {
   close_bar?: number;
   open_ts?: number;
   close_ts?: number;
+  /** ADR-026 §2.3：清仓那一笔的来源（`Option<String>`）；**历史 run 缺字段/为 null** ⇒ UI 来源列显「未记录」。
+   *  可选声明（真实 `GET /round-trips` 携带；仅 `legacy` 谓词读取）。 */
+  reason?: string | null;
 }
 
 /** 成交行（`GET …/round-trips/{rt}/fills`）。 */
@@ -57,7 +62,7 @@ export interface RunFetchPort {
 }
 
 /** 谓词标签（= 用例族所需的**结构性**前提，不是「某个具体 run」）。 */
-export type RunLabel = 'd1' | 'center' | 'excl' | 'm5' | 'pair' | 'klineHistory';
+export type RunLabel = 'd1' | 'center' | 'excl' | 'm5' | 'pair' | 'klineHistory' | 'audit' | 'legacy';
 
 /** 解析结果（含**可复核证据**：谓词原文 / 扫描数 / 逐候选拒绝原因）。 */
 export interface ResolvedRun {
@@ -109,6 +114,19 @@ export const L2_END_FILL_IDX = 15;
 export const CENTER_MARGIN_BARS = 60;
 /** D10E 要求 run 全根数 ≥ 该值（可达根数 ≪ 全根数 ⇒ 两源错位判别力最大）。 */
 export const EXCL_MIN_BARS = 3000;
+
+/* ── `audit` 谓词的冻结基线事实（ADR-026 §2.2/§2.4；数值逐字取自
+ *    `coder/evidence/20260919_adr026_redeploy/raw/12_audit_resp.json`，**不得**改写成别的 run 的读数）── */
+/** 冻结基线标的（`11_run_row.txt`：symbol=518880 / D1）。 */
+export const AUDIT_SYMBOL = '518880';
+/** 成交合计（`/fills` 全口径）= 42 Buy(Policy) + 1 Sell(ForceClose)。 */
+export const AUDIT_FILL_TOTAL = 43;
+/** 买入成交笔数（= 审计 `batches_done`）。 */
+export const AUDIT_BUY_FILLS = 42;
+/** 期末强平卖出笔数（`round_trips_force_closed`）。 */
+export const AUDIT_SELL_FILLS = 1;
+/** 回合 1 的 `l2_count`（= 逐笔源 L2 全口径笔数 = {@link AUDIT_FILL_TOTAL}）。 */
+export const AUDIT_L2_COUNT = 43;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
@@ -279,6 +297,72 @@ async function inspectPair(port: RunFetchPort, run: RunListItem): Promise<Predic
   };
 }
 
+/**
+ * `audit` 谓词（`adr026-audit.e2e.ts` 的**冻结审计基线**结构事实）。
+ *
+ * 动因（ADR-028 §2.10.1 裁决 3）：该规格原以硬编码 `sr_1789738328788_000005` 取靶，该 run 已**行删除**
+ * （`GET /runs/{id}` → 404，且不在 `/runs?limit=500` 列表内），规格因而 7/7 红。
+ * 本谓词把该规格**与「具体某个 run id」解耦**，只钉住它真正依赖的**结构事实**：
+ *  ① `symbol=518880`（冻结基线的名义投入比例只对实测标成立）∧ `period=D1` ∧ `status=succeeded`；
+ *  ② **恰 1 个回合**（冻结基线「回合 1 条 / 其中强平合成 1 条」）；
+ *  ③ 该回合 `l2_count == ` {@link AUDIT_FILL_TOTAL}（= 成交合计 43 笔）且 `fills` 逐笔核对为
+ *     {@link AUDIT_BUY_FILLS} 笔 Buy + {@link AUDIT_SELL_FILLS} 笔 Sell；
+ *     （`/fills` 全口径 = 42 Buy(Policy) + 1 Sell(ForceClose) = 43，ADR-026 §2.4-1）
+ * 不核对根数（本规格不涉 K 线域）。
+ *
+ * **已知残差（登记）**：谓词只看得到 `RunFetchPort` 的成交面，看不到 `/audit` 自身字段
+ * （`planned_tranches` / `reachable_batches` / `deployed_pct` …）⇒「最新命中者」仍可能在这些字段上与
+ * 冻结基线不等（如未来新增一笔结构同形的 run）——此时由**规格自身的基线断言**变红（显式，不静默）。
+ */
+async function inspectAudit(port: RunFetchPort, run: RunListItem): Promise<PredicateHit | string> {
+  if (run.symbol == null) return '列表行未提供 symbol ⇒ 无法核对基线标的 518880（禁猜）';
+  if (run.symbol !== AUDIT_SYMBOL) return `symbol=${run.symbol} ≠ ${AUDIT_SYMBOL}（冻结基线只对实测标成立）`;
+  const rts = await port.roundTrips(run.id);
+  if (rts.length !== 1) return `回合数 ${rts.length} ≠ 1（冻结基线是单回合 run）`;
+  const rt = rts[0]!;
+  if (rt.rt_seq !== 1) return `唯一回合的 rt_seq=${rt.rt_seq} ≠ 1（禁取其它序号）`;
+  if ((rt.l2_count ?? -1) !== AUDIT_L2_COUNT) return `rt1 l2_count=${rt.l2_count ?? -1} ≠ ${AUDIT_L2_COUNT}`;
+  const fl = await port.fills(run.id, 1);
+  const buy = fl.filter((f) => f.side === 'Buy').length;
+  const sell = fl.filter((f) => f.side === 'Sell').length;
+  if (fl.length !== AUDIT_FILL_TOTAL) return `rt1 fills=${fl.length} ≠ ${AUDIT_FILL_TOTAL}`;
+  if (buy !== AUDIT_BUY_FILLS) return `rt1 Buy 笔数=${buy} ≠ ${AUDIT_BUY_FILLS}`;
+  if (sell !== AUDIT_SELL_FILLS) return `rt1 Sell 笔数=${sell} ≠ ${AUDIT_SELL_FILLS}（冻结基线含 1 笔期末强平卖出）`;
+  return {
+    hit: true,
+    totalBars: await port.totalBars(run.id),
+    rtSeq: 1,
+    l2Count: rt.l2_count ?? fl.length,
+    detail: { symbol: run.symbol, roundTrips: rts.length, fillTotal: fl.length, buyFills: buy, sellFills: sell },
+  };
+}
+
+/**
+ * `legacy` 谓词（`adr026-audit.e2e.ts` **用例 12** 的结构性前提）。
+ *
+ * 用例 12 的判据是「历史 run（`trades[*].reason` 缺字段）的**来源列全部「未记录」**」——
+ * 其存活前提 = 库里确实存在一个**回合全缺 `reason`** 的 run（ADR-026 §2.3 之前的 run 形态）。
+ * 本谓词只编码该结构事实（**根数不参与**，行数由规格按解析结果读）：
+ *  ① `period=D1` ∧ `status=succeeded`（基础过滤）；
+ *  ② 回合数 ≥ 1（空 run 会让「全部行未记录」退化为空集成真 ⇒ 必须拒）；
+ *  ③ **每个**回合的 `reason` 缺字段/为 null（含 `Open` 回合——它在 UI 上同样落「未记录」）。
+ */
+async function inspectLegacy(port: RunFetchPort, run: RunListItem): Promise<PredicateHit | string> {
+  const rts = await port.roundTrips(run.id);
+  if (rts.length === 0) return '回合数 0（来源列清单为空 ⇒ 「全部未记录」退化为空集成真）';
+  const reasonless = rts.filter((t) => t.reason == null).length;
+  if (reasonless !== rts.length) {
+    return `回合 ${rts.length} 个中有 ${rts.length - reasonless} 个带 reason ⇒ 来源列不会是「未记录」`;
+  }
+  return {
+    hit: true,
+    totalBars: await port.totalBars(run.id),
+    rtSeq: null,
+    l2Count: null,
+    detail: { roundTrips: rts.length, reasonless },
+  };
+}
+
 /** M5 轴对齐（ADR-027 E 段）前提：M5 ∧ 根数足够（含周末/隔夜/午休缺口的长区间）。 */
 async function inspectM5(port: RunFetchPort, run: RunListItem): Promise<PredicateHit | string> {
   const total = await port.totalBars(run.id);
@@ -360,6 +444,18 @@ export const PREDICATES: Record<RunLabel, Predicate> = {
     text: `period=M15 ∧ status=succeeded ∧ per_bar ≥ ${KLINE_HISTORY_MIN_BARS}（= 3 × 单页上限 ${SERVER_KLINE_PAGE_CAP} 根 ⇒ 单页拉不回 ⇒ 初始向前分页与向左到底分页判据有前提）`,
     period: 'M15',
     inspect: inspectKlineHistory,
+  },
+  audit: {
+    label: 'audit',
+    text: `symbol=${AUDIT_SYMBOL} ∧ period=D1 ∧ status=succeeded ∧ 回合数 == 1 ∧ rt1 l2_count == ${AUDIT_L2_COUNT} ∧ rt1 fills == ${AUDIT_FILL_TOTAL}（${AUDIT_BUY_FILLS} Buy + ${AUDIT_SELL_FILLS} Sell）`,
+    period: 'D1',
+    inspect: inspectAudit,
+  },
+  legacy: {
+    label: 'legacy',
+    text: 'period=D1 ∧ status=succeeded ∧ 回合数 ≥ 1 ∧ **每个**回合的 reason 缺字段/null（历史 run 形态 ⇒ 来源列「未记录」）',
+    period: 'D1',
+    inspect: inspectLegacy,
   },
 };
 

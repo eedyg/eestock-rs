@@ -27,6 +27,24 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - canvas 指纹（整图 dataURL diff）作 MA 生效与深翻推进的真实绘制佐证；
  *   - 异步（分页加载/保存）一律 waitFor/轮询后再断言，不硬 sleep 猜状态。
  *
+ * ## 「分页批量」判据重锚（2026-09-25；定性 = 规格陈旧·数据域边界，非产品缺陷）
+ *
+ * **失败串（重锚前，真身复跑逐字）**：
+ *   `每个 forward 请求 limit=80 且响应 80 根（非 2）: [{"limit":80,"n":39,"before":"2016-09-30T16:00:00Z"}]`
+ * **读数（`:8081` 现场）**：518880 `period=1mo` 数据域**总 159 根**（2013-06-30…2026-08-31）；
+ * 初始视口 120 根 ⇒ 更早仅剩 **39 根**；同游标 `limit=500` 直连 `/api/kline` 仍只回 39 且 `next_before=null`
+ * ⇒ 短页是**数据域末端**（非服务端夹取）。故「每页恰 80 根」要求总根数 ≥ 120 + 80 = 200，
+ * 而本周期数据域自 2026-09-23 的既有红起便只有 159 根 ⇒ **判据数学上不可满足**（既有红，非近期引入）。
+ *
+ * **旧值 → 新值（依据 = 上表读数）**：
+ *   | 旧口径 | 新口径 | 为何不是削判据 |
+ *   |---|---|---|
+ *   | 每页 `limit == BATCH[period]` | **不变**（请求侧照旧逐个断言） | ——（未动） |
+ *   | 每页 `n == BATCH[period]`（恒满页） | 满页 ⇒ `n == BATCH`；短页 ⇒ **现场举证**：同 `before` 游标抬高 limit 仍只回 `n` 且 `next_before=null` | 旧口径在域内不足一批时不可满足（假红）；新口径在**非边界页与旧口径逐字等价**，在边界页把「恰为域内剩余根数」钉死 ⇒ 对「有损分页/服务端少回」**更强**（旧的 80 在边界页无法表达） |
+ *   | 附带「（非 2）」 | 移除该独立条款（由 `limit == BATCH` ∧ 短页举证两条更强条款覆盖） | 「2 根」缺陷在请求侧（limit≠80）或响应侧（举证回包 > n）必被上述两条之一捕获；保留它会令「数据域真的只剩 ≤2 根」成为假红 |
+ * 现场真值由 `shortPageBoundaryProof()` 现场取（不硬编码任何根数）；逐页判定读数落 `forwardVerdicts` 入证据 JSON。
+ * **非恒真**：把 1mo forward 响应在 route 层截成 2 根（= 旧缺陷形态）⇒ 短页举证失败 ⇒ 本判据必红（见报告 §项 2 非恒真证明）。
+ *
  * 环境变量：E2E_BASE_URL（默认 http://localhost:8081）；E2E_SHOTS（证据目录，默认 /tmp/dashboard_periods_ma）。
  */
 
@@ -229,6 +247,39 @@ function dailyDeltaOk(dd: number) {
 }
 type DeltaRule = (dd: number) => boolean;
 
+/** 当前选中标的（主图 code；用于分页判据的**现场数据域举证**）。 */
+async function selectedSymbolCode(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const row = document.querySelector('[data-region="symbol-list"] button[data-selected="true"]');
+    return row?.querySelector('b')?.textContent?.trim() ?? '';
+  });
+}
+
+/**
+ * **分页短页的数据域末端举证**（真值取自后端，不硬编码任何根数）。
+ *
+ * 口径：同一 `before` 游标下索取「明显多于本页」的根数 —— 若仍只回同数且 `next_before=null`，
+ * 则数据域内确实仅剩这些根 ⇒ 短页是**数据域边界**（非有损分页、非服务端夹取）；
+ * 反之（回包更多）⇒ 本页确实丢了数据 ⇒ 判据红。
+ */
+async function shortPageBoundaryProof(
+  code: string,
+  period: string,
+  before: string,
+  pageN: number,
+  batch: number,
+): Promise<{ probeLimit: number; n: number; nextBefore: string | null; onlyPageN: boolean }> {
+  // 举证口径：至少索取「本页根数 + 1」并且**不小于该周期批量** ⇒ 回包不多于本页即证明域内确无更早数据。
+  const probeLimit = Math.max(pageN + 1, batch);
+  const r = await fetch(
+    `${BASE}/api/kline?code=${code}&period=${period}&before=${encodeURIComponent(before)}&limit=${probeLimit}`,
+  );
+  const j = (await r.json()) as { bars?: unknown[]; next_before?: string | null };
+  const n = (j.bars ?? []).length;
+  const nextBefore = j.next_before ?? null;
+  return { probeLimit, n, nextBefore, onlyPageN: n === pageN && nextBefore === null };
+}
+
 interface PanOutcome {
   period: string;
   dragsUsed: number;
@@ -238,6 +289,8 @@ interface PanOutcome {
   dups: number;
   initialPages: Array<{ limit: number; n: number }>;
   forwardPages: Array<{ limit: number; n: number; before: string | null }>;
+  /** 逐页判定读数（重锚后判据的完整依据：批量、满页/短页、短页的域末端举证）。 */
+  forwardVerdicts: Array<{ limit: number; n: number; before: string | null; ok: boolean; why: string }>;
   allForwardFull: boolean;
   allForwardBatch: boolean;
   badDeltas: number[];
@@ -336,8 +389,35 @@ async function deepPan(
     .filter((p) => p.period === period && p.before)
     .map((p) => ({ limit: p.limit, n: p.bars.length, before: p.before }));
   const allForwardFull = forwardPages.length > 0 && forwardPages.every((p) => p.n === p.limit);
-  const allForwardBatch =
-    forwardPages.length > 0 && forwardPages.every((p) => p.limit === BATCH[period] && p.n === BATCH[period]);
+  /**
+   * forward 页**逐页判定**（数据域边界感知；重锚依据见文件头 §重锚）：
+   *  ① 请求批量必须 == `BATCH[period]` —— 旧缺陷「每页只要 2 根」在请求侧即暴露；
+   *  ② 满页（n == 批量）直接成立；
+   *  ③ 短页必须**现场举证**为数据域末端（同一 `before` 游标抬高 limit 仍只回同数且 `next_before=null`）。
+   * 旧口径「每页恒 80 根」在数据域总根数 < 初始视口 + 批量时**数学上不可满足**（见文件头 §重锚）。
+   */
+  const codeSel = await selectedSymbolCode(page);
+  const forwardVerdicts: Array<{ limit: number; n: number; before: string | null; ok: boolean; why: string }> = [];
+  for (const p of forwardPages) {
+    let ok = true;
+    let why = `满页：n == 批量 ${p.limit}`;
+    if (p.limit !== BATCH[period]) {
+      ok = false;
+      why = `请求批量 ${p.limit} ≠ ${BATCH[period]}（分页批量失效）`;
+    } else if (p.n !== p.limit) {
+      const proof = p.before ? await shortPageBoundaryProof(codeSel, period, p.before, p.n, BATCH[period]) : null;
+      ok = !!proof?.onlyPageN;
+      why = !proof
+        ? `短页 n=${p.n} < ${p.limit} 但无 before 游标 ⇒ 无法举证域末端`
+        : proof.onlyPageN
+          ? `短页 n=${p.n} < ${p.limit} 已举证为**数据域末端**（同游标 limit=${proof.probeLimit} 仍只回 ${proof.n} 且 next_before=null）`
+          : `短页 n=${p.n} < ${p.limit} **未**举证为域末端：同游标 limit=${proof.probeLimit} 回 ${proof.n} 根（next_before=${String(
+              proof.nextBefore,
+            )}）⇒ 域内仍有更早数据却未取回（有损分页）`;
+    }
+    forwardVerdicts.push({ limit: p.limit, n: p.n, before: p.before, ok, why });
+  }
+  const allForwardBatch = forwardPages.length > 0 && forwardVerdicts.every((v) => v.ok);
   const badDeltas: number[] = [];
   let deltaMax = 0;
   for (let i = 1; i < ts.length; i++) {
@@ -362,6 +442,7 @@ async function deepPan(
     dups,
     initialPages,
     forwardPages,
+    forwardVerdicts,
     allForwardFull,
     allForwardBatch,
     badDeltas,
@@ -419,7 +500,7 @@ test('T1 周线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=150/�
   expect(out.initialPages[0]?.limit, '周线初始视口 limit=120（ADR-020 默认根数）').toBe(INIT_PAGE['1w']);
   // 深翻翻页批量 150/页且满页（非「一次 2 根」）
   expect(out.forwardPages.length, '至少 1 个 forward 批页').toBeGreaterThanOrEqual(1);
-  expect(out.allForwardBatch, `每个 forward 请求 limit=150 且响应 150 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
+  expect(out.allForwardBatch, `每个 forward 请求 limit=150（满页须恰 150 根；短页须举证为数据域末端）: ${JSON.stringify(out.forwardVerdicts)}`).toBeTruthy();
   expect(out.reached, `深翻可达 ${out.earliestTs}（earliest < 2022-01-01）`).toBeTruthy();
   expect(Date.parse(out.earliestTs!), 'earliest ts < 2024-01-01').toBeLessThan(Date.parse('2024-01-01T00:00:00Z'));
   expect(out.year2022_2023, 'union 含 2022/2023 蜡烛（<2024 目标区在档）').toBeTruthy();
@@ -445,7 +526,7 @@ test('T2 月线：深翻至覆盖 2022-2023（<2024）+ 分页批量 limit=80/�
   });
   expect(out.initialPages[0]?.limit, '月线初始视口 limit=120（ADR-020 默认根数）').toBe(INIT_PAGE['1mo']);
   expect(out.forwardPages.length, '至少 1 个 forward 批页').toBeGreaterThanOrEqual(1);
-  expect(out.allForwardBatch, `每个 forward 请求 limit=80 且响应 80 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
+  expect(out.allForwardBatch, `每个 forward 请求 limit=80（满页须恰 80 根；短页须举证为数据域末端）: ${JSON.stringify(out.forwardVerdicts)}`).toBeTruthy();
   expect(out.reached, `深翻可达 ${out.earliestTs}（earliest < 2022-01-01）`).toBeTruthy();
   expect(Date.parse(out.earliestTs!), 'earliest ts < 2024-01-01').toBeLessThan(Date.parse('2024-01-01T00:00:00Z'));
   expect(out.year2022_2023, 'union 含 2022/2023 蜡烛（<2024 目标区在档）').toBeTruthy();
@@ -473,7 +554,7 @@ test('T3 日线：连续左翻 ≥2 批页 + 分页批量 limit=250/无缺口/�
   // 初始视口=2 根（定稿 1d 设计），深翻翻页批量 250/页且满页
   expect(out.initialPages[0]?.limit, '日线初始视口 limit=120（ADR-020 默认根数；旧 2 交易日已废除）').toBe(INIT_PAGE['1d']);
   expect(out.forwardPages.length, '日线至少 2 个 forward 批页').toBeGreaterThanOrEqual(2);
-  expect(out.allForwardBatch, `每个 forward 请求 limit=250 且响应 250 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
+  expect(out.allForwardBatch, `每个 forward 请求 limit=250（满页须恰 250 根；短页须举证为数据域末端）: ${JSON.stringify(out.forwardVerdicts)}`).toBeTruthy();
   expect(out.dups, '跨页去重：无重复 ts').toBe(0);
   expect(out.unionCount, '批量拉取量足够（>500 根日线）').toBeGreaterThanOrEqual(500);
   expect(Date.parse(out.earliestTs!), '深翻覆盖早于 2025（earliest=' + out.earliestTs + '）').toBeLessThan(Date.parse('2025-01-01T00:00:00Z'));
@@ -494,7 +575,7 @@ test('T4 分钟 1m：分页批量 limit=500（非 2）/无重复/深翻推进', 
   // 初始视口=482（2 交易日分钟数），forward 批量=500 且满页
   expect(out.initialPages[0]?.limit, '1m 初始视口 limit=120（ADR-020 默认根数；旧 482 已废除）').toBe(INIT_PAGE['1m']);
   expect(out.forwardPages.length, '1m 至少 2 个 forward 批页').toBeGreaterThanOrEqual(2);
-  expect(out.allForwardBatch, `每个 forward 请求 limit=500 且响应 500 根（非 2）: ${JSON.stringify(out.forwardPages)}`).toBeTruthy();
+  expect(out.allForwardBatch, `每个 forward 请求 limit=500（满页须恰 500 根；短页须举证为数据域末端）: ${JSON.stringify(out.forwardVerdicts)}`).toBeTruthy();
   expect(out.dups, '跨页去重：无重复 ts').toBe(0);
   expect(out.capTail, '1m canvas 视口已随深翻推进（像素佐证）').not.toBe(out.cap1);
   expect(out.dragsUsed, '深翻预算内').toBeLessThan(30);

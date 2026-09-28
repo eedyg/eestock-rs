@@ -1163,11 +1163,29 @@ export interface WorkbenchBarRecord {
   signal: 'Buy' | 'Sell' | 'Hold';
   orders: WorkbenchOrderIntent[];
   events: WorkbenchEngineEvent[];
+  /** 该 bar 落在**预热段**（引擎标记：不执行 Policy / 不计净值与绩效）。
+   *  **可选**：产出侧恒写（`crates/application/src/workbench.rs::bar_record_json` 的 `"warmup"`，含 legacy 行），
+   *  但消费侧不依赖其为恒有（mock/fixture 与未来 legacy 形态容差）。真实读数：Exposure run 427/427 根含
+   *  （true 250 = `warmup_effective` / false 177），legacy run 1949/1949 根含。 */
+  warmup?: boolean;
   // ── ADR-029 D7/E10：`Exposure` 模式的逐 bar 观测（Step 1 Rust 车道就绪后出现；旧 run / 旧变体缺省）──
-  /** 目标暴露（净值占比 0..1，已含 `guard.max_pct` 夹取后的取值）。 */
-  target_pct?: number;
-  /** 当前实际暴露（净值占比 0..1）。 */
-  current_pct?: number;
+  /** 目标暴露（净值占比 0..1，已含 `guard.max_pct` 夹取后的取值）。
+   *  预热段为 `null`（策略未参与，**不得**读成 0）。 */
+  target_pct?: number | null;
+  /** 当前实际暴露（净值占比 0..1）。预热段为 `null`。 */
+  current_pct?: number | null;
+  /** `RateCap` 的**每 bar 速率预算**（量纲 = 每 bar 允许的目标变动**金额 / 决策 bar 收盘净值** ⇒ 占净值比/bar，
+   *  如 `0.05` = 5%/bar；依据 `crates/strategy-core/src/policy.rs` pipeline ⑤ `cap_qty = pct_per_bar × equity / price`）。
+   *  `null` = 该 run 的 `ramp` **非** `RateCap`（无速率预算，如 `Immediate`）或预热段 ⇒ **不得**读成 0。
+   *  **可选**：ADR-029 D7 之前的旧 run / legacy `per_bar` 无此键（实测 legacy 1949 根 **0/1949** 含）。 */
+  ramp_cap_pct_per_bar?: number | null;
+  /** 限速步骤（pipeline ⑤）**确实压缩了**本 bar 的目标变动。真实读数：Exposure+RateCap run 427/427 根含
+   *  （true 5 / false 422）。**可选**：旧 run / legacy 无此键。 */
+  rate_limited?: boolean;
+  // ── ADR-029 D7 既有四键（`deadzone_blocked` / `clamped_by_guard` 见上；本批只**补声明**，不改后端契约）──
+  /** 本 bar **跨越卖出档边界**（进入或离开 `score <= sell_threshold` 的卖出档；跳变披露，ADR-029 D7/R6）。
+   *  真实读数：Exposure+RateCap run 427/427 根含（true 6 / false 421）。**可选**：旧 run / legacy 无此键。 */
+  sell_transition?: boolean;
   /** 本 bar 因 `guard.deadzone_pct` 死区**未下单**。 */
   deadzone_blocked?: boolean;
   /** 本 bar 目标被 `guard.max_pct` 强制夹取。 */
