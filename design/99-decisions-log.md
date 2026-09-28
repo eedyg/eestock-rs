@@ -377,3 +377,52 @@
 - **方法论教训（登记）**：**验收判据须用「位置型/首现序号型/比例型」读数，禁用「累计计数型」**（同一现象在修复前后计数相近，会同时产生假绿与假红）。本批同类教训累计 **6 处**（前 5 处见 ADR-027 D12 补遗），全部为**架构侧契约文本**问题。
 - **同轮采信的其它读数**：服务侧 bundle = 磁盘 = `index-Clh7n6rl.js` sha256 `7075b8b2…`（**BYTE_IDENTICAL**）；`healthz`/`api/strategies`/`GET /` 均 200；8081/8082 同属 pid 1232788，`/proc/1232788/exe` 无 deleted；两个新 e2e 规格 **7 passed**、冻结探针 `adr028-axis-align-probe` **2 passed**（未回退）。
 - **经济含义披露**：仓位由 5% 升至 30% ⇒ pnl/回撤/夏普同步放大（`−405.53 → −2697.16`、`max_drawdown 1.89% → 10.63%`），属**行为变更的预期后果**，非新缺陷；`PARTIAL_DEPLOYMENT` 仍在（deployed 30.19% ≠ 100%，告警语义正确）。
+
+---
+
+# ADR-029 Step 1.5｜意图一等公民 / 非对称速率 / 清仓豁免 / 收敛与成本披露（2026-09-29 用户裁定，架构侧全权执行）
+
+- **触发（活库取证，非代码阅读猜测）**：Step 1 部署后对真实 run 的复核暴露 5 项缺陷/缺口 ——
+  F1 意图不可见（000007：**1760/1818 根 bar 的 `target_pct ≡ current_pct`**，死区命中即被记成当前）；
+  F2 降档/清仓被信号时长截断（000023：bar 412 清仓意图 → bar 413 中立带蒸发 → 残仓 **0.25%** 挂 13 根 bar）；
+  F3 残仓 < 死区 ⇒ 结构性清不掉（同上，残仓 **249.73 元由 `ForceClose` 兜底**，非策略清）；
+  F4 下行速率不可配（`pct_per_bar` 双向对称，`policy.rs:655` + E6 反向断言）；
+  F5 成本盲区（000007：51 笔微单、佣金 **297.88 元 = 净利 15.7%**、单笔实际费率 **0.80% = 名义 2.5bp 的 32 倍**，
+  而既有 CHURN 门限 `orders_per_bar 0.032<0.5` / `fee_pct 0.298%<0.5%` **全绿**）。
+- **用户裁定（2026-09-29）**：①需要**非对称速率**；②`on_signal_break` **缺省 `Pause`**（UI 新配置默认 `Continue`）；
+  ③**清仓豁免死区**；④**收敛判据 + 残仓告警**；⑤不新增"风控旁路"中断类型；⑥披露与成本感知（C1/C3/B3/D1）**全部纳入本批**；
+  ⑦授权架构侧全权决策直至本轮验收。
+- **决策（D11–D15，全文见 ADR-029 §8）**：D11 三层语义命名（`intent_pct` / `target_pct` / `current_pct`，意图首次落库）；
+  D12 `RateCap{pct_per_bar, down_pct_per_bar?, on_signal_break?}`（缺省 = 对称 + `Pause` ⇒ 与现行逐字节一致）；
+  D13 清仓（`desired == 0`）豁免死区；D14 成本感知（`guard.deadzone_min_notional` + `cost_amplification` + `EXPOSURE_COST_DRAG`）；
+  D15 收敛判据与残仓披露（`max_target_gap` / `max_intent_gap` / `unmet_intent_bars` + `EXPOSURE_UNMET_INTENT` / `EXPOSURE_RESIDUAL_INTENT` + `/audit` 新增 `exposure` 段）。
+- **兼容纪律**：全部新增项**缺省即现行语义** ⇒ `LumpSum`/`Dca` 与既有 `Exposure` 历史 run **逐字节可复现**，**不引入 `schema_version`**（D2/D10 继续成立）。
+- **关键耦合（禁止只做一半）**：清仓归零需 **D12(`Continue`) + D13 同时生效** —— 只豁免死区（Hold 已抹掉意图 ⇒ 不下单）或只做意图持久化（尾段 < 死区 ⇒ 被拦）都会残留残仓（000023 实测反推）。
+- **量纲澄清（登记，不改行为）**：死区是"**意图 gap 门**"而非"订单规模下限"（限速可把单笔订单切到死区之下，E12 有意钉死）；
+  `max_pct` 只约束目标（非实际暴露，R19）；`Fixed` 与 `ScoreMapped` 在 `Pause` 下的 Hold 语义仍不对称（R36 登记 Step 2）。
+- **产出物**：ADR-029 §8（D11–D15 / E18–E24 / R32–R36）、`design/12-strategy-system/06-plan-exposure-step1_5.md`（施工图与判据）、
+  Lane A（`crates/strategy-core`）／Lane B（`crates/application` + MCP）／Lane C（`web`）三个 TDD 车道 + 独立复验 + 部署后真跑冒烟。
+
+### 追加登记（2026-09-29，实施期取证）
+
+- **R37（架构侧契约文本错误，已更正并追认实施结论）**：`06-plan` 原称「`Immediate` 的 Hold 带行为与 `Continue` 等价 ⇒ 不增设字段」**不成立** ——
+  `Continue` 把意图**比例**按当前净值重算，与 E3 钉死的「**绝对股数**冻结」不是一回事；按原文本实现会与 E3/E13/E19④ 互斥。
+  **定案**：`on_signal_break` **只存在于 `RateCap`**，`Immediate` 恒取 `Pause` 语义（= 现行），兼容铁律优先。计划 §2.1 已更正。
+- **R38（判据口径变更，架构侧裁决"方案 B"并背书）**：`adr026-audit.e2e.ts` 用例 10 的原判据「来源列 = `['未记录']`」绑定的是**已行删除且不可再生**的 legacy 形态 run
+  （ADR-027 起后端必然写 `reason`）⇒ 保留即恒红。**新口径**：用例 10 绑**真实基线 run** 读数 `['期末强平']` + 前置校验 `rt1.reason === 'ForceClose'`；
+  「缺 `reason` ⇒ 未记录」判据移交用例 12，以**客户端注入 + 变异反证**承担（断言文本一字未改，强度提高）。变更已登记在规格头部注释（日期/决策人/证据指向）。
+- **D13 行为影响面（全量扫描，活库）**：`desired == 0`（清仓意图）被死区拦 ∧ 残仓 > 0 的 bar，在**现存全部 67 个 `Exposure` run**
+  （50 `ScoreMapped/Flat` + 14 `Fixed` + 3 `ScoreMapped/Scaled`）中为 **0 个** ⇒ **D13 对全库历史 run 的成交序列零位移**，E8′（历史逐字节复现）**继续成立**；
+  证据 `coder/evidence/20260929_adr029_step1_5_arch/raw/11_d13_impact_scan.{sh,txt}`。
+- **基线数据主体重建（提交前遗留工作收尾）**：ADR-026 e2e 的锚定 run 已删 ⇒ 按其**归档 config**（`coder/evidence/20260918_sr_trades_strategy_side/raw/11_run_row.txt`）**重放**
+  出 `sr_1790614578393_000009`，`/audit` 与归档 `12_audit_resp.json` **逐字段一致**（含 3 条 warning 文案、rt1 `l2_count=43`、fills 43 = 42 Buy + 1 Sell）；
+  并新增幂等种子脚本 `scripts/seed_adr026_audit_baseline.sh`；同轮修掉"证据默认出口指向**已跟踪**目录"（改为 `web/e2e/artifacts/adr026-audit`，`git ls-files` = 0）。
+- **E2E 判据重锚追认（2026-09-29，架构侧）**：独立复验（`tester/report/20260929_prework_verify.md`）把 `dashboard-periods-ma.e2e.ts::allForwardBatch`
+  的口径放宽判为"**拦下待追认**"。经架构侧复核 **追认**：旧判据「每 forward 页恒满 80 根」在 `518880/1mo` 数据域仅 159 根（视口 120 + 余 39）时**数学上不可满足**（假红），
+  新判据「满页 ⇒ `n == 批量`；短页 ⇒ **同游标抬高 limit 仍只回同数且 `next_before=null`** 的现场举证」在**非边界页与旧口径逐字等价**、在边界页更强；
+  复验方自建反证（route 层截成 2 根 ⇒ 判据**真红**）证明非恒真 ⇒ **授权**。
+  **附条件（登记）**：①短页分支**必须**保留域末端现场举证（不得硬编码根数）；②残余风险 **R1**（服务端"静默少回且 `next_before=null`"形态仍会通过）**披露在案**，
+  待后续批次以「页累加 == 独立口径总数」类断言收口（需 `/api/kline` 增 `total` 或经 cagg 计数独立核对）——本批不做。
+- **其余复验项处置**：R5（`ADR026_E2E_OUT` 仍可指向已跟踪目录）⇒ **接受**（默认值已改未跟踪目录，env 覆盖属显式调用者责任）；
+  R6（`types.ts` 把 `target_pct/current_pct` 放宽为 `number|null`，**消费侧 null 处理未验证**）⇒ 并入 ADR-029 Step 1.5 **Lane C** 必查项；
+  R7（`legacy` 谓词在 e2e 内已无使用方，但单测仍覆盖）⇒ **接受**（保留为通用解析能力）；R2/R3/R4/U2/U3 为已披露的残余风险，不阻断。
