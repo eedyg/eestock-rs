@@ -476,17 +476,25 @@ describe('ConfigPanel（ADR-029 Step 1：Exposure 目标 × ramp × guard）', (
     await user.click(screen.getByTestId('wb-submit'));
     await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
     const req = props.onSubmit.mock.calls[0]![0];
+    /**
+     * **有意变更（ADR-029 Step 1.5 D12，2026-09-29，用户裁定）**：**新配置**的 `RateCap`
+     * 默认**显式写入** `on_signal_break: 'Continue'`（显式值 ⇒ 可复现；缺省即后端 `Pause`）。
+     * 本用例的基线因此由 `{pct_per_bar}` 改为 `{pct_per_bar, on_signal_break:'Continue'}`；
+     * 其余断言（值/键名/键序/无 rename）**逐字不变**。缺省省略的保真由
+     * 「预设回填…round-trip」用例与 Step 1.5 的「未带即不新增」用例共同钉死。
+     */
     expect(req.policy).toEqual({
       Exposure: {
         target: { ScoreMapped: { at_threshold_pct: 0.2, at_full_pct: 0.5, sell: 'Flat' } },
-        ramp: { RateCap: { pct_per_bar: 0.05 } },
+        ramp: { RateCap: { pct_per_bar: 0.05, on_signal_break: 'Continue' } },
         guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005 },
       },
     });
-    // 键名/大小写（禁 rename）：顶层 target/ramp/guard，guard 内三键 snake_case
+    // 键名/大小写（禁 rename）：顶层 target/ramp/guard，guard 内三键 snake_case（`deadzone_min_notional` 未填 ⇒ 不写）
     expect(Object.keys(req.policy.Exposure)).toEqual(['target', 'ramp', 'guard']);
     expect(Object.keys(req.policy.Exposure.guard)).toEqual(['max_pct', 'min_pct', 'deadzone_pct']);
     expect(Object.keys(req.policy.Exposure.ramp)).toEqual(['RateCap']);
+    expect(Object.keys(req.policy.Exposure.ramp.RateCap)).toEqual(['pct_per_bar', 'on_signal_break']);
   });
 
   it('E11/§1：Fixed + Immediate 载荷形状（`Immediate` 为**空载荷 null**，不得写成 {} / "Immediate"）', async () => {
@@ -531,7 +539,8 @@ describe('ConfigPanel（ADR-029 Step 1：Exposure 目标 × ramp × guard）', (
     expect(props.onSubmit.mock.calls[0]![0].policy).toEqual({
       Exposure: {
         target: { ScoreMapped: { at_threshold_pct: 0.25, at_full_pct: 0.6, sell: 'Scaled' } },
-        ramp: { RateCap: { pct_per_bar: 0.1 } },
+        // 有意变更（Step 1.5 D12，2026-09-29）：新配置默认显式写 `on_signal_break: 'Continue'`。
+        ramp: { RateCap: { pct_per_bar: 0.1, on_signal_break: 'Continue' } },
         guard: { max_pct: 0.8, min_pct: 0.05, deadzone_pct: 0.01 },
       },
     });
@@ -766,5 +775,243 @@ describe('ConfigPanel（ADR-029 Step 1：Exposure 目标 × ramp × guard）', (
     await user.click(screen.getByTestId('wb-submit'));
     await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
     expect(props.onSubmit.mock.calls[0]![0].policy).toEqual(exposurePolicy);
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════
+ * ADR-029 Step 1.5（D12/D14）Web 车道 C2：`ramp.RateCap` 两新字段 + `guard.deadzone_min_notional`
+ * 契约事实源：`design/12-strategy-system/06-plan-exposure-step1_5.md` §2.1 / §2.5 注 / §5 Lane C。
+ * ════════════════════════════════════════════════════════════════════════════════════════════ */
+describe('ConfigPanel（ADR-029 Step 1.5：非对称下行速率 / on_signal_break / 死区金额门槛 / 成本提示）', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await loadCatalog();
+  });
+
+  async function pickExposure(user: UserEvent): Promise<void> {
+    await user.selectOptions(screen.getByTestId('wb-add-strategy'), 'sv_mock_dual_v1');
+    await user.click(screen.getByTestId('wb-add-btn'));
+    await user.selectOptions(screen.getByTestId('wb-policy-kind'), 'Exposure');
+  }
+
+  async function setField(user: UserEvent, testId: string, value: string): Promise<void> {
+    await user.clear(screen.getByTestId(testId));
+    await user.type(screen.getByTestId(testId), value);
+  }
+
+  /** 钉住形态 Exposure 预设（Step 1.5 字段按需注入）。 */
+  function exposurePreset(ramp: unknown, guard: unknown): { row: WorkbenchPresetRow; config: WorkbenchRunConfig } {
+    const config: WorkbenchRunConfig = {
+      slots: [{
+        strategy_id: 'st_mock_dual_ma', version_id: 'sv_mock_dual_v1', version: 1,
+        sha256: 'sha_x', params: { fast: 5, slow: 20 }, weight: 1,
+      }],
+      buy_threshold: 60,
+      sell_threshold: 40,
+      policy: {
+        Exposure: {
+          target: { ScoreMapped: { at_threshold_pct: 0.2, at_full_pct: 0.5, sell: 'Flat' } },
+          ramp,
+          guard,
+        },
+        // 有意的**未钉住**载荷（模拟 Step 1.5 之前的预设/历史 run：缺新字段）⇒ 用 unknown 绕过
+        // 编译期钉住形态，正是本用例要证的「缺字段仍可 round-trip」。
+      } as unknown as WorkbenchRunConfig['policy'],
+      stop: null,
+      initial_capital: 100000,
+      fee: { rate_pct: 0.025, min_fee: 5, slippage_bp: 2 },
+    };
+    return {
+      config,
+      row: { id: 'sp_e15', name: 'E1.5 预设', config, created_at: '2026-09-01T00:00:00Z', updated_at: '2026-09-01T00:00:00Z' },
+    };
+  }
+
+  it('新建配置默认纪律（用户裁定）：`on_signal_break` 默认 `Continue` 且**显式写入** JSON；`down_pct_per_bar` 缺省省略（= 对称）', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    // 默认 = RateCap（EXPOSURE_DEFAULTS.ramp）⇒ 两新控件可见
+    expect((screen.getByTestId('wb-ramp-kind') as HTMLSelectElement).value).toBe('RateCap');
+    expect((screen.getByTestId('wb-exposure-on-signal-break') as HTMLSelectElement).value).toBe('Continue');
+    expect((screen.getByTestId('wb-exposure-down-pct-per-bar') as HTMLInputElement).value).toBe('');
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    const ramp = props.onSubmit.mock.calls[0]![0].policy.Exposure.ramp;
+    // 显式写入 `on_signal_break: 'Continue'`（可复现：不依赖后端缺省 Pause）
+    expect(ramp).toEqual({ RateCap: { pct_per_bar: 0.05, on_signal_break: 'Continue' } });
+    // 未填 `down_pct_per_bar` ⇒ **不写该键**（缺省 = 对称 = 与现行逐字节一致）
+    expect(Object.keys(ramp.RateCap)).toEqual(['pct_per_bar', 'on_signal_break']);
+    // 未填 `deadzone_min_notional` ⇒ 不写该键（缺省 = 纯比例口径）
+    expect(Object.keys(props.onSubmit.mock.calls[0]![0].policy.Exposure.guard)).toEqual([
+      'max_pct', 'min_pct', 'deadzone_pct',
+    ]);
+  });
+
+  it('新字段映射（§2.1 契约 JSON 形状，无 rename）：down_pct_per_bar / on_signal_break / deadzone_min_notional 逐值落载荷', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    await setField(user, 'wb-exposure-down-pct-per-bar', '0.2');
+    await user.selectOptions(screen.getByTestId('wb-exposure-on-signal-break'), 'Pause');
+    await setField(user, 'wb-exposure-deadzone-min-notional', '100');
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    const pol = props.onSubmit.mock.calls[0]![0].policy.Exposure;
+    expect(pol.ramp).toEqual({ RateCap: { pct_per_bar: 0.05, down_pct_per_bar: 0.2, on_signal_break: 'Pause' } });
+    expect(Object.keys(pol.ramp.RateCap)).toEqual(['pct_per_bar', 'down_pct_per_bar', 'on_signal_break']);
+    expect(pol.guard).toEqual({ max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005, deadzone_min_notional: 100 });
+    // 单位口径：`deadzone_min_notional` 是**元**（不得写成比例）
+    expect(Object.keys(pol.guard)).toEqual(['max_pct', 'min_pct', 'deadzone_pct', 'deadzone_min_notional']);
+  });
+
+  it('`down_pct_per_bar = 0` 合法且**显式写入**（0 = 下行不限速，与「缺省 = 对称」是两个不同语义）', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    await setField(user, 'wb-exposure-down-pct-per-bar', '0');
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    expect(props.onSubmit.mock.calls[0]![0].policy.Exposure.ramp).toEqual({
+      RateCap: { pct_per_bar: 0.05, down_pct_per_bar: 0, on_signal_break: 'Continue' },
+    });
+  });
+
+  it('两新控件**只属 RateCap**（`Immediate` 无路径状态可暂停 ⇒ 不渲染）', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    await user.selectOptions(screen.getByTestId('wb-ramp-kind'), 'Immediate');
+    expect(screen.queryByTestId('wb-exposure-down-pct-per-bar')).toBeNull();
+    expect(screen.queryByTestId('wb-exposure-on-signal-break')).toBeNull();
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    expect(props.onSubmit.mock.calls[0]![0].policy.Exposure.ramp).toEqual({ Immediate: null });
+  });
+
+  it('默认值纪律（回填）：预设/历史 run **未带**新字段 ⇒ 未改动即不新增（round-trip 逐字段无字段丢失、无脏标记）', async () => {
+    const user = userEvent.setup();
+    const { row, config } = exposurePreset({ RateCap: { pct_per_bar: 0.02 } }, { max_pct: 0.8, min_pct: 0, deadzone_pct: 0.002 });
+    const props = mkProps({ presets: [row], onApplyPreset: vi.fn(async () => config) });
+    render(<ConfigPanel {...props} />);
+    await user.selectOptions(screen.getByTestId('wb-preset-select'), 'sp_e15');
+    await waitFor(() => expect(screen.getByTestId('wb-exposure-fields')).toBeInTheDocument());
+    // 未声明态如实展示（运行期缺省 = Pause，**不是** UI 新配置默认 Continue）
+    expect((screen.getByTestId('wb-exposure-on-signal-break') as HTMLSelectElement).value).toBe('');
+    expect(screen.getByTestId('wb-exposure-on-signal-break').textContent ?? '').toContain('Pause');
+    expect(screen.queryByTestId('wb-preset-dirty')).toBeNull();
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    const pol = props.onSubmit.mock.calls[0]![0].policy.Exposure;
+    // 逐字段 round-trip：ramp/guard 与预设快照完全一致（**不得**凭空补 on_signal_break）
+    expect(pol.ramp).toEqual({ RateCap: { pct_per_bar: 0.02 } });
+    expect(Object.keys(pol.ramp.RateCap)).toEqual(['pct_per_bar']);
+    expect(pol.guard).toEqual({ max_pct: 0.8, min_pct: 0, deadzone_pct: 0.002 });
+  });
+
+  it('默认值纪律（回填）：预设**带**新字段 ⇒ 逐值回填并可原样再提交（round-trip 保真）', async () => {
+    const user = userEvent.setup();
+    const { row, config } = exposurePreset(
+      { RateCap: { pct_per_bar: 0.02, down_pct_per_bar: 0.3, on_signal_break: 'Pause' } },
+      { max_pct: 0.8, min_pct: 0, deadzone_pct: 0.002, deadzone_min_notional: 250 },
+    );
+    const props = mkProps({ presets: [row], onApplyPreset: vi.fn(async () => config) });
+    render(<ConfigPanel {...props} />);
+    await user.selectOptions(screen.getByTestId('wb-preset-select'), 'sp_e15');
+    await waitFor(() => expect(screen.getByTestId('wb-exposure-fields')).toBeInTheDocument());
+    expect((screen.getByTestId('wb-exposure-down-pct-per-bar') as HTMLInputElement).value).toBe('0.3');
+    expect((screen.getByTestId('wb-exposure-on-signal-break') as HTMLSelectElement).value).toBe('Pause');
+    expect((screen.getByTestId('wb-exposure-deadzone-min-notional') as HTMLInputElement).value).toBe('250');
+    expect(screen.queryByTestId('wb-preset-dirty')).toBeNull();
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    const pol = props.onSubmit.mock.calls[0]![0].policy.Exposure;
+    expect(pol.ramp).toEqual({ RateCap: { pct_per_bar: 0.02, down_pct_per_bar: 0.3, on_signal_break: 'Pause' } });
+    expect(pol.guard).toEqual({ max_pct: 0.8, min_pct: 0, deadzone_pct: 0.002, deadzone_min_notional: 250 });
+  });
+
+  /** C2.3 校验（与后端 `ExecutionPolicy::validate` fail loud 同口径；文案必须带量纲）。 */
+  const E23_CASES: Array<{ name: string; testId: string; value: string; expect: RegExp }> = [
+    {
+      name: 'down_pct_per_bar < 0',
+      testId: 'wb-exposure-down-pct-per-bar',
+      value: '-0.1',
+      // 量纲：每 bar 允许变动金额 / 净值；0 = 下行不限速（≠ 非法）
+      expect: /down_pct_per_bar.*净值.*须 ≥ 0|down_pct_per_bar.*下行不限速/,
+    },
+    {
+      name: 'deadzone_min_notional < 0',
+      testId: 'wb-exposure-deadzone-min-notional',
+      value: '-1',
+      expect: /deadzone_min_notional.*元.*须 ≥ 0/,
+    },
+  ];
+  for (const c of E23_CASES) {
+    it(`校验：${c.name} ⇒ 表单 fail loud（不发请求、不静默回退）`, async () => {
+      const user = userEvent.setup();
+      const props = mkProps();
+      render(<ConfigPanel {...props} />);
+      await pickExposure(user);
+      await setField(user, c.testId, c.value);
+      await user.click(screen.getByTestId('wb-submit'));
+      expect(screen.getByTestId('wb-form-error')).toHaveTextContent(c.expect);
+      expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+  }
+
+  it('D14/C 成本提示：`deadzone_pct × 初始资金 < 20 × min_fee` ⇒ 提示（最小再平衡规模 / 单笔佣金占比 / 由 min_fee 主导）+ 一键预填', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    // 默认 dims（deadzone 0.5%、初始资金 10 万、min_fee 5）⇒ 500 元 ≥ 100 元 ⇒ **不提示**
+    expect(screen.queryByTestId('wb-exposure-cost-hint')).toBeNull();
+    // 初始资金 1 万 ⇒ 死区门槛 50 元 < 20×5 = 100 元 ⇒ 提示
+    await setField(user, 'wb-initial-capital', '10000');
+    const hint = screen.getByTestId('wb-exposure-cost-hint');
+    expect(hint).toHaveTextContent('100'); // 20 × min_fee
+    expect(hint).toHaveTextContent('由 min_fee 主导');
+    // 单笔佣金占比 = min_fee / (deadzone_pct × 初始资金) = 5 / 50 = 10.0%（实际费率远高于名义）
+    expect(hint).toHaveTextContent('10.0%');
+    // 一键预填 ⇒ deadzone_min_notional = 20 × min_fee
+    await user.click(screen.getByTestId('wb-exposure-cost-prefill'));
+    expect((screen.getByTestId('wb-exposure-deadzone-min-notional') as HTMLInputElement).value).toBe('100');
+    await user.click(screen.getByTestId('wb-submit'));
+    await waitFor(() => expect(props.onSubmit).toHaveBeenCalled());
+    expect(props.onSubmit.mock.calls[0]![0].policy.Exposure.guard).toEqual({
+      max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005, deadzone_min_notional: 100,
+    });
+  });
+
+  it('D14 成本提示**数值取自面板输入**（不硬编码费用）：改 min_fee / deadzone_pct / 初始资金 ⇒ 提示与预填跟随', async () => {
+    const user = userEvent.setup();
+    const props = mkProps();
+    render(<ConfigPanel {...props} />);
+    await pickExposure(user);
+    await setField(user, 'wb-initial-capital', '10000');
+    await setField(user, 'wb-fee-min', '20');
+    // 门槛 50 元 < 20×20 = 400 元 ⇒ 提示；单笔佣金占比 = 20/50 = 40.0%
+    expect(screen.getByTestId('wb-exposure-cost-hint')).toHaveTextContent('400');
+    expect(screen.getByTestId('wb-exposure-cost-hint')).toHaveTextContent('40.0%');
+    await user.click(screen.getByTestId('wb-exposure-cost-prefill'));
+    expect((screen.getByTestId('wb-exposure-deadzone-min-notional') as HTMLInputElement).value).toBe('400');
+    // 抬高死区比例 ⇒ 门槛 10 万 × 0.5%… 改为 1% × 1 万 = 100 元 < 400 ⇒ 仍提示；改为 5% ⇒ 500 元 ≥ 400 ⇒ 消失
+    await setField(user, 'wb-guard-deadzone-pct', '0.05');
+    expect(screen.queryByTestId('wb-exposure-cost-hint')).toBeNull();
+  });
+
+  it('§2.5 注（量纲披露，不得读成缺陷）：死区是**意图 gap 门**、不是订单规模下限', async () => {
+    const user = userEvent.setup();
+    render(<ConfigPanel {...mkProps()} />);
+    await pickExposure(user);
+    const note = screen.getByTestId('wb-exposure-deadzone-note');
+    expect(note).toHaveTextContent('意图 gap 门');
+    expect(note).toHaveTextContent('不是订单规模下限');
+    // 限速可把单笔订单切到死区之下（E12 有意钉死）——必须写明，避免被读成缺陷
+    expect(note).toHaveTextContent('限速');
   });
 });

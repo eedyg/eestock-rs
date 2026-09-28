@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { ApiClient } from '@/api/client';
-import type { StrategyCatalogEntry, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
+import type { StrategyCatalogEntry, WorkbenchExposureAudit, WorkbenchRunResult, WorkbenchRunView } from '@/api/types';
 import { fmtHoldBars, fmtMoney, fmtPct, fmtRatio, periodLabel } from '@/features/backtest/format';
 import { KlineResultChart } from './KlineResultChart';
 import { AggregateScoreChart } from './AggregateScoreChart';
@@ -196,12 +196,71 @@ function AuditSummary({ audit, fills }: { audit: RunAuditState; fills: RunFillsS
 }
 
 /**
- * ADR-029 D7/§4-E10：目标暴露披露（结果页 / 审计区）。
+ * ADR-029 Step 1.5 D15/E24：审计 **结构化 `exposure` 段**披露（`06-plan` §3.1，17 键）。
+ *
+ * 纪律：
+ *  - `exposure === null`（非 `Exposure` / 无观测 / `recorded=false`）⇒ 显式「未记录」，**不得**把 0 当读数；
+ *  - 两层 gap **名称相近、口径不同**：`max_target_gap` = 执行层（输出目标 vs 实际）、`max_intent_gap` = 意图层
+ *    （声明意图 vs 实际），二者均为滞后一 bar 对齐；
+ *  - 成本放大的**分母消歧**：`fee_pct` 分母是初始资金，`cost_amplification` 的分母是成交额。
+ */
+function ExposureAuditBlock({ audit }: { audit: RunAuditState }) {
+  if (audit.loading) {
+    return (
+      <div className="text-dim" data-testid="wb-result-exposure-audit-loading">
+        结构化曝光审计：加载中…
+      </div>
+    );
+  }
+  if (!audit.data) return null;
+  const seg: WorkbenchExposureAudit | null | undefined = audit.data.exposure;
+  if (!seg) {
+    return (
+      <div className="text-up" data-testid="wb-result-exposure-audit-unrecorded">
+        结构化曝光审计（`exposure` 段）：未记录（非 Exposure 策略 / 无逐 bar 观测 / `recorded=false`）—— 不以 0
+        冒充读数。
+      </div>
+    );
+  }
+  const deadzoneShare = seg.bars > 0 ? seg.deadzone_blocked_bars / seg.bars : null;
+  const fmtOrUnrecorded = (v: number | null | undefined, digits = 2): string =>
+    v == null ? '未记录' : fmtPct(v, digits);
+  return (
+    <div className="flex flex-col gap-0.5" data-testid="wb-result-exposure-audit">
+      <div className="text-dim" data-testid="wb-result-exposure-audit-counters">
+        {`结构化曝光审计（评估段 ${seg.bars} bar，不含预热）：挂单 ${seg.orders} 笔（${seg.orders_per_bar}/bar）｜死区拦截 ${seg.deadzone_blocked_bars} bar（占比 ${
+          deadzoneShare === null ? '不可计算（bars=0）' : fmtPct(deadzoneShare, 1)
+        }）｜限速 ${seg.rate_limited_bars} bar｜guard 夹取 ${seg.clamped_bars} bar｜跨卖出档 ${seg.sell_transition_bars} bar｜现金下调 ${seg.affordability_capped_bars} bar`}
+      </div>
+      <div className="text-dim" data-testid="wb-result-exposure-audit-gaps">
+        {`执行层 max_target_gap=${fmtOrUnrecorded(seg.max_target_gap)}（bar ${seg.max_target_gap_bar ?? '未记录'}）= max_t |target_pct_t − current_pct_{t+1}|（**输出目标 vs 实际**，滞后一 bar 对齐）`}
+        {`；意图层 max_intent_gap=${fmtOrUnrecorded(seg.max_intent_gap)}（bar ${
+          seg.max_intent_gap_bar ?? '未记录'
+        }）= max_t |intent_pct_t − current_pct_{t+1}|（**声明意图 vs 实际**）；unmet_intent_bars=${
+          seg.unmet_intent_bars ?? '未记录'
+        }（|intent_pct − target_pct| > deadzone_pct 的 bar 数：意图未被输出目标体现）`}
+      </div>
+      <div className="text-dim" data-testid="wb-result-exposure-audit-cost">
+        {`成本：cost_amplification=${
+          seg.cost_amplification == null ? '未记录' : `${seg.cost_amplification.toFixed(1)}×`
+        }（= 实际佣金率 / 名义佣金率）；名义佣金率 nominal_fee_rate=${fmtOrUnrecorded(seg.nominal_fee_rate, 3)}；区间费用 fees=${fmtMoney(
+          seg.fees,
+        )}，占**初始资金** fee_pct=${fmtPct(seg.fee_pct, 2)}`}
+        {'。'}消歧：`fee_pct` 的分母是**初始资金**，`cost_amplification` 的分子分母是**成交额**口径（两者不可混读）。
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ADR-029 D7/§4-E10 + Step 1.5 D11/D12/D15：目标暴露披露（结果页 / 审计区）。
  *
  * - **目标侧**：`run.config.policy.Exposure`（run 快照 = 事实源，前端**不重算**）⇒ 端点 / ramp / guard 原文披露；
- * - **实测侧**：`per_bar` 观测字段 `target_pct/current_pct/deadzone_blocked/clamped_by_guard`（Step 1 Rust
- *   车道就绪后出现）；**未就绪 ⇒ 显式「未记录」**并仅以既有事实（审计 `deployed_pct`）占位——
- *   禁把缺失读成 0（ADR-024 D10）；
+ * - **三层读数**（D11，本轮 F1「意图不可见」的修复）：`intent_pct`（意图）/ `target_pct`（输出目标）/
+ *   `current_pct`（当前持仓）**同时**披露，并写明各自口径；
+ * - **实测侧缺失** ⇒ 显式「未记录」并仅以既有事实（审计 `deployed_pct`）占位——禁把缺失读成 0（ADR-024 D10）；
+ * - **`null` 处理（独立复验 R6 必查项）**：预热段的 `per_bar` **带键但值为 `null`** ⇒ 观测根数/末值读数/计数
+ *   只统计**有真实读数**的 bar（`number`），否则会把预热计成观测（虚高）并把末值取成 `—`；
  * - 常驻口径注：**总分曲线是诊断量、不等于仓位**（D7）；非 `Exposure` run ⇒ **不渲染**（旧配置零回归）。
  */
 function ExposureDisclosure({
@@ -222,26 +281,41 @@ function ExposureDisclosure({
       : `ScoreMapped at_threshold_pct=${fmtPct(ex.target.ScoreMapped.at_threshold_pct)}（score=${run.config.buy_threshold} 起）→ at_full_pct=${fmtPct(ex.target.ScoreMapped.at_full_pct)}（score=100）；sell=${ex.target.ScoreMapped.sell}`;
   const rampText =
     'Immediate' in ex.ramp
-      ? 'Immediate（当 bar 目标即全额）'
-      : `RateCap pct_per_bar=${fmtPct(ex.ramp.RateCap.pct_per_bar)}（每 bar 允许变动金额 / 净值）`;
-  const guardText = `max_pct=${fmtPct(ex.guard.max_pct)}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(ex.guard.min_pct)} / deadzone_pct=${fmtPct(ex.guard.deadzone_pct, 2)}（暴露比例差）`;
+      ? 'Immediate（当 bar 目标即全额；该变体**无** on_signal_break，恒取 Pause 语义）'
+      : `RateCap pct_per_bar=${fmtPct(ex.ramp.RateCap.pct_per_bar)}（每 bar 允许变动金额 / 净值）；下行 down_pct_per_bar=${
+          ex.ramp.RateCap.down_pct_per_bar == null
+            ? `${fmtPct(ex.ramp.RateCap.pct_per_bar)}（缺省 ⇒ 对称）`
+            : `${fmtPct(ex.ramp.RateCap.down_pct_per_bar)}${ex.ramp.RateCap.down_pct_per_bar === 0 ? '（0 = 下行不限速）' : ''}`
+        }；信号中断 on_signal_break=${ex.ramp.RateCap.on_signal_break ?? 'Pause（缺省）'}`;
+  const guardText = `max_pct=${fmtPct(ex.guard.max_pct)}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(ex.guard.min_pct)} / deadzone_pct=${fmtPct(ex.guard.deadzone_pct, 2)}（暴露比例差；是意图 gap 门、不是订单规模下限）${
+    ex.guard.deadzone_min_notional == null
+      ? ' / deadzone_min_notional=缺省（仅比例口径）'
+      : ` / deadzone_min_notional=${fmtMoney(ex.guard.deadzone_min_notional)}（元；阈值 = max(deadzone_pct × equity, 该值)）`
+  }`;
 
+  /** 有**真实读数**的 bar：`null`（预热段 / 非 Exposure / 旧 run）**不计入**（R6/null 修复点）。 */
+  const isNum = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
   const rows = result.per_bar;
-  const observed = rows.filter(
-    (r) =>
-      r.target_pct !== undefined ||
-      r.current_pct !== undefined ||
-      r.deadzone_blocked !== undefined ||
-      r.clamped_by_guard !== undefined,
-  );
-  const last = [...observed].reverse().find((r) => r.target_pct !== undefined || r.current_pct !== undefined);
-  const deadzoneBars = observed.filter((r) => r.deadzone_blocked === true).length;
-  const clampedBars = observed.filter((r) => r.clamped_by_guard === true).length;
+  const liveIdx = rows.reduce<number[]>((acc, r, i) => {
+    if (isNum(r.target_pct) || isNum(r.current_pct)) acc.push(i);
+    return acc;
+  }, []);
+  const lastLiveIdx = liveIdx.length > 0 ? liveIdx[liveIdx.length - 1]! : null;
+  const lastLive = lastLiveIdx === null ? null : rows[lastLiveIdx]!;
+  const liveRows = liveIdx.map((i) => rows[i]!);
+  const deadzoneBars = liveRows.filter((r) => r.deadzone_blocked === true).length;
+  const rateLimitedBars = liveRows.filter((r) => r.rate_limited === true).length;
+  const clampedBars = liveRows.filter((r) => r.clamped_by_guard === true).length;
+  const intentText = isNum(lastLive?.intent_pct)
+    ? fmtPct(lastLive!.intent_pct)
+    : '未记录（该 run 的 per_bar 无 intent_pct：预热段 / 旧 run，不以 0 冒充）';
+  const unmetBars = audit.data?.exposure?.unmet_intent_bars ?? null;
   const auditFallback = audit.data
     ? audit.data.recorded
       ? `名义投入 ${fmtPct(audit.data.deployed_pct, 2)}（审计 deployed_pct，分母 = 初始资金）`
       : '审计未记录（该 run 无执行事实源）'
     : '审计加载中…';
+  const rateCapBreak = 'RateCap' in ex.ramp ? (ex.ramp.RateCap.on_signal_break ?? 'Pause') : null;
 
   return (
     <div
@@ -254,15 +328,41 @@ function ExposureDisclosure({
       <div className="text-dim" data-testid="wb-result-exposure-target">
         {`目标暴露（run 配置快照）：target=${targetText}；ramp=${rampText}；guard ${guardText}`}
       </div>
-      {observed.length > 0 ? (
-        <div className="text-dim" data-testid="wb-exposure-observed">
-          {`逐 bar 观测（已加载 ${observed.length} 根）：目标 ${fmtPct(last?.target_pct)}｜当前 ${fmtPct(last?.current_pct)}｜死区拦截 ${deadzoneBars} bar｜guard 夹取 ${clampedBars} bar`}
-        </div>
+      {liveIdx.length > 0 ? (
+        <>
+          {/* D11：三层读数同时披露（意图 / 输出目标 / 当前持仓）—— F1「意图不可见」的修复 */}
+          <div className="text-dim" data-testid="wb-result-exposure-readings">
+            {`三层读数（末根有观测 bar，idx ${lastLiveIdx}）：意图 intent_pct=${intentText}｜输出目标 target_pct=${fmtPct(
+              lastLive?.target_pct,
+            )}｜当前持仓 current_pct=${fmtPct(lastLive?.current_pct)}`}
+            <div>
+              消歧：**意图** = 分数映射 + guard 夹取后**想持有**的水位（**死区/限速不影响它**）；**输出目标** = 本 bar
+              实际下达的目标（死区命中 ⇒ 等于当前持仓）；**当前持仓** = **次 bar 开盘**成交后的实际持仓。
+            </div>
+          </div>
+          <div className="text-dim" data-testid="wb-exposure-observed">
+            {`逐 bar 观测（已加载 ${liveRows.length} 根，仅计**有真实读数**的 bar——预热段/非 Exposure 的 null 不计入）：` +
+              `目标 ${fmtPct(lastLive?.target_pct)}｜当前 ${fmtPct(lastLive?.current_pct)}｜死区拦截 ${deadzoneBars} bar｜限速 ${rateLimitedBars} bar｜guard 夹取 ${clampedBars} bar`}
+          </div>
+        </>
       ) : (
         <div className="text-up" data-testid="wb-exposure-unrecorded">
-          {`逐 bar 目标/实际暴露观测：未记录（该 run 的 per_bar 未携带 target_pct/current_pct/deadzone_blocked/clamped_by_guard，不以 0 冒充）。既有事实：${auditFallback}`}
+          {`逐 bar 目标/实际暴露观测：未记录（该 run 的 per_bar 未携带 target_pct/current_pct 读数，或仅有预热段 null，不以 0 冒充）。既有事实：${auditFallback}`}
         </div>
       )}
+      {/* D12：信号中断语义（`on_signal_break`）—— 「停在半途」是 Pause 下的**契约行为**，必须写清 */}
+      {rateCapBreak !== null && (
+        <div className="text-amber-300/80" data-testid="wb-result-exposure-break-note">
+          {`on_signal_break=${'RateCap' in ex.ramp && ex.ramp.RateCap.on_signal_break != null ? ex.ramp.RateCap.on_signal_break : 'Pause（缺省/未声明）'}：${
+            rateCapBreak === 'Pause'
+              ? `中立带（本 bar 无新声明）输出目标冻结在上一目标 ⇒ 未走完的路径会**停在半途**（契约行为，非缺陷）；未达成的意图由上行的 intent_pct 读数揭示${
+                  unmetBars == null ? '' : `（审计 unmet_intent_bars=${unmetBars}）`
+                }。要走到意图需把 on_signal_break 改为 Continue。`
+              : '中立带继续朝**意图**推进（未走完的路径会在后续 bar 继续补完）。'
+          }`}
+        </div>
+      )}
+      <ExposureAuditBlock audit={audit} />
       <div className="text-dim" data-testid="wb-exposure-score-note">
         披露：总分曲线是诊断量、不等于仓位 —— 目标由聚合分映射、实际暴露由 ramp/guard 与成交共同决定。
       </div>

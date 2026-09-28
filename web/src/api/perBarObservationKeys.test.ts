@@ -231,3 +231,181 @@ describe('ADR-028 §2.13 ②：per_bar 其余 4 个已产出键（warmup / ramp_
     expect(parseBar(RC_RAW_WARMUP).ramp_cap_pct_per_bar).toBeNull();
   });
 });
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════
+ * ADR-029 Step 1.5（D11/D12）§2.6：`per_bar` **再增两键**（本批新增，成对更新 Rust 产出侧与前端类型）
+ *
+ *  键名（契约唯一形态，serde 无 rename）：
+ *   ① `intent_pct`                  —— 本 bar **意图**占净值比（「分数映射 + guard 夹取」后的水位）；
+ *                                      死区/限速**不影响**它（这正是 F1「意图不可见」的修复口径）。
+ *   ② `down_ramp_cap_pct_per_bar`   —— 本 bar **下行**速率预算占净值比（`RateCap` ⇒
+ *                                      `down_pct_per_bar ?? pct_per_bar`；`0` = 下行不限速）。
+ *
+ *  语义三层（D11，命名即契约）：`intent_pct`（意图）→ `target_pct`（输出目标，语义不变）→
+ *  `current_pct`（实际持仓）。不变式：`|intent_pct − target_pct|` 只可能来自
+ *  {affordability 下调、死区拦截、限速未走完、`on_signal_break=Pause` 冻结}。
+ *
+ *  可空依据（**同 `ramp_cap_pct_per_bar` 口径**）：预热段（策略未参与）为 `null`；本批之前的旧 run /
+ *  legacy run **无该键** ⇒ 消费侧必须容差（`?` + `number | null`），且 **`null` 不得读成 0**：
+ *  「意图 0%」与「意图未记录」是两个事实。
+ *
+ *  ⚠ 阶段纪律（2026-09-29）：真实载荷的**运行时锁**必须取自**后端重建后**的真实响应（不得用构造载荷
+ *  顶替），故本批分两段落：本段（阶段 1）= 编译期锁（键名/类型 + `npx tsc -b` 门禁）；阶段 2 追加
+ *  `intent_pct` / `down_ramp_cap_pct_per_bar` 的逐字载荷与键集断言。
+ * ════════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('ADR-029 Step 1.5 §2.6：per_bar 新增两键（intent_pct / down_ramp_cap_pct_per_bar）—— 编译期锁', () => {
+  it('字面量含两键 ⇒ 赋值给 WorkbenchBarRecord 必须合法（未声明 ⇒ tsc TS2353）', () => {
+    // `RateCap` 的非预热 bar：意图 42%、下行预算 20%（非对称；受 `down_pct_per_bar` 支配）。
+    const rateCapBar: WorkbenchBarRecord = {
+      ts: 1,
+      scores: [],
+      aggregate: 0,
+      signal: 'Hold',
+      orders: [],
+      events: [],
+      intent_pct: 0.42,
+      down_ramp_cap_pct_per_bar: 0.2,
+    };
+    // 预热段 / 非 Exposure / 旧 run：两键为 `null`（**不得**读成 0），仍是合法值。
+    const warmupBar: WorkbenchBarRecord = {
+      ts: 2,
+      scores: [],
+      aggregate: 0,
+      signal: 'Hold',
+      orders: [],
+      events: [],
+      intent_pct: null,
+      down_ramp_cap_pct_per_bar: null,
+    };
+    expect([rateCapBar.intent_pct, warmupBar.intent_pct]).toEqual([0.42, null]);
+    expect([rateCapBar.down_ramp_cap_pct_per_bar, warmupBar.down_ramp_cap_pct_per_bar]).toEqual([0.2, null]);
+  });
+
+  it('量纲消歧（类型级）：intent_pct = 意图水位占净值比（0..1）；down_ramp_cap_pct_per_bar = 下行预算/净值/bar', () => {
+    // 「意图」是**水位**（与 target_pct/current_pct 同量纲、可直接相减），
+    // 「下行预算」是**每 bar 允许变动**（与既有 ramp_cap_pct_per_bar 同量纲，二者不可比较）。
+    const bar: WorkbenchBarRecord = {
+      ts: 3,
+      scores: [],
+      aggregate: 0,
+      signal: 'Sell',
+      orders: [],
+      events: [],
+      intent_pct: 0.0,
+      target_pct: 0.05,
+      current_pct: 0.0459,
+      ramp_cap_pct_per_bar: 0.05,
+      down_ramp_cap_pct_per_bar: 0.2,
+    };
+    expect(bar.intent_pct).toBe(0);
+    expect(bar.down_ramp_cap_pct_per_bar! > bar.ramp_cap_pct_per_bar!, '非对称：下行预算 > 上行预算').toBe(true);
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════
+ * ADR-029 Step 1.5 §2.6 —— **阶段 2：真实载荷运行时锁**（后端重建后取，2026-09-29）
+ *
+ * 载荷来源（**逐字摘录**，未改写；原始响应落盘
+ * `coder/evidence/20260929_adr029_step1_5_laneC/raw/phase2/`）：
+ *  - 新执行策略 run `sr_1790616409731_000000`（`Exposure{ScoreMapped} + RateCap{pct_per_bar:0.05,
+ *    down_pct_per_bar:0.2, on_signal_break:"Continue"} + guard{…,deadzone_min_notional:100}`；
+ *    518880/D1/2026-02-05..2026-03-01）：
+ *    `GET http://127.0.0.1:8081/api/workbench/runs/sr_1790616409731_000000/bars?kind=per_bar&offset=0&limit=5000`
+ *    ⇒ `total=260`，**260/260 根含两新键**：`intent_pct` 预热 250 根 `null` / 评估段 10 根数值；
+ *    `down_ramp_cap_pct_per_bar` 同分布（预热 `null` / 评估段 **0.2** = `down_pct_per_bar`，非对称）。
+ *    文件：`phase2/continue_sr_1790616409731_000000_per_bar.json`。
+ *  - 旧 run `sr_1789832517800_000006`（ADR-029 之前）：
+ *    `GET …/runs/sr_1789832517800_000006/bars?kind=per_bar&offset=0&limit=2` ⇒ `total=1949`，
+ *    键集 = `aggregate/events/orders/scores/signal/ts/warmup` ⇒ **两新键 0/1949 缺席**（反向锁）。
+ *    文件：`phase2/legacy_sr_1789832517800_000006_per_bar.json`。
+ *
+ * 红证据（判据有牙）：阶段 1 同一规格在同一 run/窗口上实测 `intent_pct` **0/10**、
+ * `down_ramp_cap_pct_per_bar` **0/10**（当时后端未重建）——见 `raw/04_phase1_e2e.txt`。
+ * ════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/** 评估段 Buy bar（idx 251，逐字摘录）：意图 0.35 但输出目标被限速压到 0.05 ⇒ 意图 ≠ 输出目标。 */
+const S15_RAW_BUY_BAR =
+  '{"affordability_capped": false, "aggregate": 80.0, "clamped_by_guard": false, "current_pct": 0.0,' +
+  ' "deadzone_blocked": false, "down_ramp_cap_pct_per_bar": 0.2, "events": [], "intent_pct": 0.35,' +
+  ' "orders": [{"qty": 466.46142364026497, "reason": "Policy", "side": "Buy"}],' +
+  ' "ramp_cap_pct_per_bar": 0.05, "rate_limited": true, "scores": [{"score": 80.0, "slot_idx": 0}],' +
+  ' "sell_transition": true, "signal": "Buy", "target_pct": 0.05, "ts": 1770566400, "warmup": false}';
+
+/** 紧随其后的 Hold bar（idx 253，逐字摘录）：`on_signal_break=Continue` ⇒ 中立带继续推进（0.05 → 0.1505）。 */
+const S15_RAW_HOLD_CONTINUE_BAR =
+  '{"affordability_capped": false, "aggregate": 50.0, "clamped_by_guard": false,' +
+  ' "current_pct": 0.10050726603922684, "deadzone_blocked": false, "down_ramp_cap_pct_per_bar": 0.2,' +
+  ' "events": [{"bar_index": 253, "commission": 5.0, "price": 10.7061408, "qty": 468.58365210127835,' +
+  ' "reason": "Policy", "rt_seq": 1, "side": "Buy", "stamp_duty": 0.0, "trade_value": 5016.722555974502,' +
+  ' "type": "fill"}], "intent_pct": 0.35, "orders": [{"qty": 465.3380024020173, "reason": "Policy",' +
+  ' "side": "Buy"}], "ramp_cap_pct_per_bar": 0.05, "rate_limited": true, "scores": [{"score": 50.0,' +
+  ' "slot_idx": 0}], "sell_transition": false, "signal": "Hold",' +
+  ' "target_pct": 0.15054487864123794, "ts": 1770739200, "warmup": false}';
+
+/** 预热段 bar（idx 0，逐字摘录）：两新键**在**且为 `null`（策略未参与 ⇒ 不以 0 冒充）。 */
+const S15_RAW_WARMUP_BAR =
+  '{"affordability_capped": false, "aggregate": 50.0, "clamped_by_guard": false, "current_pct": null,' +
+  ' "deadzone_blocked": false, "down_ramp_cap_pct_per_bar": null, "events": [], "intent_pct": null,' +
+  ' "orders": [], "ramp_cap_pct_per_bar": null, "rate_limited": false, "scores": [{"score": 50.0,' +
+  ' "slot_idx": 0}], "sell_transition": false, "signal": "Hold", "target_pct": null, "ts": 1737907200,' +
+  ' "warmup": true}';
+
+/** 旧 run（ADR-029 之前，`total=1949`）的 bar：**两新键缺席**（逐字摘录）。 */
+const S15_LEGACY_RAW =
+  '{"aggregate": 50.0, "events": [], "orders": [], "scores": [{"score": 50.0, "slot_idx": 0}],' +
+  ' "signal": "Hold", "ts": 1785115800, "warmup": true}';
+
+describe('ADR-029 Step 1.5 §2.6（阶段 2）：两新键的**真实载荷**运行时锁', () => {
+  it('真实 run 载荷：评估段每根 bar 两新键齐全，且值域正确（`intent_pct` 是水位、`down_ramp…` 是速率预算）', () => {
+    for (const [label, raw] of [
+      ['Buy bar（意图 35% / 输出目标 5%）', S15_RAW_BUY_BAR],
+      ['Hold bar（Continue 继续推进）', S15_RAW_HOLD_CONTINUE_BAR],
+    ] as const) {
+      const rec = parseBar(raw);
+      for (const key of ['intent_pct', 'down_ramp_cap_pct_per_bar'] as const) {
+        expect(Object.prototype.hasOwnProperty.call(rec, key), `${label} 须含 ${key}`).toBe(true);
+      }
+      expect(typeof rec.intent_pct, `${label} intent_pct 须为 number`).toBe('number');
+      expect(rec.down_ramp_cap_pct_per_bar, `${label} down_ramp_cap_pct_per_bar 须 = down_pct_per_bar=0.2`).toBe(0.2);
+    }
+    // 非对称的直接证据（F4）：下行预算 0.2 ≠ 上行预算 0.05；若下行字段被忽略（缺省 = 对称），本断言必红。
+    const buy = parseBar(S15_RAW_BUY_BAR);
+    expect(buy.ramp_cap_pct_per_bar).toBe(0.05);
+    expect(buy.down_ramp_cap_pct_per_bar).toBe(0.2);
+    expect(buy.down_ramp_cap_pct_per_bar! / buy.ramp_cap_pct_per_bar!, '下行 4× 上行').toBe(4);
+    // 三层读数可辩：意图 ≠ 输出目标（限速未走完）—— 这正是 F1「意图不可见」被修复后的可观测事实。
+    expect(buy.intent_pct).toBe(0.35);
+    expect(buy.target_pct).toBe(0.05);
+    expect(Math.abs(buy.intent_pct! - buy.target_pct!), '|intent − target| = 0.30 源自限速').toBeCloseTo(0.3, 9);
+    expect(buy.rate_limited, '限速步骤确实压缩了本 bar 的目标变动').toBe(true);
+  });
+
+  it('`on_signal_break=Continue` 语义在观测键上可辨：信号转 Hold 后输出目标继续逼近意图（意图不变）', () => {
+    const buy = parseBar(S15_RAW_BUY_BAR);
+    const hold = parseBar(S15_RAW_HOLD_CONTINUE_BAR);
+    expect(hold.signal, '该 bar 无新声明（Hold）').toBe('Hold');
+    expect(hold.intent_pct, '意图沿用上一非 Hold bar（不因净值漂移重算）').toBe(buy.intent_pct);
+    expect(hold.target_pct! > buy.target_pct!, 'Continue ⇒ 中立带继续推进（Pause 下会冻结在上一目标）').toBe(true);
+    expect(Math.abs(hold.intent_pct! - hold.target_pct!) < Math.abs(buy.intent_pct! - buy.target_pct!), '差距在收敛').toBe(
+      true,
+    );
+  });
+
+  it('可空/缺席依据（反向锁）：预热段两键 `null`（≠ 0）；旧 run（1949 根）两键**缺席** ⇒ 类型须为可选 + `number|null`', () => {
+    const warm = parseBar(S15_RAW_WARMUP_BAR);
+    for (const key of ['intent_pct', 'down_ramp_cap_pct_per_bar'] as const) {
+      expect(Object.prototype.hasOwnProperty.call(warm, key), `预热 bar 须含 ${key}（值为 null）`).toBe(true);
+      expect(warm[key], `预热 bar ${key} 须为 null`).toBeNull();
+    }
+    // `null` ≠ 0：预热段（策略未参与）与「意图 0%」（清仓意图）是两个事实。
+    expect(warm.intent_pct).not.toBe(0);
+    expect(warm.ramp_cap_pct_per_bar).toBeNull();
+    // 旧 run：键缺席 ⇒ `undefined`（消费侧**不得**补 0 / 补 false）。
+    const legacy = parseBar(S15_LEGACY_RAW);
+    for (const key of ['intent_pct', 'down_ramp_cap_pct_per_bar'] as const) {
+      expect(Object.prototype.hasOwnProperty.call(legacy, key), `旧 run 须无 ${key}`).toBe(false);
+      expect(legacy[key]).toBeUndefined();
+    }
+  });
+});

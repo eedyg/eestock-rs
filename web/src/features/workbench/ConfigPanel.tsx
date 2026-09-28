@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type {
+  ExposureGuardSpec,
+  ExposureOnSignalBreak,
   ExposureRamp,
   ExposureSellPolicy,
   ExposureTarget,
@@ -17,7 +19,7 @@ import type {
 } from '@/api/types';
 // ADR-024 P0 §5.1：周期下拉由单一事实源（前端镜像常量）生成，不得手写第二份。
 import { SUPPORTED_BACKTEST_PERIODS } from '@/features/backtest/periods';
-import { fmtPct } from '@/features/backtest/format';
+import { fmtMoney, fmtPct } from '@/features/backtest/format';
 
 /** 表单内 slot 状态（数值字段以文本持有，提交时统一 parse/校验——与 TestRunPanel 同模式）。 */
 interface SlotForm {
@@ -111,16 +113,28 @@ export const EXPOSURE_DEFAULTS = {
   atFullPct: '0.5',
   sell: 'Flat',
   pctPerBar: '0.05',
+  /** ADR-029 Step 1.5 D12（**用户裁定** 2026-09-29）：**新配置**默认 `Continue` 且**显式写入** JSON
+   *  （显式值 ⇒ 可复现；不必依赖后端缺省 `Pause`）。
+   *  **回填纪律**：预设/历史 run **未带**该字段时**不得**新增（`''` = 未声明态，round-trip 逐字节保真）。 */
+  onSignalBreak: 'Continue',
   maxPct: '0.9',
   minPct: '0',
   deadzonePct: '0.005',
+  /** `down_pct_per_bar`（下行速率）与 `deadzone_min_notional`（死区金额门槛）默认**留空 = 省略**：
+   *  二者的缺省即现行语义（对称 / 纯比例口径），给新配置凭空写值会引入不必要的行为位移。 */
+  downPctPerBar: '',
+  deadzoneMinNotional: '',
   ramp: 'RateCap',
 } as const;
 
-/** ADR-029 R1/R5 **量纲**说明（三个量纲不同名同心，必须在表单处显式区分）。 */
+/** ADR-029 R1/R5/D12 **量纲**说明（多个量纲不同名同心，必须在表单处显式区分）。 */
 export const EXPOSURE_DIM_NOTE =
   '量纲：at_threshold_pct / at_full_pct / max_pct / min_pct = 净值占比（0..1）；' +
-  'pct_per_bar = 每 bar 允许变动金额 / 净值；deadzone_pct = 暴露比例差（与 position_ratio 同量纲）。';
+  'pct_per_bar / down_pct_per_bar = 每 bar 允许变动金额 / 净值（前者上行、后者下行）；' +
+  'deadzone_pct = 暴露比例差（与 position_ratio 同量纲）；deadzone_min_notional = **元**（死区金额门槛）。';
+
+/** D14：`min_fee` 主导的**最小再平衡规模**倍数（建议值 `deadzone_min_notional = 20 × min_fee`）。 */
+export const MIN_REBALANCE_FEE_MULTIPLE = 20;
 
 /** 预设 config 规范化序列化（脏检测比较用；钉住/未钉住形态先归一为未钉住）。 */
 function canonicalConfig(cfg: WorkbenchPresetConfigInput): string {
@@ -248,9 +262,16 @@ export function ConfigPanel({
   const [exposureSell, setExposureSell] = useState<ExposureSellPolicy>(EXPOSURE_DEFAULTS.sell);
   const [rampKind, setRampKind] = useState<ExposureRampKind>(EXPOSURE_DEFAULTS.ramp);
   const [pctPerBar, setPctPerBar] = useState<string>(EXPOSURE_DEFAULTS.pctPerBar);
+  // ADR-029 Step 1.5 D12：`down_pct_per_bar`（下行速率；留空 = 省略 = 对称）——仅 `RateCap`。
+  const [downPctPerBar, setDownPctPerBar] = useState<string>(EXPOSURE_DEFAULTS.downPctPerBar);
+  /** ADR-029 Step 1.5 D12：`on_signal_break`（仅 `RateCap`）。三态：`'Pause' | 'Continue' | ''`
+   *  —— `''` = **未声明**（运行期缺省 `Pause` = 现行语义），用于预设/历史 run 的**保真回填**。 */
+  const [onSignalBreak, setOnSignalBreak] = useState<ExposureOnSignalBreak | ''>(EXPOSURE_DEFAULTS.onSignalBreak);
   const [guardMaxPct, setGuardMaxPct] = useState<string>(EXPOSURE_DEFAULTS.maxPct);
   const [guardMinPct, setGuardMinPct] = useState<string>(EXPOSURE_DEFAULTS.minPct);
   const [guardDeadzonePct, setGuardDeadzonePct] = useState<string>(EXPOSURE_DEFAULTS.deadzonePct);
+  /** ADR-029 Step 1.5 D14：`deadzone_min_notional`（**元**；留空 = 省略 = 纯比例口径）。 */
+  const [guardDeadzoneMinNotional, setGuardDeadzoneMinNotional] = useState<string>(EXPOSURE_DEFAULTS.deadzoneMinNotional);
   const [stopEnabled, setStopEnabled] = useState(false);
   const [stopKind, setStopKind] = useState<'FixedPct' | 'Trailing' | 'Atr'>('FixedPct');
   const [stopValue, setStopValue] = useState('0.08');
@@ -285,6 +306,30 @@ export function ConfigPanel({
 
   const minDay = isoToDay(availRange?.available_from);
   const maxDay = isoToDay(availRange?.available_to);
+
+  /**
+   * ADR-029 Step 1.5 D14（F5 成本盲区）成本提示：**死区门槛**（元）= `deadzone_pct × 初始资金`；
+   * 低于 `20 × min_fee` ⇒ 该规模下的再平衡佣金**由 `min_fee` 主导**（单笔实际费率远高于名义）。
+   * 数值**全部取自面板输入**（`deadzone_pct` / `initial_capital` / `min_fee`），**不硬编码费用**；
+   * 一键预填值 = `20 × min_fee`（D14 分层纪律：domain 不依赖费模型 ⇒ 金额门槛由配置给出、UI 推导建议值）。
+   */
+  const costHint = useMemo(() => {
+    if (policyKind !== 'Exposure') return null;
+    const dz = Number(guardDeadzonePct);
+    const cap = Number(initialCapital);
+    const minFee = Number(feeMin);
+    if (![dz, cap, minFee].every((v) => Number.isFinite(v))) return null;
+    if (!(cap > 0) || !(minFee > 0) || dz < 0) return null;
+    const deadzoneNotional = dz * cap;
+    const recommended = MIN_REBALANCE_FEE_MULTIPLE * minFee;
+    if (!(deadzoneNotional < recommended)) return null;
+    return {
+      deadzoneNotional,
+      recommended,
+      /** 单笔佣金占比 = `min_fee / 死区门槛`；`deadzone_pct = 0`（无门槛）⇒ `null`（**不造数**）。 */
+      perTradePct: dz > 0 ? minFee / deadzoneNotional : null,
+    };
+  }, [policyKind, guardDeadzonePct, initialCapital, feeMin]);
 
   const addable = (catalog ?? []).filter((e) => !slots.some((s) => s.versionId === e.version.id));
 
@@ -361,7 +406,22 @@ export function ConfigPanel({
         if (!Number.isFinite(per) || per <= 0) {
           return { err: 'ramp.pct_per_bar（每 bar 允许变动金额 / 净值）须 > 0' };
         }
-        ramp = { RateCap: { pct_per_bar: per } };
+        const rcap: { pct_per_bar: number; down_pct_per_bar?: number; on_signal_break?: ExposureOnSignalBreak } = {
+          pct_per_bar: per,
+        };
+        // ADR-029 Step 1.5 D12（E18）：下行速率预算。**留空 = 省略**（= 对称，与现行逐字节一致）；
+        // `0` 合法且**必须显式写入**（0 = 下行不限速 ≠ 「缺省对称」）。
+        if (downPctPerBar.trim() !== '') {
+          const down = Number(downPctPerBar);
+          if (!Number.isFinite(down) || down < 0) {
+            return { err: 'ramp.down_pct_per_bar（每 bar 允许变动金额 / 净值；0 = 下行不限速）须 ≥ 0' };
+          }
+          rcap.down_pct_per_bar = down;
+        }
+        // ADR-029 Step 1.5 D12：`''` = 未声明（预设/历史 run 未带该字段）⇒ **不写键**（round-trip 保真）；
+        // 新配置默认 `Continue` 并显式写入（用户裁定：显式值 ⇒ 可复现，不依赖后端缺省 `Pause`）。
+        if (onSignalBreak !== '') rcap.on_signal_break = onSignalBreak;
+        ramp = { RateCap: rcap };
       }
       let target: ExposureTarget;
       if (exposureTarget === 'Fixed') {
@@ -395,7 +455,18 @@ export function ConfigPanel({
         }
         target = { ScoreMapped: { at_threshold_pct: at, at_full_pct: full, sell: exposureSell } };
       }
-      policy = { Exposure: { target, ramp, guard: { max_pct: maxPct, min_pct: minPct, deadzone_pct: dz } } };
+      // ADR-029 Step 1.5 D14（E23）：死区**金额门槛**（元）。**留空 = 省略**（`None` = 纯比例口径，与现行逐字节一致）。
+      const guard: ExposureGuardSpec = { max_pct: maxPct, min_pct: minPct, deadzone_pct: dz };
+      if (guardDeadzoneMinNotional.trim() !== '') {
+        const mn = Number(guardDeadzoneMinNotional);
+        if (!Number.isFinite(mn) || mn < 0) {
+          return {
+            err: 'guard.deadzone_min_notional（元；死区阈值 = max(deadzone_pct × equity, deadzone_min_notional)）须 ≥ 0',
+          };
+        }
+        guard.deadzone_min_notional = mn;
+      }
+      policy = { Exposure: { target, ramp, guard } };
     }
     let stop: WorkbenchStop | null = null;
     if (stopEnabled) {
@@ -511,13 +582,22 @@ export function ConfigPanel({
         }
         if ('Immediate' in ex.ramp) {
           setRampKind('Immediate');
+          // `Immediate` 无下行速率/信号中断语义（字段只属 `RateCap`）⇒ 两态置「未声明」
+          setDownPctPerBar('');
+          setOnSignalBreak('');
         } else {
           setRampKind('RateCap');
           setPctPerBar(String(ex.ramp.RateCap.pct_per_bar));
+          // ADR-029 Step 1.5（默认值纪律）：**未带即不补** —— `undefined` ⇒ `''`（未声明）⇒ 提交时不写该键。
+          const down = ex.ramp.RateCap.down_pct_per_bar;
+          setDownPctPerBar(down === undefined || down === null ? '' : String(down));
+          setOnSignalBreak(ex.ramp.RateCap.on_signal_break ?? '');
         }
         setGuardMaxPct(String(ex.guard.max_pct));
         setGuardMinPct(String(ex.guard.min_pct));
         setGuardDeadzonePct(String(ex.guard.deadzone_pct));
+        const minNotional = ex.guard.deadzone_min_notional;
+        setGuardDeadzoneMinNotional(minNotional === undefined || minNotional === null ? '' : String(minNotional));
       }
       if (cfg.stop) {
         setStopEnabled(true);
@@ -908,6 +988,27 @@ export function ConfigPanel({
                   <input type="number" className={INPUT} value={pctPerBar} min={0} step="any" onChange={(e) => setPctPerBar(e.target.value)} data-testid="wb-ramp-pct-per-bar" />
                 </label>
               )}
+              {rampKind === 'RateCap' && (
+                <label className={LABEL}>
+                  {'down_pct_per_bar（下行；每 bar 允许变动金额 / 净值；0 = 下行不限速；留空 = 对称）'}
+                  <input type="number" className={INPUT} value={downPctPerBar} min={0} step="any" onChange={(e) => setDownPctPerBar(e.target.value)} data-testid="wb-exposure-down-pct-per-bar" />
+                </label>
+              )}
+              {rampKind === 'RateCap' && (
+                <label className={LABEL}>
+                  on_signal_break（中立带：信号中断后未走完的路径如何处置）
+                  <select
+                    className={INPUT}
+                    value={onSignalBreak}
+                    onChange={(e) => setOnSignalBreak(e.target.value as ExposureOnSignalBreak | '')}
+                    data-testid="wb-exposure-on-signal-break"
+                  >
+                    <option value="Continue">Continue — 中立带继续朝「意图」推进（新配置默认）</option>
+                    <option value="Pause">Pause — 输出目标冻结在上一目标（停在中途）</option>
+                    <option value="">未声明（运行期缺省 = Pause，现行语义；不写该字段）</option>
+                  </select>
+                </label>
+              )}
             </div>
             {/* ③ 硬边界维 guard（ADR-029 D5/D8） */}
             <div className="grid grid-cols-3 gap-2">
@@ -923,7 +1024,43 @@ export function ConfigPanel({
                 deadzone_pct（暴露比例差）
                 <input type="number" className={INPUT} value={guardDeadzonePct} min={0} step="any" onChange={(e) => setGuardDeadzonePct(e.target.value)} data-testid="wb-guard-deadzone-pct" />
               </label>
+              <label className={LABEL}>
+                deadzone_min_notional（**元**；留空 = 仅比例口径）
+                <input
+                  type="number"
+                  className={INPUT}
+                  value={guardDeadzoneMinNotional}
+                  min={0}
+                  step="any"
+                  placeholder="省略 = 仅比例"
+                  onChange={(e) => setGuardDeadzoneMinNotional(e.target.value)}
+                  data-testid="wb-exposure-deadzone-min-notional"
+                />
+              </label>
             </div>
+            {/* ④ D14/C：成本提示（`min_fee` 主导的小额再平衡）+ 一键预填（数值取自面板输入，不硬编码） */}
+            {costHint && (
+              <div
+                className="flex flex-col gap-1 rounded-lg border border-amber-300/40 bg-amber-300/10 px-2 py-1 text-[11px] text-amber-200/90"
+                data-testid="wb-exposure-cost-hint"
+              >
+                <div>
+                  {`成本提示：最小再平衡规模 ≈ ${fmtMoney(costHint.deadzoneNotional)}（死区门槛 = deadzone_pct ${fmtPct(Number(guardDeadzonePct), 2)} × 初始资金 ${fmtMoney(Number(initialCapital))}）< ${MIN_REBALANCE_FEE_MULTIPLE} × min_fee ${fmtMoney(costHint.recommended)} ⇒ 该规模的再平衡佣金**由 min_fee 主导**：单笔佣金占比 ≈ ${
+                    costHint.perTradePct === null ? '不可计算（deadzone_pct = 0）' : fmtPct(costHint.perTradePct, 1)
+                  }（名义佣金率 ${fmtPct(Number(feeRate) / 100, 3)}）。`}
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-line px-2 py-0.5 text-dim hover:text-txt"
+                    onClick={() => setGuardDeadzoneMinNotional(String(Number(costHint.recommended.toFixed(6))))}
+                    data-testid="wb-exposure-cost-prefill"
+                  >
+                    {`一键预填 deadzone_min_notional = ${MIN_REBALANCE_FEE_MULTIPLE} × min_fee = ${fmtMoney(costHint.recommended)}`}
+                  </button>
+                </div>
+              </div>
+            )}
             {/* ④ ADR-029 D7/R1/R5/R6 披露（配置处）：总分 ≠ 仓位 + 映射端点 + 两支卖出语义 + 量纲 */}
             <div className="flex flex-col gap-0.5 text-[11px] text-dim" data-testid="wb-exposure-disclosure">
               <div>
@@ -939,12 +1076,32 @@ export function ConfigPanel({
                     }）`}
                 {'；'}路径 ramp={
                   rampKind === 'Immediate'
-                    ? 'Immediate（当 bar 目标即全额）'
-                    : `RateCap：每 bar 目标变动 ≤ pct_per_bar=${fmtPct(Number(pctPerBar))}（净值）`
+                    ? 'Immediate（当 bar 目标即全额；该变体**无** `on_signal_break`，恒取 Pause 语义）'
+                    : `RateCap：上行 pct_per_bar=${fmtPct(Number(pctPerBar))}（净值）/ 下行 down_pct_per_bar=${
+                        downPctPerBar.trim() === '' ? `${fmtPct(Number(pctPerBar))}（未声明 ⇒ 对称）` : fmtPct(Number(downPctPerBar))
+                      }${
+                        Number(downPctPerBar) === 0 && downPctPerBar.trim() !== '' ? '（0 = 下行不限速）' : ''
+                      }；信号中断 on_signal_break=${
+                        onSignalBreak === ''
+                          ? '未声明（运行期缺省 = Pause = 现行语义）'
+                          : `${onSignalBreak}（${
+                              onSignalBreak === 'Pause' ? '中立带冻结在上一输出目标，路径停在中途' : '中立带继续朝意图推进'
+                            }）`
+                      }`
                 }
                 {'；'}硬边界 guard：{
-                  `max_pct=${fmtPct(Number(guardMaxPct))}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(Number(guardMinPct))} / deadzone_pct=${fmtPct(Number(guardDeadzonePct), 2)}（|目标 − 当前暴露| < 死区 ⇒ 不下单）。`
+                  `max_pct=${fmtPct(Number(guardMaxPct))}（强制夹取，策略无权覆盖）/ min_pct=${fmtPct(Number(guardMinPct))} / deadzone_pct=${fmtPct(Number(guardDeadzonePct), 2)}（|目标 − 当前暴露| < 死区 ⇒ 不下单）${
+                    guardDeadzoneMinNotional.trim() === ''
+                      ? ''
+                      : ` / deadzone_min_notional=${fmtMoney(Number(guardDeadzoneMinNotional))}（元；阈值 = max(deadzone_pct × equity, 该值)）`
+                  }。`
                 }
+              </div>
+              {/* §2.5 注（量纲披露，不得当作缺陷）：死区是**意图 gap 门**，不是订单规模下限 */}
+              <div data-testid="wb-exposure-deadzone-note" className="text-amber-300/80">
+                死区是**意图 gap 门**、**不是订单规模下限**：它拦的是「意图与当前的水位差」，限速可把单笔订单切到死区之下
+                （有意行为，非缺陷）；`deadzone_min_notional` 只抬高**门槛**，不改变这一点。死区阈值的金额口径 =
+                max(deadzone_pct × equity, deadzone_min_notional)。
               </div>
               <div data-testid="wb-exposure-dim-note">{EXPOSURE_DIM_NOTE}</div>
               {/* E15/E16（契约补充）：非零 min_pct **不阻塞清仓** —— 避免「设了下限就不会空仓」的误读 */}

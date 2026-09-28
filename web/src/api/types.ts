@@ -1001,18 +1001,45 @@ export type ExposureTarget =
   | { Fixed: { pct: number } }
   | { ScoreMapped: { at_threshold_pct: number; at_full_pct: number; sell: ExposureSellPolicy } };
 
-/** ADR-029 D4：`ramp` **到达方式**维（Step 1 仅两个基元）。
- *  - `Immediate`：当 bar 目标即全额（= 现行 `LumpSum` 的路径）；serde 单元变体 ⇒ 载荷为 `null`；
- *  - `RateCap`：每 bar 目标变动上限 `pct_per_bar`（量纲 = 每 bar 允许变动**金额 / 净值**）。 */
-export type ExposureRamp = { Immediate: null } | { RateCap: { pct_per_bar: number } };
+/** ADR-029 D12（Step 1.5）：信号中断后**未走完路径**的语义（`on_signal_break`）。
+ *  - `Pause`（**缺省** = 现行语义）：中立带（本 bar 无新声明）输出目标**冻结在上一输出目标**；
+ *  - `Continue`：中立带继续朝**意图**推进（`intent` 按当前净值折算）。
+ *  **只存在于 `RateCap`**：`Immediate` 无路径状态可暂停 ⇒ 不设该字段（恒取 `Pause` 语义，ADR-029 §8.3 R37）。 */
+export type ExposureOnSignalBreak = 'Pause' | 'Continue';
 
-/** ADR-029 D5/D8：`guard` **硬边界**维。
+/** ADR-029 D4：`ramp` **到达方式**维。
+ *  - `Immediate`：当 bar 目标即全额（= 现行 `LumpSum` 的路径）；serde 单元变体 ⇒ 载荷为 `null`；
+ *  - `RateCap`：每 bar 目标变动上限
+ *    - `pct_per_bar`（**上行**预算；量纲 = 每 bar 允许变动**金额 / 净值**）；
+ *    - `down_pct_per_bar?`（**Step 1.5 新增，下行**预算，同量纲）：**省略 = 对称**（= `pct_per_bar`）；
+ *      `0` = **下行不限速**（本 bar 目标可直达意图，仍不得越过意图）；缺省省略 ⇒ 与现行逐字节一致；
+ *    - `on_signal_break?`（Step 1.5 新增）：省略 = `Pause`（现行语义）。**只有 `RateCap` 有该字段**。 */
+export type ExposureRamp =
+  | { Immediate: null }
+  | {
+      RateCap: {
+        pct_per_bar: number;
+        /** 下行速率预算（占净值比/bar）；省略 = 对称；`0` = 下行不限速。 */
+        down_pct_per_bar?: number;
+        /** 中立带语义；省略 = `Pause`。 */
+        on_signal_break?: ExposureOnSignalBreak;
+      };
+    };
+
+/** ADR-029 D5/D8 + Step 1.5 D14：`guard` **硬边界**维。
  *  `max_pct` 强制夹取（策略无权覆盖）、`min_pct` 下限、`deadzone_pct` 死区
- *  （`|目标 − 当前暴露| < deadzone_pct` ⇒ 不下单；量纲 = **暴露比例差**，与 `position_ratio` 同量纲）。 */
+ *  （`|目标 − 当前暴露| < deadzone_pct` ⇒ 不下单；量纲 = **暴露比例差**，与 `position_ratio` 同量纲）；
+ *  `deadzone_min_notional?`（Step 1.5 新增，**元**）：死区**金额门槛**，阈值 =
+ *  `max(deadzone_pct × equity, deadzone_min_notional)`；**省略 = None** = 现行纯比例口径（逐字节一致）。
+ *
+ *  ⚠ 量纲披露（`06-plan` §2.5 注，**不得当作缺陷**）：死区是**意图 gap 门**，**不是订单规模下限** ——
+ *  限速可把单笔订单切到死区之下（ADR-029 E12 有意钉死）；`deadzone_min_notional` 只抬高**门槛**。 */
 export interface ExposureGuardSpec {
   max_pct: number;
   min_pct: number;
   deadzone_pct: number;
+  /** 死区金额门槛（**元**）；省略 = 仅比例口径。 */
+  deadzone_min_notional?: number;
 }
 
 /** ADR-029 D3–D5：`ExecutionPolicy::Exposure` 直通 JSON 形状（`target` × `ramp` × `guard`）。 */
@@ -1169,11 +1196,20 @@ export interface WorkbenchBarRecord {
    *  （true 250 = `warmup_effective` / false 177），legacy run 1949/1949 根含。 */
   warmup?: boolean;
   // ── ADR-029 D7/E10：`Exposure` 模式的逐 bar 观测（Step 1 Rust 车道就绪后出现；旧 run / 旧变体缺省）──
-  /** 目标暴露（净值占比 0..1，已含 `guard.max_pct` 夹取后的取值）。
+  /** **意图**暴露（净值占比 0..1）：本 bar 「分数映射 + `guard` 夹取」后**想持有**的水位
+   *  （ADR-029 Step 1.5 D11 §2.2 第一层）——**死区/限速不影响它**（F1「意图不可见」的修复）。
+   *  `null` = 预热段（策略未参与）/ 非 Exposure / 本批之前的旧 run **无该键**（`undefined`）
+   *  ⇒ 消费侧**不得**读成 0：「意图 0%」（清仓意图）与「意图未记录」是两个事实。 */
+  intent_pct?: number | null;
+  /** 目标暴露（**输出目标**，净值占比 0..1，已含 `guard.max_pct` 夹取后的取值；语义同 Step 1）。
    *  预热段为 `null`（策略未参与，**不得**读成 0）。 */
   target_pct?: number | null;
   /** 当前实际暴露（净值占比 0..1）。预热段为 `null`。 */
   current_pct?: number | null;
+  /** **本 bar 下行速率预算**占净值比（ADR-029 Step 1.5 D12 §2.6）：`RateCap` ⇒
+   *  `down_pct_per_bar ?? pct_per_bar`（`0` = 下行不限速）；`Immediate` / 预热段 / 旧 run ⇒ `null`。
+   *  量纲与 `ramp_cap_pct_per_bar`（上行）**相同**、**不可**与 `intent_pct`/`target_pct`（水位）混读。 */
+  down_ramp_cap_pct_per_bar?: number | null;
   /** `RateCap` 的**每 bar 速率预算**（量纲 = 每 bar 允许的目标变动**金额 / 决策 bar 收盘净值** ⇒ 占净值比/bar，
    *  如 `0.05` = 5%/bar；依据 `crates/strategy-core/src/policy.rs` pipeline ⑤ `cap_qty = pct_per_bar × equity / price`）。
    *  `null` = 该 run 的 `ramp` **非** `RateCap`（无速率预算，如 `Immediate`）或预热段 ⇒ **不得**读成 0。
@@ -1353,6 +1389,62 @@ export interface WorkbenchAuditWarning {
   message: string;
 }
 
+/** ADR-029 Step 1.5 D15/E24（`06-plan` §3.1）：`/audit` 的**结构化曝光披露段**（`exposure`）。
+ *
+ *  **键集口径**（2026-09-29 核对）：Rust `ExposureAudit` 结构体共 18 字段，其中 `warnings` 为
+ *  `#[serde(skip_serializing)]`（读侧已并入顶层 `warnings[]`——同一事实只一个出口）⇒ **线上段 = 17 键**，
+ * 与 `06-plan` §3.1 样例逐字对应；`crates/application/src/audit.rs::ExposureAudit` 为产出侧事实源，
+ * 键集镜像锁见 `web/src/api/exposureAuditKeys.test.ts`。
+ *
+ * **可空字段的两种含义必须区分**：
+ *  - `null` = 「不可得/无数据」（无成交额 ⇒ 名义费率不可得；旧 run 无 `intent_pct` ⇒ 意图口径无数据）；
+ *  - `0` = 真实读数零。UI **不得**把 `null` 渲染成 0（ADR-024 D10 禁静默有损）。
+ *
+ * 两层 gap 口径（**名称相近、口径不同**，禁止互相解释）：
+ *  - `max_target_gap` = **执行层**：`max_t |target_pct_t − current_pct_{t+1}|`（= Step 1 的 `max_intent_gap`
+ *    改名，告警码 `EXPOSURE_INTENT_GAP` 名称/语义不变）；
+ *  - `max_intent_gap` = **意图层**：`max_t |intent_pct_t − current_pct_{t+1}|`。
+ *  两者均为**滞后一 bar 对齐**（决策 bar 收盘挂单、次 bar 开盘成交），末根无 `t+1` ⇒ 不计。
+ */
+export interface WorkbenchExposureAudit {
+  /** 参与统计的评估段 bar 数（有观测者；不含预热）。 */
+  bars: number;
+  /** 评估段挂单数。 */
+  orders: number;
+  /** `orders / bars`（`bars = 0` ⇒ 0）。 */
+  orders_per_bar: number;
+  /** 评估段费用（佣金 + 印花税）。 */
+  fees: number;
+  /** `fees / capital_basis`（**分母 = 初始资金**，不是成交额——与 `cost_amplification` 的分子分母不同）。 */
+  fee_pct: number;
+  /** 名义佣金率（`rate_pct / 100`）；**无成交额 ⇒ `null`**。 */
+  nominal_fee_rate: number | null;
+  /** 成本放大 = 实际佣金率 / 名义佣金率（`≥ 10` 且 `fee_pct ≥ 0.05%` ⇒ `EXPOSURE_COST_DRAG`）；
+   *  无成交额 / 名义费率 0 ⇒ `null`（不得造数）。 */
+  cost_amplification: number | null;
+  /** **执行层**最大目标差（输出目标 vs 实际，滞后一 bar）；`EXPOSURE_INTENT_GAP` 判据源（阈值 0.05）。 */
+  max_target_gap: number;
+  /** 取到 `max_target_gap` 的决策 bar 序号；无观测/全段无差 ⇒ `null`。 */
+  max_target_gap_bar: number | null;
+  /** **意图层**最大意图差（声明意图 vs 实际）；无 `intent_pct` 数据（旧 run）⇒ `null`。
+   *  `EXPOSURE_UNMET_INTENT` 判据源（阈值 0.05）。 */
+  max_intent_gap: number | null;
+  /** 取到 `max_intent_gap` 的决策 bar 序号；无数据/全段无差 ⇒ `null`。 */
+  max_intent_gap_bar: number | null;
+  /** `|intent_pct − target_pct| > deadzone_pct` 的 bar 计数；无意图数据或阈值不可得 ⇒ `null`。 */
+  unmet_intent_bars: number | null;
+  /** guard 夹取 bar 数。 */
+  clamped_bars: number;
+  /** 死区拦下 bar 数（占比 = `deadzone_blocked_bars / bars`）。 */
+  deadzone_blocked_bars: number;
+  /** 限速命中 bar 数。 */
+  rate_limited_bars: number;
+  /** 跨卖出档边界 bar 数。 */
+  sell_transition_bars: number;
+  /** 因现金不可达被下调目标的 bar 数（ADR-029 E17）。 */
+  affordability_capped_bars: number;
+}
+
 /**
  * 执行完整度审计（GET /api/workbench/runs/{id}/audit；ADR-026 §2.2 **冻结**契约，snake_case 直通，
  * 字段名以真实响应为事实源）。
@@ -1399,6 +1491,10 @@ export interface WorkbenchRunAudit {
     tolerance: number;
   };
   warnings: WorkbenchAuditWarning[];
+  /** **ADR-029 Step 1.5 D15/E24**：结构化曝光段（追加在 `warnings` 之后，其余键序不变）。
+   *  非 `Exposure` 策略 / 无观测 / `recorded=false` ⇒ `null`（「无此语义」与「零值」必须可区分）。
+   *  **可选**：产出侧恒写该键（含 `null`），消费侧容差（mock/fixture 与 Step 1.5 之前的后端可缺）。 */
+  exposure?: WorkbenchExposureAudit | null;
 }
 
 /** StrategyRunResult（GET /api/workbench/runs/{id}/result；ADR-024 §3.2 **兼容** 形状）。

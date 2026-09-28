@@ -839,3 +839,236 @@ describe('ResultView（ADR-029 Step 1：目标暴露 + 逐 bar 观测披露）',
     expect(screen.queryByTestId('wb-result-exposure-disclosure')).toBeNull();
   });
 });
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════
+ * ADR-029 Step 1.5（D11/D15）Web 车道 C3：三层读数披露（意图 / 输出目标 / 当前持仓）、
+ * 审计 `exposure` 段（gap / 未达成意图 / 死区占比 / 成本放大）与 **`null` 处理**（独立复验 R6）。
+ *
+ * 契约事实源：`design/12-strategy-system/06-plan-exposure-step1_5.md` §2.2（三层语义）/§2.6（观测键）/
+ * §3.1（审计 `exposure` 段 17 键样例）；ADR-029 §8 D11/D15。
+ * ════════════════════════════════════════════════════════════════════════════════════════════ */
+describe('ResultView（ADR-029 Step 1.5：意图披露 + 审计 exposure 段 + null 处理）', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /** Step 1.5 形态的 Exposure 策略（RateCap 缺省 `on_signal_break` ⇒ 运行期 Pause）。 */
+  const E15_POLICY = {
+    Exposure: {
+      target: { ScoreMapped: { at_threshold_pct: 0.2, at_full_pct: 0.5, sell: 'Scaled' as const } },
+      ramp: { RateCap: { pct_per_bar: 0.05, down_pct_per_bar: 0.2 } },
+      guard: { max_pct: 0.9, min_pct: 0, deadzone_pct: 0.005, deadzone_min_notional: 100 },
+    },
+  };
+  const E15_POLICY_CONTINUE = {
+    Exposure: {
+      ...E15_POLICY.Exposure,
+      ramp: { RateCap: { pct_per_bar: 0.05, down_pct_per_bar: 0.2, on_signal_break: 'Continue' as const } },
+    },
+  };
+
+  /** 审计 `exposure` 段（逐字取自 06-plan §3.1 样例形状；数值为真值样例）。 */
+  const EXPOSURE_AUDIT = {
+    bars: 1810,
+    orders: 58,
+    orders_per_bar: 0.0319,
+    fees: 297.8804660338809,
+    fee_pct: 0.0029788,
+    nominal_fee_rate: 0.00025,
+    cost_amplification: 32.0,
+    max_target_gap: 0.010216,
+    max_target_gap_bar: 1599,
+    max_intent_gap: 0.031,
+    max_intent_gap_bar: 1234,
+    unmet_intent_bars: 12,
+    clamped_bars: 0,
+    deadzone_blocked_bars: 1760,
+    rate_limited_bars: 6,
+    sell_transition_bars: 0,
+    affordability_capped_bars: 0,
+  };
+
+  function withPolicy(run: WorkbenchRunView, policy: WorkbenchRunView['config']['policy']): WorkbenchRunView {
+    return { ...run, config: { ...run.config, policy } };
+  }
+
+  /**
+   * R6 必查项：预热段的 `per_bar` **带键但值为 `null`**（真实读数，见 `perBarObservationKeys.test.ts`
+   * 的 `RC_RAW_WARMUP`）⇒ 过滤谓词必须排除 `null`，否则「已加载 N 根」把预热段计入（虚高）、
+   * 末值读数取到 `null` 并显示成「—」（= 把「未记录」当读数展示）。
+   */
+  it('R6/null：预热段（键在但 `null`）不得计入观测根数，也不得成为末值读数', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: EXPOSURE_AUDIT })));
+    const { run, result } = await seedRunAndResult(client);
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 6).map((r, i) => ({
+      ...r,
+      warmup: i < 3,
+      // 预热 3 根：键在、值 `null`（不得读成 0）；后 3 根为真实观测
+      target_pct: i < 3 ? null : 0.4,
+      current_pct: i < 3 ? null : 0.38,
+      intent_pct: i < 3 ? null : 0.42,
+      down_ramp_cap_pct_per_bar: i < 3 ? null : 0.2,
+      deadzone_blocked: i === 3 || i === 4,
+      rate_limited: i === 3,
+    }));
+    const withObs = { ...result, per_bar: rows } as WorkbenchRunResult;
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), withObs, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+
+    const observed = await screen.findByTestId('wb-exposure-observed');
+    // 分母 = **3**（有真实读数者），不是 6（键在即计 = 虚高）
+    expect(observed).toHaveTextContent('已加载 3 根');
+    expect(observed).not.toHaveTextContent('已加载 6 根');
+    // 末值读数取自末根**真实**观测（不得显示 —/null）
+    expect(observed).toHaveTextContent('目标 40.0%');
+    expect(observed).toHaveTextContent('当前 38.0%');
+    // 死区拦截 2 bar（i=3、4；预热 3 根的 `false` 不计）；限速 1 bar
+    expect(observed).toHaveTextContent('死区拦截 2 bar');
+    expect(observed).toHaveTextContent('限速 1 bar');
+    expect(screen.queryByTestId('wb-exposure-unrecorded')).toBeNull();
+  });
+
+  it('R6/null：全为 `null`（预热段或非 Exposure 观测）⇒ 显式「未记录」，**不得**显「目标 —」', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: null })));
+    const { run, result } = await seedRunAndResult(client);
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 3).map((r) => ({
+      ...r,
+      warmup: true,
+      target_pct: null,
+      current_pct: null,
+      intent_pct: null,
+      down_ramp_cap_pct_per_bar: null,
+    }));
+    const allNull = { ...result, per_bar: rows } as WorkbenchRunResult;
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), allNull, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    expect(await screen.findByTestId('wb-exposure-unrecorded')).toBeInTheDocument();
+    expect(screen.queryByTestId('wb-exposure-observed')).toBeNull();
+    // 审计段亦为 `null` ⇒ 「未记录」（不得把 0 当读数）
+    expect(screen.getByTestId('wb-result-exposure-audit-unrecorded')).toBeInTheDocument();
+  });
+
+  it('D11：三层读数同时披露（意图 / 输出目标 / 当前持仓）+ 消歧文案；`intent_pct` 缺键 ⇒ 显「未记录」而非 0', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: EXPOSURE_AUDIT })));
+    const { run, result } = await seedRunAndResult(client);
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 4).map((r, i) => ({
+      ...r,
+      warmup: false,
+      target_pct: 0.4,
+      current_pct: 0.38,
+      // 前两根缺 `intent_pct` 键（旧 run 容差），后两根有值
+      ...(i < 2 ? {} : { intent_pct: 0.42 }),
+      down_ramp_cap_pct_per_bar: 0.2,
+    }));
+    const withObs = { ...result, per_bar: rows } as WorkbenchRunResult;
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), withObs, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+
+    const readings = await screen.findByTestId('wb-result-exposure-readings');
+    expect(readings).toHaveTextContent('意图');
+    expect(readings).toHaveTextContent('42.0%');
+    expect(readings).toHaveTextContent('输出目标');
+    expect(readings).toHaveTextContent('40.0%');
+    expect(readings).toHaveTextContent('当前持仓');
+    expect(readings).toHaveTextContent('38.0%');
+    // 消歧：三个名字的**口径**必须写清（这正是 F1「意图不可见」的修复）
+    expect(readings).toHaveTextContent('死区/限速');
+    expect(readings).toHaveTextContent('次 bar');
+  });
+
+  it('D11/F1：`intent_pct` 全缺（Step 1 旧 run）⇒ 意图显「未记录」，**不得**以 0 冒充', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: null })));
+    const { run, result } = await seedRunAndResult(client);
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 3).map((r) => ({
+      ...r,
+      warmup: false,
+      target_pct: 0.4,
+      current_pct: 0.38,
+    }));
+    const noIntent = { ...result, per_bar: rows } as WorkbenchRunResult;
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), noIntent, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    const readings = await screen.findByTestId('wb-result-exposure-readings');
+    expect(readings).toHaveTextContent('未记录');
+    expect(readings).not.toHaveTextContent('意图 0.0%');
+  });
+
+  it('D15：审计 `exposure` 段披露（gap 双层 / 未达成意图 / 死区拦截占比 / 成本放大 + 实际 vs 名义费率消歧）', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: EXPOSURE_AUDIT })));
+    const { run, result } = await seedRunAndResult(client);
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+
+    const auditBox = await screen.findByTestId('wb-result-exposure-audit');
+    expect(auditBox).toHaveTextContent('1810'); // 评估段 bar 数
+    const gaps = screen.getByTestId('wb-result-exposure-audit-gaps');
+    expect(gaps).toHaveTextContent('max_target_gap');
+    expect(gaps).toHaveTextContent('1.02%'); // 0.010216
+    expect(gaps).toHaveTextContent('执行层');
+    expect(gaps).toHaveTextContent('max_intent_gap');
+    expect(gaps).toHaveTextContent('3.10%'); // 0.031
+    expect(gaps).toHaveTextContent('unmet_intent_bars');
+    expect(gaps).toHaveTextContent('12');
+    const counters = screen.getByTestId('wb-result-exposure-audit-counters');
+    // 死区拦截占比 = 1760 / 1810 = 97.2%
+    expect(counters).toHaveTextContent('97.2%');
+    const cost = screen.getByTestId('wb-result-exposure-audit-cost');
+    expect(cost).toHaveTextContent('cost_amplification');
+    expect(cost).toHaveTextContent('32.0');
+    // 消歧：实际费率（占初始资金）vs 名义费率（bps%）——两者分母不同，不得混读
+    expect(cost).toHaveTextContent('0.025%'); // 名义 0.00025
+    expect(cost).toHaveTextContent('0.30%'); // 费用占净值 fee_pct = 0.29788%
+    expect(cost).toHaveTextContent('成交额');
+  });
+
+  it('D15：`exposure === null` ⇒ 审计段显「未记录」（不得把 0 当读数）', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: null })));
+    const { run, result } = await seedRunAndResult(client);
+    const rows: WorkbenchBarRecord[] = result.per_bar.slice(0, 3).map((r) => ({
+      ...r, warmup: false, target_pct: 0.4, current_pct: 0.38, intent_pct: 0.42,
+    }));
+    render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), { ...result, per_bar: rows } as WorkbenchRunResult, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    const box = await screen.findByTestId('wb-result-exposure-audit-unrecorded');
+    expect(box).toHaveTextContent('未记录');
+    expect(screen.queryByTestId('wb-result-exposure-audit-counters')).toBeNull();
+  });
+
+  it('D12：`on_signal_break` 缺省（运行期 Pause）⇒ 必须写明「路径暂停、停在中途属契约行为」；`Continue` ⇒ 写明继续推进', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: EXPOSURE_AUDIT })));
+    const { run, result } = await seedRunAndResult(client);
+    const { unmount } = render(<ResultView {...mkProps(withPolicy(run, E15_POLICY), result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    const pauseNote = await screen.findByTestId('wb-result-exposure-break-note');
+    expect(pauseNote).toHaveTextContent('Pause');
+    expect(pauseNote).toHaveTextContent('缺省');
+    expect(pauseNote).toHaveTextContent('停在');
+    unmount();
+
+    const client2 = apiWithAudit(vi.fn(async () => ({ ...AUDIT_BASELINE, exposure: EXPOSURE_AUDIT })));
+    const seed2 = await seedRunAndResult(client2);
+    render(<ResultView {...mkProps(withPolicy(seed2.run, E15_POLICY_CONTINUE), seed2.result, { api: client2 })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    const contNote = await screen.findByTestId('wb-result-exposure-break-note');
+    expect(contNote).toHaveTextContent('Continue');
+    expect(contNote).toHaveTextContent('继续');
+  });
+
+  it('D12/零回归：`Immediate`（`on_signal_break` 不存在于该变体）⇒ 不渲染 break 注', async () => {
+    const user = userEvent.setup();
+    const client = apiWithAudit(vi.fn(async () => AUDIT_BASELINE));
+    const { run, result } = await seedRunAndResult(client);
+    const immediate = {
+      Exposure: { ...E15_POLICY.Exposure, ramp: { Immediate: null } },
+    } as unknown as WorkbenchRunView['config']['policy'];
+    render(<ResultView {...mkProps(withPolicy(run, immediate), result, { api: client })} />);
+    await user.click(await screen.findByTestId('wb-tab-metrics'));
+    await screen.findByTestId('wb-result-exposure-disclosure');
+    expect(screen.queryByTestId('wb-result-exposure-break-note')).toBeNull();
+  });
+});
