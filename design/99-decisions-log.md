@@ -426,3 +426,46 @@
 - **其余复验项处置**：R5（`ADR026_E2E_OUT` 仍可指向已跟踪目录）⇒ **接受**（默认值已改未跟踪目录，env 覆盖属显式调用者责任）；
   R6（`types.ts` 把 `target_pct/current_pct` 放宽为 `number|null`，**消费侧 null 处理未验证**）⇒ 并入 ADR-029 Step 1.5 **Lane C** 必查项；
   R7（`legacy` 谓词在 e2e 内已无使用方，但单测仍覆盖）⇒ **接受**（保留为通用解析能力）；R2/R3/R4/U2/U3 为已披露的残余风险，不阻断。
+
+### 追加登记（2026-09-29，Step 1.5 实施/部署期）
+
+- **线上键数口径（消歧）**：`/audit` 的 `exposure` 段**线上 = 17 键**（`ExposureAudit.warnings` 为结构内字段但**不序列化**，告警已合并进顶层 `warnings[]`）；
+  顶层 = **19 键**（原 18 + 追加在 `warnings` 之后的 `exposure`）。06-plan §3.1 已显式写明，防后人据"18"臆造第 18 个线上键。
+- **不可判口径（不造数）**：`max_intent_gap*` / `unmet_intent_bars` 在「旧 run 无意图观测」**或**「有意图数据但取不到 `deadzone_pct`」时为 `null`，且依赖它们的告警不触发。
+  实测旧 run `sr_1790610997443_000007`：`max_intent_gap=null`、`unmet_intent_bars=null`，而 `max_target_gap` 在值、`cost_amplification=12.772548093571702` ⇒「无此语义」与「零值」可区分。
+- **部署记录（Step 1.5 代码上线 :8081）**：新二进制 `target/debug/eestock-app` sha256 `573b0f443d795ac3e0f7b4697863965735c0c9a30e0d1a25e618e6faba9f8082`；
+  运行 PID `1497003`（`./target/debug/eestock-app --config /tmp/app_dev_8081.toml`，cwd = 仓库根）；日志 `logs/app_dev_8081_adr029_step1_5_20260929_012558.log`（新文件，未覆盖历史日志）；
+  旧 PID `1232788` 以 SIGTERM **1s 内**优雅退出；`/healthz`=200；`/audit` 实测新增 `exposure` 段（17 键）。
+- **运维事故（自登记，2026-09-29 01:26）**：编排侧在执行"追加本条目"时用了**未加引号**的 heredoc，导致文档内反引号包裹的 `target/debug/eestock-app` 被 shell 当命令执行 ⇒
+  ① 短暂拉起了一个**默认配置**的 `eestock-app` 实例（`./config/app.toml`），它在 `mcp_listen=8082` 端口冲突后**自行退出**，未影响在跑的 PID `1497003`（`/healthz` 仍 200）；
+  ② 该实例的启动日志被命令替换进文档，**已用 `git checkout --` 还原**后重新追加。
+  **教训（登记为纪律）**：向文档追加内容必须用**引号 heredoc（`<<'EOF'`）**；文档内引用**可执行文件路径**时同样会触发执行 —— 这是"文档写入触发副作用"的通用风险。
+  影响面核查：该实例仅做 schema 自检与策略播种（`seeded=0 / skipped=0`），**对活库零写**；残留进程已确认无（`pgrep` 仅剩 1497003）。
+
+### 追加登记（2026-09-29，Step 1.5 首轮独立复验收口）
+
+- **V1（E8′ 历史复现）实测**：5 个归档 run（`Exposure` 三形态 + `LumpSum` + `Dca`）重放 ⇒ **成交序列 sha256 逐字节一致、差异 0**；
+  `net_value`/`drawdown`/`position` 亦一致（000023 尾笔 `bar_index=427 qty=28.422648758307673 reason=ForceClose` 逐字复现）。
+- **发现的**观测级**缺口（新判据来源）**：`per_bar.deadzone_blocked` 由 `true→false` 翻转 **000023 104/178 bar、000025 10/178 bar**（`target_pct`/`current_pct`/`orders` 全同、无成交差异；伴生审计 `deadzone_blocked_bars` 168→143）。
+  根因：D13 的豁免条件原为 `desired == 0`，会把**已空仓且锚点=0**的中立带 bar 也判为"豁免" ⇒ 观测位翻转。
+  **收口（架构侧裁决）**：豁免条件收紧为 **`desired == 0.0 ∧ current_qty > 0.0`**（正在朝清仓推进**且仍有残仓**）。
+  语义不变（无残仓 ⇒ 本无单可下 ⇒ 保留旧观测；有残仓 ⇒ 豁免生效，F3 修复仍成立），新增判据 **E25（观测级历史复现）**锁死。
+- **V2（F2/F3 修复端到端，成对 run 只差 `on_signal_break`）**：`Continue` = `sr_1790616880637_000020` / `Pause` = `sr_1790616882776_000021`（518880/D1，MA 交叉，`ScoreMapped/Flat` + `RateCap{0.05, down 0.035}`）。
+  - **Continue**：bar 412 单根卖出档后，bar 413–421（Hold）**继续推进**（每 bar Sell ≈370–380 股），bar 422 **残仓 0.2043% < 死区 0.5% 仍挂 Sell 22.11 股（D13 豁免生效）** ⇒ 末根 `cur=0.0`、**末笔 ForceClose = 0 股**、无 `EXPOSURE_RESIDUAL_INTENT`；
+  - **Pause**：target 冻结在 0.0724（停在中途），末笔 ForceClose **820.77 股** + `EXPOSURE_RESIDUAL_INTENT`（含残仓股数口径）；
+  - 两支 `scores`/`signal`/`intent_pct` **428/428 相同**、`target_pct` 152/428 不同 ⇒ 差异**只**来自路径语义 ⇒ **F2/F3 修复成立**、F1（意图可见）成立。
+- **弱化/放宽证据**：复验方明确结论「**未发现**」（6 类改动逐条判定，含镜像测试收紧、`skip/fixme/only/#[ignore]` 全域 0 命中）。
+- **部署冒烟（真身）**：`GET /` 引用 `index-CzOzsQT8.js` 且与磁盘 **BYTE_IDENTICAL**；旧 run `/audit` = 19 顶层键 + `exposure` 17 键且意图类指标 `null`；新 run 数值在值；真渲染三层读数上屏、console/page/failed **全空**；
+  既有 e2e `adr026-audit` **7/7**、`dashboard-periods-ma` **5/5** 不回归；复验前后 `git status` 27 行逐行相同（零污染）。
+- **残余风险（登记，不阻断）**：① `Pause` 的"停在半途"仅在 `down_pct_per_bar < 未走完缺口` 时成立（预算足够时 Pause 亦可一根走完）——属契约条件性，已由披露（`EXPOSURE_UNMET_INTENT` 与结果页意图/目标差）覆盖；
+  ② `deadzone_min_notional` 的成本效果此前仅有单测覆盖（本轮补真实 run 证据）；③ `/audit` 在取消/并发路径下的抗性未取证；④ golden 字面量的"改动前出处"不可独立复核（等价命题已由 V1 真实重放独立取得）。
+
+### 追加登记（2026-09-29，收口轮独立复验的读数更正）
+
+- **更正一份旧读数**：首轮复验记「D13 收口前 000023 的审计 `deadzone_blocked_bars` 168→143」——收口轮独立重算为 **168→64（Δ=−104）**、000025 **169→159（Δ=−10）**，
+  与逐 bar 翻转数（104/10）自洽；「143」与 104 处翻转**算术上不可同真** ⇒ 以重算值为准，旧读数**作废**（ADR-029 R39 / 06-plan §2.5 已同步更正）。
+- **口径补充**：E25 的 `per_bar` 对照为**键序无关**（本批观测键插入位置有变，`per_bar` 原始 JSON 文本新旧不等；以原始文本 sha256 作门禁者须先规范化排序）。
+- **收口轮复验结论（采信）**：F1 语义改动 17 条**全部授权**、0 条拦下（豁免条件严格 = `desired_qty == 0.0 && current_qty > 0.0`，且**短路优先于** `deadzone_min_notional`）；
+  F2 E25 三 run 重放 ⇒ `deadzone_blocked` **差异 0**、其它键差异 0、4 序列 sha256 逐字节相同，且判别力自证（去掉该条件即复现 104/10）；
+  F3 两项变异真红且逐字节还原；F4 **断言计数只增不减**、`skip/only/ignore/todo` 0 命中、`e20_2` 尾段改动经独立判定**不是放宽**（反向变异下变红）；
+  F5 测试 392/271/1387/3/12 全绿、部署冒烟逐项通过、`exposure` 段 17 键逐字段独立重算 mismatch=0。

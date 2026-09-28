@@ -37,7 +37,8 @@
 ```
 
 - `RampSpec::RateCap { pct_per_bar: f64, down_pct_per_bar: Option<f64>, on_signal_break: Option<OnSignalBreak> }`
-  - `OnSignalBreak = Pause | Continue`（**只存在于 `RateCap`**：`Immediate` 无路径状态可暂停，其 Hold 带行为与 `Continue` 在中立带**等价**，故不增设字段）。
+  - `OnSignalBreak = Pause | Continue`（**只存在于 `RateCap`**：`Immediate` **恒取 `Pause`** —— 它在结构上无法携带该开关）。
+    **更正（ADR-029 §8.3 R37）**：原表述「`Immediate` 的 Hold 带行为与 `Continue` 在中立带**等价**」**已作废**（`Continue` 重算**比例** vs `Pause` 冻结**绝对股数**，不等价）。
   - **序列化纪律**：`RampSpec` 为手写 `Serialize/Deserialize`（契约唯一形态）⇒ `RateCapPayload` 两个新字段用 `#[serde(default)]` + `skip_serializing_if = "Option::is_none"` ⇒ **旧形态 `{"RateCap":{"pct_per_bar":x}}` 解析与产出逐字符不变**。
 - `GuardSpec { max_pct, min_pct, deadzone_pct, deadzone_min_notional: Option<f64> }`（元；`#[serde(default)]`）。
 
@@ -87,7 +88,11 @@ rate_limited = step != (desired − anchor)
 P5 affordability（仅 ScoreMapped，只降不升，沿用现行）→ desired 下调
 P6 死区：|desired − current| × price < max(deadzone_pct × equity, deadzone_min_notional ?? 0)
         ⇒ 命中（deadzone_blocked）
-   ★ 豁免（D13/E20）：desired == 0（**本 bar 正在朝清仓推进**）⇒ 死区**不适用**（不置 deadzone_blocked）
+   ★ 豁免（D13/E20；**2026-09-29 收口**）：仅当 **`desired == 0.0` ∧ `current_qty > 0.0`**（**正在朝清仓推进且仍有残仓**）
+      ⇒ 死区**不适用**（不置 deadzone_blocked）。
+     **为何要加 `current_qty > 0`**：独立复验（V1）实测，若只看 `desired == 0`，则“已空仓且锚点=0”的中立带 bar 会由 `deadzone_blocked=true` 翻为 `false`
+     （000023 104/178 bar、000025 10/178 bar，仅**观测位/审计计数**变而成交不变；伴生审计计数 **168→64**（Δ=−104）/ **169→159**（Δ=−10）——**读数更正**：首轮复验曾记「168→143」，该数与 104 处翻转算术上不可同真，已作废）⇒ 破坏历史 run 的**观测级**复现。加上该条件后：
+     无残仓 ⇒ 无单可下 ⇒ 保留旧观测（逐字节一致）；有残仓 ⇒ 豁免生效（F3 修复仍然成立）。
 P7 限速（见 2.4）
 P8 输出目标 = 死区命中 ? current_qty : (affordability_capped ? min(ramped, desired) : ramped)
 ```
@@ -113,6 +118,9 @@ P8 输出目标 = 死区命中 ? current_qty : (affordability_capped ? min(rampe
 
 `GET /api/workbench/runs/{id}/audit` 响应**新增一个键** `exposure`（追加在 `warnings` 之后，键序其余不变）：
 
+> **线上键数 = 17**（消歧，2026-09-29）：`ExposureAudit.warnings` 为**结构内字段但不序列化**（`#[serde(skip_serializing)]`，告警已合并进顶层 `warnings[]`）
+> ⇒ **线上 payload 恰好是本节样例的 17 键**；结构体字段数为 18。「18 键」指结构体字段，不得据以臆造第 18 个线上键。
+
 ```jsonc
 "exposure": {                       // 非 Exposure 策略 / 无观测 / recorded=false ⇒ null
   "bars": 1810,                     // 参与统计的评估段 bar 数（有观测者；不含预热）
@@ -129,6 +137,7 @@ P8 输出目标 = 死区命中 ? current_qty : (affordability_capped ? min(rampe
 ```
 
 - **改名（Rust 内部 + 结构化段）**：既有 `ExposureAudit::max_intent_gap`（实为执行层口径）**改名为 `max_target_gap`**；**新** `max_intent_gap` 是意图层口径。**告警码 `EXPOSURE_INTENT_GAP` 的名称与语义保持不变**（对外稳定），message 文本改为显式标注"输出目标 vs 实际"。
+- **不可判口径（可空，不造数）**：`max_intent_gap*` / `unmet_intent_bars` 在「无意图观测（旧 run）」**或**「有意图数据但取不到 `deadzone_pct`（策略快照不可解析）」时为 `null`；依赖它们的告警**不得触发**。
 - 两个**冻结镜像测试成对更新**（属**有意**变更，须在测试注释里写清"新增键 + 其余键序/值不变"）：`crates/application`（`report_serializes_frozen_field_names`）+ `crates/web/tests/adr026_run_audit.rs`（`assert_audit_key_order` / `assert_audit_shape`）。
 
 ### 3.2 告警码（全部经既有 `warnings[]`，数值入 message）
@@ -164,7 +173,8 @@ P8 输出目标 = 死区命中 ? current_qty : (affordability_capped ? min(rampe
 | **E22** | 残仓披露 | 末根 `intent_pct == 0 ∧ current_pct > 0.005` ⇒ 必出 `EXPOSURE_RESIDUAL_INTENT`；否则不出 | 去掉判据 ⇒ 必红 |
 | **E23** | 成本感知 | `deadzone_min_notional` 生效（阈值 = `max(deadzone_pct×equity, min_notional)`）；缺省 `None` ⇒ 与现行逐字节一致；`cost_amplification` 计算正确；用 **000007 真实读数**构造 ⇒ `EXPOSURE_COST_DRAG` 必触发（同一构造下既有 CHURN **不**触发，证明新码有鉴别力） | 把 amplification 恒置 1 ⇒ 必红 |
 | **E24** | 结构化出口 | `/audit` 新增 `exposure` 段：Exposure run ⇒ 全字段与真值一致；`LumpSum`/`Dca` run ⇒ `null` 且**其余键序不变**；两个镜像测试**成对**更新 | 把 `exposure` 恒置 null ⇒ 必红 |
-| **E8′** | **历史复现（回归门禁）** | 用**归档真实 run** 的 config 快照重跑：`Exposure`（000007/000023/000025 三种形态）+ `LumpSum` + `Dca` ⇒ **成交序列 sha256 逐字节一致**。<br>**范围界定（2026-09-29）**：D12 三项**缺省即现行**（不设 `Continue`/`down_pct_per_bar`/`deadzone_min_notional` ⇒ 无位移）；D13（清仓豁免死区）是**有意的行为修复**，其影响面 = 「清仓意图（`desired==0`）被死区拦 ∧ 残仓 > 0」的 bar —— 对**现存全部 67 个 Exposure run**（50 `ScoreMapped/Flat` + 14 `Fixed` + 3 `ScoreMapped/Scaled`）实测 **0 个** ⇒ 全库历史 run 成交序列**仍逐字节一致**，新语义只在**新配置**上体现；扫描脚本与原始输出：`coder/evidence/20260929_adr029_step1_5_arch/raw/11_d13_impact_scan.{sh,txt}` | — |
+| **E8′** | **历史复现（回归门禁）** | 用**归档真实 run** 的 config 快照重跑：`Exposure`（000007/000023/000025 三种形态）+ `LumpSum` + `Dca` ⇒ **成交序列 sha256 逐字节一致**。**范围界定**：D12 三项**缺省即现行**；D13（清仓豁免）是**有意的行为修复**，其**成交**影响面 =「清仓意图（`desired==0`）被死区拦 ∧ 残仓 > 0」的 bar —— 对现存全部 **67** 个 `Exposure` run 实测 **0 个**（扫描：`coder/evidence/20260929_adr029_step1_5_arch/raw/11_d13_impact_scan.{sh,txt}`） | — |
+| **E25（新，2026-09-29 复验收口）** | **观测级历史复现** | 同 E8′ 的重放，额外要求 **`per_bar` 逐 bar 全键一致**（**键序无关** —— 本批观测键插入位置有变，原始 JSON 文本新旧不等；以原始文本 sha256 作门禁者须先规范化排序）（唯一允许的差异 = 新增的 2 个观测键 `intent_pct`/`down_ramp_cap_pct_per_bar`）+ `net_value`/`drawdown`/`position` 逐字节一致。<br>**动因**：首轮复验实测 `deadzone_blocked` 在旧配置上 **104+10** bar 翻转（仅观测位/审计计数变、成交不变）⇒ 缺口由 D13 条件收口（增设 `current_qty > 0`），并由本条判据锁死 | 去掉 `current_qty > 0` 条件 ⇒ E25 必红（旧配置观测位又翻转） |
 
 ---
 

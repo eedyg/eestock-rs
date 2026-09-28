@@ -214,13 +214,18 @@ GuardSpec { max_pct, min_pct, deadzone_pct }
 `RateCap { pct_per_bar, down_pct_per_bar?: f64, on_signal_break?: Pause|Continue }`：
 - `down_pct_per_bar`：缺省 `None` ⇒ 对称（= `pct_per_bar`，**与现行逐字节一致**）；`0` ⇒ **下行不限速**（本 bar 目标直达意图，**仍不得越过意图**）；负数/非有限 ⇒ fail loud。
 - `on_signal_break`：缺省 `Pause`（= 现行：中立带输出冻结在上一**输出目标**）；`Continue` ⇒ 中立带继续朝 `intent` 推进（`intent` 按当前净值折算）。
-- **`on_signal_break` 只存在于 `RateCap`**：`Immediate` 无路径状态可暂停，其 Hold 带行为与 `Continue` 在中立带等价 ⇒ 不增设字段。
+- **`on_signal_break` 只存在于 `RateCap`**：`Immediate` **恒取 `Pause`**——它在结构上无法携带该开关（旧 JSON 只能走缺省路径）。
+  **更正（§8.3 R37）**：原表述「`Immediate` 的 Hold 带行为与 `Continue` 在中立带等价」**已作废** —— `Continue` 按当前净值折算**意图比例**，`Pause` 在中立带冻结**上一输出目标的绝对股数**（R5/E3 位级钉死）⇒ 二者不等价；为守住 E3/E13/E19④ 的兼容铁律，该开关**只在 `RateCap` 内**。
 - **登记**：`Continue` 即 D4 早已登记给 Step 2 的 `on_signal_break` 问题（"信号中断后未走完的路径：暂停还是继续"），本批以其**最小形态**（`RateCap` 内二值开关）落地。
 
 ### D13（清仓豁免死区）
-pipeline 死区步骤对 **`desired == 0`（本 bar 正在朝清仓推进）不适用**；其余情形（含 `Scaled` 降档至非零水位、分数抖动）死区语义**完全不变**。
+pipeline 死区步骤对 **`desired == 0` 且 `current_qty > 0`**（本 bar 正在朝清仓推进**且仍有残仓**）**不适用**；其余情形（含 `Scaled` 降档至非零水位、分数抖动、以及"已空仓且锚点=0"的中立带 bar）死区语义**完全不变**。
 **理由（取证）**：死区是"反对噪声"，而清仓是**明确意图**；被吃掉的尾段会让"可清零"结构性不成立（000023 实测：残仓 0.25% ≈ 249.73 元由 **`ForceClose`** 兜底，非策略清）。
+**条件收紧（2026-09-29 首轮复验收口，原文本仅 `desired == 0`）**：若只看 `desired == 0`，则"已空仓且锚点=0"的中立带 bar 会由 `deadzone_blocked=true` 翻为 `false`
+（实测 000023 **104/178** bar、000025 **10/178** bar，仅**观测位/审计计数**变而成交不变）⇒ 破坏历史 run 的**观测级**复现。加上 `current_qty > 0` 后：
+无残仓 ⇒ 本无单可下 ⇒ 保留旧观测（逐字节一致）；有残仓 ⇒ 豁免生效（F3 修复仍成立，实测 bar 422 残仓 0.2043% < 死区 0.5% 仍挂卖单、末笔强平 0 股）。
 **并发纪律**：本项**必须**与 D12 的 `Continue` 同时可用——**单做任一项都不能解决 F2/F3**（只豁免死区：Hold 带已抹掉意图 ⇒ 不下单；只做 `Continue`：尾段 < 死区 ⇒ 被拦）⇒ 判据 E20/E21 必须成对。
+**与 D14 的关系**：清仓豁免**优先于** `deadzone_min_notional`（清仓不得被成本门槛拦住）。
 
 ### D14（成本感知）
 - 新增可选 `guard.deadzone_min_notional`（**元**）：死区阈值 = `max(deadzone_pct × equity, deadzone_min_notional)`；缺省 `None` ⇒ 逐字节不变。
@@ -235,7 +240,7 @@ pipeline 死区步骤对 **`desired == 0`（本 bar 正在朝清仓推进）不�
 - 结构化出口：`/api/workbench/runs/{id}/audit` 新增 `exposure` 键（追加在 `warnings` 之后）⇒ **两个冻结镜像测试成对更新**（`report_serializes_frozen_field_names`、`crates/web/tests/adr026_run_audit.rs`），属**有意**变更。
 
 ### 8.1 判据（E18–E24；TDD 先红后绿；细节见 06-plan §4）
-E18 非对称速率｜E19 意图一等公民 + `on_signal_break` 四态（含"缺省 ⇒ 逐字节一致"）｜E20 清仓豁免死区｜E21 收敛四判（a 清仓含尾段到 0 / b 降档到 w₁ / c `Continue` 单根信号仍收敛 / d `Pause` 负向判据）｜E22 残仓披露｜E23 成本感知（缺省不变 + 新码有鉴别力）｜E24 结构化出口 + 镜像成对更新｜**E8′ 历史复现门禁**（归档真实 run：`Exposure` 三形态 + `LumpSum` + `Dca` ⇒ 成交序列 sha256 逐字节一致）。
+E18 非对称速率｜E19 意图一等公民 + `on_signal_break` 四态（含"缺省 ⇒ 逐字节一致"）｜E20 清仓豁免死区（`current_qty > 0` 条件）｜E21 收敛四判（a 清仓含尾段到 0 / b 降档到 w₁ / c `Continue` 单根信号仍收敛 / d `Pause` 负向判据）｜E22 残仓披露｜E23 成本感知（缺省不变 + 新码有鉴别力）｜E24 结构化出口 + 镜像成对更新｜**E8′ 历史复现门禁（成交级）**｜**E25 观测级历史复现**（`per_bar` 逐 bar 全键一致，唯一允许差异 = 新增 2 键）。
 
 **E8′ 范围界定（2026-09-29，实施取证后补）**：D12 三项**缺省即现行**（不设 `Continue`/`down_pct_per_bar`/`deadzone_min_notional` ⇒ 无位移）；**D13（清仓豁免死区）是有意的行为修复**，其行为差异只可能出现在「清仓意图（`desired == 0`）被死区拦 ∧ 残仓 > 0」的 bar。**影响面扫描（活库全量取证）**：现存 **67** 个 `Exposure` run（50 `ScoreMapped/Flat` + 14 `Fixed` + 3 `ScoreMapped/Scaled`）中该形态 bar = **0 个** ⇒ 全库历史 run 的成交序列**仍逐字节一致**，新语义只在**新配置**上体现。该扫描结论写入 `06-plan` 的 E8′ 行，供复验车道直接核。
 
@@ -254,6 +259,9 @@ E18 非对称速率｜E19 意图一等公民 + `on_signal_break` 四态（含"�
 | R34 | **可观测性缺口（我引入）** | 审计指标算完不出 API（只取 `warnings`）⇒ 用户对"为什么水位不动/卖出很小"结构上无出口；`deadzone_blocked` 占比 96.8% 无提示 | D15 结构化 `exposure` 段 + E24 |
 | R35 | **成本盲区（我引入）** | `deadzone_pct` 与 `min_fee` 无耦合；CHURN 门限对"min_fee 主导的小额再平衡"无鉴别力（32× 成本放大全绿） | D14 + E23 |
 | R36 | 登记（不阻断） | `Fixed` 与 `ScoreMapped` 的 Hold 语义**仍不对称**（`Pause` 下分别为"解冻"与"冻结"）；本批只保证 `Pause` 下逐字节兼容，二者统一留待 Step 2 重构目标层时处理 | 登记 Step 2 |
+| R39 | **观测级复现缺口（实施期由独立复验拦下，架构侧收口）** | D13 原条件 `desired == 0` 把"已空仓且锚点=0"的中立带 bar 也判为豁免 ⇒ 旧配置重放时 `per_bar.deadzone_blocked` 翻转 **104+10 bar**（000023/000025），审计 `deadzone_blocked_bars` **168→64**（Δ=−104，与 104 处逐 bar 翻转自洽）；000025 **169→159**（Δ=−10）。**读数更正**：首轮复验曾记「168→143」，该数与「104 处翻转」算术上不可同真 ⇒ 以收口轮独立重算（168→64）为准，旧读数作废；**成交序列不受影响** | D13 条件收紧为 `desired == 0 ∧ current_qty > 0`；新增判据 **E25（观测级历史复现）** 并补两条观测语义锁（`desired==0 ∧ current==0 ⇒ 保留旧观测`；`desired==0 ∧ current>0 ∧ gap<死区 ⇒ 豁免且必产单`） |
+| R40 | 登记（不阻断） | `Pause` 的"停在中途"仅在 `down_pct_per_bar < 未走完缺口` 时成立（预算足够时 Pause 亦可一根走完）——属**契约条件性**，由披露（`EXPOSURE_UNMET_INTENT` + 结果页意图/目标差）覆盖 | 登记；不新增校验（预算足够时本无"半途"可言） |
+| R41 | 登记（不阻断） | 新配置字段提交给**旧后端**会被 serde 静默忽略（未知字段容差）⇒ "UI 能回读"不等于"后端已支持"（复验已登记该鉴别力陷阱） | 部署纪律：新字段上线必须**重建+重启**后端（本轮部署记录见 `design/99-decisions-log.md`）；判据以 `per_bar` 新键与 `/audit.exposure` 段为准 |
 | R37 | **契约文本错误（我引入）** | 计划 §2.1 原称「`Immediate` 无路径状态可暂停，其 Hold 带行为与 `Continue` 在中立带**等价**」——**不成立**：`Continue` 把意图**比例**按当前净值重算，与 E3 钉死的「绝对股数冻结」是两回事；若按原文本实现，将同时与 E3/E13/E19④ 冲突（实施车道实测判据不可同时成立） | 追认实施结论：**`Immediate` 恒取 `Pause` 语义（= 现行）且不暴露该开关**；计划 §2.1 已更正并指向本条；`on_signal_break` **只存在于 `RateCap`** |
 | R38 | **判据口径变更（需背书）** | 用例 10 原判据「目标 run 来源列 = `['未记录']`」绑定的 legacy 形态 run 已**行删除**且**自 ADR-027 起后端必然写 `reason`** ⇒ 该形态经 API **不可再生**，保留即为**恒红** | 架构侧裁决**方案 B**：用例 10 改绑**真实基线 run** 读数 `['期末强平']` + 前置校验 `rt1.reason === 'ForceClose'`；「缺 `reason` ⇒ 未记录」判据改由**用例 12 客户端注入 + 变异反证**承担（断言文本一字未改，强度提高）；变更已登记在规格头部注释（日期/决策人/证据指向），并记入 `design/99-decisions-log.md` |
 
