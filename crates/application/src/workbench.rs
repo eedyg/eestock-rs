@@ -1611,10 +1611,10 @@ impl WorkbenchService {
             report.round_trips_closed = rt.closed;
             report.round_trips_open = rt.open;
             report.rt_reconcile = rt.reconcile;
-            // ADR-029 D7：意图 vs 实际差值 + 抖动指标。**只往既有 `warnings[]` 追加**
+            // ADR-029 D7：意图/输出目标 vs 实际差值 + 抖动指标。**只往既有 `warnings[]` 追加**
             //（项层键集/mirror 冻结测试不变）；指标结构体由纯函数单测直接断言。
             let exposure_bars = crate::audit::exposure_from_per_bar(&per_bar);
-            let exp = crate::audit::exposure_audit(
+            let mut exp = crate::audit::exposure_audit(
                 &exposure_bars,
                 &orders,
                 &fills,
@@ -1622,7 +1622,13 @@ impl WorkbenchService {
                 initial_capital,
                 policy.as_ref(),
             );
-            report.warnings.extend(exp.warnings);
+            report.warnings.extend(std::mem::take(&mut exp.warnings));
+            // ADR-029 Step 1.5（D15/E24）：**结构化出口** `exposure`（追加在 `warnings` 之后）。
+            // 门禁：策略为 `Exposure` ∧ 评估段有曝光观测（`recorded=false` 时根本不进本分支）
+            // ⇒ 否则 `None`（序列化 `null`）：「无此语义」与「零值」必须可区分。
+            if matches!(policy, Some(ExecutionPolicy::Exposure { .. })) && !exposure_bars.is_empty() {
+                report.exposure = Some(exp);
+            }
         }
         Ok(RunAudit { run_id: run_id.to_string(), report })
     }
@@ -2603,6 +2609,14 @@ fn bar_record_json(rec: &strategy_core::BarRecord) -> serde_json::Value {
         // 口径：target_pct/current_pct 均以决策 bar 收盘净值折算（current_pct 与持仓序列的
         // position_ratio 同点同值）；本块只读披露，**不参与**目标换算/订单判定。
         "target_pct": rec.policy_obs.target_pct,
+        // ADR-029 Step 1.5（D11/D12）新增观测键（均 `Option` ⇒ 预热段 / 旧 run / 非 `Exposure` 变体
+        // 为 `null`，**不得**用 0 冒充）：
+        // - `intent_pct`：本 bar **意图**占净值比（死区/限速**不**影响它）；
+        // - `down_ramp_cap_pct_per_bar`：本 bar **下行**速率预算占净值比（`RateCap` 时为
+        //   `down_pct_per_bar ?? pct_per_bar`；`Immediate`/预热/旧 run ⇒ `null`；`0` = 下行不限速）。
+        // 其余既有键**逐字不动**（键集由 `web/src/api/perBarObservationKeys.test.ts` 镜像冻结）。
+        "intent_pct": rec.policy_obs.intent_pct,
+        "down_ramp_cap_pct_per_bar": rec.policy_obs.down_ramp_cap_pct_per_bar,
         "current_pct": rec.policy_obs.current_pct,
         "ramp_cap_pct_per_bar": rec.policy_obs.ramp_cap_pct_per_bar,
         "rate_limited": rec.policy_obs.rate_limited,

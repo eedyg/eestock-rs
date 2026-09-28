@@ -1,8 +1,8 @@
 //! **ADR-029 §5 R13/R16 收口**：MCP 工具描述 ↔ 审计**告警码集合**的**双向防漂移**（手写，非 tangle）。
 //!
-//! 背景：ADR-029 新增两个告警码（`EXPOSURE_INTENT_GAP` / `EXPOSURE_CHURN` **只**经 `warnings[]` 披露，
-//! 裁决 Q2=A），而 `bt_get_run_audit` 的工具描述只列了 ADR-026/027 的三个旧码 ⇒ 调用方（agent）读不到新语义。
-//! 本文件把「描述与告警码集合一致」变成可执行判据（**加码/删码/改名任一方向漂移都红**）：
+//! 背景：ADR-029 新增的告警码（**只**经 `warnings[]` 披露，裁决 Q2=A），而 `bt_get_run_audit` 的工具描述
+//! 若漏列 ⇒ 调用方（agent）读不到新语义。本文件把「描述与告警码集合一致」变成可执行判据
+//!（**加码/删码/改名任一方向漂移都红**）：
 //!
 //! ```text
 //! crates/application/src/audit.rs 的 `pub const WARN_*: &str`（唯一事实源，源码解析）
@@ -10,14 +10,25 @@
 //! ```
 //!
 //! 卫生：纯函数 + 只读仓库内文件 ⇒ **无 DB / 无网络**。
+//!
+//! **Step 1.5（2026-09-29）**：`EXPOSURE_UNMET_INTENT` / `EXPOSURE_RESIDUAL_INTENT` / `EXPOSURE_COST_DRAG`
+//! 三个新码纳入（既有五个码**一个都不删**，码名不动）。
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 /// 工具名（本断言只锁 `bt_get_run_audit`：`warnings[]` 的唯一披露点）。
 const TOOL: &str = "bt_get_run_audit";
-/// ADR-029 新增的两个码（若被删/改名 ⇒ 本文件红，提示同步 ADR 与描述）。
-const ADR029_NEW_CODES: [&str; 2] = ["EXPOSURE_INTENT_GAP", "EXPOSURE_CHURN"];
+/// ADR-029 告警码（若被删/改名 ⇒ 本文件红，提示同步 ADR 与描述）。
+///
+/// `EXPOSURE_INTENT_GAP` / `EXPOSURE_CHURN` = Step 1（D7/E10）；三个 `Step 1.5` 码 = D14/D15。
+const ADR029_NEW_CODES: [&str; 5] = [
+    "EXPOSURE_INTENT_GAP",
+    "EXPOSURE_CHURN",
+    "EXPOSURE_UNMET_INTENT",
+    "EXPOSURE_RESIDUAL_INTENT",
+    "EXPOSURE_COST_DRAG",
+];
 
 /// 告警码事实源：解析 `crates/application/src/audit.rs` 里 `pub const WARN_*: &str = "CODE";`。
 fn warn_codes() -> BTreeSet<String> {
@@ -93,8 +104,8 @@ fn code_tokens(desc: &str) -> BTreeSet<String> {
 fn warn_code_source_is_parsed() {
     let codes = warn_codes();
     assert!(
-        codes.len() >= 5,
-        "audit.rs 的 `pub const WARN_*` 至少 5 个（PARTIAL_DEPLOYMENT/DCA_PLAN_UNDERFILLED/ORDERS_UNEXECUTED + ADR-029 两个）：{codes:?}"
+        codes.len() >= 8,
+        "audit.rs 的 `pub const WARN_*` 至少 8 个（PARTIAL_DEPLOYMENT/DCA_PLAN_UNDERFILLED/ORDERS_UNEXECUTED + ADR-029 五个）：{codes:?}"
     );
     for c in ADR029_NEW_CODES {
         assert!(codes.contains(c), "ADR-029 新增码 {c} 必须存在于审计事实源：{codes:?}");
@@ -124,7 +135,7 @@ fn mcp_tool_description_mentions_no_unknown_warning_code() {
     );
 }
 
-/// ④ 本批收口证据：两个新码在描述里各出现**至少一次**且带语义（非仅列名）。
+/// ④ 本批收口证据：ADR-029 各码在描述里各出现**至少一次**且带语义（非仅列名）。
 #[test]
 fn adr029_codes_are_described_with_semantics() {
     let desc = audit_description();
@@ -133,6 +144,12 @@ fn adr029_codes_are_described_with_semantics() {
     }
     assert!(
         desc.contains("Exposure"),
-        "两个新码只在 `Exposure` 策略变体发声 ⇒ 描述必须点明该前提"
+        "这些码只在 `Exposure` 策略变体发声 ⇒ 描述必须点明该前提"
     );
+    // Step 1.5 三个新码各自的**语义关键词**（防「只补名字不补语义」的假同步）。
+    assert!(desc.contains("意图未被达成"), "EXPOSURE_UNMET_INTENT 须带语义：{desc}");
+    assert!(desc.contains("残仓"), "EXPOSURE_RESIDUAL_INTENT 须带语义（残仓）：{desc}");
+    assert!(desc.contains("成本放大"), "EXPOSURE_COST_DRAG 须带语义（成本放大）：{desc}");
+    assert!(desc.contains("on_signal_break"), "UNMET_INTENT 须点明 on_signal_break 口径：{desc}");
+    assert!(desc.contains("exposure"), "描述须披露结构化 `exposure` 段：{desc}");
 }

@@ -72,7 +72,7 @@ pub use engine::{
     CIRCUIT_BREAKER_THRESHOLD,
 };
 pub use policy::{
-    DcaMode, ExecutionPolicy, ExposureState, ExposureTarget, GuardSpec, PolicyObservation,
-    PolicyOutcome, PolicyState, RampSpec, SellPolicy, TargetBranch,
+    DcaMode, ExecutionPolicy, ExposureState, ExposureTarget, GuardSpec, OnSignalBreak,
+    PolicyObservation, PolicyOutcome, PolicyState, RampSpec, SellPolicy, TargetBranch,
 };
 pub use stop::{StopConfig, StopKind, StopTrigger, TrailingState};

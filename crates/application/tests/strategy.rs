@@ -1317,7 +1317,14 @@ async fn test_run_rejects_invalid_exposure_policy_at_submit() {
             sell: strategy_core::SellPolicy::Flat,
         },
         ramp: RampSpec::Immediate,
-        guard: GuardSpec { max_pct: 0.9, min_pct: 0.0, deadzone_pct: 0.0 },
+        // ADR-029 Step 1.5（D14）：`GuardSpec` 增 `deadzone_min_notional: Option<f64>`。
+        // 本处**只机械补字段**（`None` = 现行纯比例口径），**不改任何断言口径**。
+        guard: GuardSpec {
+            max_pct: 0.9,
+            min_pct: 0.0,
+            deadzone_pct: 0.0,
+            deadzone_min_notional: None,
+        },
     };
     probe
         .validate_with_thresholds(

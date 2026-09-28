@@ -222,11 +222,26 @@ async fn clean(pool: &PgPool, fx: &Fix) {
 /// `assert_eq!(obj.len(), N)` 必红。本冻结集与**事实源同步**：`crates/application/src/audit.rs
 /// ::AuditReport` 的字段声明序（其单测 `report_serializes_frozen_field_names` 为同源镜像）。
 /// 断言仍是**精确集合**（不多不少）+ 顺序声明（见 [`assert_audit_key_order`]），**非**「包含」式。
-const AUDIT_KEYS: [&str; 18] = [
+const AUDIT_KEYS: [&str; 19] = [
     "run_id", "recorded", "capital_basis", "deployed_notional", "deployed_pct", "cash_consumed",
     "cash_consumed_pct", "planned_tranches", "reachable_batches", "batches_done",
     "unexecuted_orders", "last_bar_unfilled", "round_trips_total", "round_trips_force_closed",
     "round_trips_closed", "round_trips_open", "rt_reconcile", "warnings",
+    // ADR-029 Step 1.5（D15/E24）**有意**新增的**末键**（与 `crates/application/src/audit.rs`
+    // 的 `report_serializes_frozen_field_names` **成对**更新）：
+    // 除该末键外其余 18 键的键集/键序/语义**逐字不变**（旧客户端的消费不受影响）。
+    "exposure",
+];
+
+/// `exposure` 段的冻结键集（`design/12-strategy-system/06-plan-exposure-step1_5.md` §3.1 样例**逐字**）。
+///
+/// `ExposureAudit.warnings` 是**结构内字段但不出 JSON**（有意）：该段告警已合并进顶层
+/// `warnings[]`（同一事实只一个出口）⇒ 本列表含 17 键、**不含** `warnings`。
+const EXPOSURE_KEYS: [&str; 17] = [
+    "bars", "orders", "orders_per_bar", "fees", "fee_pct", "nominal_fee_rate",
+    "cost_amplification", "max_target_gap", "max_target_gap_bar", "max_intent_gap",
+    "max_intent_gap_bar", "unmet_intent_bars", "clamped_bars", "deadzone_blocked_bars",
+    "rate_limited_bars", "sell_transition_bars", "affordability_capped_bars",
 ];
 
 fn assert_audit_shape(a: &Value) {
@@ -250,6 +265,29 @@ fn assert_audit_shape(a: &Value) {
     for w in a["warnings"].as_array().unwrap() {
         assert!(w["code"].is_string() && w["severity"].is_string() && w["message"].is_string(),
             "warning 须含 code/severity/message：{w}");
+    }
+    // ADR-029 Step 1.5（D15/E24）结构化段：`null`（非 Exposure / 无观测 / recorded=false）
+    // 或**精确 17 键对象**（键集冻结见 [`EXPOSURE_KEYS`]）。
+    match &a["exposure"] {
+        Value::Null => {}
+        Value::Object(o) => {
+            for k in EXPOSURE_KEYS {
+                assert!(o.contains_key(k), "exposure 缺字段 {k}：{a}");
+            }
+            assert_eq!(o.len(), EXPOSURE_KEYS.len(), "exposure 不得多出/少出字段（共 {}）：{a}", EXPOSURE_KEYS.len());
+            for k in ["bars", "orders", "clamped_bars", "deadzone_blocked_bars", "rate_limited_bars",
+                      "sell_transition_bars", "affordability_capped_bars"] {
+                assert!(o[k].is_u64(), "exposure.{k} 须为计数：{a}");
+            }
+            for k in ["orders_per_bar", "fees", "fee_pct", "max_target_gap"] {
+                assert!(o[k].is_number(), "exposure.{k} 须为数值：{a}");
+            }
+            for k in ["nominal_fee_rate", "cost_amplification", "max_intent_gap", "max_intent_gap_bar",
+                      "unmet_intent_bars"] {
+                assert!(o[k].is_null() || o[k].is_number(), "exposure.{k} 须为数值或 null：{a}");
+            }
+        }
+        other => panic!("exposure 须为对象或 null：{other}"),
     }
 }
 
@@ -369,6 +407,10 @@ async fn audit_endpoint_matches_recorded_facts_and_404_semantics() {
     assert_eq!(r.status(), 200, "audit 应 200: {:?}", r.text().await);
     // 顺序声明在**原始响应文本**上挣得（`Value` 的键序不可断言）；再解析为 `Value` 做精确集合/语义断言。
     let raw = r.text().await.unwrap();
+    if std::env::var("EESTOCK_ADR029_DUMP").is_ok() {
+        // 非 `Exposure`（Dca）真实 run 的原始响应：`exposure` 为 **null** 且仍是**末键**（键序不变）。
+        eprintln!("Dca run {run_id} audit raw = {raw}");
+    }
     assert_audit_key_order(&raw);
     let a: Value = serde_json::from_str(&raw).unwrap();
     assert_audit_shape(&a);
@@ -390,6 +432,7 @@ async fn audit_endpoint_matches_recorded_facts_and_404_semantics() {
         "warning 顺序 = ADR-026 §2.2（DCA → 未满仓 → 挂单）"
     );
     assert!(a["deployed_pct"].as_f64().unwrap() < 0.5, "DCA 等额分批 2/10 ⇒ 敞口约 20%");
+    assert_eq!(a["exposure"], json!(null), "非 Exposure（Dca）⇒ 结构化段为 null（且键序不变）");
     cross_check_with_facts(&http, &url, &run_id, &a).await;
 
     // ── 404 语义 ──
@@ -441,8 +484,165 @@ async fn audit_recorded_false_when_facts_are_missing() {
     assert_eq!(a["reachable_batches"], json!(0));
     assert_eq!(a["planned_tranches"], json!(100), "planned 来自 run config（与事实源无关）");
     assert_eq!(a["warnings"], json!([]), "事实源不齐不得产出「0% 投入」这类伪告警");
+    assert_eq!(a["exposure"], json!(null), "recorded=false ⇒ 结构化段必为 null（无观测可言）");
     // 收尾：只删本用例自己造的行（`strategy_run_result` 对 run 行 ON DELETE CASCADE）。
     sqlx::query("DELETE FROM strategy_run WHERE id = $1").bind(&id).execute(&pool).await.unwrap();
+}
+
+// ── ADR-029 Step 1.5（D15/E24）：结构化 `exposure` 段（真实 Exposure run 端到端） ──
+//
+// 本用例是 E24 的**端到端**半边（纯函数半边在 `crates/application/tests/adr029_step1_5_audit_disclosure.rs`）：
+// 真起一个 `Exposure` run（ScoreMapped(0.2↔0.8, Flat) × RateCap(0.05) × guard(max 0.9/min 0/deadzone 0.005)），
+// 然后**只用 /bars 与 /fills 的事实独立重算**段内每个字段——不得引用实现内部量（否则测试无鉴别力）。
+#[tokio::test]
+async fn audit_exposure_segment_matches_recorded_facts_for_exposure_run() {
+    let pool = pool().await;
+    let url = spawn(state(pool.clone())).await;
+    let http = reqwest::Client::new();
+    let fx = fix("expo");
+    clean(&pool, &fx).await;
+    seed_symbol_and_bars(&pool, &fx).await;
+    let vid = create_published(&http, &url, &format!("{}-trend", fx.name_prefix), TREND).await;
+
+    let body = submit_body(&fx.code, &vid, json!({"Exposure": {
+        "target": {"ScoreMapped": {"at_threshold_pct": 0.2, "at_full_pct": 0.8, "sell": "Flat"}},
+        "ramp": {"RateCap": {"pct_per_bar": 0.05}},
+        "guard": {"max_pct": 0.9, "min_pct": 0.0, "deadzone_pct": 0.005}
+    }}));
+    let r = http.post(format!("{url}/api/workbench/runs")).json(&body).send().await.unwrap();
+    assert_eq!(r.status(), 201, "submit 应 201: {:?}", r.text().await);
+    let run_id = r.json::<Value>().await.unwrap()["id"].as_str().unwrap().to_string();
+    let fin = wait_terminal(&http, &url, &run_id).await;
+    assert_eq!(fin["status"], json!("succeeded"), "应成功: {:?}", fin["error"]);
+
+    // ① 契约键序/键集（原始响应文本上挣得） + 结构性段存在
+    let r = http.get(format!("{url}/api/workbench/runs/{run_id}/audit")).send().await.unwrap();
+    assert_eq!(r.status(), 200, "audit 应 200");
+    let raw = r.text().await.unwrap();
+    assert_audit_key_order(&raw);
+    let a: Value = serde_json::from_str(&raw).unwrap();
+    assert_audit_shape(&a);
+    assert!(a["exposure"].is_object(), "Exposure run ⇒ 结构化段必存在：{a}");
+    let e = &a["exposure"];
+
+    // ② 事实（只用端点读到的 per_bar / fills）
+    let bars: Value = http
+        .get(format!("{url}/api/workbench/runs/{run_id}/bars?kind=per_bar&limit=20000"))
+        .send().await.unwrap().json().await.unwrap();
+    let per_bar = bars["bars"].as_array().expect("per_bar 数组");
+    // 观测序列（与 `exposure_from_per_bar` 同口径：非 warmup ∧ target/current 齐备）；元素 = (下标, 目标, 实际, 意图)
+    let obs: Vec<(usize, f64, f64, Option<f64>)> = per_bar
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| {
+            b["warmup"] != json!(true) && b["target_pct"].is_number() && b["current_pct"].is_number()
+        })
+        .map(|(i, b)| {
+            (
+                i,
+                b["target_pct"].as_f64().unwrap(),
+                b["current_pct"].as_f64().unwrap(),
+                b["intent_pct"].as_f64(),
+            )
+        })
+        .collect();
+    assert!(!obs.is_empty(), "本 run 必须有观测 bar（否则本用例空转）");
+    assert_eq!(e["bars"].as_u64().unwrap() as usize, obs.len(), "bars = 观测根数：{e}");
+
+    // B1：新增 per_bar 键（不可用 0 冒充；预热段为 null）
+    for (i, b) in per_bar.iter().enumerate() {
+        if b["warmup"] == json!(true) {
+            assert!(b["intent_pct"].is_null(), "warmup bar {i} 的 intent_pct 须为 null：{b}");
+            assert!(b["down_ramp_cap_pct_per_bar"].is_null(), "warmup bar {i} 的 down_ramp_cap_pct_per_bar 须为 null：{b}");
+        } else {
+            assert!(b["intent_pct"].is_number(), "in-range bar {i} 必带 `intent_pct`（新键）：{b}");
+            assert_eq!(b["down_ramp_cap_pct_per_bar"], json!(0.05),
+                "RateCap 缺省对称 ⇒ 下行预算 = pct_per_bar（新键）：{b}");
+        }
+    }
+    assert!(obs.iter().all(|o| o.3.is_some()), "Exposure run 的观测必带意图（B1 落库链）");
+
+    // 挂单数（in-range；与 `orders_from_per_bar` 同口径）
+    let orders: usize = per_bar.iter()
+        .filter(|b| b["warmup"] != json!(true))
+        .map(|b| b["orders"].as_array().map(Vec::len).unwrap_or(0))
+        .sum();
+    assert_eq!(e["orders"].as_u64().unwrap() as usize, orders, "orders = in-range 挂单数：{e}");
+    assert!((e["orders_per_bar"].as_f64().unwrap() - orders as f64 / obs.len() as f64).abs() < 1e-12);
+
+    // 滞后一 bar 最大差（执行层/意图层）——独立重算（配相邻决策 bar；末根无 t+1 排除）
+    let mut exp_target_gap = 0.0f64;
+    let mut exp_intent_gap: Option<f64> = None;
+    for w in obs.windows(2) {
+        if w[1].0 != w[0].0 + 1 {
+            continue;
+        }
+        exp_target_gap = exp_target_gap.max((w[0].1 - w[1].2).abs());
+        if let Some(intent) = w[0].3 {
+            let g = (intent - w[1].2).abs();
+            exp_intent_gap = Some(exp_intent_gap.map_or(g, |m: f64| m.max(g)));
+        }
+    }
+    let exp_intent_gap = exp_intent_gap.expect("意图数据存在 ⇒ 必可算");
+    assert!((e["max_target_gap"].as_f64().unwrap() - exp_target_gap).abs() < 1e-12,
+        "max_target_gap 须 = 逐 bar 重算值 {exp_target_gap}：{e}");
+    assert!((e["max_intent_gap"].as_f64().unwrap() - exp_intent_gap).abs() < 1e-12,
+        "max_intent_gap（意图层）须 = 逐 bar 重算值 {exp_intent_gap}：{e}");
+    assert!(e["unmet_intent_bars"].is_u64(), "Exposure + 意图数据 ⇒ 未达成计数必可得：{e}");
+
+    // 观测桶计数
+    let cnt = |k: &str| per_bar.iter().filter(|b| b[k] == json!(true)).count() as u64;
+    assert_eq!(e["clamped_bars"].as_u64().unwrap(), cnt("clamped_by_guard"));
+    assert_eq!(e["deadzone_blocked_bars"].as_u64().unwrap(), cnt("deadzone_blocked"));
+    assert_eq!(e["rate_limited_bars"].as_u64().unwrap(), cnt("rate_limited"));
+    assert_eq!(e["sell_transition_bars"].as_u64().unwrap(), cnt("sell_transition"));
+    assert_eq!(e["affordability_capped_bars"].as_u64().unwrap(), cnt("affordability_capped"));
+
+    // 费用与成本放大：用 /fills 的事实 + run 生效 fee 契约**手工重算**
+    let fills: Value = http
+        .get(format!("{url}/api/workbench/runs/{run_id}/fills?limit=20000"))
+        .send().await.unwrap().json().await.unwrap();
+    let fills = fills["fills"].as_array().expect("fills 数组");
+    let fee_cfg: Value = sqlx::query_scalar("SELECT config->'fee' FROM strategy_run WHERE id = $1")
+        .bind(&run_id).fetch_one(&pool).await.unwrap();
+    let rate = fee_cfg["rate_pct"].as_f64().unwrap() / 100.0;
+    let min_fee = fee_cfg["min_fee"].as_f64().unwrap();
+    let stamp = fee_cfg["stamp_duty_pct"].as_f64().unwrap_or(0.0) / 100.0;
+    let commission = |tv: f64| (tv * rate).max(min_fee);
+    let (mut fees, mut comm_total, mut tv_total) = (0.0f64, 0.0f64, 0.0f64);
+    for f in fills {
+        let tv = f["qty"].as_f64().unwrap() * f["price"].as_f64().unwrap();
+        let c = commission(tv);
+        comm_total += c;
+        tv_total += tv;
+        fees += c + if f["side"] == json!("Sell") { tv * stamp } else { 0.0 };
+    }
+    assert!(!fills.is_empty(), "本 run 必有成交（否则成本字段全 null，用例空转）");
+    let capital = a["capital_basis"].as_f64().unwrap();
+    assert!((e["fees"].as_f64().unwrap() - fees).abs() < 1e-9, "fees 须 = 手工复算 {fees}：{e}");
+    assert!((e["fee_pct"].as_f64().unwrap() - fees / capital).abs() < 1e-12);
+    assert!((e["nominal_fee_rate"].as_f64().unwrap() - rate).abs() < 1e-15,
+        "nominal_fee_rate = commission_rate_pct/100：{e}");
+    let amp = (comm_total / tv_total) / rate;
+    assert!((e["cost_amplification"].as_f64().unwrap() - amp).abs() < 1e-9,
+        "cost_amplification 须 = 手工复算 {amp}：{e}");
+
+    // 告警码集合 ⊆ 已知 8 码（本 run 具体是否触发不作假设；具鉴别力的触发判据在 application 层用例）
+    let known = [
+        "PARTIAL_DEPLOYMENT", "DCA_PLAN_UNDERFILLED", "ORDERS_UNEXECUTED", "EXPOSURE_INTENT_GAP",
+        "EXPOSURE_CHURN", "EXPOSURE_UNMET_INTENT", "EXPOSURE_RESIDUAL_INTENT", "EXPOSURE_COST_DRAG",
+    ];
+    for w in a["warnings"].as_array().unwrap() {
+        let c = w["code"].as_str().unwrap();
+        assert!(known.contains(&c), "出现未知告警码 {c}：{a}");
+    }
+    if std::env::var("EESTOCK_ADR029_DUMP").is_ok() {
+        // **原始响应文本**（键序未丢）：`exposure` 必须是末键、`run_id` 必须是首键。
+        eprintln!("Exposure run {run_id} audit raw = {raw}");
+        eprintln!("Exposure run {run_id} audit = {}", serde_json::to_string_pretty(&a).unwrap());
+    }
+
+    clean(&pool, &fx).await;
 }
 
 // ── ADR-026 §5 A3/A4：真实 run 回放（需先播种目标 run 的事实行） ──

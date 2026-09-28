@@ -94,6 +94,7 @@ fn run_policy(ramp: RampSpec) -> ExecutionPolicy {
             max_pct: 0.9,
             min_pct: 0.0,
             deadzone_pct: DEADZONE_PCT,
+            deadzone_min_notional: None,
         },
     }
 }
@@ -146,6 +147,8 @@ fn fixed_ratecap_ramp_reaches_target_within_six_bars() {
     let bars = flat_bars(12, 10.0);
     let cfg = buy_cfg(run_policy(RampSpec::RateCap {
         pct_per_bar: PCT_PER_BAR,
+        down_pct_per_bar: None,
+        on_signal_break: None,
     }));
     let res = run(&cfg, &bars);
     let table = dump(&res.per_bar);
@@ -239,6 +242,8 @@ fn fixed_ratecap_ramp_reaches_target_within_six_bars() {
 fn pure_policy_pipeline_ramps_five_pct_per_bar_to_target() {
     let policy = run_policy(RampSpec::RateCap {
         pct_per_bar: PCT_PER_BAR,
+        down_pct_per_bar: None,
+        on_signal_break: None,
     });
     let equity = INITIAL_CAPITAL;
     let price = 10.0;

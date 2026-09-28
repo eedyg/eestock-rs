@@ -1504,7 +1504,7 @@ fn buy_score_params() -> StrategyParams {
 }
 
 fn guard(max_pct: f64, min_pct: f64, deadzone_pct: f64) -> strategy_core::GuardSpec {
-    strategy_core::GuardSpec { max_pct, min_pct, deadzone_pct }
+    strategy_core::GuardSpec { max_pct, min_pct, deadzone_pct, deadzone_min_notional: None }
 }
 
 /// E10：每 bar 观测字段（`target_pct`/`current_pct`/`deadzone_blocked`/`clamped_by_guard`
@@ -1696,7 +1696,7 @@ fn adr029_e7_stop_reset_restarts_ramp_from_actual_exposure() {
         buy_score_params(),
         ExecutionPolicy::Exposure {
             target: strategy_core::ExposureTarget::Fixed { pct: 1.0 },
-            ramp: strategy_core::RampSpec::RateCap { pct_per_bar: 0.05 },
+            ramp: strategy_core::RampSpec::RateCap { pct_per_bar: 0.05, down_pct_per_bar: None, on_signal_break: None },
             guard: guard(1.0, 0.0, 0.0),
         },
     );

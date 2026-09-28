@@ -87,8 +87,20 @@ fn adr029_exposure_score_mapped_serde_round_trip() {
                 at_full_pct: 0.8,
                 sell: SellPolicy::Flat,
             },
-            ramp: RampSpec::RateCap { pct_per_bar: 0.05 },
-            guard: GuardSpec { max_pct: 0.9, min_pct: 0.0, deadzone_pct: 0.005 },
+            // ADR-029 Step 1.5（D12）：`RateCap` 增 `down_pct_per_bar`/`on_signal_break`。
+            // 本处**只机械补字段**（`None` = 现行对称速率 + `Pause` 缺省 ⇒ 逐字节一致），
+            // **不改任何断言口径**（`raw` 仍是旧形态 JSON ⇒ 往返/校验断言照旧成立）。
+            ramp: RampSpec::RateCap {
+                pct_per_bar: 0.05,
+                down_pct_per_bar: None,
+                on_signal_break: None,
+            },
+            guard: GuardSpec {
+                max_pct: 0.9,
+                min_pct: 0.0,
+                deadzone_pct: 0.005,
+                deadzone_min_notional: None,
+            },
         }
     );
     // 往返：序列化形态与输入逐字段一致（无 rename ⇒ 键名即字段名）

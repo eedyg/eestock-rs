@@ -63,6 +63,24 @@ pub enum ExposureTarget {
     },
 }
 
+/// 信号中断语义（ADR-029 D12；**只存在于 [`RampSpec::RateCap`]**）。
+///
+/// **为何不在 `Immediate` 上增设该字段**（06-plan §2.1；架构侧更正见 **ADR-029 §8.3 R37**）：
+/// `Immediate` **恒取 [`OnSignalBreak::Pause`]**，因为它**在结构上无法携带该开关**
+/// （`Immediate` 无 Hold 带路径状态可暂停 ⇒ 旧 JSON 只能走缺省路径）。
+/// 计划 §2.1 原文「`Immediate` 的 Hold 带行为与 `Continue` 在中立带**等价**」**已作废**：
+/// `Continue` 按**当前净值/价格**折算**意图比例**（ratio 重算），`Pause` 在中立带冻结
+/// **上一输出目标的绝对股数**（R5/E3 位级钉死）——两者**不等价**。为守住 E3/E13 与 E19④ 的
+/// 兼容铁律，该开关**只存在于 `RateCap` 内**（判定见 [`RampSpec::on_signal_break`]）。
+/// **兼容铁律**：缺省（旧 JSON 无该键）= [`OnSignalBreak::Pause`] = 现行语义。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OnSignalBreak {
+    /// 缺省 = 现行：中立带输出**冻结在上一输出目标**（`ScoreMapped`：绝对股数，R5）。
+    Pause,
+    /// 中立带继续朝 `intent` 推进（`intent` 按当前净值/价格折算）。
+    Continue,
+}
+
 /// 到达方式维（ADR-029 D4；Step 1 只做基元）。
 ///
 /// **serde 形态（契约见计划 05 的 JSONC）：**
@@ -78,13 +96,53 @@ pub enum RampSpec {
     RateCap {
         /// 每 bar 目标变动占净值上限，必须 > 0。
         pct_per_bar: f64,
+        /// **下行**每 bar 预算占净值比（ADR-029 D12；`None` ⇒ 对称 = `pct_per_bar`，与现行逐字节一致；
+        /// `0` ⇒ 下行无预算 = 本 bar 目标直达 desired，**仍不得越过 desired**）。
+        down_pct_per_bar: Option<f64>,
+        /// 信号中断语义（ADR-029 D12；`None` ⇒ [`OnSignalBreak::Pause`] = 现行）。
+        on_signal_break: Option<OnSignalBreak>,
     },
 }
 
+impl RampSpec {
+    /// **有效信号中断语义**（D12）：缺省 `Pause`；`Immediate` 恒 `Pause`。
+    ///
+    /// `Immediate` 取 `Pause` 的理由 = **兼容铁律**（`Immediate` 无处安放该字段 ⇒ 旧 JSON 只能走缺省路径）：
+    /// `Exposure{ScoreMapped}` 中立带在 `Immediate` 下保持**上一输出目标的绝对股数**（R5/E3 位级钉死），
+    /// 与 `Continue` 的「按当前净值折算 ratio」不同 ⇒ 若按 `Continue` 处理将破坏 E3/E13 与旧 run 复现。
+    pub fn on_signal_break(&self) -> OnSignalBreak {
+        match self {
+            // 兼容铁律：Immediate 只可能来自旧 JSON/旧 run ⇒ Pause（见上方文档）。
+            RampSpec::Immediate => OnSignalBreak::Pause,
+            RampSpec::RateCap { on_signal_break, .. } => {
+                on_signal_break.unwrap_or(OnSignalBreak::Pause)
+            }
+        }
+    }
+
+    /// **有效下行速率预算占净值比**（D12/观测键口径）：
+    /// `RateCap` ⇒ `down_pct_per_bar ?? pct_per_bar`（`0` = 下行不限速）；`Immediate` ⇒ `None`。
+    pub fn down_pct_per_bar(&self) -> Option<f64> {
+        match self {
+            RampSpec::Immediate => None,
+            RampSpec::RateCap { pct_per_bar, down_pct_per_bar, .. } => {
+                Some(down_pct_per_bar.unwrap_or(*pct_per_bar))
+            }
+        }
+    }
+}
+
 /// `RampSpec::RateCap` 的 JSON 载荷（`{"pct_per_bar": …}`）。
+///
+/// **旧形态逐字符不变**（06-plan §2.1 序列化纪律）：两个新字段 `default` + `skip_serializing_if`
+/// ⇒ `{"RateCap":{"pct_per_bar":0.05}}` 的解析与产出与 Step 1 完全一致。
 #[derive(serde::Serialize, serde::Deserialize)]
 struct RateCapPayload {
     pct_per_bar: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    down_pct_per_bar: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    on_signal_break: Option<OnSignalBreak>,
 }
 
 impl Serialize for RampSpec {
@@ -96,9 +154,16 @@ impl Serialize for RampSpec {
                 m.serialize_entry("Immediate", &Option::<()>::None)?;
                 m.end()
             }
-            RampSpec::RateCap { pct_per_bar } => {
+            RampSpec::RateCap { pct_per_bar, down_pct_per_bar, on_signal_break } => {
                 let mut m = s.serialize_map(Some(1))?;
-                m.serialize_entry("RateCap", &RateCapPayload { pct_per_bar: *pct_per_bar })?;
+                m.serialize_entry(
+                    "RateCap",
+                    &RateCapPayload {
+                        pct_per_bar: *pct_per_bar,
+                        down_pct_per_bar: *down_pct_per_bar,
+                        on_signal_break: *on_signal_break,
+                    },
+                )?;
                 m.end()
             }
         }
@@ -115,7 +180,11 @@ impl<'de> Deserialize<'de> for RampSpec {
         }
         match Raw::deserialize(d)? {
             Raw::Immediate(_) => Ok(RampSpec::Immediate),
-            Raw::RateCap(p) => Ok(RampSpec::RateCap { pct_per_bar: p.pct_per_bar }),
+            Raw::RateCap(p) => Ok(RampSpec::RateCap {
+                pct_per_bar: p.pct_per_bar,
+                down_pct_per_bar: p.down_pct_per_bar,
+                on_signal_break: p.on_signal_break,
+            }),
         }
     }
 }
@@ -127,8 +196,15 @@ pub struct GuardSpec {
     pub max_pct: f64,
     /// 目标比例**下界**（硬边界：对卖出支同样生效 ⇒ `min_pct > 0` 时目标不落于其下）。
     pub min_pct: f64,
-    /// 死区：`|目标 − 当前暴露|` 折算金额 < `deadzone_pct × equity` ⇒ 不下单。
+    /// 死区：`|目标 − 当前暴露|` 折算金额 < `max(deadzone_pct × equity, deadzone_min_notional)` ⇒ 不下单。
+    ///
+    /// **量纲披露（ADR-029 §8.2，登记不改行为）**：死区是**意图 gap 门**，**不是订单规模下限**——
+    /// 限速可把单笔订单切到死区之下（E12 有意钉死）；`deadzone_min_notional` 只抬高**门槛**。
     pub deadzone_pct: f64,
+    /// 死区**金额门槛**（元，ADR-029 D14）：阈值 = `max(deadzone_pct × equity, deadzone_min_notional)`；
+    /// 缺省 `None` ⇒ 纯比例口径（= 现行，**逐字节一致**）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadzone_min_notional: Option<f64>,
 }
 
 /// `Exposure` 运行态（ADR-029 D5/D6；每 run 一份，硬止损强平 ⇒ [`PolicyState::reset`]）。
@@ -144,6 +220,10 @@ pub struct ExposureState {
     /// **现金不可达上限**（ADR-029 D6-6 / R11 / E17）：买入被现金截断后一次性下调到的可达股数；
     /// **只降不升**；清仓（目标 0）或 `reset()` 后释放（镜像 `LumpSum` 的解冻口径）。
     pub affordable_cap_qty: Option<f64>,
+    /// 上一**非 Hold** bar 声明的**意图占净值比**（ADR-029 D11/D12；`ScoreMapped` 中立带沿用它继续推进，
+    /// 且**不因净值/价格漂移重算**该比例本身）。`None` ⇒ 尚无声明（首个评估 bar 即中立带）。
+    /// `reset()`（硬止损强平）随 `exposure` 一并清零（E7 口径）。
+    pub last_intent_pct: Option<f64>,
 }
 
 /// 每 bar 观测（ADR-029 D7；随既有 `per_bar` 记录通道输出，**不新增事实表**）。
@@ -154,10 +234,21 @@ pub struct ExposureState {
 pub struct PolicyObservation {
     /// 本 bar **输出目标**占净值比（死区命中 ⇒ = `current_pct`）。
     pub target_pct: Option<f64>,
-    /// 本 bar 当前暴露占净值比（决策 bar 收盘口径）。
+    /// 本 bar **意图**占净值比（ADR-029 D11；死区/限速**不**影响它）。
+    ///
+    /// 口径：Buy/Sell 档 = 本 bar 新声明的映射比例（**经 guard 夹取**，P1–P2）；
+    /// Hold 档 = 沿用上一非 Hold bar 的声明比例；尚无声明 ⇒ 当前持仓占比。
+    /// 比例本身无需换算 ⇒ `price/equity` 非法时仍可读（与 `target_pct` 的口径不同，见 06-plan §2.6）。
+    #[serde(default)]
+    pub intent_pct: Option<f64>,
+    /// 本 bar **当前暴露**占净值比（决策 bar 收盘口径）。
     pub current_pct: Option<f64>,
     /// `RateCap` 的 `pct_per_bar`（非 RateCap ⇒ None，即无速率预算）。
     pub ramp_cap_pct_per_bar: Option<f64>,
+    /// 本 bar **下行**速率预算占净值比（ADR-029 D12）：`RateCap` ⇒ `down_pct_per_bar ?? pct_per_bar`；
+    /// `Immediate` / 预热 / 旧 run ⇒ `None`。`0` = 下行不限速（配置值原样披露）。
+    #[serde(default)]
+    pub down_ramp_cap_pct_per_bar: Option<f64>,
     /// 限速步骤（pipeline ⑤）确实压缩了本 bar 目标变动。
     pub rate_limited: bool,
     /// 死区步骤（pipeline ④）命中 ⇒ **本 bar 不产订单**（含中立带保持时 Δ=0 的情形）。
@@ -244,13 +335,29 @@ impl ExecutionPolicy {
                         guard.deadzone_pct
                     ));
                 }
+                // ADR-029 D14（E23）：`deadzone_min_notional`（元）必须 ≥ 0 且有限（缺省 None = 比例口径）。
+                if let Some(m) = guard.deadzone_min_notional {
+                    if !m.is_finite() || m < 0.0 {
+                        return Err(format!(
+                            "Exposure.guard.deadzone_min_notional 必须为 ≥ 0 的有限值（单位：元），got {m}"
+                        ));
+                    }
+                }
                 match ramp {
                     RampSpec::Immediate => {}
-                    RampSpec::RateCap { pct_per_bar } => {
+                    RampSpec::RateCap { pct_per_bar, down_pct_per_bar, .. } => {
                         if !pct_per_bar.is_finite() || *pct_per_bar <= 0.0 {
                             return Err(format!(
                                 "Exposure.ramp.RateCap.pct_per_bar 必须为正有限值，got {pct_per_bar}"
                             ));
+                        }
+                        // ADR-029 D12（E18）：`down_pct_per_bar` 必须 ≥ 0 且有限（0 = 下行不限速；缺省 = 对称）。
+                        if let Some(d) = down_pct_per_bar {
+                            if !d.is_finite() || *d < 0.0 {
+                                return Err(format!(
+                                    "Exposure.ramp.RateCap.down_pct_per_bar 必须为 ≥ 0 的有限值（0 = 下行不限速），got {d}"
+                                ));
+                            }
                         }
                     }
                 }
@@ -482,9 +589,14 @@ impl PolicyState {
     /// - `score`：聚合分（仅 `Exposure` 使用；**旧变体忽略该参数**，行为不变，D2/D10）；
     /// - `buy_threshold`/`sell_threshold`：run 级阈值（`ScoreMapped` 的映射端点与分档依据；
     ///   旧变体忽略）；
-    /// - pipeline 顺序（ADR-029 D5，**顺序即契约**）：①分→比例（分数先夹 [0,100]）②`guard` 夹取
-    ///   ③换算股数 ④死区（命中 ⇒ 输出目标 = 当前持仓 = 零订单）⑤限速（不得越过目标）⑥下单（引擎按
-    ///   `目标 − 当前` 挂单）⑦记录观测。
+    /// - pipeline 顺序（ADR-029 D5 → Step 1.5 **保序扩展**为 P1–P8，**顺序即契约**）：
+    ///   P1 分→**意图比例**（分数先夹 [0,100]）→ P2 `guard` 夹取 → P3 换算**意图股数**
+    ///   → P4 路径推进（`desired`）→ P5 affordability（仅 `ScoreMapped`）→ P6 死区
+    ///   （阈值 = `max(deadzone_pct × equity, deadzone_min_notional)`；
+    ///   `desired == 0 ∧ current_qty > 0` **豁免**）
+    ///   → P7 限速（非对称：上行 `pct_per_bar`、下行 `down_pct_per_bar`）
+    ///   → P8 输出目标（死区命中 ⇒ 当前持仓 = 零订单）。
+    ///   引擎按下单（目标 − 当前）挂单、再记录观测。
     pub fn target_qty_with_score(
         &mut self,
         policy: &ExecutionPolicy,
@@ -568,61 +680,99 @@ impl PolicyState {
         let sell_transition = prev_branch
             .is_some_and(|p| (p == TargetBranch::Sell) != (branch == TargetBranch::Sell));
 
-        // ── ① score → 比例；② guard 夹取；③ 换算股数（D5 pipeline 顺序，勿调） ──
+        // 信号中断语义（ADR-029 D12）：缺省 `Pause`；`Immediate` 恒 `Pause`（兼容铁律，见
+        // `RampSpec::on_signal_break` 的文档）。
+        let on_break = ramp.on_signal_break();
+        // 上一**非 Hold** bar 声明的意图比例（D11：中立带沿用它，不因净值/价格漂移重算该比例本身）。
+        let prev_intent_pct = self.exposure.and_then(|st| st.last_intent_pct);
+        // 可换算性（P3 防御面）：与现行**同一**判据（不得放宽/收紧）。
+        let convertible = price > 0.0 && price.is_finite() && equity.is_finite();
+
+        // ── P1 分数 → 意图比例；P2 guard 夹取；P3 换算意图股数（06-plan §2.2–2.3） ──
         let mut clamped_by_guard = false;
         // 清仓意图（映射比例 ≤ 0）⇒ 释放现金不可达上限（ADR-029 D6-6：清仓结束持有周期，
         // 现金回笼 ⇒ 下一周期按目标重新建仓；镜像 LumpSum 的 Sell/Hold 解冻口径）。
         let mut liquidation_intent = false;
-        let mut desired_qty = match target {
+        // 本 bar **新声明**的意图比例（`Hold` 档 ⇒ `None`：沿用上一非 Hold bar，不覆写）。
+        let mut declared_intent_pct: Option<f64> = None;
+        // 意图股数（P3）与意图占净值比（观测键 D11）。
+        let (intent_qty, intent_pct_obs): (f64, Option<f64>) = match target {
             ExposureTarget::Fixed { pct } => {
                 // R2：`Fixed` 等价现行 LumpSum 的目标语义（含冻结/解冻/`Hold ⇒ 目标 = 当前`）；
                 // guard 先夹比例再换算。
                 //
                 // 注（与 LumpSum 的**唯一**可观测差异，且仅在中立带 + 限速同现时）：
-                // `Hold` 分支的期望值 = 当前持仓，随后 pipeline ⑤ 会把它相对**上一输出目标**限速推进
+                // `Hold` 分支的期望值 = 当前持仓，随后 P7 会把它相对**上一输出目标**限速推进
                 // ⇒ 若期间发生过部分成交（当前 ≠ 上一目标），本 bar 可能产生一笔朝当前持仓收敛的小单。
-                // `Immediate` 路径无 ⑤ ⇒ 与 LumpSum 逐位等价（E13）；死区（④）亦会先行吸收小差。
+                // `Immediate` 路径无 P7 ⇒ 与 LumpSum 逐位等价（E13）；死区（P6）亦会先行吸收小差。
+                //
+                // `Continue`（仅 `RateCap` 可达）下 `Hold` **不解冻**（保留冻结目标继续推进，§2.4）。
                 let eff = clamp_pct(*pct, guard);
                 clamped_by_guard = eff.to_bits() != pct.to_bits();
-                self.lump_target(eff, branch_signal(branch), equity, price, current_qty)
+                let qty = if branch == TargetBranch::Hold
+                    && on_break == OnSignalBreak::Continue
+                {
+                    self.lump_frozen.unwrap_or(current_qty)
+                } else {
+                    self.lump_target(eff, branch_signal(branch), equity, price, current_qty)
+                };
+                (qty, pct_of_nav(qty, equity, price))
             }
             ExposureTarget::ScoreMapped {
                 at_threshold_pct,
                 at_full_pct,
                 sell,
             } => {
-                if branch == TargetBranch::Hold {
-                    // R5：中立带**保持上一目标股数（绝对量）**，不随净值/价格漂移重算。
-                    // 无上一目标（首 bar 即中立）⇒ 目标 = 当前暴露（零订单）。
-                    self.exposure
-                        .and_then(|st| st.last_target_qty)
-                        .unwrap_or(current_qty)
-                } else if !(price > 0.0) || !price.is_finite() || !equity.is_finite() {
-                    // 无法换算（非正价格/非有限净值）⇒ 目标 = 当前（零订单，防御面不造数）。
-                    current_qty
-                } else {
-                    let pct_raw = if branch == TargetBranch::Buy {
+                // P1：Buy/Sell 档 = 本 bar **新声明**（端点钉死 / Scaled 线性）；
+                //     Hold 档 = 沿用上一非 Hold bar 的声明比例（无声明 ⇒ 当前持仓占比 = 零订单）。
+                let raw_pct = match branch {
+                    TargetBranch::Buy => Some(
                         // 端点钉死：score=buy_threshold ⇒ at_threshold_pct；score=100 ⇒ at_full_pct。
                         at_threshold_pct
                             + (s - buy_threshold) / (100.0 - buy_threshold)
-                                * (at_full_pct - at_threshold_pct)
-                    } else {
-                        match sell {
-                            // Flat：清仓。
-                            SellPolicy::Flat => 0.0,
-                            // Scaled（R6）：线性 (score=0 ⇒ 0) … (score=sell_threshold ⇒ at_threshold_pct)。
-                            SellPolicy::Scaled => at_threshold_pct * s / sell_threshold,
-                        }
-                    };
-                    let eff = clamp_pct(pct_raw, guard);
-                    clamped_by_guard = eff.to_bits() != pct_raw.to_bits();
-                    liquidation_intent = pct_raw <= 0.0;
-                    eff * equity / price
-                }
+                                * (at_full_pct - at_threshold_pct),
+                    ),
+                    TargetBranch::Sell => Some(match sell {
+                        // Flat：清仓。
+                        SellPolicy::Flat => 0.0,
+                        // Scaled（R6）：线性 (score=0 ⇒ 0) … (score=sell_threshold ⇒ at_threshold_pct)。
+                        SellPolicy::Scaled => at_threshold_pct * s / sell_threshold,
+                    }),
+                    TargetBranch::Hold => None,
+                };
+                let intent_pct = match raw_pct {
+                    Some(raw) => {
+                        // P2：guard 夹取（`min_pct` 只约束持有态；清仓意图可达，R9/E15）。
+                        let eff = clamp_pct(raw, guard);
+                        clamped_by_guard = eff.to_bits() != raw.to_bits();
+                        liquidation_intent = raw <= 0.0;
+                        declared_intent_pct = Some(eff);
+                        Some(eff)
+                    }
+                    None => prev_intent_pct.or_else(|| pct_of_nav(current_qty, equity, price)),
+                };
+                // P3：换算意图股数（price/equity 非法 ⇒ = 当前持仓，防御面不造数）。
+                let qty = match intent_pct {
+                    Some(r) if convertible => r * equity / price,
+                    _ => current_qty,
+                };
+                (qty, intent_pct)
             }
         };
 
-        // ── ③′ 现金不可达上限（ADR-029 D6-6 / R11 / E17）：目标**只可下调**到可达上限 ──
+        // ── P4 路径推进（§2.4）：`anchor` = 上一输出目标股数（首 bar = 当前持仓） ──
+        // Buy/Sell（有新声明）⇒ desired = 意图股数；Hold + `Pause` ⇒ `ScoreMapped` 冻结绝对股数（R5）、
+        // `Fixed` 现行解冻口径（= 当前持仓）；Hold + `Continue` ⇒ 继续朝意图推进。
+        let anchor = self
+            .exposure
+            .and_then(|st| st.last_target_qty)
+            .unwrap_or(current_qty);
+        let mut desired_qty = match (branch, target, on_break) {
+            (TargetBranch::Hold, ExposureTarget::ScoreMapped { .. }, OnSignalBreak::Pause) => anchor,
+            _ => intent_qty,
+        };
+
+        // ── P5 现金不可达上限（ADR-029 D6-6 / R11 / E17）：目标**只可下调**到可达上限 ──
         // 仅约束 `ScoreMapped`：`Fixed` 的等价机制是 `lump_frozen` 冻结目标下调（`clamp_lump_frozen`）。
         let mut affordability_capped = false;
         if matches!(target, ExposureTarget::ScoreMapped { .. }) {
@@ -634,30 +784,61 @@ impl PolicyState {
             }
         }
 
-        // ── ④ 死区：|目标 − 当前| 折算金额 < deadzone_pct × equity ⇒ 无订单 ──
-        let deadzone_hit = price > 0.0
+        // ── P6 死区（§2.5）：|目标 − 当前| 折算金额 < max(deadzone_pct × equity, deadzone_min_notional) ⇒ 无订单 ──
+        // 缺省 `None` ⇒ 纯比例口径（**逐字节**等价现行：不引入 `max(…, 0)`）。
+        let deadzone_amount = guard.deadzone_pct * equity;
+        let deadzone_threshold = match guard.deadzone_min_notional {
+            Some(m) => deadzone_amount.max(m),
+            None => deadzone_amount,
+        };
+        // ★ 清仓豁免（D13/E20；**2026-09-29 E25 收口**）：仅当 **`desired == 0.0` ∧ `current_qty > 0.0`**
+        // ——即**正在朝清仓推进且仍有残仓**——死区**不适用**（不置 deadzone_blocked）。
+        // 理由：死区是「反对噪声」，而清仓是**明确意图**；被吃掉的尾段会让「可清零」结构性不成立（F3/000023）。
+        // **为何要加 `current_qty > 0.0`**：已空仓且锚点 = 0 的中立带 bar（`desired = 锚点 = 0`）**本无单可下**
+        // ⇒ 若一并判成「豁免」，则 `deadzone_blocked` 会由旧 run 的 `true` 翻为 `false`（仅观测位/审计计数变、
+        // 成交不变）⇒ 破坏历史 run 的**观测级**复现（独立复验实测：000023 104/178 bar、000025 10/178 bar）。
+        // 故该情形**保留旧观测**（`|desired − current| = 0 < 死区` ⇒ 命中），语义与收口前逐字节一致。
+        // 量纲披露（§8.2）：死区是**意图 gap 门**而非订单规模下限 ⇒ 限速仍可把单笔订单切到死区之下（E12）。
+        let liquidation_with_residual = desired_qty == 0.0 && current_qty > 0.0;
+        let deadzone_hit = !liquidation_with_residual
+            && price > 0.0
             && price.is_finite()
             && equity.is_finite()
-            && (desired_qty - current_qty).abs() * price < guard.deadzone_pct * equity;
+            && (desired_qty - current_qty).abs() * price < deadzone_threshold;
 
-        // ── ⑤ 限速：本 bar 允许变动金额 ≤ pct_per_bar × equity（不得越过目标） ──
-        let legacy = self.exposure.unwrap_or_default();
-        let anchor = legacy.last_target_qty.unwrap_or(current_qty);
-        let (ramp_cap_pct_per_bar, rate_limited, ramped_qty) = match ramp {
-            RampSpec::Immediate => (None, false, desired_qty),
-            RampSpec::RateCap { pct_per_bar } => {
-                let cap_qty = if price > 0.0 && price.is_finite() && equity.is_finite() {
-                    pct_per_bar * equity / price
+        // ── P7 限速（§2.4）：**非对称** —— 上行预算 = `pct_per_bar`；下行预算 = `down_pct_per_bar ?? pct_per_bar`
+        //     （`0` ⇒ 下行无预算 = 本 bar 直达 desired，**仍不得越过 desired**）。金额口径 = `pct × equity / price`。
+        //     `price/equity` 非法 ⇒ 双向预算 0（防御面：无价不挪动，与现行同一退化口径）。
+        let (ramp_cap_pct_per_bar, down_ramp_cap_pct_per_bar, rate_limited, ramped_qty) = match ramp {
+            RampSpec::Immediate => (None, None, false, desired_qty),
+            RampSpec::RateCap { pct_per_bar, .. } => {
+                let down_pct = ramp.down_pct_per_bar().unwrap_or(*pct_per_bar);
+                let (up_cap_qty, down_cap_qty) = if convertible {
+                    (
+                        pct_per_bar * equity / price,
+                        if down_pct == 0.0 {
+                            // 下行**无预算**：不是「无约束的任意目标」，而是「本 bar 可走到 desired」
+                            // ⇒ 用 `-inf` 作下界，`clamp` 保证**不越过 desired**。
+                            f64::INFINITY
+                        } else {
+                            down_pct * equity / price
+                        },
+                    )
                 } else {
-                    0.0
+                    (0.0, 0.0)
                 };
                 let diff = desired_qty - anchor;
-                let step = diff.clamp(-cap_qty, cap_qty);
-                (Some(*pct_per_bar), step != diff, anchor + step)
+                let step = diff.clamp(-down_cap_qty, up_cap_qty);
+                (
+                    Some(*pct_per_bar),
+                    Some(down_pct),
+                    step != diff,
+                    anchor + step,
+                )
             }
         };
 
-        // ── ④ ⇒ ⑥：死区命中则不产订单（输出目标 = 当前持仓，订单增量 0）；否则输出限速后目标 ──
+        // ── P6 ⇒ P8：死区命中则不产订单（输出目标 = 当前持仓，订单增量 0）；否则输出限速后目标 ──
         // 上限对**输出目标**同样生效（D6-1：ramp 只决定靠近速率，不得越过上限）：限速锚点可能高于
         // 现金不可达上限（上一次声明目标）⇒ 若不夹取，会连续若干 bar 声明不可达目标（微单）。
         let output_qty = if affordability_capped {
@@ -667,7 +848,7 @@ impl PolicyState {
         };
         let target_qty = if deadzone_hit { current_qty } else { output_qty };
 
-        // ── ⑦ 记录观测 ──
+        // ── P8 记录观测 ──
         let st = self.exposure.get_or_insert_with(ExposureState::default);
         if liquidation_intent {
             // 清仓 ⇒ 释放上限（仅清仓意图；部分降档不清，以守**只降不升**）
@@ -675,6 +856,10 @@ impl PolicyState {
         }
         st.last_target_qty = Some(target_qty);
         st.last_branch = Some(branch);
+        // D11：仅**新声明**写入（Hold 沿用不覆写 ⇒ 中立带不会「自我续期」漂移意图）。
+        if let Some(r) = declared_intent_pct {
+            st.last_intent_pct = Some(r);
+        }
         st.ramp_used_qty_this_bar = if matches!(ramp, RampSpec::Immediate) {
             0.0
         } else {
@@ -682,8 +867,10 @@ impl PolicyState {
         };
         let observation = PolicyObservation {
             target_pct: pct_of_nav(target_qty, equity, price),
+            intent_pct: intent_pct_obs,
             current_pct: pct_of_nav(current_qty, equity, price),
             ramp_cap_pct_per_bar,
+            down_ramp_cap_pct_per_bar,
             rate_limited,
             deadzone_blocked: deadzone_hit,
             clamped_by_guard,
@@ -1281,7 +1468,7 @@ mod tests {
     }
 
     fn guard(max_pct: f64, min_pct: f64, deadzone_pct: f64) -> GuardSpec {
-        GuardSpec { max_pct, min_pct, deadzone_pct }
+        GuardSpec { max_pct, min_pct, deadzone_pct, deadzone_min_notional: None }
     }
 
     fn mapped(at_threshold_pct: f64, at_full_pct: f64, sell: SellPolicy) -> ExposureTarget {
@@ -1508,7 +1695,7 @@ mod tests {
         // pct_per_bar 0.05 × 净值 100_000 / 价 10 = 500 股/bar
         let p = exposure(
             mapped(0.2, 0.8, SellPolicy::Flat),
-            RampSpec::RateCap { pct_per_bar: 0.05 },
+            RampSpec::RateCap { pct_per_bar: 0.05, down_pct_per_bar: None, on_signal_break: None },
             guard(1.0, 0.0, 0.0),
         );
         let mut st = PolicyState::new();
@@ -1552,7 +1739,7 @@ mod tests {
     fn e7_reset_clears_exposure_path_state() {
         let p = exposure(
             mapped(0.2, 0.8, SellPolicy::Flat),
-            RampSpec::RateCap { pct_per_bar: 0.05 },
+            RampSpec::RateCap { pct_per_bar: 0.05, down_pct_per_bar: None, on_signal_break: None },
             guard(1.0, 0.0, 0.0),
         );
         let mut st = PolicyState::new();
@@ -1584,7 +1771,7 @@ mod tests {
         //   反序（限速在前、死区在后）：先压到 100 股，再判 |100−0|×price = 1000 < 死区 2000 ⇒ 拦死 ⇒ **零订单**。
         let p = exposure(
             mapped(0.2, 0.8, SellPolicy::Flat),
-            RampSpec::RateCap { pct_per_bar: 0.01 }, // cap = 100 股/bar
+            RampSpec::RateCap { pct_per_bar: 0.01, down_pct_per_bar: None, on_signal_break: None }, // cap = 100 股/bar
             guard(1.0, 0.0, 0.02),                   // 死区 = 2000 元 = 200 股 @10
         );
         let (t, o) = eval(&mut PolicyState::new(), &p, 100.0, 100_000.0, 10.0, 0.0);
@@ -1700,7 +1887,7 @@ mod tests {
     fn e11_validate_exposure_fails_loud() {
         let ok = exposure(
             mapped(0.2, 0.8, SellPolicy::Flat),
-            RampSpec::RateCap { pct_per_bar: 0.05 },
+            RampSpec::RateCap { pct_per_bar: 0.05, down_pct_per_bar: None, on_signal_break: None },
             guard(0.9, 0.0, 0.005),
         );
         ok.validate().expect("合法 Exposure 须通过");
@@ -1757,7 +1944,7 @@ mod tests {
         for bad in [0.0, -0.05, f64::NAN, f64::INFINITY] {
             assert!(exposure(
                 mapped(0.2, 0.8, SellPolicy::Flat),
-                RampSpec::RateCap { pct_per_bar: bad },
+                RampSpec::RateCap { pct_per_bar: bad, down_pct_per_bar: None, on_signal_break: None },
                 guard(0.9, 0.0, 0.0)
             )
             .validate()
@@ -1911,7 +2098,7 @@ mod tests {
         // 净值 100_000 / 价 10 ⇒ cap = 500 股/bar；死区 = 500 元 = 50 股。
         let p = exposure(
             mapped(0.2, 0.8, SellPolicy::Flat),
-            RampSpec::RateCap { pct_per_bar: 0.05 },
+            RampSpec::RateCap { pct_per_bar: 0.05, down_pct_per_bar: None, on_signal_break: None },
             guard(1.0, 0.0, 0.005),
         );
         let scores = [30.0, 40.0, 55.0, 70.0, 100.0, 100.0, 100.0, 45.0, 0.0];

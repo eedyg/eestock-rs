@@ -112,6 +112,7 @@ fn d3_policy(ramp: RampSpec) -> ExecutionPolicy {
             max_pct: 0.9,
             min_pct: 0.0,
             deadzone_pct: DEADZONE_PCT,
+            deadzone_min_notional: None,
         },
     }
 }
@@ -207,6 +208,7 @@ fn adr029_d3_scoremapped_cash_clip_reading_unchanged() {
                 max_pct: 1.0,
                 min_pct: 0.0,
                 deadzone_pct: 0.0, // 死区 0：隔离 affordability 机制（不靠死区消单）
+                deadzone_min_notional: None,
             },
         },
         100.0,
@@ -308,7 +310,7 @@ fn adr029_d3_scoremapped_cash_clip_reading_unchanged() {
 fn adr029_d3_invariant_no_deadzone_block_while_far_below_declared_target() {
     let price = 10.0;
     let bars = flat_bars(12, price);
-    let cfg = cfg_with(d3_policy(RampSpec::RateCap { pct_per_bar: PCT_PER_BAR }), 75.0);
+    let cfg = cfg_with(d3_policy(RampSpec::RateCap { pct_per_bar: PCT_PER_BAR, down_pct_per_bar: None, on_signal_break: None }), 75.0);
     let res = run(&cfg, &bars);
 
     let mut rows = String::from(
@@ -364,7 +366,7 @@ fn adr029_d3_invariant_no_deadzone_block_while_far_below_declared_target() {
 #[test]
 fn adr029_d3_fixed_ratecap_ramp_target_and_exposure_reach_thirty_pct() {
     let bars = flat_bars(12, 10.0);
-    let cfg = cfg_with(d3_policy(RampSpec::RateCap { pct_per_bar: PCT_PER_BAR }), 75.0);
+    let cfg = cfg_with(d3_policy(RampSpec::RateCap { pct_per_bar: PCT_PER_BAR, down_pct_per_bar: None, on_signal_break: None }), 75.0);
     let res = run(&cfg, &bars);
 
     let tgt: Vec<f64> = res.per_bar.iter().map(|r| r.policy_obs.target_pct.expect("t")).collect();
