@@ -82,8 +82,19 @@
  *
  * `ADR026_E2E_RUN` = **显式覆盖逃生门**（调试/复跑历史靶）：覆盖仍须**现场校验满足谓词**
  * （`assertRunMatchesPredicate`），不满足 ⇒ 同样显式红。
+ *
+ * ## 「选中靶 run」的窗口无关化（2026-09-29 修，**顺序敏感**修复）
+ *
+ * 现象（独立复验实测）：本批 ADR-029 e2e 向开发库新建 run 后，本规格 **7/7 红**，但根因不是产品缺陷——
+ * UI 运行列表只取 `limit=50&offset=0`（`web/src/features/workbench/store.ts` 的 `runLimit=50`），靶 run
+ * 被顶到**下标 57**（库内 185 run）⇒ `wb-run-select-<id>` **根本不渲染** ⇒ 原写法超时。
+ * 修法：选中步骤统一走 {@link selectRunById}（**唯一**选中入口）——优先直接找；找不到则有界点产品自带的
+ * **「加载更多」**（真实 testid `wb-runs-more`，源码 `web/src/features/workbench/RunList.tsx`：仅 `hasMore`
+ * 时渲染、`loadingMore` 时 disabled；每轮等列表**实际变长**，无硬 sleep）；仍找不到 ⇒ 明确文案抛错。
+ * 边界：**只**扩展「查找 run」的能力；解析谓词 / `guardResolved` 反硬编码护栏 / 所有断言的期望值与
+ * 用例集合**一字未改**，无 skip/only/fixme，无「重试到通过」式柔性重试。
  */
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -259,13 +270,99 @@ async function shotEl(page: Page, testId: string, name: string): Promise<void> {
   await page.getByTestId(testId).screenshot({ path: resolve(OUT, `${TAG}_${name}.png`) });
 }
 
+// ------------------------------------------------ 选中 run（**窗口无关**；2026-09-29 修）----
+/**
+ * `wb-run-list` 的**分页事实源**：`web/src/features/workbench/RunList.tsx` 的历史列表**只渲染已加载页**
+ * （`web/src/features/workbench/store.ts`：`runLimit = 50`，首屏 `offset=0`），余量靠产品自带的
+ * 「加载更多」按钮（下称 {@link RUNS_MORE_TESTID}）逐页**追加**（`loadMoreRuns()` 消费 `has_more`）。
+ * ⇒ 只要本轮别的工作流提交了新 run，历史更早的靶 run 就会被顶到第 2 页之后而**根本不渲染**
+ * ⇒ 原「`expect(select).toBeVisible()` 等它出现」的写法会**超时假红**（看似产品缺陷，实为**顺序敏感**）。
+ * 2026-09-29 实测（:8081 + 真实库）：库内 **185** run，`sr_1790614578393_000009` 落**下标 57**（首屏 50）。
+ *
+ * 修法**只扩展「查找 run」的能力**（有界翻页），**不软化任何断言**：解析失败仍是显式红、仍禁 skip、
+ * 仍禁静默换 run（谓词解析 + `guardResolved` 反硬编码护栏一字未动）。
+ */
+const RUNS_MORE_TESTID = 'wb-runs-more';
+/** 有界轮数上限（每页 50 条；实测 185 run ⇒ 3 页足够，给 20 轮余量）。 */
+const LOAD_MORE_MAX_ROUNDS = 20;
+/** 单轮「列表必须**实际变长**」的等待上限（消费 `loadingMore` ⇒ patch ⇒ 重渲染；不用硬 sleep）。 */
+const LOAD_MORE_WAIT_MS = 10_000;
+
+/** 本进程内「加载更多」实际点击轮数 / `selectRunById` 调用次数（进 stdout 读数 + 收尾汇总）。 */
+let LOAD_MORE_CLICKS = 0;
+let SELECT_RUN_CALLS = 0;
+
+/** 一轮「加载更多」之后的三种去向：已变长 / 已到底（按钮消失且未变长）/ 既未变长也未到底（超时）。 */
+type LoadMoreTick = 'grew' | 'exhausted' | 'timeout';
+
+/** 等**列表实际变长**（或确认已到底）——不用硬 sleep；超时返回 `timeout` 由调用方显式抛错。 */
+async function waitLoadMoreTick(page: Page, rows: Locator, before: number): Promise<LoadMoreTick> {
+  const deadline = Date.now() + LOAD_MORE_WAIT_MS;
+  for (;;) {
+    if ((await rows.count()) > before) return 'grew';
+    if ((await page.getByTestId(RUNS_MORE_TESTID).count()) === 0) return 'exhausted';
+    if (Date.now() > deadline) return 'timeout';
+    await page.waitForTimeout(50);
+  }
+}
+
+/** 找不到 run 的**显式红**错误（携现场读数：已加载行数 / 已点轮数 / 失败原因）。 */
+async function runNotFound(page: Page, runId: string, why: string, clicks: number): Promise<Error> {
+  const loaded = await page.locator('[data-testid^="wb-run-select-"]').count();
+  return new Error(
+    `[ADR-026 e2e] 历史列表里找不到 run ${runId} ⇒ **显式红**（禁静默换 run / 禁 skip）。` +
+      `原因：${why}；已点「加载更多」${clicks} 轮；当前已加载行数=${loaded}；` +
+      `列表底部仍有「${RUNS_MORE_TESTID}」=${(await page.getByTestId(RUNS_MORE_TESTID).count()) > 0}`,
+  );
+}
+
+/**
+ * **窗口无关**地选中列表里的某个 run（本规格**唯一**的选中入口）：
+ *  ① 优先直接找 `wb-run-select-<id>`（靶在首屏 ⇒ 零额外点击）；
+ *  ② 找不到 ⇒ 有界点产品自带的「加载更多」，每轮等列表**实际变长**后重试（最多 {@link LOAD_MORE_MAX_ROUNDS} 轮）；
+ *  ③ 仍找不到（或列表已到底 / 某轮后列表未变长）⇒ 以 {@link runNotFound} 的明确文案**抛错**。
+ * 只改「怎么找到 run」，**不改**任何断言的期望值。
+ */
+async function selectRunById(page: Page, runId: string): Promise<void> {
+  SELECT_RUN_CALLS += 1;
+  const rows = page.locator('[data-testid^="wb-run-select-"]');
+  const select = page.getByTestId(`wb-run-select-${runId}`);
+  await expect(rows.first(), '运行历史列表必须至少渲染 1 行').toBeVisible();
+
+  let clicks = 0;
+  for (;;) {
+    if ((await select.count()) > 0) break;
+    if (clicks >= LOAD_MORE_MAX_ROUNDS) {
+      throw await runNotFound(page, runId, `已点 ${clicks} 轮「加载更多」仍未见（上限 ${LOAD_MORE_MAX_ROUNDS} 轮）`, clicks);
+    }
+    const more = page.getByTestId(RUNS_MORE_TESTID);
+    if ((await more.count()) === 0) {
+      throw await runNotFound(page, runId, '列表已到底（无「加载更多」按钮）', clicks);
+    }
+    const before = await rows.count();
+    await more.scrollIntoViewIfNeeded();
+    await more.click(); // disabled（loadingMore）时 Playwright 自带等待
+    clicks += 1;
+    LOAD_MORE_CLICKS += 1;
+    const tick = await waitLoadMoreTick(page, rows, before);
+    if (tick === 'timeout') {
+      throw await runNotFound(page, runId, `点第 ${clicks} 轮后列表未变长（等待 ${LOAD_MORE_WAIT_MS}ms）`, clicks);
+    }
+    if (tick === 'exhausted' && (await select.count()) === 0) {
+      throw await runNotFound(page, runId, `点第 ${clicks} 轮后列表到底，最后一批仍未含目标`, clicks);
+    }
+  }
+  console.log(`[adr026-audit] selectRunById(${runId})：点「加载更多」${clicks} 轮（本进程累计 ${LOAD_MORE_CLICKS} 轮）`);
+  await expect(select).toBeVisible();
+  await select.scrollIntoViewIfNeeded();
+  await select.click();
+}
+
 /** 打开工作台并选中 run，等到结果视图与审计摘要（交易明细 Tab 为默认 Tab）上屏。 */
 async function openRun(page: Page, runId: string): Promise<void> {
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
-  const select = page.getByTestId(`wb-run-select-${runId}`);
-  await expect(select).toBeVisible();
-  await select.click();
+  await selectRunById(page, runId);
   await expect(page.getByTestId('wb-result')).toBeVisible();
   await expect(page.getByTestId('wb-run-title')).toBeVisible();
   await expect(page.getByTestId('wb-audit-summary')).toBeVisible();
@@ -408,6 +505,13 @@ async function resolveTargets(ctx: APIRequestContext): Promise<void> {
 
 test.beforeAll(async ({ request }) => {
   await resolveTargets(request);
+});
+
+/** 翻页读数汇总（stdout）：证明「窗口无关」不是靠首屏碰巧命中。 */
+test.afterAll(() => {
+  console.log(
+    `[adr026-audit] 汇总：selectRunById 调用 ${SELECT_RUN_CALLS} 次，共点「加载更多」${LOAD_MORE_CLICKS} 轮`,
+  );
 });
 
 // ---------------------------------------------------------------- 正向（A6）----
@@ -632,7 +736,7 @@ test('14_control_audit_500：审计端点 500 ⇒ 错误态 + console/网络采�
   );
   await page.goto('/backtest-workbench');
   await expect(page.getByTestId('wb-run-list')).toBeVisible();
-  await page.getByTestId(`wb-run-select-${targetRunId()}`).click();
+  await selectRunById(page, targetRunId()); // 窗口无关（靶可能在列表第 2 页之后）
   // 审计失败不得拖垮结果视图（非阻断）：错误态 + 重试按钮，表照常渲染
   await expect(page.getByTestId('wb-audit-error')).toBeVisible();
   const errText = await page.getByTestId('wb-audit-error').innerText();
